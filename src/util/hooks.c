@@ -1,7 +1,7 @@
 /*
  * hooks.c: implementation of the synchronous hooks support
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2010 Daniel Veillard
  *
  * This library is free software; you can redistribute it and/or
@@ -71,7 +71,9 @@ VIR_ENUM_IMPL(virHookSubop, VIR_HOOK_SUBOP_LAST,
 
 VIR_ENUM_IMPL(virHookQemuOp, VIR_HOOK_QEMU_OP_LAST,
               "start",
-              "stopped")
+              "stopped",
+              "prepare",
+              "release")
 
 VIR_ENUM_IMPL(virHookLxcOp, VIR_HOOK_LXC_OP_LAST,
               "start",
@@ -92,13 +94,12 @@ static int virHooksFound = -1;
 static int
 virHookCheck(int no, const char *driver) {
     char *path;
-    struct stat sb;
     int ret;
 
     if (driver == NULL) {
         virHookReportError(VIR_ERR_INTERNAL_ERROR,
                    _("Invalid hook name for #%d"), no);
-        return(-1);
+        return -1;
     }
 
     ret = virBuildPath(&path, LIBVIRT_HOOK_DIR, driver);
@@ -106,24 +107,22 @@ virHookCheck(int no, const char *driver) {
         virHookReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Failed to build path for %s hook"),
                            driver);
-        return(-1);
+        return -1;
     }
 
-    if (stat(path, &sb) < 0) {
+    if (!virFileExists(path)) {
         ret = 0;
         VIR_DEBUG("No hook script %s", path);
+    } else if (!virFileIsExecutable(path)) {
+        ret = 0;
+        VIR_WARN("Non-executable hook script %s", path);
     } else {
-        if ((access(path, X_OK) != 0) || (!S_ISREG(sb.st_mode))) {
-            ret = 0;
-            VIR_WARN("Non executable hook script %s", path);
-        } else {
-            ret = 1;
-            VIR_DEBUG("Found hook script %s", path);
-        }
+        ret = 1;
+        VIR_DEBUG("Found hook script %s", path);
     }
 
     VIR_FREE(path);
-    return(ret);
+    return ret;
 }
 
 /*

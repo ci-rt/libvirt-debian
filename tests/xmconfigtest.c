@@ -31,6 +31,7 @@
 #include "datatypes.h"
 #include "xen/xen_driver.h"
 #include "xen/xm_internal.h"
+#include "xenxs/xen_xm.h"
 #include "testutils.h"
 #include "testutilsxen.h"
 #include "memory.h"
@@ -74,7 +75,7 @@ static int testCompareParseXML(const char *xmcfg, const char *xml,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
 
-    if (!(conf = xenXMDomainConfigFormat(conn, def)))
+    if (!(conf = xenFormatXM(conn, def, xendConfigVersion)))
         goto fail;
 
     if (virConfWriteMem(gotxmcfgPtr, &wrote, conf) < 0)
@@ -127,7 +128,7 @@ static int testCompareFormatXML(const char *xmcfg, const char *xml,
     if (!(conf = virConfReadMem(xmcfgPtr, strlen(xmcfgPtr), 0)))
         goto fail;
 
-    if (!(def = xenXMDomainConfigParse(conn, conf)))
+    if (!(def = xenParseXM(conf, priv.xendConfigVersion, priv.caps)))
         goto fail;
 
     if (!(gotxml = virDomainDefFormat(def, VIR_DOMAIN_XML_SECURE)))
@@ -218,6 +219,8 @@ mymain(int argc, char **argv)
     DO_TEST("fullvirt-usbtablet", 2);
     DO_TEST("fullvirt-usbmouse", 2);
     DO_TEST("fullvirt-serial-file", 2);
+    DO_TEST("fullvirt-serial-dev-2-ports", 2);
+    DO_TEST("fullvirt-serial-dev-2nd-port", 2);
     DO_TEST("fullvirt-serial-null", 2);
     DO_TEST("fullvirt-serial-pipe", 2);
     DO_TEST("fullvirt-serial-pty", 2);

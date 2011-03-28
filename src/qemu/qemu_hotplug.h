@@ -24,49 +24,47 @@
 #ifndef __QEMU_HOTPLUG_H__
 # define __QEMU_HOTPLUG_H__
 
-# include <stdbool.h>
-
 # include "qemu_conf.h"
 # include "domain_conf.h"
 
 int qemuDomainChangeEjectableMedia(struct qemud_driver *driver,
                                    virDomainObjPtr vm,
                                    virDomainDiskDefPtr disk,
-                                   unsigned long long qemuCmdFlags,
+                                   virBitmapPtr qemuCaps,
                                    bool force);
 int qemuDomainAttachPciDiskDevice(struct qemud_driver *driver,
                                   virDomainObjPtr vm,
                                   virDomainDiskDefPtr disk,
-                                  unsigned long long qemuCmdFlags);
+                                  virBitmapPtr qemuCaps);
 int qemuDomainAttachPciControllerDevice(struct qemud_driver *driver,
                                         virDomainObjPtr vm,
                                         virDomainControllerDefPtr controller,
-                                        unsigned long long qemuCmdFlags);
+                                        virBitmapPtr qemuCaps);
 int qemuDomainAttachSCSIDisk(struct qemud_driver *driver,
                              virDomainObjPtr vm,
                              virDomainDiskDefPtr disk,
-                             unsigned long long qemuCmdFlags);
+                             virBitmapPtr qemuCaps);
 int qemuDomainAttachUsbMassstorageDevice(struct qemud_driver *driver,
                                          virDomainObjPtr vm,
                                          virDomainDiskDefPtr disk,
-                                         unsigned long long qemuCmdFlags);
+                                         virBitmapPtr qemuCaps);
 int qemuDomainAttachNetDevice(virConnectPtr conn,
                               struct qemud_driver *driver,
                               virDomainObjPtr vm,
                               virDomainNetDefPtr net,
-                              unsigned long long qemuCmdFlags);
+                              virBitmapPtr qemuCaps);
 int qemuDomainAttachHostPciDevice(struct qemud_driver *driver,
                                   virDomainObjPtr vm,
                                   virDomainHostdevDefPtr hostdev,
-                                  unsigned long long qemuCmdFlags);
+                                  virBitmapPtr qemuCaps);
 int qemuDomainAttachHostUsbDevice(struct qemud_driver *driver,
                                   virDomainObjPtr vm,
                                   virDomainHostdevDefPtr hostdev,
-                                  unsigned long long qemuCmdFlags);
+                                  virBitmapPtr qemuCaps);
 int qemuDomainAttachHostDevice(struct qemud_driver *driver,
                                virDomainObjPtr vm,
                                virDomainHostdevDefPtr hostdev,
-                               unsigned long long qemuCmdFlags);
+                               virBitmapPtr qemuCaps);
 int qemuDomainChangeGraphics(struct qemud_driver *driver,
                              virDomainObjPtr vm,
                              virDomainGraphicsDefPtr dev);
@@ -78,31 +76,31 @@ int qemuDomainChangeGraphicsPasswords(struct qemud_driver *driver,
 int qemuDomainDetachPciDiskDevice(struct qemud_driver *driver,
                                   virDomainObjPtr vm,
                                   virDomainDeviceDefPtr dev,
-                                  unsigned long long qemuCmdFlags);
-int qemuDomainDetachSCSIDiskDevice(struct qemud_driver *driver,
-                                   virDomainObjPtr vm,
-                                   virDomainDeviceDefPtr dev,
-                                   unsigned long long qemuCmdFlags);
+                                  virBitmapPtr qemuCaps);
+int qemuDomainDetachDiskDevice(struct qemud_driver *driver,
+                               virDomainObjPtr vm,
+                               virDomainDeviceDefPtr dev,
+                               virBitmapPtr qemuCaps);
 int qemuDomainDetachPciControllerDevice(struct qemud_driver *driver,
                                         virDomainObjPtr vm,
                                         virDomainDeviceDefPtr dev,
-                                        unsigned long long qemuCmdFlags);
+                                        virBitmapPtr qemuCaps);
 int qemuDomainDetachNetDevice(struct qemud_driver *driver,
                               virDomainObjPtr vm,
                               virDomainDeviceDefPtr dev,
-                              unsigned long long qemuCmdFlags);
+                              virBitmapPtr qemuCaps);
 int qemuDomainDetachHostPciDevice(struct qemud_driver *driver,
                                   virDomainObjPtr vm,
                                   virDomainDeviceDefPtr dev,
-                                  unsigned long long qemuCmdFlags);
+                                  virBitmapPtr qemuCaps);
 int qemuDomainDetachHostUsbDevice(struct qemud_driver *driver,
                                   virDomainObjPtr vm,
                                   virDomainDeviceDefPtr dev,
-                                  unsigned long long qemuCmdFlags);
+                                  virBitmapPtr qemuCaps);
 int qemuDomainDetachHostDevice(struct qemud_driver *driver,
                                virDomainObjPtr vm,
                                virDomainDeviceDefPtr dev,
-                               unsigned long long qemuCmdFlags);
+                               virBitmapPtr qemuCaps);
 
 
 #endif /* __QEMU_HOTPLUG_H__ */

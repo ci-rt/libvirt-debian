@@ -1,7 +1,7 @@
 /*
  * command.h: Child command execution
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -242,6 +242,12 @@ void virCommandWriteArgLog(virCommandPtr cmd,
  */
 char *virCommandToString(virCommandPtr cmd) ATTRIBUTE_RETURN_CHECK;
 
+
+/*
+ * Translate an exit status into a malloc'd string.
+ */
+char *virCommandTranslateStatus(int exitstatus) ATTRIBUTE_RETURN_CHECK;
+
 /*
  * Run the command and wait for completion.
  * Returns -1 on any error executing the
@@ -269,7 +275,17 @@ int virCommandWait(virCommandPtr cmd,
                    int *exitstatus) ATTRIBUTE_RETURN_CHECK;
 
 /*
- * Release all resources
+ * Abort an async command if it is running, without issuing
+ * any errors or affecting errno.  Designed for error paths
+ * where some but not all paths to the cleanup code might
+ * have started the child process.
+ */
+void virCommandAbort(virCommandPtr cmd);
+
+/*
+ * Release all resources.  The only exception is that if you called
+ * virCommandRunAsync with a non-null pid, then the asynchronous child
+ * is not reaped, and you must call waitpid() yourself.
  */
 void virCommandFree(virCommandPtr cmd);
 

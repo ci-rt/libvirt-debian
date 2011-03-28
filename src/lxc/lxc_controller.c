@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_controller.c: linux container process controller
@@ -29,8 +29,11 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <sys/utsname.h>
+#include <sys/personality.h>
 #include <unistd.h>
 #include <paths.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <getopt.h>
@@ -119,12 +122,10 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         virReportSystemError(-rc,
                              _("Unable to set memory limit for domain %s"),
                              def->name);
-        /* Don't fail if we can't set memory due to lack of kernel support */
-        if (rc != -ENOENT)
-            goto cleanup;
+        goto cleanup;
     }
 
-    if(def->mem.hard_limit) {
+    if (def->mem.hard_limit) {
         rc = virCgroupSetMemoryHardLimit(cgroup, def->mem.hard_limit);
         if (rc != 0) {
             virReportSystemError(-rc,
@@ -134,7 +135,7 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         }
     }
 
-    if(def->mem.soft_limit) {
+    if (def->mem.soft_limit) {
         rc = virCgroupSetMemorySoftLimit(cgroup, def->mem.soft_limit);
         if (rc != 0) {
             virReportSystemError(-rc,
@@ -144,8 +145,8 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         }
     }
 
-    if(def->mem.swap_hard_limit) {
-        rc = virCgroupSetSwapHardLimit(cgroup, def->mem.swap_hard_limit);
+    if (def->mem.swap_hard_limit) {
+        rc = virCgroupSetMemSwapHardLimit(cgroup, def->mem.swap_hard_limit);
         if (rc != 0) {
             virReportSystemError(-rc,
                                  _("Unable to set swap hard limit for domain %s"),
@@ -167,7 +168,8 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         rc = virCgroupAllowDevice(cgroup,
                                   dev->type,
                                   dev->major,
-                                  dev->minor);
+                                  dev->minor,
+                                  VIR_CGROUP_DEVICE_RWM);
         if (rc != 0) {
             virReportSystemError(-rc,
                                  _("Unable to allow device %c:%d:%d for domain %s"),
@@ -176,7 +178,8 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         }
     }
 
-    rc = virCgroupAllowDeviceMajor(cgroup, 'c', LXC_DEV_MAJ_PTY);
+    rc = virCgroupAllowDeviceMajor(cgroup, 'c', LXC_DEV_MAJ_PTY,
+                                   VIR_CGROUP_DEVICE_RWM);
     if (rc != 0) {
         virReportSystemError(-rc,
                              _("Unable to allow PYT devices for domain %s"),
@@ -323,6 +326,18 @@ ignorable_epoll_accept_errno(int errnum)
           || errnum == EWOULDBLOCK);
 }
 
+static bool
+lxcPidGone(pid_t container)
+{
+    waitpid(container, NULL, WNOHANG);
+
+    if (kill(container, 0) < 0 &&
+        errno == ESRCH)
+        return true;
+
+    return false;
+}
+
 /**
  * lxcControllerMain
  * @monitor: server socket fd to accept client requests
@@ -340,7 +355,8 @@ ignorable_epoll_accept_errno(int errnum)
 static int lxcControllerMain(int monitor,
                              int client,
                              int appPty,
-                             int contPty)
+                             int contPty,
+                             pid_t container)
 {
     int rc = -1;
     int epollFd;
@@ -446,7 +462,13 @@ static int lxcControllerMain(int monitor,
                         ++numActive;
                     }
                 } else if (epollEvent.events & EPOLLHUP) {
-                    DEBUG("EPOLLHUP from fd %d", epollEvent.data.fd);
+                    if (lxcPidGone(container))
+                        goto cleanup;
+                    curFdOff = epollEvent.data.fd == appPty ? 0 : 1;
+                    if (fdArray[curFdOff].active) {
+                        fdArray[curFdOff].active = 0;
+                        --numActive;
+                    }
                     continue;
                 } else {
                     lxcError(VIR_ERR_INTERNAL_ERROR,
@@ -485,7 +507,9 @@ static int lxcControllerMain(int monitor,
                 --numActive;
                 fdArray[curFdOff].active = 0;
             } else if (-1 == rc) {
-                goto cleanup;
+                if (lxcPidGone(container))
+                    goto cleanup;
+                continue;
             }
 
         }
@@ -545,6 +569,25 @@ static int lxcControllerCleanupInterfaces(unsigned int nveths,
     return 0;
 }
 
+static int lxcSetPersonality(virDomainDefPtr def)
+{
+    struct utsname utsname;
+    const char *altArch;
+
+    uname(&utsname);
+
+    altArch = lxcContainerGetAlt32bitArch(utsname.machine);
+    if (altArch &&
+        STREQ(def->os.arch, altArch)) {
+        if (personality(PER_LINUX32) < 0) {
+            virReportSystemError(errno, _("Unable to request personality for %s on %s"),
+                                 altArch, utsname.machine);
+            return -1;
+        }
+    }
+    return 0;
+}
+
 #ifndef MS_REC
 # define MS_REC          16384
 #endif
@@ -564,7 +607,7 @@ lxcControllerRun(virDomainDefPtr def,
     int rc = -1;
     int control[2] = { -1, -1};
     int containerPty = -1;
-    char *containerPtyPath;
+    char *containerPtyPath = NULL;
     pid_t container = -1;
     virDomainFSDefPtr root;
     char *devpts = NULL;
@@ -629,7 +672,8 @@ lxcControllerRun(virDomainDefPtr def,
         }
 
         VIR_DEBUG("Mouting 'devpts' on %s", devpts);
-        if (mount("devpts", devpts, "devpts", 0, "newinstance,ptmxmode=0666") < 0) {
+        if (mount("devpts", devpts, "devpts", 0,
+                  "newinstance,ptmxmode=0666,mode=0620,gid=5") < 0) {
             virReportSystemError(errno,
                                  _("Failed to mount devpts on %s"),
                                  devpts);
@@ -663,6 +707,8 @@ lxcControllerRun(virDomainDefPtr def,
         }
     }
 
+    if (lxcSetPersonality(def) < 0)
+        goto cleanup;
 
     if ((container = lxcContainerStart(def,
                                        nveths,
@@ -683,7 +729,7 @@ lxcControllerRun(virDomainDefPtr def,
     if (lxcControllerClearCapabilities() < 0)
         goto cleanup;
 
-    rc = lxcControllerMain(monitor, client, appPty, containerPty);
+    rc = lxcControllerMain(monitor, client, appPty, containerPty, container);
 
 cleanup:
     VIR_FREE(devptmx);

@@ -18,7 +18,6 @@
 
 # include <sys/types.h>
 # include <stdint.h>
-# include <stdbool.h>
 # include <libxml/uri.h>
 
 # include "internal.h"
@@ -26,12 +25,6 @@
 # include "domain_conf.h"
 # include "driver.h"
 # include "buf.h"
-
-# ifdef __sun
-#  define DEFAULT_VIF_SCRIPT "vif-vnic"
-# else
-#  define DEFAULT_VIF_SCRIPT "vif-bridge"
-# endif
 
 int
 xenDaemonOpen_unix(virConnectPtr conn, const char *path);
@@ -96,30 +89,6 @@ xenDaemonDomainFetch(virConnectPtr xend,
                      const char *name,
                      const char *cpus);
 
-virDomainDefPtr
-xenDaemonParseSxprString(virConnectPtr conn,
-                         const char *sexpr,
-                         int xendConfigVersion);
-
-int
-xenDaemonParseSxprSound(virDomainDefPtr def,
-                        const char *str);
-
-virDomainChrDefPtr
-xenDaemonParseSxprChar(const char *value,
-                       const char *tty);
-
-int
-xenDaemonFormatSxprChr(virDomainChrDefPtr def,
-                       virBufferPtr buf);
-int
-xenDaemonFormatSxprSound(virDomainDefPtr def,
-                         virBufferPtr buf);
-
-char *
-xenDaemonFormatSxpr(virConnectPtr conn,
-                    virDomainDefPtr def,
-                    int xendConfigVersion);
 
   int is_sound_model_valid(const char *model);
   int is_sound_model_conflict(const char *model, const char *soundstr);

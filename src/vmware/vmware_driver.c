@@ -189,7 +189,6 @@ vmwareStopVM(struct vmware_driver *driver, virDomainObjPtr vm)
     vmwareSetSentinal(cmd, ((vmwareDomainPtr) vm->privateData)->vmxPath);
 
     if (virRun(cmd, NULL) < 0) {
-        vmwareError(VIR_ERR_INTERNAL_ERROR, _("Could not exec %s"), VMRUN);
         return -1;
     }
 
@@ -222,7 +221,6 @@ vmwareStartVM(struct vmware_driver *driver, virDomainObjPtr vm)
         vmwareSetSentinal(cmd, NULL);
 
     if (virRun(cmd, NULL) < 0) {
-        vmwareError(VIR_ERR_INTERNAL_ERROR, _("Could not exec %s"), VMRUN);
         return -1;
     }
 
@@ -927,6 +925,11 @@ static virDriver vmwareDriver = {
     NULL,                       /* domainGetMaxMemory */
     NULL,                       /* domainSetMaxMemory */
     NULL,                       /* domainSetMemory */
+    NULL,                       /* domainSetMemoryFlags */
+    NULL,                       /* domainSetMemoryParameters */
+    NULL,                       /* domainGetMemoryParameters */
+    NULL,                       /* domainSetBlkioParameters */
+    NULL,                       /* domainGetBlkioParameters */
     vmwareDomainGetInfo,        /* domainGetInfo */
     NULL,                       /* domainSave */
     NULL,                       /* domainRestore */
@@ -987,6 +990,7 @@ static virDriver vmwareDriver = {
     NULL,                       /* domainGetJobInfo */
     NULL,                       /* domainAbortJob */
     NULL,                       /* domainMigrateSetMaxDowntime */
+    NULL,                       /* domainMigrateSetMaxSpeed */
     NULL,                       /* domainEventRegisterAny */
     NULL,                       /* domainEventDeregisterAny */
     NULL,                       /* domainManagedSave */
@@ -1002,8 +1006,6 @@ static virDriver vmwareDriver = {
     NULL,                       /* domainRevertToSnapshot */
     NULL,                       /* domainSnapshotDelete */
     NULL,                       /* qemuDomainMonitorCommand */
-    NULL,                       /* domainSetMemoryParameters */
-    NULL,                       /* domainGetMemoryParameters */
     NULL,                       /* domainOpenConsole */
 };
 

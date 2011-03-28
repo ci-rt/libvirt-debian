@@ -1,6 +1,7 @@
 /*
  * nwfilter_params.c: parsing and data maintenance of filter parameters
  *
+ * Copyright (C) 2011 Red Hat, Inc.
  * Copyright (C) 2010 IBM Corporation
  *
  * This library is free software; you can redistribute it and/or
@@ -34,7 +35,7 @@
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
 static void
-hashDealloc(void *payload, const char *name ATTRIBUTE_UNUSED)
+hashDataFree(void *payload, const void *name ATTRIBUTE_UNUSED)
 {
     VIR_FREE(payload);
 }
@@ -79,7 +80,7 @@ virNWFilterHashTablePut(virNWFilterHashTablePtr table,
             return 1;
         }
     } else {
-        if (virHashUpdateEntry(table->hashTable, name, val, hashDealloc) != 0) {
+        if (virHashUpdateEntry(table->hashTable, name, val) != 0) {
             return 1;
         }
     }
@@ -102,7 +103,7 @@ virNWFilterHashTableFree(virNWFilterHashTablePtr table)
     int i;
     if (!table)
         return;
-    virHashFree(table->hashTable, hashDealloc);
+    virHashFree(table->hashTable);
 
     for (i = 0; i < table->nNames; i++)
         VIR_FREE(table->names[i]);
@@ -119,9 +120,8 @@ virNWFilterHashTableCreate(int n) {
         virReportOOMError();
         return NULL;
     }
-    ret->hashTable = virHashCreate(n);
+    ret->hashTable = virHashCreate(n, hashDataFree);
     if (!ret->hashTable) {
-        virReportOOMError();
         VIR_FREE(ret);
         return NULL;
     }
@@ -134,7 +134,7 @@ virNWFilterHashTableRemoveEntry(virNWFilterHashTablePtr ht,
                                 const char *entry)
 {
     int i;
-    int rc = virHashRemoveEntry(ht->hashTable, entry, hashDealloc);
+    int rc = virHashRemoveEntry(ht->hashTable, entry);
 
     if (rc == 0) {
         for (i = 0; i < ht->nNames; i++) {
@@ -157,7 +157,7 @@ struct addToTableStruct {
 
 
 static void
-addToTable(void *payload, const char *name, void *data)
+addToTable(void *payload, const void *name, void *data)
 {
     struct addToTableStruct *atts = (struct addToTableStruct *)data;
     char *val;
@@ -172,10 +172,10 @@ addToTable(void *payload, const char *name, void *data)
         return;
     }
 
-    if (virNWFilterHashTablePut(atts->target, name, val, 1) != 0) {
+    if (virNWFilterHashTablePut(atts->target, (const char *)name, val, 1) != 0) {
         virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
                                _("Could not put variable '%s' into hashmap"),
-                               name);
+                               (const char *)name);
         atts->errOccurred = 1;
         VIR_FREE(val);
     }
@@ -265,13 +265,13 @@ struct formatterParam {
 
 
 static void
-_formatParameterAttrs(void *payload, const char *name, void *data)
+_formatParameterAttrs(void *payload, const void *name, void *data)
 {
     struct formatterParam *fp = (struct formatterParam *)data;
 
     virBufferVSprintf(fp->buf, "%s<parameter name='%s' value='%s'/>\n",
                       fp->indent,
-                      name,
+                      (const char *)name,
                       (char *)payload);
 }
 

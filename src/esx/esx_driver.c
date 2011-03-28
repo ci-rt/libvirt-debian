@@ -518,10 +518,11 @@ esxLookupHostSystemBiosUuid(esxPrivate *priv, unsigned char *uuid)
 
             if (strlen(dynamicProperty->val->string) > 0) {
                 if (virUUIDParse(dynamicProperty->val->string, uuid) < 0) {
-                    ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                              _("Could not parse UUID from string '%s'"),
-                              dynamicProperty->val->string);
-                    goto cleanup;
+                    VIR_WARN("Could not parse host UUID from string '%s'",
+                             dynamicProperty->val->string);
+
+                    /* HostSystem has an invalid UUID, ignore it */
+                    memset(uuid, 0, VIR_UUID_BUFLEN);
                 }
             } else {
                 /* HostSystem has an empty UUID */
@@ -625,6 +626,7 @@ esxConnectToHost(esxPrivate *priv, virConnectAuthPtr auth,
     int result = -1;
     char ipAddress[NI_MAXHOST] = "";
     char *username = NULL;
+    char *unescapedPassword = NULL;
     char *password = NULL;
     char *url = NULL;
     esxVI_String *propertyNameList = NULL;
@@ -656,10 +658,16 @@ esxConnectToHost(esxPrivate *priv, virConnectAuthPtr auth,
         }
     }
 
-    password = virRequestPassword(auth, username, hostname);
+    unescapedPassword = virRequestPassword(auth, username, hostname);
+
+    if (unescapedPassword == NULL) {
+        ESX_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Password request failed"));
+        goto cleanup;
+    }
+
+    password = esxUtil_EscapeForXml(unescapedPassword);
 
     if (password == NULL) {
-        ESX_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Password request failed"));
         goto cleanup;
     }
 
@@ -726,8 +734,9 @@ esxConnectToHost(esxPrivate *priv, virConnectAuthPtr auth,
     result = 0;
 
   cleanup:
-    VIR_FREE(password);
     VIR_FREE(username);
+    VIR_FREE(unescapedPassword);
+    VIR_FREE(password);
     VIR_FREE(url);
     esxVI_String_Free(&propertyNameList);
     esxVI_ObjectContent_Free(&hostSystem);
@@ -747,6 +756,7 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
     int result = -1;
     char ipAddress[NI_MAXHOST] = "";
     char *username = NULL;
+    char *unescapedPassword = NULL;
     char *password = NULL;
     char *url = NULL;
 
@@ -778,10 +788,16 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
         }
     }
 
-    password = virRequestPassword(auth, username, hostname);
+    unescapedPassword = virRequestPassword(auth, username, hostname);
+
+    if (unescapedPassword == NULL) {
+        ESX_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Password request failed"));
+        goto cleanup;
+    }
+
+    password = esxUtil_EscapeForXml(unescapedPassword);
 
     if (password == NULL) {
-        ESX_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Password request failed"));
         goto cleanup;
     }
 
@@ -821,8 +837,9 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
     result = 0;
 
   cleanup:
-    VIR_FREE(password);
     VIR_FREE(username);
+    VIR_FREE(unescapedPassword);
+    VIR_FREE(password);
     VIR_FREE(url);
 
     return result;
@@ -4576,6 +4593,11 @@ static virDriver esxDriver = {
     esxDomainGetMaxMemory,           /* domainGetMaxMemory */
     esxDomainSetMaxMemory,           /* domainSetMaxMemory */
     esxDomainSetMemory,              /* domainSetMemory */
+    NULL,                            /* domainSetMemoryFlags */
+    esxDomainSetMemoryParameters,    /* domainSetMemoryParameters */
+    esxDomainGetMemoryParameters,    /* domainGetMemoryParameters */
+    NULL,                            /* domainSetBlkioParameters */
+    NULL,                            /* domainGetBlkioParameters */
     esxDomainGetInfo,                /* domainGetInfo */
     NULL,                            /* domainSave */
     NULL,                            /* domainRestore */
@@ -4636,6 +4658,7 @@ static virDriver esxDriver = {
     NULL,                            /* domainGetJobInfo */
     NULL,                            /* domainAbortJob */
     NULL,                            /* domainMigrateSetMaxDowntime */
+    NULL,                            /* domainMigrateSetMaxSpeed */
     NULL,                            /* domainEventRegisterAny */
     NULL,                            /* domainEventDeregisterAny */
     NULL,                            /* domainManagedSave */
@@ -4651,8 +4674,6 @@ static virDriver esxDriver = {
     esxDomainRevertToSnapshot,       /* domainRevertToSnapshot */
     esxDomainSnapshotDelete,         /* domainSnapshotDelete */
     NULL,                            /* qemuDomainMonitorCommand */
-    esxDomainSetMemoryParameters,    /* domainSetMemoryParameters */
-    esxDomainGetMemoryParameters,    /* domainGetMemoryParameters */
     NULL,                            /* domainOpenConsole */
 };
 

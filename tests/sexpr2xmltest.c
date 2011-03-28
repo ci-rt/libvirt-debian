@@ -9,6 +9,7 @@
 #include "datatypes.h"
 #include "xen/xen_driver.h"
 #include "xen/xend_internal.h"
+#include "xenxs/xen_sxpr.h"
 #include "testutils.h"
 #include "testutilsxen.h"
 
@@ -25,6 +26,9 @@ static int testCompareFiles(const char *xml, const char *sexpr,
   char *gotxml = NULL;
   char *xmlPtr = &(xmlData[0]);
   char *sexprPtr = &(sexprData[0]);
+  int id;
+  char * tty;
+  int vncport;
   int ret = -1;
   virDomainDefPtr def = NULL;
   virConnectPtr conn;
@@ -48,7 +52,13 @@ static int testCompareFiles(const char *xml, const char *sexpr,
   if (virMutexInit(&priv.lock) < 0)
       goto fail;
 
-  if (!(def = xenDaemonParseSxprString(conn, sexprData, xendConfigVersion)))
+  id = xenGetDomIdFromSxprString(sexprData, xendConfigVersion);
+  xenUnifiedLock(&priv);
+  tty = xenStoreDomainGetConsolePath(conn, id);
+  vncport = xenStoreDomainGetVNCPort(conn, id);
+  xenUnifiedUnlock(&priv);
+
+  if (!(def = xenParseSxprString(sexprData, xendConfigVersion, tty, vncport)))
       goto fail;
 
   if (!(gotxml = virDomainDefFormat(def, 0)))
@@ -158,6 +168,8 @@ mymain(int argc, char **argv)
 
     DO_TEST("fv-serial-null", "fv-serial-null", 1);
     DO_TEST("fv-serial-file", "fv-serial-file", 1);
+    DO_TEST("fv-serial-dev-2-ports", "fv-serial-dev-2-ports", 1);
+    DO_TEST("fv-serial-dev-2nd-port", "fv-serial-dev-2nd-port", 1);
     DO_TEST("fv-serial-stdio", "fv-serial-stdio", 1);
     DO_TEST("fv-serial-pty", "fv-serial-pty", 1);
     DO_TEST("fv-serial-pipe", "fv-serial-pipe", 1);

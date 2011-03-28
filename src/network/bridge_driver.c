@@ -109,6 +109,16 @@ static void networkReloadIptablesRules(struct network_driver *driver);
 static struct network_driver *driverState = NULL;
 
 static char *
+networkDnsmasqLeaseFileName(const char *netname)
+{
+    char *leasefile;
+
+    virAsprintf(&leasefile, DNSMASQ_STATE_DIR "/%s.leases",
+                netname);
+    return leasefile;
+}
+
+static char *
 networkRadvdPidfileBasename(const char *netname)
 {
     /* this is simple but we want to be sure it's consistently done */
@@ -126,6 +136,15 @@ networkRadvdConfigFileName(const char *netname)
     virAsprintf(&configfile, RADVD_STATE_DIR "/%s-radvd.conf",
                 netname);
     return configfile;
+}
+
+static char *
+networkBridgeDummyNicName(const char *brname)
+{
+    char *nicname;
+
+    virAsprintf(&nicname, "%s-nic", brname);
+    return nicname;
 }
 
 static void
@@ -431,12 +450,9 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
                         virCommandPtr cmd) {
     int r, ret = -1;
     int nbleases = 0;
-    char *bridgeaddr;
     int ii;
     virNetworkIpDefPtr tmpipdef;
 
-    if (!(bridgeaddr = virSocketFormatAddr(&ipdef->address)))
-        goto cleanup;
     /*
      * NB, be careful about syntax for dnsmasq options in long format.
      *
@@ -468,11 +484,18 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
     virCommandAddArgPair(cmd, "--pid-file", pidfile);
 
     /* *no* conf file */
-    virCommandAddArgList(cmd, "--conf-file=", "", NULL);
+    virCommandAddArg(cmd, "--conf-file=");
 
     virCommandAddArgList(cmd,
                          "--except-interface", "lo",
                          NULL);
+
+    /* If this is an isolated network, set the default route option
+     * (3) to be empty to avoid setting a default route that's
+     * guaranteed to not work.
+     */
+    if (network->def->forwardType == VIR_NETWORK_FORWARD_NONE)
+        virCommandAddArg(cmd, "--dhcp-option=3");
 
     /*
      * --interface does not actually work with dnsmasq < 2.47,
@@ -492,78 +515,88 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
         VIR_FREE(ipaddr);
     }
 
-    for (r = 0 ; r < ipdef->nranges ; r++) {
-        char *saddr = virSocketFormatAddr(&ipdef->ranges[r].start);
-        if (!saddr)
-            goto cleanup;
-        char *eaddr = virSocketFormatAddr(&ipdef->ranges[r].end);
-        if (!eaddr) {
-            VIR_FREE(saddr);
-            goto cleanup;
-        }
-        virCommandAddArg(cmd, "--dhcp-range");
-        virCommandAddArgFormat(cmd, "%s,%s", saddr, eaddr);
-        VIR_FREE(saddr);
-        VIR_FREE(eaddr);
-        nbleases += virSocketGetRange(&ipdef->ranges[r].start,
-                                      &ipdef->ranges[r].end);
-    }
-
-    /*
-     * For static-only DHCP, i.e. with no range but at least one host element,
-     * we have to add a special --dhcp-range option to enable the service in
-     * dnsmasq.
-     */
-    if (!ipdef->nranges && ipdef->nhosts) {
-        virCommandAddArg(cmd, "--dhcp-range");
-        virCommandAddArgFormat(cmd, "%s,static", bridgeaddr);
-    }
-
-    if (ipdef->nranges > 0) {
-        virCommandAddArgFormat(cmd, "--dhcp-lease-max=%d", nbleases);
-    }
-
-    if (ipdef->nranges || ipdef->nhosts)
-        virCommandAddArg(cmd, "--dhcp-no-override");
-
-    if (ipdef->nhosts > 0) {
-        dnsmasqContext *dctx = dnsmasqContextNew(network->def->name,
-                                                 DNSMASQ_STATE_DIR);
-        if (dctx == NULL) {
-            virReportOOMError();
-            goto cleanup;
-        }
-
-        if (networkSaveDnsmasqHostsfile(ipdef, dctx, false) == 0) {
-            virCommandAddArgPair(cmd, "--dhcp-hostsfile",
-                                 dctx->hostsfile->path);
-        }
-        dnsmasqContextFree(dctx);
-    }
-
-    if (ipdef->tftproot) {
-        virCommandAddArgList(cmd, "--enable-tftp",
-                             "--tftp-root", ipdef->tftproot,
-                             NULL);
-    }
-    if (ipdef->bootfile) {
-        virCommandAddArg(cmd, "--dhcp-boot");
-        if (VIR_SOCKET_HAS_ADDR(&ipdef->bootserver)) {
-            char *bootserver = virSocketFormatAddr(&ipdef->bootserver);
-
-            if (!bootserver)
+    if (ipdef) {
+        for (r = 0 ; r < ipdef->nranges ; r++) {
+            char *saddr = virSocketFormatAddr(&ipdef->ranges[r].start);
+            if (!saddr)
                 goto cleanup;
-            virCommandAddArgFormat(cmd, "%s%s%s",
-                               ipdef->bootfile, ",,", bootserver);
-            VIR_FREE(bootserver);
-        } else {
-            virCommandAddArg(cmd, ipdef->bootfile);
+            char *eaddr = virSocketFormatAddr(&ipdef->ranges[r].end);
+            if (!eaddr) {
+                VIR_FREE(saddr);
+                goto cleanup;
+            }
+            virCommandAddArg(cmd, "--dhcp-range");
+            virCommandAddArgFormat(cmd, "%s,%s", saddr, eaddr);
+            VIR_FREE(saddr);
+            VIR_FREE(eaddr);
+            nbleases += virSocketGetRange(&ipdef->ranges[r].start,
+                                          &ipdef->ranges[r].end);
+        }
+
+        /*
+         * For static-only DHCP, i.e. with no range but at least one host element,
+         * we have to add a special --dhcp-range option to enable the service in
+         * dnsmasq.
+         */
+        if (!ipdef->nranges && ipdef->nhosts) {
+            char *bridgeaddr = virSocketFormatAddr(&ipdef->address);
+            if (!bridgeaddr)
+                goto cleanup;
+            virCommandAddArg(cmd, "--dhcp-range");
+            virCommandAddArgFormat(cmd, "%s,static", bridgeaddr);
+            VIR_FREE(bridgeaddr);
+        }
+
+        if (ipdef->nranges > 0) {
+            char *leasefile = networkDnsmasqLeaseFileName(network->def->name);
+            if (!leasefile)
+                goto cleanup;
+            virCommandAddArgFormat(cmd, "--dhcp-leasefile=%s", leasefile);
+            VIR_FREE(leasefile);
+            virCommandAddArgFormat(cmd, "--dhcp-lease-max=%d", nbleases);
+        }
+
+        if (ipdef->nranges || ipdef->nhosts)
+            virCommandAddArg(cmd, "--dhcp-no-override");
+
+        if (ipdef->nhosts > 0) {
+            dnsmasqContext *dctx = dnsmasqContextNew(network->def->name,
+                                                     DNSMASQ_STATE_DIR);
+            if (dctx == NULL) {
+                virReportOOMError();
+                goto cleanup;
+            }
+
+            if (networkSaveDnsmasqHostsfile(ipdef, dctx, false) == 0) {
+                virCommandAddArgPair(cmd, "--dhcp-hostsfile",
+                                     dctx->hostsfile->path);
+            }
+            dnsmasqContextFree(dctx);
+        }
+
+        if (ipdef->tftproot) {
+            virCommandAddArgList(cmd, "--enable-tftp",
+                                 "--tftp-root", ipdef->tftproot,
+                                 NULL);
+        }
+        if (ipdef->bootfile) {
+            virCommandAddArg(cmd, "--dhcp-boot");
+            if (VIR_SOCKET_HAS_ADDR(&ipdef->bootserver)) {
+                char *bootserver = virSocketFormatAddr(&ipdef->bootserver);
+
+                if (!bootserver)
+                    goto cleanup;
+                virCommandAddArgFormat(cmd, "%s%s%s",
+                                       ipdef->bootfile, ",,", bootserver);
+                VIR_FREE(bootserver);
+            } else {
+                virCommandAddArg(cmd, ipdef->bootfile);
+            }
         }
     }
 
     ret = 0;
 cleanup:
-    VIR_FREE(bridgeaddr);
     return ret;
 }
 
@@ -585,7 +618,16 @@ networkStartDhcpDaemon(virNetworkObjPtr network)
         if (ipdef->nranges || ipdef->nhosts)
             break;
     }
+    /* If no IPv4 addresses had dhcp info, pick the first (if there were any). */
     if (!ipdef)
+        ipdef = virNetworkDefGetIpByIndex(network->def, AF_INET, 0);
+
+    /* If there are no IP addresses at all (v4 or v6), return now, since
+     * there won't be any address for dnsmasq to listen on anyway.
+     * If there are any addresses, even if no dhcp ranges or static entries,
+     * we should continue and run dnsmasq, just for the DNS capabilities.
+     */
+    if (!virNetworkDefGetIpByIndex(network->def, AF_UNSPEC, 0))
         return 0;
 
     if ((err = virFileMakePath(NETWORK_PID_DIR)) != 0) {
@@ -646,6 +688,14 @@ networkStartRadvd(virNetworkObjPtr network)
     virNetworkIpDefPtr ipdef;
 
     network->radvdPid = -1;
+
+    if (!virFileIsExecutable(RADVD)) {
+        virReportSystemError(errno,
+                             _("Cannot find %s - "
+                               "Possibly the package isn't installed"),
+                             RADVD);
+        goto cleanup;
+    }
 
     if ((err = virFileMakePath(NETWORK_PID_DIR)) != 0) {
         virReportSystemError(err,
@@ -1566,6 +1616,7 @@ networkStartNetworkDaemon(struct network_driver *driver,
     bool v4present = false, v6present = false;
     virErrorPtr save_err = NULL;
     virNetworkIpDefPtr ipdef;
+    char *macTapIfName;
 
     if (virNetworkObjIsActive(network)) {
         networkReportError(VIR_ERR_OPERATION_INVALID,
@@ -1583,6 +1634,30 @@ networkStartNetworkDaemon(struct network_driver *driver,
                              _("cannot create bridge '%s'"),
                              network->def->bridge);
         return -1;
+    }
+
+    if (network->def->mac_specified) {
+        /* To set a mac for the bridge, we need to define a dummy tap
+         * device, set its mac, then attach it to the bridge. As long
+         * as its mac address is lower than any other interface that
+         * gets attached, the bridge will always maintain this mac
+         * address.
+         */
+        macTapIfName = networkBridgeDummyNicName(network->def->bridge);
+        if (!macTapIfName) {
+            virReportOOMError();
+            goto err0;
+        }
+        if ((err = brAddTap(driver->brctl, network->def->bridge,
+                            &macTapIfName, network->def->mac, 0, false, NULL))) {
+            virReportSystemError(err,
+                                 _("cannot create dummy tap device '%s' to set mac"
+                                   " address on bridge '%s'"),
+                                 macTapIfName, network->def->bridge);
+            VIR_FREE(macTapIfName);
+            goto err0;
+        }
+        VIR_FREE(macTapIfName);
     }
 
     /* Set bridge options */
@@ -1643,8 +1718,8 @@ networkStartNetworkDaemon(struct network_driver *driver,
     }
 
 
-    /* start dnsmasq if there are any IPv4 addresses */
-    if (v4present && networkStartDhcpDaemon(network) < 0)
+    /* start dnsmasq if there are any IP addresses (v4 or v6) */
+    if ((v4present || v6present) && networkStartDhcpDaemon(network) < 0)
         goto err3;
 
     /* start radvd if there are any ipv6 addresses */
@@ -1695,6 +1770,17 @@ networkStartNetworkDaemon(struct network_driver *driver,
  err1:
     if (!save_err)
         save_err = virSaveLastError();
+
+    if ((err = brDeleteTap(driver->brctl, macTapIfName))) {
+        char ebuf[1024];
+        VIR_WARN("Failed to delete dummy tap device '%s' on bridge '%s' : %s",
+                 macTapIfName, network->def->bridge,
+                 virStrerror(err, ebuf, sizeof ebuf));
+    }
+
+ err0:
+    if (!save_err)
+        save_err = virSaveLastError();
     if ((err = brDeleteBridge(driver->brctl, network->def->bridge))) {
         char ebuf[1024];
         VIR_WARN("Failed to delete bridge '%s' : %s",
@@ -1714,6 +1800,7 @@ static int networkShutdownNetworkDaemon(struct network_driver *driver,
 {
     int err;
     char *stateFile;
+    char *macTapIfName;
 
     VIR_INFO(_("Shutting down network '%s'"), network->def->name);
 
@@ -1744,6 +1831,21 @@ static int networkShutdownNetworkDaemon(struct network_driver *driver,
         kill(network->dnsmasqPid, SIGTERM);
 
     char ebuf[1024];
+
+    if (network->def->mac_specified) {
+        macTapIfName = networkBridgeDummyNicName(network->def->bridge);
+        if (!macTapIfName) {
+            virReportOOMError();
+        } else {
+            if ((err = brDeleteTap(driver->brctl, macTapIfName))) {
+                VIR_WARN("Failed to delete dummy tap device '%s' on bridge '%s' : %s",
+                         macTapIfName, network->def->bridge,
+                         virStrerror(err, ebuf, sizeof ebuf));
+            }
+            VIR_FREE(macTapIfName);
+        }
+    }
+
     if ((err = brSetInterfaceUp(driver->brctl, network->def->bridge, 0))) {
         VIR_WARN("Failed to bring down bridge '%s' : %s",
                  network->def->bridge, virStrerror(err, ebuf, sizeof ebuf));
@@ -1988,6 +2090,8 @@ static virNetworkPtr networkCreate(virConnectPtr conn, const char *xml) {
     if (virNetworkSetBridgeName(&driver->networks, def, 1))
         goto cleanup;
 
+    virNetworkSetBridgeMacAddr(def);
+
     if (!(network = virNetworkAssignDef(&driver->networks,
                                         def)))
         goto cleanup;
@@ -2028,6 +2132,8 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
 
     if (virNetworkSetBridgeName(&driver->networks, def, 1))
         goto cleanup;
+
+    virNetworkSetBridgeMacAddr(def);
 
     if (!(network = virNetworkAssignDef(&driver->networks,
                                         def)))
@@ -2119,12 +2225,19 @@ static int networkUndefine(virNetworkPtr net) {
     }
 
     if (dhcp_present) {
+        char *leasefile;
         dnsmasqContext *dctx = dnsmasqContextNew(network->def->name, DNSMASQ_STATE_DIR);
         if (dctx == NULL)
             goto cleanup;
 
         dnsmasqDelete(dctx);
         dnsmasqContextFree(dctx);
+
+        leasefile = networkDnsmasqLeaseFileName(network->def->name);
+        if (!leasefile)
+            goto cleanup;
+        unlink(leasefile);
+        VIR_FREE(leasefile);
     }
 
     if (v6present) {

@@ -29,6 +29,9 @@
 #include "logging.h"
 #include "virterror_internal.h"
 #include "c-ctype.h"
+#include "event.h"
+#include "cpu/cpu.h"
+#include "ignore-value.h"
 
 #include <sys/time.h>
 
@@ -39,6 +42,61 @@
 #define QEMU_NAMESPACE_HREF "http://libvirt.org/schemas/domain/qemu/1.0"
 
 #define timeval_to_ms(tv)       (((tv).tv_sec * 1000ull) + ((tv).tv_usec / 1000))
+
+
+static void qemuDomainEventDispatchFunc(virConnectPtr conn,
+                                        virDomainEventPtr event,
+                                        virConnectDomainEventGenericCallback cb,
+                                        void *cbopaque,
+                                        void *opaque)
+{
+    struct qemud_driver *driver = opaque;
+
+    /* Drop the lock whle dispatching, for sake of re-entrancy */
+    qemuDriverUnlock(driver);
+    virDomainEventDispatchDefaultFunc(conn, event, cb, cbopaque, NULL);
+    qemuDriverLock(driver);
+}
+
+void qemuDomainEventFlush(int timer ATTRIBUTE_UNUSED, void *opaque)
+{
+    struct qemud_driver *driver = opaque;
+    virDomainEventQueue tempQueue;
+
+    qemuDriverLock(driver);
+
+    driver->domainEventDispatching = 1;
+
+    /* Copy the queue, so we're reentrant safe */
+    tempQueue.count = driver->domainEventQueue->count;
+    tempQueue.events = driver->domainEventQueue->events;
+    driver->domainEventQueue->count = 0;
+    driver->domainEventQueue->events = NULL;
+
+    virEventUpdateTimeout(driver->domainEventTimer, -1);
+    virDomainEventQueueDispatch(&tempQueue,
+                                driver->domainEventCallbacks,
+                                qemuDomainEventDispatchFunc,
+                                driver);
+
+    /* Purge any deleted callbacks */
+    virDomainEventCallbackListPurgeMarked(driver->domainEventCallbacks);
+
+    driver->domainEventDispatching = 0;
+    qemuDriverUnlock(driver);
+}
+
+
+/* driver must be locked before calling */
+void qemuDomainEventQueue(struct qemud_driver *driver,
+                          virDomainEventPtr event)
+{
+    if (virDomainEventQueuePush(driver->domainEventQueue,
+                                event) < 0)
+        virDomainEventFree(event);
+    if (driver->domainEventQueue->count == 1)
+        virEventUpdateTimeout(driver->domainEventTimer, 0);
+}
 
 
 static void *qemuDomainObjPrivateAlloc(void)
@@ -403,7 +461,8 @@ int qemuDomainObjBeginJob(virDomainObjPtr obj)
 
     while (priv->jobActive) {
         if (virCondWaitUntil(&priv->jobCond, &obj->lock, then) < 0) {
-            virDomainObjUnref(obj);
+            /* Safe to ignore value since ref count was incremented above */
+            ignore_value(virDomainObjUnref(obj));
             if (errno == ETIMEDOUT)
                 qemuReportError(VIR_ERR_OPERATION_TIMEOUT,
                                 "%s", _("cannot acquire state change lock"));
@@ -447,7 +506,8 @@ int qemuDomainObjBeginJobWithDriver(struct qemud_driver *driver,
 
     while (priv->jobActive) {
         if (virCondWaitUntil(&priv->jobCond, &obj->lock, then) < 0) {
-            virDomainObjUnref(obj);
+            /* Safe to ignore value since ref count was incremented above */
+            ignore_value(virDomainObjUnref(obj));
             if (errno == ETIMEDOUT)
                 qemuReportError(VIR_ERR_OPERATION_TIMEOUT,
                                 "%s", _("cannot acquire state change lock"));
@@ -531,7 +591,6 @@ void qemuDomainObjExitMonitor(virDomainObjPtr obj)
     virDomainObjLock(obj);
 
     if (refs == 0) {
-        virDomainObjUnref(obj);
         priv->mon = NULL;
     }
 }
@@ -577,7 +636,6 @@ void qemuDomainObjExitMonitorWithDriver(struct qemud_driver *driver,
     virDomainObjLock(obj);
 
     if (refs == 0) {
-        virDomainObjUnref(obj);
         priv->mon = NULL;
     }
 }
@@ -595,5 +653,45 @@ void qemuDomainObjExitRemoteWithDriver(struct qemud_driver *driver,
 {
     qemuDriverLock(driver);
     virDomainObjLock(obj);
-    virDomainObjUnref(obj);
+    /* Safe to ignore value, since we incremented ref in
+     * qemuDomainObjEnterRemoteWithDriver */
+    ignore_value(virDomainObjUnref(obj));
+}
+
+
+char *qemuDomainFormatXML(struct qemud_driver *driver,
+                          virDomainObjPtr vm,
+                          int flags)
+{
+    char *ret = NULL;
+    virCPUDefPtr cpu = NULL;
+    virDomainDefPtr def;
+    virCPUDefPtr def_cpu;
+
+    if ((flags & VIR_DOMAIN_XML_INACTIVE) && vm->newDef)
+        def = vm->newDef;
+    else
+        def = vm->def;
+    def_cpu = def->cpu;
+
+    /* Update guest CPU requirements according to host CPU */
+    if ((flags & VIR_DOMAIN_XML_UPDATE_CPU) && def_cpu && def_cpu->model) {
+        if (!driver->caps || !driver->caps->host.cpu) {
+            qemuReportError(VIR_ERR_OPERATION_FAILED,
+                            "%s", _("cannot get host CPU capabilities"));
+            goto cleanup;
+        }
+
+        if (!(cpu = virCPUDefCopy(def_cpu))
+            || cpuUpdate(cpu, driver->caps->host.cpu))
+            goto cleanup;
+        def->cpu = cpu;
+    }
+
+    ret = virDomainDefFormat(def, flags);
+
+cleanup:
+    def->cpu = def_cpu;
+    virCPUDefFree(cpu);
+    return ret;
 }

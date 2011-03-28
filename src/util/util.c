@@ -45,6 +45,9 @@
 #include <string.h>
 #include <signal.h>
 #include <termios.h>
+#if HAVE_LIBDEVMAPPER_H
+# include <libdevmapper.h>
+#endif
 #include "c-ctype.h"
 
 #ifdef HAVE_PATHS_H
@@ -73,6 +76,7 @@
 #include "threads.h"
 #include "verify.h"
 #include "files.h"
+#include "command.h"
 
 #ifndef NSIG
 # define NSIG 32
@@ -241,16 +245,19 @@ virArgvToString(const char *const *argv)
     return ret;
 }
 
-int virSetNonBlock(int fd) {
+int virSetBlocking(int fd, bool blocking) {
 #ifndef WIN32
     int flags;
     if ((flags = fcntl(fd, F_GETFL)) < 0)
         return -1;
-    flags |= O_NONBLOCK;
+    if (blocking)
+        flags &= ~O_NONBLOCK;
+    else
+        flags |= O_NONBLOCK;
     if ((fcntl(fd, F_SETFL, flags)) < 0)
         return -1;
 #else
-    unsigned long flag = 1;
+    unsigned long flag = blocking ? 0 : 1;
 
     /* This is actually Gnulib's replacement rpl_ioctl function.
      * We can't call ioctlsocket directly in any case.
@@ -259,6 +266,10 @@ int virSetNonBlock(int fd) {
         return -1;
 #endif
     return 0;
+}
+
+int virSetNonBlock(int fd) {
+    return virSetBlocking(fd, false);
 }
 
 
@@ -465,6 +476,18 @@ __virExec(const char *const*argv,
     int childout = -1;
     int childerr = -1;
     int tmpfd;
+    const char *binary = NULL;
+
+    if (argv[0][0] != '/') {
+        if (!(binary = virFindFileInPath(argv[0]))) {
+            virReportSystemError(ENOENT,
+                                 _("Cannot find '%s' in path"),
+                                 argv[0]);
+            return -1;
+        }
+    } else {
+        binary = argv[0];
+    }
 
     if ((null = open("/dev/null", O_RDWR)) < 0) {
         virReportSystemError(errno,
@@ -654,6 +677,7 @@ __virExec(const char *const*argv,
         struct sigaction waxon, waxoff;
         waxoff.sa_handler = SIG_IGN;
         waxoff.sa_flags = 0;
+        sigemptyset(&waxoff.sa_mask);
         memset(&waxon, 0, sizeof(waxon));
         if (sigaction(SIGPIPE, &waxoff, &waxon) < 0) {
             virReportSystemError(errno, "%s",
@@ -683,9 +707,9 @@ __virExec(const char *const*argv,
     virLogReset();
 
     if (envp)
-        execve(argv[0], (char **) argv, (char**)envp);
+        execve(binary, (char **) argv, (char**)envp);
     else
-        execvp(argv[0], (char **) argv);
+        execv(binary, (char **) argv);
 
     virReportSystemError(errno,
                          _("cannot execute binary %s"),
@@ -698,6 +722,9 @@ __virExec(const char *const*argv,
  cleanup:
     /* This is cleanup of parent process only - child
        should never jump here on error */
+
+    if (binary != argv[0])
+        VIR_FREE(binary);
 
     /* NB we don't virUtilError() on any failures here
        because the code which jumped hre already raised
@@ -806,9 +833,11 @@ int virExecDaemonize(const char *const*argv,
                    errno == EINTR);
 
     if (childstat != 0) {
+        char *str = virCommandTranslateStatus(childstat);
         virUtilError(VIR_ERR_INTERNAL_ERROR,
-                     _("Intermediate daemon process exited with status %d."),
-                     WEXITSTATUS(childstat));
+                     _("Intermediate daemon process status unexpected: %s"),
+                     NULLSTR(str));
+        VIR_FREE(str);
         ret = -2;
     }
 
@@ -846,7 +875,7 @@ virRunWithHook(const char *const*argv,
         virReportOOMError();
         goto error;
     }
-    DEBUG0(argv_str);
+    VIR_DEBUG0(argv_str);
 
     if ((execret = __virExec(argv, NULL, NULL,
                              &childpid, -1, &outfd, &errfd,
@@ -862,9 +891,9 @@ virRunWithHook(const char *const*argv,
     }
 
     if (outbuf)
-        DEBUG("Command stdout: %s", outbuf);
+        VIR_DEBUG("Command stdout: %s", outbuf);
     if (errbuf)
-        DEBUG("Command stderr: %s", errbuf);
+        VIR_DEBUG("Command stderr: %s", errbuf);
 
     while ((waitret = waitpid(childpid, &exitstatus, 0) == -1) &&
             errno == EINTR);
@@ -877,13 +906,12 @@ virRunWithHook(const char *const*argv,
 
     if (status == NULL) {
         errno = EINVAL;
-        if (WIFEXITED(exitstatus) && WEXITSTATUS(exitstatus) != 0) {
+        if (exitstatus) {
+            char *str = virCommandTranslateStatus(exitstatus);
             virUtilError(VIR_ERR_INTERNAL_ERROR,
-                         _("'%s' exited with non-zero status %d and "
-                           "signal %d: %s"), argv_str,
-                         WIFEXITED(exitstatus) ? WEXITSTATUS(exitstatus) : 0,
-                         WIFSIGNALED(exitstatus) ? WTERMSIG(exitstatus) : 0,
-                         (errbuf ? errbuf : ""));
+                         _("'%s' exited unexpectedly: %s"),
+                         argv_str, NULLSTR(str));
+            VIR_FREE(str);
             goto error;
         }
     } else {
@@ -1331,7 +1359,8 @@ bool virFileExists(const char *path)
     return access(path, F_OK) == 0;
 }
 
-/* Check that a file is regular and has executable bits.
+/* Check that a file is regular and has executable bits.  If false is
+ * returned, errno is valid.
  *
  * Note: In the presence of ACLs, this may return true for a file that
  * would actually fail with EACCES for a given user, or false for a
@@ -1344,9 +1373,12 @@ virFileIsExecutable(const char *file)
 
     /* We would also want to check faccessat if we cared about ACLs,
      * but we don't.  */
-    return (stat(file, &sb) == 0 &&
-            S_ISREG(sb.st_mode) &&
-            (sb.st_mode & 0111) != 0);
+    if (stat(file, &sb) < 0)
+        return false;
+    if (S_ISREG(sb.st_mode) && (sb.st_mode & 0111) != 0)
+        return true;
+    errno = S_ISDIR(sb.st_mode) ? EISDIR : EACCES;
+    return false;
 }
 
 #ifndef WIN32
@@ -1480,8 +1512,7 @@ int virFileOperation(const char *path, int openflags, mode_t mode,
                                  path);
             goto parenterror;
         }
-        ret = -WEXITSTATUS(status);
-        if (!WIFEXITED(status) || (ret == -EACCES)) {
+        if (!WIFEXITED(status) || (ret = -WEXITSTATUS(status)) == -EACCES) {
             /* fall back to the simpler method, which works better in
              * some cases */
             return virFileOperationNoFork(path, openflags, mode, uid, gid,
@@ -1555,6 +1586,15 @@ parenterror:
         goto childerror;
     }
 childerror:
+    /* ret tracks -errno on failure, but exit value must be positive.
+     * If the child exits with EACCES, then the parent tries again.  */
+    /* XXX This makes assumptions about errno being < 255, which is
+     * not true on Hurd.  */
+    ret = -ret;
+    if ((ret & 0xff) != ret) {
+        VIR_WARN("unable to pass desired return value %d", ret);
+        ret = 0xff;
+    }
     _exit(ret);
 
 }
@@ -1591,14 +1631,10 @@ int virDirCreate(const char *path, mode_t mode,
                                  path);
             goto parenterror;
         }
-        ret = -WEXITSTATUS(status);
-        if (!WIFEXITED(status) || (ret == -EACCES)) {
+        if (!WIFEXITED(status) || (ret = -WEXITSTATUS(status)) == -EACCES) {
             /* fall back to the simpler method, which works better in
              * some cases */
             return virDirCreateNoFork(path, mode, uid, gid, flags);
-        }
-        if (ret < 0) {
-            goto parenterror;
         }
 parenterror:
         return ret;
@@ -1987,30 +2023,22 @@ cleanup:
 int virFileAbsPath(const char *path, char **abspath)
 {
     char *buf;
-    int cwdlen;
 
     if (path[0] == '/') {
-        buf = strdup(path);
-        if (buf == NULL)
-            return(-1);
+        if (!(*abspath = strdup(path)))
+            return -1;
     } else {
         buf = getcwd(NULL, 0);
         if (buf == NULL)
-            return(-1);
+            return -1;
 
-        cwdlen = strlen(buf);
-        /* cwdlen includes the null terminator */
-        if (VIR_REALLOC_N(buf, cwdlen + strlen(path) + 1) < 0) {
+        if (virAsprintf(abspath, "%s/%s", buf, path) < 0) {
             VIR_FREE(buf);
-            errno = ENOMEM;
-            return(-1);
+            return -1;
         }
-
-        buf[cwdlen] = '/';
-        strcpy(&buf[cwdlen + 1], path);
+        VIR_FREE(buf);
     }
 
-    *abspath = buf;
     return 0;
 }
 
@@ -3123,3 +3151,23 @@ virTimestamp(void)
 
     return timestamp;
 }
+
+#if HAVE_LIBDEVMAPPER_H
+bool
+virIsDevMapperDevice(const char *devname)
+{
+    struct stat buf;
+
+    if (!stat(devname, &buf) &&
+        S_ISBLK(buf.st_mode) &&
+        dm_is_dm_major(major(buf.st_rdev)))
+            return true;
+
+    return false;
+}
+#else
+bool virIsDevMapperDevice(const char *devname ATTRIBUTE_UNUSED)
+{
+    return false;
+}
+#endif

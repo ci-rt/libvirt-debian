@@ -31,6 +31,7 @@
 #include "storage_backend_disk.h"
 #include "util.h"
 #include "memory.h"
+#include "command.h"
 #include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
@@ -474,7 +475,7 @@ virStorageBackendDiskPartBoundries(virStoragePoolObjPtr pool,
     unsigned long long cylinderSize = dev->geometry.heads *
                                       dev->geometry.sectors * SECTOR_SIZE;
 
-    DEBUG("find free area: allocation %llu, cyl size %llu", allocation,
+    VIR_DEBUG("find free area: allocation %llu, cyl size %llu", allocation,
           cylinderSize);
     int partType = virStorageBackendDiskPartTypeToCreate(pool);
 
@@ -528,7 +529,7 @@ virStorageBackendDiskPartBoundries(virStoragePoolObjPtr pool,
         return -1;
     }
 
-    DEBUG("aligned alloc %llu", alignedAllocation);
+    VIR_DEBUG("aligned alloc %llu", alignedAllocation);
     *start = dev->freeExtents[smallestExtent].start;
 
     if (partType == VIR_STORAGE_VOL_DISK_TYPE_LOGICAL) {
@@ -544,7 +545,7 @@ virStorageBackendDiskPartBoundries(virStoragePoolObjPtr pool,
 
     /* counting in byte, we want the last byte of the current sector */
     *end -= 1;
-    DEBUG("final aligned start %llu, end %llu", *start, *end);
+    VIR_DEBUG("final aligned start %llu, end %llu", *start, *end);
     return 0;
 }
 
@@ -647,6 +648,8 @@ virStorageBackendDiskDeleteVol(virConnectPtr conn ATTRIBUTE_UNUSED,
     char *part_num = NULL;
     char *devpath = NULL;
     char *devname, *srcname;
+    virCommandPtr cmd = NULL;
+    bool isDevMapperDevice;
     int rc = -1;
 
     if (virFileResolveLink(vol->target.path, &devpath) < 0) {
@@ -658,40 +661,47 @@ virStorageBackendDiskDeleteVol(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     devname = basename(devpath);
     srcname = basename(pool->def->source.devices[0].path);
-    DEBUG("devname=%s, srcname=%s", devname, srcname);
+    VIR_DEBUG("devname=%s, srcname=%s", devname, srcname);
 
-    if (!STRPREFIX(devname, srcname)) {
+    isDevMapperDevice = virIsDevMapperDevice(devpath);
+
+    if (!isDevMapperDevice && !STRPREFIX(devname, srcname)) {
         virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               _("Volume path '%s' did not start with parent "
                                 "pool source device name."), devname);
         goto cleanup;
     }
 
-    part_num = devname + strlen(srcname);
+    if (!isDevMapperDevice) {
+        part_num = devname + strlen(srcname);
 
-    if (*part_num == 0) {
-        virStorageReportError(VIR_ERR_INTERNAL_ERROR,
-                              _("cannot parse partition number from target "
-                                "'%s'"), devname);
-        goto cleanup;
+        if (*part_num == 0) {
+            virStorageReportError(VIR_ERR_INTERNAL_ERROR,
+                                  _("cannot parse partition number from target "
+                                    "'%s'"), devname);
+            goto cleanup;
+        }
+
+        /* eg parted /dev/sda rm 2 */
+        cmd = virCommandNewArgList(PARTED,
+                                   pool->def->source.devices[0].path,
+                                   "rm",
+                                   "--script",
+                                   part_num,
+                                   NULL);
+        if (virCommandRun(cmd, NULL) < 0)
+            goto cleanup;
+    } else {
+        cmd = virCommandNewArgList(DMSETUP, "remove", "--force", devpath, NULL);
+
+        if (virCommandRun(cmd, NULL) < 0)
+            goto cleanup;
     }
-
-    /* eg parted /dev/sda rm 2 */
-    const char *prog[] = {
-        PARTED,
-        pool->def->source.devices[0].path,
-        "rm",
-        "--script",
-        part_num,
-        NULL,
-    };
-
-    if (virRun(prog, NULL) < 0)
-        goto cleanup;
 
     rc = 0;
 cleanup:
     VIR_FREE(devpath);
+    virCommandFree(cmd);
     return rc;
 }
 

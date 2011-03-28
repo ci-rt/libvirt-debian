@@ -87,6 +87,7 @@ enum virVirtualPortOp {
     ASSOCIATE = 0x1,
     DISASSOCIATE = 0x2,
     PREASSOCIATE = 0x3,
+    PREASSOCIATE_RR = 0x4,
 };
 
 
@@ -120,13 +121,18 @@ int nlComm(struct nl_msg *nl_msg,
     fd_set readfds;
     int fd;
     int n;
-    struct nl_handle *nlhandle = nl_handle_alloc();
     struct nlmsghdr *nlmsg = nlmsg_hdr(nl_msg);
+    struct nl_handle *nlhandle = nl_handle_alloc();
 
-    if (!nlhandle)
+    if (!nlhandle) {
+        virReportSystemError(errno,
+                             "%s", _("cannot allocate nlhandle for netlink"));
         return -1;
+    }
 
     if (nl_connect(nlhandle, NETLINK_ROUTE) < 0) {
+        virReportSystemError(errno,
+                             "%s", _("cannot connect to netlink socket"));
         rc = -1;
         goto err_exit;
     }
@@ -161,9 +167,11 @@ int nlComm(struct nl_msg *nl_msg,
     }
 
     *respbuflen = nl_recv(nlhandle, &nladdr, respbuf, NULL);
-    if (*respbuflen <= 0)
+    if (*respbuflen <= 0) {
+        virReportSystemError(errno,
+                             "%s", _("nl_recv failed"));
         rc = -1;
-
+    }
 err_exit:
     if (rc == -1) {
         VIR_FREE(*respbuf);
@@ -1445,6 +1453,7 @@ doPortProfileOp8021Qbh(const char *ifname,
     }
 
     switch (virtPortOp) {
+    case PREASSOCIATE_RR:
     case ASSOCIATE:
         rc = virGetHostUUID(hostuuid);
         if (rc)
@@ -1458,7 +1467,9 @@ doPortProfileOp8021Qbh(const char *ifname,
                                    vm_uuid,
                                    hostuuid,
                                    vf,
-                                   PORT_REQUEST_ASSOCIATE);
+                                   (virtPortOp == PREASSOCIATE_RR) ?
+                                    PORT_REQUEST_PREASSOCIATE_RR
+                                    : PORT_REQUEST_ASSOCIATE);
         if (rc == -ETIMEDOUT)
             /* Association timed out, disassociate */
             doPortProfileOpCommon(nltarget_kernel, NULL, ifindex,
@@ -1470,8 +1481,6 @@ doPortProfileOp8021Qbh(const char *ifname,
                                   NULL,
                                   vf,
                                   PORT_REQUEST_DISASSOCIATE);
-        if (!rc)
-            ifaceUp(ifname);
         break;
 
     case DISASSOCIATE:
@@ -1484,7 +1493,6 @@ doPortProfileOp8021Qbh(const char *ifname,
                                    NULL,
                                    vf,
                                    PORT_REQUEST_DISASSOCIATE);
-        ifaceDown(ifname);
         break;
 
     default:
@@ -1549,11 +1557,13 @@ vpAssociatePortProfileId(const char *macvtap_ifname,
         break;
 
     case VIR_VIRTUALPORT_8021QBH:
-        /* avoid associating twice */
-        if (vmOp == VIR_VM_OP_MIGRATE_IN_FINISH)
-            break;
         rc = doPortProfileOp8021Qbh(linkdev, macvtap_macaddr,
-                                    virtPort, vmuuid, ASSOCIATE);
+                                    virtPort, vmuuid,
+                                    (vmOp == VIR_VM_OP_MIGRATE_IN_START)
+                                      ? PREASSOCIATE_RR
+                                      : ASSOCIATE);
+        if (vmOp != VIR_VM_OP_MIGRATE_IN_START && !rc)
+            ifaceUp(linkdev);
         break;
     }
 
@@ -1600,6 +1610,7 @@ vpDisassociatePortProfileId(const char *macvtap_ifname,
         /* avoid disassociating twice */
         if (vmOp == VIR_VM_OP_MIGRATE_IN_FINISH)
             break;
+        ifaceDown(linkdev);
         rc = doPortProfileOp8021Qbh(linkdev, macvtap_macaddr,
                                     virtPort, NULL, DISASSOCIATE);
         break;

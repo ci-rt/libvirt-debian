@@ -3973,6 +3973,11 @@ static virDriver phypDriver = {
     NULL,                       /* domainGetMaxMemory */
     NULL,                       /* domainSetMaxMemory */
     NULL,                       /* domainSetMemory */
+    NULL,                       /* domainSetMemoryFlags */
+    NULL,                       /* domainSetMemoryParameters */
+    NULL,                       /* domainGetMemoryParameters */
+    NULL,                       /* domainSetBlkioParameters */
+    NULL,                       /* domainGetBlkioParameters */
     phypDomainGetInfo,          /* domainGetInfo */
     NULL,                       /* domainSave */
     NULL,                       /* domainRestore */
@@ -4033,6 +4038,7 @@ static virDriver phypDriver = {
     NULL,                       /* domainGetJobInfo */
     NULL,                       /* domainAbortJob */
     NULL,                       /* domainMigrateSetMaxDowntime */
+    NULL,                       /* domainMigrateSetMaxSpeed */
     NULL,                       /* domainEventRegisterAny */
     NULL,                       /* domainEventDeregisterAny */
     NULL,                       /* domainManagedSave */
@@ -4048,8 +4054,6 @@ static virDriver phypDriver = {
     NULL,                       /* domainRevertToSnapshot */
     NULL,                       /* domainSnapshotDelete */
     NULL,                       /* qemuMonitorCommand */
-    NULL,                       /* domainSetMemoryParameters */
-    NULL,                       /* domainGetMemoryParameters */
     NULL, /* domainOpenConsole */
 };
 

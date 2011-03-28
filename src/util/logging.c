@@ -1,7 +1,7 @@
 /*
  * logging.c: internal logging and debugging
  *
- * Copyright (C) 2008, 2010 Red Hat, Inc.
+ * Copyright (C) 2008, 2010-2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,17 +30,21 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <signal.h>
 #if HAVE_SYSLOG_H
 # include <syslog.h>
 #endif
 
 #include "ignore-value.h"
+#include "virterror_internal.h"
 #include "logging.h"
 #include "memory.h"
 #include "util.h"
 #include "buf.h"
 #include "threads.h"
 #include "files.h"
+
+#define VIR_FROM_THIS VIR_FROM_NONE
 
 /*
  * Macro used to format the message as a string in virLogMessage
@@ -82,9 +86,9 @@
 /*
  * A logging buffer to keep some history over logs
  */
-#define LOG_BUFFER_SIZE 64000
 
-static char virLogBuffer[LOG_BUFFER_SIZE + 1];
+static int virLogSize = 64 * 1024;
+static char *virLogBuffer = NULL;
 static int virLogLen = 0;
 static int virLogStart = 0;
 static int virLogEnd = 0;
@@ -129,6 +133,9 @@ static virLogPriority virLogDefaultPriority = VIR_LOG_DEFAULT;
 
 static int virLogResetFilters(void);
 static int virLogResetOutputs(void);
+static int virLogOutputToFd(const char *category, int priority,
+                            const char *funcname, long long linenr,
+                            const char *str, int len, void *data);
 
 /*
  * Logs accesses must be serialized though a mutex
@@ -180,6 +187,8 @@ static int virLogInitialized = 0;
  * Returns 0 if successful, and -1 in case or error
  */
 int virLogStartup(void) {
+    const char *pbm = NULL;
+
     if (virLogInitialized)
         return -1;
 
@@ -188,12 +197,82 @@ int virLogStartup(void) {
 
     virLogInitialized = 1;
     virLogLock();
+    if (VIR_ALLOC_N(virLogBuffer, virLogSize) < 0) {
+        /*
+         * The debug buffer is not a critical component, allow startup
+         * even in case of failure to allocate it in case of a
+         * configuration mistake.
+         */
+        virLogSize = 64 * 1024;
+        if (VIR_ALLOC_N(virLogBuffer, virLogSize) < 0) {
+            pbm = "Failed to allocate debug buffer: deactivating debug log\n";
+            virLogSize = 0;
+        } else {
+            pbm = "Failed to allocate debug buffer: reduced to 64 kB\n";
+        }
+    }
     virLogLen = 0;
     virLogStart = 0;
     virLogEnd = 0;
     virLogDefaultPriority = VIR_LOG_DEFAULT;
     virLogUnlock();
+    if (pbm)
+        VIR_WARN0(pbm);
     return 0;
+}
+
+/**
+ * virLogSetBufferSize:
+ * @size: size of the buffer in kilobytes or <= 0 to deactivate
+ *
+ * Dynamically set the size or deactivate the logging buffer used to keep
+ * a trace of all recent debug output. Note that the content of the buffer
+ * is lost if it gets reallocated.
+ *
+ * Return -1 in case of failure or 0 in case of success
+ */
+extern int
+virLogSetBufferSize(int size) {
+    int ret = 0;
+    int oldsize;
+    char *oldLogBuffer;
+    const char *pbm = NULL;
+
+    if (size < 0)
+        size = 0;
+
+    if ((virLogInitialized == 0) || (size * 1024 == virLogSize))
+        return ret;
+
+    virLogLock();
+
+    oldsize = virLogSize;
+    oldLogBuffer = virLogBuffer;
+
+    if (INT_MAX / 1024 < size) {
+        pbm = "Requested log size of %d kB too large\n";
+        ret = -1;
+        goto error;
+    }
+
+    virLogSize = size * 1024;
+    if (VIR_ALLOC_N(virLogBuffer, virLogSize) < 0) {
+        pbm = "Failed to allocate debug buffer of %d kB\n";
+        virLogBuffer = oldLogBuffer;
+        virLogSize = oldsize;
+        ret = -1;
+        goto error;
+    }
+    VIR_FREE(oldLogBuffer);
+    virLogLen = 0;
+    virLogStart = 0;
+    virLogEnd = 0;
+
+error:
+    virLogUnlock();
+    if (pbm)
+        VIR_ERROR(pbm, size);
+    return ret;
 }
 
 /**
@@ -231,6 +310,7 @@ void virLogShutdown(void) {
     virLogLen = 0;
     virLogStart = 0;
     virLogEnd = 0;
+    VIR_FREE(virLogBuffer);
     virLogUnlock();
     virMutexDestroy(&virLogMutex);
     virLogInitialized = 0;
@@ -242,83 +322,150 @@ void virLogShutdown(void) {
 static void virLogStr(const char *str, int len) {
     int tmp;
 
-    if (str == NULL)
+    if ((str == NULL) || (virLogBuffer == NULL) || (virLogSize <= 0))
         return;
     if (len <= 0)
         len = strlen(str);
-    if (len > LOG_BUFFER_SIZE)
+    if (len >= virLogSize)
         return;
     virLogLock();
 
     /*
      * copy the data and reset the end, we cycle over the end of the buffer
      */
-    if (virLogEnd + len >= LOG_BUFFER_SIZE) {
-        tmp = LOG_BUFFER_SIZE - virLogEnd;
+    if (virLogEnd + len >= virLogSize) {
+        tmp = virLogSize - virLogEnd;
         memcpy(&virLogBuffer[virLogEnd], str, tmp);
-        virLogBuffer[LOG_BUFFER_SIZE] = 0;
         memcpy(&virLogBuffer[0], &str[tmp], len - tmp);
         virLogEnd = len - tmp;
     } else {
         memcpy(&virLogBuffer[virLogEnd], str, len);
         virLogEnd += len;
     }
+    virLogBuffer[virLogEnd] = 0;
     /*
      * Update the log length, and if full move the start index
      */
     virLogLen += len;
-    if (virLogLen > LOG_BUFFER_SIZE) {
-        tmp = virLogLen - LOG_BUFFER_SIZE;
-        virLogLen = LOG_BUFFER_SIZE;
+    if (virLogLen > virLogSize) {
+        tmp = virLogLen - virLogSize;
+        virLogLen = virLogSize;
         virLogStart += tmp;
+        if (virLogStart >= virLogSize)
+            virLogStart -= virLogSize;
     }
     virLogUnlock();
 }
 
-#if 0
-/*
- * Output the ring buffer
+static void virLogDumpAllFD(const char *msg, int len) {
+    int i, found = 0;
+
+    if (len <= 0)
+        len = strlen(msg);
+
+    for (i = 0; i < virLogNbOutputs;i++) {
+        if (virLogOutputs[i].f == virLogOutputToFd) {
+            int fd = (long) virLogOutputs[i].data;
+
+            if (fd >= 0) {
+                ignore_value (safewrite(fd, msg, len));
+                found = 1;
+            }
+        }
+    }
+    if (!found)
+        ignore_value (safewrite(STDERR_FILENO, msg, len));
+}
+
+/**
+ * virLogEmergencyDumpAll:
+ * @signum: the signal number
+ *
+ * Emergency function called, possibly from a signal handler.
+ * It need to output the debug ring buffer through the log
+ * output which are safe to use from a signal handler.
+ * In case none is found it is emitted to standard error.
  */
-static int virLogDump(void *data, virLogOutputFunc f) {
-    int ret = 0, tmp;
+void
+virLogEmergencyDumpAll(int signum) {
+    int len;
+    int oldLogStart, oldLogLen, oldLogEnd;
 
-    if ((virLogLen == 0) || (f == NULL))
-        return 0;
-    virLogLock();
-    if (virLogStart + virLogLen < LOG_BUFFER_SIZE) {
-push_end:
-        virLogBuffer[virLogStart + virLogLen] = 0;
-        tmp = f(data, &virLogBuffer[virLogStart], virLogLen);
-        if (tmp < 0) {
-            ret = -1;
-            goto error;
-        }
-        ret += tmp;
-        virLogStart += tmp;
-        virLogLen -= tmp;
-    } else {
-        tmp = LOG_BUFFER_SIZE - virLogStart;
-        ret = f(data, &virLogBuffer[virLogStart], tmp);
-        if (ret < 0) {
-            ret = -1;
-            goto error;
-        }
-        if (ret < tmp) {
-            virLogStart += ret;
-            virLogLen -= ret;
+    switch (signum) {
+#ifdef SIGFPE
+        case SIGFPE:
+            virLogDumpAllFD( "Caught signal Floating-point exception", -1);
+            break;
+#endif
+#ifdef SIGSEGV
+        case SIGSEGV:
+            virLogDumpAllFD( "Caught Segmentation violation", -1);
+            break;
+#endif
+#ifdef SIGILL
+        case SIGILL:
+            virLogDumpAllFD( "Caught illegal instruction", -1);
+            break;
+#endif
+#ifdef SIGABRT
+        case SIGABRT:
+            virLogDumpAllFD( "Caught abort signal", -1);
+            break;
+#endif
+#ifdef SIGBUS
+        case SIGBUS:
+            virLogDumpAllFD( "Caught bus error", -1);
+            break;
+#endif
+#ifdef SIGUSR2
+        case SIGUSR2:
+            virLogDumpAllFD( "Caught User-defined signal 2", -1);
+            break;
+#endif
+        default:
+            virLogDumpAllFD( "Caught unexpected signal", -1);
+            break;
+    }
+    if ((virLogBuffer == NULL) || (virLogSize <= 0)) {
+        virLogDumpAllFD(" internal log buffer deactivated\n", -1);
+        return;
+    }
+
+    virLogDumpAllFD(" dumping internal log buffer:\n", -1);
+    virLogDumpAllFD("\n\n    ====== start of log =====\n\n", -1);
+
+    /*
+     * Since we can't lock the buffer safely from a signal handler
+     * we mark it as empty in case of concurrent access, and proceed
+     * with the data, at worse we will output something a bit weird
+     * if another thread start logging messages at the same time.
+     * Note that virLogStr() uses virLogEnd for the computations and
+     * writes to the buffer and only then updates virLogLen and virLogStart
+     * so it's best to reset it first.
+     */
+    oldLogStart = virLogStart;
+    oldLogEnd = virLogEnd;
+    oldLogLen = virLogLen;
+    virLogEnd = 0;
+    virLogLen = 0;
+    virLogStart = 0;
+
+    while (oldLogLen > 0) {
+        if (oldLogStart + oldLogLen < virLogSize) {
+            virLogBuffer[oldLogStart + oldLogLen] = 0;
+            virLogDumpAllFD(&virLogBuffer[oldLogStart], oldLogLen);
+            oldLogStart += oldLogLen;
+            oldLogLen = 0;
         } else {
-            virLogStart = 0;
-            virLogLen -= tmp;
-            /* dump the second part */
-            if (virLogLen > 0)
-                goto push_end;
+            len = virLogSize - oldLogStart;
+            virLogBuffer[virLogSize] = 0;
+            virLogDumpAllFD(&virLogBuffer[oldLogStart], len);
+            oldLogLen -= len;
+            oldLogStart = 0;
         }
     }
-error:
-    virLogUnlock();
-    return ret;
+    virLogDumpAllFD("\n\n     ====== end of log =====\n\n", -1);
 }
-#endif
 
 /**
  * virLogSetDefaultPriority:
@@ -569,16 +716,18 @@ void virLogMessage(const char *category, int priority, const char *funcname,
                    long long linenr, int flags, const char *fmt, ...) {
     static bool logVersionStderr = true;
     char *str = NULL;
-    char *msg;
+    char *msg = NULL;
     struct timeval cur_time;
     struct tm time_info;
     int len, fprio, i, ret;
+    int saved_errno = errno;
+    int emit = 1;
 
     if (!virLogInitialized)
         virLogStartup();
 
     if (fmt == NULL)
-       return;
+        goto cleanup;
 
     /*
      * check against list of specific logging patterns
@@ -586,16 +735,20 @@ void virLogMessage(const char *category, int priority, const char *funcname,
     fprio = virLogFiltersCheck(category);
     if (fprio == 0) {
         if (priority < virLogDefaultPriority)
-            return;
-    } else if (priority < fprio)
-        return;
+            emit = 0;
+    } else if (priority < fprio) {
+        emit = 0;
+    }
+
+    if ((emit == 0) && ((virLogBuffer == NULL) || (virLogSize <= 0)))
+        goto cleanup;
 
     /*
      * serialize the error message, add level and timestamp
      */
     VIR_GET_VAR_STR(fmt, str);
     if (str == NULL)
-        return;
+        goto cleanup;
     gettimeofday(&cur_time, NULL);
     localtime_r(&cur_time.tv_sec, &time_info);
 
@@ -603,14 +756,12 @@ void virLogMessage(const char *category, int priority, const char *funcname,
                              &time_info, &cur_time,
                              priority, str);
     VIR_FREE(str);
-    if (ret < 0) {
-        /* apparently we're running out of memory */
-        return;
-    }
+    if (ret < 0)
+        goto cleanup;
 
     /*
-     * Log based on defaults, first store in the history buffer
-     * then push the message on the outputs defined, if none
+     * Log based on defaults, first store in the history buffer,
+     * then if emit push the message on the outputs defined, if none
      * use stderr.
      * NOTE: the locking is a single point of contention for multiple
      *       threads, but avoid intermixing. Maybe set up locks per output
@@ -618,6 +769,9 @@ void virLogMessage(const char *category, int priority, const char *funcname,
      */
     len = strlen(msg);
     virLogStr(msg, len);
+    if (emit == 0)
+        goto cleanup;
+
     virLogLock();
     for (i = 0; i < virLogNbOutputs;i++) {
         if (priority >= virLogOutputs[i].priority) {
@@ -647,7 +801,9 @@ void virLogMessage(const char *category, int priority, const char *funcname,
     }
     virLogUnlock();
 
+cleanup:
     VIR_FREE(msg);
+    errno = saved_errno;
 }
 
 static int virLogOutputToFd(const char *category ATTRIBUTE_UNUSED,

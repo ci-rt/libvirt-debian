@@ -25,7 +25,6 @@
 
 # include "internal.h"
 
-# include <stdbool.h>
 # include <sys/types.h>
 
 
@@ -59,5 +58,8 @@ int virBitmapClearBit(virBitmapPtr bitmap, size_t b)
  */
 int virBitmapGetBit(virBitmapPtr bitmap, size_t b, bool *result)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
+
+char *virBitmapString(virBitmapPtr bitmap)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
 #endif

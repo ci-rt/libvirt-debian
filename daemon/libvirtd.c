@@ -1,7 +1,7 @@
 /*
  * libvirtd.c: daemon start of day, guest process & i/o management
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -63,6 +63,7 @@
 #include "remote_driver.h"
 #include "conf.h"
 #include "event.h"
+#include "event_poll.h"
 #include "memory.h"
 #include "stream.h"
 #include "hooks.h"
@@ -79,6 +80,9 @@
 # endif
 # ifdef WITH_LXC
 #  include "lxc/lxc_driver.h"
+# endif
+# ifdef WITH_LIBXL
+#  include "libxl/libxl_driver.h"
 # endif
 # ifdef WITH_UML
 #  include "uml/uml_driver.h"
@@ -246,6 +250,26 @@ static void sig_handler(int sig, siginfo_t * siginfo,
     errno = origerrno;
 }
 
+static void sig_fatal(int sig, siginfo_t * siginfo ATTRIBUTE_UNUSED,
+                      void* context ATTRIBUTE_UNUSED) {
+    struct sigaction sig_action;
+    int origerrno;
+
+    origerrno = errno;
+    virLogEmergencyDumpAll(sig);
+
+    /*
+     * If the signal is fatal, avoid looping over this handler
+     * by desactivating it
+     */
+    if (sig != SIGUSR2) {
+        sig_action.sa_flags = SA_SIGINFO;
+        sig_action.sa_handler = SIG_IGN;
+        sigaction(sig, &sig_action, NULL);
+    }
+    errno = origerrno;
+}
+
 static void qemudDispatchClientEvent(int watch, int fd, int events, void *opaque);
 static void qemudDispatchServerEvent(int watch, int fd, int events, void *opaque);
 static int qemudStartWorker(struct qemud_server *server, struct qemud_worker *worker);
@@ -310,7 +334,7 @@ remoteInitializeGnuTLS (void)
         if (remoteCheckCertFile("CA certificate", ca_file) < 0)
             return -1;
 
-        qemudDebug ("loading CA cert from %s", ca_file);
+        VIR_DEBUG("loading CA cert from %s", ca_file);
         err = gnutls_certificate_set_x509_trust_file (x509_cred, ca_file,
                                                       GNUTLS_X509_FMT_PEM);
         if (err < 0) {
@@ -324,7 +348,7 @@ remoteInitializeGnuTLS (void)
         if (remoteCheckCertFile("CA revocation list", crl_file) < 0)
             return -1;
 
-        DEBUG("loading CRL from %s", crl_file);
+        VIR_DEBUG("loading CRL from %s", crl_file);
         err = gnutls_certificate_set_x509_crl_file (x509_cred, crl_file,
                                                     GNUTLS_X509_FMT_PEM);
         if (err < 0) {
@@ -339,7 +363,7 @@ remoteInitializeGnuTLS (void)
             return -1;
         if (remoteCheckCertFile("server key", key_file) < 0)
             return -1;
-        DEBUG("loading cert and key from %s and %s", cert_file, key_file);
+        VIR_DEBUG("loading cert and key from %s and %s", cert_file, key_file);
         err =
             gnutls_certificate_set_x509_key_file (x509_cred,
                                                   cert_file, key_file,
@@ -582,6 +606,7 @@ static int qemudListenUnix(struct qemud_server *server,
     if (bind(sock->fd, &sock->addr.data.sa, sock->addr.len) < 0) {
         VIR_ERROR(_("Failed to bind socket to '%s': %s"),
                   path, virStrerror(errno, ebuf, sizeof ebuf));
+        umask(oldmask);
         goto cleanup;
     }
     umask(oldmask);
@@ -872,8 +897,7 @@ static struct qemud_server *qemudInitialize(void) {
         return NULL;
     }
 
-    if (virEventInit() < 0) {
-        VIR_ERROR0(_("Failed to initialize event system"));
+    if (virEventRegisterDefaultImpl() < 0) {
         virMutexDestroy(&server->lock);
         if (virCondDestroy(&server->job) < 0)
         {}
@@ -922,6 +946,9 @@ static struct qemud_server *qemudInitialize(void) {
 # ifdef WITH_NWFILTER
     nwfilterRegister();
 # endif
+# ifdef WITH_LIBXL
+    libxlRegister();
+# endif
 # ifdef WITH_QEMU
     qemuRegister();
 # endif
@@ -935,13 +962,6 @@ static struct qemud_server *qemudInitialize(void) {
     oneRegister();
 # endif
 #endif
-
-    virEventRegisterImpl(virEventAddHandleImpl,
-                         virEventUpdateHandleImpl,
-                         virEventRemoveHandleImpl,
-                         virEventAddTimeoutImpl,
-                         virEventUpdateTimeoutImpl,
-                         virEventRemoveTimeoutImpl);
 
     return server;
 }
@@ -1084,12 +1104,12 @@ static int qemudNetworkEnable(struct qemud_server *server) {
 
     sock = server->sockets;
     while (sock) {
-        if ((sock->watch = virEventAddHandleImpl(sock->fd,
-                                                 VIR_EVENT_HANDLE_READABLE |
-                                                 VIR_EVENT_HANDLE_ERROR |
-                                                 VIR_EVENT_HANDLE_HANGUP,
-                                                 qemudDispatchServerEvent,
-                                                 server, NULL)) < 0) {
+        if ((sock->watch = virEventAddHandle(sock->fd,
+                                             VIR_EVENT_HANDLE_READABLE |
+                                             VIR_EVENT_HANDLE_ERROR |
+                                             VIR_EVENT_HANDLE_HANGUP,
+                                             qemudDispatchServerEvent,
+                                             server, NULL)) < 0) {
             VIR_ERROR0(_("Failed to add server event callback"));
             return -1;
         }
@@ -1150,7 +1170,7 @@ remoteCheckDN (const char *dname)
     }
 
     /* Print the client's DN. */
-    DEBUG(_("remoteCheckDN: failed: client DN is %s"), dname);
+    VIR_DEBUG("remoteCheckDN: failed: client DN is %s", dname);
 
     return 0; /* Not found. */
 }
@@ -1521,7 +1541,7 @@ error:
  */
 void qemudDispatchClientFailure(struct qemud_client *client) {
     if (client->watch != -1) {
-        virEventRemoveHandleImpl(client->watch);
+        virEventRemoveHandle(client->watch);
         client->watch = -1;
     }
 
@@ -1531,7 +1551,7 @@ void qemudDispatchClientFailure(struct qemud_client *client) {
 
         for (i = 0 ; i < VIR_DOMAIN_EVENT_ID_LAST ; i++) {
             if (client->domainEventCallbackID[i] != -1) {
-                DEBUG("Deregistering to relay remote events %d", i);
+                VIR_DEBUG("Deregistering to relay remote events %d", i);
                 virConnectDomainEventDeregisterAny(client->conn,
                                                    client->domainEventCallbackID[i]);
             }
@@ -1678,7 +1698,7 @@ static ssize_t qemudClientReadBuf(struct qemud_client *client,
         return -1;
     }
 
-    /*qemudDebug ("qemudClientRead: len = %d", len);*/
+    /* VIR_DEBUG("qemudClientRead: len = %d", len);*/
 
     if (!client->tlssession) {
         char ebuf[1024];
@@ -1812,7 +1832,7 @@ static ssize_t qemudClientRead(struct qemud_client *client) {
  */
 static void qemudDispatchClientRead(struct qemud_server *server,
                                     struct qemud_client *client) {
-    /*qemudDebug ("qemudDispatchClientRead: mode = %d", client->mode);*/
+    /* VIR_DEBUG("qemudDispatchClientRead: mode = %d", client->mode);*/
 
 readmore:
     if (qemudClientRead(client) < 0)
@@ -1830,14 +1850,14 @@ readmore:
 
         if (!xdr_u_int(&x, &len)) {
             xdr_destroy (&x);
-            DEBUG0("Failed to decode packet length");
+            VIR_DEBUG0("Failed to decode packet length");
             qemudDispatchClientFailure(client);
             return;
         }
         xdr_destroy (&x);
 
         if (len < REMOTE_MESSAGE_HEADER_XDR_LEN) {
-            DEBUG("Packet length %u too small", len);
+            VIR_DEBUG("Packet length %u too small", len);
             qemudDispatchClientFailure(client);
             return;
         }
@@ -1846,7 +1866,7 @@ readmore:
         len -= REMOTE_MESSAGE_HEADER_XDR_LEN;
 
         if (len > REMOTE_MESSAGE_MAX) {
-            DEBUG("Packet length %u too large", len);
+            VIR_DEBUG("Packet length %u too large", len);
             qemudDispatchClientFailure(client);
             return;
         }
@@ -2215,10 +2235,10 @@ int qemudRegisterClientEvent(struct qemud_server *server,
 
     mode = qemudCalculateHandleMode(client);
 
-    if ((client->watch = virEventAddHandleImpl(client->fd,
-                                               mode,
-                                               qemudDispatchClientEvent,
-                                               server, NULL)) < 0)
+    if ((client->watch = virEventAddHandle(client->fd,
+                                           mode,
+                                           qemudDispatchClientEvent,
+                                           server, NULL)) < 0)
         return -1;
 
     return 0;
@@ -2232,7 +2252,7 @@ void qemudUpdateClientEvent(struct qemud_client *client) {
 
     mode = qemudCalculateHandleMode(client);
 
-    virEventUpdateHandleImpl(client->watch, mode);
+    virEventUpdateHandle(client->watch, mode);
 }
 
 
@@ -2262,7 +2282,7 @@ qemudDispatchServerEvent(int watch, int fd, int events, void *opaque) {
 static int qemudOneLoop(void) {
     sig_atomic_t errors;
 
-    if (virEventRunOnce() < 0)
+    if (virEventRunDefaultImpl() < 0)
         return -1;
 
     /* Check for any signal handling errors and log them. */
@@ -2283,10 +2303,10 @@ static void qemudInactiveTimer(int timerid, void *data) {
 
     if (virStateActive() ||
         server->clients) {
-        DEBUG0("Timer expired but still active, not shutting down");
-        virEventUpdateTimeoutImpl(timerid, -1);
+        VIR_DEBUG0("Timer expired but still active, not shutting down");
+        virEventUpdateTimeout(timerid, -1);
     } else {
-        DEBUG0("Timer expired and inactive, shutting down");
+        VIR_DEBUG0("Timer expired and inactive, shutting down");
         server->quitEventThread = 1;
     }
 }
@@ -2327,9 +2347,9 @@ static void *qemudRunLoop(void *opaque) {
     virMutexLock(&server->lock);
 
     if (timeout > 0 &&
-        (timerid = virEventAddTimeoutImpl(-1,
-                                          qemudInactiveTimer,
-                                          server, NULL)) < 0) {
+        (timerid = virEventAddTimeout(-1,
+                                      qemudInactiveTimer,
+                                      server, NULL)) < 0) {
         VIR_ERROR0(_("Failed to register shutdown timeout"));
         return NULL;
     }
@@ -2357,15 +2377,15 @@ static void *qemudRunLoop(void *opaque) {
         if (timeout > 0) {
             if (timerActive) {
                 if (server->clients) {
-                    DEBUG("Deactivating shutdown timer %d", timerid);
-                    virEventUpdateTimeoutImpl(timerid, -1);
+                    VIR_DEBUG("Deactivating shutdown timer %d", timerid);
+                    virEventUpdateTimeout(timerid, -1);
                     timerActive = 0;
                 }
             } else {
                 if (!virStateActive() &&
                     !server->clients) {
-                    DEBUG("Activating shutdown timer %d", timerid);
-                    virEventUpdateTimeoutImpl(timerid, timeout * 1000);
+                    VIR_DEBUG("Activating shutdown timer %d", timerid);
+                    virEventUpdateTimeout(timerid, timeout * 1000);
                     timerActive = 1;
                 }
             }
@@ -2374,7 +2394,7 @@ static void *qemudRunLoop(void *opaque) {
         virMutexUnlock(&server->lock);
         if (qemudOneLoop() < 0) {
             virMutexLock(&server->lock);
-            DEBUG0("Loop iteration error, exiting");
+            VIR_DEBUG0("Loop iteration error, exiting");
             break;
         }
         virMutexLock(&server->lock);
@@ -2481,7 +2501,7 @@ static void qemudCleanup(struct qemud_server *server) {
     while (sock) {
         struct qemud_socket *next = sock->next;
         if (sock->watch)
-            virEventRemoveHandleImpl(sock->watch);
+            virEventRemoveHandle(sock->watch);
         VIR_FORCE_CLOSE(sock->fd);
 
         /* Unlink unix domain sockets which are not in
@@ -2698,17 +2718,23 @@ remoteReadSaslAllowedUsernameList (virConfPtr conf ATTRIBUTE_UNUSED,
 
 /*
  * Set up the logging environment
- * By default if daemonized all errors go to syslog and the logging
- * is also saved onto the logfile libvird.log, but if verbose or error
- * debugging is asked for then output informations or debug.
+ * By default if daemonized all errors go to the logfile libvirtd.log,
+ * but if verbose or error debugging is asked for then also output
+ * informational and debug messages. Default size if 64 kB.
  */
 static int
-qemudSetLogging(virConfPtr conf, const char *filename)
+qemudSetLogging(struct qemud_server *server, virConfPtr conf,
+                const char *filename)
 {
     int log_level = 0;
+    int log_buffer_size = 64;
     char *log_filters = NULL;
     char *log_outputs = NULL;
+    char *log_file = NULL;
     int ret = -1;
+
+    GET_CONF_INT (conf, filename, log_buffer_size);
+    virLogSetBufferSize(log_buffer_size);
 
     virLogReset();
 
@@ -2743,19 +2769,30 @@ qemudSetLogging(virConfPtr conf, const char *filename)
     }
 
     /*
-     * If no defined outputs, then direct to syslog when running
+     * If no defined outputs, then direct to libvirtd.log when running
      * as daemon. Otherwise the default output is stderr.
      */
     if (virLogGetNbOutputs() == 0) {
         char *tmp = NULL;
+
         if (godaemon) {
-            if (virAsprintf (&tmp, "%d:syslog:libvirtd",
-                             virLogGetDefaultPriority()) < 0)
-                goto free_and_fail;
+            if (server->privileged) {
+                if (virAsprintf(&tmp, "%d:file:%s/log/libvirt/libvirtd.log",
+                                virLogGetDefaultPriority(),
+                                LOCALSTATEDIR) == -1)
+                    goto out_of_memory;
+            } else {
+                char *userdir = virGetUserDirectory(geteuid());
+                if (!userdir)
+                    goto free_and_fail;
+
+                if (virAsprintf(&tmp, "%d:file:%s/.libvirt/libvirtd.log",
+                                virLogGetDefaultPriority(), userdir) == -1)
+                    goto out_of_memory;
+            }
         } else {
-            if (virAsprintf (&tmp, "%d:stderr",
-                             virLogGetDefaultPriority()) < 0)
-                goto free_and_fail;
+            if (virAsprintf(&tmp, "%d:stderr", virLogGetDefaultPriority()) < 0)
+                goto out_of_memory;
         }
         virLogParseOutputs(tmp);
         VIR_FREE(tmp);
@@ -2772,7 +2809,21 @@ qemudSetLogging(virConfPtr conf, const char *filename)
 free_and_fail:
     VIR_FREE(log_filters);
     VIR_FREE(log_outputs);
+    VIR_FREE(log_file);
     return(ret);
+
+out_of_memory:
+    virReportOOMError();
+    goto free_and_fail;
+}
+
+/*
+ * Stop logging
+ */
+static void
+qemudStopLogging(void)
+{
+    virLogShutdown();
 }
 
 /* Read the config file if it exists.
@@ -2805,7 +2856,7 @@ remoteReadConfigFile (struct qemud_server *server, const char *filename)
     /*
      * First get all the logging settings and activate them
      */
-    if (qemudSetLogging(conf, filename) < 0)
+    if (qemudSetLogging(server, conf, filename) < 0)
         goto free_and_fail;
 
     GET_CONF_INT (conf, filename, listen_tcp);
@@ -3019,13 +3070,25 @@ daemonSetupSignals(struct qemud_server *server)
     sigaction(SIGQUIT, &sig_action, NULL);
     sigaction(SIGTERM, &sig_action, NULL);
 
+    /*
+     * catch fatal errors to dump a log, also hook to USR2 for dynamic
+     * debugging purposes or testing
+     */
+    sig_action.sa_sigaction = sig_fatal;
+    sigaction(SIGFPE, &sig_action, NULL);
+    sigaction(SIGSEGV, &sig_action, NULL);
+    sigaction(SIGILL, &sig_action, NULL);
+    sigaction(SIGABRT, &sig_action, NULL);
+    sigaction(SIGBUS, &sig_action, NULL);
+    sigaction(SIGUSR2, &sig_action, NULL);
+
     sig_action.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &sig_action, NULL);
 
-    if (virEventAddHandleImpl(sigpipe[0],
-                              VIR_EVENT_HANDLE_READABLE,
-                              qemudDispatchSignalEvent,
-                              server, NULL) < 0) {
+    if (virEventAddHandle(sigpipe[0],
+                          VIR_EVENT_HANDLE_READABLE,
+                          qemudDispatchSignalEvent,
+                          server, NULL) < 0) {
         VIR_ERROR0(_("Failed to register callback for signal pipe"));
         goto error;
     }
@@ -3225,16 +3288,20 @@ int main(int argc, char **argv) {
     /* Ensure the rundir exists (on tmpfs on some systems) */
     if (geteuid() == 0) {
         const char *rundir = LOCALSTATEDIR "/run/libvirt";
+        mode_t old_umask;
 
+        old_umask = umask(022);
         if (mkdir (rundir, 0755)) {
             if (errno != EEXIST) {
                 char ebuf[1024];
                 VIR_ERROR(_("unable to create rundir %s: %s"), rundir,
                           virStrerror(errno, ebuf, sizeof(ebuf)));
                 ret = VIR_DAEMON_ERR_RUNDIR;
+                umask(old_umask);
                 goto error;
             }
         }
+        umask(old_umask);
     }
 
     /* Beyond this point, nothing should rely on using
@@ -3369,6 +3436,6 @@ error:
         qemudCleanup(server);
     if (pid_file)
         unlink (pid_file);
-    virLogShutdown();
+    qemudStopLogging();
     return ret;
 }

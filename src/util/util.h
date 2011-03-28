@@ -31,7 +31,6 @@
 # include <sys/select.h>
 # include <sys/types.h>
 # include <stdarg.h>
-# include <stdbool.h>
 
 # ifndef MIN
 #  define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -50,6 +49,7 @@ enum {
     VIR_EXEC_CLEAR_CAPS = (1 << 2),
 };
 
+int virSetBlocking(int fd, bool blocking) ATTRIBUTE_RETURN_CHECK;
 int virSetNonBlock(int fd) ATTRIBUTE_RETURN_CHECK;
 int virSetCloseExec(int fd) ATTRIBUTE_RETURN_CHECK;
 
@@ -269,6 +269,10 @@ const char *virEnumToString(const char *const*types,
 static inline int getuid (void) { return 0; }
 # endif
 
+# ifndef HAVE_GETEUID
+static inline int geteuid (void) { return 0; }
+# endif
+
 # ifndef HAVE_GETGID
 static inline int getgid (void) { return 0; }
 # endif
@@ -296,4 +300,5 @@ int virBuildPathInternal(char **path, ...) ATTRIBUTE_SENTINEL;
 
 char *virTimestamp(void);
 
+bool virIsDevMapperDevice(const char *devname) ATTRIBUTE_NONNULL(1);
 #endif /* __VIR_UTIL_H__ */

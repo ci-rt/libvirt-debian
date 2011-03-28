@@ -1803,6 +1803,11 @@ static virDriver xenapiDriver = {
     xenapiDomainGetMaxMemory, /* domainGetMaxMemory */
     xenapiDomainSetMaxMemory, /* domainSetMaxMemory */
     NULL, /* domainSetMemory */
+    NULL, /* domainSetMemoryFlags */
+    NULL, /* domainSetMemoryParameters */
+    NULL, /* domainGetMemoryParameters */
+    NULL, /* domainSetBlkioParameters */
+    NULL, /* domainGetBlkioParameters */
     xenapiDomainGetInfo, /* domainGetInfo */
     NULL, /* domainSave */
     NULL, /* domainRestore */
@@ -1863,6 +1868,7 @@ static virDriver xenapiDriver = {
     NULL, /* domainGetJobInfo */
     NULL, /* domainAbortJob */
     NULL, /* domainMigrateSetMaxDowntime */
+    NULL, /* domainMigrateSetMaxSpeed */
     NULL, /* domainEventRegisterAny */
     NULL, /* domainEventDeregisterAny */
     NULL, /* domainManagedSave */
@@ -1878,8 +1884,6 @@ static virDriver xenapiDriver = {
     NULL, /* domainRevertToSnapshot */
     NULL, /* domainSnapshotDelete */
     NULL, /* qemuDomainMonitorCommand */
-    NULL, /* domainSetMemoryParameters */
-    NULL, /* domainGetMemoryParameters */
     NULL, /* domainOpenConsole */
 };
 

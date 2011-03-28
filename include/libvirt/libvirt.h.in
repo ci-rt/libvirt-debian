@@ -436,6 +436,10 @@ int virDomainMigrateSetMaxDowntime (virDomainPtr domain,
                                     unsigned long long downtime,
                                     unsigned int flags);
 
+int virDomainMigrateSetMaxSpeed(virDomainPtr domain,
+                                unsigned long bandwidth,
+                                unsigned int flags);
+
 /**
  * VIR_NODEINFO_MAXCPUS:
  * @nodeinfo: virNodeInfo instance
@@ -676,6 +680,73 @@ int                     virDomainGetInfo        (virDomainPtr domain,
  */
 char *                  virDomainGetSchedulerType(virDomainPtr domain,
                                                  int *nparams);
+/**
+ * virDomainBlkioParameterType:
+ *
+ * A blkio parameter field type
+ */
+typedef enum {
+    VIR_DOMAIN_BLKIO_PARAM_INT     = 1, /* integer case */
+    VIR_DOMAIN_BLKIO_PARAM_UINT    = 2, /* unsigned integer case */
+    VIR_DOMAIN_BLKIO_PARAM_LLONG   = 3, /* long long case */
+    VIR_DOMAIN_BLKIO_PARAM_ULLONG  = 4, /* unsigned long long case */
+    VIR_DOMAIN_BLKIO_PARAM_DOUBLE  = 5, /* double case */
+    VIR_DOMAIN_BLKIO_PARAM_BOOLEAN = 6  /* boolean(character) case */
+} virBlkioParameterType;
+
+/**
+ * VIR_DOMAIN_BLKIO_FIELD_LENGTH:
+ *
+ * Macro providing the field length of virBlkioParameter
+ */
+
+#define VIR_DOMAIN_BLKIO_FIELD_LENGTH 80
+
+/**
+ * VIR_DOMAIN_BLKIO_WEIGHT:
+ *
+ * Macro for the Blkio tunable weight: it represents the io weight
+ * the guest can use.
+ */
+
+#define VIR_DOMAIN_BLKIO_WEIGHT "weight"
+
+/**
+ * virDomainBlkioParameter:
+ *
+ * a virDomainBlkioParameter is the set of blkio parameters
+ */
+
+typedef struct _virBlkioParameter virBlkioParameter;
+
+struct _virBlkioParameter {
+    char field[VIR_DOMAIN_BLKIO_FIELD_LENGTH];  /* parameter name */
+    int type;   /* parameter type */
+    union {
+        int i;                          /* data for integer case */
+        unsigned int ui;        /* data for unsigned integer case */
+        long long int l;        /* data for long long integer case */
+        unsigned long long int ul;      /* data for unsigned long long integer case */
+        double d;       /* data for double case */
+        char b;         /* data for char case */
+    } value; /* parameter value */
+};
+
+/**
+ * virBlkioParameterPtr:
+ *
+ * a virBlkioParameterPtr is a pointer to a virBlkioParameter structure.
+ */
+
+typedef virBlkioParameter *virBlkioParameterPtr;
+
+/* Set Blkio tunables for the domain*/
+int     virDomainSetBlkioParameters(virDomainPtr domain,
+                                     virBlkioParameterPtr params,
+                                     int nparams, unsigned int flags);
+int     virDomainGetBlkioParameters(virDomainPtr domain,
+                                     virBlkioParameterPtr params,
+                                     int *nparams, unsigned int flags);
 
 /**
  * virDomainMemoryParameterType:
@@ -705,7 +776,7 @@ typedef enum {
  * Macro providing the virMemoryParameter value that indicates "unlimited"
  */
 
-#define VIR_DOMAIN_MEMORY_PARAM_UNLIMITED (INT64_MAX >> 10)
+#define VIR_DOMAIN_MEMORY_PARAM_UNLIMITED 9007199254740991LL /* = INT64_MAX >> 10 */
 
 /**
  * VIR_DOMAIN_MEMORY_HARD_LIMIT:
@@ -738,7 +809,8 @@ typedef enum {
  * VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT:
  *
  * Macro for the swap tunable swap_hard_limit: it represents the maximum swap
- * the guest can use.
+ * plus memory the guest can use. This limit has to be more than
+ * VIR_DOMAIN_MEMORY_HARD_LIMIT.
  */
 
 #define VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT "swap_hard_limit"
@@ -780,6 +852,13 @@ int     virDomainGetMemoryParameters(virDomainPtr domain,
                                      virMemoryParameterPtr params,
                                      int *nparams, unsigned int flags);
 
+/* Memory size modification flags. */
+typedef enum {
+    VIR_DOMAIN_MEM_LIVE   = (1 << 0), /* affect active domain */
+    VIR_DOMAIN_MEM_CONFIG = (1 << 1), /* affect next boot */
+} virDomainMemoryModFlags;
+
+
 /*
  * Dynamic control of domains
  */
@@ -795,6 +874,9 @@ int                     virDomainSetMaxMemory   (virDomainPtr domain,
                                                  unsigned long memory);
 int                     virDomainSetMemory      (virDomainPtr domain,
                                                  unsigned long memory);
+int                     virDomainSetMemoryFlags (virDomainPtr domain,
+                                                 unsigned long memory,
+                                                 unsigned int flags);
 int                     virDomainGetMaxVcpus    (virDomainPtr domain);
 int                     virDomainGetSecurityLabel (virDomainPtr domain,
                                                    virSecurityLabelPtr seclabel);
@@ -1767,6 +1849,9 @@ void virEventRegisterImpl(virEventAddHandleFunc addHandle,
                           virEventAddTimeoutFunc addTimeout,
                           virEventUpdateTimeoutFunc updateTimeout,
                           virEventRemoveTimeoutFunc removeTimeout);
+
+int virEventRegisterDefaultImpl(void);
+int virEventRunDefaultImpl(void);
 
 /*
  * Secret manipulation API

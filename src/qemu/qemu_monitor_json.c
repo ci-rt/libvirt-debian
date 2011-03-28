@@ -1,7 +1,7 @@
 /*
  * qemu_monitor_json.c: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -31,6 +31,7 @@
 #include <string.h>
 #include <sys/time.h>
 
+#include "qemu_monitor_text.h"
 #include "qemu_monitor_json.h"
 #include "qemu_command.h"
 #include "memory.h"
@@ -676,6 +677,56 @@ static void qemuMonitorJSONHandleVNCDisconnect(qemuMonitorPtr mon, virJSONValueP
 
 
 int
+qemuMonitorJSONHumanCommandWithFd(qemuMonitorPtr mon,
+                                  const char *cmd_str,
+                                  int scm_fd,
+                                  char **reply_str)
+{
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr obj;
+    int ret = -1;
+
+    cmd = qemuMonitorJSONMakeCommand("human-monitor-command",
+                                     "s:command-line", cmd_str,
+                                     NULL);
+
+    if (!cmd || qemuMonitorJSONCommandWithFd(mon, cmd, scm_fd, &reply) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONCheckError(cmd, reply))
+        goto cleanup;
+
+    if (!(obj = virJSONValueObjectGet(reply, "return"))) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("human monitor command was missing return data"));
+        goto cleanup;
+    }
+
+    if (reply_str) {
+        const char *data;
+
+        if ((data = virJSONValueGetString(obj)))
+            *reply_str = strdup(data);
+        else
+            *reply_str = strdup("");
+
+        if (!*reply_str) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
 qemuMonitorJSONSetCapabilities(qemuMonitorPtr mon)
 {
     int ret;
@@ -689,6 +740,48 @@ qemuMonitorJSONSetCapabilities(qemuMonitorPtr mon)
     if (ret == 0)
         ret = qemuMonitorJSONCheckError(cmd, reply);
 
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONCheckHMP(qemuMonitorPtr mon)
+{
+    int ret = 0;
+    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("query-commands", NULL);
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr data;
+    int i, n;
+
+    if (!cmd)
+        return ret;
+
+    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0 ||
+        qemuMonitorJSONCheckError(cmd, reply) < 0)
+        goto cleanup;
+
+    if (!(data = virJSONValueObjectGet(reply, "return")) ||
+        data->type != VIR_JSON_TYPE_ARRAY ||
+        (n = virJSONValueArraySize(data)) <= 0)
+        goto cleanup;
+
+    for (i = 0; i < n; i++) {
+        virJSONValuePtr entry;
+        const char *name;
+
+        if (!(entry = virJSONValueArrayGet(data, i)) ||
+            !(name = virJSONValueObjectGetString(entry, "name")))
+            goto cleanup;
+
+        if (STREQ(name, "human-monitor-command")) {
+            ret = 1;
+            goto cleanup;
+        }
+    }
+
+cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -1399,7 +1492,15 @@ int qemuMonitorJSONSetCPU(qemuMonitorPtr mon,
     if (!cmd)
         return -1;
 
-    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
+        qemuMonitorCheckHMP(mon, "cpu_set")) {
+        VIR_DEBUG0("cpu_set command not found, trying HMP");
+        ret = qemuMonitorTextSetCPU(mon, cpu, online);
+        goto cleanup;
+    }
 
     if (ret == 0) {
         /* XXX See if CPU soft-failed due to lack of ACPI */
@@ -1417,10 +1518,7 @@ int qemuMonitorJSONSetCPU(qemuMonitorPtr mon,
             ret = 1;
     }
 
-#if 0
 cleanup:
-#endif
-
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -1669,9 +1767,9 @@ int qemuMonitorJSONGetMigrationStatus(qemuMonitorPtr mon,
 }
 
 
-static int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
-                                  unsigned int flags,
-                                  const char *uri)
+int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
+                           unsigned int flags,
+                           const char *uri)
 {
     int ret;
     virJSONValuePtr cmd =
@@ -1695,123 +1793,6 @@ static int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
     virJSONValueFree(reply);
     return ret;
 }
-
-
-int qemuMonitorJSONMigrateToHost(qemuMonitorPtr mon,
-                                 unsigned int flags,
-                                 const char *hostname,
-                                 int port)
-{
-    char *uri = NULL;
-    int ret;
-
-    if (virAsprintf(&uri, "tcp:%s:%d", hostname, port) < 0) {
-        virReportOOMError();
-        return -1;
-    }
-
-    ret = qemuMonitorJSONMigrate(mon, flags, uri);
-
-    VIR_FREE(uri);
-
-    return ret;
-}
-
-
-int qemuMonitorJSONMigrateToCommand(qemuMonitorPtr mon,
-                                    unsigned int flags,
-                                    const char * const *argv)
-{
-    char *argstr;
-    char *dest = NULL;
-    int ret = -1;
-
-    argstr = virArgvToString(argv);
-    if (!argstr) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if (virAsprintf(&dest, "exec:%s", argstr) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    ret = qemuMonitorJSONMigrate(mon, flags, dest);
-
-cleanup:
-    VIR_FREE(argstr);
-    VIR_FREE(dest);
-    return ret;
-}
-
-int qemuMonitorJSONMigrateToFile(qemuMonitorPtr mon,
-                                 unsigned int flags,
-                                 const char * const *argv,
-                                 const char *target,
-                                 unsigned long long offset)
-{
-    char *argstr;
-    char *dest = NULL;
-    int ret = -1;
-    char *safe_target = NULL;
-
-    argstr = virArgvToString(argv);
-    if (!argstr) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    /* Migrate to file */
-    safe_target = qemuMonitorEscapeShell(target);
-    if (!safe_target) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    /* Two dd processes, sharing the same stdout, are necessary to
-     * allow starting at an alignment of 512, but without wasting
-     * padding to get to the larger alignment useful for speed.  Use
-     * <> redirection to avoid truncating a regular file.  */
-    if (virAsprintf(&dest, "exec:" VIR_WRAPPER_SHELL_PREFIX "%s | "
-                    "{ dd bs=%llu seek=%llu if=/dev/null && "
-                    "dd bs=%llu; } 1<>%s" VIR_WRAPPER_SHELL_SUFFIX,
-                    argstr, QEMU_MONITOR_MIGRATE_TO_FILE_BS,
-                    offset / QEMU_MONITOR_MIGRATE_TO_FILE_BS,
-                    QEMU_MONITOR_MIGRATE_TO_FILE_TRANSFER_SIZE,
-                    safe_target) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    ret = qemuMonitorJSONMigrate(mon, flags, dest);
-
-cleanup:
-    VIR_FREE(safe_target);
-    VIR_FREE(argstr);
-    VIR_FREE(dest);
-    return ret;
-}
-
-int qemuMonitorJSONMigrateToUnix(qemuMonitorPtr mon,
-                                 unsigned int flags,
-                                 const char *unixfile)
-{
-    char *dest = NULL;
-    int ret = -1;
-
-    if (virAsprintf(&dest, "unix:%s", unixfile) < 0) {
-        virReportOOMError();
-        return -1;
-    }
-
-    ret = qemuMonitorJSONMigrate(mon, flags, dest);
-
-    VIR_FREE(dest);
-
-    return ret;
-}
-
 
 int qemuMonitorJSONMigrateCancel(qemuMonitorPtr mon)
 {
@@ -2308,11 +2289,19 @@ int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
     if (!cmd)
         return -1;
 
-    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply) < 0))
+        goto cleanup;
 
-    if (ret == 0)
-        ret = qemuMonitorJSONCheckError(cmd, reply);
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
+        qemuMonitorCheckHMP(mon, "drive_add")) {
+        VIR_DEBUG0("drive_add command not found, trying HMP");
+        ret = qemuMonitorTextAddDrive(mon, drivestr);
+        goto cleanup;
+    }
 
+    ret = qemuMonitorJSONCheckError(cmd, reply);
+
+cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -2326,29 +2315,31 @@ int qemuMonitorJSONDriveDel(qemuMonitorPtr mon,
     virJSONValuePtr cmd;
     virJSONValuePtr reply = NULL;
 
-    DEBUG("JSONDriveDel drivestr=%s", drivestr);
+    VIR_DEBUG("JSONDriveDel drivestr=%s", drivestr);
     cmd = qemuMonitorJSONMakeCommand("drive_del",
                                      "s:id", drivestr,
                                      NULL);
     if (!cmd)
         return -1;
 
-    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
 
-    if (ret == 0) {
-        /* See if drive_del isn't supported */
-        if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
+        if (qemuMonitorCheckHMP(mon, "drive_del")) {
+            VIR_DEBUG0("drive_del command not found, trying HMP");
+            ret = qemuMonitorTextDriveDel(mon, drivestr);
+        } else {
             VIR_ERROR0(_("deleting disk is not supported.  "
                         "This may leak data if disk is reassigned"));
             ret = 1;
-            goto cleanup;
-        } else if (qemuMonitorJSONHasError(reply, "DeviceNotFound")) {
-            /* NB: device not found errors mean the drive was
-             * auto-deleted and we ignore the error */
-            ret = 0;
-        } else {
-            ret = qemuMonitorJSONCheckError(cmd, reply);
         }
+    } else if (qemuMonitorJSONHasError(reply, "DeviceNotFound")) {
+        /* NB: device not found errors mean the drive was
+         * auto-deleted and we ignore the error */
+        ret = 0;
+    } else {
+        ret = qemuMonitorJSONCheckError(cmd, reply);
     }
 
 cleanup:
@@ -2401,11 +2392,19 @@ int qemuMonitorJSONCreateSnapshot(qemuMonitorPtr mon, const char *name)
     if (!cmd)
         return -1;
 
-    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
 
-    if (ret == 0)
-        ret = qemuMonitorJSONCheckError(cmd, reply);
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
+        qemuMonitorCheckHMP(mon, "savevm")) {
+        VIR_DEBUG0("savevm command not found, trying HMP");
+        ret = qemuMonitorTextCreateSnapshot(mon, name);
+        goto cleanup;
+    }
 
+    ret = qemuMonitorJSONCheckError(cmd, reply);
+
+cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -2423,11 +2422,19 @@ int qemuMonitorJSONLoadSnapshot(qemuMonitorPtr mon, const char *name)
     if (!cmd)
         return -1;
 
-    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
 
-    if (ret == 0)
-        ret = qemuMonitorJSONCheckError(cmd, reply);
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
+        qemuMonitorCheckHMP(mon, "loadvm")) {
+        VIR_DEBUG0("loadvm command not found, trying HMP");
+        ret = qemuMonitorTextLoadSnapshot(mon, name);
+        goto cleanup;
+    }
 
+    ret = qemuMonitorJSONCheckError(cmd, reply);
+
+cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -2445,11 +2452,19 @@ int qemuMonitorJSONDeleteSnapshot(qemuMonitorPtr mon, const char *name)
     if (!cmd)
         return -1;
 
-    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
 
-    if (ret == 0)
-        ret = qemuMonitorJSONCheckError(cmd, reply);
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
+        qemuMonitorCheckHMP(mon, "delvm")) {
+        VIR_DEBUG0("delvm command not found, trying HMP");
+        ret = qemuMonitorTextDeleteSnapshot(mon, name);
+        goto cleanup;
+    }
 
+    ret = qemuMonitorJSONCheckError(cmd, reply);
+
+cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -2464,36 +2479,23 @@ int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
     virJSONValuePtr reply = NULL;
     int ret = -1;
 
-    if (!hmp) {
-        cmd = virJSONValueFromString(cmd_str);
+    if (hmp) {
+        if (!qemuMonitorCheckHMP(mon, NULL)) {
+            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                            _("HMP passthrough is not supported by qemu"
+                              " process; only QMP commands can be used"));
+            return -1;
+        }
+        return qemuMonitorJSONHumanCommandWithFd(mon, cmd_str, -1, reply_str);
     } else {
-        cmd = qemuMonitorJSONMakeCommand("human-monitor-command",
-                                         "s:command-line", cmd_str,
-                                         NULL);
-    }
+        if (!(cmd = virJSONValueFromString(cmd_str)))
+            goto cleanup;
 
-    if (!cmd)
-        return -1;
+        if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
+            goto cleanup;
 
-    if (qemuMonitorJSONCommand(mon, cmd, &reply) < 0)
-        goto cleanup;
-
-    if (!hmp) {
         if (!(*reply_str = virJSONValueToString(reply)))
             goto cleanup;
-    } else if (qemuMonitorJSONCheckError(cmd, reply)) {
-        goto cleanup;
-    } else {
-        const char *data;
-        if (!(data = virJSONValueObjectGetString(reply, "return"))) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("human monitor command was missing return data"));
-            goto cleanup;
-        }
-        if (!(*reply_str = strdup(data))) {
-            virReportOOMError();
-            goto cleanup;
-        }
     }
 
     ret = 0;

@@ -52,6 +52,7 @@
 #include "util.h"
 #include "memory.h"
 #include "veth.h"
+#include "uuid.h"
 #include "files.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
@@ -102,6 +103,20 @@ struct __lxc_child_argv {
  */
 static int lxcContainerExecInit(virDomainDefPtr vmDef)
 {
+    char *uuidenv, *nameenv;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+
+    virUUIDFormat(vmDef->uuid, uuidstr);
+
+    if (virAsprintf(&uuidenv, "LIBVIRT_LXC_UUID=%s", uuidstr) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+    if (virAsprintf(&nameenv, "LIBVIRT_LXC_NAME=%s", vmDef->name) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
     const char *const argv[] = {
         vmDef->os.init,
         NULL,
@@ -109,6 +124,8 @@ static int lxcContainerExecInit(virDomainDefPtr vmDef)
     const char *const envp[] = {
         "PATH=/bin:/sbin",
         "TERM=linux",
+        uuidenv,
+        nameenv,
         NULL,
     };
 
@@ -227,7 +244,7 @@ static int lxcContainerWaitForContinue(int control)
     }
     VIR_FORCE_CLOSE(control);
 
-    DEBUG0("Received container continue message");
+    VIR_DEBUG0("Received container continue message");
 
     return 0;
 }
@@ -258,12 +275,12 @@ static int lxcContainerRenameAndEnableInterfaces(unsigned int nveths,
             goto error_out;
         }
 
-        DEBUG("Renaming %s to %s", veths[i], newname);
+        VIR_DEBUG("Renaming %s to %s", veths[i], newname);
         rc = setInterfaceName(veths[i], newname);
         if (rc < 0)
             goto error_out;
 
-        DEBUG("Enabling %s", newname);
+        VIR_DEBUG("Enabling %s", newname);
         rc = vethInterfaceUpOrDown(newname, 1);
         if (rc < 0)
             goto error_out;
@@ -820,6 +837,27 @@ static int userns_supported(void)
 #endif
 }
 
+const char *lxcContainerGetAlt32bitArch(const char *arch)
+{
+    /* Any Linux 64bit arch which has a 32bit
+     * personality available should be listed here */
+    if (STREQ(arch, "x86_64"))
+        return "i686";
+    if (STREQ(arch, "s390x"))
+        return "s390";
+    if (STREQ(arch, "ppc64"))
+        return "ppc";
+    if (STREQ(arch, "parisc64"))
+        return "parisc";
+    if (STREQ(arch, "sparc64"))
+        return "sparc";
+    if (STREQ(arch, "mips64"))
+        return "mips";
+
+    return NULL;
+}
+
+
 /**
  * lxcContainerStart:
  * @def: pointer to virtual machine structure
@@ -854,18 +892,18 @@ int lxcContainerStart(virDomainDefPtr def,
     flags = CLONE_NEWPID|CLONE_NEWNS|CLONE_NEWUTS|CLONE_NEWIPC|SIGCHLD;
 
     if (userns_supported()) {
-        DEBUG0("Enable user namespaces");
+        VIR_DEBUG0("Enable user namespaces");
         flags |= CLONE_NEWUSER;
     }
 
     if (def->nets != NULL) {
-        DEBUG0("Enable network namespaces");
+        VIR_DEBUG0("Enable network namespaces");
         flags |= CLONE_NEWNET;
     }
 
     pid = clone(lxcContainerChild, stacktop, flags, &args);
     VIR_FREE(stack);
-    DEBUG("clone() completed, new container PID is %d", pid);
+    VIR_DEBUG("clone() completed, new container PID is %d", pid);
 
     if (pid < 0) {
         virReportSystemError(errno, "%s",
@@ -897,7 +935,7 @@ int lxcContainerAvailable(int features)
         flags |= CLONE_NEWNET;
 
     if (VIR_ALLOC_N(stack, getpagesize() * 4) < 0) {
-        DEBUG0("Unable to allocate stack");
+        VIR_DEBUG0("Unable to allocate stack");
         return -1;
     }
 
@@ -907,7 +945,7 @@ int lxcContainerAvailable(int features)
     VIR_FREE(stack);
     if (cpid < 0) {
         char ebuf[1024];
-        DEBUG("clone call returned %s, container support is not enabled",
+        VIR_DEBUG("clone call returned %s, container support is not enabled",
               virStrerror(errno, ebuf, sizeof ebuf));
         return -1;
     } else {

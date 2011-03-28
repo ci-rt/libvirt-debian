@@ -3,7 +3,6 @@
 CLEANFILES =
 
 DAEMON_SOURCES =					\
-		event.c event.h				\
 		libvirtd.c libvirtd.h			\
 		remote.c remote.h			\
 		dispatch.c dispatch.h			\
@@ -32,12 +31,14 @@ EXTRA_DIST =						\
 	libvirtd.sasl					\
 	libvirtd.sysconf				\
 	libvirtd.aug                                    \
+	libvirtd.logrotate.in                           \
 	libvirtd.qemu.logrotate.in                      \
 	libvirtd.lxc.logrotate.in                       \
 	libvirtd.uml.logrotate.in                       \
 	test_libvirtd.aug                               \
 	THREADING.txt					\
 	libvirtd.pod.in					\
+	libvirtd.8.in					\
 	libvirtd.stp					\
 	$(AVAHI_SOURCES)				\
 	$(DAEMON_SOURCES)
@@ -46,7 +47,7 @@ BUILT_SOURCES =
 
 if WITH_LIBVIRTD
 
-man_MANS = libvirtd.8
+man8_MANS = libvirtd.8
 
 sbin_PROGRAMS = libvirtd
 
@@ -59,19 +60,13 @@ augeas_DATA = libvirtd.aug
 augeastestsdir = $(datadir)/augeas/lenses/tests
 augeastests_DATA = test_libvirtd.aug
 
-POD2MAN = pod2man -c "Virtualization Support" \
-			-r "$(PACKAGE)-$(VERSION)" -s 8
-
-libvirtd.pod: libvirtd.pod.in
+libvirtd.8: $(srcdir)/libvirtd.8.in
 	sed \
 	    -e 's![@]sysconfdir[@]!$(sysconfdir)!g' \
 	    -e 's![@]localstatedir[@]!$(localstatedir)!g' \
 	    -e 's![@]remote_pid_file[@]!$(REMOTE_PID_FILE)!g' \
 	    < $< > $@-t
 	mv $@-t $@
-
-libvirtd.8: libvirtd.pod
-	$(AM_V_GEN)$(POD2MAN) $< $@
 
 libvirtd_SOURCES = $(DAEMON_SOURCES)
 
@@ -109,6 +104,10 @@ endif
 
 if WITH_LXC
     libvirtd_LDADD += ../src/libvirt_driver_lxc.la
+endif
+
+if WITH_LIBXL
+    libvirtd_LDADD += ../src/libvirt_driver_libxl.la
 endif
 
 if WITH_UML
@@ -245,9 +244,15 @@ qemu_dispatch_ret.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
 	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -r qemu $(QEMU_PROTOCOL) > $@
 
 LOGROTATE_CONFS = libvirtd.qemu.logrotate libvirtd.lxc.logrotate \
-                  libvirtd.uml.logrotate
+                  libvirtd.uml.logrotate libvirtd.logrotate
 
 BUILT_SOURCES += $(LOGROTATE_CONFS)
+
+libvirtd.logrotate: libvirtd.logrotate.in
+	sed							\
+	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
+	    < $< > $@-t
+	mv $@-t $@
 
 libvirtd.qemu.logrotate: libvirtd.qemu.logrotate.in
 	sed							\
@@ -272,6 +277,7 @@ install-logrotate: $(LOGROTATE_CONFS)
 	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/lxc/
 	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/uml/
 	mkdir -p $(DESTDIR)$(sysconfdir)/logrotate.d/
+	$(INSTALL_DATA) libvirtd.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd
 	$(INSTALL_DATA) libvirtd.qemu.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.qemu
 	$(INSTALL_DATA) libvirtd.lxc.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.lxc
 	$(INSTALL_DATA) libvirtd.uml.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
@@ -322,6 +328,13 @@ install-data-local: install-data-sasl
 uninstall-local:: uninstall-data-sasl
 endif # WITH_LIBVIRTD
 
+# This is needed for 'make dist' too, so can't wrap in WITH_LIBVIRTD.
+POD2MAN = pod2man -c "Virtualization Support" \
+			-r "$(PACKAGE)-$(VERSION)" -s 8
+
+$(srcdir)/libvirtd.8.in: libvirtd.pod.in
+	$(AM_V_GEN)$(POD2MAN) $< $@
+
 # This is needed for clients too, so can't wrap in
 # the WITH_LIBVIRTD conditional
 if HAVE_SASL
@@ -338,5 +351,6 @@ uninstall-data-sasl:
 endif
 
 
-CLEANFILES += $(BUILT_SOURCES) $(man_MANS) libvirtd.pod
+CLEANFILES += $(BUILT_SOURCES) $(man8_MANS)
 CLEANFILES += *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
+MAINTAINERCLEANFILES = $(srcdir)/libvirtd.8.in

@@ -1,7 +1,7 @@
 /*
  * virterror.c: implements error handling and reporting code for libvirt
  *
- * Copy:  Copyright (C) 2006, 2008-2010 Red Hat, Inc.
+ * Copy:  Copyright (C) 2006, 2008-2011 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -89,6 +89,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
         case VIR_FROM_XENAPI:
             dom = "XenAPI ";
             break;
+        case VIR_FROM_LIBXL:
+            dom = "xenlight ";
+            break;
         case VIR_FROM_XML:
             dom = "XML ";
             break;
@@ -105,7 +108,7 @@ static const char *virErrorDomainName(virErrorDomain domain) {
             dom = "Domain ";
             break;
         case VIR_FROM_RPC:
-            dom = "XML-RPC ";
+            dom = "RPC ";
             break;
         case VIR_FROM_QEMU:
             dom = "QEMU ";
@@ -200,6 +203,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
         case VIR_FROM_STREAMS:
             dom = "Streams ";
             break;
+        case VIR_FROM_EVENT:
+            dom = "Events ";
+            break;
     }
     return(dom);
 }
@@ -245,7 +251,7 @@ virErrorGenericFailure(virErrorPtr err)
     err->code = VIR_ERR_INTERNAL_ERROR;
     err->domain = VIR_FROM_NONE;
     err->level = VIR_ERR_ERROR;
-    err->message = strdup(_("Unknown failure"));
+    err->message = strdup(_("An error occurred, but the cause is unknown"));
 }
 
 
@@ -1341,6 +1347,12 @@ void virReportOOMErrorFull(int domcode,
                       virerr, NULL, NULL, -1, -1, virerr, NULL);
 }
 
+/**
+ * virSetErrorLogPriorityFunc:
+ * @func: function to install
+ *
+ * Install a function used to filter error logging based on error priority.
+ */
 void virSetErrorLogPriorityFunc(virErrorLogPriorityFunc func)
 {
     virErrorLogPriorityFilter = func;

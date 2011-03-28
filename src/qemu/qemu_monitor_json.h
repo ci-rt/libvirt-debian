@@ -1,7 +1,7 @@
 /*
  * qemu_monitor_json.h: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2009 Red Hat, Inc.
+ * Copyright (C) 2006-2009, 2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -34,7 +34,14 @@ int qemuMonitorJSONIOProcess(qemuMonitorPtr mon,
                              size_t len,
                              qemuMonitorMessagePtr msg);
 
+int qemuMonitorJSONHumanCommandWithFd(qemuMonitorPtr mon,
+                                      const char *cmd,
+                                      int scm_fd,
+                                      char **reply);
+
 int qemuMonitorJSONSetCapabilities(qemuMonitorPtr mon);
+
+int qemuMonitorJSONCheckHMP(qemuMonitorPtr mon);
 
 int qemuMonitorJSONStartCPUs(qemuMonitorPtr mon,
                              virConnectPtr conn);
@@ -104,24 +111,9 @@ int qemuMonitorJSONGetMigrationStatus(qemuMonitorPtr mon,
                                       unsigned long long *remaining,
                                       unsigned long long *total);
 
-int qemuMonitorJSONMigrateToHost(qemuMonitorPtr mon,
-                                 unsigned int flags,
-                                 const char *hostname,
-                                 int port);
-
-int qemuMonitorJSONMigrateToCommand(qemuMonitorPtr mon,
-                                    unsigned int flags,
-                                    const char * const *argv);
-
-int qemuMonitorJSONMigrateToFile(qemuMonitorPtr mon,
-                                 unsigned int flags,
-                                 const char * const *argv,
-                                 const char *target,
-                                 unsigned long long offset);
-
-int qemuMonitorJSONMigrateToUnix(qemuMonitorPtr mon,
-                                 unsigned int flags,
-                                 const char *unixfile);
+int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
+                           unsigned int flags,
+                           const char *uri);
 
 int qemuMonitorJSONMigrateCancel(qemuMonitorPtr mon);
 

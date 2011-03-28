@@ -28,7 +28,6 @@
 
 # include <stdint.h>
 # include <stddef.h>
-# include <stdbool.h>
 
 # include "internal.h"
 
@@ -291,6 +290,7 @@ struct _udpliteHdrFilterDef {
 enum virNWFilterRuleActionType {
     VIR_NWFILTER_RULE_ACTION_DROP = 0,
     VIR_NWFILTER_RULE_ACTION_ACCEPT,
+    VIR_NWFILTER_RULE_ACTION_REJECT,
 
     VIR_NWFILTER_RULE_ACTION_LAST,
 };

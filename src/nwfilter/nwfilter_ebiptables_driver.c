@@ -1,6 +1,7 @@
 /*
  * nwfilter_ebiptables_driver.c: driver for ebtables/iptables on tap devices
  *
+ * Copyright (C) 2011 Red Hat, Inc.
  * Copyright (C) 2010 IBM Corp.
  * Copyright (C) 2010 Stefan Berger
  *
@@ -1516,7 +1517,7 @@ _iptablesCreateRuleInstance(int directionIn,
     if (rule->action == VIR_NWFILTER_RULE_ACTION_ACCEPT)
         target = accept_target;
     else {
-        target = "DROP";
+        target = virNWFilterJumpTargetTypeToString(rule->action);
         skipMatch = defMatch;
     }
 
@@ -1880,6 +1881,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
          number[20];
     char chain[MAX_CHAINNAME_LENGTH];
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+    const char *target;
 
     if (!ebtables_cmd_path) {
         virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -2295,10 +2297,20 @@ ebtablesCreateRuleInstance(char chainPrefix,
         return -1;
     }
 
+    switch (rule->action) {
+    case VIR_NWFILTER_RULE_ACTION_REJECT:
+        /* REJECT not supported */
+        target = virNWFilterJumpTargetTypeToString(
+                                     VIR_NWFILTER_RULE_ACTION_DROP);
+    break;
+    default:
+        target = virNWFilterJumpTargetTypeToString(rule->action);
+    }
+
     virBufferVSprintf(&buf,
                       " -j %s" CMD_DEF_POST CMD_SEPARATOR
                       CMD_EXEC,
-                      virNWFilterJumpTargetTypeToString(rule->action));
+                      target);
 
     if (virBufferError(&buf)) {
         virBufferFreeAndReset(&buf);
@@ -2547,7 +2559,7 @@ err_exit:
  * ebiptablesExecCLI:
  * @buf : pointer to virBuffer containing the string with the commands to
  *        execute.
- * @status: Pointer to an integer for returning the status of the
+ * @status: Pointer to an integer for returning the WEXITSTATUS of the
  *        commands executed via the script the was run.
  *
  * Returns 0 in case of success, != 0 in case of an error. The returned
@@ -2576,7 +2588,7 @@ ebiptablesExecCLI(virBufferPtr buf,
 
     cmds = virBufferContentAndReset(buf);
 
-    VIR_DEBUG("%s", cmds);
+    VIR_DEBUG("%s", NULLSTR(cmds));
 
     if (!cmds)
         return 0;
@@ -2595,9 +2607,16 @@ ebiptablesExecCLI(virBufferPtr buf,
 
     virMutexUnlock(&execCLIMutex);
 
-    *status >>= 8;
+    if (rc == 0) {
+        if (WIFEXITED(*status)) {
+            *status = WEXITSTATUS(*status);
+        } else {
+            rc = -1;
+            *status = 1;
+        }
+    }
 
-    VIR_DEBUG("rc = %d, status = %d",rc, *status);
+    VIR_DEBUG("rc = %d, status = %d", rc, *status);
 
     unlink(filename);
 

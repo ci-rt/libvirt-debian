@@ -1,4 +1,3 @@
-
 /*
  * esx_util.h: utility functions for the VMware ESX driver
  *
@@ -23,7 +22,6 @@
 #ifndef __ESX_UTIL_H__
 # define __ESX_UTIL_H__
 
-# include <stdbool.h>
 # include <libxml/uri.h>
 
 # include "internal.h"
@@ -63,5 +61,7 @@ char *esxUtil_EscapeBase64(const char *string);
 void esxUtil_ReplaceSpecialWindowsPathChars(char *string);
 
 char *esxUtil_EscapeDatastoreItem(const char *string);
+
+char *esxUtil_EscapeForXml(const char *string);
 
 #endif /* __ESX_UTIL_H__ */
