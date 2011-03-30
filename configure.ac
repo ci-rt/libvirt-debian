@@ -271,8 +271,6 @@ AC_ARG_WITH([vbox],
                  [with_vbox=yes])
 AC_ARG_WITH([lxc],
   AC_HELP_STRING([--with-lxc], [add Linux Container support @<:@default=check@:>@]),[],[with_lxc=check])
-AC_ARG_WITH([one],
-  AC_HELP_STRING([--with-one], [add ONE support @<:@default=check@:>@]),[],[with_one=check])
 AC_ARG_WITH([esx],
   AC_HELP_STRING([--with-esx], [add ESX support @<:@default=check@:>@]),[],[with_esx=check])
 AC_ARG_WITH([test],
@@ -440,11 +438,6 @@ if test "$with_qemu" = "yes" ; then
 fi
 AM_CONDITIONAL([WITH_QEMU], [test "$with_qemu" = "yes"])
 
-if test "$with_one" = "yes" ; then
-    AC_DEFINE_UNQUOTED([WITH_ONE],1,[whether ONE driver is enabled])
-fi
-AM_CONDITIONAL([WITH_ONE],[test "$with_one" = "yes"])
-
 if test "$with_test" = "yes" ; then
     AC_DEFINE_UNQUOTED([WITH_TEST], 1, [whether Test driver is enabled])
 fi
@@ -607,6 +600,8 @@ AM_CONDITIONAL([WITH_XEN], [test "$with_xen" = "yes"])
 AC_SUBST([XEN_CFLAGS])
 AC_SUBST([XEN_LIBS])
 
+AM_CONDITIONAL([WITH_XENXS], [test "$with_libxl" = "yes" || test "$with_xen" = "yes"])
+
 dnl
 dnl check for kernel headers required by xen_inotify
 dnl
@@ -724,34 +719,6 @@ fi
 
 dnl Need to test if pkg-config exists
 PKG_PROG_PKG_CONFIG
-
-dnl OpenNebula driver Compilation setting
-dnl
-
-if test "$with_libvirtd" = "no" ; then
-  with_one=no
-fi
-XMLRPC_CFLAGS=
-XMLRPC_LIBS=
-if test "x$with_one" = "xyes" || test "x$with_one" = "xcheck"; then
-    PKG_CHECK_MODULES(XMLRPC, xmlrpc_client >= $XMLRPC_REQUIRED,
-      [with_one=yes], [
-      if test "x$with_one" = "xcheck" ; then
-          with_one=no
-      else
-          AC_MSG_ERROR(
-            [You must install XMLRPC-C >= $XMLRPC_REQUIRED to compile libvirt ONE driver])
-      fi
-    ])
-    if test "x$with_one" = "xyes" ; then
-        AC_DEFINE_UNQUOTED([HAVE_XMLRPC], 1,
-          [whether One is used to broadcast server presence])
-    fi
-fi
-AM_CONDITIONAL([HAVE_XMLRPC], [test "x$with_one" = "xyes"])
-AM_CONDITIONAL([WITH_ONE], [test "x$with_one" = "xyes"])
-AC_SUBST([XMLRPC_CFLAGS])
-AC_SUBST([XMLRPC_LIBS])
 
 
 dnl ==========================================================================
@@ -1051,7 +1018,7 @@ AUDIT_LIBS=
 if test "$with_audit" != "no" ; then
   old_cflags="$CFLAGS"
   old_libs="$LIBS"
-  if test "$with_audit" != "check" && "$with_audit" != "yes" ; then
+  if test "$with_audit" != "check" && test "$with_audit" != "yes" ; then
     AUDIT_CFLAGS="-I$with_audit/include"
     AUDIT_LIBS="-L$with_audit/lib"
   fi
@@ -2415,7 +2382,6 @@ AC_MSG_NOTICE([  XenAPI: $with_xenapi])
 AC_MSG_NOTICE([xenlight: $with_libxl])
 AC_MSG_NOTICE([     LXC: $with_lxc])
 AC_MSG_NOTICE([    PHYP: $with_phyp])
-AC_MSG_NOTICE([     ONE: $with_one])
 AC_MSG_NOTICE([     ESX: $with_esx])
 AC_MSG_NOTICE([    Test: $with_test])
 AC_MSG_NOTICE([  Remote: $with_remote])
@@ -2541,11 +2507,6 @@ if test "$with_netcf" = "yes" ; then
 AC_MSG_NOTICE([   netcf: $NETCF_CFLAGS $NETCF_LIBS])
 else
 AC_MSG_NOTICE([   netcf: no])
-fi
-if test "$with_one" = "yes" ; then
-AC_MSG_NOTICE([  xmlrpc: $XMLRPC_CFLAGS $XMLRPC_LIBS])
-else
-AC_MSG_NOTICE([  xmlrpc: no])
 fi
 if test "$with_qemu" = "yes" && test "$LIBPCAP_FOUND" != "no"; then
 AC_MSG_NOTICE([    pcap: $LIBPCAP_CFLAGS $LIBPCAP_LIBS])

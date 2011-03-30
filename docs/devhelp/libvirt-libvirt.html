@@ -419,6 +419,7 @@ int	<a href="#virStoragePoolUndefine">virStoragePoolUndefine</a>		(<a href="libv
 <a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolCreateXML">virStorageVolCreateXML</a>	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>						 const char * xmldesc, <br/>						 unsigned int flags);
 <a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolCreateXMLFrom">virStorageVolCreateXMLFrom</a>	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * xmldesc, <br/>							 <a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> clonevol, <br/>							 unsigned int flags);
 int	<a href="#virStorageVolDelete">virStorageVolDelete</a>		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags);
+int	<a href="#virStorageVolDownload">virStorageVolDownload</a>		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 unsigned long long offset, <br/>					 unsigned long long length, <br/>					 unsigned int flags);
 int	<a href="#virStorageVolFree">virStorageVolFree</a>		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol);
 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	<a href="#virStorageVolGetConnect">virStorageVolGetConnect</a>	(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol);
 int	<a href="#virStorageVolGetInfo">virStorageVolGetInfo</a>		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt.html#virStorageVolInfoPtr">virStorageVolInfoPtr</a> info);
@@ -430,6 +431,7 @@ char *	<a href="#virStorageVolGetXMLDesc">virStorageVolGetXMLDesc</a>		(<a href=
 <a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolLookupByName">virStorageVolLookupByName</a>	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * name);
 <a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolLookupByPath">virStorageVolLookupByPath</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 const char * path);
 int	<a href="#virStorageVolRef">virStorageVolRef</a>		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol);
+int	<a href="#virStorageVolUpload">virStorageVolUpload</a>		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 unsigned long long offset, <br/>					 unsigned long long length, <br/>					 unsigned int flags);
 int	<a href="#virStorageVolWipe">virStorageVolWipe</a>		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags);
 int	<a href="#virStreamAbort">virStreamAbort</a>			(<a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream);
 int	<a href="#virStreamEventAddCallback">virStreamEventAddCallback</a>	(<a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 int events, <br/>					 <a href="libvirt-libvirt.html#virStreamEventCallback">virStreamEventCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> ff);
@@ -3093,6 +3095,18 @@ XML description.</p>
 </pre><p>Delete the storage volume from the pool</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>future flags, use 0 for now</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, or -1 on error</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolDownload"/>virStorageVolDownload ()</h3><pre class="programlisting">int	virStorageVolDownload		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 unsigned long long offset, <br/>					 unsigned long long length, <br/>					 unsigned int flags)<br/>
+</pre><p>Download the content of the volume as a stream. If @length
+is zero, then the remaining contents of the volume after
+@offset will be downloaded.
+
+This call sets up an asynchronous stream; subsequent use of
+stream APIs is necessary to transfer the actual data,
+determine how much data is successfully transferred, and
+detect any errors. The results will be unpredictable if
+another active stream is writing to the storage volume.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to volume to download from</td></tr><tr><td><span class="term"><i><tt>stream</tt></i>:</span></td><td>stream to use as output</td></tr><tr><td><span class="term"><i><tt>offset</tt></i>:</span></td><td>position in @vol to start reading from</td></tr><tr><td><span class="term"><i><tt>length</tt></i>:</span></td><td>limit on amount of data to download</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>future flags (unused, pass 0)</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0, or -1 upon error.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStorageVolFree"/>virStorageVolFree ()</h3><pre class="programlisting">int	virStorageVolFree		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol)<br/>
 </pre><p>Release the storage volume handle. The underlying
 storage volume continues to exist.</p>
@@ -3164,6 +3178,20 @@ connection remain open until all threads have finished using
 it. ie, each new thread using a vol would increment
 the reference count.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>the vol to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolUpload"/>virStorageVolUpload ()</h3><pre class="programlisting">int	virStorageVolUpload		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 unsigned long long offset, <br/>					 unsigned long long length, <br/>					 unsigned int flags)<br/>
+</pre><p>Upload new content to the volume from a stream. This call
+will fail if @offset + @length exceeds the size of the
+volume. Otherwise, if @length is non-zero, an error
+will be raised if an attempt is made to upload greater
+than @length bytes of data.
+
+This call sets up an asynchronous stream; subsequent use of
+stream APIs is necessary to transfer the actual data,
+determine how much data is successfully transferred, and
+detect any errors. The results will be unpredictable if
+another active stream is writing to the storage volume.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to volume to upload</td></tr><tr><td><span class="term"><i><tt>stream</tt></i>:</span></td><td>stream to use as input</td></tr><tr><td><span class="term"><i><tt>offset</tt></i>:</span></td><td>position to start writing to</td></tr><tr><td><span class="term"><i><tt>length</tt></i>:</span></td><td>limit on amount of data to upload</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>flags for creation (unused, pass 0)</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0, or -1 upon error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStorageVolWipe"/>virStorageVolWipe ()</h3><pre class="programlisting">int	virStorageVolWipe		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags)<br/>
 </pre><p>Ensure data previously on a volume is not accessible to future reads</p>

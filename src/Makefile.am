@@ -195,9 +195,13 @@ remote_protocol-structs:
 		-e '    $$p =~ s!\t*/\*.*?\*/!!sg;'			\
 		-e '    $$p =~ s!\s+\n!\n!sg;'				\
 		-e '    $$p =~ s!\s+$$!!;'				\
+		-e '    $$p =~ s!\t!        !g;'			\
 		-e '    print "$$p\n";'					\
 		-e '    $$n++;'						\
 		-e '  }'						\
+		-e '}'							\
+		-e 'BEGIN {'						\
+		-e '  print "/* -*- c -*- */\n";'			\
 		-e '}'							\
 		-e 'END {'						\
 		-e '  if ($$n < 300) {'					\
@@ -306,14 +310,6 @@ UML_DRIVER_SOURCES =						\
 		uml/uml_conf.c uml/uml_conf.h			\
 		uml/uml_driver.c uml/uml_driver.h
 
-ONE_DRIVER_SOURCES =						\
-		./opennebula/one_conf.c				\
-		./opennebula/one_conf.h				\
-		./opennebula/one_driver.c			\
-		./opennebula/one_driver.h			\
-		./opennebula/one_client.c			\
-		./opennebula/one_client.h
-
 ESX_DRIVER_SOURCES =						\
 		esx/esx_private.h						\
 		esx/esx_driver.c esx/esx_driver.h		\
@@ -379,6 +375,9 @@ STORAGE_DRIVER_DISK_SOURCES =					\
 
 STORAGE_HELPER_DISK_SOURCES =					\
 		storage/parthelper.c
+
+UTIL_IO_HELPER_SOURCES =					\
+		util/iohelper.c
 
 # Network filters
 NWFILTER_DRIVER_SOURCES =					\
@@ -474,7 +473,7 @@ libvirt_vmx_la_CFLAGS = \
 libvirt_vmx_la_SOURCES = $(VMX_SOURCES)
 endif
 
-if WITH_XEN
+if WITH_XENXS
 noinst_LTLIBRARIES += libvirt_xenxs.la
 libvirt_la_BUILT_LIBADD += libvirt_xenxs.la
 libvirt_xenxs_la_CFLAGS = \
@@ -704,10 +703,12 @@ noinst_LTLIBRARIES += libvirt_driver_libxl.la
 # Stateful, so linked to daemon instead
 #libvirt_la_BUILT_LIBADD += libvirt_driver_libxl.la
 endif
-libvirt_driver_libxl_la_CFLAGS = $(LIBXL_CFLAGS) \
-		-I@top_srcdir@/src/conf $(AM_CFLAGS)
+libvirt_driver_libxl_la_CFLAGS = $(LIBXL_CFLAGS)		\
+		-I@top_srcdir@/src/conf				\
+		-I@top_srcdir@/src/xenxs			\
+		$(AM_CFLAGS)
 libvirt_driver_libxl_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_libxl_la_LIBADD = $(LIBXL_LIBS)
+libvirt_driver_libxl_la_LIBADD = $(LIBXL_LIBS) libvirt_xenxs.la
 if WITH_DRIVER_MODULES
 libvirt_driver_libxl_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_libxl_la_LDFLAGS += -module -avoid-version
@@ -792,26 +793,6 @@ libvirt_driver_uml_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_uml_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_uml_la_SOURCES = $(UML_DRIVER_SOURCES)
-endif
-
-if WITH_ONE
-if WITH_DRIVER_MODULES
-mod_LTLIBRARIES += libvirt_driver_one.la
-else
-noinst_LTLIBRARIES += libvirt_driver_one.la
-# Stateful, so linked to daemon instead
-#libvirt_la_BUILT_LIBADD  += libvirt_driver_one.la
-endif
-libvirt_driver_one_la_CFLAGS = $(XMLRPC_CFLAGS) \
-		-I@top_srcdir@/src/conf $(AM_CFLAGS)
-libvirt_driver_one_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_one_la_LIBADD = $(XMLRPC_LIBS)
-#libvirt_driver_one_la_CFLAGS  = "-DWITH_ONE"
-if WITH_DRIVER_MODULES
-libvirt_driver_one_la_LIBADD += ../gnulib/lib/libgnu.la
-libvirt_driver_one_la_LDFLAGS += -module -avoid-version
-endif
-libvirt_driver_one_la_SOURCES = $(ONE_DRIVER_SOURCES)
 endif
 
 
@@ -1023,7 +1004,6 @@ EXTRA_DIST +=							\
 		$(QEMU_DRIVER_SOURCES)				\
 		$(LXC_DRIVER_SOURCES)				\
 		$(UML_DRIVER_SOURCES)				\
-		$(ONE_DRIVER_SOURCES)				\
 		$(OPENVZ_DRIVER_SOURCES)			\
 		$(PHYP_DRIVER_SOURCES)				\
 		$(VBOX_DRIVER_SOURCES)				\
@@ -1202,6 +1182,15 @@ libvirt_qemu_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
 EXTRA_DIST += $(LIBVIRT_QEMU_SYMBOL_FILE)
 
 libexec_PROGRAMS =
+
+libexec_PROGRAMS += libvirt_iohelper
+libvirt_iohelper_SOURCES = $(UTIL_IO_HELPER_SOURCES)
+libvirt_iohelper_LDFLAGS = $(WARN_LDFLAGS) $(AM_LDFLAGS)
+libvirt_iohelper_LDADD =		\
+		libvirt_util.la		\
+		../gnulib/lib/libgnu.la
+
+libvirt_iohelper_CFLAGS = $(AM_CFLAGS)
 
 if WITH_STORAGE_DISK
 if WITH_LIBVIRTD

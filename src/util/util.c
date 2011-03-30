@@ -273,13 +273,21 @@ int virSetNonBlock(int fd) {
 }
 
 
+int virSetCloseExec(int fd)
+{
+    return virSetInherit(fd, false);
+}
+
 #ifndef WIN32
 
-int virSetCloseExec(int fd) {
+int virSetInherit(int fd, bool inherit) {
     int flags;
     if ((flags = fcntl(fd, F_GETFD)) < 0)
         return -1;
-    flags |= FD_CLOEXEC;
+    if (inherit)
+        flags &= ~FD_CLOEXEC;
+    else
+        flags |= FD_CLOEXEC;
     if ((fcntl(fd, F_SETFD, flags)) < 0)
         return -1;
     return 0;
@@ -931,7 +939,7 @@ virRunWithHook(const char *const*argv,
 
 #else /* WIN32 */
 
-int virSetCloseExec(int fd ATTRIBUTE_UNUSED)
+int virSetInherit(int fd ATTRIBUTE_UNUSED, bool inherit ATTRIBUTE_UNUSED)
 {
     return -1;
 }
@@ -1383,10 +1391,10 @@ virFileIsExecutable(const char *file)
 
 #ifndef WIN32
 /* return -errno on failure, or 0 on success */
-static int virFileOperationNoFork(const char *path, int openflags, mode_t mode,
-                                  uid_t uid, gid_t gid,
-                                  virFileOperationHook hook, void *hookdata,
-                                  unsigned int flags) {
+static int
+virFileOpenAsNoFork(const char *path, int openflags, mode_t mode,
+                    uid_t uid, gid_t gid, unsigned int flags)
+{
     int fd = -1;
     int ret = 0;
     struct stat st;
@@ -1409,7 +1417,7 @@ static int virFileOperationNoFork(const char *path, int openflags, mode_t mode,
                              path, (unsigned int) uid, (unsigned int) gid);
         goto error;
     }
-    if ((flags & VIR_FILE_OP_FORCE_PERMS)
+    if ((flags & VIR_FILE_OPEN_FORCE_PERMS)
         && (fchmod(fd, mode) < 0)) {
         ret = -errno;
         virReportSystemError(errno,
@@ -1417,17 +1425,8 @@ static int virFileOperationNoFork(const char *path, int openflags, mode_t mode,
                              path, mode);
         goto error;
     }
-    if ((hook) && ((ret = hook(fd, hookdata)) != 0)) {
-        goto error;
-    }
-    if (VIR_CLOSE(fd) < 0) {
-        ret = -errno;
-        virReportSystemError(errno, _("failed to close new file '%s'"),
-                             path);
-        fd = -1;
-        goto error;
-    }
-    fd = -1;
+    return fd;
+
 error:
     VIR_FORCE_CLOSE(fd);
     return ret;
@@ -1440,8 +1439,7 @@ static int virDirCreateNoFork(const char *path, mode_t mode, uid_t uid, gid_t gi
     struct stat st;
 
     if ((mkdir(path, mode) < 0)
-        && !((errno == EEXIST) && (flags & VIR_DIR_CREATE_ALLOW_EXIST)))
-       {
+        && !((errno == EEXIST) && (flags & VIR_DIR_CREATE_ALLOW_EXIST))) {
         ret = -errno;
         virReportSystemError(errno, _("failed to create directory '%s'"),
                              path);
@@ -1472,21 +1470,44 @@ error:
     return ret;
 }
 
-/* return -errno on failure, or 0 on success */
-int virFileOperation(const char *path, int openflags, mode_t mode,
-                     uid_t uid, gid_t gid,
-                     virFileOperationHook hook, void *hookdata,
-                     unsigned int flags) {
+/**
+ * virFileOpenAs:
+ * @path: file to open or create
+ * @openflags: flags to pass to open
+ * @mode: mode to use on creation or when forcing permissions
+ * @uid: uid that should own file on creation
+ * @gid: gid that should own file
+ * @flags: bit-wise or of VIR_FILE_OPEN_* flags
+ *
+ * Open @path, and execute an optional callback @hook on the open file
+ * description.  @hook must return 0 on success, or -errno on failure.
+ * If @flags includes VIR_FILE_OPEN_AS_UID, then open the file while the
+ * effective user id is @uid (by using a child process); this allows
+ * one to bypass root-squashing NFS issues.  If @flags includes
+ * VIR_FILE_OPEN_FORCE_PERMS, then ensure that @path has those
+ * permissions before the callback, even if the file already existed
+ * with different permissions.  The return value (if non-negative)
+ * is the file descriptor, left open.  Return -errno on failure.  */
+int
+virFileOpenAs(const char *path, int openflags, mode_t mode,
+              uid_t uid, gid_t gid, unsigned int flags)
+{
     struct stat st;
     pid_t pid;
     int waitret, status, ret = 0;
-    int fd;
+    int fd = -1;
+    int pair[2] = { -1, -1 };
+    struct msghdr msg;
+    struct cmsghdr *cmsg;
+    char buf[CMSG_SPACE(sizeof(fd))];
+    char dummy = 0;
+    struct iovec iov;
+    int forkRet;
 
-    if ((!(flags & VIR_FILE_OP_AS_UID))
+    if ((!(flags & VIR_FILE_OPEN_AS_UID))
         || (getuid() != 0)
         || ((uid == 0) && (gid == 0))) {
-        return virFileOperationNoFork(path, openflags, mode, uid, gid,
-                                      hook, hookdata, flags);
+        return virFileOpenAsNoFork(path, openflags, mode, uid, gid, flags);
     }
 
     /* parent is running as root, but caller requested that the
@@ -1494,7 +1515,27 @@ int virFileOperation(const char *path, int openflags, mode_t mode,
      * following dance avoids problems caused by root-squashing
      * NFS servers. */
 
-    int forkRet = virFork(&pid);
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, pair) < 0) {
+        ret = -errno;
+        virReportSystemError(errno,
+                             _("failed to create socket needed for '%s'"),
+                             path);
+        return ret;
+    }
+
+    memset(&msg, 0, sizeof(msg));
+    iov.iov_base = &dummy;
+    iov.iov_len = 1;
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+    msg.msg_control = buf;
+    msg.msg_controllen = sizeof(buf);
+    cmsg = CMSG_FIRSTHDR(&msg);
+    cmsg->cmsg_level = SOL_SOCKET;
+    cmsg->cmsg_type = SCM_RIGHTS;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(fd));
+
+    forkRet = virFork(&pid);
 
     if (pid < 0) {
         ret = -errno;
@@ -1502,6 +1543,29 @@ int virFileOperation(const char *path, int openflags, mode_t mode,
     }
 
     if (pid) { /* parent */
+        VIR_FORCE_CLOSE(pair[1]);
+
+        do {
+            ret = recvmsg(pair[0], &msg, 0);
+        } while (ret < 0 && errno == EINTR);
+
+        if (ret < 0) {
+            ret = -errno;
+            VIR_FORCE_CLOSE(pair[0]);
+            while ((waitret = waitpid(pid, NULL, 0) == -1)
+                   && (errno == EINTR));
+            goto parenterror;
+        }
+        VIR_FORCE_CLOSE(pair[0]);
+
+        /* See if fd was transferred.  */
+        cmsg = CMSG_FIRSTHDR(&msg);
+        if (cmsg && cmsg->cmsg_len == CMSG_LEN(sizeof(fd)) &&
+            cmsg->cmsg_level == SOL_SOCKET &&
+            cmsg->cmsg_type == SCM_RIGHTS) {
+            memcpy(&fd, CMSG_DATA(cmsg), sizeof(fd));
+        }
+
         /* wait for child to complete, and retrieve its exit code */
         while ((waitret = waitpid(pid, &status, 0) == -1)
                && (errno == EINTR));
@@ -1512,12 +1576,14 @@ int virFileOperation(const char *path, int openflags, mode_t mode,
                                  path);
             goto parenterror;
         }
-        if (!WIFEXITED(status) || (ret = -WEXITSTATUS(status)) == -EACCES) {
+        if (!WIFEXITED(status) || (ret = -WEXITSTATUS(status)) == -EACCES ||
+            fd == -1) {
             /* fall back to the simpler method, which works better in
              * some cases */
-            return virFileOperationNoFork(path, openflags, mode, uid, gid,
-                                          hook, hookdata, flags);
+            return virFileOpenAsNoFork(path, openflags, mode, uid, gid, flags);
         }
+        if (!ret)
+            ret = fd;
 parenterror:
         return ret;
     }
@@ -1527,8 +1593,10 @@ parenterror:
 
     if (forkRet < 0) {
         /* error encountered and logged in virFork() after the fork. */
+        ret = -errno;
         goto childerror;
     }
+    VIR_FORCE_CLOSE(pair[0]);
 
     /* set desired uid/gid, then attempt to create the file */
 
@@ -1568,7 +1636,7 @@ parenterror:
                              path, (unsigned int) uid, (unsigned int) gid);
         goto childerror;
     }
-    if ((flags & VIR_FILE_OP_FORCE_PERMS)
+    if ((flags & VIR_FILE_OPEN_FORCE_PERMS)
         && (fchmod(fd, mode) < 0)) {
         ret = -errno;
         virReportSystemError(errno,
@@ -1576,20 +1644,24 @@ parenterror:
                              path, mode);
         goto childerror;
     }
-    if ((hook) && ((ret = hook(fd, hookdata)) != 0)) {
-        goto childerror;
-    }
-    if (VIR_CLOSE(fd) < 0) {
+    memcpy(CMSG_DATA(cmsg), &fd, sizeof(fd));
+
+    do {
+        ret = sendmsg(pair[1], &msg, 0);
+    } while (ret < 0 && errno == EINTR);
+
+    if (ret < 0) {
         ret = -errno;
-        virReportSystemError(errno, _("child failed to close new file '%s'"),
-                             path);
         goto childerror;
     }
+
+    ret = 0;
 childerror:
     /* ret tracks -errno on failure, but exit value must be positive.
      * If the child exits with EACCES, then the parent tries again.  */
     /* XXX This makes assumptions about errno being < 255, which is
      * not true on Hurd.  */
+    VIR_FORCE_CLOSE(pair[1]);
     ret = -ret;
     if ((ret & 0xff) != ret) {
         VIR_WARN("unable to pass desired return value %d", ret);
@@ -1699,19 +1771,17 @@ childerror:
 #else /* WIN32 */
 
 /* return -errno on failure, or 0 on success */
-int virFileOperation(const char *path ATTRIBUTE_UNUSED,
-                     int openflags ATTRIBUTE_UNUSED,
-                     mode_t mode ATTRIBUTE_UNUSED,
-                     uid_t uid ATTRIBUTE_UNUSED,
-                     gid_t gid ATTRIBUTE_UNUSED,
-                     virFileOperationHook hook ATTRIBUTE_UNUSED,
-                     void *hookdata ATTRIBUTE_UNUSED,
-                     unsigned int flags ATTRIBUTE_UNUSED)
+int virFileOpenAs(const char *path ATTRIBUTE_UNUSED,
+                  int openflags ATTRIBUTE_UNUSED,
+                  mode_t mode ATTRIBUTE_UNUSED,
+                  uid_t uid ATTRIBUTE_UNUSED,
+                  gid_t gid ATTRIBUTE_UNUSED,
+                  unsigned int flags ATTRIBUTE_UNUSED)
 {
     virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virFileOperation is not implemented for WIN32"));
+                 "%s", _("virFileOpenAs is not implemented for WIN32"));
 
-    return -1;
+    return -ENOSYS;
 }
 
 int virDirCreate(const char *path ATTRIBUTE_UNUSED,
@@ -1723,7 +1793,7 @@ int virDirCreate(const char *path ATTRIBUTE_UNUSED,
     virUtilError(VIR_ERR_INTERNAL_ERROR,
                  "%s", _("virDirCreate is not implemented for WIN32"));
 
-    return -1;
+    return -ENOSYS;
 }
 #endif /* WIN32 */
 

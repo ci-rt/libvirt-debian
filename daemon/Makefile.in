@@ -39,22 +39,21 @@ host_triplet = @host@
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_2 = ../src/libvirt_driver_lxc.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LIBXL_TRUE@am__append_3 = ../src/libvirt_driver_libxl.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_UML_TRUE@am__append_4 = ../src/libvirt_driver_uml.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_ONE_TRUE@am__append_5 = ../src/libvirt_driver_one.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DIR_TRUE@am__append_6 = ../src/libvirt_driver_storage.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_7 = ../src/libvirt_driver_network.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETCF_TRUE@am__append_8 = ../src/libvirt_driver_interface.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_9 = ../src/libvirt_driver_nodedev.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_SECRETS_TRUE@am__append_10 = ../src/libvirt_driver_secret.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_11 = ../src/libvirt_driver_nwfilter.la
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_12 = $(AVAHI_SOURCES)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_13 = $(AVAHI_CFLAGS)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_14 = $(AVAHI_LIBS)
-@WITH_LIBVIRTD_TRUE@am__append_15 = probes.d libvirtd.stp
-@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_16 = probes.o
-@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_17 = probes.h
-@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_18 = probes.h probes.o
-@WITH_LIBVIRTD_TRUE@am__append_19 = $(LOGROTATE_CONFS)
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_20 = libvirtd.init
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DIR_TRUE@am__append_5 = ../src/libvirt_driver_storage.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_6 = ../src/libvirt_driver_network.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETCF_TRUE@am__append_7 = ../src/libvirt_driver_interface.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_8 = ../src/libvirt_driver_nodedev.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_SECRETS_TRUE@am__append_9 = ../src/libvirt_driver_secret.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_10 = ../src/libvirt_driver_nwfilter.la
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_11 = $(AVAHI_SOURCES)
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_12 = $(AVAHI_CFLAGS)
+@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_13 = $(AVAHI_LIBS)
+@WITH_LIBVIRTD_TRUE@am__append_14 = probes.d libvirtd.stp
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_15 = probes.o
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_16 = probes.h
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_17 = probes.h probes.o
+@WITH_LIBVIRTD_TRUE@am__append_18 = $(LOGROTATE_CONFS)
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_19 = libvirtd.init
 subdir = daemon
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -246,9 +245,9 @@ am__DEPENDENCIES_1 =
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_8) $(am__append_9) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_10) $(am__append_11) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt.la $(am__DEPENDENCIES_2) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_16) ../gnulib/lib/libgnu.la \
+@WITH_LIBVIRTD_TRUE@	$(am__append_10) ../src/libvirt.la \
+@WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_2) $(am__append_15) \
+@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
@@ -1178,8 +1177,6 @@ XEN_LIBS = @XEN_LIBS@
 XGETTEXT = @XGETTEXT@
 XMLCATALOG = @XMLCATALOG@
 XMLLINT = @XMLLINT@
-XMLRPC_CFLAGS = @XMLRPC_CFLAGS@
-XMLRPC_LIBS = @XMLRPC_LIBS@
 XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
@@ -1247,7 +1244,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-CLEANFILES = $(am__append_18) $(BUILT_SOURCES) $(man8_MANS) *.cov \
+CLEANFILES = $(am__append_17) $(BUILT_SOURCES) $(man8_MANS) *.cov \
 	*.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
 DAEMON_SOURCES = \
 		libvirtd.c libvirtd.h			\
@@ -1275,8 +1272,8 @@ EXTRA_DIST = remote_generate_stubs.pl libvirtd.conf libvirtd.init.in \
 	libvirtd.qemu.logrotate.in libvirtd.lxc.logrotate.in \
 	libvirtd.uml.logrotate.in test_libvirtd.aug THREADING.txt \
 	libvirtd.pod.in libvirtd.8.in libvirtd.stp $(AVAHI_SOURCES) \
-	$(DAEMON_SOURCES) $(am__append_15)
-BUILT_SOURCES = $(am__append_17) $(am__append_19) $(am__append_20)
+	$(DAEMON_SOURCES) $(am__append_14)
+BUILT_SOURCES = $(am__append_16) $(am__append_18) $(am__append_19)
 @WITH_LIBVIRTD_TRUE@man8_MANS = libvirtd.8
 @WITH_LIBVIRTD_TRUE@confdir = $(sysconfdir)/libvirt/
 @WITH_LIBVIRTD_TRUE@conf_DATA = libvirtd.conf
@@ -1285,7 +1282,7 @@ BUILT_SOURCES = $(am__append_17) $(am__append_19) $(am__append_20)
 @WITH_LIBVIRTD_TRUE@augeastestsdir = $(datadir)/augeas/lenses/tests
 @WITH_LIBVIRTD_TRUE@augeastests_DATA = test_libvirtd.aug
 @WITH_LIBVIRTD_TRUE@libvirtd_SOURCES = $(DAEMON_SOURCES) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_12)
+@WITH_LIBVIRTD_TRUE@	$(am__append_11)
 
 #-D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D_POSIX_C_SOURCE=199506L
 @WITH_LIBVIRTD_TRUE@libvirtd_CFLAGS = -I$(top_srcdir)/gnulib/lib \
@@ -1300,7 +1297,7 @@ BUILT_SOURCES = $(am__append_17) $(am__append_19) $(am__append_20)
 @WITH_LIBVIRTD_TRUE@	$(WARN_CFLAGS) $(COVERAGE_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\"" \
 @WITH_LIBVIRTD_TRUE@	-DREMOTE_PID_FILE="\"$(REMOTE_PID_FILE)\"" \
-@WITH_LIBVIRTD_TRUE@	$(am__append_13)
+@WITH_LIBVIRTD_TRUE@	$(am__append_12)
 @WITH_LIBVIRTD_TRUE@libvirtd_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@	$(WARN_CFLAGS)					\
 @WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS)
@@ -1315,10 +1312,9 @@ BUILT_SOURCES = $(am__append_17) $(am__append_19) $(am__append_20)
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_8) $(am__append_9) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_10) $(am__append_11) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt.la $(am__append_14) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_16) ../gnulib/lib/libgnu.la \
-@WITH_LIBVIRTD_TRUE@	$(LIBSOCKET)
+@WITH_LIBVIRTD_TRUE@	$(am__append_10) ../src/libvirt.la \
+@WITH_LIBVIRTD_TRUE@	$(am__append_13) $(am__append_15) \
+@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(LIBSOCKET)
 @HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/polkit-1/actions
 @HAVE_POLKIT0_TRUE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/PolicyKit/policy
 @HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyfile = libvirtd.policy-1

@@ -51,6 +51,7 @@ enum {
 
 int virSetBlocking(int fd, bool blocking) ATTRIBUTE_RETURN_CHECK;
 int virSetNonBlock(int fd) ATTRIBUTE_RETURN_CHECK;
+int virSetInherit(int fd, bool inherit) ATTRIBUTE_RETURN_CHECK;
 int virSetCloseExec(int fd) ATTRIBUTE_RETURN_CHECK;
 
 /* This will execute in the context of the first child
@@ -126,15 +127,14 @@ bool virFileIsExecutable(const char *file) ATTRIBUTE_NONNULL(1);
 char *virFileSanitizePath(const char *path);
 
 enum {
-    VIR_FILE_OP_NONE        = 0,
-    VIR_FILE_OP_AS_UID      = (1 << 0),
-    VIR_FILE_OP_FORCE_PERMS = (1 << 1),
+    VIR_FILE_OPEN_NONE        = 0,
+    VIR_FILE_OPEN_AS_UID      = (1 << 0),
+    VIR_FILE_OPEN_FORCE_PERMS = (1 << 1),
 };
-typedef int (*virFileOperationHook)(int fd, void *data);
-int virFileOperation(const char *path, int openflags, mode_t mode,
-                     uid_t uid, gid_t gid,
-                     virFileOperationHook hook, void *hookdata,
-                     unsigned int flags) ATTRIBUTE_RETURN_CHECK;
+int virFileOpenAs(const char *path, int openflags, mode_t mode,
+                  uid_t uid, gid_t gid,
+                  unsigned int flags)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
 enum {
     VIR_DIR_CREATE_NONE        = 0,

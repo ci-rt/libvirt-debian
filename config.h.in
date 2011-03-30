@@ -1142,9 +1142,6 @@
 /* Define to 1 if you have the <xen/xen.h> header file. */
 #undef HAVE_XEN_XEN_H
 
-/* whether One is used to broadcast server presence */
-#undef HAVE_XMLRPC
-
 /* Have query_raw field in libxml2 xmlURI structure */
 #undef HAVE_XMLURI_QUERY_RAW
 
@@ -1465,9 +1462,6 @@
 
 /* whether local network filter management driver is available */
 #undef WITH_NWFILTER
-
-/* whether ONE driver is enabled */
-#undef WITH_ONE
 
 /* whether OpenVZ driver is enabled */
 #undef WITH_OPENVZ
