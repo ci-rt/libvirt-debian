@@ -14,6 +14,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ *
+ * Authors:
+ *     Jim Fehlig <jfehlig@novell.com>
  */
 /*---------------------------------------------------------------------------*/
 
@@ -26,6 +29,7 @@
 
 # include "internal.h"
 # include "domain_conf.h"
+# include "domain_event.h"
 # include "capabilities.h"
 # include "configmake.h"
 # include "bitmap.h"
@@ -57,6 +61,12 @@ struct _libxlDriverPrivate {
     virBitmapPtr reservedVNCPorts;
     virDomainObjList domains;
 
+    /* A list of callbacks */
+    virDomainEventCallbackListPtr domainEventCallbacks;
+    virDomainEventQueuePtr domainEventQueue;
+    int domainEventTimer;
+    int domainEventDispatching;
+
     char *configDir;
     char *autostartDir;
     char *logDir;
@@ -86,6 +96,5 @@ libxlMakeCapabilities(libxl_ctx *ctx);
 int
 libxlBuildDomainConfig(libxlDriverPrivatePtr driver,
                        virDomainDefPtr def, libxl_domain_config *d_config);
-
 
 #endif /* LIBXL_CONF_H */

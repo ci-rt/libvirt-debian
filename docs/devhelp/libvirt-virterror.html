@@ -109,7 +109,7 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_FROM_SECURITY">VIR_FROM_SECURITY</a> = 24 /* Error from security framework */
     <a name="VIR_FROM_VBOX">VIR_FROM_VBOX</a> = 25 /* Error from VirtualBox driver */
     <a name="VIR_FROM_INTERFACE">VIR_FROM_INTERFACE</a> = 26 /* Error when operating on an interface */
-    <a name="VIR_FROM_ONE">VIR_FROM_ONE</a> = 27 /* Error from OpenNebula driver */
+    <a name="VIR_FROM_ONE">VIR_FROM_ONE</a> = 27 /* The OpenNebula driver no longer exists. Retained for ABI/API compat only */
     <a name="VIR_FROM_ESX">VIR_FROM_ESX</a> = 28 /* Error from ESX driver */
     <a name="VIR_FROM_PHYP">VIR_FROM_PHYP</a> = 29 /* Error from IBM power hypervisor */
     <a name="VIR_FROM_SECRET">VIR_FROM_SECRET</a> = 30 /* Error from secret storage */
@@ -209,7 +209,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_MIGRATE_PERSIST_FAILED">VIR_ERR_MIGRATE_PERSIST_FAILED</a> = 69 /* a migration worked, but making the VM persist on the dest host failed */
     <a name="VIR_ERR_HOOK_SCRIPT_FAILED">VIR_ERR_HOOK_SCRIPT_FAILED</a> = 70 /* a synchronous hook script failed */
     <a name="VIR_ERR_INVALID_DOMAIN_SNAPSHOT">VIR_ERR_INVALID_DOMAIN_SNAPSHOT</a> = 71 /* invalid domain snapshot */
-    <a name="VIR_ERR_NO_DOMAIN_SNAPSHOT">VIR_ERR_NO_DOMAIN_SNAPSHOT</a> = 72 /*  domain snapshot not found */
+    <a name="VIR_ERR_NO_DOMAIN_SNAPSHOT">VIR_ERR_NO_DOMAIN_SNAPSHOT</a> = 72 /* domain snapshot not found */
+    <a name="VIR_ERR_INVALID_STREAM">VIR_ERR_INVALID_STREAM</a> = 73 /*  stream pointer not valid */
 };
 </pre><p/>
 </div>

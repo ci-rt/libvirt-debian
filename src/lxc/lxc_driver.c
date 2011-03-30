@@ -2292,6 +2292,8 @@ static int lxcSetSchedulerParameters(virDomainPtr domain,
                                  params[i].value.ul);
             goto cleanup;
         }
+
+        vm->def->cputune.shares = params[i].value.ul;
     }
     ret = 0;
 
@@ -2780,7 +2782,7 @@ lxcDomainOpenConsole(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virFDStreamOpenFile(st, chr->source.data.file.path, O_RDWR) < 0)
+    if (virFDStreamOpenFile(st, chr->source.data.file.path, 0, 0, O_RDWR) < 0)
         goto cleanup;
 
     ret = 0;

@@ -1,3 +1,428 @@
+2011-03-29  Osier Yang  <jyang@redhat.com>
+
+	cputune: New tests for cputune XML
+	v1 - v2:
+	  * Add missed tests/qemuxml2argvdata/qemuxml2argv-cputune.args
+
+	cputune: Support cputune for xend driver
+	Not sure if it's the correct way to add cputune xml for xend driver,
+	and besides, seems "xm driver" and "xen hypervisor" also support
+	vcpu affinity, do we need to add support for them too?
+
+	cputune: Support cputune for lxc driver
+	LXC driver doesn't support vcpu affinity yet, so just need
+	to modify it to support cpu shares.
+
+	cputune: Support cputune for qemu driver
+	When domain startup, setting cpu affinity and cpu shares according
+	to the cputune xml specified in domain xml.
+
+	Modify "qemudDomainPinVcpu" to update domain config for vcpupin,
+	and modify "qemuSetSchedulerParameters" to update domain config
+	for cpu shares.
+
+	v1 - v2:
+	   * Use "VIR_ALLOC_N" instead of "VIR_ALLOC_VAR"
+	   * But keep raising error when it fails on adding vcpupin xml
+	     entry, as I still don't have a better idea yet.
+
+	cputune: Implementations of parsing and formating cputune xml
+	Implementations of following functions:
+	  virDomainVcpupinIsDuplicate
+	  virDomainVcpupinFindByVcpu
+	  virDomainVcpupinAdd
+
+	Update "virDomainDefParseXML" to parse, and "virDomainDefFormatXML"
+	to build cputune xml, also implementations of new internal helper
+	functions.
+
+	v1 - v2:
+	  * Resolve potential crash bug of "virDomainVcpupinAdd"
+
+	cputune: Add data structures presenting cputune XML
+	Also related new functions' declaration, and expose the new introduced
+	functions in libvirt_private.syms.
+
+	v1 - v2:
+	  Don't expose "virAllocVar" in libvirt_private.syms
+
+	cputune: Add document for cputune XML
+	v1 - v3:
+	  * More clear document for "cpu shares", adopted suggestions from
+	    Matthias Bottle and Daniel Veillard.
+
+	cputune: Add XML schema for cputune xml
+	v1 - v2:
+	  * Remove upper limit of cpu shares. (Suggested by Matthias Bottle)
+
+2011-03-29  Eric Blake  <eblake@redhat.com>
+
+	qemu: fix regression with fd labeling on migration
+	My earlier testing for commit 34fa0de0 was done while starting
+	just-built libvirt from an unconfined_t shell, where the fds happened
+	to work when transferring to qemu.  But when installed and run under
+	virtd_t, failure to label the raw file (with no compression) or the
+	pipe (with compression) triggers SELinux failures when passing fds
+	over SCM_RIGHTS to svirt_t qemu.
+
+	* src/qemu/qemu_migration.c (qemuMigrationToFile): When passing
+	FDs, make sure they are labeled.
+
+	qemu: improve error message on failed fd transfer
+	First fallout of fd: migration - it looks like SELinux enforcing
+	_does_ require fd labeling (running uninstalled libvirtd from an
+	unconstrained shell had no problems, but once faked out by doing
+	 chcon `stat -c %C /usr/sbin/libvirtd` daemon/libvirtd
+	 run_init $PWD/daemon/libvirtd
+	to run it with the same context as an init script service, and with
+	SELinux enforcing, I got a rather confusing failure:
+	error: Failed to save domain fedora_12 to fed12.img
+	error: internal error unable to send TAP file handle: No file descriptor supplied via SCM_RIGHTS
+
+	This fixes the error message, then I need to figure out a subsequent
+	patch that does the fsetfilecon() necessary to keep things happy.
+	It also appears that libvirtd hangs on a failed fd transfer; I don't
+	know if that needs an independent fix.
+
+	* src/qemu/qemu_monitor_text.c (qemuMonitorTextSendFileHandle):
+	Improve message, since TAP is no longer only client.
+
+	maint: ignore new built file
+	* .gitignore: Exclude libvirt_iohelper.
+
+2011-03-29  Markus Groß  <gross@univention.de>
+
+	Add domainSuspend/Resume to libxl driver
+	* src/libxl/libxl_driver.c: implements libxlDomainSuspend and
+	  libxlDomainResume
+
+	Add domainGetOSType to libxl driver
+	* src/libxl/libxl_driver.c: implements libxlDomainGetOSType
+
+	Add domainGetSchedulerType to libxl driver
+	* src/libxl/libxl_driver.c: implements libxlDomainGetSchedulerType
+
+	Implements domainXMLTo/FromNative in libxl driver
+	* src/Makefile.am src/libvirt_private.syms configure.ac: share and
+	  reuse the sexpr routines from sexpr.h of the old xen driver
+	* src/libxl/libxl_driver.c: implements libxlDomainXMLFromNative and
+	  libxlDomainXMLToNative
+
+	Add vcpu functions to libxl driver
+	Hook the virtual cpu functions to their libxenlight counterparts
+
+	* src/libxl/libxl_driver.c: implements libxlDomainSetVcpus,
+	  libxlDomainGetVcpus, libxlDomainSetVcpusFlags,
+	  libxlDomainGetVcpusFlags and libxlDomainPinVcpu
+
+	List authors in copyright headers
+	* src/libxl/libxl_conf.[ch] src/libxl/libxl_driver.[ch]: add authors
+	  after the licence template
+
+	Add event callbacks to libxl driver
+	* src/libxl/libxl_conf.h: add the necessary fields to the driver
+	  private structure
+	* src/libxl/libxl_driver.c: add lifecycle event support and entry
+	  points for event(de)register(any)
+
+	Ignore return value of virDomainObjUnref
+	* src/libxl/libxl_driver.c: use ignore_value() in libxlDomainObjUnref
+	  and libxlCreateDomEvents
+
+2011-03-29  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix infinite loop in daemon if client quits with multiple streams open
+	The daemon loops over the linked list of streams when a client
+	quits, closing any that the client hadn't already closed. Except
+	it didn't ever move to the next element in the list!
+
+	* daemon/stream.c: Fix loop over linked list of streams
+
+	Remote protocol support for storage vol upload/download APIs
+	* daemon/remote.c, src/remote/remote_driver.c: Implementation
+	  of storage vol upload/download APIs
+	* src/remote/remote_protocol.x: Wire protocol definition for
+	  upload/download
+	* daemon/remote_dispatch_args.h, daemon/remote_dispatch_prototypes.h,
+	  daemon/remote_dispatch_table.h, src/remote/remote_protocol.h,
+	  src/remote/remote_protocol.c: Re-generate
+
+	Support volume data upload/download APIs in storage driver
+	Use generic FD streams to allow data upload/download to/from
+	any storage volume
+
+	* src/storage/storage_driver.c: Wire up upload/download APIs
+
+	Add vol-upload and vol-download commands to virsh
+	The new commands vol-upload and vol-download, allow a local file
+	to be transferred to/from a storage volume.
+
+	* tools/virsh.c: Add vol-upload and vol-download commands
+	* tools/virsh.pod: Document new commands
+
+	Add public APIs for storage volume upload/download
+	New APIs are added allowing streaming of content to/from
+	storage volumes.
+
+	* include/libvirt/libvirt.h.in: Add virStorageVolUpload and
+	  virStorageVolDownload APIs
+	* src/driver.h, src/libvirt.c, src/libvirt_public.syms: Stub
+	  code for new APIs
+	* src/storage/storage_driver.c, src/esx/esx_storage_driver.c:
+	  Add dummy entries in driver table for new APIs
+
+	Enhance the streams helper to support plain file I/O
+	The O_NONBLOCK flag doesn't work as desired on plain files
+	or block devices. Introduce an I/O helper program that does
+	the blocking I/O operations, communicating over a pipe that
+	can support O_NONBLOCK
+
+	* src/fdstream.c, src/fdstream.h: Add non-blocking I/O
+	  on plain files/block devices
+	* src/Makefile.am, src/util/iohelper.c: I/O helper program
+	* src/qemu/qemu_driver.c, src/lxc/lxc_driver.c,
+	  src/uml/uml_driver.c, src/xen/xen_driver.c: Update for
+	  streams API change
+
+	Update event loop example programs to demonstrate best practice
+	The example C event loop code is a nasty hack and not compliant
+	with the require API semantics. Delete this, so that developers
+	don't mistakenly copy it. Instead call the new public event loop
+	APIs.
+
+	Update the python event loop example, so that it can optionally
+	use the public event APIs, as an alternative to the pure python
+	code. The pure python event code is a good working example, so
+	don't delete it.
+
+	Also make the python example use a read only connection to avoid
+	authentication prompts
+
+	* examples/domain-events/events-c/event-test.c: Replace event
+	  loop code with use of public APIs
+	* examples/domain-events/events-python/event-test.py: Allow
+	  optional use of new public event APIs
+
+2011-03-29  Eric Blake  <eblake@redhat.com>
+
+	qemu: fix regression that hangs on save failure
+	Regression introduced in commit 6034ddd55.
+
+	* src/qemu/qemu_driver.c (qemudDomainSaveFlag): Jump to correct
+	label.
+
+	build: fix compilation on mingw
+	* src/util/command.c (virCommandAbort) [WIN32]: Provide stub.
+	Reported by Daniel P. Berrange's autobuilder.
+
+	qemu: support fd: migration with compression
+	Spawn the compressor ourselves, instead of requiring the shell.
+
+	* src/qemu/qemu_migration.c (qemuMigrationToFile): Spawn
+	compression helper process when needed.
+
+	qemu: skip granting access during fd migration
+	SELinux labeling and cgroup ACLs aren't required if we hand a
+	pre-opened fd to qemu.  All the more reason to love fd: migration.
+
+	* src/qemu/qemu_migration.c (qemuMigrationToFile): Skip steps
+	that are irrelevant in fd migration.
+
+	qemu: consolidate migration to file code
+	This points out that core dumps (still) don't work for root-squash
+	NFS, since the fd is not opened correctly.  This patch should not
+	introduce any functionality change, it is just a refactoring to
+	avoid duplicated code.
+
+	* src/qemu/qemu_migration.h (qemuMigrationToFile): New prototype.
+	* src/qemu/qemu_migration.c (qemuMigrationToFile): New function.
+	* src/qemu/qemu_driver.c (qemudDomainSaveFlag, doCoreDump): Use
+	it.
+
+	qemu: use common API for reading difficult files
+	Direct access to an open file is so much simpler than passing
+	everything through a pipe!
+
+	* src/qemu/qemu_driver.c (qemudOpenAsUID)
+	(qemudDomainSaveImageClose): Delete.
+	(qemudDomainSaveImageOpen): Rename...
+	(qemuDomainSaveImageOpen): ...and drop read_pid argument.  Use
+	virFileOpenAs instead of qemudOpenAsUID.
+	(qemudDomainSaveImageStartVM, qemudDomainRestore)
+	(qemudDomainObjRestore): Rename...
+	(qemuDomainSaveImageStartVM, qemuDomainRestore)
+	(qemDomainObjRestore): ...and simplify accordingly.
+	(qemudDomainObjStart, qemuDriver): Update callers.
+
+	qemu, storage: improve type safety
+	* src/storage/storage_backend.c (createRawFileOpHook): Change
+	signature.
+	(struct createRawFileOpHookData): Delete unused struct.
+	(virStorageBackendCreateRaw): Adjust caller.
+	* src/qemu/qemu_driver.c (struct fileOpHookData): Delete unused
+	struct.
+	(qemudDomainSaveFileOpHook): Rename...
+	(qemuDomainSaveFileOpHook): ...and change signature.
+	(qemudDomainSaveFlag): Adjust caller.
+
+	util: adjust indentation in previous patch
+	Separating the indentation from the real patch made review easier.
+
+	* src/util/util.c (virFileOpenAs): Whitespace changes.
+
+	util: rename virFileOperation to virFileOpenAs
+	This patch intentionally doesn't change indentation, in order to
+	make it easier to review the real changes.
+
+	* src/util/util.h (VIR_FILE_OP_RETURN_FD, virFileOperationHook):
+	Delete.
+	(virFileOperation): Rename...
+	(virFileOpenAs): ...and reduce parameters.
+	* src/util/util.c (virFileOperationNoFork, virFileOperation):
+	Rename and simplify.
+	* src/qemu/qemu_driver.c (qemudDomainSaveFlag): Adjust caller.
+	* src/storage/storage_backend.c (virStorageBackendCreateRaw):
+	Likewise.
+	* src/libvirt_private.syms: Reflect rename.
+
+	storage: simplify fd handling
+	* src/storage/storage_backend.c (virStorageBackendCreateRaw): Use
+	new virFileOperation flag.
+
+	qemu: simplify domain save fd handling
+	This makes root-squash NFS saves more efficient.
+
+	* src/qemu/qemu_driver.c (qemudDomainSaveFlag): Use new
+	virFileOperation flag to open fd only once.
+
+	util: use SCM_RIGHTS in virFileOperation when needed
+	Currently, the hook function in virFileOperation is extremely limited:
+	it must be async-signal-safe, and cannot modify any memory in the
+	parent process.  It is much handier to return a valid fd and operate
+	on it in the parent than to deal with hook restrictions.
+
+	* src/util/util.h (VIR_FILE_OP_RETURN_FD): New flag.
+	* src/util/util.c (virFileOperationNoFork, virFileOperation):
+	Honor new flag.
+
+	qemu: allow simple domain save to use fd: protocol
+	This allows direct saves (no compression, no root-squash NFS) to use
+	the more efficient fd: migration, which in turn avoids a race where
+	qemu exec: migration can sometimes fail because qemu does a generic
+	waitpid() that conflicts with the pclose() used by exec:.  Further
+	patches will solve compression and root-squash NFS.
+
+	* src/qemu/qemu_driver.c (qemudDomainSaveFlag): Use new function
+	when there is no compression.
+
+	qemu: fix restoring a compressed save image
+	Latent bug introduced in commit 2d6a581960 (Aug 2009), but not exposed
+	until commit 1859939a (Jan 2011).  Basically, when virExec creates a
+	pipe, it always marks libvirt's side as cloexec.  If libvirt then
+	wants to hand that pipe to another child process, things work great if
+	the fd is dup2()'d onto stdin or stdout (as with stdin: or exec:
+	migration), but if the pipe is instead used as-is (such as with fd:
+	migration) then qemu sees EBADF because the fd was closed at exec().
+
+	This is a minimal fix for the problem at hand; it is slightly racy,
+	but no more racy than the rest of libvirt fd handling, including the
+	case of uncompressed save images.  A more invasive fix, but ultimately
+	safer at avoiding leaking unintended fds, would be to _always and
+	atomically_ open all fds as cloexec in libvirt (thanks to primitives
+	like open(O_CLOEXEC), pipe2(), accept4(), ...), then teach virExec to
+	clear that bit for all fds explicitly marked to be handed to the child
+	only after forking.
+
+	* src/qemu/qemu_command.c (qemuBuildCommandLine): Clear cloexec
+	flag.
+	* tests/qemuxml2argvtest.c (testCompareXMLToArgvFiles): Tweak test.
+
+	util: allow clearing cloexec bit
+	* src/util/util.h (virSetInherit): New prototype.
+	* src/util/util.c (virSetCloseExec): Move guts...
+	(virSetInherit): ...to new function, and allow clearing.
+	* src/libvirt_private.syms (util.h): Export it.
+
+	logging: always NUL-terminate circular buffer
+	* src/util/logging.c (virLogStartup, virLogSetBufferSize):
+	Over-allocate, so that a debugger can just print the circular
+	buffer.  Suggested by Daniel Veillard.
+
+	maint: use space, not tab, in remote_protocol-structs
+	* src/Makefile.am (remote_protocol-structs): Flatten tabs.
+	* src/remote_protocol-structs: Likewise.  Also add a hint to emacs
+	to make it easier to keep spaces in the file.
+
+2011-03-28  Eric Blake  <eblake@redhat.com>
+
+	tests: don't alter state in $HOME
+	Diego reported a bug where virsh tries to initialize a readline
+	history directory during 'make check' run as root, but fails
+	because /root was read-only.
+
+	It turns out that I could reproduce this as non-root, by using:
+
+	mv ~/.virsh{,.bak}
+	chmod a-w ~
+	make check -C tests TESTS=int-overflow
+	chmod u+w ~
+	mv ~/.virsh{.bak,}
+
+	* tests/int-overflow: Don't trigger interactive mode.
+	Reported by Diego Elio Pettenò.
+
+	docs: document recent hook additions
+	* src/qemu/qemu_process.c (qemuProcessStart, qemuProcessStop): Fix
+	typos.
+	* docs/hooks.html.in: Document 'prepare' and 'release' hooks.
+
+	qemu: don't restore state label twice
+	Otherwise, if something like doStopVcpus fails after the first
+	restore, a second restore is attempted and throws a useless
+	warning.
+
+	* src/qemu/qemu_driver.c (qemudDomainSaveFlag): Avoid second
+	restore of state label.
+
+2011-03-28  Daniel P. Berrange  <berrange@redhat.com>
+
+	Remove the Open Nebula driver
+	The Open Nebula driver has been unmaintained since it was first
+	introduced. The only commits have been for tree-wide cleanups.
+	It also has a major design flaw, in that it only knows about guests
+	that it has created itself, which makes it of very limited use.
+
+	Discussions wrt evolution of the VMWare ESX driver, concluded that
+	it should limit itself to single-node ESX operation and not try to
+	manage the multi-node architecture of VirtualCenter. Open Nebula
+	is a cluster like Virtual Center, not a single node system, so
+	the same reasoning applies.
+
+	The DeltaCloud project includes an Open Nebula driver and is a much
+	better fit architecturally, since it is explicitly targetting the
+	distributed multihost cluster scenario.
+
+	Thus this patch deletes the libvirt Open Nebula driver with the
+	recommendation that people use DeltaCloud for managing it instead.
+
+	* configure.ac: Remove probe for xmlrpc & --with-one arg
+	* daemon/Makefile.am, daemon/libvirtd.c, src/Makefile.am: Remove
+	  ONE driver build
+	* src/opennebula/one_client.c, src/opennebula/one_client.h,
+	  src/opennebula/one_conf.c, src/opennebula/one_conf.h,
+	  src/opennebula/one_driver.c, src/opennebula/one_driver.c: Delete
+	  files
+	* autobuild.sh, libvirt.spec.in, mingw32-libvirt.spec.in: Remove
+	  build rules for Open Nebula
+	* docs/drivers.html.in, docs/sitemap.html.in: Remove reference
+	  to OpenNebula
+	* docs/drvone.html.in: Delete file
+
+2011-03-28  Osier Yang  <jyang@redhat.com>
+
+	Fix syntax error in configure.ac
+	Which will lead "./configure --with-audit=yes" breaks.
+
 2011-03-28  Daniel Veillard  <veillard@redhat.com>
 
 	Update of localisations, switch to transifex

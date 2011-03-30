@@ -172,6 +172,7 @@
     <function name="VIR_ERR_INVALID_SECRET" link="libvirt-virterror.html#VIR_ERR_INVALID_SECRET"/>
     <function name="VIR_ERR_INVALID_STORAGE_POOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_POOL"/>
     <function name="VIR_ERR_INVALID_STORAGE_VOL" link="libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_VOL"/>
+    <function name="VIR_ERR_INVALID_STREAM" link="libvirt-virterror.html#VIR_ERR_INVALID_STREAM"/>
     <function name="VIR_ERR_MIGRATE_PERSIST_FAILED" link="libvirt-virterror.html#VIR_ERR_MIGRATE_PERSIST_FAILED"/>
     <function name="VIR_ERR_MULTIPLE_INTERFACES" link="libvirt-virterror.html#VIR_ERR_MULTIPLE_INTERFACES"/>
     <function name="VIR_ERR_NETWORK_EXIST" link="libvirt-virterror.html#VIR_ERR_NETWORK_EXIST"/>
@@ -684,6 +685,7 @@
     <function name="virStorageVolCreateXML ()" link="libvirt-libvirt.html#virStorageVolCreateXML"/>
     <function name="virStorageVolCreateXMLFrom ()" link="libvirt-libvirt.html#virStorageVolCreateXMLFrom"/>
     <function name="virStorageVolDelete ()" link="libvirt-libvirt.html#virStorageVolDelete"/>
+    <function name="virStorageVolDownload ()" link="libvirt-libvirt.html#virStorageVolDownload"/>
     <function name="virStorageVolFree ()" link="libvirt-libvirt.html#virStorageVolFree"/>
     <function name="virStorageVolGetConnect ()" link="libvirt-libvirt.html#virStorageVolGetConnect"/>
     <function name="virStorageVolGetInfo ()" link="libvirt-libvirt.html#virStorageVolGetInfo"/>
@@ -695,6 +697,7 @@
     <function name="virStorageVolLookupByName ()" link="libvirt-libvirt.html#virStorageVolLookupByName"/>
     <function name="virStorageVolLookupByPath ()" link="libvirt-libvirt.html#virStorageVolLookupByPath"/>
     <function name="virStorageVolRef ()" link="libvirt-libvirt.html#virStorageVolRef"/>
+    <function name="virStorageVolUpload ()" link="libvirt-libvirt.html#virStorageVolUpload"/>
     <function name="virStorageVolWipe ()" link="libvirt-libvirt.html#virStorageVolWipe"/>
     <function name="virStreamAbort ()" link="libvirt-libvirt.html#virStreamAbort"/>
     <function name="virStreamEventAddCallback ()" link="libvirt-libvirt.html#virStreamEventAddCallback"/>

@@ -122,7 +122,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (!(cmd = qemuBuildCommandLine(conn, &driver,
                                      vmdef, &monitor_chr, false, extraFlags,
                                      migrateFrom, migrateFd, NULL,
-                                     VIR_VM_OP_CREATE)))
+                                     VIR_VM_OP_NO_OP)))
         goto fail;
 
     if (!!virGetLastError() != expectError) {
@@ -494,6 +494,7 @@ mymain(int argc, char **argv)
 
     DO_TEST("memtune", false, QEMU_CAPS_NAME);
     DO_TEST("blkiotune", false, QEMU_CAPS_NAME);
+    DO_TEST("cputune", false, QEMU_CAPS_NAME);
 
     free(driver.stateDir);
     virCapabilitiesFree(driver.caps);

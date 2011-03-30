@@ -292,31 +292,27 @@ cleanup:
     return ret;
 }
 
-struct createRawFileOpHookData {
-    virStorageVolDefPtr vol;
-    virStorageVolDefPtr inputvol;
-};
-
-static int createRawFileOpHook(int fd, void *data) {
-    struct createRawFileOpHookData *hdata = data;
+static int
+createRawFile(int fd, virStorageVolDefPtr vol,
+              virStorageVolDefPtr inputvol)
+{
     int ret = 0;
     unsigned long long remain;
 
     /* Seek to the final size, so the capacity is available upfront
      * for progress reporting */
-    if (ftruncate(fd, hdata->vol->capacity) < 0) {
+    if (ftruncate(fd, vol->capacity) < 0) {
         ret = -errno;
         virReportSystemError(errno,
                              _("cannot extend file '%s'"),
-                             hdata->vol->target.path);
+                             vol->target.path);
         goto cleanup;
     }
 
-    remain = hdata->vol->allocation;
+    remain = vol->allocation;
 
-    if (hdata->inputvol) {
-        ret = virStorageBackendCopyToFD(hdata->vol, hdata->inputvol,
-                                        fd, &remain, 1);
+    if (inputvol) {
+        ret = virStorageBackendCopyToFD(vol, inputvol, fd, &remain, 1);
         if (ret < 0) {
             goto cleanup;
         }
@@ -334,11 +330,10 @@ static int createRawFileOpHook(int fd, void *data) {
 
                 if (bytes > remain)
                     bytes = remain;
-                if (safezero(fd, 0, hdata->vol->allocation - remain,
-                             bytes) != 0) {
+                if (safezero(fd, 0, vol->allocation - remain, bytes) != 0) {
                     ret = -errno;
                     virReportSystemError(errno, _("cannot fill file '%s'"),
-                                         hdata->vol->target.path);
+                                         vol->target.path);
                     goto cleanup;
                 }
                 remain -= bytes;
@@ -347,7 +342,7 @@ static int createRawFileOpHook(int fd, void *data) {
             if (safezero(fd, 0, 0, remain) != 0) {
                 ret = -errno;
                 virReportSystemError(errno, _("cannot fill file '%s'"),
-                                     hdata->vol->target.path);
+                                     vol->target.path);
                 goto cleanup;
             }
         }
@@ -357,7 +352,7 @@ static int createRawFileOpHook(int fd, void *data) {
     if (fsync(fd) < 0) {
         ret = -errno;
         virReportSystemError(errno, _("cannot sync data to file '%s'"),
-                             hdata->vol->target.path);
+                             vol->target.path);
         goto cleanup;
     }
 
@@ -370,11 +365,15 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
                            virStoragePoolObjPtr pool,
                            virStorageVolDefPtr vol,
                            virStorageVolDefPtr inputvol,
-                           unsigned int flags ATTRIBUTE_UNUSED)
+                           unsigned int flags)
 {
     int ret = -1;
-    int createstat;
-    struct createRawFileOpHookData hdata = { vol, inputvol };
+    int fd = -1;
+    uid_t uid;
+    gid_t gid;
+    int operation_flags;
+
+    virCheckFlags(0, -1);
 
     if (vol->target.encryption != NULL) {
         virStorageReportError(VIR_ERR_NO_SUPPORT,
@@ -383,24 +382,31 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    uid_t uid = (vol->target.perms.uid == -1) ? getuid() : vol->target.perms.uid;
-    gid_t gid = (vol->target.perms.gid == -1) ? getgid() : vol->target.perms.gid;
+    uid = (vol->target.perms.uid == -1) ? getuid() : vol->target.perms.uid;
+    gid = (vol->target.perms.gid == -1) ? getgid() : vol->target.perms.gid;
+    operation_flags = VIR_FILE_OPEN_FORCE_PERMS;
+    if (pool->def->type == VIR_STORAGE_POOL_NETFS)
+        operation_flags |= VIR_FILE_OPEN_AS_UID;
 
-    if ((createstat = virFileOperation(vol->target.path,
-                                       O_RDWR | O_CREAT | O_EXCL,
-                                       vol->target.perms.mode, uid, gid,
-                                       createRawFileOpHook, &hdata,
-                                       VIR_FILE_OP_FORCE_PERMS |
-                                       (pool->def->type == VIR_STORAGE_POOL_NETFS
-                                        ? VIR_FILE_OP_AS_UID : 0))) < 0) {
-    virReportSystemError(-createstat,
-                         _("cannot create path '%s'"),
-                         vol->target.path);
-    goto cleanup;
+    if ((fd = virFileOpenAs(vol->target.path,
+                            O_RDWR | O_CREAT | O_EXCL,
+                            vol->target.perms.mode, uid, gid,
+                            operation_flags)) < 0) {
+        virReportSystemError(-fd,
+                             _("cannot create path '%s'"),
+                             vol->target.path);
+        goto cleanup;
     }
 
-    ret = 0;
+    if ((ret = createRawFile(fd, vol, inputvol)) < 0) {
+        virReportSystemError(-fd,
+                             _("cannot create path '%s'"),
+                             vol->target.path);
+        ret = -1;
+    }
+
 cleanup:
+    VIR_FORCE_CLOSE(fd);
     return ret;
 }
 

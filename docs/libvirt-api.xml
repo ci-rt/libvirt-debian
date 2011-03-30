@@ -563,6 +563,7 @@
      <exports symbol='virStorageVolCreateXML' type='function'/>
      <exports symbol='virStorageVolCreateXMLFrom' type='function'/>
      <exports symbol='virStorageVolDelete' type='function'/>
+     <exports symbol='virStorageVolDownload' type='function'/>
      <exports symbol='virStorageVolFree' type='function'/>
      <exports symbol='virStorageVolGetConnect' type='function'/>
      <exports symbol='virStorageVolGetInfo' type='function'/>
@@ -574,6 +575,7 @@
      <exports symbol='virStorageVolLookupByName' type='function'/>
      <exports symbol='virStorageVolLookupByPath' type='function'/>
      <exports symbol='virStorageVolRef' type='function'/>
+     <exports symbol='virStorageVolUpload' type='function'/>
      <exports symbol='virStorageVolWipe' type='function'/>
      <exports symbol='virStreamAbort' type='function'/>
      <exports symbol='virStreamEventAddCallback' type='function'/>
@@ -620,6 +622,7 @@
      <exports symbol='VIR_ERR_INVALID_SECRET' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_STORAGE_POOL' type='enum'/>
      <exports symbol='VIR_ERR_INVALID_STORAGE_VOL' type='enum'/>
+     <exports symbol='VIR_ERR_INVALID_STREAM' type='enum'/>
      <exports symbol='VIR_ERR_MIGRATE_PERSIST_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_MULTIPLE_INTERFACES' type='enum'/>
      <exports symbol='VIR_ERR_NETWORK_EXIST' type='enum'/>
@@ -983,6 +986,7 @@ conf file'/>
     <enum name='VIR_ERR_INVALID_SECRET' file='virterror' value='65' type='virErrorNumber' info='invalid secret'/>
     <enum name='VIR_ERR_INVALID_STORAGE_POOL' file='virterror' value='46' type='virErrorNumber' info='invalid storage pool object'/>
     <enum name='VIR_ERR_INVALID_STORAGE_VOL' file='virterror' value='47' type='virErrorNumber' info='invalid storage vol object'/>
+    <enum name='VIR_ERR_INVALID_STREAM' file='virterror' value='73' type='virErrorNumber' info=' stream pointer not valid'/>
     <enum name='VIR_ERR_MIGRATE_PERSIST_FAILED' file='virterror' value='69' type='virErrorNumber' info='a migration worked, but making the
 VM persist on the dest host failed'/>
     <enum name='VIR_ERR_MULTIPLE_INTERFACES' file='virterror' value='59' type='virErrorNumber' info='more than one matching interface
@@ -993,7 +997,7 @@ found'/>
     <enum name='VIR_ERR_NO_DEVICE' file='virterror' value='23' type='virErrorNumber' info='missing domain devices information'/>
     <enum name='VIR_ERR_NO_DOMAIN' file='virterror' value='42' type='virErrorNumber' info='domain not found or unexpectedly
 disappeared'/>
-    <enum name='VIR_ERR_NO_DOMAIN_SNAPSHOT' file='virterror' value='72' type='virErrorNumber' info=' domain snapshot not found'/>
+    <enum name='VIR_ERR_NO_DOMAIN_SNAPSHOT' file='virterror' value='72' type='virErrorNumber' info='domain snapshot not found'/>
     <enum name='VIR_ERR_NO_INTERFACE' file='virterror' value='57' type='virErrorNumber' info='interface driver not running'/>
     <enum name='VIR_ERR_NO_KERNEL' file='virterror' value='17' type='virErrorNumber' info='missing kernel information'/>
     <enum name='VIR_ERR_NO_MEMORY' file='virterror' value='2' type='virErrorNumber' info='memory allocation failure'/>
@@ -1056,7 +1060,7 @@ formed or broken'/>
     <enum name='VIR_FROM_NODEDEV' file='virterror' value='22' type='virErrorDomain' info='Error from node device monitor'/>
     <enum name='VIR_FROM_NONE' file='virterror' value='0' type='virErrorDomain'/>
     <enum name='VIR_FROM_NWFILTER' file='virterror' value='33' type='virErrorDomain' info='Error from network filter driver'/>
-    <enum name='VIR_FROM_ONE' file='virterror' value='27' type='virErrorDomain' info='Error from OpenNebula driver'/>
+    <enum name='VIR_FROM_ONE' file='virterror' value='27' type='virErrorDomain' info='The OpenNebula driver no longer exists. Retained for ABI/API compat only'/>
     <enum name='VIR_FROM_OPENVZ' file='virterror' value='14' type='virErrorDomain' info='Error from OpenVZ driver'/>
     <enum name='VIR_FROM_PHYP' file='virterror' value='29' type='virErrorDomain' info='Error from IBM power hypervisor'/>
     <enum name='VIR_FROM_PROXY' file='virterror' value='8' type='virErrorDomain' info='Error in the proxy code; unused since
@@ -3839,6 +3843,23 @@ XML description.]]></info>
       <arg name='vol' type='virStorageVolPtr' info='pointer to storage volume'/>
       <arg name='flags' type='unsigned int' info='future flags, use 0 for now'/>
     </function>
+    <function name='virStorageVolDownload' file='libvirt' module='libvirt'>
+      <info><![CDATA[Download the content of the volume as a stream. If @length
+is zero, then the remaining contents of the volume after
+@offset will be downloaded.
+
+This call sets up an asynchronous stream; subsequent use of
+stream APIs is necessary to transfer the actual data,
+determine how much data is successfully transferred, and
+detect any errors. The results will be unpredictable if
+another active stream is writing to the storage volume.]]></info>
+      <return type='int' info='0, or -1 upon error.'/>
+      <arg name='vol' type='virStorageVolPtr' info='pointer to volume to download from'/>
+      <arg name='stream' type='virStreamPtr' info='stream to use as output'/>
+      <arg name='offset' type='unsigned long long' info='position in @vol to start reading from'/>
+      <arg name='length' type='unsigned long long' info='limit on amount of data to download'/>
+      <arg name='flags' type='unsigned int' info='future flags (unused, pass 0)'/>
+    </function>
     <function name='virStorageVolFree' file='libvirt' module='libvirt'>
       <info><![CDATA[Release the storage volume handle. The underlying
 storage volume continues to exist.]]></info>
@@ -3926,6 +3947,25 @@ it. ie, each new thread using a vol would increment
 the reference count.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='vol' type='virStorageVolPtr' info='the vol to hold a reference on'/>
+    </function>
+    <function name='virStorageVolUpload' file='libvirt' module='libvirt'>
+      <info><![CDATA[Upload new content to the volume from a stream. This call
+will fail if @offset + @length exceeds the size of the
+volume. Otherwise, if @length is non-zero, an error
+will be raised if an attempt is made to upload greater
+than @length bytes of data.
+
+This call sets up an asynchronous stream; subsequent use of
+stream APIs is necessary to transfer the actual data,
+determine how much data is successfully transferred, and
+detect any errors. The results will be unpredictable if
+another active stream is writing to the storage volume.]]></info>
+      <return type='int' info='0, or -1 upon error.'/>
+      <arg name='vol' type='virStorageVolPtr' info='pointer to volume to upload'/>
+      <arg name='stream' type='virStreamPtr' info='stream to use as input'/>
+      <arg name='offset' type='unsigned long long' info='position to start writing to'/>
+      <arg name='length' type='unsigned long long' info='limit on amount of data to upload'/>
+      <arg name='flags' type='unsigned int' info='flags for creation (unused, pass 0)'/>
     </function>
     <function name='virStorageVolWipe' file='libvirt' module='libvirt'>
       <info><![CDATA[Ensure data previously on a volume is not accessible to future reads]]></info>

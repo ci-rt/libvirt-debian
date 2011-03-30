@@ -1143,6 +1143,77 @@ qemuProcessInitCpuAffinity(virDomainObjPtr vm)
     return 0;
 }
 
+/* Set CPU affinites for vcpus if vcpupin xml provided. */
+static int
+qemuProcessSetVcpuAffinites(virConnectPtr conn,
+                            virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainDefPtr def = vm->def;
+    virNodeInfo nodeinfo;
+    pid_t vcpupid;
+    unsigned char *cpumask;
+    int vcpu, cpumaplen, hostcpus, maxcpu;
+
+    if (virNodeGetInfo(conn, &nodeinfo) != 0) {
+        return  -1;
+    }
+
+    if (!def->cputune.nvcpupin)
+        return 0;
+
+    if (priv->vcpupids == NULL) {
+        qemuReportError(VIR_ERR_NO_SUPPORT,
+                        "%s", _("cpu affinity is not supported"));
+        return -1;
+    }
+
+    hostcpus = VIR_NODEINFO_MAXCPUS(nodeinfo);
+    cpumaplen = VIR_CPU_MAPLEN(hostcpus);
+    maxcpu = cpumaplen * 8;
+
+    if (maxcpu > hostcpus)
+        maxcpu = hostcpus;
+
+    for (vcpu = 0; vcpu < def->cputune.nvcpupin; vcpu++) {
+        if (vcpu != def->cputune.vcpupin[vcpu]->vcpuid)
+            continue;
+
+        int i;
+        unsigned char *cpumap = NULL;
+
+        if (VIR_ALLOC_N(cpumap, cpumaplen) < 0) {
+            virReportOOMError();
+            return -1;
+        }
+
+        cpumask = (unsigned char *)def->cputune.vcpupin[vcpu]->cpumask;
+        vcpupid = priv->vcpupids[vcpu];
+
+        /* Convert cpumask to bitmap here. */
+        for (i = 0; i < VIR_DOMAIN_CPUMASK_LEN; i++) {
+            int cur = 0;
+            int mod = 0;
+
+            if (i) {
+                cur = i / 8;
+                mod = i % 8;
+            }
+
+            if (cpumask[i])
+                cpumap[cur] |= 1 << mod;
+        }
+
+        if (virProcessInfoSetAffinity(vcpupid,
+                                      cpumap,
+                                      cpumaplen,
+                                      maxcpu) < 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
 
 static int
 qemuProcessInitPasswords(virConnectPtr conn,
@@ -1928,7 +1999,7 @@ int qemuProcessStart(virConnectPtr conn,
 
     vm->def->id = driver->nextvmid++;
 
-    /* Run a early hook to set-up missing devices */
+    /* Run an early hook to set-up missing devices */
     if (virHookPresent(VIR_HOOK_DRIVER_QEMU)) {
         char *xml = virDomainDefFormat(vm->def, 0);
         int hookret;
@@ -2217,6 +2288,10 @@ int qemuProcessStart(virConnectPtr conn,
     if (qemuProcessDetectVcpuPIDs(driver, vm) < 0)
         goto cleanup;
 
+    VIR_DEBUG0("Setting VCPU affinities");
+    if (qemuProcessSetVcpuAffinites(conn, vm) < 0)
+        goto cleanup;
+
     VIR_DEBUG0("Setting any required VM passwords");
     if (qemuProcessInitPasswords(conn, driver, vm, qemuCaps) < 0)
         goto cleanup;
@@ -2436,7 +2511,7 @@ retry:
     VIR_FREE(priv->vcpupids);
     priv->nvcpupids = 0;
 
-    /* The "release" hook cleans up additional ressources */
+    /* The "release" hook cleans up additional resources */
     if (virHookPresent(VIR_HOOK_DRIVER_QEMU)) {
         char *xml = virDomainDefFormat(vm->def, 0);
 

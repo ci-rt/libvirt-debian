@@ -66,7 +66,7 @@ typedef enum {
     VIR_FROM_SECURITY = 24,	/* Error from security framework */
     VIR_FROM_VBOX = 25,		/* Error from VirtualBox driver */
     VIR_FROM_INTERFACE = 26,	/* Error when operating on an interface */
-    VIR_FROM_ONE = 27,		/* Error from OpenNebula driver */
+    VIR_FROM_ONE = 27,		/* The OpenNebula driver no longer exists. Retained for ABI/API compat only */
     VIR_FROM_ESX = 28,		/* Error from ESX driver */
     VIR_FROM_PHYP = 29,		/* Error from IBM power hypervisor */
     VIR_FROM_SECRET = 30,	/* Error from secret storage */
@@ -230,6 +230,7 @@ typedef enum {
     VIR_ERR_HOOK_SCRIPT_FAILED = 70,	/* a synchronous hook script failed */
     VIR_ERR_INVALID_DOMAIN_SNAPSHOT = 71,/* invalid domain snapshot */
     VIR_ERR_NO_DOMAIN_SNAPSHOT = 72,	/* domain snapshot not found */
+    VIR_ERR_INVALID_STREAM = 73,        /* stream pointer not valid */
 } virErrorNumber;
 
 /**

@@ -46,8 +46,6 @@ src/nwfilter/nwfilter_driver.c
 src/nwfilter/nwfilter_ebiptables_driver.c
 src/nwfilter/nwfilter_gentech_driver.c
 src/nwfilter/nwfilter_learnipaddr.c
-src/opennebula/one_conf.c
-src/opennebula/one_driver.c
 src/openvz/openvz_conf.c
 src/openvz/openvz_driver.c
 src/phyp/phyp_driver.c
@@ -94,6 +92,7 @@ src/util/event_poll.c
 src/util/hash.c
 src/util/hooks.c
 src/util/hostusb.c
+src/util/iohelper.c
 src/util/interface.c
 src/util/iptables.c
 src/util/json.c

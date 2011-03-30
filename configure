@@ -797,10 +797,6 @@ GNUTLS_LIBS
 GNUTLS_CFLAGS
 LIBXML_LIBS
 LIBXML_CFLAGS
-HAVE_XMLRPC_FALSE
-HAVE_XMLRPC_TRUE
-XMLRPC_LIBS
-XMLRPC_CFLAGS
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
 PKG_CONFIG
@@ -808,6 +804,8 @@ WITH_LXC_FALSE
 WITH_LXC_TRUE
 WITH_XEN_INOTIFY_FALSE
 WITH_XEN_INOTIFY_TRUE
+WITH_XENXS_FALSE
+WITH_XENXS_TRUE
 XEN_LIBS
 XEN_CFLAGS
 WITH_XEN_FALSE
@@ -824,8 +822,6 @@ WITH_REMOTE_FALSE
 WITH_REMOTE_TRUE
 WITH_TEST_FALSE
 WITH_TEST_TRUE
-WITH_ONE_FALSE
-WITH_ONE_TRUE
 WITH_QEMU_FALSE
 WITH_QEMU_TRUE
 WITH_VBOX_FALSE
@@ -1699,7 +1695,6 @@ with_xenapi
 with_libxl
 with_vbox
 with_lxc
-with_one
 with_esx
 with_test
 with_remote
@@ -1757,8 +1752,6 @@ CPP
 PKG_CONFIG
 PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
-XMLRPC_CFLAGS
-XMLRPC_LIBS
 LIBXML_CFLAGS
 LIBXML_LIBS
 GNUTLS_CFLAGS
@@ -2457,7 +2450,6 @@ Optional Packages:
   --with-libxl            add libxenlight support [default=check]
   --with-vbox=[PFX]       VirtualBox XPCOMC location [default=yes]
   --with-lxc              add Linux Container support [default=check]
-  --with-one              add ONE support [default=check]
   --with-esx              add ESX support [default=check]
   --with-test             add test driver support [default=yes]
   --with-remote           add remote driver support [default=yes]
@@ -2530,9 +2522,6 @@ Some influential environment variables:
               directories to add to pkg-config's search path
   PKG_CONFIG_LIBDIR
               path overriding pkg-config's built-in search path
-  XMLRPC_CFLAGS
-              C compiler flags for XMLRPC, overriding pkg-config
-  XMLRPC_LIBS linker flags for XMLRPC, overriding pkg-config
   LIBXML_CFLAGS
               C compiler flags for LIBXML, overriding pkg-config
   LIBXML_LIBS linker flags for LIBXML, overriding pkg-config
@@ -33892,14 +33881,6 @@ else
 fi
 
 
-# Check whether --with-one was given.
-if test "${with_one+set}" = set; then :
-  withval=$with_one;
-else
-  with_one=check
-fi
-
-
 # Check whether --with-esx was given.
 if test "${with_esx+set}" = set; then :
   withval=$with_esx;
@@ -34522,22 +34503,6 @@ else
 fi
 
 
-if test "$with_one" = "yes" ; then
-
-cat >>confdefs.h <<_ACEOF
-#define WITH_ONE 1
-_ACEOF
-
-fi
- if test "$with_one" = "yes"; then
-  WITH_ONE_TRUE=
-  WITH_ONE_FALSE='#'
-else
-  WITH_ONE_TRUE='#'
-  WITH_ONE_FALSE=
-fi
-
-
 if test "$with_test" = "yes" ; then
 
 cat >>confdefs.h <<_ACEOF
@@ -34904,6 +34869,15 @@ fi
 
 
 
+ if test "$with_libxl" = "yes" || test "$with_xen" = "yes"; then
+  WITH_XENXS_TRUE=
+  WITH_XENXS_FALSE='#'
+else
+  WITH_XENXS_TRUE='#'
+  WITH_XENXS_FALSE=
+fi
+
+
 if test "$with_xen" != "yes"; then
     with_xen_inotify=no
 fi
@@ -35199,121 +35173,6 @@ $as_echo "no" >&6; }
 		PKG_CONFIG=""
 	fi
 fi
-
-
-if test "$with_libvirtd" = "no" ; then
-  with_one=no
-fi
-XMLRPC_CFLAGS=
-XMLRPC_LIBS=
-if test "x$with_one" = "xyes" || test "x$with_one" = "xcheck"; then
-
-pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for XMLRPC" >&5
-$as_echo_n "checking for XMLRPC... " >&6; }
-
-if test -n "$XMLRPC_CFLAGS"; then
-    pkg_cv_XMLRPC_CFLAGS="$XMLRPC_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"xmlrpc_client >= \$XMLRPC_REQUIRED\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "xmlrpc_client >= $XMLRPC_REQUIRED") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_XMLRPC_CFLAGS=`$PKG_CONFIG --cflags "xmlrpc_client >= $XMLRPC_REQUIRED" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$XMLRPC_LIBS"; then
-    pkg_cv_XMLRPC_LIBS="$XMLRPC_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"xmlrpc_client >= \$XMLRPC_REQUIRED\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "xmlrpc_client >= $XMLRPC_REQUIRED") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_XMLRPC_LIBS=`$PKG_CONFIG --libs "xmlrpc_client >= $XMLRPC_REQUIRED" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-	        XMLRPC_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "xmlrpc_client >= $XMLRPC_REQUIRED" 2>&1`
-        else
-	        XMLRPC_PKG_ERRORS=`$PKG_CONFIG --print-errors "xmlrpc_client >= $XMLRPC_REQUIRED" 2>&1`
-        fi
-	# Put the nasty error message in config.log where it belongs
-	echo "$XMLRPC_PKG_ERRORS" >&5
-
-
-      if test "x$with_one" = "xcheck" ; then
-          with_one=no
-      else
-          as_fn_error $? "You must install XMLRPC-C >= $XMLRPC_REQUIRED to compile libvirt ONE driver" "$LINENO" 5
-      fi
-
-elif test $pkg_failed = untried; then
-     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-      if test "x$with_one" = "xcheck" ; then
-          with_one=no
-      else
-          as_fn_error $? "You must install XMLRPC-C >= $XMLRPC_REQUIRED to compile libvirt ONE driver" "$LINENO" 5
-      fi
-
-else
-	XMLRPC_CFLAGS=$pkg_cv_XMLRPC_CFLAGS
-	XMLRPC_LIBS=$pkg_cv_XMLRPC_LIBS
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-	with_one=yes
-fi
-    if test "x$with_one" = "xyes" ; then
-
-cat >>confdefs.h <<_ACEOF
-#define HAVE_XMLRPC 1
-_ACEOF
-
-    fi
-fi
- if test "x$with_one" = "xyes"; then
-  HAVE_XMLRPC_TRUE=
-  HAVE_XMLRPC_FALSE='#'
-else
-  HAVE_XMLRPC_TRUE='#'
-  HAVE_XMLRPC_FALSE=
-fi
-
- if test "x$with_one" = "xyes"; then
-  WITH_ONE_TRUE=
-  WITH_ONE_FALSE='#'
-else
-  WITH_ONE_TRUE='#'
-  WITH_ONE_FALSE=
-fi
-
-
-
 
 
 LIBXML_CONFIG="xml2-config"
@@ -36261,7 +36120,7 @@ AUDIT_LIBS=
 if test "$with_audit" != "no" ; then
   old_cflags="$CFLAGS"
   old_libs="$LIBS"
-  if test "$with_audit" != "check" && "$with_audit" != "yes" ; then
+  if test "$with_audit" != "check" && test "$with_audit" != "yes" ; then
     AUDIT_CFLAGS="-I$with_audit/include"
     AUDIT_LIBS="-L$with_audit/lib"
   fi
@@ -42592,10 +42451,6 @@ if test -z "${WITH_QEMU_TRUE}" && test -z "${WITH_QEMU_FALSE}"; then
   as_fn_error $? "conditional \"WITH_QEMU\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
-if test -z "${WITH_ONE_TRUE}" && test -z "${WITH_ONE_FALSE}"; then
-  as_fn_error $? "conditional \"WITH_ONE\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
 if test -z "${WITH_TEST_TRUE}" && test -z "${WITH_TEST_FALSE}"; then
   as_fn_error $? "conditional \"WITH_TEST\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -42616,20 +42471,16 @@ if test -z "${WITH_XEN_TRUE}" && test -z "${WITH_XEN_FALSE}"; then
   as_fn_error $? "conditional \"WITH_XEN\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${WITH_XENXS_TRUE}" && test -z "${WITH_XENXS_FALSE}"; then
+  as_fn_error $? "conditional \"WITH_XENXS\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${WITH_XEN_INOTIFY_TRUE}" && test -z "${WITH_XEN_INOTIFY_FALSE}"; then
   as_fn_error $? "conditional \"WITH_XEN_INOTIFY\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${WITH_LXC_TRUE}" && test -z "${WITH_LXC_FALSE}"; then
   as_fn_error $? "conditional \"WITH_LXC\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${HAVE_XMLRPC_TRUE}" && test -z "${HAVE_XMLRPC_FALSE}"; then
-  as_fn_error $? "conditional \"HAVE_XMLRPC\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${WITH_ONE_TRUE}" && test -z "${WITH_ONE_FALSE}"; then
-  as_fn_error $? "conditional \"WITH_ONE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_SASL_TRUE}" && test -z "${HAVE_SASL_FALSE}"; then
@@ -45251,8 +45102,6 @@ $as_echo "$as_me: xenlight: $with_libxl" >&6;}
 $as_echo "$as_me:      LXC: $with_lxc" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}:     PHYP: $with_phyp" >&5
 $as_echo "$as_me:     PHYP: $with_phyp" >&6;}
-{ $as_echo "$as_me:${as_lineno-$LINENO}:      ONE: $with_one" >&5
-$as_echo "$as_me:      ONE: $with_one" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}:      ESX: $with_esx" >&5
 $as_echo "$as_me:      ESX: $with_esx" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}:     Test: $with_test" >&5
@@ -45447,13 +45296,6 @@ $as_echo "$as_me:    netcf: $NETCF_CFLAGS $NETCF_LIBS" >&6;}
 else
 { $as_echo "$as_me:${as_lineno-$LINENO}:    netcf: no" >&5
 $as_echo "$as_me:    netcf: no" >&6;}
-fi
-if test "$with_one" = "yes" ; then
-{ $as_echo "$as_me:${as_lineno-$LINENO}:   xmlrpc: $XMLRPC_CFLAGS $XMLRPC_LIBS" >&5
-$as_echo "$as_me:   xmlrpc: $XMLRPC_CFLAGS $XMLRPC_LIBS" >&6;}
-else
-{ $as_echo "$as_me:${as_lineno-$LINENO}:   xmlrpc: no" >&5
-$as_echo "$as_me:   xmlrpc: no" >&6;}
 fi
 if test "$with_qemu" = "yes" && test "$LIBPCAP_FOUND" != "no"; then
 { $as_echo "$as_me:${as_lineno-$LINENO}:     pcap: $LIBPCAP_CFLAGS $LIBPCAP_LIBS" >&5

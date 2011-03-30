@@ -157,6 +157,7 @@
     <reference name='VIR_ERR_INVALID_SECRET' href='html/libvirt-virterror.html#VIR_ERR_INVALID_SECRET'/>
     <reference name='VIR_ERR_INVALID_STORAGE_POOL' href='html/libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_POOL'/>
     <reference name='VIR_ERR_INVALID_STORAGE_VOL' href='html/libvirt-virterror.html#VIR_ERR_INVALID_STORAGE_VOL'/>
+    <reference name='VIR_ERR_INVALID_STREAM' href='html/libvirt-virterror.html#VIR_ERR_INVALID_STREAM'/>
     <reference name='VIR_ERR_MIGRATE_PERSIST_FAILED' href='html/libvirt-virterror.html#VIR_ERR_MIGRATE_PERSIST_FAILED'/>
     <reference name='VIR_ERR_MULTIPLE_INTERFACES' href='html/libvirt-virterror.html#VIR_ERR_MULTIPLE_INTERFACES'/>
     <reference name='VIR_ERR_NETWORK_EXIST' href='html/libvirt-virterror.html#VIR_ERR_NETWORK_EXIST'/>
@@ -685,6 +686,7 @@
     <reference name='virStorageVolCreateXMLFrom' href='html/libvirt-libvirt.html#virStorageVolCreateXMLFrom'/>
     <reference name='virStorageVolDelete' href='html/libvirt-libvirt.html#virStorageVolDelete'/>
     <reference name='virStorageVolDeleteFlags' href='html/libvirt-libvirt.html#virStorageVolDeleteFlags'/>
+    <reference name='virStorageVolDownload' href='html/libvirt-libvirt.html#virStorageVolDownload'/>
     <reference name='virStorageVolFree' href='html/libvirt-libvirt.html#virStorageVolFree'/>
     <reference name='virStorageVolGetConnect' href='html/libvirt-libvirt.html#virStorageVolGetConnect'/>
     <reference name='virStorageVolGetInfo' href='html/libvirt-libvirt.html#virStorageVolGetInfo'/>
@@ -700,6 +702,7 @@
     <reference name='virStorageVolPtr' href='html/libvirt-libvirt.html#virStorageVolPtr'/>
     <reference name='virStorageVolRef' href='html/libvirt-libvirt.html#virStorageVolRef'/>
     <reference name='virStorageVolType' href='html/libvirt-libvirt.html#virStorageVolType'/>
+    <reference name='virStorageVolUpload' href='html/libvirt-libvirt.html#virStorageVolUpload'/>
     <reference name='virStorageVolWipe' href='html/libvirt-libvirt.html#virStorageVolWipe'/>
     <reference name='virStream' href='html/libvirt-libvirt.html#virStream'/>
     <reference name='virStreamAbort' href='html/libvirt-libvirt.html#virStreamAbort'/>
@@ -884,6 +887,7 @@
       <ref name='VIR_ERR_INVALID_SECRET'/>
       <ref name='VIR_ERR_INVALID_STORAGE_POOL'/>
       <ref name='VIR_ERR_INVALID_STORAGE_VOL'/>
+      <ref name='VIR_ERR_INVALID_STREAM'/>
       <ref name='VIR_ERR_MIGRATE_PERSIST_FAILED'/>
       <ref name='VIR_ERR_MULTIPLE_INTERFACES'/>
       <ref name='VIR_ERR_NETWORK_EXIST'/>
@@ -1416,6 +1420,7 @@
       <ref name='virStorageVolCreateXMLFrom'/>
       <ref name='virStorageVolDelete'/>
       <ref name='virStorageVolDeleteFlags'/>
+      <ref name='virStorageVolDownload'/>
       <ref name='virStorageVolFree'/>
       <ref name='virStorageVolGetConnect'/>
       <ref name='virStorageVolGetInfo'/>
@@ -1431,6 +1436,7 @@
       <ref name='virStorageVolPtr'/>
       <ref name='virStorageVolRef'/>
       <ref name='virStorageVolType'/>
+      <ref name='virStorageVolUpload'/>
       <ref name='virStorageVolWipe'/>
       <ref name='virStream'/>
       <ref name='virStreamAbort'/>
@@ -1677,7 +1683,9 @@
       <ref name='virStorageVolCreateXML'/>
       <ref name='virStorageVolCreateXMLFrom'/>
       <ref name='virStorageVolDelete'/>
+      <ref name='virStorageVolDownload'/>
       <ref name='virStorageVolGetXMLDesc'/>
+      <ref name='virStorageVolUpload'/>
       <ref name='virStorageVolWipe'/>
       <ref name='virStreamNew'/>
     </type>
@@ -1698,6 +1706,8 @@
       <ref name='virDomainBlockPeek'/>
       <ref name='virDomainMemoryPeek'/>
       <ref name='virDomainMigrateSetMaxDowntime'/>
+      <ref name='virStorageVolDownload'/>
+      <ref name='virStorageVolUpload'/>
     </type>
     <type name='unsigned long long *'>
       <ref name='virNodeGetCellsFreeMemory'/>
@@ -2083,6 +2093,7 @@
       <ref name='virStoragePoolLookupByVolume'/>
       <ref name='virStorageVolCreateXMLFrom'/>
       <ref name='virStorageVolDelete'/>
+      <ref name='virStorageVolDownload'/>
       <ref name='virStorageVolFree'/>
       <ref name='virStorageVolGetConnect'/>
       <ref name='virStorageVolGetInfo'/>
@@ -2091,6 +2102,7 @@
       <ref name='virStorageVolGetPath'/>
       <ref name='virStorageVolGetXMLDesc'/>
       <ref name='virStorageVolRef'/>
+      <ref name='virStorageVolUpload'/>
       <ref name='virStorageVolWipe'/>
     </type>
     <type name='virStreamEventCallback'>
@@ -2098,6 +2110,8 @@
     </type>
     <type name='virStreamPtr'>
       <ref name='virDomainOpenConsole'/>
+      <ref name='virStorageVolDownload'/>
+      <ref name='virStorageVolUpload'/>
       <ref name='virStreamAbort'/>
       <ref name='virStreamEventAddCallback'/>
       <ref name='virStreamEventCallback'/>
@@ -2700,6 +2714,7 @@
       <ref name='virStorageVolCreateXMLFrom'/>
       <ref name='virStorageVolDelete'/>
       <ref name='virStorageVolDeleteFlags'/>
+      <ref name='virStorageVolDownload'/>
       <ref name='virStorageVolFree'/>
       <ref name='virStorageVolGetConnect'/>
       <ref name='virStorageVolGetInfo'/>
@@ -2715,6 +2730,7 @@
       <ref name='virStorageVolPtr'/>
       <ref name='virStorageVolRef'/>
       <ref name='virStorageVolType'/>
+      <ref name='virStorageVolUpload'/>
       <ref name='virStorageVolWipe'/>
       <ref name='virStream'/>
       <ref name='virStreamAbort'/>
@@ -2765,6 +2781,7 @@
       <ref name='VIR_ERR_INVALID_SECRET'/>
       <ref name='VIR_ERR_INVALID_STORAGE_POOL'/>
       <ref name='VIR_ERR_INVALID_STORAGE_VOL'/>
+      <ref name='VIR_ERR_INVALID_STREAM'/>
       <ref name='VIR_ERR_MIGRATE_PERSIST_FAILED'/>
       <ref name='VIR_ERR_MULTIPLE_INTERFACES'/>
       <ref name='VIR_ERR_NETWORK_EXIST'/>
@@ -2907,6 +2924,8 @@
           <ref name='VIR_GET_CPUMAP'/>
           <ref name='virConnectOpenReadOnly'/>
           <ref name='virNodeGetFreeMemory'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='ASCII'>
           <ref name='virInterfaceGetMACString'/>
@@ -3153,6 +3172,9 @@
         <word name='Domains'>
           <ref name='virDomainBlockStats'/>
           <ref name='virDomainInterfaceStats'/>
+        </word>
+        <word name='Download'>
+          <ref name='virStorageVolDownload'/>
         </word>
         <word name='Drops'>
           <ref name='virNodeDeviceFree'/>
@@ -3542,6 +3564,7 @@
           <ref name='virDomainGetVcpusFlags'/>
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virSecretDefineXML'/>
+          <ref name='virStorageVolUpload'/>
         </word>
       </letter>
       <letter name='P'>
@@ -3879,6 +3902,9 @@
           <ref name='virNetworkUndefine'/>
           <ref name='virStoragePoolUndefine'/>
         </word>
+        <word name='Upload'>
+          <ref name='virStorageVolUpload'/>
+        </word>
         <word name='Use'>
           <ref name='virConnectDomainEventDeregister'/>
           <ref name='virConnectDomainEventRegister'/>
@@ -4195,37 +4221,10 @@
           <ref name='virConnectDomainEventGraphicsCallback'/>
           <ref name='virNodeGetSecurityModel'/>
         </word>
-        <word name='active'>
-          <ref name='VIR_NODEINFO_MAXCPUS'/>
-          <ref name='_virNodeInfo'/>
-          <ref name='virConnectListDomains'/>
-          <ref name='virConnectListInterfaces'/>
-          <ref name='virConnectListNetworks'/>
-          <ref name='virConnectListStoragePools'/>
-          <ref name='virConnectNumOfDomains'/>
-          <ref name='virConnectNumOfInterfaces'/>
-          <ref name='virConnectNumOfNetworks'/>
-          <ref name='virConnectNumOfStoragePools'/>
-          <ref name='virConnectOpen'/>
-          <ref name='virDomainAttachDevice'/>
-          <ref name='virDomainAttachDeviceFlags'/>
-          <ref name='virDomainDetachDevice'/>
-          <ref name='virDomainDetachDeviceFlags'/>
-          <ref name='virDomainGetJobInfo'/>
-          <ref name='virDomainGetSecurityLabel'/>
-          <ref name='virDomainGetVcpusFlags'/>
-          <ref name='virDomainPinVcpu'/>
-          <ref name='virDomainSetMaxMemory'/>
-          <ref name='virDomainSetMemory'/>
-          <ref name='virDomainSetVcpus'/>
-          <ref name='virDomainSetVcpusFlags'/>
-          <ref name='virDomainSuspend'/>
-          <ref name='virDomainUpdateDeviceFlags'/>
-          <ref name='virStoragePoolDestroy'/>
-          <ref name='virStreamFree'/>
-        </word>
         <word name='actual'>
           <ref name='_virNodeInfo'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamSinkFunc'/>
           <ref name='virStreamSourceFunc'/>
         </word>
@@ -4285,6 +4284,7 @@
           <ref name='virNetworkIsPersistent'/>
           <ref name='virNodeDeviceReset'/>
           <ref name='virStoragePoolIsPersistent'/>
+          <ref name='virStorageVolDownload'/>
         </word>
         <word name='again'>
           <ref name='virDomainGetMemoryParameters'/>
@@ -4403,11 +4403,17 @@
           <ref name='virDomainSetMaxMemory'/>
           <ref name='virDomainSetMemory'/>
           <ref name='virNodeGetCellsFreeMemory'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
         </word>
         <word name='analysis'>
           <ref name='virDomainCoreDump'/>
+        </word>
+        <word name='another'>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='any'>
           <ref name='virConnectDomainEventRegisterAny'/>
@@ -4421,6 +4427,8 @@
           <ref name='virNodeDeviceDettach'/>
           <ref name='virSecretDefineXML'/>
           <ref name='virStoragePoolDestroy'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamRecvAll'/>
           <ref name='virStreamSend'/>
           <ref name='virStreamSendAll'/>
@@ -4525,6 +4533,8 @@
           <ref name='virGetVersion'/>
         </word>
         <word name='asynchronous'>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamFinish'/>
         </word>
         <word name='attached'>
@@ -4538,6 +4548,7 @@
         </word>
         <word name='attempt'>
           <ref name='virNodeDeviceReset'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='attempts'>
           <ref name='virConnectFindStoragePoolSources'/>
@@ -5219,6 +5230,8 @@
         <word name='content'>
           <ref name='virConnCopyLastError'/>
           <ref name='virCopyLastError'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='contention'>
           <ref name='VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
@@ -5228,6 +5241,7 @@
           <ref name='virDomainManagedSave'/>
           <ref name='virDomainMemoryPeek'/>
           <ref name='virDomainSave'/>
+          <ref name='virStorageVolDownload'/>
         </word>
         <word name='continue'>
           <ref name='virStreamSinkFunc'/>
@@ -5343,6 +5357,7 @@
           <ref name='virStoragePoolDefineXML'/>
           <ref name='virStorageVolCreateXML'/>
           <ref name='virStorageVolCreateXMLFrom'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='cred'>
           <ref name='virConnectAuthCallbackPtr'/>
@@ -5562,11 +5577,15 @@
           <ref name='virDomainMigrateToURI'/>
         </word>
         <word name='detect'>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamSend'/>
         </word>
         <word name='determine'>
           <ref name='virConnectOpen'/>
           <ref name='virDomainBlockPeek'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='determines'>
           <ref name='virStoragePoolGetAutostart'/>
@@ -5721,8 +5740,12 @@
           <ref name='virStoragePoolIsPersistent'/>
         </word>
         <word name='download'>
+          <ref name='virStorageVolDownload'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamRecvAll'/>
+        </word>
+        <word name='downloaded'>
+          <ref name='virStorageVolDownload'/>
         </word>
         <word name='downtime'>
           <ref name='virDomainMigrateSetMaxDowntime'/>
@@ -5915,6 +5938,8 @@
         <word name='errors'>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamFinish'/>
         </word>
         <word name='especially'>
@@ -5957,6 +5982,9 @@
           <ref name='virStreamRecvAll'/>
           <ref name='virStreamSend'/>
           <ref name='virStreamSendAll'/>
+        </word>
+        <word name='exceeds'>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='execution'>
           <ref name='virConnectDomainEventRegister'/>
@@ -6061,6 +6089,7 @@
           <ref name='virNodeDeviceDettach'/>
           <ref name='virNodeDeviceReAttach'/>
           <ref name='virNodeDeviceReset'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='failed'>
           <ref name='virSaveLastError'/>
@@ -6314,6 +6343,7 @@
           <ref name='virStoragePoolCreateXML'/>
           <ref name='virStoragePoolDefineXML'/>
           <ref name='virStorageVolDelete'/>
+          <ref name='virStorageVolDownload'/>
           <ref name='virStorageVolWipe'/>
         </word>
       </letter>
@@ -6423,6 +6453,9 @@
         </word>
         <word name='graphics'>
           <ref name='virDomainUpdateDeviceFlags'/>
+        </word>
+        <word name='greater'>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='growing'>
           <ref name='virDomainSetVcpus'/>
@@ -6601,6 +6634,8 @@
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainDetachDeviceFlags'/>
           <ref name='virDomainUpdateDeviceFlags'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='however'>
           <ref name='virDomainAttachDevice'/>
@@ -6831,6 +6866,7 @@
         </word>
         <word name='input'>
           <ref name='virStorageVolCreateXMLFrom'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamAbort'/>
           <ref name='virStreamFinish'/>
         </word>
@@ -7188,6 +7224,8 @@
           <ref name='virDomainMigrateSetMaxSpeed'/>
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainSetVcpusFlags'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='limitations'>
           <ref name='virDomainMigrate'/>
@@ -7353,6 +7391,7 @@
         <word name='made'>
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainUpdateDeviceFlags'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='major'>
           <ref name='virConnectGetLibVersion'/>
@@ -7580,6 +7619,10 @@
         <word name='msg00096'>
           <ref name='virConnectGetType'/>
         </word>
+        <word name='much'>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
+        </word>
         <word name='multi-threaded'>
           <ref name='virConnCopyLastError'/>
           <ref name='virConnGetLastError'/>
@@ -7643,6 +7686,8 @@
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrateToURI'/>
           <ref name='virNodeGetFreeMemory'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='need'>
           <ref name='virConnCopyLastError'/>
@@ -7732,6 +7777,9 @@
         </word>
         <word name='non-recoverable'>
           <ref name='virStoragePoolDelete'/>
+        </word>
+        <word name='non-zero'>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='none'>
           <ref name='virConnGetLastError'/>
@@ -8049,6 +8097,7 @@
         </word>
         <word name='output'>
           <ref name='virDomainSave'/>
+          <ref name='virStorageVolDownload'/>
           <ref name='virStreamAbort'/>
           <ref name='virStreamFinish'/>
         </word>
@@ -8254,6 +8303,10 @@
         <word name='port'>
           <ref name='_virDomainEventGraphicsAddress'/>
           <ref name='virDomainOpenConsole'/>
+        </word>
+        <word name='position'>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='positive'>
           <ref name='virConnectDomainEventRegisterAny'/>
@@ -8471,6 +8524,7 @@
           <ref name='virSecretLookupByUUIDString'/>
           <ref name='virSecretLookupByUsage'/>
           <ref name='virSetErrorFunc'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='raw'>
           <ref name='virDomainLookupByUUID'/>
@@ -8507,6 +8561,7 @@
           <ref name='virStreamEventAddCallback'/>
         </word>
         <word name='reading'>
+          <ref name='virStorageVolDownload'/>
           <ref name='virStreamSendAll'/>
         </word>
         <word name='reads'>
@@ -8654,6 +8709,7 @@
         <word name='remaining'>
           <ref name='virConnectListDefinedStoragePools'/>
           <ref name='virConnectListStoragePools'/>
+          <ref name='virStorageVolDownload'/>
         </word>
         <word name='remains'>
           <ref name='virConnCopyLastError'/>
@@ -8853,6 +8909,10 @@
         <word name='resultlen'>
           <ref name='virConnectAuthCallbackPtr'/>
         </word>
+        <word name='results'>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
+        </word>
         <word name='returning'>
           <ref name='virStreamSourceFunc'/>
         </word>
@@ -9047,6 +9107,8 @@
         </word>
         <word name='sets'>
           <ref name='virEventAddHandleFunc'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='setting'>
           <ref name='virConnectOpen'/>
@@ -9264,6 +9326,8 @@
           <ref name='virDomainMemoryPeek'/>
           <ref name='virNetworkCreate'/>
           <ref name='virNetworkCreateXML'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='startCell'>
           <ref name='virNodeGetCellsFreeMemory'/>
@@ -9404,6 +9468,8 @@
           <ref name='virConnectDomainEventGraphicsCallback'/>
         </word>
         <word name='subsequent'>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
         </word>
@@ -9433,6 +9499,8 @@
         <word name='successfully'>
           <ref name='virConnectOpen'/>
           <ref name='virDomainSnapshotDelete'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamFinish'/>
           <ref name='virStreamRecvAll'/>
           <ref name='virStreamSendAll'/>
@@ -9618,6 +9686,7 @@
           <ref name='virDomainSetMemoryParameters'/>
           <ref name='virDomainSetSchedulerParameters'/>
           <ref name='virDomainSetVcpusFlags'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
         </word>
@@ -9773,8 +9842,14 @@
           <ref name='_virDomainJobInfo'/>
         </word>
         <word name='transfer'>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamAbort'/>
           <ref name='virStreamFree'/>
+        </word>
+        <word name='transferred'>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
         </word>
         <word name='transient'>
           <ref name='virDomainIsPersistent'/>
@@ -9926,6 +10001,10 @@
         <word name='unlimited'>
           <ref name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
         </word>
+        <word name='unpredictable'>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
+        </word>
         <word name='unprivileged'>
           <ref name='virConnectOpen'/>
         </word>
@@ -9980,6 +10059,7 @@
           <ref name='virEventAddHandleFunc'/>
         </word>
         <word name='upload'>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamSend'/>
           <ref name='virStreamSendAll'/>
         </word>
@@ -9992,6 +10072,8 @@
           <ref name='virSecretGetUsageID'/>
           <ref name='virSecretGetUsageType'/>
           <ref name='virStoragePoolBuild'/>
+          <ref name='virStorageVolDownload'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamAbort'/>
           <ref name='virStreamEventAddCallback'/>
           <ref name='virStreamFinish'/>
@@ -10750,7 +10832,9 @@
           <ref name='virNetworkGetConnect'/>
           <ref name='virSecretGetConnect'/>
           <ref name='virStoragePoolGetConnect'/>
+          <ref name='virStorageVolDownload'/>
           <ref name='virStorageVolGetConnect'/>
+          <ref name='virStorageVolUpload'/>
           <ref name='virStreamRecvAll'/>
         </word>
         <word name='written'>
@@ -10811,6 +10895,7 @@
           <ref name='virDomainGetBlockInfo'/>
           <ref name='virDomainGetVcpus'/>
           <ref name='virDomainPinVcpu'/>
+          <ref name='virStorageVolDownload'/>
           <ref name='virStreamFree'/>
         </word>
       </letter>

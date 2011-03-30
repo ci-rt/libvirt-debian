@@ -1774,34 +1774,38 @@ struct qemud_save_header {
     int unused[15];
 };
 
-struct fileOpHookData {
-    virDomainPtr dom;
-    const char *path;
-    char *xml;
-    struct qemud_save_header *header;
-};
-
 /* return -errno on failure, or 0 on success */
-static int qemudDomainSaveFileOpHook(int fd, void *data) {
-    struct fileOpHookData *hdata = data;
+static int
+qemuDomainSaveHeader(int fd, const char *path, char *xml,
+                     struct qemud_save_header *header)
+{
     int ret = 0;
 
-    if (safewrite(fd, hdata->header, sizeof(*hdata->header)) != sizeof(*hdata->header)) {
+    if (safewrite(fd, header, sizeof(*header)) != sizeof(*header)) {
         ret = -errno;
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("failed to write header to domain save file '%s'"),
-                        hdata->path);
+                        path);
         goto endjob;
     }
 
-    if (safewrite(fd, hdata->xml, hdata->header->xml_len) != hdata->header->xml_len) {
+    if (safewrite(fd, xml, header->xml_len) != header->xml_len) {
         ret = -errno;
         qemuReportError(VIR_ERR_OPERATION_FAILED,
-                         _("failed to write xml to '%s'"), hdata->path);
+                         _("failed to write xml to '%s'"), path);
         goto endjob;
     }
 endjob:
     return ret;
+}
+
+/* Given a enum qemud_save_formats compression level, return the name
+ * of the program to run, or NULL if no program is needed.  */
+static const char *
+qemuCompressProgramName(int compress)
+{
+    return (compress == QEMUD_SAVE_FORMAT_RAW ? NULL :
+            qemudSaveCompressionTypeToString(compress));
 }
 
 /* This internal function expects the driver lock to already be held on
@@ -1813,16 +1817,16 @@ static int qemudDomainSaveFlag(struct qemud_driver *driver, virDomainPtr dom,
 {
     char *xml = NULL;
     struct qemud_save_header header;
-    struct fileOpHookData hdata;
-    int bypassSecurityDriver = 0;
+    bool bypassSecurityDriver = false;
     int ret = -1;
     int rc;
     virDomainEventPtr event = NULL;
     qemuDomainObjPrivatePtr priv;
     struct stat sb;
-    int is_reg = 0;
+    bool is_reg = false;
     unsigned long long offset;
-    virCgroupPtr cgroup = NULL;
+    virBitmapPtr qemuCaps = NULL;
+    int fd = -1;
 
     memset(&header, 0, sizeof(header));
     memcpy(header.magic, QEMUD_SAVE_MAGIC, sizeof(header.magic));
@@ -1853,6 +1857,11 @@ static int qemudDomainSaveFlag(struct qemud_driver *driver, virDomainPtr dom,
         }
     }
 
+    if (qemuCapsExtractVersionInfo(vm->def->emulator, vm->def->os.arch,
+                                   NULL,
+                                   &qemuCaps) < 0)
+        goto endjob;
+
     /* Get XML for the domain */
     xml = virDomainDefFormat(vm->def, VIR_DOMAIN_XML_SECURE);
     if (!xml) {
@@ -1870,9 +1879,9 @@ static int qemudDomainSaveFlag(struct qemud_driver *driver, virDomainPtr dom,
          * that with NFS we can't actually stat() the file.
          * The subsequent codepaths will still raise an error
          * if a truely fatal problem is hit */
-        is_reg = 1;
+        is_reg = true;
     } else {
-        is_reg = S_ISREG(sb.st_mode);
+        is_reg = !!S_ISREG(sb.st_mode);
     }
 
     offset = sizeof(header) + header.xml_len;
@@ -1896,45 +1905,30 @@ static int qemudDomainSaveFlag(struct qemud_driver *driver, virDomainPtr dom,
         header.xml_len += pad;
     }
 
-    /* Setup hook data needed by virFileOperation hook function */
-    hdata.dom = dom;
-    hdata.path = path;
-    hdata.xml = xml;
-    hdata.header = &header;
-
-    /* Write header to file, followed by XML */
+    /* Obtain the file handle.  */
 
     /* First try creating the file as root */
     if (!is_reg) {
-        int fd = open(path, O_WRONLY | O_TRUNC);
+        fd = open(path, O_WRONLY | O_TRUNC);
         if (fd < 0) {
             virReportSystemError(errno, _("unable to open %s"), path);
             goto endjob;
         }
-        if (qemudDomainSaveFileOpHook(fd, &hdata) < 0) {
-            VIR_FORCE_CLOSE(fd);
-            goto endjob;
-        }
-        if (VIR_CLOSE(fd) < 0) {
-            virReportSystemError(errno, _("unable to close %s"), path);
-            goto endjob;
-        }
     } else {
-        if ((rc = virFileOperation(path, O_CREAT|O_TRUNC|O_WRONLY,
-                                  S_IRUSR|S_IWUSR,
-                                  getuid(), getgid(),
-                                  qemudDomainSaveFileOpHook, &hdata,
-                                  0)) < 0) {
+        if ((fd = virFileOpenAs(path, O_CREAT|O_TRUNC|O_WRONLY,
+                                S_IRUSR|S_IWUSR,
+                                getuid(), getgid(), 0)) < 0) {
             /* If we failed as root, and the error was permission-denied
                (EACCES or EPERM), assume it's on a network-connected share
                where root access is restricted (eg, root-squashed NFS). If the
                qemu user (driver->user) is non-root, just set a flag to
                bypass security driver shenanigans, and retry the operation
                after doing setuid to qemu user */
-
+            rc = fd;
             if (((rc != -EACCES) && (rc != -EPERM)) ||
                 driver->user == getuid()) {
-                virReportSystemError(-rc, _("Failed to create domain save file '%s'"),
+                virReportSystemError(-rc,
+                                    _("Failed to create domain save file '%s'"),
                                      path);
                 goto endjob;
             }
@@ -1957,9 +1951,9 @@ static int qemudDomainSaveFlag(struct qemud_driver *driver, virDomainPtr dom,
 
                 case 0:
                 default:
-                   /* local file - log the error returned by virFileOperation */
+                   /* local file - log the error returned by virFileOpenAs */
                    virReportSystemError(-rc,
-                                        _("Failed to create domain save file '%s'"),
+                                    _("Failed to create domain save file '%s'"),
                                         path);
                    goto endjob;
                    break;
@@ -1968,13 +1962,13 @@ static int qemudDomainSaveFlag(struct qemud_driver *driver, virDomainPtr dom,
 
             /* Retry creating the file as driver->user */
 
-            if ((rc = virFileOperation(path, O_CREAT|O_TRUNC|O_WRONLY,
-                                       S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP,
-                                       driver->user, driver->group,
-                                       qemudDomainSaveFileOpHook, &hdata,
-                                       VIR_FILE_OP_AS_UID)) < 0) {
-                virReportSystemError(-rc, _("Error from child process creating '%s'"),
-                                 path);
+            if ((fd = virFileOpenAs(path, O_CREAT|O_TRUNC|O_WRONLY,
+                                    S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP,
+                                    driver->user, driver->group,
+                                    VIR_FILE_OPEN_AS_UID)) < 0) {
+                virReportSystemError(-fd,
+                                   _("Error from child process creating '%s'"),
+                                     path);
                 goto endjob;
             }
 
@@ -1982,76 +1976,24 @@ static int qemudDomainSaveFlag(struct qemud_driver *driver, virDomainPtr dom,
                is NFS, we assume it's a root-squashing NFS share, and that
                the security driver stuff would have failed anyway */
 
-            bypassSecurityDriver = 1;
+            bypassSecurityDriver = true;
         }
     }
 
-
-    if (!is_reg &&
-        qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES)) {
-        if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Unable to find cgroup for %s"),
-                            vm->def->name);
-            goto endjob;
-        }
-        rc = virCgroupAllowDevicePath(cgroup, path,
-                                      VIR_CGROUP_DEVICE_RW);
-        qemuAuditCgroupPath(vm, cgroup, "allow", path, "rw", rc);
-        if (rc < 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to allow device %s for %s"),
-                                 path, vm->def->name);
-            goto endjob;
-        }
+    /* Write header to file, followed by XML */
+    if (qemuDomainSaveHeader(fd, path, xml, &header) < 0) {
+        VIR_FORCE_CLOSE(fd);
+        goto endjob;
     }
 
-    if ((!bypassSecurityDriver) &&
-        virSecurityManagerSetSavedStateLabel(driver->securityManager,
-                                             vm, path) < 0)
+    /* Perform the migration */
+    if (qemuMigrationToFile(driver, vm, qemuCaps, fd, offset, path,
+                            qemuCompressProgramName(compressed),
+                            is_reg, bypassSecurityDriver) < 0)
         goto endjob;
-
-    if (header.compressed == QEMUD_SAVE_FORMAT_RAW) {
-        const char *args[] = { "cat", NULL };
-        qemuDomainObjEnterMonitorWithDriver(driver, vm);
-        rc = qemuMonitorMigrateToFile(priv->mon,
-                                      QEMU_MONITOR_MIGRATE_BACKGROUND,
-                                      args, path, offset);
-        qemuDomainObjExitMonitorWithDriver(driver, vm);
-    } else {
-        const char *prog = qemudSaveCompressionTypeToString(header.compressed);
-        const char *args[] = {
-            prog,
-            "-c",
-            NULL
-        };
-        qemuDomainObjEnterMonitorWithDriver(driver, vm);
-        rc = qemuMonitorMigrateToFile(priv->mon,
-                                      QEMU_MONITOR_MIGRATE_BACKGROUND,
-                                      args, path, offset);
-        qemuDomainObjExitMonitorWithDriver(driver, vm);
-    }
-
-    if (rc < 0)
+    if (VIR_CLOSE(fd) < 0) {
+        virReportSystemError(errno, _("unable to close %s"), path);
         goto endjob;
-
-    rc = qemuMigrationWaitForCompletion(driver, vm);
-
-    if (rc < 0)
-        goto endjob;
-
-    if ((!bypassSecurityDriver) &&
-        virSecurityManagerRestoreSavedStateLabel(driver->securityManager,
-                                                 vm, path) < 0)
-        VIR_WARN("failed to restore save state label on %s", path);
-
-    if (cgroup != NULL) {
-        rc = virCgroupDenyDevicePath(cgroup, path,
-                                     VIR_CGROUP_DEVICE_RWM);
-        qemuAuditCgroupPath(vm, cgroup, "deny", path, "rwm", rc);
-        if (rc < 0)
-            VIR_WARN("Unable to deny device %s for %s %d",
-                     path, vm->def->name, rc);
     }
 
     ret = 0;
@@ -2077,33 +2019,19 @@ endjob:
                 if (rc < 0)
                     VIR_WARN0("Unable to resume guest CPUs after save failure");
             }
-
-            if (cgroup != NULL) {
-                rc = virCgroupDenyDevicePath(cgroup, path,
-                                             VIR_CGROUP_DEVICE_RWM);
-                qemuAuditCgroupPath(vm, cgroup, "deny", path, "rwm", rc);
-                if (rc < 0)
-                    VIR_WARN("Unable to deny device %s for %s: %d",
-                             path, vm->def->name, rc);
-            }
-
-            if ((!bypassSecurityDriver) &&
-                virSecurityManagerRestoreSavedStateLabel(driver->securityManager,
-                                                         vm, path) < 0)
-                VIR_WARN("failed to restore save state label on %s", path);
         }
-
         if (qemuDomainObjEndJob(vm) == 0)
             vm = NULL;
     }
 
 cleanup:
+    qemuCapsFree(qemuCaps);
+    VIR_FORCE_CLOSE(fd);
     VIR_FREE(xml);
     if (ret != 0 && is_reg)
         unlink(path);
     if (event)
         qemuDomainEventQueue(driver, event);
-    virCgroupFree(&cgroup);
     return ret;
 }
 
@@ -2307,9 +2235,6 @@ static int doCoreDump(struct qemud_driver *driver,
 {
     int fd = -1;
     int ret = -1;
-    qemuDomainObjPrivatePtr priv;
-
-    priv = vm->privateData;
 
     /* Create an empty file with appropriate ownership.  */
     if ((fd = open(path, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) < 0) {
@@ -2318,6 +2243,10 @@ static int doCoreDump(struct qemud_driver *driver,
         goto cleanup;
     }
 
+    if (qemuMigrationToFile(driver, vm, NULL, fd, 0, path,
+                            qemuCompressProgramName(compress), true, false) < 0)
+        goto cleanup;
+
     if (VIR_CLOSE(fd) < 0) {
         virReportSystemError(errno,
                              _("unable to save file %s"),
@@ -2325,42 +2254,7 @@ static int doCoreDump(struct qemud_driver *driver,
         goto cleanup;
     }
 
-    if (virSecurityManagerSetSavedStateLabel(driver->securityManager,
-                                             vm, path) < 0)
-        goto cleanup;
-
-    qemuDomainObjEnterMonitorWithDriver(driver, vm);
-    if (compress == QEMUD_SAVE_FORMAT_RAW) {
-        const char *args[] = {
-            "cat",
-            NULL,
-        };
-        ret = qemuMonitorMigrateToFile(priv->mon,
-                                       QEMU_MONITOR_MIGRATE_BACKGROUND,
-                                       args, path, 0);
-    } else {
-        const char *prog = qemudSaveCompressionTypeToString(compress);
-        const char *args[] = {
-            prog,
-            "-c",
-            NULL,
-        };
-        ret = qemuMonitorMigrateToFile(priv->mon,
-                                       QEMU_MONITOR_MIGRATE_BACKGROUND,
-                                       args, path, 0);
-    }
-    qemuDomainObjExitMonitorWithDriver(driver, vm);
-    if (ret < 0)
-        goto cleanup;
-
-    ret = qemuMigrationWaitForCompletion(driver, vm);
-
-    if (ret < 0)
-        goto cleanup;
-
-    if (virSecurityManagerRestoreSavedStateLabel(driver->securityManager,
-                                                 vm, path) < 0)
-        goto cleanup;
+    ret = 0;
 
 cleanup:
     if (ret != 0)
@@ -2785,6 +2679,13 @@ qemudDomainPinVcpu(virDomainPtr dom,
                         "%s", _("cpu affinity is not supported"));
         goto cleanup;
     }
+
+    if (virDomainVcpupinAdd(vm->def, cpumap, maplen, vcpu) < 0) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        "%s", _("failed to update or add vcpupin xml"));
+        goto cleanup;
+    }
+
     ret = 0;
 
 cleanup:
@@ -3039,183 +2940,32 @@ cleanup:
     return ret;
 }
 
-/* qemudOpenAsUID() - pipe/fork/setuid/open a file, and return the
-   pipe fd to caller, so that it can read from the file. Also return
-   the pid of the child process, so the caller can wait for it to exit
-   after it's finished reading (to avoid a zombie, if nothing
-   else). */
-
-static int
-qemudOpenAsUID(const char *path, uid_t uid, gid_t gid, pid_t *child_pid)
-{
-    int pipefd[2];
-    int fd = -1;
-
-    *child_pid = -1;
-
-    if (pipe(pipefd) < 0) {
-        virReportSystemError(errno,
-                             _("failed to create pipe to read '%s'"),
-                             path);
-        pipefd[0] = pipefd[1] = -1;
-        goto parent_cleanup;
-    }
-
-    int forkRet = virFork(child_pid);
-
-    if (*child_pid < 0) {
-        virReportSystemError(errno,
-                             _("failed to fork child to read '%s'"),
-                             path);
-        goto parent_cleanup;
-    }
-
-    if (*child_pid > 0) {
-
-        /* parent */
-
-        /* parent doesn't need the write side of the pipe */
-        VIR_FORCE_CLOSE(pipefd[1]);
-
-        if (forkRet < 0) {
-            virReportSystemError(errno,
-                                 _("failed in parent after forking child to read '%s'"),
-                                 path);
-            goto parent_cleanup;
-        }
-        /* caller gets the read side of the pipe */
-        fd = pipefd[0];
-        pipefd[0] = -1;
-parent_cleanup:
-        VIR_FORCE_CLOSE(pipefd[0]);
-        VIR_FORCE_CLOSE(pipefd[1]);
-        if ((fd < 0) && (*child_pid > 0)) {
-            /* a child process was started and subsequently an error
-               occurred in the parent, so we need to wait for it to
-               exit, but its status is inconsequential. */
-            while ((waitpid(*child_pid, NULL, 0) == -1)
-                   && (errno == EINTR)) {
-                /* empty */
-            }
-            *child_pid = -1;
-        }
-        return fd;
-    }
-
-    /* child */
-
-    /* setuid to the qemu user, then open the file, read it,
-       and stuff it into the pipe for the parent process to
-       read */
-    int exit_code;
-    char *buf = NULL;
-    size_t bufsize = 1024 * 1024;
-    int bytesread;
-
-    /* child doesn't need the read side of the pipe */
-    VIR_FORCE_CLOSE(pipefd[0]);
-
-    if (forkRet < 0) {
-        exit_code = errno;
-        virReportSystemError(errno,
-                             _("failed in child after forking to read '%s'"),
-                             path);
-        goto child_cleanup;
-    }
-
-    if (virSetUIDGID(uid, gid) < 0) {
-       exit_code = errno;
-       goto child_cleanup;
-    }
-
-    if ((fd = open(path, O_RDONLY)) < 0) {
-        exit_code = errno;
-        virReportSystemError(errno,
-                             _("cannot open '%s' as uid %d"),
-                             path, uid);
-        goto child_cleanup;
-    }
-
-    if (VIR_ALLOC_N(buf, bufsize) < 0) {
-        exit_code = ENOMEM;
-        virReportOOMError();
-        goto child_cleanup;
-    }
-
-    /* read from fd and write to pipefd[1] until EOF */
-    do {
-        if ((bytesread = saferead(fd, buf, bufsize)) < 0) {
-            exit_code = errno;
-            virReportSystemError(errno,
-                                 _("child failed reading from '%s'"),
-                                 path);
-            goto child_cleanup;
-        }
-        if (safewrite(pipefd[1], buf, bytesread) != bytesread) {
-            exit_code = errno;
-            virReportSystemError(errno, "%s",
-                                 _("child failed writing to pipe"));
-            goto child_cleanup;
-        }
-    } while (bytesread > 0);
-    exit_code = 0;
-
-child_cleanup:
-    VIR_FREE(buf);
-    VIR_FORCE_CLOSE(fd);
-    VIR_FORCE_CLOSE(pipefd[1]);
-    _exit(exit_code);
-}
-
-static int qemudDomainSaveImageClose(int fd, pid_t read_pid, int *status)
-{
-    int ret = 0;
-
-    if (VIR_CLOSE(fd) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("cannot close file"));
-    }
-
-    if (read_pid != -1) {
-        /* reap the process that read the file */
-        while ((ret = waitpid(read_pid, status, 0)) == -1
-               && errno == EINTR) {
-            /* empty */
-        }
-    } else if (status) {
-        *status = 0;
-    }
-
-    return ret;
-}
-
-static int ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5)
-qemudDomainSaveImageOpen(struct qemud_driver *driver,
-                         const char *path,
-                         virDomainDefPtr *ret_def,
-                         struct qemud_save_header *ret_header,
-                         pid_t *ret_read_pid)
+static int ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4)
+qemuDomainSaveImageOpen(struct qemud_driver *driver,
+                        const char *path,
+                        virDomainDefPtr *ret_def,
+                        struct qemud_save_header *ret_header)
 {
     int fd;
-    pid_t read_pid = -1;
     struct qemud_save_header header;
     char *xml = NULL;
     virDomainDefPtr def = NULL;
 
-    if ((fd = open(path, O_RDONLY)) < 0) {
-        if ((driver->user == 0) || (getuid() != 0)) {
+    if ((fd = virFileOpenAs(path, O_RDONLY, 0, getuid(), getgid(), 0)) < 0) {
+        if ((fd != -EACCES && fd != -EPERM) ||
+            driver->user == getuid()) {
             qemuReportError(VIR_ERR_OPERATION_FAILED,
                             "%s", _("cannot read domain image"));
             goto error;
         }
 
         /* Opening as root failed, but qemu runs as a different user
-           that might have better luck. Create a pipe, then fork a
-           child process to run as the qemu user, which will hopefully
-           have the necessary authority to read the file. */
-        if ((fd = qemudOpenAsUID(path,
-                                 driver->user, driver->group, &read_pid)) < 0) {
-            /* error already reported */
+         * that might have better luck. */
+        if ((fd = virFileOpenAs(path, O_RDONLY, 0,
+                                driver->user, driver->group,
+                                VIR_FILE_OPEN_AS_UID)) < 0) {
+            qemuReportError(VIR_ERR_OPERATION_FAILED,
+                            "%s", _("cannot read domain image"));
             goto error;
         }
     }
@@ -3265,34 +3015,30 @@ qemudDomainSaveImageOpen(struct qemud_driver *driver,
 
     *ret_def = def;
     *ret_header = header;
-    *ret_read_pid = read_pid;
 
     return fd;
 
 error:
     virDomainDefFree(def);
     VIR_FREE(xml);
-    qemudDomainSaveImageClose(fd, read_pid, NULL);
+    VIR_FORCE_CLOSE(fd);
 
     return -1;
 }
 
-static int ATTRIBUTE_NONNULL(6)
-qemudDomainSaveImageStartVM(virConnectPtr conn,
-                            struct qemud_driver *driver,
-                            virDomainObjPtr vm,
-                            int *fd,
-                            pid_t *read_pid,
-                            const struct qemud_save_header *header,
-                            const char *path)
+static int ATTRIBUTE_NONNULL(4) ATTRIBUTE_NONNULL(5) ATTRIBUTE_NONNULL(6)
+qemuDomainSaveImageStartVM(virConnectPtr conn,
+                           struct qemud_driver *driver,
+                           virDomainObjPtr vm,
+                           int *fd,
+                           const struct qemud_save_header *header,
+                           const char *path)
 {
     int ret = -1;
     virDomainEventPtr event;
     int intermediatefd = -1;
     pid_t intermediate_pid = -1;
     int childstat;
-    int wait_ret;
-    int status;
 
     if (header->version == 2) {
         const char *intermediate_argv[3] = { NULL, "-dc", NULL };
@@ -3325,8 +3071,9 @@ qemudDomainSaveImageStartVM(virConnectPtr conn,
 
     if (intermediate_pid != -1) {
         if (ret < 0) {
-            /* if there was an error setting up qemu, the intermediate process will
-             * wait forever to write to stdout, so we must manually kill it.
+            /* if there was an error setting up qemu, the intermediate
+             * process will wait forever to write to stdout, so we
+             * must manually kill it.
              */
             VIR_FORCE_CLOSE(intermediatefd);
             VIR_FORCE_CLOSE(*fd);
@@ -3341,30 +3088,10 @@ qemudDomainSaveImageStartVM(virConnectPtr conn,
     }
     VIR_FORCE_CLOSE(intermediatefd);
 
-    wait_ret = qemudDomainSaveImageClose(*fd, *read_pid, &status);
-    *fd = -1;
-    if (*read_pid != -1) {
-        if (wait_ret == -1) {
-            virReportSystemError(errno,
-                                 _("failed to wait for process reading '%s'"),
-                                 path);
-            ret = -1;
-        } else if (!WIFEXITED(status)) {
-            qemuReportError(VIR_ERR_OPERATION_FAILED,
-                            _("child process exited abnormally reading '%s'"),
-                            path);
-            ret = -1;
-        } else {
-            int exit_status = WEXITSTATUS(status);
-            if (exit_status != 0) {
-                virReportSystemError(exit_status,
-                                     _("child process returned error reading '%s'"),
-                                     path);
-                ret = -1;
-            }
-        }
+    if (VIR_CLOSE(*fd) < 0) {
+        virReportSystemError(errno, _("cannot close file: %s"), path);
+        ret = -1;
     }
-    *read_pid = -1;
 
     if (ret < 0) {
         qemuAuditDomainStart(vm, "restored", false);
@@ -3403,19 +3130,20 @@ out:
     return ret;
 }
 
-static int qemudDomainRestore(virConnectPtr conn,
-                              const char *path) {
+static int
+qemuDomainRestore(virConnectPtr conn,
+                  const char *path)
+{
     struct qemud_driver *driver = conn->privateData;
     virDomainDefPtr def = NULL;
     virDomainObjPtr vm = NULL;
     int fd = -1;
-    pid_t read_pid = -1;
     int ret = -1;
     struct qemud_save_header header;
 
     qemuDriverLock(driver);
 
-    fd = qemudDomainSaveImageOpen(driver, path, &def, &header, &read_pid);
+    fd = qemuDomainSaveImageOpen(driver, path, &def, &header);
     if (fd < 0)
         goto cleanup;
 
@@ -3433,8 +3161,7 @@ static int qemudDomainRestore(virConnectPtr conn,
     if (qemuDomainObjBeginJobWithDriver(driver, vm) < 0)
         goto cleanup;
 
-    ret = qemudDomainSaveImageStartVM(conn, driver, vm, &fd,
-                                      &read_pid, &header, path);
+    ret = qemuDomainSaveImageStartVM(conn, driver, vm, &fd, &header, path);
 
     if (qemuDomainObjEndJob(vm) == 0)
         vm = NULL;
@@ -3445,25 +3172,25 @@ static int qemudDomainRestore(virConnectPtr conn,
 
 cleanup:
     virDomainDefFree(def);
-    qemudDomainSaveImageClose(fd, read_pid, NULL);
+    VIR_FORCE_CLOSE(fd);
     if (vm)
         virDomainObjUnlock(vm);
     qemuDriverUnlock(driver);
     return ret;
 }
 
-static int qemudDomainObjRestore(virConnectPtr conn,
-                                 struct qemud_driver *driver,
-                                 virDomainObjPtr vm,
-                                 const char *path)
+static int
+qemuDomainObjRestore(virConnectPtr conn,
+                     struct qemud_driver *driver,
+                     virDomainObjPtr vm,
+                     const char *path)
 {
     virDomainDefPtr def = NULL;
     int fd = -1;
-    pid_t read_pid = -1;
     int ret = -1;
     struct qemud_save_header header;
 
-    fd = qemudDomainSaveImageOpen(driver, path, &def, &header, &read_pid);
+    fd = qemuDomainSaveImageOpen(driver, path, &def, &header);
     if (fd < 0)
         goto cleanup;
 
@@ -3484,12 +3211,11 @@ static int qemudDomainObjRestore(virConnectPtr conn,
     virDomainObjAssignDef(vm, def, true);
     def = NULL;
 
-    ret = qemudDomainSaveImageStartVM(conn, driver, vm, &fd,
-                                      &read_pid, &header, path);
+    ret = qemuDomainSaveImageStartVM(conn, driver, vm, &fd, &header, path);
 
 cleanup:
     virDomainDefFree(def);
-    qemudDomainSaveImageClose(fd, read_pid, NULL);
+    VIR_FORCE_CLOSE(fd);
     return ret;
 }
 
@@ -3700,7 +3426,7 @@ static int qemudDomainObjStart(virConnectPtr conn,
      */
     managed_save = qemuDomainManagedSavePath(driver, vm);
     if ((managed_save) && (virFileExists(managed_save))) {
-        ret = qemudDomainObjRestore(conn, driver, vm, managed_save);
+        ret = qemuDomainObjRestore(conn, driver, vm, managed_save);
 
         if (unlink(managed_save) < 0) {
             VIR_WARN("Failed to remove the managed state %s", managed_save);
@@ -4925,6 +4651,8 @@ static int qemuSetSchedulerParameters(virDomainPtr dom,
                                      _("unable to set cpu shares tunable"));
                 goto cleanup;
             }
+
+            vm->def->cputune.shares = params[i].value.ul;
         } else {
             qemuReportError(VIR_ERR_INVALID_ARG,
                             _("Invalid parameter `%s'"), param->field);
@@ -7069,7 +6797,7 @@ qemuDomainOpenConsole(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virFDStreamOpenFile(st, chr->source.data.file.path, O_RDWR) < 0)
+    if (virFDStreamOpenFile(st, chr->source.data.file.path, 0, 0, O_RDWR) < 0)
         goto cleanup;
 
     ret = 0;
@@ -7117,7 +6845,7 @@ static virDriver qemuDriver = {
     qemuDomainGetBlkioParameters, /* domainGetBlkioParameters */
     qemudDomainGetInfo, /* domainGetInfo */
     qemudDomainSave, /* domainSave */
-    qemudDomainRestore, /* domainRestore */
+    qemuDomainRestore, /* domainRestore */
     qemudDomainCoreDump, /* domainCoreDump */
     qemudDomainSetVcpus, /* domainSetVcpus */
     qemudDomainSetVcpusFlags, /* domainSetVcpusFlags */
