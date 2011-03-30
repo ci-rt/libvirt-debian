@@ -9,7 +9,6 @@ Build-Depends: cdbs (>= 0.4.43), debhelper (>= 7), libxml2-dev, libncurses5-dev,
  libpciaccess-dev,
  module-init-tools,
  policykit-1,
- dpkg-dev (<< 1.15.3) | dpkg-dev (>> 1.15.3),
  libcap-ng-dev,
  virtualbox-ose [amd64 i386],
  libnl-dev
