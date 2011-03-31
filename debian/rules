@@ -3,17 +3,39 @@
 DEB_BUILD_PARALLEL = yes
 
 ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
-  BUILD_XEN = --with-xen
-  BUILD_VBOX = --with-vbox
+  WITH_XEN = --with-xen
+  WITH_VBOX = --with-vbox
 else
-  BUILD_XEN = --without-xen
-  BUILD_VBOX = --without-vbox
+  WITH_XEN = --without-xen
+  WITH_VBOX = --without-vbox
 endif
 
-ifneq (,$(findstring $(DEB_HOST_ARCH), ia64))
-  BUILD_LXC = --without-lxc
+ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
+  WITH_STORAGE_LVM    = --with-storage-lvm
+  WITH_STORAGE_ISCSI  = --with-storage-iscsi
+  WITH_STORAGE_DISK   =	--with-storage-disk
+  WITH_UDEV           = --with-udev --without-hal
+  WITH_CAPNG          = --with-capng
+  WITH_POLKIT         = --with-polkit
+  WITH_MACVTAP        = --with-macvtap
+  WITH_NETWORK        = --with-network
+  WITH_QEMU           = --with-qemu
+  ifneq (,$(findstring $(DEB_HOST_ARCH), ia64))
+      WITH_LXC        = --without-lxc
+  else
+      WITH_LXC        = --with-lxc
+  endif
 else
-  BUILD_LXC = --with-lxc
+  WITH_STORAGE_LVM    = --without-storage-lvm
+  WITH_STORAGE_ISCSI  = --without-storage-iscsi
+  WITH_STORAGE_DISK   =	--without-storage-disk
+  WITH_UDEV           = --without-udev --with-hal
+  WITH_CAPNG          = --without-capng
+  WITH_POLKIT         = --without-polkit
+  WITH_MACVTAP        = --without-macvtap
+  WITH_NETWORK        = --without-network
+  WITH_QEMU           = --without-qemu
+  WITH_LXC            = --without-lxc
 endif
 
 include /usr/share/cdbs/1/rules/debhelper.mk
@@ -22,30 +44,31 @@ include /usr/share/cdbs/1/class/python-distutils.mk
 
 DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--disable-rpath          \
-	--with-qemu              \
+	$(WITH_QEMU)		 \
 	--with-qemu-user=libvirt-qemu  \
 	--with-qemu-group=kvm    \
 	--with-openvz            \
 	--with-avahi             \
 	--with-sasl              \
-	--with-polkit		 \
-	--with-udev		 \
-	--without-hal		 \
+	$(WITH_POLKIT)		 \
+	$(WITH_UDEV)		 \
 	--with-storage-fs        \
-	--with-storage-lvm       \
-	--with-storage-iscsi     \
-	--with-storage-disk      \
+	$(WITH_STORAGE_LVM)	 \
+	$(WITH_STORAGE_ISCSI)	 \
+	$(WITH_STORAGE_DISK)	 \
 	--with-init-script=none  \
 	--without-numactl	 \
 	--without-selinux        \
 	--without-esx		 \
 	--without-libssh2	 \
-	--with-capng		 \
-	--with-macvtap		 \
+	$(WITH_CAPNG)		 \
 	--enable-debug		 \
-	$(BUILD_XEN)		 \
-	$(BUILD_VBOX)		 \
-	$(BUILD_LXC)
+	$(WITH_MACVTAP)		 \
+	$(WITH_NETWORK)		 \
+	--without-netcf		 \
+	$(WITH_XEN)		 \
+	$(WITH_VBOX)		 \
+	$(WITH_LXC)
 
 DEB_COMPRESS_EXCLUDE = .o event-test hellolibvirt info1 suspend
 DEB_PYTHON_SETUP_CMD = /dev/null
@@ -59,6 +82,10 @@ binary-install/libvirt-bin::
 	cp $(CURDIR)/tools/libvirt-guests.init.sh $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
 	cp $(CURDIR)/tools/libvirt-guests.sysconf $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
 	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
+
+build/libvirt-bin::
+	# Add empty dir so dh_install doesn't fail on kFreebsd until we have Polkit support
+	mkdir -p debian/tmp/usr/share/polkit-1
 
 binary-install/libvirt-doc::
 	find $(EXAMPLES_DIR) -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \;
