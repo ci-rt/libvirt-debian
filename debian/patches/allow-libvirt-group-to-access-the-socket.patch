@@ -4,7 +4,8 @@ Subject: allow libvirt group to access the socket
 
 ---
  daemon/libvirtd.conf |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+ tests/daemon-conf    |    7 ++++++-
+ 2 files changed, 10 insertions(+), 5 deletions(-)
 
 diff --git a/daemon/libvirtd.conf b/daemon/libvirtd.conf
 index 3a071b0..36dab4c 100644
@@ -46,4 +47,22 @@ index 3a071b0..36dab4c 100644
  
  # Change the authentication scheme for TCP sockets.
  #
+diff --git a/tests/daemon-conf b/tests/daemon-conf
+index f2b513d..6aa3269 100755
+--- a/tests/daemon-conf
++++ b/tests/daemon-conf
+@@ -19,7 +19,12 @@ grep '^#define WITH_QEMU 1' "$CONFIG_HEADER" > /dev/null ||
+ conf="$abs_top_srcdir/daemon/libvirtd.conf"
+ 
+ # Ensure that each commented out PARAMETER = VALUE line has the expected form.
+-grep -v '\"PARAMETER = VALUE\"' "$conf" | grep '[a-z_]  *=  *[^ ]' | grep -vE '^#[a-z_]+ = ' \
++grep -v -e '\"PARAMETER = VALUE\"' \
++     -e 'unix_sock_group = \"libvirt\"' \
++     -e 'unix_sock_rw_perms = \"0770\"' \
++     -e 'auth_unix_ro = \"none\"' \
++     -e 'auth_unix_rw = \"none\"' \
++  "$conf" | grep '[a-z_]  *=  *[^ ]' | grep -vE '^#[a-z_]+ = ' \
+   && { echo "$0: found unexpected lines (above) in $conf" 1>&2; exit 1; }
+ 
+ # Start with the sample libvirtd.conf file, uncommenting all real directives.
 -- 
