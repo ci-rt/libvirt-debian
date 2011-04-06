@@ -887,6 +887,20 @@ U
 LIBTESTS_LIBDEPS
 YIELD_LIB
 abs_aux_dir
+LOCALE_ZH_CN
+LOCALE_JA
+LOCALE_FR_UTF8
+INTL_MACOSX_LIBS
+NEXT_AS_FIRST_DIRECTIVE_LOCALE_H
+NEXT_LOCALE_H
+HAVE_XLOCALE_H
+REPLACE_DUPLOCALE
+REPLACE_SETLOCALE
+HAVE_DUPLOCALE
+GNULIB_DUPLOCALE
+GNULIB_SETLOCALE
+LOCALE_TR_UTF8
+LOCALE_FR
 gltests_WITNESS
 HAVE_WINT_T
 NEXT_AS_FIRST_DIRECTIVE_WCHAR_H
@@ -3667,7 +3681,10 @@ gl_func_list="$gl_func_list usleep"
 gl_func_list="$gl_func_list vasnprintf"
 gl_func_list="$gl_func_list getegid"
 gl_header_list="$gl_header_list grp.h"
+gl_header_list="$gl_header_list xlocale.h"
+gl_func_list="$gl_func_list newlocale"
 gl_func_list="$gl_func_list getgrouplist"
+gl_func_list="$gl_func_list setenv"
 gl_func_list="$gl_func_list symlink"
 gl_func_list="$gl_func_list shutdown"
 gl_func_list="$gl_func_list cfmakeraw"
@@ -6925,6 +6942,10 @@ fi
   # Code from module c++defs:
   # Code from module c-ctype:
   # Code from module c-ctype-tests:
+  # Code from module c-strcase:
+  # Code from module c-strcase-tests:
+  # Code from module c-strcasestr:
+  # Code from module c-strcasestr-tests:
   # Code from module canonicalize-lgpl:
   # Code from module canonicalize-lgpl-tests:
   # Code from module chown:
@@ -6988,6 +7009,10 @@ fi
   # Code from module intprops:
   # Code from module ioctl:
   # Code from module listen:
+  # Code from module locale:
+  # Code from module locale-tests:
+  # Code from module localename:
+  # Code from module localename-tests:
   # Code from module lock:
   # Code from module lock-tests:
   # Code from module lseek:
@@ -7010,6 +7035,8 @@ fi
   # Code from module netdb-tests:
   # Code from module netinet_in:
   # Code from module netinet_in-tests:
+  # Code from module nonblocking:
+  # Code from module nonblocking-tests:
   # Code from module open:
   # Code from module open-tests:
   # Code from module pathmax:
@@ -7043,6 +7070,10 @@ fi
   # Code from module select-tests:
   # Code from module send:
   # Code from module servent:
+  # Code from module setenv:
+  # Code from module setenv-tests:
+  # Code from module setlocale:
+  # Code from module setlocale-tests:
   # Code from module setsockopt:
   # Code from module sigaction:
   # Code from module sigaction-tests:
@@ -14094,6 +14125,40 @@ Configuration aborted." "$LINENO" 5
   fi
 
 
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for nl_langinfo and CODESET" >&5
+$as_echo_n "checking for nl_langinfo and CODESET... " >&6; }
+if test "${am_cv_langinfo_codeset+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <langinfo.h>
+int
+main ()
+{
+char* cs = nl_langinfo(CODESET);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  am_cv_langinfo_codeset=yes
+else
+  am_cv_langinfo_codeset=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_langinfo_codeset" >&5
+$as_echo "$am_cv_langinfo_codeset" >&6; }
+  if test $am_cv_langinfo_codeset = yes; then
+
+$as_echo "#define HAVE_LANGINFO_CODESET 1" >>confdefs.h
+
+  fi
+
+
 
 
 
@@ -14461,7 +14526,271 @@ LIBS=$ac_save_LIBS
 
 
 
+  GNULIB_SETLOCALE=0;
+  GNULIB_DUPLOCALE=0;
+    HAVE_DUPLOCALE=1;
+  REPLACE_SETLOCALE=0;
+  REPLACE_DUPLOCALE=0;
 
+
+
+
+
+
+
+
+
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for LC_MESSAGES" >&5
+$as_echo_n "checking for LC_MESSAGES... " >&6; }
+if test "${gt_cv_val_LC_MESSAGES+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <locale.h>
+int
+main ()
+{
+return LC_MESSAGES
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  gt_cv_val_LC_MESSAGES=yes
+else
+  gt_cv_val_LC_MESSAGES=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_val_LC_MESSAGES" >&5
+$as_echo "$gt_cv_val_LC_MESSAGES" >&6; }
+  if test $gt_cv_val_LC_MESSAGES = yes; then
+
+$as_echo "#define HAVE_LC_MESSAGES 1" >>confdefs.h
+
+  fi
+
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CFPreferencesCopyAppValue" >&5
+$as_echo_n "checking for CFPreferencesCopyAppValue... " >&6; }
+if test "${gt_cv_func_CFPreferencesCopyAppValue+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  gt_save_LIBS="$LIBS"
+     LIBS="$LIBS -Wl,-framework -Wl,CoreFoundation"
+     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <CoreFoundation/CFPreferences.h>
+int
+main ()
+{
+CFPreferencesCopyAppValue(NULL, NULL)
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  gt_cv_func_CFPreferencesCopyAppValue=yes
+else
+  gt_cv_func_CFPreferencesCopyAppValue=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+     LIBS="$gt_save_LIBS"
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_func_CFPreferencesCopyAppValue" >&5
+$as_echo "$gt_cv_func_CFPreferencesCopyAppValue" >&6; }
+  if test $gt_cv_func_CFPreferencesCopyAppValue = yes; then
+
+$as_echo "#define HAVE_CFPREFERENCESCOPYAPPVALUE 1" >>confdefs.h
+
+  fi
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CFLocaleCopyCurrent" >&5
+$as_echo_n "checking for CFLocaleCopyCurrent... " >&6; }
+if test "${gt_cv_func_CFLocaleCopyCurrent+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  gt_save_LIBS="$LIBS"
+     LIBS="$LIBS -Wl,-framework -Wl,CoreFoundation"
+     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <CoreFoundation/CFLocale.h>
+int
+main ()
+{
+CFLocaleCopyCurrent();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  gt_cv_func_CFLocaleCopyCurrent=yes
+else
+  gt_cv_func_CFLocaleCopyCurrent=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+     LIBS="$gt_save_LIBS"
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_func_CFLocaleCopyCurrent" >&5
+$as_echo "$gt_cv_func_CFLocaleCopyCurrent" >&6; }
+  if test $gt_cv_func_CFLocaleCopyCurrent = yes; then
+
+$as_echo "#define HAVE_CFLOCALECOPYCURRENT 1" >>confdefs.h
+
+  fi
+  INTL_MACOSX_LIBS=
+  if test $gt_cv_func_CFPreferencesCopyAppValue = yes || test $gt_cv_func_CFLocaleCopyCurrent = yes; then
+    INTL_MACOSX_LIBS="-Wl,-framework -Wl,CoreFoundation"
+  fi
+
+
+
+
+
+
+
+
+      ac_fn_c_check_decl "$LINENO" "setenv" "ac_cv_have_decl_setenv" "$ac_includes_default"
+if test "x$ac_cv_have_decl_setenv" = x""yes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_SETENV $ac_have_decl
+_ACEOF
+
+
+
+
+
+
+
+
+
+
+  :
+
+
+
+
+
+  if test $ac_cv_have_decl_setenv = no; then
+    HAVE_DECL_SETENV=0
+  fi
+
+  :
+
+
+
+
+
+  if test $ac_cv_func_setenv = no; then
+    HAVE_SETENV=0
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether setenv validates arguments" >&5
+$as_echo_n "checking whether setenv validates arguments... " >&6; }
+if test "${gl_cv_func_setenv_works+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test "$cross_compiling" = yes; then :
+  gl_cv_func_setenv_works="guessing no"
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+       #include <stdlib.h>
+       #include <errno.h>
+       #include <string.h>
+
+int
+main ()
+{
+
+       int result = 0;
+       {
+         if (setenv ("", "", 0) != -1)
+           result |= 1;
+         else if (errno != EINVAL)
+           result |= 2;
+       }
+       {
+         if (setenv ("a", "=", 1) != 0)
+           result |= 4;
+         else if (strcmp (getenv ("a"), "=") != 0)
+           result |= 8;
+       }
+       return result;
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  gl_cv_func_setenv_works=yes
+else
+  gl_cv_func_setenv_works=no
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_setenv_works" >&5
+$as_echo "$gl_cv_func_setenv_works" >&6; }
+    if test "$gl_cv_func_setenv_works" != yes; then
+      REPLACE_SETENV=1
+
+
+
+
+
+
+
+
+  gltests_LIBOBJS="$gltests_LIBOBJS setenv.$ac_objext"
+
+    fi
+  fi
+
+
+
+
+  :
+
+
+
+
+
+  for ac_header in search.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "search.h" "ac_cv_header_search_h" "$ac_includes_default"
+if test "x$ac_cv_header_search_h" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SEARCH_H 1
+_ACEOF
+
+fi
+
+done
+
+  for ac_func in tsearch
+do :
+  ac_fn_c_check_func "$LINENO" "tsearch" "ac_cv_func_tsearch"
+if test "x$ac_cv_func_tsearch" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_TSEARCH 1
+_ACEOF
+
+fi
+done
 
 
 
@@ -14674,6 +15003,8 @@ $as_echo "$gl_cv_next_arpa_inet_h" >&6; }
 
   # Code from module c++defs:
   # Code from module c-ctype:
+  # Code from module c-strcase:
+  # Code from module c-strcasestr:
   # Code from module canonicalize-lgpl:
 
 
@@ -18000,6 +18331,7 @@ $as_echo "$gl_cv_next_netinet_in_h" >&6; }
 
 
 
+  # Code from module nonblocking:
   # Code from module open:
 
 
@@ -23981,6 +24313,269 @@ $as_echo "#define GNULIB_TEST_BIND 1" >>confdefs.h
 
 
 
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for a traditional french locale" >&5
+$as_echo_n "checking for a traditional french locale... " >&6; }
+if test "${gt_cv_locale_fr+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <locale.h>
+#include <time.h>
+#if HAVE_LANGINFO_CODESET
+# include <langinfo.h>
+#endif
+#include <stdlib.h>
+#include <string.h>
+struct tm t;
+char buf[16];
+int main () {
+  /* Check whether the given locale name is recognized by the system.  */
+#if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__
+  /* On native Win32, setlocale(category, "") looks at the system settings,
+     not at the environment variables.  Also, when an encoding suffix such
+     as ".65001" or ".54936" is speficied, it succeeds but sets the LC_CTYPE
+     category of the locale to "C".  */
+  if (setlocale (LC_ALL, getenv ("LC_ALL")) == NULL
+      || strcmp (setlocale (LC_CTYPE, NULL), "C") == 0)
+    return 1;
+#else
+  if (setlocale (LC_ALL, "") == NULL) return 1;
+#endif
+  /* Check whether nl_langinfo(CODESET) is nonempty and not "ASCII" or "646".
+     On MacOS X 10.3.5 (Darwin 7.5) in the fr_FR locale, nl_langinfo(CODESET)
+     is empty, and the behaviour of Tcl 8.4 in this locale is not useful.
+     On OpenBSD 4.0, when an unsupported locale is specified, setlocale()
+     succeeds but then nl_langinfo(CODESET) is "646". In this situation,
+     some unit tests fail.
+     On MirBSD 10, when an unsupported locale is specified, setlocale()
+     succeeds but then nl_langinfo(CODESET) is "UTF-8".  */
+#if HAVE_LANGINFO_CODESET
+  {
+    const char *cs = nl_langinfo (CODESET);
+    if (cs[0] == '\0' || strcmp (cs, "ASCII") == 0 || strcmp (cs, "646") == 0
+        || strcmp (cs, "UTF-8") == 0)
+      return 1;
+  }
+#endif
+#ifdef __CYGWIN__
+  /* On Cygwin, avoid locale names without encoding suffix, because the
+     locale_charset() function relies on the encoding suffix.  Note that
+     LC_ALL is set on the command line.  */
+  if (strchr (getenv ("LC_ALL"), '.') == NULL) return 1;
+#endif
+  /* Check whether in the abbreviation of the second month, the second
+     character (should be U+00E9: LATIN SMALL LETTER E WITH ACUTE) is only
+     one byte long. This excludes the UTF-8 encoding.  */
+  t.tm_year = 1975 - 1900; t.tm_mon = 2 - 1; t.tm_mday = 4;
+  if (strftime (buf, sizeof (buf), "%b", &t) < 3 || buf[2] != 'v') return 1;
+  /* Check whether the decimal separator is a comma.
+     On NetBSD 3.0 in the fr_FR.ISO8859-1 locale, localeconv()->decimal_point
+     are nl_langinfo(RADIXCHAR) are both ".".  */
+  if (localeconv () ->decimal_point[0] != ',') return 1;
+  return 0;
+}
+
+_ACEOF
+    if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_link\""; } >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && test -s conftest$ac_exeext; then
+      case "$host_os" in
+        # Handle native Windows specially, because there setlocale() interprets
+        # "ar" as "Arabic" or "Arabic_Saudi Arabia.1256",
+        # "fr" or "fra" as "French" or "French_France.1252",
+        # "ge"(!) or "deu"(!) as "German" or "German_Germany.1252",
+        # "ja" as "Japanese" or "Japanese_Japan.932",
+        # and similar.
+        mingw*)
+          # Test for the native Win32 locale name.
+          if (LC_ALL=French_France.1252 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+            gt_cv_locale_fr=French_France.1252
+          else
+            # None found.
+            gt_cv_locale_fr=none
+          fi
+          ;;
+        *)
+          # Setting LC_ALL is not enough. Need to set LC_TIME to empty, because
+          # otherwise on MacOS X 10.3.5 the LC_TIME=C from the beginning of the
+          # configure script would override the LC_ALL setting. Likewise for
+          # LC_CTYPE, which is also set at the beginning of the configure script.
+          # Test for the usual locale name.
+          if (LC_ALL=fr_FR LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+            gt_cv_locale_fr=fr_FR
+          else
+            # Test for the locale name with explicit encoding suffix.
+            if (LC_ALL=fr_FR.ISO-8859-1 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+              gt_cv_locale_fr=fr_FR.ISO-8859-1
+            else
+              # Test for the AIX, OSF/1, FreeBSD, NetBSD, OpenBSD locale name.
+              if (LC_ALL=fr_FR.ISO8859-1 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+                gt_cv_locale_fr=fr_FR.ISO8859-1
+              else
+                # Test for the HP-UX locale name.
+                if (LC_ALL=fr_FR.iso88591 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+                  gt_cv_locale_fr=fr_FR.iso88591
+                else
+                  # Test for the Solaris 7 locale name.
+                  if (LC_ALL=fr LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+                    gt_cv_locale_fr=fr
+                  else
+                    # None found.
+                    gt_cv_locale_fr=none
+                  fi
+                fi
+              fi
+            fi
+          fi
+          ;;
+      esac
+    fi
+    rm -fr conftest*
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_locale_fr" >&5
+$as_echo "$gt_cv_locale_fr" >&6; }
+  LOCALE_FR=$gt_cv_locale_fr
+
+
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for a turkish Unicode locale" >&5
+$as_echo_n "checking for a turkish Unicode locale... " >&6; }
+if test "${gt_cv_locale_tr_utf8+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <locale.h>
+#include <time.h>
+#if HAVE_LANGINFO_CODESET
+# include <langinfo.h>
+#endif
+#include <stdlib.h>
+#include <string.h>
+struct tm t;
+char buf[16];
+int main () {
+  /* On BeOS, locales are not implemented in libc.  Rather, libintl
+     imitates locale dependent behaviour by looking at the environment
+     variables, and all locales use the UTF-8 encoding.  But BeOS does not
+     implement the Turkish upper-/lowercase mappings.  Therefore, let this
+     program return 1 on BeOS.  */
+  /* Check whether the given locale name is recognized by the system.  */
+#if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__
+  /* On native Win32, setlocale(category, "") looks at the system settings,
+     not at the environment variables.  Also, when an encoding suffix such
+     as ".65001" or ".54936" is speficied, it succeeds but sets the LC_CTYPE
+     category of the locale to "C".  */
+  if (setlocale (LC_ALL, getenv ("LC_ALL")) == NULL
+      || strcmp (setlocale (LC_CTYPE, NULL), "C") == 0)
+    return 1;
+#else
+  if (setlocale (LC_ALL, "") == NULL) return 1;
+#endif
+  /* Check whether nl_langinfo(CODESET) is nonempty and not "ASCII" or "646".
+     On MacOS X 10.3.5 (Darwin 7.5) in the tr_TR locale, nl_langinfo(CODESET)
+     is empty, and the behaviour of Tcl 8.4 in this locale is not useful.
+     On OpenBSD 4.0, when an unsupported locale is specified, setlocale()
+     succeeds but then nl_langinfo(CODESET) is "646". In this situation,
+     some unit tests fail.  */
+#if HAVE_LANGINFO_CODESET
+  {
+    const char *cs = nl_langinfo (CODESET);
+    if (cs[0] == '\0' || strcmp (cs, "ASCII") == 0 || strcmp (cs, "646") == 0)
+      return 1;
+  }
+#endif
+#ifdef __CYGWIN__
+  /* On Cygwin, avoid locale names without encoding suffix, because the
+     locale_charset() function relies on the encoding suffix.  Note that
+     LC_ALL is set on the command line.  */
+  if (strchr (getenv ("LC_ALL"), '.') == NULL) return 1;
+#endif
+  /* Check whether in the abbreviation of the eighth month, the second
+     character (should be U+011F: LATIN SMALL LETTER G WITH BREVE) is
+     two bytes long, with UTF-8 encoding.  */
+  t.tm_year = 1992 - 1900; t.tm_mon = 8 - 1; t.tm_mday = 19;
+  if (strftime (buf, sizeof (buf), "%b", &t) < 4
+      || buf[1] != (char) 0xc4 || buf[2] != (char) 0x9f)
+    return 1;
+  /* Check whether the upper-/lowercase mappings are as expected for
+     Turkish.  */
+  if (towupper ('i') != 0x0130 || towlower (0x0130) != 'i'
+      || towupper(0x0131) != 'I' || towlower ('I') != 0x0131)
+    return 1;
+  return 0;
+}
+
+_ACEOF
+    if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_link\""; } >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && test -s conftest$ac_exeext; then
+      case "$host_os" in
+        # Handle native Windows specially, because there setlocale() interprets
+        # "ar" as "Arabic" or "Arabic_Saudi Arabia.1256",
+        # "fr" or "fra" as "French" or "French_France.1252",
+        # "ge"(!) or "deu"(!) as "German" or "German_Germany.1252",
+        # "ja" as "Japanese" or "Japanese_Japan.932",
+        # and similar.
+        mingw*)
+          # Test for the hypothetical native Win32 locale name.
+          if (LC_ALL=Turkish_Turkey.65001 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+            gt_cv_locale_tr_utf8=Turkish_Turkey.65001
+          else
+            # None found.
+            gt_cv_locale_tr_utf8=none
+          fi
+          ;;
+        *)
+          # Setting LC_ALL is not enough. Need to set LC_TIME to empty, because
+          # otherwise on MacOS X 10.3.5 the LC_TIME=C from the beginning of the
+          # configure script would override the LC_ALL setting. Likewise for
+          # LC_CTYPE, which is also set at the beginning of the configure script.
+          # Test for the usual locale name.
+          if (LC_ALL=tr_TR LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+            gt_cv_locale_tr_utf8=tr_TR
+          else
+            # Test for the locale name with explicit encoding suffix.
+            if (LC_ALL=tr_TR.UTF-8 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+              gt_cv_locale_tr_utf8=tr_TR.UTF-8
+            else
+              # Test for the Solaris 7 locale name.
+              if (LC_ALL=tr.UTF-8 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+                gt_cv_locale_tr_utf8=tr.UTF-8
+              else
+                # None found.
+                gt_cv_locale_tr_utf8=none
+              fi
+            fi
+          fi
+          ;;
+      esac
+    else
+      gt_cv_locale_tr_utf8=none
+    fi
+    rm -fr conftest*
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_locale_tr_utf8" >&5
+$as_echo "$gt_cv_locale_tr_utf8" >&6; }
+  LOCALE_TR_UTF8=$gt_cv_locale_tr_utf8
+
+
+
   :
 
 
@@ -24775,6 +25370,181 @@ $as_echo "#define GNULIB_TEST_LISTEN 1" >>confdefs.h
 
 
 
+
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether locale.h conforms to POSIX:2001" >&5
+$as_echo_n "checking whether locale.h conforms to POSIX:2001... " >&6; }
+if test "${gl_cv_header_locale_h_posix2001+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <locale.h>
+            int x = LC_MESSAGES;
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gl_cv_header_locale_h_posix2001=yes
+else
+  gl_cv_header_locale_h_posix2001=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_header_locale_h_posix2001" >&5
+$as_echo "$gl_cv_header_locale_h_posix2001" >&6; }
+
+
+  :
+
+
+
+
+
+  if test $ac_cv_header_xlocale_h = yes; then
+    HAVE_XLOCALE_H=1
+                { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether locale.h defines locale_t" >&5
+$as_echo_n "checking whether locale.h defines locale_t... " >&6; }
+if test "${gl_cv_header_locale_has_locale_t+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <locale.h>
+              locale_t x;
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gl_cv_header_locale_has_locale_t=yes
+else
+  gl_cv_header_locale_has_locale_t=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_header_locale_has_locale_t" >&5
+$as_echo "$gl_cv_header_locale_has_locale_t" >&6; }
+    if test $gl_cv_header_locale_has_locale_t = yes; then
+      gl_cv_header_locale_h_needs_xlocale_h=no
+    else
+      gl_cv_header_locale_h_needs_xlocale_h=yes
+    fi
+  else
+    HAVE_XLOCALE_H=0
+    gl_cv_header_locale_h_needs_xlocale_h=no
+  fi
+
+
+
+
+
+
+
+
+
+
+     if test $gl_cv_have_include_next = yes; then
+       gl_cv_next_locale_h='<'locale.h'>'
+     else
+       { $as_echo "$as_me:${as_lineno-$LINENO}: checking absolute name of <locale.h>" >&5
+$as_echo_n "checking absolute name of <locale.h>... " >&6; }
+if test "${gl_cv_next_locale_h+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+               cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <locale.h>
+
+_ACEOF
+                                                                                                                        case "$host_os" in
+                 aix*) gl_absname_cpp="$ac_cpp -C" ;;
+                 *)    gl_absname_cpp="$ac_cpp" ;;
+               esac
+                                                            gl_cv_next_locale_h='"'`(eval "$gl_absname_cpp conftest.$ac_ext") 2>&5 |
+                  sed -n '\#/locale.h#{
+                    s#.*"\(.*/locale.h\)".*#\1#
+                    s#^/[^/]#//&#
+                    p
+                    q
+                  }'`'"'
+
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_next_locale_h" >&5
+$as_echo "$gl_cv_next_locale_h" >&6; }
+     fi
+     NEXT_LOCALE_H=$gl_cv_next_locale_h
+
+     if test $gl_cv_have_include_next = yes || test $gl_cv_have_include_next = buggy; then
+       # INCLUDE_NEXT_AS_FIRST_DIRECTIVE='include_next'
+       gl_next_as_first_directive='<'locale.h'>'
+     else
+       # INCLUDE_NEXT_AS_FIRST_DIRECTIVE='include'
+       gl_next_as_first_directive=$gl_cv_next_locale_h
+     fi
+     NEXT_AS_FIRST_DIRECTIVE_LOCALE_H=$gl_next_as_first_directive
+
+
+
+
+
+  if test -n "$STDDEF_H" \
+     || test $gl_cv_header_locale_h_posix2001 = no \
+     || test $gl_cv_header_locale_h_needs_xlocale_h = yes; then
+
+    :
+
+  fi
+
+
+
+
+  :
+
+
+
+
+
+
+
+
+  for ac_func in setlocale uselocale
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
+
+
+  :
+
+
+
+
+
+
+
+
   # Check for mmap(). Don't use AC_FUNC_MMAP, because it checks too much: it
   # fails on HP-UX 11, because MAP_FIXED mappings do not work. But this is
   # irrelevant for anonymous mappings.
@@ -25138,6 +25908,592 @@ _ACEOF
 
 
 
+
+
+
+
+  if test $HAVE_SETENV$REPLACE_SETENV != 10; then
+
+
+
+
+
+
+
+
+  gltests_LIBOBJS="$gltests_LIBOBJS setenv.$ac_objext"
+
+  fi
+
+
+
+
+  GNULIB_SETENV=$gl_module_indicator_condition
+
+
+
+$as_echo "#define GNULIB_TEST_SETENV 1" >>confdefs.h
+
+
+
+
+
+
+  case "$host_os" in
+            mingw*) REPLACE_SETLOCALE=1 ;;
+  esac
+  if test $REPLACE_SETLOCALE = 1; then
+
+    :
+
+
+
+
+
+
+
+
+
+  gltests_LIBOBJS="$gltests_LIBOBJS setlocale.$ac_objext"
+
+
+  :
+
+  fi
+
+
+
+
+  GNULIB_SETLOCALE=$gl_module_indicator_condition
+
+
+
+$as_echo "#define GNULIB_TEST_SETLOCALE 1" >>confdefs.h
+
+
+
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for a traditional french locale" >&5
+$as_echo_n "checking for a traditional french locale... " >&6; }
+if test "${gt_cv_locale_fr+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <locale.h>
+#include <time.h>
+#if HAVE_LANGINFO_CODESET
+# include <langinfo.h>
+#endif
+#include <stdlib.h>
+#include <string.h>
+struct tm t;
+char buf[16];
+int main () {
+  /* Check whether the given locale name is recognized by the system.  */
+#if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__
+  /* On native Win32, setlocale(category, "") looks at the system settings,
+     not at the environment variables.  Also, when an encoding suffix such
+     as ".65001" or ".54936" is speficied, it succeeds but sets the LC_CTYPE
+     category of the locale to "C".  */
+  if (setlocale (LC_ALL, getenv ("LC_ALL")) == NULL
+      || strcmp (setlocale (LC_CTYPE, NULL), "C") == 0)
+    return 1;
+#else
+  if (setlocale (LC_ALL, "") == NULL) return 1;
+#endif
+  /* Check whether nl_langinfo(CODESET) is nonempty and not "ASCII" or "646".
+     On MacOS X 10.3.5 (Darwin 7.5) in the fr_FR locale, nl_langinfo(CODESET)
+     is empty, and the behaviour of Tcl 8.4 in this locale is not useful.
+     On OpenBSD 4.0, when an unsupported locale is specified, setlocale()
+     succeeds but then nl_langinfo(CODESET) is "646". In this situation,
+     some unit tests fail.
+     On MirBSD 10, when an unsupported locale is specified, setlocale()
+     succeeds but then nl_langinfo(CODESET) is "UTF-8".  */
+#if HAVE_LANGINFO_CODESET
+  {
+    const char *cs = nl_langinfo (CODESET);
+    if (cs[0] == '\0' || strcmp (cs, "ASCII") == 0 || strcmp (cs, "646") == 0
+        || strcmp (cs, "UTF-8") == 0)
+      return 1;
+  }
+#endif
+#ifdef __CYGWIN__
+  /* On Cygwin, avoid locale names without encoding suffix, because the
+     locale_charset() function relies on the encoding suffix.  Note that
+     LC_ALL is set on the command line.  */
+  if (strchr (getenv ("LC_ALL"), '.') == NULL) return 1;
+#endif
+  /* Check whether in the abbreviation of the second month, the second
+     character (should be U+00E9: LATIN SMALL LETTER E WITH ACUTE) is only
+     one byte long. This excludes the UTF-8 encoding.  */
+  t.tm_year = 1975 - 1900; t.tm_mon = 2 - 1; t.tm_mday = 4;
+  if (strftime (buf, sizeof (buf), "%b", &t) < 3 || buf[2] != 'v') return 1;
+  /* Check whether the decimal separator is a comma.
+     On NetBSD 3.0 in the fr_FR.ISO8859-1 locale, localeconv()->decimal_point
+     are nl_langinfo(RADIXCHAR) are both ".".  */
+  if (localeconv () ->decimal_point[0] != ',') return 1;
+  return 0;
+}
+
+_ACEOF
+    if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_link\""; } >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && test -s conftest$ac_exeext; then
+      case "$host_os" in
+        # Handle native Windows specially, because there setlocale() interprets
+        # "ar" as "Arabic" or "Arabic_Saudi Arabia.1256",
+        # "fr" or "fra" as "French" or "French_France.1252",
+        # "ge"(!) or "deu"(!) as "German" or "German_Germany.1252",
+        # "ja" as "Japanese" or "Japanese_Japan.932",
+        # and similar.
+        mingw*)
+          # Test for the native Win32 locale name.
+          if (LC_ALL=French_France.1252 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+            gt_cv_locale_fr=French_France.1252
+          else
+            # None found.
+            gt_cv_locale_fr=none
+          fi
+          ;;
+        *)
+          # Setting LC_ALL is not enough. Need to set LC_TIME to empty, because
+          # otherwise on MacOS X 10.3.5 the LC_TIME=C from the beginning of the
+          # configure script would override the LC_ALL setting. Likewise for
+          # LC_CTYPE, which is also set at the beginning of the configure script.
+          # Test for the usual locale name.
+          if (LC_ALL=fr_FR LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+            gt_cv_locale_fr=fr_FR
+          else
+            # Test for the locale name with explicit encoding suffix.
+            if (LC_ALL=fr_FR.ISO-8859-1 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+              gt_cv_locale_fr=fr_FR.ISO-8859-1
+            else
+              # Test for the AIX, OSF/1, FreeBSD, NetBSD, OpenBSD locale name.
+              if (LC_ALL=fr_FR.ISO8859-1 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+                gt_cv_locale_fr=fr_FR.ISO8859-1
+              else
+                # Test for the HP-UX locale name.
+                if (LC_ALL=fr_FR.iso88591 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+                  gt_cv_locale_fr=fr_FR.iso88591
+                else
+                  # Test for the Solaris 7 locale name.
+                  if (LC_ALL=fr LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+                    gt_cv_locale_fr=fr
+                  else
+                    # None found.
+                    gt_cv_locale_fr=none
+                  fi
+                fi
+              fi
+            fi
+          fi
+          ;;
+      esac
+    fi
+    rm -fr conftest*
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_locale_fr" >&5
+$as_echo "$gt_cv_locale_fr" >&6; }
+  LOCALE_FR=$gt_cv_locale_fr
+
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for a french Unicode locale" >&5
+$as_echo_n "checking for a french Unicode locale... " >&6; }
+if test "${gt_cv_locale_fr_utf8+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <locale.h>
+#include <time.h>
+#if HAVE_LANGINFO_CODESET
+# include <langinfo.h>
+#endif
+#include <stdlib.h>
+#include <string.h>
+struct tm t;
+char buf[16];
+int main () {
+  /* On BeOS and Haiku, locales are not implemented in libc.  Rather, libintl
+     imitates locale dependent behaviour by looking at the environment
+     variables, and all locales use the UTF-8 encoding.  */
+#if !(defined __BEOS__ || defined __HAIKU__)
+  /* Check whether the given locale name is recognized by the system.  */
+# if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__
+  /* On native Win32, setlocale(category, "") looks at the system settings,
+     not at the environment variables.  Also, when an encoding suffix such
+     as ".65001" or ".54936" is speficied, it succeeds but sets the LC_CTYPE
+     category of the locale to "C".  */
+  if (setlocale (LC_ALL, getenv ("LC_ALL")) == NULL
+      || strcmp (setlocale (LC_CTYPE, NULL), "C") == 0)
+    return 1;
+# else
+  if (setlocale (LC_ALL, "") == NULL) return 1;
+# endif
+  /* Check whether nl_langinfo(CODESET) is nonempty and not "ASCII" or "646".
+     On MacOS X 10.3.5 (Darwin 7.5) in the fr_FR locale, nl_langinfo(CODESET)
+     is empty, and the behaviour of Tcl 8.4 in this locale is not useful.
+     On OpenBSD 4.0, when an unsupported locale is specified, setlocale()
+     succeeds but then nl_langinfo(CODESET) is "646". In this situation,
+     some unit tests fail.  */
+# if HAVE_LANGINFO_CODESET
+  {
+    const char *cs = nl_langinfo (CODESET);
+    if (cs[0] == '\0' || strcmp (cs, "ASCII") == 0 || strcmp (cs, "646") == 0)
+      return 1;
+  }
+# endif
+# ifdef __CYGWIN__
+  /* On Cygwin, avoid locale names without encoding suffix, because the
+     locale_charset() function relies on the encoding suffix.  Note that
+     LC_ALL is set on the command line.  */
+  if (strchr (getenv ("LC_ALL"), '.') == NULL) return 1;
+# endif
+  /* Check whether in the abbreviation of the second month, the second
+     character (should be U+00E9: LATIN SMALL LETTER E WITH ACUTE) is
+     two bytes long, with UTF-8 encoding.  */
+  t.tm_year = 1975 - 1900; t.tm_mon = 2 - 1; t.tm_mday = 4;
+  if (strftime (buf, sizeof (buf), "%b", &t) < 4
+      || buf[1] != (char) 0xc3 || buf[2] != (char) 0xa9 || buf[3] != 'v')
+    return 1;
+#endif
+  /* Check whether the decimal separator is a comma.
+     On NetBSD 3.0 in the fr_FR.ISO8859-1 locale, localeconv()->decimal_point
+     are nl_langinfo(RADIXCHAR) are both ".".  */
+  if (localeconv () ->decimal_point[0] != ',') return 1;
+  return 0;
+}
+
+_ACEOF
+    if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_link\""; } >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && test -s conftest$ac_exeext; then
+      case "$host_os" in
+        # Handle native Windows specially, because there setlocale() interprets
+        # "ar" as "Arabic" or "Arabic_Saudi Arabia.1256",
+        # "fr" or "fra" as "French" or "French_France.1252",
+        # "ge"(!) or "deu"(!) as "German" or "German_Germany.1252",
+        # "ja" as "Japanese" or "Japanese_Japan.932",
+        # and similar.
+        mingw*)
+          # Test for the hypothetical native Win32 locale name.
+          if (LC_ALL=French_France.65001 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+            gt_cv_locale_fr_utf8=French_France.65001
+          else
+            # None found.
+            gt_cv_locale_fr_utf8=none
+          fi
+          ;;
+        *)
+          # Setting LC_ALL is not enough. Need to set LC_TIME to empty, because
+          # otherwise on MacOS X 10.3.5 the LC_TIME=C from the beginning of the
+          # configure script would override the LC_ALL setting. Likewise for
+          # LC_CTYPE, which is also set at the beginning of the configure script.
+          # Test for the usual locale name.
+          if (LC_ALL=fr_FR LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+            gt_cv_locale_fr_utf8=fr_FR
+          else
+            # Test for the locale name with explicit encoding suffix.
+            if (LC_ALL=fr_FR.UTF-8 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+              gt_cv_locale_fr_utf8=fr_FR.UTF-8
+            else
+              # Test for the Solaris 7 locale name.
+              if (LC_ALL=fr.UTF-8 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+                gt_cv_locale_fr_utf8=fr.UTF-8
+              else
+                # None found.
+                gt_cv_locale_fr_utf8=none
+              fi
+            fi
+          fi
+          ;;
+      esac
+    fi
+    rm -fr conftest*
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_locale_fr_utf8" >&5
+$as_echo "$gt_cv_locale_fr_utf8" >&6; }
+  LOCALE_FR_UTF8=$gt_cv_locale_fr_utf8
+
+
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for a traditional japanese locale" >&5
+$as_echo_n "checking for a traditional japanese locale... " >&6; }
+if test "${gt_cv_locale_ja+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <locale.h>
+#include <time.h>
+#if HAVE_LANGINFO_CODESET
+# include <langinfo.h>
+#endif
+#include <stdlib.h>
+#include <string.h>
+struct tm t;
+char buf[16];
+int main ()
+{
+  const char *p;
+  /* Check whether the given locale name is recognized by the system.  */
+#if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__
+  /* On native Win32, setlocale(category, "") looks at the system settings,
+     not at the environment variables.  Also, when an encoding suffix such
+     as ".65001" or ".54936" is speficied, it succeeds but sets the LC_CTYPE
+     category of the locale to "C".  */
+  if (setlocale (LC_ALL, getenv ("LC_ALL")) == NULL
+      || strcmp (setlocale (LC_CTYPE, NULL), "C") == 0)
+    return 1;
+#else
+  if (setlocale (LC_ALL, "") == NULL) return 1;
+#endif
+  /* Check whether nl_langinfo(CODESET) is nonempty and not "ASCII" or "646".
+     On MacOS X 10.3.5 (Darwin 7.5) in the fr_FR locale, nl_langinfo(CODESET)
+     is empty, and the behaviour of Tcl 8.4 in this locale is not useful.
+     On OpenBSD 4.0, when an unsupported locale is specified, setlocale()
+     succeeds but then nl_langinfo(CODESET) is "646". In this situation,
+     some unit tests fail.
+     On MirBSD 10, when an unsupported locale is specified, setlocale()
+     succeeds but then nl_langinfo(CODESET) is "UTF-8".  */
+#if HAVE_LANGINFO_CODESET
+  {
+    const char *cs = nl_langinfo (CODESET);
+    if (cs[0] == '\0' || strcmp (cs, "ASCII") == 0 || strcmp (cs, "646") == 0
+        || strcmp (cs, "UTF-8") == 0)
+      return 1;
+  }
+#endif
+#ifdef __CYGWIN__
+  /* On Cygwin, avoid locale names without encoding suffix, because the
+     locale_charset() function relies on the encoding suffix.  Note that
+     LC_ALL is set on the command line.  */
+  if (strchr (getenv ("LC_ALL"), '.') == NULL) return 1;
+#endif
+  /* Check whether MB_CUR_MAX is > 1.  This excludes the dysfunctional locales
+     on Cygwin 1.5.x.  */
+  if (MB_CUR_MAX == 1)
+    return 1;
+  /* Check whether in a month name, no byte in the range 0x80..0x9F occurs.
+     This excludes the UTF-8 encoding (except on MirBSD).  */
+  t.tm_year = 1975 - 1900; t.tm_mon = 2 - 1; t.tm_mday = 4;
+  if (strftime (buf, sizeof (buf), "%B", &t) < 2) return 1;
+  for (p = buf; *p != '\0'; p++)
+    if ((unsigned char) *p >= 0x80 && (unsigned char) *p < 0xa0)
+      return 1;
+  return 0;
+}
+
+_ACEOF
+    if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_link\""; } >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && test -s conftest$ac_exeext; then
+      case "$host_os" in
+        # Handle native Windows specially, because there setlocale() interprets
+        # "ar" as "Arabic" or "Arabic_Saudi Arabia.1256",
+        # "fr" or "fra" as "French" or "French_France.1252",
+        # "ge"(!) or "deu"(!) as "German" or "German_Germany.1252",
+        # "ja" as "Japanese" or "Japanese_Japan.932",
+        # and similar.
+        mingw*)
+          # Note that on native Win32, the Japanese locale is Japanese_Japan.932,
+          # and CP932 is very different from EUC-JP, so we cannot use it here.
+          gt_cv_locale_ja=none
+          ;;
+        *)
+          # Setting LC_ALL is not enough. Need to set LC_TIME to empty, because
+          # otherwise on MacOS X 10.3.5 the LC_TIME=C from the beginning of the
+          # configure script would override the LC_ALL setting. Likewise for
+          # LC_CTYPE, which is also set at the beginning of the configure script.
+          # Test for the AIX locale name.
+          if (LC_ALL=ja_JP LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+            gt_cv_locale_ja=ja_JP
+          else
+            # Test for the locale name with explicit encoding suffix.
+            if (LC_ALL=ja_JP.EUC-JP LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+              gt_cv_locale_ja=ja_JP.EUC-JP
+            else
+              # Test for the HP-UX, OSF/1, NetBSD locale name.
+              if (LC_ALL=ja_JP.eucJP LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+                gt_cv_locale_ja=ja_JP.eucJP
+              else
+                # Test for the IRIX, FreeBSD locale name.
+                if (LC_ALL=ja_JP.EUC LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+                  gt_cv_locale_ja=ja_JP.EUC
+                else
+                  # Test for the Solaris 7 locale name.
+                  if (LC_ALL=ja LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+                    gt_cv_locale_ja=ja
+                  else
+                    # Special test for NetBSD 1.6.
+                    if test -f /usr/share/locale/ja_JP.eucJP/LC_CTYPE; then
+                      gt_cv_locale_ja=ja_JP.eucJP
+                    else
+                      # None found.
+                      gt_cv_locale_ja=none
+                    fi
+                  fi
+                fi
+              fi
+            fi
+          fi
+          ;;
+      esac
+    fi
+    rm -fr conftest*
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_locale_ja" >&5
+$as_echo "$gt_cv_locale_ja" >&6; }
+  LOCALE_JA=$gt_cv_locale_ja
+
+
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for a transitional chinese locale" >&5
+$as_echo_n "checking for a transitional chinese locale... " >&6; }
+if test "${gt_cv_locale_zh_CN+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <locale.h>
+#include <stdlib.h>
+#include <time.h>
+#if HAVE_LANGINFO_CODESET
+# include <langinfo.h>
+#endif
+#include <stdlib.h>
+#include <string.h>
+struct tm t;
+char buf[16];
+int main ()
+{
+  const char *p;
+  /* Check whether the given locale name is recognized by the system.  */
+#if (defined _WIN32 || defined __WIN32__) && !defined __CYGWIN__
+  /* On native Win32, setlocale(category, "") looks at the system settings,
+     not at the environment variables.  Also, when an encoding suffix such
+     as ".65001" or ".54936" is speficied, it succeeds but sets the LC_CTYPE
+     category of the locale to "C".  */
+  if (setlocale (LC_ALL, getenv ("LC_ALL")) == NULL
+      || strcmp (setlocale (LC_CTYPE, NULL), "C") == 0)
+    return 1;
+#else
+  if (setlocale (LC_ALL, "") == NULL) return 1;
+#endif
+  /* Check whether nl_langinfo(CODESET) is nonempty and not "ASCII" or "646".
+     On MacOS X 10.3.5 (Darwin 7.5) in the fr_FR locale, nl_langinfo(CODESET)
+     is empty, and the behaviour of Tcl 8.4 in this locale is not useful.
+     On OpenBSD 4.0, when an unsupported locale is specified, setlocale()
+     succeeds but then nl_langinfo(CODESET) is "646". In this situation,
+     some unit tests fail.
+     On MirBSD 10, when an unsupported locale is specified, setlocale()
+     succeeds but then nl_langinfo(CODESET) is "UTF-8".  */
+#if HAVE_LANGINFO_CODESET
+  {
+    const char *cs = nl_langinfo (CODESET);
+    if (cs[0] == '\0' || strcmp (cs, "ASCII") == 0 || strcmp (cs, "646") == 0
+        || strcmp (cs, "UTF-8") == 0)
+      return 1;
+  }
+#endif
+#ifdef __CYGWIN__
+  /* On Cygwin, avoid locale names without encoding suffix, because the
+     locale_charset() function relies on the encoding suffix.  Note that
+     LC_ALL is set on the command line.  */
+  if (strchr (getenv ("LC_ALL"), '.') == NULL) return 1;
+#endif
+  /* Check whether in a month name, no byte in the range 0x80..0x9F occurs.
+     This excludes the UTF-8 encoding (except on MirBSD).  */
+  t.tm_year = 1975 - 1900; t.tm_mon = 2 - 1; t.tm_mday = 4;
+  if (strftime (buf, sizeof (buf), "%B", &t) < 2) return 1;
+  for (p = buf; *p != '\0'; p++)
+    if ((unsigned char) *p >= 0x80 && (unsigned char) *p < 0xa0)
+      return 1;
+  /* Check whether a typical GB18030 multibyte sequence is recognized as a
+     single wide character.  This excludes the GB2312 and GBK encodings.  */
+  if (mblen ("\203\062\332\066", 5) != 4)
+    return 1;
+  return 0;
+}
+
+_ACEOF
+    if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_link\""; } >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; } && test -s conftest$ac_exeext; then
+      case "$host_os" in
+        # Handle native Windows specially, because there setlocale() interprets
+        # "ar" as "Arabic" or "Arabic_Saudi Arabia.1256",
+        # "fr" or "fra" as "French" or "French_France.1252",
+        # "ge"(!) or "deu"(!) as "German" or "German_Germany.1252",
+        # "ja" as "Japanese" or "Japanese_Japan.932",
+        # and similar.
+        mingw*)
+          # Test for the hypothetical native Win32 locale name.
+          if (LC_ALL=Chinese_China.54936 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+            gt_cv_locale_zh_CN=Chinese_China.54936
+          else
+            # None found.
+            gt_cv_locale_zh_CN=none
+          fi
+          ;;
+        *)
+          # Setting LC_ALL is not enough. Need to set LC_TIME to empty, because
+          # otherwise on MacOS X 10.3.5 the LC_TIME=C from the beginning of the
+          # configure script would override the LC_ALL setting. Likewise for
+          # LC_CTYPE, which is also set at the beginning of the configure script.
+          # Test for the locale name without encoding suffix.
+          if (LC_ALL=zh_CN LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+            gt_cv_locale_zh_CN=zh_CN
+          else
+            # Test for the locale name with explicit encoding suffix.
+            if (LC_ALL=zh_CN.GB18030 LC_TIME= LC_CTYPE= ./conftest; exit) 2>/dev/null; then
+              gt_cv_locale_zh_CN=zh_CN.GB18030
+            else
+              # None found.
+              gt_cv_locale_zh_CN=none
+            fi
+          fi
+          ;;
+      esac
+    else
+      # If there was a link error, due to mblen(), the system is so old that
+      # it certainly doesn't have a chinese locale.
+      gt_cv_locale_zh_CN=none
+    fi
+    rm -fr conftest*
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_locale_zh_CN" >&5
+$as_echo "$gt_cv_locale_zh_CN" >&6; }
+  LOCALE_ZH_CN=$gt_cv_locale_zh_CN
 
 
 

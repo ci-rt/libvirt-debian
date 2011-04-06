@@ -202,8 +202,7 @@
       <a name="log_daemon" id="log_daemon">Logging in the daemon</a>
     </h3>
         <p>Similarly the daemon logging behaviour can be tuned using 3 config
-    variables, stored in the configuration file:
-    </p>
+    variables, stored in the configuration file:</p>
         <ul><li>log_level: accepts the following values:
       <ul><li>4: only errors</li><li>3: warnings and errors</li><li>2: informations, warnings and errors</li><li>1: debug and everything</li></ul></li><li>log_filters: defines logging filters</li><li>log_outputs: defines logging outputs</li></ul>
         <p>When starting the libvirt daemon, any logging environment variable
@@ -236,8 +235,6 @@
     separated by spaces, e.g: <code>"3:remote 4:event"</code> to only get
     warning or errors from the remote layer and only errors from the event
     layer.</p>
-        <p>
-    </p>
         <p>If you specify a log priority in a filter that is below the default log
        priority level, messages that match that filter will still be logged,
        while others will not. In order to see those messages, you must also have

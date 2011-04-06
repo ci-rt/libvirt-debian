@@ -2294,8 +2294,16 @@ so can only be called on an active domain.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object or NULL</td></tr><tr><td><span class="term"><i><tt>memory</tt></i>:</span></td><td>the memory size in kilobytes</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetMemoryFlags"/>virDomainSetMemoryFlags ()</h3><pre class="programlisting">int	virDomainSetMemoryFlags		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory, <br/>					 unsigned int flags)<br/>
-</pre><p/>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>memory</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td/></tr></tbody></table></div></div>
+</pre><p>Dynamically change the target amount of physical memory allocated to a
+domain. If domain is NULL, then this change the amount of memory reserved
+to Domain0 i.e. the domain where the application runs.
+This funcation may requires privileged access to the hypervisor.
+
+@flags must include <a href="libvirt-libvirt.html#VIR_DOMAIN_MEM_LIVE">VIR_DOMAIN_MEM_LIVE</a> to affect a running
+domain (which may fail if domain is not active), or
+VIR_DOMAIN_MEM_CONFIG to affect the next boot via the XML
+description of the domain. Both flags may be set.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object or NULL</td></tr><tr><td><span class="term"><i><tt>memory</tt></i>:</span></td><td>the memory size in kilobytes</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainMemoryModFlags">virDomainMemoryModFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetMemoryParameters"/>virDomainSetMemoryParameters ()</h3><pre class="programlisting">int	virDomainSetMemoryParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virMemoryParameterPtr">virMemoryParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
 </pre><p>Change the memory tunables
