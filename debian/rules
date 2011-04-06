@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
 DEB_BUILD_PARALLEL = yes
+DEB_MAKE_CHECK_TARGET = check
 
 ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
   WITH_XEN = --with-xen
