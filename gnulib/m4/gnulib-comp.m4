@@ -48,6 +48,10 @@ AC_DEFUN([gl_EARLY],
   # Code from module c++defs:
   # Code from module c-ctype:
   # Code from module c-ctype-tests:
+  # Code from module c-strcase:
+  # Code from module c-strcase-tests:
+  # Code from module c-strcasestr:
+  # Code from module c-strcasestr-tests:
   # Code from module canonicalize-lgpl:
   # Code from module canonicalize-lgpl-tests:
   # Code from module chown:
@@ -111,6 +115,10 @@ AC_DEFUN([gl_EARLY],
   # Code from module intprops:
   # Code from module ioctl:
   # Code from module listen:
+  # Code from module locale:
+  # Code from module locale-tests:
+  # Code from module localename:
+  # Code from module localename-tests:
   # Code from module lock:
   # Code from module lock-tests:
   # Code from module lseek:
@@ -133,6 +141,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module netdb-tests:
   # Code from module netinet_in:
   # Code from module netinet_in-tests:
+  # Code from module nonblocking:
+  # Code from module nonblocking-tests:
   # Code from module open:
   # Code from module open-tests:
   # Code from module pathmax:
@@ -166,6 +176,10 @@ AC_DEFUN([gl_EARLY],
   # Code from module select-tests:
   # Code from module send:
   # Code from module servent:
+  # Code from module setenv:
+  # Code from module setenv-tests:
+  # Code from module setlocale:
+  # Code from module setlocale-tests:
   # Code from module setsockopt:
   # Code from module sigaction:
   # Code from module sigaction-tests:
@@ -304,6 +318,8 @@ AC_SUBST([LTALLOCA])
   gl_FUNC_BASE64
   # Code from module c++defs:
   # Code from module c-ctype:
+  # Code from module c-strcase:
+  # Code from module c-strcasestr:
   # Code from module canonicalize-lgpl:
   gl_CANONICALIZE_LGPL
   gl_MODULE_INDICATOR([canonicalize-lgpl])
@@ -433,6 +449,7 @@ AC_SUBST([LTALLOCA])
   # Code from module netinet_in:
   gl_HEADER_NETINET_IN
   AC_PROG_MKDIR_P
+  # Code from module nonblocking:
   # Code from module open:
   gl_FUNC_OPEN
   gl_FCNTL_MODULE_INDICATOR([open])
@@ -713,6 +730,8 @@ changequote([, ])dnl
     AC_LIBOBJ([bind])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([bind])
+  gt_LOCALE_FR
+  gt_LOCALE_TR_UTF8
   AC_CHECK_FUNCS_ONCE([getegid])
   gl_ENVIRON
   gl_UNISTD_MODULE_INDICATOR([environ])
@@ -734,6 +753,10 @@ changequote([, ])dnl
     AC_LIBOBJ([listen])
   fi
   gl_SYS_SOCKET_MODULE_INDICATOR([listen])
+  gl_LOCALE_H
+  AC_CHECK_FUNCS_ONCE([newlocale])
+  gl_LOCALENAME
+  AC_CHECK_FUNCS_ONCE([newlocale])
   dnl Check for prerequisites for memory fence checks.
   gl_FUNC_MMAP_ANON
   AC_CHECK_HEADERS_ONCE([sys/mman.h])
@@ -751,6 +774,14 @@ changequote([, ])dnl
   gl_FUNC_REALLOC_GNU
   gl_MODULE_INDICATOR([realloc-gnu])
   AC_CHECK_HEADERS_ONCE([sys/wait.h])
+  gl_FUNC_SETENV
+  gl_STDLIB_MODULE_INDICATOR([setenv])
+  gl_FUNC_SETLOCALE
+  gl_LOCALE_MODULE_INDICATOR([setlocale])
+  gt_LOCALE_FR
+  gt_LOCALE_FR_UTF8
+  gt_LOCALE_JA
+  gt_LOCALE_ZH_CN
   AC_CHECK_DECLS_ONCE([alarm])
   gl_STAT_TIME
   gl_STAT_BIRTHTIME
@@ -885,6 +916,11 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/basename-lgpl.c
   lib/c-ctype.c
   lib/c-ctype.h
+  lib/c-strcase.h
+  lib/c-strcasecmp.c
+  lib/c-strcasestr.c
+  lib/c-strcasestr.h
+  lib/c-strncasecmp.c
   lib/canonicalize-lgpl.c
   lib/chown.c
   lib/close-hook.c
@@ -935,6 +971,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/mktime.c
   lib/netdb.in.h
   lib/netinet_in.in.h
+  lib/nonblocking.c
+  lib/nonblocking.h
   lib/open.c
   lib/pathmax.h
   lib/perror.c
@@ -977,6 +1015,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/stdio.in.h
   lib/stdlib.in.h
   lib/stpcpy.c
+  lib/str-two-way.h
   lib/strcasecmp.c
   lib/strchrnul.c
   lib/strchrnul.valgrind
@@ -1024,6 +1063,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/canonicalize.m4
   m4/chown.m4
   m4/close.m4
+  m4/codeset.m4
   m4/configmake.m4
   m4/count-one-bits.m4
   m4/dirname.m4
@@ -1054,12 +1094,20 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/inet_ntop.m4
   m4/inet_pton.m4
   m4/inline.m4
+  m4/intlmacosx.m4
   m4/intmax_t.m4
   m4/inttypes_h.m4
   m4/ioctl.m4
+  m4/lcmessage.m4
   m4/lib-ld.m4
   m4/lib-link.m4
   m4/lib-prefix.m4
+  m4/locale-fr.m4
+  m4/locale-ja.m4
+  m4/locale-tr.m4
+  m4/locale-zh.m4
+  m4/locale_h.m4
+  m4/localename.m4
   m4/lock.m4
   m4/longlong.m4
   m4/lseek.m4
@@ -1097,6 +1145,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/select.m4
   m4/servent.m4
   m4/setenv.m4
+  m4/setlocale.m4
   m4/sigaction.m4
   m4/signal_h.m4
   m4/signalblocking.m4
@@ -1174,6 +1223,10 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-binary-io.c
   tests/test-binary-io.sh
   tests/test-c-ctype.c
+  tests/test-c-strcase.sh
+  tests/test-c-strcasecmp.c
+  tests/test-c-strcasestr.c
+  tests/test-c-strncasecmp.c
   tests/test-canonicalize-lgpl.c
   tests/test-chown.c
   tests/test-chown.h
@@ -1194,6 +1247,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-ignore-value.c
   tests/test-inet_ntop.c
   tests/test-inet_pton.c
+  tests/test-locale.c
+  tests/test-localename.c
   tests/test-lock.c
   tests/test-lseek.c
   tests/test-lseek.sh
@@ -1204,6 +1259,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-memchr.c
   tests/test-netdb.c
   tests/test-netinet_in.c
+  tests/test-nonblocking.c
   tests/test-open.c
   tests/test-open.h
   tests/test-perror.c
@@ -1222,6 +1278,11 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-select-out.sh
   tests/test-select-stdin.c
   tests/test-select.c
+  tests/test-setenv.c
+  tests/test-setlocale1.c
+  tests/test-setlocale1.sh
+  tests/test-setlocale2.c
+  tests/test-setlocale2.sh
   tests/test-sigaction.c
   tests/test-signal.c
   tests/test-sigpipe.c
@@ -1284,6 +1345,9 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/glthread/thread.h
   tests=lib/glthread/yield.h
   tests=lib/listen.c
+  tests=lib/locale.in.h
+  tests=lib/localename.c
+  tests=lib/localename.h
   tests=lib/mgetgroups.c
   tests=lib/mgetgroups.h
   tests=lib/progname.c
@@ -1291,6 +1355,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/putenv.c
   tests=lib/realloc.c
   tests=lib/same-inode.h
+  tests=lib/setenv.c
+  tests=lib/setlocale.c
   tests=lib/stat-time.h
   tests=lib/symlink.c
   tests=lib/unsetenv.c

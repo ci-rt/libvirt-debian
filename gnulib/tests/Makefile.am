@@ -180,6 +180,24 @@ EXTRA_DIST += test-c-ctype.c macros.h
 
 ## end   gnulib module c-ctype-tests
 
+## begin gnulib module c-strcase-tests
+
+TESTS += test-c-strcase.sh
+TESTS_ENVIRONMENT += LOCALE_FR='@LOCALE_FR@' LOCALE_TR_UTF8='@LOCALE_TR_UTF8@'
+check_PROGRAMS += test-c-strcasecmp test-c-strncasecmp
+EXTRA_DIST += test-c-strcase.sh test-c-strcasecmp.c test-c-strncasecmp.c macros.h
+
+## end   gnulib module c-strcase-tests
+
+## begin gnulib module c-strcasestr-tests
+
+TESTS += test-c-strcasestr
+check_PROGRAMS += test-c-strcasestr
+
+EXTRA_DIST += test-c-strcasestr.c macros.h
+
+## end   gnulib module c-strcasestr-tests
+
 ## begin gnulib module canonicalize-lgpl-tests
 
 TESTS += test-canonicalize-lgpl
@@ -387,6 +405,63 @@ EXTRA_libtests_a_SOURCES += listen.c
 
 ## end   gnulib module listen
 
+## begin gnulib module locale
+
+BUILT_SOURCES += locale.h
+
+# We need the following in order to create <locale.h> when the system
+# doesn't have one that provides all definitions.
+locale.h: locale.in.h $(CXXDEFS_H) $(ARG_NONNULL_H) $(WARN_ON_USE_H)
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */' && \
+	  sed -e 's|@''INCLUDE_NEXT''@|$(INCLUDE_NEXT)|g' \
+	      -e 's|@''PRAGMA_SYSTEM_HEADER''@|@PRAGMA_SYSTEM_HEADER@|g' \
+	      -e 's|@''PRAGMA_COLUMNS''@|@PRAGMA_COLUMNS@|g' \
+	      -e 's|@''NEXT_LOCALE_H''@|$(NEXT_LOCALE_H)|g' \
+	      -e 's|@''GNULIB_SETLOCALE''@|$(GNULIB_SETLOCALE)|g' \
+	      -e 's|@''GNULIB_DUPLOCALE''@|$(GNULIB_DUPLOCALE)|g' \
+	      -e 's|@''HAVE_DUPLOCALE''@|$(HAVE_DUPLOCALE)|g' \
+	      -e 's|@''HAVE_XLOCALE_H''@|$(HAVE_XLOCALE_H)|g' \
+	      -e 's|@''REPLACE_SETLOCALE''@|$(REPLACE_SETLOCALE)|g' \
+	      -e 's|@''REPLACE_DUPLOCALE''@|$(REPLACE_DUPLOCALE)|g' \
+	      -e '/definitions of _GL_FUNCDECL_RPL/r $(CXXDEFS_H)' \
+	      -e '/definition of _GL_ARG_NONNULL/r $(ARG_NONNULL_H)' \
+	      -e '/definition of _GL_WARN_ON_USE/r $(WARN_ON_USE_H)' \
+	      < $(srcdir)/locale.in.h; \
+	} > $@-t && \
+	mv $@-t $@
+MOSTLYCLEANFILES += locale.h locale.h-t
+
+EXTRA_DIST += locale.in.h
+
+## end   gnulib module locale
+
+## begin gnulib module locale-tests
+
+TESTS += test-locale
+check_PROGRAMS += test-locale
+EXTRA_DIST += test-locale.c
+
+## end   gnulib module locale-tests
+
+## begin gnulib module localename
+
+libtests_a_SOURCES += localename.c
+
+EXTRA_DIST += localename.h
+
+## end   gnulib module localename
+
+## begin gnulib module localename-tests
+
+TESTS += test-localename
+check_PROGRAMS += test-localename
+test_localename_LDADD = $(LDADD) @INTL_MACOSX_LIBS@
+
+EXTRA_DIST += test-localename.c macros.h
+
+## end   gnulib module localename-tests
+
 ## begin gnulib module lock-tests
 
 TESTS += test-lock
@@ -453,6 +528,15 @@ check_PROGRAMS += test-netinet_in
 EXTRA_DIST += test-netinet_in.c
 
 ## end   gnulib module netinet_in-tests
+
+## begin gnulib module nonblocking-tests
+
+TESTS += test-nonblocking
+check_PROGRAMS += test-nonblocking
+test_nonblocking_LDADD = $(LDADD) @LIBSOCKET@
+EXTRA_DIST += test-nonblocking.c macros.h
+
+## end   gnulib module nonblocking-tests
 
 ## begin gnulib module open-tests
 
@@ -577,6 +661,45 @@ test_select_stdin_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += macros.h signature.h test-select.c test-select-fd.c test-select-in.sh test-select-out.sh test-select-stdin.c
 
 ## end   gnulib module select-tests
+
+## begin gnulib module setenv
+
+
+EXTRA_DIST += setenv.c
+
+EXTRA_libtests_a_SOURCES += setenv.c
+
+## end   gnulib module setenv
+
+## begin gnulib module setenv-tests
+
+TESTS += test-setenv
+check_PROGRAMS += test-setenv
+EXTRA_DIST += test-setenv.c signature.h macros.h
+
+## end   gnulib module setenv-tests
+
+## begin gnulib module setlocale
+
+
+EXTRA_DIST += setlocale.c
+
+EXTRA_libtests_a_SOURCES += setlocale.c
+
+## end   gnulib module setlocale
+
+## begin gnulib module setlocale-tests
+
+TESTS += test-setlocale1.sh test-setlocale2.sh
+TESTS_ENVIRONMENT += \
+  LOCALE_FR='@LOCALE_FR@' \
+  LOCALE_FR_UTF8='@LOCALE_FR_UTF8@' \
+  LOCALE_JA='@LOCALE_JA@' \
+  LOCALE_ZH_CN='@LOCALE_ZH_CN@'
+check_PROGRAMS += test-setlocale1 test-setlocale2
+EXTRA_DIST += test-setlocale1.sh test-setlocale1.c test-setlocale2.sh test-setlocale2.c signature.h macros.h
+
+## end   gnulib module setlocale-tests
 
 ## begin gnulib module sigaction-tests
 

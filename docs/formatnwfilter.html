@@ -461,7 +461,7 @@
     </p>
         <ul><li>
         action -- mandatory; must either be <code>drop</code>,
-        <code>reject</code><span class="since">(since 0.8.9)</span>,
+        <code>reject</code><span class="since">(since 0.9.0)</span>,
         or <code>accept</code> if
         the evaluation of the filtering rule is supposed to drop,
         reject (using ICMP message), or accept a packet
@@ -791,8 +791,6 @@
       to the network filtering subsystem start with the prefix
       <code>nwfilter</code>. The following commands are available:
     </p>
-        <p>
-    </p>
         <ul><li>nwfilter-list : list UUIDs and names of all network filters</li><li>nwfilter-define : define a new network filter or update an existing one</li><li>nwfilter-undefine : delete a network filter given its name; it must not be currently in use</li><li>nwfilter-dumpxml : display a network filter given its name</li><li>nwfilter-edit : edit a network filter given its name</li></ul>
         <h2>
           <a name="nwfexamples" id="nwfexamples">Pre-existing network filters</a>
@@ -988,8 +986,7 @@
      The requirements for this filter are:
     </p>
         <ul><li>prevents a VM's interface from MAC, IP and ARP spoofing</li><li>opens only TCP ports 22 and 80 of a VM's interface</li><li>allows the VM to send ping traffic from an interface
-        but not let the VM be pinged on the interface</li><li>allows the VM to do DNS lookups (UDP towards port 53)</li><li>enable an ftp server (in active mode) to be run inside the VM
-    </li></ul>
+        but not let the VM be pinged on the interface</li><li>allows the VM to do DNS lookups (UDP towards port 53)</li><li>enable an ftp server (in active mode) to be run inside the VM</li></ul>
         <p>
      The additional requirement of allowing an ftp server to be run inside
      the VM maps into the requirement of allowing port 21 to be reachable

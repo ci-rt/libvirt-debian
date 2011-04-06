@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2011-03-29" "libvirt-0.8.8" "Virtualization Support"
+.TH VIRSH 1 "2011-04-01" "libvirt-0.8.8" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -667,12 +667,38 @@ of 4MB, while 266240 (260MB) is valid without rounding.
 .Sp
 Note, to change the maximum memory allocation for a \s-1QEMU/KVM\s0 guest domain,
 use the virsh \fBedit\fR command instead to update its \s-1XML\s0 <memory> element.
-.IP "\fBmemtune\fR \fIdomain-id\fR optional \fI\-\-hard\-limit\fR \fBkilobytes\fR optional \fI\-\-soft\-limit\fR \fBkilobytes\fR optional \fI\-\-swap\-hard\-limit\fR \fBkilobytes\fR \-\fI\-\-min\-guarantee\fR \fBkilobytes\fR" 4
-.IX Item "memtune domain-id optional --hard-limit kilobytes optional --soft-limit kilobytes optional --swap-hard-limit kilobytes ---min-guarantee kilobytes"
+.IP "\fBmemtune\fR \fIdomain-id\fR optional \fI\-\-hard\-limit\fR \fBkilobytes\fR optional \fI\-\-soft\-limit\fR \fBkilobytes\fR optional \fI\-\-swap\-hard\-limit\fR \fBkilobytes\fR optional \fI\-\-min\-guarantee\fR \fBkilobytes\fR" 4
+.IX Item "memtune domain-id optional --hard-limit kilobytes optional --soft-limit kilobytes optional --swap-hard-limit kilobytes optional --min-guarantee kilobytes"
 Allows you to display or set the domain memory parameters. Without
 flags, the current settings are displayed; with a flag, the
 appropriate limit is adjusted if supported by the hypervisor.  \s-1LXC\s0 and
-\&\s-1QEMU/KVM\s0 supports \fI\-\-hard\-limit\fR, \fI\-\-soft\-limit\fR, and \fI\-\-swap\-hard\-limit\fR.
+\&\s-1QEMU/KVM\s0 support \fI\-\-hard\-limit\fR, \fI\-\-soft\-limit\fR, and \fI\-\-swap\-hard\-limit\fR.
+.Sp
+For \s-1QEMU/KVM\s0, the parameters are applied to the \s-1QEMU\s0 process as a whole.
+Thus, when counting them, one needs to add up guest \s-1RAM\s0, guest video \s-1RAM\s0, and
+some memory overhead of \s-1QEMU\s0 itself.  The last piece is hard to determine so
+one needs guess and try.
+.RS 4
+.IP "\fI\-\-hard\-limit\fR" 4
+.IX Item "--hard-limit"
+The maximum memory the guest can use.  The units for this value are kilobytes
+(i.e. blocks of 1024 bytes).
+.IP "\fI\-\-soft\-limit\fR" 4
+.IX Item "--soft-limit"
+The memory limit to enforce during memory contention.  The units for this
+value are kilobytes (i.e. blocks of 1024 bytes).
+.IP "\fI\-\-swap\-hard\-limit\fR" 4
+.IX Item "--swap-hard-limit"
+The maximum memory plus swap the guest can use.  The units for this value are
+kilobytes (i.e. blocks of 1024 bytes).  This has to be more than hard-limit
+value provided.
+.IP "\fI\-\-min\-guarantee\fR" 4
+.IX Item "--min-guarantee"
+The guaranteed minimum memory allocation for the guest.  The units for this
+value are kilobytes (i.e. blocks of 1024 bytes).
+.RE
+.RS 4
+.RE
 .IP "\fBblkiotune\fR \fIdomain-id\fR optional \fI\-\-weight\fR \fBweight\fR" 4
 .IX Item "blkiotune domain-id optional --weight weight"
 Display or set the blkio parameters. \s-1QEMU/KVM\s0 supports \fI\-\-weight\fR.

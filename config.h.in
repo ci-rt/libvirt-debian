@@ -225,6 +225,12 @@
 /* Define to 1 when the gnulib module send should be tested. */
 #undef GNULIB_TEST_SEND
 
+/* Define to 1 when the gnulib module setenv should be tested. */
+#undef GNULIB_TEST_SETENV
+
+/* Define to 1 when the gnulib module setlocale should be tested. */
+#undef GNULIB_TEST_SETLOCALE
+
 /* Define to 1 when the gnulib module setsockopt should be tested. */
 #undef GNULIB_TEST_SETSOCKOPT
 
@@ -335,8 +341,16 @@
 /* whether capng is available for privilege reduction */
 #undef HAVE_CAPNG
 
+/* Define to 1 if you have the MacOS X function CFLocaleCopyCurrent in the
+   CoreFoundation framework. */
+#undef HAVE_CFLOCALECOPYCURRENT
+
 /* Define to 1 if you have the `cfmakeraw' function. */
 #undef HAVE_CFMAKERAW
+
+/* Define to 1 if you have the MacOS X function CFPreferencesCopyAppValue in
+   the CoreFoundation framework. */
+#undef HAVE_CFPREFERENCESCOPYAPPVALUE
 
 /* Define to 1 if you have the `chown' function. */
 #undef HAVE_CHOWN
@@ -430,6 +444,10 @@
 /* Define to 1 if you have the declaration of `putc_unlocked', and to 0 if you
    don't. */
 #undef HAVE_DECL_PUTC_UNLOCKED
+
+/* Define to 1 if you have the declaration of `setenv', and to 0 if you don't.
+   */
+#undef HAVE_DECL_SETENV
 
 /* Define to 1 if you have the declaration of `sleep', and to 0 if you don't.
    */
@@ -602,6 +620,12 @@
 /* Define to 1 if you have the `kill' function. */
 #undef HAVE_KILL
 
+/* Define if you have <langinfo.h> and nl_langinfo(CODESET). */
+#undef HAVE_LANGINFO_CODESET
+
+/* Define if your <locale.h> file defines LC_MESSAGES. */
+#undef HAVE_LC_MESSAGES
+
 /* Define to 1 if you have the `apparmor' library (-lapparmor). */
 #undef HAVE_LIBAPPARMOR
 
@@ -717,6 +741,9 @@
 /* Define to 1 if you have the <net/ethernet.h> header file. */
 #undef HAVE_NET_ETHERNET_H
 
+/* Define to 1 if you have the `newlocale' function. */
+#undef HAVE_NEWLOCALE
+
 /* whether numactl is available for topology info */
 #undef HAVE_NUMACTL
 
@@ -830,11 +857,20 @@
 /* Define to 1 if you have the <sched.h> header file. */
 #undef HAVE_SCHED_H
 
+/* Define to 1 if you have the <search.h> header file. */
+#undef HAVE_SEARCH_H
+
 /* whether basic SELinux functionality is available */
 #undef HAVE_SELINUX
 
 /* Define to 1 if you have the <selinux/label.h> header file. */
 #undef HAVE_SELINUX_LABEL_H
+
+/* Define to 1 if you have the `setenv' function. */
+#undef HAVE_SETENV
+
+/* Define to 1 if you have the `setlocale' function. */
+#undef HAVE_SETLOCALE
 
 /* Define to 1 if you have the `shutdown' function. */
 #undef HAVE_SHUTDOWN
@@ -1070,6 +1106,9 @@
 /* Define if struct tm has the tm_gmtoff member. */
 #undef HAVE_TM_GMTOFF
 
+/* Define to 1 if you have the `tsearch' function. */
+#undef HAVE_TSEARCH
+
 /* use UDEV for host device enumeration */
 #undef HAVE_UDEV
 
@@ -1084,6 +1123,9 @@
 
 /* Define to 1 if the system has the type `unsigned long long int'. */
 #undef HAVE_UNSIGNED_LONG_LONG_INT
+
+/* Define to 1 if you have the `uselocale' function. */
+#undef HAVE_USELOCALE
 
 /* Define to 1 if you have the `usleep' function. */
 #undef HAVE_USLEEP
@@ -1141,6 +1183,9 @@
 
 /* Define to 1 if you have the <xen/xen.h> header file. */
 #undef HAVE_XEN_XEN_H
+
+/* Define to 1 if you have the <xlocale.h> header file. */
+#undef HAVE_XLOCALE_H
 
 /* Have query_raw field in libxml2 xmlURI structure */
 #undef HAVE_XMLURI_QUERY_RAW

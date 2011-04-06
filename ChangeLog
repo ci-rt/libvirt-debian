@@ -1,3 +1,218 @@
+2011-04-04  Daniel Veillard  <veillard@redhat.com>
+
+	Release of libvirt-0.9.0
+	* configure.ac docs/news.html.in libvirt.spec.in: update for the release
+	* po/*.po*: update polish translation and regenerate
+
+2011-04-03  Wen Congyang  <wency@cn.fujitsu.com>
+
+	fix memory leak in qemuProcessHandleGraphics()
+	If strdup("x509dname") or strdup("saslUsername") success, but
+	strdup(x509dname) or strdup(saslUsername) failed, subject->nidentity
+	is not the num elements of subject->identities, and we will leak some
+	memory.
+
+	do not lock vm while allocating memory
+	There is no need to lock vm while allocating memory. If allocating
+	memory failed, we forgot to unlock vm.
+
+2011-04-02  Eric Blake  <eblake@redhat.com>
+
+	docs: fix typo
+	* docs/formatdomain.html.in: Fix KVM name.
+
+	docs: correct invalid xml
+	* docs/internals.html.in: Fix xml errors.
+	* docs/formatstorageencryption.html.in: Likewise.
+	* docs/drvesx.html.in: Likewise.
+	* docs/archnetwork.html.in: Likewise.
+	* docs/logging.html.in: Likewise.
+	* docs/drvvmware.html.in: Likewise.
+	* docs/api.html.in: Likewise.
+	* docs/formatnwfilter.html.in: Likewise.
+	* docs/formatdomain.html.in: Likewise.
+	* docs/windows.html.in: Likewise.
+
+2011-04-01  Eric Blake  <eblake@redhat.com>
+
+	virsh: fix mingw failure on creating nonblocking pipe
+	* .gnulib: Update to latest, for nonblocking module.
+	* bootstrap.conf (gnulib_modules): Add nonblocking.
+	* src/util/util.c (virSetBlocking): Defer to gnulib.
+
+2011-04-01  Daniel Veillard  <veillard@redhat.com>
+
+	Fix libxl driver startup
+	  When you happen to have a libvirtd binary compiled with the
+	libxenlight driver (say you have installed xen-4.1 libraries)
+	but not running a xen enabled system, then libvirtd fails to start.
+
+	The cause is that libxlStartup() returns -1 when failing to initialize
+	the library, and this propagates to virStateInitialize() which consider
+	this a failure. We should only exit libxlStartup with an error code
+	if something like an allocation error occurs, not if the driver failed
+	to initialize.
+
+	* src/libxl/libxl_driver.c: fix libxlStartup() to not return -1
+	  when failing to initialize the libxenlight library
+
+2011-04-01  Jiri Denemark  <jdenemar@redhat.com>
+
+	virsh: Fix documentation for memtune command
+	Commit 78ba748ef14c520ff1c4af2b5b0a44586ac49c8c claims to fix
+	documentation for swap_hard_limit virsh memtune option but it only fixes
+	documentation in formatdomain.html and libvirt.h. This patch completes
+	the task by fixing "virsh help memtune" output and memtune section of
+	virsh man page.
+
+2011-04-01  Guido Günther  <agx@sigxcpu.org>
+
+	Make check_fc_host() and check_vport_capable() usable as rvalues
+	as needed on non linux ports using HAL.
+
+2011-04-01  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Ignore libvirt debug messages in qemu log
+	qemu driver uses a 4K buffer for reading qemu log file. This is enough
+	when only qemu's output is present in the log file. However, when
+	debugging messages are turned on, intermediate libvirt process fills the
+	log with a bunch of debugging messages before it executes qemu binary.
+	In such a case the buffer may become too small. However, we are not
+	really interested in libvirt messages so they can be filtered out from
+	the buffer.
+
+2011-04-01  Osier Yang  <jyang@redhat.com>
+
+	qemu: Fix improper logic of qemuCgroupSetup
+	It throws errors as long as the cgroup controller is not available,
+	regardless of whether we really want to use it to do setup or not,
+	which is not what we want, fixing it with throwing error when need
+	to use the controller.
+
+	And change "VIR_WARN" to "qemuReportError" for memory controller
+	incidentally.
+
+2011-04-01  Wen Congyang  <wency@cn.fujitsu.com>
+
+	free tmp after unlinking it
+	We create a temporary file to save memory, and we will remove it after reading
+	memory to buffer. But we free the variable that contains the temporary filename
+	before we remove it. So we should free tmp after unlinking it.
+
+2011-04-01  Michal Privoznik  <mprivozn@redhat.com>
+
+	Fix several formatting mistakes in doc
+
+2011-04-01  Daniel P. Berrange  <berrange@redhat.com>
+
+	Remove iohelper on Win32 since it is not required
+	The iohelper binary is not required on Win32, although it compiles
+	without trouble. Simply remove it from the RPM.
+
+	* mingw32-libvirt.spec.in: Remove iohelper
+
+2011-03-31  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix domain events C example on Win32
+	printf on Win32 does not necessarily support %lld and we don't
+	have GNULIBs wrapper for printf(). Switch to use asprintf() for
+	which we do have a gnulib wrapper with %lld support
+
+	* examples/domain-events/events-c/event-test.c: Fix formatting
+	  of %lld on Win32
+	* cfg.mk: Don't require use of virAsprintf since this is an
+	  example app for out of tree users to follow
+
+2011-03-31  Eric Blake  <eblake@redhat.com>
+
+	maint: avoid locale-sensitivity in string case comparisons
+	strcase{cmp/str} have the drawback of being sensitive to the global
+	locale; this is unacceptable in a library setting.  Prefer a
+	hard-coded C locale alternative for all but virsh, which is user
+	facing and where the global locale isn't changing externally.
+
+	* .gnulib: Update to latest, for c-strcasestr change.
+	* bootstrap.conf (gnulib_modules): Drop strcasestr, add c-strcase
+	and c-strcasestr.
+	* cfg.mk (sc_avoid_strcase): New rule.
+	(exclude_file_name_regexp--sc_avoid_strcase): New exception.
+	* src/internal.h (STRCASEEQ, STRCASENEQ, STRCASEEQLEN)
+	(STRCASENEQLEN): Adjust offenders.
+	* src/qemu/qemu_monitor_text.c (qemuMonitorTextEjectMedia):
+	Likewise.
+	* tools/virsh.c (namesorter): Document exception.
+
+	docs: mention C89 syntax preferences
+	* docs/hacking.html.in (Code formatting): Document that // comment
+	and declaration-after-statement are discouraged.
+	* HACKING: Regenerate.
+
+2011-03-31  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Fix media eject with qemu-0.12.*
+	In qemu-0.12.* "device '...' is locked" message was changed to "Device
+	..." so libvirt was no longer detecting this as an error.
+
+2011-03-30  Daniel Veillard  <veillard@redhat.com>
+
+	The next release is 0.9.0 not 0.8.9
+	Fix this which went into documentation
+
+2011-03-30  Wen Congyang  <wency@cn.fujitsu.com>
+
+	check whether qemuMonitorJSONHMP() failed
+	If qemu quited unexpectedly when we call qemuMonitorJSONHMP(),
+	libvirt will crash.
+	Steps to reproduce this bug:
+	1. use gdb to attach libvirtd, and set a breakpoint in the function
+	   qemuMonitorSetCapabilities()
+	2. start a vm
+	3. let the libvirtd to run until qemuMonitorJSONSetCapabilities() returns.
+	4. kill the qemu process
+	5. continue running libvirtd
+
+	do not send monitor command after monitor meet error
+	If the monitor met a error, and we will call qemuProcessHandleMonitorEOF().
+	But we may try to send monitor command after qemuProcessHandleMonitorEOF()
+	returned. Then libvirtd will be blocked in qemuMonitorSend().
+
+	Steps to reproduce this bug:
+	1. use gdb to attach libvirtd, and set a breakpoint in the function
+	   qemuConnectMonitor()
+	2. start a vm
+	3. let the libvirtd to run until qemuMonitorOpen() returns.
+	4. kill the qemu process
+	5. continue running libvirtd
+
+2011-03-30  Hu Tao  <hutao@cn.fujitsu.com>
+
+	qemu: unlock qemu driver before return from domain save
+	qemuDriverUnlock() wasn't called on 2 exit paths
+	* src/qemu/qemu_driver.c: fix qemudDomainSave() to always unlock
+	  the driver before exiting on error
+
+2011-03-30  Naoya Horiguchi  <n-horiguchi@ah.jp.nec.com>
+
+	extend logging to record configuration-related changes
+	Currently libvirt's default logging is limited and it is difficult to
+	determine what was happening when a proglem occurred (especially on a
+	machines where one don't know the detail.)  This patch helps to do that
+	by making additional logging available for the following events:
+
+	  creating/defining/undefining domains
+	  creating/defining/undefining/starting/stopping networks
+	  creating/defining/undefining/starting/stopping storage pools
+	  creating/defining/undefining/starting/stopping storage volumes.
+
+	* AUTHORS: add Naoya Horiguchi
+	* src/network/bridge_driver.c src/qemu/qemu_driver.c
+	  src/storage/storage_driver.c: provide more VIR_INFO logging
+
+2011-03-30  Daniel Veillard  <veillard@redhat.com>
+
+	Add libvirt_iohelper to spec file
+	The new iohelper binary was missing from the packaging spec
+
 2011-03-29  Osier Yang  <jyang@redhat.com>
 
 	cputune: New tests for cputune XML
