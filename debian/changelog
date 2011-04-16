@@ -1,3 +1,15 @@
+libvirt (0.9.0-1) unstable; urgency=low
+
+  * [a91c8f6] New upstream version 0.9.0
+  * [1608a8c] Drop patch Make-macros-work-as-rvalues.patch, fixed upstream
+  * [85c3f78] Fix test failure caused by our libvirtd.conf changes
+  * [0defeee] Fix crashes due to missing initialization of the error system
+  * [0a63618] Disable daemon start test for now
+  * [1c29d34] Enable testsuite
+  * [cf3a26f] Build for Python 2.6 only
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 16 Apr 2011 15:26:34 +0200
+
 libvirt (0.9.0~rc2-2) experimental; urgency=low
 
   * [7da1fd9] New patch Make-macros-work-as-rvalues.patch fixes kFreeBSD build
