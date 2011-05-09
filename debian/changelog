@@ -1,3 +1,11 @@
+libvirt (0.9.0-1~bpo60+1) squeeze-backports; urgency=low
+
+  * Rebuild for squeeze-backports.
+  * [82758c4] Use dh_pycentral on Squeeze
+    since there's no dh_python2 yet.
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 09 May 2011 18:41:55 +0200
+
 libvirt (0.9.0-1) unstable; urgency=low
 
   * [a91c8f6] New upstream version 0.9.0
