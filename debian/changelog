@@ -1,3 +1,10 @@
+libvirt (0.9.0-2) unstable; urgency=low
+
+  * [3a8e07f] New patch Make-sure-DNSMASQ_STATE_DIR-exists.patch
+    (Closes: #623536)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 09 May 2011 17:14:02 +0200
+
 libvirt (0.9.0-1) unstable; urgency=low
 
   * [a91c8f6] New upstream version 0.9.0
