@@ -133,7 +133,7 @@ typedef IMediumAttachment IHardDiskAttachment;
 #endif /* VBOX_API_VERSION >= 3001 */
 
 #define vboxError(code, ...) \
-        virReportErrorHelper(NULL, VIR_FROM_VBOX, code, __FILE__, \
+        virReportErrorHelper(VIR_FROM_VBOX, code, __FILE__, \
                              __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #define DEBUGPRUnichar(msg, strUtf16) \
@@ -3915,7 +3915,9 @@ vboxAttachDrives(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
             PRUnichar *mediumFileUtf16 = NULL;
             PRUint32   storageBus      = StorageBus_Null;
             PRUint32   deviceType      = DeviceType_Null;
+# if VBOX_API_VERSION >= 4000
             PRUint32   accessMode      = AccessMode_ReadOnly;
+# endif
             PRInt32    deviceInst      = 0;
             PRInt32    devicePort      = 0;
             PRInt32    deviceSlot      = 0;
@@ -3924,24 +3926,27 @@ vboxAttachDrives(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 
             if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
                 deviceType = DeviceType_HardDisk;
-                accessMode = AccessMode_ReadWrite;
 # if VBOX_API_VERSION < 4000
                 data->vboxObj->vtbl->FindHardDisk(data->vboxObj,
                                                   mediumFileUtf16, &medium);
+# else
+                accessMode = AccessMode_ReadWrite;
 # endif
             } else if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
                 deviceType = DeviceType_DVD;
-                accessMode = AccessMode_ReadOnly;
 # if VBOX_API_VERSION < 4000
                 data->vboxObj->vtbl->FindDVDImage(data->vboxObj,
                                                   mediumFileUtf16, &medium);
+# else
+                accessMode = AccessMode_ReadOnly;
 # endif
             } else if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
                 deviceType = DeviceType_Floppy;
-                accessMode = AccessMode_ReadWrite;
 # if VBOX_API_VERSION < 4000
                 data->vboxObj->vtbl->FindFloppyImage(data->vboxObj,
                                                      mediumFileUtf16, &medium);
+# else
+                accessMode = AccessMode_ReadWrite;
 # endif
             } else {
                 VBOX_UTF16_FREE(mediumFileUtf16);
@@ -7186,12 +7191,15 @@ static virNetworkPtr vboxNetworkDefineCreateXML(virConnectPtr conn, const char *
         }
     }
 #else /* VBOX_API_VERSION != 2002 */
-    IProgress *progress = NULL;
-    host->vtbl->CreateHostOnlyNetworkInterface(host, &networkInterface, &progress);
+    {
+        IProgress *progress = NULL;
+        host->vtbl->CreateHostOnlyNetworkInterface(host, &networkInterface,
+                                                   &progress);
 
-    if (progress) {
-        progress->vtbl->WaitForCompletion(progress, -1);
-        VBOX_RELEASE(progress);
+        if (progress) {
+            progress->vtbl->WaitForCompletion(progress, -1);
+            VBOX_RELEASE(progress);
+        }
     }
 #endif /* VBOX_API_VERSION != 2002 */
 
@@ -7342,6 +7350,8 @@ static virNetworkPtr vboxNetworkDefineXML(virConnectPtr conn, const char *xml) {
 static int vboxNetworkUndefineDestroy(virNetworkPtr network, bool removeinterface) {
     VBOX_OBJECT_HOST_CHECK(network->conn, int, -1);
     char *networkNameUtf8 = NULL;
+    PRUnichar *networkInterfaceNameUtf16    = NULL;
+    IHostNetworkInterface *networkInterface = NULL;
 
     /* Current limitation of the function for VirtualBox 2.2.* is
      * that you can't delete the default hostonly adaptor namely:
@@ -7355,9 +7365,6 @@ static int vboxNetworkUndefineDestroy(virNetworkPtr network, bool removeinterfac
         virReportOOMError();
         goto cleanup;
     }
-
-    PRUnichar *networkInterfaceNameUtf16    = NULL;
-    IHostNetworkInterface *networkInterface = NULL;
 
     VBOX_UTF8_TO_UTF16(network->name, &networkInterfaceNameUtf16);
 
@@ -7433,6 +7440,8 @@ static int vboxNetworkUndefine(virNetworkPtr network) {
 static int vboxNetworkCreate(virNetworkPtr network) {
     VBOX_OBJECT_HOST_CHECK(network->conn, int, -1);
     char *networkNameUtf8 = NULL;
+    PRUnichar *networkInterfaceNameUtf16    = NULL;
+    IHostNetworkInterface *networkInterface = NULL;
 
     /* Current limitation of the function for VirtualBox 2.2.* is
      * that the default hostonly network "vboxnet0" is always active
@@ -7445,9 +7454,6 @@ static int vboxNetworkCreate(virNetworkPtr network) {
         virReportOOMError();
         goto cleanup;
     }
-
-    PRUnichar *networkInterfaceNameUtf16    = NULL;
-    IHostNetworkInterface *networkInterface = NULL;
 
     VBOX_UTF8_TO_UTF16(network->name, &networkInterfaceNameUtf16);
 
@@ -7509,6 +7515,8 @@ static char *vboxNetworkDumpXML(virNetworkPtr network, int flags ATTRIBUTE_UNUSE
     virNetworkDefPtr def  = NULL;
     virNetworkIpDefPtr ipdef = NULL;
     char *networkNameUtf8 = NULL;
+    PRUnichar *networkInterfaceNameUtf16    = NULL;
+    IHostNetworkInterface *networkInterface = NULL;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -7525,9 +7533,6 @@ static char *vboxNetworkDumpXML(virNetworkPtr network, int flags ATTRIBUTE_UNUSE
         virReportOOMError();
         goto cleanup;
     }
-
-    PRUnichar *networkInterfaceNameUtf16    = NULL;
-    IHostNetworkInterface *networkInterface = NULL;
 
     VBOX_UTF8_TO_UTF16(network->name, &networkInterfaceNameUtf16);
 

@@ -271,3 +271,16 @@
           case esxVI_Type_VmfsDatastoreInfo:
             return "VmfsDatastoreInfo";
 
+
+          case esxVI_Type_ComputeResource:
+            return "ComputeResource";
+
+          case esxVI_Type_Datacenter:
+            return "Datacenter";
+
+          case esxVI_Type_HostSystem:
+            return "HostSystem";
+
+          case esxVI_Type_ManagedEntity:
+            return "ManagedEntity";
+

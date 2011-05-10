@@ -469,37 +469,37 @@ DllMain (HINSTANCE instance ATTRIBUTE_UNUSED,
 #endif
 
 #define virLibConnError(code, ...)                                \
-    virReportErrorHelper(NULL, VIR_FROM_NONE, code, __FILE__,     \
+    virReportErrorHelper(VIR_FROM_NONE, code, __FILE__,           \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 #define virLibDomainError(code, ...)                              \
-    virReportErrorHelper(NULL, VIR_FROM_DOM, code, __FILE__,      \
+    virReportErrorHelper(VIR_FROM_DOM, code, __FILE__,            \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 #define virLibNetworkError(code, ...)                             \
-    virReportErrorHelper(NULL, VIR_FROM_NETWORK, code, __FILE__,  \
+    virReportErrorHelper(VIR_FROM_NETWORK, code, __FILE__,        \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 #define virLibStoragePoolError(code, ...)                         \
-    virReportErrorHelper(NULL, VIR_FROM_STORAGE, code, __FILE__,  \
+    virReportErrorHelper(VIR_FROM_STORAGE, code, __FILE__,        \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 #define virLibStorageVolError(code, ...)                          \
-    virReportErrorHelper(NULL, VIR_FROM_STORAGE, code, __FILE__,  \
+    virReportErrorHelper(VIR_FROM_STORAGE, code, __FILE__,        \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 #define virLibInterfaceError(code, ...)                           \
-    virReportErrorHelper(NULL, VIR_FROM_INTERFACE, code, __FILE__,\
+    virReportErrorHelper(VIR_FROM_INTERFACE, code, __FILE__,      \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 #define virLibNodeDeviceError(code, ...)                          \
-    virReportErrorHelper(NULL, VIR_FROM_NODEDEV, code, __FILE__,  \
+    virReportErrorHelper(VIR_FROM_NODEDEV, code, __FILE__,        \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 #define virLibSecretError(code, ...)                              \
-    virReportErrorHelper(NULL, VIR_FROM_SECRET, code, __FILE__,   \
+    virReportErrorHelper(VIR_FROM_SECRET, code, __FILE__,         \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 #define virLibStreamError(code, ...)                              \
-    virReportErrorHelper(NULL, VIR_FROM_STREAMS, code, __FILE__,  \
+    virReportErrorHelper(VIR_FROM_STREAMS, code, __FILE__,        \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 #define virLibNWFilterError(code, ...)                            \
-    virReportErrorHelper(NULL, VIR_FROM_NWFILTER, code, __FILE__, \
+    virReportErrorHelper(VIR_FROM_NWFILTER, code, __FILE__,       \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
-#define virLibDomainSnapshotError(code, ...)                            \
-    virReportErrorHelper(NULL, VIR_FROM_DOMAIN_SNAPSHOT, code, __FILE__, \
+#define virLibDomainSnapshotError(code, ...)                       \
+    virReportErrorHelper(VIR_FROM_DOMAIN_SNAPSHOT, code, __FILE__, \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
@@ -1056,7 +1056,7 @@ do_open (const char *name,
              STRCASEEQ(ret->uri->scheme, "xenapi") ||
 #endif
              false)) {
-            virReportErrorHelper(NULL, VIR_FROM_NONE, VIR_ERR_INVALID_ARG,
+            virReportErrorHelper(VIR_FROM_NONE, VIR_ERR_INVALID_ARG,
                                  __FILE__, __FUNCTION__, __LINE__,
                                  _("libvirt was built without the '%s' driver"),
                                  ret->uri->scheme);
@@ -2238,7 +2238,6 @@ error:
 int
 virDomainSave(virDomainPtr domain, const char *to)
 {
-    char filepath[4096];
     virConnectPtr conn;
 
     VIR_DOMAIN_DEBUG(domain, "to=%s", to);
@@ -2260,29 +2259,21 @@ virDomainSave(virDomainPtr domain, const char *to)
         goto error;
     }
 
-    /*
-     * We must absolutize the file path as the save is done out of process
-     * TODO: check for URI when libxml2 is linked in.
-     */
-    if (to[0] != '/') {
-        unsigned int len, t;
-
-        t = strlen(to);
-        if (getcwd(filepath, sizeof(filepath) - (t + 3)) == NULL)
-            return -1;
-        len = strlen(filepath);
-        /* that should be covered by getcwd() semantic, but be 100% sure */
-        if (len > sizeof(filepath) - (t + 3))
-            return -1;
-        filepath[len] = '/';
-        strcpy(&filepath[len + 1], to);
-        to = &filepath[0];
-
-    }
-
     if (conn->driver->domainSave) {
         int ret;
-        ret = conn->driver->domainSave (domain, to);
+        char *absolute_to;
+
+        /* We must absolutize the file path as the save is done out of process */
+        if (virFileAbsPath(to, &absolute_to) < 0) {
+            virLibConnError(VIR_ERR_INTERNAL_ERROR,
+                            _("could not build absolute output file path"));
+            goto error;
+        }
+
+        ret = conn->driver->domainSave(domain, absolute_to);
+
+        VIR_FREE(absolute_to);
+
         if (ret < 0)
             goto error;
         return ret;
@@ -2298,7 +2289,7 @@ error:
 /**
  * virDomainRestore:
  * @conn: pointer to the hypervisor connection
- * @from: path to the
+ * @from: path to the input file
  *
  * This method will restore a domain saved to disk by virDomainSave().
  *
@@ -2307,7 +2298,6 @@ error:
 int
 virDomainRestore(virConnectPtr conn, const char *from)
 {
-    char filepath[4096];
     VIR_DEBUG("conn=%p, from=%s", conn, from);
 
     virResetLastError();
@@ -2326,34 +2316,21 @@ virDomainRestore(virConnectPtr conn, const char *from)
         goto error;
     }
 
-    /*
-     * We must absolutize the file path as the restore is done out of process
-     * TODO: check for URI when libxml2 is linked in.
-     */
-    if (from[0] != '/') {
-        unsigned int len, t;
-
-        t = strlen(from);
-        if (getcwd(filepath, sizeof(filepath) - (t + 3)) == NULL) {
-            virLibConnError(VIR_ERR_SYSTEM_ERROR,
-                            _("cannot get working directory"));
-            goto error;
-        }
-        len = strlen(filepath);
-        /* that should be covered by getcwd() semantic, but be 100% sure */
-        if (len > sizeof(filepath) - (t + 3)) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR,
-                            _("path too long"));
-            goto error;
-        }
-        filepath[len] = '/';
-        strcpy(&filepath[len + 1], from);
-        from = &filepath[0];
-    }
-
     if (conn->driver->domainRestore) {
         int ret;
-        ret = conn->driver->domainRestore (conn, from);
+        char *absolute_from;
+
+        /* We must absolutize the file path as the restore is done out of process */
+        if (virFileAbsPath(from, &absolute_from) < 0) {
+            virLibConnError(VIR_ERR_INTERNAL_ERROR,
+                            _("could not build absolute input file path"));
+            goto error;
+        }
+
+        ret = conn->driver->domainRestore(conn, absolute_from);
+
+        VIR_FREE(absolute_from);
+
         if (ret < 0)
             goto error;
         return ret;
@@ -2370,7 +2347,7 @@ error:
  * virDomainCoreDump:
  * @domain: a domain object
  * @to: path for the core file
- * @flags: extra flags, currently unused
+ * @flags: an OR'ed set of virDomainCoreDumpFlags
  *
  * This method will dump the core of a domain on a given file for analysis.
  * Note that for remote Xen Daemon the file path will be interpreted in
@@ -2381,7 +2358,6 @@ error:
 int
 virDomainCoreDump(virDomainPtr domain, const char *to, int flags)
 {
-    char filepath[4096];
     virConnectPtr conn;
 
     VIR_DOMAIN_DEBUG(domain, "to=%s, flags=%d", to, flags);
@@ -2403,35 +2379,27 @@ virDomainCoreDump(virDomainPtr domain, const char *to, int flags)
         goto error;
     }
 
-    /*
-     * We must absolutize the file path as the save is done out of process
-     * TODO: check for URI when libxml2 is linked in.
-     */
-    if (to[0] != '/') {
-        unsigned int len, t;
-
-        t = strlen(to);
-        if (getcwd(filepath, sizeof(filepath) - (t + 3)) == NULL) {
-            virLibDomainError(VIR_ERR_SYSTEM_ERROR,
-                              _("cannot get current directory"));
-            goto error;
-        }
-        len = strlen(filepath);
-        /* that should be covered by getcwd() semantic, but be 100% sure */
-        if (len > sizeof(filepath) - (t + 3)) {
-            virLibDomainError(VIR_ERR_INTERNAL_ERROR,
-                              _("path too long"));
-            goto error;
-        }
-        filepath[len] = '/';
-        strcpy(&filepath[len + 1], to);
-        to = &filepath[0];
-
+    if ((flags & VIR_DUMP_CRASH) && (flags & VIR_DUMP_LIVE)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("crash and live flags are mutually exclusive"));
+        goto error;
     }
 
     if (conn->driver->domainCoreDump) {
         int ret;
-        ret = conn->driver->domainCoreDump (domain, to, flags);
+        char *absolute_to;
+
+        /* We must absolutize the file path as the save is done out of process */
+        if (virFileAbsPath(to, &absolute_to) < 0) {
+            virLibConnError(VIR_ERR_INTERNAL_ERROR,
+                            _("could not build absolute core file path"));
+            goto error;
+        }
+
+        ret = conn->driver->domainCoreDump(domain, absolute_to, flags);
+
+        VIR_FREE(absolute_to);
+
         if (ret < 0)
             goto error;
         return ret;
@@ -2752,8 +2720,9 @@ error:
  * to Domain0 i.e. the domain where the application runs.
  * This function requires privileged access to the hypervisor.
  *
- * This command only changes the runtime configuration of the domain,
- * so can only be called on an active domain.
+ * This command is hypervisor-specific for whether active, persistent,
+ * or both configurations are changed; for more control, use
+ * virDomainSetMemoryFlags().
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -2775,7 +2744,7 @@ virDomainSetMaxMemory(virDomainPtr domain, unsigned long memory)
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (memory < 4096) {
+    if (!memory) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
@@ -2829,7 +2798,7 @@ virDomainSetMemory(virDomainPtr domain, unsigned long memory)
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (memory < 4096) {
+    if (!memory) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
@@ -2860,12 +2829,19 @@ error:
  * Dynamically change the target amount of physical memory allocated to a
  * domain. If domain is NULL, then this change the amount of memory reserved
  * to Domain0 i.e. the domain where the application runs.
- * This funcation may requires privileged access to the hypervisor.
+ * This function may requires privileged access to the hypervisor.
  *
- * @flags must include VIR_DOMAIN_MEM_LIVE to affect a running
- * domain (which may fail if domain is not active), or
- * VIR_DOMAIN_MEM_CONFIG to affect the next boot via the XML
- * description of the domain. Both flags may be set.
+ * @flags may include VIR_DOMAIN_MEM_LIVE or VIR_DOMAIN_MEM_CONFIG.
+ * Both flags may be set. If VIR_DOMAIN_MEM_LIVE is set, the change affects
+ * a running domain and will fail if domain is not active.
+ * If VIR_DOMAIN_MEM_CONFIG is set, the change affects persistent state,
+ * and will fail for transient domains. If neither flag is specified
+ * (that is, @flags is VIR_DOMAIN_MEM_CURRENT), then an inactive domain
+ * modifies persistent setup, while an active domain is hypervisor-dependent
+ * on whether just live or both live and persistent state is changed.
+ * If VIR_DOMAIN_MEM_MAXIMUM is set, the change affects domain's maximum memory
+ * size rather than current memory size.
+ * Not all hypervisors can support all flag combinations.
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
@@ -2891,8 +2867,7 @@ virDomainSetMemoryFlags(virDomainPtr domain, unsigned long memory,
         goto error;
     }
 
-    if (memory < 4096 ||
-        (flags & (VIR_DOMAIN_MEM_LIVE | VIR_DOMAIN_MEM_CONFIG)) == 0) {
+    if (!memory) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
@@ -10135,8 +10110,8 @@ error:
  *
  * The virDomainPtr object handle passed into the callback upon delivery
  * of an event is only valid for the duration of execution of the callback.
- * If the callback wishes to keep the domain object after the callback
- * returns, it shall take a reference to it, by calling virDomainRef.
+ * If the callback wishes to keep the domain object after the callback returns,
+ * it shall take a reference to it, by calling virDomainRef.
  * The reference can be released once the object is no longer required
  * by calling virDomainFree.
  *
@@ -12765,8 +12740,8 @@ error:
  *
  * The virDomainPtr object handle passed into the callback upon delivery
  * of an event is only valid for the duration of execution of the callback.
- * If the callback wishes to keep the domain object after the callback
- * returns, it shall take a reference to it, by calling virDomainRef.
+ * If the callback wishes to keep the domain object after the callback returns,
+ * it shall take a reference to it, by calling virDomainRef.
  * The reference can be released once the object is no longer required
  * by calling virDomainFree.
  *

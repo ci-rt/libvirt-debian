@@ -32,6 +32,12 @@ int a[] = { SHUT_RD, SHUT_WR, SHUT_RDWR };
 /* Check that the 'socklen_t' type is defined.  */
 socklen_t t1;
 
+/* Check that 'struct iovec' is defined.  */
+struct iovec io;
+
+/* Check that a minimal set of 'struct msghdr' is defined.  */
+struct msghdr msg;
+
 int
 main (void)
 {
@@ -53,10 +59,8 @@ main (void)
 
   x.ss_family = 42;
   i = 42;
+  msg.msg_iov = &io;
 
-  /* Tell the compiler that these variables are used.  */
-  (void) x;
-  (void) i;
-
-  return 0;
+  return (x.ss_family - i + msg.msg_namelen + msg.msg_iov->iov_len
+          + msg.msg_iovlen);
 }

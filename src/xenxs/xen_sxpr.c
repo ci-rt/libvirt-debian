@@ -168,10 +168,8 @@ xenParseSxprChar(const char *value,
     char *tmp;
     virDomainChrDefPtr def;
 
-    if (VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+    if (!(def = virDomainChrDefNew()))
         return NULL;
-    }
 
     prefix = value;
 
@@ -512,7 +510,6 @@ xenParseSxprNets(virDomainDefPtr def,
         node = cur->u.s.car;
         if (sexpr_lookup(node, "device/vif")) {
             const char *tmp2, *model, *type;
-            char buf[50];
             tmp2 = sexpr_node(node, "device/vif/script");
             tmp = sexpr_node(node, "device/vif/bridge");
             model = sexpr_node(node, "device/vif/model");
@@ -549,12 +546,16 @@ xenParseSxprNets(virDomainDefPtr def,
             }
 
             tmp = sexpr_node(node, "device/vif/vifname");
-            if (!tmp) {
-                snprintf(buf, sizeof(buf), "vif%d.%d", def->id, vif_index);
-                tmp = buf;
+            /* If vifname is specified in xend config, include it in net
+             * definition regardless of domain state.  If vifname is not
+             * specified, only generate one if domain is active (id != -1). */
+            if (tmp) {
+                if (!(net->ifname = strdup(tmp)))
+                    goto no_memory;
+            } else if (def->id != -1) {
+                if (virAsprintf(&net->ifname, "vif%d.%d", def->id, vif_index) < 0)
+                    goto no_memory;
             }
-            if (!(net->ifname = strdup(tmp)))
-                goto no_memory;
 
             tmp = sexpr_node(node, "device/vif/mac");
             if (tmp) {
@@ -1328,6 +1329,7 @@ xenParseSxpr(const struct sexpr *root,
                     goto no_memory;
                 }
                 chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
+                chr->target.port = 0;
                 def->serials[def->nserials++] = chr;
             }
         }
@@ -1343,6 +1345,7 @@ xenParseSxpr(const struct sexpr *root,
                 goto no_memory;
             }
             chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL;
+            chr->target.port = 0;
             def->parallels[def->nparallels++] = chr;
         }
     } else {
@@ -1350,6 +1353,7 @@ xenParseSxpr(const struct sexpr *root,
         if (!(def->console = xenParseSxprChar("pty", tty)))
             goto error;
         def->console->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE;
+        def->console->target.port = 0;
         def->console->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
     }
     VIR_FREE(tty);
@@ -1513,7 +1517,7 @@ xenFormatSxprChr(virDomainChrDefPtr def,
     case VIR_DOMAIN_CHR_TYPE_STDIO:
     case VIR_DOMAIN_CHR_TYPE_VC:
     case VIR_DOMAIN_CHR_TYPE_PTY:
-        virBufferVSprintf(buf, "%s", type);
+        virBufferAdd(buf, type, -1);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_FILE:

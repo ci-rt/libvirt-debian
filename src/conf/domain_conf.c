@@ -322,6 +322,36 @@ VIR_ENUM_IMPL(virDomainGraphicsSpiceChannelMode,
               "secure",
               "insecure");
 
+VIR_ENUM_IMPL(virDomainGraphicsSpiceImageCompression,
+              VIR_DOMAIN_GRAPHICS_SPICE_IMAGE_COMPRESSION_LAST,
+              "default",
+              "auto_glz",
+              "auto_lz",
+              "quic",
+              "glz",
+              "lz",
+              "off");
+
+VIR_ENUM_IMPL(virDomainGraphicsSpiceJpegCompression,
+              VIR_DOMAIN_GRAPHICS_SPICE_JPEG_COMPRESSION_LAST,
+              "default",
+              "auto",
+              "never",
+              "always");
+
+VIR_ENUM_IMPL(virDomainGraphicsSpiceZlibCompression,
+              VIR_DOMAIN_GRAPHICS_SPICE_ZLIB_COMPRESSION_LAST,
+              "default",
+              "auto",
+              "never",
+              "always");
+
+VIR_ENUM_IMPL(virDomainGraphicsSpicePlaybackCompression,
+              VIR_DOMAIN_GRAPHICS_SPICE_PLAYBACK_COMPRESSION_LAST,
+              "default",
+              "on",
+              "off");
+
 VIR_ENUM_IMPL(virDomainHostdevMode, VIR_DOMAIN_HOSTDEV_MODE_LAST,
               "subsystem",
               "capabilities")
@@ -385,7 +415,7 @@ VIR_ENUM_IMPL(virDomainTimerMode, VIR_DOMAIN_TIMER_MODE_LAST,
               "smpsafe");
 
 #define virDomainReportError(code, ...)                              \
-    virReportErrorHelper(NULL, VIR_FROM_DOMAIN, code, __FILE__,      \
+    virReportErrorHelper(VIR_FROM_DOMAIN, code, __FILE__,            \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #define VIR_DOMAIN_XML_WRITE_FLAGS  VIR_DOMAIN_XML_SECURE
@@ -858,6 +888,7 @@ virDomainVcpupinDefFree(virDomainVcpupinDefPtr *def,
         return;
 
     for(i = 0; i < nvcpupin; i++) {
+        VIR_FREE(def[i]->cpumask);
         VIR_FREE(def[i]);
     }
 
@@ -2810,7 +2841,6 @@ virDomainNetDefParseXML(virCapsPtr caps,
         case VIR_DOMAIN_NET_TYPE_ETHERNET:
         case VIR_DOMAIN_NET_TYPE_NETWORK:
         case VIR_DOMAIN_NET_TYPE_BRIDGE:
-        case VIR_DOMAIN_NET_TYPE_DIRECT:
             def->filter = filter;
             filter = NULL;
             def->filterparams = filterparams;
@@ -3212,6 +3242,22 @@ error:
     goto cleanup;
 }
 
+/* Create a new character device definition and set
+ * default port.
+ */
+virDomainChrDefPtr
+virDomainChrDefNew(void) {
+    virDomainChrDefPtr def = NULL;
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    def->target.port = -1;
+    return def;
+}
+
 /* Parse the XML definition for a character device
  * @param node XML nodeset to parse for net definition
  *
@@ -3260,10 +3306,8 @@ virDomainChrDefParseXML(virCapsPtr caps,
     virDomainChrDefPtr def;
     int remaining;
 
-    if (VIR_ALLOC(def) < 0) {
-        virReportOOMError();
+    if (!(def = virDomainChrDefNew()))
         return NULL;
-    }
 
     type = virXMLPropString(node, "type");
     if (type == NULL) {
@@ -3557,6 +3601,8 @@ virDomainTimerDefParseXML(const xmlNodePtr node,
 
     virDomainTimerDefPtr def;
     xmlNodePtr oldnode = ctxt->node;
+    xmlNodePtr catchup;
+    int ret;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -3610,7 +3656,7 @@ virDomainTimerDefParseXML(const xmlNodePtr node,
         }
     }
 
-    int ret = virXPathULong("string(./frequency)", ctxt, &def->frequency);
+    ret = virXPathULong("string(./frequency)", ctxt, &def->frequency);
     if (ret == -1) {
         def->frequency = 0;
     } else if (ret < 0) {
@@ -3629,7 +3675,7 @@ virDomainTimerDefParseXML(const xmlNodePtr node,
         }
     }
 
-    xmlNodePtr catchup = virXPathNode("./catchup", ctxt);
+    catchup = virXPathNode("./catchup", ctxt);
     if (catchup != NULL) {
         ret = virXPathULong("string(./catchup/@threshold)", ctxt,
                             &def->catchup.threshold);
@@ -3952,6 +3998,90 @@ virDomainGraphicsDefParseXML(xmlNodePtr node, int flags) {
                     VIR_FREE(mode);
 
                     def->data.spice.channels[nameval] = modeval;
+                } else if (xmlStrEqual(cur->name, BAD_CAST "image")) {
+                    const char *compression = virXMLPropString(cur, "compression");
+                    int compressionVal;
+
+                    if (!compression) {
+                        virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                             _("spice image missing compression"));
+                        goto error;
+                    }
+
+                    if ((compressionVal =
+                         virDomainGraphicsSpiceImageCompressionTypeFromString(compression)) <= 0) {
+                        virDomainReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                             _("unknown spice image compression %s"),
+                                             compression);
+                        VIR_FREE(compression);
+                        goto error;
+                    }
+                    VIR_FREE(compression);
+
+                    def->data.spice.image = compressionVal;
+                } else if (xmlStrEqual(cur->name, BAD_CAST "jpeg")) {
+                    const char *compression = virXMLPropString(cur, "compression");
+                    int compressionVal;
+
+                    if (!compression) {
+                        virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                             _("spice jpeg missing compression"));
+                        goto error;
+                    }
+
+                    if ((compressionVal =
+                         virDomainGraphicsSpiceJpegCompressionTypeFromString(compression)) <= 0) {
+                        virDomainReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                             _("unknown spice jpeg compression %s"),
+                                             compression);
+                        VIR_FREE(compression);
+                        goto error;
+                    }
+                    VIR_FREE(compression);
+
+                    def->data.spice.jpeg = compressionVal;
+                } else if (xmlStrEqual(cur->name, BAD_CAST "zlib")) {
+                    const char *compression = virXMLPropString(cur, "compression");
+                    int compressionVal;
+
+                    if (!compression) {
+                        virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                             _("spice zlib missing compression"));
+                        goto error;
+                    }
+
+                    if ((compressionVal =
+                         virDomainGraphicsSpiceZlibCompressionTypeFromString(compression)) <= 0) {
+                        virDomainReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                             _("unknown spice zlib compression %s"),
+                                             compression);
+                        VIR_FREE(compression);
+                        goto error;
+                    }
+                    VIR_FREE(compression);
+
+                    def->data.spice.zlib = compressionVal;
+                } else if (xmlStrEqual(cur->name, BAD_CAST "playback")) {
+                    const char *compression = virXMLPropString(cur, "compression");
+                    int compressionVal;
+
+                    if (!compression) {
+                        virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                             _("spice playback missing compression"));
+                        goto error;
+                    }
+
+                    if ((compressionVal =
+                         virDomainGraphicsSpicePlaybackCompressionTypeFromString(compression)) <= 0) {
+                        virDomainReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                             _("unknown spice playback compression"));
+                        VIR_FREE(compression);
+                        goto error;
+
+                    }
+                    VIR_FREE(compression);
+
+                    def->data.spice.playback = compressionVal;
                 }
             }
             cur = cur->next;
@@ -4877,6 +5007,19 @@ virVirtualPortProfileFormat(virBufferPtr buf,
     virBufferVSprintf(buf, "%s</virtualport>\n", indent);
 }
 
+int virDomainDiskIndexByName(virDomainDefPtr def, const char *name)
+{
+    virDomainDiskDefPtr vdisk;
+    int i;
+
+    for (i = 0; i < def->ndisks; i++) {
+        vdisk = def->disks[i];
+        if (STREQ(vdisk->dst, name))
+            return i;
+    }
+    return -1;
+}
+
 int virDomainDiskInsert(virDomainDefPtr def,
                         virDomainDiskDefPtr disk)
 {
@@ -4946,6 +5089,15 @@ void virDomainDiskRemove(virDomainDefPtr def, size_t i)
         VIR_FREE(def->disks);
         def->ndisks = 0;
     }
+}
+
+int virDomainDiskRemoveByName(virDomainDefPtr def, const char *name)
+{
+    int i = virDomainDiskIndexByName(def, name);
+    if (i < 0)
+        return -1;
+    virDomainDiskRemove(def, i);
+    return 0;
 }
 
 
@@ -7815,6 +7967,18 @@ virDomainGraphicsDefFormat(virBufferPtr buf,
                               virDomainGraphicsSpiceChannelNameTypeToString(i),
                               virDomainGraphicsSpiceChannelModeTypeToString(mode));
         }
+        if (def->data.spice.image)
+            virBufferVSprintf(buf, "      <image compression='%s'/>\n",
+                              virDomainGraphicsSpiceImageCompressionTypeToString(def->data.spice.image));
+        if (def->data.spice.jpeg)
+            virBufferVSprintf(buf, "      <jpeg compression='%s'/>\n",
+                              virDomainGraphicsSpiceJpegCompressionTypeToString(def->data.spice.jpeg));
+        if (def->data.spice.zlib)
+            virBufferVSprintf(buf, "      <zlib compression='%s'/>\n",
+                              virDomainGraphicsSpiceZlibCompressionTypeToString(def->data.spice.zlib));
+        if (def->data.spice.playback)
+            virBufferVSprintf(buf, "      <playback compression='%s'/>\n",
+                              virDomainGraphicsSpicePlaybackCompressionTypeToString(def->data.spice.playback));
     }
 
     if (children) {
@@ -9366,5 +9530,24 @@ cleanup:
     virHashFree(paths);
     VIR_FREE(nextpath);
 
+    return ret;
+}
+
+
+virDomainDefPtr
+virDomainObjCopyPersistentDef(virCapsPtr caps, virDomainObjPtr dom)
+{
+    char *xml;
+    virDomainDefPtr cur, ret;
+
+    cur = virDomainObjGetPersistentDef(caps, dom);
+
+    xml = virDomainDefFormat(cur, VIR_DOMAIN_XML_WRITE_FLAGS);
+    if (!xml)
+        return NULL;
+
+    ret = virDomainDefParseString(caps, xml, VIR_DOMAIN_XML_READ_FLAGS);
+
+    VIR_FREE(xml);
     return ret;
 }

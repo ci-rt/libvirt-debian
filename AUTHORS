@@ -156,7 +156,7 @@ Patches have also been contributed by:
   Zdenek Styblik       <stybla@turnovfree.net>
   Gui Jianfeng         <guijianfeng@cn.fujitsu.com>
   Michal Novotny       <minovotn@redhat.com>
-  Christophe Fergeau   <teuf@gnome.org>
+  Christophe Fergeau   <cfergeau@redhat.com>
   Markus Groß          <gross@univention.de>
   Phil Petty           <phpetty@cisco.com>
   Taku Izumi           <izumi.taku@jp.fujitsu.com>
@@ -164,6 +164,12 @@ Patches have also been contributed by:
   Tiziano Mueller      <dev-zero@gentoo.org>
   Thibault VINCENT     <thibault.vincent@smartjog.com>
   Naoya Horiguchi      <n-horiguchi@ah.jp.nec.com>
+  Jesse Cook           <code.crashenx@gmail.com>
+  Alexander Todorov    <atodorov@otb.bg>
+  Richard Laager       <rlaager@wiktel.com>
+  Mark Wu              <dwu@redhat.com>
+  Yufang Zhang         <yuzhang@redhat.com>
+  Supriya Kannery      <supriyak@in.ibm.com>
 
   [....send patches to get your name here....]
 

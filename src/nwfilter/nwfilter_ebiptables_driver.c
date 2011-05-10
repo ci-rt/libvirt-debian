@@ -1204,6 +1204,15 @@ _iptablesCreateRuleInstance(int directionIn,
                                 &prefix))
             goto err_exit;
 
+        if (HAS_ENTRY_ITEM(&rule->p.tcpHdrFilter.dataTCPFlags)) {
+            virBufferVSprintf(&buf, " %s --tcp-flags ",
+                      ENTRY_GET_NEG_SIGN(&rule->p.tcpHdrFilter.dataTCPFlags));
+            virNWFilterPrintTCPFlags(&buf,
+                      rule->p.tcpHdrFilter.dataTCPFlags.u.tcpFlags.mask,
+                      ' ',
+                      rule->p.tcpHdrFilter.dataTCPFlags.u.tcpFlags.flags);
+        }
+
         if (iptablesHandlePortData(&buf,
                                    vars,
                                    &rule->p.tcpHdrFilter.portData,
@@ -1625,7 +1634,7 @@ iptablesCreateRuleInstanceStateCtrl(virNWFilterDefPtr nwfilter,
                                     bool isIPv6)
 {
     int rc;
-    int directionIn = 0, directionOut = 0;
+    int directionIn = 0;
     char chainPrefix[2];
     bool maySkipICMP, inout = false;
     char *matchState = NULL;
@@ -1634,9 +1643,8 @@ iptablesCreateRuleInstanceStateCtrl(virNWFilterDefPtr nwfilter,
     if ((rule->tt == VIR_NWFILTER_RULE_DIRECTION_IN) ||
         (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT)) {
         directionIn = 1;
-        directionOut = inout = (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT);
-    } else
-        directionOut = 1;
+        inout = (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT);
+    }
 
     chainPrefix[0] = 'F';
 
@@ -2349,7 +2357,7 @@ err_exit:
  */
 static int
 ebiptablesCreateRuleInstance(virConnectPtr conn ATTRIBUTE_UNUSED,
-                             enum virDomainNetType nettype,
+                             enum virDomainNetType nettype ATTRIBUTE_UNUSED,
                              virNWFilterDefPtr nwfilter,
                              virNWFilterRuleDefPtr rule,
                              const char *ifname,
@@ -2401,13 +2409,6 @@ ebiptablesCreateRuleInstance(virConnectPtr conn ATTRIBUTE_UNUSED,
     case VIR_NWFILTER_RULE_PROTOCOL_ICMP:
     case VIR_NWFILTER_RULE_PROTOCOL_IGMP:
     case VIR_NWFILTER_RULE_PROTOCOL_ALL:
-        if (nettype == VIR_DOMAIN_NET_TYPE_DIRECT) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                          _("'%s' protocol not support for net type '%s'"),
-                          virNWFilterRuleProtocolTypeToString(rule->prtclType),
-                          virDomainNetTypeToString(nettype));
-            return 1;
-        }
         isIPv6 = 0;
         rc = iptablesCreateRuleInstance(nwfilter,
                                         rule,
@@ -2425,13 +2426,6 @@ ebiptablesCreateRuleInstance(virConnectPtr conn ATTRIBUTE_UNUSED,
     case VIR_NWFILTER_RULE_PROTOCOL_SCTPoIPV6:
     case VIR_NWFILTER_RULE_PROTOCOL_ICMPV6:
     case VIR_NWFILTER_RULE_PROTOCOL_ALLoIPV6:
-        if (nettype == VIR_DOMAIN_NET_TYPE_DIRECT) {
-            virNWFilterReportError(VIR_ERR_OPERATION_FAILED,
-                          _("'%s' protocol not support for net type '%s'"),
-                          virNWFilterRuleProtocolTypeToString(rule->prtclType),
-                          virDomainNetTypeToString(nettype));
-            return 1;
-        }
         isIPv6 = 1;
         rc = iptablesCreateRuleInstance(nwfilter,
                                         rule,

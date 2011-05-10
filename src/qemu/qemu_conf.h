@@ -105,6 +105,8 @@ struct qemud_driver {
     unsigned int allowDiskFormatProbing : 1;
     unsigned int setProcessName : 1;
 
+    int maxProcesses;
+
     virCapsPtr caps;
 
     /* An array of callbacks */
@@ -144,7 +146,7 @@ struct _qemuDomainCmdlineDef {
 # define QEMUD_MIGRATION_NUM_PORTS 64
 
 # define qemuReportError(code, ...)                                      \
-    virReportErrorHelper(NULL, VIR_FROM_QEMU, code, __FILE__,           \
+    virReportErrorHelper(VIR_FROM_QEMU, code, __FILE__,                  \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 

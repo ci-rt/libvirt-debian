@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# gethostname.m4 serial 10
+# gethostname.m4 serial 11
 dnl Copyright (C) 2002, 2008-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -16,7 +16,7 @@ AC_DEFUN([gl_FUNC_GETHOSTNAME],
 
   dnl Where is gethostname() defined?
   dnl - On native Windows, it is in ws2_32.dll.
-  dnl - Otherwise is is in libc.
+  dnl - Otherwise it is in libc.
   GETHOSTNAME_LIB=
   AC_CHECK_FUNCS([gethostname], , [
     AC_CACHE_CHECK([for gethostname in winsock2.h and -lws2_32],

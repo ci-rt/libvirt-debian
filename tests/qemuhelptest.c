@@ -9,8 +9,6 @@
 # include "qemu/qemu_capabilities.h"
 # include "memory.h"
 
-# define MAX_HELP_OUTPUT_SIZE 1024*64
-
 struct testInfo {
     const char *name;
     virBitmapPtr flags;
@@ -18,9 +16,6 @@ struct testInfo {
     unsigned int is_kvm;
     unsigned int kvm_version;
 };
-
-static char *progname;
-static char *abs_srcdir;
 
 static void printMismatchedFlags(virBitmapPtr got,
                                  virBitmapPtr expect)
@@ -41,8 +36,7 @@ static int testHelpStrParsing(const void *data)
 {
     const struct testInfo *info = data;
     char *path = NULL;
-    char helpStr[MAX_HELP_OUTPUT_SIZE];
-    char *help = &(helpStr[0]);
+    char *help = NULL;
     unsigned int version, is_kvm, kvm_version;
     virBitmapPtr flags = NULL;
     int ret = -1;
@@ -52,7 +46,7 @@ static int testHelpStrParsing(const void *data)
     if (virAsprintf(&path, "%s/qemuhelpdata/%s", abs_srcdir, info->name) < 0)
         return -1;
 
-    if (virtTestLoadFile(path, &help, MAX_HELP_OUTPUT_SIZE) < 0)
+    if (virtTestLoadFile(path, &help) < 0)
         goto cleanup;
 
     if (!(flags = qemuCapsNew()))
@@ -64,11 +58,12 @@ static int testHelpStrParsing(const void *data)
 
     if (qemuCapsGet(info->flags, QEMU_CAPS_DEVICE)) {
         VIR_FREE(path);
+        VIR_FREE(help);
         if (virAsprintf(&path, "%s/qemuhelpdata/%s-device", abs_srcdir,
                         info->name) < 0)
             goto cleanup;
 
-        if (virtTestLoadFile(path, &help, MAX_HELP_OUTPUT_SIZE) < 0)
+        if (virtTestLoadFile(path, &help) < 0)
             goto cleanup;
 
         if (qemuCapsParseDeviceStr(help, flags) < 0)
@@ -114,6 +109,7 @@ static int testHelpStrParsing(const void *data)
     ret = 0;
 cleanup:
     VIR_FREE(path);
+    VIR_FREE(help);
     qemuCapsFree(flags);
     VIR_FREE(got);
     VIR_FREE(expected);
@@ -121,21 +117,9 @@ cleanup:
 }
 
 static int
-mymain(int argc, char **argv)
+mymain(void)
 {
     int ret = 0;
-    char cwd[PATH_MAX];
-
-    progname = argv[0];
-
-    if (argc > 1) {
-        fprintf(stderr, "Usage: %s\n", progname);
-        return (EXIT_FAILURE);
-    }
-
-    abs_srcdir = getenv("abs_srcdir");
-    if (!abs_srcdir)
-        abs_srcdir = getcwd(cwd, sizeof(cwd));
 
 # define DO_TEST(name, version, is_kvm, kvm_version, ...)                   \
     do {                                                                    \

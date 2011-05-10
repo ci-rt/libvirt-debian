@@ -19,21 +19,17 @@
 
 # include "testutilsqemu.h"
 
-static char *progname;
-static char *abs_srcdir;
 static const char *abs_top_srcdir;
 static struct qemud_driver driver;
-
-# define MAX_FILE 4096
 
 static int testCompareXMLToArgvFiles(const char *xml,
                                      const char *cmdline,
                                      virBitmapPtr extraFlags,
                                      const char *migrateFrom,
                                      int migrateFd,
-                                     bool expectError) {
-    char argvData[MAX_FILE];
-    char *expectargv = &(argvData[0]);
+                                     bool expectError)
+{
+    char *expectargv = NULL;
     int len;
     char *actualargv = NULL;
     int ret = -1;
@@ -47,7 +43,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (!(conn = virGetConnect()))
         goto fail;
 
-    len = virtTestLoadFile(cmdline, &expectargv, MAX_FILE);
+    len = virtTestLoadFile(cmdline, &expectargv);
     if (len < 0)
         goto fail;
     if (len && expectargv[len - 1] == '\n')
@@ -158,6 +154,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
  fail:
     free(log);
     free(emulator);
+    free(expectargv);
     free(actualargv);
     virCommandFree(cmd);
     virDomainDefFree(vmdef);
@@ -174,38 +171,37 @@ struct testInfo {
     bool expectError;
 };
 
-static int testCompareXMLToArgvHelper(const void *data) {
+static int
+testCompareXMLToArgvHelper(const void *data)
+{
+    int result = -1;
     const struct testInfo *info = data;
-    char xml[PATH_MAX];
-    char args[PATH_MAX];
-    snprintf(xml, PATH_MAX, "%s/qemuxml2argvdata/qemuxml2argv-%s.xml",
-             abs_srcdir, info->name);
-    snprintf(args, PATH_MAX, "%s/qemuxml2argvdata/qemuxml2argv-%s.args",
-             abs_srcdir, info->name);
-    return testCompareXMLToArgvFiles(xml, args, info->extraFlags,
-                                     info->migrateFrom, info->migrateFd,
-                                     info->expectError);
+    char *xml = NULL;
+    char *args = NULL;
+
+    if (virAsprintf(&xml, "%s/qemuxml2argvdata/qemuxml2argv-%s.xml",
+                    abs_srcdir, info->name) < 0 ||
+        virAsprintf(&args, "%s/qemuxml2argvdata/qemuxml2argv-%s.args",
+                    abs_srcdir, info->name) < 0)
+        goto cleanup;
+
+    result = testCompareXMLToArgvFiles(xml, args, info->extraFlags,
+                                      info->migrateFrom, info->migrateFd,
+                                      info->expectError);
+
+cleanup:
+    free(xml);
+    free(args);
+    return result;
 }
 
 
 
 static int
-mymain(int argc, char **argv)
+mymain(void)
 {
     int ret = 0;
-    char cwd[PATH_MAX];
-    char map[PATH_MAX];
-
-    progname = argv[0];
-
-    if (argc > 1) {
-        fprintf(stderr, "Usage: %s\n", progname);
-        return (EXIT_FAILURE);
-    }
-
-    abs_srcdir = getenv("abs_srcdir");
-    if (!abs_srcdir)
-        abs_srcdir = getcwd(cwd, sizeof(cwd));
+    char *map = NULL;
 
     abs_top_srcdir = getenv("abs_top_srcdir");
     if (!abs_top_srcdir)
@@ -224,10 +220,11 @@ mymain(int argc, char **argv)
         return EXIT_FAILURE;
     if (!(driver.spicePassword = strdup("123456")))
         return EXIT_FAILURE;
-
-    snprintf(map, PATH_MAX, "%s/src/cpu/cpu_map.xml", abs_top_srcdir);
-    if (cpuMapOverride(map) < 0)
+    if (virAsprintf(&map, "%s/src/cpu/cpu_map.xml", abs_top_srcdir) < 0 ||
+        cpuMapOverride(map) < 0) {
+        free(map);
         return EXIT_FAILURE;
+    }
 
 # define DO_TEST_FULL(name, migrateFrom, migrateFd, expectError, ...)   \
     do {                                                                \
@@ -498,6 +495,7 @@ mymain(int argc, char **argv)
 
     free(driver.stateDir);
     virCapabilitiesFree(driver.caps);
+    free(map);
 
     return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

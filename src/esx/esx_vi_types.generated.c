@@ -229,7 +229,7 @@ ESX_VI__TEMPLATE__ENUMERATION__DESERIALIZE(VirtualMachinePowerState)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: AboutInfo
+ * VI Object: AboutInfo
  */
 
 /* esxVI_AboutInfo_Alloc */
@@ -300,7 +300,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(AboutInfo,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: AutoStartDefaults
+ * VI Object: AutoStartDefaults
  */
 
 /* esxVI_AutoStartDefaults_Alloc */
@@ -321,9 +321,7 @@ ESX_VI__TEMPLATE__VALIDATE(AutoStartDefaults,
 })
 
 /* esxVI_AutoStartDefaults_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(AutoStartDefaults,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(AutoStartDefaults)
 
 /* esxVI_AutoStartDefaults_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(AutoStartDefaults,
@@ -348,7 +346,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(AutoStartDefaults,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: AutoStartPowerInfo
+ * VI Object: AutoStartPowerInfo
  */
 
 /* esxVI_AutoStartPowerInfo_Alloc */
@@ -383,9 +381,7 @@ ESX_VI__TEMPLATE__VALIDATE(AutoStartPowerInfo,
 ESX_VI__TEMPLATE__LIST__APPEND(AutoStartPowerInfo)
 
 /* esxVI_AutoStartPowerInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(AutoStartPowerInfo,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(AutoStartPowerInfo)
 
 /* esxVI_AutoStartPowerInfo_CastListFromAnyType */
 ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(AutoStartPowerInfo)
@@ -423,8 +419,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(AutoStartPowerInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ChoiceOption
- *          extends OptionType
+ * VI Object: ChoiceOption
+ *            extends OptionType
  */
 
 /* esxVI_ChoiceOption_Alloc */
@@ -476,7 +472,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(ChoiceOption,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: DatastoreHostMount
+ * VI Object: DatastoreHostMount
  */
 
 /* esxVI_DatastoreHostMount_Alloc */
@@ -512,9 +508,7 @@ ESX_VI__TEMPLATE__DEEP_COPY(DatastoreHostMount,
 ESX_VI__TEMPLATE__LIST__DEEP_COPY(DatastoreHostMount)
 
 /* esxVI_DatastoreHostMount_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(DatastoreHostMount,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(DatastoreHostMount)
 
 /* esxVI_DatastoreHostMount_CastListFromAnyType */
 ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(DatastoreHostMount)
@@ -542,10 +536,10 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(DatastoreHostMount)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: DatastoreInfo
- *          extended by LocalDatastoreInfo
- *                      NasDatastoreInfo
- *                      VmfsDatastoreInfo
+ * VI Object: DatastoreInfo
+ *            extended by LocalDatastoreInfo
+ *                        NasDatastoreInfo
+ *                        VmfsDatastoreInfo
  */
 
 /* esxVI_DatastoreInfo_Alloc */
@@ -584,7 +578,7 @@ ESX_VI__TEMPLATE__DYNAMIC_CAST(DatastoreInfo,
 })
 
 /* esxVI_DatastoreInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(DatastoreInfo,
+ESX_VI__TEMPLATE__DYNAMIC_CAST_FROM_ANY_TYPE(DatastoreInfo,
 {
     ESX_VI__TEMPLATE__DISPATCH__CAST_FROM_ANY_TYPE(LocalDatastoreInfo)
     ESX_VI__TEMPLATE__DISPATCH__CAST_FROM_ANY_TYPE(NasDatastoreInfo)
@@ -622,8 +616,8 @@ ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(DatastoreInfo,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: Description
- *          extended by ElementDescription
+ * VI Object: Description
+ *            extended by ElementDescription
  */
 
 /* esxVI_Description_Alloc */
@@ -680,8 +674,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(Description)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: DeviceBackedVirtualDiskSpec
- *          extends VirtualDiskSpec
+ * VI Object: DeviceBackedVirtualDiskSpec
+ *            extends VirtualDiskSpec
  */
 
 /* esxVI_DeviceBackedVirtualDiskSpec_Alloc */
@@ -739,7 +733,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(DeviceBackedVirtualDiskSpec,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: DynamicProperty
+ * VI Object: DynamicProperty
  */
 
 /* esxVI_DynamicProperty_Alloc */
@@ -787,8 +781,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(DynamicProperty)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ElementDescription
- *          extends Description
+ * VI Object: ElementDescription
+ *            extends Description
  */
 
 /* esxVI_ElementDescription_Alloc */
@@ -855,7 +849,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(ElementDescription)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: Event
+ * VI Object: Event
  */
 
 /* esxVI_Event_Alloc */
@@ -930,8 +924,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(Event)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FileBackedVirtualDiskSpec
- *          extends VirtualDiskSpec
+ * VI Object: FileBackedVirtualDiskSpec
+ *            extends VirtualDiskSpec
  */
 
 /* esxVI_FileBackedVirtualDiskSpec_Alloc */
@@ -989,15 +983,15 @@ ESX_VI__TEMPLATE__DESERIALIZE(FileBackedVirtualDiskSpec,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FileInfo
- *          extended by FloppyImageFileInfo
- *                      FolderFileInfo
- *                      IsoImageFileInfo
- *                      VmConfigFileInfo
- *                      VmDiskFileInfo
- *                      VmLogFileInfo
- *                      VmNvramFileInfo
- *                      VmSnapshotFileInfo
+ * VI Object: FileInfo
+ *            extended by FloppyImageFileInfo
+ *                        FolderFileInfo
+ *                        IsoImageFileInfo
+ *                        VmConfigFileInfo
+ *                        VmDiskFileInfo
+ *                        VmLogFileInfo
+ *                        VmNvramFileInfo
+ *                        VmSnapshotFileInfo
  */
 
 /* esxVI_FileInfo_Alloc */
@@ -1094,15 +1088,15 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(FileInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FileQuery
- *          extended by FloppyImageFileQuery
- *                      FolderFileQuery
- *                      IsoImageFileQuery
- *                      VmConfigFileQuery
- *                      VmDiskFileQuery
- *                      VmLogFileQuery
- *                      VmNvramFileQuery
- *                      VmSnapshotFileQuery
+ * VI Object: FileQuery
+ *            extended by FloppyImageFileQuery
+ *                        FolderFileQuery
+ *                        IsoImageFileQuery
+ *                        VmConfigFileQuery
+ *                        VmDiskFileQuery
+ *                        VmLogFileQuery
+ *                        VmNvramFileQuery
+ *                        VmSnapshotFileQuery
  */
 
 /* esxVI_FileQuery_Alloc */
@@ -1193,7 +1187,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(FileQuery)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FileQueryFlags
+ * VI Object: FileQueryFlags
  */
 
 /* esxVI_FileQueryFlags_Alloc */
@@ -1232,8 +1226,8 @@ ESX_VI__TEMPLATE__DESERIALIZE(FileQueryFlags,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FloppyImageFileInfo
- *          extends FileInfo
+ * VI Object: FloppyImageFileInfo
+ *            extends FileInfo
  */
 
 /* esxVI_FloppyImageFileInfo_Alloc */
@@ -1307,8 +1301,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(FloppyImageFileInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FloppyImageFileQuery
- *          extends FileQuery
+ * VI Object: FloppyImageFileQuery
+ *            extends FileQuery
  */
 
 /* esxVI_FloppyImageFileQuery_Alloc */
@@ -1376,8 +1370,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(FloppyImageFileQuery)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FolderFileInfo
- *          extends FileInfo
+ * VI Object: FolderFileInfo
+ *            extends FileInfo
  */
 
 /* esxVI_FolderFileInfo_Alloc */
@@ -1451,8 +1445,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(FolderFileInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FolderFileQuery
- *          extends FileQuery
+ * VI Object: FolderFileQuery
+ *            extends FileQuery
  */
 
 /* esxVI_FolderFileQuery_Alloc */
@@ -1520,7 +1514,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(FolderFileQuery)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostAutoStartManagerConfig
+ * VI Object: HostAutoStartManagerConfig
  */
 
 /* esxVI_HostAutoStartManagerConfig_Alloc */
@@ -1556,7 +1550,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(HostAutoStartManagerConfig,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostConfigManager
+ * VI Object: HostConfigManager
  */
 
 /* esxVI_HostConfigManager_Alloc */
@@ -1591,9 +1585,7 @@ ESX_VI__TEMPLATE__VALIDATE(HostConfigManager,
 })
 
 /* esxVI_HostConfigManager_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostConfigManager,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostConfigManager)
 
 /* esxVI_HostConfigManager_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(HostConfigManager,
@@ -1642,7 +1634,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(HostConfigManager,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostCpuIdInfo
+ * VI Object: HostCpuIdInfo
  */
 
 /* esxVI_HostCpuIdInfo_Alloc */
@@ -1671,9 +1663,7 @@ ESX_VI__TEMPLATE__VALIDATE(HostCpuIdInfo,
 ESX_VI__TEMPLATE__LIST__APPEND(HostCpuIdInfo)
 
 /* esxVI_HostCpuIdInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostCpuIdInfo,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostCpuIdInfo)
 
 /* esxVI_HostCpuIdInfo_CastListFromAnyType */
 ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(HostCpuIdInfo)
@@ -1709,7 +1699,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostCpuIdInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostDatastoreBrowserSearchResults
+ * VI Object: HostDatastoreBrowserSearchResults
  */
 
 /* esxVI_HostDatastoreBrowserSearchResults_Alloc */
@@ -1735,9 +1725,7 @@ ESX_VI__TEMPLATE__VALIDATE(HostDatastoreBrowserSearchResults,
 ESX_VI__TEMPLATE__LIST__APPEND(HostDatastoreBrowserSearchResults)
 
 /* esxVI_HostDatastoreBrowserSearchResults_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostDatastoreBrowserSearchResults,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostDatastoreBrowserSearchResults)
 
 /* esxVI_HostDatastoreBrowserSearchResults_CastListFromAnyType */
 ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(HostDatastoreBrowserSearchResults)
@@ -1767,7 +1755,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostDatastoreBrowserSearchResults)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostDatastoreBrowserSearchSpec
+ * VI Object: HostDatastoreBrowserSearchSpec
  */
 
 /* esxVI_HostDatastoreBrowserSearchSpec_Alloc */
@@ -1810,9 +1798,9 @@ ESX_VI__TEMPLATE__DESERIALIZE(HostDatastoreBrowserSearchSpec,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostFileSystemVolume
- *          extended by HostNasVolume
- *                      HostVmfsVolume
+ * VI Object: HostFileSystemVolume
+ *            extended by HostNasVolume
+ *                        HostVmfsVolume
  */
 
 /* esxVI_HostFileSystemVolume_Alloc */
@@ -1865,7 +1853,7 @@ ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(HostFileSystemVolume,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostMountInfo
+ * VI Object: HostMountInfo
  */
 
 /* esxVI_HostMountInfo_Alloc */
@@ -1911,8 +1899,8 @@ ESX_VI__TEMPLATE__DESERIALIZE(HostMountInfo,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostNasVolume
- *          extends HostFileSystemVolume
+ * VI Object: HostNasVolume
+ *            extends HostFileSystemVolume
  */
 
 /* esxVI_HostNasVolume_Alloc */
@@ -1976,7 +1964,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(HostNasVolume,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostScsiDiskPartition
+ * VI Object: HostScsiDiskPartition
  */
 
 /* esxVI_HostScsiDiskPartition_Alloc */
@@ -2024,8 +2012,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostScsiDiskPartition)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostVmfsVolume
- *          extends HostFileSystemVolume
+ * VI Object: HostVmfsVolume
+ *            extends HostFileSystemVolume
  */
 
 /* esxVI_HostVmfsVolume_Alloc */
@@ -2105,8 +2093,8 @@ ESX_VI__TEMPLATE__DESERIALIZE(HostVmfsVolume,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: IsoImageFileInfo
- *          extends FileInfo
+ * VI Object: IsoImageFileInfo
+ *            extends FileInfo
  */
 
 /* esxVI_IsoImageFileInfo_Alloc */
@@ -2180,8 +2168,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(IsoImageFileInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: IsoImageFileQuery
- *          extends FileQuery
+ * VI Object: IsoImageFileQuery
+ *            extends FileQuery
  */
 
 /* esxVI_IsoImageFileQuery_Alloc */
@@ -2249,8 +2237,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(IsoImageFileQuery)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: LocalDatastoreInfo
- *          extends DatastoreInfo
+ * VI Object: LocalDatastoreInfo
+ *            extends DatastoreInfo
  */
 
 /* esxVI_LocalDatastoreInfo_Alloc */
@@ -2288,9 +2276,7 @@ ESX_VI__TEMPLATE__DYNAMIC_CAST(LocalDatastoreInfo,
 })
 
 /* esxVI_LocalDatastoreInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(LocalDatastoreInfo,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(LocalDatastoreInfo)
 
 /* esxVI_LocalDatastoreInfo_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(LocalDatastoreInfo,
@@ -2321,7 +2307,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(LocalDatastoreInfo,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: LocalizedMethodFault
+ * VI Object: LocalizedMethodFault
  */
 
 /* esxVI_LocalizedMethodFault_Alloc */
@@ -2350,8 +2336,8 @@ ESX_VI__TEMPLATE__DESERIALIZE(LocalizedMethodFault,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: NasDatastoreInfo
- *          extends DatastoreInfo
+ * VI Object: NasDatastoreInfo
+ *            extends DatastoreInfo
  */
 
 /* esxVI_NasDatastoreInfo_Alloc */
@@ -2389,9 +2375,7 @@ ESX_VI__TEMPLATE__DYNAMIC_CAST(NasDatastoreInfo,
 })
 
 /* esxVI_NasDatastoreInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(NasDatastoreInfo,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(NasDatastoreInfo)
 
 /* esxVI_NasDatastoreInfo_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(NasDatastoreInfo,
@@ -2422,7 +2406,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(NasDatastoreInfo,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ObjectContent
+ * VI Object: ObjectContent
  */
 
 /* esxVI_ObjectContent_Alloc */
@@ -2473,7 +2457,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(ObjectContent)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ObjectSpec
+ * VI Object: ObjectSpec
  */
 
 /* esxVI_ObjectSpec_Alloc */
@@ -2522,7 +2506,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(ObjectSpec)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ObjectUpdate
+ * VI Object: ObjectUpdate
  */
 
 /* esxVI_ObjectUpdate_Alloc */
@@ -2564,8 +2548,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(ObjectUpdate)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: OptionType
- *          extended by ChoiceOption
+ * VI Object: OptionType
+ *            extended by ChoiceOption
  */
 
 /* esxVI_OptionType_Alloc */
@@ -2607,7 +2591,7 @@ ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(OptionType,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfCounterInfo
+ * VI Object: PerfCounterInfo
  */
 
 /* esxVI_PerfCounterInfo_Alloc */
@@ -2675,8 +2659,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PerfCounterInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfEntityMetric
- *          extends PerfEntityMetricBase
+ * VI Object: PerfEntityMetric
+ *            extends PerfEntityMetricBase
  */
 
 /* esxVI_PerfEntityMetric_Alloc */
@@ -2747,8 +2731,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PerfEntityMetric)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfEntityMetricBase
- *          extended by PerfEntityMetric
+ * VI Object: PerfEntityMetricBase
+ *            extended by PerfEntityMetric
  */
 
 /* esxVI_PerfEntityMetricBase_Alloc */
@@ -2808,7 +2792,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PerfEntityMetricBase)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfMetricId
+ * VI Object: PerfMetricId
  */
 
 /* esxVI_PerfMetricId_Alloc */
@@ -2856,8 +2840,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PerfMetricId)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfMetricIntSeries
- *          extends PerfMetricSeries
+ * VI Object: PerfMetricIntSeries
+ *            extends PerfMetricSeries
  */
 
 /* esxVI_PerfMetricIntSeries_Alloc */
@@ -2925,8 +2909,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PerfMetricIntSeries)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfMetricSeries
- *          extended by PerfMetricIntSeries
+ * VI Object: PerfMetricSeries
+ *            extended by PerfMetricIntSeries
  */
 
 /* esxVI_PerfMetricSeries_Alloc */
@@ -2986,7 +2970,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PerfMetricSeries)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfQuerySpec
+ * VI Object: PerfQuerySpec
  */
 
 /* esxVI_PerfQuerySpec_Alloc */
@@ -3048,7 +3032,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PerfQuerySpec)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfSampleInfo
+ * VI Object: PerfSampleInfo
  */
 
 /* esxVI_PerfSampleInfo_Alloc */
@@ -3096,7 +3080,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PerfSampleInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PropertyChange
+ * VI Object: PropertyChange
  */
 
 /* esxVI_PropertyChange_Alloc */
@@ -3135,7 +3119,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PropertyChange)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PropertyFilterSpec
+ * VI Object: PropertyFilterSpec
  */
 
 /* esxVI_PropertyFilterSpec_Alloc */
@@ -3183,7 +3167,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PropertyFilterSpec)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PropertyFilterUpdate
+ * VI Object: PropertyFilterUpdate
  */
 
 /* esxVI_PropertyFilterUpdate_Alloc */
@@ -3223,7 +3207,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PropertyFilterUpdate)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PropertySpec
+ * VI Object: PropertySpec
  */
 
 /* esxVI_PropertySpec_Alloc */
@@ -3272,7 +3256,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(PropertySpec)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ResourceAllocationInfo
+ * VI Object: ResourceAllocationInfo
  */
 
 /* esxVI_ResourceAllocationInfo_Alloc */
@@ -3316,7 +3300,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(ResourceAllocationInfo,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ResourcePoolResourceUsage
+ * VI Object: ResourcePoolResourceUsage
  */
 
 /* esxVI_ResourcePoolResourceUsage_Alloc */
@@ -3345,9 +3329,7 @@ ESX_VI__TEMPLATE__VALIDATE(ResourcePoolResourceUsage,
 })
 
 /* esxVI_ResourcePoolResourceUsage_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(ResourcePoolResourceUsage,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(ResourcePoolResourceUsage)
 
 /* esxVI_ResourcePoolResourceUsage_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(ResourcePoolResourceUsage,
@@ -3374,8 +3356,8 @@ ESX_VI__TEMPLATE__DESERIALIZE(ResourcePoolResourceUsage,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: SelectionSpec
- *          extended by TraversalSpec
+ * VI Object: SelectionSpec
+ *            extended by TraversalSpec
  */
 
 /* esxVI_SelectionSpec_Alloc */
@@ -3435,7 +3417,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(SelectionSpec)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ServiceContent
+ * VI Object: ServiceContent
  */
 
 /* esxVI_ServiceContent_Alloc */
@@ -3536,7 +3518,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(ServiceContent,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: SharesInfo
+ * VI Object: SharesInfo
  */
 
 /* esxVI_SharesInfo_Alloc */
@@ -3556,9 +3538,7 @@ ESX_VI__TEMPLATE__VALIDATE(SharesInfo,
 })
 
 /* esxVI_SharesInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(SharesInfo,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(SharesInfo)
 
 /* esxVI_SharesInfo_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(SharesInfo,
@@ -3577,7 +3557,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(SharesInfo,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: TaskInfo
+ * VI Object: TaskInfo
  */
 
 /* esxVI_TaskInfo_Alloc */
@@ -3623,9 +3603,7 @@ ESX_VI__TEMPLATE__VALIDATE(TaskInfo,
 ESX_VI__TEMPLATE__LIST__APPEND(TaskInfo)
 
 /* esxVI_TaskInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(TaskInfo,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(TaskInfo)
 
 /* esxVI_TaskInfo_CastListFromAnyType */
 ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(TaskInfo)
@@ -3659,8 +3637,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(TaskInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: TemplateConfigFileInfo
- *          extends VmConfigFileInfo
+ * VI Object: TemplateConfigFileInfo
+ *            extends VmConfigFileInfo
  */
 
 /* esxVI_TemplateConfigFileInfo_Alloc */
@@ -3746,8 +3724,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(TemplateConfigFileInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: TemplateConfigFileQuery
- *          extends VmConfigFileQuery
+ * VI Object: TemplateConfigFileQuery
+ *            extends VmConfigFileQuery
  */
 
 /* esxVI_TemplateConfigFileQuery_Alloc */
@@ -3830,8 +3808,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(TemplateConfigFileQuery)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: TraversalSpec
- *          extends SelectionSpec
+ * VI Object: TraversalSpec
+ *            extends SelectionSpec
  */
 
 /* esxVI_TraversalSpec_Alloc */
@@ -3908,7 +3886,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(TraversalSpec)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: UpdateSet
+ * VI Object: UpdateSet
  */
 
 /* esxVI_UpdateSet_Alloc */
@@ -3937,7 +3915,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(UpdateSet,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: UserSession
+ * VI Object: UserSession
  */
 
 /* esxVI_UserSession_Alloc */
@@ -3968,9 +3946,7 @@ ESX_VI__TEMPLATE__VALIDATE(UserSession,
 })
 
 /* esxVI_UserSession_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(UserSession,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(UserSession)
 
 /* esxVI_UserSession_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(UserSession,
@@ -3999,9 +3975,9 @@ ESX_VI__TEMPLATE__DESERIALIZE(UserSession,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VirtualDiskSpec
- *          extended by DeviceBackedVirtualDiskSpec
- *                      FileBackedVirtualDiskSpec
+ * VI Object: VirtualDiskSpec
+ *            extended by DeviceBackedVirtualDiskSpec
+ *                        FileBackedVirtualDiskSpec
  */
 
 /* esxVI_VirtualDiskSpec_Alloc */
@@ -4058,7 +4034,7 @@ ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(VirtualDiskSpec,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VirtualMachineConfigSpec
+ * VI Object: VirtualMachineConfigSpec
  */
 
 /* esxVI_VirtualMachineConfigSpec_Alloc */
@@ -4186,7 +4162,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(VirtualMachineConfigSpec,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VirtualMachineQuestionInfo
+ * VI Object: VirtualMachineQuestionInfo
  */
 
 /* esxVI_VirtualMachineQuestionInfo_Alloc */
@@ -4211,9 +4187,7 @@ ESX_VI__TEMPLATE__VALIDATE(VirtualMachineQuestionInfo,
 })
 
 /* esxVI_VirtualMachineQuestionInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(VirtualMachineQuestionInfo,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(VirtualMachineQuestionInfo)
 
 /* esxVI_VirtualMachineQuestionInfo_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(VirtualMachineQuestionInfo,
@@ -4236,7 +4210,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(VirtualMachineQuestionInfo,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VirtualMachineSnapshotTree
+ * VI Object: VirtualMachineSnapshotTree
  */
 
 /* esxVI_VirtualMachineSnapshotTree_Alloc */
@@ -4287,9 +4261,7 @@ ESX_VI__TEMPLATE__DEEP_COPY(VirtualMachineSnapshotTree,
 ESX_VI__TEMPLATE__LIST__DEEP_COPY(VirtualMachineSnapshotTree)
 
 /* esxVI_VirtualMachineSnapshotTree_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(VirtualMachineSnapshotTree,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(VirtualMachineSnapshotTree)
 
 /* esxVI_VirtualMachineSnapshotTree_CastListFromAnyType */
 ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(VirtualMachineSnapshotTree)
@@ -4313,9 +4285,9 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(VirtualMachineSnapshotTree)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmConfigFileInfo
- *          extends FileInfo
- *          extended by TemplateConfigFileInfo
+ * VI Object: VmConfigFileInfo
+ *            extends FileInfo
+ *            extended by TemplateConfigFileInfo
  */
 
 /* esxVI_VmConfigFileInfo_Alloc */
@@ -4400,9 +4372,9 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmConfigFileInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmConfigFileQuery
- *          extends FileQuery
- *          extended by TemplateConfigFileQuery
+ * VI Object: VmConfigFileQuery
+ *            extends FileQuery
+ *            extended by TemplateConfigFileQuery
  */
 
 /* esxVI_VmConfigFileQuery_Alloc */
@@ -4484,7 +4456,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmConfigFileQuery)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmConfigFileQueryFilter
+ * VI Object: VmConfigFileQueryFilter
  */
 
 /* esxVI_VmConfigFileQueryFilter_Alloc */
@@ -4517,7 +4489,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(VmConfigFileQueryFilter,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmConfigFileQueryFlags
+ * VI Object: VmConfigFileQueryFlags
  */
 
 /* esxVI_VmConfigFileQueryFlags_Alloc */
@@ -4550,8 +4522,8 @@ ESX_VI__TEMPLATE__DESERIALIZE(VmConfigFileQueryFlags,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmDiskFileInfo
- *          extends FileInfo
+ * VI Object: VmDiskFileInfo
+ *            extends FileInfo
  */
 
 /* esxVI_VmDiskFileInfo_Alloc */
@@ -4637,8 +4609,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmDiskFileInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmDiskFileQuery
- *          extends FileQuery
+ * VI Object: VmDiskFileQuery
+ *            extends FileQuery
  */
 
 /* esxVI_VmDiskFileQuery_Alloc */
@@ -4709,7 +4681,7 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmDiskFileQuery)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmDiskFileQueryFilter
+ * VI Object: VmDiskFileQueryFilter
  */
 
 /* esxVI_VmDiskFileQueryFilter_Alloc */
@@ -4748,7 +4720,7 @@ ESX_VI__TEMPLATE__DESERIALIZE(VmDiskFileQueryFilter,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmDiskFileQueryFlags
+ * VI Object: VmDiskFileQueryFlags
  */
 
 /* esxVI_VmDiskFileQueryFlags_Alloc */
@@ -4791,8 +4763,8 @@ ESX_VI__TEMPLATE__DESERIALIZE(VmDiskFileQueryFlags,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmLogFileInfo
- *          extends FileInfo
+ * VI Object: VmLogFileInfo
+ *            extends FileInfo
  */
 
 /* esxVI_VmLogFileInfo_Alloc */
@@ -4866,8 +4838,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmLogFileInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmLogFileQuery
- *          extends FileQuery
+ * VI Object: VmLogFileQuery
+ *            extends FileQuery
  */
 
 /* esxVI_VmLogFileQuery_Alloc */
@@ -4935,8 +4907,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmLogFileQuery)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmNvramFileInfo
- *          extends FileInfo
+ * VI Object: VmNvramFileInfo
+ *            extends FileInfo
  */
 
 /* esxVI_VmNvramFileInfo_Alloc */
@@ -5010,8 +4982,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmNvramFileInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmNvramFileQuery
- *          extends FileQuery
+ * VI Object: VmNvramFileQuery
+ *            extends FileQuery
  */
 
 /* esxVI_VmNvramFileQuery_Alloc */
@@ -5079,8 +5051,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmNvramFileQuery)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmSnapshotFileInfo
- *          extends FileInfo
+ * VI Object: VmSnapshotFileInfo
+ *            extends FileInfo
  */
 
 /* esxVI_VmSnapshotFileInfo_Alloc */
@@ -5154,8 +5126,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmSnapshotFileInfo)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmSnapshotFileQuery
- *          extends FileQuery
+ * VI Object: VmSnapshotFileQuery
+ *            extends FileQuery
  */
 
 /* esxVI_VmSnapshotFileQuery_Alloc */
@@ -5223,8 +5195,8 @@ ESX_VI__TEMPLATE__LIST__DESERIALIZE(VmSnapshotFileQuery)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmfsDatastoreInfo
- *          extends DatastoreInfo
+ * VI Object: VmfsDatastoreInfo
+ *            extends DatastoreInfo
  */
 
 /* esxVI_VmfsDatastoreInfo_Alloc */
@@ -5262,9 +5234,7 @@ ESX_VI__TEMPLATE__DYNAMIC_CAST(VmfsDatastoreInfo,
 })
 
 /* esxVI_VmfsDatastoreInfo_CastFromAnyType */
-ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(VmfsDatastoreInfo,
-{
-})
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(VmfsDatastoreInfo)
 
 /* esxVI_VmfsDatastoreInfo_Serialize */
 ESX_VI__TEMPLATE__SERIALIZE(VmfsDatastoreInfo,
@@ -5290,6 +5260,136 @@ ESX_VI__TEMPLATE__DESERIALIZE(VmfsDatastoreInfo,
 
     /* VmfsDatastoreInfo */
     ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostVmfsVolume, vmfs)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Object: ComputeResource
+ *                    extends ManagedEntity
+ */
+
+/* esxVI_ComputeResource_Alloc */
+ESX_VI__TEMPLATE__ALLOC(ComputeResource)
+
+/* esxVI_ComputeResource_Free */
+ESX_VI__TEMPLATE__FREE(ComputeResource,
+{
+    esxVI_ManagedObjectReference_Free(&item->_reference);
+
+    /* ManagedEntity */
+    VIR_FREE(item->name);
+
+    /* ComputeResource */
+    esxVI_ManagedObjectReference_Free(&item->host);
+    esxVI_ManagedObjectReference_Free(&item->resourcePool);
+})
+
+/* esxVI_ComputeResource_Validate */
+ESX_VI__TEMPLATE__MANAGED_VALIDATE(ComputeResource,
+{
+    /* ManagedEntity */
+    ESX_VI__TEMPLATE__PROPERTY__MANAGED_REQUIRE(name)
+
+    /* ComputeResource */
+    /* no required properties */
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Object: Datacenter
+ *                    extends ManagedEntity
+ */
+
+/* esxVI_Datacenter_Alloc */
+ESX_VI__TEMPLATE__ALLOC(Datacenter)
+
+/* esxVI_Datacenter_Free */
+ESX_VI__TEMPLATE__FREE(Datacenter,
+{
+    esxVI_ManagedObjectReference_Free(&item->_reference);
+
+    /* ManagedEntity */
+    VIR_FREE(item->name);
+
+    /* Datacenter */
+    esxVI_ManagedObjectReference_Free(&item->hostFolder);
+    esxVI_ManagedObjectReference_Free(&item->vmFolder);
+})
+
+/* esxVI_Datacenter_Validate */
+ESX_VI__TEMPLATE__MANAGED_VALIDATE(Datacenter,
+{
+    /* ManagedEntity */
+    ESX_VI__TEMPLATE__PROPERTY__MANAGED_REQUIRE(name)
+
+    /* Datacenter */
+    ESX_VI__TEMPLATE__PROPERTY__MANAGED_REQUIRE(hostFolder)
+    ESX_VI__TEMPLATE__PROPERTY__MANAGED_REQUIRE(vmFolder)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Object: HostSystem
+ *                    extends ManagedEntity
+ */
+
+/* esxVI_HostSystem_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostSystem)
+
+/* esxVI_HostSystem_Free */
+ESX_VI__TEMPLATE__FREE(HostSystem,
+{
+    esxVI_ManagedObjectReference_Free(&item->_reference);
+
+    /* ManagedEntity */
+    VIR_FREE(item->name);
+
+    /* HostSystem */
+    esxVI_HostConfigManager_Free(&item->configManager);
+})
+
+/* esxVI_HostSystem_Validate */
+ESX_VI__TEMPLATE__MANAGED_VALIDATE(HostSystem,
+{
+    /* ManagedEntity */
+    ESX_VI__TEMPLATE__PROPERTY__MANAGED_REQUIRE(name)
+
+    /* HostSystem */
+    ESX_VI__TEMPLATE__PROPERTY__MANAGED_REQUIRE(configManager)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Object: ManagedEntity
+ *                    extended by ComputeResource
+ *                                Datacenter
+ *                                HostSystem
+ */
+
+/* esxVI_ManagedEntity_Alloc */
+ESX_VI__TEMPLATE__ALLOC(ManagedEntity)
+
+/* esxVI_ManagedEntity_Free */
+ESX_VI__TEMPLATE__DYNAMIC_FREE(ManagedEntity,
+{
+    ESX_VI__TEMPLATE__DISPATCH__FREE(ComputeResource)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(Datacenter)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(HostSystem)
+},
+{
+    esxVI_ManagedObjectReference_Free(&item->_reference);
+
+    VIR_FREE(item->name);
+})
+
+/* esxVI_ManagedEntity_Validate */
+ESX_VI__TEMPLATE__MANAGED_VALIDATE(ManagedEntity,
+{
+    ESX_VI__TEMPLATE__PROPERTY__MANAGED_REQUIRE(name)
 })
 
 

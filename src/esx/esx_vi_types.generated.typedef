@@ -20,7 +20,7 @@ typedef enum _esxVI_VirtualMachinePowerState esxVI_VirtualMachinePowerState;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Types
+ * VI Objects
  */
 
 typedef struct _esxVI_AboutInfo esxVI_AboutInfo;
@@ -103,3 +103,14 @@ typedef struct _esxVI_VmNvramFileQuery esxVI_VmNvramFileQuery;
 typedef struct _esxVI_VmSnapshotFileInfo esxVI_VmSnapshotFileInfo;
 typedef struct _esxVI_VmSnapshotFileQuery esxVI_VmSnapshotFileQuery;
 typedef struct _esxVI_VmfsDatastoreInfo esxVI_VmfsDatastoreInfo;
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Objects
+ */
+
+typedef struct _esxVI_ComputeResource esxVI_ComputeResource;
+typedef struct _esxVI_Datacenter esxVI_Datacenter;
+typedef struct _esxVI_HostSystem esxVI_HostSystem;
+typedef struct _esxVI_ManagedEntity esxVI_ManagedEntity;

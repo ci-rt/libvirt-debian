@@ -91,3 +91,8 @@
     esxVI_Type_VmSnapshotFileInfo,
     esxVI_Type_VmSnapshotFileQuery,
     esxVI_Type_VmfsDatastoreInfo,
+
+    esxVI_Type_ComputeResource,
+    esxVI_Type_Datacenter,
+    esxVI_Type_HostSystem,
+    esxVI_Type_ManagedEntity,

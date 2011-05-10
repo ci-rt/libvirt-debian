@@ -68,7 +68,7 @@ virDomainXMLDevID(virDomainPtr domain,
                   int ref_len);
 
 #define virXendError(code, ...)                                            \
-        virReportErrorHelper(NULL, VIR_FROM_XEND, code, __FILE__,          \
+        virReportErrorHelper(VIR_FROM_XEND, code, __FILE__,                \
                              __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #define virXendErrorInt(code, ival)                                        \
@@ -279,11 +279,17 @@ istartswith(const char *haystack, const char *needle)
 static int ATTRIBUTE_NONNULL (2)
 xend_req(int fd, char **content)
 {
-    char buffer[4096];
+    char *buffer;
+    size_t buffer_size = 4096;
     int content_length = 0;
     int retcode = 0;
 
-    while (sreads(fd, buffer, sizeof(buffer)) > 0) {
+    if (VIR_ALLOC_N(buffer, buffer_size) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    while (sreads(fd, buffer, buffer_size) > 0) {
         if (STREQ(buffer, "\r\n"))
             break;
 
@@ -292,6 +298,8 @@ xend_req(int fd, char **content)
         else if (istartswith(buffer, "HTTP/1.1 "))
             retcode = atoi(buffer + 9);
     }
+
+    VIR_FREE(buffer);
 
     if (content_length > 0) {
         ssize_t ret;
@@ -479,13 +487,11 @@ xend_op_ext(virConnectPtr xend, const char *path, const char *key, va_list ap)
     while (k) {
         v = va_arg(ap, const char *);
 
-        virBufferVSprintf(&buf, "%s", k);
-        virBufferVSprintf(&buf, "%s", "=");
-        virBufferVSprintf(&buf, "%s", v);
+        virBufferVSprintf(&buf, "%s=%s", k, v);
         k = va_arg(ap, const char *);
 
         if (k)
-            virBufferVSprintf(&buf, "%s", "&");
+            virBufferAddChar(&buf, '&');
     }
 
     if (virBufferError(&buf)) {
@@ -3015,7 +3021,8 @@ xenDaemonDomainSetAutostart(virDomainPtr domain,
                             int autostart)
 {
     struct sexpr *root, *autonode;
-    char buf[4096];
+    virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    char *content = NULL;
     int ret = -1;
     xenUnifiedPrivatePtr priv;
 
@@ -3057,12 +3064,20 @@ xenDaemonDomainSetAutostart(virDomainPtr domain,
             goto error;
         }
 
-        if (sexpr2string(root, buf, sizeof(buf)) == 0) {
+        if (sexpr2string(root, &buffer) < 0) {
             virXendError(VIR_ERR_INTERNAL_ERROR,
                          "%s", _("sexpr2string failed"));
             goto error;
         }
-        if (xend_op(domain->conn, "", "op", "new", "config", buf, NULL) != 0) {
+
+        if (virBufferError(&buffer)) {
+            virReportOOMError();
+            goto error;
+        }
+
+        content = virBufferContentAndReset(&buffer);
+
+        if (xend_op(domain->conn, "", "op", "new", "config", content, NULL) != 0) {
             virXendError(VIR_ERR_XEN_CALL,
                          "%s", _("Failed to redefine sexpr"));
             goto error;
@@ -3075,6 +3090,8 @@ xenDaemonDomainSetAutostart(virDomainPtr domain,
 
     ret = 0;
   error:
+    virBufferFreeAndReset(&buffer);
+    VIR_FREE(content);
     sexpr_free(root);
     return ret;
 }

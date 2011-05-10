@@ -13,19 +13,14 @@
 #include "testutils.h"
 #include "testutilsxen.h"
 
-static char *progname;
-static char *abs_srcdir;
 static virCapsPtr caps;
 
-#define MAX_FILE 4096
-
-static int testCompareFiles(const char *xml, const char *sexpr,
-                            int xendConfigVersion) {
-  char xmlData[MAX_FILE];
-  char sexprData[MAX_FILE];
+static int
+testCompareFiles(const char *xml, const char *sexpr, int xendConfigVersion)
+{
+  char *xmlData = NULL;
+  char *sexprData = NULL;
   char *gotxml = NULL;
-  char *xmlPtr = &(xmlData[0]);
-  char *sexprPtr = &(sexprData[0]);
   int id;
   char * tty;
   int vncport;
@@ -38,10 +33,10 @@ static int testCompareFiles(const char *xml, const char *sexpr,
   conn = virGetConnect();
   if (!conn) goto fail;
 
-  if (virtTestLoadFile(xml, &xmlPtr, MAX_FILE) < 0)
+  if (virtTestLoadFile(xml, &xmlData) < 0)
       goto fail;
 
-  if (virtTestLoadFile(sexpr, &sexprPtr, MAX_FILE) < 0)
+  if (virtTestLoadFile(sexpr, &sexprData) < 0)
       goto fail;
 
   memset(&priv, 0, sizeof priv);
@@ -72,6 +67,8 @@ static int testCompareFiles(const char *xml, const char *sexpr,
   ret = 0;
 
  fail:
+  free(xmlData);
+  free(sexprData);
   free(gotxml);
   virDomainDefFree(def);
   if (conn)
@@ -86,39 +83,34 @@ struct testInfo {
     int version;
 };
 
-static int testCompareHelper(const void *data) {
+static int
+testCompareHelper(const void *data)
+{
+    int result = -1;
     const struct testInfo *info = data;
-    char xml[PATH_MAX];
-    char args[PATH_MAX];
-    snprintf(xml, PATH_MAX, "%s/sexpr2xmldata/sexpr2xml-%s.xml",
-             abs_srcdir, info->input);
-    snprintf(args, PATH_MAX, "%s/sexpr2xmldata/sexpr2xml-%s.sexpr",
-             abs_srcdir, info->output);
-    return testCompareFiles(xml, args, info->version);
+    char *xml = NULL;
+    char *args = NULL;
+
+    if (virAsprintf(&xml, "%s/sexpr2xmldata/sexpr2xml-%s.xml",
+                    abs_srcdir, info->input) < 0 ||
+        virAsprintf(&args, "%s/sexpr2xmldata/sexpr2xml-%s.sexpr",
+                    abs_srcdir, info->output) < 0) {
+        goto cleanup;
+    }
+
+    result = testCompareFiles(xml, args, info->version);
+
+cleanup:
+    free(xml);
+    free(args);
+
+    return result;
 }
 
-
 static int
-mymain(int argc, char **argv)
+mymain(void)
 {
     int ret = 0;
-    char cwd[PATH_MAX];
-
-    progname = argv[0];
-
-    if (argc > 1) {
-        fprintf(stderr, "Usage: %s\n", progname);
-        return(EXIT_FAILURE);
-    }
-
-    abs_srcdir = getenv("abs_srcdir");
-    if (!abs_srcdir)
-        abs_srcdir = getcwd(cwd, sizeof(cwd));
-
-    if (argc > 1) {
-        fprintf(stderr, "Usage: %s\n", progname);
-        return(EXIT_FAILURE);
-    }
 
     if (!(caps = testXenCapsInit()))
         return(EXIT_FAILURE);

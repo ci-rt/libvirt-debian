@@ -21,27 +21,24 @@ mymain(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 
 #else
 
-static char *progname;
-static char *abs_srcdir;
-
-# define MAX_FILE 4096
-
 extern int linuxNodeInfoCPUPopulate(FILE *cpuinfo, virNodeInfoPtr nodeinfo,
                                     bool need_hyperthreads);
 
-static int linuxTestCompareFiles(const char *cpuinfofile, const char *outputfile) {
-    char actualData[MAX_FILE];
-    char expectData[MAX_FILE];
-    char *expect = &expectData[0];
+static int
+linuxTestCompareFiles(const char *cpuinfofile, const char *outputfile)
+{
+    int ret = -1;
+    char *actualData = NULL;
+    char *expectData = NULL;
     virNodeInfo nodeinfo;
     FILE *cpuinfo;
 
-    if (virtTestLoadFile(outputfile, &expect, MAX_FILE) < 0)
-        return -1;
+    if (virtTestLoadFile(outputfile, &expectData) < 0)
+        goto fail;
 
     cpuinfo = fopen(cpuinfofile, "r");
     if (!cpuinfo)
-        return -1;
+        goto fail;
 
     memset(&nodeinfo, 0, sizeof(nodeinfo));
     if (linuxNodeInfoCPUPopulate(cpuinfo, &nodeinfo, false) < 0) {
@@ -52,7 +49,7 @@ static int linuxTestCompareFiles(const char *cpuinfofile, const char *outputfile
             virFreeError(error);
         }
         VIR_FORCE_FCLOSE(cpuinfo);
-        return -1;
+        goto fail;
     }
     VIR_FORCE_FCLOSE(cpuinfo);
 
@@ -61,35 +58,54 @@ static int linuxTestCompareFiles(const char *cpuinfofile, const char *outputfile
      * so blank it to a predictable value */
     nodeinfo.nodes = 1;
 
-    snprintf(actualData, MAX_FILE,
-             "CPUs: %u, MHz: %u, Nodes: %u, Cores: %u\n",
-             nodeinfo.cpus, nodeinfo.mhz, nodeinfo.nodes, nodeinfo.cores);
+    if (virAsprintf(&actualData, "CPUs: %u, MHz: %u, Nodes: %u, Cores: %u\n",
+                    nodeinfo.cpus, nodeinfo.mhz, nodeinfo.nodes,
+                    nodeinfo.cores) < 0)
+        goto fail;
 
     if (STRNEQ(actualData, expectData)) {
         if (getenv("DEBUG_TESTS")) {
             printf("Expect %d '%s'\n", (int)strlen(expectData), expectData);
             printf("Actual %d '%s'\n", (int)strlen(actualData), actualData);
         }
-        return -1;
+        goto fail;
     }
 
-    return 0;
-}
+    ret = 0;
 
-
-static int linuxTestNodeInfo(const void *data) {
-    char cpuinfo[PATH_MAX];
-    char output[PATH_MAX];
-    snprintf(cpuinfo, PATH_MAX, "%s/nodeinfodata/linux-%s.cpuinfo",
-             abs_srcdir, (const char*)data);
-    snprintf(output, PATH_MAX, "%s/nodeinfodata/linux-%s.txt",
-             abs_srcdir, (const char*)data);
-    return linuxTestCompareFiles(cpuinfo, output);
+fail:
+    free(expectData);
+    free(actualData);
+    return ret;
 }
 
 
 static int
-mymain(int argc, char **argv)
+linuxTestNodeInfo(const void *data)
+{
+    int result = -1;
+    char *cpuinfo = NULL;
+    char *output = NULL;
+
+    if (virAsprintf(&cpuinfo, "%s/nodeinfodata/linux-%s.cpuinfo",
+                    abs_srcdir, (const char*)data) < 0 ||
+        virAsprintf(&output, "%s/nodeinfodata/linux-%s.txt",
+                    abs_srcdir, (const char*)data) < 0) {
+        goto cleanup;
+    }
+
+    result = linuxTestCompareFiles(cpuinfo, output);
+
+cleanup:
+    free(cpuinfo);
+    free(output);
+
+    return result;
+}
+
+
+static int
+mymain(void)
 {
     int ret = 0;
     int i;
@@ -101,18 +117,6 @@ mymain(int argc, char **argv)
         "nodeinfo-5",
         "nodeinfo-6",
     };
-    char cwd[PATH_MAX];
-
-    abs_srcdir = getenv("abs_srcdir");
-    if (!abs_srcdir)
-        abs_srcdir = getcwd(cwd, sizeof(cwd));
-
-    progname = argv[0];
-
-    if (argc > 1) {
-        fprintf(stderr, "Usage: %s\n", progname);
-        return(EXIT_FAILURE);
-    }
 
     if (virInitialize() < 0)
         return EXIT_FAILURE;

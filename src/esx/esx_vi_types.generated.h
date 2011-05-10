@@ -173,7 +173,7 @@ int esxVI_VirtualMachinePowerState_Deserialize(xmlNodePtr node, esxVI_VirtualMac
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: AboutInfo
+ * VI Object: AboutInfo
  */
 
 struct _esxVI_AboutInfo {
@@ -202,7 +202,7 @@ int esxVI_AboutInfo_Deserialize(xmlNodePtr node, esxVI_AboutInfo **item);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: AutoStartDefaults
+ * VI Object: AutoStartDefaults
  */
 
 struct _esxVI_AutoStartDefaults {
@@ -226,7 +226,7 @@ int esxVI_AutoStartDefaults_Deserialize(xmlNodePtr node, esxVI_AutoStartDefaults
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: AutoStartPowerInfo
+ * VI Object: AutoStartPowerInfo
  */
 
 struct _esxVI_AutoStartPowerInfo {
@@ -256,8 +256,8 @@ int esxVI_AutoStartPowerInfo_DeserializeList(xmlNodePtr node, esxVI_AutoStartPow
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ChoiceOption
- *          extends OptionType
+ * VI Object: ChoiceOption
+ *            extends OptionType
  */
 
 struct _esxVI_ChoiceOption {
@@ -281,7 +281,7 @@ int esxVI_ChoiceOption_Deserialize(xmlNodePtr node, esxVI_ChoiceOption **item);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: DatastoreHostMount
+ * VI Object: DatastoreHostMount
  */
 
 struct _esxVI_DatastoreHostMount {
@@ -308,10 +308,10 @@ int esxVI_DatastoreHostMount_DeserializeList(xmlNodePtr node, esxVI_DatastoreHos
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: DatastoreInfo
- *          extended by LocalDatastoreInfo
- *                      NasDatastoreInfo
- *                      VmfsDatastoreInfo
+ * VI Object: DatastoreInfo
+ *            extended by LocalDatastoreInfo
+ *                        NasDatastoreInfo
+ *                        VmfsDatastoreInfo
  */
 
 struct _esxVI_DatastoreInfo {
@@ -335,8 +335,8 @@ int esxVI_DatastoreInfo_Deserialize(xmlNodePtr node, esxVI_DatastoreInfo **item)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: Description
- *          extended by ElementDescription
+ * VI Object: Description
+ *            extended by ElementDescription
  */
 
 struct _esxVI_Description {
@@ -359,8 +359,8 @@ int esxVI_Description_DeserializeList(xmlNodePtr node, esxVI_Description **list)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: DeviceBackedVirtualDiskSpec
- *          extends VirtualDiskSpec
+ * VI Object: DeviceBackedVirtualDiskSpec
+ *            extends VirtualDiskSpec
  */
 
 struct _esxVI_DeviceBackedVirtualDiskSpec {
@@ -385,7 +385,7 @@ int esxVI_DeviceBackedVirtualDiskSpec_Deserialize(xmlNodePtr node, esxVI_DeviceB
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: DynamicProperty
+ * VI Object: DynamicProperty
  */
 
 struct _esxVI_DynamicProperty {
@@ -408,8 +408,8 @@ int esxVI_DynamicProperty_DeserializeList(xmlNodePtr node, esxVI_DynamicProperty
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ElementDescription
- *          extends Description
+ * VI Object: ElementDescription
+ *            extends Description
  */
 
 struct _esxVI_ElementDescription {
@@ -436,7 +436,7 @@ int esxVI_ElementDescription_DeserializeList(xmlNodePtr node, esxVI_ElementDescr
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: Event
+ * VI Object: Event
  */
 
 struct _esxVI_Event {
@@ -466,8 +466,8 @@ int esxVI_Event_DeserializeList(xmlNodePtr node, esxVI_Event **list);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FileBackedVirtualDiskSpec
- *          extends VirtualDiskSpec
+ * VI Object: FileBackedVirtualDiskSpec
+ *            extends VirtualDiskSpec
  */
 
 struct _esxVI_FileBackedVirtualDiskSpec {
@@ -492,15 +492,15 @@ int esxVI_FileBackedVirtualDiskSpec_Deserialize(xmlNodePtr node, esxVI_FileBacke
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FileInfo
- *          extended by FloppyImageFileInfo
- *                      FolderFileInfo
- *                      IsoImageFileInfo
- *                      VmConfigFileInfo
- *                      VmDiskFileInfo
- *                      VmLogFileInfo
- *                      VmNvramFileInfo
- *                      VmSnapshotFileInfo
+ * VI Object: FileInfo
+ *            extended by FloppyImageFileInfo
+ *                        FolderFileInfo
+ *                        IsoImageFileInfo
+ *                        VmConfigFileInfo
+ *                        VmDiskFileInfo
+ *                        VmLogFileInfo
+ *                        VmNvramFileInfo
+ *                        VmSnapshotFileInfo
  */
 
 struct _esxVI_FileInfo {
@@ -525,15 +525,15 @@ int esxVI_FileInfo_DeserializeList(xmlNodePtr node, esxVI_FileInfo **list);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FileQuery
- *          extended by FloppyImageFileQuery
- *                      FolderFileQuery
- *                      IsoImageFileQuery
- *                      VmConfigFileQuery
- *                      VmDiskFileQuery
- *                      VmLogFileQuery
- *                      VmNvramFileQuery
- *                      VmSnapshotFileQuery
+ * VI Object: FileQuery
+ *            extended by FloppyImageFileQuery
+ *                        FolderFileQuery
+ *                        IsoImageFileQuery
+ *                        VmConfigFileQuery
+ *                        VmDiskFileQuery
+ *                        VmLogFileQuery
+ *                        VmNvramFileQuery
+ *                        VmSnapshotFileQuery
  */
 
 struct _esxVI_FileQuery {
@@ -556,7 +556,7 @@ int esxVI_FileQuery_DeserializeList(xmlNodePtr node, esxVI_FileQuery **list);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FileQueryFlags
+ * VI Object: FileQueryFlags
  */
 
 struct _esxVI_FileQueryFlags {
@@ -577,8 +577,8 @@ int esxVI_FileQueryFlags_Deserialize(xmlNodePtr node, esxVI_FileQueryFlags **ite
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FloppyImageFileInfo
- *          extends FileInfo
+ * VI Object: FloppyImageFileInfo
+ *            extends FileInfo
  */
 
 struct _esxVI_FloppyImageFileInfo {
@@ -607,8 +607,8 @@ int esxVI_FloppyImageFileInfo_DeserializeList(xmlNodePtr node, esxVI_FloppyImage
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FloppyImageFileQuery
- *          extends FileQuery
+ * VI Object: FloppyImageFileQuery
+ *            extends FileQuery
  */
 
 struct _esxVI_FloppyImageFileQuery {
@@ -635,8 +635,8 @@ int esxVI_FloppyImageFileQuery_DeserializeList(xmlNodePtr node, esxVI_FloppyImag
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FolderFileInfo
- *          extends FileInfo
+ * VI Object: FolderFileInfo
+ *            extends FileInfo
  */
 
 struct _esxVI_FolderFileInfo {
@@ -665,8 +665,8 @@ int esxVI_FolderFileInfo_DeserializeList(xmlNodePtr node, esxVI_FolderFileInfo *
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: FolderFileQuery
- *          extends FileQuery
+ * VI Object: FolderFileQuery
+ *            extends FileQuery
  */
 
 struct _esxVI_FolderFileQuery {
@@ -693,7 +693,7 @@ int esxVI_FolderFileQuery_DeserializeList(xmlNodePtr node, esxVI_FolderFileQuery
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostAutoStartManagerConfig
+ * VI Object: HostAutoStartManagerConfig
  */
 
 struct _esxVI_HostAutoStartManagerConfig {
@@ -713,7 +713,7 @@ int esxVI_HostAutoStartManagerConfig_Deserialize(xmlNodePtr node, esxVI_HostAuto
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostConfigManager
+ * VI Object: HostConfigManager
  */
 
 struct _esxVI_HostConfigManager {
@@ -749,7 +749,7 @@ int esxVI_HostConfigManager_Deserialize(xmlNodePtr node, esxVI_HostConfigManager
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostCpuIdInfo
+ * VI Object: HostCpuIdInfo
  */
 
 struct _esxVI_HostCpuIdInfo {
@@ -778,7 +778,7 @@ int esxVI_HostCpuIdInfo_DeserializeList(xmlNodePtr node, esxVI_HostCpuIdInfo **l
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostDatastoreBrowserSearchResults
+ * VI Object: HostDatastoreBrowserSearchResults
  */
 
 struct _esxVI_HostDatastoreBrowserSearchResults {
@@ -804,7 +804,7 @@ int esxVI_HostDatastoreBrowserSearchResults_DeserializeList(xmlNodePtr node, esx
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostDatastoreBrowserSearchSpec
+ * VI Object: HostDatastoreBrowserSearchSpec
  */
 
 struct _esxVI_HostDatastoreBrowserSearchSpec {
@@ -827,9 +827,9 @@ int esxVI_HostDatastoreBrowserSearchSpec_Deserialize(xmlNodePtr node, esxVI_Host
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostFileSystemVolume
- *          extended by HostNasVolume
- *                      HostVmfsVolume
+ * VI Object: HostFileSystemVolume
+ *            extended by HostNasVolume
+ *                        HostVmfsVolume
  */
 
 struct _esxVI_HostFileSystemVolume {
@@ -850,7 +850,7 @@ int esxVI_HostFileSystemVolume_Deserialize(xmlNodePtr node, esxVI_HostFileSystem
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostMountInfo
+ * VI Object: HostMountInfo
  */
 
 struct _esxVI_HostMountInfo {
@@ -872,8 +872,8 @@ int esxVI_HostMountInfo_Deserialize(xmlNodePtr node, esxVI_HostMountInfo **item)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostNasVolume
- *          extends HostFileSystemVolume
+ * VI Object: HostNasVolume
+ *            extends HostFileSystemVolume
  */
 
 struct _esxVI_HostNasVolume {
@@ -900,7 +900,7 @@ int esxVI_HostNasVolume_Deserialize(xmlNodePtr node, esxVI_HostNasVolume **item)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostScsiDiskPartition
+ * VI Object: HostScsiDiskPartition
  */
 
 struct _esxVI_HostScsiDiskPartition {
@@ -923,8 +923,8 @@ int esxVI_HostScsiDiskPartition_DeserializeList(xmlNodePtr node, esxVI_HostScsiD
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: HostVmfsVolume
- *          extends HostFileSystemVolume
+ * VI Object: HostVmfsVolume
+ *            extends HostFileSystemVolume
  */
 
 struct _esxVI_HostVmfsVolume {
@@ -955,8 +955,8 @@ int esxVI_HostVmfsVolume_Deserialize(xmlNodePtr node, esxVI_HostVmfsVolume **ite
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: IsoImageFileInfo
- *          extends FileInfo
+ * VI Object: IsoImageFileInfo
+ *            extends FileInfo
  */
 
 struct _esxVI_IsoImageFileInfo {
@@ -985,8 +985,8 @@ int esxVI_IsoImageFileInfo_DeserializeList(xmlNodePtr node, esxVI_IsoImageFileIn
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: IsoImageFileQuery
- *          extends FileQuery
+ * VI Object: IsoImageFileQuery
+ *            extends FileQuery
  */
 
 struct _esxVI_IsoImageFileQuery {
@@ -1013,8 +1013,8 @@ int esxVI_IsoImageFileQuery_DeserializeList(xmlNodePtr node, esxVI_IsoImageFileQ
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: LocalDatastoreInfo
- *          extends DatastoreInfo
+ * VI Object: LocalDatastoreInfo
+ *            extends DatastoreInfo
  */
 
 struct _esxVI_LocalDatastoreInfo {
@@ -1042,7 +1042,7 @@ int esxVI_LocalDatastoreInfo_Deserialize(xmlNodePtr node, esxVI_LocalDatastoreIn
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: LocalizedMethodFault
+ * VI Object: LocalizedMethodFault
  */
 
 struct _esxVI_LocalizedMethodFault {
@@ -1061,8 +1061,8 @@ int esxVI_LocalizedMethodFault_Deserialize(xmlNodePtr node, esxVI_LocalizedMetho
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: NasDatastoreInfo
- *          extends DatastoreInfo
+ * VI Object: NasDatastoreInfo
+ *            extends DatastoreInfo
  */
 
 struct _esxVI_NasDatastoreInfo {
@@ -1090,7 +1090,7 @@ int esxVI_NasDatastoreInfo_Deserialize(xmlNodePtr node, esxVI_NasDatastoreInfo *
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ObjectContent
+ * VI Object: ObjectContent
  */
 
 struct _esxVI_ObjectContent {
@@ -1114,7 +1114,7 @@ int esxVI_ObjectContent_DeserializeList(xmlNodePtr node, esxVI_ObjectContent **l
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ObjectSpec
+ * VI Object: ObjectSpec
  */
 
 struct _esxVI_ObjectSpec {
@@ -1138,7 +1138,7 @@ int esxVI_ObjectSpec_DeserializeList(xmlNodePtr node, esxVI_ObjectSpec **list);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ObjectUpdate
+ * VI Object: ObjectUpdate
  */
 
 struct _esxVI_ObjectUpdate {
@@ -1161,8 +1161,8 @@ int esxVI_ObjectUpdate_DeserializeList(xmlNodePtr node, esxVI_ObjectUpdate **lis
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: OptionType
- *          extended by ChoiceOption
+ * VI Object: OptionType
+ *            extended by ChoiceOption
  */
 
 struct _esxVI_OptionType {
@@ -1181,7 +1181,7 @@ int esxVI_OptionType_Deserialize(xmlNodePtr node, esxVI_OptionType **item);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfCounterInfo
+ * VI Object: PerfCounterInfo
  */
 
 struct _esxVI_PerfCounterInfo {
@@ -1210,8 +1210,8 @@ int esxVI_PerfCounterInfo_DeserializeList(xmlNodePtr node, esxVI_PerfCounterInfo
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfEntityMetric
- *          extends PerfEntityMetricBase
+ * VI Object: PerfEntityMetric
+ *            extends PerfEntityMetricBase
  */
 
 struct _esxVI_PerfEntityMetric {
@@ -1239,8 +1239,8 @@ int esxVI_PerfEntityMetric_DeserializeList(xmlNodePtr node, esxVI_PerfEntityMetr
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfEntityMetricBase
- *          extended by PerfEntityMetric
+ * VI Object: PerfEntityMetricBase
+ *            extended by PerfEntityMetric
  */
 
 struct _esxVI_PerfEntityMetricBase {
@@ -1263,7 +1263,7 @@ int esxVI_PerfEntityMetricBase_DeserializeList(xmlNodePtr node, esxVI_PerfEntity
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfMetricId
+ * VI Object: PerfMetricId
  */
 
 struct _esxVI_PerfMetricId {
@@ -1286,8 +1286,8 @@ int esxVI_PerfMetricId_DeserializeList(xmlNodePtr node, esxVI_PerfMetricId **lis
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfMetricIntSeries
- *          extends PerfMetricSeries
+ * VI Object: PerfMetricIntSeries
+ *            extends PerfMetricSeries
  */
 
 struct _esxVI_PerfMetricIntSeries {
@@ -1314,8 +1314,8 @@ int esxVI_PerfMetricIntSeries_DeserializeList(xmlNodePtr node, esxVI_PerfMetricI
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfMetricSeries
- *          extended by PerfMetricIntSeries
+ * VI Object: PerfMetricSeries
+ *            extended by PerfMetricIntSeries
  */
 
 struct _esxVI_PerfMetricSeries {
@@ -1338,7 +1338,7 @@ int esxVI_PerfMetricSeries_DeserializeList(xmlNodePtr node, esxVI_PerfMetricSeri
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfQuerySpec
+ * VI Object: PerfQuerySpec
  */
 
 struct _esxVI_PerfQuerySpec {
@@ -1366,7 +1366,7 @@ int esxVI_PerfQuerySpec_DeserializeList(xmlNodePtr node, esxVI_PerfQuerySpec **l
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PerfSampleInfo
+ * VI Object: PerfSampleInfo
  */
 
 struct _esxVI_PerfSampleInfo {
@@ -1389,7 +1389,7 @@ int esxVI_PerfSampleInfo_DeserializeList(xmlNodePtr node, esxVI_PerfSampleInfo *
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PropertyChange
+ * VI Object: PropertyChange
  */
 
 struct _esxVI_PropertyChange {
@@ -1411,7 +1411,7 @@ int esxVI_PropertyChange_DeserializeList(xmlNodePtr node, esxVI_PropertyChange *
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PropertyFilterSpec
+ * VI Object: PropertyFilterSpec
  */
 
 struct _esxVI_PropertyFilterSpec {
@@ -1434,7 +1434,7 @@ int esxVI_PropertyFilterSpec_DeserializeList(xmlNodePtr node, esxVI_PropertyFilt
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PropertyFilterUpdate
+ * VI Object: PropertyFilterUpdate
  */
 
 struct _esxVI_PropertyFilterUpdate {
@@ -1456,7 +1456,7 @@ int esxVI_PropertyFilterUpdate_DeserializeList(xmlNodePtr node, esxVI_PropertyFi
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: PropertySpec
+ * VI Object: PropertySpec
  */
 
 struct _esxVI_PropertySpec {
@@ -1480,7 +1480,7 @@ int esxVI_PropertySpec_DeserializeList(xmlNodePtr node, esxVI_PropertySpec **lis
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ResourceAllocationInfo
+ * VI Object: ResourceAllocationInfo
  */
 
 struct _esxVI_ResourceAllocationInfo {
@@ -1503,7 +1503,7 @@ int esxVI_ResourceAllocationInfo_Deserialize(xmlNodePtr node, esxVI_ResourceAllo
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ResourcePoolResourceUsage
+ * VI Object: ResourcePoolResourceUsage
  */
 
 struct _esxVI_ResourcePoolResourceUsage {
@@ -1528,8 +1528,8 @@ int esxVI_ResourcePoolResourceUsage_Deserialize(xmlNodePtr node, esxVI_ResourceP
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: SelectionSpec
- *          extended by TraversalSpec
+ * VI Object: SelectionSpec
+ *            extended by TraversalSpec
  */
 
 struct _esxVI_SelectionSpec {
@@ -1552,7 +1552,7 @@ int esxVI_SelectionSpec_DeserializeList(xmlNodePtr node, esxVI_SelectionSpec **l
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: ServiceContent
+ * VI Object: ServiceContent
  */
 
 struct _esxVI_ServiceContent {
@@ -1593,7 +1593,7 @@ int esxVI_ServiceContent_Deserialize(xmlNodePtr node, esxVI_ServiceContent **ite
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: SharesInfo
+ * VI Object: SharesInfo
  */
 
 struct _esxVI_SharesInfo {
@@ -1614,7 +1614,7 @@ int esxVI_SharesInfo_Deserialize(xmlNodePtr node, esxVI_SharesInfo **item);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: TaskInfo
+ * VI Object: TaskInfo
  */
 
 struct _esxVI_TaskInfo {
@@ -1653,8 +1653,8 @@ int esxVI_TaskInfo_DeserializeList(xmlNodePtr node, esxVI_TaskInfo **list);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: TemplateConfigFileInfo
- *          extends VmConfigFileInfo
+ * VI Object: TemplateConfigFileInfo
+ *            extends VmConfigFileInfo
  */
 
 struct _esxVI_TemplateConfigFileInfo {
@@ -1686,8 +1686,8 @@ int esxVI_TemplateConfigFileInfo_DeserializeList(xmlNodePtr node, esxVI_Template
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: TemplateConfigFileQuery
- *          extends VmConfigFileQuery
+ * VI Object: TemplateConfigFileQuery
+ *            extends VmConfigFileQuery
  */
 
 struct _esxVI_TemplateConfigFileQuery {
@@ -1718,8 +1718,8 @@ int esxVI_TemplateConfigFileQuery_DeserializeList(xmlNodePtr node, esxVI_Templat
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: TraversalSpec
- *          extends SelectionSpec
+ * VI Object: TraversalSpec
+ *            extends SelectionSpec
  */
 
 struct _esxVI_TraversalSpec {
@@ -1749,7 +1749,7 @@ int esxVI_TraversalSpec_DeserializeList(xmlNodePtr node, esxVI_TraversalSpec **l
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: UpdateSet
+ * VI Object: UpdateSet
  */
 
 struct _esxVI_UpdateSet {
@@ -1768,7 +1768,7 @@ int esxVI_UpdateSet_Deserialize(xmlNodePtr node, esxVI_UpdateSet **item);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: UserSession
+ * VI Object: UserSession
  */
 
 struct _esxVI_UserSession {
@@ -1794,9 +1794,9 @@ int esxVI_UserSession_Deserialize(xmlNodePtr node, esxVI_UserSession **item);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VirtualDiskSpec
- *          extended by DeviceBackedVirtualDiskSpec
- *                      FileBackedVirtualDiskSpec
+ * VI Object: VirtualDiskSpec
+ *            extended by DeviceBackedVirtualDiskSpec
+ *                        FileBackedVirtualDiskSpec
  */
 
 struct _esxVI_VirtualDiskSpec {
@@ -1817,7 +1817,7 @@ int esxVI_VirtualDiskSpec_Deserialize(xmlNodePtr node, esxVI_VirtualDiskSpec **i
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VirtualMachineConfigSpec
+ * VI Object: VirtualMachineConfigSpec
  */
 
 struct _esxVI_VirtualMachineConfigSpec {
@@ -1864,7 +1864,7 @@ int esxVI_VirtualMachineConfigSpec_Deserialize(xmlNodePtr node, esxVI_VirtualMac
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VirtualMachineQuestionInfo
+ * VI Object: VirtualMachineQuestionInfo
  */
 
 struct _esxVI_VirtualMachineQuestionInfo {
@@ -1887,7 +1887,7 @@ int esxVI_VirtualMachineQuestionInfo_Deserialize(xmlNodePtr node, esxVI_VirtualM
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VirtualMachineSnapshotTree
+ * VI Object: VirtualMachineSnapshotTree
  */
 
 struct _esxVI_VirtualMachineSnapshotTree {
@@ -1918,9 +1918,9 @@ int esxVI_VirtualMachineSnapshotTree_DeserializeList(xmlNodePtr node, esxVI_Virt
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmConfigFileInfo
- *          extends FileInfo
- *          extended by TemplateConfigFileInfo
+ * VI Object: VmConfigFileInfo
+ *            extends FileInfo
+ *            extended by TemplateConfigFileInfo
  */
 
 struct _esxVI_VmConfigFileInfo {
@@ -1949,9 +1949,9 @@ int esxVI_VmConfigFileInfo_DeserializeList(xmlNodePtr node, esxVI_VmConfigFileIn
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmConfigFileQuery
- *          extends FileQuery
- *          extended by TemplateConfigFileQuery
+ * VI Object: VmConfigFileQuery
+ *            extends FileQuery
+ *            extended by TemplateConfigFileQuery
  */
 
 struct _esxVI_VmConfigFileQuery {
@@ -1979,7 +1979,7 @@ int esxVI_VmConfigFileQuery_DeserializeList(xmlNodePtr node, esxVI_VmConfigFileQ
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmConfigFileQueryFilter
+ * VI Object: VmConfigFileQueryFilter
  */
 
 struct _esxVI_VmConfigFileQueryFilter {
@@ -1998,7 +1998,7 @@ int esxVI_VmConfigFileQueryFilter_Deserialize(xmlNodePtr node, esxVI_VmConfigFil
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmConfigFileQueryFlags
+ * VI Object: VmConfigFileQueryFlags
  */
 
 struct _esxVI_VmConfigFileQueryFlags {
@@ -2017,8 +2017,8 @@ int esxVI_VmConfigFileQueryFlags_Deserialize(xmlNodePtr node, esxVI_VmConfigFile
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmDiskFileInfo
- *          extends FileInfo
+ * VI Object: VmDiskFileInfo
+ *            extends FileInfo
  */
 
 struct _esxVI_VmDiskFileInfo {
@@ -2051,8 +2051,8 @@ int esxVI_VmDiskFileInfo_DeserializeList(xmlNodePtr node, esxVI_VmDiskFileInfo *
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmDiskFileQuery
- *          extends FileQuery
+ * VI Object: VmDiskFileQuery
+ *            extends FileQuery
  */
 
 struct _esxVI_VmDiskFileQuery {
@@ -2080,7 +2080,7 @@ int esxVI_VmDiskFileQuery_DeserializeList(xmlNodePtr node, esxVI_VmDiskFileQuery
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmDiskFileQueryFilter
+ * VI Object: VmDiskFileQueryFilter
  */
 
 struct _esxVI_VmDiskFileQueryFilter {
@@ -2101,7 +2101,7 @@ int esxVI_VmDiskFileQueryFilter_Deserialize(xmlNodePtr node, esxVI_VmDiskFileQue
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmDiskFileQueryFlags
+ * VI Object: VmDiskFileQueryFlags
  */
 
 struct _esxVI_VmDiskFileQueryFlags {
@@ -2124,8 +2124,8 @@ int esxVI_VmDiskFileQueryFlags_Deserialize(xmlNodePtr node, esxVI_VmDiskFileQuer
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmLogFileInfo
- *          extends FileInfo
+ * VI Object: VmLogFileInfo
+ *            extends FileInfo
  */
 
 struct _esxVI_VmLogFileInfo {
@@ -2154,8 +2154,8 @@ int esxVI_VmLogFileInfo_DeserializeList(xmlNodePtr node, esxVI_VmLogFileInfo **l
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmLogFileQuery
- *          extends FileQuery
+ * VI Object: VmLogFileQuery
+ *            extends FileQuery
  */
 
 struct _esxVI_VmLogFileQuery {
@@ -2182,8 +2182,8 @@ int esxVI_VmLogFileQuery_DeserializeList(xmlNodePtr node, esxVI_VmLogFileQuery *
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmNvramFileInfo
- *          extends FileInfo
+ * VI Object: VmNvramFileInfo
+ *            extends FileInfo
  */
 
 struct _esxVI_VmNvramFileInfo {
@@ -2212,8 +2212,8 @@ int esxVI_VmNvramFileInfo_DeserializeList(xmlNodePtr node, esxVI_VmNvramFileInfo
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmNvramFileQuery
- *          extends FileQuery
+ * VI Object: VmNvramFileQuery
+ *            extends FileQuery
  */
 
 struct _esxVI_VmNvramFileQuery {
@@ -2240,8 +2240,8 @@ int esxVI_VmNvramFileQuery_DeserializeList(xmlNodePtr node, esxVI_VmNvramFileQue
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmSnapshotFileInfo
- *          extends FileInfo
+ * VI Object: VmSnapshotFileInfo
+ *            extends FileInfo
  */
 
 struct _esxVI_VmSnapshotFileInfo {
@@ -2270,8 +2270,8 @@ int esxVI_VmSnapshotFileInfo_DeserializeList(xmlNodePtr node, esxVI_VmSnapshotFi
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmSnapshotFileQuery
- *          extends FileQuery
+ * VI Object: VmSnapshotFileQuery
+ *            extends FileQuery
  */
 
 struct _esxVI_VmSnapshotFileQuery {
@@ -2298,8 +2298,8 @@ int esxVI_VmSnapshotFileQuery_DeserializeList(xmlNodePtr node, esxVI_VmSnapshotF
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Type: VmfsDatastoreInfo
- *          extends DatastoreInfo
+ * VI Object: VmfsDatastoreInfo
+ *            extends DatastoreInfo
  */
 
 struct _esxVI_VmfsDatastoreInfo {
@@ -2323,6 +2323,98 @@ esxVI_VmfsDatastoreInfo *esxVI_VmfsDatastoreInfo_DynamicCast(void *item);
 int esxVI_VmfsDatastoreInfo_CastFromAnyType(esxVI_AnyType *anyType, esxVI_VmfsDatastoreInfo **item);
 int esxVI_VmfsDatastoreInfo_Serialize(esxVI_VmfsDatastoreInfo *item, const char *element, virBufferPtr output);
 int esxVI_VmfsDatastoreInfo_Deserialize(xmlNodePtr node, esxVI_VmfsDatastoreInfo **item);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Object: ComputeResource
+ *                    extends ManagedEntity
+ */
+
+struct _esxVI_ComputeResource {
+    esxVI_ComputeResource *_unused;                        /* optional */
+    esxVI_Type _type;                                      /* required */
+    esxVI_ManagedObjectReference *_reference;              /* required */
+
+    /* ManagedEntity */
+    char *name;                                            /* required */
+
+    /* ComputeResource */
+    esxVI_ManagedObjectReference *host;                    /* optional, list */
+    esxVI_ManagedObjectReference *resourcePool;            /* optional */
+};
+
+int esxVI_ComputeResource_Alloc(esxVI_ComputeResource **item);
+void esxVI_ComputeResource_Free(esxVI_ComputeResource **item);
+int esxVI_ComputeResource_Validate(esxVI_ComputeResource *item, esxVI_String *selectedPropertyNameList);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Object: Datacenter
+ *                    extends ManagedEntity
+ */
+
+struct _esxVI_Datacenter {
+    esxVI_Datacenter *_unused;                             /* optional */
+    esxVI_Type _type;                                      /* required */
+    esxVI_ManagedObjectReference *_reference;              /* required */
+
+    /* ManagedEntity */
+    char *name;                                            /* required */
+
+    /* Datacenter */
+    esxVI_ManagedObjectReference *hostFolder;              /* required */
+    esxVI_ManagedObjectReference *vmFolder;                /* required */
+};
+
+int esxVI_Datacenter_Alloc(esxVI_Datacenter **item);
+void esxVI_Datacenter_Free(esxVI_Datacenter **item);
+int esxVI_Datacenter_Validate(esxVI_Datacenter *item, esxVI_String *selectedPropertyNameList);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Object: HostSystem
+ *                    extends ManagedEntity
+ */
+
+struct _esxVI_HostSystem {
+    esxVI_HostSystem *_unused;                             /* optional */
+    esxVI_Type _type;                                      /* required */
+    esxVI_ManagedObjectReference *_reference;              /* required */
+
+    /* ManagedEntity */
+    char *name;                                            /* required */
+
+    /* HostSystem */
+    esxVI_HostConfigManager *configManager;                /* required */
+};
+
+int esxVI_HostSystem_Alloc(esxVI_HostSystem **item);
+void esxVI_HostSystem_Free(esxVI_HostSystem **item);
+int esxVI_HostSystem_Validate(esxVI_HostSystem *item, esxVI_String *selectedPropertyNameList);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Object: ManagedEntity
+ *                    extended by ComputeResource
+ *                                Datacenter
+ *                                HostSystem
+ */
+
+struct _esxVI_ManagedEntity {
+    esxVI_ManagedEntity *_unused;                          /* optional */
+    esxVI_Type _type;                                      /* required */
+    esxVI_ManagedObjectReference *_reference;              /* required */
+
+    char *name;                                            /* required */
+};
+
+int esxVI_ManagedEntity_Alloc(esxVI_ManagedEntity **item);
+void esxVI_ManagedEntity_Free(esxVI_ManagedEntity **item);
+int esxVI_ManagedEntity_Validate(esxVI_ManagedEntity *item, esxVI_String *selectedPropertyNameList);
 
 
 

@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# netinet_in_h.m4 serial 4
+# netinet_in_h.m4 serial 5
 dnl Copyright (C) 2006-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -29,4 +29,5 @@ AC_DEFUN([gl_HEADER_NETINET_IN],
     AC_SUBST([HAVE_NETINET_IN_H])
   fi
   AC_SUBST([NETINET_IN_H])
+  AM_CONDITIONAL([GL_GENERATE_NETINET_IN_H], [test -n "$NETINET_IN_H"])
 ])

@@ -36,6 +36,7 @@
 #include "xenxs_private.h"
 #include "xen_xm.h"
 #include "xen_sxpr.h"
+#include "domain_conf.h"
 
 /* Convenience method to grab a int from the config file object */
 static int xenXMConfigGetBool(virConfPtr conf,
@@ -211,6 +212,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
     const char *defaultArch, *defaultMachine;
     int vmlocaltime = 0;
     unsigned long count;
+    char *script = NULL;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -556,7 +558,6 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
     if (list && list->type == VIR_CONF_LIST) {
         list = list->list;
         while (list) {
-            char script[PATH_MAX];
             char model[10];
             char type[10];
             char ip[16];
@@ -567,7 +568,6 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
 
             bridge[0] = '\0';
             mac[0] = '\0';
-            script[0] = '\0';
             ip[0] = '\0';
             model[0] = '\0';
             type[0] = '\0';
@@ -602,12 +602,10 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                         goto skipnic;
                     }
                 } else if (STRPREFIX(key, "script=")) {
-                    int len = nextkey ? (nextkey - data) : sizeof(script) - 1;
-                    if (virStrncpy(script, data, len, sizeof(script)) == NULL) {
-                        XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
-                                   _("Script %s too big for destination"),
-                                   data);
-                        goto skipnic;
+                    int len = nextkey ? (nextkey - data) : strlen(data);
+                    VIR_FREE(script);
+                    if (!(script = strndup(data, len))) {
+                        goto no_memory;
                     }
                 } else if (STRPREFIX(key, "model=")) {
                     int len = nextkey ? (nextkey - data) : sizeof(model) - 1;
@@ -960,6 +958,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 goto no_memory;
             }
             chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL;
+            chr->target.port = 0;
             def->parallels[0] = chr;
             def->nparallels++;
             chr = NULL;
@@ -984,8 +983,6 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                     continue;
                 }
 
-                if (VIR_ALLOC(chr) < 0)
-                    goto no_memory;
                 if (!(chr = xenParseSxprChar(port, NULL)))
                     goto cleanup;
 
@@ -1013,6 +1010,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                     goto no_memory;
                 }
                 chr->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL;
+                chr->target.port = 0;
                 def->serials[0] = chr;
                 def->nserials++;
             }
@@ -1021,6 +1019,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
         if (!(def->console = xenParseSxprChar("pty", NULL)))
             goto cleanup;
         def->console->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE;
+        def->console->target.port = 0;
         def->console->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
     }
 
@@ -1033,6 +1032,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             goto cleanup;
     }
 
+    VIR_FREE(script);
     return def;
 
 no_memory:
@@ -1043,6 +1043,7 @@ cleanup:
     virDomainNetDefFree(net);
     virDomainDiskDefFree(disk);
     virDomainDefFree(def);
+    VIR_FREE(script);
     return NULL;
 }
 
@@ -1113,13 +1114,13 @@ static int xenFormatXMDisk(virConfValuePtr list,
                 goto cleanup;
             }
         }
-        virBufferVSprintf(&buf, "%s", disk->src);
+        virBufferAdd(&buf, disk->src, -1);
     }
     virBufferAddLit(&buf, ",");
     if (hvm && xendConfigVersion == 1)
         virBufferAddLit(&buf, "ioemu:");
 
-    virBufferVSprintf(&buf, "%s", disk->dst);
+    virBufferAdd(&buf, disk->dst, -1);
     if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
         virBufferAddLit(&buf, ":cdrom");
 

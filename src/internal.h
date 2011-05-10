@@ -117,6 +117,15 @@
 #  endif
 
 /**
+ * ATTRIBUTE_NORETURN:
+ *
+ * Macro to indicate that a function won't return to the caller
+ */
+#  ifndef ATTRIBUTE_NORETURN
+#   define ATTRIBUTE_NORETURN __attribute__((__noreturn__))
+#  endif
+
+/**
  * ATTRIBUTE_SENTINEL:
  *
  * Macro to check for NULL-terminated varargs lists
@@ -223,8 +232,7 @@
     do {                                                                \
         unsigned long __unsuppflags = flags & ~(supported);             \
         if (__unsuppflags) {                                            \
-            virReportErrorHelper(NULL,                                  \
-                                 VIR_FROM_THIS,                         \
+            virReportErrorHelper(VIR_FROM_THIS,                         \
                                  VIR_ERR_INVALID_ARG,                   \
                                  __FILE__,                              \
                                  __FUNCTION__,                          \
