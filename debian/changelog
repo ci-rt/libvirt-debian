@@ -1,3 +1,13 @@
+libvirt (0.9.1-1) unstable; urgency=low
+
+  * [1546b8c] New upstream version 0.9.1
+  * [2418ebf] Rediff patches
+  * [d4e2b71] Drop Make-sure-DNSMASQ_STATE_DIR-exists.patch: applied upstream
+  * [0fef693] libvirt0: Update symbols
+  * [b4ff149] Bump standards version to 3.9.2
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 10 May 2011 22:45:11 +0200
+
 libvirt (0.9.0-2) unstable; urgency=low
 
   * [3a8e07f] New patch Make-sure-DNSMASQ_STATE_DIR-exists.patch
