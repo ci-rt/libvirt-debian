@@ -1,0 +1,184 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 16 Nov 2010 16:57:44 +0100
+Subject: [PATCH] nwfilter: resolve deadlock between VM operations and filter update
+
+origin: upstream, http://libvirt.org/git/?p=libvirt.git;a=commit;h=4435f3c4779b8e2a63166ebe987979e921afa5e0
+Closes: #602715
+---
+ src/conf/nwfilter_conf.c       |   18 ++++++++++++++++++
+ src/conf/nwfilter_conf.h       |    6 ++++++
+ src/libvirt_private.syms       |    2 ++
+ src/nwfilter/nwfilter_driver.c |   13 +++++++++++++
+ src/qemu/qemu_driver.c         |   18 ++++++++++++++----
+ 5 files changed, 53 insertions(+), 4 deletions(-)
+
+diff --git a/src/conf/nwfilter_conf.c b/src/conf/nwfilter_conf.c
+index fd3d805..978ac09 100644
+--- a/src/conf/nwfilter_conf.c
++++ b/src/conf/nwfilter_conf.c
+@@ -2083,6 +2083,24 @@ virNWFilterRegisterCallbackDriver(virNWFilterCallbackDriverPtr cbd)
+     }
+ }
+ 
++void
++virNWFilterCallbackDriversLock(void)
++{
++    int i;
++
++    for (i = 0; i < nCallbackDriver; i++)
++        callbackDrvArray[i]->vmDriverLock();
++}
++
++void
++virNWFilterCallbackDriversUnlock(void)
++{
++    int i;
++
++    for (i = 0; i < nCallbackDriver; i++)
++        callbackDrvArray[i]->vmDriverUnlock();
++}
++
+ 
+ static virHashIterator virNWFilterDomainFWUpdateCB;
+ 
+diff --git a/src/conf/nwfilter_conf.h b/src/conf/nwfilter_conf.h
+index 99ef1d4..dfb516a 100644
+--- a/src/conf/nwfilter_conf.h
++++ b/src/conf/nwfilter_conf.h
+@@ -629,6 +629,8 @@ void virNWFilterConfLayerShutdown(void);
+ 
+ typedef int (*virNWFilterRebuild)(virConnectPtr conn,
+                                   virHashIterator, void *data);
++typedef void (*virNWFilterVoidCall)(void);
++
+ 
+ typedef struct _virNWFilterCallbackDriver virNWFilterCallbackDriver;
+ typedef virNWFilterCallbackDriver *virNWFilterCallbackDriverPtr;
+@@ -636,9 +638,13 @@ struct _virNWFilterCallbackDriver {
+     const char *name;
+ 
+     virNWFilterRebuild vmFilterRebuild;
++    virNWFilterVoidCall vmDriverLock;
++    virNWFilterVoidCall vmDriverUnlock;
+ };
+ 
+ void virNWFilterRegisterCallbackDriver(virNWFilterCallbackDriverPtr);
++void virNWFilterCallbackDriversLock(void);
++void virNWFilterCallbackDriversUnlock(void);
+ 
+ 
+ VIR_ENUM_DECL(virNWFilterRuleAction);
+diff --git a/src/libvirt_private.syms b/src/libvirt_private.syms
+index d5a7a73..344b4b5 100644
+--- a/src/libvirt_private.syms
++++ b/src/libvirt_private.syms
+@@ -533,6 +533,8 @@ virNWFilterConfLayerInit;
+ virNWFilterConfLayerShutdown;
+ virNWFilterLockFilterUpdates;
+ virNWFilterUnlockFilterUpdates;
++virNWFilterCallbackDriversLock;
++virNWFilterCallbackDriversUnlock;
+ 
+ 
+ # nwfilter_params.h
+diff --git a/src/nwfilter/nwfilter_driver.c b/src/nwfilter/nwfilter_driver.c
+index 9dd776b..efa7fc3 100644
+--- a/src/nwfilter/nwfilter_driver.c
++++ b/src/nwfilter/nwfilter_driver.c
+@@ -34,6 +34,7 @@
+ #include "memory.h"
+ #include "domain_conf.h"
+ #include "domain_nwfilter.h"
++#include "nwfilter_conf.h"
+ #include "nwfilter_driver.h"
+ #include "nwfilter_gentech_driver.h"
+ 
+@@ -148,9 +149,13 @@ nwfilterDriverReload(void) {
+     }
+ 
+     nwfilterDriverLock(driverState);
++    virNWFilterCallbackDriversLock();
++
+     virNWFilterPoolLoadAllConfigs(NULL,
+                                   &driverState->pools,
+                                   driverState->configDir);
++
++    virNWFilterCallbackDriversUnlock();
+     nwfilterDriverUnlock(driverState);
+ 
+     return 0;
+@@ -321,6 +326,8 @@ nwfilterDefine(virConnectPtr conn,
+     virNWFilterPtr ret = NULL;
+ 
+     nwfilterDriverLock(driver);
++    virNWFilterCallbackDriversLock();
++
+     if (!(def = virNWFilterDefParseString(conn, xml)))
+         goto cleanup;
+ 
+@@ -340,6 +347,8 @@ cleanup:
+     virNWFilterDefFree(def);
+     if (pool)
+         virNWFilterPoolObjUnlock(pool);
++
++    virNWFilterCallbackDriversUnlock();
+     nwfilterDriverUnlock(driver);
+     return ret;
+ }
+@@ -352,6 +361,8 @@ nwfilterUndefine(virNWFilterPtr obj) {
+     int ret = -1;
+ 
+     nwfilterDriverLock(driver);
++    virNWFilterCallbackDriversLock();
++
+     pool = virNWFilterPoolObjFindByUUID(&driver->pools, obj->uuid);
+     if (!pool) {
+         virNWFilterReportError(VIR_ERR_INVALID_NWFILTER,
+@@ -378,6 +389,8 @@ nwfilterUndefine(virNWFilterPtr obj) {
+ cleanup:
+     if (pool)
+         virNWFilterPoolObjUnlock(pool);
++
++    virNWFilterCallbackDriversUnlock();
+     nwfilterDriverUnlock(driver);
+     return ret;
+ }
+diff --git a/src/qemu/qemu_driver.c b/src/qemu/qemu_driver.c
+index 57b8271..6097648 100644
+--- a/src/qemu/qemu_driver.c
++++ b/src/qemu/qemu_driver.c
+@@ -12715,19 +12715,29 @@ static int
+ qemudVMFilterRebuild(virConnectPtr conn ATTRIBUTE_UNUSED,
+                      virHashIterator iter, void *data)
+ {
+-    struct qemud_driver *driver = qemu_driver;
+-
+-    qemuDriverLock(driver);
+     virHashForEach(qemu_driver->domains.objs, iter, data);
+-    qemuDriverUnlock(driver);
+ 
+     return 0;
+ }
+ 
+ 
++static void
++qemudVMDriverLock(void) {
++    qemuDriverLock(qemu_driver);
++};
++
++
++static void
++qemudVMDriverUnlock(void) {
++    qemuDriverUnlock(qemu_driver);
++};
++
++
+ static virNWFilterCallbackDriver qemuCallbackDriver = {
+     .name = "QEMU",
+     .vmFilterRebuild = qemudVMFilterRebuild,
++    .vmDriverLock = qemudVMDriverLock,
++    .vmDriverUnlock = qemudVMDriverUnlock,
+ };
+ 
+ int qemuRegister(void) {
+-- 

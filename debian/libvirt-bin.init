@@ -159,6 +159,11 @@ case "$1" in
         else
             log_progress_msg "not running"
             log_end_msg 1
+            if [ -f "$PIDFILE" ] ; then
+                exit 1
+            else
+                exit 3
+            fi
 	fi
     ;;
   *)

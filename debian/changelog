@@ -1,3 +1,46 @@
+libvirt (0.8.3-5+squeeze1) stable-security; urgency=low
+
+  * [0ee351f] [CVE-2011-1146] Add missing checks for read only connections.
+    Some API forgot to check the read-only status of the connection for
+    entry point which modify the state of the system or may lead to a remote
+    execution using user data.
+    The entry points concerned are:
+      - virConnectDomainXMLToNative
+      - virNodeDeviceDettach
+      - virNodeDeviceReAttach
+      - virNodeDeviceReset
+      - virDomainRevertToSnapshot
+      - virDomainSnapshotDelete
+    src/libvirt.c: fix the above set of entry points to error on read-only
+    (Closes: #617773)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 14 Mar 2011 21:33:33 +0100
+
+libvirt (0.8.3-5+squeeze0) stable; urgency=low
+
+  [ Laurent Léonard ]
+  * [6f95d48] Fix exit status codes in libvirt init script to comply with LSB
+    (Closes: #612305)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 18 Feb 2011 21:26:03 +0100
+
+libvirt (0.8.3-5) unstable; urgency=low
+
+  [ Laurent Léonard ]
+  * [6e46f0e] Fix wrong regular expression in debian/watch
+
+  [ Guido Günther ]
+  * [f561b2e] New patch 0010-nwfilter-resolve-deadlock-between-VM-
+    operations-and-.patch nwfilter: resolve deadlock between VM operations and
+    filter update (Closes: #602715)
+  * [239bbe5] New patch 0011-OpenVZ-take-veid-from-vmdef-name-when-
+    defining-new-d.patch: Fixes OpenVZ domain creation (Closes: #592817) -
+    thanks to Eric Litak.
+  * [c4a2a6b] New patch 0012-OpenVZ-Fix-some-overwritten-error-codes.patch:
+    Improve error reporting.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 01 Dec 2010 15:12:48 +0100
+
 libvirt (0.8.3-4~bpo50+1) lenny-backports; urgency=low
 
   * Rebuild for lenny-backports.

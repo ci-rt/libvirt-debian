@@ -1,0 +1,55 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Wed, 1 Dec 2010 15:06:18 +0100
+Subject: [PATCH] OpenVZ: Fix some overwritten error codes
+
+Don't overwrite errors during domain creation/definition to ease
+tracking down problems.
+
+Origin: upstream, http://libvirt.org/git/?p=libvirt.git;a=commit;h=2d626c7d08b0b815155b93065d466ba89dfb82f7
+---
+ src/openvz/openvz_driver.c |   10 ++++------
+ 1 files changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/src/openvz/openvz_driver.c b/src/openvz/openvz_driver.c
+index 556df52..698d0e6 100644
+--- a/src/openvz/openvz_driver.c
++++ b/src/openvz/openvz_driver.c
+@@ -57,6 +57,7 @@
+ #include "nodeinfo.h"
+ #include "memory.h"
+ #include "bridge.h"
++#include "logging.h"
+ 
+ #define VIR_FROM_THIS VIR_FROM_OPENVZ
+ 
+@@ -209,8 +210,7 @@ static int openvzSetInitialConfig(virDomainDefPtr vmdef)
+     else
+     {
+         if (openvzDomainDefineCmd(prog, OPENVZ_MAX_ARG, vmdef) < 0) {
+-            openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+-                        _("Error creating command for container"));
++            VIR_ERROR0(_("Error creating command for container"));
+             goto cleanup;
+         }
+ 
+@@ -870,8 +870,7 @@ openvzDomainDefineXML(virConnectPtr conn, const char *xml)
+     vm->persistent = 1;
+ 
+     if (openvzSetInitialConfig(vm->def) < 0) {
+-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+-                    _("Error creating initial configuration"));
++        VIR_ERROR0(_("Error creating initial configuration"));
+         goto cleanup;
+     }
+ 
+@@ -954,8 +953,7 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
+     vm->persistent = 1;
+ 
+     if (openvzSetInitialConfig(vm->def) < 0) {
+-        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+-                    _("Error creating initial configuration"));
++        VIR_ERROR0(_("Error creating initial configuration"));
+         goto cleanup;
+     }
+ 
+-- 

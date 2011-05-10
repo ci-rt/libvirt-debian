@@ -7,3 +7,7 @@
 0007-Fix-block-statistics-with-newer-versions-of-Xen.patch
 0008-Disable-CHECKSUM-rule.patch
 0009-Don-t-fail-lxc-domain-start-when-memory-controller-s.patch
+0010-nwfilter-resolve-deadlock-between-VM-operations-and-.patch
+0011-OpenVZ-take-veid-from-vmdef-name-when-defining-new-d.patch
+0012-OpenVZ-Fix-some-overwritten-error-codes.patch
+security/0013-Add-missing-checks-for-read-only-connections.patch
