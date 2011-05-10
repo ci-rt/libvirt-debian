@@ -8,10 +8,10 @@ Subject: qemu-disable-network.diff
  2 files changed, 0 insertions(+), 6 deletions(-)
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index c3729a6..017ea32 100644
+index 1eaa7d1..a8253d5 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -1305,9 +1305,6 @@ if WITH_NETWORK
+@@ -1299,9 +1299,6 @@ if WITH_NETWORK
  	    cp $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t \
  	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
  	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }
@@ -22,10 +22,10 @@ index c3729a6..017ea32 100644
  
  uninstall-local::
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 952f50f..bafbeb2 100644
+index c184dd9..f266a5a 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -5746,9 +5746,6 @@ install-data-local:
+@@ -5810,9 +5810,6 @@ install-data-local:
  @WITH_NETWORK_TRUE@	    cp $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t \
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }

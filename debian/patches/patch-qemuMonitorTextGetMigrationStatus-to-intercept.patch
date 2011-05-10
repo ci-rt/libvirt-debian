@@ -1,6 +1,7 @@
 From: =?UTF-8?q?Andreas=20Bie=C3=9Fmann?= <biessmann@corscience.de>
 Date: Thu, 18 Mar 2010 13:05:59 +0100
-Subject: patch qemuMonitorTextGetMigrationStatus to intercept unknown command 'info migrate'
+Subject: patch qemuMonitorTextGetMigrationStatus to intercept unknown command
+ 'info migrate'
 
 Debian package kvm up to version 72 has not implemented the command 'info migrate'.
 This command interface returns help page of info commands and looks like this:
@@ -41,10 +42,10 @@ to savely detect that the command 'info migrate' is not implemented.
  1 files changed, 9 insertions(+), 1 deletions(-)
 
 diff --git a/src/qemu/qemu_monitor_text.c b/src/qemu/qemu_monitor_text.c
-index 75b2995..4a2e4ab 100644
+index 53781c8..0d76a58 100644
 --- a/src/qemu/qemu_monitor_text.c
 +++ b/src/qemu/qemu_monitor_text.c
-@@ -1190,7 +1190,15 @@ int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
+@@ -1191,7 +1191,15 @@ int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
              *total *= 1024;
  
          }
