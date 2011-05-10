@@ -1,3 +1,9 @@
+libvirt (0.8.3-5+squeeze1~bpo50+1) lenny-backports; urgency=low
+
+  * Rebuild for lenny-backports.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 10 May 2011 22:32:37 +0200
+
 libvirt (0.8.3-5+squeeze1) stable-security; urgency=low
 
   * [0ee351f] [CVE-2011-1146] Add missing checks for read only connections.
