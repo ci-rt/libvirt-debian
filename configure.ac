@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.9.0], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.1], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -68,6 +68,7 @@ DEVMAPPER_REQUIRED=1.0.0
 LIBCURL_REQUIRED="7.18.0"
 LIBPCAP_REQUIRED="1.0.0"
 LIBNL_REQUIRED="1.1"
+LIBSSH2_REQUIRED="1.0"
 
 dnl Checks for C compiler.
 AC_PROG_CC
@@ -258,7 +259,7 @@ AC_ARG_WITH([openvz],
 AC_ARG_WITH([vmware],
   AC_HELP_STRING([--with-vmware], [add VMware support @<:@default=yes@:>@]),[],[with_vmware=yes])
 AC_ARG_WITH([libssh2],
-  AC_HELP_STRING([--with-libssh2=@<:@PFX@:>@], [libssh2 location @<:@default=/usr/local/lib@:>@]),[],[with_libssh2=yes])
+  AC_HELP_STRING([--with-libssh2], [libssh2 location @<:@default=check@:>@]),[],[with_libssh2=check])
 AC_ARG_WITH([phyp],
   AC_HELP_STRING([--with-phyp], [add PHYP support @<:@default=check@:>@]),[],[with_phyp=check])
 AC_ARG_WITH([xenapi],
@@ -1026,7 +1027,7 @@ if test "$with_audit" != "no" ; then
   LIBS="$LIBS $AUDIT_LIBS"
   fail=0
   AC_CHECK_HEADER([libaudit.h], [], [fail=1])
-  AC_CHECK_LIB([audit], [audit_is_enabled], [], [fail=1])
+  AC_CHECK_LIB([audit], [audit_encode_nv_string], [], [fail=1])
 
   if test $fail = 1 ; then
     if test "$with_audit" = "yes" ; then
@@ -1328,77 +1329,32 @@ AM_CONDITIONAL([WITH_UML], [test "$with_uml" = "yes"])
 
 
 dnl
-dnl libssh checks
+dnl check for libssh2 (PHYP)
 dnl
 
-if test "$with_libssh2" != "yes" && test "$with_libssh2" != "no"; then
-		libssh2_path="$with_libssh2"
-elif test "$with_libssh2" = "yes"; then
-		libssh2_path="/usr/local/lib/"
-elif test "$with_libssh2" = "no"; then
-		with_phyp="no";
+LIBSSH2_CFLAGS=""
+LIBSSH2_LIBS=""
+
+if test "$with_phyp" = "yes" || test "$with_phyp" = "check"; then
+    PKG_CHECK_MODULES([LIBSSH2], [libssh2 >= $LIBSSH2_REQUIRED], [
+        with_phyp=yes
+    ], [
+        if test "$with_phyp" = "check"; then
+            with_phyp=no
+            AC_MSG_NOTICE([libssh2 is required for Phyp driver, disabling it])
+        else
+            AC_MSG_ERROR([libssh2 >= $LIBSSH2_REQUIRED is required for Phyp driver])
+        fi
+    ])
 fi
 
-if test "$with_phyp" = "check"; then
-    AC_CHECK_LIB([ssh2],[libssh2_session_startup],[
-        LIBSSH2_LIBS="$LIBSSH2_LIBS -lssh2 -L$libssh2_path"
-        AC_SUBST([LIBSSH2_LIBS])
-    ],[
-        with_phyp="no"
-        with_libssh2="no";
-    ],[])
-
-    if test "$with_phyp" != "no"; then
-        AC_CHECK_HEADERS([libssh2.h],[
-            with_phyp="yes"
-            LIBSSH2_CFLAGS="-I/usr/local/include"
-            AC_SUBST([LIBSSH2_CFLAGS])
-        ],[
-            with_phyp="no"
-            with_libssh2="no";
-        ],[
-        ])
-    fi
-
-    if test "$with_phyp" != "no"; then
-        saved_libs="$LIBS"
-        LIBS="$LIBS -L$libssh2_path -lssh2"
-        AC_TRY_LINK([#include <libssh2.h>], [
-            (void) libssh2_session_block_directions(NULL);
-        ], [
-            AC_DEFINE_UNQUOTED([WITH_PHYP], 1, [whether IBM HMC / IVM driver is enabled])
-        ], [
-            with_phyp=no
-            AC_MSG_NOTICE([Function libssh2_session_block_directions() not present in  your version of libssh2 but required for Phyp driver, disabling it])
-        ])
-        LIBS="$saved_libs"
-    fi
-elif test "$with_phyp" = "yes"; then
-  AC_CHECK_LIB([ssh2],[libssh2_session_startup],[
-        LIBSSH2_LIBS="$LIBSSH2_LIBS -lssh2 -L$libssh2_path"
-        AC_SUBST([LIBSSH2_LIBS])],[
-        AC_MSG_ERROR([You must install the libssh2 to compile Phyp driver.])
-				])
-
-  AC_CHECK_HEADERS([libssh2.h],[
-        LIBSSH2_CFLAGS="-I/usr/local/include"
-        AC_SUBST([LIBSSH2_CFLAGS])],[
-        AC_MSG_ERROR([Cannot find libssh2 headers. Is libssh2 installed ?])
-				],[])
-
-  saved_libs="$LIBS"
-  LIBS="$LIBS -lssh2"
-  AC_TRY_LINK([#include <libssh2.h>], [
-  (void) libssh2_session_block_directions(NULL);
-  ], [], [
-  AC_MSG_ERROR([Function libssh2_session_block_directions() not present in your version of libssh2. Need >= 1.0])
-  ])
-  LIBS="$saved_libs"
-
-  AC_DEFINE_UNQUOTED([WITH_PHYP], 1,
-        [whether IBM HMC / IVM driver is enabled])
+if test "$with_phyp" = "yes"; then
+    AC_DEFINE_UNQUOTED([WITH_PHYP], 1, [whether IBM HMC / IVM driver is enabled])
 fi
 AM_CONDITIONAL([WITH_PHYP],[test "$with_phyp" = "yes"])
+
+AC_SUBST([LIBSSH2_CFLAGS])
+AC_SUBST([LIBSSH2_LIBS])
 
 dnl libcap-ng
 AC_ARG_WITH([capng],
@@ -1917,15 +1873,13 @@ if test "$with_python" != "no" ; then
                         then
                             PYTHON_INCLUDES=-I/usr/include/python$PYTHON_VERSION
                         else
-                            AC_MSG_NOTICE([Could not find python$PYTHON_VERSION/Python.h, disabling bindings])
-                            with_python=no
+                            AC_MSG_ERROR([You must install python-devel to build Python bindings])
                         fi
                     fi
                 fi
             fi
         else
-            AC_MSG_NOTICE([Could not find python interpreter, disabling bindings])
-            with_python=no
+            AC_MSG_ERROR([You must install python to build Python bindings])
         fi
     else
         AC_MSG_NOTICE([Could not find python in $with_python, disabling bindings])
@@ -1970,12 +1924,14 @@ AC_ARG_ENABLE([test-coverage],
 enable_coverage=$enableval
 
 if test "${enable_coverage}" = yes; then
-  COMPILER_FLAGS=
-  gl_COMPILER_FLAGS(-fprofile-arcs)
-  gl_COMPILER_FLAGS(-ftest-coverage)
-  AC_SUBST([COVERAGE_CFLAGS], [$COMPILER_FLAGS])
-  AC_SUBST([COVERAGE_LDFLAGS], [$COMPILER_FLAGS])
-  COMPILER_FLAGS=
+  save_WARN_CFLAGS=$WARN_CFLAGS
+  WARN_CFLAGS=
+  gl_WARN_ADD([-fprofile-arcs])
+  gl_WARN_ADD([-ftest-coverage])
+  COVERAGE_FLAGS=$WARN_CFLAGS
+  AC_SUBST([COVERAGE_CFLAGS], [$COVERAGE_FLAGS])
+  AC_SUBST([COVERAGE_LDFLAGS], [$COVERAGE_FLAGS])
+  WARN_CFLAGS=$save_WARN_CFLAGS
 fi
 
 AC_ARG_ENABLE([test-oom],
@@ -2341,7 +2297,7 @@ cp -f COPYING.LIB COPYING
 
 # Detect when running under the clang static analyzer's scan-build driver
 # or Coverity-prevent's cov-build.  Define STATIC_ANALYSIS accordingly.
-test -n "$CCC_ANALYZER_ANALYSIS$COVERITY_BUILD_COMMAND" && t=1 || t=0
+test -n "${CCC_ANALYZER_ANALYSIS+set}$COVERITY_BUILD_COMMAND" && t=1 || t=0
 AC_DEFINE_UNQUOTED([STATIC_ANALYSIS], [$t],
   [Define to 1 when performing static analysis.])
 
@@ -2538,6 +2494,7 @@ AC_MSG_NOTICE([Miscellaneous])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([        Debug: $enable_debug])
 AC_MSG_NOTICE([     Warnings: $enable_compile_warnings])
+AC_MSG_NOTICE([Warning Flags: $WARN_CFLAGS])
 AC_MSG_NOTICE([     Readline: $lv_use_readline])
 AC_MSG_NOTICE([       Python: $with_python])
 AC_MSG_NOTICE([       DTrace: $with_dtrace])

@@ -46,21 +46,13 @@ mymain(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
 
 #else
 
-static char *progname;
-static char *abs_srcdir;
-
-
 static int checkoutput(const char *testname)
 {
     int ret = -1;
-    char cwd[1024];
     char *expectname = NULL;
     char *expectlog = NULL;
     char *actualname = NULL;
     char *actuallog = NULL;
-
-    if (!getcwd(cwd, sizeof(cwd)))
-        return -1;
 
     if (virAsprintf(&expectname, "%s/commanddata/%s.log", abs_srcdir,
                     testname) < 0)
@@ -86,7 +78,8 @@ static int checkoutput(const char *testname)
     ret = 0;
 
 cleanup:
-    unlink(actualname);
+    if (actualname)
+        unlink(actualname);
     VIR_FREE(actuallog);
     VIR_FREE(actualname);
     VIR_FREE(expectlog);
@@ -248,7 +241,8 @@ static int test4(const void *unused ATTRIBUTE_UNUSED)
 
 cleanup:
     virCommandFree(cmd);
-    unlink(pidfile);
+    if (pidfile)
+        unlink(pidfile);
     VIR_FREE(pidfile);
     return ret;
 }
@@ -711,7 +705,8 @@ static int test18(const void *unused ATTRIBUTE_UNUSED)
 
 cleanup:
     virCommandFree(cmd);
-    unlink(pidfile);
+    if (pidfile)
+        unlink(pidfile);
     VIR_FREE(pidfile);
     return ret;
 }
@@ -754,22 +749,10 @@ cleanup:
 }
 
 static int
-mymain(int argc, char **argv)
+mymain(void)
 {
     int ret = 0;
-    char cwd[PATH_MAX];
     int fd;
-
-    abs_srcdir = getenv("abs_srcdir");
-    if (!abs_srcdir)
-        abs_srcdir = getcwd(cwd, sizeof(cwd));
-
-    progname = argv[0];
-
-    if (argc > 1) {
-        fprintf(stderr, "Usage: %s\n", progname);
-        return(EXIT_FAILURE);
-    }
 
     if (chdir("/tmp") < 0)
         return(EXIT_FAILURE);

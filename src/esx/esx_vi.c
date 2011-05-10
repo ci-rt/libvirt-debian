@@ -3,7 +3,7 @@
  * esx_vi.c: client for the VMware VI API 2.5 to manage ESX hosts
  *
  * Copyright (C) 2010 Red Hat, Inc.
- * Copyright (C) 2009-2010 Matthias Bolte <matthias.bolte@googlemail.com>
+ * Copyright (C) 2009-2011 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -60,7 +60,7 @@
     void                                                                      \
     esxVI_##_type##_Free(esxVI_##_type **ptrptr)                              \
     {                                                                         \
-        esxVI_##_type *item = NULL;                                           \
+        esxVI_##_type *item ATTRIBUTE_UNUSED;                                 \
                                                                               \
         if (ptrptr == NULL || *ptrptr == NULL) {                              \
             return;                                                           \
@@ -76,42 +76,35 @@
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * Context
+ * CURL
  */
 
-/* esxVI_Context_Alloc */
-ESX_VI__TEMPLATE__ALLOC(Context);
+/* esxVI_CURL_Alloc */
+ESX_VI__TEMPLATE__ALLOC(CURL)
 
-/* esxVI_Context_Free */
-ESX_VI__TEMPLATE__FREE(Context,
+/* esxVI_CURL_Free */
+ESX_VI__TEMPLATE__FREE(CURL,
 {
-    VIR_FREE(item->url);
-    VIR_FREE(item->ipAddress);
+    esxVI_SharedCURL *shared = item->shared;
 
-    if (item->curl_handle != NULL) {
-        curl_easy_cleanup(item->curl_handle);
+    if (shared != NULL) {
+        esxVI_SharedCURL_Remove(shared, item);
+
+        if (shared->count == 0) {
+            esxVI_SharedCURL_Free(&shared);
+        }
     }
 
-    if (item->curl_headers != NULL) {
-        curl_slist_free_all(item->curl_headers);
+    if (item->handle != NULL) {
+        curl_easy_cleanup(item->handle);
     }
 
-    virMutexDestroy(&item->curl_lock);
+    if (item->headers != NULL) {
+        curl_slist_free_all(item->headers);
+    }
 
-    VIR_FREE(item->username);
-    VIR_FREE(item->password);
-    esxVI_ServiceContent_Free(&item->service);
-    esxVI_UserSession_Free(&item->session);
-    esxVI_Datacenter_Free(&item->datacenter);
-    esxVI_ComputeResource_Free(&item->computeResource);
-    esxVI_HostSystem_Free(&item->hostSystem);
-    esxVI_SelectionSpec_Free(&item->selectSet_folderToChildEntity);
-    esxVI_SelectionSpec_Free(&item->selectSet_hostSystemToParent);
-    esxVI_SelectionSpec_Free(&item->selectSet_hostSystemToVm);
-    esxVI_SelectionSpec_Free(&item->selectSet_hostSystemToDatastore);
-    esxVI_SelectionSpec_Free(&item->selectSet_computeResourceToHost);
-    esxVI_SelectionSpec_Free(&item->selectSet_computeResourceToParentToParent);
-});
+    virMutexDestroy(&item->lock);
+})
 
 static size_t
 esxVI_CURL_ReadString(char *data, size_t size, size_t nmemb, void *ptrptr)
@@ -218,7 +211,7 @@ esxVI_CURL_Debug(CURL *curl ATTRIBUTE_UNUSED, curl_infotype type,
 #endif
 
 static int
-esxVI_CURL_Perform(esxVI_Context *ctx, const char *url)
+esxVI_CURL_Perform(esxVI_CURL *curl, const char *url)
 {
     CURLcode errorCode;
     long responseCode = 0;
@@ -226,23 +219,23 @@ esxVI_CURL_Perform(esxVI_Context *ctx, const char *url)
     const char *redirectUrl = NULL;
 #endif
 
-    errorCode = curl_easy_perform(ctx->curl_handle);
+    errorCode = curl_easy_perform(curl->handle);
 
     if (errorCode != CURLE_OK) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                      _("curl_easy_perform() returned an error: %s (%d) : %s"),
-                     curl_easy_strerror(errorCode), errorCode, ctx->curl_error);
+                     curl_easy_strerror(errorCode), errorCode, curl->error);
         return -1;
     }
 
-    errorCode = curl_easy_getinfo(ctx->curl_handle, CURLINFO_RESPONSE_CODE,
+    errorCode = curl_easy_getinfo(curl->handle, CURLINFO_RESPONSE_CODE,
                                   &responseCode);
 
     if (errorCode != CURLE_OK) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                      _("curl_easy_getinfo(CURLINFO_RESPONSE_CODE) returned an "
                        "error: %s (%d) : %s"), curl_easy_strerror(errorCode),
-                     errorCode, ctx->curl_error);
+                     errorCode, curl->error);
         return -1;
     }
 
@@ -255,7 +248,7 @@ esxVI_CURL_Perform(esxVI_Context *ctx, const char *url)
 
     if (responseCode == 301) {
 #if LIBCURL_VERSION_NUM >= 0x071202 /* 7.18.2 */
-        errorCode = curl_easy_getinfo(ctx->curl_handle, CURLINFO_REDIRECT_URL,
+        errorCode = curl_easy_getinfo(curl->handle, CURLINFO_REDIRECT_URL,
                                       &redirectUrl);
 
         if (errorCode != CURLE_OK) {
@@ -263,7 +256,7 @@ esxVI_CURL_Perform(esxVI_Context *ctx, const char *url)
                          _("curl_easy_getinfo(CURLINFO_REDIRECT_URL) returned "
                            "an error: %s (%d) : %s"),
                          curl_easy_strerror(errorCode),
-                         errorCode, ctx->curl_error);
+                         errorCode, curl->error);
         } else {
             ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                          _("The server redirects from '%s' to '%s'"), url,
@@ -281,32 +274,23 @@ esxVI_CURL_Perform(esxVI_Context *ctx, const char *url)
 }
 
 int
-esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
-                      const char *ipAddress, const char *username,
-                      const char *password, esxUtil_ParsedUri *parsedUri)
+esxVI_CURL_Connect(esxVI_CURL *curl, esxUtil_ParsedUri *parsedUri)
 {
-    if (ctx == NULL || url == NULL || ipAddress == NULL || username == NULL ||
-        password == NULL || ctx->url != NULL || ctx->service != NULL ||
-        ctx->curl_handle != NULL || ctx->curl_headers != NULL) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+    if (curl->handle != NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid call"));
         return -1;
     }
 
-    if (esxVI_String_DeepCopyValue(&ctx->url, url) < 0 ||
-        esxVI_String_DeepCopyValue(&ctx->ipAddress, ipAddress) < 0) {
-        return -1;
-    }
+    curl->handle = curl_easy_init();
 
-    ctx->curl_handle = curl_easy_init();
-
-    if (ctx->curl_handle == NULL) {
+    if (curl->handle == NULL) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
                      _("Could not initialize CURL"));
         return -1;
     }
 
-    ctx->curl_headers = curl_slist_append(ctx->curl_headers, "Content-Type: "
-                                          "text/xml; charset=UTF-8");
+    curl->headers = curl_slist_append(curl->headers,
+                                      "Content-Type: text/xml; charset=UTF-8");
 
     /*
      * Add a dummy expect header to stop CURL from waiting for a response code
@@ -316,56 +300,345 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
      * 100 (Continue) response and the wait times out resulting in wasting
      * approx. 2 sec per POST operation.
      */
-    ctx->curl_headers = curl_slist_append(ctx->curl_headers,
-                                          "Expect: nothing");
+    curl->headers = curl_slist_append(curl->headers, "Expect: nothing");
 
-    if (ctx->curl_headers == NULL) {
+    if (curl->headers == NULL) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
                      _("Could not build CURL header list"));
         return -1;
     }
 
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_URL, ctx->url);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_USERAGENT, "libvirt-esx");
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_HEADER, 0);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_FOLLOWLOCATION, 0);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_SSL_VERIFYPEER,
+    curl_easy_setopt(curl->handle, CURLOPT_USERAGENT, "libvirt-esx");
+    curl_easy_setopt(curl->handle, CURLOPT_HEADER, 0);
+    curl_easy_setopt(curl->handle, CURLOPT_FOLLOWLOCATION, 0);
+    curl_easy_setopt(curl->handle, CURLOPT_SSL_VERIFYPEER,
                      parsedUri->noVerify ? 0 : 1);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_SSL_VERIFYHOST,
+    curl_easy_setopt(curl->handle, CURLOPT_SSL_VERIFYHOST,
                      parsedUri->noVerify ? 0 : 2);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_COOKIEFILE, "");
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_HTTPHEADER, ctx->curl_headers);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_READFUNCTION,
+    curl_easy_setopt(curl->handle, CURLOPT_COOKIEFILE, "");
+    curl_easy_setopt(curl->handle, CURLOPT_HTTPHEADER, curl->headers);
+    curl_easy_setopt(curl->handle, CURLOPT_READFUNCTION,
                      esxVI_CURL_ReadString);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_WRITEFUNCTION,
+    curl_easy_setopt(curl->handle, CURLOPT_WRITEFUNCTION,
                      esxVI_CURL_WriteBuffer);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_ERRORBUFFER,
-                     ctx->curl_error);
+    curl_easy_setopt(curl->handle, CURLOPT_ERRORBUFFER, curl->error);
 #if ESX_VI__CURL__ENABLE_DEBUG_OUTPUT
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_DEBUGFUNCTION, esxVI_CURL_Debug);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_VERBOSE, 1);
+    curl_easy_setopt(curl->handle, CURLOPT_DEBUGFUNCTION, esxVI_CURL_Debug);
+    curl_easy_setopt(curl->handle, CURLOPT_VERBOSE, 1);
 #endif
 
     if (parsedUri->proxy) {
-        curl_easy_setopt(ctx->curl_handle, CURLOPT_PROXY,
+        curl_easy_setopt(curl->handle, CURLOPT_PROXY,
                          parsedUri->proxy_hostname);
-        curl_easy_setopt(ctx->curl_handle, CURLOPT_PROXYTYPE,
+        curl_easy_setopt(curl->handle, CURLOPT_PROXYTYPE,
                          parsedUri->proxy_type);
-        curl_easy_setopt(ctx->curl_handle, CURLOPT_PROXYPORT,
+        curl_easy_setopt(curl->handle, CURLOPT_PROXYPORT,
                          parsedUri->proxy_port);
     }
 
-    if (virMutexInit(&ctx->curl_lock) < 0) {
+    if (virMutexInit(&curl->lock) < 0) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
                      _("Could not initialize CURL mutex"));
         return -1;
     }
 
-    ctx->username = strdup(username);
-    ctx->password = strdup(password);
+    return 0;
+}
 
-    if (ctx->username == NULL || ctx->password == NULL) {
+int
+esxVI_CURL_Download(esxVI_CURL *curl, const char *url, char **content)
+{
+    virBuffer buffer = VIR_BUFFER_INITIALIZER;
+    int responseCode = 0;
+
+    if (content == NULL || *content != NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
+    virMutexLock(&curl->lock);
+
+    curl_easy_setopt(curl->handle, CURLOPT_URL, url);
+    curl_easy_setopt(curl->handle, CURLOPT_WRITEDATA, &buffer);
+    curl_easy_setopt(curl->handle, CURLOPT_UPLOAD, 0);
+    curl_easy_setopt(curl->handle, CURLOPT_HTTPGET, 1);
+
+    responseCode = esxVI_CURL_Perform(curl, url);
+
+    virMutexUnlock(&curl->lock);
+
+    if (responseCode < 0) {
+        goto cleanup;
+    } else if (responseCode != 200) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                     _("HTTP response code %d for download from '%s'"),
+                     responseCode, url);
+        goto cleanup;
+    }
+
+    if (virBufferError(&buffer)) {
         virReportOOMError();
+        goto cleanup;
+    }
+
+    *content = virBufferContentAndReset(&buffer);
+
+  cleanup:
+    if (*content == NULL) {
+        virBufferFreeAndReset(&buffer);
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+esxVI_CURL_Upload(esxVI_CURL *curl, const char *url, const char *content)
+{
+    int responseCode = 0;
+
+    if (content == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
+    virMutexLock(&curl->lock);
+
+    curl_easy_setopt(curl->handle, CURLOPT_URL, url);
+    curl_easy_setopt(curl->handle, CURLOPT_READDATA, &content);
+    curl_easy_setopt(curl->handle, CURLOPT_UPLOAD, 1);
+    curl_easy_setopt(curl->handle, CURLOPT_INFILESIZE, strlen(content));
+
+    responseCode = esxVI_CURL_Perform(curl, url);
+
+    virMutexUnlock(&curl->lock);
+
+    if (responseCode < 0) {
+        return -1;
+    } else if (responseCode != 200 && responseCode != 201) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                     _("HTTP response code %d for upload to '%s'"),
+                     responseCode, url);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * SharedCURL
+ */
+
+static void
+esxVI_SharedCURL_Lock(CURL *handle ATTRIBUTE_UNUSED, curl_lock_data data,
+                      curl_lock_access access_ ATTRIBUTE_UNUSED, void *userptr)
+{
+    int i;
+    esxVI_SharedCURL *shared = userptr;
+
+    switch (data) {
+      case CURL_LOCK_DATA_SHARE:
+        i = 0;
+        break;
+
+      case CURL_LOCK_DATA_COOKIE:
+        i = 1;
+        break;
+
+      case CURL_LOCK_DATA_DNS:
+        i = 2;
+        break;
+
+      default:
+        VIR_ERROR(_("Trying to lock unknown SharedCURL lock %d"), (int)data);
+        return;
+    }
+
+    virMutexLock(&shared->locks[i]);
+}
+
+static void
+esxVI_SharedCURL_Unlock(CURL *handle ATTRIBUTE_UNUSED, curl_lock_data data,
+                        void *userptr)
+{
+    int i;
+    esxVI_SharedCURL *shared = userptr;
+
+    switch (data) {
+      case CURL_LOCK_DATA_SHARE:
+        i = 0;
+        break;
+
+      case CURL_LOCK_DATA_COOKIE:
+        i = 1;
+        break;
+
+      case CURL_LOCK_DATA_DNS:
+        i = 2;
+        break;
+
+      default:
+        VIR_ERROR(_("Trying to unlock unknown SharedCURL lock %d"), (int)data);
+        return;
+    }
+
+    virMutexUnlock(&shared->locks[i]);
+}
+
+/* esxVI_SharedCURL_Alloc */
+ESX_VI__TEMPLATE__ALLOC(SharedCURL)
+
+/* esxVI_SharedCURL_Free */
+ESX_VI__TEMPLATE__FREE(SharedCURL,
+{
+    int i;
+
+    if (item->count > 0) {
+        /* Better leak than crash */
+        VIR_ERROR0(_("Trying to free SharedCURL object that is still in use"));
+        return;
+    }
+
+    if (item->handle != NULL) {
+        curl_share_cleanup(item->handle);
+    }
+
+    for (i = 0; i < ARRAY_CARDINALITY(item->locks); ++i) {
+        virMutexDestroy(&item->locks[i]);
+    }
+})
+
+int
+esxVI_SharedCURL_Add(esxVI_SharedCURL *shared, esxVI_CURL *curl)
+{
+    int i;
+
+    if (curl->handle == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Cannot share uninitialized CURL handle"));
+        return -1;
+    }
+
+    if (curl->shared != NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Cannot share CURL handle that is already shared"));
+        return -1;
+    }
+
+    if (shared->handle == NULL) {
+        shared->handle = curl_share_init();
+
+        if (shared->handle == NULL) {
+            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                         _("Could not initialize CURL (share)"));
+            return -1;
+        }
+
+        curl_share_setopt(shared->handle, CURLSHOPT_LOCKFUNC,
+                          esxVI_SharedCURL_Lock);
+        curl_share_setopt(shared->handle, CURLSHOPT_UNLOCKFUNC,
+                          esxVI_SharedCURL_Unlock);
+        curl_share_setopt(shared->handle, CURLSHOPT_USERDATA, shared);
+        curl_share_setopt(shared->handle, CURLSHOPT_SHARE,
+                          CURL_LOCK_DATA_COOKIE);
+        curl_share_setopt(shared->handle, CURLSHOPT_SHARE,
+                          CURL_LOCK_DATA_DNS);
+
+        for (i = 0; i < ARRAY_CARDINALITY(shared->locks); ++i) {
+            if (virMutexInit(&shared->locks[i]) < 0) {
+                ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("Could not initialize a CURL (share) mutex"));
+                return -1;
+            }
+        }
+    }
+
+    curl_easy_setopt(curl->handle, CURLOPT_SHARE, shared->handle);
+
+    curl->shared = shared;
+    ++shared->count;
+
+    return 0;
+}
+
+int
+esxVI_SharedCURL_Remove(esxVI_SharedCURL *shared, esxVI_CURL *curl)
+{
+    if (curl->handle == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Cannot unshare uninitialized CURL handle"));
+        return -1;
+    }
+
+    if (curl->shared == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Cannot unshare CURL handle that is not shared"));
+        return -1;
+    }
+
+    if (curl->shared != shared) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("CURL (share) mismatch"));
+        return -1;
+    }
+
+    curl_easy_setopt(curl->handle, CURLOPT_SHARE, NULL);
+
+    curl->shared = NULL;
+    --shared->count;
+
+    return 0;
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Context
+ */
+
+/* esxVI_Context_Alloc */
+ESX_VI__TEMPLATE__ALLOC(Context)
+
+/* esxVI_Context_Free */
+ESX_VI__TEMPLATE__FREE(Context,
+{
+    esxVI_CURL_Free(&item->curl);
+    VIR_FREE(item->url);
+    VIR_FREE(item->ipAddress);
+    VIR_FREE(item->username);
+    VIR_FREE(item->password);
+    esxVI_ServiceContent_Free(&item->service);
+    esxVI_UserSession_Free(&item->session);
+    esxVI_Datacenter_Free(&item->datacenter);
+    esxVI_ComputeResource_Free(&item->computeResource);
+    esxVI_HostSystem_Free(&item->hostSystem);
+    esxVI_SelectionSpec_Free(&item->selectSet_folderToChildEntity);
+    esxVI_SelectionSpec_Free(&item->selectSet_hostSystemToParent);
+    esxVI_SelectionSpec_Free(&item->selectSet_hostSystemToVm);
+    esxVI_SelectionSpec_Free(&item->selectSet_hostSystemToDatastore);
+    esxVI_SelectionSpec_Free(&item->selectSet_computeResourceToHost);
+    esxVI_SelectionSpec_Free(&item->selectSet_computeResourceToParentToParent);
+})
+
+int
+esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
+                      const char *ipAddress, const char *username,
+                      const char *password, esxUtil_ParsedUri *parsedUri)
+{
+    if (ctx == NULL || url == NULL || ipAddress == NULL || username == NULL ||
+        password == NULL || ctx->url != NULL || ctx->service != NULL ||
+        ctx->curl != NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
+    if (esxVI_CURL_Alloc(&ctx->curl) < 0 ||
+        esxVI_CURL_Connect(ctx->curl, parsedUri) < 0 ||
+        esxVI_String_DeepCopyValue(&ctx->url, url) < 0 ||
+        esxVI_String_DeepCopyValue(&ctx->ipAddress, ipAddress) < 0 ||
+        esxVI_String_DeepCopyValue(&ctx->username, username) < 0 ||
+        esxVI_String_DeepCopyValue(&ctx->password, password) < 0) {
         return -1;
     }
 
@@ -481,107 +754,26 @@ int
 esxVI_Context_LookupObjectsByPath(esxVI_Context *ctx,
                                   esxUtil_ParsedUri *parsedUri)
 {
-    int result = -1;
-    esxVI_String *propertyNameList = NULL;
-    char *name = NULL;
-    esxVI_ObjectContent *datacenterList = NULL;
-    esxVI_ObjectContent *datacenter = NULL;
-    esxVI_ObjectContent *computeResourceList = NULL;
-    esxVI_ObjectContent *computeResource = NULL;
     char *hostSystemName = NULL;
-    esxVI_ObjectContent *hostSystemList = NULL;
-    esxVI_ObjectContent *hostSystem = NULL;
-
     /* Lookup Datacenter */
-    if (esxVI_String_AppendValueListToList(&propertyNameList,
-                                           "name\0"
-                                           "vmFolder\0"
-                                           "hostFolder\0") < 0 ||
-        esxVI_LookupObjectContentByType(ctx, ctx->service->rootFolder,
-                                        "Datacenter", propertyNameList,
-                                        &datacenterList,
-                                        esxVI_Occurrence_RequiredList) < 0) {
-        goto cleanup;
-    }
-
-    if (parsedUri->path_datacenter != NULL) {
-        for (datacenter = datacenterList; datacenter != NULL;
-             datacenter = datacenter->_next) {
-            name = NULL;
-
-            if (esxVI_GetStringValue(datacenter, "name", &name,
-                                     esxVI_Occurrence_RequiredItem) < 0) {
-                goto cleanup;
-            }
-
-            if (STREQ(name, parsedUri->path_datacenter)) {
-                break;
-            }
-        }
-
-        if (datacenter == NULL) {
-            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                         _("Could not find datacenter '%s'"),
-                         parsedUri->path_datacenter);
-            goto cleanup;
-        }
-    } else {
-        datacenter = datacenterList;
-    }
-
-    if (esxVI_Datacenter_CastFromObjectContent(datacenter,
-                                               &ctx->datacenter) < 0) {
-        goto cleanup;
+    if (esxVI_LookupDatacenter(ctx, parsedUri->path_datacenter,
+                               ctx->service->rootFolder, NULL, &ctx->datacenter,
+                               esxVI_Occurrence_RequiredItem) < 0) {
+        return -1;
     }
 
     /* Lookup (Cluster)ComputeResource */
-    esxVI_String_Free(&propertyNameList);
-
-    if (esxVI_String_AppendValueListToList(&propertyNameList,
-                                           "name\0"
-                                           "host\0"
-                                           "resourcePool\0") < 0 ||
-        esxVI_LookupObjectContentByType(ctx, ctx->datacenter->hostFolder,
-                                        "ComputeResource", propertyNameList,
-                                        &computeResourceList,
-                                        esxVI_Occurrence_RequiredList) < 0) {
-        goto cleanup;
-    }
-
-    if (parsedUri->path_computeResource != NULL) {
-        for (computeResource = computeResourceList; computeResource != NULL;
-             computeResource = computeResource->_next) {
-            name = NULL;
-
-            if (esxVI_GetStringValue(computeResource, "name", &name,
-                                     esxVI_Occurrence_RequiredItem) < 0) {
-                goto cleanup;
-            }
-
-            if (STREQ(name, parsedUri->path_computeResource)) {
-                break;
-            }
-        }
-
-        if (computeResource == NULL) {
-            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                         _("Could not find compute resource '%s'"),
-                         parsedUri->path_computeResource);
-            goto cleanup;
-        }
-    } else {
-        computeResource = computeResourceList;
-    }
-
-    if (esxVI_ComputeResource_CastFromObjectContent(computeResource,
-                                                    &ctx->computeResource) < 0) {
-        goto cleanup;
+    if (esxVI_LookupComputeResource(ctx, parsedUri->path_computeResource,
+                                    ctx->datacenter->hostFolder, NULL,
+                                    &ctx->computeResource,
+                                    esxVI_Occurrence_RequiredItem) < 0) {
+        return -1;
     }
 
     if (ctx->computeResource->resourcePool == NULL) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
                      _("Could not retrieve resource pool"));
-        goto cleanup;
+        return -1;
     }
 
     /* Lookup HostSystem */
@@ -590,19 +782,7 @@ esxVI_Context_LookupObjectsByPath(esxVI_Context *ctx,
               "ClusterComputeResource")) {
         ESX_VI_ERROR(VIR_ERR_INVALID_ARG, "%s",
                      _("Path has to specify the host system"));
-        goto cleanup;
-    }
-
-    esxVI_String_Free(&propertyNameList);
-
-    if (esxVI_String_AppendValueListToList(&propertyNameList,
-                                           "name\0"
-                                           "configManager\0") < 0 ||
-        esxVI_LookupObjectContentByType(ctx, ctx->computeResource->_reference,
-                                        "HostSystem", propertyNameList,
-                                        &hostSystemList,
-                                        esxVI_Occurrence_RequiredList) < 0) {
-        goto cleanup;
+        return -1;
     }
 
     if (parsedUri->path_hostSystem != NULL ||
@@ -613,44 +793,16 @@ esxVI_Context_LookupObjectsByPath(esxVI_Context *ctx,
         } else {
             hostSystemName = parsedUri->path_computeResource;
         }
-
-        for (hostSystem = hostSystemList; hostSystem != NULL;
-             hostSystem = hostSystem->_next) {
-            name = NULL;
-
-            if (esxVI_GetStringValue(hostSystem, "name", &name,
-                                     esxVI_Occurrence_RequiredItem) < 0) {
-                goto cleanup;
-            }
-
-            if (STREQ(name, hostSystemName)) {
-                break;
-            }
-        }
-
-        if (hostSystem == NULL) {
-            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                         _("Could not find host system '%s'"), hostSystemName);
-            goto cleanup;
-        }
-    } else {
-        hostSystem = hostSystemList;
     }
 
-    if (esxVI_HostSystem_CastFromObjectContent(hostSystem,
-                                               &ctx->hostSystem) < 0) {
-        goto cleanup;
+    if (esxVI_LookupHostSystem(ctx, hostSystemName,
+                               ctx->computeResource->_reference, NULL,
+                               &ctx->hostSystem,
+                               esxVI_Occurrence_RequiredItem) < 0) {
+        return -1;
     }
 
-    result = 0;
-
-  cleanup:
-    esxVI_String_Free(&propertyNameList);
-    esxVI_ObjectContent_Free(&datacenterList);
-    esxVI_ObjectContent_Free(&computeResourceList);
-    esxVI_ObjectContent_Free(&hostSystemList);
-
-    return result;
+    return 0;
 }
 
 int
@@ -658,150 +810,43 @@ esxVI_Context_LookupObjectsByHostSystemIp(esxVI_Context *ctx,
                                           const char *hostSystemIpAddress)
 {
     int result = -1;
-    esxVI_String *propertyNameList = NULL;
     esxVI_ManagedObjectReference *managedObjectReference = NULL;
-    esxVI_ObjectContent *hostSystem = NULL;
-    esxVI_ObjectContent *computeResource = NULL;
-    esxVI_ObjectContent *datacenter = NULL;
 
     /* Lookup HostSystem */
-    if (esxVI_String_AppendValueListToList(&propertyNameList,
-                                           "name\0"
-                                           "configManager\0") < 0 ||
-        esxVI_FindByIp(ctx, NULL, hostSystemIpAddress, esxVI_Boolean_False,
+    if (esxVI_FindByIp(ctx, NULL, hostSystemIpAddress, esxVI_Boolean_False,
                        &managedObjectReference) < 0 ||
-        esxVI_LookupObjectContentByType(ctx, managedObjectReference,
-                                        "HostSystem", propertyNameList,
-                                        &hostSystem,
-                                        esxVI_Occurrence_RequiredItem) < 0 ||
-        esxVI_HostSystem_CastFromObjectContent(hostSystem,
-                                               &ctx->hostSystem) < 0) {
+        esxVI_LookupHostSystem(ctx, NULL, managedObjectReference, NULL,
+                               &ctx->hostSystem,
+                               esxVI_Occurrence_RequiredItem) < 0) {
         goto cleanup;
     }
 
     /* Lookup (Cluster)ComputeResource */
-    esxVI_String_Free(&propertyNameList);
+    if (esxVI_LookupComputeResource(ctx, NULL, ctx->hostSystem->_reference,
+                                    NULL, &ctx->computeResource,
+                                    esxVI_Occurrence_RequiredItem) < 0) {
+        goto cleanup;
+    }
 
-    if (esxVI_String_AppendValueListToList(&propertyNameList,
-                                           "name\0"
-                                           "host\0"
-                                           "resourcePool\0") < 0 ||
-        esxVI_LookupObjectContentByType(ctx, hostSystem->obj,
-                                        "ComputeResource", propertyNameList,
-                                        &computeResource,
-                                        esxVI_Occurrence_RequiredItem) < 0 ||
-        esxVI_ComputeResource_CastFromObjectContent(computeResource,
-                                                    &ctx->computeResource) < 0) {
+    if (ctx->computeResource->resourcePool == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Could not retrieve resource pool"));
         goto cleanup;
     }
 
     /* Lookup Datacenter */
-    esxVI_String_Free(&propertyNameList);
-
-    if (esxVI_String_AppendValueListToList(&propertyNameList,
-                                           "name\0"
-                                           "vmFolder\0"
-                                           "hostFolder\0") < 0 ||
-        esxVI_LookupObjectContentByType(ctx, computeResource->obj,
-                                        "Datacenter", propertyNameList,
-                                        &datacenter,
-                                        esxVI_Occurrence_RequiredItem) < 0 ||
-        esxVI_Datacenter_CastFromObjectContent(datacenter,
-                                               &ctx->datacenter) < 0) {
+    if (esxVI_LookupDatacenter(ctx, NULL, ctx->computeResource->_reference,
+                               NULL, &ctx->datacenter,
+                               esxVI_Occurrence_RequiredItem) < 0) {
         goto cleanup;
     }
 
     result = 0;
 
   cleanup:
-    esxVI_String_Free(&propertyNameList);
     esxVI_ManagedObjectReference_Free(&managedObjectReference);
-    esxVI_ObjectContent_Free(&hostSystem);
-    esxVI_ObjectContent_Free(&computeResource);
-    esxVI_ObjectContent_Free(&datacenter);
 
     return result;
-}
-
-int
-esxVI_Context_DownloadFile(esxVI_Context *ctx, const char *url, char **content)
-{
-    virBuffer buffer = VIR_BUFFER_INITIALIZER;
-    int responseCode = 0;
-
-    if (content == NULL || *content != NULL) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
-        return -1;
-    }
-
-    virMutexLock(&ctx->curl_lock);
-
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_URL, url);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_WRITEDATA, &buffer);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_UPLOAD, 0);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_HTTPGET, 1);
-
-    responseCode = esxVI_CURL_Perform(ctx, url);
-
-    virMutexUnlock(&ctx->curl_lock);
-
-    if (responseCode < 0) {
-        goto cleanup;
-    } else if (responseCode != 200) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                     _("HTTP response code %d for download from '%s'"),
-                     responseCode, url);
-        goto cleanup;
-    }
-
-    if (virBufferError(&buffer)) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    *content = virBufferContentAndReset(&buffer);
-
-  cleanup:
-    if (*content == NULL) {
-        virBufferFreeAndReset(&buffer);
-        return -1;
-    }
-
-    return 0;
-}
-
-int
-esxVI_Context_UploadFile(esxVI_Context *ctx, const char *url,
-                         const char *content)
-{
-    int responseCode = 0;
-
-    if (content == NULL) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
-        return -1;
-    }
-
-    virMutexLock(&ctx->curl_lock);
-
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_URL, url);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_READDATA, &content);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_UPLOAD, 1);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_INFILESIZE, strlen(content));
-
-    responseCode = esxVI_CURL_Perform(ctx, url);
-
-    virMutexUnlock(&ctx->curl_lock);
-
-    if (responseCode < 0) {
-        return -1;
-    } else if (responseCode != 200 && responseCode != 201) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                     _("HTTP response code %d for upload to '%s'"),
-                     responseCode, url);
-        return -1;
-    }
-
-    return 0;
 }
 
 int
@@ -825,17 +870,17 @@ esxVI_Context_Execute(esxVI_Context *ctx, const char *methodName,
         return -1;
     }
 
-    virMutexLock(&ctx->curl_lock);
+    virMutexLock(&ctx->curl->lock);
 
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_URL, ctx->url);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_WRITEDATA, &buffer);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_UPLOAD, 0);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_POSTFIELDS, request);
-    curl_easy_setopt(ctx->curl_handle, CURLOPT_POSTFIELDSIZE, strlen(request));
+    curl_easy_setopt(ctx->curl->handle, CURLOPT_URL, ctx->url);
+    curl_easy_setopt(ctx->curl->handle, CURLOPT_WRITEDATA, &buffer);
+    curl_easy_setopt(ctx->curl->handle, CURLOPT_UPLOAD, 0);
+    curl_easy_setopt(ctx->curl->handle, CURLOPT_POSTFIELDS, request);
+    curl_easy_setopt(ctx->curl->handle, CURLOPT_POSTFIELDSIZE, strlen(request));
 
-    (*response)->responseCode = esxVI_CURL_Perform(ctx, ctx->url);
+    (*response)->responseCode = esxVI_CURL_Perform(ctx->curl, ctx->url);
 
-    virMutexUnlock(&ctx->curl_lock);
+    virMutexUnlock(&ctx->curl->lock);
 
     if ((*response)->responseCode < 0) {
         goto cleanup;
@@ -1016,7 +1061,7 @@ esxVI_Context_Execute(esxVI_Context *ctx, const char *methodName,
  */
 
 /* esxVI_Response_Alloc */
-ESX_VI__TEMPLATE__ALLOC(Response);
+ESX_VI__TEMPLATE__ALLOC(Response)
 
 /* esxVI_Response_Free */
 ESX_VI__TEMPLATE__FREE(Response,
@@ -1026,7 +1071,7 @@ ESX_VI__TEMPLATE__FREE(Response,
     if (item->document != NULL) {
         xmlFreeDoc(item->document);
     }
-});
+})
 
 
 
@@ -3872,3 +3917,204 @@ esxVI_ProductVersionToDefaultVirtualHWVersion(esxVI_ProductVersion productVersio
         return -1;
     }
 }
+
+
+
+
+#define ESX_VI__TEMPLATE__PROPERTY__CAST_FROM_ANY_TYPE_IGNORE(_name)          \
+    if (STREQ(dynamicProperty->name, #_name)) {                               \
+        continue;                                                             \
+    }
+
+
+
+#define ESX_VI__TEMPLATE__PROPERTY__CAST_FROM_ANY_TYPE(_type, _name)          \
+    if (STREQ(dynamicProperty->name, #_name)) {                               \
+        if (esxVI_##_type##_CastFromAnyType(dynamicProperty->val,             \
+                                            &(*ptrptr)->_name) < 0) {         \
+            goto cleanup;                                                     \
+        }                                                                     \
+                                                                              \
+        continue;                                                             \
+    }
+
+
+
+#define ESX_VI__TEMPLATE__PROPERTY__CAST_LIST_FROM_ANY_TYPE(_type, _name)     \
+    if (STREQ(dynamicProperty->name, #_name)) {                               \
+        if (esxVI_##_type##_CastListFromAnyType(dynamicProperty->val,         \
+                                                &(*ptrptr)->_name) < 0) {     \
+            goto cleanup;                                                     \
+        }                                                                     \
+                                                                              \
+        continue;                                                             \
+    }
+
+
+
+#define ESX_VI__TEMPLATE__PROPERTY__CAST_VALUE_FROM_ANY_TYPE(_type, _name)    \
+    if (STREQ(dynamicProperty->name, #_name)) {                               \
+        if (esxVI_##_type##_CastValueFromAnyType(dynamicProperty->val,        \
+                                                 &(*ptrptr)->_name) < 0) {    \
+            goto cleanup;                                                     \
+        }                                                                     \
+                                                                              \
+        continue;                                                             \
+    }
+
+
+
+#define ESX_VI__TEMPLATE__LOOKUP(_type, _complete_properties,                 \
+                                         _cast_from_anytype)                  \
+    int                                                                       \
+    esxVI_Lookup##_type(esxVI_Context *ctx, const char* name /* optional */,  \
+                        esxVI_ManagedObjectReference *root,                   \
+                        esxVI_String *selectedPropertyNameList /* optional */,\
+                        esxVI_##_type **ptrptr, esxVI_Occurrence occurrence)  \
+    {                                                                         \
+        int result = -1;                                                      \
+        const char *completePropertyNameValueList = _complete_properties;     \
+        esxVI_String *propertyNameList = NULL;                                \
+        esxVI_ObjectContent *objectContent = NULL;                            \
+        esxVI_ObjectContent *objectContentList = NULL;                        \
+        esxVI_DynamicProperty *dynamicProperty = NULL;                        \
+                                                                              \
+        if (ptrptr == NULL || *ptrptr != NULL) {                              \
+            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",                        \
+                         _("Invalid argument"));                              \
+            return -1;                                                        \
+        }                                                                     \
+                                                                              \
+        propertyNameList = selectedPropertyNameList;                          \
+                                                                              \
+        if (propertyNameList == NULL &&                                       \
+            esxVI_String_AppendValueListToList                                \
+              (&propertyNameList, completePropertyNameValueList) < 0) {       \
+            goto cleanup;                                                     \
+        }                                                                     \
+                                                                              \
+        if (esxVI_LookupManagedObjectHelper(ctx, name, root, #_type,          \
+                                            propertyNameList, &objectContent, \
+                                            &objectContentList,               \
+                                            occurrence) < 0) {                \
+            goto cleanup;                                                     \
+        }                                                                     \
+                                                                              \
+        if (esxVI_##_type##_Alloc(ptrptr) < 0) {                              \
+            goto cleanup;                                                     \
+        }                                                                     \
+                                                                              \
+        if (esxVI_ManagedObjectReference_DeepCopy(&(*ptrptr)->_reference,     \
+                                                  objectContent->obj) < 0) {  \
+            goto cleanup;                                                     \
+        }                                                                     \
+                                                                              \
+        for (dynamicProperty = objectContent->propSet;                        \
+             dynamicProperty != NULL;                                         \
+             dynamicProperty = dynamicProperty->_next) {                      \
+            _cast_from_anytype                                                \
+                                                                              \
+            VIR_WARN("Unexpected '%s' property", dynamicProperty->name);      \
+        }                                                                     \
+                                                                              \
+        if (esxVI_##_type##_Validate(*ptrptr, selectedPropertyNameList) < 0) {\
+            goto cleanup;                                                     \
+        }                                                                     \
+                                                                              \
+        result = 0;                                                           \
+                                                                              \
+      cleanup:                                                                \
+        if (result < 0) {                                                     \
+            esxVI_##_type##_Free(ptrptr);                                     \
+        }                                                                     \
+                                                                              \
+        if (propertyNameList != selectedPropertyNameList) {                   \
+            esxVI_String_Free(&propertyNameList);                             \
+        }                                                                     \
+                                                                              \
+        esxVI_ObjectContent_Free(&objectContentList);                         \
+                                                                              \
+        return result;                                                        \
+    }
+
+
+
+static int
+esxVI_LookupManagedObjectHelper(esxVI_Context *ctx,
+                                const char *name /* optional */,
+                                esxVI_ManagedObjectReference *root,
+                                const char *type,
+                                esxVI_String *propertyNameList,
+                                esxVI_ObjectContent **objectContent,
+                                esxVI_ObjectContent **objectContentList,
+                                esxVI_Occurrence occurrence)
+{
+    int result = -1;
+    esxVI_ObjectContent *candidate = NULL;
+    char *name_candidate;
+
+    if (objectContent == NULL || *objectContent != NULL ||
+        objectContentList == NULL || *objectContentList != NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
+    if (!esxVI_String_ListContainsValue(propertyNameList, "name")) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                     _("Missing 'name' property in %s lookup"), type);
+        goto cleanup;
+    }
+
+    if (esxVI_LookupObjectContentByType(ctx, root, type, propertyNameList,
+                                        objectContentList,
+                                        esxVI_Occurrence_OptionalList) < 0) {
+        goto cleanup;
+    }
+
+    /* Search for a matching item */
+    if (name != NULL) {
+        for (candidate = *objectContentList; candidate != NULL;
+             candidate = candidate->_next) {
+            name_candidate = NULL;
+
+            if (esxVI_GetStringValue(candidate, "name", &name_candidate,
+                                     esxVI_Occurrence_RequiredItem) < 0) {
+                goto cleanup;
+            }
+
+            if (STREQ(name_candidate, name)) {
+                /* Found item with matching name */
+                break;
+            }
+        }
+    } else {
+        candidate = *objectContentList;
+    }
+
+    if (candidate == NULL) {
+        if (occurrence != esxVI_Occurrence_OptionalItem) {
+            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
+                         _("Could not find %s with name '%s'"), type, name);
+            goto cleanup;
+        }
+
+        result = 0;
+
+        goto cleanup;
+    }
+
+    result = 0;
+
+  cleanup:
+    if (result < 0) {
+        esxVI_ObjectContent_Free(objectContentList);
+    } else {
+        *objectContent = candidate;
+    }
+
+    return result;
+}
+
+
+
+#include "esx_vi.generated.c"

@@ -122,7 +122,9 @@
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_SWAP_OUT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_UNUSED' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEM_CONFIG' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEM_CURRENT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEM_LIVE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEM_MAXIMUM' type='enum'/>
      <exports symbol='VIR_DOMAIN_NONE' type='enum'/>
      <exports symbol='VIR_DOMAIN_NOSTATE' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED' type='enum'/>
@@ -934,8 +936,10 @@
 * balloon driver is in use or if the guest OS does not initialize all
 * assigned pages.  This value is expressed in kB.
 *'/>
-    <enum name='VIR_DOMAIN_MEM_CONFIG' file='libvirt' value='2' type='virDomainMemoryModFlags' info=' affect next boot'/>
+    <enum name='VIR_DOMAIN_MEM_CONFIG' file='libvirt' value='2' type='virDomainMemoryModFlags' info='affect next boot'/>
+    <enum name='VIR_DOMAIN_MEM_CURRENT' file='libvirt' value='0' type='virDomainMemoryModFlags' info='affect current domain state'/>
     <enum name='VIR_DOMAIN_MEM_LIVE' file='libvirt' value='1' type='virDomainMemoryModFlags' info='affect active domain'/>
+    <enum name='VIR_DOMAIN_MEM_MAXIMUM' file='libvirt' value='4' type='virDomainMemoryModFlags' info=' affect Max rather than current'/>
     <enum name='VIR_DOMAIN_NONE' file='libvirt' value='0' type='virDomainCreateFlags' info='Default behavior'/>
     <enum name='VIR_DOMAIN_NOSTATE' file='libvirt' value='0' type='virDomainState' info='no state'/>
     <enum name='VIR_DOMAIN_PAUSED' file='libvirt' value='3' type='virDomainState' info='the domain is paused by user'/>
@@ -1461,7 +1465,7 @@ library handler.]]></info>
       <info><![CDATA[When authentication requires one or more interactions, this callback
 is invoked. For each interaction supplied, data must be gathered
 from the user and filled in to the 'result' and 'resultlen' fields.
-If an interaction can not be filled, fill in NULL and 0.]]></info>
+If an interaction cannot be filled, fill in NULL and 0.]]></info>
       <return type='int' info='0 if all interactions were filled, or -1 upon error'/>
       <arg name='cred' type='virConnectCredentialPtr' info='list of virConnectCredential object to fetch from user'/>
       <arg name='ncred' type='unsigned int' info='size of cred list'/>
@@ -1581,8 +1585,11 @@ API contract
 
 The virDomainPtr object handle passed into the callback upon delivery
 of an event is only valid for the duration of execution of the callback.
-If the callback wishes to keep the domain object after the callback]]></info>
-      <return type='int' info='it shall take a reference to it, by calling virDomainRef. The reference can be released once the object is no longer required by calling virDomainFree.  Returns 0 on success, -1 on failure'/>
+If the callback wishes to keep the domain object after the callback returns,
+it shall take a reference to it, by calling virDomainRef.
+The reference can be released once the object is no longer required
+by calling virDomainFree.]]></info>
+      <return type='int' info='0 on success, -1 on failure'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
       <arg name='cb' type='virConnectDomainEventCallback' info='callback to the function handling domain events'/>
       <arg name='opaque' type='void *' info='opaque data to pass on to the callback'/>
@@ -1602,8 +1609,15 @@ to match the signature of this method.
 
 The virDomainPtr object handle passed into the callback upon delivery
 of an event is only valid for the duration of execution of the callback.
-If the callback wishes to keep the domain object after the callback]]></info>
-      <return type='int' info='it shall take a reference to it, by calling virDomainRef. The reference can be released once the object is no longer required by calling virDomainFree.  The return value from this method is a positive integer identifier for the callback. To unregister a callback, this callback ID should be passed to the virDomainEventUnregisterAny method  Returns a callback identifier on success, -1 on failure'/>
+If the callback wishes to keep the domain object after the callback returns,
+it shall take a reference to it, by calling virDomainRef.
+The reference can be released once the object is no longer required
+by calling virDomainFree.
+
+The return value from this method is a positive integer identifier
+for the callback. To unregister a callback, this callback ID should
+be passed to the virDomainEventUnregisterAny method]]></info>
+      <return type='int' info='a callback identifier on success, -1 on failure'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain'/>
       <arg name='eventID' type='int' info='the event type to receive'/>
@@ -2017,7 +2031,7 @@ the remote host.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='to' type='const char *' info='path for the core file'/>
-      <arg name='flags' type='int' info='extra flags, currently unused'/>
+      <arg name='flags' type='int' info='an OR&apos;ed set of virDomainCoreDumpFlags'/>
     </function>
     <function name='virDomainCreate' file='libvirt' module='libvirt'>
       <info><![CDATA[Launch a defined domain. If the call succeeds the domain moves from the
@@ -2615,7 +2629,7 @@ the reference count.]]></info>
       <info><![CDATA[This method will restore a domain saved to disk by virDomainSave().]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
-      <arg name='from' type='const char *' info='path to the'/>
+      <arg name='from' type='const char *' info='path to the input file'/>
     </function>
     <function name='virDomainResume' file='libvirt' module='libvirt'>
       <info><![CDATA[Resume a suspended domain, the process is restarted from the state where
@@ -2661,8 +2675,9 @@ domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
 This function requires privileged access to the hypervisor.
 
-This command only changes the runtime configuration of the domain,
-so can only be called on an active domain.]]></info>
+This command is hypervisor-specific for whether active, persistent,
+or both configurations are changed; for more control, use
+virDomainSetMemoryFlags().]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object or NULL'/>
       <arg name='memory' type='unsigned long' info='the memory size in kilobytes'/>
@@ -2683,12 +2698,19 @@ so can only be called on an active domain.]]></info>
       <info><![CDATA[Dynamically change the target amount of physical memory allocated to a
 domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
-This funcation may requires privileged access to the hypervisor.
+This function may requires privileged access to the hypervisor.
 
-@flags must include VIR_DOMAIN_MEM_LIVE to affect a running
-domain (which may fail if domain is not active), or
-VIR_DOMAIN_MEM_CONFIG to affect the next boot via the XML
-description of the domain. Both flags may be set.]]></info>
+@flags may include VIR_DOMAIN_MEM_LIVE or VIR_DOMAIN_MEM_CONFIG.
+Both flags may be set. If VIR_DOMAIN_MEM_LIVE is set, the change affects
+a running domain and will fail if domain is not active.
+If VIR_DOMAIN_MEM_CONFIG is set, the change affects persistent state,
+and will fail for transient domains. If neither flag is specified
+(that is, @flags is VIR_DOMAIN_MEM_CURRENT), then an inactive domain
+modifies persistent setup, while an active domain is hypervisor-dependent
+on whether just live or both live and persistent state is changed.
+If VIR_DOMAIN_MEM_MAXIMUM is set, the change affects domain's maximum memory
+size rather than current memory size.
+Not all hypervisors can support all flag combinations.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object or NULL'/>
       <arg name='memory' type='unsigned long' info='the memory size in kilobytes'/>

@@ -25,6 +25,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #include "qemu_process.h"
 #include "qemu_domain.h"
@@ -426,12 +428,22 @@ qemuProcessHandleWatchdog(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         if (VIR_ALLOC(wdEvent) == 0) {
             wdEvent->action = VIR_DOMAIN_WATCHDOG_ACTION_DUMP;
             wdEvent->vm = vm;
-            ignore_value(virThreadPoolSendJob(driver->workerPool, wdEvent));
-        } else
+            /* Hold an extra reference because we can't allow 'vm' to be
+             * deleted before handling watchdog event is finished.
+             */
+            virDomainObjRef(vm);
+            if (virThreadPoolSendJob(driver->workerPool, wdEvent) < 0) {
+                if (virDomainObjUnref(vm) == 0)
+                    vm = NULL;
+                VIR_FREE(wdEvent);
+            }
+        } else {
             virReportOOMError();
+        }
     }
 
-    virDomainObjUnlock(vm);
+    if (vm)
+        virDomainObjUnlock(vm);
 
     if (watchdogEvent || lifecycleEvent) {
         qemuDriverLock(driver);
@@ -895,51 +907,71 @@ qemuProcessExtractTTYPath(const char *haystack,
 }
 
 static int
-qemuProcessFindCharDevicePTYsMonitor(virDomainObjPtr vm,
-                                     virHashTablePtr paths)
+qemuProcessLookupPTYs(virDomainChrDefPtr *devices,
+                      int count,
+                      const char *prefix,
+                      virHashTablePtr paths)
 {
     int i;
 
-#define LOOKUP_PTYS(array, arraylen, idprefix)                            \
-    for (i = 0 ; i < (arraylen) ; i++) {                                  \
-        virDomainChrDefPtr chr = (array)[i];                              \
-        if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {                \
-            char id[16];                                                  \
-                                                                          \
-            if (snprintf(id, sizeof(id), idprefix "%i", i) >= sizeof(id)) \
-                return -1;                                                \
-                                                                          \
-            const char *path = (const char *) virHashLookup(paths, id);   \
-            if (path == NULL) {                                           \
-                if (chr->source.data.file.path == NULL) {                 \
-                    /* neither the log output nor 'info chardev' had a */ \
-                    /* pty path for this chardev, report an error */      \
-                    qemuReportError(VIR_ERR_INTERNAL_ERROR,               \
-                                    _("no assigned pty for device %s"), id); \
-                    return -1;                                            \
-                } else {                                                  \
-                    /* 'info chardev' had no pty path for this chardev, */\
-                    /* but the log output had, so we're fine */           \
-                    continue;                                             \
-                }                                                         \
-            }                                                             \
-                                                                          \
-            VIR_FREE(chr->source.data.file.path);                         \
-            chr->source.data.file.path = strdup(path);                    \
-                                                                          \
-            if (chr->source.data.file.path == NULL) {                     \
-                virReportOOMError();                                      \
-                return -1;                                                \
-            }                                                             \
-        }                                                                 \
+    for (i = 0 ; i < count ; i++) {
+        virDomainChrDefPtr chr = devices[i];
+        if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
+            char id[16];
+            const char *path;
+
+            if (snprintf(id, sizeof(id), "%s%d", prefix, i) >= sizeof(id))
+                return -1;
+
+            path = (const char *) virHashLookup(paths, id);
+            if (path == NULL) {
+                if (chr->source.data.file.path == NULL) {
+                    /* neither the log output nor 'info chardev' had a
+                     * pty path for this chardev, report an error
+                     */
+                    qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                    _("no assigned pty for device %s"), id);
+                    return -1;
+                } else {
+                    /* 'info chardev' had no pty path for this chardev,
+                     * but the log output had, so we're fine
+                     */
+                    continue;
+                }
+            }
+
+            VIR_FREE(chr->source.data.file.path);
+            chr->source.data.file.path = strdup(path);
+
+            if (chr->source.data.file.path == NULL) {
+                virReportOOMError();
+                return -1;
+            }
+        }
     }
 
-    LOOKUP_PTYS(vm->def->serials,   vm->def->nserials,   "serial");
-    LOOKUP_PTYS(vm->def->parallels, vm->def->nparallels, "parallel");
-    LOOKUP_PTYS(vm->def->channels,  vm->def->nchannels,  "channel");
-    if (vm->def->console)
-        LOOKUP_PTYS(&vm->def->console, 1,  "console");
-#undef LOOKUP_PTYS
+    return 0;
+}
+
+static int
+qemuProcessFindCharDevicePTYsMonitor(virDomainObjPtr vm,
+                                     virHashTablePtr paths)
+{
+    if (qemuProcessLookupPTYs(vm->def->serials, vm->def->nserials,
+                              "serial", paths) < 0)
+        return -1;
+
+    if (qemuProcessLookupPTYs(vm->def->parallels, vm->def->nparallels,
+                              "parallel", paths) < 0)
+        return -1;
+
+    if (qemuProcessLookupPTYs(vm->def->channels, vm->def->nchannels,
+                              "channel", paths) < 0)
+        return -1;
+
+    if (vm->def->console &&
+        qemuProcessLookupPTYs(&vm->def->console, 1, "console", paths) < 0)
+        return -1;
 
     return 0;
 }
@@ -1012,15 +1044,22 @@ static int
 qemuProcessWaitForMonitor(struct qemud_driver* driver,
                           virDomainObjPtr vm, off_t pos)
 {
-    char buf[4096] = ""; /* Plenty of space to get startup greeting */
+    char *buf;
+    size_t buf_size = 4096; /* Plenty of space to get startup greeting */
     int logfd;
     int ret = -1;
     virHashTablePtr paths = NULL;
+    qemuDomainObjPrivatePtr priv;
 
     if ((logfd = qemuProcessLogReadFD(driver->logDir, vm->def->name, pos)) < 0)
         return -1;
 
-    if (qemuProcessReadLogOutput(vm, logfd, buf, sizeof(buf),
+    if (VIR_ALLOC_N(buf, buf_size) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (qemuProcessReadLogOutput(vm, logfd, buf, buf_size,
                                  qemuProcessFindCharDevicePTYs,
                                  "console", 30) < 0)
         goto closelog;
@@ -1038,7 +1077,7 @@ qemuProcessWaitForMonitor(struct qemud_driver* driver,
     if (paths == NULL)
         goto cleanup;
 
-    qemuDomainObjPrivatePtr priv = vm->privateData;
+    priv = vm->privateData;
     qemuDomainObjEnterMonitorWithDriver(driver, vm);
     ret = qemuMonitorGetPtyPaths(priv->mon, paths);
     qemuDomainObjExitMonitorWithDriver(driver, vm);
@@ -1053,16 +1092,18 @@ cleanup:
     if (kill(vm->pid, 0) == -1 && errno == ESRCH) {
         /* VM is dead, any other error raised in the interim is probably
          * not as important as the qemu cmdline output */
-        qemuProcessReadLogFD(logfd, buf, sizeof(buf), strlen(buf));
+        qemuProcessReadLogFD(logfd, buf, buf_size, strlen(buf));
         qemuReportError(VIR_ERR_INTERNAL_ERROR,
                         _("process exited while connecting to monitor: %s"),
                         buf);
         ret = -1;
     }
 
+    VIR_FREE(buf);
+
 closelog:
     if (VIR_CLOSE(logfd) < 0) {
-        char ebuf[4096];
+        char ebuf[1024];
         VIR_WARN("Unable to close logfile: %s",
                  virStrerror(errno, ebuf, sizeof ebuf));
     }
@@ -1782,6 +1823,25 @@ qemuProcessPrepareChardevDevice(virDomainDefPtr def ATTRIBUTE_UNUSED,
 }
 
 
+static int
+qemuProcessLimits(struct qemud_driver *driver)
+{
+    if (driver->maxProcesses > 0) {
+        struct rlimit rlim;
+
+        rlim.rlim_cur = rlim.rlim_max = driver->maxProcesses;
+        if (setrlimit(RLIMIT_NPROC, &rlim) < 0) {
+            virReportSystemError(errno,
+                                 _("cannot limit number of processes to %d"),
+                                 driver->maxProcesses);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+
 struct qemuProcessHookData {
     virConnectPtr conn;
     virDomainObjPtr vm;
@@ -1791,6 +1851,9 @@ struct qemuProcessHookData {
 static int qemuProcessHook(void *data)
 {
     struct qemuProcessHookData *h = data;
+
+    if (qemuProcessLimits(h->driver) < 0)
+        return -1;
 
     /* This must take place before exec(), so that all QEMU
      * memory allocation is on the correct NUMA node
@@ -2273,7 +2336,7 @@ int qemuProcessStart(virConnectPtr conn,
     ret = virCommandRun(cmd, NULL);
     VIR_FREE(pidfile);
 
-    /* wait for qemu process to to show up */
+    /* wait for qemu process to show up */
     if (ret == 0) {
         if (virFileReadPid(driver->stateDir, vm->def->name, &vm->pid)) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,

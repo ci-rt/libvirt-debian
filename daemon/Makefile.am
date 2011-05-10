@@ -26,6 +26,7 @@ EXTRA_DIST =						\
 	remote_generate_stubs.pl			\
 	libvirtd.conf					\
 	libvirtd.init.in				\
+	libvirtd.upstart				\
 	libvirtd.policy-0				\
 	libvirtd.policy-1				\
 	libvirtd.sasl					\
@@ -165,7 +166,7 @@ nodist_libvirtd_SOURCES = probes.h
 
 BUILT_SOURCES += probes.h
 
-tapsetdir = $(datadir)/systemtap/tapsets
+tapsetdir = $(datadir)/systemtap/tapset
 tapset_DATA = libvirtd.stp
 
 probes.h: probes.d

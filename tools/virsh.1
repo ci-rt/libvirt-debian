@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2011-04-01" "libvirt-0.8.8" "Virtualization Support"
+.TH VIRSH 1 "2011-04-27" "libvirt-0.9.1" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -410,10 +410,11 @@ crashed.
 .RE
 .RS 4
 .RE
-.IP "\fBfreecell\fR optional \fIcellno\fR" 4
-.IX Item "freecell optional cellno"
+.IP "\fBfreecell\fR optional { \fI\-\-cellno\fR \fBcellno\fR | \fI\-\-all\fR }" 4
+.IX Item "freecell optional { --cellno cellno | --all }"
 Prints the available amount of memory on the machine or within a
-\&\s-1NUMA\s0 cell if \fIcellno\fR is provided.
+\&\s-1NUMA\s0 cell if \fIcellno\fR is provided.  If \fI\-\-all\fR is provided instead
+of \fI\-\-cellno\fR, then show the information on all \s-1NUMA\s0 cells.
 .IP "\fBcpu-baseline\fR \fI\s-1FILE\s0\fR" 4
 .IX Item "cpu-baseline FILE"
 Compute baseline \s-1CPU\s0 which will be supported by all host CPUs given in <file>.
@@ -607,7 +608,12 @@ The exact behavior of a domain when it reboots is set by the
 \&\fIon_reboot\fR parameter in the domain's \s-1XML\s0 definition.
 .IP "\fBrestore\fR \fIstate-file\fR" 4
 .IX Item "restore state-file"
-Restores a domain from an \fBvirsh save\fR state file.  See \fIsave\fR for more info.
+Restores a domain from a \fBvirsh save\fR state file. See \fIsave\fR for more info.
+.Sp
+\&\fBNote\fR: To avoid corrupting file system contents within the domain, you
+should not reuse the saved state file for a second \fBrestore\fR unless you
+have also reverted all storage volumes back to the same contents as when
+the state file was created.
 .IP "\fBsave\fR \fIdomain-id\fR \fIstate-file\fR" 4
 .IX Item "save domain-id state-file"
 Saves a running domain to a state file so that it can be restored
@@ -638,12 +644,15 @@ Therefore, \-1 is a useful shorthand for 262144.
 .Sp
 \&\fBNote\fR: The weight and cap parameters are defined only for the
 \&\s-1XEN_CREDIT\s0 scheduler and are now \fI\s-1DEPRECATED\s0\fR.
-.IP "\fBsetmem\fR \fIdomain-id\fR \fBkilobytes\fR optional \fI\-\-config\fR \fI\-\-live\fR" 4
-.IX Item "setmem domain-id kilobytes optional --config --live"
+.IP "\fBsetmem\fR \fIdomain-id\fR \fBkilobytes\fR optional \fI\-\-config\fR \fI\-\-live\fR \fI\-\-current\fR" 4
+.IX Item "setmem domain-id kilobytes optional --config --live --current"
 Change the memory allocation for a guest domain.
 If \fI\-\-live\fR is specified, perform a memory balloon of a running guest.
 If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
-Both flags may be given.  If neither flag is given, \fI\-\-live\fR is assumed.
+If \fI\-\-current\fR is specified, affect the current guest state.
+Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given, but \fI\-\-current\fR is
+exclusive. If no flag is specified, behavior is different depending
+on hypervisor.
 .Sp
 Some hypervisors require a larger granularity than kilobytes, and requests
 that are not an even multiple will be rounded up.  For example, vSphere/ESX
@@ -652,21 +661,23 @@ rounds the parameter up unless the kB argument is evenly divisible by 1024
 .Sp
 For Xen, you can only adjust the memory of a running domain if the domain is
 paravirtualized or running the \s-1PV\s0 balloon driver.
-.IP "\fBsetmaxmem\fR \fIdomain-id\fR \fBkilobytes\fR" 4
-.IX Item "setmaxmem domain-id kilobytes"
-Change the maximum memory allocation limit for an inactive guest domain.
+.IP "\fBsetmaxmem\fR \fIdomain-id\fR \fBkilobytes\fR optional \fI\-\-config\fR \fI\-\-live\fR \fI\-\-current\fR" 4
+.IX Item "setmaxmem domain-id kilobytes optional --config --live --current"
+Change the maximum memory allocation limit for a guest domain.
+If \fI\-\-live\fR is specified, affect a running guest.
+If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
+If \fI\-\-current\fR is specified, affect the current guest state.
+Both \fI\-\-live\fR and \fI\-\-current\fR flags may be given, but \fI\-\-current\fR is
+exclusive. If no flag is specified, behavior is different depending
+on hypervisor.
 .Sp
-This command works for at least the Xen and vSphere/ESX hypervisors,
-but not for \s-1QEMU/KVM\s0.
+This command works for at least the Xen, \s-1QEMU/KVM\s0 and vSphere/ESX hypervisors.
 .Sp
 Some hypervisors require a larger granularity than kilobytes, rounding up
 requests that are not an even multiple of the desired amount.  vSphere/ESX
 is one of these, requiring the parameter to be evenly divisible by 4MB.  For
 vSphere/ESX, 263168 (257MB) would be rounded up because it's not a multiple
 of 4MB, while 266240 (260MB) is valid without rounding.
-.Sp
-Note, to change the maximum memory allocation for a \s-1QEMU/KVM\s0 guest domain,
-use the virsh \fBedit\fR command instead to update its \s-1XML\s0 <memory> element.
 .IP "\fBmemtune\fR \fIdomain-id\fR optional \fI\-\-hard\-limit\fR \fBkilobytes\fR optional \fI\-\-soft\-limit\fR \fBkilobytes\fR optional \fI\-\-swap\-hard\-limit\fR \fBkilobytes\fR optional \fI\-\-min\-guarantee\fR \fBkilobytes\fR" 4
 .IX Item "memtune domain-id optional --hard-limit kilobytes optional --soft-limit kilobytes optional --swap-hard-limit kilobytes optional --min-guarantee kilobytes"
 Allows you to display or set the domain memory parameters. Without

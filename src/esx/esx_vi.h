@@ -36,7 +36,7 @@
 
 
 # define ESX_VI_ERROR(code, ...)                                              \
-    virReportErrorHelper(NULL, VIR_FROM_ESX, code, __FILE__, __FUNCTION__,    \
+    virReportErrorHelper(VIR_FROM_ESX, code, __FILE__, __FUNCTION__,          \
                          __LINE__, __VA_ARGS__)
 
 
@@ -82,6 +82,8 @@ typedef enum _esxVI_APIVersion esxVI_APIVersion;
 typedef enum _esxVI_ProductVersion esxVI_ProductVersion;
 typedef enum _esxVI_Occurrence esxVI_Occurrence;
 typedef struct _esxVI_ParsedHostCpuIdInfo esxVI_ParsedHostCpuIdInfo;
+typedef struct _esxVI_CURL esxVI_CURL;
+typedef struct _esxVI_SharedCURL esxVI_SharedCURL;
 typedef struct _esxVI_Context esxVI_Context;
 typedef struct _esxVI_Response esxVI_Response;
 typedef struct _esxVI_Enumeration esxVI_Enumeration;
@@ -142,16 +144,50 @@ struct _esxVI_ParsedHostCpuIdInfo {
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * CURL
+ */
+
+struct _esxVI_CURL {
+    CURL *handle;
+    virMutex lock;
+    struct curl_slist *headers;
+    char error[CURL_ERROR_SIZE];
+    esxVI_SharedCURL *shared;
+};
+
+int esxVI_CURL_Alloc(esxVI_CURL **curl);
+void esxVI_CURL_Free(esxVI_CURL **curl);
+int esxVI_CURL_Connect(esxVI_CURL *curl, esxUtil_ParsedUri *parsedUri);
+int esxVI_CURL_Download(esxVI_CURL *curl, const char *url, char **content);
+int esxVI_CURL_Upload(esxVI_CURL *curl, const char *url, const char *content);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * SharedCURL
+ */
+
+struct _esxVI_SharedCURL {
+    CURLSH *handle;
+    virMutex locks[3]; /* share, cookie, dns */
+    size_t count;
+};
+
+int esxVI_SharedCURL_Alloc(esxVI_SharedCURL **shared);
+void esxVI_SharedCURL_Free(esxVI_SharedCURL **shared);
+int esxVI_SharedCURL_Add(esxVI_SharedCURL *shared, esxVI_CURL *curl);
+int esxVI_SharedCURL_Remove(esxVI_SharedCURL *shared, esxVI_CURL *curl);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Context
  */
 
 struct _esxVI_Context {
+    esxVI_CURL *curl;
     char *url;
     char *ipAddress;
-    CURL *curl_handle;
-    struct curl_slist *curl_headers;
-    char curl_error[CURL_ERROR_SIZE];
-    virMutex curl_lock;
     char *username;
     char *password;
     esxVI_ServiceContent *service;
@@ -180,10 +216,6 @@ int esxVI_Context_LookupObjectsByPath(esxVI_Context *ctx,
                                       esxUtil_ParsedUri *parsedUri);
 int esxVI_Context_LookupObjectsByHostSystemIp(esxVI_Context *ctx,
                                               const char *hostSystemIpAddress);
-int esxVI_Context_DownloadFile(esxVI_Context *ctx, const char *url,
-                               char **content);
-int esxVI_Context_UploadFile(esxVI_Context *ctx, const char *url,
-                             const char *content);
 int esxVI_Context_Execute(esxVI_Context *ctx, const char *methodName,
                           const char *request, esxVI_Response **response,
                           esxVI_Occurrence occurrence);
@@ -443,5 +475,7 @@ int esxVI_ParseHostCpuIdInfo(esxVI_ParsedHostCpuIdInfo *parsedHostCpuIdInfo,
                              esxVI_HostCpuIdInfo *hostCpuIdInfo);
 
 int esxVI_ProductVersionToDefaultVirtualHWVersion(esxVI_ProductVersion productVersion);
+
+# include "esx_vi.generated.h"
 
 #endif /* __ESX_VI_H__ */

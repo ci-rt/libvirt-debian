@@ -905,8 +905,10 @@ The content of this structure is not made public by the API.
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainMemoryModFlags">Enum </a>virDomainMemoryModFlags</h3><pre class="programlisting">enum <a href="#virDomainMemoryModFlags">virDomainMemoryModFlags</a> {
+    <a name="VIR_DOMAIN_MEM_CURRENT">VIR_DOMAIN_MEM_CURRENT</a> = 0 /* affect current domain state */
     <a name="VIR_DOMAIN_MEM_LIVE">VIR_DOMAIN_MEM_LIVE</a> = 1 /* affect active domain */
-    <a name="VIR_DOMAIN_MEM_CONFIG">VIR_DOMAIN_MEM_CONFIG</a> = 2 /*  affect next boot */
+    <a name="VIR_DOMAIN_MEM_CONFIG">VIR_DOMAIN_MEM_CONFIG</a> = 2 /* affect next boot */
+    <a name="VIR_DOMAIN_MEM_MAXIMUM">VIR_DOMAIN_MEM_MAXIMUM</a> = 4 /*  affect Max rather than current */
 };
 </pre><p/>
 </div>
@@ -1282,7 +1284,7 @@ The content of this structure is not made public by the API.
 </pre><p>When authentication requires one or more interactions, this callback
 is invoked. For each interaction supplied, data must be gathered
 from the user and filled in to the 'result' and 'resultlen' fields.
-If an interaction can not be filled, fill in NULL and 0.</p>
+If an interaction cannot be filled, fill in NULL and 0.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cred</tt></i>:</span></td><td>list of <a href="libvirt-libvirt.html#virConnectCredential">virConnectCredential</a> object to fetch from user</td></tr><tr><td><span class="term"><i><tt>ncred</tt></i>:</span></td><td>size of cred list</td></tr><tr><td><span class="term"><i><tt>cbdata</tt></i>:</span></td><td>opaque data passed to <a href="libvirt-libvirt.html#virConnectOpenAuth">virConnectOpenAuth</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if all interactions were filled, or -1 upon error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventCallback"/>Function type virConnectDomainEventCallback</h3><pre class="programlisting">int	virConnectDomainEventCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 int event, <br/>					 int detail, <br/>					 void * opaque)<br/>
@@ -1459,8 +1461,11 @@ API contract
 
 The <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> object handle passed into the callback upon delivery
 of an event is only valid for the duration of execution of the callback.
-If the callback wishes to keep the domain object after the callback</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling domain events</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque data to pass on to the callback</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>optional function to deallocate opaque when not used anymore</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>it shall take a reference to it, by calling virDomainRef. The reference can be released once the object is no longer required by calling virDomainFree. Returns 0 on success, -1 on failure</td></tr></tbody></table></div></div>
+If the callback wishes to keep the domain object after the callback returns,
+it shall take a reference to it, by calling virDomainRef.
+The reference can be released once the object is no longer required
+by calling virDomainFree.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling domain events</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque data to pass on to the callback</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>optional function to deallocate opaque when not used anymore</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventRegisterAny"/>virConnectDomainEventRegisterAny ()</h3><pre class="programlisting">int	virConnectDomainEventRegisterAny	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int eventID, <br/>						 <a href="libvirt-libvirt.html#virConnectDomainEventGenericCallback">virConnectDomainEventGenericCallback</a> cb, <br/>						 void * opaque, <br/>						 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> freecb)<br/>
 </pre><p>Adds a callback to receive notifications of arbitrary domain events
@@ -1476,8 +1481,15 @@ to match the signature of this method.
 
 The <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> object handle passed into the callback upon delivery
 of an event is only valid for the duration of execution of the callback.
-If the callback wishes to keep the domain object after the callback</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain</td></tr><tr><td><span class="term"><i><tt>eventID</tt></i>:</span></td><td>the event type to receive</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling domain events</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque data to pass on to the callback</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>optional function to deallocate opaque when not used anymore</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>it shall take a reference to it, by calling virDomainRef. The reference can be released once the object is no longer required by calling virDomainFree. The return value from this method is a positive integer identifier for the callback. To unregister a callback, this callback ID should be passed to the virDomainEventUnregisterAny method Returns a callback identifier on success, -1 on failure</td></tr></tbody></table></div></div>
+If the callback wishes to keep the domain object after the callback returns,
+it shall take a reference to it, by calling virDomainRef.
+The reference can be released once the object is no longer required
+by calling virDomainFree.
+
+The return value from this method is a positive integer identifier
+for the callback. To unregister a callback, this callback ID should
+be passed to the virDomainEventUnregisterAny method</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain</td></tr><tr><td><span class="term"><i><tt>eventID</tt></i>:</span></td><td>the event type to receive</td></tr><tr><td><span class="term"><i><tt>cb</tt></i>:</span></td><td>callback to the function handling domain events</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque data to pass on to the callback</td></tr><tr><td><span class="term"><i><tt>freecb</tt></i>:</span></td><td>optional function to deallocate opaque when not used anymore</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a callback identifier on success, -1 on failure</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainXMLFromNative"/>virConnectDomainXMLFromNative ()</h3><pre class="programlisting">char *	virConnectDomainXMLFromNative	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * nativeFormat, <br/>					 const char * nativeConfig, <br/>					 unsigned int flags)<br/>
 </pre><p>Reads native configuration data describing a domain, and
@@ -1770,7 +1782,7 @@ that particular statistic.</p>
 </pre><p>This method will dump the core of a domain on a given file for analysis.
 Note that for remote Xen Daemon the file path will be interpreted in
 the remote host.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>to</tt></i>:</span></td><td>path for the core file</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags, currently unused</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>to</tt></i>:</span></td><td>path for the core file</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainCoreDumpFlags">virDomainCoreDumpFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainCreate"/>virDomainCreate ()</h3><pre class="programlisting">int	virDomainCreate			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Launch a defined domain. If the call succeeds the domain moves from the
@@ -2244,7 +2256,7 @@ the reference count.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainRestore"/>virDomainRestore ()</h3><pre class="programlisting">int	virDomainRestore		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * from)<br/>
 </pre><p>This method will restore a domain saved to disk by virDomainSave().</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>from</tt></i>:</span></td><td>path to the</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>from</tt></i>:</span></td><td>path to the input file</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainResume"/>virDomainResume ()</h3><pre class="programlisting">int	virDomainResume			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Resume a suspended domain, the process is restarted from the state where
@@ -2279,8 +2291,9 @@ domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
 This function requires privileged access to the hypervisor.
 
-This command only changes the runtime configuration of the domain,
-so can only be called on an active domain.</p>
+This command is hypervisor-specific for whether active, persistent,
+or both configurations are changed; for more control, use
+virDomainSetMemoryFlags().</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object or NULL</td></tr><tr><td><span class="term"><i><tt>memory</tt></i>:</span></td><td>the memory size in kilobytes</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetMemory"/>virDomainSetMemory ()</h3><pre class="programlisting">int	virDomainSetMemory		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory)<br/>
@@ -2297,12 +2310,19 @@ so can only be called on an active domain.</p>
 </pre><p>Dynamically change the target amount of physical memory allocated to a
 domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
-This funcation may requires privileged access to the hypervisor.
+This function may requires privileged access to the hypervisor.
 
-@flags must include <a href="libvirt-libvirt.html#VIR_DOMAIN_MEM_LIVE">VIR_DOMAIN_MEM_LIVE</a> to affect a running
-domain (which may fail if domain is not active), or
-VIR_DOMAIN_MEM_CONFIG to affect the next boot via the XML
-description of the domain. Both flags may be set.</p>
+@flags may include <a href="libvirt-libvirt.html#VIR_DOMAIN_MEM_LIVE">VIR_DOMAIN_MEM_LIVE</a> or VIR_DOMAIN_MEM_CONFIG.
+Both flags may be set. If <a href="libvirt-libvirt.html#VIR_DOMAIN_MEM_LIVE">VIR_DOMAIN_MEM_LIVE</a> is set, the change affects
+a running domain and will fail if domain is not active.
+If <a href="libvirt-libvirt.html#VIR_DOMAIN_MEM_CONFIG">VIR_DOMAIN_MEM_CONFIG</a> is set, the change affects persistent state,
+and will fail for transient domains. If neither flag is specified
+(that is, @flags is VIR_DOMAIN_MEM_CURRENT), then an inactive domain
+modifies persistent setup, while an active domain is hypervisor-dependent
+on whether just live or both live and persistent state is changed.
+If <a href="libvirt-libvirt.html#VIR_DOMAIN_MEM_MAXIMUM">VIR_DOMAIN_MEM_MAXIMUM</a> is set, the change affects domain's maximum memory
+size rather than current memory size.
+Not all hypervisors can support all flag combinations.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object or NULL</td></tr><tr><td><span class="term"><i><tt>memory</tt></i>:</span></td><td>the memory size in kilobytes</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainMemoryModFlags">virDomainMemoryModFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetMemoryParameters"/>virDomainSetMemoryParameters ()</h3><pre class="programlisting">int	virDomainSetMemoryParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virMemoryParameterPtr">virMemoryParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>

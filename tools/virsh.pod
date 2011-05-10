@@ -314,10 +314,11 @@ crashed.
 
 =back
 
-=item B<freecell> optional I<cellno>
+=item B<freecell> optional { I<--cellno> B<cellno> | I<--all> }
 
 Prints the available amount of memory on the machine or within a
-NUMA cell if I<cellno> is provided.
+NUMA cell if I<cellno> is provided.  If I<--all> is provided instead
+of I<--cellno>, then show the information on all NUMA cells.
 
 =item B<cpu-baseline> I<FILE>
 
@@ -546,7 +547,12 @@ I<on_reboot> parameter in the domain's XML definition.
 
 =item B<restore> I<state-file>
 
-Restores a domain from an B<virsh save> state file.  See I<save> for more info.
+Restores a domain from a B<virsh save> state file. See I<save> for more info.
+
+B<Note>: To avoid corrupting file system contents within the domain, you
+should not reuse the saved state file for a second B<restore> unless you
+have also reverted all storage volumes back to the same contents as when
+the state file was created.
 
 =item B<save> I<domain-id> I<state-file>
 
@@ -579,11 +585,15 @@ B<Note>: The weight and cap parameters are defined only for the
 XEN_CREDIT scheduler and are now I<DEPRECATED>.
 
 =item B<setmem> I<domain-id> B<kilobytes> optional I<--config> I<--live>
+I<--current>
 
 Change the memory allocation for a guest domain.
 If I<--live> is specified, perform a memory balloon of a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
-Both flags may be given.  If neither flag is given, I<--live> is assumed.
+If I<--current> is specified, affect the current guest state.
+Both I<--live> and I<--config> flags may be given, but I<--current> is
+exclusive. If no flag is specified, behavior is different depending
+on hypervisor.
 
 Some hypervisors require a larger granularity than kilobytes, and requests
 that are not an even multiple will be rounded up.  For example, vSphere/ESX
@@ -593,12 +603,18 @@ rounds the parameter up unless the kB argument is evenly divisible by 1024
 For Xen, you can only adjust the memory of a running domain if the domain is
 paravirtualized or running the PV balloon driver.
 
-=item B<setmaxmem> I<domain-id> B<kilobytes>
+=item B<setmaxmem> I<domain-id> B<kilobytes> optional I<--config> I<--live>
+I<--current>
 
-Change the maximum memory allocation limit for an inactive guest domain.
+Change the maximum memory allocation limit for a guest domain.
+If I<--live> is specified, affect a running guest.
+If I<--config> is specified, affect the next boot of a persistent guest.
+If I<--current> is specified, affect the current guest state.
+Both I<--live> and I<--current> flags may be given, but I<--current> is
+exclusive. If no flag is specified, behavior is different depending
+on hypervisor.
 
-This command works for at least the Xen and vSphere/ESX hypervisors,
-but not for QEMU/KVM.
+This command works for at least the Xen, QEMU/KVM and vSphere/ESX hypervisors.
 
 Some hypervisors require a larger granularity than kilobytes, rounding up
 requests that are not an even multiple of the desired amount.  vSphere/ESX
@@ -606,8 +622,6 @@ is one of these, requiring the parameter to be evenly divisible by 4MB.  For
 vSphere/ESX, 263168 (257MB) would be rounded up because it's not a multiple
 of 4MB, while 266240 (260MB) is valid without rounding.
 
-Note, to change the maximum memory allocation for a QEMU/KVM guest domain,
-use the virsh B<edit> command instead to update its XML <memory> element.
 
 =item B<memtune> I<domain-id> optional I<--hard-limit> B<kilobytes>
 optional I<--soft-limit> B<kilobytes> optional I<--swap-hard-limit>

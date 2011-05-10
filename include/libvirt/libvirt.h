@@ -505,7 +505,7 @@ typedef virConnectCredential *virConnectCredentialPtr;
  * When authentication requires one or more interactions, this callback
  * is invoked. For each interaction supplied, data must be gathered
  * from the user and filled in to the 'result' and 'resultlen' fields.
- * If an interaction can not be filled, fill in NULL and 0.
+ * If an interaction cannot be filled, fill in NULL and 0.
  *
  * Returns 0 if all interactions were filled, or -1 upon error
  */
@@ -554,7 +554,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 9000
+#define LIBVIR_VERSION_NUMBER 9001
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -854,8 +854,10 @@ int     virDomainGetMemoryParameters(virDomainPtr domain,
 
 /* Memory size modification flags. */
 typedef enum {
-    VIR_DOMAIN_MEM_LIVE   = (1 << 0), /* affect active domain */
-    VIR_DOMAIN_MEM_CONFIG = (1 << 1), /* affect next boot */
+    VIR_DOMAIN_MEM_CURRENT = 0,        /* affect current domain state */
+    VIR_DOMAIN_MEM_LIVE    = (1 << 0), /* affect active domain */
+    VIR_DOMAIN_MEM_CONFIG  = (1 << 1), /* affect next boot */
+    VIR_DOMAIN_MEM_MAXIMUM = (1 << 2), /* affect Max rather than current */
 } virDomainMemoryModFlags;
 
 

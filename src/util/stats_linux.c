@@ -30,7 +30,7 @@
 # define VIR_FROM_THIS VIR_FROM_STATS_LINUX
 
 # define virStatsError(code, ...)                               \
-    virReportErrorHelper(NULL, VIR_FROM_THIS, code, __FILE__,  \
+    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,         \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
@@ -107,7 +107,7 @@ linuxDomainInterfaceStats(const char *path,
     VIR_FORCE_FCLOSE(fp);
 
     virStatsError(VIR_ERR_INTERNAL_ERROR,
-                  "/proc/net/dev: Interface not found");
+                  _("/proc/net/dev: Interface not found"));
     return -1;
 }
 

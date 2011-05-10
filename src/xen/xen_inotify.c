@@ -46,7 +46,7 @@
 #define VIR_FROM_THIS VIR_FROM_XEN_INOTIFY
 
 #define virXenInotifyError(code, ...)                                   \
-        virReportErrorHelper(NULL, VIR_FROM_XEN_INOTIFY, code, __FILE__,      \
+        virReportErrorHelper(VIR_FROM_XEN_INOTIFY, code, __FILE__,      \
                              __FUNCTION__, __LINE__, __VA_ARGS__)
 
 struct xenUnifiedDriver xenInotifyDriver = {
@@ -387,7 +387,7 @@ xenInotifyOpen(virConnectPtr conn,
 {
     DIR *dh;
     struct dirent *ent;
-    char path[PATH_MAX];
+    char *path;
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
 
     if (priv->configDir) {
@@ -414,19 +414,20 @@ xenInotifyOpen(virConnectPtr conn,
                 continue;
 
             /* Build the full file path */
-            if ((strlen(priv->configDir) + 1 +
-                 strlen(ent->d_name) + 1) > PATH_MAX)
-                continue;
-            strcpy(path, priv->configDir);
-            strcat(path, "/");
-            strcat(path, ent->d_name);
+            if (!(path = virFileBuildPath(priv->configDir, ent->d_name, NULL))) {
+                closedir(dh);
+                return -1;
+            }
 
             if (xenInotifyAddDomainConfigInfo(conn, path) < 0 ) {
                 virXenInotifyError(VIR_ERR_INTERNAL_ERROR,
                                    "%s", _("Error adding file to config list"));
                 closedir(dh);
+                VIR_FREE(path);
                 return -1;
             }
+
+            VIR_FREE(path);
         }
         closedir(dh);
     }

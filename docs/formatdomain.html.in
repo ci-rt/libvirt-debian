@@ -774,7 +774,7 @@
         <span class="since">Since 0.0.3; "device" attribute since 0.1.4;
         "network" attribute since 0.8.7</span></dd>
       <dt><code>source</code></dt>
-      <dd>If the disk <code>type</code> is "file", then the
+      <dd>If the disk <code>type</code> is "file", then
         the <code>file</code> attribute specifies the fully-qualified
         path to the file holding the disk. If the disk
         <code>type</code> is "block", then the <code>dev</code>
@@ -900,6 +900,113 @@
         optional <code>domain</code>.  For a "drive" controller,
         additional attributes <code>controller</code>, <code>bus</code>,
         and <code>unit</code> are available, each defaulting to 0.
+      </dd>
+    </dl>
+
+    <h4><a name="elementsFilesystems">Filesystems</a></h4>
+
+    <p>
+      A directory on the host that can be accessed directly from the guest.
+      <span class="since">since 0.3.3, since 0.8.5 for QEMU/KVM</span>
+    </p>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;filesystem type='template'&gt;
+      &lt;source name='my-vm-template'/&gt;
+      &lt;target dir='/'/&gt;
+    &lt;/filesystem&gt;
+    &lt;filesystem type='mount' &gt;
+      &lt;source dir='/export/to/guest'/&gt;
+      &lt;target dir='/import/from/host'/&gt;
+      &lt;readonly/&gt;
+    &lt;/filesystem&gt;
+    ...
+  &lt;/devices&gt;
+  ...</pre>
+
+    <dl>
+      <dt><code>filesystem</code></dt>
+      <dd>
+
+      The filesystem attribute <code>type</code> specifies the type of the
+      <code>source</code>. The possible values are:
+
+        <dl>
+        <dt><code>type='mount'</code></dt>
+        <dd>
+        A host directory to mount in the guest. Used by LXC,
+        OpenVZ <span class="since">(since 0.6.2)</span>
+        and QEMU/KVM <span class="since">(since 0.8.5)</span>.
+        This is the default <code>mode</code> if one is not specified.
+        </dd>
+        <dt><code>type='template'</code></dt>
+        <dd>
+        OpenVZ filesystem template. Only used by OpenVZ driver.
+        </dd>
+        <dt><code>type='file'</code></dt>
+        <dd>
+        Currently unused.
+        </dd>
+        <dt><code>type='block'</code></dt>
+        <dd>
+        Currently unused.
+        </dd>
+        </dl>
+
+      The filesystem block has an optional attribute <code>mode</code>
+      which specifies the security mode for accessing the source
+      <span class="since">(since 0.8.5)</span>. Currently this only works
+      with <code>type='mount'</code> for the QEMU/KVM driver. The possible
+      values are:
+
+        <dl>
+        <dt><code>mode='passthrough'</code></dt>
+        <dd>
+        The <code>source</code> is accessed with the permissions of the
+        user inside the guest. This is the default <code>mode</code> if
+        one is not specified.
+        <a href="http://lists.gnu.org/archive/html/qemu-devel/2010-05/msg02673.html">More info</a>
+        </dd>
+        <dt><code>mode='mapped'</code></dt>
+        <dd>
+        The <code>source</code> is accessed with the permissions of the
+        hypervisor (QEMU process).
+        <a href="http://lists.gnu.org/archive/html/qemu-devel/2010-05/msg02673.html">More info</a>
+        </dd>
+        <dt><code>mode='squash'</code></dt>
+        <dd>
+        Similar to 'passthrough', the exception is that failure of
+        privileged operations like 'chown' are ignored. This makes a
+        passthrough-like mode usable for people who run the hypervisor
+        as non-root.
+        <a href="http://lists.gnu.org/archive/html/qemu-devel/2010-09/msg00121.html">More info</a>
+        </dd>
+        </dl>
+
+      </dd>
+
+      <dt><code>source</code></dt>
+      <dd>
+        The resource on the host that is being accessed in the guest. The
+        <code>name</code> attribute must be used with
+        <code>type='template'</code>, and the <code>dir</code> attribute must
+        be used with <code>type='mount'</code>
+      </dd>
+
+      <dt><code>target</code></dt>
+      <dd>
+        Where the <code>source</code> can be accessed in the guest. For
+        most drivers this is an automatic mount point, but for QEMU/KVM
+        this is merely an arbitrary string tag that is exported to the
+        guest as a hint for where to mount.
+      </dd>
+
+      <dt><code>readonly</code></dt>
+      <dd>
+      An optional <code>readonly</code> attribute is available but currently
+      unused.
       </dd>
     </dl>
 
@@ -1333,6 +1440,10 @@
       the Virtual Station Interface (VSI) represents the virtual interface
       of a virtual machine.
     </p>
+    <p>
+      Please note that IEEE 802.1Qbg requires a non-zero value for the
+      VLAN ID.
+    </p>
     <dl>
       <dt><code>managerid</code></dt>
       <dd>The VSI Manager ID identifies the database containing the VSI type
@@ -1359,7 +1470,7 @@
     &lt;interface type='direct'/&gt;
     ...
     &lt;interface type='direct'&gt;
-      &lt;source dev='eth0' mode='vepa'/&gt;
+      &lt;source dev='eth0.2' mode='vepa'/&gt;
       &lt;virtualport type="802.1Qbg"&gt;
         &lt;parameters managerid="11" typeid="1193047" typeidversion="2" instanceid="09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f"/&gt;
       &lt;/virtualport&gt;
@@ -1663,7 +1774,25 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;graphics type='spice' port='-1' tlsPort='-1' autoport='yes'&gt;
     &lt;channel name='main' mode='secure'/&gt;
     &lt;channel name='record' mode='insecure'/&gt;
+    &lt;image compression='auto_glz'/&gt;
   &lt;/graphics&gt;</pre>
+            <p>
+              Spice supports variable compression settings for audio,
+              images and streaming, <span class="since">since
+              0.9.1</span>.  These settings are accessible via
+              the <code>compression</code> attribute in all following
+              elements: <code>image</code> to set image compression
+              (accepts <code>auto_glz</code>, <code>auto_lz</code>,
+              <code>quic</code>, <code>glz</code>, <code>lz</code>,
+              <code>off</code>), <code>jpeg</code> for JPEG
+              compression for images over wan
+              (accepts <code>auto</code>, <code>never</code>,
+              <code>always</code>), <code>zlib</code> for configuring
+              wan image compression (accepts <code>auto</code>,
+              <code>never</code>, <code>always</code>)
+              and <code>playback</code> for enabling audio stream
+              compression (accepts <code>on</code> or <code>off</code>).
+            </p>
           </dd>
           <dt><code>"rdp"</code></dt>
           <dd>
@@ -1807,7 +1936,7 @@ qemu-kvm -net nic,model=? /dev/null
 
     <p>
       <code>target</code> can have a <code>port</code> attribute, which
-      specifies the port number. Ports are numbered starting from 1. There are
+      specifies the port number. Ports are numbered starting from 0. There are
       usually 0, 1 or 2 parallel ports.
     </p>
 
@@ -1825,7 +1954,7 @@ qemu-kvm -net nic,model=? /dev/null
 
     <p>
       <code>target</code> can have a <code>port</code> attribute, which
-      specifies the port number. Ports are numbered starting from 1. There are
+      specifies the port number. Ports are numbered starting from 0. There are
       usually 0, 1 or 2 serial ports.
     </p>
 

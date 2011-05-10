@@ -36,6 +36,7 @@
 #include "c-ctype.h"
 #include "domain_nwfilter.h"
 #include "qemu_audit.h"
+#include "domain_conf.h"
 
 #include <sys/utsname.h>
 #include <sys/stat.h>
@@ -947,6 +948,7 @@ qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
 {
     int i;
     bool reservedIDE = false;
+    bool reservedVGA = false;
 
     /* Host bridge */
     if (qemuDomainPCIAddressReserveSlot(addrs, 0) < 0)
@@ -966,7 +968,7 @@ qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
                                     _("Primary IDE controller must have PCI address 0:0:1.1"));
                     goto error;
                 }
-                /* If TYPE==PCI, then then qemuCollectPCIAddress() function
+                /* If TYPE==PCI, then qemuCollectPCIAddress() function
                  * has already reserved the address, so we must skip */
                 reservedIDE = true;
             } else {
@@ -997,16 +999,22 @@ qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
                                 _("Primary video card must have PCI address 0:0:2.0"));
                 goto error;
             }
+            /* If TYPE==PCI, then qemuCollectPCIAddress() function
+             * has already reserved the address, so we must skip */
+            reservedVGA = true;
         } else {
             def->videos[0]->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
             def->videos[0]->info.addr.pci.domain = 0;
             def->videos[0]->info.addr.pci.bus = 0;
             def->videos[0]->info.addr.pci.slot = 2;
             def->videos[0]->info.addr.pci.function = 0;
-            if (qemuDomainPCIAddressReserveSlot(addrs, 2) < 0)
-                goto error;
         }
     }
+
+    if (!reservedVGA
+        && qemuDomainPCIAddressReserveSlot(addrs, 2) < 0)
+        goto error;
+
     for (i = 0; i < def->nfss ; i++) {
         if (def->fss[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
             continue;
@@ -1790,8 +1798,7 @@ qemuBuildWatchdogDevStr(virDomainWatchdogDefPtr dev,
         goto error;
     }
 
-    virBufferVSprintf(&buf, "%s", model);
-    virBufferVSprintf(&buf, ",id=%s", dev->info.alias);
+    virBufferVSprintf(&buf, "%s,id=%s", model, dev->info.alias);
     if (qemuBuildDeviceAddressStr(&buf, &dev->info, qemuCaps) < 0)
         goto error;
 
@@ -1837,10 +1844,9 @@ qemuBuildUSBInputDevStr(virDomainInputDefPtr dev)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    virBufferVSprintf(&buf, "%s",
+    virBufferVSprintf(&buf, "%s,id=%s",
                       dev->type == VIR_DOMAIN_INPUT_TYPE_MOUSE ?
-                      "usb-mouse" : "usb-tablet");
-    virBufferVSprintf(&buf, ",id=%s", dev->info.alias);
+                      "usb-mouse" : "usb-tablet", dev->info.alias);
 
     if (virBufferError(&buf)) {
         virReportOOMError();
@@ -1876,8 +1882,7 @@ qemuBuildSoundDevStr(virDomainSoundDefPtr sound,
     else if (STREQ(model, "ich6"))
         model = "intel-hda";
 
-    virBufferVSprintf(&buf, "%s", model);
-    virBufferVSprintf(&buf, ",id=%s", sound->info.alias);
+    virBufferVSprintf(&buf, "%s,id=%s", model, sound->info.alias);
     if (qemuBuildDeviceAddressStr(&buf, &sound->info, qemuCaps) < 0)
         goto error;
 
@@ -1900,10 +1905,8 @@ qemuBuildSoundCodecStr(virDomainSoundDefPtr sound,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int cad = 0;
 
-    virBufferVSprintf(&buf, "%s", codec);
-    virBufferVSprintf(&buf, ",id=%s-codec%d", sound->info.alias, cad);
-    virBufferVSprintf(&buf, ",bus=%s.0", sound->info.alias);
-    virBufferVSprintf(&buf, ",cad=%d", cad);
+    virBufferVSprintf(&buf, "%s,id=%s-codec%d,bus=%s.0,cad=%d",
+                      codec, sound->info.alias, cad, sound->info.alias, cad);
 
     if (virBufferError(&buf)) {
         virReportOOMError();
@@ -1930,8 +1933,7 @@ qemuBuildVideoDevStr(virDomainVideoDefPtr video,
         goto error;
     }
 
-    virBufferVSprintf(&buf, "%s", model);
-    virBufferVSprintf(&buf, ",id=%s", video->info.alias);
+    virBufferVSprintf(&buf, "%s,id=%s", model, video->info.alias);
 
     if (video->type == VIR_DOMAIN_VIDEO_TYPE_QXL) {
         if (video->vram > (UINT_MAX / 1024)) {
@@ -2564,7 +2566,7 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
             goto cleanup;
         *hasHwVirt = hasSVM > 0 ? true : false;
 
-        virBufferVSprintf(&buf, "%s", guest->model);
+        virBufferAdd(&buf, guest->model, -1);
         for (i = 0; i < guest->nfeatures; i++) {
             char sign;
             if (guest->features[i].policy == VIR_CPU_FEATURE_DISABLE)
@@ -3120,7 +3122,7 @@ qemuBuildCommandLine(virConnectPtr conn,
                 else if (def->os.bootmenu == VIR_DOMAIN_BOOT_MENU_DISABLED)
                     virBufferVSprintf(&boot_buf, "order=%s,menu=off", boot);
             } else {
-                virBufferVSprintf(&boot_buf, "%s", boot);
+                virBufferAdd(&boot_buf, boot, -1);
             }
 
             virCommandAddArgBuffer(cmd, &boot_buf);
@@ -3283,8 +3285,7 @@ qemuBuildCommandLine(virConnectPtr conn,
                                           host->name,
                                           host->port);
                     } else {
-                        virBufferVSprintf(&rbd_hosts, "%s",
-                                          host->name);
+                        virBufferAdd(&rbd_hosts, host->name, -1);
                     }
                 }
             }
@@ -3318,7 +3319,8 @@ qemuBuildCommandLine(virConnectPtr conn,
     } else {
         for (i = 0 ; i < def->ndisks ; i++) {
             char dev[NAME_MAX];
-            char file[PATH_MAX];
+            char *file;
+            const char *fmt;
             virDomainDiskDefPtr disk = def->disks[i];
             int j;
 
@@ -3368,9 +3370,13 @@ qemuBuildCommandLine(virConnectPtr conn,
                     goto error;
                 }
                 if (disk->device == VIR_DOMAIN_DISK_DEVICE_FLOPPY)
-                    snprintf(file, PATH_MAX, "fat:floppy:%s", disk->src);
+                    fmt = "fat:floppy:%s";
                 else
-                    snprintf(file, PATH_MAX, "fat:%s", disk->src);
+                    fmt = "fat:%s";
+
+                if (virAsprintf(&file, fmt, disk->src) < 0) {
+                    goto no_memory;
+                }
             } else if (disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK) {
                 switch (disk->protocol) {
                 case VIR_DOMAIN_DISK_PROTOCOL_NBD:
@@ -3379,11 +3385,15 @@ qemuBuildCommandLine(virConnectPtr conn,
                                         _("NBD accepts only one host"));
                         goto error;
                     }
-                    snprintf(file, PATH_MAX, "nbd:%s:%s,",
-                             disk->hosts->name, disk->hosts->port);
+                    if (virAsprintf(&file, "nbd:%s:%s,", disk->hosts->name,
+                                    disk->hosts->port) < 0) {
+                        goto no_memory;
+                    }
                     break;
                 case VIR_DOMAIN_DISK_PROTOCOL_RBD:
-                    snprintf(file, PATH_MAX, "rbd:%s,", disk->src);
+                    if (virAsprintf(&file, "rbd:%s,", disk->src) < 0) {
+                        goto no_memory;
+                    }
                     for (j = 0 ; j < disk->nhosts ; j++) {
                         if (!has_rbd_hosts) {
                             virBufferAddLit(&rbd_hosts, "CEPH_ARGS=-m ");
@@ -3397,26 +3407,33 @@ qemuBuildCommandLine(virConnectPtr conn,
                                               host->name,
                                               host->port);
                         } else {
-                            virBufferVSprintf(&rbd_hosts, "%s",
-                                              host->name);
+                            virBufferAdd(&rbd_hosts, host->name, -1);
                         }
                     }
                     break;
                 case VIR_DOMAIN_DISK_PROTOCOL_SHEEPDOG:
-                    if (disk->nhosts == 0)
-                        snprintf(file, PATH_MAX, "sheepdog:%s,", disk->src);
-                    else
+                    if (disk->nhosts == 0) {
+                        if (virAsprintf(&file, "sheepdog:%s,", disk->src) < 0) {
+                            goto no_memory;
+                        }
+                    } else {
                         /* only one host is supported now */
-                        snprintf(file, PATH_MAX, "sheepdog:%s:%s:%s,",
-                                 disk->hosts->name, disk->hosts->port,
-                                 disk->src);
+                        if (virAsprintf(&file, "sheepdog:%s:%s:%s,",
+                                        disk->hosts->name, disk->hosts->port,
+                                        disk->src) < 0) {
+                            goto no_memory;
+                        }
+                    }
                     break;
                 }
             } else {
-                snprintf(file, PATH_MAX, "%s", disk->src);
+                if (!(file = strdup(disk->src))) {
+                    goto no_memory;
+                }
             }
 
             virCommandAddArgList(cmd, dev, file, NULL);
+            VIR_FREE(file);
         }
     }
 
@@ -3727,6 +3744,8 @@ qemuBuildCommandLine(virConnectPtr conn,
     for (i = 0 ; i < def->nchannels ; i++) {
         virDomainChrDefPtr channel = def->channels[i];
         char *devstr;
+        char *addr;
+        int port;
 
         switch(channel->targetType) {
         case VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD:
@@ -3745,10 +3764,10 @@ qemuBuildCommandLine(virConnectPtr conn,
             virCommandAddArg(cmd, devstr);
             VIR_FREE(devstr);
 
-            char *addr = virSocketFormatAddr(channel->target.addr);
+            addr = virSocketFormatAddr(channel->target.addr);
             if (!addr)
                 goto error;
-            int port = virSocketGetPort(channel->target.addr);
+            port = virSocketGetPort(channel->target.addr);
 
             virCommandAddArg(cmd, "-netdev");
             virCommandAddArgFormat(cmd,
@@ -4006,6 +4025,18 @@ qemuBuildCommandLine(virConnectPtr conn,
                 break;
             }
         }
+        if (def->graphics[0]->data.spice.image)
+            virBufferVSprintf(&opt, ",image-compression=%s",
+                              virDomainGraphicsSpiceImageCompressionTypeToString(def->graphics[0]->data.spice.image));
+        if (def->graphics[0]->data.spice.jpeg)
+            virBufferVSprintf(&opt, ",jpeg-wan-compression=%s",
+                              virDomainGraphicsSpiceJpegCompressionTypeToString(def->graphics[0]->data.spice.jpeg));
+        if (def->graphics[0]->data.spice.zlib)
+            virBufferVSprintf(&opt, ",zlib-glz-wan-compression=%s",
+                              virDomainGraphicsSpiceZlibCompressionTypeToString(def->graphics[0]->data.spice.zlib));
+        if (def->graphics[0]->data.spice.playback)
+            virBufferVSprintf(&opt, ",playback-compression=%s",
+                              virDomainGraphicsSpicePlaybackCompressionTypeToString(def->graphics[0]->data.spice.playback));
 
         virCommandAddArg(cmd, "-spice");
         virCommandAddArgBuffer(cmd, &opt);
@@ -5289,8 +5320,8 @@ qemuParseCommandLineChr(const char *val)
 {
     virDomainChrDefPtr def;
 
-    if (VIR_ALLOC(def) < 0)
-        goto no_memory;
+    if (!(def = virDomainChrDefNew()))
+        goto error;
 
     if (STREQ(val, "null")) {
         def->source.type = VIR_DOMAIN_CHR_TYPE_NULL;

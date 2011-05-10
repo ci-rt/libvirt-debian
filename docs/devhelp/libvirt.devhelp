@@ -124,7 +124,9 @@
     <function name="VIR_DOMAIN_MEMORY_STAT_SWAP_OUT" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_STAT_SWAP_OUT"/>
     <function name="VIR_DOMAIN_MEMORY_STAT_UNUSED" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_STAT_UNUSED"/>
     <function name="VIR_DOMAIN_MEM_CONFIG" link="libvirt-libvirt.html#VIR_DOMAIN_MEM_CONFIG"/>
+    <function name="VIR_DOMAIN_MEM_CURRENT" link="libvirt-libvirt.html#VIR_DOMAIN_MEM_CURRENT"/>
     <function name="VIR_DOMAIN_MEM_LIVE" link="libvirt-libvirt.html#VIR_DOMAIN_MEM_LIVE"/>
+    <function name="VIR_DOMAIN_MEM_MAXIMUM" link="libvirt-libvirt.html#VIR_DOMAIN_MEM_MAXIMUM"/>
     <function name="VIR_DOMAIN_NONE" link="libvirt-libvirt.html#VIR_DOMAIN_NONE"/>
     <function name="VIR_DOMAIN_NOSTATE" link="libvirt-libvirt.html#VIR_DOMAIN_NOSTATE"/>
     <function name="VIR_DOMAIN_PAUSED" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED"/>

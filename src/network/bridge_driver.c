@@ -70,7 +70,7 @@
 #define VIR_FROM_THIS VIR_FROM_NETWORK
 
 #define networkReportError(code, ...)                                   \
-    virReportErrorHelper(NULL, VIR_FROM_NETWORK, code, __FILE__,        \
+    virReportErrorHelper(VIR_FROM_NETWORK, code, __FILE__,              \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /* Main driver state */
@@ -141,9 +141,23 @@ networkRadvdConfigFileName(const char *netname)
 static char *
 networkBridgeDummyNicName(const char *brname)
 {
+    static const char dummyNicSuffix[] = "-nic";
     char *nicname;
 
-    virAsprintf(&nicname, "%s-nic", brname);
+    if (strlen(brname) + sizeof(dummyNicSuffix) > IFNAMSIZ) {
+        /* because the length of an ifname is limited to IFNAMSIZ-1
+         * (usually 15), and we're adding 4 more characters, we must
+         * truncate the original name to 11 to fit. In order to catch
+         * a possible numeric ending (eg virbr0, virbr1, etc), we grab
+         * the first 8 and last 3 characters of the string.
+         */
+         virAsprintf(&nicname, "%.*s%s%s",
+                     /* space for last 3 chars + "-nic" + NULL */
+                     (int)(IFNAMSIZ - (3 + sizeof(dummyNicSuffix))),
+                     brname, brname + strlen(brname) - 3, dummyNicSuffix);
+    } else {
+         virAsprintf(&nicname, "%s%s", brname, dummyNicSuffix);
+    }
     return nicname;
 }
 
@@ -645,6 +659,13 @@ networkStartDhcpDaemon(virNetworkObjPtr network)
 
     if (!(pidfile = virFilePid(NETWORK_PID_DIR, network->def->name))) {
         virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((err = virFileMakePath(DNSMASQ_STATE_DIR)) != 0) {
+        virReportSystemError(err,
+                             _("cannot create directory %s"),
+                             DNSMASQ_STATE_DIR);
         goto cleanup;
     }
 
@@ -1616,7 +1637,7 @@ networkStartNetworkDaemon(struct network_driver *driver,
     bool v4present = false, v6present = false;
     virErrorPtr save_err = NULL;
     virNetworkIpDefPtr ipdef;
-    char *macTapIfName;
+    char *macTapIfName = NULL;
 
     if (virNetworkObjIsActive(network)) {
         networkReportError(VIR_ERR_OPERATION_INVALID,
@@ -1657,7 +1678,6 @@ networkStartNetworkDaemon(struct network_driver *driver,
             VIR_FREE(macTapIfName);
             goto err0;
         }
-        VIR_FREE(macTapIfName);
     }
 
     /* Set bridge options */
@@ -1731,6 +1751,7 @@ networkStartNetworkDaemon(struct network_driver *driver,
         goto err5;
     }
 
+    VIR_FREE(macTapIfName);
     VIR_INFO(_("Starting up network '%s'"), network->def->name);
     network->active = 1;
 
@@ -1778,6 +1799,7 @@ networkStartNetworkDaemon(struct network_driver *driver,
                  macTapIfName, network->def->bridge,
                  virStrerror(err, ebuf, sizeof ebuf));
     }
+    VIR_FREE(macTapIfName);
 
  err0:
     if (!save_err)

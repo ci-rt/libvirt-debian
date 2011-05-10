@@ -34,7 +34,7 @@
 # include "threads.h"
 
 # define openvzError(code, ...)                                            \
-        virReportErrorHelper(NULL, VIR_FROM_OPENVZ, code, __FILE__,        \
+        virReportErrorHelper(VIR_FROM_OPENVZ, code, __FILE__,              \
                              __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
@@ -55,7 +55,7 @@ struct openvz_driver {
 
 int openvz_readline(int fd, char *ptr, int maxlen);
 int openvzExtractVersion(struct openvz_driver *driver);
-int openvzReadVPSConfigParam(int vpsid ,const char * param, char *value, int maxlen);
+int openvzReadVPSConfigParam(int vpsid, const char *param, char **value);
 int openvzWriteVPSConfigParam(int vpsid, const char *param, const char *value);
 int openvzCopyDefaultConfig(int vpsid);
 virCapsPtr openvzCapsInit(void);

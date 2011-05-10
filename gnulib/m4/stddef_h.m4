@@ -1,7 +1,7 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
 dnl A placeholder for POSIX 2008 <stddef.h>, for platforms that have issues.
-# stddef_h.m4 serial 3
+# stddef_h.m4 serial 4
 dnl Copyright (C) 2009-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -11,6 +11,7 @@ AC_DEFUN([gl_STDDEF_H],
 [
   AC_REQUIRE([gl_STDDEF_H_DEFAULTS])
   AC_REQUIRE([gt_TYPE_WCHAR_T])
+  STDDEF_H=
   if test $gt_cv_c_wchar_t = no; then
     HAVE_WCHAR_T=0
     STDDEF_H=stddef.h
@@ -26,6 +27,8 @@ AC_DEFUN([gl_STDDEF_H],
     REPLACE_NULL=1
     STDDEF_H=stddef.h
   fi
+  AC_SUBST([STDDEF_H])
+  AM_CONDITIONAL([GL_GENERATE_STDDEF_H], [test -n "$STDDEF_H"])
   if test -n "$STDDEF_H"; then
     gl_NEXT_HEADERS([stddef.h])
   fi
@@ -43,5 +46,4 @@ AC_DEFUN([gl_STDDEF_H_DEFAULTS],
   dnl Assume proper GNU behavior unless another module says otherwise.
   REPLACE_NULL=0;                AC_SUBST([REPLACE_NULL])
   HAVE_WCHAR_T=1;                AC_SUBST([HAVE_WCHAR_T])
-  STDDEF_H='';                   AC_SUBST([STDDEF_H])
 ])

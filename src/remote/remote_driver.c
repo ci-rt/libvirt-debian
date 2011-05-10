@@ -174,6 +174,8 @@ struct private_data {
     const char *saslEncoded;
     unsigned int saslEncodedLength;
     unsigned int saslEncodedOffset;
+
+    char saslTemporary[8192]; /* temorary holds data to be decoded */
 #endif
 
     /* Buffer for incoming data packets
@@ -240,7 +242,7 @@ static int remoteAuthPolkit (virConnectPtr conn, struct private_data *priv, int 
 #endif /* HAVE_POLKIT */
 
 #define remoteError(code, ...)                                    \
-    virReportErrorHelper(NULL, VIR_FROM_REMOTE, code, __FILE__,   \
+    virReportErrorHelper(VIR_FROM_REMOTE, code, __FILE__,         \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 static virDomainPtr get_nonnull_domain (virConnectPtr conn, remote_nonnull_domain domain);
@@ -869,12 +871,14 @@ doRemoteOpen (virConnectPtr conn,
         goto failed;
 
     /* Finally we can call the remote side's open function. */
-    remote_open_args args = { &name, flags };
+    {
+        remote_open_args args = { &name, flags };
 
-    if (call (conn, priv, REMOTE_CALL_IN_OPEN, REMOTE_PROC_OPEN,
-              (xdrproc_t) xdr_remote_open_args, (char *) &args,
-              (xdrproc_t) xdr_void, (char *) NULL) == -1)
-        goto failed;
+        if (call (conn, priv, REMOTE_CALL_IN_OPEN, REMOTE_PROC_OPEN,
+                  (xdrproc_t) xdr_remote_open_args, (char *) &args,
+                  (xdrproc_t) xdr_void, (char *) NULL) == -1)
+            goto failed;
+    }
 
     /* Now try and find out what URI the daemon used */
     if (conn->uri == NULL) {
@@ -1219,7 +1223,7 @@ initialize_gnutls(char *pkipath, int flags)
             goto out_of_memory;
 
         /* Use default location as long as one of CA certificate,
-         * client key, and client certificate can not be found in
+         * client key, and client certificate cannot be found in
          * $HOME/.pki/libvirt, we don't want to make user confused
          * with one file is here, the other is there.
          */
@@ -8640,8 +8644,7 @@ remoteStreamHasError(virStreamPtr st) {
     }
 
     VIR_DEBUG0("Raising async error");
-    virRaiseErrorFull(st->conn,
-                      __FILE__, __FUNCTION__, __LINE__,
+    virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,
                       privst->err.domain,
                       privst->err.code,
                       privst->err.level,
@@ -10063,15 +10066,15 @@ remoteIOReadMessage(struct private_data *priv) {
 #if HAVE_SASL
     if (priv->saslconn) {
         if (priv->saslDecoded == NULL) {
-            char encoded[8192];
             int ret, err;
-            ret = remoteIOReadBuffer(priv, encoded, sizeof(encoded));
+            ret = remoteIOReadBuffer(priv, priv->saslTemporary,
+                                     sizeof(priv->saslTemporary));
             if (ret < 0)
                 return -1;
             if (ret == 0)
                 return 0;
 
-            err = sasl_decode(priv->saslconn, encoded, ret,
+            err = sasl_decode(priv->saslconn, priv->saslTemporary, ret,
                               &priv->saslDecoded, &priv->saslDecodedLength);
             if (err != SASL_OK) {
                 remoteError(VIR_ERR_INTERNAL_ERROR,
@@ -10668,8 +10671,9 @@ remoteIOEventLoop(virConnectPtr conn,
                  */
                 VIR_DEBUG("Waking up sleep %d %p %p", tmp->proc_nr, tmp, priv->waitDispatch);
                 virCondSignal(&tmp->cond);
+            } else {
+                prev = tmp;
             }
-            prev = tmp;
             tmp = tmp->next;
         }
 
@@ -10903,8 +10907,7 @@ cleanup:
              * convert missing remote entry points into the unsupported
              * feature error
              */
-            virRaiseErrorFull(flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
-                              __FILE__, __FUNCTION__, __LINE__,
+            virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,
                               thiscall->err.domain,
                               VIR_ERR_NO_SUPPORT,
                               thiscall->err.level,
@@ -10916,8 +10919,7 @@ cleanup:
                               "%s", *thiscall->err.message);
             rv = -1;
         } else {
-            virRaiseErrorFull(flags & REMOTE_CALL_IN_OPEN ? NULL : conn,
-                              __FILE__, __FUNCTION__, __LINE__,
+            virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,
                               thiscall->err.domain,
                               thiscall->err.code,
                               thiscall->err.level,

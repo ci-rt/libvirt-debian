@@ -332,7 +332,9 @@ ESX_DRIVER_GENERATED =							\
 		esx/esx_vi_types.generated.typedef			\
 		esx/esx_vi_types.generated.typeenum			\
 		esx/esx_vi_types.generated.typetostring			\
-		esx/esx_vi_types.generated.typefromstring
+		esx/esx_vi_types.generated.typefromstring		\
+		esx/esx_vi.generated.c					\
+		esx/esx_vi.generated.h
 
 ESX_DRIVER_EXTRA_DIST =						\
 		esx/README						\
@@ -1183,6 +1185,7 @@ EXTRA_DIST += $(LIBVIRT_QEMU_SYMBOL_FILE)
 
 libexec_PROGRAMS =
 
+if WITH_LIBVIRTD
 libexec_PROGRAMS += libvirt_iohelper
 libvirt_iohelper_SOURCES = $(UTIL_IO_HELPER_SOURCES)
 libvirt_iohelper_LDFLAGS = $(WARN_LDFLAGS) $(AM_LDFLAGS)
@@ -1191,6 +1194,7 @@ libvirt_iohelper_LDADD =		\
 		../gnulib/lib/libgnu.la
 
 libvirt_iohelper_CFLAGS = $(AM_CFLAGS)
+endif
 
 if WITH_STORAGE_DISK
 if WITH_LIBVIRTD
@@ -1275,6 +1279,7 @@ endif
 if WITH_LIBXL
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/libxl"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/libxl"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/log/libvirt/libxl"
 endif
 if WITH_UML
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/uml"
@@ -1316,6 +1321,7 @@ endif
 if WITH_LIBXL
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/libxl" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/run/libvirt/libxl" ||:
+	rmdir "$(DESTDIR)$(localstatedir)/log/libvirt/libxl" ||:
 endif
 if WITH_UML
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/uml" ||:

@@ -13,20 +13,15 @@
 #include "node_device_conf.h"
 #include "testutilsqemu.h"
 
-static char *progname;
-static char *abs_srcdir;
-
-#define MAX_FILE 4096
-
-
-static int testCompareXMLToXMLFiles(const char *xml) {
-    char xmlData[MAX_FILE];
-    char *xmlPtr = &(xmlData[0]);
+static int
+testCompareXMLToXMLFiles(const char *xml)
+{
+    char *xmlData = NULL;
     char *actual = NULL;
     int ret = -1;
     virNodeDeviceDefPtr dev = NULL;
 
-    if (virtTestLoadFile(xml, &xmlPtr, MAX_FILE) < 0)
+    if (virtTestLoadFile(xml, &xmlData) < 0)
         goto fail;
 
     if (!(dev = virNodeDeviceDefParseString(xmlData, EXISTING_DEVICE)))
@@ -43,35 +38,33 @@ static int testCompareXMLToXMLFiles(const char *xml) {
     ret = 0;
 
  fail:
+    free(xmlData);
     free(actual);
     virNodeDeviceDefFree(dev);
     return ret;
 }
 
-static int testCompareXMLToXMLHelper(const void *data) {
-    char xml[PATH_MAX];
-    snprintf(xml, PATH_MAX, "%s/nodedevschemadata/%s.xml",
-             abs_srcdir, (const char*)data);
-    return testCompareXMLToXMLFiles(xml);
+static int
+testCompareXMLToXMLHelper(const void *data)
+{
+    int result = -1;
+    char *xml = NULL;
+
+    if (virAsprintf(&xml, "%s/nodedevschemadata/%s.xml",
+                    abs_srcdir, (const char*)data) < 0)
+        return -1;
+
+    result = testCompareXMLToXMLFiles(xml);
+
+    free(xml);
+    return result;
 }
 
 
 static int
-mymain(int argc, char **argv)
+mymain(void)
 {
     int ret = 0;
-    char cwd[PATH_MAX];
-
-    progname = argv[0];
-
-    if (argc > 1) {
-        fprintf(stderr, "Usage: %s\n", progname);
-        return (EXIT_FAILURE);
-    }
-
-    abs_srcdir = getenv("abs_srcdir");
-    if (!abs_srcdir)
-        abs_srcdir = getcwd(cwd, sizeof(cwd));
 
 #define DO_TEST(name) \
     if (virtTestRun("Node device XML-2-XML " name, \

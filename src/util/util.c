@@ -78,6 +78,7 @@
 #include "files.h"
 #include "command.h"
 #include "nonblocking.h"
+#include "passfd.h"
 
 #ifndef NSIG
 # define NSIG 32
@@ -89,7 +90,7 @@ verify(sizeof(gid_t) <= sizeof (unsigned int) &&
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 #define virUtilError(code, ...)                                            \
-        virReportErrorHelper(NULL, VIR_FROM_NONE, code, __FILE__,          \
+        virReportErrorHelper(VIR_FROM_NONE, code, __FILE__,                \
                              __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /* Like read(), but restarts after EINTR */
@@ -467,6 +468,7 @@ __virExec(const char *const*argv,
     int childerr = -1;
     int tmpfd;
     const char *binary = NULL;
+    int forkRet;
 
     if (argv[0][0] != '/') {
         if (!(binary = virFindFileInPath(argv[0]))) {
@@ -544,7 +546,7 @@ __virExec(const char *const*argv,
         childerr = null;
     }
 
-    int forkRet = virFork(&pid);
+    forkRet = virFork(&pid);
 
     if (pid < 0) {
         goto cleanup;
@@ -566,6 +568,10 @@ __virExec(const char *const*argv,
         }
 
         *retpid = pid;
+
+        if (binary != argv[0])
+            VIR_FREE(binary);
+
         return 0;
     }
 
@@ -1479,11 +1485,6 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
     int waitret, status, ret = 0;
     int fd = -1;
     int pair[2] = { -1, -1 };
-    struct msghdr msg;
-    struct cmsghdr *cmsg;
-    char buf[CMSG_SPACE(sizeof(fd))];
-    char dummy = 0;
-    struct iovec iov;
     int forkRet;
 
     if ((!(flags & VIR_FILE_OPEN_AS_UID))
@@ -1505,18 +1506,6 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
         return ret;
     }
 
-    memset(&msg, 0, sizeof(msg));
-    iov.iov_base = &dummy;
-    iov.iov_len = 1;
-    msg.msg_iov = &iov;
-    msg.msg_iovlen = 1;
-    msg.msg_control = buf;
-    msg.msg_controllen = sizeof(buf);
-    cmsg = CMSG_FIRSTHDR(&msg);
-    cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = SCM_RIGHTS;
-    cmsg->cmsg_len = CMSG_LEN(sizeof(fd));
-
     forkRet = virFork(&pid);
 
     if (pid < 0) {
@@ -1528,25 +1517,18 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
         VIR_FORCE_CLOSE(pair[1]);
 
         do {
-            ret = recvmsg(pair[0], &msg, 0);
+            ret = recvfd(pair[0], 0);
         } while (ret < 0 && errno == EINTR);
 
-        if (ret < 0) {
+        if (ret < 0 && errno != EACCES) {
             ret = -errno;
             VIR_FORCE_CLOSE(pair[0]);
-            while ((waitret = waitpid(pid, NULL, 0) == -1)
-                   && (errno == EINTR));
+            while (waitpid(pid, NULL, 0) == -1 && errno == EINTR);
             goto parenterror;
+        } else {
+            fd = ret;
         }
         VIR_FORCE_CLOSE(pair[0]);
-
-        /* See if fd was transferred.  */
-        cmsg = CMSG_FIRSTHDR(&msg);
-        if (cmsg && cmsg->cmsg_len == CMSG_LEN(sizeof(fd)) &&
-            cmsg->cmsg_level == SOL_SOCKET &&
-            cmsg->cmsg_type == SCM_RIGHTS) {
-            memcpy(&fd, CMSG_DATA(cmsg), sizeof(fd));
-        }
 
         /* wait for child to complete, and retrieve its exit code */
         while ((waitret = waitpid(pid, &status, 0) == -1)
@@ -1556,12 +1538,14 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
             virReportSystemError(errno,
                                  _("failed to wait for child creating '%s'"),
                                  path);
+            VIR_FORCE_CLOSE(fd);
             goto parenterror;
         }
         if (!WIFEXITED(status) || (ret = -WEXITSTATUS(status)) == -EACCES ||
             fd == -1) {
             /* fall back to the simpler method, which works better in
              * some cases */
+            VIR_FORCE_CLOSE(fd);
             return virFileOpenAsNoFork(path, openflags, mode, uid, gid, flags);
         }
         if (!ret)
@@ -1626,10 +1610,9 @@ parenterror:
                              path, mode);
         goto childerror;
     }
-    memcpy(CMSG_DATA(cmsg), &fd, sizeof(fd));
 
     do {
-        ret = sendmsg(pair[1], &msg, 0);
+        ret = sendfd(pair[1], fd);
     } while (ret < 0 && errno == EINTR);
 
     if (ret < 0) {
@@ -1637,7 +1620,6 @@ parenterror:
         goto childerror;
     }
 
-    ret = 0;
 childerror:
     /* ret tracks -errno on failure, but exit value must be positive.
      * If the child exits with EACCES, then the parent tries again.  */
@@ -1841,23 +1823,26 @@ cleanup:
     return err;
 }
 
-/* Build up a fully qualfiied path for a config file to be
+/* Build up a fully qualified path for a config file to be
  * associated with a persistent guest or network */
-int virFileBuildPath(const char *dir,
-                     const char *name,
-                     const char *ext,
-                     char *buf,
-                     unsigned int buflen)
+char *
+virFileBuildPath(const char *dir, const char *name, const char *ext)
 {
-    if ((strlen(dir) + 1 + strlen(name) + (ext ? strlen(ext) : 0) + 1) >= (buflen-1))
-        return -1;
+    char *path;
 
-    strcpy(buf, dir);
-    strcat(buf, "/");
-    strcat(buf, name);
-    if (ext)
-        strcat(buf, ext);
-    return 0;
+    if (ext == NULL) {
+        if (virAsprintf(&path, "%s/%s", dir, name) < 0) {
+            virReportOOMError();
+            return NULL;
+        }
+    } else {
+        if (virAsprintf(&path, "%s/%s%s", dir, name, ext) < 0) {
+            virReportOOMError();
+            return NULL;
+        }
+    }
+
+    return path;
 }
 
 
@@ -1900,14 +1885,13 @@ int virFileOpenTtyAt(const char *ptmx,
     }
 
     if (ttyName) {
-        char tempTtyName[PATH_MAX];
-        if (ptsname_r(*ttymaster, tempTtyName, sizeof(tempTtyName)) < 0)
-            goto cleanup;
-
-        if ((*ttyName = strdup(tempTtyName)) == NULL) {
+        if (VIR_ALLOC_N(*ttyName, PATH_MAX) < 0) {
             errno = ENOMEM;
             goto cleanup;
         }
+
+        if (ptsname_r(*ttymaster, *ttyName, PATH_MAX) < 0)
+            goto cleanup;
     }
 
     rc = 0;
@@ -2066,7 +2050,7 @@ cleanup:
 
 
 /*
- * Creates an absolute path for a potentialy realtive path.
+ * Creates an absolute path for a potentially relative path.
  * Return 0 if the path was not relative, or on success.
  * Return -1 on error.
  *

@@ -29,6 +29,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "threads.h"
 #include "logging.h"
@@ -43,7 +44,7 @@
 #define VIR_FROM_THIS VIR_FROM_EVENT
 
 #define virEventError(code, ...)                                    \
-    virReportErrorHelper(NULL, VIR_FROM_EVENT, code, __FILE__,      \
+    virReportErrorHelper(VIR_FROM_EVENT, code, __FILE__,            \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 static int virEventPollInterruptLocked(void);
@@ -657,11 +658,7 @@ int virEventPollInit(void)
         return -1;
     }
 
-    if (pipe(eventLoop.wakeupfd) < 0 ||
-        virSetNonBlock(eventLoop.wakeupfd[0]) < 0 ||
-        virSetNonBlock(eventLoop.wakeupfd[1]) < 0 ||
-        virSetCloseExec(eventLoop.wakeupfd[0]) < 0 ||
-        virSetCloseExec(eventLoop.wakeupfd[1]) < 0) {
+    if (pipe2(eventLoop.wakeupfd, O_CLOEXEC | O_NONBLOCK) < 0) {
         virReportSystemError(errno, "%s",
                              _("Unable to setup wakeup pipe"));
         return -1;
