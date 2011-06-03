@@ -1,3 +1,11 @@
+libvirt (0.9.1-2) unstable; urgency=high
+
+  * [4fbc990] New patch security-plug-regression-introduced-in-disk-probe-lo.
+    patch (Closes: #629128)
+    - Fixes: CVE-2011-2178
+
+ -- Laurent Léonard <laurent@open-minds.org>  Sat, 04 Jun 2011 01:53:43 +0200
+
 libvirt (0.9.1-1) unstable; urgency=low
 
   * [1546b8c] New upstream version 0.9.1
