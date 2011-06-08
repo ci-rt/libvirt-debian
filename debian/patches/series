@@ -8,4 +8,3 @@ Disable-CHECKSUM-rule.patch
 Debianize-libvirt-guests.patch
 virsh-Initialize-library-before-calling-virResetLast.patch
 Disable-daemon-start-test.patch
-security-plug-regression-introduced-in-disk-probe-lo.patch
