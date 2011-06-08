@@ -4,7 +4,6 @@ allow-libvirt-group-to-access-the-socket.patch
 fix-Debian-specific-path-to-hvm-loader.patch
 Autodetect-if-the-remote-nc-command-supports-the-q-o.patch
 patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
-Disable-CHECKSUM-rule.patch
 Debianize-libvirt-guests.patch
 virsh-Initialize-library-before-calling-virResetLast.patch
 Disable-daemon-start-test.patch

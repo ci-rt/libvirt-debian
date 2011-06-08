@@ -44,8 +44,16 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Version}), logrotate, gettext-base
 Enhances: qemu, qemu-kvm, xen
 Section: admin
-Recommends: netcat-openbsd, bridge-utils, dnsmasq-base (>= 2.46-1), iptables, qemu-kvm | qemu (>= 0.9.1),
- libxml2-utils, iptables, gawk, ebtables, dmidecode, iproute
+Recommends: netcat-openbsd,
+ bridge-utils,
+ dnsmasq-base (>= 2.46-1),
+ iptables (>= 1.4.10),
+ qemu-kvm | qemu (>= 0.9.1),
+ libxml2-utils,
+ gawk,
+ ebtables,
+ dmidecode,
+ iproute
 Suggests: policykit-1
 Description: the programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
