@@ -61,8 +61,11 @@
           case esxVI_Type_ElementDescription:
             return "ElementDescription";
 
-          case esxVI_Type_Event:
-            return "Event";
+          case esxVI_Type_EntityEventArgument:
+            return "EntityEventArgument";
+
+          case esxVI_Type_EventArgument:
+            return "EventArgument";
 
           case esxVI_Type_FileBackedVirtualDiskSpec:
             return "FileBackedVirtualDiskSpec";
@@ -249,6 +252,9 @@
 
           case esxVI_Type_VmDiskFileQueryFlags:
             return "VmDiskFileQueryFlags";
+
+          case esxVI_Type_VmEventArgument:
+            return "VmEventArgument";
 
           case esxVI_Type_VmLogFileInfo:
             return "VmLogFileInfo";

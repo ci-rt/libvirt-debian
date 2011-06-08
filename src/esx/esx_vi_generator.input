@@ -40,9 +40,9 @@
 #
 # The _this parameter can have a type attached to it:
 #
-# _this:<type>
+# _this:<member>
 #
-# The <type> refers to one of the ServiceContent members. This make the
+# The <member> refers to one of the ServiceContent members. This make the
 # generator auto-bind _this to the corresponding ServiceContent member.
 #
 
@@ -167,7 +167,7 @@ object AutoStartPowerInfo
 end
 
 
-object ChoiceOption extends OptionType
+object ChoiceOption                  extends OptionType
     ElementDescription                       choiceInfo                     rl
     Int                                      defaultIndex                   o
 end
@@ -193,7 +193,7 @@ object Description
 end
 
 
-object DeviceBackedVirtualDiskSpec extends VirtualDiskSpec
+object DeviceBackedVirtualDiskSpec   extends VirtualDiskSpec
     String                                   device                         r
 end
 
@@ -204,25 +204,21 @@ object DynamicProperty
 end
 
 
-object ElementDescription extends Description
+object ElementDescription            extends Description
     String                                   key                            r
 end
 
 
-object Event
-    Int                                      key                            r
-    Int                                      chainId                        r
-    DateTime                                 createdTime                    r
-    String                                   userName                       r
-    DatacenterEventArgument                  datacenter                     i
-    ComputeResourceEventArgument             computeResource                i
-    HostEventArgument                        host                           i
-    VmEventArgument                          vm                             i
-    String                                   fullFormattedMessage           o
+object EntityEventArgument           extends EventArgument
+    String                                   name                           r
 end
 
 
-object FileBackedVirtualDiskSpec extends VirtualDiskSpec
+object EventArgument
+end
+
+
+object FileBackedVirtualDiskSpec     extends VirtualDiskSpec
     Long                                     capacityKb                     r
 end
 
@@ -245,19 +241,19 @@ object FileQueryFlags
 end
 
 
-object FloppyImageFileInfo extends FileInfo
+object FloppyImageFileInfo           extends FileInfo
 end
 
 
-object FloppyImageFileQuery extends FileQuery
+object FloppyImageFileQuery          extends FileQuery
 end
 
 
-object FolderFileInfo extends FileInfo
+object FolderFileInfo                extends FileInfo
 end
 
 
-object FolderFileQuery extends FileQuery
+object FolderFileQuery               extends FileQuery
 end
 
 
@@ -328,7 +324,7 @@ object HostMountInfo
 end
 
 
-object HostNasVolume extends HostFileSystemVolume
+object HostNasVolume                 extends HostFileSystemVolume
     String                                   remoteHost                     r
     String                                   remotePath                     r
     String                                   userName                       o
@@ -341,7 +337,7 @@ object HostScsiDiskPartition
 end
 
 
-object HostVmfsVolume extends HostFileSystemVolume
+object HostVmfsVolume                extends HostFileSystemVolume
     Int                                      blockSizeMb                    r
     Int                                      maxBlocks                      r
     Int                                      majorVersion                   r
@@ -352,15 +348,15 @@ object HostVmfsVolume extends HostFileSystemVolume
 end
 
 
-object IsoImageFileInfo extends FileInfo
+object IsoImageFileInfo              extends FileInfo
 end
 
 
-object IsoImageFileQuery extends FileQuery
+object IsoImageFileQuery             extends FileQuery
 end
 
 
-object LocalDatastoreInfo extends DatastoreInfo
+object LocalDatastoreInfo            extends DatastoreInfo
     String                                   path                           o
 end
 
@@ -371,7 +367,7 @@ object LocalizedMethodFault
 end
 
 
-object NasDatastoreInfo extends DatastoreInfo
+object NasDatastoreInfo              extends DatastoreInfo
     HostNasVolume                            nas                            o
 end
 
@@ -415,7 +411,7 @@ object PerfCounterInfo
 end
 
 
-object PerfEntityMetric extends PerfEntityMetricBase
+object PerfEntityMetric              extends PerfEntityMetricBase
     PerfSampleInfo                           sampleInfo                     ol
     PerfMetricSeries                         value                          ol
 end
@@ -432,7 +428,7 @@ object PerfMetricId
 end
 
 
-object PerfMetricIntSeries extends PerfMetricSeries
+object PerfMetricIntSeries           extends PerfMetricSeries
     Long                                     value                          ol
 end
 
@@ -565,11 +561,11 @@ object TaskInfo
 end
 
 
-object TemplateConfigFileInfo extends VmConfigFileInfo
+object TemplateConfigFileInfo        extends VmConfigFileInfo
 end
 
 
-object TemplateConfigFileQuery extends VmConfigFileQuery
+object TemplateConfigFileQuery       extends VmConfigFileQuery
 end
 
 
@@ -657,12 +653,12 @@ object VirtualMachineSnapshotTree
 end
 
 
-object VmConfigFileInfo extends FileInfo
+object VmConfigFileInfo              extends FileInfo
     Int                                      configVersion                  o
 end
 
 
-object VmConfigFileQuery extends FileQuery
+object VmConfigFileQuery             extends FileQuery
     VmConfigFileQueryFilter                  filter                         o
     VmConfigFileQueryFlags                   details                        o
 end
@@ -678,7 +674,7 @@ object VmConfigFileQueryFlags
 end
 
 
-object VmDiskFileInfo extends FileInfo
+object VmDiskFileInfo                extends FileInfo
     String                                   diskType                       o
     Long                                     capacityKb                     o
     Int                                      hardwareVersion                o
@@ -687,7 +683,7 @@ object VmDiskFileInfo extends FileInfo
 end
 
 
-object VmDiskFileQuery extends FileQuery
+object VmDiskFileQuery               extends FileQuery
     VmDiskFileQueryFilter                    filter                         o
     VmDiskFileQueryFlags                     details                        o
 end
@@ -709,31 +705,36 @@ object VmDiskFileQueryFlags
 end
 
 
-object VmLogFileInfo extends FileInfo
+object VmEventArgument               extends EntityEventArgument
+    ManagedObjectReference                   vm                             r
 end
 
 
-object VmLogFileQuery extends FileQuery
+object VmLogFileInfo                 extends FileInfo
 end
 
 
-object VmNvramFileInfo extends FileInfo
+object VmLogFileQuery                extends FileQuery
 end
 
 
-object VmNvramFileQuery extends FileQuery
+object VmNvramFileInfo               extends FileInfo
 end
 
 
-object VmSnapshotFileInfo extends FileInfo
+object VmNvramFileQuery              extends FileQuery
 end
 
 
-object VmSnapshotFileQuery extends FileQuery
+object VmSnapshotFileInfo            extends FileInfo
 end
 
 
-object VmfsDatastoreInfo extends DatastoreInfo
+object VmSnapshotFileQuery           extends FileQuery
+end
+
+
+object VmfsDatastoreInfo             extends DatastoreInfo
     HostVmfsVolume                           vmfs                           o
 end
 
@@ -742,19 +743,19 @@ end
 # Managed Objects
 #
 
-managed object ComputeResource extends ManagedEntity
+managed object ComputeResource       extends ManagedEntity
     ManagedObjectReference                   host                           ol
     ManagedObjectReference                   resourcePool                   o
 end
 
 
-managed object Datacenter extends ManagedEntity
+managed object Datacenter            extends ManagedEntity
     ManagedObjectReference                   hostFolder                     r
     ManagedObjectReference                   vmFolder                       r
 end
 
 
-managed object HostSystem extends ManagedEntity
+managed object HostSystem            extends ManagedEntity
     HostConfigManager                        configManager                  r
 end
 
@@ -780,8 +781,8 @@ method CancelTask
 end
 
 
-method CopyVirtualDisk_Task returns ManagedObjectReference r
-    ManagedObjectReference                   _this:VirtualDiskManager       r
+method CopyVirtualDisk_Task          returns ManagedObjectReference         r
+    ManagedObjectReference                   _this:virtualDiskManager       r
     String                                   sourceName                     r
     ManagedObjectReference                   sourceDatacenter               o
     String                                   destName                       r
@@ -791,14 +792,14 @@ method CopyVirtualDisk_Task returns ManagedObjectReference r
 end
 
 
-method CreateFilter returns ManagedObjectReference r
-    ManagedObjectReference                   _this:PropertyCollector        r
+method CreateFilter                  returns ManagedObjectReference         r
+    ManagedObjectReference                   _this:propertyCollector        r
     PropertyFilterSpec                       spec                           r
     Boolean                                  partialUpdates                 r
 end
 
 
-method CreateSnapshot_Task returns ManagedObjectReference r
+method CreateSnapshot_Task           returns ManagedObjectReference         r
     ManagedObjectReference                   _this                          r
     String                                   name                           r
     String                                   description                    o
@@ -807,16 +808,16 @@ method CreateSnapshot_Task returns ManagedObjectReference r
 end
 
 
-method CreateVirtualDisk_Task returns ManagedObjectReference r
-    ManagedObjectReference                   _this:VirtualDiskManager       r
+method CreateVirtualDisk_Task        returns ManagedObjectReference         r
+    ManagedObjectReference                   _this:virtualDiskManager       r
     String                                   name                           r
     ManagedObjectReference                   datacenter                     o
     VirtualDiskSpec                          spec                           r
 end
 
 
-method DeleteVirtualDisk_Task returns ManagedObjectReference r
-    ManagedObjectReference                   _this:VirtualDiskManager       r
+method DeleteVirtualDisk_Task        returns ManagedObjectReference         r
+    ManagedObjectReference                   _this:virtualDiskManager       r
     String                                   name                           r
     ManagedObjectReference                   datacenter                     o
 end
@@ -827,24 +828,24 @@ method DestroyPropertyFilter
 end
 
 
-method FindByIp returns ManagedObjectReference o
-    ManagedObjectReference                   _this:SearchIndex              r
+method FindByIp                      returns ManagedObjectReference         o
+    ManagedObjectReference                   _this:searchIndex              r
     ManagedObjectReference                   datacenter                     o
     String                                   ip                             r
     Boolean                                  vmSearch                       r
 end
 
 
-method FindByUuid returns ManagedObjectReference o
-    ManagedObjectReference                   _this:SearchIndex              r
+method FindByUuid                    returns ManagedObjectReference         o
+    ManagedObjectReference                   _this:searchIndex              r
     ManagedObjectReference                   datacenter                     o
     String                                   uuid                           r
     Boolean                                  vmSearch                       r
 end
 
 
-method Login returns UserSession r
-    ManagedObjectReference                   _this:SessionManager           r
+method Login                         returns UserSession                    r
+    ManagedObjectReference                   _this:sessionManager           r
     String                                   userName                       r
     String                                   password                       r
     String                                   locale                         o
@@ -852,19 +853,19 @@ end
 
 
 method Logout
-    ManagedObjectReference                   _this:SessionManager           r
+    ManagedObjectReference                   _this:sessionManager           r
 end
 
 
 method MakeDirectory
-    ManagedObjectReference                   _this:FileManager              r
+    ManagedObjectReference                   _this:fileManager              r
     String                                   name                           r
     ManagedObjectReference                   datacenter                     o
     Boolean                                  createParentDirectories        o
 end
 
 
-method MigrateVM_Task returns ManagedObjectReference r
+method MigrateVM_Task                returns ManagedObjectReference         r
     ManagedObjectReference                   _this                          r
     ManagedObjectReference                   pool                           o
     ManagedObjectReference                   host                           o
@@ -873,19 +874,19 @@ method MigrateVM_Task returns ManagedObjectReference r
 end
 
 
-method PowerOffVM_Task returns ManagedObjectReference r
+method PowerOffVM_Task               returns ManagedObjectReference         r
     ManagedObjectReference                   _this                          r
 end
 
 
-method PowerOnVM_Task returns ManagedObjectReference r
+method PowerOnVM_Task                returns ManagedObjectReference         r
     ManagedObjectReference                   _this                          r
     ManagedObjectReference                   host                           o
 end
 
 
-method QueryAvailablePerfMetric returns PerfMetricId ol
-    ManagedObjectReference                   _this:PerformanceManager       r
+method QueryAvailablePerfMetric      returns PerfMetricId                   ol
+    ManagedObjectReference                   _this:perfManager              r
     ManagedObjectReference                   entity                         r
     DateTime                                 beginTime                      o
     DateTime                                 endTime                        o
@@ -893,20 +894,20 @@ method QueryAvailablePerfMetric returns PerfMetricId ol
 end
 
 
-method QueryPerf returns PerfEntityMetricBase ol
-    ManagedObjectReference                   _this:PerformanceManager       r
+method QueryPerf                     returns PerfEntityMetricBase           ol
+    ManagedObjectReference                   _this:perfManager              r
     PerfQuerySpec                            querySpec                      rl
 end
 
 
-method QueryPerfCounter returns PerfCounterInfo ol
-    ManagedObjectReference                   _this:PerformanceManager       r
+method QueryPerfCounter              returns PerfCounterInfo                ol
+    ManagedObjectReference                   _this:perfManager              r
     Int                                      counterId                      rl
 end
 
 
-method QueryVirtualDiskUuid returns String r
-    ManagedObjectReference                   _this:VirtualDiskManager       r
+method QueryVirtualDiskUuid          returns String                         r
+    ManagedObjectReference                   _this:virtualDiskManager       r
     String                                   name                           r
     ManagedObjectReference                   datacenter                     o
 end
@@ -917,7 +918,7 @@ method RebootGuest
 end
 
 
-method ReconfigVM_Task returns ManagedObjectReference r
+method ReconfigVM_Task               returns ManagedObjectReference         r
     ManagedObjectReference                   _this                          r
     VirtualMachineConfigSpec                 spec                           r
 end
@@ -934,7 +935,7 @@ method RefreshDatastore
 end
 
 
-method RegisterVM_Task returns ManagedObjectReference r
+method RegisterVM_Task               returns ManagedObjectReference         r
     ManagedObjectReference                   _this                          r
     String                                   path                           r
     String                                   name                           o
@@ -944,40 +945,40 @@ method RegisterVM_Task returns ManagedObjectReference r
 end
 
 
-method RemoveSnapshot_Task returns ManagedObjectReference r
+method RemoveSnapshot_Task           returns ManagedObjectReference         r
     ManagedObjectReference                   _this                          r
     Boolean                                  removeChildren                 r
 end
 
 
-method RetrieveProperties returns ObjectContent ol
-    ManagedObjectReference                   _this:PropertyCollector        r
+method RetrieveProperties            returns ObjectContent                  ol
+    ManagedObjectReference                   _this:propertyCollector        r
     PropertyFilterSpec                       specSet                        rl
 end
 
 
-method RevertToSnapshot_Task returns ManagedObjectReference r
+method RevertToSnapshot_Task         returns ManagedObjectReference         r
     ManagedObjectReference                   _this                          r
     ManagedObjectReference                   host                           o
 end
 
 
-method SearchDatastoreSubFolders_Task returns ManagedObjectReference r
+method SearchDatastoreSubFolders_Task returns ManagedObjectReference        r
     ManagedObjectReference                   _this                          r
     String                                   datastorePath                  r
     HostDatastoreBrowserSearchSpec           searchSpec                     o
 end
 
 
-method SearchDatastore_Task returns ManagedObjectReference r
+method SearchDatastore_Task          returns ManagedObjectReference         r
     ManagedObjectReference                   _this                          r
     String                                   datastorePath                  r
     HostDatastoreBrowserSearchSpec           searchSpec                     o
 end
 
 
-method SessionIsActive returns Boolean r
-    ManagedObjectReference                   _this:SessionManager           r
+method SessionIsActive               returns Boolean                        r
+    ManagedObjectReference                   _this:sessionManager           r
     String                                   sessionID                      r
     String                                   userName                       r
 end
@@ -988,7 +989,7 @@ method ShutdownGuest
 end
 
 
-method SuspendVM_Task returns ManagedObjectReference r
+method SuspendVM_Task                returns ManagedObjectReference         r
     ManagedObjectReference                   _this                          r
 end
 
@@ -998,14 +999,14 @@ method UnregisterVM
 end
 
 
-method WaitForUpdates returns UpdateSet r
-    ManagedObjectReference                   _this:PropertyCollector        r
+method WaitForUpdates                returns UpdateSet                      r
+    ManagedObjectReference                   _this:propertyCollector        r
     String                                   version                        o
 end
 
 
-method ZeroFillVirtualDisk_Task returns ManagedObjectReference r
-    ManagedObjectReference                   _this:VirtualDiskManager       r
+method ZeroFillVirtualDisk_Task      returns ManagedObjectReference         r
+    ManagedObjectReference                   _this:virtualDiskManager       r
     String                                   name                           r
     ManagedObjectReference                   datacenter                     o
 end

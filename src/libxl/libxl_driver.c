@@ -29,6 +29,7 @@
 #include <sys/utsname.h>
 #include <math.h>
 #include <libxl.h>
+#include <fcntl.h>
 
 #include "internal.h"
 #include "logging.h"
@@ -60,12 +61,10 @@
 
 static libxlDriverPrivatePtr libxl_driver = NULL;
 
-
 /* Function declarations */
 static int
-libxlVmStart(libxlDriverPrivatePtr driver,
-             virDomainObjPtr vm, bool start_paused);
-
+libxlVmStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
+             bool start_paused, int restore_fd);
 
 /* Function definitions */
 static void
@@ -130,28 +129,11 @@ static void
 libxlDomainEventFlush(int timer ATTRIBUTE_UNUSED, void *opaque)
 {
     libxlDriverPrivatePtr driver = opaque;
-    virDomainEventQueue tempQueue;
 
     libxlDriverLock(driver);
-
-    driver->domainEventDispatching = 1;
-
-    /* Copy the queue, so we're reentrant safe */
-    tempQueue.count = driver->domainEventQueue->count;
-    tempQueue.events = driver->domainEventQueue->events;
-    driver->domainEventQueue->count = 0;
-    driver->domainEventQueue->events = NULL;
-
-    virEventUpdateTimeout(driver->domainEventTimer, -1);
-    virDomainEventQueueDispatch(&tempQueue,
-                                driver->domainEventCallbacks,
-                                libxlDomainEventDispatchFunc,
-                                driver);
-
-    /* Purge any deleted callbacks */
-    virDomainEventCallbackListPurgeMarked(driver->domainEventCallbacks);
-
-    driver->domainEventDispatching = 0;
+    virDomainEventStateFlush(driver->domainEventState,
+                             libxlDomainEventDispatchFunc,
+                             driver);
     libxlDriverUnlock(driver);
 }
 
@@ -159,10 +141,7 @@ libxlDomainEventFlush(int timer ATTRIBUTE_UNUSED, void *opaque)
 static void
 libxlDomainEventQueue(libxlDriverPrivatePtr driver, virDomainEventPtr event)
 {
-    if (virDomainEventQueuePush(driver->domainEventQueue, event) < 0)
-        virDomainEventFree(event);
-    if (driver->domainEventQueue->count == 1)
-        virEventUpdateTimeout(driver->domainEventTimer, 0);
+    virDomainEventStateQueue(driver->domainEventState, event);
 }
 
 /*
@@ -188,7 +167,7 @@ libxlAutostartDomain(void *payload, const void *name ATTRIBUTE_UNUSED,
     virResetLastError();
 
     if (vm->autostart && !virDomainObjIsActive(vm) &&
-        libxlVmStart(driver, vm, false) < 0) {
+        libxlVmStart(driver, vm, false, -1) < 0) {
         err = virGetLastError();
         VIR_ERROR(_("Failed to autostart VM '%s': %s"),
                   vm->def->name,
@@ -239,13 +218,96 @@ libxlDoNodeGetInfo(libxlDriverPrivatePtr driver, virNodeInfoPtr info)
     return 0;
 }
 
+static char *
+libxlDomainManagedSavePath(libxlDriverPrivatePtr driver, virDomainObjPtr vm) {
+    char *ret;
+
+    if (virAsprintf(&ret, "%s/%s.save", driver->saveDir, vm->def->name) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    return ret;
+}
+
+/* This internal function expects the driver lock to already be held on
+ * entry. */
+static int ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4)
+libxlSaveImageOpen(libxlDriverPrivatePtr driver, const char *from,
+                     virDomainDefPtr *ret_def, libxlSavefileHeaderPtr ret_hdr)
+{
+    int fd;
+    virDomainDefPtr def = NULL;
+    libxlSavefileHeader hdr;
+    char *xml = NULL;
+
+    if ((fd = virFileOpenAs(from, O_RDONLY, 0, getuid(), getgid(), 0)) < 0) {
+        libxlError(VIR_ERR_OPERATION_FAILED,
+                   "%s", _("cannot read domain image"));
+        goto error;
+    }
+
+    if (saferead(fd, &hdr, sizeof(hdr)) != sizeof(hdr)) {
+        libxlError(VIR_ERR_OPERATION_FAILED,
+                   "%s", _("failed to read libxl header"));
+        goto error;
+    }
+
+    if (memcmp(hdr.magic, LIBXL_SAVE_MAGIC, sizeof(hdr.magic))) {
+        libxlError(VIR_ERR_INVALID_ARG, "%s", _("image magic is incorrect"));
+        goto error;
+    }
+
+    if (hdr.version > LIBXL_SAVE_VERSION) {
+        libxlError(VIR_ERR_OPERATION_FAILED,
+                   _("image version is not supported (%d > %d)"),
+                   hdr.version, LIBXL_SAVE_VERSION);
+        goto error;
+    }
+
+    if (hdr.xmlLen <= 0) {
+        libxlError(VIR_ERR_OPERATION_FAILED,
+                   _("invalid XML length: %d"), hdr.xmlLen);
+        goto error;
+    }
+
+    if (VIR_ALLOC_N(xml, hdr.xmlLen) < 0) {
+        virReportOOMError();
+        goto error;
+    }
+
+    if (saferead(fd, xml, hdr.xmlLen) != hdr.xmlLen) {
+        libxlError(VIR_ERR_OPERATION_FAILED, "%s", _("failed to read XML"));
+        goto error;
+    }
+
+    if (!(def = virDomainDefParseString(driver->caps, xml,
+                                        VIR_DOMAIN_XML_INACTIVE)))
+        goto error;
+
+    VIR_FREE(xml);
+
+    *ret_def = def;
+    *ret_hdr = hdr;
+
+    return fd;
+
+error:
+    VIR_FREE(xml);
+    virDomainDefFree(def);
+    VIR_FORCE_CLOSE(fd);
+    return -1;
+}
+
 /*
  * Cleanup function for domain that has reached shutoff state.
  *
  * virDomainObjPtr should be locked on invocation
  */
 static void
-libxlVmCleanup(libxlDriverPrivatePtr driver, virDomainObjPtr vm)
+libxlVmCleanup(libxlDriverPrivatePtr driver,
+               virDomainObjPtr vm,
+               virDomainShutoffReason reason)
 {
     libxlDomainObjPrivatePtr priv = vm->privateData;
     int vnc_port;
@@ -265,7 +327,7 @@ libxlVmCleanup(libxlDriverPrivatePtr driver, virDomainObjPtr vm)
 
     if (vm->persistent) {
         vm->def->id = -1;
-        vm->state = VIR_DOMAIN_SHUTOFF;
+        virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, reason);
     }
 
     if ((vm->def->ngraphics == 1) &&
@@ -294,6 +356,13 @@ libxlVmCleanup(libxlDriverPrivatePtr driver, virDomainObjPtr vm)
             VIR_DEBUG("Failed to remove domain XML for %s", vm->def->name);
         VIR_FREE(file);
     }
+
+    if (vm->newDef) {
+        virDomainDefFree(vm->def);
+        vm->def = vm->newDef;
+        vm->def->id = -1;
+        vm->newDef = NULL;
+    }
 }
 
 /*
@@ -302,7 +371,10 @@ libxlVmCleanup(libxlDriverPrivatePtr driver, virDomainObjPtr vm)
  * virDomainObjPtr should be locked on invocation
  */
 static int
-libxlVmReap(libxlDriverPrivatePtr driver, virDomainObjPtr vm, int force)
+libxlVmReap(libxlDriverPrivatePtr driver,
+            virDomainObjPtr vm,
+            int force,
+            virDomainShutoffReason reason)
 {
     libxlDomainObjPrivatePtr priv = vm->privateData;
 
@@ -312,7 +384,7 @@ libxlVmReap(libxlDriverPrivatePtr driver, virDomainObjPtr vm, int force)
         return -1;
     }
 
-    libxlVmCleanup(driver, vm);
+    libxlVmCleanup(driver, vm, reason);
     return 0;
 }
 
@@ -353,6 +425,8 @@ static void libxlEventHandler(int watch,
         goto cleanup;
 
     if (event.type == LIBXL_EVENT_DOMAIN_DEATH) {
+        virDomainShutoffReason reason;
+
         /* libxl_event_get_domain_death_info returns 1 if death
          * event was for this domid */
         if (libxl_event_get_domain_death_info(&priv->ctx,
@@ -366,19 +440,23 @@ static void libxlEventHandler(int watch,
         switch (info.shutdown_reason) {
             case SHUTDOWN_poweroff:
             case SHUTDOWN_crash:
-                if (info.shutdown_reason == SHUTDOWN_crash)
+                if (info.shutdown_reason == SHUTDOWN_crash) {
                     dom_event = virDomainEventNewFromObj(vm,
                                               VIR_DOMAIN_EVENT_STOPPED,
                                               VIR_DOMAIN_EVENT_STOPPED_CRASHED);
-                libxlVmReap(driver, vm, 0);
+                    reason = VIR_DOMAIN_SHUTOFF_CRASHED;
+                } else {
+                    reason = VIR_DOMAIN_SHUTOFF_SHUTDOWN;
+                }
+                libxlVmReap(driver, vm, 0, reason);
                 if (!vm->persistent) {
                     virDomainRemoveInactive(&driver->domains, vm);
                     vm = NULL;
                 }
                 break;
             case SHUTDOWN_reboot:
-                libxlVmReap(driver, vm, 0);
-                libxlVmStart(driver, vm, 0);
+                libxlVmReap(driver, vm, 0, VIR_DOMAIN_SHUTOFF_SHUTDOWN);
+                libxlVmStart(driver, vm, 0, -1);
                 break;
             default:
                 VIR_INFO("Unhandled shutdown_reason %d", info.shutdown_reason);
@@ -498,43 +576,141 @@ cleanup:
     return ret;
 }
 
+static int
+libxlFreeMem(libxlDomainObjPrivatePtr priv, libxl_domain_config *d_config)
+{
+    uint32_t needed_mem;
+    uint32_t free_mem;
+    int i;
+    int ret = -1;
+    int tries = 3;
+    int wait_secs = 10;
+
+    if ((ret = libxl_domain_need_memory(&priv->ctx, &d_config->b_info,
+                                        &d_config->dm_info,
+                                        &needed_mem)) >= 0) {
+        for (i = 0; i < tries; ++i) {
+            if ((ret = libxl_get_free_memory(&priv->ctx, &free_mem)) < 0)
+                break;
+
+            if (free_mem >= needed_mem) {
+                ret = 0;
+                break;
+            }
+
+            if ((ret = libxl_set_memory_target(&priv->ctx, 0,
+                                               free_mem - needed_mem,
+                                               /* relative */ 1, 0)) < 0)
+                break;
+
+            ret = libxl_wait_for_free_memory(&priv->ctx, 0, needed_mem,
+                                             wait_secs);
+            if (ret == 0 || ret != ERROR_NOMEM)
+                break;
+
+            if ((ret = libxl_wait_for_memory_target(&priv->ctx, 0, 1)) < 0)
+                break;
+        }
+    }
+
+    return ret;
+}
+
 /*
  * Start a domain through libxenlight.
  *
  * virDomainObjPtr should be locked on invocation
  */
 static int
-libxlVmStart(libxlDriverPrivatePtr driver,
-             virDomainObjPtr vm, bool start_paused)
+libxlVmStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
+             bool start_paused, int restore_fd)
 {
     libxl_domain_config d_config;
-    virDomainDefPtr def = vm->def;
+    virDomainDefPtr def = NULL;
     virDomainEventPtr event = NULL;
+    libxlSavefileHeader hdr;
     int ret;
     uint32_t domid = 0;
     char *dom_xml = NULL;
+    char *managed_save_path = NULL;
+    int managed_save_fd = -1;
     pid_t child_console_pid = -1;
     libxlDomainObjPrivatePtr priv = vm->privateData;
 
+    /* If there is a managed saved state restore it instead of starting
+     * from scratch. The old state is removed once the restoring succeeded. */
+    if (restore_fd < 0) {
+        managed_save_path = libxlDomainManagedSavePath(driver, vm);
+        if (managed_save_path == NULL)
+            goto error;
+
+        if (virFileExists(managed_save_path)) {
+
+            managed_save_fd = libxlSaveImageOpen(driver, managed_save_path,
+                                                 &def, &hdr);
+            if (managed_save_fd < 0)
+                goto error;
+
+            restore_fd = managed_save_fd;
+
+            if (STRNEQ(vm->def->name, def->name) ||
+                memcmp(vm->def->uuid, def->uuid, VIR_UUID_BUFLEN)) {
+                char vm_uuidstr[VIR_UUID_STRING_BUFLEN];
+                char def_uuidstr[VIR_UUID_STRING_BUFLEN];
+                virUUIDFormat(vm->def->uuid, vm_uuidstr);
+                virUUIDFormat(def->uuid, def_uuidstr);
+                libxlError(VIR_ERR_OPERATION_FAILED,
+                           _("cannot restore domain '%s' uuid %s from a file"
+                             " which belongs to domain '%s' uuid %s"),
+                           vm->def->name, vm_uuidstr, def->name, def_uuidstr);
+                goto error;
+            }
+
+            virDomainObjAssignDef(vm, def, true);
+            def = NULL;
+
+            if (unlink(managed_save_path) < 0) {
+                VIR_WARN("Failed to remove the managed state %s",
+                         managed_save_path);
+            }
+        }
+        VIR_FREE(managed_save_path);
+    }
+
     memset(&d_config, 0, sizeof(d_config));
 
-    if (libxlBuildDomainConfig(driver, def, &d_config) < 0 )
+    if (libxlBuildDomainConfig(driver, vm->def, &d_config) < 0 )
         return -1;
 
-    //TODO: Balloon dom0 ??
-    //ret = freemem(&d_config->b_info, &d_config->dm_info);
-
-    ret = libxl_domain_create_new(&priv->ctx, &d_config,
-                                  NULL, &child_console_pid, &domid);
-    if (ret) {
+    if (libxlFreeMem(priv, &d_config) < 0) {
         libxlError(VIR_ERR_INTERNAL_ERROR,
-                   _("libxenlight failed to create new domain '%s'"),
+                   _("libxenlight failed to get free memory for domain '%s'"),
                    d_config.c_info.name);
         goto error;
     }
 
-    def->id = domid;
-    if ((dom_xml = virDomainDefFormat(def, 0)) == NULL)
+    if (restore_fd < 0)
+        ret = libxl_domain_create_new(&priv->ctx, &d_config,
+                                      NULL, &child_console_pid, &domid);
+    else
+        ret = libxl_domain_create_restore(&priv->ctx, &d_config, NULL,
+                                          &child_console_pid, &domid,
+                                          restore_fd);
+
+    if (ret) {
+        if (restore_fd < 0)
+            libxlError(VIR_ERR_INTERNAL_ERROR,
+                       _("libxenlight failed to create new domain '%s'"),
+                       d_config.c_info.name);
+        else
+            libxlError(VIR_ERR_INTERNAL_ERROR,
+                       _("libxenlight failed to restore domain '%s'"),
+                       d_config.c_info.name);
+        goto error;
+    }
+
+    vm->def->id = domid;
+    if ((dom_xml = virDomainDefFormat(vm->def, 0)) == NULL)
         goto error;
 
     if (libxl_userdata_store(&priv->ctx, domid, "libvirt-xml",
@@ -552,9 +728,9 @@ libxlVmStart(libxlDriverPrivatePtr driver,
 
     if (!start_paused) {
         libxl_domain_unpause(&priv->ctx, domid);
-        vm->state = VIR_DOMAIN_RUNNING;
+        virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, VIR_DOMAIN_RUNNING_BOOTED);
     } else {
-        vm->state = VIR_DOMAIN_PAUSED;
+        virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, VIR_DOMAIN_PAUSED_USER);
     }
 
 
@@ -562,21 +738,27 @@ libxlVmStart(libxlDriverPrivatePtr driver,
         goto error;
 
     event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_STARTED,
-                                     VIR_DOMAIN_EVENT_STARTED_BOOTED);
+                                     restore_fd < 0 ?
+                                         VIR_DOMAIN_EVENT_STARTED_BOOTED :
+                                         VIR_DOMAIN_EVENT_STARTED_RESTORED);
     libxlDomainEventQueue(driver, event);
 
     libxl_domain_config_destroy(&d_config);
     VIR_FREE(dom_xml);
+    VIR_FORCE_CLOSE(managed_save_fd);
     return 0;
 
 error:
     if (domid > 0) {
         libxl_domain_destroy(&priv->ctx, domid, 0);
-        def->id = -1;
-        vm->state = VIR_DOMAIN_SHUTOFF;
+        vm->def->id = -1;
+        virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, VIR_DOMAIN_SHUTOFF_FAILED);
     }
     libxl_domain_config_destroy(&d_config);
     VIR_FREE(dom_xml);
+    VIR_FREE(managed_save_path);
+    virDomainDefFree(def);
+    VIR_FORCE_CLOSE(managed_save_fd);
     return -1;
 }
 
@@ -618,7 +800,7 @@ libxlReconnectDomain(void *payload,
 
     /* Update domid in case it changed (e.g. reboot) while we were gone? */
     vm->def->id = d_info.domid;
-    vm->state = VIR_DOMAIN_RUNNING;
+    virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, VIR_DOMAIN_RUNNING_UNKNOWN);
 
     /* Recreate domain death et. al. events */
     libxlCreateDomEvents(vm);
@@ -626,7 +808,7 @@ libxlReconnectDomain(void *payload,
     return;
 
 out:
-    libxlVmCleanup(driver, vm);
+    libxlVmCleanup(driver, vm, VIR_DOMAIN_SHUTOFF_UNKNOWN);
     if (!vm->persistent)
         virDomainRemoveInactive(&driver->domains, vm);
     else
@@ -662,12 +844,7 @@ libxlShutdown(void)
     VIR_FREE(libxl_driver->libDir);
     VIR_FREE(libxl_driver->saveDir);
 
-    /* Free domain callback list */
-    virDomainEventCallbackListFree(libxl_driver->domainEventCallbacks);
-    virDomainEventQueueFree(libxl_driver->domainEventQueue);
-
-    if (libxl_driver->domainEventTimer != -1)
-        virEventRemoveTimeout(libxl_driver->domainEventTimer);
+    virDomainEventStateFree(libxl_driver->domainEventState);
 
     libxlDriverUnlock(libxl_driver);
     virMutexDestroy(&libxl_driver->lock);
@@ -685,14 +862,14 @@ libxlStartup(int privileged) {
 
     /* Disable libxl driver if non-root */
     if (!privileged) {
-        VIR_INFO0("Not running privileged, disabling libxenlight driver");
+        VIR_INFO("Not running privileged, disabling libxenlight driver");
         return 0;
     }
 
     /* Disable driver if legacy xen toolstack (xend) is in use */
     cmd = virCommandNewArgList("/usr/sbin/xend", "status", NULL);
     if (virCommandRun(cmd, &status) == 0 && status == 0) {
-        VIR_INFO0("Legacy xen tool stack seems to be in use, disabling "
+        VIR_INFO("Legacy xen tool stack seems to be in use, disabling "
                   "libxenlight driver.");
         virCommandFree(cmd);
         return 0;
@@ -703,7 +880,7 @@ libxlStartup(int privileged) {
         return -1;
 
     if (virMutexInit(&libxl_driver->lock) < 0) {
-        VIR_ERROR0(_("cannot initialize mutex"));
+        VIR_ERROR(_("cannot initialize mutex"));
         VIR_FREE(libxl_driver);
         return -1;
     }
@@ -778,32 +955,30 @@ libxlStartup(int privileged) {
     }
     VIR_FREE(log_file);
 
-    /* Init callback list */
-    if (VIR_ALLOC(libxl_driver->domainEventCallbacks) < 0)
-        goto out_of_memory;
-    if (!(libxl_driver->domainEventQueue = virDomainEventQueueNew()))
-        goto out_of_memory;
-    if ((libxl_driver->domainEventTimer =
-         virEventAddTimeout(-1, libxlDomainEventFlush, libxl_driver, NULL)) < 0)
+    libxl_driver->domainEventState = virDomainEventStateNew(
+                                                        libxlDomainEventFlush,
+                                                        libxl_driver,
+                                                        NULL,
+                                                        false);
+    if (!libxl_driver->domainEventState)
         goto error;
-
 
     libxl_driver->logger =
             (xentoollog_logger *)xtl_createlogger_stdiostream(libxl_driver->logger_file, XTL_DEBUG,  0);
     if (!libxl_driver->logger) {
-        VIR_ERROR0(_("cannot create logger for libxenlight"));
+        VIR_ERROR(_("cannot create logger for libxenlight"));
         goto fail;
     }
 
     if (libxl_ctx_init(&libxl_driver->ctx,
                        LIBXL_VERSION,
                        libxl_driver->logger)) {
-        VIR_ERROR0(_("cannot initialize libxenlight context"));
+        VIR_ERROR(_("cannot initialize libxenlight context"));
         goto fail;
     }
 
     if ((ver_info = libxl_get_version_info(&libxl_driver->ctx)) == NULL) {
-        VIR_ERROR0(_("cannot version information from libxenlight"));
+        VIR_ERROR(_("cannot version information from libxenlight"));
         goto fail;
     }
     libxl_driver->version = (ver_info->xen_version_major * 1000000) +
@@ -811,7 +986,7 @@ libxlStartup(int privileged) {
 
     if ((libxl_driver->caps =
          libxlMakeCapabilities(&libxl_driver->ctx)) == NULL) {
-        VIR_ERROR0(_("cannot create capabilities for libxenlight"));
+        VIR_ERROR(_("cannot create capabilities for libxenlight"));
         goto error;
     }
 
@@ -938,7 +1113,8 @@ libxlClose(virConnectPtr conn ATTRIBUTE_UNUSED)
     libxlDriverPrivatePtr driver = conn->privateData;
 
     libxlDriverLock(driver);
-    virDomainEventCallbackListRemoveConn(conn, driver->domainEventCallbacks);
+    virDomainEventCallbackListRemoveConn(conn,
+                                         driver->domainEventState->callbacks);
     libxlDriverUnlock(driver);
     conn->privateData = NULL;
     return 0;
@@ -1046,7 +1222,8 @@ libxlDomainCreateXML(virConnectPtr conn, const char *xml,
         goto cleanup;
     def = NULL;
 
-    if (libxlVmStart(driver, vm, (flags & VIR_DOMAIN_START_PAUSED) != 0) < 0) {
+    if (libxlVmStart(driver, vm, (flags & VIR_DOMAIN_START_PAUSED) != 0,
+                     -1) < 0) {
         virDomainRemoveInactive(&driver->domains, vm);
         vm = NULL;
         goto cleanup;
@@ -1169,7 +1346,7 @@ libxlDomainSuspend(virDomainPtr dom)
 
     priv = vm->privateData;
 
-    if (vm->state != VIR_DOMAIN_PAUSED) {
+    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_PAUSED) {
         if (libxl_domain_pause(&priv->ctx, dom->id) != 0) {
             libxlError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to suspend domain '%d' with libxenlight"),
@@ -1177,7 +1354,7 @@ libxlDomainSuspend(virDomainPtr dom)
             goto cleanup;
         }
 
-        vm->state = VIR_DOMAIN_PAUSED;
+        virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, VIR_DOMAIN_PAUSED_USER);
 
         event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_SUSPENDED,
                                          VIR_DOMAIN_EVENT_SUSPENDED_PAUSED);
@@ -1228,7 +1405,7 @@ libxlDomainResume(virDomainPtr dom)
 
     priv = vm->privateData;
 
-    if (vm->state == VIR_DOMAIN_PAUSED) {
+    if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_PAUSED) {
         if (libxl_domain_unpause(&priv->ctx, dom->id) != 0) {
             libxlError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to resume domain '%d' with libxenlight"),
@@ -1236,7 +1413,8 @@ libxlDomainResume(virDomainPtr dom)
             goto cleanup;
         }
 
-        vm->state = VIR_DOMAIN_RUNNING;
+        virDomainObjSetState(vm, VIR_DOMAIN_RUNNING,
+                             VIR_DOMAIN_RUNNING_UNPAUSED);
 
         event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_RESUMED,
                                          VIR_DOMAIN_EVENT_RESUMED_UNPAUSED);
@@ -1369,7 +1547,7 @@ libxlDomainDestroy(virDomainPtr dom)
     event = virDomainEventNewFromObj(vm,VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
 
-    if (libxlVmReap(driver, vm, 1) != 0) {
+    if (libxlVmReap(driver, vm, 1, VIR_DOMAIN_SHUTOFF_DESTROYED) != 0) {
         libxlError(VIR_ERR_INTERNAL_ERROR,
                    _("Failed to destroy domain '%d'"), dom->id);
         goto cleanup;
@@ -1442,22 +1620,19 @@ cleanup:
 }
 
 static int
-libxlDomainSetMemoryFlags(virDomainPtr dom, unsigned long memory,
+libxlDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
                           unsigned int flags)
 {
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     libxlDomainObjPrivatePtr priv;
     virDomainObjPtr vm;
-    virDomainDefPtr def = NULL;
+    virDomainDefPtr persistentDef = NULL;
+    bool isActive;
     int ret = -1;
 
     virCheckFlags(VIR_DOMAIN_MEM_LIVE |
-                  VIR_DOMAIN_MEM_CONFIG, -1);
-
-    if ((flags & (VIR_DOMAIN_MEM_LIVE | VIR_DOMAIN_MEM_CONFIG)) == 0) {
-        libxlError(VIR_ERR_INVALID_ARG,
-                   _("invalid flag combination: (0x%x)"), flags);
-    }
+                  VIR_DOMAIN_MEM_CONFIG |
+                  VIR_DOMAIN_MEM_MAXIMUM, -1);
 
     libxlDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -1468,13 +1643,22 @@ libxlDomainSetMemoryFlags(virDomainPtr dom, unsigned long memory,
         goto cleanup;
     }
 
-    if (memory > vm->def->mem.max_balloon) {
-        libxlError(VIR_ERR_INVALID_ARG, "%s",
-                   _("cannot set memory higher than max memory"));
-        goto cleanup;
+    isActive = virDomainObjIsActive(vm);
+
+    if (flags == VIR_DOMAIN_MEM_CURRENT) {
+        if (isActive)
+            flags = VIR_DOMAIN_MEM_LIVE;
+        else
+            flags = VIR_DOMAIN_MEM_CONFIG;
+    }
+    if (flags == VIR_DOMAIN_MEM_MAXIMUM) {
+        if (isActive)
+            flags = VIR_DOMAIN_MEM_LIVE | VIR_DOMAIN_MEM_MAXIMUM;
+        else
+            flags = VIR_DOMAIN_MEM_CONFIG | VIR_DOMAIN_MEM_MAXIMUM;
     }
 
-    if (!virDomainObjIsActive(vm) && (flags & VIR_DOMAIN_MEM_LIVE)) {
+    if (!isActive && (flags & VIR_DOMAIN_MEM_LIVE)) {
         libxlError(VIR_ERR_OPERATION_INVALID, "%s",
                    _("cannot set memory on an inactive domain"));
         goto cleanup;
@@ -1486,28 +1670,62 @@ libxlDomainSetMemoryFlags(virDomainPtr dom, unsigned long memory,
                        _("cannot change persistent config of a transient domain"));
             goto cleanup;
         }
-        if (!(def = virDomainObjGetPersistentDef(driver->caps, vm)))
+        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
             goto cleanup;
     }
 
-    if (flags & VIR_DOMAIN_MEM_LIVE) {
-        priv = vm->privateData;
+    if (flags & VIR_DOMAIN_MEM_MAXIMUM) {
+        /* resize the maximum memory */
 
-        if (libxl_set_memory_target(&priv->ctx, dom->id, memory, 0,
-                                    /* force */ 1) < 0) {
-            libxlError(VIR_ERR_INTERNAL_ERROR,
-                       _("Failed to set memory for domain '%d'"
-                         " with libxenlight"), dom->id);
+        if (flags & VIR_DOMAIN_MEM_LIVE) {
+            priv = vm->privateData;
+            if (libxl_domain_setmaxmem(&priv->ctx, dom->id, newmem) < 0) {
+                libxlError(VIR_ERR_INTERNAL_ERROR,
+                           _("Failed to set maximum memory for domain '%d'"
+                             " with libxenlight"), dom->id);
+                goto cleanup;
+            }
+        }
+
+        if (flags & VIR_DOMAIN_MEM_CONFIG) {
+            /* Help clang 2.8 decipher the logic flow.  */
+            sa_assert(persistentDef);
+            persistentDef->mem.max_balloon = newmem;
+            if (persistentDef->mem.cur_balloon > newmem)
+                persistentDef->mem.cur_balloon = newmem;
+            ret = virDomainSaveConfig(driver->configDir, persistentDef);
+            goto cleanup;
+        }
+
+    } else {
+        /* resize the current memory */
+
+        if (newmem > vm->def->mem.max_balloon) {
+            libxlError(VIR_ERR_INVALID_ARG, "%s",
+                        _("cannot set memory higher than max memory"));
+            goto cleanup;
+        }
+
+        if (flags & VIR_DOMAIN_MEM_LIVE) {
+            priv = vm->privateData;
+            if (libxl_set_memory_target(&priv->ctx, dom->id, newmem, 0,
+                                        /* force */ 1) < 0) {
+                libxlError(VIR_ERR_INTERNAL_ERROR,
+                           _("Failed to set memory for domain '%d'"
+                             " with libxenlight"), dom->id);
+                goto cleanup;
+            }
+        }
+
+        if (flags & VIR_DOMAIN_MEM_CONFIG) {
+            sa_assert(persistentDef);
+            persistentDef->mem.cur_balloon = newmem;
+            ret = virDomainSaveConfig(driver->configDir, persistentDef);
             goto cleanup;
         }
     }
 
     ret = 0;
-
-    if (flags & VIR_DOMAIN_MEM_CONFIG) {
-        def->mem.cur_balloon = memory;
-        ret = virDomainSaveConfig(driver->configDir, def);
-    }
 
 cleanup:
     if (vm)
@@ -1519,6 +1737,12 @@ static int
 libxlDomainSetMemory(virDomainPtr dom, unsigned long memory)
 {
     return libxlDomainSetMemoryFlags(dom, memory, VIR_DOMAIN_MEM_LIVE);
+}
+
+static int
+libxlDomainSetMaxMemory(virDomainPtr dom, unsigned long memory)
+{
+    return libxlDomainSetMemoryFlags(dom, memory, VIR_DOMAIN_MEM_MAXIMUM);
 }
 
 static int
@@ -1542,6 +1766,7 @@ libxlDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
     if (!virDomainObjIsActive(vm)) {
         info->cpuTime = 0;
         info->memory = vm->def->mem.cur_balloon;
+        info->maxMem = vm->def->mem.max_balloon;
     } else {
         if (libxl_domain_info(&driver->ctx, &d_info, dom->id) != 0) {
             libxlError(VIR_ERR_INTERNAL_ERROR,
@@ -1550,16 +1775,403 @@ libxlDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
         }
         info->cpuTime = d_info.cpu_time;
         info->memory = d_info.current_memkb;
+        info->maxMem = d_info.max_memkb;
     }
 
-    info->state = vm->state;
-    info->maxMem = vm->def->mem.max_balloon;
+    info->state = virDomainObjGetState(vm, NULL);
     info->nrVirtCpu = vm->def->vcpus;
     ret = 0;
 
   cleanup:
     if (vm)
         virDomainObjUnlock(vm);
+    return ret;
+}
+
+static int
+libxlDomainGetState(virDomainPtr dom,
+                    int *state,
+                    int *reason,
+                    unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    libxlDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    libxlDriverUnlock(driver);
+
+    if (!vm) {
+        libxlError(VIR_ERR_NO_DOMAIN, "%s",
+                   _("no domain with matching uuid"));
+        goto cleanup;
+    }
+
+    *state = virDomainObjGetState(vm, reason);
+    ret = 0;
+
+  cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    return ret;
+}
+
+/* This internal function expects the driver lock to already be held on
+ * entry and the vm must be active. */
+static int
+libxlDoDomainSave(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
+                  const char *to)
+{
+    libxlDomainObjPrivatePtr priv = vm->privateData;
+    libxlSavefileHeader hdr;
+    virDomainEventPtr event = NULL;
+    char *xml = NULL;
+    uint32_t xml_len;
+    int fd;
+    int ret = -1;
+
+    if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_PAUSED) {
+        libxlError(VIR_ERR_OPERATION_INVALID,
+                   _("Domain '%d' has to be running because libxenlight will"
+                     " suspend it"), vm->def->id);
+        goto cleanup;
+    }
+
+    if ((fd = virFileOpenAs(to, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR,
+                            getuid(), getgid(), 0)) < 0) {
+        virReportSystemError(-fd,
+                             _("Failed to create domain save file '%s'"), to);
+        goto cleanup;
+    }
+
+    if ((xml = virDomainDefFormat(vm->def, 0)) == NULL)
+        goto cleanup;
+    xml_len = strlen(xml) + 1;
+
+    memset(&hdr, 0, sizeof(hdr));
+    memcpy(hdr.magic, LIBXL_SAVE_MAGIC, sizeof(hdr.magic));
+    hdr.version = LIBXL_SAVE_VERSION;
+    hdr.xmlLen = xml_len;
+
+    if (safewrite(fd, &hdr, sizeof(hdr)) != sizeof(hdr)) {
+        libxlError(VIR_ERR_OPERATION_FAILED,
+                    _("Failed to write save file header"));
+        goto cleanup;
+    }
+
+    if (safewrite(fd, xml, xml_len) != xml_len) {
+        libxlError(VIR_ERR_OPERATION_FAILED,
+                    _("Failed to write xml description"));
+        goto cleanup;
+    }
+
+    if (libxl_domain_suspend(&priv->ctx, NULL, vm->def->id, fd) != 0) {
+        libxlError(VIR_ERR_INTERNAL_ERROR,
+                    _("Failed to save domain '%d' with libxenlight"),
+                    vm->def->id);
+        goto cleanup;
+    }
+
+    event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_STOPPED,
+                                         VIR_DOMAIN_EVENT_STOPPED_SAVED);
+
+    if (libxlVmReap(driver, vm, 1, VIR_DOMAIN_SHUTOFF_SAVED) != 0) {
+        libxlError(VIR_ERR_INTERNAL_ERROR,
+                    _("Failed to destroy domain '%d'"), vm->def->id);
+        goto cleanup;
+    }
+
+    if (!vm->persistent) {
+        virDomainRemoveInactive(&driver->domains, vm);
+        vm = NULL;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(xml);
+    if (VIR_CLOSE(fd) < 0)
+        virReportSystemError(errno, "%s", _("cannot close file"));
+    if (event)
+        libxlDomainEventQueue(driver, event);
+    return ret;
+}
+
+static int
+libxlDomainSave(virDomainPtr dom, const char *to)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    int ret = -1;
+
+    libxlDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        libxlError(VIR_ERR_NO_DOMAIN,
+                   _("No domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        libxlError(VIR_ERR_OPERATION_INVALID, "%s", _("Domain is not running"));
+        goto cleanup;
+    }
+
+    ret = libxlDoDomainSave(driver, vm, to);
+
+cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    libxlDriverUnlock(driver);
+    return ret;
+}
+
+static int
+libxlDomainRestore(virConnectPtr conn, const char *from)
+{
+    libxlDriverPrivatePtr driver = conn->privateData;
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
+    libxlSavefileHeader hdr;
+    int fd = -1;
+    int ret = -1;
+
+    libxlDriverLock(driver);
+
+    fd = libxlSaveImageOpen(driver, from, &def, &hdr);
+    if (fd < 0)
+        goto cleanup;
+
+    if (virDomainObjIsDuplicate(&driver->domains, def, 1) < 0)
+        goto cleanup;
+
+    if (!(vm = virDomainAssignDef(driver->caps, &driver->domains, def, true)))
+        goto cleanup;
+
+    def = NULL;
+
+    if ((ret = libxlVmStart(driver, vm, false, fd)) < 0 &&
+        !vm->persistent) {
+        virDomainRemoveInactive(&driver->domains, vm);
+        vm = NULL;
+    }
+
+cleanup:
+    if (VIR_CLOSE(fd) < 0)
+        virReportSystemError(errno, "%s", _("cannot close file"));
+    virDomainDefFree(def);
+    if (vm)
+        virDomainObjUnlock(vm);
+    libxlDriverUnlock(driver);
+    return ret;
+}
+
+static int
+libxlDomainCoreDump(virDomainPtr dom, const char *to, int flags)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    libxlDomainObjPrivatePtr priv;
+    virDomainObjPtr vm;
+    virDomainEventPtr event = NULL;
+    bool paused = false;
+    int ret = -1;
+
+    virCheckFlags(VIR_DUMP_LIVE | VIR_DUMP_CRASH, -1);
+
+    libxlDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    libxlDriverUnlock(driver);
+
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        libxlError(VIR_ERR_NO_DOMAIN,
+                   _("No domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        libxlError(VIR_ERR_OPERATION_INVALID, "%s", _("Domain is not running"));
+        goto cleanup;
+    }
+
+    priv = vm->privateData;
+
+    if (!(flags & VIR_DUMP_LIVE) &&
+        virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING) {
+        if (libxl_domain_pause(&priv->ctx, dom->id) != 0) {
+            libxlError(VIR_ERR_INTERNAL_ERROR,
+                       _("Before dumping core, failed to suspend domain '%d'"
+                         " with libxenlight"),
+                       dom->id);
+            goto cleanup;
+        }
+        virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, VIR_DOMAIN_PAUSED_DUMP);
+        paused = true;
+    }
+
+    if (libxl_domain_core_dump(&priv->ctx, dom->id, to) != 0) {
+        libxlError(VIR_ERR_INTERNAL_ERROR,
+                   _("Failed to dump core of domain '%d' with libxenlight"),
+                   dom->id);
+        goto cleanup_unpause;
+    }
+
+    libxlDriverLock(driver);
+    if (flags & VIR_DUMP_CRASH) {
+        if (libxlVmReap(driver, vm, 1, VIR_DOMAIN_SHUTOFF_CRASHED) != 0) {
+            libxlError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to destroy domain '%d'"), dom->id);
+            goto cleanup_unlock;
+        }
+
+        event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_STOPPED,
+                                         VIR_DOMAIN_EVENT_STOPPED_CRASHED);
+    }
+
+    if ((flags & VIR_DUMP_CRASH) && !vm->persistent) {
+        virDomainRemoveInactive(&driver->domains, vm);
+        vm = NULL;
+    }
+
+    ret = 0;
+
+cleanup_unlock:
+    libxlDriverUnlock(driver);
+cleanup_unpause:
+    if (virDomainObjIsActive(vm) && paused) {
+        if (libxl_domain_unpause(&priv->ctx, dom->id) != 0) {
+            libxlError(VIR_ERR_INTERNAL_ERROR,
+                       _("After dumping core, failed to resume domain '%d' with"
+                         " libxenlight"), dom->id);
+        } else {
+            virDomainObjSetState(vm, VIR_DOMAIN_RUNNING,
+                                 VIR_DOMAIN_RUNNING_UNPAUSED);
+        }
+    }
+cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    if (event) {
+        libxlDriverLock(driver);
+        libxlDomainEventQueue(driver, event);
+        libxlDriverUnlock(driver);
+    }
+    return ret;
+}
+
+static int
+libxlDomainManagedSave(virDomainPtr dom, unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    char *name = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    libxlDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        libxlError(VIR_ERR_NO_DOMAIN,
+                   _("No domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        libxlError(VIR_ERR_OPERATION_INVALID, "%s", _("Domain is not running"));
+        goto cleanup;
+    }
+
+    name = libxlDomainManagedSavePath(driver, vm);
+    if (name == NULL)
+        goto cleanup;
+
+    VIR_INFO("Saving state to %s", name);
+
+    ret = libxlDoDomainSave(driver, vm, name);
+
+cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    libxlDriverUnlock(driver);
+    VIR_FREE(name);
+    return ret;
+}
+
+static int
+libxlDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+    char *name = NULL;
+
+    virCheckFlags(0, -1);
+
+    libxlDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        libxlError(VIR_ERR_NO_DOMAIN,
+                   _("No domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    name = libxlDomainManagedSavePath(driver, vm);
+    if (name == NULL)
+        goto cleanup;
+
+    ret = virFileExists(name);
+
+cleanup:
+    VIR_FREE(name);
+    if (vm)
+        virDomainObjUnlock(vm);
+    libxlDriverUnlock(driver);
+    return ret;
+}
+
+static int
+libxlDomainManagedSaveRemove(virDomainPtr dom, unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+    char *name = NULL;
+
+    virCheckFlags(0, -1);
+
+    libxlDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        libxlError(VIR_ERR_NO_DOMAIN,
+                   _("No domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    name = libxlDomainManagedSavePath(driver, vm);
+    if (name == NULL)
+        goto cleanup;
+
+    ret = unlink(name);
+
+cleanup:
+    VIR_FREE(name);
+    if (vm)
+        virDomainObjUnlock(vm);
+    libxlDriverUnlock(driver);
     return ret;
 }
 
@@ -1659,7 +2271,6 @@ libxlDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
         def->maxvcpus = nvcpus;
         if (nvcpus < def->vcpus)
             def->vcpus = nvcpus;
-        ret = 0;
         break;
 
     case VIR_DOMAIN_VCPU_CONFIG:
@@ -1872,7 +2483,7 @@ cleanup:
 }
 
 static char *
-libxlDomainDumpXML(virDomainPtr dom, int flags)
+libxlDomainGetXMLDesc(virDomainPtr dom, int flags)
 {
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
@@ -1914,7 +2525,7 @@ libxlDomainXMLFromNative(virConnectPtr conn, const char * nativeFormat,
     }
 
     if ((ver_info = libxl_get_version_info(&driver->ctx)) == NULL) {
-        VIR_ERROR0(_("cannot get version information from libxenlight"));
+        VIR_ERROR(_("cannot get version information from libxenlight"));
         goto cleanup;
     }
 
@@ -1955,7 +2566,7 @@ libxlDomainXMLToNative(virConnectPtr conn, const char * nativeFormat,
     }
 
     if ((ver_info = libxl_get_version_info(&driver->ctx)) == NULL) {
-        VIR_ERROR0(_("cannot get version information from libxenlight"));
+        VIR_ERROR(_("cannot get version information from libxenlight"));
         goto cleanup;
     }
 
@@ -2034,7 +2645,7 @@ libxlDomainCreateWithFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    ret = libxlVmStart(driver, vm, (flags & VIR_DOMAIN_START_PAUSED) != 0);
+    ret = libxlVmStart(driver, vm, (flags & VIR_DOMAIN_START_PAUSED) != 0, -1);
 
 cleanup:
     if (vm)
@@ -2152,6 +2763,520 @@ libxlDomainUndefine(virDomainPtr dom)
     return ret;
 }
 
+static int
+libxlDomainChangeEjectableMedia(libxlDomainObjPrivatePtr priv,
+                                virDomainObjPtr vm, virDomainDiskDefPtr disk)
+{
+    virDomainDiskDefPtr origdisk = NULL;
+    libxl_device_disk x_disk;
+    int i;
+    int ret = -1;
+
+    for (i = 0 ; i < vm->def->ndisks ; i++) {
+        if (vm->def->disks[i]->bus == disk->bus &&
+            STREQ(vm->def->disks[i]->dst, disk->dst)) {
+            origdisk = vm->def->disks[i];
+            break;
+        }
+    }
+
+    if (!origdisk) {
+        libxlError(VIR_ERR_INTERNAL_ERROR,
+                   _("No device with bus '%s' and target '%s'"),
+                   virDomainDiskBusTypeToString(disk->bus), disk->dst);
+        goto cleanup;
+    }
+
+    if (origdisk->device != VIR_DOMAIN_DISK_DEVICE_CDROM) {
+        libxlError(VIR_ERR_INTERNAL_ERROR,
+                   _("Removable media not supported for %s device"),
+                   virDomainDiskDeviceTypeToString(disk->device));
+        return -1;
+    }
+
+    if (libxlMakeDisk(vm->def, disk, &x_disk) < 0)
+        goto cleanup;
+
+    if ((ret = libxl_cdrom_insert(&priv->ctx, vm->def->id, &x_disk)) < 0) {
+        libxlError(VIR_ERR_INTERNAL_ERROR,
+                   _("libxenlight failed to change media for disk '%s'"),
+                   disk->dst);
+        goto cleanup;
+    }
+
+    VIR_FREE(origdisk->src);
+    origdisk->src = disk->src;
+    disk->src = NULL;
+    origdisk->type = disk->type;
+
+
+    virDomainDiskDefFree(disk);
+
+    ret = 0;
+
+cleanup:
+    return ret;
+}
+
+static int
+libxlDomainAttachDeviceDiskLive(libxlDomainObjPrivatePtr priv,
+                                virDomainObjPtr vm, virDomainDeviceDefPtr dev)
+{
+    virDomainDiskDefPtr l_disk = dev->data.disk;
+    libxl_device_disk x_disk;
+    int ret = -1;
+
+    switch (l_disk->device)  {
+        case VIR_DOMAIN_DISK_DEVICE_CDROM:
+            ret = libxlDomainChangeEjectableMedia(priv, vm, l_disk);
+            break;
+        case VIR_DOMAIN_DISK_DEVICE_DISK:
+            if (l_disk->bus == VIR_DOMAIN_DISK_BUS_XEN) {
+                if (virDomainDiskIndexByName(vm->def, l_disk->dst) >= 0) {
+                    libxlError(VIR_ERR_OPERATION_FAILED,
+                            _("target %s already exists"), l_disk->dst);
+                    goto cleanup;
+                }
+
+                if (!l_disk->src) {
+                    libxlError(VIR_ERR_INTERNAL_ERROR,
+                            "%s", _("disk source path is missing"));
+                    goto cleanup;
+                }
+
+                if (VIR_REALLOC_N(vm->def->disks, vm->def->ndisks+1) < 0) {
+                    virReportOOMError();
+                    goto cleanup;
+                }
+
+                if (libxlMakeDisk(vm->def, l_disk, &x_disk) < 0)
+                    goto cleanup;
+
+                if ((ret = libxl_device_disk_add(&priv->ctx, vm->def->id,
+                                                &x_disk)) < 0) {
+                    libxlError(VIR_ERR_INTERNAL_ERROR,
+                            _("libxenlight failed to attach disk '%s'"),
+                            l_disk->dst);
+                    goto cleanup;
+                }
+
+                virDomainDiskInsertPreAlloced(vm->def, l_disk);
+
+            } else {
+                libxlError(VIR_ERR_CONFIG_UNSUPPORTED,
+                        _("disk bus '%s' cannot be hotplugged."),
+                        virDomainDiskBusTypeToString(l_disk->bus));
+            }
+            break;
+        default:
+            libxlError(VIR_ERR_CONFIG_UNSUPPORTED,
+                    _("disk device type '%s' cannot be hotplugged"),
+                    virDomainDiskDeviceTypeToString(l_disk->device));
+            break;
+    }
+
+cleanup:
+    return ret;
+}
+
+static int
+libxlDomainDetachDeviceDiskLive(libxlDomainObjPrivatePtr priv,
+                                virDomainObjPtr vm, virDomainDeviceDefPtr dev)
+{
+    virDomainDiskDefPtr l_disk = NULL;
+    libxl_device_disk x_disk;
+    int i;
+    int wait_secs = 2;
+    int ret = -1;
+
+    switch (dev->data.disk->device)  {
+        case VIR_DOMAIN_DISK_DEVICE_DISK:
+            if (dev->data.disk->bus == VIR_DOMAIN_DISK_BUS_XEN) {
+
+                if ((i = virDomainDiskIndexByName(vm->def,
+                                                  dev->data.disk->dst)) < 0) {
+                    libxlError(VIR_ERR_OPERATION_FAILED,
+                               _("disk %s not found"), dev->data.disk->dst);
+                    goto cleanup;
+                }
+
+                l_disk = vm->def->disks[i];
+
+                if (libxlMakeDisk(vm->def, l_disk, &x_disk) < 0)
+                    goto cleanup;
+
+                if ((ret = libxl_device_disk_del(&priv->ctx, &x_disk,
+                                                 wait_secs)) < 0) {
+                    libxlError(VIR_ERR_INTERNAL_ERROR,
+                               _("libxenlight failed to detach disk '%s'"),
+                               l_disk->dst);
+                    goto cleanup;
+                }
+
+                virDomainDiskRemove(vm->def, i);
+                virDomainDiskDefFree(l_disk);
+
+            } else {
+                libxlError(VIR_ERR_CONFIG_UNSUPPORTED,
+                        _("disk bus '%s' cannot be hot unplugged."),
+                        virDomainDiskBusTypeToString(l_disk->bus));
+            }
+            break;
+        default:
+            libxlError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("device type '%s' cannot hot unplugged"),
+                       virDomainDiskDeviceTypeToString(dev->data.disk->device));
+            break;
+    }
+
+cleanup:
+    return ret;
+}
+
+static int
+libxlDomainAttachDeviceLive(libxlDomainObjPrivatePtr priv, virDomainObjPtr vm,
+                            virDomainDeviceDefPtr dev)
+{
+    int ret = -1;
+
+    switch (dev->type) {
+        case VIR_DOMAIN_DEVICE_DISK:
+            ret = libxlDomainAttachDeviceDiskLive(priv, vm, dev);
+            if (!ret)
+                dev->data.disk = NULL;
+            break;
+
+        default:
+            libxlError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("device type '%s' cannot be attached"),
+                       virDomainDeviceTypeToString(dev->type));
+            break;
+    }
+
+    return ret;
+}
+
+static int
+libxlDomainAttachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
+{
+    virDomainDiskDefPtr disk;
+
+    switch (dev->type) {
+        case VIR_DOMAIN_DEVICE_DISK:
+            disk = dev->data.disk;
+            if (virDomainDiskIndexByName(vmdef, disk->dst) >= 0) {
+                libxlError(VIR_ERR_INVALID_ARG,
+                        _("target %s already exists."), disk->dst);
+                return -1;
+            }
+            if (virDomainDiskInsert(vmdef, disk)) {
+                virReportOOMError();
+                return -1;
+            }
+            /* vmdef has the pointer. Generic codes for vmdef will do all jobs */
+            dev->data.disk = NULL;
+            break;
+
+        default:
+            libxlError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("persistent attach of device is not supported"));
+            return -1;
+    }
+    return 0;
+}
+
+static int
+libxlDomainDetachDeviceLive(libxlDomainObjPrivatePtr priv, virDomainObjPtr vm,
+                            virDomainDeviceDefPtr dev)
+{
+    int ret = -1;
+
+    switch (dev->type) {
+        case VIR_DOMAIN_DEVICE_DISK:
+            ret = libxlDomainDetachDeviceDiskLive(priv, vm, dev);
+            break;
+
+        default:
+            libxlError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("device type '%s' cannot be detached"),
+                       virDomainDeviceTypeToString(dev->type));
+            break;
+    }
+
+    return ret;
+}
+
+static int
+libxlDomainDetachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
+{
+    virDomainDiskDefPtr disk;
+    int ret = -1;
+
+    switch (dev->type) {
+        case VIR_DOMAIN_DEVICE_DISK:
+            disk = dev->data.disk;
+            if (virDomainDiskRemoveByName(vmdef, disk->dst)) {
+                libxlError(VIR_ERR_INVALID_ARG,
+                            _("no target device %s"), disk->dst);
+                break;
+            }
+            ret = 0;
+            break;
+        default:
+            libxlError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("persistent detach of device is not supported"));
+            break;
+    }
+
+    return ret;
+}
+
+static int
+libxlDomainUpdateDeviceLive(libxlDomainObjPrivatePtr priv,
+                            virDomainObjPtr vm, virDomainDeviceDefPtr dev)
+{
+    virDomainDiskDefPtr disk;
+    int ret = -1;
+
+    switch (dev->type) {
+        case VIR_DOMAIN_DEVICE_DISK:
+            disk = dev->data.disk;
+            switch (disk->device) {
+                case VIR_DOMAIN_DISK_DEVICE_CDROM:
+                    ret = libxlDomainChangeEjectableMedia(priv, vm, disk);
+                    if (ret == 0)
+                        dev->data.disk = NULL;
+                    break;
+                default:
+                    libxlError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("disk bus '%s' cannot be updated."),
+                               virDomainDiskBusTypeToString(disk->bus));
+                    break;
+            }
+            break;
+        default:
+            libxlError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("device type '%s' cannot be updated"),
+                       virDomainDeviceTypeToString(dev->type));
+            break;
+    }
+
+    return ret;
+}
+
+static int
+libxlDomainUpdateDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
+{
+    virDomainDiskDefPtr orig;
+    virDomainDiskDefPtr disk;
+    int i;
+    int ret = -1;
+
+    switch (dev->type) {
+        case VIR_DOMAIN_DEVICE_DISK:
+            disk = dev->data.disk;
+            if ((i = virDomainDiskIndexByName(vmdef, disk->dst)) < 0) {
+                libxlError(VIR_ERR_INVALID_ARG,
+                           _("target %s doesn't exists."), disk->dst);
+                goto cleanup;
+            }
+            orig = vmdef->disks[i];
+            if (!(orig->device == VIR_DOMAIN_DISK_DEVICE_CDROM)) {
+                libxlError(VIR_ERR_INVALID_ARG,
+                           _("this disk doesn't support update"));
+                goto cleanup;
+            }
+
+            VIR_FREE(orig->src);
+            orig->src = disk->src;
+            orig->type = disk->type;
+            if (disk->driverName) {
+                VIR_FREE(orig->driverName);
+                orig->driverName = disk->driverName;
+                disk->driverName = NULL;
+            }
+            if (disk->driverType) {
+                VIR_FREE(orig->driverType);
+                orig->driverType = disk->driverType;
+                disk->driverType = NULL;
+            }
+            disk->src = NULL;
+            break;
+        default:
+            libxlError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("persistent update of device is not supported"));
+            goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    return ret;
+}
+
+/* Actions for libxlDomainModifyDeviceFlags */
+enum {
+    LIBXL_DEVICE_ATTACH,
+    LIBXL_DEVICE_DETACH,
+    LIBXL_DEVICE_UPDATE,
+};
+
+static int
+libxlDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
+                             unsigned int flags, int action)
+{
+    libxlDriverPrivatePtr driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr vmdef = NULL;
+    virDomainDeviceDefPtr dev = NULL;
+    libxlDomainObjPrivatePtr priv;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_DEVICE_MODIFY_LIVE |
+                  VIR_DOMAIN_DEVICE_MODIFY_CONFIG, -1);
+
+    libxlDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+
+    if (!vm) {
+        libxlError(VIR_ERR_NO_DOMAIN, "%s", _("no domain with matching uuid"));
+        goto cleanup;
+    }
+
+    if (virDomainObjIsActive(vm)) {
+        if (flags == VIR_DOMAIN_DEVICE_MODIFY_CURRENT)
+            flags |= VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+    } else {
+        if (flags == VIR_DOMAIN_DEVICE_MODIFY_CURRENT)
+            flags |= VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+        /* check consistency between flags and the vm state */
+        if (flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) {
+            libxlError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("Domain is not running"));
+            goto cleanup;
+        }
+    }
+
+    if ((flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) && !vm->persistent) {
+         libxlError(VIR_ERR_OPERATION_INVALID,
+                    "%s", _("cannot modify device on transient domain"));
+         goto cleanup;
+    }
+
+    if (!(dev = virDomainDeviceDefParse(driver->caps, vm->def, xml,
+                                  VIR_DOMAIN_XML_INACTIVE)))
+        goto cleanup;
+
+    priv = vm->privateData;
+
+    if (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) {
+        if (!(dev = virDomainDeviceDefParse(driver->caps, vm->def, xml,
+                                            VIR_DOMAIN_XML_INACTIVE)))
+            goto cleanup;
+
+        /* Make a copy for updated domain. */
+        if (!(vmdef = virDomainObjCopyPersistentDef(driver->caps, vm)))
+            goto cleanup;
+
+        switch (action) {
+            case LIBXL_DEVICE_ATTACH:
+                ret = libxlDomainAttachDeviceConfig(vmdef, dev);
+                break;
+            case LIBXL_DEVICE_DETACH:
+                ret = libxlDomainDetachDeviceConfig(vmdef, dev);
+                break;
+            case LIBXL_DEVICE_UPDATE:
+                ret = libxlDomainUpdateDeviceConfig(vmdef, dev);
+            default:
+                libxlError(VIR_ERR_INTERNAL_ERROR,
+                           _("unknown domain modify action %d"), action);
+                break;
+        }
+    } else
+        ret = 0;
+
+    if (flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) {
+        /* If dev exists it was created to modify the domain config. Free it. */
+        virDomainDeviceDefFree(dev);
+        if (!(dev = virDomainDeviceDefParse(driver->caps, vm->def, xml,
+                                            VIR_DOMAIN_XML_INACTIVE)))
+            goto cleanup;
+
+        switch (action) {
+            case LIBXL_DEVICE_ATTACH:
+                ret = libxlDomainAttachDeviceLive(priv, vm, dev);
+                break;
+            case LIBXL_DEVICE_DETACH:
+                ret = libxlDomainDetachDeviceLive(priv, vm, dev);
+                break;
+            case LIBXL_DEVICE_UPDATE:
+                ret = libxlDomainUpdateDeviceLive(priv, vm, dev);
+            default:
+                libxlError(VIR_ERR_INTERNAL_ERROR,
+                           _("unknown domain modify action %d"), action);
+                break;
+        }
+        /*
+         * update domain status forcibly because the domain status may be
+         * changed even if we attach the device failed.
+         */
+        if (virDomainSaveStatus(driver->caps, driver->stateDir, vm) < 0)
+            ret = -1;
+    }
+
+    /* Finally, if no error until here, we can save config. */
+    if (!ret && (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG)) {
+        ret = virDomainSaveConfig(driver->configDir, vmdef);
+        if (!ret) {
+            virDomainObjAssignDef(vm, vmdef, false);
+            vmdef = NULL;
+        }
+    }
+
+cleanup:
+    virDomainDefFree(vmdef);
+    virDomainDeviceDefFree(dev);
+    if (vm)
+        virDomainObjUnlock(vm);
+    libxlDriverUnlock(driver);
+    return ret;
+}
+
+static int
+libxlDomainAttachDeviceFlags(virDomainPtr dom, const char *xml,
+                             unsigned int flags)
+{
+    return libxlDomainModifyDeviceFlags(dom, xml, flags, LIBXL_DEVICE_ATTACH);
+}
+
+static int
+libxlDomainAttachDevice(virDomainPtr dom, const char *xml)
+{
+    return libxlDomainAttachDeviceFlags(dom, xml,
+                                        VIR_DOMAIN_DEVICE_MODIFY_LIVE);
+}
+
+static int
+libxlDomainDetachDeviceFlags(virDomainPtr dom, const char *xml,
+                             unsigned int flags)
+{
+    return libxlDomainModifyDeviceFlags(dom, xml, flags, LIBXL_DEVICE_DETACH);
+}
+
+static int
+libxlDomainDetachDevice(virDomainPtr dom, const char *xml)
+{
+    return libxlDomainDetachDeviceFlags(dom, xml,
+                                        VIR_DOMAIN_DEVICE_MODIFY_LIVE);
+}
+
+static int
+libxlDomainUpdateDeviceFlags(virDomainPtr dom, const char *xml,
+                             unsigned int flags)
+{
+    return libxlDomainModifyDeviceFlags(dom, xml, flags, LIBXL_DEVICE_UPDATE);
+}
+
 static unsigned long long
 libxlNodeGetFreeMemory(virConnectPtr conn)
 {
@@ -2181,7 +3306,8 @@ libxlDomainEventRegister(virConnectPtr conn,
     int ret;
 
     libxlDriverLock(driver);
-    ret = virDomainEventCallbackListAdd(conn, driver->domainEventCallbacks,
+    ret = virDomainEventCallbackListAdd(conn,
+                                        driver->domainEventState->callbacks,
                                         callback, opaque, freecb);
     libxlDriverUnlock(driver);
 
@@ -2197,14 +3323,9 @@ libxlDomainEventDeregister(virConnectPtr conn,
     int ret;
 
     libxlDriverLock(driver);
-    if (driver->domainEventDispatching)
-        ret = virDomainEventCallbackListMarkDelete(conn,
-                                                   driver->domainEventCallbacks,
-                                                   callback);
-    else
-        ret = virDomainEventCallbackListRemove(conn,
-                                               driver->domainEventCallbacks,
-                                               callback);
+    ret = virDomainEventStateDeregister(conn,
+                                        driver->domainEventState,
+                                        callback);
     libxlDriverUnlock(driver);
 
     return ret;
@@ -2340,14 +3461,16 @@ libxlDomainGetSchedulerType(virDomainPtr dom, int *nparams)
         goto cleanup;
     }
 
-    *nparams = 0;
+    if (nparams)
+        *nparams = 0;
     switch(sched_id) {
     case XEN_SCHEDULER_SEDF:
         ret = strdup("sedf");
         break;
     case XEN_SCHEDULER_CREDIT:
         ret = strdup("credit");
-        *nparams = XEN_SCHED_CREDIT_NPARAM;
+        if (nparams)
+            *nparams = XEN_SCHED_CREDIT_NPARAM;
         break;
     case XEN_SCHEDULER_CREDIT2:
         ret = strdup("credit2");
@@ -2369,8 +3492,10 @@ cleanup:
 }
 
 static int
-libxlDomainGetSchedulerParameters(virDomainPtr dom, virSchedParameterPtr params,
-                                  int *nparams)
+libxlDomainGetSchedulerParametersFlags(virDomainPtr dom,
+                                       virTypedParameterPtr params,
+                                       int *nparams,
+                                       unsigned int flags)
 {
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     libxlDomainObjPrivatePtr priv;
@@ -2378,6 +3503,8 @@ libxlDomainGetSchedulerParameters(virDomainPtr dom, virSchedParameterPtr params,
     libxl_sched_credit sc_info;
     int sched_id;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     libxlDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -2408,7 +3535,7 @@ libxlDomainGetSchedulerParameters(virDomainPtr dom, virSchedParameterPtr params,
         goto cleanup;
     }
 
-    if (*nparams != XEN_SCHED_CREDIT_NPARAM) {
+    if (*nparams < XEN_SCHED_CREDIT_NPARAM) {
         libxlError(VIR_ERR_INVALID_ARG, "%s", _("Invalid parameter count"));
         goto cleanup;
     }
@@ -2421,7 +3548,7 @@ libxlDomainGetSchedulerParameters(virDomainPtr dom, virSchedParameterPtr params,
     }
 
     params[0].value.ui = sc_info.weight;
-    params[0].type = VIR_DOMAIN_SCHED_FIELD_UINT;
+    params[0].type = VIR_TYPED_PARAM_UINT;
     if (virStrcpyStatic(params[0].field, "weight") == NULL) {
         libxlError(VIR_ERR_INTERNAL_ERROR,
                    "%s", _("Field weight too long for destination"));
@@ -2429,13 +3556,14 @@ libxlDomainGetSchedulerParameters(virDomainPtr dom, virSchedParameterPtr params,
     }
 
     params[1].value.ui = sc_info.cap;
-    params[1].type = VIR_DOMAIN_SCHED_FIELD_UINT;
+    params[1].type = VIR_TYPED_PARAM_UINT;
     if (virStrcpyStatic(params[1].field, "cap") == NULL) {
         libxlError(VIR_ERR_INTERNAL_ERROR,
                    "%s", _("Field cap too long for destination"));
         goto cleanup;
     }
 
+    *nparams = XEN_SCHED_CREDIT_NPARAM;
     ret = 0;
 
 cleanup:
@@ -2445,8 +3573,17 @@ cleanup:
 }
 
 static int
-libxlDomainSetSchedulerParameters(virDomainPtr dom, virSchedParameterPtr params,
-                                  int nparams)
+libxlDomainGetSchedulerParameters(virDomainPtr dom, virTypedParameterPtr params,
+                                  int *nparams)
+{
+    return libxlDomainGetSchedulerParametersFlags(dom, params, nparams, 0);
+}
+
+static int
+libxlDomainSetSchedulerParametersFlags(virDomainPtr dom,
+                                       virTypedParameterPtr params,
+                                       int nparams,
+                                       unsigned int flags)
 {
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     libxlDomainObjPrivatePtr priv;
@@ -2455,6 +3592,8 @@ libxlDomainSetSchedulerParameters(virDomainPtr dom, virSchedParameterPtr params,
     int sched_id;
     int i;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     libxlDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -2485,16 +3624,18 @@ libxlDomainSetSchedulerParameters(virDomainPtr dom, virSchedParameterPtr params,
         goto cleanup;
     }
 
-    if (nparams != XEN_SCHED_CREDIT_NPARAM) {
-        libxlError(VIR_ERR_INVALID_ARG, "%s", _("Invalid parameter count"));
+    if (libxl_sched_credit_domain_get(&priv->ctx, dom->id, &sc_info) != 0) {
+        libxlError(VIR_ERR_INTERNAL_ERROR,
+                   _("Failed to get scheduler parameters for domain '%d'"
+                     " with libxenlight"), dom->id);
         goto cleanup;
     }
 
     for (i = 0; i < nparams; ++i) {
-        virSchedParameterPtr param = &params[i];
+        virTypedParameterPtr param = &params[i];
 
         if (STREQ(param->field, "weight")) {
-            if (param->type != VIR_DOMAIN_SCHED_FIELD_UINT) {
+            if (param->type != VIR_TYPED_PARAM_UINT) {
                 libxlError(VIR_ERR_INVALID_ARG, "%s",
                            _("invalid type for weight tunable, expected a 'uint'"));
                 goto cleanup;
@@ -2502,7 +3643,7 @@ libxlDomainSetSchedulerParameters(virDomainPtr dom, virSchedParameterPtr params,
             sc_info.weight = params[i].value.ui;
 
         } else if (STREQ(param->field, "cap")) {
-            if (param->type != VIR_DOMAIN_SCHED_FIELD_UINT) {
+            if (param->type != VIR_TYPED_PARAM_UINT) {
                 libxlError(VIR_ERR_INVALID_ARG, "%s",
                            _("invalid type for cap tunable, expected a 'uint'"));
                 goto cleanup;
@@ -2528,6 +3669,13 @@ cleanup:
     if (vm)
         virDomainObjUnlock(vm);
     return ret;
+}
+
+static int
+libxlDomainSetSchedulerParameters(virDomainPtr dom, virTypedParameterPtr params,
+                                  int nparams)
+{
+    return libxlDomainSetSchedulerParametersFlags(dom, params, nparams, 0);
 }
 
 static int
@@ -2605,7 +3753,8 @@ libxlDomainEventRegisterAny(virConnectPtr conn, virDomainPtr dom, int eventID,
     int ret;
 
     libxlDriverLock(driver);
-    ret = virDomainEventCallbackListAddID(conn, driver->domainEventCallbacks,
+    ret = virDomainEventCallbackListAddID(conn,
+                                          driver->domainEventState->callbacks,
                                           dom, eventID, callback, opaque,
                                           freecb);
     libxlDriverUnlock(driver);
@@ -2621,14 +3770,9 @@ libxlDomainEventDeregisterAny(virConnectPtr conn, int callbackID)
     int ret;
 
     libxlDriverLock(driver);
-    if (driver->domainEventDispatching)
-        ret = virDomainEventCallbackListMarkDeleteID(conn,
-                                                     driver->domainEventCallbacks,
-                                                     callbackID);
-    else
-        ret = virDomainEventCallbackListRemoveID(conn,
-                                                 driver->domainEventCallbacks,
-                                                 callbackID);
+    ret = virDomainEventStateDeregisterAny(conn,
+                                           driver->domainEventState,
+                                           callbackID);
     libxlDriverUnlock(driver);
 
     return ret;
@@ -2636,116 +3780,74 @@ libxlDomainEventDeregisterAny(virConnectPtr conn, int callbackID)
 
 
 static virDriver libxlDriver = {
-    VIR_DRV_LIBXL,
-    "xenlight",
-    libxlOpen,                  /* open */
-    libxlClose,                 /* close */
-    NULL,                       /* supports_feature */
-    libxlGetType,               /* type */
-    libxlGetVersion,            /* version */
-    NULL,                       /* libvirtVersion (impl. in libvirt.c) */
-    virGetHostname,             /* getHostname */
-    NULL,                       /* getSysinfo */
-    libxlGetMaxVcpus,           /* getMaxVcpus */
-    libxlNodeGetInfo,           /* nodeGetInfo */
-    libxlGetCapabilities,       /* getCapabilities */
-    libxlListDomains,           /* listDomains */
-    libxlNumDomains,            /* numOfDomains */
-    libxlDomainCreateXML,       /* domainCreateXML */
-    libxlDomainLookupByID,      /* domainLookupByID */
-    libxlDomainLookupByUUID,    /* domainLookupByUUID */
-    libxlDomainLookupByName,    /* domainLookupByName */
-    libxlDomainSuspend,         /* domainSuspend */
-    libxlDomainResume,          /* domainResume */
-    libxlDomainShutdown,        /* domainShutdown */
-    libxlDomainReboot,          /* domainReboot */
-    libxlDomainDestroy,         /* domainDestroy */
-    libxlDomainGetOSType,       /* domainGetOSType */
-    libxlDomainGetMaxMemory,    /* domainGetMaxMemory */
-    NULL,                       /* domainSetMaxMemory */
-    libxlDomainSetMemory,       /* domainSetMemory */
-    libxlDomainSetMemoryFlags,  /* domainSetMemoryFlags */
-    NULL,                       /* domainSetMemoryParameters */
-    NULL,                       /* domainGetMemoryParameters */
-    NULL,                       /* domainSetBlkioParameters */
-    NULL,                       /* domainGetBlkioParameters */
-    libxlDomainGetInfo,         /* domainGetInfo */
-    NULL,                       /* domainSave */
-    NULL,                       /* domainRestore */
-    NULL,                       /* domainCoreDump */
-    libxlDomainSetVcpus,        /* domainSetVcpus */
-    libxlDomainSetVcpusFlags,   /* domainSetVcpusFlags */
-    libxlDomainGetVcpusFlags,   /* domainGetVcpusFlags */
-    libxlDomainPinVcpu,         /* domainPinVcpu */
-    libxlDomainGetVcpus,        /* domainGetVcpus */
-    NULL,                       /* domainGetMaxVcpus */
-    NULL,                       /* domainGetSecurityLabel */
-    NULL,                       /* nodeGetSecurityModel */
-    libxlDomainDumpXML,         /* domainDumpXML */
-    libxlDomainXMLFromNative,   /* domainXmlFromNative */
-    libxlDomainXMLToNative,     /* domainXmlToNative */
-    libxlListDefinedDomains,    /* listDefinedDomains */
-    libxlNumDefinedDomains,     /* numOfDefinedDomains */
-    libxlDomainCreate,          /* domainCreate */
-    libxlDomainCreateWithFlags, /* domainCreateWithFlags */
-    libxlDomainDefineXML,       /* domainDefineXML */
-    libxlDomainUndefine,        /* domainUndefine */
-    NULL,                       /* domainAttachDevice */
-    NULL,                       /* domainAttachDeviceFlags */
-    NULL,                       /* domainDetachDevice */
-    NULL,                       /* domainDetachDeviceFlags */
-    NULL,                       /* domainUpdateDeviceFlags */
-    libxlDomainGetAutostart,    /* domainGetAutostart */
-    libxlDomainSetAutostart,    /* domainSetAutostart */
-    libxlDomainGetSchedulerType,/* domainGetSchedulerType */
-    libxlDomainGetSchedulerParameters,/* domainGetSchedulerParameters */
-    libxlDomainSetSchedulerParameters,/* domainSetSchedulerParameters */
-    NULL,                       /* domainMigratePrepare */
-    NULL,                       /* domainMigratePerform */
-    NULL,                       /* domainMigrateFinish */
-    NULL,                       /* domainBlockStats */
-    NULL,                       /* domainInterfaceStats */
-    NULL,                       /* domainMemoryStats */
-    NULL,                       /* domainBlockPeek */
-    NULL,                       /* domainMemoryPeek */
-    NULL,                       /* domainGetBlockInfo */
-    NULL,                       /* nodeGetCellsFreeMemory */
-    libxlNodeGetFreeMemory,     /* getFreeMemory */
-    libxlDomainEventRegister,   /* domainEventRegister */
-    libxlDomainEventDeregister, /* domainEventDeregister */
-    NULL,                       /* domainMigratePrepare2 */
-    NULL,                       /* domainMigrateFinish2 */
-    NULL,                       /* nodeDeviceDettach */
-    NULL,                       /* nodeDeviceReAttach */
-    NULL,                       /* nodeDeviceReset */
-    NULL,                       /* domainMigratePrepareTunnel */
-    NULL,                       /* IsEncrypted */
-    NULL,                       /* IsSecure */
-    libxlDomainIsActive,        /* DomainIsActive */
-    libxlDomainIsPersistent,    /* DomainIsPersistent */
-    libxlDomainIsUpdated,       /* domainIsUpdated */
-    NULL,                       /* cpuCompare */
-    NULL,                       /* cpuBaseline */
-    NULL,                       /* domainGetJobInfo */
-    NULL,                       /* domainAbortJob */
-    NULL,                       /* domainMigrateSetMaxDowntime */
-    NULL,                       /* domainMigrateSetMaxSpeed */
-    libxlDomainEventRegisterAny,/* domainEventRegisterAny */
-    libxlDomainEventDeregisterAny,/* domainEventDeregisterAny */
-    NULL,                       /* domainManagedSave */
-    NULL,                       /* domainHasManagedSaveImage */
-    NULL,                       /* domainManagedSaveRemove */
-    NULL,                       /* domainSnapshotCreateXML */
-    NULL,                       /* domainSnapshotDumpXML */
-    NULL,                       /* domainSnapshotNum */
-    NULL,                       /* domainSnapshotListNames */
-    NULL,                       /* domainSnapshotLookupByName */
-    NULL,                       /* domainHasCurrentSnapshot */
-    NULL,                       /* domainSnapshotCurrent */
-    NULL,                       /* domainRevertToSnapshot */
-    NULL,                       /* domainSnapshotDelete */
-    NULL,                       /* qemuDomainMonitorCommand */
-    NULL,                       /* domainOpenConsole */
+    .no = VIR_DRV_LIBXL,
+    .name = "xenlight",
+    .open = libxlOpen, /* 0.9.0 */
+    .close = libxlClose, /* 0.9.0 */
+    .type = libxlGetType, /* 0.9.0 */
+    .version = libxlGetVersion, /* 0.9.0 */
+    .getHostname = virGetHostname, /* 0.9.0 */
+    .getMaxVcpus = libxlGetMaxVcpus, /* 0.9.0 */
+    .nodeGetInfo = libxlNodeGetInfo, /* 0.9.0 */
+    .getCapabilities = libxlGetCapabilities, /* 0.9.0 */
+    .listDomains = libxlListDomains, /* 0.9.0 */
+    .numOfDomains = libxlNumDomains, /* 0.9.0 */
+    .domainCreateXML = libxlDomainCreateXML, /* 0.9.0 */
+    .domainLookupByID = libxlDomainLookupByID, /* 0.9.0 */
+    .domainLookupByUUID = libxlDomainLookupByUUID, /* 0.9.0 */
+    .domainLookupByName = libxlDomainLookupByName, /* 0.9.0 */
+    .domainSuspend = libxlDomainSuspend, /* 0.9.0 */
+    .domainResume = libxlDomainResume, /* 0.9.0 */
+    .domainShutdown = libxlDomainShutdown, /* 0.9.0 */
+    .domainReboot = libxlDomainReboot, /* 0.9.0 */
+    .domainDestroy = libxlDomainDestroy, /* 0.9.0 */
+    .domainGetOSType = libxlDomainGetOSType, /* 0.9.0 */
+    .domainGetMaxMemory = libxlDomainGetMaxMemory, /* 0.9.0 */
+    .domainSetMaxMemory = libxlDomainSetMaxMemory, /* 0.9.2 */
+    .domainSetMemory = libxlDomainSetMemory, /* 0.9.0 */
+    .domainSetMemoryFlags = libxlDomainSetMemoryFlags, /* 0.9.0 */
+    .domainGetInfo = libxlDomainGetInfo, /* 0.9.0 */
+    .domainGetState = libxlDomainGetState, /* 0.9.2 */
+    .domainSave = libxlDomainSave, /* 0.9.2 */
+    .domainRestore = libxlDomainRestore, /* 0.9.2 */
+    .domainCoreDump = libxlDomainCoreDump, /* 0.9.2 */
+    .domainSetVcpus = libxlDomainSetVcpus, /* 0.9.0 */
+    .domainSetVcpusFlags = libxlDomainSetVcpusFlags, /* 0.9.0 */
+    .domainGetVcpusFlags = libxlDomainGetVcpusFlags, /* 0.9.0 */
+    .domainPinVcpu = libxlDomainPinVcpu, /* 0.9.0 */
+    .domainGetVcpus = libxlDomainGetVcpus, /* 0.9.0 */
+    .domainGetXMLDesc = libxlDomainGetXMLDesc, /* 0.9.0 */
+    .domainXMLFromNative = libxlDomainXMLFromNative, /* 0.9.0 */
+    .domainXMLToNative = libxlDomainXMLToNative, /* 0.9.0 */
+    .listDefinedDomains = libxlListDefinedDomains, /* 0.9.0 */
+    .numOfDefinedDomains = libxlNumDefinedDomains, /* 0.9.0 */
+    .domainCreate = libxlDomainCreate, /* 0.9.0 */
+    .domainCreateWithFlags = libxlDomainCreateWithFlags, /* 0.9.0 */
+    .domainDefineXML = libxlDomainDefineXML, /* 0.9.0 */
+    .domainUndefine = libxlDomainUndefine, /* 0.9.0 */
+    .domainAttachDevice = libxlDomainAttachDevice, /* 0.9.2 */
+    .domainAttachDeviceFlags = libxlDomainAttachDeviceFlags, /* 0.9.2 */
+    .domainDetachDevice = libxlDomainDetachDevice,    /* 0.9.2 */
+    .domainDetachDeviceFlags = libxlDomainDetachDeviceFlags, /* 0.9.2 */
+    .domainUpdateDeviceFlags = libxlDomainUpdateDeviceFlags, /* 0.9.2 */
+    .domainGetAutostart = libxlDomainGetAutostart, /* 0.9.0 */
+    .domainSetAutostart = libxlDomainSetAutostart, /* 0.9.0 */
+    .domainGetSchedulerType = libxlDomainGetSchedulerType, /* 0.9.0 */
+    .domainGetSchedulerParameters = libxlDomainGetSchedulerParameters, /* 0.9.0 */
+    .domainGetSchedulerParametersFlags = libxlDomainGetSchedulerParametersFlags, /* 0.9.2 */
+    .domainSetSchedulerParameters = libxlDomainSetSchedulerParameters, /* 0.9.0 */
+    .domainSetSchedulerParametersFlags = libxlDomainSetSchedulerParametersFlags, /* 0.9.2 */
+    .nodeGetFreeMemory = libxlNodeGetFreeMemory, /* 0.9.0 */
+    .domainEventRegister = libxlDomainEventRegister, /* 0.9.0 */
+    .domainEventDeregister = libxlDomainEventDeregister, /* 0.9.0 */
+    .domainManagedSave = libxlDomainManagedSave, /* 0.9.2 */
+    .domainHasManagedSaveImage = libxlDomainHasManagedSaveImage, /* 0.9.2 */
+    .domainManagedSaveRemove = libxlDomainManagedSaveRemove, /* 0.9.2 */
+    .domainIsActive = libxlDomainIsActive, /* 0.9.0 */
+    .domainIsPersistent = libxlDomainIsPersistent, /* 0.9.0 */
+    .domainIsUpdated = libxlDomainIsUpdated, /* 0.9.0 */
+    .domainEventRegisterAny = libxlDomainEventRegisterAny, /* 0.9.0 */
+    .domainEventDeregisterAny = libxlDomainEventDeregisterAny, /* 0.9.0 */
 };
 
 static virStateDriver libxlStateDriver = {

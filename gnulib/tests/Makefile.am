@@ -141,6 +141,25 @@ EXTRA_libtests_a_SOURCES += bind.c
 
 ## end   gnulib module bind
 
+## begin gnulib module btowc
+
+
+EXTRA_DIST += btowc.c
+
+EXTRA_libtests_a_SOURCES += btowc.c
+
+## end   gnulib module btowc
+
+## begin gnulib module btowc-tests
+
+TESTS += test-btowc1.sh test-btowc2.sh
+TESTS_ENVIRONMENT += LOCALE_FR='@LOCALE_FR@' LOCALE_FR_UTF8='@LOCALE_FR_UTF8@'
+check_PROGRAMS += test-btowc
+
+EXTRA_DIST += test-btowc1.sh test-btowc2.sh test-btowc.c signature.h macros.h
+
+## end   gnulib module btowc-tests
+
 ## begin gnulib module byteswap-tests
 
 TESTS += test-byteswap
@@ -290,6 +309,14 @@ libtests_a_SOURCES += fatal-signal.h fatal-signal.c
 
 ## end   gnulib module fatal-signal
 
+## begin gnulib module fclose-tests
+
+TESTS += test-fclose
+check_PROGRAMS += test-fclose
+EXTRA_DIST += test-fclose.c
+
+## end   gnulib module fclose-tests
+
 ## begin gnulib module fcntl-h-tests
 
 TESTS += test-fcntl-h
@@ -306,6 +333,41 @@ EXTRA_DIST += test-fcntl.c signature.h macros.h
 
 ## end   gnulib module fcntl-tests
 
+## begin gnulib module fflush-tests
+
+TESTS += test-fflush test-fflush2.sh
+check_PROGRAMS += test-fflush test-fflush2
+MOSTLYCLEANFILES += test-fflush.txt
+EXTRA_DIST += test-fflush.c test-fflush2.sh test-fflush2.c signature.h macros.h
+
+## end   gnulib module fflush-tests
+
+## begin gnulib module fnmatch-tests
+
+TESTS += test-fnmatch
+check_PROGRAMS += test-fnmatch
+EXTRA_DIST += test-fnmatch.c signature.h macros.h
+
+## end   gnulib module fnmatch-tests
+
+## begin gnulib module fpurge-tests
+
+TESTS += test-fpurge
+check_PROGRAMS += test-fpurge
+MOSTLYCLEANFILES += t-fpurge.tmp
+EXTRA_DIST += test-fpurge.c macros.h
+
+## end   gnulib module fpurge-tests
+
+## begin gnulib module freading-tests
+
+TESTS += test-freading
+check_PROGRAMS += test-freading
+MOSTLYCLEANFILES += t-freading.tmp
+EXTRA_DIST += test-freading.c macros.h
+
+## end   gnulib module freading-tests
+
 ## begin gnulib module fseeko-tests
 
 TESTS += test-fseeko.sh test-fseeko2.sh
@@ -313,6 +375,33 @@ check_PROGRAMS += test-fseeko
 EXTRA_DIST += test-fseeko.c test-fseeko.sh test-fseeko2.sh signature.h macros.h
 
 ## end   gnulib module fseeko-tests
+
+## begin gnulib module ftell
+
+
+EXTRA_DIST += ftell.c
+
+EXTRA_libtests_a_SOURCES += ftell.c
+
+## end   gnulib module ftell
+
+## begin gnulib module ftell-tests
+
+TESTS += test-ftell.sh test-ftell2.sh test-ftell3
+check_PROGRAMS += test-ftell test-ftell3
+MOSTLYCLEANFILES += t-ftell3.tmp
+EXTRA_DIST += test-ftell.c test-ftell.sh test-ftell2.sh test-ftell3.c signature.h macros.h
+
+## end   gnulib module ftell-tests
+
+## begin gnulib module ftello-tests
+
+TESTS += test-ftello.sh test-ftello2.sh test-ftello3
+check_PROGRAMS += test-ftello test-ftello3
+MOSTLYCLEANFILES += t-ftello3.tmp
+EXTRA_DIST += test-ftello.c test-ftello.sh test-ftello2.sh test-ftello3.c signature.h macros.h
+
+## end   gnulib module ftello-tests
 
 ## begin gnulib module func-tests
 
@@ -462,6 +551,64 @@ EXTRA_DIST += test-inet_pton.c signature.h macros.h
 
 ## end   gnulib module inet_pton-tests
 
+## begin gnulib module intprops-tests
+
+TESTS += test-intprops
+check_PROGRAMS += test-intprops
+EXTRA_DIST += test-intprops.c macros.h
+
+## end   gnulib module intprops-tests
+
+## begin gnulib module inttypes-incomplete
+
+BUILT_SOURCES += inttypes.h
+
+# We need the following in order to create <inttypes.h> when the system
+# doesn't have one that works with the given compiler.
+inttypes.h: inttypes.in.h $(top_builddir)/config.status $(WARN_ON_USE_H) $(ARG_NONNULL_H)
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */'; \
+	  sed -e 's/@''HAVE_INTTYPES_H''@/$(HAVE_INTTYPES_H)/g' \
+	      -e 's|@''INCLUDE_NEXT''@|$(INCLUDE_NEXT)|g' \
+	      -e 's|@''PRAGMA_SYSTEM_HEADER''@|@PRAGMA_SYSTEM_HEADER@|g' \
+	      -e 's|@''PRAGMA_COLUMNS''@|@PRAGMA_COLUMNS@|g' \
+	      -e 's|@''NEXT_INTTYPES_H''@|$(NEXT_INTTYPES_H)|g' \
+	      -e 's/@''PRI_MACROS_BROKEN''@/$(PRI_MACROS_BROKEN)/g' \
+	      -e 's/@''APPLE_UNIVERSAL_BUILD''@/$(APPLE_UNIVERSAL_BUILD)/g' \
+	      -e 's/@''HAVE_LONG_LONG_INT''@/$(HAVE_LONG_LONG_INT)/g' \
+	      -e 's/@''HAVE_UNSIGNED_LONG_LONG_INT''@/$(HAVE_UNSIGNED_LONG_LONG_INT)/g' \
+	      -e 's/@''PRIPTR_PREFIX''@/$(PRIPTR_PREFIX)/g' \
+	      -e 's/@''GNULIB_IMAXABS''@/$(GNULIB_IMAXABS)/g' \
+	      -e 's/@''GNULIB_IMAXDIV''@/$(GNULIB_IMAXDIV)/g' \
+	      -e 's/@''GNULIB_STRTOIMAX''@/$(GNULIB_STRTOIMAX)/g' \
+	      -e 's/@''GNULIB_STRTOUMAX''@/$(GNULIB_STRTOUMAX)/g' \
+	      -e 's/@''HAVE_DECL_IMAXABS''@/$(HAVE_DECL_IMAXABS)/g' \
+	      -e 's/@''HAVE_DECL_IMAXDIV''@/$(HAVE_DECL_IMAXDIV)/g' \
+	      -e 's/@''HAVE_DECL_STRTOIMAX''@/$(HAVE_DECL_STRTOIMAX)/g' \
+	      -e 's/@''HAVE_DECL_STRTOUMAX''@/$(HAVE_DECL_STRTOUMAX)/g' \
+	      -e 's/@''INT32_MAX_LT_INTMAX_MAX''@/$(INT32_MAX_LT_INTMAX_MAX)/g' \
+	      -e 's/@''INT64_MAX_EQ_LONG_MAX''@/$(INT64_MAX_EQ_LONG_MAX)/g' \
+	      -e 's/@''UINT32_MAX_LT_UINTMAX_MAX''@/$(UINT32_MAX_LT_UINTMAX_MAX)/g' \
+	      -e 's/@''UINT64_MAX_EQ_ULONG_MAX''@/$(UINT64_MAX_EQ_ULONG_MAX)/g' \
+	      -e '/definition of _GL_ARG_NONNULL/r $(ARG_NONNULL_H)' \
+	      -e '/definition of _GL_WARN_ON_USE/r $(WARN_ON_USE_H)' \
+	      < $(srcdir)/inttypes.in.h; \
+	} > $@-t && \
+	mv $@-t $@
+MOSTLYCLEANFILES += inttypes.h inttypes.h-t
+
+EXTRA_DIST += inttypes.in.h
+
+## end   gnulib module inttypes-incomplete
+
+## begin gnulib module inttypes-tests
+
+TESTS += test-inttypes
+check_PROGRAMS += test-inttypes
+EXTRA_DIST += test-inttypes.c
+
+## end   gnulib module inttypes-tests
+
 ## begin gnulib module listen
 
 
@@ -562,6 +709,56 @@ EXTRA_DIST += test-malloca.c
 
 ## end   gnulib module malloca-tests
 
+## begin gnulib module mbrtowc-tests
+
+TESTS += \
+  test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
+  test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
+  test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh
+TESTS_ENVIRONMENT += \
+  LOCALE_FR='@LOCALE_FR@' \
+  LOCALE_FR_UTF8='@LOCALE_FR_UTF8@' \
+  LOCALE_JA='@LOCALE_JA@' \
+  LOCALE_ZH_CN='@LOCALE_ZH_CN@'
+check_PROGRAMS += test-mbrtowc test-mbrtowc-w32
+
+EXTRA_DIST += test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc.c test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbrtowc-w32.c signature.h macros.h
+
+## end   gnulib module mbrtowc-tests
+
+## begin gnulib module mbsinit-tests
+
+TESTS += test-mbsinit.sh
+TESTS_ENVIRONMENT += LOCALE_FR_UTF8='@LOCALE_FR_UTF8@'
+check_PROGRAMS += test-mbsinit
+
+EXTRA_DIST += test-mbsinit.sh test-mbsinit.c signature.h macros.h
+
+## end   gnulib module mbsinit-tests
+
+## begin gnulib module mbsrtowcs-tests
+
+TESTS += test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh
+TESTS_ENVIRONMENT += \
+  LOCALE_FR='@LOCALE_FR@' \
+  LOCALE_FR_UTF8='@LOCALE_FR_UTF8@' \
+  LOCALE_JA='@LOCALE_JA@' \
+  LOCALE_ZH_CN='@LOCALE_ZH_CN@'
+check_PROGRAMS += test-mbsrtowcs
+
+EXTRA_DIST += test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh test-mbsrtowcs.c signature.h macros.h
+
+## end   gnulib module mbsrtowcs-tests
+
+## begin gnulib module mbtowc
+
+
+EXTRA_DIST += mbtowc-impl.h mbtowc.c
+
+EXTRA_libtests_a_SOURCES += mbtowc.c
+
+## end   gnulib module mbtowc
+
 ## begin gnulib module memchr-tests
 
 TESTS += test-memchr
@@ -641,9 +838,9 @@ EXTRA_DIST += test-passfd.c macros.h
 
 ## begin gnulib module perror-tests
 
-TESTS += test-perror.sh
-check_PROGRAMS += test-perror
-EXTRA_DIST += signature.h test-perror.c test-perror.sh
+TESTS += test-perror.sh test-perror2
+check_PROGRAMS += test-perror test-perror2
+EXTRA_DIST += init.sh macros.h signature.h test-perror.c test-perror2.c test-perror.sh
 
 ## end   gnulib module perror-tests
 
@@ -1379,6 +1576,58 @@ check_PROGRAMS += test-wchar
 EXTRA_DIST += test-wchar.c
 
 ## end   gnulib module wchar-tests
+
+## begin gnulib module wcrtomb
+
+
+EXTRA_DIST += wcrtomb.c
+
+EXTRA_libtests_a_SOURCES += wcrtomb.c
+
+## end   gnulib module wcrtomb
+
+## begin gnulib module wcrtomb-tests
+
+TESTS += \
+  test-wcrtomb.sh \
+  test-wcrtomb-w32-1.sh test-wcrtomb-w32-2.sh test-wcrtomb-w32-3.sh \
+  test-wcrtomb-w32-4.sh test-wcrtomb-w32-5.sh
+TESTS_ENVIRONMENT += \
+  LOCALE_FR='@LOCALE_FR@' \
+  LOCALE_FR_UTF8='@LOCALE_FR_UTF8@' \
+  LOCALE_JA='@LOCALE_JA@' \
+  LOCALE_ZH_CN='@LOCALE_ZH_CN@'
+check_PROGRAMS += test-wcrtomb test-wcrtomb-w32
+
+EXTRA_DIST += test-wcrtomb.sh test-wcrtomb.c test-wcrtomb-w32-1.sh test-wcrtomb-w32-2.sh test-wcrtomb-w32-3.sh test-wcrtomb-w32-4.sh test-wcrtomb-w32-5.sh test-wcrtomb-w32.c signature.h macros.h
+
+## end   gnulib module wcrtomb-tests
+
+## begin gnulib module wctob
+
+
+EXTRA_DIST += wctob.c
+
+EXTRA_libtests_a_SOURCES += wctob.c
+
+## end   gnulib module wctob
+
+## begin gnulib module wctomb
+
+
+EXTRA_DIST += wctomb-impl.h wctomb.c
+
+EXTRA_libtests_a_SOURCES += wctomb.c
+
+## end   gnulib module wctomb
+
+## begin gnulib module wctype-h-tests
+
+TESTS += test-wctype-h
+check_PROGRAMS += test-wctype-h
+EXTRA_DIST += test-wctype-h.c macros.h
+
+## end   gnulib module wctype-h-tests
 
 ## begin gnulib module write
 

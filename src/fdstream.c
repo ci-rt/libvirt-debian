@@ -210,9 +210,20 @@ cleanup:
     return ret;
 }
 
-static int virFDStreamFree(struct virFDStreamData *fdst)
+
+static int
+virFDStreamClose(virStreamPtr st)
 {
+    struct virFDStreamData *fdst = st->privateData;
     int ret;
+
+    VIR_DEBUG("st=%p", st);
+
+    if (!fdst)
+        return 0;
+
+    virMutexLock(&fdst->lock);
+
     ret = VIR_CLOSE(fdst->fd);
     if (fdst->cmd) {
         char buf[1024];
@@ -243,29 +254,12 @@ static int virFDStreamFree(struct virFDStreamData *fdst)
         }
         virCommandFree(fdst->cmd);
     }
-    VIR_FREE(fdst);
-    return ret;
-}
-
-
-static int
-virFDStreamClose(virStreamPtr st)
-{
-    struct virFDStreamData *fdst = st->privateData;
-    int ret;
-
-    VIR_DEBUG("st=%p", st);
-
-    if (!fdst)
-        return 0;
-
-    virMutexLock(&fdst->lock);
-
-    ret = virFDStreamFree(fdst);
 
     st->privateData = NULL;
 
     virMutexUnlock(&fdst->lock);
+    virMutexDestroy(&fdst->lock);
+    VIR_FREE(fdst);
 
     return ret;
 }
@@ -493,7 +487,8 @@ virFDStreamOpenFileInternal(virStreamPtr st,
                             unsigned long long offset,
                             unsigned long long length,
                             int flags,
-                            int mode)
+                            int mode,
+                            bool delete)
 {
     int fd = -1;
     int fds[2] = { -1, -1 };
@@ -502,8 +497,8 @@ virFDStreamOpenFileInternal(virStreamPtr st,
     int errfd = -1;
     pid_t pid = 0;
 
-    VIR_DEBUG("st=%p path=%s flags=%d offset=%llu length=%llu mode=%d",
-              st, path, flags, offset, length, mode);
+    VIR_DEBUG("st=%p path=%s flags=%d offset=%llu length=%llu mode=%d delete=%d",
+              st, path, flags, offset, length, mode, delete);
 
     if (flags & O_CREAT)
         fd = open(path, flags, mode);
@@ -554,6 +549,14 @@ virFDStreamOpenFileInternal(virStreamPtr st,
         virCommandAddArgFormat(cmd, "%d", mode);
         virCommandAddArgFormat(cmd, "%llu", offset);
         virCommandAddArgFormat(cmd, "%llu", length);
+        virCommandAddArgFormat(cmd, "%u", delete);
+
+        /* when running iohelper we don't want to delete file now,
+         * because a race condition may occur in which we delete it
+         * before iohelper even opens it. We want iohelper to remove
+         * the file instead.
+         */
+        delete = false;
 
         if (flags == O_RDONLY) {
             childfd = fds[1];
@@ -583,6 +586,9 @@ virFDStreamOpenFileInternal(virStreamPtr st,
     if (virFDStreamOpenInternal(st, fd, cmd, errfd, length) < 0)
         goto error;
 
+    if (delete)
+        unlink(path);
+
     return 0;
 
 error:
@@ -601,7 +607,8 @@ int virFDStreamOpenFile(virStreamPtr st,
                         const char *path,
                         unsigned long long offset,
                         unsigned long long length,
-                        int flags)
+                        int flags,
+                        bool delete)
 {
     if (flags & O_CREAT) {
         streamsReportError(VIR_ERR_INTERNAL_ERROR,
@@ -611,7 +618,7 @@ int virFDStreamOpenFile(virStreamPtr st,
     }
     return virFDStreamOpenFileInternal(st, path,
                                        offset, length,
-                                       flags, 0);
+                                       flags, 0, delete);
 }
 
 int virFDStreamCreateFile(virStreamPtr st,
@@ -619,9 +626,11 @@ int virFDStreamCreateFile(virStreamPtr st,
                           unsigned long long offset,
                           unsigned long long length,
                           int flags,
-                          mode_t mode)
+                          mode_t mode,
+                          bool delete)
 {
     return virFDStreamOpenFileInternal(st, path,
                                        offset, length,
-                                       flags | O_CREAT, mode);
+                                       flags | O_CREAT,
+                                       mode, delete);
 }

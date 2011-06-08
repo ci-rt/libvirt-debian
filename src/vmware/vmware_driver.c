@@ -178,7 +178,9 @@ vmwareGetVersion(virConnectPtr conn, unsigned long *version)
 }
 
 static int
-vmwareStopVM(struct vmware_driver *driver, virDomainObjPtr vm)
+vmwareStopVM(struct vmware_driver *driver,
+             virDomainObjPtr vm,
+             virDomainShutoffReason reason)
 {
     const char *cmd[] = {
         VMRUN, "-T", PROGRAM_SENTINAL, "stop",
@@ -193,7 +195,7 @@ vmwareStopVM(struct vmware_driver *driver, virDomainObjPtr vm)
     }
 
     vm->def->id = -1;
-    vm->state = VIR_DOMAIN_SHUTOFF;
+    virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, reason);
 
     return 0;
 }
@@ -207,7 +209,7 @@ vmwareStartVM(struct vmware_driver *driver, virDomainObjPtr vm)
     };
     const char *vmxPath = ((vmwareDomainPtr) vm->privateData)->vmxPath;
 
-    if (vm->state != VIR_DOMAIN_SHUTOFF) {
+    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_SHUTOFF) {
         vmwareError(VIR_ERR_OPERATION_INVALID, "%s",
                     _("domain is not in shutoff state"));
         return -1;
@@ -225,11 +227,11 @@ vmwareStartVM(struct vmware_driver *driver, virDomainObjPtr vm)
     }
 
     if ((vm->def->id = vmwareExtractPid(vmxPath)) < 0) {
-        vmwareStopVM(driver, vm);
+        vmwareStopVM(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
         return -1;
     }
 
-    vm->state = VIR_DOMAIN_RUNNING;
+    virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, VIR_DOMAIN_RUNNING_BOOTED);
 
     return 0;
 }
@@ -322,13 +324,13 @@ vmwareDomainShutdown(virDomainPtr dom)
         goto cleanup;
     }
 
-    if (vm->state != VIR_DOMAIN_RUNNING) {
+    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_RUNNING) {
         vmwareError(VIR_ERR_INTERNAL_ERROR, "%s",
                     _("domain is not in running state"));
         goto cleanup;
     }
 
-    if (vmwareStopVM(driver, vm) < 0)
+    if (vmwareStopVM(driver, vm, VIR_DOMAIN_SHUTOFF_SHUTDOWN) < 0)
         goto cleanup;
 
     if (!vm->persistent) {
@@ -375,7 +377,7 @@ vmwareDomainSuspend(virDomainPtr dom)
 
     vmwareSetSentinal(cmd, vmw_types[driver->type]);
     vmwareSetSentinal(cmd, ((vmwareDomainPtr) vm->privateData)->vmxPath);
-    if (vm->state != VIR_DOMAIN_RUNNING) {
+    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_RUNNING) {
         vmwareError(VIR_ERR_INTERNAL_ERROR, "%s",
                     _("domain is not in running state"));
         goto cleanup;
@@ -384,7 +386,7 @@ vmwareDomainSuspend(virDomainPtr dom)
     if (virRun(cmd, NULL) < 0)
         goto cleanup;
 
-    vm->state = VIR_DOMAIN_PAUSED;
+    virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, VIR_DOMAIN_PAUSED_USER);
     ret = 0;
 
   cleanup:
@@ -424,7 +426,7 @@ vmwareDomainResume(virDomainPtr dom)
 
     vmwareSetSentinal(cmd, vmw_types[driver->type]);
     vmwareSetSentinal(cmd, ((vmwareDomainPtr) vm->privateData)->vmxPath);
-    if (vm->state != VIR_DOMAIN_PAUSED) {
+    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_PAUSED) {
         vmwareError(VIR_ERR_INTERNAL_ERROR, "%s",
                     _("domain is not in suspend state"));
         goto cleanup;
@@ -433,7 +435,7 @@ vmwareDomainResume(virDomainPtr dom)
     if (virRun(cmd, NULL) < 0)
         goto cleanup;
 
-    vm->state = VIR_DOMAIN_RUNNING;
+    virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, VIR_DOMAIN_RUNNING_UNPAUSED);
     ret = 0;
 
   cleanup:
@@ -470,7 +472,7 @@ vmwareDomainReboot(virDomainPtr dom, unsigned int flags ATTRIBUTE_UNUSED)
     vmwareSetSentinal(cmd, vmxPath);
 
 
-    if (vm->state != VIR_DOMAIN_RUNNING) {
+    if (virDomainObjGetState(vm, NULL) != VIR_DOMAIN_RUNNING) {
         vmwareError(VIR_ERR_INTERNAL_ERROR, "%s",
                     _("domain is not in running state"));
         goto cleanup;
@@ -789,7 +791,7 @@ vmwareDomainIsPersistent(virDomainPtr dom)
 
 
 static char *
-vmwareDomainDumpXML(virDomainPtr dom, int flags)
+vmwareDomainGetXMLDesc(virDomainPtr dom, int flags)
 {
     struct vmware_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
@@ -883,7 +885,7 @@ vmwareDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
         goto cleanup;
     }
 
-    info->state = vm->state;
+    info->state = virDomainObjGetState(vm, NULL);
     info->cpuTime = 0;
     info->maxMem = vm->def->mem.max_balloon;
     info->memory = vm->def->mem.cur_balloon;
@@ -896,117 +898,67 @@ vmwareDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info)
     return ret;
 }
 
+static int
+vmwareDomainGetState(virDomainPtr dom,
+                     int *state,
+                     int *reason,
+                     unsigned int flags)
+{
+    struct vmware_driver *driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    vmwareDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vmwareDriverUnlock(driver);
+
+    if (!vm) {
+        vmwareError(VIR_ERR_NO_DOMAIN, "%s",
+                    _("no domain with matching uuid"));
+        goto cleanup;
+    }
+
+    *state = virDomainObjGetState(vm, reason);
+    ret = 0;
+
+  cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    return ret;
+}
+
 static virDriver vmwareDriver = {
-    VIR_DRV_VMWARE,
-    "VMWARE",
-    vmwareOpen,                 /* open */
-    vmwareClose,                /* close */
-    NULL,                       /* supports_feature */
-    vmwareGetType,              /* type */
-    vmwareGetVersion,           /* version */
-    NULL,                       /* libvirtVersion (impl. in libvirt.c) */
-    NULL,                       /* getHostname */
-    NULL,                       /* getSysinfo */
-    NULL,                       /* getMaxVcpus */
-    NULL,                       /* nodeGetInfo */
-    NULL,                       /* getCapabilities */
-    vmwareListDomains,          /* listDomains */
-    vmwareNumDomains,           /* numOfDomains */
-    vmwareDomainCreateXML,      /* domainCreateXML */
-    vmwareDomainLookupByID,     /* domainLookupByID */
-    vmwareDomainLookupByUUID,   /* domainLookupByUUID */
-    vmwareDomainLookupByName,   /* domainLookupByName */
-    vmwareDomainSuspend,        /* domainSuspend */
-    vmwareDomainResume,         /* domainResume */
-    vmwareDomainShutdown,       /* domainShutdown */
-    vmwareDomainReboot,         /* domainReboot */
-    vmwareDomainShutdown,        /* domainDestroy */
-    vmwareGetOSType,            /* domainGetOSType */
-    NULL,                       /* domainGetMaxMemory */
-    NULL,                       /* domainSetMaxMemory */
-    NULL,                       /* domainSetMemory */
-    NULL,                       /* domainSetMemoryFlags */
-    NULL,                       /* domainSetMemoryParameters */
-    NULL,                       /* domainGetMemoryParameters */
-    NULL,                       /* domainSetBlkioParameters */
-    NULL,                       /* domainGetBlkioParameters */
-    vmwareDomainGetInfo,        /* domainGetInfo */
-    NULL,                       /* domainSave */
-    NULL,                       /* domainRestore */
-    NULL,                       /* domainCoreDump */
-    NULL,                       /* domainSetVcpus */
-    NULL,                       /* domainSetVcpusFlags */
-    NULL,                       /* domainGetVcpusFlags */
-    NULL,                       /* domainPinVcpu */
-    NULL,                       /* domainGetVcpus */
-    NULL,                       /* domainGetMaxVcpus */
-    NULL,                       /* domainGetSecurityLabel */
-    NULL,                       /* nodeGetSecurityModel */
-    vmwareDomainDumpXML,        /* domainDumpXML */
-    NULL,                       /* domainXmlFromNative */
-    NULL,                       /* domainXmlToNative */
-    vmwareListDefinedDomains,   /* listDefinedDomains */
-    vmwareNumDefinedDomains,    /* numOfDefinedDomains */
-    vmwareDomainCreate,         /* domainCreate */
-    vmwareDomainCreateWithFlags,/* domainCreateWithFlags */
-    vmwareDomainDefineXML,      /* domainDefineXML */
-    vmwareDomainUndefine,       /* domainUndefine */
-    NULL,                       /* domainAttachDevice */
-    NULL,                       /* domainAttachDeviceFlags */
-    NULL,                       /* domainDetachDevice */
-    NULL,                       /* domainDetachDeviceFlags */
-    NULL,                       /* domainUpdateDeviceFlags */
-    NULL,                       /* domainGetAutostart */
-    NULL,                       /* domainSetAutostart */
-    NULL,                       /* domainGetSchedulerType */
-    NULL,                       /* domainGetSchedulerParameters */
-    NULL,                       /* domainSetSchedulerParameters */
-    NULL,                       /* domainMigratePrepare */
-    NULL,                       /* domainMigratePerform */
-    NULL,                       /* domainMigrateFinish */
-    NULL,                       /* domainBlockStats */
-    NULL,                       /* domainInterfaceStats */
-    NULL,                       /* domainMemoryStats */
-    NULL,                       /* domainBlockPeek */
-    NULL,                       /* domainMemoryPeek */
-    NULL,                       /* domainGetBlockInfo */
-    NULL,                       /* nodeGetCellsFreeMemory */
-    NULL,                       /* getFreeMemory */
-    NULL,                       /* domainEventRegister */
-    NULL,                       /* domainEventDeregister */
-    NULL,                       /* domainMigratePrepare2 */
-    NULL,                       /* domainMigrateFinish2 */
-    NULL,                       /* nodeDeviceDettach */
-    NULL,                       /* nodeDeviceReAttach */
-    NULL,                       /* nodeDeviceReset */
-    NULL,                       /* domainMigratePrepareTunnel */
-    NULL,                       /* IsEncrypted */
-    NULL,                       /* IsSecure */
-    vmwareDomainIsActive,       /* DomainIsActive */
-    vmwareDomainIsPersistent,   /* DomainIsPersistent */
-    NULL,                       /* domainIsUpdated */
-    NULL,                       /* cpuCompare */
-    NULL,                       /* cpuBaseline */
-    NULL,                       /* domainGetJobInfo */
-    NULL,                       /* domainAbortJob */
-    NULL,                       /* domainMigrateSetMaxDowntime */
-    NULL,                       /* domainMigrateSetMaxSpeed */
-    NULL,                       /* domainEventRegisterAny */
-    NULL,                       /* domainEventDeregisterAny */
-    NULL,                       /* domainManagedSave */
-    NULL,                       /* domainHasManagedSaveImage */
-    NULL,                       /* domainManagedSaveRemove */
-    NULL,                       /* domainSnapshotCreateXML */
-    NULL,                       /* domainSnapshotDumpXML */
-    NULL,                       /* domainSnapshotNum */
-    NULL,                       /* domainSnapshotListNames */
-    NULL,                       /* domainSnapshotLookupByName */
-    NULL,                       /* domainHasCurrentSnapshot */
-    NULL,                       /* domainSnapshotCurrent */
-    NULL,                       /* domainRevertToSnapshot */
-    NULL,                       /* domainSnapshotDelete */
-    NULL,                       /* qemuDomainMonitorCommand */
-    NULL,                       /* domainOpenConsole */
+    .no = VIR_DRV_VMWARE,
+    .name = "VMWARE",
+    .open = vmwareOpen, /* 0.8.7 */
+    .close = vmwareClose, /* 0.8.7 */
+    .type = vmwareGetType, /* 0.8.7 */
+    .version = vmwareGetVersion, /* 0.8.7 */
+    .listDomains = vmwareListDomains, /* 0.8.7 */
+    .numOfDomains = vmwareNumDomains, /* 0.8.7 */
+    .domainCreateXML = vmwareDomainCreateXML, /* 0.8.7 */
+    .domainLookupByID = vmwareDomainLookupByID, /* 0.8.7 */
+    .domainLookupByUUID = vmwareDomainLookupByUUID, /* 0.8.7 */
+    .domainLookupByName = vmwareDomainLookupByName, /* 0.8.7 */
+    .domainSuspend = vmwareDomainSuspend, /* 0.8.7 */
+    .domainResume = vmwareDomainResume, /* 0.8.7 */
+    .domainShutdown = vmwareDomainShutdown, /* 0.8.7 */
+    .domainReboot = vmwareDomainReboot, /* 0.8.7 */
+    .domainDestroy = vmwareDomainShutdown, /* 0.8.7 */
+    .domainGetOSType = vmwareGetOSType, /* 0.8.7 */
+    .domainGetInfo = vmwareDomainGetInfo, /* 0.8.7 */
+    .domainGetState = vmwareDomainGetState, /* 0.9.2 */
+    .domainGetXMLDesc = vmwareDomainGetXMLDesc, /* 0.8.7 */
+    .listDefinedDomains = vmwareListDefinedDomains, /* 0.8.7 */
+    .numOfDefinedDomains = vmwareNumDefinedDomains, /* 0.8.7 */
+    .domainCreate = vmwareDomainCreate, /* 0.8.7 */
+    .domainCreateWithFlags = vmwareDomainCreateWithFlags, /* 0.8.7 */
+    .domainDefineXML = vmwareDomainDefineXML, /* 0.8.7 */
+    .domainUndefine = vmwareDomainUndefine, /* 0.8.7 */
+    .domainIsActive = vmwareDomainIsActive, /* 0.8.7 */
+    .domainIsPersistent = vmwareDomainIsPersistent, /* 0.8.7 */
 };
 
 int

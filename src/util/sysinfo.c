@@ -33,7 +33,6 @@
 #include "virterror_internal.h"
 #include "sysinfo.h"
 #include "util.h"
-#include "conf/domain_conf.h"
 #include "logging.h"
 #include "memory.h"
 #include "command.h"
@@ -45,6 +44,9 @@
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #define SYSINFO_SMBIOS_DECODER "dmidecode"
+
+VIR_ENUM_IMPL(virSysinfo, VIR_SYSINFO_LAST,
+              "smbios");
 
 /**
  * virSysinfoDefFree:
@@ -92,15 +94,6 @@ virSysinfoRead(void) {
     return NULL;
 }
 
-char *
-virSysinfoFormat(virSysinfoDefPtr def ATTRIBUTE_UNUSED,
-                 const char *prefix ATTRIBUTE_UNUSED)
-{
-    virReportSystemError(ENOSYS, "%s",
-                 _("Host sysinfo extraction not supported on this platform"));
-    return NULL;
-}
-
 #else /* !WIN32 */
 
 virSysinfoDefPtr
@@ -131,7 +124,7 @@ virSysinfoRead(void) {
     if (VIR_ALLOC(ret) < 0)
         goto no_memory;
 
-    ret->type = VIR_DOMAIN_SYSINFO_SMBIOS;
+    ret->type = VIR_SYSINFO_SMBIOS;
 
     base = outbuf;
 
@@ -218,6 +211,7 @@ no_memory:
     ret = NULL;
     goto cleanup;
 }
+#endif /* !WIN32 */
 
 /**
  * virSysinfoFormat:
@@ -230,7 +224,7 @@ no_memory:
 char *
 virSysinfoFormat(virSysinfoDefPtr def, const char *prefix)
 {
-    const char *type = virDomainSysinfoTypeToString(def->type);
+    const char *type = virSysinfoTypeToString(def->type);
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     size_t len = strlen(prefix);
 
@@ -241,10 +235,10 @@ virSysinfoFormat(virSysinfoDefPtr def, const char *prefix)
         return NULL;
     }
 
-    virBufferVSprintf(&buf, "%s<sysinfo type='%s'>\n", prefix, type);
+    virBufferAsprintf(&buf, "%s<sysinfo type='%s'>\n", prefix, type);
     if ((def->bios_vendor != NULL) || (def->bios_version != NULL) ||
         (def->bios_date != NULL) || (def->bios_release != NULL)) {
-        virBufferVSprintf(&buf, "%s  <bios>\n", prefix);
+        virBufferAsprintf(&buf, "%s  <bios>\n", prefix);
         if (def->bios_vendor != NULL) {
             virBufferAdd(&buf, prefix, len);
             virBufferEscapeString(&buf,
@@ -269,13 +263,13 @@ virSysinfoFormat(virSysinfoDefPtr def, const char *prefix)
                                   "    <entry name='release'>%s</entry>\n",
                                   def->bios_release);
         }
-        virBufferVSprintf(&buf, "%s  </bios>\n", prefix);
+        virBufferAsprintf(&buf, "%s  </bios>\n", prefix);
     }
     if ((def->system_manufacturer != NULL) || (def->system_product != NULL) ||
         (def->system_version != NULL) || (def->system_serial != NULL) ||
         (def->system_uuid != NULL) || (def->system_sku != NULL) ||
         (def->system_family != NULL)) {
-        virBufferVSprintf(&buf, "%s  <system>\n", prefix);
+        virBufferAsprintf(&buf, "%s  <system>\n", prefix);
         if (def->system_manufacturer != NULL) {
             virBufferAdd(&buf, prefix, len);
             virBufferEscapeString(&buf,
@@ -318,12 +312,62 @@ virSysinfoFormat(virSysinfoDefPtr def, const char *prefix)
                                   "    <entry name='family'>%s</entry>\n",
                                   def->system_family);
         }
-        virBufferVSprintf(&buf, "%s  </system>\n", prefix);
+        virBufferAsprintf(&buf, "%s  </system>\n", prefix);
     }
 
-    virBufferVSprintf(&buf, "%s</sysinfo>\n", prefix);
+    virBufferAsprintf(&buf, "%s</sysinfo>\n", prefix);
 
     return virBufferContentAndReset(&buf);
 }
 
-#endif /* !WIN32 */
+bool virSysinfoIsEqual(virSysinfoDefPtr src,
+                       virSysinfoDefPtr dst)
+{
+    bool identical = false;
+
+    if (!src && !dst)
+        return true;
+
+    if ((src && !dst) || (!src && dst)) {
+        virSmbiosReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                             _("Target sysinfo does not match source"));
+        goto cleanup;
+    }
+
+    if (src->type != dst->type) {
+        virSmbiosReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                             _("Target sysinfo %s does not match source %s"),
+                             virSysinfoTypeToString(dst->type),
+                             virSysinfoTypeToString(src->type));
+        goto cleanup;
+    }
+
+#define CHECK_FIELD(name, desc)                                         \
+    do {                                                                \
+        if (STRNEQ_NULLABLE(src->name, dst->name)) {                    \
+            virSmbiosReportError(VIR_ERR_CONFIG_UNSUPPORTED,            \
+                                 _("Target sysinfo %s %s does not match source %s"), \
+                                 desc, NULLSTR(src->name), NULLSTR(dst->name)); \
+        }                                                               \
+    } while (0)
+
+    CHECK_FIELD(bios_vendor, "BIOS vendor");
+    CHECK_FIELD(bios_version, "BIOS version");
+    CHECK_FIELD(bios_date, "BIOS date");
+    CHECK_FIELD(bios_release, "BIOS release");
+
+    CHECK_FIELD(system_manufacturer, "system vendor");
+    CHECK_FIELD(system_product, "system product");
+    CHECK_FIELD(system_version, "system version");
+    CHECK_FIELD(system_serial, "system serial");
+    CHECK_FIELD(system_uuid, "system uuid");
+    CHECK_FIELD(system_sku, "system sku");
+    CHECK_FIELD(system_family, "system family");
+
+#undef CHECK_FIELD
+
+    identical = true;
+
+cleanup:
+    return identical;
+}

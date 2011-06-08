@@ -46,6 +46,7 @@ int qemuMonitorJSONCheckHMP(qemuMonitorPtr mon);
 int qemuMonitorJSONStartCPUs(qemuMonitorPtr mon,
                              virConnectPtr conn);
 int qemuMonitorJSONStopCPUs(qemuMonitorPtr mon);
+int qemuMonitorJSONGetStatus(qemuMonitorPtr mon, bool *running);
 
 int qemuMonitorJSONSystemPowerdown(qemuMonitorPtr mon);
 
@@ -116,6 +117,13 @@ int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
                            const char *uri);
 
 int qemuMonitorJSONMigrateCancel(qemuMonitorPtr mon);
+
+int qemuMonitorJSONGraphicsRelocate(qemuMonitorPtr mon,
+                                    int type,
+                                    const char *hostname,
+                                    int port,
+                                    int tlsPort,
+                                    const char *tlsSubject);
 
 int qemuMonitorJSONAddUSBDisk(qemuMonitorPtr mon,
                               const char *path);
@@ -203,5 +211,11 @@ int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
                                     const char *cmd_str,
                                     char **reply_str,
                                     bool hmp);
+
+int qemuMonitorJSONInjectNMI(qemuMonitorPtr mon);
+
+int qemuMonitorJSONScreendump(qemuMonitorPtr mon,
+                              const char *file);
+
 
 #endif /* QEMU_MONITOR_JSON_H */

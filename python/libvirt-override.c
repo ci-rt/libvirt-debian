@@ -35,6 +35,9 @@ extern void initcygvirtmod(void);
 #define VIR_PY_INT_FAIL (libvirt_intWrap(-1))
 #define VIR_PY_INT_SUCCESS (libvirt_intWrap(0))
 
+/* We don't want to free() returned value. As written in doc:
+ * PyString_AsString returns pointer to 'internal buffer of string,
+ * not a copy' and 'It must not be deallocated'. */
 static char *py_str(PyObject *obj)
 {
     PyObject *str = PyObject_Str(obj);
@@ -203,7 +206,7 @@ libvirt_virDomainGetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
     char *c_retval;
     int i_retval;
     int nparams, i;
-    virSchedParameterPtr params;
+    virTypedParameterPtr params;
 
     if (!PyArg_ParseTuple(args, (char *)"O:virDomainGetScedulerParameters",
                           &pyobj_domain))
@@ -239,27 +242,27 @@ libvirt_virDomainGetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
         PyObject *key, *val;
 
         switch (params[i].type) {
-        case VIR_DOMAIN_SCHED_FIELD_INT:
+        case VIR_TYPED_PARAM_INT:
             val = PyInt_FromLong((long)params[i].value.i);
             break;
 
-        case VIR_DOMAIN_SCHED_FIELD_UINT:
+        case VIR_TYPED_PARAM_UINT:
             val = PyInt_FromLong((long)params[i].value.ui);
             break;
 
-        case VIR_DOMAIN_SCHED_FIELD_LLONG:
+        case VIR_TYPED_PARAM_LLONG:
             val = PyLong_FromLongLong((long long)params[i].value.l);
             break;
 
-        case VIR_DOMAIN_SCHED_FIELD_ULLONG:
+        case VIR_TYPED_PARAM_ULLONG:
             val = PyLong_FromLongLong((long long)params[i].value.ul);
             break;
 
-        case VIR_DOMAIN_SCHED_FIELD_DOUBLE:
+        case VIR_TYPED_PARAM_DOUBLE:
             val = PyFloat_FromDouble((double)params[i].value.d);
             break;
 
-        case VIR_DOMAIN_SCHED_FIELD_BOOLEAN:
+        case VIR_TYPED_PARAM_BOOLEAN:
             val = PyBool_FromLong((long)params[i].value.b);
             break;
 
@@ -284,7 +287,7 @@ libvirt_virDomainSetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
     char *c_retval;
     int i_retval;
     int nparams, i;
-    virSchedParameterPtr params;
+    virTypedParameterPtr params;
 
     if (!PyArg_ParseTuple(args, (char *)"OO:virDomainSetScedulerParameters",
                           &pyobj_domain, &info))
@@ -322,27 +325,27 @@ libvirt_virDomainSetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
             continue;
 
         switch (params[i].type) {
-        case VIR_DOMAIN_SCHED_FIELD_INT:
+        case VIR_TYPED_PARAM_INT:
             params[i].value.i = (int)PyInt_AS_LONG(val);
             break;
 
-        case VIR_DOMAIN_SCHED_FIELD_UINT:
+        case VIR_TYPED_PARAM_UINT:
             params[i].value.ui = (unsigned int)PyInt_AS_LONG(val);
             break;
 
-        case VIR_DOMAIN_SCHED_FIELD_LLONG:
+        case VIR_TYPED_PARAM_LLONG:
             params[i].value.l = (long long)PyLong_AsLongLong(val);
             break;
 
-        case VIR_DOMAIN_SCHED_FIELD_ULLONG:
+        case VIR_TYPED_PARAM_ULLONG:
             params[i].value.ul = (unsigned long long)PyLong_AsLongLong(val);
             break;
 
-        case VIR_DOMAIN_SCHED_FIELD_DOUBLE:
+        case VIR_TYPED_PARAM_DOUBLE:
             params[i].value.d = (double)PyFloat_AsDouble(val);
             break;
 
-        case VIR_DOMAIN_SCHED_FIELD_BOOLEAN:
+        case VIR_TYPED_PARAM_BOOLEAN:
             {
                 /* Hack - Python's definition of Py_True breaks strict
                  * aliasing rules, so can't directly compare :-(
@@ -1065,6 +1068,35 @@ libvirt_virDomainGetInfo(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyList_SetItem(py_retval, 4,
                    libvirt_longlongWrap((unsigned long long) info.cpuTime));
     return(py_retval);
+}
+
+static PyObject *
+libvirt_virDomainGetState(PyObject *self ATTRIBUTE_UNUSED, PyObject *args)
+{
+    PyObject *py_retval;
+    int c_retval;
+    virDomainPtr domain;
+    PyObject *pyobj_domain;
+    int state;
+    int reason;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virDomainGetState",
+                          &pyobj_domain, &flags))
+        return NULL;
+
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainGetState(domain, &state, &reason, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    py_retval = PyList_New(2);
+    PyList_SetItem(py_retval, 0, libvirt_intWrap(state));
+    PyList_SetItem(py_retval, 1, libvirt_intWrap(reason));
+    return py_retval;
 }
 
 static PyObject *
@@ -2631,7 +2663,6 @@ libvirt_virEventAddHandleFunc  (int fd,
         char *name = py_str(python_cb);
         printf("%s: %s is not callable\n", __FUNCTION__,
                name ? name : "libvirt.eventInvokeHandleCallback");
-        free(name);
 #endif
         goto cleanup;
     }
@@ -2776,7 +2807,6 @@ libvirt_virEventAddTimeoutFunc(int timeout,
         char *name = py_str(python_cb);
         printf("%s: %s is not callable\n", __FUNCTION__,
                name ? name : "libvirt.eventInvokeTimeoutCallback");
-        free(name);
 #endif
         goto cleanup;
     }
@@ -2890,17 +2920,11 @@ libvirt_virEventRegisterImpl(ATTRIBUTE_UNUSED PyObject * self,
 {
     /* Unref the previously-registered impl (if any) */
     Py_XDECREF(addHandleObj);
-    free(addHandleName);
     Py_XDECREF(updateHandleObj);
-    free(updateHandleName);
     Py_XDECREF(removeHandleObj);
-    free(removeHandleName);
     Py_XDECREF(addTimeoutObj);
-    free(addTimeoutName);
     Py_XDECREF(updateTimeoutObj);
-    free(updateTimeoutName);
     Py_XDECREF(removeTimeoutObj);
-    free(removeTimeoutName);
 
     /* Parse and check arguments */
     if (!PyArg_ParseTuple(args, (char *) "OOOOOO:virEventRegisterImpl",
@@ -2916,7 +2940,7 @@ libvirt_virEventRegisterImpl(ATTRIBUTE_UNUSED PyObject * self,
         return VIR_PY_INT_FAIL;
 
     /* Get argument string representations (for error reporting) */
-    addHandleName = py_str(addTimeoutObj);
+    addHandleName = py_str(addHandleObj);
     updateHandleName = py_str(updateHandleObj);
     removeHandleName = py_str(removeHandleObj);
     addTimeoutName = py_str(addTimeoutObj);
@@ -3456,6 +3480,9 @@ libvirt_virConnectDomainEventRegisterAny(ATTRIBUTE_UNUSED PyObject * self,
     case VIR_DOMAIN_EVENT_ID_GRAPHICS:
         cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventGraphicsCallback);
         break;
+    case VIR_DOMAIN_EVENT_ID_CONTROL_ERROR:
+        cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventGenericCallback);
+        break;
     }
 
     if (!cb) {
@@ -3527,6 +3554,7 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virConnectDomainEventRegisterAny", libvirt_virConnectDomainEventRegisterAny, METH_VARARGS, NULL},
     {(char *) "virConnectDomainEventDeregisterAny", libvirt_virConnectDomainEventDeregisterAny, METH_VARARGS, NULL},
     {(char *) "virDomainGetInfo", libvirt_virDomainGetInfo, METH_VARARGS, NULL},
+    {(char *) "virDomainGetState", libvirt_virDomainGetState, METH_VARARGS, NULL},
     {(char *) "virDomainGetBlockInfo", libvirt_virDomainGetBlockInfo, METH_VARARGS, NULL},
     {(char *) "virNodeGetInfo", libvirt_virNodeGetInfo, METH_VARARGS, NULL},
     {(char *) "virDomainGetUUID", libvirt_virDomainGetUUID, METH_VARARGS, NULL},

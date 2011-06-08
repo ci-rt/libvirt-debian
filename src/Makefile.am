@@ -93,7 +93,14 @@ DRIVER_SOURCES =						\
 		datatypes.c datatypes.h				\
 		fdstream.c fdstream.h                 \
 		$(NODE_INFO_SOURCES)				\
-		libvirt.c libvirt_internal.h
+		libvirt.c libvirt_internal.h			\
+		locking/lock_manager.c locking/lock_manager.h   \
+		locking/lock_driver.h 				\
+		locking/lock_driver_nop.h locking/lock_driver_nop.c \
+		locking/domain_lock.h locking/domain_lock.c
+
+LOCK_DRIVER_SANLOCK_SOURCES = \
+		locking/lock_driver_sanlock.c
 
 
 # XML configuration format handling sources
@@ -154,15 +161,35 @@ CONF_SOURCES =							\
 		$(CPU_CONF_SOURCES)
 
 # The remote RPC driver, covering domains, storage, networks, etc
-REMOTE_DRIVER_SOURCES =						\
-		gnutls_1_0_compat.h			\
-		remote/remote_driver.c remote/remote_driver.h	\
-		remote/remote_protocol.c			\
-		remote/remote_protocol.h			\
-		remote/qemu_protocol.c				\
-		remote/qemu_protocol.h
+REMOTE_DRIVER_GENERATED = \
+		$(srcdir)/remote/remote_protocol.c		\
+		$(srcdir)/remote/remote_protocol.h		\
+		$(srcdir)/remote/remote_client_bodies.h		\
+		$(srcdir)/remote/qemu_protocol.c		\
+		$(srcdir)/remote/qemu_protocol.h		\
+		$(srcdir)/remote/qemu_client_bodies.h
 
-EXTRA_DIST += remote/remote_protocol.x remote/qemu_protocol.x \
+REMOTE_PROTOCOL = $(srcdir)/remote/remote_protocol.x
+QEMU_PROTOCOL = $(srcdir)/remote/qemu_protocol.x
+REMOTE_DRIVER_PROTOCOL = $(REMOTE_PROTOCOL) $(QEMU_PROTOCOL)
+
+$(srcdir)/remote/remote_client_bodies.h: $(REMOTE_PROTOCOL) \
+		$(top_srcdir)/daemon/remote_generator.pl
+	$(AM_V_GEN)perl -w $(top_srcdir)/daemon/remote_generator.pl \
+	  -c -k remote $(REMOTE_PROTOCOL) > $@
+
+$(srcdir)/remote/qemu_client_bodies.h: $(QEMU_PROTOCOL) \
+		$(top_srcdir)/daemon/remote_generator.pl
+	$(AM_V_GEN)perl -w $(top_srcdir)/daemon/remote_generator.pl \
+	  -k qemu $(QEMU_PROTOCOL) > $@
+
+REMOTE_DRIVER_SOURCES =						\
+		gnutls_1_0_compat.h				\
+		remote/remote_driver.c remote/remote_driver.h	\
+		$(REMOTE_DRIVER_GENERATED)
+
+EXTRA_DIST +=  $(REMOTE_DRIVER_PROTOCOL) \
+		$(REMOTE_DRIVER_GENERATED) \
 		remote/rpcgen_fix.pl
 
 # Ensure that we don't change the struct or member names or member ordering
@@ -186,7 +213,10 @@ r1 = (?:/\* \d+ \*/\n)?
 r2 = /\* <[[:xdigit:]]+> \S+:\d+ \*/
 
 .PHONY: remote_protocol-structs
-remote_protocol-structs:
+if WITH_REMOTE
+# The .o file that pdwtags parses is created as a side effect of running
+# libtool; but from make's perspective we depend on the .lo file.
+remote_protocol-structs: libvirt_driver_remote_la-remote_protocol.lo
 	$(AM_V_GEN)if (pdwtags --help) > /dev/null 2>&1; then		\
 	  pdwtags --verbose libvirt_driver_remote_la-remote_protocol.$(OBJEXT) \
 	    | perl -0777 -n						\
@@ -212,12 +242,17 @@ remote_protocol-structs:
 		-e '  }'						\
 		-e '}'							\
 		> $@-t;							\
-          case $$? in 8) exit 0;; 0) ;; *) exit 1;; esac;		\
+	  case $$? in 8) exit 0;; 0) ;; *) exit 1;; esac;		\
 	  diff -u $@-t $(srcdir)/$@; st=$$?; rm -f $@-t; exit $$st;	\
 	else								\
 	  echo 'WARNING: you lack pdwtags; skipping the $@ test' >&2;	\
 	  echo 'WARNING: install the dwarves package to get pdwtags' >&2; \
 	fi
+else !WITH_REMOTE
+# This generated file must live in git, because it cannot be re-generated
+# when configured --without-remote.
+remote_protocol-structs:
+endif
 EXTRA_DIST += remote_protocol-structs
 check-local: remote_protocol-structs
 
@@ -327,6 +362,7 @@ ESX_DRIVER_SOURCES =						\
 ESX_DRIVER_GENERATED =							\
 		esx/esx_vi_methods.generated.c				\
 		esx/esx_vi_methods.generated.h				\
+		esx/esx_vi_methods.generated.macro			\
 		esx/esx_vi_types.generated.c				\
 		esx/esx_vi_types.generated.h				\
 		esx/esx_vi_types.generated.typedef			\
@@ -524,73 +560,25 @@ libvirt_driver_remote_la_CFLAGS =				\
 libvirt_driver_remote_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_remote_la_LIBADD = $(GNUTLS_LIBS) $(SASL_LIBS)
 if WITH_DRIVER_MODULES
+libvirt_driver_remote_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_remote_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_remote_la_SOURCES = $(REMOTE_DRIVER_SOURCES)
 
-if HAVE_RPCGEN
-#
-# Maintainer-only target for re-generating the derived .c/.h source
-# files, which are actually derived from the .x file.
-#
-# For committing protocol changes to GIT, the GLIBC rpcgen *must*
-# be used.
-#
-# Support for non-GLIB rpcgen is here as a convenience for
-# non-Linux people needing to test changes during dev.
-#
-rpcgen-normal:
-	rm -f rp.c-t rp.h-t rp.c-t1 rp.c-t2 rp.h-t1
-	$(RPCGEN) -h -o rp.h-t $(srcdir)/remote/remote_protocol.x
-	$(RPCGEN) -c -o rp.c-t $(srcdir)/remote/remote_protocol.x
-if HAVE_GLIBC_RPCGEN
-	perl -w $(srcdir)/remote/rpcgen_fix.pl rp.h-t > rp.h-t1
-	perl -w $(srcdir)/remote/rpcgen_fix.pl rp.c-t > rp.c-t1
-	(echo '#include <config.h>'; cat rp.c-t1) > rp.c-t2
-	chmod 0444 rp.c-t2 rp.h-t1
-	mv -f rp.h-t1 $(srcdir)/remote/remote_protocol.h
-	mv -f rp.c-t2 $(srcdir)/remote/remote_protocol.c
-	rm -f rp.c-t rp.h-t rp.c-t1
-else
-	chmod 0444 rp.c-t rp.h-t
-	mv -f rp.h-t $(srcdir)/remote/remote_protocol.h
-	mv -f rp.c-t $(srcdir)/remote/remote_protocol.c
-endif
 
-rpcgen-qemu:
-	rm -f rp_qemu.c-t rp_qemu.h-t rp_qemu.c-t1 rp_qemu.c-t2 rp_qemu.h-t1
-	$(RPCGEN) -h -o rp_qemu.h-t $(srcdir)/remote/qemu_protocol.x
-	$(RPCGEN) -c -o rp_qemu.c-t $(srcdir)/remote/qemu_protocol.x
-if HAVE_GLIBC_RPCGEN
-	perl -w $(srcdir)/remote/rpcgen_fix.pl rp_qemu.h-t > rp_qemu.h-t1
-	perl -w $(srcdir)/remote/rpcgen_fix.pl rp_qemu.c-t > rp_qemu.c-t1
-	(echo '#include <config.h>'; cat rp_qemu.c-t1) > rp_qemu.c-t2
-	chmod 0444 rp_qemu.c-t2 rp_qemu.h-t1
-	mv -f rp_qemu.h-t1 $(srcdir)/remote/qemu_protocol.h
-	mv -f rp_qemu.c-t2 $(srcdir)/remote/qemu_protocol.c
-	rm -f rp_qemu.c-t rp_qemu.h-t rp_qemu.c-t1
-else
-	chmod 0444 rp_qemu.c-t rp_qemu.h-t
-	mv -f rp_qemu.h-t $(srcdir)/remote/qemu_protocol.h
-	mv -f rp_qemu.c-t $(srcdir)/remote/qemu_protocol.c
-endif
+$(srcdir)/remote/remote_driver.c: $(REMOTE_DRIVER_GENERATED)
 
-#
-# Maintainer-only target for re-generating the derived .c/.h source
-# files, which are actually derived from the .x file.
-#
-# For committing protocol changes to GIT, the GLIBC rpcgen *must*
-# be used.
-#
-# Support for non-GLIB rpcgen is here as a convenience for
-# non-Linux people needing to test changes during dev.
-#
-rpcgen: rpcgen-normal rpcgen-qemu
+endif WITH_REMOTE
 
-endif
+$(srcdir)/remote/%_protocol.c: $(srcdir)/remote/%_protocol.x \
+		$(srcdir)/remote/%_protocol.h $(srcdir)/remote/rpcgen_fix.pl
+	$(AM_V_GEN)perl -w $(srcdir)/remote/rpcgen_fix.pl $(RPCGEN) -c \
+	       $< $@
 
-remote/remote_protocol.c: remote/remote_protocol.h
-endif
+$(srcdir)/remote/%_protocol.h: $(srcdir)/remote/%_protocol.x \
+		$(srcdir)/remote/rpcgen_fix.pl
+	$(AM_V_GEN)perl -w $(srcdir)/remote/rpcgen_fix.pl $(RPCGEN) -h \
+	       $< $@
 
 if WITH_XEN
 if WITH_DRIVER_MODULES
@@ -1097,6 +1085,10 @@ if WITH_VMX
 USED_SYM_FILES += libvirt_vmx.syms
 endif
 
+if WITH_XENXS
+USED_SYM_FILES += libvirt_xenxs.syms
+endif
+
 EXTRA_DIST += \
   libvirt_public.syms		\
   libvirt_private.syms		\
@@ -1106,7 +1098,8 @@ EXTRA_DIST += \
   libvirt_macvtap.syms		\
   libvirt_daemon.syms		\
   libvirt_nwfilter.syms	\
-  libvirt_vmx.syms
+  libvirt_vmx.syms		\
+  libvirt_xenxs.syms
 
 BUILT_SOURCES += libvirt.syms libvirt.def libvirt_qemu.def
 
@@ -1182,6 +1175,19 @@ libvirt_qemu_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)$(LIBVIRT_QEMU_SYMBOL_FILE) \
 libvirt_qemu_la_CFLAGS = $(AM_CFLAGS)
 libvirt_qemu_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
 EXTRA_DIST += $(LIBVIRT_QEMU_SYMBOL_FILE)
+
+
+if HAVE_SANLOCK
+lockdriverdir = $(libdir)/libvirt/lock-driver
+lockdriver_LTLIBRARIES = sanlock.la
+
+sanlock_la_SOURCES = $(LOCK_DRIVER_SANLOCK_SOURCES)
+sanlock_la_CFLAGS = $(AM_CLFAGS)
+sanlock_la_LDFLAGS = -module -avoid-version
+sanlock_la_LIBADD = -lsanlock
+else
+EXTRA_DIST += $(LOCK_DRIVER_SANLOCK_SOURCES)
+endif
 
 libexec_PROGRAMS =
 
@@ -1339,3 +1345,4 @@ endif
 
 CLEANFILES = *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.i *.s
 DISTCLEANFILES = $(BUILT_SOURCES)
+MAINTAINERCLEANFILES = $(REMOTE_DRIVER_GENERATED)

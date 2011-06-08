@@ -235,7 +235,9 @@ Print the XML representation of the hypervisor sysinfo, if available.
 =item B<nodeinfo>
 
 Returns basic information about the node, like number and type of CPU,
-and size of the physical memory.
+and size of the physical memory. The output corresponds to virNodeInfo
+structure. Specifically, the "CPU socket(s)" field means number of CPU
+sockets per NUMA cell.
 
 =item B<capabilities>
 
@@ -289,6 +291,10 @@ The domain has been paused, usually occurring through the administrator
 running B<virsh suspend>.  When in a paused state the domain will still
 consume allocated resources like memory, but will not be eligible for
 scheduling by the hypervisor.
+
+=item B<inject-nmi> I<domain-id>
+
+Inject NMI to the guest
 
 =item B<shutdown>
 
@@ -426,9 +432,10 @@ Returns information about jobs running on a domain.
 
 Convert a domain Id (or UUID) to domain name
 
-=item B<domstate> I<domain-id>
+=item B<domstate> I<domain-id> optional I<--reason>
 
-Returns state about a running domain.
+Returns state about a domain.  I<--reason> tells virsh to also print
+reason for the state.
 
 =item B<domxml-from-native> I<format> I<config>
 
@@ -565,11 +572,14 @@ This is roughly equivalent to doing a hibernate on a running computer,
 with all the same limitations.  Open network connections may be
 severed upon restore, as TCP timeouts may have expired.
 
-=item B<schedinfo> optional I<--set> B<parameter=value> I<domain-id>
+=item B<schedinfo> optional I<--set> B<parameter=value> I<domain-id> I<--config>
+I<--live> I<--current>
 
-=item B<schedinfo> optional I<--weight> B<number> optional I<--cap> B<number> I<domain-id>
+=item B<schedinfo> optional I<--weight> B<number> optional I<--cap> B<number>
+I<domain-id>
 
-Allows you to show (and set) the domain scheduler parameters. The parameters available for each hypervisor are:
+Allows you to show (and set) the domain scheduler parameters. The parameters
+available for each hypervisor are:
 
 LXC, QEMU/KVM (posix scheduler): cpu_shares
 
@@ -577,12 +587,25 @@ Xen (credit scheduler): weight, cap
 
 ESX (allocation scheduler): reservation, limit, shares
 
+If I<--live> is specified, set scheduler information of a running guest.
+If I<--config> is specified, affect the next boot of a persistent guest.
+If I<--current> is specified, affect the current guest state.
+
 B<Note>: The cpu_shares parameter has a valid value range of 0-262144; Negative
 values are wrapped to positive, and larger values are capped at the maximum.
 Therefore, -1 is a useful shorthand for 262144.
 
 B<Note>: The weight and cap parameters are defined only for the
 XEN_CREDIT scheduler and are now I<DEPRECATED>.
+
+=item B<screenshot> I<domain-id> optional I<imagefilepath> I<--screen> B<screenID>
+
+Takes a screenshot of a current domain console and stores it into a file.
+Optionally, if hypervisor supports more displays for a domain, I<screenID>
+allows to specify which screen will be captured. It is the sequential number
+of screen. In case of multiple graphics cards, heads are enumerated before
+devices, e.g. having two graphics cards, both with four heads, screen ID 5
+addresses the second head on the second card.
 
 =item B<setmem> I<domain-id> B<kilobytes> optional I<--config> I<--live>
 I<--current>
@@ -631,6 +654,13 @@ Allows you to display or set the domain memory parameters. Without
 flags, the current settings are displayed; with a flag, the
 appropriate limit is adjusted if supported by the hypervisor.  LXC and
 QEMU/KVM support I<--hard-limit>, I<--soft-limit>, and I<--swap-hard-limit>.
+
+If I<--live> is specified, affect a running guest.
+If I<--config> is specified, affect the next boot of a persistent guest.
+If I<--current> is specified, affect the current guest state.
+Both I<--live> and I<--current> flags may be given, but I<--current> is
+exclusive. If no flag is specified, behavior is different depending
+on hypervisor.
 
 For QEMU/KVM, the parameters are applied to the QEMU process as a whole.
 Thus, when counting them, one needs to add up guest RAM, guest video RAM, and
@@ -845,8 +875,8 @@ XML format for a device.
 The following commands manipulate networks. Libvirt has the capability to
 define virtual networks which can then be used by domains and linked to
 actual network devices. For more detailed information about this feature
-see the documentation at L<http://libvirt.org/formatnetwork.html> . A lot
-of the command for virtual networks are similar to the one used for domains,
+see the documentation at L<http://libvirt.org/formatnetwork.html> . Many
+of the commands for virtual networks are similar to the ones used for domains,
 but the way to name a virtual network is either by its name or UUID.
 
 =over 4
@@ -918,6 +948,103 @@ Convert a network name to network UUID.
 
 =back
 
+=head1 INTERFACE COMMANDS
+
+The following commands manipulate host interfaces.  Often, these host
+interfaces can then be used by name within domain <interface> elements
+(such as a system-created bridge interface), but there is no
+requirement that host interfaces be tied to any particular guest
+configuration XML at all.
+
+Many of the commands for host interfaces are similar to the ones used
+for domains, and the way to name an interface is either by its name or
+its MAC address.  However, using a MAC address for an I<iface>
+argument only works when that address is unique (if an interface and a
+bridge share the same MAC address, which is often the case, then using
+that MAC address results in an error due to ambiguity, and you must
+resort to a name instead).
+
+=over 4
+
+=item B<iface-define> I<file>
+
+Define a host interface from an XML I<file>, the interface is just defined but
+not started.
+
+=item B<iface-destroy> I<interface>
+
+Destroy a given host interface, such as by running "if-down" to
+disable that interface from active use. This takes effect immediately.
+
+=item B<iface-dumpxml> I<interface> optional I<--inactive>
+
+Output the host interface information as an XML dump to stdout.  If
+I<--inactive> is specified, then the output reflects the persistent
+state of the interface that will be used the next time it is started.
+
+=item B<iface-edit> I<interface>
+
+Edit the XML configuration file for a host interface.
+
+This is equivalent to:
+
+ virsh iface-dumpxml iface > iface.xml
+ vi iface.xml (or make changes with your other text editor)
+ virsh iface-define iface.xml
+
+except that it does some error checking.
+
+The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
+variables, and defaults to C<vi>.
+
+=item B<iface-list> optional I<--inactive> or I<--all>
+
+Returns the list of active host interfaces.  If I<--all> is specified
+this will also include defined but inactive interfaces.  If
+I<--inactive> is specified only the inactive ones will be listed.
+
+=item B<iface-name> I<iface-MAC>
+
+Convert a host interface MAC to interface name, if the I<iface-MAC> is
+unique among the host's interfaces.
+
+=item B<iface-name> I<iface-MAC>
+
+Convert a host interface name to MAC address.
+
+=item B<iface-start> I<iface>
+
+Start a (previously defined) host interface, such as by running "if-up".
+
+=item B<iface-undefine> I<iface>
+
+Undefine the configuration for an inactive host interface.
+
+=item B<iface-begin>
+
+Create a snapshot of current host interface settings, which can later
+be committed (I<iface-commit>) or restored (I<iface-rollback>).  If a
+snapshot already exists, then this command will fail until the
+previous snapshot has been committed or restored.  Undefined behavior
+results if any external changes are made to host interfaces outside of
+the libvirt API between the beginning of a snapshot and its eventual
+commit or rollback.
+
+=item B<iface-commit>
+
+Declare all changes since the last I<iface-begin> as working, and
+delete the rollback point.  If no interface snapshot has already been
+started, then this command will fail.
+
+=item B<iface-rollback>
+
+Revert all host interface settings back to the state recorded in the
+last I<iface-begin>.  If no interface snapshot has already been
+started, then this command will fail.  Rebooting the host also serves
+as an implicit rollback point.
+
+=back
+
 =head1 STORAGE POOL COMMANDS
 
 The following commands manipulate storage pools. Libvirt has the
@@ -925,7 +1052,7 @@ capability to manage various storage solutions, including files, raw
 partitions, and domain-specific formats, used to provide the storage
 volumes visible as devices within virtual machines. For more detailed
 information about this feature, see the documentation at
-L<http://libvirt.org/formatstorage.html> . A lot of the commands for
+L<http://libvirt.org/formatstorage.html> . Many of the commands for
 pools are similar to the ones used for domains.
 
 =over 4

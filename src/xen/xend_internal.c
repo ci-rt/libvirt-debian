@@ -55,8 +55,6 @@
 /*
  * The number of Xen scheduler parameters
  */
-#define XEN_SCHED_SEDF_NPARAM   6
-#define XEN_SCHED_CRED_NPARAM   2
 
 #define XEND_RCV_BUF_MAX_LEN 65536
 
@@ -487,7 +485,7 @@ xend_op_ext(virConnectPtr xend, const char *path, const char *key, va_list ap)
     while (k) {
         v = va_arg(ap, const char *);
 
-        virBufferVSprintf(&buf, "%s=%s", k, v);
+        virBufferAsprintf(&buf, "%s=%s", k, v);
         k = va_arg(ap, const char *);
 
         if (k)
@@ -1020,6 +1018,43 @@ xend_detect_config_version(virConnectPtr conn) {
 
 
 /**
+ * sexpr_to_xend_domain_state:
+ * @root: an S-Expression describing a domain
+ *
+ * Internal routine getting the domain's state from the domain root provided.
+ *
+ * Returns domain's state.
+ */
+static int
+ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
+sexpr_to_xend_domain_state(virDomainPtr domain, const struct sexpr *root)
+{
+    const char *flags;
+    int state = VIR_DOMAIN_NOSTATE;
+
+    if ((flags = sexpr_node(root, "domain/state"))) {
+        if (strchr(flags, 'c'))
+            state = VIR_DOMAIN_CRASHED;
+        else if (strchr(flags, 's'))
+            state = VIR_DOMAIN_SHUTOFF;
+        else if (strchr(flags, 'd'))
+            state = VIR_DOMAIN_SHUTDOWN;
+        else if (strchr(flags, 'p'))
+            state = VIR_DOMAIN_PAUSED;
+        else if (strchr(flags, 'b'))
+            state = VIR_DOMAIN_BLOCKED;
+        else if (strchr(flags, 'r'))
+            state = VIR_DOMAIN_RUNNING;
+    } else if (domain->id < 0) {
+        /* Inactive domains don't have a state reported, so
+           mark them SHUTOFF, rather than NOSTATE */
+        state = VIR_DOMAIN_SHUTOFF;
+    }
+
+    return state;
+}
+
+/**
  * sexpr_to_xend_domain_info:
  * @root: an S-Expression describing a domain
  * @info: a info data structure to fill=up
@@ -1033,38 +1068,16 @@ static int
 sexpr_to_xend_domain_info(virDomainPtr domain, const struct sexpr *root,
                           virDomainInfoPtr info)
 {
-    const char *flags;
     int vcpus;
 
     if ((root == NULL) || (info == NULL))
         return (-1);
 
+    info->state = sexpr_to_xend_domain_state(domain, root);
     info->memory = sexpr_u64(root, "domain/memory") << 10;
     info->maxMem = sexpr_u64(root, "domain/maxmem") << 10;
-    flags = sexpr_node(root, "domain/state");
-
-    if (flags) {
-        if (strchr(flags, 'c'))
-            info->state = VIR_DOMAIN_CRASHED;
-        else if (strchr(flags, 's'))
-            info->state = VIR_DOMAIN_SHUTOFF;
-        else if (strchr(flags, 'd'))
-            info->state = VIR_DOMAIN_SHUTDOWN;
-        else if (strchr(flags, 'p'))
-            info->state = VIR_DOMAIN_PAUSED;
-        else if (strchr(flags, 'b'))
-            info->state = VIR_DOMAIN_BLOCKED;
-        else if (strchr(flags, 'r'))
-            info->state = VIR_DOMAIN_RUNNING;
-    } else {
-        /* Inactive domains don't have a state reported, so
-           mark them SHUTOFF, rather than NOSTATE */
-        if (domain->id < 0)
-            info->state = VIR_DOMAIN_SHUTOFF;
-        else
-            info->state = VIR_DOMAIN_NOSTATE;
-    }
     info->cpuTime = sexpr_float(root, "domain/cpu_time") * 1000000000;
+
     vcpus = sexpr_int(root, "domain/vcpus");
     info->nrVirtCpu = count_one_bits_l(sexpr_u64(root, "domain/vcpu_avail"));
     if (!info->nrVirtCpu || vcpus < info->nrVirtCpu)
@@ -1813,7 +1826,7 @@ cleanup:
 
 
 /**
- * xenDaemonDomainDumpXML:
+ * xenDaemonDomainGetXMLDesc:
  * @domain: a domain object
  * @flags: potential dump flags
  * @cpus: list of cpu the domain is pinned to.
@@ -1824,7 +1837,7 @@ cleanup:
  *         the caller must free() the returned value.
  */
 char *
-xenDaemonDomainDumpXML(virDomainPtr domain, int flags, const char *cpus)
+xenDaemonDomainGetXMLDesc(virDomainPtr domain, int flags, const char *cpus)
 {
     xenUnifiedPrivatePtr priv;
     virDomainDefPtr def;
@@ -1890,6 +1903,42 @@ xenDaemonDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
     ret = sexpr_to_xend_domain_info(domain, root, info);
     sexpr_free(root);
     return (ret);
+}
+
+
+/**
+ * xenDaemonDomainGetState:
+ * @domain: a domain object
+ * @state: returned domain's state
+ * @reason: returned reason for the state
+ * @flags: additional flags, 0 for now
+ *
+ * This method looks up domain state and reason.
+ *
+ * Returns 0 in case of success, -1 in case of error
+ */
+int
+xenDaemonDomainGetState(virDomainPtr domain,
+                        int *state,
+                        int *reason,
+                        unsigned int flags ATTRIBUTE_UNUSED)
+{
+    xenUnifiedPrivatePtr priv = domain->conn->privateData;
+    struct sexpr *root;
+
+    if (domain->id < 0 && priv->xendConfigVersion < 3)
+        return -1;
+
+    root = sexpr_get(domain->conn, "/xend/domain/%s?detail=1", domain->name);
+    if (!root)
+        return -1;
+
+    *state = sexpr_to_xend_domain_state(domain, root);
+    if (reason)
+        *reason = 0;
+
+    sexpr_free(root);
+    return 0;
 }
 
 
@@ -3279,7 +3328,7 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
     if (ret == 0 && undefined_source)
         xenDaemonDomainUndefine (domain);
 
-    VIR_DEBUG0("migration done");
+    VIR_DEBUG("migration done");
 
     return ret;
 }
@@ -3480,8 +3529,7 @@ xenDaemonGetSchedulerType(virDomainPtr domain, int *nparams)
     const char *ret = NULL;
     char *schedulertype = NULL;
 
-    if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)
-        || (nparams == NULL)) {
+    if (domain->conn == NULL || domain->name == NULL) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return NULL;
     }
@@ -3511,14 +3559,16 @@ xenDaemonGetSchedulerType(virDomainPtr domain, int *nparams)
             virReportOOMError();
             goto error;
         }
-        *nparams = XEN_SCHED_CRED_NPARAM;
+        if (nparams)
+            *nparams = XEN_SCHED_CRED_NPARAM;
     } else if (STREQ (ret, "sedf")) {
         schedulertype = strdup("sedf");
         if (schedulertype == NULL){
             virReportOOMError();
             goto error;
         }
-        *nparams = XEN_SCHED_SEDF_NPARAM;
+        if (nparams)
+            *nparams = XEN_SCHED_SEDF_NPARAM;
     } else {
         virXendError(VIR_ERR_INTERNAL_ERROR, "%s", _("Unknown scheduler"));
         goto error;
@@ -3547,7 +3597,7 @@ static const char *str_cap = "cap";
  */
 static int
 xenDaemonGetSchedulerParameters(virDomainPtr domain,
-                                virSchedParameterPtr params, int *nparams)
+                                virTypedParameterPtr params, int *nparams)
 {
     xenUnifiedPrivatePtr priv;
     struct sexpr *root;
@@ -3555,8 +3605,7 @@ xenDaemonGetSchedulerParameters(virDomainPtr domain,
     int sched_nparam = 0;
     int ret = -1;
 
-    if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)
-        || (params == NULL) || (nparams == NULL)) {
+    if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return (-1);
     }
@@ -3584,10 +3633,22 @@ xenDaemonGetSchedulerParameters(virDomainPtr domain,
 
     switch (sched_nparam){
         case XEN_SCHED_SEDF_NPARAM:
+            if (*nparams < XEN_SCHED_SEDF_NPARAM) {
+                virXendError(VIR_ERR_INVALID_ARG,
+                             "%s", _("Invalid parameter count"));
+                goto error;
+            }
+
             /* TODO: Implement for Xen/SEDF */
             TODO
             goto error;
         case XEN_SCHED_CRED_NPARAM:
+            if (*nparams < XEN_SCHED_CRED_NPARAM) {
+                virXendError(VIR_ERR_INVALID_ARG,
+                             "%s", _("Invalid parameter count"));
+                goto error;
+            }
+
             /* get cpu_weight/cpu_cap from xend/domain */
             if (sexpr_node(root, "domain/cpu_weight") == NULL) {
                 virXendError(VIR_ERR_INTERNAL_ERROR,
@@ -3606,7 +3667,7 @@ xenDaemonGetSchedulerParameters(virDomainPtr domain,
                              str_weight);
                 goto error;
             }
-            params[0].type = VIR_DOMAIN_SCHED_FIELD_UINT;
+            params[0].type = VIR_TYPED_PARAM_UINT;
             params[0].value.ui = sexpr_int(root, "domain/cpu_weight");
 
             if (virStrcpyStatic(params[1].field, str_cap) == NULL) {
@@ -3614,7 +3675,7 @@ xenDaemonGetSchedulerParameters(virDomainPtr domain,
                              _("Cap %s too big for destination"), str_cap);
                 goto error;
             }
-            params[1].type = VIR_DOMAIN_SCHED_FIELD_UINT;
+            params[1].type = VIR_TYPED_PARAM_UINT;
             params[1].value.ui = sexpr_int(root, "domain/cpu_cap");
             *nparams = XEN_SCHED_CRED_NPARAM;
             ret = 0;
@@ -3642,7 +3703,7 @@ error:
  */
 static int
 xenDaemonSetSchedulerParameters(virDomainPtr domain,
-                                virSchedParameterPtr params, int nparams)
+                                virTypedParameterPtr params, int nparams)
 {
     xenUnifiedPrivatePtr priv;
     struct sexpr *root;
@@ -3651,8 +3712,7 @@ xenDaemonSetSchedulerParameters(virDomainPtr domain,
     int sched_nparam = 0;
     int ret = -1;
 
-    if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)
-        || (params == NULL)) {
+    if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return (-1);
     }
@@ -3694,10 +3754,10 @@ xenDaemonSetSchedulerParameters(virDomainPtr domain,
             memset(&buf_cap, 0, VIR_UUID_BUFLEN);
             for (i = 0; i < nparams; i++) {
                 if (STREQ (params[i].field, str_weight) &&
-                    params[i].type == VIR_DOMAIN_SCHED_FIELD_UINT) {
+                    params[i].type == VIR_TYPED_PARAM_UINT) {
                     snprintf(buf_weight, sizeof(buf_weight), "%u", params[i].value.ui);
                 } else if (STREQ (params[i].field, str_cap) &&
-                    params[i].type == VIR_DOMAIN_SCHED_FIELD_UINT) {
+                    params[i].type == VIR_TYPED_PARAM_UINT) {
                     snprintf(buf_cap, sizeof(buf_cap), "%u", params[i].value.ui);
                 } else {
                     virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -3864,6 +3924,7 @@ struct xenUnifiedDriver xenDaemonDriver = {
     xenDaemonDomainSave,         /* domainSave */
     xenDaemonDomainRestore,      /* domainRestore */
     xenDaemonDomainCoreDump,     /* domainCoreDump */
+    NULL,                        /* domainScreenshot */
     xenDaemonDomainPinVcpu,      /* domainPinVcpu */
     xenDaemonDomainGetVcpus,     /* domainGetVcpus */
     xenDaemonListDefinedDomains, /* listDefinedDomains */

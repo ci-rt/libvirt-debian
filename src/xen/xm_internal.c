@@ -103,6 +103,7 @@ struct xenUnifiedDriver xenXMDriver = {
     NULL, /* domainSave */
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
+    NULL, /* domainScreenshot */
     xenXMDomainPinVcpu, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     xenXMListDefinedDomains, /* listDefinedDomains */
@@ -469,6 +470,26 @@ int xenXMClose(virConnectPtr conn) {
 }
 
 /*
+ * Since these are all offline domains, the state is always SHUTOFF.
+ */
+int
+xenXMDomainGetState(virDomainPtr domain,
+                    int *state,
+                    int *reason,
+                    unsigned int flags ATTRIBUTE_UNUSED)
+{
+    if (domain->id != -1)
+        return -1;
+
+    *state = VIR_DOMAIN_SHUTOFF;
+    if (reason)
+        *reason = 0;
+
+    return 0;
+}
+
+
+/*
  * Since these are all offline domains, we only return info about
  * VCPUs and memory.
  */
@@ -513,7 +534,7 @@ error:
  * Turn a config record into a lump of XML describing the
  * domain, suitable for later feeding for virDomainCreateXML
  */
-char *xenXMDomainDumpXML(virDomainPtr domain, int flags) {
+char *xenXMDomainGetXMLDesc(virDomainPtr domain, int flags) {
     xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
@@ -857,7 +878,7 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
                     virBufferAddLit (&mapbuf, ",");
                 comma = 1;
 
-                virBufferVSprintf (&mapbuf, "%d", n);
+                virBufferAsprintf (&mapbuf, "%d", n);
             }
 
     if (virBufferError(&mapbuf)) {
@@ -1515,8 +1536,9 @@ xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
         break;
     }
     default:
-        xenXMError(VIR_ERR_XML_ERROR,
-                   "%s", _("unknown device"));
+        xenXMError(VIR_ERR_CONFIG_UNSUPPORTED,
+                   _("device type '%s' cannot be detached"),
+                   virDomainDeviceTypeToString(dev->type));
         goto cleanup;
     }
 

@@ -43,6 +43,84 @@
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
+/* While not public, these strings must not change. They
+ * are used in domain status files which are read on
+ * daemon restarts
+ */
+VIR_ENUM_IMPL(qemuCaps, QEMU_CAPS_LAST,
+              "kqemu",  /* 0 */
+              "vnc-colon",
+              "no-reboot",
+              "drive",
+              "drive-boot",
+
+              "name", /* 5 */
+              "uuid",
+              "domid",
+              "vnet-hdr",
+              "migrate-kvm-stdio",
+
+              "migrate-qemu-tcp", /* 10 */
+              "migrate-qemu-exec",
+              "drive-cache-v2",
+              "kvm",
+              "drive-format",
+
+              "vga", /* 15 */
+              "0.10",
+              "pci-device",
+              "mem-path",
+              "drive-serial",
+
+              "xen-domid", /* 20 */
+              "migrate-qemu-unix",
+              "chardev",
+              "enable-kvm",
+              "monitor-json",
+
+              "balloon", /* 25 */
+              "device",
+              "sdl",
+              "smp-topology",
+              "netdev",
+
+              "rtc", /* 30 */
+              "vhost-net",
+              "rtc-td-hack",
+              "no-hpet",
+              "no-kvm-pit",
+
+              "tdf", /* 35 */
+              "pci-configfd",
+              "nodefconfig",
+              "boot-menu",
+              "enable-kqemu",
+
+              "fsdev", /* 40 */
+              "nesting",
+              "name-process",
+              "drive-readonly",
+              "smbios-type",
+
+              "vga-qxl", /* 45 */
+              "spice",
+              "vga-none",
+              "migrate-qemu-fd",
+              "boot-index",
+
+              "hda-duplex", /* 50 */
+              "drive-aio",
+              "pci-multibus",
+              "pci-bootindex",
+              "ccid-emulated",
+
+              "ccid-passthru", /* 55 */
+              "chardev-spicevmc",
+              "device-spicevmc",
+              "virtio-tx-alg",
+              "device-qxl-vga",
+    );
+
 struct qemu_feature_flags {
     const char *name;
     const int default_on;
@@ -728,12 +806,12 @@ virCapsPtr qemuCapsInit(virCapsPtr old_caps)
      */
     if (nodeCapsInitNUMA(caps) < 0) {
         virCapabilitiesFreeNUMAInfo(caps);
-        VIR_WARN0("Failed to query host NUMA topology, disabling NUMA capabilities");
+        VIR_WARN("Failed to query host NUMA topology, disabling NUMA capabilities");
     }
 
     if (old_caps == NULL || old_caps->host.cpu == NULL) {
         if (qemuCapsInitCPU(caps, utsname.machine) < 0)
-            VIR_WARN0("Failed to get host CPU");
+            VIR_WARN("Failed to get host CPU");
     }
     else {
         caps->host.cpu = old_caps->host.cpu;
@@ -904,8 +982,8 @@ qemuCapsComputeCmdFlags(const char *help,
     if (is_kvm && (version >= 10000 || kvm_version >= 74))
         qemuCapsSet(flags, QEMU_CAPS_VNET_HDR);
 
-    if (is_kvm && strstr(help, ",vhost=")) {
-        qemuCapsSet(flags, QEMU_CAPS_VNET_HOST);
+    if (strstr(help, ",vhost=")) {
+        qemuCapsSet(flags, QEMU_CAPS_VHOST_NET);
     }
 
     /*

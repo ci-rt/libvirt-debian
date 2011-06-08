@@ -27,6 +27,7 @@ The primary maintainers and people with commit access rights:
   Justin Clift         <jclift@redhat.com>
   Osier Yang           <jyang@redhat.com>
   Wen Congyang         <wency@cn.fujitsu.com>
+  Michal Prívozník     <mprivozn@redhat.com>
 
 Previous maintainers:
   Karel Zak            <kzak@redhat.com>
@@ -80,9 +81,9 @@ Patches have also been contributed by:
   Serge E. Hallyn      <serue@us.ibm.com>
   Soren Hansen         <soren@linux2go.dk>
   Abel Míguez Rodríguez<amiguezr@pdi.ucm.es>
-  Doug Goldstein       <cardoe@gentoo.org>
+  Doug Goldstein       <cardoe@cardoe.com>
   Javier Fontan        <jfontan@gmail.com>
-  Federico Simoncelli  <federico.simoncelli@gmail.com>
+  Federico Simoncelli  <fsimonce@redhat.com>
   Amy Griffis          <amy.griffis@hp.com>
   Henrik Persson E     <henrik.e.persson@ericsson.com>
   Satoru SATOH         <satoru.satoh@gmail.com>
@@ -146,7 +147,6 @@ Patches have also been contributed by:
   Paweł Krześniak      <pawel.krzesniak@gmail.com>
   Kay Schubert         <kayegypt@web.de>
   Marc-André Lureau    <marcandre.lureau@redhat.com>
-  Michal Prívozník     <mprivozn@redhat.com>
   Juerg Haefliger      <juerg.haefliger@hp.com>
   Matthias Dahl        <mdvirt@designassembly.de>
   Niels de Vos         <ndevos@redhat.com>
@@ -170,6 +170,10 @@ Patches have also been contributed by:
   Mark Wu              <dwu@redhat.com>
   Yufang Zhang         <yuzhang@redhat.com>
   Supriya Kannery      <supriyak@in.ibm.com>
+  Dirk Herrendoerfer   <d.herrendoerfer@herrendoerfer.name>
+  Taisuke Yamada       <tai@rakugaki.org>
+  Heath Petersen       <HeathPetersen@Kandre.com>
+  Neil Wilson          <neil@aldur.co.uk>
 
   [....send patches to get your name here....]
 

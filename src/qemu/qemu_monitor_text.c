@@ -84,7 +84,7 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
            not consumed anything. We'll restart when more data arrives. */
         if (!offset) {
 #if DEBUG_IO
-            VIR_DEBUG0("Partial greeting seen, getting out & waiting for more");
+            VIR_DEBUG("Partial greeting seen, getting out & waiting for more");
 #endif
             return 0;
         }
@@ -92,7 +92,7 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
         used = offset - data + strlen(GREETING_POSTFIX);
 
 #if DEBUG_IO
-        VIR_DEBUG0("Discarded monitor greeting");
+        VIR_DEBUG("Discarded monitor greeting");
 #endif
     }
 
@@ -153,7 +153,8 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
 #endif
                 if (msg->passwordHandler) {
                     int i;
-                    /* Try and handle the prompt */
+                    /* Try and handle the prompt. The handler is required
+                     * to report a normal libvirt error */
                     if (msg->passwordHandler(mon, msg,
                                              start,
                                              passwd - start + strlen(PASSWORD_PROMPT),
@@ -168,7 +169,8 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                     /* Handled, so skip forward over password prompt */
                     start = passwd;
                 } else {
-                    errno = EACCES;
+                    qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                    _("Password request seen, but no handler available"));
                     return -1;
                 }
             }
@@ -183,15 +185,17 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
              * BASIC_PROMPT we can reasonably reliably cope */
             if (want) {
                 if (VIR_REALLOC_N(msg->rxBuffer,
-                                  msg->rxLength + want + 1) < 0)
+                                  msg->rxLength + want + 1) < 0) {
+                    virReportOOMError();
                     return -1;
+                }
                 memcpy(msg->rxBuffer + msg->rxLength, start, want);
                 msg->rxLength += want;
                 msg->rxBuffer[msg->rxLength] = '\0';
 #if DEBUG_IO
                 VIR_DEBUG("Finished %d byte reply [%s]", want, msg->rxBuffer);
             } else {
-                VIR_DEBUG0("Finished 0 byte reply");
+                VIR_DEBUG("Finished 0 byte reply");
 #endif
             }
             msg->finished = 1;
@@ -234,28 +238,24 @@ qemuMonitorTextCommandWithHandler(qemuMonitorPtr mon,
 
     ret = qemuMonitorSend(mon, &msg);
 
-    VIR_DEBUG("Receive command reply ret=%d errno=%d %d bytes '%s'",
-              ret, msg.lastErrno, msg.rxLength, msg.rxBuffer);
+    VIR_DEBUG("Receive command reply ret=%d rxLength=%d rxBuffer='%s'",
+              ret, msg.rxLength, msg.rxBuffer);
 
     /* Just in case buffer had some passwords in */
     memset(msg.txBuffer, 0, msg.txLength);
     VIR_FREE(msg.txBuffer);
 
-    /* To make life safer for callers, already ensure there's at least an empty string */
-    if (msg.rxBuffer) {
-        *reply = msg.rxBuffer;
-    } else {
-        *reply = strdup("");
-        if (!*reply) {
-            virReportOOMError();
-            return -1;
+    if (ret >= 0) {
+        /* To make life safer for callers, already ensure there's at least an empty string */
+        if (msg.rxBuffer) {
+            *reply = msg.rxBuffer;
+        } else {
+            *reply = strdup("");
+            if (!*reply) {
+                virReportOOMError();
+                return -1;
+            }
         }
-    }
-
-    if (ret < 0) {
-        virReportSystemError(msg.lastErrno,
-                             _("cannot send monitor command '%s'"), cmd);
-        VIR_FREE(*reply);
     }
 
     return ret;
@@ -297,15 +297,16 @@ qemuMonitorSendDiskPassphrase(qemuMonitorPtr mon,
     pathStart = strstr(data, DISK_ENCRYPTION_PREFIX);
     pathEnd = strstr(data, DISK_ENCRYPTION_POSTFIX);
     if (!pathStart || !pathEnd || pathStart >= pathEnd) {
-        errno = -EINVAL;
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("Unable to extract disk path from %s"),
+                        data);
         return -1;
     }
 
     /* Extra the path */
     pathStart += strlen(DISK_ENCRYPTION_PREFIX);
-    path = strndup(pathStart, pathEnd - pathStart);
-    if (!path) {
-        errno = ENOMEM;
+    if (!(path = strndup(pathStart, pathEnd - pathStart))) {
+        virReportOOMError();
         return -1;
     }
 
@@ -325,7 +326,7 @@ qemuMonitorSendDiskPassphrase(qemuMonitorPtr mon,
                       msg->txLength + passphrase_len + 1 + 1) < 0) {
         memset(passphrase, 0, passphrase_len);
         VIR_FREE(passphrase);
-        errno = ENOMEM;
+        virReportOOMError();
         return -1;
     }
 
@@ -370,6 +371,36 @@ qemuMonitorTextStopCPUs(qemuMonitorPtr mon) {
     }
     VIR_FREE(info);
     return 0;
+}
+
+
+int
+qemuMonitorTextGetStatus(qemuMonitorPtr mon, bool *running)
+{
+    char *reply;
+    int ret = -1;
+
+    if (qemuMonitorHMPCommand(mon, "info status", &reply) < 0) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        "%s", _("cannot get status info"));
+        return -1;
+    }
+
+    if (strstr(reply, "running")) {
+        *running = true;
+    } else if (strstr(reply, "paused")) {
+        *running = false;
+    } else {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("unexpected reply from info status: %s"), reply);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(reply);
+    return ret;
 }
 
 
@@ -733,7 +764,7 @@ qemuMonitorSendVNCPassphrase(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
      * to be sent back */
     if (VIR_REALLOC_N(msg->txBuffer,
                       msg->txLength + passphrase_len + 1 + 1) < 0) {
-        errno = ENOMEM;
+        virReportOOMError();
         return -1;
     }
 
@@ -1281,6 +1312,37 @@ int qemuMonitorTextMigrateCancel(qemuMonitorPtr mon)
 
     return 0;
 }
+
+
+int qemuMonitorTextGraphicsRelocate(qemuMonitorPtr mon,
+                                    int type,
+                                    const char *hostname,
+                                    int port,
+                                    int tlsPort,
+                                    const char *tlsSubject)
+{
+    char *cmd;
+    char *info = NULL;
+
+    if (virAsprintf(&cmd, "client_migrate_info %s %s %d %d %s",
+                    type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE ? "spice" : "vnc",
+                    hostname, port, tlsPort, tlsSubject ? tlsSubject : "") < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (qemuMonitorHMPCommand(mon, cmd, &info) < 0) {
+        VIR_FREE(cmd);
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        "%s", _("cannot run monitor command to relocate graphics client"));
+        return -1;
+    }
+    VIR_FREE(cmd);
+    VIR_FREE(info);
+
+    return 0;
+}
+
 
 int qemuMonitorTextAddUSBDisk(qemuMonitorPtr mon,
                               const char *path)
@@ -2386,7 +2448,7 @@ int qemuMonitorTextDriveDel(qemuMonitorPtr mon,
     }
 
     if (strstr(reply, "unknown command:")) {
-        VIR_ERROR0(_("deleting drive is not supported.  "
+        VIR_ERROR(_("deleting drive is not supported.  "
                     "This may leak data if disk is reassigned"));
         ret = 1;
         goto cleanup;
@@ -2396,7 +2458,6 @@ int qemuMonitorTextDriveDel(qemuMonitorPtr mon,
     } else if (STRPREFIX(reply, "Device '") && (strstr(reply, "not found"))) {
         /* NB: device not found errors mean the drive was auto-deleted and we
          * ignore the error */
-        ret = 0;
     } else if (STRNEQ(reply, "")) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("deleting %s drive failed: %s"), drivestr, reply);
@@ -2626,5 +2687,64 @@ int qemuMonitorTextArbitraryCommand(qemuMonitorPtr mon, const char *cmd,
 
     VIR_FREE(safecmd);
 
+    return ret;
+}
+
+int qemuMonitorTextInjectNMI(qemuMonitorPtr mon)
+{
+    const char *cmd = "inject-nmi";
+    char *reply = NULL;
+
+    if (qemuMonitorHMPCommand(mon, cmd, &reply) < 0)
+       goto fail;
+
+    if (strstr(reply, "unknown command") != NULL) {
+        VIR_FREE(reply);
+
+        /* fallback to 'nmi' if qemu has not supported "inject-nmi" yet. */
+        cmd = "nmi 0";
+        reply = NULL;
+        if (qemuMonitorHMPCommand(mon, cmd, &reply) < 0)
+            goto fail;
+    }
+
+    VIR_FREE(reply);
+    return 0;
+
+fail:
+    qemuReportError(VIR_ERR_OPERATION_FAILED,
+                     _("failed to inject NMI using command '%s'"),
+                     cmd);
+    return -1;
+}
+
+/* Returns -1 on error, -2 if not supported */
+int qemuMonitorTextScreendump(qemuMonitorPtr mon, const char *file)
+{
+    char *cmd = NULL;
+    char *reply = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&cmd, "screendump %s", file) < 0){
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (qemuMonitorHMPCommand(mon, cmd, &reply) < 0) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        "%s", _("taking screenshot failed"));
+        goto cleanup;
+    }
+
+    if (strstr(reply, "unknown command:")) {
+        ret = -2;
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(reply);
+    VIR_FREE(cmd);
     return ret;
 }

@@ -185,6 +185,7 @@ int esxVI_SharedCURL_Remove(esxVI_SharedCURL *shared, esxVI_CURL *curl);
  */
 
 struct _esxVI_Context {
+    /* All members are used read-only after esxVI_Context_Connect ... */
     esxVI_CURL *curl;
     char *url;
     char *ipAddress;
@@ -193,7 +194,8 @@ struct _esxVI_Context {
     esxVI_ServiceContent *service;
     esxVI_APIVersion apiVersion;
     esxVI_ProductVersion productVersion;
-    esxVI_UserSession *session;
+    esxVI_UserSession *session; /* ... except the session ... */
+    virMutexPtr sessionLock; /* ... that is protected by this mutex */
     esxVI_Datacenter *datacenter;
     esxVI_ComputeResource *computeResource;
     esxVI_HostSystem *hostSystem;
@@ -349,7 +351,7 @@ int esxVI_GetManagedObjectReference(esxVI_ObjectContent *objectContent,
 
 int esxVI_LookupNumberOfDomainsByPowerState
       (esxVI_Context *ctx, esxVI_VirtualMachinePowerState powerState,
-       esxVI_Boolean inverse);
+       bool inverse);
 
 int esxVI_GetVirtualMachineIdentity(esxVI_ObjectContent *virtualMachine,
                                     int *id, char **name, unsigned char *uuid);
@@ -394,7 +396,7 @@ int esxVI_LookupVirtualMachineByName(esxVI_Context *ctx, const char *name,
 int esxVI_LookupVirtualMachineByUuidAndPrepareForTask
       (esxVI_Context *ctx, const unsigned char *uuid,
        esxVI_String *propertyNameList, esxVI_ObjectContent **virtualMachine,
-       esxVI_Boolean autoAnswer);
+       bool autoAnswer);
 
 int esxVI_LookupDatastoreList(esxVI_Context *ctx, esxVI_String *propertyNameList,
                               esxVI_ObjectContent **datastoreList);
@@ -425,8 +427,7 @@ int esxVI_LookupPendingTaskInfoListByVirtualMachine
 int esxVI_LookupAndHandleVirtualMachineQuestion(esxVI_Context *ctx,
                                                 const unsigned char *uuid,
                                                 esxVI_Occurrence occurrence,
-                                                esxVI_Boolean autoAnswer,
-                                                esxVI_Boolean *blocked);
+                                                bool autoAnswer, bool *blocked);
 
 int esxVI_LookupRootSnapshotTreeList
       (esxVI_Context *ctx, const unsigned char *virtualMachineUuid,
@@ -458,16 +459,15 @@ int esxVI_LookupAutoStartPowerInfoList(esxVI_Context *ctx,
                                        esxVI_AutoStartPowerInfo **powerInfoList);
 
 int esxVI_HandleVirtualMachineQuestion
-      (esxVI_Context *ctx,
-       esxVI_ManagedObjectReference *virtualMachine,
-       esxVI_VirtualMachineQuestionInfo *questionInfo,
-       esxVI_Boolean autoAnswer, esxVI_Boolean *blocked);
+      (esxVI_Context *ctx, esxVI_ManagedObjectReference *virtualMachine,
+       esxVI_VirtualMachineQuestionInfo *questionInfo, bool autoAnswer,
+       bool *blocked);
 
 int esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
                                 esxVI_ManagedObjectReference *task,
                                 const unsigned char *virtualMachineUuid,
                                 esxVI_Occurrence virtualMachineOccurrence,
-                                esxVI_Boolean autoAnswer,
+                                bool autoAnswer,
                                 esxVI_TaskInfoState *finalState,
                                 char **errorMessage);
 

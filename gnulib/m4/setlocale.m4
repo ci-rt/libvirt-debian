@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# setlocale.m4 serial 1
+# setlocale.m4 serial 2
 dnl Copyright (C) 2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -16,7 +16,6 @@ AC_DEFUN([gl_FUNC_SETLOCALE],
     mingw*) REPLACE_SETLOCALE=1 ;;
   esac
   if test $REPLACE_SETLOCALE = 1; then
-    gl_REPLACE_LOCALE_H
     AC_LIBOBJ([setlocale])
     gl_PREREQ_SETLOCALE
   fi

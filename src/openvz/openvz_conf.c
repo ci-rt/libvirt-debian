@@ -58,8 +58,10 @@
 
 static char *openvzLocateConfDir(void);
 static int openvzGetVPSUUID(int vpsid, char *uuidstr, size_t len);
-static int openvzLocateConfFile(int vpsid, char **conffile, const char *ext);
 static int openvzAssignUUIDs(void);
+static int openvzLocateConfFileDefault(int vpsid, char **conffile, const char *ext);
+
+openvzLocateConfFileFunc openvzLocateConfFile = openvzLocateConfFileDefault;
 
 int
 strtoI(const char *str)
@@ -74,53 +76,40 @@ strtoI(const char *str)
 
 
 static int
-openvzExtractVersionInfo(const char *cmd, int *retversion)
+openvzExtractVersionInfo(const char *cmdstr, int *retversion)
 {
-    const char *const vzarg[] = { cmd, "--help", NULL };
-    const char *const vzenv[] = { "LC_ALL=C", NULL };
-    pid_t child;
-    int newstdout = -1;
-    int ret = -1, status;
+    int ret = -1;
     unsigned long version;
+    char *help = NULL;
     char *tmp;
+    virCommandPtr cmd = virCommandNewArgList(cmdstr, "--help", NULL);
 
     if (retversion)
         *retversion = 0;
 
-    if (virExec(vzarg, vzenv, NULL,
-                &child, -1, &newstdout, NULL, VIR_EXEC_NONE) < 0)
-        return -1;
+    virCommandAddEnvString(cmd, "LC_ALL=C");
+    virCommandSetOutputBuffer(cmd, &help);
 
-    char *help = NULL;
-    int len = virFileReadLimFD(newstdout, 4096, &help);
-    if (len < 0)
-        goto cleanup2;
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
 
     tmp = help;
 
     /* expected format: vzctl version <major>.<minor>.<micro> */
     if ((tmp = STRSKIP(tmp, "vzctl version ")) == NULL)
-        goto cleanup2;
+        goto cleanup;
 
     if (virParseVersionString(tmp, &version) < 0)
-        goto cleanup2;
+        goto cleanup;
 
     if (retversion)
         *retversion = version;
 
     ret = 0;
 
-cleanup2:
+cleanup:
+    virCommandFree(cmd);
     VIR_FREE(help);
-    if (VIR_CLOSE(newstdout) < 0)
-        ret = -1;
-
-rewait:
-    if (waitpid(child, &status, 0) != child) {
-        if (errno == EINTR)
-            goto rewait;
-        ret = -1;
-    }
 
     return ret;
 }
@@ -174,15 +163,17 @@ virCapsPtr openvzCapsInit(void)
                                       0,
                                       NULL) == NULL)
         goto no_memory;
-    return caps;
 
+    caps->defaultInitPath = "/sbin/init";
+
+    return caps;
 no_memory:
     virCapabilitiesFree(caps);
     return NULL;
 }
 
 
-static int
+int
 openvzReadNetworkConf(virDomainDefPtr def,
                       int veid) {
     int ret;
@@ -248,7 +239,7 @@ openvzReadNetworkConf(virDomainDefPtr def,
 
             /*parse string*/
             do {
-                char *next = strchrnul (token, ',');
+                char *next = strchrnul (p, ',');
                 if (STRPREFIX(p, "ifname=")) {
                     /* skip in libvirt */
                 } else if (STRPREFIX(p, "host_ifname=")) {
@@ -484,14 +475,22 @@ int openvzLoadDomains(struct openvz_driver *driver) {
         if (VIR_ALLOC(dom->def) < 0)
             goto no_memory;
 
-        if (STREQ(status, "stopped"))
-            dom->state = VIR_DOMAIN_SHUTOFF;
-        else
-            dom->state = VIR_DOMAIN_RUNNING;
+        dom->def->virtType = VIR_DOMAIN_VIRT_OPENVZ;
+
+        if (STREQ(status, "stopped")) {
+            virDomainObjSetState(dom, VIR_DOMAIN_SHUTOFF,
+                                 VIR_DOMAIN_SHUTOFF_UNKNOWN);
+        } else {
+            virDomainObjSetState(dom, VIR_DOMAIN_RUNNING,
+                                 VIR_DOMAIN_RUNNING_UNKNOWN);
+        }
 
         dom->refs = 1;
         dom->pid = veid;
-        dom->def->id = dom->state == VIR_DOMAIN_SHUTOFF ? -1 : veid;
+        if (virDomainObjGetState(dom, NULL) == VIR_DOMAIN_SHUTOFF)
+            dom->def->id = -1;
+        else
+            dom->def->id = veid;
         /* XXX OpenVZ doesn't appear to have concept of a transient domain */
         dom->persistent = 1;
 
@@ -647,53 +646,50 @@ openvzWriteVPSConfigParam(int vpsid, const char *param, const char *value)
 /*
  * value will be freed before a new value is assigned to it, the caller is
  * responsible for freeing it afterwards.
+ *
+ * Returns <0 on error, 0 if not found, 1 if found.
  */
-static int
+int
 openvzReadConfigParam(const char *conf_file, const char *param, char **value)
 {
     char *line = NULL;
     size_t line_size = 0;
-    ssize_t ret;
     FILE *fp;
-    int found = 0;
-    char *sf, *token;
-    char *saveptr = NULL;
-
-    value[0] = 0;
+    int err = 0;
+    char *sf, *token, *saveptr = NULL;
 
     fp = fopen(conf_file, "r");
     if (fp == NULL)
         return -1;
 
+    VIR_FREE(*value);
     while (1) {
-        ret = getline(&line, &line_size, fp);
-        if (ret <= 0)
+        if (getline(&line, &line_size, fp) < 0) {
+            err = !feof(fp);
             break;
+        }
+
+        if (! STREQLEN(line, param, strlen(param)))
+            continue;
+
+        sf = line + strlen(param);
+        if (*sf++ != '=') continue;
+
         saveptr = NULL;
-        if (STREQLEN(line, param, strlen(param))) {
-            sf = line;
-            sf += strlen(param);
-            if (sf[0] == '=' && sf[1] != '\0' ) {
-                sf++;
-                if ((token = strtok_r(sf,"\"\t\n", &saveptr)) != NULL) {
-                    VIR_FREE(*value);
-                    *value = strdup(token);
-                    if (value == NULL) {
-                        ret = -1;
-                        break;
-                    }
-                    found = 1;
-                }
+        if ((token = strtok_r(sf, "\"\t\n", &saveptr)) != NULL) {
+            VIR_FREE(*value);
+            *value = strdup(token);
+            if (*value == NULL) {
+                err = 1;
+                break;
             }
-       }
+            /* keep going - last entry wins */
+        }
     }
     VIR_FREE(line);
     VIR_FORCE_FCLOSE(fp);
 
-    if (ret == 0 && found)
-        ret = 1;
-
-    return ret;
+    return err ? -1 : *value ? 1 : 0;
 }
 
 /*
@@ -807,13 +803,12 @@ cleanup:
 }
 
 /* Locate config file of container
-* return -1 - error
-*         0 - OK
-*/
+ * return -1 - error
+ *         0 - OK */
 static int
-openvzLocateConfFile(int vpsid, char **conffile, const char *ext)
+openvzLocateConfFileDefault(int vpsid, char **conffile, const char *ext)
 {
-    char * confdir;
+    char *confdir;
     int ret = 0;
 
     confdir = openvzLocateConfDir();
@@ -830,8 +825,8 @@ openvzLocateConfFile(int vpsid, char **conffile, const char *ext)
     return ret;
 }
 
-static char
-*openvzLocateConfDir(void)
+static char *
+openvzLocateConfDir(void)
 {
     const char *conf_dir_list[] = {"/etc/vz/conf", "/usr/local/etc/conf", NULL};
     int i=0;
@@ -876,7 +871,6 @@ openvzGetVPSUUID(int vpsid, char *uuidstr, size_t len)
     char *conf_file;
     char *line = NULL;
     size_t line_size = 0;
-    ssize_t ret;
     char *saveptr = NULL;
     char *uuidbuf;
     char *iden;
@@ -891,13 +885,13 @@ openvzGetVPSUUID(int vpsid, char *uuidstr, size_t len)
         goto cleanup;
 
     while (1) {
-        ret = getline(&line, &line_size, fp);
-        if (ret == -1)
-            goto cleanup;
-
-        if (ret == 0) { /* EoF, UUID was not found */
-            uuidstr[0] = 0;
-            break;
+        if (getline(&line, &line_size, fp) < 0) {
+            if (feof(fp)) { /* EOF, UUID was not found */
+                uuidstr[0] = 0;
+                break;
+            } else {
+                goto cleanup;
+            }
         }
 
         iden = strtok_r(line, " ", &saveptr);

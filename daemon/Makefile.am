@@ -2,28 +2,35 @@
 
 CLEANFILES =
 
+DAEMON_GENERATED =					\
+		$(srcdir)/remote_dispatch_prototypes.h	\
+		$(srcdir)/remote_dispatch_table.h	\
+		$(srcdir)/remote_dispatch_args.h	\
+		$(srcdir)/remote_dispatch_ret.h		\
+		$(srcdir)/remote_dispatch_bodies.h	\
+		$(srcdir)/qemu_dispatch_prototypes.h	\
+		$(srcdir)/qemu_dispatch_table.h		\
+		$(srcdir)/qemu_dispatch_args.h		\
+		$(srcdir)/qemu_dispatch_ret.h		\
+		$(srcdir)/qemu_dispatch_bodies.h
+
 DAEMON_SOURCES =					\
 		libvirtd.c libvirtd.h			\
 		remote.c remote.h			\
 		dispatch.c dispatch.h			\
 		stream.c stream.h			\
-		remote_dispatch_prototypes.h		\
-		remote_dispatch_table.h			\
-		remote_dispatch_args.h			\
-		remote_dispatch_ret.h			\
-		qemu_dispatch_prototypes.h		\
-		qemu_dispatch_table.h			\
-		qemu_dispatch_args.h			\
-		qemu_dispatch_ret.h			\
 		../src/remote/remote_protocol.c		\
-		../src/remote/qemu_protocol.c
+		../src/remote/qemu_protocol.c		\
+		$(DAEMON_GENERATED)
 
 AVAHI_SOURCES =						\
 		mdns.c mdns.h
 
 DISTCLEANFILES =
 EXTRA_DIST =						\
-	remote_generate_stubs.pl			\
+	remote_generator.pl				\
+	remote_dispatch_bodies.h			\
+	qemu_dispatch_bodies.h				\
 	libvirtd.conf					\
 	libvirtd.init.in				\
 	libvirtd.upstart				\
@@ -37,7 +44,7 @@ EXTRA_DIST =						\
 	libvirtd.lxc.logrotate.in                       \
 	libvirtd.uml.logrotate.in                       \
 	test_libvirtd.aug                               \
-	THREADING.txt					\
+	THREADS.txt					\
 	libvirtd.pod.in					\
 	libvirtd.8.in					\
 	libvirtd.stp					\
@@ -45,6 +52,59 @@ EXTRA_DIST =						\
 	$(DAEMON_SOURCES)
 
 BUILT_SOURCES =
+
+REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
+QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
+
+$(srcdir)/remote_dispatch_prototypes.h: $(srcdir)/remote_generator.pl \
+		$(REMOTE_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -c -p remote \
+	  $(REMOTE_PROTOCOL) > $@
+
+$(srcdir)/remote_dispatch_table.h: $(srcdir)/remote_generator.pl \
+		$(REMOTE_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -c -t remote \
+	  $(REMOTE_PROTOCOL) > $@
+
+$(srcdir)/remote_dispatch_args.h: $(srcdir)/remote_generator.pl \
+		$(REMOTE_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -c -a remote \
+	  $(REMOTE_PROTOCOL) > $@
+
+$(srcdir)/remote_dispatch_ret.h: $(srcdir)/remote_generator.pl \
+		$(REMOTE_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -c -r remote \
+	  $(REMOTE_PROTOCOL) > $@
+
+$(srcdir)/remote_dispatch_bodies.h: $(srcdir)/remote_generator.pl \
+		$(REMOTE_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -c -b remote \
+	  $(REMOTE_PROTOCOL) > $@
+
+$(srcdir)/qemu_dispatch_prototypes.h: $(srcdir)/remote_generator.pl \
+		$(QEMU_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -p qemu \
+	  $(QEMU_PROTOCOL) > $@
+
+$(srcdir)/qemu_dispatch_table.h: $(srcdir)/remote_generator.pl \
+		$(QEMU_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -t qemu \
+	  $(QEMU_PROTOCOL) > $@
+
+$(srcdir)/qemu_dispatch_args.h: $(srcdir)/remote_generator.pl \
+		$(QEMU_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -a qemu \
+	  $(QEMU_PROTOCOL) > $@
+
+$(srcdir)/qemu_dispatch_ret.h: $(srcdir)/remote_generator.pl \
+		$(QEMU_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -r qemu \
+	  $(QEMU_PROTOCOL) > $@
+
+$(srcdir)/qemu_dispatch_bodies.h: $(srcdir)/remote_generator.pl \
+		$(QEMU_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -b qemu \
+	  $(QEMU_PROTOCOL) > $@
 
 if WITH_LIBVIRTD
 
@@ -80,7 +140,7 @@ libvirtd_CFLAGS = \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/remote \
 	$(LIBXML_CFLAGS) $(GNUTLS_CFLAGS) $(SASL_CFLAGS) \
-	$(POLKIT_CFLAGS) \
+	$(XDR_CFLAGS) $(POLKIT_CFLAGS) \
 	$(WARN_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
 	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\"" \
@@ -158,8 +218,6 @@ libvirtd_CFLAGS += $(AVAHI_CFLAGS)
 libvirtd_LDADD += $(AVAHI_LIBS)
 endif
 
-EXTRA_DIST += probes.d libvirtd.stp
-
 if WITH_DTRACE
 libvirtd_LDADD += probes.o
 nodist_libvirtd_SOURCES = probes.h
@@ -179,7 +237,7 @@ CLEANFILES += probes.h probes.o
 endif
 
 install-data-local: install-init install-data-sasl install-data-polkit \
-                    install-logrotate
+		    install-logrotate
 	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt
 	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
 	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
@@ -200,48 +258,11 @@ install-data-polkit::
 uninstall-data-polkit::
 endif
 
-
-remote.c: \
-	remote_dispatch_prototypes.h \
-	remote_dispatch_table.h \
-	qemu_dispatch_prototypes.h \
-	qemu_dispatch_table.h
-
-remote.h: \
-	remote_dispatch_args.h \
-	remote_dispatch_ret.h \
-	qemu_dispatch_args.h \
-	qemu_dispatch_ret.h
-
-REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
-QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
-
-remote_dispatch_prototypes.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -p remote $(REMOTE_PROTOCOL) > $@
-
-remote_dispatch_table.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -t remote $(REMOTE_PROTOCOL) > $@
-
-remote_dispatch_args.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -a remote $(REMOTE_PROTOCOL) > $@
-
-remote_dispatch_ret.h: $(srcdir)/remote_generate_stubs.pl $(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -c -r remote $(REMOTE_PROTOCOL) > $@
-
-qemu_dispatch_prototypes.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -p qemu $(QEMU_PROTOCOL) > $@
-
-qemu_dispatch_table.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -t qemu $(QEMU_PROTOCOL) > $@
-
-qemu_dispatch_args.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -a qemu $(QEMU_PROTOCOL) > $@
-
-qemu_dispatch_ret.h: $(srcdir)/remote_generate_stubs.pl $(QEMU_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generate_stubs.pl -r qemu $(QEMU_PROTOCOL) > $@
+remote.c: $(DAEMON_GENERATED)
+remote.h: $(DAEMON_GENERATED)
 
 LOGROTATE_CONFS = libvirtd.qemu.logrotate libvirtd.lxc.logrotate \
-                  libvirtd.uml.logrotate libvirtd.logrotate
+		  libvirtd.uml.logrotate libvirtd.logrotate
 
 BUILT_SOURCES += $(LOGROTATE_CONFS)
 
@@ -326,6 +347,8 @@ uninstall-local:: uninstall-data-sasl
 endif # WITH_LIBVIRTD
 
 # This is needed for 'make dist' too, so can't wrap in WITH_LIBVIRTD.
+EXTRA_DIST += probes.d libvirtd.stp
+
 POD2MAN = pod2man -c "Virtualization Support" \
 			-r "$(PACKAGE)-$(VERSION)" -s 8
 
@@ -350,4 +373,4 @@ endif
 
 CLEANFILES += $(BUILT_SOURCES) $(man8_MANS)
 CLEANFILES += *.cov *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
-MAINTAINERCLEANFILES = $(srcdir)/libvirtd.8.in
+MAINTAINERCLEANFILES = $(srcdir)/libvirtd.8.in $(DAEMON_GENERATED)

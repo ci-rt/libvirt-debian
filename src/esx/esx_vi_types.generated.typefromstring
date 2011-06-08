@@ -61,8 +61,11 @@
            else if (STREQ(type, "ElementDescription")) {
                return esxVI_Type_ElementDescription;
            }
-           else if (STREQ(type, "Event")) {
-               return esxVI_Type_Event;
+           else if (STREQ(type, "EntityEventArgument")) {
+               return esxVI_Type_EntityEventArgument;
+           }
+           else if (STREQ(type, "EventArgument")) {
+               return esxVI_Type_EventArgument;
            }
            else if (STREQ(type, "FileBackedVirtualDiskSpec")) {
                return esxVI_Type_FileBackedVirtualDiskSpec;
@@ -249,6 +252,9 @@
            }
            else if (STREQ(type, "VmDiskFileQueryFlags")) {
                return esxVI_Type_VmDiskFileQueryFlags;
+           }
+           else if (STREQ(type, "VmEventArgument")) {
+               return esxVI_Type_VmEventArgument;
            }
            else if (STREQ(type, "VmLogFileInfo")) {
                return esxVI_Type_VmLogFileInfo;

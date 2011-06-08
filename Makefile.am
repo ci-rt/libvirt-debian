@@ -18,7 +18,7 @@ EXTRA_DIST = \
   ChangeLog-old \
   libvirt.spec libvirt.spec.in \
   mingw32-libvirt.spec.in \
-  libvirt.pc libvirt.pc.in \
+  libvirt.pc.in \
   autobuild.sh \
   Makefile.nonreentrant \
   autogen.sh \

@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# canonicalize.m4 serial 17
+# canonicalize.m4 serial 19
 
 dnl Copyright (C) 2003-2007, 2009-2011 Free Software Foundation, Inc.
 
@@ -28,6 +28,7 @@ AC_DEFUN([gl_FUNC_CANONICALIZE_FILENAME_MODE],
 # Provides canonicalize_file_name and realpath.
 AC_DEFUN([gl_CANONICALIZE_LGPL],
 [
+  AC_REQUIRE([gl_STDLIB_H_DEFAULTS])
   AC_REQUIRE([gl_CANONICALIZE_LGPL_SEPARATE])
   if test $ac_cv_func_canonicalize_file_name = no; then
     HAVE_CANONICALIZE_FILE_NAME=0
@@ -45,7 +46,7 @@ AC_DEFUN([gl_CANONICALIZE_LGPL],
 ])
 
 # Like gl_CANONICALIZE_LGPL, except prepare for separate compilation
-# (no AC_LIBOBJ).
+# (no REPLACE_CANONICALIZE_FILE_NAME, no REPLACE_REALPATH, no AC_LIBOBJ).
 AC_DEFUN([gl_CANONICALIZE_LGPL_SEPARATE],
 [
   AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
@@ -65,6 +66,7 @@ AC_DEFUN([gl_FUNC_REALPATH_WORKS],
     touch conftest.a
     AC_RUN_IFELSE([
       AC_LANG_PROGRAM([[
+        ]GL_NOCRASH[
         #include <stdlib.h>
       ]], [[
         int result = 0;

@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2011-04-27" "libvirt-0.9.1" "Virtualization Support"
+.TH VIRSH 1 "2011-06-06" "libvirt-0.9.1" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -340,7 +340,9 @@ Print the \s-1XML\s0 representation of the hypervisor sysinfo, if available.
 .IP "\fBnodeinfo\fR" 4
 .IX Item "nodeinfo"
 Returns basic information about the node, like number and type of \s-1CPU\s0,
-and size of the physical memory.
+and size of the physical memory. The output corresponds to virNodeInfo
+structure. Specifically, the \*(L"\s-1CPU\s0 socket(s)\*(R" field means number of \s-1CPU\s0
+sockets per \s-1NUMA\s0 cell.
 .IP "\fBcapabilities\fR" 4
 .IX Item "capabilities"
 Print an \s-1XML\s0 document describing the capabilities of the hypervisor
@@ -389,6 +391,9 @@ The domain has been paused, usually occurring through the administrator
 running \fBvirsh suspend\fR.  When in a paused state the domain will still
 consume allocated resources like memory, but will not be eligible for
 scheduling by the hypervisor.
+.IP "\fBinject-nmi\fR \fIdomain-id\fR" 4
+.IX Item "inject-nmi domain-id"
+Inject \s-1NMI\s0 to the guest
 .IP "\fBshutdown\fR" 4
 .IX Item "shutdown"
 The domain is in the process of shutting down, i.e. the guest operating system
@@ -501,9 +506,10 @@ Returns information about jobs running on a domain.
 .IP "\fBdomname\fR \fIdomain-id-or-uuid\fR" 4
 .IX Item "domname domain-id-or-uuid"
 Convert a domain Id (or \s-1UUID\s0) to domain name
-.IP "\fBdomstate\fR \fIdomain-id\fR" 4
-.IX Item "domstate domain-id"
-Returns state about a running domain.
+.IP "\fBdomstate\fR \fIdomain-id\fR optional \fI\-\-reason\fR" 4
+.IX Item "domstate domain-id optional --reason"
+Returns state about a domain.  \fI\-\-reason\fR tells virsh to also print
+reason for the state.
 .IP "\fBdomxml-from-native\fR \fIformat\fR \fIconfig\fR" 4
 .IX Item "domxml-from-native format config"
 Convert the file \fIconfig\fR in the native guest configuration format
@@ -624,13 +630,14 @@ other domains to use.  \fBvirsh restore\fR restores from this state file.
 This is roughly equivalent to doing a hibernate on a running computer,
 with all the same limitations.  Open network connections may be
 severed upon restore, as \s-1TCP\s0 timeouts may have expired.
-.IP "\fBschedinfo\fR optional \fI\-\-set\fR \fBparameter=value\fR \fIdomain-id\fR" 4
-.IX Item "schedinfo optional --set parameter=value domain-id"
+.IP "\fBschedinfo\fR optional \fI\-\-set\fR \fBparameter=value\fR \fIdomain-id\fR \fI\-\-config\fR \fI\-\-live\fR \fI\-\-current\fR" 4
+.IX Item "schedinfo optional --set parameter=value domain-id --config --live --current"
 .PD 0
 .IP "\fBschedinfo\fR optional \fI\-\-weight\fR \fBnumber\fR optional \fI\-\-cap\fR \fBnumber\fR \fIdomain-id\fR" 4
 .IX Item "schedinfo optional --weight number optional --cap number domain-id"
 .PD
-Allows you to show (and set) the domain scheduler parameters. The parameters available for each hypervisor are:
+Allows you to show (and set) the domain scheduler parameters. The parameters
+available for each hypervisor are:
 .Sp
 \&\s-1LXC\s0, \s-1QEMU/KVM\s0 (posix scheduler): cpu_shares
 .Sp
@@ -638,12 +645,24 @@ Xen (credit scheduler): weight, cap
 .Sp
 \&\s-1ESX\s0 (allocation scheduler): reservation, limit, shares
 .Sp
+If \fI\-\-live\fR is specified, set scheduler information of a running guest.
+If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
+If \fI\-\-current\fR is specified, affect the current guest state.
+.Sp
 \&\fBNote\fR: The cpu_shares parameter has a valid value range of 0\-262144; Negative
 values are wrapped to positive, and larger values are capped at the maximum.
 Therefore, \-1 is a useful shorthand for 262144.
 .Sp
 \&\fBNote\fR: The weight and cap parameters are defined only for the
 \&\s-1XEN_CREDIT\s0 scheduler and are now \fI\s-1DEPRECATED\s0\fR.
+.IP "\fBscreenshot\fR \fIdomain-id\fR optional \fIimagefilepath\fR \fI\-\-screen\fR \fBscreenID\fR" 4
+.IX Item "screenshot domain-id optional imagefilepath --screen screenID"
+Takes a screenshot of a current domain console and stores it into a file.
+Optionally, if hypervisor supports more displays for a domain, \fIscreenID\fR
+allows to specify which screen will be captured. It is the sequential number
+of screen. In case of multiple graphics cards, heads are enumerated before
+devices, e.g. having two graphics cards, both with four heads, screen \s-1ID\s0 5
+addresses the second head on the second card.
 .IP "\fBsetmem\fR \fIdomain-id\fR \fBkilobytes\fR optional \fI\-\-config\fR \fI\-\-live\fR \fI\-\-current\fR" 4
 .IX Item "setmem domain-id kilobytes optional --config --live --current"
 Change the memory allocation for a guest domain.
@@ -684,6 +703,13 @@ Allows you to display or set the domain memory parameters. Without
 flags, the current settings are displayed; with a flag, the
 appropriate limit is adjusted if supported by the hypervisor.  \s-1LXC\s0 and
 \&\s-1QEMU/KVM\s0 support \fI\-\-hard\-limit\fR, \fI\-\-soft\-limit\fR, and \fI\-\-swap\-hard\-limit\fR.
+.Sp
+If \fI\-\-live\fR is specified, affect a running guest.
+If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
+If \fI\-\-current\fR is specified, affect the current guest state.
+Both \fI\-\-live\fR and \fI\-\-current\fR flags may be given, but \fI\-\-current\fR is
+exclusive. If no flag is specified, behavior is different depending
+on hypervisor.
 .Sp
 For \s-1QEMU/KVM\s0, the parameters are applied to the \s-1QEMU\s0 process as a whole.
 Thus, when counting them, one needs to add up guest \s-1RAM\s0, guest video \s-1RAM\s0, and
@@ -861,8 +887,8 @@ is locked/mounted in the domain. See the documentation to learn about libvirt
 The following commands manipulate networks. Libvirt has the capability to
 define virtual networks which can then be used by domains and linked to
 actual network devices. For more detailed information about this feature
-see the documentation at <http://libvirt.org/formatnetwork.html> . A lot
-of the command for virtual networks are similar to the one used for domains,
+see the documentation at <http://libvirt.org/formatnetwork.html> . Many
+of the commands for virtual networks are similar to the ones used for domains,
 but the way to name a virtual network is either by its name or \s-1UUID\s0.
 .IP "\fBnet-autostart\fR \fInetwork\fR optional \fI\-\-disable\fR" 4
 .IX Item "net-autostart network optional --disable"
@@ -919,6 +945,88 @@ Undefine the configuration for an inactive network.
 .IP "\fBnet-uuid\fR \fInetwork-name\fR" 4
 .IX Item "net-uuid network-name"
 Convert a network name to network \s-1UUID\s0.
+.SH "INTERFACE COMMANDS"
+.IX Header "INTERFACE COMMANDS"
+The following commands manipulate host interfaces.  Often, these host
+interfaces can then be used by name within domain <interface> elements
+(such as a system-created bridge interface), but there is no
+requirement that host interfaces be tied to any particular guest
+configuration \s-1XML\s0 at all.
+.PP
+Many of the commands for host interfaces are similar to the ones used
+for domains, and the way to name an interface is either by its name or
+its \s-1MAC\s0 address.  However, using a \s-1MAC\s0 address for an \fIiface\fR
+argument only works when that address is unique (if an interface and a
+bridge share the same \s-1MAC\s0 address, which is often the case, then using
+that \s-1MAC\s0 address results in an error due to ambiguity, and you must
+resort to a name instead).
+.IP "\fBiface-define\fR \fIfile\fR" 4
+.IX Item "iface-define file"
+Define a host interface from an \s-1XML\s0 \fIfile\fR, the interface is just defined but
+not started.
+.IP "\fBiface-destroy\fR \fIinterface\fR" 4
+.IX Item "iface-destroy interface"
+Destroy a given host interface, such as by running \*(L"if-down\*(R" to
+disable that interface from active use. This takes effect immediately.
+.IP "\fBiface-dumpxml\fR \fIinterface\fR optional \fI\-\-inactive\fR" 4
+.IX Item "iface-dumpxml interface optional --inactive"
+Output the host interface information as an \s-1XML\s0 dump to stdout.  If
+\&\fI\-\-inactive\fR is specified, then the output reflects the persistent
+state of the interface that will be used the next time it is started.
+.IP "\fBiface-edit\fR \fIinterface\fR" 4
+.IX Item "iface-edit interface"
+Edit the \s-1XML\s0 configuration file for a host interface.
+.Sp
+This is equivalent to:
+.Sp
+.Vb 3
+\& virsh iface\-dumpxml iface > iface.xml
+\& vi iface.xml (or make changes with your other text editor)
+\& virsh iface\-define iface.xml
+.Ve
+.Sp
+except that it does some error checking.
+.Sp
+The editor used can be supplied by the \f(CW$VISUAL\fR or \f(CW$EDITOR\fR environment
+variables, and defaults to \f(CW\*(C`vi\*(C'\fR.
+.IP "\fBiface-list\fR optional \fI\-\-inactive\fR or \fI\-\-all\fR" 4
+.IX Item "iface-list optional --inactive or --all"
+Returns the list of active host interfaces.  If \fI\-\-all\fR is specified
+this will also include defined but inactive interfaces.  If
+\&\fI\-\-inactive\fR is specified only the inactive ones will be listed.
+.IP "\fBiface-name\fR \fIiface-MAC\fR" 4
+.IX Item "iface-name iface-MAC"
+Convert a host interface \s-1MAC\s0 to interface name, if the \fIiface-MAC\fR is
+unique among the host's interfaces.
+.IP "\fBiface-name\fR \fIiface-MAC\fR" 4
+.IX Item "iface-name iface-MAC"
+Convert a host interface name to \s-1MAC\s0 address.
+.IP "\fBiface-start\fR \fIiface\fR" 4
+.IX Item "iface-start iface"
+Start a (previously defined) host interface, such as by running \*(L"if-up\*(R".
+.IP "\fBiface-undefine\fR \fIiface\fR" 4
+.IX Item "iface-undefine iface"
+Undefine the configuration for an inactive host interface.
+.IP "\fBiface-begin\fR" 4
+.IX Item "iface-begin"
+Create a snapshot of current host interface settings, which can later
+be committed (\fIiface-commit\fR) or restored (\fIiface-rollback\fR).  If a
+snapshot already exists, then this command will fail until the
+previous snapshot has been committed or restored.  Undefined behavior
+results if any external changes are made to host interfaces outside of
+the libvirt \s-1API\s0 between the beginning of a snapshot and its eventual
+commit or rollback.
+.IP "\fBiface-commit\fR" 4
+.IX Item "iface-commit"
+Declare all changes since the last \fIiface-begin\fR as working, and
+delete the rollback point.  If no interface snapshot has already been
+started, then this command will fail.
+.IP "\fBiface-rollback\fR" 4
+.IX Item "iface-rollback"
+Revert all host interface settings back to the state recorded in the
+last \fIiface-begin\fR.  If no interface snapshot has already been
+started, then this command will fail.  Rebooting the host also serves
+as an implicit rollback point.
 .SH "STORAGE POOL COMMANDS"
 .IX Header "STORAGE POOL COMMANDS"
 The following commands manipulate storage pools. Libvirt has the
@@ -926,7 +1034,7 @@ capability to manage various storage solutions, including files, raw
 partitions, and domain-specific formats, used to provide the storage
 volumes visible as devices within virtual machines. For more detailed
 information about this feature, see the documentation at
-<http://libvirt.org/formatstorage.html> . A lot of the commands for
+<http://libvirt.org/formatstorage.html> . Many of the commands for
 pools are similar to the ones used for domains.
 .IP "\fBfind-storage-pool-sources\fR \fItype\fR optional \fIsrcSpec\fR" 4
 .IX Item "find-storage-pool-sources type optional srcSpec"

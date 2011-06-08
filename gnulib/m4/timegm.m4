@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# timegm.m4 serial 8
+# timegm.m4 serial 9
 dnl Copyright (C) 2003, 2007, 2009-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -28,15 +28,5 @@ AC_DEFUN([gl_FUNC_TIMEGM],
 
 # Prerequisites of lib/timegm.c.
 AC_DEFUN([gl_PREREQ_TIMEGM], [
-  AC_REQUIRE([gl_TIME_R])
-  AC_REQUIRE([gl_FUNC_MKTIME])
-  if test $ac_cv_func_working_mktime = yes; then
-    AC_CHECK_FUNC([__mktime_internal], ,
-      [# mktime works but it doesn't export __mktime_internal,
-       # so we need to substitute our own mktime implementation.
-       AC_LIBOBJ([mktime])
-       AC_DEFINE([mktime], [rpl_mktime],
-         [Define to rpl_mktime if the replacement function should be used.])
-       gl_PREREQ_MKTIME])
-  fi
+  :
 ])

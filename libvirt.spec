@@ -76,6 +76,7 @@
 %define with_audit         0%{!?_without_audit:0}
 %define with_dtrace        0%{!?_without_dtrace:0}
 %define with_cgconfig      0%{!?_without_cgconfig:0}
+%define with_sanlock       0%{!?_without_sanlock:0}
 
 # Non-server/HV driver defaults which are always enabled
 %define with_python        0%{!?_without_python:1}
@@ -162,6 +163,11 @@
 %define with_yajl     0%{!?_without_yajl:%{server_drivers}}
 %endif
 
+# Enable sanlock library for lock management with QEMU
+%if 0%{?fedora} >= 15 || 0%{?rhel} >= 6
+%define with_sanlock  0%{!?_without_sanlock:%{server_drivers}}
+%endif
+
 # Enable libpcap library
 %if %{with_qemu}
 %define with_nwfilter 0%{!?_without_nwfilter:%{server_drivers}}
@@ -215,7 +221,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.9.1
+Version: 0.9.2
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -331,6 +337,9 @@ BuildRequires: libpciaccess-devel >= 0.10.9
 %endif
 %if %{with_yajl}
 BuildRequires: yajl-devel
+%endif
+%if %{with_sanlock}
+BuildRequires: sanlock-devel
 %endif
 %if %{with_libpcap}
 BuildRequires: libpcap-devel
@@ -483,6 +492,18 @@ Requires: xen-devel
 Includes and documentations for the C library providing an API to use
 the virtualization capabilities of recent versions of Linux (and other OSes).
 
+%if %{with_sanlock}
+%package lock-sanlock
+Summary: Sanlock lock manager plugin for QEMU driver
+Group: Development/Libraries
+Requires: sanlock
+Requires: %{name} = %{version}-%{release}
+
+%description lock-sanlock
+Includes the Sanlock lock manager plugin for the QEMU
+driver
+%endif
+
 %if %{with_python}
 %package python
 Summary: Python bindings for the libvirt library
@@ -620,6 +641,10 @@ of recent versions of Linux (and other OSes).
 %define _without_yajl --without-yajl
 %endif
 
+%if ! %{with_sanlock}
+%define _without_sanlock --without-sanlock
+%endif
+
 %if ! %{with_libpcap}
 %define _without_libpcap --without-libpcap
 %endif
@@ -673,6 +698,7 @@ of recent versions of Linux (and other OSes).
            %{?_without_hal} \
            %{?_without_udev} \
            %{?_without_yajl} \
+           %{?_without_sanlock} \
            %{?_without_libpcap} \
            %{?_without_macvtap} \
            %{?_without_audit} \
@@ -698,6 +724,8 @@ rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.a
 rm -f $RPM_BUILD_ROOT%{_libdir}/python*/site-packages/*.la
 rm -f $RPM_BUILD_ROOT%{_libdir}/python*/site-packages/*.a
+rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/lock-driver/*.la
+rm -f $RPM_BUILD_ROOT%{_libdir}/libvirt/lock-driver/*.a
 
 %if %{with_network}
 install -d -m 0755 $RPM_BUILD_ROOT%{_datadir}/lib/libvirt/dnsmasq/
@@ -932,7 +960,7 @@ fi
 
 %dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/images/
 %dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/boot/
-%dir %attr(0700, root, root) %{_localstatedir}/cache/libvirt/
+%dir %attr(0711, root, root) %{_localstatedir}/cache/libvirt/
 
 %if %{with_qemu}
 %dir %attr(0700, root, root) %{_localstatedir}/run/libvirt/qemu/
@@ -991,6 +1019,12 @@ fi
 %{_mandir}/man8/libvirtd.8*
 
 %doc docs/*.xml
+%endif
+
+%if %{with_sanlock}
+%files lock-sanlock
+%defattr(-, root, root)
+%attr(0755, root, root) %{_libdir}/libvirt/lock-driver/sanlock.so
 %endif
 
 %files client -f %{name}.lang
@@ -1067,6 +1101,17 @@ fi
 %endif
 
 %changelog
+* Mon Jun  6 2011 Daniel Veillard <veillard@redhat.com> - 0.9.2-1
+- Framework for lock manager plugins
+- API for network config change transactions
+- flags for setting memory parameters
+- virDomainGetState public API
+- qemu: allow blkstat/blkinfo calls during migration
+- Introduce migration v3 API
+- Defining the Screenshot public API
+- public API for NMI injection
+- Various improvements and bug fixes
+
 * Thu May  5 2011 Daniel Veillard <veillard@redhat.com> - 0.9.1-1
 - support various persistent domain updates
 - improvements on memory APIs
