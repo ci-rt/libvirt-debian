@@ -283,6 +283,8 @@ mymain(void)
     DO_TEST("disk-floppy", false, NONE);
     DO_TEST("disk-many", false, NONE);
     DO_TEST("disk-virtio", false, QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT);
+    DO_TEST("disk-order", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE_BOOT);
     DO_TEST("disk-xenvbd", false, QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT);
     DO_TEST("disk-drive-boot-disk", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT);
@@ -354,6 +356,14 @@ mymain(void)
     DO_TEST("graphics-spice", false,
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE);
+    DO_TEST("graphics-spice-compression", false,
+            QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE);
+    DO_TEST("graphics-spice-timeout", false,
+            QEMU_CAPS_DRIVE,
+            QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
+            QEMU_CAPS_DEVICE_QXL_VGA);
     DO_TEST("graphics-spice-qxl-vga", false,
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,

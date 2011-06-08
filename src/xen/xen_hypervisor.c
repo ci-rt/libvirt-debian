@@ -1,7 +1,7 @@
 /*
  * xen_internal.c: direct access to Xen hypervisor level
  *
- * Copyright (C) 2005-2010 Red Hat, Inc.
+ * Copyright (C) 2005-2011 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -824,6 +824,7 @@ struct xenUnifiedDriver xenHypervisorDriver = {
     NULL, /* domainSave */
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
+    NULL, /* domainScreenshot */
     xenHypervisorPinVcpu, /* domainPinVcpu */
     xenHypervisorGetVcpus, /* domainGetVcpus */
     NULL, /* listDefinedDomains */
@@ -1206,14 +1207,14 @@ xenHypervisorGetSchedulerType(virDomainPtr domain, int *nparams)
                 if (schedulertype == NULL)
                     virReportOOMError();
                 if (nparams)
-                    *nparams = 6;
+                    *nparams = XEN_SCHED_SEDF_NPARAM;
                 break;
             case XEN_SCHEDULER_CREDIT:
                 schedulertype = strdup("credit");
                 if (schedulertype == NULL)
                     virReportOOMError();
                 if (nparams)
-                    *nparams = 2;
+                    *nparams = XEN_SCHED_CRED_NPARAM;
                 break;
             default:
                 break;
@@ -1231,8 +1232,8 @@ static const char *str_cap = "cap";
  * @domain: pointer to the Xen Hypervisor block
  * @params: pointer to scheduler parameters.
  *     This memory area should be allocated before calling.
- * @nparams:this parameter should be same as
- *     a given number of scheduler parameters.
+ * @nparams: this parameter must be at least as large as
+ *     the given number of scheduler parameters.
  *     from xenHypervisorGetSchedulerType().
  *
  * Do a low level hypercall to get scheduler parameters
@@ -1241,7 +1242,7 @@ static const char *str_cap = "cap";
  */
 int
 xenHypervisorGetSchedulerParameters(virDomainPtr domain,
-                                    virSchedParameterPtr params, int *nparams)
+                                    virTypedParameterPtr params, int *nparams)
 {
     xenUnifiedPrivatePtr priv;
 
@@ -1287,12 +1288,21 @@ xenHypervisorGetSchedulerParameters(virDomainPtr domain,
 
         switch (op_sys.u.getschedulerid.sched_id){
             case XEN_SCHEDULER_SEDF:
+                if (*nparams < XEN_SCHED_SEDF_NPARAM) {
+                    virXenError(VIR_ERR_INVALID_ARG,
+                                "%s", _("Invalid parameter count"));
+                    return -1;
+                }
+
                 /* TODO: Implement for Xen/SEDF */
                 TODO
                 return(-1);
             case XEN_SCHEDULER_CREDIT:
-                if (*nparams < 2)
-                    return(-1);
+                if (*nparams < XEN_SCHED_CRED_NPARAM) {
+                    virXenError(VIR_ERR_INVALID_ARG,
+                                "%s", _("Invalid parameter count"));
+                    return -1;
+                }
                 memset(&op_dom, 0, sizeof(op_dom));
                 op_dom.cmd = XEN_V2_OP_SCHEDULER;
                 op_dom.domain = (domid_t) domain->id;
@@ -1307,7 +1317,7 @@ xenHypervisorGetSchedulerParameters(virDomainPtr domain,
                                 "Weight %s too big for destination", str_weight);
                     return -1;
                 }
-                params[0].type = VIR_DOMAIN_SCHED_FIELD_UINT;
+                params[0].type = VIR_TYPED_PARAM_UINT;
                 params[0].value.ui = op_dom.u.getschedinfo.u.credit.weight;
 
                 if (virStrcpyStatic(params[1].field, str_cap) == NULL) {
@@ -1315,10 +1325,10 @@ xenHypervisorGetSchedulerParameters(virDomainPtr domain,
                                 "Cap %s too big for destination", str_cap);
                     return -1;
                 }
-                params[1].type = VIR_DOMAIN_SCHED_FIELD_UINT;
+                params[1].type = VIR_TYPED_PARAM_UINT;
                 params[1].value.ui = op_dom.u.getschedinfo.u.credit.cap;
 
-                *nparams = 2;
+                *nparams = XEN_SCHED_CRED_NPARAM;
                 break;
             default:
                 virXenErrorFunc(VIR_ERR_INVALID_ARG, __FUNCTION__,
@@ -1341,7 +1351,7 @@ xenHypervisorGetSchedulerParameters(virDomainPtr domain,
  */
 int
 xenHypervisorSetSchedulerParameters(virDomainPtr domain,
-                                 virSchedParameterPtr params, int nparams)
+                                    virTypedParameterPtr params, int nparams)
 {
     int i;
     unsigned int val;
@@ -1354,10 +1364,9 @@ xenHypervisorSetSchedulerParameters(virDomainPtr domain,
         return -1;
     }
 
-    if ((nparams == 0) || (params == NULL)) {
-        virXenErrorFunc(VIR_ERR_INVALID_ARG, __FUNCTION__,
-                        "Noparameters given", 0);
-        return(-1);
+    if (nparams == 0) {
+        /* nothing to do, exit early */
+        return 0;
     }
 
     priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
@@ -1415,7 +1424,7 @@ xenHypervisorSetSchedulerParameters(virDomainPtr domain,
             for (i = 0; i < nparams; i++) {
                 memset(&buf, 0, sizeof(buf));
                 if (STREQ (params[i].field, str_weight) &&
-                    params[i].type == VIR_DOMAIN_SCHED_FIELD_UINT) {
+                    params[i].type == VIR_TYPED_PARAM_UINT) {
                     val = params[i].value.ui;
                     if ((val < 1) || (val > USHRT_MAX)) {
                         snprintf(buf, sizeof(buf), _("Credit scheduler weight parameter (%d) is out of range (1-65535)"), val);
@@ -1424,7 +1433,7 @@ xenHypervisorSetSchedulerParameters(virDomainPtr domain,
                     }
                     op_dom.u.getschedinfo.u.credit.weight = val;
                 } else if (STREQ (params[i].field, str_cap) &&
-                    params[i].type == VIR_DOMAIN_SCHED_FIELD_UINT) {
+                    params[i].type == VIR_TYPED_PARAM_UINT) {
                     val = params[i].value.ui;
                     if (val >= USHRT_MAX) {
                         snprintf(buf, sizeof(buf), _("Credit scheduler cap parameter (%d) is out of range (0-65534)"), val);
@@ -2092,13 +2101,13 @@ xenHypervisorInit(void)
         /* RHEL 5.0 */
         dom_interface_version = 3; /* XEN_DOMCTL_INTERFACE_VERSION */
         if (virXen_getvcpusinfo(fd, 0, 0, ipt, NULL, 0) == 0){
-            VIR_DEBUG0("Using hypervisor call v2, sys ver2 dom ver3");
+            VIR_DEBUG("Using hypervisor call v2, sys ver2 dom ver3");
             goto done;
         }
         /* Fedora 7 */
         dom_interface_version = 4; /* XEN_DOMCTL_INTERFACE_VERSION */
         if (virXen_getvcpusinfo(fd, 0, 0, ipt, NULL, 0) == 0){
-            VIR_DEBUG0("Using hypervisor call v2, sys ver2 dom ver4");
+            VIR_DEBUG("Using hypervisor call v2, sys ver2 dom ver4");
             goto done;
         }
     }
@@ -2108,7 +2117,7 @@ xenHypervisorInit(void)
         /* xen-3.1 */
         dom_interface_version = 5; /* XEN_DOMCTL_INTERFACE_VERSION */
         if (virXen_getvcpusinfo(fd, 0, 0, ipt, NULL, 0) == 0){
-            VIR_DEBUG0("Using hypervisor call v2, sys ver3 dom ver5");
+            VIR_DEBUG("Using hypervisor call v2, sys ver3 dom ver5");
             goto done;
         }
     }
@@ -2118,7 +2127,7 @@ xenHypervisorInit(void)
         /* Fedora 8 */
         dom_interface_version = 5; /* XEN_DOMCTL_INTERFACE_VERSION */
         if (virXen_getvcpusinfo(fd, 0, 0, ipt, NULL, 0) == 0){
-            VIR_DEBUG0("Using hypervisor call v2, sys ver4 dom ver5");
+            VIR_DEBUG("Using hypervisor call v2, sys ver4 dom ver5");
             goto done;
         }
     }
@@ -2128,7 +2137,7 @@ xenHypervisorInit(void)
         /* Xen 3.2, Fedora 9 */
         dom_interface_version = 5; /* XEN_DOMCTL_INTERFACE_VERSION */
         if (virXen_getvcpusinfo(fd, 0, 0, ipt, NULL, 0) == 0){
-            VIR_DEBUG0("Using hypervisor call v2, sys ver6 dom ver5");
+            VIR_DEBUG("Using hypervisor call v2, sys ver6 dom ver5");
             goto done;
         }
     }
@@ -2137,7 +2146,7 @@ xenHypervisorInit(void)
     sys_interface_version = 7; /* XEN_SYSCTL_INTERFACE_VERSION */
     if (virXen_getdomaininfo(fd, 0, &info) == 1) {
         dom_interface_version = 6; /* XEN_DOMCTL_INTERFACE_VERSION */
-        VIR_DEBUG0("Using hypervisor call v2, sys ver7 dom ver6");
+        VIR_DEBUG("Using hypervisor call v2, sys ver7 dom ver6");
         goto done;
     }
 
@@ -2148,14 +2157,14 @@ xenHypervisorInit(void)
     sys_interface_version = 8; /* XEN_SYSCTL_INTERFACE_VERSION */
     if (virXen_getdomaininfo(fd, 0, &info) == 1) {
         dom_interface_version = 7; /* XEN_DOMCTL_INTERFACE_VERSION */
-        VIR_DEBUG0("Using hypervisor call v2, sys ver8 dom ver7\n");
+        VIR_DEBUG("Using hypervisor call v2, sys ver8 dom ver7\n");
         goto done;
     }
 
     hypervisor_version = 1;
     sys_interface_version = -1;
     if (virXen_getdomaininfo(fd, 0, &info) == 1) {
-        VIR_DEBUG0("Using hypervisor call v1");
+        VIR_DEBUG("Using hypervisor call v1");
         goto done;
     }
 
@@ -2163,7 +2172,7 @@ xenHypervisorInit(void)
      * we failed to make the getdomaininfolist hypercall
      */
 
-    VIR_DEBUG0("Failed to find any Xen hypervisor method");
+    VIR_DEBUG("Failed to find any Xen hypervisor method");
     hypervisor_version = -1;
     virXenError(VIR_ERR_XEN_CALL, " ioctl %lu",
                 (unsigned long)IOCTL_PRIVCMD_HYPERCALL);
@@ -3235,6 +3244,42 @@ xenHypervisorGetDomainInfo(virDomainPtr domain, virDomainInfoPtr info)
 
     return(xenHypervisorGetDomInfo(domain->conn, domain->id, info));
 
+}
+
+/**
+ * xenHypervisorGetDomainState:
+ * @domain: pointer to the domain block
+ * @state: returned state of the domain
+ * @reason: returned reason for the state
+ * @flags: additional flags, 0 for now
+ *
+ * Do a hypervisor call to get the related set of domain information.
+ *
+ * Returns 0 in case of success, -1 in case of error.
+ */
+int
+xenHypervisorGetDomainState(virDomainPtr domain,
+                            int *state,
+                            int *reason,
+                            unsigned int flags ATTRIBUTE_UNUSED)
+{
+    xenUnifiedPrivatePtr priv = domain->conn->privateData;
+    virDomainInfo info;
+
+    if (domain->conn == NULL)
+        return -1;
+
+    if (priv->handle < 0 || domain->id < 0)
+        return -1;
+
+    if (xenHypervisorGetDomInfo(domain->conn, domain->id, &info) < 0)
+        return -1;
+
+    *state = info.state;
+    if (reason)
+        *reason = 0;
+
+    return 0;
 }
 
 /**

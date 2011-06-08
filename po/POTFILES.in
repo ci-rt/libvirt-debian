@@ -1,7 +1,9 @@
 daemon/dispatch.c
 daemon/libvirtd.c
 daemon/remote.c
+daemon/remote_dispatch_bodies.h
 daemon/stream.c
+gnulib/lib/gai_strerror.c
 src/conf/cpu_conf.c
 src/conf/domain_conf.c
 src/conf/domain_event.c
@@ -29,6 +31,8 @@ src/fdstream.c
 src/interface/netcf_driver.c
 src/internal.h
 src/libvirt.c
+src/locking/lock_driver_sanlock.c
+src/locking/lock_manager.c
 src/lxc/lxc_container.c
 src/lxc/lxc_conf.c
 src/lxc/lxc_controller.c
@@ -63,6 +67,7 @@ src/qemu/qemu_monitor.c
 src/qemu/qemu_monitor_json.c
 src/qemu/qemu_monitor_text.c
 src/qemu/qemu_process.c
+src/remote/remote_client_bodies.h
 src/remote/remote_driver.c
 src/secret/secret_driver.c
 src/security/security_apparmor.c
@@ -83,7 +88,6 @@ src/test/test_driver.c
 src/uml/uml_conf.c
 src/uml/uml_driver.c
 src/util/authhelper.c
-src/util/bridge.c
 src/util/cgroup.c
 src/util/command.c
 src/util/conf.c
@@ -100,6 +104,7 @@ src/util/macvtap.c
 src/util/network.c
 src/util/pci.c
 src/util/processinfo.c
+src/util/sexpr.c
 src/util/stats_linux.c
 src/util/storage_file.c
 src/util/sysinfo.c

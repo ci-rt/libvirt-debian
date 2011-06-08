@@ -350,35 +350,35 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 
     /* Hypervisor is only run with privilege & required to succeed */
     if (xenHavePrivilege()) {
-        VIR_DEBUG0("Trying hypervisor sub-driver");
+        VIR_DEBUG("Trying hypervisor sub-driver");
         if (drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->open(conn, auth, flags) ==
             VIR_DRV_OPEN_SUCCESS) {
-            VIR_DEBUG0("Activated hypervisor sub-driver");
+            VIR_DEBUG("Activated hypervisor sub-driver");
             priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET] = 1;
         }
     }
 
     /* XenD is required to succeed if privileged */
-    VIR_DEBUG0("Trying XenD sub-driver");
+    VIR_DEBUG("Trying XenD sub-driver");
     if (drivers[XEN_UNIFIED_XEND_OFFSET]->open(conn, auth, flags) ==
         VIR_DRV_OPEN_SUCCESS) {
-        VIR_DEBUG0("Activated XenD sub-driver");
+        VIR_DEBUG("Activated XenD sub-driver");
         priv->opened[XEN_UNIFIED_XEND_OFFSET] = 1;
 
         /* XenD is active, so try the xm & xs drivers too, both requird to
          * succeed if root, optional otherwise */
         if (priv->xendConfigVersion <= 2) {
-            VIR_DEBUG0("Trying XM sub-driver");
+            VIR_DEBUG("Trying XM sub-driver");
             if (drivers[XEN_UNIFIED_XM_OFFSET]->open(conn, auth, flags) ==
                 VIR_DRV_OPEN_SUCCESS) {
-                VIR_DEBUG0("Activated XM sub-driver");
+                VIR_DEBUG("Activated XM sub-driver");
                 priv->opened[XEN_UNIFIED_XM_OFFSET] = 1;
             }
         }
-        VIR_DEBUG0("Trying XS sub-driver");
+        VIR_DEBUG("Trying XS sub-driver");
         if (drivers[XEN_UNIFIED_XS_OFFSET]->open(conn, auth, flags) ==
             VIR_DRV_OPEN_SUCCESS) {
-            VIR_DEBUG0("Activated XS sub-driver");
+            VIR_DEBUG("Activated XS sub-driver");
             priv->opened[XEN_UNIFIED_XS_OFFSET] = 1;
         } else {
             if (xenHavePrivilege())
@@ -388,7 +388,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
         if (xenHavePrivilege()) {
             goto fail; /* XenD is mandatory when privileged */
         } else {
-            VIR_DEBUG0("Handing off for remote driver");
+            VIR_DEBUG("Handing off for remote driver");
             ret = VIR_DRV_OPEN_DECLINED; /* Let remote_driver try instead */
             goto clean;
         }
@@ -397,16 +397,16 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
     xenNumaInit(conn);
 
     if (!(priv->caps = xenHypervisorMakeCapabilities(conn))) {
-        VIR_DEBUG0("Failed to make capabilities");
+        VIR_DEBUG("Failed to make capabilities");
         goto fail;
     }
 
 #if WITH_XEN_INOTIFY
     if (xenHavePrivilege()) {
-        VIR_DEBUG0("Trying Xen inotify sub-driver");
+        VIR_DEBUG("Trying Xen inotify sub-driver");
         if (drivers[XEN_UNIFIED_INOTIFY_OFFSET]->open(conn, auth, flags) ==
             VIR_DRV_OPEN_SUCCESS) {
-            VIR_DEBUG0("Activated Xen inotify sub-driver");
+            VIR_DEBUG("Activated Xen inotify sub-driver");
             priv->opened[XEN_UNIFIED_INOTIFY_OFFSET] = 1;
         }
     }
@@ -417,7 +417,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
 fail:
     ret = VIR_DRV_OPEN_ERROR;
 clean:
-    VIR_DEBUG0("Failed to activate a mandatory sub-driver");
+    VIR_DEBUG("Failed to activate a mandatory sub-driver");
     for (i = 0 ; i < XEN_UNIFIED_NR_DRIVERS ; i++)
         if (priv->opened[i]) drivers[i]->close(conn);
     virMutexDestroy(&priv->lock);
@@ -1010,6 +1010,47 @@ xenUnifiedDomainGetInfo (virDomainPtr dom, virDomainInfoPtr info)
 }
 
 static int
+xenUnifiedDomainGetState(virDomainPtr dom,
+                         int *state,
+                         int *reason,
+                         unsigned int flags)
+{
+    GET_PRIVATE(dom->conn);
+    int ret;
+
+    virCheckFlags(0, -1);
+
+    /* trying drivers in the same order as GetInfo for consistent results:
+     * hypervisor, xend, xs, and xm */
+
+    if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET]) {
+        ret = xenHypervisorGetDomainState(dom, state, reason, flags);
+        if (ret >= 0)
+            return ret;
+    }
+
+    if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
+        ret = xenDaemonDomainGetState(dom, state, reason, flags);
+        if (ret >= 0)
+            return ret;
+    }
+
+    if (priv->opened[XEN_UNIFIED_XS_OFFSET]) {
+        ret = xenStoreDomainGetState(dom, state, reason, flags);
+        if (ret >= 0)
+            return ret;
+    }
+
+    if (priv->opened[XEN_UNIFIED_XM_OFFSET]) {
+        ret = xenXMDomainGetState(dom, state, reason, flags);
+        if (ret >= 0)
+            return ret;
+    }
+
+    return -1;
+}
+
+static int
 xenUnifiedDomainSave (virDomainPtr dom, const char *to)
 {
     GET_PRIVATE(dom->conn);
@@ -1192,20 +1233,20 @@ xenUnifiedDomainGetMaxVcpus (virDomainPtr dom)
 }
 
 static char *
-xenUnifiedDomainDumpXML (virDomainPtr dom, int flags)
+xenUnifiedDomainGetXMLDesc(virDomainPtr dom, int flags)
 {
     GET_PRIVATE(dom->conn);
 
     if (dom->id == -1 && priv->xendConfigVersion < 3 ) {
         if (priv->opened[XEN_UNIFIED_XM_OFFSET])
-            return xenXMDomainDumpXML(dom, flags);
+            return xenXMDomainGetXMLDesc(dom, flags);
     } else {
         if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
             char *cpus, *res;
             xenUnifiedLock(priv);
             cpus = xenDomainUsedCpus(dom);
             xenUnifiedUnlock(priv);
-            res = xenDaemonDomainDumpXML(dom, flags, cpus);
+            res = xenDaemonDomainGetXMLDesc(dom, flags, cpus);
             VIR_FREE(cpus);
             return(res);
         }
@@ -1374,7 +1415,7 @@ xenUnifiedDomainMigrateFinish (virConnectPtr dconn,
     }
 
     if (flags & VIR_MIGRATE_PERSIST_DEST) {
-        domain_xml = xenDaemonDomainDumpXML (dom, 0, NULL);
+        domain_xml = xenDaemonDomainGetXMLDesc(dom, 0, NULL);
         if (! domain_xml) {
             xenUnifiedError(VIR_ERR_MIGRATE_PERSIST_FAILED,
                             "%s", _("failed to get XML representation of migrated domain"));
@@ -1635,11 +1676,15 @@ xenUnifiedDomainGetSchedulerType (virDomainPtr dom, int *nparams)
 }
 
 static int
-xenUnifiedDomainGetSchedulerParameters (virDomainPtr dom,
-                    virSchedParameterPtr params, int *nparams)
+xenUnifiedDomainGetSchedulerParametersFlags(virDomainPtr dom,
+                                            virTypedParameterPtr params,
+                                            int *nparams,
+                                            unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
     int i, ret;
+
+    virCheckFlags(0, -1);
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i) {
         if (priv->opened[i] && drivers[i]->domainGetSchedulerParameters) {
@@ -1652,11 +1697,24 @@ xenUnifiedDomainGetSchedulerParameters (virDomainPtr dom,
 }
 
 static int
-xenUnifiedDomainSetSchedulerParameters (virDomainPtr dom,
-                    virSchedParameterPtr params, int nparams)
+xenUnifiedDomainGetSchedulerParameters(virDomainPtr dom,
+                                       virTypedParameterPtr params,
+                                       int *nparams)
+{
+    return xenUnifiedDomainGetSchedulerParametersFlags(dom, params,
+                                                       nparams, 0);
+}
+
+static int
+xenUnifiedDomainSetSchedulerParametersFlags(virDomainPtr dom,
+                                            virTypedParameterPtr params,
+                                            int nparams,
+                                            unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
     int i, ret;
+
+    virCheckFlags(0, -1);
 
     /* do the hypervisor call last to get better error */
     for (i = XEN_UNIFIED_NR_DRIVERS - 1; i >= 0; i--) {
@@ -1668,6 +1726,15 @@ xenUnifiedDomainSetSchedulerParameters (virDomainPtr dom,
     }
 
     return(-1);
+}
+
+static int
+xenUnifiedDomainSetSchedulerParameters(virDomainPtr dom,
+                                       virTypedParameterPtr params,
+                                       int nparams)
+{
+    return xenUnifiedDomainSetSchedulerParametersFlags(dom, params,
+                                                       nparams, 0);
 }
 
 static int
@@ -2086,7 +2153,8 @@ xenUnifiedDomainOpenConsole(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virFDStreamOpenFile(st, chr->source.data.file.path, 0, 0, O_RDWR) < 0)
+    if (virFDStreamOpenFile(st, chr->source.data.file.path,
+                            0, 0, O_RDWR, false) < 0)
         goto cleanup;
 
     ret = 0;
@@ -2098,116 +2166,85 @@ cleanup:
 
 /* The interface which we export upwards to libvirt.c. */
 static virDriver xenUnifiedDriver = {
-    VIR_DRV_XEN_UNIFIED,
-    "Xen",
-    xenUnifiedOpen, /* open */
-    xenUnifiedClose, /* close */
-    xenUnifiedSupportsFeature, /* supports_feature */
-    xenUnifiedType, /* type */
-    xenUnifiedGetVersion, /* version */
-    NULL, /* libvirtVersion (impl. in libvirt.c) */
-    virGetHostname, /* getHostname */
-    NULL, /* getSysinfo */
-    xenUnifiedGetMaxVcpus, /* getMaxVcpus */
-    xenUnifiedNodeGetInfo, /* nodeGetInfo */
-    xenUnifiedGetCapabilities, /* getCapabilities */
-    xenUnifiedListDomains, /* listDomains */
-    xenUnifiedNumOfDomains, /* numOfDomains */
-    xenUnifiedDomainCreateXML, /* domainCreateXML */
-    xenUnifiedDomainLookupByID, /* domainLookupByID */
-    xenUnifiedDomainLookupByUUID, /* domainLookupByUUID */
-    xenUnifiedDomainLookupByName, /* domainLookupByName */
-    xenUnifiedDomainSuspend, /* domainSuspend */
-    xenUnifiedDomainResume, /* domainResume */
-    xenUnifiedDomainShutdown, /* domainShutdown */
-    xenUnifiedDomainReboot, /* domainReboot */
-    xenUnifiedDomainDestroy, /* domainDestroy */
-    xenUnifiedDomainGetOSType, /* domainGetOSType */
-    xenUnifiedDomainGetMaxMemory, /* domainGetMaxMemory */
-    xenUnifiedDomainSetMaxMemory, /* domainSetMaxMemory */
-    xenUnifiedDomainSetMemory, /* domainSetMemory */
-    NULL, /*domainSetMemoryFlags */
-    NULL, /* domainSetMemoryParameters */
-    NULL, /* domainGetMemoryParameters */
-    NULL, /* domainSetBlkioParameters */
-    NULL, /* domainGetBlkioParameters */
-    xenUnifiedDomainGetInfo, /* domainGetInfo */
-    xenUnifiedDomainSave, /* domainSave */
-    xenUnifiedDomainRestore, /* domainRestore */
-    xenUnifiedDomainCoreDump, /* domainCoreDump */
-    xenUnifiedDomainSetVcpus, /* domainSetVcpus */
-    xenUnifiedDomainSetVcpusFlags, /* domainSetVcpusFlags */
-    xenUnifiedDomainGetVcpusFlags, /* domainGetVcpusFlags */
-    xenUnifiedDomainPinVcpu, /* domainPinVcpu */
-    xenUnifiedDomainGetVcpus, /* domainGetVcpus */
-    xenUnifiedDomainGetMaxVcpus, /* domainGetMaxVcpus */
-    NULL, /* domainGetSecurityLabel */
-    NULL, /* nodeGetSecurityModel */
-    xenUnifiedDomainDumpXML, /* domainDumpXML */
-    xenUnifiedDomainXMLFromNative, /* domainXMLFromNative */
-    xenUnifiedDomainXMLToNative, /* domainXMLToNative */
-    xenUnifiedListDefinedDomains, /* listDefinedDomains */
-    xenUnifiedNumOfDefinedDomains, /* numOfDefinedDomains */
-    xenUnifiedDomainCreate, /* domainCreate */
-    xenUnifiedDomainCreateWithFlags, /* domainCreateWithFlags */
-    xenUnifiedDomainDefineXML, /* domainDefineXML */
-    xenUnifiedDomainUndefine, /* domainUndefine */
-    xenUnifiedDomainAttachDevice, /* domainAttachDevice */
-    xenUnifiedDomainAttachDeviceFlags, /* domainAttachDeviceFlags */
-    xenUnifiedDomainDetachDevice, /* domainDetachDevice */
-    xenUnifiedDomainDetachDeviceFlags, /* domainDetachDeviceFlags */
-    xenUnifiedDomainUpdateDeviceFlags, /* domainUpdateDeviceFlags */
-    xenUnifiedDomainGetAutostart, /* domainGetAutostart */
-    xenUnifiedDomainSetAutostart, /* domainSetAutostart */
-    xenUnifiedDomainGetSchedulerType, /* domainGetSchedulerType */
-    xenUnifiedDomainGetSchedulerParameters, /* domainGetSchedulerParameters */
-    xenUnifiedDomainSetSchedulerParameters, /* domainSetSchedulerParameters */
-    xenUnifiedDomainMigratePrepare, /* domainMigratePrepare */
-    xenUnifiedDomainMigratePerform, /* domainMigratePerform */
-    xenUnifiedDomainMigrateFinish, /* domainMigrateFinish */
-    xenUnifiedDomainBlockStats, /* domainBlockStats */
-    xenUnifiedDomainInterfaceStats, /* domainInterfaceStats */
-    NULL, /* domainMemoryStats */
-    xenUnifiedDomainBlockPeek, /* domainBlockPeek */
-    NULL, /* domainMemoryPeek */
-    NULL, /* domainGetBlockInfo */
-    xenUnifiedNodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
-    xenUnifiedNodeGetFreeMemory, /* getFreeMemory */
-    xenUnifiedDomainEventRegister, /* domainEventRegister */
-    xenUnifiedDomainEventDeregister, /* domainEventDeregister */
-    NULL, /* domainMigratePrepare2 */
-    NULL, /* domainMigrateFinish2 */
-    xenUnifiedNodeDeviceDettach, /* nodeDeviceDettach */
-    xenUnifiedNodeDeviceReAttach, /* nodeDeviceReAttach */
-    xenUnifiedNodeDeviceReset, /* nodeDeviceReset */
-    NULL, /* domainMigratePrepareTunnel */
-    xenUnifiedIsEncrypted, /* isEncrypted */
-    xenUnifiedIsSecure, /* isSecure */
-    xenUnifiedDomainIsActive, /* domainIsActive */
-    xenUnifiedDomainIsPersistent, /* domainIsPersistent */
-    xenUnifiedDomainIsUpdated, /* domainIsUpdated */
-    NULL, /* cpuCompare */
-    NULL, /* cpuBaseline */
-    NULL, /* domainGetJobInfo */
-    NULL, /* domainAbortJob */
-    NULL, /* domainMigrateSetMaxDowntime */
-    NULL, /* domainMigrateSetMaxSpeed */
-    xenUnifiedDomainEventRegisterAny, /* domainEventRegisterAny */
-    xenUnifiedDomainEventDeregisterAny, /* domainEventDeregisterAny */
-    NULL, /* domainManagedSave */
-    NULL, /* domainHasManagedSaveImage */
-    NULL, /* domainManagedSaveRemove */
-    NULL, /* domainSnapshotCreateXML */
-    NULL, /* domainSnapshotDumpXML */
-    NULL, /* domainSnapshotNum */
-    NULL, /* domainSnapshotListNames */
-    NULL, /* domainSnapshotLookupByName */
-    NULL, /* domainHasCurrentSnapshot */
-    NULL, /* domainSnapshotCurrent */
-    NULL, /* domainRevertToSnapshot */
-    NULL, /* domainSnapshotDelete */
-    NULL, /* qemuDomainMonitorCommand */
-    xenUnifiedDomainOpenConsole, /* domainOpenConsole */
+    .no = VIR_DRV_XEN_UNIFIED,
+    .name = "Xen",
+    .open = xenUnifiedOpen, /* 0.0.3 */
+    .close = xenUnifiedClose, /* 0.0.3 */
+    .supports_feature = xenUnifiedSupportsFeature, /* 0.3.2 */
+    .type = xenUnifiedType, /* 0.0.3 */
+    .version = xenUnifiedGetVersion, /* 0.0.3 */
+    .getHostname = virGetHostname, /* 0.7.3 */
+    .getMaxVcpus = xenUnifiedGetMaxVcpus, /* 0.2.1 */
+    .nodeGetInfo = xenUnifiedNodeGetInfo, /* 0.1.0 */
+    .getCapabilities = xenUnifiedGetCapabilities, /* 0.2.1 */
+    .listDomains = xenUnifiedListDomains, /* 0.0.3 */
+    .numOfDomains = xenUnifiedNumOfDomains, /* 0.0.3 */
+    .domainCreateXML = xenUnifiedDomainCreateXML, /* 0.0.3 */
+    .domainLookupByID = xenUnifiedDomainLookupByID, /* 0.0.3 */
+    .domainLookupByUUID = xenUnifiedDomainLookupByUUID, /* 0.0.5 */
+    .domainLookupByName = xenUnifiedDomainLookupByName, /* 0.0.3 */
+    .domainSuspend = xenUnifiedDomainSuspend, /* 0.0.3 */
+    .domainResume = xenUnifiedDomainResume, /* 0.0.3 */
+    .domainShutdown = xenUnifiedDomainShutdown, /* 0.0.3 */
+    .domainReboot = xenUnifiedDomainReboot, /* 0.1.0 */
+    .domainDestroy = xenUnifiedDomainDestroy, /* 0.0.3 */
+    .domainGetOSType = xenUnifiedDomainGetOSType, /* 0.0.3 */
+    .domainGetMaxMemory = xenUnifiedDomainGetMaxMemory, /* 0.0.3 */
+    .domainSetMaxMemory = xenUnifiedDomainSetMaxMemory, /* 0.0.3 */
+    .domainSetMemory = xenUnifiedDomainSetMemory, /* 0.1.1 */
+    .domainGetInfo = xenUnifiedDomainGetInfo, /* 0.0.3 */
+    .domainGetState = xenUnifiedDomainGetState, /* 0.9.2 */
+    .domainSave = xenUnifiedDomainSave, /* 0.0.3 */
+    .domainRestore = xenUnifiedDomainRestore, /* 0.0.3 */
+    .domainCoreDump = xenUnifiedDomainCoreDump, /* 0.1.9 */
+    .domainSetVcpus = xenUnifiedDomainSetVcpus, /* 0.1.4 */
+    .domainSetVcpusFlags = xenUnifiedDomainSetVcpusFlags, /* 0.8.5 */
+    .domainGetVcpusFlags = xenUnifiedDomainGetVcpusFlags, /* 0.8.5 */
+    .domainPinVcpu = xenUnifiedDomainPinVcpu, /* 0.1.4 */
+    .domainGetVcpus = xenUnifiedDomainGetVcpus, /* 0.1.4 */
+    .domainGetMaxVcpus = xenUnifiedDomainGetMaxVcpus, /* 0.2.1 */
+    .domainGetXMLDesc = xenUnifiedDomainGetXMLDesc, /* 0.0.3 */
+    .domainXMLFromNative = xenUnifiedDomainXMLFromNative, /* 0.6.4 */
+    .domainXMLToNative = xenUnifiedDomainXMLToNative, /* 0.6.4 */
+    .listDefinedDomains = xenUnifiedListDefinedDomains, /* 0.1.1 */
+    .numOfDefinedDomains = xenUnifiedNumOfDefinedDomains, /* 0.1.5 */
+    .domainCreate = xenUnifiedDomainCreate, /* 0.1.1 */
+    .domainCreateWithFlags = xenUnifiedDomainCreateWithFlags, /* 0.8.2 */
+    .domainDefineXML = xenUnifiedDomainDefineXML, /* 0.1.1 */
+    .domainUndefine = xenUnifiedDomainUndefine, /* 0.1.1 */
+    .domainAttachDevice = xenUnifiedDomainAttachDevice, /* 0.1.9 */
+    .domainAttachDeviceFlags = xenUnifiedDomainAttachDeviceFlags, /* 0.7.7 */
+    .domainDetachDevice = xenUnifiedDomainDetachDevice, /* 0.1.9 */
+    .domainDetachDeviceFlags = xenUnifiedDomainDetachDeviceFlags, /* 0.7.7 */
+    .domainUpdateDeviceFlags = xenUnifiedDomainUpdateDeviceFlags, /* 0.8.0 */
+    .domainGetAutostart = xenUnifiedDomainGetAutostart, /* 0.4.4 */
+    .domainSetAutostart = xenUnifiedDomainSetAutostart, /* 0.4.4 */
+    .domainGetSchedulerType = xenUnifiedDomainGetSchedulerType, /* 0.2.3 */
+    .domainGetSchedulerParameters = xenUnifiedDomainGetSchedulerParameters, /* 0.2.3 */
+    .domainGetSchedulerParametersFlags = xenUnifiedDomainGetSchedulerParametersFlags, /* 0.9.2 */
+    .domainSetSchedulerParameters = xenUnifiedDomainSetSchedulerParameters, /* 0.2.3 */
+    .domainSetSchedulerParametersFlags = xenUnifiedDomainSetSchedulerParametersFlags, /* 0.9.2 */
+    .domainMigratePrepare = xenUnifiedDomainMigratePrepare, /* 0.3.2 */
+    .domainMigratePerform = xenUnifiedDomainMigratePerform, /* 0.3.2 */
+    .domainMigrateFinish = xenUnifiedDomainMigrateFinish, /* 0.3.2 */
+    .domainBlockStats = xenUnifiedDomainBlockStats, /* 0.3.2 */
+    .domainInterfaceStats = xenUnifiedDomainInterfaceStats, /* 0.3.2 */
+    .domainBlockPeek = xenUnifiedDomainBlockPeek, /* 0.4.4 */
+    .nodeGetCellsFreeMemory = xenUnifiedNodeGetCellsFreeMemory, /* 0.3.3 */
+    .nodeGetFreeMemory = xenUnifiedNodeGetFreeMemory, /* 0.3.3 */
+    .domainEventRegister = xenUnifiedDomainEventRegister, /* 0.5.0 */
+    .domainEventDeregister = xenUnifiedDomainEventDeregister, /* 0.5.0 */
+    .nodeDeviceDettach = xenUnifiedNodeDeviceDettach, /* 0.6.1 */
+    .nodeDeviceReAttach = xenUnifiedNodeDeviceReAttach, /* 0.6.1 */
+    .nodeDeviceReset = xenUnifiedNodeDeviceReset, /* 0.6.1 */
+    .isEncrypted = xenUnifiedIsEncrypted, /* 0.7.3 */
+    .isSecure = xenUnifiedIsSecure, /* 0.7.3 */
+    .domainIsActive = xenUnifiedDomainIsActive, /* 0.7.3 */
+    .domainIsPersistent = xenUnifiedDomainIsPersistent, /* 0.7.3 */
+    .domainIsUpdated = xenUnifiedDomainIsUpdated, /* 0.8.6 */
+    .domainEventRegisterAny = xenUnifiedDomainEventRegisterAny, /* 0.8.0 */
+    .domainEventDeregisterAny = xenUnifiedDomainEventDeregisterAny, /* 0.8.0 */
+    .domainOpenConsole = xenUnifiedDomainOpenConsole, /* 0.8.6 */
 };
 
 /**
@@ -2270,7 +2307,7 @@ xenUnifiedAddDomainInfo(xenUnifiedDomainInfoListPtr list,
     for (n=0; n < list->count; n++) {
         if (STREQ(list->doms[n]->name, name) &&
             !memcmp(list->doms[n]->uuid, uuid, VIR_UUID_BUFLEN)) {
-            VIR_DEBUG0("WARNING: dom already tracked");
+            VIR_DEBUG("WARNING: dom already tracked");
             return -1;
         }
     }

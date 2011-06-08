@@ -160,8 +160,7 @@ virStorageBackendISCSISession(virStoragePoolObjPtr pool,
                                       regexes,
                                       vars,
                                       virStorageBackendISCSIExtractSession,
-                                      &session,
-                                      NULL) < 0)
+                                      &session) < 0)
         return NULL;
 
     if (session == NULL &&
@@ -184,28 +183,23 @@ virStorageBackendIQNFound(const char *initiatoriqn,
     int ret = IQN_MISSING, fd = -1;
     char ebuf[64];
     FILE *fp = NULL;
-    pid_t child = 0;
     char *line = NULL, *newline = NULL, *iqn = NULL, *token = NULL,
         *saveptr = NULL;
-    const char *const prog[] = {
-        ISCSIADM, "--mode", "iface", NULL
-    };
+    virCommandPtr cmd = virCommandNewArgList(ISCSIADM,
+                                             "--mode", "iface", NULL);
 
     if (VIR_ALLOC_N(line, LINE_SIZE) != 0) {
         ret = IQN_ERROR;
         virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               _("Could not allocate memory for output of '%s'"),
-                              prog[0]);
+                              ISCSIADM);
         goto out;
     }
 
     memset(line, 0, LINE_SIZE);
 
-    if (virExec(prog, NULL, NULL, &child, -1, &fd, NULL, VIR_EXEC_NONE) < 0) {
-        virStorageReportError(VIR_ERR_INTERNAL_ERROR,
-                              _("Failed to run '%s' when looking for existing interface with IQN '%s'"),
-                              prog[0], initiatoriqn);
-
+    virCommandSetOutputFD(cmd, &fd);
+    if (virCommandRunAsync(cmd, NULL) < 0) {
         ret = IQN_ERROR;
         goto out;
     }
@@ -214,7 +208,7 @@ virStorageBackendIQNFound(const char *initiatoriqn,
         virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               _("Failed to open stream for file descriptor "
                                 "when reading output from '%s': '%s'"),
-                              prog[0], virStrerror(errno, ebuf, sizeof ebuf));
+                              ISCSIADM, virStrerror(errno, ebuf, sizeof ebuf));
         ret = IQN_ERROR;
         goto out;
     }
@@ -226,7 +220,7 @@ virStorageBackendIQNFound(const char *initiatoriqn,
             virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                                   _("Unexpected line > %d characters "
                                     "when parsing output of '%s'"),
-                                  LINE_SIZE, prog[0]);
+                                  LINE_SIZE, ISCSIADM);
             goto out;
         }
         *newline = '\0';
@@ -251,6 +245,9 @@ virStorageBackendIQNFound(const char *initiatoriqn,
         }
     }
 
+    if (virCommandWait(cmd, NULL) < 0)
+        ret = IQN_ERROR;
+
 out:
     if (ret == IQN_MISSING) {
         VIR_DEBUG("Could not find interface with IQN '%s'", iqn);
@@ -259,6 +256,7 @@ out:
     VIR_FREE(line);
     VIR_FORCE_FCLOSE(fp);
     VIR_FORCE_CLOSE(fd);
+    virCommandFree(cmd);
 
     return ret;
 }
@@ -504,7 +502,6 @@ virStorageBackendISCSIScanTargets(const char *portal,
     };
     struct virStorageBackendISCSITargetList list;
     int i;
-    int exitstatus;
 
     memset(&list, 0, sizeof(list));
 
@@ -514,17 +511,7 @@ virStorageBackendISCSIScanTargets(const char *portal,
                                       regexes,
                                       vars,
                                       virStorageBackendISCSIGetTargets,
-                                      &list,
-                                      &exitstatus) < 0) {
-        virStorageReportError(VIR_ERR_INTERNAL_ERROR,
-                              "%s", _("iscsiadm command failed"));
-                              return -1;
-    }
-
-    if (exitstatus != 0) {
-        virStorageReportError(VIR_ERR_INTERNAL_ERROR,
-                              _("iscsiadm sendtargets command failed with exitstatus %d"),
-                              exitstatus);
+                                      &list) < 0) {
         return -1;
     }
 

@@ -115,6 +115,9 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     }
 #endif
 
+    if (!(driver->lockManager =
+          virLockManagerPluginNew("nop", 0)))
+        return -1;
 
     /* Just check the file is readable before opening it, otherwise
      * libvirt emits an error.
@@ -287,7 +290,7 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
             int ctl;
             if (pp->type != VIR_CONF_STRING) {
-                VIR_ERROR0(_("cgroup_controllers must be a list of strings"));
+                VIR_ERROR(_("cgroup_controllers must be a list of strings"));
                 virConfFree(conf);
                 return -1;
             }
@@ -327,7 +330,7 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         }
         for (i = 0, pp = p->list; pp; ++i, pp = pp->next) {
             if (pp->type != VIR_CONF_STRING) {
-                VIR_ERROR0(_("cgroup_device_acl must be a list of strings"));
+                VIR_ERROR(_("cgroup_device_acl must be a list of strings"));
                 virConfFree(conf);
                 return -1;
             }
@@ -427,6 +430,15 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     p = virConfGetValue(conf, "max_processes");
     CHECK_TYPE("max_processes", VIR_CONF_LONG);
     if (p) driver->maxProcesses = p->l;
+
+    p = virConfGetValue (conf, "lock_manager");
+    CHECK_TYPE ("lock_manager", VIR_CONF_STRING);
+    if (p && p->str) {
+        virLockManagerPluginUnref(driver->lockManager);
+        if (!(driver->lockManager =
+              virLockManagerPluginNew(p->str, 0)))
+            VIR_ERROR(_("Failed to load lock manager %s"), p->str);
+    }
 
     virConfFree (conf);
     return 0;

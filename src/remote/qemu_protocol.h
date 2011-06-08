@@ -3,8 +3,8 @@
  * It was generated using rpcgen.
  */
 
-#ifndef _RP_QEMU_H_RPCGEN
-#define _RP_QEMU_H_RPCGEN
+#ifndef _QEMU_PROTOCOL_H_RPCGEN
+#define _QEMU_PROTOCOL_H_RPCGEN
 
 #include <rpc/rpc.h>
 
@@ -18,7 +18,7 @@ extern "C" {
 #include <arpa/inet.h>
 
 struct qemu_monitor_command_args {
-        remote_nonnull_domain domain;
+        remote_nonnull_domain dom;
         remote_nonnull_string cmd;
         int flags;
 };
@@ -54,4 +54,4 @@ extern bool_t xdr_qemu_procedure ();
 }
 #endif
 
-#endif /* !_RP_QEMU_H_RPCGEN */
+#endif /* !_QEMU_PROTOCOL_H_RPCGEN */

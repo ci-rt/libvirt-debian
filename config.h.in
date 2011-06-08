@@ -67,12 +67,11 @@
    language is requested. */
 #undef ENABLE_NLS
 
-/* Define to 1 if strerror_r needs to be extended so that it handles the extra
-   errno values. */
-#undef EXTEND_STRERROR_R
-
 /* Define this to 1 if F_DUPFD behavior does not match POSIX */
 #undef FCNTL_DUPFD_BUGGY
+
+/* Define to 1 if the system's ftello function has the Solaris bug. */
+#undef FTELLO_BROKEN_AFTER_SWITCHING_FROM_READ_TO_WRITE
 
 /* Define to 1 if realpath() can malloc memory, always gives an absolute path,
    and handles trailing slash correctly. */
@@ -96,9 +95,16 @@
    declaration of the second argument to gettimeofday. */
 #undef GETTIMEOFDAY_TIMEZONE
 
+/* Define to make the limit macros in <stdint.h> visible. */
+#undef GL_TRIGGER_STDC_LIMIT_MACROS
+
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module canonicalize-lgpl shall be considered present. */
 #undef GNULIB_CANONICALIZE_LGPL
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module fflush shall be considered present. */
+#undef GNULIB_FFLUSH
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module mkstemps shall be considered present. */
@@ -120,11 +126,18 @@
    whether the gnulib module snprintf shall be considered present. */
 #undef GNULIB_SNPRINTF
 
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module strerror shall be considered present. */
+#undef GNULIB_STRERROR
+
 /* Define to 1 when the gnulib module accept should be tested. */
 #undef GNULIB_TEST_ACCEPT
 
 /* Define to 1 when the gnulib module bind should be tested. */
 #undef GNULIB_TEST_BIND
+
+/* Define to 1 when the gnulib module btowc should be tested. */
+#undef GNULIB_TEST_BTOWC
 
 /* Define to 1 when the gnulib module canonicalize_file_name should be tested.
    */
@@ -154,8 +167,23 @@
 /* Define to 1 when the gnulib module fcntl should be tested. */
 #undef GNULIB_TEST_FCNTL
 
+/* Define to 1 when the gnulib module fflush should be tested. */
+#undef GNULIB_TEST_FFLUSH
+
+/* Define to 1 when the gnulib module fpurge should be tested. */
+#undef GNULIB_TEST_FPURGE
+
 /* Define to 1 when the gnulib module fseeko should be tested. */
 #undef GNULIB_TEST_FSEEKO
+
+/* Define to 1 when the gnulib module ftell should be tested. */
+#undef GNULIB_TEST_FTELL
+
+/* Define to 1 when the gnulib module ftello should be tested. */
+#undef GNULIB_TEST_FTELLO
+
+/* Define to 1 when the gnulib module getaddrinfo should be tested. */
+#undef GNULIB_TEST_GETADDRINFO
 
 /* Define to 1 when the gnulib module getcwd should be tested. */
 #undef GNULIB_TEST_GETCWD
@@ -201,6 +229,18 @@
 
 /* Define to 1 when the gnulib module malloc-posix should be tested. */
 #undef GNULIB_TEST_MALLOC_POSIX
+
+/* Define to 1 when the gnulib module mbrtowc should be tested. */
+#undef GNULIB_TEST_MBRTOWC
+
+/* Define to 1 when the gnulib module mbsinit should be tested. */
+#undef GNULIB_TEST_MBSINIT
+
+/* Define to 1 when the gnulib module mbsrtowcs should be tested. */
+#undef GNULIB_TEST_MBSRTOWCS
+
+/* Define to 1 when the gnulib module mbtowc should be tested. */
+#undef GNULIB_TEST_MBTOWC
 
 /* Define to 1 when the gnulib module memchr should be tested. */
 #undef GNULIB_TEST_MEMCHR
@@ -382,6 +422,15 @@
 /* Define to 1 when the gnulib module waitpid should be tested. */
 #undef GNULIB_TEST_WAITPID
 
+/* Define to 1 when the gnulib module wcrtomb should be tested. */
+#undef GNULIB_TEST_WCRTOMB
+
+/* Define to 1 when the gnulib module wctob should be tested. */
+#undef GNULIB_TEST_WCTOB
+
+/* Define to 1 when the gnulib module wctomb should be tested. */
+#undef GNULIB_TEST_WCTOMB
+
 /* Define to 1 when the gnulib module write should be tested. */
 #undef GNULIB_TEST_WRITE
 
@@ -414,6 +463,9 @@
 /* Define to 1 if you have the <bp-sym.h> header file. */
 #undef HAVE_BP_SYM_H
 
+/* Define to 1 if you have the `btowc' function. */
+#undef HAVE_BTOWC
+
 /* Define to 1 if you have the <byteswap.h> header file. */
 #undef HAVE_BYTESWAP_H
 
@@ -422,6 +474,9 @@
 
 /* whether capng is available for privilege reduction */
 #undef HAVE_CAPNG
+
+/* Define to 1 if you have the `catgets' function. */
+#undef HAVE_CATGETS
 
 /* Define to 1 if you have the MacOS X function CFLocaleCopyCurrent in the
    CoreFoundation framework. */
@@ -462,6 +517,10 @@
    don't. */
 #undef HAVE_DECL_FLOCKFILE
 
+/* Define to 1 if you have the declaration of `fpurge', and to 0 if you don't.
+   */
+#undef HAVE_DECL_FPURGE
+
 /* Define to 1 if you have the declaration of `fputs_unlocked', and to 0 if
    you don't. */
 #undef HAVE_DECL_FPUTS_UNLOCKED
@@ -473,6 +532,10 @@
 /* Define to 1 if you have the declaration of `fseeko', and to 0 if you don't.
    */
 #undef HAVE_DECL_FSEEKO
+
+/* Define to 1 if you have the declaration of `ftello', and to 0 if you don't.
+   */
+#undef HAVE_DECL_FTELLO
 
 /* Define to 1 if you have the declaration of `funlockfile', and to 0 if you
    don't. */
@@ -518,9 +581,17 @@
    don't. */
 #undef HAVE_DECL_INET_PTON
 
+/* Define to 1 if you have the declaration of `isblank', and to 0 if you
+   don't. */
+#undef HAVE_DECL_ISBLANK
+
 /* Define to 1 if you have the declaration of `localtime_r', and to 0 if you
    don't. */
 #undef HAVE_DECL_LOCALTIME_R
+
+/* Define to 1 if you have the declaration of `MACVLAN_MODE_PASSTHRU', and to
+   0 if you don't. */
+#undef HAVE_DECL_MACVLAN_MODE_PASSTHRU
 
 /* Define to 1 if you have the declaration of `program_invocation_name', and
    to 0 if you don't. */
@@ -578,6 +649,10 @@
    don't. */
 #undef HAVE_DECL_VSNPRINTF
 
+/* Define to 1 if you have the declaration of `wctob', and to 0 if you don't.
+   */
+#undef HAVE_DECL_WCTOB
+
 /* Define to 1 if you have the declaration of `_snprintf', and to 0 if you
    don't. */
 #undef HAVE_DECL__SNPRINTF
@@ -606,6 +681,9 @@
 
 /* Define to 1 if you have the `flockfile' function. */
 #undef HAVE_FLOCKFILE
+
+/* Define to 1 if you have the `fpurge' function. */
+#undef HAVE_FPURGE
 
 /* Define to 1 if fseeko (and presumably ftello) exists and is declared. */
 #undef HAVE_FSEEKO
@@ -679,7 +757,7 @@
 /* use HAL for host device enumeration */
 #undef HAVE_HAL
 
-/* Define if you have the iconv() function. */
+/* Define if you have the iconv() function and it works. */
 #undef HAVE_ICONV
 
 /* Define to 1 if you have the `inet_ntop' function. */
@@ -714,6 +792,15 @@
 
 /* Define to 1 if <sys/socket.h> defines AF_INET6. */
 #undef HAVE_IPV6
+
+/* Define to 1 if you have the `isblank' function. */
+#undef HAVE_ISBLANK
+
+/* Define to 1 if you have the `iswcntrl' function. */
+#undef HAVE_ISWCNTRL
+
+/* Define to 1 if you have the `iswctype' function. */
+#undef HAVE_ISWCTYPE
 
 /* Define to 1 if you have the `kill' function. */
 #undef HAVE_KILL
@@ -806,8 +893,20 @@
 /* Define to 1 if you have the `mbrtowc' function. */
 #undef HAVE_MBRTOWC
 
+/* Define to 1 if you have the `mbsinit' function. */
+#undef HAVE_MBSINIT
+
+/* Define to 1 if you have the `mbsrtowcs' function. */
+#undef HAVE_MBSRTOWCS
+
+/* Define to 1 if <wchar.h> declares mbstate_t. */
+#undef HAVE_MBSTATE_T
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the `mempcpy' function. */
+#undef HAVE_MEMPCPY
 
 /* Define to 1 if you have the `mkstemp' function. */
 #undef HAVE_MKSTEMP
@@ -823,6 +922,9 @@
 
 /* Define to 1 if you have the `mprotect' function. */
 #undef HAVE_MPROTECT
+
+/* we have sufficiently new version of netcf for transaction network API */
+#undef HAVE_NETCF_TRANSACTIONS
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
@@ -954,6 +1056,9 @@
 
 /* Define to 1 if you have the <regex.h> header file. */
 #undef HAVE_REGEX_H
+
+/* whether SANLOCK is available for JSON parsing/formatting */
+#undef HAVE_SANLOCK
 
 /* whether Cyrus SASL is available for authentication */
 #undef HAVE_SASL
@@ -1189,9 +1294,6 @@
 /* Define to 1 if you have the <sys/sysinfo.h> header file. */
 #undef HAVE_SYS_SYSINFO_H
 
-/* Define to 1 if you have the <sys/syslimits.h> header file. */
-#undef HAVE_SYS_SYSLIMITS_H
-
 /* Define to 1 if you have the <sys/sysmp.h> header file. */
 #undef HAVE_SYS_SYSMP_H
 
@@ -1294,11 +1396,26 @@
 /* Define to 1 if you have the `wcsnlen' function. */
 #undef HAVE_WCSNLEN
 
+/* Define to 1 if you have the `wctob' function. */
+#undef HAVE_WCTOB
+
+/* Define to 1 if you have the <wctype.h> header file. */
+#undef HAVE_WCTYPE_H
+
 /* Define to 1 if you have the <winsock2.h> header file. */
 #undef HAVE_WINSOCK2_H
 
 /* Define if you have the 'wint_t' type. */
 #undef HAVE_WINT_T
+
+/* Define to 1 if you have the `wmemchr' function. */
+#undef HAVE_WMEMCHR
+
+/* Define to 1 if you have the `wmemcpy' function. */
+#undef HAVE_WMEMCPY
+
+/* Define to 1 if you have the `wmempcpy' function. */
+#undef HAVE_WMEMPCPY
 
 /* Define to 1 if O_NOATIME works. */
 #undef HAVE_WORKING_O_NOATIME
@@ -1336,6 +1453,9 @@
 /* whether YAJL is available for JSON parsing/formatting */
 #undef HAVE_YAJL
 
+/* whether YAJL has API version 2 */
+#undef HAVE_YAJL2
+
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
 
@@ -1345,6 +1465,12 @@
 /* Define to 1 if you have the external variable, _system_configuration with a
    member named physmem. */
 #undef HAVE__SYSTEM_CONFIGURATION
+
+/* Define to 1 if you have the `__fpurge' function. */
+#undef HAVE___FPURGE
+
+/* Define to 1 if you have the `__freading' function. */
+#undef HAVE___FREADING
 
 /* Define to 1 if you have the `__fsetlocking' function. */
 #undef HAVE___FSETLOCKING
@@ -1392,6 +1518,18 @@
 
 /* Define to a substitute value for mmap()'s MAP_ANONYMOUS flag. */
 #undef MAP_ANONYMOUS
+
+/* Define if the mbrtowc function has the NULL pwc argument bug. */
+#undef MBRTOWC_NULL_ARG1_BUG
+
+/* Define if the mbrtowc function has the NULL string argument bug. */
+#undef MBRTOWC_NULL_ARG2_BUG
+
+/* Define if the mbrtowc function does not return 0 for a NUL character. */
+#undef MBRTOWC_NUL_RETVAL_BUG
+
+/* Define if the mbrtowc function returns a wrong return value. */
+#undef MBRTOWC_RETVAL_BUG
 
 /* Location or name of the modprobe program */
 #undef MODPROBE
@@ -1441,6 +1579,9 @@
 /* Location of polkit-auth program */
 #undef POLKIT_AUTH
 
+/* Define if <inttypes.h> exists and defines unusable PRI* macros. */
+#undef PRI_MACROS_BROKEN
+
 /* Define to the type that is the result of default argument promotions of
    type mode_t. */
 #undef PROMOTED_MODE_T
@@ -1484,9 +1625,6 @@
    slash */
 #undef REPLACE_FUNC_STAT_FILE
 
-/* Define this to 1 if strerror is broken. */
-#undef REPLACE_STRERROR
-
 /* Define if vasnprintf exists but is overridden by gnulib. */
 #undef REPLACE_VASNPRINTF
 
@@ -1496,6 +1634,9 @@
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'sig_atomic_t'. */
 #undef SIG_ATOMIC_T_SUFFIX
+
+/* The size of `long', as computed by sizeof. */
+#undef SIZEOF_LONG
 
 /* Define as the maximum value of type 'size_t', if the system doesn't define
    it. */
@@ -1789,11 +1930,24 @@
 /* Define like PROTOTYPES; this can be used by system headers. */
 #undef __PROTOTYPES
 
+/* Ensure that <stdint.h> defines the limit macros, since gnulib's
+   <inttypes.h> relies on them.  */
+#if defined __cplusplus && !defined __STDC_LIMIT_MACROS && GL_TRIGGER_STDC_LIMIT_MACROS
+# define __STDC_LIMIT_MACROS 1
+#endif
+
+
 /* Define as a replacement for the ISO C99 __func__ variable. */
 #undef __func__
 
+/* Define to a replacement function name for fnmatch(). */
+#undef fnmatch
+
 /* Define to `int' if <sys/types.h> doesn't define. */
 #undef gid_t
+
+/* A replacement for va_copy, if needed.  */
+#define gl_va_copy(a,b) ((a) = (b))
 
 /* Define to rpl_gmtime if the replacement function should be used. */
 #undef gmtime
@@ -1820,8 +1974,11 @@
 /* Define to rpl_localtime if the replacement function should be used. */
 #undef localtime
 
-/* Define to rpl_mktime if the replacement function should be used. */
-#undef mktime
+/* Define to a type if <wchar.h> does not define. */
+#undef mbstate_t
+
+/* Define to the real name of the mktime_internal function. */
+#undef mktime_internal
 
 /* Define to `int' if <sys/types.h> does not define. */
 #undef mode_t
@@ -1878,3 +2035,6 @@
 
 /* Define to an unsigned 32-bit type if <sys/types.h> lacks this type. */
 #undef useconds_t
+
+/* Define as a macro for copying va_list variables. */
+#undef va_copy

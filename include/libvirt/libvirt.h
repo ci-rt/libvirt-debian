@@ -89,6 +89,75 @@ typedef enum {
      VIR_DOMAIN_CRASHED = 6  /* the domain is crashed */
 } virDomainState;
 
+typedef enum {
+    VIR_DOMAIN_NOSTATE_UNKNOWN = 0,
+} virDomainNostateReason;
+
+typedef enum {
+    VIR_DOMAIN_RUNNING_UNKNOWN = 0,
+    VIR_DOMAIN_RUNNING_BOOTED = 1,          /* normal startup from boot */
+    VIR_DOMAIN_RUNNING_MIGRATED = 2,        /* migrated from another host */
+    VIR_DOMAIN_RUNNING_RESTORED = 3,        /* restored from a state file */
+    VIR_DOMAIN_RUNNING_FROM_SNAPSHOT = 4,   /* restored from snapshot */
+    VIR_DOMAIN_RUNNING_UNPAUSED = 5,        /* returned from paused state */
+    VIR_DOMAIN_RUNNING_MIGRATION_CANCELED = 6,  /* returned from migration */
+    VIR_DOMAIN_RUNNING_SAVE_CANCELED = 7,   /* returned from failed save process */
+} virDomainRunningReason;
+
+typedef enum {
+    VIR_DOMAIN_BLOCKED_UNKNOWN = 0,     /* the reason is unknown */
+} virDomainBlockedReason;
+
+typedef enum {
+    VIR_DOMAIN_PAUSED_UNKNOWN = 0,      /* the reason is unknown */
+    VIR_DOMAIN_PAUSED_USER = 1,         /* paused on user request */
+    VIR_DOMAIN_PAUSED_MIGRATION = 2,    /* paused for offline migration */
+    VIR_DOMAIN_PAUSED_SAVE = 3,         /* paused for save */
+    VIR_DOMAIN_PAUSED_DUMP = 4,         /* paused for offline core dump */
+    VIR_DOMAIN_PAUSED_IOERROR = 5,      /* paused due to a disk I/O error */
+    VIR_DOMAIN_PAUSED_WATCHDOG = 6,     /* paused due to a watchdog event */
+    VIR_DOMAIN_PAUSED_FROM_SNAPSHOT = 7, /* restored from a snapshot which was
+                                          * taken while domain was paused */
+} virDomainPausedReason;
+
+typedef enum {
+    VIR_DOMAIN_SHUTDOWN_UNKNOWN = 0,    /* the reason is unknown */
+    VIR_DOMAIN_SHUTDOWN_USER = 1,       /* shutting down on user request */
+} virDomainShutdownReason;
+
+typedef enum {
+    VIR_DOMAIN_SHUTOFF_UNKNOWN = 0,     /* the reason is unknown */
+    VIR_DOMAIN_SHUTOFF_SHUTDOWN = 1,    /* normal shutdown */
+    VIR_DOMAIN_SHUTOFF_DESTROYED = 2,   /* forced poweroff */
+    VIR_DOMAIN_SHUTOFF_CRASHED = 3,     /* domain crashed */
+    VIR_DOMAIN_SHUTOFF_MIGRATED = 4,    /* migrated to another host */
+    VIR_DOMAIN_SHUTOFF_SAVED = 5,       /* saved to a file */
+    VIR_DOMAIN_SHUTOFF_FAILED = 6,      /* domain failed to start */
+    VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT = 7, /* restored from a snapshot which was
+                                           * taken while domain was shutoff */
+} virDomainShutoffReason;
+
+typedef enum {
+    VIR_DOMAIN_CRASHED_UNKNOWN = 0,     /* crashed for unknown reason */
+} virDomainCrashedReason;
+
+/**
+ * virDomainModificationImpact:
+ *
+ * Several APIs take flags to determine whether a change to the domain
+ * affects just the running instance, just the persistent definition,
+ * or both.  The use of VIR_DOMAIN_AFFECT_CURRENT will resolve to
+ * either VIR_DOMAIN_AFFECT_LIVE or VIR_DOMAIN_AFFECT_CONFIG according
+ * to current domain state. VIR_DOMAIN_AFFECT_LIVE requires a running
+ * domain, and VIR_DOMAIN_AFFECT_CONFIG requires a persistent domain
+ * (whether or not it is running).
+ */
+typedef enum {
+    VIR_DOMAIN_AFFECT_CURRENT = 0,      /* Affect current domain state.  */
+    VIR_DOMAIN_AFFECT_LIVE    = 1 << 0, /* Affect running domain state.  */
+    VIR_DOMAIN_AFFECT_CONFIG  = 1 << 1, /* Affect persistent domain state.  */
+} virDomainModificationImpact;
+
 /**
  * virDomainInfoPtr:
  *
@@ -229,70 +298,84 @@ struct _virNodeInfo {
 };
 
 
+/* Common data types shared among interfaces with name/type/value lists.  */
+
 /**
- * virDomainSchedParameterType:
+ * virTypedParameterType:
  *
- * A scheduler parameter field type
+ * Express the type of a virTypedParameter
  */
 typedef enum {
-    VIR_DOMAIN_SCHED_FIELD_INT     = 1, /* integer case */
-    VIR_DOMAIN_SCHED_FIELD_UINT    = 2, /* unsigned integer case */
-    VIR_DOMAIN_SCHED_FIELD_LLONG   = 3, /* long long case */
-    VIR_DOMAIN_SCHED_FIELD_ULLONG  = 4, /* unsigned long long case */
-    VIR_DOMAIN_SCHED_FIELD_DOUBLE  = 5, /* double case */
-    VIR_DOMAIN_SCHED_FIELD_BOOLEAN = 6  /* boolean(character) case */
-} virSchedParameterType;
+    VIR_TYPED_PARAM_INT     = 1, /* integer case */
+    VIR_TYPED_PARAM_UINT    = 2, /* unsigned integer case */
+    VIR_TYPED_PARAM_LLONG   = 3, /* long long case */
+    VIR_TYPED_PARAM_ULLONG  = 4, /* unsigned long long case */
+    VIR_TYPED_PARAM_DOUBLE  = 5, /* double case */
+    VIR_TYPED_PARAM_BOOLEAN = 6  /* boolean(character) case */
+} virTypedParameterType;
 
 /**
- * VIR_DOMAIN_SCHED_FIELD_LENGTH:
+ * VIR_TYPED_PARAM_FIELD_LENGTH:
  *
- * Macro providing the field length of virSchedParameter
+ * Macro providing the field length of virTypedParameter name
  */
-
-#define VIR_DOMAIN_SCHED_FIELD_LENGTH 80
+#define VIR_TYPED_PARAM_FIELD_LENGTH 80
 
 /**
- * virDomainSchedParameter:
+ * virTypedParameter:
  *
- * a virDomainSchedParameter is the set of scheduler parameters
+ * A named parameter, including a type and value.
+ *
+ * The types virSchedParameter, virBlkioParameter, and
+ * virMemoryParameter are aliases of this type, for use when
+ * targetting libvirt earlier than 0.9.2.
  */
+typedef struct _virTypedParameter virTypedParameter;
 
-typedef struct _virSchedParameter virSchedParameter;
-
-struct _virSchedParameter {
-    char field[VIR_DOMAIN_SCHED_FIELD_LENGTH];  /* parameter name */
-    int type;   /* parameter type */
+struct _virTypedParameter {
+    char field[VIR_TYPED_PARAM_FIELD_LENGTH];  /* parameter name */
+    int type;   /* parameter type, virTypedParameterType */
     union {
-        int i;                          /* data for integer case */
-        unsigned int ui;        /* data for unsigned integer case */
-        long long int l;        /* data for long long integer case */
-        unsigned long long int ul;      /* data for unsigned long long integer case */
-        double d;       /* data for double case */
-        char b;         /* data for char case */
+        int i;                      /* type is INT */
+        unsigned int ui;            /* type is UINT */
+        long long int l;            /* type is LLONG */
+        unsigned long long int ul;  /* type is ULLONG */
+        double d;                   /* type is DOUBLE */
+        char b;                     /* type is BOOLEAN */
     } value; /* parameter value */
 };
 
 /**
- * virSchedParameterPtr:
+ * virTypedParameterPtr:
  *
- * a virSchedParameterPtr is a pointer to a virSchedParameter structure.
+ * a pointer to a virTypedParameter structure.
  */
+typedef virTypedParameter *virTypedParameterPtr;
 
-typedef virSchedParameter *virSchedParameterPtr;
+
+/* Management of scheduler parameters */
 
 /*
  * Fetch scheduler parameters, caller allocates 'params' field of size 'nparams'
  */
 int     virDomainGetSchedulerParameters (virDomainPtr domain,
-                                         virSchedParameterPtr params,
+                                         virTypedParameterPtr params,
                                          int *nparams);
+int     virDomainGetSchedulerParametersFlags (virDomainPtr domain,
+                                              virTypedParameterPtr params,
+                                              int *nparams,
+                                              unsigned int flags);
 
 /*
  * Change scheduler parameters
  */
 int     virDomainSetSchedulerParameters (virDomainPtr domain,
-                                         virSchedParameterPtr params,
+                                         virTypedParameterPtr params,
                                          int nparams);
+int     virDomainSetSchedulerParametersFlags (virDomainPtr domain,
+                                              virTypedParameterPtr params,
+                                              int nparams,
+                                              unsigned int flags);
 
 /**
  * virDomainBlockStats:
@@ -427,9 +510,21 @@ typedef enum {
 virDomainPtr virDomainMigrate (virDomainPtr domain, virConnectPtr dconn,
                                unsigned long flags, const char *dname,
                                const char *uri, unsigned long bandwidth);
+virDomainPtr virDomainMigrate2(virDomainPtr domain, virConnectPtr dconn,
+                               const char *dxml,
+                               unsigned long flags, const char *dname,
+                               const char *uri, unsigned long bandwidth);
 
 int virDomainMigrateToURI (virDomainPtr domain, const char *duri,
                            unsigned long flags, const char *dname,
+                           unsigned long bandwidth);
+
+int virDomainMigrateToURI2(virDomainPtr domain,
+                           const char *dconnuri,
+                           const char *miguri,
+                           const char *dxml,
+                           unsigned long flags,
+                           const char *dname,
                            unsigned long bandwidth);
 
 int virDomainMigrateSetMaxDowntime (virDomainPtr domain,
@@ -554,7 +649,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 9001
+#define LIBVIR_VERSION_NUMBER 9002
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -670,37 +765,31 @@ int                     virDomainCoreDump       (virDomainPtr domain,
                                                  int flags);
 
 /*
+ * Screenshot of current domain console
+ */
+char *                  virDomainScreenshot     (virDomainPtr domain,
+                                                 virStreamPtr stream,
+                                                 unsigned int screen,
+                                                 unsigned int flags);
+
+/*
  * Domain runtime information
  */
 int                     virDomainGetInfo        (virDomainPtr domain,
                                                  virDomainInfoPtr info);
+int                     virDomainGetState       (virDomainPtr domain,
+                                                 int *state,
+                                                 int *reason,
+                                                 unsigned int flags);
 
 /*
  * Return scheduler type in effect 'sedf', 'credit', 'linux'
  */
 char *                  virDomainGetSchedulerType(virDomainPtr domain,
                                                  int *nparams);
-/**
- * virDomainBlkioParameterType:
- *
- * A blkio parameter field type
- */
-typedef enum {
-    VIR_DOMAIN_BLKIO_PARAM_INT     = 1, /* integer case */
-    VIR_DOMAIN_BLKIO_PARAM_UINT    = 2, /* unsigned integer case */
-    VIR_DOMAIN_BLKIO_PARAM_LLONG   = 3, /* long long case */
-    VIR_DOMAIN_BLKIO_PARAM_ULLONG  = 4, /* unsigned long long case */
-    VIR_DOMAIN_BLKIO_PARAM_DOUBLE  = 5, /* double case */
-    VIR_DOMAIN_BLKIO_PARAM_BOOLEAN = 6  /* boolean(character) case */
-} virBlkioParameterType;
 
-/**
- * VIR_DOMAIN_BLKIO_FIELD_LENGTH:
- *
- * Macro providing the field length of virBlkioParameter
- */
 
-#define VIR_DOMAIN_BLKIO_FIELD_LENGTH 80
+/* Manage blkio parameters.  */
 
 /**
  * VIR_DOMAIN_BLKIO_WEIGHT:
@@ -711,64 +800,15 @@ typedef enum {
 
 #define VIR_DOMAIN_BLKIO_WEIGHT "weight"
 
-/**
- * virDomainBlkioParameter:
- *
- * a virDomainBlkioParameter is the set of blkio parameters
- */
-
-typedef struct _virBlkioParameter virBlkioParameter;
-
-struct _virBlkioParameter {
-    char field[VIR_DOMAIN_BLKIO_FIELD_LENGTH];  /* parameter name */
-    int type;   /* parameter type */
-    union {
-        int i;                          /* data for integer case */
-        unsigned int ui;        /* data for unsigned integer case */
-        long long int l;        /* data for long long integer case */
-        unsigned long long int ul;      /* data for unsigned long long integer case */
-        double d;       /* data for double case */
-        char b;         /* data for char case */
-    } value; /* parameter value */
-};
-
-/**
- * virBlkioParameterPtr:
- *
- * a virBlkioParameterPtr is a pointer to a virBlkioParameter structure.
- */
-
-typedef virBlkioParameter *virBlkioParameterPtr;
-
 /* Set Blkio tunables for the domain*/
 int     virDomainSetBlkioParameters(virDomainPtr domain,
-                                     virBlkioParameterPtr params,
-                                     int nparams, unsigned int flags);
+                                    virTypedParameterPtr params,
+                                    int nparams, unsigned int flags);
 int     virDomainGetBlkioParameters(virDomainPtr domain,
-                                     virBlkioParameterPtr params,
-                                     int *nparams, unsigned int flags);
+                                    virTypedParameterPtr params,
+                                    int *nparams, unsigned int flags);
 
-/**
- * virDomainMemoryParameterType:
- *
- * A memory parameter field type
- */
-typedef enum {
-    VIR_DOMAIN_MEMORY_PARAM_INT     = 1, /* integer case */
-    VIR_DOMAIN_MEMORY_PARAM_UINT    = 2, /* unsigned integer case */
-    VIR_DOMAIN_MEMORY_PARAM_LLONG   = 3, /* long long case */
-    VIR_DOMAIN_MEMORY_PARAM_ULLONG  = 4, /* unsigned long long case */
-    VIR_DOMAIN_MEMORY_PARAM_DOUBLE  = 5, /* double case */
-    VIR_DOMAIN_MEMORY_PARAM_BOOLEAN = 6  /* boolean(character) case */
-} virMemoryParameterType;
-
-/**
- * VIR_DOMAIN_MEMORY_FIELD_LENGTH:
- *
- * Macro providing the field length of virMemoryParameter
- */
-
-#define VIR_DOMAIN_MEMORY_FIELD_LENGTH 80
+/* Manage memory parameters.  */
 
 /**
  * VIR_DOMAIN_MEMORY_PARAM_UNLIMITED:
@@ -815,41 +855,12 @@ typedef enum {
 
 #define VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT "swap_hard_limit"
 
-/**
- * virDomainMemoryParameter:
- *
- * a virDomainMemoryParameter is the set of scheduler parameters
- */
-
-typedef struct _virMemoryParameter virMemoryParameter;
-
-struct _virMemoryParameter {
-    char field[VIR_DOMAIN_MEMORY_FIELD_LENGTH];  /* parameter name */
-    int type;   /* parameter type */
-    union {
-        int i;                          /* data for integer case */
-        unsigned int ui;        /* data for unsigned integer case */
-        long long int l;        /* data for long long integer case */
-        unsigned long long int ul;      /* data for unsigned long long integer case */
-        double d;       /* data for double case */
-        char b;         /* data for char case */
-    } value; /* parameter value */
-};
-
-/**
- * virMemoryParameterPtr:
- *
- * a virMemoryParameterPtr is a pointer to a virMemoryParameter structure.
- */
-
-typedef virMemoryParameter *virMemoryParameterPtr;
-
 /* Set memory tunables for the domain*/
 int     virDomainSetMemoryParameters(virDomainPtr domain,
-                                     virMemoryParameterPtr params,
+                                     virTypedParameterPtr params,
                                      int nparams, unsigned int flags);
 int     virDomainGetMemoryParameters(virDomainPtr domain,
-                                     virMemoryParameterPtr params,
+                                     virTypedParameterPtr params,
                                      int *nparams, unsigned int flags);
 
 /* Memory size modification flags. */
@@ -1308,6 +1319,13 @@ int                     virInterfaceDestroy       (virInterfacePtr iface,
 
 int                     virInterfaceRef           (virInterfacePtr iface);
 int                     virInterfaceFree          (virInterfacePtr iface);
+
+int                     virInterfaceChangeBegin   (virConnectPtr conn,
+                                                   unsigned int flags);
+int                     virInterfaceChangeCommit  (virConnectPtr conn,
+                                                   unsigned int flags);
+int                     virInterfaceChangeRollback(virConnectPtr conn,
+                                                   unsigned int flags);
 
 /**
  * virStoragePool:
@@ -2429,6 +2447,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_IO_ERROR = 4,        /* virConnectDomainEventIOErrorCallback */
     VIR_DOMAIN_EVENT_ID_GRAPHICS = 5,        /* virConnectDomainEventGraphicsCallback */
     VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON = 6, /* virConnectDomainEventIOErrorReasonCallback */
+    VIR_DOMAIN_EVENT_ID_CONTROL_ERROR = 7,   /* virConnectDomainEventGenericCallback */
 
     /*
      * NB: this enum value will increase over time as new events are
@@ -2518,6 +2537,141 @@ int virDomainOpenConsole(virDomainPtr dom,
                          const char *devname,
                          virStreamPtr st,
                          unsigned int flags);
+
+int virDomainInjectNMI(virDomainPtr domain, unsigned int flags);
+
+
+/**
+ * virSchedParameterType:
+ *
+ * A scheduler parameter field type.  Provided for backwards
+ * compatibility; virTypedParameterType is the preferred enum since
+ * 0.9.2.
+ */
+typedef enum {
+    VIR_DOMAIN_SCHED_FIELD_INT     = VIR_TYPED_PARAM_INT,
+    VIR_DOMAIN_SCHED_FIELD_UINT    = VIR_TYPED_PARAM_UINT,
+    VIR_DOMAIN_SCHED_FIELD_LLONG   = VIR_TYPED_PARAM_LLONG,
+    VIR_DOMAIN_SCHED_FIELD_ULLONG  = VIR_TYPED_PARAM_ULLONG,
+    VIR_DOMAIN_SCHED_FIELD_DOUBLE  = VIR_TYPED_PARAM_DOUBLE,
+    VIR_DOMAIN_SCHED_FIELD_BOOLEAN = VIR_TYPED_PARAM_BOOLEAN,
+} virSchedParameterType;
+
+/**
+ * VIR_DOMAIN_SCHED_FIELD_LENGTH:
+ *
+ * Macro providing the field length of virSchedParameter.  Provided
+ * for backwards compatibility; VIR_TYPED_PARAM_FIELD_LENGTH is the
+ * preferred value since 0.9.2.
+ */
+#define VIR_DOMAIN_SCHED_FIELD_LENGTH VIR_TYPED_PARAM_FIELD_LENGTH
+
+/**
+ * virSchedParameter:
+ *
+ * a virSchedParameter is the set of scheduler parameters.
+ * Provided for backwards compatibility; virTypedParameter is the
+ * preferred alias since 0.9.2.
+ */
+#define _virSchedParameter _virTypedParameter
+typedef struct _virTypedParameter virSchedParameter;
+
+/**
+ * virSchedParameterPtr:
+ *
+ * a virSchedParameterPtr is a pointer to a virSchedParameter structure.
+ * Provided for backwards compatibility; virTypedParameterPtr is the
+ * preferred alias since 0.9.2.
+ */
+typedef virSchedParameter *virSchedParameterPtr;
+
+/**
+ * virBlkioParameterType:
+ *
+ * A blkio parameter field type.  Provided for backwards
+ * compatibility; virTypedParameterType is the preferred enum since
+ * 0.9.2.
+ */
+typedef enum {
+    VIR_DOMAIN_BLKIO_PARAM_INT     = VIR_TYPED_PARAM_INT,
+    VIR_DOMAIN_BLKIO_PARAM_UINT    = VIR_TYPED_PARAM_UINT,
+    VIR_DOMAIN_BLKIO_PARAM_LLONG   = VIR_TYPED_PARAM_LLONG,
+    VIR_DOMAIN_BLKIO_PARAM_ULLONG  = VIR_TYPED_PARAM_ULLONG,
+    VIR_DOMAIN_BLKIO_PARAM_DOUBLE  = VIR_TYPED_PARAM_DOUBLE,
+    VIR_DOMAIN_BLKIO_PARAM_BOOLEAN = VIR_TYPED_PARAM_BOOLEAN,
+} virBlkioParameterType;
+
+/**
+ * VIR_DOMAIN_BLKIO_FIELD_LENGTH:
+ *
+ * Macro providing the field length of virBlkioParameter.  Provided
+ * for backwards compatibility; VIR_TYPED_PARAM_FIELD_LENGTH is the
+ * preferred value since 0.9.2.
+ */
+#define VIR_DOMAIN_BLKIO_FIELD_LENGTH VIR_TYPED_PARAM_FIELD_LENGTH
+
+/**
+ * virBlkioParameter:
+ *
+ * a virBlkioParameter is the set of blkio parameters.
+ * Provided for backwards compatibility; virTypedParameter is the
+ * preferred alias since 0.9.2.
+ */
+#define _virBlkioParameter _virTypedParameter
+typedef struct _virTypedParameter virBlkioParameter;
+
+/**
+ * virBlkioParameterPtr:
+ *
+ * a virBlkioParameterPtr is a pointer to a virBlkioParameter structure.
+ * Provided for backwards compatibility; virTypedParameterPtr is the
+ * preferred alias since 0.9.2.
+ */
+typedef virBlkioParameter *virBlkioParameterPtr;
+
+/**
+ * virMemoryParameterType:
+ *
+ * A memory parameter field type.  Provided for backwards
+ * compatibility; virTypedParameterType is the preferred enum since
+ * 0.9.2.
+ */
+typedef enum {
+    VIR_DOMAIN_MEMORY_PARAM_INT     = VIR_TYPED_PARAM_INT,
+    VIR_DOMAIN_MEMORY_PARAM_UINT    = VIR_TYPED_PARAM_UINT,
+    VIR_DOMAIN_MEMORY_PARAM_LLONG   = VIR_TYPED_PARAM_LLONG,
+    VIR_DOMAIN_MEMORY_PARAM_ULLONG  = VIR_TYPED_PARAM_ULLONG,
+    VIR_DOMAIN_MEMORY_PARAM_DOUBLE  = VIR_TYPED_PARAM_DOUBLE,
+    VIR_DOMAIN_MEMORY_PARAM_BOOLEAN = VIR_TYPED_PARAM_BOOLEAN,
+} virMemoryParameterType;
+
+/**
+ * VIR_DOMAIN_MEMORY_FIELD_LENGTH:
+ *
+ * Macro providing the field length of virMemoryParameter.  Provided
+ * for backwards compatibility; VIR_TYPED_PARAM_FIELD_LENGTH is the
+ * preferred value since 0.9.2.
+ */
+#define VIR_DOMAIN_MEMORY_FIELD_LENGTH VIR_TYPED_PARAM_FIELD_LENGTH
+
+/**
+ * virMemoryParameter:
+ *
+ * a virMemoryParameter is the set of scheduler parameters.
+ * Provided for backwards compatibility; virTypedParameter is the
+ * preferred alias since 0.9.2.
+ */
+#define _virMemoryParameter _virTypedParameter
+typedef struct _virTypedParameter virMemoryParameter;
+
+/**
+ * virMemoryParameterPtr:
+ *
+ * a virMemoryParameterPtr is a pointer to a virMemoryParameter structure.
+ * Provided for backwards compatibility; virTypedParameterPtr is the
+ * preferred alias since 0.9.2.
+ */
+typedef virMemoryParameter *virMemoryParameterPtr;
 
 #ifdef __cplusplus
 }

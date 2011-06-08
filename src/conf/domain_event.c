@@ -1,7 +1,7 @@
 /*
  * domain_event.c: domain event queue processing helpers
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2008 VirtualIron
  *
  * This library is free software; you can redistribute it and/or
@@ -24,6 +24,7 @@
 #include <config.h>
 
 #include "domain_event.h"
+#include "event.h"
 #include "logging.h"
 #include "datatypes.h"
 #include "memory.h"
@@ -505,6 +506,25 @@ void virDomainEventFree(virDomainEventPtr event)
     VIR_FREE(event);
 }
 
+/**
+ * virDomainEventQueueFree:
+ * @queue: pointer to the queue
+ *
+ * Free the memory in the queue. We process this like a list here
+ */
+void
+virDomainEventQueueFree(virDomainEventQueuePtr queue)
+{
+    int i;
+    if (!queue)
+        return;
+
+    for (i = 0; i < queue->count ; i++) {
+        virDomainEventFree(queue->events[i]);
+    }
+    VIR_FREE(queue->events);
+    VIR_FREE(queue);
+}
 
 virDomainEventQueuePtr virDomainEventQueueNew(void)
 {
@@ -516,6 +536,79 @@ virDomainEventQueuePtr virDomainEventQueueNew(void)
     }
 
     return ret;
+}
+
+/**
+ * virDomainEventStateFree:
+ * @list: virDomainEventStatePtr to free
+ *
+ * Free a virDomainEventStatePtr and its members, and unregister the timer.
+ */
+void
+virDomainEventStateFree(virDomainEventStatePtr state)
+{
+    if (!state)
+        return;
+
+    virDomainEventCallbackListFree(state->callbacks);
+    virDomainEventQueueFree(state->queue);
+
+    if (state->timer != -1)
+        virEventRemoveTimeout(state->timer);
+    VIR_FREE(state);
+}
+
+/**
+ * virDomainEventStateNew:
+ * @timeout_cb: virEventTimeoutCallback to call when timer expires
+ * @timeout_opaque: Data for timeout_cb
+ * @timeout_free: Optional virFreeCallback for freeing timeout_opaque
+ * @requireTimer: If true, return an error if registering the timer fails.
+ *                This is fatal for drivers that sit behind the daemon
+ *                (qemu, lxc), since there should always be a event impl
+ *                registered.
+ */
+virDomainEventStatePtr
+virDomainEventStateNew(virEventTimeoutCallback timeout_cb,
+                       void *timeout_opaque,
+                       virFreeCallback timeout_free,
+                       bool requireTimer)
+{
+    virDomainEventStatePtr state = NULL;
+
+    if (VIR_ALLOC(state) < 0) {
+        virReportOOMError();
+        goto error;
+    }
+
+    if (VIR_ALLOC(state->callbacks) < 0) {
+        virReportOOMError();
+        goto error;
+    }
+
+    if (!(state->queue = virDomainEventQueueNew())) {
+        goto error;
+    }
+
+    if ((state->timer = virEventAddTimeout(-1,
+                                           timeout_cb,
+                                           timeout_opaque,
+                                           timeout_free)) < 0) {
+        if (requireTimer == false) {
+            VIR_DEBUG("virEventAddTimeout failed: No addTimeoutImpl defined. "
+                      "continuing without events.");
+        } else {
+            eventReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                             _("could not initialize domain event timer"));
+            goto error;
+        }
+    }
+
+    return state;
+
+error:
+    virDomainEventStateFree(state);
+    return NULL;
 }
 
 static virDomainEventPtr virDomainEventNewInternal(int eventID,
@@ -783,25 +876,23 @@ virDomainEventPtr virDomainEventGraphicsNewFromObj(virDomainObjPtr obj,
 }
 
 
-/**
- * virDomainEventQueueFree:
- * @queue: pointer to the queue
- *
- * Free the memory in the queue. We process this like a list here
- */
-void
-virDomainEventQueueFree(virDomainEventQueuePtr queue)
+virDomainEventPtr virDomainEventControlErrorNewFromDom(virDomainPtr dom)
 {
-    int i;
-    if (!queue)
-        return;
-
-    for (i = 0; i < queue->count ; i++) {
-        virDomainEventFree(queue->events[i]);
-    }
-    VIR_FREE(queue->events);
-    VIR_FREE(queue);
+    virDomainEventPtr ev =
+        virDomainEventNewInternal(VIR_DOMAIN_EVENT_ID_CONTROL_ERROR,
+                                  dom->id, dom->name, dom->uuid);
+    return ev;
 }
+
+
+virDomainEventPtr virDomainEventControlErrorNewFromObj(virDomainObjPtr obj)
+{
+    virDomainEventPtr ev =
+        virDomainEventNewInternal(VIR_DOMAIN_EVENT_ID_CONTROL_ERROR,
+                                  obj->def->id, obj->def->name, obj->def->uuid);
+    return ev;
+}
+
 
 /**
  * virDomainEventQueuePop:
@@ -932,6 +1023,11 @@ void virDomainEventDispatchDefaultFunc(virConnectPtr conn,
                                                     cbopaque);
         break;
 
+    case VIR_DOMAIN_EVENT_ID_CONTROL_ERROR:
+        (cb)(conn, dom,
+             cbopaque);
+        break;
+
     default:
         VIR_WARN("Unexpected event ID %d", event->eventID);
         break;
@@ -1004,4 +1100,75 @@ void virDomainEventQueueDispatch(virDomainEventQueuePtr queue,
     }
     VIR_FREE(queue->events);
     queue->count = 0;
+}
+
+void
+virDomainEventStateQueue(virDomainEventStatePtr state,
+                         virDomainEventPtr event)
+{
+    if (state->timer < 0) {
+        virDomainEventFree(event);
+        return;
+    }
+
+    if (virDomainEventQueuePush(state->queue, event) < 0) {
+        VIR_DEBUG("Error adding event to queue");
+        virDomainEventFree(event);
+    }
+
+    if (state->queue->count == 1)
+        virEventUpdateTimeout(state->timer, 0);
+}
+
+void
+virDomainEventStateFlush(virDomainEventStatePtr state,
+                         virDomainEventDispatchFunc dispatchFunc,
+                         void *opaque)
+{
+    virDomainEventQueue tempQueue;
+
+    state->isDispatching = true;
+
+    /* Copy the queue, so we're reentrant safe when dispatchFunc drops the
+     * driver lock */
+    tempQueue.count = state->queue->count;
+    tempQueue.events = state->queue->events;
+    state->queue->count = 0;
+    state->queue->events = NULL;
+
+    virEventUpdateTimeout(state->timer, -1);
+    virDomainEventQueueDispatch(&tempQueue,
+                                state->callbacks,
+                                dispatchFunc,
+                                opaque);
+
+    /* Purge any deleted callbacks */
+    virDomainEventCallbackListPurgeMarked(state->callbacks);
+
+    state->isDispatching = false;
+}
+
+int
+virDomainEventStateDeregister(virConnectPtr conn,
+                              virDomainEventStatePtr state,
+                              virConnectDomainEventCallback callback)
+{
+    if (state->isDispatching)
+        return virDomainEventCallbackListMarkDelete(conn,
+                                                    state->callbacks, callback);
+    else
+        return virDomainEventCallbackListRemove(conn, state->callbacks, callback);
+}
+
+int
+virDomainEventStateDeregisterAny(virConnectPtr conn,
+                                 virDomainEventStatePtr state,
+                                 int callbackID)
+{
+    if (state->isDispatching)
+        return virDomainEventCallbackListMarkDeleteID(conn,
+                                                      state->callbacks, callbackID);
+    else
+        return virDomainEventCallbackListRemoveID(conn,
+                                                  state->callbacks, callbackID);
 }

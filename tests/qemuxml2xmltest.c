@@ -35,7 +35,7 @@ testCompareXMLToXMLFiles(const char *inxml, const char *outxml)
                                           VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
 
-    if (!(actual = virDomainDefFormat(def, 0)))
+    if (!(actual = virDomainDefFormat(def, VIR_DOMAIN_XML_SECURE)))
         goto fail;
 
 
@@ -143,6 +143,8 @@ mymain(void)
     DO_TEST("graphics-sdl");
     DO_TEST("graphics-sdl-fullscreen");
     DO_TEST("graphics-spice");
+    DO_TEST("graphics-spice-compression");
+    DO_TEST("graphics-spice-timeout");
     DO_TEST("graphics-spice-qxl-vga");
     DO_TEST("input-usbmouse");
     DO_TEST("input-usbtablet");
@@ -179,6 +181,7 @@ mymain(void)
     DO_TEST("cputune");
 
     DO_TEST("smp");
+    DO_TEST("lease");
 
     /* These tests generate different XML */
     DO_TEST_DIFFERENT("balloon-device-auto");

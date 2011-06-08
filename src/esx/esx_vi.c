@@ -200,7 +200,7 @@ esxVI_CURL_Debug(CURL *curl ATTRIBUTE_UNUSED, curl_infotype type,
         break;
 
       default:
-        VIR_DEBUG0("unknown");
+        VIR_DEBUG("unknown");
         break;
     }
 
@@ -497,7 +497,7 @@ ESX_VI__TEMPLATE__FREE(SharedCURL,
 
     if (item->count > 0) {
         /* Better leak than crash */
-        VIR_ERROR0(_("Trying to free SharedCURL object that is still in use"));
+        VIR_ERROR(_("Trying to free SharedCURL object that is still in use"));
         return;
     }
 
@@ -603,6 +603,10 @@ ESX_VI__TEMPLATE__ALLOC(Context)
 /* esxVI_Context_Free */
 ESX_VI__TEMPLATE__FREE(Context,
 {
+    if (item->sessionLock != NULL) {
+        virMutexDestroy(item->sessionLock);
+    }
+
     esxVI_CURL_Free(&item->curl);
     VIR_FREE(item->url);
     VIR_FREE(item->ipAddress);
@@ -610,6 +614,7 @@ ESX_VI__TEMPLATE__FREE(Context,
     VIR_FREE(item->password);
     esxVI_ServiceContent_Free(&item->service);
     esxVI_UserSession_Free(&item->session);
+    VIR_FREE(item->sessionLock);
     esxVI_Datacenter_Free(&item->datacenter);
     esxVI_ComputeResource_Free(&item->computeResource);
     esxVI_HostSystem_Free(&item->hostSystem);
@@ -639,6 +644,17 @@ esxVI_Context_Connect(esxVI_Context *ctx, const char *url,
         esxVI_String_DeepCopyValue(&ctx->ipAddress, ipAddress) < 0 ||
         esxVI_String_DeepCopyValue(&ctx->username, username) < 0 ||
         esxVI_String_DeepCopyValue(&ctx->password, password) < 0) {
+        return -1;
+    }
+
+    if (VIR_ALLOC(ctx->sessionLock) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (virMutexInit(ctx->sessionLock) < 0) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Could not initialize session mutex"));
         return -1;
     }
 
@@ -894,20 +910,10 @@ esxVI_Context_Execute(esxVI_Context *ctx, const char *methodName,
     (*response)->content = virBufferContentAndReset(&buffer);
 
     if ((*response)->responseCode == 500 || (*response)->responseCode == 200) {
-        (*response)->document = xmlReadDoc(BAD_CAST (*response)->content, "",
-                                           NULL, XML_PARSE_NONET);
+        (*response)->document = virXMLParseString((*response)->content,
+                                                  "esx.xml");
 
         if ((*response)->document == NULL) {
-            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                         _("Response for call to '%s' could not be parsed"),
-                         methodName);
-            goto cleanup;
-        }
-
-        if (xmlDocGetRootElement((*response)->document) == NULL) {
-            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
-                         _("Response for call to '%s' is an empty XML document"),
-                         methodName);
             goto cleanup;
         }
 
@@ -1558,9 +1564,16 @@ esxVI_EnsureSession(esxVI_Context *ctx)
     esxVI_DynamicProperty *dynamicProperty = NULL;
     esxVI_UserSession *currentSession = NULL;
 
-    if (ctx->session == NULL) {
-        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid call"));
+    if (ctx->sessionLock == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid call, no mutex"));
         return -1;
+    }
+
+    virMutexLock(ctx->sessionLock);
+
+    if (ctx->session == NULL) {
+        ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid call, no session"));
+        goto cleanup;
     }
 
     if (ctx->hasSessionIsActive) {
@@ -1570,7 +1583,7 @@ esxVI_EnsureSession(esxVI_Context *ctx)
          */
         if (esxVI_SessionIsActive(ctx, ctx->session->key,
                                   ctx->session->userName, &active) < 0) {
-            return -1;
+            goto cleanup;
         }
 
         if (active != esxVI_Boolean_True) {
@@ -1578,11 +1591,9 @@ esxVI_EnsureSession(esxVI_Context *ctx)
 
             if (esxVI_Login(ctx, ctx->username, ctx->password, NULL,
                             &ctx->session) < 0) {
-                return -1;
+                goto cleanup;
             }
         }
-
-        return 0;
     } else {
         /*
          * Query the session manager for the current session of this connection
@@ -1624,16 +1635,18 @@ esxVI_EnsureSession(esxVI_Context *ctx)
                            "last login"));
             goto cleanup;
         }
+    }
 
-        result = 0;
+    result = 0;
 
   cleanup:
-        esxVI_String_Free(&propertyNameList);
-        esxVI_ObjectContent_Free(&sessionManager);
-        esxVI_UserSession_Free(&currentSession);
+    virMutexUnlock(ctx->sessionLock);
 
-        return result;
-    }
+    esxVI_String_Free(&propertyNameList);
+    esxVI_ObjectContent_Free(&sessionManager);
+    esxVI_UserSession_Free(&currentSession);
+
+    return result;
 }
 
 
@@ -1993,7 +2006,7 @@ esxVI_GetManagedObjectReference(esxVI_ObjectContent *objectContent,
 int
 esxVI_LookupNumberOfDomainsByPowerState(esxVI_Context *ctx,
                                         esxVI_VirtualMachinePowerState powerState,
-                                        esxVI_Boolean inverse)
+                                        bool inverse)
 {
     bool success = false;
     esxVI_String *propertyNameList = NULL;
@@ -2021,10 +2034,8 @@ esxVI_LookupNumberOfDomainsByPowerState(esxVI_Context *ctx,
                     goto cleanup;
                 }
 
-                if ((inverse != esxVI_Boolean_True &&
-                     powerState_ == powerState) ||
-                    (inverse == esxVI_Boolean_True &&
-                     powerState_ != powerState)) {
+                if ((!inverse && powerState_ == powerState) ||
+                    ( inverse && powerState_ != powerState)) {
                     count++;
                 }
             } else {
@@ -2143,7 +2154,7 @@ esxVI_GetVirtualMachineIdentity(esxVI_ObjectContent *virtualMachine,
         } else {
             memset(uuid, 0, VIR_UUID_BUFLEN);
 
-            VIR_WARN0("Cannot access UUID, because 'configStatus' property "
+            VIR_WARN("Cannot access UUID, because 'configStatus' property "
                       "indicates a config problem");
         }
     }
@@ -2459,13 +2470,13 @@ int
 esxVI_LookupVirtualMachineByUuidAndPrepareForTask
   (esxVI_Context *ctx, const unsigned char *uuid,
    esxVI_String *propertyNameList, esxVI_ObjectContent **virtualMachine,
-   esxVI_Boolean autoAnswer)
+   bool autoAnswer)
 {
     int result = -1;
     esxVI_String *completePropertyNameList = NULL;
     esxVI_VirtualMachineQuestionInfo *questionInfo = NULL;
     esxVI_TaskInfo *pendingTaskInfoList = NULL;
-    esxVI_Boolean blocked = esxVI_Boolean_Undefined;
+    bool blocked;
 
     if (esxVI_String_DeepCopyList(&completePropertyNameList,
                                   propertyNameList) < 0 ||
@@ -2861,8 +2872,7 @@ int
 esxVI_LookupAndHandleVirtualMachineQuestion(esxVI_Context *ctx,
                                             const unsigned char *uuid,
                                             esxVI_Occurrence occurrence,
-                                            esxVI_Boolean autoAnswer,
-                                            esxVI_Boolean *blocked)
+                                            bool autoAnswer, bool *blocked)
 {
     int result = -1;
     esxVI_ObjectContent *virtualMachine = NULL;
@@ -3181,7 +3191,7 @@ esxVI_LookupFileInfoByDatastorePath(esxVI_Context *ctx,
                                    datastorePathWithoutFileName, searchSpec,
                                    &task) < 0 ||
         esxVI_WaitForTaskCompletion(ctx, task, NULL, esxVI_Occurrence_None,
-                                    esxVI_Boolean_False, &taskInfoState,
+                                    false, &taskInfoState,
                                     &taskInfoErrorMessage) < 0) {
         goto cleanup;
     }
@@ -3326,7 +3336,7 @@ esxVI_LookupDatastoreContentByDatastoreName
                                              datastorePath, searchSpec,
                                              &task) < 0 ||
         esxVI_WaitForTaskCompletion(ctx, task, NULL, esxVI_Occurrence_None,
-                                    esxVI_Boolean_False, &taskInfoState,
+                                    false, &taskInfoState,
                                     &taskInfoErrorMessage) < 0) {
         goto cleanup;
     }
@@ -3530,8 +3540,8 @@ esxVI_LookupAutoStartPowerInfoList(esxVI_Context *ctx,
 int
 esxVI_HandleVirtualMachineQuestion
   (esxVI_Context *ctx, esxVI_ManagedObjectReference *virtualMachine,
-   esxVI_VirtualMachineQuestionInfo *questionInfo,
-   esxVI_Boolean autoAnswer, esxVI_Boolean *blocked)
+   esxVI_VirtualMachineQuestionInfo *questionInfo, bool autoAnswer,
+   bool *blocked)
 {
     int result = -1;
     esxVI_ElementDescription *elementDescription = NULL;
@@ -3540,18 +3550,18 @@ esxVI_HandleVirtualMachineQuestion
     int answerIndex = 0;
     char *possibleAnswers = NULL;
 
-    if (blocked == NULL || *blocked != esxVI_Boolean_Undefined) {
+    if (blocked == NULL) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
-    *blocked = esxVI_Boolean_False;
+    *blocked = false;
 
     if (questionInfo->choice->choiceInfo != NULL) {
         for (elementDescription = questionInfo->choice->choiceInfo;
              elementDescription != NULL;
              elementDescription = elementDescription->_next) {
-            virBufferVSprintf(&buffer, "'%s'", elementDescription->label);
+            virBufferAsprintf(&buffer, "'%s'", elementDescription->label);
 
             if (elementDescription->_next != NULL) {
                 virBufferAddLit(&buffer, ", ");
@@ -3574,14 +3584,14 @@ esxVI_HandleVirtualMachineQuestion
         possibleAnswers = virBufferContentAndReset(&buffer);
     }
 
-    if (autoAnswer == esxVI_Boolean_True) {
+    if (autoAnswer) {
         if (possibleAnswers == NULL) {
             ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
                          _("Pending question blocks virtual machine execution, "
                            "question is '%s', no possible answers"),
                          questionInfo->text);
 
-            *blocked = esxVI_Boolean_True;
+            *blocked = true;
             goto cleanup;
         } else if (answerChoice == NULL) {
             ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -3590,7 +3600,7 @@ esxVI_HandleVirtualMachineQuestion
                            "default answer is specified"), questionInfo->text,
                          possibleAnswers);
 
-            *blocked = esxVI_Boolean_True;
+            *blocked = true;
             goto cleanup;
         }
 
@@ -3616,7 +3626,7 @@ esxVI_HandleVirtualMachineQuestion
                          questionInfo->text);
         }
 
-        *blocked = esxVI_Boolean_True;
+        *blocked = true;
         goto cleanup;
     }
 
@@ -3639,8 +3649,7 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
                             esxVI_ManagedObjectReference *task,
                             const unsigned char *virtualMachineUuid,
                             esxVI_Occurrence virtualMachineOccurrence,
-                            esxVI_Boolean autoAnswer,
-                            esxVI_TaskInfoState *finalState,
+                            bool autoAnswer, esxVI_TaskInfoState *finalState,
                             char **errorMessage)
 {
     int result = -1;
@@ -3655,7 +3664,7 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
     esxVI_PropertyChange *propertyChange = NULL;
     esxVI_AnyType *propertyValue = NULL;
     esxVI_TaskInfoState state = esxVI_TaskInfoState_Undefined;
-    esxVI_Boolean blocked = esxVI_Boolean_Undefined;
+    bool blocked;
     esxVI_TaskInfo *taskInfo = NULL;
 
     if (errorMessage == NULL || *errorMessage != NULL) {
@@ -3713,14 +3722,13 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
                 }
 
                 if (taskInfo->cancelable == esxVI_Boolean_True) {
-                    if (esxVI_CancelTask(ctx, task) < 0 &&
-                        blocked == esxVI_Boolean_True) {
-                        VIR_ERROR0(_("Cancelable task is blocked by an "
+                    if (esxVI_CancelTask(ctx, task) < 0 && blocked) {
+                        VIR_ERROR(_("Cancelable task is blocked by an "
                                      "unanswered question but cancelation "
                                      "failed"));
                     }
-                } else if (blocked == esxVI_Boolean_True) {
-                    VIR_ERROR0(_("Non-cancelable task is blocked by an "
+                } else if (blocked) {
+                    VIR_ERROR(_("Non-cancelable task is blocked by an "
                                  "unanswered question"));
                 }
 
@@ -3776,7 +3784,7 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
     }
 
     if (esxVI_DestroyPropertyFilter(ctx, propertyFilter) < 0) {
-        VIR_DEBUG0("DestroyPropertyFilter failed");
+        VIR_DEBUG("DestroyPropertyFilter failed");
     }
 
     if (esxVI_TaskInfoState_CastFromAnyType(propertyValue, finalState) < 0) {

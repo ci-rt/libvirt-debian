@@ -742,7 +742,7 @@ networkStartRadvd(virNetworkObjPtr network)
     }
 
     /* create radvd config file appropriate for this network */
-    virBufferVSprintf(&configbuf, "interface %s\n"
+    virBufferAsprintf(&configbuf, "interface %s\n"
                       "{\n"
                       "  AdvSendAdvert on;\n"
                       "  AdvManagedFlag off;\n"
@@ -764,7 +764,7 @@ networkStartRadvd(virNetworkObjPtr network)
         }
         if (!(netaddr = virSocketFormatAddr(&ipdef->address)))
             goto cleanup;
-        virBufferVSprintf(&configbuf,
+        virBufferAsprintf(&configbuf,
                           "  prefix %s/%d\n"
                           "  {\n"
                           "    AdvOnLink on;\n"
@@ -1197,7 +1197,7 @@ networkAddGeneralIptablesRules(struct network_driver *driver,
                                          network->def->bridge, 68) < 0)) {
         VIR_WARN("Could not add rule to fixup DHCP response checksums "
                  "on network '%s'.", network->def->name);
-        VIR_WARN0("May need to update iptables package & kernel to support CHECKSUM rule.");
+        VIR_WARN("May need to update iptables package & kernel to support CHECKSUM rule.");
     }
 
     /* allow DNS requests through to dnsmasq */
@@ -1407,7 +1407,7 @@ networkReloadIptablesRules(struct network_driver *driver)
 {
     unsigned int i;
 
-    VIR_INFO0(_("Reloading iptables rules"));
+    VIR_INFO("Reloading iptables rules");
 
     for (i = 0 ; i < driver->networks.count ; i++) {
         virNetworkObjLock(driver->networks.objs[i]);
@@ -1752,7 +1752,7 @@ networkStartNetworkDaemon(struct network_driver *driver,
     }
 
     VIR_FREE(macTapIfName);
-    VIR_INFO(_("Starting up network '%s'"), network->def->name);
+    VIR_INFO("Starting up network '%s'", network->def->name);
     network->active = 1;
 
     return 0;
@@ -1825,7 +1825,7 @@ static int networkShutdownNetworkDaemon(struct network_driver *driver,
     char *stateFile;
     char *macTapIfName;
 
-    VIR_INFO(_("Shutting down network '%s'"), network->def->name);
+    VIR_INFO("Shutting down network '%s'", network->def->name);
 
     if (!virNetworkObjIsActive(network))
         return 0;
@@ -2127,7 +2127,7 @@ static virNetworkPtr networkCreate(virConnectPtr conn, const char *xml) {
         goto cleanup;
     }
 
-    VIR_INFO(_("Creating network '%s'"), network->def->name);
+    VIR_INFO("Creating network '%s'", network->def->name);
     ret = virGetNetwork(conn, network->def->name, network->def->uuid);
 
 cleanup:
@@ -2199,7 +2199,7 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
         dnsmasqContextFree(dctx);
     }
 
-    VIR_INFO(_("Defining network '%s'"), network->def->name);
+    VIR_INFO("Defining network '%s'", network->def->name);
     ret = virGetNetwork(conn, network->def->name, network->def->uuid);
 
 cleanup:
@@ -2286,7 +2286,7 @@ static int networkUndefine(virNetworkPtr net) {
 
     }
 
-    VIR_INFO(_("Undefining network '%s'"), network->def->name);
+    VIR_INFO("Undefining network '%s'", network->def->name);
     virNetworkRemoveInactive(&driver->networks,
                              network);
     network = NULL;
@@ -2356,7 +2356,7 @@ cleanup:
     return ret;
 }
 
-static char *networkDumpXML(virNetworkPtr net, int flags ATTRIBUTE_UNUSED) {
+static char *networkGetXMLDesc(virNetworkPtr net, int flags ATTRIBUTE_UNUSED) {
     struct network_driver *driver = net->conn->networkPrivateData;
     virNetworkObjPtr network;
     char *ret = NULL;
@@ -2504,25 +2504,25 @@ cleanup:
 
 static virNetworkDriver networkDriver = {
     "Network",
-    networkOpenNetwork, /* open */
-    networkCloseNetwork, /* close */
-    networkNumNetworks, /* numOfNetworks */
-    networkListNetworks, /* listNetworks */
-    networkNumDefinedNetworks, /* numOfDefinedNetworks */
-    networkListDefinedNetworks, /* listDefinedNetworks */
-    networkLookupByUUID, /* networkLookupByUUID */
-    networkLookupByName, /* networkLookupByName */
-    networkCreate, /* networkCreateXML */
-    networkDefine, /* networkDefineXML */
-    networkUndefine, /* networkUndefine */
-    networkStart, /* networkCreate */
-    networkDestroy, /* networkDestroy */
-    networkDumpXML, /* networkDumpXML */
-    networkGetBridgeName, /* networkGetBridgeName */
-    networkGetAutostart, /* networkGetAutostart */
-    networkSetAutostart, /* networkSetAutostart */
-    networkIsActive,
-    networkIsPersistent,
+    .open = networkOpenNetwork, /* 0.2.0 */
+    .close = networkCloseNetwork, /* 0.2.0 */
+    .numOfNetworks = networkNumNetworks, /* 0.2.0 */
+    .listNetworks = networkListNetworks, /* 0.2.0 */
+    .numOfDefinedNetworks = networkNumDefinedNetworks, /* 0.2.0 */
+    .listDefinedNetworks = networkListDefinedNetworks, /* 0.2.0 */
+    .networkLookupByUUID = networkLookupByUUID, /* 0.2.0 */
+    .networkLookupByName = networkLookupByName, /* 0.2.0 */
+    .networkCreateXML = networkCreate, /* 0.2.0 */
+    .networkDefineXML = networkDefine, /* 0.2.0 */
+    .networkUndefine = networkUndefine, /* 0.2.0 */
+    .networkCreate = networkStart, /* 0.2.0 */
+    .networkDestroy = networkDestroy, /* 0.2.0 */
+    .networkGetXMLDesc = networkGetXMLDesc, /* 0.2.0 */
+    .networkGetBridgeName = networkGetBridgeName, /* 0.2.0 */
+    .networkGetAutostart = networkGetAutostart, /* 0.2.1 */
+    .networkSetAutostart = networkSetAutostart, /* 0.2.1 */
+    .networkIsActive = networkIsActive, /* 0.7.3 */
+    .networkIsPersistent = networkIsPersistent, /* 0.7.3 */
 };
 
 static virStateDriver networkStateDriver = {

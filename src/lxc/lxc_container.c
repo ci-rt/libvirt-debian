@@ -54,6 +54,7 @@
 #include "veth.h"
 #include "uuid.h"
 #include "files.h"
+#include "command.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -93,43 +94,28 @@ struct __lxc_child_argv {
 
 
 /**
- * lxcContainerExecInit:
+ * lxcContainerBuildInitCmd:
  * @vmDef: pointer to vm definition structure
  *
- * Exec the container init string. The container init will replace then
- * be running in the current process
+ * Build a virCommandPtr for launching the container 'init' process
  *
- * Does not return
+ * Returns a virCommandPtr
  */
-static int lxcContainerExecInit(virDomainDefPtr vmDef)
+static virCommandPtr lxcContainerBuildInitCmd(virDomainDefPtr vmDef)
 {
-    char *uuidenv, *nameenv;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
+    virCommandPtr cmd;
 
     virUUIDFormat(vmDef->uuid, uuidstr);
 
-    if (virAsprintf(&uuidenv, "LIBVIRT_LXC_UUID=%s", uuidstr) < 0) {
-        virReportOOMError();
-        return -1;
-    }
-    if (virAsprintf(&nameenv, "LIBVIRT_LXC_NAME=%s", vmDef->name) < 0) {
-        virReportOOMError();
-        return -1;
-    }
+    cmd = virCommandNew(vmDef->os.init);
 
-    const char *const argv[] = {
-        vmDef->os.init,
-        NULL,
-    };
-    const char *const envp[] = {
-        "PATH=/bin:/sbin",
-        "TERM=linux",
-        uuidenv,
-        nameenv,
-        NULL,
-    };
+    virCommandAddEnvString(cmd, "PATH=/bin:/sbin");
+    virCommandAddEnvString(cmd, "TERM=linux");
+    virCommandAddEnvPair(cmd, "LIBVIRT_LXC_UUID", uuidstr);
+    virCommandAddEnvPair(cmd, "LIBVIRT_LXC_NAME", vmDef->name);
 
-    return execve(argv[0], (char **)argv,(char**)envp);
+    return cmd;
 }
 
 /**
@@ -244,7 +230,7 @@ static int lxcContainerWaitForContinue(int control)
     }
     VIR_FORCE_CLOSE(control);
 
-    VIR_DEBUG0("Received container continue message");
+    VIR_DEBUG("Received container continue message");
 
     return 0;
 }
@@ -743,7 +729,7 @@ static int lxcContainerDropCapabilities(void)
      * be unmasked  - they can never escape the bounding set. */
 
 #else
-    VIR_WARN0("libcap-ng support not compiled in, unable to clear capabilities");
+    VIR_WARN("libcap-ng support not compiled in, unable to clear capabilities");
 #endif
     return 0;
 }
@@ -766,28 +752,34 @@ static int lxcContainerChild( void *data )
     lxc_child_argv_t *argv = data;
     virDomainDefPtr vmDef = argv->config;
     int ttyfd;
+    int ret = -1;
     char *ttyPath;
     virDomainFSDefPtr root;
+    virCommandPtr cmd = NULL;
 
     if (NULL == vmDef) {
         lxcError(VIR_ERR_INTERNAL_ERROR,
                  "%s", _("lxcChild() passed invalid vm definition"));
-        return -1;
+        goto cleanup;
     }
+
+    cmd = lxcContainerBuildInitCmd(vmDef);
+    virCommandWriteArgLog(cmd, 1);
 
     root = virDomainGetRootFilesystem(vmDef);
 
     if (root) {
         if (virAsprintf(&ttyPath, "%s%s", root->src, argv->ttyPath) < 0) {
             virReportOOMError();
-            return -1;
+            goto cleanup;
         }
     } else {
         if (!(ttyPath = strdup(argv->ttyPath))) {
             virReportOOMError();
-            return -1;
+            goto cleanup;
         }
     }
+    VIR_DEBUG("Container TTY path: %s", ttyPath);
 
     ttyfd = open(ttyPath, O_RDWR|O_NOCTTY);
     if (ttyfd < 0) {
@@ -795,34 +787,38 @@ static int lxcContainerChild( void *data )
                              _("Failed to open tty %s"),
                              ttyPath);
         VIR_FREE(ttyPath);
-        return -1;
+        goto cleanup;
     }
     VIR_FREE(ttyPath);
 
     if (lxcContainerSetStdio(argv->monitor, ttyfd) < 0) {
         VIR_FORCE_CLOSE(ttyfd);
-        return -1;
+        goto cleanup;
     }
     VIR_FORCE_CLOSE(ttyfd);
 
     if (lxcContainerSetupMounts(vmDef, root) < 0)
-        return -1;
+        goto cleanup;
 
     /* Wait for interface devices to show up */
     if (lxcContainerWaitForContinue(argv->monitor) < 0)
-        return -1;
+        goto cleanup;
 
     /* rename and enable interfaces */
     if (lxcContainerRenameAndEnableInterfaces(argv->nveths,
                                               argv->veths) < 0)
-        return -1;
+        goto cleanup;
 
     /* drop a set of root capabilities */
     if (lxcContainerDropCapabilities() < 0)
-        return -1;
+        goto cleanup;
 
     /* this function will only return if an error occured */
-    return lxcContainerExecInit(vmDef);
+    ret = virCommandExec(cmd);
+
+cleanup:
+    virCommandFree(cmd);
+    return ret;
 }
 
 static int userns_supported(void)
@@ -892,12 +888,12 @@ int lxcContainerStart(virDomainDefPtr def,
     flags = CLONE_NEWPID|CLONE_NEWNS|CLONE_NEWUTS|CLONE_NEWIPC|SIGCHLD;
 
     if (userns_supported()) {
-        VIR_DEBUG0("Enable user namespaces");
+        VIR_DEBUG("Enable user namespaces");
         flags |= CLONE_NEWUSER;
     }
 
     if (def->nets != NULL) {
-        VIR_DEBUG0("Enable network namespaces");
+        VIR_DEBUG("Enable network namespaces");
         flags |= CLONE_NEWNET;
     }
 
@@ -936,7 +932,7 @@ int lxcContainerAvailable(int features)
         flags |= CLONE_NEWNET;
 
     if (VIR_ALLOC_N(stack, getpagesize() * 4) < 0) {
-        VIR_DEBUG0("Unable to allocate stack");
+        VIR_DEBUG("Unable to allocate stack");
         return -1;
     }
 

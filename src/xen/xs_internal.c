@@ -65,6 +65,7 @@ struct xenUnifiedDriver xenStoreDriver = {
     NULL, /* domainSave */
     NULL, /* domainRestore */
     NULL, /* domainCoreDump */
+    NULL, /* domainScreenshot */
     NULL, /* domainPinVcpu */
     NULL, /* domainGetVcpus */
     NULL, /* listDefinedDomains */
@@ -327,7 +328,7 @@ xenStoreOpen(virConnectPtr conn,
                                            xenStoreWatchEvent,
                                            conn,
                                            NULL)) < 0)
-        VIR_DEBUG0("Failed to add event handle, disabling events");
+        VIR_DEBUG("Failed to add event handle, disabling events");
 
     return 0;
 }
@@ -353,12 +354,12 @@ xenStoreClose(virConnectPtr conn)
     priv = (xenUnifiedPrivatePtr) conn->privateData;
 
     if (xenStoreRemoveWatch(conn, "@introduceDomain", "introduceDomain") < 0) {
-        VIR_DEBUG0("Warning, could not remove @introduceDomain watch");
+        VIR_DEBUG("Warning, could not remove @introduceDomain watch");
         /* not fatal */
     }
 
     if (xenStoreRemoveWatch(conn, "@releaseDomain", "releaseDomain") < 0) {
-        VIR_DEBUG0("Warning, could not remove @releaseDomain watch");
+        VIR_DEBUG("Warning, could not remove @releaseDomain watch");
         /* not fatal */
     }
 
@@ -446,6 +447,40 @@ xenStoreGetDomainInfo(virDomainPtr domain, virDomainInfoPtr info)
         VIR_FREE(tmp2);
     }
     return (0);
+}
+
+/**
+ * xenStoreDomainGetState:
+ * @domain: pointer to the domain block
+ * @state: returned domain's state
+ * @reason: returned state reason
+ * @flags: additional flags, 0 for now
+ *
+ * Returns 0 in case of success, -1 in case of error.
+ */
+int
+xenStoreDomainGetState(virDomainPtr domain,
+                       int *state,
+                       int *reason,
+                       unsigned int flags ATTRIBUTE_UNUSED)
+{
+    char *running;
+
+    if (domain->id == -1)
+        return -1;
+
+    running = virDomainDoStoreQuery(domain->conn, domain->id, "running");
+
+    if (running && *running == '1')
+        *state = VIR_DOMAIN_RUNNING;
+    else
+        *state = VIR_DOMAIN_NOSTATE;
+    if (reason)
+        *reason = 0;
+
+    VIR_FREE(running);
+
+    return 0;
 }
 
 /**
@@ -1196,7 +1231,7 @@ int xenStoreRemoveWatch(virConnectPtr conn,
                        list->watches[i]->path,
                        list->watches[i]->token))
             {
-                VIR_DEBUG0("WARNING: Could not remove watch");
+                VIR_DEBUG("WARNING: Could not remove watch");
                 /* Not fatal, continue */
             }
 
@@ -1351,7 +1386,7 @@ retry:
     VIR_FREE(new_domids);
 
     if (missing && retries--) {
-        VIR_DEBUG0("Some domains were missing, trying again");
+        VIR_DEBUG("Some domains were missing, trying again");
         usleep(100 * 1000);
         goto retry;
     }
@@ -1426,7 +1461,7 @@ retry:
     VIR_FREE(new_domids);
 
     if (!removed && retries--) {
-        VIR_DEBUG0("No domains removed, retrying");
+        VIR_DEBUG("No domains removed, retrying");
         usleep(100 * 1000);
         goto retry;
     }

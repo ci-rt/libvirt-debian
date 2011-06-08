@@ -551,7 +551,7 @@ storagePoolCreate(virConnectPtr conn,
         pool = NULL;
         goto cleanup;
     }
-    VIR_INFO(_("Creating storage pool '%s'"), pool->def->name);
+    VIR_INFO("Creating storage pool '%s'", pool->def->name);
     pool->active = 1;
 
     ret = virGetStoragePool(conn, pool->def->name, pool->def->uuid);
@@ -593,7 +593,7 @@ storagePoolDefine(virConnectPtr conn,
     }
     def = NULL;
 
-    VIR_INFO(_("Defining storage pool '%s'"), pool->def->name);
+    VIR_INFO("Defining storage pool '%s'", pool->def->name);
     ret = virGetStoragePool(conn, pool->def->name, pool->def->uuid);
 
 cleanup:
@@ -643,7 +643,7 @@ storagePoolUndefine(virStoragePoolPtr obj) {
     VIR_FREE(pool->configFile);
     VIR_FREE(pool->autostartLink);
 
-    VIR_INFO(_("Undefining storage pool '%s'"), pool->def->name);
+    VIR_INFO("Undefining storage pool '%s'", pool->def->name);
     virStoragePoolObjRemove(&driver->pools, pool);
     pool = NULL;
     ret = 0;
@@ -691,7 +691,7 @@ storagePoolStart(virStoragePoolPtr obj,
         goto cleanup;
     }
 
-    VIR_INFO(_("Starting up storage pool '%s'"), pool->def->name);
+    VIR_INFO("Starting up storage pool '%s'", pool->def->name);
     pool->active = 1;
     ret = 0;
 
@@ -779,7 +779,7 @@ storagePoolDestroy(virStoragePoolPtr obj) {
     virStoragePoolObjClearVols(pool);
 
     pool->active = 0;
-    VIR_INFO(_("Shutting down storage pool '%s'"), pool->def->name);
+    VIR_INFO("Shutting down storage pool '%s'", pool->def->name);
 
     if (pool->configFile == NULL) {
         virStoragePoolObjRemove(&driver->pools, pool);
@@ -836,7 +836,7 @@ storagePoolDelete(virStoragePoolPtr obj,
     }
     if (backend->deletePool(obj->conn, pool, flags) < 0)
         goto cleanup;
-    VIR_INFO(_("Deleting storage pool '%s'"), pool->def->name);
+    VIR_INFO("Deleting storage pool '%s'", pool->def->name);
     ret = 0;
 
 cleanup:
@@ -939,8 +939,8 @@ cleanup:
 }
 
 static char *
-storagePoolDumpXML(virStoragePoolPtr obj,
-                   unsigned int flags ATTRIBUTE_UNUSED) {
+storagePoolGetXMLDesc(virStoragePoolPtr obj,
+                      unsigned int flags ATTRIBUTE_UNUSED) {
     virStorageDriverStatePtr driver = obj->conn->storagePrivateData;
     virStoragePoolObjPtr pool;
     char *ret = NULL;
@@ -1366,7 +1366,7 @@ storageVolumeCreateXML(virStoragePoolPtr obj,
 
     }
 
-    VIR_INFO(_("Creating volume '%s' in storage pool '%s'"),
+    VIR_INFO("Creating volume '%s' in storage pool '%s'",
              volobj->name, pool->def->name);
     ret = volobj;
     volobj = NULL;
@@ -1526,7 +1526,7 @@ storageVolumeCreateXMLFrom(virStoragePoolPtr obj,
         goto cleanup;
     }
 
-    VIR_INFO(_("Creating volume '%s' in storage pool '%s'"),
+    VIR_INFO("Creating volume '%s' in storage pool '%s'",
              volobj->name, pool->def->name);
     ret = volobj;
     volobj = NULL;
@@ -1592,7 +1592,7 @@ storageVolumeDownload(virStorageVolPtr obj,
     if (virFDStreamOpenFile(stream,
                             vol->target.path,
                             offset, length,
-                            O_RDONLY) < 0)
+                            O_RDONLY, false) < 0)
         goto out;
 
     ret = 0;
@@ -1656,7 +1656,7 @@ storageVolumeUpload(virStorageVolPtr obj,
     if (virFDStreamOpenFile(stream,
                             vol->target.path,
                             offset, length,
-                            O_WRONLY) < 0)
+                            O_WRONLY, false) < 0)
         goto out;
 
     ret = 0;
@@ -1932,7 +1932,7 @@ storageVolumeDelete(virStorageVolPtr obj,
 
     for (i = 0 ; i < pool->volumes.count ; i++) {
         if (pool->volumes.objs[i] == vol) {
-            VIR_INFO(_("Deleting volume '%s' from storage pool '%s'"),
+            VIR_INFO("Deleting volume '%s' from storage pool '%s'",
                      vol->name, pool->def->name);
             virStorageVolDefFree(vol);
             vol = NULL;
@@ -2103,46 +2103,46 @@ cleanup:
 
 static virStorageDriver storageDriver = {
     .name = "storage",
-    .open = storageOpen,
-    .close = storageClose,
-    .numOfPools = storageNumPools,
-    .listPools = storageListPools,
-    .numOfDefinedPools = storageNumDefinedPools,
-    .listDefinedPools = storageListDefinedPools,
-    .findPoolSources = storageFindPoolSources,
-    .poolLookupByName = storagePoolLookupByName,
-    .poolLookupByUUID = storagePoolLookupByUUID,
-    .poolLookupByVolume = storagePoolLookupByVolume,
-    .poolCreateXML = storagePoolCreate,
-    .poolDefineXML = storagePoolDefine,
-    .poolBuild = storagePoolBuild,
-    .poolUndefine = storagePoolUndefine,
-    .poolCreate = storagePoolStart,
-    .poolDestroy = storagePoolDestroy,
-    .poolDelete = storagePoolDelete,
-    .poolRefresh = storagePoolRefresh,
-    .poolGetInfo = storagePoolGetInfo,
-    .poolGetXMLDesc = storagePoolDumpXML,
-    .poolGetAutostart = storagePoolGetAutostart,
-    .poolSetAutostart = storagePoolSetAutostart,
-    .poolNumOfVolumes = storagePoolNumVolumes,
-    .poolListVolumes = storagePoolListVolumes,
+    .open = storageOpen, /* 0.4.0 */
+    .close = storageClose, /* 0.4.0 */
+    .numOfPools = storageNumPools, /* 0.4.0 */
+    .listPools = storageListPools, /* 0.4.0 */
+    .numOfDefinedPools = storageNumDefinedPools, /* 0.4.0 */
+    .listDefinedPools = storageListDefinedPools, /* 0.4.0 */
+    .findPoolSources = storageFindPoolSources, /* 0.4.0 */
+    .poolLookupByName = storagePoolLookupByName, /* 0.4.0 */
+    .poolLookupByUUID = storagePoolLookupByUUID, /* 0.4.0 */
+    .poolLookupByVolume = storagePoolLookupByVolume, /* 0.4.0 */
+    .poolCreateXML = storagePoolCreate, /* 0.4.0 */
+    .poolDefineXML = storagePoolDefine, /* 0.4.0 */
+    .poolBuild = storagePoolBuild, /* 0.4.0 */
+    .poolUndefine = storagePoolUndefine, /* 0.4.0 */
+    .poolCreate = storagePoolStart, /* 0.4.0 */
+    .poolDestroy = storagePoolDestroy, /* 0.4.0 */
+    .poolDelete = storagePoolDelete, /* 0.4.0 */
+    .poolRefresh = storagePoolRefresh, /* 0.4.0 */
+    .poolGetInfo = storagePoolGetInfo, /* 0.4.0 */
+    .poolGetXMLDesc = storagePoolGetXMLDesc, /* 0.4.0 */
+    .poolGetAutostart = storagePoolGetAutostart, /* 0.4.0 */
+    .poolSetAutostart = storagePoolSetAutostart, /* 0.4.0 */
+    .poolNumOfVolumes = storagePoolNumVolumes, /* 0.4.0 */
+    .poolListVolumes = storagePoolListVolumes, /* 0.4.0 */
 
-    .volLookupByName = storageVolumeLookupByName,
-    .volLookupByKey = storageVolumeLookupByKey,
-    .volLookupByPath = storageVolumeLookupByPath,
-    .volCreateXML = storageVolumeCreateXML,
-    .volCreateXMLFrom = storageVolumeCreateXMLFrom,
-    .volDownload = storageVolumeDownload,
-    .volUpload = storageVolumeUpload,
-    .volDelete = storageVolumeDelete,
-    .volWipe = storageVolumeWipe,
-    .volGetInfo = storageVolumeGetInfo,
-    .volGetXMLDesc = storageVolumeGetXMLDesc,
-    .volGetPath = storageVolumeGetPath,
+    .volLookupByName = storageVolumeLookupByName, /* 0.4.0 */
+    .volLookupByKey = storageVolumeLookupByKey, /* 0.4.0 */
+    .volLookupByPath = storageVolumeLookupByPath, /* 0.4.0 */
+    .volCreateXML = storageVolumeCreateXML, /* 0.4.0 */
+    .volCreateXMLFrom = storageVolumeCreateXMLFrom, /* 0.6.4 */
+    .volDownload = storageVolumeDownload, /* 0.9.0 */
+    .volUpload = storageVolumeUpload, /* 0.9.0 */
+    .volDelete = storageVolumeDelete, /* 0.4.0 */
+    .volWipe = storageVolumeWipe, /* 0.8.0 */
+    .volGetInfo = storageVolumeGetInfo, /* 0.4.0 */
+    .volGetXMLDesc = storageVolumeGetXMLDesc, /* 0.4.0 */
+    .volGetPath = storageVolumeGetPath, /* 0.4.0 */
 
-    .poolIsActive = storagePoolIsActive,
-    .poolIsPersistent = storagePoolIsPersistent,
+    .poolIsActive = storagePoolIsActive, /* 0.7.3 */
+    .poolIsPersistent = storagePoolIsPersistent, /* 0.7.3 */
 };
 
 

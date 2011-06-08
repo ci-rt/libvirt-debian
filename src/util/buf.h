@@ -1,7 +1,7 @@
 /*
  * buf.h: buffers for libvirt
  *
- * Copyright (C) 2005-2008 Red Hat, Inc.
+ * Copyright (C) 2005-2008, 2011 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -12,6 +12,8 @@
 # define __VIR_BUFFER_H__
 
 # include "internal.h"
+
+# include <stdarg.h>
 
 /**
  * virBuffer:
@@ -40,8 +42,10 @@ int virBufferError(const virBufferPtr buf);
 unsigned int virBufferUse(const virBufferPtr buf);
 void virBufferAdd(const virBufferPtr buf, const char *str, int len);
 void virBufferAddChar(const virBufferPtr buf, char c);
-void virBufferVSprintf(const virBufferPtr buf, const char *format, ...)
+void virBufferAsprintf(const virBufferPtr buf, const char *format, ...)
   ATTRIBUTE_FMT_PRINTF(2, 3);
+void virBufferVasprintf(const virBufferPtr buf, const char *format, va_list ap)
+  ATTRIBUTE_FMT_PRINTF(2, 0);
 void virBufferStrcat(const virBufferPtr buf, ...)
   ATTRIBUTE_SENTINEL;
 void virBufferEscapeString(const virBufferPtr buf, const char *format, const char *str);

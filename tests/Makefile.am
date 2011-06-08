@@ -91,6 +91,10 @@ if WITH_QEMU
 check_PROGRAMS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
 endif
 
+if WITH_OPENVZ
+check_PROGRAMS += openvzutilstest
+endif
+
 if WITH_ESX
 check_PROGRAMS += esxutilstest
 endif
@@ -144,6 +148,24 @@ test_scripts +=				\
 	virsh-optparse			\
 	virsh-schedinfo			\
 	virsh-synopsis
+else
+EXTRA_DIST += 				\
+	test_conf.sh			\
+	cpuset				\
+	daemon-conf			\
+	define-dev-segfault		\
+	int-overflow			\
+	libvirtd-fail			\
+	libvirtd-pool			\
+	read-bufsiz			\
+	read-non-seekable		\
+	start				\
+	undefine			\
+	vcpupin				\
+	virsh-all			\
+	virsh-optparse			\
+	virsh-schedinfo			\
+	virsh-synopsis
 endif
 
 if WITH_SECDRIVER_APPARMOR
@@ -177,6 +199,10 @@ endif
 if WITH_QEMU
 TESTS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
 TESTS += nwfilterxml2xmltest
+endif
+
+if WITH_OPENVZ
+TESTS += openvzutilstest
 endif
 
 if WITH_ESX
@@ -282,6 +308,16 @@ qemuhelptest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
 else
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c qemuhelptest.c testutilsqemu.c testutilsqemu.h
 endif
+
+if WITH_OPENVZ
+openvzutilstest_SOURCES = \
+	openvzutilstest.c \
+	testutils.c testutils.h
+openvzutilstest_LDADD = ../src/libvirt_driver_openvz.la $(LDADDS)
+else
+EXTRA_DIST += openvzutilstest.c
+endif
+EXTRA_DIST += openvzutilstest.conf
 
 if WITH_ESX
 esxutilstest_SOURCES = \

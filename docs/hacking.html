@@ -86,6 +86,10 @@
                         <div>
                           <a title="Spawning commands from libvirt driver code" class="inactive" href="internals/command.html">Spawning commands</a>
                         </div>
+                      </li><li>
+                        <div>
+                          <a title="Use lock managers to protect disk content" class="inactive" href="internals/locking.html">Lock managers</a>
+                        </div>
                       </li></ul>
                   </div>
                 </li><li>
@@ -113,6 +117,10 @@
           </li><li>
             <div>
               <a title="How to contact the developers via email and IRC" class="inactive" href="contact.html">Contact</a>
+            </div>
+          </li><li>
+            <div>
+              <a title="Available test suites for libvirt" class="inactive" href="testsuites.html">Test suites</a>
             </div>
           </li><li>
             <div>
@@ -718,7 +726,7 @@
      ...
 
      virBufferAddLit(&amp;buf, "&lt;domain&gt;\n");
-     virBufferVSprintf(&amp;buf, "  &lt;memory&gt;%d&lt;/memory&gt;\n", memory);
+     virBufferAsprintf(&amp;buf, "  &lt;memory&gt;%d&lt;/memory&gt;\n", memory);
      ...
      virBufferAddLit(&amp;buf, "&lt;/domain&gt;\n");
 

@@ -28,6 +28,14 @@ url_dir_list = \
 # We use .gnulib, not gnulib.
 gnulib_dir = $(srcdir)/.gnulib
 
+# List of additional files that we want to pick up in our POTFILES.in
+# This is all gnulib files, as well as generated files for RPC code.
+generated_files = \
+  $(srcdir)/daemon/*_dispatch_*.h \
+  $(srcdir)/src/remote/*_client_bodies.h \
+  $(srcdir)/src/remote/*_protocol.[ch] \
+  $(srcdir)/gnulib/lib/*.[ch]
+
 # Tests not to run as part of "make distcheck".
 local-checks-to-skip =			\
   changelog-check			\
@@ -72,6 +80,8 @@ VC_LIST_ALWAYS_EXCLUDE_REGEX = ^(HACKING|docs/news\.html\.in)$$
 useless_free_options =				\
   --name=VIR_FREE				\
   --name=qemuCapsFree				\
+  --name=qemuMigrationCookieFree                \
+  --name=qemuMigrationCookieGraphicsFree        \
   --name=sexpr_free				\
   --name=virBitmapFree                          \
   --name=virCPUDefFree				\
@@ -95,6 +105,7 @@ useless_free_options =				\
   --name=virDomainEventCallbackListFree		\
   --name=virDomainEventFree			\
   --name=virDomainEventQueueFree		\
+  --name=virDomainEventStateFree		\
   --name=virDomainFSDefFree			\
   --name=virDomainGraphicsDefFree		\
   --name=virDomainHostdevDefFree		\
@@ -382,7 +393,6 @@ msg_gen_function += ESX_ERROR
 msg_gen_function += ESX_VI_ERROR
 msg_gen_function += PHYP_ERROR
 msg_gen_function += VIR_ERROR
-msg_gen_function += VIR_ERROR0
 msg_gen_function += VMX_ERROR
 msg_gen_function += XENXS_ERROR
 msg_gen_function += eventReportError
@@ -495,13 +505,10 @@ sc_prohibit_newline_at_end_of_diagnostic:
 	  && { echo '$(ME): newline at end of message(s)' 1>&2;		\
 	    exit 1; } || :
 
-# Regex for grep -E that exempts generated files from style rules.
-preprocessor_exempt = ((qemu|remote)_(driver|protocol)\.h)$$
 # Enforce recommended preprocessor indentation style.
 sc_preprocessor_indentation:
 	@if cppi --version >/dev/null 2>&1; then			\
-	  $(VC_LIST_EXCEPT) | grep '\.[ch]$$'				\
-	    | grep -vE '$(preprocessor_exempt)' | xargs cppi -a -c	\
+	  $(VC_LIST_EXCEPT) | grep '\.[ch]$$' | xargs cppi -a -c	\
 	    || { echo '$(ME): incorrect preprocessor indentation' 1>&2;	\
 		exit 1; };						\
 	else								\
@@ -520,7 +527,7 @@ sc_copyright_format:
 # Some functions/macros produce messages intended solely for developers
 # and maintainers.  Do not mark them for translation.
 sc_prohibit_gettext_markup:
-	@prohibit='\<VIR_(WARN|DEBUG)0? *\(_\('				\
+	@prohibit='\<VIR_(WARN|INFO|DEBUG) *\(_\('			\
 	halt='do not mark these strings for translation'		\
 	  $(_sc_search_regexp)
 
@@ -590,7 +597,10 @@ exclude_file_name_regexp--sc_avoid_write = \
 
 exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 
-exclude_file_name_regexp--sc_po_check = ^docs/
+exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
+  ^daemon/remote_generator\.pl$$
+
+exclude_file_name_regexp--sc_po_check = ^(docs/|daemon/remote_generator\.pl$$)
 
 exclude_file_name_regexp--sc_prohibit_VIR_ERR_NO_MEMORY = \
   ^(include/libvirt/virterror\.h|daemon/dispatch\.c|src/util/virterror\.c)$$
@@ -606,7 +616,7 @@ exclude_file_name_regexp--sc_prohibit_asprintf = \
 exclude_file_name_regexp--sc_prohibit_can_not = ^po/
 
 exclude_file_name_regexp--sc_prohibit_close = \
-  (\.py$$|^docs/|(src/util/files\.c|src/libvirt\.c)$$)
+  (\.p[yl]$$|^docs/|(src/util/files\.c|src/libvirt\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_doubled_word = ^po/
 
@@ -620,6 +630,9 @@ exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
 exclude_file_name_regexp--sc_prohibit_gethostname = ^src/util/util\.c$$
 
 exclude_file_name_regexp--sc_prohibit_gettext_noop = ^docs/
+
+exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
+  ^daemon/remote_generator\.pl$$
 
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
   ^((po|docs|tests)/|tools/(virsh|console)\.c$$)

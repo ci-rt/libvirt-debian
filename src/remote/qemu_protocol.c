@@ -4,7 +4,7 @@
  * It was generated using rpcgen.
  */
 
-#include "./remote/qemu_protocol.h"
+#include "remote/qemu_protocol.h"
 #include "internal.h"
 #include "remote_protocol.h"
 #include <arpa/inet.h>
@@ -13,7 +13,7 @@ bool_t
 xdr_qemu_monitor_command_args (XDR *xdrs, qemu_monitor_command_args *objp)
 {
 
-         if (!xdr_remote_nonnull_domain (xdrs, &objp->domain))
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
          if (!xdr_remote_nonnull_string (xdrs, &objp->cmd))
                  return FALSE;

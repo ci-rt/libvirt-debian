@@ -36,6 +36,9 @@
 
 #include <sys/utsname.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "internal.h"
 #include "datatypes.h"
@@ -51,6 +54,9 @@
 #include "nodeinfo.h"
 #include "logging.h"
 #include "vbox_driver.h"
+#include "configmake.h"
+#include "files.h"
+#include "fdstream.h"
 
 /* This one changes from version to version. */
 #if VBOX_API_VERSION == 2002
@@ -1026,7 +1032,7 @@ static virDrvOpenStatus vboxOpen(virConnectPtr conn,
 #endif /* !(VBOX_API_VERSION == 2002) */
 
     conn->privateData = data;
-    VIR_DEBUG0("in vboxOpen");
+    VIR_DEBUG("in vboxOpen");
 
     return VIR_DRV_OPEN_SUCCESS;
 }
@@ -1909,6 +1915,65 @@ cleanup:
     return ret;
 }
 
+static int
+vboxDomainGetState(virDomainPtr dom,
+                   int *state,
+                   int *reason,
+                   unsigned int flags)
+{
+    VBOX_OBJECT_CHECK(dom->conn, int, -1);
+    vboxIID domiid = VBOX_IID_INITIALIZER;
+    IMachine *machine = NULL;
+    PRUint32 mstate = MachineState_Null;
+    nsresult rc;
+
+    virCheckFlags(0, -1);
+
+    vboxIIDFromUUID(&domiid, dom->uuid);
+    rc = VBOX_OBJECT_GET_MACHINE(domiid.value, &machine);
+    if (NS_FAILED(rc)) {
+        vboxError(VIR_ERR_NO_DOMAIN, "%s",
+                  _("no domain with matching UUID"));
+        goto cleanup;
+    }
+
+    machine->vtbl->GetState(machine, &mstate);
+
+    switch (mstate) {
+    case MachineState_Running:
+        *state = VIR_DOMAIN_RUNNING;
+        break;
+    case MachineState_Stuck:
+        *state = VIR_DOMAIN_BLOCKED;
+        break;
+    case MachineState_Paused:
+        *state = VIR_DOMAIN_PAUSED;
+        break;
+    case MachineState_Stopping:
+        *state = VIR_DOMAIN_SHUTDOWN;
+        break;
+    case MachineState_PoweredOff:
+        *state = VIR_DOMAIN_SHUTOFF;
+        break;
+    case MachineState_Aborted:
+        *state = VIR_DOMAIN_CRASHED;
+        break;
+    case MachineState_Null:
+    default:
+        *state = VIR_DOMAIN_NOSTATE;
+        break;
+    }
+
+    if (reason)
+        *reason = 0;
+
+    ret = 0;
+
+cleanup:
+    vboxIIDUnalloc(&domiid);
+    return ret;
+}
+
 static int vboxDomainSave(virDomainPtr dom, const char *path ATTRIBUTE_UNUSED) {
     VBOX_OBJECT_CHECK(dom->conn, int, -1);
     IConsole *console    = NULL;
@@ -2066,7 +2131,7 @@ vboxDomainGetMaxVcpus(virDomainPtr dom)
                                          VIR_DOMAIN_VCPU_MAXIMUM));
 }
 
-static char *vboxDomainDumpXML(virDomainPtr dom, int flags) {
+static char *vboxDomainGetXMLDesc(virDomainPtr dom, int flags) {
     VBOX_OBJECT_CHECK(dom->conn, char *, NULL);
     virDomainDefPtr def  = NULL;
     IMachine *machine    = NULL;
@@ -3733,15 +3798,15 @@ vboxAttachDrives(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                         if (def->disks[i]->readonly) {
                             hardDisk->vtbl->SetType(hardDisk,
                                                     HardDiskType_Immutable);
-                            VIR_DEBUG0("setting harddisk to readonly");
+                            VIR_DEBUG("setting harddisk to readonly");
                         } else if (!def->disks[i]->readonly) {
                             hardDisk->vtbl->SetType(hardDisk,
                                                     HardDiskType_Normal);
-                            VIR_DEBUG0("setting harddisk type to normal");
+                            VIR_DEBUG("setting harddisk type to normal");
                         }
                         if (def->disks[i]->bus == VIR_DOMAIN_DISK_BUS_IDE) {
                             if (STREQ(def->disks[i]->dst, "hdc")) {
-                                VIR_DEBUG0("Not connecting harddisk to hdc as hdc"
+                                VIR_DEBUG("Not connecting harddisk to hdc as hdc"
                                        " is taken by CD/DVD Drive");
                             } else {
                                 PRInt32 channel          = 0;
@@ -4021,10 +4086,10 @@ vboxAttachDrives(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
             if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
                 if (def->disks[i]->readonly) {
                     medium->vtbl->SetType(medium, MediumType_Immutable);
-                    VIR_DEBUG0("setting harddisk to immutable");
+                    VIR_DEBUG("setting harddisk to immutable");
                 } else if (!def->disks[i]->readonly) {
                     medium->vtbl->SetType(medium, MediumType_Normal);
-                    VIR_DEBUG0("setting harddisk type to normal");
+                    VIR_DEBUG("setting harddisk type to normal");
                 }
             }
 
@@ -4450,7 +4515,7 @@ vboxAttachDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 #endif /* VBOX_API_VERSION >= 4000 */
             if (VRDxServer) {
                 VRDxServer->vtbl->SetEnabled(VRDxServer, PR_TRUE);
-                VIR_DEBUG0("VRDP Support turned ON.");
+                VIR_DEBUG("VRDP Support turned ON.");
 
 #if VBOX_API_VERSION < 3001
                 if (def->graphics[i]->data.rdp.port) {
@@ -4463,7 +4528,7 @@ vboxAttachDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                      * the default one which is 3389 currently
                      */
                     VRDxServer->vtbl->SetPort(VRDxServer, 0);
-                    VIR_DEBUG0("VRDP Port changed to default, which is 3389 currently");
+                    VIR_DEBUG("VRDP Port changed to default, which is 3389 currently");
                 }
 #elif VBOX_API_VERSION < 4000 /* 3001 <= VBOX_API_VERSION < 4000 */
                 PRUnichar *portUtf16 = NULL;
@@ -4484,13 +4549,13 @@ vboxAttachDisplay(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                 if (def->graphics[i]->data.rdp.replaceUser) {
                     VRDxServer->vtbl->SetReuseSingleConnection(VRDxServer,
                                                                PR_TRUE);
-                    VIR_DEBUG0("VRDP set to reuse single connection");
+                    VIR_DEBUG("VRDP set to reuse single connection");
                 }
 
                 if (def->graphics[i]->data.rdp.multiUser) {
                     VRDxServer->vtbl->SetAllowMultiConnection(VRDxServer,
                                                               PR_TRUE);
-                    VIR_DEBUG0("VRDP set to allow multiple connection");
+                    VIR_DEBUG("VRDP set to allow multiple connection");
                 }
 
                 if (def->graphics[i]->data.rdp.listenAddr) {
@@ -5638,8 +5703,8 @@ cleanup:
 }
 
 static char *
-vboxDomainSnapshotDumpXML(virDomainSnapshotPtr snapshot,
-                          unsigned int flags)
+vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
+                             unsigned int flags)
 {
     virDomainPtr dom = snapshot->domain;
     VBOX_OBJECT_CHECK(dom->conn, char *, NULL);
@@ -6885,7 +6950,7 @@ static virDrvOpenStatus vboxNetworkOpen(virConnectPtr conn,
         (data->vboxSession == NULL))
         goto cleanup;
 
-    VIR_DEBUG0("network initialized");
+    VIR_DEBUG("network initialized");
     /* conn->networkPrivateData = some network specific data */
     return VIR_DRV_OPEN_SUCCESS;
 
@@ -6894,7 +6959,7 @@ cleanup:
 }
 
 static int vboxNetworkClose(virConnectPtr conn) {
-    VIR_DEBUG0("network uninitialized");
+    VIR_DEBUG("network uninitialized");
     conn->networkPrivateData = NULL;
     return 0;
 }
@@ -7239,7 +7304,7 @@ static virNetworkPtr vboxNetworkDefineCreateXML(virConnectPtr conn, const char *
                 data->vboxObj->vtbl->CreateDHCPServer(data->vboxObj,
                                                       networkNameUtf16,
                                                       &dhcpServer);
-                VIR_DEBUG0("couldn't find dhcp server so creating one");
+                VIR_DEBUG("couldn't find dhcp server so creating one");
             }
             if (dhcpServer) {
                 PRUnichar *ipAddressUtf16     = NULL;
@@ -7510,7 +7575,7 @@ static int vboxNetworkDestroy(virNetworkPtr network) {
     return vboxNetworkUndefineDestroy(network, false);
 }
 
-static char *vboxNetworkDumpXML(virNetworkPtr network, int flags ATTRIBUTE_UNUSED) {
+static char *vboxNetworkGetXMLDesc(virNetworkPtr network, int flags ATTRIBUTE_UNUSED) {
     VBOX_OBJECT_HOST_CHECK(network->conn, char *, NULL);
     virNetworkDefPtr def  = NULL;
     virNetworkIpDefPtr ipdef = NULL;
@@ -7696,7 +7761,7 @@ static virDrvOpenStatus vboxStorageOpen (virConnectPtr conn,
         (data->vboxSession == NULL))
         goto cleanup;
 
-    VIR_DEBUG0("vbox storage initialized");
+    VIR_DEBUG("vbox storage initialized");
     /* conn->storagePrivateData = some storage specific data */
     return VIR_DRV_OPEN_SUCCESS;
 
@@ -7705,7 +7770,7 @@ cleanup:
 }
 
 static int vboxStorageClose (virConnectPtr conn) {
-    VIR_DEBUG0("vbox storage uninitialized");
+    VIR_DEBUG("vbox storage uninitialized");
     conn->storagePrivateData = NULL;
     return 0;
 }
@@ -8245,7 +8310,7 @@ static int vboxStorageVolDelete(virStorageVolPtr vol,
 #endif /* VBOX_API_VERSION >= 3001 */
                                             if (NS_SUCCEEDED(rc)) {
                                                 rc = machine->vtbl->SaveSettings(machine);
-                                                VIR_DEBUG0("saving machine settings");
+                                                VIR_DEBUG("saving machine settings");
                                             }
 
                                             if (NS_SUCCEEDED(rc)) {
@@ -8527,188 +8592,238 @@ static char *vboxStorageVolGetPath(virStorageVolPtr vol) {
     return ret;
 }
 
+#if VBOX_API_VERSION == 4000
+static char *
+vboxDomainScreenshot(virDomainPtr dom,
+                     virStreamPtr st,
+                     unsigned int screen,
+                     unsigned int flags ATTRIBUTE_UNUSED)
+{
+    VBOX_OBJECT_CHECK(dom->conn, char *, NULL);
+    IConsole *console = NULL;
+    vboxIID iid = VBOX_IID_INITIALIZER;
+    IMachine *machine = NULL;
+    nsresult rc;
+    char *tmp;
+    int tmp_fd = -1;
+    unsigned int max_screen;
+
+    vboxIIDFromUUID(&iid, dom->uuid);
+    rc = VBOX_OBJECT_GET_MACHINE(iid.value, &machine);
+    if (NS_FAILED(rc)) {
+        vboxError(VIR_ERR_NO_DOMAIN, "%s",
+                  _("no domain with matching uuid"));
+        return NULL;
+    }
+
+    rc = machine->vtbl->GetMonitorCount(machine, &max_screen);
+    if (NS_FAILED(rc)) {
+        vboxError(VIR_ERR_OPERATION_FAILED, "%s",
+                  _("unable to get monitor count"));
+        VBOX_RELEASE(machine);
+        return NULL;
+    }
+
+    if (screen >= max_screen) {
+        vboxError(VIR_ERR_INVALID_ARG, _("screen ID higher than monitor "
+                  "count (%d)"), max_screen);
+        VBOX_RELEASE(machine);
+        return NULL;
+    }
+
+    if (virAsprintf(&tmp, "%s/cache/libvirt/vbox.screendump.XXXXXX", LOCALSTATEDIR) < 0) {
+        virReportOOMError();
+        VBOX_RELEASE(machine);
+        return NULL;
+    }
+
+    if ((tmp_fd = mkstemp(tmp)) == -1) {
+        virReportSystemError(errno, _("mkstemp(\"%s\") failed"), tmp);
+        VIR_FREE(tmp);
+        VBOX_RELEASE(machine);
+        return NULL;
+    }
+
+
+    rc = VBOX_SESSION_OPEN_EXISTING(iid.value, machine);
+    if (NS_SUCCEEDED(rc)) {
+        rc = data->vboxSession->vtbl->GetConsole(data->vboxSession, &console);
+        if (NS_SUCCEEDED(rc) && console) {
+            IDisplay *display = NULL;
+
+            console->vtbl->GetDisplay(console, &display);
+
+            if (display) {
+                PRUint32 width, height, bitsPerPixel;
+                PRUint32 screenDataSize;
+                PRUint8 *screenData;
+
+                rc = display->vtbl->GetScreenResolution(display, screen,
+                                                        &width, &height,
+                                                        &bitsPerPixel);
+
+                if (NS_FAILED(rc) || !width || !height) {
+                    vboxError(VIR_ERR_OPERATION_FAILED, "%s",
+                              _("unable to get screen resolution"));
+                    goto endjob;
+                }
+
+                rc = display->vtbl->TakeScreenShotPNGToArray(display, screen,
+                                                             width, height,
+                                                             &screenDataSize,
+                                                             &screenData);
+                if (NS_FAILED(rc)) {
+                    vboxError(VIR_ERR_OPERATION_FAILED, "%s",
+                              _("failed to take screenshot"));
+                    goto endjob;
+                }
+
+                if (safewrite(tmp_fd, (char *) screenData,
+                              screenDataSize) < 0) {
+                    virReportSystemError(errno, _("unable to write data "
+                                                  "to '%s'"), tmp);
+                    goto endjob;
+                }
+
+                if (VIR_CLOSE(tmp_fd) < 0) {
+                    virReportSystemError(errno, _("unable to close %s"), tmp);
+                    goto endjob;
+                }
+
+                if (virFDStreamOpenFile(st, tmp, 0, 0, O_RDONLY, true) < 0) {
+                    vboxError(VIR_ERR_OPERATION_FAILED, "%s",
+                              _("unable to open stream"));
+                    goto endjob;
+                }
+
+                ret = strdup("image/png");
+
+endjob:
+                VIR_FREE(screenData);
+                VBOX_RELEASE(display);
+            }
+            VBOX_RELEASE(console);
+        }
+        VBOX_SESSION_CLOSE();
+    }
+
+    VIR_FORCE_CLOSE(tmp_fd);
+    VIR_FREE(tmp);
+    VBOX_RELEASE(machine);
+    vboxIIDUnalloc(&iid);
+    return ret;
+}
+#endif /* VBOX_API_VERSION == 4000 */
+
 /**
  * Function Tables
  */
 
 virDriver NAME(Driver) = {
-    VIR_DRV_VBOX,
-    "VBOX",
-    vboxOpen, /* open */
-    vboxClose, /* close */
-    NULL, /* supports_feature */
-    NULL, /* type */
-    vboxGetVersion, /* version */
-    NULL, /* libvirtVersion (impl. in libvirt.c) */
-    virGetHostname, /* getHostname */
-    NULL, /* getSysinfo */
-    vboxGetMaxVcpus, /* getMaxVcpus */
-    nodeGetInfo, /* nodeGetInfo */
-    vboxGetCapabilities, /* getCapabilities */
-    vboxListDomains, /* listDomains */
-    vboxNumOfDomains, /* numOfDomains */
-    vboxDomainCreateXML, /* domainCreateXML */
-    vboxDomainLookupByID, /* domainLookupByID */
-    vboxDomainLookupByUUID, /* domainLookupByUUID */
-    vboxDomainLookupByName, /* domainLookupByName */
-    vboxDomainSuspend, /* domainSuspend */
-    vboxDomainResume, /* domainResume */
-    vboxDomainShutdown, /* domainShutdown */
-    vboxDomainReboot, /* domainReboot */
-    vboxDomainDestroy, /* domainDestroy */
-    vboxDomainGetOSType, /* domainGetOSType */
-    NULL, /* domainGetMaxMemory */
-    NULL, /* domainSetMaxMemory */
-    vboxDomainSetMemory, /* domainSetMemory */
-    NULL, /* domainSetMemoryFlags */
-    NULL, /* domainSetMemoryParameters */
-    NULL, /* domainGetMemoryParameters */
-    NULL, /* domainSetBlkioParameters */
-    NULL, /* domainGetBlkioParameters */
-    vboxDomainGetInfo, /* domainGetInfo */
-    vboxDomainSave, /* domainSave */
-    NULL, /* domainRestore */
-    NULL, /* domainCoreDump */
-    vboxDomainSetVcpus, /* domainSetVcpus */
-    vboxDomainSetVcpusFlags, /* domainSetVcpusFlags */
-    vboxDomainGetVcpusFlags, /* domainGetVcpusFlags */
-    NULL, /* domainPinVcpu */
-    NULL, /* domainGetVcpus */
-    vboxDomainGetMaxVcpus, /* domainGetMaxVcpus */
-    NULL, /* domainGetSecurityLabel */
-    NULL, /* nodeGetSecurityModel */
-    vboxDomainDumpXML, /* domainDumpXML */
-    NULL, /* domainXMLFromNative */
-    NULL, /* domainXMLToNative */
-    vboxListDefinedDomains, /* listDefinedDomains */
-    vboxNumOfDefinedDomains, /* numOfDefinedDomains */
-    vboxDomainCreate, /* domainCreate */
-    vboxDomainCreateWithFlags, /* domainCreateWithFlags */
-    vboxDomainDefineXML, /* domainDefineXML */
-    vboxDomainUndefine, /* domainUndefine */
-    vboxDomainAttachDevice, /* domainAttachDevice */
-    vboxDomainAttachDeviceFlags, /* domainAttachDeviceFlags */
-    vboxDomainDetachDevice, /* domainDetachDevice */
-    vboxDomainDetachDeviceFlags, /* domainDetachDeviceFlags */
-    vboxDomainUpdateDeviceFlags, /* domainUpdateDeviceFlags */
-    NULL, /* domainGetAutostart */
-    NULL, /* domainSetAutostart */
-    NULL, /* domainGetSchedulerType */
-    NULL, /* domainGetSchedulerParameters */
-    NULL, /* domainSetSchedulerParameters */
-    NULL, /* domainMigratePrepare */
-    NULL, /* domainMigratePerform */
-    NULL, /* domainMigrateFinish */
-    NULL, /* domainBlockStats */
-    NULL, /* domainInterfaceStats */
-    NULL, /* domainMemoryStats */
-    NULL, /* domainBlockPeek */
-    NULL, /* domainMemoryPeek */
-    NULL, /* domainGetBlockInfo */
-    nodeGetCellsFreeMemory, /* nodeGetCellsFreeMemory */
-    nodeGetFreeMemory,  /* getFreeMemory */
-#if VBOX_API_VERSION == 2002 || VBOX_API_VERSION == 4000
-    NULL, /* domainEventRegister */
-    NULL, /* domainEventDeregister */
-#else
-    vboxDomainEventRegister, /* domainEventRegister */
-    vboxDomainEventDeregister, /* domainEventDeregister */
+    .no = VIR_DRV_VBOX,
+    .name = "VBOX",
+    .open = vboxOpen, /* 0.6.3 */
+    .close = vboxClose, /* 0.6.3 */
+    .version = vboxGetVersion, /* 0.6.3 */
+    .getHostname = virGetHostname, /* 0.6.3 */
+    .getMaxVcpus = vboxGetMaxVcpus, /* 0.6.3 */
+    .nodeGetInfo = nodeGetInfo, /* 0.6.3 */
+    .getCapabilities = vboxGetCapabilities, /* 0.6.3 */
+    .listDomains = vboxListDomains, /* 0.6.3 */
+    .numOfDomains = vboxNumOfDomains, /* 0.6.3 */
+    .domainCreateXML = vboxDomainCreateXML, /* 0.6.3 */
+    .domainLookupByID = vboxDomainLookupByID, /* 0.6.3 */
+    .domainLookupByUUID = vboxDomainLookupByUUID, /* 0.6.3 */
+    .domainLookupByName = vboxDomainLookupByName, /* 0.6.3 */
+    .domainSuspend = vboxDomainSuspend, /* 0.6.3 */
+    .domainResume = vboxDomainResume, /* 0.6.3 */
+    .domainShutdown = vboxDomainShutdown, /* 0.6.3 */
+    .domainReboot = vboxDomainReboot, /* 0.6.3 */
+    .domainDestroy = vboxDomainDestroy, /* 0.6.3 */
+    .domainGetOSType = vboxDomainGetOSType, /* 0.6.3 */
+    .domainSetMemory = vboxDomainSetMemory, /* 0.6.3 */
+    .domainGetInfo = vboxDomainGetInfo, /* 0.6.3 */
+    .domainGetState = vboxDomainGetState, /* 0.9.2 */
+    .domainSave = vboxDomainSave, /* 0.6.3 */
+    .domainSetVcpus = vboxDomainSetVcpus, /* 0.7.1 */
+    .domainSetVcpusFlags = vboxDomainSetVcpusFlags, /* 0.8.5 */
+    .domainGetVcpusFlags = vboxDomainGetVcpusFlags, /* 0.8.5 */
+    .domainGetMaxVcpus = vboxDomainGetMaxVcpus, /* 0.7.1 */
+    .domainGetXMLDesc = vboxDomainGetXMLDesc, /* 0.6.3 */
+    .listDefinedDomains = vboxListDefinedDomains, /* 0.6.3 */
+    .numOfDefinedDomains = vboxNumOfDefinedDomains, /* 0.6.3 */
+    .domainCreate = vboxDomainCreate, /* 0.6.3 */
+    .domainCreateWithFlags = vboxDomainCreateWithFlags, /* 0.8.2 */
+    .domainDefineXML = vboxDomainDefineXML, /* 0.6.3 */
+    .domainUndefine = vboxDomainUndefine, /* 0.6.3 */
+    .domainAttachDevice = vboxDomainAttachDevice, /* 0.6.3 */
+    .domainAttachDeviceFlags = vboxDomainAttachDeviceFlags, /* 0.7.7 */
+    .domainDetachDevice = vboxDomainDetachDevice, /* 0.6.3 */
+    .domainDetachDeviceFlags = vboxDomainDetachDeviceFlags, /* 0.7.7 */
+    .domainUpdateDeviceFlags = vboxDomainUpdateDeviceFlags, /* 0.8.0 */
+    .nodeGetCellsFreeMemory = nodeGetCellsFreeMemory, /* 0.6.5 */
+    .nodeGetFreeMemory = nodeGetFreeMemory, /* 0.6.5 */
+#if VBOX_API_VERSION == 4000
+    .domainScreenshot = vboxDomainScreenshot, /* 0.9.2 */
 #endif
-    NULL, /* domainMigratePrepare2 */
-    NULL, /* domainMigrateFinish2 */
-    NULL, /* nodeDeviceDettach */
-    NULL, /* nodeDeviceReAttach */
-    NULL, /* nodeDeviceReset */
-    NULL, /* domainMigratePrepareTunnel */
-    vboxIsEncrypted, /* isEncrypted */
-    vboxIsSecure, /* isSecure */
-    vboxDomainIsActive, /* domainIsActive */
-    vboxDomainIsPersistent, /* domainIsPersistent */
-    vboxDomainIsUpdated, /* domainIsUpdated */
-    NULL, /* cpuCompare */
-    NULL, /* cpuBaseline */
-    NULL, /* domainGetJobInfo */
-    NULL, /* domainAbortJob */
-    NULL, /* domainMigrateSetMaxDowntime */
-    NULL, /* domainMigrateSetMaxSpeed */
-#if VBOX_API_VERSION == 2002 || VBOX_API_VERSION == 4000
-    NULL, /* domainEventRegisterAny */
-    NULL, /* domainEventDeregisterAny */
-#else
-    vboxDomainEventRegisterAny, /* domainEventRegisterAny */
-    vboxDomainEventDeregisterAny, /* domainEventDeregisterAny */
+#if VBOX_API_VERSION != 2002 && VBOX_API_VERSION != 4000
+    .domainEventRegister = vboxDomainEventRegister, /* 0.7.0 */
+    .domainEventDeregister = vboxDomainEventDeregister, /* 0.7.0 */
 #endif
-    NULL, /* domainManagedSave */
-    NULL, /* domainHasManagedSaveImage */
-    NULL, /* domainManagedSaveRemove */
-    vboxDomainSnapshotCreateXML, /* domainSnapshotCreateXML */
-    vboxDomainSnapshotDumpXML, /* domainSnapshotDumpXML */
-    vboxDomainSnapshotNum, /* domainSnapshotNum */
-    vboxDomainSnapshotListNames, /* domainSnapshotListNames */
-    vboxDomainSnapshotLookupByName, /* domainSnapshotLookupByName */
-    vboxDomainHasCurrentSnapshot, /* domainHasCurrentSnapshot */
-    vboxDomainSnapshotCurrent, /* domainSnapshotCurrent */
-    vboxDomainRevertToSnapshot, /* domainRevertToSnapshot */
-    vboxDomainSnapshotDelete, /* domainSnapshotDelete */
-    NULL, /* qemuDomainMonitorCommand */
-    NULL, /* domainOpenConsole */
+    .isEncrypted = vboxIsEncrypted, /* 0.7.3 */
+    .isSecure = vboxIsSecure, /* 0.7.3 */
+    .domainIsActive = vboxDomainIsActive, /* 0.7.3 */
+    .domainIsPersistent = vboxDomainIsPersistent, /* 0.7.3 */
+    .domainIsUpdated = vboxDomainIsUpdated, /* 0.8.6 */
+#if VBOX_API_VERSION != 2002 && VBOX_API_VERSION != 4000
+    .domainEventRegisterAny = vboxDomainEventRegisterAny, /* 0.8.0 */
+    .domainEventDeregisterAny = vboxDomainEventDeregisterAny, /* 0.8.0 */
+#endif
+    .domainSnapshotCreateXML = vboxDomainSnapshotCreateXML, /* 0.8.0 */
+    .domainSnapshotGetXMLDesc = vboxDomainSnapshotGetXMLDesc, /* 0.8.0 */
+    .domainSnapshotNum = vboxDomainSnapshotNum, /* 0.8.0 */
+    .domainSnapshotListNames = vboxDomainSnapshotListNames, /* 0.8.0 */
+    .domainSnapshotLookupByName = vboxDomainSnapshotLookupByName, /* 0.8.0 */
+    .domainHasCurrentSnapshot = vboxDomainHasCurrentSnapshot, /* 0.8.0 */
+    .domainSnapshotCurrent = vboxDomainSnapshotCurrent, /* 0.8.0 */
+    .domainRevertToSnapshot = vboxDomainRevertToSnapshot, /* 0.8.0 */
+    .domainSnapshotDelete = vboxDomainSnapshotDelete, /* 0.8.0 */
 };
 
 virNetworkDriver NAME(NetworkDriver) = {
     "VBOX",
-    .open                   = vboxNetworkOpen,
-    .close                  = vboxNetworkClose,
-    .numOfNetworks          = vboxNumOfNetworks,
-    .listNetworks           = vboxListNetworks,
-    .numOfDefinedNetworks   = vboxNumOfDefinedNetworks,
-    .listDefinedNetworks    = vboxListDefinedNetworks,
-    .networkLookupByUUID    = vboxNetworkLookupByUUID,
-    .networkLookupByName    = vboxNetworkLookupByName,
-    .networkCreateXML       = vboxNetworkCreateXML,
-    .networkDefineXML       = vboxNetworkDefineXML,
-    .networkUndefine        = vboxNetworkUndefine,
-    .networkCreate          = vboxNetworkCreate,
-    .networkDestroy         = vboxNetworkDestroy,
-    .networkDumpXML         = vboxNetworkDumpXML,
-    .networkGetBridgeName   = NULL,
-    .networkGetAutostart    = NULL,
-    .networkSetAutostart    = NULL
+    .open                   = vboxNetworkOpen, /* 0.6.4 */
+    .close                  = vboxNetworkClose, /* 0.6.4 */
+    .numOfNetworks          = vboxNumOfNetworks, /* 0.6.4 */
+    .listNetworks           = vboxListNetworks, /* 0.6.4 */
+    .numOfDefinedNetworks   = vboxNumOfDefinedNetworks, /* 0.6.4 */
+    .listDefinedNetworks    = vboxListDefinedNetworks, /* 0.6.4 */
+    .networkLookupByUUID    = vboxNetworkLookupByUUID, /* 0.6.4 */
+    .networkLookupByName    = vboxNetworkLookupByName, /* 0.6.4 */
+    .networkCreateXML       = vboxNetworkCreateXML, /* 0.6.4 */
+    .networkDefineXML       = vboxNetworkDefineXML, /* 0.6.4 */
+    .networkUndefine        = vboxNetworkUndefine, /* 0.6.4 */
+    .networkCreate          = vboxNetworkCreate, /* 0.6.4 */
+    .networkDestroy         = vboxNetworkDestroy, /* 0.6.4 */
+    .networkGetXMLDesc      = vboxNetworkGetXMLDesc, /* 0.6.4 */
 };
 
 virStorageDriver NAME(StorageDriver) = {
     .name               = "VBOX",
-    .open               = vboxStorageOpen,
-    .close              = vboxStorageClose,
-    .numOfPools         = vboxStorageNumOfPools,
-    .listPools          = vboxStorageListPools,
-    .numOfDefinedPools  = NULL,
-    .listDefinedPools   = NULL,
-    .findPoolSources    = NULL,
-    .poolLookupByName   = vboxStoragePoolLookupByName,
-    .poolLookupByUUID   = NULL,
-    .poolLookupByVolume = NULL,
-    .poolCreateXML      = NULL,
-    .poolDefineXML      = NULL,
-    .poolBuild          = NULL,
-    .poolUndefine       = NULL,
-    .poolCreate         = NULL,
-    .poolDestroy        = NULL,
-    .poolDelete         = NULL,
-    .poolRefresh        = NULL,
-    .poolGetInfo        = NULL,
-    .poolGetXMLDesc     = NULL,
-    .poolGetAutostart   = NULL,
-    .poolSetAutostart   = NULL,
-    .poolNumOfVolumes   = vboxStoragePoolNumOfVolumes,
-    .poolListVolumes    = vboxStoragePoolListVolumes,
+    .open               = vboxStorageOpen, /* 0.7.1 */
+    .close              = vboxStorageClose, /* 0.7.1 */
+    .numOfPools         = vboxStorageNumOfPools, /* 0.7.1 */
+    .listPools          = vboxStorageListPools, /* 0.7.1 */
+    .poolLookupByName   = vboxStoragePoolLookupByName, /* 0.7.1 */
+    .poolNumOfVolumes   = vboxStoragePoolNumOfVolumes, /* 0.7.1 */
+    .poolListVolumes    = vboxStoragePoolListVolumes, /* 0.7.1 */
 
-    .volLookupByName    = vboxStorageVolLookupByName,
-    .volLookupByKey     = vboxStorageVolLookupByKey,
-    .volLookupByPath    = vboxStorageVolLookupByPath,
-    .volCreateXML       = vboxStorageVolCreateXML,
-    .volCreateXMLFrom   = NULL,
-    .volDelete          = vboxStorageVolDelete,
-    .volGetInfo         = vboxStorageVolGetInfo,
-    .volGetXMLDesc      = vboxStorageVolGetXMLDesc,
-    .volGetPath         = vboxStorageVolGetPath
+    .volLookupByName    = vboxStorageVolLookupByName, /* 0.7.1 */
+    .volLookupByKey     = vboxStorageVolLookupByKey, /* 0.7.1 */
+    .volLookupByPath    = vboxStorageVolLookupByPath, /* 0.7.1 */
+    .volCreateXML       = vboxStorageVolCreateXML, /* 0.7.1 */
+    .volDelete          = vboxStorageVolDelete, /* 0.7.1 */
+    .volGetInfo         = vboxStorageVolGetInfo, /* 0.7.1 */
+    .volGetXMLDesc      = vboxStorageVolGetXMLDesc, /* 0.7.1 */
+    .volGetPath         = vboxStorageVolGetPath /* 0.7.1 */
 };

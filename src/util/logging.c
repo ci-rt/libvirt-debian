@@ -47,43 +47,6 @@
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 /*
- * Macro used to format the message as a string in virLogMessage
- * and borrowed from libxml2 (also used in virRaiseError)
- */
-#define VIR_GET_VAR_STR(msg, str) {				\
-    int       size, prev_size = -1;				\
-    int       chars;						\
-    char      *larger;						\
-    va_list   ap;						\
-                                                                \
-    str = (char *) malloc(150);					\
-    if (str != NULL) {						\
-                                                                \
-    size = 150;							\
-                                                                \
-    while (1) {							\
-        va_start(ap, msg);					\
-        chars = vsnprintf(str, size, msg, ap);			\
-        va_end(ap);						\
-        if ((chars > -1) && (chars < size)) {			\
-            if (prev_size == chars) {				\
-                break;						\
-            } else {						\
-                prev_size = chars;				\
-            }							\
-        }							\
-        if (chars > -1)						\
-            size += chars + 1;					\
-        else							\
-            size += 100;					\
-        if ((larger = (char *) realloc(str, size)) == NULL) {	\
-            break;						\
-        }							\
-        str = larger;						\
-    }}								\
-}
-
-/*
  * A logging buffer to keep some history over logs
  */
 
@@ -217,7 +180,7 @@ int virLogStartup(void) {
     virLogDefaultPriority = VIR_LOG_DEFAULT;
     virLogUnlock();
     if (pbm)
-        VIR_WARN0(pbm);
+        VIR_WARN("%s", pbm);
     return 0;
 }
 
@@ -478,7 +441,7 @@ virLogEmergencyDumpAll(int signum) {
  */
 int virLogSetDefaultPriority(int priority) {
     if ((priority < VIR_LOG_DEBUG) || (priority > VIR_LOG_ERROR)) {
-        VIR_WARN0("Ignoring invalid log level setting.");
+        VIR_WARN("Ignoring invalid log level setting.");
         return -1;
     }
     if (!virLogInitialized)
@@ -729,6 +692,7 @@ void virLogMessage(const char *category, int priority, const char *funcname,
     int len, fprio, i, ret;
     int saved_errno = errno;
     int emit = 1;
+    va_list ap;
 
     if (!virLogInitialized)
         virLogStartup();
@@ -753,9 +717,12 @@ void virLogMessage(const char *category, int priority, const char *funcname,
     /*
      * serialize the error message, add level and timestamp
      */
-    VIR_GET_VAR_STR(fmt, str);
-    if (str == NULL)
+    va_start(ap, fmt);
+    if (virVasprintf(&str, fmt, ap) < 0) {
+        va_end(ap);
         goto cleanup;
+    }
+    va_end(ap);
     gettimeofday(&cur_time, NULL);
     localtime_r(&cur_time.tv_sec, &time_info);
 
@@ -1007,7 +974,7 @@ int virLogParseOutputs(const char *outputs) {
     ret = count;
 cleanup:
     if (ret == -1)
-        VIR_WARN0("Ignoring invalid log output setting.");
+        VIR_WARN("Ignoring invalid log output setting.");
     return ret;
 }
 
@@ -1063,7 +1030,7 @@ int virLogParseFilters(const char *filters) {
     ret = count;
 cleanup:
     if (ret == -1)
-        VIR_WARN0("Ignoring invalid log filter setting.");
+        VIR_WARN("Ignoring invalid log filter setting.");
     return ret;
 }
 
@@ -1089,7 +1056,7 @@ char *virLogGetFilters(void) {
 
     virLogLock();
     for (i = 0; i < virLogNbFilters; i++) {
-        virBufferVSprintf(&filterbuf, "%d:%s ", virLogFilters[i].priority,
+        virBufferAsprintf(&filterbuf, "%d:%s ", virLogFilters[i].priority,
                           virLogFilters[i].match);
     }
     virLogUnlock();
@@ -1117,17 +1084,17 @@ char *virLogGetOutputs(void) {
     for (i = 0; i < virLogNbOutputs; i++) {
         int dest = virLogOutputs[i].dest;
         if (i)
-            virBufferVSprintf(&outputbuf, " ");
+            virBufferAsprintf(&outputbuf, " ");
         switch (dest) {
             case VIR_LOG_TO_SYSLOG:
             case VIR_LOG_TO_FILE:
-                virBufferVSprintf(&outputbuf, "%d:%s:%s",
+                virBufferAsprintf(&outputbuf, "%d:%s:%s",
                                   virLogOutputs[i].priority,
                                   virLogOutputString(dest),
                                   virLogOutputs[i].name);
                 break;
             default:
-                virBufferVSprintf(&outputbuf, "%d:%s",
+                virBufferAsprintf(&outputbuf, "%d:%s",
                                   virLogOutputs[i].priority,
                                   virLogOutputString(dest));
         }
@@ -1185,7 +1152,7 @@ int virLogParseDefaultPriority(const char *priority) {
     else if (STREQ(priority, "4") || STREQ(priority, "error"))
         ret = virLogSetDefaultPriority(VIR_LOG_ERROR);
     else
-        VIR_WARN0("Ignoring invalid log level setting");
+        VIR_WARN("Ignoring invalid log level setting");
 
     return ret;
 }

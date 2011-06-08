@@ -369,6 +369,25 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             goto cleanup;
         else if (val)
             def->features |= (1 << VIR_DOMAIN_FEATURE_HAP);
+
+        if (xenXMConfigGetBool(conf, "hpet", &val, -1) < 0)
+            goto cleanup;
+        else if (val != -1) {
+            virDomainTimerDefPtr timer;
+
+            if (VIR_ALLOC_N(def->clock.timers, 1) < 0 ||
+                VIR_ALLOC(timer) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+
+            timer->name = VIR_DOMAIN_TIMER_NAME_HPET;
+            timer->present = val;
+            timer->tickpolicy = -1;
+
+            def->clock.ntimers = 1;
+            def->clock.timers[0] = timer;
+        }
     }
     if (xenXMConfigGetBool(conf, "localtime", &vmlocaltime, 0) < 0)
         goto cleanup;
@@ -1096,9 +1115,9 @@ static int xenFormatXMDisk(virConfValuePtr list,
 
     if(disk->src) {
         if (disk->driverName) {
-            virBufferVSprintf(&buf, "%s:", disk->driverName);
+            virBufferAsprintf(&buf, "%s:", disk->driverName);
             if (STREQ(disk->driverName, "tap"))
-                virBufferVSprintf(&buf, "%s:", disk->driverType ? disk->driverType : "aio");
+                virBufferAsprintf(&buf, "%s:", disk->driverType ? disk->driverType : "aio");
         } else {
             switch (disk->type) {
             case VIR_DOMAIN_DISK_TYPE_FILE:
@@ -1209,24 +1228,24 @@ static int xenFormatXMNet(virConnectPtr conn,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     virConfValuePtr val, tmp;
 
-    virBufferVSprintf(&buf, "mac=%02x:%02x:%02x:%02x:%02x:%02x",
+    virBufferAsprintf(&buf, "mac=%02x:%02x:%02x:%02x:%02x:%02x",
                       net->mac[0], net->mac[1],
                       net->mac[2], net->mac[3],
                       net->mac[4], net->mac[5]);
 
     switch (net->type) {
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
-        virBufferVSprintf(&buf, ",bridge=%s", net->data.bridge.brname);
+        virBufferAsprintf(&buf, ",bridge=%s", net->data.bridge.brname);
         if (net->data.bridge.ipaddr)
-            virBufferVSprintf(&buf, ",ip=%s", net->data.bridge.ipaddr);
-        virBufferVSprintf(&buf, ",script=%s", DEFAULT_VIF_SCRIPT);
+            virBufferAsprintf(&buf, ",ip=%s", net->data.bridge.ipaddr);
+        virBufferAsprintf(&buf, ",script=%s", DEFAULT_VIF_SCRIPT);
         break;
 
     case VIR_DOMAIN_NET_TYPE_ETHERNET:
         if (net->data.ethernet.script)
-            virBufferVSprintf(&buf, ",script=%s", net->data.ethernet.script);
+            virBufferAsprintf(&buf, ",script=%s", net->data.ethernet.script);
         if (net->data.ethernet.ipaddr)
-            virBufferVSprintf(&buf, ",ip=%s", net->data.ethernet.ipaddr);
+            virBufferAsprintf(&buf, ",ip=%s", net->data.ethernet.ipaddr);
         break;
 
     case VIR_DOMAIN_NET_TYPE_NETWORK:
@@ -1247,8 +1266,8 @@ static int xenFormatXMNet(virConnectPtr conn,
             return -1;
         }
 
-        virBufferVSprintf(&buf, ",bridge=%s", bridge);
-        virBufferVSprintf(&buf, ",script=%s", DEFAULT_VIF_SCRIPT);
+        virBufferAsprintf(&buf, ",bridge=%s", bridge);
+        virBufferAsprintf(&buf, ",script=%s", DEFAULT_VIF_SCRIPT);
     }
     break;
 
@@ -1261,7 +1280,7 @@ static int xenFormatXMNet(virConnectPtr conn,
 
     if (!hvm) {
         if (net->model != NULL)
-            virBufferVSprintf(&buf, ",model=%s", net->model);
+            virBufferAsprintf(&buf, ",model=%s", net->model);
     }
     else if (net->model == NULL) {
         /*
@@ -1275,12 +1294,12 @@ static int xenFormatXMNet(virConnectPtr conn,
         virBufferAddLit(&buf, ",type=netfront");
     }
     else {
-        virBufferVSprintf(&buf, ",model=%s", net->model);
+        virBufferAsprintf(&buf, ",model=%s", net->model);
         virBufferAddLit(&buf, ",type=ioemu");
     }
 
     if (net->ifname)
-        virBufferVSprintf(&buf, ",vifname=%s",
+        virBufferAsprintf(&buf, ",vifname=%s",
                           net->ifname);
 
     if (virBufferError(&buf)) {
@@ -1514,6 +1533,13 @@ virConfPtr xenFormatXM(virConnectPtr conn,
             goto cleanup;
         }
 
+        for (i = 0; i < def->clock.ntimers; i++) {
+            if (def->clock.timers[i]->name == VIR_DOMAIN_TIMER_NAME_HPET &&
+                def->clock.timers[i]->present != -1 &&
+                xenXMConfigSetInt(conf, "hpet", def->clock.timers[i]->present) < 0)
+                    break;
+        }
+
         if (xendConfigVersion == 1) {
             for (i = 0 ; i < def->ndisks ; i++) {
                 if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_CDROM &&
@@ -1641,26 +1667,26 @@ virConfPtr xenFormatXM(virConnectPtr conn,
             if (def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
                 virBufferAddLit(&buf, "type=sdl");
                 if (def->graphics[0]->data.sdl.display)
-                    virBufferVSprintf(&buf, ",display=%s",
+                    virBufferAsprintf(&buf, ",display=%s",
                                       def->graphics[0]->data.sdl.display);
                 if (def->graphics[0]->data.sdl.xauth)
-                    virBufferVSprintf(&buf, ",xauthority=%s",
+                    virBufferAsprintf(&buf, ",xauthority=%s",
                                       def->graphics[0]->data.sdl.xauth);
             } else {
                 virBufferAddLit(&buf, "type=vnc");
-                virBufferVSprintf(&buf, ",vncunused=%d",
+                virBufferAsprintf(&buf, ",vncunused=%d",
                                   def->graphics[0]->data.vnc.autoport ? 1 : 0);
                 if (!def->graphics[0]->data.vnc.autoport)
-                    virBufferVSprintf(&buf, ",vncdisplay=%d",
+                    virBufferAsprintf(&buf, ",vncdisplay=%d",
                                       def->graphics[0]->data.vnc.port - 5900);
                 if (def->graphics[0]->data.vnc.listenAddr)
-                    virBufferVSprintf(&buf, ",vnclisten=%s",
+                    virBufferAsprintf(&buf, ",vnclisten=%s",
                                       def->graphics[0]->data.vnc.listenAddr);
                 if (def->graphics[0]->data.vnc.auth.passwd)
-                    virBufferVSprintf(&buf, ",vncpasswd=%s",
+                    virBufferAsprintf(&buf, ",vncpasswd=%s",
                                       def->graphics[0]->data.vnc.auth.passwd);
                 if (def->graphics[0]->data.vnc.keymap)
-                    virBufferVSprintf(&buf, ",keymap=%s",
+                    virBufferAsprintf(&buf, ",keymap=%s",
                                       def->graphics[0]->data.vnc.keymap);
             }
             if (virBufferError(&buf)) {
