@@ -25,10 +25,10 @@ Otherwise this results in crashes like:
  1 files changed, 3 insertions(+), 0 deletions(-)
 
 diff --git a/tools/virsh.c b/tools/virsh.c
-index 5d8b025..f94bd6b 100644
+index d98be1c..29fd80e 100644
 --- a/tools/virsh.c
 +++ b/tools/virsh.c
-@@ -12161,6 +12161,9 @@ vshInit(vshControl *ctl)
+@@ -12759,6 +12759,9 @@ vshInit(vshControl *ctl)
      /* set up the signals handlers to catch disconnections */
      vshSetupSignals();
  
