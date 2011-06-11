@@ -1,3 +1,12 @@
+libvirt (0.9.2-2) unstable; urgency=low
+
+  * [17570fc] Enable OpenVZ on Linux only (Closes: #630099)
+  * [31a35bc] New patch nodeinfo-remove-superfluous-braces.patch
+    nodeinfo: remove superfluous braces to fix compilation on non intel
+    architectures
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 11 Jun 2011 18:40:14 +0200
+
 libvirt (0.9.2-1) unstable; urgency=low
 
   * [c6187ec] New upstream version 0.9.2
