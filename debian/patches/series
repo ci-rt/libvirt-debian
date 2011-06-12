@@ -8,3 +8,4 @@ Debianize-libvirt-guests.patch
 virsh-Initialize-library-before-calling-virResetLast.patch
 Disable-daemon-start-test.patch
 nodeinfo-remove-superfluous-braces.patch
+Skip-nodeinfo-test-on-non-intel-architectures.patch
