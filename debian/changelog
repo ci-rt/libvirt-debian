@@ -1,3 +1,11 @@
+libvirt (0.9.2-3) unstable; urgency=low
+
+  * [008e65d] New patch Skip-nodeinfo-test-on-non-intel-architectures.patch:
+    Skip nodeinfo test on non intel architectures since the testfiles assume a
+    /proc/cpuinfo specific to this architecture.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 12 Jun 2011 22:00:05 +0200
+
 libvirt (0.9.2-2) unstable; urgency=low
 
   * [17570fc] Enable OpenVZ on Linux only (Closes: #630099)
