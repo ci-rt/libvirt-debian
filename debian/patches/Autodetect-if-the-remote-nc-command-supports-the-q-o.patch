@@ -12,11 +12,11 @@ Ubuntu-Bug: https://bugs.launchpad.net/ubuntu/+source/virt-manager/+bug/605172
 Bug: https://bugzilla.redhat.com/show_bug.cgi?id=562176
 Bug: https://bugzilla.redhat.com/show_bug.cgi?id=614420
 ---
- src/remote/remote_driver.c |   35 +++++++++++++++++++++++++++++------
- 1 files changed, 29 insertions(+), 6 deletions(-)
+ src/remote/remote_driver.c |   34 +++++++++++++++++++++++++++++-----
+ 1 files changed, 29 insertions(+), 5 deletions(-)
 
 diff --git a/src/remote/remote_driver.c b/src/remote/remote_driver.c
-index 8335a1a..b85707b 100644
+index 8335a1a..3058381 100644
 --- a/src/remote/remote_driver.c
 +++ b/src/remote/remote_driver.c
 @@ -774,12 +774,36 @@ doRemoteOpen (virConnectPtr conn,
@@ -61,3 +61,4 @@ index 8335a1a..b85707b 100644
          priv->is_secure = 1;
      }
  
+-- 

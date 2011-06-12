@@ -1,6 +1,6 @@
 From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Sat, 11 Jun 2011 18:10:40 +0200
-Subject: nodeinfo: remove superflous braces
+Subject: nodeinfo: remove superfluous braces
 
 that break compilation on non intel architectures:
 
