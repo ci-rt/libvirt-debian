@@ -1,3 +1,10 @@
+libvirt (0.9.2-5) unstable; urgency=low
+
+  * [e523120] New patch Disable-gnulib-s-test-nonplocking-pipe.sh.patch.
+    Disable gnulib's test-nonplocking-pipe.sh.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 26 Jun 2011 15:57:24 +0200
+
 libvirt (0.9.2-4) unstable; urgency=low
 
   * [398a4dd] New patch Split-out-dlopen-detection.patch.  Explicitly pass
