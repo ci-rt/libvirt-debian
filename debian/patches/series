@@ -11,3 +11,4 @@ nodeinfo-remove-superfluous-braces.patch
 Skip-nodeinfo-test-on-non-intel-architectures.patch
 Split-out-dlopen-detection.patch
 Update-generated-autoconf-files.patch
+Disable-gnulib-s-test-nonplocking-pipe.sh.patch
