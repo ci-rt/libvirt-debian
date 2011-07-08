@@ -166,6 +166,12 @@ def enum(type, name, value):
         value = 5
     elif value == 'VIR_TYPED_PARAM_BOOLEAN':
         value = 6
+    elif value == 'VIR_DOMAIN_AFFECT_CURRENT':
+        value = 0
+    elif value == 'VIR_DOMAIN_AFFECT_LIVE':
+        value = 1
+    elif value == 'VIR_DOMAIN_AFFECT_CONFIG':
+        value = 2
     enums[type][name] = value
 
 #######################################################################
@@ -191,7 +197,9 @@ skipped_types = {
      'virConnectDomainEventWatchdogCallback': "No function types in python",
      'virConnectDomainEventIOErrorCallback': "No function types in python",
      'virConnectDomainEventGraphicsCallback': "No function types in python",
-     'virEventAddHandleFunc': "No function types in python",
+     'virStreamEventCallback': "No function types in python",
+     'virEventHandleCallback': "No function types in python",
+     'virEventTimeoutCallback': "No function types in python",
 }
 
 #######################################################################
@@ -306,6 +314,7 @@ skip_impl = (
     'virGetLastError',
     'virDomainGetInfo',
     'virDomainGetState',
+    'virDomainGetControlInfo',
     'virDomainGetBlockInfo',
     'virDomainGetJobInfo',
     'virNodeGetInfo',
@@ -340,8 +349,6 @@ skip_impl = (
     'virNWFilterGetUUID',
     'virNWFilterGetUUIDString',
     'virNWFilterLookupByUUID',
-    'virStreamRecv',
-    'virStreamSend',
     'virStoragePoolGetUUID',
     'virStoragePoolGetUUIDString',
     'virStoragePoolLookupByUUID',
@@ -356,6 +363,9 @@ skip_impl = (
     'virNodeDeviceListCaps',
     'virConnectBaselineCPU',
     'virDomainRevertToSnapshot',
+    'virDomainSendKey',
+    'virNodeGetCPUStats',
+    'virNodeGetMemoryStats',
 )
 
 
@@ -380,13 +390,13 @@ skip_function = (
     'virConnectDomainEventDeregisterAny', # overridden in virConnect.py
     'virSaveLastError', # We have our own python error wrapper
     'virFreeError', # Only needed if we use virSaveLastError
-    'virStreamEventAddCallback',
-    'virStreamRecvAll',
-    'virStreamSendAll',
-    'virStreamRef',
-    'virStreamFree',
 
-    # These have no use for bindings users.
+    'virStreamRecvAll', # Pure python libvirt-override-virStream.py
+    'virStreamSendAll', # Pure python libvirt-override-virStream.py
+    'virStreamRecv', # overridden in libvirt-override-virStream.py
+    'virStreamSend', # overridden in libvirt-override-virStream.py
+
+    # 'Ref' functions have no use for bindings users.
     "virConnectRef",
     "virDomainRef",
     "virInterfaceRef",
@@ -396,6 +406,7 @@ skip_function = (
     "virNWFilterRef",
     "virStoragePoolRef",
     "virStorageVolRef",
+    'virStreamRef',
 
     # This functions shouldn't be called via the bindings (and even the docs
     # contain an explicit warning to that effect). The equivalent should be
@@ -409,6 +420,12 @@ skip_function = (
     "virStorageVolGetConnect",
 )
 
+# Generate C code, but skip python impl
+function_skip_python_impl = (
+    "virStreamFree", # Needed in custom virStream __del__, but free shouldn't
+                     # be exposed in bindings
+)
+
 function_skip_index_one = (
     "virDomainRevertToSnapshot",
 )
@@ -419,6 +436,7 @@ def print_function_wrapper(name, output, export, include):
     global unknown_types
     global functions
     global skipped_modules
+    global function_skip_python_impl
 
     try:
         (desc, ret, args, file, cond) = functions[name]
@@ -571,6 +589,9 @@ def print_function_wrapper(name, output, export, include):
         include.write("#endif /* %s */\n" % cond)
         export.write("#endif /* %s */\n" % cond)
         output.write("#endif /* %s */\n" % cond)
+
+    if name in function_skip_python_impl:
+        return 0
     return 1
 
 def buildStubs():
@@ -643,9 +664,11 @@ def buildStubs():
 
     print "Generated %d wrapper functions" % nb_wrap
 
-    print "Missing type converters: "
-    for type in unknown_types.keys():
-        print "%s:%d " % (type, len(unknown_types[type])),
+    if unknown_types:
+        print "Missing type converters: "
+        for type in unknown_types.keys():
+            print "%s:%d " % (type, len(unknown_types[type])),
+
     print
 
     for f in functions_failed:

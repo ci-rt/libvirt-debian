@@ -424,6 +424,37 @@ done:
 }
 
 static int
+remoteDomainGetControlInfo(virDomainPtr dom, virDomainControlInfoPtr result, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_get_control_info_args args;
+    remote_domain_get_control_info_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof ret);
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_CONTROL_INFO,
+             (xdrproc_t)xdr_remote_domain_get_control_info_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_get_control_info_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    result->state = ret.state;
+    result->details = ret.details;
+    result->stateTime = ret.stateTime;
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainGetInfo(virDomainPtr dom, virDomainInfoPtr result)
 {
     int rv = -1;
@@ -1163,15 +1194,18 @@ remoteDomainMigratePrepareTunnel(virConnectPtr conn, virStreamPtr st, unsigned l
     int rv = -1;
     struct private_data *priv = conn->privateData;
     remote_domain_migrate_prepare_tunnel_args args;
-    struct private_stream_data *privst = NULL;
+    virNetClientStreamPtr netst = NULL;
 
     remoteDriverLock(priv);
 
-    if (!(privst = remoteStreamOpen(st, REMOTE_PROC_DOMAIN_MIGRATE_PREPARE_TUNNEL, priv->counter)))
+    if (!(netst = virNetClientStreamNew(priv->remoteProgram, REMOTE_PROC_DOMAIN_MIGRATE_PREPARE_TUNNEL, priv->counter)))
        goto done;
 
+    if (virNetClientAddStream(priv->client, netst) < 0) {       virNetClientStreamFree(netst);
+       goto done;
+    }
     st->driver = &remoteStreamDrv;
-    st->privateData = privst;
+    st->privateData = netst;
 
     args.flags = flags;
     args.dname = dname ? (char **)&dname : NULL;
@@ -1181,7 +1215,8 @@ remoteDomainMigratePrepareTunnel(virConnectPtr conn, virStreamPtr st, unsigned l
     if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_MIGRATE_PREPARE_TUNNEL,
              (xdrproc_t)xdr_remote_domain_migrate_prepare_tunnel_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
-        remoteStreamRelease(st);
+        virNetClientRemoveStream(priv->client, netst);
+        virNetClientStreamFree(netst);
         goto done;
     }
 
@@ -1250,15 +1285,18 @@ remoteDomainOpenConsole(virDomainPtr dom, const char *devname, virStreamPtr st, 
     int rv = -1;
     struct private_data *priv = dom->conn->privateData;
     remote_domain_open_console_args args;
-    struct private_stream_data *privst = NULL;
+    virNetClientStreamPtr netst = NULL;
 
     remoteDriverLock(priv);
 
-    if (!(privst = remoteStreamOpen(st, REMOTE_PROC_DOMAIN_OPEN_CONSOLE, priv->counter)))
+    if (!(netst = virNetClientStreamNew(priv->remoteProgram, REMOTE_PROC_DOMAIN_OPEN_CONSOLE, priv->counter)))
        goto done;
 
+    if (virNetClientAddStream(priv->client, netst) < 0) {       virNetClientStreamFree(netst);
+       goto done;
+    }
     st->driver = &remoteStreamDrv;
-    st->privateData = privst;
+    st->privateData = netst;
 
     make_nonnull_domain(&args.dom, dom);
     args.devname = devname ? (char **)&devname : NULL;
@@ -1267,7 +1305,8 @@ remoteDomainOpenConsole(virDomainPtr dom, const char *devname, virStreamPtr st, 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_OPEN_CONSOLE,
              (xdrproc_t)xdr_remote_domain_open_console_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
-        remoteStreamRelease(st);
+        virNetClientRemoveStream(priv->client, netst);
+        virNetClientStreamFree(netst);
         goto done;
     }
 
@@ -1301,6 +1340,41 @@ remoteDomainPinVcpu(virDomainPtr dom, unsigned int vcpu, unsigned char *cpumap, 
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_PIN_VCPU,
              (xdrproc_t)xdr_remote_domain_pin_vcpu_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainPinVcpuFlags(virDomainPtr dom, unsigned int vcpu, unsigned char *cpumap, int cpumaplen, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_pin_vcpu_flags_args args;
+
+    remoteDriverLock(priv);
+
+    if (cpumaplen > REMOTE_CPUMAP_MAX) {
+        remoteError(VIR_ERR_RPC,
+                    _("%s length greater than maximum: %d > %d"),
+                    "cpumap", (int)cpumaplen, REMOTE_CPUMAP_MAX);
+        goto done;
+    }
+
+    make_nonnull_domain(&args.dom, dom);
+    args.vcpu = vcpu;
+    args.cpumap.cpumap_val = (char *)cpumap;
+    args.cpumap.cpumap_len = cpumaplen;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_PIN_VCPU_FLAGS,
+             (xdrproc_t)xdr_remote_domain_pin_vcpu_flags_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }
@@ -1443,15 +1517,18 @@ remoteDomainScreenshot(virDomainPtr dom, virStreamPtr st, unsigned int screen, u
     struct private_data *priv = dom->conn->privateData;
     remote_domain_screenshot_args args;
     remote_domain_screenshot_ret ret;
-    struct private_stream_data *privst = NULL;
+    virNetClientStreamPtr netst = NULL;
 
     remoteDriverLock(priv);
 
-    if (!(privst = remoteStreamOpen(st, REMOTE_PROC_DOMAIN_SCREENSHOT, priv->counter)))
+    if (!(netst = virNetClientStreamNew(priv->remoteProgram, REMOTE_PROC_DOMAIN_SCREENSHOT, priv->counter)))
        goto done;
 
+    if (virNetClientAddStream(priv->client, netst) < 0) {       virNetClientStreamFree(netst);
+       goto done;
+    }
     st->driver = &remoteStreamDrv;
-    st->privateData = privst;
+    st->privateData = netst;
 
     make_nonnull_domain(&args.dom, dom);
     args.screen = screen;
@@ -1462,12 +1539,49 @@ remoteDomainScreenshot(virDomainPtr dom, virStreamPtr st, unsigned int screen, u
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SCREENSHOT,
              (xdrproc_t)xdr_remote_domain_screenshot_args, (char *)&args,
              (xdrproc_t)xdr_remote_domain_screenshot_ret, (char *)&ret) == -1) {
-        remoteStreamRelease(st);
+        virNetClientRemoveStream(priv->client, netst);
+        virNetClientStreamFree(netst);
         goto done;
     }
 
     rv = ret.mime ? *ret.mime : NULL;
     VIR_FREE(ret.mime);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSendKey(virDomainPtr dom, unsigned int codeset, unsigned int holdtime, unsigned int *keycodes, int keycodeslen, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_send_key_args args;
+
+    remoteDriverLock(priv);
+
+    if (keycodeslen > REMOTE_DOMAIN_SEND_KEY_MAX) {
+        remoteError(VIR_ERR_RPC,
+                    _("%s length greater than maximum: %d > %d"),
+                    "keycodes", (int)keycodeslen, REMOTE_DOMAIN_SEND_KEY_MAX);
+        goto done;
+    }
+
+    make_nonnull_domain(&args.dom, dom);
+    args.codeset = codeset;
+    args.holdtime = holdtime;
+    args.keycodes.keycodes_val = keycodes;
+    args.keycodes.keycodes_len = keycodeslen;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SEND_KEY,
+             (xdrproc_t)xdr_remote_domain_send_key_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
 
 done:
     remoteDriverUnlock(priv);
@@ -5025,15 +5139,18 @@ remoteStorageVolDownload(virStorageVolPtr vol, virStreamPtr st, unsigned long lo
     int rv = -1;
     struct private_data *priv = vol->conn->storagePrivateData;
     remote_storage_vol_download_args args;
-    struct private_stream_data *privst = NULL;
+    virNetClientStreamPtr netst = NULL;
 
     remoteDriverLock(priv);
 
-    if (!(privst = remoteStreamOpen(st, REMOTE_PROC_STORAGE_VOL_DOWNLOAD, priv->counter)))
+    if (!(netst = virNetClientStreamNew(priv->remoteProgram, REMOTE_PROC_STORAGE_VOL_DOWNLOAD, priv->counter)))
        goto done;
 
+    if (virNetClientAddStream(priv->client, netst) < 0) {       virNetClientStreamFree(netst);
+       goto done;
+    }
     st->driver = &remoteStreamDrv;
-    st->privateData = privst;
+    st->privateData = netst;
 
     make_nonnull_storage_vol(&args.vol, vol);
     args.offset = offset;
@@ -5043,7 +5160,8 @@ remoteStorageVolDownload(virStorageVolPtr vol, virStreamPtr st, unsigned long lo
     if (call(vol->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_DOWNLOAD,
              (xdrproc_t)xdr_remote_storage_vol_download_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
-        remoteStreamRelease(st);
+        virNetClientRemoveStream(priv->client, netst);
+        virNetClientStreamFree(netst);
         goto done;
     }
 
@@ -5230,15 +5348,18 @@ remoteStorageVolUpload(virStorageVolPtr vol, virStreamPtr st, unsigned long long
     int rv = -1;
     struct private_data *priv = vol->conn->storagePrivateData;
     remote_storage_vol_upload_args args;
-    struct private_stream_data *privst = NULL;
+    virNetClientStreamPtr netst = NULL;
 
     remoteDriverLock(priv);
 
-    if (!(privst = remoteStreamOpen(st, REMOTE_PROC_STORAGE_VOL_UPLOAD, priv->counter)))
+    if (!(netst = virNetClientStreamNew(priv->remoteProgram, REMOTE_PROC_STORAGE_VOL_UPLOAD, priv->counter)))
        goto done;
 
+    if (virNetClientAddStream(priv->client, netst) < 0) {       virNetClientStreamFree(netst);
+       goto done;
+    }
     st->driver = &remoteStreamDrv;
-    st->privateData = privst;
+    st->privateData = netst;
 
     make_nonnull_storage_vol(&args.vol, vol);
     args.offset = offset;
@@ -5248,7 +5369,8 @@ remoteStorageVolUpload(virStorageVolPtr vol, virStreamPtr st, unsigned long long
     if (call(vol->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_UPLOAD,
              (xdrproc_t)xdr_remote_storage_vol_upload_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
-        remoteStreamRelease(st);
+        virNetClientRemoveStream(priv->client, netst);
+        virNetClientStreamFree(netst);
         goto done;
     }
 

@@ -34,6 +34,17 @@ enum virVirtualPortType {
     VIR_VIRTUALPORT_TYPE_LAST,
 };
 
+/* the mode type for macvtap devices */
+enum virMacvtapMode {
+    VIR_MACVTAP_MODE_VEPA,
+    VIR_MACVTAP_MODE_PRIVATE,
+    VIR_MACVTAP_MODE_BRIDGE,
+    VIR_MACVTAP_MODE_PASSTHRU,
+
+    VIR_MACVTAP_MODE_LAST,
+};
+
+
 # ifdef IFLA_VF_PORT_PROFILE_MAX
 #  define LIBVIRT_IFLA_VF_PORT_PROFILE_MAX IFLA_VF_PORT_PROFILE_MAX
 # else
@@ -78,17 +89,20 @@ enum virVMOperationType {
 int openMacvtapTap(const char *ifname,
                    const unsigned char *macaddress,
                    const char *linkdev,
-                   int mode,
+                   enum virMacvtapMode mode,
                    int vnet_hdr,
                    const unsigned char *vmuuid,
                    virVirtualPortProfileParamsPtr virtPortProfile,
                    char **res_ifname,
-                   enum virVMOperationType vmop);
+                   enum virVMOperationType vmop,
+                   char *stateDir);
 
 void delMacvtap(const char *ifname,
                 const unsigned char *macaddress,
                 const char *linkdev,
-                virVirtualPortProfileParamsPtr virtPortProfile);
+                int mode,
+                virVirtualPortProfileParamsPtr virtPortProfile,
+                char *stateDir);
 
 int vpAssociatePortProfileId(const char *macvtap_ifname,
                              const unsigned char *macvtap_macaddr,
@@ -107,5 +121,6 @@ int vpDisassociatePortProfileId(const char *macvtap_ifname,
 
 VIR_ENUM_DECL(virVirtualPort)
 VIR_ENUM_DECL(virVMOperation)
+VIR_ENUM_DECL(virMacvtapMode)
 
 #endif /* __UTIL_MACVTAP_H__ */

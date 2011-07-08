@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# serial 24
+# serial 25
 # Determine whether we need the chown wrapper.
 
 dnl Copyright (C) 1997-2001, 2003-2005, 2007, 2009-2011 Free Software
@@ -27,12 +27,10 @@ AC_DEFUN_ONCE([gl_FUNC_CHOWN],
   dnl mingw lacks chown altogether.
   if test $ac_cv_func_chown = no; then
     HAVE_CHOWN=0
-    AC_LIBOBJ([chown])
   else
     dnl Some old systems treated chown like lchown.
     if test $gl_cv_func_chown_follows_symlink = no; then
       REPLACE_CHOWN=1
-      AC_LIBOBJ([chown])
     fi
 
     dnl Some old systems tried to use uid/gid -1 literally.
@@ -40,7 +38,6 @@ AC_DEFUN_ONCE([gl_FUNC_CHOWN],
       AC_DEFINE([CHOWN_FAILS_TO_HONOR_ID_OF_NEGATIVE_ONE], [1],
         [Define if chown is not POSIX compliant regarding IDs of -1.])
       REPLACE_CHOWN=1
-      AC_LIBOBJ([chown])
     fi
 
     dnl Solaris 9 ignores trailing slash.
@@ -64,7 +61,6 @@ AC_DEFUN_ONCE([gl_FUNC_CHOWN],
       AC_DEFINE([CHOWN_TRAILING_SLASH_BUG], [1],
         [Define to 1 if chown mishandles trailing slash.])
       REPLACE_CHOWN=1
-      AC_LIBOBJ([chown])
     fi
 
     dnl OpenBSD fails to update ctime if ownership does not change.
@@ -92,11 +88,6 @@ AC_DEFUN_ONCE([gl_FUNC_CHOWN],
       AC_DEFINE([CHOWN_CHANGE_TIME_BUG], [1], [Define to 1 if chown fails
         to change ctime when at least one argument was not -1.])
       REPLACE_CHOWN=1
-      AC_LIBOBJ([chown])
-    fi
-
-    if test $REPLACE_CHOWN = 1 && test $ac_cv_func_fchown = no; then
-      AC_LIBOBJ([fchown-stub])
     fi
   fi
 ])

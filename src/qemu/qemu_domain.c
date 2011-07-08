@@ -30,7 +30,6 @@
 #include "logging.h"
 #include "virterror_internal.h"
 #include "c-ctype.h"
-#include "event.h"
 #include "cpu/cpu.h"
 #include "ignore-value.h"
 #include "uuid.h"
@@ -44,8 +43,6 @@
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
 #define QEMU_NAMESPACE_HREF "http://libvirt.org/schemas/domain/qemu/1.0"
-
-#define timeval_to_ms(tv)       (((tv).tv_sec * 1000ull) + ((tv).tv_usec / 1000))
 
 
 static void qemuDomainEventDispatchFunc(virConnectPtr conn,
@@ -492,15 +489,12 @@ void qemuDomainSetNamespaceHooks(virCapsPtr caps)
 int qemuDomainObjBeginJob(virDomainObjPtr obj)
 {
     qemuDomainObjPrivatePtr priv = obj->privateData;
-    struct timeval now;
+    unsigned long long now;
     unsigned long long then;
 
-    if (gettimeofday(&now, NULL) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("cannot get time of day"));
+    if (virTimeMs(&now) < 0)
         return -1;
-    }
-    then = timeval_to_ms(now) + QEMU_JOB_WAIT_TIME;
+    then = now + QEMU_JOB_WAIT_TIME;
 
     virDomainObjRef(obj);
 
@@ -520,7 +514,7 @@ int qemuDomainObjBeginJob(virDomainObjPtr obj)
     priv->jobActive = QEMU_JOB_UNSPECIFIED;
     priv->jobSignals = 0;
     memset(&priv->jobSignalsData, 0, sizeof(priv->jobSignalsData));
-    priv->jobStart = timeval_to_ms(now);
+    priv->jobStart = now;
     memset(&priv->jobInfo, 0, sizeof(priv->jobInfo));
 
     return 0;
@@ -536,15 +530,12 @@ int qemuDomainObjBeginJobWithDriver(struct qemud_driver *driver,
                                     virDomainObjPtr obj)
 {
     qemuDomainObjPrivatePtr priv = obj->privateData;
-    struct timeval now;
+    unsigned long long now;
     unsigned long long then;
 
-    if (gettimeofday(&now, NULL) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("cannot get time of day"));
+    if (virTimeMs(&now) < 0)
         return -1;
-    }
-    then = timeval_to_ms(now) + QEMU_JOB_WAIT_TIME;
+    then = now + QEMU_JOB_WAIT_TIME;
 
     virDomainObjRef(obj);
     qemuDriverUnlock(driver);
@@ -568,7 +559,7 @@ int qemuDomainObjBeginJobWithDriver(struct qemud_driver *driver,
     priv->jobActive = QEMU_JOB_UNSPECIFIED;
     priv->jobSignals = 0;
     memset(&priv->jobSignalsData, 0, sizeof(priv->jobSignalsData));
-    priv->jobStart = timeval_to_ms(now);
+    priv->jobStart = now;
     memset(&priv->jobInfo, 0, sizeof(priv->jobInfo));
 
     virDomainObjUnlock(obj);
@@ -617,6 +608,7 @@ void qemuDomainObjEnterMonitor(virDomainObjPtr obj)
 
     qemuMonitorLock(priv->mon);
     qemuMonitorRef(priv->mon);
+    ignore_value(virTimeMs(&priv->monStart));
     virDomainObjUnlock(obj);
 }
 
@@ -637,6 +629,7 @@ void qemuDomainObjExitMonitor(virDomainObjPtr obj)
 
     virDomainObjLock(obj);
 
+    priv->monStart = 0;
     if (refs == 0) {
         priv->mon = NULL;
     }
@@ -658,6 +651,7 @@ void qemuDomainObjEnterMonitorWithDriver(struct qemud_driver *driver,
 
     qemuMonitorLock(priv->mon);
     qemuMonitorRef(priv->mon);
+    ignore_value(virTimeMs(&priv->monStart));
     virDomainObjUnlock(obj);
     qemuDriverUnlock(driver);
 }
@@ -682,6 +676,7 @@ void qemuDomainObjExitMonitorWithDriver(struct qemud_driver *driver,
     qemuDriverLock(driver);
     virDomainObjLock(obj);
 
+    priv->monStart = 0;
     if (refs == 0) {
         priv->mon = NULL;
     }
@@ -793,9 +788,10 @@ void qemuDomainObjCheckTaint(struct qemud_driver *driver,
 {
     int i;
 
-    if (!driver->clearEmulatorCapabilities ||
-        driver->user == 0 ||
-        driver->group == 0)
+    if (driver->privileged &&
+        (!driver->clearEmulatorCapabilities ||
+         driver->user == 0 ||
+         driver->group == 0))
         qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_HIGH_PRIVILEGES, logFD);
 
     if (obj->def->namespaceData) {
@@ -952,5 +948,6 @@ cleanup:
     if (fd != logFD)
         VIR_FORCE_CLOSE(fd);
 
+    VIR_FREE(message);
     return ret;
 }

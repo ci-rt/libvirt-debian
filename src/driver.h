@@ -171,6 +171,10 @@ typedef int
                                          int *reason,
                                          unsigned int flags);
 typedef int
+        (*virDrvDomainGetControlInfo)   (virDomainPtr domain,
+                                         virDomainControlInfoPtr info,
+                                         unsigned int flags);
+typedef int
         (*virDrvDomainSave)		(virDomainPtr domain,
                                          const char *to);
 typedef int
@@ -229,6 +233,19 @@ typedef int
                                          unsigned int vcpu,
                                          unsigned char *cpumap,
                                          int maplen);
+typedef int
+        (*virDrvDomainPinVcpuFlags)     (virDomainPtr domain,
+                                         unsigned int vcpu,
+                                         unsigned char *cpumap,
+                                         int maplen,
+                                         unsigned int flags);
+typedef int
+        (*virDrvDomainGetVcpuPinInfo)   (virDomainPtr domain,
+                                         int ncpumaps,
+                                         unsigned char *cpumaps,
+                                         int maplen,
+                                         unsigned int flags);
+
 typedef int
         (*virDrvDomainGetVcpus)		(virDomainPtr domain,
                                          virVcpuInfoPtr info,
@@ -369,6 +386,22 @@ typedef virDomainPtr
 
 typedef struct _virDriver virDriver;
 typedef virDriver *virDriverPtr;
+
+typedef int
+    (*virDrvNodeGetCPUStats)
+                    (virConnectPtr conn,
+                     int cpuNum,
+                     virNodeCPUStatsPtr params,
+                     int *nparams,
+                     unsigned int flags);
+
+typedef int
+    (*virDrvNodeGetMemoryStats)
+                    (virConnectPtr conn,
+                     int cellNum,
+                     virNodeMemoryStatsPtr params,
+                     int *nparams,
+                     unsigned int flags);
 
 typedef int
     (*virDrvNodeGetCellsFreeMemory)
@@ -542,6 +575,13 @@ typedef int
 typedef int
     (*virDrvDomainInjectNMI)(virDomainPtr dom, unsigned int flags);
 
+typedef int
+    (*virDrvDomainSendKey)(virDomainPtr dom, unsigned int codeset,
+                           unsigned int holdtime,
+                           unsigned int *keycodes,
+                           int nkeycodes,
+                           unsigned int flags);
+
 typedef char *
     (*virDrvDomainMigrateBegin3)
                     (virDomainPtr domain,
@@ -663,6 +703,7 @@ struct _virDriver {
     virDrvDomainGetBlkioParameters domainGetBlkioParameters;
     virDrvDomainGetInfo		domainGetInfo;
     virDrvDomainGetState	domainGetState;
+    virDrvDomainGetControlInfo  domainGetControlInfo;
     virDrvDomainSave		domainSave;
     virDrvDomainRestore		domainRestore;
     virDrvDomainCoreDump        domainCoreDump;
@@ -671,6 +712,8 @@ struct _virDriver {
     virDrvDomainSetVcpusFlags		domainSetVcpusFlags;
     virDrvDomainGetVcpusFlags		domainGetVcpusFlags;
     virDrvDomainPinVcpu		domainPinVcpu;
+    virDrvDomainPinVcpuFlags    domainPinVcpuFlags;
+    virDrvDomainGetVcpuPinInfo  domainGetVcpuPinInfo;
     virDrvDomainGetVcpus		domainGetVcpus;
     virDrvDomainGetMaxVcpus		domainGetMaxVcpus;
     virDrvDomainGetSecurityLabel     domainGetSecurityLabel;
@@ -705,6 +748,8 @@ struct _virDriver {
     virDrvDomainBlockPeek	domainBlockPeek;
     virDrvDomainMemoryPeek      domainMemoryPeek;
     virDrvDomainGetBlockInfo    domainGetBlockInfo;
+    virDrvNodeGetCPUStats       nodeGetCPUStats;
+    virDrvNodeGetMemoryStats	nodeGetMemoryStats;
     virDrvNodeGetCellsFreeMemory	nodeGetCellsFreeMemory;
     virDrvNodeGetFreeMemory		nodeGetFreeMemory;
     virDrvDomainEventRegister         domainEventRegister;
@@ -749,6 +794,7 @@ struct _virDriver {
     virDrvDomainMigratePerform3	domainMigratePerform3;
     virDrvDomainMigrateFinish3	domainMigrateFinish3;
     virDrvDomainMigrateConfirm3	domainMigrateConfirm3;
+    virDrvDomainSendKey domainSendKey;
 };
 
 typedef int

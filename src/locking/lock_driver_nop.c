@@ -28,9 +28,10 @@
 
 
 static int virLockManagerNopInit(unsigned int version,
+                                 const char *configFile,
                                  unsigned int flags)
 {
-    VIR_DEBUG("version=%u flags=%u", version, flags);
+    VIR_DEBUG("version=%u configFile=%s flags=%u", version, NULLSTR(configFile), flags);
 
     return 0;
 }
@@ -66,9 +67,9 @@ static int virLockManagerNopAddResource(virLockManagerPtr lock ATTRIBUTE_UNUSED,
 
 static int virLockManagerNopAcquire(virLockManagerPtr lock ATTRIBUTE_UNUSED,
                                     const char *state ATTRIBUTE_UNUSED,
-                                    unsigned int flags ATTRIBUTE_UNUSED)
+                                    unsigned int flags ATTRIBUTE_UNUSED,
+                                    int *fd ATTRIBUTE_UNUSED)
 {
-
     return 0;
 }
 

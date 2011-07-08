@@ -186,6 +186,7 @@ int qemuMonitorStartCPUs(qemuMonitorPtr mon,
 int qemuMonitorStopCPUs(qemuMonitorPtr mon);
 int qemuMonitorGetStatus(qemuMonitorPtr mon, bool *running);
 
+int qemuMonitorSystemReset(qemuMonitorPtr mon);
 int qemuMonitorSystemPowerdown(qemuMonitorPtr mon);
 
 int qemuMonitorGetCPUInfo(qemuMonitorPtr mon,

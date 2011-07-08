@@ -47,7 +47,6 @@
 
 #include "uml_driver.h"
 #include "uml_conf.h"
-#include "event.h"
 #include "buf.h"
 #include "util.h"
 #include "nodeinfo.h"
@@ -1228,7 +1227,7 @@ static int umlGetVersion(virConnectPtr conn, unsigned long *version) {
     if (driver->umlVersion == 0) {
         uname(&ut);
 
-        if (virParseVersionString(ut.release, &driver->umlVersion) < 0) {
+        if (virParseVersionString(ut.release, &driver->umlVersion, true) < 0) {
             umlReportError(VIR_ERR_INTERNAL_ERROR,
                            _("cannot parse version %s"), ut.release);
             goto cleanup;
@@ -1831,7 +1830,7 @@ cleanup:
 static int umlDomainAttachDeviceFlags(virDomainPtr dom,
                                       const char *xml,
                                       unsigned int flags) {
-    if (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) {
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
         umlReportError(VIR_ERR_OPERATION_INVALID,
                        "%s", _("cannot modify the persistent configuration of a domain"));
         return -1;
@@ -1939,7 +1938,7 @@ cleanup:
 static int umlDomainDetachDeviceFlags(virDomainPtr dom,
                                       const char *xml,
                                       unsigned int flags) {
-    if (flags & VIR_DOMAIN_DEVICE_MODIFY_CONFIG) {
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
         umlReportError(VIR_ERR_OPERATION_INVALID,
                        "%s", _("cannot modify the persistent configuration of a domain"));
         return -1;
@@ -2218,6 +2217,8 @@ static virDriver umlDriver = {
     .domainGetAutostart = umlDomainGetAutostart, /* 0.5.0 */
     .domainSetAutostart = umlDomainSetAutostart, /* 0.5.0 */
     .domainBlockPeek = umlDomainBlockPeek, /* 0.5.0 */
+    .nodeGetCPUStats = nodeGetCPUStats, /* 0.9.3 */
+    .nodeGetMemoryStats = nodeGetMemoryStats, /* 0.9.3 */
     .nodeGetCellsFreeMemory = nodeGetCellsFreeMemory, /* 0.5.0 */
     .nodeGetFreeMemory = nodeGetFreeMemory, /* 0.5.0 */
     .isEncrypted = umlIsEncrypted, /* 0.7.3 */

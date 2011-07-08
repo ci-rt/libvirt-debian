@@ -26,7 +26,11 @@
 #include <fcntl.h>
 
 #include "binary-io.h"
-#include "nonblocking.h"
+#include "verify.h"
+
+#if GNULIB_defined_O_NONBLOCK
+# include "nonblocking.h"
+#endif
 
 #if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
 /* Native Woe32 API.  */
@@ -38,6 +42,13 @@
 int
 pipe2 (int fd[2], int flags)
 {
+  /* Mingw _pipe() corrupts fd on failure; also, if we succeed at
+     creating the pipe but later fail at changing fcntl, we want
+     to leave fd unchanged: http://austingroupbugs.net/view.php?id=467  */
+  int tmp[2];
+  tmp[0] = fd[0];
+  tmp[1] = fd[1];
+
 #if HAVE_PIPE2
 # undef pipe2
   /* Try the system call first, if it exists.  (We may be running with a glibc
@@ -69,14 +80,25 @@ pipe2 (int fd[2], int flags)
 /* Native Woe32 API.  */
 
   if (_pipe (fd, 4096, flags & ~O_NONBLOCK) < 0)
-    return -1;
+    {
+      fd[0] = tmp[0];
+      fd[1] = tmp[1];
+      return -1;
+    }
 
+  /* O_NONBLOCK handling.
+     On native Windows platforms, O_NONBLOCK is defined by gnulib.  Use the
+     functions defined by the gnulib module 'nonblocking'.  */
+# if GNULIB_defined_O_NONBLOCK
   if (flags & O_NONBLOCK)
     {
       if (set_nonblocking_flag (fd[0], true) != 0
           || set_nonblocking_flag (fd[1], true) != 0)
         goto fail;
     }
+# else
+  verify (O_NONBLOCK == 0);
+# endif
 
   return 0;
 
@@ -90,6 +112,8 @@ pipe2 (int fd[2], int flags)
      says that initially, the O_NONBLOCK and FD_CLOEXEC flags are cleared on
      both fd[0] and fd[1].  */
 
+  /* O_NONBLOCK handling.
+     On Unix platforms, O_NONBLOCK is defined by the system.  Use fcntl().  */
   if (flags & O_NONBLOCK)
     {
       int fcntl_flags;
@@ -134,6 +158,8 @@ pipe2 (int fd[2], int flags)
     int saved_errno = errno;
     close (fd[0]);
     close (fd[1]);
+    fd[0] = tmp[0];
+    fd[1] = tmp[1];
     errno = saved_errno;
     return -1;
   }

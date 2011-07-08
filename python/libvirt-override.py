@@ -117,17 +117,93 @@ def getVersion (name = None):
 #
 # Invoke an EventHandle callback
 #
-def eventInvokeHandleCallback (watch, fd, event, callback, opaque):
+def _eventInvokeHandleCallback(watch, fd, event, opaque, opaquecompat=None):
     """
     Invoke the Event Impl Handle Callback in C
     """
+    # libvirt 0.9.2 and earlier required custom event loops to know
+    # that opaque=(cb, original_opaque) and pass the values individually
+    # to this wrapper. This should handle the back compat case, and make
+    # future invocations match the virEventHandleCallback prototype
+    if opaquecompat:
+        callback = opaque
+        opaque = opaquecompat
+    else:
+        callback = opaque[0]
+        opaque = opaque[1]
+
     libvirtmod.virEventInvokeHandleCallback(watch, fd, event, callback, opaque);
 
 #
 # Invoke an EventTimeout callback
 #
-def eventInvokeTimeoutCallback (timer, callback, opaque):
+def _eventInvokeTimeoutCallback(timer, opaque, opaquecompat=None):
     """
     Invoke the Event Impl Timeout Callback in C
     """
+    # libvirt 0.9.2 and earlier required custom event loops to know
+    # that opaque=(cb, original_opaque) and pass the values individually
+    # to this wrapper. This should handle the back compat case, and make
+    # future invocations match the virEventTimeoutCallback prototype
+    if opaquecompat:
+        callback = opaque
+        opaque = opaquecompat
+    else:
+        callback = opaque[0]
+        opaque = opaque[1]
+
     libvirtmod.virEventInvokeTimeoutCallback(timer, callback, opaque);
+
+def _dispatchEventHandleCallback(watch, fd, events, cbData):
+    cb = cbData["cb"]
+    opaque = cbData["opaque"]
+
+    cb(watch, fd, events, opaque)
+    return 0
+
+def _dispatchEventTimeoutCallback(timer, cbData):
+    cb = cbData["cb"]
+    opaque = cbData["opaque"]
+
+    cb(timer, opaque)
+    return 0
+
+def virEventAddHandle(fd, events, cb, opaque):
+    """
+    register a callback for monitoring file handle events
+
+    @fd: file handle to monitor for events
+    @events: bitset of events to watch from virEventHandleType constants
+    @cb: callback to invoke when an event occurs
+    @opaque: user data to pass to callback
+
+    Example callback prototype is:
+        def cb(watch,   # int id of the handle
+               fd,      # int file descriptor the event occured on
+               events,  # int bitmap of events that have occured
+               opaque): # opaque data passed to eventAddHandle
+    """
+    cbData = {"cb" : cb, "opaque" : opaque}
+    ret = libvirtmod.virEventAddHandle(fd, events, cbData)
+    if ret == -1: raise libvirtError ('virEventAddHandle() failed')
+    return ret
+
+def virEventAddTimeout(timeout, cb, opaque):
+    """
+    register a callback for a timer event
+
+    @timeout: time between events in milliseconds
+    @cb: callback to invoke when an event occurs
+    @opaque: user data to pass to callback
+
+    Setting timeout to -1 will disable the timer. Setting the timeout
+    to zero will cause it to fire on every event loop iteration.
+
+    Example callback prototype is:
+        def cb(timer,   # int id of the timer
+               opaque): # opaque data passed to eventAddTimeout
+    """
+    cbData = {"cb" : cb, "opaque" : opaque}
+    ret = libvirtmod.virEventAddTimeout(timeout, cbData)
+    if ret == -1: raise libvirtError ('virEventAddTimeout() failed')
+    return ret

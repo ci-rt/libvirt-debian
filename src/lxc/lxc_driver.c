@@ -45,14 +45,13 @@
 #include "util.h"
 #include "bridge.h"
 #include "veth.h"
-#include "event.h"
 #include "nodeinfo.h"
 #include "uuid.h"
 #include "stats_linux.h"
 #include "hooks.h"
 #include "files.h"
 #include "fdstream.h"
-
+#include "domain_nwfilter.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -1027,6 +1026,8 @@ static void lxcVmCleanup(lxc_driver_t *driver,
         vethDelete(vm->def->nets[i]->ifname);
     }
 
+    virDomainConfVMNWFilterTeardown(vm);
+
     if (driver->cgroup &&
         virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) == 0) {
         virCgroupRemove(cgroup);
@@ -1145,6 +1146,10 @@ static int lxcSetupInterfaces(virConnectPtr conn,
         }
 
         if (vethInterfaceUpOrDown(parentVeth, 1) < 0)
+            goto error_exit;
+
+        if (def->nets[i]->filter &&
+            virDomainConfNWFilterInstantiate(conn, def->nets[i]) < 0)
             goto error_exit;
     }
 
@@ -1281,21 +1286,19 @@ cleanup:
 }
 
 
-static int lxcControllerStart(lxc_driver_t *driver,
-                              virDomainObjPtr vm,
-                              int nveths,
-                              char **veths,
-                              int appPty,
-                              int logfile)
+static virCommandPtr
+lxcBuildControllerCmd(lxc_driver_t *driver,
+                      virDomainObjPtr vm,
+                      int nveths,
+                      char **veths,
+                      int appPty,
+                      int logfile,
+                      int handshakefd)
 {
     int i;
-    int ret = -1;
     char *filterstr;
     char *outputstr;
     virCommandPtr cmd;
-    off_t pos = -1;
-    char ebuf[1024];
-    char *timestamp;
 
     cmd = virCommandNew(vm->def->emulator);
 
@@ -1335,6 +1338,8 @@ static int lxcControllerStart(lxc_driver_t *driver,
 
     virCommandAddArgList(cmd, "--name", vm->def->name, "--console", NULL);
     virCommandAddArgFormat(cmd, "%d", appPty);
+    virCommandAddArg(cmd, "--handshake");
+    virCommandAddArgFormat(cmd, "%d", handshakefd);
     virCommandAddArg(cmd, "--background");
 
     for (i = 0 ; i < nveths ; i++) {
@@ -1357,35 +1362,89 @@ static int lxcControllerStart(lxc_driver_t *driver,
             goto cleanup;
     }
 
-    /* Log timestamp */
-    if ((timestamp = virTimestamp()) == NULL) {
-        virReportOOMError();
-        goto cleanup;
-    }
-    if (safewrite(logfile, timestamp, strlen(timestamp)) < 0 ||
-        safewrite(logfile, START_POSTFIX, strlen(START_POSTFIX)) < 0) {
-        VIR_WARN("Unable to write timestamp to logfile: %s",
-                 virStrerror(errno, ebuf, sizeof ebuf));
-    }
-    VIR_FREE(timestamp);
-
-    /* Log generated command line */
-    virCommandWriteArgLog(cmd, logfile);
-    if ((pos = lseek(logfile, 0, SEEK_END)) < 0)
-        VIR_WARN("Unable to seek to end of logfile: %s",
-                 virStrerror(errno, ebuf, sizeof ebuf));
-
     virCommandPreserveFD(cmd, appPty);
+    virCommandPreserveFD(cmd, handshakefd);
     virCommandSetOutputFD(cmd, &logfile);
     virCommandSetErrorFD(cmd, &logfile);
 
-    ret = virCommandRun(cmd, NULL);
-
+    return cmd;
 cleanup:
     virCommandFree(cmd);
-    return ret;
+    return NULL;
 }
 
+static int
+lxcReadLogOutput(virDomainObjPtr vm,
+                 char *logfile,
+                 off_t pos,
+                 char *buf,
+                 size_t buflen)
+{
+    int fd;
+    off_t off;
+    int whence;
+    int got = 0, ret = -1;
+    int retries = 10;
+
+    if ((fd = open(logfile, O_RDONLY)) < 0) {
+        virReportSystemError(errno, _("failed to open logfile %s"),
+                             logfile);
+        goto cleanup;
+    }
+
+    if (pos < 0) {
+        off = 0;
+        whence = SEEK_END;
+    } else {
+        off = pos;
+        whence = SEEK_SET;
+    }
+
+    if (lseek(fd, off, whence) < 0) {
+        if (whence == SEEK_END)
+            virReportSystemError(errno,
+                                 _("unable to seek to end of log for %s"),
+                                 logfile);
+        else
+            virReportSystemError(errno,
+                                 _("unable to seek to %lld from start for %s"),
+                                 (long long)off, logfile);
+        goto cleanup;
+    }
+
+    while (retries) {
+        ssize_t bytes;
+        int isdead = 0;
+
+        if (kill(vm->pid, 0) == -1 && errno == ESRCH)
+            isdead = 1;
+
+        /* Any failures should be detected before we read the log, so we
+         * always have something useful to report on failure. */
+        bytes = saferead(fd, buf+got, buflen-got-1);
+        if (bytes < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("Failure while reading guest log output"));
+            goto cleanup;
+        }
+
+        got += bytes;
+        buf[got] = '\0';
+
+        if ((got == buflen-1) || isdead) {
+            break;
+        }
+
+        usleep(100*1000);
+        retries--;
+    }
+
+
+    ret = got;
+cleanup:
+    VIR_FORCE_CLOSE(fd);
+    return ret;
+}
 
 /**
  * lxcVmStart:
@@ -1411,6 +1470,11 @@ static int lxcVmStart(virConnectPtr conn,
     int logfd = -1;
     unsigned int nveths = 0;
     char **veths = NULL;
+    int handshakefds[2] = { -1, -1 };
+    off_t pos = -1;
+    char ebuf[1024];
+    char *timestamp;
+    virCommandPtr cmd = NULL;
     lxcDomainObjPrivatePtr priv = vm->privateData;
 
     if (!lxc_driver->cgroup) {
@@ -1480,11 +1544,43 @@ static int lxcVmStart(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (lxcControllerStart(driver,
-                           vm,
-                           nveths, veths,
-                           parentTty, logfd) < 0)
+    if (pipe(handshakefds) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to create pipe"));
         goto cleanup;
+    }
+
+    if (!(cmd = lxcBuildControllerCmd(driver,
+                                      vm,
+                                      nveths, veths,
+                                      parentTty, logfd, handshakefds[1])))
+        goto cleanup;
+
+    /* Log timestamp */
+    if ((timestamp = virTimestamp()) == NULL) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    if (safewrite(logfd, timestamp, strlen(timestamp)) < 0 ||
+        safewrite(logfd, START_POSTFIX, strlen(START_POSTFIX)) < 0) {
+        VIR_WARN("Unable to write timestamp to logfile: %s",
+                 virStrerror(errno, ebuf, sizeof ebuf));
+    }
+    VIR_FREE(timestamp);
+
+    /* Log generated command line */
+    virCommandWriteArgLog(cmd, logfd);
+    if ((pos = lseek(logfd, 0, SEEK_END)) < 0)
+        VIR_WARN("Unable to seek to end of logfile: %s",
+                 virStrerror(errno, ebuf, sizeof ebuf));
+
+    if (virCommandRun(cmd, NULL) < 0)
+        goto cleanup;
+
+    if (VIR_CLOSE(handshakefds[1]) < 0) {
+        virReportSystemError(errno, "%s", _("could not close handshake fd"));
+        goto cleanup;
+    }
 
     /* Connect to the controller as a client *first* because
      * this will block until the child has written their
@@ -1502,6 +1598,18 @@ static int lxcVmStart(virConnectPtr conn,
 
     vm->def->id = vm->pid;
     virDomainObjSetState(vm, VIR_DOMAIN_RUNNING, reason);
+
+    if (lxcContainerWaitForContinue(handshakefds[0]) < 0) {
+        char out[1024];
+
+        if (!(lxcReadLogOutput(vm, logfile, pos, out, 1024) < 0)) {
+            lxcError(VIR_ERR_INTERNAL_ERROR,
+                     _("guest failed to start: %s"), out);
+        }
+
+        lxcVmTerminate(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
+        goto cleanup;
+    }
 
     if ((priv->monitorWatch = virEventAddHandle(
              priv->monitor,
@@ -1529,6 +1637,7 @@ static int lxcVmStart(virConnectPtr conn,
     rc = 0;
 
 cleanup:
+    virCommandFree(cmd);
     if (VIR_CLOSE(logfd) < 0) {
         virReportSystemError(errno, "%s", _("could not close logfile"));
         rc = -1;
@@ -1538,9 +1647,13 @@ cleanup:
             vethDelete(veths[i]);
         VIR_FREE(veths[i]);
     }
-    if (rc != 0)
+    if (rc != 0) {
         VIR_FORCE_CLOSE(priv->monitor);
+        virDomainConfVMNWFilterTeardown(vm);
+    }
     VIR_FORCE_CLOSE(parentTty);
+    VIR_FORCE_CLOSE(handshakefds[0]);
+    VIR_FORCE_CLOSE(handshakefds[1]);
     VIR_FREE(logfile);
     return rc;
 }
@@ -2136,7 +2249,7 @@ static int lxcVersion(virConnectPtr conn ATTRIBUTE_UNUSED, unsigned long *versio
 
     uname(&ver);
 
-    if (virParseVersionString(ver.release, version) < 0) {
+    if (virParseVersionString(ver.release, version, true) < 0) {
         lxcError(VIR_ERR_INTERNAL_ERROR, _("Unknown release: %s"), ver.release);
         return -1;
     }
@@ -2736,6 +2849,33 @@ cleanup:
     return ret;
 }
 
+static int
+lxcVMFilterRebuild(virConnectPtr conn ATTRIBUTE_UNUSED,
+                   virHashIterator iter, void *data)
+{
+    virHashForEach(lxc_driver->domains.objs, iter, data);
+
+    return 0;
+}
+
+static void
+lxcVMDriverLock(void)
+{
+    lxcDriverLock(lxc_driver);
+}
+
+static void
+lxcVMDriverUnlock(void)
+{
+    lxcDriverUnlock(lxc_driver);
+}
+
+static virNWFilterCallbackDriver lxcCallbackDriver = {
+    .name = "LXC",
+    .vmFilterRebuild = lxcVMFilterRebuild,
+    .vmDriverLock = lxcVMDriverLock,
+    .vmDriverUnlock = lxcVMDriverUnlock,
+};
 
 /* Function Tables */
 static virDriver lxcDriver = {
@@ -2779,6 +2919,8 @@ static virDriver lxcDriver = {
     .domainSetSchedulerParameters = lxcSetSchedulerParameters, /* 0.5.0 */
     .domainSetSchedulerParametersFlags = lxcSetSchedulerParametersFlags, /* 0.9.2 */
     .domainInterfaceStats = lxcDomainInterfaceStats, /* 0.7.3 */
+    .nodeGetCPUStats = nodeGetCPUStats, /* 0.9.3 */
+    .nodeGetMemoryStats = nodeGetMemoryStats, /* 0.9.3 */
     .nodeGetCellsFreeMemory = nodeGetCellsFreeMemory, /* 0.6.5 */
     .nodeGetFreeMemory = nodeGetFreeMemory, /* 0.6.5 */
     .domainEventRegister = lxcDomainEventRegister, /* 0.7.0 */
@@ -2805,5 +2947,6 @@ int lxcRegister(void)
 {
     virRegisterDriver(&lxcDriver);
     virRegisterStateDriver(&lxcStateDriver);
+    virNWFilterRegisterCallbackDriver(&lxcCallbackDriver);
     return 0;
 }

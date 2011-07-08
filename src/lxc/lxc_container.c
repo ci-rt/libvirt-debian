@@ -90,6 +90,7 @@ struct __lxc_child_argv {
     char **veths;
     int monitor;
     char *ttyPath;
+    int handshakefd;
 };
 
 
@@ -128,7 +129,7 @@ static virCommandPtr lxcContainerBuildInitCmd(virDomainDefPtr vmDef)
  *
  * Returns 0 on success or -1 in case of error
  */
-static int lxcContainerSetStdio(int control, int ttyfd)
+static int lxcContainerSetStdio(int control, int ttyfd, int handshakefd)
 {
     int rc = -1;
     int open_max, i;
@@ -149,7 +150,7 @@ static int lxcContainerSetStdio(int control, int ttyfd)
      * close all FDs before executing the container */
     open_max = sysconf (_SC_OPEN_MAX);
     for (i = 0; i < open_max; i++)
-        if (i != ttyfd && i != control) {
+        if (i != ttyfd && i != control && i != handshakefd) {
             int tmpfd = i;
             VIR_FORCE_CLOSE(tmpfd);
         }
@@ -195,13 +196,10 @@ int lxcContainerSendContinue(int control)
 
     writeCount = safewrite(control, &msg, sizeof(msg));
     if (writeCount != sizeof(msg)) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to send container continue message"));
         goto error_out;
     }
 
     rc = 0;
-
 error_out:
     return rc;
 }
@@ -216,7 +214,7 @@ error_out:
  *
  * Returns 0 on success or -1 in case of error
  */
-static int lxcContainerWaitForContinue(int control)
+int lxcContainerWaitForContinue(int control)
 {
     lxc_message_t msg;
     int readLen;
@@ -224,13 +222,8 @@ static int lxcContainerWaitForContinue(int control)
     readLen = saferead(control, &msg, sizeof(msg));
     if (readLen != sizeof(msg) ||
         msg != LXC_CONTINUE_MSG) {
-        virReportSystemError(errno, "%s",
-                             _("Failed to read the container continue message"));
         return -1;
     }
-    VIR_FORCE_CLOSE(control);
-
-    VIR_DEBUG("Received container continue message");
 
     return 0;
 }
@@ -751,9 +744,9 @@ static int lxcContainerChild( void *data )
 {
     lxc_child_argv_t *argv = data;
     virDomainDefPtr vmDef = argv->config;
-    int ttyfd;
+    int ttyfd = -1;
     int ret = -1;
-    char *ttyPath;
+    char *ttyPath = NULL;
     virDomainFSDefPtr root;
     virCommandPtr cmd = NULL;
 
@@ -786,37 +779,59 @@ static int lxcContainerChild( void *data )
         virReportSystemError(errno,
                              _("Failed to open tty %s"),
                              ttyPath);
-        VIR_FREE(ttyPath);
         goto cleanup;
     }
-    VIR_FREE(ttyPath);
-
-    if (lxcContainerSetStdio(argv->monitor, ttyfd) < 0) {
-        VIR_FORCE_CLOSE(ttyfd);
-        goto cleanup;
-    }
-    VIR_FORCE_CLOSE(ttyfd);
 
     if (lxcContainerSetupMounts(vmDef, root) < 0)
         goto cleanup;
 
-    /* Wait for interface devices to show up */
-    if (lxcContainerWaitForContinue(argv->monitor) < 0)
+    if (!virFileExists(vmDef->os.init)) {
+        virReportSystemError(errno,
+                    _("cannot find init path '%s' relative to container root"),
+                    vmDef->os.init);
         goto cleanup;
+    }
+
+    /* Wait for interface devices to show up */
+    if (lxcContainerWaitForContinue(argv->monitor) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Failed to read the container continue message"));
+        goto cleanup;
+    }
+    VIR_DEBUG("Received container continue message");
 
     /* rename and enable interfaces */
     if (lxcContainerRenameAndEnableInterfaces(argv->nveths,
-                                              argv->veths) < 0)
+                                              argv->veths) < 0) {
         goto cleanup;
+    }
 
     /* drop a set of root capabilities */
     if (lxcContainerDropCapabilities() < 0)
         goto cleanup;
 
-    /* this function will only return if an error occured */
-    ret = virCommandExec(cmd);
+    if (lxcContainerSendContinue(argv->handshakefd) < 0) {
+        virReportSystemError(errno, "%s",
+                            _("failed to send continue signal to controller"));
+        goto cleanup;
+    }
 
+    if (lxcContainerSetStdio(argv->monitor, ttyfd, argv->handshakefd) < 0) {
+        goto cleanup;
+    }
+
+    ret = 0;
 cleanup:
+    VIR_FREE(ttyPath);
+    VIR_FORCE_CLOSE(ttyfd);
+    VIR_FORCE_CLOSE(argv->monitor);
+    VIR_FORCE_CLOSE(argv->handshakefd);
+
+    if (ret == 0) {
+        /* this function will only return if an error occured */
+        ret = virCommandExec(cmd);
+    }
+
     virCommandFree(cmd);
     return ret;
 }
@@ -870,13 +885,15 @@ int lxcContainerStart(virDomainDefPtr def,
                       unsigned int nveths,
                       char **veths,
                       int control,
+                      int handshakefd,
                       char *ttyPath)
 {
     pid_t pid;
     int flags;
     int stacksize = getpagesize() * 4;
     char *stack, *stacktop;
-    lxc_child_argv_t args = { def, nveths, veths, control, ttyPath };
+    lxc_child_argv_t args = { def, nveths, veths, control, ttyPath,
+                              handshakefd};
 
     /* allocate a stack for the container */
     if (VIR_ALLOC_N(stack, stacksize) < 0) {

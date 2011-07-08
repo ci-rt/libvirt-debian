@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# strndup.m4 serial 18
+# strndup.m4 serial 19
 dnl Copyright (C) 2002-2003, 2005-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -20,6 +20,7 @@ AC_DEFUN([gl_FUNC_STRNDUP],
   fi
 
   if test $ac_cv_func_strndup = yes; then
+    HAVE_STRNDUP=1
     # AIX 4.3.3, AIX 5.1 have a function that fails to add the terminating '\0'.
     AC_CACHE_CHECK([for working strndup], [gl_cv_func_strndup_works],
       [AC_RUN_IFELSE([
@@ -44,12 +45,9 @@ changequote(,)dnl
 changequote([,])dnl
          ])])
     case $gl_cv_func_strndup_works in
-      *no)
-        REPLACE_STRNDUP=1
-        AC_LIBOBJ([strndup])
-        ;;
+      *no) REPLACE_STRNDUP=1 ;;
     esac
   else
-    AC_LIBOBJ([strndup])
+    HAVE_STRNDUP=0
   fi
 ])

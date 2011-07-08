@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# malloc.m4 serial 12
+# malloc.m4 serial 13
 dnl Copyright (C) 2007, 2009-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -19,7 +19,7 @@ AC_DEFUN([gl_FUNC_MALLOC_GNU],
                [Define to 1 if your system has a GNU libc compatible 'malloc'
                 function, and to 0 otherwise.])],
     [AC_DEFINE([HAVE_MALLOC_GNU], [0])
-     gl_REPLACE_MALLOC
+     REPLACE_MALLOC=1
     ])
 ])
 
@@ -35,7 +35,7 @@ AC_DEFUN([gl_FUNC_MALLOC_POSIX],
     AC_DEFINE([HAVE_MALLOC_POSIX], [1],
       [Define if the 'malloc' function is POSIX compliant.])
   else
-    gl_REPLACE_MALLOC
+    REPLACE_MALLOC=1
   fi
 ])
 
@@ -59,10 +59,4 @@ AC_DEFUN([gl_CHECK_MALLOC_POSIX],
         [gl_cv_func_malloc_posix=yes],
         [gl_cv_func_malloc_posix=no])
     ])
-])
-
-AC_DEFUN([gl_REPLACE_MALLOC],
-[
-  AC_LIBOBJ([malloc])
-  REPLACE_MALLOC=1
 ])

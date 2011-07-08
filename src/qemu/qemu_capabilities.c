@@ -119,6 +119,9 @@ VIR_ENUM_IMPL(qemuCaps, QEMU_CAPS_LAST,
               "device-spicevmc",
               "virtio-tx-alg",
               "device-qxl-vga",
+
+              "pci-multifunction", /* 60 */
+              "virtio-blk-pci.ioeventfd",
     );
 
 struct qemu_feature_flags {
@@ -1024,6 +1027,9 @@ qemuCapsComputeCmdFlags(const char *help,
      */
      if (version >= 13000)
         qemuCapsSet(flags, QEMU_CAPS_MONITOR_JSON);
+
+    if (version >= 13000)
+        qemuCapsSet(flags, QEMU_CAPS_PCI_MULTIFUNCTION);
 }
 
 /* We parse the output of 'qemu -help' to get the QEMU
@@ -1202,6 +1208,8 @@ qemuCapsParseDeviceStr(const char *str, virBitmapPtr flags)
         qemuCapsSet(flags, QEMU_CAPS_VIRTIO_TX_ALG);
     if (strstr(str, "name \"qxl-vga\""))
         qemuCapsSet(flags, QEMU_CAPS_DEVICE_QXL_VGA);
+    if (strstr(str, "virtio-blk-pci.ioeventfd"))
+        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_IOEVENTFD);
 
     return 0;
 }
