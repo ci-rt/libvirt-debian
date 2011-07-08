@@ -32,7 +32,6 @@
 #include "qemu_monitor_text.h"
 #include "qemu_monitor_json.h"
 #include "qemu_conf.h"
-#include "event.h"
 #include "virterror_internal.h"
 #include "memory.h"
 #include "logging.h"
@@ -247,7 +246,7 @@ qemuMonitorUnwatch(void *monitor)
 }
 
 static int
-qemuMonitorOpenUnix(const char *monitor)
+qemuMonitorOpenUnix(const char *monitor, pid_t cpid)
 {
     struct sockaddr_un addr;
     int monfd;
@@ -274,7 +273,8 @@ qemuMonitorOpenUnix(const char *monitor)
         if (ret == 0)
             break;
 
-        if (errno == ENOENT || errno == ECONNREFUSED) {
+        if ((errno == ENOENT || errno == ECONNREFUSED) &&
+            virKillProcess(cpid, 0) == 0) {
             /* ENOENT       : Socket may not have shown up yet
              * ECONNREFUSED : Leftover socket hasn't been removed yet */
             continue;
@@ -383,6 +383,7 @@ qemuMonitorIOWriteWithFD(qemuMonitorPtr mon,
     struct cmsghdr *cmsg;
 
     memset(&msg, 0, sizeof(msg));
+    memset(control, 0, sizeof(control));
 
     iov[0].iov_base = (void *)data;
     iov[0].iov_len = len;
@@ -691,7 +692,7 @@ qemuMonitorOpen(virDomainObjPtr vm,
     switch (config->type) {
     case VIR_DOMAIN_CHR_TYPE_UNIX:
         mon->hasSendFD = 1;
-        mon->fd = qemuMonitorOpenUnix(config->data.nix.path);
+        mon->fd = qemuMonitorOpenUnix(config->data.nix.path, vm->pid);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PTY:
@@ -1079,6 +1080,25 @@ int qemuMonitorSystemPowerdown(qemuMonitorPtr mon)
         ret = qemuMonitorJSONSystemPowerdown(mon);
     else
         ret = qemuMonitorTextSystemPowerdown(mon);
+    return ret;
+}
+
+
+int qemuMonitorSystemReset(qemuMonitorPtr mon)
+{
+    int ret;
+    VIR_DEBUG("mon=%p", mon);
+
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (mon->json)
+        ret = qemuMonitorJSONSystemReset(mon);
+    else
+        ret = qemuMonitorTextSystemReset(mon);
     return ret;
 }
 

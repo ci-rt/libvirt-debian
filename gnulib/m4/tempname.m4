@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-#serial 3
+#serial 4
 
 # Copyright (C) 2006-2007, 2009-2011 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
@@ -13,7 +13,6 @@ AC_DEFUN([gl_FUNC_GEN_TEMPNAME],
 [
   AC_REQUIRE([AC_SYS_LARGEFILE])
 
-  AC_LIBOBJ([tempname])
   gl_PREREQ_TEMPNAME
 ])
 

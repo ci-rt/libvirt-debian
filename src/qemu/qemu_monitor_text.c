@@ -417,6 +417,19 @@ int qemuMonitorTextSystemPowerdown(qemuMonitorPtr mon) {
 }
 
 
+int qemuMonitorTextSystemReset(qemuMonitorPtr mon) {
+    char *info;
+
+    if (qemuMonitorHMPCommand(mon, "system_reset", &info) < 0) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        "%s", _("system reset operation failed"));
+        return -1;
+    }
+    VIR_FREE(info);
+    return 0;
+}
+
+
 int qemuMonitorTextGetCPUInfo(qemuMonitorPtr mon,
                               int **pids)
 {
@@ -549,7 +562,9 @@ static int qemuMonitorParseExtraBalloonInfo(char *text,
             parseMemoryStat(&p, VIR_DOMAIN_MEMORY_STAT_UNUSED,
                             ",free_mem=", &stats[nr_stats_found]) ||
             parseMemoryStat(&p, VIR_DOMAIN_MEMORY_STAT_AVAILABLE,
-                            ",total_mem=", &stats[nr_stats_found]))
+                            ",total_mem=", &stats[nr_stats_found]) ||
+            parseMemoryStat(&p, VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON,
+                            ",actual=", &stats[nr_stats_found]))
             nr_stats_found++;
 
         /* Skip to the next label.  When *p is ',' the last match attempt

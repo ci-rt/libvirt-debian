@@ -682,9 +682,17 @@ virSecurityDACClearSocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
 }
 
 static int
-virSecurityDACSetFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
-                         virDomainObjPtr vm ATTRIBUTE_UNUSED,
-                         int fd ATTRIBUTE_UNUSED)
+virSecurityDACSetImageFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                              virDomainObjPtr vm ATTRIBUTE_UNUSED,
+                              int fd ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+static int
+virSecurityDACSetProcessFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                virDomainObjPtr vm ATTRIBUTE_UNUSED,
+                                int fd ATTRIBUTE_UNUSED)
 {
     return 0;
 }
@@ -725,5 +733,6 @@ virSecurityDriver virSecurityDriverDAC = {
     virSecurityDACSetSavedStateLabel,
     virSecurityDACRestoreSavedStateLabel,
 
-    virSecurityDACSetFDLabel,
+    virSecurityDACSetImageFDLabel,
+    virSecurityDACSetProcessFDLabel,
 };

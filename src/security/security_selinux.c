@@ -1209,9 +1209,9 @@ SELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
 }
 
 static int
-SELinuxSetFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
-                  virDomainObjPtr vm,
-                  int fd)
+SELinuxSetImageFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                       virDomainObjPtr vm,
+                       int fd)
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
 
@@ -1219,6 +1219,19 @@ SELinuxSetFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
         return 0;
 
     return SELinuxFSetFilecon(fd, secdef->imagelabel);
+}
+
+static int
+SELinuxSetProcessFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                         virDomainObjPtr vm,
+                         int fd)
+{
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+
+    if (secdef->label == NULL)
+        return 0;
+
+    return SELinuxFSetFilecon(fd, secdef->label);
 }
 
 virSecurityDriver virSecurityDriverSELinux = {
@@ -1255,5 +1268,6 @@ virSecurityDriver virSecurityDriverSELinux = {
     SELinuxSetSavedStateLabel,
     SELinuxRestoreSavedStateLabel,
 
-    SELinuxSetFDLabel,
+    SELinuxSetImageFDLabel,
+    SELinuxSetProcessFDLabel,
 };

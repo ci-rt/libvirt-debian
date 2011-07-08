@@ -8,14 +8,17 @@ INCLUDES = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/util \
-	-I$(top_srcdir)/src/conf \
+	-I$(top_srcdir)/src/conf
+
+AM_CFLAGS = \
 	$(LIBXML_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(SASL_CFLAGS) \
 	$(SELINUX_CFLAGS) \
 	$(APPARMOR_CFLAGS) \
-         $(COVERAGE_CFLAGS) \
-         $(WARN_CFLAGS)
+	$(YAJL_CFLAGS) \
+	$(COVERAGE_CFLAGS) \
+	$(WARN_CFLAGS)
 
 if WITH_DRIVER_MODULES
 INCLUDES += \
@@ -29,6 +32,7 @@ LDADDS = \
         $(SASL_LIBS) \
         $(SELINUX_LIBS) \
         $(APPARMOR_LIBS) \
+        $(YAJL_LIBS) \
         $(WARN_CFLAGS) \
 	../src/libvirt_test.la \
 	../gnulib/lib/libgnu.la \
@@ -50,6 +54,7 @@ EXTRA_DIST =		\
 	networkschematest \
 	networkxml2xmlin \
 	networkxml2xmlout \
+	networkxml2argvdata \
 	nodedevschemadata \
 	nodedevschematest \
 	nodeinfodata     \
@@ -73,12 +78,18 @@ EXTRA_DIST =		\
 	xencapsdata \
 	xmconfigdata \
 	xml2sexprdata \
-	xml2vmxdata
+	xml2vmxdata \
+	.valgrind.supp
 
 check_PROGRAMS = virshtest conftest sockettest \
 	nodeinfotest qparamtest virbuftest \
 	commandtest commandhelper seclabeltest \
-	hashtest
+	hashtest virnetmessagetest virnetsockettest ssh \
+	utiltest
+
+# This is a fake SSH we use from virnetsockettest
+ssh_SOURCES = ssh.c
+ssh_LDADD = $(COVERAGE_LDFLAGS)
 
 if WITH_XEN
 check_PROGRAMS += xml2sexprtest sexpr2xmltest \
@@ -107,7 +118,13 @@ if WITH_CIL
 check_PROGRAMS += object-locking
 endif
 
+if HAVE_YAJL
+check_PROGRAMS += jsontest
+endif
+
 check_PROGRAMS += networkxml2xmltest
+
+check_PROGRAMS += networkxml2argvtest
 
 check_PROGRAMS += nwfilterxml2xmltest
 
@@ -184,7 +201,14 @@ TESTS = virshtest \
 	commandtest \
 	seclabeltest \
 	hashtest \
+	virnetmessagetest \
+	virnetsockettest \
+	utiltest \
 	$(test_scripts)
+
+if HAVE_YAJL
+TESTS += jsontest
+endif
 
 if WITH_XEN
 TESTS += xml2sexprtest \
@@ -220,6 +244,8 @@ endif
 
 TESTS += networkxml2xmltest
 
+TESTS += networkxml2argvtest
+
 TESTS += storagevolxml2xmltest storagepoolxml2xmltest
 
 TESTS += nodedevxml2xmltest
@@ -228,7 +254,7 @@ TESTS += interfacexml2xmltest
 
 TESTS += cputest
 
-path_add = $$abs_top_builddir/daemon$(PATH_SEPARATOR)$$abs_top_builddir/tools
+path_add = $$abs_top_builddir/daemon$(PATH_SEPARATOR)$$abs_top_builddir/tools$(PATH_SEPARATOR)$$abs_top_builddir/tests
 
 # NB, automake < 1.10 does not provide the real
 # abs_top_{src/build}dir or builddir variables, so don't rely
@@ -347,6 +373,11 @@ networkxml2xmltest_SOURCES = \
 	testutils.c testutils.h
 networkxml2xmltest_LDADD = $(LDADDS)
 
+networkxml2argvtest_SOURCES = \
+	networkxml2argvtest.c \
+	testutils.c testutils.h
+networkxml2argvtest_LDADD = ../src/libvirt_driver_network.la $(LDADDS)
+
 nwfilterxml2xmltest_SOURCES = \
 	nwfilterxml2xmltest.c \
 	testutils.c testutils.h
@@ -392,13 +423,24 @@ nodeinfotest_LDADD = $(LDADDS)
 
 commandtest_SOURCES = \
 	commandtest.c testutils.h testutils.c
-commandtest_CFLAGS = -Dabs_builddir="\"`pwd`\""
+commandtest_CFLAGS = -Dabs_builddir="\"`pwd`\"" $(AM_CFLAGS)
 commandtest_LDADD = $(LDADDS)
 
 commandhelper_SOURCES = \
 	commandhelper.c
-commandhelper_CFLAGS = -Dabs_builddir="\"`pwd`\""
+commandhelper_CFLAGS = -Dabs_builddir="\"`pwd`\"" $(AM_CFLAGS)
 commandhelper_LDADD = $(LDADDS)
+
+virnetmessagetest_SOURCES = \
+	virnetmessagetest.c testutils.h testutils.c
+virnetmessagetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virnetmessagetest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
+
+virnetsockettest_SOURCES = \
+	virnetsockettest.c testutils.h testutils.c
+virnetsockettest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virnetsockettest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
+
 
 seclabeltest_SOURCES = \
 	seclabeltest.c
@@ -415,6 +457,14 @@ virbuftest_LDADD = $(LDADDS)
 hashtest_SOURCES = \
 	hashtest.c hashdata.h testutils.h testutils.c
 hashtest_LDADD = $(LDADDS)
+
+jsontest_SOURCES = \
+	jsontest.c testutils.h testutils.c
+jsontest_LDADD = $(LDADDS)
+
+utiltest_SOURCES = \
+	utiltest.c testutils.h testutils.c
+utiltest_LDADD = $(LDADDS)
 
 if WITH_LIBVIRTD
 eventtest_SOURCES = \

@@ -173,6 +173,9 @@
 /* Define to 1 when the gnulib module fpurge should be tested. */
 #undef GNULIB_TEST_FPURGE
 
+/* Define to 1 when the gnulib module fseek should be tested. */
+#undef GNULIB_TEST_FSEEK
+
 /* Define to 1 when the gnulib module fseeko should be tested. */
 #undef GNULIB_TEST_FSEEKO
 
@@ -205,6 +208,9 @@
 
 /* Define to 1 when the gnulib module getpagesize should be tested. */
 #undef GNULIB_TEST_GETPAGESIZE
+
+/* Define to 1 when the gnulib module getpeername should be tested. */
+#undef GNULIB_TEST_GETPEERNAME
 
 /* Define to 1 when the gnulib module getsockname should be tested. */
 #undef GNULIB_TEST_GETSOCKNAME
@@ -621,10 +627,6 @@
    */
 #undef HAVE_DECL_STRDUP
 
-/* Define to 1 if you have the declaration of `strerror', and to 0 if you
-   don't. */
-#undef HAVE_DECL_STRERROR
-
 /* Define to 1 if you have the declaration of `strerror_r', and to 0 if you
    don't. */
 #undef HAVE_DECL_STRERROR_R
@@ -760,6 +762,9 @@
 /* Define if you have the iconv() function and it works. */
 #undef HAVE_ICONV
 
+/* Define to 1 if you have the <ifaddrs.h> header file. */
+#undef HAVE_IFADDRS_H
+
 /* Define to 1 if you have the `inet_ntop' function. */
 #undef HAVE_INET_NTOP
 
@@ -834,6 +839,9 @@
 
 /* Define to 1 if you have the `intl' library (-lintl). */
 #undef HAVE_LIBINTL
+
+/* whether the netlink library is available */
+#undef HAVE_LIBNL
 
 /* Define to 1 if you have the `numa' library (-lnuma). */
 #undef HAVE_LIBNUMA
@@ -931,6 +939,9 @@
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
+
+/* Define to 1 if you have the <netinet/tcp.h> header file. */
+#undef HAVE_NETINET_TCP_H
 
 /* Define to 1 if you have the <net/ethernet.h> header file. */
 #undef HAVE_NET_ETHERNET_H
@@ -1507,7 +1518,7 @@
 /* Location of lvcreate program */
 #undef LVCREATE
 
-/* Location of lvcreate program */
+/* Location of lvremove program */
 #undef LVREMOVE
 
 /* Location of lvs program */
@@ -1599,7 +1610,7 @@
 /* Location of pvcreate program */
 #undef PVCREATE
 
-/* Location of pvcreate program */
+/* Location of pvremove program */
 #undef PVREMOVE
 
 /* Location of pvs program */
@@ -1624,6 +1635,9 @@
 /* Define to 1 if stat needs help when passed a file name with a trailing
    slash */
 #undef REPLACE_FUNC_STAT_FILE
+
+/* Define to 1 if strerror(0) does not return a message implying success. */
+#undef REPLACE_STRERROR_0
 
 /* Define if vasnprintf exists but is overridden by gnulib. */
 #undef REPLACE_VASNPRINTF
@@ -1728,7 +1742,7 @@
 /* Location of vgcreate program */
 #undef VGCREATE
 
-/* Location of vgcreate program */
+/* Location of vgremove program */
 #undef VGREMOVE
 
 /* Location of vgs program */
@@ -2031,6 +2045,20 @@
 /* The name _UNUSED_PARAMETER_ is an earlier spelling, although the name
    is a misnomer outside of parameter lists.  */
 #define _UNUSED_PARAMETER_ _GL_UNUSED
+
+/* The __pure__ attribute was added in gcc 2.96.  */
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 96)
+# define _GL_ATTRIBUTE_PURE __attribute__ ((__pure__))
+#else
+# define _GL_ATTRIBUTE_PURE /* empty */
+#endif
+
+/* The __const__ attribute was added in gcc 2.95.  */
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+# define _GL_ATTRIBUTE_CONST __attribute__ ((__const__))
+#else
+# define _GL_ATTRIBUTE_CONST /* empty */
+#endif
 
 
 /* Define to an unsigned 32-bit type if <sys/types.h> lacks this type. */

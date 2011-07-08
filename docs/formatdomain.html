@@ -506,6 +506,9 @@
     &lt;vcpupin vcpu="3" cpuset="0,4"/&gt;
     &lt;shares&gt;2048&lt;/shares&gt;
   &lt;/cputune&gt;
+  &lt;numatune&gt;
+  &lt;memory mode="strict" nodeset="1-4,^3"/&gt;
+  &lt;/numatune&gt;
   ...</pre>
         <dl><dt><code>memory</code></dt><dd>The maximum allocation of memory for the guest at boot time.
         The units for this value are kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>currentMemory</code></dt><dd>The actual allocation of memory for the guest. This value can
@@ -563,6 +566,18 @@
         measure based on the setting of other VM, e.g. A VM configured with value
         2048 will get twice as much CPU time as a VM configured with value 1024.
         <span class="since">Since 0.9.0</span>
+      </dd><dt><code>numatune</code></dt><dd>
+        The optional <code>numatune</code> element provides details of
+        how to tune the performance of a NUMA host via controlling NUMA policy
+        for domain process. NB, only supported by QEMU driver.
+        <span class="since">Since 0.9.3</span>
+      </dd><dt><code>memory</code></dt><dd>
+        The optional <code>memory</code> element specify how to allocate memory
+        for the domain process on a NUMA host. It contains two attributes,
+        attribute <code>mode</code> is either 'interleave', 'strict', or 'preferred',
+        attribute <code>nodeset</code> specifies the NUMA nodes, it leads same
+        syntax with attribute <code>cpuset</code> of element <code>vcpu</code>.
+        <span class="since">Since 0.9.3</span>
       </dd></dl>
         <h3>
           <a name="elementsCPU" id="elementsCPU">CPU model and topology</a>
@@ -829,7 +844,7 @@
     &lt;/disk&gt;
       ...
     &lt;disk type='network'&gt;
-      &lt;driver name="qemu" type="raw" io="threads"/&gt;
+      &lt;driver name="qemu" type="raw" io="threads" ioeventfd="on"/&gt;
       &lt;source protocol="sheepdog" name="image_name"&gt;
         &lt;host name="hostname" port="7000"/&gt;
       &lt;/source&gt;
@@ -899,6 +914,19 @@
             The optional <code>io</code> attribute controls specific
             policies on I/O; qemu guests support "threads" and
             "native". <span class="since">Since 0.8.8</span>
+          </li><li>
+            The optional <code>ioeventfd</code> attribute allows users to
+            set <a href="https://patchwork.kernel.org/patch/43390/">
+            domain I/O asynchronous handling</a> for disk device.
+            The default is left to the discretion of the hypervisor.
+            Accepted values are "on" and "off". Enabling this allows
+            qemu to execute VM while a separate thread handles I/O.
+            Typically guests experiencing high system CPU utilization
+            during I/O will benefit from this. On the other hand,
+            on overloaded host it could increase guest I/O latency.
+            <span class="since">Since 0.9.3 (QEMU and KVM only)</span>
+            <b>In general you should leave this option alone, unless you
+            are very certain you know what you are doing.</b>
           </li></ul></dd><dt><code>boot</code></dt><dd>Specifies that the disk is bootable. The <code>order</code>
         attribute determines the order in which devices will be tried during
         boot sequence. The per-device <code>boot</code> elements cannot be
@@ -1420,7 +1448,7 @@
       in the IEEE 802.1Qbg standard. The values are network specific and
       should be provided by the network administrator. In 802.1Qbg terms,
       the Virtual Station Interface (VSI) represents the virtual interface
-      of a virtual machine.
+      of a virtual machine. <span class="since">Since 0.8.2</span>
     </p>
         <p>
       Please note that IEEE 802.1Qbg requires a non-zero value for the
@@ -1450,6 +1478,31 @@
     &lt;/interface&gt;
   &lt;/devices&gt;
   ...</pre>
+        <p>
+      The interface can have additional parameters as shown below
+      if the switch is conforming to the IEEE 802.1Qbh standard.
+      The values are network specific and should be provided by the
+      network administrator. <span class="since">Since 0.8.2</span>
+    </p>
+        <dl><dt><code>profileid</code></dt><dd>The profile ID contains the name of the port profile that is to
+        be applied onto this interface.  This name is resolved by the port
+        profile database into the network parameters from the port profile,
+        and those network parameters will be applied to this interface.
+      </dd></dl>
+        <pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='direct'/&gt;
+    ...
+    &lt;interface type='direct'&gt;
+      &lt;source dev='eth0' mode='private'/&gt;
+      &lt;virtualport type='802.1Qbh'&gt;
+        &lt;parameters profileid='finance'/&gt;
+      &lt;/virtualport&gt;
+    &lt;/interface&gt;
+  &lt;/devices&gt;
+  ...
+  </pre>
         <h5>
           <a name="elementsNICSMulticast" id="elementsNICSMulticast">Multicast tunnel</a>
         </h5>
@@ -1536,7 +1589,7 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;source network='default'/&gt;
       &lt;target dev='vnet1'/&gt;
       &lt;model type='virtio'/&gt;
-      <b>&lt;driver name='vhost' txmode='iothread'/&gt;</b>
+      <b>&lt;driver name='vhost' txmode='iothread' ioeventfd='on'/&gt;</b>
     &lt;/interface&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -1577,6 +1630,18 @@ qemu-kvm -net nic,model=? /dev/null
         latency, but potentially causes more processor bandwidth
         contention since the cpu doing the tx isn't necessarily the
         cpu where the guest generated the packets."<br /><br /><b>In general you should leave this option alone, unless you
+        are very certain you know what you are doing.</b>
+      </dd><dt><code>ioeventfd</code></dt><dd>
+        This optional attribute allows users to set
+        <a href="https://patchwork.kernel.org/patch/43390/">
+        domain I/O asynchronous handling</a> for interface device.
+        The default is left to the discretion of the hypervisor.
+        Accepted values are "on" and "off". Enabling this allows
+        qemu to execute VM while a separate thread handles I/O.
+        Typically guests experiencing high system CPU utilization
+        during I/O will benefit from this. On the other hand,
+        on overloaded host it could increase guest I/O latency.
+        <span class="since">Since 0.9.3 (QEMU and KVM only)</span><br /><br /><b>In general you should leave this option alone, unless you
         are very certain you know what you are doing.</b>
       </dd></dl>
         <h5>
@@ -1715,6 +1780,7 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;channel name='record' mode='insecure'/&gt;
     &lt;image compression='auto_glz'/&gt;
     &lt;streaming mode='filter'/&gt;
+    &lt;clipboard copypaste='no'/&gt;
   &lt;/graphics&gt;</pre>
             <p>
               Spice supports variable compression settings for audio,
@@ -1739,7 +1805,15 @@ qemu-kvm -net nic,model=? /dev/null
               of <code>filter</code>, <code>all</code>
               or <code>off</code>, <span class="since">since 0.9.2</span>.
             </p>
-          </dd><dt><code>"rdp"</code></dt><dd>
+            <p>
+              Copy &amp; Paste functionality (via Spice agent) is set
+              by the <code>clipboard</code> element. It is enabled by
+              default, and can be disabled by setting
+              the <code>copypaste</code> property
+              to <code>no</code>, <span class="since">since
+              0.9.3</span>.
+            &gt;
+          </p></dd><dt><code>"rdp"</code></dt><dd>
   Starts a RDP server. The <code>port</code> attribute
   specifies the TCP port number (with -1 as legacy syntax indicating
   that it should be auto-allocated). The <code>autoport</code> attribute
@@ -1774,7 +1848,12 @@ qemu-kvm -net nic,model=? /dev/null
   ...</pre>
         <dl><dt><code>video</code></dt><dd>
         The <code>video</code> element is the a container for describing
-        video devices.
+        video devices. For backwards compatability, if no <code>video</code>
+        is set but there is a <code>graphics</code> in domain xml, then libvirt
+        will add a default <code>video</code> according to the guest type.
+        For a guest of type "kvm", the default <code>video</code> for it is:
+        <code>type</code> with value "cirrus", <code>vram</code> with value
+        "9216", and <code>heads</code> with value "1".
       </dd><dt><code>model</code></dt><dd>
         The <code>model</code> element has a mandatory <code>type</code>
         attribute which takes the value "vga", "cirrus", "vmvga", "xen",

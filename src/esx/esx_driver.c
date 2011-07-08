@@ -1202,7 +1202,7 @@ esxGetVersion(virConnectPtr conn, unsigned long *version)
     esxPrivate *priv = conn->privateData;
 
     if (virParseVersionString(priv->primary->service->about->version,
-                              version) < 0) {
+                              version, false) < 0) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Could not parse version number from '%s'"),
                   priv->primary->service->about->version);
@@ -1478,11 +1478,6 @@ esxListDomains(virConnectPtr conn, int *ids, int maxids)
     esxVI_String *propertyNameList = NULL;
     esxVI_VirtualMachinePowerState powerState;
     int count = 0;
-
-    if (ids == NULL || maxids < 0) {
-        ESX_ERROR(VIR_ERR_INVALID_ARG, "%s", _("Invalid argument"));
-        return -1;
-    }
 
     if (maxids == 0) {
         return 0;
@@ -2540,7 +2535,7 @@ esxDomainSetVcpusFlags(virDomainPtr domain, unsigned int nvcpus,
     esxVI_TaskInfoState taskInfoState;
     char *taskInfoErrorMessage = NULL;
 
-    if (flags != VIR_DOMAIN_VCPU_LIVE) {
+    if (flags != VIR_DOMAIN_AFFECT_LIVE) {
         ESX_ERROR(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
         return -1;
     }
@@ -2611,7 +2606,7 @@ esxDomainSetVcpusFlags(virDomainPtr domain, unsigned int nvcpus,
 static int
 esxDomainSetVcpus(virDomainPtr domain, unsigned int nvcpus)
 {
-    return esxDomainSetVcpusFlags(domain, nvcpus, VIR_DOMAIN_VCPU_LIVE);
+    return esxDomainSetVcpusFlags(domain, nvcpus, VIR_DOMAIN_AFFECT_LIVE);
 }
 
 
@@ -2624,7 +2619,7 @@ esxDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
     esxVI_ObjectContent *hostSystem = NULL;
     esxVI_DynamicProperty *dynamicProperty = NULL;
 
-    if (flags != (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_MAXIMUM)) {
+    if (flags != (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_VCPU_MAXIMUM)) {
         ESX_ERROR(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
         return -1;
     }
@@ -2679,7 +2674,7 @@ esxDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
 static int
 esxDomainGetMaxVcpus(virDomainPtr domain)
 {
-    return esxDomainGetVcpusFlags(domain, (VIR_DOMAIN_VCPU_LIVE |
+    return esxDomainGetVcpusFlags(domain, (VIR_DOMAIN_AFFECT_LIVE |
                                            VIR_DOMAIN_VCPU_MAXIMUM));
 }
 
@@ -2894,11 +2889,6 @@ esxListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
     esxVI_VirtualMachinePowerState powerState;
     int count = 0;
     int i;
-
-    if (names == NULL || maxnames < 0) {
-        ESX_ERROR(VIR_ERR_INVALID_ARG, "%s", _("Invalid argument"));
-        return -1;
-    }
 
     if (maxnames == 0) {
         return 0;

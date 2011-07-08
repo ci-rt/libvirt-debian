@@ -38,7 +38,6 @@
 #include "datatypes.h"
 #include "logging.h"
 #include "memory.h"
-#include "event.h"
 #include "util.h"
 #include "files.h"
 #include "configmake.h"
@@ -57,8 +56,9 @@ struct virFDStreamData {
     unsigned long long length;
 
     int watch;
-    unsigned int cbRemoved;
-    unsigned int dispatching;
+    bool cbRemoved;
+    bool dispatching;
+    bool closed;
     virStreamEventCallback cb;
     void *opaque;
     virFreeCallback ff;
@@ -86,7 +86,7 @@ static int virFDStreamRemoveCallback(virStreamPtr stream)
 
     virEventRemoveHandle(fdst->watch);
     if (fdst->dispatching)
-        fdst->cbRemoved = 1;
+        fdst->cbRemoved = true;
     else if (fdst->ff)
         (fdst->ff)(fdst->opaque);
 
@@ -139,6 +139,7 @@ static void virFDStreamEvent(int watch ATTRIBUTE_UNUSED,
     virStreamEventCallback cb;
     void *cbopaque;
     virFreeCallback ff;
+    bool closed;
 
     if (!fdst)
         return;
@@ -152,17 +153,30 @@ static void virFDStreamEvent(int watch ATTRIBUTE_UNUSED,
     cb = fdst->cb;
     cbopaque = fdst->opaque;
     ff = fdst->ff;
-    fdst->dispatching = 1;
+    fdst->dispatching = true;
     virMutexUnlock(&fdst->lock);
 
     cb(stream, events, cbopaque);
 
     virMutexLock(&fdst->lock);
-    fdst->dispatching = 0;
+    fdst->dispatching = false;
     if (fdst->cbRemoved && ff)
         (ff)(cbopaque);
+    closed = fdst->closed;
     virMutexUnlock(&fdst->lock);
+
+    if (closed) {
+        virMutexDestroy(&fdst->lock);
+        VIR_FREE(fdst);
+    }
 }
+
+static void virFDStreamCallbackFree(void *opaque)
+{
+    virStreamPtr st = opaque;
+    virStreamFree(st);
+}
+
 
 static int
 virFDStreamAddCallback(virStreamPtr st,
@@ -191,13 +205,13 @@ virFDStreamAddCallback(virStreamPtr st,
                                            events,
                                            virFDStreamEvent,
                                            st,
-                                           NULL)) < 0) {
+                                           virFDStreamCallbackFree)) < 0) {
         streamsReportError(VIR_ERR_INTERNAL_ERROR,
                            "%s", _("cannot register file watch on stream"));
         goto cleanup;
     }
 
-    fdst->cbRemoved = 0;
+    fdst->cbRemoved = false;
     fdst->cb = cb;
     fdst->opaque = opaque;
     fdst->ff = ff;
@@ -253,13 +267,18 @@ virFDStreamClose(virStreamPtr st)
             ret = -1;
         }
         virCommandFree(fdst->cmd);
+        fdst->cmd = NULL;
     }
-
     st->privateData = NULL;
 
-    virMutexUnlock(&fdst->lock);
-    virMutexDestroy(&fdst->lock);
-    VIR_FREE(fdst);
+    if (fdst->dispatching) {
+        fdst->closed = true;
+        virMutexUnlock(&fdst->lock);
+    } else {
+        virMutexUnlock(&fdst->lock);
+        virMutexDestroy(&fdst->lock);
+        VIR_FREE(fdst);
+    }
 
     return ret;
 }

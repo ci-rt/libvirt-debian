@@ -387,6 +387,26 @@
           </zeroOrMore>
         </element>
       </optional>
+
+      <!-- All the NUMA related tunables would go in the numatune -->
+      <optional>
+        <element name="numatune">
+          <optional>
+            <element name="memory">
+              <attribute name="mode">
+                <choice>
+                  <value>strict</value>
+                  <value>preferred</value>
+                  <value>interleave</value>
+                </choice>
+              </attribute>
+              <attribute name="nodeset">
+                <ref name="cpuset"/>
+              </attribute>
+            </element>
+          </optional>
+        </element>
+      </optional>
     </interleave>
   </define>
   <define name="clock">
@@ -758,6 +778,9 @@
       <optional>
         <ref name="driverIO"/>
       </optional>
+      <optional>
+        <ref name="ioeventfd"/>
+      </optional>
       <empty/>
     </element>
   </define>
@@ -794,6 +817,14 @@
       <choice>
         <value>threads</value>
         <value>native</value>
+      </choice>
+    </attribute>
+  </define>
+  <define name="ioeventfd">
+    <attribute name="ioeventfd">
+      <choice>
+        <value>on</value>
+        <value>off</value>
       </choice>
     </attribute>
   </define>
@@ -1097,6 +1128,9 @@
               </choice>
             </attribute>
           </optional>
+          <optional>
+            <ref name="ioeventfd"/>
+          </optional>
           <empty/>
         </element>
       </optional>
@@ -1374,6 +1408,17 @@
                     <value>filter</value>
                     <value>all</value>
                     <value>off</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="clipboard">
+                <attribute name="copypaste">
+                  <choice>
+                    <value>yes</value>
+                    <value>no</value>
                   </choice>
                 </attribute>
                 <empty/>

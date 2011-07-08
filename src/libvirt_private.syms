@@ -133,6 +133,8 @@ virCommandTransferFD;
 virCommandTranslateStatus;
 virCommandWait;
 virCommandWriteArgLog;
+virFork;
+virRun;
 
 
 # conf.h
@@ -192,6 +194,7 @@ virUnrefStream;
 
 # dnsmasq.h
 dnsmasqAddDhcpHost;
+dnsmasqAddHost;
 dnsmasqContextFree;
 dnsmasqContextNew;
 dnsmasqDelete;
@@ -272,8 +275,10 @@ virDomainGraphicsSpiceChannelModeTypeFromString;
 virDomainGraphicsSpiceChannelModeTypeToString;
 virDomainGraphicsSpiceChannelNameTypeFromString;
 virDomainGraphicsSpiceChannelNameTypeToString;
-virDomainGraphicsSpiceImageCompressionTypeToString;
+virDomainGraphicsSpiceClipboardCopypasteTypeFromString;
+virDomainGraphicsSpiceClipboardCopypasteTypeToString;
 virDomainGraphicsSpiceImageCompressionTypeFromString;
+virDomainGraphicsSpiceImageCompressionTypeToString;
 virDomainGraphicsSpiceJpegCompressionTypeFromString;
 virDomainGraphicsSpiceJpegCompressionTypeToString;
 virDomainGraphicsSpicePlaybackCompressionTypeFromString;
@@ -288,6 +293,8 @@ virDomainHostdevDefFree;
 virDomainHostdevModeTypeToString;
 virDomainHostdevSubsysTypeToString;
 virDomainInputDefFree;
+virDomainIoEventFdTypeFromString;
+virDomainIoEventFdTypeToString;
 virDomainLeaseIndex;
 virDomainLeaseInsert;
 virDomainLeaseInsertPreAlloc;
@@ -306,6 +313,8 @@ virDomainNetIndexByMac;
 virDomainNetInsert;
 virDomainNetRemoveByMac;
 virDomainNetTypeToString;
+virDomainNumatuneMemModeTypeFromString;
+virDomainNumatuneMemModeTypeToString;
 virDomainObjAssignDef;
 virDomainObjCopyPersistentDef;
 virDomainObjGetPersistentDef;
@@ -357,9 +366,10 @@ virDomainTimerTickpolicyTypeFromString;
 virDomainTimerTickpolicyTypeToString;
 virDomainTimerTrackTypeFromString;
 virDomainTimerTrackTypeToString;
-virDomainVcpupinAdd;
-virDomainVcpupinFindByVcpu;
-virDomainVcpupinIsDuplicate;
+virDomainVcpuPinAdd;
+virDomainVcpuPinDel;
+virDomainVcpuPinFindByVcpu;
+virDomainVcpuPinIsDuplicate;
 virDomainVideoDefFree;
 virDomainVideoDefaultRAM;
 virDomainVideoDefaultType;
@@ -446,15 +456,6 @@ ebtablesContextNew;
 ebtablesRemoveForwardAllowIn;
 
 
-# event.h
-virEventAddHandle;
-virEventAddTimeout;
-virEventRemoveHandle;
-virEventRemoveTimeout;
-virEventUpdateHandle;
-virEventUpdateTimeout;
-
-
 # event_poll.h
 virEventPollToNativeEvents;
 virEventPollFromNativeEvents;
@@ -498,8 +499,16 @@ ifaceCheck;
 ifaceCtrl;
 ifaceGetFlags;
 ifaceGetIndex;
+ifaceGetMacAddress;
+ifaceGetNthParent;
 ifaceGetVlanID;
 ifaceIsUp;
+ifaceLinkDel;
+ifaceMacvtapLinkAdd;
+ifaceMacvtapLinkDump;
+ifaceReplaceMacAddress;
+ifaceRestoreMacAddress;
+ifaceSetMacAddress;
 
 
 # interface_conf.h
@@ -666,6 +675,10 @@ virResizeN;
 virShrinkN;
 
 
+#netlink.h
+nlComm;
+
+
 # network.h
 virSocketAddrBroadcast;
 virSocketAddrBroadcastByPrefix;
@@ -731,9 +744,11 @@ virNodeDeviceObjUnlock;
 
 # nodeinfo.h
 nodeCapsInitNUMA;
+nodeGetCPUStats;
 nodeGetCellsFreeMemory;
 nodeGetFreeMemory;
 nodeGetInfo;
+nodeGetMemoryStats;
 
 
 # nwfilter_conf.h
@@ -833,9 +848,10 @@ virSecurityManagerRestoreAllLabel;
 virSecurityManagerRestoreHostdevLabel;
 virSecurityManagerRestoreSavedStateLabel;
 virSecurityManagerSetAllLabel;
-virSecurityManagerSetFDLabel;
+virSecurityManagerSetImageFDLabel;
 virSecurityManagerSetImageLabel;
 virSecurityManagerSetHostdevLabel;
+virSecurityManagerSetProcessFDLabel;
 virSecurityManagerSetProcessLabel;
 virSecurityManagerSetSavedStateLabel;
 virSecurityManagerSetSocketLabel;
@@ -968,8 +984,6 @@ virEnumFromString;
 virEnumToString;
 virEventAddHandle;
 virEventRemoveHandle;
-virExec;
-virExecWithHook;
 virFileAbsPath;
 virFileBuildPath;
 virFileDeletePid;
@@ -992,7 +1006,6 @@ virFileStripSuffix;
 virFileWaitForDevices;
 virFileWriteStr;
 virFindFileInPath;
-virFork;
 virFormatMacAddr;
 virGenerateMacAddr;
 virGetGroupID;
@@ -1011,7 +1024,6 @@ virParseVersionString;
 virPipeReadUntilEOF;
 virRandom;
 virRandomInitialize;
-virRun;
 virSetBlocking;
 virSetCloseExec;
 virSetInherit;
@@ -1027,6 +1039,7 @@ virStrToLong_ul;
 virStrToLong_ull;
 virStrcpy;
 virStrncpy;
+virTimeMs;
 virTimestamp;
 virVasprintf;
 

@@ -31,7 +31,7 @@ gnulib_dir = $(srcdir)/.gnulib
 # List of additional files that we want to pick up in our POTFILES.in
 # This is all gnulib files, as well as generated files for RPC code.
 generated_files = \
-  $(srcdir)/daemon/*_dispatch_*.h \
+  $(srcdir)/daemon/*_dispatch.h \
   $(srcdir)/src/remote/*_client_bodies.h \
   $(srcdir)/src/remote/*_protocol.[ch] \
   $(srcdir)/gnulib/lib/*.[ch]
@@ -74,7 +74,7 @@ local-checks-to-skip =			\
   sc_useless_cpp_parens
 
 # Files that should never cause syntax check failures.
-VC_LIST_ALWAYS_EXCLUDE_REGEX = ^(HACKING|docs/news\.html\.in)$$
+VC_LIST_ALWAYS_EXCLUDE_REGEX = (^(HACKING|docs/news\.html\.in)|\.po)$$
 
 # Functions like free() that are no-ops on NULL arguments.
 useless_free_options =				\
@@ -125,6 +125,21 @@ useless_free_options =				\
   --name=virInterfaceProtocolDefFree		\
   --name=virJSONValueFree			\
   --name=virLastErrFreeData			\
+  --name=virNetMessageFree                      \
+  --name=virNetClientFree                       \
+  --name=virNetClientProgramFree                \
+  --name=virNetClientStreamFree                 \
+  --name=virNetServerFree                       \
+  --name=virNetServerClientFree                 \
+  --name=virNetServerMDNSFree                   \
+  --name=virNetServerMDNSEntryFree              \
+  --name=virNetServerMDNSGroupFree              \
+  --name=virNetServerProgramFree                \
+  --name=virNetServerServiceFree                \
+  --name=virNetSocketFree                       \
+  --name=virNetSASLContextFree                  \
+  --name=virNetSASLSessionFree                  \
+  --name=virNetTLSSessionFree                   \
   --name=virNWFilterDefFree			\
   --name=virNWFilterEntryFree			\
   --name=virNWFilterHashTableFree		\
@@ -263,7 +278,6 @@ sc_prohibit_close:
 	  $(_sc_search_regexp)
 
 # Prefer virCommand for all child processes.
-# XXX - eventually, we want to enhance this to also prohibit virExec.
 sc_prohibit_fork_wrappers:
 	@prohibit='= *\<(fork|popen|system) *\('			\
 	halt='use virCommand for child processes'			\
@@ -289,6 +303,12 @@ sc_prohibit_strncmp:
 sc_prohibit_asprintf:
 	@prohibit='\<v?a[s]printf\>'					\
 	halt='use virAsprintf, not as'printf				\
+	  $(_sc_search_regexp)
+
+# Prefer virSetUIDGID.
+sc_prohibit_setuid:
+	@prohibit='\<set(re)?[ug]id\> *\('				\
+	halt='use virSetUIDGID, not raw set*id'				\
 	  $(_sc_search_regexp)
 
 # Use snprintf rather than s'printf, even if buffer is provably large enough,
@@ -582,25 +602,30 @@ _autogen:
 	$(srcdir)/autogen.sh
 	./config.status
 
-# Exempt @...@ uses of these symbols.
-_makefile_at_at_check_exceptions = ' && !/(SCHEMA|SYSCONF)DIR/'
-
 # regenerate HACKING as part of the syntax-check
 syntax-check: $(top_srcdir)/HACKING
+
+# sc_po_check can fail if generated files are not built first
+sc_po_check: $(srcdir)/daemon/remote_dispatch.h \
+		$(srcdir)/src/remote/remote_client_bodies.h
+$(srcdir)/daemon/remote_dispatch.h:
+	$(MAKE) -C daemon remote_dispatch.h
+$(srcdir)/src/remote/remote_client_bodies.h:
+	$(MAKE) -C src remote/remote_client_bodies.h
 
 # List all syntax-check exemptions:
 exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.c$$
 
-_src1=libvirt|fdstream|qemu/qemu_monitor|util/(command|util)|xen/xend_internal
+_src1=libvirt|fdstream|qemu/qemu_monitor|util/(command|util)|xen/xend_internal|rpc/virnetsocket
 exclude_file_name_regexp--sc_avoid_write = \
   ^(src/($(_src1))|daemon/libvirtd|tools/console)\.c$$
 
 exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
-  ^daemon/remote_generator\.pl$$
+  ^src/rpc/gendispatch\.pl$$
 
-exclude_file_name_regexp--sc_po_check = ^(docs/|daemon/remote_generator\.pl$$)
+exclude_file_name_regexp--sc_po_check = ^(docs/|src/rpc/gendispatch\.pl$$)
 
 exclude_file_name_regexp--sc_prohibit_VIR_ERR_NO_MEMORY = \
   ^(include/libvirt/virterror\.h|daemon/dispatch\.c|src/util/virterror\.c)$$
@@ -611,19 +636,15 @@ exclude_file_name_regexp--sc_prohibit_always_true_header_tests = \
   (^docs|^python/(libvirt-override|typewrappers)\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_asprintf = \
-  ^(bootstrap.conf$$|po/|src/util/util\.c$$|examples/domain-events/events-c/event-test\.c$$)
-
-exclude_file_name_regexp--sc_prohibit_can_not = ^po/
+  ^(bootstrap.conf$$|src/util/util\.c$$|examples/domain-events/events-c/event-test\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|^docs/|(src/util/files\.c|src/libvirt\.c)$$)
 
-exclude_file_name_regexp--sc_prohibit_doubled_word = ^po/
-
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
   (^docs/api_extension/|^tests/qemuhelpdata/|\.(gif|ico|png)$$)
 
-_src2=src/(util/util|libvirt|lxc/lxc_controller)
+_src2=src/(util/command|libvirt|lxc/lxc_controller)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
   (^docs|^($(_src2)|tests/testutils|daemon/libvirtd)\.c$$)
 
@@ -632,12 +653,14 @@ exclude_file_name_regexp--sc_prohibit_gethostname = ^src/util/util\.c$$
 exclude_file_name_regexp--sc_prohibit_gettext_noop = ^docs/
 
 exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
-  ^daemon/remote_generator\.pl$$
+  ^src/rpc/gendispatch\.pl$$
 
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
   ^((po|docs|tests)/|tools/(virsh|console)\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_readlink = ^src/util/util\.c$$
+
+exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/util\.c$$
 
 exclude_file_name_regexp--sc_prohibit_sprintf = ^(docs/|HACKING$$)
 

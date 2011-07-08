@@ -3,20 +3,19 @@
 # No libraries with the exception of LIBXML should be listed
 # here. List them against the individual XXX_la_CFLAGS targets
 # that actually use them
-INCLUDES =							\
-		-I$(top_srcdir)/gnulib/lib			\
+INCLUDES =	-I$(top_srcdir)/gnulib/lib			\
 		-I../gnulib/lib					\
 		-I../include					\
 		-I@top_srcdir@/src/util				\
 		-I@top_srcdir@/include				\
-		$(DRIVER_MODULE_CFLAGS)				\
+		-DIN_LIBVIRT
+
+AM_CFLAGS =	$(DRIVER_MODULE_CFLAGS)				\
 		$(LIBXML_CFLAGS)				\
 		$(WARN_CFLAGS)					\
-		$(LOCK_CHECKING_CFLAGS)			\
-		-DIN_LIBVIRT				\
-		$(WIN32_EXTRA_CFLAGS)
-
-AM_CFLAGS = $(COVERAGE_CFLAGS)
+		$(LOCK_CHECKING_CFLAGS)				\
+		$(WIN32_EXTRA_CFLAGS)				\
+		$(COVERAGE_CFLAGS)
 AM_LDFLAGS = $(COVERAGE_LDFLAGS)
 
 EXTRA_DIST = $(conf_DATA)
@@ -63,6 +62,7 @@ UTIL_SOURCES =							\
 		util/logging.c util/logging.h			\
 		util/macvtap.c util/macvtap.h			\
 		util/memory.c util/memory.h			\
+		util/netlink.c util/netlink.h			\
 		util/pci.c util/pci.h				\
 		util/processinfo.c util/processinfo.h		\
 		util/hostusb.c util/hostusb.h			\
@@ -173,14 +173,14 @@ REMOTE_PROTOCOL = $(srcdir)/remote/remote_protocol.x
 QEMU_PROTOCOL = $(srcdir)/remote/qemu_protocol.x
 REMOTE_DRIVER_PROTOCOL = $(REMOTE_PROTOCOL) $(QEMU_PROTOCOL)
 
-$(srcdir)/remote/remote_client_bodies.h: $(REMOTE_PROTOCOL) \
-		$(top_srcdir)/daemon/remote_generator.pl
-	$(AM_V_GEN)perl -w $(top_srcdir)/daemon/remote_generator.pl \
+$(srcdir)/remote/remote_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
+		$(REMOTE_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/rpc/gendispatch.pl \
 	  -c -k remote $(REMOTE_PROTOCOL) > $@
 
-$(srcdir)/remote/qemu_client_bodies.h: $(QEMU_PROTOCOL) \
-		$(top_srcdir)/daemon/remote_generator.pl
-	$(AM_V_GEN)perl -w $(top_srcdir)/daemon/remote_generator.pl \
+$(srcdir)/remote/qemu_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
+		$(QEMU_PROTOCOL)
+	$(AM_V_GEN)perl -w $(srcdir)/rpc/gendispatch.pl \
 	  -k qemu $(QEMU_PROTOCOL) > $@
 
 REMOTE_DRIVER_SOURCES =						\
@@ -189,8 +189,7 @@ REMOTE_DRIVER_SOURCES =						\
 		$(REMOTE_DRIVER_GENERATED)
 
 EXTRA_DIST +=  $(REMOTE_DRIVER_PROTOCOL) \
-		$(REMOTE_DRIVER_GENERATED) \
-		remote/rpcgen_fix.pl
+		$(REMOTE_DRIVER_GENERATED)
 
 # Ensure that we don't change the struct or member names or member ordering
 # in remote_protocol.x  The embedded perl below needs a few comments, and
@@ -299,13 +298,13 @@ VMWARE_DRIVER_SOURCES =						\
 		vmware/vmware_conf.c vmware/vmware_conf.h
 
 VBOX_DRIVER_SOURCES =						\
-        vbox/vbox_glue.c vbox/vbox_glue.h			\
-        vbox/vbox_driver.c vbox/vbox_driver.h			\
-        vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h			\
-        vbox/vbox_V3_0.c vbox/vbox_CAPI_v3_0.h			\
-        vbox/vbox_V3_1.c vbox/vbox_CAPI_v3_1.h			\
-        vbox/vbox_V3_2.c vbox/vbox_CAPI_v3_2.h			\
-        vbox/vbox_V4_0.c vbox/vbox_CAPI_v4_0.h
+	vbox/vbox_glue.c vbox/vbox_glue.h			\
+	vbox/vbox_driver.c vbox/vbox_driver.h			\
+	vbox/vbox_V2_2.c vbox/vbox_CAPI_v2_2.h			\
+	vbox/vbox_V3_0.c vbox/vbox_CAPI_v3_0.h			\
+	vbox/vbox_V3_1.c vbox/vbox_CAPI_v3_1.h			\
+	vbox/vbox_V3_2.c vbox/vbox_CAPI_v3_2.h			\
+	vbox/vbox_V4_0.c vbox/vbox_CAPI_v4_0.h
 
 VBOX_DRIVER_EXTRA_DIST =					\
 		vbox/vbox_tmpl.c vbox/README			\
@@ -526,7 +525,7 @@ libvirt_driver_la_SOURCES = $(DRIVER_SOURCES)
 
 libvirt_driver_la_CFLAGS = $(NUMACTL_CFLAGS) $(GNUTLS_CFLAGS) \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
-libvirt_driver_la_LIBADD = $(NUMACTL_LIBS) $(GNUTLS_LIBS)
+libvirt_driver_la_LIBADD = $(NUMACTL_LIBS) $(GNUTLS_LIBS) $(DLOPEN_LIBS)
 
 USED_SYM_FILES = libvirt_private.syms
 
@@ -554,11 +553,11 @@ libvirt_la_BUILT_LIBADD += libvirt_driver_remote.la
 endif
 libvirt_driver_remote_la_CFLAGS =				\
 		$(GNUTLS_CFLAGS)				\
-		$(SASL_CFLAGS) $(XDR_CFLAGS)			\
 		-I@top_srcdir@/src/conf				\
+		-I@top_srcdir@/src/rpc				\
 		$(AM_CFLAGS)
 libvirt_driver_remote_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_remote_la_LIBADD = $(GNUTLS_LIBS) $(SASL_LIBS)
+libvirt_driver_remote_la_LIBADD = $(GNUTLS_LIBS) libvirt-net-rpc-client.la libvirt-net-rpc.la
 if WITH_DRIVER_MODULES
 libvirt_driver_remote_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_remote_la_LDFLAGS += -module -avoid-version
@@ -570,14 +569,12 @@ $(srcdir)/remote/remote_driver.c: $(REMOTE_DRIVER_GENERATED)
 
 endif WITH_REMOTE
 
-$(srcdir)/remote/%_protocol.c: $(srcdir)/remote/%_protocol.x \
-		$(srcdir)/remote/%_protocol.h $(srcdir)/remote/rpcgen_fix.pl
-	$(AM_V_GEN)perl -w $(srcdir)/remote/rpcgen_fix.pl $(RPCGEN) -c \
+%protocol.c: %protocol.x %protocol.h $(srcdir)/rpc/genprotocol.pl
+	$(AM_V_GEN)perl -w $(srcdir)/rpc/genprotocol.pl $(RPCGEN) -c \
 	       $< $@
 
-$(srcdir)/remote/%_protocol.h: $(srcdir)/remote/%_protocol.x \
-		$(srcdir)/remote/rpcgen_fix.pl
-	$(AM_V_GEN)perl -w $(srcdir)/remote/rpcgen_fix.pl $(RPCGEN) -h \
+%protocol.h: %protocol.x $(srcdir)/rpc/genprotocol.pl
+	$(AM_V_GEN)perl -w $(srcdir)/rpc/genprotocol.pl $(RPCGEN) -h \
 	       $< $@
 
 if WITH_XEN
@@ -642,7 +639,7 @@ noinst_LTLIBRARIES += libvirt_driver_vmware.la
 libvirt_la_BUILT_LIBADD += libvirt_driver_vmware.la
 endif
 libvirt_driver_vmware_la_CFLAGS = \
-		-I@top_srcdir@/src/conf -I@top_srcdir@/src/vmx
+		-I@top_srcdir@/src/conf -I@top_srcdir@/src/vmx $(AM_CFLAGS)
 if WITH_DRIVER_MODULES
 libvirt_driver_vmware_la_LIBADD = ../gnulib/lib/libgnu.la
 libvirt_driver_vmware_la_LDFLAGS = -module -avoid-version
@@ -1037,6 +1034,10 @@ if WITH_LXC
 	    $(srcdir)/lxc/test_libvirtd_lxc.aug; \
 	fi
 endif
+	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
+	    '$(AUGPARSE)' -I $(srcdir)/locking \
+	    $(srcdir)/locking/test_libvirt_sanlock.aug; \
+	fi
 
 #
 # Build our version script.  This is composed of three parts:
@@ -1089,6 +1090,10 @@ if WITH_XENXS
 USED_SYM_FILES += libvirt_xenxs.syms
 endif
 
+if WITH_NETWORK
+USED_SYM_FILES += libvirt_network.syms
+endif
+
 EXTRA_DIST += \
   libvirt_public.syms		\
   libvirt_private.syms		\
@@ -1099,9 +1104,12 @@ EXTRA_DIST += \
   libvirt_daemon.syms		\
   libvirt_nwfilter.syms	\
   libvirt_vmx.syms		\
-  libvirt_xenxs.syms
+  libvirt_xenxs.syms		\
+  libvirt_network.syms
 
-BUILT_SOURCES += libvirt.syms libvirt.def libvirt_qemu.def
+GENERATED_SYM_FILES = libvirt.syms libvirt.def libvirt_qemu.def
+
+BUILT_SOURCES += $(GENERATED_SYM_FILES)
 
 libvirt.syms: libvirt_public.syms $(USED_SYM_FILES) \
 		$(top_builddir)/config.status
@@ -1135,8 +1143,8 @@ libvirt_qemu.def: $(srcdir)/libvirt_qemu.syms
 # Empty source list - it merely links a bunch of convenience libs together
 libvirt_la_SOURCES =
 libvirt_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)$(LIBVIRT_SYMBOL_FILE) \
-                     -version-info $(LIBVIRT_VERSION_INFO) \
-                    $(AM_LDFLAGS) \
+		     -version-info $(LIBVIRT_VERSION_INFO) \
+		    $(AM_LDFLAGS) \
 		    $(CYGWIN_EXTRA_LDFLAGS) $(MINGW_EXTRA_LDFLAGS)
 libvirt_la_BUILT_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_la_LIBADD += $(LIBXML_LIBS) \
@@ -1169,13 +1177,12 @@ libvirt_test_la_CFLAGS = $(AM_CFLAGS)
 
 libvirt_qemu_la_SOURCES = libvirt-qemu.c
 libvirt_qemu_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)$(LIBVIRT_QEMU_SYMBOL_FILE) \
-                          -version-info $(LIBVIRT_VERSION_INFO) \
-                          $(CYGWIN_EXTRA_LDFLAGS) $(MINGW_EXTRA_LDFLAGS) \
+			  -version-info $(LIBVIRT_VERSION_INFO) \
+			  $(CYGWIN_EXTRA_LDFLAGS) $(MINGW_EXTRA_LDFLAGS) \
 			  $(AM_LDFLAGS)
 libvirt_qemu_la_CFLAGS = $(AM_CFLAGS)
 libvirt_qemu_la_LIBADD = libvirt.la $(CYGWIN_EXTRA_LIBADD)
 EXTRA_DIST += $(LIBVIRT_QEMU_SYMBOL_FILE)
-
 
 if HAVE_SANLOCK
 lockdriverdir = $(libdir)/libvirt/lock-driver
@@ -1184,10 +1191,104 @@ lockdriver_LTLIBRARIES = sanlock.la
 sanlock_la_SOURCES = $(LOCK_DRIVER_SANLOCK_SOURCES)
 sanlock_la_CFLAGS = $(AM_CLFAGS)
 sanlock_la_LDFLAGS = -module -avoid-version
-sanlock_la_LIBADD = -lsanlock
+sanlock_la_LIBADD = -lsanlock \
+		../gnulib/lib/libgnu.la
+
+augeas_DATA += locking/libvirt_sanlock.aug
+augeastest_DATA += locking/test_libvirt_sanlock.aug
+
+$(builddir)/locking/%-sanlock.conf: $(srcdir)/locking/sanlock.conf
+	$(AM_V_GEN)$(MKDIR_P) locking ; \
+	cp $< $@
+
+if WITH_QEMU
+conf_DATA += locking/qemu-sanlock.conf
+BUILT_SOURCES += locking/qemu-sanlock.conf
+endif
 else
 EXTRA_DIST += $(LOCK_DRIVER_SANLOCK_SOURCES)
 endif
+EXTRA_DIST += locking/sanlock.conf \
+	locking/libvirt_sanlock.aug \
+	locking/test_libvirt_sanlock.aug
+
+noinst_LTLIBRARIES += \
+	libvirt-net-rpc.la \
+	libvirt-net-rpc-server.la \
+	libvirt-net-rpc-client.la
+
+EXTRA_DIST += \
+       rpc/virnetprotocol.x \
+       rpc/gendispatch.pl \
+       rpc/genprotocol.pl
+
+VIR_NET_RPC_GENERATED = \
+	$(srcdir)/rpc/virnetprotocol.h \
+	$(srcdir)/rpc/virnetprotocol.c
+
+BUILT_SOURCES += $(VIR_NET_RPC_GENERATED)
+
+libvirt_net_rpc_la_SOURCES = \
+	rpc/virnetmessage.h rpc/virnetmessage.c \
+	rpc/virnetprotocol.h rpc/virnetprotocol.c \
+	rpc/virnetsocket.h rpc/virnetsocket.c \
+	rpc/virnettlscontext.h rpc/virnettlscontext.c
+if HAVE_SASL
+libvirt_net_rpc_la_SOURCES += \
+	rpc/virnetsaslcontext.h rpc/virnetsaslcontext.c
+else
+EXTRA_DIST += \
+	rpc/virnetsaslcontext.h rpc/virnetsaslcontext.c
+endif
+libvirt_net_rpc_la_CFLAGS = \
+			$(GNUTLS_CFLAGS) \
+			$(SASL_CFLAGS) \
+			$(XDR_CFLAGS) \
+			$(AM_CFLAGS)
+libvirt_net_rpc_la_LDFLAGS = \
+			$(GNUTLS_LIBS) \
+			$(SASL_LIBS) \
+			$(AM_LDFLAGS) \
+			$(CYGWIN_EXTRA_LDFLAGS) \
+			$(MINGW_EXTRA_LDFLAGS)
+libvirt_net_rpc_la_LIBADD = \
+			$(CYGWIN_EXTRA_LIBADD)
+
+libvirt_net_rpc_server_la_SOURCES = \
+	rpc/virnetserverprogram.h rpc/virnetserverprogram.c \
+	rpc/virnetserverservice.h rpc/virnetserverservice.c \
+	rpc/virnetserverclient.h rpc/virnetserverclient.c \
+	rpc/virnetserver.h rpc/virnetserver.c
+if HAVE_AVAHI
+libvirt_net_rpc_server_la_SOURCES += \
+	rpc/virnetservermdns.h rpc/virnetservermdns.c
+else
+EXTRA_DIST += \
+	rpc/virnetservermdns.h rpc/virnetservermdns.c
+endif
+libvirt_net_rpc_server_la_CFLAGS = \
+			$(AVAHI_CFLAGS) \
+			$(AM_CFLAGS)
+libvirt_net_rpc_server_la_LDFLAGS = \
+			$(AM_LDFLAGS) \
+			$(AVAHI_LIBS) \
+			$(CYGWIN_EXTRA_LDFLAGS) \
+			$(MINGW_EXTRA_LDFLAGS)
+libvirt_net_rpc_server_la_LIBADD = \
+			$(CYGWIN_EXTRA_LIBADD)
+
+libvirt_net_rpc_client_la_SOURCES = \
+	rpc/virnetclientprogram.h rpc/virnetclientprogram.c \
+	rpc/virnetclientstream.h rpc/virnetclientstream.c \
+	rpc/virnetclient.h rpc/virnetclient.c
+libvirt_net_rpc_client_la_CFLAGS = \
+			$(AM_CFLAGS)
+libvirt_net_rpc_client_la_LDFLAGS = \
+			$(AM_LDFLAGS) \
+			$(CYGWIN_EXTRA_LDFLAGS) \
+			$(MINGW_EXTRA_LDFLAGS)
+libvirt_net_rpc_client_la_LIBADD = \
+			$(CYGWIN_EXTRA_LIBADD)
 
 libexec_PROGRAMS =
 
@@ -1306,7 +1407,7 @@ if WITH_NETWORK
 	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
 	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }
 	test -e $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml || \
-           ln -s ../default.xml \
+	   ln -s ../default.xml \
 	    $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/autostart/default.xml
 endif
 
@@ -1344,5 +1445,5 @@ endif
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt" ||:
 
 CLEANFILES = *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.i *.s
-DISTCLEANFILES = $(BUILT_SOURCES)
-MAINTAINERCLEANFILES = $(REMOTE_DRIVER_GENERATED)
+DISTCLEANFILES = $(GENERATED_SYM_FILES)
+MAINTAINERCLEANFILES = $(REMOTE_DRIVER_GENERATED) $(VIR_NET_RPC_GENERATED) $(ESX_DRIVER_GENERATED)

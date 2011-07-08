@@ -57,6 +57,30 @@ struct _virNetworkDHCPHostDef {
     virSocketAddr ip;
 };
 
+typedef struct _virNetworkDNSTxtRecordsDef virNetworkDNSTxtRecordsDef;
+typedef virNetworkDNSTxtRecordsDef *virNetworkDNSTxtRecordsDefPtr;
+struct _virNetworkDNSTxtRecordsDef {
+    char *name;
+    char *value;
+};
+
+struct virNetworkDNSHostsDef {
+    virSocketAddr ip;
+    int nnames;
+    char **names;
+} virNetworkDNSHostsDef;
+
+typedef struct virNetworkDNSHostsDef *virNetworkDNSHostsDefPtr;
+
+struct virNetworkDNSDef {
+    unsigned int ntxtrecords;
+    virNetworkDNSTxtRecordsDefPtr txtrecords;
+    unsigned int nhosts;
+    virNetworkDNSHostsDefPtr hosts;
+} virNetworkDNSDef;
+
+typedef struct virNetworkDNSDef *virNetworkDNSDefPtr;
+
 typedef struct _virNetworkIpDef virNetworkIpDef;
 typedef virNetworkIpDef *virNetworkIpDefPtr;
 struct _virNetworkIpDef {
@@ -101,6 +125,8 @@ struct _virNetworkDef {
 
     size_t nips;
     virNetworkIpDefPtr ips; /* ptr to array of IP addresses on this network */
+
+    virNetworkDNSDefPtr dns; /* ptr to dns related configuration */
 };
 
 typedef struct _virNetworkObj virNetworkObj;

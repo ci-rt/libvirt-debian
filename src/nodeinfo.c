@@ -57,11 +57,27 @@
 #ifdef __linux__
 # define CPUINFO_PATH "/proc/cpuinfo"
 # define CPU_SYS_PATH "/sys/devices/system/cpu"
+# define PROCSTAT_PATH "/proc/stat"
+# define MEMINFO_PATH "/proc/meminfo"
+# define NODE_SYS_PATH "/sys/devices/system/node"
+
+# define LINUX_NB_CPU_STATS 4
+# define LINUX_NB_MEMORY_STATS_ALL 4
+# define LINUX_NB_MEMORY_STATS_CELL 2
 
 /* NB, this is not static as we need to call it from the testsuite */
 int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
                              virNodeInfoPtr nodeinfo,
                              bool need_hyperthreads);
+
+static int linuxNodeGetCPUStats(FILE *procstat,
+                                int cpuNum,
+                                virNodeCPUStatsPtr params,
+                                int *nparams);
+static int linuxNodeGetMemoryStats(FILE *meminfo,
+                                   int cellNum,
+                                   virNodeMemoryStatsPtr params,
+                                   int *nparams);
 
 /* Return the positive decimal contents of the given
  * CPU_SYS_PATH/cpu%u/FILE, or -1 on error.  If MISSING_OK and the
@@ -248,7 +264,6 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
                 && (*p == '\0' || c_isspace(*p))
                 && id > nodeinfo->cores)
                 nodeinfo->cores = id;
-        }
 # elif defined(__powerpc__) || \
       defined(__powerpc64__)
         } else if (STRPREFIX(buf, "clock")) {
@@ -266,7 +281,6 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
                 /* Accept trailing fractional part.  */
                 && (*p == '\0' || *p == '.' || c_isspace(*p)))
                 nodeinfo->mhz = ui;
-        }
 # elif defined(__s390__) || \
         defined(__s390x__)
         } else if (STRPREFIX(buf, "# processors")) {
@@ -289,10 +303,10 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
              * and parsed in next iteration, because it is not in expected
              * format and thus lead to error. */
             break;
-        }
 # else
 #  warning Parser for /proc/cpuinfo needs to be adapted for your architecture
 # endif
+        }
     }
 
     if (!nodeinfo->cpus) {
@@ -378,6 +392,211 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
     return 0;
 }
 
+# define TICK_TO_NSEC (1000ull * 1000ull * 1000ull / sysconf(_SC_CLK_TCK))
+
+int linuxNodeGetCPUStats(FILE *procstat,
+                         int cpuNum,
+                         virNodeCPUStatsPtr params,
+                         int *nparams)
+{
+    int ret = -1;
+    char line[1024];
+    unsigned long long usr, ni, sys, idle, iowait;
+    unsigned long long irq, softirq, steal, guest, guest_nice;
+    char cpu_header[3 + INT_BUFSIZE_BOUND(cpuNum)];
+
+    if ((*nparams) == 0) {
+        /* Current number of cpu stats supported by linux */
+        *nparams = LINUX_NB_CPU_STATS;
+        ret = 0;
+        goto cleanup;
+    }
+
+    if ((*nparams) != LINUX_NB_CPU_STATS) {
+        nodeReportError(VIR_ERR_INVALID_ARG,
+                        "%s", _("Invalid parameter count"));
+        goto cleanup;
+    }
+
+    if (cpuNum == VIR_NODE_CPU_STATS_ALL_CPUS) {
+        strcpy(cpu_header, "cpu");
+    } else {
+        snprintf(cpu_header, sizeof(cpu_header), "cpu%d", cpuNum);
+    }
+
+    while (fgets(line, sizeof(line), procstat) != NULL) {
+        char *buf = line;
+
+        if (STRPREFIX(buf, cpu_header)) { /* aka logical CPU time */
+            int i;
+
+            if (sscanf(buf,
+                       "%*s %llu %llu %llu %llu %llu" // user ~ iowait
+                       "%llu %llu %llu %llu %llu",    // irq  ~ guest_nice
+                       &usr, &ni, &sys, &idle, &iowait,
+                       &irq, &softirq, &steal, &guest, &guest_nice) < 4) {
+                continue;
+            }
+
+            for (i = 0; i < *nparams; i++) {
+                virNodeCPUStatsPtr param = &params[i];
+
+                switch (i) {
+                case 0: /* fill kernel cpu time here */
+                    if (virStrcpyStatic(param->field, VIR_NODE_CPU_STATS_KERNEL) == NULL) {
+                        nodeReportError(VIR_ERR_INTERNAL_ERROR,
+                                        "%s", _("Field kernel cpu time too long for destination"));
+                        goto cleanup;
+                    }
+                    param->value = (sys + irq + softirq) * TICK_TO_NSEC;
+                    break;
+
+                case 1: /* fill user cpu time here */
+                    if (virStrcpyStatic(param->field, VIR_NODE_CPU_STATS_USER) == NULL) {
+                        nodeReportError(VIR_ERR_INTERNAL_ERROR,
+                                        "%s", _("Field kernel cpu time too long for destination"));
+                        goto cleanup;
+                    }
+                    param->value = (usr + ni) * TICK_TO_NSEC;
+                    break;
+
+                case 2: /* fill idle cpu time here */
+                    if (virStrcpyStatic(param->field, VIR_NODE_CPU_STATS_IDLE) == NULL) {
+                        nodeReportError(VIR_ERR_INTERNAL_ERROR,
+                                        "%s", _("Field kernel cpu time too long for destination"));
+                        goto cleanup;
+                    }
+                    param->value = idle * TICK_TO_NSEC;
+                    break;
+
+                case 3: /* fill iowait cpu time here */
+                    if (virStrcpyStatic(param->field, VIR_NODE_CPU_STATS_IOWAIT) == NULL) {
+                        nodeReportError(VIR_ERR_INTERNAL_ERROR,
+                                        "%s", _("Field kernel cpu time too long for destination"));
+                        goto cleanup;
+                    }
+                    param->value = iowait * TICK_TO_NSEC;
+                    break;
+
+                default:
+                    break;
+                    /* should not hit here */
+                }
+            }
+            ret = 0;
+            goto cleanup;
+        }
+    }
+
+    nodeReportError(VIR_ERR_INVALID_ARG, "%s", _("Invalid cpu number"));
+
+cleanup:
+    return ret;
+}
+
+int linuxNodeGetMemoryStats(FILE *meminfo,
+                            int cellNum,
+                            virNodeMemoryStatsPtr params,
+                            int *nparams)
+{
+    int ret = -1;
+    int i = 0, j = 0, k = 0;
+    int found = 0;
+    int nr_param;
+    char line[1024];
+    char meminfo_hdr[VIR_NODE_MEMORY_STATS_FIELD_LENGTH];
+    unsigned long val;
+    struct field_conv {
+        const char *meminfo_hdr;  // meminfo header
+        const char *field;        // MemoryStats field name
+    } field_conv[] = {
+        {"MemTotal:", VIR_NODE_MEMORY_STATS_TOTAL},
+        {"MemFree:",  VIR_NODE_MEMORY_STATS_FREE},
+        {"Buffers:",  VIR_NODE_MEMORY_STATS_BUFFERS},
+        {"Cached:",   VIR_NODE_MEMORY_STATS_CACHED},
+        {NULL,        NULL}
+    };
+
+    if (cellNum == VIR_NODE_MEMORY_STATS_ALL_CELLS) {
+        nr_param = LINUX_NB_MEMORY_STATS_ALL;
+    } else {
+        nr_param = LINUX_NB_MEMORY_STATS_CELL;
+    }
+
+    if ((*nparams) == 0) {
+        /* Current number of memory stats supported by linux */
+        *nparams = nr_param;
+        ret = 0;
+        goto cleanup;
+    }
+
+    if ((*nparams) != nr_param) {
+        nodeReportError(VIR_ERR_INVALID_ARG,
+                        "%s", _("Invalid stats count"));
+        goto cleanup;
+    }
+
+    while (fgets(line, sizeof(line), meminfo) != NULL) {
+        char *buf = line;
+
+        if (STRPREFIX(buf, "Node ")) {
+            /*
+             * /sys/devices/system/node/nodeX/meminfo format is below.
+             * So, skip prefix "Node XX ".
+             *
+             * Node 0 MemTotal:        8386980 kB
+             * Node 0 MemFree:         5300920 kB
+             *         :
+             */
+            char *p;
+
+            p = buf;
+            for (i = 0; i < 2; i++) {
+                p = strchr(p, ' ');
+                if (p == NULL) {
+                    nodeReportError(VIR_ERR_INTERNAL_ERROR,
+                                    "%s", _("no prefix found"));
+                    goto cleanup;
+                }
+                p++;
+            }
+            buf = p;
+        }
+
+        if (sscanf(buf, "%s %lu kB", meminfo_hdr, &val) < 2)
+            continue;
+
+        for (j = 0; field_conv[j].meminfo_hdr != NULL; j++) {
+            struct field_conv *convp = &field_conv[j];
+
+            if (STREQ(meminfo_hdr, convp->meminfo_hdr)) {
+                virNodeMemoryStatsPtr param = &params[k++];
+
+                if (virStrcpyStatic(param->field, convp->field) == NULL) {
+                    nodeReportError(VIR_ERR_INTERNAL_ERROR,
+                                    "%s", _("Field kernel memory too long for destination"));
+                    goto cleanup;
+                }
+                param->value = val;
+                found++;
+                break;
+            }
+        }
+        if (found >= nr_param)
+            break;
+    }
+
+    if (found == 0) {
+        nodeReportError(VIR_ERR_INTERNAL_ERROR,
+                        "%s", _("no available memory line found"));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    return ret;
+}
 #endif
 
 int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo) {
@@ -412,6 +631,101 @@ int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo) {
     /* XXX Solaris will need an impl later if they port QEMU driver */
     nodeReportError(VIR_ERR_NO_SUPPORT, "%s",
                     _("node info not implemented on this platform"));
+    return -1;
+#endif
+}
+
+int nodeGetCPUStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+                    int cpuNum ATTRIBUTE_UNUSED,
+                    virNodeCPUStatsPtr params ATTRIBUTE_UNUSED,
+                    int *nparams ATTRIBUTE_UNUSED,
+                    unsigned int flags)
+{
+    virCheckFlags(0, -1);
+
+#ifdef __linux__
+    {
+        int ret;
+        FILE *procstat = fopen(PROCSTAT_PATH, "r");
+        if (!procstat) {
+            virReportSystemError(errno,
+                                 _("cannot open %s"), PROCSTAT_PATH);
+            return -1;
+        }
+        ret = linuxNodeGetCPUStats(procstat, cpuNum, params, nparams);
+        VIR_FORCE_FCLOSE(procstat);
+
+        return ret;
+    }
+#else
+    nodeReportError(VIR_ERR_NO_SUPPORT, "%s",
+                    _("node CPU stats not implemented on this platform"));
+    return -1;
+#endif
+}
+
+int nodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+                       int cellNum ATTRIBUTE_UNUSED,
+                       virNodeMemoryStatsPtr params ATTRIBUTE_UNUSED,
+                       int *nparams ATTRIBUTE_UNUSED,
+                       unsigned int flags)
+{
+    virCheckFlags(0, -1);
+
+#ifdef __linux__
+    {
+        int ret;
+        char *meminfo_path = NULL;
+        FILE *meminfo;
+
+        if (cellNum == VIR_NODE_MEMORY_STATS_ALL_CELLS) {
+            meminfo_path = strdup(MEMINFO_PATH);
+            if (!meminfo_path) {
+                virReportOOMError();
+                return -1;
+            }
+        } else {
+# if HAVE_NUMACTL
+            if (numa_available() < 0) {
+# endif
+                nodeReportError(VIR_ERR_NO_SUPPORT,
+                                "%s", _("NUMA not supported on this host"));
+                return -1;
+# if HAVE_NUMACTL
+            }
+# endif
+
+# if HAVE_NUMACTL
+            if (cellNum > numa_max_node()) {
+                nodeReportError(VIR_ERR_INVALID_ARG, "%s",
+                                _("Invalid cell number"));
+                return -1;
+            }
+# endif
+
+            if (virAsprintf(&meminfo_path, "%s/node%d/meminfo",
+                            NODE_SYS_PATH, cellNum) < 0) {
+                virReportOOMError();
+                return -1;
+            }
+        }
+        meminfo = fopen(meminfo_path, "r");
+
+        if (!meminfo) {
+            virReportSystemError(errno,
+                                 _("cannot open %s"), meminfo_path);
+            VIR_FREE(meminfo_path);
+            return -1;
+        }
+        ret = linuxNodeGetMemoryStats(meminfo, cellNum, params, nparams);
+        VIR_FORCE_FCLOSE(meminfo);
+        VIR_FREE(meminfo_path);
+
+        return ret;
+    }
+#else
+    nodeReportError(VIR_ERR_NO_SUPPORT, "%s",
+                    _("node memory stats not implemented on this platform"));
     return -1;
 #endif
 }

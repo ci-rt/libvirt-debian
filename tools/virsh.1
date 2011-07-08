@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2011-06-06" "libvirt-0.9.1" "Virtualization Support"
+.TH VIRSH 1 "2011-06-25" "libvirt-0.9.2" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -343,6 +343,16 @@ Returns basic information about the node, like number and type of \s-1CPU\s0,
 and size of the physical memory. The output corresponds to virNodeInfo
 structure. Specifically, the \*(L"\s-1CPU\s0 socket(s)\*(R" field means number of \s-1CPU\s0
 sockets per \s-1NUMA\s0 cell.
+.IP "\fBnodecpustats\fR optional \fIcpu\fR \fI\-\-percent\fR" 4
+.IX Item "nodecpustats optional cpu --percent"
+Returns cpu stats of the node.
+If \fIcpu\fR is specified, this will prints specified cpu statistics only.
+If \fI\-\-percent\fR is specified, this will prints percentage of each kind of cpu
+statistics during 1 second.
+.IP "\fBnodememstats\fR optional \fIcell\fR" 4
+.IX Item "nodememstats optional cell"
+Returns memory stats of the node.
+If \fIcell\fR is specified, this will prints specified cell statistics only.
 .IP "\fBcapabilities\fR" 4
 .IX Item "capabilities"
 Print an \s-1XML\s0 document describing the capabilities of the hypervisor
@@ -451,13 +461,16 @@ Connect the virtual serial console for the guest. The optional
 \&\fIdevname\fR parameter refers to the device alias of an alternate
 console, serial or parallel device configured for the guest.
 If omitted, the primary console will be opened.
-.IP "\fBcreate\fR \fI\s-1FILE\s0\fR optional \fI\-\-console\fR \fI\-\-paused\fR" 4
-.IX Item "create FILE optional --console --paused"
+.IP "\fBcreate\fR \fI\s-1FILE\s0\fR optional \fI\-\-console\fR \fI\-\-paused\fR \fI\-\-autodestroy\fR" 4
+.IX Item "create FILE optional --console --paused --autodestroy"
 Create a domain from an \s-1XML\s0 <file>. An easy way to create the \s-1XML\s0
 <file> is to use the \fBdumpxml\fR command to obtain the definition of a
 pre-existing guest.  The domain will be paused if the \fI\-\-paused\fR option
 is used and supported by the driver; otherwise it will be running.
 If \fI\-\-console\fR is requested, attach to the console after creation.
+If \fI\-\-autodestroy\fR is requested, then the guest will be automatically
+destroyed when virsh closes its connection to libvirt, or otherwise
+exits.
 .Sp
 \&\fBExample\fR
 .Sp
@@ -510,6 +523,11 @@ Convert a domain Id (or \s-1UUID\s0) to domain name
 .IX Item "domstate domain-id optional --reason"
 Returns state about a domain.  \fI\-\-reason\fR tells virsh to also print
 reason for the state.
+.IP "\fBdomcontrol\fR \fIdomain-id\fR" 4
+.IX Item "domcontrol domain-id"
+Returns state of an interface to \s-1VMM\s0 used to control a domain.  For
+states other than \*(L"ok\*(R" or \*(L"error\*(R" the command also prints number of
+seconds elapsed since the control interface entered its current state.
 .IP "\fBdomxml-from-native\fR \fIformat\fR \fIconfig\fR" 4
 .IX Item "domxml-from-native format config"
 Convert the file \fIconfig\fR in the native guest configuration format
@@ -603,6 +621,10 @@ seen from the source machine.
 Set maximum tolerable downtime for a domain which is being live-migrated to
 another host.  The \fIdowntime\fR is a number of milliseconds the guest is allowed
 to be down at the end of live migration.
+.IP "\fBmigrate-setspeed\fR \fIdomain-id\fR \fIbandwidth\fR" 4
+.IX Item "migrate-setspeed domain-id bandwidth"
+Set the maximum migration bandwidth (in Mbps) for a domain which is being
+migrated to another host.
 .IP "\fBreboot\fR \fIdomain-id\fR" 4
 .IX Item "reboot domain-id"
 Reboot a domain.  This acts just as if the domain had the \fBreboot\fR
@@ -622,7 +644,8 @@ have also reverted all storage volumes back to the same contents as when
 the state file was created.
 .IP "\fBsave\fR \fIdomain-id\fR \fIstate-file\fR" 4
 .IX Item "save domain-id state-file"
-Saves a running domain to a state file so that it can be restored
+Saves a running domain (\s-1RAM\s0, but not disk state) to a state file so that
+it can be restored
 later.  Once saved, the domain will no longer be running on the
 system, thus the memory allocated for the domain will be free for
 other domains to use.  \fBvirsh restore\fR restores from this state file.
@@ -630,6 +653,11 @@ other domains to use.  \fBvirsh restore\fR restores from this state file.
 This is roughly equivalent to doing a hibernate on a running computer,
 with all the same limitations.  Open network connections may be
 severed upon restore, as \s-1TCP\s0 timeouts may have expired.
+.Sp
+Domain saved state files assume that disk images will be unchanged
+between the creation and restore point.  For a more complete system
+restore point, where the disk state is saved alongside the memory
+state, see the \fBsnapshot\fR family of commands.
 .IP "\fBschedinfo\fR optional \fI\-\-set\fR \fBparameter=value\fR \fIdomain-id\fR \fI\-\-config\fR \fI\-\-live\fR \fI\-\-current\fR" 4
 .IX Item "schedinfo optional --set parameter=value domain-id --config --live --current"
 .PD 0
@@ -740,6 +768,13 @@ value are kilobytes (i.e. blocks of 1024 bytes).
 .IX Item "blkiotune domain-id optional --weight weight"
 Display or set the blkio parameters. \s-1QEMU/KVM\s0 supports \fI\-\-weight\fR.
 \&\fI\-\-weight\fR is in range [100, 1000].
+.Sp
+If \fI\-\-live\fR is specified, affect a running guest.
+If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
+If \fI\-\-current\fR is specified, affect the current guest state.
+Both \fI\-\-live\fR and \fI\-\-current\fR flags may be given, but \fI\-\-current\fR is
+exclusive. If no flag is specified, behavior is different depending
+on hypervisor.
 .IP "\fBsetvcpus\fR \fIdomain-id\fR \fIcount\fR optional \fI\-\-maximum\fR \fI\-\-config\fR \fI\-\-live\fR" 4
 .IX Item "setvcpus domain-id count optional --maximum --config --live"
 Change the number of virtual CPUs active in a guest domain.  By default,
@@ -776,13 +811,16 @@ services must be shutdown in the domain.
 .Sp
 The exact behavior of a domain when it shuts down is set by the
 \&\fIon_shutdown\fR parameter in the domain's \s-1XML\s0 definition.
-.IP "\fBstart\fR \fIdomain-name\fR optional \fI\-\-console\fR \fI\-\-paused\fR" 4
-.IX Item "start domain-name optional --console --paused"
+.IP "\fBstart\fR \fIdomain-name\fR optional \fI\-\-console\fR \fI\-\-paused\fR \fI\-\-autodestroy\fR" 4
+.IX Item "start domain-name optional --console --paused --autodestroy"
 Start a (previously defined) inactive domain, either from the last
 \&\fBmanagedsave\fR state, or via a fresh boot if no managedsave state is
 present.  The domain will be paused if the \fI\-\-paused\fR option is
 used and supported by the driver; otherwise it will be running.
 If \fI\-\-console\fR is requested, attach to the console after creation.
+If \fI\-\-autodestroy\fR is requested, then the guest will be automatically
+destroyed when virsh closes its connection to libvirt, or otherwise
+exits.
 .IP "\fBsuspend\fR \fIdomain-id\fR" 4
 .IX Item "suspend domain-id"
 Suspend a running domain. It is kept in memory but won't be scheduled
@@ -817,10 +855,26 @@ values; these two flags cannot both be specified.
 .IX Item "vcpuinfo domain-id"
 Returns basic information about the domain virtual CPUs, like the number of
 vCPUs, the running time, the affinity to physical processors.
-.IP "\fBvcpupin\fR \fIdomain-id\fR \fIvcpu\fR \fIcpulist\fR" 4
-.IX Item "vcpupin domain-id vcpu cpulist"
-Pin domain VCPUs to host physical CPUs. The \fIvcpu\fR number must be provided
-and \fIcpulist\fR is a comma separated list of physical \s-1CPU\s0 numbers.
+.IP "\fBvcpupin\fR \fIdomain-id\fR optional \fIvcpu\fR \fIcpulist\fR \fI\-\-live\fR \fI\-\-config\fR \fI\-\-current\fR" 4
+.IX Item "vcpupin domain-id optional vcpu cpulist --live --config --current"
+Query or change the pinning of domain VCPUs to host physical CPUs.  To
+pin a single \fIvcpu\fR, specify \fIcpulist\fR; otherwise, you can query one
+\&\fIvcpu\fR or omit \fIvcpu\fR to list all at once.
+.Sp
+\&\fIcpulist\fR is a list of physical \s-1CPU\s0 numbers. Its syntax is a comma
+separated list and a special markup using '\-' and '^' (ex. '0\-4', '0\-3,^2') can
+also be allowed. The '\-' denotes the range and the '^' denotes exclusive.
+If you want to reset vcpupin setting, that is, to pin vcpu all physical cpus,
+simply specify 'r' as a cpulist.
+If \fI\-\-live\fR is specified, affect a running guest.
+If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
+If \fI\-\-current\fR is specified, affect the current guest state.
+Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given if \fIcpulist\fR is present,
+but \fI\-\-current\fR is exclusive.
+If no flag is specified, behavior is different depending on hypervisor.
+.Sp
+\&\fBNote\fR: The expression is sequentially evaluated, so \*(L"0\-15,^8\*(R" is
+identical to \*(L"9\-14,0\-7,15\*(R" but not identical to \*(L"^8,0\-15\*(R".
 .IP "\fBvncdisplay\fR \fIdomain-id\fR" 4
 .IX Item "vncdisplay domain-id"
 Output the \s-1IP\s0 address and port number for the \s-1VNC\s0 display. If the information
@@ -1275,13 +1329,19 @@ image to saving a domain's state before a potentially destructive operation.
 Snapshots are identified with a unique name.  See
 <http://libvirt.org/formatsnapshot.html> for documentation of the \s-1XML\s0 format
 used to represent properties of snapshots.
-.IP "\fBsnapshot-create\fR \fIdomain\fR \fIxmlfile\fR" 4
-.IX Item "snapshot-create domain xmlfile"
+.IP "\fBsnapshot-create\fR \fIdomain\fR optional \fIxmlfile\fR" 4
+.IX Item "snapshot-create domain optional xmlfile"
 Create a snapshot for domain \fIdomain\fR with the properties specified in
 \&\fIxmlfile\fR.  The only properties settable for a domain snapshot are the
 <name> and <description>; the rest of the fields are ignored, and
 automatically filled in by libvirt.  If \fIxmlfile\fR is completely omitted,
 then libvirt will choose a value for all fields.
+.IP "\fBsnapshot-create-as\fR \fIdomain\fR optional \fI\-\-print\-xml\fR \fIname\fR \fIdescription\fR" 4
+.IX Item "snapshot-create-as domain optional --print-xml name description"
+Create a snapshot for domain \fIdomain\fR with the given <name> and
+<description>; if either value is omitted, libvirt will choose a
+value.  If \fI\-\-print\-xml\fR is specified, then \s-1XML\s0 appropriate for
+\&\fIsnapshot-create\fR is output, rather than actually creating a snapshot.
 .IP "\fBsnapshot-current\fR \fIdomain\fR" 4
 .IX Item "snapshot-current domain"
 Output the snapshot \s-1XML\s0 for the domain's current snapshot (if any).

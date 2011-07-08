@@ -612,10 +612,12 @@ lxcControllerRun(virDomainDefPtr def,
                  char **veths,
                  int monitor,
                  int client,
-                 int appPty)
+                 int appPty,
+                 int handshakefd)
 {
     int rc = -1;
     int control[2] = { -1, -1};
+    int containerhandshake[2] = { -1, -1 };
     int containerPty = -1;
     char *containerPtyPath = NULL;
     pid_t container = -1;
@@ -626,6 +628,12 @@ lxcControllerRun(virDomainDefPtr def,
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, control) < 0) {
         virReportSystemError(errno, "%s",
                              _("sockpair failed"));
+        goto cleanup;
+    }
+
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, containerhandshake) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("socketpair failed"));
         goto cleanup;
     }
 
@@ -656,6 +664,14 @@ lxcControllerRun(virDomainDefPtr def,
      */
     if (root) {
         VIR_DEBUG("Setting up private /dev/pts");
+
+        if (!virFileExists(root->src)) {
+            virReportSystemError(errno,
+                                 _("root source %s does not exist"),
+                                 root->src);
+            goto cleanup;
+        }
+
         if (unshare(CLONE_NEWNS) < 0) {
             virReportSystemError(errno, "%s",
                                  _("Cannot unshare mount namespace"));
@@ -724,20 +740,38 @@ lxcControllerRun(virDomainDefPtr def,
                                        nveths,
                                        veths,
                                        control[1],
+                                       containerhandshake[1],
                                        containerPtyPath)) < 0)
         goto cleanup;
     VIR_FORCE_CLOSE(control[1]);
+    VIR_FORCE_CLOSE(containerhandshake[1]);
 
     if (lxcControllerMoveInterfaces(nveths, veths, container) < 0)
         goto cleanup;
 
-    if (lxcContainerSendContinue(control[0]) < 0)
+    if (lxcContainerSendContinue(control[0]) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to send container continue message"));
         goto cleanup;
+    }
+
+    if (lxcContainerWaitForContinue(containerhandshake[0]) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("error receiving signal from container"));
+        goto cleanup;
+    }
 
     /* Now the container is running, there's no need for us to keep
        any elevated capabilities */
     if (lxcControllerClearCapabilities() < 0)
         goto cleanup;
+
+    if (lxcContainerSendContinue(handshakefd) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("error sending continue signal to parent"));
+        goto cleanup;
+    }
+    VIR_FORCE_CLOSE(handshakefd);
 
     rc = lxcControllerMain(monitor, client, appPty, containerPty, container);
 
@@ -748,6 +782,9 @@ cleanup:
     VIR_FORCE_CLOSE(control[1]);
     VIR_FREE(containerPtyPath);
     VIR_FORCE_CLOSE(containerPty);
+    VIR_FORCE_CLOSE(handshakefd);
+    VIR_FORCE_CLOSE(containerhandshake[0]);
+    VIR_FORCE_CLOSE(containerhandshake[1]);
 
     if (container > 1) {
         int status;
@@ -771,6 +808,7 @@ int main(int argc, char *argv[])
     char **veths = NULL;
     int monitor = -1;
     int appPty = -1;
+    int handshakefd = -1;
     int bg = 0;
     virCapsPtr caps = NULL;
     virDomainDefPtr def = NULL;
@@ -781,6 +819,7 @@ int main(int argc, char *argv[])
         { "name",   1, NULL, 'n' },
         { "veth",   1, NULL, 'v' },
         { "console", 1, NULL, 'c' },
+        { "handshakefd", 1, NULL, 's' },
         { "help", 0, NULL, 'h' },
         { 0, 0, 0, 0 },
     };
@@ -795,7 +834,7 @@ int main(int argc, char *argv[])
     while (1) {
         int c;
 
-        c = getopt_long(argc, argv, "dn:v:m:c:h",
+        c = getopt_long(argc, argv, "dn:v:m:c:s:h",
                        options, NULL);
 
         if (c == -1)
@@ -831,6 +870,14 @@ int main(int argc, char *argv[])
             }
             break;
 
+        case 's':
+            if (virStrToLong_i(optarg, NULL, 10, &handshakefd) < 0) {
+                fprintf(stderr, "malformed --handshakefd argument '%s'",
+                        optarg);
+                goto cleanup;
+            }
+            break;
+
         case 'h':
         case '?':
             fprintf(stderr, "\n");
@@ -842,6 +889,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "  -n NAME, --name NAME\n");
             fprintf(stderr, "  -c FD, --console FD\n");
             fprintf(stderr, "  -v VETH, --veth VETH\n");
+            fprintf(stderr, "  -s FD, --handshakefd FD\n");
             fprintf(stderr, "  -h, --help\n");
             fprintf(stderr, "\n");
             goto cleanup;
@@ -856,6 +904,12 @@ int main(int argc, char *argv[])
 
     if (appPty < 0) {
         fprintf(stderr, "%s: missing --console argument for container PTY\n", argv[0]);
+        goto cleanup;
+    }
+
+    if (handshakefd < 0) {
+        fprintf(stderr, "%s: missing --handshake argument for container PTY\n",
+                argv[0]);
         goto cleanup;
     }
 
@@ -929,7 +983,8 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    rc = lxcControllerRun(def, nveths, veths, monitor, client, appPty);
+    rc = lxcControllerRun(def, nveths, veths, monitor, client, appPty,
+                          handshakefd);
 
 
 cleanup:

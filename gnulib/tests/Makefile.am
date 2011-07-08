@@ -48,15 +48,6 @@ AM_LIBTOOLFLAGS = --preserve-dup-deps
 
 TESTS_ENVIRONMENT += EXEEXT='@EXEEXT@' srcdir='$(srcdir)'
 
-## begin gnulib module accept
-
-
-EXTRA_DIST += accept.c w32sock.h
-
-EXTRA_libtests_a_SOURCES += accept.c
-
-## end   gnulib module accept
-
 ## begin gnulib module alignof-tests
 
 TESTS += test-alignof
@@ -131,15 +122,6 @@ check_PROGRAMS += test-binary-io
 EXTRA_DIST += test-binary-io.sh test-binary-io.c macros.h
 
 ## end   gnulib module binary-io-tests
-
-## begin gnulib module bind
-
-
-EXTRA_DIST += bind.c w32sock.h
-
-EXTRA_libtests_a_SOURCES += bind.c
-
-## end   gnulib module bind
 
 ## begin gnulib module btowc
 
@@ -231,7 +213,6 @@ EXTRA_DIST += test-canonicalize-lgpl.c signature.h macros.h
 
 TESTS += test-chown
 check_PROGRAMS += test-chown
-test_chown_LDADD = $(LDADD) @LIBINTL@
 EXTRA_DIST += nap.h test-chown.h test-chown.c signature.h macros.h
 
 ## end   gnulib module chown-tests
@@ -342,6 +323,14 @@ EXTRA_DIST += test-fflush.c test-fflush2.sh test-fflush2.c signature.h macros.h
 
 ## end   gnulib module fflush-tests
 
+## begin gnulib module float-tests
+
+TESTS += test-float
+check_PROGRAMS += test-float
+EXTRA_DIST += test-float.c macros.h
+
+## end   gnulib module float-tests
+
 ## begin gnulib module fnmatch-tests
 
 TESTS += test-fnmatch
@@ -349,6 +338,13 @@ check_PROGRAMS += test-fnmatch
 EXTRA_DIST += test-fnmatch.c signature.h macros.h
 
 ## end   gnulib module fnmatch-tests
+
+## begin gnulib module fpucw
+
+
+EXTRA_DIST += fpucw.h
+
+## end   gnulib module fpucw
 
 ## begin gnulib module fpurge-tests
 
@@ -368,6 +364,14 @@ EXTRA_DIST += test-freading.c macros.h
 
 ## end   gnulib module freading-tests
 
+## begin gnulib module fseek-tests
+
+TESTS += test-fseek.sh test-fseek2.sh
+check_PROGRAMS += test-fseek
+EXTRA_DIST += test-fseek.c test-fseek.sh test-fseek2.sh signature.h macros.h
+
+## end   gnulib module fseek-tests
+
 ## begin gnulib module fseeko-tests
 
 TESTS += test-fseeko.sh test-fseeko2.sh
@@ -375,15 +379,6 @@ check_PROGRAMS += test-fseeko
 EXTRA_DIST += test-fseeko.c test-fseeko.sh test-fseeko2.sh signature.h macros.h
 
 ## end   gnulib module fseeko-tests
-
-## begin gnulib module ftell
-
-
-EXTRA_DIST += ftell.c
-
-EXTRA_libtests_a_SOURCES += ftell.c
-
-## end   gnulib module ftell
 
 ## begin gnulib module ftell-tests
 
@@ -489,15 +484,6 @@ EXTRA_libtests_a_SOURCES += getpagesize.c
 
 ## end   gnulib module getpagesize
 
-## begin gnulib module getsockname
-
-
-EXTRA_DIST += getsockname.c w32sock.h
-
-EXTRA_libtests_a_SOURCES += getsockname.c
-
-## end   gnulib module getsockname
-
 ## begin gnulib module getsockopt
 
 
@@ -518,10 +504,9 @@ EXTRA_DIST += signature.h test-gettimeofday.c
 
 ## begin gnulib module getugroups
 
+libtests_a_SOURCES += getugroups.c
 
-EXTRA_DIST += getugroups.c getugroups.h
-
-EXTRA_libtests_a_SOURCES += getugroups.c
+EXTRA_DIST += getugroups.h
 
 ## end   gnulib module getugroups
 
@@ -609,15 +594,6 @@ EXTRA_DIST += test-inttypes.c
 
 ## end   gnulib module inttypes-tests
 
-## begin gnulib module listen
-
-
-EXTRA_DIST += listen.c w32sock.h
-
-EXTRA_libtests_a_SOURCES += listen.c
-
-## end   gnulib module listen
-
 ## begin gnulib module locale
 
 BUILT_SOURCES += locale.h
@@ -627,12 +603,13 @@ BUILT_SOURCES += locale.h
 locale.h: locale.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) $(WARN_ON_USE_H)
 	$(AM_V_GEN)rm -f $@-t $@ && \
 	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */' && \
-	  sed -e 's|@''INCLUDE_NEXT''@|$(INCLUDE_NEXT)|g' \
+	  sed -e 's|@''GUARD_PREFIX''@|GL|g' \
+	      -e 's|@''INCLUDE_NEXT''@|$(INCLUDE_NEXT)|g' \
 	      -e 's|@''PRAGMA_SYSTEM_HEADER''@|@PRAGMA_SYSTEM_HEADER@|g' \
 	      -e 's|@''PRAGMA_COLUMNS''@|@PRAGMA_COLUMNS@|g' \
 	      -e 's|@''NEXT_LOCALE_H''@|$(NEXT_LOCALE_H)|g' \
-	      -e 's|@''GNULIB_SETLOCALE''@|$(GNULIB_SETLOCALE)|g' \
-	      -e 's|@''GNULIB_DUPLOCALE''@|$(GNULIB_DUPLOCALE)|g' \
+	      -e 's/@''GNULIB_SETLOCALE''@/$(GNULIB_SETLOCALE)/g' \
+	      -e 's/@''GNULIB_DUPLOCALE''@/$(GNULIB_DUPLOCALE)/g' \
 	      -e 's|@''HAVE_DUPLOCALE''@|$(HAVE_DUPLOCALE)|g' \
 	      -e 's|@''HAVE_XLOCALE_H''@|$(HAVE_XLOCALE_H)|g' \
 	      -e 's|@''REPLACE_SETLOCALE''@|$(REPLACE_SETLOCALE)|g' \
@@ -669,7 +646,7 @@ EXTRA_DIST += localename.h
 
 TESTS += test-localename
 check_PROGRAMS += test-localename
-test_localename_LDADD = $(LDADD) @INTL_MACOSX_LIBS@
+test_localename_LDADD = $(LDADD) @INTL_MACOSX_LIBS@ $(LIBTHREAD)
 
 EXTRA_DIST += test-localename.c macros.h
 
@@ -769,10 +746,9 @@ EXTRA_DIST += test-memchr.c zerosize-ptr.h signature.h macros.h
 
 ## begin gnulib module mgetgroups
 
+libtests_a_SOURCES += mgetgroups.c
 
-EXTRA_DIST += mgetgroups.c mgetgroups.h
-
-EXTRA_libtests_a_SOURCES += mgetgroups.c
+EXTRA_DIST += mgetgroups.h
 
 ## end   gnulib module mgetgroups
 
@@ -796,6 +772,7 @@ EXTRA_DIST += test-netinet_in.c
 
 TESTS += test-nonblocking-pipe.sh
 check_PROGRAMS += test-nonblocking-pipe-main test-nonblocking-pipe-child
+test_nonblocking_pipe_main_LDADD = $(LDADD) @LIBINTL@
 EXTRA_DIST += test-nonblocking-pipe.sh test-nonblocking-pipe-main.c test-nonblocking-pipe-child.c test-nonblocking-pipe.h test-nonblocking-writer.h test-nonblocking-reader.h test-nonblocking-misc.h macros.h
 
 ## end   gnulib module nonblocking-pipe-tests
@@ -804,7 +781,7 @@ EXTRA_DIST += test-nonblocking-pipe.sh test-nonblocking-pipe-main.c test-nonbloc
 
 TESTS += test-nonblocking-socket.sh
 check_PROGRAMS += test-nonblocking-socket-main test-nonblocking-socket-child
-test_nonblocking_socket_main_LDADD = $(LDADD) $(LIBSOCKET)
+test_nonblocking_socket_main_LDADD = $(LDADD) $(LIBSOCKET) @LIBINTL@
 test_nonblocking_socket_child_LDADD = $(LDADD) $(LIBSOCKET)
 EXTRA_DIST += test-nonblocking-socket.sh test-nonblocking-socket-main.c test-nonblocking-socket-child.c test-nonblocking-socket.h test-nonblocking-writer.h test-nonblocking-reader.h test-nonblocking-misc.h socket-server.h socket-client.h macros.h
 
@@ -1192,32 +1169,33 @@ BUILT_SOURCES += spawn.h
 spawn.h: spawn.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) $(WARN_ON_USE_H)
 	$(AM_V_GEN)rm -f $@-t $@ && \
 	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */'; \
-	  sed -e 's|@''HAVE_SPAWN_H''@|$(HAVE_SPAWN_H)|g' \
+	  sed -e 's|@''GUARD_PREFIX''@|GL|g' \
+	      -e 's|@''HAVE_SPAWN_H''@|$(HAVE_SPAWN_H)|g' \
 	      -e 's|@''INCLUDE_NEXT''@|$(INCLUDE_NEXT)|g' \
 	      -e 's|@''PRAGMA_SYSTEM_HEADER''@|@PRAGMA_SYSTEM_HEADER@|g' \
 	      -e 's|@''PRAGMA_COLUMNS''@|@PRAGMA_COLUMNS@|g' \
 	      -e 's|@''NEXT_SPAWN_H''@|$(NEXT_SPAWN_H)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWN''@|$(GNULIB_POSIX_SPAWN)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNP''@|$(GNULIB_POSIX_SPAWNP)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWN_FILE_ACTIONS_INIT''@|$(GNULIB_POSIX_SPAWN_FILE_ACTIONS_INIT)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE''@|$(GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2''@|$(GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN''@|$(GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWN_FILE_ACTIONS_DESTROY''@|$(GNULIB_POSIX_SPAWN_FILE_ACTIONS_DESTROY)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_INIT''@|$(GNULIB_POSIX_SPAWNATTR_INIT)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_GETFLAGS''@|$(GNULIB_POSIX_SPAWNATTR_GETFLAGS)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_SETFLAGS''@|$(GNULIB_POSIX_SPAWNATTR_SETFLAGS)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_GETPGROUP''@|$(GNULIB_POSIX_SPAWNATTR_GETPGROUP)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_SETPGROUP''@|$(GNULIB_POSIX_SPAWNATTR_SETPGROUP)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_GETSCHEDPARAM''@|$(GNULIB_POSIX_SPAWNATTR_GETSCHEDPARAM)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_SETSCHEDPARAM''@|$(GNULIB_POSIX_SPAWNATTR_SETSCHEDPARAM)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_GETSCHEDPOLICY''@|$(GNULIB_POSIX_SPAWNATTR_GETSCHEDPOLICY)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_SETSCHEDPOLICY''@|$(GNULIB_POSIX_SPAWNATTR_SETSCHEDPOLICY)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_GETSIGDEFAULT''@|$(GNULIB_POSIX_SPAWNATTR_GETSIGDEFAULT)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_SETSIGDEFAULT''@|$(GNULIB_POSIX_SPAWNATTR_SETSIGDEFAULT)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_GETSIGMASK''@|$(GNULIB_POSIX_SPAWNATTR_GETSIGMASK)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_SETSIGMASK''@|$(GNULIB_POSIX_SPAWNATTR_SETSIGMASK)|g' \
-	      -e 's|@''GNULIB_POSIX_SPAWNATTR_DESTROY''@|$(GNULIB_POSIX_SPAWNATTR_DESTROY)|g' \
+	      -e 's/@''GNULIB_POSIX_SPAWN''@/$(GNULIB_POSIX_SPAWN)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNP''@/$(GNULIB_POSIX_SPAWNP)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWN_FILE_ACTIONS_INIT''@/$(GNULIB_POSIX_SPAWN_FILE_ACTIONS_INIT)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE''@/$(GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2''@/$(GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN''@/$(GNULIB_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWN_FILE_ACTIONS_DESTROY''@/$(GNULIB_POSIX_SPAWN_FILE_ACTIONS_DESTROY)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_INIT''@/$(GNULIB_POSIX_SPAWNATTR_INIT)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_GETFLAGS''@/$(GNULIB_POSIX_SPAWNATTR_GETFLAGS)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_SETFLAGS''@/$(GNULIB_POSIX_SPAWNATTR_SETFLAGS)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_GETPGROUP''@/$(GNULIB_POSIX_SPAWNATTR_GETPGROUP)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_SETPGROUP''@/$(GNULIB_POSIX_SPAWNATTR_SETPGROUP)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_GETSCHEDPARAM''@/$(GNULIB_POSIX_SPAWNATTR_GETSCHEDPARAM)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_SETSCHEDPARAM''@/$(GNULIB_POSIX_SPAWNATTR_SETSCHEDPARAM)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_GETSCHEDPOLICY''@/$(GNULIB_POSIX_SPAWNATTR_GETSCHEDPOLICY)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_SETSCHEDPOLICY''@/$(GNULIB_POSIX_SPAWNATTR_SETSCHEDPOLICY)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_GETSIGDEFAULT''@/$(GNULIB_POSIX_SPAWNATTR_GETSIGDEFAULT)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_SETSIGDEFAULT''@/$(GNULIB_POSIX_SPAWNATTR_SETSIGDEFAULT)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_GETSIGMASK''@/$(GNULIB_POSIX_SPAWNATTR_GETSIGMASK)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_SETSIGMASK''@/$(GNULIB_POSIX_SPAWNATTR_SETSIGMASK)/g' \
+	      -e 's/@''GNULIB_POSIX_SPAWNATTR_DESTROY''@/$(GNULIB_POSIX_SPAWNATTR_DESTROY)/g' \
 	      -e 's|@''HAVE_POSIX_SPAWN''@|$(HAVE_POSIX_SPAWN)|g' \
 	      -e 's|@''HAVE_POSIX_SPAWNATTR_T''@|$(HAVE_POSIX_SPAWNATTR_T)|g' \
 	      -e 's|@''HAVE_POSIX_SPAWN_FILE_ACTIONS_T''@|$(HAVE_POSIX_SPAWN_FILE_ACTIONS_T)|g' \
@@ -1640,10 +1618,9 @@ EXTRA_libtests_a_SOURCES += write.c
 
 ## begin gnulib module xalloc
 
+libtests_a_SOURCES += xmalloc.c
 
-EXTRA_DIST += xalloc.h xmalloc.c
-
-EXTRA_libtests_a_SOURCES += xmalloc.c
+EXTRA_DIST += xalloc.h
 
 ## end   gnulib module xalloc
 

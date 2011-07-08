@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# memchr.m4 serial 11
+# memchr.m4 serial 12
 dnl Copyright (C) 2002-2004, 2009-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -81,10 +81,6 @@ AC_DEFUN_ONCE([gl_FUNC_MEMCHR],
     if test "$gl_cv_func_memchr_works" != yes; then
       REPLACE_MEMCHR=1
     fi
-  fi
-  if test $HAVE_MEMCHR = 0 || test $REPLACE_MEMCHR = 1; then
-    AC_LIBOBJ([memchr])
-    gl_PREREQ_MEMCHR
   fi
 ])
 

@@ -45,14 +45,11 @@ host_triplet = @host@
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_8 = ../src/libvirt_driver_nodedev.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_SECRETS_TRUE@am__append_9 = ../src/libvirt_driver_secret.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_10 = ../src/libvirt_driver_nwfilter.la
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_11 = $(AVAHI_SOURCES)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_12 = $(AVAHI_CFLAGS)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__append_13 = $(AVAHI_LIBS)
-@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_14 = probes.o
-@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_15 = probes.h
-@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_16 = probes.h probes.o
-@WITH_LIBVIRTD_TRUE@am__append_17 = $(LOGROTATE_CONFS)
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_18 = libvirtd.init
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_11 = probes.o
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_12 = probes.h
+@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_13 = probes.h probes.o
+@WITH_LIBVIRTD_TRUE@am__append_14 = $(LOGROTATE_CONFS)
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_15 = libvirtd.init
 subdir = daemon
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -65,7 +62,6 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/byteswap.m4 \
 	$(top_srcdir)/gnulib/m4/canonicalize.m4 \
 	$(top_srcdir)/gnulib/m4/chown.m4 \
-	$(top_srcdir)/gnulib/m4/cloexec.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
 	$(top_srcdir)/gnulib/m4/configmake.m4 \
 	$(top_srcdir)/gnulib/m4/count-one-bits.m4 \
@@ -85,8 +81,10 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/fflush.m4 \
 	$(top_srcdir)/gnulib/m4/float_h.m4 \
 	$(top_srcdir)/gnulib/m4/fnmatch.m4 \
+	$(top_srcdir)/gnulib/m4/fpieee.m4 \
 	$(top_srcdir)/gnulib/m4/fpurge.m4 \
 	$(top_srcdir)/gnulib/m4/freading.m4 \
+	$(top_srcdir)/gnulib/m4/fseek.m4 \
 	$(top_srcdir)/gnulib/m4/fseeko.m4 \
 	$(top_srcdir)/gnulib/m4/ftell.m4 \
 	$(top_srcdir)/gnulib/m4/ftello.m4 \
@@ -260,43 +258,30 @@ am__installdirs = "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" \
 	"$(DESTDIR)$(confdir)" "$(DESTDIR)$(tapsetdir)"
 PROGRAMS = $(sbin_PROGRAMS)
 am__libvirtd_SOURCES_DIST = libvirtd.c libvirtd.h remote.c remote.h \
-	dispatch.c dispatch.h stream.c stream.h \
-	../src/remote/remote_protocol.c ../src/remote/qemu_protocol.c \
-	$(srcdir)/remote_dispatch_prototypes.h \
-	$(srcdir)/remote_dispatch_table.h \
-	$(srcdir)/remote_dispatch_args.h \
-	$(srcdir)/remote_dispatch_ret.h \
-	$(srcdir)/remote_dispatch_bodies.h \
-	$(srcdir)/qemu_dispatch_prototypes.h \
-	$(srcdir)/qemu_dispatch_table.h $(srcdir)/qemu_dispatch_args.h \
-	$(srcdir)/qemu_dispatch_ret.h $(srcdir)/qemu_dispatch_bodies.h \
-	mdns.c mdns.h
+	stream.c stream.h ../src/remote/remote_protocol.c \
+	../src/remote/qemu_protocol.c $(srcdir)/remote_dispatch.h \
+	$(srcdir)/qemu_dispatch.h
 am__objects_1 =
 am__objects_2 = libvirtd-libvirtd.$(OBJEXT) libvirtd-remote.$(OBJEXT) \
-	libvirtd-dispatch.$(OBJEXT) libvirtd-stream.$(OBJEXT) \
-	libvirtd-remote_protocol.$(OBJEXT) \
+	libvirtd-stream.$(OBJEXT) libvirtd-remote_protocol.$(OBJEXT) \
 	libvirtd-qemu_protocol.$(OBJEXT) $(am__objects_1)
-am__objects_3 = libvirtd-mdns.$(OBJEXT)
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__objects_4 = $(am__objects_3)
-@WITH_LIBVIRTD_TRUE@am_libvirtd_OBJECTS = $(am__objects_2) \
-@WITH_LIBVIRTD_TRUE@	$(am__objects_4)
+@WITH_LIBVIRTD_TRUE@am_libvirtd_OBJECTS = $(am__objects_2)
 nodist_libvirtd_OBJECTS =
 libvirtd_OBJECTS = $(am_libvirtd_OBJECTS) $(nodist_libvirtd_OBJECTS)
 am__DEPENDENCIES_1 =
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@am__DEPENDENCIES_2 =  \
-@HAVE_AVAHI_TRUE@@WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
 @WITH_LIBVIRTD_TRUE@libvirtd_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1) \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt-net-rpc-server.la \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt-net-rpc.la \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la $(am__append_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_2) $(am__append_3) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_8) $(am__append_9) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_10) ../src/libvirt.la \
-@WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_2) $(am__append_14) \
-@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la \
+@WITH_LIBVIRTD_TRUE@	$(am__append_11) ../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
@@ -1148,7 +1133,6 @@ PYTHON_VERSION = @PYTHON_VERSION@
 RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
-REMOTE_PID_FILE = @REMOTE_PID_FILE@
 REPLACE_BTOWC = @REPLACE_BTOWC@
 REPLACE_CALLOC = @REPLACE_CALLOC@
 REPLACE_CANONICALIZE_FILE_NAME = @REPLACE_CANONICALIZE_FILE_NAME@
@@ -1399,45 +1383,31 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-CLEANFILES = $(am__append_16) $(BUILT_SOURCES) $(man8_MANS) *.cov \
+CLEANFILES = $(am__append_13) $(BUILT_SOURCES) $(man8_MANS) *.cov \
 	*.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
 DAEMON_GENERATED = \
-		$(srcdir)/remote_dispatch_prototypes.h	\
-		$(srcdir)/remote_dispatch_table.h	\
-		$(srcdir)/remote_dispatch_args.h	\
-		$(srcdir)/remote_dispatch_ret.h		\
-		$(srcdir)/remote_dispatch_bodies.h	\
-		$(srcdir)/qemu_dispatch_prototypes.h	\
-		$(srcdir)/qemu_dispatch_table.h		\
-		$(srcdir)/qemu_dispatch_args.h		\
-		$(srcdir)/qemu_dispatch_ret.h		\
-		$(srcdir)/qemu_dispatch_bodies.h
+		$(srcdir)/remote_dispatch.h		\
+		$(srcdir)/qemu_dispatch.h
 
 DAEMON_SOURCES = \
 		libvirtd.c libvirtd.h			\
 		remote.c remote.h			\
-		dispatch.c dispatch.h			\
 		stream.c stream.h			\
 		../src/remote/remote_protocol.c		\
 		../src/remote/qemu_protocol.c		\
 		$(DAEMON_GENERATED)
 
-AVAHI_SOURCES = \
-		mdns.c mdns.h
-
 DISTCLEANFILES = 
 
 # This is needed for 'make dist' too, so can't wrap in WITH_LIBVIRTD.
-EXTRA_DIST = remote_generator.pl remote_dispatch_bodies.h \
-	qemu_dispatch_bodies.h libvirtd.conf libvirtd.init.in \
-	libvirtd.upstart libvirtd.policy-0 libvirtd.policy-1 \
-	libvirtd.sasl libvirtd.sysconf libvirtd.aug \
+EXTRA_DIST = remote_dispatch.h qemu_dispatch.h libvirtd.conf \
+	libvirtd.init.in libvirtd.upstart libvirtd.policy-0 \
+	libvirtd.policy-1 libvirtd.sasl libvirtd.sysconf libvirtd.aug \
 	libvirtd.logrotate.in libvirtd.qemu.logrotate.in \
 	libvirtd.lxc.logrotate.in libvirtd.uml.logrotate.in \
 	test_libvirtd.aug THREADS.txt libvirtd.pod.in libvirtd.8.in \
-	libvirtd.stp $(AVAHI_SOURCES) $(DAEMON_SOURCES) probes.d \
-	libvirtd.stp
-BUILT_SOURCES = $(am__append_15) $(am__append_17) $(am__append_18)
+	libvirtd.stp $(DAEMON_SOURCES) probes.d libvirtd.stp
+BUILT_SOURCES = $(am__append_12) $(am__append_14) $(am__append_15)
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
 QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@man8_MANS = libvirtd.8
@@ -1447,24 +1417,24 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@augeas_DATA = libvirtd.aug
 @WITH_LIBVIRTD_TRUE@augeastestsdir = $(datadir)/augeas/lenses/tests
 @WITH_LIBVIRTD_TRUE@augeastests_DATA = test_libvirtd.aug
-@WITH_LIBVIRTD_TRUE@libvirtd_SOURCES = $(DAEMON_SOURCES) \
-@WITH_LIBVIRTD_TRUE@	$(am__append_11)
+@WITH_LIBVIRTD_TRUE@libvirtd_SOURCES = $(DAEMON_SOURCES)
 
 #-D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D_POSIX_C_SOURCE=199506L
-@WITH_LIBVIRTD_TRUE@libvirtd_CFLAGS = -I$(top_srcdir)/gnulib/lib \
-@WITH_LIBVIRTD_TRUE@	-I../gnulib/lib -I$(top_srcdir)/include \
-@WITH_LIBVIRTD_TRUE@	-I$(top_builddir)/include \
+@WITH_LIBVIRTD_TRUE@libvirtd_CFLAGS = \
+@WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
+@WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/include -I$(top_builddir)/include \
 @WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/src \
 @WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/src/util \
 @WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/src/conf \
+@WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/src/rpc \
 @WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/src/remote \
-@WITH_LIBVIRTD_TRUE@	$(LIBXML_CFLAGS) $(GNUTLS_CFLAGS) \
-@WITH_LIBVIRTD_TRUE@	$(SASL_CFLAGS) $(XDR_CFLAGS) \
-@WITH_LIBVIRTD_TRUE@	$(POLKIT_CFLAGS) $(WARN_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(LIBXML_CFLAGS) $(GNUTLS_CFLAGS) $(SASL_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(XDR_CFLAGS) $(POLKIT_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@	$(WARN_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@	$(COVERAGE_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\"" \
-@WITH_LIBVIRTD_TRUE@	-DREMOTE_PID_FILE="\"$(REMOTE_PID_FILE)\"" \
-@WITH_LIBVIRTD_TRUE@	$(am__append_12)
+@WITH_LIBVIRTD_TRUE@	-DREMOTE_PID_FILE="\"$(REMOTE_PID_FILE)\""
+
 @WITH_LIBVIRTD_TRUE@libvirtd_LDFLAGS = \
 @WITH_LIBVIRTD_TRUE@	$(WARN_CFLAGS)					\
 @WITH_LIBVIRTD_TRUE@	$(COVERAGE_LDFLAGS)
@@ -1474,14 +1444,16 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 # are used by nearly every other library.
 @WITH_LIBVIRTD_TRUE@libvirtd_LDADD = $(LIBXML_LIBS) $(GNUTLS_LIBS) \
 @WITH_LIBVIRTD_TRUE@	$(SASL_LIBS) $(POLKIT_LIBS) \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt-net-rpc-server.la \
+@WITH_LIBVIRTD_TRUE@	../src/libvirt-net-rpc.la \
 @WITH_LIBVIRTD_TRUE@	../src/libvirt-qemu.la $(am__append_1) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_2) $(am__append_3) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_4) $(am__append_5) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_6) $(am__append_7) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_8) $(am__append_9) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_10) ../src/libvirt.la \
-@WITH_LIBVIRTD_TRUE@	$(am__append_13) $(am__append_14) \
-@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(LIBSOCKET)
+@WITH_LIBVIRTD_TRUE@	$(am__append_11) ../gnulib/lib/libgnu.la \
+@WITH_LIBVIRTD_TRUE@	$(LIBSOCKET)
 @HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/polkit-1/actions
 @HAVE_POLKIT0_TRUE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/PolicyKit/policy
 @HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyfile = libvirtd.policy-1
@@ -1584,9 +1556,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-dispatch.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-libvirtd.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-mdns.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-qemu_protocol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtd-remote_protocol.Po@am__quote@
@@ -1648,22 +1618,6 @@ libvirtd-remote.obj: remote.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-remote.obj `if test -f 'remote.c'; then $(CYGPATH_W) 'remote.c'; else $(CYGPATH_W) '$(srcdir)/remote.c'; fi`
 
-libvirtd-dispatch.o: dispatch.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-dispatch.o -MD -MP -MF $(DEPDIR)/libvirtd-dispatch.Tpo -c -o libvirtd-dispatch.o `test -f 'dispatch.c' || echo '$(srcdir)/'`dispatch.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-dispatch.Tpo $(DEPDIR)/libvirtd-dispatch.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dispatch.c' object='libvirtd-dispatch.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-dispatch.o `test -f 'dispatch.c' || echo '$(srcdir)/'`dispatch.c
-
-libvirtd-dispatch.obj: dispatch.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-dispatch.obj -MD -MP -MF $(DEPDIR)/libvirtd-dispatch.Tpo -c -o libvirtd-dispatch.obj `if test -f 'dispatch.c'; then $(CYGPATH_W) 'dispatch.c'; else $(CYGPATH_W) '$(srcdir)/dispatch.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-dispatch.Tpo $(DEPDIR)/libvirtd-dispatch.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dispatch.c' object='libvirtd-dispatch.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-dispatch.obj `if test -f 'dispatch.c'; then $(CYGPATH_W) 'dispatch.c'; else $(CYGPATH_W) '$(srcdir)/dispatch.c'; fi`
-
 libvirtd-stream.o: stream.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-stream.o -MD -MP -MF $(DEPDIR)/libvirtd-stream.Tpo -c -o libvirtd-stream.o `test -f 'stream.c' || echo '$(srcdir)/'`stream.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-stream.Tpo $(DEPDIR)/libvirtd-stream.Po
@@ -1711,22 +1665,6 @@ libvirtd-qemu_protocol.obj: ../src/remote/qemu_protocol.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../src/remote/qemu_protocol.c' object='libvirtd-qemu_protocol.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-qemu_protocol.obj `if test -f '../src/remote/qemu_protocol.c'; then $(CYGPATH_W) '../src/remote/qemu_protocol.c'; else $(CYGPATH_W) '$(srcdir)/../src/remote/qemu_protocol.c'; fi`
-
-libvirtd-mdns.o: mdns.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-mdns.o -MD -MP -MF $(DEPDIR)/libvirtd-mdns.Tpo -c -o libvirtd-mdns.o `test -f 'mdns.c' || echo '$(srcdir)/'`mdns.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-mdns.Tpo $(DEPDIR)/libvirtd-mdns.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mdns.c' object='libvirtd-mdns.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-mdns.o `test -f 'mdns.c' || echo '$(srcdir)/'`mdns.c
-
-libvirtd-mdns.obj: mdns.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -MT libvirtd-mdns.obj -MD -MP -MF $(DEPDIR)/libvirtd-mdns.Tpo -c -o libvirtd-mdns.obj `if test -f 'mdns.c'; then $(CYGPATH_W) 'mdns.c'; else $(CYGPATH_W) '$(srcdir)/mdns.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtd-mdns.Tpo $(DEPDIR)/libvirtd-mdns.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mdns.c' object='libvirtd-mdns.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtd_CFLAGS) $(CFLAGS) -c -o libvirtd-mdns.obj `if test -f 'mdns.c'; then $(CYGPATH_W) 'mdns.c'; else $(CYGPATH_W) '$(srcdir)/mdns.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -2082,54 +2020,14 @@ uninstall-man: uninstall-man8
 	uninstall-man8 uninstall-sbinPROGRAMS uninstall-tapsetDATA
 
 
-$(srcdir)/remote_dispatch_prototypes.h: $(srcdir)/remote_generator.pl \
+$(srcdir)/remote_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -c -p remote \
+	$(AM_V_GEN)perl -w $(srcdir)/../src/rpc/gendispatch.pl -c -b remote \
 	  $(REMOTE_PROTOCOL) > $@
 
-$(srcdir)/remote_dispatch_table.h: $(srcdir)/remote_generator.pl \
-		$(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -c -t remote \
-	  $(REMOTE_PROTOCOL) > $@
-
-$(srcdir)/remote_dispatch_args.h: $(srcdir)/remote_generator.pl \
-		$(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -c -a remote \
-	  $(REMOTE_PROTOCOL) > $@
-
-$(srcdir)/remote_dispatch_ret.h: $(srcdir)/remote_generator.pl \
-		$(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -c -r remote \
-	  $(REMOTE_PROTOCOL) > $@
-
-$(srcdir)/remote_dispatch_bodies.h: $(srcdir)/remote_generator.pl \
-		$(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -c -b remote \
-	  $(REMOTE_PROTOCOL) > $@
-
-$(srcdir)/qemu_dispatch_prototypes.h: $(srcdir)/remote_generator.pl \
+$(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(QEMU_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -p qemu \
-	  $(QEMU_PROTOCOL) > $@
-
-$(srcdir)/qemu_dispatch_table.h: $(srcdir)/remote_generator.pl \
-		$(QEMU_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -t qemu \
-	  $(QEMU_PROTOCOL) > $@
-
-$(srcdir)/qemu_dispatch_args.h: $(srcdir)/remote_generator.pl \
-		$(QEMU_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -a qemu \
-	  $(QEMU_PROTOCOL) > $@
-
-$(srcdir)/qemu_dispatch_ret.h: $(srcdir)/remote_generator.pl \
-		$(QEMU_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -r qemu \
-	  $(QEMU_PROTOCOL) > $@
-
-$(srcdir)/qemu_dispatch_bodies.h: $(srcdir)/remote_generator.pl \
-		$(QEMU_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/remote_generator.pl -b qemu \
+	$(AM_V_GEN)perl -w $(srcdir)/../src/rpc/gendispatch.pl -b qemu \
 	  $(QEMU_PROTOCOL) > $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.8: $(srcdir)/libvirtd.8.in
