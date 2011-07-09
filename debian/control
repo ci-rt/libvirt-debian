@@ -58,7 +58,7 @@ Recommends: netcat-openbsd,
  dmidecode,
  iproute
 Suggests: policykit-1
-Description: the programs for the libvirt library
+Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently
