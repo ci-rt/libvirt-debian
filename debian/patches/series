@@ -7,5 +7,4 @@ patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 Debianize-libvirt-guests.patch
 virsh-Initialize-library-before-calling-virResetLast.patch
 Disable-daemon-start-test.patch
-Update-generated-autoconf-files.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
