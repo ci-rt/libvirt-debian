@@ -12,3 +12,4 @@
 0012-OpenVZ-Fix-some-overwritten-error-codes.patch
 security/0013-Add-missing-checks-for-read-only-connections.patch
 security/0014-Make-error-reporting-in-libvirtd-thread-safe.patch
+security/0015-Fix-integer-overflow-in-VirDomainGetVcpus.patch

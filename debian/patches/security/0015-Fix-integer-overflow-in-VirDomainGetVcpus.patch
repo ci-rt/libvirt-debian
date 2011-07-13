@@ -1,0 +1,152 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 12 Jul 2011 15:03:09 +0200
+Subject: Fix integer overflow in VirDomainGetVcpus
+
+Patch taken from upsteam. (CVE-2011-2511)
+
+Closes: #633630
+---
+ daemon/remote.c            |    4 ++-
+ gnulib/lib/intprops.h      |   61 ++++++++++++++++++++++++++++++++++++++++++++
+ src/libvirt.c              |    5 ++-
+ src/remote/remote_driver.c |    4 ++-
+ 4 files changed, 70 insertions(+), 4 deletions(-)
+
+diff --git a/daemon/remote.c b/daemon/remote.c
+index a8258ca..4c45044 100644
+--- a/daemon/remote.c
++++ b/daemon/remote.c
+@@ -58,6 +58,7 @@
+ #include "util.h"
+ #include "stream.h"
+ #include "libvirt/libvirt-qemu.h"
++#include "intprops.h"
+ 
+ #define VIR_FROM_THIS VIR_FROM_REMOTE
+ #define REMOTE_DEBUG(fmt, ...) DEBUG(fmt, __VA_ARGS__)
+@@ -1697,7 +1698,8 @@ remoteDispatchDomainGetVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
+         return -1;
+     }
+ 
+-    if (args->maxinfo * args->maplen > REMOTE_CPUMAPS_MAX) {
++    if (INT_MULTIPLY_OVERFLOW(args->maxinfo, args->maplen) ||
++        args->maxinfo * args->maplen > REMOTE_CPUMAPS_MAX) {
+         virDomainFree(dom);
+         remoteDispatchFormatError (rerr, "%s", _("maxinfo * maplen > REMOTE_CPUMAPS_MAX"));
+         return -1;
+diff --git a/gnulib/lib/intprops.h b/gnulib/lib/intprops.h
+index 6c84df6..e842db1 100644
+--- a/gnulib/lib/intprops.h
++++ b/gnulib/lib/intprops.h
+@@ -82,4 +82,65 @@
+    including the terminating null.  */
+ # define INT_BUFSIZE_BOUND(t) (INT_STRLEN_BOUND (t) + 1)
+ 
++#define INT_MULTIPLY_OVERFLOW(a, b) \
++  _GL_BINARY_OP_OVERFLOW (a, b, _GL_MULTIPLY_OVERFLOW)
++
++/* Return 1 if the expression A <op> B would overflow,
++   where OP_RESULT_OVERFLOW (A, B, MIN, MAX) does the actual test,
++   assuming MIN and MAX are the minimum and maximum for the result type.
++   Arguments should be free of side effects.  */
++#define _GL_BINARY_OP_OVERFLOW(a, b, op_result_overflow)        \
++  op_result_overflow (a, b,                                     \
++                      _GL_INT_MINIMUM (0 * (b) + (a)),          \
++                      _GL_INT_MAXIMUM (0 * (b) + (a)))
++
++/* The maximum and minimum values for the type of the expression E,
++   after integer promotion.  E should not have side effects.  */
++#define _GL_INT_MINIMUM(e)                                              \
++  (_GL_INT_SIGNED (e)                                                   \
++   ? - _GL_INT_TWOS_COMPLEMENT (e) - _GL_SIGNED_INT_MAXIMUM (e)         \
++   : _GL_INT_CONVERT (e, 0))
++#define _GL_INT_MAXIMUM(e)                                              \
++  (_GL_INT_SIGNED (e)                                                   \
++   ? _GL_SIGNED_INT_MAXIMUM (e)                                         \
++   : _GL_INT_NEGATE_CONVERT (e, 1))
++#define _GL_SIGNED_INT_MAXIMUM(e)                                       \
++  (((_GL_INT_CONVERT (e, 1) << (sizeof ((e) + 0) * CHAR_BIT - 2)) - 1) * 2 + 1)
++
++/* Return 1 if the integer expression E, after integer promotion, has
++   a signed type.  */
++#define _GL_INT_SIGNED(e) (_GL_INT_NEGATE_CONVERT (e, 1) < 0)
++
++/* Act like _GL_INT_CONVERT (E, -V) but work around a bug in IRIX 6.5 cc; see
++   <http://lists.gnu.org/archive/html/bug-gnulib/2011-05/msg00406.html>.  */
++#define _GL_INT_NEGATE_CONVERT(e, v) (0 * (e) - (v))
++
++/* Return an integer value, converted to the same type as the integer
++   expression E after integer type promotion.  V is the unconverted value.  */
++#define _GL_INT_CONVERT(e, v) (0 * (e) + (v))
++
++/* True if the signed integer expression E uses two's complement.  */
++#define _GL_INT_TWOS_COMPLEMENT(e) (~ _GL_INT_CONVERT (e, 0) == -1)
++
++#define _GL_MULTIPLY_OVERFLOW(a, b, min, max)                           \
++  (((min) == 0 && (((a) < 0 && 0 < (b)) || ((b) < 0 && 0 < (a))))       \
++   || INT_MULTIPLY_RANGE_OVERFLOW (a, b, min, max))
++
++/* Return 1 if A * B would overflow in [MIN,MAX] arithmetic.
++   See above for restrictions.  Avoid && and || as they tickle
++   bugs in Sun C 5.11 2010/08/13 and other compilers; see
++   <http://lists.gnu.org/archive/html/bug-gnulib/2011-05/msg00401.html>.  */
++#define INT_MULTIPLY_RANGE_OVERFLOW(a, b, min, max)     \
++  ((b) < 0                                              \
++   ? ((a) < 0                                           \
++      ? (a) < (max) / (b)                               \
++      : (b) == -1                                       \
++      ? 0                                               \
++      : (min) / (b) < (a))                              \
++   : (b) == 0                                           \
++   ? 0                                                  \
++   : ((a) < 0                                           \
++      ? (a) < (min) / (b)                               \
++      : (max) / (b) < (a)))
++
+ #endif /* GL_INTPROPS_H */
+diff --git a/src/libvirt.c b/src/libvirt.c
+index 5e5a758..6981852 100644
+--- a/src/libvirt.c
++++ b/src/libvirt.c
+@@ -39,6 +39,7 @@
+ #include "uuid.h"
+ #include "util.h"
+ #include "memory.h"
++#include "intprops.h"
+ 
+ #ifndef WITH_DRIVER_MODULES
+ # ifdef WITH_TEST
+@@ -5218,8 +5219,8 @@ virDomainGetVcpus(virDomainPtr domain, virVcpuInfoPtr info, int maxinfo,
+ 
+     /* Ensure that domainGetVcpus (aka remoteDomainGetVcpus) does not
+        try to memcpy anything into a NULL pointer.  */
+-    if ((cpumaps == NULL && maplen != 0)
+-        || (cpumaps && maplen <= 0)) {
++    if (!cpumaps ? maplen != 0
++        : (maplen <= 0 || INT_MULTIPLY_OVERFLOW(maxinfo, maplen))) {
+         virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
+         goto error;
+     }
+diff --git a/src/remote/remote_driver.c b/src/remote/remote_driver.c
+index 5fab9c1..11b2e21 100644
+--- a/src/remote/remote_driver.c
++++ b/src/remote/remote_driver.c
+@@ -82,6 +82,7 @@
+ #include "util.h"
+ #include "event.h"
+ #include "ignore-value.h"
++#include "intprops.h"
+ 
+ #define VIR_FROM_THIS VIR_FROM_REMOTE
+ 
+@@ -2500,7 +2501,8 @@ remoteDomainGetVcpus (virDomainPtr domain,
+                     maxinfo, REMOTE_VCPUINFO_MAX);
+         goto done;
+     }
+-    if (maxinfo * maplen > REMOTE_CPUMAPS_MAX) {
++    if (INT_MULTIPLY_OVERFLOW(maxinfo, maplen) ||
++        maxinfo * maplen > REMOTE_CPUMAPS_MAX) {
+         remoteError(VIR_ERR_RPC,
+                     _("vCPU map buffer length exceeds maximum: %d > %d"),
+                     maxinfo * maplen, REMOTE_CPUMAPS_MAX);
+-- 
