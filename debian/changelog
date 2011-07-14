@@ -1,3 +1,11 @@
+libvirt (0.9.2-7~bpo60+1) squeeze-backports; urgency=low
+
+  * Rebuild for squeeze-backports.
+  * Remaining changes
+      * use python-central on squeeze
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 14 Jul 2011 18:43:41 +0200
+
 libvirt (0.9.2-7) unstable; urgency=low
 
   * [9c99f46] CVE-2011-2511: Fix integer overflow in VirDomainGetVcpus. Patch
