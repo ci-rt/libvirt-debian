@@ -284,6 +284,10 @@
                 <a href="internals/command.html">Spawning commands</a>
                 <span>Spawning commands from libvirt driver code</span>
               </li>
+              <li>
+                <a href="internals/locking.html">Lock managers</a>
+                <span>Use lock managers to protect disk content</span>
+              </li>
             </ul>
           </li>
           <li>
@@ -317,6 +321,20 @@
       <li>
         <a href="contact.html">Contact</a>
         <span>How to contact the developers via email and IRC</span>
+      </li>
+      <li>
+        <a href="testsuites.html">Test suites</a>
+        <span>Available test suites for libvirt</span>
+        <ul>
+          <li>
+            <a href="testtck.html">TCK test suite</a>
+            <span>Virtualization functional test suite in Perl</span>
+          </li>
+          <li>
+            <a href="testapi.html">Libvirt-test-API</a>
+            <span>Libvirt functional API test suite in Python</span>
+          </li>
+        </ul>
       </li>
       <li>
         <a href="relatedlinks.html">Related Links</a>

@@ -1,7 +1,7 @@
 /*
  * node_device_conf.h: config handling for node devices
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2008 Virtual Iron Software, Inc.
  * Copyright (C) 2008 David F. Lively
  *
@@ -219,7 +219,7 @@ struct _virDeviceMonitorState {
 };
 
 # define virNodeDeviceReportError(code, ...)                             \
-    virReportErrorHelper(NULL, VIR_FROM_NODEDEV, code, __FILE__,	\
+    virReportErrorHelper(VIR_FROM_NODEDEV, code, __FILE__,               \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 int virNodeDeviceHasCap(const virNodeDeviceObjPtr dev, const char *cap);
@@ -228,7 +228,8 @@ virNodeDeviceObjPtr virNodeDeviceFindByName(const virNodeDeviceObjListPtr devs,
                                             const char *name);
 virNodeDeviceObjPtr
 virNodeDeviceFindBySysfsPath(const virNodeDeviceObjListPtr devs,
-                             const char *sysfs_path);
+                             const char *sysfs_path)
+    ATTRIBUTE_NONNULL(2);
 
 virNodeDeviceObjPtr virNodeDeviceAssignDef(virNodeDeviceObjListPtr devs,
                                            const virNodeDeviceDefPtr def);

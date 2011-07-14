@@ -20,7 +20,7 @@ typedef enum _esxVI_VirtualMachinePowerState esxVI_VirtualMachinePowerState;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * VI Types
+ * VI Objects
  */
 
 typedef struct _esxVI_AboutInfo esxVI_AboutInfo;
@@ -33,7 +33,8 @@ typedef struct _esxVI_Description esxVI_Description;
 typedef struct _esxVI_DeviceBackedVirtualDiskSpec esxVI_DeviceBackedVirtualDiskSpec;
 typedef struct _esxVI_DynamicProperty esxVI_DynamicProperty;
 typedef struct _esxVI_ElementDescription esxVI_ElementDescription;
-typedef struct _esxVI_Event esxVI_Event;
+typedef struct _esxVI_EntityEventArgument esxVI_EntityEventArgument;
+typedef struct _esxVI_EventArgument esxVI_EventArgument;
 typedef struct _esxVI_FileBackedVirtualDiskSpec esxVI_FileBackedVirtualDiskSpec;
 typedef struct _esxVI_FileInfo esxVI_FileInfo;
 typedef struct _esxVI_FileQuery esxVI_FileQuery;
@@ -96,6 +97,7 @@ typedef struct _esxVI_VmDiskFileInfo esxVI_VmDiskFileInfo;
 typedef struct _esxVI_VmDiskFileQuery esxVI_VmDiskFileQuery;
 typedef struct _esxVI_VmDiskFileQueryFilter esxVI_VmDiskFileQueryFilter;
 typedef struct _esxVI_VmDiskFileQueryFlags esxVI_VmDiskFileQueryFlags;
+typedef struct _esxVI_VmEventArgument esxVI_VmEventArgument;
 typedef struct _esxVI_VmLogFileInfo esxVI_VmLogFileInfo;
 typedef struct _esxVI_VmLogFileQuery esxVI_VmLogFileQuery;
 typedef struct _esxVI_VmNvramFileInfo esxVI_VmNvramFileInfo;
@@ -103,3 +105,14 @@ typedef struct _esxVI_VmNvramFileQuery esxVI_VmNvramFileQuery;
 typedef struct _esxVI_VmSnapshotFileInfo esxVI_VmSnapshotFileInfo;
 typedef struct _esxVI_VmSnapshotFileQuery esxVI_VmSnapshotFileQuery;
 typedef struct _esxVI_VmfsDatastoreInfo esxVI_VmfsDatastoreInfo;
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Objects
+ */
+
+typedef struct _esxVI_ComputeResource esxVI_ComputeResource;
+typedef struct _esxVI_Datacenter esxVI_Datacenter;
+typedef struct _esxVI_HostSystem esxVI_HostSystem;
+typedef struct _esxVI_ManagedEntity esxVI_ManagedEntity;

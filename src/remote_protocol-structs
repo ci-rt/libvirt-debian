@@ -35,7 +35,7 @@ struct remote_nonnull_secret {
 };
 struct remote_nonnull_domain_snapshot {
         remote_nonnull_string      name;
-        remote_nonnull_domain      domain;
+        remote_nonnull_domain      dom;
 };
 struct remote_error {
         int                        code;
@@ -56,7 +56,7 @@ struct remote_vcpu_info {
         uint64_t                   cpu_time;
         int                        cpu;
 };
-struct remote_sched_param_value {
+struct remote_typed_param_value {
         int                        type;
         union {
                 int                i;
@@ -65,41 +65,11 @@ struct remote_sched_param_value {
                 uint64_t           ul;
                 double             d;
                 int                b;
-        } remote_sched_param_value_u;
+        } remote_typed_param_value_u;
 };
-struct remote_sched_param {
+struct remote_typed_param {
         remote_nonnull_string      field;
-        remote_sched_param_value   value;
-};
-struct remote_blkio_param_value {
-        int                        type;
-        union {
-                int                i;
-                u_int              ui;
-                int64_t            l;
-                uint64_t           ul;
-                double             d;
-                int                b;
-        } remote_blkio_param_value_u;
-};
-struct remote_blkio_param {
-        remote_nonnull_string      field;
-        remote_blkio_param_value   value;
-};
-struct remote_memory_param_value {
-        int                        type;
-        union {
-                int                i;
-                u_int              ui;
-                int64_t            l;
-                uint64_t           ul;
-                double             d;
-                int                b;
-        } remote_memory_param_value_u;
-};
-struct remote_memory_param {
-        remote_nonnull_string      field;
-        remote_memory_param_value  value;
+        remote_typed_param_value   value;
 };
 struct remote_open_args {
         remote_string              name;
@@ -115,10 +85,10 @@ struct remote_get_type_ret {
         remote_nonnull_string      type;
 };
 struct remote_get_version_ret {
-        int64_t                    hv_ver;
+        uint64_t                   hv_ver;
 };
 struct remote_get_lib_version_ret {
-        int64_t                    lib_ver;
+        uint64_t                   lib_ver;
 };
 struct remote_get_hostname_ret {
         remote_nonnull_string      hostname;
@@ -140,7 +110,7 @@ struct remote_get_max_vcpus_ret {
 };
 struct remote_node_get_info_ret {
         char                       model[32];
-        int64_t                    memory;
+        uint64_t                   memory;
         int                        cpus;
         int                        mhz;
         int                        nodes;
@@ -153,16 +123,16 @@ struct remote_get_capabilities_ret {
 };
 struct remote_node_get_cells_free_memory_args {
         int                        startCell;
-        int                        maxCells;
+        int                        maxcells;
 };
 struct remote_node_get_cells_free_memory_ret {
         struct {
-                u_int              freeMems_len;
-                int64_t *          freeMems_val;
-        } freeMems;
+                u_int              cells_len;
+                uint64_t *         cells_val;
+        } cells;
 };
 struct remote_node_get_free_memory_ret {
-        int64_t                    freeMem;
+        uint64_t                   freeMem;
 };
 struct remote_domain_get_scheduler_type_args {
         remote_nonnull_domain      dom;
@@ -178,21 +148,40 @@ struct remote_domain_get_scheduler_parameters_args {
 struct remote_domain_get_scheduler_parameters_ret {
         struct {
                 u_int              params_len;
-                remote_sched_param * params_val;
+                remote_typed_param * params_val;
+        } params;
+};
+struct remote_domain_get_scheduler_parameters_flags_args {
+        remote_nonnull_domain      dom;
+        int                        nparams;
+        u_int                      flags;
+};
+struct remote_domain_get_scheduler_parameters_flags_ret {
+        struct {
+                u_int              params_len;
+                remote_typed_param * params_val;
         } params;
 };
 struct remote_domain_set_scheduler_parameters_args {
         remote_nonnull_domain      dom;
         struct {
                 u_int              params_len;
-                remote_sched_param * params_val;
+                remote_typed_param * params_val;
         } params;
+};
+struct remote_domain_set_scheduler_parameters_flags_args {
+        remote_nonnull_domain      dom;
+        struct {
+                u_int              params_len;
+                remote_typed_param * params_val;
+        } params;
+        u_int                      flags;
 };
 struct remote_domain_set_blkio_parameters_args {
         remote_nonnull_domain      dom;
         struct {
                 u_int              params_len;
-                remote_blkio_param * params_val;
+                remote_typed_param * params_val;
         } params;
         u_int                      flags;
 };
@@ -204,7 +193,7 @@ struct remote_domain_get_blkio_parameters_args {
 struct remote_domain_get_blkio_parameters_ret {
         struct {
                 u_int              params_len;
-                remote_blkio_param * params_val;
+                remote_typed_param * params_val;
         } params;
         int                        nparams;
 };
@@ -212,7 +201,7 @@ struct remote_domain_set_memory_parameters_args {
         remote_nonnull_domain      dom;
         struct {
                 u_int              params_len;
-                remote_memory_param * params_val;
+                remote_typed_param * params_val;
         } params;
         u_int                      flags;
 };
@@ -224,7 +213,7 @@ struct remote_domain_get_memory_parameters_args {
 struct remote_domain_get_memory_parameters_ret {
         struct {
                 u_int              params_len;
-                remote_memory_param * params_val;
+                remote_typed_param * params_val;
         } params;
         int                        nparams;
 };
@@ -317,7 +306,7 @@ struct remote_num_of_domains_ret {
 };
 struct remote_domain_create_xml_args {
         remote_nonnull_string      xml_desc;
-        int                        flags;
+        u_int                      flags;
 };
 struct remote_domain_create_xml_ret {
         remote_nonnull_domain      dom;
@@ -351,7 +340,7 @@ struct remote_domain_shutdown_args {
 };
 struct remote_domain_reboot_args {
         remote_nonnull_domain      dom;
-        int                        flags;
+        u_int                      flags;
 };
 struct remote_domain_destroy_args {
         remote_nonnull_domain      dom;
@@ -386,10 +375,10 @@ struct remote_domain_get_info_args {
 };
 struct remote_domain_get_info_ret {
         u_char                     state;
-        uint64_t                   max_mem;
+        uint64_t                   maxMem;
         uint64_t                   memory;
-        u_short                    nr_virt_cpu;
-        uint64_t                   cpu_time;
+        u_short                    nrVirtCpu;
+        uint64_t                   cpuTime;
 };
 struct remote_domain_save_args {
         remote_nonnull_domain      dom;
@@ -403,11 +392,19 @@ struct remote_domain_core_dump_args {
         remote_nonnull_string      to;
         int                        flags;
 };
-struct remote_domain_dump_xml_args {
+struct remote_domain_screenshot_args {
+        remote_nonnull_domain      dom;
+        u_int                      screen;
+        u_int                      flags;
+};
+struct remote_domain_screenshot_ret {
+        remote_string              mime;
+};
+struct remote_domain_get_xml_desc_args {
         remote_nonnull_domain      dom;
         int                        flags;
 };
-struct remote_domain_dump_xml_ret {
+struct remote_domain_get_xml_desc_ret {
         remote_nonnull_string      xml;
 };
 struct remote_domain_migrate_prepare_args {
@@ -504,9 +501,13 @@ struct remote_domain_define_xml_ret {
 struct remote_domain_undefine_args {
         remote_nonnull_domain      dom;
 };
+struct remote_domain_inject_nmi_args {
+        remote_nonnull_domain      dom;
+        u_int                      flags;
+};
 struct remote_domain_set_vcpus_args {
         remote_nonnull_domain      dom;
-        int                        nvcpus;
+        u_int                      nvcpus;
 };
 struct remote_domain_set_vcpus_flags_args {
         remote_nonnull_domain      dom;
@@ -522,7 +523,7 @@ struct remote_domain_get_vcpus_flags_ret {
 };
 struct remote_domain_pin_vcpu_args {
         remote_nonnull_domain      dom;
-        int                        vcpu;
+        u_int                      vcpu;
         struct {
                 u_int              cpumap_len;
                 char *             cpumap_val;
@@ -659,11 +660,11 @@ struct remote_network_create_args {
 struct remote_network_destroy_args {
         remote_nonnull_network     net;
 };
-struct remote_network_dump_xml_args {
+struct remote_network_get_xml_desc_args {
         remote_nonnull_network     net;
         int                        flags;
 };
-struct remote_network_dump_xml_ret {
+struct remote_network_get_xml_desc_ret {
         remote_nonnull_string      xml;
 };
 struct remote_network_get_bridge_name_args {
@@ -781,6 +782,15 @@ struct remote_interface_create_args {
 };
 struct remote_interface_destroy_args {
         remote_nonnull_interface   iface;
+        u_int                      flags;
+};
+struct remote_interface_change_begin_args {
+        u_int                      flags;
+};
+struct remote_interface_change_commit_args {
+        u_int                      flags;
+};
+struct remote_interface_change_rollback_args {
         u_int                      flags;
 };
 struct remote_auth_list_ret {
@@ -912,11 +922,11 @@ struct remote_storage_pool_refresh_args {
         remote_nonnull_storage_pool pool;
         u_int                      flags;
 };
-struct remote_storage_pool_dump_xml_args {
+struct remote_storage_pool_get_xml_desc_args {
         remote_nonnull_storage_pool pool;
         u_int                      flags;
 };
-struct remote_storage_pool_dump_xml_ret {
+struct remote_storage_pool_get_xml_desc_ret {
         remote_nonnull_string      xml;
 };
 struct remote_storage_pool_get_info_args {
@@ -998,11 +1008,11 @@ struct remote_storage_vol_wipe_args {
         remote_nonnull_storage_vol vol;
         u_int                      flags;
 };
-struct remote_storage_vol_dump_xml_args {
+struct remote_storage_vol_get_xml_desc_args {
         remote_nonnull_storage_vol vol;
         u_int                      flags;
 };
-struct remote_storage_vol_dump_xml_ret {
+struct remote_storage_vol_get_xml_desc_ret {
         remote_nonnull_string      xml;
 };
 struct remote_storage_vol_get_info_args {
@@ -1043,11 +1053,11 @@ struct remote_node_device_lookup_by_name_args {
 struct remote_node_device_lookup_by_name_ret {
         remote_nonnull_node_device dev;
 };
-struct remote_node_device_dump_xml_args {
+struct remote_node_device_get_xml_desc_args {
         remote_nonnull_string      name;
         u_int                      flags;
 };
-struct remote_node_device_dump_xml_ret {
+struct remote_node_device_get_xml_desc_ret {
         remote_nonnull_string      xml;
 };
 struct remote_node_device_get_parent_args {
@@ -1083,7 +1093,7 @@ struct remote_node_device_reset_args {
 };
 struct remote_node_device_create_xml_args {
         remote_nonnull_string      xml_desc;
-        int                        flags;
+        u_int                      flags;
 };
 struct remote_node_device_create_xml_ret {
         remote_nonnull_node_device dev;
@@ -1341,38 +1351,38 @@ struct remote_domain_has_managed_save_image_args {
         u_int                      flags;
 };
 struct remote_domain_has_managed_save_image_ret {
-        int                        ret;
+        int                        result;
 };
 struct remote_domain_managed_save_remove_args {
         remote_nonnull_domain      dom;
         u_int                      flags;
 };
 struct remote_domain_snapshot_create_xml_args {
-        remote_nonnull_domain      domain;
+        remote_nonnull_domain      dom;
         remote_nonnull_string      xml_desc;
-        int                        flags;
+        u_int                      flags;
 };
 struct remote_domain_snapshot_create_xml_ret {
         remote_nonnull_domain_snapshot snap;
 };
-struct remote_domain_snapshot_dump_xml_args {
+struct remote_domain_snapshot_get_xml_desc_args {
         remote_nonnull_domain_snapshot snap;
-        int                        flags;
+        u_int                      flags;
 };
-struct remote_domain_snapshot_dump_xml_ret {
+struct remote_domain_snapshot_get_xml_desc_ret {
         remote_nonnull_string      xml;
 };
 struct remote_domain_snapshot_num_args {
-        remote_nonnull_domain      domain;
-        int                        flags;
+        remote_nonnull_domain      dom;
+        u_int                      flags;
 };
 struct remote_domain_snapshot_num_ret {
         int                        num;
 };
 struct remote_domain_snapshot_list_names_args {
-        remote_nonnull_domain      domain;
-        int                        nameslen;
-        int                        flags;
+        remote_nonnull_domain      dom;
+        int                        maxnames;
+        u_int                      flags;
 };
 struct remote_domain_snapshot_list_names_ret {
         struct {
@@ -1381,37 +1391,37 @@ struct remote_domain_snapshot_list_names_ret {
         } names;
 };
 struct remote_domain_snapshot_lookup_by_name_args {
-        remote_nonnull_domain      domain;
+        remote_nonnull_domain      dom;
         remote_nonnull_string      name;
-        int                        flags;
+        u_int                      flags;
 };
 struct remote_domain_snapshot_lookup_by_name_ret {
         remote_nonnull_domain_snapshot snap;
 };
 struct remote_domain_has_current_snapshot_args {
-        remote_nonnull_domain      domain;
-        int                        flags;
+        remote_nonnull_domain      dom;
+        u_int                      flags;
 };
 struct remote_domain_has_current_snapshot_ret {
         int                        result;
 };
 struct remote_domain_snapshot_current_args {
-        remote_nonnull_domain      domain;
-        int                        flags;
+        remote_nonnull_domain      dom;
+        u_int                      flags;
 };
 struct remote_domain_snapshot_current_ret {
         remote_nonnull_domain_snapshot snap;
 };
 struct remote_domain_revert_to_snapshot_args {
         remote_nonnull_domain_snapshot snap;
-        int                        flags;
+        u_int                      flags;
 };
 struct remote_domain_snapshot_delete_args {
         remote_nonnull_domain_snapshot snap;
-        int                        flags;
+        u_int                      flags;
 };
 struct remote_domain_open_console_args {
-        remote_nonnull_domain      domain;
+        remote_nonnull_domain      dom;
         remote_string              devname;
         u_int                      flags;
 };
@@ -1426,6 +1436,111 @@ struct remote_storage_vol_download_args {
         uint64_t                   offset;
         uint64_t                   length;
         u_int                      flags;
+};
+struct remote_domain_get_state_args {
+        remote_nonnull_domain      dom;
+        u_int                      flags;
+};
+struct remote_domain_get_state_ret {
+        int                        state;
+        int                        reason;
+};
+struct remote_domain_migrate_begin3_args {
+        remote_nonnull_domain      dom;
+        remote_string              xmlin;
+        uint64_t                   flags;
+        remote_string              dname;
+        uint64_t                   resource;
+};
+struct remote_domain_migrate_begin3_ret {
+        struct {
+                u_int              cookie_out_len;
+                char *             cookie_out_val;
+        } cookie_out;
+        remote_nonnull_string      xml;
+};
+struct remote_domain_migrate_prepare3_args {
+        struct {
+                u_int              cookie_in_len;
+                char *             cookie_in_val;
+        } cookie_in;
+        remote_string              uri_in;
+        uint64_t                   flags;
+        remote_string              dname;
+        uint64_t                   resource;
+        remote_nonnull_string      dom_xml;
+};
+struct remote_domain_migrate_prepare3_ret {
+        struct {
+                u_int              cookie_out_len;
+                char *             cookie_out_val;
+        } cookie_out;
+        remote_string              uri_out;
+};
+struct remote_domain_migrate_prepare_tunnel3_args {
+        struct {
+                u_int              cookie_in_len;
+                char *             cookie_in_val;
+        } cookie_in;
+        uint64_t                   flags;
+        remote_string              dname;
+        uint64_t                   resource;
+        remote_nonnull_string      dom_xml;
+};
+struct remote_domain_migrate_prepare_tunnel3_ret {
+        struct {
+                u_int              cookie_out_len;
+                char *             cookie_out_val;
+        } cookie_out;
+};
+struct remote_domain_migrate_perform3_args {
+        remote_nonnull_domain      dom;
+        remote_string              xmlin;
+        struct {
+                u_int              cookie_in_len;
+                char *             cookie_in_val;
+        } cookie_in;
+        remote_string              dconnuri;
+        remote_string              uri;
+        uint64_t                   flags;
+        remote_string              dname;
+        uint64_t                   resource;
+};
+struct remote_domain_migrate_perform3_ret {
+        struct {
+                u_int              cookie_out_len;
+                char *             cookie_out_val;
+        } cookie_out;
+};
+struct remote_domain_migrate_finish3_args {
+        remote_nonnull_string      dname;
+        struct {
+                u_int              cookie_in_len;
+                char *             cookie_in_val;
+        } cookie_in;
+        remote_string              dconnuri;
+        remote_string              uri;
+        uint64_t                   flags;
+        int                        cancelled;
+};
+struct remote_domain_migrate_finish3_ret {
+        remote_nonnull_domain      dom;
+        struct {
+                u_int              cookie_out_len;
+                char *             cookie_out_val;
+        } cookie_out;
+};
+struct remote_domain_migrate_confirm3_args {
+        remote_nonnull_domain      dom;
+        struct {
+                u_int              cookie_in_len;
+                char *             cookie_in_val;
+        } cookie_in;
+        uint64_t                   flags;
+        int                        cancelled;
+};
+struct remote_domain_event_control_error_msg {
+        remote_nonnull_domain      dom;
 };
 struct remote_message_header {
         u_int                      prog;

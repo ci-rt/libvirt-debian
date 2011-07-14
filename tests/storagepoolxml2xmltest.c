@@ -13,24 +13,18 @@
 #include "storage_conf.h"
 #include "testutilsqemu.h"
 
-static char *progname;
-static char *abs_srcdir;
-
-#define MAX_FILE 4096
-
-
-static int testCompareXMLToXMLFiles(const char *inxml, const char *outxml) {
-    char inXmlData[MAX_FILE];
-    char *inXmlPtr = &(inXmlData[0]);
-    char outXmlData[MAX_FILE];
-    char *outXmlPtr = &(outXmlData[0]);
+static int
+testCompareXMLToXMLFiles(const char *inxml, const char *outxml)
+{
+    char *inXmlData = NULL;
+    char *outXmlData = NULL;
     char *actual = NULL;
     int ret = -1;
     virStoragePoolDefPtr dev = NULL;
 
-    if (virtTestLoadFile(inxml, &inXmlPtr, MAX_FILE) < 0)
+    if (virtTestLoadFile(inxml, &inXmlData) < 0)
         goto fail;
-    if (virtTestLoadFile(outxml, &outXmlPtr, MAX_FILE) < 0)
+    if (virtTestLoadFile(outxml, &outXmlData) < 0)
         goto fail;
 
     if (!(dev = virStoragePoolDefParseString(inXmlData)))
@@ -47,38 +41,40 @@ static int testCompareXMLToXMLFiles(const char *inxml, const char *outxml) {
     ret = 0;
 
  fail:
+    free(inXmlData);
+    free(outXmlData);
     free(actual);
     virStoragePoolDefFree(dev);
     return ret;
 }
 
-static int testCompareXMLToXMLHelper(const void *data) {
-    char inxml[PATH_MAX];
-    char outxml[PATH_MAX];
-    snprintf(inxml, PATH_MAX, "%s/storagepoolxml2xmlin/%s.xml",
-             abs_srcdir, (const char*)data);
-    snprintf(outxml, PATH_MAX, "%s/storagepoolxml2xmlout/%s.xml",
-             abs_srcdir, (const char*)data);
-    return testCompareXMLToXMLFiles(inxml, outxml);
-}
-
-
 static int
-mymain(int argc, char **argv)
+testCompareXMLToXMLHelper(const void *data)
 {
-    int ret = 0;
-    char cwd[PATH_MAX];
+    int result = -1;
+    char *inxml = NULL;
+    char *outxml = NULL;
 
-    progname = argv[0];
-
-    if (argc > 1) {
-        fprintf(stderr, "Usage: %s\n", progname);
-        return (EXIT_FAILURE);
+    if (virAsprintf(&inxml, "%s/storagepoolxml2xmlin/%s.xml",
+                    abs_srcdir, (const char*)data) < 0 ||
+        virAsprintf(&outxml, "%s/storagepoolxml2xmlout/%s.xml",
+                    abs_srcdir, (const char*)data) < 0) {
+        goto cleanup;
     }
 
-    abs_srcdir = getenv("abs_srcdir");
-    if (!abs_srcdir)
-        abs_srcdir = getcwd(cwd, sizeof(cwd));
+    result = testCompareXMLToXMLFiles(inxml, outxml);
+
+cleanup:
+    free(inxml);
+    free(outxml);
+
+    return result;
+}
+
+static int
+mymain(void)
+{
+    int ret = 0;
 
 #define DO_TEST(name) \
     if (virtTestRun("Storage Pool XML-2-XML " name, \

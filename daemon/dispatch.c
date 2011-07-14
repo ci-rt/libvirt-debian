@@ -104,16 +104,7 @@ void remoteDispatchGenericError (remote_error *rerr)
 }
 
 
-void remoteDispatchOOMError (remote_error *rerr)
-{
-    remoteDispatchStringError(rerr,
-                              VIR_ERR_NO_MEMORY,
-                              "out of memory");
-}
-
-
-void remoteDispatchConnError (remote_error *rerr,
-                              virConnectPtr conn ATTRIBUTE_UNUSED)
+void remoteDispatchError(remote_error *rerr)
 {
     virErrorPtr verr = virGetLastError();
 

@@ -66,7 +66,7 @@ enum qemuCapsFlags {
     QEMU_CAPS_SMP_TOPOLOGY      = 28, /* Is sockets=s,cores=c,threads=t available for -smp? */
     QEMU_CAPS_NETDEV            = 29, /* The -netdev flag & netdev_add/remove monitor commands */
     QEMU_CAPS_RTC               = 30, /* The -rtc flag for clock options */
-    QEMU_CAPS_VNET_HOST         = 31, /* vnet-host support is available in qemu */
+    QEMU_CAPS_VHOST_NET         = 31, /* vhost-net support is available in qemu */
     QEMU_CAPS_RTC_TD_HACK       = 32, /* -rtc-td-hack available */
     QEMU_CAPS_NO_HPET           = 33, /* -no-hpet flag is supported */
     QEMU_CAPS_NO_KVM_PIT        = 34, /* -no-kvm-pit-reinjection supported */
@@ -141,5 +141,6 @@ int qemuCapsParseHelpStr(const char *qemu,
 int qemuCapsParseDeviceStr(const char *str,
                            virBitmapPtr qemuCaps);
 
+VIR_ENUM_DECL(qemuCaps);
 
 #endif /* __QEMU_CAPABILITIES_H__*/

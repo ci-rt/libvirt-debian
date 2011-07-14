@@ -65,16 +65,9 @@ esxNWFilterClose(virConnectPtr conn)
 
 
 static virNWFilterDriver esxNWFilterDriver = {
-    "ESX",                                 /* name */
-    esxNWFilterOpen,                       /* open */
-    esxNWFilterClose,                      /* close */
-    NULL,                                  /* numOfNWFilters */
-    NULL,                                  /* listNWFilters */
-    NULL,                                  /* nwfilterLookupByName */
-    NULL,                                  /* nwfilterLookupByUUID */
-    NULL,                                  /* defineXML */
-    NULL,                                  /* undefine */
-    NULL,                                  /* getXMLDesc */
+    .name = "ESX",
+    .open = esxNWFilterOpen, /* 0.8.1 */
+    .close = esxNWFilterClose, /* 0.8.1 */
 };
 
 

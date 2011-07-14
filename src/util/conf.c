@@ -100,13 +100,13 @@ virConfError(virConfParserCtxtPtr ctxt,
 
     /* Construct the string 'filename:line: info' if we have that. */
     if (ctxt && ctxt->filename) {
-        virRaiseError(NULL, NULL, NULL, VIR_FROM_CONF, error, VIR_ERR_ERROR,
+        virRaiseError(NULL, NULL, VIR_FROM_CONF, error, VIR_ERR_ERROR,
                         info, ctxt->filename, NULL,
                         ctxt->line, 0,
                         "%s:%d: %s", ctxt->filename, ctxt->line, info);
     } else {
         format = virErrorMsg(error, info);
-        virRaiseError(NULL, NULL, NULL, VIR_FROM_CONF, error, VIR_ERR_ERROR,
+        virRaiseError(NULL, NULL, VIR_FROM_CONF, error, VIR_ERR_ERROR,
                         info, NULL, NULL,
                         ctxt ? ctxt->line : 0, 0,
                         format, info);
@@ -260,17 +260,17 @@ virConfSaveValue(virBufferPtr buf, virConfValuePtr val)
         case VIR_CONF_NONE:
             return(-1);
         case VIR_CONF_LONG:
-            virBufferVSprintf(buf, "%ld", val->l);
+            virBufferAsprintf(buf, "%ld", val->l);
             break;
         case VIR_CONF_STRING:
             if (strchr(val->str, '\n') != NULL) {
-                virBufferVSprintf(buf, "\"\"\"%s\"\"\"", val->str);
+                virBufferAsprintf(buf, "\"\"\"%s\"\"\"", val->str);
             } else if (strchr(val->str, '"') == NULL) {
-                virBufferVSprintf(buf, "\"%s\"", val->str);
+                virBufferAsprintf(buf, "\"%s\"", val->str);
             } else if (strchr(val->str, '\'') == NULL) {
-                virBufferVSprintf(buf, "'%s'", val->str);
+                virBufferAsprintf(buf, "'%s'", val->str);
             } else {
-                virBufferVSprintf(buf, "\"\"\"%s\"\"\"", val->str);
+                virBufferAsprintf(buf, "\"\"\"%s\"\"\"", val->str);
             }
             break;
         case VIR_CONF_LIST: {

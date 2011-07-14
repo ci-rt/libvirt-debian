@@ -586,6 +586,29 @@
       <ref name="address"/>
     </optional>
   </define>
+
+  <define name="lease">
+    <element name="lease">
+      <interleave>
+        <element name="lockspace">
+          <text/>
+        </element>
+        <element name="key">
+          <text/>
+        </element>
+        <element name="target">
+          <attribute name="path">
+            <text/>
+          </attribute>
+          <optional>
+            <attribute name="offset">
+              <ref name="unsignedInt"/>
+            </attribute>
+          </optional>
+        </element>
+      </interleave>
+    </element>
+  </define>
   <!--
       A disk description can be either of type file or block
       The name of the attribute on the source element depends on the type
@@ -1200,7 +1223,7 @@
               </optional>
               <optional>
                 <attribute name="listen">
-                  <ref name="addrIP"/>
+                  <ref name="addrIPorName"/>
                 </attribute>
               </optional>
             </group>
@@ -1220,6 +1243,11 @@
           <optional>
             <attribute name="keymap">
               <text/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="passwdValidTo">
+              <data type="dateTime"/>
             </attribute>
           </optional>
         </group>
@@ -1247,7 +1275,7 @@
           </optional>
           <optional>
             <attribute name="listen">
-              <ref name="addrIP"/>
+              <ref name="addrIPorName"/>
             </attribute>
           </optional>
           <optional>
@@ -1260,29 +1288,98 @@
               <text/>
             </attribute>
           </optional>
-          <zeroOrMore>
-            <element name="channel">
-              <attribute name="name">
-                <choice>
-                  <value>main</value>
-                  <value>display</value>
-                  <value>inputs</value>
-                  <value>cursor</value>
-                  <value>playback</value>
-                  <value>record</value>
-                  <value>smartcard</value>
-                </choice>
-              </attribute>
-              <attribute name="mode">
-                <choice>
-                  <value>any</value>
-                  <value>secure</value>
-                  <value>insecure</value>
-                </choice>
-              </attribute>
-              <empty/>
-            </element>
-          </zeroOrMore>
+          <optional>
+            <attribute name="passwdValidTo">
+              <data type="dateTime"/>
+            </attribute>
+          </optional>
+          <interleave>
+            <zeroOrMore>
+              <element name="channel">
+                <attribute name="name">
+                  <choice>
+                    <value>main</value>
+                    <value>display</value>
+                    <value>inputs</value>
+                    <value>cursor</value>
+                    <value>playback</value>
+                    <value>record</value>
+                    <value>smartcard</value>
+                  </choice>
+                </attribute>
+                <attribute name="mode">
+                  <choice>
+                    <value>any</value>
+                    <value>secure</value>
+                    <value>insecure</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            </zeroOrMore>
+            <optional>
+              <element name="image">
+                <attribute name="compression">
+                  <choice>
+                    <value>auto_glz</value>
+                    <value>auto_lz</value>
+                    <value>quic</value>
+                    <value>glz</value>
+                    <value>lz</value>
+                    <value>off</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="jpeg">
+                <attribute name="compression">
+                  <choice>
+                    <value>auto</value>
+                    <value>never</value>
+                    <value>always</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="zlib">
+                <attribute name="compression">
+                  <choice>
+                    <value>auto</value>
+                    <value>never</value>
+                    <value>always</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="playback">
+                <attribute name="compression">
+                  <choice>
+                    <value>on</value>
+                    <value>off</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="streaming">
+                <attribute name="mode">
+                  <choice>
+                    <value>filter</value>
+                    <value>all</value>
+                    <value>off</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            </optional>
+          </interleave>
         </group>
         <group>
           <attribute name="type">
@@ -1319,7 +1416,7 @@
           </optional>
           <optional>
             <attribute name="listen">
-              <ref name="addrIP"/>
+              <ref name="addrIPorName"/>
             </attribute>
           </optional>
         </group>
@@ -1888,6 +1985,7 @@
           <choice>
             <ref name="disk"/>
             <ref name="controller"/>
+            <ref name="lease"/>
             <ref name="filesystem"/>
             <ref name="interface"/>
             <ref name="input"/>
@@ -2299,7 +2397,7 @@
   </define>
   <define name="bridgeMode">
     <data type="string">
-      <param name="pattern">(vepa|bridge|private)</param>
+      <param name="pattern">(vepa|bridge|private|passthrough)</param>
     </data>
   </define>
   <define name="addrMAC">
@@ -2310,6 +2408,11 @@
   <define name="addrIP">
     <data type="string">
       <param name="pattern">([0-2]?[0-9]?[0-9]\.){3}[0-2]?[0-9]?[0-9]</param>
+    </data>
+  </define>
+  <define name="addrIPorName">
+    <data type="string">
+      <param name="pattern">(([0-2]?[0-9]?[0-9]\.){3}[0-2]?[0-9]?[0-9])|(([0-9a-fA-F]+|:)+[0-9a-fA-F]+)|([a-zA-Z0-9_\.\+\-]*)</param>
     </data>
   </define>
   <define name="usbId">

@@ -42,6 +42,8 @@
 #include "files.h"
 #include "configmake.h"
 
+#define VIR_FROM_THIS VIR_FROM_SECURITY
+
 static char *progname;
 
 typedef struct {
@@ -188,8 +190,9 @@ replace_string(char *orig, const size_t len, const char *oldstr,
 static int
 parserCommand(const char *profile_name, const char cmd)
 {
+    int result = -1;
     char flag[3];
-    char profile[PATH_MAX];
+    char *profile;
     int status;
     int ret;
 
@@ -200,15 +203,15 @@ parserCommand(const char *profile_name, const char cmd)
 
     snprintf(flag, 3, "-%c", cmd);
 
-    if (snprintf(profile, PATH_MAX, "%s/%s",
-                 APPARMOR_DIR "/libvirt", profile_name) > PATH_MAX - 1) {
+    if (virAsprintf(&profile, "%s/%s",
+                    APPARMOR_DIR "/libvirt", profile_name) < 0) {
         vah_error(NULL, 0, _("profile name exceeds maximum length"));
         return -1;
     }
 
     if (!virFileExists(profile)) {
         vah_error(NULL, 0, _("profile does not exist"));
-        return -1;
+        goto cleanup;
     } else {
         const char * const argv[] = {
             "/sbin/apparmor_parser", flag, profile, NULL
@@ -217,18 +220,23 @@ parserCommand(const char *profile_name, const char cmd)
             (WIFEXITED(status) && WEXITSTATUS(status) != 0)) {
             if (ret != 0) {
                 vah_error(NULL, 0, _("failed to run apparmor_parser"));
-                return -1;
+                goto cleanup;
             } else if (cmd == 'R' && WIFEXITED(status) &&
                        WEXITSTATUS(status) == 234) {
                 vah_warning(_("unable to unload already unloaded profile"));
             } else {
                 vah_error(NULL, 0, _("apparmor_parser exited with error"));
-                return -1;
+                goto cleanup;
             }
         }
     }
 
-    return 0;
+    result = 0;
+
+cleanup:
+    VIR_FREE(profile);
+
+    return result;
 }
 
 /*
@@ -239,7 +247,7 @@ update_include_file(const char *include_file, const char *included_files,
                     bool append)
 {
     int rc = -1;
-    int plen, flen;
+    int plen, flen = 0;
     int fd;
     char *pcontent = NULL;
     char *existing = NULL;
@@ -308,7 +316,7 @@ static int
 create_profile(const char *profile, const char *profile_name,
                const char *profile_files)
 {
-    char template[PATH_MAX];
+    char *template;
     char *tcontent = NULL;
     char *pcontent = NULL;
     char *replace_name = NULL;
@@ -324,8 +332,7 @@ create_profile(const char *profile, const char *profile_name,
         goto end;
     }
 
-    if (snprintf(template, PATH_MAX, "%s/TEMPLATE",
-                 APPARMOR_DIR "/libvirt") > PATH_MAX - 1) {
+    if (virAsprintf(&template, "%s/TEMPLATE", APPARMOR_DIR "/libvirt") < 0) {
         vah_error(NULL, 0, _("template name exceeds maximum length"));
         goto end;
     }
@@ -409,6 +416,7 @@ create_profile(const char *profile, const char *profile_name,
   clean_tcontent:
     VIR_FREE(tcontent);
   end:
+    VIR_FREE(template);
     return rc;
 }
 
@@ -586,29 +594,6 @@ valid_path(const char *path, const bool readonly)
     return 0;
 }
 
-/* Called from SAX on parsing errors in the XML. */
-static void
-catchXMLError (void *ctx, const char *msg ATTRIBUTE_UNUSED, ...)
-{
-    xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr) ctx;
-
-    if (ctxt) {
-        if (virGetLastError() == NULL &&
-            ctxt->lastError.level == XML_ERR_FATAL &&
-            ctxt->lastError.message != NULL) {
-                char *err_str = NULL;
-                if (virAsprintf(&err_str, "XML error at line %d: %s",
-                                ctxt->lastError.line,
-                                ctxt->lastError.message) == -1)
-                    vah_error(NULL, 0, _("could not get XML error"));
-                else {
-                    vah_error(NULL, 0, err_str);
-                    VIR_FREE(err_str);
-                }
-        }
-    }
-}
-
 static int
 verify_xpath_context(xmlXPathContextPtr ctxt)
 {
@@ -652,31 +637,15 @@ static int
 caps_mockup(vahControl * ctl, const char *xmlStr)
 {
     int rc = -1;
-    xmlParserCtxtPtr pctxt = NULL;
     xmlDocPtr xml = NULL;
     xmlXPathContextPtr ctxt = NULL;
     xmlNodePtr root;
 
-    /* Set up a parser context so we can catch the details of XML errors. */
-    pctxt = xmlNewParserCtxt ();
-    if (!pctxt || !pctxt->sax)
-        goto cleanup;
-    pctxt->sax->error = catchXMLError;
-
-    xml = xmlCtxtReadDoc (pctxt, BAD_CAST xmlStr, "domain.xml", NULL,
-                          XML_PARSE_NOENT | XML_PARSE_NONET |
-                          XML_PARSE_NOWARNING);
-    if (!xml) {
-        if (virGetLastError() == NULL)
-            vah_error(NULL, 0, _("failed to parse xml document"));
+    if (!(xml = virXMLParseString(xmlStr, "domain.xml"))) {
         goto cleanup;
     }
 
-    if ((root = xmlDocGetRootElement(xml)) == NULL) {
-        vah_error(NULL, 0, _("missing root element"));
-        goto cleanup;
-    }
-
+    root = xmlDocGetRootElement(xml);
     if (!xmlStrEqual(root->name, BAD_CAST "domain")) {
         vah_error(NULL, 0, _("incorrect root element"));
         goto cleanup;
@@ -719,7 +688,6 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
     rc = 0;
 
   cleanup:
-    xmlFreeParserCtxt (pctxt);
     xmlFreeDoc (xml);
     xmlXPathFreeContext(ctxt);
 
@@ -821,10 +789,10 @@ vah_add_file(virBufferPtr buf, const char *path, const char *perms)
         goto clean;
     }
 
-    virBufferVSprintf(buf, "  \"%s\" %s,\n", tmp, perms);
+    virBufferAsprintf(buf, "  \"%s\" %s,\n", tmp, perms);
     if (readonly) {
-        virBufferVSprintf(buf, "  # don't audit writes to readonly files\n");
-        virBufferVSprintf(buf, "  deny \"%s\" w,\n", tmp);
+        virBufferAsprintf(buf, "  # don't audit writes to readonly files\n");
+        virBufferAsprintf(buf, "  deny \"%s\" w,\n", tmp);
     }
 
   clean:
@@ -1134,8 +1102,8 @@ main(int argc, char **argv)
     vahControl _ctl, *ctl = &_ctl;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int rc = -1;
-    char profile[PATH_MAX];
-    char include_file[PATH_MAX];
+    char *profile = NULL;
+    char *include_file = NULL;
 
     if (setlocale(LC_ALL, "") == NULL ||
         bindtextdomain(PACKAGE, LOCALEDIR) == NULL ||
@@ -1164,13 +1132,13 @@ main(int argc, char **argv)
     if (vahParseArgv(ctl, argc, argv) != 0)
         vah_error(ctl, 1, _("could not parse arguments"));
 
-    if (snprintf(profile, PATH_MAX, "%s/%s",
-                 APPARMOR_DIR "/libvirt", ctl->uuid) > PATH_MAX - 1)
-        vah_error(ctl, 1, _("profile name exceeds maximum length"));
+    if (virAsprintf(&profile, "%s/%s",
+                    APPARMOR_DIR "/libvirt", ctl->uuid) < 0)
+        vah_error(ctl, 0, _("could not allocate memory"));
 
-    if (snprintf(include_file, PATH_MAX, "%s/%s.files",
-                 APPARMOR_DIR "/libvirt", ctl->uuid) > PATH_MAX - 1)
-        vah_error(ctl, 1, _("disk profile name exceeds maximum length"));
+    if (virAsprintf(&include_file, "%s/%s.files",
+                    APPARMOR_DIR "/libvirt", ctl->uuid) < 0)
+        vah_error(ctl, 0, _("could not allocate memory"));
 
     if (ctl->cmd == 'a')
         rc = parserLoad(ctl->uuid);
@@ -1191,14 +1159,14 @@ main(int argc, char **argv)
             if (vah_add_file(&buf, ctl->newfile, "rw") != 0)
                 goto clean;
         } else {
-            virBufferVSprintf(&buf, "  \"%s/log/libvirt/**/%s.log\" w,\n",
+            virBufferAsprintf(&buf, "  \"%s/log/libvirt/**/%s.log\" w,\n",
                               LOCALSTATEDIR, ctl->def->name);
-            virBufferVSprintf(&buf, "  \"%s/lib/libvirt/**/%s.monitor\" rw,\n",
+            virBufferAsprintf(&buf, "  \"%s/lib/libvirt/**/%s.monitor\" rw,\n",
                               LOCALSTATEDIR, ctl->def->name);
-            virBufferVSprintf(&buf, "  \"%s/run/libvirt/**/%s.pid\" rwk,\n",
+            virBufferAsprintf(&buf, "  \"%s/run/libvirt/**/%s.pid\" rwk,\n",
                               LOCALSTATEDIR, ctl->def->name);
             if (ctl->files)
-                virBufferVSprintf(&buf, "%s", ctl->files);
+                virBufferAdd(&buf, ctl->files, -1);
         }
 
         if (virBufferError(&buf)) {
@@ -1258,5 +1226,9 @@ main(int argc, char **argv)
     }
 
     vahDeinit(ctl);
+
+    VIR_FREE(profile);
+    VIR_FREE(include_file);
+
     exit(rc == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

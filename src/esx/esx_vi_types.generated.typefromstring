@@ -61,8 +61,11 @@
            else if (STREQ(type, "ElementDescription")) {
                return esxVI_Type_ElementDescription;
            }
-           else if (STREQ(type, "Event")) {
-               return esxVI_Type_Event;
+           else if (STREQ(type, "EntityEventArgument")) {
+               return esxVI_Type_EntityEventArgument;
+           }
+           else if (STREQ(type, "EventArgument")) {
+               return esxVI_Type_EventArgument;
            }
            else if (STREQ(type, "FileBackedVirtualDiskSpec")) {
                return esxVI_Type_FileBackedVirtualDiskSpec;
@@ -250,6 +253,9 @@
            else if (STREQ(type, "VmDiskFileQueryFlags")) {
                return esxVI_Type_VmDiskFileQueryFlags;
            }
+           else if (STREQ(type, "VmEventArgument")) {
+               return esxVI_Type_VmEventArgument;
+           }
            else if (STREQ(type, "VmLogFileInfo")) {
                return esxVI_Type_VmLogFileInfo;
            }
@@ -270,4 +276,17 @@
            }
            else if (STREQ(type, "VmfsDatastoreInfo")) {
                return esxVI_Type_VmfsDatastoreInfo;
+           }
+
+           else if (STREQ(type, "ComputeResource")) {
+               return esxVI_Type_ComputeResource;
+           }
+           else if (STREQ(type, "Datacenter")) {
+               return esxVI_Type_Datacenter;
+           }
+           else if (STREQ(type, "HostSystem")) {
+               return esxVI_Type_HostSystem;
+           }
+           else if (STREQ(type, "ManagedEntity")) {
+               return esxVI_Type_ManagedEntity;
            }

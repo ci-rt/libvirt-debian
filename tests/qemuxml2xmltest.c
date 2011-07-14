@@ -15,32 +15,27 @@
 # include "qemu/qemu_conf.h"
 # include "testutilsqemu.h"
 
-static char *progname;
-static char *abs_srcdir;
 static struct qemud_driver driver;
 
-# define MAX_FILE 4096
-
-
-static int testCompareXMLToXMLFiles(const char *inxml, const char *outxml) {
-    char inXmlData[MAX_FILE];
-    char *inXmlPtr = &(inXmlData[0]);
-    char outXmlData[MAX_FILE];
-    char *outXmlPtr = &(outXmlData[0]);
+static int
+testCompareXMLToXMLFiles(const char *inxml, const char *outxml)
+{
+    char *inXmlData = NULL;
+    char *outXmlData = NULL;
     char *actual = NULL;
     int ret = -1;
     virDomainDefPtr def = NULL;
 
-    if (virtTestLoadFile(inxml, &inXmlPtr, MAX_FILE) < 0)
+    if (virtTestLoadFile(inxml, &inXmlData) < 0)
         goto fail;
-    if (virtTestLoadFile(outxml, &outXmlPtr, MAX_FILE) < 0)
+    if (virtTestLoadFile(outxml, &outXmlData) < 0)
         goto fail;
 
     if (!(def = virDomainDefParseString(driver.caps, inXmlData,
                                           VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
 
-    if (!(actual = virDomainDefFormat(def, 0)))
+    if (!(actual = virDomainDefFormat(def, VIR_DOMAIN_XML_SECURE)))
         goto fail;
 
 
@@ -51,6 +46,8 @@ static int testCompareXMLToXMLFiles(const char *inxml, const char *outxml) {
 
     ret = 0;
  fail:
+    free(inXmlData);
+    free(outXmlData);
     free(actual);
     virDomainDefFree(def);
     return ret;
@@ -61,16 +58,19 @@ struct testInfo {
     int different;
 };
 
-static int testCompareXMLToXMLHelper(const void *data) {
+static int
+testCompareXMLToXMLHelper(const void *data)
+{
     const struct testInfo *info = data;
-    char xml_in[PATH_MAX];
-    char xml_out[PATH_MAX];
-    int ret;
+    char *xml_in = NULL;
+    char *xml_out = NULL;
+    int ret = -1;
 
-    snprintf(xml_in, PATH_MAX, "%s/qemuxml2argvdata/qemuxml2argv-%s.xml",
-             abs_srcdir, info->name);
-    snprintf(xml_out, PATH_MAX, "%s/qemuxml2xmloutdata/qemuxml2xmlout-%s.xml",
-             abs_srcdir, info->name);
+    if (virAsprintf(&xml_in, "%s/qemuxml2argvdata/qemuxml2argv-%s.xml",
+                    abs_srcdir, info->name) < 0 ||
+        virAsprintf(&xml_out, "%s/qemuxml2xmloutdata/qemuxml2xmlout-%s.xml",
+                    abs_srcdir, info->name) < 0)
+        goto cleanup;
 
     if (info->different) {
         ret = testCompareXMLToXMLFiles(xml_in, xml_out);
@@ -78,26 +78,17 @@ static int testCompareXMLToXMLHelper(const void *data) {
         ret = testCompareXMLToXMLFiles(xml_in, xml_in);
     }
 
+cleanup:
+    free(xml_in);
+    free(xml_out);
     return ret;
 }
 
 
 static int
-mymain(int argc, char **argv)
+mymain(void)
 {
     int ret = 0;
-    char cwd[PATH_MAX];
-
-    progname = argv[0];
-
-    if (argc > 1) {
-        fprintf(stderr, "Usage: %s\n", progname);
-        return (EXIT_FAILURE);
-    }
-
-    abs_srcdir = getenv("abs_srcdir");
-    if (!abs_srcdir)
-        abs_srcdir = getcwd(cwd, sizeof(cwd));
 
     if ((driver.caps = testQemuCapsInit()) == NULL)
         return (EXIT_FAILURE);
@@ -152,6 +143,8 @@ mymain(int argc, char **argv)
     DO_TEST("graphics-sdl");
     DO_TEST("graphics-sdl-fullscreen");
     DO_TEST("graphics-spice");
+    DO_TEST("graphics-spice-compression");
+    DO_TEST("graphics-spice-timeout");
     DO_TEST("graphics-spice-qxl-vga");
     DO_TEST("input-usbmouse");
     DO_TEST("input-usbtablet");
@@ -188,6 +181,7 @@ mymain(int argc, char **argv)
     DO_TEST("cputune");
 
     DO_TEST("smp");
+    DO_TEST("lease");
 
     /* These tests generate different XML */
     DO_TEST_DIFFERENT("balloon-device-auto");
@@ -195,6 +189,7 @@ mymain(int argc, char **argv)
     DO_TEST_DIFFERENT("console-compat-auto");
     DO_TEST_DIFFERENT("disk-scsi-device-auto");
     DO_TEST_DIFFERENT("console-virtio");
+    DO_TEST_DIFFERENT("serial-target-port-auto");
 
     virCapabilitiesFree(driver.caps);
 

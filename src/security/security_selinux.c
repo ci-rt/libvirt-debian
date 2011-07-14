@@ -95,8 +95,9 @@ SELinuxGenNewContext(const char *oldcontext, const char *mcs)
 {
     char *newcontext = NULL;
     char *scontext = strdup(oldcontext);
+    context_t con;
     if (!scontext) goto err;
-    context_t con = context_new(scontext);
+    con = context_new(scontext);
     if (!con) goto err;
     context_range_set(con, mcs);
     newcontext = strdup(context_str(con));
@@ -732,14 +733,19 @@ SELinuxSetSecurityChardevLabel(virDomainObjPtr vm,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
-        if ((virAsprintf(&in, "%s.in", dev->data.file.path) < 0) ||
-            (virAsprintf(&out, "%s.out", dev->data.file.path) < 0)) {
-            virReportOOMError();
-            goto done;
+        if (virFileExists(dev->data.file.path)) {
+            if (SELinuxSetFilecon(dev->data.file.path, secdef->imagelabel) < 0)
+                goto done;
+        } else {
+            if ((virAsprintf(&in, "%s.in", dev->data.file.path) < 0) ||
+                (virAsprintf(&out, "%s.out", dev->data.file.path) < 0)) {
+                virReportOOMError();
+                goto done;
+            }
+            if ((SELinuxSetFilecon(in, secdef->imagelabel) < 0) ||
+                (SELinuxSetFilecon(out, secdef->imagelabel) < 0))
+                goto done;
         }
-        if ((SELinuxSetFilecon(in, secdef->imagelabel) < 0) ||
-            (SELinuxSetFilecon(out, secdef->imagelabel) < 0))
-            goto done;
         ret = 0;
         break;
 

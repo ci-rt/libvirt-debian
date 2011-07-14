@@ -288,6 +288,13 @@
     &lt;min_guarantee&gt;65536&lt;/min_guarantee&gt;
   &lt;/memtune&gt;
   &lt;vcpu cpuset="1-4,^3,6" current="1"&gt;2&lt;/vcpu&gt;
+  &lt;cputune&gt;
+    &lt;vcpupin vcpu="0" cpuset="1-4,^2"/&gt;
+    &lt;vcpupin vcpu="1" cpuset="0,1"/&gt;
+    &lt;vcpupin vcpu="2" cpuset="2,3"/&gt;
+    &lt;vcpupin vcpu="3" cpuset="0,4"/&gt;
+    &lt;shares&gt;2048&lt;/shares&gt;
+  &lt;/cputune&gt;
   ...</pre>
 
     <dl>
@@ -351,21 +358,30 @@
         virtual CPUs should be enabled.
       </dd>
       <dt><code>cputune</code></dt>
-      <dd> The optional <code>cputune</code> element provides details
-        regarding the cpu tunable parameters for the domain.</dd>
+      <dd>
+         The optional <code>cputune</code> element provides details
+         regarding the cpu tunable parameters for the domain.
+         <span class="since">Since 0.9.0</span>
+      </dd>
       <dt><code>vcpupin</code></dt>
-      <dd> The optional <code>vcpupin</code> element specifies which of host
+      <dd>
+        The optional <code>vcpupin</code> element specifies which of host
         physical CPUS the domain VCPU will be pinned to. If this is ommited,
         each VCPU pinned to all the physical CPUS by default. It contains two
         required attributes, the attribute <code>vcpu</code> specifies vcpu id,
         and the attribute <code>cpuset</code> is same as attribute <code>cpuset</code>
-        of element <code>vcpu</code>. NB, Only qemu driver supports</dd>
+        of element <code>vcpu</code>. (NB: Only qemu driver support)
+        <span class="since">Since 0.9.0</span>
+       </dd>
       <dt><code>shares</code></dt>
-      <dd> The optional <code>shares</code> element specifies the proportional
+      <dd>
+        The optional <code>shares</code> element specifies the proportional
         weighted share for the domain. If this is ommited, it defaults to
         the OS provided defaults. NB, There is no unit for the value, it's a relative
         measure based on the setting of other VM, e.g. A VM configured with value
-        2048 will get twice as much CPU time as a VM configured with value 1024.</dd>
+        2048 will get twice as much CPU time as a VM configured with value 1024.
+        <span class="since">Since 0.9.0</span>
+      </dd>
     </dl>
 
     <h3><a name="elementsCPU">CPU model and topology</a></h3>
@@ -774,7 +790,7 @@
         <span class="since">Since 0.0.3; "device" attribute since 0.1.4;
         "network" attribute since 0.8.7</span></dd>
       <dt><code>source</code></dt>
-      <dd>If the disk <code>type</code> is "file", then the
+      <dd>If the disk <code>type</code> is "file", then
         the <code>file</code> attribute specifies the fully-qualified
         path to the file holding the disk. If the disk
         <code>type</code> is "block", then the <code>dev</code>
@@ -903,6 +919,113 @@
       </dd>
     </dl>
 
+    <h4><a name="elementsFilesystems">Filesystems</a></h4>
+
+    <p>
+      A directory on the host that can be accessed directly from the guest.
+      <span class="since">since 0.3.3, since 0.8.5 for QEMU/KVM</span>
+    </p>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;filesystem type='template'&gt;
+      &lt;source name='my-vm-template'/&gt;
+      &lt;target dir='/'/&gt;
+    &lt;/filesystem&gt;
+    &lt;filesystem type='mount' accessmode='passthrough'&gt;
+      &lt;source dir='/export/to/guest'/&gt;
+      &lt;target dir='/import/from/host'/&gt;
+      &lt;readonly/&gt;
+    &lt;/filesystem&gt;
+    ...
+  &lt;/devices&gt;
+  ...</pre>
+
+    <dl>
+      <dt><code>filesystem</code></dt>
+      <dd>
+
+      The filesystem attribute <code>type</code> specifies the type of the
+      <code>source</code>. The possible values are:
+
+        <dl>
+        <dt><code>type='mount'</code></dt>
+        <dd>
+        A host directory to mount in the guest. Used by LXC,
+        OpenVZ <span class="since">(since 0.6.2)</span>
+        and QEMU/KVM <span class="since">(since 0.8.5)</span>.
+        This is the default <code>type</code> if one is not specified.
+        </dd>
+        <dt><code>type='template'</code></dt>
+        <dd>
+        OpenVZ filesystem template. Only used by OpenVZ driver.
+        </dd>
+        <dt><code>type='file'</code></dt>
+        <dd>
+        Currently unused.
+        </dd>
+        <dt><code>type='block'</code></dt>
+        <dd>
+        Currently unused.
+        </dd>
+        </dl>
+
+      The filesystem block has an optional attribute <code>accessmode</code>
+      which specifies the security mode for accessing the source
+      <span class="since">(since 0.8.5)</span>. Currently this only works
+      with <code>type='mount'</code> for the QEMU/KVM driver. The possible
+      values are:
+
+        <dl>
+        <dt><code>accessmode='passthrough'</code></dt>
+        <dd>
+        The <code>source</code> is accessed with the permissions of the
+        user inside the guest. This is the default <code>accessmode</code> if
+        one is not specified.
+        <a href="http://lists.gnu.org/archive/html/qemu-devel/2010-05/msg02673.html">More info</a>
+        </dd>
+        <dt><code>accessmode='mapped'</code></dt>
+        <dd>
+        The <code>source</code> is accessed with the permissions of the
+        hypervisor (QEMU process).
+        <a href="http://lists.gnu.org/archive/html/qemu-devel/2010-05/msg02673.html">More info</a>
+        </dd>
+        <dt><code>accessmode='squash'</code></dt>
+        <dd>
+        Similar to 'passthrough', the exception is that failure of
+        privileged operations like 'chown' are ignored. This makes a
+        passthrough-like mode usable for people who run the hypervisor
+        as non-root.
+        <a href="http://lists.gnu.org/archive/html/qemu-devel/2010-09/msg00121.html">More info</a>
+        </dd>
+        </dl>
+
+      </dd>
+
+      <dt><code>source</code></dt>
+      <dd>
+        The resource on the host that is being accessed in the guest. The
+        <code>name</code> attribute must be used with
+        <code>type='template'</code>, and the <code>dir</code> attribute must
+        be used with <code>type='mount'</code>
+      </dd>
+
+      <dt><code>target</code></dt>
+      <dd>
+        Where the <code>source</code> can be accessed in the guest. For
+        most drivers this is an automatic mount point, but for QEMU/KVM
+        this is merely an arbitrary string tag that is exported to the
+        guest as a hint for where to mount.
+      </dd>
+
+      <dt><code>readonly</code></dt>
+      <dd>
+      An optional <code>readonly</code> attribute is available but currently
+      unused.
+      </dd>
+    </dl>
+
     <h4><a name="elementsControllers">Controllers</a></h4>
 
     <p>
@@ -948,6 +1071,45 @@
       sub-element.
     </p>
 
+    <h4><a name="elementsLease">Device leases</a></h4>
+
+    <p>
+      When using a lock manager, it may be desirable to record device leases
+      against a VM. The lock manager will ensure the VM won't start unless
+      the leases can be acquired.
+    </p>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    ...
+    &lt;lease&gt;
+      &lt;lockspace&gt;somearea&lt;/lockspace&gt;
+      &lt;key&gt;somekey&lt;/key&gt;
+      &lt;target path='/some/lease/path' offset='1024'/&gt;
+    &lt;/lease&gt;
+    ...
+  &lt;/devices&gt;
+  ...</pre>
+
+    <dl>
+      <dt>lockspace</dt>
+      <dd>This is an arbitrary string, identifying the lockspace
+        within which the key is held. Lock managers may impose
+        extra restrictions on the format, or length of the lockspace
+        name.</dd>
+      <dt>key</dt>
+      <dd>This is an arbitrary string, uniquely identifying the
+        lease to be acquired. Lock managers may impose extra
+        restrictions on the format, or length of the key.
+      </dd>
+      <dt>target</dt>
+      <dd>This is the fully qualified path of the file associated
+        with the lockspace. The offset specifies where the lease
+        is stored within the file. If the lock manager does not
+        require a offset, just pass 0.
+      </dd>
+    </dl>
 
     <h4><a name="elementsUSB">USB and PCI devices</a></h4>
 
@@ -1306,6 +1468,13 @@
       external router or gateway and that device sends them back to the
       host. This procedure is followed if either the source or destination
       device is in <code>private</code> mode.</dd>
+      <dt><code>passthrough</code></dt>
+      <dd>This feature attaches a virtual function of a SRIOV capable
+      NIC directly to a VM without losing the migration capability.
+      All packets are sent to the VF/IF of the configured network device.
+      Depending on the capabilities of the device additional prerequisites or
+      limitations may apply; for example, on Linux this requires
+      kernel 2.6.38 or newer. <span class="since">Since 0.9.2</span></dd>
     </dl>
 
 <pre>
@@ -1333,6 +1502,10 @@
       the Virtual Station Interface (VSI) represents the virtual interface
       of a virtual machine.
     </p>
+    <p>
+      Please note that IEEE 802.1Qbg requires a non-zero value for the
+      VLAN ID.
+    </p>
     <dl>
       <dt><code>managerid</code></dt>
       <dd>The VSI Manager ID identifies the database containing the VSI type
@@ -1359,7 +1532,7 @@
     &lt;interface type='direct'/&gt;
     ...
     &lt;interface type='direct'&gt;
-      &lt;source dev='eth0' mode='vepa'/&gt;
+      &lt;source dev='eth0.2' mode='vepa'/&gt;
       &lt;virtualport type="802.1Qbg"&gt;
         &lt;parameters managerid="11" typeid="1193047" typeidversion="2" instanceid="09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f"/&gt;
       &lt;/virtualport&gt;
@@ -1663,7 +1836,32 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;graphics type='spice' port='-1' tlsPort='-1' autoport='yes'&gt;
     &lt;channel name='main' mode='secure'/&gt;
     &lt;channel name='record' mode='insecure'/&gt;
+    &lt;image compression='auto_glz'/&gt;
+    &lt;streaming mode='filter'/&gt;
   &lt;/graphics&gt;</pre>
+            <p>
+              Spice supports variable compression settings for audio,
+              images and streaming, <span class="since">since
+              0.9.1</span>.  These settings are accessible via
+              the <code>compression</code> attribute in all following
+              elements: <code>image</code> to set image compression
+              (accepts <code>auto_glz</code>, <code>auto_lz</code>,
+              <code>quic</code>, <code>glz</code>, <code>lz</code>,
+              <code>off</code>), <code>jpeg</code> for JPEG
+              compression for images over wan
+              (accepts <code>auto</code>, <code>never</code>,
+              <code>always</code>), <code>zlib</code> for configuring
+              wan image compression (accepts <code>auto</code>,
+              <code>never</code>, <code>always</code>)
+              and <code>playback</code> for enabling audio stream
+              compression (accepts <code>on</code> or <code>off</code>).
+            </p>
+            <p>
+              Streaming mode is set by the <code>streaming</code>
+              element, settings it's <code>mode</code> attribute to one
+              of <code>filter</code>, <code>all</code>
+              or <code>off</code>, <span class="since">since 0.9.2</span>.
+            </p>
           </dd>
           <dt><code>"rdp"</code></dt>
           <dd>
@@ -1807,7 +2005,7 @@ qemu-kvm -net nic,model=? /dev/null
 
     <p>
       <code>target</code> can have a <code>port</code> attribute, which
-      specifies the port number. Ports are numbered starting from 1. There are
+      specifies the port number. Ports are numbered starting from 0. There are
       usually 0, 1 or 2 parallel ports.
     </p>
 
@@ -1825,7 +2023,7 @@ qemu-kvm -net nic,model=? /dev/null
 
     <p>
       <code>target</code> can have a <code>port</code> attribute, which
-      specifies the port number. Ports are numbered starting from 1. There are
+      specifies the port number. Ports are numbered starting from 0. There are
       usually 0, 1 or 2 serial ports.
     </p>
 

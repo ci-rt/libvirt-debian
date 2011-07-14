@@ -58,19 +58,10 @@ int virSetCloseExec(int fd) ATTRIBUTE_RETURN_CHECK;
  * after fork() but before execve() */
 typedef int (*virExecHook)(void *data);
 
-int virExecDaemonize(const char *const*argv,
-                     const char *const*envp,
-                     const fd_set *keepfd,
-                     pid_t *retpid,
-                     int infd, int *outfd, int *errfd,
-                     int flags,
-                     virExecHook hook,
-                     void *data,
-                     char *pidfile) ATTRIBUTE_RETURN_CHECK;
 int virExecWithHook(const char *const*argv,
                     const char *const*envp,
                     const fd_set *keepfd,
-                    int *retpid,
+                    pid_t *retpid,
                     int infd,
                     int *outfd,
                     int *errfd,
@@ -87,9 +78,6 @@ int virExec(const char *const*argv,
             int *errfd,
             int flags) ATTRIBUTE_RETURN_CHECK;
 int virRun(const char *const*argv, int *status) ATTRIBUTE_RETURN_CHECK;
-int virRunWithHook(const char *const*argv,
-                   virExecHook hook, void *data,
-                   int *status) ATTRIBUTE_RETURN_CHECK;
 int virPipeReadUntilEOF(int outfd, int errfd,
                         char **outbuf, char **errbuf);
 int virFork(pid_t *pid);
@@ -146,11 +134,9 @@ int virDirCreate(const char *path, mode_t mode, uid_t uid, gid_t gid,
                  unsigned int flags) ATTRIBUTE_RETURN_CHECK;
 int virFileMakePath(const char *path) ATTRIBUTE_RETURN_CHECK;
 
-int virFileBuildPath(const char *dir,
-                     const char *name,
-                     const char *ext,
-                     char *buf,
-                     unsigned int buflen) ATTRIBUTE_RETURN_CHECK;
+char *virFileBuildPath(const char *dir,
+                       const char *name,
+                       const char *ext) ATTRIBUTE_RETURN_CHECK;
 
 int virFileAbsPath(const char *path,
                    char **abspath) ATTRIBUTE_RETURN_CHECK;
@@ -301,4 +287,8 @@ int virBuildPathInternal(char **path, ...) ATTRIBUTE_SENTINEL;
 char *virTimestamp(void);
 
 bool virIsDevMapperDevice(const char *devname) ATTRIBUTE_NONNULL(1);
+
+int virEmitXMLWarning(int fd,
+                      const char *name,
+                      const char *cmd) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
 #endif /* __VIR_UTIL_H__ */

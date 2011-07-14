@@ -1,0 +1,81 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 12 Jul 2011 15:03:09 +0200
+Subject: Fix integer overflow in VirDomainGetVcpus
+
+Patch taken from upsteam. (CVE-2011-2511)
+
+Closes: #633630
+---
+ daemon/remote.c            |    4 +++-
+ src/libvirt.c              |    5 +++--
+ src/remote/remote_driver.c |    4 +++-
+ 3 files changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/daemon/remote.c b/daemon/remote.c
+index 49058f2..a7a2cca 100644
+--- a/daemon/remote.c
++++ b/daemon/remote.c
+@@ -61,6 +61,7 @@
+ #include "network.h"
+ #include "libvirt/libvirt-qemu.h"
+ #include "command.h"
++#include "intprops.h"
+ 
+ #define VIR_FROM_THIS VIR_FROM_REMOTE
+ 
+@@ -1074,7 +1075,8 @@ remoteDispatchDomainGetVcpus(struct qemud_server *server ATTRIBUTE_UNUSED,
+         goto cleanup;
+     }
+ 
+-    if (args->maxinfo * args->maplen > REMOTE_CPUMAPS_MAX) {
++    if (INT_MULTIPLY_OVERFLOW(args->maxinfo, args->maplen) ||
++        args->maxinfo * args->maplen > REMOTE_CPUMAPS_MAX) {
+         virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("maxinfo * maplen > REMOTE_CPUMAPS_MAX"));
+         goto cleanup;
+     }
+diff --git a/src/libvirt.c b/src/libvirt.c
+index cbe1926..4617cae 100644
+--- a/src/libvirt.c
++++ b/src/libvirt.c
+@@ -39,6 +39,7 @@
+ #include "util.h"
+ #include "memory.h"
+ #include "configmake.h"
++#include "intprops.h"
+ 
+ #ifndef WITH_DRIVER_MODULES
+ # ifdef WITH_TEST
+@@ -6805,8 +6806,8 @@ virDomainGetVcpus(virDomainPtr domain, virVcpuInfoPtr info, int maxinfo,
+ 
+     /* Ensure that domainGetVcpus (aka remoteDomainGetVcpus) does not
+        try to memcpy anything into a NULL pointer.  */
+-    if ((cpumaps == NULL && maplen != 0)
+-        || (cpumaps && maplen <= 0)) {
++    if (!cpumaps ? maplen != 0
++        : (maplen <= 0 || INT_MULTIPLY_OVERFLOW(maxinfo, maplen))) {
+         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+         goto error;
+     }
+diff --git a/src/remote/remote_driver.c b/src/remote/remote_driver.c
+index 3058381..f55e3a9 100644
+--- a/src/remote/remote_driver.c
++++ b/src/remote/remote_driver.c
+@@ -84,6 +84,7 @@
+ #include "ignore-value.h"
+ #include "files.h"
+ #include "command.h"
++#include "intprops.h"
+ 
+ #define VIR_FROM_THIS VIR_FROM_REMOTE
+ 
+@@ -2056,7 +2057,8 @@ remoteDomainGetVcpus (virDomainPtr domain,
+                     maxinfo, REMOTE_VCPUINFO_MAX);
+         goto done;
+     }
+-    if (maxinfo * maplen > REMOTE_CPUMAPS_MAX) {
++    if (INT_MULTIPLY_OVERFLOW(maxinfo, maplen) ||
++        maxinfo * maplen > REMOTE_CPUMAPS_MAX) {
+         remoteError(VIR_ERR_RPC,
+                     _("vCPU map buffer length exceeds maximum: %d > %d"),
+                     maxinfo * maplen, REMOTE_CPUMAPS_MAX);
+-- 

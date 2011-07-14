@@ -323,12 +323,12 @@ static int udevGenerateDeviceName(struct udev_device *device,
     int ret = 0, i = 0;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    virBufferVSprintf(&buf, "%s_%s",
+    virBufferAsprintf(&buf, "%s_%s",
                       udev_device_get_subsystem(device),
                       udev_device_get_sysname(device));
 
     if (s != NULL) {
-        virBufferVSprintf(&buf, "_%s", s);
+        virBufferAsprintf(&buf, "_%s", s);
     }
 
     if (virBufferError(&buf)) {
@@ -415,6 +415,7 @@ static int udevProcessPCI(struct udev_device *device,
     const char *syspath = NULL;
     union _virNodeDevCapData *data = &def->caps->data;
     int ret = -1;
+    char *p;
 
     syspath = udev_device_get_syspath(device);
 
@@ -425,7 +426,7 @@ static int udevProcessPCI(struct udev_device *device,
         goto out;
     }
 
-    char *p = strrchr(syspath, '/');
+    p = strrchr(syspath, '/');
 
     if ((p == NULL) || (udevStrToLong_ui(p+1,
                                          &p,
@@ -1201,7 +1202,6 @@ static int udevRemoveOneDevice(struct udev_device *device)
     int ret = 0;
 
     name = udev_device_get_syspath(device);
-    nodeDeviceLock(driverState);
     dev = virNodeDeviceFindBySysfsPath(&driverState->devs, name);
 
     if (dev != NULL) {
@@ -1213,7 +1213,6 @@ static int udevRemoveOneDevice(struct udev_device *device)
                   name);
         ret = -1;
     }
-    nodeDeviceUnlock(driverState);
 
     return ret;
 }
@@ -1237,8 +1236,10 @@ static int udevSetParent(struct udev_device *device,
 
         parent_sysfs_path = udev_device_get_syspath(parent_device);
         if (parent_sysfs_path == NULL) {
-            VIR_DEBUG("Could not get syspath for parent of '%s'",
-                      udev_device_get_syspath(parent_device));
+            virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
+                                     _("Could not get syspath for parent of '%s'"),
+                                     udev_device_get_syspath(parent_device));
+            goto out;
         }
 
         dev = virNodeDeviceFindBySysfsPath(&driverState->devs,
@@ -1315,9 +1316,7 @@ static int udevAddOneDevice(struct udev_device *device)
 
     /* If this is a device change, the old definition will be freed
      * and the current definition will take its place. */
-    nodeDeviceLock(driverState);
     dev = virNodeDeviceAssignDef(&driverState->devs, def);
-    nodeDeviceUnlock(driverState);
 
     if (dev == NULL) {
         VIR_ERROR(_("Failed to create device for '%s'"), def->name);
@@ -1424,8 +1423,12 @@ static int udevDeviceMonitorShutdown(void)
         ret = -1;
     }
 
+#if defined __s390__ || defined __s390x_
+    /* Nothing was initialized, nothing needs to be cleaned up */
+#else
     /* pci_system_cleanup returns void */
     pci_system_cleanup();
+#endif
 
     return ret;
 }
@@ -1441,6 +1444,7 @@ static void udevEventHandleCallback(int watch ATTRIBUTE_UNUSED,
     const char *action = NULL;
     int udev_fd = -1;
 
+    nodeDeviceLock(driverState);
     udev_fd = udev_monitor_get_fd(udev_monitor);
     if (fd != udev_fd) {
         VIR_ERROR(_("File descriptor returned by udev %d does not "
@@ -1450,7 +1454,7 @@ static void udevEventHandleCallback(int watch ATTRIBUTE_UNUSED,
 
     device = udev_monitor_receive_device(udev_monitor);
     if (device == NULL) {
-        VIR_ERROR0(_("udev_monitor_receive_device returned NULL"));
+        VIR_ERROR(_("udev_monitor_receive_device returned NULL"));
         goto out;
     }
 
@@ -1469,6 +1473,7 @@ static void udevEventHandleCallback(int watch ATTRIBUTE_UNUSED,
 
 out:
     udev_device_unref(device);
+    nodeDeviceUnlock(driverState);
     return;
 }
 
@@ -1594,6 +1599,11 @@ static int udevDeviceMonitorStartup(int privileged)
     udevPrivate *priv = NULL;
     struct udev *udev = NULL;
     int ret = 0;
+
+#if defined __s390__ || defined __s390x_
+    /* On s390(x) system there is no PCI bus.
+     * Therefore there is nothing to initialize here. */
+#else
     int pciret;
 
     if ((pciret = pci_system_init()) != 0) {
@@ -1608,6 +1618,7 @@ static int udevDeviceMonitorStartup(int privileged)
             goto out;
         }
     }
+#endif
 
     if (VIR_ALLOC(priv) < 0) {
         virReportOOMError();
@@ -1625,7 +1636,7 @@ static int udevDeviceMonitorStartup(int privileged)
     }
 
     if (virMutexInit(&driverState->lock) < 0) {
-        VIR_ERROR0(_("Failed to initialize mutex for driverState"));
+        VIR_ERROR(_("Failed to initialize mutex for driverState"));
         VIR_FREE(priv);
         VIR_FREE(driverState);
         ret = -1;
@@ -1646,10 +1657,9 @@ static int udevDeviceMonitorStartup(int privileged)
     priv->udev_monitor = udev_monitor_new_from_netlink(udev, "udev");
     if (priv->udev_monitor == NULL) {
         VIR_FREE(priv);
-        nodeDeviceUnlock(driverState);
-        VIR_ERROR0(_("udev_monitor_new_from_netlink returned NULL"));
+        VIR_ERROR(_("udev_monitor_new_from_netlink returned NULL"));
         ret = -1;
-        goto out;
+        goto out_unlock;
     }
 
     udev_monitor_enable_receiving(priv->udev_monitor);
@@ -1669,25 +1679,25 @@ static int udevDeviceMonitorStartup(int privileged)
                                     VIR_EVENT_HANDLE_READABLE,
                                     udevEventHandleCallback, NULL, NULL);
     if (priv->watch == -1) {
-        nodeDeviceUnlock(driverState);
         ret = -1;
-        goto out;
+        goto out_unlock;
     }
-
-    nodeDeviceUnlock(driverState);
 
     /* Create a fictional 'computer' device to root the device tree. */
     if (udevSetupSystemDev() != 0) {
         ret = -1;
-        goto out;
+        goto out_unlock;
     }
 
     /* Populate with known devices */
 
     if (udevEnumerateDevices(udev) != 0) {
         ret = -1;
-        goto out;
+        goto out_unlock;
     }
+
+out_unlock:
+    nodeDeviceUnlock(driverState);
 
 out:
     if (ret == -1) {
@@ -1745,7 +1755,7 @@ static virStateDriver udevStateDriver = {
 
 int udevNodeRegister(void)
 {
-    VIR_DEBUG0("Registering udev node device backend");
+    VIR_DEBUG("Registering udev node device backend");
 
     registerCommonNodeFuncs(&udevDeviceMonitor);
     if (virRegisterDeviceMonitor(&udevDeviceMonitor) < 0) {

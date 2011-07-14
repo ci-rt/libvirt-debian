@@ -98,6 +98,13 @@ void virCommandDaemonize(virCommandPtr cmd);
 void virCommandNonblockingFDs(virCommandPtr cmd);
 
 /*
+ * Add an environment variable to the child created by a printf-style format
+ */
+void
+virCommandAddEnvFormat(virCommandPtr cmd, const char *format, ...)
+                       ATTRIBUTE_NONNULL(2) ATTRIBUTE_FMT_PRINTF(2, 3);
+
+/*
  * Add an environment variable to the child
  * using separate name & value strings
  */
@@ -249,6 +256,16 @@ char *virCommandToString(virCommandPtr cmd) ATTRIBUTE_RETURN_CHECK;
 char *virCommandTranslateStatus(int exitstatus) ATTRIBUTE_RETURN_CHECK;
 
 /*
+ * Exec the command, replacing the current process. Meant to be called
+ * after already forking / cloning, so does not attempt to daemonize or
+ * preserve any FDs.
+ *
+ * Returns -1 on any error executing the command.
+ * Will not return on success.
+ */
+int virCommandExec(virCommandPtr cmd) ATTRIBUTE_RETURN_CHECK;
+
+/*
  * Run the command and wait for completion.
  * Returns -1 on any error executing the
  * command. Returns 0 if the command executed,
@@ -273,6 +290,28 @@ int virCommandRunAsync(virCommandPtr cmd,
  */
 int virCommandWait(virCommandPtr cmd,
                    int *exitstatus) ATTRIBUTE_RETURN_CHECK;
+
+/*
+ * Request that the child perform a handshake with
+ * the parent when the hook function has completed
+ * execution. The child will not exec() until the
+ * parent has notified
+ */
+void virCommandRequireHandshake(virCommandPtr cmd);
+
+/*
+ * Wait for the child to complete execution of its
+ * hook function
+ */
+int virCommandHandshakeWait(virCommandPtr cmd)
+    ATTRIBUTE_RETURN_CHECK;
+
+/*
+ * Notify the child that it is OK to exec() the
+ * real binary now
+ */
+int virCommandHandshakeNotify(virCommandPtr cmd)
+    ATTRIBUTE_RETURN_CHECK;
 
 /*
  * Abort an async command if it is running, without issuing

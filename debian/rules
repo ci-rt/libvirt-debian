@@ -2,9 +2,9 @@
 
 DEB_PYTHON_SYSTEM = pycentral
 DEB_BUILD_PARALLEL = yes
-DEB_MAKE_CHECK_TARGET = check
 
 ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
+  DEB_MAKE_CHECK_TARGET = check
   WITH_XEN = --with-xen
   WITH_VBOX = --with-vbox
 else
@@ -22,6 +22,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_MACVTAP        = --with-macvtap
   WITH_NETWORK        = --with-network
   WITH_QEMU           = --with-qemu
+  WITH_OPENVZ         = --with-openvz
   ifneq (,$(findstring $(DEB_HOST_ARCH), ia64))
       WITH_LXC        = --without-lxc
   else
@@ -49,7 +50,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	$(WITH_QEMU)		 \
 	--with-qemu-user=libvirt-qemu  \
 	--with-qemu-group=kvm    \
-	--with-openvz            \
+        $(WITH_OPENVZ)		 \
 	--with-avahi             \
 	--with-sasl              \
 	$(WITH_POLKIT)		 \

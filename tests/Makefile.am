@@ -77,7 +77,8 @@ EXTRA_DIST =		\
 
 check_PROGRAMS = virshtest conftest sockettest \
 	nodeinfotest qparamtest virbuftest \
-	commandtest commandhelper seclabeltest
+	commandtest commandhelper seclabeltest \
+	hashtest
 
 if WITH_XEN
 check_PROGRAMS += xml2sexprtest sexpr2xmltest \
@@ -88,6 +89,10 @@ endif
 endif
 if WITH_QEMU
 check_PROGRAMS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
+endif
+
+if WITH_OPENVZ
+check_PROGRAMS += openvzutilstest
 endif
 
 if WITH_ESX
@@ -140,6 +145,25 @@ test_scripts +=				\
 	undefine			\
 	vcpupin				\
 	virsh-all			\
+	virsh-optparse			\
+	virsh-schedinfo			\
+	virsh-synopsis
+else
+EXTRA_DIST += 				\
+	test_conf.sh			\
+	cpuset				\
+	daemon-conf			\
+	define-dev-segfault		\
+	int-overflow			\
+	libvirtd-fail			\
+	libvirtd-pool			\
+	read-bufsiz			\
+	read-non-seekable		\
+	start				\
+	undefine			\
+	vcpupin				\
+	virsh-all			\
+	virsh-optparse			\
 	virsh-schedinfo			\
 	virsh-synopsis
 endif
@@ -159,6 +183,7 @@ TESTS = virshtest \
 	sockettest \
 	commandtest \
 	seclabeltest \
+	hashtest \
 	$(test_scripts)
 
 if WITH_XEN
@@ -174,6 +199,10 @@ endif
 if WITH_QEMU
 TESTS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
 TESTS += nwfilterxml2xmltest
+endif
+
+if WITH_OPENVZ
+TESTS += openvzutilstest
 endif
 
 if WITH_ESX
@@ -280,6 +309,16 @@ else
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c qemuhelptest.c testutilsqemu.c testutilsqemu.h
 endif
 
+if WITH_OPENVZ
+openvzutilstest_SOURCES = \
+	openvzutilstest.c \
+	testutils.c testutils.h
+openvzutilstest_LDADD = ../src/libvirt_driver_openvz.la $(LDADDS)
+else
+EXTRA_DIST += openvzutilstest.c
+endif
+EXTRA_DIST += openvzutilstest.conf
+
 if WITH_ESX
 esxutilstest_SOURCES = \
 	esxutilstest.c \
@@ -372,6 +411,10 @@ qparamtest_LDADD = $(LDADDS)
 virbuftest_SOURCES = \
 	virbuftest.c testutils.h testutils.c
 virbuftest_LDADD = $(LDADDS)
+
+hashtest_SOURCES = \
+	hashtest.c hashdata.h testutils.h testutils.c
+hashtest_LDADD = $(LDADDS)
 
 if WITH_LIBVIRTD
 eventtest_SOURCES = \

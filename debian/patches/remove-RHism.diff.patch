@@ -7,7 +7,7 @@ Subject: remove-RHism.diff
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index d332676..ca43498 100644
+index 7ed3003..73dd148 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
 @@ -97,7 +97,7 @@ Output elapsed time information for each command.

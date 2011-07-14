@@ -361,7 +361,7 @@ ebtablesHandleEthHdr(virBufferPtr buf,
                           &ethHdr->dataSrcMACAddr))
             goto err_exit;
 
-        virBufferVSprintf(buf,
+        virBufferAsprintf(buf,
                       " %s %s %s",
                       reverse ? "-d" : "-s",
                       ENTRY_GET_NEG_SIGN(&ethHdr->dataSrcMACAddr),
@@ -373,7 +373,7 @@ ebtablesHandleEthHdr(virBufferPtr buf,
                               &ethHdr->dataSrcMACMask))
                 goto err_exit;
 
-            virBufferVSprintf(buf,
+            virBufferAsprintf(buf,
                               "/%s",
                               macaddr);
         }
@@ -385,7 +385,7 @@ ebtablesHandleEthHdr(virBufferPtr buf,
                           &ethHdr->dataDstMACAddr))
             goto err_exit;
 
-        virBufferVSprintf(buf,
+        virBufferAsprintf(buf,
                       " %s %s %s",
                       reverse ? "-s" : "-d",
                       ENTRY_GET_NEG_SIGN(&ethHdr->dataDstMACAddr),
@@ -397,7 +397,7 @@ ebtablesHandleEthHdr(virBufferPtr buf,
                               &ethHdr->dataDstMACMask))
                 goto err_exit;
 
-            virBufferVSprintf(buf,
+            virBufferAsprintf(buf,
                               "/%s",
                               macaddr);
         }
@@ -421,7 +421,7 @@ static int iptablesLinkIPTablesBaseChain(const char *iptables_cmd,
                                          unsigned int pos,
                                          int stopOnError)
 {
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       "res=$(%s -L %s -n --line-number | "
                           "%s \" %s \")\n"
                       "if [ $? -ne 0 ]; then\n"
@@ -459,7 +459,7 @@ static int iptablesLinkIPTablesBaseChain(const char *iptables_cmd,
 static int iptablesCreateBaseChains(const char *iptables_cmd,
                                     virBufferPtr buf)
 {
-    virBufferVSprintf(buf,"%s -N " VIRT_IN_CHAIN      CMD_SEPARATOR
+    virBufferAsprintf(buf,"%s -N " VIRT_IN_CHAIN      CMD_SEPARATOR
                           "%s -N " VIRT_OUT_CHAIN     CMD_SEPARATOR
                           "%s -N " VIRT_IN_POST_CHAIN CMD_SEPARATOR
                           "%s -N " HOST_IN_CHAIN      CMD_SEPARATOR,
@@ -496,7 +496,7 @@ iptablesCreateTmpRootChain(const char *iptables_cmd,
 
     PRINT_IPT_ROOT_CHAIN(chain, chainPrefix, ifname);
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       CMD_DEF("%s -N %s") CMD_SEPARATOR
                       CMD_EXEC
                       "%s",
@@ -541,7 +541,7 @@ _iptablesRemoveRootChain(const char *iptables_cmd,
 
     PRINT_IPT_ROOT_CHAIN(chain, chainPrefix, ifname);
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       "%s -F %s" CMD_SEPARATOR
                       "%s -X %s" CMD_SEPARATOR,
                       iptables_cmd, chain,
@@ -618,7 +618,7 @@ iptablesLinkTmpRootChain(const char *iptables_cmd,
 
     PRINT_IPT_ROOT_CHAIN(chain, chainPrefix, ifname);
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       CMD_DEF("%s -A %s "
                               "%s %s -g %s") CMD_SEPARATOR
                       CMD_EXEC
@@ -652,7 +652,7 @@ iptablesSetupVirtInPost(const char *iptables_cmd,
                         const char *ifname)
 {
     const char *match = MATCH_PHYSDEV_IN;
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       "res=$(%s -n -L " VIRT_IN_POST_CHAIN
                       " | grep \"\\%s %s\")\n"
                       "if [ \"${res}\" = \"\" ]; then "
@@ -677,7 +677,7 @@ iptablesClearVirtInPost(const char *iptables_cmd,
                         const char *ifname)
 {
     const char *match = MATCH_PHYSDEV_IN;
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       "%s -D " VIRT_IN_POST_CHAIN
                       " %s %s -j ACCEPT" CMD_SEPARATOR,
                       iptables_cmd,
@@ -708,7 +708,7 @@ _iptablesUnlinkRootChain(const char *iptables_cmd,
 
     PRINT_IPT_ROOT_CHAIN(chain, chainPrefix, ifname);
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       "%s -D %s "
                       "%s %s -g %s" CMD_SEPARATOR,
                       iptables_cmd,
@@ -790,7 +790,7 @@ iptablesRenameTmpRootChain(const char *iptables_cmd,
     PRINT_IPT_ROOT_CHAIN(tmpchain, tmpChainPrefix, ifname);
     PRINT_IPT_ROOT_CHAIN(   chain,    chainPrefix, ifname);
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       "%s -E %s %s" CMD_SEPARATOR,
                       iptables_cmd,
                       tmpchain,
@@ -819,8 +819,8 @@ iptablesInstCommand(virBufferPtr buf,
     char position[10] = { 0 };
     if (pos >= 0)
         snprintf(position, sizeof(position), "%d", pos);
-    virBufferVSprintf(buf, templ, cmd, position);
-    virBufferVSprintf(buf, CMD_SEPARATOR "%s",
+    virBufferAsprintf(buf, templ, cmd, position);
+    virBufferAsprintf(buf, CMD_SEPARATOR "%s",
                       CMD_STOPONERR(stopOnError));
 }
 
@@ -846,7 +846,7 @@ iptablesHandleSrcMacAddr(virBufferPtr buf,
                           srcMacAddr))
             goto err_exit;
 
-        virBufferVSprintf(buf,
+        virBufferAsprintf(buf,
                           " -m mac %s --mac-source %s",
                           ENTRY_GET_NEG_SIGN(srcMacAddr),
                           macaddr);
@@ -890,7 +890,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
                           &ipHdr->dataSrcIPAddr))
             goto err_exit;
 
-        virBufferVSprintf(buf,
+        virBufferAsprintf(buf,
                           " %s %s %s",
                           ENTRY_GET_NEG_SIGN(&ipHdr->dataSrcIPAddr),
                           src,
@@ -903,7 +903,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
                               &ipHdr->dataSrcIPMask))
                 goto err_exit;
 
-            virBufferVSprintf(buf,
+            virBufferAsprintf(buf,
                               "/%s",
                               number);
         }
@@ -914,7 +914,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
                           &ipHdr->dataSrcIPFrom))
             goto err_exit;
 
-        virBufferVSprintf(buf,
+        virBufferAsprintf(buf,
                           " -m iprange %s %s %s",
                           ENTRY_GET_NEG_SIGN(&ipHdr->dataSrcIPFrom),
                           srcrange,
@@ -927,7 +927,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
                               &ipHdr->dataSrcIPTo))
                 goto err_exit;
 
-            virBufferVSprintf(buf,
+            virBufferAsprintf(buf,
                               "-%s",
                               ipaddr);
         }
@@ -940,7 +940,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
                           &ipHdr->dataDstIPAddr))
            goto err_exit;
 
-        virBufferVSprintf(buf,
+        virBufferAsprintf(buf,
                           " %s %s %s",
                           ENTRY_GET_NEG_SIGN(&ipHdr->dataDstIPAddr),
                           dst,
@@ -953,7 +953,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
                               &ipHdr->dataDstIPMask))
                 goto err_exit;
 
-            virBufferVSprintf(buf,
+            virBufferAsprintf(buf,
                               "/%s",
                               number);
 
@@ -965,7 +965,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
                           &ipHdr->dataDstIPFrom))
             goto err_exit;
 
-        virBufferVSprintf(buf,
+        virBufferAsprintf(buf,
                           " -m iprange %s %s %s",
                           ENTRY_GET_NEG_SIGN(&ipHdr->dataDstIPFrom),
                           dstrange,
@@ -978,7 +978,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
                               &ipHdr->dataDstIPTo))
                 goto err_exit;
 
-            virBufferVSprintf(buf,
+            virBufferAsprintf(buf,
                               "-%s",
                               ipaddr);
         }
@@ -991,7 +991,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
                           &ipHdr->dataDSCP))
            goto err_exit;
 
-        virBufferVSprintf(buf,
+        virBufferAsprintf(buf,
                           " -m dscp %s --dscp %s",
                           ENTRY_GET_NEG_SIGN(&ipHdr->dataDSCP),
                           number);
@@ -1009,7 +1009,7 @@ iptablesHandleIpHdr(virBufferPtr buf,
 
             /* place connlimit after potential -m state --state ...
                since this is the most useful order */
-            virBufferVSprintf(afterStateMatch,
+            virBufferAsprintf(afterStateMatch,
                               " -m connlimit %s --connlimit-above %s",
                               ENTRY_GET_NEG_SIGN(&ipHdr->dataConnlimitAbove),
                               number);
@@ -1056,7 +1056,7 @@ iptablesHandlePortData(virBufferPtr buf,
                           &portData->dataSrcPortStart))
             goto err_exit;
 
-        virBufferVSprintf(buf,
+        virBufferAsprintf(buf,
                           " %s %s %s",
                           ENTRY_GET_NEG_SIGN(&portData->dataSrcPortStart),
                           sport,
@@ -1068,7 +1068,7 @@ iptablesHandlePortData(virBufferPtr buf,
                               &portData->dataSrcPortEnd))
                 goto err_exit;
 
-             virBufferVSprintf(buf,
+             virBufferAsprintf(buf,
                                ":%s",
                                portstr);
         }
@@ -1080,7 +1080,7 @@ iptablesHandlePortData(virBufferPtr buf,
                           &portData->dataDstPortStart))
             goto err_exit;
 
-        virBufferVSprintf(buf,
+        virBufferAsprintf(buf,
                           " %s %s %s",
                           ENTRY_GET_NEG_SIGN(&portData->dataDstPortStart),
                           dport,
@@ -1092,7 +1092,7 @@ iptablesHandlePortData(virBufferPtr buf,
                               &portData->dataDstPortEnd))
                 goto err_exit;
 
-             virBufferVSprintf(buf,
+             virBufferAsprintf(buf,
                                ":%s",
                                portstr);
         }
@@ -1111,7 +1111,7 @@ iptablesEnforceDirection(int directionIn,
                          virBufferPtr buf)
 {
     if (rule->tt != VIR_NWFILTER_RULE_DIRECTION_INOUT)
-        virBufferVSprintf(buf, " -m conntrack --ctdir %s",
+        virBufferAsprintf(buf, " -m conntrack --ctdir %s",
                           (directionIn) ? "Original"
                                         : "Reply");
 }
@@ -1179,7 +1179,7 @@ _iptablesCreateRuleInstance(int directionIn,
     switch (rule->prtclType) {
     case VIR_NWFILTER_RULE_PROTOCOL_TCP:
     case VIR_NWFILTER_RULE_PROTOCOL_TCPoIPV6:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -%%c %s %%s",
                           iptables_cmd,
                           chain);
@@ -1204,6 +1204,15 @@ _iptablesCreateRuleInstance(int directionIn,
                                 &prefix))
             goto err_exit;
 
+        if (HAS_ENTRY_ITEM(&rule->p.tcpHdrFilter.dataTCPFlags)) {
+            virBufferAsprintf(&buf, " %s --tcp-flags ",
+                      ENTRY_GET_NEG_SIGN(&rule->p.tcpHdrFilter.dataTCPFlags));
+            virNWFilterPrintTCPFlags(&buf,
+                      rule->p.tcpHdrFilter.dataTCPFlags.u.tcpFlags.mask,
+                      ' ',
+                      rule->p.tcpHdrFilter.dataTCPFlags.u.tcpFlags.flags);
+        }
+
         if (iptablesHandlePortData(&buf,
                                    vars,
                                    &rule->p.tcpHdrFilter.portData,
@@ -1216,7 +1225,7 @@ _iptablesCreateRuleInstance(int directionIn,
                               &rule->p.tcpHdrFilter.dataTCPOption))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                               " %s --tcp-option %s",
                               ENTRY_GET_NEG_SIGN(&rule->p.tcpHdrFilter.dataTCPOption),
                               number);
@@ -1226,7 +1235,7 @@ _iptablesCreateRuleInstance(int directionIn,
 
     case VIR_NWFILTER_RULE_PROTOCOL_UDP:
     case VIR_NWFILTER_RULE_PROTOCOL_UDPoIPV6:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -%%c %s %%s",
                           iptables_cmd,
                           chain);
@@ -1260,7 +1269,7 @@ _iptablesCreateRuleInstance(int directionIn,
 
     case VIR_NWFILTER_RULE_PROTOCOL_UDPLITE:
     case VIR_NWFILTER_RULE_PROTOCOL_UDPLITEoIPV6:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -%%c %s %%s",
                           iptables_cmd,
                           chain);
@@ -1289,7 +1298,7 @@ _iptablesCreateRuleInstance(int directionIn,
 
     case VIR_NWFILTER_RULE_PROTOCOL_ESP:
     case VIR_NWFILTER_RULE_PROTOCOL_ESPoIPV6:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -%%c %s %%s",
                           iptables_cmd,
                           chain);
@@ -1318,7 +1327,7 @@ _iptablesCreateRuleInstance(int directionIn,
 
     case VIR_NWFILTER_RULE_PROTOCOL_AH:
     case VIR_NWFILTER_RULE_PROTOCOL_AHoIPV6:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -%%c %s %%s",
                           iptables_cmd,
                           chain);
@@ -1347,7 +1356,7 @@ _iptablesCreateRuleInstance(int directionIn,
 
     case VIR_NWFILTER_RULE_PROTOCOL_SCTP:
     case VIR_NWFILTER_RULE_PROTOCOL_SCTPoIPV6:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -%%c %s %%s",
                           iptables_cmd,
                           chain);
@@ -1381,7 +1390,7 @@ _iptablesCreateRuleInstance(int directionIn,
 
     case VIR_NWFILTER_RULE_PROTOCOL_ICMP:
     case VIR_NWFILTER_RULE_PROTOCOL_ICMPV6:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -%%c %s %%s",
                           iptables_cmd,
                           chain);
@@ -1427,7 +1436,7 @@ _iptablesCreateRuleInstance(int directionIn,
                               &rule->p.icmpHdrFilter.dataICMPType))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                       " %s %s %s",
                       ENTRY_GET_NEG_SIGN(&rule->p.icmpHdrFilter.dataICMPType),
                       parm,
@@ -1439,7 +1448,7 @@ _iptablesCreateRuleInstance(int directionIn,
                                   &rule->p.icmpHdrFilter.dataICMPCode))
                     goto err_exit;
 
-                 virBufferVSprintf(&buf,
+                 virBufferAsprintf(&buf,
                                    "/%s",
                                    number);
             }
@@ -1447,7 +1456,7 @@ _iptablesCreateRuleInstance(int directionIn,
     break;
 
     case VIR_NWFILTER_RULE_PROTOCOL_IGMP:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -%%c %s %%s",
                           iptables_cmd,
                           chain);
@@ -1476,7 +1485,7 @@ _iptablesCreateRuleInstance(int directionIn,
 
     case VIR_NWFILTER_RULE_PROTOCOL_ALL:
     case VIR_NWFILTER_RULE_PROTOCOL_ALLoIPV6:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -%%c %s %%s",
                           iptables_cmd,
                           chain);
@@ -1522,7 +1531,7 @@ _iptablesCreateRuleInstance(int directionIn,
     }
 
     if (match && !skipMatch)
-        virBufferVSprintf(&buf, " %s", match);
+        virBufferAsprintf(&buf, " %s", match);
 
     if (defMatch && match != NULL && !skipMatch && !hasICMPType)
         iptablesEnforceDirection(directionIn,
@@ -1545,7 +1554,7 @@ _iptablesCreateRuleInstance(int directionIn,
         VIR_FREE(s);
     }
 
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       " -j %s" CMD_DEF_POST CMD_SEPARATOR
                       CMD_EXEC,
                       target);
@@ -1625,7 +1634,7 @@ iptablesCreateRuleInstanceStateCtrl(virNWFilterDefPtr nwfilter,
                                     bool isIPv6)
 {
     int rc;
-    int directionIn = 0, directionOut = 0;
+    int directionIn = 0;
     char chainPrefix[2];
     bool maySkipICMP, inout = false;
     char *matchState = NULL;
@@ -1634,9 +1643,8 @@ iptablesCreateRuleInstanceStateCtrl(virNWFilterDefPtr nwfilter,
     if ((rule->tt == VIR_NWFILTER_RULE_DIRECTION_IN) ||
         (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT)) {
         directionIn = 1;
-        directionOut = inout = (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT);
-    } else
-        directionOut = 1;
+        inout = (rule->tt == VIR_NWFILTER_RULE_DIRECTION_INOUT);
+    }
 
     chainPrefix[0] = 'F';
 
@@ -1900,7 +1908,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
     switch (rule->prtclType) {
     case VIR_NWFILTER_RULE_PROTOCOL_MAC:
 
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -t %s -%%c %s %%s",
                           ebtables_cmd_path, EBTABLES_DEFAULT_TABLE, chain);
 
@@ -1916,7 +1924,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                    number, sizeof(number),
                                    &rule->p.ethHdrFilter.dataProtocolID))
                 goto err_exit;
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " -p %s %s",
                           ENTRY_GET_NEG_SIGN(&rule->p.ethHdrFilter.dataProtocolID),
                           number);
@@ -1926,7 +1934,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
     case VIR_NWFILTER_RULE_PROTOCOL_ARP:
     case VIR_NWFILTER_RULE_PROTOCOL_RARP:
 
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -t %s -%%c %s %%s",
                           ebtables_cmd_path, EBTABLES_DEFAULT_TABLE, chain);
 
@@ -1936,7 +1944,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                  reverse))
             goto err_exit;
 
-        virBufferVSprintf(&buf, " -p 0x%x",
+        virBufferAsprintf(&buf, " -p 0x%x",
                           (rule->prtclType == VIR_NWFILTER_RULE_PROTOCOL_ARP)
                            ? l3_protocols[L3_PROTO_ARP_IDX].attr
                            : l3_protocols[L3_PROTO_RARP_IDX].attr);
@@ -1946,7 +1954,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                number, sizeof(number),
                                &rule->p.arpHdrFilter.dataHWType))
                 goto err_exit;
-           virBufferVSprintf(&buf,
+           virBufferAsprintf(&buf,
                           " --arp-htype %s %s",
                           ENTRY_GET_NEG_SIGN(&rule->p.arpHdrFilter.dataHWType),
                           number);
@@ -1957,7 +1965,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               number, sizeof(number),
                               &rule->p.arpHdrFilter.dataOpcode))
                 goto err_exit;
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " --arp-opcode %s %s",
                           ENTRY_GET_NEG_SIGN(&rule->p.arpHdrFilter.dataOpcode),
                           number);
@@ -1968,7 +1976,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                    number, sizeof(number),
                                    &rule->p.arpHdrFilter.dataProtocolType))
                 goto err_exit;
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " --arp-ptype %s %s",
                           ENTRY_GET_NEG_SIGN(&rule->p.arpHdrFilter.dataProtocolType),
                           number);
@@ -1980,7 +1988,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.arpHdrFilter.dataARPSrcIPAddr))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--arp-ip-dst" : "--arp-ip-src",
                           ENTRY_GET_NEG_SIGN(&rule->p.arpHdrFilter.dataARPSrcIPAddr),
@@ -1993,7 +2001,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.arpHdrFilter.dataARPDstIPAddr))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--arp-ip-src" : "--arp-ip-dst",
                           ENTRY_GET_NEG_SIGN(&rule->p.arpHdrFilter.dataARPDstIPAddr),
@@ -2006,7 +2014,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.arpHdrFilter.dataARPSrcMACAddr))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--arp-mac-dst" : "--arp-mac-src",
                           ENTRY_GET_NEG_SIGN(&rule->p.arpHdrFilter.dataARPSrcMACAddr),
@@ -2019,16 +2027,23 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.arpHdrFilter.dataARPDstMACAddr))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--arp-mac-src" : "--arp-mac-dst",
                           ENTRY_GET_NEG_SIGN(&rule->p.arpHdrFilter.dataARPDstMACAddr),
                           macaddr);
         }
+
+        if (HAS_ENTRY_ITEM(&rule->p.arpHdrFilter.dataGratuitousARP) &&
+            rule->p.arpHdrFilter.dataGratuitousARP.u.boolean) {
+            virBufferAsprintf(&buf,
+                          " %s --arp-gratuitous",
+                          ENTRY_GET_NEG_SIGN(&rule->p.arpHdrFilter.dataGratuitousARP));
+        }
     break;
 
     case VIR_NWFILTER_RULE_PROTOCOL_IP:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -t %s -%%c %s %%s",
                           ebtables_cmd_path, EBTABLES_DEFAULT_TABLE, chain);
 
@@ -2047,7 +2062,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.ipHdrFilter.ipHdr.dataSrcIPAddr))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--ip-destination" : "--ip-source",
                           ENTRY_GET_NEG_SIGN(&rule->p.ipHdrFilter.ipHdr.dataSrcIPAddr),
@@ -2058,7 +2073,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                   number, sizeof(number),
                                   &rule->p.ipHdrFilter.ipHdr.dataSrcIPMask))
                     goto err_exit;
-                virBufferVSprintf(&buf,
+                virBufferAsprintf(&buf,
                              "/%s",
                              number);
             }
@@ -2071,7 +2086,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.ipHdrFilter.ipHdr.dataDstIPAddr))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--ip-source" : "--ip-destination",
                           ENTRY_GET_NEG_SIGN(&rule->p.ipHdrFilter.ipHdr.dataDstIPAddr),
@@ -2082,7 +2097,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                   number, sizeof(number),
                                   &rule->p.ipHdrFilter.ipHdr.dataDstIPMask))
                     goto err_exit;
-                virBufferVSprintf(&buf,
+                virBufferAsprintf(&buf,
                                   "/%s",
                                   number);
             }
@@ -2094,7 +2109,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.ipHdrFilter.ipHdr.dataProtocolID))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                  " --ip-protocol %s %s",
                  ENTRY_GET_NEG_SIGN(&rule->p.ipHdrFilter.ipHdr.dataProtocolID),
                  number);
@@ -2107,7 +2122,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.ipHdrFilter.portData.dataSrcPortStart))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--ip-destination-port" : "--ip-source-port",
                           ENTRY_GET_NEG_SIGN(&rule->p.ipHdrFilter.portData.dataSrcPortStart),
@@ -2119,7 +2134,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                   &rule->p.ipHdrFilter.portData.dataSrcPortEnd))
                     goto err_exit;
 
-                virBufferVSprintf(&buf,
+                virBufferAsprintf(&buf,
                                   ":%s",
                                   number);
             }
@@ -2132,7 +2147,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.ipHdrFilter.portData.dataDstPortStart))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--ip-source-port" : "--ip-destination-port",
                           ENTRY_GET_NEG_SIGN(&rule->p.ipHdrFilter.portData.dataDstPortStart),
@@ -2144,7 +2159,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                 &rule->p.ipHdrFilter.portData.dataDstPortEnd))
                     goto err_exit;
 
-                virBufferVSprintf(&buf,
+                virBufferAsprintf(&buf,
                                   ":%s",
                                   number);
             }
@@ -2156,7 +2171,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                    &rule->p.ipHdrFilter.ipHdr.dataDSCP))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                        " --ip-tos %s %s",
                        ENTRY_GET_NEG_SIGN(&rule->p.ipHdrFilter.ipHdr.dataDSCP),
                        number);
@@ -2164,7 +2179,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
     break;
 
     case VIR_NWFILTER_RULE_PROTOCOL_IPV6:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -t %s -%%c %s %%s",
                           ebtables_cmd_path, EBTABLES_DEFAULT_TABLE, chain);
 
@@ -2183,7 +2198,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.ipv6HdrFilter.ipHdr.dataSrcIPAddr))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--ip6-destination" : "--ip6-source",
                           ENTRY_GET_NEG_SIGN(&rule->p.ipv6HdrFilter.ipHdr.dataSrcIPAddr),
@@ -2194,7 +2209,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                   number, sizeof(number),
                                   &rule->p.ipv6HdrFilter.ipHdr.dataSrcIPMask))
                     goto err_exit;
-                virBufferVSprintf(&buf,
+                virBufferAsprintf(&buf,
                              "/%s",
                              number);
             }
@@ -2207,7 +2222,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.ipv6HdrFilter.ipHdr.dataDstIPAddr))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--ip6-source" : "--ip6-destination",
                           ENTRY_GET_NEG_SIGN(&rule->p.ipv6HdrFilter.ipHdr.dataDstIPAddr),
@@ -2218,7 +2233,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                   number, sizeof(number),
                                   &rule->p.ipv6HdrFilter.ipHdr.dataDstIPMask))
                     goto err_exit;
-                virBufferVSprintf(&buf,
+                virBufferAsprintf(&buf,
                                   "/%s",
                                   number);
             }
@@ -2230,7 +2245,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.ipv6HdrFilter.ipHdr.dataProtocolID))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                  " --ip6-protocol %s %s",
                  ENTRY_GET_NEG_SIGN(&rule->p.ipv6HdrFilter.ipHdr.dataProtocolID),
                  number);
@@ -2243,7 +2258,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.ipv6HdrFilter.portData.dataSrcPortStart))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--ip6-destination-port" : "--ip6-source-port",
                           ENTRY_GET_NEG_SIGN(&rule->p.ipv6HdrFilter.portData.dataSrcPortStart),
@@ -2255,7 +2270,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                   &rule->p.ipv6HdrFilter.portData.dataSrcPortEnd))
                     goto err_exit;
 
-                virBufferVSprintf(&buf,
+                virBufferAsprintf(&buf,
                                   ":%s",
                                   number);
             }
@@ -2268,7 +2283,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                               &rule->p.ipv6HdrFilter.portData.dataDstPortStart))
                 goto err_exit;
 
-            virBufferVSprintf(&buf,
+            virBufferAsprintf(&buf,
                           " %s %s %s",
                           reverse ? "--ip6-source-port" : "--ip6-destination-port",
                           ENTRY_GET_NEG_SIGN(&rule->p.ipv6HdrFilter.portData.dataDstPortStart),
@@ -2280,7 +2295,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
                                   &rule->p.ipv6HdrFilter.portData.dataDstPortEnd))
                     goto err_exit;
 
-                virBufferVSprintf(&buf,
+                virBufferAsprintf(&buf,
                                   ":%s",
                                   number);
             }
@@ -2288,7 +2303,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
     break;
 
     case VIR_NWFILTER_RULE_PROTOCOL_NONE:
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF_PRE "%s -t %s -%%c %s %%s",
                           ebtables_cmd_path, EBTABLES_DEFAULT_TABLE, chain);
     break;
@@ -2307,7 +2322,7 @@ ebtablesCreateRuleInstance(char chainPrefix,
         target = virNWFilterJumpTargetTypeToString(rule->action);
     }
 
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       " -j %s" CMD_DEF_POST CMD_SEPARATOR
                       CMD_EXEC,
                       target);
@@ -2349,7 +2364,7 @@ err_exit:
  */
 static int
 ebiptablesCreateRuleInstance(virConnectPtr conn ATTRIBUTE_UNUSED,
-                             enum virDomainNetType nettype,
+                             enum virDomainNetType nettype ATTRIBUTE_UNUSED,
                              virNWFilterDefPtr nwfilter,
                              virNWFilterRuleDefPtr rule,
                              const char *ifname,
@@ -2401,13 +2416,6 @@ ebiptablesCreateRuleInstance(virConnectPtr conn ATTRIBUTE_UNUSED,
     case VIR_NWFILTER_RULE_PROTOCOL_ICMP:
     case VIR_NWFILTER_RULE_PROTOCOL_IGMP:
     case VIR_NWFILTER_RULE_PROTOCOL_ALL:
-        if (nettype == VIR_DOMAIN_NET_TYPE_DIRECT) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                          _("'%s' protocol not support for net type '%s'"),
-                          virNWFilterRuleProtocolTypeToString(rule->prtclType),
-                          virDomainNetTypeToString(nettype));
-            return 1;
-        }
         isIPv6 = 0;
         rc = iptablesCreateRuleInstance(nwfilter,
                                         rule,
@@ -2425,13 +2433,6 @@ ebiptablesCreateRuleInstance(virConnectPtr conn ATTRIBUTE_UNUSED,
     case VIR_NWFILTER_RULE_PROTOCOL_SCTPoIPV6:
     case VIR_NWFILTER_RULE_PROTOCOL_ICMPV6:
     case VIR_NWFILTER_RULE_PROTOCOL_ALLoIPV6:
-        if (nettype == VIR_DOMAIN_NET_TYPE_DIRECT) {
-            virNWFilterReportError(VIR_ERR_OPERATION_FAILED,
-                          _("'%s' protocol not support for net type '%s'"),
-                          virNWFilterRuleProtocolTypeToString(rule->prtclType),
-                          virDomainNetTypeToString(nettype));
-            return 1;
-        }
         isIPv6 = 1;
         rc = iptablesCreateRuleInstance(nwfilter,
                                         rule,
@@ -2637,7 +2638,7 @@ ebtablesCreateTmpRootChain(virBufferPtr buf,
 
     PRINT_ROOT_CHAIN(chain, chainPrefix, ifname);
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       CMD_DEF("%s -t %s -N %s") CMD_SEPARATOR
                       CMD_EXEC
                       "%s",
@@ -2660,7 +2661,7 @@ ebtablesLinkTmpRootChain(virBufferPtr buf,
 
     PRINT_ROOT_CHAIN(chain, chainPrefix, ifname);
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       CMD_DEF("%s -t %s -A %s -%c %s -j %s") CMD_SEPARATOR
                       CMD_EXEC
                       "%s",
@@ -2691,7 +2692,7 @@ _ebtablesRemoveRootChain(virBufferPtr buf,
 
     PRINT_ROOT_CHAIN(chain, chainPrefix, ifname);
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       "%s -t %s -F %s" CMD_SEPARATOR
                       "%s -t %s -X %s" CMD_SEPARATOR,
                       ebtables_cmd_path, EBTABLES_DEFAULT_TABLE, chain,
@@ -2736,7 +2737,7 @@ _ebtablesUnlinkRootChain(virBufferPtr buf,
 
     PRINT_ROOT_CHAIN(chain, chainPrefix, ifname);
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       "%s -t %s -D %s -%c %s -j %s" CMD_SEPARATOR,
                       ebtables_cmd_path, EBTABLES_DEFAULT_TABLE,
                       (incoming) ? EBTABLES_CHAIN_INCOMING
@@ -2777,7 +2778,7 @@ ebtablesCreateTmpSubChain(virBufferPtr buf,
     PRINT_ROOT_CHAIN(rootchain, chainPrefix, ifname);
     PRINT_CHAIN(chain, chainPrefix, ifname, l3_protocols[protoidx].val);
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       CMD_DEF("%s -t %s -N %s") CMD_SEPARATOR
                       CMD_EXEC
                       "%s"
@@ -2819,7 +2820,7 @@ _ebtablesRemoveSubChain(virBufferPtr buf,
     PRINT_ROOT_CHAIN(rootchain, chainPrefix, ifname);
     PRINT_CHAIN(chain, chainPrefix, ifname, l3_protocols[protoidx].val);
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       "%s -t %s -D %s -p 0x%x -j %s" CMD_SEPARATOR
                       "%s -t %s -F %s" CMD_SEPARATOR
                       "%s -t %s -X %s" CMD_SEPARATOR,
@@ -2906,7 +2907,7 @@ ebtablesRenameTmpSubChain(virBufferPtr buf,
         PRINT_ROOT_CHAIN(   chain,    chainPrefix, ifname);
     }
 
-    virBufferVSprintf(buf,
+    virBufferAsprintf(buf,
                       "%s -t %s -E %s %s" CMD_SEPARATOR,
                       ebtables_cmd_path, EBTABLES_DEFAULT_TABLE, tmpchain, chain);
     return 0;
@@ -2945,8 +2946,8 @@ ebiptablesInstCommand(virBufferPtr buf,
     char position[10] = { 0 };
     if (pos >= 0)
         snprintf(position, sizeof(position), "%d", pos);
-    virBufferVSprintf(buf, templ, cmd, position);
-    virBufferVSprintf(buf, CMD_SEPARATOR "%s",
+    virBufferAsprintf(buf, templ, cmd, position);
+    virBufferAsprintf(buf, CMD_SEPARATOR "%s",
                       CMD_STOPONERR(stopOnError));
 }
 
@@ -3001,7 +3002,7 @@ ebtablesApplyBasicRules(const char *ifname,
     ebtablesCreateTmpRootChain(&buf, 1, ifname, 1);
 
     PRINT_ROOT_CHAIN(chain, chainPrefix, ifname);
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       CMD_DEF("%s -t %s -A %s -s ! %s -j DROP") CMD_SEPARATOR
                       CMD_EXEC
                       "%s",
@@ -3010,7 +3011,7 @@ ebtablesApplyBasicRules(const char *ifname,
                       chain, macaddr_str,
                       CMD_STOPONERR(1));
 
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       CMD_DEF("%s -t %s -A %s -p IPv4 -j ACCEPT") CMD_SEPARATOR
                       CMD_EXEC
                       "%s",
@@ -3018,7 +3019,7 @@ ebtablesApplyBasicRules(const char *ifname,
                       ebtables_cmd_path, EBTABLES_DEFAULT_TABLE, chain,
                       CMD_STOPONERR(1));
 
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       CMD_DEF("%s -t %s -A %s -p ARP -j ACCEPT") CMD_SEPARATOR
                       CMD_EXEC
                       "%s",
@@ -3026,7 +3027,7 @@ ebtablesApplyBasicRules(const char *ifname,
                       ebtables_cmd_path, EBTABLES_DEFAULT_TABLE, chain,
                       CMD_STOPONERR(1));
 
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       CMD_DEF("%s -t %s -A %s -j DROP") CMD_SEPARATOR
                       CMD_EXEC
                       "%s",
@@ -3087,7 +3088,7 @@ ebtablesApplyDHCPOnlyRules(const char *ifname,
     }
 
     if (dhcpserver) {
-        virBufferVSprintf(&buf, " --ip-src %s", dhcpserver);
+        virBufferAsprintf(&buf, " --ip-src %s", dhcpserver);
         if (virBufferError(&buf))
             return 1;
         srcIPParam = virBufferContentAndReset(&buf);
@@ -3103,7 +3104,7 @@ ebtablesApplyDHCPOnlyRules(const char *ifname,
     PRINT_ROOT_CHAIN(chain_in , CHAINPREFIX_HOST_IN_TEMP , ifname);
     PRINT_ROOT_CHAIN(chain_out, CHAINPREFIX_HOST_OUT_TEMP, ifname);
 
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       CMD_DEF("%s -t %s -A %s"
                               " -s %s -d Broadcast "
                               " -p ipv4 --ip-protocol udp"
@@ -3117,7 +3118,7 @@ ebtablesApplyDHCPOnlyRules(const char *ifname,
                       macaddr_str,
                       CMD_STOPONERR(1));
 
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       CMD_DEF("%s -t %s -A %s -j DROP") CMD_SEPARATOR
                       CMD_EXEC
                       "%s",
@@ -3125,7 +3126,7 @@ ebtablesApplyDHCPOnlyRules(const char *ifname,
                       ebtables_cmd_path, EBTABLES_DEFAULT_TABLE, chain_in,
                       CMD_STOPONERR(1));
 
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       CMD_DEF("%s -t %s -A %s"
                               " -d %s"
                               " -p ipv4 --ip-protocol udp"
@@ -3140,7 +3141,7 @@ ebtablesApplyDHCPOnlyRules(const char *ifname,
                       srcIPParam != NULL ? srcIPParam : "",
                       CMD_STOPONERR(1));
 
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       CMD_DEF("%s -t %s -A %s -j DROP") CMD_SEPARATOR
                       CMD_EXEC
                       "%s",
@@ -3205,7 +3206,7 @@ ebtablesApplyDropAllRules(const char *ifname)
     PRINT_ROOT_CHAIN(chain_in , CHAINPREFIX_HOST_IN_TEMP , ifname);
     PRINT_ROOT_CHAIN(chain_out, CHAINPREFIX_HOST_OUT_TEMP, ifname);
 
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       CMD_DEF("%s -t %s -A %s -j DROP") CMD_SEPARATOR
                       CMD_EXEC
                       "%s",
@@ -3213,7 +3214,7 @@ ebtablesApplyDropAllRules(const char *ifname)
                       ebtables_cmd_path, EBTABLES_DEFAULT_TABLE, chain_in,
                       CMD_STOPONERR(1));
 
-    virBufferVSprintf(&buf,
+    virBufferAsprintf(&buf,
                       CMD_DEF("%s -t %s -A %s -j DROP") CMD_SEPARATOR
                       CMD_EXEC
                       "%s",
@@ -3309,7 +3310,7 @@ iptablesCheckBridgeNFCallEnabled(bool isIPv6)
                               "'echo 1 > %s'"),
                              isIPv6 ? "6" : "",
                              pathname);
-                    VIR_WARN0(msg);
+                    VIR_WARN("%s", msg);
                     if (isIPv6)
                         lastReportIPv6 = now;
                     else
@@ -3723,7 +3724,7 @@ ebiptablesDriverInit(bool privileged)
     ebtables_cmd_path = virFindFileInPath("ebtables");
     if (ebtables_cmd_path) {
         /* basic probing */
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF("%s -t %s -L") CMD_SEPARATOR
                           CMD_EXEC
                           "%s",
@@ -3736,7 +3737,7 @@ ebiptablesDriverInit(bool privileged)
 
     iptables_cmd_path = virFindFileInPath("iptables");
     if (iptables_cmd_path) {
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF("%s -n -L FORWARD") CMD_SEPARATOR
                           CMD_EXEC
                           "%s",
@@ -3749,7 +3750,7 @@ ebiptablesDriverInit(bool privileged)
 
     ip6tables_cmd_path = virFindFileInPath("ip6tables");
     if (ip6tables_cmd_path) {
-        virBufferVSprintf(&buf,
+        virBufferAsprintf(&buf,
                           CMD_DEF("%s -n -L FORWARD") CMD_SEPARATOR
                           CMD_EXEC
                           "%s",

@@ -9,7 +9,7 @@ Origin: vendor
  2 files changed, 17 insertions(+), 32 deletions(-)
 
 diff --git a/tools/libvirt-guests.init.sh b/tools/libvirt-guests.init.sh
-index f247e5e..e69570c 100644
+index 30f957a..a3b8a15 100644
 --- a/tools/libvirt-guests.init.sh
 +++ b/tools/libvirt-guests.init.sh
 @@ -4,8 +4,8 @@
@@ -23,7 +23,7 @@ index f247e5e..e69570c 100644
  # Default-Start: 2 3 4 5
  # Default-Stop: 0 1 6
  # Short-Description: suspend/resume libvirt guests on shutdown/boot
-@@ -14,40 +14,26 @@
+@@ -14,41 +14,27 @@
  #              See http://libvirt.org
  ### END INIT INFO
  
@@ -63,6 +63,7 @@ index f247e5e..e69570c 100644
 +ON_BOOT=ignore
 +ON_SHUTDOWN=shutdown
 +SHUTDOWN_TIMEOUT=30
+ START_DELAY=0
  
 -test -f "$sysconfdir"/sysconfig/libvirt-guests &&
 -    . "$sysconfdir"/sysconfig/libvirt-guests
@@ -75,7 +76,7 @@ index f247e5e..e69570c 100644
  
  RETVAL=0
  
-@@ -303,8 +289,7 @@ gueststatus() {
+@@ -310,8 +296,7 @@ gueststatus() {
  
  # rh_status
  # Display current status: whether saved state exists, and whether start
@@ -86,7 +87,7 @@ index f247e5e..e69570c 100644
      if [ -f "$LISTFILE" ]; then
          gettext "stopped, with saved guests"; echo
 diff --git a/tools/libvirt-guests.sysconf b/tools/libvirt-guests.sysconf
-index cd58728..53d89bd 100644
+index 37b258e..b5a7b76 100644
 --- a/tools/libvirt-guests.sysconf
 +++ b/tools/libvirt-guests.sysconf
 @@ -8,7 +8,7 @@
@@ -96,9 +97,9 @@ index cd58728..53d89bd 100644
 -#ON_BOOT=start
 +#ON_BOOT=ignore
  
- # action taken on host shutdown
- # - suspend   all running guests are suspended using virsh managedsave
-@@ -18,7 +18,7 @@
+ # number of seconds to wait between each guest start
+ #START_DELAY=0
+@@ -21,7 +21,7 @@
  #             which just needs a long time to shutdown. When setting
  #             ON_SHUTDOWN=shutdown, you must also set SHUTDOWN_TIMEOUT to a
  #             value suitable for your guests.

@@ -28,43 +28,6 @@ virErrorFunc virErrorHandler = NULL;     /* global error handler */
 void *virUserData = NULL;        /* associated data */
 virErrorLogPriorityFunc virErrorLogPriorityFilter = NULL;
 
-/*
- * Macro used to format the message as a string in virRaiseError
- * and borrowed from libxml2.
- */
-#define VIR_GET_VAR_STR(msg, str) {				\
-    int       size, prev_size = -1;				\
-    int       chars;						\
-    char      *larger;						\
-    va_list   ap;						\
-                                                                \
-    str = (char *) malloc(150);					\
-    if (str != NULL) {						\
-                                                                \
-    size = 150;							\
-                                                                \
-    while (1) {							\
-        va_start(ap, msg);					\
-        chars = vsnprintf(str, size, msg, ap);			\
-        va_end(ap);						\
-        if ((chars > -1) && (chars < size)) {			\
-            if (prev_size == chars) {				\
-                break;						\
-            } else {						\
-                prev_size = chars;				\
-            }							\
-        }							\
-        if (chars > -1)						\
-            size += chars + 1;					\
-        else							\
-            size += 100;					\
-        if ((larger = (char *) realloc(str, size)) == NULL) {	\
-            break;						\
-        }							\
-        str = larger;						\
-    }}								\
-}
-
 static virLogPriority virErrorLevelPriority(virErrorLevel level) {
     switch (level) {
         case VIR_ERR_NONE:
@@ -205,6 +168,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
             break;
         case VIR_FROM_EVENT:
             dom = "Events ";
+            break;
+        case VIR_FROM_LOCKING:
+            dom = "Locking ";
             break;
     }
     return(dom);
@@ -663,7 +629,6 @@ virDispatchError(virConnectPtr conn)
 
 /**
  * virRaiseErrorFull:
- * @conn: the connection to the hypervisor if available
  * @filename: filename where error was raised
  * @funcname: function name where error was raised
  * @linenr: line number where error was raised
@@ -682,8 +647,7 @@ virDispatchError(virConnectPtr conn)
  * immediately if a callback is found and store it for later handling.
  */
 void
-virRaiseErrorFull(virConnectPtr conn ATTRIBUTE_UNUSED,
-                  const char *filename ATTRIBUTE_UNUSED,
+virRaiseErrorFull(const char *filename ATTRIBUTE_UNUSED,
                   const char *funcname,
                   size_t linenr,
                   int domain,
@@ -720,12 +684,15 @@ virRaiseErrorFull(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
 
     /*
-     * formats the message
+     * formats the message; drop message on OOM situations
      */
     if (fmt == NULL) {
         str = strdup(_("No error message provided"));
     } else {
-        VIR_GET_VAR_STR(fmt, str);
+        va_list ap;
+        va_start(ap, fmt);
+        virVasprintf(&str, fmt, ap);
+        va_end(ap);
     }
 
     /*
@@ -927,9 +894,9 @@ virErrorMsg(virErrorNumber error, const char *info)
             break;
         case VIR_ERR_XML_ERROR:
             if (info == NULL)
-                errmsg = _("XML description not well formed or invalid");
+                errmsg = _("XML description is invalid or not well formed");
             else
-                errmsg = _("XML description for %s is not well formed or invalid");
+                errmsg = _("XML error: %s");
             break;
         case VIR_ERR_DOM_EXIST:
             if (info == NULL)
@@ -1214,7 +1181,6 @@ virErrorMsg(virErrorNumber error, const char *info)
 /**
  * virReportErrorHelper:
  *
- * @conn: the connection to the hypervisor if available
  * @domcode: the virErrorDomain indicating where it's coming from
  * @errcode: the virErrorNumber code for the error
  * @filename: Source file error is dispatched from
@@ -1226,8 +1192,7 @@ virErrorMsg(virErrorNumber error, const char *info)
  * Helper function to do most of the grunt work for individual driver
  * ReportError
  */
-void virReportErrorHelper(virConnectPtr conn,
-                          int domcode,
+void virReportErrorHelper(int domcode,
                           int errcode,
                           const char *filename,
                           const char *funcname,
@@ -1248,7 +1213,7 @@ void virReportErrorHelper(virConnectPtr conn,
     }
 
     virerr = virErrorMsg(errcode, (errorMessage[0] ? errorMessage : NULL));
-    virRaiseErrorFull(conn, filename, funcname, linenr,
+    virRaiseErrorFull(filename, funcname, linenr,
                       domcode, errcode, VIR_ERR_ERROR,
                       virerr, errorMessage, NULL,
                       -1, -1, virerr, errorMessage);
@@ -1324,7 +1289,7 @@ void virReportSystemErrorFull(int domcode,
     if (!msgDetail)
         msgDetail = errnoDetail;
 
-    virRaiseErrorFull(NULL, filename, funcname, linenr,
+    virRaiseErrorFull(filename, funcname, linenr,
                       domcode, VIR_ERR_SYSTEM_ERROR, VIR_ERR_ERROR,
                       msg, msgDetail, NULL, -1, -1, msg, msgDetail);
     errno = save_errno;
@@ -1348,7 +1313,7 @@ void virReportOOMErrorFull(int domcode,
     const char *virerr;
 
     virerr = virErrorMsg(VIR_ERR_NO_MEMORY, NULL);
-    virRaiseErrorFull(NULL, filename, funcname, linenr,
+    virRaiseErrorFull(filename, funcname, linenr,
                       domcode, VIR_ERR_NO_MEMORY, VIR_ERR_ERROR,
                       virerr, NULL, NULL, -1, -1, virerr, NULL);
 }

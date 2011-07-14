@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# ioctl.m4 serial 1
+# ioctl.m4 serial 2
 dnl Copyright (C) 2008-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -15,7 +15,6 @@ AC_DEFUN([gl_FUNC_IOCTL],
     dnl application may use it and pass file descriptors that refer to
     dnl sockets to the ioctl() function. So enable the support for sockets.
     AC_LIBOBJ([ioctl])
-    gl_REPLACE_SYS_IOCTL_H
   else
     AC_CHECK_FUNCS([ioctl])
     dnl On glibc systems, the second parameter is 'unsigned long int request',
@@ -34,7 +33,6 @@ AC_DEFUN([gl_FUNC_IOCTL],
     if test $gl_cv_func_ioctl_posix_signature != yes; then
       REPLACE_IOCTL=1
       AC_LIBOBJ([ioctl])
-      gl_REPLACE_SYS_IOCTL_H
     fi
   fi
 ])

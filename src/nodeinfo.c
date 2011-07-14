@@ -1,7 +1,7 @@
 /*
  * nodeinfo.c: Helper routines for OS specific node information
  *
- * Copyright (C) 2006, 2007, 2008, 2010 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2010-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -51,7 +51,7 @@
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 #define nodeReportError(code, ...)                                      \
-    virReportErrorHelper(NULL, VIR_FROM_NONE, code, __FILE__,           \
+    virReportErrorHelper(VIR_FROM_NONE, code, __FILE__,                 \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #ifdef __linux__
@@ -163,7 +163,16 @@ cleanup:
 
 static int parse_socket(unsigned int cpu)
 {
-    return get_cpu_value(cpu, "topology/physical_package_id", false);
+    int ret = get_cpu_value(cpu, "topology/physical_package_id", false);
+# if defined(__powerpc__) || \
+    defined(__powerpc64__) || \
+    defined(__s390__) || \
+    defined(__s390x__)
+    /* ppc and s390(x) has -1 */
+    if (ret < 0)
+        ret = 0;
+# endif
+    return ret;
 }
 
 int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
@@ -206,6 +215,9 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
                 return -1;
             }
             nodeinfo->cpus++;
+# if defined(__x86_64__) || \
+    defined(__amd64__)  || \
+    defined(__i386__)
         } else if (STRPREFIX(buf, "cpu MHz")) {
             char *p;
             unsigned int ui;
@@ -229,7 +241,7 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
                 buf++;
             if (*buf != ':' || !buf[1]) {
                 nodeReportError(VIR_ERR_INTERNAL_ERROR,
-                                "parsing cpuinfo cpu cores %c", *buf);
+                                _("parsing cpuinfo cpu cores %c"), *buf);
                 return -1;
             }
             if (virStrToLong_ui(buf+1, &p, 10, &id) == 0
@@ -237,6 +249,50 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
                 && id > nodeinfo->cores)
                 nodeinfo->cores = id;
         }
+# elif defined(__powerpc__) || \
+      defined(__powerpc64__)
+        } else if (STRPREFIX(buf, "clock")) {
+            char *p;
+            unsigned int ui;
+            buf += 5;
+            while (*buf && c_isspace(*buf))
+                buf++;
+            if (*buf != ':' || !buf[1]) {
+                nodeReportError(VIR_ERR_INTERNAL_ERROR,
+                                "%s", _("parsing cpuinfo cpu MHz"));
+                return -1;
+            }
+            if (virStrToLong_ui(buf+1, &p, 10, &ui) == 0
+                /* Accept trailing fractional part.  */
+                && (*p == '\0' || *p == '.' || c_isspace(*p)))
+                nodeinfo->mhz = ui;
+        }
+# elif defined(__s390__) || \
+        defined(__s390x__)
+        } else if (STRPREFIX(buf, "# processors")) {
+            char *p;
+            unsigned int ui;
+            buf += 12;
+            while (*buf && c_isspace(*buf))
+                buf++;
+            if (*buf != ':' || !buf[1]) {
+                nodeReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("parsing number of processors %c"), *buf);
+                return -1;
+            }
+            if (virStrToLong_ui(buf+1, &p, 10, &ui) == 0
+                && (*p == '\0' || c_isspace(*p)))
+                nodeinfo->cpus = ui;
+            /* No other interesting infos are available in /proc/cpuinfo.
+             * However, there is a line identifying processor's version,
+             * identification and machine, but we don't want it to be caught
+             * and parsed in next iteration, because it is not in expected
+             * format and thus lead to error. */
+            break;
+        }
+# else
+#  warning Parser for /proc/cpuinfo needs to be adapted for your architecture
+# endif
     }
 
     if (!nodeinfo->cpus) {

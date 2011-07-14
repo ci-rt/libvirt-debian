@@ -84,7 +84,7 @@ qemuMonitorJSONIOProcessEvent(qemuMonitorPtr mon,
 
     type = virJSONValueObjectGetString(obj, "event");
     if (!type) {
-        VIR_WARN0("missing event type in message");
+        VIR_WARN("missing event type in message");
         errno = EINVAL;
         return -1;
     }
@@ -111,43 +111,38 @@ qemuMonitorJSONIOProcessLine(qemuMonitorPtr mon,
 
     VIR_DEBUG("Line [%s]", line);
 
-    if (!(obj = virJSONValueFromString(line))) {
-        VIR_DEBUG0("Parsing JSON string failed");
-        errno = EINVAL;
+    if (!(obj = virJSONValueFromString(line)))
         goto cleanup;
-    }
 
     if (obj->type != VIR_JSON_TYPE_OBJECT) {
-        VIR_DEBUG0("Parsed JSON string isn't an object");
-        errno = EINVAL;
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("Parsed JSON reply '%s' isn't an object"), line);
+        goto cleanup;
     }
 
     if (virJSONValueObjectHasKey(obj, "QMP") == 1) {
-        VIR_DEBUG0("Got QMP capabilities data");
         ret = 0;
-        goto cleanup;
-    }
-
-    if (virJSONValueObjectHasKey(obj, "event") == 1) {
+        virJSONValueFree(obj);
+    } else if (virJSONValueObjectHasKey(obj, "event") == 1) {
         ret = qemuMonitorJSONIOProcessEvent(mon, obj);
-        goto cleanup;
-    }
-
-    if (msg) {
-        if (!(msg->rxBuffer = strdup(line))) {
-            errno = ENOMEM;
-            goto cleanup;
+    } else if (virJSONValueObjectHasKey(obj, "error") == 1 ||
+               virJSONValueObjectHasKey(obj, "return") == 1) {
+        if (msg) {
+            msg->rxObject = obj;
+            msg->finished = 1;
+            ret = 0;
+        } else {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                            _("Unexpected JSON reply '%s'"), line);
         }
-        msg->rxLength = strlen(line);
-        msg->finished = 1;
     } else {
-        VIR_DEBUG("Ignoring unexpected JSON message [%s]", line);
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("Unknown JSON reply '%s'"), line);
     }
-
-    ret = 0;
 
 cleanup:
-    virJSONValueFree(obj);
+    if (ret < 0)
+        virJSONValueFree(obj);
     return ret;
 }
 
@@ -166,7 +161,7 @@ int qemuMonitorJSONIOProcess(qemuMonitorPtr mon,
             int got = nl - (data + used);
             char *line = strndup(data + used, got);
             if (!line) {
-                errno = ENOMEM;
+                virReportOOMError();
                 return -1;
             }
             used += got + strlen(LINE_ENDING);
@@ -195,10 +190,23 @@ qemuMonitorJSONCommandWithFd(qemuMonitorPtr mon,
     int ret = -1;
     qemuMonitorMessage msg;
     char *cmdstr = NULL;
+    char *id = NULL;
+    virJSONValuePtr exe;
 
     *reply = NULL;
 
     memset(&msg, 0, sizeof msg);
+
+    exe = virJSONValueObjectGet(cmd, "execute");
+    if (exe) {
+        if (!(id = qemuMonitorNextCommandID(mon)))
+            goto cleanup;
+        if (virJSONValueObjectAppendString(cmd, "id", id) < 0) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("Unable to append command 'id' string"));
+            goto cleanup;
+        }
+    }
 
     if (!(cmdstr = virJSONValueToString(cmd))) {
         virReportOOMError();
@@ -215,33 +223,24 @@ qemuMonitorJSONCommandWithFd(qemuMonitorPtr mon,
 
     ret = qemuMonitorSend(mon, &msg);
 
-    VIR_DEBUG("Receive command reply ret=%d errno=%d %d bytes '%s'",
-              ret, msg.lastErrno, msg.rxLength, msg.rxBuffer);
+    VIR_DEBUG("Receive command reply ret=%d rxObject=%p",
+              ret, msg.rxObject);
 
-
-    /* If we got ret==0, but not reply data something rather bad
-     * went wrong, so lets fake an EIO error */
-    if (!msg.rxBuffer && ret == 0) {
-        msg.lastErrno = EIO;
-        ret = -1;
-    }
 
     if (ret == 0) {
-        if (!((*reply) = virJSONValueFromString(msg.rxBuffer))) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("cannot parse JSON doc '%s'"), msg.rxBuffer);
-            goto cleanup;
+        if (!msg.rxObject) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("Missing monitor reply object"));
+            ret = -1;
+        } else {
+            *reply = msg.rxObject;
         }
     }
 
-    if (ret < 0)
-        virReportSystemError(msg.lastErrno,
-                             _("cannot send monitor command '%s'"), cmdstr);
-
 cleanup:
+    VIR_FREE(id);
     VIR_FREE(cmdstr);
     VIR_FREE(msg.txBuffer);
-    VIR_FREE(msg.rxBuffer);
 
     return ret;
 }
@@ -413,8 +412,13 @@ qemuMonitorJSONMakeCommand(const char *cmdname,
             ret = virJSONValueObjectAppendNumberLong(jargs, key, val);
         }   break;
         case 'U': {
-            unsigned long long val = va_arg(args, unsigned long long);
-            ret = virJSONValueObjectAppendNumberUlong(jargs, key, val);
+            /* qemu silently truncates numbers larger than LLONG_MAX,
+             * so passing the full range of unsigned 64 bit integers
+             * is not safe here.  Pass them as signed 64 bit integers
+             * instead.
+             */
+            long long val = va_arg(args, long long);
+            ret = virJSONValueObjectAppendNumberLong(jargs, key, val);
         }   break;
         case 'd': {
             double val = va_arg(args, double);
@@ -537,7 +541,7 @@ static void qemuMonitorJSONHandleRTCChange(qemuMonitorPtr mon, virJSONValuePtr d
 {
     long long offset = 0;
     if (virJSONValueObjectGetNumberLong(data, "offset", &offset) < 0) {
-        VIR_WARN0("missing offset in RTC change event");
+        VIR_WARN("missing offset in RTC change event");
         offset = 0;
     }
     qemuMonitorEmitRTCChange(mon, offset);
@@ -552,7 +556,7 @@ static void qemuMonitorJSONHandleWatchdog(qemuMonitorPtr mon, virJSONValuePtr da
     const char *action;
     int actionID;
     if (!(action = virJSONValueObjectGetString(data, "action"))) {
-        VIR_WARN0("missing action in watchdog event");
+        VIR_WARN("missing action in watchdog event");
     }
     if (action) {
         if ((actionID = qemuMonitorWatchdogActionTypeFromString(action)) < 0) {
@@ -582,17 +586,17 @@ static void qemuMonitorJSONHandleIOError(qemuMonitorPtr mon, virJSONValuePtr dat
        to the application */
 
     if ((action = virJSONValueObjectGetString(data, "action")) == NULL) {
-        VIR_WARN0("Missing action in disk io error event");
+        VIR_WARN("Missing action in disk io error event");
         action = "ignore";
     }
 
     if ((device = virJSONValueObjectGetString(data, "device")) == NULL) {
-        VIR_WARN0("missing device in disk io error event");
+        VIR_WARN("missing device in disk io error event");
     }
 
 #if 0
     if ((reason = virJSONValueObjectGetString(data, "reason")) == NULL) {
-        VIR_WARN0("missing reason in disk io error event");
+        VIR_WARN("missing reason in disk io error event");
         reason = "";
     }
 #else
@@ -622,11 +626,11 @@ static void qemuMonitorJSONHandleVNC(qemuMonitorPtr mon, virJSONValuePtr data, i
     virJSONValuePtr server;
 
     if (!(client = virJSONValueObjectGet(data, "client"))) {
-        VIR_WARN0("missing client info in VNC event");
+        VIR_WARN("missing client info in VNC event");
         return;
     }
     if (!(server = virJSONValueObjectGet(data, "server"))) {
-        VIR_WARN0("missing server info in VNC event");
+        VIR_WARN("missing server info in VNC event");
         return;
     }
 
@@ -846,6 +850,48 @@ qemuMonitorJSONStopCPUs(qemuMonitorPtr mon)
     if (ret == 0)
         ret = qemuMonitorJSONCheckError(cmd, reply);
 
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int
+qemuMonitorJSONGetStatus(qemuMonitorPtr mon, bool *running)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr data;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("query-status", NULL)))
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    if (ret < 0)
+        goto cleanup;
+
+    ret = -1;
+
+    if (!(data = virJSONValueObjectGet(reply, "return"))) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("query-status reply was missing return data"));
+        goto cleanup;
+    }
+
+    if (virJSONValueObjectGetBoolean(data, "running", running) < 0) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("query-status reply was missing running state"));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;
@@ -1504,7 +1550,7 @@ int qemuMonitorJSONSetCPU(qemuMonitorPtr mon,
 
     if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
         qemuMonitorCheckHMP(mon, "cpu_set")) {
-        VIR_DEBUG0("cpu_set command not found, trying HMP");
+        VIR_DEBUG("cpu_set command not found, trying HMP");
         ret = qemuMonitorTextSetCPU(mon, cpu, online);
         goto cleanup;
     }
@@ -1805,6 +1851,38 @@ int qemuMonitorJSONMigrateCancel(qemuMonitorPtr mon)
 {
     int ret;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("migrate_cancel", NULL);
+    virJSONValuePtr reply = NULL;
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int qemuMonitorJSONGraphicsRelocate(qemuMonitorPtr mon,
+                                    int type,
+                                    const char *hostname,
+                                    int port,
+                                    int tlsPort,
+                                    const char *tlsSubject)
+{
+    int ret = -1;
+    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("client_migrate_info",
+                                                     "s:protocol",
+                                                     (type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE ? "spice" : "vnc"),
+                                                     "s:hostname", hostname,
+                                                     "i:port", port,
+                                                     "i:tls-port", tlsPort,
+                                                     (tlsSubject ? "s:cert-subject" : NULL),
+                                                     (tlsSubject ? tlsSubject : NULL),
+                                                     NULL);
     virJSONValuePtr reply = NULL;
     if (!cmd)
         return -1;
@@ -2301,7 +2379,7 @@ int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
 
     if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
         qemuMonitorCheckHMP(mon, "drive_add")) {
-        VIR_DEBUG0("drive_add command not found, trying HMP");
+        VIR_DEBUG("drive_add command not found, trying HMP");
         ret = qemuMonitorTextAddDrive(mon, drivestr);
         goto cleanup;
     }
@@ -2334,10 +2412,10 @@ int qemuMonitorJSONDriveDel(qemuMonitorPtr mon,
 
     if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
         if (qemuMonitorCheckHMP(mon, "drive_del")) {
-            VIR_DEBUG0("drive_del command not found, trying HMP");
+            VIR_DEBUG("drive_del command not found, trying HMP");
             ret = qemuMonitorTextDriveDel(mon, drivestr);
         } else {
-            VIR_ERROR0(_("deleting disk is not supported.  "
+            VIR_ERROR(_("deleting disk is not supported.  "
                         "This may leak data if disk is reassigned"));
             ret = 1;
         }
@@ -2404,7 +2482,7 @@ int qemuMonitorJSONCreateSnapshot(qemuMonitorPtr mon, const char *name)
 
     if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
         qemuMonitorCheckHMP(mon, "savevm")) {
-        VIR_DEBUG0("savevm command not found, trying HMP");
+        VIR_DEBUG("savevm command not found, trying HMP");
         ret = qemuMonitorTextCreateSnapshot(mon, name);
         goto cleanup;
     }
@@ -2434,7 +2512,7 @@ int qemuMonitorJSONLoadSnapshot(qemuMonitorPtr mon, const char *name)
 
     if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
         qemuMonitorCheckHMP(mon, "loadvm")) {
-        VIR_DEBUG0("loadvm command not found, trying HMP");
+        VIR_DEBUG("loadvm command not found, trying HMP");
         ret = qemuMonitorTextLoadSnapshot(mon, name);
         goto cleanup;
     }
@@ -2464,7 +2542,7 @@ int qemuMonitorJSONDeleteSnapshot(qemuMonitorPtr mon, const char *name)
 
     if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
         qemuMonitorCheckHMP(mon, "delvm")) {
-        VIR_DEBUG0("delvm command not found, trying HMP");
+        VIR_DEBUG("delvm command not found, trying HMP");
         ret = qemuMonitorTextDeleteSnapshot(mon, name);
         goto cleanup;
     }
@@ -2511,5 +2589,55 @@ cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
 
+    return ret;
+}
+
+int qemuMonitorJSONInjectNMI(qemuMonitorPtr mon)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    cmd = qemuMonitorJSONMakeCommand("inject-nmi", NULL);
+    if (!cmd)
+        return -1;
+
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
+
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
+        qemuMonitorCheckHMP(mon, "inject-nmi")) {
+        VIR_DEBUG("inject-nmi command not found, trying HMP");
+        ret = qemuMonitorTextInjectNMI(mon);
+    } else {
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+    }
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int qemuMonitorJSONScreendump(qemuMonitorPtr mon,
+                              const char *file)
+{
+    int ret;
+    virJSONValuePtr cmd, reply = NULL;
+
+    cmd = qemuMonitorJSONMakeCommand("screendump",
+                                     "s:filename", file,
+                                     NULL);
+
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
     return ret;
 }

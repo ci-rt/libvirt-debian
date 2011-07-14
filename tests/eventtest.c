@@ -119,7 +119,7 @@ static pthread_cond_t eventThreadJobCond = PTHREAD_COND_INITIALIZER;
 static int eventThreadJobDone = 0;
 
 
-static void *eventThreadLoop(void *data ATTRIBUTE_UNUSED) {
+ATTRIBUTE_NORETURN static void *eventThreadLoop(void *data ATTRIBUTE_UNUSED) {
     while (1) {
         pthread_mutex_lock(&eventThreadMutex);
         while (!eventThreadRunOnce) {
@@ -135,7 +135,6 @@ static void *eventThreadLoop(void *data ATTRIBUTE_UNUSED) {
         pthread_cond_signal(&eventThreadJobCond);
         pthread_mutex_unlock(&eventThreadMutex);
     }
-    return NULL;
 }
 
 
@@ -260,19 +259,11 @@ resetAll(void)
 }
 
 static int
-mymain(int argc, char **argv)
+mymain(void)
 {
-    char *progname;
     int i;
     pthread_t eventThread;
     char one = '1';
-
-    progname = argv[0];
-
-    if (argc > 1) {
-        fprintf(stderr, "Usage: %s\n", progname);
-        return EXIT_FAILURE;
-    }
 
     for (i = 0 ; i < NUM_FDS ; i++) {
         if (pipe(handles[i].pipeFD) < 0) {
@@ -483,6 +474,5 @@ mymain(int argc, char **argv)
 
     return EXIT_SUCCESS;
 }
-
 
 VIRT_TEST_MAIN(mymain)

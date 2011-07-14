@@ -42,7 +42,7 @@
 #include "files.h"
 
 #define ifaceError(code, ...) \
-        virReportErrorHelper(NULL, VIR_FROM_NET, code, __FILE__, \
+        virReportErrorHelper(VIR_FROM_NET, code, __FILE__, \
                              __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #if __linux__
@@ -91,7 +91,7 @@ ifaceGetFlags(const char *ifname, short *flags) {
 
 int
 ifaceIsUp(const char *ifname, bool *up) {
-    short flags;
+    short flags = 0;
     int rc = ifaceGetFlags(ifname, &flags);
 
     if (rc)

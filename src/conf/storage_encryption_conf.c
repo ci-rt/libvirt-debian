@@ -159,8 +159,6 @@ virStorageEncryptionParseXML(xmlXPathContextPtr ctxt)
 
     n = virXPathNodeSet("./secret", ctxt, &nodes);
     if (n < 0){
-        virStorageReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                              _("cannot extract volume encryption secrets"));
         goto cleanup;
     }
     if (n != 0 && VIR_ALLOC_N(ret->secrets, n) < 0) {
@@ -227,7 +225,7 @@ virStorageEncryptionSecretFormat(virBufferPtr buf,
     }
 
     virUUIDFormat(secret->uuid, uuidstr);
-    virBufferVSprintf(buf, "%*s<secret type='%s' uuid='%s'/>\n",
+    virBufferAsprintf(buf, "%*s<secret type='%s' uuid='%s'/>\n",
                       indent, "", type, uuidstr);
     return 0;
 }
@@ -246,7 +244,7 @@ virStorageEncryptionFormat(virBufferPtr buf,
                               "%s", _("unexpected encryption format"));
         return -1;
     }
-    virBufferVSprintf(buf, "%*s<encryption format='%s'>\n",
+    virBufferAsprintf(buf, "%*s<encryption format='%s'>\n",
                       indent, "", format);
 
     for (i = 0; i < enc->nsecrets; i++) {
@@ -255,7 +253,7 @@ virStorageEncryptionFormat(virBufferPtr buf,
             return -1;
     }
 
-    virBufferVSprintf(buf, "%*s</encryption>\n", indent, "");
+    virBufferAsprintf(buf, "%*s</encryption>\n", indent, "");
 
     return 0;
 }

@@ -1,0 +1,51 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sat, 11 Jun 2011 18:10:40 +0200
+Subject: nodeinfo: remove superfluous braces
+
+that break compilation on non intel architectures:
+
+mips:
+https://buildd.debian.org/status/fetch.php?pkg=libvirt&arch=mips&ver=0.9.2-1&stamp=1307570195
+powerpc:
+https://buildd.debian.org/status/fetch.php?pkg=libvirt&arch=powerpc&ver=0.9.2-1&stamp=1307550913
+s390:
+https://buildd.debian.org/status/fetch.php?pkg=libvirt&arch=s390&ver=0.9.2-1&stamp=1307641748
+sparc:
+https://buildd.debian.org/status/fetch.php?pkg=libvirt&arch=sparc&ver=0.9.2-1&stamp=1307552926
+---
+ src/nodeinfo.c |    4 +---
+ 1 files changed, 1 insertions(+), 3 deletions(-)
+
+diff --git a/src/nodeinfo.c b/src/nodeinfo.c
+index f55c83e..1fe6ec9 100644
+--- a/src/nodeinfo.c
++++ b/src/nodeinfo.c
+@@ -248,7 +248,6 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
+                 && (*p == '\0' || c_isspace(*p))
+                 && id > nodeinfo->cores)
+                 nodeinfo->cores = id;
+-        }
+ # elif defined(__powerpc__) || \
+       defined(__powerpc64__)
+         } else if (STRPREFIX(buf, "clock")) {
+@@ -266,7 +265,6 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
+                 /* Accept trailing fractional part.  */
+                 && (*p == '\0' || *p == '.' || c_isspace(*p)))
+                 nodeinfo->mhz = ui;
+-        }
+ # elif defined(__s390__) || \
+         defined(__s390x__)
+         } else if (STRPREFIX(buf, "# processors")) {
+@@ -289,10 +287,10 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
+              * and parsed in next iteration, because it is not in expected
+              * format and thus lead to error. */
+             break;
+-        }
+ # else
+ #  warning Parser for /proc/cpuinfo needs to be adapted for your architecture
+ # endif
++        }
+     }
+ 
+     if (!nodeinfo->cpus) {
+-- 

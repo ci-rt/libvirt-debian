@@ -18,10 +18,6 @@
 #  define sa_assert(expr) /* empty */
 # endif
 
-# ifdef HAVE_SYS_SYSLIMITS_H
-#  include <sys/syslimits.h>
-# endif
-
 /* The library itself is allowed to use deprecated functions /
  * variables, so effectively undefine the deprecated attribute
  * which would otherwise be defined in libvirt.h.
@@ -114,6 +110,15 @@
  */
 #  ifndef ATTRIBUTE_UNUSED
 #   define ATTRIBUTE_UNUSED __attribute__((__unused__))
+#  endif
+
+/**
+ * ATTRIBUTE_NORETURN:
+ *
+ * Macro to indicate that a function won't return to the caller
+ */
+#  ifndef ATTRIBUTE_NORETURN
+#   define ATTRIBUTE_NORETURN __attribute__((__noreturn__))
 #  endif
 
 /**
@@ -223,8 +228,7 @@
     do {                                                                \
         unsigned long __unsuppflags = flags & ~(supported);             \
         if (__unsuppflags) {                                            \
-            virReportErrorHelper(NULL,                                  \
-                                 VIR_FROM_THIS,                         \
+            virReportErrorHelper(VIR_FROM_THIS,                         \
                                  VIR_ERR_INVALID_ARG,                   \
                                  __FILE__,                              \
                                  __FUNCTION__,                          \

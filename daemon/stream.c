@@ -27,6 +27,9 @@
 #include "memory.h"
 #include "dispatch.h"
 #include "logging.h"
+#include "virterror_internal.h"
+
+#define VIR_FROM_THIS VIR_FROM_STREAMS
 
 static int
 remoteStreamHandleWrite(struct qemud_client *client,
@@ -209,8 +212,10 @@ remoteCreateClientStream(virConnectPtr conn,
 
     VIR_DEBUG("proc=%d serial=%d", hdr->proc, hdr->serial);
 
-    if (VIR_ALLOC(stream) < 0)
+    if (VIR_ALLOC(stream) < 0) {
+        virReportOOMError();
         return NULL;
+    }
 
     stream->procedure = hdr->proc;
     stream->serial = hdr->serial;
@@ -401,9 +406,9 @@ remoteStreamHandleWriteData(struct qemud_client *client,
         /* Blocking, so indicate we have more todo later */
         return 1;
     } else {
-        VIR_INFO0("Stream send failed");
+        VIR_INFO("Stream send failed");
         stream->closed = 1;
-        remoteDispatchConnError(&rerr, client->conn);
+        remoteDispatchError(&rerr);
         return remoteSerializeReplyError(client, &rerr, &msg->hdr);
     }
 
@@ -437,7 +442,7 @@ remoteStreamHandleFinish(struct qemud_client *client,
     ret = virStreamFinish(stream->st);
 
     if (ret < 0) {
-        remoteDispatchConnError(&rerr, client->conn);
+        remoteDispatchError(&rerr);
         return remoteSerializeReplyError(client, &rerr, &msg->hdr);
     } else {
         /* Send zero-length confirm */
@@ -569,7 +574,7 @@ remoteStreamHandleRead(struct qemud_client *client,
     } else if (ret < 0) {
         remote_error rerr;
         memset(&rerr, 0, sizeof rerr);
-        remoteDispatchConnError(&rerr, NULL);
+        remoteDispatchError(&rerr);
 
         ret = remoteSerializeStreamError(client, &rerr, stream->procedure, stream->serial);
     } else {

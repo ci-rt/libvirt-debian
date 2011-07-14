@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# readlink.m4 serial 9
+# readlink.m4 serial 10
 dnl Copyright (C) 2003, 2007, 2009-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -50,7 +50,8 @@ AC_DEFUN([gl_FUNC_READLINK],
   fi
 ])
 
-# Like gl_FUNC_READLINK, except prepare for separate compilation (no AC_LIBOBJ).
+# Like gl_FUNC_READLINK, except prepare for separate compilation
+# (no REPLACE_READLINK, no AC_LIBOBJ).
 AC_DEFUN([gl_FUNC_READLINK_SEPARATE],
 [
   AC_CHECK_FUNCS_ONCE([readlink])
