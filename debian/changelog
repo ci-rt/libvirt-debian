@@ -1,3 +1,10 @@
+libvirt (0.4.6-10+lenny2) oldstable-security; urgency=low
+
+  * [bb53af0] CVE-2011-2511: Fix integer overflow in VirDomainGetVcpus
+    (Closes: #633630)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 16 Jul 2011 21:21:24 +0200
+
 libvirt (0.4.6-10+lenny1) stable; urgency=low
 
   * [dcdab94] CVE-2010-2242: Apply a source port mapping to virtual network
