@@ -11,3 +11,4 @@
 0011-Fix-missing-read-only-access-checks-CVE-2008-5086.patch
 0012-fix-Debian-specific-path-to-hvm-loader.patch
 0013-CVE-2010-2242-Apply-a-source-port-mapping-to-virtual.patch
+0014-Fix-integer-overflow-in-VirDomainGetVcpus.patch

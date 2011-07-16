@@ -1,0 +1,234 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 12 Jul 2011 15:03:09 +0200
+Subject: Fix integer overflow in VirDomainGetVcpus
+
+Patch taken from upsteam. (CVE-2011-2511)
+
+Closes: #633630
+---
+ gnulib/lib/intprops.h |  146 +++++++++++++++++++++++++++++++++++++++++++++++++
+ qemud/remote.c        |    4 +-
+ src/libvirt.c         |    4 +-
+ src/remote_internal.c |    4 +-
+ 4 files changed, 155 insertions(+), 3 deletions(-)
+ create mode 100644 gnulib/lib/intprops.h
+
+diff --git a/gnulib/lib/intprops.h b/gnulib/lib/intprops.h
+new file mode 100644
+index 0000000..e842db1
+--- /dev/null
++++ b/gnulib/lib/intprops.h
+@@ -0,0 +1,146 @@
++/* -*- buffer-read-only: t -*- vi: set ro: */
++/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
++/* intprops.h -- properties of integer types
++
++   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2009, 2010 Free Software
++   Foundation, Inc.
++
++   This program is free software: you can redistribute it and/or modify
++   it under the terms of the GNU Lesser General Public License as published by
++   the Free Software Foundation; either version 2.1 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public License
++   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
++
++/* Written by Paul Eggert.  */
++
++#ifndef GL_INTPROPS_H
++# define GL_INTPROPS_H
++
++# include <limits.h>
++
++/* The extra casts in the following macros work around compiler bugs,
++   e.g., in Cray C 5.0.3.0.  */
++
++/* True if the arithmetic type T is an integer type.  bool counts as
++   an integer.  */
++# define TYPE_IS_INTEGER(t) ((t) 1.5 == 1)
++
++/* True if negative values of the signed integer type T use two's
++   complement, ones' complement, or signed magnitude representation,
++   respectively.  Much GNU code assumes two's complement, but some
++   people like to be portable to all possible C hosts.  */
++# define TYPE_TWOS_COMPLEMENT(t) ((t) ~ (t) 0 == (t) -1)
++# define TYPE_ONES_COMPLEMENT(t) ((t) ~ (t) 0 == 0)
++# define TYPE_SIGNED_MAGNITUDE(t) ((t) ~ (t) 0 < (t) -1)
++
++/* True if the arithmetic type T is signed.  */
++# define TYPE_SIGNED(t) (! ((t) 0 < (t) -1))
++
++/* The maximum and minimum values for the integer type T.  These
++   macros have undefined behavior if T is signed and has padding bits.
++   If this is a problem for you, please let us know how to fix it for
++   your host.  */
++# define TYPE_MINIMUM(t) \
++  ((t) (! TYPE_SIGNED (t) \
++        ? (t) 0 \
++        : TYPE_SIGNED_MAGNITUDE (t) \
++        ? ~ (t) 0 \
++        : ~ (t) 0 << (sizeof (t) * CHAR_BIT - 1)))
++# define TYPE_MAXIMUM(t) \
++  ((t) (! TYPE_SIGNED (t) \
++        ? (t) -1 \
++        : ~ (~ (t) 0 << (sizeof (t) * CHAR_BIT - 1))))
++
++/* Return zero if T can be determined to be an unsigned type.
++   Otherwise, return 1.
++   When compiling with GCC, INT_STRLEN_BOUND uses this macro to obtain a
++   tighter bound.  Otherwise, it overestimates the true bound by one byte
++   when applied to unsigned types of size 2, 4, 16, ... bytes.
++   The symbol signed_type_or_expr__ is private to this header file.  */
++# if __GNUC__ >= 2
++#  define signed_type_or_expr__(t) TYPE_SIGNED (__typeof__ (t))
++# else
++#  define signed_type_or_expr__(t) 1
++# endif
++
++/* Bound on length of the string representing an integer type or expression T.
++   Subtract 1 for the sign bit if T is signed; log10 (2.0) < 146/485;
++   add 1 for integer division truncation; add 1 more for a minus sign
++   if needed.  */
++# define INT_STRLEN_BOUND(t) \
++  ((sizeof (t) * CHAR_BIT - signed_type_or_expr__ (t)) * 146 / 485 \
++   + signed_type_or_expr__ (t) + 1)
++
++/* Bound on buffer size needed to represent an integer type or expression T,
++   including the terminating null.  */
++# define INT_BUFSIZE_BOUND(t) (INT_STRLEN_BOUND (t) + 1)
++
++#define INT_MULTIPLY_OVERFLOW(a, b) \
++  _GL_BINARY_OP_OVERFLOW (a, b, _GL_MULTIPLY_OVERFLOW)
++
++/* Return 1 if the expression A <op> B would overflow,
++   where OP_RESULT_OVERFLOW (A, B, MIN, MAX) does the actual test,
++   assuming MIN and MAX are the minimum and maximum for the result type.
++   Arguments should be free of side effects.  */
++#define _GL_BINARY_OP_OVERFLOW(a, b, op_result_overflow)        \
++  op_result_overflow (a, b,                                     \
++                      _GL_INT_MINIMUM (0 * (b) + (a)),          \
++                      _GL_INT_MAXIMUM (0 * (b) + (a)))
++
++/* The maximum and minimum values for the type of the expression E,
++   after integer promotion.  E should not have side effects.  */
++#define _GL_INT_MINIMUM(e)                                              \
++  (_GL_INT_SIGNED (e)                                                   \
++   ? - _GL_INT_TWOS_COMPLEMENT (e) - _GL_SIGNED_INT_MAXIMUM (e)         \
++   : _GL_INT_CONVERT (e, 0))
++#define _GL_INT_MAXIMUM(e)                                              \
++  (_GL_INT_SIGNED (e)                                                   \
++   ? _GL_SIGNED_INT_MAXIMUM (e)                                         \
++   : _GL_INT_NEGATE_CONVERT (e, 1))
++#define _GL_SIGNED_INT_MAXIMUM(e)                                       \
++  (((_GL_INT_CONVERT (e, 1) << (sizeof ((e) + 0) * CHAR_BIT - 2)) - 1) * 2 + 1)
++
++/* Return 1 if the integer expression E, after integer promotion, has
++   a signed type.  */
++#define _GL_INT_SIGNED(e) (_GL_INT_NEGATE_CONVERT (e, 1) < 0)
++
++/* Act like _GL_INT_CONVERT (E, -V) but work around a bug in IRIX 6.5 cc; see
++   <http://lists.gnu.org/archive/html/bug-gnulib/2011-05/msg00406.html>.  */
++#define _GL_INT_NEGATE_CONVERT(e, v) (0 * (e) - (v))
++
++/* Return an integer value, converted to the same type as the integer
++   expression E after integer type promotion.  V is the unconverted value.  */
++#define _GL_INT_CONVERT(e, v) (0 * (e) + (v))
++
++/* True if the signed integer expression E uses two's complement.  */
++#define _GL_INT_TWOS_COMPLEMENT(e) (~ _GL_INT_CONVERT (e, 0) == -1)
++
++#define _GL_MULTIPLY_OVERFLOW(a, b, min, max)                           \
++  (((min) == 0 && (((a) < 0 && 0 < (b)) || ((b) < 0 && 0 < (a))))       \
++   || INT_MULTIPLY_RANGE_OVERFLOW (a, b, min, max))
++
++/* Return 1 if A * B would overflow in [MIN,MAX] arithmetic.
++   See above for restrictions.  Avoid && and || as they tickle
++   bugs in Sun C 5.11 2010/08/13 and other compilers; see
++   <http://lists.gnu.org/archive/html/bug-gnulib/2011-05/msg00401.html>.  */
++#define INT_MULTIPLY_RANGE_OVERFLOW(a, b, min, max)     \
++  ((b) < 0                                              \
++   ? ((a) < 0                                           \
++      ? (a) < (max) / (b)                               \
++      : (b) == -1                                       \
++      ? 0                                               \
++      : (min) / (b) < (a))                              \
++   : (b) == 0                                           \
++   ? 0                                                  \
++   : ((a) < 0                                           \
++      ? (a) < (min) / (b)                               \
++      : (max) / (b) < (a)))
++
++#endif /* GL_INTPROPS_H */
+diff --git a/qemud/remote.c b/qemud/remote.c
+index 3e43dcf..38e520e 100644
+--- a/qemud/remote.c
++++ b/qemud/remote.c
+@@ -51,6 +51,7 @@
+ #include "internal.h"
+ #include "qemud.h"
+ #include "memory.h"
++#include "intprops.h"
+ 
+ #define DEBUG 0
+ 
+@@ -1304,7 +1305,8 @@ remoteDispatchDomainGetVcpus (struct qemud_server *server ATTRIBUTE_UNUSED,
+         return -2;
+     }
+ 
+-    if (args->maxinfo * args->maplen > REMOTE_CPUMAPS_MAX) {
++    if (INT_MULTIPLY_OVERFLOW(args->maxinfo, args->maplen) ||
++        args->maxinfo * args->maplen > REMOTE_CPUMAPS_MAX) {
+         virDomainFree(dom);
+         remoteDispatchError (client, req, "%s", _("maxinfo * maplen > REMOTE_CPUMAPS_MAX"));
+         return -2;
+diff --git a/src/libvirt.c b/src/libvirt.c
+index 02f67b7..0d0e006 100644
+--- a/src/libvirt.c
++++ b/src/libvirt.c
+@@ -37,6 +37,7 @@
+ #include "uuid.h"
+ #include "util.h"
+ #include "memory.h"
++#include "intprops.h"
+ 
+ #ifdef WITH_TEST
+ #include "test.h"
+@@ -3197,7 +3198,8 @@ virDomainGetVcpus(virDomainPtr domain, virVcpuInfoPtr info, int maxinfo,
+         virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
+         return (-1);
+     }
+-    if (cpumaps != NULL && maplen < 1) {
++    if (!cpumaps ? maplen != 0
++        : (maplen <= 0 || INT_MULTIPLY_OVERFLOW(maxinfo, maplen))) {
+         virLibDomainError(domain, VIR_ERR_INVALID_ARG, __FUNCTION__);
+         return (-1);
+     }
+diff --git a/src/remote_internal.c b/src/remote_internal.c
+index 66de9d5..a31ef0e 100644
+--- a/src/remote_internal.c
++++ b/src/remote_internal.c
+@@ -73,6 +73,7 @@
+ #include "remote_protocol.h"
+ #include "memory.h"
+ #include "util.h"
++#include "intprops.h"
+ 
+ #define DEBUG(fmt,...) VIR_DEBUG(__FILE__, fmt,__VA_ARGS__)
+ #define DEBUG0(msg) VIR_DEBUG(__FILE__, "%s", msg)
+@@ -1774,7 +1775,8 @@ remoteDomainGetVcpus (virDomainPtr domain,
+                 maxinfo, REMOTE_VCPUINFO_MAX);
+         return -1;
+     }
+-    if (maxinfo * maplen > REMOTE_CPUMAPS_MAX) {
++    if (INT_MULTIPLY_OVERFLOW(maxinfo, maplen) ||
++        maxinfo * maplen > REMOTE_CPUMAPS_MAX) {
+         errorf (domain->conn, VIR_ERR_RPC,
+                 _("vCPU map buffer length exceeds maximum: %d > %d"),
+                 maxinfo * maplen, REMOTE_CPUMAPS_MAX);
+-- 
