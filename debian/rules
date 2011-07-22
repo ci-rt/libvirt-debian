@@ -2,6 +2,10 @@
 
 DEB_BUILD_PARALLEL = yes
 
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/autotools.mk
+include /usr/share/cdbs/1/class/python-distutils.mk
+
 ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
   DEB_MAKE_CHECK_TARGET = check
   WITH_XEN = --with-xen
@@ -40,9 +44,6 @@ else
   WITH_LXC            = --without-lxc
 endif
 
-include /usr/share/cdbs/1/rules/debhelper.mk
-include /usr/share/cdbs/1/class/autotools.mk
-include /usr/share/cdbs/1/class/python-distutils.mk
 
 DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--disable-rpath          \
