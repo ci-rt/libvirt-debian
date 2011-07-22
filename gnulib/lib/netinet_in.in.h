@@ -17,7 +17,7 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
-#ifndef _GL_NETINET_IN_H
+#ifndef _@GUARD_PREFIX@_NETINET_IN_H
 
 #if __GNUC__ >= 3
 @PRAGMA_SYSTEM_HEADER@
@@ -35,8 +35,8 @@
 
 #endif
 
-#ifndef _GL_NETINET_IN_H
-#define _GL_NETINET_IN_H
+#ifndef _@GUARD_PREFIX@_NETINET_IN_H
+#define _@GUARD_PREFIX@_NETINET_IN_H
 
 #if !@HAVE_NETINET_IN_H@
 
@@ -46,5 +46,5 @@
 
 #endif
 
-#endif /* _GL_NETINET_IN_H */
-#endif /* _GL_NETINET_IN_H */
+#endif /* _@GUARD_PREFIX@_NETINET_IN_H */
+#endif /* _@GUARD_PREFIX@_NETINET_IN_H */

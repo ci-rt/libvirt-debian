@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.9.2], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.3], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -136,7 +136,7 @@ LIBS=$old_libs
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
-  sys/un.h sys/syscall.h])
+  sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h])
 
 AC_CHECK_LIB([intl],[gettext],[])
 
@@ -299,17 +299,6 @@ if test x"$enable_debug" = x"yes"; then
 fi
 
 
-AC_MSG_CHECKING([where to write libvirtd PID file])
-AC_ARG_WITH([remote-pid-file], [AC_HELP_STRING([--with-remote-pid-file=@<:@pidfile|none@:>@], [PID file for libvirtd])])
-if test "x$with_remote_pid_file" = "x" ; then
-   REMOTE_PID_FILE="$localstatedir/run/libvirtd.pid"
-elif test "x$with_remote_pid_file" = "xnone" ; then
-   REMOTE_PID_FILE=""
-else
-   REMOTE_PID_FILE="$with_remote_pid_file"
-fi
-AC_SUBST([REMOTE_PID_FILE])
-AC_MSG_RESULT($REMOTE_PID_FILE)
 
 dnl
 dnl init script flavor
@@ -417,6 +406,28 @@ fi
 
 
 dnl
+dnl check for libdl
+dnl
+
+dlfcn_found=yes
+dlopen_found=yes
+
+AC_CHECK_HEADER([dlfcn.h],, [dlfcn_found=no])
+AC_SEARCH_LIBS([dlopen], [dl],, [dlopen_found=no])
+
+case $ac_cv_search_dlopen:$host_os in
+  'none required'* | *:mingw* | *:msvc*) DLOPEN_LIBS= ;;
+  no*) AC_MSG_ERROR([Unable to find dlopen()]) ;;
+  *) if test "x$dlfcn_found" != "xyes"; then
+       AC_MSG_ERROR([Unable to find dlfcn.h])
+     fi
+     DLOPEN_LIBS=$ac_cv_search_dlopen ;;
+esac
+
+AC_SUBST([DLOPEN_LIBS])
+
+
+dnl
 dnl check for VirtualBox XPCOMC location
 dnl
 
@@ -432,14 +443,6 @@ AC_DEFINE_UNQUOTED([VBOX_XPCOMC_DIR], ["$vbox_xpcomc_dir"],
                    [Location of directory containing VirtualBox XPCOMC library])
 
 if test "x$with_vbox" = "xyes"; then
-    AC_SEARCH_LIBS([dlopen], [dl],,)
-    case $ac_cv_search_dlopen:$host_os in
-      'none required'* | *:mingw* | *:msvc*) DLOPEN_LIBS= ;;
-      no*) AC_MSG_ERROR([Unable to find dlopen()]) ;;
-      *) DLOPEN_LIBS=$ac_cv_search_dlopen ;;
-    esac
-    AC_SUBST([DLOPEN_LIBS])
-
     case "$host" in
       *-*-mingw* | *-*-msvc*) MSCOM_LIBS="-lole32 -loleaut32" ;;
       *) MSCOM_LIBS= ;;
@@ -1705,9 +1708,9 @@ if test "$with_storage_lvm" = "yes" || test "$with_storage_lvm" = "check"; then
     AC_DEFINE_UNQUOTED([PVCREATE],["$PVCREATE"],[Location of pvcreate program])
     AC_DEFINE_UNQUOTED([VGCREATE],["$VGCREATE"],[Location of vgcreate program])
     AC_DEFINE_UNQUOTED([LVCREATE],["$LVCREATE"],[Location of lvcreate program])
-    AC_DEFINE_UNQUOTED([PVREMOVE],["$PVREMOVE"],[Location of pvcreate program])
-    AC_DEFINE_UNQUOTED([VGREMOVE],["$VGREMOVE"],[Location of vgcreate program])
-    AC_DEFINE_UNQUOTED([LVREMOVE],["$LVREMOVE"],[Location of lvcreate program])
+    AC_DEFINE_UNQUOTED([PVREMOVE],["$PVREMOVE"],[Location of pvremove program])
+    AC_DEFINE_UNQUOTED([VGREMOVE],["$VGREMOVE"],[Location of vgremove program])
+    AC_DEFINE_UNQUOTED([LVREMOVE],["$LVREMOVE"],[Location of lvremove program])
     AC_DEFINE_UNQUOTED([VGCHANGE],["$VGCHANGE"],[Location of vgchange program])
     AC_DEFINE_UNQUOTED([VGSCAN],["$VGSCAN"],[Location of vgscan program])
     AC_DEFINE_UNQUOTED([PVS],["$PVS"],[Location of pvs program])
@@ -2138,19 +2141,10 @@ AC_ARG_WITH([driver-modules],
 
 DRIVER_MODULE_CFLAGS=
 DRIVER_MODULE_LIBS=
-if test "x$with_driver_modules" = "xyes" ; then
-  old_cflags="$CFLAGS"
-  old_libs="$LIBS"
-  fail=0
-  AC_CHECK_HEADER([dlfcn.h],[],[fail=1])
-  AC_SEARCH_LIBS([dlopen], [dl], [], [fail=1])
-  test $fail = 1 &&
-      AC_MSG_ERROR([You must have dlfcn.h / dlopen() support to build driver modules])
-
-  CFLAGS="$old_cflags"
-  LIBS="$old_libs"
-fi
 if test "$with_driver_modules" = "yes"; then
+  if test "$dlfcn_found" != "yes" || test "$dlopen_found" != "yes"; then
+    AC_MSG_ERROR([You must have dlfcn.h / dlopen() support to build driver modules])
+  fi
   DRIVER_MODULE_CFLAGS="-export-dynamic"
   case $ac_cv_search_dlopen in
     no*) DRIVER_MODULE_LIBS= ;;
@@ -2366,13 +2360,19 @@ dnl netlink library
 
 LIBNL_CFLAGS=""
 LIBNL_LIBS=""
+have_libnl=no
 
-if test "$with_macvtap" = "yes"; then
+if test "$with_linux" = "yes"; then
     PKG_CHECK_MODULES([LIBNL], [libnl-1 >= $LIBNL_REQUIRED], [
+        have_libnl=yes
+        AC_DEFINE_UNQUOTED([HAVE_LIBNL], 1, [whether the netlink library is available])
     ], [
-        AC_MSG_ERROR([libnl-devel >= $LIBNL_REQUIRED is required for macvtap support])
+        if test "$with_macvtap" = "yes"; then
+            AC_MSG_ERROR([libnl-devel >= $LIBNL_REQUIRED is required for macvtap support])
+        fi
     ])
 fi
+AM_CONDITIONAL([HAVE_LIBNL], [test "$have_libnl" = "yes"])
 
 AC_SUBST([LIBNL_CFLAGS])
 AC_SUBST([LIBNL_LIBS])
@@ -2389,7 +2389,9 @@ cp -f COPYING.LIB COPYING
 
 # Detect when running under the clang static analyzer's scan-build driver
 # or Coverity-prevent's cov-build.  Define STATIC_ANALYSIS accordingly.
-test -n "${CCC_ANALYZER_ANALYSIS+set}$COVERITY_BUILD_COMMAND" && t=1 || t=0
+t=0
+test -n "${CCC_ANALYZER_ANALYSIS+set}" && t=1
+test -n "$COVERITY_BUILD_COMMAND$COVERITY_LD_PRELOAD" && t=1
 AC_DEFINE_UNQUOTED([STATIC_ANALYSIS], [$t],
   [Define to 1 when performing static analysis.])
 
@@ -2466,6 +2468,7 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Libraries])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([  libxml: $LIBXML_CFLAGS $LIBXML_LIBS])
+AC_MSG_NOTICE([  dlopen: $DLOPEN_LIBS])
 if test "$with_esx" = "yes" ; then
 AC_MSG_NOTICE([ libcurl: $LIBCURL_CFLAGS $LIBCURL_LIBS])
 else
@@ -2566,7 +2569,7 @@ AC_MSG_NOTICE([    pcap: $LIBPCAP_CFLAGS $LIBPCAP_LIBS])
 else
 AC_MSG_NOTICE([    pcap: no])
 fi
-if test "$with_macvtap" = "yes" ; then
+if test "$have_libnl" = "yes" ; then
 AC_MSG_NOTICE([      nl: $LIBNL_CFLAGS $LIBNL_LIBS])
 else
 AC_MSG_NOTICE([      nl: no])

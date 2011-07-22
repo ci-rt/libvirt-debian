@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# getdtablesize.m4 serial 1
+# getdtablesize.m4 serial 2
 dnl Copyright (C) 2008-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -12,6 +12,5 @@ AC_DEFUN([gl_FUNC_GETDTABLESIZE],
   AC_CHECK_FUNCS_ONCE([getdtablesize])
   if test $ac_cv_func_getdtablesize != yes; then
     HAVE_GETDTABLESIZE=0
-    AC_LIBOBJ([getdtablesize])
   fi
 ])

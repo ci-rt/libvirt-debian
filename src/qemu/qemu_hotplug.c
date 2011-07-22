@@ -186,10 +186,10 @@ int qemuDomainAttachPciDiskDevice(struct qemud_driver *driver,
         if (qemuAssignDeviceDiskAlias(disk, priv->qemuCaps) < 0)
             goto error;
 
-        if (!(drivestr = qemuBuildDriveStr(disk, 0, priv->qemuCaps)))
+        if (!(drivestr = qemuBuildDriveStr(disk, false, priv->qemuCaps)))
             goto error;
 
-        if (!(devstr = qemuBuildDriveDevStr(disk, priv->qemuCaps)))
+        if (!(devstr = qemuBuildDriveDevStr(disk, 0, priv->qemuCaps)))
             goto error;
     }
 
@@ -242,7 +242,8 @@ error:
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
         (disk->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) &&
         releaseaddr &&
-        qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &disk->info) < 0)
+        qemuDomainPCIAddressReleaseSlot(priv->pciaddrs,
+                                        disk->info.addr.pci.slot) < 0)
         VIR_WARN("Unable to release PCI address on %s", disk->src);
 
     if (virSecurityManagerRestoreImageLabel(driver->securityManager,
@@ -314,7 +315,8 @@ cleanup:
         qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
         (controller->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) &&
         releaseaddr &&
-        qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &controller->info) < 0)
+        qemuDomainPCIAddressReleaseSlot(priv->pciaddrs,
+                                        controller->info.addr.pci.slot) < 0)
         VIR_WARN("Unable to release PCI address on controller");
 
     VIR_FREE(devstr);
@@ -409,11 +411,11 @@ int qemuDomainAttachSCSIDisk(struct qemud_driver *driver,
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
         if (qemuAssignDeviceDiskAlias(disk, priv->qemuCaps) < 0)
             goto error;
-        if (!(devstr = qemuBuildDriveDevStr(disk, priv->qemuCaps)))
+        if (!(devstr = qemuBuildDriveDevStr(disk, 0, priv->qemuCaps)))
             goto error;
     }
 
-    if (!(drivestr = qemuBuildDriveStr(disk, 0, priv->qemuCaps)))
+    if (!(drivestr = qemuBuildDriveStr(disk, false, priv->qemuCaps)))
         goto error;
 
     for (i = 0 ; i <= disk->info.addr.drive.controller ; i++) {
@@ -529,9 +531,9 @@ int qemuDomainAttachUsbMassstorageDevice(struct qemud_driver *driver,
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
         if (qemuAssignDeviceDiskAlias(disk, priv->qemuCaps) < 0)
             goto error;
-        if (!(drivestr = qemuBuildDriveStr(disk, 0, priv->qemuCaps)))
+        if (!(drivestr = qemuBuildDriveStr(disk, false, priv->qemuCaps)))
             goto error;
-        if (!(devstr = qemuBuildDriveDevStr(disk, priv->qemuCaps)))
+        if (!(devstr = qemuBuildDriveDevStr(disk, 0, priv->qemuCaps)))
             goto error;
     }
 
@@ -702,7 +704,7 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
     }
 
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (!(nicstr = qemuBuildNicDevStr(net, vlan, priv->qemuCaps)))
+        if (!(nicstr = qemuBuildNicDevStr(net, vlan, 0, priv->qemuCaps)))
             goto try_remove;
     } else {
         if (!(nicstr = qemuBuildNicStr(net, NULL, vlan)))
@@ -739,7 +741,8 @@ cleanup:
         qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
         (net->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) &&
         releaseaddr &&
-        qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &net->info) < 0)
+        qemuDomainPCIAddressReleaseSlot(priv->pciaddrs,
+                                        net->info.addr.pci.slot) < 0)
         VIR_WARN("Unable to release PCI address on NIC");
 
     if (ret != 0)
@@ -870,7 +873,8 @@ error:
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
         (hostdev->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) &&
         releaseaddr &&
-        qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &hostdev->info) < 0)
+        qemuDomainPCIAddressReleaseSlot(priv->pciaddrs,
+                                        hostdev->info.addr.pci.slot) < 0)
         VIR_WARN("Unable to release PCI address on host device");
 
     qemuDomainReAttachHostdevDevices(driver, &hostdev, 1);
@@ -1043,12 +1047,14 @@ qemuDomainChangeGraphics(struct qemud_driver *driver,
     switch (dev->type) {
     case VIR_DOMAIN_GRAPHICS_TYPE_VNC:
         if ((olddev->data.vnc.autoport != dev->data.vnc.autoport) ||
-            (!dev->data.vnc.autoport && (olddev->data.vnc.port != dev->data.vnc.port))) {
+            (!dev->data.vnc.autoport &&
+             (olddev->data.vnc.port != dev->data.vnc.port))) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("cannot change port settings on vnc graphics"));
             return -1;
         }
-        if (STRNEQ_NULLABLE(olddev->data.vnc.listenAddr, dev->data.vnc.listenAddr)) {
+        if (STRNEQ_NULLABLE(olddev->data.vnc.listenAddr,
+                            dev->data.vnc.listenAddr)) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("cannot change listen address setting on vnc graphics"));
             return -1;
@@ -1063,10 +1069,14 @@ qemuDomainChangeGraphics(struct qemud_driver *driver,
          * even if new password matches old password */
         if (olddev->data.vnc.auth.expires ||
             dev->data.vnc.auth.expires ||
-            STRNEQ_NULLABLE(olddev->data.vnc.auth.passwd, dev->data.vnc.auth.passwd)) {
-            VIR_DEBUG("Updating password on VNC server %p %p", dev->data.vnc.auth.passwd, driver->vncPassword);
-            ret = qemuDomainChangeGraphicsPasswords(driver, vm, VIR_DOMAIN_GRAPHICS_TYPE_VNC,
-                                                    &dev->data.vnc.auth, driver->vncPassword);
+            STRNEQ_NULLABLE(olddev->data.vnc.auth.passwd,
+                            dev->data.vnc.auth.passwd)) {
+            VIR_DEBUG("Updating password on VNC server %p %p",
+                      dev->data.vnc.auth.passwd, driver->vncPassword);
+            ret = qemuDomainChangeGraphicsPasswords(driver, vm,
+                                                    VIR_DOMAIN_GRAPHICS_TYPE_VNC,
+                                                    &dev->data.vnc.auth,
+                                                    driver->vncPassword);
 
             /* Steal the new dev's  char * reference */
             VIR_FREE(olddev->data.vnc.auth.passwd);
@@ -1081,18 +1091,22 @@ qemuDomainChangeGraphics(struct qemud_driver *driver,
 
     case VIR_DOMAIN_GRAPHICS_TYPE_SPICE:
         if ((olddev->data.spice.autoport != dev->data.spice.autoport) ||
-            (!dev->data.spice.autoport && (olddev->data.spice.port != dev->data.spice.port)) ||
-            (!dev->data.spice.autoport && (olddev->data.spice.tlsPort != dev->data.spice.tlsPort))) {
+            (!dev->data.spice.autoport &&
+             (olddev->data.spice.port != dev->data.spice.port)) ||
+            (!dev->data.spice.autoport &&
+             (olddev->data.spice.tlsPort != dev->data.spice.tlsPort))) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("cannot change port settings on spice graphics"));
             return -1;
         }
-        if (STRNEQ_NULLABLE(olddev->data.spice.listenAddr, dev->data.spice.listenAddr)) {
+        if (STRNEQ_NULLABLE(olddev->data.spice.listenAddr,
+                            dev->data.spice.listenAddr)) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("cannot change listen address setting on spice graphics"));
             return -1;
         }
-        if (STRNEQ_NULLABLE(olddev->data.spice.keymap, dev->data.spice.keymap)) {
+        if (STRNEQ_NULLABLE(olddev->data.spice.keymap,
+                            dev->data.spice.keymap)) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("cannot change keymap setting on spice graphics"));
             return -1;
@@ -1102,12 +1116,16 @@ qemuDomainChangeGraphics(struct qemud_driver *driver,
          * even if new password matches old password */
         if (olddev->data.spice.auth.expires ||
             dev->data.spice.auth.expires ||
-            STRNEQ_NULLABLE(olddev->data.spice.auth.passwd, dev->data.spice.auth.passwd)) {
-            VIR_DEBUG("Updating password on SPICE server %p %p", dev->data.spice.auth.passwd, driver->spicePassword);
-            ret = qemuDomainChangeGraphicsPasswords(driver, vm, VIR_DOMAIN_GRAPHICS_TYPE_SPICE,
-                                                    &dev->data.spice.auth, driver->spicePassword);
+            STRNEQ_NULLABLE(olddev->data.spice.auth.passwd,
+                            dev->data.spice.auth.passwd)) {
+            VIR_DEBUG("Updating password on SPICE server %p %p",
+                      dev->data.spice.auth.passwd, driver->spicePassword);
+            ret = qemuDomainChangeGraphicsPasswords(driver, vm,
+                                                    VIR_DOMAIN_GRAPHICS_TYPE_SPICE,
+                                                    &dev->data.spice.auth,
+                                                    driver->spicePassword);
 
-            /* Steal the new dev's  char * reference */
+            /* Steal the new dev's char * reference */
             VIR_FREE(olddev->data.spice.auth.passwd);
             olddev->data.spice.auth.passwd = dev->data.spice.auth.passwd;
             dev->data.spice.auth.passwd = NULL;
@@ -1117,6 +1135,7 @@ qemuDomainChangeGraphics(struct qemud_driver *driver,
             VIR_DEBUG("Not updating since password didn't change");
             ret = 0;
         }
+        break;
 
     default:
         qemuReportError(VIR_ERR_INTERNAL_ERROR,
@@ -1142,6 +1161,30 @@ static inline int qemuFindDisk(virDomainDefPtr def, const char *dst)
     return -1;
 }
 
+static int qemuComparePCIDevice(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                                virDomainDeviceInfoPtr dev1,
+                                void *opaque)
+{
+    virDomainDeviceInfoPtr dev2 = opaque;
+
+    if (dev1->type !=  VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI ||
+        dev2->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI)
+        return 0;
+
+    if (dev1->addr.pci.slot == dev2->addr.pci.slot &&
+        dev1->addr.pci.function != dev2->addr.pci.function)
+        return -1;
+    return 0;
+}
+
+static bool qemuIsMultiFunctionDevice(virDomainDefPtr def,
+                                      virDomainDeviceInfoPtr dev)
+{
+    if (virDomainDeviceInfoIterate(def, qemuComparePCIDevice, dev) < 0)
+        return true;
+    return false;
+}
+
 
 int qemuDomainDetachPciDiskDevice(struct qemud_driver *driver,
                                   virDomainObjPtr vm,
@@ -1162,6 +1205,13 @@ int qemuDomainDetachPciDiskDevice(struct qemud_driver *driver,
     }
 
     detach = vm->def->disks[i];
+
+    if (qemuIsMultiFunctionDevice(vm->def, &detach->info)) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("cannot hot unplug multifunction PCI device: %s"),
+                        dev->data.disk->dst);
+        goto cleanup;
+    }
 
     if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES)) {
         if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
@@ -1211,7 +1261,8 @@ int qemuDomainDetachPciDiskDevice(struct qemud_driver *driver,
     qemuAuditDisk(vm, detach, NULL, "detach", true);
 
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
-        qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &detach->info) < 0)
+        qemuDomainPCIAddressReleaseSlot(priv->pciaddrs,
+                                        detach->info.addr.pci.slot) < 0)
         VIR_WARN("Unable to release PCI address on %s", dev->data.disk->src);
 
     virDomainDiskRemove(vm->def, i);
@@ -1402,6 +1453,13 @@ int qemuDomainDetachPciControllerDevice(struct qemud_driver *driver,
         goto cleanup;
     }
 
+    if (qemuIsMultiFunctionDevice(vm->def, &detach->info)) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("cannot hot unplug multifunction PCI device: %s"),
+                        dev->data.disk->dst);
+        goto cleanup;
+    }
+
     if (qemuDomainControllerIsBusy(vm, detach)) {
         qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
                         _("device cannot be detached: device is busy"));
@@ -1443,7 +1501,8 @@ int qemuDomainDetachPciControllerDevice(struct qemud_driver *driver,
     }
 
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
-        qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &detach->info) < 0)
+        qemuDomainPCIAddressReleaseSlot(priv->pciaddrs,
+                                        detach->info.addr.pci.slot) < 0)
         VIR_WARN("Unable to release PCI address on controller");
 
     virDomainControllerDefFree(detach);
@@ -1486,6 +1545,13 @@ int qemuDomainDetachNetDevice(struct qemud_driver *driver,
                                        VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI)) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         "%s", _("device cannot be detached without a PCI address"));
+        goto cleanup;
+    }
+
+    if (qemuIsMultiFunctionDevice(vm->def, &detach->info)) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("cannot hot unplug multifunction PCI device :%s"),
+                        dev->data.disk->dst);
         goto cleanup;
     }
 
@@ -1535,7 +1601,8 @@ int qemuDomainDetachNetDevice(struct qemud_driver *driver,
     qemuAuditNet(vm, detach, NULL, "detach", true);
 
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
-        qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &detach->info) < 0)
+        qemuDomainPCIAddressReleaseSlot(priv->pciaddrs,
+                                        detach->info.addr.pci.slot) < 0)
         VIR_WARN("Unable to release PCI address on NIC");
 
     virDomainConfNWFilterTeardown(detach);
@@ -1543,7 +1610,9 @@ int qemuDomainDetachNetDevice(struct qemud_driver *driver,
 #if WITH_MACVTAP
     if (detach->type == VIR_DOMAIN_NET_TYPE_DIRECT) {
         delMacvtap(detach->ifname, detach->mac, detach->data.direct.linkdev,
-                   &detach->data.direct.virtPortProfile);
+                   detach->data.direct.mode,
+                   &detach->data.direct.virtPortProfile,
+                   driver->stateDir);
         VIR_FREE(detach->ifname);
     }
 #endif
@@ -1618,6 +1687,13 @@ int qemuDomainDetachHostPciDevice(struct qemud_driver *driver,
         return -1;
     }
 
+    if (qemuIsMultiFunctionDevice(vm->def, &detach->info)) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        _("cannot hot unplug multifunction PCI device: %s"),
+                        dev->data.disk->dst);
+        return -1;
+    }
+
     if (!virDomainDeviceAddressIsValid(&detach->info,
                                        VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI)) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
@@ -1652,7 +1728,8 @@ int qemuDomainDetachHostPciDevice(struct qemud_driver *driver,
     }
 
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE) &&
-        qemuDomainPCIAddressReleaseAddr(priv->pciaddrs, &detach->info) < 0)
+        qemuDomainPCIAddressReleaseSlot(priv->pciaddrs,
+                                        detach->info.addr.pci.slot) < 0)
         VIR_WARN("Unable to release PCI address on host device");
 
     if (vm->def->nhostdevs > 1) {

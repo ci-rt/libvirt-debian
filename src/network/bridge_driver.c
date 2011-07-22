@@ -48,7 +48,6 @@
 #include "bridge_driver.h"
 #include "network_conf.h"
 #include "driver.h"
-#include "event.h"
 #include "buf.h"
 #include "util.h"
 #include "command.h"
@@ -109,7 +108,7 @@ static void networkReloadIptablesRules(struct network_driver *driver);
 static struct network_driver *driverState = NULL;
 
 static char *
-networkDnsmasqLeaseFileName(const char *netname)
+networkDnsmasqLeaseFileNameDefault(const char *netname)
 {
     char *leasefile;
 
@@ -117,6 +116,9 @@ networkDnsmasqLeaseFileName(const char *netname)
                 netname);
     return leasefile;
 }
+
+networkDnsmasqLeaseFileNameFunc networkDnsmasqLeaseFileName =
+    networkDnsmasqLeaseFileNameDefault;
 
 static char *
 networkRadvdPidfileBasename(const char *netname)
@@ -435,23 +437,29 @@ networkShutdown(void) {
 
 
 static int
-networkSaveDnsmasqHostsfile(virNetworkIpDefPtr ipdef,
-                            dnsmasqContext *dctx,
-                            bool force)
+networkBuildDnsmasqHostsfile(dnsmasqContext *dctx,
+                             virNetworkIpDefPtr ipdef,
+                             virNetworkDNSDefPtr dnsdef)
 {
-    unsigned int i;
-
-    if (! force && virFileExists(dctx->hostsfile->path))
-        return 0;
+    unsigned int i, j;
 
     for (i = 0; i < ipdef->nhosts; i++) {
         virNetworkDHCPHostDefPtr host = &(ipdef->hosts[i]);
         if ((host->mac) && VIR_SOCKET_HAS_ADDR(&host->ip))
-            dnsmasqAddDhcpHost(dctx, host->mac, &host->ip, host->name);
+            if (dnsmasqAddDhcpHost(dctx, host->mac, &host->ip, host->name) < 0)
+                return -1;
     }
 
-    if (dnsmasqSave(dctx) < 0)
-        return -1;
+    if (dnsdef) {
+        for (i = 0; i < dnsdef->nhosts; i++) {
+            virNetworkDNSHostsDefPtr host = &(dnsdef->hosts[i]);
+            if (VIR_SOCKET_HAS_ADDR(&host->ip)) {
+                for (j = 0; j < host->nnames; j++)
+                    if (dnsmasqAddHost(dctx, &host->ip, host->names[j]) < 0)
+                        return -1;
+            }
+        }
+    }
 
     return 0;
 }
@@ -461,7 +469,9 @@ static int
 networkBuildDnsmasqArgv(virNetworkObjPtr network,
                         virNetworkIpDefPtr ipdef,
                         const char *pidfile,
-                        virCommandPtr cmd) {
+                        virCommandPtr cmd,
+                        dnsmasqContext *dctx)
+{
     int r, ret = -1;
     int nbleases = 0;
     int ii;
@@ -495,7 +505,8 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
     if (network->def->domain)
         virCommandAddArgList(cmd, "--domain", network->def->domain, NULL);
 
-    virCommandAddArgPair(cmd, "--pid-file", pidfile);
+    if (pidfile)
+        virCommandAddArgPair(cmd, "--pid-file", pidfile);
 
     /* *no* conf file */
     virCommandAddArg(cmd, "--conf-file=");
@@ -510,6 +521,24 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
      */
     if (network->def->forwardType == VIR_NETWORK_FORWARD_NONE)
         virCommandAddArg(cmd, "--dhcp-option=3");
+
+    if (network->def->dns != NULL) {
+        virNetworkDNSDefPtr dns = network->def->dns;
+        int i;
+
+        for (i = 0; i < dns->ntxtrecords; i++) {
+            char *record = NULL;
+            if (virAsprintf(&record, "%s,%s",
+                            dns->txtrecords[i].name,
+                            dns->txtrecords[i].value) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+
+            virCommandAddArgPair(cmd, "--txt-record", record);
+            VIR_FREE(record);
+        }
+    }
 
     /*
      * --interface does not actually work with dnsmasq < 2.47,
@@ -573,20 +602,19 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
         if (ipdef->nranges || ipdef->nhosts)
             virCommandAddArg(cmd, "--dhcp-no-override");
 
-        if (ipdef->nhosts > 0) {
-            dnsmasqContext *dctx = dnsmasqContextNew(network->def->name,
-                                                     DNSMASQ_STATE_DIR);
-            if (dctx == NULL) {
-                virReportOOMError();
-                goto cleanup;
-            }
+        /* add domain to any non-qualified hostnames in /etc/hosts or addn-hosts */
+        if (network->def->domain)
+           virCommandAddArg(cmd, "--expand-hosts");
 
-            if (networkSaveDnsmasqHostsfile(ipdef, dctx, false) == 0) {
-                virCommandAddArgPair(cmd, "--dhcp-hostsfile",
-                                     dctx->hostsfile->path);
-            }
-            dnsmasqContextFree(dctx);
-        }
+        if (networkBuildDnsmasqHostsfile(dctx, ipdef, network->def->dns) < 0)
+            goto cleanup;
+
+        if (dctx->hostsfile->nhosts)
+            virCommandAddArgPair(cmd, "--dhcp-hostsfile",
+                                 dctx->hostsfile->path);
+        if (dctx->addnhostsfile->nhosts)
+            virCommandAddArgPair(cmd, "--addn-hosts",
+                                 dctx->addnhostsfile->path);
 
         if (ipdef->tftproot) {
             virCommandAddArgList(cmd, "--enable-tftp",
@@ -614,12 +642,12 @@ cleanup:
     return ret;
 }
 
-static int
-networkStartDhcpDaemon(virNetworkObjPtr network)
+int
+networkBuildDhcpDaemonCommandLine(virNetworkObjPtr network, virCommandPtr *cmdout,
+                                  char *pidfile, dnsmasqContext *dctx)
 {
     virCommandPtr cmd = NULL;
-    char *pidfile = NULL;
-    int ret = -1, err, ii;
+    int ret = -1, ii;
     virNetworkIpDefPtr ipdef;
 
     network->dnsmasqPid = -1;
@@ -643,6 +671,29 @@ networkStartDhcpDaemon(virNetworkObjPtr network)
      */
     if (!virNetworkDefGetIpByIndex(network->def, AF_UNSPEC, 0))
         return 0;
+
+    cmd = virCommandNew(DNSMASQ);
+    if (networkBuildDnsmasqArgv(network, ipdef, pidfile, cmd, dctx) < 0) {
+        goto cleanup;
+    }
+
+    if (cmdout)
+        *cmdout = cmd;
+    ret = 0;
+cleanup:
+    if (ret < 0)
+        virCommandFree(cmd);
+    return ret;
+}
+
+static int
+networkStartDhcpDaemon(virNetworkObjPtr network)
+{
+    virCommandPtr cmd = NULL;
+    char *pidfile = NULL;
+    int ret = -1;
+    int err;
+    dnsmasqContext *dctx = NULL;
 
     if ((err = virFileMakePath(NETWORK_PID_DIR)) != 0) {
         virReportSystemError(err,
@@ -669,10 +720,17 @@ networkStartDhcpDaemon(virNetworkObjPtr network)
         goto cleanup;
     }
 
-    cmd = virCommandNew(DNSMASQ);
-    if (networkBuildDnsmasqArgv(network, ipdef, pidfile, cmd) < 0) {
+    dctx = dnsmasqContextNew(network->def->name, DNSMASQ_STATE_DIR);
+    if (dctx == NULL)
         goto cleanup;
-    }
+
+    ret = networkBuildDhcpDaemonCommandLine(network, &cmd, pidfile, dctx);
+    if (ret < 0)
+        goto cleanup;
+
+    ret = dnsmasqSave(dctx);
+    if (ret < 0)
+        goto cleanup;
 
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
@@ -693,6 +751,7 @@ networkStartDhcpDaemon(virNetworkObjPtr network)
 cleanup:
     VIR_FREE(pidfile);
     virCommandFree(cmd);
+    dnsmasqContextFree(dctx);
     return ret;
 }
 
@@ -2145,6 +2204,7 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
     virNetworkObjPtr network = NULL;
     virNetworkPtr ret = NULL;
     int ii;
+    dnsmasqContext* dctx = NULL;
 
     networkDriverLock(driver);
 
@@ -2191,12 +2251,11 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
         }
     }
     if (ipv4def) {
-        dnsmasqContext *dctx = dnsmasqContextNew(network->def->name, DNSMASQ_STATE_DIR);
-        if (dctx == NULL)
+        dctx = dnsmasqContextNew(network->def->name, DNSMASQ_STATE_DIR);
+        if (dctx == NULL ||
+            networkBuildDnsmasqHostsfile(dctx, ipv4def, network->def->dns) < 0 ||
+            dnsmasqSave(dctx) < 0)
             goto cleanup;
-
-        networkSaveDnsmasqHostsfile(ipv4def, dctx, true);
-        dnsmasqContextFree(dctx);
     }
 
     VIR_INFO("Defining network '%s'", network->def->name);
@@ -2204,6 +2263,7 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
 
 cleanup:
     virNetworkDefFree(def);
+    dnsmasqContextFree(dctx);
     if (network)
         virNetworkObjUnlock(network);
     networkDriverUnlock(driver);

@@ -1,7 +1,7 @@
 /*
  * libvirt_wrap.h: type wrappers for libvir python bindings
  *
- * Copyright (C) 2005 Red Hat, Inc.
+ * Copyright (C) 2005, 2011 Red Hat, Inc.
  *
  * Daniel Veillard <veillard@redhat.com>
  */
@@ -19,6 +19,11 @@
 # endif /* ATTRIBUTE_UNUSED */
 #else
 # define ATTRIBUTE_UNUSED
+#endif
+
+/* Work around really old python.  */
+#if PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION < 5
+typedef ssize_t Py_ssize_t;
 #endif
 
 #define PyvirConnect_Get(v) (((v) == Py_None) ? NULL : \
@@ -150,13 +155,13 @@ typedef struct {
     void* obj;
 } PyvirVoidPtr_Object;
 
-
 PyObject * libvirt_intWrap(int val);
 PyObject * libvirt_longWrap(long val);
 PyObject * libvirt_ulongWrap(unsigned long val);
 PyObject * libvirt_longlongWrap(long long val);
 PyObject * libvirt_ulonglongWrap(unsigned long long val);
 PyObject * libvirt_charPtrWrap(char *str);
+PyObject * libvirt_charPtrSizeWrap(char *str, Py_ssize_t size);
 PyObject * libvirt_constcharPtrWrap(const char *str);
 PyObject * libvirt_charPtrConstWrap(const char *str);
 PyObject * libvirt_virConnectPtrWrap(virConnectPtr node);

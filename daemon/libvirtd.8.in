@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "LIBVIRTD.POD.IN 8"
-.TH LIBVIRTD.POD.IN 8 "2010-11-30" "libvirt-0.8.8" "Virtualization Support"
+.TH LIBVIRTD.POD.IN 8 "2011-06-10" "libvirt-0.9.2" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l

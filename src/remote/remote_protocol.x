@@ -60,15 +60,6 @@
 
 /*----- Data types. -----*/
 
-/* Maximum total message size (serialised). */
-const REMOTE_MESSAGE_MAX = 262144;
-
-/* Size of struct remote_message_header (serialized)*/
-const REMOTE_MESSAGE_HEADER_MAX = 24;
-
-/* Size of message payload */
-const REMOTE_MESSAGE_PAYLOAD_MAX = 262120;
-
 /* Length of long, but not unbounded, strings.
  * This is an arbitrary limit designed to stop the decoder from trying
  * to allocate unbounded amounts of memory when fed with a bad message.
@@ -134,6 +125,12 @@ const REMOTE_DOMAIN_BLKIO_PARAMETERS_MAX = 16;
 /* Upper limit on list of memory parameters. */
 const REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX = 16;
 
+/* Upper limit on list of node cpu stats. */
+const REMOTE_NODE_CPU_STATS_MAX = 16;
+
+/* Upper limit on list of node memory stats. */
+const REMOTE_NODE_MEMORY_STATS_MAX = 16;
+
 /* Upper limit on number of NUMA cells */
 const REMOTE_NODE_MAX_CELLS = 1024;
 
@@ -190,6 +187,11 @@ const REMOTE_SECRET_UUID_LIST_MAX = 16384;
  * Upper limit on list of CPUs accepted when computing a baseline CPU.
  */
 const REMOTE_CPU_BASELINE_MAX = 256;
+
+/*
+ * Max number of sending keycodes.
+ */
+const REMOTE_DOMAIN_SEND_KEY_MAX = 16;
 
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
@@ -319,6 +321,16 @@ struct remote_typed_param {
     remote_typed_param_value value;
 };
 
+struct remote_node_get_cpu_stats {
+    remote_nonnull_string field;
+    unsigned hyper value;
+};
+
+struct remote_node_get_memory_stats {
+    remote_nonnull_string field;
+    unsigned hyper value;
+};
+
 /*----- Calls. -----*/
 
 /* For each call we may have a 'remote_CALL_args' and 'remote_CALL_ret'
@@ -331,7 +343,15 @@ struct remote_typed_param {
  *
  * 'remote_CALL_ret' members that are filled via call-by-reference must be
  * annotated with a insert@<offset> comment to indicate the offset in the
- * parameter list of the function to be called. */
+ * parameter list of the function to be called.
+ *
+ * If the 'remote_CALL_ret' maps to a struct in the public API then it is
+ * also filled via call-by-reference and must be annotated with a
+ * insert@<offset> comment to indicate the offset in the parameter list of
+ * the function to be called.
+ *
+ * Dynamic opaque and remote_nonnull_string arrays can be annotated with an
+ * optional typecast */
 
 struct remote_open_args {
     /* NB. "name" might be NULL although in practice you can't
@@ -388,7 +408,7 @@ struct remote_get_max_vcpus_ret {
     int max_vcpus;
 };
 
-struct remote_node_get_info_ret {
+struct remote_node_get_info_ret { /* insert@1 */
     char model[32];
     unsigned hyper memory;
     int cpus;
@@ -401,6 +421,28 @@ struct remote_node_get_info_ret {
 
 struct remote_get_capabilities_ret {
     remote_nonnull_string capabilities;
+};
+
+struct remote_node_get_cpu_stats_args {
+    int cpuNum;
+    int nparams;
+    unsigned int flags;
+};
+
+struct remote_node_get_cpu_stats_ret {
+    remote_node_get_cpu_stats params<REMOTE_NODE_CPU_STATS_MAX>;
+    int nparams;
+};
+
+struct remote_node_get_memory_stats_args {
+    int nparams;
+    int cellNum;
+    unsigned int flags;
+};
+
+struct remote_node_get_memory_stats_ret {
+    remote_node_get_memory_stats params<REMOTE_NODE_MEMORY_STATS_MAX>;
+    int nparams;
 };
 
 struct remote_node_get_cells_free_memory_args {
@@ -494,7 +536,7 @@ struct remote_domain_block_stats_args {
     remote_nonnull_string path;
 };
 
-struct remote_domain_block_stats_ret {
+struct remote_domain_block_stats_ret { /* insert@2 */
     hyper rd_req;
     hyper rd_bytes;
     hyper wr_req;
@@ -507,7 +549,7 @@ struct remote_domain_interface_stats_args {
     remote_nonnull_string path;
 };
 
-struct remote_domain_interface_stats_ret {
+struct remote_domain_interface_stats_ret { /* insert@2 */
     hyper rx_bytes;
     hyper rx_packets;
     hyper rx_errs;
@@ -562,7 +604,7 @@ struct remote_domain_get_block_info_args {
     unsigned int flags;
 };
 
-struct remote_domain_get_block_info_ret {
+struct remote_domain_get_block_info_ret { /* insert@2 */
     unsigned hyper allocation;
     unsigned hyper capacity;
     unsigned hyper physical;
@@ -670,7 +712,7 @@ struct remote_domain_get_info_args {
     remote_nonnull_domain dom;
 };
 
-struct remote_domain_get_info_ret {
+struct remote_domain_get_info_ret { /* insert@1 */
     unsigned char state;
     unsigned hyper maxMem;
     unsigned hyper memory;
@@ -811,6 +853,14 @@ struct remote_domain_inject_nmi_args {
     unsigned int flags;
 };
 
+struct remote_domain_send_key_args {
+    remote_nonnull_domain dom;
+    unsigned int codeset;
+    unsigned int holdtime;
+    unsigned int keycodes<REMOTE_DOMAIN_SEND_KEY_MAX>;
+    unsigned int flags;
+};
+
 struct remote_domain_set_vcpus_args {
     remote_nonnull_domain dom;
     unsigned int nvcpus;
@@ -834,7 +884,26 @@ struct remote_domain_get_vcpus_flags_ret {
 struct remote_domain_pin_vcpu_args {
     remote_nonnull_domain dom;
     unsigned int vcpu;
-    opaque cpumap<REMOTE_CPUMAP_MAX>;
+    opaque cpumap<REMOTE_CPUMAP_MAX>; /* (unsigned char *) */
+};
+
+struct remote_domain_pin_vcpu_flags_args {
+    remote_nonnull_domain dom;
+    unsigned int vcpu;
+    opaque cpumap<REMOTE_CPUMAP_MAX>; /* (unsigned char *) */
+    unsigned int flags;
+};
+
+struct remote_domain_get_vcpu_pin_info_args {
+    remote_nonnull_domain dom;
+    int ncpumaps;
+    int maplen;
+    unsigned int flags;
+};
+
+struct remote_domain_get_vcpu_pin_info_ret {
+    opaque cpumaps<REMOTE_CPUMAPS_MAX>;
+    int num;
 };
 
 struct remote_domain_get_vcpus_args {
@@ -1308,7 +1377,7 @@ struct remote_storage_pool_get_info_args {
     remote_nonnull_storage_pool pool;
 };
 
-struct remote_storage_pool_get_info_ret {
+struct remote_storage_pool_get_info_ret { /* insert@1 */
     unsigned char state;
     unsigned hyper capacity;
     unsigned hyper allocation;
@@ -1418,7 +1487,7 @@ struct remote_storage_vol_get_info_args {
     remote_nonnull_storage_vol vol;
 };
 
-struct remote_storage_vol_get_info_ret {
+struct remote_storage_vol_get_info_ret { /* insert@1 */
     char type;
     unsigned hyper capacity;
     unsigned hyper allocation;
@@ -1604,7 +1673,7 @@ struct remote_secret_get_xml_desc_ret {
 
 struct remote_secret_set_value_args {
     remote_nonnull_secret secret;
-    opaque value<REMOTE_SECRET_VALUE_MAX>;
+    opaque value<REMOTE_SECRET_VALUE_MAX>; /* (const unsigned char *) */
     unsigned int flags;
 };
 
@@ -1722,7 +1791,7 @@ struct remote_cpu_compare_ret {
 
 
 struct remote_cpu_baseline_args {
-    remote_nonnull_string xmlCPUs<REMOTE_CPU_BASELINE_MAX>;
+    remote_nonnull_string xmlCPUs<REMOTE_CPU_BASELINE_MAX>; /* (const char **) */
     unsigned int flags;
 };
 
@@ -1735,7 +1804,7 @@ struct remote_domain_get_job_info_args {
     remote_nonnull_domain dom;
 };
 
-struct remote_domain_get_job_info_ret {
+struct remote_domain_get_job_info_ret { /* insert@1 */
     int type;
 
     unsigned hyper timeElapsed;
@@ -2035,6 +2104,17 @@ struct remote_domain_event_control_error_msg {
     remote_nonnull_domain dom;
 };
 
+struct remote_domain_get_control_info_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_get_control_info_ret { /* insert@1 */
+    unsigned int state;
+    unsigned int details;
+    unsigned hyper stateTime;
+};
+
 /*----- Protocol. -----*/
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -2079,7 +2159,7 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_LOOKUP_BY_NAME = 23, /* autogen autogen */
     REMOTE_PROC_DOMAIN_LOOKUP_BY_UUID = 24, /* autogen autogen */
     REMOTE_PROC_NUM_OF_DEFINED_DOMAINS = 25, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_PIN_VCPU = 26, /* skipgen autogen */
+    REMOTE_PROC_DOMAIN_PIN_VCPU = 26, /* autogen autogen */
     REMOTE_PROC_DOMAIN_REBOOT = 27, /* autogen autogen */
     REMOTE_PROC_DOMAIN_RESUME = 28, /* autogen autogen */
     REMOTE_PROC_DOMAIN_SET_AUTOSTART = 29, /* autogen autogen */
@@ -2283,7 +2363,7 @@ enum remote_procedure {
     REMOTE_PROC_STORAGE_VOL_DOWNLOAD = 209, /* autogen autogen | readstream@1 */
     REMOTE_PROC_DOMAIN_INJECT_NMI = 210, /* autogen autogen */
 
-    REMOTE_PROC_DOMAIN_SCREENSHOT = 211, /* skipgen autogen | readstream@1 */
+    REMOTE_PROC_DOMAIN_SCREENSHOT = 211, /* autogen autogen | readstream@1 */
     REMOTE_PROC_DOMAIN_GET_STATE = 212, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_MIGRATE_BEGIN3 = 213, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_MIGRATE_PREPARE3 = 214, /* skipgen skipgen */
@@ -2297,7 +2377,13 @@ enum remote_procedure {
     REMOTE_PROC_INTERFACE_CHANGE_COMMIT = 221, /* autogen autogen */
     REMOTE_PROC_INTERFACE_CHANGE_ROLLBACK = 222, /* autogen autogen */
     REMOTE_PROC_DOMAIN_GET_SCHEDULER_PARAMETERS_FLAGS = 223, /* skipgen autogen */
-    REMOTE_PROC_DOMAIN_EVENT_CONTROL_ERROR = 224 /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_EVENT_CONTROL_ERROR = 224, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_PIN_VCPU_FLAGS = 225, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SEND_KEY = 226, /* autogen autogen */
+    REMOTE_PROC_NODE_GET_CPU_STATS = 227, /* skipgen skipgen */
+    REMOTE_PROC_NODE_GET_MEMORY_STATS = 228, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_GET_CONTROL_INFO = 229, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_GET_VCPU_PIN_INFO = 230  /* skipgen skipgen */
 
     /*
      * Notice how the entries are grouped in sets of 10 ?
@@ -2313,110 +2399,4 @@ enum remote_procedure {
      * of view.  A readstream transfers data from daemon to src/remote.  The
      * <offset> specifies at which offset the stream parameter is inserted
      * in the function parameter list. */
-};
-
-/*
- * RPC wire format
- *
- * Each message consists of:
- *
- *    Name    | Type                  | Description
- * -----------+-----------------------+------------------
- *    Length  | int                   | Total number of bytes in message _including_ length.
- *    Header  | remote_message_header | Control information about procedure call
- *    Payload | -                     | Variable payload data per procedure
- *
- * In header, the 'serial' field varies according to:
- *
- *  - type == REMOTE_CALL
- *      * serial is set by client, incrementing by 1 each time
- *
- *  - type == REMOTE_REPLY
- *      * serial matches that from the corresponding REMOTE_CALL
- *
- *  - type == REMOTE_MESSAGE
- *      * serial is always zero
- *
- *  - type == REMOTE_STREAM
- *      * serial matches that from the corresponding REMOTE_CALL
- *
- * and the 'status' field varies according to:
- *
- *  - type == REMOTE_CALL
- *     * REMOTE_OK always
- *
- *  - type == REMOTE_REPLY
- *     * REMOTE_OK if RPC finished successfully
- *     * REMOTE_ERROR if something failed
- *
- *  - type == REMOTE_MESSAGE
- *     * REMOTE_OK always
- *
- *  - type == REMOTE_STREAM
- *     * REMOTE_CONTINUE if more data is following
- *     * REMOTE_OK if stream is complete
- *     * REMOTE_ERROR if stream had an error
- *
- * Payload varies according to type and status:
- *
- *  - type == REMOTE_CALL
- *          XXX_args  for procedure
- *
- *  - type == REMOTE_REPLY
- *     * status == REMOTE_OK
- *          XXX_ret         for procedure
- *     * status == REMOTE_ERROR
- *          remote_error    Error information
- *
- *  - type == REMOTE_MESSAGE
- *     * status == REMOTE_OK
- *          XXX_args        for procedure
- *     * status == REMOTE_ERROR
- *          remote_error    Error information
- *
- *  - type == REMOTE_STREAM
- *     * status == REMOTE_CONTINUE
- *          byte[]       raw stream data
- *     * status == REMOTE_ERROR
- *          remote_error error information
- *     * status == REMOTE_OK
- *          <empty>
- */
-enum remote_message_type {
-    /* client -> server. args from a method call */
-    REMOTE_CALL = 0,
-    /* server -> client. reply/error from a method call */
-    REMOTE_REPLY = 1,
-    /* either direction. async notification */
-    REMOTE_MESSAGE = 2,
-    /* either direction. stream data packet */
-    REMOTE_STREAM = 3
-};
-
-enum remote_message_status {
-    /* Status is always REMOTE_OK for calls.
-     * For replies, indicates no error.
-     */
-    REMOTE_OK = 0,
-
-    /* For replies, indicates that an error happened, and a struct
-     * remote_error follows.
-     */
-    REMOTE_ERROR = 1,
-
-    /* For streams, indicates that more data is still expected
-     */
-    REMOTE_CONTINUE = 2
-};
-
-/* 4 byte length word per header */
-const REMOTE_MESSAGE_HEADER_XDR_LEN = 4;
-
-struct remote_message_header {
-    unsigned prog;              /* REMOTE_PROGRAM */
-    unsigned vers;              /* REMOTE_PROTOCOL_VERSION */
-    int proc;      /* REMOTE_PROC_x */
-    remote_message_type type;
-    unsigned serial;            /* Serial number of message. */
-    remote_message_status status;
 };

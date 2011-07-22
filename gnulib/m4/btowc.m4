@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# btowc.m4 serial 9
+# btowc.m4 serial 10
 dnl Copyright (C) 2008-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -109,10 +109,6 @@ int main ()
       *yes) ;;
       *) REPLACE_BTOWC=1 ;;
     esac
-  fi
-  if test $HAVE_BTOWC = 0 || test $REPLACE_BTOWC = 1; then
-    AC_LIBOBJ([btowc])
-    gl_PREREQ_BTOWC
   fi
 ])
 

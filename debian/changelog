@@ -1,9 +1,22 @@
-libvirt (0.9.2-7) unstable; urgency=low
+libvirt (0.9.3-1) experimental; urgency=low
 
-  * [9c99f46] CVE-2011-2511: Fix integer overflow in VirDomainGetVcpus. Patch
-    taken verbatim from upstream's git. (Closes: #633630)
+  * [320f8b6] New upstream version 0.9.3 (Closes: #633840)
+  * [fff5144] Update symbols
+  * [787d91c] Depend on dnsmasq-base, netcat-openbsd and openssh-client for
+    "make check"
+  * [1fa64b0] Remove article from libvirt-bin description to make lintian
+    happy.
+  * [3689fc5] Drop patches applied upstream:
+    - Skip-nodeinfo-test-on-non-intel-architectures.patch
+    - Split-out-dlopen-detection.patch
+    - nodeinfo-remove-superfluous-braces.patch
+  * [31b17c8] Drop Update-generated-autoconf-files.patch. No need to
+    regenerate autoconf for 0.9.3
+  * [65871eb] Adjust nc autodetect patch to new socket code
+  * [7b0c6df] Disable failing virnetsockettest until investigated further
+  * [248bc3f] Rediff remaining patches
 
- -- Guido Günther <agx@sigxcpu.org>  Tue, 12 Jul 2011 15:07:39 +0200
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 10 Jul 2011 19:43:05 +0200
 
 libvirt (0.9.2-6) unstable; urgency=low
 

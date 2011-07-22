@@ -46,8 +46,6 @@
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
-#define timeval_to_ms(tv)       (((tv).tv_sec * 1000ull) + ((tv).tv_usec / 1000))
-
 enum qemuMigrationCookieFlags {
     QEMU_MIGRATION_COOKIE_FLAG_GRAPHICS,
     QEMU_MIGRATION_COOKIE_FLAG_LOCKSTATE,
@@ -831,7 +829,6 @@ qemuMigrationUpdateJobStatus(struct qemud_driver *driver,
     unsigned long long memProcessed;
     unsigned long long memRemaining;
     unsigned long long memTotal;
-    struct timeval now;
 
     if (!virDomainObjIsActive(vm)) {
         qemuReportError(VIR_ERR_INTERNAL_ERROR, _("%s: %s"),
@@ -847,18 +844,11 @@ qemuMigrationUpdateJobStatus(struct qemud_driver *driver,
                                         &memTotal);
     qemuDomainObjExitMonitorWithDriver(driver, vm);
 
-    if (ret < 0) {
+    if (ret < 0 || virTimeMs(&priv->jobInfo.timeElapsed) < 0) {
         priv->jobInfo.type = VIR_DOMAIN_JOB_FAILED;
         return -1;
     }
-
-    if (gettimeofday(&now, NULL) < 0) {
-        priv->jobInfo.type = VIR_DOMAIN_JOB_FAILED;
-        virReportSystemError(errno, "%s",
-                             _("cannot get time of day"));
-        return -1;
-    }
-    priv->jobInfo.timeElapsed = timeval_to_ms(now) - priv->jobStart;
+    priv->jobInfo.timeElapsed -= priv->jobStart;
 
     switch (status) {
     case QEMU_MONITOR_MIGRATION_STATUS_INACTIVE:
@@ -1010,6 +1000,12 @@ char *qemuMigrationBegin(struct qemud_driver *driver,
         goto cleanup;
     }
 
+    if (qemuProcessAutoDestroyActive(driver, vm)) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID,
+                        "%s", _("domain is marked for auto destroy"));
+        goto cleanup;
+    }
+
     if (!qemuMigrationIsAllowed(vm->def))
         goto cleanup;
 
@@ -1069,18 +1065,16 @@ qemuMigrationPrepareTunnel(struct qemud_driver *driver,
     int internalret;
     int dataFD[2] = { -1, -1 };
     qemuDomainObjPrivatePtr priv = NULL;
-    struct timeval now;
+    unsigned long long now;
     qemuMigrationCookiePtr mig = NULL;
+
     VIR_DEBUG("driver=%p, dconn=%p, cookiein=%s, cookieinlen=%d, "
               "cookieout=%p, cookieoutlen=%p, st=%p, dname=%s, dom_xml=%s",
               driver, dconn, NULLSTR(cookiein), cookieinlen,
               cookieout, cookieoutlen, st, NULLSTR(dname), dom_xml);
 
-    if (gettimeofday(&now, NULL) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("cannot get time of day"));
+    if (virTimeMs(&now) < 0)
         return -1;
-    }
 
     /* Parse the domain XML. */
     if (!(def = virDomainDefParseString(driver->caps, dom_xml,
@@ -1116,7 +1110,7 @@ qemuMigrationPrepareTunnel(struct qemud_driver *driver,
 
     if (qemuDomainObjBeginJobWithDriver(driver, vm) < 0)
         goto cleanup;
-    priv->jobActive = QEMU_JOB_MIGRATION_OUT;
+    priv->jobActive = QEMU_JOB_MIGRATION_IN;
 
     /* Domain starts inactive, even if the domain XML had an id field. */
     vm->def->id = -1;
@@ -1131,8 +1125,9 @@ qemuMigrationPrepareTunnel(struct qemud_driver *driver,
     /* Start the QEMU daemon, with the same command-line arguments plus
      * -incoming stdio (which qemu_command might convert to exec:cat or fd:n)
      */
-    internalret = qemuProcessStart(dconn, driver, vm, "stdio", true, dataFD[0],
-                                   NULL, VIR_VM_OP_MIGRATE_IN_START);
+    internalret = qemuProcessStart(dconn, driver, vm, "stdio", true,
+                                   true, dataFD[0], NULL,
+                                   VIR_VM_OP_MIGRATE_IN_START);
     if (internalret < 0) {
         qemuAuditDomainStart(vm, "migrated", false);
         /* Note that we don't set an error here because qemuProcessStart
@@ -1190,7 +1185,7 @@ endjob:
         virDomainObjIsActive(vm)) {
         priv->jobActive = QEMU_JOB_MIGRATION_IN;
         priv->jobInfo.type = VIR_DOMAIN_JOB_UNBOUNDED;
-        priv->jobStart = timeval_to_ms(now);
+        priv->jobStart = now;
     }
 
 cleanup:
@@ -1229,8 +1224,9 @@ qemuMigrationPrepareDirect(struct qemud_driver *driver,
     int ret = -1;
     int internalret;
     qemuDomainObjPrivatePtr priv = NULL;
-    struct timeval now;
+    unsigned long long now;
     qemuMigrationCookiePtr mig = NULL;
+
     VIR_DEBUG("driver=%p, dconn=%p, cookiein=%s, cookieinlen=%d, "
               "cookieout=%p, cookieoutlen=%p, uri_in=%s, uri_out=%p, "
               "dname=%s, dom_xml=%s",
@@ -1238,11 +1234,8 @@ qemuMigrationPrepareDirect(struct qemud_driver *driver,
               cookieout, cookieoutlen, NULLSTR(uri_in), uri_out,
               NULLSTR(dname), dom_xml);
 
-    if (gettimeofday(&now, NULL) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("cannot get time of day"));
+    if (virTimeMs(&now) < 0)
         return -1;
-    }
 
     /* The URI passed in may be NULL or a string "tcp://somehostname:port".
      *
@@ -1352,7 +1345,7 @@ qemuMigrationPrepareDirect(struct qemud_driver *driver,
 
     if (qemuDomainObjBeginJobWithDriver(driver, vm) < 0)
         goto cleanup;
-    priv->jobActive = QEMU_JOB_MIGRATION_OUT;
+    priv->jobActive = QEMU_JOB_MIGRATION_IN;
 
     /* Domain starts inactive, even if the domain XML had an id field. */
     vm->def->id = -1;
@@ -1361,7 +1354,7 @@ qemuMigrationPrepareDirect(struct qemud_driver *driver,
      * -incoming tcp:0.0.0.0:port
      */
     snprintf (migrateFrom, sizeof (migrateFrom), "tcp:0.0.0.0:%d", this_port);
-    if (qemuProcessStart(dconn, driver, vm, migrateFrom, true,
+    if (qemuProcessStart(dconn, driver, vm, migrateFrom, true, true,
                          -1, NULL, VIR_VM_OP_MIGRATE_IN_START) < 0) {
         qemuAuditDomainStart(vm, "migrated", false);
         /* Note that we don't set an error here because qemuProcessStart
@@ -1413,7 +1406,7 @@ endjob:
         virDomainObjIsActive(vm)) {
         priv->jobActive = QEMU_JOB_MIGRATION_IN;
         priv->jobInfo.type = VIR_DOMAIN_JOB_UNBOUNDED;
-        priv->jobStart = timeval_to_ms(now);
+        priv->jobStart = now;
     }
 
 cleanup:
@@ -2301,6 +2294,12 @@ int qemuMigrationPerform(struct qemud_driver *driver,
         goto endjob;
     }
 
+    if (qemuProcessAutoDestroyActive(driver, vm)) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID,
+                        "%s", _("domain is marked for auto destroy"));
+        goto endjob;
+    }
+
     memset(&priv->jobInfo, 0, sizeof(priv->jobInfo));
     priv->jobInfo.type = VIR_DOMAIN_JOB_UNBOUNDED;
 
@@ -2553,7 +2552,8 @@ qemuMigrationFinish(struct qemud_driver *driver,
                                          VIR_DOMAIN_EVENT_RESUMED_MIGRATED);
         if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_PAUSED) {
             virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, VIR_DOMAIN_PAUSED_USER);
-            qemuDomainEventQueue(driver, event);
+            if (event)
+                qemuDomainEventQueue(driver, event);
             event = virDomainEventNewFromObj(vm,
                                              VIR_DOMAIN_EVENT_SUSPENDED,
                                              VIR_DOMAIN_EVENT_SUSPENDED_PAUSED);
@@ -2562,6 +2562,9 @@ qemuMigrationFinish(struct qemud_driver *driver,
             VIR_WARN("Failed to save status on vm %s", vm->def->name);
             goto endjob;
         }
+
+        /* Guest is successfully running, so cancel previous auto destroy */
+        qemuProcessAutoDestroyRemove(driver, vm);
     } else {
         qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_FAILED);
         qemuAuditDomainStop(vm, "failed");
@@ -2686,8 +2689,8 @@ qemuMigrationToFile(struct qemud_driver *driver, virDomainObjPtr vm,
          * doesn't have to open() the file, so while we still have to
          * grant SELinux access, we can do it on fd and avoid cleanup
          * later, as well as skip futzing with cgroup.  */
-        if (virSecurityManagerSetFDLabel(driver->securityManager, vm,
-                                         compressor ? pipeFD[1] : fd) < 0)
+        if (virSecurityManagerSetImageFDLabel(driver->securityManager, vm,
+                                              compressor ? pipeFD[1] : fd) < 0)
             goto cleanup;
         bypassSecurityDriver = true;
     } else {

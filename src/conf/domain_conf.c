@@ -84,7 +84,8 @@ VIR_ENUM_IMPL(virDomainFeature, VIR_DOMAIN_FEATURE_LAST,
               "acpi",
               "apic",
               "pae",
-              "hap")
+              "hap",
+              "viridian")
 
 VIR_ENUM_IMPL(virDomainLifecycle, VIR_DOMAIN_LIFECYCLE_LAST,
               "destroy",
@@ -162,6 +163,11 @@ VIR_ENUM_IMPL(virDomainDiskIo, VIR_DOMAIN_DISK_IO_LAST,
               "default",
               "native",
               "threads")
+VIR_ENUM_IMPL(virDomainIoEventFd, VIR_DOMAIN_IO_EVENT_FD_LAST,
+              "default",
+              "on",
+              "off")
+
 
 VIR_ENUM_IMPL(virDomainController, VIR_DOMAIN_CONTROLLER_TYPE_LAST,
               "ide",
@@ -364,6 +370,12 @@ VIR_ENUM_IMPL(virDomainGraphicsSpiceStreamingMode,
               "all",
               "off");
 
+VIR_ENUM_IMPL(virDomainGraphicsSpiceClipboardCopypaste,
+              VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_LAST,
+              "default",
+              "yes",
+              "no");
+
 VIR_ENUM_IMPL(virDomainHostdevMode, VIR_DOMAIN_HOSTDEV_MODE_LAST,
               "subsystem",
               "capabilities")
@@ -435,12 +447,6 @@ VIR_ENUM_IMPL(virDomainSeclabel, VIR_DOMAIN_SECLABEL_LAST,
               "dynamic",
               "static")
 
-VIR_ENUM_IMPL(virDomainNetdevMacvtap, VIR_DOMAIN_NETDEV_MACVTAP_MODE_LAST,
-              "vepa",
-              "private",
-              "bridge",
-              "passthrough")
-
 VIR_ENUM_IMPL(virVirtualPort, VIR_VIRTUALPORT_TYPE_LAST,
               "none",
               "802.1Qbg",
@@ -476,6 +482,11 @@ VIR_ENUM_IMPL(virDomainTimerMode, VIR_DOMAIN_TIMER_MODE_LAST,
               "emulate",
               "paravirt",
               "smpsafe");
+
+VIR_ENUM_IMPL(virDomainNumatuneMemMode, VIR_DOMAIN_NUMATUNE_MEM_LAST,
+              "strict",
+              "preferred",
+              "interleave");
 
 #define virDomainReportError(code, ...)                              \
     virReportErrorHelper(VIR_FROM_DOMAIN, code, __FILE__,            \
@@ -970,7 +981,7 @@ virDomainClockDefClear(virDomainClockDefPtr def)
 }
 
 static void
-virDomainVcpupinDefFree(virDomainVcpupinDefPtr *def,
+virDomainVcpuPinDefFree(virDomainVcpuPinDefPtr *def,
                         int nvcpupin)
 {
     int i;
@@ -1078,7 +1089,9 @@ void virDomainDefFree(virDomainDefPtr def)
 
     virCPUDefFree(def->cpu);
 
-    virDomainVcpupinDefFree(def->cputune.vcpupin, def->cputune.nvcpupin);
+    virDomainVcpuPinDefFree(def->cputune.vcpupin, def->cputune.nvcpupin);
+
+    VIR_FREE(def->numatune.memory.nodemask);
 
     virSysinfoDefFree(def->sysinfo);
 
@@ -1312,6 +1325,9 @@ int virDomainDeviceAddressIsValid(virDomainDeviceInfoPtr info,
 
 int virDomainDevicePCIAddressIsValid(virDomainDevicePCIAddressPtr addr)
 {
+    /* PCI bus has 32 slots and 8 functions per slot */
+    if (addr->slot >= 32 || addr->function >= 8)
+        return 0;
     return addr->domain || addr->bus || addr->slot;
 }
 
@@ -1998,6 +2014,7 @@ virDomainDiskDefParseXML(virCapsPtr caps,
     char *cachetag = NULL;
     char *error_policy = NULL;
     char *iotag = NULL;
+    char *ioeventfd = NULL;
     char *devaddr = NULL;
     virStorageEncryptionPtr encryption = NULL;
     char *serial = NULL;
@@ -2113,6 +2130,7 @@ virDomainDiskDefParseXML(virCapsPtr caps,
                 cachetag = virXMLPropString(cur, "cache");
                 error_policy = virXMLPropString(cur, "error_policy");
                 iotag = virXMLPropString(cur, "io");
+                ioeventfd = virXMLPropString(cur, "ioeventfd");
             } else if (xmlStrEqual(cur->name, BAD_CAST "readonly")) {
                 def->readonly = 1;
             } else if (xmlStrEqual(cur->name, BAD_CAST "shareable")) {
@@ -2249,6 +2267,24 @@ virDomainDiskDefParseXML(virCapsPtr caps,
         }
     }
 
+    if (ioeventfd) {
+        if (def->bus != VIR_DOMAIN_DISK_BUS_VIRTIO) {
+            virDomainReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                 _("disk ioeventfd mode supported "
+                                   "only for virtio bus"));
+            goto error;
+        }
+
+        int i;
+        if ((i = virDomainIoEventFdTypeFromString(ioeventfd)) <= 0) {
+            virDomainReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                 _("unknown disk ioeventfd mode '%s'"),
+                                 ioeventfd);
+            goto error;
+        }
+        def->ioeventfd=i;
+    }
+
     if (devaddr) {
         if (virDomainParseLegacyDeviceAddress(devaddr,
                                               &def->info.addr.pci) < 0) {
@@ -2311,6 +2347,7 @@ cleanup:
     VIR_FREE(cachetag);
     VIR_FREE(error_policy);
     VIR_FREE(iotag);
+    VIR_FREE(ioeventfd);
     VIR_FREE(devaddr);
     VIR_FREE(serial);
     virStorageEncryptionFree(encryption);
@@ -2698,6 +2735,7 @@ virDomainNetDefParseXML(virCapsPtr caps,
     char *model = NULL;
     char *backend = NULL;
     char *txmode = NULL;
+    char *ioeventfd = NULL;
     char *filter = NULL;
     char *internal = NULL;
     char *devaddr = NULL;
@@ -2787,6 +2825,7 @@ virDomainNetDefParseXML(virCapsPtr caps,
             } else if (xmlStrEqual (cur->name, BAD_CAST "driver")) {
                 backend = virXMLPropString(cur, "name");
                 txmode = virXMLPropString(cur, "txmode");
+                ioeventfd = virXMLPropString(cur, "ioeventfd");
             } else if (xmlStrEqual (cur->name, BAD_CAST "filterref")) {
                 filter = virXMLPropString(cur, "filter");
                 VIR_FREE(filterparams);
@@ -2929,14 +2968,14 @@ virDomainNetDefParseXML(virCapsPtr caps,
 
         if (mode != NULL) {
             int m;
-            if ((m = virDomainNetdevMacvtapTypeFromString(mode)) < 0) {
+            if ((m = virMacvtapModeTypeFromString(mode)) < 0) {
                 virDomainReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                      _("Unkown mode has been specified"));
                 goto error;
             }
             def->data.direct.mode = m;
         } else
-            def->data.direct.mode = VIR_DOMAIN_NETDEV_MACVTAP_MODE_VEPA;
+            def->data.direct.mode = VIR_MACVTAP_MODE_VEPA;
 
         if (virtPortParsed)
             def->data.direct.virtPortProfile = virtPort;
@@ -3003,6 +3042,16 @@ virDomainNetDefParseXML(virCapsPtr caps,
             }
             def->driver.virtio.txmode = m;
         }
+        if (ioeventfd) {
+            int i;
+            if ((i = virDomainIoEventFdTypeFromString(ioeventfd)) <= 0) {
+                virDomainReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                     _("unknown interface ioeventfd mode '%s'"),
+                                     ioeventfd);
+                goto error;
+            }
+            def->driver.virtio.ioeventfd = i;
+        }
     }
 
     if (filter != NULL) {
@@ -3042,6 +3091,7 @@ cleanup:
     VIR_FREE(model);
     VIR_FREE(backend);
     VIR_FREE(txmode);
+    VIR_FREE(ioeventfd);
     VIR_FREE(filter);
     VIR_FREE(type);
     VIR_FREE(internal);
@@ -4284,6 +4334,26 @@ virDomainGraphicsDefParseXML(xmlNodePtr node, int flags) {
                     VIR_FREE(mode);
 
                     def->data.spice.streaming = modeVal;
+                } else if (xmlStrEqual(cur->name, BAD_CAST "clipboard")) {
+                    const char *copypaste = virXMLPropString(cur, "copypaste");
+                    int copypasteVal;
+
+                    if (!copypaste) {
+                        virDomainReportError(VIR_ERR_XML_ERROR, "%s",
+                                             _("spice clipboard missing copypaste"));
+                        goto error;
+                    }
+
+                    if ((copypasteVal =
+                         virDomainGraphicsSpiceClipboardCopypasteTypeFromString(copypaste)) <= 0) {
+                        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                             _("unknown copypaste value '%s'"), copypaste);
+                        VIR_FREE(copypaste);
+                        goto error;
+                    }
+                    VIR_FREE(copypaste);
+
+                    def->data.spice.copypaste = copypasteVal;
                 }
             }
             cur = cur->next;
@@ -5577,13 +5647,13 @@ cleanup:
 }
 
 /* Parse the XML definition for a vcpupin */
-static virDomainVcpupinDefPtr
-virDomainVcpupinDefParseXML(const xmlNodePtr node,
+static virDomainVcpuPinDefPtr
+virDomainVcpuPinDefParseXML(const xmlNodePtr node,
                             xmlXPathContextPtr ctxt,
                             int maxvcpus,
                             int flags ATTRIBUTE_UNUSED)
 {
-    virDomainVcpupinDefPtr def;
+    virDomainVcpuPinDefPtr def;
     xmlNodePtr oldnode = ctxt->node;
     unsigned int vcpuid;
     char *tmp = NULL;
@@ -5797,8 +5867,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         char *set = tmp;
         def->cpumasklen = VIR_DOMAIN_CPUMASK_LEN;
         if (VIR_ALLOC_N(def->cpumask, def->cpumasklen) < 0) {
-            virReportOOMError();
-            goto error;
+            goto no_memory;
         }
         if (virDomainCpuSetParse((const char **)&set,
                                  0, def->cpumask,
@@ -5826,13 +5895,13 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     }
 
     for (i = 0 ; i < n ; i++) {
-        virDomainVcpupinDefPtr vcpupin = NULL;
-        vcpupin = virDomainVcpupinDefParseXML(nodes[i], ctxt, def->maxvcpus, 0);
+        virDomainVcpuPinDefPtr vcpupin = NULL;
+        vcpupin = virDomainVcpuPinDefParseXML(nodes[i], ctxt, def->maxvcpus, 0);
 
         if (!vcpupin)
             goto error;
 
-        if (virDomainVcpupinIsDuplicate(def->cputune.vcpupin,
+        if (virDomainVcpuPinIsDuplicate(def->cputune.vcpupin,
                                         def->cputune.nvcpupin,
                                         vcpupin->vcpuid)) {
             virDomainReportError(VIR_ERR_INTERNAL_ERROR,
@@ -5844,6 +5913,50 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         def->cputune.vcpupin[def->cputune.nvcpupin++] = vcpupin;
     }
     VIR_FREE(nodes);
+
+    /* Extract numatune if exists. */
+    if ((n = virXPathNodeSet("./numatune", ctxt, NULL)) < 0) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                             "%s", _("cannot extract numatune nodes"));
+        goto error;
+    }
+
+    if (n) {
+        tmp = virXPathString("string(./numatune/memory/@nodeset)", ctxt);
+        if (tmp) {
+            char *set = tmp;
+            int nodemasklen = VIR_DOMAIN_CPUMASK_LEN;
+
+            if (VIR_ALLOC_N(def->numatune.memory.nodemask, nodemasklen) < 0) {
+                goto no_memory;
+            }
+
+            /* "nodeset" leads same syntax with "cpuset". */
+            if (virDomainCpuSetParse((const char **)&set,
+                                     0, def->numatune.memory.nodemask,
+                                     nodemasklen) < 0)
+               goto error;
+            VIR_FREE(tmp);
+        } else {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                "%s", _("nodeset for NUMA memory tuning must be set"));
+            goto error;
+        }
+
+        tmp = virXPathString("string(./numatune/memory/@mode)", ctxt);
+        if (tmp) {
+            if ((def->numatune.memory.mode =
+                virDomainNumatuneMemModeTypeFromString(tmp)) < 0) {
+                virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                    _("Unsupported NUMA memory tuning mode '%s'"),
+                                    tmp);
+                goto error;
+            }
+            VIR_FREE(tmp);
+        } else {
+            def->numatune.memory.mode = VIR_DOMAIN_NUMATUNE_MEM_STRICT;
+        }
+    }
 
     n = virXPathNodeSet("./features/*", ctxt, &nodes);
     if (n < 0)
@@ -5930,8 +6043,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         if (def->os.bootloader) {
             def->os.type = strdup("xen");
             if (!def->os.type) {
-                virReportOOMError();
-                goto error;
+                goto no_memory;
             }
         } else {
             virDomainReportError(VIR_ERR_OS_TYPE,
@@ -5948,8 +6060,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         def->virtType == VIR_DOMAIN_VIRT_XEN) {
         VIR_FREE(def->os.type);
         if (!(def->os.type = strdup("xen"))) {
-            virReportOOMError();
-            goto error;
+            goto no_memory;
         }
     }
 
@@ -5976,8 +6087,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
             goto error;
         }
         if (!(def->os.arch = strdup(defaultArch))) {
-            virReportOOMError();
-            goto error;
+            goto no_memory;
         }
     }
 
@@ -5989,8 +6099,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
                                                                         virDomainVirtTypeToString(def->virtType));
         if (defaultMachine != NULL) {
             if (!(def->os.machine = strdup(defaultMachine))) {
-                virReportOOMError();
-                goto error;
+                goto no_memory;
             }
         }
     }
@@ -6323,8 +6432,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         virDomainInputDefPtr input;
 
         if (VIR_ALLOC(input) < 0) {
-            virReportOOMError();
-            goto error;
+            goto no_memory;
         }
         if (STREQ(def->os.type, "hvm")) {
             input->type = VIR_DOMAIN_INPUT_TYPE_MOUSE;
@@ -6623,12 +6731,13 @@ static virDomainObjPtr virDomainObjParseXML(virCapsPtr caps,
         char *str = virXMLPropString(nodes[i], "flag");
         if (str) {
             int flag = virDomainTaintTypeFromString(str);
-            VIR_FREE(str);
             if (flag < 0) {
                 virDomainReportError(VIR_ERR_INTERNAL_ERROR,
                                      _("Unknown taint flag %s"), str);
+                VIR_FREE(str);
                 goto error;
             }
+            VIR_FREE(str);
             virDomainObjTaint(obj, flag);
         }
     }
@@ -8009,7 +8118,7 @@ virDomainCpuSetParse(const char **str, char sep,
 /* Check if vcpupin with same vcpuid already exists.
  * Return 1 if exists, 0 if not. */
 int
-virDomainVcpupinIsDuplicate(virDomainVcpupinDefPtr *def,
+virDomainVcpuPinIsDuplicate(virDomainVcpuPinDefPtr *def,
                             int nvcpupin,
                             int vcpu)
 {
@@ -8026,8 +8135,8 @@ virDomainVcpupinIsDuplicate(virDomainVcpupinDefPtr *def,
     return 0;
 }
 
-virDomainVcpupinDefPtr
-virDomainVcpupinFindByVcpu(virDomainVcpupinDefPtr *def,
+virDomainVcpuPinDefPtr
+virDomainVcpuPinFindByVcpu(virDomainVcpuPinDefPtr *def,
                            int nvcpupin,
                            int vcpu)
 {
@@ -8045,13 +8154,13 @@ virDomainVcpupinFindByVcpu(virDomainVcpupinDefPtr *def,
 }
 
 int
-virDomainVcpupinAdd(virDomainDefPtr def,
+virDomainVcpuPinAdd(virDomainDefPtr def,
                     unsigned char *cpumap,
                     int maplen,
                     int vcpu)
 {
-    virDomainVcpupinDefPtr *vcpupin_list = NULL;
-    virDomainVcpupinDefPtr vcpupin = NULL;
+    virDomainVcpuPinDefPtr *vcpupin_list = NULL;
+    virDomainVcpuPinDefPtr vcpupin = NULL;
     char *cpumask = NULL;
     int i;
 
@@ -8093,10 +8202,10 @@ virDomainVcpupinAdd(virDomainDefPtr def,
 
         def->cputune.vcpupin = vcpupin_list;
     } else {
-        if (virDomainVcpupinIsDuplicate(def->cputune.vcpupin,
+        if (virDomainVcpuPinIsDuplicate(def->cputune.vcpupin,
                                         def->cputune.nvcpupin,
                                         vcpu)) {
-            vcpupin = virDomainVcpupinFindByVcpu(def->cputune.vcpupin,
+            vcpupin = virDomainVcpuPinFindByVcpu(def->cputune.vcpupin,
                                                  def->cputune.nvcpupin,
                                                  vcpu);
             vcpupin->vcpuid = vcpu;
@@ -8124,6 +8233,45 @@ virDomainVcpupinAdd(virDomainDefPtr def,
 cleanup:
     VIR_FREE(cpumask);
     return -1;
+}
+
+int
+virDomainVcpuPinDel(virDomainDefPtr def, int vcpu)
+{
+    int n;
+    bool deleted = false;
+    virDomainVcpuPinDefPtr *vcpupin_list = def->cputune.vcpupin;
+
+    /* No vcpupin exists yet */
+    if (!def->cputune.nvcpupin) {
+        return 0;
+    }
+
+    for (n = 0; n < def->cputune.nvcpupin; n++) {
+        if (vcpupin_list[n]->vcpuid == vcpu) {
+            VIR_FREE(vcpupin_list[n]->cpumask);
+            VIR_FREE(vcpupin_list[n]);
+            memmove(&vcpupin_list[n],
+                    &vcpupin_list[n+1],
+                    (def->cputune.nvcpupin - n - 1) * sizeof(virDomainVcpuPinDef *));
+            deleted = true;
+            break;
+        }
+    }
+
+    if (!deleted)
+        return 0;
+
+    if (--def->cputune.nvcpupin == 0) {
+        VIR_FREE(def->cputune.vcpupin);
+    } else {
+        if (VIR_REALLOC_N(def->cputune.vcpupin, def->cputune.nvcpupin) < 0) {
+            virReportOOMError();
+            return -1;
+        }
+    }
+
+    return 0;
 }
 
 static int
@@ -8172,6 +8320,7 @@ virDomainDiskDefFormat(virBufferPtr buf,
     const char *cachemode = virDomainDiskCacheTypeToString(def->cachemode);
     const char *error_policy = virDomainDiskErrorPolicyTypeToString(def->error_policy);
     const char *iomode = virDomainDiskIoTypeToString(def->iomode);
+    const char *ioeventfd = virDomainIoEventFdTypeToString(def->ioeventfd);
 
     if (!type) {
         virDomainReportError(VIR_ERR_INTERNAL_ERROR,
@@ -8203,7 +8352,8 @@ virDomainDiskDefFormat(virBufferPtr buf,
                       "    <disk type='%s' device='%s'>\n",
                       type, device);
 
-    if (def->driverName || def->driverType || def->cachemode) {
+    if (def->driverName || def->driverType || def->cachemode ||
+        def->ioeventfd) {
         virBufferAsprintf(buf, "      <driver");
         if (def->driverName)
             virBufferAsprintf(buf, " name='%s'", def->driverName);
@@ -8215,6 +8365,8 @@ virDomainDiskDefFormat(virBufferPtr buf,
             virBufferAsprintf(buf, " error_policy='%s'", error_policy);
         if (def->iomode)
             virBufferAsprintf(buf, " io='%s'", iomode);
+        if (def->ioeventfd)
+            virBufferAsprintf(buf, " ioeventfd='%s'", ioeventfd);
         virBufferAsprintf(buf, "/>\n");
     }
 
@@ -8477,7 +8629,7 @@ virDomainNetDefFormat(virBufferPtr buf,
         virBufferEscapeString(buf, "      <source dev='%s'",
                               def->data.direct.linkdev);
         virBufferAsprintf(buf, " mode='%s'",
-                   virDomainNetdevMacvtapTypeToString(def->data.direct.mode));
+                   virMacvtapModeTypeToString(def->data.direct.mode));
         virBufferAddLit(buf, "/>\n");
         virVirtualPortProfileFormat(buf, &def->data.direct.virtPortProfile,
                                     "      ");
@@ -8504,6 +8656,10 @@ virDomainNetDefFormat(virBufferPtr buf,
             if (def->driver.virtio.txmode) {
                 virBufferAsprintf(buf, " txmode='%s'",
                                   virDomainNetVirtioTxModeTypeToString(def->driver.virtio.txmode));
+            }
+            if (def->driver.virtio.ioeventfd) {
+                virBufferAsprintf(buf, " ioeventfd='%s'",
+                                  virDomainIoEventFdTypeToString(def->driver.virtio.ioeventfd));
             }
             virBufferAddLit(buf, "/>\n");
         }
@@ -9209,7 +9365,7 @@ virDomainGraphicsDefFormat(virBufferPtr buf,
         }
         if (!children && (def->data.spice.image || def->data.spice.jpeg ||
                           def->data.spice.zlib || def->data.spice.playback ||
-                          def->data.spice.streaming)) {
+                          def->data.spice.streaming || def->data.spice.copypaste)) {
             virBufferAddLit(buf, ">\n");
             children = 1;
         }
@@ -9228,6 +9384,9 @@ virDomainGraphicsDefFormat(virBufferPtr buf,
         if (def->data.spice.streaming)
             virBufferAsprintf(buf, "      <streaming mode='%s'/>\n",
                               virDomainGraphicsSpiceStreamingModeTypeToString(def->data.spice.streaming));
+        if (def->data.spice.copypaste)
+            virBufferAsprintf(buf, "      <clipboard copypaste='%s'/>\n",
+                              virDomainGraphicsSpiceClipboardCopypasteTypeToString(def->data.spice.copypaste));
     }
 
     if (children) {
@@ -9423,6 +9582,28 @@ char *virDomainDefFormat(virDomainDefPtr def,
 
     if (def->cputune.shares || def->cputune.vcpupin)
         virBufferAddLit(&buf, "  </cputune>\n");
+
+    if (def->numatune.memory.nodemask)
+        virBufferAddLit(&buf, "  <numatune>\n");
+
+    if (def->numatune.memory.nodemask) {
+        char *nodemask = NULL;
+        nodemask = virDomainCpuSetFormat(def->numatune.memory.nodemask,
+                                         VIR_DOMAIN_CPUMASK_LEN);
+        if (nodemask == NULL) {
+            virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                 "%s", _("failed to format nodeset for NUMA memory tuning"));
+            goto cleanup;
+        }
+
+        virBufferAsprintf(&buf, "    <memory mode='%s' nodeset='%s'/>\n",
+                          virDomainNumatuneMemModeTypeToString(def->numatune.memory.mode),
+                          nodemask);
+        VIR_FREE(nodemask);
+    }
+
+    if (def->numatune.memory.nodemask)
+        virBufferAddLit(&buf, "  </numatune>\n");
 
     if (def->sysinfo)
         virDomainSysinfoDefFormat(&buf, def->sysinfo);
@@ -9859,20 +10040,23 @@ static virDomainObjPtr virDomainLoadConfig(virCapsPtr caps,
                                       VIR_DOMAIN_XML_INACTIVE)))
         goto error;
 
-    /* if the domain is already in our hashtable, we don't need to do
-     * anything further
-     */
-    if ((dom = virDomainFindByUUID(doms, def->uuid))) {
-        VIR_FREE(configFile);
-        virDomainDefFree(def);
-        return dom;
-    }
-
     if ((autostartLink = virDomainConfigFile(autostartDir, name)) == NULL)
         goto error;
 
     if ((autostart = virFileLinkPointsTo(autostartLink, configFile)) < 0)
         goto error;
+
+    /* if the domain is already in our hashtable, we only need to
+     * update the autostart flag
+     */
+    if ((dom = virDomainFindByUUID(doms, def->uuid))) {
+        dom->autostart = autostart;
+
+        VIR_FREE(configFile);
+        VIR_FREE(autostartLink);
+        virDomainDefFree(def);
+        return dom;
+    }
 
     if (!(dom = virDomainAssignDef(caps, doms, def, false)))
         goto error;

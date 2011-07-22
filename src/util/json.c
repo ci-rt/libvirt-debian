@@ -799,8 +799,10 @@ static int virJSONParserHandleStartMap(void *ctx)
     }
 
     if (VIR_REALLOC_N(parser->state,
-                      parser->nstate + 1) < 0)
+                      parser->nstate + 1) < 0) {
+        virJSONValueFree(value);
         return 0;
+    }
 
     parser->state[parser->nstate].value = value;
     parser->state[parser->nstate].key = NULL;
@@ -948,7 +950,6 @@ cleanup:
 
     if (parser.nstate) {
         int i;
-        VIR_WARN("cleanup state %d", parser.nstate);
         for (i = 0 ; i < parser.nstate ; i++) {
             VIR_FREE(parser.state[i].key);
         }

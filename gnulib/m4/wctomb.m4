@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# wctomb.m4 serial 1
+# wctomb.m4 serial 2
 dnl Copyright (C) 2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -12,10 +12,6 @@ AC_DEFUN([gl_FUNC_WCTOMB],
 
   if false; then
     REPLACE_WCTOMB=1
-  fi
-  if test $REPLACE_WCTOMB = 1; then
-    AC_LIBOBJ([wctomb])
-    gl_PREREQ_WCTOMB
   fi
 ])
 

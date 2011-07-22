@@ -122,7 +122,6 @@ qemuMonitorJSONIOProcessLine(qemuMonitorPtr mon,
 
     if (virJSONValueObjectHasKey(obj, "QMP") == 1) {
         ret = 0;
-        virJSONValueFree(obj);
     } else if (virJSONValueObjectHasKey(obj, "event") == 1) {
         ret = qemuMonitorJSONIOProcessEvent(mon, obj);
     } else if (virJSONValueObjectHasKey(obj, "error") == 1 ||
@@ -130,6 +129,7 @@ qemuMonitorJSONIOProcessLine(qemuMonitorPtr mon,
         if (msg) {
             msg->rxObject = obj;
             msg->finished = 1;
+            obj = NULL;
             ret = 0;
         } else {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
@@ -141,8 +141,7 @@ qemuMonitorJSONIOProcessLine(qemuMonitorPtr mon,
     }
 
 cleanup:
-    if (ret < 0)
-        virJSONValueFree(obj);
+    virJSONValueFree(obj);
     return ret;
 }
 
@@ -917,6 +916,25 @@ int qemuMonitorJSONSystemPowerdown(qemuMonitorPtr mon)
 }
 
 
+int qemuMonitorJSONSystemReset(qemuMonitorPtr mon)
+{
+    int ret;
+    virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("system_reset", NULL);
+    virJSONValuePtr reply = NULL;
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
 /*
  * [ { "CPU": 0, "current": true, "halted": false, "pc": 3227107138 },
  *   { "CPU": 1, "current": false, "halted": true, "pc": 7108165 } ]
@@ -1117,6 +1135,18 @@ int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
                                 _("info balloon reply was missing return data"));
                 ret = -1;
                 goto cleanup;
+            }
+
+            if (virJSONValueObjectHasKey(data, "actual") && (got < nr_stats)) {
+                if (virJSONValueObjectGetNumberUlong(data, "actual", &mem) < 0) {
+                    qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                    _("info balloon reply was missing balloon actual"));
+                    ret = -1;
+                    goto cleanup;
+                }
+                stats[got].tag = VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON;
+                stats[got].val = (mem/1024);
+                got++;
             }
 
             if (virJSONValueObjectHasKey(data, "mem_swapped_in") && (got < nr_stats)) {

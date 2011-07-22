@@ -116,7 +116,7 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
 #endif
 
     if (!(driver->lockManager =
-          virLockManagerPluginNew("nop", 0)))
+          virLockManagerPluginNew("nop", NULL, 0)))
         return -1;
 
     /* Just check the file is readable before opening it, otherwise
@@ -378,16 +378,16 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         }
     }
 
-     p = virConfGetValue (conf, "hugetlbfs_mount");
-     CHECK_TYPE ("hugetlbfs_mount", VIR_CONF_STRING);
-     if (p && p->str) {
-         VIR_FREE(driver->hugetlbfs_mount);
-         if (!(driver->hugetlbfs_mount = strdup(p->str))) {
-             virReportOOMError();
-             virConfFree(conf);
-             return -1;
-         }
-     }
+    p = virConfGetValue (conf, "hugetlbfs_mount");
+    CHECK_TYPE ("hugetlbfs_mount", VIR_CONF_STRING);
+    if (p && p->str) {
+        VIR_FREE(driver->hugetlbfs_mount);
+        if (!(driver->hugetlbfs_mount = strdup(p->str))) {
+            virReportOOMError();
+            virConfFree(conf);
+            return -1;
+        }
+    }
 
     p = virConfGetValue (conf, "mac_filter");
     CHECK_TYPE ("mac_filter", VIR_CONF_LONG);
@@ -398,12 +398,16 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
             virReportSystemError(errno,
                                  _("failed to enable mac filter in '%s'"),
                                  __FILE__);
+            virConfFree(conf);
+            return -1;
         }
 
         if ((errno = networkDisableAllFrames(driver))) {
             virReportSystemError(errno,
                          _("failed to add rule to drop all frames in '%s'"),
                                  __FILE__);
+            virConfFree(conf);
+            return -1;
         }
     }
 
@@ -434,10 +438,17 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     p = virConfGetValue (conf, "lock_manager");
     CHECK_TYPE ("lock_manager", VIR_CONF_STRING);
     if (p && p->str) {
+        char *lockConf;
         virLockManagerPluginUnref(driver->lockManager);
+        if (virAsprintf(&lockConf, "%s/libvirt/qemu-%s.conf", SYSCONFDIR, p->str) < 0) {
+            virReportOOMError();
+            virConfFree(conf);
+            return -1;
+        }
         if (!(driver->lockManager =
-              virLockManagerPluginNew(p->str, 0)))
+              virLockManagerPluginNew(p->str, lockConf, 0)))
             VIR_ERROR(_("Failed to load lock manager %s"), p->str);
+        VIR_FREE(lockConf);
     }
 
     virConfFree (conf);

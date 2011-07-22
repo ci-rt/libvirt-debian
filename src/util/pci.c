@@ -35,7 +35,7 @@
 
 #include "logging.h"
 #include "memory.h"
-#include "util.h"
+#include "command.h"
 #include "virterror_internal.h"
 #include "files.h"
 
@@ -56,7 +56,7 @@ struct _pciDevice {
 
     char          name[PCI_ADDR_LEN]; /* domain:bus:slot.function */
     char          id[PCI_ID_LEN];     /* product vendor */
-    char          path[PATH_MAX];
+    char          *path;
     int           fd;
 
     unsigned      initted;
@@ -1294,7 +1294,8 @@ pciGetDevice(unsigned domain,
              unsigned function)
 {
     pciDevice *dev;
-    char *vendor, *product;
+    char *vendor = NULL;
+    char *product = NULL;
 
     if (VIR_ALLOC(dev) < 0) {
         virReportOOMError();
@@ -1307,17 +1308,25 @@ pciGetDevice(unsigned domain,
     dev->slot     = slot;
     dev->function = function;
 
-    snprintf(dev->name, sizeof(dev->name), "%.4x:%.2x:%.2x.%.1x",
-             dev->domain, dev->bus, dev->slot, dev->function);
-    snprintf(dev->path, sizeof(dev->path),
-             PCI_SYSFS "devices/%s/config", dev->name);
+    if (snprintf(dev->name, sizeof(dev->name), "%.4x:%.2x:%.2x.%.1x",
+                 dev->domain, dev->bus, dev->slot,
+                 dev->function) >= sizeof(dev->name)) {
+        pciReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("dev->name buffer overflow: %.4x:%.2x:%.2x.%.1x"),
+                       dev->domain, dev->bus, dev->slot, dev->function);
+        goto error;
+    }
+    if (virAsprintf(&dev->path, PCI_SYSFS "devices/%s/config",
+                    dev->name) < 0) {
+        virReportOOMError();
+        goto error;
+    }
 
     if (access(dev->path, F_OK) != 0) {
         virReportSystemError(errno,
                              _("Device %s not found: could not access %s"),
                              dev->name, dev->path);
-        pciFreeDevice(dev);
-        return NULL;
+        goto error;
     }
 
     vendor  = pciReadDeviceID(dev, "vendor");
@@ -1327,21 +1336,29 @@ pciGetDevice(unsigned domain,
         pciReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Failed to read product/vendor ID for %s"),
                        dev->name);
-        VIR_FREE(product);
-        VIR_FREE(vendor);
-        pciFreeDevice(dev);
-        return NULL;
+        goto error;
     }
 
     /* strings contain '0x' prefix */
-    snprintf(dev->id, sizeof(dev->id), "%s %s", &vendor[2], &product[2]);
-
-    VIR_FREE(product);
-    VIR_FREE(vendor);
+    if (snprintf(dev->id, sizeof(dev->id), "%s %s", &vendor[2],
+                 &product[2]) >= sizeof(dev->id)) {
+        pciReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("dev->id buffer overflow: %s %s"),
+                       &vendor[2], &product[2]);
+        goto error;
+    }
 
     VIR_DEBUG("%s %s: initialized", dev->id, dev->name);
 
+cleanup:
+    VIR_FREE(product);
+    VIR_FREE(vendor);
     return dev;
+
+error:
+    pciFreeDevice(dev);
+    dev = NULL;
+    goto cleanup;
 }
 
 void
@@ -1351,6 +1368,7 @@ pciFreeDevice(pciDevice *dev)
         return;
     VIR_DEBUG("%s %s: freeing", dev->id, dev->name);
     pciCloseConfig(dev);
+    VIR_FREE(dev->path);
     VIR_FREE(dev);
 }
 

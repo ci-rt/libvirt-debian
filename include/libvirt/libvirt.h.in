@@ -141,14 +141,56 @@ typedef enum {
     VIR_DOMAIN_CRASHED_UNKNOWN = 0,     /* crashed for unknown reason */
 } virDomainCrashedReason;
 
+
+/**
+ * virDomainControlState:
+ *
+ * Current state of a control interface to the domain.
+ */
+typedef enum {
+    VIR_DOMAIN_CONTROL_OK = 0,       /* operational, ready to accept commands */
+    VIR_DOMAIN_CONTROL_JOB = 1,      /* background job is running (can be
+                                        monitored by virDomainGetJobInfo); only
+                                        limited set of commands may be allowed */
+    VIR_DOMAIN_CONTROL_OCCUPIED = 2, /* occupied by a running command */
+    VIR_DOMAIN_CONTROL_ERROR = 3,    /* unusable, domain cannot be fully operated */
+} virDomainControlState;
+
+/**
+ * virDomainControlInfo:
+ *
+ * Structure filled in by virDomainGetControlInfo and providing details about
+ * current state of control interface to a domain.
+ */
+typedef struct _virDomainControlInfo virDomainControlInfo;
+struct _virDomainControlInfo {
+    unsigned int state;     /* control state, one of virDomainControlState */
+    unsigned int details;   /* state details, currently 0 */
+    unsigned long long stateTime; /* for how long (in msec) control interface
+                                     has been in current state (except for OK
+                                     and ERROR states) */
+};
+
+/**
+ * virDomainControlInfoPtr:
+ *
+ * Pointer to virDomainControlInfo structure.
+ */
+typedef virDomainControlInfo *virDomainControlInfoPtr;
+
 /**
  * virDomainModificationImpact:
  *
- * Several APIs take flags to determine whether a change to the domain
- * affects just the running instance, just the persistent definition,
- * or both.  The use of VIR_DOMAIN_AFFECT_CURRENT will resolve to
- * either VIR_DOMAIN_AFFECT_LIVE or VIR_DOMAIN_AFFECT_CONFIG according
- * to current domain state. VIR_DOMAIN_AFFECT_LIVE requires a running
+ * Several modification APIs take flags to determine whether a change
+ * to the domain affects just the running instance, just the
+ * persistent definition, or both at the same time.  The counterpart
+ * query APIs also take the same flags to determine whether to query
+ * the running instance or persistent definition, although both cannot
+ * be queried at once.
+ *
+ * The use of VIR_DOMAIN_AFFECT_CURRENT will resolve to either
+ * VIR_DOMAIN_AFFECT_LIVE or VIR_DOMAIN_AFFECT_CONFIG according to
+ * current domain state. VIR_DOMAIN_AFFECT_LIVE requires a running
  * domain, and VIR_DOMAIN_AFFECT_CONFIG requires a persistent domain
  * (whether or not it is running).
  */
@@ -192,6 +234,7 @@ typedef virDomainInfo *virDomainInfoPtr;
 typedef enum {
     VIR_DOMAIN_NONE         = 0,      /* Default behavior */
     VIR_DOMAIN_START_PAUSED = 1 << 0, /* Launch guest in paused state */
+    VIR_DOMAIN_START_AUTODESTROY = 1 << 1, /* Automatically kill guest when virConnectPtr is closed */
 } virDomainCreateFlags;
 
 
@@ -210,7 +253,6 @@ typedef struct _virStream virStream;
  * type used to reference a data stream in the API.
  */
 typedef virStream *virStreamPtr;
-
 
 /**
  * VIR_SECURITY_LABEL_BUFLEN:
@@ -297,6 +339,133 @@ struct _virNodeInfo {
     unsigned int threads;/* number of threads per core */
 };
 
+/**
+ * VIR_NODE_CPU_STATS_FIELD_LENGTH:
+ *
+ * Macro providing the field length of virNodeCPUStats
+ */
+#define VIR_NODE_CPU_STATS_FIELD_LENGTH 80
+
+/**
+ * VIR_NODE_CPU_STATS_ALL_CPUS:
+ *
+ * Macro for the total CPU time/utilization
+ */
+#define VIR_NODE_CPU_STATS_ALL_CPUS (-1)
+
+/**
+ * VIR_NODE_CPU_STATS_KERNEL:
+ *
+ * Macro for the cumulative CPU time which was spent by the kernel,
+ * since the node booting up (in nanoseconds).
+ */
+#define VIR_NODE_CPU_STATS_KERNEL "kernel"
+
+/**
+ * VIR_NODE_CPU_STATS_USER:
+ *
+ * The cumulative CPU time which was spent by user processes,
+ * since the node booting up (in nanoseconds).
+ */
+#define VIR_NODE_CPU_STATS_USER "user"
+
+/**
+ * VIR_NODE_CPU_STATS_IDLE:
+ *
+ * The cumulative idle CPU time,
+ * since the node booting up (in nanoseconds).
+ */
+#define VIR_NODE_CPU_STATS_IDLE "idle"
+
+/**
+ * VIR_NODE_CPU_STATS_IOWAIT:
+ *
+ * The cumulative I/O wait CPU time,
+ * since the node booting up (in nanoseconds).
+ */
+#define VIR_NODE_CPU_STATS_IOWAIT "iowait"
+
+/**
+ * VIR_NODE_CPU_STATS_UTILIZATION:
+ *
+ * The CPU utilization of a node.
+ * The usage value is in percent and 100% represents all CPUs of
+ * the node.
+ */
+#define VIR_NODE_CPU_STATS_UTILIZATION "utilization"
+
+/**
+ * virNodeCPUStats:
+ *
+ * a virNodeCPUStats is a structure filled by virNodeGetCPUStats()
+ * providing information about the CPU stats of the node.
+ */
+typedef struct _virNodeCPUStats virNodeCPUStats;
+
+struct _virNodeCPUStats {
+    char field[VIR_NODE_CPU_STATS_FIELD_LENGTH];
+    unsigned long long value;
+};
+
+/**
+ * VIR_NODE_MEMORY_STATS_FIELD_LENGTH:
+ *
+ * Macro providing the field length of virNodeMemoryStats
+ */
+#define VIR_NODE_MEMORY_STATS_FIELD_LENGTH 80
+
+/**
+ * VIR_NODE_MEMORY_STATS_ALL_CELLS:
+ *
+ * Macro for the total memory of all cells.
+ */
+#define VIR_NODE_MEMORY_STATS_ALL_CELLS (-1)
+
+/**
+ * VIR_NODE_MEMORY_STATS_TOTAL:
+ *
+ * Macro for the total memory of specified cell:
+ * it represents the maximum memory.
+ */
+#define VIR_NODE_MEMORY_STATS_TOTAL "total"
+
+/**
+ * VIR_NODE_MEMORY_STATS_FREE:
+ *
+ * Macro for the free memory of specified cell:
+ * On Linux, it includes buffer and cached memory, in case of
+ * VIR_NODE_MEMORY_STATS_ALL_CELLS.
+ */
+#define VIR_NODE_MEMORY_STATS_FREE "free"
+
+/**
+ * VIR_NODE_MEMORY_STATS_BUFFERS:
+ *
+ * Macro for the buffer memory: On Linux, it is only returned in case of
+ * VIR_NODE_MEMORY_STATS_ALL_CELLS.
+ */
+#define VIR_NODE_MEMORY_STATS_BUFFERS "buffers"
+
+/**
+ * VIR_NODE_MEMORY_STATS_CACHED:
+ *
+ * Macro for the cached memory: On Linux, it is only returned in case of
+ * VIR_NODE_MEMORY_STATS_ALL_CELLS.
+ */
+#define VIR_NODE_MEMORY_STATS_CACHED "cached"
+
+/**
+ * virNodeMemoryStats:
+ *
+ * a virNodeMemoryStats is a structure filled by virNodeGetMemoryStats()
+ * providing information about the memory of the node.
+ */
+typedef struct _virNodeMemoryStats virNodeMemoryStats;
+
+struct _virNodeMemoryStats {
+    char field[VIR_NODE_MEMORY_STATS_FIELD_LENGTH];
+    unsigned long long value;
+};
 
 /* Common data types shared among interfaces with name/type/value lists.  */
 
@@ -467,11 +636,13 @@ typedef enum {
      */
     VIR_DOMAIN_MEMORY_STAT_AVAILABLE       = 5,
 
+    /* Current balloon value (in KB). */
+    VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON  = 6,
     /*
      * The number of statistics supported by this version of the interface.
      * To add new statistics, add them to the enum and increase this value.
      */
-    VIR_DOMAIN_MEMORY_STAT_NR              = 6,
+    VIR_DOMAIN_MEMORY_STAT_NR              = 7,
 } virDomainMemoryStatTags;
 
 typedef struct _virDomainMemoryStat virDomainMemoryStatStruct;
@@ -553,6 +724,22 @@ int virDomainMigrateSetMaxSpeed(virDomainPtr domain,
  */
 
 typedef virNodeInfo *virNodeInfoPtr;
+
+/**
+ * virNodeCPUStatsPtr:
+ *
+ * a virNodeCPUStatsPtr is a pointer to a virNodeCPUStats structure.
+ */
+
+typedef virNodeCPUStats *virNodeCPUStatsPtr;
+
+/**
+ * virNodeMemoryStatsPtr:
+ *
+ * a virNodeMemoryStatsPtr is a pointer to a virNodeMemoryStats structure.
+ */
+
+typedef virNodeMemoryStats *virNodeMemoryStatsPtr;
 
 /**
  * virConnectFlags
@@ -688,6 +875,18 @@ int                     virNodeGetInfo          (virConnectPtr conn,
                                                  virNodeInfoPtr info);
 char *                  virConnectGetCapabilities (virConnectPtr conn);
 
+int                     virNodeGetCPUStats (virConnectPtr conn,
+                                            int cpuNum,
+                                            virNodeCPUStatsPtr params,
+                                            int *nparams,
+                                            unsigned int flags);
+
+int                     virNodeGetMemoryStats (virConnectPtr conn,
+                                               int cellNum,
+                                               virNodeMemoryStatsPtr params,
+                                               int *nparams,
+                                               unsigned int flags);
+
 unsigned long long      virNodeGetFreeMemory    (virConnectPtr conn);
 
 int                     virNodeGetSecurityModel (virConnectPtr conn,
@@ -781,6 +980,9 @@ int                     virDomainGetState       (virDomainPtr domain,
                                                  int *state,
                                                  int *reason,
                                                  unsigned int flags);
+int                     virDomainGetControlInfo (virDomainPtr domain,
+                                                 virDomainControlInfoPtr info,
+                                                 unsigned int flags);
 
 /*
  * Return scheduler type in effect 'sedf', 'credit', 'linux'
@@ -865,9 +1067,12 @@ int     virDomainGetMemoryParameters(virDomainPtr domain,
 
 /* Memory size modification flags. */
 typedef enum {
-    VIR_DOMAIN_MEM_CURRENT = 0,        /* affect current domain state */
-    VIR_DOMAIN_MEM_LIVE    = (1 << 0), /* affect active domain */
-    VIR_DOMAIN_MEM_CONFIG  = (1 << 1), /* affect next boot */
+    /* See virDomainModificationImpact for these flags.  */
+    VIR_DOMAIN_MEM_CURRENT = VIR_DOMAIN_AFFECT_CURRENT,
+    VIR_DOMAIN_MEM_LIVE    = VIR_DOMAIN_AFFECT_LIVE,
+    VIR_DOMAIN_MEM_CONFIG  = VIR_DOMAIN_AFFECT_CONFIG,
+
+    /* Additionally, these flags may be bitwise-OR'd in.  */
     VIR_DOMAIN_MEM_MAXIMUM = (1 << 2), /* affect Max rather than current */
 } virDomainMemoryModFlags;
 
@@ -1029,11 +1234,12 @@ typedef virVcpuInfo *virVcpuInfoPtr;
 
 /* Flags for controlling virtual CPU hot-plugging.  */
 typedef enum {
-    /* Must choose at least one of these two bits; SetVcpus can choose both */
-    VIR_DOMAIN_VCPU_LIVE    = (1 << 0), /* Affect active domain */
-    VIR_DOMAIN_VCPU_CONFIG  = (1 << 1), /* Affect next boot */
+    /* Must choose at least one of these two bits; SetVcpus can choose both;
+       see virDomainModificationImpact for details.  */
+    VIR_DOMAIN_VCPU_LIVE    = VIR_DOMAIN_AFFECT_LIVE,
+    VIR_DOMAIN_VCPU_CONFIG  = VIR_DOMAIN_AFFECT_CONFIG,
 
-    /* Additional flags to be bit-wise OR'd in */
+    /* Additionally, these flags may be bitwise-OR'd in.  */
     VIR_DOMAIN_VCPU_MAXIMUM = (1 << 2), /* Max rather than current count */
 } virDomainVcpuFlags;
 
@@ -1049,6 +1255,17 @@ int                     virDomainPinVcpu        (virDomainPtr domain,
                                                  unsigned int vcpu,
                                                  unsigned char *cpumap,
                                                  int maplen);
+int                     virDomainPinVcpuFlags   (virDomainPtr domain,
+                                                 unsigned int vcpu,
+                                                 unsigned char *cpumap,
+                                                 int maplen,
+                                                 unsigned int flags);
+
+int                     virDomainGetVcpuPinInfo (virDomainPtr domain,
+                                                 int ncpumaps,
+                                                 unsigned char *cpumaps,
+                                                 int maplen,
+                                                 unsigned int flags);
 
 /**
  * VIR_USE_CPU:
@@ -1137,12 +1354,14 @@ int                     virDomainGetVcpus       (virDomainPtr domain,
 
 
 typedef enum {
+    /* See virDomainModificationImpact for these flags.  */
+    VIR_DOMAIN_DEVICE_MODIFY_CURRENT = VIR_DOMAIN_AFFECT_CURRENT,
+    VIR_DOMAIN_DEVICE_MODIFY_LIVE    = VIR_DOMAIN_AFFECT_LIVE,
+    VIR_DOMAIN_DEVICE_MODIFY_CONFIG  = VIR_DOMAIN_AFFECT_CONFIG,
 
-   VIR_DOMAIN_DEVICE_MODIFY_CURRENT = 0, /* Modify device allocation based on current domain state */
-   VIR_DOMAIN_DEVICE_MODIFY_LIVE = (1 << 0), /* Modify live device allocation */
-   VIR_DOMAIN_DEVICE_MODIFY_CONFIG = (1 << 1), /* Modify persisted device allocation */
-   VIR_DOMAIN_DEVICE_MODIFY_FORCE = (1 << 2), /* Forcibly modify device
-                                                 (ex. force eject a cdrom) */
+    /* Additionally, these flags may be bitwise-OR'd in.  */
+    VIR_DOMAIN_DEVICE_MODIFY_FORCE = (1 << 2), /* Forcibly modify device
+                                                  (ex. force eject a cdrom) */
 } virDomainDeviceModifyFlags;
 
 int virDomainAttachDevice(virDomainPtr domain, const char *xml);
@@ -1548,6 +1767,33 @@ char *                  virStorageVolGetXMLDesc         (virStorageVolPtr pool,
 
 char *                  virStorageVolGetPath            (virStorageVolPtr vol);
 
+/**
+ * virKeycodeSet:
+ *
+ * Enum to specify which keycode mapping is in use for virDomainSendKey().
+ */
+typedef enum {
+    VIR_KEYCODE_SET_LINUX          = 0,
+    VIR_KEYCODE_SET_XT             = 1,
+    VIR_KEYCODE_SET_ATSET1         = 2,
+    VIR_KEYCODE_SET_ATSET2         = 3,
+    VIR_KEYCODE_SET_ATSET3         = 4,
+} virKeycodeSet;
+
+/**
+ * VIR_DOMAIN_SEND_KEY_MAX_KEYS:
+ *
+ * Maximum number of keycodes that can be sent in one virDomainSendKey() call.
+ */
+#define VIR_DOMAIN_SEND_KEY_MAX_KEYS  16
+
+int virDomainSendKey(virDomainPtr domain,
+                     unsigned int codeset,
+                     unsigned int holdtime,
+                     unsigned int *keycodes,
+                     int nkeycodes,
+                     unsigned int flags);
+
 /*
  * Deprecated calls
  */
@@ -1882,6 +2128,20 @@ void virEventRegisterImpl(virEventAddHandleFunc addHandle,
 
 int virEventRegisterDefaultImpl(void);
 int virEventRunDefaultImpl(void);
+
+int virEventAddHandle(int fd, int events,
+                      virEventHandleCallback cb,
+                      void *opaque,
+                      virFreeCallback ff);
+void virEventUpdateHandle(int watch, int events);
+int virEventRemoveHandle(int watch);
+
+int virEventAddTimeout(int frequency,
+                       virEventTimeoutCallback cb,
+                       void *opaque,
+                       virFreeCallback ff);
+void virEventUpdateTimeout(int timer, int frequency);
+int virEventRemoveTimeout(int timer);
 
 /*
  * Secret manipulation API

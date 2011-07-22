@@ -38,8 +38,8 @@ bin_PROGRAMS = virsh$(EXEEXT)
 @WITH_WIN_ICON_TRUE@am__append_1 = virsh_win_icon.$(OBJEXT)
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_2 = libvirt-guests.init
 subdir = tools
-DIST_COMMON = $(dist_man1_MANS) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in
+DIST_COMMON = $(dist_man1_MANS) $(dist_man8_MANS) \
+	$(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
@@ -50,7 +50,6 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/byteswap.m4 \
 	$(top_srcdir)/gnulib/m4/canonicalize.m4 \
 	$(top_srcdir)/gnulib/m4/chown.m4 \
-	$(top_srcdir)/gnulib/m4/cloexec.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
 	$(top_srcdir)/gnulib/m4/configmake.m4 \
 	$(top_srcdir)/gnulib/m4/count-one-bits.m4 \
@@ -70,8 +69,10 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/fflush.m4 \
 	$(top_srcdir)/gnulib/m4/float_h.m4 \
 	$(top_srcdir)/gnulib/m4/fnmatch.m4 \
+	$(top_srcdir)/gnulib/m4/fpieee.m4 \
 	$(top_srcdir)/gnulib/m4/fpurge.m4 \
 	$(top_srcdir)/gnulib/m4/freading.m4 \
+	$(top_srcdir)/gnulib/m4/fseek.m4 \
 	$(top_srcdir)/gnulib/m4/fseeko.m4 \
 	$(top_srcdir)/gnulib/m4/ftell.m4 \
 	$(top_srcdir)/gnulib/m4/ftello.m4 \
@@ -241,7 +242,8 @@ CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" \
-	"$(DESTDIR)$(man1dir)"
+	"$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man1dir)" \
+	"$(DESTDIR)$(man8dir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_virsh_OBJECTS = virsh-console.$(OBJEXT) virsh-virsh.$(OBJEXT)
 virsh_OBJECTS = $(am_virsh_OBJECTS)
@@ -277,7 +279,7 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-SCRIPTS = $(bin_SCRIPTS)
+SCRIPTS = $(bin_SCRIPTS) $(sbin_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -307,8 +309,9 @@ am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(virsh_SOURCES)
 DIST_SOURCES = $(virsh_SOURCES)
 man1dir = $(mandir)/man1
+man8dir = $(mandir)/man8
 NROFF = nroff
-MANS = $(dist_man1_MANS)
+MANS = $(dist_man1_MANS) $(dist_man8_MANS)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -1100,7 +1103,6 @@ PYTHON_VERSION = @PYTHON_VERSION@
 RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
-REMOTE_PID_FILE = @REMOTE_PID_FILE@
 REPLACE_BTOWC = @REPLACE_BTOWC@
 REPLACE_CALLOC = @REPLACE_CALLOC@
 REPLACE_CANONICALIZE_FILE_NAME = @REPLACE_CANONICALIZE_FILE_NAME@
@@ -1363,12 +1365,16 @@ EXTRA_DIST = \
 	$(ICON_FILES)					\
 	virt-xml-validate.in				\
 	virt-pki-validate.in				\
+	virt-sanlock-cleanup.in				\
+	virt-sanlock-cleanup.8				\
 	virsh.pod					\
 	libvirt-guests.init.sh				\
 	libvirt-guests.sysconf
 
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
+@HAVE_SANLOCK_TRUE@sbin_SCRIPTS = virt-sanlock-cleanup
 dist_man1_MANS = virt-xml-validate.1 virt-pki-validate.1 virsh.1
+@HAVE_SANLOCK_TRUE@dist_man8_MANS = virt-sanlock-cleanup.8
 virsh_SOURCES = \
 		console.c console.h				\
 		virsh.c
@@ -1508,6 +1514,40 @@ uninstall-binSCRIPTS:
 	test -n "$$list" || exit 0; \
 	echo " ( cd '$(DESTDIR)$(bindir)' && rm -f" $$files ")"; \
 	cd "$(DESTDIR)$(bindir)" && rm -f $$files
+install-sbinSCRIPTS: $(sbin_SCRIPTS)
+	@$(NORMAL_INSTALL)
+	test -z "$(sbindir)" || $(MKDIR_P) "$(DESTDIR)$(sbindir)"
+	@list='$(sbin_SCRIPTS)'; test -n "$(sbindir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n' \
+	    -e 'h;s|.*|.|' \
+	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
+	      if (++n[d] == $(am__install_max)) { \
+		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
+	    else { print "f", d "/" $$4, $$1 } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	     test -z "$$files" || { \
+	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(sbindir)$$dir'"; \
+	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(sbindir)$$dir" || exit $$?; \
+	     } \
+	; done
+
+uninstall-sbinSCRIPTS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(sbin_SCRIPTS)'; test -n "$(sbindir)" || exit 0; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	       sed -e 's,.*/,,;$(transform)'`; \
+	test -n "$$list" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(sbindir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(sbindir)" && rm -f $$files
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -1613,6 +1653,40 @@ uninstall-man1:
 	test -z "$$files" || { \
 	  echo " ( cd '$(DESTDIR)$(man1dir)' && rm -f" $$files ")"; \
 	  cd "$(DESTDIR)$(man1dir)" && rm -f $$files; }
+install-man8: $(dist_man8_MANS)
+	@$(NORMAL_INSTALL)
+	test -z "$(man8dir)" || $(MKDIR_P) "$(DESTDIR)$(man8dir)"
+	@list='$(dist_man8_MANS)'; test -n "$(man8dir)" || exit 0; \
+	{ for i in $$list; do echo "$$i"; done; \
+	} | while read p; do \
+	  if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; echo "$$p"; \
+	done | \
+	sed -e 'n;s,.*/,,;p;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,' | \
+	sed 'N;N;s,\n, ,g' | { \
+	list=; while read file base inst; do \
+	  if test "$$base" = "$$inst"; then list="$$list $$file"; else \
+	    echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man8dir)/$$inst'"; \
+	    $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man8dir)/$$inst" || exit $$?; \
+	  fi; \
+	done; \
+	for i in $$list; do echo "$$i"; done | $(am__base_list) | \
+	while read files; do \
+	  test -z "$$files" || { \
+	    echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(man8dir)'"; \
+	    $(INSTALL_DATA) $$files "$(DESTDIR)$(man8dir)" || exit $$?; }; \
+	done; }
+
+uninstall-man8:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_man8_MANS)'; test -n "$(man8dir)" || exit 0; \
+	files=`{ for i in $$list; do echo "$$i"; done; \
+	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
+	test -z "$$files" || { \
+	  echo " ( cd '$(DESTDIR)$(man8dir)' && rm -f" $$files ")"; \
+	  cd "$(DESTDIR)$(man8dir)" && rm -f $$files; }
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -1714,7 +1788,7 @@ check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-am
 all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man8dir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -1775,7 +1849,8 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS install-binSCRIPTS
+install-exec-am: install-binPROGRAMS install-binSCRIPTS \
+	install-sbinSCRIPTS
 
 install-html: install-html-am
 
@@ -1785,7 +1860,7 @@ install-info: install-info-am
 
 install-info-am:
 
-install-man: install-man1
+install-man: install-man1 install-man8
 
 install-pdf: install-pdf-am
 
@@ -1816,9 +1891,9 @@ ps: ps-am
 ps-am:
 
 uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
-	uninstall-local uninstall-man
+	uninstall-local uninstall-man uninstall-sbinSCRIPTS
 
-uninstall-man: uninstall-man1
+uninstall-man: uninstall-man1 uninstall-man8
 
 .MAKE: all check install install-am install-strip
 
@@ -1830,27 +1905,36 @@ uninstall-man: uninstall-man1
 	install-data-am install-data-local install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-man install-man1 \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-binSCRIPTS uninstall-local \
-	uninstall-man uninstall-man1
+	install-man8 install-pdf install-pdf-am install-ps \
+	install-ps-am install-sbinSCRIPTS install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-binSCRIPTS uninstall-local uninstall-man \
+	uninstall-man1 uninstall-man8 uninstall-sbinSCRIPTS
 
 
 virt-xml-validate: virt-xml-validate.in Makefile
-	$(AM_V_GEN)sed -e 's,@SCHEMADIR@,$(pkgdatadir)/schemas,' < $< > $@ \
+	$(AM_V_GEN)sed -e 's,[@]SCHEMADIR@,$(pkgdatadir)/schemas,' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
 
 virt-xml-validate.1: virt-xml-validate.in
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
 virt-pki-validate: virt-pki-validate.in Makefile
-	$(AM_V_GEN)sed -e 's,@SYSCONFDIR@,$(sysconfdir),' < $< > $@ \
+	$(AM_V_GEN)sed -e 's,[@]SYSCONFDIR@,$(sysconfdir),' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
 
 virt-pki-validate.1: virt-pki-validate.in
+	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
+
+virt-sanlock-cleanup: virt-sanlock-cleanup.in Makefile
+	$(AM_V_GEN)sed -e 's,[@]SYSCONFDIR@,$(sysconfdir),' \
+	    -e 's,[@]LOCALSTATEDIR@,$(localstatedir),' < $< > $@ \
+	    || (rm $@ && exit 1) && chmod +x $@
+
+virt-sanlock-cleanup.8: virt-sanlock-cleanup.in
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
 virsh-net-edit.c: virsh.c Makefile.am

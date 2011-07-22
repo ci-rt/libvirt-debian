@@ -48,11 +48,227 @@
 
 #define VIR_FROM_THIS VIR_FROM_NETWORK
 #define DNSMASQ_HOSTSFILE_SUFFIX "hostsfile"
+#define DNSMASQ_ADDNHOSTSFILE_SUFFIX "addnhosts"
 
 static void
 dhcphostFree(dnsmasqDhcpHost *host)
 {
     VIR_FREE(host->host);
+}
+
+static void
+addnhostFree(dnsmasqAddnHost *host)
+{
+    int i;
+
+    for (i = 0; i < host->nhostnames; i++)
+        VIR_FREE(host->hostnames[i]);
+    VIR_FREE(host->hostnames);
+    VIR_FREE(host->ip);
+}
+
+static void
+addnhostsFree(dnsmasqAddnHostsfile *addnhostsfile)
+{
+    unsigned int i;
+
+    if (addnhostsfile->hosts) {
+        for (i = 0; i < addnhostsfile->nhosts; i++)
+            addnhostFree(&addnhostsfile->hosts[i]);
+
+        VIR_FREE(addnhostsfile->hosts);
+
+        addnhostsfile->nhosts = 0;
+    }
+
+    VIR_FREE(addnhostsfile->path);
+
+    VIR_FREE(addnhostsfile);
+}
+
+static int
+addnhostsAdd(dnsmasqAddnHostsfile *addnhostsfile,
+             virSocketAddr *ip,
+             const char *name)
+{
+    char *ipstr = NULL;
+    int idx = -1;
+    int i;
+
+    if (!(ipstr = virSocketFormatAddr(ip)))
+        return -1;
+
+    for (i = 0; i < addnhostsfile->nhosts; i++) {
+        if (STREQ((const char *)addnhostsfile->hosts[i].ip, (const char *)ipstr)) {
+            idx = i;
+            break;
+        }
+    }
+
+    if (idx < 0) {
+        if (VIR_REALLOC_N(addnhostsfile->hosts, addnhostsfile->nhosts + 1) < 0)
+            goto alloc_error;
+
+        idx = addnhostsfile->nhosts;
+        if (VIR_ALLOC(addnhostsfile->hosts[idx].hostnames) < 0)
+            goto alloc_error;
+
+        if (virAsprintf(&addnhostsfile->hosts[idx].ip, "%s", ipstr) < 0)
+            goto alloc_error;
+
+        addnhostsfile->hosts[idx].nhostnames = 0;
+        addnhostsfile->nhosts++;
+    }
+
+    if (VIR_REALLOC_N(addnhostsfile->hosts[idx].hostnames, addnhostsfile->hosts[idx].nhostnames + 1) < 0)
+        goto alloc_error;
+
+    if (virAsprintf(&addnhostsfile->hosts[idx].hostnames[addnhostsfile->hosts[idx].nhostnames], "%s", name) < 0)
+        goto alloc_error;
+
+    VIR_FREE(ipstr);
+
+    addnhostsfile->hosts[idx].nhostnames++;
+
+    return 0;
+
+ alloc_error:
+    virReportOOMError();
+    VIR_FREE(ipstr);
+    return -1;
+}
+
+static dnsmasqAddnHostsfile *
+addnhostsNew(const char *name,
+             const char *config_dir)
+{
+    dnsmasqAddnHostsfile *addnhostsfile;
+
+    if (VIR_ALLOC(addnhostsfile) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    addnhostsfile->hosts = NULL;
+    addnhostsfile->nhosts = 0;
+
+    if (virAsprintf(&addnhostsfile->path, "%s/%s.%s", config_dir, name,
+                    DNSMASQ_ADDNHOSTSFILE_SUFFIX) < 0) {
+        virReportOOMError();
+        goto error;
+    }
+
+    return addnhostsfile;
+
+ error:
+    addnhostsFree(addnhostsfile);
+    return NULL;
+}
+
+static int
+addnhostsWrite(const char *path,
+               dnsmasqAddnHost *hosts,
+               unsigned int nhosts)
+{
+    char *tmp;
+    FILE *f;
+    bool istmp = true;
+    unsigned int i, ii;
+    int rc = 0;
+
+    if (nhosts == 0)
+        return rc;
+
+    if (virAsprintf(&tmp, "%s.new", path) < 0)
+        return -ENOMEM;
+
+    if (!(f = fopen(tmp, "w"))) {
+        istmp = false;
+        if (!(f = fopen(path, "w"))) {
+            rc = -errno;
+            goto cleanup;
+        }
+    }
+
+    for (i = 0; i < nhosts; i++) {
+        if (fputs(hosts[i].ip, f) == EOF || fputc('\t', f) == EOF) {
+            rc = -errno;
+            VIR_FORCE_FCLOSE(f);
+
+            if (istmp)
+                unlink(tmp);
+
+            goto cleanup;
+        }
+
+        for (ii = 0; ii < hosts[i].nhostnames; ii++) {
+            if (fputs(hosts[i].hostnames[ii], f) == EOF || fputc('\t', f) == EOF) {
+                rc = -errno;
+                VIR_FORCE_FCLOSE(f);
+
+                if (istmp)
+                    unlink(tmp);
+
+                goto cleanup;
+            }
+        }
+
+        if (fputc('\n', f) == EOF) {
+            rc = -errno;
+            VIR_FORCE_FCLOSE(f);
+
+            if (istmp)
+                unlink(tmp);
+
+            goto cleanup;
+        }
+    }
+
+    if (VIR_FCLOSE(f) == EOF) {
+        rc = -errno;
+        goto cleanup;
+    }
+
+    if (istmp && rename(tmp, path) < 0) {
+        rc = -errno;
+        unlink(tmp);
+        goto cleanup;
+    }
+
+ cleanup:
+    VIR_FREE(tmp);
+
+    return rc;
+}
+
+static int
+addnhostsSave(dnsmasqAddnHostsfile *addnhostsfile)
+{
+    int err = addnhostsWrite(addnhostsfile->path, addnhostsfile->hosts,
+                             addnhostsfile->nhosts);
+
+    if (err < 0) {
+        virReportSystemError(-err, _("cannot write config file '%s'"),
+                             addnhostsfile->path);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+genericFileDelete(char *path)
+{
+    if (!virFileExists(path))
+        return 0;
+
+    if (unlink(path) < 0) {
+        virReportSystemError(errno, _("cannot remove config file '%s'"),
+                             path);
+        return -1;
+    }
+
+    return 0;
 }
 
 static void
@@ -114,7 +330,6 @@ static dnsmasqHostsfile *
 hostsfileNew(const char *name,
              const char *config_dir)
 {
-    int err;
     dnsmasqHostsfile *hostsfile;
 
     if (VIR_ALLOC(hostsfile) < 0) {
@@ -128,12 +343,6 @@ hostsfileNew(const char *name,
     if (virAsprintf(&hostsfile->path, "%s/%s.%s", config_dir, name,
                     DNSMASQ_HOSTSFILE_SUFFIX) < 0) {
         virReportOOMError();
-        goto error;
-    }
-
-    if ((err = virFileMakePath(config_dir))) {
-        virReportSystemError(err, _("cannot create config directory '%s'"),
-                             config_dir);
         goto error;
     }
 
@@ -186,17 +395,10 @@ hostsfileWrite(const char *path,
         goto cleanup;
     }
 
-    if (istmp) {
-        if (rename(tmp, path) < 0) {
-            rc = -errno;
-            unlink(tmp);
-            goto cleanup;
-        }
-
-        if (unlink(tmp) < 0) {
-            rc = -errno;
-            goto cleanup;
-        }
+    if (istmp && rename(tmp, path) < 0) {
+        rc = -errno;
+        unlink(tmp);
+        goto cleanup;
     }
 
  cleanup:
@@ -212,22 +414,7 @@ hostsfileSave(dnsmasqHostsfile *hostsfile)
                              hostsfile->nhosts);
 
     if (err < 0) {
-        virReportSystemError(err, _("cannot write config file '%s'"),
-                             hostsfile->path);
-        return -1;
-    }
-
-    return 0;
-}
-
-static int
-hostsfileDelete(dnsmasqHostsfile *hostsfile)
-{
-    if (!virFileExists(hostsfile->path))
-        return 0;
-
-    if (unlink(hostsfile->path) < 0) {
-        virReportSystemError(errno, _("cannot remove config file '%s'"),
+        virReportSystemError(-err, _("cannot write config file '%s'"),
                              hostsfile->path);
         return -1;
     }
@@ -253,7 +440,14 @@ dnsmasqContextNew(const char *network_name,
         return NULL;
     }
 
+    if (!(ctx->config_dir = strdup(config_dir))) {
+        virReportOOMError();
+        goto error;
+    }
+
     if (!(ctx->hostsfile = hostsfileNew(network_name, config_dir)))
+        goto error;
+    if (!(ctx->addnhostsfile = addnhostsNew(network_name, config_dir)))
         goto error;
 
     return ctx;
@@ -275,8 +469,12 @@ dnsmasqContextFree(dnsmasqContext *ctx)
     if (!ctx)
         return;
 
+    VIR_FREE(ctx->config_dir);
+
     if (ctx->hostsfile)
         hostsfileFree(ctx->hostsfile);
+    if (ctx->addnhostsfile)
+        addnhostsFree(ctx->addnhostsfile);
 
     VIR_FREE(ctx);
 }
@@ -290,14 +488,30 @@ dnsmasqContextFree(dnsmasqContext *ctx)
  *
  * Add dhcp-host entry.
  */
-void
+int
 dnsmasqAddDhcpHost(dnsmasqContext *ctx,
                    const char *mac,
                    virSocketAddr *ip,
                    const char *name)
 {
-    if (ctx->hostsfile)
-        hostsfileAdd(ctx->hostsfile, mac, ip, name);
+    return hostsfileAdd(ctx->hostsfile, mac, ip, name);
+}
+
+/*
+ * dnsmasqAddHost:
+ * @ctx: pointer to the dnsmasq context for each network
+ * @ip: pointer to the socket address contains ip of the host
+ * @name: pointer to the string contains hostname of the host
+ *
+ * Add additional host entry.
+ */
+
+int
+dnsmasqAddHost(dnsmasqContext *ctx,
+               virSocketAddr *ip,
+               const char *name)
+{
+    return addnhostsAdd(ctx->addnhostsfile, ip, name);
 }
 
 /**
@@ -309,10 +523,23 @@ dnsmasqAddDhcpHost(dnsmasqContext *ctx,
 int
 dnsmasqSave(const dnsmasqContext *ctx)
 {
-    if (ctx->hostsfile)
-        return hostsfileSave(ctx->hostsfile);
+    int err;
+    int ret = 0;
 
-    return 0;
+    if ((err = virFileMakePath(ctx->config_dir))) {
+        virReportSystemError(err, _("cannot create config directory '%s'"),
+                             ctx->config_dir);
+        return -1;
+    }
+
+    if (ctx->hostsfile)
+        ret = hostsfileSave(ctx->hostsfile);
+    if (ret == 0) {
+        if (ctx->addnhostsfile)
+            ret = addnhostsSave(ctx->addnhostsfile);
+    }
+
+    return ret;
 }
 
 
@@ -325,10 +552,14 @@ dnsmasqSave(const dnsmasqContext *ctx)
 int
 dnsmasqDelete(const dnsmasqContext *ctx)
 {
-    if (ctx->hostsfile)
-        return hostsfileDelete(ctx->hostsfile);
+    int ret = 0;
 
-    return 0;
+    if (ctx->hostsfile)
+        ret = genericFileDelete(ctx->hostsfile->path);
+    if (ctx->addnhostsfile)
+        ret = genericFileDelete(ctx->addnhostsfile->path);
+
+    return ret;
 }
 
 /**

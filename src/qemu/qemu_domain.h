@@ -79,6 +79,8 @@ struct _qemuDomainObjPrivate {
     qemuMonitorPtr mon;
     virDomainChrSourceDefPtr monConfig;
     int monJSON;
+    bool monError;
+    unsigned long long monStart;
     bool gotShutdown;
 
     int nvcpupids;
@@ -89,6 +91,8 @@ struct _qemuDomainObjPrivate {
 
     virBitmapPtr qemuCaps;
     char *lockState;
+
+    bool fakeReboot;
 };
 
 struct qemuDomainWatchdogEvent

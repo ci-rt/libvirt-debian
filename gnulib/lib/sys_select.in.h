@@ -36,7 +36,7 @@
 
 #else
 
-#ifndef _GL_SYS_SELECT_H
+#ifndef _@GUARD_PREFIX@_SYS_SELECT_H
 
 #if @HAVE_SYS_SELECT_H@
 
@@ -53,10 +53,10 @@
 #  include <sys/time.h>
 # endif
 
-/* On Solaris 10, <sys/select.h> provides an FD_ZERO implementation
+/* On AIX 7 and Solaris 10, <sys/select.h> provides an FD_ZERO implementation
    that relies on memset(), but without including <string.h>.
    But in any case avoid namespace pollution on glibc systems.  */
-# if (defined __OpenBSD__ || defined __sun || defined __osf__ || defined __BEOS__) \
+# if (defined __OpenBSD__ || defined _AIX || defined __sun || defined __osf__ || defined __BEOS__) \
      && ! defined __GLIBC__
 #  include <string.h>
 # endif
@@ -66,8 +66,8 @@
 
 #endif
 
-#ifndef _GL_SYS_SELECT_H
-#define _GL_SYS_SELECT_H
+#ifndef _@GUARD_PREFIX@_SYS_SELECT_H
+#define _@GUARD_PREFIX@_SYS_SELECT_H
 
 #if !@HAVE_SYS_SELECT_H@
 /* A platform that lacks <sys/select.h>.  */
@@ -117,6 +117,6 @@ _GL_WARN_ON_USE (select, "select is not always POSIX compliant - "
 #endif
 
 
-#endif /* _GL_SYS_SELECT_H */
-#endif /* _GL_SYS_SELECT_H */
+#endif /* _@GUARD_PREFIX@_SYS_SELECT_H */
+#endif /* _@GUARD_PREFIX@_SYS_SELECT_H */
 #endif /* OSF/1 */

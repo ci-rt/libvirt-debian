@@ -206,6 +206,14 @@ enum  virDomainDiskIo {
     VIR_DOMAIN_DISK_IO_LAST
 };
 
+enum virDomainIoEventFd {
+    VIR_DOMAIN_IO_EVENT_FD_DEFAULT = 0,
+    VIR_DOMAIN_IO_EVENT_FD_ON,
+    VIR_DOMAIN_IO_EVENT_FD_OFF,
+
+    VIR_DOMAIN_IO_EVENT_FD_LAST
+};
+
 /* Stores the virtual disk configuration */
 typedef struct _virDomainDiskDef virDomainDiskDef;
 typedef virDomainDiskDef *virDomainDiskDefPtr;
@@ -225,6 +233,7 @@ struct _virDomainDiskDef {
     int error_policy;
     int bootIndex;
     int iomode;
+    int ioeventfd;
     unsigned int readonly : 1;
     unsigned int shared : 1;
     virDomainDeviceInfo info;
@@ -339,17 +348,6 @@ enum virDomainNetVirtioTxModeType {
     VIR_DOMAIN_NET_VIRTIO_TX_MODE_LAST,
 };
 
-/* the mode type for macvtap devices */
-enum virDomainNetdevMacvtapType {
-    VIR_DOMAIN_NETDEV_MACVTAP_MODE_VEPA,
-    VIR_DOMAIN_NETDEV_MACVTAP_MODE_PRIVATE,
-    VIR_DOMAIN_NETDEV_MACVTAP_MODE_BRIDGE,
-    VIR_DOMAIN_NETDEV_MACVTAP_MODE_PASSTHRU,
-
-    VIR_DOMAIN_NETDEV_MACVTAP_MODE_LAST,
-};
-
-
 /* Stores the virtual network interface configuration */
 typedef struct _virDomainNetDef virDomainNetDef;
 typedef virDomainNetDef *virDomainNetDefPtr;
@@ -361,6 +359,7 @@ struct _virDomainNetDef {
         struct {
             enum virDomainNetBackendType name; /* which driver backend to use */
             enum virDomainNetVirtioTxModeType txmode;
+            enum virDomainIoEventFd ioeventfd;
         } virtio;
     } driver;
     union {
@@ -386,7 +385,7 @@ struct _virDomainNetDef {
         } internal;
         struct {
             char *linkdev;
-            int mode;
+            int mode; /* enum virMacvtapMode from util/macvtap.h */
             virVirtualPortProfileParams virtPortProfile;
         } direct;
     } data;
@@ -715,6 +714,14 @@ enum virDomainGraphicsSpiceStreamingMode {
     VIR_DOMAIN_GRAPHICS_SPICE_STREAMING_MODE_LAST
 };
 
+enum virDomainGraphicsSpiceClipboardCopypaste {
+    VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_DEFAULT = 0,
+    VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_YES,
+    VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_NO,
+
+    VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_LAST
+};
+
 typedef struct _virDomainGraphicsDef virDomainGraphicsDef;
 typedef virDomainGraphicsDef *virDomainGraphicsDefPtr;
 struct _virDomainGraphicsDef {
@@ -757,6 +764,7 @@ struct _virDomainGraphicsDef {
             int zlib;
             int playback;
             int streaming;
+            int copypaste;
         } spice;
     } data;
 };
@@ -890,6 +898,7 @@ enum virDomainFeature {
     VIR_DOMAIN_FEATURE_APIC,
     VIR_DOMAIN_FEATURE_PAE,
     VIR_DOMAIN_FEATURE_HAP,
+    VIR_DOMAIN_FEATURE_VIRIDIAN,
 
     VIR_DOMAIN_FEATURE_LAST
 };
@@ -1092,20 +1101,39 @@ void virDomainSnapshotObjListRemove(virDomainSnapshotObjListPtr snapshots,
 int virDomainSnapshotHasChildren(virDomainSnapshotObjPtr snap,
                                 virDomainSnapshotObjListPtr snapshots);
 
-typedef struct _virDomainVcpupinDef virDomainVcpupinDef;
-typedef virDomainVcpupinDef *virDomainVcpupinDefPtr;
-struct _virDomainVcpupinDef {
+typedef struct _virDomainVcpuPinDef virDomainVcpuPinDef;
+typedef virDomainVcpuPinDef *virDomainVcpuPinDefPtr;
+struct _virDomainVcpuPinDef {
     int vcpuid;
     char *cpumask;
 };
 
-int virDomainVcpupinIsDuplicate(virDomainVcpupinDefPtr *def,
+int virDomainVcpuPinIsDuplicate(virDomainVcpuPinDefPtr *def,
                                 int nvcpupin,
                                 int vcpu);
 
-virDomainVcpupinDefPtr virDomainVcpupinFindByVcpu(virDomainVcpupinDefPtr *def,
+virDomainVcpuPinDefPtr virDomainVcpuPinFindByVcpu(virDomainVcpuPinDefPtr *def,
                                                   int nvcpupin,
                                                   int vcpu);
+
+enum virDomainNumatuneMemMode {
+    VIR_DOMAIN_NUMATUNE_MEM_STRICT,
+    VIR_DOMAIN_NUMATUNE_MEM_PREFERRED,
+    VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE,
+
+    VIR_DOMAIN_NUMATUNE_MEM_LAST
+};
+
+typedef struct _virDomainNumatuneDef virDomainNumatuneDef;
+typedef virDomainNumatuneDef *virDomainNumatuneDefPtr;
+struct _virDomainNumatuneDef {
+    struct {
+        char *nodemask;
+        int mode;
+    } memory;
+
+    /* Future NUMA tuning related stuff should go here. */
+};
 
 /*
  * Guest VM main configuration
@@ -1143,8 +1171,10 @@ struct _virDomainDef {
     struct {
         unsigned long shares;
         int nvcpupin;
-        virDomainVcpupinDefPtr *vcpupin;
+        virDomainVcpuPinDefPtr *vcpupin;
     } cputune;
+
+    virDomainNumatuneDef numatune;
 
     /* These 3 are based on virDomainLifeCycleAction enum flags */
     int onReboot;
@@ -1376,10 +1406,12 @@ int virDomainCpuSetParse(const char **str,
 char *virDomainCpuSetFormat(char *cpuset,
                             int maxcpu);
 
-int virDomainVcpupinAdd(virDomainDefPtr def,
+int virDomainVcpuPinAdd(virDomainDefPtr def,
                         unsigned char *cpumap,
                         int maplen,
                         int vcpu);
+
+int virDomainVcpuPinDel(virDomainDefPtr def, int vcpu);
 
 int virDomainDiskIndexByName(virDomainDefPtr def, const char *name);
 int virDomainDiskInsert(virDomainDefPtr def,
@@ -1521,6 +1553,7 @@ VIR_ENUM_DECL(virDomainDiskCache)
 VIR_ENUM_DECL(virDomainDiskErrorPolicy)
 VIR_ENUM_DECL(virDomainDiskProtocol)
 VIR_ENUM_DECL(virDomainDiskIo)
+VIR_ENUM_DECL(virDomainIoEventFd)
 VIR_ENUM_DECL(virDomainController)
 VIR_ENUM_DECL(virDomainControllerModel)
 VIR_ENUM_DECL(virDomainFS)
@@ -1553,6 +1586,8 @@ VIR_ENUM_DECL(virDomainGraphicsSpiceJpegCompression)
 VIR_ENUM_DECL(virDomainGraphicsSpiceZlibCompression)
 VIR_ENUM_DECL(virDomainGraphicsSpicePlaybackCompression)
 VIR_ENUM_DECL(virDomainGraphicsSpiceStreamingMode)
+VIR_ENUM_DECL(virDomainGraphicsSpiceClipboardCopypaste)
+VIR_ENUM_DECL(virDomainNumatuneMemMode)
 /* from libvirt.h */
 VIR_ENUM_DECL(virDomainState)
 VIR_ENUM_DECL(virDomainNostateReason)
@@ -1568,8 +1603,6 @@ int virDomainStateReasonFromString(virDomainState state, const char *reason);
 
 VIR_ENUM_DECL(virDomainSeclabel)
 VIR_ENUM_DECL(virDomainClockOffset)
-
-VIR_ENUM_DECL(virDomainNetdevMacvtap)
 
 VIR_ENUM_DECL(virDomainTimerName)
 VIR_ENUM_DECL(virDomainTimerTrack)

@@ -28,7 +28,18 @@
 # include <config.h>
 
 # include "internal.h"
+# include "network_conf.h"
+# include "command.h"
+# include "dnsmasq.h"
 
 int networkRegister(void);
+int networkBuildDhcpDaemonCommandLine(virNetworkObjPtr network,
+                                      virCommandPtr *cmdout, char *pidfile,
+                                      dnsmasqContext *dctx);
+
+typedef char *(*networkDnsmasqLeaseFileNameFunc)(const char *netname);
+
+/* this allows the testsuite to replace the lease filename resolver function */
+extern networkDnsmasqLeaseFileNameFunc networkDnsmasqLeaseFileName;
 
 #endif /* __VIR_NETWORK__DRIVER_H */
