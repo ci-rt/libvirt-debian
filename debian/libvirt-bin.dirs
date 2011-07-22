@@ -1,4 +1,5 @@
 /var/lib/libvirt/images
 /var/lib/libvirt/boot
+/var/lib/libvirt/sanlock
 /var/cache/libvirt
 /var/log/libvirt/qemu
