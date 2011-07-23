@@ -1,3 +1,18 @@
+libvirt (0.9.3-2) unstable; urgency=low
+
+  * Upload to unstable
+  * [331afb8] Move build rules to make sure DEB_BUILD_ARCH_OS is properly
+    defined.
+    Thanks to Serge E. Hallyn
+  * [4f3fe1d] Adjust directory permissions to what upstream uses to avoid
+    potential information leakage.
+    (Closes: #632332)
+  * [ab7ad05] Add sanlock dir
+  * [bc05a9d] Logrotate logs from HVs other than qemu too
+    (Closes: #625746)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 23 Jul 2011 15:28:10 +0200
+
 libvirt (0.9.3-1) experimental; urgency=low
 
   * [320f8b6] New upstream version 0.9.3 (Closes: #633840)
