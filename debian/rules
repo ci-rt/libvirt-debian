@@ -77,8 +77,8 @@ DEB_COMPRESS_EXCLUDE = .o event-test hellolibvirt info1 suspend
 DEB_PYTHON_SETUP_CMD = /dev/null
 DEB_DH_MAKESHLIBS_ARGS_libvirt0 += -V 'libvirt0 (>= 0.5.0)'
 DEB_DH_INSTALLINIT_ARGS = --no-restart-on-upgrade -- defaults 28 72
-DEB_DH_INSTALLLOGROTATE_ARGS = --name=libvirtd
 
+LOGROTATE = $(basename $(basename $(notdir $(wildcard daemon/libvirtd*.logrotate.in))))
 EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
 
 binary-install/libvirt-bin::
@@ -86,9 +86,16 @@ binary-install/libvirt-bin::
 	cp $(CURDIR)/tools/libvirt-guests.sysconf $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
 	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
 
+	for l in $(LOGROTATE); do \
+		cp $(CURDIR)/daemon/$$l.logrotate    \
+                   debian/libvirt-bin.$$l.logrotate; \
+		dh_installlogrotate --name=$$l;     \
+	done
+
 build/libvirt-bin::
 	# Add empty dir so dh_install doesn't fail on kFreebsd until we have Polkit support
 	mkdir -p debian/tmp/usr/share/polkit-1
+
 
 binary-install/libvirt-doc::
 	find $(EXAMPLES_DIR) -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \;
@@ -100,3 +107,4 @@ binary-install/libvirt-doc::
 clean::
 	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
 	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
+	rm -f $(CURDIR)/debian/libvirt-bin.*.logrotate
