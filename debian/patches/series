@@ -9,3 +9,4 @@ Disable-daemon-start-test.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
 Autodetect-if-the-remote-nc-command-supports-the-q-o.patch
 Disable-failing-virnetsockettest.patch
+Catch-dnsmasq-start-failures.patch

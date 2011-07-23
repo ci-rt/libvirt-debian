@@ -1,0 +1,27 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sat, 23 Jul 2011 23:24:21 +0200
+Subject: Catch dnsmasq start failures
+
+While we checked the return value we didn't maks sure ret != 0 which
+resulted in dnsmasq errors being ignored.
+---
+ src/network/bridge_driver.c |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
+
+diff --git a/src/network/bridge_driver.c b/src/network/bridge_driver.c
+index 660dd65..7cedbfd 100644
+--- a/src/network/bridge_driver.c
++++ b/src/network/bridge_driver.c
+@@ -732,8 +732,10 @@ networkStartDhcpDaemon(virNetworkObjPtr network)
+     if (ret < 0)
+         goto cleanup;
+ 
+-    if (virCommandRun(cmd, NULL) < 0)
++    ret = virCommandRun(cmd, NULL);
++    if (ret < 0) {
+         goto cleanup;
++    }
+ 
+     /*
+      * There really is no race here - when dnsmasq daemonizes, its
+-- 
