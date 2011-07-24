@@ -3,3 +3,5 @@
 /var/lib/libvirt/sanlock
 /var/cache/libvirt
 /var/log/libvirt/qemu
+/var/log/libvirt/uml
+/var/log/libvirt/lxc
