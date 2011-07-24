@@ -1,3 +1,11 @@
+libvirt (0.9.3-3) unstable; urgency=low
+
+  * [6db6929] Catch dnsmasq start failures
+  * [0254bfb] Add empty log directories to make logrotate happy
+    (Closes: #635239)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 24 Jul 2011 10:51:58 +0200
+
 libvirt (0.9.3-2) unstable; urgency=low
 
   * Upload to unstable
