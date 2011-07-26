@@ -53,6 +53,8 @@ int qemuMonitorJSONSystemReset(qemuMonitorPtr mon);
 
 int qemuMonitorJSONGetCPUInfo(qemuMonitorPtr mon,
                               int **pids);
+int qemuMonitorJSONGetVirtType(qemuMonitorPtr mon,
+                               int *virtType);
 int qemuMonitorJSONGetBalloonInfo(qemuMonitorPtr mon,
                                   unsigned long *currmem);
 int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
@@ -215,8 +217,18 @@ int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
 
 int qemuMonitorJSONInjectNMI(qemuMonitorPtr mon);
 
+int qemuMonitorJSONSendKey(qemuMonitorPtr mon,
+                           unsigned int holdtime,
+                           unsigned int *keycodes,
+                           unsigned int nkeycodes);
+
 int qemuMonitorJSONScreendump(qemuMonitorPtr mon,
                               const char *file);
 
+int qemuMonitorJSONBlockJob(qemuMonitorPtr mon,
+                            const char *device,
+                            unsigned long bandwidth,
+                            virDomainBlockJobInfoPtr info,
+                            int mode);
 
 #endif /* QEMU_MONITOR_JSON_H */

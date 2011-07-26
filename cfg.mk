@@ -74,7 +74,8 @@ local-checks-to-skip =			\
   sc_useless_cpp_parens
 
 # Files that should never cause syntax check failures.
-VC_LIST_ALWAYS_EXCLUDE_REGEX = (^(HACKING|docs/news\.html\.in)|\.po)$$
+VC_LIST_ALWAYS_EXCLUDE_REGEX = \
+  (^(HACKING|docs/(news\.html\.in|.*\.patch))|\.po)$$
 
 # Functions like free() that are no-ops on NULL arguments.
 useless_free_options =				\
@@ -83,6 +84,7 @@ useless_free_options =				\
   --name=qemuMigrationCookieFree                \
   --name=qemuMigrationCookieGraphicsFree        \
   --name=sexpr_free				\
+  --name=virBandwidthDefFree			\
   --name=virBitmapFree                          \
   --name=virCPUDefFree				\
   --name=virCapabilitiesFree			\
@@ -96,6 +98,7 @@ useless_free_options =				\
   --name=virCommandFree				\
   --name=virConfFreeList			\
   --name=virConfFreeValue			\
+  --name=virDomainActualNetDefFree		\
   --name=virDomainChrDefFree			\
   --name=virDomainChrSourceDefFree		\
   --name=virDomainControllerDefFree		\
@@ -118,6 +121,7 @@ useless_free_options =				\
   --name=virDomainSoundDefFree			\
   --name=virDomainVideoDefFree			\
   --name=virDomainWatchdogDefFree		\
+  --name=virFileDirectFdFree			\
   --name=virHashFree				\
   --name=virInterfaceDefFree			\
   --name=virInterfaceIpDefFree			\
@@ -155,6 +159,7 @@ useless_free_options =				\
   --name=virSecretDefFree			\
   --name=virStorageEncryptionFree		\
   --name=virStorageEncryptionSecretFree		\
+  --name=virStorageFileFreeMetadata		\
   --name=virStoragePoolDefFree			\
   --name=virStoragePoolObjFree			\
   --name=virStoragePoolSourceFree		\
@@ -266,6 +271,37 @@ sc_avoid_write:
 	@prohibit='\<write *\('						\
 	in_vc_files='\.c$$'						\
 	halt='consider using safewrite instead of write'		\
+	  $(_sc_search_regexp)
+
+# In debug statements, print flags as bitmask and mode_t as octal.
+sc_flags_debug:
+	@prohibit='\<mode=%[0-9.]*[diux]'				\
+	halt='use %o to debug mode_t values'				\
+	  $(_sc_search_regexp)
+	@prohibit='[Ff]lags=%[0-9.]*l*[diou]'				\
+	halt='use %x to debug flag values'				\
+	  $(_sc_search_regexp)
+
+# Prefer 'unsigned int flags', along with checks for unknown flags.
+# For historical reasons, we are stuck with 'unsigned long flags' in
+# migration, so check for those known 4 instances and no more in public
+# API.  Also check that no flags are marked unused, and 'unsigned' should
+# appear before any declaration of a flags variable (achieved by
+# prohibiting the word prior to the type from ending in anything other
+# than d).  The existence of long long, and of documentation about
+# flags, makes the regex in the third test slightly harder.
+sc_flags_usage:
+	@test "$$(cat $(srcdir)/include/libvirt/libvirt.h.in		\
+	    $(srcdir)/include/libvirt/virterror.h			\
+	    $(srcdir)/include/libvirt/libvirt-qemu.h			\
+	  | grep -c '\(long\|unsigned\) flags')" != 4 &&		\
+	  { echo '$(ME): new API should use "unsigned int flags"' 1>&2;	\
+	    exit 1; } || :
+	@prohibit=' flags ''ATTRIBUTE_UNUSED'				\
+	halt='flags should be checked with virCheckFlags'		\
+	  $(_sc_search_regexp)
+	@prohibit='^[^@]*([^d] (int|long long)|[^dg] long) flags[;,)]'	\
+	halt='flags should be unsigned'					\
 	  $(_sc_search_regexp)
 
 # Avoid functions that can lead to double-close bugs.
@@ -401,6 +437,14 @@ sc_prohibit_gethostby:
 sc_prohibit_xmlGetProp:
 	@prohibit='\<xmlGetProp *\('					\
 	halt='use virXMLPropString, not xmlGetProp'			\
+	  $(_sc_search_regexp)
+
+# ATTRIBUTE_UNUSED should only be applied in implementations, not
+# header declarations
+sc_avoid_attribute_unused_in_header:
+	@prohibit='^[^#]*ATTRIBUTE_UNUSED([^:]|$$)'			\
+	in_vc_files='\.h$$'						\
+	halt='use ATTRIBUTE_UNUSED in .c rather than .h files'		\
 	  $(_sc_search_regexp)
 
 # Many of the function names below came from this filter:
@@ -543,6 +587,9 @@ sc_copyright_format:
 	@prohibit='Copyright [^(].*Red 'Hat				\
 	halt='consistently use (C) in Red Hat copyright'		\
 	  $(_sc_search_regexp)
+	@prohibit='\<Red''Hat\>'					\
+	halt='spell Red Hat as two words'				\
+	  $(_sc_search_regexp)
 
 # Some functions/macros produce messages intended solely for developers
 # and maintainers.  Do not mark them for translation.
@@ -606,11 +653,15 @@ _autogen:
 syntax-check: $(top_srcdir)/HACKING
 
 # sc_po_check can fail if generated files are not built first
-sc_po_check: $(srcdir)/daemon/remote_dispatch.h \
+sc_po_check: \
+		$(srcdir)/daemon/remote_dispatch.h \
+		$(srcdir)/daemon/qemu_dispatch.h \
 		$(srcdir)/src/remote/remote_client_bodies.h
-$(srcdir)/daemon/remote_dispatch.h:
+$(srcdir)/daemon/remote_dispatch.h: $(srcdir)/src/remote/remote_protocol.x
 	$(MAKE) -C daemon remote_dispatch.h
-$(srcdir)/src/remote/remote_client_bodies.h:
+$(srcdir)/daemon/qemu_dispatch.h: $(srcdir)/src/remote/qemu_protocol.x
+	$(MAKE) -C daemon qemu_dispatch.h
+$(srcdir)/src/remote/remote_client_bodies.h: $(srcdir)/src/remote/remote_protocol.x
 	$(MAKE) -C src remote/remote_client_bodies.h
 
 # List all syntax-check exemptions:
@@ -618,9 +669,11 @@ exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.c$$
 
 _src1=libvirt|fdstream|qemu/qemu_monitor|util/(command|util)|xen/xend_internal|rpc/virnetsocket
 exclude_file_name_regexp--sc_avoid_write = \
-  ^(src/($(_src1))|daemon/libvirtd|tools/console)\.c$$
+  ^(src/($(_src1))|daemon/libvirtd|tools/console|tests/virnettlscontexttest)\.c$$
 
 exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
+
+exclude_file_name_regexp--sc_flags_usage = ^docs/
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
   ^src/rpc/gendispatch\.pl$$
@@ -633,36 +686,34 @@ exclude_file_name_regexp--sc_prohibit_VIR_ERR_NO_MEMORY = \
 exclude_file_name_regexp--sc_prohibit_access_xok = ^src/util/util\.c$$
 
 exclude_file_name_regexp--sc_prohibit_always_true_header_tests = \
-  (^docs|^python/(libvirt-override|typewrappers)\.c$$)
+  ^python/(libvirt-override|typewrappers)\.c$$
 
 exclude_file_name_regexp--sc_prohibit_asprintf = \
   ^(bootstrap.conf$$|src/util/util\.c$$|examples/domain-events/events-c/event-test\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_close = \
-  (\.p[yl]$$|^docs/|(src/util/files\.c|src/libvirt\.c)$$)
+  (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^docs/api_extension/|^tests/qemuhelpdata/|\.(gif|ico|png)$$)
+  (^tests/qemuhelpdata/|\.(gif|ico|png)$$)
 
 _src2=src/(util/command|libvirt|lxc/lxc_controller)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
-  (^docs|^($(_src2)|tests/testutils|daemon/libvirtd)\.c$$)
+  (^($(_src2)|tests/testutils|daemon/libvirtd)\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_gethostname = ^src/util/util\.c$$
-
-exclude_file_name_regexp--sc_prohibit_gettext_noop = ^docs/
 
 exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
   ^src/rpc/gendispatch\.pl$$
 
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
-  ^((po|docs|tests)/|tools/(virsh|console)\.c$$)
+  ^((po|tests)/|docs/.*py$$|tools/(virsh|console)\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_readlink = ^src/util/util\.c$$
 
 exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/util\.c$$
 
-exclude_file_name_regexp--sc_prohibit_sprintf = ^(docs/|HACKING$$)
+exclude_file_name_regexp--sc_prohibit_sprintf = ^docs/hacking\.html\.in$$
 
 exclude_file_name_regexp--sc_prohibit_strncpy = \
   ^(src/util/util|tools/virsh)\.c$$
@@ -673,7 +724,7 @@ exclude_file_name_regexp--sc_require_config_h = ^examples/
 
 exclude_file_name_regexp--sc_require_config_h_first = ^examples/
 
-exclude_file_name_regexp--sc_trailing_blank = (^docs/|\.(fig|gif|ico|png)$$)
+exclude_file_name_regexp--sc_trailing_blank = \.(fig|gif|ico|png)$$
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = \
   ^(docs/apibuild.py|tests/virt-aa-helper-test)$$

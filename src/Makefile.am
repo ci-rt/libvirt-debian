@@ -18,7 +18,7 @@ AM_CFLAGS =	$(DRIVER_MODULE_CFLAGS)				\
 		$(COVERAGE_CFLAGS)
 AM_LDFLAGS = $(COVERAGE_LDFLAGS)
 
-EXTRA_DIST = $(conf_DATA)
+EXTRA_DIST = $(conf_DATA) util/keymaps.csv
 
 BUILT_SOURCES =
 
@@ -52,7 +52,6 @@ UTIL_SOURCES =							\
 		util/cgroup.c util/cgroup.h			\
 		util/event.c util/event.h			\
 		util/event_poll.c util/event_poll.h		\
-		util/files.c util/files.h			\
 		util/hash.c util/hash.h				\
 		util/hooks.c util/hooks.h			\
 		util/iptables.c util/iptables.h			\
@@ -79,9 +78,21 @@ UTIL_SOURCES =							\
 		util/threadpool.c util/threadpool.h		\
 		util/uuid.c util/uuid.h				\
 		util/util.c util/util.h				\
+		util/viraudit.c util/viraudit.h			\
+		util/virfile.c util/virfile.h			\
 		util/xml.c util/xml.h				\
-		util/virtaudit.c util/virtaudit.h               \
-		util/virterror.c util/virterror_internal.h
+		util/virterror.c util/virterror_internal.h	\
+		util/virkeycode.c util/virkeycode.h		\
+		util/virkeymaps.h
+
+EXTRA_DIST += $(srcdir)/util/virkeymaps.h $(srcdir)/util/keymaps.csv \
+		$(srcdir)/util/virkeycode-mapgen.py
+
+$(srcdir)/util/virkeymaps.h: $(srcdir)/util/keymaps.csv	\
+		$(srcdir)/util/virkeycode-mapgen.py
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/util/virkeycode-mapgen.py <$(srcdir)/util/keymaps.csv >$@
+
+$(srcdir)/util/virkeycode.c: $(srcdir)/util/virkeycode.h $(srcdir)/util/virkeymaps.h
 
 EXTRA_DIST += util/threads-pthread.c util/threads-win32.c
 
@@ -108,6 +119,7 @@ LOCK_DRIVER_SANLOCK_SOURCES = \
 DOMAIN_CONF_SOURCES =						\
 		conf/capabilities.c conf/capabilities.h		\
 		conf/domain_conf.c conf/domain_conf.h		\
+		conf/domain_audit.c conf/domain_audit.h		\
 		conf/domain_nwfilter.c conf/domain_nwfilter.h
 
 DOMAIN_EVENT_SOURCES =						\
@@ -176,7 +188,7 @@ REMOTE_DRIVER_PROTOCOL = $(REMOTE_PROTOCOL) $(QEMU_PROTOCOL)
 $(srcdir)/remote/remote_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
 		$(REMOTE_PROTOCOL)
 	$(AM_V_GEN)perl -w $(srcdir)/rpc/gendispatch.pl \
-	  -c -k remote $(REMOTE_PROTOCOL) > $@
+	  -k remote $(REMOTE_PROTOCOL) > $@
 
 $(srcdir)/remote/qemu_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
 		$(QEMU_PROTOCOL)
@@ -205,22 +217,20 @@ EXTRA_DIST +=  $(REMOTE_DRIVER_PROTOCOL) \
 # With pdwtags 1.8, --verbose output includes separators like these:
 # /* 93 */
 # /* <0> (null):0 */
-# whereas with pdwtags 1.3, they look like this:
+# with the second line omitted for intrinsic types.
+# Whereas with pdwtags 1.3, they look like this:
 # /* <2d2> /usr/include/libio.h:180 */
-# The concatenation of the following regexps matches both cases.
-r1 = (?:/\* \d+ \*/\n)?
+# The alternation of the following regexps matches both cases.
+r1 = /\* \d+ \*/
 r2 = /\* <[[:xdigit:]]+> \S+:\d+ \*/
 
-.PHONY: remote_protocol-structs
-if WITH_REMOTE
-# The .o file that pdwtags parses is created as a side effect of running
-# libtool; but from make's perspective we depend on the .lo file.
-remote_protocol-structs: libvirt_driver_remote_la-remote_protocol.lo
+PDWTAGS = \
 	$(AM_V_GEN)if (pdwtags --help) > /dev/null 2>&1; then		\
-	  pdwtags --verbose libvirt_driver_remote_la-remote_protocol.$(OBJEXT) \
+	  pdwtags --verbose $(<:.lo=.$(OBJEXT))				\
 	    | perl -0777 -n						\
-		-e 'foreach my $$p (split m!\n\n$(r1)$(r2)\n!) {'	\
-		-e '  if ($$p =~ /^struct remote_/) {'			\
+		-e 'foreach my $$p (split m!\n*(?:$(r1)|$(r2))\n!) {'	\
+		-e '  if ($$p =~ /^(struct|enum) (remote_|qemu_|virNet)/ ||' \
+		-e '      $$p =~ /^enum {/) {' \
 		-e '    $$p =~ s!\t*/\*.*?\*/!!sg;'			\
 		-e '    $$p =~ s!\s+\n!\n!sg;'				\
 		-e '    $$p =~ s!\s+$$!!;'				\
@@ -233,7 +243,7 @@ remote_protocol-structs: libvirt_driver_remote_la-remote_protocol.lo
 		-e '  print "/* -*- c -*- */\n";'			\
 		-e '}'							\
 		-e 'END {'						\
-		-e '  if ($$n < 300) {'					\
+		-e '  if ($$n < 3) {'					\
 		-e '    warn "WARNING: your pdwtags program is too old\n";' \
 		-e '    warn "WARNING: skipping the $@ test\n";'	\
 		-e '    warn "WARNING: install dwarves-1.3 or newer\n";' \
@@ -242,18 +252,30 @@ remote_protocol-structs: libvirt_driver_remote_la-remote_protocol.lo
 		-e '}'							\
 		> $@-t;							\
 	  case $$? in 8) exit 0;; 0) ;; *) exit 1;; esac;		\
-	  diff -u $@-t $(srcdir)/$@; st=$$?; rm -f $@-t; exit $$st;	\
+	  diff -u $@-t $@; st=$$?; rm -f $@-t; exit $$st;	\
 	else								\
 	  echo 'WARNING: you lack pdwtags; skipping the $@ test' >&2;	\
 	  echo 'WARNING: install the dwarves package to get pdwtags' >&2; \
 	fi
+
+PROTOCOL_STRUCTS = \
+	$(srcdir)/remote_protocol-structs \
+	$(srcdir)/qemu_protocol-structs \
+	$(srcdir)/virnetprotocol-structs
+if WITH_REMOTE
+# The .o file that pdwtags parses is created as a side effect of running
+# libtool; but from make's perspective we depend on the .lo file.
+$(srcdir)/%_protocol-structs: libvirt_driver_remote_la-%_protocol.lo
+	$(PDWTAGS)
+$(srcdir)/virnetprotocol-structs: libvirt_net_rpc_la-virnetprotocol.lo
+	$(PDWTAGS)
 else !WITH_REMOTE
-# This generated file must live in git, because it cannot be re-generated
+# These generated files must live in git, because they cannot be re-generated
 # when configured --without-remote.
-remote_protocol-structs:
+$(PROTOCOL_STRUCTS):
 endif
-EXTRA_DIST += remote_protocol-structs
-check-local: remote_protocol-structs
+EXTRA_DIST += $(PROTOCOL_STRUCTS)
+check-local: $(PROTOCOL_STRUCTS)
 
 # Mock driver, covering domains, storage, networks, etc
 TEST_DRIVER_SOURCES =						\
@@ -315,7 +337,6 @@ QEMU_DRIVER_SOURCES =						\
 		qemu/qemu_capabilities.c qemu/qemu_capabilities.h\
 		qemu/qemu_command.c qemu/qemu_command.h		\
 		qemu/qemu_domain.c qemu/qemu_domain.h		\
-		qemu/qemu_audit.c qemu/qemu_audit.h		\
 		qemu/qemu_cgroup.c qemu/qemu_cgroup.h		\
 		qemu/qemu_hostdev.c qemu/qemu_hostdev.h		\
 		qemu/qemu_hotplug.c qemu/qemu_hotplug.h		\
@@ -786,7 +807,7 @@ endif
 BUILT_SOURCES += $(ESX_DRIVER_GENERATED)
 
 $(ESX_DRIVER_GENERATED): $(srcdir)/esx/esx_vi_generator.input $(srcdir)/esx/esx_vi_generator.py
-	-srcdir=$(srcdir) $(srcdir)/esx/esx_vi_generator.py
+	$(AM_V_GEN)srcdir=$(srcdir) $(srcdir)/esx/esx_vi_generator.py
 
 if WITH_ESX
 if WITH_DRIVER_MODULES
@@ -1268,10 +1289,12 @@ EXTRA_DIST += \
 endif
 libvirt_net_rpc_server_la_CFLAGS = \
 			$(AVAHI_CFLAGS) \
-			$(AM_CFLAGS)
+			$(AM_CFLAGS) \
+			$(POLKIT_CFLAGS)
 libvirt_net_rpc_server_la_LDFLAGS = \
 			$(AM_LDFLAGS) \
 			$(AVAHI_LIBS) \
+			$(POLKIT_LIBS) \
 			$(CYGWIN_EXTRA_LDFLAGS) \
 			$(MINGW_EXTRA_LDFLAGS)
 libvirt_net_rpc_server_la_LIBADD = \
@@ -1373,6 +1396,9 @@ install-data-local:
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/images"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/boot"
+if HAVE_SANLOCK
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/sanlock"
+endif
 if WITH_QEMU
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/run/libvirt/qemu"
@@ -1415,6 +1441,9 @@ uninstall-local::
 	rmdir "$(DESTDIR)$(localstatedir)/cache/libvirt" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/images" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/boot" ||:
+if HAVE_SANLOCK
+	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/sanlock" ||:
+endif
 if WITH_QEMU
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/run/libvirt/qemu" ||:

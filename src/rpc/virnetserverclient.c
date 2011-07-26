@@ -61,6 +61,7 @@ struct _virNetServerClient
 {
     int refs;
     bool wantClose;
+    bool delayedClose;
     virMutex lock;
     virNetSocketPtr sock;
     int auth;
@@ -155,8 +156,15 @@ virNetServerClientCalculateHandleMode(virNetServerClientPtr client) {
         if (client->tx)
             mode |= VIR_EVENT_HANDLE_WRITABLE;
     }
-    VIR_DEBUG("mode=%d", mode);
+    VIR_DEBUG("mode=%o", mode);
     return mode;
+}
+
+static void virNetServerClientEventFree(void *opaque)
+{
+    virNetServerClientPtr client = opaque;
+
+    virNetServerClientFree(client);
 }
 
 /*
@@ -167,12 +175,16 @@ static int virNetServerClientRegisterEvent(virNetServerClientPtr client)
 {
     int mode = virNetServerClientCalculateHandleMode(client);
 
+    client->refs++;
     VIR_DEBUG("Registering client event callback %d", mode);
     if (virNetSocketAddIOCallback(client->sock,
                                   mode,
                                   virNetServerClientDispatchEvent,
-                                  client) < 0)
+                                  client,
+                                  virNetServerClientEventFree) < 0) {
+        client->refs--;
         return -1;
+    }
 
     return 0;
 }
@@ -587,7 +599,14 @@ bool virNetServerClientIsClosed(virNetServerClientPtr client)
     return closed;
 }
 
-void virNetServerClientMarkClose(virNetServerClientPtr client)
+void virNetServerClientDelayedClose(virNetServerClientPtr client)
+{
+    virNetServerClientLock(client);
+    client->delayedClose = true;
+    virNetServerClientUnlock(client);
+}
+
+void virNetServerClientImmediateClose(virNetServerClientPtr client)
 {
     virNetServerClientLock(client);
     client->wantClose = true;
@@ -700,8 +719,10 @@ readmore:
 
     /* Either done with length word header */
     if (client->rx->bufferLength == VIR_NET_MESSAGE_LEN_MAX) {
-        if (virNetMessageDecodeLength(client->rx) < 0)
+        if (virNetMessageDecodeLength(client->rx) < 0) {
+            client->wantClose = true;
             return;
+        }
 
         virNetServerClientUpdateEvent(client);
 
@@ -831,7 +852,9 @@ virNetServerClientDispatchWrite(virNetServerClientPtr client)
             /* Get finished msg from head of tx queue */
             msg = virNetMessageQueueServe(&client->tx);
 
-            if (msg->header.type == VIR_NET_REPLY) {
+            if (msg->header.type == VIR_NET_REPLY ||
+                (msg->header.type == VIR_NET_STREAM &&
+                 msg->header.status != VIR_NET_CONTINUE)) {
                 client->nrequests--;
                 /* See if the recv queue is currently throttled */
                 if (!client->rx &&
@@ -848,6 +871,9 @@ virNetServerClientDispatchWrite(virNetServerClientPtr client)
             virNetMessageFree(msg);
 
             virNetServerClientUpdateEvent(client);
+
+            if (client->delayedClose)
+                client->wantClose = true;
          }
     }
 }

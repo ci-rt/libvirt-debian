@@ -37,7 +37,7 @@
 #include "memory.h"
 #include "command.h"
 #include "virterror_internal.h"
-#include "files.h"
+#include "virfile.h"
 
 /* avoid compilation breakage on some systems */
 #ifndef MODPROBE
@@ -1381,6 +1381,14 @@ unsigned pciDeviceGetManaged(pciDevice *dev)
 {
     return dev->managed;
 }
+
+void pciDeviceReAttachInit(pciDevice *pci)
+{
+    pci->unbind_from_stub = 1;
+    pci->remove_slot = 1;
+    pci->reprobe = 1;
+}
+
 
 pciDeviceList *
 pciDeviceListNew(void)

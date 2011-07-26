@@ -49,7 +49,7 @@
 #include "pci.h"
 #include "uuid.h"
 #include "fdstream.h"
-#include "files.h"
+#include "virfile.h"
 #include "command.h"
 
 #define VIR_FROM_THIS VIR_FROM_XEN
@@ -248,7 +248,7 @@ xenUnifiedXendProbe (void)
 #endif
 
 static virDrvOpenStatus
-xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, int flags)
+xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
 {
     int i, ret = VIR_DRV_OPEN_DECLINED;
     xenUnifiedPrivatePtr priv;
@@ -902,10 +902,13 @@ xenUnifiedDomainReboot (virDomainPtr dom, unsigned int flags)
 }
 
 static int
-xenUnifiedDomainDestroy (virDomainPtr dom)
+xenUnifiedDomainDestroyFlags(virDomainPtr dom,
+                             unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
     int i;
+
+    virCheckFlags(0, -1);
 
     /* Try non-hypervisor methods first, then hypervisor direct method
      * as a last resort.
@@ -913,16 +916,23 @@ xenUnifiedDomainDestroy (virDomainPtr dom)
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (i != XEN_UNIFIED_HYPERVISOR_OFFSET &&
             priv->opened[i] &&
-            drivers[i]->domainDestroy &&
-            drivers[i]->domainDestroy (dom) == 0)
+            drivers[i]->domainDestroyFlags &&
+            drivers[i]->domainDestroyFlags(dom, flags) == 0)
             return 0;
 
     if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET] &&
-        drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->domainDestroy &&
-        drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->domainDestroy (dom) == 0)
+        drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->domainDestroyFlags&&
+        drivers[XEN_UNIFIED_HYPERVISOR_OFFSET]->domainDestroyFlags(dom,
+                                                                   flags) == 0)
         return 0;
 
     return -1;
+}
+
+static int
+xenUnifiedDomainDestroy(virDomainPtr dom)
+{
+    return xenUnifiedDomainDestroyFlags(dom, 0);
 }
 
 static char *
@@ -1051,10 +1061,18 @@ xenUnifiedDomainGetState(virDomainPtr dom,
 }
 
 static int
-xenUnifiedDomainSave (virDomainPtr dom, const char *to)
+xenUnifiedDomainSaveFlags(virDomainPtr dom, const char *to, const char *dxml,
+                          unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
     int i;
+
+    virCheckFlags(0, -1);
+    if (dxml) {
+        xenUnifiedError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                        _("xml modification unsupported"));
+        return -1;
+    }
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (priv->opened[i] &&
@@ -1066,10 +1084,24 @@ xenUnifiedDomainSave (virDomainPtr dom, const char *to)
 }
 
 static int
-xenUnifiedDomainRestore (virConnectPtr conn, const char *from)
+xenUnifiedDomainSave(virDomainPtr dom, const char *to)
+{
+    return xenUnifiedDomainSaveFlags(dom, to, NULL, 0);
+}
+
+static int
+xenUnifiedDomainRestoreFlags(virConnectPtr conn, const char *from,
+                             const char *dxml, unsigned int flags)
 {
     GET_PRIVATE(conn);
     int i;
+
+    virCheckFlags(0, -1);
+    if (dxml) {
+        xenUnifiedError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                        _("xml modification unsupported"));
+        return -1;
+    }
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (priv->opened[i] &&
@@ -1081,7 +1113,13 @@ xenUnifiedDomainRestore (virConnectPtr conn, const char *from)
 }
 
 static int
-xenUnifiedDomainCoreDump (virDomainPtr dom, const char *to, int flags)
+xenUnifiedDomainRestore (virConnectPtr conn, const char *from)
+{
+    return xenUnifiedDomainRestoreFlags(conn, from, NULL, 0);
+}
+
+static int
+xenUnifiedDomainCoreDump (virDomainPtr dom, const char *to, unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
     int i;
@@ -1201,13 +1239,6 @@ xenUnifiedDomainGetVcpusFlags (virDomainPtr dom, unsigned int flags)
                   VIR_DOMAIN_VCPU_CONFIG |
                   VIR_DOMAIN_VCPU_MAXIMUM, -1);
 
-    /* Exactly one of LIVE or CONFIG must be set.  */
-    if (!(flags & VIR_DOMAIN_VCPU_LIVE) == !(flags & VIR_DOMAIN_VCPU_CONFIG)) {
-        xenUnifiedError(VIR_ERR_INVALID_ARG,
-                        _("invalid flag combination: (0x%x)"), flags);
-        return -1;
-    }
-
     if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
         ret = xenDaemonDomainGetVcpusFlags(dom, flags);
         if (ret != -2)
@@ -1233,7 +1264,7 @@ xenUnifiedDomainGetMaxVcpus (virDomainPtr dom)
 }
 
 static char *
-xenUnifiedDomainGetXMLDesc(virDomainPtr dom, int flags)
+xenUnifiedDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
 
@@ -1261,7 +1292,7 @@ static char *
 xenUnifiedDomainXMLFromNative(virConnectPtr conn,
                               const char *format,
                               const char *config,
-                              unsigned int flags ATTRIBUTE_UNUSED)
+                              unsigned int flags)
 {
     virDomainDefPtr def = NULL;
     char *ret = NULL;
@@ -1270,6 +1301,8 @@ xenUnifiedDomainXMLFromNative(virConnectPtr conn,
     char * tty;
     int vncport;
     GET_PRIVATE(conn);
+
+    virCheckFlags(0, NULL);
 
     if (STRNEQ(format, XEN_CONFIG_FORMAT_XM) &&
         STRNEQ(format, XEN_CONFIG_FORMAT_SEXPR)) {
@@ -1311,12 +1344,14 @@ static char *
 xenUnifiedDomainXMLToNative(virConnectPtr conn,
                             const char *format,
                             const char *xmlData,
-                            unsigned int flags ATTRIBUTE_UNUSED)
+                            unsigned int flags)
 {
     virDomainDefPtr def = NULL;
     char *ret = NULL;
     virConfPtr conf = NULL;
     GET_PRIVATE(conn);
+
+    virCheckFlags(0, NULL);
 
     if (STRNEQ(format, XEN_CONFIG_FORMAT_XM) &&
         STRNEQ(format, XEN_CONFIG_FORMAT_SEXPR)) {
@@ -1325,9 +1360,8 @@ xenUnifiedDomainXMLToNative(virConnectPtr conn,
         goto cleanup;
     }
 
-    if (!(def = virDomainDefParseString(priv->caps,
-                                        xmlData,
-                                        0)))
+    if (!(def = virDomainDefParseString(priv->caps, xmlData,
+                                        1 << VIR_DOMAIN_VIRT_XEN, 0)))
         goto cleanup;
 
     if (STREQ(format, XEN_CONFIG_FORMAT_XM)) {
@@ -1369,6 +1403,8 @@ xenUnifiedDomainMigratePrepare (virConnectPtr dconn,
 {
     GET_PRIVATE(dconn);
 
+    virCheckFlags(XEN_MIGRATION_FLAGS, -1);
+
     if (priv->opened[XEN_UNIFIED_XEND_OFFSET])
         return xenDaemonDomainMigratePrepare (dconn, cookie, cookielen,
                                               uri_in, uri_out,
@@ -1389,6 +1425,8 @@ xenUnifiedDomainMigratePerform (virDomainPtr dom,
 {
     GET_PRIVATE(dom->conn);
 
+    virCheckFlags(XEN_MIGRATION_FLAGS, -1);
+
     if (priv->opened[XEN_UNIFIED_XEND_OFFSET])
         return xenDaemonDomainMigratePerform (dom, cookie, cookielen, uri,
                                               flags, dname, resource);
@@ -1408,6 +1446,8 @@ xenUnifiedDomainMigrateFinish (virConnectPtr dconn,
     virDomainPtr dom = NULL;
     char *domain_xml = NULL;
     virDomainPtr dom_new = NULL;
+
+    virCheckFlags(XEN_MIGRATION_FLAGS, NULL);
 
     dom = xenUnifiedDomainLookupByName (dconn, dname);
     if (! dom) {
@@ -1518,17 +1558,23 @@ xenUnifiedDomainDefineXML (virConnectPtr conn, const char *xml)
 }
 
 static int
-xenUnifiedDomainUndefine (virDomainPtr dom)
+xenUnifiedDomainUndefineFlags (virDomainPtr dom, unsigned int flags)
 {
     GET_PRIVATE(dom->conn);
     int i;
 
+    virCheckFlags(0, -1);
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (priv->opened[i] && drivers[i]->domainUndefine &&
             drivers[i]->domainUndefine (dom) == 0)
             return 0;
 
     return -1;
+}
+
+static int
+xenUnifiedDomainUndefine (virDomainPtr dom) {
+    return xenUnifiedDomainUndefineFlags(dom, 0);
 }
 
 static int
@@ -1766,10 +1812,12 @@ xenUnifiedDomainInterfaceStats (virDomainPtr dom, const char *path,
 static int
 xenUnifiedDomainBlockPeek (virDomainPtr dom, const char *path,
                            unsigned long long offset, size_t size,
-                           void *buffer, unsigned int flags ATTRIBUTE_UNUSED)
+                           void *buffer, unsigned int flags)
 {
     int r;
     GET_PRIVATE (dom->conn);
+
+    virCheckFlags(0, -1);
 
     if (priv->opened[XEN_UNIFIED_XEND_OFFSET]) {
         r = xenDaemonDomainBlockPeek (dom, path, offset, size, buffer);
@@ -2188,6 +2236,7 @@ static virDriver xenUnifiedDriver = {
     .domainShutdown = xenUnifiedDomainShutdown, /* 0.0.3 */
     .domainReboot = xenUnifiedDomainReboot, /* 0.1.0 */
     .domainDestroy = xenUnifiedDomainDestroy, /* 0.0.3 */
+    .domainDestroyFlags = xenUnifiedDomainDestroyFlags, /* 0.9.4 */
     .domainGetOSType = xenUnifiedDomainGetOSType, /* 0.0.3 */
     .domainGetMaxMemory = xenUnifiedDomainGetMaxMemory, /* 0.0.3 */
     .domainSetMaxMemory = xenUnifiedDomainSetMaxMemory, /* 0.0.3 */
@@ -2195,7 +2244,9 @@ static virDriver xenUnifiedDriver = {
     .domainGetInfo = xenUnifiedDomainGetInfo, /* 0.0.3 */
     .domainGetState = xenUnifiedDomainGetState, /* 0.9.2 */
     .domainSave = xenUnifiedDomainSave, /* 0.0.3 */
+    .domainSaveFlags = xenUnifiedDomainSaveFlags, /* 0.9.4 */
     .domainRestore = xenUnifiedDomainRestore, /* 0.0.3 */
+    .domainRestoreFlags = xenUnifiedDomainRestoreFlags, /* 0.9.4 */
     .domainCoreDump = xenUnifiedDomainCoreDump, /* 0.1.9 */
     .domainSetVcpus = xenUnifiedDomainSetVcpus, /* 0.1.4 */
     .domainSetVcpusFlags = xenUnifiedDomainSetVcpusFlags, /* 0.8.5 */
@@ -2212,6 +2263,7 @@ static virDriver xenUnifiedDriver = {
     .domainCreateWithFlags = xenUnifiedDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = xenUnifiedDomainDefineXML, /* 0.1.1 */
     .domainUndefine = xenUnifiedDomainUndefine, /* 0.1.1 */
+    .domainUndefineFlags = xenUnifiedDomainUndefineFlags, /* 0.9.4 */
     .domainAttachDevice = xenUnifiedDomainAttachDevice, /* 0.1.9 */
     .domainAttachDeviceFlags = xenUnifiedDomainAttachDeviceFlags, /* 0.7.7 */
     .domainDetachDevice = xenUnifiedDomainDetachDevice, /* 0.1.9 */

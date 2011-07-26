@@ -32,6 +32,7 @@
 #include <inttypes.h>
 #include <signal.h>
 #include <poll.h>
+#include <strings.h>
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -52,12 +53,12 @@
 #include "memory.h"
 #include "xml.h"
 #include "libvirt/libvirt-qemu.h"
-#include "files.h"
+#include "virfile.h"
 #include "event_poll.h"
 #include "configmake.h"
 #include "threads.h"
 #include "command.h"
-#include "count-one-bits.h"
+#include "virkeycode.h"
 
 static char *progname;
 
@@ -97,6 +98,8 @@ typedef enum {
     VSH_ERR_WARNING,
     VSH_ERR_ERROR
 } vshErrorLevel;
+
+#define VSH_DEBUG_DEFAULT VSH_ERR_ERROR
 
 /*
  * virsh command line grammar:
@@ -160,29 +163,36 @@ typedef struct __vshControl vshControl;
 typedef struct __vshCmd vshCmd;
 
 /*
- * vshCmdInfo -- information about command
+ * vshCmdInfo -- name/value pair for information about command
+ *
+ * Commands should have at least the following names:
+ * "name" - command name
+ * "desc" - description of command, or empty string
  */
 typedef struct {
-    const char *name;           /* name of information */
-    const char *data;           /* information */
+    const char *name;           /* name of information, or NULL for list end */
+    const char *data;           /* non-NULL information */
 } vshCmdInfo;
 
 /*
  * vshCmdOptDef - command option definition
  */
 typedef struct {
-    const char *name;           /* the name of option */
+    const char *name;           /* the name of option, or NULL for list end */
     vshCmdOptType type;         /* option type */
     int flag;                   /* flags */
-    const char *help;           /* help string */
+    const char *help;           /* non-NULL help string */
 } vshCmdOptDef;
 
 /*
  * vshCmdOpt - command options
+ *
+ * After parsing a command, all arguments to the command have been
+ * collected into a list of these objects.
  */
 typedef struct vshCmdOpt {
-    const vshCmdOptDef *def;    /* pointer to relevant option */
-    char *data;                 /* allocated data */
+    const vshCmdOptDef *def;    /* non-NULL pointer to option definition */
+    char *data;                 /* allocated data, or NULL for bool option */
     struct vshCmdOpt *next;
 } vshCmdOpt;
 
@@ -197,11 +207,11 @@ enum {
  * vshCmdDef - command definition
  */
 typedef struct {
-    const char *name;
+    const char *name;           /* name of command, or NULL for list end */
     bool (*handler) (vshControl *, const vshCmd *);    /* command handler */
     const vshCmdOptDef *opts;   /* definition of command options */
     const vshCmdInfo *info;     /* details about command */
-    int flags;                  /* bitwise OR of VSH_CMD_FLAG */
+    unsigned int flags;         /* bitwise OR of VSH_CMD_FLAG */
 } vshCmdDef;
 
 /*
@@ -237,7 +247,7 @@ typedef struct __vshControl {
 } __vshControl;
 
 typedef struct vshCmdGrp {
-    const char *name;
+    const char *name;    /* name of group, or NULL for list end */
     const char *keyword; /* help keyword */
     const vshCmdDef *commands;
 } vshCmdGrp;
@@ -262,7 +272,9 @@ static bool vshCmddefHelp(vshControl *ctl, const char *name);
 static const vshCmdGrp *vshCmdGrpSearch(const char *grpname);
 static bool vshCmdGrpHelp(vshControl *ctl, const char *name);
 
-static vshCmdOpt *vshCommandOpt(const vshCmd *cmd, const char *name);
+static int vshCommandOpt(const vshCmd *cmd, const char *name, vshCmdOpt **opt)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
+    ATTRIBUTE_RETURN_CHECK;
 static int vshCommandOptInt(const vshCmd *cmd, const char *name, int *value)
     ATTRIBUTE_NONNULL(3) ATTRIBUTE_RETURN_CHECK;
 static int vshCommandOptUInt(const vshCmd *cmd, const char *name,
@@ -1409,6 +1421,7 @@ static const vshCmdInfo info_undefine[] = {
 
 static const vshCmdOptDef opts_undefine[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name or uuid")},
+    {"managed-save", VSH_OT_BOOL, 0, N_("remove domain managed state file")},
     {NULL, 0, 0, NULL}
 };
 
@@ -1419,6 +1432,16 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
     bool ret = true;
     const char *name = NULL;
     int id;
+    int flags = 0;
+    int managed_save = vshCommandOptBool(cmd, "managed-save");
+    int has_managed_save = 0;
+    int rc = -1;
+
+    if (managed_save)
+        flags |= VIR_DOMAIN_UNDEFINE_MANAGED_SAVE;
+
+    if (!managed_save)
+        flags = -1;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
@@ -1440,7 +1463,55 @@ cmdUndefine(vshControl *ctl, const vshCmd *cmd)
                                       VSH_BYNAME|VSH_BYUUID)))
         return false;
 
-    if (virDomainUndefine(dom) == 0) {
+    has_managed_save = virDomainHasManagedSaveImage(dom, 0);
+    if (has_managed_save < 0) {
+        if (last_error->code != VIR_ERR_NO_SUPPORT) {
+            virshReportError(ctl);
+            virDomainFree(dom);
+            return false;
+        } else {
+            virFreeError(last_error);
+            last_error = NULL;
+        }
+    }
+
+    if (flags == -1) {
+        if (has_managed_save == 1) {
+            vshError(ctl,
+                     _("Refusing to undefine while domain managed save "
+                       "image exists"));
+            virDomainFree(dom);
+            return false;
+        }
+
+        rc = virDomainUndefine(dom);
+    } else {
+        rc = virDomainUndefineFlags(dom, flags);
+
+        /* It might fail when virDomainUndefineFlags is not
+         * supported on older libvirt, try to undefine the
+         * domain with combo virDomainManagedSaveRemove and
+         * virDomainUndefine.
+         */
+        if (rc < 0) {
+            if (last_error->code != VIR_ERR_NO_SUPPORT) {
+                virshReportError(ctl);
+                goto end;
+            } else {
+                virFreeError(last_error);
+                last_error = NULL;
+            }
+
+            if ((has_managed_save == 1) &&
+                virDomainManagedSaveRemove(dom, 0) < 0)
+                goto end;
+
+            rc = virDomainUndefine(dom);
+        }
+    }
+
+end:
+    if (rc == 0) {
         vshPrint(ctl, _("Domain %s has been undefined\n"), name);
     } else {
         vshError(ctl, _("Failed to undefine domain %s"), name);
@@ -1470,6 +1541,8 @@ static const vshCmdOptDef opts_start[] = {
 #endif
     {"paused", VSH_OT_BOOL, 0, N_("leave the guest paused after creation")},
     {"autodestroy", VSH_OT_BOOL, 0, N_("automatically destroy the guest when virsh disconnects")},
+    {"bypass-cache", VSH_OT_BOOL, 0,
+     N_("avoid file system cache when loading")},
     {NULL, 0, 0, NULL}
 };
 
@@ -1500,6 +1573,8 @@ cmdStart(vshControl *ctl, const vshCmd *cmd)
         flags |= VIR_DOMAIN_START_PAUSED;
     if (vshCommandOptBool(cmd, "autodestroy"))
         flags |= VIR_DOMAIN_START_AUTODESTROY;
+    if (vshCommandOptBool(cmd, "bypass-cache"))
+        flags |= VIR_DOMAIN_START_BYPASS_CACHE;
 
     /* Prefer older API unless we have to pass a flag.  */
     if ((flags ? virDomainCreateWithFlags(dom, flags)
@@ -1528,8 +1603,11 @@ static const vshCmdInfo info_save[] = {
 };
 
 static const vshCmdOptDef opts_save[] = {
+    {"bypass-cache", VSH_OT_BOOL, 0, N_("avoid file system cache when saving")},
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {"file", VSH_OT_DATA, VSH_OFLAG_REQ, N_("where to save the data")},
+    {"xml", VSH_OT_STRING, 0,
+     N_("filename containing updated XML for the target")},
     {NULL, 0, 0, NULL}
 };
 
@@ -1539,7 +1617,10 @@ cmdSave(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     const char *name = NULL;
     const char *to = NULL;
-    bool ret = true;
+    bool ret = false;
+    int flags = 0;
+    const char *xmlfile = NULL;
+    char *xml = NULL;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
@@ -1547,17 +1628,206 @@ cmdSave(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptString(cmd, "file", &to) <= 0)
         return false;
 
+    if (vshCommandOptBool(cmd, "bypass-cache"))
+        flags |= VIR_DOMAIN_SAVE_BYPASS_CACHE;
+
+    if (vshCommandOptString(cmd, "xml", &xmlfile) < 0) {
+        vshError(ctl, "%s", _("malformed xml argument"));
+        return false;
+    }
+
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
 
-    if (virDomainSave(dom, to) == 0) {
-        vshPrint(ctl, _("Domain %s saved to %s\n"), name, to);
-    } else {
+    if (xmlfile &&
+        virFileReadAll(xmlfile, 8192, &xml) < 0)
+        goto cleanup;
+
+    if (((flags || xml)
+         ? virDomainSaveFlags(dom, to, xml, flags)
+         : virDomainSave(dom, to)) < 0) {
         vshError(ctl, _("Failed to save domain %s to %s"), name, to);
-        ret = false;
+        goto cleanup;
     }
 
+    vshPrint(ctl, _("Domain %s saved to %s\n"), name, to);
+    ret = true;
+
+cleanup:
+    VIR_FREE(xml);
     virDomainFree(dom);
+    return ret;
+}
+
+/*
+ * "save-image-dumpxml" command
+ */
+static const vshCmdInfo info_save_image_dumpxml[] = {
+    {"help", N_("saved state domain information in XML")},
+    {"desc", N_("Output the domain information for a saved state file,\n"
+                "as an XML dump to stdout.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_save_image_dumpxml[] = {
+    {"file", VSH_OT_DATA, VSH_OFLAG_REQ, N_("saved state file to read")},
+    {"security-info", VSH_OT_BOOL, 0, N_("include security sensitive information in XML dump")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdSaveImageDumpxml(vshControl *ctl, const vshCmd *cmd)
+{
+    const char *file = NULL;
+    bool ret = false;
+    int flags = 0;
+    char *xml = NULL;
+
+    if (vshCommandOptBool(cmd, "security-info"))
+        flags |= VIR_DOMAIN_XML_SECURE;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        return false;
+
+    if (vshCommandOptString(cmd, "file", &file) <= 0)
+        return false;
+
+    xml = virDomainSaveImageGetXMLDesc(ctl->conn, file, flags);
+    if (!xml)
+        goto cleanup;
+
+    vshPrint(ctl, "%s", xml);
+    ret = true;
+
+cleanup:
+    VIR_FREE(xml);
+    return ret;
+}
+
+/*
+ * "save-image-define" command
+ */
+static const vshCmdInfo info_save_image_define[] = {
+    {"help", N_("redefine the XML for a domain's saved state file")},
+    {"desc", N_("Replace the domain XML associated with a saved state file")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_save_image_define[] = {
+    {"file", VSH_OT_DATA, VSH_OFLAG_REQ, N_("saved state file to modify")},
+    {"xml", VSH_OT_STRING, VSH_OFLAG_REQ,
+     N_("filename containing updated XML for the target")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdSaveImageDefine(vshControl *ctl, const vshCmd *cmd)
+{
+    const char *file = NULL;
+    bool ret = false;
+    const char *xmlfile = NULL;
+    char *xml = NULL;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        return false;
+
+    if (vshCommandOptString(cmd, "file", &file) <= 0)
+        return false;
+
+    if (vshCommandOptString(cmd, "xml", &xmlfile) <= 0) {
+        vshError(ctl, "%s", _("malformed or missing xml argument"));
+        return false;
+    }
+
+    if (virFileReadAll(xmlfile, 8192, &xml) < 0)
+        goto cleanup;
+
+    if (virDomainSaveImageDefineXML(ctl->conn, file, xml, 0) < 0) {
+        vshError(ctl, _("Failed to update %s"), file);
+        goto cleanup;
+    }
+
+    vshPrint(ctl, _("State file %s updated.\n"), file);
+    ret = true;
+
+cleanup:
+    VIR_FREE(xml);
+    return ret;
+}
+
+/*
+ * "save-image-edit" command
+ */
+static const vshCmdInfo info_save_image_edit[] = {
+    {"help", N_("edit XML for a domain's saved state file")},
+    {"desc", N_("Edit the domain XML associated with a saved state file")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_save_image_edit[] = {
+    {"file", VSH_OT_DATA, VSH_OFLAG_REQ, N_("saved state file to edit")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdSaveImageEdit(vshControl *ctl, const vshCmd *cmd)
+{
+    const char *file = NULL;
+    bool ret = false;
+    char *tmp = NULL;
+    char *doc = NULL;
+    char *doc_edited = NULL;
+    int flags = VIR_DOMAIN_XML_SECURE;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        return false;
+
+    if (vshCommandOptString(cmd, "file", &file) <= 0)
+        return false;
+
+    /* Get the XML configuration of the saved image.  */
+    doc = virDomainSaveImageGetXMLDesc(ctl->conn, file, flags);
+    if (!doc)
+        goto cleanup;
+
+    /* Create and open the temporary file.  */
+    tmp = editWriteToTempFile(ctl, doc);
+    if (!tmp)
+        goto cleanup;
+
+    /* Start the editor.  */
+    if (editFile(ctl, tmp) == -1)
+        goto cleanup;
+
+    /* Read back the edited file.  */
+    doc_edited = editReadBackFile(ctl, tmp);
+    if (!doc_edited)
+        goto cleanup;
+
+    /* Compare original XML with edited.  Has it changed at all?  */
+    if (STREQ(doc, doc_edited)) {
+        vshPrint(ctl, _("Saved image %s XML configuration not changed.\n"),
+                 file);
+        ret = true;
+        goto cleanup;
+    }
+
+    /* Everything checks out, so redefine the xml.  */
+    if (virDomainSaveImageDefineXML(ctl->conn, file, doc_edited, 0) < 0) {
+        vshError(ctl, _("Failed to update %s"), file);
+        goto cleanup;
+    }
+
+    vshPrint(ctl, _("State file %s edited.\n"), file);
+    ret = true;
+
+cleanup:
+    VIR_FREE(doc);
+    VIR_FREE(doc_edited);
+    if (tmp) {
+        unlink(tmp);
+        VIR_FREE(tmp);
+    }
     return ret;
 }
 
@@ -1574,6 +1844,7 @@ static const vshCmdInfo info_managedsave[] = {
 };
 
 static const vshCmdOptDef opts_managedsave[] = {
+    {"bypass-cache", VSH_OT_BOOL, 0, N_("avoid file system cache when saving")},
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {NULL, 0, 0, NULL}
 };
@@ -1583,21 +1854,27 @@ cmdManagedSave(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom;
     const char *name;
-    bool ret = true;
+    bool ret = false;
+    int flags = 0;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
 
+    if (vshCommandOptBool(cmd, "bypass-cache"))
+        flags |= VIR_DOMAIN_SAVE_BYPASS_CACHE;
+
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
 
-    if (virDomainManagedSave(dom, 0) == 0) {
-        vshPrint(ctl, _("Domain %s state saved by libvirt\n"), name);
-    } else {
+    if (virDomainManagedSave(dom, flags) < 0) {
         vshError(ctl, _("Failed to save domain %s state"), name);
-        ret = false;
+        goto cleanup;
     }
 
+    vshPrint(ctl, _("Domain %s state saved by libvirt\n"), name);
+    ret = true;
+
+cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -1924,6 +2201,10 @@ static const vshCmdInfo info_restore[] = {
 
 static const vshCmdOptDef opts_restore[] = {
     {"file", VSH_OT_DATA, VSH_OFLAG_REQ, N_("the state to restore")},
+    {"bypass-cache", VSH_OT_BOOL, 0,
+     N_("avoid file system cache when restoring")},
+    {"xml", VSH_OT_STRING, 0,
+     N_("filename containing updated XML for the target")},
     {NULL, 0, 0, NULL}
 };
 
@@ -1931,7 +2212,10 @@ static bool
 cmdRestore(vshControl *ctl, const vshCmd *cmd)
 {
     const char *from = NULL;
-    bool ret = true;
+    bool ret = false;
+    int flags = 0;
+    const char *xmlfile = NULL;
+    char *xml = NULL;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
@@ -1939,12 +2223,30 @@ cmdRestore(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptString(cmd, "file", &from) <= 0)
         return false;
 
-    if (virDomainRestore(ctl->conn, from) == 0) {
-        vshPrint(ctl, _("Domain restored from %s\n"), from);
-    } else {
-        vshError(ctl, _("Failed to restore domain from %s"), from);
-        ret = false;
+    if (vshCommandOptBool(cmd, "bypass-cache"))
+        flags |= VIR_DOMAIN_SAVE_BYPASS_CACHE;
+
+    if (vshCommandOptString(cmd, "xml", &xmlfile) < 0) {
+        vshError(ctl, "%s", _("malformed xml argument"));
+        return false;
     }
+
+    if (xmlfile &&
+        virFileReadAll(xmlfile, 8192, &xml) < 0)
+        goto cleanup;
+
+    if (((flags || xml)
+         ? virDomainRestoreFlags(ctl->conn, from, xml, flags)
+         : virDomainRestore(ctl->conn, from)) < 0) {
+        vshError(ctl, _("Failed to restore domain from %s"), from);
+        goto cleanup;
+    }
+
+    vshPrint(ctl, _("Domain restored from %s\n"), from);
+    ret = true;
+
+cleanup:
+    VIR_FREE(xml);
     return ret;
 }
 
@@ -1960,6 +2262,8 @@ static const vshCmdInfo info_dump[] = {
 static const vshCmdOptDef opts_dump[] = {
     {"live", VSH_OT_BOOL, 0, N_("perform a live core dump if supported")},
     {"crash", VSH_OT_BOOL, 0, N_("crash the domain after core dump")},
+    {"bypass-cache", VSH_OT_BOOL, 0,
+     N_("avoid file system cache when saving")},
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {"file", VSH_OT_DATA, VSH_OFLAG_REQ, N_("where to dump the core")},
     {NULL, 0, 0, NULL}
@@ -1971,7 +2275,7 @@ cmdDump(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     const char *name = NULL;
     const char *to = NULL;
-    bool ret = true;
+    bool ret = false;
     int flags = 0;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
@@ -1987,14 +2291,18 @@ cmdDump(vshControl *ctl, const vshCmd *cmd)
         flags |= VIR_DUMP_LIVE;
     if (vshCommandOptBool (cmd, "crash"))
         flags |= VIR_DUMP_CRASH;
+    if (vshCommandOptBool(cmd, "bypass-cache"))
+        flags |= VIR_DUMP_BYPASS_CACHE;
 
-    if (virDomainCoreDump(dom, to, flags) == 0) {
-        vshPrint(ctl, _("Domain %s dumped to %s\n"), name, to);
-    } else {
+    if (virDomainCoreDump(dom, to, flags) < 0) {
         vshError(ctl, _("Failed to core dump domain %s to %s"), name, to);
-        ret = false;
+        goto cleanup;
     }
 
+    vshPrint(ctl, _("Domain %s dumped to %s\n"), name, to);
+    ret = true;
+
+cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -2264,8 +2572,9 @@ cmdReboot(vshControl *ctl, const vshCmd *cmd)
  * "destroy" command
  */
 static const vshCmdInfo info_destroy[] = {
-    {"help", N_("destroy a domain")},
-    {"desc", N_("Destroy a given domain.")},
+    {"help", N_("destroy (stop) a domain")},
+    {"desc",
+     N_("Forcefully stop a given domain, but leave its resources intact.")},
     {NULL, NULL}
 };
 
@@ -2324,6 +2633,7 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
     int autostart;
     unsigned int id;
     char *str, uuid[VIR_UUID_STRING_BUFLEN];
+    int has_managed_save = 0;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
@@ -2376,7 +2686,8 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
 
     /* Check and display whether the domain is persistent or not */
     persistent = virDomainIsPersistent(dom);
-    vshDebug(ctl, 5, "Domain persistent flag value: %d\n", persistent);
+    vshDebug(ctl, VSH_ERR_DEBUG, "Domain persistent flag value: %d\n",
+             persistent);
     if (persistent < 0)
         vshPrint(ctl, "%-15s %s\n", _("Persistent:"), _("unknown"));
     else
@@ -2387,6 +2698,13 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
         vshPrint(ctl, "%-15s %s\n", _("Autostart:"),
                  autostart ? _("enable") : _("disable") );
     }
+
+    has_managed_save = virDomainHasManagedSaveImage(dom, 0);
+    if (has_managed_save < 0)
+        vshPrint(ctl, "%-15s %s\n", _("Managed save:"), _("unknown"));
+    else
+        vshPrint(ctl, "%-15s %s\n", _("Managed save:"),
+                 has_managed_save ? _("yes") : _("no"));
 
     /* Security model and label information */
     memset(&secmodel, 0, sizeof secmodel);
@@ -2725,9 +3043,11 @@ static const vshCmdInfo info_vcpucount[] = {
 static const vshCmdOptDef opts_vcpucount[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {"maximum", VSH_OT_BOOL, 0, N_("get maximum cap on vcpus")},
-    {"current", VSH_OT_BOOL, 0, N_("get current vcpu usage")},
-    {"config", VSH_OT_BOOL, 0, N_("get value to be used on next boot")},
+    {"active", VSH_OT_BOOL, 0, N_("get number of currently active vcpus")},
     {"live", VSH_OT_BOOL, 0, N_("get value from running domain")},
+    {"config", VSH_OT_BOOL, 0, N_("get value to be used on next boot")},
+    {"current", VSH_OT_BOOL, 0,
+     N_("get value according to current domain state")},
     {NULL, 0, 0, NULL}
 };
 
@@ -2737,31 +3057,50 @@ cmdVcpucount(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     bool ret = true;
     int maximum = vshCommandOptBool(cmd, "maximum");
-    int current = vshCommandOptBool(cmd, "current");
+    int active = vshCommandOptBool(cmd, "active");
     int config = vshCommandOptBool(cmd, "config");
     int live = vshCommandOptBool(cmd, "live");
-    bool all = maximum + current + config + live == 0;
+    int current = vshCommandOptBool(cmd, "current");
+    bool all = maximum + active + current + config + live == 0;
     int count;
 
-    if (maximum && current) {
-        vshError(ctl, "%s",
-                 _("--maximum and --current cannot both be specified"));
-        return false;
-    }
-    if (config && live) {
-        vshError(ctl, "%s",
-                 _("--config and --live cannot both be specified"));
-        return false;
-    }
     /* We want one of each pair of mutually exclusive options; that
-     * is, use of flags requires exactly two options.  */
-    if (maximum + current + config + live == 1) {
-        vshError(ctl,
-                 _("when using --%s, either --%s or --%s must be specified"),
-                 (maximum ? "maximum" : current ? "current"
-                  : config ? "config" : "live"),
-                 maximum + current ? "config" : "maximum",
-                 maximum + current ? "live" : "current");
+     * is, use of flags requires exactly two options.  We reject the
+     * use of more than 2 flags later on.  */
+    if (maximum + active + current + config + live == 1) {
+        if (maximum || active) {
+            vshError(ctl,
+                     _("when using --%s, one of --config, --live, or --current "
+                       "must be specified"),
+                     maximum ? "maximum" : "active");
+        } else {
+            vshError(ctl,
+                     _("when using --%s, either --maximum or --active must be "
+                       "specified"),
+                     (current ? "current" : config ? "config" : "live"));
+        }
+        return false;
+    }
+
+    /* Backwards compatibility: prior to 0.9.4,
+     * VIR_DOMAIN_AFFECT_CURRENT was unsupported, and --current meant
+     * the opposite of --maximum.  Translate the old '--current
+     * --live' into the new '--active --live', while treating the new
+     * '--maximum --current' correctly rather than rejecting it as
+     * '--maximum --active'.  */
+    if (!maximum && !active && current) {
+        current = false;
+        active = true;
+    }
+
+    if (maximum && active) {
+        vshError(ctl, "%s",
+                 _("--maximum and --active cannot both be specified"));
+        return false;
+    }
+    if (current + config + live > 1) {
+        vshError(ctl, "%s",
+                 _("--config, --live, and --current are mutually exclusive"));
         return false;
     }
 
@@ -2772,8 +3111,20 @@ cmdVcpucount(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     /* In all cases, try the new API first; if it fails because we are
-     * talking to an older client, try a fallback API before giving
-     * up.  */
+     * talking to an older client, generally we try a fallback API
+     * before giving up.  --current requires the new API, since we
+     * don't know whether the domain is running or inactive.  */
+    if (current) {
+        count = virDomainGetVcpusFlags(dom,
+                                       maximum ? VIR_DOMAIN_VCPU_MAXIMUM : 0);
+        if (count < 0) {
+            virshReportError(ctl);
+            ret = false;
+        } else {
+            vshPrint(ctl, "%d\n", count);
+        }
+    }
+
     if (all || (maximum && config)) {
         count = virDomainGetVcpusFlags(dom, (VIR_DOMAIN_VCPU_MAXIMUM |
                                              VIR_DOMAIN_AFFECT_CONFIG));
@@ -2825,7 +3176,7 @@ cmdVcpucount(vshControl *ctl, const vshCmd *cmd)
         last_error = NULL;
     }
 
-    if (all || (current && config)) {
+    if (all || (active && config)) {
         count = virDomainGetVcpusFlags(dom, VIR_DOMAIN_AFFECT_CONFIG);
         if (count < 0 && (last_error->code == VIR_ERR_NO_SUPPORT
                           || last_error->code == VIR_ERR_INVALID_ARG)) {
@@ -2862,7 +3213,7 @@ cmdVcpucount(vshControl *ctl, const vshCmd *cmd)
         last_error = NULL;
     }
 
-    if (all || (current && live)) {
+    if (all || (active && live)) {
         count = virDomainGetVcpusFlags(dom, VIR_DOMAIN_AFFECT_LIVE);
         if (count < 0 && (last_error->code == VIR_ERR_NO_SUPPORT
                           || last_error->code == VIR_ERR_INVALID_ARG)) {
@@ -3253,6 +3604,7 @@ static const vshCmdOptDef opts_setvcpus[] = {
     {"maximum", VSH_OT_BOOL, 0, N_("set maximum limit on next boot")},
     {"config", VSH_OT_BOOL, 0, N_("affect next boot")},
     {"live", VSH_OT_BOOL, 0, N_("affect running domain")},
+    {"current", VSH_OT_BOOL, 0, N_("affect current domain")},
     {NULL, 0, 0, NULL}
 };
 
@@ -3265,9 +3617,24 @@ cmdSetvcpus(vshControl *ctl, const vshCmd *cmd)
     int maximum = vshCommandOptBool(cmd, "maximum");
     int config = vshCommandOptBool(cmd, "config");
     int live = vshCommandOptBool(cmd, "live");
-    int flags = ((maximum ? VIR_DOMAIN_VCPU_MAXIMUM : 0) |
-                 (config ? VIR_DOMAIN_AFFECT_CONFIG : 0) |
-                 (live ? VIR_DOMAIN_AFFECT_LIVE : 0));
+    int current = vshCommandOptBool(cmd, "current");
+    int flags = 0;
+
+    if (current) {
+        if (live || config) {
+            vshError(ctl, "%s", _("--current must be specified exclusively"));
+            return false;
+        }
+        flags = VIR_DOMAIN_AFFECT_CURRENT;
+    } else {
+        if (config)
+            flags |= VIR_DOMAIN_AFFECT_CONFIG;
+        if (live)
+            flags |= VIR_DOMAIN_AFFECT_LIVE;
+        /* neither option is specified */
+        if (!live && !config && !maximum)
+            flags = -1;
+    }
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
@@ -3280,7 +3647,7 @@ cmdSetvcpus(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    if (!flags) {
+    if (flags == -1) {
         if (virDomainSetVcpus(dom, count) != 0) {
             ret = false;
         }
@@ -3288,7 +3655,9 @@ cmdSetvcpus(vshControl *ctl, const vshCmd *cmd)
         /* If the --maximum flag was given, we need to ensure only the
            --config flag is in effect as well */
         if (maximum) {
-            vshDebug(ctl, 5, "--maximum flag was given\n");
+            vshDebug(ctl, VSH_ERR_DEBUG, "--maximum flag was given\n");
+
+            flags |= VIR_DOMAIN_VCPU_MAXIMUM;
 
             /* If neither the --config nor --live flags were given, OR
                if just the --live flag was given, we need to error out
@@ -3344,6 +3713,98 @@ cmdInjectNMI(vshControl *ctl, const vshCmd *cmd)
     if (virDomainInjectNMI(dom, 0) < 0)
             ret = false;
 
+    virDomainFree(dom);
+    return ret;
+}
+
+/*
+ * "send-key" command
+ */
+static const vshCmdInfo info_send_key[] = {
+    {"help", N_("Send keycodes to the guest")},
+    {"desc", N_("Send keycodes to the guest, the keycodes must be integers\n"
+                "    Examples:\n\n"
+                "        virsh # send-key <domain> 37 18 21\n"
+                "        virsh # send-key <domain> KEY_RIGHTCTRL KEY_C\n"
+                "        virsh # send-key <domain> --codeset xt 37 18 21\n"
+                "        virsh # send-key <domain> --holdtime 1000 0x15 18 0xf\n"
+                )},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_send_key[] = {
+    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
+    {"codeset", VSH_OT_STRING, VSH_OFLAG_REQ_OPT, N_("the codeset of keycodes, default:linux")},
+    {"holdtime", VSH_OT_INT, VSH_OFLAG_REQ_OPT,
+                 N_("the time (in millsecond) how long the keys will be held")},
+    {"keycode", VSH_OT_ARGV, VSH_OFLAG_REQ, N_("the key code")},
+    {NULL, 0, 0, NULL}
+};
+
+static int get_integer_keycode(const char *key_name)
+{
+    long val;
+    char *endptr;
+
+    val = strtol(key_name, &endptr, 0);
+    if (*endptr != '\0' || val > 0xffff || val <= 0)
+         return -1;
+
+    return val;
+}
+
+static bool
+cmdSendKey(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    int ret = false;
+    const char *codeset_option;
+    int codeset;
+    int holdtime;
+    int count = 0;
+    const vshCmdOpt *opt = NULL;
+    int keycode;
+    unsigned int keycodes[VIR_DOMAIN_SEND_KEY_MAX_KEYS];
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        return false;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    if (vshCommandOptString(cmd, "codeset", &codeset_option) <= 0)
+        codeset_option = "linux";
+
+    if (vshCommandOptInt(cmd, "holdtime", &holdtime) <= 0)
+        holdtime = 0;
+
+    codeset = virKeycodeSetTypeFromString(codeset_option);
+    if ((int)codeset < 0) {
+        vshError(ctl, _("unknown codeset: '%s'"), codeset_option);
+        goto cleanup;
+    }
+
+    while ((opt = vshCommandOptArgv(cmd, opt))) {
+        if (count == VIR_DOMAIN_SEND_KEY_MAX_KEYS) {
+            vshError(ctl, _("too many keycodes"));
+            goto cleanup;
+        }
+
+        if ((keycode = get_integer_keycode(opt->data)) <= 0) {
+            if ((keycode = virKeycodeValueFromString(codeset, opt->data)) <= 0) {
+                vshError(ctl, _("invalid keycode: '%s'"), opt->data);
+                goto cleanup;
+            }
+        }
+
+        keycodes[count] = keycode;
+        count++;
+    }
+
+    if (!(virDomainSendKey(dom, codeset, holdtime, keycodes, count, 0) < 0))
+        ret = true;
+
+cleanup:
     virDomainFree(dom);
     return ret;
 }
@@ -3579,7 +4040,6 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
     if (weight) {
         nparams++;
         if (weight < 0) {
-            virDomainFree(dom);
             vshError(ctl, _("Invalid value of %d for I/O weight"), weight);
             goto cleanup;
         }
@@ -4400,14 +4860,12 @@ doMigrate (void *opaque)
     const vshCmd *cmd = data->cmd;
     const char *xmlfile = NULL;
     char *xml = NULL;
-#if HAVE_PTHREAD_SIGMASK
     sigset_t sigmask, oldsigmask;
 
     sigemptyset(&sigmask);
     sigaddset(&sigmask, SIGINT);
     if (pthread_sigmask(SIG_BLOCK, &sigmask, &oldsigmask) < 0)
         goto out_sig;
-#endif
 
     if (!vshConnectionUsability (ctl, ctl->conn))
         goto out;
@@ -4483,17 +4941,16 @@ doMigrate (void *opaque)
     }
 
 out:
-#if HAVE_PTHREAD_SIGMASK
     pthread_sigmask(SIG_SETMASK, &oldsigmask, NULL);
 out_sig:
-#endif
     if (dom) virDomainFree (dom);
     VIR_FREE(xml);
     ignore_value(safewrite(data->writefd, &ret, sizeof(ret)));
 }
 
 static void
-print_job_progress(unsigned long long remaining, unsigned long long total)
+print_job_progress(const char *label, unsigned long long remaining,
+                   unsigned long long total)
 {
     int progress;
 
@@ -4513,7 +4970,7 @@ print_job_progress(unsigned long long remaining, unsigned long long total)
         }
     }
 
-    fprintf(stderr, "\rMigration: [%3d %%]", progress);
+    fprintf(stderr, "\r%s: [%3d %%]", label, progress);
 }
 
 static bool
@@ -4534,12 +4991,10 @@ cmdMigrate (vshControl *ctl, const vshCmd *cmd)
     struct timeval start, curr;
     bool live_flag = false;
     vshCtrlData data;
-#if HAVE_PTHREAD_SIGMASK
     sigset_t sigmask, oldsigmask;
 
     sigemptyset(&sigmask);
     sigaddset(&sigmask, SIGINT);
-#endif
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -4600,7 +5055,7 @@ repoll:
                     functionReturn = true;
                     if (verbose) {
                         /* print [100 %] */
-                        print_job_progress(0, 1);
+                        print_job_progress("Migration", 0, 1);
                     }
                 } else
                     functionReturn = false;
@@ -4625,21 +5080,19 @@ repoll:
         if ( timeout && ((int)(curr.tv_sec - start.tv_sec)  * 1000 + \
                          (int)(curr.tv_usec - start.tv_usec) / 1000) > timeout * 1000 ) {
             /* suspend the domain when migration timeouts. */
-            vshDebug(ctl, 5, "suspend the domain when migration timeouts\n");
+            vshDebug(ctl, VSH_ERR_DEBUG,
+                     "suspend the domain when migration timeouts\n");
             virDomainSuspend(dom);
             timeout = 0;
         }
 
         if (verbose) {
-#if HAVE_PTHREAD_SIGMASK
             pthread_sigmask(SIG_BLOCK, &sigmask, &oldsigmask);
-#endif
             ret = virDomainGetJobInfo(dom, &jobinfo);
-#if HAVE_PTHREAD_SIGMASK
             pthread_sigmask(SIG_SETMASK, &oldsigmask, NULL);
-#endif
             if (ret == 0)
-                print_job_progress(jobinfo.dataRemaining, jobinfo.dataTotal);
+                print_job_progress("Migration", jobinfo.dataRemaining,
+                                   jobinfo.dataTotal);
         }
     }
 
@@ -4741,6 +5194,129 @@ done:
     virDomainFree(dom);
     return ret;
 }
+
+typedef enum {
+    VSH_CMD_BLOCK_JOB_ABORT = 0,
+    VSH_CMD_BLOCK_JOB_INFO = 1,
+    VSH_CMD_BLOCK_JOB_SPEED = 2,
+    VSH_CMD_BLOCK_JOB_PULL = 3,
+} VSH_CMD_BLOCK_JOB_MODE;
+
+static int
+blockJobImpl(vshControl *ctl, const vshCmd *cmd,
+              virDomainBlockJobInfoPtr info, int mode)
+{
+    virDomainPtr dom = NULL;
+    const char *name, *path;
+    unsigned long bandwidth = 0;
+    int ret = -1;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        goto out;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
+        goto out;
+
+    if (vshCommandOptString(cmd, "path", &path) < 0)
+        goto out;
+
+    if (vshCommandOptUL(cmd, "bandwidth", &bandwidth) < 0)
+        goto out;
+
+    if (mode == VSH_CMD_BLOCK_JOB_ABORT)
+        ret = virDomainBlockJobAbort(dom, path, 0);
+    else if (mode == VSH_CMD_BLOCK_JOB_INFO)
+        ret = virDomainGetBlockJobInfo(dom, path, info, 0);
+    else if (mode == VSH_CMD_BLOCK_JOB_SPEED)
+        ret = virDomainBlockJobSetSpeed(dom, path, bandwidth, 0);
+    else if (mode == VSH_CMD_BLOCK_JOB_PULL)
+        ret = virDomainBlockPull(dom, path, bandwidth, 0);
+
+out:
+    virDomainFree(dom);
+    return ret;
+}
+
+/*
+ * "blockpull" command
+ */
+static const vshCmdInfo info_block_pull[] = {
+    {"help", N_("Populate a disk from its backing image.")},
+    {"desc", N_("Populate a disk from its backing image.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_block_pull[] = {
+    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
+    {"path", VSH_OT_DATA, VSH_OFLAG_REQ, N_("Fully-qualified path of disk")},
+    {"bandwidth", VSH_OT_DATA, VSH_OFLAG_NONE, N_("Bandwidth limit in MB/s")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdBlockPull(vshControl *ctl, const vshCmd *cmd)
+{
+    if (blockJobImpl(ctl, cmd, NULL, VSH_CMD_BLOCK_JOB_PULL) != 0)
+        return false;
+    return true;
+}
+
+/*
+ * "blockjobinfo" command
+ */
+static const vshCmdInfo info_block_job[] = {
+    {"help", N_("Manage active block operations.")},
+    {"desc", N_("Manage active block operations.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_block_job[] = {
+    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
+    {"path", VSH_OT_DATA, VSH_OFLAG_REQ, N_("Fully-qualified path of disk")},
+    {"abort", VSH_OT_BOOL, VSH_OFLAG_NONE, N_("Abort the active job on the speficied disk")},
+    {"info", VSH_OT_BOOL, VSH_OFLAG_NONE, N_("Get active job information for the specified disk")},
+    {"bandwidth", VSH_OT_DATA, VSH_OFLAG_NONE, N_("Set the Bandwidth limit in MB/s")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdBlockJob(vshControl *ctl, const vshCmd *cmd)
+{
+    int mode;
+    virDomainBlockJobInfo info;
+    const char *type;
+    int ret;
+
+    if (vshCommandOptBool (cmd, "abort")) {
+        mode = VSH_CMD_BLOCK_JOB_ABORT;
+    } else if (vshCommandOptBool (cmd, "info")) {
+        mode = VSH_CMD_BLOCK_JOB_INFO;
+    } else if (vshCommandOptBool (cmd, "bandwidth")) {
+        mode = VSH_CMD_BLOCK_JOB_SPEED;
+    } else {
+        vshError(ctl, "%s",
+                 _("One of --abort, --info, or --bandwidth is required"));
+        return false;
+    }
+
+    ret = blockJobImpl(ctl, cmd, &info, mode);
+    if (ret < 0)
+        return false;
+
+    if (ret == 0 || mode != VSH_CMD_BLOCK_JOB_INFO)
+        return true;
+
+    if (info.type == VIR_DOMAIN_BLOCK_JOB_TYPE_PULL)
+        type = "Block Pull";
+    else
+        type = "Unknown job";
+
+    print_job_progress(type, info.end - info.cur, info.end);
+    if (info.bandwidth != 0)
+        vshPrint(ctl, "    Bandwidth limit: %lu MB/s\n", info.bandwidth);
+    return true;
+}
+
 
 /*
  * "net-autostart" command
@@ -4887,8 +5463,8 @@ cmdNetworkDefine(vshControl *ctl, const vshCmd *cmd)
  * "net-destroy" command
  */
 static const vshCmdInfo info_network_destroy[] = {
-    {"help", N_("destroy a network")},
-    {"desc", N_("Destroy a given network.")},
+    {"help", N_("destroy (stop) a network")},
+    {"desc", N_("Forcefully stop a given network.")},
     {NULL, NULL}
 };
 
@@ -5734,7 +6310,7 @@ cmdInterfaceStart(vshControl *ctl, const vshCmd *cmd)
  */
 static const vshCmdInfo info_interface_destroy[] = {
     {"help", N_("destroy a physical host interface (disable it / \"if-down\")")},
-    {"desc", N_("destroy a physical host interface.")},
+    {"desc", N_("forcefully stop a physical host interface.")},
     {NULL, NULL}
 };
 
@@ -6293,9 +6869,9 @@ cmdNodeDeviceCreate(vshControl *ctl, const vshCmd *cmd)
  * "nodedev-destroy" command
  */
 static const vshCmdInfo info_node_device_destroy[] = {
-    {"help", N_("destroy a device on the node")},
+    {"help", N_("destroy (stop) a device on the node")},
     {"desc", N_("Destroy a device on the node.  Note that this "
-                          "command destroys devices on the physical host ")},
+                "command destroys devices on the physical host")},
     {NULL, NULL}
 };
 
@@ -6583,8 +7159,9 @@ cmdPoolBuild(vshControl *ctl, const vshCmd *cmd)
  * "pool-destroy" command
  */
 static const vshCmdInfo info_pool_destroy[] = {
-    {"help", N_("destroy a pool")},
-    {"desc", N_("Destroy a given pool.")},
+    {"help", N_("destroy (stop) a pool")},
+    {"desc",
+     N_("Forcefully stop a given pool. Raw data in the pool is untouched")},
     {NULL, NULL}
 };
 
@@ -6859,7 +7436,8 @@ cmdPoolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
         /* Retrieve the persistence status of the pool */
         if (details) {
             persistent = virStoragePoolIsPersistent(pool);
-            vshDebug(ctl, 5, "Persistent flag value: %d\n", persistent);
+            vshDebug(ctl, VSH_ERR_DEBUG, "Persistent flag value: %d\n",
+                     persistent);
             if (persistent < 0)
                 poolInfoTexts[i].persistent = vshStrdup(ctl, _("unknown"));
             else
@@ -7050,19 +7628,19 @@ cmdPoolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
         availStrLength = stringLength;
 
     /* Display the string lengths for debugging. */
-    vshDebug(ctl, 5, "Longest name string = %lu chars\n",
+    vshDebug(ctl, VSH_ERR_DEBUG, "Longest name string = %lu chars\n",
              (unsigned long) nameStrLength);
-    vshDebug(ctl, 5, "Longest state string = %lu chars\n",
+    vshDebug(ctl, VSH_ERR_DEBUG, "Longest state string = %lu chars\n",
              (unsigned long) stateStrLength);
-    vshDebug(ctl, 5, "Longest autostart string = %lu chars\n",
+    vshDebug(ctl, VSH_ERR_DEBUG, "Longest autostart string = %lu chars\n",
              (unsigned long) autostartStrLength);
-    vshDebug(ctl, 5, "Longest persistent string = %lu chars\n",
+    vshDebug(ctl, VSH_ERR_DEBUG, "Longest persistent string = %lu chars\n",
              (unsigned long) persistStrLength);
-    vshDebug(ctl, 5, "Longest capacity string = %lu chars\n",
+    vshDebug(ctl, VSH_ERR_DEBUG, "Longest capacity string = %lu chars\n",
              (unsigned long) capStrLength);
-    vshDebug(ctl, 5, "Longest allocation string = %lu chars\n",
+    vshDebug(ctl, VSH_ERR_DEBUG, "Longest allocation string = %lu chars\n",
              (unsigned long) allocStrLength);
-    vshDebug(ctl, 5, "Longest available string = %lu chars\n",
+    vshDebug(ctl, VSH_ERR_DEBUG, "Longest available string = %lu chars\n",
              (unsigned long) availStrLength);
 
     /* Create the output template.  Each column is sized according to
@@ -7334,7 +7912,8 @@ cmdPoolInfo(vshControl *ctl, const vshCmd *cmd)
 
         /* Check and display whether the pool is persistent or not */
         persistent = virStoragePoolIsPersistent(pool);
-        vshDebug(ctl, 5, "Pool persistent flag value: %d\n", persistent);
+        vshDebug(ctl, VSH_ERR_DEBUG, "Pool persistent flag value: %d\n",
+                 persistent);
         if (persistent < 0)
             vshPrint(ctl, "%-15s %s\n", _("Persistent:"),  _("unknown"));
         else
@@ -7342,7 +7921,8 @@ cmdPoolInfo(vshControl *ctl, const vshCmd *cmd)
 
         /* Check and display whether the pool is autostarted or not */
         virStoragePoolGetAutostart(pool, &autostart);
-        vshDebug(ctl, 5, "Pool autostart flag value: %d\n", autostart);
+        vshDebug(ctl, VSH_ERR_DEBUG, "Pool autostart flag value: %d\n",
+                 autostart);
         if (autostart < 0)
             vshPrint(ctl, "%-15s %s\n", _("Autostart:"), _("no autostart"));
         else
@@ -7543,31 +8123,37 @@ cmdVolCreateAs(vshControl *ctl, const vshCmd *cmd)
     if (snapshotStrVol) {
         /* Lookup snapshot backing volume.  Try the backing-vol
          *  parameter as a name */
-        vshDebug(ctl, 5, "%s: Look up backing store volume '%s' as name\n",
+        vshDebug(ctl, VSH_ERR_DEBUG,
+                 "%s: Look up backing store volume '%s' as name\n",
                  cmd->def->name, snapshotStrVol);
         virStorageVolPtr snapVol = virStorageVolLookupByName(pool, snapshotStrVol);
         if (snapVol)
-                vshDebug(ctl, 5, "%s: Backing store volume found using '%s' as name\n",
+                vshDebug(ctl, VSH_ERR_DEBUG,
+                         "%s: Backing store volume found using '%s' as name\n",
                          cmd->def->name, snapshotStrVol);
 
         if (snapVol == NULL) {
             /* Snapshot backing volume not found by name.  Try the
              *  backing-vol parameter as a key */
-            vshDebug(ctl, 5, "%s: Look up backing store volume '%s' as key\n",
+            vshDebug(ctl, VSH_ERR_DEBUG,
+                     "%s: Look up backing store volume '%s' as key\n",
                      cmd->def->name, snapshotStrVol);
             snapVol = virStorageVolLookupByKey(ctl->conn, snapshotStrVol);
             if (snapVol)
-                vshDebug(ctl, 5, "%s: Backing store volume found using '%s' as key\n",
+                vshDebug(ctl, VSH_ERR_DEBUG,
+                         "%s: Backing store volume found using '%s' as key\n",
                          cmd->def->name, snapshotStrVol);
         }
         if (snapVol == NULL) {
             /* Snapshot backing volume not found by key.  Try the
              *  backing-vol parameter as a path */
-            vshDebug(ctl, 5, "%s: Look up backing store volume '%s' as path\n",
+            vshDebug(ctl, VSH_ERR_DEBUG,
+                     "%s: Look up backing store volume '%s' as path\n",
                      cmd->def->name, snapshotStrVol);
             snapVol = virStorageVolLookupByPath(ctl->conn, snapshotStrVol);
             if (snapVol)
-                vshDebug(ctl, 5, "%s: Backing store volume found using '%s' as path\n",
+                vshDebug(ctl, VSH_ERR_DEBUG,
+                         "%s: Backing store volume found using '%s' as path\n",
                          cmd->def->name, snapshotStrVol);
         }
         if (snapVol == NULL) {
@@ -8504,11 +9090,16 @@ cmdVolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
         allocStrLength = stringLength;
 
     /* Display the string lengths for debugging */
-    vshDebug(ctl, 5, "Longest name string = %zu chars\n", nameStrLength);
-    vshDebug(ctl, 5, "Longest path string = %zu chars\n", pathStrLength);
-    vshDebug(ctl, 5, "Longest type string = %zu chars\n", typeStrLength);
-    vshDebug(ctl, 5, "Longest capacity string = %zu chars\n", capStrLength);
-    vshDebug(ctl, 5, "Longest allocation string = %zu chars\n", allocStrLength);
+    vshDebug(ctl, VSH_ERR_DEBUG,
+             "Longest name string = %zu chars\n", nameStrLength);
+    vshDebug(ctl, VSH_ERR_DEBUG,
+             "Longest path string = %zu chars\n", pathStrLength);
+    vshDebug(ctl, VSH_ERR_DEBUG,
+             "Longest type string = %zu chars\n", typeStrLength);
+    vshDebug(ctl, VSH_ERR_DEBUG,
+             "Longest capacity string = %zu chars\n", capStrLength);
+    vshDebug(ctl, VSH_ERR_DEBUG,
+             "Longest allocation string = %zu chars\n", allocStrLength);
 
     /* Create the output template */
     ret = virAsprintf(&outputStr,
@@ -10176,19 +10767,172 @@ static const vshCmdOptDef opts_attach_disk[] = {
     {"target",  VSH_OT_DATA, VSH_OFLAG_REQ, N_("target of disk device")},
     {"driver",    VSH_OT_STRING, 0, N_("driver of disk device")},
     {"subdriver", VSH_OT_STRING, 0, N_("subdriver of disk device")},
+    {"cache",     VSH_OT_STRING, 0, N_("cache mode of disk device")},
     {"type",    VSH_OT_STRING, 0, N_("target device type")},
     {"mode",    VSH_OT_STRING, 0, N_("mode of device reading and writing")},
     {"persistent", VSH_OT_BOOL, 0, N_("persist disk attachment")},
     {"sourcetype", VSH_OT_STRING, 0, N_("type of source (block|file)")},
+    {"serial", VSH_OT_STRING, 0, N_("serial of disk device")},
+    {"shareable", VSH_OT_BOOL, 0, N_("shareable between domains")},
+    {"address", VSH_OT_STRING, 0, N_("address of disk device")},
     {NULL, 0, 0, NULL}
 };
+
+enum {
+    DISK_ADDR_TYPE_INVALID,
+    DISK_ADDR_TYPE_PCI,
+    DISK_ADDR_TYPE_SCSI,
+    DISK_ADDR_TYPE_IDE,
+};
+
+struct PCIAddress {
+    unsigned int domain;
+    unsigned int bus;
+    unsigned int slot;
+    unsigned int function;
+};
+
+struct SCSIAddress {
+    unsigned int controller;
+    unsigned int bus;
+    unsigned int unit;
+};
+
+struct IDEAddress {
+    unsigned int controller;
+    unsigned int bus;
+    unsigned int unit;
+};
+
+struct DiskAddress {
+    int type;
+    union {
+        struct PCIAddress pci;
+        struct SCSIAddress scsi;
+        struct IDEAddress ide;
+    } addr;
+};
+
+static int str2PCIAddress(const char *str, struct PCIAddress *pciAddr)
+{
+    char *domain, *bus, *slot, *function;
+
+    if (!pciAddr)
+        return -1;
+    if (!str)
+        return -1;
+
+    domain = (char *)str;
+
+    if (virStrToLong_ui(domain, &bus, 0, &pciAddr->domain) != 0)
+        return -1;
+
+    bus++;
+    if (virStrToLong_ui(bus, &slot, 0, &pciAddr->bus) != 0)
+        return -1;
+
+    slot++;
+    if (virStrToLong_ui(slot, &function, 0, &pciAddr->slot) != 0)
+        return -1;
+
+    function++;
+    if (virStrToLong_ui(function, NULL, 0, &pciAddr->function) != 0)
+        return -1;
+
+    return 0;
+}
+
+static int str2SCSIAddress(const char *str, struct SCSIAddress *scsiAddr)
+{
+    char *controller, *bus, *unit;
+
+    if (!scsiAddr)
+        return -1;
+    if (!str)
+        return -1;
+
+    controller = (char *)str;
+
+    if (virStrToLong_ui(controller, &bus, 0, &scsiAddr->controller) != 0)
+        return -1;
+
+    bus++;
+    if (virStrToLong_ui(bus, &unit, 0, &scsiAddr->bus) != 0)
+        return -1;
+
+    unit++;
+    if (virStrToLong_ui(unit, NULL, 0, &scsiAddr->unit) != 0)
+        return -1;
+
+    return 0;
+}
+
+static int str2IDEAddress(const char *str, struct IDEAddress *ideAddr)
+{
+    char *controller, *bus, *unit;
+
+    if (!ideAddr)
+        return -1;
+    if (!str)
+        return -1;
+
+    controller = (char *)str;
+
+    if (virStrToLong_ui(controller, &bus, 0, &ideAddr->controller) != 0)
+        return -1;
+
+    bus++;
+    if (virStrToLong_ui(bus, &unit, 0, &ideAddr->bus) != 0)
+        return -1;
+
+    unit++;
+    if (virStrToLong_ui(unit, NULL, 0, &ideAddr->unit) != 0)
+        return -1;
+
+    return 0;
+}
+
+/* pci address pci:0000.00.0x0a.0 (domain:bus:slot:function)
+ * ide disk address: ide:00.00.0 (controller:bus:unit)
+ * scsi disk address: scsi:00.00.0 (controller:bus:unit)
+ */
+
+static int str2DiskAddress(const char *str, struct DiskAddress *diskAddr)
+{
+    char *type, *addr;
+
+    if (!diskAddr)
+        return -1;
+    if (!str)
+        return -1;
+
+    type = (char *)str;
+    addr = strchr(type, ':');
+    if (!addr)
+        return -1;
+
+    if (STREQLEN(type, "pci", addr - type)) {
+        diskAddr->type = DISK_ADDR_TYPE_PCI;
+        return str2PCIAddress(addr + 1, &diskAddr->addr.pci);
+    } else if (STREQLEN(type, "scsi", addr - type)) {
+        diskAddr->type = DISK_ADDR_TYPE_SCSI;
+        return str2SCSIAddress(addr + 1, &diskAddr->addr.scsi);
+    } else if (STREQLEN(type, "ide", addr - type)) {
+        diskAddr->type = DISK_ADDR_TYPE_IDE;
+        return str2IDEAddress(addr + 1, &diskAddr->addr.ide);
+    }
+
+    return -1;
+}
 
 static bool
 cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom = NULL;
     const char *source = NULL, *target = NULL, *driver = NULL,
-                *subdriver = NULL, *type = NULL, *mode = NULL;
+                *subdriver = NULL, *type = NULL, *mode = NULL,
+                *cache = NULL, *serial = NULL, *straddr = NULL;
+    struct DiskAddress diskAddr;
     bool isFile = false, functionReturn = false;
     int ret;
     unsigned int flags;
@@ -10212,6 +10956,9 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
         vshCommandOptString(cmd, "subdriver", &subdriver) < 0 ||
         vshCommandOptString(cmd, "type", &type) < 0 ||
         vshCommandOptString(cmd, "mode", &mode) < 0 ||
+        vshCommandOptString(cmd, "cache", &cache) < 0 ||
+        vshCommandOptString(cmd, "serial", &serial) < 0 ||
+        vshCommandOptString(cmd, "address", &straddr) < 0 ||
         vshCommandOptString(cmd, "sourcetype", &stype) < 0) {
         vshError(ctl, "%s", _("missing option"));
         goto cleanup;
@@ -10249,8 +10996,10 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
         virBufferAsprintf(&buf, " name='%s'", driver);
     if (subdriver)
         virBufferAsprintf(&buf, " type='%s'", subdriver);
+    if (cache)
+        virBufferAsprintf(&buf, " cache='%s'", cache);
 
-    if (driver || subdriver)
+    if (driver || subdriver || cache)
         virBufferAddLit(&buf, "/>\n");
 
     virBufferAsprintf(&buf, "  <source %s='%s'/>\n",
@@ -10259,6 +11008,54 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     virBufferAsprintf(&buf, "  <target dev='%s'/>\n", target);
     if (mode)
         virBufferAsprintf(&buf, "  <%s/>\n", mode);
+
+    if (serial)
+        virBufferAsprintf(&buf, "  <serial>%s</serial>\n", serial);
+
+    if (vshCommandOptBool(cmd, "shareable"))
+        virBufferAsprintf(&buf, "  <shareable/>\n");
+
+    if (straddr) {
+        if (str2DiskAddress(straddr, &diskAddr) != 0) {
+            vshError(ctl, _("Invalid address."));
+            goto cleanup;
+        }
+
+        if (STRPREFIX((const char *)target, "vd")) {
+            if (diskAddr.type == DISK_ADDR_TYPE_PCI) {
+                virBufferAsprintf(&buf,
+                                  "  <address type='pci' domain='0x%04x'"
+                                  " bus ='0x%02x' slot='0x%02x' function='0x%0x' />\n",
+                                  diskAddr.addr.pci.domain, diskAddr.addr.pci.bus,
+                                  diskAddr.addr.pci.slot, diskAddr.addr.pci.function);
+            } else {
+                vshError(ctl, "%s", _("expecting a pci:0000.00.00.00 address."));
+                goto cleanup;
+            }
+        } else if (STRPREFIX((const char *)target, "sd")) {
+            if (diskAddr.type == DISK_ADDR_TYPE_SCSI) {
+                virBufferAsprintf(&buf,
+                                  "  <address type='drive' controller='%d'"
+                                  " bus='%d' unit='%d' />\n",
+                                  diskAddr.addr.scsi.controller, diskAddr.addr.scsi.bus,
+                                  diskAddr.addr.scsi.unit);
+            } else {
+                vshError(ctl, "%s", _("expecting a scsi:00.00.00 address."));
+                goto cleanup;
+            }
+        } else if (STRPREFIX((const char *)target, "hd")) {
+            if (diskAddr.type == DISK_ADDR_TYPE_IDE) {
+                virBufferAsprintf(&buf,
+                                  "  <address type='drive' controller='%d'"
+                                  " bus='%d' unit='%d' />\n",
+                                  diskAddr.addr.ide.controller, diskAddr.addr.ide.bus,
+                                  diskAddr.addr.ide.unit);
+            } else {
+                vshError(ctl, "%s", _("expecting an ide:00.00.00 address."));
+                goto cleanup;
+            }
+        }
+    }
 
     virBufferAddLit(&buf, "</disk>\n");
 
@@ -11542,8 +12339,12 @@ cmdSnapshotDelete(vshControl *ctl, const vshCmd *cmd)
     if (snapshot == NULL)
         goto cleanup;
 
-    if (virDomainSnapshotDelete(snapshot, flags) < 0)
+    if (virDomainSnapshotDelete(snapshot, flags) == 0) {
+        vshPrint(ctl, _("Domain snapshot %s deleted\n"), name);
+    } else {
+        vshError(ctl, _("Failed to delete snapshot %s"), name);
         goto cleanup;
+    }
 
     ret = true;
 
@@ -11560,8 +12361,8 @@ cleanup:
  * "qemu-monitor-command" command
  */
 static const vshCmdInfo info_qemu_monitor_command[] = {
-    {"help", N_("Qemu Monitor Command")},
-    {"desc", N_("Qemu Monitor Command")},
+    {"help", N_("QEMU Monitor Command")},
+    {"desc", N_("QEMU Monitor Command")},
     {NULL, NULL}
 };
 
@@ -11611,6 +12412,52 @@ cleanup:
     return ret;
 }
 
+/*
+ * "qemu-attach" command
+ */
+static const vshCmdInfo info_qemu_attach[] = {
+    {"help", N_("QEMU Attach")},
+    {"desc", N_("QEMU Attach")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_qemu_attach[] = {
+    {"pid", VSH_OT_DATA, VSH_OFLAG_REQ, N_("pid")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdQemuAttach(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom = NULL;
+    bool ret = false;
+    unsigned int flags = 0;
+    unsigned int pid;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        goto cleanup;
+
+    if (vshCommandOptUInt(cmd, "pid", &pid) <= 0) {
+        vshError(ctl, "%s", _("missing pid value"));
+        goto cleanup;
+    }
+
+    if (!(dom = virDomainQemuAttach(ctl->conn, pid, flags)))
+        goto cleanup;
+
+    if (dom != NULL) {
+        vshPrint(ctl, _("Domain %s attached to pid %u\n"),
+                 virDomainGetName(dom), pid);
+        virDomainFree(dom);
+        ret = true;
+    } else {
+        vshError(ctl, _("Failed to attach to pid %u"), pid);
+    }
+
+cleanup:
+    return ret;
+}
+
 static const vshCmdDef domManagementCmds[] = {
     {"attach-device", cmdAttachDevice, opts_attach_device,
      info_attach_device, 0},
@@ -11620,6 +12467,8 @@ static const vshCmdDef domManagementCmds[] = {
      info_attach_interface, 0},
     {"autostart", cmdAutostart, opts_autostart, info_autostart, 0},
     {"blkiotune", cmdBlkiotune, opts_blkiotune, info_blkiotune, 0},
+    {"blockpull", cmdBlockPull, opts_block_pull, info_block_pull, 0},
+    {"blockjob", cmdBlockJob, opts_block_job, info_block_job, 0},
 #ifndef WIN32
     {"console", cmdConsole, opts_console, info_console, 0},
 #endif
@@ -11646,6 +12495,7 @@ static const vshCmdDef domManagementCmds[] = {
     {"dumpxml", cmdDumpXML, opts_dumpxml, info_dumpxml, 0},
     {"edit", cmdEdit, opts_edit, info_edit, 0},
     {"inject-nmi", cmdInjectNMI, opts_inject_nmi, info_inject_nmi, 0},
+    {"send-key", cmdSendKey, opts_send_key, info_send_key},
     {"managedsave", cmdManagedSave, opts_managedsave, info_managedsave, 0},
     {"managedsave-remove", cmdManagedSaveRemove, opts_managedsaveremove,
      info_managedsaveremove, 0},
@@ -11660,6 +12510,12 @@ static const vshCmdDef domManagementCmds[] = {
     {"restore", cmdRestore, opts_restore, info_restore, 0},
     {"resume", cmdResume, opts_resume, info_resume, 0},
     {"save", cmdSave, opts_save, info_save, 0},
+    {"save-image-define", cmdSaveImageDefine, opts_save_image_define,
+     info_save_image_define, 0},
+    {"save-image-dumpxml", cmdSaveImageDumpxml, opts_save_image_dumpxml,
+     info_save_image_dumpxml, 0},
+    {"save-image-edit", cmdSaveImageEdit, opts_save_image_edit,
+     info_save_image_edit, 0},
     {"schedinfo", cmdSchedinfo, opts_schedinfo, info_schedinfo, 0},
     {"screenshot", cmdScreenshot, opts_screenshot, info_screenshot, 0},
     {"setmaxmem", cmdSetmaxmem, opts_setmaxmem, info_setmaxmem, 0},
@@ -11874,6 +12730,7 @@ static const vshCmdDef hostAndHypervisorCmds[] = {
     {"nodecpustats", cmdNodeCpuStats, opts_node_cpustats, info_nodecpustats, 0},
     {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo, 0},
     {"nodememstats", cmdNodeMemStats, opts_node_memstats, info_nodememstats, 0},
+    {"qemu-attach", cmdQemuAttach, opts_qemu_attach, info_qemu_attach},
     {"qemu-monitor-command", cmdQemuMonitorCommand, opts_qemu_monitor_command,
      info_qemu_monitor_command, 0},
     {"sysinfo", cmdSysinfo, NULL, info_sysinfo, 0},
@@ -11995,7 +12852,7 @@ vshCmddefGetData(const vshCmdDef *cmd, uint32_t *opts_need_arg,
         return NULL;
 
     /* Grab least-significant set bit */
-    i = count_one_bits(*opts_need_arg ^ (*opts_need_arg - 1)) - 1;
+    i = ffs(*opts_need_arg) - 1;
     opt = &cmd->opts[i];
     if (opt->type != VSH_OT_ARGV)
         *opts_need_arg &= ~(1 << i);
@@ -12221,23 +13078,48 @@ vshCommandFree(vshCmd *cmd)
     }
 }
 
-/*
- * Returns option by name
+/**
+ * vshCommandOpt:
+ * @cmd: parsed command line to search
+ * @name: option name to search for
+ * @opt: result of the search
+ *
+ * Look up an option passed to CMD by NAME.  Returns 1 with *OPT set
+ * to the option if found, 0 with *OPT set to NULL if the name is
+ * valid and the option is not required, -1 with *OPT set to NULL if
+ * the option is required but not present, and -2 if NAME is not valid
+ * (-2 indicates a programming error).  No error messages are issued.
  */
-static vshCmdOpt *
-vshCommandOpt(const vshCmd *cmd, const char *name)
+static int
+vshCommandOpt(const vshCmd *cmd, const char *name, vshCmdOpt **opt)
 {
-    vshCmdOpt *opt = cmd->opts;
+    vshCmdOpt *candidate = cmd->opts;
+    const vshCmdOptDef *valid = cmd->def->opts;
 
-    while (opt) {
-        if (opt->def && STREQ(opt->def->name, name))
-            return opt;
-        opt = opt->next;
+    /* See if option is present on command line.  */
+    while (candidate) {
+        if (STREQ(candidate->def->name, name)) {
+            *opt = candidate;
+            return 1;
+        }
+        candidate = candidate->next;
     }
-    return NULL;
+
+    /* Option not present, see if command requires it.  */
+    *opt = NULL;
+    while (valid) {
+        if (!valid->name)
+            break;
+        if (STREQ(name, valid->name))
+            return (valid->flag & VSH_OFLAG_REQ) == 0 ? 0 : -1;
+        valid++;
+    }
+    /* If we got here, the name is unknown.  */
+    return -2;
 }
 
-/*
+/**
+ * vshCommandOptInt:
  * @cmd command reference
  * @name option name
  * @value result
@@ -12245,102 +13127,144 @@ vshCommandOpt(const vshCmd *cmd, const char *name)
  * Convert option to int
  * Return value:
  * >0 if option found and valid (@value updated)
- * 0 in case option not found (@value untouched)
+ * 0 if option not found and not required (@value untouched)
  * <0 in all other cases (@value untouched)
  */
 static int
 vshCommandOptInt(const vshCmd *cmd, const char *name, int *value)
 {
-    vshCmdOpt *arg = vshCommandOpt(cmd, name);
-    int ret = 0, num;
+    vshCmdOpt *arg;
+    int ret;
+    int num;
     char *end_p = NULL;
 
-    if ((arg != NULL) && (arg->data != NULL)) {
-        num = strtol(arg->data, &end_p, 10);
-        ret = -1;
-        if ((arg->data != end_p) && (*end_p == 0)) {
-            *value = num;
-            ret = 1;
-        }
+    ret = vshCommandOpt(cmd, name, &arg);
+    if (ret <= 0)
+        return ret;
+    if (!arg->data) {
+        /* only possible on bool, but if name is bool, this is a
+         * programming bug */
+        return -2;
     }
-    return ret;
+
+    num = strtol(arg->data, &end_p, 10);
+    if ((arg->data != end_p) && (*end_p == 0)) {
+        *value = num;
+        return 1;
+    }
+    return -1;
 }
 
 
-/*
+/**
+ * vshCommandOptUInt:
+ * @cmd command reference
+ * @name option name
+ * @value result
+ *
  * Convert option to unsigned int
  * See vshCommandOptInt()
  */
 static int
 vshCommandOptUInt(const vshCmd *cmd, const char *name, unsigned int *value)
 {
-    vshCmdOpt *arg = vshCommandOpt(cmd, name);
-    unsigned int ret = 0, num;
+    vshCmdOpt *arg;
+    int ret;
+    unsigned int num;
     char *end_p = NULL;
 
-    if ((arg != NULL) && (arg->data != NULL)) {
-        num = strtoul(arg->data, &end_p, 10);
-        ret = -1;
-        if ((arg->data != end_p) && (*end_p == 0)) {
-            *value = num;
-            ret = 1;
-        }
+    ret = vshCommandOpt(cmd, name, &arg);
+    if (ret <= 0)
+        return ret;
+    if (!arg->data) {
+        /* only possible on bool, but if name is bool, this is a
+         * programming bug */
+        return -2;
     }
-    return ret;
+
+    num = strtoul(arg->data, &end_p, 10);
+    if ((arg->data != end_p) && (*end_p == 0)) {
+        *value = num;
+        return 1;
+    }
+    return -1;
 }
 
 
 /*
+ * vshCommandOptUL:
+ * @cmd command reference
+ * @name option name
+ * @value result
+ *
  * Convert option to unsigned long
  * See vshCommandOptInt()
  */
 static int
 vshCommandOptUL(const vshCmd *cmd, const char *name, unsigned long *value)
 {
-    vshCmdOpt *arg = vshCommandOpt(cmd, name);
-    int ret = 0;
+    vshCmdOpt *arg;
+    int ret;
     unsigned long num;
     char *end_p = NULL;
 
-    if ((arg != NULL) && (arg->data != NULL)) {
-        num = strtoul(arg->data, &end_p, 10);
-        ret = -1;
-        if ((arg->data != end_p) && (*end_p == 0)) {
-            *value = num;
-            ret = 1;
-        }
+    ret = vshCommandOpt(cmd, name, &arg);
+    if (ret <= 0)
+        return ret;
+    if (!arg->data) {
+        /* only possible on bool, but if name is bool, this is a
+         * programming bug */
+        return -2;
     }
-    return ret;
+
+    num = strtoul(arg->data, &end_p, 10);
+    if ((arg->data != end_p) && (*end_p == 0)) {
+        *value = num;
+        return 1;
+    }
+    return -1;
 }
 
-/*
+/**
+ * vshCommandOptString:
+ * @cmd command reference
+ * @name option name
+ * @value result
+ *
  * Returns option as STRING
- * See vshCommandOptInt()
+ * Return value:
+ * >0 if option found and valid (@value updated)
+ * 0 if option not found and not required (@value untouched)
+ * <0 in all other cases (@value untouched)
  */
 static int
 vshCommandOptString(const vshCmd *cmd, const char *name, const char **value)
 {
-    vshCmdOpt *arg = vshCommandOpt(cmd, name);
-    int ret = 0;
+    vshCmdOpt *arg;
+    int ret;
 
-    if (arg && arg->data) {
-        if (*arg->data
-            || (arg->def && (arg->def->flag & VSH_OFLAG_EMPTY_OK))) {
-            *value = arg->data;
-            ret = 1;
-        } else if (arg->def && ((arg->def->flag) & VSH_OFLAG_REQ)) {
-            vshError(NULL, _("Missing required option '%s'"), name);
-            ret = -1;
-        } else {
-            /* Treat "--option ''" as if option had not been specified. */
-            ret = 0;
-        }
+    ret = vshCommandOpt(cmd, name, &arg);
+    if (ret <= 0)
+        return ret;
+    if (!arg->data) {
+        /* only possible on bool, but if name is bool, this is a
+         * programming bug */
+        return -2;
     }
 
-    return ret;
+    if (!*arg->data && !(arg->def->flag & VSH_OFLAG_EMPTY_OK)) {
+        return -1;
+    }
+    *value = arg->data;
+    return 1;
 }
 
-/*
+/**
+ * vshCommandOptLongLong:
+ * @cmd command reference
+ * @name option name
+ * @value result
+ *
  * Returns option as long long
  * See vshCommandOptInt()
  */
@@ -12348,53 +13272,87 @@ static int
 vshCommandOptLongLong(const vshCmd *cmd, const char *name,
                       long long *value)
 {
-    vshCmdOpt *arg = vshCommandOpt(cmd, name);
-    int ret = 0;
+    vshCmdOpt *arg;
+    int ret;
     long long num;
     char *end_p = NULL;
 
-    if ((arg != NULL) && (arg->data != NULL)) {
-        num = strtoll(arg->data, &end_p, 10);
-        ret = -1;
-        if ((arg->data != end_p) && (*end_p == 0)) {
-            *value = num;
-            ret = 1;
-        }
+    ret = vshCommandOpt(cmd, name, &arg);
+    if (ret <= 0)
+        return ret;
+    if (!arg->data) {
+        /* only possible on bool, but if name is bool, this is a
+         * programming bug */
+        return -2;
     }
-    return ret;
+
+    num = strtoll(arg->data, &end_p, 10);
+    if ((arg->data != end_p) && (*end_p == 0)) {
+        *value = num;
+        return 1;
+    }
+    return -1;
 }
 
+/**
+ * vshCommandOptULongLong:
+ * @cmd command reference
+ * @name option name
+ * @value result
+ *
+ * Returns option as long long
+ * See vshCommandOptInt()
+ */
 static int
 vshCommandOptULongLong(const vshCmd *cmd, const char *name,
                        unsigned long long *value)
 {
-    vshCmdOpt *arg = vshCommandOpt(cmd, name);
-    int ret = 0;
+    vshCmdOpt *arg;
+    int ret;
     unsigned long long num;
     char *end_p = NULL;
 
-    if ((arg != NULL) && (arg->data != NULL)) {
-        num = strtoull(arg->data, &end_p, 10);
-        ret = -1;
-        if ((arg->data != end_p) && (*end_p == 0)) {
-            *value = num;
-            ret = 1;
-        }
+    ret = vshCommandOpt(cmd, name, &arg);
+    if (ret <= 0)
+        return ret;
+    if (!arg->data) {
+        /* only possible on bool, but if name is bool, this is a
+         * programming bug */
+        return -2;
     }
-    return ret;
+
+    num = strtoull(arg->data, &end_p, 10);
+    if ((arg->data != end_p) && (*end_p == 0)) {
+        *value = num;
+        return 1;
+    }
+    return -1;
 }
 
 
-/*
- * Returns true/false if the option exists
+/**
+ * vshCommandOptBool:
+ * @cmd command reference
+ * @name option name
+ *
+ * Returns true/false if the option exists.  Note that this does NOT
+ * validate whether the option is actually boolean, or even whether
+ * name is legal; so that this can be used to probe whether a data
+ * option is present without actually using that data.
  */
 static bool
 vshCommandOptBool(const vshCmd *cmd, const char *name)
 {
-    return vshCommandOpt(cmd, name) != NULL;
+    vshCmdOpt *dummy;
+
+    return vshCommandOpt(cmd, name, &dummy) == 1;
 }
 
-/*
+/**
+ * vshCommandOptArgv:
+ * @cmd command reference
+ * @opt starting point for the search
+ *
  * Returns the next argv argument after OPT (or the first one if OPT
  * is NULL), or NULL if no more are present.
  *
@@ -12407,7 +13365,7 @@ vshCommandOptArgv(const vshCmd *cmd, const vshCmdOpt *opt)
     opt = opt ? opt->next : cmd->opts;
 
     while (opt) {
-        if (opt->def && opt->def->type == VSH_OT_ARGV) {
+        if (opt->def->type == VSH_OT_ARGV) {
             return opt;
         }
         opt = opt->next;
@@ -12452,7 +13410,7 @@ vshCommandOptDomainBy(vshControl *ctl, const vshCmd *cmd,
     if (vshCommandOptString(cmd, optname, &n) <= 0)
         return NULL;
 
-    vshDebug(ctl, 5, "%s: found option <%s>: %s\n",
+    vshDebug(ctl, VSH_ERR_INFO, "%s: found option <%s>: %s\n",
              cmd->def->name, optname, n);
 
     if (name)
@@ -12461,20 +13419,21 @@ vshCommandOptDomainBy(vshControl *ctl, const vshCmd *cmd,
     /* try it by ID */
     if (flag & VSH_BYID) {
         if (virStrToLong_i(n, NULL, 10, &id) == 0 && id >= 0) {
-            vshDebug(ctl, 5, "%s: <%s> seems like domain ID\n",
+            vshDebug(ctl, VSH_ERR_DEBUG,
+                     "%s: <%s> seems like domain ID\n",
                      cmd->def->name, optname);
             dom = virDomainLookupByID(ctl->conn, id);
         }
     }
     /* try it by UUID */
     if (dom==NULL && (flag & VSH_BYUUID) && strlen(n)==VIR_UUID_STRING_BUFLEN-1) {
-        vshDebug(ctl, 5, "%s: <%s> trying as domain UUID\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as domain UUID\n",
                  cmd->def->name, optname);
         dom = virDomainLookupByUUIDString(ctl->conn, n);
     }
     /* try it by NAME */
     if (dom==NULL && (flag & VSH_BYNAME)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as domain NAME\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as domain NAME\n",
                  cmd->def->name, optname);
         dom = virDomainLookupByName(ctl->conn, n);
     }
@@ -12498,7 +13457,7 @@ vshCommandOptNetworkBy(vshControl *ctl, const vshCmd *cmd,
     if (vshCommandOptString(cmd, optname, &n) <= 0)
         return NULL;
 
-    vshDebug(ctl, 5, "%s: found option <%s>: %s\n",
+    vshDebug(ctl, VSH_ERR_INFO, "%s: found option <%s>: %s\n",
              cmd->def->name, optname, n);
 
     if (name)
@@ -12506,13 +13465,13 @@ vshCommandOptNetworkBy(vshControl *ctl, const vshCmd *cmd,
 
     /* try it by UUID */
     if ((flag & VSH_BYUUID) && (strlen(n) == VIR_UUID_STRING_BUFLEN-1)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as network UUID\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as network UUID\n",
                  cmd->def->name, optname);
         network = virNetworkLookupByUUIDString(ctl->conn, n);
     }
     /* try it by NAME */
     if (network==NULL && (flag & VSH_BYNAME)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as network NAME\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as network NAME\n",
                  cmd->def->name, optname);
         network = virNetworkLookupByName(ctl->conn, n);
     }
@@ -12537,7 +13496,7 @@ vshCommandOptNWFilterBy(vshControl *ctl, const vshCmd *cmd,
     if (vshCommandOptString(cmd, optname, &n) <= 0)
         return NULL;
 
-    vshDebug(ctl, 5, "%s: found option <%s>: %s\n",
+    vshDebug(ctl, VSH_ERR_INFO, "%s: found option <%s>: %s\n",
              cmd->def->name, optname, n);
 
     if (name)
@@ -12545,13 +13504,13 @@ vshCommandOptNWFilterBy(vshControl *ctl, const vshCmd *cmd,
 
     /* try it by UUID */
     if ((flag & VSH_BYUUID) && (strlen(n) == VIR_UUID_STRING_BUFLEN-1)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as nwfilter UUID\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as nwfilter UUID\n",
                  cmd->def->name, optname);
         nwfilter = virNWFilterLookupByUUIDString(ctl->conn, n);
     }
     /* try it by NAME */
     if (nwfilter == NULL && (flag & VSH_BYNAME)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as nwfilter NAME\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as nwfilter NAME\n",
                  cmd->def->name, optname);
         nwfilter = virNWFilterLookupByName(ctl->conn, n);
     }
@@ -12575,7 +13534,7 @@ vshCommandOptInterfaceBy(vshControl *ctl, const vshCmd *cmd,
     if (vshCommandOptString(cmd, optname, &n) <= 0)
         return NULL;
 
-    vshDebug(ctl, 5, "%s: found option <%s>: %s\n",
+    vshDebug(ctl, VSH_ERR_INFO, "%s: found option <%s>: %s\n",
              cmd->def->name, optname, n);
 
     if (name)
@@ -12583,13 +13542,13 @@ vshCommandOptInterfaceBy(vshControl *ctl, const vshCmd *cmd,
 
     /* try it by NAME */
     if ((flag & VSH_BYNAME)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as interface NAME\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as interface NAME\n",
                  cmd->def->name, optname);
         iface = virInterfaceLookupByName(ctl->conn, n);
     }
     /* try it by MAC */
     if ((iface == NULL) && (flag & VSH_BYMAC)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as interface MAC\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as interface MAC\n",
                  cmd->def->name, optname);
         iface = virInterfaceLookupByMACString(ctl->conn, n);
     }
@@ -12610,7 +13569,7 @@ vshCommandOptPoolBy(vshControl *ctl, const vshCmd *cmd, const char *optname,
     if (vshCommandOptString(cmd, optname, &n) <= 0)
         return NULL;
 
-    vshDebug(ctl, 5, "%s: found option <%s>: %s\n",
+    vshDebug(ctl, VSH_ERR_INFO, "%s: found option <%s>: %s\n",
              cmd->def->name, optname, n);
 
     if (name)
@@ -12618,13 +13577,13 @@ vshCommandOptPoolBy(vshControl *ctl, const vshCmd *cmd, const char *optname,
 
     /* try it by UUID */
     if ((flag & VSH_BYUUID) && (strlen(n) == VIR_UUID_STRING_BUFLEN-1)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as pool UUID\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as pool UUID\n",
                  cmd->def->name, optname);
         pool = virStoragePoolLookupByUUIDString(ctl->conn, n);
     }
     /* try it by NAME */
     if (pool == NULL && (flag & VSH_BYNAME)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as pool NAME\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as pool NAME\n",
                  cmd->def->name, optname);
         pool = virStoragePoolLookupByName(ctl->conn, n);
     }
@@ -12656,7 +13615,7 @@ vshCommandOptVolBy(vshControl *ctl, const vshCmd *cmd,
     if (p)
         pool = vshCommandOptPoolBy(ctl, cmd, pooloptname, name, flag);
 
-    vshDebug(ctl, 5, "%s: found option <%s>: %s\n",
+    vshDebug(ctl, VSH_ERR_DEBUG, "%s: found option <%s>: %s\n",
              cmd->def->name, optname, n);
 
     if (name)
@@ -12664,19 +13623,19 @@ vshCommandOptVolBy(vshControl *ctl, const vshCmd *cmd,
 
     /* try it by name */
     if (pool && (flag & VSH_BYNAME)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as vol name\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as vol name\n",
                  cmd->def->name, optname);
         vol = virStorageVolLookupByName(pool, n);
     }
     /* try it by key */
     if (vol == NULL && (flag & VSH_BYUUID)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as vol key\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as vol key\n",
                  cmd->def->name, optname);
         vol = virStorageVolLookupByKey(ctl->conn, n);
     }
     /* try it by path */
     if (vol == NULL && (flag & VSH_BYUUID)) {
-        vshDebug(ctl, 5, "%s: <%s> trying as vol path\n",
+        vshDebug(ctl, VSH_ERR_DEBUG, "%s: <%s> trying as vol path\n",
                  cmd->def->name, optname);
         vol = virStorageVolLookupByPath(ctl->conn, n);
     }
@@ -12703,7 +13662,8 @@ vshCommandOptSecret(vshControl *ctl, const vshCmd *cmd, const char **name)
     if (vshCommandOptString(cmd, optname, &n) <= 0)
         return NULL;
 
-    vshDebug(ctl, 5, "%s: found option <%s>: %s\n", cmd->def->name, optname, n);
+    vshDebug(ctl, VSH_ERR_DEBUG,
+             "%s: found option <%s>: %s\n", cmd->def->name, optname, n);
 
     if (name != NULL)
         *name = n;
@@ -12908,7 +13868,7 @@ get_data:
                     last->next = arg;
                 last = arg;
 
-                vshDebug(ctl, 4, "%s: %s(%s): %s\n",
+                vshDebug(ctl, VSH_ERR_INFO, "%s: %s(%s): %s\n",
                          cmd->name,
                          opt->name,
                          opt->type != VSH_OT_BOOL ? _("optdata") : _("bool"),
@@ -13270,12 +14230,16 @@ vshDebug(vshControl *ctl, int level, const char *format, ...)
     va_list ap;
     char *str;
 
-    va_start(ap, format);
-    vshOutputLogFile(ctl, VSH_ERR_DEBUG, format, ap);
-    va_end(ap);
-
-    if (level > ctl->debug)
+    /* Aligning log levels to that of libvirt.
+     * Traces with levels >=  user-specified-level
+     * gets logged into file
+     */
+    if (level < ctl->debug)
         return;
+
+    va_start(ap, format);
+    vshOutputLogFile(ctl, level, format, ap);
+    va_end(ap);
 
     va_start(ap, format);
     if (virVasprintf(&str, format, ap) < 0) {
@@ -13345,15 +14309,17 @@ vshInit(vshControl *ctl)
     if (ctl->conn)
         return false;
 
-    if (ctl->debug == -1) {
+    if (ctl->debug == VSH_DEBUG_DEFAULT) {
         /* log level not set from commandline, check env variable */
         debugEnv = getenv("VIRSH_DEBUG");
         if (debugEnv) {
-            if (virStrToLong_i(debugEnv, NULL, 10, &ctl->debug) < 0 ||
-                ctl->debug < VSH_ERR_DEBUG || ctl->debug > VSH_ERR_ERROR) {
+            int debug;
+            if (virStrToLong_i(debugEnv, NULL, 10, &debug) < 0 ||
+                debug < VSH_ERR_DEBUG || debug > VSH_ERR_ERROR) {
                 vshError(ctl, "%s",
                          _("VIRSH_DEBUG not set with a valid numeric value"));
-                ctl->debug = VSH_ERR_DEBUG;
+            } else {
+                ctl->debug = debug;
             }
         }
     }
@@ -14022,7 +14988,7 @@ vshParseArgv(vshControl *ctl, int argc, char **argv)
         /* parse command */
         ctl->imode = false;
         if (argc - optind == 1) {
-            vshDebug(ctl, 2, "commands: \"%s\"\n", argv[optind]);
+            vshDebug(ctl, VSH_ERR_INFO, "commands: \"%s\"\n", argv[optind]);
             return vshCommandStringParse(ctl, argv[optind]);
         } else {
             return vshCommandArgvParse(ctl, argc - optind, argv + optind);
@@ -14041,7 +15007,7 @@ main(int argc, char **argv)
     memset(ctl, 0, sizeof(vshControl));
     ctl->imode = true;          /* default is interactive mode */
     ctl->log_fd = -1;           /* Initialize log file descriptor */
-    ctl->debug = -1;            /* Initialize log level */
+    ctl->debug = VSH_DEBUG_DEFAULT;
 
     if (!setlocale(LC_ALL, "")) {
         perror("setlocale");

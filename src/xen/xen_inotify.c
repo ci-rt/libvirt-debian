@@ -4,7 +4,7 @@
  *                /etc/xen
  *                /var/lib/xend/domains
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2008 VirtualIron
  *
  * This library is free software; you can redistribute it and/or
@@ -38,7 +38,7 @@
 #include "xend_internal.h"
 #include "logging.h"
 #include "uuid.h"
-#include "files.h"
+#include "virfile.h"
 
 #include "xm_internal.h" /* for xenXMDomainConfigParse */
 
@@ -62,7 +62,7 @@ struct xenUnifiedDriver xenInotifyDriver = {
     NULL, /* domainResume */
     NULL, /* domainShutdown */
     NULL, /* domainReboot */
-    NULL, /* domainDestroy */
+    NULL, /* domainDestroyFlags */
     NULL, /* domainGetOSType */
     NULL, /* domainGetMaxMemory */
     NULL, /* domainSetMaxMemory */
@@ -382,13 +382,15 @@ cleanup:
  */
 virDrvOpenStatus
 xenInotifyOpen(virConnectPtr conn,
-             virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-             int flags ATTRIBUTE_UNUSED)
+               virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+               unsigned int flags)
 {
     DIR *dh;
     struct dirent *ent;
     char *path;
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     if (priv->configDir) {
         priv->useXenConfigCache = 1;

@@ -43,6 +43,7 @@
 #include "command.h"
 #include "intprops.h"
 #include "virnetserverservice.h"
+#include "virnetserver.h"
 
 #include "remote_protocol.h"
 #include "qemu_protocol.h"
@@ -338,6 +339,36 @@ static int remoteRelayDomainEventGraphics(virConnectPtr conn ATTRIBUTE_UNUSED,
     return 0;
 }
 
+static int remoteRelayDomainEventBlockJob(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                          virDomainPtr dom,
+                                          const char *path,
+                                          int type,
+                                          int status,
+                                          void *opaque)
+{
+    virNetServerClientPtr client = opaque;
+    remote_domain_event_block_job_msg data;
+
+    if (!client)
+        return -1;
+
+    VIR_DEBUG("Relaying domain block job event %s %d %s %i, %i",
+              dom->name, dom->id, path, type, status);
+
+    /* build return data */
+    memset(&data, 0, sizeof data);
+    make_nonnull_domain(&data.dom, dom);
+    data.path = (char*)path;
+    data.type = type;
+    data.status = status;
+
+    remoteDispatchDomainEventSend(client, remoteProgram,
+                                  REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB,
+                                  (xdrproc_t)xdr_remote_domain_event_block_job_msg, &data);
+
+    return 0;
+}
+
 
 static int remoteRelayDomainEventControlError(virConnectPtr conn ATTRIBUTE_UNUSED,
                                               virDomainPtr dom,
@@ -372,6 +403,7 @@ static virConnectDomainEventGenericCallback domainEventCallbacks[] = {
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventGraphics),
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventIOErrorReason),
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventControlError),
+    VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventBlockJob),
 };
 
 verify(ARRAY_CARDINALITY(domainEventCallbacks) == VIR_DOMAIN_EVENT_ID_LAST);
@@ -442,7 +474,7 @@ remoteDispatchOpen(virNetServerPtr server ATTRIBUTE_UNUSED,
                    struct remote_open_args *args)
 {
     const char *name;
-    int flags;
+    unsigned int flags;
     struct daemonClientPrivate *priv = virNetServerClientGetPrivateData(client);
     int rv = -1;
 
@@ -483,11 +515,11 @@ cleanup:
 
 static int
 remoteDispatchClose(virNetServerPtr server ATTRIBUTE_UNUSED,
-                    virNetServerClientPtr client,
+                    virNetServerClientPtr client ATTRIBUTE_UNUSED,
                     virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
                     virNetMessageErrorPtr rerr ATTRIBUTE_UNUSED)
 {
-    virNetServerClientClose(client);
+    virNetServerClientDelayedClose(client);
     return 0;
 }
 
@@ -809,7 +841,7 @@ remoteDispatchDomainMemoryStats(virNetServerPtr server ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    nr_stats = virDomainMemoryStats(dom, stats, args->maxStats, 0);
+    nr_stats = virDomainMemoryStats(dom, stats, args->maxStats, args->flags);
     if (nr_stats < 0)
         goto cleanup;
 
@@ -1586,6 +1618,48 @@ no_memory:
     goto cleanup;
 }
 
+static int
+remoteDispatchDomainGetBlockJobInfo(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                    virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                                    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+                                    virNetMessageErrorPtr rerr,
+                                    remote_domain_get_block_job_info_args *args,
+                                    remote_domain_get_block_job_info_ret *ret)
+{
+    virDomainPtr dom = NULL;
+    virDomainBlockJobInfo tmp;
+    int rv = -1;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    rv = virDomainGetBlockJobInfo(dom, args->path, &tmp, args->flags);
+    if (rv <= 0)
+        goto cleanup;
+
+    ret->type = tmp.type;
+    ret->bandwidth = tmp.bandwidth;
+    ret->cur = tmp.cur;
+    ret->end = tmp.end;
+    ret->found = 1;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
 /*-------------------------------------------------------------*/
 
 static int
@@ -2115,7 +2189,7 @@ authdeny:
 }
 #elif HAVE_POLKIT0
 static int
-remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
+remoteDispatchAuthPolkit(virNetServerPtr server,
                          virNetServerClientPtr client,
                          virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
                          virNetMessageErrorPtr rerr,
@@ -2137,21 +2211,19 @@ remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
 
     memset(ident, 0, sizeof ident);
 
-    virMutexLock(&server->lock);
-    virMutexLock(&client->lock);
-    virMutexUnlock(&server->lock);
+    virMutexLock(&priv->lock);
 
-    action = client->readonly ?
+    action = virNetServerClientGetReadonly(client) ?
         "org.libvirt.unix.monitor" :
         "org.libvirt.unix.manage";
 
     VIR_DEBUG("Start PolicyKit auth %d", virNetServerClientGetFD(client));
-    if (client->auth != REMOTE_AUTH_POLKIT) {
+    if (virNetServerClientGetAuth(client) != VIR_NET_SERVER_SERVICE_AUTH_POLKIT) {
         VIR_ERROR(_("client tried invalid PolicyKit init request"));
         goto authfail;
     }
 
-    if (qemudGetSocketIdentity(virNetServerClientGetFD(client), &callerUid, &callerPid) < 0) {
+    if (virNetServerClientGetLocalIdentity(client, &callerUid, &callerPid) < 0) {
         VIR_ERROR(_("cannot get peer socket identity"));
         goto authfail;
     }
@@ -2164,7 +2236,7 @@ remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
 
     VIR_INFO("Checking PID %d running as %d", callerPid, callerUid);
     dbus_error_init(&err);
-    if (!(pkcaller = polkit_caller_new_from_pid(server->sysbus,
+    if (!(pkcaller = polkit_caller_new_from_pid(virNetServerGetDBusConn(server),
                                                 callerPid, &err))) {
         VIR_ERROR(_("Failed to lookup policy kit caller: %s"), err.message);
         dbus_error_free(&err);
@@ -2226,9 +2298,9 @@ remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
              action, callerPid, callerUid,
              polkit_result_to_string_representation(pkresult));
     ret->complete = 1;
-    client->auth = REMOTE_AUTH_NONE;
+    virNetServerClientSetIdentity(client, ident);
 
-    virMutexUnlock(&client->lock);
+    virMutexUnlock(&priv->lock);
     return 0;
 
 error:
@@ -2236,7 +2308,7 @@ error:
     virNetError(VIR_ERR_AUTH_FAILED, "%s",
                 _("authentication failed"));
     virNetMessageSaveError(rerr);
-    virMutexUnlock(&client->lock);
+    virMutexUnlock(&priv->lock);
     return -1;
 
 authfail:

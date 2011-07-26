@@ -25,6 +25,9 @@
 /* Check that the 'struct timeval' type is defined.  */
 struct timeval t1;
 
+/* Check that sigset_t is defined.  */
+sigset_t t2;
+
 int
 main (void)
 {

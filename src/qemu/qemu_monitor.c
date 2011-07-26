@@ -35,7 +35,7 @@
 #include "virterror_internal.h"
 #include "memory.h"
 #include "logging.h"
-#include "files.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -957,6 +957,19 @@ int qemuMonitorEmitGraphics(qemuMonitorPtr mon,
     return ret;
 }
 
+int qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
+                            const char *diskAlias,
+                            int type,
+                            int status)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainBlockJob, mon->vm,
+                          diskAlias, type, status);
+    return ret;
+}
+
 
 
 int qemuMonitorSetCapabilities(qemuMonitorPtr mon)
@@ -1121,6 +1134,27 @@ int qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
         ret = qemuMonitorTextGetCPUInfo(mon, pids);
     return ret;
 }
+
+
+int qemuMonitorGetVirtType(qemuMonitorPtr mon,
+                           int *virtType)
+{
+    int ret;
+    VIR_DEBUG("mon=%p", mon);
+
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (mon->json)
+        ret = qemuMonitorJSONGetVirtType(mon, virtType);
+    else
+        ret = qemuMonitorTextGetVirtType(mon, virtType);
+    return ret;
+}
+
 
 int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
                               unsigned long *currmem)
@@ -1513,7 +1547,7 @@ int qemuMonitorMigrateToFd(qemuMonitorPtr mon,
                            int fd)
 {
     int ret;
-    VIR_DEBUG("mon=%p fd=%d flags=%u",
+    VIR_DEBUG("mon=%p fd=%d flags=%x",
           mon, fd, flags);
 
     if (!mon) {
@@ -1546,7 +1580,7 @@ int qemuMonitorMigrateToHost(qemuMonitorPtr mon,
 {
     int ret;
     char *uri = NULL;
-    VIR_DEBUG("mon=%p hostname=%s port=%d flags=%u",
+    VIR_DEBUG("mon=%p hostname=%s port=%d flags=%x",
           mon, hostname, port, flags);
 
     if (!mon) {
@@ -1578,7 +1612,7 @@ int qemuMonitorMigrateToCommand(qemuMonitorPtr mon,
     char *argstr;
     char *dest = NULL;
     int ret = -1;
-    VIR_DEBUG("mon=%p argv=%p flags=%u",
+    VIR_DEBUG("mon=%p argv=%p flags=%x",
           mon, argv, flags);
 
     if (!mon) {
@@ -1619,7 +1653,7 @@ int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
     char *dest = NULL;
     int ret = -1;
     char *safe_target = NULL;
-    VIR_DEBUG("mon=%p argv=%p target=%s offset=%llu flags=%u",
+    VIR_DEBUG("mon=%p argv=%p target=%s offset=%llu flags=%x",
           mon, argv, target, offset, flags);
 
     if (!mon) {
@@ -1682,7 +1716,7 @@ int qemuMonitorMigrateToUnix(qemuMonitorPtr mon,
 {
     char *dest = NULL;
     int ret = -1;
-    VIR_DEBUG("mon=%p, unixfile=%s flags=%u",
+    VIR_DEBUG("mon=%p, unixfile=%s flags=%x",
           mon, unixfile, flags);
 
     if (!mon) {
@@ -1943,20 +1977,30 @@ int qemuMonitorSendFileHandle(qemuMonitorPtr mon,
 int qemuMonitorCloseFileHandle(qemuMonitorPtr mon,
                                const char *fdname)
 {
-    int ret;
+    int ret = -1;
+    virErrorPtr error;
+
     VIR_DEBUG("mon=%p fdname=%s",
           mon, fdname);
+
+    error = virSaveLastError();
 
     if (!mon) {
         qemuReportError(VIR_ERR_INVALID_ARG, "%s",
                         _("monitor must not be NULL"));
-        return -1;
+        goto cleanup;
     }
 
     if (mon->json)
         ret = qemuMonitorJSONCloseFileHandle(mon, fdname);
     else
         ret = qemuMonitorTextCloseFileHandle(mon, fdname);
+
+cleanup:
+    if (error) {
+        virSetError(error);
+        virFreeError(error);
+    }
     return ret;
 }
 
@@ -2377,6 +2421,23 @@ int qemuMonitorInjectNMI(qemuMonitorPtr mon)
     return ret;
 }
 
+int qemuMonitorSendKey(qemuMonitorPtr mon,
+                       unsigned int holdtime,
+                       unsigned int *keycodes,
+                       unsigned int nkeycodes)
+{
+    int ret;
+
+    VIR_DEBUG("mon=%p, holdtime=%u, nkeycodes=%u",
+              mon, holdtime, nkeycodes);
+
+    if (mon->json)
+        ret = qemuMonitorJSONSendKey(mon, holdtime, keycodes, nkeycodes);
+    else
+        ret = qemuMonitorTextSendKey(mon, holdtime, keycodes, nkeycodes);
+    return ret;
+}
+
 int qemuMonitorScreendump(qemuMonitorPtr mon,
                           const char *file)
 {
@@ -2394,5 +2455,23 @@ int qemuMonitorScreendump(qemuMonitorPtr mon,
         ret = qemuMonitorJSONScreendump(mon, file);
     else
         ret = qemuMonitorTextScreendump(mon, file);
+    return ret;
+}
+
+int qemuMonitorBlockJob(qemuMonitorPtr mon,
+                        const char *device,
+                        unsigned long bandwidth,
+                        virDomainBlockJobInfoPtr info,
+                        int mode)
+{
+    int ret;
+
+    VIR_DEBUG("mon=%p, device=%p, bandwidth=%lu, info=%p, mode=%o",
+              mon, device, bandwidth, info, mode);
+
+    if (mon->json)
+        ret = qemuMonitorJSONBlockJob(mon, device, bandwidth, info, mode);
+    else
+        ret = qemuMonitorTextBlockJob(mon, device, bandwidth, info, mode);
     return ret;
 }

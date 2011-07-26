@@ -31,7 +31,7 @@
 #include "virnetsocket.h"
 #include "memory.h"
 #include "threads.h"
-#include "files.h"
+#include "virfile.h"
 #include "logging.h"
 #include "util.h"
 #include "virterror_internal.h"
@@ -110,6 +110,13 @@ static void virNetClientIncomingEvent(virNetSocketPtr sock,
                                       int events,
                                       void *opaque);
 
+static void virNetClientEventFree(void *opaque)
+{
+    virNetClientPtr client = opaque;
+
+    virNetClientFree(client);
+}
+
 static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
                                        const char *hostname)
 {
@@ -140,12 +147,17 @@ static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
         goto no_memory;
 
     /* Set up a callback to listen on the socket data */
+    client->refs++;
     if (virNetSocketAddIOCallback(client->sock,
                                   VIR_EVENT_HANDLE_READABLE,
                                   virNetClientIncomingEvent,
-                                  client) < 0)
+                                  client,
+                                  virNetClientEventFree) < 0) {
+        client->refs--;
         VIR_DEBUG("Failed to add event watch, disabling events");
+    }
 
+    VIR_DEBUG("client=%p refs=%d", client, client->refs);
     return client;
 
 no_memory:
@@ -187,12 +199,15 @@ virNetClientPtr virNetClientNewSSH(const char *nodename,
                                    const char *binary,
                                    const char *username,
                                    bool noTTY,
+                                   bool noVerify,
                                    const char *netcat,
+                                   const char *keyfile,
                                    const char *path)
 {
     virNetSocketPtr sock;
 
-    if (virNetSocketNewConnectSSH(nodename, service, binary, username, noTTY, netcat, path, &sock) < 0)
+    if (virNetSocketNewConnectSSH(nodename, service, binary, username, noTTY,
+                                  noVerify, netcat, keyfile, path, &sock) < 0)
         return NULL;
 
     return virNetClientNew(sock, NULL);
@@ -213,6 +228,7 @@ void virNetClientRef(virNetClientPtr client)
 {
     virNetClientLock(client);
     client->refs++;
+    VIR_DEBUG("client=%p refs=%d", client, client->refs);
     virNetClientUnlock(client);
 }
 
@@ -225,6 +241,7 @@ void virNetClientFree(virNetClientPtr client)
         return;
 
     virNetClientLock(client);
+    VIR_DEBUG("client=%p refs=%d", client, client->refs);
     client->refs--;
     if (client->refs > 0) {
         virNetClientUnlock(client);
@@ -240,7 +257,8 @@ void virNetClientFree(virNetClientPtr client)
 
     VIR_FREE(client->hostname);
 
-    virNetSocketRemoveIOCallback(client->sock);
+    if (client->sock)
+        virNetSocketRemoveIOCallback(client->sock);
     virNetSocketFree(client->sock);
     virNetTLSSessionFree(client->tls);
 #if HAVE_SASL
@@ -250,6 +268,25 @@ void virNetClientFree(virNetClientPtr client)
     virMutexDestroy(&client->lock);
 
     VIR_FREE(client);
+}
+
+
+void virNetClientClose(virNetClientPtr client)
+{
+    if (!client)
+        return;
+
+    virNetClientLock(client);
+    virNetSocketRemoveIOCallback(client->sock);
+    virNetSocketFree(client->sock);
+    client->sock = NULL;
+    virNetTLSSessionFree(client->tls);
+    client->tls = NULL;
+#if HAVE_SASL
+    virNetSASLSessionFree(client->sasl);
+    client->sasl = NULL;
+#endif
+    virNetClientUnlock(client);
 }
 
 
@@ -273,14 +310,16 @@ int virNetClientSetTLSSession(virNetClientPtr client,
     char buf[1];
     int len;
     struct pollfd fds[1];
-#ifdef HAVE_PTHREAD_SIGMASK
     sigset_t oldmask, blockedsigs;
 
     sigemptyset (&blockedsigs);
+#ifdef SIGWINCH
     sigaddset (&blockedsigs, SIGWINCH);
-    sigaddset (&blockedsigs, SIGCHLD);
-    sigaddset (&blockedsigs, SIGPIPE);
 #endif
+#ifdef SIGCHLD
+    sigaddset (&blockedsigs, SIGCHLD);
+#endif
+    sigaddset (&blockedsigs, SIGPIPE);
 
     virNetClientLock(client);
 
@@ -311,18 +350,14 @@ int virNetClientSetTLSSession(virNetClientPtr client,
          * after the call (RHBZ#567931).  Same for SIGCHLD and SIGPIPE
          * at the suggestion of Paolo Bonzini and Daniel Berrange.
          */
-#ifdef HAVE_PTHREAD_SIGMASK
         ignore_value(pthread_sigmask(SIG_BLOCK, &blockedsigs, &oldmask));
-#endif
 
     repoll:
         ret = poll(fds, ARRAY_CARDINALITY(fds), -1);
         if (ret < 0 && errno == EAGAIN)
             goto repoll;
 
-#ifdef HAVE_PTHREAD_SIGMASK
         ignore_value(pthread_sigmask(SIG_BLOCK, &oldmask, NULL));
-#endif
     }
 
     ret = virNetTLSContextCheckCertificate(tls, client->tls);
@@ -338,22 +373,18 @@ int virNetClientSetTLSSession(virNetClientPtr client,
     fds[0].revents = 0;
     fds[0].events = POLLIN;
 
-#ifdef HAVE_PTHREAD_SIGMASK
     /* Block SIGWINCH from interrupting poll in curses programs */
     ignore_value(pthread_sigmask(SIG_BLOCK, &blockedsigs, &oldmask));
-#endif
 
     repoll2:
     ret = poll(fds, ARRAY_CARDINALITY(fds), -1);
     if (ret < 0 && errno == EAGAIN)
         goto repoll2;
 
-#ifdef HAVE_PTHREAD_SIGMASK
     ignore_value(pthread_sigmask(SIG_BLOCK, &oldmask, NULL));
-#endif
 
     len = virNetTLSSessionRead(client->tls, buf, 1);
-    if (len < 0) {
+    if (len < 0 && errno != ENOMSG) {
         virReportSystemError(errno, "%s",
                              _("Unable to read TLS confirmation"));
         goto error;
@@ -800,9 +831,7 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
         virNetClientCallPtr tmp = client->waitDispatch;
         virNetClientCallPtr prev;
         char ignore;
-#ifdef HAVE_PTHREAD_SIGMASK
         sigset_t oldmask, blockedsigs;
-#endif
         int timeout = -1;
 
         /* If we have existing SASL decoded data we
@@ -841,22 +870,22 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
          * after the call (RHBZ#567931).  Same for SIGCHLD and SIGPIPE
          * at the suggestion of Paolo Bonzini and Daniel Berrange.
          */
-#ifdef HAVE_PTHREAD_SIGMASK
         sigemptyset (&blockedsigs);
+#ifdef SIGWINCH
         sigaddset (&blockedsigs, SIGWINCH);
+#endif
+#ifdef SIGCHLD
         sigaddset (&blockedsigs, SIGCHLD);
+#endif
         sigaddset (&blockedsigs, SIGPIPE);
         ignore_value(pthread_sigmask(SIG_BLOCK, &blockedsigs, &oldmask));
-#endif
 
     repoll:
         ret = poll(fds, ARRAY_CARDINALITY(fds), timeout);
         if (ret < 0 && errno == EAGAIN)
             goto repoll;
 
-#ifdef HAVE_PTHREAD_SIGMASK
         ignore_value(pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
-#endif
 
         virNetClientLock(client);
 
@@ -1111,6 +1140,9 @@ void virNetClientIncomingEvent(virNetSocketPtr sock,
 
     virNetClientLock(client);
 
+    if (!client->sock)
+        goto done;
+
     /* This should be impossible, but it doesn't hurt to check */
     if (client->waitDispatch)
         goto done;
@@ -1124,8 +1156,10 @@ void virNetClientIncomingEvent(virNetSocketPtr sock,
         goto done;
     }
 
-    if (virNetClientIOHandleInput(client) < 0)
-        VIR_DEBUG("Something went wrong during async message processing");
+    if (virNetClientIOHandleInput(client) < 0) {
+        VIR_WARN("Something went wrong during async message processing");
+        virNetSocketRemoveIOCallback(sock);
+    }
 
 done:
     virNetClientUnlock(client);

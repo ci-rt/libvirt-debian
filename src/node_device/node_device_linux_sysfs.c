@@ -31,7 +31,7 @@
 #include "virterror_internal.h"
 #include "memory.h"
 #include "logging.h"
-#include "files.h"
+#include "virfile.h"
 #include <dirent.h>
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
@@ -156,7 +156,7 @@ out:
         VIR_FREE(d->scsi_host.wwpn);
     }
     VIR_FREE(sysfs_path);
-    return 0;
+    return retval;
 }
 
 

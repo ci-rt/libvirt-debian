@@ -1,7 +1,7 @@
 /*
  * xend_internal.h
  *
- * Copyright (C) 2006-2008, 2010 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2010-2011 Red Hat, Inc.
  * Copyright (C) 2005,2006
  *
  *      Anthony Liguori <aliguori@us.ibm.com>
@@ -36,7 +36,7 @@ xenDaemonOpen_unix(virConnectPtr conn, const char *path);
  * \return 0 for success; -1 (with errno) on error
  *
  * xen_create() returns after a domain has been allocated including
- * its memory.  This does not guarentee, though, that the devices
+ * its memory.  This does not guarantee, though, that the devices
  * have come up properly.  For instance, if you create a VBD with an
  * invalid filename, the error won't occur until after this function
  * returns.
@@ -95,7 +95,8 @@ xenDaemonDomainFetch(virConnectPtr xend,
 
 
 /* refactored ones */
-virDrvOpenStatus xenDaemonOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags);
+virDrvOpenStatus xenDaemonOpen(virConnectPtr conn, virConnectAuthPtr auth,
+                               unsigned int flags);
 int xenDaemonClose(virConnectPtr conn);
 int xenDaemonGetVersion(virConnectPtr conn, unsigned long *hvVer);
 int xenDaemonNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info);
@@ -104,7 +105,7 @@ int xenDaemonDomainSuspend(virDomainPtr domain);
 int xenDaemonDomainResume(virDomainPtr domain);
 int xenDaemonDomainShutdown(virDomainPtr domain);
 int xenDaemonDomainReboot(virDomainPtr domain, unsigned int flags);
-int xenDaemonDomainDestroy(virDomainPtr domain);
+int xenDaemonDomainDestroyFlags(virDomainPtr domain, unsigned int flags);
 int xenDaemonDomainSave(virDomainPtr domain, const char *filename);
 int xenDaemonDomainRestore(virConnectPtr conn, const char *filename);
 int xenDaemonDomainSetMemory(virDomainPtr domain, unsigned long memory);
@@ -114,7 +115,8 @@ int xenDaemonDomainGetState(virDomainPtr domain,
                             int *state,
                             int *reason,
                             unsigned int flags);
-char *xenDaemonDomainGetXMLDesc(virDomainPtr domain, int flags, const char *cpus);
+char *xenDaemonDomainGetXMLDesc(virDomainPtr domain, unsigned int flags,
+                                const char *cpus);
 unsigned long xenDaemonDomainGetMaxMemory(virDomainPtr domain);
 char **xenDaemonListDomainsOld(virConnectPtr xend);
 

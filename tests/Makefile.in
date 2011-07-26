@@ -40,23 +40,23 @@ check_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 	virbuftest$(EXEEXT) commandtest$(EXEEXT) \
 	commandhelper$(EXEEXT) seclabeltest$(EXEEXT) hashtest$(EXEEXT) \
 	virnetmessagetest$(EXEEXT) virnetsockettest$(EXEEXT) \
-	ssh$(EXEEXT) utiltest$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2) \
-	$(am__EXEEXT_3) $(am__EXEEXT_4) $(am__EXEEXT_5) \
-	$(am__EXEEXT_6) $(am__EXEEXT_7) $(am__EXEEXT_8) \
-	networkxml2xmltest$(EXEEXT) networkxml2argvtest$(EXEEXT) \
+	ssh$(EXEEXT) utiltest$(EXEEXT) virnettlscontexttest$(EXEEXT) \
+	$(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
+	$(am__EXEEXT_4) $(am__EXEEXT_5) $(am__EXEEXT_6) \
+	$(am__EXEEXT_7) networkxml2xmltest$(EXEEXT) $(am__EXEEXT_8) \
 	nwfilterxml2xmltest$(EXEEXT) storagevolxml2xmltest$(EXEEXT) \
 	storagepoolxml2xmltest$(EXEEXT) nodedevxml2xmltest$(EXEEXT) \
 	interfacexml2xmltest$(EXEEXT) cputest$(EXEEXT) $(am__EXEEXT_9)
 @WITH_XEN_TRUE@am__append_2 = xml2sexprtest sexpr2xmltest \
-@WITH_XEN_TRUE@	xmconfigtest xencapstest
+@WITH_XEN_TRUE@	xmconfigtest xencapstest statstest reconnect
 
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__append_3 = statstest reconnect
-@WITH_QEMU_TRUE@am__append_4 = qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
-@WITH_OPENVZ_TRUE@am__append_5 = openvzutilstest
-@WITH_ESX_TRUE@am__append_6 = esxutilstest
-@WITH_VMX_TRUE@am__append_7 = vmx2xmltest xml2vmxtest
-@WITH_CIL_TRUE@am__append_8 = object-locking
-@HAVE_YAJL_TRUE@am__append_9 = jsontest
+@WITH_QEMU_TRUE@am__append_3 = qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
+@WITH_OPENVZ_TRUE@am__append_4 = openvzutilstest
+@WITH_ESX_TRUE@am__append_5 = esxutilstest
+@WITH_VMX_TRUE@am__append_6 = vmx2xmltest xml2vmxtest
+@WITH_CIL_TRUE@am__append_7 = object-locking
+@HAVE_YAJL_TRUE@am__append_8 = jsontest
+@WITH_NETWORK_TRUE@am__append_9 = networkxml2argvtest
 @WITH_LIBVIRTD_TRUE@am__append_10 = \
 @WITH_LIBVIRTD_TRUE@	test_conf.sh			\
 @WITH_LIBVIRTD_TRUE@	cpuset				\
@@ -99,37 +99,44 @@ TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) qparamtest$(EXEEXT) \
 	virbuftest$(EXEEXT) sockettest$(EXEEXT) commandtest$(EXEEXT) \
 	seclabeltest$(EXEEXT) hashtest$(EXEEXT) \
 	virnetmessagetest$(EXEEXT) virnetsockettest$(EXEEXT) \
-	utiltest$(EXEEXT) $(test_scripts) $(am__EXEEXT_8) \
-	$(am__EXEEXT_1) $(am__EXEEXT_10) $(am__EXEEXT_11) \
-	$(am__EXEEXT_4) $(am__EXEEXT_5) $(am__EXEEXT_6) \
-	$(am__EXEEXT_9) networkxml2xmltest$(EXEEXT) \
-	networkxml2argvtest$(EXEEXT) storagevolxml2xmltest$(EXEEXT) \
+	virnettlscontexttest$(EXEEXT) utiltest$(EXEEXT) \
+	$(test_scripts) $(am__EXEEXT_7) $(am__EXEEXT_10) \
+	$(am__EXEEXT_11) $(am__EXEEXT_3) $(am__EXEEXT_4) \
+	$(am__EXEEXT_5) $(am__EXEEXT_9) networkxml2xmltest$(EXEEXT) \
+	$(am__EXEEXT_8) storagevolxml2xmltest$(EXEEXT) \
 	storagepoolxml2xmltest$(EXEEXT) nodedevxml2xmltest$(EXEEXT) \
 	interfacexml2xmltest$(EXEEXT) cputest$(EXEEXT)
 @HAVE_YAJL_TRUE@am__append_14 = jsontest
 @WITH_XEN_TRUE@am__append_15 = xml2sexprtest \
 @WITH_XEN_TRUE@	sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest \
-@WITH_XEN_TRUE@	xencapstest
+@WITH_XEN_TRUE@	xencapstest \
+@WITH_XEN_TRUE@	reconnect \
+@WITH_XEN_TRUE@	statstest
 
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__append_16 = reconnect statstest
-@WITH_QEMU_TRUE@am__append_17 = qemuxml2argvtest qemuxml2xmltest \
+@WITH_QEMU_TRUE@am__append_16 = qemuxml2argvtest qemuxml2xmltest \
 @WITH_QEMU_TRUE@	qemuargv2xmltest qemuhelptest \
 @WITH_QEMU_TRUE@	nwfilterxml2xmltest
-@WITH_OPENVZ_TRUE@am__append_18 = openvzutilstest
-@WITH_ESX_TRUE@am__append_19 = esxutilstest
-@WITH_VMX_TRUE@am__append_20 = vmx2xmltest xml2vmxtest
+@WITH_OPENVZ_TRUE@am__append_17 = openvzutilstest
+@WITH_ESX_TRUE@am__append_18 = esxutilstest
+@WITH_VMX_TRUE@am__append_19 = vmx2xmltest xml2vmxtest
+@WITH_LIBVIRTD_TRUE@am__append_20 = eventtest
 @WITH_LIBVIRTD_TRUE@am__append_21 = eventtest
-@WITH_LIBVIRTD_TRUE@am__append_22 = eventtest
+@WITH_NETWORK_TRUE@am__append_22 = networkxml2argvtest
 @WITH_XEN_FALSE@am__append_23 = xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
 @WITH_XEN_FALSE@	xencapstest.c reconnect.c \
 @WITH_XEN_FALSE@	testutilsxen.c testutilsxen.h
 
-@WITH_QEMU_FALSE@am__append_24 = qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c qemuhelptest.c testutilsqemu.c testutilsqemu.h
-@WITH_OPENVZ_FALSE@am__append_25 = openvzutilstest.c
-@WITH_ESX_FALSE@am__append_26 = esxutilstest.c
-@WITH_VMX_FALSE@am__append_27 = vmx2xmltest.c xml2vmxtest.c
-@WITH_CIL_FALSE@am__append_28 = object-locking.ml
+@WITH_NETWORK_TRUE@@WITH_QEMU_TRUE@am__append_24 = ../src/libvirt_driver_network.la
+@WITH_QEMU_FALSE@am__append_25 = qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c qemuhelptest.c testutilsqemu.c testutilsqemu.h
+@WITH_OPENVZ_FALSE@am__append_26 = openvzutilstest.c
+@WITH_ESX_FALSE@am__append_27 = esxutilstest.c
+@WITH_VMX_FALSE@am__append_28 = vmx2xmltest.c xml2vmxtest.c
+@WITH_NETWORK_FALSE@am__append_29 = networkxml2argvtest.c
+@HAVE_LIBTASN1_TRUE@am__append_30 = pkix_asn1_tab.c
+@HAVE_LIBTASN1_TRUE@am__append_31 = -ltasn1
+@HAVE_LIBTASN1_FALSE@am__append_32 = pkix_asn1_tab.c
+@WITH_CIL_FALSE@am__append_33 = object-locking.ml
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -140,6 +147,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
 	$(top_srcdir)/gnulib/m4/btowc.m4 \
 	$(top_srcdir)/gnulib/m4/byteswap.m4 \
+	$(top_srcdir)/gnulib/m4/calloc.m4 \
 	$(top_srcdir)/gnulib/m4/canonicalize.m4 \
 	$(top_srcdir)/gnulib/m4/chown.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
@@ -159,6 +167,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl_h.m4 \
 	$(top_srcdir)/gnulib/m4/fflush.m4 \
+	$(top_srcdir)/gnulib/m4/ffs.m4 \
 	$(top_srcdir)/gnulib/m4/float_h.m4 \
 	$(top_srcdir)/gnulib/m4/fnmatch.m4 \
 	$(top_srcdir)/gnulib/m4/fpieee.m4 \
@@ -234,6 +243,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/posix_spawn.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
 	$(top_srcdir)/gnulib/m4/pthread.m4 \
+	$(top_srcdir)/gnulib/m4/pthread_sigmask.m4 \
 	$(top_srcdir)/gnulib/m4/putenv.m4 \
 	$(top_srcdir)/gnulib/m4/random_r.m4 \
 	$(top_srcdir)/gnulib/m4/rawmemchr.m4 \
@@ -272,6 +282,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/strerror.m4 \
 	$(top_srcdir)/gnulib/m4/strerror_r.m4 \
 	$(top_srcdir)/gnulib/m4/string_h.m4 \
+	$(top_srcdir)/gnulib/m4/strings_h.m4 \
 	$(top_srcdir)/gnulib/m4/strndup.m4 \
 	$(top_srcdir)/gnulib/m4/strnlen.m4 \
 	$(top_srcdir)/gnulib/m4/strptime.m4 \
@@ -335,20 +346,19 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 @WITH_XEN_TRUE@am__EXEEXT_1 = xml2sexprtest$(EXEEXT) \
 @WITH_XEN_TRUE@	sexpr2xmltest$(EXEEXT) xmconfigtest$(EXEEXT) \
-@WITH_XEN_TRUE@	xencapstest$(EXEEXT)
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__EXEEXT_2 =  \
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@	statstest$(EXEEXT) \
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@	reconnect$(EXEEXT)
-@WITH_QEMU_TRUE@am__EXEEXT_3 = qemuxml2argvtest$(EXEEXT) \
+@WITH_XEN_TRUE@	xencapstest$(EXEEXT) statstest$(EXEEXT) \
+@WITH_XEN_TRUE@	reconnect$(EXEEXT)
+@WITH_QEMU_TRUE@am__EXEEXT_2 = qemuxml2argvtest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuxml2xmltest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuargv2xmltest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuhelptest$(EXEEXT)
-@WITH_OPENVZ_TRUE@am__EXEEXT_4 = openvzutilstest$(EXEEXT)
-@WITH_ESX_TRUE@am__EXEEXT_5 = esxutilstest$(EXEEXT)
-@WITH_VMX_TRUE@am__EXEEXT_6 = vmx2xmltest$(EXEEXT) \
+@WITH_OPENVZ_TRUE@am__EXEEXT_3 = openvzutilstest$(EXEEXT)
+@WITH_ESX_TRUE@am__EXEEXT_4 = esxutilstest$(EXEEXT)
+@WITH_VMX_TRUE@am__EXEEXT_5 = vmx2xmltest$(EXEEXT) \
 @WITH_VMX_TRUE@	xml2vmxtest$(EXEEXT)
-@WITH_CIL_TRUE@am__EXEEXT_7 = object-locking$(EXEEXT)
-@HAVE_YAJL_TRUE@am__EXEEXT_8 = jsontest$(EXEEXT)
+@WITH_CIL_TRUE@am__EXEEXT_6 = object-locking$(EXEEXT)
+@HAVE_YAJL_TRUE@am__EXEEXT_7 = jsontest$(EXEEXT)
+@WITH_NETWORK_TRUE@am__EXEEXT_8 = networkxml2argvtest$(EXEEXT)
 @WITH_LIBVIRTD_TRUE@am__EXEEXT_9 = eventtest$(EXEEXT)
 am_commandhelper_OBJECTS = commandhelper-commandhelper.$(OBJEXT)
 commandhelper_OBJECTS = $(am_commandhelper_OBJECTS)
@@ -401,11 +411,15 @@ interfacexml2xmltest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_jsontest_OBJECTS = jsontest.$(OBJEXT) testutils.$(OBJEXT)
 jsontest_OBJECTS = $(am_jsontest_OBJECTS)
 jsontest_DEPENDENCIES = $(am__DEPENDENCIES_2)
-am_networkxml2argvtest_OBJECTS = networkxml2argvtest.$(OBJEXT) \
-	testutils.$(OBJEXT)
+am__networkxml2argvtest_SOURCES_DIST = networkxml2argvtest.c \
+	testutils.c testutils.h
+@WITH_NETWORK_TRUE@am_networkxml2argvtest_OBJECTS =  \
+@WITH_NETWORK_TRUE@	networkxml2argvtest.$(OBJEXT) \
+@WITH_NETWORK_TRUE@	testutils.$(OBJEXT)
 networkxml2argvtest_OBJECTS = $(am_networkxml2argvtest_OBJECTS)
-networkxml2argvtest_DEPENDENCIES = ../src/libvirt_driver_network.la \
-	$(am__DEPENDENCIES_2)
+@WITH_NETWORK_TRUE@networkxml2argvtest_DEPENDENCIES =  \
+@WITH_NETWORK_TRUE@	../src/libvirt_driver_network.la \
+@WITH_NETWORK_TRUE@	$(am__DEPENDENCIES_2)
 am_networkxml2xmltest_OBJECTS = networkxml2xmltest.$(OBJEXT) \
 	testutils.$(OBJEXT)
 networkxml2xmltest_OBJECTS = $(am_networkxml2xmltest_OBJECTS)
@@ -440,15 +454,13 @@ am__qemuargv2xmltest_SOURCES_DIST = qemuargv2xmltest.c testutilsqemu.c \
 @WITH_QEMU_TRUE@	qemuargv2xmltest.$(OBJEXT) \
 @WITH_QEMU_TRUE@	testutilsqemu.$(OBJEXT) testutils.$(OBJEXT)
 qemuargv2xmltest_OBJECTS = $(am_qemuargv2xmltest_OBJECTS)
-@WITH_QEMU_TRUE@qemuargv2xmltest_DEPENDENCIES =  \
-@WITH_QEMU_TRUE@	../src/libvirt_driver_qemu.la \
+@WITH_QEMU_TRUE@qemuargv2xmltest_DEPENDENCIES = $(qemu_LDADDS) \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
 am__qemuhelptest_SOURCES_DIST = qemuhelptest.c testutils.c testutils.h
 @WITH_QEMU_TRUE@am_qemuhelptest_OBJECTS = qemuhelptest.$(OBJEXT) \
 @WITH_QEMU_TRUE@	testutils.$(OBJEXT)
 qemuhelptest_OBJECTS = $(am_qemuhelptest_OBJECTS)
-@WITH_QEMU_TRUE@qemuhelptest_DEPENDENCIES =  \
-@WITH_QEMU_TRUE@	../src/libvirt_driver_qemu.la \
+@WITH_QEMU_TRUE@qemuhelptest_DEPENDENCIES = $(qemu_LDADDS) \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
 am__qemuxml2argvtest_SOURCES_DIST = qemuxml2argvtest.c testutilsqemu.c \
 	testutilsqemu.h testutils.c testutils.h
@@ -456,8 +468,7 @@ am__qemuxml2argvtest_SOURCES_DIST = qemuxml2argvtest.c testutilsqemu.c \
 @WITH_QEMU_TRUE@	qemuxml2argvtest.$(OBJEXT) \
 @WITH_QEMU_TRUE@	testutilsqemu.$(OBJEXT) testutils.$(OBJEXT)
 qemuxml2argvtest_OBJECTS = $(am_qemuxml2argvtest_OBJECTS)
-@WITH_QEMU_TRUE@qemuxml2argvtest_DEPENDENCIES =  \
-@WITH_QEMU_TRUE@	../src/libvirt_driver_qemu.la \
+@WITH_QEMU_TRUE@qemuxml2argvtest_DEPENDENCIES = $(qemu_LDADDS) \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
 am__qemuxml2xmltest_SOURCES_DIST = qemuxml2xmltest.c testutilsqemu.c \
 	testutilsqemu.h testutils.c testutils.h
@@ -465,14 +476,14 @@ am__qemuxml2xmltest_SOURCES_DIST = qemuxml2xmltest.c testutilsqemu.c \
 @WITH_QEMU_TRUE@	qemuxml2xmltest.$(OBJEXT) \
 @WITH_QEMU_TRUE@	testutilsqemu.$(OBJEXT) testutils.$(OBJEXT)
 qemuxml2xmltest_OBJECTS = $(am_qemuxml2xmltest_OBJECTS)
-@WITH_QEMU_TRUE@qemuxml2xmltest_DEPENDENCIES =  \
-@WITH_QEMU_TRUE@	../src/libvirt_driver_qemu.la \
+@WITH_QEMU_TRUE@qemuxml2xmltest_DEPENDENCIES = $(qemu_LDADDS) \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
 am_qparamtest_OBJECTS = qparamtest.$(OBJEXT) testutils.$(OBJEXT)
 qparamtest_OBJECTS = $(am_qparamtest_OBJECTS)
 qparamtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
-am__reconnect_SOURCES_DIST = reconnect.c
-@WITH_XEN_TRUE@am_reconnect_OBJECTS = reconnect.$(OBJEXT)
+am__reconnect_SOURCES_DIST = reconnect.c testutils.h testutils.c
+@WITH_XEN_TRUE@am_reconnect_OBJECTS = reconnect.$(OBJEXT) \
+@WITH_XEN_TRUE@	testutils.$(OBJEXT)
 reconnect_OBJECTS = $(am_reconnect_OBJECTS)
 @WITH_XEN_TRUE@reconnect_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_seclabeltest_OBJECTS = seclabeltest.$(OBJEXT)
@@ -533,6 +544,19 @@ virnetsockettest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(virnetsockettest_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
+am__virnettlscontexttest_SOURCES_DIST = virnettlscontexttest.c \
+	testutils.h testutils.c pkix_asn1_tab.c
+@HAVE_LIBTASN1_TRUE@am__objects_1 = virnettlscontexttest-pkix_asn1_tab.$(OBJEXT)
+am_virnettlscontexttest_OBJECTS =  \
+	virnettlscontexttest-virnettlscontexttest.$(OBJEXT) \
+	virnettlscontexttest-testutils.$(OBJEXT) $(am__objects_1)
+virnettlscontexttest_OBJECTS = $(am_virnettlscontexttest_OBJECTS)
+virnettlscontexttest_DEPENDENCIES = ../src/libvirt-net-rpc.la \
+	$(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1)
+virnettlscontexttest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(virnettlscontexttest_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 am_virshtest_OBJECTS = virshtest.$(OBJEXT) testutils.$(OBJEXT)
 virshtest_OBJECTS = $(am_virshtest_OBJECTS)
 virshtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -612,15 +636,15 @@ SOURCES = $(commandhelper_SOURCES) $(commandtest_SOURCES) \
 	$(statstest_SOURCES) $(storagepoolxml2xmltest_SOURCES) \
 	$(storagevolxml2xmltest_SOURCES) $(utiltest_SOURCES) \
 	$(virbuftest_SOURCES) $(virnetmessagetest_SOURCES) \
-	$(virnetsockettest_SOURCES) $(virshtest_SOURCES) \
-	$(vmx2xmltest_SOURCES) $(xencapstest_SOURCES) \
-	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES) \
-	$(xml2vmxtest_SOURCES)
+	$(virnetsockettest_SOURCES) $(virnettlscontexttest_SOURCES) \
+	$(virshtest_SOURCES) $(vmx2xmltest_SOURCES) \
+	$(xencapstest_SOURCES) $(xmconfigtest_SOURCES) \
+	$(xml2sexprtest_SOURCES) $(xml2vmxtest_SOURCES)
 DIST_SOURCES = $(commandhelper_SOURCES) $(commandtest_SOURCES) \
 	$(conftest_SOURCES) $(cputest_SOURCES) \
 	$(am__esxutilstest_SOURCES_DIST) $(am__eventtest_SOURCES_DIST) \
 	$(hashtest_SOURCES) $(interfacexml2xmltest_SOURCES) \
-	$(jsontest_SOURCES) $(networkxml2argvtest_SOURCES) \
+	$(jsontest_SOURCES) $(am__networkxml2argvtest_SOURCES_DIST) \
 	$(networkxml2xmltest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
 	$(nodeinfotest_SOURCES) $(nwfilterxml2xmltest_SOURCES) \
 	$(am__object_locking_SOURCES_DIST) \
@@ -635,7 +659,8 @@ DIST_SOURCES = $(commandhelper_SOURCES) $(commandtest_SOURCES) \
 	$(storagepoolxml2xmltest_SOURCES) \
 	$(storagevolxml2xmltest_SOURCES) $(utiltest_SOURCES) \
 	$(virbuftest_SOURCES) $(virnetmessagetest_SOURCES) \
-	$(virnetsockettest_SOURCES) $(virshtest_SOURCES) \
+	$(virnetsockettest_SOURCES) \
+	$(am__virnettlscontexttest_SOURCES_DIST) $(virshtest_SOURCES) \
 	$(am__vmx2xmltest_SOURCES_DIST) \
 	$(am__xencapstest_SOURCES_DIST) \
 	$(am__xmconfigtest_SOURCES_DIST) \
@@ -645,9 +670,10 @@ ETAGS = etags
 CTAGS = ctags
 am__tty_colors = \
 red=; grn=; lgn=; blu=; std=
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@am__EXEEXT_10 =  \
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@	reconnect$(EXEEXT) \
-@ENABLE_XEN_TESTS_TRUE@@WITH_XEN_TRUE@	statstest$(EXEEXT)
+@WITH_XEN_TRUE@am__EXEEXT_10 = xml2sexprtest$(EXEEXT) \
+@WITH_XEN_TRUE@	sexpr2xmltest$(EXEEXT) xmconfigtest$(EXEEXT) \
+@WITH_XEN_TRUE@	xencapstest$(EXEEXT) reconnect$(EXEEXT) \
+@WITH_XEN_TRUE@	statstest$(EXEEXT)
 @WITH_QEMU_TRUE@am__EXEEXT_11 = qemuxml2argvtest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuxml2xmltest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuargv2xmltest$(EXEEXT) \
@@ -754,6 +780,7 @@ GNULIB_FCHOWNAT = @GNULIB_FCHOWNAT@
 GNULIB_FCLOSE = @GNULIB_FCLOSE@
 GNULIB_FCNTL = @GNULIB_FCNTL@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
+GNULIB_FFS = @GNULIB_FFS@
 GNULIB_FGETC = @GNULIB_FGETC@
 GNULIB_FGETS = @GNULIB_FGETS@
 GNULIB_FOPEN = @GNULIB_FOPEN@
@@ -882,6 +909,8 @@ GNULIB_POSIX_SPAWN_FILE_ACTIONS_INIT = @GNULIB_POSIX_SPAWN_FILE_ACTIONS_INIT@
 GNULIB_PREAD = @GNULIB_PREAD@
 GNULIB_PRINTF = @GNULIB_PRINTF@
 GNULIB_PRINTF_POSIX = @GNULIB_PRINTF_POSIX@
+GNULIB_PSELECT = @GNULIB_PSELECT@
+GNULIB_PTHREAD_SIGMASK = @GNULIB_PTHREAD_SIGMASK@
 GNULIB_PTSNAME = @GNULIB_PTSNAME@
 GNULIB_PUTC = @GNULIB_PUTC@
 GNULIB_PUTCHAR = @GNULIB_PUTCHAR@
@@ -1049,6 +1078,7 @@ HAVE_DECL_SETENV = @HAVE_DECL_SETENV@
 HAVE_DECL_SNPRINTF = @HAVE_DECL_SNPRINTF@
 HAVE_DECL_STRDUP = @HAVE_DECL_STRDUP@
 HAVE_DECL_STRERROR_R = @HAVE_DECL_STRERROR_R@
+HAVE_DECL_STRNCASECMP = @HAVE_DECL_STRNCASECMP@
 HAVE_DECL_STRNDUP = @HAVE_DECL_STRNDUP@
 HAVE_DECL_STRNLEN = @HAVE_DECL_STRNLEN@
 HAVE_DECL_STRSIGNAL = @HAVE_DECL_STRSIGNAL@
@@ -1072,6 +1102,7 @@ HAVE_FCHMODAT = @HAVE_FCHMODAT@
 HAVE_FCHOWNAT = @HAVE_FCHOWNAT@
 HAVE_FCNTL = @HAVE_FCNTL@
 HAVE_FEATURES_H = @HAVE_FEATURES_H@
+HAVE_FFS = @HAVE_FFS@
 HAVE_FSEEKO = @HAVE_FSEEKO@
 HAVE_FSTATAT = @HAVE_FSTATAT@
 HAVE_FSYNC = @HAVE_FSYNC@
@@ -1128,7 +1159,9 @@ HAVE_POSIX_SPAWN = @HAVE_POSIX_SPAWN@
 HAVE_POSIX_SPAWNATTR_T = @HAVE_POSIX_SPAWNATTR_T@
 HAVE_POSIX_SPAWN_FILE_ACTIONS_T = @HAVE_POSIX_SPAWN_FILE_ACTIONS_T@
 HAVE_PREAD = @HAVE_PREAD@
+HAVE_PSELECT = @HAVE_PSELECT@
 HAVE_PTHREAD_H = @HAVE_PTHREAD_H@
+HAVE_PTHREAD_SIGMASK = @HAVE_PTHREAD_SIGMASK@
 HAVE_PTHREAD_SPINLOCK_T = @HAVE_PTHREAD_SPINLOCK_T@
 HAVE_PTHREAD_T = @HAVE_PTHREAD_T@
 HAVE_PTSNAME = @HAVE_PTSNAME@
@@ -1156,6 +1189,7 @@ HAVE_SPAWN_H = @HAVE_SPAWN_H@
 HAVE_STDINT_H = @HAVE_STDINT_H@
 HAVE_STPCPY = @HAVE_STPCPY@
 HAVE_STPNCPY = @HAVE_STPNCPY@
+HAVE_STRCASECMP = @HAVE_STRCASECMP@
 HAVE_STRCASESTR = @HAVE_STRCASESTR@
 HAVE_STRCHRNUL = @HAVE_STRCHRNUL@
 HAVE_STRPBRK = @HAVE_STRPBRK@
@@ -1297,6 +1331,7 @@ LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LIB_PTHREAD = @LIB_PTHREAD@
+LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALCHARSET_TESTS_ENVIRONMENT = @LOCALCHARSET_TESTS_ENVIRONMENT@
@@ -1349,6 +1384,7 @@ NEXT_AS_FIRST_DIRECTIVE_STDDEF_H = @NEXT_AS_FIRST_DIRECTIVE_STDDEF_H@
 NEXT_AS_FIRST_DIRECTIVE_STDINT_H = @NEXT_AS_FIRST_DIRECTIVE_STDINT_H@
 NEXT_AS_FIRST_DIRECTIVE_STDIO_H = @NEXT_AS_FIRST_DIRECTIVE_STDIO_H@
 NEXT_AS_FIRST_DIRECTIVE_STDLIB_H = @NEXT_AS_FIRST_DIRECTIVE_STDLIB_H@
+NEXT_AS_FIRST_DIRECTIVE_STRINGS_H = @NEXT_AS_FIRST_DIRECTIVE_STRINGS_H@
 NEXT_AS_FIRST_DIRECTIVE_STRING_H = @NEXT_AS_FIRST_DIRECTIVE_STRING_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_IOCTL_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_IOCTL_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H@
@@ -1380,6 +1416,7 @@ NEXT_STDDEF_H = @NEXT_STDDEF_H@
 NEXT_STDINT_H = @NEXT_STDINT_H@
 NEXT_STDIO_H = @NEXT_STDIO_H@
 NEXT_STDLIB_H = @NEXT_STDLIB_H@
+NEXT_STRINGS_H = @NEXT_STRINGS_H@
 NEXT_STRING_H = @NEXT_STRING_H@
 NEXT_SYS_IOCTL_H = @NEXT_SYS_IOCTL_H@
 NEXT_SYS_SELECT_H = @NEXT_SYS_SELECT_H@
@@ -1510,6 +1547,8 @@ REPLACE_POPEN = @REPLACE_POPEN@
 REPLACE_POSIX_SPAWN = @REPLACE_POSIX_SPAWN@
 REPLACE_PREAD = @REPLACE_PREAD@
 REPLACE_PRINTF = @REPLACE_PRINTF@
+REPLACE_PSELECT = @REPLACE_PSELECT@
+REPLACE_PTHREAD_SIGMASK = @REPLACE_PTHREAD_SIGMASK@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
 REPLACE_READ = @REPLACE_READ@
@@ -1589,6 +1628,7 @@ STRIP = @STRIP@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
+TC = @TC@
 TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
 U = @U@
 UDEVADM = @UDEVADM@
@@ -1733,9 +1773,10 @@ EXTRA_DIST = capabilityschemadata capabilityschematest commanddata \
 	storagevolschematest storagevolxml2xmlin storagevolxml2xmlout \
 	test-lib.sh vmx2xmldata xencapsdata xmconfigdata xml2sexprdata \
 	xml2vmxdata .valgrind.supp $(am__append_11) $(am__append_13) \
-	$(test_scripts) $(am__append_23) $(am__append_24) \
-	$(am__append_25) openvzutilstest.conf $(am__append_26) \
-	$(am__append_27) $(am__append_28)
+	$(test_scripts) $(am__append_23) $(am__append_25) \
+	$(am__append_26) openvzutilstest.conf $(am__append_27) \
+	$(am__append_28) $(am__append_29) $(am__append_32) \
+	$(am__append_33)
 
 # This is a fake SSH we use from virnetsockettest
 ssh_SOURCES = ssh.c
@@ -1786,30 +1827,32 @@ sockettest_LDADD = ../src/libvirt_util.la $(LDADDS)
 
 @WITH_XEN_TRUE@xencapstest_LDADD = ../src/libvirt_driver_xen.la $(LDADDS)
 @WITH_XEN_TRUE@reconnect_SOURCES = \
-@WITH_XEN_TRUE@	reconnect.c
+@WITH_XEN_TRUE@	reconnect.c testutils.h testutils.c
 
 @WITH_XEN_TRUE@reconnect_LDADD = $(LDADDS)
 @WITH_XEN_TRUE@statstest_SOURCES = \
 @WITH_XEN_TRUE@	statstest.c testutils.h testutils.c
 
 @WITH_XEN_TRUE@statstest_LDADD = ../src/libvirt_driver_xen.la $(LDADDS)
+@WITH_QEMU_TRUE@qemu_LDADDS = ../src/libvirt_driver_qemu.la \
+@WITH_QEMU_TRUE@	$(am__append_24)
 @WITH_QEMU_TRUE@qemuxml2argvtest_SOURCES = \
 @WITH_QEMU_TRUE@	qemuxml2argvtest.c testutilsqemu.c testutilsqemu.h \
 @WITH_QEMU_TRUE@	testutils.c testutils.h
 
-@WITH_QEMU_TRUE@qemuxml2argvtest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
+@WITH_QEMU_TRUE@qemuxml2argvtest_LDADD = $(qemu_LDADDS)  $(LDADDS)
 @WITH_QEMU_TRUE@qemuxml2xmltest_SOURCES = \
 @WITH_QEMU_TRUE@	qemuxml2xmltest.c testutilsqemu.c testutilsqemu.h \
 @WITH_QEMU_TRUE@	testutils.c testutils.h
 
-@WITH_QEMU_TRUE@qemuxml2xmltest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
+@WITH_QEMU_TRUE@qemuxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 @WITH_QEMU_TRUE@qemuargv2xmltest_SOURCES = \
 @WITH_QEMU_TRUE@	qemuargv2xmltest.c testutilsqemu.c testutilsqemu.h \
 @WITH_QEMU_TRUE@	testutils.c testutils.h
 
-@WITH_QEMU_TRUE@qemuargv2xmltest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
+@WITH_QEMU_TRUE@qemuargv2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 @WITH_QEMU_TRUE@qemuhelptest_SOURCES = qemuhelptest.c testutils.c testutils.h
-@WITH_QEMU_TRUE@qemuhelptest_LDADD = ../src/libvirt_driver_qemu.la $(LDADDS)
+@WITH_QEMU_TRUE@qemuhelptest_LDADD = $(qemu_LDADDS) $(LDADDS)
 @WITH_OPENVZ_TRUE@openvzutilstest_SOURCES = \
 @WITH_OPENVZ_TRUE@	openvzutilstest.c \
 @WITH_OPENVZ_TRUE@	testutils.c testutils.h
@@ -1835,11 +1878,11 @@ networkxml2xmltest_SOURCES = \
 	testutils.c testutils.h
 
 networkxml2xmltest_LDADD = $(LDADDS)
-networkxml2argvtest_SOURCES = \
-	networkxml2argvtest.c \
-	testutils.c testutils.h
+@WITH_NETWORK_TRUE@networkxml2argvtest_SOURCES = \
+@WITH_NETWORK_TRUE@	networkxml2argvtest.c \
+@WITH_NETWORK_TRUE@	testutils.c testutils.h
 
-networkxml2argvtest_LDADD = ../src/libvirt_driver_network.la $(LDADDS)
+@WITH_NETWORK_TRUE@networkxml2argvtest_LDADD = ../src/libvirt_driver_network.la $(LDADDS)
 nwfilterxml2xmltest_SOURCES = \
 	nwfilterxml2xmltest.c \
 	testutils.c testutils.h
@@ -1903,6 +1946,11 @@ virnetsockettest_SOURCES = \
 
 virnetsockettest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virnetsockettest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
+virnettlscontexttest_SOURCES = virnettlscontexttest.c testutils.h \
+	testutils.c $(am__append_30)
+virnettlscontexttest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virnettlscontexttest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS) \
+	$(am__append_31)
 seclabeltest_SOURCES = \
 	seclabeltest.c
 
@@ -2079,6 +2127,9 @@ virnetmessagetest$(EXEEXT): $(virnetmessagetest_OBJECTS) $(virnetmessagetest_DEP
 virnetsockettest$(EXEEXT): $(virnetsockettest_OBJECTS) $(virnetsockettest_DEPENDENCIES) 
 	@rm -f virnetsockettest$(EXEEXT)
 	$(AM_V_CCLD)$(virnetsockettest_LINK) $(virnetsockettest_OBJECTS) $(virnetsockettest_LDADD) $(LIBS)
+virnettlscontexttest$(EXEEXT): $(virnettlscontexttest_OBJECTS) $(virnettlscontexttest_DEPENDENCIES) 
+	@rm -f virnettlscontexttest$(EXEEXT)
+	$(AM_V_CCLD)$(virnettlscontexttest_LINK) $(virnettlscontexttest_OBJECTS) $(virnettlscontexttest_LDADD) $(LIBS)
 virshtest$(EXEEXT): $(virshtest_OBJECTS) $(virshtest_DEPENDENCIES) 
 	@rm -f virshtest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(virshtest_OBJECTS) $(virshtest_LDADD) $(LIBS)
@@ -2142,6 +2193,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnetmessagetest-virnetmessagetest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnetsockettest-testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnetsockettest-virnetsockettest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnettlscontexttest-pkix_asn1_tab.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnettlscontexttest-testutils.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnettlscontexttest-virnettlscontexttest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virshtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vmx2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xencapstest.Po@am__quote@
@@ -2284,6 +2338,54 @@ virnetsockettest-testutils.obj: testutils.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testutils.c' object='virnetsockettest-testutils.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnetsockettest_CFLAGS) $(CFLAGS) -c -o virnetsockettest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+
+virnettlscontexttest-virnettlscontexttest.o: virnettlscontexttest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -MT virnettlscontexttest-virnettlscontexttest.o -MD -MP -MF $(DEPDIR)/virnettlscontexttest-virnettlscontexttest.Tpo -c -o virnettlscontexttest-virnettlscontexttest.o `test -f 'virnettlscontexttest.c' || echo '$(srcdir)/'`virnettlscontexttest.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virnettlscontexttest-virnettlscontexttest.Tpo $(DEPDIR)/virnettlscontexttest-virnettlscontexttest.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='virnettlscontexttest.c' object='virnettlscontexttest-virnettlscontexttest.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -c -o virnettlscontexttest-virnettlscontexttest.o `test -f 'virnettlscontexttest.c' || echo '$(srcdir)/'`virnettlscontexttest.c
+
+virnettlscontexttest-virnettlscontexttest.obj: virnettlscontexttest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -MT virnettlscontexttest-virnettlscontexttest.obj -MD -MP -MF $(DEPDIR)/virnettlscontexttest-virnettlscontexttest.Tpo -c -o virnettlscontexttest-virnettlscontexttest.obj `if test -f 'virnettlscontexttest.c'; then $(CYGPATH_W) 'virnettlscontexttest.c'; else $(CYGPATH_W) '$(srcdir)/virnettlscontexttest.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virnettlscontexttest-virnettlscontexttest.Tpo $(DEPDIR)/virnettlscontexttest-virnettlscontexttest.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='virnettlscontexttest.c' object='virnettlscontexttest-virnettlscontexttest.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -c -o virnettlscontexttest-virnettlscontexttest.obj `if test -f 'virnettlscontexttest.c'; then $(CYGPATH_W) 'virnettlscontexttest.c'; else $(CYGPATH_W) '$(srcdir)/virnettlscontexttest.c'; fi`
+
+virnettlscontexttest-testutils.o: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -MT virnettlscontexttest-testutils.o -MD -MP -MF $(DEPDIR)/virnettlscontexttest-testutils.Tpo -c -o virnettlscontexttest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virnettlscontexttest-testutils.Tpo $(DEPDIR)/virnettlscontexttest-testutils.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testutils.c' object='virnettlscontexttest-testutils.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -c -o virnettlscontexttest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+
+virnettlscontexttest-testutils.obj: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -MT virnettlscontexttest-testutils.obj -MD -MP -MF $(DEPDIR)/virnettlscontexttest-testutils.Tpo -c -o virnettlscontexttest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virnettlscontexttest-testutils.Tpo $(DEPDIR)/virnettlscontexttest-testutils.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testutils.c' object='virnettlscontexttest-testutils.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -c -o virnettlscontexttest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+
+virnettlscontexttest-pkix_asn1_tab.o: pkix_asn1_tab.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -MT virnettlscontexttest-pkix_asn1_tab.o -MD -MP -MF $(DEPDIR)/virnettlscontexttest-pkix_asn1_tab.Tpo -c -o virnettlscontexttest-pkix_asn1_tab.o `test -f 'pkix_asn1_tab.c' || echo '$(srcdir)/'`pkix_asn1_tab.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virnettlscontexttest-pkix_asn1_tab.Tpo $(DEPDIR)/virnettlscontexttest-pkix_asn1_tab.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pkix_asn1_tab.c' object='virnettlscontexttest-pkix_asn1_tab.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -c -o virnettlscontexttest-pkix_asn1_tab.o `test -f 'pkix_asn1_tab.c' || echo '$(srcdir)/'`pkix_asn1_tab.c
+
+virnettlscontexttest-pkix_asn1_tab.obj: pkix_asn1_tab.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -MT virnettlscontexttest-pkix_asn1_tab.obj -MD -MP -MF $(DEPDIR)/virnettlscontexttest-pkix_asn1_tab.Tpo -c -o virnettlscontexttest-pkix_asn1_tab.obj `if test -f 'pkix_asn1_tab.c'; then $(CYGPATH_W) 'pkix_asn1_tab.c'; else $(CYGPATH_W) '$(srcdir)/pkix_asn1_tab.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virnettlscontexttest-pkix_asn1_tab.Tpo $(DEPDIR)/virnettlscontexttest-pkix_asn1_tab.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pkix_asn1_tab.c' object='virnettlscontexttest-pkix_asn1_tab.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -c -o virnettlscontexttest-pkix_asn1_tab.obj `if test -f 'pkix_asn1_tab.c'; then $(CYGPATH_W) 'pkix_asn1_tab.c'; else $(CYGPATH_W) '$(srcdir)/pkix_asn1_tab.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

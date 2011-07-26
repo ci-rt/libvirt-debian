@@ -45,7 +45,7 @@
 #include "xs_internal.h" /* To extract VNC port & Serial console TTY */
 #include "memory.h"
 #include "count-one-bits.h"
-#include "files.h"
+#include "virfile.h"
 
 /* required for cpumap_t */
 #include <xen/dom0_ops.h>
@@ -1199,11 +1199,11 @@ sexpr_to_xend_topology(const struct sexpr *root,
         cell = virParseNumber(&cur);
         if (cell < 0)
             goto parse_error;
-        virSkipSpaces(&cur);
+        virSkipSpacesAndBackslash(&cur);
         if (*cur != ':')
             goto parse_error;
         cur++;
-        virSkipSpaces(&cur);
+        virSkipSpacesAndBackslash(&cur);
         if (STRPREFIX(cur, "no cpus")) {
             nb_cpus = 0;
             for (cpu = 0; cpu < numCpus; cpu++)
@@ -1323,10 +1323,12 @@ error:
 virDrvOpenStatus
 xenDaemonOpen(virConnectPtr conn,
               virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-              int flags ATTRIBUTE_UNUSED)
+              unsigned int flags)
 {
     char *port = NULL;
     int ret = VIR_DRV_OPEN_ERROR;
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     /* Switch on the scheme, which we expect to be NULL (file),
      * "http" or "xen".
@@ -1488,8 +1490,10 @@ xenDaemonDomainShutdown(virDomainPtr domain)
  * Returns 0 in case of success, -1 (with errno) in case of error.
  */
 int
-xenDaemonDomainReboot(virDomainPtr domain, unsigned int flags ATTRIBUTE_UNUSED)
+xenDaemonDomainReboot(virDomainPtr domain, unsigned int flags)
 {
+    virCheckFlags(0, -1);
+
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
@@ -1505,8 +1509,9 @@ xenDaemonDomainReboot(virDomainPtr domain, unsigned int flags ATTRIBUTE_UNUSED)
 }
 
 /**
- * xenDaemonDomainDestroy:
+ * xenDaemonDomainDestroyFlags:
  * @domain: pointer to the Domain block
+ * @flags: an OR'ed set of virDomainDestroyFlagsValues
  *
  * Abruptly halt the domain, the OS is not properly shutdown and the
  * resources allocated for the domain are immediately freed, mounted
@@ -1515,11 +1520,17 @@ xenDaemonDomainReboot(virDomainPtr domain, unsigned int flags ATTRIBUTE_UNUSED)
  * dying and will go away completely once all of the resources have been
  * unmapped (usually from the backend devices).
  *
+ * Calling this function with no @flags set (equal to zero)
+ * is equivalent to calling xenDaemonDomainDestroy.
+ *
  * Returns 0 in case of success, -1 (with errno) in case of error.
  */
 int
-xenDaemonDomainDestroy(virDomainPtr domain)
+xenDaemonDomainDestroyFlags(virDomainPtr domain,
+                            unsigned int flags)
 {
+    virCheckFlags(0, -1);
+
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return(-1);
@@ -1629,8 +1640,10 @@ xenDaemonDomainSave(virDomainPtr domain, const char *filename)
  */
 static int
 xenDaemonDomainCoreDump(virDomainPtr domain, const char *filename,
-                        int flags ATTRIBUTE_UNUSED)
+                        unsigned int flags)
 {
+    virCheckFlags(VIR_DUMP_LIVE | VIR_DUMP_CRASH, -1);
+
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL) ||
         (filename == NULL)) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -1837,11 +1850,14 @@ cleanup:
  *         the caller must free() the returned value.
  */
 char *
-xenDaemonDomainGetXMLDesc(virDomainPtr domain, int flags, const char *cpus)
+xenDaemonDomainGetXMLDesc(virDomainPtr domain, unsigned int flags,
+                          const char *cpus)
 {
     xenUnifiedPrivatePtr priv;
     virDomainDefPtr def;
     char *xml;
+
+    /* Flags checked by virDomainDefFormat */
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -1921,10 +1937,12 @@ int
 xenDaemonDomainGetState(virDomainPtr domain,
                         int *state,
                         int *reason,
-                        unsigned int flags ATTRIBUTE_UNUSED)
+                        unsigned int flags)
 {
     xenUnifiedPrivatePtr priv = domain->conn->privateData;
     struct sexpr *root;
+
+    virCheckFlags(0, -1);
 
     if (domain->id < 0 && priv->xendConfigVersion < 3)
         return -1;
@@ -2213,6 +2231,10 @@ xenDaemonDomainSetVcpusFlags(virDomainPtr domain, unsigned int vcpus,
     xenUnifiedPrivatePtr priv;
     int max;
 
+    virCheckFlags(VIR_DOMAIN_VCPU_LIVE |
+                  VIR_DOMAIN_VCPU_CONFIG |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
+
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)
         || (vcpus < 1)) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -2363,6 +2385,10 @@ xenDaemonDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
     struct sexpr *root;
     int ret;
     xenUnifiedPrivatePtr priv;
+
+    virCheckFlags(VIR_DOMAIN_VCPU_LIVE |
+                  VIR_DOMAIN_VCPU_CONFIG |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
 
     if (domain == NULL || domain->conn == NULL || domain->name == NULL) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -2596,8 +2622,8 @@ xenDaemonCreateXML(virConnectPtr conn, const char *xmlDesc,
 
     priv = (xenUnifiedPrivatePtr) conn->privateData;
 
-    if (!(def = virDomainDefParseString(priv->caps,
-                                        xmlDesc,
+    if (!(def = virDomainDefParseString(priv->caps, xmlDesc,
+                                        1 << VIR_DOMAIN_VIRT_XEN,
                                         VIR_DOMAIN_XML_INACTIVE)))
         return (NULL);
 
@@ -2629,7 +2655,7 @@ xenDaemonCreateXML(virConnectPtr conn, const char *xmlDesc,
   error:
     /* Make sure we don't leave a still-born domain around */
     if (dom != NULL) {
-        xenDaemonDomainDestroy(dom);
+        xenDaemonDomainDestroyFlags(dom, 0);
         virUnrefDomain(dom);
     }
     virDomainDefFree(def);
@@ -2659,6 +2685,8 @@ xenDaemonAttachDeviceFlags(virDomainPtr domain, const char *xml,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char class[8], ref[80];
     char *target = NULL;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG, -1);
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -2717,11 +2745,10 @@ xenDaemonAttachDeviceFlags(virDomainPtr domain, const char *xml,
 
     switch (dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
-        if (xenFormatSxprDisk(domain->conn,
-                              dev->data.disk,
-                               &buf,
-                               STREQ(def->os.type, "hvm") ? 1 : 0,
-                               priv->xendConfigVersion, 1) < 0)
+        if (xenFormatSxprDisk(dev->data.disk,
+                              &buf,
+                              STREQ(def->os.type, "hvm") ? 1 : 0,
+                              priv->xendConfigVersion, 1) < 0)
             goto cleanup;
 
         if (dev->data.disk->device != VIR_DOMAIN_DISK_DEVICE_CDROM) {
@@ -2826,8 +2853,7 @@ xenDaemonUpdateDeviceFlags(virDomainPtr domain, const char *xml,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char class[8], ref[80];
 
-    virCheckFlags(VIR_DOMAIN_DEVICE_MODIFY_CURRENT |
-                  VIR_DOMAIN_DEVICE_MODIFY_LIVE |
+    virCheckFlags(VIR_DOMAIN_DEVICE_MODIFY_LIVE |
                   VIR_DOMAIN_DEVICE_MODIFY_CONFIG, -1);
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
@@ -2887,8 +2913,7 @@ xenDaemonUpdateDeviceFlags(virDomainPtr domain, const char *xml,
 
     switch (dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
-        if (xenFormatSxprDisk(domain->conn,
-                              dev->data.disk,
+        if (xenFormatSxprDisk(dev->data.disk,
                               &buf,
                               STREQ(def->os.type, "hvm") ? 1 : 0,
                               priv->xendConfigVersion, 1) < 0)
@@ -2941,6 +2966,8 @@ xenDaemonDetachDeviceFlags(virDomainPtr domain, const char *xml,
     int ret = -1;
     char *xendev = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG, -1);
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -3151,10 +3178,12 @@ xenDaemonDomainMigratePrepare (virConnectPtr dconn,
                                int *cookielen ATTRIBUTE_UNUSED,
                                const char *uri_in,
                                char **uri_out,
-                               unsigned long flags ATTRIBUTE_UNUSED,
+                               unsigned long flags,
                                const char *dname ATTRIBUTE_UNUSED,
                                unsigned long resource ATTRIBUTE_UNUSED)
 {
+    virCheckFlags(XEN_MIGRATION_FLAGS, -1);
+
     /* If uri_in is NULL, get the current hostname as a best guess
      * of how the source host should connect to us.  Note that caller
      * deallocates this string.
@@ -3188,6 +3217,8 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
     char *p, *hostname = NULL;
 
     int undefined_source = 0;
+
+    virCheckFlags(XEN_MIGRATION_FLAGS, -1);
 
     /* Xen doesn't support renaming domains during migration. */
     if (dname) {
@@ -3346,6 +3377,7 @@ virDomainPtr xenDaemonDomainDefineXML(virConnectPtr conn, const char *xmlDesc) {
         return(NULL);
 
     if (!(def = virDomainDefParseString(priv->caps, xmlDesc,
+                                        1 << VIR_DOMAIN_VIRT_XEN,
                                         VIR_DOMAIN_XML_INACTIVE))) {
         virXendError(VIR_ERR_XML_ERROR,
                      "%s", _("failed to parse domain description"));
@@ -3915,7 +3947,7 @@ struct xenUnifiedDriver xenDaemonDriver = {
     xenDaemonDomainResume,       /* domainResume */
     xenDaemonDomainShutdown,     /* domainShutdown */
     xenDaemonDomainReboot,       /* domainReboot */
-    xenDaemonDomainDestroy,      /* domainDestroy */
+    xenDaemonDomainDestroyFlags, /* domainDestroyFlags */
     xenDaemonDomainGetOSType,    /* domainGetOSType */
     xenDaemonDomainGetMaxMemory, /* domainGetMaxMemory */
     xenDaemonDomainSetMaxMemory, /* domainSetMaxMemory */

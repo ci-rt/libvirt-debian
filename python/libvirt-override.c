@@ -291,6 +291,88 @@ libvirt_virDomainGetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
 }
 
 static PyObject *
+libvirt_virDomainGetSchedulerParametersFlags(PyObject *self ATTRIBUTE_UNUSED,
+                                        PyObject *args) {
+    virDomainPtr domain;
+    PyObject *pyobj_domain, *info;
+    char *c_retval;
+    int i_retval;
+    int nparams, i;
+    unsigned int flags;
+    virTypedParameterPtr params;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virDomainGetScedulerParametersFlags",
+                          &pyobj_domain, &flags))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainGetSchedulerType(domain, &nparams);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_retval == NULL)
+        return VIR_PY_NONE;
+    free(c_retval);
+
+    if ((params = malloc(sizeof(*params)*nparams)) == NULL)
+        return VIR_PY_NONE;
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainGetSchedulerParametersFlags(domain, params, &nparams, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (i_retval < 0) {
+        free(params);
+        return VIR_PY_NONE;
+    }
+
+    /* convert to a Python tuple of long objects */
+    if ((info = PyDict_New()) == NULL) {
+        free(params);
+        return VIR_PY_NONE;
+    }
+    for (i = 0 ; i < nparams ; i++) {
+        PyObject *key, *val;
+
+        switch (params[i].type) {
+        case VIR_TYPED_PARAM_INT:
+            val = PyInt_FromLong((long)params[i].value.i);
+            break;
+
+        case VIR_TYPED_PARAM_UINT:
+            val = PyInt_FromLong((long)params[i].value.ui);
+            break;
+
+        case VIR_TYPED_PARAM_LLONG:
+            val = PyLong_FromLongLong((long long)params[i].value.l);
+            break;
+
+        case VIR_TYPED_PARAM_ULLONG:
+            val = PyLong_FromLongLong((long long)params[i].value.ul);
+            break;
+
+        case VIR_TYPED_PARAM_DOUBLE:
+            val = PyFloat_FromDouble((double)params[i].value.d);
+            break;
+
+        case VIR_TYPED_PARAM_BOOLEAN:
+            val = PyBool_FromLong((long)params[i].value.b);
+            break;
+
+        default:
+            free(params);
+            Py_DECREF(info);
+            return VIR_PY_NONE;
+        }
+
+        key = libvirt_constcharPtrWrap(params[i].field);
+        PyDict_SetItem(info, key, val);
+    }
+    free(params);
+    return(info);
+}
+
+static PyObject *
 libvirt_virDomainSetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
                                         PyObject *args) {
     virDomainPtr domain;
@@ -385,7 +467,102 @@ libvirt_virDomainSetSchedulerParameters(PyObject *self ATTRIBUTE_UNUSED,
     return VIR_PY_INT_SUCCESS;
 }
 
+static PyObject *
+libvirt_virDomainSetSchedulerParametersFlags(PyObject *self ATTRIBUTE_UNUSED,
+                                             PyObject *args) {
+    virDomainPtr domain;
+    PyObject *pyobj_domain, *info;
+    char *c_retval;
+    int i_retval;
+    int nparams, i;
+    unsigned int flags;
+    virTypedParameterPtr params;
 
+    if (!PyArg_ParseTuple(args,
+                          (char *)"OOi:virDomainSetScedulerParametersFlags",
+                          &pyobj_domain, &info, &flags))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainGetSchedulerType(domain, &nparams);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_retval == NULL)
+        return VIR_PY_INT_FAIL;
+    free(c_retval);
+
+    if ((params = malloc(sizeof(*params)*nparams)) == NULL)
+        return VIR_PY_INT_FAIL;
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainGetSchedulerParametersFlags(domain, params, &nparams, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (i_retval < 0) {
+        free(params);
+        return VIR_PY_INT_FAIL;
+    }
+
+    /* convert to a Python tuple of long objects */
+    for (i = 0; i < nparams; i++) {
+        PyObject *key, *val;
+        key = libvirt_constcharPtrWrap(params[i].field);
+        val = PyDict_GetItem(info, key);
+        Py_DECREF(key);
+
+        if (val == NULL)
+            continue;
+
+        switch (params[i].type) {
+        case VIR_TYPED_PARAM_INT:
+            params[i].value.i = (int)PyInt_AS_LONG(val);
+            break;
+
+        case VIR_TYPED_PARAM_UINT:
+            params[i].value.ui = (unsigned int)PyInt_AS_LONG(val);
+            break;
+
+        case VIR_TYPED_PARAM_LLONG:
+            params[i].value.l = (long long)PyLong_AsLongLong(val);
+            break;
+
+        case VIR_TYPED_PARAM_ULLONG:
+            params[i].value.ul = (unsigned long long)PyLong_AsLongLong(val);
+            break;
+
+        case VIR_TYPED_PARAM_DOUBLE:
+            params[i].value.d = (double)PyFloat_AsDouble(val);
+            break;
+
+        case VIR_TYPED_PARAM_BOOLEAN:
+            {
+                /* Hack - Python's definition of Py_True breaks strict
+                 * aliasing rules, so can't directly compare :-(
+                 */
+                PyObject *hacktrue = PyBool_FromLong(1);
+                params[i].value.b = hacktrue == val ? 1: 0;
+                Py_DECREF(hacktrue);
+            }
+            break;
+
+        default:
+            free(params);
+            return VIR_PY_INT_FAIL;
+        }
+    }
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainSetSchedulerParametersFlags(domain, params, nparams, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (i_retval < 0) {
+        free(params);
+        return VIR_PY_INT_FAIL;
+    }
+
+    free(params);
+    return VIR_PY_INT_SUCCESS;
+}
 
 
 /* FIXME: This is a place holder for the implementation. */
@@ -559,6 +736,121 @@ libvirt_virDomainPinVcpu(PyObject *self ATTRIBUTE_UNUSED,
     return VIR_PY_INT_SUCCESS;
 }
 
+static PyObject *
+libvirt_virDomainPinVcpuFlags(PyObject *self ATTRIBUTE_UNUSED,
+                              PyObject *args) {
+    virDomainPtr domain;
+    PyObject *pyobj_domain, *pycpumap, *truth;
+    virNodeInfo nodeinfo;
+    unsigned char *cpumap;
+    int cpumaplen, i, vcpu;
+    unsigned int flags;
+    int i_retval;
+
+    if (!PyArg_ParseTuple(args, (char *)"OiOi:virDomainPinVcpuFlags",
+                          &pyobj_domain, &vcpu, &pycpumap, &flags))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virNodeGetInfo(virDomainGetConnect(domain), &nodeinfo);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (i_retval < 0)
+        return VIR_PY_INT_FAIL;
+
+    cpumaplen = VIR_CPU_MAPLEN(VIR_NODEINFO_MAXCPUS(nodeinfo));
+    if ((cpumap = malloc(cpumaplen)) == NULL)
+        return VIR_PY_INT_FAIL;
+    memset(cpumap, 0, cpumaplen);
+
+    truth = PyBool_FromLong(1);
+    for (i = 0 ; i < VIR_NODEINFO_MAXCPUS(nodeinfo) ; i++) {
+        PyObject *flag = PyTuple_GetItem(pycpumap, i);
+        if (flag == truth)
+            VIR_USE_CPU(cpumap, i);
+        else
+            VIR_UNUSE_CPU(cpumap, i);
+    }
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainPinVcpuFlags(domain, vcpu, cpumap, cpumaplen, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    Py_DECREF(truth);
+    free(cpumap);
+
+    if (i_retval < 0)
+        return VIR_PY_INT_FAIL;
+
+    return VIR_PY_INT_SUCCESS;
+}
+
+static PyObject *
+libvirt_virDomainGetVcpuPinInfo(PyObject *self ATTRIBUTE_UNUSED,
+                                PyObject *args) {
+    virDomainPtr domain;
+    PyObject *pyobj_domain, *pycpumaps = NULL;
+    virNodeInfo nodeinfo;
+    virDomainInfo dominfo;
+    unsigned char *cpumaps;
+    int cpumaplen, vcpu, pcpu;
+    unsigned int flags;
+    int i_retval;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virDomainGetVcpuPinInfo",
+                          &pyobj_domain, &flags))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virNodeGetInfo(virDomainGetConnect(domain), &nodeinfo);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (i_retval < 0)
+        return VIR_PY_NONE;
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainGetInfo(domain, &dominfo);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (i_retval < 0)
+        return VIR_PY_NONE;
+
+    cpumaplen = VIR_CPU_MAPLEN(VIR_NODEINFO_MAXCPUS(nodeinfo));
+    if ((cpumaps = malloc(dominfo.nrVirtCpu * cpumaplen)) == NULL)
+        goto cleanup;
+    memset(cpumaps, 0, dominfo.nrVirtCpu * cpumaplen);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    i_retval = virDomainGetVcpuPinInfo(domain, dominfo.nrVirtCpu,
+                                       cpumaps, cpumaplen, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (i_retval < 0)
+        goto cleanup;
+
+    if ((pycpumaps = PyList_New(dominfo.nrVirtCpu)) == NULL)
+        goto cleanup;
+
+    for (vcpu = 0; vcpu < dominfo.nrVirtCpu; vcpu++) {
+        PyObject *mapinfo = PyTuple_New(VIR_NODEINFO_MAXCPUS(nodeinfo));
+        if (mapinfo == NULL)
+            goto cleanup;
+
+        for (pcpu = 0; pcpu < VIR_NODEINFO_MAXCPUS(nodeinfo); pcpu++) {
+            PyTuple_SetItem(mapinfo, pcpu,
+                            PyBool_FromLong(VIR_CPU_USABLE(cpumaps, cpumaplen, vcpu, pcpu)));
+        }
+        PyList_SetItem(pycpumaps, vcpu, mapinfo);
+    }
+
+    free(cpumaps);
+
+    return pycpumaps;
+
+cleanup:
+    free(cpumaps);
+
+    if (pycpumaps) { Py_DECREF(pycpumaps);}
+
+    return VIR_PY_NONE;
+}
 
 /************************************************************************
  *									*
@@ -791,7 +1083,7 @@ libvirt_virConnectOpenAuth(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     PyObject *py_retval;
     virConnectPtr c_retval;
     char * name;
-    int flags;
+    unsigned int flags;
     PyObject *pyauth;
     PyObject *pycredcb;
     PyObject *pycredtype;
@@ -991,7 +1283,7 @@ libvirt_virDomainSnapshotListNames(PyObject *self ATTRIBUTE_UNUSED,
     int c_retval, i;
     virDomainPtr dom;
     PyObject *pyobj_dom;
-    int flags;
+    unsigned int flags;
 
     if (!PyArg_ParseTuple(args, (char *)"Oi:virDomainSnapshotListNames", &pyobj_dom, &flags))
         return(NULL);
@@ -1035,7 +1327,7 @@ libvirt_virDomainRevertToSnapshot(PyObject *self ATTRIBUTE_UNUSED,
     virDomainSnapshotPtr snap;
     PyObject *pyobj_snap;
     PyObject *pyobj_dom;
-    int flags;
+    unsigned int flags;
 
     if (!PyArg_ParseTuple(args, (char *)"OOi:virDomainRevertToSnapshot", &pyobj_dom, &pyobj_snap, &flags))
         return(NULL);
@@ -1489,13 +1781,12 @@ libvirt_virNodeGetCellsFreeMemory(PyObject *self ATTRIBUTE_UNUSED, PyObject *arg
         return(NULL);
 
     if ((startCell < 0) || (maxCells <= 0) || (startCell + maxCells > 10000))
-        goto error;
+        return VIR_PY_NONE;
 
     conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
-    freeMems =
-        malloc(maxCells * sizeof(*freeMems));
+    freeMems = malloc(maxCells * sizeof(*freeMems));
     if (freeMems == NULL)
-        goto error;
+        return VIR_PY_NONE;
 
     LIBVIRT_BEGIN_ALLOW_THREADS;
     c_retval = virNodeGetCellsFreeMemory(conn, freeMems, startCell, maxCells);
@@ -1503,7 +1794,6 @@ libvirt_virNodeGetCellsFreeMemory(PyObject *self ATTRIBUTE_UNUSED, PyObject *arg
 
     if (c_retval < 0) {
         free(freeMems);
-error:
         return VIR_PY_NONE;
     }
     py_retval = PyList_New(c_retval);
@@ -2415,6 +2705,44 @@ libvirt_virDomainGetJobInfo(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
     return(py_retval);
 }
 
+static PyObject *
+libvirt_virDomainGetBlockJobInfo(PyObject *self ATTRIBUTE_UNUSED,
+                                 PyObject *args)
+{
+    virDomainPtr domain;
+    PyObject *pyobj_domain;
+    const char *path;
+    unsigned int flags;
+    virDomainBlockJobInfo info;
+    int c_ret;
+    PyObject *ret;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozi:virDomainGetBlockJobInfo",
+                          &pyobj_domain, &path, &flags))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_ret = virDomainGetBlockJobInfo(domain, path, &info, flags);
+LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_ret != 1)
+        return VIR_PY_NONE;
+
+    if ((ret = PyDict_New()) == NULL)
+        return VIR_PY_NONE;
+
+    PyDict_SetItem(ret, libvirt_constcharPtrWrap("type"),
+                   libvirt_intWrap(info.type));
+    PyDict_SetItem(ret, libvirt_constcharPtrWrap("bandwidth"),
+                   libvirt_ulongWrap(info.bandwidth));
+    PyDict_SetItem(ret, libvirt_constcharPtrWrap("cur"),
+                   libvirt_ulonglongWrap(info.cur));
+    PyDict_SetItem(ret, libvirt_constcharPtrWrap("end"),
+                   libvirt_ulonglongWrap(info.end));
+
+    return ret;
+}
 
 /*******************************************
  * Helper functions to avoid importing modules
@@ -3546,6 +3874,55 @@ libvirt_virConnectDomainEventGraphicsCallback(virConnectPtr conn ATTRIBUTE_UNUSE
     return ret;
 }
 
+static int
+libvirt_virConnectDomainEventBlockJobCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                              virDomainPtr dom,
+                                              const char *path,
+                                              int type,
+                                              int status,
+                                              void *opaque)
+{
+    PyObject *pyobj_cbData = (PyObject*)opaque;
+    PyObject *pyobj_dom;
+    PyObject *pyobj_ret;
+    PyObject *pyobj_conn;
+    PyObject *dictKey;
+    int ret = -1;
+
+    LIBVIRT_ENSURE_THREAD_STATE;
+
+    /* Create a python instance of this virDomainPtr */
+    virDomainRef(dom);
+    pyobj_dom = libvirt_virDomainPtrWrap(dom);
+    Py_INCREF(pyobj_cbData);
+
+    dictKey = libvirt_constcharPtrWrap("conn");
+    pyobj_conn = PyDict_GetItem(pyobj_cbData, dictKey);
+    Py_DECREF(dictKey);
+
+    /* Call the Callback Dispatcher */
+    pyobj_ret = PyObject_CallMethod(pyobj_conn,
+                                    (char*)"dispatchDomainEventBlockPullCallback",
+                                    (char*)"OsiiO",
+                                    pyobj_dom, path, type, status, pyobj_cbData);
+
+    Py_DECREF(pyobj_cbData);
+    Py_DECREF(pyobj_dom);
+
+    if(!pyobj_ret) {
+#if DEBUG_ERROR
+        printf("%s - ret:%p\n", __FUNCTION__, pyobj_ret);
+#endif
+        PyErr_Print();
+    } else {
+        Py_DECREF(pyobj_ret);
+        ret = 0;
+    }
+
+    LIBVIRT_RELEASE_THREAD_STATE;
+    return ret;
+}
+
 static PyObject *
 libvirt_virConnectDomainEventRegisterAny(ATTRIBUTE_UNUSED PyObject * self,
                                          PyObject * args)
@@ -3599,6 +3976,9 @@ libvirt_virConnectDomainEventRegisterAny(ATTRIBUTE_UNUSED PyObject * self,
         break;
     case VIR_DOMAIN_EVENT_ID_CONTROL_ERROR:
         cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventGenericCallback);
+        break;
+    case VIR_DOMAIN_EVENT_ID_BLOCK_JOB:
+        cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventBlockJobCallback);
         break;
     }
 
@@ -3771,11 +4151,12 @@ libvirt_virStreamSend(PyObject *self ATTRIBUTE_UNUSED,
     PyObject *pyobj_stream;
     virStreamPtr stream;
     char *data;
+    int datalen;
     int ret;
     int nbytes;
 
-    if (!PyArg_ParseTuple(args, (char *) "Ozi:virStreamRecv",
-                          &pyobj_stream, &data, &nbytes)) {
+    if (!PyArg_ParseTuple(args, (char *) "Oz#i:virStreamRecv",
+                          &pyobj_stream, &data, &datalen, &nbytes)) {
         DEBUG("%s failed to parse tuple\n", __FUNCTION__);
         return VIR_PY_INT_FAIL;
     }
@@ -3835,13 +4216,17 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virNodeGetCellsFreeMemory", libvirt_virNodeGetCellsFreeMemory, METH_VARARGS, NULL},
     {(char *) "virDomainGetSchedulerType", libvirt_virDomainGetSchedulerType, METH_VARARGS, NULL},
     {(char *) "virDomainGetSchedulerParameters", libvirt_virDomainGetSchedulerParameters, METH_VARARGS, NULL},
+    {(char *) "virDomainGetSchedulerParametersFlags", libvirt_virDomainGetSchedulerParametersFlags, METH_VARARGS, NULL},
     {(char *) "virDomainSetSchedulerParameters", libvirt_virDomainSetSchedulerParameters, METH_VARARGS, NULL},
+    {(char *) "virDomainSetSchedulerParametersFlags", libvirt_virDomainSetSchedulerParametersFlags, METH_VARARGS, NULL},
     {(char *) "virDomainSetBlkioParameters", libvirt_virDomainSetBlkioParameters, METH_VARARGS, NULL},
     {(char *) "virDomainGetBlkioParameters", libvirt_virDomainGetBlkioParameters, METH_VARARGS, NULL},
     {(char *) "virDomainSetMemoryParameters", libvirt_virDomainSetMemoryParameters, METH_VARARGS, NULL},
     {(char *) "virDomainGetMemoryParameters", libvirt_virDomainGetMemoryParameters, METH_VARARGS, NULL},
     {(char *) "virDomainGetVcpus", libvirt_virDomainGetVcpus, METH_VARARGS, NULL},
     {(char *) "virDomainPinVcpu", libvirt_virDomainPinVcpu, METH_VARARGS, NULL},
+    {(char *) "virDomainPinVcpuFlags", libvirt_virDomainPinVcpuFlags, METH_VARARGS, NULL},
+    {(char *) "virDomainGetVcpuPinInfo", libvirt_virDomainGetVcpuPinInfo, METH_VARARGS, NULL},
     {(char *) "virConnectListStoragePools", libvirt_virConnectListStoragePools, METH_VARARGS, NULL},
     {(char *) "virConnectListDefinedStoragePools", libvirt_virConnectListDefinedStoragePools, METH_VARARGS, NULL},
     {(char *) "virStoragePoolGetAutostart", libvirt_virStoragePoolGetAutostart, METH_VARARGS, NULL},
@@ -3874,6 +4259,7 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virDomainGetJobInfo", libvirt_virDomainGetJobInfo, METH_VARARGS, NULL},
     {(char *) "virDomainSnapshotListNames", libvirt_virDomainSnapshotListNames, METH_VARARGS, NULL},
     {(char *) "virDomainRevertToSnapshot", libvirt_virDomainRevertToSnapshot, METH_VARARGS, NULL},
+    {(char *) "virDomainGetBlockJobInfo", libvirt_virDomainGetBlockJobInfo, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

@@ -17,7 +17,7 @@ xdr_qemu_monitor_command_args (XDR *xdrs, qemu_monitor_command_args *objp)
                  return FALSE;
          if (!xdr_remote_nonnull_string (xdrs, &objp->cmd))
                  return FALSE;
-         if (!xdr_int (xdrs, &objp->flags))
+         if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
         return TRUE;
 }
@@ -27,6 +27,26 @@ xdr_qemu_monitor_command_ret (XDR *xdrs, qemu_monitor_command_ret *objp)
 {
 
          if (!xdr_remote_nonnull_string (xdrs, &objp->result))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_qemu_domain_attach_args (XDR *xdrs, qemu_domain_attach_args *objp)
+{
+
+         if (!xdr_u_int (xdrs, &objp->pid))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_qemu_domain_attach_ret (XDR *xdrs, qemu_domain_attach_ret *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
         return TRUE;
 }

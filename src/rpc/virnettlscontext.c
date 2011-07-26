@@ -34,6 +34,7 @@
 #include "virterror_internal.h"
 #include "util.h"
 #include "logging.h"
+#include "threads.h"
 #include "configmake.h"
 
 #define DH_BITS 1024
@@ -52,6 +53,7 @@
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 struct _virNetTLSContext {
+    virMutex lock;
     int refs;
 
     gnutls_certificate_credentials_t x509cred;
@@ -63,10 +65,13 @@ struct _virNetTLSContext {
 };
 
 struct _virNetTLSSession {
+    virMutex lock;
+
     int refs;
 
     bool handshakeComplete;
 
+    bool isServer;
     char *hostname;
     gnutls_session_t session;
     virNetTLSSessionWriteFunc writeFunc;
@@ -94,6 +99,463 @@ virNetTLSContextCheckCertFile(const char *type, const char *file, bool allowMiss
 static void virNetTLSLog(int level, const char *str) {
     VIR_DEBUG("%d %s", level, str);
 }
+
+
+static int virNetTLSContextCheckCertTimes(gnutls_x509_crt_t cert,
+                                          const char *certFile,
+                                          bool isServer,
+                                          bool isCA)
+{
+    time_t now;
+
+    if ((now = time(NULL)) == ((time_t)-1)) {
+        virReportSystemError(errno, "%s",
+                             _("cannot get current time"));
+        return -1;
+    }
+
+    if (gnutls_x509_crt_get_expiration_time(cert) < now) {
+        virNetError(VIR_ERR_SYSTEM_ERROR,
+                    (isCA ?
+                     _("The CA certificate %s has expired") :
+                     (isServer ?
+                      _("The server certificate %s has expired") :
+                      _("The client certificate %s has expired"))),
+                    certFile);
+        return -1;
+    }
+
+    if (gnutls_x509_crt_get_activation_time(cert) > now) {
+        virNetError(VIR_ERR_SYSTEM_ERROR,
+                    (isCA ?
+                     _("The CA certificate %s is not yet active") :
+                     (isServer ?
+                      _("The server certificate %s is not yet active") :
+                      _("The client certificate %s is not yet active"))),
+                    certFile);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int virNetTLSContextCheckCertBasicConstraints(gnutls_x509_crt_t cert,
+                                                     const char *certFile,
+                                                     bool isServer,
+                                                     bool isCA)
+{
+    int status;
+
+    status = gnutls_x509_crt_get_basic_constraints(cert, NULL, NULL, NULL);
+    VIR_DEBUG("Cert %s basic constraints %d", certFile, status);
+
+    if (status > 0) { /* It is a CA cert */
+        if (!isCA) {
+            virNetError(VIR_ERR_SYSTEM_ERROR, isServer ?
+                        _("The certificate %s basic constraints show a CA, but we need one for a server") :
+                        _("The certificate %s basic constraints show a CA, but we need one for a client"),
+                        certFile);
+            return -1;
+        }
+    } else if (status == 0) { /* It is not a CA cert */
+        if (isCA) {
+            virNetError(VIR_ERR_SYSTEM_ERROR,
+                        _("The certificate %s basic constraints do not show a CA"),
+                        certFile);
+            return -1;
+        }
+    } else if (status == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) { /* Missing basicConstraints */
+        if (isCA) {
+            virNetError(VIR_ERR_SYSTEM_ERROR,
+                        _("The certificate %s is missing basic constraints for a CA"),
+                        certFile);
+            return -1;
+        }
+    } else { /* General error */
+        virNetError(VIR_ERR_SYSTEM_ERROR,
+                    _("Unable to query certificate %s basic constraints %s"),
+                    certFile, gnutls_strerror(status));
+        return -1;
+    }
+
+    return 0;
+}
+
+static int virNetTLSContextCheckCertKeyUsage(gnutls_x509_crt_t cert,
+                                             const char *certFile,
+                                             bool isCA)
+{
+    int status;
+    unsigned int usage;
+    unsigned int critical;
+
+    status = gnutls_x509_crt_get_key_usage(cert, &usage, &critical);
+
+    VIR_DEBUG("Cert %s key usage status %d usage %d critical %u", certFile, status, usage, critical);
+    if (status < 0) {
+        if (status == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+            usage = isCA ? GNUTLS_KEY_KEY_CERT_SIGN :
+                GNUTLS_KEY_DIGITAL_SIGNATURE|GNUTLS_KEY_KEY_ENCIPHERMENT;
+        } else {
+            virNetError(VIR_ERR_SYSTEM_ERROR,
+                        _("Unable to query certificate %s key usage %s"),
+                        certFile, gnutls_strerror(status));
+            return -1;
+        }
+    }
+
+    if (isCA) {
+        if (!(usage & GNUTLS_KEY_KEY_CERT_SIGN)) {
+            if (critical) {
+                virNetError(VIR_ERR_SYSTEM_ERROR,
+                            _("Certificate %s usage does not permit certificate signing"),
+                            certFile);
+                return -1;
+            } else {
+                VIR_WARN("Certificate %s usage does not permit certificate signing",
+                         certFile);
+            }
+        }
+    } else {
+        if (!(usage & GNUTLS_KEY_DIGITAL_SIGNATURE)) {
+            if (critical) {
+                virNetError(VIR_ERR_SYSTEM_ERROR,
+                            _("Certificate %s usage does not permit digital signature"),
+                            certFile);
+                return -1;
+            } else {
+                VIR_WARN("Certificate %s usage does not permit digital signature",
+                         certFile);
+            }
+        }
+        if (!(usage & GNUTLS_KEY_KEY_ENCIPHERMENT)) {
+            if (critical) {
+                virNetError(VIR_ERR_SYSTEM_ERROR,
+                            _("Certificate %s usage does not permit key encipherment"),
+                            certFile);
+                return -1;
+            } else {
+                VIR_WARN("Certificate %s usage does not permit key encipherment",
+                         certFile);
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+static int virNetTLSContextCheckCertKeyPurpose(gnutls_x509_crt_t cert,
+                                               const char *certFile,
+                                               bool isServer)
+{
+    int status;
+    int i;
+    unsigned int purposeCritical;
+    unsigned int critical;
+    char *buffer;
+    size_t size;
+    bool allowClient = false, allowServer = false;
+
+    critical = 0;
+    for (i = 0 ; ; i++) {
+        size = 0;
+        status = gnutls_x509_crt_get_key_purpose_oid(cert, i, buffer, &size, NULL);
+
+        if (status == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) {
+            VIR_DEBUG("No key purpose data available at slot %d", i);
+
+            /* If there is no data at all, then we must allow client/server to pass */
+            if (i == 0)
+                allowServer = allowClient = true;
+            break;
+        }
+        if (status != GNUTLS_E_SHORT_MEMORY_BUFFER) {
+            virNetError(VIR_ERR_SYSTEM_ERROR,
+                        _("Unable to query certificate %s key purpose %s"),
+                        certFile, gnutls_strerror(status));
+            return -1;
+        }
+
+        if (VIR_ALLOC_N(buffer, size) < 0) {
+            virReportOOMError();
+            return -1;
+        }
+
+        status = gnutls_x509_crt_get_key_purpose_oid(cert, i, buffer, &size, &purposeCritical);
+        if (status < 0) {
+            VIR_FREE(buffer);
+            virNetError(VIR_ERR_SYSTEM_ERROR,
+                        _("Unable to query certificate %s key purpose %s"),
+                        certFile, gnutls_strerror(status));
+            return -1;
+        }
+        if (purposeCritical)
+            critical = true;
+
+        VIR_DEBUG("Key purpose %d %s critical %u", status, buffer, purposeCritical);
+        if (STREQ(buffer, GNUTLS_KP_TLS_WWW_SERVER)) {
+            allowServer = true;
+        } else if (STREQ(buffer, GNUTLS_KP_TLS_WWW_CLIENT)) {
+            allowClient = true;
+        } else if (STRNEQ(buffer, GNUTLS_KP_ANY)) {
+            allowServer = allowClient = true;
+        }
+
+        VIR_FREE(buffer);
+    }
+
+    if (isServer) {
+        if (!allowServer) {
+            if (critical) {
+                virNetError(VIR_ERR_SYSTEM_ERROR,
+                            _("Certificate %s purpose does not allow use for with a TLS server"),
+                            certFile);
+                return -1;
+            } else {
+                VIR_WARN("Certificate %s purpose does not allow use for with a TLS server",
+                         certFile);
+            }
+        }
+    } else {
+        if (!allowClient) {
+            if (critical) {
+                virNetError(VIR_ERR_SYSTEM_ERROR,
+                            _("Certificate %s purpose does not allow use for with a TLS client"),
+                            certFile);
+                return -1;
+            } else {
+                VIR_WARN("Certificate %s purpose does not allow use for with a TLS client",
+                         certFile);
+            }
+        }
+    }
+
+    return 0;
+}
+
+/* Check DN is on tls_allowed_dn_list. */
+static int
+virNetTLSContextCheckCertDNWhitelist(const char *dname,
+                                     const char *const*wildcards)
+{
+    while (*wildcards) {
+        int ret = fnmatch (*wildcards, dname, 0);
+        if (ret == 0) /* Succesful match */
+            return 1;
+        if (ret != FNM_NOMATCH) {
+            virNetError(VIR_ERR_INTERNAL_ERROR,
+                        _("Malformed TLS whitelist regular expression '%s'"),
+                        *wildcards);
+            return -1;
+        }
+
+        wildcards++;
+    }
+
+    /* Log the client's DN for debugging */
+    VIR_DEBUG("Failed whitelist check for client DN '%s'", dname);
+
+    /* This is the most common error: make it informative. */
+    virNetError(VIR_ERR_SYSTEM_ERROR, "%s",
+                _("Client's Distinguished Name is not on the list "
+                  "of allowed clients (tls_allowed_dn_list).  Use "
+                  "'certtool -i --infile clientcert.pem' to view the"
+                  "Distinguished Name field in the client certificate,"
+                  "or run this daemon with --verbose option."));
+    return 0;
+}
+
+
+static int
+virNetTLSContextCheckCertDN(gnutls_x509_crt_t cert,
+                            const char *certFile,
+                            const char *hostname,
+                            const char *const* whitelist)
+{
+    int ret;
+    char name[256];
+    size_t namesize = sizeof name;
+
+    memset(name, 0, namesize);
+
+    ret = gnutls_x509_crt_get_dn(cert, name, &namesize);
+    if (ret != 0) {
+        virNetError(VIR_ERR_SYSTEM_ERROR,
+                    _("Failed to get certificate %s distinguished name: %s"),
+                    certFile, gnutls_strerror(ret));
+        return -1;
+    }
+    VIR_DEBUG("Peer DN is %s", name);
+    if (whitelist &&
+        virNetTLSContextCheckCertDNWhitelist(name, whitelist) <= 0)
+        return -1;
+
+    if (hostname &&
+        !gnutls_x509_crt_check_hostname(cert, hostname)) {
+        virNetError(VIR_ERR_RPC,
+                    _("Certificate %s owner does not match the hostname %s"),
+                    certFile, hostname);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int virNetTLSContextCheckCert(gnutls_x509_crt_t cert,
+                                     const char *certFile,
+                                     bool isServer,
+                                     bool isCA)
+{
+    if (virNetTLSContextCheckCertTimes(cert, certFile,
+                                       isServer, isCA) < 0)
+        return -1;
+
+    if (virNetTLSContextCheckCertBasicConstraints(cert, certFile,
+                                                  isServer, isCA) < 0)
+        return -1;
+
+    if (virNetTLSContextCheckCertKeyUsage(cert, certFile,
+                                          isCA) < 0)
+        return -1;
+
+    if (!isCA &&
+        virNetTLSContextCheckCertKeyPurpose(cert, certFile,
+                                            isServer) < 0)
+        return -1;
+
+    return 0;
+}
+
+
+static int virNetTLSContextCheckCertPair(gnutls_x509_crt_t cert,
+                                         const char *certFile,
+                                         gnutls_x509_crt_t cacert,
+                                         const char *cacertFile,
+                                         bool isServer)
+{
+    unsigned int status;
+
+    if (gnutls_x509_crt_list_verify(&cert, 1,
+                                    &cacert, 1,
+                                    NULL, 0,
+                                    0, &status) < 0) {
+        virNetError(VIR_ERR_SYSTEM_ERROR, isServer ?
+                    _("Unable to verify server certificate %s against CA certificate %s") :
+                    _("Unable to verify client certificate %s against CA certificate %s"),
+                    certFile, cacertFile);
+        return -1;
+    }
+
+    if (status != 0) {
+        const char *reason = _("Invalid certificate");
+
+        if (status & GNUTLS_CERT_INVALID)
+            reason = _("The certificate is not trusted.");
+
+        if (status & GNUTLS_CERT_SIGNER_NOT_FOUND)
+            reason = _("The certificate hasn't got a known issuer.");
+
+        if (status & GNUTLS_CERT_REVOKED)
+            reason = _("The certificate has been revoked.");
+
+#ifndef GNUTLS_1_0_COMPAT
+        if (status & GNUTLS_CERT_INSECURE_ALGORITHM)
+            reason = _("The certificate uses an insecure algorithm");
+#endif
+
+        virNetError(VIR_ERR_SYSTEM_ERROR,
+                    _("Our own certificate %s failed validation against %s: %s"),
+                    certFile, cacertFile, reason);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static gnutls_x509_crt_t virNetTLSContextLoadCertFromFile(const char *certFile,
+                                                          bool isServer,
+                                                          bool isCA)
+{
+    gnutls_datum_t data;
+    gnutls_x509_crt_t cert = NULL;
+    char *buf = NULL;
+    int ret = -1;
+
+    VIR_DEBUG("isServer %d isCA %d certFile %s",
+              isServer, isCA, certFile);
+
+    if (gnutls_x509_crt_init(&cert) < 0) {
+        virNetError(VIR_ERR_SYSTEM_ERROR, "%s",
+                    _("Unable to initialize certificate"));
+        goto cleanup;
+    }
+
+    if (virFileReadAll(certFile, (1<<16), &buf) < 0)
+        goto cleanup;
+
+    data.data = (unsigned char *)buf;
+    data.size = strlen(buf);
+
+    if (gnutls_x509_crt_import(cert, &data, GNUTLS_X509_FMT_PEM) < 0) {
+        virNetError(VIR_ERR_SYSTEM_ERROR, isServer ?
+                    _("Unable to import server certificate %s") :
+                    _("Unable to import client certificate %s"),
+                    certFile);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    if (ret != 0) {
+        gnutls_x509_crt_deinit(cert);
+        cert = NULL;
+    }
+    VIR_FREE(buf);
+    return cert;
+}
+
+
+static int virNetTLSContextSanityCheckCredentials(bool isServer,
+                                                  const char *cacertFile,
+                                                  const char *certFile)
+{
+    gnutls_x509_crt_t cert = NULL;
+    gnutls_x509_crt_t cacert = NULL;
+    int ret = -1;
+
+    if ((access(certFile, R_OK) == 0) &&
+        !(cert = virNetTLSContextLoadCertFromFile(certFile, isServer, false)))
+        goto cleanup;
+    if ((access(cacertFile, R_OK) == 0) &&
+        !(cacert = virNetTLSContextLoadCertFromFile(cacertFile, isServer, false)))
+        goto cleanup;
+
+    if (cert &&
+        virNetTLSContextCheckCert(cert, certFile, isServer, false) < 0)
+        goto cleanup;
+
+    if (cacert &&
+        virNetTLSContextCheckCert(cacert, cacertFile, isServer, true) < 0)
+        goto cleanup;
+
+    if (cert && cacert &&
+        virNetTLSContextCheckCertPair(cert, certFile, cacert, cacertFile, isServer) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+cleanup:
+    if (cert)
+        gnutls_x509_crt_deinit(cert);
+    if (cacert)
+        gnutls_x509_crt_deinit(cacert);
+    return ret;
+}
+
 
 static int virNetTLSContextLoadCredentials(virNetTLSContextPtr ctxt,
                                            bool isServer,
@@ -179,6 +641,7 @@ static virNetTLSContextPtr virNetTLSContextNew(const char *cacert,
                                                const char *cert,
                                                const char *key,
                                                const char *const*x509dnWhitelist,
+                                               bool sanityCheckCert,
                                                bool requireValidCert,
                                                bool isServer)
 {
@@ -186,11 +649,18 @@ static virNetTLSContextPtr virNetTLSContextNew(const char *cacert,
     char *gnutlsdebug;
     int err;
 
-    VIR_DEBUG("cacert=%s cacrl=%s cert=%s key=%s requireValid=%d isServer=%d",
-              cacert, NULLSTR(cacrl), cert, key, requireValidCert, isServer);
+    VIR_DEBUG("cacert=%s cacrl=%s cert=%s key=%s sanityCheckCert=%d requireValid=%d isServer=%d",
+              cacert, NULLSTR(cacrl), cert, key, sanityCheckCert, requireValidCert, isServer);
 
     if (VIR_ALLOC(ctxt) < 0) {
         virReportOOMError();
+        return NULL;
+    }
+
+    if (virMutexInit(&ctxt->lock) < 0) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
+                    _("Failed to initialized mutex"));
+        VIR_FREE(ctxt);
         return NULL;
     }
 
@@ -216,6 +686,10 @@ static virNetTLSContextPtr virNetTLSContextNew(const char *cacert,
                     gnutls_strerror(err));
         goto error;
     }
+
+    if (sanityCheckCert &&
+        virNetTLSContextSanityCheckCredentials(isServer, cacert, cert) < 0)
+        goto error;
 
     if (virNetTLSContextLoadCredentials(ctxt, isServer, cacert, cacrl, cert, key) < 0)
         goto error;
@@ -389,6 +863,7 @@ out_of_memory:
 static virNetTLSContextPtr virNetTLSContextNewPath(const char *pkipath,
                                                    bool tryUserPkiPath,
                                                    const char *const*x509dnWhitelist,
+                                                   bool sanityCheckCert,
                                                    bool requireValidCert,
                                                    bool isServer)
 {
@@ -396,11 +871,12 @@ static virNetTLSContextPtr virNetTLSContextNewPath(const char *pkipath,
     virNetTLSContextPtr ctxt = NULL;
 
     if (virNetTLSContextLocateCredentials(pkipath, tryUserPkiPath, isServer,
-                                          &cacert, &cacrl, &key, &cert) < 0)
+                                          &cacert, &cacrl, &cert, &key) < 0)
         return NULL;
 
-    ctxt = virNetTLSContextNew(cacert, cacrl, key, cert,
-                               x509dnWhitelist, requireValidCert, isServer);
+    ctxt = virNetTLSContextNew(cacert, cacrl, cert, key,
+                               x509dnWhitelist, sanityCheckCert,
+                               requireValidCert, isServer);
 
     VIR_FREE(cacert);
     VIR_FREE(cacrl);
@@ -413,18 +889,20 @@ static virNetTLSContextPtr virNetTLSContextNewPath(const char *pkipath,
 virNetTLSContextPtr virNetTLSContextNewServerPath(const char *pkipath,
                                                   bool tryUserPkiPath,
                                                   const char *const*x509dnWhitelist,
+                                                  bool sanityCheckCert,
                                                   bool requireValidCert)
 {
-    return virNetTLSContextNewPath(pkipath, tryUserPkiPath,
-                                   x509dnWhitelist, requireValidCert, true);
+    return virNetTLSContextNewPath(pkipath, tryUserPkiPath, x509dnWhitelist,
+                                   sanityCheckCert, requireValidCert, true);
 }
 
 virNetTLSContextPtr virNetTLSContextNewClientPath(const char *pkipath,
                                                   bool tryUserPkiPath,
+                                                  bool sanityCheckCert,
                                                   bool requireValidCert)
 {
-    return virNetTLSContextNewPath(pkipath, tryUserPkiPath,
-                                   NULL, requireValidCert, false);
+    return virNetTLSContextNewPath(pkipath, tryUserPkiPath, NULL,
+                                   sanityCheckCert, requireValidCert, false);
 }
 
 
@@ -433,10 +911,11 @@ virNetTLSContextPtr virNetTLSContextNewServer(const char *cacert,
                                               const char *cert,
                                               const char *key,
                                               const char *const*x509dnWhitelist,
+                                              bool sanityCheckCert,
                                               bool requireValidCert)
 {
-    return virNetTLSContextNew(cacert, cacrl, key, cert,
-                               x509dnWhitelist, requireValidCert, true);
+    return virNetTLSContextNew(cacert, cacrl, cert, key, x509dnWhitelist,
+                               sanityCheckCert, requireValidCert, true);
 }
 
 
@@ -444,10 +923,11 @@ virNetTLSContextPtr virNetTLSContextNewClient(const char *cacert,
                                               const char *cacrl,
                                               const char *cert,
                                               const char *key,
+                                              bool sanityCheckCert,
                                               bool requireValidCert)
 {
-    return virNetTLSContextNew(cacert, cacrl, key, cert,
-                               NULL, requireValidCert, false);
+    return virNetTLSContextNew(cacert, cacrl, cert, key, NULL,
+                               sanityCheckCert, requireValidCert, false);
 }
 
 
@@ -457,45 +937,6 @@ void virNetTLSContextRef(virNetTLSContextPtr ctxt)
 }
 
 
-/* Check DN is on tls_allowed_dn_list. */
-static int
-virNetTLSContextCheckDN(virNetTLSContextPtr ctxt,
-                        const char *dname)
-{
-    const char *const*wildcards;
-
-    /* If the list is not set, allow any DN. */
-    wildcards = ctxt->x509dnWhitelist;
-    if (!wildcards)
-        return 1;
-
-    while (*wildcards) {
-        int ret = fnmatch (*wildcards, dname, 0);
-        if (ret == 0) /* Succesful match */
-            return 1;
-        if (ret != FNM_NOMATCH) {
-            virNetError(VIR_ERR_INTERNAL_ERROR,
-                        _("Malformed TLS whitelist regular expression '%s'"),
-                        *wildcards);
-            return -1;
-        }
-
-        wildcards++;
-    }
-
-    /* Log the client's DN for debugging */
-    VIR_DEBUG("Failed whitelist check for client DN '%s'", dname);
-
-    /* This is the most common error: make it informative. */
-    virNetError(VIR_ERR_SYSTEM_ERROR, "%s",
-                _("Client's Distinguished Name is not on the list "
-                  "of allowed clients (tls_allowed_dn_list).  Use "
-                  "'certtool -i --infile clientcert.pem' to view the"
-                  "Distinguished Name field in the client certificate,"
-                  "or run this daemon with --verbose option."));
-    return 0;
-}
-
 static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
                                             virNetTLSSessionPtr sess)
 {
@@ -503,23 +944,12 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
     unsigned int status;
     const gnutls_datum_t *certs;
     unsigned int nCerts, i;
-    time_t now;
-    char name[256];
-    size_t namesize = sizeof name;
-
-    memset(name, 0, namesize);
 
     if ((ret = gnutls_certificate_verify_peers2(sess->session, &status)) < 0){
         virNetError(VIR_ERR_SYSTEM_ERROR,
                     _("Unable to verify TLS peer: %s"),
                     gnutls_strerror(ret));
         goto authdeny;
-    }
-
-    if ((now = time(NULL)) == ((time_t)-1)) {
-        virReportSystemError(errno, "%s",
-                             _("cannot get current time"));
-        goto authfail;
     }
 
     if (status != 0) {
@@ -573,40 +1003,37 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
             goto authfail;
         }
 
-        if (gnutls_x509_crt_get_expiration_time(cert) < now) {
-            virNetError(VIR_ERR_SYSTEM_ERROR, "%s",
-                        _("The client certificate has expired"));
-            gnutls_x509_crt_deinit(cert);
-            goto authdeny;
-        }
-
-        if (gnutls_x509_crt_get_activation_time(cert) > now) {
-            virNetError(VIR_ERR_SYSTEM_ERROR, "%s",
-                        _("The client certificate is not yet active"));
+        if (virNetTLSContextCheckCertTimes(cert, "[session]",
+                                           sess->isServer, i > 0) < 0) {
             gnutls_x509_crt_deinit(cert);
             goto authdeny;
         }
 
         if (i == 0) {
-            ret = gnutls_x509_crt_get_dn(cert, name, &namesize);
-            if (ret != 0) {
-                virNetError(VIR_ERR_SYSTEM_ERROR,
-                            _("Failed to get certificate distinguished name: %s"),
-                            gnutls_strerror(ret));
-                gnutls_x509_crt_deinit(cert);
-                goto authfail;
-            }
-
-            if (virNetTLSContextCheckDN(ctxt, name) <= 0) {
+            if (virNetTLSContextCheckCertDN(cert, "[session]", sess->hostname,
+                                            ctxt->x509dnWhitelist) < 0) {
                 gnutls_x509_crt_deinit(cert);
                 goto authdeny;
             }
 
-            if (sess->hostname &&
-                !gnutls_x509_crt_check_hostname(cert, sess->hostname)) {
-                virNetError(VIR_ERR_RPC,
-                            _("Certificate's owner does not match the hostname (%s)"),
-                            sess->hostname);
+            /* !sess->isServer, since on the client, we're validating the
+             * server's cert, and on the server, the client's cert
+             */
+            if (virNetTLSContextCheckCertBasicConstraints(cert, "[session]",
+                                                          !sess->isServer, false) < 0) {
+                gnutls_x509_crt_deinit(cert);
+                goto authdeny;
+            }
+
+            if (virNetTLSContextCheckCertKeyUsage(cert, "[session]",
+                                                  false) < 0) {
+                gnutls_x509_crt_deinit(cert);
+                goto authdeny;
+            }
+
+            /* !sess->isServer - as above */
+            if (virNetTLSContextCheckCertKeyPurpose(cert, "[session]",
+                                                    !sess->isServer) < 0) {
                 gnutls_x509_crt_deinit(cert);
                 goto authdeny;
             }
@@ -637,15 +1064,29 @@ authfail:
 int virNetTLSContextCheckCertificate(virNetTLSContextPtr ctxt,
                                      virNetTLSSessionPtr sess)
 {
+    int ret = -1;
+
+    virMutexLock(&ctxt->lock);
+    virMutexLock(&sess->lock);
     if (virNetTLSContextValidCertificate(ctxt, sess) < 0) {
+        virErrorPtr err = virGetLastError();
+        VIR_WARN("Certificate check failed %s", err && err->message ? err->message : "<unknown>");
         if (ctxt->requireValidCert) {
             virNetError(VIR_ERR_AUTH_FAILED, "%s",
                         _("Failed to verify peer's certificate"));
-            return -1;
+            goto cleanup;
         }
+        virResetLastError();
         VIR_INFO("Ignoring bad certificate at user request");
     }
-    return 0;
+
+    ret = 0;
+
+cleanup:
+    virMutexUnlock(&ctxt->lock);
+    virMutexUnlock(&sess->lock);
+
+    return ret;
 }
 
 void virNetTLSContextFree(virNetTLSContextPtr ctxt)
@@ -653,12 +1094,17 @@ void virNetTLSContextFree(virNetTLSContextPtr ctxt)
     if (!ctxt)
         return;
 
+    virMutexLock(&ctxt->lock);
     ctxt->refs--;
-    if (ctxt->refs > 0)
+    if (ctxt->refs > 0) {
+        virMutexUnlock(&ctxt->lock);
         return;
+    }
 
     gnutls_dh_params_deinit(ctxt->dhParams);
     gnutls_certificate_free_credentials(ctxt->x509cred);
+    virMutexUnlock(&ctxt->lock);
+    virMutexDestroy(&ctxt->lock);
     VIR_FREE(ctxt);
 }
 
@@ -669,7 +1115,7 @@ virNetTLSSessionPush(void *opaque, const void *buf, size_t len)
 {
     virNetTLSSessionPtr sess = opaque;
     if (!sess->writeFunc) {
-        VIR_WARN("TLS session push with missing read function");
+        VIR_WARN("TLS session push with missing write function");
         errno = EIO;
         return -1;
     };
@@ -697,12 +1143,18 @@ virNetTLSSessionPtr virNetTLSSessionNew(virNetTLSContextPtr ctxt,
 {
     virNetTLSSessionPtr sess;
     int err;
-    static const int cert_type_priority[] = { GNUTLS_CRT_X509, 0 };
 
     VIR_DEBUG("ctxt=%p hostname=%s isServer=%d", ctxt, NULLSTR(hostname), ctxt->isServer);
 
     if (VIR_ALLOC(sess) < 0) {
         virReportOOMError();
+        return NULL;
+    }
+
+    if (virMutexInit(&sess->lock) < 0) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
+                    _("Failed to initialized mutex"));
+        VIR_FREE(ctxt);
         return NULL;
     }
 
@@ -724,9 +1176,7 @@ virNetTLSSessionPtr virNetTLSSessionNew(virNetTLSContextPtr ctxt,
     /* avoid calling all the priority functions, since the defaults
      * are adequate.
      */
-    if ((err = gnutls_set_default_priority(sess->session)) != 0 ||
-        (err = gnutls_certificate_type_set_priority(sess->session,
-                                                    cert_type_priority))) {
+    if ((err = gnutls_set_default_priority(sess->session)) != 0) {
         virNetError(VIR_ERR_SYSTEM_ERROR,
                     _("Failed to set TLS session priority %s"),
                     gnutls_strerror(err));
@@ -756,6 +1206,8 @@ virNetTLSSessionPtr virNetTLSSessionNew(virNetTLSContextPtr ctxt,
     gnutls_transport_set_pull_function(sess->session,
                                        virNetTLSSessionPull);
 
+    sess->isServer = ctxt->isServer;
+
     return sess;
 
 error:
@@ -766,7 +1218,9 @@ error:
 
 void virNetTLSSessionRef(virNetTLSSessionPtr sess)
 {
+    virMutexLock(&sess->lock);
     sess->refs++;
+    virMutexUnlock(&sess->lock);
 }
 
 void virNetTLSSessionSetIOCallbacks(virNetTLSSessionPtr sess,
@@ -774,9 +1228,11 @@ void virNetTLSSessionSetIOCallbacks(virNetTLSSessionPtr sess,
                                     virNetTLSSessionReadFunc readFunc,
                                     void *opaque)
 {
+    virMutexLock(&sess->lock);
     sess->writeFunc = writeFunc;
     sess->readFunc = readFunc;
     sess->opaque = opaque;
+    virMutexUnlock(&sess->lock);
 }
 
 
@@ -784,10 +1240,12 @@ ssize_t virNetTLSSessionWrite(virNetTLSSessionPtr sess,
                               const char *buf, size_t len)
 {
     ssize_t ret;
+
+    virMutexLock(&sess->lock);
     ret = gnutls_record_send(sess->session, buf, len);
 
     if (ret >= 0)
-        return ret;
+        goto cleanup;
 
     switch (ret) {
     case GNUTLS_E_AGAIN:
@@ -796,12 +1254,19 @@ ssize_t virNetTLSSessionWrite(virNetTLSSessionPtr sess,
     case GNUTLS_E_INTERRUPTED:
         errno = EINTR;
         break;
+    case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:
+        errno = ENOMSG;
+        break;
     default:
         errno = EIO;
         break;
     }
 
-    return -1;
+    ret = -1;
+
+cleanup:
+    virMutexUnlock(&sess->lock);
+    return ret;
 }
 
 ssize_t virNetTLSSessionRead(virNetTLSSessionPtr sess,
@@ -809,10 +1274,11 @@ ssize_t virNetTLSSessionRead(virNetTLSSessionPtr sess,
 {
     ssize_t ret;
 
+    virMutexLock(&sess->lock);
     ret = gnutls_record_recv(sess->session, buf, len);
 
     if (ret >= 0)
-        return ret;
+        goto cleanup;
 
     switch (ret) {
     case GNUTLS_E_AGAIN:
@@ -826,21 +1292,29 @@ ssize_t virNetTLSSessionRead(virNetTLSSessionPtr sess,
         break;
     }
 
-    return -1;
+    ret = -1;
+
+cleanup:
+    virMutexUnlock(&sess->lock);
+    return ret;
 }
 
 int virNetTLSSessionHandshake(virNetTLSSessionPtr sess)
 {
+    int ret;
     VIR_DEBUG("sess=%p", sess);
-    int ret = gnutls_handshake(sess->session);
+    virMutexLock(&sess->lock);
+    ret = gnutls_handshake(sess->session);
     VIR_DEBUG("Ret=%d", ret);
     if (ret == 0) {
         sess->handshakeComplete = true;
         VIR_DEBUG("Handshake is complete");
-        return 0;
+        goto cleanup;
     }
-    if (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN)
-        return 1;
+    if (ret == GNUTLS_E_INTERRUPTED || ret == GNUTLS_E_AGAIN) {
+        ret = 1;
+        goto cleanup;
+    }
 
 #if 0
     PROBE(CLIENT_TLS_FAIL, "fd=%d",
@@ -850,32 +1324,43 @@ int virNetTLSSessionHandshake(virNetTLSSessionPtr sess)
     virNetError(VIR_ERR_AUTH_FAILED,
                 _("TLS handshake failed %s"),
                 gnutls_strerror(ret));
-    return -1;
+    ret = -1;
+
+cleanup:
+    virMutexUnlock(&sess->lock);
+    return ret;
 }
 
 virNetTLSSessionHandshakeStatus
 virNetTLSSessionGetHandshakeStatus(virNetTLSSessionPtr sess)
 {
+    virNetTLSSessionHandshakeStatus ret;
+    virMutexLock(&sess->lock);
     if (sess->handshakeComplete)
-        return VIR_NET_TLS_HANDSHAKE_COMPLETE;
+        ret = VIR_NET_TLS_HANDSHAKE_COMPLETE;
     else if (gnutls_record_get_direction(sess->session) == 0)
-        return VIR_NET_TLS_HANDSHAKE_RECVING;
+        ret = VIR_NET_TLS_HANDSHAKE_RECVING;
     else
-        return VIR_NET_TLS_HANDSHAKE_SENDING;
+        ret = VIR_NET_TLS_HANDSHAKE_SENDING;
+    virMutexUnlock(&sess->lock);
+    return ret;
 }
 
 int virNetTLSSessionGetKeySize(virNetTLSSessionPtr sess)
 {
     gnutls_cipher_algorithm_t cipher;
     int ssf;
-
+    virMutexLock(&sess->lock);
     cipher = gnutls_cipher_get(sess->session);
     if (!(ssf = gnutls_cipher_get_key_size(cipher))) {
         virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
                     _("invalid cipher size for TLS session"));
-        return -1;
+        ssf = -1;
+        goto cleanup;
     }
 
+cleanup:
+    virMutexUnlock(&sess->lock);
     return ssf;
 }
 
@@ -885,11 +1370,16 @@ void virNetTLSSessionFree(virNetTLSSessionPtr sess)
     if (!sess)
         return;
 
+    virMutexLock(&sess->lock);
     sess->refs--;
-    if (sess->refs > 0)
+    if (sess->refs > 0) {
+        virMutexUnlock(&sess->lock);
         return;
+    }
 
     VIR_FREE(sess->hostname);
     gnutls_deinit(sess->session);
+    virMutexUnlock(&sess->lock);
+    virMutexDestroy(&sess->lock);
     VIR_FREE(sess);
 }

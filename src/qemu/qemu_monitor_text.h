@@ -50,6 +50,8 @@ int qemuMonitorTextSystemReset(qemuMonitorPtr mon);
 
 int qemuMonitorTextGetCPUInfo(qemuMonitorPtr mon,
                               int **pids);
+int qemuMonitorTextGetVirtType(qemuMonitorPtr mon,
+                               int *virtType);
 int qemuMonitorTextGetBalloonInfo(qemuMonitorPtr mon,
                                   unsigned long *currmem);
 int qemuMonitorTextGetMemoryStats(qemuMonitorPtr mon,
@@ -209,6 +211,17 @@ int qemuMonitorTextArbitraryCommand(qemuMonitorPtr mon, const char *cmd,
 
 int qemuMonitorTextInjectNMI(qemuMonitorPtr mon);
 
+int qemuMonitorTextSendKey(qemuMonitorPtr mon,
+                           unsigned int holdtime,
+                           unsigned int *keycodes,
+                           unsigned int nkeycodes);
+
 int qemuMonitorTextScreendump(qemuMonitorPtr mon, const char *file);
+
+int qemuMonitorTextBlockJob(qemuMonitorPtr mon,
+                            const char *device,
+                            unsigned long bandwidth,
+                            virDomainBlockJobInfoPtr info,
+                            int mode);
 
 #endif /* QEMU_MONITOR_TEXT_H */

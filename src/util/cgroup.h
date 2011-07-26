@@ -40,6 +40,11 @@ int virCgroupForDomain(virCgroupPtr driver,
                        virCgroupPtr *group,
                        int create);
 
+int virCgroupForVcpu(virCgroupPtr driver,
+                     int vcpuid,
+                     virCgroupPtr *group,
+                     int create);
+
 int virCgroupPathOfController(virCgroupPtr group,
                               int controller,
                               const char *key,
@@ -98,6 +103,12 @@ int virCgroupDenyDevicePath(virCgroupPtr group,
 
 int virCgroupSetCpuShares(virCgroupPtr group, unsigned long long shares);
 int virCgroupGetCpuShares(virCgroupPtr group, unsigned long long *shares);
+
+int virCgroupSetCpuCfsPeriod(virCgroupPtr group, unsigned long long cfs_period);
+int virCgroupGetCpuCfsPeriod(virCgroupPtr group, unsigned long long *cfs_period);
+
+int virCgroupSetCpuCfsQuota(virCgroupPtr group, long long cfs_quota);
+int virCgroupGetCpuCfsQuota(virCgroupPtr group, long long *cfs_quota);
 
 int virCgroupGetCpuacctUsage(virCgroupPtr group, unsigned long long *usage);
 

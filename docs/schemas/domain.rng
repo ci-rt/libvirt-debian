@@ -5,7 +5,9 @@
     <ref name="domain"/>
   </start>
 
+  <include href='basictypes.rng'/>
   <include href='storageencryption.rng'/>
+  <include href='networkcommon.rng'/>
 
   <!--
     description element, maybe placed anywhere under the root
@@ -61,10 +63,19 @@
           <value>static</value>
         </choice>
       </attribute>
+      <attribute name="relabel">
+        <choice>
+          <value>yes</value>
+          <value>no</value>
+        </choice>
+      </attribute>
       <element name="label">
         <text/>
       </element>
       <element name="imagelabel">
+        <text/>
+      </element>
+      <element name="baselabel">
         <text/>
       </element>
     </element>
@@ -140,6 +151,9 @@
         </optional>
         <optional>
           <ref name="smbios"/>
+        </optional>
+        <optional>
+          <ref name="bios"/>
         </optional>
       </interleave>
     </element>
@@ -375,6 +389,16 @@
               <ref name="cpushares"/>
             </element>
           </optional>
+          <optional>
+            <element name="period">
+              <ref name="cpuperiod"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="quota">
+              <ref name="cpuquota"/>
+            </element>
+          </optional>
           <zeroOrMore>
             <element name="vcpupin">
               <attribute name="vcpu">
@@ -543,9 +567,11 @@
   </define>
   <define name="osbootkernel">
     <interleave>
-      <element name="kernel">
-        <ref name="absFilePath"/>
-      </element>
+      <optional>
+        <element name="kernel">
+          <ref name="absFilePath"/>
+        </element>
+      </optional>
       <optional>
         <element name="initrd">
           <ref name="absFilePath"/>
@@ -714,7 +740,7 @@
                 <zeroOrMore>
                   <element name="host">
                     <attribute name="name">
-                      <ref name="hostName"/>
+                      <ref name="dnsName"/>
                     </attribute>
                     <attribute name="port">
                       <ref name="unsignedInt"/>
@@ -1010,8 +1036,16 @@
               <attribute name="network">
                 <ref name="deviceName"/>
               </attribute>
+              <optional>
+                <attribute name="portgroup">
+                  <ref name="deviceName"/>
+                </attribute>
+              </optional>
               <empty/>
             </element>
+            <optional>
+              <ref name="virtualPortProfile"/>
+            </optional>
             <ref name="interface-options"/>
           </interleave>
         </group>
@@ -1083,7 +1117,7 @@
       <optional>
         <element name="mac">
           <attribute name="address">
-            <ref name="addrMAC"/>
+            <ref name="macAddr"/>
           </attribute>
           <empty/>
         </element>
@@ -1091,7 +1125,7 @@
       <optional>
         <element name="ip">
           <attribute name="address">
-            <ref name="addrIP"/>
+            <ref name="ipv4Addr"/>
           </attribute>
           <empty/>
         </element>
@@ -1155,46 +1189,10 @@
       <optional>
         <ref name="deviceBoot"/>
       </optional>
+      <optional>
+        <ref name="bandwidth"/>
+      </optional>
     </interleave>
-  </define>
-  <define name="virtualPortProfile">
-    <choice>
-      <group>
-        <element name="virtualport">
-          <attribute name="type">
-            <value>802.1Qbg</value>
-          </attribute>
-          <element name="parameters">
-            <attribute name="managerid">
-              <ref name="uint8range"/>
-            </attribute>
-            <attribute name="typeid">
-              <ref name="uint24range"/>
-            </attribute>
-            <attribute name="typeidversion">
-              <ref name="uint8range"/>
-            </attribute>
-            <optional>
-              <attribute name="instanceid">
-                <ref name="UUID"/>
-              </attribute>
-            </optional>
-          </element>
-        </element>
-      </group>
-      <group>
-        <element name="virtualport">
-          <attribute name="type">
-            <value>802.1Qbh</value>
-          </attribute>
-          <element name="parameters">
-            <attribute name="profileid">
-              <ref name="virtualPortProfileID"/>
-            </attribute>
-          </element>
-        </element>
-      </group>
-    </choice>
   </define>
   <!--
       An emulator description is just a path to the binary used for the task
@@ -1284,6 +1282,13 @@
               <data type="dateTime"/>
             </attribute>
           </optional>
+          <optional>
+            <attribute name="connected">
+              <choice>
+                <value>keep</value>
+              </choice>
+            </attribute>
+          </optional>
         </group>
         <group>
           <attribute name="type">
@@ -1325,6 +1330,15 @@
           <optional>
             <attribute name="passwdValidTo">
               <data type="dateTime"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="connected">
+              <choice>
+                <value>fail</value>
+                <value>disconnect</value>
+                <value>keep</value>
+              </choice>
             </attribute>
           </optional>
           <interleave>
@@ -2251,6 +2265,17 @@
     </element>
   </define>
 
+  <define name="bios">
+    <element name="bios">
+      <attribute name="useserial">
+        <choice>
+          <value>yes</value>
+          <value>no</value>
+        </choice>
+      </attribute>
+    </element>
+  </define>
+
   <define name="address">
     <element name="address">
       <choice>
@@ -2335,22 +2360,10 @@
   <!--
        Type library
 
-       Our unsignedInt doesn't allow a leading '+' in its lexical form
        A domain name should be made of ascii, numbers, _-+ and is non-empty
-       UUID currently allows only the 32 characters strict syntax
        memoryKB request at least 4Mbytes though Xen will grow bigger if too low
        weight currently is in range [100, 1000]
     -->
-  <define name="unsignedInt">
-    <data type="unsignedInt">
-      <param name="pattern">[0-9]+</param>
-    </data>
-  </define>
-  <define name='positiveInteger'>
-    <data type='positiveInteger'>
-      <param name="pattern">[0-9]+</param>
-    </data>
-  </define>
   <define name="cpuset">
     <data type="string">
       <param name="pattern">([0-9]+(-[0-9]+)?|\^[0-9]+)(,([0-9]+(-[0-9]+)?|\^[0-9]+))*</param>
@@ -2371,10 +2384,19 @@
     <data type="unsignedInt">
       <param name="pattern">[0-9]+</param>
     </data>
-   </define>
-  <define name="hostName">
-    <data type="string">
-      <param name="pattern">[a-zA-Z0-9\.\-]+</param>
+  </define>
+  <define name="cpuperiod">
+    <data type="unsignedLong">
+      <param name="pattern">[0-9]+</param>
+      <param name="minInclusive">1000</param>
+      <param name="maxInclusive">1000000</param>
+    </data>
+  </define>
+  <define name="cpuquota">
+    <data type="long">
+      <param name="pattern">-?[0-9]+</param>
+      <param name="maxInclusive">18446744073709551</param>
+      <param name='minInclusive'>-1</param>
     </data>
   </define>
   <define name="PortNumber">
@@ -2410,49 +2432,9 @@
       <param name="pattern">[a-zA-Z0-9_\+\-]+</param>
     </data>
   </define>
-  <define name="UUID">
-    <choice>
-      <data type="string">
-        <param name="pattern">[a-fA-F0-9]{32}</param>
-      </data>
-      <data type="string">
-        <param name="pattern">[a-fA-F0-9]{8}\-([a-fA-F0-9]{4}\-){3}[a-fA-F0-9]{12}</param>
-      </data>
-    </choice>
-  </define>
-  <define name="filePath">
-    <data type="string">
-      <param name="pattern">[a-zA-Z0-9_\.\+\-\\&amp;&quot;&apos;&lt;&gt;/%]+</param>
-    </data>
-  </define>
-  <define name="absFilePath">
-    <data type="string">
-      <param name="pattern">/[a-zA-Z0-9_\.\+\-\\&amp;&quot;&apos;&lt;&gt;/%]+</param>
-    </data>
-  </define>
-  <define name="absDirPath">
-    <data type="string">
-      <param name="pattern">/[a-zA-Z0-9_\.\+\-\\&amp;&quot;&apos;&lt;&gt;/%]*</param>
-    </data>
-  </define>
-  <define name="deviceName">
-    <data type="string">
-      <param name="pattern">[a-zA-Z0-9_\.\-\\:/]+</param>
-    </data>
-  </define>
   <define name="bridgeMode">
     <data type="string">
       <param name="pattern">(vepa|bridge|private|passthrough)</param>
-    </data>
-  </define>
-  <define name="addrMAC">
-    <data type="string">
-      <param name="pattern">([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}</param>
-    </data>
-  </define>
-  <define name="addrIP">
-    <data type="string">
-      <param name="pattern">([0-2]?[0-9]?[0-9]\.){3}[0-2]?[0-9]?[0-9]</param>
     </data>
   </define>
   <define name="addrIPorName">
@@ -2528,33 +2510,6 @@
   <define name="filter-param-value">
     <data type="string">
       <param name="pattern">[a-zA-Z0-9_\.:]+</param>
-    </data>
-  </define>
-  <define name="uint8range">
-    <choice>
-      <data type="string">
-        <param name="pattern">0x[0-9a-fA-F]{1,2}</param>
-      </data>
-      <data type="int">
-        <param name="minInclusive">0</param>
-        <param name="maxInclusive">255</param>
-      </data>
-    </choice>
-  </define>
-  <define name="uint24range">
-    <choice>
-      <data type="string">
-        <param name="pattern">0x[0-9a-fA-F]{1,6}</param>
-      </data>
-      <data type="int">
-        <param name="minInclusive">0</param>
-        <param name="maxInclusive">16777215</param>
-      </data>
-    </choice>
-  </define>
-  <define name="virtualPortProfileID">
-    <data type="string">
-      <param name="maxLength">39</param>
     </data>
   </define>
 </grammar>

@@ -9,7 +9,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <link rel="stylesheet" type="text/css" href="main.css" />
     <link rel="SHORTCUT ICON" href="32favicon.png" />
-    <title>libvirt: QEMU/KVM hypervisor driver</title>
+    <title>libvirt: KVM/QEMU hypervisor driver</title>
     <meta name="description" content="libvirt, virtualization, virtualization API" />
   </head>
   <body>
@@ -161,8 +161,10 @@
           </li></ul>
       </div>
       <div id="content">
-        <h1>QEMU/KVM hypervisor driver</h1>
+        <h1>KVM/QEMU hypervisor driver</h1>
         <ul><li>
+            <a href="#project">Project Links</a>
+          </li><li>
             <a href="#prereq">Deployment pre-requisites</a>
           </li><li>
             <a href="#uris">Connections to QEMU driver</a>
@@ -194,16 +196,28 @@
             <a href="#xmlconfig">Example domain XML config</a>
           </li></ul>
         <p>
-      The libvirt QEMU driver can manage any QEMU emulator from version 0.8.1
-      or later. It can also manage anything that provides the same QEMU command
-      line syntax and monitor interaction. This includes KVM, and Xenner.
+      The libvirt KVM/QEMU driver can manage any QEMU emulator from
+      version 0.8.1 or later. It can also manage Xenner, which
+      provides the same QEMU command line syntax and monitor
+      interaction.
     </p>
+        <h2>
+          <a name="project" id="project">Project Links</a>
+        </h2>
+        <ul><li>
+        The <a href="http://www.linux-kvm.org/">KVM</a> Linux
+        hypervisor
+      </li><li>
+        The <a href="http://wiki.qemu.org/Index.html">QEMU</a> emulator
+      </li></ul>
         <h2>
           <a name="prereq" id="prereq">Deployment pre-requisites</a>
         </h2>
         <ul><li>
         <strong>QEMU emulators</strong>: The driver will probe <code>/usr/bin</code>
         for the presence of <code>qemu</code>, <code>qemu-system-x86_64</code>,
+        <code>qemu-system-microblaze</code>,
+        <code>qemu-system-microblazeel</code>,
         <code>qemu-system-mips</code>,<code>qemu-system-mipsel</code>,
         <code>qemu-system-sparc</code>,<code>qemu-system-ppc</code>. The results
         of this can be seen from the capabilities XML output.
