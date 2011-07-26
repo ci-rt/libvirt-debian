@@ -1,3 +1,13 @@
+libvirt (0.9.4~rc1-1) experimental; urgency=low
+
+  * [0e60a81] New upstream version 0.9.4~rc1
+  * [db6dbcc] Suggest radvd needed for IPv6
+  * [a9b77e5] Drop Catch-dnsmasq-start-failures.patch applied upstream
+  * [b18ac26] Rediff remaining patches
+  * [8ee8750] Update symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 26 Jul 2011 13:12:57 +0200
+
 libvirt (0.9.3-3) unstable; urgency=low
 
   * [6db6929] Catch dnsmasq start failures
