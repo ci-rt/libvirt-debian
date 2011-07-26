@@ -16,13 +16,13 @@ Bug: https://bugzilla.redhat.com/show_bug.cgi?id=614420
  1 files changed, 24 insertions(+), 3 deletions(-)
 
 diff --git a/src/rpc/virnetsocket.c b/src/rpc/virnetsocket.c
-index 4b0c2ee..391b08a 100644
+index dcdc937..034a501 100644
 --- a/src/rpc/virnetsocket.c
 +++ b/src/rpc/virnetsocket.c
-@@ -596,9 +596,30 @@ int virNetSocketNewConnectSSH(const char *nodename,
-     if (noTTY)
-         virCommandAddArgList(cmd, "-T", "-o", "BatchMode=yes",
+@@ -628,9 +628,30 @@ int virNetSocketNewConnectSSH(const char *nodename,
                               "-e", "none", NULL);
+     if (noVerify)
+         virCommandAddArgList(cmd, "-o", "StrictHostKeyChecking=no", NULL);
 -    virCommandAddArgList(cmd, nodename,
 -                         netcat ? netcat : "nc",
 -                         "-U", path, NULL);
