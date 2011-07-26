@@ -168,6 +168,22 @@
 %define with_sanlock  0%{!?_without_sanlock:%{server_drivers}}
 %endif
 
+# Disable some drivers when building without libvirt daemon.
+# The logic is the same as in configure.ac
+%if ! %{with_libvirtd}
+%define with_network 0
+%define with_qemu 0
+%define with_lxc 0
+%define with_uml 0
+%define with_hal 0
+%define with_udev 0
+%define with_storage_fs 0
+%define with_storage_lvm 0
+%define with_storage_iscsi 0
+%define with_storage_mpath 0
+%define with_storage_disk 0
+%endif
+
 # Enable libpcap library
 %if %{with_qemu}
 %define with_nwfilter 0%{!?_without_nwfilter:%{server_drivers}}
@@ -212,20 +228,13 @@
 %define with_rhel5  0
 %endif
 
-
-# there's no use compiling the network driver without
-# the libvirt daemon
-%if ! %{with_libvirtd}
-%define with_network 0
-%endif
-
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.9.3
-Release: 1%{?dist}%{?extra_release}
+Version: 0.9.4
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
-Source: http://libvirt.org/sources/libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/libvirt-%{version}-rc1.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 URL: http://libvirt.org/
 
@@ -241,7 +250,7 @@ Requires: %{name}-client = %{version}-%{release}
 Requires: bridge-utils
 # for modprobe of pci devices
 Requires: module-init-tools
-# for /sbin/ip
+# for /sbin/ip & /sbin/tc
 Requires: iproute
 %endif
 %if %{with_network}
@@ -1031,10 +1040,13 @@ fi
 %if %{with_sanlock}
 %files lock-sanlock
 %defattr(-, root, root)
+%if %{with_qemu}
 %config(noreplace) %{_sysconfdir}/libvirt/qemu-sanlock.conf
+%endif
 %attr(0755, root, root) %{_libdir}/libvirt/lock-driver/sanlock.so
 %{_datadir}/augeas/lenses/libvirt_sanlock.aug
 %{_datadir}/augeas/lenses/tests/test_libvirt_sanlock.aug
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/sanlock
 %{_sbindir}/virt-sanlock-cleanup
 %{_mandir}/man8/virt-sanlock-cleanup.8*
 %endif
@@ -1065,6 +1077,8 @@ fi
 %{_datadir}/libvirt/schemas/secret.rng
 %{_datadir}/libvirt/schemas/storageencryption.rng
 %{_datadir}/libvirt/schemas/nwfilter.rng
+%{_datadir}/libvirt/schemas/basictypes.rng
+%{_datadir}/libvirt/schemas/networkcommon.rng
 
 %{_datadir}/libvirt/cpu_map.xml
 

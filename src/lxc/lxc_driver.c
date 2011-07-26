@@ -49,8 +49,9 @@
 #include "uuid.h"
 #include "stats_linux.h"
 #include "hooks.h"
-#include "files.h"
+#include "virfile.h"
 #include "fdstream.h"
+#include "domain_audit.h"
 #include "domain_nwfilter.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
@@ -110,8 +111,10 @@ static void lxcDomainEventQueue(lxc_driver_t *driver,
 
 static virDrvOpenStatus lxcOpen(virConnectPtr conn,
                                 virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                int flags ATTRIBUTE_UNUSED)
+                                unsigned int flags)
 {
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
+
     /* Verify uri was specified */
     if (conn->uri == NULL) {
         if (lxc_driver == NULL)
@@ -409,10 +412,11 @@ static virDomainPtr lxcDomainDefine(virConnectPtr conn, const char *xml)
 
     lxcDriverLock(driver);
     if (!(def = virDomainDefParseString(driver->caps, xml,
+                                        1 << VIR_DOMAIN_VIRT_LXC,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
-   if ((dupVM = virDomainObjIsDuplicate(&driver->domains, def, 0)) < 0)
+    if ((dupVM = virDomainObjIsDuplicate(&driver->domains, def, 0)) < 0)
         goto cleanup;
 
     if ((def->nets != NULL) && !(driver->have_netns)) {
@@ -454,12 +458,15 @@ cleanup:
     return dom;
 }
 
-static int lxcDomainUndefine(virDomainPtr dom)
+static int lxcDomainUndefineFlags(virDomainPtr dom,
+                                  unsigned int flags)
 {
     lxc_driver_t *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     virDomainEventPtr event = NULL;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -503,6 +510,11 @@ cleanup:
         lxcDomainEventQueue(driver, event);
     lxcDriverUnlock(driver);
     return ret;
+}
+
+static int lxcDomainUndefine(virDomainPtr dom)
+{
+    return lxcDomainUndefineFlags(dom, 0);
 }
 
 static int lxcDomainGetInfo(virDomainPtr dom,
@@ -746,13 +758,15 @@ cleanup:
 static int lxcDomainSetMemoryParameters(virDomainPtr dom,
                                         virTypedParameterPtr params,
                                         int nparams,
-                                        unsigned int flags ATTRIBUTE_UNUSED)
+                                        unsigned int flags)
 {
     lxc_driver_t *driver = dom->conn->privateData;
     int i;
     virCgroupPtr cgroup = NULL;
     virDomainObjPtr vm = NULL;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -843,7 +857,7 @@ cleanup:
 static int lxcDomainGetMemoryParameters(virDomainPtr dom,
                                         virTypedParameterPtr params,
                                         int *nparams,
-                                        unsigned int flags ATTRIBUTE_UNUSED)
+                                        unsigned int flags)
 {
     lxc_driver_t *driver = dom->conn->privateData;
     int i;
@@ -852,6 +866,8 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
     unsigned long long val;
     int ret = -1;
     int rc;
+
+    virCheckFlags(0, -1);
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -953,11 +969,13 @@ cleanup:
 }
 
 static char *lxcDomainGetXMLDesc(virDomainPtr dom,
-                                 int flags)
+                                 unsigned int flags)
 {
     lxc_driver_t *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     char *ret = NULL;
+
+    /* Flags checked by virDomainDefFormat */
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -1217,22 +1235,26 @@ static int lxcVmTerminate(lxc_driver_t *driver,
         return -1;
     }
 
-    if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0)
-        return -1;
+    if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) == 0) {
+        rc = virCgroupKillPainfully(group);
+        if (rc < 0) {
+            virReportSystemError(-rc, "%s",
+                                 _("Failed to kill container PIDs"));
+            rc = -1;
+            goto cleanup;
+        }
+        if (rc == 1) {
+            lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Some container PIDs refused to die"));
+            rc = -1;
+            goto cleanup;
+        }
+    } else {
+        /* If cgroup doesn't exist, the VM pids must have already
+         * died and so we're just cleaning up stale state
+         */
+    }
 
-    rc = virCgroupKillPainfully(group);
-    if (rc < 0) {
-        virReportSystemError(-rc, "%s",
-                             _("Failed to kill container PIDs"));
-        rc = -1;
-        goto cleanup;
-    }
-    if (rc == 1) {
-        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("Some container PIDs refused to die"));
-        rc = -1;
-        goto cleanup;
-    }
     lxcVmCleanup(driver, vm, reason);
 
     rc = 0;
@@ -1269,6 +1291,7 @@ static void lxcMonitorEvent(int watch,
         event = virDomainEventNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_STOPPED,
                                          VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN);
+        virDomainAuditStop(vm, "shutdown");
     }
     if (!vm->persistent) {
         virDomainRemoveInactive(&driver->domains, vm);
@@ -1502,8 +1525,8 @@ static int lxcVmStart(virConnectPtr conn,
         return -1;
     }
 
-    if ((r = virFileMakePath(driver->logDir)) != 0) {
-        virReportSystemError(r,
+    if (virFileMakePath(driver->logDir) < 0) {
+        virReportSystemError(errno,
                              _("Cannot create log directory '%s'"),
                              driver->logDir);
         return -1;
@@ -1589,8 +1612,8 @@ static int lxcVmStart(virConnectPtr conn,
         goto cleanup;
 
     /* And get its pid */
-    if ((r = virFileReadPid(driver->stateDir, vm->def->name, &vm->pid)) != 0) {
-        virReportSystemError(r,
+    if ((r = virFileReadPid(driver->stateDir, vm->def->name, &vm->pid)) < 0) {
+        virReportSystemError(-r,
                              _("Failed to read pid file %s/%s.pid"),
                              driver->stateDir, vm->def->name);
         goto cleanup;
@@ -1700,10 +1723,14 @@ static int lxcDomainStartWithFlags(virDomainPtr dom, unsigned int flags)
 
     ret = lxcVmStart(dom->conn, driver, vm, VIR_DOMAIN_RUNNING_BOOTED);
 
-    if (ret == 0)
+    if (ret == 0) {
         event = virDomainEventNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_STARTED,
                                          VIR_DOMAIN_EVENT_STARTED_BOOTED);
+        virDomainAuditStart(vm, "booted", true);
+    } else {
+        virDomainAuditStart(vm, "booted", false);
+    }
 
 cleanup:
     if (vm)
@@ -1751,6 +1778,7 @@ lxcDomainCreateAndStart(virConnectPtr conn,
 
     lxcDriverLock(driver);
     if (!(def = virDomainDefParseString(driver->caps, xml,
+                                        1 << VIR_DOMAIN_VIRT_LXC,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
@@ -1770,6 +1798,7 @@ lxcDomainCreateAndStart(virConnectPtr conn,
     def = NULL;
 
     if (lxcVmStart(conn, driver, vm, VIR_DOMAIN_RUNNING_BOOTED) < 0) {
+        virDomainAuditStart(vm, "booted", false);
         virDomainRemoveInactive(&driver->domains, vm);
         vm = NULL;
         goto cleanup;
@@ -1778,6 +1807,7 @@ lxcDomainCreateAndStart(virConnectPtr conn,
     event = virDomainEventNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_STARTED,
                                      VIR_DOMAIN_EVENT_STARTED_BOOTED);
+    virDomainAuditStart(vm, "booted", true);
 
     dom = virGetDomain(conn, vm->def->name, vm->def->uuid);
     if (dom)
@@ -1904,19 +1934,24 @@ static void lxcDomainEventQueue(lxc_driver_t *driver,
 }
 
 /**
- * lxcDomainDestroy:
+ * lxcDomainDestroyFlags:
  * @dom: pointer to domain to destroy
+ * @flags: an OR'ed set of virDomainDestroyFlags
  *
  * Sends SIGKILL to container root process to terminate the container
  *
  * Returns 0 on success or -1 in case of error
  */
-static int lxcDomainDestroy(virDomainPtr dom)
+static int
+lxcDomainDestroyFlags(virDomainPtr dom,
+                      unsigned int flags)
 {
     lxc_driver_t *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     virDomainEventPtr event = NULL;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -1938,6 +1973,7 @@ static int lxcDomainDestroy(virDomainPtr dom)
     event = virDomainEventNewFromObj(vm,
                                      VIR_DOMAIN_EVENT_STOPPED,
                                      VIR_DOMAIN_EVENT_STOPPED_DESTROYED);
+    virDomainAuditStop(vm, "destroyed");
     if (!vm->persistent) {
         virDomainRemoveInactive(&driver->domains, vm);
         vm = NULL;
@@ -1950,6 +1986,20 @@ cleanup:
         lxcDomainEventQueue(driver, event);
     lxcDriverUnlock(driver);
     return ret;
+}
+
+/**
+ * lxcDomainDestroy:
+ * @dom: pointer to domain to destroy
+ *
+ * Sends SIGKILL to container root process to terminate the container
+ *
+ * Returns 0 on success or -1 in case of error
+ */
+static int
+lxcDomainDestroy(virDomainPtr dom)
+{
+    return lxcDomainDestroyFlags(dom, 0);
 }
 
 static int lxcCheckNetNsSupport(void)
@@ -1984,6 +2034,7 @@ lxcAutostartDomain(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaqu
         !virDomainObjIsActive(vm)) {
         int ret = lxcVmStart(data->conn, data->driver, vm,
                              VIR_DOMAIN_RUNNING_BOOTED);
+        virDomainAuditStart(vm, "booted", ret >= 0);
         if (ret < 0) {
             virErrorPtr err = virGetLastError();
             VIR_ERROR(_("Failed to autostart VM '%s': %s"),
@@ -2029,31 +2080,24 @@ lxcReconnectVM(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaque)
     lxcDomainObjPrivatePtr priv;
 
     virDomainObjLock(vm);
+    VIR_DEBUG("Reconnect %d %d %d\n", vm->def->id, vm->pid, vm->state.state);
 
     priv = vm->privateData;
-    if ((priv->monitor = lxcMonitorClient(driver, vm)) < 0) {
-        goto cleanup;
-    }
-
-    /* Read pid from controller */
-    if ((virFileReadPid(lxc_driver->stateDir, vm->def->name, &vm->pid)) != 0) {
-        VIR_FORCE_CLOSE(priv->monitor);
-        goto cleanup;
-    }
 
     if (vm->pid != 0) {
         vm->def->id = vm->pid;
         virDomainObjSetState(vm, VIR_DOMAIN_RUNNING,
                              VIR_DOMAIN_RUNNING_UNKNOWN);
 
+        if ((priv->monitor = lxcMonitorClient(driver, vm)) < 0)
+            goto error;
+
         if ((priv->monitorWatch = virEventAddHandle(
                  priv->monitor,
                  VIR_EVENT_HANDLE_ERROR | VIR_EVENT_HANDLE_HANGUP,
                  lxcMonitorEvent,
-                 vm, NULL)) < 0) {
-            lxcVmTerminate(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
-            goto cleanup;
-        }
+                 vm, NULL)) < 0)
+            goto error;
     } else {
         vm->def->id = -1;
         VIR_FORCE_CLOSE(priv->monitor);
@@ -2061,6 +2105,12 @@ lxcReconnectVM(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaque)
 
 cleanup:
     virDomainObjUnlock(vm);
+    return;
+
+error:
+    lxcVmTerminate(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
+    virDomainAuditStop(vm, "failed");
+    goto cleanup;
 }
 
 
@@ -2138,7 +2188,8 @@ static int lxcStartup(int privileged)
                                 &lxc_driver->domains,
                                 lxc_driver->stateDir,
                                 NULL,
-                                1, NULL, NULL) < 0)
+                                1, 1 << VIR_DOMAIN_VIRT_LXC,
+                                NULL, NULL) < 0)
         goto cleanup;
 
     virHashForEach(lxc_driver->domains.objs, lxcReconnectVM, lxc_driver);
@@ -2148,7 +2199,8 @@ static int lxcStartup(int privileged)
                                 &lxc_driver->domains,
                                 lxc_driver->configDir,
                                 lxc_driver->autostartDir,
-                                0, NULL, NULL) < 0)
+                                0, 1 << VIR_DOMAIN_VIRT_LXC,
+                                NULL, NULL) < 0)
         goto cleanup;
 
     lxcDriverUnlock(lxc_driver);
@@ -2193,7 +2245,8 @@ lxcReload(void) {
                             &lxc_driver->domains,
                             lxc_driver->configDir,
                             lxc_driver->autostartDir,
-                            0, lxcNotifyLoadDomain, lxc_driver);
+                            0, 1 << VIR_DOMAIN_VIRT_LXC,
+                            lxcNotifyLoadDomain, lxc_driver);
     lxcDriverUnlock(lxc_driver);
 
     lxcAutostartConfigs(lxc_driver);
@@ -2539,10 +2592,8 @@ static int lxcDomainSetAutostart(virDomainPtr dom,
         goto cleanup;
 
     if (autostart) {
-        int err;
-
-        if ((err = virFileMakePath(driver->autostartDir))) {
-            virReportSystemError(err,
+        if (virFileMakePath(driver->autostartDir) < 0) {
+            virReportSystemError(errno,
                                  _("Cannot create autostart directory %s"),
                                  driver->autostartDir);
             goto cleanup;
@@ -2896,6 +2947,7 @@ static virDriver lxcDriver = {
     .domainSuspend = lxcDomainSuspend, /* 0.7.2 */
     .domainResume = lxcDomainResume, /* 0.7.2 */
     .domainDestroy = lxcDomainDestroy, /* 0.4.4 */
+    .domainDestroyFlags = lxcDomainDestroyFlags, /* 0.9.4 */
     .domainGetOSType = lxcGetOSType, /* 0.4.2 */
     .domainGetMaxMemory = lxcDomainGetMaxMemory, /* 0.7.2 */
     .domainSetMaxMemory = lxcDomainSetMaxMemory, /* 0.7.2 */
@@ -2911,6 +2963,7 @@ static virDriver lxcDriver = {
     .domainCreateWithFlags = lxcDomainStartWithFlags, /* 0.8.2 */
     .domainDefineXML = lxcDomainDefine, /* 0.4.2 */
     .domainUndefine = lxcDomainUndefine, /* 0.4.2 */
+    .domainUndefineFlags = lxcDomainUndefineFlags, /* 0.9.4 */
     .domainGetAutostart = lxcDomainGetAutostart, /* 0.7.0 */
     .domainSetAutostart = lxcDomainSetAutostart, /* 0.7.0 */
     .domainGetSchedulerType = lxcGetSchedulerType, /* 0.5.0 */

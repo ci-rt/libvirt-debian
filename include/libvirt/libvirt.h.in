@@ -232,9 +232,10 @@ typedef virDomainInfo *virDomainInfoPtr;
  * Domain.
  */
 typedef enum {
-    VIR_DOMAIN_NONE         = 0,      /* Default behavior */
-    VIR_DOMAIN_START_PAUSED = 1 << 0, /* Launch guest in paused state */
-    VIR_DOMAIN_START_AUTODESTROY = 1 << 1, /* Automatically kill guest when virConnectPtr is closed */
+    VIR_DOMAIN_NONE               = 0,      /* Default behavior */
+    VIR_DOMAIN_START_PAUSED       = 1 << 0, /* Launch guest in paused state */
+    VIR_DOMAIN_START_AUTODESTROY  = 1 << 1, /* Automatically kill guest when virConnectPtr is closed */
+    VIR_DOMAIN_START_BYPASS_CACHE = 1 << 2, /* Avoid file system cache pollution */
 } virDomainCreateFlags;
 
 
@@ -657,8 +658,9 @@ typedef virDomainMemoryStatStruct *virDomainMemoryStatPtr;
 
 /* Domain core dump flags. */
 typedef enum {
-    VIR_DUMP_CRASH   = (1 << 0), /* crash after dump */
-    VIR_DUMP_LIVE    = (1 << 1), /* live dump */
+    VIR_DUMP_CRASH        = (1 << 0), /* crash after dump */
+    VIR_DUMP_LIVE         = (1 << 1), /* live dump */
+    VIR_DUMP_BYPASS_CACHE = (1 << 2), /* avoid file system cache pollution */
 } virDomainCoreDumpFlags;
 
 /* Domain migration flags. */
@@ -851,7 +853,7 @@ virConnectPtr           virConnectOpen          (const char *name);
 virConnectPtr           virConnectOpenReadOnly  (const char *name);
 virConnectPtr           virConnectOpenAuth      (const char *name,
                                                  virConnectAuthPtr auth,
-                                                 int flags);
+                                                 unsigned int flags);
 int                     virConnectRef           (virConnectPtr conn);
 int                     virConnectClose         (virConnectPtr conn);
 const char *            virConnectGetType       (virConnectPtr conn);
@@ -913,6 +915,11 @@ virConnectPtr           virDomainGetConnect     (virDomainPtr domain);
 /*
  * Domain creation and destruction
  */
+
+/*
+ * typedef enum {
+ * } virDomainDestroyFlagsValues;
+ */
 virDomainPtr            virDomainCreateXML      (virConnectPtr conn,
                                                  const char *xmlDesc,
                                                  unsigned int flags);
@@ -929,6 +936,8 @@ int                     virDomainShutdown       (virDomainPtr domain);
 int                     virDomainReboot         (virDomainPtr domain,
                                                  unsigned int flags);
 int                     virDomainDestroy        (virDomainPtr domain);
+int                     virDomainDestroyFlags   (virDomainPtr domain,
+                                                 unsigned int flags);
 int                     virDomainRef            (virDomainPtr domain);
 int                     virDomainFree           (virDomainPtr domain);
 
@@ -941,10 +950,36 @@ int                     virDomainResume         (virDomainPtr domain);
 /*
  * Domain save/restore
  */
+
+/**
+ * virDomainSaveRestoreFlags:
+ * Flags for use in virDomainSaveFlags(), virDomainManagedSave(), and
+ * virDomainRestoreFlags().
+ */
+typedef enum {
+    VIR_DOMAIN_SAVE_BYPASS_CACHE = 1 << 0, /* Avoid file system cache pollution */
+} virDomainSaveRestoreFlags;
+
 int                     virDomainSave           (virDomainPtr domain,
                                                  const char *to);
+int                     virDomainSaveFlags      (virDomainPtr domain,
+                                                 const char *to,
+                                                 const char *dxml,
+                                                 unsigned int flags);
 int                     virDomainRestore        (virConnectPtr conn,
                                                  const char *from);
+int                     virDomainRestoreFlags   (virConnectPtr conn,
+                                                 const char *from,
+                                                 const char *dxml,
+                                                 unsigned int flags);
+
+char *          virDomainSaveImageGetXMLDesc    (virConnectPtr conn,
+                                                 const char *file,
+                                                 unsigned int flags);
+int             virDomainSaveImageDefineXML     (virConnectPtr conn,
+                                                 const char *file,
+                                                 const char *dxml,
+                                                 unsigned int flags);
 
 /*
  * Managed domain save
@@ -961,7 +996,7 @@ int                    virDomainManagedSaveRemove(virDomainPtr dom,
  */
 int                     virDomainCoreDump       (virDomainPtr domain,
                                                  const char *to,
-                                                 int flags);
+                                                 unsigned int flags);
 
 /*
  * Screenshot of current domain console
@@ -1115,7 +1150,7 @@ typedef enum {
 } virDomainXMLFlags;
 
 char *                  virDomainGetXMLDesc     (virDomainPtr domain,
-                                                 int flags);
+                                                 unsigned int flags);
 
 
 char *                  virConnectDomainXMLFromNative(virConnectPtr conn,
@@ -1200,6 +1235,16 @@ int                     virDomainMemoryPeek (virDomainPtr dom,
 virDomainPtr            virDomainDefineXML      (virConnectPtr conn,
                                                  const char *xml);
 int                     virDomainUndefine       (virDomainPtr domain);
+
+typedef enum {
+    VIR_DOMAIN_UNDEFINE_MANAGED_SAVE = (1 << 0),
+
+    /* Future undefine control flags should come here. */
+} virDomainUndefineFlagsValues;
+
+
+int                     virDomainUndefineFlags   (virDomainPtr domain,
+                                                  unsigned int flags);
 int                     virConnectNumOfDefinedDomains  (virConnectPtr conn);
 int                     virConnectListDefinedDomains (virConnectPtr conn,
                                                  char **const names,
@@ -1234,8 +1279,8 @@ typedef virVcpuInfo *virVcpuInfoPtr;
 
 /* Flags for controlling virtual CPU hot-plugging.  */
 typedef enum {
-    /* Must choose at least one of these two bits; SetVcpus can choose both;
-       see virDomainModificationImpact for details.  */
+    /* See virDomainModificationImpact for these flags.  */
+    VIR_DOMAIN_VCPU_CURRENT = VIR_DOMAIN_AFFECT_CURRENT,
     VIR_DOMAIN_VCPU_LIVE    = VIR_DOMAIN_AFFECT_LIVE,
     VIR_DOMAIN_VCPU_CONFIG  = VIR_DOMAIN_AFFECT_CONFIG,
 
@@ -1375,6 +1420,50 @@ int virDomainUpdateDeviceFlags(virDomainPtr domain,
                                const char *xml, unsigned int flags);
 
 /*
+ * BlockJob API
+ */
+
+/**
+ * virDomainBlockJobType:
+ *
+ * VIR_DOMAIN_BLOCK_JOB_TYPE_PULL: Block Pull (virDomainBlockPull)
+ */
+typedef enum {
+    VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN = 0,
+    VIR_DOMAIN_BLOCK_JOB_TYPE_PULL = 1,
+} virDomainBlockJobType;
+
+/* An iterator for monitoring block job operations */
+typedef unsigned long long virDomainBlockJobCursor;
+
+typedef struct _virDomainBlockJobInfo virDomainBlockJobInfo;
+struct _virDomainBlockJobInfo {
+    virDomainBlockJobType type;
+    unsigned long bandwidth;
+    /*
+     * The following fields provide an indication of block job progress.  @cur
+     * indicates the current position and will be between 0 and @end.  @end is
+     * the final cursor position for this operation and represents completion.
+     * To approximate progress, divide @cur by @end.
+     */
+    virDomainBlockJobCursor cur;
+    virDomainBlockJobCursor end;
+};
+typedef virDomainBlockJobInfo *virDomainBlockJobInfoPtr;
+
+int       virDomainBlockJobAbort(virDomainPtr dom, const char *path,
+                                 unsigned int flags);
+int     virDomainGetBlockJobInfo(virDomainPtr dom, const char *path,
+                                 virDomainBlockJobInfoPtr info,
+                                 unsigned int flags);
+int    virDomainBlockJobSetSpeed(virDomainPtr dom, const char *path,
+                                 unsigned long bandwidth, unsigned int flags);
+
+int           virDomainBlockPull(virDomainPtr dom, const char *path,
+                                 unsigned long bandwidth, unsigned int flags);
+
+
+/*
  * NUMA support
  */
 
@@ -1471,7 +1560,7 @@ int                     virNetworkGetUUID       (virNetworkPtr network,
 int                     virNetworkGetUUIDString (virNetworkPtr network,
                                                  char *buf);
 char *                  virNetworkGetXMLDesc    (virNetworkPtr network,
-                                                 int flags);
+                                                 unsigned int flags);
 char *                  virNetworkGetBridgeName (virNetworkPtr network);
 
 int                     virNetworkGetAutostart  (virNetworkPtr network,
@@ -1778,6 +1867,12 @@ typedef enum {
     VIR_KEYCODE_SET_ATSET1         = 2,
     VIR_KEYCODE_SET_ATSET2         = 3,
     VIR_KEYCODE_SET_ATSET3         = 4,
+    VIR_KEYCODE_SET_OSX            = 5,
+    VIR_KEYCODE_SET_XT_KBD         = 6,
+    VIR_KEYCODE_SET_USB            = 7,
+    VIR_KEYCODE_SET_WIN32          = 8,
+
+    VIR_KEYCODE_SET_LAST,
 } virKeycodeSet;
 
 /**
@@ -2464,7 +2559,7 @@ virDomainSnapshotPtr virDomainSnapshotLookupByName(virDomainPtr domain,
                                                    unsigned int flags);
 
 /* Check whether a domain has a snapshot which is currently used */
-int virDomainHasCurrentSnapshot(virDomainPtr domain, unsigned flags);
+int virDomainHasCurrentSnapshot(virDomainPtr domain, unsigned int flags);
 
 /* Get a handle to the current snapshot */
 virDomainSnapshotPtr virDomainSnapshotCurrent(virDomainPtr domain,
@@ -2691,6 +2786,34 @@ typedef void (*virConnectDomainEventGraphicsCallback)(virConnectPtr conn,
                                                       void *opaque);
 
 /**
+ * virConnectDomainEventBlockJobStatus:
+ *
+ * The final status of a virDomainBlockPullAll() operation
+ */
+typedef enum {
+    VIR_DOMAIN_BLOCK_JOB_COMPLETED = 0,
+    VIR_DOMAIN_BLOCK_JOB_FAILED = 1,
+} virConnectDomainEventBlockJobStatus;
+
+/**
+ * virConnectDomainEventBlockJobCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @path: fully-qualified filename of the affected disk
+ * @type: type of block job (virDomainBlockJobType)
+ * @status: final status of the operation (virConnectDomainEventBlockJobStatus)
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_BLOCK_JOB with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventBlockJobCallback)(virConnectPtr conn,
+                                                      virDomainPtr dom,
+                                                      const char *path,
+                                                      int type,
+                                                      int status,
+                                                      void *opaque);
+
+/**
  * VIR_DOMAIN_EVENT_CALLBACK:
  *
  * Used to cast the event specific callback into the generic one
@@ -2708,6 +2831,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_GRAPHICS = 5,        /* virConnectDomainEventGraphicsCallback */
     VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON = 6, /* virConnectDomainEventIOErrorReasonCallback */
     VIR_DOMAIN_EVENT_ID_CONTROL_ERROR = 7,   /* virConnectDomainEventGenericCallback */
+    VIR_DOMAIN_EVENT_ID_BLOCK_JOB = 8,       /* virConnectDomainEventBlockJobCallback */
 
     /*
      * NB: this enum value will increase over time as new events are
@@ -2790,7 +2914,7 @@ int                     virNWFilterGetUUID       (virNWFilterPtr nwfilter,
 int                     virNWFilterGetUUIDString (virNWFilterPtr nwfilter,
                                                   char *buf);
 char *                  virNWFilterGetXMLDesc    (virNWFilterPtr nwfilter,
-                                                  int flags);
+                                                  unsigned int flags);
 
 
 int virDomainOpenConsole(virDomainPtr dom,

@@ -1,7 +1,7 @@
 /*
  * storage_conf.c: config handling for storage driver
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -43,7 +43,7 @@
 #include "buf.h"
 #include "util.h"
 #include "memory.h"
-#include "files.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -117,7 +117,7 @@ enum {
 typedef struct _virStoragePoolOptions virStoragePoolOptions;
 typedef virStoragePoolOptions *virStoragePoolOptionsPtr;
 struct _virStoragePoolOptions {
-    int flags;
+    unsigned int flags;
     int defaultFormat;
     virStoragePoolFormatToString formatToString;
     virStoragePoolFormatFromString formatFromString;
@@ -1512,10 +1512,8 @@ virStoragePoolObjSaveDef(virStorageDriverStatePtr driver,
     ssize_t towrite;
 
     if (!pool->configFile) {
-        int err;
-
-        if ((err = virFileMakePath(driver->configDir))) {
-            virReportSystemError(err,
+        if (virFileMakePath(driver->configDir) < 0) {
+            virReportSystemError(errno,
                                  _("cannot create config directory %s"),
                                  driver->configDir);
             return -1;

@@ -1477,6 +1477,8 @@ out:
 }
 
 
+/* DMI is intel-compatible specific */
+#if defined(__x86_64__) || defined(__i386__) || defined(__amd64__)
 static void
 udevGetDMIData(union _virNodeDevCapData *data)
 {
@@ -1549,6 +1551,7 @@ out:
     }
     return;
 }
+#endif
 
 
 static int udevSetupSystemDev(void)
@@ -1573,7 +1576,9 @@ static int udevSetupSystemDev(void)
         goto out;
     }
 
+#if defined(__x86_64__) || defined(__i386__) || defined(__amd64__)
     udevGetDMIData(&def->caps->data);
+#endif
 
     dev = virNodeDeviceAssignDef(&driverState->devs, def);
     if (dev == NULL) {
@@ -1721,8 +1726,10 @@ static int udevDeviceMonitorActive(void)
 
 static virDrvOpenStatus udevNodeDrvOpen(virConnectPtr conn,
                                         virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                        int flags ATTRIBUTE_UNUSED)
+                                        unsigned int flags)
 {
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
+
     if (driverState == NULL) {
         return VIR_DRV_OPEN_DECLINED;
     }

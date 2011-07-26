@@ -31,7 +31,7 @@
 #include "memory.h"
 #include "cgroup.h"
 #include "logging.h"
-#include "files.h"
+#include "virfile.h"
 #include "hash.h"
 
 #define CGROUP_MAX_VAL 512
@@ -51,6 +51,16 @@ struct virCgroup {
 
     struct virCgroupController controllers[VIR_CGROUP_CONTROLLER_LAST];
 };
+
+typedef enum {
+    VIR_CGROUP_NONE = 0, /* create subdir under each cgroup if possible. */
+    VIR_CGROUP_MEM_HIERACHY = 1 << 0, /* call virCgroupSetMemoryUseHierarchy
+                                       * before creating subcgroups and
+                                       * attaching tasks
+                                       */
+    VIR_CGROUP_VCPU = 1 << 1, /* create subdir only under the cgroup cpu,
+                               * cpuacct and cpuset if possible. */
+} virCgroupFlags;
 
 /**
  * virCgroupFree:
@@ -388,8 +398,6 @@ static int virCgroupSetValueI64(virCgroupPtr group,
     return rc;
 }
 
-#if 0
-/* This is included for completeness, but not yet used */
 static int virCgroupGetValueI64(virCgroupPtr group,
                                 int controller,
                                 const char *key,
@@ -409,7 +417,6 @@ out:
 
     return rc;
 }
-#endif
 
 static int virCgroupGetValueU64(virCgroupPtr group,
                                 int controller,
@@ -503,7 +510,7 @@ static int virCgroupSetMemoryUseHierarchy(virCgroupPtr group)
 }
 
 static int virCgroupMakeGroup(virCgroupPtr parent, virCgroupPtr group,
-                              int create, bool memory_hierarchy)
+                              int create, unsigned int flags)
 {
     int i;
     int rc = 0;
@@ -515,6 +522,13 @@ static int virCgroupMakeGroup(virCgroupPtr parent, virCgroupPtr group,
         /* Skip over controllers that aren't mounted */
         if (!group->controllers[i].mountPoint)
             continue;
+
+        /* We need to control cpu bandwidth for each vcpu now */
+        if ((flags & VIR_CGROUP_VCPU) && (i != VIR_CGROUP_CONTROLLER_CPU)) {
+            /* treat it as unmounted and we can use virCgroupAddTask */
+            VIR_FREE(group->controllers[i].mountPoint);
+            continue;
+        }
 
         rc = virCgroupPathOfController(group, i, "", &path);
         if (rc < 0)
@@ -555,8 +569,8 @@ static int virCgroupMakeGroup(virCgroupPtr parent, virCgroupPtr group,
              * Note that virCgroupSetMemoryUseHierarchy should always be
              * called prior to creating subcgroups and attaching tasks.
              */
-            if (memory_hierarchy &&
-                group->controllers[VIR_CGROUP_CONTROLLER_MEMORY].mountPoint != NULL &&
+            if ((flags & VIR_CGROUP_MEM_HIERACHY) &&
+                (group->controllers[VIR_CGROUP_CONTROLLER_MEMORY].mountPoint != NULL) &&
                 (i == VIR_CGROUP_CONTROLLER_MEMORY ||
                  STREQ(group->controllers[i].mountPoint, group->controllers[VIR_CGROUP_CONTROLLER_MEMORY].mountPoint))) {
                 rc = virCgroupSetMemoryUseHierarchy(group);
@@ -641,7 +655,7 @@ static int virCgroupAppRoot(int privileged,
     if (rc != 0)
         goto cleanup;
 
-    rc = virCgroupMakeGroup(rootgrp, *group, create, false);
+    rc = virCgroupMakeGroup(rootgrp, *group, create, VIR_CGROUP_NONE);
 
 cleanup:
     virCgroupFree(&rootgrp);
@@ -801,7 +815,7 @@ int virCgroupForDriver(const char *name,
     VIR_FREE(path);
 
     if (rc == 0) {
-        rc = virCgroupMakeGroup(rootgrp, *group, create, false);
+        rc = virCgroupMakeGroup(rootgrp, *group, create, VIR_CGROUP_NONE);
         if (rc != 0)
             virCgroupFree(group);
     }
@@ -861,7 +875,7 @@ int virCgroupForDomain(virCgroupPtr driver,
          * a group for driver, is to avoid overhead to track
          * cumulative usage that we don't need.
          */
-        rc = virCgroupMakeGroup(driver, *group, create, true);
+        rc = virCgroupMakeGroup(driver, *group, create, VIR_CGROUP_MEM_HIERACHY);
         if (rc != 0)
             virCgroupFree(group);
     }
@@ -873,6 +887,51 @@ int virCgroupForDomain(virCgroupPtr driver ATTRIBUTE_UNUSED,
                        const char *name ATTRIBUTE_UNUSED,
                        virCgroupPtr *group ATTRIBUTE_UNUSED,
                        int create ATTRIBUTE_UNUSED)
+{
+    return -ENXIO;
+}
+#endif
+
+/**
+ * virCgroupForVcpu:
+ *
+ * @driver: group for the domain
+ * @vcpuid: id of the vcpu
+ * @group: Pointer to returned virCgroupPtr
+ *
+ * Returns 0 on success
+ */
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
+int virCgroupForVcpu(virCgroupPtr driver,
+                     int vcpuid,
+                     virCgroupPtr *group,
+                     int create)
+{
+    int rc;
+    char *path;
+
+    if (driver == NULL)
+        return -EINVAL;
+
+    if (virAsprintf(&path, "%s/vcpu%d", driver->path, vcpuid) < 0)
+        return -ENOMEM;
+
+    rc = virCgroupNew(path, group);
+    VIR_FREE(path);
+
+    if (rc == 0) {
+        rc = virCgroupMakeGroup(driver, *group, create, VIR_CGROUP_VCPU);
+        if (rc != 0)
+            virCgroupFree(group);
+    }
+
+    return rc;
+}
+#else
+int virCgroupForVcpu(virCgroupPtr driver ATTRIBUTE_UNUSED,
+                     int vcpuid ATTRIBUTE_UNUSED,
+                     virCgroupPtr *group ATTRIBUTE_UNUSED,
+                     int create ATTRIBUTE_UNUSED)
 {
     return -ENXIO;
 }
@@ -1320,6 +1379,84 @@ int virCgroupGetCpuShares(virCgroupPtr group, unsigned long long *shares)
     return virCgroupGetValueU64(group,
                                 VIR_CGROUP_CONTROLLER_CPU,
                                 "cpu.shares", shares);
+}
+
+/**
+ * virCgroupSetCpuCfsPeriod:
+ *
+ * @group: The cgroup to change cpu.cfs_period_us for
+ * @cfs_period: The bandwidth period in usecs
+ *
+ * Returns: 0 on success
+ */
+int virCgroupSetCpuCfsPeriod(virCgroupPtr group, unsigned long long cfs_period)
+{
+    /* The cfs_period shoule be greater or equal than 1ms, and less or equal
+     * than 1s.
+     */
+    if (cfs_period < 1000 || cfs_period > 1000000)
+        return -EINVAL;
+
+    return virCgroupSetValueU64(group,
+                                VIR_CGROUP_CONTROLLER_CPU,
+                                "cpu.cfs_period_us", cfs_period);
+}
+
+/**
+ * virCgroupGetCpuCfsPeriod:
+ *
+ * @group: The cgroup to get cpu.cfs_period_us for
+ * @cfs_period: Pointer to the returned bandwidth period in usecs
+ *
+ * Returns: 0 on success
+ */
+int virCgroupGetCpuCfsPeriod(virCgroupPtr group, unsigned long long *cfs_period)
+{
+    return virCgroupGetValueU64(group,
+                                VIR_CGROUP_CONTROLLER_CPU,
+                                "cpu.cfs_period_us", cfs_period);
+}
+
+/**
+ * virCgroupSetCpuCfsQuota:
+ *
+ * @group: The cgroup to change cpu.cfs_quota_us for
+ * @cfs_quota: the cpu bandwidth (in usecs) that this tg will be allowed to
+ *             consume over period
+ *
+ * Returns: 0 on success
+ */
+int virCgroupSetCpuCfsQuota(virCgroupPtr group, long long cfs_quota)
+{
+    if (cfs_quota >= 0) {
+        /* The cfs_quota shoule be greater or equal than 1ms */
+        if (cfs_quota < 1000)
+            return -EINVAL;
+
+        /* check overflow */
+        if (cfs_quota > ULLONG_MAX / 1000)
+            return -EINVAL;
+    }
+
+    return virCgroupSetValueI64(group,
+                                VIR_CGROUP_CONTROLLER_CPU,
+                                "cpu.cfs_quota_us", cfs_quota);
+}
+
+/**
+ * virCgroupGetCpuCfsQuota:
+ *
+ * @group: The cgroup to get cpu.cfs_quota_us for
+ * @cfs_quota: Pointer to the returned cpu bandwidth (in usecs) that this tg
+ *             will be allowed to consume over period
+ *
+ * Returns: 0 on success
+ */
+int virCgroupGetCpuCfsQuota(virCgroupPtr group, long long *cfs_quota)
+{
+    return virCgroupGetValueI64(group,
+                                VIR_CGROUP_CONTROLLER_CPU,
+                                "cpu.cfs_quota_us", cfs_quota);
 }
 
 int virCgroupGetCpuacctUsage(virCgroupPtr group, unsigned long long *usage)

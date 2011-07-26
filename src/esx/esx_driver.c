@@ -934,12 +934,15 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
  * socks5. The optional <port> part allows to override the default port 1080.
  */
 static virDrvOpenStatus
-esxOpen(virConnectPtr conn, virConnectAuthPtr auth, int flags ATTRIBUTE_UNUSED)
+esxOpen(virConnectPtr conn, virConnectAuthPtr auth,
+        unsigned int flags)
 {
     virDrvOpenStatus result = VIR_DRV_OPEN_ERROR;
     esxPrivate *priv = NULL;
     char *potentialVCenterIpAddress = NULL;
     char vCenterIpAddress[NI_MAXHOST] = "";
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     /* Decline if the URI is NULL or the scheme is not one of {vpx|esx|gsx} */
     if (conn->uri == NULL || conn->uri->scheme == NULL ||
@@ -1889,13 +1892,15 @@ esxDomainShutdown(virDomainPtr domain)
 
 
 static int
-esxDomainReboot(virDomainPtr domain, unsigned int flags ATTRIBUTE_UNUSED)
+esxDomainReboot(virDomainPtr domain, unsigned int flags)
 {
     int result = -1;
     esxPrivate *priv = domain->conn->privateData;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
     esxVI_VirtualMachinePowerState powerState;
+
+    virCheckFlags(0, -1);
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
@@ -1932,7 +1937,8 @@ esxDomainReboot(virDomainPtr domain, unsigned int flags ATTRIBUTE_UNUSED)
 
 
 static int
-esxDomainDestroy(virDomainPtr domain)
+esxDomainDestroyFlags(virDomainPtr domain,
+                      unsigned int flags)
 {
     int result = -1;
     esxPrivate *priv = domain->conn->privateData;
@@ -1943,6 +1949,8 @@ esxDomainDestroy(virDomainPtr domain)
     esxVI_ManagedObjectReference *task = NULL;
     esxVI_TaskInfoState taskInfoState;
     char *taskInfoErrorMessage = NULL;
+
+    virCheckFlags(0, -1);
 
     if (priv->vCenter != NULL) {
         ctx = priv->vCenter;
@@ -1995,6 +2003,12 @@ esxDomainDestroy(virDomainPtr domain)
     return result;
 }
 
+
+static int
+esxDomainDestroy(virDomainPtr dom)
+{
+    return esxDomainDestroyFlags(dom, 0);
+}
 
 
 static char *
@@ -2681,7 +2695,7 @@ esxDomainGetMaxVcpus(virDomainPtr domain)
 
 
 static char *
-esxDomainGetXMLDesc(virDomainPtr domain, int flags)
+esxDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 {
     esxPrivate *priv = domain->conn->privateData;
     esxVI_String *propertyNameList = NULL;
@@ -2699,6 +2713,10 @@ esxDomainGetXMLDesc(virDomainPtr domain, int flags)
     esxVMX_Data data;
     virDomainDefPtr def = NULL;
     char *xml = NULL;
+
+    /* Flags checked by virDomainDefFormat */
+
+    memset(&data, 0, sizeof (data));
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return NULL;
@@ -2795,13 +2813,17 @@ esxDomainGetXMLDesc(virDomainPtr domain, int flags)
 static char *
 esxDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
                        const char *nativeConfig,
-                       unsigned int flags ATTRIBUTE_UNUSED)
+                       unsigned int flags)
 {
     esxPrivate *priv = conn->privateData;
     virVMXContext ctx;
     esxVMX_Data data;
     virDomainDefPtr def = NULL;
     char *xml = NULL;
+
+    virCheckFlags(0, NULL);
+
+    memset(&data, 0, sizeof (data));
 
     if (STRNEQ(nativeFormat, "vmware-vmx")) {
         ESX_ERROR(VIR_ERR_INVALID_ARG,
@@ -2833,7 +2855,7 @@ esxDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
 static char *
 esxDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
                      const char *domainXml,
-                     unsigned int flags ATTRIBUTE_UNUSED)
+                     unsigned int flags)
 {
     esxPrivate *priv = conn->privateData;
     int virtualHW_version;
@@ -2841,6 +2863,10 @@ esxDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
     esxVMX_Data data;
     virDomainDefPtr def = NULL;
     char *vmx = NULL;
+
+    virCheckFlags(0, NULL);
+
+    memset(&data, 0, sizeof (data));
 
     if (STRNEQ(nativeFormat, "vmware-vmx")) {
         ESX_ERROR(VIR_ERR_INVALID_ARG,
@@ -2855,7 +2881,8 @@ esxDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
         return NULL;
     }
 
-    def = virDomainDefParseString(priv->caps, domainXml, 0);
+    def = virDomainDefParseString(priv->caps, domainXml,
+                                  1 << VIR_DOMAIN_VIRT_VMWARE, 0);
 
     if (def == NULL) {
         return NULL;
@@ -3063,12 +3090,14 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml)
     char *taskInfoErrorMessage = NULL;
     virDomainPtr domain = NULL;
 
+    memset(&data, 0, sizeof (data));
+
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return NULL;
     }
 
     /* Parse domain XML */
-    def = virDomainDefParseString(priv->caps, xml,
+    def = virDomainDefParseString(priv->caps, xml, 1 << VIR_DOMAIN_VIRT_VMWARE,
                                   VIR_DOMAIN_XML_INACTIVE);
 
     if (def == NULL) {
@@ -3270,7 +3299,8 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml)
 
 
 static int
-esxDomainUndefine(virDomainPtr domain)
+esxDomainUndefineFlags(virDomainPtr domain,
+                       unsigned int flags)
 {
     int result = -1;
     esxPrivate *priv = domain->conn->privateData;
@@ -3278,6 +3308,8 @@ esxDomainUndefine(virDomainPtr domain)
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
     esxVI_VirtualMachinePowerState powerState;
+
+    virCheckFlags(0, -1);
 
     if (priv->vCenter != NULL) {
         ctx = priv->vCenter;
@@ -3319,6 +3351,11 @@ esxDomainUndefine(virDomainPtr domain)
 }
 
 
+static int
+esxDomainUndefine(virDomainPtr domain)
+{
+    return esxDomainUndefineFlags(domain, 0);
+}
 
 static int
 esxDomainGetAutostart(virDomainPtr domain, int *autostart)
@@ -3821,6 +3858,12 @@ esxDomainSetSchedulerParameters(virDomainPtr domain,
     return esxDomainSetSchedulerParametersFlags(domain, params, nparams, 0);
 }
 
+/* The subset of migration flags we are able to support.  */
+#define ESX_MIGRATION_FLAGS                     \
+    (VIR_MIGRATE_PERSIST_DEST |                 \
+     VIR_MIGRATE_UNDEFINE_SOURCE |              \
+     VIR_MIGRATE_LIVE |                         \
+     VIR_MIGRATE_PAUSED)
 
 static int
 esxDomainMigratePrepare(virConnectPtr dconn,
@@ -3828,11 +3871,13 @@ esxDomainMigratePrepare(virConnectPtr dconn,
                         int *cookielen ATTRIBUTE_UNUSED,
                         const char *uri_in ATTRIBUTE_UNUSED,
                         char **uri_out,
-                        unsigned long flags ATTRIBUTE_UNUSED,
+                        unsigned long flags,
                         const char *dname ATTRIBUTE_UNUSED,
                         unsigned long resource ATTRIBUTE_UNUSED)
 {
     esxPrivate *priv = dconn->privateData;
+
+    virCheckFlags(ESX_MIGRATION_FLAGS, -1);
 
     if (uri_in == NULL) {
         if (virAsprintf(uri_out, "vpxmigr://%s/%s/%s",
@@ -3854,7 +3899,7 @@ esxDomainMigratePerform(virDomainPtr domain,
                         const char *cookie ATTRIBUTE_UNUSED,
                         int cookielen ATTRIBUTE_UNUSED,
                         const char *uri,
-                        unsigned long flags ATTRIBUTE_UNUSED,
+                        unsigned long flags,
                         const char *dname,
                         unsigned long bandwidth ATTRIBUTE_UNUSED)
 {
@@ -3871,6 +3916,8 @@ esxDomainMigratePerform(virDomainPtr domain,
     esxVI_ManagedObjectReference *task = NULL;
     esxVI_TaskInfoState taskInfoState;
     char *taskInfoErrorMessage = NULL;
+
+    virCheckFlags(ESX_MIGRATION_FLAGS, -1);
 
     if (priv->vCenter == NULL) {
         ESX_ERROR(VIR_ERR_INVALID_ARG, "%s",
@@ -4000,8 +4047,10 @@ esxDomainMigrateFinish(virConnectPtr dconn, const char *dname,
                        const char *cookie ATTRIBUTE_UNUSED,
                        int cookielen ATTRIBUTE_UNUSED,
                        const char *uri ATTRIBUTE_UNUSED,
-                       unsigned long flags ATTRIBUTE_UNUSED)
+                       unsigned long flags)
 {
+    virCheckFlags(ESX_MIGRATION_FLAGS, NULL);
+
     return esxDomainLookupByName(dconn, dname);
 }
 
@@ -4694,6 +4743,7 @@ static virDriver esxDriver = {
     .domainShutdown = esxDomainShutdown, /* 0.7.0 */
     .domainReboot = esxDomainReboot, /* 0.7.0 */
     .domainDestroy = esxDomainDestroy, /* 0.7.0 */
+    .domainDestroyFlags = esxDomainDestroyFlags, /* 0.9.4 */
     .domainGetOSType = esxDomainGetOSType, /* 0.7.0 */
     .domainGetMaxMemory = esxDomainGetMaxMemory, /* 0.7.0 */
     .domainSetMaxMemory = esxDomainSetMaxMemory, /* 0.7.0 */
@@ -4715,6 +4765,7 @@ static virDriver esxDriver = {
     .domainCreateWithFlags = esxDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = esxDomainDefineXML, /* 0.7.2 */
     .domainUndefine = esxDomainUndefine, /* 0.7.1 */
+    .domainUndefineFlags = esxDomainUndefineFlags, /* 0.9.4 */
     .domainGetAutostart = esxDomainGetAutostart, /* 0.9.0 */
     .domainSetAutostart = esxDomainSetAutostart, /* 0.9.0 */
     .domainGetSchedulerType = esxDomainGetSchedulerType, /* 0.7.0 */

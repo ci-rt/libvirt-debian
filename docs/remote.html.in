@@ -275,13 +275,34 @@ Note that parameter values must be
         <td colspan="2"/>
         <td> Example: <code>netcat=/opt/netcat/bin/nc</code> </td>
       </tr>
+
+      <tr>
+        <td>
+          <code>keyfile</code>
+        </td>
+        <td> ssh </td>
+        <td>
+  The name of the private key file to use to authentication to the remote
+  machine.  If this option is not used the default keys are used.
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2"/>
+        <td> Example: <code>keyfile=/root/.ssh/example_key</code> </td>
+      </tr>
+
       <tr>
         <td>
           <code>no_verify</code>
         </td>
-        <td> tls </td>
+        <td> ssh, tls </td>
         <td>
-  If set to a non-zero value, this disables client checks of the
+  SSH: If set to a non-zero value, this disables client's strict host key
+  checking making it auto-accept new host keys.  Existing host keys will
+  still be validated.
+  <br/>
+  <br/>
+  TLS: If set to a non-zero value, this disables client checks of the
   server's certificate.  Note that to disable server checks of
   the client's certificate or IP address you must
   <a href="#Remote_libvirtd_configuration">change the libvirtd

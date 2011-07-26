@@ -12,9 +12,11 @@
 #include <arpa/inet.h>
 
 #include "memory.h"
+#include "uuid.h"
 #include "network.h"
 #include "util.h"
 #include "virterror_internal.h"
+#include "command.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 #define virSocketError(code, ...)                                       \
@@ -673,4 +675,591 @@ virSocketAddrPrefixToNetmask(unsigned int prefix,
 
 error:
     return result;
+}
+
+/* virtualPortProfile utilities */
+
+VIR_ENUM_IMPL(virVirtualPort, VIR_VIRTUALPORT_TYPE_LAST,
+              "none",
+              "802.1Qbg",
+              "802.1Qbh")
+
+int
+virVirtualPortProfileParseXML(xmlNodePtr node,
+                              virVirtualPortProfileParamsPtr *def)
+{
+    int ret = -1;
+    char *virtPortType;
+    char *virtPortManagerID = NULL;
+    char *virtPortTypeID = NULL;
+    char *virtPortTypeIDVersion = NULL;
+    char *virtPortInstanceID = NULL;
+    char *virtPortProfileID = NULL;
+    virVirtualPortProfileParamsPtr virtPort = NULL;
+    xmlNodePtr cur = node->children;
+
+    if (VIR_ALLOC(virtPort) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    virtPortType = virXMLPropString(node, "type");
+    if (!virtPortType) {
+        virSocketError(VIR_ERR_XML_ERROR, "%s",
+                             _("missing virtualportprofile type"));
+        goto error;
+    }
+
+    while (cur != NULL) {
+        if (xmlStrEqual(cur->name, BAD_CAST "parameters")) {
+
+            virtPortManagerID = virXMLPropString(cur, "managerid");
+            virtPortTypeID = virXMLPropString(cur, "typeid");
+            virtPortTypeIDVersion = virXMLPropString(cur, "typeidversion");
+            virtPortInstanceID = virXMLPropString(cur, "instanceid");
+            virtPortProfileID = virXMLPropString(cur, "profileid");
+
+            break;
+        }
+
+        cur = cur->next;
+    }
+
+    virtPort->virtPortType = VIR_VIRTUALPORT_NONE;
+
+    switch (virVirtualPortTypeFromString(virtPortType)) {
+
+    case VIR_VIRTUALPORT_8021QBG:
+        if (virtPortManagerID     != NULL && virtPortTypeID     != NULL &&
+            virtPortTypeIDVersion != NULL) {
+            unsigned int val;
+
+            if (virStrToLong_ui(virtPortManagerID, NULL, 0, &val)) {
+                virSocketError(VIR_ERR_XML_ERROR, "%s",
+                                     _("cannot parse value of managerid parameter"));
+                goto error;
+            }
+
+            if (val > 0xff) {
+                virSocketError(VIR_ERR_XML_ERROR, "%s",
+                                     _("value of managerid out of range"));
+                goto error;
+            }
+
+            virtPort->u.virtPort8021Qbg.managerID = (uint8_t)val;
+
+            if (virStrToLong_ui(virtPortTypeID, NULL, 0, &val)) {
+                virSocketError(VIR_ERR_XML_ERROR, "%s",
+                                     _("cannot parse value of typeid parameter"));
+                goto error;
+            }
+
+            if (val > 0xffffff) {
+                virSocketError(VIR_ERR_XML_ERROR, "%s",
+                                     _("value for typeid out of range"));
+                goto error;
+            }
+
+            virtPort->u.virtPort8021Qbg.typeID = (uint32_t)val;
+
+            if (virStrToLong_ui(virtPortTypeIDVersion, NULL, 0, &val)) {
+                virSocketError(VIR_ERR_XML_ERROR, "%s",
+                                     _("cannot parse value of typeidversion parameter"));
+                goto error;
+            }
+
+            if (val > 0xff) {
+                virSocketError(VIR_ERR_XML_ERROR, "%s",
+                                     _("value of typeidversion out of range"));
+                goto error;
+            }
+
+            virtPort->u.virtPort8021Qbg.typeIDVersion = (uint8_t)val;
+
+            if (virtPortInstanceID != NULL) {
+                if (virUUIDParse(virtPortInstanceID,
+                                 virtPort->u.virtPort8021Qbg.instanceID)) {
+                    virSocketError(VIR_ERR_XML_ERROR, "%s",
+                                         _("cannot parse instanceid parameter as a uuid"));
+                    goto error;
+                }
+            } else {
+                if (virUUIDGenerate(virtPort->u.virtPort8021Qbg.instanceID)) {
+                    virSocketError(VIR_ERR_XML_ERROR, "%s",
+                                         _("cannot generate a random uuid for instanceid"));
+                    goto error;
+                }
+            }
+
+            virtPort->virtPortType = VIR_VIRTUALPORT_8021QBG;
+
+        } else {
+                    virSocketError(VIR_ERR_XML_ERROR, "%s",
+                                         _("a parameter is missing for 802.1Qbg description"));
+            goto error;
+        }
+    break;
+
+    case VIR_VIRTUALPORT_8021QBH:
+        if (virtPortProfileID != NULL) {
+            if (virStrcpyStatic(virtPort->u.virtPort8021Qbh.profileID,
+                                virtPortProfileID) != NULL) {
+                virtPort->virtPortType = VIR_VIRTUALPORT_8021QBH;
+            } else {
+                virSocketError(VIR_ERR_XML_ERROR, "%s",
+                                     _("profileid parameter too long"));
+                goto error;
+            }
+        } else {
+            virSocketError(VIR_ERR_XML_ERROR, "%s",
+                                 _("profileid parameter is missing for 802.1Qbh descripion"));
+            goto error;
+        }
+    break;
+
+
+    default:
+    case VIR_VIRTUALPORT_NONE:
+    case VIR_VIRTUALPORT_TYPE_LAST:
+         virSocketError(VIR_ERR_XML_ERROR, "%s",
+                              _("unknown virtualport type"));
+        goto error;
+    break;
+    }
+
+    ret = 0;
+    *def = virtPort;
+    virtPort = NULL;
+error:
+    VIR_FREE(virtPort);
+    VIR_FREE(virtPortManagerID);
+    VIR_FREE(virtPortTypeID);
+    VIR_FREE(virtPortTypeIDVersion);
+    VIR_FREE(virtPortInstanceID);
+    VIR_FREE(virtPortProfileID);
+    VIR_FREE(virtPortType);
+
+    return ret;
+}
+
+void
+virVirtualPortProfileFormat(virBufferPtr buf,
+                            virVirtualPortProfileParamsPtr virtPort,
+                            const char *indent)
+{
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+
+    if (!virtPort || virtPort->virtPortType == VIR_VIRTUALPORT_NONE)
+        return;
+
+    virBufferAsprintf(buf, "%s<virtualport type='%s'>\n",
+                      indent,
+                      virVirtualPortTypeToString(virtPort->virtPortType));
+
+    switch (virtPort->virtPortType) {
+    case VIR_VIRTUALPORT_NONE:
+    case VIR_VIRTUALPORT_TYPE_LAST:
+        break;
+
+    case VIR_VIRTUALPORT_8021QBG:
+        virUUIDFormat(virtPort->u.virtPort8021Qbg.instanceID,
+                      uuidstr);
+        virBufferAsprintf(buf,
+                          "%s  <parameters managerid='%d' typeid='%d' "
+                          "typeidversion='%d' instanceid='%s'/>\n",
+                          indent,
+                          virtPort->u.virtPort8021Qbg.managerID,
+                          virtPort->u.virtPort8021Qbg.typeID,
+                          virtPort->u.virtPort8021Qbg.typeIDVersion,
+                          uuidstr);
+        break;
+
+    case VIR_VIRTUALPORT_8021QBH:
+        virBufferAsprintf(buf,
+                          "%s  <parameters profileid='%s'/>\n",
+                          indent,
+                          virtPort->u.virtPort8021Qbh.profileID);
+        break;
+    }
+
+    virBufferAsprintf(buf, "%s</virtualport>\n", indent);
+}
+
+static int
+virBandwidthParseChildDefNode(xmlNodePtr node, virRatePtr rate)
+{
+    int ret = -1;
+    char *average = NULL;
+    char *peak = NULL;
+    char *burst = NULL;
+
+    if (!node || !rate) {
+        virSocketError(VIR_ERR_INVALID_ARG, "%s",
+                       _("invalid argument supplied"));
+        return -1;
+    }
+
+    average = virXMLPropString(node, "average");
+    peak = virXMLPropString(node, "peak");
+    burst = virXMLPropString(node, "burst");
+
+    if (average) {
+        if (virStrToLong_ull(average, NULL, 10, &rate->average) < 0) {
+            virSocketError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("could not convert %s"),
+                           average);
+            goto cleanup;
+        }
+    } else {
+        virSocketError(VIR_ERR_XML_DETAIL, "%s",
+                       _("Missing mandatory average attribute"));
+        goto cleanup;
+    }
+
+    if (peak && virStrToLong_ull(peak, NULL, 10, &rate->peak) < 0) {
+        virSocketError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("could not convert %s"),
+                       peak);
+        goto cleanup;
+    }
+
+    if (burst && virStrToLong_ull(burst, NULL, 10, &rate->burst) < 0) {
+        virSocketError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("could not convert %s"),
+                       burst);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(average);
+    VIR_FREE(peak);
+    VIR_FREE(burst);
+
+    return ret;
+}
+
+/**
+ * virBandwidthDefParseNode:
+ * @node: XML node
+ *
+ * Parse bandwidth XML and return pointer to structure
+ *
+ * Returns !NULL on success, NULL on error.
+ */
+virBandwidthPtr
+virBandwidthDefParseNode(xmlNodePtr node)
+{
+    virBandwidthPtr def = NULL;
+    xmlNodePtr cur = node->children;
+    xmlNodePtr in = NULL, out = NULL;
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    if (!node || !xmlStrEqual(node->name, BAD_CAST "bandwidth")) {
+        virSocketError(VIR_ERR_INVALID_ARG, "%s",
+                       _("invalid argument supplied"));
+        goto error;
+    }
+
+    while (cur) {
+        if (cur->type == XML_ELEMENT_NODE) {
+            if (xmlStrEqual(cur->name, BAD_CAST "inbound")) {
+                if (in) {
+                    virSocketError(VIR_ERR_XML_DETAIL, "%s",
+                                   _("Only one child <inbound> "
+                                     "element allowed"));
+                    goto error;
+                }
+                in = cur;
+            } else if (xmlStrEqual(cur->name, BAD_CAST "outbound")) {
+                if (out) {
+                    virSocketError(VIR_ERR_XML_DETAIL, "%s",
+                                   _("Only one child <outbound> "
+                                     "element allowed"));
+                    goto error;
+                }
+                out = cur;
+            }
+            /* Silently ignore unknown elements */
+        }
+        cur = cur->next;
+    }
+
+    if (in) {
+        if (VIR_ALLOC(def->in) < 0) {
+            virReportOOMError();
+            goto error;
+        }
+
+        if (virBandwidthParseChildDefNode(in, def->in) < 0) {
+            /* helper reported error for us */
+            goto error;
+        }
+    }
+
+    if (out) {
+        if (VIR_ALLOC(def->out) < 0) {
+            virReportOOMError();
+            goto error;
+        }
+
+        if (virBandwidthParseChildDefNode(out, def->out) < 0) {
+            /* helper reported error for us */
+            goto error;
+        }
+    }
+
+    return def;
+
+error:
+    virBandwidthDefFree(def);
+    return NULL;
+}
+
+void
+virBandwidthDefFree(virBandwidthPtr def)
+{
+    if (!def)
+        return;
+
+    VIR_FREE(def->in);
+    VIR_FREE(def->out);
+    VIR_FREE(def);
+}
+
+static int
+virBandwidthChildDefFormat(virBufferPtr buf,
+                           virRatePtr def,
+                           const char *elem_name)
+{
+    if (!buf || !def || !elem_name)
+        return -1;
+
+    if (def->average) {
+        virBufferAsprintf(buf, "<%s average='%llu'", elem_name, def->average);
+
+        if (def->peak)
+            virBufferAsprintf(buf, " peak='%llu'", def->peak);
+
+        if (def->burst)
+            virBufferAsprintf(buf, " burst='%llu'", def->burst);
+        virBufferAddLit(buf, "/>\n");
+    }
+
+    return 0;
+}
+
+/**
+ * virBandwidthDefFormat:
+ * @buf: Buffer to print to
+ * @def: Data source
+ * @indent: prepend all lines printed with this
+ *
+ * Formats bandwidth and prepend each line with @indent.
+ * Passing NULL to @indent is equivalent passing "".
+ *
+ * Returns 0 on success, else -1.
+ */
+int
+virBandwidthDefFormat(virBufferPtr buf,
+                      virBandwidthPtr def,
+                      const char *indent)
+{
+    int ret = -1;
+
+    if (!buf)
+        goto cleanup;
+
+    if (!def) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    if (!indent)
+        indent = "";
+
+    virBufferAsprintf(buf, "%s<bandwidth>\n", indent);
+    if (def->in) {
+        virBufferAsprintf(buf, "%s  ", indent);
+        if (virBandwidthChildDefFormat(buf, def->in, "inbound") < 0)
+            goto cleanup;
+    }
+
+    if (def->out) {
+        virBufferAsprintf(buf, "%s  ", indent);
+        if (virBandwidthChildDefFormat(buf, def->out, "outbound") < 0)
+            goto cleanup;
+    }
+
+    virBufferAsprintf(buf, "%s</bandwidth>\n", indent);
+
+    ret = 0;
+
+cleanup:
+    return ret;
+}
+
+/**
+ * virBandwidthEnable:
+ * @bandwidth: rates to set
+ * @iface: on which interface
+ *
+ * This function enables QoS on specified interface
+ * and set given traffic limits for both, incoming
+ * and outgoing traffic. Any previous setting get
+ * overwritten.
+ *
+ * Return 0 on success, -1 otherwise.
+ */
+int
+virBandwidthEnable(virBandwidthPtr bandwidth,
+                   const char *iface)
+{
+    int ret = -1;
+    virCommandPtr cmd = NULL;
+    char *average = NULL;
+    char *peak = NULL;
+    char *burst = NULL;
+
+    if (!iface)
+        return -1;
+
+    if (!bandwidth) {
+        /* nothing to be enabled */
+        ret = 0;
+        goto cleanup;
+    }
+
+    if (virBandwidthDisable(iface, true) < 0)
+        goto cleanup;
+
+    if (bandwidth->in) {
+        if (virAsprintf(&average, "%llukbps", bandwidth->in->average) < 0)
+            goto cleanup;
+        if (bandwidth->in->peak &&
+            (virAsprintf(&peak, "%llukbps", bandwidth->in->peak) < 0))
+            goto cleanup;
+        if (bandwidth->in->burst &&
+            (virAsprintf(&burst, "%llukb", bandwidth->in->burst) < 0))
+            goto cleanup;
+
+        cmd = virCommandNew(TC);
+        virCommandAddArgList(cmd, "qdisc", "add", "dev", iface, "root",
+                             "handle", "1:", "htb", "default", "1", NULL);
+        if (virCommandRun(cmd, NULL) < 0)
+            goto cleanup;
+
+        virCommandFree(cmd);
+        cmd = virCommandNew(TC);
+            virCommandAddArgList(cmd,"class", "add", "dev", iface, "parent",
+                                 "1:", "classid", "1:1", "htb", NULL);
+        virCommandAddArgList(cmd, "rate", average, NULL);
+
+        if (peak)
+            virCommandAddArgList(cmd, "ceil", peak, NULL);
+        if (burst)
+            virCommandAddArgList(cmd, "burst", burst, NULL);
+
+        if (virCommandRun(cmd, NULL) < 0)
+            goto cleanup;
+
+        virCommandFree(cmd);
+        cmd = virCommandNew(TC);
+            virCommandAddArgList(cmd,"filter", "add", "dev", iface, "parent",
+                                 "1:0", "protocol", "ip", "handle", "1", "fw",
+                                 "flowid", "1", NULL);
+
+        if (virCommandRun(cmd, NULL) < 0)
+            goto cleanup;
+
+        VIR_FREE(average);
+        VIR_FREE(peak);
+        VIR_FREE(burst);
+    }
+
+    if (bandwidth->out) {
+        if (virAsprintf(&average, "%llukbps", bandwidth->out->average) < 0)
+            goto cleanup;
+        if (virAsprintf(&burst, "%llukb", bandwidth->out->burst ?
+                        bandwidth->out->burst : bandwidth->out->average) < 0)
+            goto cleanup;
+
+        virCommandFree(cmd);
+        cmd = virCommandNew(TC);
+            virCommandAddArgList(cmd, "qdisc", "add", "dev", iface,
+                                 "ingress", NULL);
+
+        if (virCommandRun(cmd, NULL) < 0)
+            goto cleanup;
+
+        virCommandFree(cmd);
+        cmd = virCommandNew(TC);
+        virCommandAddArgList(cmd, "filter", "add", "dev", iface, "parent",
+                             "ffff:", "protocol", "ip", "u32", "match", "ip",
+                             "src", "0.0.0.0/0", "police", "rate", average,
+                             "burst", burst, "mtu", burst, "drop", "flowid",
+                             ":1", NULL);
+
+        if (virCommandRun(cmd, NULL) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    virCommandFree(cmd);
+    VIR_FREE(average);
+    VIR_FREE(peak);
+    VIR_FREE(burst);
+    return ret;
+}
+
+/**
+ * virBandwidthDisable:
+ * @iface: on which interface
+ * @may_fail: should be unsuccessful disable considered fatal?
+ *
+ * This function tries to disable QoS on specified interface
+ * by deleting root and ingress qdisc. However, this may fail
+ * if we try to remove the default one.
+ *
+ * Return 0 on success, -1 otherwise.
+ */
+int
+virBandwidthDisable(const char *iface,
+                    bool may_fail)
+{
+    int ret = -1;
+    int status;
+    virCommandPtr cmd = NULL;
+
+    if (!iface)
+        return -1;
+
+    cmd = virCommandNew(TC);
+    virCommandAddArgList(cmd, "qdisc", "del", "dev", iface, "root", NULL);
+
+    if ((virCommandRun(cmd, &status) < 0) ||
+        (!may_fail && status))
+        goto cleanup;
+
+    virCommandFree(cmd);
+
+    cmd = virCommandNew(TC);
+    virCommandAddArgList(cmd, "qdisc",  "del", "dev", iface, "ingress", NULL);
+
+    if ((virCommandRun(cmd, &status) < 0) ||
+        (!may_fail && status))
+        goto cleanup;
+
+    ret = 0;
+
+cleanup:
+    virCommandFree(cmd);
+    return ret;
 }

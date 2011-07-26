@@ -73,7 +73,7 @@
 #include "memory.h"
 #include "threads.h"
 #include "verify.h"
-#include "files.h"
+#include "virfile.h"
 #include "command.h"
 #include "nonblocking.h"
 #include "passfd.h"
@@ -133,7 +133,7 @@ safewrite(int fd, const void *buf, size_t count)
 }
 
 #ifdef HAVE_POSIX_FALLOCATE
-int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
+int safezero(int fd, off_t offset, off_t len)
 {
     int ret = posix_fallocate(fd, offset, len);
     if (ret == 0)
@@ -144,7 +144,7 @@ int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
 #else
 
 # ifdef HAVE_MMAP
-int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
+int safezero(int fd, off_t offset, off_t len)
 {
     int r;
     char *buf;
@@ -168,7 +168,7 @@ int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
 
 # else /* HAVE_MMAP */
 
-int safezero(int fd, int flags ATTRIBUTE_UNUSED, off_t offset, off_t len)
+int safezero(int fd, off_t offset, off_t len)
 {
     int r;
     char *buf;
@@ -252,14 +252,14 @@ virArgvToString(const char *const *argv)
 #ifndef WIN32
 
 int virSetInherit(int fd, bool inherit) {
-    int flags;
-    if ((flags = fcntl(fd, F_GETFD)) < 0)
+    int fflags;
+    if ((fflags = fcntl(fd, F_GETFD)) < 0)
         return -1;
     if (inherit)
-        flags &= ~FD_CLOEXEC;
+        fflags &= ~FD_CLOEXEC;
     else
-        flags |= FD_CLOEXEC;
-    if ((fcntl(fd, F_SETFD, flags)) < 0)
+        fflags |= FD_CLOEXEC;
+    if ((fcntl(fd, F_SETFD, fflags)) < 0)
         return -1;
     return 0;
 }
@@ -578,7 +578,7 @@ int virFileResolveLink(const char *linkpath,
  */
 char *virFindFileInPath(const char *file)
 {
-    char *path;
+    char *path = NULL;
     char *pathiter;
     char *pathseg;
     char *fullpath = NULL;
@@ -594,6 +594,15 @@ char *virFindFileInPath(const char *file)
             return strdup(file);
         else
             return NULL;
+    }
+
+    /* If we are passed an anchored path (containing a /), then there
+     * is no path search - it must exist in the current directory
+     */
+    if (strchr(file, '/')) {
+        if (virFileIsExecutable(file))
+            ignore_value(virFileAbsPath(file, &path));
+        return path;
     }
 
     /* copy PATH env so we can tweak it */
@@ -652,7 +661,6 @@ virFileOpenAsNoFork(const char *path, int openflags, mode_t mode,
 {
     int fd = -1;
     int ret = 0;
-    struct stat st;
 
     if ((fd = open(path, openflags, mode)) < 0) {
         ret = -errno;
@@ -660,18 +668,26 @@ virFileOpenAsNoFork(const char *path, int openflags, mode_t mode,
                              path);
         goto error;
     }
-    if (fstat(fd, &st) == -1) {
-        ret = -errno;
-        virReportSystemError(errno, _("stat of '%s' failed"), path);
-        goto error;
+
+    /* VIR_FILE_OPEN_AS_UID in flags means we are running in a child process
+     * owned by uid and gid */
+    if (!(flags & VIR_FILE_OPEN_AS_UID)) {
+        struct stat st;
+
+        if (fstat(fd, &st) == -1) {
+            ret = -errno;
+            virReportSystemError(errno, _("stat of '%s' failed"), path);
+            goto error;
+        }
+        if (((st.st_uid != uid) || (st.st_gid != gid))
+            && (fchown(fd, uid, gid) < 0)) {
+            ret = -errno;
+            virReportSystemError(errno, _("cannot chown '%s' to (%u, %u)"),
+                                 path, (unsigned int) uid, (unsigned int) gid);
+            goto error;
+        }
     }
-    if (((st.st_uid != uid) || (st.st_gid != gid))
-        && (fchown(fd, uid, gid) < 0)) {
-        ret = -errno;
-        virReportSystemError(errno, _("cannot chown '%s' to (%u, %u)"),
-                             path, (unsigned int) uid, (unsigned int) gid);
-        goto error;
-    }
+
     if ((flags & VIR_FILE_OPEN_FORCE_PERMS)
         && (fchmod(fd, mode) < 0)) {
         ret = -errno;
@@ -747,7 +763,6 @@ int
 virFileOpenAs(const char *path, int openflags, mode_t mode,
               uid_t uid, gid_t gid, unsigned int flags)
 {
-    struct stat st;
     pid_t pid;
     int waitret, status, ret = 0;
     int fd = -1;
@@ -757,6 +772,7 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
     if ((!(flags & VIR_FILE_OPEN_AS_UID))
         || (getuid() != 0)
         || ((uid == 0) && (gid == 0))) {
+        flags &= ~VIR_FILE_OPEN_AS_UID;
         return virFileOpenAsNoFork(path, openflags, mode, uid, gid, flags);
     }
 
@@ -813,6 +829,7 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
             /* fall back to the simpler method, which works better in
              * some cases */
             VIR_FORCE_CLOSE(fd);
+            flags &= ~VIR_FILE_OPEN_AS_UID;
             return virFileOpenAsNoFork(path, openflags, mode, uid, gid, flags);
         }
         if (!ret)
@@ -837,36 +854,11 @@ parenterror:
         ret = -errno;
         goto childerror;
     }
-    if ((fd = open(path, openflags, mode)) < 0) {
-        ret = -errno;
-        if (ret != -EACCES) {
-            /* in case of EACCES, the parent will retry */
-            virReportSystemError(errno,
-                                 _("child failed to create file '%s'"),
-                                 path);
-        }
+
+    ret = virFileOpenAsNoFork(path, openflags, mode, uid, gid, flags);
+    if (ret < 0)
         goto childerror;
-    }
-    if (fstat(fd, &st) == -1) {
-        ret = -errno;
-        virReportSystemError(errno, _("stat of '%s' failed"), path);
-        goto childerror;
-    }
-    if ((st.st_gid != gid)
-        && (fchown(fd, -1, gid) < 0)) {
-        ret = -errno;
-        virReportSystemError(errno, _("cannot chown '%s' to (%u, %u)"),
-                             path, (unsigned int) uid, (unsigned int) gid);
-        goto childerror;
-    }
-    if ((flags & VIR_FILE_OPEN_FORCE_PERMS)
-        && (fchmod(fd, mode) < 0)) {
-        ret = -errno;
-        virReportSystemError(errno,
-                             _("cannot set mode of '%s' to %04o"),
-                             path, mode);
-        goto childerror;
-    }
+    fd = ret;
 
     do {
         ret = sendfd(pair[1], fd);
@@ -989,7 +981,7 @@ int virFileOpenAs(const char *path ATTRIBUTE_UNUSED,
                   mode_t mode ATTRIBUTE_UNUSED,
                   uid_t uid ATTRIBUTE_UNUSED,
                   gid_t gid ATTRIBUTE_UNUSED,
-                  unsigned int flags ATTRIBUTE_UNUSED)
+                  unsigned int flags_unused ATTRIBUTE_UNUSED)
 {
     virUtilError(VIR_ERR_INTERNAL_ERROR,
                  "%s", _("virFileOpenAs is not implemented for WIN32"));
@@ -1001,7 +993,7 @@ int virDirCreate(const char *path ATTRIBUTE_UNUSED,
                  mode_t mode ATTRIBUTE_UNUSED,
                  uid_t uid ATTRIBUTE_UNUSED,
                  gid_t gid ATTRIBUTE_UNUSED,
-                 unsigned int flags ATTRIBUTE_UNUSED)
+                 unsigned int flags_unused ATTRIBUTE_UNUSED)
 {
     virUtilError(VIR_ERR_INTERNAL_ERROR,
                  "%s", _("virDirCreate is not implemented for WIN32"));
@@ -1010,66 +1002,61 @@ int virDirCreate(const char *path ATTRIBUTE_UNUSED,
 }
 #endif /* WIN32 */
 
-static int virFileMakePathHelper(char *path) {
+static int virFileMakePathHelper(char *path)
+{
     struct stat st;
-    char *p = NULL;
-    int err;
+    char *p;
 
-    if (stat(path, &st) >= 0)
-        return 0;
+    if (stat(path, &st) >= 0) {
+        if (S_ISDIR(st.st_mode))
+            return 0;
 
-    if ((p = strrchr(path, '/')) == NULL)
-        return EINVAL;
+        errno = ENOTDIR;
+        return -1;
+    }
+
+    if (errno != ENOENT)
+        return -1;
+
+    if ((p = strrchr(path, '/')) == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
 
     if (p != path) {
         *p = '\0';
-        err = virFileMakePathHelper(path);
+
+        if (virFileMakePathHelper(path) < 0)
+            return -1;
+
         *p = '/';
-        if (err != 0)
-            return err;
     }
 
-    if (mkdir(path, 0777) < 0 && errno != EEXIST) {
-        return errno;
-    }
+    if (mkdir(path, 0777) < 0 && errno != EEXIST)
+        return -1;
+
     return 0;
 }
 
+/**
+ * Creates the given directory with mode 0777 if it's not already existing.
+ *
+ * Returns 0 on success, or -1 if an error occurred (in which case, errno
+ * is set appropriately).
+ */
 int virFileMakePath(const char *path)
 {
-    struct stat st;
-    char *parent = NULL;
-    char *p;
-    int err = 0;
+    int ret = -1;
+    char *tmp;
 
-    if (stat(path, &st) >= 0)
+    if ((tmp = strdup(path)) == NULL)
         goto cleanup;
 
-    if ((parent = strdup(path)) == NULL) {
-        err = ENOMEM;
-        goto cleanup;
-    }
-
-    if ((p = strrchr(parent, '/')) == NULL) {
-        err = EINVAL;
-        goto cleanup;
-    }
-
-    if (p != parent) {
-        *p = '\0';
-        if ((err = virFileMakePathHelper(parent)) != 0) {
-            goto cleanup;
-        }
-    }
-
-    if (mkdir(path, 0777) < 0 && errno != EEXIST) {
-        err = errno;
-        goto cleanup;
-    }
+    ret = virFileMakePathHelper(tmp);
 
 cleanup:
-    VIR_FREE(parent);
-    return err;
+    VIR_FREE(tmp);
+    return ret;
 }
 
 /* Build up a fully qualified path for a config file to be
@@ -1178,15 +1165,17 @@ int virFileWritePid(const char *dir,
     char *pidfile = NULL;
 
     if (name == NULL || dir == NULL) {
-        rc = EINVAL;
+        rc = -EINVAL;
         goto cleanup;
     }
 
-    if ((rc = virFileMakePath(dir)))
+    if (virFileMakePath(dir) < 0) {
+        rc = -errno;
         goto cleanup;
+    }
 
     if (!(pidfile = virFilePid(dir, name))) {
-        rc = ENOMEM;
+        rc = -ENOMEM;
         goto cleanup;
     }
 
@@ -1207,18 +1196,18 @@ int virFileWritePidPath(const char *pidfile,
     if ((fd = open(pidfile,
                    O_WRONLY | O_CREAT | O_TRUNC,
                    S_IRUSR | S_IWUSR)) < 0) {
-        rc = errno;
+        rc = -errno;
         goto cleanup;
     }
 
     if (!(file = VIR_FDOPEN(fd, "w"))) {
-        rc = errno;
+        rc = -errno;
         VIR_FORCE_CLOSE(fd);
         goto cleanup;
     }
 
     if (fprintf(file, "%d", pid) < 0) {
-        rc = errno;
+        rc = -errno;
         goto cleanup;
     }
 
@@ -1226,47 +1215,62 @@ int virFileWritePidPath(const char *pidfile,
 
 cleanup:
     if (VIR_FCLOSE(file) < 0)
-        rc = errno;
+        rc = -errno;
 
     return rc;
 }
+
+
+int virFileReadPidPath(const char *path,
+                       pid_t *pid)
+{
+    FILE *file;
+    int rc;
+
+    *pid = 0;
+
+    if (!(file = fopen(path, "r"))) {
+        rc = -errno;
+        goto cleanup;
+    }
+
+    if (fscanf(file, "%d", pid) != 1) {
+        rc = -EINVAL;
+        VIR_FORCE_FCLOSE(file);
+        goto cleanup;
+    }
+
+    if (VIR_FCLOSE(file) < 0) {
+        rc = -errno;
+        goto cleanup;
+    }
+
+    rc = 0;
+
+ cleanup:
+    return rc;
+}
+
 
 int virFileReadPid(const char *dir,
                    const char *name,
                    pid_t *pid)
 {
     int rc;
-    FILE *file;
     char *pidfile = NULL;
     *pid = 0;
 
     if (name == NULL || dir == NULL) {
-        rc = EINVAL;
+        rc = -EINVAL;
         goto cleanup;
     }
 
     if (!(pidfile = virFilePid(dir, name))) {
-        rc = ENOMEM;
+        rc = -ENOMEM;
         goto cleanup;
     }
 
-    if (!(file = fopen(pidfile, "r"))) {
-        rc = errno;
-        goto cleanup;
-    }
-
-    if (fscanf(file, "%d", pid) != 1) {
-        rc = EINVAL;
-        VIR_FORCE_FCLOSE(file);
-        goto cleanup;
-    }
-
-    if (VIR_FCLOSE(file) < 0) {
-        rc = errno;
-        goto cleanup;
-    }
-
-    rc = 0;
+    rc = virFileReadPidPath(pidfile, pid);
 
  cleanup:
     VIR_FREE(pidfile);
@@ -1280,17 +1284,17 @@ int virFileDeletePid(const char *dir,
     char *pidfile = NULL;
 
     if (name == NULL || dir == NULL) {
-        rc = EINVAL;
+        rc = -EINVAL;
         goto cleanup;
     }
 
     if (!(pidfile = virFilePid(dir, name))) {
-        rc = ENOMEM;
+        rc = -ENOMEM;
         goto cleanup;
     }
 
     if (unlink(pidfile) < 0 && errno != ENOENT)
-        rc = errno;
+        rc = -errno;
 
 cleanup:
     VIR_FREE(pidfile);
@@ -1535,18 +1539,89 @@ virHexToBin(unsigned char c)
  * @str: pointer to the char pointer used
  *
  * Skip potential blanks, this includes space tabs, line feed,
- * carriage returns and also '\\' which can be erronously emitted
- * by xend
+ * carriage returns.
  */
 void
 virSkipSpaces(const char **str)
 {
     const char *cur = *str;
 
-    while ((*cur == ' ') || (*cur == '\t') || (*cur == '\n') ||
-           (*cur == '\r') || (*cur == '\\'))
+    while (c_isspace(*cur))
         cur++;
     *str = cur;
+}
+
+/**
+ * virSkipSpacesAndBackslash:
+ * @str: pointer to the char pointer used
+ *
+ * Like virSkipSpaces, but also skip backslashes erroneously emitted
+ * by xend
+ */
+void
+virSkipSpacesAndBackslash(const char **str)
+{
+    const char *cur = *str;
+
+    while (c_isspace(*cur) || *cur == '\\')
+        cur++;
+    *str = cur;
+}
+
+/**
+ * virTrimSpaces:
+ * @str: string to modify to remove all trailing spaces
+ * @endp: track the end of the string
+ *
+ * If @endp is NULL on entry, then all spaces prior to the trailing
+ * NUL in @str are removed, by writing NUL into the appropriate
+ * location.  If @endp is non-NULL but points to a NULL pointer,
+ * then all spaces prior to the trailing NUL in @str are removed,
+ * NUL is written to the new string end, and endp is set to the
+ * location of the (new) string end.  If @endp is non-NULL and
+ * points to a non-NULL pointer, then that pointer is used as
+ * the end of the string, endp is set to the (new) location, but
+ * no NUL pointer is written into the string.
+ */
+void
+virTrimSpaces(char *str, char **endp)
+{
+    char *end;
+
+    if (!endp || !*endp)
+        end = str + strlen(str);
+    else
+        end = *endp;
+    while (end > str && c_isspace(end[-1]))
+        end--;
+    if (endp) {
+        if (!*endp)
+            *end = '\0';
+        *endp = end;
+    } else {
+        *end = '\0';
+    }
+}
+
+/**
+ * virSkipSpacesBackwards:
+ * @str: start of string
+ * @endp: on entry, *endp must be NULL or a location within @str, on exit,
+ * will be adjusted to skip trailing spaces, or to NULL if @str had nothing
+ * but spaces.
+ */
+void
+virSkipSpacesBackwards(const char *str, char **endp)
+{
+    /* Casting away const is safe, since virTrimSpaces does not
+     * modify string with this particular usage.  */
+    char *s = (char*) str;
+
+    if (!*endp)
+        *endp = s + strlen(s);
+    virTrimSpaces(s, endp);
+    if (s == *endp)
+        *endp = NULL;
 }
 
 /**

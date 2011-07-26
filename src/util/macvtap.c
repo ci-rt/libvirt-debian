@@ -50,6 +50,7 @@
 
 #include "util.h"
 #include "macvtap.h"
+#include "network.h"
 
 VIR_ENUM_IMPL(virMacvtapMode, VIR_MACVTAP_MODE_LAST,
               "vepa",
@@ -64,7 +65,7 @@ VIR_ENUM_IMPL(virMacvtapMode, VIR_MACVTAP_MODE_LAST,
 # include "interface.h"
 # include "virterror_internal.h"
 # include "uuid.h"
-# include "files.h"
+# include "virfile.h"
 # include "netlink.h"
 
 # define VIR_FROM_THIS VIR_FROM_NET
@@ -266,7 +267,8 @@ openMacvtapTap(const char *tgifname,
                virVirtualPortProfileParamsPtr virtPortProfile,
                char **res_ifname,
                enum virVMOperationType vmOp,
-               char *stateDir)
+               char *stateDir,
+               virBandwidthPtr bandwidth)
 {
     const char *type = "macvtap";
     int c, rc;
@@ -308,14 +310,14 @@ openMacvtapTap(const char *tgifname,
         cr_ifname = tgifname;
         rc = ifaceMacvtapLinkAdd(type, macaddress, 6, tgifname, linkdev,
                                  macvtapMode, &do_retry);
-        if (rc)
+        if (rc < 0)
             return -1;
     } else {
 create_name:
         retries = 5;
         for (c = 0; c < 8192; c++) {
             snprintf(ifname, sizeof(ifname), MACVTAP_NAME_PATTERN, c);
-            if (ifaceGetIndex(false, ifname, &ifindex) == ENODEV) {
+            if (ifaceGetIndex(false, ifname, &ifindex) == -ENODEV) {
                 rc = ifaceMacvtapLinkAdd(type, macaddress, 6, ifname, linkdev,
                                          macvtapMode, &do_retry);
                 if (rc == 0)
@@ -339,7 +341,7 @@ create_name:
     }
 
     rc = ifaceUp(cr_ifname);
-    if (rc != 0) {
+    if (rc < 0) {
         virReportSystemError(errno,
                              _("cannot 'up' interface %s -- another "
                              "macvtap device may be 'up' and have the same "
@@ -359,6 +361,15 @@ create_name:
         *res_ifname = strdup(cr_ifname);
     } else
         goto disassociate_exit;
+
+    if (virBandwidthEnable(bandwidth, cr_ifname) < 0) {
+        macvtapError(VIR_ERR_INTERNAL_ERROR,
+                     _("cannot set bandwidth limits on %s"),
+                     cr_ifname);
+        rc = -1;
+        goto disassociate_exit;
+    }
+
 
     return rc;
 
@@ -837,7 +848,7 @@ getPhysdevAndVlan(const char *ifname, int *root_ifindex, char *root_ifname,
         if (nth == 0)
             break;
         if (*vlanid == -1) {
-            if (ifaceGetVlanID(root_ifname, vlanid))
+            if (ifaceGetVlanID(root_ifname, vlanid) < 0)
                 *vlanid = -1;
         }
 
@@ -996,7 +1007,7 @@ doPortProfileOp8021Qbh(const char *ifname,
     if (rc)
         goto err_exit;
 
-    if (ifaceGetIndex(true, physfndev, &ifindex) != 0) {
+    if (ifaceGetIndex(true, physfndev, &ifindex) < 0) {
         rc = 1;
         goto err_exit;
     }
@@ -1089,7 +1100,7 @@ vpAssociatePortProfileId(const char *macvtap_ifname,
 
     VIR_DEBUG("%s: VM OPERATION: %s", __FUNCTION__, virVMOperationTypeToString(vmOp));
 
-    if (vmOp == VIR_VM_OP_NO_OP)
+    if (!virtPort || vmOp == VIR_VM_OP_NO_OP)
         return 0;
 
     switch (virtPort->virtPortType) {
@@ -1144,6 +1155,9 @@ vpDisassociatePortProfileId(const char *macvtap_ifname,
               virtPort, macvtap_ifname);
 
     VIR_DEBUG("%s: VM OPERATION: %s", __FUNCTION__, virVMOperationTypeToString(vmOp));
+
+    if (!virtPort)
+       return 0;
 
     switch (virtPort->virtPortType) {
     case VIR_VIRTUALPORT_NONE:

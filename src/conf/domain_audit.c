@@ -1,5 +1,5 @@
 /*
- * qemu_audit.c: QEMU audit management
+ * domain_audit.c: Domain audit management
  *
  * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
@@ -26,8 +26,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "qemu_audit.h"
-#include "virtaudit.h"
+#include "domain_audit.h"
+#include "viraudit.h"
 #include "uuid.h"
 #include "logging.h"
 #include "memory.h"
@@ -37,7 +37,7 @@
  * for other file types, stat failure, or allocation failure.  */
 #if defined major && defined minor
 static char *
-qemuAuditGetRdev(const char *path)
+virDomainAuditGetRdev(const char *path)
 {
     char *ret = NULL;
     struct stat sb;
@@ -52,26 +52,32 @@ qemuAuditGetRdev(const char *path)
 }
 #else
 static char *
-qemuAuditGetRdev(const char *path ATTRIBUTE_UNUSED)
+virDomainAuditGetRdev(const char *path ATTRIBUTE_UNUSED)
 {
     return NULL;
 }
 #endif
 
 void
-qemuAuditDisk(virDomainObjPtr vm,
-              virDomainDiskDefPtr oldDef, virDomainDiskDefPtr newDef,
-              const char *reason, bool success)
+virDomainAuditDisk(virDomainObjPtr vm,
+                   virDomainDiskDefPtr oldDef, virDomainDiskDefPtr newDef,
+                   const char *reason, bool success)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *vmname;
     char *oldsrc = NULL;
     char *newsrc = NULL;
+    const char *virt;
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (!(vmname = virAuditEncode("vm", vm->def->name))) {
         VIR_WARN("OOM while encoding audit message");
         return;
+    }
+
+    if (!(virt = virDomainVirtTypeToString(vm->def->virtType))) {
+        VIR_WARN("Unexpected virt type %d while encoding audit message", vm->def->virtType);
+        virt = "?";
     }
 
     if (!(oldsrc = virAuditEncode("old-disk",
@@ -88,8 +94,8 @@ qemuAuditDisk(virDomainObjPtr vm,
     }
 
     VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
-              "resrc=disk reason=%s %s uuid=%s %s %s",
-              reason, vmname, uuidstr,
+              "virt=%s resrc=disk reason=%s %s uuid=%s %s %s",
+              virt, reason, vmname, uuidstr,
               oldsrc, newsrc);
 
 cleanup:
@@ -100,14 +106,62 @@ cleanup:
 
 
 void
-qemuAuditNet(virDomainObjPtr vm,
-             virDomainNetDefPtr oldDef, virDomainNetDefPtr newDef,
-             const char *reason, bool success)
+virDomainAuditFS(virDomainObjPtr vm,
+                 virDomainFSDefPtr oldDef, virDomainFSDefPtr newDef,
+                 const char *reason, bool success)
+{
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    char *vmname;
+    char *oldsrc = NULL;
+    char *newsrc = NULL;
+    const char *virt;
+
+    virUUIDFormat(vm->def->uuid, uuidstr);
+    if (!(vmname = virAuditEncode("vm", vm->def->name))) {
+        VIR_WARN("OOM while encoding audit message");
+        return;
+    }
+
+    if (!(virt = virDomainVirtTypeToString(vm->def->virtType))) {
+        VIR_WARN("Unexpected virt type %d while encoding audit message", vm->def->virtType);
+        virt = "?";
+    }
+
+    if (!(oldsrc = virAuditEncode("old-fs",
+                                  oldDef && oldDef->src ?
+                                  oldDef->src : "?"))) {
+        VIR_WARN("OOM while encoding audit message");
+        goto cleanup;
+    }
+    if (!(newsrc = virAuditEncode("new-fs",
+                                  newDef && newDef->src ?
+                                  newDef->src : "?"))) {
+        VIR_WARN("OOM while encoding audit message");
+        goto cleanup;
+    }
+
+    VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
+              "virt=%s resrc=fs reason=%s %s uuid=%s %s %s",
+              virt, reason, vmname, uuidstr,
+              oldsrc, newsrc);
+
+cleanup:
+    VIR_FREE(vmname);
+    VIR_FREE(oldsrc);
+    VIR_FREE(newsrc);
+}
+
+
+void
+virDomainAuditNet(virDomainObjPtr vm,
+                  virDomainNetDefPtr oldDef, virDomainNetDefPtr newDef,
+                  const char *reason, bool success)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char newMacstr[VIR_MAC_STRING_BUFLEN];
     char oldMacstr[VIR_MAC_STRING_BUFLEN];
     char *vmname;
+    const char *virt;
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (oldDef)
@@ -119,9 +173,14 @@ qemuAuditNet(virDomainObjPtr vm,
         return;
     }
 
+    if (!(virt = virDomainVirtTypeToString(vm->def->virtType))) {
+        VIR_WARN("Unexpected virt type %d while encoding audit message", vm->def->virtType);
+        virt = "?";
+    }
+
     VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
-              "resrc=net reason=%s %s uuid=%s old-net='%s' new-net='%s'",
-              reason, vmname, uuidstr,
+              "virt=%s resrc=net reason=%s %s uuid=%s old-net='%s' new-net='%s'",
+              virt, reason, vmname, uuidstr,
               oldDef ? oldMacstr : "?",
               newDef ? newMacstr : "?");
 
@@ -129,30 +188,31 @@ qemuAuditNet(virDomainObjPtr vm,
 }
 
 /**
- * qemuAuditNetDevice:
+ * virDomainAuditNetDevice:
  * @vm: domain opening a network-related device
  * @def: details of network device that fd will be tied to
  * @device: device being opened (such as /dev/vhost-net,
  * /dev/net/tun, /dev/tanN). Note that merely opening a device
- * does not mean that qemu owns it; a followup qemuAuditNet
+ * does not mean that virDomain owns it; a followup virDomainAuditNet
  * shows whether the fd was passed on.
  * @success: true if the device was opened
  *
  * Log an audit message about an attempted network device open.
  */
 void
-qemuAuditNetDevice(virDomainDefPtr vmDef, virDomainNetDefPtr netDef,
-                   const char *device, bool success)
+virDomainAuditNetDevice(virDomainDefPtr vmDef, virDomainNetDefPtr netDef,
+                        const char *device, bool success)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char macstr[VIR_MAC_STRING_BUFLEN];
     char *vmname;
     char *devname;
     char *rdev;
+    const char *virt;
 
     virUUIDFormat(vmDef->uuid, uuidstr);
     virFormatMacAddr(netDef->mac, macstr);
-    rdev = qemuAuditGetRdev(device);
+    rdev = virDomainAuditGetRdev(device);
 
     if (!(vmname = virAuditEncode("vm", vmDef->name)) ||
         !(devname = virAuditEncode("path", device))) {
@@ -160,9 +220,14 @@ qemuAuditNetDevice(virDomainDefPtr vmDef, virDomainNetDefPtr netDef,
         goto cleanup;
     }
 
+    if (!(virt = virDomainVirtTypeToString(vmDef->virtType))) {
+        VIR_WARN("Unexpected virt type %d while encoding audit message", vmDef->virtType);
+        virt = "?";
+    }
+
     VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
-              "resrc=net reason=open %s uuid=%s net='%s' %s rdev=%s",
-              vmname, uuidstr, macstr, devname, VIR_AUDIT_STR(rdev));
+              "virt=%s resrc=net reason=open %s uuid=%s net='%s' %s rdev=%s",
+              virt, vmname, uuidstr, macstr, devname, VIR_AUDIT_STR(rdev));
 
 cleanup:
     VIR_FREE(vmname);
@@ -171,7 +236,7 @@ cleanup:
 }
 
 /**
- * qemuAuditHostdev:
+ * virDomainAuditHostdev:
  * @vm: domain making a change in pass-through host device
  * @hostdev: device being attached or removed
  * @reason: one of "start", "attach", or "detach"
@@ -180,18 +245,24 @@ cleanup:
  * Log an audit message about an attempted device passthrough change.
  */
 void
-qemuAuditHostdev(virDomainObjPtr vm, virDomainHostdevDefPtr hostdev,
-                 const char *reason, bool success)
+virDomainAuditHostdev(virDomainObjPtr vm, virDomainHostdevDefPtr hostdev,
+                      const char *reason, bool success)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *vmname;
     char *address;
     char *device;
+    const char *virt;
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (!(vmname = virAuditEncode("vm", vm->def->name))) {
         VIR_WARN("OOM while encoding audit message");
         return;
+    }
+
+    if (!(virt = virDomainVirtTypeToString(vm->def->virtType))) {
+        VIR_WARN("Unexpected virt type %d while encoding audit message", vm->def->virtType);
+        virt = "?";
     }
 
     switch (hostdev->source.subsys.type) {
@@ -225,8 +296,8 @@ qemuAuditHostdev(virDomainObjPtr vm, virDomainHostdevDefPtr hostdev,
     }
 
     VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
-              "resrc=dev reason=%s %s uuid=%s bus=%s %s",
-              reason, vmname, uuidstr,
+              "virt=%s resrc=dev reason=%s %s uuid=%s bus=%s %s",
+              virt, reason, vmname, uuidstr,
               virDomainHostdevSubsysTypeToString(hostdev->source.subsys.type),
               device);
 
@@ -238,31 +309,37 @@ cleanup:
 
 
 /**
- * qemuAuditCgroup:
+ * virDomainAuditCgroup:
  * @vm: domain making the cgroups ACL change
  * @cgroup: cgroup that manages the devices
  * @reason: either "allow" or "deny"
  * @extra: additional details, in the form "all",
  * "major category=xyz maj=nn", or "path path=xyz dev=nn:mm" (the
- * latter two are generated by qemuAuditCgroupMajor and
- * qemuAuditCgroupPath).
+ * latter two are generated by virDomainAuditCgroupMajor and
+ * virDomainAuditCgroupPath).
  * @success: true if the cgroup operation succeeded
  *
  * Log an audit message about an attempted cgroup device ACL change.
  */
 void
-qemuAuditCgroup(virDomainObjPtr vm, virCgroupPtr cgroup,
-                const char *reason, const char *extra, bool success)
+virDomainAuditCgroup(virDomainObjPtr vm, virCgroupPtr cgroup,
+                     const char *reason, const char *extra, bool success)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *vmname;
     char *controller = NULL;
     char *detail;
+    const char *virt;
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (!(vmname = virAuditEncode("vm", vm->def->name))) {
         VIR_WARN("OOM while encoding audit message");
         return;
+    }
+
+    if (!(virt = virDomainVirtTypeToString(vm->def->virtType))) {
+        VIR_WARN("Unexpected virt type %d while encoding audit message", vm->def->virtType);
+        virt = "?";
     }
 
     ignore_value(virCgroupPathOfController(cgroup,
@@ -271,8 +348,8 @@ qemuAuditCgroup(virDomainObjPtr vm, virCgroupPtr cgroup,
     detail = virAuditEncode("cgroup", VIR_AUDIT_STR(controller));
 
     VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
-              "resrc=cgroup reason=%s %s uuid=%s %s class=%s",
-              reason, vmname, uuidstr,
+              "virt=%s resrc=cgroup reason=%s %s uuid=%s %s class=%s",
+              virt, reason, vmname, uuidstr,
               detail ? detail : "cgroup=?", extra);
 
     VIR_FREE(vmname);
@@ -281,7 +358,7 @@ qemuAuditCgroup(virDomainObjPtr vm, virCgroupPtr cgroup,
 }
 
 /**
- * qemuAuditCgroupMajor:
+ * virDomainAuditCgroupMajor:
  * @vm: domain making the cgroups ACL change
  * @cgroup: cgroup that manages the devices
  * @reason: either "allow" or "deny"
@@ -293,9 +370,9 @@ qemuAuditCgroup(virDomainObjPtr vm, virCgroupPtr cgroup,
  * Log an audit message about an attempted cgroup device ACL change.
  */
 void
-qemuAuditCgroupMajor(virDomainObjPtr vm, virCgroupPtr cgroup,
-                     const char *reason, int maj, const char *name,
-                     const char *perms, bool success)
+virDomainAuditCgroupMajor(virDomainObjPtr vm, virCgroupPtr cgroup,
+                          const char *reason, int maj, const char *name,
+                          const char *perms, bool success)
 {
     char *extra;
 
@@ -305,13 +382,13 @@ qemuAuditCgroupMajor(virDomainObjPtr vm, virCgroupPtr cgroup,
         return;
     }
 
-    qemuAuditCgroup(vm, cgroup, reason, extra, success);
+    virDomainAuditCgroup(vm, cgroup, reason, extra, success);
 
     VIR_FREE(extra);
 }
 
 /**
- * qemuAuditCgroupPath:
+ * virDomainAuditCgroupPath:
  * @vm: domain making the cgroups ACL change
  * @cgroup: cgroup that manages the devices
  * @reason: either "allow" or "deny"
@@ -323,9 +400,9 @@ qemuAuditCgroupMajor(virDomainObjPtr vm, virCgroupPtr cgroup,
  * a specific device.
  */
 void
-qemuAuditCgroupPath(virDomainObjPtr vm, virCgroupPtr cgroup,
-                    const char *reason, const char *path, const char *perms,
-                    int rc)
+virDomainAuditCgroupPath(virDomainObjPtr vm, virCgroupPtr cgroup,
+                         const char *reason, const char *path, const char *perms,
+                         int rc)
 {
     char *detail;
     char *rdev;
@@ -335,7 +412,7 @@ qemuAuditCgroupPath(virDomainObjPtr vm, virCgroupPtr cgroup,
     if (rc > 0)
         return;
 
-    rdev = qemuAuditGetRdev(path);
+    rdev = virDomainAuditGetRdev(path);
 
     if (!(detail = virAuditEncode("path", path)) ||
         virAsprintf(&extra, "path path=%s rdev=%s acl=%s",
@@ -344,7 +421,7 @@ qemuAuditCgroupPath(virDomainObjPtr vm, virCgroupPtr cgroup,
         goto cleanup;
     }
 
-    qemuAuditCgroup(vm, cgroup, reason, extra, rc == 0);
+    virDomainAuditCgroup(vm, cgroup, reason, extra, rc == 0);
 
 cleanup:
     VIR_FREE(extra);
@@ -353,7 +430,7 @@ cleanup:
 }
 
 /**
- * qemuAuditResource:
+ * virDomainAuditResource:
  * @vm: domain making an integer resource change
  * @resource: name of the resource: "mem" or "vcpu"
  * @oldval: the old value of the resource
@@ -364,12 +441,13 @@ cleanup:
  * Log an audit message about an attempted resource change.
  */
 static void
-qemuAuditResource(virDomainObjPtr vm, const char *resource,
-                  unsigned long long oldval, unsigned long long newval,
-                  const char *reason, bool success)
+virDomainAuditResource(virDomainObjPtr vm, const char *resource,
+                       unsigned long long oldval, unsigned long long newval,
+                       const char *reason, bool success)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *vmname;
+    const char *virt;
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (!(vmname = virAuditEncode("vm", vm->def->name))) {
@@ -377,36 +455,42 @@ qemuAuditResource(virDomainObjPtr vm, const char *resource,
         return;
     }
 
+    if (!(virt = virDomainVirtTypeToString(vm->def->virtType))) {
+        VIR_WARN("Unexpected virt type %d while encoding audit message", vm->def->virtType);
+        virt = "?";
+    }
+
     VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
-              "resrc=%s reason=%s %s uuid=%s old-%s=%lld new-%s=%lld",
-              resource, reason, vmname, uuidstr,
+              "virt=%s resrc=%s reason=%s %s uuid=%s old-%s=%lld new-%s=%lld",
+              virt, resource, reason, vmname, uuidstr,
               resource, oldval, resource, newval);
 
     VIR_FREE(vmname);
 }
 
 void
-qemuAuditMemory(virDomainObjPtr vm,
-                unsigned long long oldmem, unsigned long long newmem,
-                const char *reason, bool success)
+virDomainAuditMemory(virDomainObjPtr vm,
+                     unsigned long long oldmem, unsigned long long newmem,
+                     const char *reason, bool success)
 {
-    return qemuAuditResource(vm, "mem", oldmem, newmem, reason, success);
+    return virDomainAuditResource(vm, "mem", oldmem, newmem, reason, success);
 }
 
 void
-qemuAuditVcpu(virDomainObjPtr vm,
-              unsigned int oldvcpu, unsigned int newvcpu,
-              const char *reason, bool success)
+virDomainAuditVcpu(virDomainObjPtr vm,
+                   unsigned int oldvcpu, unsigned int newvcpu,
+                   const char *reason, bool success)
 {
-    return qemuAuditResource(vm, "vcpu", oldvcpu, newvcpu, reason, success);
+    return virDomainAuditResource(vm, "vcpu", oldvcpu, newvcpu, reason, success);
 }
 
 static void
-qemuAuditLifecycle(virDomainObjPtr vm, const char *op,
-                   const char *reason, bool success)
+virDomainAuditLifecycle(virDomainObjPtr vm, const char *op,
+                        const char *reason, bool success)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *vmname;
+    const char *virt;
 
     virUUIDFormat(vm->def->uuid, uuidstr);
 
@@ -415,52 +499,64 @@ qemuAuditLifecycle(virDomainObjPtr vm, const char *op,
         return;
     }
 
+    if (!(virt = virDomainVirtTypeToString(vm->def->virtType))) {
+        VIR_WARN("Unexpected virt type %d while encoding audit message", vm->def->virtType);
+        virt = "?";
+    }
+
     VIR_AUDIT(VIR_AUDIT_RECORD_MACHINE_CONTROL, success,
-              "op=%s reason=%s %s uuid=%s", op, reason, vmname, uuidstr);
+              "virt=%s op=%s reason=%s %s uuid=%s",
+              virt, op, reason, vmname, uuidstr);
 
     VIR_FREE(vmname);
 }
 
 
 void
-qemuAuditDomainStart(virDomainObjPtr vm, const char *reason, bool success)
+virDomainAuditStart(virDomainObjPtr vm, const char *reason, bool success)
 {
     int i;
 
     for (i = 0 ; i < vm->def->ndisks ; i++) {
         virDomainDiskDefPtr disk = vm->def->disks[i];
         if (disk->src) /* Skips CDROM without media initially inserted */
-            qemuAuditDisk(vm, NULL, disk, "start", true);
+            virDomainAuditDisk(vm, NULL, disk, "start", true);
+    }
+
+    for (i = 0 ; i < vm->def->nfss ; i++) {
+        virDomainFSDefPtr fs = vm->def->fss[i];
+        virDomainAuditFS(vm, NULL, fs, "start", true);
     }
 
     for (i = 0 ; i < vm->def->nnets ; i++) {
         virDomainNetDefPtr net = vm->def->nets[i];
-        qemuAuditNet(vm, NULL, net, "start", true);
+        virDomainAuditNet(vm, NULL, net, "start", true);
     }
 
     for (i = 0 ; i < vm->def->nhostdevs ; i++) {
         virDomainHostdevDefPtr hostdev = vm->def->hostdevs[i];
-        qemuAuditHostdev(vm, hostdev, "start", true);
+        virDomainAuditHostdev(vm, hostdev, "start", true);
     }
 
-    qemuAuditMemory(vm, 0, vm->def->mem.cur_balloon, "start", true);
-    qemuAuditVcpu(vm, 0, vm->def->vcpus, "start", true);
+    virDomainAuditMemory(vm, 0, vm->def->mem.cur_balloon, "start", true);
+    virDomainAuditVcpu(vm, 0, vm->def->vcpus, "start", true);
 
-    qemuAuditLifecycle(vm, "start", reason, success);
+    virDomainAuditLifecycle(vm, "start", reason, success);
 }
 
 
 void
-qemuAuditDomainStop(virDomainObjPtr vm, const char *reason)
+virDomainAuditStop(virDomainObjPtr vm, const char *reason)
 {
-    qemuAuditLifecycle(vm, "stop", reason, true);
+    virDomainAuditLifecycle(vm, "stop", reason, true);
 }
 
 void
-qemuAuditSecurityLabel(virDomainObjPtr vm, bool success)
+virDomainAuditSecurityLabel(virDomainObjPtr vm, bool success)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *vmname;
+    const char *virt;
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (!(vmname = virAuditEncode("vm", vm->def->name))) {
@@ -468,9 +564,14 @@ qemuAuditSecurityLabel(virDomainObjPtr vm, bool success)
         return;
     }
 
+    if (!(virt = virDomainVirtTypeToString(vm->def->virtType))) {
+        VIR_WARN("Unexpected virt type %d while encoding audit message", vm->def->virtType);
+        virt = "?";
+    }
+
     VIR_AUDIT(VIR_AUDIT_RECORD_MACHINE_ID, success,
-              "%s uuid=%s vm-ctx=%s img-ctx=%s",
-              vmname, uuidstr,
+              "virt=%s %s uuid=%s vm-ctx=%s img-ctx=%s",
+              virt, vmname, uuidstr,
               VIR_AUDIT_STR(vm->def->seclabel.label),
               VIR_AUDIT_STR(vm->def->seclabel.imagelabel));
 

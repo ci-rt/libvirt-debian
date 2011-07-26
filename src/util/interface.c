@@ -29,6 +29,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 
 #ifdef __linux__
 # include <linux/if.h>
@@ -41,7 +42,7 @@
 #include "util.h"
 #include "interface.h"
 #include "virterror_internal.h"
-#include "files.h"
+#include "virfile.h"
 #include "memory.h"
 #include "netlink.h"
 
@@ -59,10 +60,10 @@ getFlags(int fd, const char *ifname, struct ifreq *ifr) {
 
     if (virStrncpy(ifr->ifr_name,
                    ifname, strlen(ifname), sizeof(ifr->ifr_name)) == NULL)
-        return ENODEV;
+        return -ENODEV;
 
     if (ioctl(fd, SIOCGIFFLAGS, ifr) < 0)
-        return errno;
+        return -errno;
 
     return 0;
 }
@@ -74,7 +75,7 @@ getFlags(int fd, const char *ifname, struct ifreq *ifr) {
  * @ifname : name of the interface
  * @flags : pointer to short holding the flags on success
  *
- * Get the flags of the interface. Returns 0 on success, error code on failure.
+ * Get the flags of the interface. Returns 0 on success, -errno on failure.
  */
 int
 ifaceGetFlags(const char *ifname, short *flags) {
@@ -83,7 +84,7 @@ ifaceGetFlags(const char *ifname, short *flags) {
     int fd = socket(PF_PACKET, SOCK_DGRAM, 0);
 
     if (fd < 0)
-        return errno;
+        return -errno;
 
     rc = getFlags(fd, ifname, &ifr);
 
@@ -100,7 +101,7 @@ ifaceIsUp(const char *ifname, bool *up) {
     short flags = 0;
     int rc = ifaceGetFlags(ifname, &flags);
 
-    if (rc)
+    if (rc < 0)
         return rc;
 
     *up = ((flags & IFF_UP) == IFF_UP);
@@ -112,11 +113,12 @@ ifaceIsUp(const char *ifname, bool *up) {
 /* Note: Showstopper on cygwin is only missing PF_PACKET */
 
 int
+
 ifaceGetFlags(const char *ifname ATTRIBUTE_UNUSED,
               short *flags ATTRIBUTE_UNUSED) {
     ifaceError(VIR_ERR_INTERNAL_ERROR, "%s",
                _("ifaceGetFlags is not supported on non-linux platforms"));
-    return ENOSYS;
+    return -ENOSYS;
 }
 
 int
@@ -125,7 +127,7 @@ ifaceIsUp(const char *ifname ATTRIBUTE_UNUSED,
 
     ifaceError(VIR_ERR_INTERNAL_ERROR, "%s",
                _("ifaceIsUp is not supported on non-linux platforms"));
-    return ENOSYS;
+    return -ENOSYS;
 }
 
 #endif /* __linux__ */
@@ -141,7 +143,7 @@ ifaceIsUp(const char *ifname ATTRIBUTE_UNUSED,
  * flagmask = (~0 ^ flagclear)
  * newflags = (curflags & flagmask) | flagset;
  *
- * Returns 0 on success, errno on failure.
+ * Returns 0 on success, -errno on failure.
  */
 #ifdef __linux__
 static int chgIfaceFlags(const char *ifname, short flagclear, short flagset) {
@@ -152,11 +154,11 @@ static int chgIfaceFlags(const char *ifname, short flagclear, short flagset) {
     int fd = socket(PF_PACKET, SOCK_DGRAM, 0);
 
     if (fd < 0)
-        return errno;
+        return -errno;
 
     rc = getFlags(fd, ifname, &ifr);
-    if (rc != 0)
-        goto err_exit;
+    if (rc < 0)
+        goto cleanup;
 
     flags = (ifr.ifr_flags & flagmask) | flagset;
 
@@ -164,10 +166,10 @@ static int chgIfaceFlags(const char *ifname, short flagclear, short flagset) {
         ifr.ifr_flags = flags;
 
         if (ioctl(fd, SIOCSIFFLAGS, &ifr) < 0)
-            rc = errno;
+            rc = -errno;
     }
 
-err_exit:
+cleanup:
     VIR_FORCE_CLOSE(fd);
     return rc;
 }
@@ -180,7 +182,7 @@ err_exit:
  *
  * Function to control if an interface is activated (up, 1) or not (down, 0)
  *
- * Returns 0 in case of success or an errno code in case of failure.
+ * Returns 0 on success, -errno on failure.
  */
 int
 ifaceCtrl(const char *name, bool up)
@@ -195,7 +197,7 @@ ifaceCtrl(const char *name, bool up)
 int
 ifaceCtrl(const char *name ATTRIBUTE_UNUSED, bool up ATTRIBUTE_UNUSED)
 {
-    return ENOSYS;
+    return -ENOSYS;
 }
 
 #endif /* __linux__ */
@@ -212,10 +214,10 @@ ifaceCtrl(const char *name ATTRIBUTE_UNUSED, bool up ATTRIBUTE_UNUSED)
  * it must have the given MAC address and if an interface index is
  * passed, it must also match the interface index.
  *
- * Returns 0 on success, an error code on failure.
- *   ENODEV : if interface with given name does not exist or its interface
- *            index is different than the one passed
- *   EINVAL : if interface name is invalid (too long)
+ * Returns 0 on success, -errno on failure.
+ *   -ENODEV : if interface with given name does not exist or its interface
+ *             index is different than the one passed
+ *   -EINVAL : if interface name is invalid (too long)
  */
 #ifdef __linux__
 int
@@ -230,7 +232,7 @@ ifaceCheck(bool reportError, const char *ifname,
     if (macaddr != NULL) {
         fd = socket(PF_PACKET, SOCK_DGRAM, 0);
         if (fd < 0)
-            return errno;
+            return -errno;
 
         memset(&ifr, 0, sizeof(ifr));
 
@@ -240,8 +242,8 @@ ifaceCheck(bool reportError, const char *ifname,
                 ifaceError(VIR_ERR_INTERNAL_ERROR,
                            _("invalid interface name %s"),
                            ifname);
-            rc = EINVAL;
-            goto err_exit;
+            rc = -EINVAL;
+            goto cleanup;
         }
 
         if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
@@ -249,23 +251,23 @@ ifaceCheck(bool reportError, const char *ifname,
                 ifaceError(VIR_ERR_INTERNAL_ERROR,
                            _("coud not get MAC address of interface %s"),
                            ifname);
-            rc = errno;
-            goto err_exit;
+            rc = -errno;
+            goto cleanup;
         }
 
         if (memcmp(&ifr.ifr_hwaddr.sa_data, macaddr, VIR_MAC_BUFLEN) != 0) {
-            rc = ENODEV;
-            goto err_exit;
+            rc = -ENODEV;
+            goto cleanup;
         }
     }
 
     if (ifindex != -1) {
         rc = ifaceGetIndex(reportError, ifname, &idx);
         if (rc == 0 && idx != ifindex)
-            rc = ENODEV;
+            rc = -ENODEV;
     }
 
- err_exit:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
 
     return rc;
@@ -279,7 +281,7 @@ ifaceCheck(bool reportError ATTRIBUTE_UNUSED,
            const unsigned char *macaddr ATTRIBUTE_UNUSED,
            int ifindex ATTRIBUTE_UNUSED)
 {
-    return ENOSYS;
+    return -ENOSYS;
 }
 
 #endif /* __linux__ */
@@ -294,9 +296,9 @@ ifaceCheck(bool reportError ATTRIBUTE_UNUSED,
  *
  * Get the index of an interface given its name.
  *
- * Returns 0 on success, an error code on failure.
- *   ENODEV : if interface with given name does not exist
- *   EINVAL : if interface name is invalid (too long)
+ * Returns 0 on success, -errno on failure.
+ *   -ENODEV : if interface with given name does not exist
+ *   -EINVAL : if interface name is invalid (too long)
  */
 #ifdef __linux__
 int
@@ -307,7 +309,7 @@ ifaceGetIndex(bool reportError, const char *ifname, int *ifindex)
     int fd = socket(PF_PACKET, SOCK_DGRAM, 0);
 
     if (fd < 0)
-        return errno;
+        return -errno;
 
     memset(&ifreq, 0, sizeof(ifreq));
 
@@ -317,8 +319,8 @@ ifaceGetIndex(bool reportError, const char *ifname, int *ifindex)
             ifaceError(VIR_ERR_INTERNAL_ERROR,
                        _("invalid interface name %s"),
                        ifname);
-        rc = EINVAL;
-        goto err_exit;
+        rc = -EINVAL;
+        goto cleanup;
     }
 
     if (ioctl(fd, SIOCGIFINDEX, &ifreq) >= 0)
@@ -328,10 +330,10 @@ ifaceGetIndex(bool reportError, const char *ifname, int *ifindex)
             ifaceError(VIR_ERR_INTERNAL_ERROR,
                        _("interface %s does not exist"),
                        ifname);
-        rc = ENODEV;
+        rc = -ENODEV;
     }
 
-err_exit:
+cleanup:
     VIR_FORCE_CLOSE(fd);
 
     return rc;
@@ -349,7 +351,7 @@ ifaceGetIndex(bool reportError,
                    _("ifaceGetIndex is not supported on non-linux platforms"));
     }
 
-    return ENOSYS;
+    return -ENOSYS;
 }
 
 #endif /* __linux__ */
@@ -364,21 +366,21 @@ ifaceGetVlanID(const char *vlanifname, int *vlanid) {
     int fd = socket(PF_PACKET, SOCK_DGRAM, 0);
 
     if (fd < 0)
-        return errno;
+        return -errno;
 
     if (virStrcpyStatic(vlanargs.device1, vlanifname) == NULL) {
-        rc = EINVAL;
-        goto err_exit;
+        rc = -EINVAL;
+        goto cleanup;
     }
 
     if (ioctl(fd, SIOCGIFVLAN, &vlanargs) != 0) {
-        rc = errno;
-        goto err_exit;
+        rc = -errno;
+        goto cleanup;
     }
 
     *vlanid = vlanargs.u.VID;
 
- err_exit:
+ cleanup:
     VIR_FORCE_CLOSE(fd);
 
     return rc;
@@ -393,7 +395,7 @@ ifaceGetVlanID(const char *vlanifname ATTRIBUTE_UNUSED,
     ifaceError(VIR_ERR_INTERNAL_ERROR, "%s",
                _("ifaceGetVlanID is not supported on non-linux platforms"));
 
-    return ENOSYS;
+    return -ENOSYS;
 }
 #endif /* __linux__ */
 
@@ -404,7 +406,7 @@ ifaceGetVlanID(const char *vlanifname ATTRIBUTE_UNUSED,
  *
  * This function gets the @macaddr for a given interface @ifname.
  *
- * Returns 0 in case of success or an errno code in case of failure.
+ * Returns 0 on success, -errno on failure.
  */
 #ifdef __linux__
 int
@@ -413,24 +415,31 @@ ifaceGetMacAddress(const char *ifname,
 {
     struct ifreq ifr;
     int fd;
+    int rc = 0;
 
     if (!ifname)
-        return EINVAL;
+        return -EINVAL;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0)
-        return errno;
+        return -errno;
 
     memset(&ifr, 0, sizeof(struct ifreq));
-    if (virStrcpyStatic(ifr.ifr_name, ifname) == NULL)
-        return EINVAL;
+    if (virStrcpyStatic(ifr.ifr_name, ifname) == NULL) {
+        rc = -EINVAL;
+        goto cleanup;
+    }
 
-    if (ioctl(fd, SIOCGIFHWADDR, (char *)&ifr) != 0)
-        return errno;
+    if (ioctl(fd, SIOCGIFHWADDR, (char *)&ifr) != 0) {
+        rc = -errno;
+        goto cleanup;
+    }
 
     memcpy(macaddr, ifr.ifr_ifru.ifru_hwaddr.sa_data, VIR_MAC_BUFLEN);
 
-    return 0;
+cleanup:
+    VIR_FORCE_CLOSE(fd);
+    return rc;
 }
 
 #else
@@ -439,7 +448,7 @@ int
 ifaceGetMacAddress(const char *ifname ATTRIBUTE_UNUSED,
                    unsigned char *macaddr ATTRIBUTE_UNUSED)
 {
-    return ENOSYS;
+    return -ENOSYS;
 }
 
 #endif /* __linux__ */
@@ -452,7 +461,7 @@ ifaceGetMacAddress(const char *ifname ATTRIBUTE_UNUSED,
  * This function sets the @macaddr for a given interface @ifname. This
  * gets rid of the kernel's automatically assigned random MAC.
  *
- * Returns 0 in case of success or an errno code in case of failure.
+ * Returns 0 on success, -errno on failure.
  */
 #ifdef __linux__
 int
@@ -461,25 +470,34 @@ ifaceSetMacAddress(const char *ifname,
 {
     struct ifreq ifr;
     int fd;
+    int rc = 0;
 
     if (!ifname)
-        return EINVAL;
+        return -EINVAL;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0)
-        return errno;
+        return -errno;
 
     memset(&ifr, 0, sizeof(struct ifreq));
-    if (virStrcpyStatic(ifr.ifr_name, ifname) == NULL)
-        return EINVAL;
+    if (virStrcpyStatic(ifr.ifr_name, ifname) == NULL) {
+        rc = -EINVAL;
+        goto cleanup;
+    }
 
     /* To fill ifr.ifr_hdaddr.sa_family field */
-    if (ioctl(fd, SIOCGIFHWADDR, &ifr) != 0)
-        return errno;
+    if (ioctl(fd, SIOCGIFHWADDR, &ifr) != 0) {
+        rc = -errno;
+        goto cleanup;
+    }
 
     memcpy(ifr.ifr_hwaddr.sa_data, macaddr, VIR_MAC_BUFLEN);
 
-    return ioctl(fd, SIOCSIFHWADDR, &ifr) == 0 ? 0 : errno;
+    rc = ioctl(fd, SIOCSIFHWADDR, &ifr) == 0 ? 0 : -errno;
+
+cleanup:
+    VIR_FORCE_CLOSE(fd);
+    return rc;
 }
 
 #else
@@ -488,11 +506,70 @@ int
 ifaceSetMacAddress(const char *ifname ATTRIBUTE_UNUSED,
                    const unsigned char *macaddr ATTRIBUTE_UNUSED)
 {
-    return ENOSYS;
+    return -ENOSYS;
 }
 
 #endif /* __linux__ */
 
+
+/**
+ * ifaceGetIPAddress:
+ * @ifname: name of the interface whose IP address we want
+ * @macaddr: MAC address (VIR_MAC_BUFLEN in size)
+ *
+ * This function gets the @macaddr for a given interface @ifname.
+ *
+ * Returns 0 on success, -errno on failure.
+ */
+#ifdef __linux__
+int
+ifaceGetIPAddress(const char *ifname,
+                  virSocketAddrPtr addr)
+{
+    struct ifreq ifr;
+    int fd;
+    int rc = 0;
+
+    if (!ifname || !addr)
+        return -EINVAL;
+
+    memset (addr, 0, sizeof(*addr));
+    addr->data.stor.ss_family = AF_UNSPEC;
+
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0)
+        return -errno;
+
+    memset(&ifr, 0, sizeof(struct ifreq));
+    if (virStrcpyStatic(ifr.ifr_name, ifname) == NULL) {
+        rc = -EINVAL;
+        goto err_exit;
+    }
+
+    if (ioctl(fd, SIOCGIFADDR, (char *)&ifr) != 0) {
+        rc = -errno;
+        goto err_exit;
+    }
+
+    addr->data.stor.ss_family = AF_INET;
+    addr->len = sizeof(addr->data.inet4);
+    memcpy(&addr->data.inet4, &ifr.ifr_addr, addr->len);
+
+err_exit:
+    VIR_FORCE_CLOSE(fd);
+    return rc;
+}
+
+#else
+
+int
+ifaceGetIPAddress(const char *ifname ATTRIBUTE_UNUSED,
+                  virSocketAddrPtr addr ATTRIBUTE_UNUSED)
+{
+    return -ENOSYS;
+}
+
+#endif /* __linux__ */
 
 /**
  * ifaceLinkAdd
@@ -530,7 +607,7 @@ ifaceMacvtapLinkAdd(const char *type,
     struct nl_msg *nl_msg;
     struct nlattr *linkinfo, *info_data;
 
-    if (ifaceGetIndex(true, srcdev, &ifindex) != 0)
+    if (ifaceGetIndex(true, srcdev, &ifindex) < 0)
         return -1;
 
     *retry = 0;
@@ -576,7 +653,7 @@ ifaceMacvtapLinkAdd(const char *type,
 
     if (nlComm(nl_msg, &recvbuf, &recvbuflen, 0) < 0) {
         rc = -1;
-        goto err_exit;
+        goto cleanup;
     }
 
     if (recvbuflen < NLMSG_LENGTH(0) || recvbuf == NULL)
@@ -615,7 +692,7 @@ ifaceMacvtapLinkAdd(const char *type,
         goto malformed_resp;
     }
 
-err_exit:
+cleanup:
     nlmsg_free(nl_msg);
 
     VIR_FREE(recvbuf);
@@ -700,7 +777,7 @@ ifaceLinkDel(const char *ifname)
 
     if (nlComm(nl_msg, &recvbuf, &recvbuflen, 0) < 0) {
         rc = -1;
-        goto err_exit;
+        goto cleanup;
     }
 
     if (recvbuflen < NLMSG_LENGTH(0) || recvbuf == NULL)
@@ -729,7 +806,7 @@ ifaceLinkDel(const char *ifname)
         goto malformed_resp;
     }
 
-err_exit:
+cleanup:
     nlmsg_free(nl_msg);
 
     VIR_FREE(recvbuf);
@@ -832,13 +909,13 @@ ifaceMacvtapLinkDump(bool nltarget_kernel, const char *ifname, int ifindex,
         pid = getPidFunc();
         if (pid == 0) {
             rc = -1;
-            goto err_exit;
+            goto cleanup;
         }
     }
 
     if (nlComm(nl_msg, recvbuf, &recvbuflen, pid) < 0) {
         rc = -1;
-        goto err_exit;
+        goto cleanup;
     }
 
     if (recvbuflen < NLMSG_LENGTH(0) || *recvbuf == NULL)
@@ -875,7 +952,7 @@ ifaceMacvtapLinkDump(bool nltarget_kernel, const char *ifname, int ifindex,
     if (rc != 0)
         VIR_FREE(*recvbuf);
 
-err_exit:
+cleanup:
     nlmsg_free(nl_msg);
 
     return rc;
@@ -953,8 +1030,8 @@ ifaceGetNthParent(int ifindex, const char *ifname, unsigned int nthParent,
 
     *nth = 0;
 
-    if (ifindex <= 0 && ifaceGetIndex(true, ifname, &ifindex) != 0)
-        return 1;
+    if (ifindex <= 0 && ifaceGetIndex(true, ifname, &ifindex) < 0)
+        return -1;
 
     while (!end && i <= nthParent) {
         rc = ifaceMacvtapLinkDump(true, ifname, ifindex, tb, &recvbuf, NULL);
@@ -967,7 +1044,7 @@ ifaceGetNthParent(int ifindex, const char *ifname, unsigned int nthParent,
                 ifaceError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("buffer for root interface name is too small"));
                 VIR_FREE(recvbuf);
-                return 1;
+                return -1;
             }
             *parent_ifindex = ifindex;
         }
@@ -1017,7 +1094,7 @@ ifaceGetNthParent(int ifindex ATTRIBUTE_UNUSED,
  * @linkdev: name of interface
  * @stateDir: directory to store old MAC address
  *
- * Returns 0 on success, -1 in case of fatal error, error code otherwise.
+ * Returns 0 on success, -errno on failure.
  *
  */
 int
@@ -1030,7 +1107,7 @@ ifaceReplaceMacAddress(const unsigned char *macaddress,
 
     rc = ifaceGetMacAddress(linkdev, oldmac);
 
-    if (rc) {
+    if (rc < 0) {
         virReportSystemError(rc,
                              _("Getting MAC address from '%s' "
                                "to '%02x:%02x:%02x:%02x:%02x:%02x' failed."),
@@ -1045,18 +1122,18 @@ ifaceReplaceMacAddress(const unsigned char *macaddress,
                         stateDir,
                         linkdev) < 0) {
             virReportOOMError();
-            return errno;
+            return -errno;
         }
         virFormatMacAddr(oldmac, macstr);
         if (virFileWriteStr(path, macstr, O_CREAT|O_TRUNC|O_WRONLY) < 0) {
             virReportSystemError(errno, _("Unable to preserve mac for %s"),
                                  linkdev);
-            return errno;
+            return -errno;
         }
     }
 
     rc = ifaceSetMacAddress(linkdev, macaddress);
-    if (rc) {
+    if (rc < 0) {
         virReportSystemError(rc,
                              _("Setting MAC address on  '%s' to "
                                "'%02x:%02x:%02x:%02x:%02x:%02x' failed."),
@@ -1073,7 +1150,7 @@ ifaceReplaceMacAddress(const unsigned char *macaddress,
  * @linkdev: name of interface
  * @stateDir: directory containing old MAC address
  *
- * Returns 0 on success, -1 in case of fatal error, error code otherwise.
+ * Returns 0 on success, -errno on failure.
  *
  */
 int
@@ -1090,11 +1167,11 @@ ifaceRestoreMacAddress(const char *linkdev,
                     stateDir,
                     linkdev) < 0) {
         virReportOOMError();
-        return -1;
+        return -errno;
     }
 
     if (virFileReadAll(path, VIR_MAC_STRING_BUFLEN, &macstr) < 0) {
-        return errno;
+        return -errno;
     }
 
     if (virParseMacAddr(macstr, &oldmac[0]) != 0) {
@@ -1102,12 +1179,12 @@ ifaceRestoreMacAddress(const char *linkdev,
                    _("Cannot parse MAC address from '%s'"),
                    oldmacname);
         VIR_FREE(macstr);
-        return -1;
+        return -EINVAL;
     }
 
     /*reset mac and remove file-ignore results*/
     rc = ifaceSetMacAddress(linkdev, oldmac);
-    if (rc) {
+    if (rc < 0) {
         virReportSystemError(rc,
                              _("Setting MAC address on  '%s' to "
                                "'%02x:%02x:%02x:%02x:%02x:%02x' failed."),

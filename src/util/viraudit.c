@@ -1,5 +1,5 @@
 /*
- * virtaudit.c: auditing support
+ * viraudit.c: auditing support
  *
  * Copyright (C) 2010-2011 Red Hat, Inc.
  *
@@ -29,9 +29,9 @@
 
 #include "virterror_internal.h"
 #include "logging.h"
-#include "virtaudit.h"
+#include "viraudit.h"
 #include "util.h"
-#include "files.h"
+#include "virfile.h"
 #include "memory.h"
 
 /* Provide the macros in case the header file is old.

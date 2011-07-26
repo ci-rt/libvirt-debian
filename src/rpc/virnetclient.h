@@ -44,7 +44,9 @@ virNetClientPtr virNetClientNewSSH(const char *nodename,
                                    const char *binary,
                                    const char *username,
                                    bool noTTY,
+                                   bool noVerify,
                                    const char *netcat,
+                                   const char *keyfile,
                                    const char *path);
 
 virNetClientPtr virNetClientNewExternal(const char **cmdargv);
@@ -80,5 +82,6 @@ const char *virNetClientRemoteAddrString(virNetClientPtr client);
 int virNetClientGetTLSKeySize(virNetClientPtr client);
 
 void virNetClientFree(virNetClientPtr client);
+void virNetClientClose(virNetClientPtr client);
 
 #endif /* __VIR_NET_CLIENT_H__ */

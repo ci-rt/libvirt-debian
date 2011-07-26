@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libvirt], [0.9.3], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.4], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -121,22 +121,27 @@ AC_CHECK_SIZEOF([long])
 
 dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
-AC_CHECK_FUNCS_ONCE([cfmakeraw regexec sched_getaffinity getuid getgid \
- geteuid initgroups posix_fallocate mmap kill \
- getmntent_r getgrnam_r getpwuid_r])
+AC_CHECK_FUNCS_ONCE([cfmakeraw geteuid getgid getgrnam_r getmntent_r \
+  getpwuid_r getuid initgroups kill mmap posix_fallocate posix_memalign \
+  regexec sched_getaffinity])
 
 dnl Availability of pthread functions (if missing, win32 threading is
 dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
 dnl LIB_PTHREAD was set during gl_INIT by gnulib.
 old_LIBS=$LIBS
 LIBS="$LIBS $LIB_PTHREAD"
-AC_CHECK_FUNCS([pthread_sigmask pthread_mutexattr_init])
+AC_CHECK_FUNCS([pthread_mutexattr_init])
 LIBS=$old_libs
 
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
-  sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h])
+  sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h])
+
+dnl Our only use of libtasn1.h is in the testsuite, and can be skipped
+dnl if the header is not present.  Assume -ltasn1 is present if the
+dnl header could be found.
+AM_CONDITIONAL([HAVE_LIBTASN1], [test "x$ac_cv_header_libtasn1_h" = "xyes"])
 
 AC_CHECK_LIB([intl],[gettext],[])
 
@@ -165,6 +170,8 @@ AC_PATH_PROG([RADVD], [radvd], [radvd],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([BRCTL], [brctl], [brctl],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+AC_PATH_PROG([TC], [tc], [tc],
+    [/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([UDEVADM], [udevadm], [],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([UDEVSETTLE], [udevsettle], [],
@@ -178,6 +185,8 @@ AC_DEFINE_UNQUOTED([RADVD],["$RADVD"],
         [Location or name of the radvd program])
 AC_DEFINE_UNQUOTED([BRCTL],["$BRCTL"],
         [Location or name of the brctl program (see bridge-utils)])
+AC_DEFINE_UNQUOTED([TC],["$TC"],
+        [Location or name of the tc profram (see iproute2)])
 if test -n "$UDEVADM"; then
   AC_DEFINE_UNQUOTED([UDEVADM],["$UDEVADM"],
         [Location or name of the udevadm program])
@@ -1010,6 +1019,7 @@ AC_ARG_WITH([polkit],
   [with_polkit=check])
 
 with_polkit0=no
+with_dbus=no
 with_polkit1=no
 if test "x$with_polkit" = "xyes" || test "x$with_polkit" = "xcheck"; then
   dnl Check for new polkit first - just a binary
@@ -1038,6 +1048,8 @@ if test "x$with_polkit" = "xyes" || test "x$with_polkit" = "xcheck"; then
         [use PolicyKit for UNIX socket access checks])
       AC_DEFINE_UNQUOTED([HAVE_POLKIT0], 1,
         [use PolicyKit for UNIX socket access checks])
+      AC_DEFINE_UNQUOTED([HAVE_DBUS], 1,
+        [use DBus for PolicyKit])
 
       old_CFLAGS=$CFLAGS
       old_LIBS=$LIBS
@@ -1052,11 +1064,13 @@ if test "x$with_polkit" = "xyes" || test "x$with_polkit" = "xcheck"; then
         AC_DEFINE_UNQUOTED([POLKIT_AUTH],["$POLKIT_AUTH"],[Location of polkit-auth program])
       fi
       with_polkit0="yes"
+      with_dbus="yes"
     fi
   fi
 fi
 AM_CONDITIONAL([HAVE_POLKIT], [test "x$with_polkit" = "xyes"])
 AM_CONDITIONAL([HAVE_POLKIT0], [test "x$with_polkit0" = "xyes"])
+AM_CONDITIONAL([HAVE_DBUS], [test "x$with_dbus" = "xyes"])
 AM_CONDITIONAL([HAVE_POLKIT1], [test "x$with_polkit1" = "xyes"])
 AC_SUBST([POLKIT_CFLAGS])
 AC_SUBST([POLKIT_LIBS])
@@ -1981,30 +1995,6 @@ fi
 AM_CONDITIONAL([WITH_PYTHON], [test "$with_python" = "yes"])
 AC_SUBST([PYTHON_VERSION])
 AC_SUBST([PYTHON_INCLUDES])
-
-
-
-AC_MSG_CHECKING([whether this host is running a Xen kernel])
-RUNNING_XEN=
-if test -d /proc/sys/xen
-then
-    RUNNING_XEN=yes
-else
-    RUNNING_XEN=no
-fi
-AC_MSG_RESULT($RUNNING_XEN)
-
-AC_MSG_CHECKING([If XenD UNIX socket /var/run/xend/xmlrpc.sock is accessible])
-RUNNING_XEND=
-if test -S /var/run/xend/xmlrpc.sock
-then
-    RUNNING_XEND=yes
-else
-    RUNNING_XEND=no
-fi
-AC_MSG_RESULT($RUNNING_XEND)
-
-AM_CONDITIONAL([ENABLE_XEN_TESTS], [test "$RUNNING_XEN" != "no" && test "$RUNNING_XEND" != "no"])
 
 AC_ARG_ENABLE([test-coverage],
   AC_HELP_STRING([--enable-test-coverage], [turn on code coverage instrumentation @<:@default=no@:>@]),

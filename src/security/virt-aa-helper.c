@@ -40,7 +40,7 @@
 #include "uuid.h"
 #include "hostusb.h"
 #include "pci.h"
-#include "files.h"
+#include "virfile.h"
 #include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
@@ -725,7 +725,7 @@ get_definition(vahControl * ctl, const char *xmlStr)
         goto exit;
     }
 
-    ctl->def = virDomainDefParseString(ctl->caps, xmlStr,
+    ctl->def = virDomainDefParseString(ctl->caps, xmlStr, -1,
                                        VIR_DOMAIN_XML_INACTIVE);
     if (ctl->def == NULL) {
         vah_error(ctl, 0, _("could not parse XML"));
@@ -1166,6 +1166,8 @@ main(int argc, char **argv)
                               LOCALSTATEDIR, ctl->def->name);
             virBufferAsprintf(&buf, "  \"%s/run/libvirt/**/%s.pid\" rwk,\n",
                               LOCALSTATEDIR, ctl->def->name);
+            virBufferAsprintf(&buf, "  \"/run/libvirt/**/%s.pid\" rwk,\n",
+                              ctl->def->name);
             if (ctl->files)
                 virBufferAdd(&buf, ctl->files, -1);
         }

@@ -323,6 +323,14 @@ EXTRA_DIST += test-fflush.c test-fflush2.sh test-fflush2.c signature.h macros.h
 
 ## end   gnulib module fflush-tests
 
+## begin gnulib module ffs-tests
+
+TESTS += test-ffs
+check_PROGRAMS += test-ffs
+EXTRA_DIST += test-ffs.c macros.h signature.h
+
+## end   gnulib module ffs-tests
+
 ## begin gnulib module float-tests
 
 TESTS += test-float
@@ -984,6 +992,16 @@ libtests_a_SOURCES += progname.h progname.c
 
 ## end   gnulib module progname
 
+## begin gnulib module pthread_sigmask-tests
+
+TESTS += test-pthread_sigmask1 test-pthread_sigmask2
+check_PROGRAMS += test-pthread_sigmask1 test-pthread_sigmask2
+test_pthread_sigmask1_LDADD = $(LDADD) @LIB_PTHREAD_SIGMASK@
+test_pthread_sigmask2_LDADD = $(LDADD) @LIB_PTHREAD_SIGMASK@ @LIBMULTITHREAD@
+EXTRA_DIST += test-pthread_sigmask1.c test-pthread_sigmask2.c signature.h macros.h
+
+## end   gnulib module pthread_sigmask-tests
+
 ## begin gnulib module putenv
 
 
@@ -1133,6 +1151,14 @@ check_PROGRAMS += test-sigpipe
 EXTRA_DIST += test-sigpipe.c test-sigpipe.sh
 
 ## end   gnulib module sigpipe-tests
+
+## begin gnulib module sigprocmask-tests
+
+TESTS += test-sigprocmask
+check_PROGRAMS += test-sigprocmask
+EXTRA_DIST += test-sigprocmask.c signature.h macros.h
+
+## end   gnulib module sigprocmask-tests
 
 ## begin gnulib module sleep-tests
 
@@ -1315,6 +1341,14 @@ EXTRA_DIST += test-string.c
 
 ## end   gnulib module string-tests
 
+## begin gnulib module strings-tests
+
+TESTS += test-strings
+check_PROGRAMS += test-strings
+EXTRA_DIST += test-strings.c
+
+## end   gnulib module strings-tests
+
 ## begin gnulib module strnlen-tests
 
 TESTS += test-strnlen
@@ -1418,6 +1452,16 @@ libtests_a_SOURCES += glthread/thread.h glthread/thread.c
 
 ## end   gnulib module thread
 
+## begin gnulib module thread-tests
+
+TESTS += test-thread_self test-thread_create
+check_PROGRAMS += test-thread_self test-thread_create
+test_thread_self_LDADD = $(LDADD) @LIBTHREAD@
+test_thread_create_LDADD = $(LDADD) @LIBMULTITHREAD@
+EXTRA_DIST += test-thread_self.c test-thread_create.c macros.h
+
+## end   gnulib module thread-tests
+
 ## begin gnulib module time-tests
 
 TESTS += test-time
@@ -1503,15 +1547,6 @@ check_PROGRAMS += test-verify
 EXTRA_DIST += test-verify.c test-verify.sh init.sh
 
 ## end   gnulib module verify-tests
-
-## begin gnulib module vsnprintf
-
-
-EXTRA_DIST += vsnprintf.c
-
-EXTRA_libtests_a_SOURCES += vsnprintf.c
-
-## end   gnulib module vsnprintf
 
 ## begin gnulib module vsnprintf-tests
 

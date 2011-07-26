@@ -55,7 +55,7 @@
 #include "nodeinfo.h"
 #include "memory.h"
 #include "bridge.h"
-#include "files.h"
+#include "virfile.h"
 #include "logging.h"
 #include "command.h"
 
@@ -456,10 +456,12 @@ static int openvzDomainIsUpdated(virDomainPtr dom ATTRIBUTE_UNUSED)
     return 0;
 }
 
-static char *openvzDomainGetXMLDesc(virDomainPtr dom, int flags) {
+static char *openvzDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
     struct openvz_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     char *ret = NULL;
+
+    /* Flags checked by virDomainDefFormat */
 
     openvzDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -575,11 +577,15 @@ cleanup:
   return ret;
 }
 
-static int openvzDomainShutdown(virDomainPtr dom) {
+static int
+openvzDomainShutdownFlags(virDomainPtr dom,
+                          unsigned int flags) {
     struct openvz_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     const char *prog[] = {VZCTL, "--quiet", "stop", PROGRAM_SENTINAL, NULL};
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     openvzDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -612,12 +618,21 @@ cleanup:
     return ret;
 }
 
+static int
+openvzDomainShutdown(virDomainPtr dom)
+{
+    return openvzDomainShutdownFlags(dom, 0);
+}
+
 static int openvzDomainReboot(virDomainPtr dom,
-                              unsigned int flags ATTRIBUTE_UNUSED) {
+                              unsigned int flags)
+{
     struct openvz_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     const char *prog[] = {VZCTL, "--quiet", "restart", PROGRAM_SENTINAL, NULL};
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     openvzDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -887,6 +902,7 @@ openvzDomainDefineXML(virConnectPtr conn, const char *xml)
 
     openvzDriverLock(driver);
     if ((vmdef = virDomainDefParseString(driver->caps, xml,
+                                         1 << VIR_DOMAIN_VIRT_OPENVZ,
                                          VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
@@ -966,6 +982,7 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
 
     openvzDriverLock(driver);
     if ((vmdef = virDomainDefParseString(driver->caps, xml,
+                                         1 << VIR_DOMAIN_VIRT_OPENVZ,
                                          VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
@@ -1078,12 +1095,15 @@ openvzDomainCreate(virDomainPtr dom)
 }
 
 static int
-openvzDomainUndefine(virDomainPtr dom)
+openvzDomainUndefineFlags(virDomainPtr dom,
+                          unsigned int flags)
 {
     struct openvz_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     const char *prog[] = { VZCTL, "--quiet", "destroy", PROGRAM_SENTINAL, NULL };
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     openvzDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -1115,6 +1135,11 @@ cleanup:
     return ret;
 }
 
+static int
+openvzDomainUndefine(virDomainPtr dom)
+{
+    return openvzDomainUndefineFlags(dom, 0);
+}
 static int
 openvzDomainSetAutostart(virDomainPtr dom, int autostart)
 {
@@ -1281,9 +1306,11 @@ openvzDomainSetVcpus(virDomainPtr dom, unsigned int nvcpus)
 
 static virDrvOpenStatus openvzOpen(virConnectPtr conn,
                                    virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                   int flags ATTRIBUTE_UNUSED)
+                                   unsigned int flags)
 {
     struct openvz_driver *driver;
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     if (conn->uri == NULL) {
         if (!virFileExists("/proc/vz"))
@@ -1604,6 +1631,7 @@ static virDriver openvzDriver = {
     .domainShutdown = openvzDomainShutdown, /* 0.3.1 */
     .domainReboot = openvzDomainReboot, /* 0.3.1 */
     .domainDestroy = openvzDomainShutdown, /* 0.3.1 */
+    .domainDestroyFlags = openvzDomainShutdownFlags, /* 0.9.4 */
     .domainGetOSType = openvzGetOSType, /* 0.3.1 */
     .domainGetInfo = openvzDomainGetInfo, /* 0.3.1 */
     .domainGetState = openvzDomainGetState, /* 0.9.2 */
@@ -1618,6 +1646,7 @@ static virDriver openvzDriver = {
     .domainCreateWithFlags = openvzDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = openvzDomainDefineXML, /* 0.3.3 */
     .domainUndefine = openvzDomainUndefine, /* 0.3.3 */
+    .domainUndefineFlags = openvzDomainUndefineFlags, /* 0.9.4 */
     .domainGetAutostart = openvzDomainGetAutostart, /* 0.4.6 */
     .domainSetAutostart = openvzDomainSetAutostart, /* 0.4.6 */
     .isEncrypted = openvzIsEncrypted, /* 0.7.3 */

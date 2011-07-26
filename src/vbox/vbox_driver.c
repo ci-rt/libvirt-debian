@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2008-2009 Sun Microsystems, Inc.
  *
  * This file is part of a free software library; you can redistribute
@@ -142,8 +142,11 @@ int vboxRegister(void) {
 
 static virDrvOpenStatus vboxOpenDummy(virConnectPtr conn,
                                       virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                      int flags ATTRIBUTE_UNUSED) {
+                                      unsigned int flags)
+{
     uid_t uid = getuid();
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     if (conn->uri == NULL ||
         conn->uri->scheme == NULL ||

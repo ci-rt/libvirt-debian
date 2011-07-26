@@ -117,6 +117,11 @@ struct _qemuMonitorCallbacks {
                           const char *authScheme,
                           const char *x509dname,
                           const char *saslUsername);
+    int (*domainBlockJob)(qemuMonitorPtr mon,
+                          virDomainObjPtr vm,
+                          const char *diskAlias,
+                          int type,
+                          int status);
 };
 
 
@@ -179,6 +184,11 @@ int qemuMonitorEmitGraphics(qemuMonitorPtr mon,
                             const char *authScheme,
                             const char *x509dname,
                             const char *saslUsername);
+int qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
+                            const char *diskAlias,
+                            int type,
+                            int status);
+
 
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
@@ -191,6 +201,8 @@ int qemuMonitorSystemPowerdown(qemuMonitorPtr mon);
 
 int qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
                           int **pids);
+int qemuMonitorGetVirtType(qemuMonitorPtr mon,
+                           int *virtType);
 int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
                               unsigned long *currmem);
 int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
@@ -360,6 +372,9 @@ int qemuMonitorSendFileHandle(qemuMonitorPtr mon,
                               const char *fdname,
                               int fd);
 
+/* The function preserves previous error and only sets it's own error if no
+ * error was set before.
+ */
 int qemuMonitorCloseFileHandle(qemuMonitorPtr mon,
                                const char *fdname);
 
@@ -441,6 +456,24 @@ int qemuMonitorInjectNMI(qemuMonitorPtr mon);
 
 int qemuMonitorScreendump(qemuMonitorPtr mon,
                           const char *file);
+
+int qemuMonitorSendKey(qemuMonitorPtr mon,
+                       unsigned int holdtime,
+                       unsigned int *keycodes,
+                       unsigned int nkeycodes);
+
+typedef enum {
+    BLOCK_JOB_ABORT = 0,
+    BLOCK_JOB_INFO = 1,
+    BLOCK_JOB_SPEED = 2,
+    BLOCK_JOB_PULL = 3,
+} BLOCK_JOB_CMD;
+
+int qemuMonitorBlockJob(qemuMonitorPtr mon,
+                        const char *device,
+                        unsigned long bandwidth,
+                        virDomainBlockJobInfoPtr info,
+                        int mode);
 
 /**
  * When running two dd process and using <> redirection, we need a

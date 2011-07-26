@@ -1605,8 +1605,7 @@ xenFormatSxprChr(virDomainChrDefPtr def,
  * Returns 0 in case of success, -1 in case of error.
  */
 int
-xenFormatSxprDisk(virConnectPtr conn ATTRIBUTE_UNUSED,
-                  virDomainDiskDefPtr def,
+xenFormatSxprDisk(virDomainDiskDefPtr def,
                   virBufferPtr buf,
                   int hvm,
                   int xendConfigVersion,
@@ -2261,10 +2260,16 @@ xenFormatSxpr(virConnectPtr conn,
         }
 
         virBufferAddLit(&buf, "))");
+    } else {
+        /* PV domains accept kernel cmdline args */
+        if (def->os.cmdline) {
+            virBufferEscapeSexpr(&buf, "(image (linux (args '%s')))",
+                                 def->os.cmdline);
+        }
     }
 
     for (i = 0 ; i < def->ndisks ; i++)
-        if (xenFormatSxprDisk(conn, def->disks[i],
+        if (xenFormatSxprDisk(def->disks[i],
                               &buf, hvm, xendConfigVersion, 0) < 0)
             goto error;
 

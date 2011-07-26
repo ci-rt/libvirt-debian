@@ -37,7 +37,7 @@ char *
 virDrvOpenStatus
         xenHypervisorOpen               (virConnectPtr conn,
                                          virConnectAuthPtr auth,
-                                         int flags);
+                                         unsigned int flags);
 int     xenHypervisorClose              (virConnectPtr conn);
 int     xenHypervisorGetVersion         (virConnectPtr conn,
                                          unsigned long *hvVer);
@@ -58,6 +58,9 @@ int     xenHypervisorListDomains        (virConnectPtr conn,
 int     xenHypervisorGetMaxVcpus        (virConnectPtr conn,
                                          const char *type);
 int     xenHypervisorDestroyDomain      (virDomainPtr domain)
+          ATTRIBUTE_NONNULL (1);
+int     xenHypervisorDestroyDomainFlags (virDomainPtr domain,
+                                         unsigned int flags)
           ATTRIBUTE_NONNULL (1);
 int     xenHypervisorResumeDomain       (virDomainPtr domain)
           ATTRIBUTE_NONNULL (1);
