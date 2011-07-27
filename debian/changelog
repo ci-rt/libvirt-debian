@@ -1,3 +1,10 @@
+libvirt (0.9.3-4) unstable; urgency=low
+
+  * [db6dbcc] Suggest radvd needed for IPv6
+  * [32ac1cf] Work around ICE on m68k. Thanks to Thorsten Glaser.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 27 Jul 2011 21:26:02 +0200
+
 libvirt (0.9.3-3) unstable; urgency=low
 
   * [6db6929] Catch dnsmasq start failures
