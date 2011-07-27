@@ -45,6 +45,10 @@ else
   WITH_LXC            = --without-lxc
 endif
 
+ifneq (,$(findstring ${DEB_BUILD_ARCH}, m68k))
+	CFLAGS = -fwrapv -DWRAPV
+endif
+
 
 DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--disable-rpath          \
