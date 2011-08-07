@@ -362,6 +362,7 @@ struct _virDomainActualNetDef {
             virVirtualPortProfileParamsPtr virtPortProfile;
         } direct;
     } data;
+    virBandwidthPtr bandwidth;
 };
 
 /* Stores the virtual network interface configuration */
@@ -427,6 +428,10 @@ struct _virDomainNetDef {
     virNWFilterHashTablePtr filterparams;
     virBandwidthPtr bandwidth;
 };
+
+/* Used for prefix of ifname of any network name generated dynamically
+ * by libvirt, and cannot be used for a persistent network name.  */
+# define VIR_NET_GENERATED_PREFIX "vnet"
 
 enum virDomainChrDeviceType {
     VIR_DOMAIN_CHR_DEVICE_TYPE_PARALLEL = 0,
@@ -760,6 +765,22 @@ enum virDomainGraphicsSpiceClipboardCopypaste {
     VIR_DOMAIN_GRAPHICS_SPICE_CLIPBOARD_COPYPASTE_LAST
 };
 
+enum virDomainGraphicsListenType {
+    VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NONE = 0,
+    VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_ADDRESS,
+    VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_NETWORK,
+
+    VIR_DOMAIN_GRAPHICS_LISTEN_TYPE_LAST,
+};
+
+typedef struct _virDomainGraphicsListenDef virDomainGraphicsListenDef;
+typedef virDomainGraphicsListenDef *virDomainGraphicsListenDefPtr;
+struct _virDomainGraphicsListenDef {
+    int type;   /* enum virDomainGraphicsListenType */
+    char *address;
+    char *network;
+};
+
 typedef struct _virDomainGraphicsDef virDomainGraphicsDef;
 typedef virDomainGraphicsDef *virDomainGraphicsDefPtr;
 struct _virDomainGraphicsDef {
@@ -768,7 +789,6 @@ struct _virDomainGraphicsDef {
         struct {
             int port;
             unsigned int autoport :1;
-            char *listenAddr;
             char *keymap;
             char *socket;
             virDomainGraphicsAuthDef auth;
@@ -780,7 +800,6 @@ struct _virDomainGraphicsDef {
         } sdl;
         struct {
             int port;
-            char *listenAddr;
             unsigned int autoport :1;
             unsigned int replaceUser :1;
             unsigned int multiUser :1;
@@ -792,7 +811,6 @@ struct _virDomainGraphicsDef {
         struct {
             int port;
             int tlsPort;
-            char *listenAddr;
             char *keymap;
             virDomainGraphicsAuthDef auth;
             unsigned int autoport :1;
@@ -805,6 +823,11 @@ struct _virDomainGraphicsDef {
             int copypaste;
         } spice;
     } data;
+    /* nListens, listens, and *port are only useful if type is vnc,
+     * rdp, or spice. They've been extracted from the union only to
+     * simplify parsing code.*/
+    size_t nListens;
+    virDomainGraphicsListenDefPtr listens;
 };
 
 enum virDomainHostdevMode {
@@ -1389,7 +1412,6 @@ int virDomainDeviceAddressIsValid(virDomainDeviceInfoPtr info,
 int virDomainDevicePCIAddressIsValid(virDomainDevicePCIAddressPtr addr);
 int virDomainDeviceDriveAddressIsValid(virDomainDeviceDriveAddressPtr addr);
 int virDomainDeviceVirtioSerialAddressIsValid(virDomainDeviceVirtioSerialAddressPtr addr);
-int virDomainDeviceInfoIsSet(virDomainDeviceInfoPtr info);
 void virDomainDeviceInfoClear(virDomainDeviceInfoPtr info);
 void virDomainDefClearPCIAddresses(virDomainDefPtr def);
 void virDomainDefClearDeviceAliases(virDomainDefPtr def);
@@ -1484,12 +1506,32 @@ int virDomainNetIndexByMac(virDomainDefPtr def, const unsigned char *mac);
 int virDomainNetInsert(virDomainDefPtr def, virDomainNetDefPtr net);
 int virDomainNetRemoveByMac(virDomainDefPtr def, const unsigned char *mac);
 
+int virDomainGraphicsListenGetType(virDomainGraphicsDefPtr def, size_t ii)
+            ATTRIBUTE_NONNULL(1);
+int virDomainGraphicsListenSetType(virDomainGraphicsDefPtr def, size_t ii, int val)
+            ATTRIBUTE_NONNULL(1);
+const char *virDomainGraphicsListenGetAddress(virDomainGraphicsDefPtr def,
+                                              size_t ii)
+            ATTRIBUTE_NONNULL(1);
+int virDomainGraphicsListenSetAddress(virDomainGraphicsDefPtr def,
+                                      size_t ii, const char *address,
+                                      int len, bool setType)
+            ATTRIBUTE_NONNULL(1);
+const char *virDomainGraphicsListenGetNetwork(virDomainGraphicsDefPtr def,
+                                              size_t ii)
+            ATTRIBUTE_NONNULL(1);
+int virDomainGraphicsListenSetNetwork(virDomainGraphicsDefPtr def,
+                                      size_t ii, const char *network, int len)
+            ATTRIBUTE_NONNULL(1);
+
 int virDomainNetGetActualType(virDomainNetDefPtr iface);
 char *virDomainNetGetActualBridgeName(virDomainNetDefPtr iface);
 char *virDomainNetGetActualDirectDev(virDomainNetDefPtr iface);
 int virDomainNetGetActualDirectMode(virDomainNetDefPtr iface);
 virVirtualPortProfileParamsPtr
 virDomainNetGetActualDirectVirtPortProfile(virDomainNetDefPtr iface);
+virBandwidthPtr
+virDomainNetGetActualBandwidth(virDomainNetDefPtr iface);
 
 int virDomainControllerInsert(virDomainDefPtr def,
                               virDomainControllerDefPtr controller);
@@ -1644,6 +1686,7 @@ VIR_ENUM_DECL(virDomainHostdevSubsys)
 VIR_ENUM_DECL(virDomainInput)
 VIR_ENUM_DECL(virDomainInputBus)
 VIR_ENUM_DECL(virDomainGraphics)
+VIR_ENUM_DECL(virDomainGraphicsListen)
 VIR_ENUM_DECL(virDomainGraphicsAuthConnected)
 VIR_ENUM_DECL(virDomainGraphicsSpiceChannelName)
 VIR_ENUM_DECL(virDomainGraphicsSpiceChannelMode)

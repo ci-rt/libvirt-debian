@@ -621,6 +621,12 @@ sc_prohibit_stddef_without_use:
 	re='\<($(_stddef_syms_re)) *\('					\
 	  $(_sc_header_without_use)
 
+# Prohibit the inclusion of verify.h without an actual use.
+sc_prohibit_verify_without_use:
+	@h='verify.h'							\
+	re='\<(verify(true|expr)?|static_assert) *\('			\
+	  $(_sc_header_without_use)
+
 # Don't include xfreopen.h unless you use one of its functions.
 sc_prohibit_xfreopen_without_use:
 	@h='xfreopen.h' re='\<xfreopen *\(' $(_sc_header_without_use)
@@ -746,7 +752,7 @@ gl_other_headers_ ?= \
 gl_extract_significant_defines_ = \
   /^\# *define ([^_ (][^ (]*)(\s*\(|\s+\w+)/\
     && $$2 !~ /(?:rpl_|_used_without_)/\
-    && $$1 !~ /^(?:NSIG|ATTRIBUTE_NORETURN)$$/\
+    && $$1 !~ /^(?:NSIG)$$/\
     and print $$1
 
 # Create a list of regular expressions matching the names
@@ -758,7 +764,6 @@ define def_sym_regex
 	    perl -lne '$(gl_extract_significant_defines_)' $$f;		\
 	  done;								\
 	) | sort -u							\
-	  | grep -Ev '^ATTRIBUTE_NORETURN'				\
 	  | sed 's/^/^ *# *(define|undef)  */;s/$$/\\>/'
 endef
 

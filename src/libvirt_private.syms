@@ -267,7 +267,6 @@ virDomainDeviceAddressIsValid;
 virDomainDeviceAddressTypeToString;
 virDomainDeviceDefFree;
 virDomainDeviceDefParse;
-virDomainDeviceInfoIsSet;
 virDomainDeviceInfoIterate;
 virDomainDevicePCIAddressIsValid;
 virDomainDeviceTypeToString;
@@ -299,6 +298,12 @@ virDomainGetRootFilesystem;
 virDomainGraphicsAuthConnectedTypeFromString;
 virDomainGraphicsAuthConnectedTypeToString;
 virDomainGraphicsDefFree;
+virDomainGraphicsListenGetAddress;
+virDomainGraphicsListenGetNetwork;
+virDomainGraphicsListenGetType;
+virDomainGraphicsListenSetAddress;
+virDomainGraphicsListenSetNetwork;
+virDomainGraphicsListenSetType;
 virDomainGraphicsSpiceChannelModeTypeFromString;
 virDomainGraphicsSpiceChannelModeTypeToString;
 virDomainGraphicsSpiceChannelNameTypeFromString;
@@ -337,6 +342,7 @@ virDomainLoadAllConfigs;
 virDomainMemballoonModelTypeFromString;
 virDomainMemballoonModelTypeToString;
 virDomainNetDefFree;
+virDomainNetGetActualBandwidth;
 virDomainNetGetActualBridgeName;
 virDomainNetGetActualDirectDev;
 virDomainNetGetActualDirectMode;
@@ -710,6 +716,7 @@ nlComm;
 
 
 # network.h
+virBandwidthCopy;
 virBandwidthDefFormat;
 virBandwidthDefFree;
 virBandwidthDefParseNode;

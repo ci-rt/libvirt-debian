@@ -4004,6 +4004,7 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
     virDomainPtr dom;
     int weight = 0;
     int nparams = 0;
+    int rv = 0;
     unsigned int i = 0;
     virTypedParameterPtr params = NULL, temp = NULL;
     bool ret = false;
@@ -4031,15 +4032,15 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptInt(cmd, "weight", &weight) < 0) {
+    if ((rv = vshCommandOptInt(cmd, "weight", &weight)) < 0) {
         vshError(ctl, "%s",
                  _("Unable to parse integer parameter"));
         goto cleanup;
     }
 
-    if (weight) {
+    if (rv > 0) {
         nparams++;
-        if (weight < 0) {
+        if (weight <= 0) {
             vshError(ctl, _("Invalid value of %d for I/O weight"), weight);
             goto cleanup;
         }
@@ -4438,9 +4439,9 @@ cmdNodeCpuStats(vshControl *ctl, const vshCmd *cmd)
 
     if (!flag_percent) {
         if (!flag_utilization) {
-            vshPrint(ctl, "%-15s %20llu\n", _("user  :"), cpu_stats[0].user);
+            vshPrint(ctl, "%-15s %20llu\n", _("user:"), cpu_stats[0].user);
             vshPrint(ctl, "%-15s %20llu\n", _("system:"), cpu_stats[0].sys);
-            vshPrint(ctl, "%-15s %20llu\n", _("idle  :"), cpu_stats[0].idle);
+            vshPrint(ctl, "%-15s %20llu\n", _("idle:"), cpu_stats[0].idle);
             vshPrint(ctl, "%-15s %20llu\n", _("iowait:"), cpu_stats[0].iowait);
         }
     } else {
@@ -4448,7 +4449,7 @@ cmdNodeCpuStats(vshControl *ctl, const vshCmd *cmd)
             usage = cpu_stats[0].util;
 
             vshPrint(ctl, "%-15s %5.1lf%%\n", _("usage:"), usage);
-            vshPrint(ctl, "%-15s %5.1lf%%\n", _("idle :"), 100 - usage);
+            vshPrint(ctl, "%-15s %5.1lf%%\n", _("idle:"), 100 - usage);
         } else {
             user_time   = cpu_stats[1].user   - cpu_stats[0].user;
             sys_time    = cpu_stats[1].sys    - cpu_stats[0].sys;
@@ -4461,11 +4462,11 @@ cmdNodeCpuStats(vshControl *ctl, const vshCmd *cmd)
             vshPrint(ctl, "%-15s %5.1lf%%\n",
                      _("usage:"), usage);
             vshPrint(ctl, "%-15s %5.1lf%%\n",
-                     _("    user  :"), user_time / total_time * 100);
+                     _("user:"), user_time / total_time * 100);
             vshPrint(ctl, "%-15s %5.1lf%%\n",
-                     _("    system:"), sys_time  / total_time * 100);
+                     _("system:"), sys_time  / total_time * 100);
             vshPrint(ctl, "%-15s %5.1lf%%\n",
-                     _("idle  :"), idle_time     / total_time * 100);
+                     _("idle:"), idle_time     / total_time * 100);
             vshPrint(ctl, "%-15s %5.1lf%%\n",
                      _("iowait:"), iowait_time   / total_time * 100);
         }
@@ -4830,6 +4831,8 @@ static const vshCmdOptDef opts_migrate[] = {
     {"suspend", VSH_OT_BOOL, 0, N_("do not restart the domain on the destination host")},
     {"copy-storage-all", VSH_OT_BOOL, 0, N_("migration with non-shared storage with full disk copy")},
     {"copy-storage-inc", VSH_OT_BOOL, 0, N_("migration with non-shared storage with incremental copy (same base image shared between source and destination)")},
+    {"change-protection", VSH_OT_BOOL, 0,
+     N_("prevent any configuration changes to domain until migration ends)")},
     {"verbose", VSH_OT_BOOL, 0, N_("display the progress of migration")},
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {"desturi", VSH_OT_DATA, VSH_OFLAG_REQ, N_("connection URI of the destination host as seen from the client(normal migration) or source(p2p migration)")},
@@ -4906,6 +4909,8 @@ doMigrate (void *opaque)
     if (vshCommandOptBool (cmd, "copy-storage-inc"))
         flags |= VIR_MIGRATE_NON_SHARED_INC;
 
+    if (vshCommandOptBool (cmd, "change-protection"))
+        flags |= VIR_MIGRATE_CHANGE_PROTECTION;
 
     if (xmlfile &&
         virFileReadAll(xmlfile, 8192, &xml) < 0)
@@ -5592,6 +5597,7 @@ cmdNetworkInfo(vshControl *ctl, const vshCmd *cmd)
     if (bridge)
         vshPrint(ctl, "%-15s %s\n", _("Bridge:"), bridge);
 
+    VIR_FREE(bridge);
     virNetworkFree(network);
     return true;
 }
@@ -9196,7 +9202,7 @@ cmdVolName(vshControl *ctl, const vshCmd *cmd)
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
 
-    if (!(vol = vshCommandOptVolBy(ctl, cmd, "vol", "pool", NULL,
+    if (!(vol = vshCommandOptVolBy(ctl, cmd, "vol", NULL, NULL,
                                    VSH_BYUUID)))
         return false;
 
@@ -9233,7 +9239,7 @@ cmdVolPool(vshControl *ctl, const vshCmd *cmd)
         return false;
 
     /* Use the supplied string to locate the volume */
-    if (!(vol = vshCommandOptVolBy(ctl, cmd, "vol", "pool", NULL,
+    if (!(vol = vshCommandOptVolBy(ctl, cmd, "vol", NULL, NULL,
                                    VSH_BYUUID))) {
         return false;
     }
@@ -9316,6 +9322,7 @@ cmdVolPath(vshControl *ctl, const vshCmd *cmd)
 {
     virStorageVolPtr vol;
     const char *name = NULL;
+    char * StorageVolPath;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
@@ -9324,7 +9331,13 @@ cmdVolPath(vshControl *ctl, const vshCmd *cmd)
         return false;
     }
 
-    vshPrint(ctl, "%s\n", virStorageVolGetPath(vol));
+    if ((StorageVolPath = virStorageVolGetPath(vol)) == NULL) {
+        virStorageVolFree(vol);
+        return false;
+    }
+
+    vshPrint(ctl, "%s\n", StorageVolPath);
+    VIR_FREE(StorageVolPath);
     virStorageVolFree(vol);
     return true;
 }
@@ -13607,7 +13620,7 @@ vshCommandOptVolBy(vshControl *ctl, const vshCmd *cmd,
     if (vshCommandOptString(cmd, optname, &n) <= 0)
         return NULL;
 
-    if (vshCommandOptString(cmd, pooloptname, &p) < 0) {
+    if (pooloptname != NULL && vshCommandOptString(cmd, pooloptname, &p) < 0) {
         vshError(ctl, "%s", _("missing option"));
         return NULL;
     }

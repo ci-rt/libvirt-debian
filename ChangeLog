@@ -1,4 +1,1016 @@
+2011-08-03  Eric Blake  <eblake@redhat.com>
+
+	qemu: silence coverity false positives
+	Coverity gets confused by our logic.  Add some hints to silence
+	false positives.
+
+	* src/qemu/qemu_driver.c (qemudDomainGetVcpuPinInfo): Add hint.
+	(qemuDomainGetMemoryParameters): Likewise.
+
+	util: plug memory leak
+	Leak detected by Coverity; only possible on unlikely ptsname_r
+	failure.  Additionally, the man page for ptsname_r states that
+	failure is merely non-zero, not necessarily -1.
+
+	* src/util/util.c (virFileOpenTtyAt): Avoid leak on ptsname_r
+	failure.
+
+	interface: drop dead code
+	Coverity detected that ifaceGetNthParent had already dereferenced
+	'nth' prior to the conditional; all callers already complied with
+	passing a non-NULL pointer so make this part of the contract.
+
+	* src/util/interface.h (ifaceGetNthParent): Add annotations.
+	* src/util/interface.c (ifaceGetNthParent): Drop useless null check.
+
+	rpc: silence coverity false positives
+	In virNetServerNew, Coverity didn't realize that srv->mdsnGroupName
+	can only be non-NULL if mdsnGroupName was non-NULL.
+
+	In virNetServerRun, Coverity didn't realize that the array is non-NULL
+	if the array count is non-zero.
+
+	* src/rpc/virnetserver.c (virNetServerNew): Use alternate pointer.
+	(virNetServerRun): Give coverity a hint.
+
+	rpc: avoid null deref
+	Detected by Coverity.
+
+	* src/rpc/virnetserverclient.c (virNetServerClientDispatchRead):
+	Avoid null deref on OOM.
+
+	build: silence coverity false positives
+	Coverity complained that 395 out of 409 virAsprintf calls are
+	checked, and therefore assumed that the remaining cases are bugs
+	waiting to happen.  But in each of these cases, a failed virAsprintf
+	will properly set the target string to NULL, and pass on that
+	failure to the caller, without wasting efforts to check the call.
+	Adding the ignore_value silences Coverity.
+
+	* src/conf/domain_audit.c (virDomainAuditGetRdev): Ignore
+	virAsprintf return value, when it behaves like we need.
+	* src/network/bridge_driver.c (networkDnsmasqLeaseFileNameDefault)
+	(networkRadvdConfigFileName, networkBridgeDummyNicName)
+	(networkRadvdPidfileBasename): Likewise.
+	* src/util/storage_file.c (absolutePathFromBaseFile): Likewise.
+	* src/openvz/openvz_driver.c (openvzGenerateContainerVethName):
+	Likewise.
+	* src/util/command.c (virCommandTranslateStatus): Likewise.
+
+	qemu: avoid memory leaks
+	Quite a few leaks detected by coverity.  For chr, the leaks were
+	close enough to the allocations to plug in place; for disk, the
+	leaks were separated from the allocation by enough other lines with
+	intermediate failure cases that I refactored the cleanup instead.
+
+	* src/qemu/qemu_command.c (qemuParseCommandLine): Plug leaks.
+
+	qemu: plug child process leak on domain core dump
+	Detected by Coverity.  Leak introduced by typo in commit 58e668d2.
+
+	* src/qemu/qemu_driver.c (doCoreDump): Use correct function.
+
+	qemu: remove dead code
+	Warning detected by Coverity.  No need for the NULL check, and
+	removing it silences the warning without any semantic change.
+
+	* src/qemu/qemu_migration.c (qemuMigrationFinish): All entries to
+	endjob had non-NULL vm.
+
+	conf: avoid memory leak on disk operations
+	Detected by Coverity.  Leak on meta introduced in commit 85aa40e.
+
+	* src/conf/domain_conf.c (virDomainDiskDefForeachPath): Plug leak.
+
+	rpc: avoid crash on error
+	Detected by Coverity.  Freeing the wrong variable results in both
+	a memory leak and the likelihood of the caller dereferencing through
+	a freed pointer.
+
+	* src/rpc/virnettlscontext.c (virNetTLSSessionNew): Free correct
+	variable.
+
+	qemu: avoid null deref on block pull error
+	Coverity detected that 5 of 6 callers of virJSONValueArrayGet checked
+	for a NULL return; and that by not checking we risk a null deref
+	during an error.  The error is unlikely since the prior call to
+	virJSONValueArraySize would probably have already caught any botched
+	JSON array parse, but better safe than sorry.
+
+	* src/qemu/qemu_monitor_json.c (qemuMonitorJSONGetBlockJobInfo):
+	Check for NULL.
+	(qemuMonitorJSONExtractPtyPaths): Fix typo.
+
+	rpc: correctly process sasl whitelist globs
+	Detected by Coverity.  We want to compare the result of fnmatch 'rv',
+	not our pre-set return value 'ret'.
+
+	* src/rpc/virnetsaslcontext.c (virNetSASLContextCheckIdentity):
+	Check correct variable.
+
+	build: allow caching the input to STATIC_ANALYSIS
+	Right now, every re-run of configure re-evaluates whether a
+	static analysis tool is in use.  But if you run configure under
+	coverity, make a tweak, and then do an incremental rebuild with
+	gcc but not coverity to test the tweak, then rerun a build under
+	coverity, then configure does not get rerun, and static analysis
+	ends up with lots of false positives.
+
+	This patch caches the static analysis result, and also makes it
+	easier to force static analysis even if the existing checks are
+	insufficient to detect newer versions of the static analyzer tools.
+
+	* configure.ac (lv_cv_static_analysis): New cache variable.
+
+	fdstream: drop delete argument
+	Revert 6a1f5f568f8.  Now that libvirt_iohelper takes fds by
+	inheritance rather than by open() (commit 1eb66479), there is
+	no longer a race where the parent can unlink() a file prior to
+	the iohelper open()ing the same file.  From there, it makes
+	more sense to have the callers both create and unlink, rather
+	than the caller create and the stream unlink, since the latter
+	was only needed when iohelper had to do the unlink.
+
+	* src/fdstream.h (virFDStreamOpenFile, virFDStreamCreateFile):
+	Callers are responsible for deletion.
+	* src/fdstream.c (virFDStreamOpenFileInternal): Don't leak created
+	file on failure.
+	(virFDStreamOpenFile, virFDStreamCreateFile): Drop parameter.
+	* src/lxc/lxc_driver.c (lxcDomainOpenConsole): Update callers.
+	* src/qemu/qemu_driver.c (qemuDomainScreenshot)
+	(qemuDomainOpenConsole): Likewise.
+	* src/storage/storage_driver.c (storageVolumeDownload)
+	(storageVolumeUpload): Likewise.
+	* src/uml/uml_driver.c (umlDomainOpenConsole): Likewise.
+	* src/vbox/vbox_tmpl.c (vboxDomainScreenshot): Likewise.
+	* src/xen/xen_driver.c (xenUnifiedDomainOpenConsole): Likewise.
+
+	screenshot: don't unlink bogus file
+	The previous qemu patch could end up calling unlink(tmp) before
+	tmp was the name of a valid file (unlinking a fileXXXXXX template
+	instead), or calling unlink(tmp) twice on success (once here,
+	and once at the end of the stream).  Meanwhile, vbox also suffered
+	from the same leaked tmp file bug.
+
+	* src/qemu/qemu_driver.c (qemuDomainScreenshot): Don't unlink on
+	success, or on invalid name.
+	* src/vbox/vbox_tmpl.c (vboxDomainScreenshot): Don't leak temp file.
+
+	python: avoid unlikely sign extension bug
+	Detected by Coverity; same analysis as for commit f73198df.
+
+	* python/libvirt-override.c (libvirt_virDomainGetVcpuPinInfo): Use
+	correct type.
+
+	rpc: avoid uninitialized memory use
+	Spotted by Coverity.  Gnutls documents that buffer must be NULL
+	if gnutls_x509_crt_get_key_purpose_oid is to be used to determine
+	the correct size needed for allocating a buffer.
+
+	* src/rpc/virnettlscontext.c
+	(virNetTLSContextCheckCertKeyPurpose): Initialize buffer.
+
+	rpc: avoid double close on error
+	Spotted by coverity.  If pipe2 fails, then we attempt to close
+	uninitialized fds, which may result in a double-close.
+
+	* src/rpc/virnetserver.c (virNetServerSignalSetup): Initialize fds.
+
+2011-08-03  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemu: Unlink temporary file on failure
+	Although virFDStreamOpenFile will unlink it once opened, when we hit
+	error path, we must unlink it by hand.
+
+2011-08-03  Eric Blake  <eblake@redhat.com>
+
+	doc: fix confusing statement about required privileges
+	src/libvirt.c: "may requires" is confusing; the s was extra.
+
+2011-08-02  Eric Blake  <eblake@redhat.com>
+
+	rpc: avoid libvirtd crash on unexpected client close
+	Steps to reproduce this problem (vm1 is not running):
+	for i in `seq 50`; do virsh managedsave vm1& done; killall virsh
+
+	Pre-patch, virNetServerClientClose could end up setting client->sock
+	to NULL prior to other cleanup functions trying to use client->sock.
+	This fixes things by checking for NULL in more places, and by deferring
+	the cleanup until after all queued messages have been served.
+
+	* src/rpc/virnetserverclient.c (virNetServerClientRegisterEvent)
+	(virNetServerClientGetFD, virNetServerClientIsSecure)
+	(virNetServerClientLocalAddrString)
+	(virNetServerClientRemoteAddrString): Check for closed socket.
+	(virNetServerClientClose): Rearrange close sequence.
+	Analysis from Wen Congyang.
+
+2011-08-02  Alex Jia  <ajia@redhat.com>
+
+	virsh: fix memory leak in cmdNetworkInfo
+	* tools/virsh.c: avoid memory leak in cmdNetworkInfo.
+
+	* how to reproduce?
+	  % valgrind -v --leak-check=yes virsh net-info default
+
+	  https://bugzilla.redhat.com/show_bug.cgi?id=722806
+
+	doc: fix incorrect option in blockjob
+	* tools/virsh.pod: change 'live' to 'abort' based on actual option
+
+2011-08-02  Jean-Baptiste Rouault  <jean-baptiste.rouault@diateam.net>
+
+	openvz: detect when a domain was shut down from the inside
+	This patch adds an internal function openvzGetVEStatus to
+	get the real state of the domain. This function is used in
+	various places in the driver, in particular to detect when
+	the domain has been shut down by the user with the "halt"
+	command.
+
+2011-08-01  Eric Blake  <eblake@redhat.com>
+
+	qemu: fix crash when mixing sync and async monitor jobs
+	Currently, we attempt to run sync job and async job at the same time. It
+	means that the monitor commands for two jobs can be run in any order.
+
+	In the function qemuDomainObjEnterMonitorInternal():
+	    if (priv->job.active == QEMU_JOB_NONE && priv->job.asyncJob) {
+	        if (qemuDomainObjBeginNestedJob(driver, obj) < 0)
+	We check whether the caller is an async job by priv->job.active and
+	priv->job.asynJob. But when an async job is running, and a sync job is
+	also running at the time of the check, then priv->job.active is not
+	QEMU_JOB_NONE. So we cannot check whether the caller is an async job
+	in the function qemuDomainObjEnterMonitorInternal(), and must instead
+	put the burden on the caller to tell us when an async command wants
+	to do a nested job.
+
+	Once the burden is on the caller, then only async monitor enters need
+	to worry about whether the VM is still running; for sync monitor enter,
+	the internal return is always 0, so lots of ignore_value can be dropped.
+
+	* src/qemu/THREADS.txt: Reflect new rules.
+	* src/qemu/qemu_domain.h (qemuDomainObjEnterMonitorAsync): New
+	prototype.
+	* src/qemu/qemu_process.h (qemuProcessStartCPUs)
+	(qemuProcessStopCPUs): Add parameter.
+	* src/qemu/qemu_migration.h (qemuMigrationToFile): Likewise.
+	(qemuMigrationWaitForCompletion): Make static.
+	* src/qemu/qemu_domain.c (qemuDomainObjEnterMonitorInternal): Add
+	parameter.
+	(qemuDomainObjEnterMonitorAsync): New function.
+	(qemuDomainObjEnterMonitor, qemuDomainObjEnterMonitorWithDriver):
+	Update callers.
+	* src/qemu/qemu_driver.c (qemuDomainSaveInternal)
+	(qemudDomainCoreDump, doCoreDump, processWatchdogEvent)
+	(qemudDomainSuspend, qemudDomainResume, qemuDomainSaveImageStartVM)
+	(qemuDomainSnapshotCreateActive, qemuDomainRevertToSnapshot):
+	Likewise.
+	* src/qemu/qemu_process.c (qemuProcessStopCPUs)
+	(qemuProcessFakeReboot, qemuProcessRecoverMigration)
+	(qemuProcessRecoverJob, qemuProcessStart): Likewise.
+	* src/qemu/qemu_migration.c (qemuMigrationToFile)
+	(qemuMigrationWaitForCompletion, qemuMigrationUpdateJobStatus)
+	(qemuMigrationJobStart, qemuDomainMigrateGraphicsRelocate)
+	(doNativeMigrate, doTunnelMigrate, qemuMigrationPerformJob)
+	(qemuMigrationPerformPhase, qemuMigrationFinish)
+	(qemuMigrationConfirm): Likewise.
+	* src/qemu/qemu_hotplug.c: Drop unneeded ignore_value.
+
+2011-08-01  Alex Jia  <ajia@redhat.com>
+
+	qemu: fix return value issue
+	whether or not previous return value is -1, the following codes will be
+	executed for a inactive guest in src/qemu/qemu_driver.c:
+	ret = virDomainSaveConfig(driver->configDir, persistentDef);
+	and if everything is okay, 'ret' is assigned to 0, the previous 'ret'
+	will be overwritten, this patch will fix this issue.
+
+	* src/qemu/qemu_driver.c: avoid return value is overwritten when give a argument
+	  in out of blkio weight range for a inactive guest.
+
+	* how to reproduce?
+	  % virsh blkiotune ${guestname} --weight 10
+	  % echo $?
+
+	  Note: guest must be inactive, argument 10 in out of blkio weight range,
+	  and can get a error information by checking libvirtd.log, however,
+	  virsh hasn't raised any error information, and return value is 0.
+
+	  https://bugzilla.redhat.com/show_bug.cgi?id=726304
+
+	qemu: fix return value issue in qemuDomainSetMemoryParameters
+	whether or not previous return value is -1, the following codes will be
+	executed for a inactive guest in qemuDomainSetMemoryParameters:
+	ret = virDomainSaveConfig(driver->configDir, persistentDef);
+	and if everything is okay, 'ret' is assigned to 0, the previous 'ret'
+	will be overwritten, this patch will fix this issue.
+
+	* src/qemu/qemu_driver.c: avoid return value is overwritten when set
+	  min_guarante value to a inactive guest.
+
+	* how to reproduce?
+	  % virsh memtune ${guestname} --min_guarante 1024
+	  % echo $?
+
+	  Note: guest must be inactive, in fact, 'min_guarante' hasn't been implemented
+	  in memory tunable, and I can get the error when check actual libvirtd.log,
+	  however, virsh hasn't raised any error information, and return value is 0.
+
+2011-08-01  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	virsh: Fix vol-name and vol-pool commands
+	This commands don't have a --pool option, so don't tell
+	vshCommandOptVolBy that there could be one. This made
+	vshCommandOptString for pooloptname fail and an "missing option"
+	error was reported.
+
+	Make pooloptname optional for vshCommandOptVolBy.
+
+2011-08-01  Guannan Ren  <gren@redhat.com>
+
+	Correct the default value of lock_manager in qemu.conf
+	* src/qemu/qemu.conf: switch back the comment for the default lock
+	  manager to sanlock
+
+2011-08-01  Osier Yang  <jyang@redhat.com>
+
+	qemu: Fix a regression of domjobabort
+	Introduced by f9a837da73a11ef, the condition is not changed after
+	the else clause is removed. So now it quit with "domain is not
+	running" when the domain is running. However, when the domain is
+	not running, it reports "no job is active".
+
+	How to reproduce:
+
+	1)
+	% virsh start $domain
+	% virsh domjobabort $domain
+	error: Requested operation is not valid: domain is not running
+
+	2)
+	% virsh destroy $domain
+	% virsh domjobabort $domain
+	error: Requested operation is not valid: no job is active on the domain
+
+	3)
+	% virsh save $domain /tmp/$domain.save
+
+	Before above commands finished, try to abort job in another terminal
+
+	% virsh domabortjob $domain
+	error: Requested operation is not valid: domain is not running
+
+2011-08-01  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	conf: Don't leak the virtual port profile in virNetworkDefFree
+	Reported by Alex Jia.
+
+2011-07-30  Eric Blake  <eblake@redhat.com>
+
+	save: generate idempotent inactive xml for running domain
+	Originally noticed by comparing the xml generated by virDomainSave
+	with the xml produced by reparsing and redumping that xml, but I
+	also did an audit of every last use of VIR_DOMAIN_XML_INACTIVE in
+	domain_conf.c to ensure that no other discrepancies exist.
+
+	* src/conf/domain_conf.c (virDomainDeviceInfoIsSet): Add
+	parameter, and update all callers.  Make static.
+	(virDomainNetDefFormat): Skip generated ifname.
+	(virDomainDefFormatInternal): Skip default <seclabel>.
+	(virDomainChrSourceDefParseXML): Skip generated pty path, and add
+	parameter.  Update callers.
+	* src/conf/domain_conf.h (virDomainDeviceInfoIsSet): Delete.
+	* src/libvirt_private.syms (domain_conf.h): Update.
+
+	conf: make 'vnet' prefix a macro
+	Using a macro ensures that all the code is looking for the same
+	prefix.
+
+	* src/conf/domain_conf.h (VIR_NET_GENERATED_PREFIX): New macro.
+	* src/conf/domain_conf.c (virDomainNetDefParseXML): Use it.
+	* src/uml/uml_conf.c (umlConnectTapDevice): Likewise.
+	* src/qemu/qemu_command.c (qemuNetworkIfaceConnect): Likewise.
+	Suggested by Laine Stump.
+
+2011-07-30  Laine Stump  <laine@laine.org>
+
+	network: don't forward DNS requests from isolated networks
+	This is in response to:
+
+	  https://bugzilla.redhat.com/show_bug.cgi?id=723862
+
+	which points out that a guest on an "isolated" network could
+	potentially exploit the DNS forwarding provided by dnsmasq to create a
+	communication channel to the outside.
+
+	This patch eliminates that possibility by adding the "--no-resolv"
+	argument to the dnsmasq commandline, which tells dnsmasq to not
+	forward on any requests that it can't resolve itself (by looking at
+	its own static hosts files and runtime list of dhcp clients), but to
+	instead return a failure for those requests.
+
+	This shouldn't cause any undesirable change from current
+	behavior, even in the case where a guest is currently configured with
+	multiple interfaces, one of them being connected to an isolated
+	network, and another to a network that does have connectivity to the
+	outside. If the isolated network's DNS server is queried for a name
+	it doesn't know, it will return "Refused" rather than "Unknown", which
+	indicates to the guest that it should query other servers, so it then
+	queries the connected DNS server, and gets the desired response.
+
+2011-07-30  Eric Blake  <eblake@redhat.com>
+
+	build: fix include path for cygwin
+	Without this, cygwin failed to compile:
+
+	In file included from ../src/rpc/virnetmessage.h:24,
+	                 from ../src/rpc/virnetclient.h:27,
+	                 from remote/remote_driver.c:31:
+	../src/rpc/virnetprotocol.h:9:21: error: rpc/rpc.h: No such file or directory
+
+	With that fixed, compilation warned:
+
+	rpc/virnetsocket.c: In function 'virNetSocketNewListenUNIX':
+	rpc/virnetsocket.c:347: warning: format '%d' expects type 'int', but argument 8 has type 'gid_t' [-Wformat]
+	rpc/virnetsocket.c: In function 'virNetSocketGetLocalIdentity':
+	rpc/virnetsocket.c:743: warning: pointer targets in passing argument 5 of 'getsockopt' differ in signedness
+
+	* src/Makefile.am (libvirt_driver_remote_la_CFLAGS)
+	(libvirt_net_rpc_client_la_CFLAGS)
+	(libvirt_net_rpc_server_la_CFLAGS): Include XDR_CFLAGS, for rpc
+	headers on cygwin.
+	* src/rpc/virnetsocket.c (virNetSocketNewListenUNIX)
+	(virNetSocketGetLocalIdentity): Avoid compiler warnings.
+
+	build: avoid non-portable shell in test setup
+	POSIX states that 'a=1; a=2 b=$a command' has unspecified results
+	for the value of $b visible within command.  In particular, on
+	BSD, this resulted in PATH not picking up the in-test ssh.
+
+	* tests/Makefile.am (lv_abs_top_builddir): New macro.
+	(path_add, TESTS_ENVIRONMENT): Use it to avoid referring to an
+	environment variable set previously within the same command line.
+	Reported by Matthias Bolte.
+
+2011-07-29  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	tests: Don't use bash if we don't have to
+	This tested failed on FreeBSD because it was using bash, that might
+	not be installed.
+
+2011-07-29  Osier Yang  <jyang@redhat.com>
+
+	utils: More useful error message for hook script failure
+	Commit 3709a386 ported hooks codes to new command execution API,
+	together with the useful error message removed. Though we can't
+	get "errbuf" from the new command execution API anymore, still
+	we can give a more useful error.
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=726398
+
+2011-07-29  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	freebsd: Fix build problem due to picking up the wrong libvirt.h
+	Gettext annoyingly modifies CPPFLAGS in-place, putting
+	-I/usr/local/include into the search patch if libintl headers
+	must be used from that location.  But since we must support
+	automake 1.9.6 which lacks AM_CPPFLAGS, and since CPPFLAGS is used
+	prior to INCLUDES, this means that the build picks up the _old_
+	installed libvirt.h in priority to the in-tree version, leading
+	to all sorts of weird build failures on FreeBSD.
+
+	Fix this by teaching configure to undo gettext's actions, but
+	to keep any changes required by gettext at the end of INCLUDES
+	after all in-tree locations are used first.  Also requires
+	adding a wrapper Makefile.am and making gnulib-tool create
+	just gnulib.mk files during the bootstrap process.
+
+	freebsd: Avoid /bin/true in commandtest
+	Rely on PATH and use just true, because on FreeBSD it's /usr/bin/true.
+
+	tests: Unify style of test skipping code
+	Prefer 'return EXIT_AM_SKIP' over 'exit(EXIT_AM_SKIP)'.
+
+	Prefer 'int main(void)' over 'int main(int argc, char **argv)'.
+
+	Fix mymain signature in commandtest and nodeinfotest.
+
+2011-07-29  Eric Blake  <eblake@redhat.com>
+
+	save: let qemu driver manipulate save files
+	The goal here is that save-image-dumpxml fed back to
+	save-image-define should not change the save file; anywhere that
+	this is not the case is probably a bug in domain_conf.c.
+
+	* src/qemu/qemu_driver.c (qemuDomainSaveImageGetXMLDesc)
+	(qemuDomainSaveImageDefineXML): New functions.
+	(qemuDomainSaveImageOpen): Add parameter.
+	(qemuDomainRestoreFlags, qemuDomainObjRestore): Adjust clients.
+
+	save: support qemu modifying xml on domain save/restore
+	With this, it is possible to update the path to a disk backing
+	image on either the save or restore action, without having to
+	binary edit the XML embedded in the state file.
+
+	This also modifies virDomainSave to output a smaller xml (only
+	the inactive xml, which is all the more virDomainRestore parses),
+	while still guaranteeing padding for most typical abi-compatible
+	xml replacements, necessary so that the next patch for
+	virDomainSaveImageDefineXML will not cause unnecessary
+	modifications to the save image file.
+
+	* src/qemu/qemu_driver.c (qemuDomainSaveInternal): Add parameter,
+	only use inactive state, and guarantee padding.
+	(qemuDomainSaveImageOpen): Add parameter.
+	(qemuDomainSaveFlags, qemuDomainManagedSave)
+	(qemuDomainRestoreFlags, qemuDomainObjRestore): Update callers.
+
+	maint: add missing copyright notices
+	I went with the shorter license notice used by src/libvirt.c,
+	rather than spelling out the full LGPLv2+ clause into each of
+	these files.
+
+	* configure.ac: Declare copyright.
+	* all Makefile.am: Likewise.
+
+	xen: drop unused callbacks
+	Found by:
+
+	for f in $(sed -n 's/.*Drv[^ ]* \([^;]*\);.*/\1/p' src/xen/xen_driver.h)
+	do
+	  git grep "\(\.\|->\)$f\b" src/xen
+	done | cat
+
+	and looking through the resulting list to see which callback struct
+	members are still necessary.
+
+	* src/xen/xen_driver.h (xenUnifiedDriver): Drop all callbacks that
+	are only used directly.
+	* src/xen/xen_hypervisor.c (xenHypervisorDriver): Shrink list.
+	* src/xen/xen_inotify.c (xenInotifyDriver): Likewise.
+	* src/xen/xend_internal.c (xenDaemonDriver): Likewise.
+	* src/xen/xm_internal.c (xenXMDriver): Likewise.
+	* src/xen/xs_internal.c (xenStoreDriver): Likewise.
+
+	xen: make direct call when there is only one subdriver
+	No need to use a for loop if we know there is exactly one client.
+	Found by:
+
+	for f in $(sed -n 's/.*Drv[^ ]* \([^;]*\);.*/\1/p' src/xen/xen_driver.h)
+	do
+	  git grep "\(\.\|->\)$f\b" src/xen
+	done | cat
+
+	and looking through the resulting list to see which callback struct
+	members are used exactly once.  The next patch will ensure that we
+	don't reintroduce uses of these callbacks.
+
+	* src/xen/xen_driver.c (xenUnifiedClose): Call close
+	unconditionally, to match xenUnifiedOpen.
+	(xenUnifiedNodeGetInfo, xenUnifiedDomainCreateXML)
+	(xenUnifiedDomainSave, xenUnifiedDomainRestore)
+	(xenUnifiedDomainCoreDump, xenUnifiedDomainUpdateDeviceFlags):
+	Make direct call to lone implementation.
+	* src/xen/xend_internal.h (xenDaemonDomainCoreDump)
+	(xenDaemonUpdateDeviceFlags, xenDaemonCreateXML): Add prototypes.
+	* src/xen/xend_internal.c (xenDaemonDomainCoreDump)
+	(xenDaemonUpdateDeviceFlags, xenDaemonCreateXML): Export.
+
+	xen: reduce callback special cases
+	The callback struct is great when iterating through several
+	possibilities, but when calling a known callback, it's just
+	overhead.  We can make the direct call in those cases.
+
+	* src/xen/xen_driver.c (xenUnifiedOpen, xenUnifiedDomainSuspend)
+	(xenUnifiedDomainResume, xenUnifiedDomainDestroyFlags): Make
+	direct calls instead of going through callback.
+
+	xen: cleanup callback struct
+	Using C99 initializers and xen-specific prefixes will make it
+	so that future patches are less likely to add callback members
+	to the xenUnifiedDriver struct, since the goal is to get rid
+	of the callback struct in the first place.
+
+	* src/xen/xen_driver.h (xenUnifiedDriver): Rename all struct
+	members, to make it obvious which ones are still in use.
+	* src/xen/xen_driver.c: Update all callers.
+	* src/xen/xen_hypervisor.c (xenHypervisorDriver): Rewrite with C99
+	initializers.
+	* src/xen/xend_internal.c (xenDaemonDriver): Likewise.
+	* src/xen/xs_internal.c (xenStoreDriver): Likewise.
+	* src/xen/xm_internal.c (xenXMDriver): Likewise.
+	* src/xen/xen_inotify.c (xenInotifyDriver): Likewise.
+
+2011-07-29  Laine Stump  <laine@laine.org>
+
+	libxl: fix build failure due to change in virDomainGraphicsDef
+	This failure was introduced by commit dacee3d, which removed
+	listenAddr from the unions in virDomainGraphicsDef in favor of putting
+	it in the address attribute of virDomainGraphicsListenDef.
+
+	qemu: support type=network in domain graphics <listen>
+	The domain XML now understands the <listen> subelement of its
+	<graphics> element (including when listen type='network'), and the
+	network driver has an internal API that will turn a network name into
+	an IP address, so the final logical step is to put the glue into the
+	qemu driver so that when it is starting up a domain, if it finds
+	<listen type='network' network='xyz'/> in the XML, it will call the
+	network driver to get an IPv4 address associated with network xyz, and
+	tell qemu to listen for vnc (or spice) on that address rather than the
+	default address (localhost).
+
+	The motivation for this is that a large installation may want the
+	guests' VNC servers listening on physical interfaces rather than
+	localhost, so that users can connect directly from the outside; this
+	requires sending qemu the appropriate IP address to listen on. But
+	this address will of course be different for each host, and if a guest
+	might be migrated around from one host to another, it's important that
+	the guest's config not have any information embedded in it that is
+	specific to one particular host. <listen type='network.../> can solve
+	this problem in the following manner:
+
+	  1) on each host, define a libvirt network of the same name,
+	     associated with the interface on that host that should be used
+	     for listening (for example, a simple macvtap network: <forward
+	     mode='bridge' dev='eth0'/>, or host bridge network: <forward
+	     mode='bridge'/> <bridge name='br0'/>
+
+	  2) in the <graphics> element of each guest's domain xml, tell vnc to
+	     listen on the network name used in step 1:
+
+	     <graphics type='vnc' port='5922'>
+	       <listen type='network'network='example-net'/>
+	     </graphics>
+
+	(all the above also applies for graphics type='spice').
+
+	conf: add <listen> subelement to domain <graphics> element
+	Once it's plugged in, the <listen> element will be an optional
+	replacement for the "listen" attribute that graphics elements already
+	have. If the <listen> element is type='address', it will have an
+	attribute called 'address' which will contain an IP address or dns
+	name that the guest's display server should listen on. If, however,
+	type='network', the <listen> element should have an attribute called
+	'network' that will be set to the name of a network configuration to
+	get the IP address from.
+
+	* docs/schemas/domain.rng: updated to allow the <listen> element
+
+	* docs/formatdomain.html.in: document the <listen> element and its
+	  attributes.
+
+	* src/conf/domain_conf.[hc]:
+
+	  1) The domain parser, formatter, and data structure are modified to
+	     support 0 or more <listen> subelements to each <graphics>
+	     element. The old style "legacy" listen attribute is also still
+	     accepted, and will be stored internally just as if it were a
+	     separate <listen> element. On output (i.e. format), the address
+	     attribute of the first <listen> element of type 'address' will be
+	     duplicated in the legacy "listen" attribute of the <graphic>
+	     element.
+
+	  2) The "listenAddr" attribute has been removed from the unions in
+	     virDomainGRaphicsDef for graphics types vnc, rdp, and spice.
+	     This attribute is now in the <listen> subelement (aka
+	     virDomainGraphicsListenDef)
+
+	  3) Helper functions were written to provide simple access
+	     (both Get and Set) to the listen elements and their attributes.
+
+	* src/libvirt_private.syms: export the listen helper functions
+
+	* src/qemu/qemu_command.c, src/qemu/qemu_hotplug.c,
+	  src/qemu/qemu_migration.c, src/vbox/vbox_tmpl.c,
+	  src/vmx/vmx.c, src/xenxs/xen_sxpr.c, src/xenxs/xen_xm.c
+
+	  Modify all these files to use the listen helper functions rather
+	  than directly referencing the (now missing) listenAddr
+	  attribute. There can be multiple <listen> elements to a single
+	  <graphics>, but the drivers all currently only support one, so all
+	  replacements of direct access with a helper function indicate index
+	  "0".
+
+	* tests/* - only 3 of these are new files added explicitly to test the
+	  new <listen> element. All the others have been modified to reflect
+	  the fact that any legacy "listen" attributes passed in to the domain
+	  parse will be saved in a <listen> element (i.e. one of the
+	  virDomainGraphicsListenDefs), and during the domain format function,
+	  both the <listen> element as well as the legacy attributes will be
+	  output.
+
+2011-07-28  Alex Jia  <ajia@redhat.com>
+
+	virsh: avoid missing zero value judgement in cmdBlkiotune
+	* tools/virsh.c: fix missing zero value judgement in cmdBlkiotune and correct
+	  vshError information.
+
+	  when weight is equal to 0, the cmdBlkiotune will not raise any error information
+	  when judge weight value first time, and execute else branch to judge weight
+	  value again, strncpy(temp->field, VIR_DOMAIN_BLKIO_WEIGHT, sizeof(temp->field))
+	  will be not executed for ever. However, if and only if param->field is equal
+	  to VIR_DOMAIN_BLKIO_WEIGHT, underlying qemuDomainSetBlkioParameters function
+	  will check whether weight value is in range [100, 1000].
+
+	* how to reproduce?
+
+	  % virsh blkiotune ${guestname} --weight 0
+
+2011-07-28  Eric Blake  <eblake@redhat.com>
+
+	build: avoid type-punning compiler warning
+	On RHEL 5, with gcc 4.1.2:
+
+	rpc/virnetsaslcontext.c: In function 'virNetSASLSessionUpdateBufSize':
+	rpc/virnetsaslcontext.c:396: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+
+	* src/rpc/virnetsaslcontext.c (virNetSASLSessionUpdateBufSize):
+	Use a union to work around gcc warning.
+
+	qemu: fix nested job with driver lock held
+	qemuMigrationUpdateJobStatus (called in a loop by migration
+	and save tasks) uses qemuDomainObjEnterMonitorWithDriver;
+	however, that function ended up starting a nested job without
+	releasing the driver.
+
+	Since no one else is making nested calls, we can inline the
+	internal functions to properly track driver_locked.
+
+	* src/qemu/qemu_domain.h (qemuDomainObjBeginNestedJob)
+	(qemuDomainObjBeginNestedJobWithDriver)
+	(qemuDomainObjEndNestedJob): Drop unused prototypes.
+	* src/qemu/qemu_domain.c (qemuDomainObjEnterMonitorInternal):
+	Reflect driver lock to nested job.
+	(qemuDomainObjBeginNestedJob)
+	(qemuDomainObjBeginNestedJobWithDriver)
+	(qemuDomainObjEndNestedJob): Drop unused functions.
+
+2011-07-28  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemu: Fix memory leak on metadata fetching
+	As written in virStorageFileGetMetadataFromFD decription, caller
+	must free metadata after use. Qemu driver miss this and therefore
+	leak metadata which can grow to huge mem leak if somebody query
+	for blockInfo a lot.
+
+2011-07-28  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	freebsd: Add gnulib environ module for the commandtest
+
+2011-07-28  Michal Privoznik  <mprivozn@redhat.com>
+
+	libvirt.c: Update outdated description of flags
+	Because we do support flags for virDomainSetBlkioParameters and
+	virDomainGetBlkioParameters, update appropriate description as well.
+
+2011-07-28  Hu Tao  <hutao@cn.fujitsu.com>
+
+	python: add python binding for virDomainSetMemoryParameters
+
+	python: add python binding for virDomainGetMemoryParameters
+
+	python: add python binding for virDomainSetBlkioParameters
+
+	python: add python binding for virDomainGetBlkioParameters
+
+2011-07-28  Alex Jia  <ajia@redhat.com>
+
+	virsh: fix memory leak in cmdVolPath code
+	* tools/virsh.c: avoid memory leak in cmdVolPath.
+	* src/libvirt.c: Add doc for virStorageVolGetPath to tell one
+	  must free() the returned path after use.
+
+	* how to reproduce?
+
+	% dd if=/dev/zero of=/var/lib/libvirt/images/foo.img count=1 bs=10M
+	% virsh pool-refresh default
+	% valgrind -v --leak-check=full virsh vol-path --vol \
+	/var/lib/libvirt/images/foo.img
+
+	* actual results:
+
+	Detected in valgrind run:
+
+	==16436== 32 bytes in 1 blocks are definitely lost in loss record 7 of 22
+	==16436==    at 0x4A05FDE: malloc (vg_replace_malloc.c:236)
+	==16436==    by 0x386A314B3D: xdr_string (in /lib64/libc-2.12.so)
+	==16436==    by 0x3DF8CD770D: xdr_remote_nonnull_string (remote_protocol.c:3
+	==16436==    by 0x3DF8CD7EC8: xdr_remote_storage_vol_get_path_ret
+	% virsh pool-refresh default
+	% valgrind -v --leak-check=full virsh vol-path --vol \
+	/var/lib/libvirt/images/foo.img
+
+2011-07-28  Osier Yang  <jyang@redhat.com>
+
+	qemu: Improve docs for virsh dump format
+	The error in getCompressionType will never be reported, change
+	the errors codes into warning (VIR_WARN("%s", _(foo)); doesn't break
+	syntax-check rule), and also improve the docs in qemu.conf to tell
+	user the truth.
+
+2011-07-28  Eric Blake  <eblake@redhat.com>
+
+	qemu: improve thread documentation
+	* src/qemu/THREADS.txt: Fix problems with typos, grammar, and
+	outdated examples.
+
+	virsh: expose change-protection during migration
+	* tools/virsh.c (doMigrate): Add --change-protection flag.
+	* tools/virsh.pod (migrate): Document it.
+
+2011-07-28  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	rpc: Fix memory leak in remoteDomainSet*Parameters functions
+	Add a new helper remoteFreeTypedParameters and teach the generator
+	to add it to the cleanup section.
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=725322
+
+2011-07-28  Lai Jiangshan  <laijs@cn.fujitsu.com>
+
+	send-key: Implement Python API
+
+2011-07-27  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Remove special case for virDomainAbortJob
+	This doesn't abort migration job in any phase, yet.
+
+	qemu: Remove special case for virDomainSuspend
+
+	qemu: Remove special case for virDomainMigrateSetMaxDowntime
+	Call qemu monitor command directly within a special job that is only
+	allowed during outgoing migration.
+
+	qemu: Remove special case for virDomainMigrateSetMaxSpeed
+	Call qemu monitor command directly within a special job that is only
+	allowed during outgoing migration.
+
+	qemu: Remove special case for virDomainBlockStats
+	Like other query commands, this can now be called directly during
+	migration.
+
+	qemu: Remove special case for virDomainGetBlockInfo
+	Like other query commands, this can now be called directly during
+	migration.
+
+	qemu: Recover from interrupted migration
+
+	qemu: Migration job on source daemon
+	Make MIGRATION_OUT use the new helper methods.
+
+	This also introduces new protection to migration v3 process: the
+	migration job is held from Begin to Confirm to avoid changes to a domain
+	during migration (esp. between Begin and Perform phases). This change is
+	automatically applied to p2p and tunneled migrations. For normal
+	migration, this requires support from a client. In other words, if an
+	old (pre 0.9.4) client starts normal migration of a domain, the domain
+	will not be protected against changes between Begin and Perform steps.
+
+	qemu: Migration job on destination daemon
+	Make MIGRATION_IN use the new helper methods.
+
+	qemu: Implement migration job phases
+	This patch introduces several helper methods to deal with jobs and
+	phases during migration in a simpler manner.
+
+2011-07-27  Eric Blake  <eblake@redhat.com>
+
+	build: support warnings on RHEL 5
+	Without this, a configure built by autoconf 2.59 was broken when
+	trying to detect which compiler warning flags were supported.
+
+	* .gnulib: Update to latest, for warnings.m4 fix.
+	* bootstrap.conf: Add fclose explicitly, to match recent gnulib
+	implicit dependency changes.
+	* src/qemu/qemu_conf.c (includes): Drop unused include.
+	* src/uml/uml_conf.c (include): Likewise.
+	Reported by Daniel P. Berrange.
+
+2011-07-27  Michal Privoznik  <mprivozn@redhat.com>
+
+	bandwidth: Integrate bandwidth into portgroups
+	Every DomainNetDef has a bandwidth, as does every portgroup.
+	Whenever a DomainNetDef of type NETWORK is about to be used, a call is
+	made to networkAllocateActualDevice(). This function chooses the "best"
+	bandwidth object and places it in the DomainActualNetDef.
+	From that point on, whenever some code needs to use the bandwidth data
+	for the interface, it's retrieved with virDomainNetGetActualBandwidth(),
+	which will always return the "best" info as determined in the
+	previous step.
+
+2011-07-27  Osier Yang  <jyang@redhat.com>
+
+	doc: Add doc for blockpull and blockjob commands
+	Commit b31abc6f0 introduce commands blockpull and blockjob, but
+	forgot to add the docs meanwhile.
+
+2011-07-27  Cole Robinson  <crobinso@redhat.com>
+
+	python: Properly report errors if virStreamRecv fails
+	We only want to raise the special value -2. -1 should return None
+	which tells the bindings to throw an exception.
+
+2011-07-26  Alex Jia  <ajia@redhat.com>
+
+	tools: format percent strings of nodecpustats
+	* tools/virsh.c: format strings display for virsh nodecpustats --percent.
+
+	* how to reproduce?
+
+	% virsh nodecpustats --percent
+	usage:            2.0%
+	    user  :       1.0%
+	    system:       1.0%
+	idle  :          98.0%
+	iowait:           0.0%
+
+	* after format strings
+
+	% virsh nodecpustats --percent
+	usage:            2.0%
+	user:             1.0%
+	system:           1.0%
+	idle:            98.0%
+	iowait:           0.0%
+
+2011-07-26  Stefan Berger  <stefanb@us.ibm.com>
+
+	Build: fix build if HAVE_AVAHI is not defined
+	Fix the build if HAVE_AVAHI is not defined.
+
+2011-07-26  Dave Allan  <dallan@redhat.com>
+
+	Fix incorrect implication about list options
+	The description of the list command seemed to suggest that it could
+	take a set of domains as an argument, which is not correct in the
+	current HEAD.  If virsh list is intended to take a list of domains,
+	then this patch should be NAK'd and a bug opened against virsh list.
+
+	Reported by hachi on #virt
+
+	v2:
+
+	Change language to include transient domains
+
+	Osier pointed out that transient domains are not defined, so what I
+	had originally proposed wasn't quite correct.
+
 2011-07-26  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix race in ref counting when handling RPC jobs
+	When an incoming RPC message is ready for processing,
+
+	  virNetServerClientDispatchRead()
+
+	will invoke the 'dispatchFunc' callback. This is set to
+
+	  virNetServerDispatchNewMessage
+
+	This function puts the message + client in a queue for processing by the thread
+	pool. The thread pool worker function is
+
+	  virNetServerHandleJob
+
+	The first thing this does is acquire an extra reference on the 'client'.
+
+	Unfortunately, between the time the message+client are put on the thread pool
+	queue, and the time the worker runs, the client object may have had its last
+	reference removed.
+
+	We clearly need to add the reference to the client object before putting the
+	client on the processing queue
+
+	* src/rpc/virnetserverclient.c: Add a reference to the client when
+	  invoking the dispatch function
+	* src/rpc/virnetserver.c: Don't acquire a reference to the client
+	  when in the worker thread
+
+2011-07-26  Wen Congyang  <wency@cn.fujitsu.com>
+
+	set cpu bandwidth for the vm
+	The cpu bandwidth is applied at the vcpu group level. We should apply it
+	at the vm group level too, because the vm may do heavy I/O, and it will affect
+	the other vm.
+
+	We apply cpu bandwidth at the vcpu and the vm group level, so we must ensure
+	that max(child_quota) <= parent_quota when we modify cpu bandwidth.
+
+2011-07-26  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix build with gnutls 1.0.x branch
+
+	Fix typos in virsh.pod file
+	* tools/virsh.pod: Fix missing > tag in docs
+
+2011-07-26  Osier Yang  <jyang@redhat.com>
+
+	network: Fix typo
+	Introduced by commit 239322cb, reported by Ruben Kerkhof.
+
+2011-07-26  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add libtasn1-devel as a BuildRequires for libvirt.spec
+	* libvirt.spec.in: Add libtasn1-devel
 
 	Add mutex protection to SASL and TLS modules
 	The virNetSASLContext, virNetSASLSession, virNetTLSContext and

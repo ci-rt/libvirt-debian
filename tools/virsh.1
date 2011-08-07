@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2011-07-26" "libvirt-0.9.3" "Virtualization Support"
+.TH VIRSH 1 "2011-08-02" "libvirt-0.9.4" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -368,7 +368,7 @@ The \s-1XML\s0 also show the \s-1NUMA\s0 topology information if available.
 Inject \s-1NMI\s0 to the guest.
 .IP "\fBlist\fR [\fI\-\-inactive\fR | \fI\-\-all\fR]" 4
 .IX Item "list [--inactive | --all]"
-Prints information about one or more domains.  If no domains are
+Prints information about existing domains.  If no options are
 specified it prints out information about running domains.
 .Sp
 An example format for the list is as follows:
@@ -507,6 +507,25 @@ Get memory stats for a running domain.
 .IP "\fBdomblkinfo\fR \fIdomain\fR \fIblock-device\fR" 4
 .IX Item "domblkinfo domain block-device"
 Get block device size info for a domain.
+.IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR]" 4
+.IX Item "blockpull domain path [bandwidth]"
+Populate a disk from its backing image. Once all data from its backing
+image has been pulled, the disk no longer depends on the backing image.
+It pulls data for the entire disk in the background, the process of the
+operation can be checked with \fBblockjob\fR.
+.Sp
+\&\fIpath\fR specifies fully-qualified path of the disk.
+\&\fIbandwidth\fR specifies copying bandwidth limit in Mbps.
+.IP "\fBblockjob\fR \fIdomain\fR \fIpath\fR [\fI\-\-abort\fR] [\fI\-\-info\fR] [\fIbandwidth\fR]" 4
+.IX Item "blockjob domain path [--abort] [--info] [bandwidth]"
+Manage active block operations.
+.Sp
+\&\fIpath\fR specifies fully-qualified path of the disk.
+If \fI\-\-abort\fR is specified, the active job on the specified disk will
+be aborted.
+If \fI\-\-info\fR is specified, the active job information on the specified
+disk will be printed.
+\&\fIbandwidth\fR can be used to set bandwidth limit for the active job.
 .IP "\fBdominfo\fR \fIdomain-id\fR" 4
 .IX Item "dominfo domain-id"
 Returns basic information about the domain.
@@ -601,8 +620,8 @@ ensures the domain will do a full boot the next time it is started.
 Provide the maximum number of virtual CPUs supported for a guest \s-1VM\s0 on
 this connection.  If provided, the \fItype\fR parameter must be a valid
 type attribute for the <domain> element of \s-1XML\s0.
-.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-verbose\fR] \fIdomain-id\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
-.IX Item "migrate [--live] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--verbose] domain-id desturi [migrateuri] [dname] [--timeout seconds] [--xml file]"
+.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-verbose\fR] \fIdomain-id\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
+.IX Item "migrate [--live] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--verbose] domain-id desturi [migrateuri] [dname] [--timeout seconds] [--xml file]"
 Migrate domain to another host.  Add \fI\-\-live\fR for live migration; \fI\-\-p2p\fR
 for peer\-2\-peer migration; \fI\-\-direct\fR for direct migration; or \fI\-\-tunnelled\fR
 for tunnelled migration.  \fI\-\-persistent\fR leaves the domain persistent on
@@ -611,7 +630,11 @@ and \fI\-\-suspend\fR leaves the domain paused on the destination host.
 \&\fI\-\-copy\-storage\-all\fR indicates migration with non-shared storage with full
 disk copy, \fI\-\-copy\-storage\-inc\fR indicates migration with non-shared storage
 with incremental copy (same base image shared between source and destination).
-\&\fI\-\-verbose\fR displays the progress of migration.
+\&\fI\-\-change\-protection\fR enforces that no incompatible configuration changes
+will be made to the domain while the migration is underway; this flag is
+implicitly enabled when supported by the hypervisor, but can be explicitly
+used to reject the migration if the hypervisor lacks change protection
+support.  \fI\-\-verbose\fR displays the progress of migration.
 .Sp
 The \fIdesturi\fR is the connection \s-1URI\s0 of the destination host, and
 \&\fImigrateuri\fR is the migration \s-1URI\s0, which usually can be omitted.
@@ -833,7 +856,7 @@ value are kilobytes (i.e. blocks of 1024 bytes).
 .RE
 .RS 4
 .RE
-.IP "\fBblkiotune\fR \fIdomain-id\fR [\fI\-\-weight\fR \fBweight\fR] [[\fI\-\-config\fR] [\fI\-\-live] | [\fI\-\-current\fI]]\fR" 4
+.IP "\fBblkiotune\fR \fIdomain-id\fR [\fI\-\-weight\fR \fBweight\fR] [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
 .IX Item "blkiotune domain-id [--weight weight] [[--config] [--live] | [--current]]"
 Display or set the blkio parameters. \s-1QEMU/KVM\s0 supports \fI\-\-weight\fR.
 \&\fI\-\-weight\fR is in range [100, 1000].
@@ -844,7 +867,7 @@ If \fI\-\-current\fR is specified, affect the current guest state.
 Both \fI\-\-live\fR and \fI\-\-current\fR flags may be given, but \fI\-\-current\fR is
 exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
-.IP "\fBsetvcpus\fR \fIdomain-id\fR \fIcount\fR [\fI\-\-maximum\fR] [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current]]\fR" 4
+.IP "\fBsetvcpus\fR \fIdomain-id\fR \fIcount\fR [\fI\-\-maximum\fR] [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
 .IX Item "setvcpus domain-id count [--maximum] [[--config] [--live] | [--current]]"
 Change the number of virtual CPUs active in a guest domain.  By default,
 this command works on active guest domains.  To change the settings for an
@@ -1640,12 +1663,3 @@ is \s-1NO\s0 warranty; not even for \s-1MERCHANTABILITY\s0 or \s-1FITNESS\s0 \s-
 .IX Header "SEE ALSO"
 \&\fIvirt\-install\fR\|(1), \fIvirt\-xml\-validate\fR\|(1), \fIvirt\-top\fR\|(1), \fIvirt\-df\fR\|(1),
 <http://www.libvirt.org/>
-.SH "POD ERRORS"
-.IX Header "POD ERRORS"
-Hey! \fBThe above document had some coding errors, which are explained below:\fR
-.IP "Around line 800:" 4
-.IX Item "Around line 800:"
-Unterminated I<...> sequence
-.IP "Around line 813:" 4
-.IX Item "Around line 813:"
-Unterminated I<...> sequence

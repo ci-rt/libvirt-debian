@@ -1,14 +1,18 @@
 ## Process this file with automake to produce Makefile.in
 
+## Copyright (C) 2005-2011 Red Hat, Inc.
+## See COPYING.LIB for the License of this software
+
 # No libraries with the exception of LIBXML should be listed
 # here. List them against the individual XXX_la_CFLAGS targets
-# that actually use them
+# that actually use them. Also keep GETTEXT_CPPFLAGS at the end.
 INCLUDES =	-I$(top_srcdir)/gnulib/lib			\
 		-I../gnulib/lib					\
 		-I../include					\
 		-I@top_srcdir@/src/util				\
 		-I@top_srcdir@/include				\
-		-DIN_LIBVIRT
+		-DIN_LIBVIRT					\
+		$(GETTEXT_CPPFLAGS)
 
 AM_CFLAGS =	$(DRIVER_MODULE_CFLAGS)				\
 		$(LIBXML_CFLAGS)				\
@@ -574,6 +578,7 @@ libvirt_la_BUILT_LIBADD += libvirt_driver_remote.la
 endif
 libvirt_driver_remote_la_CFLAGS =				\
 		$(GNUTLS_CFLAGS)				\
+		$(XDR_CFLAGS)					\
 		-I@top_srcdir@/src/conf				\
 		-I@top_srcdir@/src/rpc				\
 		$(AM_CFLAGS)
@@ -1289,6 +1294,7 @@ EXTRA_DIST += \
 endif
 libvirt_net_rpc_server_la_CFLAGS = \
 			$(AVAHI_CFLAGS) \
+			$(XDR_CFLAGS) \
 			$(AM_CFLAGS) \
 			$(POLKIT_CFLAGS)
 libvirt_net_rpc_server_la_LDFLAGS = \
@@ -1305,7 +1311,8 @@ libvirt_net_rpc_client_la_SOURCES = \
 	rpc/virnetclientstream.h rpc/virnetclientstream.c \
 	rpc/virnetclient.h rpc/virnetclient.c
 libvirt_net_rpc_client_la_CFLAGS = \
-			$(AM_CFLAGS)
+			$(AM_CFLAGS) \
+			$(XDR_CFLAGS)
 libvirt_net_rpc_client_la_LDFLAGS = \
 			$(AM_LDFLAGS) \
 			$(CYGWIN_EXTRA_LDFLAGS) \

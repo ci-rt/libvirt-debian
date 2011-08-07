@@ -38,7 +38,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module allocator:
   # Code from module areadlink:
   # Code from module areadlink-tests:
-  # Code from module arg-nonnull:
   # Code from module arpa_inet:
   # Code from module arpa_inet-tests:
   # Code from module base64:
@@ -50,7 +49,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module btowc-tests:
   # Code from module byteswap:
   # Code from module byteswap-tests:
-  # Code from module c++defs:
   # Code from module c-ctype:
   # Code from module c-ctype-tests:
   # Code from module c-strcase:
@@ -162,6 +160,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module inttypes-incomplete:
   # Code from module inttypes-tests:
   # Code from module ioctl:
+  # Code from module largefile:
   # Code from module listen:
   # Code from module localcharset:
   # Code from module locale:
@@ -272,6 +271,10 @@ AC_DEFUN([gl_EARLY],
   # Code from module size_max:
   # Code from module sleep:
   # Code from module sleep-tests:
+  # Code from module snippet/_Noreturn:
+  # Code from module snippet/arg-nonnull:
+  # Code from module snippet/c++defs:
+  # Code from module snippet/warn-on-use:
   # Code from module snprintf:
   # Code from module snprintf-tests:
   # Code from module socket:
@@ -373,7 +376,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module vsnprintf-tests:
   # Code from module wait-process:
   # Code from module waitpid:
-  # Code from module warn-on-use:
   # Code from module warnings:
   # Code from module wchar:
   # Code from module wchar-tests:
@@ -448,6 +450,9 @@ fi
 gl_UNISTD_MODULE_INDICATOR([chown])
 gl_MODULE_INDICATOR_FOR_TESTS([cloexec])
 gl_FUNC_CLOSE
+if test $REPLACE_CLOSE = 1; then
+  AC_LIBOBJ([close])
+fi
 gl_UNISTD_MODULE_INDICATOR([close])
 gl_CONFIGMAKE_PREP
 AC_REQUIRE([gl_HEADER_SYS_SOCKET])
@@ -460,11 +465,22 @@ gl_MD5
 gl_DIRNAME_LGPL
 gl_DOUBLE_SLASH_ROOT
 gl_FUNC_DUP2
+if test $HAVE_DUP2 = 0 || test $REPLACE_DUP2 = 1; then
+  AC_LIBOBJ([dup2])
+fi
 gl_UNISTD_MODULE_INDICATOR([dup2])
+gl_ENVIRON
+gl_UNISTD_MODULE_INDICATOR([environ])
 gl_HEADER_ERRNO_H
 gl_FUNC_FCLOSE
+if test $REPLACE_FCLOSE = 1; then
+  AC_LIBOBJ([fclose])
+fi
 gl_STDIO_MODULE_INDICATOR([fclose])
 gl_FUNC_FCNTL
+if test $HAVE_FCNTL = 0 || test $REPLACE_FCNTL = 1; then
+  AC_LIBOBJ([fcntl])
+fi
 gl_FCNTL_MODULE_INDICATOR([fcntl])
 gl_FCNTL_H
 gl_FUNC_FFLUSH
@@ -695,6 +711,10 @@ dnl Define the substituted variable GNULIB_UNISTD_H_NONBLOCKING to 1.
 AC_REQUIRE([gl_UNISTD_H_DEFAULTS])
 GNULIB_UNISTD_H_NONBLOCKING=1
 gl_FUNC_OPEN
+if test $REPLACE_OPEN = 1; then
+  AC_LIBOBJ([open])
+  gl_PREREQ_OPEN
+fi
 gl_FCNTL_MODULE_INDICATOR([open])
 gl_PASSFD
 gl_PATHMAX
@@ -1021,8 +1041,6 @@ gt_LOCALE_FR_UTF8
 gt_LOCALE_FR
 gt_LOCALE_TR_UTF8
 AC_CHECK_FUNCS_ONCE([getegid])
-gl_ENVIRON
-gl_UNISTD_MODULE_INDICATOR([environ])
 gl_ERROR
 if test $ac_cv_lib_error_at_line = no; then
   AC_LIBOBJ([error])
@@ -1328,14 +1346,15 @@ AC_DEFUN([gltests_LIBSOURCES], [
 # This macro records the list of files which have been installed by
 # gnulib-tool and may be removed by future gnulib-tool invocations.
 AC_DEFUN([gl_FILE_LIST], [
-  build-aux/arg-nonnull.h
-  build-aux/c++defs.h
   build-aux/config.rpath
   build-aux/gitlog-to-changelog
   build-aux/mktempd
+  build-aux/snippet/_Noreturn.h
+  build-aux/snippet/arg-nonnull.h
+  build-aux/snippet/c++defs.h
+  build-aux/snippet/warn-on-use.h
   build-aux/useless-if-before-free
   build-aux/vc-list-files
-  build-aux/warn-on-use.h
   lib/accept.c
   lib/alignof.h
   lib/alloca.c
@@ -1603,6 +1622,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/inttypes.m4
   m4/inttypes_h.m4
   m4/ioctl.m4
+  m4/largefile.m4
   m4/lcmessage.m4
   m4/lib-ld.m4
   m4/lib-link.m4
@@ -1878,6 +1898,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-select-out.sh
   tests/test-select-stdin.c
   tests/test-select.c
+  tests/test-select.h
   tests/test-setenv.c
   tests/test-setlocale1.c
   tests/test-setlocale1.sh

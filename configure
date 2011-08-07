@@ -656,6 +656,7 @@ MINGW_EXTRA_LDFLAGS
 CYGWIN_EXTRA_PYTHON_LIBADD
 CYGWIN_EXTRA_LIBADD
 CYGWIN_EXTRA_LDFLAGS
+GETTEXT_CPPFLAGS
 POSUB
 INTLLIBS
 LTLIBICONV
@@ -1158,6 +1159,8 @@ HAVE_DECL_MEMRCHR
 HAVE_MEMPCPY
 HAVE_DECL_MEMMEM
 HAVE_MEMCHR
+HAVE_FFSLL
+HAVE_FFSL
 HAVE_MBSLEN
 GNULIB_STRVERSCMP
 GNULIB_STRSIGNAL
@@ -1194,6 +1197,8 @@ GNULIB_MEMRCHR
 GNULIB_MEMPCPY
 GNULIB_MEMMEM
 GNULIB_MEMCHR
+GNULIB_FFSLL
+GNULIB_FFSL
 LOCALE_FR
 LOCALE_FR_UTF8
 LOCALE_ZH_CN
@@ -1378,19 +1383,6 @@ GNULIB_OPENAT
 GNULIB_OPEN
 GNULIB_NONBLOCKING
 GNULIB_FCNTL
-EOVERFLOW_VALUE
-EOVERFLOW_HIDDEN
-ENOLINK_VALUE
-ENOLINK_HIDDEN
-EMULTIHOP_VALUE
-EMULTIHOP_HIDDEN
-GL_GENERATE_ERRNO_H_FALSE
-GL_GENERATE_ERRNO_H_TRUE
-ERRNO_H
-NEXT_AS_FIRST_DIRECTIVE_ERRNO_H
-NEXT_ERRNO_H
-pkglibexecdir
-lispdir
 REPLACE_VSPRINTF
 REPLACE_VSNPRINTF
 REPLACE_VPRINTF
@@ -1488,6 +1480,19 @@ GNULIB_FGETC
 GNULIB_FFLUSH
 GNULIB_FCLOSE
 GNULIB_DPRINTF
+EOVERFLOW_VALUE
+EOVERFLOW_HIDDEN
+ENOLINK_VALUE
+ENOLINK_HIDDEN
+EMULTIHOP_VALUE
+EMULTIHOP_HIDDEN
+GL_GENERATE_ERRNO_H_FALSE
+GL_GENERATE_ERRNO_H_TRUE
+ERRNO_H
+NEXT_AS_FIRST_DIRECTIVE_ERRNO_H
+NEXT_ERRNO_H
+pkglibexecdir
+lispdir
 REPLACE_WCTOMB
 REPLACE_UNSETENV
 REPLACE_STRTOD
@@ -1825,7 +1830,6 @@ enable_threads
 with_gnu_ld
 enable_rpath
 with_libpth_prefix
-enable_largefile
 enable_shared
 enable_static
 with_pic
@@ -2561,7 +2565,6 @@ Optional Features:
                           specify multithreading API
   --disable-threads       build without multithread safety
   --disable-rpath         do not hardcode runtime library paths
-  --disable-largefile     omit support for large files
   --enable-shared[=PKGS]  build shared libraries [default=yes]
   --enable-static[=PKGS]  build static libraries [default=yes]
   --enable-fast-install[=PKGS]
@@ -3784,7 +3787,6 @@ gl_header_list="$gl_header_list sys/param.h"
 gl_func_list="$gl_func_list readlinkat"
 gl_func_list="$gl_func_list chown"
 gl_func_list="$gl_func_list fchown"
-gl_func_list="$gl_func_list dup2"
 gl_func_list="$gl_func_list fcntl"
 gl_func_list="$gl_func_list ffs"
 gl_func_list="$gl_func_list btowc"
@@ -6974,6 +6976,8 @@ $as_echo "$ac_cv_safe_to_define___extensions__" >&6; }
 
   $as_echo "#define _ALL_SOURCE 1" >>confdefs.h
 
+  $as_echo "#define _DARWIN_C_SOURCE 1" >>confdefs.h
+
   $as_echo "#define _GNU_SOURCE 1" >>confdefs.h
 
   $as_echo "#define _POSIX_PTHREAD_SEMANTICS 1" >>confdefs.h
@@ -7435,7 +7439,6 @@ fi
   # Code from module allocator:
   # Code from module areadlink:
   # Code from module areadlink-tests:
-  # Code from module arg-nonnull:
   # Code from module arpa_inet:
   # Code from module arpa_inet-tests:
   # Code from module base64:
@@ -7447,7 +7450,6 @@ fi
   # Code from module btowc-tests:
   # Code from module byteswap:
   # Code from module byteswap-tests:
-  # Code from module c++defs:
   # Code from module c-ctype:
   # Code from module c-ctype-tests:
   # Code from module c-strcase:
@@ -7559,6 +7561,7 @@ fi
   # Code from module inttypes-incomplete:
   # Code from module inttypes-tests:
   # Code from module ioctl:
+  # Code from module largefile:
   # Code from module listen:
   # Code from module localcharset:
   # Code from module locale:
@@ -7669,6 +7672,10 @@ fi
   # Code from module size_max:
   # Code from module sleep:
   # Code from module sleep-tests:
+  # Code from module snippet/_Noreturn:
+  # Code from module snippet/arg-nonnull:
+  # Code from module snippet/c++defs:
+  # Code from module snippet/warn-on-use:
   # Code from module snprintf:
   # Code from module snprintf-tests:
   # Code from module socket:
@@ -7768,7 +7775,6 @@ fi
   # Code from module vsnprintf-tests:
   # Code from module wait-process:
   # Code from module waitpid:
-  # Code from module warn-on-use:
   # Code from module warnings:
   # Code from module wchar:
   # Code from module wchar-tests:
@@ -7785,6 +7791,7 @@ fi
   # Code from module xalloc-oversized:
   # Code from module xsize:
   # Code from module yield:
+
 
 
 
@@ -9346,105 +9353,6 @@ $as_echo "#define CHOWN_CHANGE_TIME_BUG 1" >>confdefs.h
   fi
 
 
-  GNULIB_DPRINTF=0;
-  GNULIB_FCLOSE=0;
-  GNULIB_FFLUSH=0;
-  GNULIB_FGETC=0;
-  GNULIB_FGETS=0;
-  GNULIB_FOPEN=0;
-  GNULIB_FPRINTF=0;
-  GNULIB_FPRINTF_POSIX=0;
-  GNULIB_FPURGE=0;
-  GNULIB_FPUTC=0;
-  GNULIB_FPUTS=0;
-  GNULIB_FREAD=0;
-  GNULIB_FREOPEN=0;
-  GNULIB_FSCANF=0;
-  GNULIB_FSEEK=0;
-  GNULIB_FSEEKO=0;
-  GNULIB_FTELL=0;
-  GNULIB_FTELLO=0;
-  GNULIB_FWRITE=0;
-  GNULIB_GETC=0;
-  GNULIB_GETCHAR=0;
-  GNULIB_GETDELIM=0;
-  GNULIB_GETLINE=0;
-  GNULIB_GETS=0;
-  GNULIB_OBSTACK_PRINTF=0;
-  GNULIB_OBSTACK_PRINTF_POSIX=0;
-  GNULIB_PERROR=0;
-  GNULIB_POPEN=0;
-  GNULIB_PRINTF=0;
-  GNULIB_PRINTF_POSIX=0;
-  GNULIB_PUTC=0;
-  GNULIB_PUTCHAR=0;
-  GNULIB_PUTS=0;
-  GNULIB_REMOVE=0;
-  GNULIB_RENAME=0;
-  GNULIB_RENAMEAT=0;
-  GNULIB_SCANF=0;
-  GNULIB_SNPRINTF=0;
-  GNULIB_SPRINTF_POSIX=0;
-  GNULIB_STDIO_H_NONBLOCKING=0;
-  GNULIB_STDIO_H_SIGPIPE=0;
-  GNULIB_TMPFILE=0;
-  GNULIB_VASPRINTF=0;
-  GNULIB_VFSCANF=0;
-  GNULIB_VSCANF=0;
-  GNULIB_VDPRINTF=0;
-  GNULIB_VFPRINTF=0;
-  GNULIB_VFPRINTF_POSIX=0;
-  GNULIB_VPRINTF=0;
-  GNULIB_VPRINTF_POSIX=0;
-  GNULIB_VSNPRINTF=0;
-  GNULIB_VSPRINTF_POSIX=0;
-    HAVE_DECL_FPURGE=1;
-  HAVE_DECL_FSEEKO=1;
-  HAVE_DECL_FTELLO=1;
-  HAVE_DECL_GETDELIM=1;
-  HAVE_DECL_GETLINE=1;
-  HAVE_DECL_OBSTACK_PRINTF=1;
-  HAVE_DECL_SNPRINTF=1;
-  HAVE_DECL_VSNPRINTF=1;
-  HAVE_DPRINTF=1;
-  HAVE_FSEEKO=1;
-  HAVE_FTELLO=1;
-  HAVE_RENAMEAT=1;
-  HAVE_VASPRINTF=1;
-  HAVE_VDPRINTF=1;
-  REPLACE_DPRINTF=0;
-  REPLACE_FCLOSE=0;
-  REPLACE_FFLUSH=0;
-  REPLACE_FOPEN=0;
-  REPLACE_FPRINTF=0;
-  REPLACE_FPURGE=0;
-  REPLACE_FREOPEN=0;
-  REPLACE_FSEEK=0;
-  REPLACE_FSEEKO=0;
-  REPLACE_FTELL=0;
-  REPLACE_FTELLO=0;
-  REPLACE_GETDELIM=0;
-  REPLACE_GETLINE=0;
-  REPLACE_OBSTACK_PRINTF=0;
-  REPLACE_PERROR=0;
-  REPLACE_POPEN=0;
-  REPLACE_PRINTF=0;
-  REPLACE_REMOVE=0;
-  REPLACE_RENAME=0;
-  REPLACE_RENAMEAT=0;
-  REPLACE_SNPRINTF=0;
-  REPLACE_SPRINTF=0;
-  REPLACE_STDIO_READ_FUNCS=0;
-  REPLACE_STDIO_WRITE_FUNCS=0;
-  REPLACE_TMPFILE=0;
-  REPLACE_VASPRINTF=0;
-  REPLACE_VDPRINTF=0;
-  REPLACE_VFPRINTF=0;
-  REPLACE_VPRINTF=0;
-  REPLACE_VSNPRINTF=0;
-  REPLACE_VSPRINTF=0;
-
-
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for unsigned long long int" >&5
 $as_echo_n "checking for unsigned long long int... " >&6; }
 if test "${ac_cv_type_unsigned_long_long_int+set}" = set; then :
@@ -9731,6 +9639,45 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 
 
 
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if environ is properly declared" >&5
+$as_echo_n "checking if environ is properly declared... " >&6; }
+  if test "${gt_cv_var_environ_declaration+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <unistd.h>
+           extern struct { int foo; } environ;
+int
+main ()
+{
+environ.foo = 1;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gt_cv_var_environ_declaration=no
+else
+  gt_cv_var_environ_declaration=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_var_environ_declaration" >&5
+$as_echo "$gt_cv_var_environ_declaration" >&6; }
+  if test $gt_cv_var_environ_declaration = yes; then
+
+$as_echo "#define HAVE_ENVIRON_DECL 1" >>confdefs.h
+
+  fi
+
+
+  if test $gt_cv_var_environ_declaration != yes; then
+    HAVE_DECL_ENVIRON=0
+  fi
 
 
 
@@ -10073,6 +10020,105 @@ $as_echo "$gl_cv_header_errno_h_EOVERFLOW" >&6; }
 
 
 
+  GNULIB_DPRINTF=0;
+  GNULIB_FCLOSE=0;
+  GNULIB_FFLUSH=0;
+  GNULIB_FGETC=0;
+  GNULIB_FGETS=0;
+  GNULIB_FOPEN=0;
+  GNULIB_FPRINTF=0;
+  GNULIB_FPRINTF_POSIX=0;
+  GNULIB_FPURGE=0;
+  GNULIB_FPUTC=0;
+  GNULIB_FPUTS=0;
+  GNULIB_FREAD=0;
+  GNULIB_FREOPEN=0;
+  GNULIB_FSCANF=0;
+  GNULIB_FSEEK=0;
+  GNULIB_FSEEKO=0;
+  GNULIB_FTELL=0;
+  GNULIB_FTELLO=0;
+  GNULIB_FWRITE=0;
+  GNULIB_GETC=0;
+  GNULIB_GETCHAR=0;
+  GNULIB_GETDELIM=0;
+  GNULIB_GETLINE=0;
+  GNULIB_GETS=0;
+  GNULIB_OBSTACK_PRINTF=0;
+  GNULIB_OBSTACK_PRINTF_POSIX=0;
+  GNULIB_PERROR=0;
+  GNULIB_POPEN=0;
+  GNULIB_PRINTF=0;
+  GNULIB_PRINTF_POSIX=0;
+  GNULIB_PUTC=0;
+  GNULIB_PUTCHAR=0;
+  GNULIB_PUTS=0;
+  GNULIB_REMOVE=0;
+  GNULIB_RENAME=0;
+  GNULIB_RENAMEAT=0;
+  GNULIB_SCANF=0;
+  GNULIB_SNPRINTF=0;
+  GNULIB_SPRINTF_POSIX=0;
+  GNULIB_STDIO_H_NONBLOCKING=0;
+  GNULIB_STDIO_H_SIGPIPE=0;
+  GNULIB_TMPFILE=0;
+  GNULIB_VASPRINTF=0;
+  GNULIB_VFSCANF=0;
+  GNULIB_VSCANF=0;
+  GNULIB_VDPRINTF=0;
+  GNULIB_VFPRINTF=0;
+  GNULIB_VFPRINTF_POSIX=0;
+  GNULIB_VPRINTF=0;
+  GNULIB_VPRINTF_POSIX=0;
+  GNULIB_VSNPRINTF=0;
+  GNULIB_VSPRINTF_POSIX=0;
+    HAVE_DECL_FPURGE=1;
+  HAVE_DECL_FSEEKO=1;
+  HAVE_DECL_FTELLO=1;
+  HAVE_DECL_GETDELIM=1;
+  HAVE_DECL_GETLINE=1;
+  HAVE_DECL_OBSTACK_PRINTF=1;
+  HAVE_DECL_SNPRINTF=1;
+  HAVE_DECL_VSNPRINTF=1;
+  HAVE_DPRINTF=1;
+  HAVE_FSEEKO=1;
+  HAVE_FTELLO=1;
+  HAVE_RENAMEAT=1;
+  HAVE_VASPRINTF=1;
+  HAVE_VDPRINTF=1;
+  REPLACE_DPRINTF=0;
+  REPLACE_FCLOSE=0;
+  REPLACE_FFLUSH=0;
+  REPLACE_FOPEN=0;
+  REPLACE_FPRINTF=0;
+  REPLACE_FPURGE=0;
+  REPLACE_FREOPEN=0;
+  REPLACE_FSEEK=0;
+  REPLACE_FSEEKO=0;
+  REPLACE_FTELL=0;
+  REPLACE_FTELLO=0;
+  REPLACE_GETDELIM=0;
+  REPLACE_GETLINE=0;
+  REPLACE_OBSTACK_PRINTF=0;
+  REPLACE_PERROR=0;
+  REPLACE_POPEN=0;
+  REPLACE_PRINTF=0;
+  REPLACE_REMOVE=0;
+  REPLACE_RENAME=0;
+  REPLACE_RENAMEAT=0;
+  REPLACE_SNPRINTF=0;
+  REPLACE_SPRINTF=0;
+  REPLACE_STDIO_READ_FUNCS=0;
+  REPLACE_STDIO_WRITE_FUNCS=0;
+  REPLACE_TMPFILE=0;
+  REPLACE_VASPRINTF=0;
+  REPLACE_VDPRINTF=0;
+  REPLACE_VFPRINTF=0;
+  REPLACE_VPRINTF=0;
+  REPLACE_VSNPRINTF=0;
+  REPLACE_VSPRINTF=0;
+
+
   GNULIB_FCNTL=0;
   GNULIB_NONBLOCKING=0;
   GNULIB_OPEN=0;
@@ -10213,15 +10259,15 @@ _ACEOF
 
 
 
-
-
-
-
-
   GNULIB_FFS=0;
     HAVE_FFS=1;
   HAVE_STRCASECMP=1;
   HAVE_DECL_STRNCASECMP=1;
+
+
+
+
+
 
 
 
@@ -13623,6 +13669,8 @@ $as_echo "$gt_cv_locale_fr" >&6; }
 
 
 
+  GNULIB_FFSL=0;
+  GNULIB_FFSLL=0;
   GNULIB_MEMCHR=0;
   GNULIB_MEMMEM=0;
   GNULIB_MEMPCPY=0;
@@ -13659,7 +13707,9 @@ $as_echo "$gt_cv_locale_fr" >&6; }
   GNULIB_STRSIGNAL=0;
   GNULIB_STRVERSCMP=0;
   HAVE_MBSLEN=0;
-    HAVE_MEMCHR=1;
+    HAVE_FFSL=1;
+  HAVE_FFSLL=1;
+  HAVE_MEMCHR=1;
   HAVE_DECL_MEMMEM=1;
   HAVE_MEMPCPY=1;
   HAVE_DECL_MEMRCHR=1;
@@ -13861,204 +13911,6 @@ $as_echo "$gl_cv_func_memchr_works" >&6; }
       REPLACE_MEMCHR=1
     fi
   fi
-
-# Check whether --enable-largefile was given.
-if test "${enable_largefile+set}" = set; then :
-  enableval=$enable_largefile;
-fi
-
-if test "$enable_largefile" != no; then
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for special C compiler options needed for large files" >&5
-$as_echo_n "checking for special C compiler options needed for large files... " >&6; }
-if test "${ac_cv_sys_largefile_CC+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_cv_sys_largefile_CC=no
-     if test "$GCC" != yes; then
-       ac_save_CC=$CC
-       while :; do
-	 # IRIX 6.2 and later do not support large files by default,
-	 # so use the C compiler's -n32 option if that helps.
-	 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <sys/types.h>
- /* Check that off_t can represent 2**63 - 1 correctly.
-    We can't simply define LARGE_OFF_T to be 9223372036854775807,
-    since some C++ compilers masquerading as C compilers
-    incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
-  int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
-		       && LARGE_OFF_T % 2147483647 == 1)
-		      ? 1 : -1];
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-	 if ac_fn_c_try_compile "$LINENO"; then :
-  break
-fi
-rm -f core conftest.err conftest.$ac_objext
-	 CC="$CC -n32"
-	 if ac_fn_c_try_compile "$LINENO"; then :
-  ac_cv_sys_largefile_CC=' -n32'; break
-fi
-rm -f core conftest.err conftest.$ac_objext
-	 break
-       done
-       CC=$ac_save_CC
-       rm -f conftest.$ac_ext
-    fi
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sys_largefile_CC" >&5
-$as_echo "$ac_cv_sys_largefile_CC" >&6; }
-  if test "$ac_cv_sys_largefile_CC" != no; then
-    CC=$CC$ac_cv_sys_largefile_CC
-  fi
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for _FILE_OFFSET_BITS value needed for large files" >&5
-$as_echo_n "checking for _FILE_OFFSET_BITS value needed for large files... " >&6; }
-if test "${ac_cv_sys_file_offset_bits+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  while :; do
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <sys/types.h>
- /* Check that off_t can represent 2**63 - 1 correctly.
-    We can't simply define LARGE_OFF_T to be 9223372036854775807,
-    since some C++ compilers masquerading as C compilers
-    incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
-  int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
-		       && LARGE_OFF_T % 2147483647 == 1)
-		      ? 1 : -1];
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ac_cv_sys_file_offset_bits=no; break
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#define _FILE_OFFSET_BITS 64
-#include <sys/types.h>
- /* Check that off_t can represent 2**63 - 1 correctly.
-    We can't simply define LARGE_OFF_T to be 9223372036854775807,
-    since some C++ compilers masquerading as C compilers
-    incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
-  int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
-		       && LARGE_OFF_T % 2147483647 == 1)
-		      ? 1 : -1];
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ac_cv_sys_file_offset_bits=64; break
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  ac_cv_sys_file_offset_bits=unknown
-  break
-done
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sys_file_offset_bits" >&5
-$as_echo "$ac_cv_sys_file_offset_bits" >&6; }
-case $ac_cv_sys_file_offset_bits in #(
-  no | unknown) ;;
-  *)
-cat >>confdefs.h <<_ACEOF
-#define _FILE_OFFSET_BITS $ac_cv_sys_file_offset_bits
-_ACEOF
-;;
-esac
-rm -rf conftest*
-  if test $ac_cv_sys_file_offset_bits = unknown; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for _LARGE_FILES value needed for large files" >&5
-$as_echo_n "checking for _LARGE_FILES value needed for large files... " >&6; }
-if test "${ac_cv_sys_large_files+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  while :; do
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <sys/types.h>
- /* Check that off_t can represent 2**63 - 1 correctly.
-    We can't simply define LARGE_OFF_T to be 9223372036854775807,
-    since some C++ compilers masquerading as C compilers
-    incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
-  int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
-		       && LARGE_OFF_T % 2147483647 == 1)
-		      ? 1 : -1];
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ac_cv_sys_large_files=no; break
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#define _LARGE_FILES 1
-#include <sys/types.h>
- /* Check that off_t can represent 2**63 - 1 correctly.
-    We can't simply define LARGE_OFF_T to be 9223372036854775807,
-    since some C++ compilers masquerading as C compilers
-    incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
-  int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
-		       && LARGE_OFF_T % 2147483647 == 1)
-		      ? 1 : -1];
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ac_cv_sys_large_files=1; break
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  ac_cv_sys_large_files=unknown
-  break
-done
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sys_large_files" >&5
-$as_echo "$ac_cv_sys_large_files" >&6; }
-case $ac_cv_sys_large_files in #(
-  no | unknown) ;;
-  *)
-cat >>confdefs.h <<_ACEOF
-#define _LARGE_FILES $ac_cv_sys_large_files
-_ACEOF
-;;
-esac
-rm -rf conftest*
-  fi
-fi
 
 
 
@@ -14444,7 +14296,11 @@ else
 /* end confdefs.h.  */
 #include <errno.h>
                     #include <string.h>
-                    extern int __xpg_strerror_r(int, char *, size_t);
+                    extern
+                    #ifdef __cplusplus
+                    "C"
+                    #endif
+                    int __xpg_strerror_r(int, char *, size_t);
 
 int
 main ()
@@ -14697,883 +14553,6 @@ $as_echo "$gl_cv_next_poll_h" >&6; }
 
 
 
-
-  gl_threads_api=none
-  LIBTHREAD=
-  LTLIBTHREAD=
-  LIBMULTITHREAD=
-  LTLIBMULTITHREAD=
-  if test "$gl_use_threads" != no; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether imported symbols can be declared weak" >&5
-$as_echo_n "checking whether imported symbols can be declared weak... " >&6; }
-if test "${gl_cv_have_weak+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  gl_cv_have_weak=no
-              cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-extern void xyzzy ();
-#pragma weak xyzzy
-int
-main ()
-{
-xyzzy();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  gl_cv_have_weak=maybe
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-       if test $gl_cv_have_weak = maybe; then
-                           if test "$cross_compiling" = yes; then :
-                          cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#ifdef __ELF__
-               Extensible Linking Format
-               #endif
-
-_ACEOF
-if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
-  $EGREP "Extensible Linking Format" >/dev/null 2>&1; then :
-  gl_cv_have_weak="guessing yes"
-else
-  gl_cv_have_weak="guessing no"
-fi
-rm -f conftest*
-
-
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-#include <stdio.h>
-#pragma weak fputs
-int main ()
-{
-  return (fputs == NULL);
-}
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
-  gl_cv_have_weak=yes
-else
-  gl_cv_have_weak=no
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-       fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_have_weak" >&5
-$as_echo "$gl_cv_have_weak" >&6; }
-    if test "$gl_use_threads" = yes || test "$gl_use_threads" = posix; then
-      # On OSF/1, the compiler needs the flag -pthread or -D_REENTRANT so that
-      # it groks <pthread.h>. It's added above, in gl_THREADLIB_EARLY_BODY.
-      ac_fn_c_check_header_mongrel "$LINENO" "pthread.h" "ac_cv_header_pthread_h" "$ac_includes_default"
-if test "x$ac_cv_header_pthread_h" = x""yes; then :
-  gl_have_pthread_h=yes
-else
-  gl_have_pthread_h=no
-fi
-
-
-      if test "$gl_have_pthread_h" = yes; then
-        # Other possible tests:
-        #   -lpthreads (FSU threads, PCthreads)
-        #   -lgthreads
-        gl_have_pthread=
-        # Test whether both pthread_mutex_lock and pthread_mutexattr_init exist
-        # in libc. IRIX 6.5 has the first one in both libc and libpthread, but
-        # the second one only in libpthread, and lock.c needs it.
-        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <pthread.h>
-int
-main ()
-{
-pthread_mutex_lock((pthread_mutex_t*)0);
-               pthread_mutexattr_init((pthread_mutexattr_t*)0);
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  gl_have_pthread=yes
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-        # Test for libpthread by looking for pthread_kill. (Not pthread_self,
-        # since it is defined as a macro on OSF/1.)
-        if test -n "$gl_have_pthread"; then
-          # The program links fine without libpthread. But it may actually
-          # need to link with libpthread in order to create multiple threads.
-          { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_kill in -lpthread" >&5
-$as_echo_n "checking for pthread_kill in -lpthread... " >&6; }
-if test "${ac_cv_lib_pthread_pthread_kill+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lpthread  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char pthread_kill ();
-int
-main ()
-{
-return pthread_kill ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_pthread_pthread_kill=yes
-else
-  ac_cv_lib_pthread_pthread_kill=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_pthread_kill" >&5
-$as_echo "$ac_cv_lib_pthread_pthread_kill" >&6; }
-if test "x$ac_cv_lib_pthread_pthread_kill" = x""yes; then :
-  LIBMULTITHREAD=-lpthread LTLIBMULTITHREAD=-lpthread
-             # On Solaris and HP-UX, most pthread functions exist also in libc.
-             # Therefore pthread_in_use() needs to actually try to create a
-             # thread: pthread_create from libc will fail, whereas
-             # pthread_create will actually create a thread.
-             case "$host_os" in
-               solaris* | hpux*)
-
-$as_echo "#define PTHREAD_IN_USE_DETECTION_HARD 1" >>confdefs.h
-
-             esac
-
-fi
-
-        else
-          # Some library is needed. Try libpthread and libc_r.
-          { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_kill in -lpthread" >&5
-$as_echo_n "checking for pthread_kill in -lpthread... " >&6; }
-if test "${ac_cv_lib_pthread_pthread_kill+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lpthread  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char pthread_kill ();
-int
-main ()
-{
-return pthread_kill ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_pthread_pthread_kill=yes
-else
-  ac_cv_lib_pthread_pthread_kill=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_pthread_kill" >&5
-$as_echo "$ac_cv_lib_pthread_pthread_kill" >&6; }
-if test "x$ac_cv_lib_pthread_pthread_kill" = x""yes; then :
-  gl_have_pthread=yes
-             LIBTHREAD=-lpthread LTLIBTHREAD=-lpthread
-             LIBMULTITHREAD=-lpthread LTLIBMULTITHREAD=-lpthread
-fi
-
-          if test -z "$gl_have_pthread"; then
-            # For FreeBSD 4.
-            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_kill in -lc_r" >&5
-$as_echo_n "checking for pthread_kill in -lc_r... " >&6; }
-if test "${ac_cv_lib_c_r_pthread_kill+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lc_r  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char pthread_kill ();
-int
-main ()
-{
-return pthread_kill ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_c_r_pthread_kill=yes
-else
-  ac_cv_lib_c_r_pthread_kill=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_c_r_pthread_kill" >&5
-$as_echo "$ac_cv_lib_c_r_pthread_kill" >&6; }
-if test "x$ac_cv_lib_c_r_pthread_kill" = x""yes; then :
-  gl_have_pthread=yes
-               LIBTHREAD=-lc_r LTLIBTHREAD=-lc_r
-               LIBMULTITHREAD=-lc_r LTLIBMULTITHREAD=-lc_r
-fi
-
-          fi
-        fi
-        if test -n "$gl_have_pthread"; then
-          gl_threads_api=posix
-
-$as_echo "#define USE_POSIX_THREADS 1" >>confdefs.h
-
-          if test -n "$LIBMULTITHREAD" || test -n "$LTLIBMULTITHREAD"; then
-            if case "$gl_cv_have_weak" in *yes) true;; *) false;; esac; then
-
-$as_echo "#define USE_POSIX_THREADS_WEAK 1" >>confdefs.h
-
-              LIBTHREAD=
-              LTLIBTHREAD=
-            fi
-          fi
-        fi
-      fi
-    fi
-    if test -z "$gl_have_pthread"; then
-      if test "$gl_use_threads" = yes || test "$gl_use_threads" = solaris; then
-        gl_have_solaristhread=
-        gl_save_LIBS="$LIBS"
-        LIBS="$LIBS -lthread"
-        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-#include <thread.h>
-#include <synch.h>
-
-int
-main ()
-{
-thr_self();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  gl_have_solaristhread=yes
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-        LIBS="$gl_save_LIBS"
-        if test -n "$gl_have_solaristhread"; then
-          gl_threads_api=solaris
-          LIBTHREAD=-lthread
-          LTLIBTHREAD=-lthread
-          LIBMULTITHREAD="$LIBTHREAD"
-          LTLIBMULTITHREAD="$LTLIBTHREAD"
-
-$as_echo "#define USE_SOLARIS_THREADS 1" >>confdefs.h
-
-          if case "$gl_cv_have_weak" in *yes) true;; *) false;; esac; then
-
-$as_echo "#define USE_SOLARIS_THREADS_WEAK 1" >>confdefs.h
-
-            LIBTHREAD=
-            LTLIBTHREAD=
-          fi
-        fi
-      fi
-    fi
-    if test "$gl_use_threads" = pth; then
-      gl_save_CPPFLAGS="$CPPFLAGS"
-
-
-
-
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking how to link with libpth" >&5
-$as_echo_n "checking how to link with libpth... " >&6; }
-if test "${ac_cv_libpth_libs+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-
-
-
-
-
-    use_additional=yes
-
-  acl_save_prefix="$prefix"
-  prefix="$acl_final_prefix"
-  acl_save_exec_prefix="$exec_prefix"
-  exec_prefix="$acl_final_exec_prefix"
-
-    eval additional_includedir=\"$includedir\"
-    eval additional_libdir=\"$libdir\"
-
-  exec_prefix="$acl_save_exec_prefix"
-  prefix="$acl_save_prefix"
-
-
-# Check whether --with-libpth-prefix was given.
-if test "${with_libpth_prefix+set}" = set; then :
-  withval=$with_libpth_prefix;
-    if test "X$withval" = "Xno"; then
-      use_additional=no
-    else
-      if test "X$withval" = "X"; then
-
-  acl_save_prefix="$prefix"
-  prefix="$acl_final_prefix"
-  acl_save_exec_prefix="$exec_prefix"
-  exec_prefix="$acl_final_exec_prefix"
-
-          eval additional_includedir=\"$includedir\"
-          eval additional_libdir=\"$libdir\"
-
-  exec_prefix="$acl_save_exec_prefix"
-  prefix="$acl_save_prefix"
-
-      else
-        additional_includedir="$withval/include"
-        additional_libdir="$withval/$acl_libdirstem"
-      fi
-    fi
-
-fi
-
-      LIBPTH=
-  LTLIBPTH=
-  INCPTH=
-  LIBPTH_PREFIX=
-  rpathdirs=
-  ltrpathdirs=
-  names_already_handled=
-  names_next_round='pth '
-  while test -n "$names_next_round"; do
-    names_this_round="$names_next_round"
-    names_next_round=
-    for name in $names_this_round; do
-      already_handled=
-      for n in $names_already_handled; do
-        if test "$n" = "$name"; then
-          already_handled=yes
-          break
-        fi
-      done
-      if test -z "$already_handled"; then
-        names_already_handled="$names_already_handled $name"
-                        uppername=`echo "$name" | sed -e 'y|abcdefghijklmnopqrstuvwxyz./-|ABCDEFGHIJKLMNOPQRSTUVWXYZ___|'`
-        eval value=\"\$HAVE_LIB$uppername\"
-        if test -n "$value"; then
-          if test "$value" = yes; then
-            eval value=\"\$LIB$uppername\"
-            test -z "$value" || LIBPTH="${LIBPTH}${LIBPTH:+ }$value"
-            eval value=\"\$LTLIB$uppername\"
-            test -z "$value" || LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }$value"
-          else
-                                    :
-          fi
-        else
-                              found_dir=
-          found_la=
-          found_so=
-          found_a=
-          eval libname=\"$acl_libname_spec\"    # typically: libname=lib$name
-          if test -n "$acl_shlibext"; then
-            shrext=".$acl_shlibext"             # typically: shrext=.so
-          else
-            shrext=
-          fi
-          if test $use_additional = yes; then
-            dir="$additional_libdir"
-                                    if test -n "$acl_shlibext"; then
-              if test -f "$dir/$libname$shrext"; then
-                found_dir="$dir"
-                found_so="$dir/$libname$shrext"
-              else
-                if test "$acl_library_names_spec" = '$libname$shrext$versuffix'; then
-                  ver=`(cd "$dir" && \
-                        for f in "$libname$shrext".*; do echo "$f"; done \
-                        | sed -e "s,^$libname$shrext\\\\.,," \
-                        | sort -t '.' -n -r -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 \
-                        | sed 1q ) 2>/dev/null`
-                  if test -n "$ver" && test -f "$dir/$libname$shrext.$ver"; then
-                    found_dir="$dir"
-                    found_so="$dir/$libname$shrext.$ver"
-                  fi
-                else
-                  eval library_names=\"$acl_library_names_spec\"
-                  for f in $library_names; do
-                    if test -f "$dir/$f"; then
-                      found_dir="$dir"
-                      found_so="$dir/$f"
-                      break
-                    fi
-                  done
-                fi
-              fi
-            fi
-                        if test "X$found_dir" = "X"; then
-              if test -f "$dir/$libname.$acl_libext"; then
-                found_dir="$dir"
-                found_a="$dir/$libname.$acl_libext"
-              fi
-            fi
-            if test "X$found_dir" != "X"; then
-              if test -f "$dir/$libname.la"; then
-                found_la="$dir/$libname.la"
-              fi
-            fi
-          fi
-          if test "X$found_dir" = "X"; then
-            for x in $LDFLAGS $LTLIBPTH; do
-
-  acl_save_prefix="$prefix"
-  prefix="$acl_final_prefix"
-  acl_save_exec_prefix="$exec_prefix"
-  exec_prefix="$acl_final_exec_prefix"
-  eval x=\"$x\"
-  exec_prefix="$acl_save_exec_prefix"
-  prefix="$acl_save_prefix"
-
-              case "$x" in
-                -L*)
-                  dir=`echo "X$x" | sed -e 's/^X-L//'`
-                                    if test -n "$acl_shlibext"; then
-                    if test -f "$dir/$libname$shrext"; then
-                      found_dir="$dir"
-                      found_so="$dir/$libname$shrext"
-                    else
-                      if test "$acl_library_names_spec" = '$libname$shrext$versuffix'; then
-                        ver=`(cd "$dir" && \
-                              for f in "$libname$shrext".*; do echo "$f"; done \
-                              | sed -e "s,^$libname$shrext\\\\.,," \
-                              | sort -t '.' -n -r -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 \
-                              | sed 1q ) 2>/dev/null`
-                        if test -n "$ver" && test -f "$dir/$libname$shrext.$ver"; then
-                          found_dir="$dir"
-                          found_so="$dir/$libname$shrext.$ver"
-                        fi
-                      else
-                        eval library_names=\"$acl_library_names_spec\"
-                        for f in $library_names; do
-                          if test -f "$dir/$f"; then
-                            found_dir="$dir"
-                            found_so="$dir/$f"
-                            break
-                          fi
-                        done
-                      fi
-                    fi
-                  fi
-                                    if test "X$found_dir" = "X"; then
-                    if test -f "$dir/$libname.$acl_libext"; then
-                      found_dir="$dir"
-                      found_a="$dir/$libname.$acl_libext"
-                    fi
-                  fi
-                  if test "X$found_dir" != "X"; then
-                    if test -f "$dir/$libname.la"; then
-                      found_la="$dir/$libname.la"
-                    fi
-                  fi
-                  ;;
-              esac
-              if test "X$found_dir" != "X"; then
-                break
-              fi
-            done
-          fi
-          if test "X$found_dir" != "X"; then
-                        LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }-L$found_dir -l$name"
-            if test "X$found_so" != "X"; then
-                                                        if test "$enable_rpath" = no || test "X$found_dir" = "X/usr/$acl_libdirstem"; then
-                                LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
-              else
-                                                                                haveit=
-                for x in $ltrpathdirs; do
-                  if test "X$x" = "X$found_dir"; then
-                    haveit=yes
-                    break
-                  fi
-                done
-                if test -z "$haveit"; then
-                  ltrpathdirs="$ltrpathdirs $found_dir"
-                fi
-                                if test "$acl_hardcode_direct" = yes; then
-                                                      LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
-                else
-                  if test -n "$acl_hardcode_libdir_flag_spec" && test "$acl_hardcode_minus_L" = no; then
-                                                            LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
-                                                            haveit=
-                    for x in $rpathdirs; do
-                      if test "X$x" = "X$found_dir"; then
-                        haveit=yes
-                        break
-                      fi
-                    done
-                    if test -z "$haveit"; then
-                      rpathdirs="$rpathdirs $found_dir"
-                    fi
-                  else
-                                                                                haveit=
-                    for x in $LDFLAGS $LIBPTH; do
-
-  acl_save_prefix="$prefix"
-  prefix="$acl_final_prefix"
-  acl_save_exec_prefix="$exec_prefix"
-  exec_prefix="$acl_final_exec_prefix"
-  eval x=\"$x\"
-  exec_prefix="$acl_save_exec_prefix"
-  prefix="$acl_save_prefix"
-
-                      if test "X$x" = "X-L$found_dir"; then
-                        haveit=yes
-                        break
-                      fi
-                    done
-                    if test -z "$haveit"; then
-                      LIBPTH="${LIBPTH}${LIBPTH:+ }-L$found_dir"
-                    fi
-                    if test "$acl_hardcode_minus_L" != no; then
-                                                                                        LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
-                    else
-                                                                                                                                                                                LIBPTH="${LIBPTH}${LIBPTH:+ }-l$name"
-                    fi
-                  fi
-                fi
-              fi
-            else
-              if test "X$found_a" != "X"; then
-                                LIBPTH="${LIBPTH}${LIBPTH:+ }$found_a"
-              else
-                                                LIBPTH="${LIBPTH}${LIBPTH:+ }-L$found_dir -l$name"
-              fi
-            fi
-                        additional_includedir=
-            case "$found_dir" in
-              */$acl_libdirstem | */$acl_libdirstem/)
-                basedir=`echo "X$found_dir" | sed -e 's,^X,,' -e "s,/$acl_libdirstem/"'*$,,'`
-                LIBPTH_PREFIX="$basedir"
-                additional_includedir="$basedir/include"
-                ;;
-            esac
-            if test "X$additional_includedir" != "X"; then
-                                                                                                                if test "X$additional_includedir" != "X/usr/include"; then
-                haveit=
-                if test "X$additional_includedir" = "X/usr/local/include"; then
-                  if test -n "$GCC"; then
-                    case $host_os in
-                      linux* | gnu* | k*bsd*-gnu) haveit=yes;;
-                    esac
-                  fi
-                fi
-                if test -z "$haveit"; then
-                  for x in $CPPFLAGS $INCPTH; do
-
-  acl_save_prefix="$prefix"
-  prefix="$acl_final_prefix"
-  acl_save_exec_prefix="$exec_prefix"
-  exec_prefix="$acl_final_exec_prefix"
-  eval x=\"$x\"
-  exec_prefix="$acl_save_exec_prefix"
-  prefix="$acl_save_prefix"
-
-                    if test "X$x" = "X-I$additional_includedir"; then
-                      haveit=yes
-                      break
-                    fi
-                  done
-                  if test -z "$haveit"; then
-                    if test -d "$additional_includedir"; then
-                                            INCPTH="${INCPTH}${INCPTH:+ }-I$additional_includedir"
-                    fi
-                  fi
-                fi
-              fi
-            fi
-                        if test -n "$found_la"; then
-                                                        save_libdir="$libdir"
-              case "$found_la" in
-                */* | *\\*) . "$found_la" ;;
-                *) . "./$found_la" ;;
-              esac
-              libdir="$save_libdir"
-                            for dep in $dependency_libs; do
-                case "$dep" in
-                  -L*)
-                    additional_libdir=`echo "X$dep" | sed -e 's/^X-L//'`
-                                                                                                                                                                if test "X$additional_libdir" != "X/usr/$acl_libdirstem"; then
-                      haveit=
-                      if test "X$additional_libdir" = "X/usr/local/$acl_libdirstem"; then
-                        if test -n "$GCC"; then
-                          case $host_os in
-                            linux* | gnu* | k*bsd*-gnu) haveit=yes;;
-                          esac
-                        fi
-                      fi
-                      if test -z "$haveit"; then
-                        haveit=
-                        for x in $LDFLAGS $LIBPTH; do
-
-  acl_save_prefix="$prefix"
-  prefix="$acl_final_prefix"
-  acl_save_exec_prefix="$exec_prefix"
-  exec_prefix="$acl_final_exec_prefix"
-  eval x=\"$x\"
-  exec_prefix="$acl_save_exec_prefix"
-  prefix="$acl_save_prefix"
-
-                          if test "X$x" = "X-L$additional_libdir"; then
-                            haveit=yes
-                            break
-                          fi
-                        done
-                        if test -z "$haveit"; then
-                          if test -d "$additional_libdir"; then
-                                                        LIBPTH="${LIBPTH}${LIBPTH:+ }-L$additional_libdir"
-                          fi
-                        fi
-                        haveit=
-                        for x in $LDFLAGS $LTLIBPTH; do
-
-  acl_save_prefix="$prefix"
-  prefix="$acl_final_prefix"
-  acl_save_exec_prefix="$exec_prefix"
-  exec_prefix="$acl_final_exec_prefix"
-  eval x=\"$x\"
-  exec_prefix="$acl_save_exec_prefix"
-  prefix="$acl_save_prefix"
-
-                          if test "X$x" = "X-L$additional_libdir"; then
-                            haveit=yes
-                            break
-                          fi
-                        done
-                        if test -z "$haveit"; then
-                          if test -d "$additional_libdir"; then
-                                                        LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }-L$additional_libdir"
-                          fi
-                        fi
-                      fi
-                    fi
-                    ;;
-                  -R*)
-                    dir=`echo "X$dep" | sed -e 's/^X-R//'`
-                    if test "$enable_rpath" != no; then
-                                                                  haveit=
-                      for x in $rpathdirs; do
-                        if test "X$x" = "X$dir"; then
-                          haveit=yes
-                          break
-                        fi
-                      done
-                      if test -z "$haveit"; then
-                        rpathdirs="$rpathdirs $dir"
-                      fi
-                                                                  haveit=
-                      for x in $ltrpathdirs; do
-                        if test "X$x" = "X$dir"; then
-                          haveit=yes
-                          break
-                        fi
-                      done
-                      if test -z "$haveit"; then
-                        ltrpathdirs="$ltrpathdirs $dir"
-                      fi
-                    fi
-                    ;;
-                  -l*)
-                                        names_next_round="$names_next_round "`echo "X$dep" | sed -e 's/^X-l//'`
-                    ;;
-                  *.la)
-                                                                                names_next_round="$names_next_round "`echo "X$dep" | sed -e 's,^X.*/,,' -e 's,^lib,,' -e 's,\.la$,,'`
-                    ;;
-                  *)
-                                        LIBPTH="${LIBPTH}${LIBPTH:+ }$dep"
-                    LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }$dep"
-                    ;;
-                esac
-              done
-            fi
-          else
-                                                            LIBPTH="${LIBPTH}${LIBPTH:+ }-l$name"
-            LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }-l$name"
-          fi
-        fi
-      fi
-    done
-  done
-  if test "X$rpathdirs" != "X"; then
-    if test -n "$acl_hardcode_libdir_separator"; then
-                        alldirs=
-      for found_dir in $rpathdirs; do
-        alldirs="${alldirs}${alldirs:+$acl_hardcode_libdir_separator}$found_dir"
-      done
-            acl_save_libdir="$libdir"
-      libdir="$alldirs"
-      eval flag=\"$acl_hardcode_libdir_flag_spec\"
-      libdir="$acl_save_libdir"
-      LIBPTH="${LIBPTH}${LIBPTH:+ }$flag"
-    else
-            for found_dir in $rpathdirs; do
-        acl_save_libdir="$libdir"
-        libdir="$found_dir"
-        eval flag=\"$acl_hardcode_libdir_flag_spec\"
-        libdir="$acl_save_libdir"
-        LIBPTH="${LIBPTH}${LIBPTH:+ }$flag"
-      done
-    fi
-  fi
-  if test "X$ltrpathdirs" != "X"; then
-            for found_dir in $ltrpathdirs; do
-      LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }-R$found_dir"
-    done
-  fi
-
-    ac_cv_libpth_libs="$LIBPTH"
-    ac_cv_libpth_ltlibs="$LTLIBPTH"
-    ac_cv_libpth_cppflags="$INCPTH"
-    ac_cv_libpth_prefix="$LIBPTH_PREFIX"
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_libpth_libs" >&5
-$as_echo "$ac_cv_libpth_libs" >&6; }
-  LIBPTH="$ac_cv_libpth_libs"
-  LTLIBPTH="$ac_cv_libpth_ltlibs"
-  INCPTH="$ac_cv_libpth_cppflags"
-  LIBPTH_PREFIX="$ac_cv_libpth_prefix"
-
-  for element in $INCPTH; do
-    haveit=
-    for x in $CPPFLAGS; do
-
-  acl_save_prefix="$prefix"
-  prefix="$acl_final_prefix"
-  acl_save_exec_prefix="$exec_prefix"
-  exec_prefix="$acl_final_exec_prefix"
-  eval x=\"$x\"
-  exec_prefix="$acl_save_exec_prefix"
-  prefix="$acl_save_prefix"
-
-      if test "X$x" = "X$element"; then
-        haveit=yes
-        break
-      fi
-    done
-    if test -z "$haveit"; then
-      CPPFLAGS="${CPPFLAGS}${CPPFLAGS:+ }$element"
-    fi
-  done
-
-
-
-
-      HAVE_LIBPTH=yes
-
-
-
-      gl_have_pth=
-      gl_save_LIBS="$LIBS"
-      LIBS="$LIBS $LIBPTH"
-      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <pth.h>
-int
-main ()
-{
-pth_self();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  gl_have_pth=yes
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-      LIBS="$gl_save_LIBS"
-      if test -n "$gl_have_pth"; then
-        gl_threads_api=pth
-        LIBTHREAD="$LIBPTH"
-        LTLIBTHREAD="$LTLIBPTH"
-        LIBMULTITHREAD="$LIBTHREAD"
-        LTLIBMULTITHREAD="$LTLIBTHREAD"
-
-$as_echo "#define USE_PTH_THREADS 1" >>confdefs.h
-
-        if test -n "$LIBMULTITHREAD" || test -n "$LTLIBMULTITHREAD"; then
-          if case "$gl_cv_have_weak" in *yes) true;; *) false;; esac; then
-
-$as_echo "#define USE_PTH_THREADS_WEAK 1" >>confdefs.h
-
-            LIBTHREAD=
-            LTLIBTHREAD=
-          fi
-        fi
-      else
-        CPPFLAGS="$gl_save_CPPFLAGS"
-      fi
-    fi
-    if test -z "$gl_have_pthread"; then
-      if test "$gl_use_threads" = yes || test "$gl_use_threads" = win32; then
-        if { case "$host_os" in
-               mingw*) true;;
-               *) false;;
-             esac
-           }; then
-          gl_threads_api=win32
-
-$as_echo "#define USE_WIN32_THREADS 1" >>confdefs.h
-
-        fi
-      fi
-    fi
-  fi
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for multithread API to use" >&5
-$as_echo_n "checking for multithread API to use... " >&6; }
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_threads_api" >&5
-$as_echo "$gl_threads_api" >&6; }
-
-
-
-
-
-
-
-
-
-
   GNULIB_PTHREAD_SIGMASK=0;
   GNULIB_SIGNAL_H_SIGPIPE=0;
   GNULIB_SIGPROCMASK=0;
@@ -15656,10 +14635,18 @@ main ()
 
                   #undef memset
                   #define memset nonexistent_memset
-                  extern void *memset (void *, int, unsigned long);
+                  extern
+                  #ifdef __cplusplus
+                  "C"
+                  #endif
+                  void *memset (void *, int, unsigned long);
                   #undef bzero
                   #define bzero nonexistent_bzero
-                  extern void bzero (void *, unsigned long);
+                  extern
+                  #ifdef __cplusplus
+                  "C"
+                  #endif
+                  void bzero (void *, unsigned long);
                   fd_set fds;
                   FD_ZERO (&fds);
 
@@ -17302,6 +16289,879 @@ fi
 
 
 
+  gl_threads_api=none
+  LIBTHREAD=
+  LTLIBTHREAD=
+  LIBMULTITHREAD=
+  LTLIBMULTITHREAD=
+  if test "$gl_use_threads" != no; then
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether imported symbols can be declared weak" >&5
+$as_echo_n "checking whether imported symbols can be declared weak... " >&6; }
+if test "${gl_cv_have_weak+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  gl_cv_have_weak=no
+              cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+extern void xyzzy ();
+#pragma weak xyzzy
+int
+main ()
+{
+xyzzy();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  gl_cv_have_weak=maybe
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+       if test $gl_cv_have_weak = maybe; then
+                           if test "$cross_compiling" = yes; then :
+                          cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifdef __ELF__
+               Extensible Linking Format
+               #endif
+
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP "Extensible Linking Format" >/dev/null 2>&1; then :
+  gl_cv_have_weak="guessing yes"
+else
+  gl_cv_have_weak="guessing no"
+fi
+rm -f conftest*
+
+
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <stdio.h>
+#pragma weak fputs
+int main ()
+{
+  return (fputs == NULL);
+}
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  gl_cv_have_weak=yes
+else
+  gl_cv_have_weak=no
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+       fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_have_weak" >&5
+$as_echo "$gl_cv_have_weak" >&6; }
+    if test "$gl_use_threads" = yes || test "$gl_use_threads" = posix; then
+      # On OSF/1, the compiler needs the flag -pthread or -D_REENTRANT so that
+      # it groks <pthread.h>. It's added above, in gl_THREADLIB_EARLY_BODY.
+      ac_fn_c_check_header_mongrel "$LINENO" "pthread.h" "ac_cv_header_pthread_h" "$ac_includes_default"
+if test "x$ac_cv_header_pthread_h" = x""yes; then :
+  gl_have_pthread_h=yes
+else
+  gl_have_pthread_h=no
+fi
+
+
+      if test "$gl_have_pthread_h" = yes; then
+        # Other possible tests:
+        #   -lpthreads (FSU threads, PCthreads)
+        #   -lgthreads
+        gl_have_pthread=
+        # Test whether both pthread_mutex_lock and pthread_mutexattr_init exist
+        # in libc. IRIX 6.5 has the first one in both libc and libpthread, but
+        # the second one only in libpthread, and lock.c needs it.
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <pthread.h>
+int
+main ()
+{
+pthread_mutex_lock((pthread_mutex_t*)0);
+               pthread_mutexattr_init((pthread_mutexattr_t*)0);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  gl_have_pthread=yes
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+        # Test for libpthread by looking for pthread_kill. (Not pthread_self,
+        # since it is defined as a macro on OSF/1.)
+        if test -n "$gl_have_pthread"; then
+          # The program links fine without libpthread. But it may actually
+          # need to link with libpthread in order to create multiple threads.
+          { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_kill in -lpthread" >&5
+$as_echo_n "checking for pthread_kill in -lpthread... " >&6; }
+if test "${ac_cv_lib_pthread_pthread_kill+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpthread  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pthread_kill ();
+int
+main ()
+{
+return pthread_kill ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_pthread_pthread_kill=yes
+else
+  ac_cv_lib_pthread_pthread_kill=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_pthread_kill" >&5
+$as_echo "$ac_cv_lib_pthread_pthread_kill" >&6; }
+if test "x$ac_cv_lib_pthread_pthread_kill" = x""yes; then :
+  LIBMULTITHREAD=-lpthread LTLIBMULTITHREAD=-lpthread
+             # On Solaris and HP-UX, most pthread functions exist also in libc.
+             # Therefore pthread_in_use() needs to actually try to create a
+             # thread: pthread_create from libc will fail, whereas
+             # pthread_create will actually create a thread.
+             case "$host_os" in
+               solaris* | hpux*)
+
+$as_echo "#define PTHREAD_IN_USE_DETECTION_HARD 1" >>confdefs.h
+
+             esac
+
+fi
+
+        else
+          # Some library is needed. Try libpthread and libc_r.
+          { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_kill in -lpthread" >&5
+$as_echo_n "checking for pthread_kill in -lpthread... " >&6; }
+if test "${ac_cv_lib_pthread_pthread_kill+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpthread  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pthread_kill ();
+int
+main ()
+{
+return pthread_kill ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_pthread_pthread_kill=yes
+else
+  ac_cv_lib_pthread_pthread_kill=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pthread_pthread_kill" >&5
+$as_echo "$ac_cv_lib_pthread_pthread_kill" >&6; }
+if test "x$ac_cv_lib_pthread_pthread_kill" = x""yes; then :
+  gl_have_pthread=yes
+             LIBTHREAD=-lpthread LTLIBTHREAD=-lpthread
+             LIBMULTITHREAD=-lpthread LTLIBMULTITHREAD=-lpthread
+fi
+
+          if test -z "$gl_have_pthread"; then
+            # For FreeBSD 4.
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_kill in -lc_r" >&5
+$as_echo_n "checking for pthread_kill in -lc_r... " >&6; }
+if test "${ac_cv_lib_c_r_pthread_kill+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lc_r  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pthread_kill ();
+int
+main ()
+{
+return pthread_kill ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_c_r_pthread_kill=yes
+else
+  ac_cv_lib_c_r_pthread_kill=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_c_r_pthread_kill" >&5
+$as_echo "$ac_cv_lib_c_r_pthread_kill" >&6; }
+if test "x$ac_cv_lib_c_r_pthread_kill" = x""yes; then :
+  gl_have_pthread=yes
+               LIBTHREAD=-lc_r LTLIBTHREAD=-lc_r
+               LIBMULTITHREAD=-lc_r LTLIBMULTITHREAD=-lc_r
+fi
+
+          fi
+        fi
+        if test -n "$gl_have_pthread"; then
+          gl_threads_api=posix
+
+$as_echo "#define USE_POSIX_THREADS 1" >>confdefs.h
+
+          if test -n "$LIBMULTITHREAD" || test -n "$LTLIBMULTITHREAD"; then
+            if case "$gl_cv_have_weak" in *yes) true;; *) false;; esac; then
+
+$as_echo "#define USE_POSIX_THREADS_WEAK 1" >>confdefs.h
+
+              LIBTHREAD=
+              LTLIBTHREAD=
+            fi
+          fi
+        fi
+      fi
+    fi
+    if test -z "$gl_have_pthread"; then
+      if test "$gl_use_threads" = yes || test "$gl_use_threads" = solaris; then
+        gl_have_solaristhread=
+        gl_save_LIBS="$LIBS"
+        LIBS="$LIBS -lthread"
+        cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <thread.h>
+#include <synch.h>
+
+int
+main ()
+{
+thr_self();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  gl_have_solaristhread=yes
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+        LIBS="$gl_save_LIBS"
+        if test -n "$gl_have_solaristhread"; then
+          gl_threads_api=solaris
+          LIBTHREAD=-lthread
+          LTLIBTHREAD=-lthread
+          LIBMULTITHREAD="$LIBTHREAD"
+          LTLIBMULTITHREAD="$LTLIBTHREAD"
+
+$as_echo "#define USE_SOLARIS_THREADS 1" >>confdefs.h
+
+          if case "$gl_cv_have_weak" in *yes) true;; *) false;; esac; then
+
+$as_echo "#define USE_SOLARIS_THREADS_WEAK 1" >>confdefs.h
+
+            LIBTHREAD=
+            LTLIBTHREAD=
+          fi
+        fi
+      fi
+    fi
+    if test "$gl_use_threads" = pth; then
+      gl_save_CPPFLAGS="$CPPFLAGS"
+
+
+
+
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking how to link with libpth" >&5
+$as_echo_n "checking how to link with libpth... " >&6; }
+if test "${ac_cv_libpth_libs+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+
+
+
+
+    use_additional=yes
+
+  acl_save_prefix="$prefix"
+  prefix="$acl_final_prefix"
+  acl_save_exec_prefix="$exec_prefix"
+  exec_prefix="$acl_final_exec_prefix"
+
+    eval additional_includedir=\"$includedir\"
+    eval additional_libdir=\"$libdir\"
+
+  exec_prefix="$acl_save_exec_prefix"
+  prefix="$acl_save_prefix"
+
+
+# Check whether --with-libpth-prefix was given.
+if test "${with_libpth_prefix+set}" = set; then :
+  withval=$with_libpth_prefix;
+    if test "X$withval" = "Xno"; then
+      use_additional=no
+    else
+      if test "X$withval" = "X"; then
+
+  acl_save_prefix="$prefix"
+  prefix="$acl_final_prefix"
+  acl_save_exec_prefix="$exec_prefix"
+  exec_prefix="$acl_final_exec_prefix"
+
+          eval additional_includedir=\"$includedir\"
+          eval additional_libdir=\"$libdir\"
+
+  exec_prefix="$acl_save_exec_prefix"
+  prefix="$acl_save_prefix"
+
+      else
+        additional_includedir="$withval/include"
+        additional_libdir="$withval/$acl_libdirstem"
+      fi
+    fi
+
+fi
+
+      LIBPTH=
+  LTLIBPTH=
+  INCPTH=
+  LIBPTH_PREFIX=
+  rpathdirs=
+  ltrpathdirs=
+  names_already_handled=
+  names_next_round='pth '
+  while test -n "$names_next_round"; do
+    names_this_round="$names_next_round"
+    names_next_round=
+    for name in $names_this_round; do
+      already_handled=
+      for n in $names_already_handled; do
+        if test "$n" = "$name"; then
+          already_handled=yes
+          break
+        fi
+      done
+      if test -z "$already_handled"; then
+        names_already_handled="$names_already_handled $name"
+                        uppername=`echo "$name" | sed -e 'y|abcdefghijklmnopqrstuvwxyz./-|ABCDEFGHIJKLMNOPQRSTUVWXYZ___|'`
+        eval value=\"\$HAVE_LIB$uppername\"
+        if test -n "$value"; then
+          if test "$value" = yes; then
+            eval value=\"\$LIB$uppername\"
+            test -z "$value" || LIBPTH="${LIBPTH}${LIBPTH:+ }$value"
+            eval value=\"\$LTLIB$uppername\"
+            test -z "$value" || LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }$value"
+          else
+                                    :
+          fi
+        else
+                              found_dir=
+          found_la=
+          found_so=
+          found_a=
+          eval libname=\"$acl_libname_spec\"    # typically: libname=lib$name
+          if test -n "$acl_shlibext"; then
+            shrext=".$acl_shlibext"             # typically: shrext=.so
+          else
+            shrext=
+          fi
+          if test $use_additional = yes; then
+            dir="$additional_libdir"
+                                    if test -n "$acl_shlibext"; then
+              if test -f "$dir/$libname$shrext"; then
+                found_dir="$dir"
+                found_so="$dir/$libname$shrext"
+              else
+                if test "$acl_library_names_spec" = '$libname$shrext$versuffix'; then
+                  ver=`(cd "$dir" && \
+                        for f in "$libname$shrext".*; do echo "$f"; done \
+                        | sed -e "s,^$libname$shrext\\\\.,," \
+                        | sort -t '.' -n -r -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 \
+                        | sed 1q ) 2>/dev/null`
+                  if test -n "$ver" && test -f "$dir/$libname$shrext.$ver"; then
+                    found_dir="$dir"
+                    found_so="$dir/$libname$shrext.$ver"
+                  fi
+                else
+                  eval library_names=\"$acl_library_names_spec\"
+                  for f in $library_names; do
+                    if test -f "$dir/$f"; then
+                      found_dir="$dir"
+                      found_so="$dir/$f"
+                      break
+                    fi
+                  done
+                fi
+              fi
+            fi
+                        if test "X$found_dir" = "X"; then
+              if test -f "$dir/$libname.$acl_libext"; then
+                found_dir="$dir"
+                found_a="$dir/$libname.$acl_libext"
+              fi
+            fi
+            if test "X$found_dir" != "X"; then
+              if test -f "$dir/$libname.la"; then
+                found_la="$dir/$libname.la"
+              fi
+            fi
+          fi
+          if test "X$found_dir" = "X"; then
+            for x in $LDFLAGS $LTLIBPTH; do
+
+  acl_save_prefix="$prefix"
+  prefix="$acl_final_prefix"
+  acl_save_exec_prefix="$exec_prefix"
+  exec_prefix="$acl_final_exec_prefix"
+  eval x=\"$x\"
+  exec_prefix="$acl_save_exec_prefix"
+  prefix="$acl_save_prefix"
+
+              case "$x" in
+                -L*)
+                  dir=`echo "X$x" | sed -e 's/^X-L//'`
+                                    if test -n "$acl_shlibext"; then
+                    if test -f "$dir/$libname$shrext"; then
+                      found_dir="$dir"
+                      found_so="$dir/$libname$shrext"
+                    else
+                      if test "$acl_library_names_spec" = '$libname$shrext$versuffix'; then
+                        ver=`(cd "$dir" && \
+                              for f in "$libname$shrext".*; do echo "$f"; done \
+                              | sed -e "s,^$libname$shrext\\\\.,," \
+                              | sort -t '.' -n -r -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 \
+                              | sed 1q ) 2>/dev/null`
+                        if test -n "$ver" && test -f "$dir/$libname$shrext.$ver"; then
+                          found_dir="$dir"
+                          found_so="$dir/$libname$shrext.$ver"
+                        fi
+                      else
+                        eval library_names=\"$acl_library_names_spec\"
+                        for f in $library_names; do
+                          if test -f "$dir/$f"; then
+                            found_dir="$dir"
+                            found_so="$dir/$f"
+                            break
+                          fi
+                        done
+                      fi
+                    fi
+                  fi
+                                    if test "X$found_dir" = "X"; then
+                    if test -f "$dir/$libname.$acl_libext"; then
+                      found_dir="$dir"
+                      found_a="$dir/$libname.$acl_libext"
+                    fi
+                  fi
+                  if test "X$found_dir" != "X"; then
+                    if test -f "$dir/$libname.la"; then
+                      found_la="$dir/$libname.la"
+                    fi
+                  fi
+                  ;;
+              esac
+              if test "X$found_dir" != "X"; then
+                break
+              fi
+            done
+          fi
+          if test "X$found_dir" != "X"; then
+                        LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }-L$found_dir -l$name"
+            if test "X$found_so" != "X"; then
+                                                        if test "$enable_rpath" = no || test "X$found_dir" = "X/usr/$acl_libdirstem"; then
+                                LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
+              else
+                                                                                haveit=
+                for x in $ltrpathdirs; do
+                  if test "X$x" = "X$found_dir"; then
+                    haveit=yes
+                    break
+                  fi
+                done
+                if test -z "$haveit"; then
+                  ltrpathdirs="$ltrpathdirs $found_dir"
+                fi
+                                if test "$acl_hardcode_direct" = yes; then
+                                                      LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
+                else
+                  if test -n "$acl_hardcode_libdir_flag_spec" && test "$acl_hardcode_minus_L" = no; then
+                                                            LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
+                                                            haveit=
+                    for x in $rpathdirs; do
+                      if test "X$x" = "X$found_dir"; then
+                        haveit=yes
+                        break
+                      fi
+                    done
+                    if test -z "$haveit"; then
+                      rpathdirs="$rpathdirs $found_dir"
+                    fi
+                  else
+                                                                                haveit=
+                    for x in $LDFLAGS $LIBPTH; do
+
+  acl_save_prefix="$prefix"
+  prefix="$acl_final_prefix"
+  acl_save_exec_prefix="$exec_prefix"
+  exec_prefix="$acl_final_exec_prefix"
+  eval x=\"$x\"
+  exec_prefix="$acl_save_exec_prefix"
+  prefix="$acl_save_prefix"
+
+                      if test "X$x" = "X-L$found_dir"; then
+                        haveit=yes
+                        break
+                      fi
+                    done
+                    if test -z "$haveit"; then
+                      LIBPTH="${LIBPTH}${LIBPTH:+ }-L$found_dir"
+                    fi
+                    if test "$acl_hardcode_minus_L" != no; then
+                                                                                        LIBPTH="${LIBPTH}${LIBPTH:+ }$found_so"
+                    else
+                                                                                                                                                                                LIBPTH="${LIBPTH}${LIBPTH:+ }-l$name"
+                    fi
+                  fi
+                fi
+              fi
+            else
+              if test "X$found_a" != "X"; then
+                                LIBPTH="${LIBPTH}${LIBPTH:+ }$found_a"
+              else
+                                                LIBPTH="${LIBPTH}${LIBPTH:+ }-L$found_dir -l$name"
+              fi
+            fi
+                        additional_includedir=
+            case "$found_dir" in
+              */$acl_libdirstem | */$acl_libdirstem/)
+                basedir=`echo "X$found_dir" | sed -e 's,^X,,' -e "s,/$acl_libdirstem/"'*$,,'`
+                LIBPTH_PREFIX="$basedir"
+                additional_includedir="$basedir/include"
+                ;;
+            esac
+            if test "X$additional_includedir" != "X"; then
+                                                                                                                if test "X$additional_includedir" != "X/usr/include"; then
+                haveit=
+                if test "X$additional_includedir" = "X/usr/local/include"; then
+                  if test -n "$GCC"; then
+                    case $host_os in
+                      linux* | gnu* | k*bsd*-gnu) haveit=yes;;
+                    esac
+                  fi
+                fi
+                if test -z "$haveit"; then
+                  for x in $CPPFLAGS $INCPTH; do
+
+  acl_save_prefix="$prefix"
+  prefix="$acl_final_prefix"
+  acl_save_exec_prefix="$exec_prefix"
+  exec_prefix="$acl_final_exec_prefix"
+  eval x=\"$x\"
+  exec_prefix="$acl_save_exec_prefix"
+  prefix="$acl_save_prefix"
+
+                    if test "X$x" = "X-I$additional_includedir"; then
+                      haveit=yes
+                      break
+                    fi
+                  done
+                  if test -z "$haveit"; then
+                    if test -d "$additional_includedir"; then
+                                            INCPTH="${INCPTH}${INCPTH:+ }-I$additional_includedir"
+                    fi
+                  fi
+                fi
+              fi
+            fi
+                        if test -n "$found_la"; then
+                                                        save_libdir="$libdir"
+              case "$found_la" in
+                */* | *\\*) . "$found_la" ;;
+                *) . "./$found_la" ;;
+              esac
+              libdir="$save_libdir"
+                            for dep in $dependency_libs; do
+                case "$dep" in
+                  -L*)
+                    additional_libdir=`echo "X$dep" | sed -e 's/^X-L//'`
+                                                                                                                                                                if test "X$additional_libdir" != "X/usr/$acl_libdirstem"; then
+                      haveit=
+                      if test "X$additional_libdir" = "X/usr/local/$acl_libdirstem"; then
+                        if test -n "$GCC"; then
+                          case $host_os in
+                            linux* | gnu* | k*bsd*-gnu) haveit=yes;;
+                          esac
+                        fi
+                      fi
+                      if test -z "$haveit"; then
+                        haveit=
+                        for x in $LDFLAGS $LIBPTH; do
+
+  acl_save_prefix="$prefix"
+  prefix="$acl_final_prefix"
+  acl_save_exec_prefix="$exec_prefix"
+  exec_prefix="$acl_final_exec_prefix"
+  eval x=\"$x\"
+  exec_prefix="$acl_save_exec_prefix"
+  prefix="$acl_save_prefix"
+
+                          if test "X$x" = "X-L$additional_libdir"; then
+                            haveit=yes
+                            break
+                          fi
+                        done
+                        if test -z "$haveit"; then
+                          if test -d "$additional_libdir"; then
+                                                        LIBPTH="${LIBPTH}${LIBPTH:+ }-L$additional_libdir"
+                          fi
+                        fi
+                        haveit=
+                        for x in $LDFLAGS $LTLIBPTH; do
+
+  acl_save_prefix="$prefix"
+  prefix="$acl_final_prefix"
+  acl_save_exec_prefix="$exec_prefix"
+  exec_prefix="$acl_final_exec_prefix"
+  eval x=\"$x\"
+  exec_prefix="$acl_save_exec_prefix"
+  prefix="$acl_save_prefix"
+
+                          if test "X$x" = "X-L$additional_libdir"; then
+                            haveit=yes
+                            break
+                          fi
+                        done
+                        if test -z "$haveit"; then
+                          if test -d "$additional_libdir"; then
+                                                        LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }-L$additional_libdir"
+                          fi
+                        fi
+                      fi
+                    fi
+                    ;;
+                  -R*)
+                    dir=`echo "X$dep" | sed -e 's/^X-R//'`
+                    if test "$enable_rpath" != no; then
+                                                                  haveit=
+                      for x in $rpathdirs; do
+                        if test "X$x" = "X$dir"; then
+                          haveit=yes
+                          break
+                        fi
+                      done
+                      if test -z "$haveit"; then
+                        rpathdirs="$rpathdirs $dir"
+                      fi
+                                                                  haveit=
+                      for x in $ltrpathdirs; do
+                        if test "X$x" = "X$dir"; then
+                          haveit=yes
+                          break
+                        fi
+                      done
+                      if test -z "$haveit"; then
+                        ltrpathdirs="$ltrpathdirs $dir"
+                      fi
+                    fi
+                    ;;
+                  -l*)
+                                        names_next_round="$names_next_round "`echo "X$dep" | sed -e 's/^X-l//'`
+                    ;;
+                  *.la)
+                                                                                names_next_round="$names_next_round "`echo "X$dep" | sed -e 's,^X.*/,,' -e 's,^lib,,' -e 's,\.la$,,'`
+                    ;;
+                  *)
+                                        LIBPTH="${LIBPTH}${LIBPTH:+ }$dep"
+                    LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }$dep"
+                    ;;
+                esac
+              done
+            fi
+          else
+                                                            LIBPTH="${LIBPTH}${LIBPTH:+ }-l$name"
+            LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }-l$name"
+          fi
+        fi
+      fi
+    done
+  done
+  if test "X$rpathdirs" != "X"; then
+    if test -n "$acl_hardcode_libdir_separator"; then
+                        alldirs=
+      for found_dir in $rpathdirs; do
+        alldirs="${alldirs}${alldirs:+$acl_hardcode_libdir_separator}$found_dir"
+      done
+            acl_save_libdir="$libdir"
+      libdir="$alldirs"
+      eval flag=\"$acl_hardcode_libdir_flag_spec\"
+      libdir="$acl_save_libdir"
+      LIBPTH="${LIBPTH}${LIBPTH:+ }$flag"
+    else
+            for found_dir in $rpathdirs; do
+        acl_save_libdir="$libdir"
+        libdir="$found_dir"
+        eval flag=\"$acl_hardcode_libdir_flag_spec\"
+        libdir="$acl_save_libdir"
+        LIBPTH="${LIBPTH}${LIBPTH:+ }$flag"
+      done
+    fi
+  fi
+  if test "X$ltrpathdirs" != "X"; then
+            for found_dir in $ltrpathdirs; do
+      LTLIBPTH="${LTLIBPTH}${LTLIBPTH:+ }-R$found_dir"
+    done
+  fi
+
+    ac_cv_libpth_libs="$LIBPTH"
+    ac_cv_libpth_ltlibs="$LTLIBPTH"
+    ac_cv_libpth_cppflags="$INCPTH"
+    ac_cv_libpth_prefix="$LIBPTH_PREFIX"
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_libpth_libs" >&5
+$as_echo "$ac_cv_libpth_libs" >&6; }
+  LIBPTH="$ac_cv_libpth_libs"
+  LTLIBPTH="$ac_cv_libpth_ltlibs"
+  INCPTH="$ac_cv_libpth_cppflags"
+  LIBPTH_PREFIX="$ac_cv_libpth_prefix"
+
+  for element in $INCPTH; do
+    haveit=
+    for x in $CPPFLAGS; do
+
+  acl_save_prefix="$prefix"
+  prefix="$acl_final_prefix"
+  acl_save_exec_prefix="$exec_prefix"
+  exec_prefix="$acl_final_exec_prefix"
+  eval x=\"$x\"
+  exec_prefix="$acl_save_exec_prefix"
+  prefix="$acl_save_prefix"
+
+      if test "X$x" = "X$element"; then
+        haveit=yes
+        break
+      fi
+    done
+    if test -z "$haveit"; then
+      CPPFLAGS="${CPPFLAGS}${CPPFLAGS:+ }$element"
+    fi
+  done
+
+
+
+
+      HAVE_LIBPTH=yes
+
+
+
+      gl_have_pth=
+      gl_save_LIBS="$LIBS"
+      LIBS="$LIBS $LIBPTH"
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <pth.h>
+int
+main ()
+{
+pth_self();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  gl_have_pth=yes
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+      LIBS="$gl_save_LIBS"
+      if test -n "$gl_have_pth"; then
+        gl_threads_api=pth
+        LIBTHREAD="$LIBPTH"
+        LTLIBTHREAD="$LTLIBPTH"
+        LIBMULTITHREAD="$LIBTHREAD"
+        LTLIBMULTITHREAD="$LTLIBTHREAD"
+
+$as_echo "#define USE_PTH_THREADS 1" >>confdefs.h
+
+        if test -n "$LIBMULTITHREAD" || test -n "$LTLIBMULTITHREAD"; then
+          if case "$gl_cv_have_weak" in *yes) true;; *) false;; esac; then
+
+$as_echo "#define USE_PTH_THREADS_WEAK 1" >>confdefs.h
+
+            LIBTHREAD=
+            LTLIBTHREAD=
+          fi
+        fi
+      else
+        CPPFLAGS="$gl_save_CPPFLAGS"
+      fi
+    fi
+    if test -z "$gl_have_pthread"; then
+      if test "$gl_use_threads" = yes || test "$gl_use_threads" = win32; then
+        if { case "$host_os" in
+               mingw*) true;;
+               *) false;;
+             esac
+           }; then
+          gl_threads_api=win32
+
+$as_echo "#define USE_WIN32_THREADS 1" >>confdefs.h
+
+        fi
+      fi
+    fi
+  fi
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for multithread API to use" >&5
+$as_echo_n "checking for multithread API to use... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_threads_api" >&5
+$as_echo "$gl_threads_api" >&6; }
+
+
+
+
+
+
+
   :
 
 
@@ -17820,50 +17680,6 @@ Configuration aborted." "$LINENO" 5
 
 
 
-
-
-
-
-
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if environ is properly declared" >&5
-$as_echo_n "checking if environ is properly declared... " >&6; }
-  if test "${gt_cv_var_environ_declaration+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <unistd.h>
-           extern struct { int foo; } environ;
-int
-main ()
-{
-environ.foo = 1;
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  gt_cv_var_environ_declaration=no
-else
-  gt_cv_var_environ_declaration=yes
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_var_environ_declaration" >&5
-$as_echo "$gt_cv_var_environ_declaration" >&6; }
-  if test $gt_cv_var_environ_declaration = yes; then
-
-$as_echo "#define HAVE_ENVIRON_DECL 1" >>confdefs.h
-
-  fi
-
-
-  if test $gt_cv_var_environ_declaration != yes; then
-    HAVE_DECL_ENVIRON=0
-  fi
 
 ac_fn_c_check_decl "$LINENO" "strerror_r" "ac_cv_have_decl_strerror_r" "$ac_includes_default"
 if test "x$ac_cv_have_decl_strerror_r" = x""yes; then :
@@ -19489,6 +19305,7 @@ $as_echo "#define GNULIB_TEST_CLOEXEC 1" >>confdefs.h
 
 
 
+
   :
 
 
@@ -19519,9 +19336,12 @@ done
 
 
     if test $UNISTD_H_HAVE_WINSOCK2_H = 1; then
+                        REPLACE_CLOSE=1
+    fi
 
 
-  REPLACE_CLOSE=1
+
+if test $REPLACE_CLOSE = 1; then
 
 
 
@@ -19532,24 +19352,7 @@ done
 
   gl_LIBOBJS="$gl_LIBOBJS close.$ac_objext"
 
-
-
-  REPLACE_FCLOSE=1
-
-
-
-
-
-
-
-
-  gl_LIBOBJS="$gl_LIBOBJS fclose.$ac_objext"
-
-
-
-    fi
-
-
+fi
 
 
 
@@ -19760,18 +19563,12 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_dup2_works" >&5
 $as_echo "$gl_cv_func_dup2_works" >&6; }
     if test "$gl_cv_func_dup2_works" = no; then
-
-
-
-  :
-
-
-
-
-
-  if test $ac_cv_func_dup2 = yes; then
-    REPLACE_DUP2=1
+      REPLACE_DUP2=1
+    fi
   fi
+
+
+if test $HAVE_DUP2 = 0 || test $REPLACE_DUP2 = 1; then
 
 
 
@@ -19782,10 +19579,7 @@ $as_echo "$gl_cv_func_dup2_works" >&6; }
 
   gl_LIBOBJS="$gl_LIBOBJS dup2.$ac_objext"
 
-
-    fi
-  fi
-
+fi
 
 
 
@@ -19798,6 +19592,24 @@ $as_echo "$gl_cv_func_dup2_works" >&6; }
 
 
 $as_echo "#define GNULIB_TEST_DUP2 1" >>confdefs.h
+
+
+
+
+
+
+
+
+
+          GNULIB_ENVIRON=1
+
+
+
+
+
+$as_echo "#define GNULIB_TEST_ENVIRON 1" >>confdefs.h
+
+
 
 
 
@@ -19878,9 +19690,15 @@ fi
 $as_echo "$gl_cv_func_fflush_stdin" >&6; }
 
   if test $gl_cv_func_fflush_stdin = no; then
+    REPLACE_FCLOSE=1
+  fi
 
 
-  REPLACE_FCLOSE=1
+  if test $REPLACE_CLOSE = 1; then
+    REPLACE_FCLOSE=1
+  fi
+
+if test $REPLACE_FCLOSE = 1; then
 
 
 
@@ -19891,9 +19709,7 @@ $as_echo "$gl_cv_func_fflush_stdin" >&6; }
 
   gl_LIBOBJS="$gl_LIBOBJS fclose.$ac_objext"
 
-
-  fi
-
+fi
 
 
 
@@ -19935,16 +19751,6 @@ $as_echo "#define GNULIB_TEST_FCLOSE 1" >>confdefs.h
   else
     REPLACE_FCNTL=1
   fi
-
-
-
-
-
-
-
-
-  gl_LIBOBJS="$gl_LIBOBJS fcntl.$ac_objext"
-
 
   else
             { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether fcntl handles F_DUPFD correctly" >&5
@@ -20005,16 +19811,6 @@ $as_echo "$gl_cv_func_fcntl_f_dupfd_works" >&6; }
   else
     REPLACE_FCNTL=1
   fi
-
-
-
-
-
-
-
-
-  gl_LIBOBJS="$gl_LIBOBJS fcntl.$ac_objext"
-
 
 
 $as_echo "#define FCNTL_DUPFD_BUGGY 1" >>confdefs.h
@@ -20089,6 +19885,12 @@ $as_echo "$gl_cv_func_fcntl_f_dupfd_cloexec" >&6; }
     REPLACE_FCNTL=1
   fi
 
+          fi
+  fi
+
+
+if test $HAVE_FCNTL = 0 || test $REPLACE_FCNTL = 1; then
+
 
 
 
@@ -20098,10 +19900,7 @@ $as_echo "$gl_cv_func_fcntl_f_dupfd_cloexec" >&6; }
 
   gl_LIBOBJS="$gl_LIBOBJS fcntl.$ac_objext"
 
-
-          fi
-  fi
-
+fi
 
 
 
@@ -20291,6 +20090,7 @@ _ACEOF
 
 
 $as_echo "#define GNULIB_TEST_FFLUSH 1" >>confdefs.h
+
 
 
 
@@ -21450,7 +21250,11 @@ else
 #include <ws2tcpip.h>
 #endif
 #include <stddef.h>
-extern const char *gai_strerror(int);
+extern
+#ifdef __cplusplus
+"C"
+#endif
+const char *gai_strerror(int);
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
   gl_cv_func_gai_strerror_posix_signature=yes
@@ -23061,7 +22865,12 @@ else
 int
 main ()
 {
-extern int ioctl (int, int, ...);
+extern
+              #ifdef __cplusplus
+              "C"
+              #endif
+              int ioctl (int, int, ...);
+
   ;
   return 0;
 }
@@ -24535,7 +24344,6 @@ $as_echo "#define GNULIB_TEST_MEMCHR 1" >>confdefs.h
 
 
 
-
   :
 
 
@@ -25237,25 +25045,7 @@ GNULIB_UNISTD_H_NONBLOCKING=1
 
   case "$host_os" in
     mingw* | pw*)
-
-
-  REPLACE_OPEN=1
-
-
-
-
-
-
-
-
-  gl_LIBOBJS="$gl_LIBOBJS open.$ac_objext"
-
-
-
-
-  :
-
-
+      REPLACE_OPEN=1
       ;;
     *)
 
@@ -25323,38 +25113,24 @@ $as_echo "$gl_cv_func_open_slash" >&6; }
 
 $as_echo "#define OPEN_TRAILING_SLASH_BUG 1" >>confdefs.h
 
-
-
-  REPLACE_OPEN=1
-
-
-
-
-
-
-
-
-  gl_LIBOBJS="$gl_LIBOBJS open.$ac_objext"
-
-
-
-
-  :
-
-
+          REPLACE_OPEN=1
           ;;
       esac
       ;;
   esac
+
 
     if test $REPLACE_OPEN = 0; then
 
 
 
       if test $gl_cv_have_open_O_NONBLOCK != yes; then
+        REPLACE_OPEN=1
+      fi
+    fi
 
 
-  REPLACE_OPEN=1
+if test $REPLACE_OPEN = 1; then
 
 
 
@@ -25370,11 +25146,7 @@ $as_echo "#define OPEN_TRAILING_SLASH_BUG 1" >>confdefs.h
 
   :
 
-
-      fi
-    fi
-
-
+fi
 
 
 
@@ -26128,60 +25900,13 @@ fi
   LIB_PTHREAD_SIGMASK=
 
 
-    if test "$gl_threads_api" = posix; then
-      if test $ac_cv_func_pthread_sigmask = yes; then
-                :
-      else
-        if test -n "$LIBMULTITHREAD"; then
-          { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_sigmask in $LIBMULTITHREAD" >&5
-$as_echo_n "checking for pthread_sigmask in $LIBMULTITHREAD... " >&6; }
-if test "${gl_cv_func_pthread_sigmask_in_LIBMULTITHREAD+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  gl_save_LIBS="$LIBS"
-             LIBS="$LIBS $LIBMULTITHREAD"
-             cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <pthread.h>
-                    #include <signal.h>
-
-int
-main ()
-{
-return pthread_sigmask (0, (sigset_t *) 0, (sigset_t *) 0);
-  ;
-  return 0;
-}
-
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  gl_cv_func_pthread_sigmask_in_LIBMULTITHREAD=yes
-else
-  gl_cv_func_pthread_sigmask_in_LIBMULTITHREAD=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-             LIBS="$gl_save_LIBS"
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_pthread_sigmask_in_LIBMULTITHREAD" >&5
-$as_echo "$gl_cv_func_pthread_sigmask_in_LIBMULTITHREAD" >&6; }
-          if test $gl_cv_func_pthread_sigmask_in_LIBMULTITHREAD = yes; then
-                        LIB_PTHREAD_SIGMASK="$LIBMULTITHREAD"
-          else
-                        HAVE_PTHREAD_SIGMASK=0
-          fi
-        else
-                    HAVE_PTHREAD_SIGMASK=0
-        fi
-      fi
+                    if test $ac_cv_func_pthread_sigmask = yes; then
+                  :
     else
-                                          if test $ac_cv_func_pthread_sigmask = yes; then
-        REPLACE_PTHREAD_SIGMASK=1
-      else
-        HAVE_PTHREAD_SIGMASK=0
-      fi
+            HAVE_PTHREAD_SIGMASK=0
+                        REPLACE_PTHREAD_SIGMASK=1
     fi
+
 
 
 
@@ -29134,7 +28859,11 @@ main ()
 {
 
 #ifndef HAVE_DECL_STRNDUP
-  extern char *strndup (const char *, size_t);
+  extern
+  #ifdef __cplusplus
+  "C"
+  #endif
+  char *strndup (const char *, size_t);
 #endif
   char *s;
   s = strndup ("some longer string", 15);
@@ -29664,10 +29393,18 @@ main ()
 
                   #undef memset
                   #define memset nonexistent_memset
-                  extern void *memset (void *, int, unsigned long);
+                  extern
+                  #ifdef __cplusplus
+                  "C"
+                  #endif
+                  void *memset (void *, int, unsigned long);
                   #undef bzero
                   #define bzero nonexistent_bzero
-                  extern void bzero (void *, unsigned long);
+                  extern
+                  #ifdef __cplusplus
+                  "C"
+                  #endif
+                  void bzero (void *, unsigned long);
                   fd_set fds;
                   FD_ZERO (&fds);
 
@@ -30409,8 +30146,6 @@ $as_echo "$gl_cv_next_sys_wait_h" >&6; }
        gl_next_as_first_directive=$gl_cv_next_sys_wait_h
      fi
      NEXT_AS_FIRST_DIRECTIVE_SYS_WAIT_H=$gl_next_as_first_directive
-
-
 
 
 
@@ -32300,28 +32035,6 @@ $as_echo "$gt_cv_locale_tr_utf8" >&6; }
   :
 
 
-
-
-
-
-
-
-
-
-
-    if test "$GNULIB_ENVIRON" != 1; then
-        if test "$GNULIB_ENVIRON" = 0; then
-      GNULIB_ENVIRON=$gl_module_indicator_condition
-    else
-      GNULIB_ENVIRON="($GNULIB_ENVIRON || $gl_module_indicator_condition)"
-    fi
-  fi
-
-
-
-
-
-$as_echo "#define GNULIB_TEST_ENVIRON 1" >>confdefs.h
 
 
 
@@ -52992,6 +52705,7 @@ else
 fi
 
 
+save_CPPFLAGS="$CPPFLAGS"
 
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether NLS is requested" >&5
@@ -54714,6 +54428,19 @@ $as_echo "#define HAVE_DCGETTEXT 1" >>confdefs.h
 
 
 
+GETTEXT_CPPFLAGS=
+if test "x$save_CPPFLAGS" != "x$CPPFLAGS"; then
+ set dummy $CPPFLAGS; shift
+ for var
+ do
+   case " $var " in
+     " $save_CPPFLAGS ") ;;
+     *) GETTEXT_CPPFLAGS="$GETTEXT_CPPFLAGS $var" ;;
+   esac
+ done
+fi
+CPPFLAGS="$save_CPPFLAGS"
+
 
 ALL_LINGUAS=`cd "$srcdir/po" > /dev/null && ls *.po | sed 's+\.po$++'`
 
@@ -55590,9 +55317,23 @@ cp -f COPYING.LIB COPYING
 
 # Detect when running under the clang static analyzer's scan-build driver
 # or Coverity-prevent's cov-build.  Define STATIC_ANALYSIS accordingly.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether this build is done by a static analysis tool" >&5
+$as_echo_n "checking whether this build is done by a static analysis tool... " >&6; }
+if test "${lv_cv_static_analysis+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+    lv_cv_static_analysis=no
+    if test -n "${CCC_ANALYZER_ANALYSIS+set}" || \
+       test -n "$COVERITY_BUILD_COMMAND$COVERITY_LD_PRELOAD"; then
+      lv_cv_static_analysis=yes
+    fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $lv_cv_static_analysis" >&5
+$as_echo "$lv_cv_static_analysis" >&6; }
 t=0
-test -n "${CCC_ANALYZER_ANALYSIS+set}" && t=1
-test -n "$COVERITY_BUILD_COMMAND$COVERITY_LD_PRELOAD" && t=1
+test "x$lv_cv_static_analysis" = xyes && t=1
 
 cat >>confdefs.h <<_ACEOF
 #define STATIC_ANALYSIS $t

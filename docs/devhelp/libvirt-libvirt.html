@@ -1165,6 +1165,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_MIGRATE_PAUSED">VIR_MIGRATE_PAUSED</a> = 32 /* pause on remote side */
     <a name="VIR_MIGRATE_NON_SHARED_DISK">VIR_MIGRATE_NON_SHARED_DISK</a> = 64 /* migration with non-shared storage with full disk copy */
     <a name="VIR_MIGRATE_NON_SHARED_INC">VIR_MIGRATE_NON_SHARED_INC</a> = 128 /* migration with non-shared storage with incremental copy (same base image shared between source and destination) */
+    <a name="VIR_MIGRATE_CHANGE_PROTECTION">VIR_MIGRATE_CHANGE_PROTECTION</a> = 256 /* protect for changing domain configuration through the  whole migration process; this will be used automatically  when supported */
 };
 </pre><p/>
 </div>
@@ -2222,7 +2223,7 @@ less pressure on file system cache, but also risks slowing loads from NFS.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainCreateXML"/>virDomainCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainCreateXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags)<br/>
 </pre><p>Launch a new guest domain, based on an XML description similar
 to the one returned by virDomainGetXMLDesc()
-This function may requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 The domain is not persistent, so its definition will disappear when it
 is destroyed, or if the host is restarted (see virDomainDefineXML() to
 define persistent domains).
@@ -2298,9 +2299,9 @@ machine boots.</p>
 equal to the number of parameters suggested by @nparams.
 See <a href="libvirt-libvirt.html#virDomainGetMemoryParameters">virDomainGetMemoryParameters</a> for an equivalent usage example.
 
-This function requires privileged access to the hypervisor. This function
+This function may require privileged access to the hypervisor. This function
 expects the caller to allocate the @params.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to blkio parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of blkio parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to blkio parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of blkio parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetBlockInfo"/>virDomainGetBlockInfo ()</h3><pre class="programlisting">int	virDomainGetBlockInfo		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockInfoPtr">virDomainBlockInfoPtr</a> info, <br/>					 unsigned int flags)<br/>
 </pre><p>Extract information about a domain's block device.</p>
@@ -2375,7 +2376,7 @@ if ((virDomainGetMemoryParameters(dom, NULL, &amp;nparams, 0) == 0) &amp;&amp;
  goto error;
 }
 
-This function requires privileged access to the hypervisor. This function
+This function may require privileged access to the hypervisor. This function
 expects the caller to allocate the @params.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to memory parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of memory parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>one of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
@@ -2444,7 +2445,7 @@ an inactive domain.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetVcpusFlags"/>virDomainGetVcpusFlags ()</h3><pre class="programlisting">int	virDomainGetVcpusFlags		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags)<br/>
 </pre><p>Query the number of virtual CPUs used by the domain. Note that
 this call may fail if the underlying virtualization hypervisor does
-not support it. This function requires privileged access to the
+not support it. This function may require privileged access to the
 hypervisor.
 
 If @flags includes VIR_DOMAIN_AFFECT_LIVE, this will query a
@@ -2614,6 +2615,9 @@ Flags may be one of more of the following:
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> If the migration is successful, undefine the
  domain on the source host.
  <a href="libvirt-libvirt.html#VIR_MIGRATE_PAUSED">VIR_MIGRATE_PAUSED</a> Leave the domain suspended on the remote side.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION">VIR_MIGRATE_CHANGE_PROTECTION</a> Protect against domain configuration
+ changes during the migration process (set
+ automatically when supported).
 
 VIR_MIGRATE_TUNNELLED requires that <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> be set.
 Applications using the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> flag will probably
@@ -2668,6 +2672,9 @@ Flags may be one of more of the following:
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> If the migration is successful, undefine the
  domain on the source host.
  <a href="libvirt-libvirt.html#VIR_MIGRATE_PAUSED">VIR_MIGRATE_PAUSED</a> Leave the domain suspended on the remote side.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION">VIR_MIGRATE_CHANGE_PROTECTION</a> Protect against domain configuration
+ changes during the migration process (set
+ automatically when supported).
 
 VIR_MIGRATE_TUNNELLED requires that <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> be set.
 Applications using the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> flag will probably
@@ -2742,6 +2749,9 @@ Flags may be one of more of the following:
  on the destination host.
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> If the migration is successful, undefine the
  domain on the source host.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION">VIR_MIGRATE_CHANGE_PROTECTION</a> Protect against domain configuration
+ changes during the migration process (set
+ automatically when supported).
 
 The operation of this API hinges on the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> flag.
 If the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> flag is NOT set, the duri parameter
@@ -2791,6 +2801,9 @@ Flags may be one of more of the following:
  on the destination host.
  <a href="libvirt-libvirt.html#VIR_MIGRATE_UNDEFINE_SOURCE">VIR_MIGRATE_UNDEFINE_SOURCE</a> If the migration is successful, undefine the
  domain on the source host.
+ <a href="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION">VIR_MIGRATE_CHANGE_PROTECTION</a> Protect against domain configuration
+ changes during the migration process (set
+ automatically when supported).
 
 The operation of this API hinges on the <a href="libvirt-libvirt.html#VIR_MIGRATE_PEER2PEER">VIR_MIGRATE_PEER2PEER</a> flag.
 
@@ -2849,7 +2862,7 @@ mode for bi-directional I/O.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainPinVcpu"/>virDomainPinVcpu ()</h3><pre class="programlisting">int	virDomainPinVcpu		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int vcpu, <br/>					 unsigned char * cpumap, <br/>					 int maplen)<br/>
 </pre><p>Dynamically change the real CPUs which can be allocated to a virtual CPU.
-This function requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 This command only changes the runtime configuration of the domain,
 so can only be called on an active domain.</p>
@@ -2857,7 +2870,7 @@ so can only be called on an active domain.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainPinVcpuFlags"/>virDomainPinVcpuFlags ()</h3><pre class="programlisting">int	virDomainPinVcpuFlags		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int vcpu, <br/>					 unsigned char * cpumap, <br/>					 int maplen, <br/>					 unsigned int flags)<br/>
 </pre><p>Dynamically change the real CPUs which can be allocated to a virtual CPU.
-This function requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 @flags may include <a href="libvirt-libvirt.html#VIR_DOMAIN_AFFECT_LIVE">VIR_DOMAIN_AFFECT_LIVE</a> or VIR_DOMAIN_AFFECT_CONFIG.
 Both flags may be set.
@@ -2917,7 +2930,7 @@ pressure on file system cache, but also risks slowing saves to NFS.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainResume"/>virDomainResume ()</h3><pre class="programlisting">int	virDomainResume			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Resume a suspended domain, the process is restarted from the state where
 it was frozen by calling virSuspendDomain().
-This function may requires privileged access</p>
+This function may require privileged access</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainRevertToSnapshot"/>virDomainRevertToSnapshot ()</h3><pre class="programlisting">int	virDomainRevertToSnapshot	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags)<br/>
@@ -3006,14 +3019,14 @@ when the host machine boots.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetBlkioParameters"/>virDomainSetBlkioParameters ()</h3><pre class="programlisting">int	virDomainSetBlkioParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
 </pre><p>Change all or a subset of the blkio tunables.
-This function requires privileged access to the hypervisor.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to blkio parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of blkio parameters (this value can be the same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+This function may require privileged access to the hypervisor.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to blkio parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of blkio parameters (this value can be the same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetMaxMemory"/>virDomainSetMaxMemory ()</h3><pre class="programlisting">int	virDomainSetMaxMemory		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory)<br/>
 </pre><p>Dynamically change the maximum amount of physical memory allocated to a
 domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
-This function requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 This command is hypervisor-specific for whether active, persistent,
 or both configurations are changed; for more control, use
@@ -3024,7 +3037,7 @@ virDomainSetMemoryFlags().</p>
 </pre><p>Dynamically change the target amount of physical memory allocated to a
 domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
-This function may requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 This command only changes the runtime configuration of the domain,
 so can only be called on an active domain.</p>
@@ -3034,7 +3047,7 @@ so can only be called on an active domain.</p>
 </pre><p>Dynamically change the target amount of physical memory allocated to a
 domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
-This function may requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 @flags may include <a href="libvirt-libvirt.html#VIR_DOMAIN_AFFECT_LIVE">VIR_DOMAIN_AFFECT_LIVE</a> or VIR_DOMAIN_AFFECT_CONFIG.
 Both flags may be set. If <a href="libvirt-libvirt.html#VIR_DOMAIN_AFFECT_LIVE">VIR_DOMAIN_AFFECT_LIVE</a> is set, the change affects
@@ -3051,7 +3064,7 @@ Not all hypervisors can support all flag combinations.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetMemoryParameters"/>virDomainSetMemoryParameters ()</h3><pre class="programlisting">int	virDomainSetMemoryParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
 </pre><p>Change all or a subset of the memory tunables.
-This function requires privileged access to the hypervisor.</p>
+This function may require privileged access to the hypervisor.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to memory parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of memory parameter (this value can be the same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetSchedulerParameters"/>virDomainSetSchedulerParameters ()</h3><pre class="programlisting">int	virDomainSetSchedulerParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams)<br/>
@@ -3073,7 +3086,7 @@ flags are supported.</p>
 </pre><p>Dynamically change the number of virtual CPUs used by the domain.
 Note that this call may fail if the underlying virtualization hypervisor
 does not support it or if growing the number is arbitrary limited.
-This function requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 This command only changes the runtime configuration of the domain,
 so can only be called on an active domain. It is hypervisor-dependent
@@ -3085,7 +3098,7 @@ use virDomainSetVcpusFlags().</p>
 </pre><p>Dynamically change the number of virtual CPUs used by the domain.
 Note that this call may fail if the underlying virtualization hypervisor
 does not support it or if growing the number is arbitrary limited.
-This function requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 @flags may include <a href="libvirt-libvirt.html#VIR_DOMAIN_AFFECT_LIVE">VIR_DOMAIN_AFFECT_LIVE</a> to affect a running
 domain (which may fail if domain is not active), or
@@ -3160,7 +3173,7 @@ of the array.</p>
 to CPU resources and I/O but the memory used by the domain at the
 hypervisor level will stay allocated. Use virDomainResume() to reactivate
 the domain.
-This function may requires privileged access.</p>
+This function may require privileged access.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainUndefine"/>virDomainUndefine ()</h3><pre class="programlisting">int	virDomainUndefine		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
@@ -4104,7 +4117,7 @@ configuration this is either persistent across hosts,
 or dynamically assigned at pool startup. Consult
 pool documentation for information on getting the
 persistent naming</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the storage volume path, or NULL on error</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>vol</tt></i>:</span></td><td>pointer to storage volume</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the storage volume path, or NULL on error. The caller must free() the returned path after use.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStorageVolGetXMLDesc"/>virStorageVolGetXMLDesc ()</h3><pre class="programlisting">char *	virStorageVolGetXMLDesc		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags)<br/>
 </pre><p>Fetch an XML document describing all aspects of

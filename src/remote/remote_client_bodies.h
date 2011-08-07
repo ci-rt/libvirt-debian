@@ -1854,6 +1854,7 @@ remoteDomainSetBlkioParameters(virDomainPtr dom, virTypedParameterPtr params, in
     rv = 0;
 
 done:
+    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 }
@@ -1960,6 +1961,7 @@ remoteDomainSetMemoryParameters(virDomainPtr dom, virTypedParameterPtr params, i
     rv = 0;
 
 done:
+    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 }
@@ -1989,6 +1991,7 @@ remoteDomainSetSchedulerParameters(virDomainPtr dom, virTypedParameterPtr params
     rv = 0;
 
 done:
+    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 }
@@ -2019,6 +2022,7 @@ remoteDomainSetSchedulerParametersFlags(virDomainPtr dom, virTypedParameterPtr p
     rv = 0;
 
 done:
+    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 }

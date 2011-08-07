@@ -1366,6 +1366,7 @@ FLOAT_H = @FLOAT_H@
 FNMATCH_H = @FNMATCH_H@
 GETADDRINFO_LIB = @GETADDRINFO_LIB@
 GETHOSTNAME_LIB = @GETHOSTNAME_LIB@
+GETTEXT_CPPFLAGS = @GETTEXT_CPPFLAGS@
 GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GLIBC21 = @GLIBC21@
 GMSGFMT = @GMSGFMT@
@@ -1394,6 +1395,8 @@ GNULIB_FCLOSE = @GNULIB_FCLOSE@
 GNULIB_FCNTL = @GNULIB_FCNTL@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
 GNULIB_FFS = @GNULIB_FFS@
+GNULIB_FFSL = @GNULIB_FFSL@
+GNULIB_FFSLL = @GNULIB_FFSLL@
 GNULIB_FGETC = @GNULIB_FGETC@
 GNULIB_FGETS = @GNULIB_FGETS@
 GNULIB_FOPEN = @GNULIB_FOPEN@
@@ -1716,6 +1719,8 @@ HAVE_FCHOWNAT = @HAVE_FCHOWNAT@
 HAVE_FCNTL = @HAVE_FCNTL@
 HAVE_FEATURES_H = @HAVE_FEATURES_H@
 HAVE_FFS = @HAVE_FFS@
+HAVE_FFSL = @HAVE_FFSL@
+HAVE_FFSLL = @HAVE_FFSLL@
 HAVE_FSEEKO = @HAVE_FSEEKO@
 HAVE_FSTATAT = @HAVE_FSTATAT@
 HAVE_FSYNC = @HAVE_FSYNC@
@@ -2348,13 +2353,14 @@ top_srcdir = @top_srcdir@
 
 # No libraries with the exception of LIBXML should be listed
 # here. List them against the individual XXX_la_CFLAGS targets
-# that actually use them
+# that actually use them. Also keep GETTEXT_CPPFLAGS at the end.
 INCLUDES = -I$(top_srcdir)/gnulib/lib			\
 		-I../gnulib/lib					\
 		-I../include					\
 		-I@top_srcdir@/src/util				\
 		-I@top_srcdir@/include				\
-		-DIN_LIBVIRT
+		-DIN_LIBVIRT					\
+		$(GETTEXT_CPPFLAGS)
 
 AM_CFLAGS = $(DRIVER_MODULE_CFLAGS)				\
 		$(LIBXML_CFLAGS)				\
@@ -2908,6 +2914,7 @@ USED_SYM_FILES = libvirt_private.syms $(am__append_110) \
 @WITH_TEST_TRUE@libvirt_driver_test_la_SOURCES = $(TEST_DRIVER_SOURCES)
 @WITH_REMOTE_TRUE@libvirt_driver_remote_la_CFLAGS = \
 @WITH_REMOTE_TRUE@		$(GNUTLS_CFLAGS)				\
+@WITH_REMOTE_TRUE@		$(XDR_CFLAGS)					\
 @WITH_REMOTE_TRUE@		-I@top_srcdir@/src/conf				\
 @WITH_REMOTE_TRUE@		-I@top_srcdir@/src/rpc				\
 @WITH_REMOTE_TRUE@		$(AM_CFLAGS)
@@ -3153,6 +3160,7 @@ libvirt_net_rpc_server_la_SOURCES = rpc/virnetserverprogram.h \
 	$(am__append_126)
 libvirt_net_rpc_server_la_CFLAGS = \
 			$(AVAHI_CFLAGS) \
+			$(XDR_CFLAGS) \
 			$(AM_CFLAGS) \
 			$(POLKIT_CFLAGS)
 
@@ -3172,7 +3180,8 @@ libvirt_net_rpc_client_la_SOURCES = \
 	rpc/virnetclient.h rpc/virnetclient.c
 
 libvirt_net_rpc_client_la_CFLAGS = \
-			$(AM_CFLAGS)
+			$(AM_CFLAGS) \
+			$(XDR_CFLAGS)
 
 libvirt_net_rpc_client_la_LDFLAGS = \
 			$(AM_LDFLAGS) \

@@ -38,10 +38,10 @@
 
 #ifdef WIN32
 
-static int
-mymain(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+int
+main(void)
 {
-    exit (EXIT_AM_SKIP);
+    return EXIT_AM_SKIP;
 }
 
 #else
@@ -566,9 +566,9 @@ cleanup:
  */
 static int test16(const void *unused ATTRIBUTE_UNUSED)
 {
-    virCommandPtr cmd = virCommandNew("/bin/true");
+    virCommandPtr cmd = virCommandNew("true");
     char *outactual = NULL;
-    const char *outexpect = "A=B /bin/true C";
+    const char *outexpect = "A=B true C";
     int ret = -1;
     int fd = -1;
 
@@ -610,7 +610,7 @@ cleanup:
  */
 static int test17(const void *unused ATTRIBUTE_UNUSED)
 {
-    virCommandPtr cmd = virCommandNew("/bin/true");
+    virCommandPtr cmd = virCommandNew("true");
     int ret = -1;
     char *outbuf;
     char *errbuf;
@@ -814,6 +814,6 @@ mymain(void)
     return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
-#endif /* !WIN32 */
-
 VIRT_TEST_MAIN(mymain)
+
+#endif /* !WIN32 */

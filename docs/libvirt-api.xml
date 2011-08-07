@@ -231,6 +231,7 @@
      <exports symbol='VIR_KEYCODE_SET_XT_KBD' type='enum'/>
      <exports symbol='VIR_MEMORY_PHYSICAL' type='enum'/>
      <exports symbol='VIR_MEMORY_VIRTUAL' type='enum'/>
+     <exports symbol='VIR_MIGRATE_CHANGE_PROTECTION' type='enum'/>
      <exports symbol='VIR_MIGRATE_LIVE' type='enum'/>
      <exports symbol='VIR_MIGRATE_NON_SHARED_DISK' type='enum'/>
      <exports symbol='VIR_MIGRATE_NON_SHARED_INC' type='enum'/>
@@ -1351,6 +1352,9 @@ formed or broken'/>
     <enum name='VIR_KEYCODE_SET_XT_KBD' file='libvirt' value='6' type='virKeycodeSet'/>
     <enum name='VIR_MEMORY_PHYSICAL' file='libvirt' value='2' type='virDomainMemoryFlags' info='addresses are physical addresses'/>
     <enum name='VIR_MEMORY_VIRTUAL' file='libvirt' value='1' type='virDomainMemoryFlags' info='addresses are virtual addresses'/>
+    <enum name='VIR_MIGRATE_CHANGE_PROTECTION' file='libvirt' value='256' type='virDomainMigrateFlags' info='protect for changing domain configuration through the
+ whole migration process; this will be used automatically
+ when supported'/>
     <enum name='VIR_MIGRATE_LIVE' file='libvirt' value='1' type='virDomainMigrateFlags' info='live migration'/>
     <enum name='VIR_MIGRATE_NON_SHARED_DISK' file='libvirt' value='64' type='virDomainMigrateFlags' info='migration with non-shared storage with full disk copy'/>
     <enum name='VIR_MIGRATE_NON_SHARED_INC' file='libvirt' value='128' type='virDomainMigrateFlags' info='migration with non-shared storage with incremental copy (same base image shared between source and destination)'/>
@@ -2499,7 +2503,7 @@ less pressure on file system cache, but also risks slowing loads from NFS.]]></i
     <function name='virDomainCreateXML' file='libvirt' module='libvirt'>
       <info><![CDATA[Launch a new guest domain, based on an XML description similar
 to the one returned by virDomainGetXMLDesc()
-This function may requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 The domain is not persistent, so its definition will disappear when it
 is destroyed, or if the host is restarted (see virDomainDefineXML() to
 define persistent domains).
@@ -2591,13 +2595,13 @@ machine boots.]]></info>
 equal to the number of parameters suggested by @nparams.
 See virDomainGetMemoryParameters for an equivalent usage example.
 
-This function requires privileged access to the hypervisor. This function
+This function may require privileged access to the hypervisor. This function
 expects the caller to allocate the @params.]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to blkio parameter object (return value, allocated by the caller)'/>
       <arg name='nparams' type='int *' info='pointer to number of blkio parameters'/>
-      <arg name='flags' type='unsigned int' info='currently unused, for future extension'/>
+      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainModificationImpact'/>
     </function>
     <function name='virDomainGetBlockInfo' file='libvirt' module='libvirt'>
       <info><![CDATA[Extract information about a domain's block device.]]></info>
@@ -2691,7 +2695,7 @@ if ((virDomainGetMemoryParameters(dom, NULL, &nparams, 0) == 0) &&
         goto error;
 }
 
-This function requires privileged access to the hypervisor. This function
+This function may require privileged access to the hypervisor. This function
 expects the caller to allocate the @params.]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
@@ -2795,7 +2799,7 @@ an inactive domain.]]></info>
     <function name='virDomainGetVcpusFlags' file='libvirt' module='libvirt'>
       <info><![CDATA[Query the number of virtual CPUs used by the domain.  Note that
 this call may fail if the underlying virtualization hypervisor does
-not support it.  This function requires privileged access to the
+not support it.  This function may require privileged access to the
 hypervisor.
 
 If @flags includes VIR_DOMAIN_AFFECT_LIVE, this will query a
@@ -3003,6 +3007,9 @@ Flags may be one of more of the following:
   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
                               domain on the source host.
   VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
+  VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
+                                changes during the migration process (set
+                                automatically when supported).
 
 VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
 Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -3063,6 +3070,9 @@ Flags may be one of more of the following:
   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
                               domain on the source host.
   VIR_MIGRATE_PAUSED    Leave the domain suspended on the remote side.
+  VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
+                                changes during the migration process (set
+                                automatically when supported).
 
 VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
 Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -3150,6 +3160,9 @@ Flags may be one of more of the following:
                            on the destination host.
   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
                               domain on the source host.
+  VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
+                                changes during the migration process (set
+                                automatically when supported).
 
 The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
 If the VIR_MIGRATE_PEER2PEER flag is NOT set, the duri parameter
@@ -3204,6 +3217,9 @@ Flags may be one of more of the following:
                            on the destination host.
   VIR_MIGRATE_UNDEFINE_SOURCE If the migration is successful, undefine the
                               domain on the source host.
+  VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
+                                changes during the migration process (set
+                                automatically when supported).
 
 The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
 
@@ -3273,7 +3289,7 @@ mode for bi-directional I/O.]]></info>
     </function>
     <function name='virDomainPinVcpu' file='libvirt' module='libvirt'>
       <info><![CDATA[Dynamically change the real CPUs which can be allocated to a virtual CPU.
-This function requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 This command only changes the runtime configuration of the domain,
 so can only be called on an active domain.]]></info>
@@ -3285,7 +3301,7 @@ so can only be called on an active domain.]]></info>
     </function>
     <function name='virDomainPinVcpuFlags' file='libvirt' module='libvirt'>
       <info><![CDATA[Dynamically change the real CPUs which can be allocated to a virtual CPU.
-This function requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 @flags may include VIR_DOMAIN_AFFECT_LIVE or VIR_DOMAIN_AFFECT_CONFIG.
 Both flags may be set.
@@ -3359,7 +3375,7 @@ pressure on file system cache, but also risks slowing saves to NFS.]]></info>
     <function name='virDomainResume' file='libvirt' module='libvirt'>
       <info><![CDATA[Resume a suspended domain, the process is restarted from the state where
 it was frozen by calling virSuspendDomain().
-This function may requires privileged access]]></info>
+This function may require privileged access]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
     </function>
@@ -3476,18 +3492,18 @@ when the host machine boots.]]></info>
     </function>
     <function name='virDomainSetBlkioParameters' file='libvirt' module='libvirt'>
       <info><![CDATA[Change all or a subset of the blkio tunables.
-This function requires privileged access to the hypervisor.]]></info>
+This function may require privileged access to the hypervisor.]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to blkio parameter objects'/>
       <arg name='nparams' type='int' info='number of blkio parameters (this value can be the same or less than the number of parameters supported)'/>
-      <arg name='flags' type='unsigned int' info='currently unused, for future extension'/>
+      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainModificationImpact'/>
     </function>
     <function name='virDomainSetMaxMemory' file='libvirt' module='libvirt'>
       <info><![CDATA[Dynamically change the maximum amount of physical memory allocated to a
 domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
-This function requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 This command is hypervisor-specific for whether active, persistent,
 or both configurations are changed; for more control, use
@@ -3500,7 +3516,7 @@ virDomainSetMemoryFlags().]]></info>
       <info><![CDATA[Dynamically change the target amount of physical memory allocated to a
 domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
-This function may requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 This command only changes the runtime configuration of the domain,
 so can only be called on an active domain.]]></info>
@@ -3512,7 +3528,7 @@ so can only be called on an active domain.]]></info>
       <info><![CDATA[Dynamically change the target amount of physical memory allocated to a
 domain. If domain is NULL, then this change the amount of memory reserved
 to Domain0 i.e. the domain where the application runs.
-This function may requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 @flags may include VIR_DOMAIN_AFFECT_LIVE or VIR_DOMAIN_AFFECT_CONFIG.
 Both flags may be set. If VIR_DOMAIN_AFFECT_LIVE is set, the change affects
@@ -3532,7 +3548,7 @@ Not all hypervisors can support all flag combinations.]]></info>
     </function>
     <function name='virDomainSetMemoryParameters' file='libvirt' module='libvirt'>
       <info><![CDATA[Change all or a subset of the memory tunables.
-This function requires privileged access to the hypervisor.]]></info>
+This function may require privileged access to the hypervisor.]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to memory parameter objects'/>
@@ -3565,7 +3581,7 @@ flags are supported.]]></info>
       <info><![CDATA[Dynamically change the number of virtual CPUs used by the domain.
 Note that this call may fail if the underlying virtualization hypervisor
 does not support it or if growing the number is arbitrary limited.
-This function requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 This command only changes the runtime configuration of the domain,
 so can only be called on an active domain.  It is hypervisor-dependent
@@ -3579,7 +3595,7 @@ use virDomainSetVcpusFlags().]]></info>
       <info><![CDATA[Dynamically change the number of virtual CPUs used by the domain.
 Note that this call may fail if the underlying virtualization hypervisor
 does not support it or if growing the number is arbitrary limited.
-This function requires privileged access to the hypervisor.
+This function may require privileged access to the hypervisor.
 
 @flags may include VIR_DOMAIN_AFFECT_LIVE to affect a running
 domain (which may fail if domain is not active), or
@@ -3677,7 +3693,7 @@ of the array.]]></info>
 to CPU resources and I/O but the memory used by the domain at the
 hypervisor level will stay allocated. Use virDomainResume() to reactivate
 the domain.
-This function may requires privileged access.]]></info>
+This function may require privileged access.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
     </function>
@@ -4993,7 +5009,7 @@ configuration this is either persistent across hosts,
 or dynamically assigned at pool startup. Consult
 pool documentation for information on getting the
 persistent naming]]></info>
-      <return type='char *' info='the storage volume path, or NULL on error'/>
+      <return type='char *' info='the storage volume path, or NULL on error. The caller must free() the returned path after use.'/>
       <arg name='vol' type='virStorageVolPtr' info='pointer to storage volume'/>
     </function>
     <function name='virStorageVolGetXMLDesc' file='libvirt' module='libvirt'>
