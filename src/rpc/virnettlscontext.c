@@ -139,6 +139,15 @@ static int virNetTLSContextCheckCertTimes(gnutls_x509_crt_t cert,
     return 0;
 }
 
+
+#ifndef GNUTLS_1_0_COMPAT
+/*
+ * The gnutls_x509_crt_get_basic_constraints function isn't
+ * available in GNUTLS 1.0.x branches. This isn't critical
+ * though, since gnutls_certificate_verify_peers2 will do
+ * pretty much the same check at runtime, so we can just
+ * disable this code
+ */
 static int virNetTLSContextCheckCertBasicConstraints(gnutls_x509_crt_t cert,
                                                      const char *certFile,
                                                      bool isServer,
@@ -180,6 +189,8 @@ static int virNetTLSContextCheckCertBasicConstraints(gnutls_x509_crt_t cert,
 
     return 0;
 }
+#endif
+
 
 static int virNetTLSContextCheckCertKeyUsage(gnutls_x509_crt_t cert,
                                              const char *certFile,
@@ -253,7 +264,7 @@ static int virNetTLSContextCheckCertKeyPurpose(gnutls_x509_crt_t cert,
     int i;
     unsigned int purposeCritical;
     unsigned int critical;
-    char *buffer;
+    char *buffer = NULL;
     size_t size;
     bool allowClient = false, allowServer = false;
 
@@ -412,9 +423,11 @@ static int virNetTLSContextCheckCert(gnutls_x509_crt_t cert,
                                        isServer, isCA) < 0)
         return -1;
 
+#ifndef GNUTLS_1_0_COMPAT
     if (virNetTLSContextCheckCertBasicConstraints(cert, certFile,
                                                   isServer, isCA) < 0)
         return -1;
+#endif
 
     if (virNetTLSContextCheckCertKeyUsage(cert, certFile,
                                           isCA) < 0)
@@ -1019,11 +1032,13 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
             /* !sess->isServer, since on the client, we're validating the
              * server's cert, and on the server, the client's cert
              */
+#ifndef GNUTLS_1_0_COMPAT
             if (virNetTLSContextCheckCertBasicConstraints(cert, "[session]",
                                                           !sess->isServer, false) < 0) {
                 gnutls_x509_crt_deinit(cert);
                 goto authdeny;
             }
+#endif
 
             if (virNetTLSContextCheckCertKeyUsage(cert, "[session]",
                                                   false) < 0) {
@@ -1144,7 +1159,8 @@ virNetTLSSessionPtr virNetTLSSessionNew(virNetTLSContextPtr ctxt,
     virNetTLSSessionPtr sess;
     int err;
 
-    VIR_DEBUG("ctxt=%p hostname=%s isServer=%d", ctxt, NULLSTR(hostname), ctxt->isServer);
+    VIR_DEBUG("ctxt=%p hostname=%s isServer=%d",
+              ctxt, NULLSTR(hostname), ctxt->isServer);
 
     if (VIR_ALLOC(sess) < 0) {
         virReportOOMError();
@@ -1154,7 +1170,7 @@ virNetTLSSessionPtr virNetTLSSessionNew(virNetTLSContextPtr ctxt,
     if (virMutexInit(&sess->lock) < 0) {
         virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
                     _("Failed to initialized mutex"));
-        VIR_FREE(ctxt);
+        VIR_FREE(sess);
         return NULL;
     }
 

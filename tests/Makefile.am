@@ -1,5 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
+## Copyright (C) 2005-2011 Red Hat, Inc.
+## See COPYING.LIB for the License of this software
+
 SHELL = $(PREFERABLY_POSIX_SHELL)
 
 INCLUDES = \
@@ -8,7 +11,8 @@ INCLUDES = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/util \
-	-I$(top_srcdir)/src/conf
+	-I$(top_srcdir)/src/conf \
+	$(GETTEXT_CPPFLAGS)
 
 AM_CFLAGS = \
 	$(LIBXML_CFLAGS) \
@@ -255,13 +259,17 @@ TESTS += interfacexml2xmltest
 
 TESTS += cputest
 
-path_add = $$abs_top_builddir/daemon$(PATH_SEPARATOR)$$abs_top_builddir/tools$(PATH_SEPARATOR)$$abs_top_builddir/tests
-
 # NB, automake < 1.10 does not provide the real
 # abs_top_{src/build}dir or builddir variables, so don't rely
 # on them here. Fake them with 'pwd'
+# Also, BSD sh doesn't like 'a=b b=$$a', so we can't use an
+# intermediate shell variable, but must do all the expansion in make
+
+lv_abs_top_builddir=`cd '$(top_builddir)'; pwd`
+path_add = $(lv_abs_top_builddir)/daemon$(PATH_SEPARATOR)$(lv_abs_top_builddir)/tools$(PATH_SEPARATOR)$(lv_abs_top_builddir)/tests
+
 TESTS_ENVIRONMENT =				\
-  abs_top_builddir=`cd '$(top_builddir)'; pwd`	\
+  abs_top_builddir=$(lv_abs_top_builddir)	\
   abs_top_srcdir=`cd '$(top_srcdir)'; pwd`	\
   abs_builddir=`pwd`				\
   abs_srcdir=`cd '$(srcdir)'; pwd`		\

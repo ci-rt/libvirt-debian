@@ -15,8 +15,6 @@
 
 @SET_MAKE@
 
-# -*- buffer-read-only: t -*- vi: set ro:
-# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # Copyright (C) 2002-2011 Free Software Foundation, Inc.
 #
 # This file is free software, distributed under the terms of the GNU
@@ -47,6 +45,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
+	$(srcdir)/Makefile.in $(srcdir)/gnulib.mk
 TESTS = test-alignof$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-areadlink$(EXEEXT) test-arpa_inet$(EXEEXT) \
 	test-base64$(EXEEXT) test-binary-io.sh test-btowc1.sh \
@@ -188,8 +188,6 @@ check_PROGRAMS = test-alignof$(EXEEXT) test-alloca-opt$(EXEEXT) \
 @POSIX_SPAWN_PORTED_TRUE@	test-posix_spawn2.sh \
 @POSIX_SPAWN_PORTED_TRUE@	test-posix_spawn2.sh-t
 subdir = gnulib/tests
-DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
@@ -1298,6 +1296,7 @@ FLOAT_H = @FLOAT_H@
 FNMATCH_H = @FNMATCH_H@
 GETADDRINFO_LIB = @GETADDRINFO_LIB@
 GETHOSTNAME_LIB = @GETHOSTNAME_LIB@
+GETTEXT_CPPFLAGS = @GETTEXT_CPPFLAGS@
 GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GLIBC21 = @GLIBC21@
 GMSGFMT = @GMSGFMT@
@@ -1326,6 +1325,8 @@ GNULIB_FCLOSE = @GNULIB_FCLOSE@
 GNULIB_FCNTL = @GNULIB_FCNTL@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
 GNULIB_FFS = @GNULIB_FFS@
+GNULIB_FFSL = @GNULIB_FFSL@
+GNULIB_FFSLL = @GNULIB_FFSLL@
 GNULIB_FGETC = @GNULIB_FGETC@
 GNULIB_FGETS = @GNULIB_FGETS@
 GNULIB_FOPEN = @GNULIB_FOPEN@
@@ -1648,6 +1649,8 @@ HAVE_FCHOWNAT = @HAVE_FCHOWNAT@
 HAVE_FCNTL = @HAVE_FCNTL@
 HAVE_FEATURES_H = @HAVE_FEATURES_H@
 HAVE_FFS = @HAVE_FFS@
+HAVE_FFSL = @HAVE_FFSL@
+HAVE_FFSLL = @HAVE_FFSLL@
 HAVE_FSEEKO = @HAVE_FSEEKO@
 HAVE_FSTATAT = @HAVE_FSTATAT@
 HAVE_FSYNC = @HAVE_FSYNC@
@@ -2296,12 +2299,10 @@ noinst_HEADERS =
 noinst_LIBRARIES = 
 check_LIBRARIES = libtests.a
 EXTRA_DIST = test-alignof.c test-alloca-opt.c test-areadlink.h \
-	test-areadlink.c macros.h \
-	$(top_srcdir)/build-aux/arg-nonnull.h test-arpa_inet.c \
-	test-base64.c macros.h test-binary-io.sh test-binary-io.c \
-	macros.h btowc.c test-btowc1.sh test-btowc2.sh test-btowc.c \
-	signature.h macros.h test-byteswap.c macros.h \
-	$(top_srcdir)/build-aux/c++defs.h test-c-ctype.c macros.h \
+	test-areadlink.c macros.h test-arpa_inet.c test-base64.c \
+	macros.h test-binary-io.sh test-binary-io.c macros.h btowc.c \
+	test-btowc1.sh test-btowc2.sh test-btowc.c signature.h \
+	macros.h test-byteswap.c macros.h test-c-ctype.c macros.h \
 	test-c-strcase.sh test-c-strcasecmp.c test-c-strncasecmp.c \
 	macros.h test-c-strcasestr.c macros.h test-canonicalize-lgpl.c \
 	signature.h macros.h nap.h test-chown.h test-chown.c \
@@ -2365,35 +2366,38 @@ EXTRA_DIST = test-alignof.c test-alloca-opt.c test-areadlink.h \
 	test-rawmemchr.c zerosize-ptr.h signature.h macros.h read.c \
 	test-readlink.h test-readlink.c signature.h macros.h realloc.c \
 	test-realloc-gnu.c same-inode.h test-sched.c macros.h \
-	signature.h test-select.c test-select-fd.c test-select-in.sh \
-	test-select-out.sh test-select-stdin.c setenv.c test-setenv.c \
-	signature.h macros.h setlocale.c test-setlocale1.sh \
-	test-setlocale1.c test-setlocale2.sh test-setlocale2.c \
-	signature.h macros.h test-sigaction.c signature.h macros.h \
-	test-signal.c test-sigpipe.c test-sigpipe.sh \
-	test-sigprocmask.c signature.h macros.h test-sleep.c \
-	signature.h macros.h test-snprintf.c signature.h macros.h \
-	test-sockets.c spawn.in.h test-spawn.c test-stat.h test-stat.c \
-	signature.h macros.h stat-time.h test-stat-time.c macros.h \
-	test-stdbool.c test-stddef.c test-stdint.c test-stdio.c \
-	test-stdlib.c test-sys_wait.h test-strchrnul.c signature.h \
-	macros.h test-strerror.c signature.h macros.h \
-	test-strerror_r.c signature.h macros.h test-string.c \
-	test-strings.c test-strnlen.c zerosize-ptr.h signature.h \
-	macros.h symlink.c test-symlink.h test-symlink.c signature.h \
-	macros.h test-sys_ioctl.c test-sys_select.c test-sys_socket.c \
-	test-sys_stat.c test-sys_time.c test-sys_uio.c \
-	test-sys_utsname.c test-sys_wait.c test-sys_wait.h \
-	test-termios.c test-thread_self.c test-thread_create.c \
-	macros.h test-time.c test-uname.c signature.h macros.h \
-	test-unistd.c unsetenv.c test-unsetenv.c signature.h macros.h \
-	test-usleep.c signature.h macros.h test-vasnprintf.c macros.h \
-	test-vasprintf.c signature.h macros.h \
-	test-vc-list-files-git.sh test-vc-list-files-cvs.sh init.sh \
-	test-verify.c test-verify.sh init.sh test-vsnprintf.c \
-	signature.h macros.h $(top_srcdir)/build-aux/warn-on-use.h \
-	test-wchar.c wcrtomb.c test-wcrtomb.sh test-wcrtomb.c \
-	test-wcrtomb-w32-1.sh test-wcrtomb-w32-2.sh \
+	signature.h test-select.c test-select.h test-select-fd.c \
+	test-select-in.sh test-select-out.sh test-select-stdin.c \
+	setenv.c test-setenv.c signature.h macros.h setlocale.c \
+	test-setlocale1.sh test-setlocale1.c test-setlocale2.sh \
+	test-setlocale2.c signature.h macros.h test-sigaction.c \
+	signature.h macros.h test-signal.c test-sigpipe.c \
+	test-sigpipe.sh test-sigprocmask.c signature.h macros.h \
+	test-sleep.c signature.h macros.h \
+	$(top_srcdir)/build-aux/snippet/_Noreturn.h \
+	$(top_srcdir)/build-aux/snippet/arg-nonnull.h \
+	$(top_srcdir)/build-aux/snippet/c++defs.h \
+	$(top_srcdir)/build-aux/snippet/warn-on-use.h test-snprintf.c \
+	signature.h macros.h test-sockets.c spawn.in.h test-spawn.c \
+	test-stat.h test-stat.c signature.h macros.h stat-time.h \
+	test-stat-time.c macros.h test-stdbool.c test-stddef.c \
+	test-stdint.c test-stdio.c test-stdlib.c test-sys_wait.h \
+	test-strchrnul.c signature.h macros.h test-strerror.c \
+	signature.h macros.h test-strerror_r.c signature.h macros.h \
+	test-string.c test-strings.c test-strnlen.c zerosize-ptr.h \
+	signature.h macros.h symlink.c test-symlink.h test-symlink.c \
+	signature.h macros.h test-sys_ioctl.c test-sys_select.c \
+	signature.h test-sys_socket.c test-sys_stat.c test-sys_time.c \
+	test-sys_uio.c test-sys_utsname.c test-sys_wait.c \
+	test-sys_wait.h test-termios.c test-thread_self.c \
+	test-thread_create.c macros.h test-time.c test-uname.c \
+	signature.h macros.h test-unistd.c unsetenv.c test-unsetenv.c \
+	signature.h macros.h test-usleep.c signature.h macros.h \
+	test-vasnprintf.c macros.h test-vasprintf.c signature.h \
+	macros.h test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
+	init.sh test-verify.c test-verify.sh init.sh test-vsnprintf.c \
+	signature.h macros.h test-wchar.c wcrtomb.c test-wcrtomb.sh \
+	test-wcrtomb.c test-wcrtomb-w32-1.sh test-wcrtomb-w32-2.sh \
 	test-wcrtomb-w32-3.sh test-wcrtomb-w32-4.sh \
 	test-wcrtomb-w32-5.sh test-wcrtomb-w32.c signature.h macros.h \
 	wctob.c wctomb-impl.h wctomb.c test-wctype-h.c macros.h \
@@ -2409,15 +2413,14 @@ EXTRA_DIST = test-alignof.c test-alloca-opt.c test-areadlink.h \
 # statements but through direct file reference. Therefore this snippet must be
 # present in all Makefile.am that need it. This is ensured by the applicability
 # 'all' defined above.
-BUILT_SOURCES = arg-nonnull.h c++defs.h inttypes.h locale.h \
-	$(am__append_3) spawn.h warn-on-use.h
+BUILT_SOURCES = inttypes.h locale.h $(am__append_3) arg-nonnull.h \
+	c++defs.h warn-on-use.h spawn.h
 SUFFIXES = 
-MOSTLYCLEANFILES = core *.stackdump arg-nonnull.h arg-nonnull.h-t \
-	c++defs.h c++defs.h-t test-fflush.txt t-fpurge.tmp \
+MOSTLYCLEANFILES = core *.stackdump test-fflush.txt t-fpurge.tmp \
 	t-freading.tmp t-ftell3.tmp t-ftello3.tmp test-getdelim.txt \
 	test-getline.txt inttypes.h inttypes.h-t locale.h locale.h-t \
-	$(am__append_4) spawn.h spawn.h-t warn-on-use.h \
-	warn-on-use.h-t
+	$(am__append_4) arg-nonnull.h arg-nonnull.h-t c++defs.h \
+	c++defs.h-t warn-on-use.h warn-on-use.h-t spawn.h spawn.h-t
 MOSTLYCLEANDIRS = 
 CLEANFILES = 
 DISTCLEANFILES = 
@@ -2444,8 +2447,6 @@ EXTRA_libtests_a_SOURCES = btowc.c error.c getgroups.c getpagesize.c \
 	setenv.c setlocale.c symlink.c unsetenv.c wcrtomb.c wctob.c \
 	wctomb.c write.c
 AM_LIBTOOLFLAGS = --preserve-dup-deps
-ARG_NONNULL_H = arg-nonnull.h
-CXXDEFS_H = c++defs.h
 test_getaddrinfo_LDADD = $(LDADD) @GETADDRINFO_LIB@ @LIBINTL@
 test_gethostname_LDADD = $(LDADD) @GETHOSTNAME_LIB@
 test_inet_ntop_LDADD = $(LDADD) @INET_NTOP_LIB@
@@ -2464,18 +2465,26 @@ test_pthread_sigmask2_LDADD = $(LDADD) @LIB_PTHREAD_SIGMASK@ @LIBMULTITHREAD@
 test_select_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
 test_select_fd_LDADD = $(LDADD) @LIBSOCKET@
 test_select_stdin_LDADD = $(LDADD) @LIBSOCKET@
+
+# Because this Makefile snippet defines a variable used by other
+# gnulib Makefile snippets, it must be present in all Makefile.am that
+# need it. This is ensured by the applicability 'all' defined above.
+_NORETURN_H = $(top_srcdir)/build-aux/snippet/_Noreturn.h
+ARG_NONNULL_H = arg-nonnull.h
+CXXDEFS_H = c++defs.h
+WARN_ON_USE_H = warn-on-use.h
 test_sockets_LDADD = $(LDADD) @LIBSOCKET@
 test_thread_self_LDADD = $(LDADD) @LIBTHREAD@
 test_thread_create_LDADD = $(LDADD) @LIBMULTITHREAD@
 test_uname_LDADD = $(LDADD) @GETHOSTNAME_LIB@
-WARN_ON_USE_H = warn-on-use.h
 test_xalloc_die_LDADD = $(LDADD) @LIBINTL@
+INCLUDES = $(GETTEXT_CPPFLAGS)
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/gnulib.mk $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -3592,22 +3601,6 @@ uninstall-am:
 	mostlyclean-libtool mostlyclean-local pdf pdf-am ps ps-am tags \
 	tags-recursive uninstall uninstall-am
 
-# The arg-nonnull.h that gets inserted into generated .h files is the same as
-# build-aux/arg-nonnull.h, except that it has the copyright header cut off.
-arg-nonnull.h: $(top_srcdir)/build-aux/arg-nonnull.h
-	$(AM_V_GEN)rm -f $@-t $@ && \
-	sed -n -e '/GL_ARG_NONNULL/,$$p' \
-	  < $(top_srcdir)/build-aux/arg-nonnull.h \
-	  > $@-t && \
-	mv $@-t $@
-# The c++defs.h that gets inserted into generated .h files is the same as
-# build-aux/c++defs.h, except that it has the copyright header cut off.
-c++defs.h: $(top_srcdir)/build-aux/c++defs.h
-	$(AM_V_GEN)rm -f $@-t $@ && \
-	sed -n -e '/_GL_CXXDEFS/,$$p' \
-	  < $(top_srcdir)/build-aux/c++defs.h \
-	  > $@-t && \
-	mv $@-t $@
 
 # We need the following in order to create <inttypes.h> when the system
 # doesn't have one that works with the given compiler.
@@ -3672,6 +3665,32 @@ locale.h: locale.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H
 @POSIX_SPAWN_PORTED_TRUE@	$(AM_V_GEN)rm -f $@-t $@ && \
 @POSIX_SPAWN_PORTED_TRUE@	cp $(srcdir)/test-posix_spawn2.in.sh $@-t && \
 @POSIX_SPAWN_PORTED_TRUE@	mv $@-t $@
+# The arg-nonnull.h that gets inserted into generated .h files is the same as
+# build-aux/snippet/arg-nonnull.h, except that it has the copyright header cut
+# off.
+arg-nonnull.h: $(top_srcdir)/build-aux/snippet/arg-nonnull.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	sed -n -e '/GL_ARG_NONNULL/,$$p' \
+	  < $(top_srcdir)/build-aux/snippet/arg-nonnull.h \
+	  > $@-t && \
+	mv $@-t $@
+# The c++defs.h that gets inserted into generated .h files is the same as
+# build-aux/snippet/c++defs.h, except that it has the copyright header cut off.
+c++defs.h: $(top_srcdir)/build-aux/snippet/c++defs.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	sed -n -e '/_GL_CXXDEFS/,$$p' \
+	  < $(top_srcdir)/build-aux/snippet/c++defs.h \
+	  > $@-t && \
+	mv $@-t $@
+# The warn-on-use.h that gets inserted into generated .h files is the same as
+# build-aux/snippet/warn-on-use.h, except that it has the copyright header cut
+# off.
+warn-on-use.h: $(top_srcdir)/build-aux/snippet/warn-on-use.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	sed -n -e '/^.ifndef/,$$p' \
+	  < $(top_srcdir)/build-aux/snippet/warn-on-use.h \
+	  > $@-t && \
+	mv $@-t $@
 
 # We need the following in order to create a replacement for <spawn.h> when
 # the system doesn't have one.
@@ -3714,14 +3733,6 @@ spawn.h: spawn.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) 
 	      -e '/definition of _GL_WARN_ON_USE/r $(WARN_ON_USE_H)' \
 	      < $(srcdir)/spawn.in.h; \
 	} > $@-t && \
-	mv $@-t $@
-# The warn-on-use.h that gets inserted into generated .h files is the same as
-# build-aux/warn-on-use.h, except that it has the copyright header cut off.
-warn-on-use.h: $(top_srcdir)/build-aux/warn-on-use.h
-	$(AM_V_GEN)rm -f $@-t $@ && \
-	sed -n -e '/^.ifndef/,$$p' \
-	  < $(top_srcdir)/build-aux/warn-on-use.h \
-	  > $@-t && \
 	mv $@-t $@
 
 # Clean up after Solaris cc.

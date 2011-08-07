@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# strerror_r.m4 serial 12
+# strerror_r.m4 serial 13
 dnl Copyright (C) 2002, 2007-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -140,7 +140,11 @@ changequote([,])dnl
                [AC_LANG_PROGRAM(
                   [[#include <errno.h>
                     #include <string.h>
-                    extern int __xpg_strerror_r(int, char *, size_t);
+                    extern
+                    #ifdef __cplusplus
+                    "C"
+                    #endif
+                    int __xpg_strerror_r(int, char *, size_t);
                   ]],
                   [[int result = 0;
                     char buf[256] = "^";

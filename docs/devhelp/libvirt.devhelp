@@ -348,6 +348,7 @@
     <function name="VIR_KEYCODE_SET_XT_KBD" link="libvirt-libvirt.html#VIR_KEYCODE_SET_XT_KBD"/>
     <function name="VIR_MEMORY_PHYSICAL" link="libvirt-libvirt.html#VIR_MEMORY_PHYSICAL"/>
     <function name="VIR_MEMORY_VIRTUAL" link="libvirt-libvirt.html#VIR_MEMORY_VIRTUAL"/>
+    <function name="VIR_MIGRATE_CHANGE_PROTECTION" link="libvirt-libvirt.html#VIR_MIGRATE_CHANGE_PROTECTION"/>
     <function name="VIR_MIGRATE_LIVE" link="libvirt-libvirt.html#VIR_MIGRATE_LIVE"/>
     <function name="VIR_MIGRATE_NON_SHARED_DISK" link="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_DISK"/>
     <function name="VIR_MIGRATE_NON_SHARED_INC" link="libvirt-libvirt.html#VIR_MIGRATE_NON_SHARED_INC"/>

@@ -60,6 +60,7 @@
 #include "dnsmasq.h"
 #include "util/network.h"
 #include "configmake.h"
+#include "ignore-value.h"
 
 #define NETWORK_PID_DIR LOCALSTATEDIR "/run/libvirt/network"
 #define NETWORK_STATE_DIR LOCALSTATEDIR "/lib/libvirt/network"
@@ -125,8 +126,8 @@ networkDnsmasqLeaseFileNameDefault(const char *netname)
 {
     char *leasefile;
 
-    virAsprintf(&leasefile, DNSMASQ_STATE_DIR "/%s.leases",
-                netname);
+    ignore_value(virAsprintf(&leasefile, DNSMASQ_STATE_DIR "/%s.leases",
+                             netname));
     return leasefile;
 }
 
@@ -139,7 +140,7 @@ networkRadvdPidfileBasename(const char *netname)
     /* this is simple but we want to be sure it's consistently done */
     char *pidfilebase;
 
-    virAsprintf(&pidfilebase, "%s-radvd", netname);
+    ignore_value(virAsprintf(&pidfilebase, "%s-radvd", netname));
     return pidfilebase;
 }
 
@@ -148,8 +149,8 @@ networkRadvdConfigFileName(const char *netname)
 {
     char *configfile;
 
-    virAsprintf(&configfile, RADVD_STATE_DIR "/%s-radvd.conf",
-                netname);
+    ignore_value(virAsprintf(&configfile, RADVD_STATE_DIR "/%s-radvd.conf",
+                             netname));
     return configfile;
 }
 
@@ -166,12 +167,13 @@ networkBridgeDummyNicName(const char *brname)
          * a possible numeric ending (eg virbr0, virbr1, etc), we grab
          * the first 8 and last 3 characters of the string.
          */
-         virAsprintf(&nicname, "%.*s%s%s",
-                     /* space for last 3 chars + "-nic" + NULL */
-                     (int)(IFNAMSIZ - (3 + sizeof(dummyNicSuffix))),
-                     brname, brname + strlen(brname) - 3, dummyNicSuffix);
+        ignore_value(virAsprintf(&nicname, "%.*s%s%s",
+                                 /* space for last 3 chars + "-nic" + NULL */
+                                 (int)(IFNAMSIZ - (3 + sizeof(dummyNicSuffix))),
+                                 brname, brname + strlen(brname) - 3,
+                                 dummyNicSuffix));
     } else {
-         virAsprintf(&nicname, "%s%s", brname, dummyNicSuffix);
+        ignore_value(virAsprintf(&nicname, "%s%s", brname, dummyNicSuffix));
     }
     return nicname;
 }
@@ -531,10 +533,15 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
 
     /* If this is an isolated network, set the default route option
      * (3) to be empty to avoid setting a default route that's
-     * guaranteed to not work.
+     * guaranteed to not work, and set --no-resolv so that no dns
+     * requests are forwarded on to the dns server listed in the
+     * host's /etc/resolv.conf (since this could be used as a channel
+     * to build a connection to the outside).
      */
-    if (network->def->forwardType == VIR_NETWORK_FORWARD_NONE)
-        virCommandAddArg(cmd, "--dhcp-option=3");
+    if (network->def->forwardType == VIR_NETWORK_FORWARD_NONE) {
+        virCommandAddArgList(cmd, "--dhcp-option=3",
+                             "--no-resolv", NULL);
+    }
 
     if (network->def->dns != NULL) {
         virNetworkDNSDefPtr dns = network->def->dns;
@@ -2811,6 +2818,7 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
                (netdef->forwardType == VIR_NETWORK_FORWARD_VEPA) ||
                (netdef->forwardType == VIR_NETWORK_FORWARD_PASSTHROUGH)) {
         virVirtualPortProfileParamsPtr virtport = NULL;
+        virPortGroupDefPtr portgroup = NULL;
 
         /* <forward type='bridge|private|vepa|passthrough'> are all
          * VIR_DOMAIN_NET_TYPE_DIRECT.
@@ -2839,11 +2847,10 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
         }
 
         /* Find the most specific virtportprofile and copy it */
+        portgroup = virPortGroupFindByName(netdef, iface->data.network.portgroup);
         if (iface->data.network.virtPortProfile) {
             virtport = iface->data.network.virtPortProfile;
         } else {
-            virPortGroupDefPtr portgroup
-               = virPortGroupFindByName(netdef, iface->data.network.portgroup);
             if (portgroup)
                 virtport = portgroup->virtPortProfile;
             else
@@ -2859,6 +2866,21 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
              */
             *iface->data.network.actual->data.direct.virtPortProfile = *virtport;
         }
+
+        /* Find the most specific bandwidth config and copy it */
+        if (iface->bandwidth) {
+            if (virBandwidthCopy(&iface->data.network.actual->bandwidth,
+                                 iface->bandwidth) < 0) {
+                goto cleanup;
+            }
+        } else {
+            if (portgroup &&
+                virBandwidthCopy(&iface->data.network.actual->bandwidth,
+                                 portgroup->bandwidth) < 0) {
+                goto cleanup;
+            }
+        }
+
         /* If there is only a single device, just return it (caller will detect
          * any error if exclusive use is required but could not be acquired).
          */

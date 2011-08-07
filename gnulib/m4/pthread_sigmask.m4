@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# pthread_sigmask.m4 serial 9
+# pthread_sigmask.m4 serial 11
 dnl Copyright (C) 2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -10,8 +10,14 @@ AC_DEFUN([gl_FUNC_PTHREAD_SIGMASK],
 [
   AC_CHECK_FUNCS_ONCE([pthread_sigmask])
   LIB_PTHREAD_SIGMASK=
-  m4_ifdef([gl_THREADLIB], [
-    AC_REQUIRE([gl_THREADLIB])
+
+  dnl Test whether the gnulib module 'threadlib' is in use.
+  dnl Some packages like Emacs use --avoid=threadlib.
+  dnl Write the symbol in such a way that it does not cause 'aclocal' to pick
+  dnl the threadlib.m4 file that is installed in $PREFIX/share/aclocal/.
+  m4_ifdef([gl_[]THREADLIB], [
+    AC_REQUIRE([gl_[]THREADLIB])
+
     if test "$gl_threads_api" = posix; then
       if test $ac_cv_func_pthread_sigmask = yes; then
         dnl pthread_sigmask is available without -lpthread.
@@ -58,20 +64,25 @@ AC_DEFUN([gl_FUNC_PTHREAD_SIGMASK],
         HAVE_PTHREAD_SIGMASK=0
       fi
     fi
-  ] ,[
-    dnl gl_THREADLIB is not in use.  Assume the application wants
-    dnl POSIX semantics.
-    if test $ac_cv_func_pthread_sigmask != yes; then
-      gl_save_LIBS=$LIBS
-      AC_SEARCH_LIBS([pthread_sigmask], [pthread c_r])
-      LIBS=$gl_save_LIBS
-      if test "$ac_cv_search_pthread_sigmask" = no; then
-        HAVE_PTHREAD_SIGMASK=0
-      elif test "$ac_cv_search_pthread_sigmask" != 'none required'; then
-        LIB_PTHREAD_SIGMASK=$ac_cv_search_pthread_sigmask
-      fi
+  ], [
+    dnl The module 'threadlib' is not in use, due to --avoid=threadlib being
+    dnl specified.
+    dnl The package either has prepared CPPFLAGS and LIBS for use of POSIX:2008
+    dnl threads, or wants to build single-threaded programs.
+    if test $ac_cv_func_pthread_sigmask = yes; then
+      dnl pthread_sigmask exists and does not require extra libraries.
+      dnl Assume that it is declared.
+      :
+    else
+      dnl pthread_sigmask either does not exist or needs extra libraries.
+      HAVE_PTHREAD_SIGMASK=0
+      dnl Define the symbol rpl_pthread_sigmask, not pthread_sigmask,
+      dnl so as to not accidentally override the system's pthread_sigmask
+      dnl symbol from libpthread. This is necessary on IRIX 6.5.
+      REPLACE_PTHREAD_SIGMASK=1
     fi
   ])
+
   AC_SUBST([LIB_PTHREAD_SIGMASK])
   dnl We don't need a variable LTLIB_PTHREAD_SIGMASK, because when
   dnl "$gl_threads_api" = posix, $LTLIBMULTITHREAD and $LIBMULTITHREAD are the

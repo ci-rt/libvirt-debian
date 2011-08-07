@@ -42,44 +42,13 @@ static void xenStoreWatchEvent(int watch, int fd, int events, void *data);
 static void xenStoreWatchListFree(xenStoreWatchListPtr list);
 
 struct xenUnifiedDriver xenStoreDriver = {
-    xenStoreOpen, /* open */
-    xenStoreClose, /* close */
-    NULL, /* version */
-    NULL, /* hostname */
-    NULL, /* nodeGetInfo */
-    NULL, /* getCapabilities */
-    xenStoreListDomains, /* listDomains */
-    NULL, /* numOfDomains */
-    NULL, /* domainCreateXML */
-    NULL, /* domainSuspend */
-    NULL, /* domainResume */
-    xenStoreDomainShutdown, /* domainShutdown */
-    xenStoreDomainReboot, /* domainReboot */
-    NULL, /* domainDestroyFlags */
-    xenStoreDomainGetOSType, /* domainGetOSType */
-    xenStoreDomainGetMaxMemory, /* domainGetMaxMemory */
-    NULL, /* domainSetMaxMemory */
-    xenStoreDomainSetMemory, /* domainSetMemory */
-    xenStoreGetDomainInfo, /* domainGetInfo */
-    NULL, /* domainSave */
-    NULL, /* domainRestore */
-    NULL, /* domainCoreDump */
-    NULL, /* domainScreenshot */
-    NULL, /* domainPinVcpu */
-    NULL, /* domainGetVcpus */
-    NULL, /* listDefinedDomains */
-    NULL, /* numOfDefinedDomains */
-    NULL, /* domainCreate */
-    NULL, /* domainDefineXML */
-    NULL, /* domainUndefine */
-    NULL, /* domainAttachDeviceFlags */
-    NULL, /* domainDetachDeviceFlags */
-    NULL, /* domainUpdateDeviceFlags */
-    NULL, /* domainGetAutostart */
-    NULL, /* domainSetAutostart */
-    NULL, /* domainGetSchedulerType */
-    NULL, /* domainGetSchedulerParameters */
-    NULL, /* domainSetSchedulerParameters */
+    .xenClose = xenStoreClose,
+    .xenDomainShutdown = xenStoreDomainShutdown,
+    .xenDomainReboot = xenStoreDomainReboot,
+    .xenDomainGetOSType = xenStoreDomainGetOSType,
+    .xenDomainGetMaxMemory = xenStoreDomainGetMaxMemory,
+    .xenDomainSetMemory = xenStoreDomainSetMemory,
+    .xenDomainGetInfo = xenStoreGetDomainInfo,
 };
 
 #define virXenStoreError(code, ...)                                  \

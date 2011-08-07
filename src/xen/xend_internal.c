@@ -1638,7 +1638,7 @@ xenDaemonDomainSave(virDomainPtr domain, const char *filename)
  *
  * Returns 0 in case of success, -1 in case of error.
  */
-static int
+int
 xenDaemonDomainCoreDump(virDomainPtr domain, const char *filename,
                         unsigned int flags)
 {
@@ -2608,7 +2608,7 @@ xenDaemonLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
  *
  * Returns a new domain object or NULL in case of failure
  */
-static virDomainPtr
+virDomainPtr
 xenDaemonCreateXML(virConnectPtr conn, const char *xmlDesc,
                      unsigned int flags)
 {
@@ -2841,7 +2841,7 @@ cleanup:
  *
  * Returns 0 in case of success, -1 in case of failure.
  */
-static int
+int
 xenDaemonUpdateDeviceFlags(virDomainPtr domain, const char *xml,
                            unsigned int flags)
 {
@@ -3934,44 +3934,30 @@ xenDaemonDomainBlockPeek (virDomainPtr domain, const char *path,
 }
 
 struct xenUnifiedDriver xenDaemonDriver = {
-    xenDaemonOpen,               /* open */
-    xenDaemonClose,              /* close */
-    xenDaemonGetVersion,         /* version */
-    NULL,                        /* hostname */
-    xenDaemonNodeGetInfo,        /* nodeGetInfo */
-    NULL,                        /* getCapabilities */
-    xenDaemonListDomains,        /* listDomains */
-    xenDaemonNumOfDomains,       /* numOfDomains */
-    xenDaemonCreateXML,          /* domainCreateXML */
-    xenDaemonDomainSuspend,      /* domainSuspend */
-    xenDaemonDomainResume,       /* domainResume */
-    xenDaemonDomainShutdown,     /* domainShutdown */
-    xenDaemonDomainReboot,       /* domainReboot */
-    xenDaemonDomainDestroyFlags, /* domainDestroyFlags */
-    xenDaemonDomainGetOSType,    /* domainGetOSType */
-    xenDaemonDomainGetMaxMemory, /* domainGetMaxMemory */
-    xenDaemonDomainSetMaxMemory, /* domainSetMaxMemory */
-    xenDaemonDomainSetMemory,    /* domainMaxMemory */
-    xenDaemonDomainGetInfo,      /* domainGetInfo */
-    xenDaemonDomainSave,         /* domainSave */
-    xenDaemonDomainRestore,      /* domainRestore */
-    xenDaemonDomainCoreDump,     /* domainCoreDump */
-    NULL,                        /* domainScreenshot */
-    xenDaemonDomainPinVcpu,      /* domainPinVcpu */
-    xenDaemonDomainGetVcpus,     /* domainGetVcpus */
-    xenDaemonListDefinedDomains, /* listDefinedDomains */
-    xenDaemonNumOfDefinedDomains,/* numOfDefinedDomains */
-    xenDaemonDomainCreate,       /* domainCreate */
-    xenDaemonDomainDefineXML,    /* domainDefineXML */
-    xenDaemonDomainUndefine,     /* domainUndefine */
-    xenDaemonAttachDeviceFlags,       /* domainAttachDeviceFlags */
-    xenDaemonDetachDeviceFlags,       /* domainDetachDeviceFlags */
-    xenDaemonUpdateDeviceFlags,       /* domainUpdateDeviceFlags */
-    xenDaemonDomainGetAutostart, /* domainGetAutostart */
-    xenDaemonDomainSetAutostart, /* domainSetAutostart */
-    xenDaemonGetSchedulerType,   /* domainGetSchedulerType */
-    xenDaemonGetSchedulerParameters, /* domainGetSchedulerParameters */
-    xenDaemonSetSchedulerParameters, /* domainSetSchedulerParameters */
+    .xenClose = xenDaemonClose,
+    .xenVersion = xenDaemonGetVersion,
+    .xenDomainSuspend = xenDaemonDomainSuspend,
+    .xenDomainResume = xenDaemonDomainResume,
+    .xenDomainShutdown = xenDaemonDomainShutdown,
+    .xenDomainReboot = xenDaemonDomainReboot,
+    .xenDomainDestroyFlags = xenDaemonDomainDestroyFlags,
+    .xenDomainGetOSType = xenDaemonDomainGetOSType,
+    .xenDomainGetMaxMemory = xenDaemonDomainGetMaxMemory,
+    .xenDomainSetMaxMemory = xenDaemonDomainSetMaxMemory,
+    .xenDomainSetMemory = xenDaemonDomainSetMemory,
+    .xenDomainGetInfo = xenDaemonDomainGetInfo,
+    .xenDomainPinVcpu = xenDaemonDomainPinVcpu,
+    .xenDomainGetVcpus = xenDaemonDomainGetVcpus,
+    .xenListDefinedDomains = xenDaemonListDefinedDomains,
+    .xenNumOfDefinedDomains = xenDaemonNumOfDefinedDomains,
+    .xenDomainCreate = xenDaemonDomainCreate,
+    .xenDomainDefineXML = xenDaemonDomainDefineXML,
+    .xenDomainUndefine = xenDaemonDomainUndefine,
+    .xenDomainAttachDeviceFlags = xenDaemonAttachDeviceFlags,
+    .xenDomainDetachDeviceFlags = xenDaemonDetachDeviceFlags,
+    .xenDomainGetSchedulerType = xenDaemonGetSchedulerType,
+    .xenDomainGetSchedulerParameters = xenDaemonGetSchedulerParameters,
+    .xenDomainSetSchedulerParameters = xenDaemonSetSchedulerParameters,
 };
 
 

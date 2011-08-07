@@ -33,7 +33,7 @@
 #include "command.h"
 #include "network.h"
 
-#if !defined WIN32 && HAVE_LIBTASN1_H
+#if !defined WIN32 && HAVE_LIBTASN1_H && !defined GNUTLS_1_0_COMPAT
 # include <libtasn1.h>
 # include <gnutls/gnutls.h>
 # include <gnutls/x509.h>
@@ -1249,9 +1249,11 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
+
 int
-main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+main(void)
 {
-    exit (EXIT_AM_SKIP);
+    return EXIT_AM_SKIP;
 }
+
 #endif

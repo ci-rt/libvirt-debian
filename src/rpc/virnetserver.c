@@ -131,8 +131,6 @@ static void virNetServerHandleJob(void *jobOpaque, void *opaque)
     virNetServerProgramPtr prog = NULL;
     size_t i;
 
-    virNetServerClientRef(job->client);
-
     virNetServerLock(srv);
     VIR_DEBUG("server=%p client=%p message=%p",
               srv, job->client, job->msg);
@@ -310,7 +308,8 @@ virNetServerPtr virNetServerNew(size_t min_workers,
     if (srv->mdnsGroupName) {
         if (!(srv->mdns = virNetServerMDNSNew()))
             goto error;
-        if (!(srv->mdnsGroup = virNetServerMDNSAddGroup(srv->mdns, mdnsGroupName)))
+        if (!(srv->mdnsGroup = virNetServerMDNSAddGroup(srv->mdns,
+                                                        srv->mdnsGroupName)))
             goto error;
     }
 #endif
@@ -473,7 +472,7 @@ cleanup:
 
 static int virNetServerSignalSetup(virNetServerPtr srv)
 {
-    int fds[2];
+    int fds[2] = { -1, -1 };
 
     if (srv->sigwrite != -1)
         return 0;
@@ -704,6 +703,9 @@ void virNetServerRun(virNetServerPtr srv)
 
     reprocess:
         for (i = 0 ; i < srv->nclients ; i++) {
+            /* Coverity 5.3.0 couldn't see that srv->clients is non-NULL
+             * if srv->nclients is non-zero.  */
+            sa_assert(srv->clients);
             if (virNetServerClientWantClose(srv->clients[i]))
                 virNetServerClientClose(srv->clients[i]);
             if (virNetServerClientIsClosed(srv->clients[i])) {
@@ -783,7 +785,9 @@ void virNetServerFree(virNetServerPtr srv)
     VIR_FREE(srv->clients);
 
     VIR_FREE(srv->mdnsGroupName);
+#if HAVE_AVAHI
     virNetServerMDNSFree(srv->mdns);
+#endif
 
 #if HAVE_DBUS
     if (srv->sysbus)

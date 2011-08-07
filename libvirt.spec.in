@@ -231,10 +231,10 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 0rc1%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
-Source: http://libvirt.org/sources/libvirt-%{version}-rc1.tar.gz
+Source: http://libvirt.org/sources/libvirt-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 URL: http://libvirt.org/
 
@@ -332,6 +332,7 @@ BuildRequires: libxslt
 BuildRequires: readline-devel
 BuildRequires: ncurses-devel
 BuildRequires: gettext
+BuildRequires: libtasn1-devel
 BuildRequires: gnutls-devel
 %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
 # for augparse, optionally used in testing
@@ -1127,6 +1128,18 @@ fi
 %endif
 
 %changelog
+* Wed Aug  3 2011 Daniel Veillard <veillard@redhat.com> - 0.9.4-1
+- network bandwidth QoS control
+- Add new API virDomainBlockPull*
+- save: new API to manipulate save file images
+- CPU bandwidth limits support
+- allow to send NMI and key event to guests
+- new API virDomainUndefineFlags
+- Implement code to attach to external QEMU instances
+- bios: Add support for SGA
+- various missing python binding
+- many improvements and bug fixes
+
 * Mon Jul  4 2011 Daniel Veillard <veillard@redhat.com> - 0.9.3-1
 - new API virDomainGetVcpupinInfo
 - Add TXT record support for virtual DNS service

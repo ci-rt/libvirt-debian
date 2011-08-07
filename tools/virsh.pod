@@ -268,7 +268,7 @@ Inject NMI to the guest.
 
 =item B<list> [I<--inactive> | I<--all>]
 
-Prints information about one or more domains.  If no domains are
+Prints information about existing domains.  If no options are
 specified it prints out information about running domains.
 
 An example format for the list is as follows:
@@ -430,6 +430,27 @@ Get memory stats for a running domain.
 
 Get block device size info for a domain.
 
+=item B<blockpull> I<domain> I<path> [I<bandwidth>]
+
+Populate a disk from its backing image. Once all data from its backing
+image has been pulled, the disk no longer depends on the backing image.
+It pulls data for the entire disk in the background, the process of the
+operation can be checked with B<blockjob>.
+
+I<path> specifies fully-qualified path of the disk.
+I<bandwidth> specifies copying bandwidth limit in Mbps.
+
+=item B<blockjob> I<domain> I<path> [I<--abort>] [I<--info>] [I<bandwidth>]
+
+Manage active block operations.
+
+I<path> specifies fully-qualified path of the disk.
+If I<--abort> is specified, the active job on the specified disk will
+be aborted.
+If I<--info> is specified, the active job information on the specified
+disk will be printed.
+I<bandwidth> can be used to set bandwidth limit for the active job.
+
 =item B<dominfo> I<domain-id>
 
 Returns basic information about the domain.
@@ -543,8 +564,9 @@ type attribute for the <domain> element of XML.
 
 =item B<migrate> [I<--live>] [I<--direct>] [I<--p2p> [I<--tunnelled>]]
 [I<--persistent>] [I<--undefinesource>] [I<--suspend>] [I<--copy-storage-all>]
-[I<--copy-storage-inc>] [I<--verbose>] I<domain-id> I<desturi> [I<migrateuri>]
-[I<dname>] [I<--timeout> B<seconds>] [I<--xml> B<file>]
+[I<--copy-storage-inc>] [I<--change-protection>] [I<--verbose>]
+I<domain-id> I<desturi> [I<migrateuri>] [I<dname>]
+[I<--timeout> B<seconds>] [I<--xml> B<file>]
 
 Migrate domain to another host.  Add I<--live> for live migration; I<--p2p>
 for peer-2-peer migration; I<--direct> for direct migration; or I<--tunnelled>
@@ -554,7 +576,11 @@ and I<--suspend> leaves the domain paused on the destination host.
 I<--copy-storage-all> indicates migration with non-shared storage with full
 disk copy, I<--copy-storage-inc> indicates migration with non-shared storage
 with incremental copy (same base image shared between source and destination).
-I<--verbose> displays the progress of migration.
+I<--change-protection> enforces that no incompatible configuration changes
+will be made to the domain while the migration is underway; this flag is
+implicitly enabled when supported by the hypervisor, but can be explicitly
+used to reject the migration if the hypervisor lacks change protection
+support.  I<--verbose> displays the progress of migration.
 
 The I<desturi> is the connection URI of the destination host, and
 I<migrateuri> is the migration URI, which usually can be omitted.
@@ -798,7 +824,7 @@ value are kilobytes (i.e. blocks of 1024 bytes).
 =back
 
 =item B<blkiotune> I<domain-id> [I<--weight> B<weight>] [[I<--config>]
-[I<--live] | [I<--current>]]
+[I<--live>] | [I<--current>]]
 
 Display or set the blkio parameters. QEMU/KVM supports I<--weight>.
 I<--weight> is in range [100, 1000].
@@ -811,7 +837,7 @@ exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
 
 =item B<setvcpus> I<domain-id> I<count> [I<--maximum>] [[I<--config>]
-[I<--live>] | [I<--current]]
+[I<--live>] | [I<--current>]]
 
 Change the number of virtual CPUs active in a guest domain.  By default,
 this command works on active guest domains.  To change the settings for an

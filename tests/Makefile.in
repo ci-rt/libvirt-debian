@@ -753,6 +753,7 @@ FLOAT_H = @FLOAT_H@
 FNMATCH_H = @FNMATCH_H@
 GETADDRINFO_LIB = @GETADDRINFO_LIB@
 GETHOSTNAME_LIB = @GETHOSTNAME_LIB@
+GETTEXT_CPPFLAGS = @GETTEXT_CPPFLAGS@
 GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GLIBC21 = @GLIBC21@
 GMSGFMT = @GMSGFMT@
@@ -781,6 +782,8 @@ GNULIB_FCLOSE = @GNULIB_FCLOSE@
 GNULIB_FCNTL = @GNULIB_FCNTL@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
 GNULIB_FFS = @GNULIB_FFS@
+GNULIB_FFSL = @GNULIB_FFSL@
+GNULIB_FFSLL = @GNULIB_FFSLL@
 GNULIB_FGETC = @GNULIB_FGETC@
 GNULIB_FGETS = @GNULIB_FGETS@
 GNULIB_FOPEN = @GNULIB_FOPEN@
@@ -1103,6 +1106,8 @@ HAVE_FCHOWNAT = @HAVE_FCHOWNAT@
 HAVE_FCNTL = @HAVE_FCNTL@
 HAVE_FEATURES_H = @HAVE_FEATURES_H@
 HAVE_FFS = @HAVE_FFS@
+HAVE_FFSL = @HAVE_FFSL@
+HAVE_FFSLL = @HAVE_FFSLL@
 HAVE_FSEEKO = @HAVE_FSEEKO@
 HAVE_FSTATAT = @HAVE_FSTATAT@
 HAVE_FSYNC = @HAVE_FSYNC@
@@ -1735,7 +1740,7 @@ top_srcdir = @top_srcdir@
 INCLUDES = -I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
 	-I$(top_builddir)/include -I$(top_srcdir)/include \
 	-I$(top_srcdir)/src -I$(top_srcdir)/src/util \
-	-I$(top_srcdir)/src/conf $(am__append_1)
+	-I$(top_srcdir)/src/conf $(GETTEXT_CPPFLAGS) $(am__append_1)
 AM_CFLAGS = \
 	$(LIBXML_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
@@ -1785,13 +1790,16 @@ test_scripts = capabilityschematest interfaceschematest \
 	networkschematest storagepoolschematest storagevolschematest \
 	domainschematest nodedevschematest nwfilterschematest \
 	domainsnapshotschematest $(am__append_10) $(am__append_12)
-path_add = $$abs_top_builddir/daemon$(PATH_SEPARATOR)$$abs_top_builddir/tools$(PATH_SEPARATOR)$$abs_top_builddir/tests
 
 # NB, automake < 1.10 does not provide the real
 # abs_top_{src/build}dir or builddir variables, so don't rely
 # on them here. Fake them with 'pwd'
+# Also, BSD sh doesn't like 'a=b b=$$a', so we can't use an
+# intermediate shell variable, but must do all the expansion in make
+lv_abs_top_builddir = `cd '$(top_builddir)'; pwd`
+path_add = $(lv_abs_top_builddir)/daemon$(PATH_SEPARATOR)$(lv_abs_top_builddir)/tools$(PATH_SEPARATOR)$(lv_abs_top_builddir)/tests
 TESTS_ENVIRONMENT = \
-  abs_top_builddir=`cd '$(top_builddir)'; pwd`	\
+  abs_top_builddir=$(lv_abs_top_builddir)	\
   abs_top_srcdir=`cd '$(top_srcdir)'; pwd`	\
   abs_builddir=`pwd`				\
   abs_srcdir=`cd '$(srcdir)'; pwd`		\
