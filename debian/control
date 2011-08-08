@@ -29,6 +29,7 @@ Build-Depends: cdbs (>= 0.4.90~),
  virtualbox-ose [amd64 i386],
  libnl-dev [linux-any],
  libyajl-dev,
+ libpcap0.8-dev,
 # For "make check"
  libxml2-utils,
  dnsmasq-base,
