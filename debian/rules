@@ -58,6 +58,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
         $(WITH_OPENVZ)		 \
 	--with-avahi             \
 	--with-sasl              \
+	--with-yajl              \
 	$(WITH_POLKIT)		 \
 	$(WITH_UDEV)		 \
 	--with-storage-fs        \
