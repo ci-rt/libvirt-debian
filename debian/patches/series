@@ -11,3 +11,4 @@ Autodetect-if-the-remote-nc-command-supports-the-q-o.patch
 Disable-failing-virnetsockettest.patch
 Readd-LFS-support.patch
 Autoreconf.patch
+debian/Don-t-require-gawk-for-a-simple-print-expression.patch
