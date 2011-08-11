@@ -1,3 +1,10 @@
+libvirt (0.9.3-5) unstable; urgency=low
+
+  * [44874f6] Add directories chown'ed in the postinst.  Thanks to Houmehr
+    Aghabozorgi for the report (Closes: #636965)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 11 Aug 2011 08:19:38 +0200
+
 libvirt (0.9.3-4) unstable; urgency=low
 
   * [db6dbcc] Suggest radvd needed for IPv6
