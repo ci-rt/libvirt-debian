@@ -67,7 +67,9 @@ int virNetSocketNewConnectSSH(const char *nodename,
                               const char *binary,
                               const char *username,
                               bool noTTY,
+                              bool noVerify,
                               const char *netcat,
+                              const char *keyfile,
                               const char *path,
                               virNetSocketPtr *addr);
 
@@ -108,7 +110,8 @@ int virNetSocketAccept(virNetSocketPtr sock,
 int virNetSocketAddIOCallback(virNetSocketPtr sock,
                               int events,
                               virNetSocketIOFunc func,
-                              void *opaque);
+                              void *opaque,
+                              virFreeCallback ff);
 
 void virNetSocketUpdateIOCallback(virNetSocketPtr sock,
                                   int events);

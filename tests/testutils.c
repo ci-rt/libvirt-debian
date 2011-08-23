@@ -47,7 +47,7 @@
     ((((int) ((T)->tv_sec - (U)->tv_sec)) * 1000000.0 + \
       ((int) ((T)->tv_usec - (U)->tv_usec))) / 1000.0)
 
-#include "files.h"
+#include "virfile.h"
 
 static unsigned int testDebug = -1;
 static unsigned int testVerbose = -1;
@@ -75,6 +75,9 @@ void virtTestResult(const char *name, int ret, const char *msg, ...)
 {
     va_list vargs;
     va_start(vargs, msg);
+
+    if (testCounter == 0 && !virTestGetVerbose())
+        fprintf(stderr, "      ");
 
     testCounter++;
     if (virTestGetVerbose()) {
@@ -112,6 +115,9 @@ virtTestRun(const char *title, int nloops, int (*body)(const void *data), const 
 {
     int i, ret = 0;
     double *ts = NULL;
+
+    if (testCounter == 0 && !virTestGetVerbose())
+        fprintf(stderr, "      ");
 
     testCounter++;
 
@@ -562,8 +568,6 @@ int virtTestMain(int argc,
         return EXIT_FAILURE;
     }
     fprintf(stderr, "TEST: %s\n", progname);
-    if (!virTestGetVerbose())
-        fprintf(stderr, "      ");
 
     if (virThreadInitialize() < 0 ||
         virErrorInitialize() < 0 ||
@@ -688,10 +692,9 @@ cleanup:
     if (abs_srcdir_cleanup)
         VIR_FREE(abs_srcdir);
     virResetLastError();
-    if (!virTestGetVerbose()) {
-        int i;
-        for (i = (testCounter % 40) ; i > 0 && i < 40 ; i++)
-            fprintf(stderr, " ");
+    if (!virTestGetVerbose() && ret != EXIT_AM_SKIP) {
+        if (testCounter == 0 || testCounter % 40)
+            fprintf(stderr, "%*s", 40 - (testCounter % 40), "");
         fprintf(stderr, " %-3d %s\n", testCounter, ret == 0 ? "OK" : "FAIL");
     }
     return ret;

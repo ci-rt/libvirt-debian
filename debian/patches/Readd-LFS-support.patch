@@ -1,0 +1,23 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 9 Aug 2011 14:44:09 +0200
+Subject: Readd LFS support
+
+BZ: #517037
+---
+ configure.ac |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index c8d291b..feeba64 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -122,6 +122,8 @@ AC_MSG_RESULT([$have_cpuid])
+ 
+ AC_CHECK_SIZEOF([long])
+ 
++AC_SYS_LARGEFILE
++
+ dnl Availability of various common functions (non-fatal if missing),
+ dnl and various less common threadsafe functions
+ AC_CHECK_FUNCS_ONCE([cfmakeraw geteuid getgid getgrnam_r getmntent_r \
+-- 

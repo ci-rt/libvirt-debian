@@ -35,11 +35,14 @@
 # ifndef MIN
 #  define MIN(a, b) ((a) < (b) ? (a) : (b))
 # endif
+# ifndef MAX
+#  define MAX(a, b) ((a) > (b) ? (a) : (b))
+# endif
 
 ssize_t saferead(int fd, void *buf, size_t count) ATTRIBUTE_RETURN_CHECK;
 ssize_t safewrite(int fd, const void *buf, size_t count)
     ATTRIBUTE_RETURN_CHECK;
-int safezero(int fd, int flags, off_t offset, off_t len)
+int safezero(int fd, off_t offset, off_t len)
     ATTRIBUTE_RETURN_CHECK;
 
 int virSetBlocking(int fd, bool blocking) ATTRIBUTE_RETURN_CHECK;
@@ -125,6 +128,8 @@ int virFileWritePidPath(const char *path,
 int virFileWritePid(const char *dir,
                     const char *name,
                     pid_t pid) ATTRIBUTE_RETURN_CHECK;
+int virFileReadPidPath(const char *path,
+                       pid_t *pid) ATTRIBUTE_RETURN_CHECK;
 int virFileReadPid(const char *dir,
                    const char *name,
                    pid_t *pid) ATTRIBUTE_RETURN_CHECK;
@@ -166,7 +171,12 @@ int virHexToBin(unsigned char c);
 
 int virMacAddrCompare (const char *mac1, const char *mac2);
 
-void virSkipSpaces(const char **str);
+void virSkipSpaces(const char **str) ATTRIBUTE_NONNULL(1);
+void virSkipSpacesAndBackslash(const char **str) ATTRIBUTE_NONNULL(1);
+void virTrimSpaces(char *str, char **endp) ATTRIBUTE_NONNULL(1);
+void virSkipSpacesBackwards(const char *str, char **endp)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
 int virParseNumber(const char **str);
 int virParseVersionString(const char *str, unsigned long *version,
                           bool allowMissing);

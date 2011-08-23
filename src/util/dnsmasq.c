@@ -44,7 +44,7 @@
 #include "memory.h"
 #include "virterror_internal.h"
 #include "logging.h"
-#include "files.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_NETWORK
 #define DNSMASQ_HOSTSFILE_SUFFIX "hostsfile"
@@ -523,11 +523,10 @@ dnsmasqAddHost(dnsmasqContext *ctx,
 int
 dnsmasqSave(const dnsmasqContext *ctx)
 {
-    int err;
     int ret = 0;
 
-    if ((err = virFileMakePath(ctx->config_dir))) {
-        virReportSystemError(err, _("cannot create config directory '%s'"),
+    if (virFileMakePath(ctx->config_dir) < 0) {
+        virReportSystemError(errno, _("cannot create config directory '%s'"),
                              ctx->config_dir);
         return -1;
     }

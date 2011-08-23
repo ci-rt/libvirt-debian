@@ -34,14 +34,14 @@
 #include "util.h"
 #include "memory.h"
 #include "command.h"
-#include "files.h"
+#include "virfile.h"
 
 #ifdef WIN32
 
-static int
-mymain(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
+int
+main(void)
 {
-    exit (EXIT_AM_SKIP);
+    return EXIT_AM_SKIP;
 }
 
 #else
@@ -230,7 +230,7 @@ static int test4(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    if (virFileReadPid(abs_builddir, "commandhelper", &pid) != 0) {
+    if (virFileReadPid(abs_builddir, "commandhelper", &pid) < 0) {
         printf("cannot read pidfile\n");
         goto cleanup;
     }
@@ -566,9 +566,9 @@ cleanup:
  */
 static int test16(const void *unused ATTRIBUTE_UNUSED)
 {
-    virCommandPtr cmd = virCommandNew("/bin/true");
+    virCommandPtr cmd = virCommandNew("true");
     char *outactual = NULL;
-    const char *outexpect = "A=B /bin/true C";
+    const char *outexpect = "A=B true C";
     int ret = -1;
     int fd = -1;
 
@@ -610,7 +610,7 @@ cleanup:
  */
 static int test17(const void *unused ATTRIBUTE_UNUSED)
 {
-    virCommandPtr cmd = virCommandNew("/bin/true");
+    virCommandPtr cmd = virCommandNew("true");
     int ret = -1;
     char *outbuf;
     char *errbuf;
@@ -686,7 +686,7 @@ static int test18(const void *unused ATTRIBUTE_UNUSED)
     }
     alarm(0);
 
-    if (virFileReadPid(abs_builddir, "commandhelper", &pid) != 0) {
+    if (virFileReadPid(abs_builddir, "commandhelper", &pid) < 0) {
         printf("cannot read pidfile\n");
         goto cleanup;
     }
@@ -814,6 +814,6 @@ mymain(void)
     return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
-#endif /* !WIN32 */
-
 VIRT_TEST_MAIN(mymain)
+
+#endif /* !WIN32 */

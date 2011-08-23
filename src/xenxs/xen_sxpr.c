@@ -750,8 +750,8 @@ xenParseSxprGraphicsOld(virDomainDefPtr def,
         graphics->data.vnc.port = port;
 
         if (listenAddr &&
-            !(graphics->data.vnc.listenAddr = strdup(listenAddr)))
-            goto no_memory;
+            virDomainGraphicsListenSetAddress(graphics, 0, listenAddr, -1, true))
+            goto error;
 
         if (vncPasswd &&
             !(graphics->data.vnc.auth.passwd = strdup(vncPasswd)))
@@ -794,6 +794,7 @@ xenParseSxprGraphicsOld(virDomainDefPtr def,
 
 no_memory:
     virReportOOMError();
+error:
     virDomainGraphicsDefFree(graphics);
     return -1;
 }
@@ -866,8 +867,8 @@ xenParseSxprGraphicsNew(virDomainDefPtr def,
                 graphics->data.vnc.port = port;
 
                 if (listenAddr &&
-                    !(graphics->data.vnc.listenAddr = strdup(listenAddr)))
-                    goto no_memory;
+                    virDomainGraphicsListenSetAddress(graphics, 0, listenAddr, -1, true))
+                    goto error;
 
                 if (vncPasswd &&
                     !(graphics->data.vnc.auth.passwd = strdup(vncPasswd)))
@@ -1437,6 +1438,8 @@ static int
 xenFormatSxprGraphicsNew(virDomainGraphicsDefPtr def,
                          virBufferPtr buf)
 {
+    const char *listenAddr;
+
     if (def->type != VIR_DOMAIN_GRAPHICS_TYPE_SDL &&
         def->type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
         XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -1463,8 +1466,9 @@ xenFormatSxprGraphicsNew(virDomainGraphicsDefPtr def,
             virBufferAsprintf(buf, "(vncdisplay %d)", def->data.vnc.port-5900);
         }
 
-        if (def->data.vnc.listenAddr)
-            virBufferAsprintf(buf, "(vnclisten '%s')", def->data.vnc.listenAddr);
+        listenAddr = virDomainGraphicsListenGetAddress(def, 0);
+        if (listenAddr)
+            virBufferAsprintf(buf, "(vnclisten '%s')", listenAddr);
         if (def->data.vnc.auth.passwd)
             virBufferAsprintf(buf, "(vncpasswd '%s')", def->data.vnc.auth.passwd);
         if (def->data.vnc.keymap)
@@ -1482,6 +1486,8 @@ xenFormatSxprGraphicsOld(virDomainGraphicsDefPtr def,
                          virBufferPtr buf,
                          int xendConfigVersion)
 {
+    const char *listenAddr;
+
     if (def->type != VIR_DOMAIN_GRAPHICS_TYPE_SDL &&
         def->type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
         XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -1506,8 +1512,9 @@ xenFormatSxprGraphicsOld(virDomainGraphicsDefPtr def,
                 virBufferAsprintf(buf, "(vncdisplay %d)", def->data.vnc.port-5900);
             }
 
-            if (def->data.vnc.listenAddr)
-                virBufferAsprintf(buf, "(vnclisten '%s')", def->data.vnc.listenAddr);
+            listenAddr = virDomainGraphicsListenGetAddress(def, 0);
+            if (listenAddr)
+                virBufferAsprintf(buf, "(vnclisten '%s')", listenAddr);
             if (def->data.vnc.auth.passwd)
                 virBufferAsprintf(buf, "(vncpasswd '%s')", def->data.vnc.auth.passwd);
             if (def->data.vnc.keymap)
@@ -1605,8 +1612,7 @@ xenFormatSxprChr(virDomainChrDefPtr def,
  * Returns 0 in case of success, -1 in case of error.
  */
 int
-xenFormatSxprDisk(virConnectPtr conn ATTRIBUTE_UNUSED,
-                  virDomainDiskDefPtr def,
+xenFormatSxprDisk(virDomainDiskDefPtr def,
                   virBufferPtr buf,
                   int hvm,
                   int xendConfigVersion,
@@ -2261,10 +2267,16 @@ xenFormatSxpr(virConnectPtr conn,
         }
 
         virBufferAddLit(&buf, "))");
+    } else {
+        /* PV domains accept kernel cmdline args */
+        if (def->os.cmdline) {
+            virBufferEscapeSexpr(&buf, "(image (linux (args '%s')))",
+                                 def->os.cmdline);
+        }
     }
 
     for (i = 0 ; i < def->ndisks ; i++)
-        if (xenFormatSxprDisk(conn, def->disks[i],
+        if (xenFormatSxprDisk(def->disks[i],
                               &buf, hvm, xendConfigVersion, 0) < 0)
             goto error;
 

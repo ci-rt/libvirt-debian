@@ -1,3 +1,38 @@
+libvirt (0.9.4-2) unstable; urgency=low
+
+  [ Philipp Hahn ]
+  * [c9a080d] Build python-libvirt for all python versions (Closes: #628828)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 23 Aug 2011 21:17:55 +0200
+
+libvirt (0.9.4-1) experimental; urgency=low
+
+  * [a92d03e] New upstream version 0.9.4
+  * [76f0333] Run tests verbosely to ease error diagnostics
+  * [f4e7d0b] Work around ICE on m68k.
+    Thanks to Thorsten Glaser
+  * [ac6e760] Add directories chown'ed in the postinst.
+    Thanks to Houmehr Aghabozorgi for the report (Closes: #636965)
+  * [194722a] Simplify netcat probe and adjust testcase output to reduce
+    number of failing testcases.
+  * [05e5a06] Use libyajl QEMU JSON support
+  * [e7934f7] Use libpcap for ip address learning support
+  * [6661730] Readd LFS support
+  * [17d831b] Don't require gawk for a simple print expression
+    (Closes: #636712)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 09 Aug 2011 16:41:24 +0200
+
+libvirt (0.9.4~rc1-1) experimental; urgency=low
+
+  * [0e60a81] New upstream version 0.9.4~rc1
+  * [db6dbcc] Suggest radvd needed for IPv6
+  * [a9b77e5] Drop Catch-dnsmasq-start-failures.patch applied upstream
+  * [b18ac26] Rediff remaining patches
+  * [8ee8750] Update symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 26 Jul 2011 13:12:57 +0200
+
 libvirt (0.9.3-5) unstable; urgency=low
 
   * [44874f6] Add directories chown'ed in the postinst.  Thanks to Houmehr

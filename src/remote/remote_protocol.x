@@ -339,7 +339,7 @@ struct remote_node_get_memory_stats {
  * connection).  Errors are returned implicitly in the RPC protocol.
  *
  * Please follow the naming convention carefully - this file is
- * parsed by 'remote_generator.pl'.
+ * parsed by 'gendispatch.pl'.
  *
  * 'remote_CALL_ret' members that are filled via call-by-reference must be
  * annotated with a insert@<offset> comment to indicate the offset in the
@@ -358,7 +358,7 @@ struct remote_open_args {
      * yet do that using the remote_internal driver.
      */
     remote_string name;
-    int flags;
+    unsigned int flags;
 };
 
 struct remote_supports_feature_args {
@@ -676,6 +676,11 @@ struct remote_domain_destroy_args {
     remote_nonnull_domain dom;
 };
 
+struct remote_domain_destroy_flags_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
 struct remote_domain_get_os_type_args {
     remote_nonnull_domain dom;
 };
@@ -725,14 +730,42 @@ struct remote_domain_save_args {
     remote_nonnull_string to;
 };
 
+struct remote_domain_save_flags_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string to;
+    remote_string dxml;
+    unsigned int flags;
+};
+
 struct remote_domain_restore_args {
     remote_nonnull_string from;
+};
+
+struct remote_domain_restore_flags_args {
+    remote_nonnull_string from;
+    remote_string dxml;
+    unsigned int flags;
+};
+
+struct remote_domain_save_image_get_xml_desc_args {
+    remote_nonnull_string file;
+    unsigned int flags;
+};
+
+struct remote_domain_save_image_get_xml_desc_ret {
+    remote_nonnull_string xml;
+};
+
+struct remote_domain_save_image_define_xml_args {
+    remote_nonnull_string file;
+    remote_nonnull_string dxml;
+    unsigned int flags;
 };
 
 struct remote_domain_core_dump_args {
     remote_nonnull_domain dom;
     remote_nonnull_string to;
-    int flags;
+    unsigned int flags;
 };
 
 struct remote_domain_screenshot_args {
@@ -747,7 +780,7 @@ struct remote_domain_screenshot_ret {
 
 struct remote_domain_get_xml_desc_args {
     remote_nonnull_domain dom;
-    int flags;
+    unsigned int flags;
 };
 
 struct remote_domain_get_xml_desc_ret {
@@ -846,6 +879,11 @@ struct remote_domain_define_xml_ret {
 
 struct remote_domain_undefine_args {
     remote_nonnull_domain dom;
+};
+
+struct remote_domain_undefine_flags_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
 };
 
 struct remote_domain_inject_nmi_args {
@@ -980,6 +1018,40 @@ struct remote_domain_set_autostart_args {
     int autostart;
 };
 
+struct remote_domain_block_job_abort_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned int flags;
+};
+
+struct remote_domain_get_block_job_info_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned int flags;
+};
+
+struct remote_domain_get_block_job_info_ret {
+    int found;
+    int type;
+    unsigned hyper bandwidth;
+    unsigned hyper cur;
+    unsigned hyper end;
+};
+
+struct remote_domain_block_job_set_speed_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned hyper bandwidth;
+    unsigned int flags;
+};
+
+struct remote_domain_block_pull_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned hyper bandwidth;
+    unsigned int flags;
+};
+
 /* Network calls: */
 
 struct remote_num_of_networks_ret {
@@ -1052,7 +1124,7 @@ struct remote_network_destroy_args {
 
 struct remote_network_get_xml_desc_args {
     remote_nonnull_network net;
-    int flags;
+    unsigned int flags;
 };
 
 struct remote_network_get_xml_desc_ret {
@@ -1124,7 +1196,7 @@ struct remote_nwfilter_undefine_args {
 
 struct remote_nwfilter_get_xml_desc_args {
     remote_nonnull_nwfilter nwfilter;
-    int flags;
+    unsigned int flags;
 };
 
 struct remote_nwfilter_get_xml_desc_ret {
@@ -1900,6 +1972,13 @@ struct remote_domain_event_graphics_msg {
     remote_domain_event_graphics_identity subject<REMOTE_DOMAIN_EVENT_GRAPHICS_IDENTITY_MAX>;
 };
 
+struct remote_domain_event_block_job_msg {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    int type;
+    int status;
+};
+
 struct remote_domain_managed_save_args {
     remote_nonnull_domain dom;
     unsigned int flags;
@@ -2123,7 +2202,7 @@ const REMOTE_PROTOCOL_VERSION = 1;
 
 enum remote_procedure {
     /* Each function must have a two-word comment.  The first word is
-     * whether remote_generator.pl handles daemon, the second whether
+     * whether gendispatch.pl handles daemon, the second whether
      * it handles src/remote.  Additional flags can be specified after a
      * pipe.
      *
@@ -2383,14 +2462,27 @@ enum remote_procedure {
     REMOTE_PROC_NODE_GET_CPU_STATS = 227, /* skipgen skipgen */
     REMOTE_PROC_NODE_GET_MEMORY_STATS = 228, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_GET_CONTROL_INFO = 229, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_GET_VCPU_PIN_INFO = 230  /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_GET_VCPU_PIN_INFO = 230, /* skipgen skipgen */
+
+    REMOTE_PROC_DOMAIN_UNDEFINE_FLAGS = 231, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SAVE_FLAGS = 232, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_RESTORE_FLAGS = 233, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_DESTROY_FLAGS = 234, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SAVE_IMAGE_GET_XML_DESC = 235, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SAVE_IMAGE_DEFINE_XML = 236, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_BLOCK_JOB_ABORT = 237, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_GET_BLOCK_JOB_INFO = 238, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_BLOCK_JOB_SET_SPEED = 239, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_BLOCK_PULL = 240, /* autogen autogen */
+
+    REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB = 241 /* skipgen skipgen */
 
     /*
      * Notice how the entries are grouped in sets of 10 ?
      * Nice isn't it. Please keep it this way when adding more.
      *
      * Each function must have a two-word comment.  The first word is
-     * whether remote_generator.pl handles daemon, the second whether
+     * whether gendispatch.pl handles daemon, the second whether
      * it handles src/remote.  Additional flags can be specified after a
      * pipe.
      *

@@ -1,7 +1,7 @@
 /*
  * xs_internal.c: access to Xen Store
  *
- * Copyright (C) 2006, 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2006, 2009-2011 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -42,44 +42,13 @@ static void xenStoreWatchEvent(int watch, int fd, int events, void *data);
 static void xenStoreWatchListFree(xenStoreWatchListPtr list);
 
 struct xenUnifiedDriver xenStoreDriver = {
-    xenStoreOpen, /* open */
-    xenStoreClose, /* close */
-    NULL, /* version */
-    NULL, /* hostname */
-    NULL, /* nodeGetInfo */
-    NULL, /* getCapabilities */
-    xenStoreListDomains, /* listDomains */
-    NULL, /* numOfDomains */
-    NULL, /* domainCreateXML */
-    NULL, /* domainSuspend */
-    NULL, /* domainResume */
-    xenStoreDomainShutdown, /* domainShutdown */
-    xenStoreDomainReboot, /* domainReboot */
-    NULL, /* domainDestroy */
-    xenStoreDomainGetOSType, /* domainGetOSType */
-    xenStoreDomainGetMaxMemory, /* domainGetMaxMemory */
-    NULL, /* domainSetMaxMemory */
-    xenStoreDomainSetMemory, /* domainSetMemory */
-    xenStoreGetDomainInfo, /* domainGetInfo */
-    NULL, /* domainSave */
-    NULL, /* domainRestore */
-    NULL, /* domainCoreDump */
-    NULL, /* domainScreenshot */
-    NULL, /* domainPinVcpu */
-    NULL, /* domainGetVcpus */
-    NULL, /* listDefinedDomains */
-    NULL, /* numOfDefinedDomains */
-    NULL, /* domainCreate */
-    NULL, /* domainDefineXML */
-    NULL, /* domainUndefine */
-    NULL, /* domainAttachDeviceFlags */
-    NULL, /* domainDetachDeviceFlags */
-    NULL, /* domainUpdateDeviceFlags */
-    NULL, /* domainGetAutostart */
-    NULL, /* domainSetAutostart */
-    NULL, /* domainGetSchedulerType */
-    NULL, /* domainGetSchedulerParameters */
-    NULL, /* domainSetSchedulerParameters */
+    .xenClose = xenStoreClose,
+    .xenDomainShutdown = xenStoreDomainShutdown,
+    .xenDomainReboot = xenStoreDomainReboot,
+    .xenDomainGetOSType = xenStoreDomainGetOSType,
+    .xenDomainGetMaxMemory = xenStoreDomainGetMaxMemory,
+    .xenDomainSetMemory = xenStoreDomainSetMemory,
+    .xenDomainGetInfo = xenStoreGetDomainInfo,
 };
 
 #define virXenStoreError(code, ...)                                  \
@@ -267,9 +236,11 @@ virDomainGetVMInfo(virDomainPtr domain, const char *vm, const char *name)
 virDrvOpenStatus
 xenStoreOpen(virConnectPtr conn,
              virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-             int flags ATTRIBUTE_UNUSED)
+             unsigned int flags)
 {
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     if (flags & VIR_CONNECT_RO)
         priv->xshandle = xs_daemon_open_readonly();
@@ -461,9 +432,11 @@ int
 xenStoreDomainGetState(virDomainPtr domain,
                        int *state,
                        int *reason,
-                       unsigned int flags ATTRIBUTE_UNUSED)
+                       unsigned int flags)
 {
     char *running;
+
+    virCheckFlags(0, -1);
 
     if (domain->id == -1)
         return -1;
@@ -778,10 +751,12 @@ xenStoreDomainShutdown(virDomainPtr domain)
  * Returns 0 in case of success, -1 in case of error.
  */
 int
-xenStoreDomainReboot(virDomainPtr domain, unsigned int flags ATTRIBUTE_UNUSED)
+xenStoreDomainReboot(virDomainPtr domain, unsigned int flags)
 {
     int ret;
     xenUnifiedPrivatePtr priv;
+
+    virCheckFlags(0, -1);
 
     if ((domain == NULL) || (domain->conn == NULL)) {
         virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);

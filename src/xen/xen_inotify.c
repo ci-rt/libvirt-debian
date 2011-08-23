@@ -4,7 +4,7 @@
  *                /etc/xen
  *                /var/lib/xend/domains
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2008 VirtualIron
  *
  * This library is free software; you can redistribute it and/or
@@ -38,7 +38,7 @@
 #include "xend_internal.h"
 #include "logging.h"
 #include "uuid.h"
-#include "files.h"
+#include "virfile.h"
 
 #include "xm_internal.h" /* for xenXMDomainConfigParse */
 
@@ -49,44 +49,7 @@
                              __FUNCTION__, __LINE__, __VA_ARGS__)
 
 struct xenUnifiedDriver xenInotifyDriver = {
-    xenInotifyOpen, /* open */
-    xenInotifyClose, /* close */
-    NULL, /* version */
-    NULL, /* hostname */
-    NULL, /* nodeGetInfo */
-    NULL, /* getCapabilities */
-    NULL, /* listDomains */
-    NULL, /* numOfDomains */
-    NULL, /* domainCreateLinux */
-    NULL, /* domainSuspend */
-    NULL, /* domainResume */
-    NULL, /* domainShutdown */
-    NULL, /* domainReboot */
-    NULL, /* domainDestroy */
-    NULL, /* domainGetOSType */
-    NULL, /* domainGetMaxMemory */
-    NULL, /* domainSetMaxMemory */
-    NULL, /* domainSetMemory */
-    NULL, /* domainGetInfo */
-    NULL, /* domainSave */
-    NULL, /* domainRestore */
-    NULL, /* domainCoreDump */
-    NULL, /* domainScreenshot */
-    NULL, /* domainPinVcpu */
-    NULL, /* domainGetVcpus */
-    NULL, /* listDefinedDomains */
-    NULL, /* numOfDefinedDomains */
-    NULL, /* domainCreate */
-    NULL, /* domainDefineXML */
-    NULL, /* domainUndefine */
-    NULL, /* domainAttachDeviceFlags */
-    NULL, /* domainDetachDeviceFlags */
-    NULL, /* domainUpdateDeviceFlags */
-    NULL, /* domainGetAutostart */
-    NULL, /* domainSetAutostart */
-    NULL, /* domainGetSchedulerType */
-    NULL, /* domainGetSchedulerParameters */
-    NULL, /* domainSetSchedulerParameters */
+    .xenClose = xenInotifyClose,
 };
 
 static int
@@ -382,13 +345,15 @@ cleanup:
  */
 virDrvOpenStatus
 xenInotifyOpen(virConnectPtr conn,
-             virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-             int flags ATTRIBUTE_UNUSED)
+               virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+               unsigned int flags)
 {
     DIR *dh;
     struct dirent *ent;
     char *path;
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     if (priv->configDir) {
         priv->useXenConfigCache = 1;

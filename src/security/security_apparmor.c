@@ -35,7 +35,7 @@
 #include "uuid.h"
 #include "pci.h"
 #include "hostusb.h"
-#include "files.h"
+#include "virfile.h"
 #include "configmake.h"
 #include "command.h"
 
@@ -265,7 +265,7 @@ reload_profile(virSecurityManagerPtr mgr,
     int rc = -1;
     char *profile_name = NULL;
 
-    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (secdef->norelabel)
         return 0;
 
     if ((profile_name = get_profile_name(vm)) == NULL)
@@ -398,6 +398,12 @@ AppArmorGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_STATIC)
         return 0;
 
+    if (vm->def->seclabel.baselabel) {
+        virSecurityReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               "%s", _("Cannot set a base label with AppArmour"));
+        return rc;
+    }
+
     if ((vm->def->seclabel.label) ||
         (vm->def->seclabel.model) || (vm->def->seclabel.imagelabel)) {
         virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
@@ -455,7 +461,7 @@ static int
 AppArmorSetSecurityAllLabel(virSecurityManagerPtr mgr,
                             virDomainObjPtr vm, const char *stdin_path)
 {
-    if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (vm->def->seclabel.norelabel)
         return 0;
 
     /* Reload the profile if stdin_path is specified. Note that
@@ -604,7 +610,7 @@ AppArmorSetSecurityImageLabel(virSecurityManagerPtr mgr,
     int rc = -1;
     char *profile_name;
 
-    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (secdef->norelabel)
         return 0;
 
     if (!disk->src || disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK)
@@ -676,7 +682,7 @@ AppArmorSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     struct SDPDOP *ptr;
     int ret = -1;
 
-    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (secdef->norelabel)
         return 0;
 
     if (dev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
@@ -735,7 +741,7 @@ AppArmorRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
 
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
-    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (secdef->norelabel)
         return 0;
 
     return reload_profile(mgr, vm, NULL, false);

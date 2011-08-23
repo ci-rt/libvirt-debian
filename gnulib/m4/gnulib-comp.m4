@@ -38,7 +38,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module allocator:
   # Code from module areadlink:
   # Code from module areadlink-tests:
-  # Code from module arg-nonnull:
   # Code from module arpa_inet:
   # Code from module arpa_inet-tests:
   # Code from module base64:
@@ -50,13 +49,13 @@ AC_DEFUN([gl_EARLY],
   # Code from module btowc-tests:
   # Code from module byteswap:
   # Code from module byteswap-tests:
-  # Code from module c++defs:
   # Code from module c-ctype:
   # Code from module c-ctype-tests:
   # Code from module c-strcase:
   # Code from module c-strcase-tests:
   # Code from module c-strcasestr:
   # Code from module c-strcasestr-tests:
+  # Code from module calloc-posix:
   # Code from module canonicalize-lgpl:
   # Code from module canonicalize-lgpl-tests:
   # Code from module careadlinkat:
@@ -95,6 +94,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module fflush:
   AC_REQUIRE([AC_FUNC_FSEEKO])
   # Code from module fflush-tests:
+  # Code from module ffs:
+  # Code from module ffs-tests:
   # Code from module float:
   # Code from module float-tests:
   # Code from module fnmatch:
@@ -159,6 +160,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module inttypes-incomplete:
   # Code from module inttypes-tests:
   # Code from module ioctl:
+  # Code from module largefile:
   # Code from module listen:
   # Code from module localcharset:
   # Code from module locale:
@@ -232,6 +234,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module posix_spawnp-tests:
   # Code from module progname:
   # Code from module pthread:
+  # Code from module pthread_sigmask:
+  # Code from module pthread_sigmask-tests:
   # Code from module putenv:
   # Code from module random_r:
   # Code from module random_r-tests:
@@ -263,9 +267,14 @@ AC_DEFUN([gl_EARLY],
   # Code from module sigpipe:
   # Code from module sigpipe-tests:
   # Code from module sigprocmask:
+  # Code from module sigprocmask-tests:
   # Code from module size_max:
   # Code from module sleep:
   # Code from module sleep-tests:
+  # Code from module snippet/_Noreturn:
+  # Code from module snippet/arg-nonnull:
+  # Code from module snippet/c++defs:
+  # Code from module snippet/warn-on-use:
   # Code from module snprintf:
   # Code from module snprintf-tests:
   # Code from module socket:
@@ -308,6 +317,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module strerror_r-posix-tests:
   # Code from module string:
   # Code from module string-tests:
+  # Code from module strings:
+  # Code from module strings-tests:
   # Code from module strndup:
   # Code from module strnlen:
   # Code from module strnlen-tests:
@@ -337,6 +348,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module termios:
   # Code from module termios-tests:
   # Code from module thread:
+  # Code from module thread-tests:
   # Code from module threadlib:
   gl_THREADLIB_EARLY
   # Code from module time:
@@ -364,7 +376,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module vsnprintf-tests:
   # Code from module wait-process:
   # Code from module waitpid:
-  # Code from module warn-on-use:
   # Code from module warnings:
   # Code from module wchar:
   # Code from module wchar-tests:
@@ -416,6 +427,11 @@ if test "$ac_cv_header_winsock2_h" = yes; then
 fi
 gl_SYS_SOCKET_MODULE_INDICATOR([bind])
 gl_BYTESWAP
+gl_FUNC_CALLOC_POSIX
+if test $REPLACE_CALLOC = 1; then
+  AC_LIBOBJ([calloc])
+fi
+gl_STDLIB_MODULE_INDICATOR([calloc-posix])
 gl_CANONICALIZE_LGPL
 if test $HAVE_CANONICALIZE_FILE_NAME = 0 || test $REPLACE_CANONICALIZE_FILE_NAME = 1; then
   AC_LIBOBJ([canonicalize-lgpl])
@@ -434,6 +450,9 @@ fi
 gl_UNISTD_MODULE_INDICATOR([chown])
 gl_MODULE_INDICATOR_FOR_TESTS([cloexec])
 gl_FUNC_CLOSE
+if test $REPLACE_CLOSE = 1; then
+  AC_LIBOBJ([close])
+fi
 gl_UNISTD_MODULE_INDICATOR([close])
 gl_CONFIGMAKE_PREP
 AC_REQUIRE([gl_HEADER_SYS_SOCKET])
@@ -446,11 +465,22 @@ gl_MD5
 gl_DIRNAME_LGPL
 gl_DOUBLE_SLASH_ROOT
 gl_FUNC_DUP2
+if test $HAVE_DUP2 = 0 || test $REPLACE_DUP2 = 1; then
+  AC_LIBOBJ([dup2])
+fi
 gl_UNISTD_MODULE_INDICATOR([dup2])
+gl_ENVIRON
+gl_UNISTD_MODULE_INDICATOR([environ])
 gl_HEADER_ERRNO_H
 gl_FUNC_FCLOSE
+if test $REPLACE_FCLOSE = 1; then
+  AC_LIBOBJ([fclose])
+fi
 gl_STDIO_MODULE_INDICATOR([fclose])
 gl_FUNC_FCNTL
+if test $HAVE_FCNTL = 0 || test $REPLACE_FCNTL = 1; then
+  AC_LIBOBJ([fcntl])
+fi
 gl_FCNTL_MODULE_INDICATOR([fcntl])
 gl_FCNTL_H
 gl_FUNC_FFLUSH
@@ -460,6 +490,11 @@ if test $REPLACE_FFLUSH = 1; then
 fi
 gl_MODULE_INDICATOR([fflush])
 gl_STDIO_MODULE_INDICATOR([fflush])
+gl_FUNC_FFS
+if test $HAVE_FFS = 0; then
+  AC_LIBOBJ([ffs])
+fi
+gl_STRINGS_MODULE_INDICATOR([ffs])
 gl_FLOAT_H
 if test $REPLACE_FLOAT_LDBL = 1; then
   AC_LIBOBJ([float])
@@ -676,6 +711,10 @@ dnl Define the substituted variable GNULIB_UNISTD_H_NONBLOCKING to 1.
 AC_REQUIRE([gl_UNISTD_H_DEFAULTS])
 GNULIB_UNISTD_H_NONBLOCKING=1
 gl_FUNC_OPEN
+if test $REPLACE_OPEN = 1; then
+  AC_LIBOBJ([open])
+  gl_PREREQ_OPEN
+fi
 gl_FCNTL_MODULE_INDICATOR([open])
 gl_PASSFD
 gl_PATHMAX
@@ -701,6 +740,12 @@ gl_POLL_MODULE_INDICATOR([poll])
 gl_POLL_H
 gl_POSIX_SHELL
 gl_PTHREAD_CHECK
+gl_FUNC_PTHREAD_SIGMASK
+if test $HAVE_PTHREAD_SIGMASK = 0 || test $REPLACE_PTHREAD_SIGMASK = 1; then
+  AC_LIBOBJ([pthread_sigmask])
+  gl_PREREQ_PTHREAD_SIGMASK
+fi
+gl_SIGNAL_MODULE_INDICATOR([pthread_sigmask])
 gl_FUNC_RANDOM_R
 if test $HAVE_RANDOM_R = 0; then
   AC_LIBOBJ([random_r])
@@ -848,6 +893,7 @@ if test $HAVE_DECL_STRERROR_R = 0 || test $REPLACE_STRERROR_R = 1; then
 fi
 gl_STRING_MODULE_INDICATOR([strerror_r])
 gl_HEADER_STRING_H
+gl_HEADER_STRINGS_H
 gl_FUNC_STRNDUP
 if test $HAVE_STRNDUP = 0 || test $REPLACE_STRNDUP = 1; then
   AC_LIBOBJ([strndup])
@@ -927,6 +973,8 @@ gl_STDIO_MODULE_INDICATOR([vasprintf])
 m4_ifdef([AM_XGETTEXT_OPTION],
   [AM_][XGETTEXT_OPTION([--flag=asprintf:2:c-format])
    AM_][XGETTEXT_OPTION([--flag=vasprintf:2:c-format])])
+gl_FUNC_VSNPRINTF
+gl_STDIO_MODULE_INDICATOR([vsnprintf])
 gl_FUNC_WAITPID
 if test $HAVE_WAITPID = 0; then
   AC_LIBOBJ([waitpid])
@@ -993,8 +1041,6 @@ gt_LOCALE_FR_UTF8
 gt_LOCALE_FR
 gt_LOCALE_TR_UTF8
 AC_CHECK_FUNCS_ONCE([getegid])
-gl_ENVIRON
-gl_UNISTD_MODULE_INDICATOR([environ])
 gl_ERROR
 if test $ac_cv_lib_error_at_line = no; then
   AC_LIBOBJ([error])
@@ -1178,8 +1224,6 @@ fi
 gl_STDLIB_MODULE_INDICATOR([unsetenv])
 abs_aux_dir=`cd "$ac_aux_dir"; pwd`
 AC_SUBST([abs_aux_dir])
-gl_FUNC_VSNPRINTF
-gl_STDIO_MODULE_INDICATOR([vsnprintf])
 gl_WAIT_PROCESS
 gl_FUNC_WCRTOMB
 if test $HAVE_WCRTOMB = 0 || test $REPLACE_WCRTOMB = 1; then
@@ -1302,14 +1346,15 @@ AC_DEFUN([gltests_LIBSOURCES], [
 # This macro records the list of files which have been installed by
 # gnulib-tool and may be removed by future gnulib-tool invocations.
 AC_DEFUN([gl_FILE_LIST], [
-  build-aux/arg-nonnull.h
-  build-aux/c++defs.h
   build-aux/config.rpath
   build-aux/gitlog-to-changelog
   build-aux/mktempd
+  build-aux/snippet/_Noreturn.h
+  build-aux/snippet/arg-nonnull.h
+  build-aux/snippet/c++defs.h
+  build-aux/snippet/warn-on-use.h
   build-aux/useless-if-before-free
   build-aux/vc-list-files
-  build-aux/warn-on-use.h
   lib/accept.c
   lib/alignof.h
   lib/alloca.c
@@ -1334,6 +1379,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/c-strcasestr.c
   lib/c-strcasestr.h
   lib/c-strncasecmp.c
+  lib/calloc.c
   lib/canonicalize-lgpl.c
   lib/careadlinkat.c
   lib/careadlinkat.h
@@ -1356,6 +1402,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/fd-hook.c
   lib/fd-hook.h
   lib/fflush.c
+  lib/ffs.c
   lib/float+.h
   lib/float.c
   lib/float.in.h
@@ -1432,6 +1479,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/printf-parse.c
   lib/printf-parse.h
   lib/pthread.in.h
+  lib/pthread_sigmask.c
   lib/random_r.c
   lib/rawmemchr.c
   lib/rawmemchr.valgrind
@@ -1475,6 +1523,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/strerror.c
   lib/strerror_r.c
   lib/string.in.h
+  lib/strings.in.h
   lib/stripslash.c
   lib/strndup.c
   lib/strnlen.c
@@ -1504,6 +1553,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/vasnprintf.h
   lib/vasprintf.c
   lib/verify.h
+  lib/vsnprintf.c
   lib/w32sock.h
   lib/waitpid.c
   lib/wchar.in.h
@@ -1516,6 +1566,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/base64.m4
   m4/btowc.m4
   m4/byteswap.m4
+  m4/calloc.m4
   m4/canonicalize.m4
   m4/chown.m4
   m4/close.m4
@@ -1536,6 +1587,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/fcntl.m4
   m4/fcntl_h.m4
   m4/fflush.m4
+  m4/ffs.m4
   m4/float_h.m4
   m4/fnmatch.m4
   m4/fpieee.m4
@@ -1570,6 +1622,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/inttypes.m4
   m4/inttypes_h.m4
   m4/ioctl.m4
+  m4/largefile.m4
   m4/lcmessage.m4
   m4/lib-ld.m4
   m4/lib-link.m4
@@ -1620,6 +1673,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/posix_spawn.m4
   m4/printf.m4
   m4/pthread.m4
+  m4/pthread_sigmask.m4
   m4/putenv.m4
   m4/random_r.m4
   m4/rawmemchr.m4
@@ -1660,6 +1714,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/strerror.m4
   m4/strerror_r.m4
   m4/string_h.m4
+  m4/strings_h.m4
   m4/strndup.m4
   m4/strnlen.m4
   m4/strptime.m4
@@ -1741,6 +1796,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-fflush.c
   tests/test-fflush2.c
   tests/test-fflush2.sh
+  tests/test-ffs.c
   tests/test-float.c
   tests/test-fnmatch.c
   tests/test-fpurge.c
@@ -1829,6 +1885,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-posix_spawn1.in.sh
   tests/test-posix_spawn2.c
   tests/test-posix_spawn2.in.sh
+  tests/test-pthread_sigmask1.c
+  tests/test-pthread_sigmask2.c
   tests/test-random_r.c
   tests/test-rawmemchr.c
   tests/test-readlink.c
@@ -1840,6 +1898,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-select-out.sh
   tests/test-select-stdin.c
   tests/test-select.c
+  tests/test-select.h
   tests/test-setenv.c
   tests/test-setlocale1.c
   tests/test-setlocale1.sh
@@ -1849,6 +1908,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-signal.c
   tests/test-sigpipe.c
   tests/test-sigpipe.sh
+  tests/test-sigprocmask.c
   tests/test-sleep.c
   tests/test-snprintf.c
   tests/test-sockets.c
@@ -1865,6 +1925,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-strerror.c
   tests/test-strerror_r.c
   tests/test-string.c
+  tests/test-strings.c
   tests/test-strnlen.c
   tests/test-symlink.c
   tests/test-symlink.h
@@ -1878,6 +1939,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-sys_wait.c
   tests/test-sys_wait.h
   tests/test-termios.c
+  tests/test-thread_create.c
+  tests/test-thread_self.c
   tests/test-time.c
   tests/test-uname.c
   tests/test-unistd.c
@@ -1951,7 +2014,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/stat-time.h
   tests=lib/symlink.c
   tests=lib/unsetenv.c
-  tests=lib/vsnprintf.c
   tests=lib/w32sock.h
   tests=lib/wait-process.c
   tests=lib/wait-process.h

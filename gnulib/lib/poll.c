@@ -454,6 +454,7 @@ poll (struct pollfd *pfd, nfds_t nfd, int timeout)
   if (!hEvent)
     hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
 
+restart:
   handle_array[0] = hEvent;
   nhandles = 1;
   FD_ZERO (&rfds);
@@ -592,6 +593,12 @@ poll (struct pollfd *pfd, nfds_t nfd, int timeout)
 
        if ((pfd[i].revents |= happened) != 0)
         rc++;
+    }
+
+  if (!rc && timeout == INFTIM)
+    {
+      SwitchToThread();
+      goto restart;
     }
 
   return rc;

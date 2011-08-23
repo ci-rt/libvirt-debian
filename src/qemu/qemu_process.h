@@ -23,6 +23,7 @@
 # define __QEMU_PROCESS_H__
 
 # include "qemu_conf.h"
+# include "qemu_domain.h"
 
 int qemuProcessPrepareMonitorChr(struct qemud_driver *driver,
                                  virDomainChrSourceDefPtr monConfig,
@@ -31,10 +32,12 @@ int qemuProcessPrepareMonitorChr(struct qemud_driver *driver,
 int qemuProcessStartCPUs(struct qemud_driver *driver,
                          virDomainObjPtr vm,
                          virConnectPtr conn,
-                         virDomainRunningReason reason);
+                         virDomainRunningReason reason,
+                         enum qemuDomainAsyncJob asyncJob);
 int qemuProcessStopCPUs(struct qemud_driver *driver,
                         virDomainObjPtr vm,
-                        virDomainPausedReason reason);
+                        virDomainPausedReason reason,
+                        enum qemuDomainAsyncJob asyncJob);
 
 void qemuProcessAutostartAll(struct qemud_driver *driver);
 void qemuProcessReconnectAll(virConnectPtr conn, struct qemud_driver *driver);
@@ -55,6 +58,14 @@ void qemuProcessStop(struct qemud_driver *driver,
                      virDomainObjPtr vm,
                      int migrated,
                      virDomainShutoffReason reason);
+
+int qemuProcessAttach(virConnectPtr conn,
+                      struct qemud_driver *driver,
+                      virDomainObjPtr vm,
+                      int pid,
+                      const char *pidfile,
+                      virDomainChrSourceDefPtr monConfig,
+                      bool monJSON);
 
 void qemuProcessKill(virDomainObjPtr vm);
 

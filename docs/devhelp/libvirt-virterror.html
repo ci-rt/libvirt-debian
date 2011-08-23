@@ -212,6 +212,7 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_INVALID_DOMAIN_SNAPSHOT">VIR_ERR_INVALID_DOMAIN_SNAPSHOT</a> = 71 /* invalid domain snapshot */
     <a name="VIR_ERR_NO_DOMAIN_SNAPSHOT">VIR_ERR_NO_DOMAIN_SNAPSHOT</a> = 72 /* domain snapshot not found */
     <a name="VIR_ERR_INVALID_STREAM">VIR_ERR_INVALID_STREAM</a> = 73 /* stream pointer not valid */
+    <a name="VIR_ERR_ARGUMENT_UNSUPPORTED">VIR_ERR_ARGUMENT_UNSUPPORTED</a> = 74 /* valid API use but unsupported by the given driver */
 };
 </pre><p/>
 </div>
@@ -312,7 +313,8 @@ their own error object.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virSaveLastError"/>virSaveLastError ()</h3><pre class="programlisting"><a href="libvirt-virterror.html#virErrorPtr">virErrorPtr</a>	virSaveLastError	(void)<br/>
-</pre><p>Save the last error into a new error object.</p>
+</pre><p>Save the last error into a new error object. On success, errno is
+unchanged; on failure, errno is ENOMEM.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the copied error or NULL if allocation failed. It is the caller's responsibility to free the error with virFreeError().</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virSetErrorFunc"/>virSetErrorFunc ()</h3><pre class="programlisting">void	virSetErrorFunc			(void * userData, <br/>					 <a href="libvirt-virterror.html#virErrorFunc">virErrorFunc</a> handler)<br/>

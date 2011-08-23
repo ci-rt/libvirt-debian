@@ -56,7 +56,7 @@
 #include "storage_file.h"
 #include "storage_backend.h"
 #include "logging.h"
-#include "files.h"
+#include "virfile.h"
 #include "command.h"
 
 #if WITH_STORAGE_LVM
@@ -233,7 +233,7 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
                                  virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                  virStorageVolDefPtr vol,
                                  virStorageVolDefPtr inputvol,
-                                 unsigned int flags ATTRIBUTE_UNUSED)
+                                 unsigned int flags)
 {
     int fd = -1;
     int ret = -1;
@@ -241,6 +241,8 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
     struct stat st;
     gid_t gid;
     uid_t uid;
+
+    virCheckFlags(0, -1);
 
     if ((fd = open(vol->target.path, O_RDWR)) < 0) {
         virReportSystemError(errno,
@@ -331,7 +333,7 @@ createRawFile(int fd, virStorageVolDefPtr vol,
 
                 if (bytes > remain)
                     bytes = remain;
-                if (safezero(fd, 0, vol->allocation - remain, bytes) < 0) {
+                if (safezero(fd, vol->allocation - remain, bytes) < 0) {
                     ret = -errno;
                     virReportSystemError(errno, _("cannot fill file '%s'"),
                                          vol->target.path);
@@ -340,7 +342,7 @@ createRawFile(int fd, virStorageVolDefPtr vol,
                 remain -= bytes;
             }
         } else { /* No progress bars to be shown */
-            if (safezero(fd, 0, 0, remain) < 0) {
+            if (safezero(fd, 0, remain) < 0) {
                 ret = -errno;
                 virReportSystemError(errno, _("cannot fill file '%s'"),
                                      vol->target.path);
@@ -399,12 +401,9 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    if ((ret = createRawFile(fd, vol, inputvol)) < 0) {
-        virReportSystemError(-fd,
-                             _("cannot create path '%s'"),
-                             vol->target.path);
+    if ((ret = createRawFile(fd, vol, inputvol)) < 0)
+        /* createRawFile already reported the exact error. */
         ret = -1;
-    }
 
 cleanup:
     VIR_FORCE_CLOSE(fd);
@@ -646,7 +645,7 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
                                virStoragePoolObjPtr pool,
                                virStorageVolDefPtr vol,
                                virStorageVolDefPtr inputvol,
-                               unsigned int flags ATTRIBUTE_UNUSED)
+                               unsigned int flags)
 {
     int ret = -1;
     char *create_tool;
@@ -654,6 +653,8 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
     virCommandPtr cmd = NULL;
     bool do_encryption = (vol->target.encryption != NULL);
     unsigned long long int size_arg;
+
+    virCheckFlags(0, -1);
 
     const char *type = virStorageFileFormatTypeToString(vol->target.format);
     const char *backingType = vol->backingStore.path ?
@@ -850,11 +851,13 @@ virStorageBackendCreateQcowCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   virStoragePoolObjPtr pool,
                                   virStorageVolDefPtr vol,
                                   virStorageVolDefPtr inputvol,
-                                  unsigned int flags ATTRIBUTE_UNUSED)
+                                  unsigned int flags)
 {
     int ret;
     char *size;
     virCommandPtr cmd;
+
+    virCheckFlags(0, -1);
 
     if (inputvol) {
         virStorageReportError(VIR_ERR_INTERNAL_ERROR, "%s",

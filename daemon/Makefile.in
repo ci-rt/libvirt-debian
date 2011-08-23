@@ -60,6 +60,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
 	$(top_srcdir)/gnulib/m4/btowc.m4 \
 	$(top_srcdir)/gnulib/m4/byteswap.m4 \
+	$(top_srcdir)/gnulib/m4/calloc.m4 \
 	$(top_srcdir)/gnulib/m4/canonicalize.m4 \
 	$(top_srcdir)/gnulib/m4/chown.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
@@ -79,6 +80,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl_h.m4 \
 	$(top_srcdir)/gnulib/m4/fflush.m4 \
+	$(top_srcdir)/gnulib/m4/ffs.m4 \
 	$(top_srcdir)/gnulib/m4/float_h.m4 \
 	$(top_srcdir)/gnulib/m4/fnmatch.m4 \
 	$(top_srcdir)/gnulib/m4/fpieee.m4 \
@@ -154,6 +156,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/posix_spawn.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
 	$(top_srcdir)/gnulib/m4/pthread.m4 \
+	$(top_srcdir)/gnulib/m4/pthread_sigmask.m4 \
 	$(top_srcdir)/gnulib/m4/putenv.m4 \
 	$(top_srcdir)/gnulib/m4/random_r.m4 \
 	$(top_srcdir)/gnulib/m4/rawmemchr.m4 \
@@ -192,6 +195,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/strerror.m4 \
 	$(top_srcdir)/gnulib/m4/strerror_r.m4 \
 	$(top_srcdir)/gnulib/m4/string_h.m4 \
+	$(top_srcdir)/gnulib/m4/strings_h.m4 \
 	$(top_srcdir)/gnulib/m4/strndup.m4 \
 	$(top_srcdir)/gnulib/m4/strnlen.m4 \
 	$(top_srcdir)/gnulib/m4/strptime.m4 \
@@ -418,6 +422,7 @@ FLOAT_H = @FLOAT_H@
 FNMATCH_H = @FNMATCH_H@
 GETADDRINFO_LIB = @GETADDRINFO_LIB@
 GETHOSTNAME_LIB = @GETHOSTNAME_LIB@
+GETTEXT_CPPFLAGS = @GETTEXT_CPPFLAGS@
 GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GLIBC21 = @GLIBC21@
 GMSGFMT = @GMSGFMT@
@@ -445,6 +450,9 @@ GNULIB_FCHOWNAT = @GNULIB_FCHOWNAT@
 GNULIB_FCLOSE = @GNULIB_FCLOSE@
 GNULIB_FCNTL = @GNULIB_FCNTL@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
+GNULIB_FFS = @GNULIB_FFS@
+GNULIB_FFSL = @GNULIB_FFSL@
+GNULIB_FFSLL = @GNULIB_FFSLL@
 GNULIB_FGETC = @GNULIB_FGETC@
 GNULIB_FGETS = @GNULIB_FGETS@
 GNULIB_FOPEN = @GNULIB_FOPEN@
@@ -573,6 +581,8 @@ GNULIB_POSIX_SPAWN_FILE_ACTIONS_INIT = @GNULIB_POSIX_SPAWN_FILE_ACTIONS_INIT@
 GNULIB_PREAD = @GNULIB_PREAD@
 GNULIB_PRINTF = @GNULIB_PRINTF@
 GNULIB_PRINTF_POSIX = @GNULIB_PRINTF_POSIX@
+GNULIB_PSELECT = @GNULIB_PSELECT@
+GNULIB_PTHREAD_SIGMASK = @GNULIB_PTHREAD_SIGMASK@
 GNULIB_PTSNAME = @GNULIB_PTSNAME@
 GNULIB_PUTC = @GNULIB_PUTC@
 GNULIB_PUTCHAR = @GNULIB_PUTCHAR@
@@ -740,6 +750,7 @@ HAVE_DECL_SETENV = @HAVE_DECL_SETENV@
 HAVE_DECL_SNPRINTF = @HAVE_DECL_SNPRINTF@
 HAVE_DECL_STRDUP = @HAVE_DECL_STRDUP@
 HAVE_DECL_STRERROR_R = @HAVE_DECL_STRERROR_R@
+HAVE_DECL_STRNCASECMP = @HAVE_DECL_STRNCASECMP@
 HAVE_DECL_STRNDUP = @HAVE_DECL_STRNDUP@
 HAVE_DECL_STRNLEN = @HAVE_DECL_STRNLEN@
 HAVE_DECL_STRSIGNAL = @HAVE_DECL_STRSIGNAL@
@@ -763,6 +774,9 @@ HAVE_FCHMODAT = @HAVE_FCHMODAT@
 HAVE_FCHOWNAT = @HAVE_FCHOWNAT@
 HAVE_FCNTL = @HAVE_FCNTL@
 HAVE_FEATURES_H = @HAVE_FEATURES_H@
+HAVE_FFS = @HAVE_FFS@
+HAVE_FFSL = @HAVE_FFSL@
+HAVE_FFSLL = @HAVE_FFSLL@
 HAVE_FSEEKO = @HAVE_FSEEKO@
 HAVE_FSTATAT = @HAVE_FSTATAT@
 HAVE_FSYNC = @HAVE_FSYNC@
@@ -819,7 +833,9 @@ HAVE_POSIX_SPAWN = @HAVE_POSIX_SPAWN@
 HAVE_POSIX_SPAWNATTR_T = @HAVE_POSIX_SPAWNATTR_T@
 HAVE_POSIX_SPAWN_FILE_ACTIONS_T = @HAVE_POSIX_SPAWN_FILE_ACTIONS_T@
 HAVE_PREAD = @HAVE_PREAD@
+HAVE_PSELECT = @HAVE_PSELECT@
 HAVE_PTHREAD_H = @HAVE_PTHREAD_H@
+HAVE_PTHREAD_SIGMASK = @HAVE_PTHREAD_SIGMASK@
 HAVE_PTHREAD_SPINLOCK_T = @HAVE_PTHREAD_SPINLOCK_T@
 HAVE_PTHREAD_T = @HAVE_PTHREAD_T@
 HAVE_PTSNAME = @HAVE_PTSNAME@
@@ -847,6 +863,7 @@ HAVE_SPAWN_H = @HAVE_SPAWN_H@
 HAVE_STDINT_H = @HAVE_STDINT_H@
 HAVE_STPCPY = @HAVE_STPCPY@
 HAVE_STPNCPY = @HAVE_STPNCPY@
+HAVE_STRCASECMP = @HAVE_STRCASECMP@
 HAVE_STRCASESTR = @HAVE_STRCASESTR@
 HAVE_STRCHRNUL = @HAVE_STRCHRNUL@
 HAVE_STRPBRK = @HAVE_STRPBRK@
@@ -988,6 +1005,7 @@ LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LIB_PTHREAD = @LIB_PTHREAD@
+LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALCHARSET_TESTS_ENVIRONMENT = @LOCALCHARSET_TESTS_ENVIRONMENT@
@@ -1040,6 +1058,7 @@ NEXT_AS_FIRST_DIRECTIVE_STDDEF_H = @NEXT_AS_FIRST_DIRECTIVE_STDDEF_H@
 NEXT_AS_FIRST_DIRECTIVE_STDINT_H = @NEXT_AS_FIRST_DIRECTIVE_STDINT_H@
 NEXT_AS_FIRST_DIRECTIVE_STDIO_H = @NEXT_AS_FIRST_DIRECTIVE_STDIO_H@
 NEXT_AS_FIRST_DIRECTIVE_STDLIB_H = @NEXT_AS_FIRST_DIRECTIVE_STDLIB_H@
+NEXT_AS_FIRST_DIRECTIVE_STRINGS_H = @NEXT_AS_FIRST_DIRECTIVE_STRINGS_H@
 NEXT_AS_FIRST_DIRECTIVE_STRING_H = @NEXT_AS_FIRST_DIRECTIVE_STRING_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_IOCTL_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_IOCTL_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H@
@@ -1071,6 +1090,7 @@ NEXT_STDDEF_H = @NEXT_STDDEF_H@
 NEXT_STDINT_H = @NEXT_STDINT_H@
 NEXT_STDIO_H = @NEXT_STDIO_H@
 NEXT_STDLIB_H = @NEXT_STDLIB_H@
+NEXT_STRINGS_H = @NEXT_STRINGS_H@
 NEXT_STRING_H = @NEXT_STRING_H@
 NEXT_SYS_IOCTL_H = @NEXT_SYS_IOCTL_H@
 NEXT_SYS_SELECT_H = @NEXT_SYS_SELECT_H@
@@ -1201,6 +1221,8 @@ REPLACE_POPEN = @REPLACE_POPEN@
 REPLACE_POSIX_SPAWN = @REPLACE_POSIX_SPAWN@
 REPLACE_PREAD = @REPLACE_PREAD@
 REPLACE_PRINTF = @REPLACE_PRINTF@
+REPLACE_PSELECT = @REPLACE_PSELECT@
+REPLACE_PTHREAD_SIGMASK = @REPLACE_PTHREAD_SIGMASK@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
 REPLACE_READ = @REPLACE_READ@
@@ -1280,6 +1302,7 @@ STRIP = @STRIP@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
+TC = @TC@
 TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
 U = @U@
 UDEVADM = @UDEVADM@
@@ -1383,6 +1406,16 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+INCLUDES = \
+	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
+	-I$(top_srcdir)/include -I$(top_builddir)/include \
+	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/src/util \
+	-I$(top_srcdir)/src/conf \
+	-I$(top_srcdir)/src/rpc \
+	-I$(top_srcdir)/src/remote \
+	$(GETTEXT_CPPFLAGS)
+
 CLEANFILES = $(am__append_13) $(BUILT_SOURCES) $(man8_MANS) *.cov \
 	*.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda
 DAEMON_GENERATED = \
@@ -1421,13 +1454,6 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 
 #-D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D_POSIX_C_SOURCE=199506L
 @WITH_LIBVIRTD_TRUE@libvirtd_CFLAGS = \
-@WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
-@WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/include -I$(top_builddir)/include \
-@WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/src \
-@WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/src/util \
-@WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/src/conf \
-@WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/src/rpc \
-@WITH_LIBVIRTD_TRUE@	-I$(top_srcdir)/src/remote \
 @WITH_LIBVIRTD_TRUE@	$(LIBXML_CFLAGS) $(GNUTLS_CFLAGS) $(SASL_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@	$(XDR_CFLAGS) $(POLKIT_CFLAGS) \
 @WITH_LIBVIRTD_TRUE@	$(WARN_CFLAGS) \
@@ -2022,7 +2048,7 @@ uninstall-man: uninstall-man8
 
 $(srcdir)/remote_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/../src/rpc/gendispatch.pl -c -b remote \
+	$(AM_V_GEN)perl -w $(srcdir)/../src/rpc/gendispatch.pl -b remote \
 	  $(REMOTE_PROTOCOL) > $@
 
 $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \

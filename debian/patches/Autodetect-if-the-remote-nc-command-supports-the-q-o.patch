@@ -2,55 +2,98 @@ From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
 Date: Fri, 8 Jul 2011 21:07:29 +0200
 Subject: Autodetect if the remote nc command supports the -q option
 
-Author: Marc Deslauriers <marc.deslauriers@ubuntu.com>
-Origin: other, based on http://hg.fedorahosted.org/hg/virt-manager/rev/1f781890ea4a
-Origin: other, based on http://hg.fedorahosted.org/hg/virt-manager/rev/f09702cfdb03
-Origin: other, based on http://hg.fedorahosted.org/hg/virt-manager/rev/907ee61e5558
-Origin: other, based on http://hg.fedorahosted.org/hg/virt-manager/rev/16fcbf77e47e
-Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/517478
-Ubuntu-Bug: https://bugs.launchpad.net/ubuntu/+source/virt-manager/+bug/605172
-Bug: https://bugzilla.redhat.com/show_bug.cgi?id=562176
-Bug: https://bugzilla.redhat.com/show_bug.cgi?id=614420
+Based on a patch by Marc Deslauriers <marc.deslauriers@ubuntu.com>
+
+RH: https://bugzilla.redhat.com/show_bug.cgi?id=562176
+Ubuntu: https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/517478
+Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=573172
 ---
- src/rpc/virnetsocket.c |   27 ++++++++++++++++++++++++---
- 1 files changed, 24 insertions(+), 3 deletions(-)
+ src/rpc/virnetsocket.c   |   23 ++++++++++++++++++++---
+ tests/virnetsockettest.c |   11 ++++++-----
+ 2 files changed, 26 insertions(+), 8 deletions(-)
 
 diff --git a/src/rpc/virnetsocket.c b/src/rpc/virnetsocket.c
-index 4b0c2ee..391b08a 100644
+index 41b691a..ffe49c3 100644
 --- a/src/rpc/virnetsocket.c
 +++ b/src/rpc/virnetsocket.c
-@@ -596,9 +596,30 @@ int virNetSocketNewConnectSSH(const char *nodename,
-     if (noTTY)
-         virCommandAddArgList(cmd, "-T", "-o", "BatchMode=yes",
+@@ -628,9 +628,26 @@ int virNetSocketNewConnectSSH(const char *nodename,
                               "-e", "none", NULL);
+     if (noVerify)
+         virCommandAddArgList(cmd, "-o", "StrictHostKeyChecking=no", NULL);
 -    virCommandAddArgList(cmd, nodename,
 -                         netcat ? netcat : "nc",
 -                         "-U", path, NULL);
 +
-+    virCommandAddArgList(cmd, nodename, "sh -c", NULL);
++    virCommandAddArgList(cmd, nodename, "sh", "-c", NULL);
 +    /*
 +     * This ugly thing is a shell script to detect availability of
 +     * the -q option for 'nc': debian and suse based distros need this
 +     * flag to ensure the remote nc will exit on EOF, so it will go away
-+     * when we close the VNC tunnel. If it doesn't go away, subsequent
-+     * VNC connection attempts will hang.
++     * when we close the connection tunnel. If it doesn't go away, subsequent
++     * connection attempts will hang.
 +     *
-+     * Fedora's 'nc' doesn't have this option, and apparently defaults
-+     * to the desired behavior.
++     * Fedora's 'nc' doesn't have this option, and defaults to the desired
++     * behavior.
 +     */
-+    virCommandAddArgFormat(cmd, "'%s -q 2>&1 | grep -q \"requires an argument\";"
-+                           "if [ $? -eq 0 ] ; then"
-+                           "   CMD=\"%s -q 0 -U %s\";"
-+                           "else"
-+                           "   CMD=\"%s -U %s\";"
-+                           "fi;"
-+                           "eval \"$CMD\";'",
-+                           netcat ? netcat : "nc",
-+                           netcat ? netcat : "nc",
-+                           path,
-+                           netcat ? netcat : "nc",
-+                           path);
++    virCommandAddArgFormat(cmd,
++         "'if %s -q 2>&1 | grep \"requires an argument\" >/dev/null 2>&1; then"
++         "     ARG=-q0;"
++         "fi;"
++         "%s $ARG -U %s'",
++         netcat ? netcat : "nc",
++         netcat ? netcat : "nc",
++         path);
  
      return virNetSocketNewConnectCommand(cmd, retsock);
  }
+diff --git a/tests/virnetsockettest.c b/tests/virnetsockettest.c
+index e72b9a0..3816b3c 100644
+--- a/tests/virnetsockettest.c
++++ b/tests/virnetsockettest.c
+@@ -496,7 +496,7 @@ mymain(void)
+     struct testSSHData sshData1 = {
+         .nodename = "somehost",
+         .path = "/tmp/socket",
+-        .expectOut = "somehost nc -U /tmp/socket\n",
++        .expectOut = "somehost sh -c 'if nc -q 2>&1 | grep \"requires an argument\" >/dev/null 2>&1; then     ARG=-q0;fi;nc $ARG -U /tmp/socket'\n",
+     };
+     if (virtTestRun("SSH test 1", 1, testSocketSSH, &sshData1) < 0)
+         ret = -1;
+@@ -509,7 +509,7 @@ mymain(void)
+         .noTTY = true,
+         .noVerify = false,
+         .path = "/tmp/socket",
+-        .expectOut = "-p 9000 -l fred -T -o BatchMode=yes -e none somehost netcat -U /tmp/socket\n",
++        .expectOut = "-p 9000 -l fred -T -o BatchMode=yes -e none somehost sh -c 'if netcat -q 2>&1 | grep \"requires an argument\" >/dev/null 2>&1; then     ARG=-q0;fi;netcat $ARG -U /tmp/socket'\n",
+     };
+     if (virtTestRun("SSH test 2", 1, testSocketSSH, &sshData2) < 0)
+         ret = -1;
+@@ -522,7 +522,7 @@ mymain(void)
+         .noTTY = false,
+         .noVerify = true,
+         .path = "/tmp/socket",
+-        .expectOut = "-p 9000 -l fred -o StrictHostKeyChecking=no somehost netcat -U /tmp/socket\n",
++        .expectOut = "-p 9000 -l fred -o StrictHostKeyChecking=no somehost sh -c 'if netcat -q 2>&1 | grep \"requires an argument\" >/dev/null 2>&1; then     ARG=-q0;fi;netcat $ARG -U /tmp/socket'\n",
+     };
+     if (virtTestRun("SSH test 3", 1, testSocketSSH, &sshData3) < 0)
+         ret = -1;
+@@ -538,7 +538,8 @@ mymain(void)
+     struct testSSHData sshData5 = {
+         .nodename = "crashyhost",
+         .path = "/tmp/socket",
+-        .expectOut = "crashyhost nc -U /tmp/socket\n",
++        .expectOut = "crashyhost sh -c 'if nc -q 2>&1 | grep \"requires an argument\" >/dev/null 2>&1; then     ARG=-q0;fi;nc $ARG -U /tmp/socket'\n",
++
+         .dieEarly = true,
+     };
+     if (virtTestRun("SSH test 5", 1, testSocketSSH, &sshData5) < 0)
+@@ -549,7 +550,7 @@ mymain(void)
+         .path = "/tmp/socket",
+         .keyfile = "/root/.ssh/example_key",
+         .noVerify = true,
+-        .expectOut = "-i /root/.ssh/example_key -o StrictHostKeyChecking=no example.com nc -U /tmp/socket\n",
++        .expectOut = "-i /root/.ssh/example_key -o StrictHostKeyChecking=no example.com sh -c 'if nc -q 2>&1 | grep \"requires an argument\" >/dev/null 2>&1; then     ARG=-q0;fi;nc $ARG -U /tmp/socket'\n",
+     };
+     if (virtTestRun("SSH test 6", 1, testSocketSSH, &sshData6) < 0)
+         ret = -1;
 -- 

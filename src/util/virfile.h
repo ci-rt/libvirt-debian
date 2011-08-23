@@ -1,7 +1,7 @@
 /*
- * files.h: safer file handling
+ * virfile.h: safer file handling
  *
- * Copyright (C) 2010-2011 RedHat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2010 IBM Corporation
  * Copyright (C) 2010 Stefan Berger
  * Copyright (C) 2010 Eric Blake
@@ -33,21 +33,36 @@
 
 
 /* Don't call these directly - use the macros below */
-int virClose(int *fdptr, bool preserve_errno) ATTRIBUTE_RETURN_CHECK;
-int virFclose(FILE **file, bool preserve_errno) ATTRIBUTE_RETURN_CHECK;
-FILE *virFdopen(int *fdptr, const char *mode) ATTRIBUTE_RETURN_CHECK;
+int virFileClose(int *fdptr, bool preserve_errno) ATTRIBUTE_RETURN_CHECK;
+int virFileFclose(FILE **file, bool preserve_errno) ATTRIBUTE_RETURN_CHECK;
+FILE *virFileFdopen(int *fdptr, const char *mode) ATTRIBUTE_RETURN_CHECK;
 
 /* For use on normal paths; caller must check return value,
    and failure sets errno per close. */
-# define VIR_CLOSE(FD) virClose(&(FD), false)
-# define VIR_FCLOSE(FILE) virFclose(&(FILE), false)
+# define VIR_CLOSE(FD) virFileClose(&(FD), false)
+# define VIR_FCLOSE(FILE) virFileFclose(&(FILE), false)
 
 /* Wrapper around fdopen that consumes fd on success. */
-# define VIR_FDOPEN(FD, MODE) virFdopen(&(FD), MODE)
+# define VIR_FDOPEN(FD, MODE) virFileFdopen(&(FD), MODE)
 
 /* For use on cleanup paths; errno is unaffected by close,
    and no return value to worry about. */
-# define VIR_FORCE_CLOSE(FD) ignore_value(virClose(&(FD), true))
-# define VIR_FORCE_FCLOSE(FILE) ignore_value(virFclose(&(FILE), true))
+# define VIR_FORCE_CLOSE(FD) ignore_value(virFileClose(&(FD), true))
+# define VIR_FORCE_FCLOSE(FILE) ignore_value(virFileFclose(&(FILE), true))
+
+/* Opaque type for managing a wrapper around an O_DIRECT fd.  */
+struct _virFileDirectFd;
+
+typedef struct _virFileDirectFd virFileDirectFd;
+typedef virFileDirectFd *virFileDirectFdPtr;
+
+int virFileDirectFdFlag(void);
+
+virFileDirectFdPtr virFileDirectFdNew(int *fd, const char *name)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
+
+int virFileDirectFdClose(virFileDirectFdPtr dfd);
+
+void virFileDirectFdFree(virFileDirectFdPtr dfd);
 
 #endif /* __VIR_FILES_H */

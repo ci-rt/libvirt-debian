@@ -28,7 +28,7 @@
 #include "logging.h"
 #include "virterror_internal.h"
 #include "util.h"
-#include "files.h"
+#include "virfile.h"
 #include "nodeinfo.h"
 #include "cpu/cpu.h"
 #include "domain_conf.h"
@@ -122,6 +122,7 @@ VIR_ENUM_IMPL(qemuCaps, QEMU_CAPS_LAST,
 
               "pci-multifunction", /* 60 */
               "virtio-blk-pci.ioeventfd",
+              "sga",
     );
 
 struct qemu_feature_flags {
@@ -160,6 +161,8 @@ static const struct qemu_arch_info const arch_info_hvm[] = {
     {  "x86_64", 64, NULL, "qemu-system-x86_64",
        NULL, arch_info_x86_64_flags, 2 },
     {  "arm",    32, NULL, "qemu-system-arm",    NULL, NULL, 0 },
+    {  "microblaze", 32, NULL, "qemu-system-microblaze",   NULL, NULL, 0 },
+    {  "microblazeel", 32, NULL, "qemu-system-microblazeel",   NULL, NULL, 0 },
     {  "mips",   32, NULL, "qemu-system-mips",   NULL, NULL, 0 },
     {  "mipsel", 32, NULL, "qemu-system-mipsel", NULL, NULL, 0 },
     {  "sparc",  32, NULL, "qemu-system-sparc",  NULL, NULL, 0 },
@@ -1210,6 +1213,8 @@ qemuCapsParseDeviceStr(const char *str, virBitmapPtr flags)
         qemuCapsSet(flags, QEMU_CAPS_DEVICE_QXL_VGA);
     if (strstr(str, "virtio-blk-pci.ioeventfd"))
         qemuCapsSet(flags, QEMU_CAPS_VIRTIO_IOEVENTFD);
+    if (strstr(str, "name \"sga\""))
+        qemuCapsSet(flags, QEMU_CAPS_SGA);
 
     return 0;
 }

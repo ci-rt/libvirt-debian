@@ -14,6 +14,7 @@
 # include "testutils.h"
 # include "qemu/qemu_capabilities.h"
 # include "qemu/qemu_command.h"
+# include "qemu/qemu_domain.h"
 # include "datatypes.h"
 # include "cpu/cpu_map.h"
 
@@ -51,6 +52,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
         expectargv[len - 1] = '\0';
 
     if (!(vmdef = virDomainDefParseFile(driver.caps, xml,
+                                        QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
 
@@ -287,6 +289,7 @@ mymain(void)
             QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT,
             QEMU_CAPS_BOOTINDEX);
     DO_TEST("bootloader", true, QEMU_CAPS_DOMID);
+    DO_TEST("bios", false, QEMU_CAPS_DEVICE, QEMU_CAPS_SGA);
     DO_TEST("clock-utc", false, NONE);
     DO_TEST("clock-localtime", false, NONE);
     /*
@@ -548,6 +551,9 @@ VIRT_TEST_MAIN(mymain)
 
 #else
 
-int main (void) { return (77); /* means 'test skipped' for automake */ }
+int main(void)
+{
+    return EXIT_AM_SKIP;
+}
 
 #endif /* WITH_QEMU */

@@ -8,6 +8,7 @@
 #include "internal.h"
 #include "xen/block_stats.h"
 #include "testutils.h"
+#include "command.h"
 
 static void testQuietError(void *userData ATTRIBUTE_UNUSED,
                            virErrorPtr error ATTRIBUTE_UNUSED)
@@ -17,7 +18,7 @@ static void testQuietError(void *userData ATTRIBUTE_UNUSED,
 
 static int testDevice(const char *path, int expect)
 {
-    int actual = xenLinuxDomainDeviceID(NULL, 1, path);
+    int actual = xenLinuxDomainDeviceID(1, path);
 
     if (actual == expect) {
         return 0;
@@ -44,7 +45,18 @@ static int
 mymain(void)
 {
     int ret = 0;
-    /* Some of our tests delibrately test failure cases, so
+    int status;
+    virCommandPtr cmd;
+
+    /* skip test if xend is not running */
+    cmd = virCommandNewArgList("/usr/sbin/xend", "status", NULL);
+    if (virCommandRun(cmd, &status) != 0 || status != 0) {
+        virCommandFree(cmd);
+        return EXIT_AM_SKIP;
+    }
+    virCommandFree(cmd);
+
+    /* Some of our tests deliberately test failure cases, so
      * register a handler to stop error messages cluttering
      * up display
      */

@@ -1,12 +1,16 @@
 # Makefile for libvirt python library
 
+## Copyright (C) 2005-2011 Red Hat, Inc.
+## See COPYING.LIB for the License of this software
+
 SUBDIRS= . tests
 
 INCLUDES = \
 	$(PYTHON_INCLUDES) \
 	-I$(top_srcdir)/include \
 	-I$(top_builddir)/include \
-	-I$(top_builddir)/$(subdir)
+	-I$(top_builddir)/$(subdir) \
+	$(GETTEXT_CPPFLAGS)
 
 AM_CFLAGS = $(WARN_CFLAGS)
 
@@ -53,11 +57,11 @@ GENERATED= libvirt-export.c \
 	   libvirt.h \
 	   libvirt.py
 
-generated.stamp: $(srcdir)/$(GENERATE) $(API_DESC)
-	$(PYTHON) $(srcdir)/$(GENERATE) $(PYTHON)
+$(GENERATE).stamp: $(srcdir)/$(GENERATE) $(API_DESC)
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/$(GENERATE) $(PYTHON) && \
 	touch $@
 
-$(GENERATED): generated.stamp
+$(GENERATED): $(GENERATE).stamp
 
 $(libvirtmod_la_OBJECTS): $(GENERATED)
 
@@ -71,7 +75,7 @@ install-data-local:
 uninstall-local:
 	rm -f $(DESTDIR)$(pyexecdir)/libvirt.py
 
-CLEANFILES= $(GENERATED) generated.stamp
+CLEANFILES= $(GENERATED) $(GENERATE).stamp
 
 else
 all:

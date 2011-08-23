@@ -31,7 +31,7 @@ testCompareFiles(const char *xml, const char *sexpr, int xendConfigVersion)
   if (virtTestLoadFile(sexpr, &sexprData) < 0)
       goto fail;
 
-  if (!(def = virDomainDefParseString(caps, xmlData,
+  if (!(def = virDomainDefParseString(caps, xmlData, 1 << VIR_DOMAIN_VIRT_XEN,
                                       VIR_DOMAIN_XML_INACTIVE)))
       goto fail;
 
@@ -116,6 +116,7 @@ mymain(void)
     DO_TEST("pv-vfb-new", "pv-vfb-new", "pvtest", 3);
     DO_TEST("pv-vfb-new-auto", "pv-vfb-new-auto", "pvtest", 3);
     DO_TEST("pv-bootloader", "pv-bootloader", "pvtest", 1);
+    DO_TEST("pv-bootloader-cmdline", "pv-bootloader-cmdline", "pvtest", 1);
     DO_TEST("pv-vcpus", "pv-vcpus", "pvtest", 1);
 
     DO_TEST("disk-file", "disk-file", "pvtest", 2);

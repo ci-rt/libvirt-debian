@@ -516,7 +516,7 @@ sc_prohibit_safe_read_without_use:
 
 sc_prohibit_argmatch_without_use:
 	@h='argmatch.h' \
-	re='(\<(ARRAY_CARDINALITY|X?ARGMATCH(|_TO_ARGUMENT|_VERIFY))\>|\<argmatch(_exit_fn|_(in)?valid) *\()' \
+	re='(\<(ARRAY_CARDINALITY|X?ARGMATCH(|_TO_ARGUMENT|_VERIFY))\>|\<(invalid_arg|argmatch(_exit_fn|_(in)?valid)?) *\()' \
 	  $(_sc_header_without_use)
 
 sc_prohibit_canonicalize_without_use:
@@ -619,6 +619,12 @@ _stddef_syms_re = NULL|offsetof|ptrdiff_t|size_t|wchar_t
 sc_prohibit_stddef_without_use:
 	@h='stddef.h'							\
 	re='\<($(_stddef_syms_re)) *\('					\
+	  $(_sc_header_without_use)
+
+# Prohibit the inclusion of verify.h without an actual use.
+sc_prohibit_verify_without_use:
+	@h='verify.h'							\
+	re='\<(verify(true|expr)?|static_assert) *\('			\
 	  $(_sc_header_without_use)
 
 # Don't include xfreopen.h unless you use one of its functions.
@@ -746,7 +752,7 @@ gl_other_headers_ ?= \
 gl_extract_significant_defines_ = \
   /^\# *define ([^_ (][^ (]*)(\s*\(|\s+\w+)/\
     && $$2 !~ /(?:rpl_|_used_without_)/\
-    && $$1 !~ /^(?:NSIG|ATTRIBUTE_NORETURN)$$/\
+    && $$1 !~ /^(?:NSIG)$$/\
     and print $$1
 
 # Create a list of regular expressions matching the names
@@ -758,7 +764,6 @@ define def_sym_regex
 	    perl -lne '$(gl_extract_significant_defines_)' $$f;		\
 	  done;								\
 	) | sort -u							\
-	  | grep -Ev '^ATTRIBUTE_NORETURN'				\
 	  | sed 's/^/^ *# *(define|undef)  */;s/$$/\\>/'
 endef
 

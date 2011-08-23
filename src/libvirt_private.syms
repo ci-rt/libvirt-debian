@@ -67,9 +67,12 @@ virCgroupDenyAllDevices;
 virCgroupDenyDevicePath;
 virCgroupForDomain;
 virCgroupForDriver;
+virCgroupForVcpu;
 virCgroupFree;
 virCgroupGetBlkioWeight;
 virCgroupGetCpuShares;
+virCgroupGetCpuCfsPeriod;
+virCgroupGetCpuCfsQuota;
 virCgroupGetCpuacctUsage;
 virCgroupGetFreezerState;
 virCgroupGetMemoryHardLimit;
@@ -84,6 +87,8 @@ virCgroupPathOfController;
 virCgroupRemove;
 virCgroupSetBlkioWeight;
 virCgroupSetCpuShares;
+virCgroupSetCpuCfsPeriod;
+virCgroupSetCpuCfsQuota;
 virCgroupSetFreezerState;
 virCgroupSetMemory;
 virCgroupSetMemoryHardLimit;
@@ -134,6 +139,8 @@ virCommandTranslateStatus;
 virCommandWait;
 virCommandWriteArgLog;
 virFork;
+virPidAbort;
+virPidWait;
 virRun;
 
 
@@ -202,9 +209,26 @@ dnsmasqReload;
 dnsmasqSave;
 
 
+# domain_audit.h
+virDomainAuditCgroup;
+virDomainAuditCgroupMajor;
+virDomainAuditCgroupPath;
+virDomainAuditDisk;
+virDomainAuditFS;
+virDomainAuditHostdev;
+virDomainAuditMemory;
+virDomainAuditNet;
+virDomainAuditNetDevice;
+virDomainAuditSecurityLabel;
+virDomainAuditStart;
+virDomainAuditStop;
+virDomainAuditVcpu;
+
+
 # domain_conf.h
 virDiskNameToBusDeviceIndex;
 virDiskNameToIndex;
+virDomainActualNetDefFree;
 virDomainAssignDef;
 virDomainChrConsoleTargetTypeFromString;
 virDomainChrConsoleTargetTypeToString;
@@ -243,7 +267,6 @@ virDomainDeviceAddressIsValid;
 virDomainDeviceAddressTypeToString;
 virDomainDeviceDefFree;
 virDomainDeviceDefParse;
-virDomainDeviceInfoIsSet;
 virDomainDeviceInfoIterate;
 virDomainDevicePCIAddressIsValid;
 virDomainDeviceTypeToString;
@@ -266,11 +289,21 @@ virDomainDiskRemoveByName;
 virDomainDiskTypeFromString;
 virDomainDiskTypeToString;
 virDomainFSDefFree;
+virDomainFSTypeFromString;
+virDomainFSTypeToString;
 virDomainFindByID;
 virDomainFindByName;
 virDomainFindByUUID;
 virDomainGetRootFilesystem;
+virDomainGraphicsAuthConnectedTypeFromString;
+virDomainGraphicsAuthConnectedTypeToString;
 virDomainGraphicsDefFree;
+virDomainGraphicsListenGetAddress;
+virDomainGraphicsListenGetNetwork;
+virDomainGraphicsListenGetType;
+virDomainGraphicsListenSetAddress;
+virDomainGraphicsListenSetNetwork;
+virDomainGraphicsListenSetType;
 virDomainGraphicsSpiceChannelModeTypeFromString;
 virDomainGraphicsSpiceChannelModeTypeToString;
 virDomainGraphicsSpiceChannelNameTypeFromString;
@@ -309,6 +342,12 @@ virDomainLoadAllConfigs;
 virDomainMemballoonModelTypeFromString;
 virDomainMemballoonModelTypeToString;
 virDomainNetDefFree;
+virDomainNetGetActualBandwidth;
+virDomainNetGetActualBridgeName;
+virDomainNetGetActualDirectDev;
+virDomainNetGetActualDirectMode;
+virDomainNetGetActualType;
+virDomainNetGetActualDirectVirtPortProfile;
 virDomainNetIndexByMac;
 virDomainNetInsert;
 virDomainNetRemoveByMac;
@@ -383,6 +422,8 @@ virDomainWatchdogModelTypeToString;
 
 
 # domain_event.h
+virDomainEventBlockJobNewFromObj;
+virDomainEventBlockJobNewFromDom;
 virDomainEventCallbackListAdd;
 virDomainEventCallbackListAddID;
 virDomainEventCallbackListCount;
@@ -468,12 +509,6 @@ virFDStreamOpenFile;
 virFDStreamCreateFile;
 
 
-# files.h
-virClose;
-virFclose;
-virFdopen;
-
-
 # hash.h
 virHashAddEntry;
 virHashCreate;
@@ -500,6 +535,7 @@ ifaceCtrl;
 ifaceGetFlags;
 ifaceGetIndex;
 ifaceGetMacAddress;
+ifaceGetIPAddress;
 ifaceGetNthParent;
 ifaceGetVlanID;
 ifaceIsUp;
@@ -680,6 +716,12 @@ nlComm;
 
 
 # network.h
+virBandwidthCopy;
+virBandwidthDefFormat;
+virBandwidthDefFree;
+virBandwidthDefParseNode;
+virBandwidthDisable;
+virBandwidthEnable;
 virSocketAddrBroadcast;
 virSocketAddrBroadcastByPrefix;
 virSocketAddrIsNetmask;
@@ -695,6 +737,8 @@ virSocketParseAddr;
 virSocketParseIpv4Addr;
 virSocketParseIpv6Addr;
 virSocketSetPort;
+virVirtualPortProfileFormat;
+virVirtualPortProfileParseXML;
 
 
 # network_conf.h
@@ -720,6 +764,7 @@ virNetworkRemoveInactive;
 virNetworkSaveConfig;
 virNetworkSetBridgeMacAddr;
 virNetworkSetBridgeName;
+virPortGroupFindByName;
 
 
 # node_device_conf.h
@@ -801,6 +846,7 @@ pciDeviceListFree;
 pciDeviceListGet;
 pciDeviceListNew;
 pciDeviceListSteal;
+pciDeviceReAttachInit;
 pciDeviceSetManaged;
 pciFreeDevice;
 pciGetDevice;
@@ -921,6 +967,7 @@ virStorageGenerateQcowPassphrase;
 # storage_file.h
 virStorageFileFormatTypeFromString;
 virStorageFileFormatTypeToString;
+virStorageFileFreeMetadata;
 virStorageFileGetMetadata;
 virStorageFileGetMetadataFromFD;
 virStorageFileIsSharedFS;
@@ -1000,6 +1047,7 @@ virFilePid;
 virFileReadAll;
 virFileReadLimFD;
 virFileReadPid;
+virFileReadPidPath;
 virFileResolveLink;
 virFileSanitizePath;
 virFileStripSuffix;
@@ -1030,6 +1078,8 @@ virSetInherit;
 virSetNonBlock;
 virSetUIDGID;
 virSkipSpaces;
+virSkipSpacesAndBackslash;
+virSkipSpacesBackwards;
 virStrToDouble;
 virStrToLong_i;
 virStrToLong_l;
@@ -1041,6 +1091,7 @@ virStrcpy;
 virStrncpy;
 virTimeMs;
 virTimestamp;
+virTrimSpaces;
 virVasprintf;
 
 
@@ -1052,12 +1103,22 @@ virUUIDGenerate;
 virUUIDParse;
 
 
-# virtaudit.h
+# viraudit.h
 virAuditClose;
 virAuditEncode;
 virAuditLog;
 virAuditOpen;
 virAuditSend;
+
+
+# virfile.h
+virFileClose;
+virFileDirectFdClose;
+virFileDirectFdFlag;
+virFileDirectFdFree;
+virFileDirectFdNew;
+virFileFclose;
+virFileFdopen;
 
 
 # virterror_internal.h
@@ -1071,6 +1132,11 @@ virSetError;
 virSetErrorLogPriorityFunc;
 virStrerror;
 
+# virkeycode.h
+virKeycodeSetTypeToString;
+virKeycodeSetTypeFromString;
+virKeycodeValueFromString;
+virKeycodeValueTranslate;
 
 # xml.h
 virXMLParseFileHelper;

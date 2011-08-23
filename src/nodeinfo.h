@@ -1,7 +1,7 @@
 /*
  * nodeinfo.c: Helper routines for OS specific node information
  *
- * Copyright (C) 2006-2008 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -30,16 +30,16 @@
 int nodeGetInfo(virConnectPtr conn, virNodeInfoPtr nodeinfo);
 int nodeCapsInitNUMA(virCapsPtr caps);
 
-int nodeGetCPUStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+int nodeGetCPUStats(virConnectPtr conn,
                     int cpuNum,
                     virNodeCPUStatsPtr params,
                     int *nparams,
-                    unsigned int flags ATTRIBUTE_UNUSED);
-int nodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
+                    unsigned int flags);
+int nodeGetMemoryStats(virConnectPtr conn,
                        int cellNum,
                        virNodeMemoryStatsPtr params,
                        int *nparams,
-                       unsigned int flags ATTRIBUTE_UNUSED);
+                       unsigned int flags);
 int nodeGetCellsFreeMemory(virConnectPtr conn,
                            unsigned long long *freeMems,
                            int startCell,

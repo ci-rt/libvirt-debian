@@ -41,7 +41,7 @@
 #include "virterror_internal.h"
 #include "memory.h"
 #include "util.h"
-#include "files.h"
+#include "virfile.h"
 #include "md5.h"
 #include "conf.h"
 
@@ -196,7 +196,7 @@ static int virLockManagerSanlockSetupLockspace(void)
             /*
              * Pre allocate enough data for 1 block of leases at preferred alignment
              */
-            if (safezero(fd, 0, 0, rv) < 0) {
+            if (safezero(fd, 0, rv) < 0) {
                 virReportSystemError(errno,
                                      _("Unable to allocate lockspace %s"),
                                      path);
@@ -265,7 +265,8 @@ static int virLockManagerSanlockInit(unsigned int version,
                                      const char *configFile,
                                      unsigned int flags)
 {
-    VIR_DEBUG("version=%u configFile=%s flags=%u", version, NULLSTR(configFile), flags);
+    VIR_DEBUG("version=%u configFile=%s flags=%x",
+              version, NULLSTR(configFile), flags);
     virCheckFlags(0, -1);
 
     if (driver)
@@ -294,8 +295,10 @@ static int virLockManagerSanlockInit(unsigned int version,
         goto error;
     }
 
-    if (virLockManagerSanlockSetupLockspace() < 0)
-        goto error;
+    if (driver->autoDiskLease) {
+        if (virLockManagerSanlockSetupLockspace() < 0)
+            goto error;
+    }
 
     return 0;
 
@@ -567,7 +570,7 @@ static int virLockManagerSanlockCreateLease(struct sanlk_resource *res)
             /*
              * Pre allocate enough data for 1 block of leases at preferred alignment
              */
-            if (safezero(fd, 0, 0, rv) < 0) {
+            if (safezero(fd, 0, rv) < 0) {
                 virReportSystemError(errno,
                                      _("Unable to allocate lease %s"),
                                      res->disks[0].path);
@@ -631,7 +634,7 @@ static int virLockManagerSanlockAddResource(virLockManagerPtr lock,
     }
     if (flags & VIR_LOCK_MANAGER_RESOURCE_SHARED) {
         virLockError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                     _("Sharable leases are not supported"));
+                     _("Shareable leases are not supported"));
         return -1;
     }
 

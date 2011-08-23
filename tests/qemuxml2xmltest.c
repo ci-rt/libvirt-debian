@@ -13,6 +13,7 @@
 # include "internal.h"
 # include "testutils.h"
 # include "qemu/qemu_conf.h"
+# include "qemu/qemu_domain.h"
 # include "testutilsqemu.h"
 
 static struct qemud_driver driver;
@@ -32,7 +33,8 @@ testCompareXMLToXMLFiles(const char *inxml, const char *outxml)
         goto fail;
 
     if (!(def = virDomainDefParseString(driver.caps, inXmlData,
-                                          VIR_DOMAIN_XML_INACTIVE)))
+                                        QEMU_EXPECTED_VIRT_TYPES,
+                                        VIR_DOMAIN_XML_INACTIVE)))
         goto fail;
 
     if (!(actual = virDomainDefFormat(def, VIR_DOMAIN_XML_SECURE)))
@@ -137,6 +139,7 @@ mymain(void)
     DO_TEST("disk-drive-cache-v1-wb");
     DO_TEST("disk-drive-cache-v1-none");
     DO_TEST("disk-scsi-device");
+    DO_TEST("graphics-listen-network");
     DO_TEST("graphics-vnc");
     DO_TEST("graphics-vnc-sasl");
     DO_TEST("graphics-vnc-tls");
@@ -156,7 +159,9 @@ mymain(void)
     DO_TEST("net-virtio-device");
     DO_TEST("net-eth");
     DO_TEST("net-eth-ifname");
+    DO_TEST("net-virtio-network-portgroup");
     DO_TEST("sound");
+    DO_TEST("net-bandwidth");
 
     DO_TEST("serial-vc");
     DO_TEST("serial-pty");
@@ -190,6 +195,7 @@ mymain(void)
     DO_TEST_DIFFERENT("disk-scsi-device-auto");
     DO_TEST_DIFFERENT("console-virtio");
     DO_TEST_DIFFERENT("serial-target-port-auto");
+    DO_TEST_DIFFERENT("graphics-listen-network2");
 
     virCapabilitiesFree(driver.caps);
 
@@ -200,6 +206,10 @@ VIRT_TEST_MAIN(mymain)
 
 #else
 
-int main (void) { exit (EXIT_AM_SKIP); }
+int
+main(void)
+{
+    return EXIT_AM_SKIP;
+}
 
 #endif /* WITH_QEMU */

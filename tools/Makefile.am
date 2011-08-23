@@ -1,3 +1,13 @@
+## Copyright (C) 2005-2011 Red Hat, Inc.
+## See COPYING.LIB for the License of this software
+
+INCLUDES = \
+	-I../include -I$(top_srcdir)/include \
+	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib	\
+	-I$(top_srcdir)/src				\
+	-I$(top_srcdir)/src/util			\
+	-I$(top_srcdir)					\
+	$(GETTEXT_CPPFLAGS)
 
 POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 
@@ -66,11 +76,6 @@ virsh_LDADD =							\
 		$(LIBXML_LIBS)					\
 		$(VIRSH_LIBS)
 virsh_CFLAGS =							\
-		-I$(top_srcdir)/gnulib/lib -I../gnulib/lib	\
-		-I../include -I$(top_srcdir)/include		\
-		-I$(top_srcdir)/src				\
-		-I$(top_srcdir)/src/util			\
-		-I$(top_srcdir)					\
 		$(WARN_CFLAGS)					\
 		$(COVERAGE_CFLAGS)				\
 		$(LIBXML_CFLAGS)				\

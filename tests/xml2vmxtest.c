@@ -80,7 +80,8 @@ testCompareFiles(const char *xml, const char *vmx, int virtualHW_version)
         goto failure;
     }
 
-    def = virDomainDefParseString(caps, xmlData, VIR_DOMAIN_XML_INACTIVE);
+    def = virDomainDefParseString(caps, xmlData, 1 << VIR_DOMAIN_VIRT_VMWARE,
+                                  VIR_DOMAIN_XML_INACTIVE);
 
     if (def == NULL) {
         goto failure;
@@ -294,9 +295,9 @@ VIRT_TEST_MAIN(mymain)
 
 #else
 
-int main (void)
+int main(void)
 {
-    return 77; /* means 'test skipped' for automake */
+    return EXIT_AM_SKIP;
 }
 
 #endif /* WITH_VMX */

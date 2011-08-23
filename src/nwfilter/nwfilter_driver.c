@@ -271,8 +271,11 @@ cleanup:
 
 static virDrvOpenStatus
 nwfilterOpen(virConnectPtr conn,
-            virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-            int flags ATTRIBUTE_UNUSED) {
+             virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+             unsigned int flags)
+{
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
+
     if (!driverState)
         return VIR_DRV_OPEN_DECLINED;
 
@@ -411,7 +414,8 @@ cleanup:
 
 static char *
 nwfilterGetXMLDesc(virNWFilterPtr obj,
-                   int flags) {
+                   unsigned int flags)
+{
     virNWFilterDriverStatePtr driver = obj->conn->nwfilterPrivateData;
     virNWFilterObjPtr nwfilter;
     char *ret = NULL;

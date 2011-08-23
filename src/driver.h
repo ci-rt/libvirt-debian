@@ -66,7 +66,7 @@ typedef enum {
 typedef virDrvOpenStatus
         (*virDrvOpen)			(virConnectPtr conn,
                              virConnectAuthPtr auth,
-                             int flags);
+                             unsigned int flags);
 typedef int
         (*virDrvClose)			(virConnectPtr conn);
 typedef int
@@ -124,6 +124,9 @@ typedef int
                                          unsigned int flags);
 typedef int
         (*virDrvDomainDestroy)		(virDomainPtr domain);
+typedef int
+        (*virDrvDomainDestroyFlags) (virDomainPtr domain,
+                                         unsigned int flags);
 typedef char *
         (*virDrvDomainGetOSType)	(virDomainPtr domain);
 typedef unsigned long
@@ -178,12 +181,31 @@ typedef int
         (*virDrvDomainSave)		(virDomainPtr domain,
                                          const char *to);
 typedef int
+        (*virDrvDomainSaveFlags)	(virDomainPtr domain,
+                                         const char *to,
+                                         const char *dxml,
+                                         unsigned int flags);
+typedef int
         (*virDrvDomainRestore)		(virConnectPtr conn,
                                          const char *from);
 typedef int
+        (*virDrvDomainRestoreFlags)	(virConnectPtr conn,
+                                         const char *from,
+                                         const char *dxml,
+                                         unsigned int flags);
+typedef char *
+        (*virDrvDomainSaveImageGetXMLDesc)      (virConnectPtr conn,
+                                                 const char *file,
+                                                 unsigned int flags);
+typedef int
+        (*virDrvDomainSaveImageDefineXML)       (virConnectPtr conn,
+                                                 const char *file,
+                                                 const char *dxml,
+                                                 unsigned int flags);
+typedef int
         (*virDrvDomainCoreDump)		(virDomainPtr domain,
                                          const char *to,
-                                         int flags);
+                                         unsigned int flags);
 typedef char *
         (*virDrvDomainScreenshot)   (virDomainPtr domain,
                                          virStreamPtr stream,
@@ -191,7 +213,7 @@ typedef char *
                                          unsigned int flags);
 typedef char *
         (*virDrvDomainGetXMLDesc)		(virDomainPtr dom,
-                                         int flags);
+                                                 unsigned int flags);
 typedef char *
         (*virDrvConnectDomainXMLFromNative) (virConnectPtr conn,
                                              const char *nativeFormat,
@@ -218,6 +240,9 @@ typedef virDomainPtr
                                          const char *xml);
 typedef int
         (*virDrvDomainUndefine)		(virDomainPtr dom);
+typedef int
+        (*virDrvDomainUndefineFlags)	(virDomainPtr dom,
+                                         unsigned int flags);
 typedef int
         (*virDrvDomainSetVcpus)		(virDomainPtr domain,
                                          unsigned int nvcpus);
@@ -331,7 +356,8 @@ typedef int
     (*virDrvDomainMemoryStats)
                     (virDomainPtr domain,
                      struct _virDomainMemoryStat *stats,
-                     unsigned int nr_stats);
+                     unsigned int nr_stats,
+                     unsigned int flags);
 
 typedef int
     (*virDrvDomainBlockPeek)
@@ -566,6 +592,11 @@ typedef int
     (*virDrvDomainQemuMonitorCommand)(virDomainPtr domain, const char *cmd,
                                       char **result, unsigned int flags);
 
+typedef virDomainPtr
+    (*virDrvDomainQemuAttach)(virConnectPtr conn,
+                              unsigned int pid,
+                              unsigned int flags);
+
 typedef int
     (*virDrvDomainOpenConsole)(virDomainPtr dom,
                                const char *devname,
@@ -655,6 +686,26 @@ typedef int
                      unsigned long flags,
                      int cancelled);
 
+
+typedef int
+    (*virDrvDomainBlockJobAbort)(virDomainPtr dom, const char *path,
+                                 unsigned int flags);
+
+typedef int
+    (*virDrvDomainGetBlockJobInfo)(virDomainPtr dom, const char *path,
+                                   virDomainBlockJobInfoPtr info,
+                                   unsigned int flags);
+
+typedef int
+    (*virDrvDomainBlockJobSetSpeed)(virDomainPtr dom,
+                                    const char *path, unsigned long bandwidth,
+                                    unsigned int flags);
+
+typedef int
+    (*virDrvDomainBlockPull)(virDomainPtr dom, const char *path,
+                             unsigned long bandwidth, unsigned int flags);
+
+
 /**
  * _virDriver:
  *
@@ -692,6 +743,7 @@ struct _virDriver {
     virDrvDomainShutdown		domainShutdown;
     virDrvDomainReboot		domainReboot;
     virDrvDomainDestroy		domainDestroy;
+    virDrvDomainDestroyFlags    domainDestroyFlags;
     virDrvDomainGetOSType		domainGetOSType;
     virDrvDomainGetMaxMemory	domainGetMaxMemory;
     virDrvDomainSetMaxMemory	domainSetMaxMemory;
@@ -705,7 +757,11 @@ struct _virDriver {
     virDrvDomainGetState	domainGetState;
     virDrvDomainGetControlInfo  domainGetControlInfo;
     virDrvDomainSave		domainSave;
+    virDrvDomainSaveFlags	domainSaveFlags;
     virDrvDomainRestore		domainRestore;
+    virDrvDomainRestoreFlags	domainRestoreFlags;
+    virDrvDomainSaveImageGetXMLDesc domainSaveImageGetXMLDesc;
+    virDrvDomainSaveImageDefineXML domainSaveImageDefineXML;
     virDrvDomainCoreDump        domainCoreDump;
     virDrvDomainScreenshot      domainScreenshot;
     virDrvDomainSetVcpus		domainSetVcpus;
@@ -727,6 +783,7 @@ struct _virDriver {
     virDrvDomainCreateWithFlags	domainCreateWithFlags;
     virDrvDomainDefineXML           domainDefineXML;
     virDrvDomainUndefine            domainUndefine;
+    virDrvDomainUndefineFlags       domainUndefineFlags;
     virDrvDomainAttachDevice	domainAttachDevice;
     virDrvDomainAttachDeviceFlags	domainAttachDeviceFlags;
     virDrvDomainDetachDevice	domainDetachDevice;
@@ -786,6 +843,7 @@ struct _virDriver {
     virDrvDomainRevertToSnapshot domainRevertToSnapshot;
     virDrvDomainSnapshotDelete domainSnapshotDelete;
     virDrvDomainQemuMonitorCommand qemuDomainMonitorCommand;
+    virDrvDomainQemuAttach qemuDomainAttach;
     virDrvDomainOpenConsole domainOpenConsole;
     virDrvDomainInjectNMI domainInjectNMI;
     virDrvDomainMigrateBegin3	domainMigrateBegin3;
@@ -795,6 +853,10 @@ struct _virDriver {
     virDrvDomainMigrateFinish3	domainMigrateFinish3;
     virDrvDomainMigrateConfirm3	domainMigrateConfirm3;
     virDrvDomainSendKey domainSendKey;
+    virDrvDomainBlockJobAbort domainBlockJobAbort;
+    virDrvDomainGetBlockJobInfo domainGetBlockJobInfo;
+    virDrvDomainBlockJobSetSpeed domainBlockJobSetSpeed;
+    virDrvDomainBlockPull domainBlockPull;
 };
 
 typedef int
@@ -829,7 +891,7 @@ typedef int
         (*virDrvNetworkDestroy)		(virNetworkPtr network);
 typedef char *
         (*virDrvNetworkGetXMLDesc)		(virNetworkPtr network,
-                                         int flags);
+                                         unsigned int flags);
 typedef char *
         (*virDrvNetworkGetBridgeName)	(virNetworkPtr network);
 typedef int
@@ -938,7 +1000,7 @@ typedef virInterfaceDriver *virInterfaceDriverPtr;
 /**
  * _virInterfaceDriver:
  *
- * Structure associated to a network virtualization driver, defining the various
+ * Structure associated to a network interface driver, defining the various
  * entry points for it.
  *
  * All drivers must support the following fields/methods:
@@ -1099,7 +1161,7 @@ typedef virStorageDriver *virStorageDriverPtr;
 /**
  * _virStorageDriver:
  *
- * Structure associated to a network virtualization driver, defining the various
+ * Structure associated to a storage driver, defining the various
  * entry points for it.
  *
  * All drivers must support the following fields/methods:
@@ -1223,16 +1285,10 @@ struct _virDeviceMonitor {
     virDrvNodeDeviceDestroy deviceDestroy;
 };
 
-/* bits 16 and above of virDomainXMLFlags are for internal use */
-# define VIR_DOMAIN_XML_FLAGS_MASK 0xffff
-
-/* Bits 16 and above of virSecretGetValue flags are for internal use */
-# define VIR_SECRET_GET_VALUE_FLAGS_MASK 0xffff
-
 enum {
     /* This getValue call is inside libvirt, override the "private" flag.
        This flag cannot be set by outside callers. */
-    VIR_SECRET_GET_VALUE_INTERNAL_CALL = 1 << 16
+    VIR_SECRET_GET_VALUE_INTERNAL_CALL = 1 << 0,
 };
 
 typedef virSecretPtr
@@ -1257,7 +1313,8 @@ typedef int
 typedef unsigned char *
     (*virDrvSecretGetValue)                  (virSecretPtr secret,
                                               size_t *value_size,
-                                              unsigned int flags);
+                                              unsigned int flags,
+                                              unsigned int internalFlags);
 typedef int
     (*virDrvSecretUndefine)                  (virSecretPtr secret);
 typedef int
@@ -1351,7 +1408,7 @@ typedef int
 
 typedef char *
     (*virDrvNWFilterGetXMLDesc)              (virNWFilterPtr nwfilter,
-                                              int flags);
+                                              unsigned int flags);
 
 
 typedef struct _virNWFilterDriver virNWFilterDriver;

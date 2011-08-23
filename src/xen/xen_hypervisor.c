@@ -65,7 +65,7 @@
 #include "buf.h"
 #include "capabilities.h"
 #include "memory.h"
-#include "files.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_XEN
 
@@ -802,44 +802,20 @@ typedef struct xen_op_v2_dom xen_op_v2_dom;
 static unsigned long xenHypervisorGetMaxMemory(virDomainPtr domain);
 
 struct xenUnifiedDriver xenHypervisorDriver = {
-    xenHypervisorOpen, /* open */
-    xenHypervisorClose, /* close */
-    xenHypervisorGetVersion, /* version */
-    NULL, /* hostname */
-    NULL, /* nodeGetInfo */
-    xenHypervisorGetCapabilities, /* getCapabilities */
-    xenHypervisorListDomains, /* listDomains */
-    xenHypervisorNumOfDomains, /* numOfDomains */
-    NULL, /* domainCreateXML */
-    xenHypervisorPauseDomain, /* domainSuspend */
-    xenHypervisorResumeDomain, /* domainResume */
-    NULL, /* domainShutdown */
-    NULL, /* domainReboot */
-    xenHypervisorDestroyDomain, /* domainDestroy */
-    xenHypervisorDomainGetOSType, /* domainGetOSType */
-    xenHypervisorGetMaxMemory, /* domainGetMaxMemory */
-    xenHypervisorSetMaxMemory, /* domainSetMaxMemory */
-    NULL, /* domainSetMemory */
-    xenHypervisorGetDomainInfo, /* domainGetInfo */
-    NULL, /* domainSave */
-    NULL, /* domainRestore */
-    NULL, /* domainCoreDump */
-    NULL, /* domainScreenshot */
-    xenHypervisorPinVcpu, /* domainPinVcpu */
-    xenHypervisorGetVcpus, /* domainGetVcpus */
-    NULL, /* listDefinedDomains */
-    NULL, /* numOfDefinedDomains */
-    NULL, /* domainCreate */
-    NULL, /* domainDefineXML */
-    NULL, /* domainUndefine */
-    NULL, /* domainAttachDeviceFlags */
-    NULL, /* domainDetachDeviceFlags */
-    NULL, /* domainUpdateDeviceFlags */
-    NULL, /* domainGetAutostart */
-    NULL, /* domainSetAutostart */
-    xenHypervisorGetSchedulerType, /* domainGetSchedulerType */
-    xenHypervisorGetSchedulerParameters, /* domainGetSchedulerParameters */
-    xenHypervisorSetSchedulerParameters, /* domainSetSchedulerParameters */
+    .xenClose = xenHypervisorClose,
+    .xenVersion = xenHypervisorGetVersion,
+    .xenDomainSuspend = xenHypervisorPauseDomain,
+    .xenDomainResume = xenHypervisorResumeDomain,
+    .xenDomainDestroyFlags = xenHypervisorDestroyDomainFlags,
+    .xenDomainGetOSType = xenHypervisorDomainGetOSType,
+    .xenDomainGetMaxMemory = xenHypervisorGetMaxMemory,
+    .xenDomainSetMaxMemory = xenHypervisorSetMaxMemory,
+    .xenDomainGetInfo = xenHypervisorGetDomainInfo,
+    .xenDomainPinVcpu = xenHypervisorPinVcpu,
+    .xenDomainGetVcpus = xenHypervisorGetVcpus,
+    .xenDomainGetSchedulerType = xenHypervisorGetSchedulerType,
+    .xenDomainGetSchedulerParameters = xenHypervisorGetSchedulerParameters,
+    .xenDomainSetSchedulerParameters = xenHypervisorSetSchedulerParameters,
 };
 
 #define virXenError(code, ...)                                             \
@@ -2201,10 +2177,12 @@ xenHypervisorInit(void)
 virDrvOpenStatus
 xenHypervisorOpen(virConnectPtr conn,
                   virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                  int flags ATTRIBUTE_UNUSED)
+                  unsigned int flags)
 {
     int ret;
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     if (initialized == 0)
         if (xenHypervisorInit() == -1)
@@ -3272,10 +3250,12 @@ int
 xenHypervisorGetDomainState(virDomainPtr domain,
                             int *state,
                             int *reason,
-                            unsigned int flags ATTRIBUTE_UNUSED)
+                            unsigned int flags)
 {
     xenUnifiedPrivatePtr priv = domain->conn->privateData;
     virDomainInfo info;
+
+    virCheckFlags(0, -1);
 
     if (domain->conn == NULL)
         return -1;
@@ -3429,18 +3409,25 @@ xenHypervisorResumeDomain(virDomainPtr domain)
 }
 
 /**
- * xenHypervisorDestroyDomain:
+ * xenHypervisorDestroyDomainFlags:
  * @domain: pointer to the domain block
+ * @flags: an OR'ed set of virDomainDestroyFlagsValues
  *
  * Do an hypervisor call to destroy the given domain
+ *
+ * Calling this function with no @flags set (equal to zero)
+ * is equivalent to calling xenHypervisorDestroyDomain.
  *
  * Returns 0 in case of success, -1 in case of error.
  */
 int
-xenHypervisorDestroyDomain(virDomainPtr domain)
+xenHypervisorDestroyDomainFlags(virDomainPtr domain,
+                                unsigned int flags)
 {
     int ret;
     xenUnifiedPrivatePtr priv;
+
+    virCheckFlags(0, -1);
 
     if (domain->conn == NULL)
         return -1;

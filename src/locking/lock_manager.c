@@ -190,9 +190,10 @@ cleanup:
     return NULL;
 }
 #else /* !HAVE_DLFCN_H */
-virLockManagerPluginPtr virLockManagerPluginNew(const char *name ATTRIBUTE_UNUSED,
-                                                const char *configFile ATTRIBUTE_UNUSED,
-                                                unsigned int flags ATTRIBUTE_UNUSED)
+virLockManagerPluginPtr
+virLockManagerPluginNew(const char *name ATTRIBUTE_UNUSED,
+                        const char *configFile ATTRIBUTE_UNUSED,
+                        unsigned int flags_unused ATTRIBUTE_UNUSED)
 {
     virLockError(VIR_ERR_INTERNAL_ERROR, "%s",
                  _("this platform is missing dlopen"));
@@ -286,7 +287,7 @@ virLockManagerPtr virLockManagerNew(virLockManagerPluginPtr plugin,
                                     unsigned int flags)
 {
     virLockManagerPtr lock;
-    VIR_DEBUG("plugin=%p type=%u nparams=%zu params=%p flags=%u",
+    VIR_DEBUG("plugin=%p type=%u nparams=%zu params=%p flags=%x",
               plugin, type, nparams, params, flags);
     virLockManagerLogParams(nparams, params);
 
@@ -315,7 +316,7 @@ int virLockManagerAddResource(virLockManagerPtr lock,
                               virLockManagerParamPtr params,
                               unsigned int flags)
 {
-    VIR_DEBUG("lock=%p type=%u name=%s nparams=%zu params=%p flags=%u",
+    VIR_DEBUG("lock=%p type=%u name=%s nparams=%zu params=%p flags=%x",
               lock, type, name, nparams, params, flags);
     virLockManagerLogParams(nparams, params);
 
@@ -332,7 +333,8 @@ int virLockManagerAcquire(virLockManagerPtr lock,
                           unsigned int flags,
                           int *fd)
 {
-    VIR_DEBUG("lock=%p state='%s' flags=%u fd=%p", lock, NULLSTR(state), flags, fd);
+    VIR_DEBUG("lock=%p state='%s' flags=%x fd=%p",
+              lock, NULLSTR(state), flags, fd);
 
     CHECK_MANAGER(drvAcquire, -1);
 
@@ -347,7 +349,7 @@ int virLockManagerRelease(virLockManagerPtr lock,
                           char **state,
                           unsigned int flags)
 {
-    VIR_DEBUG("lock=%p state=%p flags=%u", lock, state, flags);
+    VIR_DEBUG("lock=%p state=%p flags=%x", lock, state, flags);
 
     CHECK_MANAGER(drvRelease, -1);
 
@@ -359,7 +361,7 @@ int virLockManagerInquire(virLockManagerPtr lock,
                           char **state,
                           unsigned int flags)
 {
-    VIR_DEBUG("lock=%p state=%p flags=%u", lock, state, flags);
+    VIR_DEBUG("lock=%p state=%p flags=%x", lock, state, flags);
 
     CHECK_MANAGER(drvInquire, -1);
 

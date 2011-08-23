@@ -34,7 +34,7 @@
 
 #include "libvirt_internal.h"
 #include "virterror_internal.h"
-#include "files.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -52,7 +52,7 @@
 #include "remote_driver.h"
 #include "hooks.h"
 #include "uuid.h"
-#include "virtaudit.h"
+#include "viraudit.h"
 
 #ifdef WITH_DRIVER_MODULES
 # include "driver.h"
@@ -120,6 +120,7 @@ struct daemonConfig {
     char *mdns_name;
 
     int tls_no_verify_certificate;
+    int tls_no_sanity_certificate;
     char **tls_allowed_dn_list;
     char **sasl_allowed_username_list;
 
@@ -535,12 +536,14 @@ static int daemonSetupNetworking(virNetServerPtr srv,
                                                        config->cert_file,
                                                        config->key_file,
                                                        (const char *const*)config->tls_allowed_dn_list,
+                                                       config->tls_no_sanity_certificate ? false : true,
                                                        config->tls_no_verify_certificate ? false : true)))
                     goto error;
             } else {
                 if (!(ctxt = virNetTLSContextNewServerPath(NULL,
                                                            !privileged,
                                                            (const char *const*)config->tls_allowed_dn_list,
+                                                           config->tls_no_sanity_certificate ? false : true,
                                                            config->tls_no_verify_certificate ? false : true)))
                     goto error;
             }
@@ -573,26 +576,6 @@ static int daemonSetupNetworking(virNetServerPtr srv,
             (const char *const*)config->sasl_allowed_username_list);
         if (!saslCtxt)
             goto error;
-    }
-#endif
-
-#if HAVE_POLKIT0
-    if (auth_unix_rw == REMOTE_AUTH_POLKIT ||
-        auth_unix_ro == REMOTE_AUTH_POLKIT) {
-        DBusError derr;
-
-        dbus_connection_set_change_sigpipe(FALSE);
-        dbus_threads_init_default();
-
-        dbus_error_init(&derr);
-        server->sysbus = dbus_bus_get(DBUS_BUS_SYSTEM, &derr);
-        if (!(server->sysbus)) {
-            VIR_ERROR(_("Failed to connect to system bus for PolicyKit auth: %s"),
-                      derr.message);
-            dbus_error_free(&derr);
-            goto error;
-        }
-        dbus_connection_set_exit_on_disconnect(server->sysbus, FALSE);
     }
 #endif
 
@@ -1024,9 +1007,15 @@ daemonConfigFree(struct daemonConfig *data)
  */
 static int
 daemonConfigLoad(struct daemonConfig *data,
-                 const char *filename)
+                 const char *filename,
+                 bool allow_missing)
 {
     virConfPtr conf;
+
+    if (allow_missing &&
+        access(filename, R_OK) == -1 &&
+        errno == ENOENT)
+        return 0;
 
     conf = virConfReadFile (filename, 0);
     if (!conf)
@@ -1068,6 +1057,7 @@ daemonConfigLoad(struct daemonConfig *data,
     GET_CONF_INT (conf, filename, mdns_adv);
     GET_CONF_STR (conf, filename, mdns_name);
 
+    GET_CONF_INT (conf, filename, tls_no_sanity_certificate);
     GET_CONF_INT (conf, filename, tls_no_verify_certificate);
 
     GET_CONF_STR (conf, filename, key_file);
@@ -1170,6 +1160,8 @@ static void daemonRunStateInit(void *opaque)
      * seriously delay OS bootup process */
     if (virStateInitialize(virNetServerIsPrivileged(srv)) < 0) {
         VIR_ERROR(_("Driver state initialization failed"));
+        /* Ensure the main event loop quits */
+        kill(getpid(), SIGTERM);
         virNetServerFree(srv);
         return;
     }
@@ -1278,6 +1270,8 @@ int main(int argc, char **argv) {
     int ipsock = 0;
     struct daemonConfig *config;
     bool privileged = geteuid() == 0 ? true : false;
+    bool implicit_conf = false;
+    bool use_polkit_dbus;
 
     struct option opts[] = {
         { "verbose", no_argument, &verbose, 1},
@@ -1363,14 +1357,16 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
 
     /* No explicit config, so try and find a default one */
-    if (remote_config_file == NULL &&
-        daemonConfigFilePath(privileged,
-                             &remote_config_file) < 0)
-        exit(EXIT_FAILURE);
+    if (remote_config_file == NULL) {
+        implicit_conf = true;
+        if (daemonConfigFilePath(privileged,
+                                 &remote_config_file) < 0)
+            exit(EXIT_FAILURE);
+    }
 
     /* Read the config file if it exists*/
     if (remote_config_file &&
-        daemonConfigLoad(config, remote_config_file) < 0)
+        daemonConfigLoad(config, remote_config_file, implicit_conf) < 0)
         exit(EXIT_FAILURE);
 
     if (config->host_uuid &&
@@ -1436,10 +1432,13 @@ int main(int argc, char **argv) {
         umask(old_umask);
     }
 
+    use_polkit_dbus = config->auth_unix_rw == REMOTE_AUTH_POLKIT ||
+            config->auth_unix_ro == REMOTE_AUTH_POLKIT;
     if (!(srv = virNetServerNew(config->min_workers,
                                 config->max_workers,
                                 config->max_clients,
                                 config->mdns_adv ? config->mdns_name : NULL,
+                                use_polkit_dbus,
                                 remoteClientInitHook))) {
         ret = VIR_DAEMON_ERR_INIT;
         goto cleanup;
