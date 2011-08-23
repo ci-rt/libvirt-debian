@@ -1,3 +1,10 @@
+libvirt (0.9.4-2) unstable; urgency=low
+
+  [ Philipp Hahn ]
+  * [c9a080d] Build python-libvirt for all python versions (Closes: #628828)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 23 Aug 2011 21:17:55 +0200
+
 libvirt (0.9.4-1) experimental; urgency=low
 
   * [a92d03e] New upstream version 0.9.4
