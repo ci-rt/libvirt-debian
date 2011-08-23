@@ -49,7 +49,7 @@ ifneq (,$(findstring ${DEB_BUILD_ARCH}, m68k))
 	CFLAGS = -fwrapv -DWRAPV
 endif
 
-
+DEB_BUILDDIR := $(CURDIR)/debian/build
 DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--disable-rpath          \
 	$(WITH_QEMU)		 \
@@ -83,9 +83,12 @@ DEB_COMPRESS_EXCLUDE = .o event-test hellolibvirt info1 suspend
 DEB_PYTHON_SETUP_CMD = /dev/null
 DEB_DH_MAKESHLIBS_ARGS_libvirt0 += -V 'libvirt0 (>= 0.5.0)'
 DEB_DH_INSTALLINIT_ARGS = --no-restart-on-upgrade -- defaults 28 72
+DEB_PYTHON_MODULE_PACKAGE = python-libvirt
 
 LOGROTATE = $(basename $(basename $(notdir $(wildcard daemon/libvirtd*.logrotate.in))))
 EXAMPLES_DIR = $(CURDIR)/debian/libvirt-doc/usr/share/doc/libvirt-doc/examples/
+
+include debian/python.mk
 
 binary-install/libvirt-bin::
 	cp $(CURDIR)/tools/libvirt-guests.init.sh $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
@@ -114,3 +117,4 @@ clean::
 	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
 	rm -f $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
 	rm -f $(CURDIR)/debian/libvirt-bin.*.logrotate
+	rm -rf $(DEB_BUILDDIR)
