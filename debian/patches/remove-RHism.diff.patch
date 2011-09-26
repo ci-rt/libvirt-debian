@@ -7,10 +7,10 @@ Subject: remove-RHism.diff
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index 5b7fa9c..b995837 100644
+index 88dee26..8a2fa3f 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
-@@ -97,7 +97,7 @@ Output elapsed time information for each command.
+@@ -98,7 +98,7 @@ Output elapsed time information for each command.
  
  Most B<virsh> operations rely upon the libvirt library being able to
  connect to an already running libvirtd service.  This can usually be

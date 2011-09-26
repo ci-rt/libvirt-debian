@@ -13,10 +13,10 @@ Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=573172
  2 files changed, 26 insertions(+), 8 deletions(-)
 
 diff --git a/src/rpc/virnetsocket.c b/src/rpc/virnetsocket.c
-index 41b691a..ffe49c3 100644
+index 88dc2a4..f08846f 100644
 --- a/src/rpc/virnetsocket.c
 +++ b/src/rpc/virnetsocket.c
-@@ -628,9 +628,26 @@ int virNetSocketNewConnectSSH(const char *nodename,
+@@ -632,9 +632,26 @@ int virNetSocketNewConnectSSH(const char *nodename,
                               "-e", "none", NULL);
      if (noVerify)
          virCommandAddArgList(cmd, "-o", "StrictHostKeyChecking=no", NULL);
@@ -47,7 +47,7 @@ index 41b691a..ffe49c3 100644
      return virNetSocketNewConnectCommand(cmd, retsock);
  }
 diff --git a/tests/virnetsockettest.c b/tests/virnetsockettest.c
-index e72b9a0..3816b3c 100644
+index fae15a3..b3a2705 100644
 --- a/tests/virnetsockettest.c
 +++ b/tests/virnetsockettest.c
 @@ -496,7 +496,7 @@ mymain(void)
