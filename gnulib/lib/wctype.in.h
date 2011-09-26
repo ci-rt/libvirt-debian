@@ -130,6 +130,10 @@
 #    define iswspace rpl_iswspace
 #    define iswupper rpl_iswupper
 #    define iswxdigit rpl_iswxdigit
+#   endif
+#  endif
+#  if @REPLACE_TOWLOWER@
+#   if !(defined __cplusplus && defined GNULIB_NAMESPACE)
 #    define towlower rpl_towlower
 #    define towupper rpl_towupper
 #   endif
@@ -273,7 +277,7 @@ iswxdigit
 }
 
 static inline wint_t
-#  if @REPLACE_ISWCNTRL@
+#  if @REPLACE_TOWLOWER@
 rpl_towlower
 #  else
 towlower
@@ -284,7 +288,7 @@ towlower
 }
 
 static inline wint_t
-#  if @REPLACE_ISWCNTRL@
+#  if @REPLACE_TOWLOWER@
 rpl_towupper
 #  else
 towupper
@@ -431,7 +435,7 @@ _GL_WARN_ON_USE (iswctype, "iswctype is unportable - "
 # endif
 #endif
 
-#if @REPLACE_ISWCNTRL@ || defined __MINGW32__
+#if @REPLACE_TOWLOWER@ || defined __MINGW32__
 _GL_CXXALIAS_RPL (towlower, wint_t, (wint_t wc));
 _GL_CXXALIAS_RPL (towupper, wint_t, (wint_t wc));
 #else

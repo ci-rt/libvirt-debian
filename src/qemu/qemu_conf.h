@@ -82,6 +82,7 @@ struct qemud_driver {
     char *cacheDir;
     char *saveDir;
     char *snapshotDir;
+    char *qemuImgBinary;
     unsigned int vncAutoUnixSocket : 1;
     unsigned int vncTLS : 1;
     unsigned int vncTLSx509verify : 1;
@@ -107,6 +108,8 @@ struct qemud_driver {
     unsigned int setProcessName : 1;
 
     int maxProcesses;
+
+    int max_queued;
 
     virCapsPtr caps;
 

@@ -963,19 +963,19 @@ libxlStartup(int privileged) {
     libxl_driver->logger =
             (xentoollog_logger *)xtl_createlogger_stdiostream(libxl_driver->logger_file, XTL_DEBUG,  0);
     if (!libxl_driver->logger) {
-        VIR_ERROR(_("cannot create logger for libxenlight"));
+        VIR_INFO("cannot create logger for libxenlight, disabling driver");
         goto fail;
     }
 
     if (libxl_ctx_init(&libxl_driver->ctx,
                        LIBXL_VERSION,
                        libxl_driver->logger)) {
-        VIR_ERROR(_("cannot initialize libxenlight context"));
+        VIR_INFO("cannot initialize libxenlight context, probably not running in a Xen Dom0, disabling driver");
         goto fail;
     }
 
     if ((ver_info = libxl_get_version_info(&libxl_driver->ctx)) == NULL) {
-        VIR_ERROR(_("cannot version information from libxenlight"));
+        VIR_INFO("cannot version information from libxenlight, disabling driver");
         goto fail;
     }
     libxl_driver->version = (ver_info->xen_version_major * 1000000) +
@@ -2132,6 +2132,11 @@ libxlDomainManagedSave(virDomainPtr dom, unsigned int flags)
         libxlError(VIR_ERR_OPERATION_INVALID, "%s", _("Domain is not running"));
         goto cleanup;
     }
+    if (!vm->persistent) {
+        libxlError(VIR_ERR_OPERATION_INVALID, "%s",
+                   _("cannot do managed save for transient domain"));
+        goto cleanup;
+    }
 
     name = libxlDomainManagedSavePath(driver, vm);
     if (name == NULL)
@@ -2797,12 +2802,6 @@ libxlDomainUndefineFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virDomainObjIsActive(vm)) {
-        libxlError(VIR_ERR_OPERATION_INVALID,
-                   "%s", _("cannot undefine active domain"));
-        goto cleanup;
-    }
-
     if (!vm->persistent) {
         libxlError(VIR_ERR_OPERATION_INVALID,
                    "%s", _("cannot undefine transient domain"));
@@ -2836,8 +2835,13 @@ libxlDomainUndefineFlags(virDomainPtr dom,
     event = virDomainEventNewFromObj(vm, VIR_DOMAIN_EVENT_UNDEFINED,
                                      VIR_DOMAIN_EVENT_UNDEFINED_REMOVED);
 
-    virDomainRemoveInactive(&driver->domains, vm);
-    vm = NULL;
+    if (virDomainObjIsActive(vm)) {
+        vm->persistent = 0;
+    } else {
+        virDomainRemoveInactive(&driver->domains, vm);
+        vm = NULL;
+    }
+
     ret = 0;
 
   cleanup:
@@ -2925,7 +2929,7 @@ libxlDomainAttachDeviceDiskLive(libxlDomainObjPrivatePtr priv,
             break;
         case VIR_DOMAIN_DISK_DEVICE_DISK:
             if (l_disk->bus == VIR_DOMAIN_DISK_BUS_XEN) {
-                if (virDomainDiskIndexByName(vm->def, l_disk->dst) >= 0) {
+                if (virDomainDiskIndexByName(vm->def, l_disk->dst, true) >= 0) {
                     libxlError(VIR_ERR_OPERATION_FAILED,
                             _("target %s already exists"), l_disk->dst);
                     goto cleanup;
@@ -2987,7 +2991,8 @@ libxlDomainDetachDeviceDiskLive(libxlDomainObjPrivatePtr priv,
             if (dev->data.disk->bus == VIR_DOMAIN_DISK_BUS_XEN) {
 
                 if ((i = virDomainDiskIndexByName(vm->def,
-                                                  dev->data.disk->dst)) < 0) {
+                                                  dev->data.disk->dst,
+                                                  false)) < 0) {
                     libxlError(VIR_ERR_OPERATION_FAILED,
                                _("disk %s not found"), dev->data.disk->dst);
                     goto cleanup;
@@ -3012,7 +3017,7 @@ libxlDomainDetachDeviceDiskLive(libxlDomainObjPrivatePtr priv,
             } else {
                 libxlError(VIR_ERR_CONFIG_UNSUPPORTED,
                         _("disk bus '%s' cannot be hot unplugged."),
-                        virDomainDiskBusTypeToString(l_disk->bus));
+                        virDomainDiskBusTypeToString(dev->data.disk->bus));
             }
             break;
         default:
@@ -3057,7 +3062,7 @@ libxlDomainAttachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
     switch (dev->type) {
         case VIR_DOMAIN_DEVICE_DISK:
             disk = dev->data.disk;
-            if (virDomainDiskIndexByName(vmdef, disk->dst) >= 0) {
+            if (virDomainDiskIndexByName(vmdef, disk->dst, true) >= 0) {
                 libxlError(VIR_ERR_INVALID_ARG,
                         _("target %s already exists."), disk->dst);
                 return -1;
@@ -3168,9 +3173,9 @@ libxlDomainUpdateDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
     switch (dev->type) {
         case VIR_DOMAIN_DEVICE_DISK:
             disk = dev->data.disk;
-            if ((i = virDomainDiskIndexByName(vmdef, disk->dst)) < 0) {
+            if ((i = virDomainDiskIndexByName(vmdef, disk->dst, false)) < 0) {
                 libxlError(VIR_ERR_INVALID_ARG,
-                           _("target %s doesn't exists."), disk->dst);
+                           _("target %s doesn't exist."), disk->dst);
                 goto cleanup;
             }
             orig = vmdef->disks[i];

@@ -38,6 +38,7 @@
 
 struct daemonClientStream {
     daemonClientPrivatePtr priv;
+    int refs;
 
     virNetServerProgramPtr prog;
 
@@ -102,6 +103,8 @@ daemonStreamMessageFinished(virNetMessagePtr msg,
 
     stream->tx = 1;
     daemonStreamUpdateEvents(stream);
+
+    daemonFreeClientStream(NULL, stream);
 }
 
 
@@ -204,7 +207,7 @@ daemonStreamEvent(virStreamPtr st, int events, void *opaque)
             virNetError(VIR_ERR_RPC,
                         "%s", _("stream had I/O failure"));
 
-        msg = virNetMessageNew();
+        msg = virNetMessageNew(false);
         if (!msg) {
             ret = -1;
         } else {
@@ -299,6 +302,7 @@ daemonCreateClientStream(virNetServerClientPtr client,
         return NULL;
     }
 
+    stream->refs = 1;
     stream->priv = priv;
     stream->prog = prog;
     stream->procedure = header->proc;
@@ -326,6 +330,10 @@ int daemonFreeClientStream(virNetServerClientPtr client,
     if (!stream)
         return 0;
 
+    stream->refs--;
+    if (stream->refs)
+        return 0;
+
     VIR_DEBUG("client=%p, proc=%d, serial=%d",
               client, stream->procedure, stream->serial);
 
@@ -334,13 +342,17 @@ int daemonFreeClientStream(virNetServerClientPtr client,
     msg = stream->rx;
     while (msg) {
         virNetMessagePtr tmp = msg->next;
-        /* Send a dummy reply to free up 'msg' & unblock client rx */
-        memset(msg, 0, sizeof(*msg));
-        msg->header.type = VIR_NET_REPLY;
-        if (virNetServerClientSendMessage(client, msg) < 0) {
-            virNetServerClientImmediateClose(client);
+        if (client) {
+            /* Send a dummy reply to free up 'msg' & unblock client rx */
+            virNetMessageClear(msg);
+            msg->header.type = VIR_NET_REPLY;
+            if (virNetServerClientSendMessage(client, msg) < 0) {
+                virNetServerClientImmediateClose(client);
+                virNetMessageFree(msg);
+                ret = -1;
+            }
+        } else {
             virNetMessageFree(msg);
-            ret = -1;
         }
         msg = tmp;
     }
@@ -440,6 +452,28 @@ daemonRemoveClientStream(virNetServerClientPtr client,
     return -1;
 }
 
+
+void
+daemonRemoveAllClientStreams(daemonClientStream *stream)
+{
+    daemonClientStream *tmp;
+
+    VIR_DEBUG("stream=%p", stream);
+
+    while (stream) {
+        tmp = stream->next;
+
+        if (!stream->closed) {
+            virStreamEventRemoveCallback(stream->st);
+            virStreamAbort(stream->st);
+        }
+
+        daemonFreeClientStream(NULL, stream);
+
+        VIR_DEBUG("next stream=%p", tmp);
+        stream = tmp;
+    }
+}
 
 /*
  * Returns:
@@ -619,7 +653,7 @@ daemonStreamHandleWrite(virNetServerClientPtr client,
          * its active request count / throttling
          */
         if (msg->header.status == VIR_NET_CONTINUE) {
-            memset(msg, 0, sizeof(*msg));
+            virNetMessageClear(msg);
             msg->header.type = VIR_NET_REPLY;
             if (virNetServerClientSendMessage(client, msg) < 0) {
                 virNetMessageFree(msg);
@@ -652,7 +686,15 @@ daemonStreamHandleRead(virNetServerClientPtr client,
     size_t bufferLen = VIR_NET_MESSAGE_PAYLOAD_MAX;
     int ret;
 
-    VIR_DEBUG("client=%p, stream=%p", client, stream);
+    VIR_DEBUG("client=%p, stream=%p tx=%d closed=%d",
+              client, stream, stream->tx, stream->closed);
+
+    /* We might have had an event pending before we shut
+     * down the stream, so if we're marked as closed,
+     * then do nothing
+     */
+    if (stream->closed)
+        return 0;
 
     /* Shouldn't ever be called unless we're marked able to
      * transmit, but doesn't hurt to check */
@@ -673,7 +715,7 @@ daemonStreamHandleRead(virNetServerClientPtr client,
 
         memset(&rerr, 0, sizeof(rerr));
 
-        if (!(msg = virNetMessageNew()))
+        if (!(msg = virNetMessageNew(false)))
             ret = -1;
         else
             ret = virNetServerProgramSendStreamError(remoteProgram,
@@ -687,13 +729,13 @@ daemonStreamHandleRead(virNetServerClientPtr client,
         stream->tx = 0;
         if (ret == 0)
             stream->recvEOF = 1;
-        if (!(msg = virNetMessageNew()))
+        if (!(msg = virNetMessageNew(false)))
             ret = -1;
 
         if (msg) {
             msg->cb = daemonStreamMessageFinished;
             msg->opaque = stream;
-            virNetServerClientRef(client);
+            stream->refs++;
             ret = virNetServerProgramSendStreamData(remoteProgram,
                                                     client,
                                                     msg,

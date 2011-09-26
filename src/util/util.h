@@ -78,6 +78,9 @@ int virFileLinkPointsTo(const char *checkLink,
 int virFileResolveLink(const char *linkpath,
                        char **resultpath) ATTRIBUTE_RETURN_CHECK;
 
+int virFileIsLink(const char *linkpath)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+
 char *virFindFileInPath(const char *file);
 
 bool virFileExists(const char *file) ATTRIBUTE_NONNULL(1);
@@ -120,21 +123,6 @@ int virFileOpenTtyAt(const char *ptmx,
                      char **ttyName,
                      int rawmode);
 
-char* virFilePid(const char *dir,
-                 const char *name);
-
-int virFileWritePidPath(const char *path,
-                        pid_t pid) ATTRIBUTE_RETURN_CHECK;
-int virFileWritePid(const char *dir,
-                    const char *name,
-                    pid_t pid) ATTRIBUTE_RETURN_CHECK;
-int virFileReadPidPath(const char *path,
-                       pid_t *pid) ATTRIBUTE_RETURN_CHECK;
-int virFileReadPid(const char *dir,
-                   const char *name,
-                   pid_t *pid) ATTRIBUTE_RETURN_CHECK;
-int virFileDeletePid(const char *dir,
-                     const char *name);
 
 char *virArgvToString(const char *const *argv);
 
@@ -214,7 +202,7 @@ const char *virEnumToString(const char *const*types,
 
 # define VIR_ENUM_IMPL(name, lastVal, ...)                               \
     static const char *const name ## TypeList[] = { __VA_ARGS__ };      \
-    extern int (* name ## Verify (void)) [verify_true (ARRAY_CARDINALITY(name ## TypeList) == lastVal)]; \
+    verify(ARRAY_CARDINALITY(name ## TypeList) == lastVal);             \
     const char *name ## TypeToString(int type) {                        \
         return virEnumToString(name ## TypeList,                        \
                                ARRAY_CARDINALITY(name ## TypeList),     \
@@ -267,7 +255,7 @@ char *virTimestamp(void);
 
 int virTimeMs(unsigned long long *ms) ATTRIBUTE_NONNULL(1);
 
-bool virIsDevMapperDevice(const char *devname) ATTRIBUTE_NONNULL(1);
+bool virIsDevMapperDevice(const char *dev_name) ATTRIBUTE_NONNULL(1);
 
 int virEmitXMLWarning(int fd,
                       const char *name,

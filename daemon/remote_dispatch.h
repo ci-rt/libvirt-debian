@@ -628,6 +628,28 @@ cleanup:
 
 
 
+static int remoteDispatchDomainBlockStatsFlags(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessageHeaderPtr hdr,
+    virNetMessageErrorPtr rerr,
+    remote_domain_block_stats_flags_args *args,
+    remote_domain_block_stats_flags_ret *ret);
+static int remoteDispatchDomainBlockStatsFlagsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessageHeaderPtr hdr,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
+  return remoteDispatchDomainBlockStatsFlags(server, client, hdr, rerr, args, ret);
+}
+/* remoteDispatchDomainBlockStatsFlags body has to be implemented manually */
+
+
+
 static int remoteDispatchDomainCoreDump(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -2856,6 +2878,62 @@ static int remoteDispatchDomainMigrateFinish3Helper(
 
 
 
+static int remoteDispatchDomainMigrateGetMaxSpeed(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessageHeaderPtr hdr,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_get_max_speed_args *args,
+    remote_domain_migrate_get_max_speed_ret *ret);
+static int remoteDispatchDomainMigrateGetMaxSpeedHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessageHeaderPtr hdr,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
+  return remoteDispatchDomainMigrateGetMaxSpeed(server, client, hdr, rerr, args, ret);
+}
+static int remoteDispatchDomainMigrateGetMaxSpeed(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_migrate_get_max_speed_args *args,
+    remote_domain_migrate_get_max_speed_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    unsigned long bandwidth;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainMigrateGetMaxSpeed(dom, &bandwidth, args->flags) < 0)
+        goto cleanup;
+
+    HYPER_TO_ULONG(ret->bandwidth, bandwidth);
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainMigratePerform(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -3291,7 +3369,7 @@ static int remoteDispatchDomainOpenConsole(
 {
     int rv = -1;
     virDomainPtr dom = NULL;
-    char *devname;
+    char *dev_name;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
     virStreamPtr st = NULL;
@@ -3305,7 +3383,7 @@ static int remoteDispatchDomainOpenConsole(
     if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
         goto cleanup;
 
-    devname = args->devname ? *args->devname : NULL;
+    dev_name = args->dev_name ? *args->dev_name : NULL;
 
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
@@ -3313,7 +3391,7 @@ static int remoteDispatchDomainOpenConsole(
     if (!(stream = daemonCreateClientStream(client, st, remoteProgram, hdr)))
         goto cleanup;
 
-    if (virDomainOpenConsole(dom, devname, st, args->flags) < 0)
+    if (virDomainOpenConsole(dom, dev_name, st, args->flags) < 0)
         goto cleanup;
 
     if (daemonAddClientStream(client, stream, true) < 0)
@@ -11547,7 +11625,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method Open => 1 */
    remoteDispatchOpenHelper,
@@ -11555,7 +11634,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_open_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method Close => 2 */
    remoteDispatchCloseHelper,
@@ -11563,7 +11643,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method GetType => 3 */
    remoteDispatchGetTypeHelper,
@@ -11571,7 +11652,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_get_type_ret),
    (xdrproc_t)xdr_remote_get_type_ret,
-   true 
+   true,
+   1
 },
 { /* Method GetVersion => 4 */
    remoteDispatchGetVersionHelper,
@@ -11579,7 +11661,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_get_version_ret),
    (xdrproc_t)xdr_remote_get_version_ret,
-   true 
+   true,
+   1
 },
 { /* Method GetMaxVcpus => 5 */
    remoteDispatchGetMaxVcpusHelper,
@@ -11587,7 +11670,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_get_max_vcpus_args,
    sizeof(remote_get_max_vcpus_ret),
    (xdrproc_t)xdr_remote_get_max_vcpus_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeGetInfo => 6 */
    remoteDispatchNodeGetInfoHelper,
@@ -11595,7 +11679,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_node_get_info_ret),
    (xdrproc_t)xdr_remote_node_get_info_ret,
-   true 
+   true,
+   1
 },
 { /* Method GetCapabilities => 7 */
    remoteDispatchGetCapabilitiesHelper,
@@ -11603,7 +11688,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_get_capabilities_ret),
    (xdrproc_t)xdr_remote_get_capabilities_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainAttachDevice => 8 */
    remoteDispatchDomainAttachDeviceHelper,
@@ -11611,7 +11697,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_attach_device_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainCreate => 9 */
    remoteDispatchDomainCreateHelper,
@@ -11619,7 +11706,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_create_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainCreateXML => 10 */
    remoteDispatchDomainCreateXMLHelper,
@@ -11627,7 +11715,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_create_xml_args,
    sizeof(remote_domain_create_xml_ret),
    (xdrproc_t)xdr_remote_domain_create_xml_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainDefineXML => 11 */
    remoteDispatchDomainDefineXMLHelper,
@@ -11635,7 +11724,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_define_xml_args,
    sizeof(remote_domain_define_xml_ret),
    (xdrproc_t)xdr_remote_domain_define_xml_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainDestroy => 12 */
    remoteDispatchDomainDestroyHelper,
@@ -11643,7 +11733,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_destroy_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method DomainDetachDevice => 13 */
    remoteDispatchDomainDetachDeviceHelper,
@@ -11651,7 +11742,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_detach_device_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetXMLDesc => 14 */
    remoteDispatchDomainGetXMLDescHelper,
@@ -11659,7 +11751,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_xml_desc_args,
    sizeof(remote_domain_get_xml_desc_ret),
    (xdrproc_t)xdr_remote_domain_get_xml_desc_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetAutostart => 15 */
    remoteDispatchDomainGetAutostartHelper,
@@ -11667,7 +11760,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_autostart_args,
    sizeof(remote_domain_get_autostart_ret),
    (xdrproc_t)xdr_remote_domain_get_autostart_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainGetInfo => 16 */
    remoteDispatchDomainGetInfoHelper,
@@ -11675,7 +11769,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_info_args,
    sizeof(remote_domain_get_info_ret),
    (xdrproc_t)xdr_remote_domain_get_info_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetMaxMemory => 17 */
    remoteDispatchDomainGetMaxMemoryHelper,
@@ -11683,7 +11778,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_max_memory_args,
    sizeof(remote_domain_get_max_memory_ret),
    (xdrproc_t)xdr_remote_domain_get_max_memory_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainGetMaxVcpus => 18 */
    remoteDispatchDomainGetMaxVcpusHelper,
@@ -11691,7 +11787,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_max_vcpus_args,
    sizeof(remote_domain_get_max_vcpus_ret),
    (xdrproc_t)xdr_remote_domain_get_max_vcpus_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainGetOSType => 19 */
    remoteDispatchDomainGetOSTypeHelper,
@@ -11699,7 +11796,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_os_type_args,
    sizeof(remote_domain_get_os_type_ret),
    (xdrproc_t)xdr_remote_domain_get_os_type_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainGetVcpus => 20 */
    remoteDispatchDomainGetVcpusHelper,
@@ -11707,7 +11805,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_vcpus_args,
    sizeof(remote_domain_get_vcpus_ret),
    (xdrproc_t)xdr_remote_domain_get_vcpus_ret,
-   true 
+   true,
+   1
 },
 { /* Method ListDefinedDomains => 21 */
    remoteDispatchListDefinedDomainsHelper,
@@ -11715,7 +11814,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_list_defined_domains_args,
    sizeof(remote_list_defined_domains_ret),
    (xdrproc_t)xdr_remote_list_defined_domains_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainLookupByID => 22 */
    remoteDispatchDomainLookupByIDHelper,
@@ -11723,7 +11823,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_lookup_by_id_args,
    sizeof(remote_domain_lookup_by_id_ret),
    (xdrproc_t)xdr_remote_domain_lookup_by_id_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainLookupByName => 23 */
    remoteDispatchDomainLookupByNameHelper,
@@ -11731,7 +11832,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_lookup_by_name_args,
    sizeof(remote_domain_lookup_by_name_ret),
    (xdrproc_t)xdr_remote_domain_lookup_by_name_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainLookupByUUID => 24 */
    remoteDispatchDomainLookupByUUIDHelper,
@@ -11739,7 +11841,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_lookup_by_uuid_args,
    sizeof(remote_domain_lookup_by_uuid_ret),
    (xdrproc_t)xdr_remote_domain_lookup_by_uuid_ret,
-   true 
+   true,
+   1
 },
 { /* Method NumOfDefinedDomains => 25 */
    remoteDispatchNumOfDefinedDomainsHelper,
@@ -11747,7 +11850,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_num_of_defined_domains_ret),
    (xdrproc_t)xdr_remote_num_of_defined_domains_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainPinVcpu => 26 */
    remoteDispatchDomainPinVcpuHelper,
@@ -11755,7 +11859,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_pin_vcpu_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainReboot => 27 */
    remoteDispatchDomainRebootHelper,
@@ -11763,7 +11868,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_reboot_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainResume => 28 */
    remoteDispatchDomainResumeHelper,
@@ -11771,7 +11877,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_resume_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainSetAutostart => 29 */
    remoteDispatchDomainSetAutostartHelper,
@@ -11779,7 +11886,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_autostart_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method DomainSetMaxMemory => 30 */
    remoteDispatchDomainSetMaxMemoryHelper,
@@ -11787,7 +11895,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_max_memory_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method DomainSetMemory => 31 */
    remoteDispatchDomainSetMemoryHelper,
@@ -11795,7 +11904,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_memory_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainSetVcpus => 32 */
    remoteDispatchDomainSetVcpusHelper,
@@ -11803,7 +11913,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_vcpus_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainShutdown => 33 */
    remoteDispatchDomainShutdownHelper,
@@ -11811,7 +11922,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_shutdown_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainSuspend => 34 */
    remoteDispatchDomainSuspendHelper,
@@ -11819,7 +11931,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_suspend_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainUndefine => 35 */
    remoteDispatchDomainUndefineHelper,
@@ -11827,7 +11940,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_undefine_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method ListDefinedNetworks => 36 */
    remoteDispatchListDefinedNetworksHelper,
@@ -11835,7 +11949,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_list_defined_networks_args,
    sizeof(remote_list_defined_networks_ret),
    (xdrproc_t)xdr_remote_list_defined_networks_ret,
-   true 
+   true,
+   1
 },
 { /* Method ListDomains => 37 */
    remoteDispatchListDomainsHelper,
@@ -11843,7 +11958,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_list_domains_args,
    sizeof(remote_list_domains_ret),
    (xdrproc_t)xdr_remote_list_domains_ret,
-   true 
+   true,
+   1
 },
 { /* Method ListNetworks => 38 */
    remoteDispatchListNetworksHelper,
@@ -11851,7 +11967,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_list_networks_args,
    sizeof(remote_list_networks_ret),
    (xdrproc_t)xdr_remote_list_networks_ret,
-   true 
+   true,
+   1
 },
 { /* Method NetworkCreate => 39 */
    remoteDispatchNetworkCreateHelper,
@@ -11859,7 +11976,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_create_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method NetworkCreateXML => 40 */
    remoteDispatchNetworkCreateXMLHelper,
@@ -11867,7 +11985,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_create_xml_args,
    sizeof(remote_network_create_xml_ret),
    (xdrproc_t)xdr_remote_network_create_xml_ret,
-   true 
+   true,
+   0
 },
 { /* Method NetworkDefineXML => 41 */
    remoteDispatchNetworkDefineXMLHelper,
@@ -11875,7 +11994,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_define_xml_args,
    sizeof(remote_network_define_xml_ret),
    (xdrproc_t)xdr_remote_network_define_xml_ret,
-   true 
+   true,
+   1
 },
 { /* Method NetworkDestroy => 42 */
    remoteDispatchNetworkDestroyHelper,
@@ -11883,7 +12003,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_destroy_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method NetworkGetXMLDesc => 43 */
    remoteDispatchNetworkGetXMLDescHelper,
@@ -11891,7 +12012,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_get_xml_desc_args,
    sizeof(remote_network_get_xml_desc_ret),
    (xdrproc_t)xdr_remote_network_get_xml_desc_ret,
-   true 
+   true,
+   1
 },
 { /* Method NetworkGetAutostart => 44 */
    remoteDispatchNetworkGetAutostartHelper,
@@ -11899,7 +12021,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_get_autostart_args,
    sizeof(remote_network_get_autostart_ret),
    (xdrproc_t)xdr_remote_network_get_autostart_ret,
-   true 
+   true,
+   1
 },
 { /* Method NetworkGetBridgeName => 45 */
    remoteDispatchNetworkGetBridgeNameHelper,
@@ -11907,7 +12030,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_get_bridge_name_args,
    sizeof(remote_network_get_bridge_name_ret),
    (xdrproc_t)xdr_remote_network_get_bridge_name_ret,
-   true 
+   true,
+   1
 },
 { /* Method NetworkLookupByName => 46 */
    remoteDispatchNetworkLookupByNameHelper,
@@ -11915,7 +12039,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_lookup_by_name_args,
    sizeof(remote_network_lookup_by_name_ret),
    (xdrproc_t)xdr_remote_network_lookup_by_name_ret,
-   true 
+   true,
+   1
 },
 { /* Method NetworkLookupByUUID => 47 */
    remoteDispatchNetworkLookupByUUIDHelper,
@@ -11923,7 +12048,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_lookup_by_uuid_args,
    sizeof(remote_network_lookup_by_uuid_ret),
    (xdrproc_t)xdr_remote_network_lookup_by_uuid_ret,
-   true 
+   true,
+   1
 },
 { /* Method NetworkSetAutostart => 48 */
    remoteDispatchNetworkSetAutostartHelper,
@@ -11931,7 +12057,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_set_autostart_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method NetworkUndefine => 49 */
    remoteDispatchNetworkUndefineHelper,
@@ -11939,7 +12066,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_undefine_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method NumOfDefinedNetworks => 50 */
    remoteDispatchNumOfDefinedNetworksHelper,
@@ -11947,7 +12075,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_num_of_defined_networks_ret),
    (xdrproc_t)xdr_remote_num_of_defined_networks_ret,
-   true 
+   true,
+   1
 },
 { /* Method NumOfDomains => 51 */
    remoteDispatchNumOfDomainsHelper,
@@ -11955,7 +12084,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_num_of_domains_ret),
    (xdrproc_t)xdr_remote_num_of_domains_ret,
-   true 
+   true,
+   1
 },
 { /* Method NumOfNetworks => 52 */
    remoteDispatchNumOfNetworksHelper,
@@ -11963,7 +12093,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_num_of_networks_ret),
    (xdrproc_t)xdr_remote_num_of_networks_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainCoreDump => 53 */
    remoteDispatchDomainCoreDumpHelper,
@@ -11971,7 +12102,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_core_dump_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainRestore => 54 */
    remoteDispatchDomainRestoreHelper,
@@ -11979,7 +12111,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_restore_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainSave => 55 */
    remoteDispatchDomainSaveHelper,
@@ -11987,7 +12120,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_save_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetSchedulerType => 56 */
    remoteDispatchDomainGetSchedulerTypeHelper,
@@ -11995,7 +12129,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_scheduler_type_args,
    sizeof(remote_domain_get_scheduler_type_ret),
    (xdrproc_t)xdr_remote_domain_get_scheduler_type_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetSchedulerParameters => 57 */
    remoteDispatchDomainGetSchedulerParametersHelper,
@@ -12003,7 +12138,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_scheduler_parameters_args,
    sizeof(remote_domain_get_scheduler_parameters_ret),
    (xdrproc_t)xdr_remote_domain_get_scheduler_parameters_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainSetSchedulerParameters => 58 */
    remoteDispatchDomainSetSchedulerParametersHelper,
@@ -12011,7 +12147,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_scheduler_parameters_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method GetHostname => 59 */
    remoteDispatchGetHostnameHelper,
@@ -12019,7 +12156,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_get_hostname_ret),
    (xdrproc_t)xdr_remote_get_hostname_ret,
-   true 
+   true,
+   1
 },
 { /* Method SupportsFeature => 60 */
    remoteDispatchSupportsFeatureHelper,
@@ -12027,7 +12165,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_supports_feature_args,
    sizeof(remote_supports_feature_ret),
    (xdrproc_t)xdr_remote_supports_feature_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainMigratePrepare => 61 */
    remoteDispatchDomainMigratePrepareHelper,
@@ -12035,7 +12174,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_prepare_args,
    sizeof(remote_domain_migrate_prepare_ret),
    (xdrproc_t)xdr_remote_domain_migrate_prepare_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainMigratePerform => 62 */
    remoteDispatchDomainMigratePerformHelper,
@@ -12043,7 +12183,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_perform_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainMigrateFinish => 63 */
    remoteDispatchDomainMigrateFinishHelper,
@@ -12051,7 +12192,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_finish_args,
    sizeof(remote_domain_migrate_finish_ret),
    (xdrproc_t)xdr_remote_domain_migrate_finish_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainBlockStats => 64 */
    remoteDispatchDomainBlockStatsHelper,
@@ -12059,7 +12201,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_block_stats_args,
    sizeof(remote_domain_block_stats_ret),
    (xdrproc_t)xdr_remote_domain_block_stats_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainInterfaceStats => 65 */
    remoteDispatchDomainInterfaceStatsHelper,
@@ -12067,7 +12210,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_interface_stats_args,
    sizeof(remote_domain_interface_stats_ret),
    (xdrproc_t)xdr_remote_domain_interface_stats_ret,
-   true 
+   true,
+   1
 },
 { /* Method AuthList => 66 */
    remoteDispatchAuthListHelper,
@@ -12075,7 +12219,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_auth_list_ret),
    (xdrproc_t)xdr_remote_auth_list_ret,
-   true 
+   true,
+   1
 },
 { /* Method AuthSaslInit => 67 */
    remoteDispatchAuthSaslInitHelper,
@@ -12083,7 +12228,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_auth_sasl_init_ret),
    (xdrproc_t)xdr_remote_auth_sasl_init_ret,
-   true 
+   true,
+   1
 },
 { /* Method AuthSaslStart => 68 */
    remoteDispatchAuthSaslStartHelper,
@@ -12091,7 +12237,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_auth_sasl_start_args,
    sizeof(remote_auth_sasl_start_ret),
    (xdrproc_t)xdr_remote_auth_sasl_start_ret,
-   true 
+   true,
+   1
 },
 { /* Method AuthSaslStep => 69 */
    remoteDispatchAuthSaslStepHelper,
@@ -12099,7 +12246,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_auth_sasl_step_args,
    sizeof(remote_auth_sasl_step_ret),
    (xdrproc_t)xdr_remote_auth_sasl_step_ret,
-   true 
+   true,
+   1
 },
 { /* Method AuthPolkit => 70 */
    remoteDispatchAuthPolkitHelper,
@@ -12107,7 +12255,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_auth_polkit_ret),
    (xdrproc_t)xdr_remote_auth_polkit_ret,
-   true 
+   true,
+   1
 },
 { /* Method NumOfStoragePools => 71 */
    remoteDispatchNumOfStoragePoolsHelper,
@@ -12115,7 +12264,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_num_of_storage_pools_ret),
    (xdrproc_t)xdr_remote_num_of_storage_pools_ret,
-   true 
+   true,
+   1
 },
 { /* Method ListStoragePools => 72 */
    remoteDispatchListStoragePoolsHelper,
@@ -12123,7 +12273,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_list_storage_pools_args,
    sizeof(remote_list_storage_pools_ret),
    (xdrproc_t)xdr_remote_list_storage_pools_ret,
-   true 
+   true,
+   1
 },
 { /* Method NumOfDefinedStoragePools => 73 */
    remoteDispatchNumOfDefinedStoragePoolsHelper,
@@ -12131,7 +12282,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_num_of_defined_storage_pools_ret),
    (xdrproc_t)xdr_remote_num_of_defined_storage_pools_ret,
-   true 
+   true,
+   1
 },
 { /* Method ListDefinedStoragePools => 74 */
    remoteDispatchListDefinedStoragePoolsHelper,
@@ -12139,7 +12291,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_list_defined_storage_pools_args,
    sizeof(remote_list_defined_storage_pools_ret),
    (xdrproc_t)xdr_remote_list_defined_storage_pools_ret,
-   true 
+   true,
+   1
 },
 { /* Method FindStoragePoolSources => 75 */
    remoteDispatchFindStoragePoolSourcesHelper,
@@ -12147,7 +12300,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_find_storage_pool_sources_args,
    sizeof(remote_find_storage_pool_sources_ret),
    (xdrproc_t)xdr_remote_find_storage_pool_sources_ret,
-   true 
+   true,
+   0
 },
 { /* Method StoragePoolCreateXML => 76 */
    remoteDispatchStoragePoolCreateXMLHelper,
@@ -12155,7 +12309,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_create_xml_args,
    sizeof(remote_storage_pool_create_xml_ret),
    (xdrproc_t)xdr_remote_storage_pool_create_xml_ret,
-   true 
+   true,
+   0
 },
 { /* Method StoragePoolDefineXML => 77 */
    remoteDispatchStoragePoolDefineXMLHelper,
@@ -12163,7 +12318,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_define_xml_args,
    sizeof(remote_storage_pool_define_xml_ret),
    (xdrproc_t)xdr_remote_storage_pool_define_xml_ret,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolCreate => 78 */
    remoteDispatchStoragePoolCreateHelper,
@@ -12171,7 +12327,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_create_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method StoragePoolBuild => 79 */
    remoteDispatchStoragePoolBuildHelper,
@@ -12179,7 +12336,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_build_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method StoragePoolDestroy => 80 */
    remoteDispatchStoragePoolDestroyHelper,
@@ -12187,7 +12345,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_destroy_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolDelete => 81 */
    remoteDispatchStoragePoolDeleteHelper,
@@ -12195,7 +12354,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_delete_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method StoragePoolUndefine => 82 */
    remoteDispatchStoragePoolUndefineHelper,
@@ -12203,7 +12363,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_undefine_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolRefresh => 83 */
    remoteDispatchStoragePoolRefreshHelper,
@@ -12211,7 +12372,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_refresh_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method StoragePoolLookupByName => 84 */
    remoteDispatchStoragePoolLookupByNameHelper,
@@ -12219,7 +12381,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_lookup_by_name_args,
    sizeof(remote_storage_pool_lookup_by_name_ret),
    (xdrproc_t)xdr_remote_storage_pool_lookup_by_name_ret,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolLookupByUUID => 85 */
    remoteDispatchStoragePoolLookupByUUIDHelper,
@@ -12227,7 +12390,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_lookup_by_uuid_args,
    sizeof(remote_storage_pool_lookup_by_uuid_ret),
    (xdrproc_t)xdr_remote_storage_pool_lookup_by_uuid_ret,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolLookupByVolume => 86 */
    remoteDispatchStoragePoolLookupByVolumeHelper,
@@ -12235,7 +12399,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_lookup_by_volume_args,
    sizeof(remote_storage_pool_lookup_by_volume_ret),
    (xdrproc_t)xdr_remote_storage_pool_lookup_by_volume_ret,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolGetInfo => 87 */
    remoteDispatchStoragePoolGetInfoHelper,
@@ -12243,7 +12408,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_get_info_args,
    sizeof(remote_storage_pool_get_info_ret),
    (xdrproc_t)xdr_remote_storage_pool_get_info_ret,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolGetXMLDesc => 88 */
    remoteDispatchStoragePoolGetXMLDescHelper,
@@ -12251,7 +12417,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_get_xml_desc_args,
    sizeof(remote_storage_pool_get_xml_desc_ret),
    (xdrproc_t)xdr_remote_storage_pool_get_xml_desc_ret,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolGetAutostart => 89 */
    remoteDispatchStoragePoolGetAutostartHelper,
@@ -12259,7 +12426,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_get_autostart_args,
    sizeof(remote_storage_pool_get_autostart_ret),
    (xdrproc_t)xdr_remote_storage_pool_get_autostart_ret,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolSetAutostart => 90 */
    remoteDispatchStoragePoolSetAutostartHelper,
@@ -12267,7 +12435,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_set_autostart_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolNumOfVolumes => 91 */
    remoteDispatchStoragePoolNumOfVolumesHelper,
@@ -12275,7 +12444,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_num_of_volumes_args,
    sizeof(remote_storage_pool_num_of_volumes_ret),
    (xdrproc_t)xdr_remote_storage_pool_num_of_volumes_ret,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolListVolumes => 92 */
    remoteDispatchStoragePoolListVolumesHelper,
@@ -12283,7 +12453,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_list_volumes_args,
    sizeof(remote_storage_pool_list_volumes_ret),
    (xdrproc_t)xdr_remote_storage_pool_list_volumes_ret,
-   true 
+   true,
+   1
 },
 { /* Method StorageVolCreateXML => 93 */
    remoteDispatchStorageVolCreateXMLHelper,
@@ -12291,7 +12462,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_create_xml_args,
    sizeof(remote_storage_vol_create_xml_ret),
    (xdrproc_t)xdr_remote_storage_vol_create_xml_ret,
-   true 
+   true,
+   0
 },
 { /* Method StorageVolDelete => 94 */
    remoteDispatchStorageVolDeleteHelper,
@@ -12299,7 +12471,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_delete_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method StorageVolLookupByName => 95 */
    remoteDispatchStorageVolLookupByNameHelper,
@@ -12307,7 +12480,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_lookup_by_name_args,
    sizeof(remote_storage_vol_lookup_by_name_ret),
    (xdrproc_t)xdr_remote_storage_vol_lookup_by_name_ret,
-   true 
+   true,
+   1
 },
 { /* Method StorageVolLookupByKey => 96 */
    remoteDispatchStorageVolLookupByKeyHelper,
@@ -12315,7 +12489,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_lookup_by_key_args,
    sizeof(remote_storage_vol_lookup_by_key_ret),
    (xdrproc_t)xdr_remote_storage_vol_lookup_by_key_ret,
-   true 
+   true,
+   1
 },
 { /* Method StorageVolLookupByPath => 97 */
    remoteDispatchStorageVolLookupByPathHelper,
@@ -12323,7 +12498,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_lookup_by_path_args,
    sizeof(remote_storage_vol_lookup_by_path_ret),
    (xdrproc_t)xdr_remote_storage_vol_lookup_by_path_ret,
-   true 
+   true,
+   1
 },
 { /* Method StorageVolGetInfo => 98 */
    remoteDispatchStorageVolGetInfoHelper,
@@ -12331,7 +12507,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_get_info_args,
    sizeof(remote_storage_vol_get_info_ret),
    (xdrproc_t)xdr_remote_storage_vol_get_info_ret,
-   true 
+   true,
+   1
 },
 { /* Method StorageVolGetXMLDesc => 99 */
    remoteDispatchStorageVolGetXMLDescHelper,
@@ -12339,7 +12516,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_get_xml_desc_args,
    sizeof(remote_storage_vol_get_xml_desc_ret),
    (xdrproc_t)xdr_remote_storage_vol_get_xml_desc_ret,
-   true 
+   true,
+   1
 },
 { /* Method StorageVolGetPath => 100 */
    remoteDispatchStorageVolGetPathHelper,
@@ -12347,7 +12525,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_get_path_args,
    sizeof(remote_storage_vol_get_path_ret),
    (xdrproc_t)xdr_remote_storage_vol_get_path_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeGetCellsFreeMemory => 101 */
    remoteDispatchNodeGetCellsFreeMemoryHelper,
@@ -12355,7 +12534,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_get_cells_free_memory_args,
    sizeof(remote_node_get_cells_free_memory_ret),
    (xdrproc_t)xdr_remote_node_get_cells_free_memory_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeGetFreeMemory => 102 */
    remoteDispatchNodeGetFreeMemoryHelper,
@@ -12363,7 +12543,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_node_get_free_memory_ret),
    (xdrproc_t)xdr_remote_node_get_free_memory_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainBlockPeek => 103 */
    remoteDispatchDomainBlockPeekHelper,
@@ -12371,7 +12552,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_block_peek_args,
    sizeof(remote_domain_block_peek_ret),
    (xdrproc_t)xdr_remote_domain_block_peek_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainMemoryPeek => 104 */
    remoteDispatchDomainMemoryPeekHelper,
@@ -12379,7 +12561,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_memory_peek_args,
    sizeof(remote_domain_memory_peek_ret),
    (xdrproc_t)xdr_remote_domain_memory_peek_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainEventsRegister => 105 */
    remoteDispatchDomainEventsRegisterHelper,
@@ -12387,7 +12570,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_domain_events_register_ret),
    (xdrproc_t)xdr_remote_domain_events_register_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainEventsDeregister => 106 */
    remoteDispatchDomainEventsDeregisterHelper,
@@ -12395,7 +12579,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_domain_events_deregister_ret),
    (xdrproc_t)xdr_remote_domain_events_deregister_ret,
-   true 
+   true,
+   1
 },
 { /* Async event DomainEventLifecycle => 107 */
    NULL,
@@ -12403,7 +12588,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainMigratePrepare2 => 108 */
    remoteDispatchDomainMigratePrepare2Helper,
@@ -12411,7 +12597,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_prepare2_args,
    sizeof(remote_domain_migrate_prepare2_ret),
    (xdrproc_t)xdr_remote_domain_migrate_prepare2_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainMigrateFinish2 => 109 */
    remoteDispatchDomainMigrateFinish2Helper,
@@ -12419,7 +12606,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_finish2_args,
    sizeof(remote_domain_migrate_finish2_ret),
    (xdrproc_t)xdr_remote_domain_migrate_finish2_ret,
-   true 
+   true,
+   0
 },
 { /* Method GetURI => 110 */
    remoteDispatchGetURIHelper,
@@ -12427,7 +12615,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_get_uri_ret),
    (xdrproc_t)xdr_remote_get_uri_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeNumOfDevices => 111 */
    remoteDispatchNodeNumOfDevicesHelper,
@@ -12435,7 +12624,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_num_of_devices_args,
    sizeof(remote_node_num_of_devices_ret),
    (xdrproc_t)xdr_remote_node_num_of_devices_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeListDevices => 112 */
    remoteDispatchNodeListDevicesHelper,
@@ -12443,7 +12633,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_list_devices_args,
    sizeof(remote_node_list_devices_ret),
    (xdrproc_t)xdr_remote_node_list_devices_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeDeviceLookupByName => 113 */
    remoteDispatchNodeDeviceLookupByNameHelper,
@@ -12451,7 +12642,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_device_lookup_by_name_args,
    sizeof(remote_node_device_lookup_by_name_ret),
    (xdrproc_t)xdr_remote_node_device_lookup_by_name_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeDeviceGetXMLDesc => 114 */
    remoteDispatchNodeDeviceGetXMLDescHelper,
@@ -12459,7 +12651,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_device_get_xml_desc_args,
    sizeof(remote_node_device_get_xml_desc_ret),
    (xdrproc_t)xdr_remote_node_device_get_xml_desc_ret,
-   true 
+   true,
+   0
 },
 { /* Method NodeDeviceGetParent => 115 */
    remoteDispatchNodeDeviceGetParentHelper,
@@ -12467,7 +12660,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_device_get_parent_args,
    sizeof(remote_node_device_get_parent_ret),
    (xdrproc_t)xdr_remote_node_device_get_parent_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeDeviceNumOfCaps => 116 */
    remoteDispatchNodeDeviceNumOfCapsHelper,
@@ -12475,7 +12669,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_device_num_of_caps_args,
    sizeof(remote_node_device_num_of_caps_ret),
    (xdrproc_t)xdr_remote_node_device_num_of_caps_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeDeviceListCaps => 117 */
    remoteDispatchNodeDeviceListCapsHelper,
@@ -12483,7 +12678,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_device_list_caps_args,
    sizeof(remote_node_device_list_caps_ret),
    (xdrproc_t)xdr_remote_node_device_list_caps_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeDeviceDettach => 118 */
    remoteDispatchNodeDeviceDettachHelper,
@@ -12491,7 +12687,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_device_dettach_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method NodeDeviceReAttach => 119 */
    remoteDispatchNodeDeviceReAttachHelper,
@@ -12499,7 +12696,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_device_re_attach_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method NodeDeviceReset => 120 */
    remoteDispatchNodeDeviceResetHelper,
@@ -12507,7 +12705,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_device_reset_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetSecurityLabel => 121 */
    remoteDispatchDomainGetSecurityLabelHelper,
@@ -12515,7 +12714,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_security_label_args,
    sizeof(remote_domain_get_security_label_ret),
    (xdrproc_t)xdr_remote_domain_get_security_label_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeGetSecurityModel => 122 */
    remoteDispatchNodeGetSecurityModelHelper,
@@ -12523,7 +12723,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_node_get_security_model_ret),
    (xdrproc_t)xdr_remote_node_get_security_model_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeDeviceCreateXML => 123 */
    remoteDispatchNodeDeviceCreateXMLHelper,
@@ -12531,7 +12732,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_device_create_xml_args,
    sizeof(remote_node_device_create_xml_ret),
    (xdrproc_t)xdr_remote_node_device_create_xml_ret,
-   true 
+   true,
+   0
 },
 { /* Method NodeDeviceDestroy => 124 */
    remoteDispatchNodeDeviceDestroyHelper,
@@ -12539,7 +12741,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_device_destroy_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method StorageVolCreateXMLFrom => 125 */
    remoteDispatchStorageVolCreateXMLFromHelper,
@@ -12547,7 +12750,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_create_xml_from_args,
    sizeof(remote_storage_vol_create_xml_from_ret),
    (xdrproc_t)xdr_remote_storage_vol_create_xml_from_ret,
-   true 
+   true,
+   0
 },
 { /* Method NumOfInterfaces => 126 */
    remoteDispatchNumOfInterfacesHelper,
@@ -12555,7 +12759,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_num_of_interfaces_ret),
    (xdrproc_t)xdr_remote_num_of_interfaces_ret,
-   true 
+   true,
+   1
 },
 { /* Method ListInterfaces => 127 */
    remoteDispatchListInterfacesHelper,
@@ -12563,7 +12768,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_list_interfaces_args,
    sizeof(remote_list_interfaces_ret),
    (xdrproc_t)xdr_remote_list_interfaces_ret,
-   true 
+   true,
+   1
 },
 { /* Method InterfaceLookupByName => 128 */
    remoteDispatchInterfaceLookupByNameHelper,
@@ -12571,7 +12777,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_interface_lookup_by_name_args,
    sizeof(remote_interface_lookup_by_name_ret),
    (xdrproc_t)xdr_remote_interface_lookup_by_name_ret,
-   true 
+   true,
+   1
 },
 { /* Method InterfaceLookupByMACString => 129 */
    remoteDispatchInterfaceLookupByMACStringHelper,
@@ -12579,7 +12786,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_interface_lookup_by_mac_string_args,
    sizeof(remote_interface_lookup_by_mac_string_ret),
    (xdrproc_t)xdr_remote_interface_lookup_by_mac_string_ret,
-   true 
+   true,
+   1
 },
 { /* Method InterfaceGetXMLDesc => 130 */
    remoteDispatchInterfaceGetXMLDescHelper,
@@ -12587,7 +12795,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_interface_get_xml_desc_args,
    sizeof(remote_interface_get_xml_desc_ret),
    (xdrproc_t)xdr_remote_interface_get_xml_desc_ret,
-   true 
+   true,
+   0
 },
 { /* Method InterfaceDefineXML => 131 */
    remoteDispatchInterfaceDefineXMLHelper,
@@ -12595,7 +12804,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_interface_define_xml_args,
    sizeof(remote_interface_define_xml_ret),
    (xdrproc_t)xdr_remote_interface_define_xml_ret,
-   true 
+   true,
+   1
 },
 { /* Method InterfaceUndefine => 132 */
    remoteDispatchInterfaceUndefineHelper,
@@ -12603,7 +12813,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_interface_undefine_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method InterfaceCreate => 133 */
    remoteDispatchInterfaceCreateHelper,
@@ -12611,7 +12822,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_interface_create_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method InterfaceDestroy => 134 */
    remoteDispatchInterfaceDestroyHelper,
@@ -12619,7 +12831,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_interface_destroy_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method DomainXMLFromNative => 135 */
    remoteDispatchDomainXMLFromNativeHelper,
@@ -12627,7 +12840,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_xml_from_native_args,
    sizeof(remote_domain_xml_from_native_ret),
    (xdrproc_t)xdr_remote_domain_xml_from_native_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainXMLToNative => 136 */
    remoteDispatchDomainXMLToNativeHelper,
@@ -12635,7 +12849,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_xml_to_native_args,
    sizeof(remote_domain_xml_to_native_ret),
    (xdrproc_t)xdr_remote_domain_xml_to_native_ret,
-   true 
+   true,
+   0
 },
 { /* Method NumOfDefinedInterfaces => 137 */
    remoteDispatchNumOfDefinedInterfacesHelper,
@@ -12643,7 +12858,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_num_of_defined_interfaces_ret),
    (xdrproc_t)xdr_remote_num_of_defined_interfaces_ret,
-   true 
+   true,
+   1
 },
 { /* Method ListDefinedInterfaces => 138 */
    remoteDispatchListDefinedInterfacesHelper,
@@ -12651,7 +12867,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_list_defined_interfaces_args,
    sizeof(remote_list_defined_interfaces_ret),
    (xdrproc_t)xdr_remote_list_defined_interfaces_ret,
-   true 
+   true,
+   1
 },
 { /* Method NumOfSecrets => 139 */
    remoteDispatchNumOfSecretsHelper,
@@ -12659,7 +12876,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_num_of_secrets_ret),
    (xdrproc_t)xdr_remote_num_of_secrets_ret,
-   true 
+   true,
+   1
 },
 { /* Method ListSecrets => 140 */
    remoteDispatchListSecretsHelper,
@@ -12667,7 +12885,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_list_secrets_args,
    sizeof(remote_list_secrets_ret),
    (xdrproc_t)xdr_remote_list_secrets_ret,
-   true 
+   true,
+   1
 },
 { /* Method SecretLookupByUUID => 141 */
    remoteDispatchSecretLookupByUUIDHelper,
@@ -12675,7 +12894,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_secret_lookup_by_uuid_args,
    sizeof(remote_secret_lookup_by_uuid_ret),
    (xdrproc_t)xdr_remote_secret_lookup_by_uuid_ret,
-   true 
+   true,
+   1
 },
 { /* Method SecretDefineXML => 142 */
    remoteDispatchSecretDefineXMLHelper,
@@ -12683,7 +12903,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_secret_define_xml_args,
    sizeof(remote_secret_define_xml_ret),
    (xdrproc_t)xdr_remote_secret_define_xml_ret,
-   true 
+   true,
+   1
 },
 { /* Method SecretGetXMLDesc => 143 */
    remoteDispatchSecretGetXMLDescHelper,
@@ -12691,7 +12912,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_secret_get_xml_desc_args,
    sizeof(remote_secret_get_xml_desc_ret),
    (xdrproc_t)xdr_remote_secret_get_xml_desc_ret,
-   true 
+   true,
+   1
 },
 { /* Method SecretSetValue => 144 */
    remoteDispatchSecretSetValueHelper,
@@ -12699,7 +12921,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_secret_set_value_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method SecretGetValue => 145 */
    remoteDispatchSecretGetValueHelper,
@@ -12707,7 +12930,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_secret_get_value_args,
    sizeof(remote_secret_get_value_ret),
    (xdrproc_t)xdr_remote_secret_get_value_ret,
-   true 
+   true,
+   1
 },
 { /* Method SecretUndefine => 146 */
    remoteDispatchSecretUndefineHelper,
@@ -12715,7 +12939,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_secret_undefine_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method SecretLookupByUsage => 147 */
    remoteDispatchSecretLookupByUsageHelper,
@@ -12723,7 +12948,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_secret_lookup_by_usage_args,
    sizeof(remote_secret_lookup_by_usage_ret),
    (xdrproc_t)xdr_remote_secret_lookup_by_usage_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainMigratePrepareTunnel => 148 */
    remoteDispatchDomainMigratePrepareTunnelHelper,
@@ -12731,7 +12957,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_prepare_tunnel_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method IsSecure => 149 */
    remoteDispatchIsSecureHelper,
@@ -12739,7 +12966,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_is_secure_ret),
    (xdrproc_t)xdr_remote_is_secure_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainIsActive => 150 */
    remoteDispatchDomainIsActiveHelper,
@@ -12747,7 +12975,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_is_active_args,
    sizeof(remote_domain_is_active_ret),
    (xdrproc_t)xdr_remote_domain_is_active_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainIsPersistent => 151 */
    remoteDispatchDomainIsPersistentHelper,
@@ -12755,7 +12984,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_is_persistent_args,
    sizeof(remote_domain_is_persistent_ret),
    (xdrproc_t)xdr_remote_domain_is_persistent_ret,
-   true 
+   true,
+   1
 },
 { /* Method NetworkIsActive => 152 */
    remoteDispatchNetworkIsActiveHelper,
@@ -12763,7 +12993,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_is_active_args,
    sizeof(remote_network_is_active_ret),
    (xdrproc_t)xdr_remote_network_is_active_ret,
-   true 
+   true,
+   1
 },
 { /* Method NetworkIsPersistent => 153 */
    remoteDispatchNetworkIsPersistentHelper,
@@ -12771,7 +13002,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_network_is_persistent_args,
    sizeof(remote_network_is_persistent_ret),
    (xdrproc_t)xdr_remote_network_is_persistent_ret,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolIsActive => 154 */
    remoteDispatchStoragePoolIsActiveHelper,
@@ -12779,7 +13011,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_is_active_args,
    sizeof(remote_storage_pool_is_active_ret),
    (xdrproc_t)xdr_remote_storage_pool_is_active_ret,
-   true 
+   true,
+   1
 },
 { /* Method StoragePoolIsPersistent => 155 */
    remoteDispatchStoragePoolIsPersistentHelper,
@@ -12787,7 +13020,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_pool_is_persistent_args,
    sizeof(remote_storage_pool_is_persistent_ret),
    (xdrproc_t)xdr_remote_storage_pool_is_persistent_ret,
-   true 
+   true,
+   1
 },
 { /* Method InterfaceIsActive => 156 */
    remoteDispatchInterfaceIsActiveHelper,
@@ -12795,7 +13029,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_interface_is_active_args,
    sizeof(remote_interface_is_active_ret),
    (xdrproc_t)xdr_remote_interface_is_active_ret,
-   true 
+   true,
+   1
 },
 { /* Method GetLibVersion => 157 */
    remoteDispatchGetLibVersionHelper,
@@ -12803,7 +13038,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_get_lib_version_ret),
    (xdrproc_t)xdr_remote_get_lib_version_ret,
-   true 
+   true,
+   1
 },
 { /* Method CPUCompare => 158 */
    remoteDispatchCPUCompareHelper,
@@ -12811,7 +13047,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_cpu_compare_args,
    sizeof(remote_cpu_compare_ret),
    (xdrproc_t)xdr_remote_cpu_compare_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainMemoryStats => 159 */
    remoteDispatchDomainMemoryStatsHelper,
@@ -12819,7 +13056,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_memory_stats_args,
    sizeof(remote_domain_memory_stats_ret),
    (xdrproc_t)xdr_remote_domain_memory_stats_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainAttachDeviceFlags => 160 */
    remoteDispatchDomainAttachDeviceFlagsHelper,
@@ -12827,7 +13065,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_attach_device_flags_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainDetachDeviceFlags => 161 */
    remoteDispatchDomainDetachDeviceFlagsHelper,
@@ -12835,7 +13074,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_detach_device_flags_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method CPUBaseline => 162 */
    remoteDispatchCPUBaselineHelper,
@@ -12843,7 +13083,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_cpu_baseline_args,
    sizeof(remote_cpu_baseline_ret),
    (xdrproc_t)xdr_remote_cpu_baseline_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetJobInfo => 163 */
    remoteDispatchDomainGetJobInfoHelper,
@@ -12851,7 +13092,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_job_info_args,
    sizeof(remote_domain_get_job_info_ret),
    (xdrproc_t)xdr_remote_domain_get_job_info_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainAbortJob => 164 */
    remoteDispatchDomainAbortJobHelper,
@@ -12859,7 +13101,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_abort_job_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method StorageVolWipe => 165 */
    remoteDispatchStorageVolWipeHelper,
@@ -12867,7 +13110,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_wipe_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainMigrateSetMaxDowntime => 166 */
    remoteDispatchDomainMigrateSetMaxDowntimeHelper,
@@ -12875,7 +13119,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_set_max_downtime_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainEventsRegisterAny => 167 */
    remoteDispatchDomainEventsRegisterAnyHelper,
@@ -12883,7 +13128,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_events_register_any_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method DomainEventsDeregisterAny => 168 */
    remoteDispatchDomainEventsDeregisterAnyHelper,
@@ -12891,7 +13137,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_events_deregister_any_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Async event DomainEventReboot => 169 */
    NULL,
@@ -12899,7 +13146,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Async event DomainEventRtcChange => 170 */
    NULL,
@@ -12907,7 +13155,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Async event DomainEventWatchdog => 171 */
    NULL,
@@ -12915,7 +13164,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Async event DomainEventIoError => 172 */
    NULL,
@@ -12923,7 +13173,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Async event DomainEventGraphics => 173 */
    NULL,
@@ -12931,7 +13182,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainUpdateDeviceFlags => 174 */
    remoteDispatchDomainUpdateDeviceFlagsHelper,
@@ -12939,7 +13191,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_update_device_flags_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method NWFilterLookupByName => 175 */
    remoteDispatchNWFilterLookupByNameHelper,
@@ -12947,7 +13200,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_nwfilter_lookup_by_name_args,
    sizeof(remote_nwfilter_lookup_by_name_ret),
    (xdrproc_t)xdr_remote_nwfilter_lookup_by_name_ret,
-   true 
+   true,
+   1
 },
 { /* Method NWFilterLookupByUUID => 176 */
    remoteDispatchNWFilterLookupByUUIDHelper,
@@ -12955,7 +13209,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_nwfilter_lookup_by_uuid_args,
    sizeof(remote_nwfilter_lookup_by_uuid_ret),
    (xdrproc_t)xdr_remote_nwfilter_lookup_by_uuid_ret,
-   true 
+   true,
+   1
 },
 { /* Method NWFilterGetXMLDesc => 177 */
    remoteDispatchNWFilterGetXMLDescHelper,
@@ -12963,7 +13218,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_nwfilter_get_xml_desc_args,
    sizeof(remote_nwfilter_get_xml_desc_ret),
    (xdrproc_t)xdr_remote_nwfilter_get_xml_desc_ret,
-   true 
+   true,
+   1
 },
 { /* Method NumOfNWFilters => 178 */
    remoteDispatchNumOfNWFiltersHelper,
@@ -12971,7 +13227,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    sizeof(remote_num_of_nwfilters_ret),
    (xdrproc_t)xdr_remote_num_of_nwfilters_ret,
-   true 
+   true,
+   1
 },
 { /* Method ListNWFilters => 179 */
    remoteDispatchListNWFiltersHelper,
@@ -12979,7 +13236,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_list_nwfilters_args,
    sizeof(remote_list_nwfilters_ret),
    (xdrproc_t)xdr_remote_list_nwfilters_ret,
-   true 
+   true,
+   1
 },
 { /* Method NWFilterDefineXML => 180 */
    remoteDispatchNWFilterDefineXMLHelper,
@@ -12987,7 +13245,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_nwfilter_define_xml_args,
    sizeof(remote_nwfilter_define_xml_ret),
    (xdrproc_t)xdr_remote_nwfilter_define_xml_ret,
-   true 
+   true,
+   1
 },
 { /* Method NWFilterUndefine => 181 */
    remoteDispatchNWFilterUndefineHelper,
@@ -12995,7 +13254,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_nwfilter_undefine_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method DomainManagedSave => 182 */
    remoteDispatchDomainManagedSaveHelper,
@@ -13003,7 +13263,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_managed_save_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainHasManagedSaveImage => 183 */
    remoteDispatchDomainHasManagedSaveImageHelper,
@@ -13011,7 +13272,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_has_managed_save_image_args,
    sizeof(remote_domain_has_managed_save_image_ret),
    (xdrproc_t)xdr_remote_domain_has_managed_save_image_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainManagedSaveRemove => 184 */
    remoteDispatchDomainManagedSaveRemoveHelper,
@@ -13019,7 +13281,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_managed_save_remove_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainSnapshotCreateXML => 185 */
    remoteDispatchDomainSnapshotCreateXMLHelper,
@@ -13027,7 +13290,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_snapshot_create_xml_args,
    sizeof(remote_domain_snapshot_create_xml_ret),
    (xdrproc_t)xdr_remote_domain_snapshot_create_xml_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainSnapshotGetXMLDesc => 186 */
    remoteDispatchDomainSnapshotGetXMLDescHelper,
@@ -13035,7 +13299,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_snapshot_get_xml_desc_args,
    sizeof(remote_domain_snapshot_get_xml_desc_ret),
    (xdrproc_t)xdr_remote_domain_snapshot_get_xml_desc_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainSnapshotNum => 187 */
    remoteDispatchDomainSnapshotNumHelper,
@@ -13043,7 +13308,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_snapshot_num_args,
    sizeof(remote_domain_snapshot_num_ret),
    (xdrproc_t)xdr_remote_domain_snapshot_num_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainSnapshotListNames => 188 */
    remoteDispatchDomainSnapshotListNamesHelper,
@@ -13051,7 +13317,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_snapshot_list_names_args,
    sizeof(remote_domain_snapshot_list_names_ret),
    (xdrproc_t)xdr_remote_domain_snapshot_list_names_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainSnapshotLookupByName => 189 */
    remoteDispatchDomainSnapshotLookupByNameHelper,
@@ -13059,7 +13326,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_snapshot_lookup_by_name_args,
    sizeof(remote_domain_snapshot_lookup_by_name_ret),
    (xdrproc_t)xdr_remote_domain_snapshot_lookup_by_name_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainHasCurrentSnapshot => 190 */
    remoteDispatchDomainHasCurrentSnapshotHelper,
@@ -13067,7 +13335,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_has_current_snapshot_args,
    sizeof(remote_domain_has_current_snapshot_ret),
    (xdrproc_t)xdr_remote_domain_has_current_snapshot_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainSnapshotCurrent => 191 */
    remoteDispatchDomainSnapshotCurrentHelper,
@@ -13075,7 +13344,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_snapshot_current_args,
    sizeof(remote_domain_snapshot_current_ret),
    (xdrproc_t)xdr_remote_domain_snapshot_current_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainRevertToSnapshot => 192 */
    remoteDispatchDomainRevertToSnapshotHelper,
@@ -13083,7 +13353,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_revert_to_snapshot_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainSnapshotDelete => 193 */
    remoteDispatchDomainSnapshotDeleteHelper,
@@ -13091,7 +13362,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_snapshot_delete_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetBlockInfo => 194 */
    remoteDispatchDomainGetBlockInfoHelper,
@@ -13099,7 +13371,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_block_info_args,
    sizeof(remote_domain_get_block_info_ret),
    (xdrproc_t)xdr_remote_domain_get_block_info_ret,
-   true 
+   true,
+   0
 },
 { /* Async event DomainEventIoErrorReason => 195 */
    NULL,
@@ -13107,7 +13380,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainCreateWithFlags => 196 */
    remoteDispatchDomainCreateWithFlagsHelper,
@@ -13115,7 +13389,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_create_with_flags_args,
    sizeof(remote_domain_create_with_flags_ret),
    (xdrproc_t)xdr_remote_domain_create_with_flags_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainSetMemoryParameters => 197 */
    remoteDispatchDomainSetMemoryParametersHelper,
@@ -13123,7 +13398,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_memory_parameters_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetMemoryParameters => 198 */
    remoteDispatchDomainGetMemoryParametersHelper,
@@ -13131,7 +13407,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_memory_parameters_args,
    sizeof(remote_domain_get_memory_parameters_ret),
    (xdrproc_t)xdr_remote_domain_get_memory_parameters_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainSetVcpusFlags => 199 */
    remoteDispatchDomainSetVcpusFlagsHelper,
@@ -13139,7 +13416,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_vcpus_flags_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetVcpusFlags => 200 */
    remoteDispatchDomainGetVcpusFlagsHelper,
@@ -13147,7 +13425,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_vcpus_flags_args,
    sizeof(remote_domain_get_vcpus_flags_ret),
    (xdrproc_t)xdr_remote_domain_get_vcpus_flags_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainOpenConsole => 201 */
    remoteDispatchDomainOpenConsoleHelper,
@@ -13155,7 +13434,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_open_console_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainIsUpdated => 202 */
    remoteDispatchDomainIsUpdatedHelper,
@@ -13163,7 +13443,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_is_updated_args,
    sizeof(remote_domain_is_updated_ret),
    (xdrproc_t)xdr_remote_domain_is_updated_ret,
-   true 
+   true,
+   1
 },
 { /* Method GetSysinfo => 203 */
    remoteDispatchGetSysinfoHelper,
@@ -13171,7 +13452,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_get_sysinfo_args,
    sizeof(remote_get_sysinfo_ret),
    (xdrproc_t)xdr_remote_get_sysinfo_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainSetMemoryFlags => 204 */
    remoteDispatchDomainSetMemoryFlagsHelper,
@@ -13179,7 +13461,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_memory_flags_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainSetBlkioParameters => 205 */
    remoteDispatchDomainSetBlkioParametersHelper,
@@ -13187,7 +13470,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_blkio_parameters_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetBlkioParameters => 206 */
    remoteDispatchDomainGetBlkioParametersHelper,
@@ -13195,7 +13479,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_blkio_parameters_args,
    sizeof(remote_domain_get_blkio_parameters_ret),
    (xdrproc_t)xdr_remote_domain_get_blkio_parameters_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainMigrateSetMaxSpeed => 207 */
    remoteDispatchDomainMigrateSetMaxSpeedHelper,
@@ -13203,7 +13488,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_set_max_speed_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method StorageVolUpload => 208 */
    remoteDispatchStorageVolUploadHelper,
@@ -13211,7 +13497,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_upload_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method StorageVolDownload => 209 */
    remoteDispatchStorageVolDownloadHelper,
@@ -13219,7 +13506,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_storage_vol_download_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainInjectNMI => 210 */
    remoteDispatchDomainInjectNMIHelper,
@@ -13227,7 +13515,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_inject_nmi_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainScreenshot => 211 */
    remoteDispatchDomainScreenshotHelper,
@@ -13235,7 +13524,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_screenshot_args,
    sizeof(remote_domain_screenshot_ret),
    (xdrproc_t)xdr_remote_domain_screenshot_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetState => 212 */
    remoteDispatchDomainGetStateHelper,
@@ -13243,7 +13533,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_state_args,
    sizeof(remote_domain_get_state_ret),
    (xdrproc_t)xdr_remote_domain_get_state_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainMigrateBegin3 => 213 */
    remoteDispatchDomainMigrateBegin3Helper,
@@ -13251,7 +13542,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_begin3_args,
    sizeof(remote_domain_migrate_begin3_ret),
    (xdrproc_t)xdr_remote_domain_migrate_begin3_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainMigratePrepare3 => 214 */
    remoteDispatchDomainMigratePrepare3Helper,
@@ -13259,7 +13551,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_prepare3_args,
    sizeof(remote_domain_migrate_prepare3_ret),
    (xdrproc_t)xdr_remote_domain_migrate_prepare3_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainMigratePrepareTunnel3 => 215 */
    remoteDispatchDomainMigratePrepareTunnel3Helper,
@@ -13267,7 +13560,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_prepare_tunnel3_args,
    sizeof(remote_domain_migrate_prepare_tunnel3_ret),
    (xdrproc_t)xdr_remote_domain_migrate_prepare_tunnel3_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainMigratePerform3 => 216 */
    remoteDispatchDomainMigratePerform3Helper,
@@ -13275,7 +13569,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_perform3_args,
    sizeof(remote_domain_migrate_perform3_ret),
    (xdrproc_t)xdr_remote_domain_migrate_perform3_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainMigrateFinish3 => 217 */
    remoteDispatchDomainMigrateFinish3Helper,
@@ -13283,7 +13578,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_finish3_args,
    sizeof(remote_domain_migrate_finish3_ret),
    (xdrproc_t)xdr_remote_domain_migrate_finish3_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainMigrateConfirm3 => 218 */
    remoteDispatchDomainMigrateConfirm3Helper,
@@ -13291,7 +13587,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_migrate_confirm3_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainSetSchedulerParametersFlags => 219 */
    remoteDispatchDomainSetSchedulerParametersFlagsHelper,
@@ -13299,7 +13596,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_set_scheduler_parameters_flags_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method InterfaceChangeBegin => 220 */
    remoteDispatchInterfaceChangeBeginHelper,
@@ -13307,7 +13605,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_interface_change_begin_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method InterfaceChangeCommit => 221 */
    remoteDispatchInterfaceChangeCommitHelper,
@@ -13315,7 +13614,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_interface_change_commit_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method InterfaceChangeRollback => 222 */
    remoteDispatchInterfaceChangeRollbackHelper,
@@ -13323,7 +13623,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_interface_change_rollback_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetSchedulerParametersFlags => 223 */
    remoteDispatchDomainGetSchedulerParametersFlagsHelper,
@@ -13331,7 +13632,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_scheduler_parameters_flags_args,
    sizeof(remote_domain_get_scheduler_parameters_flags_ret),
    (xdrproc_t)xdr_remote_domain_get_scheduler_parameters_flags_ret,
-   true 
+   true,
+   0
 },
 { /* Async event DomainEventControlError => 224 */
    NULL,
@@ -13339,7 +13641,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainPinVcpuFlags => 225 */
    remoteDispatchDomainPinVcpuFlagsHelper,
@@ -13347,7 +13650,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_pin_vcpu_flags_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainSendKey => 226 */
    remoteDispatchDomainSendKeyHelper,
@@ -13355,7 +13659,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_send_key_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method NodeGetCPUStats => 227 */
    remoteDispatchNodeGetCPUStatsHelper,
@@ -13363,7 +13668,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_get_cpu_stats_args,
    sizeof(remote_node_get_cpu_stats_ret),
    (xdrproc_t)xdr_remote_node_get_cpu_stats_ret,
-   true 
+   true,
+   1
 },
 { /* Method NodeGetMemoryStats => 228 */
    remoteDispatchNodeGetMemoryStatsHelper,
@@ -13371,7 +13677,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_get_memory_stats_args,
    sizeof(remote_node_get_memory_stats_ret),
    (xdrproc_t)xdr_remote_node_get_memory_stats_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainGetControlInfo => 229 */
    remoteDispatchDomainGetControlInfoHelper,
@@ -13379,7 +13686,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_control_info_args,
    sizeof(remote_domain_get_control_info_ret),
    (xdrproc_t)xdr_remote_domain_get_control_info_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainGetVcpuPinInfo => 230 */
    remoteDispatchDomainGetVcpuPinInfoHelper,
@@ -13387,7 +13695,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_vcpu_pin_info_args,
    sizeof(remote_domain_get_vcpu_pin_info_ret),
    (xdrproc_t)xdr_remote_domain_get_vcpu_pin_info_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainUndefineFlags => 231 */
    remoteDispatchDomainUndefineFlagsHelper,
@@ -13395,7 +13704,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_undefine_flags_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method DomainSaveFlags => 232 */
    remoteDispatchDomainSaveFlagsHelper,
@@ -13403,7 +13713,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_save_flags_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainRestoreFlags => 233 */
    remoteDispatchDomainRestoreFlagsHelper,
@@ -13411,7 +13722,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_restore_flags_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainDestroyFlags => 234 */
    remoteDispatchDomainDestroyFlagsHelper,
@@ -13419,7 +13731,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_destroy_flags_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method DomainSaveImageGetXMLDesc => 235 */
    remoteDispatchDomainSaveImageGetXMLDescHelper,
@@ -13427,7 +13740,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_save_image_get_xml_desc_args,
    sizeof(remote_domain_save_image_get_xml_desc_ret),
    (xdrproc_t)xdr_remote_domain_save_image_get_xml_desc_ret,
-   true 
+   true,
+   1
 },
 { /* Method DomainSaveImageDefineXML => 236 */
    remoteDispatchDomainSaveImageDefineXMLHelper,
@@ -13435,7 +13749,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_save_image_define_xml_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   1
 },
 { /* Method DomainBlockJobAbort => 237 */
    remoteDispatchDomainBlockJobAbortHelper,
@@ -13443,7 +13758,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_block_job_abort_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainGetBlockJobInfo => 238 */
    remoteDispatchDomainGetBlockJobInfoHelper,
@@ -13451,7 +13767,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_block_job_info_args,
    sizeof(remote_domain_get_block_job_info_ret),
    (xdrproc_t)xdr_remote_domain_get_block_job_info_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainBlockJobSetSpeed => 239 */
    remoteDispatchDomainBlockJobSetSpeedHelper,
@@ -13459,7 +13776,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_block_job_set_speed_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method DomainBlockPull => 240 */
    remoteDispatchDomainBlockPullHelper,
@@ -13467,7 +13785,8 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_block_pull_args,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Async event DomainEventBlockJob => 241 */
    NULL,
@@ -13475,7 +13794,26 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
+},
+{ /* Method DomainMigrateGetMaxSpeed => 242 */
+   remoteDispatchDomainMigrateGetMaxSpeedHelper,
+   sizeof(remote_domain_migrate_get_max_speed_args),
+   (xdrproc_t)xdr_remote_domain_migrate_get_max_speed_args,
+   sizeof(remote_domain_migrate_get_max_speed_ret),
+   (xdrproc_t)xdr_remote_domain_migrate_get_max_speed_ret,
+   true,
+   0
+},
+{ /* Method DomainBlockStatsFlags => 243 */
+   remoteDispatchDomainBlockStatsFlagsHelper,
+   sizeof(remote_domain_block_stats_flags_args),
+   (xdrproc_t)xdr_remote_domain_block_stats_flags_args,
+   sizeof(remote_domain_block_stats_flags_ret),
+   (xdrproc_t)xdr_remote_domain_block_stats_flags_ret,
+   true,
+   0
 },
 };
 size_t remoteNProcs = ARRAY_CARDINALITY(remoteProcs);

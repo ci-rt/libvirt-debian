@@ -570,6 +570,23 @@ int virFileResolveLink(const char *linkpath,
     return *resultpath == NULL ? -1 : 0;
 }
 
+
+/*
+ * Check whether the given file is a link.
+ * Returns 1 in case of the file being a link, 0 in case it is not
+ * a link and the negative errno in all other cases.
+ */
+int virFileIsLink(const char *linkpath)
+{
+    struct stat st;
+
+    if (lstat(linkpath, &st) < 0)
+        return -errno;
+
+    return (S_ISLNK(st.st_mode) != 0);
+}
+
+
 /*
  * Finds a requested executable file in the PATH env. e.g.:
  * "kvm-img" will return "/usr/bin/kvm-img"
@@ -680,6 +697,7 @@ virFileOpenAsNoFork(const char *path, int openflags, mode_t mode,
             goto error;
         }
         if (((st.st_uid != uid) || (st.st_gid != gid))
+            && (openflags & O_CREAT)
             && (fchown(fd, uid, gid) < 0)) {
             ret = -errno;
             virReportSystemError(errno, _("cannot chown '%s' to (%u, %u)"),
@@ -1150,158 +1168,6 @@ int virFileOpenTtyAt(const char *ptmx ATTRIBUTE_UNUSED,
     return -1;
 }
 #endif
-
-char* virFilePid(const char *dir, const char* name)
-{
-    char *pidfile;
-    if (virAsprintf(&pidfile, "%s/%s.pid", dir, name) < 0)
-        return NULL;
-    return pidfile;
-}
-
-int virFileWritePid(const char *dir,
-                    const char *name,
-                    pid_t pid)
-{
-    int rc;
-    char *pidfile = NULL;
-
-    if (name == NULL || dir == NULL) {
-        rc = -EINVAL;
-        goto cleanup;
-    }
-
-    if (virFileMakePath(dir) < 0) {
-        rc = -errno;
-        goto cleanup;
-    }
-
-    if (!(pidfile = virFilePid(dir, name))) {
-        rc = -ENOMEM;
-        goto cleanup;
-    }
-
-    rc = virFileWritePidPath(pidfile, pid);
-
-cleanup:
-    VIR_FREE(pidfile);
-    return rc;
-}
-
-int virFileWritePidPath(const char *pidfile,
-                        pid_t pid)
-{
-    int rc;
-    int fd;
-    FILE *file = NULL;
-
-    if ((fd = open(pidfile,
-                   O_WRONLY | O_CREAT | O_TRUNC,
-                   S_IRUSR | S_IWUSR)) < 0) {
-        rc = -errno;
-        goto cleanup;
-    }
-
-    if (!(file = VIR_FDOPEN(fd, "w"))) {
-        rc = -errno;
-        VIR_FORCE_CLOSE(fd);
-        goto cleanup;
-    }
-
-    if (fprintf(file, "%d", pid) < 0) {
-        rc = -errno;
-        goto cleanup;
-    }
-
-    rc = 0;
-
-cleanup:
-    if (VIR_FCLOSE(file) < 0)
-        rc = -errno;
-
-    return rc;
-}
-
-
-int virFileReadPidPath(const char *path,
-                       pid_t *pid)
-{
-    FILE *file;
-    int rc;
-
-    *pid = 0;
-
-    if (!(file = fopen(path, "r"))) {
-        rc = -errno;
-        goto cleanup;
-    }
-
-    if (fscanf(file, "%d", pid) != 1) {
-        rc = -EINVAL;
-        VIR_FORCE_FCLOSE(file);
-        goto cleanup;
-    }
-
-    if (VIR_FCLOSE(file) < 0) {
-        rc = -errno;
-        goto cleanup;
-    }
-
-    rc = 0;
-
- cleanup:
-    return rc;
-}
-
-
-int virFileReadPid(const char *dir,
-                   const char *name,
-                   pid_t *pid)
-{
-    int rc;
-    char *pidfile = NULL;
-    *pid = 0;
-
-    if (name == NULL || dir == NULL) {
-        rc = -EINVAL;
-        goto cleanup;
-    }
-
-    if (!(pidfile = virFilePid(dir, name))) {
-        rc = -ENOMEM;
-        goto cleanup;
-    }
-
-    rc = virFileReadPidPath(pidfile, pid);
-
- cleanup:
-    VIR_FREE(pidfile);
-    return rc;
-}
-
-int virFileDeletePid(const char *dir,
-                     const char *name)
-{
-    int rc = 0;
-    char *pidfile = NULL;
-
-    if (name == NULL || dir == NULL) {
-        rc = -EINVAL;
-        goto cleanup;
-    }
-
-    if (!(pidfile = virFilePid(dir, name))) {
-        rc = -ENOMEM;
-        goto cleanup;
-    }
-
-    if (unlink(pidfile) < 0 && errno != ENOENT)
-        rc = -errno;
-
-cleanup:
-    VIR_FREE(pidfile);
-    return rc;
-}
 
 
 /*
@@ -2589,11 +2455,11 @@ virTimeMs(unsigned long long *ms)
 
 #if HAVE_LIBDEVMAPPER_H
 bool
-virIsDevMapperDevice(const char *devname)
+virIsDevMapperDevice(const char *dev_name)
 {
     struct stat buf;
 
-    if (!stat(devname, &buf) &&
+    if (!stat(dev_name, &buf) &&
         S_ISBLK(buf.st_mode) &&
         dm_is_dm_major(major(buf.st_rdev)))
             return true;
@@ -2601,7 +2467,7 @@ virIsDevMapperDevice(const char *devname)
     return false;
 }
 #else
-bool virIsDevMapperDevice(const char *devname ATTRIBUTE_UNUSED)
+bool virIsDevMapperDevice(const char *dev_name ATTRIBUTE_UNUSED)
 {
     return false;
 }

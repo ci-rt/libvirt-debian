@@ -182,6 +182,9 @@
 /* Define to 1 when the gnulib module fseeko should be tested. */
 #undef GNULIB_TEST_FSEEKO
 
+/* Define to 1 when the gnulib module fsync should be tested. */
+#undef GNULIB_TEST_FSYNC
+
 /* Define to 1 when the gnulib module ftell should be tested. */
 #undef GNULIB_TEST_FTELL
 
@@ -446,9 +449,6 @@
 /* Define to 1 when the gnulib module write should be tested. */
 #undef GNULIB_TEST_WRITE
 
-/* enable GnuTLS 1.0 compatibility macros */
-#undef GNUTLS_1_0_COMPAT
-
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
 
@@ -611,6 +611,18 @@
    0 if you don't. */
 #undef HAVE_DECL_MACVLAN_MODE_PASSTHRU
 
+/* Define to 1 if you have the declaration of `mbrtowc', and to 0 if you
+   don't. */
+#undef HAVE_DECL_MBRTOWC
+
+/* Define to 1 if you have the declaration of `mbsinit', and to 0 if you
+   don't. */
+#undef HAVE_DECL_MBSINIT
+
+/* Define to 1 if you have the declaration of `mbsrtowcs', and to 0 if you
+   don't. */
+#undef HAVE_DECL_MBSRTOWCS
+
 /* Define to 1 if you have the declaration of `program_invocation_name', and
    to 0 if you don't. */
 #undef HAVE_DECL_PROGRAM_INVOCATION_NAME
@@ -655,6 +667,10 @@
    don't. */
 #undef HAVE_DECL_STRTOK_R
 
+/* Define to 1 if you have the declaration of `towlower', and to 0 if you
+   don't. */
+#undef HAVE_DECL_TOWLOWER
+
 /* Define to 1 if you have the declaration of `unsetenv', and to 0 if you
    don't. */
 #undef HAVE_DECL_UNSETENV
@@ -662,6 +678,10 @@
 /* Define to 1 if you have the declaration of `vsnprintf', and to 0 if you
    don't. */
 #undef HAVE_DECL_VSNPRINTF
+
+/* Define to 1 if you have the declaration of `wcrtomb', and to 0 if you
+   don't. */
+#undef HAVE_DECL_WCRTOMB
 
 /* Define to 1 if you have the declaration of `wctob', and to 0 if you don't.
    */
@@ -690,6 +710,9 @@
 /* Define to 1 if you have the `fcntl' function. */
 #undef HAVE_FCNTL
 
+/* Define to 1 if you have the `fdatasync' function. */
+#undef HAVE_FDATASYNC
+
 /* Define to 1 if you have the <features.h> header file. */
 #undef HAVE_FEATURES_H
 
@@ -704,6 +727,9 @@
 
 /* Define to 1 if fseeko (and presumably ftello) exists and is declared. */
 #undef HAVE_FSEEKO
+
+/* Define to 1 if you have the `fsync' function. */
+#undef HAVE_FSYNC
 
 /* Define to 1 if you have the `funlockfile' function. */
 #undef HAVE_FUNLOCKFILE
@@ -836,6 +862,9 @@
 
 /* Define to 1 if you have the `audit' library (-laudit). */
 #undef HAVE_LIBAUDIT
+
+/* libblkid is present */
+#undef HAVE_LIBBLKID
 
 /* Define to 1 if you have the `cap-ng' library (-lcap-ng). */
 #undef HAVE_LIBCAP_NG
@@ -973,9 +1002,6 @@
 /* Define to 1 if you have the <OS.h> header file. */
 #undef HAVE_OS_H
 
-/* Define to 1 if you have the `pathconf' function. */
-#undef HAVE_PATHCONF
-
 /* Define to 1 if you have the <paths.h> header file. */
 #undef HAVE_PATHS_H
 
@@ -1089,7 +1115,7 @@
 /* Define to 1 if you have the <regex.h> header file. */
 #undef HAVE_REGEX_H
 
-/* whether SANLOCK is available for JSON parsing/formatting */
+/* whether Sanlock plugin for lock management is available */
 #undef HAVE_SANLOCK
 
 /* whether Cyrus SASL is available for authentication */
@@ -1374,6 +1400,9 @@
 /* Define if struct tm has the tm_gmtoff member. */
 #undef HAVE_TM_GMTOFF
 
+/* Define to 1 if you have the `towlower' function. */
+#undef HAVE_TOWLOWER
+
 /* Define to 1 if you have the `tsearch' function. */
 #undef HAVE_TSEARCH
 
@@ -1562,6 +1591,9 @@
 
 /* Define if the mbrtowc function returns a wrong return value. */
 #undef MBRTOWC_RETVAL_BUG
+
+/* Location or name of the mkfs program */
+#undef MKFS
 
 /* Location or name of the modprobe program */
 #undef MODPROBE
@@ -1815,6 +1847,9 @@
 /* whether ESX driver is enabled */
 #undef WITH_ESX
 
+/* whether Hyper-V driver is enabled */
+#undef WITH_HYPERV
+
 /* whether libvirtd daemon is enabled */
 #undef WITH_LIBVIRTD
 
@@ -1924,8 +1959,19 @@
 # endif
 #endif
 
+/* Enable large inode numbers on Mac OS X.  */
+#ifndef _DARWIN_USE_64_BIT_INODE
+# define _DARWIN_USE_64_BIT_INODE 1
+#endif
+
+/* Number of bits in a file offset, on hosts where this is settable. */
+#undef _FILE_OFFSET_BITS
+
 /* Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
 #undef _LARGEFILE_SOURCE
+
+/* Define for large files, on AIX-style hosts. */
+#undef _LARGE_FILES
 
 /* Define in order to get some macros on AIX systems. */
 #undef _LINUX_SOURCE_COMPAT
@@ -1998,6 +2044,9 @@
 
 /* Define as a replacement for the ISO C99 __func__ variable. */
 #undef __func__
+
+/* Define to fsync if you lack fdatasync */
+#undef fdatasync
 
 /* Define to a replacement function name for fnmatch(). */
 #undef fnmatch

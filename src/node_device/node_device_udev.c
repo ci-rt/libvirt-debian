@@ -37,6 +37,7 @@
 #include "uuid.h"
 #include "util.h"
 #include "buf.h"
+#include "pci.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -480,8 +481,13 @@ static int udevProcessPCI(struct udev_device *device,
         goto out;
     }
 
-    get_physical_function(syspath, data);
-    get_virtual_functions(syspath, data);
+    if (!pciGetPhysicalFunction(syspath, &data->pci_dev.physical_function))
+        data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
+
+    if (!pciGetVirtualFunctions(syspath, &data->pci_dev.virtual_functions,
+        &data->pci_dev.num_virtual_functions) ||
+        data->pci_dev.num_virtual_functions > 0)
+        data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
 
     ret = 0;
 
@@ -1614,7 +1620,7 @@ static int udevDeviceMonitorStartup(int privileged)
         /* Ignore failure as non-root; udev is not as helpful in that
          * situation, but a non-privileged user won't benefit much
          * from udev in the first place.  */
-        if (privileged || errno != EACCES) {
+        if (errno != ENOENT && (privileged  || errno != EACCES)) {
             char ebuf[256];
             VIR_ERROR(_("Failed to initialize libpciaccess: %s"),
                       virStrerror(pciret, ebuf, sizeof ebuf));

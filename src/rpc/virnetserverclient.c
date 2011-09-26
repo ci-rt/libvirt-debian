@@ -97,6 +97,7 @@ struct _virNetServerClient
 
     void *privateData;
     virNetServerClientFreeFunc privateDataFreeFunc;
+    virNetServerClientCloseFunc privateDataCloseFunc;
 };
 
 
@@ -276,7 +277,7 @@ virNetServerClientCheckAccess(virNetServerClientPtr client)
         return -1;
     }
 
-    if (!(confirm = virNetMessageNew()))
+    if (!(confirm = virNetMessageNew(false)))
         return -1;
 
     /* Checks have succeeded.  Write a '\1' byte back to the client to
@@ -322,7 +323,7 @@ virNetServerClientPtr virNetServerClientNew(virNetSocketPtr sock,
         virNetTLSContextRef(tls);
 
     /* Prepare one for packet receive */
-    if (!(client->rx = virNetMessageNew()))
+    if (!(client->rx = virNetMessageNew(true)))
         goto error;
     client->rx->bufferLength = VIR_NET_MESSAGE_LEN_MAX;
     client->nrequests = 1;
@@ -492,6 +493,15 @@ void *virNetServerClientGetPrivateData(virNetServerClientPtr client)
 }
 
 
+void virNetServerClientSetCloseHook(virNetServerClientPtr client,
+                                    virNetServerClientCloseFunc cf)
+{
+    virNetServerClientLock(client);
+    client->privateDataCloseFunc = cf;
+    virNetServerClientUnlock(client);
+}
+
+
 void virNetServerClientSetDispatcher(virNetServerClientPtr client,
                                      virNetServerClientDispatchFunc func,
                                      void *opaque)
@@ -560,11 +570,22 @@ void virNetServerClientFree(virNetServerClientPtr client)
  */
 void virNetServerClientClose(virNetServerClientPtr client)
 {
+    virNetServerClientCloseFunc cf;
+
     virNetServerClientLock(client);
     VIR_DEBUG("client=%p refs=%d", client, client->refs);
     if (!client->sock) {
         virNetServerClientUnlock(client);
         return;
+    }
+
+    if (client->privateDataCloseFunc) {
+        cf = client->privateDataCloseFunc;
+        client->refs++;
+        virNetServerClientUnlock(client);
+        (cf)(client);
+        virNetServerClientLock(client);
+        client->refs--;
     }
 
     /* Do now, even though we don't close the socket
@@ -784,7 +805,7 @@ readmore:
 
         /* Possibly need to create another receive buffer */
         if (client->nrequests < client->nrequests_max) {
-            if (!(client->rx = virNetMessageNew())) {
+            if (!(client->rx = virNetMessageNew(true))) {
                 client->wantClose = true;
             } else {
                 client->rx->bufferLength = VIR_NET_MESSAGE_LEN_MAX;
@@ -864,16 +885,14 @@ virNetServerClientDispatchWrite(virNetServerClientPtr client)
             /* Get finished msg from head of tx queue */
             msg = virNetMessageQueueServe(&client->tx);
 
-            if (msg->header.type == VIR_NET_REPLY ||
-                (msg->header.type == VIR_NET_STREAM &&
-                 msg->header.status != VIR_NET_CONTINUE)) {
+            if (msg->tracked) {
                 client->nrequests--;
                 /* See if the recv queue is currently throttled */
                 if (!client->rx &&
                     client->nrequests < client->nrequests_max) {
                     /* Ready to recv more messages */
+                    virNetMessageClear(msg);
                     client->rx = msg;
-                    memset(client->rx, 0, sizeof(*client->rx));
                     client->rx->bufferLength = VIR_NET_MESSAGE_LEN_MAX;
                     msg = NULL;
                     client->nrequests++;

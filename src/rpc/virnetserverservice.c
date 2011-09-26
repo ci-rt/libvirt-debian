@@ -127,7 +127,7 @@ virNetServerServicePtr virNetServerServiceNewTCP(const char *nodename,
         goto error;
 
     for (i = 0 ; i < svc->nsocks ; i++) {
-        if (virNetSocketListen(svc->socks[i]) < 0)
+        if (virNetSocketListen(svc->socks[i], 0) < 0)
             goto error;
 
         /* IO callback is initially disabled, until we're ready
@@ -182,12 +182,13 @@ virNetServerServicePtr virNetServerServiceNewUNIX(const char *path,
 
     if (virNetSocketNewListenUNIX(path,
                                   mask,
+                                  -1,
                                   grp,
                                   &svc->socks[0]) < 0)
         goto error;
 
     for (i = 0 ; i < svc->nsocks ; i++) {
-        if (virNetSocketListen(svc->socks[i]) < 0)
+        if (virNetSocketListen(svc->socks[i], 0) < 0)
             goto error;
 
         /* IO callback is initially disabled, until we're ready
@@ -279,4 +280,16 @@ void virNetServerServiceToggle(virNetServerServicePtr svc,
                                      enabled ?
                                      VIR_EVENT_HANDLE_READABLE :
                                      0);
+}
+
+void virNetServerServiceClose(virNetServerServicePtr svc)
+{
+    int i;
+
+    if (!svc)
+        return;
+
+    for (i = 0; i < svc->nsocks; i++) {
+        virNetSocketClose(svc->socks[i]);
+    }
 }

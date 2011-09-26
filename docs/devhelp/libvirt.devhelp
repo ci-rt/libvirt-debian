@@ -13,6 +13,16 @@
     <function name="VIR_CPU_USABLE" link="libvirt-libvirt.html#VIR_CPU_USABLE"/>
     <function name="VIR_DOMAIN_BLKIO_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_DOMAIN_BLKIO_FIELD_LENGTH"/>
     <function name="VIR_DOMAIN_BLKIO_WEIGHT" link="libvirt-libvirt.html#VIR_DOMAIN_BLKIO_WEIGHT"/>
+    <function name="VIR_DOMAIN_BLOCK_STATS_ERRS" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_ERRS"/>
+    <function name="VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH"/>
+    <function name="VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ"/>
+    <function name="VIR_DOMAIN_BLOCK_STATS_FLUSH_TOTAL_TIMES" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_FLUSH_TOTAL_TIMES"/>
+    <function name="VIR_DOMAIN_BLOCK_STATS_READ_BYTES" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_READ_BYTES"/>
+    <function name="VIR_DOMAIN_BLOCK_STATS_READ_REQ" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_READ_REQ"/>
+    <function name="VIR_DOMAIN_BLOCK_STATS_READ_TOTAL_TIMES" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_READ_TOTAL_TIMES"/>
+    <function name="VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES"/>
+    <function name="VIR_DOMAIN_BLOCK_STATS_WRITE_REQ" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_WRITE_REQ"/>
+    <function name="VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES"/>
     <function name="VIR_DOMAIN_EVENT_CALLBACK" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_CALLBACK"/>
     <function name="VIR_DOMAIN_MEMORY_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_FIELD_LENGTH"/>
     <function name="VIR_DOMAIN_MEMORY_HARD_LIMIT" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_HARD_LIMIT"/>
@@ -109,6 +119,7 @@
     <function name="VIR_DOMAIN_EVENT_IO_ERROR_PAUSE" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_IO_ERROR_PAUSE"/>
     <function name="VIR_DOMAIN_EVENT_IO_ERROR_REPORT" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_IO_ERROR_REPORT"/>
     <function name="VIR_DOMAIN_EVENT_RESUMED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_RESUMED"/>
+    <function name="VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT"/>
     <function name="VIR_DOMAIN_EVENT_RESUMED_MIGRATED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_RESUMED_MIGRATED"/>
     <function name="VIR_DOMAIN_EVENT_RESUMED_UNPAUSED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_RESUMED_UNPAUSED"/>
     <function name="VIR_DOMAIN_EVENT_STARTED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_STARTED"/>
@@ -125,9 +136,11 @@
     <function name="VIR_DOMAIN_EVENT_STOPPED_SAVED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_STOPPED_SAVED"/>
     <function name="VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN"/>
     <function name="VIR_DOMAIN_EVENT_SUSPENDED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED"/>
+    <function name="VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT"/>
     <function name="VIR_DOMAIN_EVENT_SUSPENDED_IOERROR" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED_IOERROR"/>
     <function name="VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED"/>
     <function name="VIR_DOMAIN_EVENT_SUSPENDED_PAUSED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED_PAUSED"/>
+    <function name="VIR_DOMAIN_EVENT_SUSPENDED_RESTORED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED_RESTORED"/>
     <function name="VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG"/>
     <function name="VIR_DOMAIN_EVENT_UNDEFINED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_UNDEFINED"/>
     <function name="VIR_DOMAIN_EVENT_UNDEFINED_REMOVED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_UNDEFINED_REMOVED"/>
@@ -143,6 +156,7 @@
     <function name="VIR_DOMAIN_JOB_FAILED" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_FAILED"/>
     <function name="VIR_DOMAIN_JOB_NONE" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_NONE"/>
     <function name="VIR_DOMAIN_JOB_UNBOUNDED" link="libvirt-libvirt.html#VIR_DOMAIN_JOB_UNBOUNDED"/>
+    <function name="VIR_DOMAIN_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_LAST"/>
     <function name="VIR_DOMAIN_MEMORY_PARAM_BOOLEAN" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_PARAM_BOOLEAN"/>
     <function name="VIR_DOMAIN_MEMORY_PARAM_DOUBLE" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_PARAM_DOUBLE"/>
     <function name="VIR_DOMAIN_MEMORY_PARAM_INT" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_PARAM_INT"/>
@@ -170,6 +184,7 @@
     <function name="VIR_DOMAIN_PAUSED_IOERROR" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_IOERROR"/>
     <function name="VIR_DOMAIN_PAUSED_MIGRATION" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_MIGRATION"/>
     <function name="VIR_DOMAIN_PAUSED_SAVE" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_SAVE"/>
+    <function name="VIR_DOMAIN_PAUSED_SHUTTING_DOWN" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_SHUTTING_DOWN"/>
     <function name="VIR_DOMAIN_PAUSED_UNKNOWN" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_UNKNOWN"/>
     <function name="VIR_DOMAIN_PAUSED_USER" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_USER"/>
     <function name="VIR_DOMAIN_PAUSED_WATCHDOG" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_WATCHDOG"/>
@@ -183,6 +198,8 @@
     <function name="VIR_DOMAIN_RUNNING_UNKNOWN" link="libvirt-libvirt.html#VIR_DOMAIN_RUNNING_UNKNOWN"/>
     <function name="VIR_DOMAIN_RUNNING_UNPAUSED" link="libvirt-libvirt.html#VIR_DOMAIN_RUNNING_UNPAUSED"/>
     <function name="VIR_DOMAIN_SAVE_BYPASS_CACHE" link="libvirt-libvirt.html#VIR_DOMAIN_SAVE_BYPASS_CACHE"/>
+    <function name="VIR_DOMAIN_SAVE_PAUSED" link="libvirt-libvirt.html#VIR_DOMAIN_SAVE_PAUSED"/>
+    <function name="VIR_DOMAIN_SAVE_RUNNING" link="libvirt-libvirt.html#VIR_DOMAIN_SAVE_RUNNING"/>
     <function name="VIR_DOMAIN_SCHED_FIELD_BOOLEAN" link="libvirt-libvirt.html#VIR_DOMAIN_SCHED_FIELD_BOOLEAN"/>
     <function name="VIR_DOMAIN_SCHED_FIELD_DOUBLE" link="libvirt-libvirt.html#VIR_DOMAIN_SCHED_FIELD_DOUBLE"/>
     <function name="VIR_DOMAIN_SCHED_FIELD_INT" link="libvirt-libvirt.html#VIR_DOMAIN_SCHED_FIELD_INT"/>
@@ -201,11 +218,24 @@
     <function name="VIR_DOMAIN_SHUTOFF_SAVED" link="libvirt-libvirt.html#VIR_DOMAIN_SHUTOFF_SAVED"/>
     <function name="VIR_DOMAIN_SHUTOFF_SHUTDOWN" link="libvirt-libvirt.html#VIR_DOMAIN_SHUTOFF_SHUTDOWN"/>
     <function name="VIR_DOMAIN_SHUTOFF_UNKNOWN" link="libvirt-libvirt.html#VIR_DOMAIN_SHUTOFF_UNKNOWN"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_CREATE_HALT" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_HALT"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE"/>
     <function name="VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_LIST_METADATA" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_METADATA"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_LIST_ROOTS" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_ROOTS"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED"/>
+    <function name="VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING" link="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING"/>
     <function name="VIR_DOMAIN_START_AUTODESTROY" link="libvirt-libvirt.html#VIR_DOMAIN_START_AUTODESTROY"/>
     <function name="VIR_DOMAIN_START_BYPASS_CACHE" link="libvirt-libvirt.html#VIR_DOMAIN_START_BYPASS_CACHE"/>
+    <function name="VIR_DOMAIN_START_FORCE_BOOT" link="libvirt-libvirt.html#VIR_DOMAIN_START_FORCE_BOOT"/>
     <function name="VIR_DOMAIN_START_PAUSED" link="libvirt-libvirt.html#VIR_DOMAIN_START_PAUSED"/>
     <function name="VIR_DOMAIN_UNDEFINE_MANAGED_SAVE" link="libvirt-libvirt.html#VIR_DOMAIN_UNDEFINE_MANAGED_SAVE"/>
+    <function name="VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA" link="libvirt-libvirt.html#VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA"/>
     <function name="VIR_DOMAIN_VCPU_CONFIG" link="libvirt-libvirt.html#VIR_DOMAIN_VCPU_CONFIG"/>
     <function name="VIR_DOMAIN_VCPU_CURRENT" link="libvirt-libvirt.html#VIR_DOMAIN_VCPU_CURRENT"/>
     <function name="VIR_DOMAIN_VCPU_LIVE" link="libvirt-libvirt.html#VIR_DOMAIN_VCPU_LIVE"/>
@@ -281,6 +311,8 @@
     <function name="VIR_ERR_READ_FAILED" link="libvirt-virterror.html#VIR_ERR_READ_FAILED"/>
     <function name="VIR_ERR_RPC" link="libvirt-virterror.html#VIR_ERR_RPC"/>
     <function name="VIR_ERR_SEXPR_SERIAL" link="libvirt-virterror.html#VIR_ERR_SEXPR_SERIAL"/>
+    <function name="VIR_ERR_STORAGE_POOL_BUILT" link="libvirt-virterror.html#VIR_ERR_STORAGE_POOL_BUILT"/>
+    <function name="VIR_ERR_STORAGE_PROBE_FAILED" link="libvirt-virterror.html#VIR_ERR_STORAGE_PROBE_FAILED"/>
     <function name="VIR_ERR_SYSTEM_ERROR" link="libvirt-virterror.html#VIR_ERR_SYSTEM_ERROR"/>
     <function name="VIR_ERR_UNKNOWN_HOST" link="libvirt-virterror.html#VIR_ERR_UNKNOWN_HOST"/>
     <function name="VIR_ERR_WARNING" link="libvirt-virterror.html#VIR_ERR_WARNING"/>
@@ -301,6 +333,7 @@
     <function name="VIR_FROM_ESX" link="libvirt-virterror.html#VIR_FROM_ESX"/>
     <function name="VIR_FROM_EVENT" link="libvirt-virterror.html#VIR_FROM_EVENT"/>
     <function name="VIR_FROM_HOOK" link="libvirt-virterror.html#VIR_FROM_HOOK"/>
+    <function name="VIR_FROM_HYPERV" link="libvirt-virterror.html#VIR_FROM_HYPERV"/>
     <function name="VIR_FROM_INTERFACE" link="libvirt-virterror.html#VIR_FROM_INTERFACE"/>
     <function name="VIR_FROM_LIBXL" link="libvirt-virterror.html#VIR_FROM_LIBXL"/>
     <function name="VIR_FROM_LOCKING" link="libvirt-virterror.html#VIR_FROM_LOCKING"/>
@@ -342,6 +375,7 @@
     <function name="VIR_KEYCODE_SET_LAST" link="libvirt-libvirt.html#VIR_KEYCODE_SET_LAST"/>
     <function name="VIR_KEYCODE_SET_LINUX" link="libvirt-libvirt.html#VIR_KEYCODE_SET_LINUX"/>
     <function name="VIR_KEYCODE_SET_OSX" link="libvirt-libvirt.html#VIR_KEYCODE_SET_OSX"/>
+    <function name="VIR_KEYCODE_SET_RFB" link="libvirt-libvirt.html#VIR_KEYCODE_SET_RFB"/>
     <function name="VIR_KEYCODE_SET_USB" link="libvirt-libvirt.html#VIR_KEYCODE_SET_USB"/>
     <function name="VIR_KEYCODE_SET_WIN32" link="libvirt-libvirt.html#VIR_KEYCODE_SET_WIN32"/>
     <function name="VIR_KEYCODE_SET_XT" link="libvirt-libvirt.html#VIR_KEYCODE_SET_XT"/>
@@ -361,6 +395,8 @@
     <function name="VIR_SECRET_USAGE_TYPE_VOLUME" link="libvirt-libvirt.html#VIR_SECRET_USAGE_TYPE_VOLUME"/>
     <function name="VIR_STORAGE_POOL_BUILDING" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILDING"/>
     <function name="VIR_STORAGE_POOL_BUILD_NEW" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILD_NEW"/>
+    <function name="VIR_STORAGE_POOL_BUILD_NO_OVERWRITE" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILD_NO_OVERWRITE"/>
+    <function name="VIR_STORAGE_POOL_BUILD_OVERWRITE" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILD_OVERWRITE"/>
     <function name="VIR_STORAGE_POOL_BUILD_REPAIR" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILD_REPAIR"/>
     <function name="VIR_STORAGE_POOL_BUILD_RESIZE" link="libvirt-libvirt.html#VIR_STORAGE_POOL_BUILD_RESIZE"/>
     <function name="VIR_STORAGE_POOL_DEGRADED" link="libvirt-libvirt.html#VIR_STORAGE_POOL_DEGRADED"/>
@@ -372,6 +408,7 @@
     <function name="VIR_STORAGE_VOL_BLOCK" link="libvirt-libvirt.html#VIR_STORAGE_VOL_BLOCK"/>
     <function name="VIR_STORAGE_VOL_DELETE_NORMAL" link="libvirt-libvirt.html#VIR_STORAGE_VOL_DELETE_NORMAL"/>
     <function name="VIR_STORAGE_VOL_DELETE_ZEROED" link="libvirt-libvirt.html#VIR_STORAGE_VOL_DELETE_ZEROED"/>
+    <function name="VIR_STORAGE_VOL_DIR" link="libvirt-libvirt.html#VIR_STORAGE_VOL_DIR"/>
     <function name="VIR_STORAGE_VOL_FILE" link="libvirt-libvirt.html#VIR_STORAGE_VOL_FILE"/>
     <function name="VIR_STREAM_EVENT_ERROR" link="libvirt-libvirt.html#VIR_STREAM_EVENT_ERROR"/>
     <function name="VIR_STREAM_EVENT_HANGUP" link="libvirt-libvirt.html#VIR_STREAM_EVENT_HANGUP"/>
@@ -446,8 +483,11 @@
     <function name="virDomainSaveRestoreFlags" link="libvirt-libvirt.html#virDomainSaveRestoreFlags"/>
     <function name="virDomainShutdownReason" link="libvirt-libvirt.html#virDomainShutdownReason"/>
     <function name="virDomainShutoffReason" link="libvirt-libvirt.html#virDomainShutoffReason"/>
+    <function name="virDomainSnapshotCreateFlags" link="libvirt-libvirt.html#virDomainSnapshotCreateFlags"/>
     <function name="virDomainSnapshotDeleteFlags" link="libvirt-libvirt.html#virDomainSnapshotDeleteFlags"/>
+    <function name="virDomainSnapshotListFlags" link="libvirt-libvirt.html#virDomainSnapshotListFlags"/>
     <function name="virDomainSnapshotPtr" link="libvirt-libvirt.html#virDomainSnapshotPtr"/>
+    <function name="virDomainSnapshotRevertFlags" link="libvirt-libvirt.html#virDomainSnapshotRevertFlags"/>
     <function name="virDomainState" link="libvirt-libvirt.html#virDomainState"/>
     <function name="virDomainUndefineFlagsValues" link="libvirt-libvirt.html#virDomainUndefineFlagsValues"/>
     <function name="virDomainVcpuFlags" link="libvirt-libvirt.html#virDomainVcpuFlags"/>
@@ -608,6 +648,7 @@
     <function name="virDomainBlockPeek ()" link="libvirt-libvirt.html#virDomainBlockPeek"/>
     <function name="virDomainBlockPull ()" link="libvirt-libvirt.html#virDomainBlockPull"/>
     <function name="virDomainBlockStats ()" link="libvirt-libvirt.html#virDomainBlockStats"/>
+    <function name="virDomainBlockStatsFlags ()" link="libvirt-libvirt.html#virDomainBlockStatsFlags"/>
     <function name="virDomainCoreDump ()" link="libvirt-libvirt.html#virDomainCoreDump"/>
     <function name="virDomainCreate ()" link="libvirt-libvirt.html#virDomainCreate"/>
     <function name="virDomainCreateLinux ()" link="libvirt-libvirt.html#virDomainCreateLinux"/>
@@ -661,6 +702,7 @@
     <function name="virDomainMemoryStats ()" link="libvirt-libvirt.html#virDomainMemoryStats"/>
     <function name="virDomainMigrate ()" link="libvirt-libvirt.html#virDomainMigrate"/>
     <function name="virDomainMigrate2 ()" link="libvirt-libvirt.html#virDomainMigrate2"/>
+    <function name="virDomainMigrateGetMaxSpeed ()" link="libvirt-libvirt.html#virDomainMigrateGetMaxSpeed"/>
     <function name="virDomainMigrateSetMaxDowntime ()" link="libvirt-libvirt.html#virDomainMigrateSetMaxDowntime"/>
     <function name="virDomainMigrateSetMaxSpeed ()" link="libvirt-libvirt.html#virDomainMigrateSetMaxSpeed"/>
     <function name="virDomainMigrateToURI ()" link="libvirt-libvirt.html#virDomainMigrateToURI"/>
@@ -695,6 +737,9 @@
     <function name="virDomainSnapshotCurrent ()" link="libvirt-libvirt.html#virDomainSnapshotCurrent"/>
     <function name="virDomainSnapshotDelete ()" link="libvirt-libvirt.html#virDomainSnapshotDelete"/>
     <function name="virDomainSnapshotFree ()" link="libvirt-libvirt.html#virDomainSnapshotFree"/>
+    <function name="virDomainSnapshotGetConnect ()" link="libvirt-libvirt.html#virDomainSnapshotGetConnect"/>
+    <function name="virDomainSnapshotGetDomain ()" link="libvirt-libvirt.html#virDomainSnapshotGetDomain"/>
+    <function name="virDomainSnapshotGetName ()" link="libvirt-libvirt.html#virDomainSnapshotGetName"/>
     <function name="virDomainSnapshotGetXMLDesc ()" link="libvirt-libvirt.html#virDomainSnapshotGetXMLDesc"/>
     <function name="virDomainSnapshotListNames ()" link="libvirt-libvirt.html#virDomainSnapshotListNames"/>
     <function name="virDomainSnapshotLookupByName ()" link="libvirt-libvirt.html#virDomainSnapshotLookupByName"/>

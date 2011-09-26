@@ -35,6 +35,7 @@
 #include "libvirt_internal.h"
 #include "virterror_internal.h"
 #include "virfile.h"
+#include "virpidfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -132,6 +133,8 @@ struct daemonConfig {
     int min_workers;
     int max_workers;
     int max_clients;
+
+    int prio_workers;
 
     int max_requests;
     int max_client_requests;
@@ -259,44 +262,6 @@ static int daemonForkIntoBackground(const char *argv0)
     }
 }
 
-static int daemonWritePidFile(const char *pidFile, const char *argv0)
-{
-    int fd;
-    FILE *fh;
-    char ebuf[1024];
-
-    if (pidFile[0] == '\0')
-        return 0;
-
-    if ((fd = open(pidFile, O_WRONLY|O_CREAT|O_EXCL, 0644)) < 0) {
-        VIR_ERROR(_("Failed to open pid file '%s' : %s"),
-                  pidFile, virStrerror(errno, ebuf, sizeof ebuf));
-        return -1;
-    }
-
-    if (!(fh = VIR_FDOPEN(fd, "w"))) {
-        VIR_ERROR(_("Failed to fdopen pid file '%s' : %s"),
-                  pidFile, virStrerror(errno, ebuf, sizeof ebuf));
-        VIR_FORCE_CLOSE(fd);
-        return -1;
-    }
-
-    if (fprintf(fh, "%lu\n", (unsigned long)getpid()) < 0) {
-        VIR_ERROR(_("%s: Failed to write to pid file '%s' : %s"),
-                  argv0, pidFile, virStrerror(errno, ebuf, sizeof ebuf));
-        VIR_FORCE_FCLOSE(fh);
-        return -1;
-    }
-
-    if (VIR_FCLOSE(fh) == EOF) {
-        VIR_ERROR(_("%s: Failed to close pid file '%s' : %s"),
-                  argv0, pidFile, virStrerror(errno, ebuf, sizeof ebuf));
-        return -1;
-    }
-
-    return 0;
-}
-
 
 static int
 daemonPidFilePath(bool privileged,
@@ -392,6 +357,7 @@ static int daemonErrorLogFilter(virErrorPtr err, int priority)
     case VIR_ERR_NO_NWFILTER:
     case VIR_ERR_NO_SECRET:
     case VIR_ERR_NO_DOMAIN_SNAPSHOT:
+    case VIR_ERR_OPERATION_INVALID:
         return VIR_LOG_DEBUG;
     }
 
@@ -923,6 +889,8 @@ daemonConfigNew(bool privileged ATTRIBUTE_UNUSED)
     data->max_workers = 20;
     data->max_clients = 20;
 
+    data->prio_workers = 5;
+
     data->max_requests = 20;
     data->max_client_requests = 5;
 
@@ -1079,6 +1047,8 @@ daemonConfigLoad(struct daemonConfig *data,
     GET_CONF_INT (conf, filename, max_workers);
     GET_CONF_INT (conf, filename, max_clients);
 
+    GET_CONF_INT (conf, filename, prio_workers);
+
     GET_CONF_INT (conf, filename, max_requests);
     GET_CONF_INT (conf, filename, max_client_requests);
 
@@ -1139,6 +1109,17 @@ static void daemonShutdownHandler(virNetServerPtr srv,
     virNetServerQuit(srv);
 }
 
+static void daemonReloadHandler(virNetServerPtr srv ATTRIBUTE_UNUSED,
+                                siginfo_t *sig ATTRIBUTE_UNUSED,
+                                void *opaque ATTRIBUTE_UNUSED)
+{
+        VIR_INFO("Reloading configuration on SIGHUP");
+        virHookCall(VIR_HOOK_DRIVER_DAEMON, "-",
+                    VIR_HOOK_DAEMON_OP_RELOAD, SIGHUP, "SIGHUP", NULL);
+        if (virStateReload() < 0)
+            VIR_WARN("Error while reloading drivers");
+}
+
 static int daemonSetupSignals(virNetServerPtr srv)
 {
     if (virNetServerAddSignalHandler(srv, SIGINT, daemonShutdownHandler, NULL) < 0)
@@ -1146,6 +1127,8 @@ static int daemonSetupSignals(virNetServerPtr srv)
     if (virNetServerAddSignalHandler(srv, SIGQUIT, daemonShutdownHandler, NULL) < 0)
         return -1;
     if (virNetServerAddSignalHandler(srv, SIGTERM, daemonShutdownHandler, NULL) < 0)
+        return -1;
+    if (virNetServerAddSignalHandler(srv, SIGHUP, daemonReloadHandler, NULL) < 0)
         return -1;
     return 0;
 }
@@ -1155,7 +1138,7 @@ static void daemonRunStateInit(void *opaque)
     virNetServerPtr srv = opaque;
 
     /* Start the stateful HV drivers
-     * This is delibrately done after telling the parent process
+     * This is deliberately done after telling the parent process
      * we're ready, since it can take a long time and this will
      * seriously delay OS bootup process */
     if (virStateInitialize(virNetServerIsPrivileged(srv)) < 0) {
@@ -1261,6 +1244,7 @@ int main(int argc, char **argv) {
     char *remote_config_file = NULL;
     int statuswrite = -1;
     int ret = 1;
+    int pid_file_fd = -1;
     char *pid_file = NULL;
     char *sock_file = NULL;
     char *sock_file_ro = NULL;
@@ -1272,6 +1256,8 @@ int main(int argc, char **argv) {
     bool privileged = geteuid() == 0 ? true : false;
     bool implicit_conf = false;
     bool use_polkit_dbus;
+    char *run_dir = NULL;
+    mode_t old_umask;
 
     struct option opts[] = {
         { "verbose", no_argument, &verbose, 1},
@@ -1292,6 +1278,9 @@ int main(int argc, char **argv) {
         fprintf(stderr, _("%s: initialization failed\n"), argv[0]);
         exit(EXIT_FAILURE);
     }
+
+    /* initialize early logging */
+    virLogSetFromEnv();
 
     while (1) {
         int optidx = 0;
@@ -1322,20 +1311,26 @@ int main(int argc, char **argv) {
             if (virStrToLong_i(optarg, &tmp, 10, &timeout) != 0
                 || timeout <= 0
                 /* Ensure that we can multiply by 1000 without overflowing.  */
-                || timeout > INT_MAX / 1000)
-                timeout = -1;
+                || timeout > INT_MAX / 1000) {
+                VIR_ERROR(_("Invalid value for timeout"));
+                exit(EXIT_FAILURE);
+            }
             break;
 
         case 'p':
             VIR_FREE(pid_file);
-            if (!(pid_file = strdup(optarg)))
+            if (!(pid_file = strdup(optarg))) {
+                VIR_ERROR(_("Can't allocate memory"));
                 exit(EXIT_FAILURE);
+            }
             break;
 
         case 'f':
             VIR_FREE(remote_config_file);
-            if (!(remote_config_file = strdup(optarg)))
+            if (!(remote_config_file = strdup(optarg))) {
+                VIR_ERROR(_("Can't allocate memory"));
                 exit(EXIT_FAILURE);
+            }
             break;
 
         case OPT_VERSION:
@@ -1347,27 +1342,33 @@ int main(int argc, char **argv) {
             return 2;
 
         default:
-            fprintf (stderr, _("%s: internal error: unknown flag: %c\n"),
-                     argv[0], c);
+            VIR_ERROR(_("%s: internal error: unknown flag: %c"),
+                      argv[0], c);
             exit (EXIT_FAILURE);
         }
     }
 
-    if (!(config = daemonConfigNew(privileged)))
+    if (!(config = daemonConfigNew(privileged))) {
+        VIR_ERROR(_("Can't create initial configuration"));
         exit(EXIT_FAILURE);
+    }
 
     /* No explicit config, so try and find a default one */
     if (remote_config_file == NULL) {
         implicit_conf = true;
         if (daemonConfigFilePath(privileged,
-                                 &remote_config_file) < 0)
+                                 &remote_config_file) < 0) {
+            VIR_ERROR(_("Can't determine config path"));
             exit(EXIT_FAILURE);
+        }
     }
 
     /* Read the config file if it exists*/
     if (remote_config_file &&
-        daemonConfigLoad(config, remote_config_file, implicit_conf) < 0)
+        daemonConfigLoad(config, remote_config_file, implicit_conf) < 0) {
+        VIR_ERROR(_("Can't load config file '%s'"), remote_config_file);
         exit(EXIT_FAILURE);
+    }
 
     if (config->host_uuid &&
         virSetHostUUIDStr(config->host_uuid) < 0) {
@@ -1375,19 +1376,25 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    if (daemonSetupLogging(config, privileged, verbose, godaemon) < 0)
+    if (daemonSetupLogging(config, privileged, verbose, godaemon) < 0) {
+        VIR_ERROR(_("Can't initialize logging"));
         exit(EXIT_FAILURE);
+    }
 
-    if (!pid_file && privileged &&
+    if (!pid_file &&
         daemonPidFilePath(privileged,
-                          &pid_file) < 0)
+                          &pid_file) < 0) {
+        VIR_ERROR(_("Can't determine pid file path."));
         exit(EXIT_FAILURE);
+    }
 
     if (daemonUnixSocketPaths(config,
                               privileged,
                               &sock_file,
-                              &sock_file_ro) < 0)
+                              &sock_file_ro) < 0) {
+        VIR_ERROR(_("Can't determine socket paths"));
         exit(EXIT_FAILURE);
+    }
 
     if (godaemon) {
         char ebuf[1024];
@@ -1405,37 +1412,45 @@ int main(int argc, char **argv) {
         }
     }
 
-    /* If we have a pidfile set, claim it now, exiting if already taken */
-    if (pid_file != NULL &&
-        daemonWritePidFile(pid_file, argv[0]) < 0) {
-        VIR_FREE(pid_file); /* Prevent unlinking of someone else's pid ! */
-        ret = VIR_DAEMON_ERR_PIDFILE;
+    /* Ensure the rundir exists (on tmpfs on some systems) */
+    if (privileged) {
+        run_dir = strdup(LOCALSTATEDIR "/run/libvirt");
+    } else {
+        char *user_dir = virGetUserDirectory(geteuid());
+
+        if (!user_dir) {
+            VIR_ERROR(_("Can't determine user directory"));
+            goto cleanup;
+        }
+        ignore_value(virAsprintf(&run_dir, "%s/.libvirt/", user_dir));
+        VIR_FREE(user_dir);
+    }
+    if (!run_dir) {
+        virReportOOMError();
         goto cleanup;
     }
 
-    /* Ensure the rundir exists (on tmpfs on some systems) */
-    if (privileged) {
-        const char *rundir = LOCALSTATEDIR "/run/libvirt";
-        mode_t old_umask;
+    old_umask = umask(022);
+    if (virFileMakePath(run_dir) < 0) {
+        char ebuf[1024];
+        VIR_ERROR(_("unable to create rundir %s: %s"), run_dir,
+                  virStrerror(errno, ebuf, sizeof(ebuf)));
+        ret = VIR_DAEMON_ERR_RUNDIR;
+        goto cleanup;
+    }
+    umask(old_umask);
 
-        old_umask = umask(022);
-        if (mkdir (rundir, 0755)) {
-            if (errno != EEXIST) {
-                char ebuf[1024];
-                VIR_ERROR(_("unable to create rundir %s: %s"), rundir,
-                          virStrerror(errno, ebuf, sizeof(ebuf)));
-                ret = VIR_DAEMON_ERR_RUNDIR;
-                umask(old_umask);
-                goto cleanup;
-            }
-        }
-        umask(old_umask);
+    /* Try to claim the pidfile, exiting if we can't */
+    if ((pid_file_fd = virPidFileAcquirePath(pid_file, getpid())) < 0) {
+        ret = VIR_DAEMON_ERR_PIDFILE;
+        goto cleanup;
     }
 
     use_polkit_dbus = config->auth_unix_rw == REMOTE_AUTH_POLKIT ||
             config->auth_unix_ro == REMOTE_AUTH_POLKIT;
     if (!(srv = virNetServerNew(config->min_workers,
                                 config->max_workers,
+                                config->prio_workers,
                                 config->max_clients,
                                 config->mdns_adv ? config->mdns_name : NULL,
                                 use_polkit_dbus,
@@ -1558,6 +1573,7 @@ int main(int argc, char **argv) {
 cleanup:
     virNetServerProgramFree(remoteProgram);
     virNetServerProgramFree(qemuProgram);
+    virNetServerClose(srv);
     virNetServerFree(srv);
     if (statuswrite != -1) {
         if (ret != 0) {
@@ -1569,13 +1585,15 @@ cleanup:
         }
         VIR_FORCE_CLOSE(statuswrite);
     }
-    if (pid_file)
-        unlink (pid_file);
+    if (pid_file_fd != -1)
+        virPidFileReleasePath(pid_file, pid_file_fd);
 
     VIR_FREE(sock_file);
     VIR_FREE(sock_file_ro);
     VIR_FREE(pid_file);
     VIR_FREE(remote_config_file);
+    VIR_FREE(run_dir);
+
     daemonConfigFree(config);
     virLogShutdown();
 

@@ -27,6 +27,13 @@
 typedef struct _pciDevice pciDevice;
 typedef struct _pciDeviceList pciDeviceList;
 
+struct pci_config_address {
+    unsigned int domain;
+    unsigned int bus;
+    unsigned int slot;
+    unsigned int function;
+};
+
 pciDevice *pciGetDevice      (unsigned       domain,
                               unsigned       bus,
                               unsigned       slot,
@@ -73,5 +80,20 @@ int pciDeviceFileIterate(pciDevice *dev,
 int pciDeviceIsAssignable(pciDevice *dev,
                           int strict_acs_check);
 int pciWaitForDeviceCleanup(pciDevice *dev, const char *matcher);
+
+int pciGetPhysicalFunction(const char *sysfs_path,
+                           struct pci_config_address **phys_fn);
+
+int pciGetVirtualFunctions(const char *sysfs_path,
+                           struct pci_config_address ***virtual_functions,
+                           unsigned int *num_virtual_functions);
+
+int pciDeviceIsVirtualFunction(const char *vf_sysfs_device_link);
+
+int pciGetVirtualFunctionIndex(const char *pf_sysfs_device_link,
+                               const char *vf_sysfs_device_link,
+                               int *vf_index);
+
+int pciDeviceNetName(char *device_link_sysfs_path, char **netname);
 
 #endif /* __VIR_PCI_H__ */

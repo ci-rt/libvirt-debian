@@ -108,9 +108,21 @@ static virNetServerProgramProcPtr virNetServerProgramGetProc(virNetServerProgram
     return &prog->procs[procedure];
 }
 
+unsigned int
+virNetServerProgramGetPriority(virNetServerProgramPtr prog,
+                               int procedure)
+{
+    virNetServerProgramProcPtr proc = virNetServerProgramGetProc(prog, procedure);
+
+    if (!proc)
+        return 0;
+
+    return proc->priority;
+}
 
 static int
-virNetServerProgramSendError(virNetServerProgramPtr prog,
+virNetServerProgramSendError(unsigned program,
+                             unsigned version,
                              virNetServerClientPtr client,
                              virNetMessagePtr msg,
                              virNetMessageErrorPtr rerr,
@@ -119,13 +131,13 @@ virNetServerProgramSendError(virNetServerProgramPtr prog,
                              int serial)
 {
     VIR_DEBUG("prog=%d ver=%d proc=%d type=%d serial=%d msg=%p rerr=%p",
-              prog->program, prog->version, procedure, type, serial, msg, rerr);
+              program, version, procedure, type, serial, msg, rerr);
 
     virNetMessageSaveError(rerr);
 
     /* Return header. */
-    msg->header.prog = prog->program;
-    msg->header.vers = prog->version;
+    msg->header.prog = program;
+    msg->header.vers = version;
     msg->header.proc = procedure;
     msg->header.type = type;
     msg->header.serial = serial;
@@ -170,7 +182,8 @@ virNetServerProgramSendReplyError(virNetServerProgramPtr prog,
      * For data streams, errors are sent back as data streams
      * For method calls, errors are sent back as method replies
      */
-    return virNetServerProgramSendError(prog,
+    return virNetServerProgramSendError(prog->program,
+                                        prog->version,
                                         client,
                                         msg,
                                         rerr,
@@ -187,13 +200,35 @@ int virNetServerProgramSendStreamError(virNetServerProgramPtr prog,
                                        int procedure,
                                        int serial)
 {
-    return virNetServerProgramSendError(prog,
+    return virNetServerProgramSendError(prog->program,
+                                        prog->version,
                                         client,
                                         msg,
                                         rerr,
                                         procedure,
                                         VIR_NET_STREAM,
                                         serial);
+}
+
+
+int virNetServerProgramUnknownError(virNetServerClientPtr client,
+                                    virNetMessagePtr msg,
+                                    virNetMessageHeaderPtr req)
+{
+    virNetMessageError rerr;
+
+    virNetError(VIR_ERR_RPC,
+                _("Cannot find program %d version %d"), req->prog, req->vers);
+
+    memset(&rerr, 0, sizeof(rerr));
+    return virNetServerProgramSendError(req->prog,
+                                        req->vers,
+                                        client,
+                                        msg,
+                                        &rerr,
+                                        req->proc,
+                                        VIR_NET_REPLY,
+                                        req->serial);
 }
 
 
@@ -257,23 +292,14 @@ int virNetServerProgramDispatch(virNetServerProgramPtr prog,
          * stream packets after we closed down a stream. Just drop & ignore
          * these.
          */
-        if (msg->header.status == VIR_NET_CONTINUE) {
-            VIR_INFO("Ignoring unexpected stream data serial=%d proc=%d status=%d",
-                     msg->header.serial, msg->header.proc, msg->header.status);
-            /* Send a dummy reply to free up 'msg' & unblock client rx */
-            memset(msg, 0, sizeof(*msg));
-            msg->header.type = VIR_NET_REPLY;
-            if (virNetServerClientSendMessage(client, msg) < 0) {
-                ret = -1;
-                goto cleanup;
-            }
-        } else {
-            VIR_INFO("Unexpected stream control message serial=%d proc=%d status=%d",
-                     msg->header.serial, msg->header.proc, msg->header.status);
-            virNetError(VIR_ERR_RPC,
-                        _("Unexpected stream control message serial=%d proc=%d status=%d"),
-                          msg->header.serial, msg->header.proc, msg->header.status);
-            goto error;
+        VIR_INFO("Ignoring unexpected stream data serial=%d proc=%d status=%d",
+                 msg->header.serial, msg->header.proc, msg->header.status);
+        /* Send a dummy reply to free up 'msg' & unblock client rx */
+        virNetMessageClear(msg);
+        msg->header.type = VIR_NET_REPLY;
+        if (virNetServerClientSendMessage(client, msg) < 0) {
+            ret = -1;
+            goto cleanup;
         }
         ret = 0;
         break;
@@ -453,7 +479,7 @@ int virNetServerProgramSendStreamData(virNetServerProgramPtr prog,
         if (virNetMessageEncodePayloadEmpty(msg) < 0)
             return -1;
     }
-    VIR_DEBUG("Total %zu", msg->bufferOffset);
+    VIR_DEBUG("Total %zu", msg->bufferLength);
 
     return virNetServerClientSendMessage(client, msg);
 }

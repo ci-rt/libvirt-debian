@@ -578,6 +578,13 @@ AppArmorSetSecurityProcessLabel(virSecurityManagerPtr mgr, virDomainObjPtr vm)
 }
 
 static int
+AppArmorSetSecurityDaemonSocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                     virDomainObjPtr vm ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+static int
 AppArmorSetSecuritySocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                virDomainObjPtr vm ATTRIBUTE_UNUSED)
 {
@@ -792,34 +799,6 @@ AppArmorSetImageFDLabel(virSecurityManagerPtr mgr,
     return reload_profile(mgr, vm, fd_path, true);
 }
 
-static int
-AppArmorSetProcessFDLabel(virSecurityManagerPtr mgr,
-                          virDomainObjPtr vm,
-                          int fd)
-{
-    int rc = -1;
-    char *proc = NULL;
-    char *fd_path = NULL;
-
-    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
-
-    if (secdef->imagelabel == NULL)
-        return 0;
-
-    if (virAsprintf(&proc, "/proc/self/fd/%d", fd) == -1) {
-        virReportOOMError();
-        return rc;
-    }
-
-    if (virFileResolveLink(proc, &fd_path) < 0) {
-        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
-                               "%s", _("could not find path for descriptor"));
-        return rc;
-    }
-
-    return reload_profile(mgr, vm, fd_path, true);
-}
-
 virSecurityDriver virAppArmorSecurityDriver = {
     0,
     SECURITY_APPARMOR_NAME,
@@ -835,6 +814,7 @@ virSecurityDriver virAppArmorSecurityDriver = {
     AppArmorSetSecurityImageLabel,
     AppArmorRestoreSecurityImageLabel,
 
+    AppArmorSetSecurityDaemonSocketLabel,
     AppArmorSetSecuritySocketLabel,
     AppArmorClearSecuritySocketLabel,
 
@@ -855,5 +835,4 @@ virSecurityDriver virAppArmorSecurityDriver = {
     AppArmorRestoreSavedStateLabel,
 
     AppArmorSetImageFDLabel,
-    AppArmorSetProcessFDLabel,
 };

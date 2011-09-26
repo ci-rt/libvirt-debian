@@ -262,7 +262,6 @@ static int
 virStorageBackendDiskReadPartitions(virStoragePoolObjPtr pool,
                                     virStorageVolDefPtr vol)
 {
-
     /*
      *  # libvirt_parthelper DEVICE
      * /dev/sda1      normal       data        32256    106928128    106896384
@@ -319,6 +318,13 @@ virStorageBackendDiskRefreshPool(virConnectPtr conn ATTRIBUTE_UNUSED,
     pool->def->source.devices[0].nfreeExtent = 0;
 
     virFileWaitForDevices();
+
+    if (!virFileExists(pool->def->source.devices[0].path)) {
+        virStorageReportError(VIR_ERR_INVALID_ARG,
+                              _("device path '%s' doesn't exist"),
+                              pool->def->source.devices[0].path);
+        return -1;
+    }
 
     if (virStorageBackendDiskReadGeometry(pool) != 0) {
         return -1;
@@ -574,7 +580,7 @@ virStorageBackendDiskCreateVol(virConnectPtr conn ATTRIBUTE_UNUSED,
     };
 
     if (vol->target.encryption != NULL) {
-        virStorageReportError(VIR_ERR_NO_SUPPORT,
+        virStorageReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                               "%s", _("storage pool does not support encrypted "
                                       "volumes"));
         return -1;
@@ -649,7 +655,7 @@ virStorageBackendDiskDeleteVol(virConnectPtr conn ATTRIBUTE_UNUSED,
 {
     char *part_num = NULL;
     char *devpath = NULL;
-    char *devname, *srcname;
+    char *dev_name, *srcname;
     virCommandPtr cmd = NULL;
     bool isDevMapperDevice;
     int rc = -1;
@@ -663,26 +669,26 @@ virStorageBackendDiskDeleteVol(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    devname = basename(devpath);
+    dev_name = basename(devpath);
     srcname = basename(pool->def->source.devices[0].path);
-    VIR_DEBUG("devname=%s, srcname=%s", devname, srcname);
+    VIR_DEBUG("dev_name=%s, srcname=%s", dev_name, srcname);
 
     isDevMapperDevice = virIsDevMapperDevice(devpath);
 
-    if (!isDevMapperDevice && !STRPREFIX(devname, srcname)) {
+    if (!isDevMapperDevice && !STRPREFIX(dev_name, srcname)) {
         virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               _("Volume path '%s' did not start with parent "
-                                "pool source device name."), devname);
+                                "pool source device name."), dev_name);
         goto cleanup;
     }
 
     if (!isDevMapperDevice) {
-        part_num = devname + strlen(srcname);
+        part_num = dev_name + strlen(srcname);
 
         if (*part_num == 0) {
             virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                                   _("cannot parse partition number from target "
-                                    "'%s'"), devname);
+                                    "'%s'"), dev_name);
             goto cleanup;
         }
 

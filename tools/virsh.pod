@@ -72,7 +72,8 @@ instead of the default connection.
 =item B<-d>, B<--debug> I<LEVEL>
 
 Enable debug messages at integer I<LEVEL> and above.  I<LEVEL> can
-range from 0 (default) to 4.
+range from 0 to 4 (default).  See the documentation of B<VIRSH_DEBUG>
+environment variable for the description of each I<LEVEL>.
 
 =item B<-l>, B<--log> I<FILE>
 
@@ -266,7 +267,7 @@ The XML also show the NUMA topology information if available.
 
 Inject NMI to the guest.
 
-=item B<list> [I<--inactive> | I<--all>]
+=item B<list> [I<--inactive> | I<--all>] [I<--managed-save>]
 
 Prints information about existing domains.  If no options are
 specified it prints out information about running domains.
@@ -309,9 +310,86 @@ running B<virsh suspend>.  When in a paused state the domain will still
 consume allocated resources like memory, but will not be eligible for
 scheduling by the hypervisor.
 
-=item B<send-key> I<domain-id> optional I<--codeset> B<codeset> optional I<--holdtime> B<holdtime> B<keycode>...
+=item B<send-key> I<domain-id> [I<--codeset> B<codeset>]
+[I<--holdtime> B<holdtime>] I<keycode>...
 
-Send keys to the guest
+Parse the I<keycode> sequence as keystrokes to send to I<domain-id>.
+Each I<keycode> can either be a numeric value or a symbolic name from
+the corresponding codeset.  If I<--holdtime> is given, each keystroke
+will be held for that many milliseconds.  The default codeset is
+B<linux>, but use of the I<--codeset> option allows other codesets to
+be chosen.
+
+=over 4
+
+=item B<linux>
+
+The numeric values are those defined by the Linux generic input
+event subsystem. The symbolic names match the corresponding
+Linux key constant macro names.
+
+=item B<xt>
+
+The numeric values are those defined by the original XT keyboard
+controller. No symbolic names are provided
+
+=item B<atset1>
+
+The numeric values are those defined by the AT keyboard controller,
+set 1 (aka XT compatible set). Extended keycoes from B<atset1>
+may differ from extended keycodes in the B<xt> codeset. No symbolic
+names are provided
+
+=item B<atset2>
+
+The numeric values are those defined by the AT keyboard controller,
+set 2. No symbolic names are provided
+
+=item B<atset3>
+
+The numeric values are those defined by the AT keyboard controller,
+set 3 (aka PS/2 compatible set). No symbolic names are provided
+
+=item B<os_x>
+
+The numeric values are those defined by the OS-X keyboard input
+subsystem. The symbolic names match the corresponding OS-X key
+constant macro names
+
+=item B<xt_kbd>
+
+The numeric values are those defined by the Linux KBD device.
+These are a variant on the original XT codeset, but often with
+different encoding for extended keycodes. No symbolic names are
+provided.
+
+=item B<win32>
+
+The numeric values are those defined by the Win32 keyboard input
+subsystem. The symbolic names match the corresponding Win32 key
+constant macro names
+
+=item B<usb>
+
+The numeric values are those defined by the USB HID specification
+for keyboard input. No symbolic names are provided
+
+=item B<rfb>
+
+The numeric values are those defined by the RFB extension for sending
+raw keycodes. These are a variant on the XT codeset, but extended
+keycodes have the low bit of the second byte set, instead of the high
+bit of the first byte. No symbolic names are provided.
+
+=back
+
+B<Examples>
+  # send three strokes 'k', 'e', 'y', using xt codeset
+  virsh send-key dom --codeset xt 37 18 21
+  # send one stroke 'right-ctrl+C'
+  virsh send-key dom KEY_RIGHTCTRL KEY_C
+  # send a tab, held for 1 second
+  virsh send-key --holdtime 1000 0xf
 
 =item B<shutdown>
 
@@ -336,6 +414,10 @@ The domain is in process of dying, but hasn't completely shutdown or
 crashed.
 
 =back
+
+If I<--managed-save> is specified, then domains that have managed save
+state (only possible if they are in the B<shut off> state) will
+instead show as B<saved> in the listing.
 
 =item B<freecell> [B<cellno> | I<--all>]
 
@@ -414,13 +496,50 @@ the B<shutdown> command instead.  However, this does not delete any
 storage volumes used by the guest, and if the domain is persistent, it
 can be restarted later.
 
-=item B<domblkstat> I<domain> I<block-device>
+If I<domain-id> is transient, then the metadata of any snapshots will
+be lost once the guest stops running, but the snapshot contents still
+exist, and a new domain with the same name and UUID can restore the
+snapshot metadata with B<snapshot-create>.
 
-Get device block stats for a running domain.
+=item B<domblkstat> I<domain> I<block-device> [I<--human>]
+
+Get device block stats for a running domain.  A I<block-device> corresponds
+to a unique target name (<target dev='name'/>) or source file (<source
+file='name'/>) for one of the disk devices attached to I<domain> (see
+also B<domblklist> for listing these names).
+
+Use I<--human> for a more human readable output.
+
+Availability of these fields depends on hypervisor. Unsupported fields are
+missing from the output. Other fields may appear if communicating with a newer
+version of libvirtd.
+
+B<Explanation of fields> (fields appear in the folowing order):
+  rd_req            - count of read operations
+  rd_bytes          - count of read bytes
+  wr_req            - count of write operations
+  wr_bytes          - count of written bytes
+  errs              - error count
+  flush_operations  - count of flush operations
+  rd_total_times    - total time read operations took (ns)
+  wr_total_times    - total time write operations took (ns)
+  flush_total_times - total time flush operations took (ns)
+    <-- other fields provided by hypervisor -->
 
 =item B<domifstat> I<domain> I<interface-device>
 
 Get network interface stats for a running domain.
+
+=item B<domif-setlink> I<domain> I<interface-MAC> I<state> I<--persistent>
+
+Modify link state of the domain's virtual interface. Possible values for
+state are "up" and "down. If --persistent is specified, only the persistent
+configuration of the domain is modified.
+
+=item B<domif-getlink> I<domain> I<interface-MAC> I<--persistent>
+
+Query link state of the domain's virtual interface. If --persistent
+is specified, query the persistent configuration.
 
 =item B<dommemstat> I<domain>
 
@@ -428,7 +547,20 @@ Get memory stats for a running domain.
 
 =item B<domblkinfo> I<domain> I<block-device>
 
-Get block device size info for a domain.
+Get block device size info for a domain.  A I<block-device> corresponds
+to a unique target name (<target dev='name'/>) or source file (<source
+file='name'/>) for one of the disk devices attached to I<domain> (see
+also B<domblklist> for listing these names).
+
+=item B<domblklist> I<domain> [I<--inactive>]
+
+Print a table showing the names of all block devices associated with
+I<domain>, as well as the path to the source of each device.  If
+I<--inactive> is specified, query the block devices that will be used
+on the next boot, rather than those currently in use by a running
+domain.  Other contexts that require a block device name (such as
+I<domblkinfo> or I<snapshot-create> for disk snapshots) will accept
+either target or unique source names printed by this command.
 
 =item B<blockpull> I<domain> I<path> [I<bandwidth>]
 
@@ -507,6 +639,9 @@ rather than merely left in a paused state.
 If I<--bypass-cache> is specified, the save will avoid the file system
 cache, although this may slow down the operation.
 
+NOTE: Some hypervisors may require the user to manually ensure proper
+permissions on file and path specified by argument I<corefilepath>.
+
 =item B<dumpxml> I<domain-id> [I<--inactive>] [I<--security-info>]
 [I<--update-cpu>]
 
@@ -514,7 +649,7 @@ Output the domain information as an XML dump to stdout, this format can be used
 by the B<create> command. Additional options affecting the XML dump may be
 used. I<--inactive> tells virsh to dump domain configuration that will be used
 on next start of the domain as opposed to the current domain configuration.
-Using I<--security-info> security sensitive information will also be included
+Using I<--security-info> will also include security sensitive information
 in the XML dump. I<--update-cpu> updates domain CPU requirements according to
 host CPU.
 
@@ -541,12 +676,18 @@ The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
 variables, and defaults to C<vi>.
 
 =item B<managedsave> I<domain-id> [I<--bypass-cache>]
+[{I<--running> | I<--paused>}]
 
 Save and destroy (stop) a running domain, so it can be restarted from the same
 state at a later time.  When the virsh B<start> command is next run for
 the domain, it will automatically be started from this saved state.
 If I<--bypass-cache> is specified, the save will avoid the file system
 cache, although this may slow down the operation.
+
+Normally, starting a managed save will decide between running or paused
+based on the state the domain was in when the save was done; passing
+either the I<--running> or I<--paused> flag will allow overriding which
+state the B<start> should use.
 
 The B<dominfo> command can be used to query whether a domain currently
 has any managed save image.
@@ -619,6 +760,10 @@ to be down at the end of live migration.
 Set the maximum migration bandwidth (in Mbps) for a domain which is being
 migrated to another host.
 
+=item B<migrate-getspeed> I<domain-id>
+
+Get the maximum migration bandwidth (in Mbps) for a domain.
+
 =item B<reboot> I<domain-id>
 
 Reboot a domain.  This acts just as if the domain had the B<reboot>
@@ -630,6 +775,7 @@ The exact behavior of a domain when it reboots is set by the
 I<on_reboot> parameter in the domain's XML definition.
 
 =item B<restore> I<state-file> [I<--bypass-cache>] [I<--xml> B<file>]
+[{I<--running> | I<--paused>}]
 
 Restores a domain from a B<virsh save> state file. See I<save> for more info.
 
@@ -642,12 +788,18 @@ in the host-specific portions of the domain XML.  For example, it can
 be used to account for file naming differences in underlying storage
 due to disk snapshots taken after the guest was saved.
 
+Normally, restoring a saved image will use the state recorded in the
+save image to decide between running or paused; passing either the
+I<--running> or I<--paused> flag will allow overriding which state the
+domain should be started in.
+
 B<Note>: To avoid corrupting file system contents within the domain, you
 should not reuse the saved state file for a second B<restore> unless you
 have also reverted all storage volumes back to the same contents as when
 the state file was created.
 
 =item B<save> I<domain-id> I<state-file> [I<--bypass-cache>] [I<--xml> B<file>]
+[{I<--running> | I<--paused>}]
 
 Saves a running domain (RAM, but not disk state) to a state file so that
 it can be restored
@@ -667,12 +819,17 @@ in the host-specific portions of the domain XML.  For example, it can
 be used to account for file naming differences that are planned to
 be made via disk snapshots of underlying storage after the guest is saved.
 
+Normally, restoring a saved image will decide between running or paused
+based on the state the domain was in when the save was done; passing
+either the I<--running> or I<--paused> flag will allow overriding which
+state the B<restore> should use.
+
 Domain saved state files assume that disk images will be unchanged
 between the creation and restore point.  For a more complete system
 restore point, where the disk state is saved alongside the memory
 state, see the B<snapshot> family of commands.
 
-=item B<save-image-define> I<file> I<xml>
+=item B<save-image-define> I<file> I<xml> [{I<--running> | I<--paused>}]
 
 Update the domain XML that will be used when I<file> is later
 used in the B<restore> command.  The I<xml> argument must be a file
@@ -681,16 +838,26 @@ host-specific portions of the domain XML.  For example, it can
 be used to account for file naming differences resulting from creating
 disk snapshots of underlying storage after the guest was saved.
 
+The save image records whether the domain should be restored to a
+running or paused state.  Normally, this command does not alter the
+recorded state; passing either the I<--running> or I<--paused> flag
+will allow overriding which state the B<restore> should use.
+
 =item B<save-image-dumpxml> I<file> [I<--security-info>]
 
 Extract the domain XML that was in effect at the time the saved state
 file I<file> was created with the B<save> command.  Using
 I<--security-info> will also include security sensitive information.
 
-=item B<save-image-edit> I<file>
+=item B<save-image-edit> I<file> [{I<--running> | I<--paused>}]
 
 Edit the XML configuration associated with a saved state file I<file>
 created by the B<save> command.
+
+The save image records whether the domain should be restored to a
+running or paused state.  Normally, this command does not alter the
+recorded state; passing either the I<--running> or I<--paused> flag
+will allow overriding which state the B<restore> should use.
 
 This is equivalent to:
 
@@ -712,7 +879,9 @@ I<domain-id>
 Allows you to show (and set) the domain scheduler parameters. The parameters
 available for each hypervisor are:
 
-LXC, QEMU/KVM (posix scheduler): cpu_shares
+LXC (posix scheduler) : cpu_shares
+
+QEMU/KVM (posix scheduler): cpu_shares, vcpu_period, vcpu_quota
 
 Xen (credit scheduler): weight, cap
 
@@ -728,6 +897,11 @@ Therefore, -1 is a useful shorthand for 262144.
 
 B<Note>: The weight and cap parameters are defined only for the
 XEN_CREDIT scheduler and are now I<DEPRECATED>.
+
+B<Note>: The vcpu_period parameter has a valid value range of 1000-1000000 or
+0, and the vcpu_quota parameter has a valid value range of
+1000-18446744073709551 or less than 0. The value 0 for either parameter is
+the same as not specifying that parameter.
 
 =item B<screenshot> I<domain-id> [I<imagefilepath>] [I<--screen> B<screenID>]
 
@@ -877,8 +1051,13 @@ services must be shutdown in the domain.
 The exact behavior of a domain when it shuts down is set by the
 I<on_shutdown> parameter in the domain's XML definition.
 
+If I<domain-id> is transient, then the metadata of any snapshots will
+be lost once the guest stops running, but the snapshot contents still
+exist, and a new domain with the same name and UUID can restore the
+snapshot metadata with B<snapshot-create>.
+
 =item B<start> I<domain-name> [I<--console>] [I<--paused>] [I<--autodestroy>]
-[I<--bypass-cache>]
+[I<--bypass-cache>] [I<--force-boot>]
 
 Start a (previously defined) inactive domain, either from the last
 B<managedsave> state, or via a fresh boot if no managedsave state is
@@ -889,7 +1068,8 @@ If I<--autodestroy> is requested, then the guest will be automatically
 destroyed when virsh closes its connection to libvirt, or otherwise
 exits.  If I<--bypass-cache> is specified, and managedsave state exists,
 the restore will avoid the file system cache, although this may slow
-down the operation.
+down the operation.  If I<--force-boot> is specified, then any
+managedsave state is discarded and a fresh boot occurs.
 
 =item B<suspend> I<domain-id>
 
@@ -907,15 +1087,21 @@ hypervisor.
 Output the device used for the TTY console of the domain. If the information
 is not available the processes will provide an exit code of 1.
 
-=item B<undefine> I<domain-id> [I<--managed-save>]
+=item B<undefine> I<domain-id> [I<--managed-save>] [I<--snapshots-metadata]
 
 Undefine a domain. If the domain is running, this converts it to a
 transient domain, without stopping it. If the domain is inactive,
 the domain configuration is removed.
 
-The I<--managed-save> flag guarantees that any managed save image(see
+The I<--managed-save> flag guarantees that any managed save image (see
 the B<managedsave> command) is also cleaned up.  Without the flag, attempts
 to undefine a domain with a managed save image will fail.
+
+The I<--snapshots-metadata> flag guarantees that any snapshots (see the
+B<snapshot-list> command) are also cleaned up when undefining an inactive
+domain.  Without the flag, attempts to undefine an inactive domain with
+snapshot metadata will fail.  If the domain is active, this flag is
+ignored.
 
 NOTE: For an inactive domain, the domain name or UUID must be used as the
 I<domain-id>.
@@ -998,14 +1184,16 @@ the single existing device; consider using B<update-device> for this usage.
 
 Attach a new disk device to the domain.
 I<source> and I<target> are paths for the files and devices.
-I<driver> can be I<file>, I<tap> or I<phy> depending on the kind of access.
+I<driver> can be I<file>, I<tap> or I<phy> for the Xen hypervisor depending on
+the kind of access; or I<qemu> for the QEMU emulator.
 I<type> can indicate I<cdrom> or I<floppy> as alternative to the disk default,
 although this use only replaces the media within the existing virtual cdrom or
 floppy device; consider using B<update-device> for this usage instead.
 I<mode> can specify the two specific mode I<readonly> or I<shareable>.
 I<persistent> indicates the changes will affect the next boot of the domain.
 I<sourcetype> can indicate the type of source (block|file)
-I<cache> can be one of "default", "none", "writethrough" or "writeback".
+I<cache> can be one of "default", "none", "writethrough", "writeback", or
+"directsync".
 I<serial> is the serial of disk device. I<shareable> indicates the disk device
 is shareable between domains.
 I<address> is the address of disk device in the form of pci:domain.bus.slot.function,
@@ -1261,9 +1449,18 @@ where the query is performed.
 
 Configure whether I<pool> should automatically start at boot.
 
-=item B<pool-build> I<pool-or-uuid>
+=item B<pool-build> I<pool-or-uuid> [I<--overwrite>] [I<--no-overwrite>]
 
 Build a given pool.
+
+Options I<--overwrite> and I<--no-overwrite> can only be used for
+B<pool-build> a filesystem pool. If neither of them is specified,
+B<pool-build> on a filesystem pool only makes the directory; If
+I<--no-overwrite> is specified, it probes to determine if a
+filesystem already exists on the target device, returning an error
+if exists, or using mkfs to format the target device if not; If
+I<--overwrite> is specified, mkfs is always executed, any existed
+data on the target device is overwritten unconditionally.
 
 =item B<pool-create> I<file>
 
@@ -1553,48 +1750,163 @@ used to represent properties of snapshots.
 
 =over 4
 
-=item B<snapshot-create> I<domain> [I<xmlfile>]
+=item B<snapshot-create> I<domain> [I<xmlfile>] {[I<--redefine> [I<--current>]]
+| [I<--no-metadata>] [I<--halt>] [I<--disk-only>]}
 
 Create a snapshot for domain I<domain> with the properties specified in
-I<xmlfile>.  The only properties settable for a domain snapshot are the
-<name> and <description>; the rest of the fields are ignored, and
-automatically filled in by libvirt.  If I<xmlfile> is completely omitted,
-then libvirt will choose a value for all fields.
+I<xmlfile>.  Normally, the only properties settable for a domain snapshot
+are the <name> and <description> elements, as well as <disks> if
+I<--disk-only> is given; the rest of the fields are
+ignored, and automatically filled in by libvirt.  If I<xmlfile> is
+completely omitted, then libvirt will choose a value for all fields.
+The new snapshot will become current, as listed by B<snapshot-current>.
 
-=item B<snapshot-create-as> I<domain> [I<--print-xml>]
-[I<name>] [I<description>]
+If I<--halt> is specified, the domain will be left in an inactive state
+after the snapshot is created.
+
+If I<--disk-only> is specified, the snapshot will only include disk
+state rather than the usual system checkpoint with vm state.  Disk
+snapshots are faster than full system checkpoints, but reverting to a
+disk snapshot may require fsck or journal replays, since it is like
+the disk state at the point when the power cord is abruptly pulled;
+and mixing I<--halt> and I<--disk-only> loses any data that was not
+flushed to disk at the time.
+
+If I<--redefine> is specified, then all XML elements produced by
+B<snapshot-dumpxml> are valid; this can be used to migrate snapshot
+hierarchy from one machine to another, to recreate hierarchy for the
+case of a transient domain that goes away and is later recreated with
+the same name and UUID, or to make slight alterations in the snapshot
+metadata (such as host-specific aspects of the domain XML embedded in
+the snapshot).  When this flag is supplied, the I<xmlfile> argument
+is mandatory, and the domain's current snapshot will not be altered
+unless the I<--current> flag is also given.
+
+If I<--no-metadata> is specified, then the snapshot data is created,
+but any metadata is immediately discarded (that is, libvirt does not
+treat the snapshot as current, and cannot revert to the snapshot
+unless I<--redefine> is later used to teach libvirt about the
+metadata again).
+
+Existence of snapshot metadata will prevent attempts to B<undefine>
+a persistent domain.  However, for transient domains, snapshot
+metadata is silently lost when the domain quits running (whether
+by command such as B<destroy> or by internal guest action).
+
+=item B<snapshot-create-as> I<domain> {[I<--print-xml>]
+| [I<--no-metadata>] [I<--halt>]} [I<name>] [I<description>]
+[I<--disk-only> [[I<--diskspec>] B<diskspec>]...
 
 Create a snapshot for domain I<domain> with the given <name> and
 <description>; if either value is omitted, libvirt will choose a
 value.  If I<--print-xml> is specified, then XML appropriate for
 I<snapshot-create> is output, rather than actually creating a snapshot.
+Otherwise, if I<--halt> is specified, the domain will be left in an
+inactive state after the snapshot is created, and if I<--disk-only>
+is specified, the snapshot will not include vm state.
 
-=item B<snapshot-current> I<domain>
+The I<--disk-only> flag is used to request a disk-only snapshot.  When
+this flag is in use, the command can also take additional I<diskspec>
+arguments to add <disk> elements to the xml.  Each <diskspec> is in the
+form B<disk[,snapshot=type][,driver=type][,file=name]>.  To include a
+literal comma in B<disk> or in B<file=name>, escape it with a second
+comma.  A literal I<--diskspec> must preceed each B<diskspec> unless
+all three of I<domain>, I<name>, and I<description> are also present.
+For example, a diskspec of "vda,snapshot=external,file=/path/to,,new"
+results in the following XML:
+  <disk name='vda' snapshot='external'>
+    <source file='/path/to,new'/>
+  </disk>
 
-Output the snapshot XML for the domain's current snapshot (if any).
+If I<--no-metadata> is specified, then the snapshot data is created,
+but any metadata is immediately discarded (that is, libvirt does not
+treat the snapshot as current, and cannot revert to the snapshot
+unless B<snapshot-create> is later used to teach libvirt about the
+metadata again).  This flag is incompatible with I<--print-xml>.
 
-=item B<snapshot-list> I<domain>
+=item B<snapshot-current> I<domain> {[I<--name>] | [I<--security-info]
+| [I<snapshotname>]}
+
+Without I<snapshotname>, this will output the snapshot XML for the domain's
+current snapshot (if any).  If I<--name> is specified, just the
+current snapshot name instead of the full xml.  Otherwise, using
+I<--security-info> will also include security sensitive information in
+the XML.
+
+With I<snapshotname>, this is a request to make the existing named
+snapshot become the current snapshot, without reverting the domain.
+
+=item B<snapshot-edit> I<domain> I<snapshotname> [I<--current>]
+
+Edit the XML configuration file for I<snapshotname> of a domain.  If
+I<--current> is specified, also force the edited snapshot to become
+the current snapshot.
+
+This is equivalent to:
+
+ virsh snapshot-dumpxml dom name > snapshot.xml
+ vi snapshot.xml (or make changes with your other text editor)
+ virsh snapshot-create dom snapshot.xml --redefine [--current]
+
+except that it does some error checking.
+
+The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
+variables, and defaults to C<vi>.
+
+=item B<snapshot-list> I<domain> [{I<--parent> | I<--roots>}] [I<--metadata>]
 
 List all of the available snapshots for the given domain.
 
-=item B<snapshot-dumpxml> I<domain> I<snapshot>
+If I<--parent> is specified, add a column to the output table giving
+the name of the parent of each snapshot.
+
+If I<--roots> is specified, the list will be filtered to just snapshots
+that have no parents; this option is not compatible with I<--parent>.
+
+If I<--metadata> is specified, the list will be filtered to just
+snapshots that involve libvirt metadata, and thus would prevent
+B<undefine> of a persistent domain, or be lost on B<destroy> of
+a transient domain.
+
+=item B<snapshot-dumpxml> I<domain> I<snapshot> [I<--security-info>]
 
 Output the snapshot XML for the domain's snapshot named I<snapshot>.
+Using I<--security-info> will also include security sensitive information.
 
-=item B<snapshot-revert> I<domain> I<snapshot>
+=item B<snapshot-parent> I<domain> I<snapshot>
+
+Output the name of the parent snapshot for the given I<snapshot>, if any.
+
+=item B<snapshot-revert> I<domain> I<snapshot> [{I<--running> | I<--paused>}]
 
 Revert the given domain to the snapshot specified by I<snapshot>.  Be aware
-that this is a destructive action; any changes in the domain since the
+that this is a destructive action; any changes in the domain since the last
 snapshot was taken will be lost.  Also note that the state of the domain after
 snapshot-revert is complete will be the state of the domain at the time
 the original snapshot was taken.
 
-=item B<snapshot-delete> I<domain> I<snapshot> I<--children>
+Normally, reverting to a snapshot leaves the domain in the state it was
+at the time the snapshot was created, except that a disk snapshot with
+no vm state leaves the domain in an inactive state.  Passing either the
+I<--running> or I<--paused> flag will perform additional state changes
+(such as booting an inactive domain, or pausing a running domain).  Since
+transient domains cannot be inactive, it is required to use one of these
+flags when reverting to a disk snapshot of a transient domain.
+
+=item B<snapshot-delete> I<domain> I<snapshot> [I<--metadata>]
+[{I<--children> | I<--children-only>}]
 
 Delete the snapshot for the domain named I<snapshot>.  If this snapshot
 has child snapshots, changes from this snapshot will be merged into the
 children.  If I<--children> is passed, then delete this snapshot and any
-children of this snapshot.
+children of this snapshot.  If I<--children-only> is passed, then delete
+any children of this snapshot, but leave this snapshot intact.  These
+two flags are mutually exclusive.
+
+If I<--metadata> is specified, then only delete the snapshot metadata
+maintained by libvirt, while leaving the snapshot contents intact for
+access by external tools; otherwise deleting a snapshot also removes
+the data contents from that point in time.
 
 =back
 
@@ -1683,13 +1995,15 @@ attaching to an externally launched QEMU process. There may be
 issues with the guest ABI changing upon migration, and hotunplug
 may not work.
 
-=item B<qemu-monitor-command> I<domain> I<command> [I<--hmp>]
+=item B<qemu-monitor-command> I<domain> [I<--hmp>] I<command>...
 
 Send an arbitrary monitor command I<command> to domain I<domain> through the
 qemu monitor.  The results of the command will be printed on stdout.  If
 I<--hmp> is passed, the command is considered to be a human monitor command
 and libvirt will automatically convert it into QMP if needed.  In that case
-the result will also be converted back from QMP.
+the result will also be converted back from QMP.  If more than one argument
+is provided for I<command>, they are concatenated with a space in between
+before passing the single command to the monitor.
 
 =back
 

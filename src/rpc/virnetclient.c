@@ -233,6 +233,26 @@ void virNetClientRef(virNetClientPtr client)
 }
 
 
+int virNetClientGetFD(virNetClientPtr client)
+{
+    int fd;
+    virNetClientLock(client);
+    fd = virNetSocketGetFD(client->sock);
+    virNetClientUnlock(client);
+    return fd;
+}
+
+
+int virNetClientDupFD(virNetClientPtr client, bool cloexec)
+{
+    int fd;
+    virNetClientLock(client);
+    fd = virNetSocketDupFD(client->sock, cloexec);
+    virNetClientUnlock(client);
+    return fd;
+}
+
+
 void virNetClientFree(virNetClientPtr client)
 {
     int i;
@@ -607,11 +627,6 @@ static int virNetClientCallDispatchStream(virNetClientPtr client)
     case VIR_NET_CONTINUE: {
         if (virNetClientStreamQueuePacket(st, &client->msg) < 0)
             return -1;
-
-        if (thecall && thecall->expectReply) {
-            VIR_DEBUG("Got sync data packet completion");
-            thecall->mode = VIR_NET_CLIENT_MODE_COMPLETE;
-        }
         return 0;
     }
 
@@ -1025,7 +1040,7 @@ static int virNetClientIO(virNetClientPtr client,
 {
     int rv = -1;
 
-    VIR_DEBUG("program=%u version=%u serial=%u proc=%d type=%d length=%zu dispatch=%p",
+    VIR_DEBUG("Outgoing message prog=%u version=%u serial=%u proc=%d type=%d length=%zu dispatch=%p",
               thiscall->msg->header.prog,
               thiscall->msg->header.vers,
               thiscall->msg->header.serial,
@@ -1172,6 +1187,13 @@ int virNetClientSend(virNetClientPtr client,
 {
     virNetClientCallPtr call;
     int ret = -1;
+
+    if (expectReply &&
+        (msg->header.status == VIR_NET_CONTINUE)) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
+                    _("Attempt to send an asynchronous message with a synchronous reply"));
+        return -1;
+    }
 
     if (VIR_ALLOC(call) < 0) {
         virReportOOMError();

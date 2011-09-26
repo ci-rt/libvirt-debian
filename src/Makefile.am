@@ -84,6 +84,7 @@ UTIL_SOURCES =							\
 		util/util.c util/util.h				\
 		util/viraudit.c util/viraudit.h			\
 		util/virfile.c util/virfile.h			\
+		util/virpidfile.c util/virpidfile.h		\
 		util/xml.c util/xml.h				\
 		util/virterror.c util/virterror_internal.h	\
 		util/virkeycode.c util/virkeycode.h		\
@@ -401,6 +402,32 @@ ESX_DRIVER_EXTRA_DIST =						\
 		esx/esx_vi_generator.input				\
 		esx/esx_vi_generator.py					\
 		$(ESX_DRIVER_GENERATED)
+
+HYPERV_DRIVER_SOURCES =								\
+		hyperv/hyperv_private.h							\
+		hyperv/hyperv_driver.c hyperv/hyperv_driver.h				\
+		hyperv/hyperv_interface_driver.c hyperv/hyperv_interface_driver.h	\
+		hyperv/hyperv_network_driver.c hyperv/hyperv_network_driver.h		\
+		hyperv/hyperv_storage_driver.c hyperv/hyperv_storage_driver.h		\
+		hyperv/hyperv_device_monitor.c hyperv/hyperv_device_monitor.h		\
+		hyperv/hyperv_secret_driver.c hyperv/hyperv_secret_driver.h		\
+		hyperv/hyperv_nwfilter_driver.c hyperv/hyperv_nwfilter_driver.h		\
+		hyperv/hyperv_util.c hyperv/hyperv_util.h				\
+		hyperv/hyperv_wmi.c hyperv/hyperv_wmi.h					\
+		hyperv/hyperv_wmi_classes.c hyperv/hyperv_wmi_classes.h			\
+		hyperv/openwsman.h
+
+HYPERV_DRIVER_GENERATED =							\
+		hyperv/hyperv_wmi.generated.c					\
+		hyperv/hyperv_wmi.generated.h					\
+		hyperv/hyperv_wmi_classes.generated.c				\
+		hyperv/hyperv_wmi_classes.generated.h				\
+		hyperv/hyperv_wmi_classes.generated.typedef
+
+HYPERV_DRIVER_EXTRA_DIST =							\
+		hyperv/hyperv_wmi_generator.input				\
+		hyperv/hyperv_wmi_generator.py					\
+		$(HYPERV_DRIVER_GENERATED)
 
 NETWORK_DRIVER_SOURCES =					\
 		network/bridge_driver.h network/bridge_driver.c
@@ -811,8 +838,9 @@ endif
 
 BUILT_SOURCES += $(ESX_DRIVER_GENERATED)
 
-$(ESX_DRIVER_GENERATED): $(srcdir)/esx/esx_vi_generator.input $(srcdir)/esx/esx_vi_generator.py
-	$(AM_V_GEN)srcdir=$(srcdir) $(srcdir)/esx/esx_vi_generator.py
+$(ESX_DRIVER_GENERATED): $(srcdir)/esx/esx_vi_generator.input \
+                         $(srcdir)/esx/esx_vi_generator.py
+	$(AM_V_GEN)srcdir=$(srcdir) $(PYTHON) $(srcdir)/esx/esx_vi_generator.py
 
 if WITH_ESX
 if WITH_DRIVER_MODULES
@@ -831,6 +859,31 @@ libvirt_driver_esx_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_esx_la_SOURCES = $(ESX_DRIVER_SOURCES)
 libvirt_driver_esx_la_DEPENDENCIES = $(ESX_DRIVER_GENERATED)
+endif
+
+
+BUILT_SOURCES += $(HYPERV_DRIVER_GENERATED)
+
+$(HYPERV_DRIVER_GENERATED): $(srcdir)/hyperv/hyperv_wmi_generator.input \
+                            $(srcdir)/hyperv/hyperv_wmi_generator.py
+	$(AM_V_GEN)srcdir=$(srcdir) $(PYTHON) $(srcdir)/hyperv/hyperv_wmi_generator.py
+
+if WITH_HYPERV
+if WITH_DRIVER_MODULES
+mod_LTLIBRARIES += libvirt_driver_hyperv.la
+else
+noinst_LTLIBRARIES += libvirt_driver_hyperv.la
+libvirt_la_BUILT_LIBADD += libvirt_driver_hyperv.la
+endif
+libvirt_driver_hyperv_la_CFLAGS = $(OPENWSMAN_CFLAGS) \
+		-I@top_srcdir@/src/conf $(AM_CFLAGS)
+libvirt_driver_hyperv_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_driver_hyperv_la_LIBADD = $(OPENWSMAN_LIBS)
+if WITH_DRIVER_MODULES
+libvirt_driver_hyperv_la_LIBADD += ../gnulib/lib/libgnu.la
+libvirt_driver_hyperv_la_LDFLAGS += -module -avoid-version
+endif
+libvirt_driver_hyperv_la_SOURCES = $(HYPERV_DRIVER_SOURCES)
 endif
 
 if WITH_NETWORK
@@ -901,6 +954,10 @@ endif
 if WITH_SECDRIVER_APPARMOR
 libvirt_driver_storage_la_LIBADD += $(APPARMOR_LIBS)
 endif
+if HAVE_LIBBLKID
+libvirt_driver_storage_la_CFLAGS += $(BLKID_CFLAGS)
+libvirt_driver_storage_la_LIBADD += $(BLKID_LIBS)
+endif
 if WITH_STORAGE_DIR
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_storage.la
@@ -953,7 +1010,10 @@ libvirt_driver_nodedev_la_SOURCES = $(NODE_DEVICE_DRIVER_SOURCES)
 libvirt_driver_nodedev_la_CFLAGS = \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 libvirt_driver_nodedev_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_nodedev_la_LIBADD =
+libvirt_driver_nodedev_la_LIBADD =       \
+		libvirt_util.la          \
+		../gnulib/lib/libgnu.la
+
 if HAVE_HAL
 libvirt_driver_nodedev_la_SOURCES += $(NODE_DEVICE_DRIVER_HAL_SOURCES)
 libvirt_driver_nodedev_la_CFLAGS += $(HAL_CFLAGS)
@@ -1024,6 +1084,8 @@ EXTRA_DIST +=							\
 		$(LIBXL_DRIVER_SOURCES)			\
 		$(ESX_DRIVER_SOURCES)				\
 		$(ESX_DRIVER_EXTRA_DIST)			\
+		$(HYPERV_DRIVER_SOURCES)			\
+		$(HYPERV_DRIVER_EXTRA_DIST)			\
 		$(NETWORK_DRIVER_SOURCES)			\
 		$(INTERFACE_DRIVER_SOURCES)			\
 		$(STORAGE_DRIVER_SOURCES)			\
@@ -1170,7 +1232,7 @@ libvirt_qemu.def: $(srcdir)/libvirt_qemu.syms
 libvirt_la_SOURCES =
 libvirt_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)$(LIBVIRT_SYMBOL_FILE) \
 		     -version-info $(LIBVIRT_VERSION_INFO) \
-		    $(AM_LDFLAGS) \
+		    $(LIBVIRT_NODELETE) $(AM_LDFLAGS) \
 		    $(CYGWIN_EXTRA_LDFLAGS) $(MINGW_EXTRA_LDFLAGS)
 libvirt_la_BUILT_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_la_LIBADD += $(LIBXML_LIBS) \
@@ -1217,7 +1279,7 @@ lockdriver_LTLIBRARIES = sanlock.la
 sanlock_la_SOURCES = $(LOCK_DRIVER_SANLOCK_SOURCES)
 sanlock_la_CFLAGS = $(AM_CLFAGS)
 sanlock_la_LDFLAGS = -module -avoid-version
-sanlock_la_LIBADD = -lsanlock \
+sanlock_la_LIBADD = -lsanlock_client \
 		../gnulib/lib/libgnu.la
 
 augeas_DATA += locking/libvirt_sanlock.aug

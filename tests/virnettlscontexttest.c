@@ -23,6 +23,8 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
 
 #include "testutils.h"
 #include "util.h"
@@ -32,12 +34,10 @@
 #include "virfile.h"
 #include "command.h"
 #include "network.h"
+#include "gnutls_1_0_compat.h"
 
 #if !defined WIN32 && HAVE_LIBTASN1_H && !defined GNUTLS_1_0_COMPAT
 # include <libtasn1.h>
-# include <gnutls/gnutls.h>
-# include <gnutls/x509.h>
-# include "gnutls_1_0_compat.h"
 
 # include "rpc/virnettlscontext.h"
 
@@ -712,6 +712,8 @@ static int testTLSSessionInit(const void *opaque)
 cleanup:
     virNetTLSContextFree(serverCtxt);
     virNetTLSContextFree(clientCtxt);
+    virNetTLSSessionFree(serverSess);
+    virNetTLSSessionFree(clientSess);
     gnutls_x509_crt_deinit(data->careq.crt);
     if (data->othercareq.filename)
         gnutls_x509_crt_deinit(data->othercareq.crt);

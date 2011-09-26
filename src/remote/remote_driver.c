@@ -325,9 +325,17 @@ doRemoteOpen (virConnectPtr conn,
             } else {
                 if (STRCASEEQ (transport_str, "tls"))
                     transport = trans_tls;
-                else if (STRCASEEQ (transport_str, "unix"))
-                    transport = trans_unix;
-                else if (STRCASEEQ (transport_str, "ssh"))
+                else if (STRCASEEQ (transport_str, "unix")) {
+                    if (conn->uri->server) {
+                        remoteError(VIR_ERR_INVALID_ARG,
+                                    _("using unix socket and remote "
+                                      "server '%s' is not supported."),
+                                    conn->uri->server);
+                        return VIR_DRV_OPEN_ERROR;
+                    } else {
+                        transport = trans_unix;
+                    }
+                } else if (STRCASEEQ (transport_str, "ssh"))
                     transport = trans_ssh;
                 else if (STRCASEEQ (transport_str, "ext"))
                     transport = trans_ext;
@@ -1349,6 +1357,69 @@ remoteDeserializeTypedParameters(remote_typed_param *ret_params_val,
     rv = 0;
 
 cleanup:
+    return rv;
+}
+
+static int
+remoteDomainBlockStatsFlags(virDomainPtr domain,
+                            const char *path,
+                            virTypedParameterPtr params,
+                            int *nparams,
+                            unsigned int flags)
+{
+    int rv = -1;
+    remote_domain_block_stats_flags_args args;
+    remote_domain_block_stats_flags_ret ret;
+    struct private_data *priv = domain->conn->privateData;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain (&args.dom, domain);
+    args.nparams = *nparams;
+    args.path = (char *) path;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof ret);
+    if (call (domain->conn, priv, 0, REMOTE_PROC_DOMAIN_BLOCK_STATS_FLAGS,
+              (xdrproc_t) xdr_remote_domain_block_stats_flags_args, (char *) &args,
+              (xdrproc_t) xdr_remote_domain_block_stats_flags_ret, (char *) &ret) == -1)
+        goto done;
+
+    /* Check the length of the returned list carefully. */
+    if (ret.params.params_len > REMOTE_DOMAIN_BLOCK_STATS_PARAMETERS_MAX ||
+        ret.params.params_len > *nparams) {
+        remoteError(VIR_ERR_RPC, "%s",
+                    _("remoteDomainBlockStatsFlags: "
+                      "returned number of stats exceeds limit"));
+        goto cleanup;
+    }
+
+    /* Handle the case when the caller does not know the number of stats
+     * and is asking for the number of stats supported
+     */
+    if (*nparams == 0) {
+        *nparams = ret.nparams;
+        rv = 0;
+        goto cleanup;
+    }
+
+    *nparams = ret.params.params_len;
+
+    /* Deserialise the result. */
+    if (remoteDeserializeTypedParameters(ret.params.params_val,
+                                         ret.params.params_len,
+                                         REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX,
+                                         params,
+                                         nparams) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    xdr_free ((xdrproc_t) xdr_remote_domain_block_stats_flags_ret,
+              (char *) &ret);
+done:
+    remoteDriverUnlock(priv);
     return rv;
 }
 
@@ -3223,6 +3294,7 @@ no_memory:
         VIR_FREE(subject->identities);
         VIR_FREE(subject);
     }
+    virDomainFree(dom);
     return;
 }
 
@@ -3277,7 +3349,7 @@ remoteSecretGetValue (virSecretPtr secret, size_t *value_size,
 
     /* internalFlags intentionally do not go over the wire */
     if (internalFlags) {
-        remoteError(VIR_ERR_NO_SUPPORT, "%s", _("no internalFlags support"));
+        remoteError(VIR_ERR_INTERNAL_ERROR, "%s", _("no internalFlags support"));
         goto done;
     }
 
@@ -4299,6 +4371,7 @@ static virDriver remote_driver = {
     .domainMigratePerform = remoteDomainMigratePerform, /* 0.3.2 */
     .domainMigrateFinish = remoteDomainMigrateFinish, /* 0.3.2 */
     .domainBlockStats = remoteDomainBlockStats, /* 0.3.2 */
+    .domainBlockStatsFlags = remoteDomainBlockStatsFlags, /* 0.9.5 */
     .domainInterfaceStats = remoteDomainInterfaceStats, /* 0.3.2 */
     .domainMemoryStats = remoteDomainMemoryStats, /* 0.7.5 */
     .domainBlockPeek = remoteDomainBlockPeek, /* 0.4.2 */
@@ -4327,6 +4400,7 @@ static virDriver remote_driver = {
     .domainAbortJob = remoteDomainAbortJob, /* 0.7.7 */
     .domainMigrateSetMaxDowntime = remoteDomainMigrateSetMaxDowntime, /* 0.8.0 */
     .domainMigrateSetMaxSpeed = remoteDomainMigrateSetMaxSpeed, /* 0.9.0 */
+    .domainMigrateGetMaxSpeed = remoteDomainMigrateGetMaxSpeed, /* 0.9.5 */
     .domainEventRegisterAny = remoteDomainEventRegisterAny, /* 0.8.0 */
     .domainEventDeregisterAny = remoteDomainEventDeregisterAny, /* 0.8.0 */
     .domainManagedSave = remoteDomainManagedSave, /* 0.8.0 */

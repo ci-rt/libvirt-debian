@@ -1257,6 +1257,35 @@ done:
 }
 
 static int
+remoteDomainMigrateGetMaxSpeed(virDomainPtr dom, unsigned long *bandwidth, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_migrate_get_max_speed_args args;
+    remote_domain_migrate_get_max_speed_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof ret);
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_SPEED,
+             (xdrproc_t)xdr_remote_domain_migrate_get_max_speed_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_migrate_get_max_speed_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (bandwidth) HYPER_TO_ULONG(*bandwidth, ret.bandwidth);
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainMigratePerform(virDomainPtr dom, const char *cookie, int cookielen, const char *uri, unsigned long flags, const char *dname, unsigned long resource)
 {
     int rv = -1;
@@ -1386,7 +1415,7 @@ done:
 }
 
 static int
-remoteDomainOpenConsole(virDomainPtr dom, const char *devname, virStreamPtr st, unsigned int flags)
+remoteDomainOpenConsole(virDomainPtr dom, const char *dev_name, virStreamPtr st, unsigned int flags)
 {
     int rv = -1;
     struct private_data *priv = dom->conn->privateData;
@@ -1406,7 +1435,7 @@ remoteDomainOpenConsole(virDomainPtr dom, const char *devname, virStreamPtr st, 
     st->privateData = netst;
 
     make_nonnull_domain(&args.dom, dom);
-    args.devname = devname ? (char **)&devname : NULL;
+    args.dev_name = dev_name ? (char **)&dev_name : NULL;
     args.flags = flags;
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_OPEN_CONSOLE,

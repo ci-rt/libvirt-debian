@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2011-08-02" "libvirt-0.9.4" "Virtualization Support"
+.TH VIRSH 1 "2011-09-20" "libvirt-0.9.5" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -195,7 +195,8 @@ instead of the default connection.
 .IP "\fB\-d\fR, \fB\-\-debug\fR \fI\s-1LEVEL\s0\fR" 4
 .IX Item "-d, --debug LEVEL"
 Enable debug messages at integer \fI\s-1LEVEL\s0\fR and above.  \fI\s-1LEVEL\s0\fR can
-range from 0 (default) to 4.
+range from 0 to 4 (default).  See the documentation of \fB\s-1VIRSH_DEBUG\s0\fR
+environment variable for the description of each \fI\s-1LEVEL\s0\fR.
 .IP "\fB\-l\fR, \fB\-\-log\fR \fI\s-1FILE\s0\fR" 4
 .IX Item "-l, --log FILE"
 Output logging details to \fI\s-1FILE\s0\fR.
@@ -366,8 +367,8 @@ The \s-1XML\s0 also show the \s-1NUMA\s0 topology information if available.
 .IP "\fBinject-nmi\fR \fIdomain-id\fR" 4
 .IX Item "inject-nmi domain-id"
 Inject \s-1NMI\s0 to the guest.
-.IP "\fBlist\fR [\fI\-\-inactive\fR | \fI\-\-all\fR]" 4
-.IX Item "list [--inactive | --all]"
+.IP "\fBlist\fR [\fI\-\-inactive\fR | \fI\-\-all\fR] [\fI\-\-managed\-save\fR]" 4
+.IX Item "list [--inactive | --all] [--managed-save]"
 Prints information about existing domains.  If no options are
 specified it prints out information about running domains.
 .Sp
@@ -405,9 +406,75 @@ The domain has been paused, usually occurring through the administrator
 running \fBvirsh suspend\fR.  When in a paused state the domain will still
 consume allocated resources like memory, but will not be eligible for
 scheduling by the hypervisor.
-.IP "\fBsend-key\fR \fIdomain-id\fR optional \fI\-\-codeset\fR \fBcodeset\fR optional \fI\-\-holdtime\fR \fBholdtime\fR \fBkeycode\fR..." 4
-.IX Item "send-key domain-id optional --codeset codeset optional --holdtime holdtime keycode..."
-Send keys to the guest
+.IP "\fBsend-key\fR \fIdomain-id\fR [\fI\-\-codeset\fR \fBcodeset\fR] [\fI\-\-holdtime\fR \fBholdtime\fR] \fIkeycode\fR..." 4
+.IX Item "send-key domain-id [--codeset codeset] [--holdtime holdtime] keycode..."
+Parse the \fIkeycode\fR sequence as keystrokes to send to \fIdomain-id\fR.
+Each \fIkeycode\fR can either be a numeric value or a symbolic name from
+the corresponding codeset.  If \fI\-\-holdtime\fR is given, each keystroke
+will be held for that many milliseconds.  The default codeset is
+\&\fBlinux\fR, but use of the \fI\-\-codeset\fR option allows other codesets to
+be chosen.
+.RS 4
+.IP "\fBlinux\fR" 4
+.IX Item "linux"
+The numeric values are those defined by the Linux generic input
+event subsystem. The symbolic names match the corresponding
+Linux key constant macro names.
+.IP "\fBxt\fR" 4
+.IX Item "xt"
+The numeric values are those defined by the original \s-1XT\s0 keyboard
+controller. No symbolic names are provided
+.IP "\fBatset1\fR" 4
+.IX Item "atset1"
+The numeric values are those defined by the \s-1AT\s0 keyboard controller,
+set 1 (aka \s-1XT\s0 compatible set). Extended keycoes from \fBatset1\fR
+may differ from extended keycodes in the \fBxt\fR codeset. No symbolic
+names are provided
+.IP "\fBatset2\fR" 4
+.IX Item "atset2"
+The numeric values are those defined by the \s-1AT\s0 keyboard controller,
+set 2. No symbolic names are provided
+.IP "\fBatset3\fR" 4
+.IX Item "atset3"
+The numeric values are those defined by the \s-1AT\s0 keyboard controller,
+set 3 (aka \s-1PS/2\s0 compatible set). No symbolic names are provided
+.IP "\fBos_x\fR" 4
+.IX Item "os_x"
+The numeric values are those defined by the OS-X keyboard input
+subsystem. The symbolic names match the corresponding OS-X key
+constant macro names
+.IP "\fBxt_kbd\fR" 4
+.IX Item "xt_kbd"
+The numeric values are those defined by the Linux \s-1KBD\s0 device.
+These are a variant on the original \s-1XT\s0 codeset, but often with
+different encoding for extended keycodes. No symbolic names are
+provided.
+.IP "\fBwin32\fR" 4
+.IX Item "win32"
+The numeric values are those defined by the Win32 keyboard input
+subsystem. The symbolic names match the corresponding Win32 key
+constant macro names
+.IP "\fBusb\fR" 4
+.IX Item "usb"
+The numeric values are those defined by the \s-1USB\s0 \s-1HID\s0 specification
+for keyboard input. No symbolic names are provided
+.IP "\fBrfb\fR" 4
+.IX Item "rfb"
+The numeric values are those defined by the \s-1RFB\s0 extension for sending
+raw keycodes. These are a variant on the \s-1XT\s0 codeset, but extended
+keycodes have the low bit of the second byte set, instead of the high
+bit of the first byte. No symbolic names are provided.
+.RE
+.RS 4
+.Sp
+\&\fBExamples\fR
+  # send three strokes 'k', 'e', 'y', using xt codeset
+  virsh send-key dom \-\-codeset xt 37 18 21
+  # send one stroke 'right\-ctrl+C'
+  virsh send-key dom \s-1KEY_RIGHTCTRL\s0 \s-1KEY_C\s0
+  # send a tab, held for 1 second
+  virsh send-key \-\-holdtime 1000 0xf
+.RE
 .IP "\fBshutdown\fR" 4
 .IX Item "shutdown"
 The domain is in the process of shutting down, i.e. the guest operating system
@@ -428,6 +495,10 @@ The domain is in process of dying, but hasn't completely shutdown or
 crashed.
 .RE
 .RS 4
+.Sp
+If \fI\-\-managed\-save\fR is specified, then domains that have managed save
+state (only possible if they are in the \fBshut off\fR state) will
+instead show as \fBsaved\fR in the listing.
 .RE
 .IP "\fBfreecell\fR [\fBcellno\fR | \fI\-\-all\fR]" 4
 .IX Item "freecell [cellno | --all]"
@@ -495,18 +566,65 @@ cord out on a physical machine.  In most cases you will want to use
 the \fBshutdown\fR command instead.  However, this does not delete any
 storage volumes used by the guest, and if the domain is persistent, it
 can be restarted later.
-.IP "\fBdomblkstat\fR \fIdomain\fR \fIblock-device\fR" 4
-.IX Item "domblkstat domain block-device"
-Get device block stats for a running domain.
+.Sp
+If \fIdomain-id\fR is transient, then the metadata of any snapshots will
+be lost once the guest stops running, but the snapshot contents still
+exist, and a new domain with the same name and \s-1UUID\s0 can restore the
+snapshot metadata with \fBsnapshot-create\fR.
+.IP "\fBdomblkstat\fR \fIdomain\fR \fIblock-device\fR [\fI\-\-human\fR]" 4
+.IX Item "domblkstat domain block-device [--human]"
+Get device block stats for a running domain.  A \fIblock-device\fR corresponds
+to a unique target name (<target dev='name'/>) or source file (<source
+file='name'/>) for one of the disk devices attached to \fIdomain\fR (see
+also \fBdomblklist\fR for listing these names).
+.Sp
+Use \fI\-\-human\fR for a more human readable output.
+.Sp
+Availability of these fields depends on hypervisor. Unsupported fields are
+missing from the output. Other fields may appear if communicating with a newer
+version of libvirtd.
+.Sp
+\&\fBExplanation of fields\fR (fields appear in the folowing order):
+  rd_req            \- count of read operations
+  rd_bytes          \- count of read bytes
+  wr_req            \- count of write operations
+  wr_bytes          \- count of written bytes
+  errs              \- error count
+  flush_operations  \- count of flush operations
+  rd_total_times    \- total time read operations took (ns)
+  wr_total_times    \- total time write operations took (ns)
+  flush_total_times \- total time flush operations took (ns)
+    <\-\- other fields provided by hypervisor \-\->
 .IP "\fBdomifstat\fR \fIdomain\fR \fIinterface-device\fR" 4
 .IX Item "domifstat domain interface-device"
 Get network interface stats for a running domain.
+.IP "\fBdomif-setlink\fR \fIdomain\fR \fIinterface-MAC\fR \fIstate\fR \fI\-\-persistent\fR" 4
+.IX Item "domif-setlink domain interface-MAC state --persistent"
+Modify link state of the domain's virtual interface. Possible values for
+state are \*(L"up\*(R" and "down. If \-\-persistent is specified, only the persistent
+configuration of the domain is modified.
+.IP "\fBdomif-getlink\fR \fIdomain\fR \fIinterface-MAC\fR \fI\-\-persistent\fR" 4
+.IX Item "domif-getlink domain interface-MAC --persistent"
+Query link state of the domain's virtual interface. If \-\-persistent
+is specified, query the persistent configuration.
 .IP "\fBdommemstat\fR \fIdomain\fR" 4
 .IX Item "dommemstat domain"
 Get memory stats for a running domain.
 .IP "\fBdomblkinfo\fR \fIdomain\fR \fIblock-device\fR" 4
 .IX Item "domblkinfo domain block-device"
-Get block device size info for a domain.
+Get block device size info for a domain.  A \fIblock-device\fR corresponds
+to a unique target name (<target dev='name'/>) or source file (<source
+file='name'/>) for one of the disk devices attached to \fIdomain\fR (see
+also \fBdomblklist\fR for listing these names).
+.IP "\fBdomblklist\fR \fIdomain\fR [\fI\-\-inactive\fR]" 4
+.IX Item "domblklist domain [--inactive]"
+Print a table showing the names of all block devices associated with
+\&\fIdomain\fR, as well as the path to the source of each device.  If
+\&\fI\-\-inactive\fR is specified, query the block devices that will be used
+on the next boot, rather than those currently in use by a running
+domain.  Other contexts that require a block device name (such as
+\&\fIdomblkinfo\fR or \fIsnapshot-create\fR for disk snapshots) will accept
+either target or unique source names printed by this command.
 .IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR]" 4
 .IX Item "blockpull domain path [bandwidth]"
 Populate a disk from its backing image. Once all data from its backing
@@ -570,13 +688,16 @@ If \fI\-\-crash\fR is specified, the domain is halted with a crashed status,
 rather than merely left in a paused state.
 If \fI\-\-bypass\-cache\fR is specified, the save will avoid the file system
 cache, although this may slow down the operation.
+.Sp
+\&\s-1NOTE:\s0 Some hypervisors may require the user to manually ensure proper
+permissions on file and path specified by argument \fIcorefilepath\fR.
 .IP "\fBdumpxml\fR \fIdomain-id\fR [\fI\-\-inactive\fR] [\fI\-\-security\-info\fR] [\fI\-\-update\-cpu\fR]" 4
 .IX Item "dumpxml domain-id [--inactive] [--security-info] [--update-cpu]"
 Output the domain information as an \s-1XML\s0 dump to stdout, this format can be used
 by the \fBcreate\fR command. Additional options affecting the \s-1XML\s0 dump may be
 used. \fI\-\-inactive\fR tells virsh to dump domain configuration that will be used
 on next start of the domain as opposed to the current domain configuration.
-Using \fI\-\-security\-info\fR security sensitive information will also be included
+Using \fI\-\-security\-info\fR will also include security sensitive information
 in the \s-1XML\s0 dump. \fI\-\-update\-cpu\fR updates domain \s-1CPU\s0 requirements according to
 host \s-1CPU\s0.
 .IP "\fBecho\fR [\fI\-\-shell\fR] [\fI\-\-xml\fR] [\fIarg\fR...]" 4
@@ -601,13 +722,18 @@ except that it does some error checking.
 .Sp
 The editor used can be supplied by the \f(CW$VISUAL\fR or \f(CW$EDITOR\fR environment
 variables, and defaults to \f(CW\*(C`vi\*(C'\fR.
-.IP "\fBmanagedsave\fR \fIdomain-id\fR [\fI\-\-bypass\-cache\fR]" 4
-.IX Item "managedsave domain-id [--bypass-cache]"
+.IP "\fBmanagedsave\fR \fIdomain-id\fR [\fI\-\-bypass\-cache\fR] [{\fI\-\-running\fR | \fI\-\-paused\fR}]" 4
+.IX Item "managedsave domain-id [--bypass-cache] [{--running | --paused}]"
 Save and destroy (stop) a running domain, so it can be restarted from the same
 state at a later time.  When the virsh \fBstart\fR command is next run for
 the domain, it will automatically be started from this saved state.
 If \fI\-\-bypass\-cache\fR is specified, the save will avoid the file system
 cache, although this may slow down the operation.
+.Sp
+Normally, starting a managed save will decide between running or paused
+based on the state the domain was in when the save was done; passing
+either the \fI\-\-running\fR or \fI\-\-paused\fR flag will allow overriding which
+state the \fBstart\fR should use.
 .Sp
 The \fBdominfo\fR command can be used to query whether a domain currently
 has any managed save image.
@@ -670,6 +796,9 @@ to be down at the end of live migration.
 .IX Item "migrate-setspeed domain-id bandwidth"
 Set the maximum migration bandwidth (in Mbps) for a domain which is being
 migrated to another host.
+.IP "\fBmigrate-getspeed\fR \fIdomain-id\fR" 4
+.IX Item "migrate-getspeed domain-id"
+Get the maximum migration bandwidth (in Mbps) for a domain.
 .IP "\fBreboot\fR \fIdomain-id\fR" 4
 .IX Item "reboot domain-id"
 Reboot a domain.  This acts just as if the domain had the \fBreboot\fR
@@ -679,8 +808,8 @@ domain actually reboots.
 .Sp
 The exact behavior of a domain when it reboots is set by the
 \&\fIon_reboot\fR parameter in the domain's \s-1XML\s0 definition.
-.IP "\fBrestore\fR \fIstate-file\fR [\fI\-\-bypass\-cache\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
-.IX Item "restore state-file [--bypass-cache] [--xml file]"
+.IP "\fBrestore\fR \fIstate-file\fR [\fI\-\-bypass\-cache\fR] [\fI\-\-xml\fR \fBfile\fR] [{\fI\-\-running\fR | \fI\-\-paused\fR}]" 4
+.IX Item "restore state-file [--bypass-cache] [--xml file] [{--running | --paused}]"
 Restores a domain from a \fBvirsh save\fR state file. See \fIsave\fR for more info.
 .Sp
 If \fI\-\-bypass\-cache\fR is specified, the restore will avoid the file system
@@ -692,12 +821,17 @@ in the host-specific portions of the domain \s-1XML\s0.  For example, it can
 be used to account for file naming differences in underlying storage
 due to disk snapshots taken after the guest was saved.
 .Sp
+Normally, restoring a saved image will use the state recorded in the
+save image to decide between running or paused; passing either the
+\&\fI\-\-running\fR or \fI\-\-paused\fR flag will allow overriding which state the
+domain should be started in.
+.Sp
 \&\fBNote\fR: To avoid corrupting file system contents within the domain, you
 should not reuse the saved state file for a second \fBrestore\fR unless you
 have also reverted all storage volumes back to the same contents as when
 the state file was created.
-.IP "\fBsave\fR \fIdomain-id\fR \fIstate-file\fR [\fI\-\-bypass\-cache\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
-.IX Item "save domain-id state-file [--bypass-cache] [--xml file]"
+.IP "\fBsave\fR \fIdomain-id\fR \fIstate-file\fR [\fI\-\-bypass\-cache\fR] [\fI\-\-xml\fR \fBfile\fR] [{\fI\-\-running\fR | \fI\-\-paused\fR}]" 4
+.IX Item "save domain-id state-file [--bypass-cache] [--xml file] [{--running | --paused}]"
 Saves a running domain (\s-1RAM\s0, but not disk state) to a state file so that
 it can be restored
 later.  Once saved, the domain will no longer be running on the
@@ -716,27 +850,42 @@ in the host-specific portions of the domain \s-1XML\s0.  For example, it can
 be used to account for file naming differences that are planned to
 be made via disk snapshots of underlying storage after the guest is saved.
 .Sp
+Normally, restoring a saved image will decide between running or paused
+based on the state the domain was in when the save was done; passing
+either the \fI\-\-running\fR or \fI\-\-paused\fR flag will allow overriding which
+state the \fBrestore\fR should use.
+.Sp
 Domain saved state files assume that disk images will be unchanged
 between the creation and restore point.  For a more complete system
 restore point, where the disk state is saved alongside the memory
 state, see the \fBsnapshot\fR family of commands.
-.IP "\fBsave-image-define\fR \fIfile\fR \fIxml\fR" 4
-.IX Item "save-image-define file xml"
+.IP "\fBsave-image-define\fR \fIfile\fR \fIxml\fR [{\fI\-\-running\fR | \fI\-\-paused\fR}]" 4
+.IX Item "save-image-define file xml [{--running | --paused}]"
 Update the domain \s-1XML\s0 that will be used when \fIfile\fR is later
 used in the \fBrestore\fR command.  The \fIxml\fR argument must be a file
 name containing the alternative \s-1XML\s0, with changes only in the
 host-specific portions of the domain \s-1XML\s0.  For example, it can
 be used to account for file naming differences resulting from creating
 disk snapshots of underlying storage after the guest was saved.
+.Sp
+The save image records whether the domain should be restored to a
+running or paused state.  Normally, this command does not alter the
+recorded state; passing either the \fI\-\-running\fR or \fI\-\-paused\fR flag
+will allow overriding which state the \fBrestore\fR should use.
 .IP "\fBsave-image-dumpxml\fR \fIfile\fR [\fI\-\-security\-info\fR]" 4
 .IX Item "save-image-dumpxml file [--security-info]"
 Extract the domain \s-1XML\s0 that was in effect at the time the saved state
 file \fIfile\fR was created with the \fBsave\fR command.  Using
 \&\fI\-\-security\-info\fR will also include security sensitive information.
-.IP "\fBsave-image-edit\fR \fIfile\fR" 4
-.IX Item "save-image-edit file"
+.IP "\fBsave-image-edit\fR \fIfile\fR [{\fI\-\-running\fR | \fI\-\-paused\fR}]" 4
+.IX Item "save-image-edit file [{--running | --paused}]"
 Edit the \s-1XML\s0 configuration associated with a saved state file \fIfile\fR
 created by the \fBsave\fR command.
+.Sp
+The save image records whether the domain should be restored to a
+running or paused state.  Normally, this command does not alter the
+recorded state; passing either the \fI\-\-running\fR or \fI\-\-paused\fR flag
+will allow overriding which state the \fBrestore\fR should use.
 .Sp
 This is equivalent to:
 .Sp
@@ -759,7 +908,9 @@ variables, and defaults to \f(CW\*(C`vi\*(C'\fR.
 Allows you to show (and set) the domain scheduler parameters. The parameters
 available for each hypervisor are:
 .Sp
-\&\s-1LXC\s0, \s-1QEMU/KVM\s0 (posix scheduler): cpu_shares
+\&\s-1LXC\s0 (posix scheduler) : cpu_shares
+.Sp
+\&\s-1QEMU/KVM\s0 (posix scheduler): cpu_shares, vcpu_period, vcpu_quota
 .Sp
 Xen (credit scheduler): weight, cap
 .Sp
@@ -775,6 +926,11 @@ Therefore, \-1 is a useful shorthand for 262144.
 .Sp
 \&\fBNote\fR: The weight and cap parameters are defined only for the
 \&\s-1XEN_CREDIT\s0 scheduler and are now \fI\s-1DEPRECATED\s0\fR.
+.Sp
+\&\fBNote\fR: The vcpu_period parameter has a valid value range of 1000\-1000000 or
+0, and the vcpu_quota parameter has a valid value range of
+1000\-18446744073709551 or less than 0. The value 0 for either parameter is
+the same as not specifying that parameter.
 .IP "\fBscreenshot\fR \fIdomain-id\fR [\fIimagefilepath\fR] [\fI\-\-screen\fR \fBscreenID\fR]" 4
 .IX Item "screenshot domain-id [imagefilepath] [--screen screenID]"
 Takes a screenshot of a current domain console and stores it into a file.
@@ -905,8 +1061,13 @@ services must be shutdown in the domain.
 .Sp
 The exact behavior of a domain when it shuts down is set by the
 \&\fIon_shutdown\fR parameter in the domain's \s-1XML\s0 definition.
-.IP "\fBstart\fR \fIdomain-name\fR [\fI\-\-console\fR] [\fI\-\-paused\fR] [\fI\-\-autodestroy\fR] [\fI\-\-bypass\-cache\fR]" 4
-.IX Item "start domain-name [--console] [--paused] [--autodestroy] [--bypass-cache]"
+.Sp
+If \fIdomain-id\fR is transient, then the metadata of any snapshots will
+be lost once the guest stops running, but the snapshot contents still
+exist, and a new domain with the same name and \s-1UUID\s0 can restore the
+snapshot metadata with \fBsnapshot-create\fR.
+.IP "\fBstart\fR \fIdomain-name\fR [\fI\-\-console\fR] [\fI\-\-paused\fR] [\fI\-\-autodestroy\fR] [\fI\-\-bypass\-cache\fR] [\fI\-\-force\-boot\fR]" 4
+.IX Item "start domain-name [--console] [--paused] [--autodestroy] [--bypass-cache] [--force-boot]"
 Start a (previously defined) inactive domain, either from the last
 \&\fBmanagedsave\fR state, or via a fresh boot if no managedsave state is
 present.  The domain will be paused if the \fI\-\-paused\fR option is
@@ -916,7 +1077,8 @@ If \fI\-\-autodestroy\fR is requested, then the guest will be automatically
 destroyed when virsh closes its connection to libvirt, or otherwise
 exits.  If \fI\-\-bypass\-cache\fR is specified, and managedsave state exists,
 the restore will avoid the file system cache, although this may slow
-down the operation.
+down the operation.  If \fI\-\-force\-boot\fR is specified, then any
+managedsave state is discarded and a fresh boot occurs.
 .IP "\fBsuspend\fR \fIdomain-id\fR" 4
 .IX Item "suspend domain-id"
 Suspend a running domain. It is kept in memory but won't be scheduled
@@ -930,15 +1092,21 @@ hypervisor.
 .IX Item "ttyconsole domain-id"
 Output the device used for the \s-1TTY\s0 console of the domain. If the information
 is not available the processes will provide an exit code of 1.
-.IP "\fBundefine\fR \fIdomain-id\fR [\fI\-\-managed\-save\fR]" 4
-.IX Item "undefine domain-id [--managed-save]"
+.IP "\fBundefine\fR \fIdomain-id\fR [\fI\-\-managed\-save\fR] [\fI\-\-snapshots\-metadata]\fR" 4
+.IX Item "undefine domain-id [--managed-save] [--snapshots-metadata]"
 Undefine a domain. If the domain is running, this converts it to a
 transient domain, without stopping it. If the domain is inactive,
 the domain configuration is removed.
 .Sp
-The \fI\-\-managed\-save\fR flag guarantees that any managed save image(see
+The \fI\-\-managed\-save\fR flag guarantees that any managed save image (see
 the \fBmanagedsave\fR command) is also cleaned up.  Without the flag, attempts
 to undefine a domain with a managed save image will fail.
+.Sp
+The \fI\-\-snapshots\-metadata\fR flag guarantees that any snapshots (see the
+\&\fBsnapshot-list\fR command) are also cleaned up when undefining an inactive
+domain.  Without the flag, attempts to undefine an inactive domain with
+snapshot metadata will fail.  If the domain is active, this flag is
+ignored.
 .Sp
 \&\s-1NOTE:\s0 For an inactive domain, the domain name or \s-1UUID\s0 must be used as the
 \&\fIdomain-id\fR.
@@ -1005,14 +1173,16 @@ the single existing device; consider using \fBupdate-device\fR for this usage.
 .IX Item "attach-disk domain-id source target [--driver driver] [--subdriver subdriver] [--cache cache] [--type type] [--mode mode] [--persistent] [--sourcetype soucetype] [--serial serial] [--shareable] [--address address]"
 Attach a new disk device to the domain.
 \&\fIsource\fR and \fItarget\fR are paths for the files and devices.
-\&\fIdriver\fR can be \fIfile\fR, \fItap\fR or \fIphy\fR depending on the kind of access.
+\&\fIdriver\fR can be \fIfile\fR, \fItap\fR or \fIphy\fR for the Xen hypervisor depending on
+the kind of access; or \fIqemu\fR for the \s-1QEMU\s0 emulator.
 \&\fItype\fR can indicate \fIcdrom\fR or \fIfloppy\fR as alternative to the disk default,
 although this use only replaces the media within the existing virtual cdrom or
 floppy device; consider using \fBupdate-device\fR for this usage instead.
 \&\fImode\fR can specify the two specific mode \fIreadonly\fR or \fIshareable\fR.
 \&\fIpersistent\fR indicates the changes will affect the next boot of the domain.
 \&\fIsourcetype\fR can indicate the type of source (block|file)
-\&\fIcache\fR can be one of \*(L"default\*(R", \*(L"none\*(R", \*(L"writethrough\*(R" or \*(L"writeback\*(R".
+\&\fIcache\fR can be one of \*(L"default\*(R", \*(L"none\*(R", \*(L"writethrough\*(R", \*(L"writeback\*(R", or
+\&\*(L"directsync\*(R".
 \&\fIserial\fR is the serial of disk device. \fIshareable\fR indicates the disk device
 is shareable between domains.
 \&\fIaddress\fR is the address of disk device in the form of pci:domain.bus.slot.function,
@@ -1221,9 +1391,18 @@ where the query is performed.
 .IP "\fBpool-autostart\fR \fIpool-or-uuid\fR [\fI\-\-disable\fR]" 4
 .IX Item "pool-autostart pool-or-uuid [--disable]"
 Configure whether \fIpool\fR should automatically start at boot.
-.IP "\fBpool-build\fR \fIpool-or-uuid\fR" 4
-.IX Item "pool-build pool-or-uuid"
+.IP "\fBpool-build\fR \fIpool-or-uuid\fR [\fI\-\-overwrite\fR] [\fI\-\-no\-overwrite\fR]" 4
+.IX Item "pool-build pool-or-uuid [--overwrite] [--no-overwrite]"
 Build a given pool.
+.Sp
+Options \fI\-\-overwrite\fR and \fI\-\-no\-overwrite\fR can only be used for
+\&\fBpool-build\fR a filesystem pool. If neither of them is specified,
+\&\fBpool-build\fR on a filesystem pool only makes the directory; If
+\&\fI\-\-no\-overwrite\fR is specified, it probes to determine if a
+filesystem already exists on the target device, returning an error
+if exists, or using mkfs to format the target device if not; If
+\&\fI\-\-overwrite\fR is specified, mkfs is always executed, any existed
+data on the target device is overwritten unconditionally.
 .IP "\fBpool-create\fR \fIfile\fR" 4
 .IX Item "pool-create file"
 Create and start a pool object from the \s-1XML\s0 \fIfile\fR.
@@ -1456,41 +1635,152 @@ image to saving a domain's state before a potentially destructive operation.
 Snapshots are identified with a unique name.  See
 <http://libvirt.org/formatsnapshot.html> for documentation of the \s-1XML\s0 format
 used to represent properties of snapshots.
-.IP "\fBsnapshot-create\fR \fIdomain\fR [\fIxmlfile\fR]" 4
-.IX Item "snapshot-create domain [xmlfile]"
+.IP "\fBsnapshot-create\fR \fIdomain\fR [\fIxmlfile\fR] {[\fI\-\-redefine\fR [\fI\-\-current\fR]] | [\fI\-\-no\-metadata\fR] [\fI\-\-halt\fR] [\fI\-\-disk\-only\fR]}" 4
+.IX Item "snapshot-create domain [xmlfile] {[--redefine [--current]] | [--no-metadata] [--halt] [--disk-only]}"
 Create a snapshot for domain \fIdomain\fR with the properties specified in
-\&\fIxmlfile\fR.  The only properties settable for a domain snapshot are the
-<name> and <description>; the rest of the fields are ignored, and
-automatically filled in by libvirt.  If \fIxmlfile\fR is completely omitted,
-then libvirt will choose a value for all fields.
-.IP "\fBsnapshot-create-as\fR \fIdomain\fR [\fI\-\-print\-xml\fR] [\fIname\fR] [\fIdescription\fR]" 4
-.IX Item "snapshot-create-as domain [--print-xml] [name] [description]"
+\&\fIxmlfile\fR.  Normally, the only properties settable for a domain snapshot
+are the <name> and <description> elements, as well as <disks> if
+\&\fI\-\-disk\-only\fR is given; the rest of the fields are
+ignored, and automatically filled in by libvirt.  If \fIxmlfile\fR is
+completely omitted, then libvirt will choose a value for all fields.
+The new snapshot will become current, as listed by \fBsnapshot-current\fR.
+.Sp
+If \fI\-\-halt\fR is specified, the domain will be left in an inactive state
+after the snapshot is created.
+.Sp
+If \fI\-\-disk\-only\fR is specified, the snapshot will only include disk
+state rather than the usual system checkpoint with vm state.  Disk
+snapshots are faster than full system checkpoints, but reverting to a
+disk snapshot may require fsck or journal replays, since it is like
+the disk state at the point when the power cord is abruptly pulled;
+and mixing \fI\-\-halt\fR and \fI\-\-disk\-only\fR loses any data that was not
+flushed to disk at the time.
+.Sp
+If \fI\-\-redefine\fR is specified, then all \s-1XML\s0 elements produced by
+\&\fBsnapshot-dumpxml\fR are valid; this can be used to migrate snapshot
+hierarchy from one machine to another, to recreate hierarchy for the
+case of a transient domain that goes away and is later recreated with
+the same name and \s-1UUID\s0, or to make slight alterations in the snapshot
+metadata (such as host-specific aspects of the domain \s-1XML\s0 embedded in
+the snapshot).  When this flag is supplied, the \fIxmlfile\fR argument
+is mandatory, and the domain's current snapshot will not be altered
+unless the \fI\-\-current\fR flag is also given.
+.Sp
+If \fI\-\-no\-metadata\fR is specified, then the snapshot data is created,
+but any metadata is immediately discarded (that is, libvirt does not
+treat the snapshot as current, and cannot revert to the snapshot
+unless \fI\-\-redefine\fR is later used to teach libvirt about the
+metadata again).
+.Sp
+Existence of snapshot metadata will prevent attempts to \fBundefine\fR
+a persistent domain.  However, for transient domains, snapshot
+metadata is silently lost when the domain quits running (whether
+by command such as \fBdestroy\fR or by internal guest action).
+.IP "\fBsnapshot-create-as\fR \fIdomain\fR {[\fI\-\-print\-xml\fR] | [\fI\-\-no\-metadata\fR] [\fI\-\-halt\fR]} [\fIname\fR] [\fIdescription\fR] [\fI\-\-disk\-only\fR [[\fI\-\-diskspec\fR] \fBdiskspec\fR]..." 4
+.IX Item "snapshot-create-as domain {[--print-xml] | [--no-metadata] [--halt]} [name] [description] [--disk-only [[--diskspec] diskspec]..."
 Create a snapshot for domain \fIdomain\fR with the given <name> and
 <description>; if either value is omitted, libvirt will choose a
 value.  If \fI\-\-print\-xml\fR is specified, then \s-1XML\s0 appropriate for
 \&\fIsnapshot-create\fR is output, rather than actually creating a snapshot.
-.IP "\fBsnapshot-current\fR \fIdomain\fR" 4
-.IX Item "snapshot-current domain"
-Output the snapshot \s-1XML\s0 for the domain's current snapshot (if any).
-.IP "\fBsnapshot-list\fR \fIdomain\fR" 4
-.IX Item "snapshot-list domain"
+Otherwise, if \fI\-\-halt\fR is specified, the domain will be left in an
+inactive state after the snapshot is created, and if \fI\-\-disk\-only\fR
+is specified, the snapshot will not include vm state.
+.Sp
+The \fI\-\-disk\-only\fR flag is used to request a disk-only snapshot.  When
+this flag is in use, the command can also take additional \fIdiskspec\fR
+arguments to add <disk> elements to the xml.  Each <diskspec> is in the
+form \fBdisk[,snapshot=type][,driver=type][,file=name]\fR.  To include a
+literal comma in \fBdisk\fR or in \fBfile=name\fR, escape it with a second
+comma.  A literal \fI\-\-diskspec\fR must preceed each \fBdiskspec\fR unless
+all three of \fIdomain\fR, \fIname\fR, and \fIdescription\fR are also present.
+For example, a diskspec of \*(L"vda,snapshot=external,file=/path/to,,new\*(R"
+results in the following \s-1XML:\s0
+  <disk name='vda' snapshot='external'>
+    <source file='/path/to,new'/>
+  </disk>
+.Sp
+If \fI\-\-no\-metadata\fR is specified, then the snapshot data is created,
+but any metadata is immediately discarded (that is, libvirt does not
+treat the snapshot as current, and cannot revert to the snapshot
+unless \fBsnapshot-create\fR is later used to teach libvirt about the
+metadata again).  This flag is incompatible with \fI\-\-print\-xml\fR.
+.IP "\fBsnapshot-current\fR \fIdomain\fR {[\fI\-\-name\fR] | [\fI\-\-security\-info] | [\fIsnapshotname\fI]}\fR" 4
+.IX Item "snapshot-current domain {[--name] | [--security-info] | [snapshotname]}"
+Without \fIsnapshotname\fR, this will output the snapshot \s-1XML\s0 for the domain's
+current snapshot (if any).  If \fI\-\-name\fR is specified, just the
+current snapshot name instead of the full xml.  Otherwise, using
+\&\fI\-\-security\-info\fR will also include security sensitive information in
+the \s-1XML\s0.
+.Sp
+With \fIsnapshotname\fR, this is a request to make the existing named
+snapshot become the current snapshot, without reverting the domain.
+.IP "\fBsnapshot-edit\fR \fIdomain\fR \fIsnapshotname\fR [\fI\-\-current\fR]" 4
+.IX Item "snapshot-edit domain snapshotname [--current]"
+Edit the \s-1XML\s0 configuration file for \fIsnapshotname\fR of a domain.  If
+\&\fI\-\-current\fR is specified, also force the edited snapshot to become
+the current snapshot.
+.Sp
+This is equivalent to:
+.Sp
+.Vb 3
+\& virsh snapshot\-dumpxml dom name > snapshot.xml
+\& vi snapshot.xml (or make changes with your other text editor)
+\& virsh snapshot\-create dom snapshot.xml \-\-redefine [\-\-current]
+.Ve
+.Sp
+except that it does some error checking.
+.Sp
+The editor used can be supplied by the \f(CW$VISUAL\fR or \f(CW$EDITOR\fR environment
+variables, and defaults to \f(CW\*(C`vi\*(C'\fR.
+.IP "\fBsnapshot-list\fR \fIdomain\fR [{\fI\-\-parent\fR | \fI\-\-roots\fR}] [\fI\-\-metadata\fR]" 4
+.IX Item "snapshot-list domain [{--parent | --roots}] [--metadata]"
 List all of the available snapshots for the given domain.
-.IP "\fBsnapshot-dumpxml\fR \fIdomain\fR \fIsnapshot\fR" 4
-.IX Item "snapshot-dumpxml domain snapshot"
+.Sp
+If \fI\-\-parent\fR is specified, add a column to the output table giving
+the name of the parent of each snapshot.
+.Sp
+If \fI\-\-roots\fR is specified, the list will be filtered to just snapshots
+that have no parents; this option is not compatible with \fI\-\-parent\fR.
+.Sp
+If \fI\-\-metadata\fR is specified, the list will be filtered to just
+snapshots that involve libvirt metadata, and thus would prevent
+\&\fBundefine\fR of a persistent domain, or be lost on \fBdestroy\fR of
+a transient domain.
+.IP "\fBsnapshot-dumpxml\fR \fIdomain\fR \fIsnapshot\fR [\fI\-\-security\-info\fR]" 4
+.IX Item "snapshot-dumpxml domain snapshot [--security-info]"
 Output the snapshot \s-1XML\s0 for the domain's snapshot named \fIsnapshot\fR.
-.IP "\fBsnapshot-revert\fR \fIdomain\fR \fIsnapshot\fR" 4
-.IX Item "snapshot-revert domain snapshot"
+Using \fI\-\-security\-info\fR will also include security sensitive information.
+.IP "\fBsnapshot-parent\fR \fIdomain\fR \fIsnapshot\fR" 4
+.IX Item "snapshot-parent domain snapshot"
+Output the name of the parent snapshot for the given \fIsnapshot\fR, if any.
+.IP "\fBsnapshot-revert\fR \fIdomain\fR \fIsnapshot\fR [{\fI\-\-running\fR | \fI\-\-paused\fR}]" 4
+.IX Item "snapshot-revert domain snapshot [{--running | --paused}]"
 Revert the given domain to the snapshot specified by \fIsnapshot\fR.  Be aware
-that this is a destructive action; any changes in the domain since the
+that this is a destructive action; any changes in the domain since the last
 snapshot was taken will be lost.  Also note that the state of the domain after
 snapshot-revert is complete will be the state of the domain at the time
 the original snapshot was taken.
-.IP "\fBsnapshot-delete\fR \fIdomain\fR \fIsnapshot\fR \fI\-\-children\fR" 4
-.IX Item "snapshot-delete domain snapshot --children"
+.Sp
+Normally, reverting to a snapshot leaves the domain in the state it was
+at the time the snapshot was created, except that a disk snapshot with
+no vm state leaves the domain in an inactive state.  Passing either the
+\&\fI\-\-running\fR or \fI\-\-paused\fR flag will perform additional state changes
+(such as booting an inactive domain, or pausing a running domain).  Since
+transient domains cannot be inactive, it is required to use one of these
+flags when reverting to a disk snapshot of a transient domain.
+.IP "\fBsnapshot-delete\fR \fIdomain\fR \fIsnapshot\fR [\fI\-\-metadata\fR] [{\fI\-\-children\fR | \fI\-\-children\-only\fR}]" 4
+.IX Item "snapshot-delete domain snapshot [--metadata] [{--children | --children-only}]"
 Delete the snapshot for the domain named \fIsnapshot\fR.  If this snapshot
 has child snapshots, changes from this snapshot will be merged into the
 children.  If \fI\-\-children\fR is passed, then delete this snapshot and any
-children of this snapshot.
+children of this snapshot.  If \fI\-\-children\-only\fR is passed, then delete
+any children of this snapshot, but leave this snapshot intact.  These
+two flags are mutually exclusive.
+.Sp
+If \fI\-\-metadata\fR is specified, then only delete the snapshot metadata
+maintained by libvirt, while leaving the snapshot contents intact for
+access by external tools; otherwise deleting a snapshot also removes
+the data contents from that point in time.
 .SH "NWFILTER COMMMANDS"
 .IX Header "NWFILTER COMMMANDS"
 The following commands manipulate network filters. Network filters allow
@@ -1566,13 +1856,15 @@ attaching to an externally launched \s-1QEMU\s0 process. There may be
 issues with the guest \s-1ABI\s0 changing upon migration, and hotunplug
 may not work.
 .RE
-.IP "\fBqemu-monitor-command\fR \fIdomain\fR \fIcommand\fR [\fI\-\-hmp\fR]" 4
-.IX Item "qemu-monitor-command domain command [--hmp]"
+.IP "\fBqemu-monitor-command\fR \fIdomain\fR [\fI\-\-hmp\fR] \fIcommand\fR..." 4
+.IX Item "qemu-monitor-command domain [--hmp] command..."
 Send an arbitrary monitor command \fIcommand\fR to domain \fIdomain\fR through the
 qemu monitor.  The results of the command will be printed on stdout.  If
 \&\fI\-\-hmp\fR is passed, the command is considered to be a human monitor command
 and libvirt will automatically convert it into \s-1QMP\s0 if needed.  In that case
-the result will also be converted back from \s-1QMP\s0.
+the result will also be converted back from \s-1QMP\s0.  If more than one argument
+is provided for \fIcommand\fR, they are concatenated with a space in between
+before passing the single command to the monitor.
 .SH "ENVIRONMENT"
 .IX Header "ENVIRONMENT"
 The following environment variables can be set to alter the behaviour
@@ -1663,3 +1955,12 @@ is \s-1NO\s0 warranty; not even for \s-1MERCHANTABILITY\s0 or \s-1FITNESS\s0 \s-
 .IX Header "SEE ALSO"
 \&\fIvirt\-install\fR\|(1), \fIvirt\-xml\-validate\fR\|(1), \fIvirt\-top\fR\|(1), \fIvirt\-df\fR\|(1),
 <http://www.libvirt.org/>
+.SH "POD ERRORS"
+.IX Header "POD ERRORS"
+Hey! \fBThe above document had some coding errors, which are explained below:\fR
+.IP "Around line 1090:" 4
+.IX Item "Around line 1090:"
+Unterminated I<...> sequence
+.IP "Around line 1827:" 4
+.IX Item "Around line 1827:"
+Unterminated I<...> sequence

@@ -128,6 +128,13 @@
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='path' type='char *' info='the path for the block device'/>
     </function>
+    <function name='virDomainBlockStatsFlags' file='python'>
+      <info>Extracts block device statistics parameters of a running domain</info>
+      <return type='virTypedParameterPtr' info='None in case of error, returns a dictionary of params'/>
+      <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='path' type='char *' info='the path for the block device'/>
+      <arg name='flags' type='int' info='flags (unused; pass 0)'/>
+    </function>
     <function name='virDomainInterfaceStats' file='python'>
       <info>Extracts interface device statistics for a domain</info>
       <return type='virDomainInterfaceStats' info='a tuple of statistics'/>
@@ -355,6 +362,12 @@
       <arg name='path' type='const char *' info='Fully-qualified filename of disk'/>
       <arg name='flags' type='unsigned int' info='fine-tuning flags, currently unused, pass 0.'/>
       <return type='virDomainBlockJobInfo' info='A dictionary containing job information.' />
+    </function>
+    <function name='virDomainMigrateGetMaxSpeed' file='python'>
+      <info>Get currently configured maximum migration speed for a domain</info>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='flags' type='unsigned int' info='flags, currently unused, pass 0.'/>
+      <return type='unsigned long' info='current max migration speed, or None in case of error'/>
     </function>
   </symbols>
 </api>

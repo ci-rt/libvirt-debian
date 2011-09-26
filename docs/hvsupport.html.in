@@ -21,6 +21,7 @@ in.
 <th>Version</th>
   <th>esx</th>
   <th>hal</th>
+  <th>hyperv</th>
   <th>remote</th>
   <th>test</th>
   <th>udev</th>
@@ -32,6 +33,7 @@ in.
 <td>0.0.3</td>
 <td>0.7.6</td>
 <td>0.5.0</td>
+<td>0.9.5</td>
 <td>0.5.0</td>
 <td>0.6.0</td>
 <td>0.7.3</td>
@@ -41,6 +43,7 @@ in.
 <td>0.0.3</td>
 <td>0.7.6</td>
 <td>0.5.0</td>
+<td>0.9.5</td>
 <td>0.5.0</td>
 <td>0.6.0</td>
 <td>0.7.3</td>
@@ -50,6 +53,7 @@ in.
 <td>0.6.3</td>
 <td></td>
 <td>0.6.5</td>
+<td></td>
 <td>0.6.3</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -59,6 +63,7 @@ in.
 <td>0.6.3</td>
 <td></td>
 <td>0.6.5</td>
+<td></td>
 <td>0.6.3</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -68,6 +73,7 @@ in.
 <td>0.5.0</td>
 <td></td>
 <td>0.5.0</td>
+<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -77,6 +83,7 @@ in.
 <td>0.5.0</td>
 <td></td>
 <td>0.5.0</td>
+<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -86,6 +93,7 @@ in.
 <td>0.5.0</td>
 <td></td>
 <td>0.5.0</td>
+<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -95,6 +103,7 @@ in.
 <td>0.5.0</td>
 <td></td>
 <td>0.5.0</td>
+<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -104,6 +113,7 @@ in.
 <td>0.5.0</td>
 <td></td>
 <td>0.5.0</td>
+<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -113,6 +123,7 @@ in.
 <td>0.5.0</td>
 <td></td>
 <td>0.5.0</td>
+<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -122,6 +133,7 @@ in.
 <td>0.5.0</td>
 <td></td>
 <td>0.5.0</td>
+<td></td>
 <td>0.5.0</td>
 <td>0.7.2</td>
 <td>0.7.3</td>
@@ -135,6 +147,7 @@ in.
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
@@ -158,6 +171,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.7.7</td>
 <td>0.7.7</td>
 <td></td>
@@ -171,6 +185,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectClose">virConnectClose</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -192,6 +207,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.7.5</td>
 <td>0.7.5</td>
 <td></td>
@@ -204,6 +220,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virConnectDomainEventDeregister">virConnectDomainEventDeregister</a></td>
 <td>0.5.0</td>
+<td></td>
 <td></td>
 <td>0.9.0</td>
 <td>0.7.0</td>
@@ -222,6 +239,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectDomainEventDeregisterAny">virConnectDomainEventDeregisterAny</a></td>
 <td>0.8.0</td>
 <td></td>
+<td></td>
 <td>0.9.0</td>
 <td>0.8.0</td>
 <td></td>
@@ -238,6 +256,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virConnectDomainEventRegister">virConnectDomainEventRegister</a></td>
 <td>0.5.0</td>
+<td></td>
 <td></td>
 <td>0.9.0</td>
 <td>0.7.0</td>
@@ -256,6 +275,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectDomainEventRegisterAny">virConnectDomainEventRegisterAny</a></td>
 <td>0.8.0</td>
 <td></td>
+<td></td>
 <td>0.9.0</td>
 <td>0.8.0</td>
 <td></td>
@@ -273,6 +293,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectDomainXMLFromNative">virConnectDomainXMLFromNative</a></td>
 <td>0.6.4</td>
 <td>0.7.0</td>
+<td></td>
 <td>0.9.0</td>
 <td></td>
 <td></td>
@@ -290,6 +311,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectDomainXMLToNative">virConnectDomainXMLToNative</a></td>
 <td>0.6.4</td>
 <td>0.7.2</td>
+<td></td>
 <td>0.9.0</td>
 <td></td>
 <td></td>
@@ -311,6 +333,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.5.0</td>
 <td>0.3.0</td>
 <td></td>
@@ -324,6 +347,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectGetCapabilities">virConnectGetCapabilities</a></td>
 <td>0.2.1</td>
 <td>0.7.1</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.6.5</td>
 <td>0.4.6</td>
@@ -341,6 +365,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectGetHostname">virConnectGetHostname</a></td>
 <td>0.3.0</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.6.3</td>
 <td></td>
@@ -363,6 +388,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.7.3</td>
 <td></td>
 <td></td>
@@ -374,6 +400,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virConnectGetMaxVcpus">virConnectGetMaxVcpus</a></td>
 <td>0.2.1</td>
+<td></td>
 <td></td>
 <td>0.9.0</td>
 <td></td>
@@ -396,6 +423,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.8.8</td>
 <td>0.8.8</td>
 <td></td>
@@ -409,6 +437,7 @@ in.
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
@@ -426,6 +455,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectGetType">virConnectGetType</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td></td>
 <td>0.3.1</td>
@@ -443,6 +473,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectIsEncrypted">virConnectIsEncrypted</a></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
+<td>0.9.5</td>
 <td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -460,6 +491,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectIsSecure">virConnectIsSecure</a></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
+<td>0.9.5</td>
 <td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -477,6 +509,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectListDefinedDomains">virConnectListDefinedDomains</a></td>
 <td>0.1.1</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -494,6 +527,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectListDomains">virConnectListDomains</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -511,6 +545,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectNumOfDefinedDomains">virConnectNumOfDefinedDomains</a></td>
 <td>0.1.5</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -528,6 +563,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectNumOfDomains">virConnectNumOfDomains</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -545,6 +581,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectOpen">virConnectOpen</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -562,6 +599,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectOpenAuth">virConnectOpenAuth</a></td>
 <td>0.4.0</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.4.0</td>
@@ -579,6 +617,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectOpenReadOnly">virConnectOpenReadOnly</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -600,6 +639,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.7.7</td>
 <td>0.7.7</td>
 <td></td>
@@ -612,6 +652,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainAttachDevice">virDomainAttachDevice</a></td>
 <td>0.1.9</td>
+<td></td>
 <td></td>
 <td>0.9.2</td>
 <td></td>
@@ -629,6 +670,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainAttachDeviceFlags">virDomainAttachDeviceFlags</a></td>
 <td>0.7.7</td>
+<td></td>
 <td></td>
 <td>0.9.2</td>
 <td></td>
@@ -651,6 +693,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td></td>
@@ -663,6 +706,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainBlockJobSetSpeed">virDomainBlockJobSetSpeed</a></td>
 <td>0.9.4</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -681,6 +725,7 @@ in.
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
@@ -697,6 +742,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainBlockPeek">virDomainBlockPeek</a></td>
 <td>0.4.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -719,6 +765,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td></td>
@@ -736,6 +783,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.3.2</td>
 <td>0.7.0</td>
@@ -746,8 +794,27 @@ in.
 <td></td>
 </tr>
 <tr>
+<td><a href="html/libvirt-libvirt.html#virDomainBlockStatsFlags">virDomainBlockStatsFlags</a></td>
+<td>0.9.5</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.9.5</td>
+<td>0.9.5</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virDomainCoreDump">virDomainCoreDump</a></td>
 <td>0.1.9</td>
+<td></td>
 <td></td>
 <td>0.9.2</td>
 <td></td>
@@ -766,6 +833,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainCreate">virDomainCreate</a></td>
 <td>0.1.1</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.4</td>
 <td>0.3.1</td>
@@ -782,6 +850,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainCreateLinux">virDomainCreateLinux</a></td>
 <td>0.0.3</td>
+<td></td>
 <td></td>
 <td>0.9.0</td>
 <td>0.4.4</td>
@@ -800,6 +869,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainCreateWithFlags">virDomainCreateWithFlags</a></td>
 <td>0.8.2</td>
 <td>0.8.2</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.8.2</td>
 <td>0.8.2</td>
@@ -816,6 +886,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainCreateXML">virDomainCreateXML</a></td>
 <td>0.5.0</td>
+<td></td>
 <td></td>
 <td>0.9.0</td>
 <td>0.4.4</td>
@@ -834,6 +905,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainDefineXML">virDomainDefineXML</a></td>
 <td>0.1.1</td>
 <td>0.7.2</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.3</td>
@@ -851,6 +923,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainDestroy">virDomainDestroy</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.4</td>
 <td>0.3.1</td>
@@ -868,6 +941,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainDestroyFlags">virDomainDestroyFlags</a></td>
 <td>0.9.4</td>
 <td>0.9.4</td>
+<td>0.9.5</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
@@ -884,6 +958,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainDetachDevice">virDomainDetachDevice</a></td>
 <td>0.1.9</td>
+<td></td>
 <td></td>
 <td>0.9.2</td>
 <td></td>
@@ -902,6 +977,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainDetachDeviceFlags">virDomainDetachDeviceFlags</a></td>
 <td>0.7.7</td>
 <td></td>
+<td></td>
 <td>0.9.2</td>
 <td></td>
 <td></td>
@@ -919,6 +995,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainGetAutostart">virDomainGetAutostart</a></td>
 <td>0.2.1</td>
 <td>0.9.0</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.7.0</td>
 <td>0.4.6</td>
@@ -933,26 +1010,10 @@ in.
 <td>0.8.0</td>
 </tr>
 <tr>
-<td><a href="html/libvirt-libvirt.html#virDomainGetBlkioParameters">virDomainGetBlkioParameters</a></td>
-<td>0.9.0</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td>0.9.0</td>
-<td>0.9.0</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
@@ -967,8 +1028,27 @@ in.
   <th>xenapi</th>
 </tr>
 <tr>
+<td><a href="html/libvirt-libvirt.html#virDomainGetBlkioParameters">virDomainGetBlkioParameters</a></td>
+<td>0.9.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.9.0</td>
+<td>0.9.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virDomainGetBlockInfo">virDomainGetBlockInfo</a></td>
 <td>0.8.1</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -991,6 +1071,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td></td>
@@ -1003,6 +1084,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainGetControlInfo">virDomainGetControlInfo</a></td>
 <td>0.9.3</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1021,6 +1103,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainGetInfo">virDomainGetInfo</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -1042,6 +1125,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.7.7</td>
 <td>0.7.7</td>
 <td></td>
@@ -1055,6 +1139,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainGetMaxMemory">virDomainGetMaxMemory</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.7.2</td>
 <td></td>
@@ -1074,6 +1159,7 @@ in.
 <td>0.7.0</td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.4.6</td>
 <td>0.7.3</td>
 <td>0.4.4</td>
@@ -1089,6 +1175,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainGetMemoryParameters">virDomainGetMemoryParameters</a></td>
 <td>0.8.5</td>
 <td>0.8.6</td>
+<td></td>
 <td></td>
 <td>0.8.5</td>
 <td></td>
@@ -1106,6 +1193,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainGetOSType">virDomainGetOSType</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -1123,6 +1211,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainGetSchedulerParameters">virDomainGetSchedulerParameters</a></td>
 <td>0.2.3</td>
 <td>0.7.0</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.5.0</td>
 <td></td>
@@ -1140,6 +1229,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainGetSchedulerParametersFlags">virDomainGetSchedulerParametersFlags</a></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
+<td></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 <td></td>
@@ -1157,6 +1247,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainGetSchedulerType">virDomainGetSchedulerType</a></td>
 <td>0.2.3</td>
 <td>0.7.0</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.5.0</td>
 <td></td>
@@ -1178,6 +1269,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.6.1</td>
 <td>0.6.1</td>
 <td></td>
@@ -1191,6 +1283,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainGetState">virDomainGetState</a></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
+<td>0.9.5</td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 <td>0.9.2</td>
@@ -1203,28 +1296,12 @@ in.
 <td>0.9.2</td>
 <td>0.9.2</td>
 <td>0.9.2</td>
-</tr>
-<tr>
-<td><a href="html/libvirt-libvirt.html#virDomainGetVcpuPinInfo">virDomainGetVcpuPinInfo</a></td>
-<td>0.9.3</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td>0.9.3</td>
-<td>0.9.3</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
 </tr>
 <tr>
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
@@ -1239,8 +1316,27 @@ in.
   <th>xenapi</th>
 </tr>
 <tr>
+<td><a href="html/libvirt-libvirt.html#virDomainGetVcpuPinInfo">virDomainGetVcpuPinInfo</a></td>
+<td>0.9.3</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.9.3</td>
+<td>0.9.3</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virDomainGetVcpus">virDomainGetVcpus</a></td>
 <td>0.1.4</td>
+<td></td>
 <td></td>
 <td>0.9.0</td>
 <td></td>
@@ -1259,6 +1355,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainGetVcpusFlags">virDomainGetVcpusFlags</a></td>
 <td>0.8.5</td>
 <td>0.8.5</td>
+<td></td>
 <td>0.9.0</td>
 <td></td>
 <td>0.8.5</td>
@@ -1276,6 +1373,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainGetXMLDesc">virDomainGetXMLDesc</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.4.6</td>
@@ -1297,6 +1395,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td></td>
@@ -1310,6 +1409,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainHasManagedSaveImage">virDomainHasManagedSaveImage</a></td>
 <td>0.8.0</td>
 <td></td>
+<td>0.9.5</td>
 <td>0.9.2</td>
 <td></td>
 <td></td>
@@ -1331,6 +1431,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 <td></td>
@@ -1343,6 +1444,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainInterfaceStats">virDomainInterfaceStats</a></td>
 <td>0.3.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.7.3</td>
@@ -1361,6 +1463,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainIsActive">virDomainIsActive</a></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -1378,6 +1481,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainIsPersistent">virDomainIsPersistent</a></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -1395,6 +1499,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainIsUpdated">virDomainIsUpdated</a></td>
 <td>0.8.6</td>
 <td>0.8.6</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.8.6</td>
 <td>0.8.6</td>
@@ -1412,6 +1517,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainLookupByID">virDomainLookupByID</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -1429,6 +1535,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainLookupByName">virDomainLookupByName</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -1446,6 +1553,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainLookupByUUID">virDomainLookupByUUID</a></td>
 <td>0.0.5</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.1</td>
@@ -1463,23 +1571,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainManagedSave">virDomainManagedSave</a></td>
 <td>0.8.0</td>
 <td></td>
-<td>0.9.2</td>
-<td></td>
-<td></td>
-<td></td>
-<td>0.8.0</td>
-<td>0.8.0</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td><a href="html/libvirt-libvirt.html#virDomainManagedSaveRemove">virDomainManagedSaveRemove</a></td>
-<td>0.8.0</td>
-<td></td>
+<td>0.9.5</td>
 <td>0.9.2</td>
 <td></td>
 <td></td>
@@ -1497,6 +1589,7 @@ in.
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>libxl</th>
   <th>lxc</th>
   <th>openvz</th>
@@ -1511,8 +1604,27 @@ in.
   <th>xenapi</th>
 </tr>
 <tr>
+<td><a href="html/libvirt-libvirt.html#virDomainManagedSaveRemove">virDomainManagedSaveRemove</a></td>
+<td>0.8.0</td>
+<td></td>
+<td>0.9.5</td>
+<td>0.9.2</td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.8.0</td>
+<td>0.8.0</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virDomainMemoryPeek">virDomainMemoryPeek</a></td>
 <td>0.4.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1535,6 +1647,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.7.5</td>
 <td>0.7.5</td>
 <td></td>
@@ -1548,6 +1661,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainMigrate">virDomainMigrate</a></td>
 <td>0.3.2</td>
 <td>0.7.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1569,6 +1683,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 <td></td>
@@ -1581,6 +1696,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainMigrateConfirm3">virDomainMigrateConfirm3</a></td>
 <td>0.9.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1604,6 +1720,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.3.2</td>
 <td></td>
 <td></td>
@@ -1615,6 +1732,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainMigrateFinish2">virDomainMigrateFinish2</a></td>
 <td>0.5.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1637,8 +1755,27 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><a href="html/libvirt-libvirt.html#virDomainMigrateGetMaxSpeed">virDomainMigrateGetMaxSpeed</a></td>
+<td>0.9.5</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td>0.9.5</td>
+<td>0.9.5</td>
 <td></td>
 <td></td>
 <td></td>
@@ -1650,6 +1787,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainMigratePerform">virDomainMigratePerform</a></td>
 <td>0.3.2</td>
 <td>0.7.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1666,6 +1804,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainMigratePerform3">virDomainMigratePerform3</a></td>
 <td>0.9.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1689,6 +1828,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.3.2</td>
 <td></td>
 <td></td>
@@ -1700,6 +1840,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainMigratePrepare2">virDomainMigratePrepare2</a></td>
 <td>0.5.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1722,6 +1863,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 <td></td>
@@ -1732,8 +1874,27 @@ in.
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>esx</th>
+  <th>hyperv</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>test</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>xen</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virDomainMigratePrepareTunnel">virDomainMigratePrepareTunnel</a></td>
 <td>0.7.2</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1756,6 +1917,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 <td></td>
@@ -1764,27 +1926,11 @@ in.
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>esx</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>test</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>xen</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainMigrateSetMaxDowntime">virDomainMigrateSetMaxDowntime</a></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1807,6 +1953,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.0</td>
 <td>0.9.0</td>
 <td></td>
@@ -1819,6 +1966,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainOpenConsole">virDomainOpenConsole</a></td>
 <td>0.8.6</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.8.6</td>
@@ -1836,6 +1984,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainPinVcpu">virDomainPinVcpu</a></td>
 <td>0.1.4</td>
+<td></td>
 <td></td>
 <td>0.9.0</td>
 <td></td>
@@ -1858,6 +2007,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.3</td>
 <td>0.9.3</td>
 <td></td>
@@ -1870,6 +2020,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainQemuAttach">virDomainQemuAttach</a></td>
 <td>0.9.4</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -1892,6 +2043,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.8.3</td>
 <td>0.8.3</td>
 <td></td>
@@ -1905,6 +2057,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainReboot">virDomainReboot</a></td>
 <td>0.1.0</td>
 <td>0.7.0</td>
+<td></td>
 <td>0.9.0</td>
 <td></td>
 <td>0.3.1</td>
@@ -1921,6 +2074,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainRestore">virDomainRestore</a></td>
 <td>0.0.3</td>
+<td></td>
 <td></td>
 <td>0.9.2</td>
 <td></td>
@@ -1939,6 +2093,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainRestoreFlags">virDomainRestoreFlags</a></td>
 <td>0.9.4</td>
 <td></td>
+<td></td>
 <td>0.9.4</td>
 <td></td>
 <td></td>
@@ -1956,6 +2111,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainResume">virDomainResume</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.7.2</td>
 <td>0.8.3</td>
@@ -1977,6 +2133,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td></td>
@@ -1989,6 +2146,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainSave">virDomainSave</a></td>
 <td>0.0.3</td>
+<td></td>
 <td></td>
 <td>0.9.2</td>
 <td></td>
@@ -2004,8 +2162,27 @@ in.
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>esx</th>
+  <th>hyperv</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>test</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>xen</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virDomainSaveFlags">virDomainSaveFlags</a></td>
 <td>0.9.4</td>
+<td></td>
 <td></td>
 <td>0.9.4</td>
 <td></td>
@@ -2028,6 +2205,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td></td>
@@ -2036,27 +2214,11 @@ in.
 <td></td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>esx</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>test</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>xen</th>
-  <th>xenapi</th>
 </tr>
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainSaveImageGetXMLDesc">virDomainSaveImageGetXMLDesc</a></td>
 <td>0.9.4</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2079,6 +2241,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 <td></td>
@@ -2091,6 +2254,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainSendKey">virDomainSendKey</a></td>
 <td>0.9.3</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2109,6 +2273,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainSetAutostart">virDomainSetAutostart</a></td>
 <td>0.2.1</td>
 <td>0.9.0</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.7.0</td>
 <td>0.4.6</td>
@@ -2130,6 +2295,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.0</td>
 <td>0.9.0</td>
 <td></td>
@@ -2143,6 +2309,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainSetMaxMemory">virDomainSetMaxMemory</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td></td>
 <td>0.9.2</td>
 <td>0.7.2</td>
 <td></td>
@@ -2160,6 +2327,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainSetMemory">virDomainSetMemory</a></td>
 <td>0.1.1</td>
 <td>0.7.0</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.7.2</td>
 <td></td>
@@ -2176,6 +2344,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainSetMemoryFlags">virDomainSetMemoryFlags</a></td>
 <td>0.9.0</td>
+<td></td>
 <td></td>
 <td>0.9.0</td>
 <td></td>
@@ -2195,6 +2364,7 @@ in.
 <td>0.8.5</td>
 <td>0.8.6</td>
 <td></td>
+<td></td>
 <td>0.8.5</td>
 <td></td>
 <td></td>
@@ -2211,6 +2381,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainSetSchedulerParameters">virDomainSetSchedulerParameters</a></td>
 <td>0.2.3</td>
 <td>0.7.0</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.5.0</td>
 <td></td>
@@ -2228,6 +2399,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainSetSchedulerParametersFlags">virDomainSetSchedulerParametersFlags</a></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
+<td></td>
 <td>0.9.2</td>
 <td>0.9.2</td>
 <td></td>
@@ -2245,6 +2417,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainSetVcpus">virDomainSetVcpus</a></td>
 <td>0.1.4</td>
 <td>0.7.0</td>
+<td></td>
 <td>0.9.0</td>
 <td></td>
 <td>0.4.6</td>
@@ -2262,6 +2435,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainSetVcpusFlags">virDomainSetVcpusFlags</a></td>
 <td>0.8.5</td>
 <td>0.8.5</td>
+<td></td>
 <td>0.9.0</td>
 <td></td>
 <td>0.8.5</td>
@@ -2276,9 +2450,28 @@ in.
 <td>0.8.5</td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>esx</th>
+  <th>hyperv</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>test</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>xen</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virDomainShutdown">virDomainShutdown</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td></td>
 <td>0.9.0</td>
 <td></td>
 <td>0.3.1</td>
@@ -2300,36 +2493,21 @@ in.
 <td></td>
 <td></td>
 <td></td>
-<td>0.8.0</td>
-<td>0.8.0</td>
 <td></td>
-<td></td>
+<td>0.8.0</td>
 <td>0.8.0</td>
 <td></td>
 <td></td>
+<td>0.8.0</td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>esx</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>test</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>xen</th>
-  <th>xenapi</th>
+<td></td>
+<td></td>
 </tr>
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainSnapshotCurrent">virDomainSnapshotCurrent</a></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2351,6 +2529,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td></td>
@@ -2364,6 +2543,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainSnapshotGetXMLDesc">virDomainSnapshotGetXMLDesc</a></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2385,6 +2565,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td></td>
@@ -2398,6 +2579,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainSnapshotLookupByName">virDomainSnapshotLookupByName</a></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2419,6 +2601,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td></td>
@@ -2432,6 +2615,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainSuspend">virDomainSuspend</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.7.2</td>
 <td>0.8.3</td>
@@ -2449,6 +2633,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainUndefine">virDomainUndefine</a></td>
 <td>0.1.1</td>
 <td>0.7.1</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.4.2</td>
 <td>0.3.3</td>
@@ -2466,6 +2651,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virDomainUndefineFlags">virDomainUndefineFlags</a></td>
 <td>0.9.4</td>
 <td>0.9.4</td>
+<td></td>
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
@@ -2474,14 +2660,15 @@ in.
 <td>0.9.4</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
-<td></td>
+<td>0.9.5</td>
 <td>0.9.4</td>
 <td>0.9.4</td>
-<td></td>
+<td>0.9.5</td>
 </tr>
 <tr>
 <td><a href="html/libvirt-libvirt.html#virDomainUpdateDeviceFlags">virDomainUpdateDeviceFlags</a></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td>0.9.2</td>
 <td></td>
@@ -2500,6 +2687,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virGetVersion">virGetVersion</a></td>
 <td>0.0.3</td>
 <td>0.7.0</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.4.6</td>
 <td>0.5.0</td>
@@ -2516,6 +2704,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virNodeDeviceDettach">virNodeDeviceDettach</a></td>
 <td>0.6.1</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2538,6 +2727,7 @@ in.
 <td></td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.6.1</td>
 <td>0.6.1</td>
 <td></td>
@@ -2548,8 +2738,27 @@ in.
 <td></td>
 </tr>
 <tr>
+<th>API</th>
+<th>Version</th>
+  <th>esx</th>
+  <th>hyperv</th>
+  <th>libxl</th>
+  <th>lxc</th>
+  <th>openvz</th>
+  <th>phyp</th>
+  <th>qemu</th>
+  <th>remote</th>
+  <th>test</th>
+  <th>uml</th>
+  <th>vbox</th>
+  <th>vmware</th>
+  <th>xen</th>
+  <th>xenapi</th>
+</tr>
+<tr>
 <td><a href="html/libvirt-libvirt.html#virNodeDeviceReset">virNodeDeviceReset</a></td>
 <td>0.6.1</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2569,38 +2778,23 @@ in.
 <td>0.9.3</td>
 <td></td>
 <td></td>
-<td>0.9.3</td>
-<td></td>
-<td></td>
-<td>0.9.3</td>
-<td>0.9.3</td>
 <td></td>
 <td>0.9.3</td>
 <td></td>
 <td></td>
+<td>0.9.3</td>
+<td>0.9.3</td>
+<td></td>
+<td>0.9.3</td>
 <td></td>
 <td></td>
-</tr>
-<tr>
-<th>API</th>
-<th>Version</th>
-  <th>esx</th>
-  <th>libxl</th>
-  <th>lxc</th>
-  <th>openvz</th>
-  <th>phyp</th>
-  <th>qemu</th>
-  <th>remote</th>
-  <th>test</th>
-  <th>uml</th>
-  <th>vbox</th>
-  <th>vmware</th>
-  <th>xen</th>
-  <th>xenapi</th>
+<td></td>
+<td></td>
 </tr>
 <tr>
 <td><a href="html/libvirt-libvirt.html#virNodeGetCellsFreeMemory">virNodeGetCellsFreeMemory</a></td>
 <td>0.3.3</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.6.5</td>
@@ -2619,6 +2813,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virNodeGetFreeMemory">virNodeGetFreeMemory</a></td>
 <td>0.3.3</td>
 <td>0.7.2</td>
+<td></td>
 <td>0.9.0</td>
 <td>0.6.5</td>
 <td></td>
@@ -2636,6 +2831,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virNodeGetInfo">virNodeGetInfo</a></td>
 <td>0.1.0</td>
 <td>0.7.0</td>
+<td>0.9.5</td>
 <td>0.9.0</td>
 <td>0.6.5</td>
 <td>0.3.2</td>
@@ -2654,6 +2850,7 @@ in.
 <td>0.9.3</td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.3</td>
 <td></td>
 <td></td>
@@ -2669,6 +2866,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virNodeGetSecurityModel">virNodeGetSecurityModel</a></td>
 <td>0.6.1</td>
+<td></td>
 <td></td>
 <td></td>
 <td></td>
@@ -2692,6 +2890,7 @@ in.
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>netcf</th>
   <th>phyp</th>
   <th>remote</th>
@@ -2703,6 +2902,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectClose">virConnectClose</a></td>
 <td>0.0.3</td>
 <td>0.7.6</td>
+<td>0.9.5</td>
 <td>0.7.0</td>
 <td>0.9.1</td>
 <td>0.7.2</td>
@@ -2711,6 +2911,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virConnectListDefinedInterfaces">virConnectListDefinedInterfaces</a></td>
 <td>0.7.0</td>
+<td></td>
 <td></td>
 <td>0.7.0</td>
 <td></td>
@@ -2721,6 +2922,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectListInterfaces">virConnectListInterfaces</a></td>
 <td>0.6.4</td>
 <td></td>
+<td></td>
 <td>0.7.0</td>
 <td>0.9.1</td>
 <td>0.7.2</td>
@@ -2729,6 +2931,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virConnectNumOfDefinedInterfaces">virConnectNumOfDefinedInterfaces</a></td>
 <td>0.7.0</td>
+<td></td>
 <td></td>
 <td>0.7.0</td>
 <td></td>
@@ -2739,6 +2942,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectNumOfInterfaces">virConnectNumOfInterfaces</a></td>
 <td>0.6.4</td>
 <td></td>
+<td></td>
 <td>0.7.0</td>
 <td>0.9.1</td>
 <td>0.7.2</td>
@@ -2748,6 +2952,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectOpen">virConnectOpen</a></td>
 <td>0.0.3</td>
 <td>0.7.6</td>
+<td>0.9.5</td>
 <td>0.7.0</td>
 <td>0.9.1</td>
 <td>0.7.2</td>
@@ -2756,6 +2961,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virInterfaceChangeBegin">virInterfaceChangeBegin</a></td>
 <td>0.9.2</td>
+<td></td>
 <td></td>
 <td>0.9.2</td>
 <td></td>
@@ -2766,6 +2972,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virInterfaceChangeCommit">virInterfaceChangeCommit</a></td>
 <td>0.9.2</td>
 <td></td>
+<td></td>
 <td>0.9.2</td>
 <td></td>
 <td>0.9.2</td>
@@ -2774,6 +2981,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virInterfaceChangeRollback">virInterfaceChangeRollback</a></td>
 <td>0.9.2</td>
+<td></td>
 <td></td>
 <td>0.9.2</td>
 <td></td>
@@ -2784,6 +2992,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virInterfaceCreate">virInterfaceCreate</a></td>
 <td>0.6.4</td>
 <td></td>
+<td></td>
 <td>0.7.0</td>
 <td></td>
 <td>0.7.2</td>
@@ -2792,6 +3001,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virInterfaceDefineXML">virInterfaceDefineXML</a></td>
 <td>0.6.4</td>
+<td></td>
 <td></td>
 <td>0.7.0</td>
 <td>0.9.1</td>
@@ -2802,6 +3012,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virInterfaceDestroy">virInterfaceDestroy</a></td>
 <td>0.6.4</td>
 <td></td>
+<td></td>
 <td>0.7.0</td>
 <td>0.9.1</td>
 <td>0.7.2</td>
@@ -2810,6 +3021,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virInterfaceGetXMLDesc">virInterfaceGetXMLDesc</a></td>
 <td>0.6.4</td>
+<td></td>
 <td></td>
 <td>0.7.0</td>
 <td></td>
@@ -2820,6 +3032,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virInterfaceIsActive">virInterfaceIsActive</a></td>
 <td>0.7.3</td>
 <td></td>
+<td></td>
 <td>0.7.3</td>
 <td>0.9.1</td>
 <td>0.7.3</td>
@@ -2828,6 +3041,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virInterfaceLookupByMACString">virInterfaceLookupByMACString</a></td>
 <td>0.6.4</td>
+<td></td>
 <td></td>
 <td>0.7.0</td>
 <td></td>
@@ -2838,6 +3052,7 @@ in.
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>netcf</th>
   <th>phyp</th>
   <th>remote</th>
@@ -2847,6 +3062,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virInterfaceLookupByName">virInterfaceLookupByName</a></td>
 <td>0.6.4</td>
 <td></td>
+<td></td>
 <td>0.7.0</td>
 <td>0.9.1</td>
 <td>0.7.2</td>
@@ -2855,6 +3071,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virInterfaceUndefine">virInterfaceUndefine</a></td>
 <td>0.6.4</td>
+<td></td>
 <td></td>
 <td>0.7.0</td>
 <td></td>
@@ -2870,6 +3087,7 @@ in.
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>nwfilter</th>
   <th>remote</th>
   <th>test</th>
@@ -2880,6 +3098,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectClose">virConnectClose</a></td>
 <td>0.0.3</td>
 <td>0.8.1</td>
+<td>0.9.5</td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>0.8.0</td>
@@ -2887,6 +3106,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virConnectListNWFilters">virConnectListNWFilters</a></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
@@ -2896,6 +3116,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectNumOfNWFilters">virConnectNumOfNWFilters</a></td>
 <td>0.8.0</td>
 <td></td>
+<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td></td>
@@ -2904,6 +3125,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectOpen">virConnectOpen</a></td>
 <td>0.0.3</td>
 <td>0.8.1</td>
+<td>0.9.5</td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td>0.8.0</td>
@@ -2911,6 +3133,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virNWFilterDefineXML">virNWFilterDefineXML</a></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
@@ -2920,6 +3143,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virNWFilterGetXMLDesc">virNWFilterGetXMLDesc</a></td>
 <td>0.8.0</td>
 <td></td>
+<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td></td>
@@ -2927,6 +3151,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virNWFilterLookupByName">virNWFilterLookupByName</a></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
@@ -2936,6 +3161,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virNWFilterLookupByUUID">virNWFilterLookupByUUID</a></td>
 <td>0.8.0</td>
 <td></td>
+<td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
 <td></td>
@@ -2943,6 +3169,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virNWFilterUndefine">virNWFilterUndefine</a></td>
 <td>0.8.0</td>
+<td></td>
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>
@@ -2958,6 +3185,7 @@ in.
 <th>Version</th>
   <th>bridge</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>remote</th>
   <th>test</th>
   <th>vbox</th>
@@ -2969,6 +3197,7 @@ in.
 <td>0.0.3</td>
 <td>0.2.0</td>
 <td>0.7.6</td>
+<td>0.9.5</td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td>0.6.4</td>
@@ -2977,6 +3206,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectListDefinedNetworks">virConnectListDefinedNetworks</a></td>
 <td>0.2.0</td>
 <td>0.2.0</td>
+<td></td>
 <td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
@@ -2987,6 +3217,7 @@ in.
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td></td>
+<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td>0.6.4</td>
@@ -2995,6 +3226,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectNumOfDefinedNetworks">virConnectNumOfDefinedNetworks</a></td>
 <td>0.2.0</td>
 <td>0.2.0</td>
+<td></td>
 <td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
@@ -3005,6 +3237,7 @@ in.
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td></td>
+<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td>0.6.4</td>
@@ -3014,6 +3247,7 @@ in.
 <td>0.0.3</td>
 <td>0.2.0</td>
 <td>0.7.6</td>
+<td>0.9.5</td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td>0.6.4</td>
@@ -3022,6 +3256,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virNetworkCreate">virNetworkCreate</a></td>
 <td>0.2.0</td>
 <td>0.2.0</td>
+<td></td>
 <td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
@@ -3032,6 +3267,7 @@ in.
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td></td>
+<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td>0.6.4</td>
@@ -3040,6 +3276,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virNetworkDefineXML">virNetworkDefineXML</a></td>
 <td>0.2.0</td>
 <td>0.2.0</td>
+<td></td>
 <td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
@@ -3050,6 +3287,7 @@ in.
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td></td>
+<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td>0.6.4</td>
@@ -3058,6 +3296,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virNetworkGetAutostart">virNetworkGetAutostart</a></td>
 <td>0.2.1</td>
 <td>0.2.1</td>
+<td></td>
 <td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
@@ -3068,6 +3307,7 @@ in.
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td></td>
+<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td></td>
@@ -3076,6 +3316,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virNetworkGetXMLDesc">virNetworkGetXMLDesc</a></td>
 <td>0.2.0</td>
 <td>0.2.0</td>
+<td></td>
 <td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
@@ -3086,6 +3327,7 @@ in.
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td></td>
+<td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td></td>
@@ -3094,6 +3336,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virNetworkIsPersistent">virNetworkIsPersistent</a></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
+<td></td>
 <td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -3104,6 +3347,7 @@ in.
 <th>Version</th>
   <th>bridge</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>remote</th>
   <th>test</th>
   <th>vbox</th>
@@ -3112,6 +3356,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virNetworkLookupByName">virNetworkLookupByName</a></td>
 <td>0.2.0</td>
 <td>0.2.0</td>
+<td></td>
 <td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
@@ -3122,6 +3367,7 @@ in.
 <td>0.2.0</td>
 <td>0.2.0</td>
 <td></td>
+<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td>0.6.4</td>
@@ -3131,6 +3377,7 @@ in.
 <td>0.2.1</td>
 <td>0.2.1</td>
 <td></td>
+<td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
 <td></td>
@@ -3139,6 +3386,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virNetworkUndefine">virNetworkUndefine</a></td>
 <td>0.2.0</td>
 <td>0.2.0</td>
+<td></td>
 <td></td>
 <td>0.3.0</td>
 <td>0.3.2</td>
@@ -3153,6 +3401,7 @@ in.
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>remote</th>
   <th>secret</th>
   <th>test</th>
@@ -3163,6 +3412,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectClose">virConnectClose</a></td>
 <td>0.0.3</td>
 <td>0.7.6</td>
+<td>0.9.5</td>
 <td>0.7.1</td>
 <td>0.7.1</td>
 <td>0.7.1</td>
@@ -3170,6 +3420,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virConnectListSecrets">virConnectListSecrets</a></td>
 <td>0.7.1</td>
+<td></td>
 <td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
@@ -3179,6 +3430,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectNumOfSecrets">virConnectNumOfSecrets</a></td>
 <td>0.7.1</td>
 <td></td>
+<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
 <td></td>
@@ -3187,6 +3439,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectOpen">virConnectOpen</a></td>
 <td>0.0.3</td>
 <td>0.7.6</td>
+<td>0.9.5</td>
 <td>0.7.1</td>
 <td>0.7.1</td>
 <td>0.7.1</td>
@@ -3194,6 +3447,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virSecretDefineXML">virSecretDefineXML</a></td>
 <td>0.7.1</td>
+<td></td>
 <td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
@@ -3203,6 +3457,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virSecretGetValue">virSecretGetValue</a></td>
 <td>0.7.1</td>
 <td></td>
+<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
 <td></td>
@@ -3210,6 +3465,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virSecretGetXMLDesc">virSecretGetXMLDesc</a></td>
 <td>0.7.1</td>
+<td></td>
 <td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
@@ -3219,6 +3475,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virSecretLookupByUUID">virSecretLookupByUUID</a></td>
 <td>0.7.1</td>
 <td></td>
+<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
 <td></td>
@@ -3226,6 +3483,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virSecretLookupByUsage">virSecretLookupByUsage</a></td>
 <td>0.7.1</td>
+<td></td>
 <td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
@@ -3235,6 +3493,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virSecretSetValue">virSecretSetValue</a></td>
 <td>0.7.1</td>
 <td></td>
+<td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
 <td></td>
@@ -3242,6 +3501,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virSecretUndefine">virSecretUndefine</a></td>
 <td>0.7.1</td>
+<td></td>
 <td></td>
 <td>0.7.1</td>
 <td>0.7.1</td>
@@ -3256,6 +3516,7 @@ in.
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>phyp</th>
   <th>remote</th>
   <th>storage</th>
@@ -3268,6 +3529,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectClose">virConnectClose</a></td>
 <td>0.0.3</td>
 <td>0.7.6</td>
+<td>0.9.5</td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3277,6 +3539,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virConnectFindStoragePoolSources">virConnectFindStoragePoolSources</a></td>
 <td>0.4.5</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.4.5</td>
@@ -3289,6 +3552,7 @@ in.
 <td>0.4.1</td>
 <td>0.8.2</td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3298,6 +3562,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectListStoragePools">virConnectListStoragePools</a></td>
 <td>0.4.1</td>
 <td>0.8.2</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3309,6 +3574,7 @@ in.
 <td>0.4.1</td>
 <td>0.8.2</td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3318,6 +3584,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectNumOfStoragePools">virConnectNumOfStoragePools</a></td>
 <td>0.4.1</td>
 <td>0.8.2</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3328,6 +3595,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virConnectOpen">virConnectOpen</a></td>
 <td>0.0.3</td>
 <td>0.7.6</td>
+<td>0.9.5</td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3337,6 +3605,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virStoragePoolBuild">virStoragePoolBuild</a></td>
 <td>0.4.1</td>
+<td></td>
 <td></td>
 <td></td>
 <td>0.4.1</td>
@@ -3349,6 +3618,7 @@ in.
 <td>0.4.1</td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3357,6 +3627,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virStoragePoolCreateXML">virStoragePoolCreateXML</a></td>
 <td>0.4.1</td>
+<td></td>
 <td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
@@ -3369,6 +3640,7 @@ in.
 <td>0.4.1</td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3379,6 +3651,7 @@ in.
 <td>0.4.1</td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3387,6 +3660,7 @@ in.
 <tr>
 <td><a href="html/libvirt-libvirt.html#virStoragePoolDestroy">virStoragePoolDestroy</a></td>
 <td>0.4.1</td>
+<td></td>
 <td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
@@ -3399,6 +3673,7 @@ in.
 <td>0.4.1</td>
 <td>0.8.2</td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3409,6 +3684,7 @@ in.
 <td>0.4.1</td>
 <td>0.8.2</td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3418,6 +3694,7 @@ in.
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>phyp</th>
   <th>remote</th>
   <th>storage</th>
@@ -3428,6 +3705,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStoragePoolGetXMLDesc">virStoragePoolGetXMLDesc</a></td>
 <td>0.4.1</td>
 <td>0.8.2</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3439,6 +3717,7 @@ in.
 <td>0.7.3</td>
 <td>0.8.2</td>
 <td></td>
+<td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -3449,6 +3728,7 @@ in.
 <td>0.7.3</td>
 <td>0.8.2</td>
 <td></td>
+<td></td>
 <td>0.7.3</td>
 <td>0.7.3</td>
 <td>0.7.3</td>
@@ -3458,6 +3738,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStoragePoolListVolumes">virStoragePoolListVolumes</a></td>
 <td>0.4.1</td>
 <td>0.8.4</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3468,6 +3749,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStoragePoolLookupByName">virStoragePoolLookupByName</a></td>
 <td>0.4.1</td>
 <td>0.8.2</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3478,6 +3760,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStoragePoolLookupByUUID">virStoragePoolLookupByUUID</a></td>
 <td>0.4.1</td>
 <td>0.8.2</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3489,6 +3772,7 @@ in.
 <td>0.4.1</td>
 <td>0.8.4</td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3498,6 +3782,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStoragePoolNumOfVolumes">virStoragePoolNumOfVolumes</a></td>
 <td>0.4.1</td>
 <td>0.8.4</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3509,6 +3794,7 @@ in.
 <td>0.4.1</td>
 <td>0.8.2</td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3518,6 +3804,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStoragePoolSetAutostart">virStoragePoolSetAutostart</a></td>
 <td>0.4.1</td>
 <td>0.8.2</td>
+<td></td>
 <td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3529,6 +3816,7 @@ in.
 <td>0.4.1</td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3538,6 +3826,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStorageVolCreateXML">virStorageVolCreateXML</a></td>
 <td>0.4.1</td>
 <td>0.8.4</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3549,6 +3838,7 @@ in.
 <td>0.6.4</td>
 <td>0.8.7</td>
 <td></td>
+<td></td>
 <td>0.6.4</td>
 <td>0.6.4</td>
 <td>0.6.4</td>
@@ -3558,6 +3848,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStorageVolDelete">virStorageVolDelete</a></td>
 <td>0.4.1</td>
 <td>0.8.7</td>
+<td></td>
 <td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3569,6 +3860,7 @@ in.
 <td>0.9.0</td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.0</td>
 <td>0.9.0</td>
 <td></td>
@@ -3578,6 +3870,7 @@ in.
 <th>API</th>
 <th>Version</th>
   <th>esx</th>
+  <th>hyperv</th>
   <th>phyp</th>
   <th>remote</th>
   <th>storage</th>
@@ -3589,6 +3882,7 @@ in.
 <td>0.4.1</td>
 <td>0.8.4</td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3598,6 +3892,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStorageVolGetPath">virStorageVolGetPath</a></td>
 <td>0.4.1</td>
 <td>0.8.4</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3608,6 +3903,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStorageVolGetXMLDesc">virStorageVolGetXMLDesc</a></td>
 <td>0.4.1</td>
 <td>0.8.4</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3619,6 +3915,7 @@ in.
 <td>0.4.1</td>
 <td>0.8.4</td>
 <td></td>
+<td></td>
 <td>0.4.1</td>
 <td>0.4.0</td>
 <td>0.5.0</td>
@@ -3628,6 +3925,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStorageVolLookupByName">virStorageVolLookupByName</a></td>
 <td>0.4.1</td>
 <td>0.8.4</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3638,6 +3936,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStorageVolLookupByPath">virStorageVolLookupByPath</a></td>
 <td>0.4.1</td>
 <td>0.8.4</td>
+<td></td>
 <td>0.8.2</td>
 <td>0.4.1</td>
 <td>0.4.0</td>
@@ -3649,6 +3948,7 @@ in.
 <td>0.9.0</td>
 <td></td>
 <td></td>
+<td></td>
 <td>0.9.0</td>
 <td>0.9.0</td>
 <td></td>
@@ -3658,6 +3958,7 @@ in.
 <td><a href="html/libvirt-libvirt.html#virStorageVolWipe">virStorageVolWipe</a></td>
 <td>0.8.0</td>
 <td>0.8.7</td>
+<td></td>
 <td></td>
 <td>0.8.0</td>
 <td>0.8.0</td>

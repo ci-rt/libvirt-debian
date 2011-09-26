@@ -822,6 +822,34 @@ xdr_remote_domain_block_stats_ret (XDR *xdrs, remote_domain_block_stats_ret *obj
 }
 
 bool_t
+xdr_remote_domain_block_stats_flags_args (XDR *xdrs, remote_domain_block_stats_flags_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->path))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->nparams))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_block_stats_flags_ret (XDR *xdrs, remote_domain_block_stats_flags_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_BLOCK_STATS_PARAMETERS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->nparams))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_interface_stats_args (XDR *xdrs, remote_domain_interface_stats_args *objp)
 {
 
@@ -3818,6 +3846,26 @@ xdr_remote_domain_migrate_set_max_speed_args (XDR *xdrs, remote_domain_migrate_s
 }
 
 bool_t
+xdr_remote_domain_migrate_get_max_speed_args (XDR *xdrs, remote_domain_migrate_get_max_speed_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_migrate_get_max_speed_ret (XDR *xdrs, remote_domain_migrate_get_max_speed_ret *objp)
+{
+
+         if (!xdr_uint64_t (xdrs, &objp->bandwidth))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_events_register_any_args (XDR *xdrs, remote_domain_events_register_any_args *objp)
 {
 
@@ -4176,7 +4224,7 @@ xdr_remote_domain_open_console_args (XDR *xdrs, remote_domain_open_console_args 
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
-         if (!xdr_remote_string (xdrs, &objp->devname))
+         if (!xdr_remote_string (xdrs, &objp->dev_name))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;

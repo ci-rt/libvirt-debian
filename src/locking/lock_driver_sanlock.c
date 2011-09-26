@@ -33,7 +33,6 @@
 
 #include <sanlock.h>
 #include <sanlock_resource.h>
-#include <sanlock_direct.h>
 #include <sanlock_admin.h>
 
 #include "lock_driver.h"
@@ -159,10 +158,10 @@ static int virLockManagerSanlockSetupLockspace(void)
     memcpy(ls.name, VIR_LOCK_MANAGER_SANLOCK_AUTO_DISK_LOCKSPACE, SANLK_NAME_LEN);
     ls.host_id = 0; /* Doesn't matter for initialization */
     ls.flags = 0;
-    if (!virStrcpy(ls.host_id_disk.path, path, SANLK_NAME_LEN)) {
+    if (!virStrcpy(ls.host_id_disk.path, path, SANLK_PATH_LEN)) {
         virLockError(VIR_ERR_INTERNAL_ERROR,
                      _("Lockspace path '%s' exceeded %d characters"),
-                     path, SANLK_NAME_LEN);
+                     path, SANLK_PATH_LEN);
         goto error;
     }
     ls.host_id_disk.offset = 0;
@@ -181,7 +180,7 @@ static int virLockManagerSanlockSetupLockspace(void)
             }
             VIR_DEBUG("Someone else just created lockspace %s", path);
         } else {
-            if ((rv = sanlock_direct_align(&ls.host_id_disk)) < 0) {
+            if ((rv = sanlock_align(&ls.host_id_disk)) < 0) {
                 if (rv <= -200)
                     virLockError(VIR_ERR_INTERNAL_ERROR,
                                  _("Unable to query sector size %s: error %d"),
@@ -210,7 +209,7 @@ static int virLockManagerSanlockSetupLockspace(void)
                 goto error_unlink;
             }
 
-            if ((rv = sanlock_direct_init(&ls, NULL, 0, 0, 0)) < 0) {
+            if ((rv = sanlock_init(&ls, NULL, 0, 0)) < 0) {
                 if (rv <= -200)
                     virLockError(VIR_ERR_INTERNAL_ERROR,
                                  _("Unable to initialize lockspace %s: error %d"),
@@ -240,7 +239,7 @@ static int virLockManagerSanlockSetupLockspace(void)
                 virReportSystemError(-rv,
                                      _("Unable to add lockspace %s"),
                                      path);
-            return -1;
+            goto error_unlink;
         } else {
             VIR_DEBUG("Lockspace %s is already registered", path);
         }
@@ -251,8 +250,7 @@ static int virLockManagerSanlockSetupLockspace(void)
     return 0;
 
 error_unlink:
-    if (path)
-        unlink(path);
+    unlink(path);
 error:
     VIR_FORCE_CLOSE(fd);
     VIR_FREE(path);
@@ -555,7 +553,7 @@ static int virLockManagerSanlockCreateLease(struct sanlk_resource *res)
             }
             VIR_DEBUG("Someone else just created lockspace %s", res->disks[0].path);
         } else {
-            if ((rv = sanlock_direct_align(&res->disks[0])) < 0) {
+            if ((rv = sanlock_align(&res->disks[0])) < 0) {
                 if (rv <= -200)
                     virLockError(VIR_ERR_INTERNAL_ERROR,
                                  _("Unable to query sector size %s: error %d"),
@@ -584,7 +582,7 @@ static int virLockManagerSanlockCreateLease(struct sanlk_resource *res)
                 goto error_unlink;
             }
 
-            if ((rv = sanlock_direct_init(NULL, res, 0, 0, 0)) < 0) {
+            if ((rv = sanlock_init(NULL, res, 0, 0)) < 0) {
                 if (rv <= -200)
                     virLockError(VIR_ERR_INTERNAL_ERROR,
                                  _("Unable to initialize lease %s: error %d"),

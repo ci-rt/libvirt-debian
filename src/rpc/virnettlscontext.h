@@ -30,6 +30,8 @@ typedef struct _virNetTLSSession virNetTLSSession;
 typedef virNetTLSSession *virNetTLSSessionPtr;
 
 
+void virNetTLSInit(void);
+
 virNetTLSContextPtr virNetTLSContextNewServerPath(const char *pkipath,
                                                   bool tryUserPkiPath,
                                                   const char *const*x509dnWhitelist,

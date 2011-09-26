@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <mntent.h>
+#include <dirent.h>
 
 /* Yes, we want linux private one, for _syscall2() macro */
 #include <linux/unistd.h>
@@ -286,7 +287,7 @@ static int lxcContainerChildMountSort(const void *a, const void *b)
   const char **sa = (const char**)a;
   const char **sb = (const char**)b;
 
-  /* Delibrately reversed args - we need to unmount deepest
+  /* Deliberately reversed args - we need to unmount deepest
      children first */
   return strcmp(*sb, *sa);
 }
@@ -402,9 +403,10 @@ err:
 }
 
 
-static int lxcContainerMountBasicFS(const char *srcprefix)
+static int lxcContainerMountBasicFS(const char *srcprefix, bool pivotRoot)
 {
     const struct {
+        bool onlyPivotRoot;
         bool needPrefix;
         const char *src;
         const char *dst;
@@ -415,23 +417,31 @@ static int lxcContainerMountBasicFS(const char *srcprefix)
         /* When we want to make a bind mount readonly, for unknown reasons,
          * it is currently neccessary to bind it once, and then remount the
          * bind with the readonly flag. If this is not done, then the original
-         * mount point in the main OS becomes readonly too which si not what
+         * mount point in the main OS becomes readonly too which is not what
          * we want. Hence some things have two entries here.
          */
-        { false, "devfs", "/dev", "tmpfs", "mode=755", MS_NOSUID },
-        { false, "proc", "/proc", "proc", NULL, MS_NOSUID|MS_NOEXEC|MS_NODEV },
-        { false, "/proc/sys", "/proc/sys", NULL, NULL, MS_BIND },
-        { false, "/proc/sys", "/proc/sys", NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
-        { true, "/sys", "/sys", NULL, NULL, MS_BIND },
-        { true, "/sys", "/sys", NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
-        { true, "/selinux", "/selinux", NULL, NULL, MS_BIND },
-        { true, "/selinux", "/selinux", NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
+        { true, false, "devfs", "/dev", "tmpfs", "mode=755", MS_NOSUID },
+        { false, false, "proc", "/proc", "proc", NULL, MS_NOSUID|MS_NOEXEC|MS_NODEV },
+        { false, false, "/proc/sys", "/proc/sys", NULL, NULL, MS_BIND },
+        { false, false, "/proc/sys", "/proc/sys", NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
+        { false, true, "/sys", "/sys", NULL, NULL, MS_BIND },
+        { false, true, "/sys", "/sys", NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
+        { false, true, "/selinux", "/selinux", NULL, NULL, MS_BIND },
+        { false, true, "/selinux", "/selinux", NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
     };
     int i, rc = -1;
+
+    VIR_DEBUG("Mounting basic filesystems %s pivotRoot=%d", NULLSTR(srcprefix), pivotRoot);
 
     for (i = 0 ; i < ARRAY_CARDINALITY(mnts) ; i++) {
         char *src = NULL;
         const char *srcpath = NULL;
+
+        VIR_DEBUG("Consider %s onlyPivotRoot=%d",
+                  mnts[i].src, mnts[i].onlyPivotRoot);
+        if (mnts[i].onlyPivotRoot && !pivotRoot)
+            continue;
+
         if (virFileMakePath(mnts[i].dst) < 0) {
             virReportSystemError(errno,
                                  _("Failed to mkdir %s"),
@@ -454,6 +464,8 @@ static int lxcContainerMountBasicFS(const char *srcprefix)
             (access(srcpath, R_OK) < 0))
             continue;
 
+        VIR_DEBUG("Mount %s on %s type=%s flags=%x, opts=%s",
+                  srcpath, mnts[i].dst, mnts[i].type, mnts[i].mflags, mnts[i].opts);
         if (mount(srcpath, mnts[i].dst, mnts[i].type, mnts[i].mflags, mnts[i].opts) < 0) {
             VIR_FREE(src);
             virReportSystemError(errno,
@@ -531,18 +543,18 @@ static int lxcContainerPopulateDevices(void)
         }
     }
 
+    dev_t dev = makedev(LXC_DEV_MAJ_TTY, LXC_DEV_MIN_PTMX);
+    if (mknod("/dev/ptmx", S_IFCHR, dev) < 0 ||
+        chmod("/dev/ptmx", 0666)) {
+        virReportSystemError(errno, "%s",
+                             _("Failed to make device /dev/ptmx"));
+        return -1;
+    }
+
     if (access("/dev/pts/ptmx", W_OK) == 0) {
-        if (symlink("/dev/pts/ptmx", "/dev/ptmx") < 0) {
+        if (mount("/dev/pts/ptmx", "/dev/ptmx", "ptmx", MS_BIND, NULL) < 0) {
             virReportSystemError(errno, "%s",
-                                 _("Failed to create symlink /dev/ptmx to /dev/pts/ptmx"));
-            return -1;
-        }
-    } else {
-        dev_t dev = makedev(LXC_DEV_MAJ_TTY, LXC_DEV_MIN_PTMX);
-        if (mknod("/dev/ptmx", S_IFCHR, dev) < 0 ||
-            chmod("/dev/ptmx", 0666)) {
-            virReportSystemError(errno, "%s",
-                                 _("Failed to make device /dev/ptmx"));
+                                 _("Failed to bind-mount /dev/ptmx to /dev/pts/ptmx"));
             return -1;
         }
     }
@@ -597,12 +609,184 @@ static int lxcContainerMountFSBind(virDomainFSDefPtr fs,
             virReportSystemError(errno,
                                  _("Failed to make directory %s readonly"),
                                  fs->dst);
-            goto cleanup;
         }
-
     }
 
     ret = 0;
+
+cleanup:
+    VIR_FREE(src);
+    return ret;
+}
+
+
+
+/*
+ * This functions attempts to do automatic detection of filesystem
+ * type following the same rules as the util-linux 'mount' binary.
+ *
+ * The main difference is that we don't (currently) try to use
+ * libblkid to detect the format first. We go straight to using
+ * /etc/filesystems, and then /proc/filesystems
+ */
+static int lxcContainerMountFSBlockAuto(virDomainFSDefPtr fs,
+                                        int fsflags,
+                                        const char *src,
+                                        const char *srcprefix)
+{
+    FILE *fp = NULL;
+    int ret = -1;
+    bool tryProc = false;
+    bool gotStar = false;
+    char *fslist = NULL;
+    char *line = NULL;
+    const char *type;
+
+    VIR_DEBUG("src=%s srcprefix=%s dst=%s", src, srcprefix, fs->dst);
+
+    /* First time around we use /etc/filesystems */
+retry:
+    if (virAsprintf(&fslist, "%s%s",
+                    srcprefix, tryProc ? "/proc/filesystems" : "/etc/filesystems") < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Open fslist %s", fslist);
+    if (!(fp = fopen(fslist, "r"))) {
+        /* If /etc/filesystems does not exist, then we need to retry
+         * with /proc/filesystems next
+         */
+        if (errno == ENOENT &&
+            !tryProc) {
+            tryProc = true;
+            VIR_FREE(fslist);
+            goto retry;
+        }
+
+        virReportSystemError(errno,
+                             _("Unable to read %s"),
+                             fslist);
+        goto cleanup;
+    }
+
+    while (!feof(fp)) {
+        size_t n;
+        VIR_FREE(line);
+        if (getline(&line, &n, fp) <= 0) {
+            if (feof(fp))
+                break;
+
+            goto cleanup;
+        }
+
+        if (strstr(line, "nodev"))
+            continue;
+
+        type = strchr(line, '\n');
+        if (type)
+            line[type-line] = '\0';
+
+        type = line;
+        virSkipSpaces(&type);
+
+        /*
+         * /etc/filesystems is only allowed to contain '*' on the last line
+         */
+        if (gotStar) {
+            lxcError(VIR_ERR_INTERNAL_ERROR,
+                     _("%s has unexpected '*' before last line"),
+                     fslist);
+            goto cleanup;
+        }
+
+        /* An '*' on the last line in /etc/filesystems
+         * means try /proc/filesystems next. We don't
+         * jump immediately though, since we need to see
+         * if any more lines follow
+         */
+        if (!tryProc &&
+            STREQ(type, "*"))
+            gotStar = true;
+
+        VIR_DEBUG("Trying mount %s with %s", src, type);
+        if (mount(src, fs->dst, type, fsflags, NULL) < 0) {
+            /* These errnos indicate a bogus filesystem type for
+             * the image we have, so skip to the next type
+             */
+            if (errno == EINVAL || errno == ENODEV)
+                continue;
+
+            virReportSystemError(errno,
+                                 _("Failed to bind mount directory %s to %s"),
+                                 src, fs->dst);
+            goto cleanup;
+        }
+
+        ret = 0;
+        break;
+    }
+
+    /* We've got to the end of /etc/filesystems and saw
+     * a '*', so we must try /proc/filesystems next
+     */
+    if (ret != 0 &&
+        !tryProc &&
+        gotStar) {
+        tryProc = true;
+        VIR_FREE(fslist);
+        VIR_FORCE_FCLOSE(fp);
+        goto retry;
+    }
+
+    VIR_DEBUG("Done mounting filesystem ret=%d tryProc=%d", ret, tryProc);
+
+cleanup:
+    VIR_FREE(line);
+    VIR_FORCE_FCLOSE(fp);
+    return ret;
+}
+
+
+/*
+ * Mount a block device 'src' on fs->dst, automatically
+ * probing for filesystem type
+ */
+static int lxcContainerMountFSBlockHelper(virDomainFSDefPtr fs,
+                                          const char *src,
+                                          const char *srcprefix)
+{
+    int fsflags = 0;
+    int ret = -1;
+    if (fs->readonly)
+        fsflags |= MS_RDONLY;
+
+    if (virFileMakePath(fs->dst) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to create %s"),
+                             fs->dst);
+        goto cleanup;
+    }
+
+    ret = lxcContainerMountFSBlockAuto(fs, fsflags, src, srcprefix);
+
+cleanup:
+    return ret;
+}
+
+
+static int lxcContainerMountFSBlock(virDomainFSDefPtr fs,
+                                    const char *srcprefix)
+{
+    char *src = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&src, "%s%s", srcprefix, fs->src) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    ret = lxcContainerMountFSBlockHelper(fs, src, srcprefix);
 
     VIR_DEBUG("Done mounting filesystem ret=%d", ret);
 
@@ -619,6 +803,15 @@ static int lxcContainerMountFS(virDomainFSDefPtr fs,
     case VIR_DOMAIN_FS_TYPE_MOUNT:
         if (lxcContainerMountFSBind(fs, srcprefix) < 0)
             return -1;
+        break;
+    case VIR_DOMAIN_FS_TYPE_BLOCK:
+        if (lxcContainerMountFSBlock(fs, srcprefix) < 0)
+            return -1;
+        break;
+    case VIR_DOMAIN_FS_TYPE_FILE:
+        lxcError(VIR_ERR_INTERNAL_ERROR,
+                 _("Unexpected filesystem type %s"),
+                 virDomainFSTypeToString(fs->type));
         break;
     default:
         lxcError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -716,7 +909,7 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
         return -1;
 
     /* Mounts the core /proc, /sys, etc filesystems */
-    if (lxcContainerMountBasicFS("/.oldroot") < 0)
+    if (lxcContainerMountBasicFS("/.oldroot", true) < 0)
         return -1;
 
     /* Mounts /dev and /dev/pts */
@@ -760,8 +953,7 @@ static int lxcContainerSetupExtraMounts(virDomainDefPtr vmDef)
         return -1;
 
     /* Mounts the core /proc, /sys, etc filesystems */
-    VIR_DEBUG("Mounting basic FS");
-    if (lxcContainerMountBasicFS(NULL) < 0)
+    if (lxcContainerMountBasicFS(NULL, false) < 0)
         return -1;
 
     VIR_DEBUG("Mounting completed");

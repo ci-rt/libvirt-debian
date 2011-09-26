@@ -86,7 +86,14 @@ typedef enum {
      VIR_DOMAIN_PAUSED  = 3, /* the domain is paused by user */
      VIR_DOMAIN_SHUTDOWN= 4, /* the domain is being shut down */
      VIR_DOMAIN_SHUTOFF = 5, /* the domain is shut off */
-     VIR_DOMAIN_CRASHED = 6  /* the domain is crashed */
+     VIR_DOMAIN_CRASHED = 6, /* the domain is crashed */
+
+    /*
+     * NB: this enum value will increase over time as new events are
+     * added to the libvirt API. It reflects the last state supported
+     * by this version of the libvirt API.
+     */
+     VIR_DOMAIN_LAST
 } virDomainState;
 
 typedef enum {
@@ -116,8 +123,8 @@ typedef enum {
     VIR_DOMAIN_PAUSED_DUMP = 4,         /* paused for offline core dump */
     VIR_DOMAIN_PAUSED_IOERROR = 5,      /* paused due to a disk I/O error */
     VIR_DOMAIN_PAUSED_WATCHDOG = 6,     /* paused due to a watchdog event */
-    VIR_DOMAIN_PAUSED_FROM_SNAPSHOT = 7, /* restored from a snapshot which was
-                                          * taken while domain was paused */
+    VIR_DOMAIN_PAUSED_FROM_SNAPSHOT = 7, /* paused after restoring from snapshot */
+    VIR_DOMAIN_PAUSED_SHUTTING_DOWN = 8, /* paused during shutdown process */
 } virDomainPausedReason;
 
 typedef enum {
@@ -236,6 +243,7 @@ typedef enum {
     VIR_DOMAIN_START_PAUSED       = 1 << 0, /* Launch guest in paused state */
     VIR_DOMAIN_START_AUTODESTROY  = 1 << 1, /* Automatically kill guest when virConnectPtr is closed */
     VIR_DOMAIN_START_BYPASS_CACHE = 1 << 2, /* Avoid file system cache pollution */
+    VIR_DOMAIN_START_FORCE_BOOT   = 1 << 3, /* Boot, discarding any managed save */
 } virDomainCreateFlags;
 
 
@@ -574,6 +582,85 @@ struct _virDomainBlockStats {
  */
 typedef virDomainBlockStatsStruct *virDomainBlockStatsPtr;
 
+
+/**
+ * VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH:
+ *
+ * Macro providing the field length of virDomainBlockStatsFlagsStruct
+ */
+#define VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH 80
+
+/**
+ * VIR_DOMAIN_BLOCK_STATS_READ_BYTES:
+ *
+ * Macro represents the total number of read bytes of the
+ * block device.
+ */
+#define VIR_DOMAIN_BLOCK_STATS_READ_BYTES "rd_bytes"
+
+/**
+ * VIR_DOMAIN_BLOCK_STATS_READ_REQ:
+ *
+ * Macro represents the total read requests of the
+ * block device.
+ */
+#define VIR_DOMAIN_BLOCK_STATS_READ_REQ "rd_operations"
+
+/**
+ * VIR_DOMAIN_BLOCK_STATS_READ_TOTAL_TIMES:
+ *
+ * Macro represents the total time spend on cache reads in
+ * nano-seconds of the block device.
+ */
+#define VIR_DOMAIN_BLOCK_STATS_READ_TOTAL_TIMES "rd_total_times"
+
+/**
+ * VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES:
+ *
+ * Macro represents the total number of write bytes of the
+ * block device.
+ */
+#define VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES "wr_bytes"
+
+/**
+ * VIR_DOMAIN_BLOCK_STATS_WRITE_REQ:
+ *
+ * Macro represents the total write requests of the
+ * block device.
+ */
+#define VIR_DOMAIN_BLOCK_STATS_WRITE_REQ "wr_operations"
+
+/**
+ * VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES:
+ *
+ * Macro represents the total time spend on cache writes in
+ * nano-seconds of the block device.
+ */
+#define VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES "wr_total_times"
+
+/**
+ * VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ:
+ *
+ * Macro represents the total flush requests of the
+ * block device.
+ */
+#define VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ "flush_operations"
+
+/**
+ * VIR_DOMAIN_BLOCK_STATS_FLUSH_TOTAL_TIMES:
+ *
+ * Macro represents the total time spend on cache flushing in
+ * nano-seconds of the block device.
+ */
+#define VIR_DOMAIN_BLOCK_STATS_FLUSH_TOTAL_TIMES "flush_total_times"
+
+/**
+ * VIR_DOMAIN_BLOCK_STATS_ERRS:
+ *
+ * In Xen this returns the mysterious 'oo_req'
+ */
+#define VIR_DOMAIN_BLOCK_STATS_ERRS "errs"
+
 /**
  * virDomainInterfaceStats:
  *
@@ -709,6 +796,10 @@ int virDomainMigrateSetMaxDowntime (virDomainPtr domain,
 
 int virDomainMigrateSetMaxSpeed(virDomainPtr domain,
                                 unsigned long bandwidth,
+                                unsigned int flags);
+
+int virDomainMigrateGetMaxSpeed(virDomainPtr domain,
+                                unsigned long *bandwidth,
                                 unsigned int flags);
 
 /**
@@ -919,10 +1010,12 @@ virConnectPtr           virDomainGetConnect     (virDomainPtr domain);
  * Domain creation and destruction
  */
 
+
 /*
  * typedef enum {
  * } virDomainDestroyFlagsValues;
  */
+
 virDomainPtr            virDomainCreateXML      (virConnectPtr conn,
                                                  const char *xmlDesc,
                                                  unsigned int flags);
@@ -956,11 +1049,14 @@ int                     virDomainResume         (virDomainPtr domain);
 
 /**
  * virDomainSaveRestoreFlags:
- * Flags for use in virDomainSaveFlags(), virDomainManagedSave(), and
- * virDomainRestoreFlags().
+ * Flags for use in virDomainSaveFlags(), virDomainManagedSave(),
+ * virDomainRestoreFlags(), and virDomainSaveImageDefineXML().  Not all
+ * flags apply to all these functions.
  */
 typedef enum {
     VIR_DOMAIN_SAVE_BYPASS_CACHE = 1 << 0, /* Avoid file system cache pollution */
+    VIR_DOMAIN_SAVE_RUNNING      = 1 << 1, /* Favor running over paused */
+    VIR_DOMAIN_SAVE_PAUSED       = 1 << 2, /* Favor paused over running */
 } virDomainSaveRestoreFlags;
 
 int                     virDomainSave           (virDomainPtr domain,
@@ -1169,6 +1265,11 @@ int                     virDomainBlockStats     (virDomainPtr dom,
                                                  const char *path,
                                                  virDomainBlockStatsPtr stats,
                                                  size_t size);
+int                     virDomainBlockStatsFlags (virDomainPtr dom,
+                                                  const char *path,
+                                                  virTypedParameterPtr params,
+                                                  int *nparams,
+                                                  unsigned int flags);
 int                     virDomainInterfaceStats (virDomainPtr dom,
                                                  const char *path,
                                                  virDomainInterfaceStatsPtr stats,
@@ -1240,7 +1341,11 @@ virDomainPtr            virDomainDefineXML      (virConnectPtr conn,
 int                     virDomainUndefine       (virDomainPtr domain);
 
 typedef enum {
-    VIR_DOMAIN_UNDEFINE_MANAGED_SAVE = (1 << 0),
+    VIR_DOMAIN_UNDEFINE_MANAGED_SAVE       = (1 << 0), /* Also remove any
+                                                          managed save */
+    VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA = (1 << 1), /* If last use of domain,
+                                                          then also remove any
+                                                          snapshot metadata */
 
     /* Future undefine control flags should come here. */
 } virDomainUndefineFlagsValues;
@@ -1665,8 +1770,10 @@ typedef enum {
 
 typedef enum {
   VIR_STORAGE_POOL_BUILD_NEW  = 0,   /* Regular build from scratch */
-  VIR_STORAGE_POOL_BUILD_REPAIR = 1, /* Repair / reinitialize */
-  VIR_STORAGE_POOL_BUILD_RESIZE = 2  /* Extend existing pool */
+  VIR_STORAGE_POOL_BUILD_REPAIR = (1 << 0), /* Repair / reinitialize */
+  VIR_STORAGE_POOL_BUILD_RESIZE = (1 << 1),  /* Extend existing pool */
+  VIR_STORAGE_POOL_BUILD_NO_OVERWRITE = (1 << 2),  /* Do not overwrite existing pool */
+  VIR_STORAGE_POOL_BUILD_OVERWRITE = (1 << 3),  /* Overwrite data */
 } virStoragePoolBuildFlags;
 
 typedef enum {
@@ -1705,6 +1812,7 @@ typedef virStorageVol *virStorageVolPtr;
 typedef enum {
   VIR_STORAGE_VOL_FILE = 0,     /* Regular file based volumes */
   VIR_STORAGE_VOL_BLOCK = 1,    /* Block based volumes */
+  VIR_STORAGE_VOL_DIR = 2,      /* Directory-passthrough based volume */
 } virStorageVolType;
 
 typedef enum {
@@ -1874,7 +1982,13 @@ typedef enum {
     VIR_KEYCODE_SET_XT_KBD         = 6,
     VIR_KEYCODE_SET_USB            = 7,
     VIR_KEYCODE_SET_WIN32          = 8,
+    VIR_KEYCODE_SET_RFB            = 9,
 
+    /*
+     * NB: this enum value will increase over time as new events are
+     * added to the libvirt API. It reflects the last keycode set supported
+     * by this version of the libvirt API.
+     */
     VIR_KEYCODE_SET_LAST,
 } virKeycodeSet;
 
@@ -2022,6 +2136,8 @@ typedef enum {
     VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED = 1, /* Suspended for offline migration */
     VIR_DOMAIN_EVENT_SUSPENDED_IOERROR = 2,  /* Suspended due to a disk I/O error */
     VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG = 3,  /* Suspended due to a watchdog firing */
+    VIR_DOMAIN_EVENT_SUSPENDED_RESTORED = 4,  /* Restored from paused state file */
+    VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT = 5, /* Restored from paused snapshot */
 } virDomainEventSuspendedDetailType;
 
 /**
@@ -2032,6 +2148,7 @@ typedef enum {
 typedef enum {
     VIR_DOMAIN_EVENT_RESUMED_UNPAUSED = 0,   /* Normal resume due to admin unpause */
     VIR_DOMAIN_EVENT_RESUMED_MIGRATED = 1,   /* Resumed for completion of migration */
+    VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT = 2, /* Resumed from snapshot */
 } virDomainEventResumedDetailType;
 
 /**
@@ -2540,6 +2657,23 @@ typedef struct _virDomainSnapshot virDomainSnapshot;
  */
 typedef virDomainSnapshot *virDomainSnapshotPtr;
 
+const char *virDomainSnapshotGetName(virDomainSnapshotPtr snapshot);
+virDomainPtr virDomainSnapshotGetDomain(virDomainSnapshotPtr snapshot);
+virConnectPtr virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot);
+
+typedef enum {
+    VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE    = (1 << 0), /* Restore or alter
+                                                          metadata */
+    VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT     = (1 << 1), /* With redefine, make
+                                                          snapshot current */
+    VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA = (1 << 2), /* Make snapshot without
+                                                          remembering it */
+    VIR_DOMAIN_SNAPSHOT_CREATE_HALT        = (1 << 3), /* Stop running guest
+                                                          after snapshot */
+    VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY   = (1 << 4), /* disk snapshot, not
+                                                          system checkpoint */
+} virDomainSnapshotCreateFlags;
+
 /* Take a snapshot of the current VM state */
 virDomainSnapshotPtr virDomainSnapshotCreateXML(virDomainPtr domain,
                                                 const char *xmlDesc,
@@ -2548,6 +2682,15 @@ virDomainSnapshotPtr virDomainSnapshotCreateXML(virDomainPtr domain,
 /* Dump the XML of a snapshot */
 char *virDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
                                   unsigned int flags);
+
+/* Flags valid for both virDomainSnapshotNum() and
+ * virDomainSnapshotListNames().  */
+typedef enum {
+    VIR_DOMAIN_SNAPSHOT_LIST_ROOTS    = (1 << 0), /* Filter by snapshots which
+                                                     have no parents */
+    VIR_DOMAIN_SNAPSHOT_LIST_METADATA = (1 << 1), /* Filter by snapshots which
+                                                     have metadata */
+} virDomainSnapshotListFlags;
 
 /* Return the number of snapshots for this domain */
 int virDomainSnapshotNum(virDomainPtr domain, unsigned int flags);
@@ -2568,6 +2711,11 @@ int virDomainHasCurrentSnapshot(virDomainPtr domain, unsigned int flags);
 virDomainSnapshotPtr virDomainSnapshotCurrent(virDomainPtr domain,
                                               unsigned int flags);
 
+typedef enum {
+    VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING = 1 << 0, /* Run after revert */
+    VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED  = 1 << 1, /* Pause after revert */
+} virDomainSnapshotRevertFlags;
+
 /* Revert the domain to a point-in-time snapshot.  The
  * state of the guest after this call will be the state
  * of the guest when the snapshot in question was taken
@@ -2577,7 +2725,9 @@ int virDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
 
 /* Delete a snapshot */
 typedef enum {
-    VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN = (1 << 0),
+    VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN      = (1 << 0), /* Also delete children */
+    VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY = (1 << 1), /* Delete just metadata */
+    VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY = (1 << 2), /* Delete just children */
 } virDomainSnapshotDeleteFlags;
 
 int virDomainSnapshotDelete(virDomainSnapshotPtr snapshot,

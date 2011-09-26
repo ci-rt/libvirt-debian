@@ -36,6 +36,15 @@
      (1 << VIR_DOMAIN_VIRT_KVM) |      \
      (1 << VIR_DOMAIN_VIRT_XEN))
 
+# define QEMU_DOMAIN_DEFAULT_MIG_BANDWIDTH_MAX (32 << 20)
+# if ULONG_MAX == 4294967295
+/* Qemu has a 64-bit limit, but we are limited by our historical choice of
+ * representing bandwidth in a long instead of a 64-bit int.  */
+#  define QEMU_DOMAIN_FILE_MIG_BANDWIDTH_MAX    ULONG_MAX
+# else
+#  define QEMU_DOMAIN_FILE_MIG_BANDWIDTH_MAX    (INT64_MAX / (1024 * 1024))
+# endif
+
 # define JOB_MASK(job)                  (1 << (job - 1))
 # define DEFAULT_JOB_MASK               \
     (JOB_MASK(QEMU_JOB_QUERY) |         \
@@ -113,6 +122,10 @@ struct _qemuDomainObjPrivate {
     char *lockState;
 
     bool fakeReboot;
+
+    int jobs_queued;
+
+    unsigned long migMaxBandwidth;
 };
 
 struct qemuDomainWatchdogEvent
@@ -223,5 +236,41 @@ int qemuDomainAppendLog(struct qemud_driver *driver,
                         virDomainObjPtr vm,
                         int logFD,
                         const char *fmt, ...) ATTRIBUTE_FMT_PRINTF(4, 5);
+
+const char *qemuFindQemuImgBinary(struct qemud_driver *driver);
+
+int qemuDomainSnapshotWriteMetadata(virDomainObjPtr vm,
+                                    virDomainSnapshotObjPtr snapshot,
+                                    char *snapshotDir);
+
+int qemuDomainSnapshotForEachQcow2(struct qemud_driver *driver,
+                                   virDomainObjPtr vm,
+                                   virDomainSnapshotObjPtr snap,
+                                   const char *op,
+                                   bool try_all);
+
+int qemuDomainSnapshotDiscard(struct qemud_driver *driver,
+                              virDomainObjPtr vm,
+                              virDomainSnapshotObjPtr snap,
+                              bool update_current,
+                              bool metadata_only);
+
+struct qemu_snap_remove {
+    struct qemud_driver *driver;
+    virDomainObjPtr vm;
+    int err;
+    bool metadata_only;
+    bool current;
+};
+
+void qemuDomainSnapshotDiscardAll(void *payload,
+                                  const void *name,
+                                  void *data);
+
+int qemuDomainSnapshotDiscardAllMetadata(struct qemud_driver *driver,
+                                         virDomainObjPtr vm);
+
+void qemuDomainRemoveInactive(struct qemud_driver *driver,
+                              virDomainObjPtr vm);
 
 #endif /* __QEMU_DOMAIN_H__ */

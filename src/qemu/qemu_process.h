@@ -52,6 +52,7 @@ int qemuProcessStart(virConnectPtr conn,
                      bool autodestroy,
                      int stdin_fd,
                      const char *stdin_path,
+                     virDomainSnapshotObjPtr snapshot,
                      enum virVMOperationType vmop);
 
 void qemuProcessStop(struct qemud_driver *driver,
@@ -67,7 +68,7 @@ int qemuProcessAttach(virConnectPtr conn,
                       virDomainChrSourceDefPtr monConfig,
                       bool monJSON);
 
-void qemuProcessKill(virDomainObjPtr vm);
+void qemuProcessKill(virDomainObjPtr vm, bool gracefully);
 
 int qemuProcessAutoDestroyInit(struct qemud_driver *driver);
 void qemuProcessAutoDestroyRun(struct qemud_driver *driver,

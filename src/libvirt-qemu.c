@@ -36,6 +36,38 @@
     virReportErrorHelper(VIR_FROM_DOM, error, NULL, __FUNCTION__,       \
                          __LINE__, info)
 
+/**
+ * virDomainQemuMonitorCommand:
+ * @domain: a domain object
+ * @cmd: the qemu monitor command string
+ * @result: a string returned by @cmd
+ * @flags: bitwise-or of supported virDomainQemuMonitorCommandFlags
+ *
+ * This API is QEMU specific, so it will only work with hypervisor
+ * connections to the QEMU driver.
+ *
+ * Send an arbitrary monitor command @cmd to @domain through the
+ * qemu monitor. There are several requirements to safely and
+ * successfully use this API:
+ *
+ *   - A @cmd that queries state without making any modifications is safe
+ *   - A @cmd that alters state that is also tracked by libvirt is unsafe,
+ *     and may cause libvirtd to crash
+ *   - A @cmd that alters state not tracked by the current version of
+ *     libvirt is possible as a means to test new qemu features before
+ *     they have support in libvirt, but no guarantees are made to safety
+ *
+ * If VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP is set, the command is
+ * considered to be a human monitor command and libvirt will automatically
+ * convert it into QMP if needed.  In that case the @result will also
+ * be converted back from QMP.
+ *
+ * If successful, @result will be filled with the string output of the
+ * @cmd, and the caller must free this string.
+ *
+ * Returns 0 in case of success, -1 in case of failure
+ *
+ */
 int
 virDomainQemuMonitorCommand(virDomainPtr domain, const char *cmd,
                             char **result, unsigned int flags)
@@ -81,19 +113,17 @@ error:
     return -1;
 }
 
-
-
 /**
  * virDomainQemuAttach:
  * @conn: pointer to a hypervisor connection
  * @pid: the UNIX process ID of the external QEMU process
  * @flags: optional flags, currently unused
  *
- * This API is QEMU specific, so will only work with hypervisor
+ * This API is QEMU specific, so it will only work with hypervisor
  * connections to the QEMU driver.
  *
  * This API will attach to an externally launched QEMU process
- * identified by @pid. There are several requirements to succcesfully
+ * identified by @pid. There are several requirements to successfully
  * attach to an external QEMU process:
  *
  *   - It must have been started with a monitor socket using the UNIX
@@ -105,13 +135,13 @@ error:
  *
  * If successful, then the guest will appear in the list of running
  * domains for this connection, and other APIs should operate
- * normally (provided the above requirements were honoured
+ * normally (provided the above requirements were honored).
  *
  * Returns a new domain object on success, NULL otherwise
  */
 virDomainPtr
 virDomainQemuAttach(virConnectPtr conn,
-                    unsigned pid,
+                    unsigned int pid,
                     unsigned int flags)
 {
     VIR_DEBUG("conn=%p, pid=%u, flags=%x", conn, pid, flags);

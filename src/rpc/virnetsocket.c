@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <fcntl.h>
 
 #ifdef HAVE_NETINET_TCP_H
 # include <netinet/tcp.h>
@@ -301,6 +302,7 @@ error:
 #if HAVE_SYS_UN_H
 int virNetSocketNewListenUNIX(const char *path,
                               mode_t mask,
+                              uid_t user,
                               gid_t grp,
                               virNetSocketPtr *retsock)
 {
@@ -343,10 +345,10 @@ int virNetSocketNewListenUNIX(const char *path,
     /* chown() doesn't work for abstract sockets but we use them only
      * if libvirtd runs unprivileged
      */
-    if (grp != 0 && chown(path, -1, grp)) {
+    if (grp != 0 && chown(path, user, grp)) {
         virReportSystemError(errno,
-                             _("Failed to change group ID of '%s' to %u"),
-                             path, (unsigned int) grp);
+                             _("Failed to change ownership of '%s' to %d:%d"),
+                             path, (int) user, (int) grp);
         goto error;
     }
 
@@ -364,6 +366,7 @@ error:
 #else
 int virNetSocketNewListenUNIX(const char *path ATTRIBUTE_UNUSED,
                               mode_t mask ATTRIBUTE_UNUSED,
+                              uid_t user ATTRIBUTE_UNUSED,
                               gid_t grp ATTRIBUTE_UNUSED,
                               virNetSocketPtr *retsock ATTRIBUTE_UNUSED)
 {
@@ -612,6 +615,7 @@ int virNetSocketNewConnectSSH(const char *nodename,
 
     cmd = virCommandNew(binary ? binary : "ssh");
     virCommandAddEnvPassCommon(cmd);
+    virCommandAddEnvPass(cmd, "KRB5CCNAME");
     virCommandAddEnvPass(cmd, "SSH_AUTH_SOCK");
     virCommandAddEnvPass(cmd, "SSH_ASKPASS");
     virCommandAddEnvPass(cmd, "DISPLAY");
@@ -706,6 +710,23 @@ int virNetSocketGetFD(virNetSocketPtr sock)
     virMutexLock(&sock->lock);
     fd = sock->fd;
     virMutexUnlock(&sock->lock);
+    return fd;
+}
+
+
+int virNetSocketDupFD(virNetSocketPtr sock, bool cloexec)
+{
+    int fd;
+
+    if (cloexec)
+        fd = fcntl(sock->fd, F_DUPFD_CLOEXEC);
+    else
+        fd = dup(sock->fd);
+    if (fd < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to copy socket file handle"));
+        return -1;
+    }
     return fd;
 }
 
@@ -1058,10 +1079,10 @@ ssize_t virNetSocketWrite(virNetSocketPtr sock, const char *buf, size_t len)
 }
 
 
-int virNetSocketListen(virNetSocketPtr sock)
+int virNetSocketListen(virNetSocketPtr sock, int backlog)
 {
     virMutexLock(&sock->lock);
-    if (listen(sock->fd, 30) < 0) {
+    if (listen(sock->fd, backlog > 0 ? backlog : 30) < 0) {
         virReportSystemError(errno, "%s", _("Unable to listen on socket"));
         virMutexUnlock(&sock->lock);
         return -1;
@@ -1219,6 +1240,28 @@ void virNetSocketRemoveIOCallback(virNetSocketPtr sock)
     }
 
     virEventRemoveHandle(sock->watch);
+
+    virMutexUnlock(&sock->lock);
+}
+
+void virNetSocketClose(virNetSocketPtr sock)
+{
+    if (!sock)
+        return;
+
+    virMutexLock(&sock->lock);
+
+    VIR_FORCE_CLOSE(sock->fd);
+
+#ifdef HAVE_SYS_UN_H
+    /* If a server socket, then unlink UNIX path */
+    if (!sock->client &&
+        sock->localAddr.data.sa.sa_family == AF_UNIX &&
+        sock->localAddr.data.un.sun_path[0] != '\0') {
+        if (unlink(sock->localAddr.data.un.sun_path) == 0)
+            sock->localAddr.data.un.sun_path[0] = '\0';
+    }
+#endif
 
     virMutexUnlock(&sock->lock);
 }

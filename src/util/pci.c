@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "logging.h"
 #include "memory.h"
@@ -47,6 +48,10 @@
 #define PCI_SYSFS "/sys/bus/pci/"
 #define PCI_ID_LEN 10   /* "XXXX XXXX" */
 #define PCI_ADDR_LEN 13 /* "XXXX:XX:XX.X" */
+
+#define SRIOV_FOUND 0
+#define SRIOV_NOT_FOUND 1
+#define SRIOV_ERROR -1
 
 struct _pciDevice {
     unsigned      domain;
@@ -1679,3 +1684,377 @@ int pciDeviceIsAssignable(pciDevice *dev,
 
     return 1;
 }
+
+#ifdef __linux__
+
+/*
+ * returns 1 if equal and 0 if not
+ */
+static int
+pciConfigAddressEqual(struct pci_config_address *bdf1,
+                      struct pci_config_address *bdf2)
+{
+    return ((bdf1->domain == bdf2->domain) &&
+            (bdf1->bus == bdf2->bus) &&
+            (bdf1->slot == bdf2->slot) &&
+            (bdf1->function == bdf2->function));
+}
+
+static int
+logStrToLong_ui(char const *s,
+                char **end_ptr,
+                int base,
+                unsigned int *result)
+{
+    int ret = 0;
+
+    ret = virStrToLong_ui(s, end_ptr, base, result);
+    if (ret != 0) {
+        VIR_ERROR(_("Failed to convert '%s' to unsigned int"), s);
+    } else {
+        VIR_DEBUG("Converted '%s' to unsigned int %u", s, *result);
+    }
+
+    return ret;
+}
+
+static int
+pciParsePciConfigAddress(char *address,
+                         struct pci_config_address *bdf)
+{
+    char *p = NULL;
+    int ret = -1;
+
+    if ((address == NULL) || (logStrToLong_ui(address, &p, 16,
+                                              &bdf->domain) == -1)) {
+        goto out;
+    }
+
+    if ((p == NULL) || (logStrToLong_ui(p+1, &p, 16,
+                                        &bdf->bus) == -1)) {
+        goto out;
+    }
+
+    if ((p == NULL) || (logStrToLong_ui(p+1, &p, 16,
+                                        &bdf->slot) == -1)) {
+        goto out;
+    }
+
+    if ((p == NULL) || (logStrToLong_ui(p+1, &p, 16,
+                                        &bdf->function) == -1)) {
+        goto out;
+    }
+
+    ret = 0;
+
+out:
+    return ret;
+}
+
+static int
+pciGetPciConfigAddressFromSysfsDeviceLink(const char *device_link,
+                                          struct pci_config_address **bdf)
+{
+    char *config_address = NULL;
+    char *device_path = NULL;
+    char errbuf[64];
+    int ret = -1;
+
+    VIR_DEBUG("Attempting to resolve device path from device link '%s'",
+              device_link);
+
+    if (!virFileExists(device_link)) {
+        VIR_DEBUG("sysfs_path '%s' does not exist", device_link);
+        return ret;
+    }
+
+    device_path = canonicalize_file_name (device_link);
+    if (device_path == NULL) {
+        memset(errbuf, '\0', sizeof(errbuf));
+        pciReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to resolve device link '%s': '%s'"),
+                       device_link, virStrerror(errno, errbuf,
+                       sizeof(errbuf)));
+        return ret;
+    }
+
+    config_address = basename(device_path);
+    if (VIR_ALLOC(*bdf) != 0) {
+        virReportOOMError();
+        goto out;
+    }
+
+    if (pciParsePciConfigAddress(config_address, *bdf) != 0) {
+        pciReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to parse PCI config address '%s'"),
+                       config_address);
+        VIR_FREE(*bdf);
+        goto out;
+    }
+
+    VIR_DEBUG("pci_config_address %.4x:%.2x:%.2x.%.1x",
+              (*bdf)->domain,
+              (*bdf)->bus,
+              (*bdf)->slot,
+              (*bdf)->function);
+
+    ret = 0;
+
+out:
+    VIR_FREE(device_path);
+
+    return ret;
+}
+
+/*
+ * Returns Physical function given a virtual function
+ */
+int
+pciGetPhysicalFunction(const char *vf_sysfs_path,
+                       struct pci_config_address **physical_function)
+{
+    int ret = -1;
+    char *device_link = NULL;
+
+    VIR_DEBUG("Attempting to get SR IOV physical function for device "
+              "with sysfs path '%s'", vf_sysfs_path);
+
+    if (virBuildPath(&device_link, vf_sysfs_path, "physfn") == -1) {
+        virReportOOMError();
+        return ret;
+    } else {
+        ret = pciGetPciConfigAddressFromSysfsDeviceLink(device_link,
+                                                        physical_function);
+    }
+
+    VIR_FREE(device_link);
+
+    return ret;
+}
+
+/*
+ * Returns virtual functions of a physical function
+ */
+int
+pciGetVirtualFunctions(const char *sysfs_path,
+                       struct pci_config_address ***virtual_functions,
+                       unsigned int *num_virtual_functions)
+{
+    int ret = -1;
+    DIR *dir = NULL;
+    struct dirent *entry = NULL;
+    char *device_link = NULL;
+    char errbuf[64];
+
+    VIR_DEBUG("Attempting to get SR IOV virtual functions for device"
+              "with sysfs path '%s'", sysfs_path);
+
+    dir = opendir(sysfs_path);
+    if (dir == NULL) {
+        memset(errbuf, '\0', sizeof(errbuf));
+        pciReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to open dir '%s': '%s'"),
+                       sysfs_path, virStrerror(errno, errbuf,
+                       sizeof(errbuf)));
+        return ret;
+    }
+
+    *virtual_functions = NULL;
+    *num_virtual_functions = 0;
+    while ((entry = readdir(dir))) {
+        if (STRPREFIX(entry->d_name, "virtfn")) {
+
+            if (virBuildPath(&device_link, sysfs_path, entry->d_name) == -1) {
+                virReportOOMError();
+                goto out;
+            }
+
+            VIR_DEBUG("Number of virtual functions: %d",
+                      *num_virtual_functions);
+            if (VIR_REALLOC_N(*virtual_functions,
+                (*num_virtual_functions) + 1) != 0) {
+                virReportOOMError();
+                VIR_FREE(device_link);
+                goto out;
+            }
+
+            if (pciGetPciConfigAddressFromSysfsDeviceLink(device_link,
+                &((*virtual_functions)[*num_virtual_functions])) !=
+                SRIOV_FOUND) {
+                /* We should not get back SRIOV_NOT_FOUND in this
+                 * case, so if we do, it's an error. */
+                pciReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Failed to get SR IOV function from device "
+                               "link '%s'"), device_link);
+                VIR_FREE(device_link);
+                goto out;
+            } else {
+                (*num_virtual_functions)++;
+            }
+            VIR_FREE(device_link);
+        }
+    }
+
+    ret = 0;
+
+out:
+    if (dir)
+        closedir(dir);
+
+    return ret;
+}
+
+/*
+ * Returns 1 if vf device is a virtual function, 0 if not, -1 on error
+ */
+int
+pciDeviceIsVirtualFunction(const char *vf_sysfs_device_link)
+{
+    char *vf_sysfs_physfn_link = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&vf_sysfs_physfn_link, "%s/physfn",
+        vf_sysfs_device_link) < 0) {
+        virReportOOMError();
+        return ret;
+    }
+
+    ret = virFileExists(vf_sysfs_physfn_link);
+
+    VIR_FREE(vf_sysfs_physfn_link);
+
+    return ret;
+}
+
+/*
+ * Returns the sriov virtual function index of vf given its pf
+ */
+int
+pciGetVirtualFunctionIndex(const char *pf_sysfs_device_link,
+                           const char *vf_sysfs_device_link,
+                           int *vf_index)
+{
+    int ret = -1, i;
+    unsigned int num_virt_fns = 0;
+    struct pci_config_address *vf_bdf = NULL;
+    struct pci_config_address **virt_fns = NULL;
+
+    if (pciGetPciConfigAddressFromSysfsDeviceLink(vf_sysfs_device_link,
+        &vf_bdf))
+        return ret;
+
+    if (pciGetVirtualFunctions(pf_sysfs_device_link, &virt_fns,
+        &num_virt_fns)) {
+        pciReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Error getting physical function's '%s' "
+                      "virtual_functions"), pf_sysfs_device_link);
+        goto out;
+    }
+
+    for (i = 0; i < num_virt_fns; i++) {
+         if (pciConfigAddressEqual(vf_bdf, virt_fns[i])) {
+             *vf_index = i;
+             ret = 0;
+             break;
+         }
+    }
+
+out:
+
+    /* free virtual functions */
+    for (i = 0; i < num_virt_fns; i++)
+         VIR_FREE(virt_fns[i]);
+
+    VIR_FREE(virt_fns);
+    VIR_FREE(vf_bdf);
+
+    return ret;
+}
+
+/*
+ * Returns the network device name of a pci device
+ */
+int
+pciDeviceNetName(char *device_link_sysfs_path, char **netname)
+{
+     char *pcidev_sysfs_net_path = NULL;
+     int ret = -1;
+     DIR *dir = NULL;
+     struct dirent *entry = NULL;
+
+     if (virBuildPath(&pcidev_sysfs_net_path, device_link_sysfs_path,
+         "net") == -1) {
+         virReportOOMError();
+         return -1;
+     }
+
+     dir = opendir(pcidev_sysfs_net_path);
+     if (dir == NULL)
+         goto out;
+
+     while ((entry = readdir(dir))) {
+            if (STREQ(entry->d_name, ".") ||
+                STREQ(entry->d_name, ".."))
+                continue;
+
+            /* Assume a single directory entry */
+            *netname = strdup(entry->d_name);
+            ret = 0;
+            break;
+     }
+
+     closedir(dir);
+
+out:
+     VIR_FREE(pcidev_sysfs_net_path);
+
+     return ret;
+}
+#else
+int
+pciGetPhysicalFunction(const char *vf_sysfs_path ATTRIBUTE_UNUSED,
+              struct pci_config_address **physical_function ATTRIBUTE_UNUSED)
+{
+    pciReportError(VIR_ERR_INTERNAL_ERROR, _("pciGetPhysicalFunction is not "
+                   "supported on non-linux platforms"));
+    return -1;
+}
+
+int
+pciGetVirtualFunctions(const char *sysfs_path ATTRIBUTE_UNUSED,
+             struct pci_config_address ***virtual_functions ATTRIBUTE_UNUSED,
+             unsigned int *num_virtual_functions ATTRIBUTE_UNUSED)
+{
+    pciReportError(VIR_ERR_INTERNAL_ERROR, _("pciGetVirtualFunctions is not "
+                   "supported on non-linux platforms"));
+    return -1;
+}
+
+int
+pciDeviceIsVirtualFunction(const char *vf_sysfs_device_link ATTRIBUTE_UNUSED)
+{
+    pciReportError(VIR_ERR_INTERNAL_ERROR, _("pciDeviceIsVirtualFunction is "
+                   "not supported on non-linux platforms"));
+    return -1;
+}
+
+int
+pciGetVirtualFunctionIndex(const char *pf_sysfs_device_link ATTRIBUTE_UNUSED,
+                           const char *vf_sysfs_device_link ATTRIBUTE_UNUSED,
+                           int *vf_index ATTRIBUTE_UNUSED)
+{
+    pciReportError(VIR_ERR_INTERNAL_ERROR, _("pciGetVirtualFunctionIndex is "
+                   "not supported on non-linux platforms"));
+    return -1;
+
+}
+
+int
+pciDeviceNetName(char *device_link_sysfs_path ATTRIBUTE_UNUSED,
+                 char **netname ATTRIBUTE_UNUSED)
+{
+    pciReportError(VIR_ERR_INTERNAL_ERROR, _("pciDeviceNetName is not "
+                   "supported on non-linux platforms"));
+    return -1;
+}
+#endif /* __linux__ */
