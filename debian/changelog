@@ -1,3 +1,13 @@
+libvirt (0.9.6-1) unstable; urgency=low
+
+  * [828e4e3] New upstream version 0.9.6
+  * [59404f4] Use versioned X-Python-Version
+  * [0b43f12] Update symbols file
+  * [744aaeb] Drop Readd-LFS-support.patch - fixed upstream
+  * [f759960] Rediff remaining patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 26 Sep 2011 23:28:03 +0200
+
 libvirt (0.9.4-2) unstable; urgency=low
 
   [ Philipp Hahn ]
