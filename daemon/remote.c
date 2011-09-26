@@ -234,9 +234,13 @@ static int remoteRelayDomainEventIOError(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     /* build return data */
     memset(&data, 0, sizeof data);
+    data.srcPath = strdup(srcPath);
+    if (data.srcPath == NULL)
+        goto mem_error;
+    data.devAlias = strdup(devAlias);
+    if (data.devAlias == NULL)
+        goto mem_error;
     make_nonnull_domain(&data.dom, dom);
-    data.srcPath = (char*)srcPath;
-    data.devAlias = (char*)devAlias;
     data.action = action;
 
     remoteDispatchDomainEventSend(client, remoteProgram,
@@ -244,6 +248,11 @@ static int remoteRelayDomainEventIOError(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   (xdrproc_t)xdr_remote_domain_event_io_error_msg, &data);
 
     return 0;
+mem_error:
+    virReportOOMError();
+    VIR_FREE(data.srcPath);
+    VIR_FREE(data.devAlias);
+    return -1;
 }
 
 
@@ -266,17 +275,31 @@ static int remoteRelayDomainEventIOErrorReason(virConnectPtr conn ATTRIBUTE_UNUS
 
     /* build return data */
     memset(&data, 0, sizeof data);
-    make_nonnull_domain(&data.dom, dom);
-    data.srcPath = (char*)srcPath;
-    data.devAlias = (char*)devAlias;
+    data.srcPath = strdup(srcPath);
+    if (data.srcPath == NULL)
+        goto mem_error;
+    data.devAlias = strdup(devAlias);
+    if (data.devAlias == NULL)
+        goto mem_error;
     data.action = action;
-    data.reason = (char*)reason;
+    data.reason = strdup(reason);
+    if (data.reason == NULL)
+        goto mem_error;
+
+    make_nonnull_domain(&data.dom, dom);
 
     remoteDispatchDomainEventSend(client, remoteProgram,
                                   REMOTE_PROC_DOMAIN_EVENT_IO_ERROR_REASON,
                                   (xdrproc_t)xdr_remote_domain_event_io_error_reason_msg, &data);
 
     return 0;
+
+mem_error:
+    virReportOOMError();
+    VIR_FREE(data.srcPath);
+    VIR_FREE(data.devAlias);
+    VIR_FREE(data.reason);
+    return -1;
 }
 
 
@@ -308,35 +331,62 @@ static int remoteRelayDomainEventGraphics(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     /* build return data */
     memset(&data, 0, sizeof data);
-    make_nonnull_domain(&data.dom, dom);
     data.phase = phase;
-    data.authScheme = (char*)authScheme;
-
     data.local.family = local->family;
-    data.local.node = (char *)local->node;
-    data.local.service = (char *)local->service;
-
     data.remote.family = remote->family;
-    data.remote.node = (char*)remote->node;
-    data.remote.service = (char*)remote->service;
+    data.authScheme = strdup(authScheme);
+    if (data.authScheme == NULL)
+        goto mem_error;
+
+    data.local.node = strdup(local->node);
+    if (data.local.node == NULL)
+        goto mem_error;
+    data.local.service = strdup(local->service);
+    if (data.local.service == NULL)
+        goto mem_error;
+
+    data.remote.node = strdup(remote->node);
+    if (data.remote.node == NULL)
+        goto mem_error;
+    data.remote.service = strdup(remote->service);
+    if (data.remote.service == NULL)
+        goto mem_error;
 
     data.subject.subject_len = subject->nidentity;
-    if (VIR_ALLOC_N(data.subject.subject_val, data.subject.subject_len) < 0) {
-        virReportOOMError();
-        return -1;
-    }
+    if (VIR_ALLOC_N(data.subject.subject_val, data.subject.subject_len) < 0)
+        goto mem_error;
+
     for (i = 0 ; i < data.subject.subject_len ; i++) {
-        data.subject.subject_val[i].type = (char*)subject->identities[i].type;
-        data.subject.subject_val[i].name = (char*)subject->identities[i].name;
+        data.subject.subject_val[i].type = strdup(subject->identities[i].type);
+        if (data.subject.subject_val[i].type == NULL)
+            goto mem_error;
+        data.subject.subject_val[i].name = strdup(subject->identities[i].name);
+        if (data.subject.subject_val[i].name == NULL)
+            goto mem_error;
     }
+    make_nonnull_domain(&data.dom, dom);
 
     remoteDispatchDomainEventSend(client, remoteProgram,
                                   REMOTE_PROC_DOMAIN_EVENT_GRAPHICS,
                                   (xdrproc_t)xdr_remote_domain_event_graphics_msg, &data);
 
-    VIR_FREE(data.subject.subject_val);
-
     return 0;
+
+mem_error:
+    virReportOOMError();
+    VIR_FREE(data.authScheme);
+    VIR_FREE(data.local.node);
+    VIR_FREE(data.local.service);
+    VIR_FREE(data.remote.node);
+    VIR_FREE(data.remote.service);
+    if (data.subject.subject_val != NULL) {
+        for (i = 0 ; i < data.subject.subject_len ; i++) {
+            VIR_FREE(data.subject.subject_val[i].type);
+            VIR_FREE(data.subject.subject_val[i].name);
+        }
+        VIR_FREE(data.subject.subject_val);
+    }
+    return -1;
 }
 
 static int remoteRelayDomainEventBlockJob(virConnectPtr conn ATTRIBUTE_UNUSED,
@@ -357,16 +407,23 @@ static int remoteRelayDomainEventBlockJob(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     /* build return data */
     memset(&data, 0, sizeof data);
-    make_nonnull_domain(&data.dom, dom);
-    data.path = (char*)path;
+    data.path = strdup(path);
+    if (data.path == NULL)
+        goto mem_error;
     data.type = type;
     data.status = status;
+    make_nonnull_domain(&data.dom, dom);
 
     remoteDispatchDomainEventSend(client, remoteProgram,
                                   REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB,
                                   (xdrproc_t)xdr_remote_domain_event_block_job_msg, &data);
 
     return 0;
+
+mem_error:
+    virReportOOMError();
+    VIR_FREE(data.path);
+    return -1;
 }
 
 
@@ -439,6 +496,13 @@ static void remoteClientFreeFunc(void *data)
 }
 
 
+static void remoteClientCloseFunc(virNetServerClientPtr client)
+{
+    struct daemonClientPrivate *priv = virNetServerClientGetPrivateData(client);
+
+    daemonRemoveAllClientStreams(priv->streams);
+}
+
 
 int remoteClientInitHook(virNetServerPtr srv ATTRIBUTE_UNUSED,
                          virNetServerClientPtr client)
@@ -460,7 +524,9 @@ int remoteClientInitHook(virNetServerPtr srv ATTRIBUTE_UNUSED,
     for (i = 0 ; i < VIR_DOMAIN_EVENT_ID_LAST ; i++)
         priv->domainEventCallbackID[i] = -1;
 
-    virNetServerClientSetPrivateData(client, priv, remoteClientFreeFunc);
+    virNetServerClientSetPrivateData(client, priv,
+                                     remoteClientFreeFunc);
+    virNetServerClientSetCloseHook(client, remoteClientCloseFunc);
     return 0;
 }
 
@@ -922,6 +988,77 @@ cleanup:
     }
     if (dom)
         virDomainFree(dom);
+    return rv;
+}
+
+static int
+remoteDispatchDomainBlockStatsFlags(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                    virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                                    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+                                    virNetMessageErrorPtr rerr,
+                                    remote_domain_block_stats_flags_args *args,
+                                    remote_domain_block_stats_flags_ret *ret)
+{
+    virTypedParameterPtr params = NULL;
+    virDomainPtr dom = NULL;
+    int i;
+    const char *path = args->path;
+    int nparams = args->nparams;
+    unsigned int flags;
+    int rv = -1;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+    flags = args->flags;
+
+    if (nparams > REMOTE_DOMAIN_BLOCK_STATS_PARAMETERS_MAX) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("nparams too large"));
+        goto cleanup;
+    }
+    if (VIR_ALLOC_N(params, nparams) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (virDomainBlockStatsFlags(dom, path, params, &nparams, flags) < 0)
+        goto cleanup;
+
+    /* In this case, we need to send back the number of parameters
+     * supported
+     */
+    if (args->nparams == 0) {
+        ret->nparams = nparams;
+        goto success;
+    }
+
+    /* Serialise the block stats. */
+    if (remoteSerializeTypedParameters(params, nparams,
+                                       &ret->params.params_val,
+                                       &ret->params.params_len) < 0)
+        goto cleanup;
+
+success:
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        if (ret->params.params_val) {
+            for (i = 0; i < nparams; i++)
+                VIR_FREE(ret->params.params_val[i].field);
+            VIR_FREE(ret->params.params_val);
+        }
+    }
+    if (dom)
+        virDomainFree(dom);
+    VIR_FREE(params);
     return rv;
 }
 
@@ -2488,8 +2625,8 @@ remoteDispatchDomainEventSend(virNetServerClientPtr client,
 {
     virNetMessagePtr msg;
 
-    if (!(msg = virNetMessageNew()))
-        return;
+    if (!(msg = virNetMessageNew(false)))
+        goto cleanup;
 
     msg->header.prog = virNetServerProgramGetID(program);
     msg->header.vers = virNetServerProgramGetVersion(program);
@@ -2507,10 +2644,12 @@ remoteDispatchDomainEventSend(virNetServerClientPtr client,
     VIR_DEBUG("Queue event %d %zu", procnr, msg->bufferLength);
     virNetServerClientSendMessage(client, msg);
 
+    xdr_free(proc, data);
     return;
 
 cleanup:
     virNetMessageFree(msg);
+    xdr_free(proc, data);
 }
 
 static int

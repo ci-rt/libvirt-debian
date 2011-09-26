@@ -202,6 +202,10 @@
                 <a href="drvvmware.html">VMware Workstation / Player</a>
                 <span>Driver for VMware Workstation / Player</span>
               </li>
+              <li>
+                <a href="drvhyperv.html">Microsoft Hyper-V</a>
+                <span>Driver for Microsoft Hyper-V</span>
+              </li>
             </ul>
           </li>
           <li>
@@ -287,6 +291,10 @@
               <li>
                 <a href="internals/command.html">Spawning commands</a>
                 <span>Spawning commands from libvirt driver code</span>
+              </li>
+              <li>
+                <a href="internals/rpc.html">RPC protocol &amp; APIs</a>
+                <span>RPC protocol information and API / dispatch guide</span>
               </li>
               <li>
                 <a href="internals/locking.html">Lock managers</a>

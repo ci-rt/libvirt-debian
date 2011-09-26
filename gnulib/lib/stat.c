@@ -18,10 +18,13 @@
 
 /* written by Eric Blake */
 
+/* If the user's config.h happens to include <sys/stat.h>, let it include only
+   the system's <sys/stat.h> here, so that orig_stat doesn't recurse to
+   rpl_stat.  */
+#define __need_system_sys_stat_h
 #include <config.h>
 
 /* Get the original definition of stat.  It might be defined as a macro.  */
-#define __need_system_sys_stat_h
 #include <sys/types.h>
 #include <sys/stat.h>
 #undef __need_system_sys_stat_h
@@ -33,7 +36,10 @@ orig_stat (const char *filename, struct stat *buf)
 }
 
 /* Specification.  */
-#include <sys/stat.h>
+/* Write "sys/stat.h" here, not <sys/stat.h>, otherwise OSF/1 5.1 DTK cc
+   eliminates this include because of the preliminary #include <sys/stat.h>
+   above.  */
+#include "sys/stat.h"
 
 #include <errno.h>
 #include <limits.h>

@@ -36,6 +36,7 @@
 #include "util.h"
 #include "buf.h"
 #include "uuid.h"
+#include "pci.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -1230,7 +1231,7 @@ virNodeDeviceDefParse(const char *str,
     xmlDocPtr xml;
     virNodeDeviceDefPtr def = NULL;
 
-    if ((xml = virXMLParse(filename, str, "device.xml"))) {
+    if ((xml = virXMLParse(filename, str, _("(node_device_definition)")))) {
         def = virNodeDeviceDefParseNode(xml, xmlDocGetRootElement(xml), create);
         xmlFreeDoc(xml);
     }
@@ -1276,7 +1277,7 @@ virNodeDeviceGetWWNs(virNodeDeviceDefPtr def,
     }
 
     if (cap == NULL) {
-        virNodeDeviceReportError(VIR_ERR_NO_SUPPORT,
+        virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
                                  "%s", _("Device is not a fibre channel HBA"));
         ret = -1;
     } else if (*wwnn == NULL || *wwpn == NULL) {

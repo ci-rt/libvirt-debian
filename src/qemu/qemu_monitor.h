@@ -145,6 +145,10 @@ void qemuMonitorUnlock(qemuMonitorPtr mon);
 int qemuMonitorRef(qemuMonitorPtr mon);
 int qemuMonitorUnref(qemuMonitorPtr mon) ATTRIBUTE_RETURN_CHECK;
 
+int qemuMonitorSetLink(qemuMonitorPtr mon,
+                       const char *name,
+                       enum virDomainNetInterfaceLinkState state) ;
+
 /* These APIs are for use by the internal Text/JSON monitor impl code only */
 char *qemuMonitorNextCommandID(qemuMonitorPtr mon);
 int qemuMonitorSend(qemuMonitorPtr mon,
@@ -209,15 +213,21 @@ int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
                               virDomainMemoryStatPtr stats,
                               unsigned int nr_stats);
 int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
-                                 const char *devname,
+                                 const char *dev_name,
                                  long long *rd_req,
                                  long long *rd_bytes,
+                                 long long *rd_total_times,
                                  long long *wr_req,
                                  long long *wr_bytes,
+                                 long long *wr_total_times,
+                                 long long *flush_req,
+                                 long long *flush_total_times,
                                  long long *errs);
+int qemuMonitorGetBlockStatsParamsNumber(qemuMonitorPtr mon,
+                                         int *nparams);
 
 int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
-                              const char *devname,
+                              const char *dev_name,
                               unsigned long long *extent);
 
 
@@ -240,10 +250,10 @@ int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, int online);
  * this when doing the QMP implementation
  */
 int qemuMonitorEjectMedia(qemuMonitorPtr mon,
-                          const char *devname,
+                          const char *dev_name,
                           bool force);
 int qemuMonitorChangeMedia(qemuMonitorPtr mon,
-                           const char *devname,
+                           const char *dev_name,
                            const char *newmedia,
                            const char *format);
 
@@ -446,6 +456,10 @@ int qemuMonitorSetDrivePassphrase(qemuMonitorPtr mon,
 int qemuMonitorCreateSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorLoadSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name);
+
+int qemuMonitorDiskSnapshot(qemuMonitorPtr mon,
+                            const char *device,
+                            const char *file);
 
 int qemuMonitorArbitraryCommand(qemuMonitorPtr mon,
                                 const char *cmd,

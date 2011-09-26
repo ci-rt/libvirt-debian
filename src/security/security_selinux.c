@@ -420,8 +420,17 @@ SELinuxSetFilecon(const char *path, char *tcon)
          * virt_use_{nfs,usb,pci}  boolean tunables to allow it...
          */
         if (setfilecon_errno != EOPNOTSUPP) {
+            const char *errmsg;
+            if ((virStorageFileIsSharedFSType(path,
+                                             VIR_STORAGE_FILE_SHFS_NFS) == 1) &&
+                security_get_boolean_active("virt_use_nfs") != 1) {
+                errmsg = _("unable to set security context '%s' on '%s'. "
+                           "Consider setting virt_use_nfs");
+            } else {
+                errmsg = _("unable to set security context '%s' on '%s'");
+            }
             virReportSystemError(setfilecon_errno,
-                                 _("unable to set security context '%s' on '%s'"),
+                                 errmsg,
                                  tcon, path);
             if (security_getenforce() == 1)
                 return -1;
@@ -1066,8 +1075,8 @@ SELinuxSetSecurityProcessLabel(virSecurityManagerPtr mgr,
 }
 
 static int
-SELinuxSetSecuritySocketLabel(virSecurityManagerPtr mgr,
-                               virDomainObjPtr vm)
+SELinuxSetSecurityDaemonSocketLabel(virSecurityManagerPtr mgr,
+                                    virDomainObjPtr vm)
 {
     /* TODO: verify DOI */
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
@@ -1133,6 +1142,43 @@ done:
     if (execcon) context_free(execcon);
     if (proccon) context_free(proccon);
     freecon(scon);
+    return rc;
+}
+
+static int
+SELinuxSetSecuritySocketLabel(virSecurityManagerPtr mgr,
+                              virDomainObjPtr vm)
+{
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+    int rc = -1;
+
+    if (secdef->label == NULL)
+        return 0;
+
+    if (!STREQ(virSecurityManagerGetModel(mgr), secdef->model)) {
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("security label driver mismatch: "
+                                 "'%s' model configured for domain, but "
+                                 "hypervisor driver is '%s'."),
+                               secdef->model, virSecurityManagerGetModel(mgr));
+        goto done;
+    }
+
+    VIR_DEBUG("Setting VM %s socket context %s",
+              vm->def->name, secdef->label);
+    if (setsockcreatecon(secdef->label) == -1) {
+        virReportSystemError(errno,
+                             _("unable to set socket security context '%s'"),
+                             secdef->label);
+        goto done;
+    }
+
+    rc = 0;
+
+done:
+    if (security_getenforce() != 1)
+        rc = 0;
+
     return rc;
 }
 
@@ -1284,19 +1330,6 @@ SELinuxSetImageFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     return SELinuxFSetFilecon(fd, secdef->imagelabel);
 }
 
-static int
-SELinuxSetProcessFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
-                         virDomainObjPtr vm,
-                         int fd)
-{
-    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
-
-    if (secdef->label == NULL)
-        return 0;
-
-    return SELinuxFSetFilecon(fd, secdef->label);
-}
-
 virSecurityDriver virSecurityDriverSELinux = {
     0,
     SECURITY_SELINUX_NAME,
@@ -1312,6 +1345,7 @@ virSecurityDriver virSecurityDriverSELinux = {
     SELinuxSetSecurityImageLabel,
     SELinuxRestoreSecurityImageLabel,
 
+    SELinuxSetSecurityDaemonSocketLabel,
     SELinuxSetSecuritySocketLabel,
     SELinuxClearSecuritySocketLabel,
 
@@ -1332,5 +1366,4 @@ virSecurityDriver virSecurityDriverSELinux = {
     SELinuxRestoreSavedStateLabel,
 
     SELinuxSetImageFDLabel,
-    SELinuxSetProcessFDLabel,
 };

@@ -82,7 +82,8 @@ virNetServerProgramProc qemuProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
-   true 
+   true,
+   0
 },
 { /* Method MonitorCommand => 1 */
    qemuDispatchMonitorCommandHelper,
@@ -90,7 +91,8 @@ virNetServerProgramProc qemuProcs[] = {
    (xdrproc_t)xdr_qemu_monitor_command_args,
    sizeof(qemu_monitor_command_ret),
    (xdrproc_t)xdr_qemu_monitor_command_ret,
-   true 
+   true,
+   0
 },
 { /* Method DomainAttach => 2 */
    qemuDispatchDomainAttachHelper,
@@ -98,7 +100,8 @@ virNetServerProgramProc qemuProcs[] = {
    (xdrproc_t)xdr_qemu_domain_attach_args,
    sizeof(qemu_domain_attach_ret),
    (xdrproc_t)xdr_qemu_domain_attach_ret,
-   true 
+   true,
+   0
 },
 };
 size_t qemuNProcs = ARRAY_CARDINALITY(qemuProcs);

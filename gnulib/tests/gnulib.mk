@@ -332,11 +332,19 @@ EXTRA_DIST += test-fseek.c test-fseek.sh test-fseek2.sh signature.h macros.h
 
 ## begin gnulib module fseeko-tests
 
-TESTS += test-fseeko.sh test-fseeko2.sh
-check_PROGRAMS += test-fseeko
-EXTRA_DIST += test-fseeko.c test-fseeko.sh test-fseeko2.sh signature.h macros.h
+TESTS += test-fseeko.sh test-fseeko2.sh test-fseeko3.sh
+check_PROGRAMS += test-fseeko test-fseeko3
+EXTRA_DIST += test-fseeko.c test-fseeko.sh test-fseeko2.sh test-fseeko3.c test-fseeko3.sh signature.h macros.h
 
 ## end   gnulib module fseeko-tests
+
+## begin gnulib module fsync-tests
+
+TESTS += test-fsync
+check_PROGRAMS += test-fsync
+EXTRA_DIST += test-fsync.c signature.h macros.h
+
+## end   gnulib module fsync-tests
 
 ## begin gnulib module ftell-tests
 
@@ -770,6 +778,14 @@ test_passfd_LDADD = $(LDADD) @LIBSOCKET@
 EXTRA_DIST += test-passfd.c macros.h
 
 ## end   gnulib module passfd-tests
+
+## begin gnulib module pathmax-tests
+
+TESTS += test-pathmax
+check_PROGRAMS += test-pathmax
+EXTRA_DIST += test-pathmax.c
+
+## end   gnulib module pathmax-tests
 
 ## begin gnulib module perror-tests
 

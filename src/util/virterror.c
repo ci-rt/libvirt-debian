@@ -172,6 +172,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
         case VIR_FROM_LOCKING:
             dom = "Locking ";
             break;
+        case VIR_FROM_HYPERV:
+            dom = "Hyper-V ";
+            break;
     }
     return(dom);
 }
@@ -248,7 +251,7 @@ virCopyError(virErrorPtr from,
     to->int1 = from->int1;
     to->int2 = from->int2;
     /*
-     * Delibrately not setting 'conn', 'dom', 'net' references
+     * Deliberately not setting 'conn', 'dom', 'net' references
      */
     return ret;
 }
@@ -708,7 +711,7 @@ virRaiseErrorFull(const char *filename ATTRIBUTE_UNUSED,
      * Save the information about the error
      */
     /*
-     * Delibrately not setting conn, dom & net fields since
+     * Deliberately not setting conn, dom & net fields since
      * they're utterly unsafe
      */
     to->domain = domain;
@@ -792,9 +795,9 @@ virErrorMsg(virErrorNumber error, const char *info)
             break;
         case VIR_ERR_INVALID_ARG:
             if (info == NULL)
-                errmsg = _("invalid argument in");
+                errmsg = _("invalid argument");
             else
-                errmsg = _("invalid argument in %s");
+                errmsg = _("invalid argument: %s");
             break;
         case VIR_ERR_OPERATION_FAILED:
             if (info != NULL)
@@ -1026,6 +1029,18 @@ virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("Storage volume not found");
             else
                 errmsg = _("Storage volume not found: %s");
+            break;
+        case VIR_ERR_STORAGE_PROBE_FAILED:
+            if (info == NULL)
+                errmsg = _("Storage pool probe failed");
+            else
+                errmsg = _("Storage pool probe failed: %s");
+            break;
+        case VIR_ERR_STORAGE_POOL_BUILT:
+            if (info == NULL)
+                errmsg = _("Storage pool already built");
+            else
+                errmsg = _("Storage pool already built: %s");
             break;
         case VIR_ERR_INVALID_STORAGE_POOL:
             if (info == NULL)

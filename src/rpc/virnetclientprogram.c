@@ -151,7 +151,7 @@ virNetClientProgramDispatchError(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
         break;
     }
 
-    if (err.domain == VIR_FROM_REMOTE &&
+    if ((err.domain == VIR_FROM_REMOTE || err.domain == VIR_FROM_RPC) &&
         err.code == VIR_ERR_RPC &&
         err.level == VIR_ERR_ERROR &&
         err.message &&
@@ -272,7 +272,7 @@ int virNetClientProgramCall(virNetClientProgramPtr prog,
 {
     virNetMessagePtr msg;
 
-    if (!(msg = virNetMessageNew()))
+    if (!(msg = virNetMessageNew(false)))
         return -1;
 
     msg->header.prog = prog->program;

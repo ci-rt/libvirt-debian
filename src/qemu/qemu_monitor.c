@@ -1135,6 +1135,25 @@ int qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
     return ret;
 }
 
+int qemuMonitorSetLink(qemuMonitorPtr mon,
+                       const char *name,
+                       enum virDomainNetInterfaceLinkState state)
+{
+    int ret;
+    VIR_DEBUG("mon=%p, name=%p:%s, state=%u", mon, name, name, state);
+
+    if (!mon || !name) {
+        qemuReportError(VIR_ERR_INVALID_ARG,
+                        _("monitor || name must not be NULL"));
+        return -1;
+    }
+
+    if (mon->json)
+        ret = qemuMonitorJSONSetLink(mon, name, state);
+    else
+        ret = qemuMonitorTextSetLink(mon, name, state);
+    return ret;
+}
 
 int qemuMonitorGetVirtType(qemuMonitorPtr mon,
                            int *virtType)
@@ -1198,15 +1217,19 @@ int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
 
 
 int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
-                                 const char *devname,
+                                 const char *dev_name,
                                  long long *rd_req,
                                  long long *rd_bytes,
+                                 long long *rd_total_times,
                                  long long *wr_req,
                                  long long *wr_bytes,
+                                 long long *wr_total_times,
+                                 long long *flush_req,
+                                 long long *flush_total_times,
                                  long long *errs)
 {
     int ret;
-    VIR_DEBUG("mon=%p dev=%s", mon, devname);
+    VIR_DEBUG("mon=%p dev=%s", mon, dev_name);
 
     if (!mon) {
         qemuReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -1215,30 +1238,61 @@ int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
     }
 
     if (mon->json)
-        ret = qemuMonitorJSONGetBlockStatsInfo(mon, devname,
+        ret = qemuMonitorJSONGetBlockStatsInfo(mon, dev_name,
                                                rd_req, rd_bytes,
+                                               rd_total_times,
                                                wr_req, wr_bytes,
+                                               wr_total_times,
+                                               flush_req,
+                                               flush_total_times,
                                                errs);
     else
-        ret = qemuMonitorTextGetBlockStatsInfo(mon, devname,
+        ret = qemuMonitorTextGetBlockStatsInfo(mon, dev_name,
                                                rd_req, rd_bytes,
+                                               rd_total_times,
                                                wr_req, wr_bytes,
+                                               wr_total_times,
+                                               flush_req,
+                                               flush_total_times,
                                                errs);
     return ret;
 }
 
+/* Return 0 and update @nparams with the number of block stats
+ * QEMU supports if success. Return -1 if failure.
+ */
+int qemuMonitorGetBlockStatsParamsNumber(qemuMonitorPtr mon,
+                                         int *nparams)
+{
+    int ret;
+    VIR_DEBUG("mon=%p nparams=%p", mon, nparams);
+
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (mon->json)
+        ret = qemuMonitorJSONGetBlockStatsParamsNumber(mon, nparams);
+    else
+        ret = qemuMonitorTextGetBlockStatsParamsNumber(mon, nparams);
+
+    return ret;
+}
+
 int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
-                              const char *devname,
+                              const char *dev_name,
                               unsigned long long *extent)
 {
     int ret;
-    VIR_DEBUG("mon=%p, fd=%d, devname=%p",
-          mon, mon->fd, devname);
+    VIR_DEBUG("mon=%p, fd=%d, dev_name=%p",
+          mon, mon->fd, dev_name);
 
     if (mon->json)
-        ret = qemuMonitorJSONGetBlockExtent(mon, devname, extent);
+        ret = qemuMonitorJSONGetBlockExtent(mon, dev_name, extent);
     else
-        ret = qemuMonitorTextGetBlockExtent(mon, devname, extent);
+        ret = qemuMonitorTextGetBlockExtent(mon, dev_name, extent);
 
     return ret;
 }
@@ -1385,11 +1439,11 @@ int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, int online)
 
 
 int qemuMonitorEjectMedia(qemuMonitorPtr mon,
-                          const char *devname,
+                          const char *dev_name,
                           bool force)
 {
     int ret;
-    VIR_DEBUG("mon=%p devname=%s force=%d", mon, devname, force);
+    VIR_DEBUG("mon=%p dev_name=%s force=%d", mon, dev_name, force);
 
     if (!mon) {
         qemuReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -1398,21 +1452,21 @@ int qemuMonitorEjectMedia(qemuMonitorPtr mon,
     }
 
     if (mon->json)
-        ret = qemuMonitorJSONEjectMedia(mon, devname, force);
+        ret = qemuMonitorJSONEjectMedia(mon, dev_name, force);
     else
-        ret = qemuMonitorTextEjectMedia(mon, devname, force);
+        ret = qemuMonitorTextEjectMedia(mon, dev_name, force);
     return ret;
 }
 
 
 int qemuMonitorChangeMedia(qemuMonitorPtr mon,
-                           const char *devname,
+                           const char *dev_name,
                            const char *newmedia,
                            const char *format)
 {
     int ret;
-    VIR_DEBUG("mon=%p devname=%s newmedia=%s format=%s",
-          mon, devname, newmedia, format);
+    VIR_DEBUG("mon=%p dev_name=%s newmedia=%s format=%s",
+          mon, dev_name, newmedia, format);
 
     if (!mon) {
         qemuReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -1421,9 +1475,9 @@ int qemuMonitorChangeMedia(qemuMonitorPtr mon,
     }
 
     if (mon->json)
-        ret = qemuMonitorJSONChangeMedia(mon, devname, newmedia, format);
+        ret = qemuMonitorJSONChangeMedia(mon, dev_name, newmedia, format);
     else
-        ret = qemuMonitorTextChangeMedia(mon, devname, newmedia, format);
+        ret = qemuMonitorTextChangeMedia(mon, dev_name, newmedia, format);
     return ret;
 }
 
@@ -2388,6 +2442,30 @@ int qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name)
         ret = qemuMonitorJSONDeleteSnapshot(mon, name);
     else
         ret = qemuMonitorTextDeleteSnapshot(mon, name);
+    return ret;
+}
+
+/* Use the snapshot_blkdev command to convert the existing file for
+ * device into a read-only backing file of a new qcow2 image located
+ * at file.  */
+int
+qemuMonitorDiskSnapshot(qemuMonitorPtr mon, const char *device,
+                        const char *file)
+{
+    int ret;
+
+    VIR_DEBUG("mon=%p, device=%s, file=%s", mon, device, file);
+
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (mon->json)
+        ret = qemuMonitorJSONDiskSnapshot(mon, device, file);
+    else
+        ret = qemuMonitorTextDiskSnapshot(mon, device, file);
     return ret;
 }
 

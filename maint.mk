@@ -753,6 +753,7 @@ gl_extract_significant_defines_ = \
   /^\# *define ([^_ (][^ (]*)(\s*\(|\s+\w+)/\
     && $$2 !~ /(?:rpl_|_used_without_)/\
     && $$1 !~ /^(?:NSIG)$$/\
+    && $$1 !~ /^(?:SA_RESETHAND|SA_RESTART)$$/\
     and print $$1
 
 # Create a list of regular expressions matching the names
@@ -1426,7 +1427,7 @@ ifeq (a,b)
 # do not need to be marked.  Symbols matching `__.*' are
 # reserved by the compiler, so are automatically excluded below.
 _gl_TS_unmarked_extern_functions ?= main usage
-_gl_TS_function_match ?= /^(?:$(_gl_TS_extern)) +.*?(\S+) +\(/
+_gl_TS_function_match ?= /^(?:$(_gl_TS_extern)) +.*?(\S+) *\(/
 
 # If your project uses a macro like "XTERN", then put
 # the following in cfg.mk to override this default:

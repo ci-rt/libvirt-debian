@@ -49,6 +49,7 @@
 #include "network_conf.h"
 #include "driver.h"
 #include "buf.h"
+#include "virpidfile.h"
 #include "util.h"
 #include "command.h"
 #include "memory.h"
@@ -216,40 +217,17 @@ networkFindActiveConfigs(struct network_driver *driver) {
 
             /* Try and read dnsmasq/radvd pids if any */
             if (obj->def->ips && (obj->def->nips > 0)) {
-                char *pidpath, *radvdpidbase;
+                char *radvdpidbase;
 
-                if (virFileReadPid(NETWORK_PID_DIR, obj->def->name,
-                                   &obj->dnsmasqPid) == 0) {
-                    /* Check that it's still alive */
-                    if (kill(obj->dnsmasqPid, 0) != 0)
-                        obj->dnsmasqPid = -1;
-                    if (virAsprintf(&pidpath, "/proc/%d/exe", obj->dnsmasqPid) < 0) {
-                        virReportOOMError();
-                        goto cleanup;
-                    }
-                    if (virFileLinkPointsTo(pidpath, DNSMASQ) == 0)
-                        obj->dnsmasqPid = -1;
-                    VIR_FREE(pidpath);
-                }
+                ignore_value(virPidFileReadIfAlive(NETWORK_PID_DIR, obj->def->name,
+                                                   &obj->dnsmasqPid, DNSMASQ));
 
                 if (!(radvdpidbase = networkRadvdPidfileBasename(obj->def->name))) {
                     virReportOOMError();
                     goto cleanup;
                 }
-                if (virFileReadPid(NETWORK_PID_DIR, radvdpidbase,
-                                   &obj->radvdPid) == 0) {
-                    /* Check that it's still alive */
-                    if (kill(obj->radvdPid, 0) != 0)
-                        obj->radvdPid = -1;
-                    if (virAsprintf(&pidpath, "/proc/%d/exe", obj->radvdPid) < 0) {
-                        virReportOOMError();
-                        VIR_FREE(radvdpidbase);
-                        goto cleanup;
-                    }
-                    if (virFileLinkPointsTo(pidpath, RADVD) == 0)
-                        obj->radvdPid = -1;
-                    VIR_FREE(pidpath);
-                }
+                ignore_value(virPidFileReadIfAlive(NETWORK_PID_DIR, radvdpidbase,
+                                                   &obj->radvdPid, RADVD));
                 VIR_FREE(radvdpidbase);
             }
         }
@@ -728,7 +706,7 @@ networkStartDhcpDaemon(virNetworkObjPtr network)
         goto cleanup;
     }
 
-    if (!(pidfile = virFilePid(NETWORK_PID_DIR, network->def->name))) {
+    if (!(pidfile = virPidFileBuildPath(NETWORK_PID_DIR, network->def->name))) {
         virReportOOMError();
         goto cleanup;
     }
@@ -765,7 +743,7 @@ networkStartDhcpDaemon(virNetworkObjPtr network)
      * pid
      */
 
-    ret = virFileReadPid(NETWORK_PID_DIR, network->def->name,
+    ret = virPidFileRead(NETWORK_PID_DIR, network->def->name,
                          &network->dnsmasqPid);
     if (ret < 0)
         goto cleanup;
@@ -818,7 +796,7 @@ networkStartRadvd(virNetworkObjPtr network)
         virReportOOMError();
         goto cleanup;
     }
-    if (!(pidfile = virFilePid(NETWORK_PID_DIR, radvdpidbase))) {
+    if (!(pidfile = virPidFileBuildPath(NETWORK_PID_DIR, radvdpidbase))) {
         virReportOOMError();
         goto cleanup;
     }
@@ -885,7 +863,7 @@ networkStartRadvd(virNetworkObjPtr network)
      * a dummy pidfile name - virCommand will create the pidfile we
      * want to use (this is necessary because radvd's internal
      * daemonization and pidfile creation causes a race, and the
-     * virFileReadPid() below will fail if we use them).
+     * virPidFileRead() below will fail if we use them).
      * Unfortunately, it isn't possible to tell radvd to not create
      * its own pidfile, so we just let it do so, with a slightly
      * different name. Unused, but harmless.
@@ -901,7 +879,7 @@ networkStartRadvd(virNetworkObjPtr network)
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
-    if (virFileReadPid(NETWORK_PID_DIR, radvdpidbase,
+    if (virPidFileRead(NETWORK_PID_DIR, radvdpidbase,
                        &network->radvdPid) < 0)
         goto cleanup;
 
@@ -1919,7 +1897,7 @@ static int networkShutdownNetworkVirtual(struct network_driver *driver,
         if (!(radvdpidbase = networkRadvdPidfileBasename(network->def->name))) {
             virReportOOMError();
         } else {
-            virFileDeletePid(NETWORK_PID_DIR, radvdpidbase);
+            virPidFileDelete(NETWORK_PID_DIR, radvdpidbase);
             VIR_FREE(radvdpidbase);
         }
     }
@@ -2338,6 +2316,7 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
     struct network_driver *driver = conn->networkPrivateData;
     virNetworkIpDefPtr ipdef, ipv4def = NULL;
     virNetworkDefPtr def;
+    bool freeDef = true;
     virNetworkObjPtr network = NULL;
     virNetworkPtr ret = NULL;
     int ii;
@@ -2367,21 +2346,19 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
     if (!(network = virNetworkAssignDef(&driver->networks,
                                         def)))
         goto cleanup;
-    def = NULL;
+    freeDef = false;
 
     network->persistent = 1;
 
-    if (virNetworkSaveConfig(driver->networkConfigDir,
-                             network->newDef ? network->newDef : network->def) < 0) {
-        virNetworkRemoveInactive(&driver->networks,
-                                 network);
+    if (virNetworkSaveConfig(driver->networkConfigDir, def) < 0) {
+        virNetworkRemoveInactive(&driver->networks, network);
         network = NULL;
         goto cleanup;
     }
 
     /* We only support dhcp on one IPv4 address per defined network */
     for (ii = 0;
-         (ipdef = virNetworkDefGetIpByIndex(network->def, AF_UNSPEC, ii));
+         (ipdef = virNetworkDefGetIpByIndex(def, AF_UNSPEC, ii));
          ii++) {
         if (VIR_SOCKET_IS_FAMILY(&ipdef->address, AF_INET)) {
             if (ipdef->nranges || ipdef->nhosts) {
@@ -2396,18 +2373,19 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
         }
     }
     if (ipv4def) {
-        dctx = dnsmasqContextNew(network->def->name, DNSMASQ_STATE_DIR);
+        dctx = dnsmasqContextNew(def->name, DNSMASQ_STATE_DIR);
         if (dctx == NULL ||
-            networkBuildDnsmasqHostsfile(dctx, ipv4def, network->def->dns) < 0 ||
+            networkBuildDnsmasqHostsfile(dctx, ipv4def, def->dns) < 0 ||
             dnsmasqSave(dctx) < 0)
             goto cleanup;
     }
 
-    VIR_INFO("Defining network '%s'", network->def->name);
-    ret = virGetNetwork(conn, network->def->name, network->def->uuid);
+    VIR_INFO("Defining network '%s'", def->name);
+    ret = virGetNetwork(conn, def->name, def->uuid);
 
 cleanup:
-    virNetworkDefFree(def);
+    if (freeDef)
+       virNetworkDefFree(def);
     dnsmasqContextFree(dctx);
     if (network)
         virNetworkObjUnlock(network);
@@ -2486,7 +2464,7 @@ static int networkUndefine(virNetworkPtr net) {
             virReportOOMError();
             goto cleanup;
         }
-        virFileDeletePid(NETWORK_PID_DIR, radvdpidbase);
+        virPidFileDelete(NETWORK_PID_DIR, radvdpidbase);
         VIR_FREE(radvdpidbase);
 
     }
@@ -3164,7 +3142,7 @@ networkGetNetworkAddress(const char *netname, char **netaddr)
     virNetworkIpDefPtr ipdef;
     virSocketAddr addr;
     virSocketAddrPtr addrptr = NULL;
-    char *devname = NULL;
+    char *dev_name = NULL;
 
     *netaddr = NULL;
     networkDriverLock(driver);
@@ -3194,7 +3172,7 @@ networkGetNetworkAddress(const char *netname, char **netaddr)
         break;
 
     case VIR_NETWORK_FORWARD_BRIDGE:
-        if ((devname = netdef->bridge))
+        if ((dev_name = netdef->bridge))
             break;
         /*
          * fall through if netdef->bridge wasn't set, since this is
@@ -3204,9 +3182,9 @@ networkGetNetworkAddress(const char *netname, char **netaddr)
     case VIR_NETWORK_FORWARD_VEPA:
     case VIR_NETWORK_FORWARD_PASSTHROUGH:
         if ((netdef->nForwardIfs > 0) && netdef->forwardIfs)
-            devname = netdef->forwardIfs[0].dev;
+            dev_name = netdef->forwardIfs[0].dev;
 
-        if (!devname) {
+        if (!dev_name) {
             networkReportError(VIR_ERR_INTERNAL_ERROR,
                                _("network '%s' has no associated interface or bridge"),
                                netdef->name);
@@ -3214,11 +3192,11 @@ networkGetNetworkAddress(const char *netname, char **netaddr)
         break;
     }
 
-    if (devname) {
-        if (ifaceGetIPAddress(devname, &addr)) {
+    if (dev_name) {
+        if (ifaceGetIPAddress(dev_name, &addr)) {
             virReportSystemError(errno,
                                  _("Failed to get IP address for '%s' (network '%s')"),
-                                 devname, netdef->name);
+                                 dev_name, netdef->name);
         } else {
             addrptr = &addr;
         }

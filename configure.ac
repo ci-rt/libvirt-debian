@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2011 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.4], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.6], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -69,9 +69,11 @@ XMLRPC_REQUIRED=1.14.0
 HAL_REQUIRED=0.5.0
 DEVMAPPER_REQUIRED=1.0.0
 LIBCURL_REQUIRED="7.18.0"
+OPENWSMAN_REQUIRED="2.2.3"
 LIBPCAP_REQUIRED="1.0.0"
 LIBNL_REQUIRED="1.1"
 LIBSSH2_REQUIRED="1.0"
+LIBBLKID_REQUIRED="2.17"
 
 dnl Checks for C compiler.
 AC_PROG_CC
@@ -95,9 +97,18 @@ AM_PROG_LIBTOOL
 AM_PROG_CC_C_O
 AM_PROG_LD
 
+AC_MSG_CHECKING([for how to mark DSO non-deletable at runtime])
+LIBVIRT_NODELETE=
+`$LD --help 2>&1 | grep -- "-z nodelete" >/dev/null` && \
+    LIBVIRT_NODELETE="-Wl,-z -Wl,nodelete"
+AC_MSG_RESULT([$LIBVIRT_NODELETE])
+AC_SUBST([LIBVIRT_NODELETE])
+
+AC_MSG_CHECKING([for how to set DSO symbol versions])
 VERSION_SCRIPT_FLAGS=-Wl,--version-script=
 `$LD --help 2>&1 | grep -- --version-script >/dev/null` || \
     VERSION_SCRIPT_FLAGS="-Wl,-M -Wl,"
+AC_MSG_RESULT([$VERSION_SCRIPT_FLAGS])
 
 LIBVIRT_COMPILE_WARNINGS([maximum])
 
@@ -124,9 +135,12 @@ AC_CHECK_SIZEOF([long])
 
 dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
-AC_CHECK_FUNCS_ONCE([cfmakeraw geteuid getgid getgrnam_r getmntent_r \
+AC_CHECK_FUNCS_ONCE([cfmakeraw fdatasync geteuid getgid getgrnam_r getmntent_r \
   getpwuid_r getuid initgroups kill mmap posix_fallocate posix_memalign \
   regexec sched_getaffinity])
+if test $ac_cv_func_fdatasync = no; then
+  AC_DEFINE([fdatasync], [fsync], [Define to fsync if you lack fdatasync])
+fi
 
 dnl Availability of pthread functions (if missing, win32 threading is
 dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
@@ -287,6 +301,8 @@ AC_ARG_WITH([lxc],
   AC_HELP_STRING([--with-lxc], [add Linux Container support @<:@default=check@:>@]),[],[with_lxc=check])
 AC_ARG_WITH([esx],
   AC_HELP_STRING([--with-esx], [add ESX support @<:@default=check@:>@]),[],[with_esx=check])
+AC_ARG_WITH([hyperv],
+  AC_HELP_STRING([--with-hyperv], [add Hyper-V support @<:@default=check@:>@]),[],[with_hyperv=check])
 AC_ARG_WITH([test],
   AC_HELP_STRING([--with-test], [add test driver support @<:@default=yes@:>@]),[],[with_test=yes])
 AC_ARG_WITH([remote],
@@ -834,20 +850,6 @@ fi
 AC_SUBST([GNUTLS_CFLAGS])
 AC_SUBST([GNUTLS_LIBS])
 
-dnl Old versions of GnuTLS uses types like 'gnutls_session' instead
-dnl of 'gnutls_session_t'.  Try to detect this type if defined so
-dnl that we can offer backwards compatibility.
-old_cflags="$CFLAGS"
-old_libs="$LIBS"
-CFLAGS="$CFLAGS $GNUTLS_CFLAGS"
-LIBS="$LIBS $GNUTLS_LIBS"
-AC_CHECK_TYPE([gnutls_session],
-	AC_DEFINE([GNUTLS_1_0_COMPAT],[],
-		[enable GnuTLS 1.0 compatibility macros]),,
-	[#include <gnutls/gnutls.h>])
-CFLAGS="$old_cflags"
-LIBS="$old_libs"
-
 
 dnl Cyrus SASL
 AC_ARG_WITH([sasl],
@@ -964,7 +966,7 @@ AC_SUBST([YAJL_LIBS])
 
 dnl SANLOCK https://fedorahosted.org/sanlock/
 AC_ARG_WITH([sanlock],
-  AC_HELP_STRING([--with-sanlock], [use SANLOCK for lock management @<:@default=check@:>@]),
+  AC_HELP_STRING([--with-sanlock], [build Sanlock plugin for lock management @<:@default=check@:>@]),
   [],
   [with_sanlock=check])
 
@@ -987,8 +989,8 @@ if test "x$with_sanlock" != "xno"; then
         fail=1
     fi])
   if test "x$with_sanlock" != "xno" ; then
-    AC_CHECK_LIB([sanlock], [sanlock_restrict],[
-      SANLOCK_LIBS="$SANLOCK_LIBS -lsanlock"
+    AC_CHECK_LIB([sanlock_client], [sanlock_init],[
+      SANLOCK_LIBS="$SANLOCK_LIBS -lsanlock_client"
       with_sanlock=yes
     ],[
       if test "x$with_sanlock" = "xcheck" ; then
@@ -999,12 +1001,12 @@ if test "x$with_sanlock" != "xno"; then
     ])
   fi
   test $fail = 1 &&
-    AC_MSG_ERROR([You must install the SANLOCK development package in order to compile libvirt])
+    AC_MSG_ERROR([You must install the Sanlock development package in order to compile libvirt])
   CPPFLAGS="$old_cppflags"
   LIBS="$old_libs"
   if test "x$with_sanlock" = "xyes" ; then
     AC_DEFINE_UNQUOTED([HAVE_SANLOCK], 1,
-      [whether SANLOCK is available for JSON parsing/formatting])
+      [whether Sanlock plugin for lock management is available])
   fi
 fi
 AM_CONDITIONAL([HAVE_SANLOCK], [test "x$with_sanlock" = "xyes"])
@@ -1654,12 +1656,15 @@ fi
 if test "$with_storage_fs" = "yes" || test "$with_storage_fs" = "check"; then
   AC_PATH_PROG([MOUNT], [mount], [], [$PATH:/sbin:/usr/sbin])
   AC_PATH_PROG([UMOUNT], [umount], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROG([MKFS], [mkfs], [], [$PATH:/sbin:/usr/sbin])
   if test "$with_storage_fs" = "yes" ; then
     if test -z "$MOUNT" ; then AC_MSG_ERROR([We need mount for FS storage driver]) ; fi
     if test -z "$UMOUNT" ; then AC_MSG_ERROR([We need umount for FS storage driver]) ; fi
+    if test -z "$MKFS" ; then AC_MSG_ERROR([We need mkfs for FS storage driver]) ; fi
   else
     if test -z "$MOUNT" ; then with_storage_fs=no ; fi
     if test -z "$UMOUNT" ; then with_storage_fs=no ; fi
+    if test -z "$MKFS" ; then with_storage_fs=no ; fi
 
     if test "$with_storage_fs" = "check" ; then with_storage_fs=yes ; fi
   fi
@@ -1670,6 +1675,8 @@ if test "$with_storage_fs" = "yes" || test "$with_storage_fs" = "check"; then
         [Location or name of the mount program])
     AC_DEFINE_UNQUOTED([UMOUNT],["$UMOUNT"],
         [Location or name of the mount program])
+    AC_DEFINE_UNQUOTED([MKFS],["$MKFS"],
+        [Location or name of the mkfs program])
   fi
 fi
 AM_CONDITIONAL([WITH_STORAGE_FS], [test "$with_storage_fs" = "yes"])
@@ -1923,6 +1930,35 @@ LIBCURL_CFLAGS="-DCURL_DISABLE_TYPECHECK $LIBCURL_CFLAGS"
 
 AC_SUBST([LIBCURL_CFLAGS])
 AC_SUBST([LIBCURL_LIBS])
+
+
+dnl
+dnl check for openwsman (Hyper-V)
+dnl
+
+OPENWSMAN_CFLAGS=""
+OPENWSMAN_LIBS=""
+
+if test "$with_hyperv" = "yes" || test "$with_hyperv" = "check"; then
+    PKG_CHECK_MODULES([OPENWSMAN], [openwsman >= $OPENWSMAN_REQUIRED], [
+        if test "$with_hyperv" = "check"; then
+            with_hyperv=yes
+        fi
+    ], [
+        if test "$with_hyperv" = "check"; then
+            with_hyperv=no
+            AC_MSG_NOTICE([openwsman is required for the Hyper-V driver, disabling it])
+        elif test "$with_hyperv" = "yes"; then
+            AC_MSG_ERROR([openwsman >= $OPENWSMAN_REQUIRED is required for the Hyper-V driver])
+        fi
+    ])
+fi
+
+if test "$with_hyperv" = "yes" ; then
+    AC_DEFINE_UNQUOTED([WITH_HYPERV], 1, [whether Hyper-V driver is enabled])
+fi
+AM_CONDITIONAL([WITH_HYPERV], [test "$with_hyperv" = "yes"])
+
 
 dnl
 dnl check for python
@@ -2286,6 +2322,26 @@ if test "$with_nwfilter" = "yes" ; then
 fi
 AM_CONDITIONAL([WITH_NWFILTER], [test "$with_nwfilter" = "yes"])
 
+dnl libblkid is used by several storage drivers; therefore we probe
+dnl for it unconditionally.
+AC_ARG_WITH([libblkid],
+  [AS_HELP_STRING([--with-libblkid],
+    [use libblkid to scan for filesystems and partitions @<:@default=check@:>@])],
+  [],
+  [with_libblkid=check])
+
+if test "x$with_libblkid" = "xyes" || test "x$with_libblkid" = "xcheck"; then
+   PKG_CHECK_MODULES([BLKID],
+     [blkid >= $LIBBLKID_REQUIRED],
+     [with_libblkid="yes"],
+     [with_libblkid="no"])
+fi
+
+if test "x$with_libblkid" = "xyes"; then
+  AC_DEFINE([HAVE_LIBBLKID], [1], [libblkid is present])
+fi
+AM_CONDITIONAL([HAVE_LIBBLKID], [test "x$with_libblkid" = "xyes"])
+
 AC_ARG_WITH([qemu-user],
   AC_HELP_STRING([--with-qemu-user], [username to run QEMU system instance as @<:@default=root@:>@]),
   [QEMU_USER=${withval}],
@@ -2455,6 +2511,7 @@ AC_MSG_NOTICE([xenlight: $with_libxl])
 AC_MSG_NOTICE([     LXC: $with_lxc])
 AC_MSG_NOTICE([    PHYP: $with_phyp])
 AC_MSG_NOTICE([     ESX: $with_esx])
+AC_MSG_NOTICE([ Hyper-V: $with_hyperv])
 AC_MSG_NOTICE([    Test: $with_test])
 AC_MSG_NOTICE([  Remote: $with_remote])
 AC_MSG_NOTICE([ Network: $with_network])
@@ -2495,6 +2552,11 @@ if test "$with_esx" = "yes" ; then
 AC_MSG_NOTICE([ libcurl: $LIBCURL_CFLAGS $LIBCURL_LIBS])
 else
 AC_MSG_NOTICE([ libcurl: no])
+fi
+if test "$with_hyperv" = "yes" ; then
+AC_MSG_NOTICE([openwsman: $OPENWSMAN_CFLAGS $OPENWSMAN_LIBS])
+else
+AC_MSG_NOTICE([openwsman: no])
 fi
 if test "$with_libssh2" != "no" ; then
 AC_MSG_NOTICE([ libssh2: $LIBSSH2_CFLAGS $LIBSSH2_LIBS])

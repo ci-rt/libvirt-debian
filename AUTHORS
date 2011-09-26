@@ -13,7 +13,7 @@ The primary maintainers and people with commit access rights:
   Mark McLoughlin      <markmc@redhat.com>
   Anthony Liguori      <aliguori@us.ibm.com>
   Jim Meyering         <meyering@redhat.com>
-  Jim Fehlig           <jfehlig@novell.com>
+  Jim Fehlig           <jfehlig@suse.com>
   Chris Lalancette     <clalance@redhat.com>
   Cole Robinson        <crobinso@redhat.com>
   Guido Günther        <agx@sigxcpu.org>
@@ -188,6 +188,13 @@ Patches have also been contributed by:
   Peter Krempa         <pkrempa@redhat.com>
   Nan Zhang            <nzhang@redhat.com>
   Wieland Hoffmann     <themineo@googlemail.com>
+  Douglas Schilling Landgraf <dougsland@redhat.com>
+  Tom Vijlbrief        <tom.vijlbrief@xs4all.nl>
+  Shradha Shah         <sshah@solarflare.com>
+  Steve Hodgson        <shodgson@solarflare.com>
+  Xu He Jie            <xuhj@linux.vnet.ibm.com>
+  Lei Li               <lilei@linux.vnet.ibm.com>
+  Matthias Witte       <witte@netzquadrat.de>
 
   [....send patches to get your name here....]
 

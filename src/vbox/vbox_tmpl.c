@@ -251,7 +251,7 @@ static vboxGlobalData *g_pVBoxGlobalData = NULL;
 
 static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml);
 static int vboxDomainCreate(virDomainPtr dom);
-static int vboxDomainUndefine(virDomainPtr dom);
+static int vboxDomainUndefineFlags(virDomainPtr dom, unsigned int flags);
 
 static void vboxDriverLock(vboxGlobalData *data) {
     virMutexLock(&data->lock);
@@ -1193,7 +1193,7 @@ static virDomainPtr vboxDomainCreateXML(virConnectPtr conn, const char *xml,
         return NULL;
 
     if (vboxDomainCreate(dom) < 0) {
-        vboxDomainUndefine(dom);
+        vboxDomainUndefineFlags(dom, 0);
         virUnrefDomain(dom);
         return NULL;
     }
@@ -4973,7 +4973,7 @@ cleanup:
 }
 
 static int
-vboxDomainUndefine(virDomainPtr dom)
+vboxDomainUndefineFlags(virDomainPtr dom, unsigned int flags)
 {
     VBOX_OBJECT_CHECK(dom->conn, int, -1);
     IMachine *machine    = NULL;
@@ -4982,6 +4982,10 @@ vboxDomainUndefine(virDomainPtr dom)
 #if VBOX_API_VERSION >= 4000
     vboxArray media = VBOX_ARRAY_INITIALIZER;
 #endif
+    /* No managed save, so we explicitly reject
+     * VIR_DOMAIN_UNDEFINE_MANAGED_SAVE.  No snapshot metadata for
+     * VBox, so we can trivially ignore that flag.  */
+    virCheckFlags(VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA, -1);
 
     vboxIIDFromUUID(&iid, dom->uuid);
 
@@ -5129,6 +5133,12 @@ vboxDomainUndefine(virDomainPtr dom)
     VBOX_RELEASE(machine);
 
     return ret;
+}
+
+static int
+vboxDomainUndefine(virDomainPtr dom)
+{
+    return vboxDomainUndefineFlags(dom, 0);
 }
 
 static int vboxDomainAttachDeviceImpl(virDomainPtr dom,
@@ -5645,10 +5655,17 @@ vboxDomainSnapshotCreateXML(virDomainPtr dom,
     PRInt32 result;
 #endif
 
-    virCheckFlags(0, NULL);
+    /* VBox has no snapshot metadata, so this flag is trivial.  */
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA, NULL);
 
-    if (!(def = virDomainSnapshotDefParseString(xmlDesc, 1)))
+    if (!(def = virDomainSnapshotDefParseString(xmlDesc, NULL, 0, 0)))
         goto cleanup;
+
+    if (def->ndisks) {
+        vboxError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                  _("disk snapshots not supported yet"));
+        goto cleanup;
+    }
 
     vboxIIDFromUUID(&domiid, dom->uuid);
     rc = VBOX_OBJECT_GET_MACHINE(domiid.value, &machine);
@@ -5829,7 +5846,7 @@ vboxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
         def->state = VIR_DOMAIN_SHUTOFF;
 
     virUUIDFormat(dom->uuid, uuidstr);
-    ret = virDomainSnapshotDefFormat(uuidstr, def, 0);
+    ret = virDomainSnapshotDefFormat(uuidstr, def, flags, 0);
 
 cleanup:
     virDomainSnapshotDefFree(def);
@@ -5854,13 +5871,19 @@ vboxDomainSnapshotNum(virDomainPtr dom,
     nsresult rc;
     PRUint32 snapshotCount;
 
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_METADATA, -1);
 
     vboxIIDFromUUID(&iid, dom->uuid);
     rc = VBOX_OBJECT_GET_MACHINE(iid.value, &machine);
     if (NS_FAILED(rc)) {
         vboxError(VIR_ERR_NO_DOMAIN, "%s",
                   _("no domain with matching UUID"));
+        goto cleanup;
+    }
+
+    /* VBox snapshots do not require libvirt to maintain any metadata.  */
+    if (flags & VIR_DOMAIN_SNAPSHOT_LIST_METADATA) {
+        ret = 0;
         goto cleanup;
     }
 
@@ -5894,13 +5917,18 @@ vboxDomainSnapshotListNames(virDomainPtr dom,
     int count = 0;
     int i;
 
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_METADATA, -1);
 
     vboxIIDFromUUID(&iid, dom->uuid);
     rc = VBOX_OBJECT_GET_MACHINE(iid.value, &machine);
     if (NS_FAILED(rc)) {
         vboxError(VIR_ERR_NO_DOMAIN, "%s",
                   _("no domain with matching UUID"));
+        goto cleanup;
+    }
+
+    if (flags & VIR_DOMAIN_SNAPSHOT_LIST_METADATA) {
+        ret = 0;
         goto cleanup;
     }
 
@@ -6354,7 +6382,8 @@ vboxDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
     PRUint32 state;
     nsresult rc;
 
-    virCheckFlags(VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN, -1);
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN |
+                  VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY, -1);
 
     vboxIIDFromUUID(&domiid, dom->uuid);
     rc = VBOX_OBJECT_GET_MACHINE(domiid.value, &machine);
@@ -6372,6 +6401,13 @@ vboxDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
     if (NS_FAILED(rc)) {
         vboxError(VIR_ERR_INTERNAL_ERROR, "%s",
                   _("could not get domain state"));
+        goto cleanup;
+    }
+
+    /* VBOX snapshots do not require any libvirt metadata, making this
+     * flag trivial once we know we have a valid snapshot.  */
+    if (flags & VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY) {
+        ret = 0;
         goto cleanup;
     }
 
@@ -8806,6 +8842,7 @@ virDriver NAME(Driver) = {
     .domainCreateWithFlags = vboxDomainCreateWithFlags, /* 0.8.2 */
     .domainDefineXML = vboxDomainDefineXML, /* 0.6.3 */
     .domainUndefine = vboxDomainUndefine, /* 0.6.3 */
+    .domainUndefineFlags = vboxDomainUndefineFlags, /* 0.9.5 */
     .domainAttachDevice = vboxDomainAttachDevice, /* 0.6.3 */
     .domainAttachDeviceFlags = vboxDomainAttachDeviceFlags, /* 0.7.7 */
     .domainDetachDevice = vboxDomainDetachDevice, /* 0.6.3 */

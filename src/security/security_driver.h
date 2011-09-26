@@ -41,6 +41,8 @@ typedef const char *(*virSecurityDriverGetDOI) (virSecurityManagerPtr mgr);
 typedef int (*virSecurityDomainRestoreImageLabel) (virSecurityManagerPtr mgr,
                                                    virDomainObjPtr vm,
                                                    virDomainDiskDefPtr disk);
+typedef int (*virSecurityDomainSetDaemonSocketLabel)(virSecurityManagerPtr mgr,
+                                                     virDomainObjPtr vm);
 typedef int (*virSecurityDomainSetSocketLabel) (virSecurityManagerPtr mgr,
                                                 virDomainObjPtr vm);
 typedef int (*virSecurityDomainClearSocketLabel)(virSecurityManagerPtr mgr,
@@ -82,9 +84,6 @@ typedef int (*virSecurityDomainSecurityVerify) (virSecurityManagerPtr mgr,
 typedef int (*virSecurityDomainSetImageFDLabel) (virSecurityManagerPtr mgr,
                                                  virDomainObjPtr vm,
                                                  int fd);
-typedef int (*virSecurityDomainSetProcessFDLabel) (virSecurityManagerPtr mgr,
-                                                   virDomainObjPtr vm,
-                                                   int fd);
 
 struct _virSecurityDriver {
     size_t privateDataLen;
@@ -101,6 +100,7 @@ struct _virSecurityDriver {
     virSecurityDomainSetImageLabel domainSetSecurityImageLabel;
     virSecurityDomainRestoreImageLabel domainRestoreSecurityImageLabel;
 
+    virSecurityDomainSetDaemonSocketLabel domainSetSecurityDaemonSocketLabel;
     virSecurityDomainSetSocketLabel domainSetSecuritySocketLabel;
     virSecurityDomainClearSocketLabel domainClearSecuritySocketLabel;
 
@@ -121,7 +121,6 @@ struct _virSecurityDriver {
     virSecurityDomainRestoreSavedStateLabel domainRestoreSavedStateLabel;
 
     virSecurityDomainSetImageFDLabel domainSetSecurityImageFDLabel;
-    virSecurityDomainSetProcessFDLabel domainSetSecurityProcessFDLabel;
 };
 
 virSecurityDriverPtr virSecurityDriverLookup(const char *name);

@@ -27,7 +27,7 @@ AC_DEFUN([gl_EARLY],
   m4_pattern_allow([^gl_ES$])dnl a valid locale name
   m4_pattern_allow([^gl_LIBOBJS$])dnl a variable
   m4_pattern_allow([^gl_LTLIBOBJS$])dnl a variable
-  AC_REQUIRE([AC_PROG_RANLIB])
+  AC_REQUIRE([gl_PROG_AR_RANLIB])
   AC_REQUIRE([AM_PROG_CC_C_O])
   # Code from module accept:
   # Code from module alignof:
@@ -112,6 +112,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module fseeko:
   AC_REQUIRE([AC_FUNC_FSEEKO])
   # Code from module fseeko-tests:
+  # Code from module fsync:
+  # Code from module fsync-tests:
   # Code from module ftell:
   # Code from module ftell-tests:
   # Code from module ftello:
@@ -161,6 +163,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module inttypes-tests:
   # Code from module ioctl:
   # Code from module largefile:
+  AC_REQUIRE([AC_SYS_LARGEFILE])
   # Code from module listen:
   # Code from module localcharset:
   # Code from module locale:
@@ -208,6 +211,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module passfd:
   # Code from module passfd-tests:
   # Code from module pathmax:
+  # Code from module pathmax-tests:
   # Code from module perror:
   # Code from module perror-tests:
   # Code from module physmem:
@@ -520,6 +524,12 @@ if test $HAVE_FSEEKO = 0 || test $REPLACE_FSEEKO = 1; then
   AC_LIBOBJ([fseeko])
 fi
 gl_STDIO_MODULE_INDICATOR([fseeko])
+gl_FUNC_FSYNC
+if test $HAVE_FSYNC = 0; then
+  AC_LIBOBJ([fsync])
+  gl_PREREQ_FSYNC
+fi
+gl_UNISTD_MODULE_INDICATOR([fsync])
 gl_FUNC_FTELL
 if test $REPLACE_FTELL = 1; then
   AC_LIBOBJ([ftell])
@@ -1414,6 +1424,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/freading.h
   lib/fseek.c
   lib/fseeko.c
+  lib/fsync.c
   lib/ftell.c
   lib/ftello.c
   lib/gai_strerror.c
@@ -1595,6 +1606,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/freading.m4
   m4/fseek.m4
   m4/fseeko.m4
+  m4/fsync.m4
   m4/ftell.m4
   m4/ftello.m4
   m4/func.m4
@@ -1807,6 +1819,9 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-fseeko.c
   tests/test-fseeko.sh
   tests/test-fseeko2.sh
+  tests/test-fseeko3.c
+  tests/test-fseeko3.sh
+  tests/test-fsync.c
   tests/test-ftell.c
   tests/test-ftell.sh
   tests/test-ftell2.sh
@@ -1874,6 +1889,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-open.c
   tests/test-open.h
   tests/test-passfd.c
+  tests/test-pathmax.c
   tests/test-perror.c
   tests/test-perror.sh
   tests/test-perror2.c

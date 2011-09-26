@@ -204,6 +204,8 @@
                   </li><li>
                     <a href="#elementsUSB">USB and PCI devices</a>
                   </li><li>
+                    <a href="#elementsRedir">Redirected devices</a>
+                  </li><li>
                     <a href="#elementsSmartcard">Smartcard devices</a>
                   </li><li>
                     <a href="#elementsNICS">Network interfaces</a>
@@ -231,9 +233,13 @@
                         <a href="#elementsNICSBoot">Specifying boot order</a>
                       </li><li>
                         <a href="#elementQoS">Quality of service</a>
+                      </li><li>
+                        <a href="#elementLink">Modyfing virtual link state</a>
                       </li></ul>
                   </li><li>
                     <a href="#elementsInput">Input devices</a>
+                  </li><li>
+                    <a href="#elementsHub">Hub devices</a>
                   </li><li>
                     <a href="#elementsGraphics">Graphical framebuffers</a>
                   </li><li>
@@ -940,7 +946,7 @@
         <pre>
   ...
   &lt;devices&gt;
-    &lt;disk type='file'&gt;
+    &lt;disk type='file' snapshot='external'&gt;
       &lt;driver name="tap" type="aio" cache="default"/&gt;
       &lt;source file='/var/lib/xen/images/fv0'/&gt;
       &lt;target dev='hda' bus='ide'/&gt;
@@ -955,13 +961,19 @@
     &lt;/disk&gt;
       ...
     &lt;disk type='network'&gt;
-      &lt;driver name="qemu" type="raw" io="threads" ioeventfd="on"/&gt;
+      &lt;driver name="qemu" type="raw" io="threads" ioeventfd="on" event_idx="off"/&gt;
       &lt;source protocol="sheepdog" name="image_name"&gt;
         &lt;host name="hostname" port="7000"/&gt;
       &lt;/source&gt;
       &lt;target dev="hdb" bus="ide"/&gt;
       &lt;boot order='1'/&gt;
+      &lt;transient/&gt;
       &lt;address type='drive' controller='0' bus='1' unit='0'/&gt;
+    &lt;/disk&gt;
+    &lt;disk type='block' device='cdrom'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
+      &lt;target def='hdc' bus='ide'/&gt;
+      &lt;readonly/&gt;
     &lt;/disk&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -971,9 +983,23 @@
         and refers to the underlying source for the disk. The optional
         <code>device</code> attribute indicates how the disk is to be exposed
         to the guest OS. Possible values for this attribute are "floppy", "disk"
-        and "cdrom", defaulting to "disk".
-        <span class="since">Since 0.0.3; "device" attribute since 0.1.4;
-        "network" attribute since 0.8.7</span></dd><dt><code>source</code></dt><dd>If the disk <code>type</code> is "file", then
+        and "cdrom", defaulting to "disk".  The
+        optional <code>snapshot</code> attribute indicates the default
+        behavior of the disk during disk snapshots: "internal"
+        requires a file format such as qcow2 that can store both the
+        snapshot and the data changes since the snapshot;
+        "external" will separate the snapshot from the live data; and
+        "no" means the disk will not participate in snapshots.
+        Read-only disks default to "no", while the default for other
+        disks depends on the hypervisor's capabilities.  Some
+        hypervisors allow a per-snapshot choice as well,
+        during <a href="formatsnapshot.html">domain snapshot
+        creation</a>.  Not all snapshot modes are supported;
+        for example, <code>snapshot='yes'</code> with a transient disk
+        generally does not make sense.  <span class="since">Since 0.0.3;
+        "device" attribute since 0.1.4;
+        "network" attribute since 0.8.7; "snapshot" since
+        0.9.5</span></dd><dt><code>source</code></dt><dd>If the disk <code>type</code> is "file", then
         the <code>file</code> attribute specifies the fully-qualified
         path to the file holding the disk. If the disk
         <code>type</code> is "block", then the <code>dev</code>
@@ -1016,7 +1042,9 @@
           </li><li>
             The optional <code>cache</code> attribute controls the
             cache mechanism, possible values are "default", "none",
-            "writethrough" and "writeback".
+            "writethrough", "writeback", and "directsync". "directsync"
+            is like "writethrough", but it bypasses the host page
+            cache.
             <span class="since">Since 0.6.0</span>
           </li><li>
             The optional <code>error_policy</code> attribute controls
@@ -1040,6 +1068,18 @@
             <span class="since">Since 0.9.3 (QEMU and KVM only)</span>
             <b>In general you should leave this option alone, unless you
             are very certain you know what you are doing.</b>
+          </li><li>
+            The optional <code>event_idx</code> attribute controls
+            some aspects of device event processing. The value can be
+            either 'on' or 'off' - if it is on, it will reduce the
+            number of interupts and exits for the guest. The default
+            is determined by QEMU; usually if the feature is
+            supported, default is on. In case there is a situation
+            where this behavior is suboptimal, this attribute provides
+            a way to force the feature off.
+            <span class="since">Since 0.9.5 (QEMU and KVM only)</span>
+            <b>In general you should leave this option alone, unless you
+            are very certain you know what you are doing.</b>
           </li></ul></dd><dt><code>boot</code></dt><dd>Specifies that the disk is bootable. The <code>order</code>
         attribute determines the order in which devices will be tried during
         boot sequence. The per-device <code>boot</code> elements cannot be
@@ -1049,9 +1089,17 @@
       </dd><dt><code>encryption</code></dt><dd>If present, specifies how the volume is encrypted.  See
         the <a href="formatstorageencryption.html">Storage Encryption</a> page
         for more information.
+      </dd><dt><code>readonly</code></dt><dd>If present, this indicates the device cannot be modified by
+        the guest.  For now, this is the default for disks with
+        attribute <code>type='cdrom'</code>.
       </dd><dt><code>shareable</code></dt><dd>If present, this indicates the device is expected to be shared
           between domains (assuming the hypervisor and OS support this),
           which means that caching should be deactivated for that device.
+      </dd><dt><code>transient</code></dt><dd>If present, this indicates that changes to the device
+        contents should be reverted automatically when the guest
+        exits.  With some hypervisors, marking a disk transient
+        prevents the domain from participating in migration or
+        snapshots. <span class="since">Since 0.9.5</span>
       </dd><dt><code>serial</code></dt><dd>If present, this specify serial number of virtual hard drive.
           For example, it may look
           like <code>&lt;serial&gt;WD-WMAP9A966149&lt;/serial&gt;</code>.
@@ -1170,17 +1218,22 @@
   ...</pre>
         <p>
       Each controller has a mandatory attribute <code>type</code>,
-      which must be one of "ide", "fdc", "scsi", "sata", "ccid", or
-      "virtio-serial", and a mandatory attribute <code>index</code>
-      which is the decimal integer describing in which order the bus
-      controller is encountered (for use in <code>controller</code>
-      attributes of <code>&lt;address&gt;</code> elements).  The
-      "virtio-serial" controller has two additional optional
+      which must be one of "ide", "fdc", "scsi", "sata", "usb",
+      "ccid", or "virtio-serial", and a mandatory
+      attribute <code>index</code> which is the decimal integer
+      describing in which order the bus controller is encountered (for
+      use in <code>controller</code> attributes
+      of <code>&lt;address&gt;</code> elements).  The "virtio-serial"
+      controller has two additional optional
       attributes <code>ports</code> and <code>vectors</code>, which
       control how many devices can be connected through the
       controller.  A "scsi" controller has an optional
       attribute <code>model</code>, which is one of "auto",
       "buslogic", "lsilogic", "lsias1068", or "vmpvscsi".
+      A "usb" controller has an optional attribute <code>model</code>,
+      which is one of "piix3-uhci", "piix4-uhci", "ehci",
+      "ich9-ehci1", "ich9-uhci1", "ich9-uhci2", "ich9-uhci3",
+      "vt82c686b-uhci" or "pci-ohci".
     </p>
         <p>
       For controllers that are themselves devices on a PCI or USB bus,
@@ -1189,6 +1242,26 @@
       semantics like any other device's <code>address</code>
       sub-element.
     </p>
+        <p>
+      USB companion controllers have an optional
+      sub-element <code>&lt;master&gt;</code> to specify the exact
+      relationship of the companion to its master controller.
+      A companion controller is on the same bus as its master, so
+      the companion <code>index</code> value should be equal.
+    </p>
+        <pre>
+  ...
+  &lt;devices&gt;
+    &lt;controller type='usb' index='0' model='ich9-ehci1'&gt;
+      &lt;address type='pci' domain='0' bus='0' slot='4' function='7'/&gt;
+    &lt;/controller&gt;
+    &lt;controller type='usb' index='0' model='ich9-uhci1'&gt;
+      &lt;master startport='0'/&gt;
+      &lt;address type='pci' domain='0' bus='0' slot='4' function='0'/&gt;
+    &lt;/controller&gt;
+    ...
+  &lt;/devices&gt;
+  ...</pre>
         <h4>
           <a name="elementsLease" id="elementsLease">Device leases</a>
         </h4>
@@ -1285,6 +1358,46 @@
       7. There is also an optional <code>domain</code> attribute for the
       PCI domain, with hexadecimal values 0 to ffff, but it is currently
       not used by qemu.</dd></dl>
+        <h4>
+          <a name="elementsRedir" id="elementsRedir">Redirected devices</a>
+        </h4>
+        <p>
+      USB device redirection through a character device is
+      supported <span class="since">since after 0.9.5 (KVM
+      only)</span>:
+    </p>
+        <pre>
+  ...
+  &lt;devices&gt;
+    &lt;redirdev bus='usb' type='tcp'&gt;
+      &lt;source mode='connect' host='localhost' service='4000'/&gt;
+    &lt;/redirdev&gt;
+  &lt;/devices&gt;
+  ...</pre>
+        <dl><dt><code>redirdev</code></dt><dd>The <code>redirdev</code> element is the main container for
+        describing redirected devices. <code>bus</code> must be "usb"
+        for a USB device.
+
+        An additional attribute <code>type</code> is required,
+        matching one of the
+        supported <a href="#elementsConsole">serial device</a> types,
+        to describe the host side of the
+        tunnel; <code>type='tcp'</code>
+        or <code>type='spicevmc'</code> (which uses the usbredir
+        channel of a <a href="#elementsGraphics">SPICE graphics
+        device</a>) are typical.</dd></dl>
+        <p>
+      The redirdev element has an optional sub-element
+      <code>&lt;address&gt;</code> which can tie the device to a
+      particular controller.
+    </p>
+        <p>
+      Further sub-elements, such as <code>&lt;source&gt;</code>, may
+      be required according to the given type, although
+      a <code>&lt;target&gt;</code> sub-element is not required (since
+      the consumer of the character device is the hypervisor itself,
+      rather than a device visible in the guest).
+    </p>
         <h4>
           <a name="elementsSmartcard" id="elementsSmartcard">Smartcard devices</a>
         </h4>
@@ -1739,7 +1852,7 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;source network='default'/&gt;
       &lt;target dev='vnet1'/&gt;
       &lt;model type='virtio'/&gt;
-      <b>&lt;driver name='vhost' txmode='iothread' ioeventfd='on'/&gt;</b>
+      <b>&lt;driver name='vhost' txmode='iothread' ioeventfd='on' event_idx='off'/&gt;</b>
     &lt;/interface&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -1792,6 +1905,16 @@ qemu-kvm -net nic,model=? /dev/null
         during I/O will benefit from this. On the other hand,
         on overloaded host it could increase guest I/O latency.
         <span class="since">Since 0.9.3 (QEMU and KVM only)</span><br /><br /><b>In general you should leave this option alone, unless you
+        are very certain you know what you are doing.</b>
+      </dd><dt><code>event_idx</code></dt><dd>
+        The <code>event_idx</code> attribute controls some aspects of
+        device event processing. The value can be either 'on' or 'off'
+        - if it is on, it will reduce the number of interupts and
+        exits for the guest. The default is determined by QEMU;
+        usually if the feature is supported, default is on. In case
+        there is a situation where this behavior is suboptimal, this
+        attribute provides a way to force the feature off.
+        <span class="since">Since 0.9.5 (QEMU and KVM only)</span><br /><br /><b>In general you should leave this option alone, unless you
         are very certain you know what you are doing.</b>
       </dd></dl>
         <h5>
@@ -1869,6 +1992,27 @@ qemu-kvm -net nic,model=? /dev/null
       are kilobytes per second, and for the <code>burst</code> just kilobytes.
       <span class="since">Since 0.9.4</span>
     </p>
+        <h5>
+          <a name="elementLink" id="elementLink">Modyfing virtual link state</a>
+        </h5>
+        <pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='network'&gt;
+      &lt;source network='default'/&gt;
+      &lt;target dev='vnet0'/&gt;
+      <b>&lt;link state='down'/&gt;</b>
+    &lt;/interface&gt;
+  &lt;devices&gt;
+  ...</pre>
+        <p>
+      This element provides means of setting state of the virtual network link.
+      Possible values for attribute <code>state</code> are <code>up</code> and
+      <code>down</code>. If <code>down</code> is specified as the value, the interface
+      behaves as if it had the network cable disconnected. Default behavior if this
+      element is unspecified is to have the link state <code>up</code>.
+      <span class="since">Since 0.9.5</span>
+    </p>
         <h4>
           <a name="elementsInput" id="elementsInput">Input devices</a>
         </h4>
@@ -1895,6 +2039,27 @@ qemu-kvm -net nic,model=? /dev/null
       The <code>input</code> element has an optional
       sub-element <code>&lt;address&gt;</code> which can tie the
       device to a particular PCI slot.
+    </p>
+        <h4>
+          <a name="elementsHub" id="elementsHub">Hub devices</a>
+        </h4>
+        <p>
+      A hub is a device that expands a single port into several so
+      that there are more ports available to connect devices to a host
+      system.
+    </p>
+        <pre>
+  ...
+  &lt;devices&gt;
+    &lt;hub type='usb'/&gt;
+  &lt;/devices&gt;
+  ...</pre>
+        <dl><dt><code>hub</code></dt><dd>The <code>hub</code> element has one mandatory attribute,
+        the <code>type</code> whose value can only be 'usb'.</dd></dl>
+        <p>
+      The <code>hub</code> element has an optional
+      sub-element <code>&lt;address&gt;</code> which can tie the
+      device to a particular controller.
     </p>
         <h4>
           <a name="elementsGraphics" id="elementsGraphics">Graphical framebuffers</a>

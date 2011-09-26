@@ -40,6 +40,7 @@
 #include "memory.h"
 #include "configmake.h"
 #include "intprops.h"
+#include "rpc/virnettlscontext.h"
 
 #ifndef WITH_DRIVER_MODULES
 # ifdef WITH_TEST
@@ -65,6 +66,9 @@
 # endif
 # ifdef WITH_ESX
 #  include "esx/esx_driver.h"
+# endif
+# ifdef WITH_HYPERV
+#  include "hyperv/hyperv_driver.h"
 # endif
 # ifdef WITH_XENAPI
 #  include "xenapi/xenapi_driver.h"
@@ -333,10 +337,14 @@ static struct gcry_thread_cbs virTLSThreadImpl = {
 
 /* Internal use only, when VIR_DOMAIN_DEBUG has one argument.  */
 #define VIR_DOMAIN_DEBUG_0(dom)                 \
-    VIR_DOMAIN_DEBUG_1(dom, "%s", "")
+    VIR_DOMAIN_DEBUG_2(dom, "%s", "")
 
 /* Internal use only, when VIR_DOMAIN_DEBUG has three or more arguments.  */
-#define VIR_DOMAIN_DEBUG_1(dom, fmt, ...)                               \
+#define VIR_DOMAIN_DEBUG_1(dom, fmt, ...)       \
+    VIR_DOMAIN_DEBUG_2(dom, ", " fmt, __VA_ARGS__)
+
+/* Internal use only, with final format.  */
+#define VIR_DOMAIN_DEBUG_2(dom, fmt, ...)                               \
     do {                                                                \
         char _uuidstr[VIR_UUID_STRING_BUFLEN];                          \
         const char *_domname = NULL;                                    \
@@ -348,7 +356,7 @@ static struct gcry_thread_cbs virTLSThreadImpl = {
             _domname = (dom)->name;                                     \
         }                                                               \
                                                                         \
-        VIR_DEBUG("dom=%p, (VM: name=%s, uuid=%s), " fmt,               \
+        VIR_DEBUG("dom=%p, (VM: name=%s, uuid=%s)" fmt,                 \
                   dom, NULLSTR(_domname), _uuidstr, __VA_ARGS__);       \
     } while (0)
 
@@ -409,6 +417,8 @@ virInitialize(void)
 
     virLogSetFromEnv();
 
+    virNetTLSInit();
+
     VIR_DEBUG("register drivers");
 
 #if HAVE_WINSOCK2_H
@@ -446,6 +456,9 @@ virInitialize(void)
 # ifdef WITH_ESX
     virDriverLoadModule("esx");
 # endif
+# ifdef WITH_HYPERV
+    virDriverLoadModule("hyperv");
+# endif
 # ifdef WITH_XENAPI
     virDriverLoadModule("xenapi");
 # endif
@@ -473,6 +486,9 @@ virInitialize(void)
 # endif
 # ifdef WITH_ESX
     if (esxRegister() == -1) return -1;
+# endif
+# ifdef WITH_HYPERV
+    if (hypervRegister() == -1) return -1;
 # endif
 # ifdef WITH_XENAPI
     if (xenapiRegister() == -1) return -1;
@@ -1037,6 +1053,9 @@ do_open (const char *name,
              STRCASEEQ(ret->uri->scheme, "vpx") ||
              STRCASEEQ(ret->uri->scheme, "esx") ||
              STRCASEEQ(ret->uri->scheme, "gsx") ||
+#endif
+#ifndef WITH_HYPERV
+             STRCASEEQ(ret->uri->scheme, "hyperv") ||
 #endif
 #ifndef WITH_XENAPI
              STRCASEEQ(ret->uri->scheme, "xenapi") ||
@@ -1615,7 +1634,7 @@ error:
 char *
 virConnectGetSysinfo (virConnectPtr conn, unsigned int flags)
 {
-    VIR_DEBUG("conn=%p", conn);
+    VIR_DEBUG("conn=%p, flags=%x", conn, flags);
 
     virResetLastError();
 
@@ -1801,9 +1820,9 @@ virDomainGetConnect (virDomainPtr dom)
  * If the VIR_DOMAIN_START_AUTODESTROY flag is set, the guest
  * domain will be automatically destroyed when the virConnectPtr
  * object is finally released. This will also happen if the
- * client application crashes / looses its connection to the
+ * client application crashes / loses its connection to the
  * libvirtd daemon. Any domains marked for auto destroy will
- * block attempts at migration or save-to-file
+ * block attempts at migration, save-to-file, or snapshots.
  *
  * Returns a new domain object or NULL in case of failure
  */
@@ -2039,6 +2058,10 @@ error:
  * does not free the associated virDomainPtr object.
  * This function may require privileged access
  *
+ * If the domain is transient and has any snapshot metadata (see
+ * virDomainSnapshotNum()), then that metadata will automatically
+ * be deleted when the domain quits.
+ *
  * Returns 0 in case of success and -1 in case of failure.
  */
 int
@@ -2088,7 +2111,9 @@ error:
  * This function may require privileged access.
  *
  * Calling this function with no @flags set (equal to zero)
- * is equivalent to calling virDomainDestroy.
+ * is equivalent to calling virDomainDestroy.  Using virDomainShutdown()
+ * may produce cleaner results for the guest's disks, but depends on guest
+ * support.
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -2098,7 +2123,7 @@ virDomainDestroyFlags(virDomainPtr domain,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(domain);
+    VIR_DOMAIN_DEBUG(domain, "flags=%x", flags);
 
     virResetLastError();
 
@@ -2291,7 +2316,7 @@ error:
  *
  * This method will suspend a domain and save its memory contents to
  * a file on disk. After the call, if successful, the domain is not
- * listed as running anymore (this may be a problem).
+ * listed as running anymore (this ends the life of a transient domain).
  * Use virDomainRestore() to restore a domain after saving.
  *
  * See virDomainSaveFlags() for more control.  Also, a save file can
@@ -2360,7 +2385,7 @@ error:
  *
  * This method will suspend a domain and save its memory contents to
  * a file on disk. After the call, if successful, the domain is not
- * listed as running anymore (this may be a problem).
+ * listed as running anymore (this ends the life of a transient domain).
  * Use virDomainRestore() to restore a domain after saving.
  *
  * If the hypervisor supports it, @dxml can be used to alter
@@ -2375,6 +2400,12 @@ error:
  * fail if it cannot do so for the given system; this can allow less
  * pressure on file system cache, but also risks slowing saves to NFS.
  *
+ * Normally, the saved state file will remember whether the domain was
+ * running or paused, and restore defaults to the same state.
+ * Specifying VIR_DOMAIN_SAVE_RUNNING or VIR_DOMAIN_SAVE_PAUSED in
+ * @flags will override what state gets saved into the file.  These
+ * two flags are mutually exclusive.
+ *
  * A save file can be inspected or modified slightly with
  * virDomainSaveImageGetXMLDesc() and virDomainSaveImageDefineXML().
  *
@@ -2386,7 +2417,7 @@ virDomainSaveFlags(virDomainPtr domain, const char *to,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(domain, "to=%s dxml=%s flags=%x",
+    VIR_DOMAIN_DEBUG(domain, "to=%s, dxml=%s, flags=%x",
                      to, NULLSTR(dxml), flags);
 
     virResetLastError();
@@ -2403,6 +2434,12 @@ virDomainSaveFlags(virDomainPtr domain, const char *to,
     conn = domain->conn;
     if (to == NULL) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if ((flags & VIR_DOMAIN_SAVE_RUNNING) && (flags & VIR_DOMAIN_SAVE_PAUSED)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("running and paused flags are mutually exclusive"));
         goto error;
     }
 
@@ -2513,6 +2550,12 @@ error:
  * fail if it cannot do so for the given system; this can allow less
  * pressure on file system cache, but also risks slowing saves to NFS.
  *
+ * Normally, the saved state file will remember whether the domain was
+ * running or paused, and restore defaults to the same state.
+ * Specifying VIR_DOMAIN_SAVE_RUNNING or VIR_DOMAIN_SAVE_PAUSED in
+ * @flags will override the default read from the file.  These two
+ * flags are mutually exclusive.
+ *
  * Returns 0 in case of success and -1 in case of failure.
  */
 int
@@ -2535,6 +2578,12 @@ virDomainRestoreFlags(virConnectPtr conn, const char *from, const char *dxml,
     }
     if (from == NULL) {
         virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if ((flags & VIR_DOMAIN_SAVE_RUNNING) && (flags & VIR_DOMAIN_SAVE_PAUSED)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("running and paused flags are mutually exclusive"));
         goto error;
     }
 
@@ -2642,7 +2691,7 @@ error:
  * @conn: pointer to the hypervisor connection
  * @file: path to saved state file
  * @dxml: XML config for adjusting guest xml used on restore
- * @flags: 0 for now
+ * @flags: bitwise-OR of virDomainSaveRestoreFlags
  *
  * This updates the definition of a domain stored in a saved state
  * file.  @file must be a file created previously by virDomainSave()
@@ -2653,6 +2702,13 @@ error:
  * possible to alter the backing filename that is associated with a
  * disk device, to match renaming done as part of backing up the disk
  * device while the domain is stopped.
+ *
+ * Normally, the saved state file will remember whether the domain was
+ * running or paused, and restore defaults to the same state.
+ * Specifying VIR_DOMAIN_SAVE_RUNNING or VIR_DOMAIN_SAVE_PAUSED in
+ * @flags will override the default saved into the file; omitting both
+ * leaves the file's default unchanged.  These two flags are mutually
+ * exclusive.
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -2676,6 +2732,12 @@ virDomainSaveImageDefineXML(virConnectPtr conn, const char *file,
     }
     if (!file || !dxml) {
         virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if ((flags & VIR_DOMAIN_SAVE_RUNNING) && (flags & VIR_DOMAIN_SAVE_PAUSED)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("running and paused flags are mutually exclusive"));
         goto error;
     }
 
@@ -2715,7 +2777,8 @@ error:
  *
  * This method will dump the core of a domain on a given file for analysis.
  * Note that for remote Xen Daemon the file path will be interpreted in
- * the remote host.
+ * the remote host. Hypervisors may require  the user to manually ensure
+ * proper permissions on the file named by @to.
  *
  * If @flags includes VIR_DUMP_CRASH, then leave the guest shut off with
  * a crashed state after the dump completes.  If @flags includes
@@ -2816,7 +2879,7 @@ virDomainScreenshot(virDomainPtr domain,
                     unsigned int screen,
                     unsigned int flags)
 {
-    VIR_DOMAIN_DEBUG(domain, "stream=%p flags=%x", stream, flags);
+    VIR_DOMAIN_DEBUG(domain, "stream=%p, flags=%x", stream, flags);
 
     virResetLastError();
 
@@ -2856,12 +2919,17 @@ error:
  * virDomainShutdown:
  * @domain: a domain object
  *
- * Shutdown a domain, the domain object is still usable there after but
+ * Shutdown a domain, the domain object is still usable thereafter but
  * the domain OS is being stopped. Note that the guest OS may ignore the
- * request.
+ * request.  For guests that react to a shutdown request, the differences
+ * from virDomainDestroy() are that the guests disk storage will be in a
+ * stable state rather than having the (virtual) power cord pulled, and
+ * this command returns as soon as the shutdown request is issued rather
+ * than blocking until the guest is no longer running.
  *
- * TODO: should we add an option for reboot, knowing it may not be doable
- *       in the general case ?
+ * If the domain is transient and has any snapshot metadata (see
+ * virDomainSnapshotNum()), then that metadata will automatically
+ * be deleted when the domain quits.
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -3292,7 +3360,7 @@ virDomainSetMemoryFlags(virDomainPtr domain, unsigned long memory,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(domain, "memory=%lu flags=%x", memory, flags);
+    VIR_DOMAIN_DEBUG(domain, "memory=%lu, flags=%x", memory, flags);
 
     virResetLastError();
 
@@ -3635,7 +3703,8 @@ virDomainGetState(virDomainPtr domain,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(domain, "state=%p, reason=%p", state, reason);
+    VIR_DOMAIN_DEBUG(domain, "state=%p, reason=%p, flags=%x",
+                     state, reason, flags);
 
     virResetLastError();
 
@@ -3682,7 +3751,7 @@ virDomainGetControlInfo(virDomainPtr domain,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(domain, "info=%p", info);
+    VIR_DOMAIN_DEBUG(domain, "info=%p, flags=%x", info, flags);
 
     virResetLastError();
 
@@ -3791,7 +3860,7 @@ char *virConnectDomainXMLFromNative(virConnectPtr conn,
                                     const char *nativeConfig,
                                     unsigned int flags)
 {
-    VIR_DEBUG("conn=%p, format=%s config=%s flags=%x",
+    VIR_DEBUG("conn=%p, format=%s, config=%s, flags=%x",
               conn, nativeFormat, nativeConfig, flags);
 
     virResetLastError();
@@ -3844,7 +3913,7 @@ char *virConnectDomainXMLToNative(virConnectPtr conn,
                                   const char *domainXml,
                                   unsigned int flags)
 {
-    VIR_DEBUG("conn=%p, format=%s xml=%s flags=%x",
+    VIR_DEBUG("conn=%p, format=%s, xml=%s, flags=%x",
               conn, nativeFormat, domainXml, flags);
 
     virResetLastError();
@@ -3913,7 +3982,7 @@ virDomainMigrateVersion1 (virDomainPtr domain,
     int cookielen = 0, ret;
     virDomainInfo info;
     VIR_DOMAIN_DEBUG(domain,
-                     "dconn=%p flags=%lx, dname=%s, uri=%s, bandwidth=%lu",
+                     "dconn=%p, flags=%lx, dname=%s, uri=%s, bandwidth=%lu",
                      dconn, flags, NULLSTR(dname), NULLSTR(uri), bandwidth);
 
     ret = virDomainGetInfo (domain, &info);
@@ -4006,7 +4075,7 @@ virDomainMigrateVersion2 (virDomainPtr domain,
     virErrorPtr orig_err = NULL;
     int cancelled;
     VIR_DOMAIN_DEBUG(domain,
-                     "dconn=%p flags=%lx, dname=%s, uri=%s, bandwidth=%lu",
+                     "dconn=%p, flags=%lx, dname=%s, uri=%s, bandwidth=%lu",
                      dconn, flags, NULLSTR(dname), NULLSTR(uri), bandwidth);
 
     /* Prepare the migration.
@@ -4141,6 +4210,7 @@ virDomainMigrateVersion3(virDomainPtr domain,
     virErrorPtr orig_err = NULL;
     int cancelled = 1;
     unsigned long protection = 0;
+    bool notify_source = true;
 
     VIR_DOMAIN_DEBUG(domain, "dconn=%p xmlin=%s, flags=%lx, "
                      "dname=%s, uri=%s, bandwidth=%lu",
@@ -4221,8 +4291,13 @@ virDomainMigrateVersion3(virDomainPtr domain,
          uri, flags | protection, dname, bandwidth);
 
     /* Perform failed. Make sure Finish doesn't overwrite the error */
-    if (ret < 0)
+    if (ret < 0) {
         orig_err = virSaveLastError();
+        /* Perform failed so we don't need to call confirm to let source know
+         * about the failure.
+         */
+        notify_source = false;
+    }
 
     /* If Perform returns < 0, then we need to cancel the VM
      * startup on the destination
@@ -4265,22 +4340,29 @@ finish:
 
 confirm:
     /*
-     * If cancelled, then src VM will be restarted, else
-     * it will be killed
+     * If cancelled, then src VM will be restarted, else it will be killed.
+     * Don't do this if migration failed on source and thus it was already
+     * cancelled there.
      */
-    VIR_DEBUG("Confirm3 %p ret=%d domain=%p", domain->conn, ret, domain);
-    VIR_FREE(cookiein);
-    cookiein = cookieout;
-    cookieinlen = cookieoutlen;
-    cookieout = NULL;
-    cookieoutlen = 0;
-    ret = domain->conn->driver->domainMigrateConfirm3
-        (domain, cookiein, cookieinlen,
-         flags | protection, cancelled);
-    /* If Confirm3 returns -1, there's nothing more we can
-     * do, but fortunately worst case is that there is a
-     * domain left in 'paused' state on source.
-     */
+    if (notify_source) {
+        VIR_DEBUG("Confirm3 %p ret=%d domain=%p", domain->conn, ret, domain);
+        VIR_FREE(cookiein);
+        cookiein = cookieout;
+        cookieinlen = cookieoutlen;
+        cookieout = NULL;
+        cookieoutlen = 0;
+        ret = domain->conn->driver->domainMigrateConfirm3
+            (domain, cookiein, cookieinlen,
+             flags | protection, cancelled);
+        /* If Confirm3 returns -1, there's nothing more we can
+         * do, but fortunately worst case is that there is a
+         * domain left in 'paused' state on source.
+         */
+        if (ret < 0) {
+            VIR_WARN("Guest %s probably left in 'paused' state on source",
+                     domain->name);
+        }
+    }
 
  done:
     if (orig_err) {
@@ -6361,6 +6443,77 @@ error:
 }
 
 /**
+ * virDomainBlockStatsFlags:
+ * @dom: pointer to domain object
+ * @path: path to the block device
+ * @params: pointer to block stats parameter object
+ *          (return value)
+ * @nparams: pointer to number of block stats
+ * @flags: unused, always passes 0
+ *
+ * This function is to get block stats parameters for block
+ * devices attached to the domain.
+ *
+ * The @path is the name of the block device.  Get this
+ * by calling virDomainGetXMLDesc and finding the <target dev='...'>
+ * attribute within //domain/devices/disk.  (For example, "xvda").
+ *
+ * Domains may have more than one block device.  To get stats for
+ * each you should make multiple calls to this function.
+ *
+ * The @params array will be filled with the value equal to the number of
+ * parameters suggested by @nparams.
+ *
+ * As the value of @nparams is dynamic, call the API setting @nparams to 0 and
+ * @params as NULL, the API returns the number of parameters supported by the
+ * HV by updating @nparams on SUCCESS. (Note that block device of different type
+ * might support different parameters numbers, so it might be necessary to compute
+ * @nparams for each block device type). The caller should then allocate @params
+ * array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
+ * again. See virDomainGetMemoryParameters for more details.
+ *
+ * Returns -1 in case of error, 0 in case of success.
+ */
+int virDomainBlockStatsFlags (virDomainPtr dom,
+                              const char *path,
+                              virTypedParameterPtr params,
+                              int *nparams,
+                              unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(dom, "path=%s, params=%p, nparams=%d, flags=%x",
+                     path, params, nparams ? *nparams : -1, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN (dom)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (!path || (nparams == NULL) || (*nparams < 0)) {
+        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    conn = dom->conn;
+
+    if (conn->driver->domainBlockStatsFlags) {
+        int ret;
+        ret = conn->driver->domainBlockStatsFlags(dom, path, params, nparams, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
  * virDomainInterfaceStats:
  * @dom: pointer to the domain object
  * @path: path to the interface
@@ -6458,7 +6611,8 @@ int virDomainMemoryStats (virDomainPtr dom, virDomainMemoryStatPtr stats,
     virConnectPtr conn;
     unsigned long nr_stats_ret = 0;
 
-    VIR_DOMAIN_DEBUG(dom, "stats=%p, nr_stats=%u", stats, nr_stats);
+    VIR_DOMAIN_DEBUG(dom, "stats=%p, nr_stats=%u, flags=%x",
+                     stats, nr_stats, flags);
 
     virResetLastError();
 
@@ -6539,8 +6693,8 @@ virDomainBlockPeek (virDomainPtr dom,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "path=%s, offset=%lld, size=%zi, buffer=%p",
-                     path, offset, size, buffer);
+    VIR_DOMAIN_DEBUG(dom, "path=%s, offset=%lld, size=%zi, buffer=%p, flags=%x",
+                     path, offset, size, buffer, flags);
 
     virResetLastError();
 
@@ -6712,7 +6866,7 @@ virDomainGetBlockInfo(virDomainPtr domain, const char *path, virDomainBlockInfoP
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(domain, "info=%p flags=%x", info, flags);
+    VIR_DOMAIN_DEBUG(domain, "info=%p, flags=%x", info, flags);
 
     virResetLastError();
 
@@ -6808,8 +6962,9 @@ error:
  * the domain configuration is removed.
  *
  * If the domain has a managed save image (see
- * virDomainHasManagedSaveImage()), then the undefine will fail. See
- * virDomainUndefineFlags() for more control.
+ * virDomainHasManagedSaveImage()), or if it is inactive and has any
+ * snapshot metadata (see virDomainSnapshotNum()), then the undefine will
+ * fail. See virDomainUndefineFlags() for more control.
  *
  * Returns 0 in case of success, -1 in case of error
  */
@@ -6859,6 +7014,15 @@ error:
  * If the domain has a managed save image (see virDomainHasManagedSaveImage()),
  * then including VIR_DOMAIN_UNDEFINE_MANAGED_SAVE in @flags will also remove
  * that file, and omitting the flag will cause the undefine process to fail.
+ *
+ * If the domain is inactive and has any snapshot metadata (see
+ * virDomainSnapshotNum()), then including
+ * VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA in @flags will also remove
+ * that metadata.  Omitting the flag will cause the undefine of an
+ * inactive domain to fail.  Active snapshots will retain snapshot
+ * metadata until the (now-transient) domain halts, regardless of
+ * whether this flag is present.  On hypervisors where snapshots do
+ * not use libvirt metadata, this flag has no effect.
  *
  * Returns 0 in case of success, -1 in case of error
  */
@@ -6984,7 +7148,9 @@ error:
  * @domain: pointer to a defined domain
  *
  * Launch a defined domain. If the call succeeds the domain moves from the
- * defined to the running domains pools.
+ * defined to the running domains pools.  The domain will be paused only
+ * if restoring from managed state created from a paused domain.  For more
+ * control, see virDomainCreateWithFlags().
  *
  * Returns 0 in case of success, -1 in case of error
  */
@@ -7030,22 +7196,28 @@ error:
  * Launch a defined domain. If the call succeeds the domain moves from the
  * defined to the running domains pools.
  *
- * If the VIR_DOMAIN_START_PAUSED flag is set, the guest domain
- * will be started, but its CPUs will remain paused. The CPUs
- * can later be manually started using virDomainResume.
+ * If the VIR_DOMAIN_START_PAUSED flag is set, or if the guest domain
+ * has a managed save image that requested paused state (see
+ * virDomainManagedSave()) the guest domain will be started, but its
+ * CPUs will remain paused. The CPUs can later be manually started
+ * using virDomainResume().  In all other cases, the guest domain will
+ * be running.
  *
  * If the VIR_DOMAIN_START_AUTODESTROY flag is set, the guest
  * domain will be automatically destroyed when the virConnectPtr
  * object is finally released. This will also happen if the
- * client application crashes / looses its connection to the
+ * client application crashes / loses its connection to the
  * libvirtd daemon. Any domains marked for auto destroy will
- * block attempts at migration or save-to-file
+ * block attempts at migration, save-to-file, or snapshots.
  *
  * If the VIR_DOMAIN_START_BYPASS_CACHE flag is set, and there is a
  * managed save file for this domain (created by virDomainManagedSave()),
  * then libvirt will attempt to bypass the file system cache while restoring
  * the file, or fail if it cannot do so for the given system; this can allow
  * less pressure on file system cache, but also risks slowing loads from NFS.
+ *
+ * If the VIR_DOMAIN_START_FORCE_BOOT flag is set, then any managed save
+ * file for this domain is discarded, and the domain boots from scratch.
  *
  * Returns 0 in case of success, -1 in case of error
  */
@@ -10128,7 +10300,7 @@ virConnectFindStoragePoolSources(virConnectPtr conn,
                                  unsigned int flags)
 {
     VIR_DEBUG("conn=%p, type=%s, src=%s, flags=%x",
-              conn, type ? type : "", srcSpec ? srcSpec : "", flags);
+              conn, NULLSTR(type), NULLSTR(srcSpec), flags);
 
     virResetLastError();
 
@@ -10343,7 +10515,7 @@ virStoragePoolCreateXML(virConnectPtr conn,
                         const char *xmlDesc,
                         unsigned int flags)
 {
-    VIR_DEBUG("conn=%p, xmlDesc=%s", conn, xmlDesc);
+    VIR_DEBUG("conn=%p, xmlDesc=%s, flags=%x", conn, xmlDesc, flags);
 
     virResetLastError();
 
@@ -10392,7 +10564,7 @@ virStoragePoolDefineXML(virConnectPtr conn,
                         const char *xml,
                         unsigned int flags)
 {
-    VIR_DEBUG("conn=%p, xml=%s", conn, xml);
+    VIR_DEBUG("conn=%p, xml=%s, flags=%x", conn, xml, flags);
 
     virResetLastError();
 
@@ -10429,6 +10601,10 @@ error:
  * virStoragePoolBuild:
  * @pool: pointer to storage pool
  * @flags: future flags, use 0 for now
+ * @flags: flags to control pool build behaviour
+ *
+ * Currently only filesystem pool accepts flags VIR_STORAGE_POOL_BUILD_OVERWRITE
+ * and VIR_STORAGE_POOL_BUILD_NO_OVERWRITE.
  *
  * Build the underlying storage pool
  *
@@ -10527,7 +10703,7 @@ virStoragePoolCreate(virStoragePoolPtr pool,
                      unsigned int flags)
 {
     virConnectPtr conn;
-    VIR_DEBUG("pool=%p", pool);
+    VIR_DEBUG("pool=%p, flags=%x", pool, flags);
 
     virResetLastError();
 
@@ -10731,7 +10907,7 @@ virStoragePoolRefresh(virStoragePoolPtr pool,
                       unsigned int flags)
 {
     virConnectPtr conn;
-    VIR_DEBUG("pool=%p flags=%x", pool, flags);
+    VIR_DEBUG("pool=%p, flags=%x", pool, flags);
 
     virResetLastError();
 
@@ -11491,7 +11667,7 @@ virStorageVolDownload(virStorageVolPtr vol,
                       unsigned long long length,
                       unsigned int flags)
 {
-    VIR_DEBUG("vol=%p stream=%p offset=%llu length=%llu flags=%x",
+    VIR_DEBUG("vol=%p, stream=%p, offset=%llu, length=%llu, flags=%x",
               vol, stream, offset, length, flags);
 
     virResetLastError();
@@ -11562,7 +11738,7 @@ virStorageVolUpload(virStorageVolPtr vol,
                     unsigned long long length,
                     unsigned int flags)
 {
-    VIR_DEBUG("vol=%p stream=%p offset=%llu length=%llu flags=%x",
+    VIR_DEBUG("vol=%p, stream=%p, offset=%llu, length=%llu, flags=%x",
               vol, stream, offset, length, flags);
 
     virResetLastError();
@@ -12043,7 +12219,7 @@ error:
  */
 char *virNodeDeviceGetXMLDesc(virNodeDevicePtr dev, unsigned int flags)
 {
-    VIR_DEBUG("dev=%p, conn=%p", dev, dev ? dev->conn : NULL);
+    VIR_DEBUG("dev=%p, conn=%p, flags=%x", dev, dev ? dev->conn : NULL, flags);
 
     virResetLastError();
 
@@ -13966,8 +14142,12 @@ int virStreamAbort(virStreamPtr stream)
         return -1;
     }
 
-    if (stream->driver &&
-        stream->driver->streamAbort) {
+    if (!stream->driver) {
+        VIR_DEBUG("aborting unused stream");
+        return 0;
+    }
+
+    if (stream->driver->streamAbort) {
         int ret;
         ret = (stream->driver->streamAbort)(stream);
         if (ret < 0)
@@ -15157,6 +15337,58 @@ error:
 }
 
 /**
+ * virDomainMigrateGetMaxSpeed:
+ * @domain: a domain object
+ * @bandwidth: return value of current migration bandwidth limit in Mbps
+ * @flags: fine-tuning flags, currently unused, use 0
+ *
+ * Get the current maximum bandwidth (in Mbps) that will be used if the
+ * domain is migrated.  Not all hypervisors will support a bandwidth limit.
+ *
+ * Returns 0 in case of success, -1 otherwise.
+ */
+int
+virDomainMigrateGetMaxSpeed(virDomainPtr domain,
+                            unsigned long *bandwidth,
+                            unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "bandwidth = %p, flags=%x", bandwidth, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = domain->conn;
+
+    if (!bandwidth) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainMigrateGetMaxSpeed) {
+        if (conn->driver->domainMigrateGetMaxSpeed(domain, bandwidth, flags) < 0)
+            goto error;
+        return 0;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
  * virConnectDomainEventRegisterAny:
  * @conn: pointer to the connection
  * @dom: pointer to the domain
@@ -15285,11 +15517,20 @@ error:
  * the saved state itself, and will reuse it once the domain is being
  * restarted (automatically or via an explicit libvirt call).
  * As a result any running domain is sure to not have a managed saved image.
+ * This also implies that managed save only works on persistent domains,
+ * since the domain must still exist in order to use virDomainCreate() to
+ * restart it.
  *
  * If @flags includes VIR_DOMAIN_SAVE_BYPASS_CACHE, then libvirt will
  * attempt to bypass the file system cache while creating the file, or
  * fail if it cannot do so for the given system; this can allow less
  * pressure on file system cache, but also risks slowing saves to NFS.
+ *
+ * Normally, the managed saved state will remember whether the domain
+ * was running or paused, and start will resume to the same state.
+ * Specifying VIR_DOMAIN_SAVE_RUNNING or VIR_DOMAIN_SAVE_PAUSED in
+ * @flags will override the default saved into the file.  These two
+ * flags are mutually exclusive.
  *
  * Returns 0 in case of success or -1 in case of failure
  */
@@ -15310,6 +15551,12 @@ int virDomainManagedSave(virDomainPtr dom, unsigned int flags)
     conn = dom->conn;
     if (conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if ((flags & VIR_DOMAIN_SAVE_RUNNING) && (flags & VIR_DOMAIN_SAVE_PAUSED)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("running and paused flags are mutually exclusive"));
         goto error;
     }
 
@@ -15419,13 +15666,133 @@ error:
 }
 
 /**
+ * virDomainSnapshotGetName:
+ * @snapshot: a snapshot object
+ *
+ * Get the public name for that snapshot
+ *
+ * Returns a pointer to the name or NULL, the string need not be deallocated
+ * as its lifetime will be the same as the snapshot object.
+ */
+const char *
+virDomainSnapshotGetName(virDomainSnapshotPtr snapshot)
+{
+    VIR_DEBUG("snapshot=%p", snapshot);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return NULL;
+    }
+    return snapshot->name;
+}
+
+/**
+ * virDomainSnapshotGetDomain:
+ * @snapshot: a snapshot object
+ *
+ * Get the domain that a snapshot was created for
+ *
+ * Returns the domain or NULL.
+ */
+virDomainPtr
+virDomainSnapshotGetDomain(virDomainSnapshotPtr snapshot)
+{
+    VIR_DEBUG("snapshot=%p", snapshot);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return NULL;
+    }
+    return snapshot->domain;
+}
+
+/**
+ * virDomainSnapshotGetConnect:
+ * @snapshot: a snapshot object
+ *
+ * Get the connection that owns the domain that a snapshot was created for
+ *
+ * Returns the connection or NULL.
+ */
+virConnectPtr
+virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot)
+{
+    VIR_DEBUG("snapshot=%p", snapshot);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return NULL;
+    }
+    return snapshot->domain->conn;
+}
+
+/**
  * virDomainSnapshotCreateXML:
  * @domain: a domain object
  * @xmlDesc: string containing an XML description of the domain
- * @flags: unused flag parameters; callers should pass 0
+ * @flags: bitwise-OR of virDomainSnapshotCreateFlags
  *
  * Creates a new snapshot of a domain based on the snapshot xml
  * contained in xmlDesc.
+ *
+ * If @flags is 0, the domain can be active, in which case the
+ * snapshot will be a system checkpoint (both disk state and runtime
+ * VM state such as RAM contents), where reverting to the snapshot is
+ * the same as resuming from hibernation (TCP connections may have
+ * timed out, but everything else picks up where it left off); or
+ * the domain can be inactive, in which case the snapshot includes
+ * just the disk state prior to booting.  The newly created snapshot
+ * becomes current (see virDomainSnapshotCurrent()), and is a child
+ * of any previous current snapshot.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE, then this
+ * is a request to reinstate snapshot metadata that was previously
+ * discarded, rather than creating a new snapshot.  This can be used
+ * to recreate a snapshot hierarchy on a destination, then remove it
+ * on the source, in order to allow migration (since migration
+ * normally fails if snapshot metadata still remains on the source
+ * machine).  When redefining snapshot metadata, the current snapshot
+ * will not be altered unless the VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT
+ * flag is also present.  It is an error to request the
+ * VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT flag without
+ * VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE.  On some hypervisors,
+ * redefining an existing snapshot can be used to alter host-specific
+ * portions of the domain XML to be used during revert (such as
+ * backing filenames associated with disk devices), but must not alter
+ * guest-visible layout.  When redefining a snapshot name that does
+ * not exist, the hypervisor may validate that reverting to the
+ * snapshot appears to be possible (for example, disk images have
+ * snapshot contents by the requested name).  Not all hypervisors
+ * support these flags.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA, then the
+ * domain's disk images are modified according to @xmlDesc, but then
+ * the just-created snapshot has its metadata deleted.  This flag is
+ * incompatible with VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_HALT, then the domain
+ * will be inactive after the snapshot completes, regardless of whether
+ * it was active before; otherwise, a running domain will still be
+ * running after the snapshot.  This flag is invalid on transient domains,
+ * and is incompatible with VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY, then the
+ * snapshot will be limited to the disks described in @xmlDesc, and no
+ * VM state will be saved.  For an active guest, the disk image may be
+ * inconsistent (as if power had been pulled), and specifying this
+ * with the VIR_DOMAIN_SNAPSHOT_CREATE_HALT flag risks data loss.
  *
  * Returns an (opaque) virDomainSnapshotPtr on success, NULL on failure.
  */
@@ -15458,6 +15825,25 @@ virDomainSnapshotCreateXML(virDomainPtr domain,
         goto error;
     }
 
+    if ((flags & VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT) &&
+        !(flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("use of current flag requires redefine flag"));
+        goto error;
+    }
+    if ((flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE) &&
+        (flags & VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                   _("redefine and no metadata flags are mutually exclusive"));
+        goto error;
+    }
+    if ((flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE) &&
+        (flags & VIR_DOMAIN_SNAPSHOT_CREATE_HALT)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                   _("redefine and halt flags are mutually exclusive"));
+        goto error;
+    }
+
     if (conn->driver->domainSnapshotCreateXML) {
         virDomainSnapshotPtr ret;
         ret = conn->driver->domainSnapshotCreateXML(domain, xmlDesc, flags);
@@ -15475,9 +15861,14 @@ error:
 /**
  * virDomainSnapshotGetXMLDesc:
  * @snapshot: a domain snapshot object
- * @flags: unused flag parameters; callers should pass 0
+ * @flags: bitwise-OR of subset of virDomainXMLFlags
  *
  * Provide an XML description of the domain snapshot.
+ *
+ * No security-sensitive data will be included unless @flags contains
+ * VIR_DOMAIN_XML_SECURE; this flag is rejected on read-only
+ * connections.  For this API, @flags should not contain either
+ * VIR_DOMAIN_XML_INACTIVE or VIR_DOMAIN_XML_UPDATE_CPU.
  *
  * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.
  *         the caller must free() the returned value.
@@ -15523,18 +15914,26 @@ error:
 /**
  * virDomainSnapshotNum:
  * @domain: a domain object
- * @flags: unused flag parameters; callers should pass 0
+ * @flags: bitwise-or of supported virDomainSnapshotListFlags
  *
- * Provides the number of domain snapshots for this domain..
+ * Provides the number of domain snapshots for this domain.
  *
- * Returns the number of domain snapshost found or -1 in case of error.
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
+ * filtered to the number of snapshots that have no parents.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
+ * the number of snapshots that also include metadata that would prevent
+ * the removal of the last reference to a domain; this value will either
+ * be 0 or the same value as if the flag were not given.
+ *
+ * Returns the number of domain snapshots found or -1 in case of error.
  */
 int
 virDomainSnapshotNum(virDomainPtr domain, unsigned int flags)
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(domain);
+    VIR_DOMAIN_DEBUG(domain, "flags=%x", flags);
 
     virResetLastError();
 
@@ -15563,11 +15962,20 @@ error:
  * @domain: a domain object
  * @names: array to collect the list of names of snapshots
  * @nameslen: size of @names
- * @flags: unused flag parameters; callers should pass 0
+ * @flags: bitwise-or of supported virDomainSnapshotListFlags
  *
  * Collect the list of domain snapshots for the given domain, and store
  * their names in @names.  Caller is responsible for freeing each member
- * of the array.
+ * of the array.  The value to use for @nameslen can be determined by
+ * virDomainSnapshotNum() with the same @flags.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
+ * filtered to the number of snapshots that have no parents.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
+ * the number of snapshots that also include metadata that would prevent
+ * the removal of the last reference to a domain; this value will either
+ * be 0 or the same value as if the flag were not given.
  *
  * Returns the number of domain snapshots found or -1 in case of error.
  */
@@ -15744,9 +16152,21 @@ error:
 /**
  * virDomainRevertToSnapshot:
  * @snapshot: a domain snapshot object
- * @flags: unused flag parameters; callers should pass 0
+ * @flags: bitwise-OR of virDomainSnapshotRevertFlags
  *
  * Revert the domain to a given snapshot.
+ *
+ * Normally, the domain will revert to the same state the domain was
+ * in while the snapshot was taken (whether inactive, running, or
+ * paused), except that disk snapshots default to reverting to
+ * inactive state.  Including VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING in
+ * @flags overrides the snapshot state to guarantee a running domain
+ * after the revert; or including VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED in
+ * @flags guarantees a paused domain after the revert.  These two
+ * flags are mutually exclusive.  While a persistent domain does not
+ * need either flag, it is not possible to revert a transient domain
+ * into an inactive state, so transient domains require the use of one
+ * of these two flags.
  *
  * Returns 0 if the creation is successful, -1 on error.
  */
@@ -15773,6 +16193,13 @@ virDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
         goto error;
     }
 
+    if ((flags & VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING) &&
+        (flags & VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("running and paused flags are mutually exclusive"));
+        goto error;
+    }
+
     if (conn->driver->domainRevertToSnapshot) {
         int ret = conn->driver->domainRevertToSnapshot(snapshot, flags);
         if (ret < 0)
@@ -15789,16 +16216,26 @@ error:
 /**
  * virDomainSnapshotDelete:
  * @snapshot: a domain snapshot object
- * @flags: flag parameters
+ * @flags: bitwise-or of supported virDomainSnapshotDeleteFlags
  *
  * Delete the snapshot.
  *
- * If @flags is 0, then just this snapshot is deleted, and changes from
- * this snapshot are automatically merged into children snapshots.  If
- * flags is VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN, then this snapshot
- * and any children snapshots are deleted.
+ * If @flags is 0, then just this snapshot is deleted, and changes
+ * from this snapshot are automatically merged into children
+ * snapshots.  If @flags includes VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN,
+ * then this snapshot and any descendant snapshots are deleted.  If
+ * @flags includes VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY, then any
+ * descendant snapshots are deleted, but this snapshot remains.  These
+ * two flags are mutually exclusive.
  *
- * Returns 0 if the snapshot was successfully deleted, -1 on error.
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY, then
+ * any snapshot metadata tracked by libvirt is removed while keeping
+ * the snapshot contents intact; if a hypervisor does not require any
+ * libvirt metadata to track snapshots, then this flag is silently
+ * ignored.
+ *
+ * Returns 0 if the selected snapshot(s) were successfully deleted,
+ * -1 on error.
  */
 int
 virDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
@@ -15820,6 +16257,14 @@ virDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
     conn = snapshot->domain->conn;
     if (conn->flags & VIR_CONNECT_RO) {
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if ((flags & VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN) &&
+        (flags & VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("children and children_only flags are "
+                            "mutually exclusive"));
         goto error;
     }
 
@@ -15868,13 +16313,13 @@ virDomainSnapshotFree(virDomainSnapshotPtr snapshot)
 /**
  * virDomainOpenConsole:
  * @dom: a domain object
- * @devname: the console, serial or parallel port device alias, or NULL
+ * @dev_name: the console, serial or parallel port device alias, or NULL
  * @st: a stream to associate with the console
  * @flags: unused, pass 0
  *
  * This opens the backend associated with a console, serial or
  * parallel port device on a guest, if the backend is supported.
- * If the @devname is omitted, then the first console or serial
+ * If the @dev_name is omitted, then the first console or serial
  * device is opened. The console is associated with the passed
  * in @st stream, which should have been opened in non-blocking
  * mode for bi-directional I/O.
@@ -15882,14 +16327,14 @@ virDomainSnapshotFree(virDomainSnapshotPtr snapshot)
  * returns 0 if the console was opened, -1 on error
  */
 int virDomainOpenConsole(virDomainPtr dom,
-                         const char *devname,
+                         const char *dev_name,
                          virStreamPtr st,
                          unsigned int flags)
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "devname=%s, st=%p, flags=%x",
-                     NULLSTR(devname), st, flags);
+    VIR_DOMAIN_DEBUG(dom, "dev_name=%s, st=%p, flags=%x",
+                     NULLSTR(dev_name), st, flags);
 
     virResetLastError();
 
@@ -15907,7 +16352,7 @@ int virDomainOpenConsole(virDomainPtr dom,
 
     if (conn->driver->domainOpenConsole) {
         int ret;
-        ret = conn->driver->domainOpenConsole(dom, devname, st, flags);
+        ret = conn->driver->domainOpenConsole(dom, dev_name, st, flags);
         if (ret < 0)
             goto error;
         return ret;

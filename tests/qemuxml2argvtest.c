@@ -338,6 +338,9 @@ mymain(void)
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-cache-v2-none", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-cache-directsync", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2,
+            QEMU_CAPS_DRIVE_CACHE_DIRECTSYNC, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-nbd", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-rbd", false,
@@ -359,6 +362,13 @@ mymain(void)
     DO_TEST("disk-ioeventfd", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_VIRTIO_IOEVENTFD,
             QEMU_CAPS_VIRTIO_TX_ALG, QEMU_CAPS_DEVICE);
+    DO_TEST("disk-snapshot", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("event_idx", false,
+            QEMU_CAPS_DRIVE,
+            QEMU_CAPS_VIRTIO_BLK_EVENT_IDX,
+            QEMU_CAPS_VIRTIO_NET_EVENT_IDX,
+            QEMU_CAPS_DEVICE);
 
     DO_TEST("graphics-vnc", false, NONE);
     DO_TEST("graphics-vnc-socket", false, NONE);
@@ -479,6 +489,36 @@ mymain(void)
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE,
             QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_CCID_EMULATED);
 
+    DO_TEST("usb-controller", false,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("usb-piix3-controller", false,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_PIIX3_USB_UHCI,
+            QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("usb-ich9-ehci-addr", false,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1);
+    DO_TEST("input-usbmouse-addr", false,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("usb-ich9-companion", false,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_ICH9_USB_EHCI1);
+    DO_TEST("usb-hub", false,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("usb-ports", false,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("usb-redir", false,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_ICH9_USB_EHCI1, QEMU_CAPS_USB_REDIR,
+            QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC);
+    DO_TEST("usb1-usb2", false,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_PIIX3_USB_UHCI,
+            QEMU_CAPS_USB_HUB, QEMU_CAPS_ICH9_USB_EHCI1);
+
     DO_TEST("smbios", false, QEMU_CAPS_SMBIOS_TYPE);
 
     DO_TEST("watchdog", false, NONE);
@@ -538,6 +578,9 @@ mymain(void)
     json = true;
     DO_TEST("monitor-json", false, QEMU_CAPS_DEVICE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_MONITOR_JSON, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("no-shutdown", false, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_MONITOR_JSON, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_NO_SHUTDOWN);
     json = false;
 
     free(driver.stateDir);

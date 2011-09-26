@@ -54,6 +54,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX 16
 #define REMOTE_NODE_CPU_STATS_MAX 16
 #define REMOTE_NODE_MEMORY_STATS_MAX 16
+#define REMOTE_DOMAIN_BLOCK_STATS_PARAMETERS_MAX 16
 #define REMOTE_NODE_MAX_CELLS 1024
 #define REMOTE_AUTH_SASL_DATA_MAX 65536
 #define REMOTE_AUTH_TYPE_LIST_MAX 20
@@ -454,6 +455,23 @@ struct remote_domain_block_stats_ret {
         int64_t errs;
 };
 typedef struct remote_domain_block_stats_ret remote_domain_block_stats_ret;
+
+struct remote_domain_block_stats_flags_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string path;
+        int nparams;
+        u_int flags;
+};
+typedef struct remote_domain_block_stats_flags_args remote_domain_block_stats_flags_args;
+
+struct remote_domain_block_stats_flags_ret {
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+        int nparams;
+};
+typedef struct remote_domain_block_stats_flags_ret remote_domain_block_stats_flags_ret;
 
 struct remote_domain_interface_stats_args {
         remote_nonnull_domain dom;
@@ -2177,6 +2195,17 @@ struct remote_domain_migrate_set_max_speed_args {
 };
 typedef struct remote_domain_migrate_set_max_speed_args remote_domain_migrate_set_max_speed_args;
 
+struct remote_domain_migrate_get_max_speed_args {
+        remote_nonnull_domain dom;
+        u_int flags;
+};
+typedef struct remote_domain_migrate_get_max_speed_args remote_domain_migrate_get_max_speed_args;
+
+struct remote_domain_migrate_get_max_speed_ret {
+        uint64_t bandwidth;
+};
+typedef struct remote_domain_migrate_get_max_speed_ret remote_domain_migrate_get_max_speed_ret;
+
 struct remote_domain_events_register_any_args {
         int eventID;
 };
@@ -2376,7 +2405,7 @@ typedef struct remote_domain_snapshot_delete_args remote_domain_snapshot_delete_
 
 struct remote_domain_open_console_args {
         remote_nonnull_domain dom;
-        remote_string devname;
+        remote_string dev_name;
         u_int flags;
 };
 typedef struct remote_domain_open_console_args remote_domain_open_console_args;
@@ -2787,6 +2816,8 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_BLOCK_JOB_SET_SPEED = 239,
         REMOTE_PROC_DOMAIN_BLOCK_PULL = 240,
         REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB = 241,
+        REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_SPEED = 242,
+        REMOTE_PROC_DOMAIN_BLOCK_STATS_FLAGS = 243,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -2855,6 +2886,8 @@ extern  bool_t xdr_remote_domain_get_memory_parameters_args (XDR *, remote_domai
 extern  bool_t xdr_remote_domain_get_memory_parameters_ret (XDR *, remote_domain_get_memory_parameters_ret*);
 extern  bool_t xdr_remote_domain_block_stats_args (XDR *, remote_domain_block_stats_args*);
 extern  bool_t xdr_remote_domain_block_stats_ret (XDR *, remote_domain_block_stats_ret*);
+extern  bool_t xdr_remote_domain_block_stats_flags_args (XDR *, remote_domain_block_stats_flags_args*);
+extern  bool_t xdr_remote_domain_block_stats_flags_ret (XDR *, remote_domain_block_stats_flags_ret*);
 extern  bool_t xdr_remote_domain_interface_stats_args (XDR *, remote_domain_interface_stats_args*);
 extern  bool_t xdr_remote_domain_interface_stats_ret (XDR *, remote_domain_interface_stats_ret*);
 extern  bool_t xdr_remote_domain_memory_stats_args (XDR *, remote_domain_memory_stats_args*);
@@ -3138,6 +3171,8 @@ extern  bool_t xdr_remote_domain_get_job_info_ret (XDR *, remote_domain_get_job_
 extern  bool_t xdr_remote_domain_abort_job_args (XDR *, remote_domain_abort_job_args*);
 extern  bool_t xdr_remote_domain_migrate_set_max_downtime_args (XDR *, remote_domain_migrate_set_max_downtime_args*);
 extern  bool_t xdr_remote_domain_migrate_set_max_speed_args (XDR *, remote_domain_migrate_set_max_speed_args*);
+extern  bool_t xdr_remote_domain_migrate_get_max_speed_args (XDR *, remote_domain_migrate_get_max_speed_args*);
+extern  bool_t xdr_remote_domain_migrate_get_max_speed_ret (XDR *, remote_domain_migrate_get_max_speed_ret*);
 extern  bool_t xdr_remote_domain_events_register_any_args (XDR *, remote_domain_events_register_any_args*);
 extern  bool_t xdr_remote_domain_events_deregister_any_args (XDR *, remote_domain_events_deregister_any_args*);
 extern  bool_t xdr_remote_domain_event_reboot_msg (XDR *, remote_domain_event_reboot_msg*);
@@ -3253,6 +3288,8 @@ extern bool_t xdr_remote_domain_get_memory_parameters_args ();
 extern bool_t xdr_remote_domain_get_memory_parameters_ret ();
 extern bool_t xdr_remote_domain_block_stats_args ();
 extern bool_t xdr_remote_domain_block_stats_ret ();
+extern bool_t xdr_remote_domain_block_stats_flags_args ();
+extern bool_t xdr_remote_domain_block_stats_flags_ret ();
 extern bool_t xdr_remote_domain_interface_stats_args ();
 extern bool_t xdr_remote_domain_interface_stats_ret ();
 extern bool_t xdr_remote_domain_memory_stats_args ();
@@ -3536,6 +3573,8 @@ extern bool_t xdr_remote_domain_get_job_info_ret ();
 extern bool_t xdr_remote_domain_abort_job_args ();
 extern bool_t xdr_remote_domain_migrate_set_max_downtime_args ();
 extern bool_t xdr_remote_domain_migrate_set_max_speed_args ();
+extern bool_t xdr_remote_domain_migrate_get_max_speed_args ();
+extern bool_t xdr_remote_domain_migrate_get_max_speed_ret ();
 extern bool_t xdr_remote_domain_events_register_any_args ();
 extern bool_t xdr_remote_domain_events_deregister_any_args ();
 extern bool_t xdr_remote_domain_event_reboot_msg ();

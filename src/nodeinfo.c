@@ -688,7 +688,7 @@ int nodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
 # if HAVE_NUMACTL
             if (numa_available() < 0) {
 # endif
-                nodeReportError(VIR_ERR_NO_SUPPORT,
+                nodeReportError(VIR_ERR_INTERNAL_ERROR,
                                 "%s", _("NUMA not supported on this host"));
                 return -1;
 # if HAVE_NUMACTL
@@ -818,7 +818,7 @@ nodeGetCellsFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED,
     int maxCell;
 
     if (numa_available() < 0) {
-        nodeReportError(VIR_ERR_NO_SUPPORT,
+        nodeReportError(VIR_ERR_INTERNAL_ERROR,
                         "%s", _("NUMA not supported on this host"));
         goto cleanup;
     }
@@ -856,7 +856,7 @@ nodeGetFreeMemory(virConnectPtr conn ATTRIBUTE_UNUSED)
     int n;
 
     if (numa_available() < 0) {
-        nodeReportError(VIR_ERR_NO_SUPPORT,
+        nodeReportError(VIR_ERR_INTERNAL_ERROR,
                         "%s", _("NUMA not supported on this host"));
         goto cleanup;
     }

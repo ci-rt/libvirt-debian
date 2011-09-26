@@ -165,7 +165,9 @@ useless_free_options =				\
   --name=virStoragePoolSourceFree		\
   --name=virStorageVolDefFree			\
   --name=virThreadPoolFree			\
+  --name=xmlBufferFree				\
   --name=xmlFree				\
+  --name=xmlFreeDoc				\
   --name=xmlXPathFreeContext			\
   --name=xmlXPathFreeObject
 
@@ -210,7 +212,7 @@ useless_free_options =				\
 # y virDomainWatchdogDefFree
 # n virDrvNodeGetCellsFreeMemory (returns int)
 # n virDrvNodeGetFreeMemory (returns long long)
-# n virFree (dereferences param)
+# n virFree - dereferences param
 # n virFreeError
 # n virHashFree (takes 2 args)
 # y virInterfaceDefFree
@@ -302,6 +304,12 @@ sc_flags_usage:
 	  $(_sc_search_regexp)
 	@prohibit='^[^@]*([^d] (int|long long)|[^dg] long) flags[;,)]'	\
 	halt='flags should be unsigned'					\
+	  $(_sc_search_regexp)
+
+# Avoid functions that should only be called via macro counterparts.
+sc_prohibit_internal_functions:
+	@prohibit='vir(Free|AllocN?|ReallocN|File(Close|Fclose|Fdopen)) *\(' \
+	halt='use VIR_ macros instead of internal functions'		\
 	  $(_sc_search_regexp)
 
 # Avoid functions that can lead to double-close bugs.
@@ -455,6 +463,7 @@ sc_avoid_attribute_unused_in_header:
 msg_gen_function =
 msg_gen_function += ESX_ERROR
 msg_gen_function += ESX_VI_ERROR
+msg_gen_function += HYPERV_ERROR
 msg_gen_function += PHYP_ERROR
 msg_gen_function += VIR_ERROR
 msg_gen_function += VMX_ERROR
@@ -669,7 +678,7 @@ exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.c$$
 
 _src1=libvirt|fdstream|qemu/qemu_monitor|util/(command|util)|xen/xend_internal|rpc/virnetsocket
 exclude_file_name_regexp--sc_avoid_write = \
-  ^(src/($(_src1))|daemon/libvirtd|tools/console|tests/virnettlscontexttest)\.c$$
+  ^(src/($(_src1))|daemon/libvirtd|tools/console|tests/(shunload|virnettlscontext)test)\.c$$
 
 exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 
@@ -686,7 +695,7 @@ exclude_file_name_regexp--sc_prohibit_VIR_ERR_NO_MEMORY = \
 exclude_file_name_regexp--sc_prohibit_access_xok = ^src/util/util\.c$$
 
 exclude_file_name_regexp--sc_prohibit_always_true_header_tests = \
-  ^python/(libvirt-override|typewrappers)\.c$$
+  ^python/(libvirt-(qemu-)?override|typewrappers)\.c$$
 
 exclude_file_name_regexp--sc_prohibit_asprintf = \
   ^(bootstrap.conf$$|src/util/util\.c$$|examples/domain-events/events-c/event-test\.c$$)
@@ -702,6 +711,9 @@ exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
   (^($(_src2)|tests/testutils|daemon/libvirtd)\.c$$)
 
 exclude_file_name_regexp--sc_prohibit_gethostname = ^src/util/util\.c$$
+
+exclude_file_name_regexp--sc_prohibit_internal_functions = \
+  ^src/(util/(memory|util|virfile)\.[hc]|esx/esx_vi\.c)$$
 
 exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
   ^src/rpc/gendispatch\.pl$$

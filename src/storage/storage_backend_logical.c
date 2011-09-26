@@ -424,6 +424,13 @@ virStorageBackendLogicalBuildPool(virConnectPtr conn ATTRIBUTE_UNUSED,
             VIR_FORCE_CLOSE(fd);
             goto cleanup;
         }
+        if (fsync(fd) < 0) {
+            virReportSystemError(errno,
+                                 _("cannot flush header of device'%s'"),
+                                 pool->def->source.devices[i].path);
+            VIR_FORCE_CLOSE(fd);
+            goto cleanup;
+        }
         if (VIR_CLOSE(fd) < 0) {
             virReportSystemError(errno,
                                  _("cannot close device '%s'"),
@@ -577,7 +584,7 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
     const char **cmdargv = cmdargvnew;
 
     if (vol->target.encryption != NULL) {
-        virStorageReportError(VIR_ERR_NO_SUPPORT,
+        virStorageReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                               "%s", _("storage pool does not support encrypted "
                                       "volumes"));
         return -1;
@@ -678,6 +685,8 @@ virStorageBackendLogicalDeleteVol(virConnectPtr conn ATTRIBUTE_UNUSED,
     };
 
     virCheckFlags(0, -1);
+
+    virFileWaitForDevices();
 
     if (virRun(cmdargv, NULL) < 0)
         return -1;

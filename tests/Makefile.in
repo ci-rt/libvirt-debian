@@ -41,12 +41,13 @@ check_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 	commandhelper$(EXEEXT) seclabeltest$(EXEEXT) hashtest$(EXEEXT) \
 	virnetmessagetest$(EXEEXT) virnetsockettest$(EXEEXT) \
 	ssh$(EXEEXT) utiltest$(EXEEXT) virnettlscontexttest$(EXEEXT) \
-	$(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
-	$(am__EXEEXT_4) $(am__EXEEXT_5) $(am__EXEEXT_6) \
-	$(am__EXEEXT_7) networkxml2xmltest$(EXEEXT) $(am__EXEEXT_8) \
-	nwfilterxml2xmltest$(EXEEXT) storagevolxml2xmltest$(EXEEXT) \
-	storagepoolxml2xmltest$(EXEEXT) nodedevxml2xmltest$(EXEEXT) \
-	interfacexml2xmltest$(EXEEXT) cputest$(EXEEXT) $(am__EXEEXT_9)
+	shunloadtest$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2) \
+	$(am__EXEEXT_3) $(am__EXEEXT_4) $(am__EXEEXT_5) \
+	$(am__EXEEXT_6) $(am__EXEEXT_7) networkxml2xmltest$(EXEEXT) \
+	$(am__EXEEXT_8) nwfilterxml2xmltest$(EXEEXT) \
+	storagevolxml2xmltest$(EXEEXT) storagepoolxml2xmltest$(EXEEXT) \
+	nodedevxml2xmltest$(EXEEXT) interfacexml2xmltest$(EXEEXT) \
+	cputest$(EXEEXT) $(am__EXEEXT_9)
 @WITH_XEN_TRUE@am__append_2 = xml2sexprtest sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest xencapstest statstest reconnect
 
@@ -99,13 +100,14 @@ TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) qparamtest$(EXEEXT) \
 	virbuftest$(EXEEXT) sockettest$(EXEEXT) commandtest$(EXEEXT) \
 	seclabeltest$(EXEEXT) hashtest$(EXEEXT) \
 	virnetmessagetest$(EXEEXT) virnetsockettest$(EXEEXT) \
-	virnettlscontexttest$(EXEEXT) utiltest$(EXEEXT) \
-	$(test_scripts) $(am__EXEEXT_7) $(am__EXEEXT_10) \
-	$(am__EXEEXT_11) $(am__EXEEXT_3) $(am__EXEEXT_4) \
-	$(am__EXEEXT_5) $(am__EXEEXT_9) networkxml2xmltest$(EXEEXT) \
-	$(am__EXEEXT_8) storagevolxml2xmltest$(EXEEXT) \
-	storagepoolxml2xmltest$(EXEEXT) nodedevxml2xmltest$(EXEEXT) \
-	interfacexml2xmltest$(EXEEXT) cputest$(EXEEXT)
+	virnettlscontexttest$(EXEEXT) shunloadtest$(EXEEXT) \
+	utiltest$(EXEEXT) $(test_scripts) $(am__EXEEXT_7) \
+	$(am__EXEEXT_10) $(am__EXEEXT_11) $(am__EXEEXT_3) \
+	$(am__EXEEXT_4) $(am__EXEEXT_5) $(am__EXEEXT_9) \
+	networkxml2xmltest$(EXEEXT) $(am__EXEEXT_8) \
+	storagevolxml2xmltest$(EXEEXT) storagepoolxml2xmltest$(EXEEXT) \
+	nodedevxml2xmltest$(EXEEXT) interfacexml2xmltest$(EXEEXT) \
+	cputest$(EXEEXT)
 @HAVE_YAJL_TRUE@am__append_14 = jsontest
 @WITH_XEN_TRUE@am__append_15 = xml2sexprtest \
 @WITH_XEN_TRUE@	sexpr2xmltest \
@@ -175,6 +177,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/freading.m4 \
 	$(top_srcdir)/gnulib/m4/fseek.m4 \
 	$(top_srcdir)/gnulib/m4/fseeko.m4 \
+	$(top_srcdir)/gnulib/m4/fsync.m4 \
 	$(top_srcdir)/gnulib/m4/ftell.m4 \
 	$(top_srcdir)/gnulib/m4/ftello.m4 \
 	$(top_srcdir)/gnulib/m4/func.m4 \
@@ -199,6 +202,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/intmax_t.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes.m4 \
 	$(top_srcdir)/gnulib/m4/ioctl.m4 \
+	$(top_srcdir)/gnulib/m4/largefile.m4 \
 	$(top_srcdir)/gnulib/m4/localcharset.m4 \
 	$(top_srcdir)/gnulib/m4/locale-fr.m4 \
 	$(top_srcdir)/gnulib/m4/locale-ja.m4 \
@@ -344,6 +348,16 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+libshunload_la_DEPENDENCIES = ../src/libvirt.la
+am_libshunload_la_OBJECTS = shunloadhelper.lo
+libshunload_la_OBJECTS = $(am_libshunload_la_OBJECTS)
+AM_V_lt = $(am__v_lt_$(V))
+am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
+am__v_lt_0 = --silent
+libshunload_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(libshunload_la_LDFLAGS) $(LDFLAGS) -o \
+	$@
 @WITH_XEN_TRUE@am__EXEEXT_1 = xml2sexprtest$(EXEEXT) \
 @WITH_XEN_TRUE@	sexpr2xmltest$(EXEEXT) xmconfigtest$(EXEEXT) \
 @WITH_XEN_TRUE@	xencapstest$(EXEEXT) statstest$(EXEEXT) \
@@ -370,9 +384,6 @@ am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	../src/libvirt_test.la ../gnulib/lib/libgnu.la \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 commandhelper_DEPENDENCIES = $(am__DEPENDENCIES_2)
-AM_V_lt = $(am__v_lt_$(V))
-am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
-am__v_lt_0 = --silent
 commandhelper_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(commandhelper_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -498,6 +509,8 @@ sexpr2xmltest_OBJECTS = $(am_sexpr2xmltest_OBJECTS)
 @WITH_XEN_TRUE@sexpr2xmltest_DEPENDENCIES =  \
 @WITH_XEN_TRUE@	../src/libvirt_driver_xen.la \
 @WITH_XEN_TRUE@	$(am__DEPENDENCIES_2)
+am_shunloadtest_OBJECTS = shunloadtest.$(OBJEXT)
+shunloadtest_OBJECTS = $(am_shunloadtest_OBJECTS)
 am_sockettest_OBJECTS = sockettest.$(OBJEXT) testutils.$(OBJEXT)
 sockettest_OBJECTS = $(am_sockettest_OBJECTS)
 sockettest_DEPENDENCIES = ../src/libvirt_util.la $(am__DEPENDENCIES_2)
@@ -621,18 +634,19 @@ am__v_CCLD_0 = @echo "  CCLD  " $@;
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(commandhelper_SOURCES) $(commandtest_SOURCES) \
-	$(conftest_SOURCES) $(cputest_SOURCES) $(esxutilstest_SOURCES) \
-	$(eventtest_SOURCES) $(hashtest_SOURCES) \
-	$(interfacexml2xmltest_SOURCES) $(jsontest_SOURCES) \
-	$(networkxml2argvtest_SOURCES) $(networkxml2xmltest_SOURCES) \
-	$(nodedevxml2xmltest_SOURCES) $(nodeinfotest_SOURCES) \
-	$(nwfilterxml2xmltest_SOURCES) $(object_locking_SOURCES) \
-	$(openvzutilstest_SOURCES) $(qemuargv2xmltest_SOURCES) \
-	$(qemuhelptest_SOURCES) $(qemuxml2argvtest_SOURCES) \
-	$(qemuxml2xmltest_SOURCES) $(qparamtest_SOURCES) \
-	$(reconnect_SOURCES) $(seclabeltest_SOURCES) \
-	$(sexpr2xmltest_SOURCES) $(sockettest_SOURCES) $(ssh_SOURCES) \
+SOURCES = $(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
+	$(commandtest_SOURCES) $(conftest_SOURCES) $(cputest_SOURCES) \
+	$(esxutilstest_SOURCES) $(eventtest_SOURCES) \
+	$(hashtest_SOURCES) $(interfacexml2xmltest_SOURCES) \
+	$(jsontest_SOURCES) $(networkxml2argvtest_SOURCES) \
+	$(networkxml2xmltest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
+	$(nodeinfotest_SOURCES) $(nwfilterxml2xmltest_SOURCES) \
+	$(object_locking_SOURCES) $(openvzutilstest_SOURCES) \
+	$(qemuargv2xmltest_SOURCES) $(qemuhelptest_SOURCES) \
+	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
+	$(qparamtest_SOURCES) $(reconnect_SOURCES) \
+	$(seclabeltest_SOURCES) $(sexpr2xmltest_SOURCES) \
+	$(shunloadtest_SOURCES) $(sockettest_SOURCES) $(ssh_SOURCES) \
 	$(statstest_SOURCES) $(storagepoolxml2xmltest_SOURCES) \
 	$(storagevolxml2xmltest_SOURCES) $(utiltest_SOURCES) \
 	$(virbuftest_SOURCES) $(virnetmessagetest_SOURCES) \
@@ -640,8 +654,8 @@ SOURCES = $(commandhelper_SOURCES) $(commandtest_SOURCES) \
 	$(virshtest_SOURCES) $(vmx2xmltest_SOURCES) \
 	$(xencapstest_SOURCES) $(xmconfigtest_SOURCES) \
 	$(xml2sexprtest_SOURCES) $(xml2vmxtest_SOURCES)
-DIST_SOURCES = $(commandhelper_SOURCES) $(commandtest_SOURCES) \
-	$(conftest_SOURCES) $(cputest_SOURCES) \
+DIST_SOURCES = $(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
+	$(commandtest_SOURCES) $(conftest_SOURCES) $(cputest_SOURCES) \
 	$(am__esxutilstest_SOURCES_DIST) $(am__eventtest_SOURCES_DIST) \
 	$(hashtest_SOURCES) $(interfacexml2xmltest_SOURCES) \
 	$(jsontest_SOURCES) $(am__networkxml2argvtest_SOURCES_DIST) \
@@ -654,8 +668,9 @@ DIST_SOURCES = $(commandhelper_SOURCES) $(commandtest_SOURCES) \
 	$(am__qemuxml2argvtest_SOURCES_DIST) \
 	$(am__qemuxml2xmltest_SOURCES_DIST) $(qparamtest_SOURCES) \
 	$(am__reconnect_SOURCES_DIST) $(seclabeltest_SOURCES) \
-	$(am__sexpr2xmltest_SOURCES_DIST) $(sockettest_SOURCES) \
-	$(ssh_SOURCES) $(am__statstest_SOURCES_DIST) \
+	$(am__sexpr2xmltest_SOURCES_DIST) $(shunloadtest_SOURCES) \
+	$(sockettest_SOURCES) $(ssh_SOURCES) \
+	$(am__statstest_SOURCES_DIST) \
 	$(storagepoolxml2xmltest_SOURCES) \
 	$(storagevolxml2xmltest_SOURCES) $(utiltest_SOURCES) \
 	$(virbuftest_SOURCES) $(virnetmessagetest_SOURCES) \
@@ -690,6 +705,7 @@ APPARMOR_CFLAGS = @APPARMOR_CFLAGS@
 APPARMOR_LIBS = @APPARMOR_LIBS@
 APPLE_UNIVERSAL_BUILD = @APPLE_UNIVERSAL_BUILD@
 AR = @AR@
+ARFLAGS = @ARFLAGS@
 AS = @AS@
 ASM_SYMBOL_PREFIX = @ASM_SYMBOL_PREFIX@
 AUDIT_CFLAGS = @AUDIT_CFLAGS@
@@ -706,6 +722,8 @@ BITSIZEOF_SIG_ATOMIC_T = @BITSIZEOF_SIG_ATOMIC_T@
 BITSIZEOF_SIZE_T = @BITSIZEOF_SIZE_T@
 BITSIZEOF_WCHAR_T = @BITSIZEOF_WCHAR_T@
 BITSIZEOF_WINT_T = @BITSIZEOF_WINT_T@
+BLKID_CFLAGS = @BLKID_CFLAGS@
+BLKID_LIBS = @BLKID_LIBS@
 BRCTL = @BRCTL@
 BYTESWAP_H = @BYTESWAP_H@
 CAPNG_CFLAGS = @CAPNG_CFLAGS@
@@ -1324,6 +1342,7 @@ LIBTOOL = @LIBTOOL@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
 LIBVIRT_MINOR_VERSION = @LIBVIRT_MINOR_VERSION@
+LIBVIRT_NODELETE = @LIBVIRT_NODELETE@
 LIBVIRT_QEMU_SYMBOL_FILE = @LIBVIRT_QEMU_SYMBOL_FILE@
 LIBVIRT_SYMBOL_FILE = @LIBVIRT_SYMBOL_FILE@
 LIBVIRT_VERSION = @LIBVIRT_VERSION@
@@ -1361,6 +1380,7 @@ MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
+MKFS = @MKFS@
 MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
 MSCOM_LIBS = @MSCOM_LIBS@
@@ -1442,6 +1462,8 @@ NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OPENWSMAN_CFLAGS = @OPENWSMAN_CFLAGS@
+OPENWSMAN_LIBS = @OPENWSMAN_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -1589,6 +1611,7 @@ REPLACE_STRTOK_R = @REPLACE_STRTOK_R@
 REPLACE_SYMLINK = @REPLACE_SYMLINK@
 REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
+REPLACE_TOWLOWER = @REPLACE_TOWLOWER@
 REPLACE_TTYNAME_R = @REPLACE_TTYNAME_R@
 REPLACE_UNLINK = @REPLACE_UNLINK@
 REPLACE_UNLINKAT = @REPLACE_UNLINKAT@
@@ -1782,6 +1805,7 @@ EXTRA_DIST = capabilityschemadata capabilityschematest commanddata \
 	$(am__append_26) openvzutilstest.conf $(am__append_27) \
 	$(am__append_28) $(am__append_29) $(am__append_32) \
 	$(am__append_33)
+check_LTLIBRARIES = libshunload.la
 
 # This is a fake SSH we use from virnetsockettest
 ssh_SOURCES = ssh.c
@@ -1987,6 +2011,14 @@ utiltest_LDADD = $(LDADDS)
 @WITH_LIBVIRTD_TRUE@	eventtest.c testutils.h testutils.c
 
 @WITH_LIBVIRTD_TRUE@eventtest_LDADD = -lrt $(LDADDS)
+libshunload_la_SOURCES = shunloadhelper.c
+libshunload_la_LIBADD = ../src/libvirt.la
+libshunload_la_LDFLAGS = -module -avoid-version -rpath /evil/libtool/hack/to/force/shared/lib/creation
+shunloadtest_SOURCES = \
+	shunloadtest.c
+
+shunloadtest_LDADD = -lpthread
+shunloadtest_DEPENDENCIES = libshunload.la
 @WITH_CIL_TRUE@CILOPTFLAGS = 
 @WITH_CIL_TRUE@CILOPTINCS = 
 @WITH_CIL_TRUE@CILOPTPACKAGES = -package unix,str,cil
@@ -2027,6 +2059,17 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+
+clean-checkLTLIBRARIES:
+	-test -z "$(check_LTLIBRARIES)" || rm -f $(check_LTLIBRARIES)
+	@list='$(check_LTLIBRARIES)'; for p in $$list; do \
+	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
+	  test "$$dir" != "$$p" || dir=.; \
+	  echo "rm -f \"$${dir}/so_locations\""; \
+	  rm -f "$${dir}/so_locations"; \
+	done
+libshunload.la: $(libshunload_la_OBJECTS) $(libshunload_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libshunload_la_LINK)  $(libshunload_la_OBJECTS) $(libshunload_la_LIBADD) $(LIBS)
 
 clean-checkPROGRAMS:
 	@list='$(check_PROGRAMS)'; test -n "$$list" || exit 0; \
@@ -2108,6 +2151,9 @@ seclabeltest$(EXEEXT): $(seclabeltest_OBJECTS) $(seclabeltest_DEPENDENCIES)
 sexpr2xmltest$(EXEEXT): $(sexpr2xmltest_OBJECTS) $(sexpr2xmltest_DEPENDENCIES) 
 	@rm -f sexpr2xmltest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(sexpr2xmltest_OBJECTS) $(sexpr2xmltest_LDADD) $(LIBS)
+shunloadtest$(EXEEXT): $(shunloadtest_OBJECTS) $(shunloadtest_DEPENDENCIES) 
+	@rm -f shunloadtest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(shunloadtest_OBJECTS) $(shunloadtest_LDADD) $(LIBS)
 sockettest$(EXEEXT): $(sockettest_OBJECTS) $(sockettest_DEPENDENCIES) 
 	@rm -f sockettest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(sockettest_OBJECTS) $(sockettest_LDADD) $(LIBS)
@@ -2187,6 +2233,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reconnect.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/seclabeltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sexpr2xmltest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shunloadhelper.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/shunloadtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sockettest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ssh.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/statstest.Po@am__quote@
@@ -2576,7 +2624,7 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 check-am: all-am
-	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
+	$(MAKE) $(AM_MAKEFLAGS) $(check_LTLIBRARIES) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
 check: check-am
 all-am: Makefile
@@ -2609,8 +2657,8 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-checkPROGRAMS clean-generic clean-libtool \
-	mostlyclean-am
+clean-am: clean-checkLTLIBRARIES clean-checkPROGRAMS clean-generic \
+	clean-libtool mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -2681,15 +2729,15 @@ uninstall-am:
 .MAKE: check-am install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-TESTS check-am clean \
-	clean-checkPROGRAMS clean-generic clean-libtool ctags \
-	distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	clean-checkLTLIBRARIES clean-checkPROGRAMS clean-generic \
+	clean-libtool ctags distclean distclean-compile \
+	distclean-generic distclean-libtool distclean-tags distdir dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags uninstall uninstall-am

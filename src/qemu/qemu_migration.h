@@ -73,8 +73,6 @@ bool qemuMigrationJobIsActive(virDomainObjPtr vm,
 int qemuMigrationJobFinish(struct qemud_driver *driver, virDomainObjPtr obj)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
-bool qemuMigrationIsAllowed(virDomainDefPtr def)
-    ATTRIBUTE_NONNULL(1);
 int qemuMigrationSetOffline(struct qemud_driver *driver,
                             virDomainObjPtr vm);
 
@@ -143,7 +141,7 @@ int qemuMigrationConfirm(struct qemud_driver *driver,
 int qemuMigrationToFile(struct qemud_driver *driver, virDomainObjPtr vm,
                         int fd, off_t offset, const char *path,
                         const char *compressor,
-                        bool is_reg, bool bypassSecurityDriver,
+                        bool bypassSecurityDriver,
                         enum qemuDomainAsyncJob asyncJob)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(5)
     ATTRIBUTE_RETURN_CHECK;

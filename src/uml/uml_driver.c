@@ -1806,12 +1806,6 @@ static int umlDomainUndefineFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virDomainObjIsActive(vm)) {
-        umlReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("cannot delete active domain"));
-        goto cleanup;
-    }
-
     if (!vm->persistent) {
         umlReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("cannot undefine transient domain"));
@@ -1821,9 +1815,13 @@ static int umlDomainUndefineFlags(virDomainPtr dom,
     if (virDomainDeleteConfig(driver->configDir, driver->autostartDir, vm) < 0)
         goto cleanup;
 
-    virDomainRemoveInactive(&driver->domains,
-                            vm);
-    vm = NULL;
+    if (virDomainObjIsActive(vm)) {
+        vm->persistent = 0;
+    } else {
+        virDomainRemoveInactive(&driver->domains, vm);
+        vm = NULL;
+    }
+
     ret = 0;
 
 cleanup:
@@ -2177,7 +2175,8 @@ umlDomainBlockPeek(virDomainPtr dom,
 {
     struct uml_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    int fd = -1, ret = -1, i;
+    int fd = -1, ret = -1;
+    const char *actual;
 
     virCheckFlags(0, -1);
 
@@ -2198,40 +2197,33 @@ umlDomainBlockPeek(virDomainPtr dom,
     }
 
     /* Check the path belongs to this domain. */
-    for (i = 0 ; i < vm->def->ndisks ; i++) {
-        if (vm->def->disks[i]->src != NULL &&
-            STREQ (vm->def->disks[i]->src, path)) {
-            ret = 0;
-            break;
-        }
+    if (!(actual = virDomainDiskPathByName(vm->def, path))) {
+        umlReportError(VIR_ERR_INVALID_ARG,
+                       _("invalid path '%s'"), path);
+        goto cleanup;
+    }
+    path = actual;
+
+    /* The path is correct, now try to open it and get its size. */
+    fd = open(path, O_RDONLY);
+    if (fd == -1) {
+        virReportSystemError(errno,
+                             _("cannot open %s"), path);
+        goto cleanup;
     }
 
-    if (ret == 0) {
-        ret = -1;
-        /* The path is correct, now try to open it and get its size. */
-        fd = open (path, O_RDONLY);
-        if (fd == -1) {
-            virReportSystemError(errno,
-                                 _("cannot open %s"), path);
-            goto cleanup;
-        }
-
-        /* Seek and read. */
-        /* NB. Because we configure with AC_SYS_LARGEFILE, off_t should
-         * be 64 bits on all platforms.
-         */
-        if (lseek (fd, offset, SEEK_SET) == (off_t) -1 ||
-            saferead (fd, buffer, size) == (ssize_t) -1) {
-            virReportSystemError(errno,
-                                 _("cannot read %s"), path);
-            goto cleanup;
-        }
-
-        ret = 0;
-    } else {
-        umlReportError(VIR_ERR_INVALID_ARG, "%s",
-                       _("invalid path"));
+    /* Seek and read. */
+    /* NB. Because we configure with AC_SYS_LARGEFILE, off_t should
+     * be 64 bits on all platforms.
+     */
+    if (lseek(fd, offset, SEEK_SET) == (off_t) -1 ||
+        saferead(fd, buffer, size) == (ssize_t) -1) {
+        virReportSystemError(errno,
+                             _("cannot read %s"), path);
+        goto cleanup;
     }
+
+    ret = 0;
 
 cleanup:
     VIR_FORCE_CLOSE(fd);
@@ -2243,7 +2235,7 @@ cleanup:
 
 static int
 umlDomainOpenConsole(virDomainPtr dom,
-                     const char *devname,
+                     const char *dev_name,
                      virStreamPtr st,
                      unsigned int flags)
 {
@@ -2270,7 +2262,7 @@ umlDomainOpenConsole(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (devname) {
+    if (dev_name) {
         /* XXX support device aliases in future */
         umlReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                        _("Named device aliases are not supported"));
@@ -2284,13 +2276,13 @@ umlDomainOpenConsole(virDomainPtr dom,
 
     if (!chr) {
         umlReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("cannot find character device %s"), devname);
+                        _("cannot find character device %s"), dev_name);
         goto cleanup;
     }
 
     if (chr->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
         umlReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("character device %s is not using a PTY"), devname);
+                        _("character device %s is not using a PTY"), dev_name);
         goto cleanup;
     }
 

@@ -29,6 +29,7 @@ typedef enum {
     VIR_DRV_XENAPI = 12,
     VIR_DRV_VMWARE = 13,
     VIR_DRV_LIBXL = 14,
+    VIR_DRV_HYPERV = 15,
 } virDrvNo;
 
 
@@ -347,6 +348,13 @@ typedef int
                      const char *path,
                      struct _virDomainBlockStats *stats);
 typedef int
+    (*virDrvDomainBlockStatsFlags)
+                    (virDomainPtr domain,
+                     const char *path,
+                     virTypedParameterPtr params,
+                     int *nparams,
+                     unsigned int flags);
+typedef int
     (*virDrvDomainInterfaceStats)
                     (virDomainPtr domain,
                      const char *path,
@@ -531,6 +539,11 @@ typedef int
                                       unsigned int flags);
 
 typedef int
+    (*virDrvDomainMigrateGetMaxSpeed)(virDomainPtr domain,
+                                      unsigned long *bandwidth,
+                                      unsigned int flags);
+
+typedef int
     (*virDrvDomainEventRegisterAny)(virConnectPtr conn,
                                     virDomainPtr dom,
                                     int eventID,
@@ -599,7 +612,7 @@ typedef virDomainPtr
 
 typedef int
     (*virDrvDomainOpenConsole)(virDomainPtr dom,
-                               const char *devname,
+                               const char *dev_name,
                                virStreamPtr st,
                                unsigned int flags);
 
@@ -800,6 +813,7 @@ struct _virDriver {
     virDrvDomainMigratePerform	domainMigratePerform;
     virDrvDomainMigrateFinish	domainMigrateFinish;
     virDrvDomainBlockStats      domainBlockStats;
+    virDrvDomainBlockStatsFlags domainBlockStatsFlags;
     virDrvDomainInterfaceStats  domainInterfaceStats;
     virDrvDomainMemoryStats     domainMemoryStats;
     virDrvDomainBlockPeek	domainBlockPeek;
@@ -827,6 +841,7 @@ struct _virDriver {
     virDrvDomainGetJobInfo     domainGetJobInfo;
     virDrvDomainAbortJob     domainAbortJob;
     virDrvDomainMigrateSetMaxDowntime  domainMigrateSetMaxDowntime;
+    virDrvDomainMigrateGetMaxSpeed  domainMigrateGetMaxSpeed;
     virDrvDomainMigrateSetMaxSpeed  domainMigrateSetMaxSpeed;
     virDrvDomainEventRegisterAny domainEventRegisterAny;
     virDrvDomainEventDeregisterAny domainEventDeregisterAny;

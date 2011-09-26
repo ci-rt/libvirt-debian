@@ -159,7 +159,7 @@ static int testSocketTCPAccept(const void *opaque)
         goto cleanup;
 
     for (i = 0 ; i < nlsock ; i++) {
-        if (virNetSocketListen(lsock[i]) < 0)
+        if (virNetSocketListen(lsock[i], 0) < 0)
             goto cleanup;
     }
 
@@ -214,10 +214,10 @@ static int testSocketUNIXAccept(const void *data ATTRIBUTE_UNUSED)
         }
     }
 
-    if (virNetSocketNewListenUNIX(path, 0700, getgid(), &lsock) < 0)
+    if (virNetSocketNewListenUNIX(path, 0700, -1, getgid(), &lsock) < 0)
         goto cleanup;
 
-    if (virNetSocketListen(lsock) < 0)
+    if (virNetSocketListen(lsock, 0) < 0)
         goto cleanup;
 
     if (virNetSocketNewConnectUNIX(path, false, NULL, &csock) < 0)
@@ -263,7 +263,7 @@ static int testSocketUNIXAddrs(const void *data ATTRIBUTE_UNUSED)
         }
     }
 
-    if (virNetSocketNewListenUNIX(path, 0700, getgid(), &lsock) < 0)
+    if (virNetSocketNewListenUNIX(path, 0700, -1, getgid(), &lsock) < 0)
         goto cleanup;
 
     if (STRNEQ(virNetSocketLocalAddrString(lsock), "127.0.0.1;0")) {
@@ -276,7 +276,7 @@ static int testSocketUNIXAddrs(const void *data ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
-    if (virNetSocketListen(lsock) < 0)
+    if (virNetSocketListen(lsock, 0) < 0)
         goto cleanup;
 
     if (virNetSocketNewConnectUNIX(path, false, NULL, &csock) < 0)

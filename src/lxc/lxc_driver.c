@@ -50,6 +50,7 @@
 #include "stats_linux.h"
 #include "hooks.h"
 #include "virfile.h"
+#include "virpidfile.h"
 #include "fdstream.h"
 #include "domain_audit.h"
 #include "domain_nwfilter.h"
@@ -420,7 +421,7 @@ static virDomainPtr lxcDomainDefine(virConnectPtr conn, const char *xml)
         goto cleanup;
 
     if ((def->nets != NULL) && !(driver->have_netns)) {
-        lxcError(VIR_ERR_NO_SUPPORT,
+        lxcError(VIR_ERR_OPERATION_INVALID,
                  "%s", _("System lacks NETNS support"));
         goto cleanup;
     }
@@ -478,12 +479,6 @@ static int lxcDomainUndefineFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (virDomainObjIsActive(vm)) {
-        lxcError(VIR_ERR_OPERATION_INVALID,
-                 "%s", _("Cannot delete active domain"));
-        goto cleanup;
-    }
-
     if (!vm->persistent) {
         lxcError(VIR_ERR_OPERATION_INVALID,
                  "%s", _("Cannot undefine transient domain"));
@@ -499,8 +494,13 @@ static int lxcDomainUndefineFlags(virDomainPtr dom,
                                      VIR_DOMAIN_EVENT_UNDEFINED,
                                      VIR_DOMAIN_EVENT_UNDEFINED_REMOVED);
 
-    virDomainRemoveInactive(&driver->domains, vm);
-    vm = NULL;
+    if (virDomainObjIsActive(vm)) {
+        vm->persistent = 0;
+    } else {
+        virDomainRemoveInactive(&driver->domains, vm);
+        vm = NULL;
+    }
+
     ret = 0;
 
 cleanup:
@@ -728,7 +728,7 @@ static int lxcDomainSetMemory(virDomainPtr dom, unsigned long newmem) {
     }
 
     if (driver->cgroup == NULL) {
-        lxcError(VIR_ERR_NO_SUPPORT,
+        lxcError(VIR_ERR_OPERATION_INVALID,
                  "%s", _("cgroups must be configured on the host"));
         goto cleanup;
     }
@@ -1030,7 +1030,7 @@ static void lxcVmCleanup(lxc_driver_t *driver,
     virEventRemoveHandle(priv->monitorWatch);
     VIR_FORCE_CLOSE(priv->monitor);
 
-    virFileDeletePid(driver->stateDir, vm->def->name);
+    virPidFileDelete(driver->stateDir, vm->def->name);
     virDomainDeleteConfig(driver->stateDir, NULL, vm);
 
     virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, reason);
@@ -1612,7 +1612,7 @@ static int lxcVmStart(virConnectPtr conn,
         goto cleanup;
 
     /* And get its pid */
-    if ((r = virFileReadPid(driver->stateDir, vm->def->name, &vm->pid)) < 0) {
+    if ((r = virPidFileRead(driver->stateDir, vm->def->name, &vm->pid)) < 0) {
         virReportSystemError(-r,
                              _("Failed to read pid file %s/%s.pid"),
                              driver->stateDir, vm->def->name);
@@ -1710,7 +1710,7 @@ static int lxcDomainStartWithFlags(virDomainPtr dom, unsigned int flags)
     }
 
     if ((vm->def->nets != NULL) && !(driver->have_netns)) {
-        lxcError(VIR_ERR_NO_SUPPORT,
+        lxcError(VIR_ERR_OPERATION_INVALID,
                  "%s", _("System lacks NETNS support"));
         goto cleanup;
     }
@@ -1786,7 +1786,7 @@ lxcDomainCreateAndStart(virConnectPtr conn,
         goto cleanup;
 
     if ((def->nets != NULL) && !(driver->have_netns)) {
-        lxcError(VIR_ERR_NO_SUPPORT,
+        lxcError(VIR_ERR_CONFIG_UNSUPPORTED,
                  "%s", _("System lacks NETNS support"));
         goto cleanup;
     }
@@ -2837,7 +2837,7 @@ cleanup:
 
 static int
 lxcDomainOpenConsole(virDomainPtr dom,
-                      const char *devname,
+                      const char *dev_name,
                       virStreamPtr st,
                       unsigned int flags)
 {
@@ -2864,7 +2864,7 @@ lxcDomainOpenConsole(virDomainPtr dom,
         goto cleanup;
     }
 
-    if (devname) {
+    if (dev_name) {
         /* XXX support device aliases in future */
         lxcError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                  _("Named device aliases are not supported"));
@@ -2884,7 +2884,7 @@ lxcDomainOpenConsole(virDomainPtr dom,
 
     if (chr->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
         lxcError(VIR_ERR_INTERNAL_ERROR,
-                 _("character device %s is not using a PTY"), devname);
+                 _("character device %s is not using a PTY"), dev_name);
         goto cleanup;
     }
 

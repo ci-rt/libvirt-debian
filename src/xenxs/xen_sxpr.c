@@ -604,7 +604,7 @@ xenParseSxprSound(virDomainDefPtr def,
          * Special compatability code for Xen with a bogus
          * sound=all in config.
          *
-         * NB delibrately, don't include all possible
+         * NB deliberately, don't include all possible
          * sound models anymore, just the 2 that were
          * historically present in Xen's QEMU.
          *
@@ -1195,6 +1195,9 @@ xenParseSxpr(const struct sexpr *root,
             def->clock.ntimers = 1;
             def->clock.timers[0] = timer;
         }
+    } else { /* !hvm */
+        if (sexpr_int(root, "domain/image/linux/localtime"))
+            def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME;
     }
 
     /* Current XenD allows localtime here, for PV and HVM */
@@ -1710,6 +1713,11 @@ xenFormatSxprDisk(virDomainDiskDefPtr def,
         virBufferAddLit(buf, "(mode 'w!')");
     else
         virBufferAddLit(buf, "(mode 'w')");
+    if (def->transient) {
+        XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
+                    _("transient disks not supported yet"));
+        return -1;
+    }
 
     if (!isAttach)
         virBufferAddLit(buf, ")");
@@ -1865,7 +1873,7 @@ xenFormatSxprOnePCI(virDomainHostdevDefPtr def,
                     int detach)
 {
     if (def->managed) {
-        XENXS_ERROR(VIR_ERR_NO_SUPPORT, "%s",
+        XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                      _("managed PCI devices not supported with XenD"));
         return -1;
     }
@@ -1915,7 +1923,7 @@ xenFormatSxprAllPCI(virDomainDefPtr def,
         if (def->hostdevs[i]->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
             def->hostdevs[i]->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
             if (def->hostdevs[i]->managed) {
-                XENXS_ERROR(VIR_ERR_NO_SUPPORT, "%s",
+                XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                              _("managed PCI devices not supported with XenD"));
                 return -1;
             }

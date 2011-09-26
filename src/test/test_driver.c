@@ -742,7 +742,6 @@ static int testOpenFromFile(virConnectPtr conn,
     long l;
     char *str;
     xmlDocPtr xml = NULL;
-    xmlNodePtr root = NULL;
     xmlNodePtr *domains = NULL, *networks = NULL, *ifaces = NULL,
                *pools = NULL, *devs = NULL;
     xmlXPathContextPtr ctxt = NULL;
@@ -771,21 +770,13 @@ static int testOpenFromFile(virConnectPtr conn,
     if (!(privconn->caps = testBuildCapabilities(conn)))
         goto error;
 
-    if (!(xml = virXMLParseFile(file))) {
+    if (!(xml = virXMLParseFileCtxt(file, &ctxt))) {
         goto error;
     }
 
-    root = xmlDocGetRootElement(xml);
-    if ((root == NULL) || (!xmlStrEqual(root->name, BAD_CAST "node"))) {
+    if (!xmlStrEqual(ctxt->node->name, BAD_CAST "node")) {
         testError(VIR_ERR_XML_ERROR, "%s",
                   _("Root element is not 'node'"));
-        goto error;
-    }
-
-    ctxt = xmlXPathNewContext(xml);
-    if (ctxt == NULL) {
-        testError(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("creating xpath context"));
         goto error;
     }
 
@@ -2601,18 +2592,17 @@ static int testDomainUndefineFlags(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (virDomainObjGetState(privdom, NULL) != VIR_DOMAIN_SHUTOFF) {
-        testError(VIR_ERR_INTERNAL_ERROR,
-                  _("Domain '%s' is still running"), domain->name);
-        goto cleanup;
-    }
-
     event = virDomainEventNewFromObj(privdom,
                                      VIR_DOMAIN_EVENT_UNDEFINED,
                                      VIR_DOMAIN_EVENT_UNDEFINED_REMOVED);
-    virDomainRemoveInactive(&privconn->domains,
-                            privdom);
-    privdom = NULL;
+    if (virDomainObjIsActive(privdom)) {
+        privdom->persistent = 0;
+    } else {
+        virDomainRemoveInactive(&privconn->domains,
+                                privdom);
+        privdom = NULL;
+    }
+
     ret = 0;
 
 cleanup:

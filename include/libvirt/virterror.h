@@ -82,6 +82,7 @@ typedef enum {
     VIR_FROM_EVENT = 40,       /* Error from event loop impl */
     VIR_FROM_LIBXL = 41,	/* Error from libxenlight driver */
     VIR_FROM_LOCKING = 42,      /* Error from lock manager */
+    VIR_FROM_HYPERV = 43,       /* Error from Hyper-V driver */
 } virErrorDomain;
 
 
@@ -234,6 +235,8 @@ typedef enum {
     VIR_ERR_INVALID_STREAM = 73,        /* stream pointer not valid */
     VIR_ERR_ARGUMENT_UNSUPPORTED = 74,  /* valid API use but unsupported by
                                            the given driver */
+    VIR_ERR_STORAGE_PROBE_FAILED = 75,  /* storage pool proble failed */
+    VIR_ERR_STORAGE_POOL_BUILT = 76,    /* storage pool already built */
 } virErrorNumber;
 
 /**

@@ -160,6 +160,16 @@ int virSecurityManagerRestoreImageLabel(virSecurityManagerPtr mgr,
     return -1;
 }
 
+int virSecurityManagerSetDaemonSocketLabel(virSecurityManagerPtr mgr,
+                                           virDomainObjPtr vm)
+{
+    if (mgr->drv->domainSetSecurityDaemonSocketLabel)
+        return mgr->drv->domainSetSecurityDaemonSocketLabel(mgr, vm);
+
+    virSecurityReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    return -1;
+}
+
 int virSecurityManagerSetSocketLabel(virSecurityManagerPtr mgr,
                                      virDomainObjPtr vm)
 {
@@ -332,17 +342,6 @@ int virSecurityManagerSetImageFDLabel(virSecurityManagerPtr mgr,
 {
     if (mgr->drv->domainSetSecurityImageFDLabel)
         return mgr->drv->domainSetSecurityImageFDLabel(mgr, vm, fd);
-
-    virSecurityReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
-    return -1;
-}
-
-int virSecurityManagerSetProcessFDLabel(virSecurityManagerPtr mgr,
-                                        virDomainObjPtr vm,
-                                        int fd)
-{
-    if (mgr->drv->domainSetSecurityProcessFDLabel)
-        return mgr->drv->domainSetSecurityProcessFDLabel(mgr, vm, fd);
 
     virSecurityReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;

@@ -61,14 +61,20 @@ int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
                                   virDomainMemoryStatPtr stats,
                                   unsigned int nr_stats);
 int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
-                                     const char *devname,
+                                     const char *dev_name,
                                      long long *rd_req,
                                      long long *rd_bytes,
+                                     long long *rd_total_times,
                                      long long *wr_req,
                                      long long *wr_bytes,
+                                     long long *wr_total_times,
+                                     long long *flush_req,
+                                     long long *flush_total_times,
                                      long long *errs);
+int qemuMonitorJSONGetBlockStatsParamsNumber(qemuMonitorPtr mon,
+                                             int *nparams);
 int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
-                                  const char *devname,
+                                  const char *dev_name,
                                   unsigned long long *extent);
 
 
@@ -86,10 +92,10 @@ int qemuMonitorJSONSetBalloon(qemuMonitorPtr mon,
 int qemuMonitorJSONSetCPU(qemuMonitorPtr mon, int cpu, int online);
 
 int qemuMonitorJSONEjectMedia(qemuMonitorPtr mon,
-                              const char *devname,
+                              const char *dev_name,
                               bool force);
 int qemuMonitorJSONChangeMedia(qemuMonitorPtr mon,
-                               const char *devname,
+                               const char *dev_name,
                                const char *newmedia,
                                const char *format);
 
@@ -210,6 +216,10 @@ int qemuMonitorJSONCreateSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorJSONLoadSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorJSONDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
+int qemuMonitorJSONDiskSnapshot(qemuMonitorPtr mon,
+                                const char *device,
+                                const char *file);
+
 int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
                                     const char *cmd_str,
                                     char **reply_str,
@@ -230,5 +240,9 @@ int qemuMonitorJSONBlockJob(qemuMonitorPtr mon,
                             unsigned long bandwidth,
                             virDomainBlockJobInfoPtr info,
                             int mode);
+
+int qemuMonitorJSONSetLink(qemuMonitorPtr mon,
+                           const char *name,
+                           enum virDomainNetInterfaceLinkState state);
 
 #endif /* QEMU_MONITOR_JSON_H */

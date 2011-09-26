@@ -412,16 +412,16 @@ esxAutodetectSCSIControllerModel(virDomainDiskDefPtr def, int *model,
 
     if (STRCASEEQ(vmDiskFileInfo->controllerType,
                   "VirtualBusLogicController")) {
-        *model = VIR_DOMAIN_CONTROLLER_MODEL_BUSLOGIC;
+        *model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_BUSLOGIC;
     } else if (STRCASEEQ(vmDiskFileInfo->controllerType,
                          "VirtualLsiLogicController")) {
-        *model = VIR_DOMAIN_CONTROLLER_MODEL_LSILOGIC;
+        *model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC;
     } else if (STRCASEEQ(vmDiskFileInfo->controllerType,
                          "VirtualLsiLogicSASController")) {
-        *model = VIR_DOMAIN_CONTROLLER_MODEL_LSISAS1068;
+        *model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1068;
     } else if (STRCASEEQ(vmDiskFileInfo->controllerType,
                          "ParaVirtualSCSIController")) {
-        *model = VIR_DOMAIN_CONTROLLER_MODEL_VMPVSCSI;
+        *model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VMPVSCSI;
     } else {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                   _("Found unexpected controller model '%s' for disk '%s'"),
@@ -3309,7 +3309,10 @@ esxDomainUndefineFlags(virDomainPtr domain,
     esxVI_String *propertyNameList = NULL;
     esxVI_VirtualMachinePowerState powerState;
 
-    virCheckFlags(0, -1);
+    /* No managed save, so we explicitly reject
+     * VIR_DOMAIN_UNDEFINE_MANAGED_SAVE.  No snapshot metadata for
+     * ESX, so we can trivially ignore that flag.  */
+    virCheckFlags(VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA, -1);
 
     if (priv->vCenter != NULL) {
         ctx = priv->vCenter;
@@ -4210,15 +4213,22 @@ esxDomainSnapshotCreateXML(virDomainPtr domain, const char *xmlDesc,
     char *taskInfoErrorMessage = NULL;
     virDomainSnapshotPtr snapshot = NULL;
 
-    virCheckFlags(0, NULL);
+    /* ESX has no snapshot metadata, so this flag is trivial.  */
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA, NULL);
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return NULL;
     }
 
-    def = virDomainSnapshotDefParseString(xmlDesc, 1);
+    def = virDomainSnapshotDefParseString(xmlDesc, NULL, 0, 0);
 
     if (def == NULL) {
+        return NULL;
+    }
+
+    if (def->ndisks) {
+        ESX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                  _("disk snapshots not supported yet"));
         return NULL;
     }
 
@@ -4312,7 +4322,7 @@ esxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
 
     virUUIDFormat(snapshot->domain->uuid, uuid_string);
 
-    xml = virDomainSnapshotDefFormat(uuid_string, &def, 0);
+    xml = virDomainSnapshotDefFormat(uuid_string, &def, flags, 0);
 
   cleanup:
     esxVI_VirtualMachineSnapshotTree_Free(&rootSnapshotList);
@@ -4329,11 +4339,15 @@ esxDomainSnapshotNum(virDomainPtr domain, unsigned int flags)
     esxPrivate *priv = domain->conn->privateData;
     esxVI_VirtualMachineSnapshotTree *rootSnapshotTreeList = NULL;
 
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_METADATA, -1);
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
     }
+
+    /* ESX snapshots do not require libvirt to maintain any metadata.  */
+    if (flags & VIR_DOMAIN_SNAPSHOT_LIST_METADATA)
+        return 0;
 
     if (esxVI_LookupRootSnapshotTreeList(priv->primary, domain->uuid,
                                          &rootSnapshotTreeList) < 0) {
@@ -4357,14 +4371,14 @@ esxDomainSnapshotListNames(virDomainPtr domain, char **names, int nameslen,
     esxPrivate *priv = domain->conn->privateData;
     esxVI_VirtualMachineSnapshotTree *rootSnapshotTreeList = NULL;
 
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_METADATA, -1);
 
     if (names == NULL || nameslen < 0) {
         ESX_ERROR(VIR_ERR_INVALID_ARG, "%s", _("Invalid argument"));
         return -1;
     }
 
-    if (nameslen == 0) {
+    if (nameslen == 0 || (flags & VIR_DOMAIN_SNAPSHOT_LIST_METADATA)) {
         return 0;
     }
 
@@ -4543,7 +4557,8 @@ esxDomainSnapshotDelete(virDomainSnapshotPtr snapshot, unsigned int flags)
     esxVI_TaskInfoState taskInfoState;
     char *taskInfoErrorMessage = NULL;
 
-    virCheckFlags(VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN, -1);
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN |
+                  VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY, -1);
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
@@ -4558,6 +4573,13 @@ esxDomainSnapshotDelete(virDomainSnapshotPtr snapshot, unsigned int flags)
         esxVI_GetSnapshotTreeByName(rootSnapshotList, snapshot->name,
                                     &snapshotTree, &snapshotTreeParent,
                                     esxVI_Occurrence_RequiredItem) < 0) {
+        goto cleanup;
+    }
+
+    /* ESX snapshots do not require any libvirt metadata, making this
+     * flag trivial once we know we have a valid snapshot.  */
+    if (flags & VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY) {
+        result = 0;
         goto cleanup;
     }
 

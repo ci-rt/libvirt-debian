@@ -47,6 +47,7 @@ int virNetSocketNewListenTCP(const char *nodename,
 
 int virNetSocketNewListenUNIX(const char *path,
                               mode_t mask,
+                              uid_t user,
                               gid_t grp,
                               virNetSocketPtr *addr);
 
@@ -77,6 +78,8 @@ int virNetSocketNewConnectExternal(const char **cmdargv,
                                    virNetSocketPtr *addr);
 
 int virNetSocketGetFD(virNetSocketPtr sock);
+int virNetSocketDupFD(virNetSocketPtr sock, bool cloexec);
+
 bool virNetSocketIsLocal(virNetSocketPtr sock);
 
 int virNetSocketGetPort(virNetSocketPtr sock);
@@ -103,7 +106,7 @@ void virNetSocketFree(virNetSocketPtr sock);
 const char *virNetSocketLocalAddrString(virNetSocketPtr sock);
 const char *virNetSocketRemoteAddrString(virNetSocketPtr sock);
 
-int virNetSocketListen(virNetSocketPtr sock);
+int virNetSocketListen(virNetSocketPtr sock, int backlog);
 int virNetSocketAccept(virNetSocketPtr sock,
                        virNetSocketPtr *clientsock);
 
@@ -118,6 +121,7 @@ void virNetSocketUpdateIOCallback(virNetSocketPtr sock,
 
 void virNetSocketRemoveIOCallback(virNetSocketPtr sock);
 
+void virNetSocketClose(virNetSocketPtr sock);
 
 
 #endif /* __VIR_NET_SOCKET_H__ */
