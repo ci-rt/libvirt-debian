@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-#serial 20
+#serial 22
 
 # Copyright (C) 2001, 2003-2007, 2009-2011 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
@@ -18,7 +18,6 @@
 AC_DEFUN([gl_FUNC_MKSTEMP],
 [
   AC_REQUIRE([gl_STDLIB_H_DEFAULTS])
-  AC_REQUIRE([AC_SYS_LARGEFILE])
 
   AC_CHECK_FUNCS_ONCE([mkstemp])
   if test $ac_cv_func_mkstemp = yes; then
@@ -63,13 +62,9 @@ AC_DEFUN([gl_FUNC_MKSTEMP],
       ])
     if test "$gl_cv_func_working_mkstemp" != yes; then
       REPLACE_MKSTEMP=1
-      AC_LIBOBJ([mkstemp])
-      gl_PREREQ_MKSTEMP
     fi
   else
     HAVE_MKSTEMP=0
-    AC_LIBOBJ([mkstemp])
-    gl_PREREQ_MKSTEMP
   fi
 ])
 

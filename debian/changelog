@@ -1,3 +1,105 @@
+libvirt (0.9.6-1) unstable; urgency=low
+
+  * [828e4e3] New upstream version 0.9.6
+  * [59404f4] Use versioned X-Python-Version
+  * [0b43f12] Update symbols file
+  * [744aaeb] Drop Readd-LFS-support.patch - fixed upstream
+  * [f759960] Rediff remaining patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 26 Sep 2011 23:28:03 +0200
+
+libvirt (0.9.4-2) unstable; urgency=low
+
+  [ Philipp Hahn ]
+  * [c9a080d] Build python-libvirt for all python versions (Closes: #628828)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 23 Aug 2011 21:17:55 +0200
+
+libvirt (0.9.4-1) experimental; urgency=low
+
+  * [a92d03e] New upstream version 0.9.4
+  * [76f0333] Run tests verbosely to ease error diagnostics
+  * [f4e7d0b] Work around ICE on m68k.
+    Thanks to Thorsten Glaser
+  * [ac6e760] Add directories chown'ed in the postinst.
+    Thanks to Houmehr Aghabozorgi for the report (Closes: #636965)
+  * [194722a] Simplify netcat probe and adjust testcase output to reduce
+    number of failing testcases.
+  * [05e5a06] Use libyajl QEMU JSON support
+  * [e7934f7] Use libpcap for ip address learning support
+  * [6661730] Readd LFS support
+  * [17d831b] Don't require gawk for a simple print expression
+    (Closes: #636712)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 09 Aug 2011 16:41:24 +0200
+
+libvirt (0.9.4~rc1-1) experimental; urgency=low
+
+  * [0e60a81] New upstream version 0.9.4~rc1
+  * [db6dbcc] Suggest radvd needed for IPv6
+  * [a9b77e5] Drop Catch-dnsmasq-start-failures.patch applied upstream
+  * [b18ac26] Rediff remaining patches
+  * [8ee8750] Update symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 26 Jul 2011 13:12:57 +0200
+
+libvirt (0.9.3-5) unstable; urgency=low
+
+  * [44874f6] Add directories chown'ed in the postinst.  Thanks to Houmehr
+    Aghabozorgi for the report (Closes: #636965)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 11 Aug 2011 08:19:38 +0200
+
+libvirt (0.9.3-4) unstable; urgency=low
+
+  * [db6dbcc] Suggest radvd needed for IPv6
+  * [32ac1cf] Work around ICE on m68k. Thanks to Thorsten Glaser.
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 27 Jul 2011 21:26:02 +0200
+
+libvirt (0.9.3-3) unstable; urgency=low
+
+  * [6db6929] Catch dnsmasq start failures
+  * [0254bfb] Add empty log directories to make logrotate happy
+    (Closes: #635239)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 24 Jul 2011 10:51:58 +0200
+
+libvirt (0.9.3-2) unstable; urgency=low
+
+  * Upload to unstable
+  * [331afb8] Move build rules to make sure DEB_BUILD_ARCH_OS is properly
+    defined.
+    Thanks to Serge E. Hallyn
+  * [4f3fe1d] Adjust directory permissions to what upstream uses to avoid
+    potential information leakage.
+    (Closes: #632332)
+  * [ab7ad05] Add sanlock dir
+  * [bc05a9d] Logrotate logs from HVs other than qemu too
+    (Closes: #625746)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 23 Jul 2011 15:28:10 +0200
+
+libvirt (0.9.3-1) experimental; urgency=low
+
+  * [320f8b6] New upstream version 0.9.3 (Closes: #633840)
+  * [fff5144] Update symbols
+  * [787d91c] Depend on dnsmasq-base, netcat-openbsd and openssh-client for
+    "make check"
+  * [1fa64b0] Remove article from libvirt-bin description to make lintian
+    happy.
+  * [3689fc5] Drop patches applied upstream:
+    - Skip-nodeinfo-test-on-non-intel-architectures.patch
+    - Split-out-dlopen-detection.patch
+    - nodeinfo-remove-superfluous-braces.patch
+  * [31b17c8] Drop Update-generated-autoconf-files.patch. No need to
+    regenerate autoconf for 0.9.3
+  * [65871eb] Adjust nc autodetect patch to new socket code
+  * [7b0c6df] Disable failing virnetsockettest until investigated further
+  * [248bc3f] Rediff remaining patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 10 Jul 2011 19:43:05 +0200
+
 libvirt (0.9.2-7~bpo60+1) squeeze-backports; urgency=low
 
   * Rebuild for squeeze-backports.

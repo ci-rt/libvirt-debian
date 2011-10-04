@@ -139,6 +139,9 @@
 /* Define to 1 when the gnulib module btowc should be tested. */
 #undef GNULIB_TEST_BTOWC
 
+/* Define to 1 when the gnulib module calloc-posix should be tested. */
+#undef GNULIB_TEST_CALLOC_POSIX
+
 /* Define to 1 when the gnulib module canonicalize_file_name should be tested.
    */
 #undef GNULIB_TEST_CANONICALIZE_FILE_NAME
@@ -173,8 +176,14 @@
 /* Define to 1 when the gnulib module fpurge should be tested. */
 #undef GNULIB_TEST_FPURGE
 
+/* Define to 1 when the gnulib module fseek should be tested. */
+#undef GNULIB_TEST_FSEEK
+
 /* Define to 1 when the gnulib module fseeko should be tested. */
 #undef GNULIB_TEST_FSEEKO
+
+/* Define to 1 when the gnulib module fsync should be tested. */
+#undef GNULIB_TEST_FSYNC
 
 /* Define to 1 when the gnulib module ftell should be tested. */
 #undef GNULIB_TEST_FTELL
@@ -205,6 +214,9 @@
 
 /* Define to 1 when the gnulib module getpagesize should be tested. */
 #undef GNULIB_TEST_GETPAGESIZE
+
+/* Define to 1 when the gnulib module getpeername should be tested. */
+#undef GNULIB_TEST_GETPEERNAME
 
 /* Define to 1 when the gnulib module getsockname should be tested. */
 #undef GNULIB_TEST_GETSOCKNAME
@@ -310,6 +322,9 @@
 /* Define to 1 when the gnulib module posix_spawn_file_actions_init should be
    tested. */
 #undef GNULIB_TEST_POSIX_SPAWN_FILE_ACTIONS_INIT
+
+/* Define to 1 when the gnulib module pthread_sigmask should be tested. */
+#undef GNULIB_TEST_PTHREAD_SIGMASK
 
 /* Define to 1 when the gnulib module putenv should be tested. */
 #undef GNULIB_TEST_PUTENV
@@ -434,9 +449,6 @@
 /* Define to 1 when the gnulib module write should be tested. */
 #undef GNULIB_TEST_WRITE
 
-/* enable GnuTLS 1.0 compatibility macros */
-#undef GNUTLS_1_0_COMPAT
-
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
 
@@ -469,6 +481,9 @@
 /* Define to 1 if you have the <byteswap.h> header file. */
 #undef HAVE_BYTESWAP_H
 
+/* Define if the 'calloc' function is POSIX compliant. */
+#undef HAVE_CALLOC_POSIX
+
 /* Define to 1 if you have the `canonicalize_file_name' function. */
 #undef HAVE_CANONICALIZE_FILE_NAME
 
@@ -497,6 +512,9 @@
 
 /* whether CPUID instruction is supported */
 #undef HAVE_CPUID
+
+/* use DBus for PolicyKit */
+#undef HAVE_DBUS
 
 /* Define to 1 if you have the `dbus_watch_get_unix_fd' function. */
 #undef HAVE_DBUS_WATCH_GET_UNIX_FD
@@ -593,6 +611,18 @@
    0 if you don't. */
 #undef HAVE_DECL_MACVLAN_MODE_PASSTHRU
 
+/* Define to 1 if you have the declaration of `mbrtowc', and to 0 if you
+   don't. */
+#undef HAVE_DECL_MBRTOWC
+
+/* Define to 1 if you have the declaration of `mbsinit', and to 0 if you
+   don't. */
+#undef HAVE_DECL_MBSINIT
+
+/* Define to 1 if you have the declaration of `mbsrtowcs', and to 0 if you
+   don't. */
+#undef HAVE_DECL_MBSRTOWCS
+
 /* Define to 1 if you have the declaration of `program_invocation_name', and
    to 0 if you don't. */
 #undef HAVE_DECL_PROGRAM_INVOCATION_NAME
@@ -621,10 +651,6 @@
    */
 #undef HAVE_DECL_STRDUP
 
-/* Define to 1 if you have the declaration of `strerror', and to 0 if you
-   don't. */
-#undef HAVE_DECL_STRERROR
-
 /* Define to 1 if you have the declaration of `strerror_r', and to 0 if you
    don't. */
 #undef HAVE_DECL_STRERROR_R
@@ -641,6 +667,10 @@
    don't. */
 #undef HAVE_DECL_STRTOK_R
 
+/* Define to 1 if you have the declaration of `towlower', and to 0 if you
+   don't. */
+#undef HAVE_DECL_TOWLOWER
+
 /* Define to 1 if you have the declaration of `unsetenv', and to 0 if you
    don't. */
 #undef HAVE_DECL_UNSETENV
@@ -648,6 +678,10 @@
 /* Define to 1 if you have the declaration of `vsnprintf', and to 0 if you
    don't. */
 #undef HAVE_DECL_VSNPRINTF
+
+/* Define to 1 if you have the declaration of `wcrtomb', and to 0 if you
+   don't. */
+#undef HAVE_DECL_WCRTOMB
 
 /* Define to 1 if you have the declaration of `wctob', and to 0 if you don't.
    */
@@ -664,7 +698,7 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
-/* Define to 1 if you have the `dup2' function. */
+/* Define to 1 if you have the 'dup2' function. */
 #undef HAVE_DUP2
 
 /* Define if you have the declaration of environ. */
@@ -676,8 +710,14 @@
 /* Define to 1 if you have the `fcntl' function. */
 #undef HAVE_FCNTL
 
+/* Define to 1 if you have the `fdatasync' function. */
+#undef HAVE_FDATASYNC
+
 /* Define to 1 if you have the <features.h> header file. */
 #undef HAVE_FEATURES_H
+
+/* Define to 1 if you have the `ffs' function. */
+#undef HAVE_FFS
 
 /* Define to 1 if you have the `flockfile' function. */
 #undef HAVE_FLOCKFILE
@@ -687,6 +727,9 @@
 
 /* Define to 1 if fseeko (and presumably ftello) exists and is declared. */
 #undef HAVE_FSEEKO
+
+/* Define to 1 if you have the `fsync' function. */
+#undef HAVE_FSYNC
 
 /* Define to 1 if you have the `funlockfile' function. */
 #undef HAVE_FUNLOCKFILE
@@ -760,6 +803,9 @@
 /* Define if you have the iconv() function and it works. */
 #undef HAVE_ICONV
 
+/* Define to 1 if you have the <ifaddrs.h> header file. */
+#undef HAVE_IFADDRS_H
+
 /* Define to 1 if you have the `inet_ntop' function. */
 #undef HAVE_INET_NTOP
 
@@ -817,6 +863,9 @@
 /* Define to 1 if you have the `audit' library (-laudit). */
 #undef HAVE_LIBAUDIT
 
+/* libblkid is present */
+#undef HAVE_LIBBLKID
+
 /* Define to 1 if you have the `cap-ng' library (-lcap-ng). */
 #undef HAVE_LIBCAP_NG
 
@@ -835,6 +884,9 @@
 /* Define to 1 if you have the `intl' library (-lintl). */
 #undef HAVE_LIBINTL
 
+/* whether the netlink library is available */
+#undef HAVE_LIBNL
+
 /* Define to 1 if you have the `numa' library (-lnuma). */
 #undef HAVE_LIBNUMA
 
@@ -849,6 +901,9 @@
 
 /* Define to 1 if you have the `selinux' library (-lselinux). */
 #undef HAVE_LIBSELINUX
+
+/* Define to 1 if you have the <libtasn1.h> header file. */
+#undef HAVE_LIBTASN1_H
 
 /* Define to 1 if you have the `uuid' library (-luuid). */
 #undef HAVE_LIBUUID
@@ -932,6 +987,9 @@
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
 
+/* Define to 1 if you have the <netinet/tcp.h> header file. */
+#undef HAVE_NETINET_TCP_H
+
 /* Define to 1 if you have the <net/ethernet.h> header file. */
 #undef HAVE_NET_ETHERNET_H
 
@@ -943,9 +1001,6 @@
 
 /* Define to 1 if you have the <OS.h> header file. */
 #undef HAVE_OS_H
-
-/* Define to 1 if you have the `pathconf' function. */
-#undef HAVE_PATHCONF
 
 /* Define to 1 if you have the <paths.h> header file. */
 #undef HAVE_PATHS_H
@@ -978,6 +1033,9 @@
 /* Define to 1 if you have the `posix_fallocate' function. */
 #undef HAVE_POSIX_FALLOCATE
 
+/* Define to 1 if you have the `posix_memalign' function. */
+#undef HAVE_POSIX_MEMALIGN
+
 /* Define to 1 if you have the `posix_spawn' function. */
 #undef HAVE_POSIX_SPAWN
 
@@ -1008,7 +1066,7 @@
 /* Define if the POSIX multithreading library has read/write locks. */
 #undef HAVE_PTHREAD_RWLOCK
 
-/* Define to 1 if you have the `pthread_sigmask' function. */
+/* Define to 1 if the pthread_sigmask function can be used (despite bugs). */
 #undef HAVE_PTHREAD_SIGMASK
 
 /* Define to 1 if the system has the type `pthread_spinlock_t'. */
@@ -1057,7 +1115,7 @@
 /* Define to 1 if you have the <regex.h> header file. */
 #undef HAVE_REGEX_H
 
-/* whether SANLOCK is available for JSON parsing/formatting */
+/* whether Sanlock plugin for lock management is available */
 #undef HAVE_SANLOCK
 
 /* whether Cyrus SASL is available for authentication */
@@ -1342,6 +1400,9 @@
 /* Define if struct tm has the tm_gmtoff member. */
 #undef HAVE_TM_GMTOFF
 
+/* Define to 1 if you have the `towlower' function. */
+#undef HAVE_TOWLOWER
+
 /* Define to 1 if you have the `tsearch' function. */
 #undef HAVE_TSEARCH
 
@@ -1507,7 +1568,7 @@
 /* Location of lvcreate program */
 #undef LVCREATE
 
-/* Location of lvcreate program */
+/* Location of lvremove program */
 #undef LVREMOVE
 
 /* Location of lvs program */
@@ -1530,6 +1591,9 @@
 
 /* Define if the mbrtowc function returns a wrong return value. */
 #undef MBRTOWC_RETVAL_BUG
+
+/* Location or name of the mkfs program */
+#undef MKFS
 
 /* Location or name of the modprobe program */
 #undef MODPROBE
@@ -1592,6 +1656,16 @@
 /* Define if the pthread_in_use() detection is hard. */
 #undef PTHREAD_IN_USE_DETECTION_HARD
 
+/* Define to 1 if pthread_sigmask(), when it fails, returns -1 and sets errno.
+   */
+#undef PTHREAD_SIGMASK_FAILS_WITH_ERRNO
+
+/* Define to 1 if pthread_sigmask() may returns 0 and have no effect. */
+#undef PTHREAD_SIGMASK_INEFFECTIVE
+
+/* Define to 1 if pthread_sigmask() unblocks signals incorrectly. */
+#undef PTHREAD_SIGMASK_UNBLOCK_BUG
+
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'ptrdiff_t'. */
 #undef PTRDIFF_T_SUFFIX
@@ -1599,7 +1673,7 @@
 /* Location of pvcreate program */
 #undef PVCREATE
 
-/* Location of pvcreate program */
+/* Location of pvremove program */
 #undef PVREMOVE
 
 /* Location of pvs program */
@@ -1625,6 +1699,9 @@
    slash */
 #undef REPLACE_FUNC_STAT_FILE
 
+/* Define to 1 if strerror(0) does not return a message implying success. */
+#undef REPLACE_STRERROR_0
+
 /* Define if vasnprintf exists but is overridden by gnulib. */
 #undef REPLACE_VASNPRINTF
 
@@ -1649,9 +1726,9 @@
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at runtime.
-	STACK_DIRECTION > 0 => grows toward higher addresses
-	STACK_DIRECTION < 0 => grows toward lower addresses
-	STACK_DIRECTION = 0 => direction of growth unknown */
+        STACK_DIRECTION > 0 => grows toward higher addresses
+        STACK_DIRECTION < 0 => grows toward lower addresses
+        STACK_DIRECTION = 0 => direction of growth unknown */
 #undef STACK_DIRECTION
 
 /* Define to 1 when performing static analysis. */
@@ -1665,6 +1742,9 @@
 
 /* Define to 1 if strerror_r returns char *. */
 #undef STRERROR_R_CHAR_P
+
+/* Location or name of the tc profram (see iproute2) */
+#undef TC
 
 /* Whether malloc OOM checking is enabled */
 #undef TEST_OOM
@@ -1728,7 +1808,7 @@
 /* Location of vgcreate program */
 #undef VGCREATE
 
-/* Location of vgcreate program */
+/* Location of vgremove program */
 #undef VGREMOVE
 
 /* Location of vgs program */
@@ -1766,6 +1846,9 @@
 
 /* whether ESX driver is enabled */
 #undef WITH_ESX
+
+/* whether Hyper-V driver is enabled */
+#undef WITH_HYPERV
 
 /* whether libvirtd daemon is enabled */
 #undef WITH_LIBVIRTD
@@ -1876,6 +1959,11 @@
 # endif
 #endif
 
+/* Enable large inode numbers on Mac OS X.  */
+#ifndef _DARWIN_USE_64_BIT_INODE
+# define _DARWIN_USE_64_BIT_INODE 1
+#endif
+
 /* Number of bits in a file offset, on hosts where this is settable. */
 #undef _FILE_OFFSET_BITS
 
@@ -1890,6 +1978,19 @@
 
 /* Define to 1 if on MINIX. */
 #undef _MINIX
+
+/* The _Noreturn keyword of draft C1X.  */
+#ifndef _Noreturn
+# if (3 <= __GNUC__ || (__GNUC__ == 2 && 8 <= __GNUC_MINOR__) \
+      || 0x5110 <= __SUNPRO_C)
+#  define _Noreturn __attribute__ ((__noreturn__))
+# elif 1200 <= _MSC_VER
+#  define _Noreturn __declspec (noreturn)
+# else
+#  define _Noreturn
+# endif
+#endif
+
 
 /* Define to 2 if the system does not provide POSIX.1 features except with
    this defined. */
@@ -1908,6 +2009,10 @@
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE
 # undef _ALL_SOURCE
+#endif
+/* Enable general extensions on MacOS X.  */
+#ifndef _DARWIN_C_SOURCE
+# undef _DARWIN_C_SOURCE
 #endif
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
@@ -1939,6 +2044,9 @@
 
 /* Define as a replacement for the ISO C99 __func__ variable. */
 #undef __func__
+
+/* Define to fsync if you lack fdatasync */
+#undef fdatasync
 
 /* Define to a replacement function name for fnmatch(). */
 #undef fnmatch
@@ -2031,6 +2139,20 @@
 /* The name _UNUSED_PARAMETER_ is an earlier spelling, although the name
    is a misnomer outside of parameter lists.  */
 #define _UNUSED_PARAMETER_ _GL_UNUSED
+
+/* The __pure__ attribute was added in gcc 2.96.  */
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 96)
+# define _GL_ATTRIBUTE_PURE __attribute__ ((__pure__))
+#else
+# define _GL_ATTRIBUTE_PURE /* empty */
+#endif
+
+/* The __const__ attribute was added in gcc 2.95.  */
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
+# define _GL_ATTRIBUTE_CONST __attribute__ ((__const__))
+#else
+# define _GL_ATTRIBUTE_CONST /* empty */
+#endif
 
 
 /* Define to an unsigned 32-bit type if <sys/types.h> lacks this type. */

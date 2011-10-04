@@ -47,7 +47,7 @@
     ((((int) ((T)->tv_sec - (U)->tv_sec)) * 1000000.0 + \
       ((int) ((T)->tv_usec - (U)->tv_usec))) / 1000.0)
 
-#include "files.h"
+#include "virfile.h"
 
 static unsigned int testDebug = -1;
 static unsigned int testVerbose = -1;
@@ -75,6 +75,9 @@ void virtTestResult(const char *name, int ret, const char *msg, ...)
 {
     va_list vargs;
     va_start(vargs, msg);
+
+    if (testCounter == 0 && !virTestGetVerbose())
+        fprintf(stderr, "      ");
 
     testCounter++;
     if (virTestGetVerbose()) {
@@ -112,6 +115,9 @@ virtTestRun(const char *title, int nloops, int (*body)(const void *data), const 
 {
     int i, ret = 0;
     double *ts = NULL;
+
+    if (testCounter == 0 && !virTestGetVerbose())
+        fprintf(stderr, "      ");
 
     testCounter++;
 
@@ -370,6 +376,70 @@ int virtTestDifference(FILE *stream,
     return 0;
 }
 
+/**
+ * @param stream: output stream write to differences to
+ * @param expect: expected output text
+ * @param actual: actual output text
+ *
+ * Display expected and actual output text, trimmed to
+ * first and last characters at which differences occur
+ */
+int virtTestDifferenceBin(FILE *stream,
+                          const char *expect,
+                          const char *actual,
+                          size_t length)
+{
+    size_t start = 0, end = length;
+    ssize_t i;
+
+    if (!virTestGetDebug())
+        return 0;
+
+    if (virTestGetDebug() < 2) {
+        /* Skip to first character where they differ */
+        for (i = 0 ; i < length ; i++) {
+            if (expect[i] != actual[i]) {
+                start = i;
+                break;
+            }
+        }
+
+        /* Work backwards to last character where they differ */
+        for (i = (length -1) ; i >= 0 ; i--) {
+            if (expect[i] != actual[i]) {
+                end = i;
+                break;
+            }
+        }
+    }
+    /* Round to nearest boundary of 4, except that last word can be short */
+    start -= (start % 4);
+    end += 4 - (end % 4);
+    if (end >= length)
+        end = length - 1;
+
+    /* Show the trimmed differences */
+    fprintf(stream, "\nExpect [ Region %d-%d", (int)start, (int)end);
+    for (i = start; i < end ; i++) {
+        if ((i % 4) == 0)
+            fprintf(stream, "\n    ");
+        fprintf(stream, "0x%02x, ", ((int)expect[i])&0xff);
+    }
+    fprintf(stream, "]\n");
+    fprintf(stream, "Actual [ Region %d-%d", (int)start, (int)end);
+    for (i = start; i < end ; i++) {
+        if ((i % 4) == 0)
+            fprintf(stream, "\n    ");
+        fprintf(stream, "0x%02x, ", ((int)actual[i])&0xff);
+    }
+    fprintf(stream, "]\n");
+
+    /* Pad to line up with test name ... in virTestRun */
+    fprintf(stream, "                                                                      ... ");
+
+    return 0;
+}
+
 #if TEST_OOM
 static void
 virtTestErrorFuncQuiet(void *data ATTRIBUTE_UNUSED,
@@ -498,8 +568,6 @@ int virtTestMain(int argc,
         return EXIT_FAILURE;
     }
     fprintf(stderr, "TEST: %s\n", progname);
-    if (!virTestGetVerbose())
-        fprintf(stderr, "      ");
 
     if (virThreadInitialize() < 0 ||
         virErrorInitialize() < 0 ||
@@ -507,9 +575,11 @@ int virtTestMain(int argc,
         return 1;
 
     virLogSetFromEnv();
-    if (virLogDefineOutput(virtTestLogOutput, virtTestLogClose, &testLog,
-                           0, 0, NULL, 0) < 0)
-        return 1;
+    if (!getenv("LIBVIRT_DEBUG") && !virLogGetNbOutputs()) {
+        if (virLogDefineOutput(virtTestLogOutput, virtTestLogClose, &testLog,
+                               0, 0, NULL, 0) < 0)
+            return 1;
+    }
 
 #if TEST_OOM
     if ((oomStr = getenv("VIR_TEST_OOM")) != NULL) {
@@ -622,10 +692,9 @@ cleanup:
     if (abs_srcdir_cleanup)
         VIR_FREE(abs_srcdir);
     virResetLastError();
-    if (!virTestGetVerbose()) {
-        int i;
-        for (i = (testCounter % 40) ; i > 0 && i < 40 ; i++)
-            fprintf(stderr, " ");
+    if (!virTestGetVerbose() && ret != EXIT_AM_SKIP) {
+        if (testCounter == 0 || testCounter % 40)
+            fprintf(stderr, "%*s", 40 - (testCounter % 40), "");
         fprintf(stderr, " %-3d %s\n", testCounter, ret == 0 ? "OK" : "FAIL");
     }
     return ret;

@@ -51,7 +51,7 @@
 #else
 /* Normal invocation convention.  */
 
-#ifndef _GL_WCHAR_H
+#ifndef _@GUARD_PREFIX@_WCHAR_H
 
 #define _GL_ALREADY_INCLUDING_WCHAR_H
 
@@ -83,8 +83,8 @@
 
 #undef _GL_ALREADY_INCLUDING_WCHAR_H
 
-#ifndef _GL_WCHAR_H
-#define _GL_WCHAR_H
+#ifndef _@GUARD_PREFIX@_WCHAR_H
+#define _@GUARD_PREFIX@_WCHAR_H
 
 /* The definitions of _GL_FUNCDECL_RPL etc. are copied here.  */
 
@@ -991,6 +991,6 @@ _GL_WARN_ON_USE (wcswidth, "wcswidth is unportable - "
 #endif
 
 
-#endif /* _GL_WCHAR_H */
-#endif /* _GL_WCHAR_H */
+#endif /* _@GUARD_PREFIX@_WCHAR_H */
+#endif /* _@GUARD_PREFIX@_WCHAR_H */
 #endif

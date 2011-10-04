@@ -200,6 +200,68 @@ virNWFilterCreateVarHashmap(char *macaddr, char *ipaddr) {
 
 
 /**
+ * Convert a virNWFilterHashTable into a string of comma-separated
+ * variable names.
+ */
+struct printString
+{
+     virBuffer buf;
+     const char *separator;
+     bool reportMAC;
+     bool reportIP;
+};
+
+
+static void
+printString(void *payload ATTRIBUTE_UNUSED, const void *name, void *data)
+{
+    struct printString *ps = data;
+
+    if ((STREQ((char *)name, NWFILTER_STD_VAR_IP ) && !ps->reportIP ) ||
+        (STREQ((char *)name, NWFILTER_STD_VAR_MAC) && !ps->reportMAC))
+        return;
+
+    if (virBufferUse(&ps->buf) && ps->separator)
+        virBufferAdd(&ps->buf, ps->separator, -1);
+
+    virBufferAdd(&ps->buf, name, -1);
+}
+
+/**
+ * virNWFilterPrintVars
+ *
+ * @var: hash table containing variables
+ * @separator: separator to use between variable names, i.e., ", "
+ * @reportMAC: whether to report the 'MAC' variable
+ * @reportIP : whether to report the IP variable
+ *
+ * Returns a string of comma separated variable names
+ */
+static char *
+virNWFilterPrintVars(virHashTablePtr vars,
+                     const char *separator,
+                     bool reportMAC,
+                     bool reportIP)
+{
+     struct printString ps = {
+         .buf       = VIR_BUFFER_INITIALIZER,
+         .separator = separator,
+         .reportMAC = reportMAC,
+         .reportIP  = reportIP,
+     };
+
+     virHashForEach(vars, printString, &ps);
+
+     if (virBufferError(&ps.buf)) {
+         virBufferFreeAndReset(&ps.buf);
+         virReportOOMError();
+         return NULL;
+     }
+     return virBufferContentAndReset(&ps.buf);
+}
+
+
+/**
  * virNWFilterRuleInstantiate:
  * @conn: pointer to virConnect object
  * @techdriver: the driver to use for instantiation
@@ -575,6 +637,7 @@ virNWFilterInstantiate(virConnectPtr conn,
     virNWFilterRuleInstPtr *insts = NULL;
     void **ptrs = NULL;
     int instantiate = 1;
+    char *buf;
 
     virNWFilterHashTablePtr missing_vars = virNWFilterHashTableCreate(0);
     if (!missing_vars) {
@@ -607,11 +670,9 @@ virNWFilterInstantiate(virConnectPtr conn,
             }
             goto err_exit;
         }
-        rc = 1;
-        goto err_exit;
+        goto err_unresolvable_vars;
     } else if (virHashSize(missing_vars->hashTable) > 1) {
-        rc = 1;
-        goto err_exit;
+        goto err_unresolvable_vars;
     } else if (!forceWithPendingReq &&
                virNWFilterLookupLearnReq(ifindex) != NULL) {
         goto err_exit;
@@ -654,7 +715,7 @@ virNWFilterInstantiate(virConnectPtr conn,
         if (teardownOld && rc == 0)
             techdriver->tearOldRules(conn, ifname);
 
-        if (rc == 0 && ifaceCheck(false, ifname, NULL, ifindex)) {
+        if (rc == 0 && (ifaceCheck(false, ifname, NULL, ifindex) < 0)) {
             /* interface changed/disppeared */
             techdriver->allTeardown(ifname);
             rc = 1;
@@ -674,6 +735,19 @@ err_exit:
     virNWFilterHashTableFree(missing_vars);
 
     return rc;
+
+err_unresolvable_vars:
+
+    buf = virNWFilterPrintVars(missing_vars->hashTable, ", ", false, false);
+    if (buf) {
+        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("Cannot instantiate filter due to unresolvable "
+                     "variables: %s"), buf);
+        VIR_FREE(buf);
+    }
+
+    rc = 1;
+    goto err_exit;
 }
 
 
@@ -824,10 +898,17 @@ _virNWFilterInstantiateFilter(virConnectPtr conn,
     int ifindex;
     int rc;
 
-    if (ifaceGetIndex(true, net->ifname, &ifindex))
-        return 1;
-
     virNWFilterLockFilterUpdates();
+
+    /* after grabbing the filter update lock check for the interface; if
+       it's not there anymore its filters will be or are being removed
+       (while holding the lock) and we don't want to build new ones */
+    if (ifaceGetIndex(false, net->ifname, &ifindex) < 0) {
+        /* interfaces / VMs can disappear during filter instantiation;
+           don't mark it as an error */
+        rc = 0;
+        goto cleanup;
+    }
 
     rc = __virNWFilterInstantiateFilter(conn,
                                         teardownOld,
@@ -843,6 +924,7 @@ _virNWFilterInstantiateFilter(virConnectPtr conn,
                                         false,
                                         foundNewFilter);
 
+cleanup:
     virNWFilterUnlockFilterUpdates();
 
     return rc;
@@ -880,8 +962,8 @@ virNWFilterInstantiateFilterLate(virConnectPtr conn,
                                         &foundNewFilter);
     if (rc) {
         /* something went wrong... 'DOWN' the interface */
-        if (ifaceCheck(false, ifname, NULL, ifindex) != 0 ||
-            ifaceDown(ifname)) {
+        if ((ifaceCheck(false, ifname, NULL, ifindex) < 0) ||
+            (ifaceDown(ifname) < 0)) {
             /* assuming interface disappeared... */
             _virNWFilterTeardownFilter(ifname);
         }

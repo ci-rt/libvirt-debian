@@ -1,7 +1,7 @@
 /*
  * xen_unified.c: Unified Xen driver.
  *
- * Copyright (C) 2007, 2010 Red Hat, Inc.
+ * Copyright (C) 2007, 2010-2011 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -63,6 +63,13 @@ extern int xenRegister (void);
 # define XEN_SCHED_SEDF_NPARAM   6
 # define XEN_SCHED_CRED_NPARAM   2
 
+/* The set of migration flags explicitly supported by xen.  */
+# define XEN_MIGRATION_FLAGS                    \
+    (VIR_MIGRATE_LIVE |                         \
+     VIR_MIGRATE_UNDEFINE_SOURCE |              \
+     VIR_MIGRATE_PAUSED |                       \
+     VIR_MIGRATE_PERSIST_DEST)
+
 /* _xenUnifiedDriver:
  *
  * Entry points into the underlying Xen drivers.  This structure
@@ -74,50 +81,37 @@ extern int xenRegister (void);
  * structure with direct calls in xen_unified.c.
  */
 struct xenUnifiedDriver {
-        virDrvOpen			open;
-        virDrvClose			close;
-        virDrvGetVersion		version;
-    virDrvGetHostname       getHostname;
-        virDrvNodeGetInfo		nodeGetInfo;
-        virDrvGetCapabilities		getCapabilities;
-        virDrvListDomains		listDomains;
-        virDrvNumOfDomains		numOfDomains;
-        virDrvDomainCreateXML		domainCreateXML;
-        virDrvDomainSuspend		domainSuspend;
-        virDrvDomainResume		domainResume;
-        virDrvDomainShutdown		domainShutdown;
-        virDrvDomainReboot		domainReboot;
-        virDrvDomainDestroy		domainDestroy;
-        virDrvDomainGetOSType		domainGetOSType;
-        virDrvDomainGetMaxMemory	domainGetMaxMemory;
-        virDrvDomainSetMaxMemory	domainSetMaxMemory;
-        virDrvDomainSetMemory		domainSetMemory;
-        virDrvDomainGetInfo		domainGetInfo;
-        virDrvDomainSave		domainSave;
-        virDrvDomainRestore		domainRestore;
-        virDrvDomainCoreDump		domainCoreDump;
-        virDrvDomainScreenshot      domainScreenshot;
-        virDrvDomainPinVcpu		domainPinVcpu;
-        virDrvDomainGetVcpus		domainGetVcpus;
-        virDrvListDefinedDomains	listDefinedDomains;
-        virDrvNumOfDefinedDomains	numOfDefinedDomains;
-        virDrvDomainCreate		domainCreate;
-        virDrvDomainDefineXML           domainDefineXML;
-        virDrvDomainUndefine            domainUndefine;
-        virDrvDomainAttachDeviceFlags	domainAttachDeviceFlags;
-        virDrvDomainDetachDeviceFlags	domainDetachDeviceFlags;
-        virDrvDomainUpdateDeviceFlags	domainUpdateDeviceFlags;
-        virDrvDomainGetAutostart	domainGetAutostart;
-        virDrvDomainSetAutostart	domainSetAutostart;
-        virDrvDomainGetSchedulerType	domainGetSchedulerType;
-        virDrvDomainGetSchedulerParameters domainGetSchedulerParameters;
-        virDrvDomainSetSchedulerParameters domainSetSchedulerParameters;
+    virDrvClose xenClose; /* Only mandatory callback; all others may be NULL */
+    virDrvGetVersion  xenVersion;
+    virDrvGetHostname xenGetHostname;
+    virDrvDomainSuspend xenDomainSuspend;
+    virDrvDomainResume xenDomainResume;
+    virDrvDomainShutdown xenDomainShutdown;
+    virDrvDomainReboot xenDomainReboot;
+    virDrvDomainDestroyFlags xenDomainDestroyFlags;
+    virDrvDomainGetOSType xenDomainGetOSType;
+    virDrvDomainGetMaxMemory xenDomainGetMaxMemory;
+    virDrvDomainSetMaxMemory xenDomainSetMaxMemory;
+    virDrvDomainSetMemory xenDomainSetMemory;
+    virDrvDomainGetInfo xenDomainGetInfo;
+    virDrvDomainPinVcpu xenDomainPinVcpu;
+    virDrvDomainGetVcpus xenDomainGetVcpus;
+    virDrvListDefinedDomains xenListDefinedDomains;
+    virDrvNumOfDefinedDomains xenNumOfDefinedDomains;
+    virDrvDomainCreate xenDomainCreate;
+    virDrvDomainDefineXML xenDomainDefineXML;
+    virDrvDomainUndefine xenDomainUndefine;
+    virDrvDomainAttachDeviceFlags xenDomainAttachDeviceFlags;
+    virDrvDomainDetachDeviceFlags xenDomainDetachDeviceFlags;
+    virDrvDomainGetSchedulerType xenDomainGetSchedulerType;
+    virDrvDomainGetSchedulerParameters xenDomainGetSchedulerParameters;
+    virDrvDomainSetSchedulerParameters xenDomainSetSchedulerParameters;
 };
 
 typedef struct xenXMConfCache *xenXMConfCachePtr;
 typedef struct xenXMConfCache {
     time_t refreshedAt;
-    char filename[PATH_MAX];
+    char *filename;
     virDomainDefPtr def;
 } xenXMConfCache;
 

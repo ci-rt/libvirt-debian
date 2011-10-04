@@ -11,7 +11,9 @@ import os, sys
 import string
 import glob
 
-debug=0
+quiet=True
+warnings=0
+debug=False
 debugsym=None
 
 #
@@ -23,6 +25,11 @@ included_files = {
   "libvirt.c": "Main interfaces for the libvirt library",
   "virterror.c": "implements error handling and reporting code for libvirt",
   "event.c": "event loop for monitoring file handles",
+}
+
+qemu_included_files = {
+  "libvirt-qemu.h": "header with QEMU specific API definitions",
+  "libvirt-qemu.c": "Implementations for the QEMU specific APIs",
 }
 
 ignored_words = {
@@ -95,7 +102,7 @@ class identifier:
             self.conditionals = None
         else:
             self.conditionals = conditionals[:]
-        if self.name == debugsym:
+        if self.name == debugsym and not quiet:
             print "=> define %s : %s" % (debugsym, (module, type, info,
                                          extra, conditionals))
 
@@ -155,7 +162,7 @@ class identifier:
 
     def update(self, header, module, type = None, info = None, extra=None,
                conditionals=None):
-        if self.name == debugsym:
+        if self.name == debugsym and not quiet:
             print "=> update %s : %s" % (debugsym, (module, type, info,
                                          extra, conditionals))
         if header != None and self.header == None:
@@ -179,6 +186,7 @@ class index:
         self.variables = {}
         self.includes = {}
         self.structs = {}
+        self.unions = {}
         self.enums = {}
         self.typedefs = {}
         self.macros = {}
@@ -202,7 +210,7 @@ class index:
         if d != None and name != None and type != None:
             self.references[name] = d
 
-        if name == debugsym:
+        if name == debugsym and not quiet:
             print "New ref: %s" % (d)
 
         return d
@@ -232,6 +240,10 @@ class index:
                 self.includes[name] = d
             elif type == "struct":
                 self.structs[name] = d
+            elif type == "struct":
+                self.structs[name] = d
+            elif type == "union":
+                self.unions[name] = d
             elif type == "enum":
                 self.enums[name] = d
             elif type == "typedef":
@@ -239,9 +251,9 @@ class index:
             elif type == "macro":
                 self.macros[name] = d
             else:
-                print "Unable to register type ", type
+                self.warning("Unable to register type ", type)
 
-        if name == debugsym:
+        if name == debugsym and not quiet:
             print "New symbol: %s" % (d)
 
         return d
@@ -255,8 +267,8 @@ class index:
              if self.macros.has_key(id):
                  del self.macros[id]
              if self.functions.has_key(id):
-                 print "function %s from %s redeclared in %s" % (
-                    id, self.functions[id].header, idx.functions[id].header)
+                 self.warning("function %s from %s redeclared in %s" % (
+                    id, self.functions[id].header, idx.functions[id].header))
              else:
                  self.functions[id] = idx.functions[id]
                  self.identifiers[id] = idx.functions[id]
@@ -268,22 +280,29 @@ class index:
              if self.macros.has_key(id):
                  del self.macros[id]
              if self.variables.has_key(id):
-                 print "variable %s from %s redeclared in %s" % (
-                    id, self.variables[id].header, idx.variables[id].header)
+                 self.warning("variable %s from %s redeclared in %s" % (
+                    id, self.variables[id].header, idx.variables[id].header))
              else:
                  self.variables[id] = idx.variables[id]
                  self.identifiers[id] = idx.variables[id]
         for id in idx.structs.keys():
              if self.structs.has_key(id):
-                 print "struct %s from %s redeclared in %s" % (
-                    id, self.structs[id].header, idx.structs[id].header)
+                 self.warning("struct %s from %s redeclared in %s" % (
+                    id, self.structs[id].header, idx.structs[id].header))
              else:
                  self.structs[id] = idx.structs[id]
                  self.identifiers[id] = idx.structs[id]
+        for id in idx.unions.keys():
+             if self.unions.has_key(id):
+                 print "union %s from %s redeclared in %s" % (
+                    id, self.unions[id].header, idx.unions[id].header)
+             else:
+                 self.unions[id] = idx.unions[id]
+                 self.identifiers[id] = idx.unions[id]
         for id in idx.typedefs.keys():
              if self.typedefs.has_key(id):
-                 print "typedef %s from %s redeclared in %s" % (
-                    id, self.typedefs[id].header, idx.typedefs[id].header)
+                 self.warning("typedef %s from %s redeclared in %s" % (
+                    id, self.typedefs[id].header, idx.typedefs[id].header))
              else:
                  self.typedefs[id] = idx.typedefs[id]
                  self.identifiers[id] = idx.typedefs[id]
@@ -299,15 +318,15 @@ class index:
              if self.enums.has_key(id):
                  continue
              if self.macros.has_key(id):
-                 print "macro %s from %s redeclared in %s" % (
-                    id, self.macros[id].header, idx.macros[id].header)
+                 self.warning("macro %s from %s redeclared in %s" % (
+                    id, self.macros[id].header, idx.macros[id].header))
              else:
                  self.macros[id] = idx.macros[id]
                  self.identifiers[id] = idx.macros[id]
         for id in idx.enums.keys():
              if self.enums.has_key(id):
-                 print "enum %s from %s redeclared in %s" % (
-                    id, self.enums[id].header, idx.enums[id].header)
+                 self.warning("enum %s from %s redeclared in %s" % (
+                    id, self.enums[id].header, idx.enums[id].header))
              else:
                  self.enums[id] = idx.enums[id]
                  self.identifiers[id] = idx.enums[id]
@@ -318,10 +337,10 @@ class index:
                  # check that function condition agrees with header
                  if idx.functions[id].conditionals != \
                     self.functions[id].conditionals:
-                     print "Header condition differs from Function for %s:" \
-                        % id
-                     print "  H: %s" % self.functions[id].conditionals
-                     print "  C: %s" % idx.functions[id].conditionals
+                     self.warning("Header condition differs from Function for %s:" \
+                                      % id)
+                     self.warning("  H: %s" % self.functions[id].conditionals)
+                     self.warning("  C: %s" % idx.functions[id].conditionals)
                  up = idx.functions[id]
                  self.functions[id].update(None, up.module, up.type, up.info, up.extra)
          #     else:
@@ -344,11 +363,13 @@ class index:
 
 
     def analyze(self):
-        self.analyze_dict("functions", self.functions)
-        self.analyze_dict("variables", self.variables)
-        self.analyze_dict("structs", self.structs)
-        self.analyze_dict("typedefs", self.typedefs)
-        self.analyze_dict("macros", self.macros)
+        if not quiet:
+            self.analyze_dict("functions", self.functions)
+            self.analyze_dict("variables", self.variables)
+            self.analyze_dict("structs", self.structs)
+            self.analyze_dict("unions", self.unions)
+            self.analyze_dict("typedefs", self.typedefs)
+            self.analyze_dict("macros", self.macros)
 
 class CLexer:
     """A lexer for the C language, tokenize the input by reading and
@@ -608,6 +629,8 @@ class CParser:
                                info, extra, self.conditionals)
 
     def warning(self, msg):
+        global warnings
+        warnings = warnings + 1
         if self.no_error:
             return
         print msg
@@ -656,13 +679,36 @@ class CParser:
                         res[item] = line
         self.index.info = res
 
+    def strip_lead_star(self, line):
+        l = len(line)
+        i = 0
+        while i < l:
+            if line[i] == ' ' or line[i] == '\t':
+                i += 1
+            elif line[i] == '*':
+                return line[:i] + line[i + 1:]
+            else:
+                 return line
+        return line
+
+    def cleanupComment(self):
+        if type(self.comment) != type(""):
+            return
+        # remove the leading * on multi-line comments
+        lines = self.comment.splitlines(True)
+        com = ""
+        for line in lines:
+            com = com + self.strip_lead_star(line)
+        self.comment = com.strip()
+
     def parseComment(self, token):
+        com = token[1]
         if self.top_comment == "":
-            self.top_comment = token[1]
-        if self.comment == None or token[1][0] == '*':
-            self.comment = token[1];
+            self.top_comment = com
+        if self.comment == None or com[0] == '*':
+            self.comment = com;
         else:
-            self.comment = self.comment + token[1]
+            self.comment = self.comment + com
         token = self.lexer.token()
 
         if string.find(self.comment, "DOC_DISABLE") != -1:
@@ -1178,7 +1224,13 @@ class CParser:
                     if token[0] == "sep" and token[1] == ";":
                         self.comment = None
                         token = self.token()
-                        fields.append((self.type, fname, self.comment))
+                        self.cleanupComment()
+                        if self.type == "union":
+                            fields.append((self.type, fname, self.comment,
+                                           self.union_fields))
+                            self.union_fields = []
+                        else:
+                            fields.append((self.type, fname, self.comment))
                         self.comment = None
                     else:
                         self.error("parseStruct: expecting ;", token)
@@ -1201,6 +1253,56 @@ class CParser:
         return token
 
      #
+     # Parse a C union definition till the balancing }
+     #
+    def parseUnion(self, token):
+        fields = []
+        # self.debug("start parseUnion", token)
+        while token != None:
+            if token[0] == "sep" and token[1] == "{":
+                token = self.token()
+                token = self.parseTypeBlock(token)
+            elif token[0] == "sep" and token[1] == "}":
+                self.union_fields = fields
+                # self.debug("end parseUnion", token)
+                # print fields
+                token = self.token()
+                return token
+            else:
+                base_type = self.type
+                # self.debug("before parseType", token)
+                token = self.parseType(token)
+                # self.debug("after parseType", token)
+                if token != None and token[0] == "name":
+                    fname = token[1]
+                    token = self.token()
+                    if token[0] == "sep" and token[1] == ";":
+                        self.comment = None
+                        token = self.token()
+                        self.cleanupComment()
+                        fields.append((self.type, fname, self.comment))
+                        self.comment = None
+                    else:
+                        self.error("parseUnion: expecting ;", token)
+                elif token != None and token[0] == "sep" and token[1] == "{":
+                    token = self.token()
+                    token = self.parseTypeBlock(token)
+                    if token != None and token[0] == "name":
+                        token = self.token()
+                    if token != None and token[0] == "sep" and token[1] == ";":
+                        token = self.token()
+                    else:
+                        self.error("parseUnion: expecting ;", token)
+                else:
+                    self.error("parseUnion: name", token)
+                    token = self.token()
+                self.type = base_type;
+        self.union_fields = fields
+        # self.debug("end parseUnion", token)
+        # print fields
+        return token
+
+     #
      # Parse a C enum block, parse till the balancing }
      #
     def parseEnumBlock(self, token):
@@ -1215,6 +1317,7 @@ class CParser:
                 token = self.parseTypeBlock(token)
             elif token[0] == "sep" and token[1] == "}":
                 if name != None:
+                    self.cleanupComment()
                     if self.comment != None:
                         comment = self.comment
                         self.comment = None
@@ -1222,6 +1325,7 @@ class CParser:
                 token = self.token()
                 return token
             elif token[0] == "name":
+                    self.cleanupComment()
                     if name != None:
                         if self.comment != None:
                             comment = string.strip(self.comment)
@@ -1252,7 +1356,7 @@ class CParser:
         return token
 
      #
-     # Parse a C definition block, used for structs it parse till
+     # Parse a C definition block, used for structs or unions it parse till
      # the balancing }
      #
     def parseTypeBlock(self, token):
@@ -1275,6 +1379,7 @@ class CParser:
     def parseType(self, token):
         self.type = ""
         self.struct_fields = []
+        self.union_fields = []
         self.signature = None
         if token == None:
             return token
@@ -1304,22 +1409,19 @@ class CParser:
                 self.push(token)
                 token = oldtmp
 
+            oldtmp = token
+            token = self.token()
             if token[0] == "name" and token[1] == "int":
-                if self.type == "":
-                    self.type = tmp[1]
-                else:
-                    self.type = self.type + " " + tmp[1]
+                self.type = self.type + " " + token[1]
+            else:
+                self.push(token)
+                token = oldtmp
 
         elif token[0] == "name" and token[1] == "short":
             if self.type == "":
                 self.type = token[1]
             else:
                 self.type = self.type + " " + token[1]
-            if token[0] == "name" and token[1] == "int":
-                if self.type == "":
-                    self.type = tmp[1]
-                else:
-                    self.type = self.type + " " + tmp[1]
 
         elif token[0] == "name" and token[1] == "struct":
             if self.type == "":
@@ -1346,6 +1448,28 @@ class CParser:
                 else:
                     self.error("struct : expecting name", token)
                     return token
+            elif token != None and token[0] == "name" and nametok != None:
+                self.type = self.type + " " + nametok[1]
+                return token
+
+            if nametok != None:
+                self.lexer.push(token)
+                token = nametok
+            return token
+
+        elif token[0] == "name" and token[1] == "union":
+            if self.type == "":
+                self.type = token[1]
+            else:
+                self.type = self.type + " " + token[1]
+            token = self.token()
+            nametok = None
+            if token[0] == "name":
+                nametok = token
+                token = self.token()
+            if token != None and token[0] == "sep" and token[1] == "{":
+                token = self.token()
+                token = self.parseUnion(token)
             elif token != None and token[0] == "name" and nametok != None:
                 self.type = self.type + " " + nametok[1]
                 return token
@@ -1434,7 +1558,7 @@ class CParser:
             nametok = token
             token = self.token()
             if token != None and token[0] == "sep" and token[1] == '[':
-                self.type = self.type + nametok[1]
+                self.type = self.type + " " + nametok[1]
                 while token != None and token[0] == "sep" and token[1] == '[':
                     self.type = self.type + token[1]
                     token = self.token()
@@ -1522,7 +1646,10 @@ class CParser:
         "virDomainMigrateSetMaxSpeed"    : (False, ("bandwidth")),
         "virDomainSetMaxMemory"          : (False, ("memory")),
         "virDomainSetMemory"             : (False, ("memory")),
-        "virDomainSetMemoryFlags"        : (False, ("memory")) }
+        "virDomainSetMemoryFlags"        : (False, ("memory")),
+        "virDomainBlockJobSetSpeed"      : (False, ("bandwidth")),
+        "virDomainBlockPull"             : (False, ("bandwidth")),
+        "virDomainMigrateGetMaxSpeed"    : (False, ("bandwidth")) }
 
     def checkLongLegacyFunction(self, name, return_type, signature):
         if "long" in return_type and "long long" not in return_type:
@@ -1548,7 +1675,8 @@ class CParser:
     # [unsigned] long long
     long_legacy_struct_fields = \
       { "_virDomainInfo"                 : ("maxMem", "memory"),
-        "_virNodeInfo"                   : ("memory") }
+        "_virNodeInfo"                   : ("memory"),
+        "_virDomainBlockJobInfo"         : ("bandwidth") }
 
     def checkLongLegacyStruct(self, name, fields):
         for field in fields:
@@ -1688,7 +1816,8 @@ class CParser:
         return token
 
     def parse(self):
-        self.warning("Parsing %s" % (self.filename))
+        if not quiet:
+            print "Parsing %s" % (self.filename)
         token = self.token()
         while token != None:
             if token[0] == 'name':
@@ -1708,7 +1837,10 @@ class docBuilder:
         self.name = name
         self.path = path
         self.directories = directories
-        self.includes = includes + included_files.keys()
+        if name == "libvirt":
+            self.includes = includes + included_files.keys()
+        elif name == "libvirt-qemu":
+            self.includes = includes + qemu_included_files.keys()
         self.modules = {}
         self.headers = {}
         self.idx = index()
@@ -1755,7 +1887,8 @@ class docBuilder:
                 pass
 
     def analyze(self):
-        print "Project %s : %d headers, %d modules" % (self.name, len(self.headers.keys()), len(self.modules.keys()))
+        if not quiet:
+            print "Project %s : %d headers, %d modules" % (self.name, len(self.headers.keys()), len(self.modules.keys()))
         self.idx.analyze()
 
     def scanHeaders(self):
@@ -1844,6 +1977,20 @@ class docBuilder:
                 pass
         output.write("    </macro>\n")
 
+    def serialize_union(self, output, field, desc):
+        output.write("      <field name='%s' type='union' info='%s'>\n" % (field[1] , desc))
+        output.write("        <union>\n")
+        for f in field[3]:
+            desc = f[2]
+            if desc == None:
+                desc = ''
+            else:
+                desc = escape(desc)
+            output.write("          <field name='%s' type='%s' info='%s'/>\n" % (f[1] , f[0], desc))
+
+        output.write("        </union>\n")
+        output.write("      </field>\n")
+
     def serialize_typedef(self, output, name):
         id = self.idx.typedefs[name]
         if id.info[0:7] == 'struct ':
@@ -1862,9 +2009,12 @@ class docBuilder:
                             desc = ''
                         else:
                             desc = escape(desc)
-                        output.write("      <field name='%s' type='%s' info='%s'/>\n" % (field[1] , field[0], desc))
+                        if field[0] == "union":
+                            self.serialize_union(output, field, desc)
+                        else:
+                            output.write("      <field name='%s' type='%s' info='%s'/>\n" % (field[1] , field[0], desc))
                 except:
-                    print "Failed to serialize struct %s" % (name)
+                    self.warning("Failed to serialize struct %s" % (name))
                 output.write("    </struct>\n")
             else:
                 output.write("/>\n");
@@ -1892,7 +2042,7 @@ class docBuilder:
 
     def serialize_function(self, output, name):
         id = self.idx.functions[name]
-        if name == debugsym:
+        if name == debugsym and not quiet:
             print "=>", id
 
         output.write("    <%s name='%s' file='%s' module='%s'>\n" % (id.type,
@@ -1928,7 +2078,7 @@ class docBuilder:
                     output.write("      <arg name='%s' type='%s' info='%s'/>\n" % (param[1], param[0], escape(param[2])))
                     self.indexString(name, param[2])
         except:
-            print "Failed to save function %s info: " % name, `id.info`
+            self.warning("Failed to save function %s info: " % name, `id.info`)
         output.write("    </%s>\n" % (id.type))
 
     def serialize_exports(self, output, file):
@@ -1943,7 +2093,7 @@ class docBuilder:
                                  escape(dict.info[data]),
                                  string.lower(data)))
                 except:
-                    print "Header %s lacks a %s description" % (module, data)
+                    self.warning("Header %s lacks a %s description" % (module, data))
             if dict.info.has_key('Description'):
                 desc = dict.info['Description']
                 if string.find(desc, "DEPRECATED") != -1:
@@ -1960,6 +2110,8 @@ class docBuilder:
             if dict.typedefs.has_key(id):
                 continue
             if dict.structs.has_key(id):
+                continue
+            if dict.unions.has_key(id):
                 continue
             if dict.enums.has_key(id):
                 continue
@@ -2154,7 +2306,8 @@ class docBuilder:
 
     def serialize(self):
         filename = "%s/%s-api.xml" % (self.path, self.name)
-        print "Saving XML description %s" % (filename)
+        if not quiet:
+            print "Saving XML description %s" % (filename)
         output = open(filename, "w")
         output.write('<?xml version="1.0" encoding="ISO-8859-1"?>\n')
         output.write("<api name='%s'>\n" % self.name)
@@ -2190,7 +2343,8 @@ class docBuilder:
         output.close()
 
         filename = "%s/%s-refs.xml" % (self.path, self.name)
-        print "Saving XML Cross References %s" % (filename)
+        if not quiet:
+            print "Saving XML Cross References %s" % (filename)
         output = open(filename, "w")
         output.write('<?xml version="1.0" encoding="ISO-8859-1"?>\n')
         output.write("<apirefs name='%s'>\n" % self.name)
@@ -2199,24 +2353,29 @@ class docBuilder:
         output.close()
 
 
-def rebuild():
+def rebuild(name):
+    if name not in ["libvirt", "libvirt-qemu"]:
+        self.warning("rebuild() failed, unkown module %s") % name
+        return None
     builder = None
     srcdir = os.environ["srcdir"]
     if glob.glob(srcdir + "/../src/libvirt.c") != [] :
-        print "Rebuilding API description for libvirt"
+        if not quiet:
+            print "Rebuilding API description for %s" % name
         dirs = [srcdir + "/../src",
                 srcdir + "/../src/util",
                 srcdir + "/../include/libvirt"]
         if glob.glob(srcdir + "/../include/libvirt/libvirt.h") == [] :
             dirs.append("../include/libvirt")
-        builder = docBuilder("libvirt", srcdir, dirs, [])
+        builder = docBuilder(name, srcdir, dirs, [])
     elif glob.glob("src/libvirt.c") != [] :
-        print "Rebuilding API description for libvirt"
-        builder = docBuilder("libvirt", srcdir,
+        if not quiet:
+            print "Rebuilding API description for %s" % name
+        builder = docBuilder(name, srcdir,
                              ["src", "src/util", "include/libvirt"],
                              [])
     else:
-        print "rebuild() failed, unable to guess the module"
+        self.warning("rebuild() failed, unable to guess the module")
         return None
     builder.scan()
     builder.analyze()
@@ -2236,4 +2395,9 @@ if __name__ == "__main__":
         debug = 1
         parse(sys.argv[1])
     else:
-        rebuild()
+        rebuild("libvirt")
+        rebuild("libvirt-qemu")
+    if warnings > 0:
+        sys.exit(2)
+    else:
+        sys.exit(0)

@@ -30,6 +30,12 @@
 extern virStorageBackend virStorageBackendFileSystem;
 extern virStorageBackend virStorageBackendNetFileSystem;
 # endif
+
+typedef enum {
+    FILESYSTEM_PROBE_FOUND,
+    FILESYSTEM_PROBE_NOT_FOUND,
+    FILESYSTEM_PROBE_ERROR,
+} virStoragePoolProbeResult;
 extern virStorageBackend virStorageBackendDirectory;
 
 #endif /* __VIR_STORAGE_BACKEND_FS_H__ */

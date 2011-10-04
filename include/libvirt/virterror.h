@@ -4,7 +4,7 @@
  * Description: Provides the interfaces of the libvirt library to handle
  *              errors raised while using the library.
  *
- * Copy:  Copyright (C) 2006, 2010 Red Hat, Inc.
+ * Copy:  Copyright (C) 2006, 2010-2011 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -82,6 +82,7 @@ typedef enum {
     VIR_FROM_EVENT = 40,       /* Error from event loop impl */
     VIR_FROM_LIBXL = 41,	/* Error from libxenlight driver */
     VIR_FROM_LOCKING = 42,      /* Error from lock manager */
+    VIR_FROM_HYPERV = 43,       /* Error from Hyper-V driver */
 } virErrorDomain;
 
 
@@ -232,6 +233,10 @@ typedef enum {
     VIR_ERR_INVALID_DOMAIN_SNAPSHOT = 71,/* invalid domain snapshot */
     VIR_ERR_NO_DOMAIN_SNAPSHOT = 72,	/* domain snapshot not found */
     VIR_ERR_INVALID_STREAM = 73,        /* stream pointer not valid */
+    VIR_ERR_ARGUMENT_UNSUPPORTED = 74,  /* valid API use but unsupported by
+                                           the given driver */
+    VIR_ERR_STORAGE_PROBE_FAILED = 75,  /* storage pool proble failed */
+    VIR_ERR_STORAGE_POOL_BUILT = 76,    /* storage pool already built */
 } virErrorNumber;
 
 /**

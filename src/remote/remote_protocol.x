@@ -60,15 +60,6 @@
 
 /*----- Data types. -----*/
 
-/* Maximum total message size (serialised). */
-const REMOTE_MESSAGE_MAX = 262144;
-
-/* Size of struct remote_message_header (serialized)*/
-const REMOTE_MESSAGE_HEADER_MAX = 24;
-
-/* Size of message payload */
-const REMOTE_MESSAGE_PAYLOAD_MAX = 262120;
-
 /* Length of long, but not unbounded, strings.
  * This is an arbitrary limit designed to stop the decoder from trying
  * to allocate unbounded amounts of memory when fed with a bad message.
@@ -134,6 +125,15 @@ const REMOTE_DOMAIN_BLKIO_PARAMETERS_MAX = 16;
 /* Upper limit on list of memory parameters. */
 const REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX = 16;
 
+/* Upper limit on list of node cpu stats. */
+const REMOTE_NODE_CPU_STATS_MAX = 16;
+
+/* Upper limit on list of node memory stats. */
+const REMOTE_NODE_MEMORY_STATS_MAX = 16;
+
+/* Upper limit on list of block stats. */
+const REMOTE_DOMAIN_BLOCK_STATS_PARAMETERS_MAX = 16;
+
 /* Upper limit on number of NUMA cells */
 const REMOTE_NODE_MAX_CELLS = 1024;
 
@@ -190,6 +190,11 @@ const REMOTE_SECRET_UUID_LIST_MAX = 16384;
  * Upper limit on list of CPUs accepted when computing a baseline CPU.
  */
 const REMOTE_CPU_BASELINE_MAX = 256;
+
+/*
+ * Max number of sending keycodes.
+ */
+const REMOTE_DOMAIN_SEND_KEY_MAX = 16;
 
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
@@ -319,6 +324,17 @@ struct remote_typed_param {
     remote_typed_param_value value;
 };
 
+struct remote_node_get_cpu_stats {
+    remote_nonnull_string field;
+    unsigned hyper value;
+};
+
+struct remote_node_get_memory_stats {
+    remote_nonnull_string field;
+    unsigned hyper value;
+};
+
+
 /*----- Calls. -----*/
 
 /* For each call we may have a 'remote_CALL_args' and 'remote_CALL_ret'
@@ -327,18 +343,26 @@ struct remote_typed_param {
  * connection).  Errors are returned implicitly in the RPC protocol.
  *
  * Please follow the naming convention carefully - this file is
- * parsed by 'remote_generator.pl'.
+ * parsed by 'gendispatch.pl'.
  *
  * 'remote_CALL_ret' members that are filled via call-by-reference must be
  * annotated with a insert@<offset> comment to indicate the offset in the
- * parameter list of the function to be called. */
+ * parameter list of the function to be called.
+ *
+ * If the 'remote_CALL_ret' maps to a struct in the public API then it is
+ * also filled via call-by-reference and must be annotated with a
+ * insert@<offset> comment to indicate the offset in the parameter list of
+ * the function to be called.
+ *
+ * Dynamic opaque and remote_nonnull_string arrays can be annotated with an
+ * optional typecast */
 
 struct remote_open_args {
     /* NB. "name" might be NULL although in practice you can't
      * yet do that using the remote_internal driver.
      */
     remote_string name;
-    int flags;
+    unsigned int flags;
 };
 
 struct remote_supports_feature_args {
@@ -388,7 +412,7 @@ struct remote_get_max_vcpus_ret {
     int max_vcpus;
 };
 
-struct remote_node_get_info_ret {
+struct remote_node_get_info_ret { /* insert@1 */
     char model[32];
     unsigned hyper memory;
     int cpus;
@@ -401,6 +425,28 @@ struct remote_node_get_info_ret {
 
 struct remote_get_capabilities_ret {
     remote_nonnull_string capabilities;
+};
+
+struct remote_node_get_cpu_stats_args {
+    int cpuNum;
+    int nparams;
+    unsigned int flags;
+};
+
+struct remote_node_get_cpu_stats_ret {
+    remote_node_get_cpu_stats params<REMOTE_NODE_CPU_STATS_MAX>;
+    int nparams;
+};
+
+struct remote_node_get_memory_stats_args {
+    int nparams;
+    int cellNum;
+    unsigned int flags;
+};
+
+struct remote_node_get_memory_stats_ret {
+    remote_node_get_memory_stats params<REMOTE_NODE_MEMORY_STATS_MAX>;
+    int nparams;
 };
 
 struct remote_node_get_cells_free_memory_args {
@@ -494,7 +540,7 @@ struct remote_domain_block_stats_args {
     remote_nonnull_string path;
 };
 
-struct remote_domain_block_stats_ret {
+struct remote_domain_block_stats_ret { /* insert@2 */
     hyper rd_req;
     hyper rd_bytes;
     hyper wr_req;
@@ -502,12 +548,24 @@ struct remote_domain_block_stats_ret {
     hyper errs;
 };
 
+struct remote_domain_block_stats_flags_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    int nparams;
+    unsigned int flags;
+};
+
+struct remote_domain_block_stats_flags_ret {
+    remote_typed_param params<REMOTE_DOMAIN_BLOCK_STATS_PARAMETERS_MAX>;
+    int nparams;
+};
+
 struct remote_domain_interface_stats_args {
     remote_nonnull_domain dom;
     remote_nonnull_string path;
 };
 
-struct remote_domain_interface_stats_ret {
+struct remote_domain_interface_stats_ret { /* insert@2 */
     hyper rx_bytes;
     hyper rx_packets;
     hyper rx_errs;
@@ -562,7 +620,7 @@ struct remote_domain_get_block_info_args {
     unsigned int flags;
 };
 
-struct remote_domain_get_block_info_ret {
+struct remote_domain_get_block_info_ret { /* insert@2 */
     unsigned hyper allocation;
     unsigned hyper capacity;
     unsigned hyper physical;
@@ -634,6 +692,11 @@ struct remote_domain_destroy_args {
     remote_nonnull_domain dom;
 };
 
+struct remote_domain_destroy_flags_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
 struct remote_domain_get_os_type_args {
     remote_nonnull_domain dom;
 };
@@ -670,7 +733,7 @@ struct remote_domain_get_info_args {
     remote_nonnull_domain dom;
 };
 
-struct remote_domain_get_info_ret {
+struct remote_domain_get_info_ret { /* insert@1 */
     unsigned char state;
     unsigned hyper maxMem;
     unsigned hyper memory;
@@ -683,14 +746,42 @@ struct remote_domain_save_args {
     remote_nonnull_string to;
 };
 
+struct remote_domain_save_flags_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string to;
+    remote_string dxml;
+    unsigned int flags;
+};
+
 struct remote_domain_restore_args {
     remote_nonnull_string from;
+};
+
+struct remote_domain_restore_flags_args {
+    remote_nonnull_string from;
+    remote_string dxml;
+    unsigned int flags;
+};
+
+struct remote_domain_save_image_get_xml_desc_args {
+    remote_nonnull_string file;
+    unsigned int flags;
+};
+
+struct remote_domain_save_image_get_xml_desc_ret {
+    remote_nonnull_string xml;
+};
+
+struct remote_domain_save_image_define_xml_args {
+    remote_nonnull_string file;
+    remote_nonnull_string dxml;
+    unsigned int flags;
 };
 
 struct remote_domain_core_dump_args {
     remote_nonnull_domain dom;
     remote_nonnull_string to;
-    int flags;
+    unsigned int flags;
 };
 
 struct remote_domain_screenshot_args {
@@ -705,7 +796,7 @@ struct remote_domain_screenshot_ret {
 
 struct remote_domain_get_xml_desc_args {
     remote_nonnull_domain dom;
-    int flags;
+    unsigned int flags;
 };
 
 struct remote_domain_get_xml_desc_ret {
@@ -806,8 +897,21 @@ struct remote_domain_undefine_args {
     remote_nonnull_domain dom;
 };
 
+struct remote_domain_undefine_flags_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
 struct remote_domain_inject_nmi_args {
     remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_send_key_args {
+    remote_nonnull_domain dom;
+    unsigned int codeset;
+    unsigned int holdtime;
+    unsigned int keycodes<REMOTE_DOMAIN_SEND_KEY_MAX>;
     unsigned int flags;
 };
 
@@ -834,7 +938,26 @@ struct remote_domain_get_vcpus_flags_ret {
 struct remote_domain_pin_vcpu_args {
     remote_nonnull_domain dom;
     unsigned int vcpu;
-    opaque cpumap<REMOTE_CPUMAP_MAX>;
+    opaque cpumap<REMOTE_CPUMAP_MAX>; /* (unsigned char *) */
+};
+
+struct remote_domain_pin_vcpu_flags_args {
+    remote_nonnull_domain dom;
+    unsigned int vcpu;
+    opaque cpumap<REMOTE_CPUMAP_MAX>; /* (unsigned char *) */
+    unsigned int flags;
+};
+
+struct remote_domain_get_vcpu_pin_info_args {
+    remote_nonnull_domain dom;
+    int ncpumaps;
+    int maplen;
+    unsigned int flags;
+};
+
+struct remote_domain_get_vcpu_pin_info_ret {
+    opaque cpumaps<REMOTE_CPUMAPS_MAX>;
+    int num;
 };
 
 struct remote_domain_get_vcpus_args {
@@ -911,6 +1034,40 @@ struct remote_domain_set_autostart_args {
     int autostart;
 };
 
+struct remote_domain_block_job_abort_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned int flags;
+};
+
+struct remote_domain_get_block_job_info_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned int flags;
+};
+
+struct remote_domain_get_block_job_info_ret {
+    int found;
+    int type;
+    unsigned hyper bandwidth;
+    unsigned hyper cur;
+    unsigned hyper end;
+};
+
+struct remote_domain_block_job_set_speed_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned hyper bandwidth;
+    unsigned int flags;
+};
+
+struct remote_domain_block_pull_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    unsigned hyper bandwidth;
+    unsigned int flags;
+};
+
 /* Network calls: */
 
 struct remote_num_of_networks_ret {
@@ -983,7 +1140,7 @@ struct remote_network_destroy_args {
 
 struct remote_network_get_xml_desc_args {
     remote_nonnull_network net;
-    int flags;
+    unsigned int flags;
 };
 
 struct remote_network_get_xml_desc_ret {
@@ -1055,7 +1212,7 @@ struct remote_nwfilter_undefine_args {
 
 struct remote_nwfilter_get_xml_desc_args {
     remote_nonnull_nwfilter nwfilter;
-    int flags;
+    unsigned int flags;
 };
 
 struct remote_nwfilter_get_xml_desc_ret {
@@ -1308,7 +1465,7 @@ struct remote_storage_pool_get_info_args {
     remote_nonnull_storage_pool pool;
 };
 
-struct remote_storage_pool_get_info_ret {
+struct remote_storage_pool_get_info_ret { /* insert@1 */
     unsigned char state;
     unsigned hyper capacity;
     unsigned hyper allocation;
@@ -1418,7 +1575,7 @@ struct remote_storage_vol_get_info_args {
     remote_nonnull_storage_vol vol;
 };
 
-struct remote_storage_vol_get_info_ret {
+struct remote_storage_vol_get_info_ret { /* insert@1 */
     char type;
     unsigned hyper capacity;
     unsigned hyper allocation;
@@ -1604,7 +1761,7 @@ struct remote_secret_get_xml_desc_ret {
 
 struct remote_secret_set_value_args {
     remote_nonnull_secret secret;
-    opaque value<REMOTE_SECRET_VALUE_MAX>;
+    opaque value<REMOTE_SECRET_VALUE_MAX>; /* (const unsigned char *) */
     unsigned int flags;
 };
 
@@ -1722,7 +1879,7 @@ struct remote_cpu_compare_ret {
 
 
 struct remote_cpu_baseline_args {
-    remote_nonnull_string xmlCPUs<REMOTE_CPU_BASELINE_MAX>;
+    remote_nonnull_string xmlCPUs<REMOTE_CPU_BASELINE_MAX>; /* (const char **) */
     unsigned int flags;
 };
 
@@ -1735,7 +1892,7 @@ struct remote_domain_get_job_info_args {
     remote_nonnull_domain dom;
 };
 
-struct remote_domain_get_job_info_ret {
+struct remote_domain_get_job_info_ret { /* insert@1 */
     int type;
 
     unsigned hyper timeElapsed;
@@ -1771,6 +1928,16 @@ struct remote_domain_migrate_set_max_speed_args {
     unsigned hyper bandwidth;
     unsigned int flags;
 };
+
+struct remote_domain_migrate_get_max_speed_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_migrate_get_max_speed_ret {
+     unsigned hyper bandwidth; /* insert@1 */
+};
+
 
 struct remote_domain_events_register_any_args {
     int eventID;
@@ -1829,6 +1996,13 @@ struct remote_domain_event_graphics_msg {
     remote_domain_event_graphics_address remote;
     remote_nonnull_string authScheme;
     remote_domain_event_graphics_identity subject<REMOTE_DOMAIN_EVENT_GRAPHICS_IDENTITY_MAX>;
+};
+
+struct remote_domain_event_block_job_msg {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    int type;
+    int status;
 };
 
 struct remote_domain_managed_save_args {
@@ -1928,7 +2102,7 @@ struct remote_domain_snapshot_delete_args {
 
 struct remote_domain_open_console_args {
     remote_nonnull_domain dom;
-    remote_string devname;
+    remote_string dev_name;
     unsigned int flags;
 };
 
@@ -2035,6 +2209,17 @@ struct remote_domain_event_control_error_msg {
     remote_nonnull_domain dom;
 };
 
+struct remote_domain_get_control_info_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_get_control_info_ret { /* insert@1 */
+    unsigned int state;
+    unsigned int details;
+    unsigned hyper stateTime;
+};
+
 /*----- Protocol. -----*/
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -2042,189 +2227,195 @@ const REMOTE_PROGRAM = 0x20008086;
 const REMOTE_PROTOCOL_VERSION = 1;
 
 enum remote_procedure {
-    /* Each function must have a two-word comment.  The first word is
-     * whether remote_generator.pl handles daemon, the second whether
+    /* Each function must have a three-word comment.  The first word is
+     * whether gendispatch.pl handles daemon, the second whether
      * it handles src/remote.  Additional flags can be specified after a
      * pipe.
+     * The last argument describes priority of API. There are two accepted
+     * values: low, high; Each API that might eventually access hypervisor's
+     * monitor (and thus block) MUST fall into low priority. However, there
+     * are some exceptions to this rule, e.g. domainDestroy. Other APIs MAY
+     * be marked as high priority. If in doubt, it's safe to choose low.
+     * Low is taken as default, and thus can be left out.
      *
      * The (readstream|writestream)@<offset> flag lets daemon and src/remote
      * create a stream.  The direction is defined from the src/remote point
      * of view.  A readstream transfers data from daemon to src/remote.  The
      * <offset> specifies at which offset the stream parameter is inserted
      * in the function parameter list. */
-    REMOTE_PROC_OPEN = 1, /* skipgen skipgen */
-    REMOTE_PROC_CLOSE = 2, /* skipgen skipgen */
-    REMOTE_PROC_GET_TYPE = 3, /* autogen skipgen */
-    REMOTE_PROC_GET_VERSION = 4, /* autogen autogen */
-    REMOTE_PROC_GET_MAX_VCPUS = 5, /* autogen autogen */
-    REMOTE_PROC_NODE_GET_INFO = 6, /* autogen autogen */
+    REMOTE_PROC_OPEN = 1, /* skipgen skipgen priority:high */
+    REMOTE_PROC_CLOSE = 2, /* skipgen skipgen priority:high */
+    REMOTE_PROC_GET_TYPE = 3, /* autogen skipgen priority:high */
+    REMOTE_PROC_GET_VERSION = 4, /* autogen autogen priority:high */
+    REMOTE_PROC_GET_MAX_VCPUS = 5, /* autogen autogen priority:high */
+    REMOTE_PROC_NODE_GET_INFO = 6, /* autogen autogen priority:high */
     REMOTE_PROC_GET_CAPABILITIES = 7, /* autogen autogen */
     REMOTE_PROC_DOMAIN_ATTACH_DEVICE = 8, /* autogen autogen */
     REMOTE_PROC_DOMAIN_CREATE = 9, /* autogen skipgen */
     REMOTE_PROC_DOMAIN_CREATE_XML = 10, /* autogen autogen */
 
-    REMOTE_PROC_DOMAIN_DEFINE_XML = 11, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_DESTROY = 12, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_DEFINE_XML = 11, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_DESTROY = 12, /* autogen autogen priority:high */
     REMOTE_PROC_DOMAIN_DETACH_DEVICE = 13, /* autogen autogen */
     REMOTE_PROC_DOMAIN_GET_XML_DESC = 14, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_GET_AUTOSTART = 15, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_GET_AUTOSTART = 15, /* autogen autogen priority:high */
     REMOTE_PROC_DOMAIN_GET_INFO = 16, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_GET_MAX_MEMORY = 17, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_GET_MAX_VCPUS = 18, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_GET_OS_TYPE = 19, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_GET_VCPUS = 20, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_GET_MAX_MEMORY = 17, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_GET_MAX_VCPUS = 18, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_GET_OS_TYPE = 19, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_GET_VCPUS = 20, /* skipgen skipgen priority:high */
 
-    REMOTE_PROC_LIST_DEFINED_DOMAINS = 21, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_LOOKUP_BY_ID = 22, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_LOOKUP_BY_NAME = 23, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_LOOKUP_BY_UUID = 24, /* autogen autogen */
-    REMOTE_PROC_NUM_OF_DEFINED_DOMAINS = 25, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_PIN_VCPU = 26, /* skipgen autogen */
+    REMOTE_PROC_LIST_DEFINED_DOMAINS = 21, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_LOOKUP_BY_ID = 22, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_LOOKUP_BY_NAME = 23, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_LOOKUP_BY_UUID = 24, /* autogen autogen priority:high */
+    REMOTE_PROC_NUM_OF_DEFINED_DOMAINS = 25, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_PIN_VCPU = 26, /* autogen autogen */
     REMOTE_PROC_DOMAIN_REBOOT = 27, /* autogen autogen */
     REMOTE_PROC_DOMAIN_RESUME = 28, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_SET_AUTOSTART = 29, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_SET_MAX_MEMORY = 30, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SET_AUTOSTART = 29, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_SET_MAX_MEMORY = 30, /* autogen autogen priority:high */
 
     REMOTE_PROC_DOMAIN_SET_MEMORY = 31, /* autogen autogen */
     REMOTE_PROC_DOMAIN_SET_VCPUS = 32, /* autogen autogen */
     REMOTE_PROC_DOMAIN_SHUTDOWN = 33, /* autogen autogen */
     REMOTE_PROC_DOMAIN_SUSPEND = 34, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_UNDEFINE = 35, /* autogen autogen */
-    REMOTE_PROC_LIST_DEFINED_NETWORKS = 36, /* autogen autogen */
-    REMOTE_PROC_LIST_DOMAINS = 37, /* autogen skipgen */
-    REMOTE_PROC_LIST_NETWORKS = 38, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_UNDEFINE = 35, /* autogen autogen priority:high */
+    REMOTE_PROC_LIST_DEFINED_NETWORKS = 36, /* autogen autogen priority:high */
+    REMOTE_PROC_LIST_DOMAINS = 37, /* autogen skipgen priority:high */
+    REMOTE_PROC_LIST_NETWORKS = 38, /* autogen autogen priority:high */
     REMOTE_PROC_NETWORK_CREATE = 39, /* autogen autogen */
     REMOTE_PROC_NETWORK_CREATE_XML = 40, /* autogen autogen */
 
-    REMOTE_PROC_NETWORK_DEFINE_XML = 41, /* autogen autogen */
-    REMOTE_PROC_NETWORK_DESTROY = 42, /* autogen autogen */
-    REMOTE_PROC_NETWORK_GET_XML_DESC = 43, /* autogen autogen */
-    REMOTE_PROC_NETWORK_GET_AUTOSTART = 44, /* autogen autogen */
-    REMOTE_PROC_NETWORK_GET_BRIDGE_NAME = 45, /* autogen autogen */
-    REMOTE_PROC_NETWORK_LOOKUP_BY_NAME = 46, /* autogen autogen */
-    REMOTE_PROC_NETWORK_LOOKUP_BY_UUID = 47, /* autogen autogen */
-    REMOTE_PROC_NETWORK_SET_AUTOSTART = 48, /* autogen autogen */
-    REMOTE_PROC_NETWORK_UNDEFINE = 49, /* autogen autogen */
-    REMOTE_PROC_NUM_OF_DEFINED_NETWORKS = 50, /* autogen autogen */
+    REMOTE_PROC_NETWORK_DEFINE_XML = 41, /* autogen autogen priority:high */
+    REMOTE_PROC_NETWORK_DESTROY = 42, /* autogen autogen priority:high */
+    REMOTE_PROC_NETWORK_GET_XML_DESC = 43, /* autogen autogen priority:high */
+    REMOTE_PROC_NETWORK_GET_AUTOSTART = 44, /* autogen autogen priority:high */
+    REMOTE_PROC_NETWORK_GET_BRIDGE_NAME = 45, /* autogen autogen priority:high */
+    REMOTE_PROC_NETWORK_LOOKUP_BY_NAME = 46, /* autogen autogen priority:high */
+    REMOTE_PROC_NETWORK_LOOKUP_BY_UUID = 47, /* autogen autogen priority:high */
+    REMOTE_PROC_NETWORK_SET_AUTOSTART = 48, /* autogen autogen priority:high */
+    REMOTE_PROC_NETWORK_UNDEFINE = 49, /* autogen autogen priority:high */
+    REMOTE_PROC_NUM_OF_DEFINED_NETWORKS = 50, /* autogen autogen priority:high */
 
-    REMOTE_PROC_NUM_OF_DOMAINS = 51, /* autogen autogen */
-    REMOTE_PROC_NUM_OF_NETWORKS = 52, /* autogen autogen */
+    REMOTE_PROC_NUM_OF_DOMAINS = 51, /* autogen autogen priority:high */
+    REMOTE_PROC_NUM_OF_NETWORKS = 52, /* autogen autogen priority:high */
     REMOTE_PROC_DOMAIN_CORE_DUMP = 53, /* autogen autogen */
     REMOTE_PROC_DOMAIN_RESTORE = 54, /* autogen autogen */
     REMOTE_PROC_DOMAIN_SAVE = 55, /* autogen autogen */
     REMOTE_PROC_DOMAIN_GET_SCHEDULER_TYPE = 56, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_GET_SCHEDULER_PARAMETERS = 57, /* skipgen autogen */
     REMOTE_PROC_DOMAIN_SET_SCHEDULER_PARAMETERS = 58, /* autogen autogen */
-    REMOTE_PROC_GET_HOSTNAME = 59, /* autogen autogen */
-    REMOTE_PROC_SUPPORTS_FEATURE = 60, /* autogen autogen */
+    REMOTE_PROC_GET_HOSTNAME = 59, /* autogen autogen priority:high */
+    REMOTE_PROC_SUPPORTS_FEATURE = 60, /* autogen autogen priority:high */
 
     REMOTE_PROC_DOMAIN_MIGRATE_PREPARE = 61, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_MIGRATE_PERFORM = 62, /* autogen autogen */
     REMOTE_PROC_DOMAIN_MIGRATE_FINISH = 63, /* autogen autogen */
     REMOTE_PROC_DOMAIN_BLOCK_STATS = 64, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_INTERFACE_STATS = 65, /* autogen autogen */
-    REMOTE_PROC_AUTH_LIST = 66, /* skipgen skipgen */
-    REMOTE_PROC_AUTH_SASL_INIT = 67, /* skipgen skipgen */
-    REMOTE_PROC_AUTH_SASL_START = 68, /* skipgen skipgen */
-    REMOTE_PROC_AUTH_SASL_STEP = 69, /* skipgen skipgen */
-    REMOTE_PROC_AUTH_POLKIT = 70, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_INTERFACE_STATS = 65, /* autogen autogen priority:high */
+    REMOTE_PROC_AUTH_LIST = 66, /* skipgen skipgen priority:high */
+    REMOTE_PROC_AUTH_SASL_INIT = 67, /* skipgen skipgen priority:high */
+    REMOTE_PROC_AUTH_SASL_START = 68, /* skipgen skipgen priority:high */
+    REMOTE_PROC_AUTH_SASL_STEP = 69, /* skipgen skipgen priority:high */
+    REMOTE_PROC_AUTH_POLKIT = 70, /* skipgen skipgen priority:high */
 
-    REMOTE_PROC_NUM_OF_STORAGE_POOLS = 71, /* autogen autogen */
-    REMOTE_PROC_LIST_STORAGE_POOLS = 72, /* autogen autogen */
-    REMOTE_PROC_NUM_OF_DEFINED_STORAGE_POOLS = 73, /* autogen autogen */
-    REMOTE_PROC_LIST_DEFINED_STORAGE_POOLS = 74, /* autogen autogen */
+    REMOTE_PROC_NUM_OF_STORAGE_POOLS = 71, /* autogen autogen priority:high */
+    REMOTE_PROC_LIST_STORAGE_POOLS = 72, /* autogen autogen priority:high */
+    REMOTE_PROC_NUM_OF_DEFINED_STORAGE_POOLS = 73, /* autogen autogen priority:high */
+    REMOTE_PROC_LIST_DEFINED_STORAGE_POOLS = 74, /* autogen autogen priority:high */
     REMOTE_PROC_FIND_STORAGE_POOL_SOURCES = 75, /* autogen skipgen */
     REMOTE_PROC_STORAGE_POOL_CREATE_XML = 76, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_DEFINE_XML = 77, /* autogen autogen */
+    REMOTE_PROC_STORAGE_POOL_DEFINE_XML = 77, /* autogen autogen priority:high */
     REMOTE_PROC_STORAGE_POOL_CREATE = 78, /* autogen autogen */
     REMOTE_PROC_STORAGE_POOL_BUILD = 79, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_DESTROY = 80, /* autogen autogen */
+    REMOTE_PROC_STORAGE_POOL_DESTROY = 80, /* autogen autogen priority:high */
 
     REMOTE_PROC_STORAGE_POOL_DELETE = 81, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_UNDEFINE = 82, /* autogen autogen */
+    REMOTE_PROC_STORAGE_POOL_UNDEFINE = 82, /* autogen autogen priority:high */
     REMOTE_PROC_STORAGE_POOL_REFRESH = 83, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_NAME = 84, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_UUID = 85, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_VOLUME = 86, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_GET_INFO = 87, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_GET_XML_DESC = 88, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_GET_AUTOSTART = 89, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_SET_AUTOSTART = 90, /* autogen autogen */
+    REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_NAME = 84, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_UUID = 85, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_VOLUME = 86, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_POOL_GET_INFO = 87, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_POOL_GET_XML_DESC = 88, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_POOL_GET_AUTOSTART = 89, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_POOL_SET_AUTOSTART = 90, /* autogen autogen priority:high */
 
-    REMOTE_PROC_STORAGE_POOL_NUM_OF_VOLUMES = 91, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_LIST_VOLUMES = 92, /* autogen autogen */
+    REMOTE_PROC_STORAGE_POOL_NUM_OF_VOLUMES = 91, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_POOL_LIST_VOLUMES = 92, /* autogen autogen priority:high */
     REMOTE_PROC_STORAGE_VOL_CREATE_XML = 93, /* autogen autogen */
     REMOTE_PROC_STORAGE_VOL_DELETE = 94, /* autogen autogen */
-    REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_NAME = 95, /* autogen autogen */
-    REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_KEY = 96, /* autogen autogen */
-    REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_PATH = 97, /* autogen autogen */
-    REMOTE_PROC_STORAGE_VOL_GET_INFO = 98, /* autogen autogen */
-    REMOTE_PROC_STORAGE_VOL_GET_XML_DESC = 99, /* autogen autogen */
-    REMOTE_PROC_STORAGE_VOL_GET_PATH = 100, /* autogen autogen */
+    REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_NAME = 95, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_KEY = 96, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_PATH = 97, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_VOL_GET_INFO = 98, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_VOL_GET_XML_DESC = 99, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_VOL_GET_PATH = 100, /* autogen autogen priority:high */
 
-    REMOTE_PROC_NODE_GET_CELLS_FREE_MEMORY = 101, /* autogen skipgen */
-    REMOTE_PROC_NODE_GET_FREE_MEMORY = 102, /* autogen autogen */
+    REMOTE_PROC_NODE_GET_CELLS_FREE_MEMORY = 101, /* autogen skipgen priority:high */
+    REMOTE_PROC_NODE_GET_FREE_MEMORY = 102, /* autogen autogen priority:high */
     REMOTE_PROC_DOMAIN_BLOCK_PEEK = 103, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_MEMORY_PEEK = 104, /* skipgen skipgen */
-    REMOTE_PROC_DOMAIN_EVENTS_REGISTER = 105, /* skipgen skipgen */
-    REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER = 106, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_EVENTS_REGISTER = 105, /* skipgen skipgen priority:high */
+    REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER = 106, /* skipgen skipgen priority:high */
     REMOTE_PROC_DOMAIN_EVENT_LIFECYCLE = 107, /* autogen autogen */
     REMOTE_PROC_DOMAIN_MIGRATE_PREPARE2 = 108, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_MIGRATE_FINISH2 = 109, /* autogen autogen */
-    REMOTE_PROC_GET_URI = 110, /* autogen skipgen */
+    REMOTE_PROC_GET_URI = 110, /* autogen skipgen priority:high */
 
-    REMOTE_PROC_NODE_NUM_OF_DEVICES = 111, /* autogen autogen */
-    REMOTE_PROC_NODE_LIST_DEVICES = 112, /* autogen autogen */
-    REMOTE_PROC_NODE_DEVICE_LOOKUP_BY_NAME = 113, /* autogen autogen */
+    REMOTE_PROC_NODE_NUM_OF_DEVICES = 111, /* autogen autogen priority:high */
+    REMOTE_PROC_NODE_LIST_DEVICES = 112, /* autogen autogen priority:high */
+    REMOTE_PROC_NODE_DEVICE_LOOKUP_BY_NAME = 113, /* autogen autogen priority:high */
     REMOTE_PROC_NODE_DEVICE_GET_XML_DESC = 114, /* autogen autogen */
-    REMOTE_PROC_NODE_DEVICE_GET_PARENT = 115, /* skipgen autogen */
-    REMOTE_PROC_NODE_DEVICE_NUM_OF_CAPS = 116, /* autogen autogen */
-    REMOTE_PROC_NODE_DEVICE_LIST_CAPS = 117, /* autogen autogen */
+    REMOTE_PROC_NODE_DEVICE_GET_PARENT = 115, /* skipgen autogen priority:high */
+    REMOTE_PROC_NODE_DEVICE_NUM_OF_CAPS = 116, /* autogen autogen priority:high */
+    REMOTE_PROC_NODE_DEVICE_LIST_CAPS = 117, /* autogen autogen priority:high */
     REMOTE_PROC_NODE_DEVICE_DETTACH = 118, /* autogen skipgen */
     REMOTE_PROC_NODE_DEVICE_RE_ATTACH = 119, /* autogen skipgen */
     REMOTE_PROC_NODE_DEVICE_RESET = 120, /* autogen skipgen */
 
-    REMOTE_PROC_DOMAIN_GET_SECURITY_LABEL = 121, /* skipgen skipgen */
-    REMOTE_PROC_NODE_GET_SECURITY_MODEL = 122, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_GET_SECURITY_LABEL = 121, /* skipgen skipgen priority:high */
+    REMOTE_PROC_NODE_GET_SECURITY_MODEL = 122, /* skipgen skipgen priority:high */
     REMOTE_PROC_NODE_DEVICE_CREATE_XML = 123, /* autogen autogen */
-    REMOTE_PROC_NODE_DEVICE_DESTROY = 124, /* autogen autogen */
+    REMOTE_PROC_NODE_DEVICE_DESTROY = 124, /* autogen autogen priority:high */
     REMOTE_PROC_STORAGE_VOL_CREATE_XML_FROM = 125, /* autogen autogen */
-    REMOTE_PROC_NUM_OF_INTERFACES = 126, /* autogen autogen */
-    REMOTE_PROC_LIST_INTERFACES = 127, /* autogen autogen */
-    REMOTE_PROC_INTERFACE_LOOKUP_BY_NAME = 128, /* autogen autogen */
-    REMOTE_PROC_INTERFACE_LOOKUP_BY_MAC_STRING = 129, /* autogen autogen */
+    REMOTE_PROC_NUM_OF_INTERFACES = 126, /* autogen autogen priority:high */
+    REMOTE_PROC_LIST_INTERFACES = 127, /* autogen autogen priority:high */
+    REMOTE_PROC_INTERFACE_LOOKUP_BY_NAME = 128, /* autogen autogen priority:high */
+    REMOTE_PROC_INTERFACE_LOOKUP_BY_MAC_STRING = 129, /* autogen autogen priority:high */
     REMOTE_PROC_INTERFACE_GET_XML_DESC = 130, /* autogen autogen */
 
-    REMOTE_PROC_INTERFACE_DEFINE_XML = 131, /* autogen autogen */
-    REMOTE_PROC_INTERFACE_UNDEFINE = 132, /* autogen autogen */
+    REMOTE_PROC_INTERFACE_DEFINE_XML = 131, /* autogen autogen priority:high */
+    REMOTE_PROC_INTERFACE_UNDEFINE = 132, /* autogen autogen priority:high */
     REMOTE_PROC_INTERFACE_CREATE = 133, /* autogen autogen */
-    REMOTE_PROC_INTERFACE_DESTROY = 134, /* autogen autogen */
+    REMOTE_PROC_INTERFACE_DESTROY = 134, /* autogen autogen priority:high */
     REMOTE_PROC_DOMAIN_XML_FROM_NATIVE = 135, /* autogen autogen */
     REMOTE_PROC_DOMAIN_XML_TO_NATIVE = 136, /* autogen autogen */
-    REMOTE_PROC_NUM_OF_DEFINED_INTERFACES = 137, /* autogen autogen */
-    REMOTE_PROC_LIST_DEFINED_INTERFACES = 138, /* autogen autogen */
-    REMOTE_PROC_NUM_OF_SECRETS = 139, /* autogen autogen */
-    REMOTE_PROC_LIST_SECRETS = 140, /* autogen autogen */
+    REMOTE_PROC_NUM_OF_DEFINED_INTERFACES = 137, /* autogen autogen priority:high */
+    REMOTE_PROC_LIST_DEFINED_INTERFACES = 138, /* autogen autogen priority:high */
+    REMOTE_PROC_NUM_OF_SECRETS = 139, /* autogen autogen priority:high */
+    REMOTE_PROC_LIST_SECRETS = 140, /* autogen autogen priority:high */
 
-    REMOTE_PROC_SECRET_LOOKUP_BY_UUID = 141, /* autogen autogen */
-    REMOTE_PROC_SECRET_DEFINE_XML = 142, /* autogen autogen */
-    REMOTE_PROC_SECRET_GET_XML_DESC = 143, /* autogen autogen */
-    REMOTE_PROC_SECRET_SET_VALUE = 144, /* autogen autogen */
-    REMOTE_PROC_SECRET_GET_VALUE = 145, /* skipgen skipgen */
-    REMOTE_PROC_SECRET_UNDEFINE = 146, /* autogen autogen */
-    REMOTE_PROC_SECRET_LOOKUP_BY_USAGE = 147, /* autogen autogen */
+    REMOTE_PROC_SECRET_LOOKUP_BY_UUID = 141, /* autogen autogen priority:high */
+    REMOTE_PROC_SECRET_DEFINE_XML = 142, /* autogen autogen priority:high */
+    REMOTE_PROC_SECRET_GET_XML_DESC = 143, /* autogen autogen priority:high */
+    REMOTE_PROC_SECRET_SET_VALUE = 144, /* autogen autogen priority:high */
+    REMOTE_PROC_SECRET_GET_VALUE = 145, /* skipgen skipgen priority:high */
+    REMOTE_PROC_SECRET_UNDEFINE = 146, /* autogen autogen priority:high */
+    REMOTE_PROC_SECRET_LOOKUP_BY_USAGE = 147, /* autogen autogen priority:high */
     REMOTE_PROC_DOMAIN_MIGRATE_PREPARE_TUNNEL = 148, /* autogen autogen | writestream@1 */
-    REMOTE_PROC_IS_SECURE = 149, /* autogen skipgen */
-    REMOTE_PROC_DOMAIN_IS_ACTIVE = 150, /* autogen autogen */
+    REMOTE_PROC_IS_SECURE = 149, /* autogen skipgen priority:high */
+    REMOTE_PROC_DOMAIN_IS_ACTIVE = 150, /* autogen autogen priority:high */
 
-    REMOTE_PROC_DOMAIN_IS_PERSISTENT = 151, /* autogen autogen */
-    REMOTE_PROC_NETWORK_IS_ACTIVE = 152, /* autogen autogen */
-    REMOTE_PROC_NETWORK_IS_PERSISTENT = 153, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_IS_ACTIVE = 154, /* autogen autogen */
-    REMOTE_PROC_STORAGE_POOL_IS_PERSISTENT = 155, /* autogen autogen */
-    REMOTE_PROC_INTERFACE_IS_ACTIVE = 156, /* autogen autogen */
-    REMOTE_PROC_GET_LIB_VERSION = 157, /* autogen autogen */
-    REMOTE_PROC_CPU_COMPARE = 158, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_IS_PERSISTENT = 151, /* autogen autogen priority:high */
+    REMOTE_PROC_NETWORK_IS_ACTIVE = 152, /* autogen autogen priority:high */
+    REMOTE_PROC_NETWORK_IS_PERSISTENT = 153, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_POOL_IS_ACTIVE = 154, /* autogen autogen priority:high */
+    REMOTE_PROC_STORAGE_POOL_IS_PERSISTENT = 155, /* autogen autogen priority:high */
+    REMOTE_PROC_INTERFACE_IS_ACTIVE = 156, /* autogen autogen priority:high */
+    REMOTE_PROC_GET_LIB_VERSION = 157, /* autogen autogen priority:high */
+    REMOTE_PROC_CPU_COMPARE = 158, /* autogen autogen priority:high */
     REMOTE_PROC_DOMAIN_MEMORY_STATS = 159, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_ATTACH_DEVICE_FLAGS = 160, /* autogen autogen */
 
@@ -2234,8 +2425,8 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_ABORT_JOB = 164, /* autogen autogen */
     REMOTE_PROC_STORAGE_VOL_WIPE = 165, /* autogen autogen */
     REMOTE_PROC_DOMAIN_MIGRATE_SET_MAX_DOWNTIME = 166, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_EVENTS_REGISTER_ANY = 167, /* skipgen skipgen */
-    REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER_ANY = 168, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_EVENTS_REGISTER_ANY = 167, /* skipgen skipgen priority:high */
+    REMOTE_PROC_DOMAIN_EVENTS_DEREGISTER_ANY = 168, /* skipgen skipgen priority:high */
     REMOTE_PROC_DOMAIN_EVENT_REBOOT = 169, /* autogen autogen */
     REMOTE_PROC_DOMAIN_EVENT_RTC_CHANGE = 170, /* autogen autogen */
 
@@ -2243,22 +2434,22 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_EVENT_IO_ERROR = 172, /* autogen autogen */
     REMOTE_PROC_DOMAIN_EVENT_GRAPHICS = 173, /* autogen autogen */
     REMOTE_PROC_DOMAIN_UPDATE_DEVICE_FLAGS = 174, /* autogen autogen */
-    REMOTE_PROC_NWFILTER_LOOKUP_BY_NAME = 175, /* autogen autogen */
-    REMOTE_PROC_NWFILTER_LOOKUP_BY_UUID = 176, /* autogen autogen */
-    REMOTE_PROC_NWFILTER_GET_XML_DESC = 177, /* autogen autogen */
-    REMOTE_PROC_NUM_OF_NWFILTERS = 178, /* autogen autogen */
-    REMOTE_PROC_LIST_NWFILTERS = 179, /* autogen autogen */
-    REMOTE_PROC_NWFILTER_DEFINE_XML = 180, /* autogen autogen */
+    REMOTE_PROC_NWFILTER_LOOKUP_BY_NAME = 175, /* autogen autogen priority:high */
+    REMOTE_PROC_NWFILTER_LOOKUP_BY_UUID = 176, /* autogen autogen priority:high */
+    REMOTE_PROC_NWFILTER_GET_XML_DESC = 177, /* autogen autogen priority:high */
+    REMOTE_PROC_NUM_OF_NWFILTERS = 178, /* autogen autogen priority:high */
+    REMOTE_PROC_LIST_NWFILTERS = 179, /* autogen autogen priority:high */
+    REMOTE_PROC_NWFILTER_DEFINE_XML = 180, /* autogen autogen priority:high */
 
-    REMOTE_PROC_NWFILTER_UNDEFINE = 181, /* autogen autogen */
+    REMOTE_PROC_NWFILTER_UNDEFINE = 181, /* autogen autogen priority:high */
     REMOTE_PROC_DOMAIN_MANAGED_SAVE = 182, /* autogen autogen */
     REMOTE_PROC_DOMAIN_HAS_MANAGED_SAVE_IMAGE = 183, /* autogen autogen */
     REMOTE_PROC_DOMAIN_MANAGED_SAVE_REMOVE = 184, /* autogen autogen */
     REMOTE_PROC_DOMAIN_SNAPSHOT_CREATE_XML = 185, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_SNAPSHOT_GET_XML_DESC = 186, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_SNAPSHOT_NUM = 187, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_NAMES = 188, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_SNAPSHOT_LOOKUP_BY_NAME = 189, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_GET_XML_DESC = 186, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_NUM = 187, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_NAMES = 188, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_LOOKUP_BY_NAME = 189, /* autogen autogen priority:high */
     REMOTE_PROC_DOMAIN_HAS_CURRENT_SNAPSHOT = 190, /* autogen autogen */
 
     REMOTE_PROC_DOMAIN_SNAPSHOT_CURRENT = 191, /* autogen autogen */
@@ -2273,8 +2464,8 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_GET_VCPUS_FLAGS = 200, /* autogen autogen */
 
     REMOTE_PROC_DOMAIN_OPEN_CONSOLE = 201, /* autogen autogen | readstream@2 */
-    REMOTE_PROC_DOMAIN_IS_UPDATED = 202, /* autogen autogen */
-    REMOTE_PROC_GET_SYSINFO = 203, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_IS_UPDATED = 202, /* autogen autogen priority:high */
+    REMOTE_PROC_GET_SYSINFO = 203, /* autogen autogen priority:high */
     REMOTE_PROC_DOMAIN_SET_MEMORY_FLAGS = 204, /* autogen autogen */
     REMOTE_PROC_DOMAIN_SET_BLKIO_PARAMETERS = 205, /* autogen autogen */
     REMOTE_PROC_DOMAIN_GET_BLKIO_PARAMETERS = 206, /* skipgen skipgen */
@@ -2283,8 +2474,8 @@ enum remote_procedure {
     REMOTE_PROC_STORAGE_VOL_DOWNLOAD = 209, /* autogen autogen | readstream@1 */
     REMOTE_PROC_DOMAIN_INJECT_NMI = 210, /* autogen autogen */
 
-    REMOTE_PROC_DOMAIN_SCREENSHOT = 211, /* skipgen autogen | readstream@1 */
-    REMOTE_PROC_DOMAIN_GET_STATE = 212, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_SCREENSHOT = 211, /* autogen autogen | readstream@1 */
+    REMOTE_PROC_DOMAIN_GET_STATE = 212, /* skipgen skipgen priority:high */
     REMOTE_PROC_DOMAIN_MIGRATE_BEGIN3 = 213, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_MIGRATE_PREPARE3 = 214, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_MIGRATE_PREPARE_TUNNEL3 = 215, /* autogen skipgen | writestream@1 */
@@ -2297,126 +2488,47 @@ enum remote_procedure {
     REMOTE_PROC_INTERFACE_CHANGE_COMMIT = 221, /* autogen autogen */
     REMOTE_PROC_INTERFACE_CHANGE_ROLLBACK = 222, /* autogen autogen */
     REMOTE_PROC_DOMAIN_GET_SCHEDULER_PARAMETERS_FLAGS = 223, /* skipgen autogen */
-    REMOTE_PROC_DOMAIN_EVENT_CONTROL_ERROR = 224 /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_EVENT_CONTROL_ERROR = 224, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_PIN_VCPU_FLAGS = 225, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SEND_KEY = 226, /* autogen autogen */
+    REMOTE_PROC_NODE_GET_CPU_STATS = 227, /* skipgen skipgen priority:high */
+    REMOTE_PROC_NODE_GET_MEMORY_STATS = 228, /* skipgen skipgen priority:high */
+    REMOTE_PROC_DOMAIN_GET_CONTROL_INFO = 229, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_GET_VCPU_PIN_INFO = 230, /* skipgen skipgen */
+
+    REMOTE_PROC_DOMAIN_UNDEFINE_FLAGS = 231, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_SAVE_FLAGS = 232, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_RESTORE_FLAGS = 233, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_DESTROY_FLAGS = 234, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_SAVE_IMAGE_GET_XML_DESC = 235, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_SAVE_IMAGE_DEFINE_XML = 236, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_BLOCK_JOB_ABORT = 237, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_GET_BLOCK_JOB_INFO = 238, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_BLOCK_JOB_SET_SPEED = 239, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_BLOCK_PULL = 240, /* autogen autogen */
+
+    REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB = 241, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_SPEED = 242, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_BLOCK_STATS_FLAGS = 243 /* skipgen skipgen */
 
     /*
      * Notice how the entries are grouped in sets of 10 ?
      * Nice isn't it. Please keep it this way when adding more.
      *
-     * Each function must have a two-word comment.  The first word is
-     * whether remote_generator.pl handles daemon, the second whether
+     * Each function must have a three-word comment.  The first word is
+     * whether gendispatch.pl handles daemon, the second whether
      * it handles src/remote.  Additional flags can be specified after a
      * pipe.
+     * The last argument describes priority of API. There are two accepted
+     * values: low, high; Each API that might eventually access hypervisor's
+     * monitor (and thus block) MUST fall into low priority. However, there
+     * are some exceptions to this rule, e.g. domainDestroy. Other APIs MAY
+     * be marked as high priority. If in doubt, it's safe to choose low.
+     * Low is taken as default, and thus can be left out.
      *
      * The (readstream|writestream)@<offset> flag lets daemon and src/remote
      * create a stream.  The direction is defined from the src/remote point
      * of view.  A readstream transfers data from daemon to src/remote.  The
      * <offset> specifies at which offset the stream parameter is inserted
      * in the function parameter list. */
-};
-
-/*
- * RPC wire format
- *
- * Each message consists of:
- *
- *    Name    | Type                  | Description
- * -----------+-----------------------+------------------
- *    Length  | int                   | Total number of bytes in message _including_ length.
- *    Header  | remote_message_header | Control information about procedure call
- *    Payload | -                     | Variable payload data per procedure
- *
- * In header, the 'serial' field varies according to:
- *
- *  - type == REMOTE_CALL
- *      * serial is set by client, incrementing by 1 each time
- *
- *  - type == REMOTE_REPLY
- *      * serial matches that from the corresponding REMOTE_CALL
- *
- *  - type == REMOTE_MESSAGE
- *      * serial is always zero
- *
- *  - type == REMOTE_STREAM
- *      * serial matches that from the corresponding REMOTE_CALL
- *
- * and the 'status' field varies according to:
- *
- *  - type == REMOTE_CALL
- *     * REMOTE_OK always
- *
- *  - type == REMOTE_REPLY
- *     * REMOTE_OK if RPC finished successfully
- *     * REMOTE_ERROR if something failed
- *
- *  - type == REMOTE_MESSAGE
- *     * REMOTE_OK always
- *
- *  - type == REMOTE_STREAM
- *     * REMOTE_CONTINUE if more data is following
- *     * REMOTE_OK if stream is complete
- *     * REMOTE_ERROR if stream had an error
- *
- * Payload varies according to type and status:
- *
- *  - type == REMOTE_CALL
- *          XXX_args  for procedure
- *
- *  - type == REMOTE_REPLY
- *     * status == REMOTE_OK
- *          XXX_ret         for procedure
- *     * status == REMOTE_ERROR
- *          remote_error    Error information
- *
- *  - type == REMOTE_MESSAGE
- *     * status == REMOTE_OK
- *          XXX_args        for procedure
- *     * status == REMOTE_ERROR
- *          remote_error    Error information
- *
- *  - type == REMOTE_STREAM
- *     * status == REMOTE_CONTINUE
- *          byte[]       raw stream data
- *     * status == REMOTE_ERROR
- *          remote_error error information
- *     * status == REMOTE_OK
- *          <empty>
- */
-enum remote_message_type {
-    /* client -> server. args from a method call */
-    REMOTE_CALL = 0,
-    /* server -> client. reply/error from a method call */
-    REMOTE_REPLY = 1,
-    /* either direction. async notification */
-    REMOTE_MESSAGE = 2,
-    /* either direction. stream data packet */
-    REMOTE_STREAM = 3
-};
-
-enum remote_message_status {
-    /* Status is always REMOTE_OK for calls.
-     * For replies, indicates no error.
-     */
-    REMOTE_OK = 0,
-
-    /* For replies, indicates that an error happened, and a struct
-     * remote_error follows.
-     */
-    REMOTE_ERROR = 1,
-
-    /* For streams, indicates that more data is still expected
-     */
-    REMOTE_CONTINUE = 2
-};
-
-/* 4 byte length word per header */
-const REMOTE_MESSAGE_HEADER_XDR_LEN = 4;
-
-struct remote_message_header {
-    unsigned prog;              /* REMOTE_PROGRAM */
-    unsigned vers;              /* REMOTE_PROTOCOL_VERSION */
-    int proc;      /* REMOTE_PROC_x */
-    remote_message_type type;
-    unsigned serial;            /* Serial number of message. */
-    remote_message_status status;
 };

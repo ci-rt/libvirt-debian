@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# sleep.m4 serial 4
+# sleep.m4 serial 5
 dnl Copyright (C) 2007-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -18,7 +18,6 @@ AC_DEFUN([gl_FUNC_SLEEP],
   AC_CHECK_FUNCS_ONCE([sleep])
   if test $ac_cv_have_decl_sleep != yes; then
     HAVE_SLEEP=0
-    AC_LIBOBJ([sleep])
   else
     dnl Cygwin 1.5.x has a bug where sleep can't exceed 49.7 days.
     AC_CACHE_CHECK([for working sleep], [gl_cv_func_sleep_works],
@@ -50,7 +49,6 @@ handle_alarm (int sig)
       [gl_cv_func_sleep_works="guessing no"])])
     if test "$gl_cv_func_sleep_works" != yes; then
       REPLACE_SLEEP=1
-      AC_LIBOBJ([sleep])
     fi
   fi
 ])

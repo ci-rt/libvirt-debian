@@ -39,11 +39,10 @@
 # include "console.h"
 # include "logging.h"
 # include "util.h"
-# include "files.h"
+# include "virfile.h"
 # include "memory.h"
 # include "virterror_internal.h"
 
-# include "event.h"
 
 /* ie  Ctrl-]  as per telnet */
 # define CTRL_CLOSE_BRACKET '\35'
@@ -91,12 +90,14 @@ static void
 virConsoleShutdown(virConsolePtr con)
 {
     con->quit = true;
-    virStreamEventRemoveCallback(con->st);
-    if (con->st)
+    if (con->st) {
+        virStreamEventRemoveCallback(con->st);
+        virStreamAbort(con->st);
         virStreamFree(con->st);
+    }
     if (con->stdinWatch != -1)
         virEventRemoveHandle(con->stdinWatch);
-    if (con->stdinWatch != -1)
+    if (con->stdoutWatch != -1)
         virEventRemoveHandle(con->stdoutWatch);
     con->stdinWatch = -1;
     con->stdoutWatch = -1;
@@ -277,7 +278,7 @@ virConsoleEventOnStdout(int watch ATTRIBUTE_UNUSED,
 }
 
 
-int vshRunConsole(virDomainPtr dom, const char *devname)
+int vshRunConsole(virDomainPtr dom, const char *dev_name)
 {
     int ret = -1;
     struct termios ttyattr, rawattr;
@@ -330,7 +331,7 @@ int vshRunConsole(virDomainPtr dom, const char *devname)
     if (!con->st)
         goto cleanup;
 
-    if (virDomainOpenConsole(dom, devname, con->st, 0) < 0)
+    if (virDomainOpenConsole(dom, dev_name, con->st, 0) < 0)
         goto cleanup;
 
     con->stdinWatch = virEventAddHandle(STDIN_FILENO,

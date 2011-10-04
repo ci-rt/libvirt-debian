@@ -1,7 +1,7 @@
 /*
  * fdstream.h: generic streams impl for file descriptors
  *
- * Copyright (C) 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2009-2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,14 +37,12 @@ int virFDStreamOpenFile(virStreamPtr st,
                         const char *path,
                         unsigned long long offset,
                         unsigned long long length,
-                        int flags,
-                        bool delete);
+                        int oflags);
 int virFDStreamCreateFile(virStreamPtr st,
                           const char *path,
                           unsigned long long offset,
                           unsigned long long length,
-                          int flags,
-                          mode_t mode,
-                          bool delete);
+                          int oflags,
+                          mode_t mode);
 
 #endif /* __VIR_FDSTREAM_H_ */

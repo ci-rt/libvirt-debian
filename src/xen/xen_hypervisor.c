@@ -65,7 +65,7 @@
 #include "buf.h"
 #include "capabilities.h"
 #include "memory.h"
-#include "files.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_XEN
 
@@ -802,44 +802,20 @@ typedef struct xen_op_v2_dom xen_op_v2_dom;
 static unsigned long xenHypervisorGetMaxMemory(virDomainPtr domain);
 
 struct xenUnifiedDriver xenHypervisorDriver = {
-    xenHypervisorOpen, /* open */
-    xenHypervisorClose, /* close */
-    xenHypervisorGetVersion, /* version */
-    NULL, /* hostname */
-    NULL, /* nodeGetInfo */
-    xenHypervisorGetCapabilities, /* getCapabilities */
-    xenHypervisorListDomains, /* listDomains */
-    xenHypervisorNumOfDomains, /* numOfDomains */
-    NULL, /* domainCreateXML */
-    xenHypervisorPauseDomain, /* domainSuspend */
-    xenHypervisorResumeDomain, /* domainResume */
-    NULL, /* domainShutdown */
-    NULL, /* domainReboot */
-    xenHypervisorDestroyDomain, /* domainDestroy */
-    xenHypervisorDomainGetOSType, /* domainGetOSType */
-    xenHypervisorGetMaxMemory, /* domainGetMaxMemory */
-    xenHypervisorSetMaxMemory, /* domainSetMaxMemory */
-    NULL, /* domainSetMemory */
-    xenHypervisorGetDomainInfo, /* domainGetInfo */
-    NULL, /* domainSave */
-    NULL, /* domainRestore */
-    NULL, /* domainCoreDump */
-    NULL, /* domainScreenshot */
-    xenHypervisorPinVcpu, /* domainPinVcpu */
-    xenHypervisorGetVcpus, /* domainGetVcpus */
-    NULL, /* listDefinedDomains */
-    NULL, /* numOfDefinedDomains */
-    NULL, /* domainCreate */
-    NULL, /* domainDefineXML */
-    NULL, /* domainUndefine */
-    NULL, /* domainAttachDeviceFlags */
-    NULL, /* domainDetachDeviceFlags */
-    NULL, /* domainUpdateDeviceFlags */
-    NULL, /* domainGetAutostart */
-    NULL, /* domainSetAutostart */
-    xenHypervisorGetSchedulerType, /* domainGetSchedulerType */
-    xenHypervisorGetSchedulerParameters, /* domainGetSchedulerParameters */
-    xenHypervisorSetSchedulerParameters, /* domainSetSchedulerParameters */
+    .xenClose = xenHypervisorClose,
+    .xenVersion = xenHypervisorGetVersion,
+    .xenDomainSuspend = xenHypervisorPauseDomain,
+    .xenDomainResume = xenHypervisorResumeDomain,
+    .xenDomainDestroyFlags = xenHypervisorDestroyDomainFlags,
+    .xenDomainGetOSType = xenHypervisorDomainGetOSType,
+    .xenDomainGetMaxMemory = xenHypervisorGetMaxMemory,
+    .xenDomainSetMaxMemory = xenHypervisorSetMaxMemory,
+    .xenDomainGetInfo = xenHypervisorGetDomainInfo,
+    .xenDomainPinVcpu = xenHypervisorPinVcpu,
+    .xenDomainGetVcpus = xenHypervisorGetVcpus,
+    .xenDomainGetSchedulerType = xenHypervisorGetSchedulerType,
+    .xenDomainGetSchedulerParameters = xenHypervisorGetSchedulerParameters,
+    .xenDomainSetSchedulerParameters = xenHypervisorSetSchedulerParameters,
 };
 
 #define virXenError(code, ...)                                             \
@@ -1481,7 +1457,7 @@ xenHypervisorDomainBlockStats (virDomainPtr dom,
     xenUnifiedUnlock(priv);
     return ret;
 #else
-    virXenErrorFunc(VIR_ERR_NO_SUPPORT, __FUNCTION__,
+    virXenErrorFunc(VIR_ERR_OPERATION_INVALID, __FUNCTION__,
                     "block statistics not supported on this platform",
                     dom->id);
     return -1;
@@ -1519,7 +1495,7 @@ xenHypervisorDomainInterfaceStats (virDomainPtr dom,
 
     return linuxDomainInterfaceStats(path, stats);
 #else
-    virXenErrorFunc(VIR_ERR_NO_SUPPORT, __FUNCTION__,
+    virXenErrorFunc(VIR_ERR_OPERATION_INVALID, __FUNCTION__,
                     "/proc/net/dev: Interface not found", 0);
     return -1;
 #endif
@@ -2201,10 +2177,12 @@ xenHypervisorInit(void)
 virDrvOpenStatus
 xenHypervisorOpen(virConnectPtr conn,
                   virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                  int flags ATTRIBUTE_UNUSED)
+                  unsigned int flags)
 {
     int ret;
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     if (initialized == 0)
         if (xenHypervisorInit() == -1)
@@ -2401,7 +2379,18 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
                                                    0,
                                                    1) == NULL)
                     goto no_memory;
+
+            /* Xen 3.4.x and beyond supports the Viridian (Hyper-V)
+             * enlightenment interface.  Default is off.
+             */
+            if ((hv_major == 3 && hv_minor >= 4) || (hv_major > 3))
+                if (virCapabilitiesAddGuestFeature(guest,
+                                                   "viridian",
+                                                   0,
+                                                   1) == NULL)
+                    goto no_memory;
         }
+
     }
 
     caps->defaultConsoleTargetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
@@ -3261,10 +3250,12 @@ int
 xenHypervisorGetDomainState(virDomainPtr domain,
                             int *state,
                             int *reason,
-                            unsigned int flags ATTRIBUTE_UNUSED)
+                            unsigned int flags)
 {
     xenUnifiedPrivatePtr priv = domain->conn->privateData;
     virDomainInfo info;
+
+    virCheckFlags(0, -1);
 
     if (domain->conn == NULL)
         return -1;
@@ -3418,18 +3409,25 @@ xenHypervisorResumeDomain(virDomainPtr domain)
 }
 
 /**
- * xenHypervisorDestroyDomain:
+ * xenHypervisorDestroyDomainFlags:
  * @domain: pointer to the domain block
+ * @flags: an OR'ed set of virDomainDestroyFlagsValues
  *
  * Do an hypervisor call to destroy the given domain
+ *
+ * Calling this function with no @flags set (equal to zero)
+ * is equivalent to calling xenHypervisorDestroyDomain.
  *
  * Returns 0 in case of success, -1 in case of error.
  */
 int
-xenHypervisorDestroyDomain(virDomainPtr domain)
+xenHypervisorDestroyDomainFlags(virDomainPtr domain,
+                                unsigned int flags)
 {
     int ret;
     xenUnifiedPrivatePtr priv;
+
+    virCheckFlags(0, -1);
 
     if (domain->conn == NULL)
         return -1;

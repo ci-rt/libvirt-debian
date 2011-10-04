@@ -46,7 +46,7 @@
 #include "nwfilter_conf.h"
 #include "domain_conf.h"
 #include "c-ctype.h"
-#include "files.h"
+#include "virfile.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
@@ -1490,6 +1490,7 @@ virNWFilterRuleDetailsParse(xmlNodePtr node,
                     switch (datatype) {
                         case DATATYPE_UINT8_HEX:
                             base = 16;
+                            /* fallthrough */
                         case DATATYPE_UINT8:
                             if (virStrToLong_ui(prop, NULL, base, &uint_val) >= 0) {
                                 if (uint_val <= 0xff) {
@@ -1504,6 +1505,7 @@ virNWFilterRuleDetailsParse(xmlNodePtr node,
 
                         case DATATYPE_UINT16_HEX:
                             base = 16;
+                            /* fallthrough */
                         case DATATYPE_UINT16:
                             if (virStrToLong_ui(prop, NULL, base, &uint_val) >= 0) {
                                 if (uint_val <= 0xffff) {
@@ -2117,7 +2119,7 @@ virNWFilterDefParse(virConnectPtr conn ATTRIBUTE_UNUSED,
     virNWFilterDefPtr def = NULL;
     xmlDocPtr xml;
 
-    if ((xml = virXMLParse(filename, xmlStr, "nwfilter.xml"))) {
+    if ((xml = virXMLParse(filename, xmlStr, _("(nwfilter_definition")))) {
         def = virNWFilterDefParseNode(xml, xmlDocGetRootElement(xml));
         xmlFreeDoc(xml);
     }
@@ -2182,13 +2184,12 @@ int virNWFilterSaveXML(const char *configDir,
     char *configFile = NULL;
     int fd = -1, ret = -1;
     size_t towrite;
-    int err;
 
     if ((configFile = virNWFilterConfigFile(configDir, def->name)) == NULL)
         goto cleanup;
 
-    if ((err = virFileMakePath(configDir))) {
-        virReportSystemError(err,
+    if (virFileMakePath(configDir) < 0) {
+        virReportSystemError(errno,
                              _("cannot create config directory '%s'"),
                              configDir);
         goto cleanup;
@@ -2572,10 +2573,8 @@ virNWFilterObjSaveDef(virNWFilterDriverStatePtr driver,
     ssize_t towrite;
 
     if (!nwfilter->configFile) {
-        int err;
-
-        if ((err = virFileMakePath(driver->configDir))) {
-            virReportSystemError(err,
+        if (virFileMakePath(driver->configDir) < 0) {
+            virReportSystemError(errno,
                                  _("cannot create config directory %s"),
                                  driver->configDir);
             return -1;
@@ -2728,6 +2727,7 @@ virNWFilterRuleDefDetailsFormat(virBufferPtr buf,
 
                case DATATYPE_UINT8_HEX:
                    asHex = true;
+                   /* fallthrough */
                case DATATYPE_IPMASK:
                case DATATYPE_IPV6MASK:
                    /* display all masks in CIDR format */
@@ -2738,6 +2738,7 @@ virNWFilterRuleDefDetailsFormat(virBufferPtr buf,
 
                case DATATYPE_UINT16_HEX:
                    asHex = true;
+                   /* fallthrough */
                case DATATYPE_UINT16:
                    virBufferAsprintf(buf, asHex ? "0x%x" : "%d",
                                      item->u.u16);

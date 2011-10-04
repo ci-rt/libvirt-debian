@@ -31,6 +31,7 @@
 #include "buf.h"
 #include "util.h"
 #include "memory.h"
+#include "command.h"
 
 #include "security_driver.h"
 #include "security_apparmor.h"
@@ -39,7 +40,7 @@
 #include "uuid.h"
 #include "hostusb.h"
 #include "pci.h"
-#include "files.h"
+#include "virfile.h"
 #include "configmake.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
@@ -639,23 +640,16 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
     int rc = -1;
     xmlDocPtr xml = NULL;
     xmlXPathContextPtr ctxt = NULL;
-    xmlNodePtr root;
 
-    if (!(xml = virXMLParseString(xmlStr, "domain.xml"))) {
+    if (!(xml = virXMLParseStringCtxt(xmlStr, _("(domain_definition)"),
+                                      &ctxt))) {
         goto cleanup;
     }
 
-    root = xmlDocGetRootElement(xml);
-    if (!xmlStrEqual(root->name, BAD_CAST "domain")) {
+    if (!xmlStrEqual(ctxt->node->name, BAD_CAST "domain")) {
         vah_error(NULL, 0, _("incorrect root element"));
         goto cleanup;
     }
-
-    if ((ctxt = xmlXPathNewContext(xml)) == NULL) {
-        vah_error(ctl, 0, _("could not allocate memory"));
-        goto cleanup;
-    }
-    ctxt->node = root;
 
     /* Quick sanity check for some required elements */
     if (verify_xpath_context(ctxt) != 0)
@@ -724,7 +718,7 @@ get_definition(vahControl * ctl, const char *xmlStr)
         goto exit;
     }
 
-    ctl->def = virDomainDefParseString(ctl->caps, xmlStr,
+    ctl->def = virDomainDefParseString(ctl->caps, xmlStr, -1,
                                        VIR_DOMAIN_XML_INACTIVE);
     if (ctl->def == NULL) {
         vah_error(ctl, 0, _("could not parse XML"));
@@ -1165,6 +1159,8 @@ main(int argc, char **argv)
                               LOCALSTATEDIR, ctl->def->name);
             virBufferAsprintf(&buf, "  \"%s/run/libvirt/**/%s.pid\" rwk,\n",
                               LOCALSTATEDIR, ctl->def->name);
+            virBufferAsprintf(&buf, "  \"/run/libvirt/**/%s.pid\" rwk,\n",
+                              ctl->def->name);
             if (ctl->files)
                 virBufferAdd(&buf, ctl->files, -1);
         }

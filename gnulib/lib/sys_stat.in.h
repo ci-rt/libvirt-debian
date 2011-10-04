@@ -36,7 +36,7 @@
 #else
 /* Normal invocation convention.  */
 
-#ifndef _GL_SYS_STAT_H
+#ifndef _@GUARD_PREFIX@_SYS_STAT_H
 
 /* Get nlink_t.  */
 #include <sys/types.h>
@@ -47,8 +47,8 @@
 /* The include_next requires a split double-inclusion guard.  */
 #@INCLUDE_NEXT@ @NEXT_SYS_STAT_H@
 
-#ifndef _GL_SYS_STAT_H
-#define _GL_SYS_STAT_H
+#ifndef _@GUARD_PREFIX@_SYS_STAT_H
+#define _@GUARD_PREFIX@_SYS_STAT_H
 
 /* The definitions of _GL_FUNCDECL_RPL etc. are copied here.  */
 
@@ -655,6 +655,6 @@ _GL_WARN_ON_USE (utimensat, "utimensat is not portable - "
 #endif
 
 
-#endif /* _GL_SYS_STAT_H */
-#endif /* _GL_SYS_STAT_H */
+#endif /* _@GUARD_PREFIX@_SYS_STAT_H */
+#endif /* _@GUARD_PREFIX@_SYS_STAT_H */
 #endif

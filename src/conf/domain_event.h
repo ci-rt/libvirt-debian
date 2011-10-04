@@ -25,7 +25,6 @@
 #ifndef __DOMAIN_EVENT_H__
 # define __DOMAIN_EVENT_H__
 
-# include "event.h"
 # include "domain_conf.h"
 
 typedef struct _virDomainEventCallback virDomainEventCallback;
@@ -170,7 +169,14 @@ virDomainEventPtr virDomainEventGraphicsNewFromObj(virDomainObjPtr obj,
 virDomainEventPtr virDomainEventControlErrorNewFromDom(virDomainPtr dom);
 virDomainEventPtr virDomainEventControlErrorNewFromObj(virDomainObjPtr obj);
 
-
+virDomainEventPtr virDomainEventBlockJobNewFromObj(virDomainObjPtr obj,
+                                                    const char *path,
+                                                    int type,
+                                                    int status);
+virDomainEventPtr virDomainEventBlockJobNewFromDom(virDomainPtr dom,
+                                                    const char *path,
+                                                    int type,
+                                                    int status);
 
 int virDomainEventQueuePush(virDomainEventQueuePtr evtQueue,
                             virDomainEventPtr event);

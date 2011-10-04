@@ -39,6 +39,8 @@
 #include <getopt.h>
 #include <sys/mount.h>
 #include <locale.h>
+#include <linux/loop.h>
+#include <dirent.h>
 
 #if HAVE_CAPNG
 # include <cap-ng.h>
@@ -53,7 +55,8 @@
 #include "veth.h"
 #include "memory.h"
 #include "util.h"
-#include "files.h"
+#include "virfile.h"
+#include "virpidfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -62,6 +65,160 @@ struct cgroup_device_policy {
     int major;
     int minor;
 };
+
+
+static int lxcGetLoopFD(char **dev_name)
+{
+    int fd = -1;
+    DIR *dh = NULL;
+    struct dirent *de;
+    char *looppath;
+    struct loop_info64 lo;
+
+    VIR_DEBUG("Looking for loop devices in /dev");
+
+    if (!(dh = opendir("/dev"))) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to read /dev"));
+        goto cleanup;
+    }
+
+    while ((de = readdir(dh)) != NULL) {
+        if (!STRPREFIX(de->d_name, "loop"))
+            continue;
+
+        if (virAsprintf(&looppath, "/dev/%s", de->d_name) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        VIR_DEBUG("Checking up on device %s", looppath);
+        if ((fd = open(looppath, O_RDWR)) < 0) {
+            virReportSystemError(errno,
+                                 _("Unable to open %s"), looppath);
+            goto cleanup;
+        }
+
+        if (ioctl(fd, LOOP_GET_STATUS64, &lo) < 0) {
+            /* Got a free device, return the fd */
+            if (errno == ENXIO)
+                goto cleanup;
+
+            VIR_FORCE_CLOSE(fd);
+            virReportSystemError(errno,
+                                 _("Unable to get loop status on %s"),
+                                 looppath);
+            goto cleanup;
+        }
+
+        /* Oh well, try the next device */
+        VIR_FORCE_CLOSE(fd);
+        VIR_FREE(looppath);
+    }
+
+    lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
+             _("Unable to find a free loop device in /dev"));
+
+cleanup:
+    if (fd != -1) {
+        VIR_DEBUG("Got free loop device %s %d", looppath, fd);
+        *dev_name = looppath;
+    } else {
+        VIR_DEBUG("No free loop devices available");
+        VIR_FREE(looppath);
+    }
+    if (dh)
+        closedir(dh);
+    return fd;
+}
+
+static int lxcSetupLoopDevice(virDomainFSDefPtr fs)
+{
+    int lofd = -1;
+    int fsfd = -1;
+    struct loop_info64 lo;
+    char *loname = NULL;
+    int ret = -1;
+
+    if ((lofd = lxcGetLoopFD(&loname)) < 0)
+        return -1;
+
+    memset(&lo, 0, sizeof(lo));
+    lo.lo_flags = LO_FLAGS_AUTOCLEAR;
+
+    if ((fsfd = open(fs->src, O_RDWR)) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to open %s"), fs->src);
+        goto cleanup;
+    }
+
+    if (ioctl(lofd, LOOP_SET_FD, fsfd) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to attach %s to loop device"),
+                             fs->src);
+        goto cleanup;
+    }
+
+    if (ioctl(lofd, LOOP_SET_STATUS64, &lo) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to mark loop device as autoclear"));
+
+        if (ioctl(lofd, LOOP_CLR_FD, 0) < 0)
+            VIR_WARN("Unable to detach %s from loop device", fs->src);
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Attached loop device  %s %d to %s", fs->src, lofd, loname);
+    /*
+     * We now change it into a block device type, so that
+     * the rest of container setup 'just works'
+     */
+    fs->type = VIR_DOMAIN_FS_TYPE_BLOCK;
+    VIR_FREE(fs->src);
+    fs->src = loname;
+    loname = NULL;
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(loname);
+    VIR_FORCE_CLOSE(fsfd);
+    if (ret == -1)
+        VIR_FORCE_CLOSE(lofd);
+    return lofd;
+}
+
+
+static int lxcSetupLoopDevices(virDomainDefPtr def, size_t *nloopDevs, int **loopDevs)
+{
+    size_t i;
+    int ret = -1;
+
+    for (i = 0 ; i < def->nfss ; i++) {
+        int fd;
+
+        if (def->fss[i]->type != VIR_DOMAIN_FS_TYPE_FILE)
+            continue;
+
+        fd = lxcSetupLoopDevice(def->fss[i]);
+        if (fd < 0)
+            goto cleanup;
+
+        VIR_DEBUG("Saving loop fd %d", fd);
+        if (VIR_REALLOC_N(*loopDevs, *nloopDevs+1) < 0) {
+            VIR_FORCE_CLOSE(fd);
+            virReportOOMError();
+            goto cleanup;
+        }
+        (*loopDevs)[*nloopDevs++] = fd;
+    }
+
+    VIR_DEBUG("Setup all loop devices");
+    ret = 0;
+
+cleanup:
+    return ret;
+}
 
 /**
  * lxcSetContainerResources
@@ -188,11 +345,28 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         }
     }
 
+    for (i = 0 ; i < def->nfss ; i++) {
+        if (def->fss[i]->type != VIR_DOMAIN_FS_TYPE_BLOCK)
+            continue;
+
+        rc = virCgroupAllowDevicePath(cgroup,
+                                      def->fss[i]->src,
+                                      def->fss[i]->readonly ?
+                                      VIR_CGROUP_DEVICE_READ :
+                                      VIR_CGROUP_DEVICE_RW);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to allow device %s for domain %s"),
+                                 def->fss[i]->src, def->name);
+            goto cleanup;
+        }
+    }
+
     rc = virCgroupAllowDeviceMajor(cgroup, 'c', LXC_DEV_MAJ_PTY,
                                    VIR_CGROUP_DEVICE_RWM);
     if (rc != 0) {
         virReportSystemError(-rc,
-                             _("Unable to allow PYT devices for domain %s"),
+                             _("Unable to allow PTY devices for domain %s"),
                              def->name);
         goto cleanup;
     }
@@ -612,22 +786,36 @@ lxcControllerRun(virDomainDefPtr def,
                  char **veths,
                  int monitor,
                  int client,
-                 int appPty)
+                 int appPty,
+                 int handshakefd)
 {
     int rc = -1;
     int control[2] = { -1, -1};
+    int containerhandshake[2] = { -1, -1 };
     int containerPty = -1;
     char *containerPtyPath = NULL;
     pid_t container = -1;
     virDomainFSDefPtr root;
     char *devpts = NULL;
     char *devptmx = NULL;
+    size_t nloopDevs = 0;
+    int *loopDevs = NULL;
+    size_t i;
 
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, control) < 0) {
         virReportSystemError(errno, "%s",
                              _("sockpair failed"));
         goto cleanup;
     }
+
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, containerhandshake) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("socketpair failed"));
+        goto cleanup;
+    }
+
+    if (lxcSetupLoopDevices(def, &nloopDevs, &loopDevs) < 0)
+        goto cleanup;
 
     root = virDomainGetRootFilesystem(def);
 
@@ -656,6 +844,14 @@ lxcControllerRun(virDomainDefPtr def,
      */
     if (root) {
         VIR_DEBUG("Setting up private /dev/pts");
+
+        if (!virFileExists(root->src)) {
+            virReportSystemError(errno,
+                                 _("root source %s does not exist"),
+                                 root->src);
+            goto cleanup;
+        }
+
         if (unshare(CLONE_NEWNS) < 0) {
             virReportSystemError(errno, "%s",
                                  _("Cannot unshare mount namespace"));
@@ -674,7 +870,7 @@ lxcControllerRun(virDomainDefPtr def,
             goto cleanup;
         }
 
-        if (virFileMakePath(devpts) != 0) {
+        if (virFileMakePath(devpts) < 0) {
             virReportSystemError(errno,
                                  _("Failed to make path %s"),
                                  devpts);
@@ -724,20 +920,44 @@ lxcControllerRun(virDomainDefPtr def,
                                        nveths,
                                        veths,
                                        control[1],
+                                       containerhandshake[1],
                                        containerPtyPath)) < 0)
         goto cleanup;
     VIR_FORCE_CLOSE(control[1]);
+    VIR_FORCE_CLOSE(containerhandshake[1]);
 
     if (lxcControllerMoveInterfaces(nveths, veths, container) < 0)
         goto cleanup;
 
-    if (lxcContainerSendContinue(control[0]) < 0)
+    if (lxcContainerSendContinue(control[0]) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to send container continue message"));
         goto cleanup;
+    }
 
-    /* Now the container is running, there's no need for us to keep
-       any elevated capabilities */
+    if (lxcContainerWaitForContinue(containerhandshake[0]) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("error receiving signal from container"));
+        goto cleanup;
+    }
+
+    /* Now the container is fully setup... */
+
+    /* ...we can close the loop devices... */
+
+    for (i = 0 ; i < nloopDevs ; i++)
+        VIR_FORCE_CLOSE(loopDevs[i]);
+
+    /* ...and reduce our privileges */
     if (lxcControllerClearCapabilities() < 0)
         goto cleanup;
+
+    if (lxcContainerSendContinue(handshakefd) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("error sending continue signal to parent"));
+        goto cleanup;
+    }
+    VIR_FORCE_CLOSE(handshakefd);
 
     rc = lxcControllerMain(monitor, client, appPty, containerPty, container);
 
@@ -748,6 +968,13 @@ cleanup:
     VIR_FORCE_CLOSE(control[1]);
     VIR_FREE(containerPtyPath);
     VIR_FORCE_CLOSE(containerPty);
+    VIR_FORCE_CLOSE(handshakefd);
+    VIR_FORCE_CLOSE(containerhandshake[0]);
+    VIR_FORCE_CLOSE(containerhandshake[1]);
+
+    for (i = 0 ; i < nloopDevs ; i++)
+        VIR_FORCE_CLOSE(loopDevs[i]);
+    VIR_FREE(loopDevs);
 
     if (container > 1) {
         int status;
@@ -771,6 +998,7 @@ int main(int argc, char *argv[])
     char **veths = NULL;
     int monitor = -1;
     int appPty = -1;
+    int handshakefd = -1;
     int bg = 0;
     virCapsPtr caps = NULL;
     virDomainDefPtr def = NULL;
@@ -781,6 +1009,7 @@ int main(int argc, char *argv[])
         { "name",   1, NULL, 'n' },
         { "veth",   1, NULL, 'v' },
         { "console", 1, NULL, 'c' },
+        { "handshakefd", 1, NULL, 's' },
         { "help", 0, NULL, 'h' },
         { 0, 0, 0, 0 },
     };
@@ -795,7 +1024,7 @@ int main(int argc, char *argv[])
     while (1) {
         int c;
 
-        c = getopt_long(argc, argv, "dn:v:m:c:h",
+        c = getopt_long(argc, argv, "dn:v:m:c:s:h",
                        options, NULL);
 
         if (c == -1)
@@ -831,6 +1060,14 @@ int main(int argc, char *argv[])
             }
             break;
 
+        case 's':
+            if (virStrToLong_i(optarg, NULL, 10, &handshakefd) < 0) {
+                fprintf(stderr, "malformed --handshakefd argument '%s'",
+                        optarg);
+                goto cleanup;
+            }
+            break;
+
         case 'h':
         case '?':
             fprintf(stderr, "\n");
@@ -842,6 +1079,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "  -n NAME, --name NAME\n");
             fprintf(stderr, "  -c FD, --console FD\n");
             fprintf(stderr, "  -v VETH, --veth VETH\n");
+            fprintf(stderr, "  -s FD, --handshakefd FD\n");
             fprintf(stderr, "  -h, --help\n");
             fprintf(stderr, "\n");
             goto cleanup;
@@ -859,6 +1097,12 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
+    if (handshakefd < 0) {
+        fprintf(stderr, "%s: missing --handshake argument for container PTY\n",
+                argv[0]);
+        goto cleanup;
+    }
+
     if (getuid() != 0) {
         fprintf(stderr, "%s: must be run as the 'root' user\n", argv[0]);
         goto cleanup;
@@ -872,6 +1116,7 @@ int main(int argc, char *argv[])
         goto cleanup;
 
     if ((def = virDomainDefParseFile(caps, configFile,
+                                     1 << VIR_DOMAIN_VIRT_LXC,
                                      VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
@@ -892,8 +1137,8 @@ int main(int argc, char *argv[])
             goto cleanup;
 
         if (pid > 0) {
-            if ((rc = virFileWritePid(LXC_STATE_DIR, name, pid)) != 0) {
-                virReportSystemError(rc,
+            if ((rc = virPidFileWrite(LXC_STATE_DIR, name, pid)) < 0) {
+                virReportSystemError(-rc,
                                      _("Unable to write pid file '%s/%s.pid'"),
                                      LXC_STATE_DIR, name);
                 _exit(1);
@@ -929,16 +1174,17 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    rc = lxcControllerRun(def, nveths, veths, monitor, client, appPty);
+    rc = lxcControllerRun(def, nveths, veths, monitor, client, appPty,
+                          handshakefd);
 
 
 cleanup:
     if (def)
-        virFileDeletePid(LXC_STATE_DIR, def->name);
+        virPidFileDelete(LXC_STATE_DIR, def->name);
     lxcControllerCleanupInterfaces(nveths, veths);
     if (sockpath)
         unlink(sockpath);
     VIR_FREE(sockpath);
 
-    return rc;
+    return rc ? EXIT_FAILURE : EXIT_SUCCESS;
 }

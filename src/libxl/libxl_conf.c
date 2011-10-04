@@ -34,7 +34,7 @@
 #include "logging.h"
 #include "virterror_internal.h"
 #include "datatypes.h"
-#include "files.h"
+#include "virfile.h"
 #include "memory.h"
 #include "uuid.h"
 #include "capabilities.h"
@@ -537,6 +537,11 @@ libxlMakeDisk(virDomainDefPtr def, virDomainDiskDefPtr l_disk,
     x_disk->unpluggable = 1;
     x_disk->readwrite = !l_disk->readonly;
     x_disk->is_cdrom = l_disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM ? 1 : 0;
+    if (l_disk->transient) {
+        libxlError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("libxenlight does not support transient disks"));
+        return -1;
+    }
 
     x_disk->domid = def->id;
 
@@ -651,6 +656,7 @@ libxlMakeVfb(libxlDriverPrivatePtr driver, virDomainDefPtr def,
              virDomainGraphicsDefPtr l_vfb, libxl_device_vfb *x_vfb)
 {
     int port;
+    const char *listenAddr;
 
     switch (l_vfb->type) {
         case VIR_DOMAIN_GRAPHICS_TYPE_SDL:
@@ -682,11 +688,11 @@ libxlMakeVfb(libxlDriverPrivatePtr driver, virDomainDefPtr def,
             }
             x_vfb->vncdisplay = l_vfb->data.vnc.port - LIBXL_VNC_PORT_MIN;
 
-            if (l_vfb->data.vnc.listenAddr) {
+            listenAddr = virDomainGraphicsListenGetAddress(l_vfb, 0);
+            if (listenAddr) {
                 /* libxl_device_vfb_init() does strdup("127.0.0.1") */
                 free(x_vfb->vnclisten);
-                if ((x_vfb->vnclisten =
-                    strdup(l_vfb->data.vnc.listenAddr)) == NULL) {
+                if ((x_vfb->vnclisten = strdup(listenAddr)) == NULL) {
                     virReportOOMError();
                     return -1;
                 }

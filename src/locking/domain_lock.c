@@ -21,8 +21,6 @@
 
 #include <config.h>
 
-#include <intprops.h>
-
 #include "domain_lock.h"
 #include "memory.h"
 #include "uuid.h"
@@ -155,16 +153,20 @@ error:
 
 int virDomainLockProcessStart(virLockManagerPluginPtr plugin,
                               virDomainObjPtr dom,
-                              bool paused)
+                              bool paused,
+                              int *fd)
 {
-    virLockManagerPtr lock = virDomainLockManagerNew(plugin, dom, true);
+    virLockManagerPtr lock;
     int ret;
     int flags = VIR_LOCK_MANAGER_ACQUIRE_RESTRICT;
+
+    if (!(lock = virDomainLockManagerNew(plugin, dom, true)))
+        return -1;
 
     if (paused)
         flags |= VIR_LOCK_MANAGER_ACQUIRE_REGISTER_ONLY;
 
-    ret = virLockManagerAcquire(lock, NULL, flags);
+    ret = virLockManagerAcquire(lock, NULL, flags, fd);
 
     virLockManagerFree(lock);
 
@@ -175,9 +177,13 @@ int virDomainLockProcessPause(virLockManagerPluginPtr plugin,
                               virDomainObjPtr dom,
                               char **state)
 {
-    virLockManagerPtr lock = virDomainLockManagerNew(plugin, dom, true);
-    int ret = virLockManagerRelease(lock, state, 0);
+    virLockManagerPtr lock;
+    int ret;
 
+    if (!(lock = virDomainLockManagerNew(plugin, dom, true)))
+        return -1;
+
+    ret = virLockManagerRelease(lock, state, 0);
     virLockManagerFree(lock);
 
     return ret;
@@ -187,9 +193,13 @@ int virDomainLockProcessResume(virLockManagerPluginPtr plugin,
                                virDomainObjPtr dom,
                                const char *state)
 {
-    virLockManagerPtr lock = virDomainLockManagerNew(plugin, dom, true);
-    int ret = virLockManagerAcquire(lock, state, 0);
+    virLockManagerPtr lock;
+    int ret;
 
+    if (!(lock = virDomainLockManagerNew(plugin, dom, true)))
+        return -1;
+
+    ret = virLockManagerAcquire(lock, state, 0, NULL);
     virLockManagerFree(lock);
 
     return ret;
@@ -199,9 +209,13 @@ int virDomainLockProcessInquire(virLockManagerPluginPtr plugin,
                                 virDomainObjPtr dom,
                                 char **state)
 {
-    virLockManagerPtr lock = virDomainLockManagerNew(plugin, dom, true);
-    int ret = virLockManagerInquire(lock, state, 0);
+    virLockManagerPtr lock;
+    int ret;
 
+    if (!(lock = virDomainLockManagerNew(plugin, dom, true)))
+        return -1;
+
+    ret = virLockManagerInquire(lock, state, 0);
     virLockManagerFree(lock);
 
     return ret;
@@ -212,13 +226,16 @@ int virDomainLockDiskAttach(virLockManagerPluginPtr plugin,
                             virDomainObjPtr dom,
                             virDomainDiskDefPtr disk)
 {
-    virLockManagerPtr lock = virDomainLockManagerNew(plugin, dom, false);
+    virLockManagerPtr lock;
     int ret = -1;
+
+    if (!(lock = virDomainLockManagerNew(plugin, dom, false)))
+        return -1;
 
     if (virDomainLockManagerAddDisk(lock, disk) < 0)
         goto cleanup;
 
-    if (virLockManagerAcquire(lock, NULL, 0) < 0)
+    if (virLockManagerAcquire(lock, NULL, 0, NULL) < 0)
         goto cleanup;
 
     ret = 0;
@@ -233,8 +250,11 @@ int virDomainLockDiskDetach(virLockManagerPluginPtr plugin,
                             virDomainObjPtr dom,
                             virDomainDiskDefPtr disk)
 {
-    virLockManagerPtr lock = virDomainLockManagerNew(plugin, dom, false);
+    virLockManagerPtr lock;
     int ret = -1;
+
+    if (!(lock = virDomainLockManagerNew(plugin, dom, false)))
+        return -1;
 
     if (virDomainLockManagerAddDisk(lock, disk) < 0)
         goto cleanup;
@@ -255,13 +275,16 @@ int virDomainLockLeaseAttach(virLockManagerPluginPtr plugin,
                              virDomainObjPtr dom,
                              virDomainLeaseDefPtr lease)
 {
-    virLockManagerPtr lock = virDomainLockManagerNew(plugin, dom, false);
+    virLockManagerPtr lock;
     int ret = -1;
+
+    if (!(lock = virDomainLockManagerNew(plugin, dom, false)))
+        return -1;
 
     if (virDomainLockManagerAddLease(lock, lease) < 0)
         goto cleanup;
 
-    if (virLockManagerAcquire(lock, NULL, 0) < 0)
+    if (virLockManagerAcquire(lock, NULL, 0, NULL) < 0)
         goto cleanup;
 
     ret = 0;
@@ -276,8 +299,11 @@ int virDomainLockLeaseDetach(virLockManagerPluginPtr plugin,
                              virDomainObjPtr dom,
                              virDomainLeaseDefPtr lease)
 {
-    virLockManagerPtr lock = virDomainLockManagerNew(plugin, dom, false);
+    virLockManagerPtr lock;
     int ret = -1;
+
+    if (!(lock = virDomainLockManagerNew(plugin, dom, false)))
+        return -1;
 
     if (virDomainLockManagerAddLease(lock, lease) < 0)
         goto cleanup;

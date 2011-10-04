@@ -88,6 +88,10 @@
                         </div>
                       </li><li>
                         <div>
+                          <a title="RPC protocol information and API / dispatch guide" class="inactive" href="internals/rpc.html">RPC protocol &amp; APIs</a>
+                        </div>
+                      </li><li>
+                        <div>
                           <a title="Use lock managers to protect disk content" class="inactive" href="internals/locking.html">Lock managers</a>
                         </div>
                       </li></ul>
@@ -604,7 +608,7 @@
       Usage of the <code>fdopen()</code>, <code>close()</code>, <code>fclose()</code>
       APIs is deprecated in libvirt code base to help avoiding double-closing of files
       or file descriptors, which is particulary dangerous in a multi-threaded
-      applications. Instead of these APIs, use the macros from files.h
+      applications. Instead of these APIs, use the macros from virfile.h
     </p>
         <ul><li><p>Open a file from a file descriptor:</p>
 

@@ -11,7 +11,7 @@ Build-Depends: cdbs (>= 0.4.89~),
  libreadline-dev,
  zlib1g-dev,
  libgnutls-dev,
- python-dev (>= 2.6.6-3~),
+ python-all-dev (>= 2.6.6-3~),
  libavahi-client-dev,
  libsasl2-dev,
  libxen-dev [i386 amd64],
@@ -29,16 +29,20 @@ Build-Depends: cdbs (>= 0.4.89~),
  libcap-ng-dev [linux-any],
  virtualbox-ose [amd64 i386],
  libnl-dev [linux-any],
+ libyajl-dev,
+ libpcap0.8-dev,
 # For "make check"
  libxml2-utils,
-XS-Python-Version: current
+ dnsmasq-base,
+ openssh-client,
+ netcat-openbsd,
 Build-Conflicts: dpkg-dev (= 1.15.3)
 Vcs-Git: git://git.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: http://git.debian.org/?p=pkg-libvirt/libvirt.git
 Homepage: http://libvirt.org
 Standards-Version: 3.9.2
 DM-Upload-Allowed: yes
-X-Python-Version: 2.6
+X-Python-Version: >= 2.6
 
 Package: libvirt-bin
 Architecture: any
@@ -55,8 +59,8 @@ Recommends: netcat-openbsd,
  ebtables,
  dmidecode,
  iproute
-Suggests: policykit-1
-Description: the programs for the libvirt library
+Suggests: policykit-1, radvd
+Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
  a long term stable C API for different virtualization mechanisms. It currently

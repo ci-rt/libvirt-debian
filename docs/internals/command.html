@@ -88,6 +88,10 @@
                         </div>
                       </li><li>
                         <div>
+                          <a title="RPC protocol information and API / dispatch guide" class="inactive" href="../internals/rpc.html">RPC protocol &amp; APIs</a>
+                        </div>
+                      </li><li>
+                        <div>
                           <a title="Use lock managers to protect disk content" class="inactive" href="../internals/locking.html">Lock managers</a>
                         </div>
                       </li></ul>
@@ -604,6 +608,21 @@
       arg for <code>virCommandWait</code> can be omitted, in which
       case it will validate that exit status is zero and raise an
       error if not.
+    </p>
+        <p>
+      There are two approaches to child process cleanup, determined by
+      how long you want to keep the virCommand object in scope.
+    </p>
+        <p>1. If the virCommand object will outlast the child process,
+      then pass NULL for the pid argument, and the child process will
+      automatically be reaped at virCommandFree, unless you reap it
+      sooner via virCommandWait or virCommandAbort.
+    </p>
+        <p>2. If the child process must exist on at least one code path
+      after virCommandFree, then pass a pointer for the pid argument.
+      Later, to clean up the child, call virPidWait or virPidAbort.
+      Before virCommandFree, you can still use virCommandWait or
+      virCommandAbort to reap the process.
     </p>
         <h3>
           <a name="release" id="release">Releasing resources</a>

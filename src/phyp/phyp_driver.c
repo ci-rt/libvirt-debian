@@ -57,7 +57,7 @@
 #include "domain_conf.h"
 #include "storage_conf.h"
 #include "nodeinfo.h"
-#include "files.h"
+#include "virfile.h"
 #include "interface_conf.h"
 
 #include "phyp_driver.h"
@@ -1128,7 +1128,7 @@ exit:
 
 static virDrvOpenStatus
 phypOpen(virConnectPtr conn,
-         virConnectAuthPtr auth, int flags ATTRIBUTE_UNUSED)
+         virConnectAuthPtr auth, unsigned int flags)
 {
     LIBSSH2_SESSION *session = NULL;
     ConnectionData *connection_data = NULL;
@@ -1137,6 +1137,8 @@ phypOpen(virConnectPtr conn,
     phyp_driverPtr phyp_driver = NULL;
     char *char_ptr;
     char *managed_system = NULL;
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     if (!conn || !conn->uri)
         return VIR_DRV_OPEN_DECLINED;
@@ -3307,13 +3309,15 @@ cleanup:
 }
 
 static char *
-phypDomainGetXMLDesc(virDomainPtr dom, int flags)
+phypDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
 {
     ConnectionData *connection_data = dom->conn->networkPrivateData;
     phyp_driverPtr phyp_driver = dom->conn->privateData;
     LIBSSH2_SESSION *session = connection_data->session;
     virDomainDef def;
     char *managed_system = phyp_driver->managed_system;
+
+    /* Flags checked by virDomainDefFormat */
 
     memset(&def, 0, sizeof(virDomainDef));
 
@@ -3389,7 +3393,7 @@ cleanup:
 }
 
 static int
-phypDomainReboot(virDomainPtr dom, unsigned int flags ATTRIBUTE_UNUSED)
+phypDomainReboot(virDomainPtr dom, unsigned int flags)
 {
     int result = -1;
     ConnectionData *connection_data = dom->conn->networkPrivateData;
@@ -3401,6 +3405,8 @@ phypDomainReboot(virDomainPtr dom, unsigned int flags ATTRIBUTE_UNUSED)
     int exit_status = 0;
     char *ret = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    virCheckFlags(0, -1);
 
     virBufferAddLit(&buf, "chsysstate");
     if (system_type == HMC)
@@ -3491,7 +3497,8 @@ phypDomainGetState(virDomainPtr dom,
 }
 
 static int
-phypDomainDestroy(virDomainPtr dom)
+phypDomainDestroyFlags(virDomainPtr dom,
+                       unsigned int flags)
 {
     int result = -1;
     ConnectionData *connection_data = dom->conn->networkPrivateData;
@@ -3502,6 +3509,8 @@ phypDomainDestroy(virDomainPtr dom)
     int exit_status = 0;
     char *ret = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+    virCheckFlags(0, -1);
 
     virBufferAddLit(&buf, "rmsyscfg");
     if (system_type == HMC)
@@ -3522,6 +3531,12 @@ cleanup:
     VIR_FREE(ret);
 
     return result;
+}
+
+static int
+phypDomainDestroy(virDomainPtr dom)
+{
+    return phypDomainDestroyFlags(dom, 0);
 }
 
 static int
@@ -3611,6 +3626,7 @@ phypDomainCreateAndStart(virConnectPtr conn,
     virCheckFlags(0, NULL);
 
     if (!(def = virDomainDefParseString(phyp_driver->caps, xml,
+                                        1 << VIR_DOMAIN_VIRT_PHYP,
                                         VIR_DOMAIN_XML_SECURE)))
         goto err;
 
@@ -3725,8 +3741,10 @@ phypDomainSetCPU(virDomainPtr dom, unsigned int nvcpus)
 static virDrvOpenStatus
 phypVIOSDriverOpen(virConnectPtr conn,
                    virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                   int flags ATTRIBUTE_UNUSED)
+                   unsigned int flags)
 {
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
+
     if (conn->driver->no != VIR_DRV_PHYP)
         return VIR_DRV_OPEN_DECLINED;
 
@@ -3754,6 +3772,7 @@ static virDriver phypDriver = {
     .domainShutdown = phypDomainShutdown, /* 0.7.0 */
     .domainReboot = phypDomainReboot, /* 0.9.1 */
     .domainDestroy = phypDomainDestroy, /* 0.7.3 */
+    .domainDestroyFlags = phypDomainDestroyFlags, /* 0.9.4 */
     .domainGetInfo = phypDomainGetInfo, /* 0.7.0 */
     .domainGetState = phypDomainGetState, /* 0.9.2 */
     .domainSetVcpus = phypDomainSetCPU, /* 0.7.3 */

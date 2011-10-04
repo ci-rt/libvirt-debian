@@ -44,13 +44,14 @@
 %define with_lxc           0%{!?_without_lxc:%{server_drivers}}
 %define with_vbox          0%{!?_without_vbox:%{server_drivers}}
 %define with_uml           0%{!?_without_uml:%{server_drivers}}
-%define with_xenapi        0%{!?_without_xenapi:%{server_drivers}}
 %define with_libxl         0%{!?_without_libxl:%{server_drivers}}
+%define with_vmware        0%{!?_without_vmware:%{server_drivers}}
 
 # Then the hypervisor drivers that talk a native remote protocol
 %define with_phyp          0%{!?_without_phyp:1}
 %define with_esx           0%{!?_without_esx:1}
-%define with_vmware        0%{!?_without_vmware:1}
+%define with_hyperv        0%{!?_without_hyperv:1}
+%define with_xenapi        0%{!?_without_xenapi:1}
 
 # Then the secondary host drivers
 %define with_network       0%{!?_without_network:%{server_drivers}}
@@ -164,8 +165,24 @@
 %endif
 
 # Enable sanlock library for lock management with QEMU
-%if 0%{?fedora} >= 15 || 0%{?rhel} >= 6
+%if 0%{?fedora} >= 16 || 0%{?rhel} >= 6
 %define with_sanlock  0%{!?_without_sanlock:%{server_drivers}}
+%endif
+
+# Disable some drivers when building without libvirt daemon.
+# The logic is the same as in configure.ac
+%if ! %{with_libvirtd}
+%define with_network 0
+%define with_qemu 0
+%define with_lxc 0
+%define with_uml 0
+%define with_hal 0
+%define with_udev 0
+%define with_storage_fs 0
+%define with_storage_lvm 0
+%define with_storage_iscsi 0
+%define with_storage_mpath 0
+%define with_storage_disk 0
 %endif
 
 # Enable libpcap library
@@ -212,16 +229,9 @@
 %define with_rhel5  0
 %endif
 
-
-# there's no use compiling the network driver without
-# the libvirt daemon
-%if ! %{with_libvirtd}
-%define with_network 0
-%endif
-
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.9.2
+Version: 0.9.6
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -241,7 +251,7 @@ Requires: %{name}-client = %{version}-%{release}
 Requires: bridge-utils
 # for modprobe of pci devices
 Requires: module-init-tools
-# for /sbin/ip
+# for /sbin/ip & /sbin/tc
 Requires: iproute
 %endif
 %if %{with_network}
@@ -271,6 +281,10 @@ Requires: PolicyKit >= 0.6
 %endif
 %if %{with_storage_fs}
 Requires: nfs-utils
+# For mkfs
+Requires: util-linux-ng
+# For pool-build probing for existing pools
+BuildRequires: libblkid-devel >= 2.17
 # For glusterfs
 %if 0%{?fedora} >= 11
 Requires: glusterfs-client >= 2.0.1
@@ -323,6 +337,7 @@ BuildRequires: libxslt
 BuildRequires: readline-devel
 BuildRequires: ncurses-devel
 BuildRequires: gettext
+BuildRequires: libtasn1-devel
 BuildRequires: gnutls-devel
 %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
 # for augparse, optionally used in testing
@@ -339,7 +354,7 @@ BuildRequires: libpciaccess-devel >= 0.10.9
 BuildRequires: yajl-devel
 %endif
 %if %{with_sanlock}
-BuildRequires: sanlock-devel
+BuildRequires: sanlock-devel >= 1.8
 %endif
 %if %{with_libpcap}
 BuildRequires: libpcap-devel
@@ -424,7 +439,11 @@ BuildRequires: libcap-ng-devel >= 0.5.0
 BuildRequires: libssh2-devel
 %endif
 %if %{with_netcf}
+%if 0%{?fedora} >= 16 || 0%{?rhel} >= 6
+BuildRequires: netcf-devel >= 0.1.8
+%else
 BuildRequires: netcf-devel >= 0.1.4
+%endif
 %endif
 %if %{with_esx}
 %if 0%{?fedora} >= 9 || 0%{?rhel} >= 6
@@ -432,6 +451,9 @@ BuildRequires: libcurl-devel
 %else
 BuildRequires: curl-devel
 %endif
+%endif
+%if %{with_hyperv}
+BuildRequires: libwsman-devel >= 2.2.3
 %endif
 %if %{with_audit}
 BuildRequires: audit-libs-devel
@@ -496,7 +518,9 @@ the virtualization capabilities of recent versions of Linux (and other OSes).
 %package lock-sanlock
 Summary: Sanlock lock manager plugin for QEMU driver
 Group: Development/Libraries
-Requires: sanlock
+Requires: sanlock >= 1.8
+#for virt-sanlock-cleanup require augeas
+Requires: augeas
 Requires: %{name} = %{version}-%{release}
 
 %description lock-sanlock
@@ -563,6 +587,10 @@ of recent versions of Linux (and other OSes).
 
 %if ! %{with_esx}
 %define _without_esx --without-esx
+%endif
+
+%if ! %{with_hyperv}
+%define _without_hyperv --without-hyperv
 %endif
 
 %if ! %{with_vmware}
@@ -683,6 +711,7 @@ of recent versions of Linux (and other OSes).
            %{?_without_one} \
            %{?_without_phyp} \
            %{?_without_esx} \
+           %{?_without_hyperv} \
            %{?_without_vmware} \
            %{?_without_network} \
            %{?_with_rhel5_api} \
@@ -865,9 +894,13 @@ done
 %endif
 
 %if %{with_cgconfig}
+# Starting with Fedora 15, systemd automounts all cgroups, and cgconfig is
+# no longer a necessary service.
+%if 0%{?fedora} <= 14 || 0%{?rhel} <= 6
 if [ "$1" -eq "1" ]; then
 /sbin/chkconfig cgconfig on
 fi
+%endif
 %endif
 
 /sbin/chkconfig --add libvirtd
@@ -897,7 +930,8 @@ fi
 /sbin/chkconfig --add libvirt-guests
 if [ $1 -ge 1 ]; then
     level=$(/sbin/runlevel | /bin/cut -d ' ' -f 2)
-    if /sbin/chkconfig --list libvirt-guests | /bin/grep -q $level:on ; then
+    if /sbin/chkconfig --list libvirt-guests 2>/dev/null \
+        | /bin/grep -q $level:on ; then
         # this doesn't do anything but allowing for libvirt-guests to be
         # stopped on the first shutdown
         /sbin/service libvirt-guests start > /dev/null 2>&1 || true
@@ -1012,7 +1046,10 @@ fi
 %attr(0755, root, root) %{_libexecdir}/libvirt_lxc
 %endif
 
+%if %{with_storage_disk}
 %attr(0755, root, root) %{_libexecdir}/libvirt_parthelper
+%endif
+
 %attr(0755, root, root) %{_libexecdir}/libvirt_iohelper
 %attr(0755, root, root) %{_sbindir}/libvirtd
 
@@ -1024,7 +1061,15 @@ fi
 %if %{with_sanlock}
 %files lock-sanlock
 %defattr(-, root, root)
+%if %{with_qemu}
+%config(noreplace) %{_sysconfdir}/libvirt/qemu-sanlock.conf
+%endif
 %attr(0755, root, root) %{_libdir}/libvirt/lock-driver/sanlock.so
+%{_datadir}/augeas/lenses/libvirt_sanlock.aug
+%{_datadir}/augeas/lenses/tests/test_libvirt_sanlock.aug
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/sanlock
+%{_sbindir}/virt-sanlock-cleanup
+%{_mandir}/man8/virt-sanlock-cleanup.8*
 %endif
 
 %files client -f %{name}.lang
@@ -1042,17 +1087,20 @@ fi
 %dir %{_datadir}/libvirt/
 %dir %{_datadir}/libvirt/schemas/
 
-%{_datadir}/libvirt/schemas/domain.rng
-%{_datadir}/libvirt/schemas/domainsnapshot.rng
-%{_datadir}/libvirt/schemas/network.rng
-%{_datadir}/libvirt/schemas/storagepool.rng
-%{_datadir}/libvirt/schemas/storagevol.rng
-%{_datadir}/libvirt/schemas/nodedev.rng
+%{_datadir}/libvirt/schemas/basictypes.rng
 %{_datadir}/libvirt/schemas/capability.rng
+%{_datadir}/libvirt/schemas/domain.rng
+%{_datadir}/libvirt/schemas/domaincommon.rng
+%{_datadir}/libvirt/schemas/domainsnapshot.rng
 %{_datadir}/libvirt/schemas/interface.rng
+%{_datadir}/libvirt/schemas/network.rng
+%{_datadir}/libvirt/schemas/networkcommon.rng
+%{_datadir}/libvirt/schemas/nodedev.rng
+%{_datadir}/libvirt/schemas/nwfilter.rng
 %{_datadir}/libvirt/schemas/secret.rng
 %{_datadir}/libvirt/schemas/storageencryption.rng
-%{_datadir}/libvirt/schemas/nwfilter.rng
+%{_datadir}/libvirt/schemas/storagepool.rng
+%{_datadir}/libvirt/schemas/storagevol.rng
 
 %{_datadir}/libvirt/cpu_map.xml
 
@@ -1093,6 +1141,7 @@ fi
 
 %doc AUTHORS NEWS README COPYING.LIB
 %{_libdir}/python*/site-packages/libvirt.py*
+%{_libdir}/python*/site-packages/libvirt_qemu.py*
 %{_libdir}/python*/site-packages/libvirtmod*
 %doc python/tests/*.py
 %doc python/TODO
@@ -1101,6 +1150,43 @@ fi
 %endif
 
 %changelog
+* Thu Sep 22 2011 Daniel Veillard <veillard@redhat.com> - 0.9.6-1
+- Fix the qemu reboot bug and a few others bug fixes
+
+* Tue Sep 20 2011 Daniel Veillard <veillard@redhat.com> - 0.9.5-1
+- many snapshot improvements (Eric Blake)
+- latency: Define new public API and structure (Osier Yang)
+- USB2 and various USB improvements (Marc-André Lureau)
+- storage: Add fs pool formatting (Osier Yang)
+- Add public API for getting migration speed (Jim Fehlig)
+- Add basic driver for Microsoft Hyper-V (Matthias Bolte)
+- many improvements and bug fixes
+
+* Wed Aug  3 2011 Daniel Veillard <veillard@redhat.com> - 0.9.4-1
+- network bandwidth QoS control
+- Add new API virDomainBlockPull*
+- save: new API to manipulate save file images
+- CPU bandwidth limits support
+- allow to send NMI and key event to guests
+- new API virDomainUndefineFlags
+- Implement code to attach to external QEMU instances
+- bios: Add support for SGA
+- various missing python binding
+- many improvements and bug fixes
+
+* Mon Jul  4 2011 Daniel Veillard <veillard@redhat.com> - 0.9.3-1
+- new API virDomainGetVcpupinInfo
+- Add TXT record support for virtual DNS service
+- Support reboots with the QEMU driver
+- New API virDomainGetControlInfo API
+- New API virNodeGetMemoryStats
+- New API virNodeGetCPUTime
+- New API for send-key
+- New API virDomainPinVcpuFlags
+- support multifunction PCI device
+- lxc: various improvements
+- many improvements and bug fixes
+
 * Mon Jun  6 2011 Daniel Veillard <veillard@redhat.com> - 0.9.2-1
 - Framework for lock manager plugins
 - API for network config change transactions

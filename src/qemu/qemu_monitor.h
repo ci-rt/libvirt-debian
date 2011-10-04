@@ -117,6 +117,11 @@ struct _qemuMonitorCallbacks {
                           const char *authScheme,
                           const char *x509dname,
                           const char *saslUsername);
+    int (*domainBlockJob)(qemuMonitorPtr mon,
+                          virDomainObjPtr vm,
+                          const char *diskAlias,
+                          int type,
+                          int status);
 };
 
 
@@ -139,6 +144,10 @@ void qemuMonitorUnlock(qemuMonitorPtr mon);
 
 int qemuMonitorRef(qemuMonitorPtr mon);
 int qemuMonitorUnref(qemuMonitorPtr mon) ATTRIBUTE_RETURN_CHECK;
+
+int qemuMonitorSetLink(qemuMonitorPtr mon,
+                       const char *name,
+                       enum virDomainNetInterfaceLinkState state) ;
 
 /* These APIs are for use by the internal Text/JSON monitor impl code only */
 char *qemuMonitorNextCommandID(qemuMonitorPtr mon);
@@ -179,6 +188,11 @@ int qemuMonitorEmitGraphics(qemuMonitorPtr mon,
                             const char *authScheme,
                             const char *x509dname,
                             const char *saslUsername);
+int qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
+                            const char *diskAlias,
+                            int type,
+                            int status);
+
 
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
@@ -186,25 +200,34 @@ int qemuMonitorStartCPUs(qemuMonitorPtr mon,
 int qemuMonitorStopCPUs(qemuMonitorPtr mon);
 int qemuMonitorGetStatus(qemuMonitorPtr mon, bool *running);
 
+int qemuMonitorSystemReset(qemuMonitorPtr mon);
 int qemuMonitorSystemPowerdown(qemuMonitorPtr mon);
 
 int qemuMonitorGetCPUInfo(qemuMonitorPtr mon,
                           int **pids);
+int qemuMonitorGetVirtType(qemuMonitorPtr mon,
+                           int *virtType);
 int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
                               unsigned long *currmem);
 int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
                               virDomainMemoryStatPtr stats,
                               unsigned int nr_stats);
 int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
-                                 const char *devname,
+                                 const char *dev_name,
                                  long long *rd_req,
                                  long long *rd_bytes,
+                                 long long *rd_total_times,
                                  long long *wr_req,
                                  long long *wr_bytes,
+                                 long long *wr_total_times,
+                                 long long *flush_req,
+                                 long long *flush_total_times,
                                  long long *errs);
+int qemuMonitorGetBlockStatsParamsNumber(qemuMonitorPtr mon,
+                                         int *nparams);
 
 int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
-                              const char *devname,
+                              const char *dev_name,
                               unsigned long long *extent);
 
 
@@ -227,10 +250,10 @@ int qemuMonitorSetCPU(qemuMonitorPtr mon, int cpu, int online);
  * this when doing the QMP implementation
  */
 int qemuMonitorEjectMedia(qemuMonitorPtr mon,
-                          const char *devname,
+                          const char *dev_name,
                           bool force);
 int qemuMonitorChangeMedia(qemuMonitorPtr mon,
-                           const char *devname,
+                           const char *dev_name,
                            const char *newmedia,
                            const char *format);
 
@@ -359,6 +382,9 @@ int qemuMonitorSendFileHandle(qemuMonitorPtr mon,
                               const char *fdname,
                               int fd);
 
+/* The function preserves previous error and only sets it's own error if no
+ * error was set before.
+ */
 int qemuMonitorCloseFileHandle(qemuMonitorPtr mon,
                                const char *fdname);
 
@@ -431,6 +457,10 @@ int qemuMonitorCreateSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorLoadSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
+int qemuMonitorDiskSnapshot(qemuMonitorPtr mon,
+                            const char *device,
+                            const char *file);
+
 int qemuMonitorArbitraryCommand(qemuMonitorPtr mon,
                                 const char *cmd,
                                 char **reply,
@@ -440,6 +470,24 @@ int qemuMonitorInjectNMI(qemuMonitorPtr mon);
 
 int qemuMonitorScreendump(qemuMonitorPtr mon,
                           const char *file);
+
+int qemuMonitorSendKey(qemuMonitorPtr mon,
+                       unsigned int holdtime,
+                       unsigned int *keycodes,
+                       unsigned int nkeycodes);
+
+typedef enum {
+    BLOCK_JOB_ABORT = 0,
+    BLOCK_JOB_INFO = 1,
+    BLOCK_JOB_SPEED = 2,
+    BLOCK_JOB_PULL = 3,
+} BLOCK_JOB_CMD;
+
+int qemuMonitorBlockJob(qemuMonitorPtr mon,
+                        const char *device,
+                        unsigned long bandwidth,
+                        virDomainBlockJobInfoPtr info,
+                        int mode);
 
 /**
  * When running two dd process and using <> redirection, we need a

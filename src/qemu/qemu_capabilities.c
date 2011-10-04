@@ -28,7 +28,7 @@
 #include "logging.h"
 #include "virterror_internal.h"
 #include "util.h"
-#include "files.h"
+#include "virfile.h"
 #include "nodeinfo.h"
 #include "cpu/cpu.h"
 #include "domain_conf.h"
@@ -119,6 +119,24 @@ VIR_ENUM_IMPL(qemuCaps, QEMU_CAPS_LAST,
               "device-spicevmc",
               "virtio-tx-alg",
               "device-qxl-vga",
+
+              "pci-multifunction", /* 60 */
+              "virtio-blk-pci.ioeventfd",
+              "sga",
+              "virtio-blk-pci.event_idx",
+              "virtio-net-pci.event_idx",
+
+              "cache-directsync", /* 65 */
+              "piix3-usb-uhci",
+              "piix4-usb-uhci",
+              "usb-ehci",
+              "ich9-usb-ehci1",
+
+              "vt82c686b-usb-uhci", /* 70 */
+              "pci-ohci",
+              "usb-redir",
+              "usb-hub",
+              "no-shutdown",
     );
 
 struct qemu_feature_flags {
@@ -157,6 +175,8 @@ static const struct qemu_arch_info const arch_info_hvm[] = {
     {  "x86_64", 64, NULL, "qemu-system-x86_64",
        NULL, arch_info_x86_64_flags, 2 },
     {  "arm",    32, NULL, "qemu-system-arm",    NULL, NULL, 0 },
+    {  "microblaze", 32, NULL, "qemu-system-microblaze",   NULL, NULL, 0 },
+    {  "microblazeel", 32, NULL, "qemu-system-microblazeel",   NULL, NULL, 0 },
     {  "mips",   32, NULL, "qemu-system-mips",   NULL, NULL, 0 },
     {  "mipsel", 32, NULL, "qemu-system-mipsel", NULL, NULL, 0 },
     {  "sparc",  32, NULL, "qemu-system-sparc",  NULL, NULL, 0 },
@@ -894,8 +914,11 @@ qemuCapsComputeCmdFlags(const char *help,
     if (strstr(help, "-drive")) {
         qemuCapsSet(flags, QEMU_CAPS_DRIVE);
         if (strstr(help, "cache=") &&
-            !strstr(help, "cache=on|off"))
+            !strstr(help, "cache=on|off")) {
             qemuCapsSet(flags, QEMU_CAPS_DRIVE_CACHE_V2);
+            if (strstr(help, "directsync"))
+                qemuCapsSet(flags, QEMU_CAPS_DRIVE_CACHE_DIRECTSYNC);
+        }
         if (strstr(help, "format="))
             qemuCapsSet(flags, QEMU_CAPS_DRIVE_FORMAT);
         if (strstr(help, "readonly="))
@@ -986,6 +1009,13 @@ qemuCapsComputeCmdFlags(const char *help,
         qemuCapsSet(flags, QEMU_CAPS_VHOST_NET);
     }
 
+    /* Do not use -no-shutdown if qemu doesn't support it or SIGTERM handling
+     * is most likely buggy when used with -no-shutdown (which applies for qemu
+     * 0.14.* and 0.15.*)
+     */
+    if (strstr(help, "-no-shutdown") && (version < 14000 || version > 15999))
+        qemuCapsSet(flags, QEMU_CAPS_NO_SHUTDOWN);
+
     /*
      * Handling of -incoming arg with varying features
      *  -incoming tcp    (kvm >= 79, qemu >= 0.10.0)
@@ -1024,6 +1054,9 @@ qemuCapsComputeCmdFlags(const char *help,
      */
      if (version >= 13000)
         qemuCapsSet(flags, QEMU_CAPS_MONITOR_JSON);
+
+    if (version >= 13000)
+        qemuCapsSet(flags, QEMU_CAPS_PCI_MULTIFUNCTION);
 }
 
 /* We parse the output of 'qemu -help' to get the QEMU
@@ -1185,6 +1218,24 @@ qemuCapsParseDeviceStr(const char *str, virBitmapPtr flags)
         qemuCapsSet(flags, QEMU_CAPS_CCID_EMULATED);
     if (strstr(str, "name \"ccid-card-passthru\""))
         qemuCapsSet(flags, QEMU_CAPS_CCID_PASSTHRU);
+
+    if (strstr(str, "name \"piix3-usb-uhci\""))
+        qemuCapsSet(flags, QEMU_CAPS_PIIX3_USB_UHCI);
+    if (strstr(str, "name \"piix4-usb-uhci\""))
+        qemuCapsSet(flags, QEMU_CAPS_PIIX4_USB_UHCI);
+    if (strstr(str, "name \"usb-ehci\""))
+        qemuCapsSet(flags, QEMU_CAPS_USB_EHCI);
+    if (strstr(str, "name \"ich9-usb-ehci1\""))
+        qemuCapsSet(flags, QEMU_CAPS_ICH9_USB_EHCI1);
+    if (strstr(str, "name \"vt82c686b-usb-uhci\""))
+        qemuCapsSet(flags, QEMU_CAPS_VT82C686B_USB_UHCI);
+    if (strstr(str, "name \"pci-ohci\""))
+        qemuCapsSet(flags, QEMU_CAPS_PCI_OHCI);
+    if (strstr(str, "name \"usb-redir\""))
+        qemuCapsSet(flags, QEMU_CAPS_USB_REDIR);
+    if (strstr(str, "name \"usb-hub\""))
+        qemuCapsSet(flags, QEMU_CAPS_USB_HUB);
+
     /* Prefer -chardev spicevmc (detected earlier) over -device spicevmc */
     if (!qemuCapsGet(flags, QEMU_CAPS_CHARDEV_SPICEVMC) &&
         strstr(str, "name \"spicevmc\""))
@@ -1202,6 +1253,14 @@ qemuCapsParseDeviceStr(const char *str, virBitmapPtr flags)
         qemuCapsSet(flags, QEMU_CAPS_VIRTIO_TX_ALG);
     if (strstr(str, "name \"qxl-vga\""))
         qemuCapsSet(flags, QEMU_CAPS_DEVICE_QXL_VGA);
+    if (strstr(str, "virtio-blk-pci.ioeventfd"))
+        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_IOEVENTFD);
+    if (strstr(str, "name \"sga\""))
+        qemuCapsSet(flags, QEMU_CAPS_SGA);
+    if (strstr(str, "virtio-blk-pci.event_idx"))
+        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_BLK_EVENT_IDX);
+    if (strstr(str, "virtio-net-pci.event_idx"))
+        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_NET_EVENT_IDX);
 
     return 0;
 }

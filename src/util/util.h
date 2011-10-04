@@ -35,52 +35,23 @@
 # ifndef MIN
 #  define MIN(a, b) ((a) < (b) ? (a) : (b))
 # endif
+# ifndef MAX
+#  define MAX(a, b) ((a) > (b) ? (a) : (b))
+# endif
 
 ssize_t saferead(int fd, void *buf, size_t count) ATTRIBUTE_RETURN_CHECK;
 ssize_t safewrite(int fd, const void *buf, size_t count)
     ATTRIBUTE_RETURN_CHECK;
-int safezero(int fd, int flags, off_t offset, off_t len)
+int safezero(int fd, off_t offset, off_t len)
     ATTRIBUTE_RETURN_CHECK;
-
-enum {
-    VIR_EXEC_NONE   = 0,
-    VIR_EXEC_NONBLOCK = (1 << 0),
-    VIR_EXEC_DAEMON = (1 << 1),
-    VIR_EXEC_CLEAR_CAPS = (1 << 2),
-};
 
 int virSetBlocking(int fd, bool blocking) ATTRIBUTE_RETURN_CHECK;
 int virSetNonBlock(int fd) ATTRIBUTE_RETURN_CHECK;
 int virSetInherit(int fd, bool inherit) ATTRIBUTE_RETURN_CHECK;
 int virSetCloseExec(int fd) ATTRIBUTE_RETURN_CHECK;
 
-/* This will execute in the context of the first child
- * after fork() but before execve() */
-typedef int (*virExecHook)(void *data);
-
-int virExecWithHook(const char *const*argv,
-                    const char *const*envp,
-                    const fd_set *keepfd,
-                    pid_t *retpid,
-                    int infd,
-                    int *outfd,
-                    int *errfd,
-                    int flags,
-                    virExecHook hook,
-                    void *data,
-                    char *pidfile) ATTRIBUTE_RETURN_CHECK;
-int virExec(const char *const*argv,
-            const char *const*envp,
-            const fd_set *keepfd,
-            pid_t *retpid,
-            int infd,
-            int *outfd,
-            int *errfd,
-            int flags) ATTRIBUTE_RETURN_CHECK;
-int virRun(const char *const*argv, int *status) ATTRIBUTE_RETURN_CHECK;
 int virPipeReadUntilEOF(int outfd, int errfd,
                         char **outbuf, char **errbuf);
-int virFork(pid_t *pid);
 
 int virSetUIDGID(uid_t uid, gid_t gid);
 
@@ -106,6 +77,9 @@ int virFileLinkPointsTo(const char *checkLink,
 
 int virFileResolveLink(const char *linkpath,
                        char **resultpath) ATTRIBUTE_RETURN_CHECK;
+
+int virFileIsLink(const char *linkpath)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 
 char *virFindFileInPath(const char *file);
 
@@ -149,19 +123,6 @@ int virFileOpenTtyAt(const char *ptmx,
                      char **ttyName,
                      int rawmode);
 
-char* virFilePid(const char *dir,
-                 const char *name);
-
-int virFileWritePidPath(const char *path,
-                        pid_t pid) ATTRIBUTE_RETURN_CHECK;
-int virFileWritePid(const char *dir,
-                    const char *name,
-                    pid_t pid) ATTRIBUTE_RETURN_CHECK;
-int virFileReadPid(const char *dir,
-                   const char *name,
-                   pid_t *pid) ATTRIBUTE_RETURN_CHECK;
-int virFileDeletePid(const char *dir,
-                     const char *name);
 
 char *virArgvToString(const char *const *argv);
 
@@ -198,9 +159,15 @@ int virHexToBin(unsigned char c);
 
 int virMacAddrCompare (const char *mac1, const char *mac2);
 
-void virSkipSpaces(const char **str);
+void virSkipSpaces(const char **str) ATTRIBUTE_NONNULL(1);
+void virSkipSpacesAndBackslash(const char **str) ATTRIBUTE_NONNULL(1);
+void virTrimSpaces(char *str, char **endp) ATTRIBUTE_NONNULL(1);
+void virSkipSpacesBackwards(const char *str, char **endp)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
 int virParseNumber(const char **str);
-int virParseVersionString(const char *str, unsigned long *version);
+int virParseVersionString(const char *str, unsigned long *version,
+                          bool allowMissing);
 int virAsprintf(char **strp, const char *fmt, ...)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_FMT_PRINTF(2, 3);
 int virVasprintf(char **strp, const char *fmt, va_list list)
@@ -235,7 +202,7 @@ const char *virEnumToString(const char *const*types,
 
 # define VIR_ENUM_IMPL(name, lastVal, ...)                               \
     static const char *const name ## TypeList[] = { __VA_ARGS__ };      \
-    extern int (* name ## Verify (void)) [verify_true (ARRAY_CARDINALITY(name ## TypeList) == lastVal)]; \
+    verify(ARRAY_CARDINALITY(name ## TypeList) == lastVal);             \
     const char *name ## TypeToString(int type) {                        \
         return virEnumToString(name ## TypeList,                        \
                                ARRAY_CARDINALITY(name ## TypeList),     \
@@ -286,7 +253,9 @@ int virBuildPathInternal(char **path, ...) ATTRIBUTE_SENTINEL;
 
 char *virTimestamp(void);
 
-bool virIsDevMapperDevice(const char *devname) ATTRIBUTE_NONNULL(1);
+int virTimeMs(unsigned long long *ms) ATTRIBUTE_NONNULL(1);
+
+bool virIsDevMapperDevice(const char *dev_name) ATTRIBUTE_NONNULL(1);
 
 int virEmitXMLWarning(int fd,
                       const char *name,

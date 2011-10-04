@@ -1,7 +1,7 @@
 /*
  * qemu_conf.h: QEMU configuration management
  *
- * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2007, 2009-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -82,6 +82,7 @@ struct qemud_driver {
     char *cacheDir;
     char *saveDir;
     char *snapshotDir;
+    char *qemuImgBinary;
     unsigned int vncAutoUnixSocket : 1;
     unsigned int vncTLS : 1;
     unsigned int vncTLSx509verify : 1;
@@ -108,6 +109,8 @@ struct qemud_driver {
 
     int maxProcesses;
 
+    int max_queued;
+
     virCapsPtr caps;
 
     virDomainEventStatePtr domainEventState;
@@ -119,6 +122,9 @@ struct qemud_driver {
     char *dumpImageFormat;
 
     char *autoDumpPath;
+    bool autoDumpBypassCache;
+
+    bool autoStartBypassCache;
 
     pciDeviceList *activePciHostdevs;
 
@@ -127,6 +133,11 @@ struct qemud_driver {
     virSysinfoDefPtr hostsysinfo;
 
     virLockManagerPluginPtr lockManager;
+
+    /* Mapping of 'char *uuidstr' -> virConnectPtr
+     * of guests which will be automatically killed
+     * when the virConnectPtr is closed*/
+    virHashTablePtr autodestroy;
 };
 
 typedef struct _qemuDomainCmdlineDef qemuDomainCmdlineDef;

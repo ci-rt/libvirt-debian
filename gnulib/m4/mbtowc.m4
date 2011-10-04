@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# mbtowc.m4 serial 1
+# mbtowc.m4 serial 2
 dnl Copyright (C) 2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -12,10 +12,6 @@ AC_DEFUN([gl_FUNC_MBTOWC],
 
   if false; then
     REPLACE_MBTOWC=1
-  fi
-  if test $REPLACE_MBTOWC = 1; then
-    AC_LIBOBJ([mbtowc])
-    gl_PREREQ_MBTOWC
   fi
 ])
 

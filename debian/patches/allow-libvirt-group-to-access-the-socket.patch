@@ -8,7 +8,7 @@ Subject: allow libvirt group to access the socket
  2 files changed, 10 insertions(+), 5 deletions(-)
 
 diff --git a/daemon/libvirtd.conf b/daemon/libvirtd.conf
-index 3a071b0..36dab4c 100644
+index da3983e..7cfb324 100644
 --- a/daemon/libvirtd.conf
 +++ b/daemon/libvirtd.conf
 @@ -78,7 +78,7 @@

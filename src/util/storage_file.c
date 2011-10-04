@@ -37,7 +37,7 @@
 #include "memory.h"
 #include "virterror_internal.h"
 #include "logging.h"
-#include "files.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -274,7 +274,7 @@ qcowXGetBackingStore(char **res,
                      bool isQCow2)
 {
     unsigned long long offset;
-    unsigned long size;
+    unsigned int size;
 
     *res = NULL;
     if (format)
@@ -512,7 +512,7 @@ absolutePathFromBaseFile(const char *base_file, const char *path)
     if (d_len > INT_MAX)
         return NULL;
 
-    virAsprintf(&res, "%.*s/%s", (int) d_len, base_file, path);
+    ignore_value(virAsprintf(&res, "%.*s/%s", (int) d_len, base_file, path));
     return res;
 }
 
@@ -819,6 +819,8 @@ virStorageFileProbeFormat(const char *path)
  * it indicates the image didn't specify an explicit format for its
  * backing store. Callers are advised against probing for the
  * backing store format in this case.
+ *
+ * Caller MUST free @meta after use via virStorageFileFreeMetadata.
  */
 int
 virStorageFileGetMetadataFromFD(const char *path,
@@ -892,6 +894,8 @@ cleanup:
  * it indicates the image didn't specify an explicit format for its
  * backing store. Callers are advised against probing for the
  * backing store format in this case.
+ *
+ * Caller MUST free @meta after use via virStorageFileFreeMetadata.
  */
 int
 virStorageFileGetMetadata(const char *path,
@@ -912,6 +916,20 @@ virStorageFileGetMetadata(const char *path,
     return ret;
 }
 
+/**
+ * virStorageFileFreeMetadata:
+ *
+ * Free pointers in passed structure and structure itself.
+ */
+void
+virStorageFileFreeMetadata(virStorageFileMetadata *meta)
+{
+    if (!meta)
+        return;
+
+    VIR_FREE(meta->backingStore);
+    VIR_FREE(meta);
+}
 
 #ifdef __linux__
 

@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# serial 3
+# serial 4
 dnl Copyright (C) 2008-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -26,8 +26,6 @@ AC_DEFUN([gl_FUNC_RANDOM_R],
   AC_CHECK_FUNCS([random_r])
   if test $ac_cv_func_random_r = no; then
     HAVE_RANDOM_R=0
-    AC_LIBOBJ([random_r])
-    gl_PREREQ_RANDOM_R
   fi
 ])
 

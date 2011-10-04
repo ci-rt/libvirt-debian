@@ -37,10 +37,10 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <net/if_arp.h>
-#include <intprops.h>
 
 #include "internal.h"
 
+#include "intprops.h"
 #include "buf.h"
 #include "memory.h"
 #include "logging.h"
@@ -431,7 +431,7 @@ learnIPAddressThread(void *arg)
     req->status = 0;
 
     /* anything change to the VM's interface -- check at least once */
-    if (ifaceCheck(false, req->ifname, NULL, req->ifindex)) {
+    if (ifaceCheck(false, req->ifname, NULL, req->ifindex) < 0) {
         req->status = ENODEV;
         goto done;
     }
@@ -501,7 +501,7 @@ learnIPAddressThread(void *arg)
             }
 
             /* check whether VM's dev is still there */
-            if (ifaceCheck(false, req->ifname, NULL, req->ifindex)) {
+            if (ifaceCheck(false, req->ifname, NULL, req->ifindex) < 0) {
                 req->status = ENODEV;
                 showError = false;
                 break;

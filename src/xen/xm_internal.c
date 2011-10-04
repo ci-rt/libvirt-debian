@@ -81,44 +81,19 @@ static int xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
 #define XM_XML_ERROR "Invalid xml"
 
 struct xenUnifiedDriver xenXMDriver = {
-    xenXMOpen, /* open */
-    xenXMClose, /* close */
-    NULL, /* version */
-    NULL, /* hostname */
-    NULL, /* nodeGetInfo */
-    NULL, /* getCapabilities */
-    NULL, /* listDomains */
-    NULL, /* numOfDomains */
-    NULL, /* domainCreateXML */
-    NULL, /* domainSuspend */
-    NULL, /* domainResume */
-    NULL, /* domainShutdown */
-    NULL, /* domainReboot */
-    NULL, /* domainDestroy */
-    NULL, /* domainGetOSType */
-    xenXMDomainGetMaxMemory, /* domainGetMaxMemory */
-    xenXMDomainSetMaxMemory, /* domainSetMaxMemory */
-    xenXMDomainSetMemory, /* domainMaxMemory */
-    xenXMDomainGetInfo, /* domainGetInfo */
-    NULL, /* domainSave */
-    NULL, /* domainRestore */
-    NULL, /* domainCoreDump */
-    NULL, /* domainScreenshot */
-    xenXMDomainPinVcpu, /* domainPinVcpu */
-    NULL, /* domainGetVcpus */
-    xenXMListDefinedDomains, /* listDefinedDomains */
-    xenXMNumOfDefinedDomains, /* numOfDefinedDomains */
-    xenXMDomainCreate, /* domainCreate */
-    xenXMDomainDefineXML, /* domainDefineXML */
-    xenXMDomainUndefine, /* domainUndefine */
-    xenXMDomainAttachDeviceFlags, /* domainAttachDeviceFlags */
-    xenXMDomainDetachDeviceFlags, /* domainDetachDeviceFlags */
-    NULL, /* domainUpdateDeviceFlags */
-    NULL, /* domainGetAutostart */
-    NULL, /* domainSetAutostart */
-    NULL, /* domainGetSchedulerType */
-    NULL, /* domainGetSchedulerParameters */
-    NULL, /* domainSetSchedulerParameters */
+    .xenClose = xenXMClose,
+    .xenDomainGetMaxMemory = xenXMDomainGetMaxMemory,
+    .xenDomainSetMaxMemory = xenXMDomainSetMaxMemory,
+    .xenDomainSetMemory = xenXMDomainSetMemory,
+    .xenDomainGetInfo = xenXMDomainGetInfo,
+    .xenDomainPinVcpu = xenXMDomainPinVcpu,
+    .xenListDefinedDomains = xenXMListDefinedDomains,
+    .xenNumOfDefinedDomains = xenXMNumOfDefinedDomains,
+    .xenDomainCreate = xenXMDomainCreate,
+    .xenDomainDefineXML = xenXMDomainDefineXML,
+    .xenDomainUndefine = xenXMDomainUndefine,
+    .xenDomainAttachDeviceFlags = xenXMDomainAttachDeviceFlags,
+    .xenDomainDetachDeviceFlags = xenXMDomainDetachDeviceFlags,
 };
 
 #define xenXMError(code, ...)                                              \
@@ -143,6 +118,7 @@ static int xenInotifyActive(virConnectPtr conn)
 static void xenXMConfigFree(void *payload, const void *key ATTRIBUTE_UNUSED) {
     xenXMConfCachePtr entry = (xenXMConfCachePtr)payload;
     virDomainDefFree(entry->def);
+    VIR_FREE(entry->filename);
     VIR_FREE(entry);
 }
 
@@ -281,7 +257,11 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
             virReportOOMError();
             return -1;
         }
-        memcpy(entry->filename, filename, PATH_MAX);
+        if ((entry->filename = strdup(filename)) == NULL) {
+            virReportOOMError();
+            VIR_FREE(entry);
+            return -1;
+        }
     }
     entry->refreshedAt = now;
 
@@ -289,6 +269,7 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
         VIR_DEBUG("Failed to read %s", entry->filename);
         if (!newborn)
             virHashSteal(priv->configCache, filename);
+        VIR_FREE(entry->filename);
         VIR_FREE(entry);
         return -1;
     }
@@ -298,6 +279,7 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
     if (newborn) {
         if (virHashAddEntry(priv->configCache, entry->filename, entry) < 0) {
             virDomainDefFree(entry->def);
+            VIR_FREE(entry->filename);
             VIR_FREE(entry);
             xenXMError(VIR_ERR_INTERNAL_ERROR,
                         "%s", _("xenXMConfigCacheRefresh: virHashAddEntry"));
@@ -309,9 +291,11 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
         * of the domain in question
         */
     if (!virHashLookup(priv->nameConfigMap, entry->def->name)) {
-        if (virHashAddEntry(priv->nameConfigMap, entry->def->name, entry->filename) < 0) {
+        if (virHashAddEntry(priv->nameConfigMap, entry->def->name,
+                            entry->filename) < 0) {
             virHashSteal(priv->configCache, filename);
             virDomainDefFree(entry->def);
+            VIR_FREE(entry->filename);
             VIR_FREE(entry);
         }
     }
@@ -433,9 +417,11 @@ int xenXMConfigCacheRefresh (virConnectPtr conn) {
 virDrvOpenStatus
 xenXMOpen (virConnectPtr conn,
            virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-           int flags ATTRIBUTE_UNUSED)
+           unsigned int flags)
 {
     xenUnifiedPrivatePtr priv = conn->privateData;
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     priv->configDir = XM_CONFIG_DIR;
 
@@ -476,8 +462,10 @@ int
 xenXMDomainGetState(virDomainPtr domain,
                     int *state,
                     int *reason,
-                    unsigned int flags ATTRIBUTE_UNUSED)
+                    unsigned int flags)
 {
+    virCheckFlags(0, -1);
+
     if (domain->id != -1)
         return -1;
 
@@ -534,11 +522,14 @@ error:
  * Turn a config record into a lump of XML describing the
  * domain, suitable for later feeding for virDomainCreateXML
  */
-char *xenXMDomainGetXMLDesc(virDomainPtr domain, int flags) {
+char *xenXMDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
+{
     xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
     char *ret = NULL;
+
+    /* Flags checked by virDomainDefFormat */
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -705,6 +696,10 @@ xenXMDomainSetVcpusFlags(virDomainPtr domain, unsigned int vcpus,
     int ret = -1;
     int max;
 
+    virCheckFlags(VIR_DOMAIN_VCPU_LIVE |
+                  VIR_DOMAIN_VCPU_CONFIG |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
+
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
@@ -784,6 +779,10 @@ xenXMDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
     const char *filename;
     xenXMConfCachePtr entry;
     int ret = -2;
+
+    virCheckFlags(VIR_DOMAIN_VCPU_LIVE |
+                  VIR_DOMAIN_VCPU_CONFIG |
+                  VIR_DOMAIN_VCPU_MAXIMUM, -1);
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -1058,7 +1057,7 @@ int xenXMDomainCreate(virDomainPtr domain) {
 
  error:
     if (domain->id != -1) {
-        xenDaemonDomainDestroy(domain);
+        xenDaemonDomainDestroyFlags(domain, 0);
         domain->id = -1;
     }
     xenUnifiedUnlock(priv);
@@ -1097,6 +1096,7 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml)
     }
 
     if (!(def = virDomainDefParseString(priv->caps, xml,
+                                        1 << VIR_DOMAIN_VIRT_XEN,
                                         VIR_DOMAIN_XML_INACTIVE))) {
         xenUnifiedUnlock(priv);
         return (NULL);
@@ -1171,7 +1171,10 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml)
         goto error;
     }
 
-    memmove(entry->filename, filename, PATH_MAX);
+    if ((entry->filename = strdup(filename)) == NULL) {
+        virReportOOMError();
+        goto error;
+    }
     entry->def = def;
 
     if (virHashAddEntry(priv->configCache, filename, entry) < 0) {
@@ -1194,6 +1197,7 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml)
 
  error:
     VIR_FREE(filename);
+    VIR_FREE(entry->filename);
     VIR_FREE(entry);
     virDomainDefFree(def);
     xenUnifiedUnlock(priv);
@@ -1364,13 +1368,16 @@ cleanup:
  */
 static int
 xenXMDomainAttachDeviceFlags(virDomainPtr domain, const char *xml,
-                             unsigned int flags) {
+                             unsigned int flags)
+{
     const char *filename = NULL;
     xenXMConfCachePtr entry = NULL;
     int ret = -1;
     virDomainDeviceDefPtr dev = NULL;
     virDomainDefPtr def;
     xenUnifiedPrivatePtr priv;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG, -1);
 
     if ((!domain) || (!domain->conn) || (!domain->name) || (!xml)) {
         xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
@@ -1381,7 +1388,7 @@ xenXMDomainAttachDeviceFlags(virDomainPtr domain, const char *xml,
         return -1;
 
     if ((flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) ||
-        (domain->id != -1 && (flags & VIR_DOMAIN_DEVICE_MODIFY_CURRENT))) {
+        (domain->id != -1 && flags == VIR_DOMAIN_DEVICE_MODIFY_CURRENT)) {
         xenXMError(VIR_ERR_OPERATION_INVALID, "%s",
                    _("Xm driver only supports modifying persistent config"));
         return -1;
@@ -1467,17 +1474,18 @@ xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
     int i;
     xenUnifiedPrivatePtr priv;
 
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG, -1);
+
     if ((!domain) || (!domain->conn) || (!domain->name) || (!xml)) {
         xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
-
     if (domain->conn->flags & VIR_CONNECT_RO)
         return -1;
 
     if ((flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) ||
-        (domain->id != -1 && (flags & VIR_DOMAIN_DEVICE_MODIFY_CURRENT))) {
+        (domain->id != -1 && flags == VIR_DOMAIN_DEVICE_MODIFY_CURRENT)) {
         xenXMError(VIR_ERR_OPERATION_INVALID, "%s",
                    _("Xm driver only supports modifying persistent config"));
         return -1;
@@ -1563,7 +1571,8 @@ xenXMDomainBlockPeek (virDomainPtr dom ATTRIBUTE_UNUSED,
                       size_t size ATTRIBUTE_UNUSED,
                       void *buffer ATTRIBUTE_UNUSED)
 {
-    xenXMError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    xenXMError(VIR_ERR_OPERATION_INVALID, "%s",
+               _("block peeking not implemented"));
     return -1;
 }
 

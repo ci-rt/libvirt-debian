@@ -18,7 +18,7 @@
    along with this program; if not, write to the Free Software Foundation,
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
-#ifndef _GL_ERRNO_H
+#ifndef _@GUARD_PREFIX@_ERRNO_H
 
 #if __GNUC__ >= 3
 @PRAGMA_SYSTEM_HEADER@
@@ -28,8 +28,8 @@
 /* The include_next requires a split double-inclusion guard.  */
 #@INCLUDE_NEXT@ @NEXT_ERRNO_H@
 
-#ifndef _GL_ERRNO_H
-#define _GL_ERRNO_H
+#ifndef _@GUARD_PREFIX@_ERRNO_H
+#define _@GUARD_PREFIX@_ERRNO_H
 
 
 /* On native Windows platforms, many macros are not defined.  */
@@ -149,6 +149,16 @@
 #  define GNULIB_defined_ENOTSUP 1
 # endif
 
+# ifndef ENETRESET
+#  define ENETRESET 2011
+#  define GNULIB_defined_ENETRESET 1
+# endif
+
+# ifndef ECONNABORTED
+#  define ECONNABORTED 2012
+#  define GNULIB_defined_ECONNABORTED 1
+# endif
+
 # ifndef ESTALE
 #  define ESTALE    2009
 #  define GNULIB_defined_ESTALE 1
@@ -165,5 +175,5 @@
 # endif
 
 
-#endif /* _GL_ERRNO_H */
-#endif /* _GL_ERRNO_H */
+#endif /* _@GUARD_PREFIX@_ERRNO_H */
+#endif /* _@GUARD_PREFIX@_ERRNO_H */

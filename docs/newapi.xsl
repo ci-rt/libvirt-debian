@@ -54,10 +54,13 @@
        because the keys are only defined on the main document -->
   <xsl:template mode="dumptoken" match='*'>
     <xsl:param name="token"/>
-    <xsl:variable name="ref" select="key('symbols', $token)"/>
+    <xsl:variable name="stem" select="translate($token, '(),.:;@', '')"/>
+    <xsl:variable name="ref" select="key('symbols', $stem)"/>
     <xsl:choose>
       <xsl:when test="$ref">
-        <a href="libvirt-{$ref/@file}.html#{$ref/@name}"><xsl:value-of select="$token"/></a>
+        <xsl:value-of select="substring-before($token, $stem)"/>
+        <a href="libvirt-{$ref/@file}.html#{$ref/@name}"><xsl:value-of select="$stem"/></a>
+        <xsl:value-of select="substring-after($token, $stem)"/>
       </xsl:when>
       <xsl:otherwise>
         <xsl:value-of select="$token"/>
@@ -70,7 +73,7 @@
     <xsl:param name="text"/>
     <xsl:variable name="ctxt" select='.'/>
     <!-- <xsl:value-of select="$text"/> -->
-    <xsl:for-each select="str:tokenize($text, ' &#9;')">
+    <xsl:for-each select="str:tokenize($text, ' &#9;&#10;&#13;')">
       <xsl:apply-templates select="$ctxt" mode='dumptoken'>
         <xsl:with-param name="token" select="string(.)"/>
       </xsl:apply-templates>
@@ -174,22 +177,62 @@
       </pre>
       <table>
         <xsl:for-each select="field">
-          <tr>
-            <td>
-              <xsl:call-template name="dumptext">
-                <xsl:with-param name="text" select="@type"/>
-              </xsl:call-template>
-            </td>
-            <td><xsl:value-of select="@name"/></td>
-            <xsl:if test="@info != ''">
-              <td>
-                <xsl:text> : </xsl:text>
-                <xsl:call-template name="dumptext">
-                  <xsl:with-param name="text" select="@info"/>
-                </xsl:call-template>
-              </td>
-            </xsl:if>
-          </tr>
+          <xsl:choose>
+            <xsl:when test='@type = "union"'>
+              <tr><td>union {</td></tr>
+              <tr>
+              <td><table>
+              <xsl:for-each select="union/field">
+                <tr>
+                  <td>
+                    <xsl:call-template name="dumptext">
+                      <xsl:with-param name="text" select="@type"/>
+                    </xsl:call-template>
+                  </td>
+                  <td><xsl:value-of select="@name"/></td>
+                  <xsl:if test="@info != ''">
+                    <td>
+                      <xsl:text> : </xsl:text>
+                      <xsl:call-template name="dumptext">
+                        <xsl:with-param name="text" select="@info"/>
+                      </xsl:call-template>
+                    </td>
+                  </xsl:if>
+                </tr>
+              </xsl:for-each>
+              </table></td>
+              <td></td></tr>
+              <tr><td>}</td>
+              <td><xsl:value-of select="@name"/></td>
+                <xsl:if test="@info != ''">
+                  <td>
+                    <xsl:text> : </xsl:text>
+                    <xsl:call-template name="dumptext">
+                      <xsl:with-param name="text" select="@info"/>
+                    </xsl:call-template>
+                  </td>
+                </xsl:if>
+              <td></td></tr>
+            </xsl:when>
+            <xsl:otherwise>
+              <tr>
+                <td>
+                  <xsl:call-template name="dumptext">
+                    <xsl:with-param name="text" select="@type"/>
+                  </xsl:call-template>
+                </td>
+                <td><xsl:value-of select="@name"/></td>
+                <xsl:if test="@info != ''">
+                  <td>
+                    <xsl:text> : </xsl:text>
+                    <xsl:call-template name="dumptext">
+                      <xsl:with-param name="text" select="@info"/>
+                    </xsl:call-template>
+                  </td>
+                </xsl:if>
+              </tr>
+            </xsl:otherwise>
+          </xsl:choose>
         </xsl:for-each>
         <xsl:if test="not(field)">
           <tr>

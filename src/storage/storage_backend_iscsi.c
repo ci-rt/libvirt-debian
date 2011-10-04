@@ -41,7 +41,7 @@
 #include "util.h"
 #include "memory.h"
 #include "logging.h"
-#include "files.h"
+#include "virfile.h"
 #include "command.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
@@ -183,8 +183,7 @@ virStorageBackendIQNFound(const char *initiatoriqn,
     int ret = IQN_MISSING, fd = -1;
     char ebuf[64];
     FILE *fp = NULL;
-    char *line = NULL, *newline = NULL, *iqn = NULL, *token = NULL,
-        *saveptr = NULL;
+    char *line = NULL, *newline = NULL, *iqn = NULL, *token = NULL;
     virCommandPtr cmd = virCommandNewArgList(ISCSIADM,
                                              "--mode", "iface", NULL);
 
@@ -232,8 +231,15 @@ virStorageBackendIQNFound(const char *initiatoriqn,
         iqn++;
 
         if (STREQ(iqn, initiatoriqn)) {
-            token = strtok_r(line, " ", &saveptr);
-            *ifacename = strdup(token);
+            token = strchr(line, ' ');
+            if (!token) {
+                ret = IQN_ERROR;
+                virStorageReportError(VIR_ERR_INTERNAL_ERROR,
+                                      _("Missing space when parsing output "
+                                        "of '%s'"), ISCSIADM);
+                goto out;
+            }
+            *ifacename = strndup(line, token - line);
             if (*ifacename == NULL) {
                 ret = IQN_ERROR;
                 virReportOOMError();
@@ -544,7 +550,7 @@ virStorageBackendISCSIScanTargets(const char *portal,
 static char *
 virStorageBackendISCSIFindPoolSources(virConnectPtr conn ATTRIBUTE_UNUSED,
                                       const char *srcSpec,
-                                      unsigned int flags ATTRIBUTE_UNUSED)
+                                      unsigned int flags)
 {
     virStoragePoolSourcePtr source = NULL;
     size_t ntargets = 0;
@@ -557,6 +563,8 @@ virStorageBackendISCSIFindPoolSources(virConnectPtr conn ATTRIBUTE_UNUSED,
         .sources = NULL
     };
     char *portal = NULL;
+
+    virCheckFlags(0, NULL);
 
     if (!(source = virStoragePoolDefParseSourceString(srcSpec,
                                                       list.type)))

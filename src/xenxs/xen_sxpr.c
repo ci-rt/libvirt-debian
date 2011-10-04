@@ -604,7 +604,7 @@ xenParseSxprSound(virDomainDefPtr def,
          * Special compatability code for Xen with a bogus
          * sound=all in config.
          *
-         * NB delibrately, don't include all possible
+         * NB deliberately, don't include all possible
          * sound models anymore, just the 2 that were
          * historically present in Xen's QEMU.
          *
@@ -750,8 +750,8 @@ xenParseSxprGraphicsOld(virDomainDefPtr def,
         graphics->data.vnc.port = port;
 
         if (listenAddr &&
-            !(graphics->data.vnc.listenAddr = strdup(listenAddr)))
-            goto no_memory;
+            virDomainGraphicsListenSetAddress(graphics, 0, listenAddr, -1, true))
+            goto error;
 
         if (vncPasswd &&
             !(graphics->data.vnc.auth.passwd = strdup(vncPasswd)))
@@ -794,6 +794,7 @@ xenParseSxprGraphicsOld(virDomainDefPtr def,
 
 no_memory:
     virReportOOMError();
+error:
     virDomainGraphicsDefFree(graphics);
     return -1;
 }
@@ -866,8 +867,8 @@ xenParseSxprGraphicsNew(virDomainDefPtr def,
                 graphics->data.vnc.port = port;
 
                 if (listenAddr &&
-                    !(graphics->data.vnc.listenAddr = strdup(listenAddr)))
-                    goto no_memory;
+                    virDomainGraphicsListenSetAddress(graphics, 0, listenAddr, -1, true))
+                    goto error;
 
                 if (vncPasswd &&
                     !(graphics->data.vnc.auth.passwd = strdup(vncPasswd)))
@@ -922,7 +923,7 @@ xenParseSxprPCI(virDomainDefPtr def,
      * )
      *
      * Normally there is one (device ...) block per device, but in
-     * wierd world of Xen PCI, once (device ...) covers multiple
+     * weird world of Xen PCI, once (device ...) covers multiple
      * devices.
      */
 
@@ -1171,6 +1172,8 @@ xenParseSxpr(const struct sexpr *root,
             def->features |= (1 << VIR_DOMAIN_FEATURE_PAE);
         if (sexpr_int(root, "domain/image/hvm/hap"))
             def->features |= (1 << VIR_DOMAIN_FEATURE_HAP);
+        if (sexpr_int(root, "domain/image/hvm/viridian"))
+            def->features |= (1 << VIR_DOMAIN_FEATURE_VIRIDIAN);
 
         /* Old XenD only allows localtime here for HVM */
         if (sexpr_int(root, "domain/image/hvm/localtime"))
@@ -1192,6 +1195,9 @@ xenParseSxpr(const struct sexpr *root,
             def->clock.ntimers = 1;
             def->clock.timers[0] = timer;
         }
+    } else { /* !hvm */
+        if (sexpr_int(root, "domain/image/linux/localtime"))
+            def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME;
     }
 
     /* Current XenD allows localtime here, for PV and HVM */
@@ -1435,6 +1441,8 @@ static int
 xenFormatSxprGraphicsNew(virDomainGraphicsDefPtr def,
                          virBufferPtr buf)
 {
+    const char *listenAddr;
+
     if (def->type != VIR_DOMAIN_GRAPHICS_TYPE_SDL &&
         def->type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
         XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -1461,8 +1469,9 @@ xenFormatSxprGraphicsNew(virDomainGraphicsDefPtr def,
             virBufferAsprintf(buf, "(vncdisplay %d)", def->data.vnc.port-5900);
         }
 
-        if (def->data.vnc.listenAddr)
-            virBufferAsprintf(buf, "(vnclisten '%s')", def->data.vnc.listenAddr);
+        listenAddr = virDomainGraphicsListenGetAddress(def, 0);
+        if (listenAddr)
+            virBufferAsprintf(buf, "(vnclisten '%s')", listenAddr);
         if (def->data.vnc.auth.passwd)
             virBufferAsprintf(buf, "(vncpasswd '%s')", def->data.vnc.auth.passwd);
         if (def->data.vnc.keymap)
@@ -1480,6 +1489,8 @@ xenFormatSxprGraphicsOld(virDomainGraphicsDefPtr def,
                          virBufferPtr buf,
                          int xendConfigVersion)
 {
+    const char *listenAddr;
+
     if (def->type != VIR_DOMAIN_GRAPHICS_TYPE_SDL &&
         def->type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
         XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -1504,8 +1515,9 @@ xenFormatSxprGraphicsOld(virDomainGraphicsDefPtr def,
                 virBufferAsprintf(buf, "(vncdisplay %d)", def->data.vnc.port-5900);
             }
 
-            if (def->data.vnc.listenAddr)
-                virBufferAsprintf(buf, "(vnclisten '%s')", def->data.vnc.listenAddr);
+            listenAddr = virDomainGraphicsListenGetAddress(def, 0);
+            if (listenAddr)
+                virBufferAsprintf(buf, "(vnclisten '%s')", listenAddr);
             if (def->data.vnc.auth.passwd)
                 virBufferAsprintf(buf, "(vncpasswd '%s')", def->data.vnc.auth.passwd);
             if (def->data.vnc.keymap)
@@ -1603,8 +1615,7 @@ xenFormatSxprChr(virDomainChrDefPtr def,
  * Returns 0 in case of success, -1 in case of error.
  */
 int
-xenFormatSxprDisk(virConnectPtr conn ATTRIBUTE_UNUSED,
-                  virDomainDiskDefPtr def,
+xenFormatSxprDisk(virDomainDiskDefPtr def,
                   virBufferPtr buf,
                   int hvm,
                   int xendConfigVersion,
@@ -1702,6 +1713,11 @@ xenFormatSxprDisk(virConnectPtr conn ATTRIBUTE_UNUSED,
         virBufferAddLit(buf, "(mode 'w!')");
     else
         virBufferAddLit(buf, "(mode 'w')");
+    if (def->transient) {
+        XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
+                    _("transient disks not supported yet"));
+        return -1;
+    }
 
     if (!isAttach)
         virBufferAddLit(buf, ")");
@@ -1857,7 +1873,7 @@ xenFormatSxprOnePCI(virDomainHostdevDefPtr def,
                     int detach)
 {
     if (def->managed) {
-        XENXS_ERROR(VIR_ERR_NO_SUPPORT, "%s",
+        XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                      _("managed PCI devices not supported with XenD"));
         return -1;
     }
@@ -1907,7 +1923,7 @@ xenFormatSxprAllPCI(virDomainDefPtr def,
         if (def->hostdevs[i]->mode == VIR_DOMAIN_HOSTDEV_MODE_SUBSYS &&
             def->hostdevs[i]->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI) {
             if (def->hostdevs[i]->managed) {
-                XENXS_ERROR(VIR_ERR_NO_SUPPORT, "%s",
+                XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                              _("managed PCI devices not supported with XenD"));
                 return -1;
             }
@@ -2166,6 +2182,8 @@ xenFormatSxpr(virConnectPtr conn,
                 virBufferAddLit(&buf, "(pae 1)");
             if (def->features & (1 << VIR_DOMAIN_FEATURE_HAP))
                 virBufferAddLit(&buf, "(hap 1)");
+            if (def->features & (1 << VIR_DOMAIN_FEATURE_VIRIDIAN))
+                virBufferAddLit(&buf, "(viridian 1)");
 
             virBufferAddLit(&buf, "(usb 1)");
 
@@ -2257,10 +2275,16 @@ xenFormatSxpr(virConnectPtr conn,
         }
 
         virBufferAddLit(&buf, "))");
+    } else {
+        /* PV domains accept kernel cmdline args */
+        if (def->os.cmdline) {
+            virBufferEscapeSexpr(&buf, "(image (linux (args '%s')))",
+                                 def->os.cmdline);
+        }
     }
 
     for (i = 0 ; i < def->ndisks ; i++)
-        if (xenFormatSxprDisk(conn, def->disks[i],
+        if (xenFormatSxprDisk(def->disks[i],
                               &buf, hvm, xendConfigVersion, 0) < 0)
             goto error;
 

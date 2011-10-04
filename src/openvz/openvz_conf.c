@@ -50,7 +50,7 @@
 #include "memory.h"
 #include "util.h"
 #include "nodeinfo.h"
-#include "files.h"
+#include "virfile.h"
 #include "command.h"
 #include "ignore-value.h"
 
@@ -99,7 +99,7 @@ openvzExtractVersionInfo(const char *cmdstr, int *retversion)
     if ((tmp = STRSKIP(tmp, "vzctl version ")) == NULL)
         goto cleanup;
 
-    if (virParseVersionString(tmp, &version) < 0)
+    if (virParseVersionString(tmp, &version, false) < 0)
         goto cleanup;
 
     if (retversion)

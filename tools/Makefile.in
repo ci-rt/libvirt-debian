@@ -38,8 +38,8 @@ bin_PROGRAMS = virsh$(EXEEXT)
 @WITH_WIN_ICON_TRUE@am__append_1 = virsh_win_icon.$(OBJEXT)
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_2 = libvirt-guests.init
 subdir = tools
-DIST_COMMON = $(dist_man1_MANS) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in
+DIST_COMMON = $(dist_man1_MANS) $(dist_man8_MANS) \
+	$(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
@@ -48,9 +48,9 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/base64.m4 \
 	$(top_srcdir)/gnulib/m4/btowc.m4 \
 	$(top_srcdir)/gnulib/m4/byteswap.m4 \
+	$(top_srcdir)/gnulib/m4/calloc.m4 \
 	$(top_srcdir)/gnulib/m4/canonicalize.m4 \
 	$(top_srcdir)/gnulib/m4/chown.m4 \
-	$(top_srcdir)/gnulib/m4/cloexec.m4 \
 	$(top_srcdir)/gnulib/m4/close.m4 \
 	$(top_srcdir)/gnulib/m4/configmake.m4 \
 	$(top_srcdir)/gnulib/m4/count-one-bits.m4 \
@@ -68,11 +68,15 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl_h.m4 \
 	$(top_srcdir)/gnulib/m4/fflush.m4 \
+	$(top_srcdir)/gnulib/m4/ffs.m4 \
 	$(top_srcdir)/gnulib/m4/float_h.m4 \
 	$(top_srcdir)/gnulib/m4/fnmatch.m4 \
+	$(top_srcdir)/gnulib/m4/fpieee.m4 \
 	$(top_srcdir)/gnulib/m4/fpurge.m4 \
 	$(top_srcdir)/gnulib/m4/freading.m4 \
+	$(top_srcdir)/gnulib/m4/fseek.m4 \
 	$(top_srcdir)/gnulib/m4/fseeko.m4 \
+	$(top_srcdir)/gnulib/m4/fsync.m4 \
 	$(top_srcdir)/gnulib/m4/ftell.m4 \
 	$(top_srcdir)/gnulib/m4/ftello.m4 \
 	$(top_srcdir)/gnulib/m4/func.m4 \
@@ -97,6 +101,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/intmax_t.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes.m4 \
 	$(top_srcdir)/gnulib/m4/ioctl.m4 \
+	$(top_srcdir)/gnulib/m4/largefile.m4 \
 	$(top_srcdir)/gnulib/m4/localcharset.m4 \
 	$(top_srcdir)/gnulib/m4/locale-fr.m4 \
 	$(top_srcdir)/gnulib/m4/locale-ja.m4 \
@@ -141,6 +146,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/posix_spawn.m4 \
 	$(top_srcdir)/gnulib/m4/printf.m4 \
 	$(top_srcdir)/gnulib/m4/pthread.m4 \
+	$(top_srcdir)/gnulib/m4/pthread_sigmask.m4 \
 	$(top_srcdir)/gnulib/m4/putenv.m4 \
 	$(top_srcdir)/gnulib/m4/random_r.m4 \
 	$(top_srcdir)/gnulib/m4/rawmemchr.m4 \
@@ -179,6 +185,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/strerror.m4 \
 	$(top_srcdir)/gnulib/m4/strerror_r.m4 \
 	$(top_srcdir)/gnulib/m4/string_h.m4 \
+	$(top_srcdir)/gnulib/m4/strings_h.m4 \
 	$(top_srcdir)/gnulib/m4/strndup.m4 \
 	$(top_srcdir)/gnulib/m4/strnlen.m4 \
 	$(top_srcdir)/gnulib/m4/strptime.m4 \
@@ -241,7 +248,8 @@ CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" \
-	"$(DESTDIR)$(man1dir)"
+	"$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man1dir)" \
+	"$(DESTDIR)$(man8dir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_virsh_OBJECTS = virsh-console.$(OBJEXT) virsh-virsh.$(OBJEXT)
 virsh_OBJECTS = $(am_virsh_OBJECTS)
@@ -277,7 +285,7 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-SCRIPTS = $(bin_SCRIPTS)
+SCRIPTS = $(bin_SCRIPTS) $(sbin_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -307,8 +315,9 @@ am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(virsh_SOURCES)
 DIST_SOURCES = $(virsh_SOURCES)
 man1dir = $(mandir)/man1
+man8dir = $(mandir)/man8
 NROFF = nroff
-MANS = $(dist_man1_MANS)
+MANS = $(dist_man1_MANS) $(dist_man8_MANS)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -322,6 +331,7 @@ APPARMOR_CFLAGS = @APPARMOR_CFLAGS@
 APPARMOR_LIBS = @APPARMOR_LIBS@
 APPLE_UNIVERSAL_BUILD = @APPLE_UNIVERSAL_BUILD@
 AR = @AR@
+ARFLAGS = @ARFLAGS@
 AS = @AS@
 ASM_SYMBOL_PREFIX = @ASM_SYMBOL_PREFIX@
 AUDIT_CFLAGS = @AUDIT_CFLAGS@
@@ -338,6 +348,8 @@ BITSIZEOF_SIG_ATOMIC_T = @BITSIZEOF_SIG_ATOMIC_T@
 BITSIZEOF_SIZE_T = @BITSIZEOF_SIZE_T@
 BITSIZEOF_WCHAR_T = @BITSIZEOF_WCHAR_T@
 BITSIZEOF_WINT_T = @BITSIZEOF_WINT_T@
+BLKID_CFLAGS = @BLKID_CFLAGS@
+BLKID_LIBS = @BLKID_LIBS@
 BRCTL = @BRCTL@
 BYTESWAP_H = @BYTESWAP_H@
 CAPNG_CFLAGS = @CAPNG_CFLAGS@
@@ -385,6 +397,7 @@ FLOAT_H = @FLOAT_H@
 FNMATCH_H = @FNMATCH_H@
 GETADDRINFO_LIB = @GETADDRINFO_LIB@
 GETHOSTNAME_LIB = @GETHOSTNAME_LIB@
+GETTEXT_CPPFLAGS = @GETTEXT_CPPFLAGS@
 GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
 GLIBC21 = @GLIBC21@
 GMSGFMT = @GMSGFMT@
@@ -412,6 +425,9 @@ GNULIB_FCHOWNAT = @GNULIB_FCHOWNAT@
 GNULIB_FCLOSE = @GNULIB_FCLOSE@
 GNULIB_FCNTL = @GNULIB_FCNTL@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
+GNULIB_FFS = @GNULIB_FFS@
+GNULIB_FFSL = @GNULIB_FFSL@
+GNULIB_FFSLL = @GNULIB_FFSLL@
 GNULIB_FGETC = @GNULIB_FGETC@
 GNULIB_FGETS = @GNULIB_FGETS@
 GNULIB_FOPEN = @GNULIB_FOPEN@
@@ -540,6 +556,8 @@ GNULIB_POSIX_SPAWN_FILE_ACTIONS_INIT = @GNULIB_POSIX_SPAWN_FILE_ACTIONS_INIT@
 GNULIB_PREAD = @GNULIB_PREAD@
 GNULIB_PRINTF = @GNULIB_PRINTF@
 GNULIB_PRINTF_POSIX = @GNULIB_PRINTF_POSIX@
+GNULIB_PSELECT = @GNULIB_PSELECT@
+GNULIB_PTHREAD_SIGMASK = @GNULIB_PTHREAD_SIGMASK@
 GNULIB_PTSNAME = @GNULIB_PTSNAME@
 GNULIB_PUTC = @GNULIB_PUTC@
 GNULIB_PUTCHAR = @GNULIB_PUTCHAR@
@@ -707,6 +725,7 @@ HAVE_DECL_SETENV = @HAVE_DECL_SETENV@
 HAVE_DECL_SNPRINTF = @HAVE_DECL_SNPRINTF@
 HAVE_DECL_STRDUP = @HAVE_DECL_STRDUP@
 HAVE_DECL_STRERROR_R = @HAVE_DECL_STRERROR_R@
+HAVE_DECL_STRNCASECMP = @HAVE_DECL_STRNCASECMP@
 HAVE_DECL_STRNDUP = @HAVE_DECL_STRNDUP@
 HAVE_DECL_STRNLEN = @HAVE_DECL_STRNLEN@
 HAVE_DECL_STRSIGNAL = @HAVE_DECL_STRSIGNAL@
@@ -730,6 +749,9 @@ HAVE_FCHMODAT = @HAVE_FCHMODAT@
 HAVE_FCHOWNAT = @HAVE_FCHOWNAT@
 HAVE_FCNTL = @HAVE_FCNTL@
 HAVE_FEATURES_H = @HAVE_FEATURES_H@
+HAVE_FFS = @HAVE_FFS@
+HAVE_FFSL = @HAVE_FFSL@
+HAVE_FFSLL = @HAVE_FFSLL@
 HAVE_FSEEKO = @HAVE_FSEEKO@
 HAVE_FSTATAT = @HAVE_FSTATAT@
 HAVE_FSYNC = @HAVE_FSYNC@
@@ -786,7 +808,9 @@ HAVE_POSIX_SPAWN = @HAVE_POSIX_SPAWN@
 HAVE_POSIX_SPAWNATTR_T = @HAVE_POSIX_SPAWNATTR_T@
 HAVE_POSIX_SPAWN_FILE_ACTIONS_T = @HAVE_POSIX_SPAWN_FILE_ACTIONS_T@
 HAVE_PREAD = @HAVE_PREAD@
+HAVE_PSELECT = @HAVE_PSELECT@
 HAVE_PTHREAD_H = @HAVE_PTHREAD_H@
+HAVE_PTHREAD_SIGMASK = @HAVE_PTHREAD_SIGMASK@
 HAVE_PTHREAD_SPINLOCK_T = @HAVE_PTHREAD_SPINLOCK_T@
 HAVE_PTHREAD_T = @HAVE_PTHREAD_T@
 HAVE_PTSNAME = @HAVE_PTSNAME@
@@ -814,6 +838,7 @@ HAVE_SPAWN_H = @HAVE_SPAWN_H@
 HAVE_STDINT_H = @HAVE_STDINT_H@
 HAVE_STPCPY = @HAVE_STPCPY@
 HAVE_STPNCPY = @HAVE_STPNCPY@
+HAVE_STRCASECMP = @HAVE_STRCASECMP@
 HAVE_STRCASESTR = @HAVE_STRCASESTR@
 HAVE_STRCHRNUL = @HAVE_STRCHRNUL@
 HAVE_STRPBRK = @HAVE_STRPBRK@
@@ -943,6 +968,7 @@ LIBTOOL = @LIBTOOL@
 LIBVIRT_MAJOR_VERSION = @LIBVIRT_MAJOR_VERSION@
 LIBVIRT_MICRO_VERSION = @LIBVIRT_MICRO_VERSION@
 LIBVIRT_MINOR_VERSION = @LIBVIRT_MINOR_VERSION@
+LIBVIRT_NODELETE = @LIBVIRT_NODELETE@
 LIBVIRT_QEMU_SYMBOL_FILE = @LIBVIRT_QEMU_SYMBOL_FILE@
 LIBVIRT_SYMBOL_FILE = @LIBVIRT_SYMBOL_FILE@
 LIBVIRT_VERSION = @LIBVIRT_VERSION@
@@ -955,6 +981,7 @@ LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
 LIB_PTHREAD = @LIB_PTHREAD@
+LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALCHARSET_TESTS_ENVIRONMENT = @LOCALCHARSET_TESTS_ENVIRONMENT@
@@ -979,6 +1006,7 @@ MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
+MKFS = @MKFS@
 MODPROBE = @MODPROBE@
 MOUNT = @MOUNT@
 MSCOM_LIBS = @MSCOM_LIBS@
@@ -1007,6 +1035,7 @@ NEXT_AS_FIRST_DIRECTIVE_STDDEF_H = @NEXT_AS_FIRST_DIRECTIVE_STDDEF_H@
 NEXT_AS_FIRST_DIRECTIVE_STDINT_H = @NEXT_AS_FIRST_DIRECTIVE_STDINT_H@
 NEXT_AS_FIRST_DIRECTIVE_STDIO_H = @NEXT_AS_FIRST_DIRECTIVE_STDIO_H@
 NEXT_AS_FIRST_DIRECTIVE_STDLIB_H = @NEXT_AS_FIRST_DIRECTIVE_STDLIB_H@
+NEXT_AS_FIRST_DIRECTIVE_STRINGS_H = @NEXT_AS_FIRST_DIRECTIVE_STRINGS_H@
 NEXT_AS_FIRST_DIRECTIVE_STRING_H = @NEXT_AS_FIRST_DIRECTIVE_STRING_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_IOCTL_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_IOCTL_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H@
@@ -1038,6 +1067,7 @@ NEXT_STDDEF_H = @NEXT_STDDEF_H@
 NEXT_STDINT_H = @NEXT_STDINT_H@
 NEXT_STDIO_H = @NEXT_STDIO_H@
 NEXT_STDLIB_H = @NEXT_STDLIB_H@
+NEXT_STRINGS_H = @NEXT_STRINGS_H@
 NEXT_STRING_H = @NEXT_STRING_H@
 NEXT_SYS_IOCTL_H = @NEXT_SYS_IOCTL_H@
 NEXT_SYS_SELECT_H = @NEXT_SYS_SELECT_H@
@@ -1058,6 +1088,8 @@ NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OPENWSMAN_CFLAGS = @OPENWSMAN_CFLAGS@
+OPENWSMAN_LIBS = @OPENWSMAN_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -1100,7 +1132,6 @@ PYTHON_VERSION = @PYTHON_VERSION@
 RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
-REMOTE_PID_FILE = @REMOTE_PID_FILE@
 REPLACE_BTOWC = @REPLACE_BTOWC@
 REPLACE_CALLOC = @REPLACE_CALLOC@
 REPLACE_CANONICALIZE_FILE_NAME = @REPLACE_CANONICALIZE_FILE_NAME@
@@ -1169,6 +1200,8 @@ REPLACE_POPEN = @REPLACE_POPEN@
 REPLACE_POSIX_SPAWN = @REPLACE_POSIX_SPAWN@
 REPLACE_PREAD = @REPLACE_PREAD@
 REPLACE_PRINTF = @REPLACE_PRINTF@
+REPLACE_PSELECT = @REPLACE_PSELECT@
+REPLACE_PTHREAD_SIGMASK = @REPLACE_PTHREAD_SIGMASK@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
 REPLACE_READ = @REPLACE_READ@
@@ -1204,6 +1237,7 @@ REPLACE_STRTOK_R = @REPLACE_STRTOK_R@
 REPLACE_SYMLINK = @REPLACE_SYMLINK@
 REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
+REPLACE_TOWLOWER = @REPLACE_TOWLOWER@
 REPLACE_TTYNAME_R = @REPLACE_TTYNAME_R@
 REPLACE_UNLINK = @REPLACE_UNLINK@
 REPLACE_UNLINKAT = @REPLACE_UNLINKAT@
@@ -1248,6 +1282,7 @@ STRIP = @STRIP@
 SYS_IOCTL_H_HAVE_WINSOCK2_H = @SYS_IOCTL_H_HAVE_WINSOCK2_H@
 SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS@
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
+TC = @TC@
 TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
 U = @U@
 UDEVADM = @UDEVADM@
@@ -1351,6 +1386,14 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+INCLUDES = \
+	-I../include -I$(top_srcdir)/include \
+	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib	\
+	-I$(top_srcdir)/src				\
+	-I$(top_srcdir)/src/util			\
+	-I$(top_srcdir)					\
+	$(GETTEXT_CPPFLAGS)
+
 POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 ICON_FILES = \
 	libvirt_win_icon_16x16.ico \
@@ -1363,12 +1406,16 @@ EXTRA_DIST = \
 	$(ICON_FILES)					\
 	virt-xml-validate.in				\
 	virt-pki-validate.in				\
+	virt-sanlock-cleanup.in				\
+	virt-sanlock-cleanup.8				\
 	virsh.pod					\
 	libvirt-guests.init.sh				\
 	libvirt-guests.sysconf
 
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
+@HAVE_SANLOCK_TRUE@sbin_SCRIPTS = virt-sanlock-cleanup
 dist_man1_MANS = virt-xml-validate.1 virt-pki-validate.1 virsh.1
+@HAVE_SANLOCK_TRUE@dist_man8_MANS = virt-sanlock-cleanup.8
 virsh_SOURCES = \
 		console.c console.h				\
 		virsh.c
@@ -1378,11 +1425,6 @@ virsh_LDADD = $(STATIC_BINARIES) $(WARN_CFLAGS) ../src/libvirt.la \
 	../src/libvirt-qemu.la ../gnulib/lib/libgnu.la $(LIBXML_LIBS) \
 	$(VIRSH_LIBS) $(am__append_1)
 virsh_CFLAGS = \
-		-I$(top_srcdir)/gnulib/lib -I../gnulib/lib	\
-		-I../include -I$(top_srcdir)/include		\
-		-I$(top_srcdir)/src				\
-		-I$(top_srcdir)/src/util			\
-		-I$(top_srcdir)					\
 		$(WARN_CFLAGS)					\
 		$(COVERAGE_CFLAGS)				\
 		$(LIBXML_CFLAGS)				\
@@ -1508,6 +1550,40 @@ uninstall-binSCRIPTS:
 	test -n "$$list" || exit 0; \
 	echo " ( cd '$(DESTDIR)$(bindir)' && rm -f" $$files ")"; \
 	cd "$(DESTDIR)$(bindir)" && rm -f $$files
+install-sbinSCRIPTS: $(sbin_SCRIPTS)
+	@$(NORMAL_INSTALL)
+	test -z "$(sbindir)" || $(MKDIR_P) "$(DESTDIR)$(sbindir)"
+	@list='$(sbin_SCRIPTS)'; test -n "$(sbindir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n' \
+	    -e 'h;s|.*|.|' \
+	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
+	      if (++n[d] == $(am__install_max)) { \
+		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
+	    else { print "f", d "/" $$4, $$1 } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	     test -z "$$files" || { \
+	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(sbindir)$$dir'"; \
+	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(sbindir)$$dir" || exit $$?; \
+	     } \
+	; done
+
+uninstall-sbinSCRIPTS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(sbin_SCRIPTS)'; test -n "$(sbindir)" || exit 0; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	       sed -e 's,.*/,,;$(transform)'`; \
+	test -n "$$list" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(sbindir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(sbindir)" && rm -f $$files
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -1613,6 +1689,40 @@ uninstall-man1:
 	test -z "$$files" || { \
 	  echo " ( cd '$(DESTDIR)$(man1dir)' && rm -f" $$files ")"; \
 	  cd "$(DESTDIR)$(man1dir)" && rm -f $$files; }
+install-man8: $(dist_man8_MANS)
+	@$(NORMAL_INSTALL)
+	test -z "$(man8dir)" || $(MKDIR_P) "$(DESTDIR)$(man8dir)"
+	@list='$(dist_man8_MANS)'; test -n "$(man8dir)" || exit 0; \
+	{ for i in $$list; do echo "$$i"; done; \
+	} | while read p; do \
+	  if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; echo "$$p"; \
+	done | \
+	sed -e 'n;s,.*/,,;p;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,' | \
+	sed 'N;N;s,\n, ,g' | { \
+	list=; while read file base inst; do \
+	  if test "$$base" = "$$inst"; then list="$$list $$file"; else \
+	    echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man8dir)/$$inst'"; \
+	    $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man8dir)/$$inst" || exit $$?; \
+	  fi; \
+	done; \
+	for i in $$list; do echo "$$i"; done | $(am__base_list) | \
+	while read files; do \
+	  test -z "$$files" || { \
+	    echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(man8dir)'"; \
+	    $(INSTALL_DATA) $$files "$(DESTDIR)$(man8dir)" || exit $$?; }; \
+	done; }
+
+uninstall-man8:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_man8_MANS)'; test -n "$(man8dir)" || exit 0; \
+	files=`{ for i in $$list; do echo "$$i"; done; \
+	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
+	test -z "$$files" || { \
+	  echo " ( cd '$(DESTDIR)$(man8dir)' && rm -f" $$files ")"; \
+	  cd "$(DESTDIR)$(man8dir)" && rm -f $$files; }
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -1714,7 +1824,7 @@ check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-am
 all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man8dir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -1775,7 +1885,8 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS install-binSCRIPTS
+install-exec-am: install-binPROGRAMS install-binSCRIPTS \
+	install-sbinSCRIPTS
 
 install-html: install-html-am
 
@@ -1785,7 +1896,7 @@ install-info: install-info-am
 
 install-info-am:
 
-install-man: install-man1
+install-man: install-man1 install-man8
 
 install-pdf: install-pdf-am
 
@@ -1816,9 +1927,9 @@ ps: ps-am
 ps-am:
 
 uninstall-am: uninstall-binPROGRAMS uninstall-binSCRIPTS \
-	uninstall-local uninstall-man
+	uninstall-local uninstall-man uninstall-sbinSCRIPTS
 
-uninstall-man: uninstall-man1
+uninstall-man: uninstall-man1 uninstall-man8
 
 .MAKE: all check install install-am install-strip
 
@@ -1830,27 +1941,36 @@ uninstall-man: uninstall-man1
 	install-data-am install-data-local install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-man install-man1 \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-binSCRIPTS uninstall-local \
-	uninstall-man uninstall-man1
+	install-man8 install-pdf install-pdf-am install-ps \
+	install-ps-am install-sbinSCRIPTS install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-binSCRIPTS uninstall-local uninstall-man \
+	uninstall-man1 uninstall-man8 uninstall-sbinSCRIPTS
 
 
 virt-xml-validate: virt-xml-validate.in Makefile
-	$(AM_V_GEN)sed -e 's,@SCHEMADIR@,$(pkgdatadir)/schemas,' < $< > $@ \
+	$(AM_V_GEN)sed -e 's,[@]SCHEMADIR@,$(pkgdatadir)/schemas,' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
 
 virt-xml-validate.1: virt-xml-validate.in
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
 virt-pki-validate: virt-pki-validate.in Makefile
-	$(AM_V_GEN)sed -e 's,@SYSCONFDIR@,$(sysconfdir),' < $< > $@ \
+	$(AM_V_GEN)sed -e 's,[@]SYSCONFDIR@,$(sysconfdir),' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
 
 virt-pki-validate.1: virt-pki-validate.in
+	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
+
+virt-sanlock-cleanup: virt-sanlock-cleanup.in Makefile
+	$(AM_V_GEN)sed -e 's,[@]SYSCONFDIR@,$(sysconfdir),' \
+	    -e 's,[@]LOCALSTATEDIR@,$(localstatedir),' < $< > $@ \
+	    || (rm $@ && exit 1) && chmod +x $@
+
+virt-sanlock-cleanup.8: virt-sanlock-cleanup.in
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
 virsh-net-edit.c: virsh.c Makefile.am

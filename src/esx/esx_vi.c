@@ -2,7 +2,7 @@
 /*
  * esx_vi.c: client for the VMware VI API 2.5 to manage ESX hosts
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  * Copyright (C) 2009-2011 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -910,18 +910,11 @@ esxVI_Context_Execute(esxVI_Context *ctx, const char *methodName,
     (*response)->content = virBufferContentAndReset(&buffer);
 
     if ((*response)->responseCode == 500 || (*response)->responseCode == 200) {
-        (*response)->document = virXMLParseString((*response)->content,
-                                                  "esx.xml");
+        (*response)->document = virXMLParseStringCtxt((*response)->content,
+                                                      _("(esx execute response)"),
+                                                      &xpathContext);
 
         if ((*response)->document == NULL) {
-            goto cleanup;
-        }
-
-        xpathContext = xmlXPathNewContext((*response)->document);
-
-        if (xpathContext == NULL) {
-            ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("Could not create XPath context"));
             goto cleanup;
         }
 
@@ -1074,9 +1067,7 @@ ESX_VI__TEMPLATE__FREE(Response,
 {
     VIR_FREE(item->content);
 
-    if (item->document != NULL) {
-        xmlFreeDoc(item->document);
-    }
+    xmlFreeDoc(item->document);
 })
 
 
@@ -1737,7 +1728,7 @@ esxVI_LookupObjectContentByType(esxVI_Context *ctx,
         goto cleanup;
     }
 
-    if (objectContentList == NULL) {
+    if (*objectContentList == NULL) {
         switch (occurrence) {
           case esxVI_Occurrence_OptionalItem:
           case esxVI_Occurrence_OptionalList:
@@ -3973,7 +3964,7 @@ esxVI_ProductVersionToDefaultVirtualHWVersion(esxVI_ProductVersion productVersio
 
 
 #define ESX_VI__TEMPLATE__LOOKUP(_type, _complete_properties,                 \
-                                         _cast_from_anytype)                  \
+                                 _cast_from_anytype)                          \
     int                                                                       \
     esxVI_Lookup##_type(esxVI_Context *ctx, const char* name /* optional */,  \
                         esxVI_ManagedObjectReference *root,                   \
@@ -4005,6 +3996,12 @@ esxVI_ProductVersionToDefaultVirtualHWVersion(esxVI_ProductVersion productVersio
                                             propertyNameList, &objectContent, \
                                             &objectContentList,               \
                                             occurrence) < 0) {                \
+            goto cleanup;                                                     \
+        }                                                                     \
+                                                                              \
+        if (objectContent == NULL) {                                          \
+            /* not found, exit early */                                       \
+            result = 0;                                                       \
             goto cleanup;                                                     \
         }                                                                     \
                                                                               \

@@ -1,7 +1,7 @@
 /*
  * storage_conf.c: config handling for storage driver
  *
- * Copyright (C) 2006-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2011 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -43,7 +43,7 @@
 #include "buf.h"
 #include "util.h"
 #include "memory.h"
-#include "files.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -117,7 +117,7 @@ enum {
 typedef struct _virStoragePoolOptions virStoragePoolOptions;
 typedef virStoragePoolOptions *virStoragePoolOptionsPtr;
 struct _virStoragePoolOptions {
-    int flags;
+    unsigned int flags;
     int defaultFormat;
     virStoragePoolFormatToString formatToString;
     virStoragePoolFormatFromString formatFromString;
@@ -505,13 +505,7 @@ virStoragePoolDefParseSourceString(const char *srcSpec,
     xmlXPathContextPtr xpath_ctxt = NULL;
     virStoragePoolSourcePtr def = NULL, ret = NULL;
 
-    if (!(doc = virXMLParseString(srcSpec, "srcSpec.xml"))) {
-        goto cleanup;
-    }
-
-    xpath_ctxt = xmlXPathNewContext(doc);
-    if (xpath_ctxt == NULL) {
-        virReportOOMError();
+    if (!(doc = virXMLParseStringCtxt(srcSpec, _("(storage_source_specification)"), &xpath_ctxt))) {
         goto cleanup;
     }
 
@@ -771,7 +765,7 @@ virStoragePoolDefParse(const char *xmlStr,
     virStoragePoolDefPtr ret = NULL;
     xmlDocPtr xml;
 
-    if ((xml = virXMLParse(filename, xmlStr, "storage.xml"))) {
+    if ((xml = virXMLParse(filename, xmlStr, _("(storage_pool_definition)")))) {
         ret = virStoragePoolDefParseNode(xml, xmlDocGetRootElement(xml));
         xmlFreeDoc(xml);
     }
@@ -1152,7 +1146,7 @@ virStorageVolDefParse(virStoragePoolDefPtr pool,
     virStorageVolDefPtr ret = NULL;
     xmlDocPtr xml;
 
-    if ((xml = virXMLParse(filename, xmlStr, "storage.xml"))) {
+    if ((xml = virXMLParse(filename, xmlStr, _("(storage_volume_definition)")))) {
         ret = virStorageVolDefParseNode(pool, xml, xmlDocGetRootElement(xml));
         xmlFreeDoc(xml);
     }
@@ -1312,6 +1306,21 @@ virStoragePoolObjFindByName(virStoragePoolObjListPtr pools,
         if (STREQ(pools->objs[i]->def->name, name))
             return pools->objs[i];
         virStoragePoolObjUnlock(pools->objs[i]);
+    }
+
+    return NULL;
+}
+
+virStoragePoolObjPtr
+virStoragePoolSourceFindDuplicateDevices(virStoragePoolObjPtr pool,
+                                         virStoragePoolDefPtr def) {
+    unsigned int i, j;
+
+    for (i = 0; i < pool->def->source.ndevice; i++) {
+        for (j = 0; j < def->source.ndevice; j++) {
+            if (STREQ(pool->def->source.devices[i].path, def->source.devices[j].path))
+                return pool;
+        }
     }
 
     return NULL;
@@ -1512,10 +1521,8 @@ virStoragePoolObjSaveDef(virStorageDriverStatePtr driver,
     ssize_t towrite;
 
     if (!pool->configFile) {
-        int err;
-
-        if ((err = virFileMakePath(driver->configDir))) {
-            virReportSystemError(err,
+        if (virFileMakePath(driver->configDir) < 0) {
+            virReportSystemError(errno,
                                  _("cannot create config directory %s"),
                                  driver->configDir);
             return -1;
@@ -1709,6 +1716,71 @@ cleanup:
     return ret;
 }
 
+int virStoragePoolSourceFindDuplicate(virStoragePoolObjListPtr pools,
+                                      virStoragePoolDefPtr def)
+{
+    int i;
+    int ret = 1;
+    virStoragePoolObjPtr pool = NULL;
+    virStoragePoolObjPtr matchpool = NULL;
+
+    /* Check the pool list for duplicate underlying storage */
+    for (i = 0; i < pools->count; i++) {
+        pool = pools->objs[i];
+        if (def->type != pool->def->type)
+            continue;
+
+        virStoragePoolObjLock(pool);
+
+        switch (pool->def->type) {
+        case VIR_STORAGE_POOL_DIR:
+            if (STREQ(pool->def->target.path, def->target.path))
+                matchpool = pool;
+            break;
+        case VIR_STORAGE_POOL_NETFS:
+            if ((STREQ(pool->def->source.dir, def->source.dir)) \
+                && (STREQ(pool->def->source.host.name, def->source.host.name)))
+                matchpool = pool;
+            break;
+        case VIR_STORAGE_POOL_SCSI:
+            if (STREQ(pool->def->source.adapter, def->source.adapter))
+                matchpool = pool;
+            break;
+        case VIR_STORAGE_POOL_ISCSI:
+        {
+            matchpool = virStoragePoolSourceFindDuplicateDevices(pool, def);
+            if (matchpool) {
+                if (STREQ(matchpool->def->source.host.name, def->source.host.name)) {
+                    if ((matchpool->def->source.initiator.iqn) && (def->source.initiator.iqn)) {
+                        if (STREQ(matchpool->def->source.initiator.iqn, def->source.initiator.iqn))
+                            break;
+                        matchpool = NULL;
+                    }
+                    break;
+                }
+                matchpool = NULL;
+            }
+            break;
+        }
+        case VIR_STORAGE_POOL_FS:
+        case VIR_STORAGE_POOL_LOGICAL:
+        case VIR_STORAGE_POOL_DISK:
+            matchpool = virStoragePoolSourceFindDuplicateDevices(pool, def);
+            break;
+        default:
+            break;
+        }
+        virStoragePoolObjUnlock(pool);
+    }
+
+    if (matchpool) {
+        virStorageReportError(VIR_ERR_OPERATION_FAILED,
+                              _("Storage source conflict with pool: '%s'"),
+                              matchpool->def->name);
+        ret = -1;
+    }
+    return ret;
+}
 
 void virStoragePoolObjLock(virStoragePoolObjPtr obj)
 {

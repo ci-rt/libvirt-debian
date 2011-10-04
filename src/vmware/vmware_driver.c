@@ -26,9 +26,10 @@
 #include "internal.h"
 #include "virterror_internal.h"
 #include "datatypes.h"
-#include "files.h"
+#include "virfile.h"
 #include "memory.h"
 #include "uuid.h"
+#include "command.h"
 #include "vmx.h"
 #include "vmware_conf.h"
 #include "vmware_driver.h"
@@ -73,10 +74,12 @@ vmwareDataFreeFunc(void *data)
 static virDrvOpenStatus
 vmwareOpen(virConnectPtr conn,
            virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-           int flags ATTRIBUTE_UNUSED)
+           unsigned int flags)
 {
     struct vmware_driver *driver;
     char * vmrun = NULL;
+
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
     if (conn->uri == NULL) {
         /* @TODO accept */
@@ -254,6 +257,7 @@ vmwareDomainDefineXML(virConnectPtr conn, const char *xml)
 
     vmwareDriverLock(driver);
     if ((vmdef = virDomainDefParseString(driver->caps, xml,
+                                         1 << VIR_DOMAIN_VIRT_VMWARE,
                                          VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
@@ -308,11 +312,14 @@ vmwareDomainDefineXML(virConnectPtr conn, const char *xml)
 }
 
 static int
-vmwareDomainShutdown(virDomainPtr dom)
+vmwareDomainShutdownFlags(virDomainPtr dom,
+                          unsigned int flags)
 {
     struct vmware_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     vmwareDriverLock(driver);
 
@@ -344,6 +351,12 @@ vmwareDomainShutdown(virDomainPtr dom)
         virDomainObjUnlock(vm);
     vmwareDriverUnlock(driver);
     return ret;
+}
+
+static int
+vmwareDomainShutdown(virDomainPtr dom)
+{
+    return vmwareDomainShutdownFlags(dom, 0);
 }
 
 static int
@@ -445,11 +458,10 @@ vmwareDomainResume(virDomainPtr dom)
 }
 
 static int
-vmwareDomainReboot(virDomainPtr dom, unsigned int flags ATTRIBUTE_UNUSED)
+vmwareDomainReboot(virDomainPtr dom, unsigned int flags)
 {
     struct vmware_driver *driver = dom->conn->privateData;
     const char * vmxPath = NULL;
-
     virDomainObjPtr vm;
     const char *cmd[] = {
         VMRUN, "-T", PROGRAM_SENTINAL,
@@ -457,10 +469,11 @@ vmwareDomainReboot(virDomainPtr dom, unsigned int flags ATTRIBUTE_UNUSED)
     };
     int ret = -1;
 
+    virCheckFlags(0, -1);
+
     vmwareDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
     vmwareDriverUnlock(driver);
-    vmxPath = ((vmwareDomainPtr) vm->privateData)->vmxPath;
 
     if (!vm) {
         vmwareError(VIR_ERR_NO_DOMAIN, "%s",
@@ -468,6 +481,7 @@ vmwareDomainReboot(virDomainPtr dom, unsigned int flags ATTRIBUTE_UNUSED)
         goto cleanup;
     }
 
+    vmxPath = ((vmwareDomainPtr) vm->privateData)->vmxPath;
     vmwareSetSentinal(cmd, vmw_types[driver->type]);
     vmwareSetSentinal(cmd, vmxPath);
 
@@ -491,7 +505,7 @@ vmwareDomainReboot(virDomainPtr dom, unsigned int flags ATTRIBUTE_UNUSED)
 
 static virDomainPtr
 vmwareDomainCreateXML(virConnectPtr conn, const char *xml,
-                      unsigned int flags ATTRIBUTE_UNUSED)
+                      unsigned int flags)
 {
     struct vmware_driver *driver = conn->privateData;
     virDomainDefPtr vmdef = NULL;
@@ -502,11 +516,14 @@ vmwareDomainCreateXML(virConnectPtr conn, const char *xml,
     vmwareDomainPtr pDomain = NULL;
     virVMXContext ctx;
 
+    virCheckFlags(0, NULL);
+
     ctx.formatFileName = vmwareCopyVMXFileName;
 
     vmwareDriverLock(driver);
 
     if ((vmdef = virDomainDefParseString(driver->caps, xml,
+                                         1 << VIR_DOMAIN_VIRT_VMWARE,
                                          VIR_DOMAIN_XML_INACTIVE)) == NULL)
         goto cleanup;
 
@@ -561,11 +578,13 @@ cleanup:
 
 static int
 vmwareDomainCreateWithFlags(virDomainPtr dom,
-                            unsigned int flags ATTRIBUTE_UNUSED)
+                            unsigned int flags)
 {
     struct vmware_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     vmwareDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -599,11 +618,14 @@ vmwareDomainCreate(virDomainPtr dom)
 }
 
 static int
-vmwareDomainUndefine(virDomainPtr dom)
+vmwareDomainUndefineFlags(virDomainPtr dom,
+                          unsigned int flags)
 {
     struct vmware_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     vmwareDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -617,20 +639,19 @@ vmwareDomainUndefine(virDomainPtr dom)
         goto cleanup;
     }
 
-    if (virDomainObjIsActive(vm)) {
-        vmwareError(VIR_ERR_OPERATION_INVALID,
-                    "%s", _("cannot undefine active domain"));
-        goto cleanup;
-    }
-
     if (!vm->persistent) {
         vmwareError(VIR_ERR_OPERATION_INVALID,
                     "%s", _("cannot undefine transient domain"));
         goto cleanup;
     }
 
-    virDomainRemoveInactive(&driver->domains, vm);
-    vm = NULL;
+    if (virDomainObjIsActive(vm)) {
+        vm->persistent = 0;
+    } else {
+        virDomainRemoveInactive(&driver->domains, vm);
+        vm = NULL;
+    }
+
     ret = 0;
 
   cleanup:
@@ -638,6 +659,12 @@ vmwareDomainUndefine(virDomainPtr dom)
         virDomainObjUnlock(vm);
     vmwareDriverUnlock(driver);
     return ret;
+}
+
+static int
+vmwareDomainUndefine(virDomainPtr dom)
+{
+    return vmwareDomainUndefineFlags(dom, 0);
 }
 
 static virDomainPtr
@@ -791,11 +818,13 @@ vmwareDomainIsPersistent(virDomainPtr dom)
 
 
 static char *
-vmwareDomainGetXMLDesc(virDomainPtr dom, int flags)
+vmwareDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
 {
     struct vmware_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     char *ret = NULL;
+
+    /* Flags checked by virDomainDefFormat */
 
     vmwareDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -947,6 +976,7 @@ static virDriver vmwareDriver = {
     .domainShutdown = vmwareDomainShutdown, /* 0.8.7 */
     .domainReboot = vmwareDomainReboot, /* 0.8.7 */
     .domainDestroy = vmwareDomainShutdown, /* 0.8.7 */
+    .domainDestroyFlags = vmwareDomainShutdownFlags, /* 0.9.4 */
     .domainGetOSType = vmwareGetOSType, /* 0.8.7 */
     .domainGetInfo = vmwareDomainGetInfo, /* 0.8.7 */
     .domainGetState = vmwareDomainGetState, /* 0.9.2 */
@@ -957,6 +987,7 @@ static virDriver vmwareDriver = {
     .domainCreateWithFlags = vmwareDomainCreateWithFlags, /* 0.8.7 */
     .domainDefineXML = vmwareDomainDefineXML, /* 0.8.7 */
     .domainUndefine = vmwareDomainUndefine, /* 0.8.7 */
+    .domainUndefineFlags = vmwareDomainUndefineFlags, /* 0.9.4 */
     .domainIsActive = vmwareDomainIsActive, /* 0.8.7 */
     .domainIsPersistent = vmwareDomainIsPersistent, /* 0.8.7 */
 };

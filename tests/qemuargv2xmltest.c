@@ -45,7 +45,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (virtTestLoadFile(xml, &expectxml) < 0)
         goto fail;
 
-    if (!(vmdef = qemuParseCommandLineString(driver.caps, cmd)))
+    if (!(vmdef = qemuParseCommandLineString(driver.caps, cmd,
+                                             NULL, NULL, NULL)))
         goto fail;
 
     if ((log = virtTestLogContentAndReset()) == NULL)
@@ -167,6 +168,7 @@ mymain(void)
     DO_TEST("disk-drive-cache-v2-wt");
     DO_TEST("disk-drive-cache-v2-wb");
     DO_TEST("disk-drive-cache-v2-none");
+    DO_TEST("disk-drive-cache-directsync");
     DO_TEST("disk-drive-network-nbd");
     DO_TEST("disk-drive-network-rbd");
     DO_TEST("disk-drive-network-sheepdog");
@@ -238,6 +240,10 @@ VIRT_TEST_MAIN(mymain)
 
 #else
 
-int main (void) { return (EXIT_AM_SKIP); }
+int
+main(void)
+{
+    return EXIT_AM_SKIP;
+}
 
 #endif /* WITH_QEMU */

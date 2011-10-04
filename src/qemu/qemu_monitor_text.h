@@ -46,23 +46,32 @@ int qemuMonitorTextStopCPUs(qemuMonitorPtr mon);
 int qemuMonitorTextGetStatus(qemuMonitorPtr mon, bool *running);
 
 int qemuMonitorTextSystemPowerdown(qemuMonitorPtr mon);
+int qemuMonitorTextSystemReset(qemuMonitorPtr mon);
 
 int qemuMonitorTextGetCPUInfo(qemuMonitorPtr mon,
                               int **pids);
+int qemuMonitorTextGetVirtType(qemuMonitorPtr mon,
+                               int *virtType);
 int qemuMonitorTextGetBalloonInfo(qemuMonitorPtr mon,
                                   unsigned long *currmem);
 int qemuMonitorTextGetMemoryStats(qemuMonitorPtr mon,
                                   virDomainMemoryStatPtr stats,
                                   unsigned int nr_stats);
 int qemuMonitorTextGetBlockStatsInfo(qemuMonitorPtr mon,
-                                     const char *devname,
+                                     const char *dev_name,
                                      long long *rd_req,
                                      long long *rd_bytes,
+                                     long long *rd_total_times,
                                      long long *wr_req,
                                      long long *wr_bytes,
+                                     long long *wr_total_times,
+                                     long long *flush_req,
+                                     long long *flush_total_times,
                                      long long *errs);
+int qemuMonitorTextGetBlockStatsParamsNumber(qemuMonitorPtr mon,
+                                             int *nparams);
 int qemuMonitorTextGetBlockExtent(qemuMonitorPtr mon,
-                                  const char *devname,
+                                  const char *dev_name,
                                   unsigned long long *extent);
 
 int qemuMonitorTextSetVNCPassword(qemuMonitorPtr mon,
@@ -79,10 +88,10 @@ int qemuMonitorTextSetBalloon(qemuMonitorPtr mon,
 int qemuMonitorTextSetCPU(qemuMonitorPtr mon, int cpu, int online);
 
 int qemuMonitorTextEjectMedia(qemuMonitorPtr mon,
-                              const char *devname,
+                              const char *dev_name,
                               bool force);
 int qemuMonitorTextChangeMedia(qemuMonitorPtr mon,
-                               const char *devname,
+                               const char *dev_name,
                                const char *newmedia,
                                const char *format);
 
@@ -203,11 +212,30 @@ int qemuMonitorTextCreateSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorTextLoadSnapshot(qemuMonitorPtr mon, const char *name);
 int qemuMonitorTextDeleteSnapshot(qemuMonitorPtr mon, const char *name);
 
+int qemuMonitorTextDiskSnapshot(qemuMonitorPtr mon,
+                                const char *device,
+                                const char *file);
+
 int qemuMonitorTextArbitraryCommand(qemuMonitorPtr mon, const char *cmd,
                                     char **reply);
 
 int qemuMonitorTextInjectNMI(qemuMonitorPtr mon);
 
+int qemuMonitorTextSendKey(qemuMonitorPtr mon,
+                           unsigned int holdtime,
+                           unsigned int *keycodes,
+                           unsigned int nkeycodes);
+
 int qemuMonitorTextScreendump(qemuMonitorPtr mon, const char *file);
+
+int qemuMonitorTextBlockJob(qemuMonitorPtr mon,
+                            const char *device,
+                            unsigned long bandwidth,
+                            virDomainBlockJobInfoPtr info,
+                            int mode);
+
+int qemuMonitorTextSetLink(qemuMonitorPtr mon,
+                           const char *name,
+                           enum virDomainNetInterfaceLinkState state);
 
 #endif /* QEMU_MONITOR_TEXT_H */

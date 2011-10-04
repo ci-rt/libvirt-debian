@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<api name='libvirt-qemu'>
+  <files>
+    <file name='libvirt-qemu'>
+     <summary>qemu specific interfaces</summary>
+     <description>Provides the interfaces of the libvirt library to handle qemu specific methods </description>
+     <author>Chris Lalancette &lt;clalance@redhat.com&gt; </author>
+     <exports symbol='VIR_DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP' type='enum'/>
+     <exports symbol='virDomainQemuMonitorCommandFlags' type='typedef'/>
+     <exports symbol='virDomainQemuAttach' type='function'/>
+     <exports symbol='virDomainQemuMonitorCommand' type='function'/>
+    </file>
+  </files>
+  <symbols>
+    <enum name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT' file='libvirt-qemu' value='0' type='virDomainQemuMonitorCommandFlags'/>
+    <enum name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP' file='libvirt-qemu' value='1' type='virDomainQemuMonitorCommandFlags' info='cmd is in HMP'/>
+    <typedef name='virDomainQemuMonitorCommandFlags' file='libvirt-qemu' type='enum'/>
+    <function name='virDomainQemuAttach' file='libvirt-qemu' module='libvirt-qemu'>
+      <info><![CDATA[This API is QEMU specific, so it will only work with hypervisor
+connections to the QEMU driver.
+
+This API will attach to an externally launched QEMU process
+identified by @pid. There are several requirements to successfully
+attach to an external QEMU process:
+
+  - It must have been started with a monitor socket using the UNIX
+    domain socket protocol.
+  - No device hotplug/unplug, or other configuration changes can
+    have been made via the monitor since it started.
+  - The '-name' and '-uuid' arguments should have been set (not
+    mandatory, but strongly recommended)
+
+If successful, then the guest will appear in the list of running
+domains for this connection, and other APIs should operate
+normally (provided the above requirements were honored).]]></info>
+      <return type='virDomainPtr' info='a new domain object on success, NULL otherwise'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to a hypervisor connection'/>
+      <arg name='pid' type='unsigned int' info='the UNIX process ID of the external QEMU process'/>
+      <arg name='flags' type='unsigned int' info='optional flags, currently unused'/>
+    </function>
+    <function name='virDomainQemuMonitorCommand' file='libvirt-qemu' module='libvirt-qemu'>
+      <info><![CDATA[This API is QEMU specific, so it will only work with hypervisor
+connections to the QEMU driver.
+
+Send an arbitrary monitor command @cmd to @domain through the
+qemu monitor. There are several requirements to safely and
+successfully use this API:
+
+  - A @cmd that queries state without making any modifications is safe
+  - A @cmd that alters state that is also tracked by libvirt is unsafe,
+    and may cause libvirtd to crash
+  - A @cmd that alters state not tracked by the current version of
+    libvirt is possible as a means to test new qemu features before
+    they have support in libvirt, but no guarantees are made to safety
+
+If VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP is set, the command is
+considered to be a human monitor command and libvirt will automatically
+convert it into QMP if needed.  In that case the @result will also
+be converted back from QMP.
+
+If successful, @result will be filled with the string output of the
+@cmd, and the caller must free this string.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='cmd' type='const char *' info='the qemu monitor command string'/>
+      <arg name='result' type='char **' info='a string returned by @cmd'/>
+      <arg name='flags' type='unsigned int' info='bitwise-or of supported virDomainQemuMonitorCommandFlags'/>
+    </function>
+  </symbols>
+</api>

@@ -3,7 +3,7 @@
  *   remote_internal driver and libvirtd.  This protocol is
  *   internal and may change at any time.
  *
- * Copyright (C) 2010 Red Hat, Inc.
+ * Copyright (C) 2010-2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,11 +30,21 @@
 struct qemu_monitor_command_args {
     remote_nonnull_domain dom;
     remote_nonnull_string cmd;
-    int flags;
+    unsigned int flags;
 };
 
 struct qemu_monitor_command_ret {
     remote_nonnull_string result;
+};
+
+
+struct qemu_domain_attach_args {
+    unsigned int pid;
+    unsigned int flags;
+};
+
+struct qemu_domain_attach_ret {
+    remote_nonnull_domain dom;
 };
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -42,8 +52,14 @@ const QEMU_PROGRAM = 0x20008087;
 const QEMU_PROTOCOL_VERSION = 1;
 
 enum qemu_procedure {
-    /* Each function must have a two-word comment.  The first word is
-     * whether remote_generator.pl handles daemon, the second whether
-     * it handles src/remote.  */
-    QEMU_PROC_MONITOR_COMMAND = 1 /* skipgen skipgen */
+    /* Each function must have a three-word comment.  The first word is
+     * whether gendispatch.pl handles daemon, the second whether
+     * it handles src/remote.
+     * The last argument describes priority of API. There are two accepted
+     * values: low, high; Each API that might eventually access hypervisor's
+     * monitor (and thus block) MUST fall into low priority. However, there
+     * are some exceptions to this rule, e.g. domainDestroy. Other APIs MAY
+     * be marked as high priority. If in doubt, it's safe to choose low. */
+    QEMU_PROC_MONITOR_COMMAND = 1, /* skipgen skipgen priority:low */
+    QEMU_PROC_DOMAIN_ATTACH = 2 /* autogen autogen priority:low */
 };

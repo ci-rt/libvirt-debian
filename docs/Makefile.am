@@ -1,4 +1,8 @@
 ## Process this file with automake to produce Makefile.in
+
+## Copyright (C) 2005-2011 Red Hat, Inc.
+## See COPYING.LIB for the License of this software
+
 SUBDIRS= schemas
 
 PERL = perl
@@ -72,6 +76,10 @@ xml = \
   libvirt-api.xml \
   libvirt-refs.xml
 
+qemu_xml = \
+  libvirt-qemu-api.xml \
+  libvirt-qemu-refs.xml
+
 fig = \
   libvirt-net-logical.fig \
   libvirt-net-physical.fig \
@@ -85,7 +93,7 @@ EXTRA_DIST=					\
   hacking1.xsl hacking2.xsl wrapstring.xsl \
   $(dot_html) $(dot_html_in) $(gif) $(apihtml) $(apipng) \
   $(devhelphtml) $(devhelppng) $(devhelpcss) $(devhelpxsl) \
-  $(xml) $(fig) $(png) $(css) \
+  $(xml) $(qemu_xml) $(fig) $(png) $(css) \
   $(patches) \
   sitemap.html.in \
   todo.pl hvsupport.pl todo.cfg-example
@@ -98,13 +106,14 @@ MAINTAINERCLEANFILES = \
 all: web
 
 api: $(srcdir)/libvirt-api.xml $(srcdir)/libvirt-refs.xml
+qemu_api: $(srcdir)/libvirt-qemu-api.xml $(srcdir)/libvirt-qemu-refs.xml
 
 web: $(dot_html) html/index.html devhelp/index.html
 
 todo.html.in: todo.pl
 	if [ -f  todo.cfg ]; then \
 		echo "Generating $@"; \
-		$(PERL) $(srcdir)/$< > $@ \
+		$(PERL) $< > $@ \
 		|| { rm $@ && exit 1; }; \
 	else \
 		echo "Stubbing $@"; \
@@ -153,35 +162,37 @@ internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
 
 
 html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
-	-@if [ -x $(XSLTPROC) ] ; then \
-	  echo "Rebuilding the HTML pages from the XML API" ; \
+	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then \
 	  $(XSLTPROC) --nonet -o $(srcdir)/ \
-	  $(srcdir)/newapi.xsl $(srcdir)/libvirt-api.xml ; fi
-	-@if test -x $(XMLLINT) && test -x $(XMLCATALOG) ; then \
+	  $(srcdir)/newapi.xsl $(srcdir)/libvirt-api.xml ; fi && \
+	if test -x $(XMLLINT) && test -x $(XMLCATALOG) ; then \
 	  if $(XMLCATALOG) '$(XML_CATALOG_FILE)' "-//W3C//DTD XHTML 1.0 Strict//EN" \
 	    > /dev/null ; then \
-	  echo "Validating the resulting XHTML pages" ; \
 	  SGML_CATALOG_FILES='$(XML_CATALOG_FILE)' \
 	  $(XMLLINT) --catalogs --nonet --valid --noout $(srcdir)/html/*.html ; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi
 
 $(addprefix $(srcdir)/,$(devhelphtml)): $(srcdir)/libvirt-api.xml $(devhelpxsl)
-	-@echo Rebuilding devhelp files
-	-@if [ -x $(XSLTPROC) ] ; then \
+	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then \
 	  $(XSLTPROC) --nonet -o $(srcdir)/devhelp/ \
 	  $(top_srcdir)/docs/devhelp/devhelp.xsl $(srcdir)/libvirt-api.xml ; fi
 
+
 python_generated_files = \
 		$(srcdir)/html/libvirt-libvirt.html \
+		$(srcdir)/html/libvirt-libvirt-qemu.html \
 		$(srcdir)/html/libvirt-virterror.html \
 		$(srcdir)/libvirt-api.xml \
-		$(srcdir)/libvirt-refs.xml
+		$(srcdir)/libvirt-refs.xml \
+		$(srcdir)/libvirt-qemu-api.xml \
+		$(srcdir)/libvirt-qemu-refs.xml
 
 $(python_generated_files): $(srcdir)/apibuild.py \
 		$(srcdir)/../include/libvirt/*.h \
 		$(srcdir)/../src/libvirt.c \
+		$(srcdir)/../src/libvirt-qemu.c \
 		$(srcdir)/../src/util/virterror.c
-	$(AM_V_GEN)srcdir=$(srcdir) $(srcdir)/apibuild.py
+	$(AM_V_GEN)srcdir=$(srcdir) $(PYTHON) $(srcdir)/apibuild.py
 
 check-local: all
 
@@ -190,8 +201,9 @@ clean-local:
 
 maintainer-clean-local: clean-local
 	rm -rf $(srcdir)/libvirt-api.xml $(srcdir)/libvirt-refs.xml todo.html.in hvsupport.html.in
+	rm -rf $(srcdir)/libvirt-qemu-api.xml $(srcdir)/libvirt-qemu-refs.xml
 
-rebuild: api all
+rebuild: api qemu_api all
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(HTML_DIR)

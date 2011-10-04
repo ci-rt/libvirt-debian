@@ -1,6 +1,7 @@
 /*
  * node_device_hal.c: node device enumeration - HAL-based implementation
  *
+ * Copyright (C) 2011 Red Hat, Inc.
  * Copyright (C) 2008 Virtual Iron Software, Inc.
  * Copyright (C) 2008 David F. Lively
  *
@@ -32,9 +33,9 @@
 #include "virterror_internal.h"
 #include "driver.h"
 #include "datatypes.h"
-#include "event.h"
 #include "memory.h"
 #include "uuid.h"
+#include "pci.h"
 #include "logging.h"
 #include "node_device_driver.h"
 
@@ -146,8 +147,13 @@ static int gather_pci_cap(LibHalContext *ctx, const char *udi,
             (void)virStrToLong_ui(p+1, &p, 16, &d->pci_dev.function);
         }
 
-        get_physical_function(sysfs_path, d);
-        get_virtual_functions(sysfs_path, d);
+        if (!pciGetPhysicalFunction(sysfs_path, &d->pci_dev.physical_function))
+            d->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
+
+        if (!pciGetVirtualFunctions(sysfs_path, &d->pci_dev.virtual_functions,
+            &d->pci_dev.num_virtual_functions) ||
+            d->pci_dev.num_virtual_functions > 0)
+            d->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
 
         VIR_FREE(sysfs_path);
     }
@@ -862,8 +868,10 @@ static int halDeviceMonitorActive(void)
 
 static virDrvOpenStatus halNodeDrvOpen(virConnectPtr conn,
                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                       int flags ATTRIBUTE_UNUSED)
+                                       unsigned int flags)
 {
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
+
     if (driverState == NULL)
         return VIR_DRV_OPEN_DECLINED;
 
@@ -881,22 +889,30 @@ static int halNodeDrvClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 
 static virDeviceMonitor halDeviceMonitor = {
     .name = "halDeviceMonitor",
-    .open = halNodeDrvOpen,
-    .close = halNodeDrvClose,
+    .open = halNodeDrvOpen, /* 0.5.0 */
+    .close = halNodeDrvClose, /* 0.5.0 */
+    .numOfDevices = nodeNumOfDevices, /* 0.5.0 */
+    .listDevices = nodeListDevices, /* 0.5.0 */
+    .deviceLookupByName = nodeDeviceLookupByName, /* 0.5.0 */
+    .deviceGetXMLDesc = nodeDeviceGetXMLDesc, /* 0.5.0 */
+    .deviceGetParent = nodeDeviceGetParent, /* 0.5.0 */
+    .deviceNumOfCaps = nodeDeviceNumOfCaps, /* 0.5.0 */
+    .deviceListCaps = nodeDeviceListCaps, /* 0.5.0 */
+    .deviceCreateXML = nodeDeviceCreateXML, /* 0.6.5 */
+    .deviceDestroy = nodeDeviceDestroy, /* 0.6.5 */
 };
 
 
 static virStateDriver halStateDriver = {
     .name = "HAL",
-    .initialize = halDeviceMonitorStartup,
-    .cleanup = halDeviceMonitorShutdown,
-    .reload = halDeviceMonitorReload,
-    .active = halDeviceMonitorActive,
+    .initialize = halDeviceMonitorStartup, /* 0.5.0 */
+    .cleanup = halDeviceMonitorShutdown, /* 0.5.0 */
+    .reload = halDeviceMonitorReload, /* 0.5.0 */
+    .active = halDeviceMonitorActive, /* 0.5.0 */
 };
 
 int halNodeRegister(void)
 {
-    registerCommonNodeFuncs(&halDeviceMonitor);
     if (virRegisterDeviceMonitor(&halDeviceMonitor) < 0)
         return -1;
     return virRegisterStateDriver(&halStateDriver);

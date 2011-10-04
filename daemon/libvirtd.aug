@@ -48,6 +48,7 @@ module Libvirtd =
                          | str_entry "crl_file"
 
    let authorization_entry = bool_entry "tls_no_verify_certificate"
+                           | bool_entry "tls_no_sanity_certificate"
                            | str_array_entry "tls_allowed_dn_list"
                            | str_array_entry "sasl_allowed_username_list"
 
@@ -56,6 +57,7 @@ module Libvirtd =
                         | int_entry "max_clients"
                         | int_entry "max_requests"
                         | int_entry "max_client_requests"
+                        | int_entry "prio_workers"
 
    let logging_entry = int_entry "log_level"
                      | str_entry "log_filters"

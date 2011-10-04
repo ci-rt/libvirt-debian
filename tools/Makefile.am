@@ -1,3 +1,13 @@
+## Copyright (C) 2005-2011 Red Hat, Inc.
+## See COPYING.LIB for the License of this software
+
+INCLUDES = \
+	-I../include -I$(top_srcdir)/include \
+	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib	\
+	-I$(top_srcdir)/src				\
+	-I$(top_srcdir)/src/util			\
+	-I$(top_srcdir)					\
+	$(GETTEXT_CPPFLAGS)
 
 POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
 
@@ -12,6 +22,8 @@ EXTRA_DIST = \
 	$(ICON_FILES)					\
 	virt-xml-validate.in				\
 	virt-pki-validate.in				\
+	virt-sanlock-cleanup.in				\
+	virt-sanlock-cleanup.8				\
 	virsh.pod					\
 	libvirt-guests.init.sh				\
 	libvirt-guests.sysconf
@@ -19,21 +31,35 @@ EXTRA_DIST = \
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
 bin_PROGRAMS = virsh
 
-dist_man1_MANS = virt-xml-validate.1 virt-pki-validate.1 virsh.1
+if HAVE_SANLOCK
+sbin_SCRIPTS = virt-sanlock-cleanup
+endif
 
+dist_man1_MANS = virt-xml-validate.1 virt-pki-validate.1 virsh.1
+if HAVE_SANLOCK
+dist_man8_MANS = virt-sanlock-cleanup.8
+endif
 
 virt-xml-validate: virt-xml-validate.in Makefile
-	$(AM_V_GEN)sed -e 's,@SCHEMADIR@,$(pkgdatadir)/schemas,' < $< > $@ \
+	$(AM_V_GEN)sed -e 's,[@]SCHEMADIR@,$(pkgdatadir)/schemas,' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
 
 virt-xml-validate.1: virt-xml-validate.in
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
 virt-pki-validate: virt-pki-validate.in Makefile
-	$(AM_V_GEN)sed -e 's,@SYSCONFDIR@,$(sysconfdir),' < $< > $@ \
+	$(AM_V_GEN)sed -e 's,[@]SYSCONFDIR@,$(sysconfdir),' < $< > $@ \
 	    || (rm $@ && exit 1) && chmod +x $@
 
 virt-pki-validate.1: virt-pki-validate.in
+	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
+
+virt-sanlock-cleanup: virt-sanlock-cleanup.in Makefile
+	$(AM_V_GEN)sed -e 's,[@]SYSCONFDIR@,$(sysconfdir),' \
+	    -e 's,[@]LOCALSTATEDIR@,$(localstatedir),' < $< > $@ \
+	    || (rm $@ && exit 1) && chmod +x $@
+
+virt-sanlock-cleanup.8: virt-sanlock-cleanup.in
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
 virsh_SOURCES =							\
@@ -50,11 +76,6 @@ virsh_LDADD =							\
 		$(LIBXML_LIBS)					\
 		$(VIRSH_LIBS)
 virsh_CFLAGS =							\
-		-I$(top_srcdir)/gnulib/lib -I../gnulib/lib	\
-		-I../include -I$(top_srcdir)/include		\
-		-I$(top_srcdir)/src				\
-		-I$(top_srcdir)/src/util			\
-		-I$(top_srcdir)					\
 		$(WARN_CFLAGS)					\
 		$(COVERAGE_CFLAGS)				\
 		$(LIBXML_CFLAGS)				\

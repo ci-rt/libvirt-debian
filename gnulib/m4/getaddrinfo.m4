@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# getaddrinfo.m4 serial 25
+# getaddrinfo.m4 serial 28
 dnl Copyright (C) 2004-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -26,6 +26,7 @@ AC_DEFUN([gl_GETADDRINFO],
      fi])
   LIBS="$gai_saved_LIBS $GETADDRINFO_LIB"
 
+  HAVE_GETADDRINFO=1
   AC_CACHE_CHECK([for getaddrinfo], [gl_cv_func_getaddrinfo], [
     AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 #include <sys/types.h>
@@ -57,14 +58,14 @@ AC_DEFUN([gl_GETADDRINFO],
       GETADDRINFO_LIB="-lws2_32"
       LIBS="$gai_saved_LIBS $GETADDRINFO_LIB"
     else
-      AC_LIBOBJ([getaddrinfo])
+      HAVE_GETADDRINFO=0
     fi
   fi
 
   # We can't use AC_REPLACE_FUNCS here because gai_strerror may be an
   # inline function declared in ws2tcpip.h, so we need to get that
   # header included somehow.
-  AC_CHECK_DECLS([gai_strerror, gai_strerrorA], [], [break], [[
+  AC_CHECK_DECLS([gai_strerror], [], [], [[
 #include <sys/types.h>
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
@@ -77,9 +78,20 @@ AC_DEFUN([gl_GETADDRINFO],
 #endif
 #include <stddef.h>
 ]])
-  if test $ac_cv_have_decl_gai_strerror = no; then
-    AC_LIBOBJ([gai_strerror])
-  else
+  if test $ac_cv_have_decl_gai_strerror = yes; then
+    AC_CHECK_DECLS([gai_strerrorA], [], [], [[
+#include <sys/types.h>
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
+#endif
+#ifdef HAVE_WS2TCPIP_H
+#include <ws2tcpip.h>
+#endif
+#include <stddef.h>
+]])
     dnl check for correct signature
     AC_CACHE_CHECK([for gai_strerror with POSIX signature],
      [gl_cv_func_gai_strerror_posix_signature], [
@@ -95,12 +107,15 @@ AC_DEFUN([gl_GETADDRINFO],
 #include <ws2tcpip.h>
 #endif
 #include <stddef.h>
-extern const char *gai_strerror(int);]])],
+extern
+#ifdef __cplusplus
+"C"
+#endif
+const char *gai_strerror(int);]])],
         [gl_cv_func_gai_strerror_posix_signature=yes],
         [gl_cv_func_gai_strerror_posix_signature=no])])
     if test $gl_cv_func_gai_strerror_posix_signature = no; then
       REPLACE_GAI_STRERROR=1
-      AC_LIBOBJ([gai_strerror])
     fi
   fi
 

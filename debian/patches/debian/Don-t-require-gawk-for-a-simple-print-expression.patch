@@ -1,0 +1,25 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Tue, 9 Aug 2011 14:59:01 +0200
+Subject: Don't require gawk for a simple print expression
+
+Closes: #636712
+Thanks: Luca Capello
+
+---
+ src/nwfilter/nwfilter_ebiptables_driver.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/src/nwfilter/nwfilter_ebiptables_driver.c b/src/nwfilter/nwfilter_ebiptables_driver.c
+index f87cfa1..a057799 100644
+--- a/src/nwfilter/nwfilter_ebiptables_driver.c
++++ b/src/nwfilter/nwfilter_ebiptables_driver.c
+@@ -3719,7 +3719,7 @@ ebiptablesDriverInit(bool privileged)
+     if (virMutexInit(&execCLIMutex))
+         return EINVAL;
+ 
+-    gawk_cmd_path = virFindFileInPath("gawk");
++    gawk_cmd_path = virFindFileInPath("awk");
+     grep_cmd_path = virFindFileInPath("grep");
+ 
+     ebtables_cmd_path = virFindFileInPath("ebtables");
+-- 

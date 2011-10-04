@@ -35,7 +35,7 @@
 #include "uuid.h"
 #include "pci.h"
 #include "hostusb.h"
-#include "files.h"
+#include "virfile.h"
 #include "configmake.h"
 #include "command.h"
 
@@ -265,7 +265,7 @@ reload_profile(virSecurityManagerPtr mgr,
     int rc = -1;
     char *profile_name = NULL;
 
-    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (secdef->norelabel)
         return 0;
 
     if ((profile_name = get_profile_name(vm)) == NULL)
@@ -398,6 +398,12 @@ AppArmorGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_STATIC)
         return 0;
 
+    if (vm->def->seclabel.baselabel) {
+        virSecurityReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               "%s", _("Cannot set a base label with AppArmour"));
+        return rc;
+    }
+
     if ((vm->def->seclabel.label) ||
         (vm->def->seclabel.model) || (vm->def->seclabel.imagelabel)) {
         virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
@@ -429,6 +435,14 @@ AppArmorGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
         goto err;
     }
 
+    /* Now that we have a label, load the profile into the kernel. */
+    if (load_profile(mgr, vm->def->seclabel.label, vm, NULL, false) < 0) {
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("cannot load AppArmor profile "
+                               "\'%s\'"), vm->def->seclabel.label);
+        goto err;
+    }
+
     rc = 0;
     goto clean;
 
@@ -447,19 +461,13 @@ static int
 AppArmorSetSecurityAllLabel(virSecurityManagerPtr mgr,
                             virDomainObjPtr vm, const char *stdin_path)
 {
-    if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (vm->def->seclabel.norelabel)
         return 0;
 
-    /* if the profile is not already loaded, then load one */
-    if (profile_loaded(vm->def->seclabel.label) < 0) {
-        if (load_profile(mgr, vm->def->seclabel.label, vm, stdin_path,
-                         false) < 0) {
-            virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("cannot generate AppArmor profile "
-                                   "\'%s\'"), vm->def->seclabel.label);
-            return -1;
-        }
-    }
+    /* Reload the profile if stdin_path is specified. Note that
+       GenSecurityLabel() will have already been run. */
+    if (stdin_path)
+        return reload_profile(mgr, vm, stdin_path, true);
 
     return 0;
 }
@@ -570,6 +578,13 @@ AppArmorSetSecurityProcessLabel(virSecurityManagerPtr mgr, virDomainObjPtr vm)
 }
 
 static int
+AppArmorSetSecurityDaemonSocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                     virDomainObjPtr vm ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+static int
 AppArmorSetSecuritySocketLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                virDomainObjPtr vm ATTRIBUTE_UNUSED)
 {
@@ -602,7 +617,7 @@ AppArmorSetSecurityImageLabel(virSecurityManagerPtr mgr,
     int rc = -1;
     char *profile_name;
 
-    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (secdef->norelabel)
         return 0;
 
     if (!disk->src || disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK)
@@ -674,7 +689,7 @@ AppArmorSetSecurityHostdevLabel(virSecurityManagerPtr mgr,
     struct SDPDOP *ptr;
     int ret = -1;
 
-    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (secdef->norelabel)
         return 0;
 
     if (dev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
@@ -733,7 +748,7 @@ AppArmorRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr,
 
 {
     const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
-    if (secdef->type == VIR_DOMAIN_SECLABEL_STATIC)
+    if (secdef->norelabel)
         return 0;
 
     return reload_profile(mgr, vm, NULL, false);
@@ -757,11 +772,31 @@ AppArmorRestoreSavedStateLabel(virSecurityManagerPtr mgr,
 }
 
 static int
-AppArmorSetFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
-                   virDomainObjPtr vm ATTRIBUTE_UNUSED,
-                   int fd ATTRIBUTE_UNUSED)
+AppArmorSetImageFDLabel(virSecurityManagerPtr mgr,
+                        virDomainObjPtr vm,
+                        int fd)
 {
-    return 0;
+    int rc = -1;
+    char *proc = NULL;
+    char *fd_path = NULL;
+
+    const virSecurityLabelDefPtr secdef = &vm->def->seclabel;
+
+    if (secdef->imagelabel == NULL)
+        return 0;
+
+    if (virAsprintf(&proc, "/proc/self/fd/%d", fd) == -1) {
+        virReportOOMError();
+        return rc;
+    }
+
+    if (virFileResolveLink(proc, &fd_path) < 0) {
+        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
+                               "%s", _("could not find path for descriptor"));
+        return rc;
+    }
+
+    return reload_profile(mgr, vm, fd_path, true);
 }
 
 virSecurityDriver virAppArmorSecurityDriver = {
@@ -779,6 +814,7 @@ virSecurityDriver virAppArmorSecurityDriver = {
     AppArmorSetSecurityImageLabel,
     AppArmorRestoreSecurityImageLabel,
 
+    AppArmorSetSecurityDaemonSocketLabel,
     AppArmorSetSecuritySocketLabel,
     AppArmorClearSecuritySocketLabel,
 
@@ -798,5 +834,5 @@ virSecurityDriver virAppArmorSecurityDriver = {
     AppArmorSetSavedStateLabel,
     AppArmorRestoreSavedStateLabel,
 
-    AppArmorSetFDLabel,
+    AppArmorSetImageFDLabel,
 };

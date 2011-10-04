@@ -37,7 +37,7 @@
 #include "uuid.h"
 #include "util.h"
 #include "buf.h"
-#include "event.h"
+#include "pci.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -481,8 +481,13 @@ static int udevProcessPCI(struct udev_device *device,
         goto out;
     }
 
-    get_physical_function(syspath, data);
-    get_virtual_functions(syspath, data);
+    if (!pciGetPhysicalFunction(syspath, &data->pci_dev.physical_function))
+        data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_PHYSICAL_FUNCTION;
+
+    if (!pciGetVirtualFunctions(syspath, &data->pci_dev.virtual_functions,
+        &data->pci_dev.num_virtual_functions) ||
+        data->pci_dev.num_virtual_functions > 0)
+        data->pci_dev.flags |= VIR_NODE_DEV_CAP_FLAG_PCI_VIRTUAL_FUNCTION;
 
     ret = 0;
 
@@ -1478,6 +1483,8 @@ out:
 }
 
 
+/* DMI is intel-compatible specific */
+#if defined(__x86_64__) || defined(__i386__) || defined(__amd64__)
 static void
 udevGetDMIData(union _virNodeDevCapData *data)
 {
@@ -1550,6 +1557,7 @@ out:
     }
     return;
 }
+#endif
 
 
 static int udevSetupSystemDev(void)
@@ -1574,7 +1582,9 @@ static int udevSetupSystemDev(void)
         goto out;
     }
 
+#if defined(__x86_64__) || defined(__i386__) || defined(__amd64__)
     udevGetDMIData(&def->caps->data);
+#endif
 
     dev = virNodeDeviceAssignDef(&driverState->devs, def);
     if (dev == NULL) {
@@ -1610,7 +1620,7 @@ static int udevDeviceMonitorStartup(int privileged)
         /* Ignore failure as non-root; udev is not as helpful in that
          * situation, but a non-privileged user won't benefit much
          * from udev in the first place.  */
-        if (privileged || errno != EACCES) {
+        if (errno != ENOENT && (privileged  || errno != EACCES)) {
             char ebuf[256];
             VIR_ERROR(_("Failed to initialize libpciaccess: %s"),
                       virStrerror(pciret, ebuf, sizeof ebuf));
@@ -1722,8 +1732,10 @@ static int udevDeviceMonitorActive(void)
 
 static virDrvOpenStatus udevNodeDrvOpen(virConnectPtr conn,
                                         virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                        int flags ATTRIBUTE_UNUSED)
+                                        unsigned int flags)
 {
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
+
     if (driverState == NULL) {
         return VIR_DRV_OPEN_DECLINED;
     }
@@ -1741,23 +1753,31 @@ static int udevNodeDrvClose(virConnectPtr conn)
 
 static virDeviceMonitor udevDeviceMonitor = {
     .name = "udevDeviceMonitor",
-    .open = udevNodeDrvOpen,
-    .close = udevNodeDrvClose,
+    .open = udevNodeDrvOpen, /* 0.7.3 */
+    .close = udevNodeDrvClose, /* 0.7.3 */
+    .numOfDevices = nodeNumOfDevices, /* 0.7.3 */
+    .listDevices = nodeListDevices, /* 0.7.3 */
+    .deviceLookupByName = nodeDeviceLookupByName, /* 0.7.3 */
+    .deviceGetXMLDesc = nodeDeviceGetXMLDesc, /* 0.7.3 */
+    .deviceGetParent = nodeDeviceGetParent, /* 0.7.3 */
+    .deviceNumOfCaps = nodeDeviceNumOfCaps, /* 0.7.3 */
+    .deviceListCaps = nodeDeviceListCaps, /* 0.7.3 */
+    .deviceCreateXML = nodeDeviceCreateXML, /* 0.7.3 */
+    .deviceDestroy = nodeDeviceDestroy, /* 0.7.3 */
 };
 
 static virStateDriver udevStateDriver = {
     .name = "udev",
-    .initialize = udevDeviceMonitorStartup,
-    .cleanup = udevDeviceMonitorShutdown,
-    .reload = udevDeviceMonitorReload,
-    .active = udevDeviceMonitorActive,
+    .initialize = udevDeviceMonitorStartup, /* 0.7.3 */
+    .cleanup = udevDeviceMonitorShutdown, /* 0.7.3 */
+    .reload = udevDeviceMonitorReload, /* 0.7.3 */
+    .active = udevDeviceMonitorActive, /* 0.7.3 */
 };
 
 int udevNodeRegister(void)
 {
     VIR_DEBUG("Registering udev node device backend");
 
-    registerCommonNodeFuncs(&udevDeviceMonitor);
     if (virRegisterDeviceMonitor(&udevDeviceMonitor) < 0) {
         return -1;
     }

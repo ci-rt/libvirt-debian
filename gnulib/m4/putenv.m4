@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# putenv.m4 serial 17
+# putenv.m4 serial 18
 dnl Copyright (C) 2002-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -38,6 +38,5 @@ AC_DEFUN([gl_FUNC_PUTENV],
    ])
   if test $gl_cv_func_svid_putenv = no; then
     REPLACE_PUTENV=1
-    AC_LIBOBJ([putenv])
   fi
 ])

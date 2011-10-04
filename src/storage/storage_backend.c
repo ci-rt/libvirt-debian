@@ -56,7 +56,7 @@
 #include "storage_file.h"
 #include "storage_backend.h"
 #include "logging.h"
-#include "files.h"
+#include "virfile.h"
 #include "command.h"
 
 #if WITH_STORAGE_LVM
@@ -208,6 +208,14 @@ virStorageBackendCopyToFD(virStorageVolDefPtr vol,
         } while ((amtleft -= interval) > 0);
     }
 
+    if (fdatasync(fd) < 0) {
+        ret = -errno;
+        virReportSystemError(errno, _("cannot sync data to file '%s'"),
+                             vol->target.path);
+        goto cleanup;
+    }
+
+
     if (VIR_CLOSE(inputfd) < 0) {
         ret = -errno;
         virReportSystemError(errno,
@@ -233,7 +241,7 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
                                  virStoragePoolObjPtr pool ATTRIBUTE_UNUSED,
                                  virStorageVolDefPtr vol,
                                  virStorageVolDefPtr inputvol,
-                                 unsigned int flags ATTRIBUTE_UNUSED)
+                                 unsigned int flags)
 {
     int fd = -1;
     int ret = -1;
@@ -241,6 +249,8 @@ virStorageBackendCreateBlockFrom(virConnectPtr conn ATTRIBUTE_UNUSED,
     struct stat st;
     gid_t gid;
     uid_t uid;
+
+    virCheckFlags(0, -1);
 
     if ((fd = open(vol->target.path, O_RDWR)) < 0) {
         virReportSystemError(errno,
@@ -331,7 +341,7 @@ createRawFile(int fd, virStorageVolDefPtr vol,
 
                 if (bytes > remain)
                     bytes = remain;
-                if (safezero(fd, 0, vol->allocation - remain, bytes) != 0) {
+                if (safezero(fd, vol->allocation - remain, bytes) < 0) {
                     ret = -errno;
                     virReportSystemError(errno, _("cannot fill file '%s'"),
                                          vol->target.path);
@@ -340,7 +350,7 @@ createRawFile(int fd, virStorageVolDefPtr vol,
                 remain -= bytes;
             }
         } else { /* No progress bars to be shown */
-            if (safezero(fd, 0, 0, remain) != 0) {
+            if (safezero(fd, 0, remain) < 0) {
                 ret = -errno;
                 virReportSystemError(errno, _("cannot fill file '%s'"),
                                      vol->target.path);
@@ -377,7 +387,7 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
     virCheckFlags(0, -1);
 
     if (vol->target.encryption != NULL) {
-        virStorageReportError(VIR_ERR_NO_SUPPORT,
+        virStorageReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                               "%s", _("storage pool does not support encrypted "
                                       "volumes"));
         goto cleanup;
@@ -399,12 +409,9 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    if ((ret = createRawFile(fd, vol, inputvol)) < 0) {
-        virReportSystemError(-fd,
-                             _("cannot create path '%s'"),
-                             vol->target.path);
+    if ((ret = createRawFile(fd, vol, inputvol)) < 0)
+        /* createRawFile already reported the exact error. */
         ret = -1;
-    }
 
 cleanup:
     VIR_FORCE_CLOSE(fd);
@@ -454,7 +461,7 @@ virStorageGenerateQcowEncryption(virConnectPtr conn,
         conn->secretDriver->lookupByUUID == NULL ||
         conn->secretDriver->defineXML == NULL ||
         conn->secretDriver->setValue == NULL) {
-        virStorageReportError(VIR_ERR_NO_SUPPORT, "%s",
+        virStorageReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                               _("secret storage not supported"));
         goto cleanup;
     }
@@ -646,14 +653,16 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
                                virStoragePoolObjPtr pool,
                                virStorageVolDefPtr vol,
                                virStorageVolDefPtr inputvol,
-                               unsigned int flags ATTRIBUTE_UNUSED)
+                               unsigned int flags)
 {
     int ret = -1;
-    char *size = NULL;
     char *create_tool;
     int imgformat = -1;
     virCommandPtr cmd = NULL;
     bool do_encryption = (vol->target.encryption != NULL);
+    unsigned long long int size_arg;
+
+    virCheckFlags(0, -1);
 
     const char *type = virStorageFileFormatTypeToString(vol->target.format);
     const char *backingType = vol->backingStore.path ?
@@ -731,7 +740,7 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
 
         if (vol->target.format != VIR_STORAGE_FILE_QCOW &&
             vol->target.format != VIR_STORAGE_FILE_QCOW2) {
-            virStorageReportError(VIR_ERR_NO_SUPPORT,
+            virStorageReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                   _("qcow volume encryption unsupported with "
                                     "volume format %s"), type);
             return -1;
@@ -739,7 +748,7 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
         enc = vol->target.encryption;
         if (enc->format != VIR_STORAGE_ENCRYPTION_FORMAT_QCOW &&
             enc->format != VIR_STORAGE_ENCRYPTION_FORMAT_DEFAULT) {
-            virStorageReportError(VIR_ERR_NO_SUPPORT,
+            virStorageReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                   _("unsupported volume encryption format %d"),
                                   vol->target.encryption->format);
             return -1;
@@ -757,10 +766,7 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
     }
 
     /* Size in KB */
-    if (virAsprintf(&size, "%lluK", VIR_DIV_UP(vol->capacity, 1024)) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
+    size_arg = VIR_DIV_UP(vol->capacity, 1024);
 
     /* KVM is usually ahead of qemu on features, so try that first */
     create_tool = virFindFileInPath("kvm-img");
@@ -798,7 +804,8 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
         switch (imgformat) {
         case QEMU_IMG_BACKING_FORMAT_FLAG:
             virCommandAddArgList(cmd, "-F", backingType, vol->target.path,
-                                 size, NULL);
+                                 NULL);
+            virCommandAddArgFormat(cmd, "%lluK", size_arg);
 
             if (do_encryption)
                 virCommandAddArg(cmd, "-e");
@@ -808,20 +815,23 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
             virCommandAddArg(cmd, "-o");
             virCommandAddArgFormat(cmd, "backing_fmt=%s%s", backingType,
                                    do_encryption ? ",encryption=on" : "");
-            virCommandAddArgList(cmd, vol->target.path, size, NULL);
+            virCommandAddArg(cmd, vol->target.path);
+            virCommandAddArgFormat(cmd, "%lluK", size_arg);
             break;
 
         default:
             VIR_INFO("Unable to set backing store format for %s with %s",
                      vol->target.path, create_tool);
 
-            virCommandAddArgList(cmd, vol->target.path, size, NULL);
+            virCommandAddArg(cmd, vol->target.path);
+            virCommandAddArgFormat(cmd, "%lluK", size_arg);
             if (do_encryption)
                 virCommandAddArg(cmd, "-e");
         }
     } else {
         virCommandAddArgList(cmd, "create", "-f", type,
-                             vol->target.path, size, NULL);
+                             vol->target.path, NULL);
+        virCommandAddArgFormat(cmd, "%lluK", size_arg);
 
         if (do_encryption) {
             if (imgformat == QEMU_IMG_BACKING_FORMAT_OPTIONS) {
@@ -834,7 +844,6 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
 
     ret = virStorageBackendCreateExecCommand(pool, vol, cmd);
 cleanup:
-    VIR_FREE(size);
     VIR_FREE(create_tool);
     virCommandFree(cmd);
 
@@ -850,11 +859,13 @@ virStorageBackendCreateQcowCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   virStoragePoolObjPtr pool,
                                   virStorageVolDefPtr vol,
                                   virStorageVolDefPtr inputvol,
-                                  unsigned int flags ATTRIBUTE_UNUSED)
+                                  unsigned int flags)
 {
     int ret;
     char *size;
     virCommandPtr cmd;
+
+    virCheckFlags(0, -1);
 
     if (inputvol) {
         virStorageReportError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -869,13 +880,13 @@ virStorageBackendCreateQcowCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
         return -1;
     }
     if (vol->backingStore.path != NULL) {
-        virStorageReportError(VIR_ERR_NO_SUPPORT, "%s",
+        virStorageReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                               _("copy-on-write image not supported with "
                                       "qcow-create"));
         return -1;
     }
     if (vol->target.encryption != NULL) {
-        virStorageReportError(VIR_ERR_NO_SUPPORT,
+        virStorageReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                               "%s", _("encrypted volumes not supported with "
                                       "qcow-create"));
         return -1;
