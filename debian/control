@@ -120,6 +120,7 @@ Package: python-libvirt
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, libvirt0 (>= ${binary:Version})
 Provides: ${python:Provides}
+Recommends: libvirt-bin
 Section: python
 Description: libvirt Python bindings
  Libvirt is a C toolkit to interact with the virtualization capabilities
