@@ -10,3 +10,4 @@ Disable-gnulib-s-test-nonplocking-pipe.sh.patch
 Autodetect-if-the-remote-nc-command-supports-the-q-o.patch
 Disable-failing-virnetsockettest.patch
 debian/Don-t-require-gawk-for-a-simple-print-expression.patch
+upstream/Fix-storage-pool-source-comparison-to-avoid-comparin.patch
