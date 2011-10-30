@@ -1,3 +1,16 @@
+libvirt (0.9.6-2) unstable; urgency=low
+
+  * [6e5ad9d] Install libvirtd manpage. Thanks to Serge E. Hallyn
+    (Closes: #644457, #606069)
+  * [480ef36] Remove now superfluous build-dep on QEMU
+  * [86140cf] python-libvirt: Recommend libvirt-bin (Closes: #646440)
+  * [a76d37f] Build-depend and Recommend: parted since it's needed for disk
+    storage pool creation (found by libvirt-tck)
+  * [2e7bee9] Remove workaround for m68k ICE fixed in gcc-4.6 upstream and
+    Debian's gcc-4.4. Thanks to Thorsten Glaser
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 30 Oct 2011 17:14:21 +0100
+
 libvirt (0.9.6-1) unstable; urgency=low
 
   * [828e4e3] New upstream version 0.9.6
