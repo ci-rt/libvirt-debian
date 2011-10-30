@@ -16,7 +16,7 @@ Build-Depends: cdbs (>= 0.4.90~),
  libxen-dev [i386 amd64],
  lvm2 [linux-any],
  open-iscsi [linux-any],
- libparted0-dev (>= 2.2),
+ parted (>= 2.2),
  libdevmapper-dev [linux-any],
  uuid-dev,
  libudev-dev [linux-any],
@@ -56,7 +56,8 @@ Recommends: netcat-openbsd,
  gawk,
  ebtables,
  dmidecode,
- iproute
+ iproute,
+ parted
 Suggests: policykit-1, radvd
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
