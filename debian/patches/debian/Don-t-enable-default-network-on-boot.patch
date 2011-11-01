@@ -1,6 +1,8 @@
 From: Guido Guenther <agx@sigxcpu.org>
 Date: Fri, 7 Mar 2008 09:08:26 +0100
-Subject: qemu-disable-network.diff
+Subject: Don't enable default network on boot
+
+to not interfere with existing network configurations
 
 ---
  src/Makefile.am |    3 ---

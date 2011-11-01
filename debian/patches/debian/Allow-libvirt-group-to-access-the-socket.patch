@@ -1,6 +1,6 @@
 From: Guido Guenther <agx@sigxcpu.org>
 Date: Thu, 26 Jun 2008 20:01:38 +0200
-Subject: allow libvirt group to access the socket
+Subject: Allow libvirt group to access the socket
 
 ---
  daemon/libvirtd.conf |    8 ++++----

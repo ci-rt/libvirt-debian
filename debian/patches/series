@@ -1,6 +1,6 @@
-remove-RHism.diff.patch
-qemu-disable-network.diff.patch
-allow-libvirt-group-to-access-the-socket.patch
+debian/remove-RHism.diff.patch
+debian/Don-t-enable-default-network-on-boot.patch
+debian/Allow-libvirt-group-to-access-the-socket.patch
 debian/fix-Debian-specific-path-to-hvm-loader.patch
 patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 debian/Debianize-libvirt-guests.patch
