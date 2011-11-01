@@ -1,12 +1,11 @@
 remove-RHism.diff.patch
 qemu-disable-network.diff.patch
 allow-libvirt-group-to-access-the-socket.patch
-fix-Debian-specific-path-to-hvm-loader.patch
+debian/fix-Debian-specific-path-to-hvm-loader.patch
 patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
-Debianize-libvirt-guests.patch
+debian/Debianize-libvirt-guests.patch
 virsh-Initialize-library-before-calling-virResetLast.patch
 Disable-daemon-start-test.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
-Autodetect-if-the-remote-nc-command-supports-the-q-o.patch
 Disable-failing-virnetsockettest.patch
 debian/Don-t-require-gawk-for-a-simple-print-expression.patch
