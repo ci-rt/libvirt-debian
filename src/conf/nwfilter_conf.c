@@ -55,12 +55,16 @@
 VIR_ENUM_IMPL(virNWFilterRuleAction, VIR_NWFILTER_RULE_ACTION_LAST,
               "drop",
               "accept",
-              "reject");
+              "reject",
+              "return",
+              "continue");
 
 VIR_ENUM_IMPL(virNWFilterJumpTarget, VIR_NWFILTER_RULE_ACTION_LAST,
               "DROP",
               "ACCEPT",
-              "REJECT");
+              "REJECT",
+              "RETURN",
+              "CONTINUE");
 
 VIR_ENUM_IMPL(virNWFilterRuleDirection, VIR_NWFILTER_RULE_DIRECTION_LAST,
               "in",
@@ -2182,8 +2186,7 @@ int virNWFilterSaveXML(const char *configDir,
                        const char *xml)
 {
     char *configFile = NULL;
-    int fd = -1, ret = -1;
-    size_t towrite;
+    int ret = -1;
 
     if ((configFile = virNWFilterConfigFile(configDir, def->name)) == NULL)
         goto cleanup;
@@ -2195,38 +2198,10 @@ int virNWFilterSaveXML(const char *configDir,
         goto cleanup;
     }
 
-    if ((fd = open(configFile,
-                   O_WRONLY | O_CREAT | O_TRUNC,
-                   S_IRUSR | S_IWUSR )) < 0) {
-        virReportSystemError(errno,
-                             _("cannot create config file '%s'"),
-                             configFile);
-        goto cleanup;
-    }
-
-    virEmitXMLWarning(fd, def->name, "nwfilter-edit");
-
-    towrite = strlen(xml);
-    if (safewrite(fd, xml, towrite) < 0) {
-        virReportSystemError(errno,
-                             _("cannot write config file '%s'"),
-                             configFile);
-        goto cleanup;
-    }
-
-    if (VIR_CLOSE(fd) < 0) {
-        virReportSystemError(errno,
-                             _("cannot save config file '%s'"),
-                             configFile);
-        goto cleanup;
-    }
-
-    ret = 0;
+    ret = virXMLSaveFile(configFile, def->name, "nwfilter-edit", xml);
 
  cleanup:
-    VIR_FORCE_CLOSE(fd);
     VIR_FREE(configFile);
-
     return ret;
 }
 
@@ -2569,8 +2544,7 @@ virNWFilterObjSaveDef(virNWFilterDriverStatePtr driver,
                       virNWFilterDefPtr def)
 {
     char *xml;
-    int fd = -1, ret = -1;
-    ssize_t towrite;
+    int ret;
 
     if (!nwfilter->configFile) {
         if (virFileMakePath(driver->configDir) < 0) {
@@ -2592,37 +2566,7 @@ virNWFilterObjSaveDef(virNWFilterDriverStatePtr driver,
         return -1;
     }
 
-    if ((fd = open(nwfilter->configFile,
-                   O_WRONLY | O_CREAT | O_TRUNC,
-                   S_IRUSR | S_IWUSR )) < 0) {
-        virReportSystemError(errno,
-                             _("cannot create config file %s"),
-                             nwfilter->configFile);
-        goto cleanup;
-    }
-
-    virEmitXMLWarning(fd, def->name, "nwfilter-edit");
-
-    towrite = strlen(xml);
-    if (safewrite(fd, xml, towrite) != towrite) {
-        virReportSystemError(errno,
-                             _("cannot write config file %s"),
-                             nwfilter->configFile);
-        goto cleanup;
-    }
-
-    if (VIR_CLOSE(fd) < 0) {
-        virReportSystemError(errno,
-                             _("cannot save config file %s"),
-                             nwfilter->configFile);
-        goto cleanup;
-    }
-
-    ret = 0;
-
- cleanup:
-    VIR_FORCE_CLOSE(fd);
-
+    ret = virXMLSaveFile(nwfilter->configFile, def->name, "nwfilter-edit", xml);
     VIR_FREE(xml);
 
     return ret;
@@ -2849,19 +2793,15 @@ no_memory:
 static char *
 virNWFilterIncludeDefFormat(virNWFilterIncludeDefPtr inc)
 {
-    char *attrs;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    virBufferAsprintf(&buf,"  <filterref filter='%s'",
-                      inc->filterref);
-
-    attrs = virNWFilterFormatParamAttributes(inc->params, "    ");
-
-    if (!attrs || strlen(attrs) <= 1)
-        virBufferAddLit(&buf, "/>\n");
-    else
-        virBufferAsprintf(&buf, ">\n%s  </filterref>\n", attrs);
-
+    virBufferAdjustIndent(&buf, 2);
+    if (virNWFilterFormatParamAttributes(&buf, inc->params,
+                                         inc->filterref) < 0) {
+        virBufferFreeAndReset(&buf);
+        return NULL;
+    }
+    virBufferAdjustIndent(&buf, -2);
     if (virBufferError(&buf)) {
         virReportOOMError();
         virBufferFreeAndReset(&buf);

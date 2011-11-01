@@ -66,14 +66,16 @@ VIR_ENUM_IMPL(qemuDiskCacheV1, VIR_DOMAIN_DISK_CACHE_LAST,
               "off",
               "off",  /* writethrough not supported, so for safety, disable */
               "on",   /* Old 'on' was equivalent to 'writeback' */
-              "off"); /* directsync not supported, for safety, disable */
+              "off",  /* directsync not supported, for safety, disable */
+              "off"); /* unsafe not supported, for safety, disable */
 
 VIR_ENUM_IMPL(qemuDiskCacheV2, VIR_DOMAIN_DISK_CACHE_LAST,
               "default",
               "none",
               "writethrough",
               "writeback",
-              "directsync");
+              "directsync",
+              "unsafe");
 
 VIR_ENUM_DECL(qemuVideo)
 
@@ -97,6 +99,12 @@ VIR_ENUM_IMPL(qemuControllerModelUSB, VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
               "ich9-usb-uhci3",
               "vt82c686b-usb-uhci",
               "pci-ohci");
+
+VIR_ENUM_DECL(qemuDomainFSDriver)
+VIR_ENUM_IMPL(qemuDomainFSDriver, VIR_DOMAIN_FS_DRIVER_TYPE_LAST,
+              "local",
+              "local",
+              "handle");
 
 
 static void
@@ -648,7 +656,7 @@ qemuAssignDeviceControllerAlias(virDomainControllerDefPtr controller)
 }
 
 
-static int
+int
 qemuAssignDeviceAliases(virDomainDefPtr def, virBitmapPtr qemuCaps)
 {
     int i;
@@ -772,22 +780,65 @@ static int qemuCollectPCIAddress(virDomainDefPtr def ATTRIBUTE_UNUSED,
                                  virDomainDeviceInfoPtr dev,
                                  void *opaque)
 {
+    int ret = -1;
+    char *addr = NULL;
     qemuDomainPCIAddressSetPtr addrs = opaque;
 
-    if (dev->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
-        char *addr = qemuPCIAddressAsString(dev);
-        if (!addr)
-            return -1;
+    if (dev->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI)
+        return 0;
 
-        VIR_DEBUG("Remembering PCI addr %s", addr);
+    addr = qemuPCIAddressAsString(dev);
+    if (!addr)
+        goto cleanup;
 
-        if (virHashAddEntry(addrs->used, addr, addr) < 0) {
-            VIR_FREE(addr);
-            return -1;
+    if (virHashLookup(addrs->used, addr)) {
+        if (dev->addr.pci.function != 0) {
+            qemuReportError(VIR_ERR_XML_ERROR,
+                            _("Attempted double use of PCI Address '%s' "
+                              "(may need \"multifunction='on'\" for device on function 0"),
+                            addr);
+        } else {
+            qemuReportError(VIR_ERR_XML_ERROR,
+                            _("Attempted double use of PCI Address '%s'"), addr);
         }
+        goto cleanup;
     }
 
-    return 0;
+    VIR_DEBUG("Remembering PCI addr %s", addr);
+    if (virHashAddEntry(addrs->used, addr, addr) < 0)
+        goto cleanup;
+    addr = NULL;
+
+    if ((dev->addr.pci.function == 0) &&
+        (dev->addr.pci.multi != VIR_DOMAIN_DEVICE_ADDRESS_PCI_MULTI_ON)) {
+        /* a function 0 w/o multifunction=on must reserve the entire slot */
+        int function;
+        virDomainDeviceInfo temp_dev = *dev;
+
+        for (function = 1; function < QEMU_PCI_ADDRESS_LAST_FUNCTION; function++) {
+            temp_dev.addr.pci.function = function;
+            addr = qemuPCIAddressAsString(&temp_dev);
+            if (!addr)
+                goto cleanup;
+
+            if (virHashLookup(addrs->used, addr)) {
+                qemuReportError(VIR_ERR_XML_ERROR,
+                                _("Attempted double use of PCI Address '%s'"
+                                  "(need \"multifunction='off'\" for device on function 0)"),
+                                addr);
+                goto cleanup;
+            }
+
+            VIR_DEBUG("Remembering PCI addr %s (multifunction=off for function 0)", addr);
+            if (virHashAddEntry(addrs->used, addr, addr))
+                goto cleanup;
+            addr = NULL;
+        }
+    }
+    ret = 0;
+cleanup:
+    VIR_FREE(addr);
+    return ret;
 }
 
 
@@ -1268,14 +1319,20 @@ qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
             goto error;
     }
 
-    /* Disks (VirtIO only for now */
+    /* Disks (VirtIO only for now) */
     for (i = 0; i < def->ndisks ; i++) {
-        if (def->disks[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
-            continue;
-
         /* Only VirtIO disks use PCI addrs */
         if (def->disks[i]->bus != VIR_DOMAIN_DISK_BUS_VIRTIO)
             continue;
+
+        if (def->disks[i]->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI)
+            continue;
+
+        if (def->disks[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE) {
+            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                          _("virtio only support device address type 'PCI'"));
+            goto error;
+        }
 
         if (qemuDomainPCIAddressSetNextAddr(addrs, &def->disks[i]->info) < 0)
             goto error;
@@ -1374,7 +1431,13 @@ qemuBuildDeviceAddressStr(virBufferPtr buf,
             if (info->addr.pci.function != 0) {
                 qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                 _("Only PCI device addresses with function=0 "
-                                  "are supported"));
+                                  "are supported with this QEMU binary"));
+                return -1;
+            }
+            if (info->addr.pci.multi == VIR_DOMAIN_DEVICE_ADDRESS_PCI_MULTI_ON) {
+                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                _("'multifunction=on' is not supported with "
+                                  "this QEMU binary"));
                 return -1;
             }
         }
@@ -1389,11 +1452,13 @@ qemuBuildDeviceAddressStr(virBufferPtr buf,
             virBufferAsprintf(buf, ",bus=pci.0");
         else
             virBufferAsprintf(buf, ",bus=pci");
-        if (qemuCapsGet(qemuCaps, QEMU_CAPS_PCI_MULTIFUNCTION))
-            virBufferAsprintf(buf, ",multifunction=on,addr=0x%x.0x%x",
-                              info->addr.pci.slot, info->addr.pci.function);
-        else
-            virBufferAsprintf(buf, ",addr=0x%x", info->addr.pci.slot);
+        if (info->addr.pci.multi == VIR_DOMAIN_DEVICE_ADDRESS_PCI_MULTI_ON)
+            virBufferAddLit(buf, ",multifunction=on");
+        else if (info->addr.pci.multi == VIR_DOMAIN_DEVICE_ADDRESS_PCI_MULTI_OFF)
+            virBufferAddLit(buf, ",multifunction=off");
+        virBufferAsprintf(buf, ",addr=0x%x", info->addr.pci.slot);
+        if (info->addr.pci.function != 0)
+           virBufferAsprintf(buf, ".0x%x", info->addr.pci.function);
     } else if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB) {
         virBufferAsprintf(buf, ",bus=");
         qemuUsbId(buf, info->addr.usb.bus);
@@ -1622,6 +1687,12 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
                                 _("disk cache mode 'directsync' is not "
                                   "supported by this QEMU"));
                 goto error;
+            } else if (disk->cachemode == VIR_DOMAIN_DISK_CACHE_UNSAFE &&
+                !qemuCapsGet(qemuCaps, QEMU_CAPS_DRIVE_CACHE_UNSAFE)) {
+                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                _("disk cache mode 'unsafe' is not "
+                                  "supported by this QEMU"));
+                goto error;
             }
         } else {
             mode = qemuDiskCacheV1TypeToString(disk->cachemode);
@@ -1633,11 +1704,28 @@ qemuBuildDriveStr(virDomainDiskDefPtr disk,
     }
 
     if (qemuCapsGet(qemuCaps, QEMU_CAPS_MONITOR_JSON)) {
-        if (disk->error_policy) {
-            virBufferAsprintf(&opt, ",werror=%s,rerror=%s",
-                              virDomainDiskErrorPolicyTypeToString(disk->error_policy),
-                              virDomainDiskErrorPolicyTypeToString(disk->error_policy));
+        const char *wpolicy = NULL, *rpolicy = NULL;
+
+        if (disk->error_policy)
+            wpolicy = virDomainDiskErrorPolicyTypeToString(disk->error_policy);
+        if (disk->rerror_policy)
+            rpolicy = virDomainDiskErrorPolicyTypeToString(disk->rerror_policy);
+
+        if (disk->error_policy == VIR_DOMAIN_DISK_ERROR_POLICY_ENOSPACE) {
+            /* in the case of enospace, the option is spelled
+             * differently in qemu, and it's only valid for werror,
+             * not for rerror, so leave leave rerror NULL.
+             */
+            wpolicy = "enospc";
+        } else if (!rpolicy) {
+            /* for other policies, rpolicy can match wpolicy */
+            rpolicy = wpolicy;
         }
+
+        if (wpolicy)
+            virBufferAsprintf(&opt, ",werror=%s", wpolicy);
+        if (rpolicy)
+            virBufferAsprintf(&opt, ",rerror=%s", rpolicy);
     }
 
     if (disk->iomode) {
@@ -1694,6 +1782,12 @@ qemuBuildDriveDevStr(virDomainDiskDefPtr disk,
                           disk->info.addr.drive.bus,
                           disk->info.addr.drive.unit);
         break;
+    case VIR_DOMAIN_DISK_BUS_SATA:
+        virBufferAddLit(&opt, "ide-drive");
+        virBufferAsprintf(&opt, ",bus=ahci%d.%d",
+                          disk->info.addr.drive.controller,
+                          disk->info.addr.drive.unit);
+        break;
     case VIR_DOMAIN_DISK_BUS_VIRTIO:
         virBufferAddLit(&opt, "virtio-blk-pci");
         qemuBuildIoEventFdStr(&opt, disk->ioeventfd, qemuCaps);
@@ -1735,6 +1829,7 @@ char *qemuBuildFSStr(virDomainFSDefPtr fs,
                      virBitmapPtr qemuCaps ATTRIBUTE_UNUSED)
 {
     virBuffer opt = VIR_BUFFER_INITIALIZER;
+    const char *driver = qemuDomainFSDriverTypeToString(fs->fsdriver);
 
     if (fs->type != VIR_DOMAIN_FS_TYPE_MOUNT) {
         qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -1742,7 +1837,13 @@ char *qemuBuildFSStr(virDomainFSDefPtr fs,
         goto error;
     }
 
-    virBufferAddLit(&opt, "local");
+    if (!driver) {
+        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                        _("Filesystem driver type not supported"));
+        goto error;
+    }
+    virBufferAdd(&opt, driver, -1);
+
     if (fs->accessmode == VIR_DOMAIN_FS_ACCESSMODE_MAPPED) {
         virBufferAddLit(&opt, ",security_model=mapped");
     } else if(fs->accessmode == VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH) {
@@ -1892,6 +1993,10 @@ qemuBuildControllerDevStr(virDomainControllerDefPtr def,
 
     case VIR_DOMAIN_CONTROLLER_TYPE_CCID:
         virBufferAsprintf(&buf, "usb-ccid,id=ccid%d", def->idx);
+        break;
+
+    case VIR_DOMAIN_CONTROLLER_TYPE_SATA:
+        virBufferAsprintf(&buf, "ahci,id=ahci%d", def->idx);
         break;
 
     case VIR_DOMAIN_CONTROLLER_TYPE_USB:
@@ -2360,6 +2465,25 @@ qemuBuildPCIHostdevDevStr(virDomainHostdevDefPtr dev, const char *configfd,
         virBufferAsprintf(&buf, ",bootindex=%d", dev->bootIndex);
     if (qemuBuildDeviceAddressStr(&buf, &dev->info, qemuCaps) < 0)
         goto error;
+
+    if (dev->rombar) {
+        if (!qemuCapsGet(qemuCaps, QEMU_CAPS_PCI_ROMBAR)) {
+            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                            "%s", _("rombar not supported in this QEMU binary"));
+            goto error;
+        }
+
+        switch (dev->rombar) {
+        case VIR_DOMAIN_PCI_ROMBAR_OFF:
+            virBufferAddLit(&buf, ",rombar=0");
+            break;
+        case VIR_DOMAIN_PCI_ROMBAR_ON:
+            virBufferAddLit(&buf, ",rombar=1");
+            break;
+        default:
+            break;
+        }
+    }
 
     if (virBufferError(&buf)) {
         virReportOOMError();
@@ -3166,9 +3290,6 @@ qemuBuildCommandLine(virConnectPtr conn,
     bool usblegacy = false;
     uname_normalize(&ut);
 
-    if (qemuAssignDeviceAliases(def, qemuCaps) < 0)
-        return NULL;
-
     virUUIDFormat(def->uuid, uuid);
 
     emulator = def->emulator;
@@ -3675,14 +3796,23 @@ qemuBuildCommandLine(virConnectPtr conn,
                 cont->type == VIR_DOMAIN_CONTROLLER_TYPE_FDC)
                 continue;
 
-            /* QEMU doesn't implement a SATA driver */
+            /* Only recent QEMU implements a SATA (AHCI) controller */
             if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_SATA) {
-                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                                "%s", _("SATA is not supported with this QEMU binary"));
-                goto error;
-            }
+                if (!qemuCapsGet(qemuCaps, QEMU_CAPS_ICH9_AHCI)) {
+                    qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                    "%s", _("SATA is not supported with this QEMU binary"));
+                    goto error;
+                } else {
+                    char *devstr;
 
-            if (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
+                    virCommandAddArg(cmd, "-device");
+                    if (!(devstr = qemuBuildControllerDevStr(cont, qemuCaps, NULL)))
+                        goto error;
+
+                    virCommandAddArg(cmd, devstr);
+                    VIR_FREE(devstr);
+                }
+            } else if (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_USB &&
                 def->controllers[i]->model == -1 &&
                 !qemuCapsGet(qemuCaps, QEMU_CAPS_PIIX3_USB_UHCI)) {
                 if (usblegacy) {
@@ -5536,14 +5666,24 @@ qemuParseCommandLineDisk(virCapsPtr caps,
                 def->cachemode = VIR_DOMAIN_DISK_CACHE_WRITETHRU;
             else if (STREQ(values[i], "directsync"))
                 def->cachemode = VIR_DOMAIN_DISK_CACHE_DIRECTSYNC;
-        } else if (STREQ(keywords[i], "werror") ||
-                   STREQ(keywords[i], "rerror")) {
+            else if (STREQ(values[i], "unsafe"))
+                def->cachemode = VIR_DOMAIN_DISK_CACHE_UNSAFE;
+        } else if (STREQ(keywords[i], "werror")) {
             if (STREQ(values[i], "stop"))
                 def->error_policy = VIR_DOMAIN_DISK_ERROR_POLICY_STOP;
+            else if (STREQ(values[i], "report"))
+                def->error_policy = VIR_DOMAIN_DISK_ERROR_POLICY_REPORT;
             else if (STREQ(values[i], "ignore"))
                 def->error_policy = VIR_DOMAIN_DISK_ERROR_POLICY_IGNORE;
-            else if (STREQ(values[i], "enospace"))
+            else if (STREQ(values[i], "enospc"))
                 def->error_policy = VIR_DOMAIN_DISK_ERROR_POLICY_ENOSPACE;
+        } else if (STREQ(keywords[i], "rerror")) {
+            if (STREQ(values[i], "stop"))
+                def->rerror_policy = VIR_DOMAIN_DISK_ERROR_POLICY_STOP;
+            else if (STREQ(values[i], "report"))
+                def->rerror_policy = VIR_DOMAIN_DISK_ERROR_POLICY_REPORT;
+            else if (STREQ(values[i], "ignore"))
+                def->rerror_policy = VIR_DOMAIN_DISK_ERROR_POLICY_IGNORE;
         } else if (STREQ(keywords[i], "index")) {
             if (virStrToLong_i(values[i], NULL, 10, &idx) < 0) {
                 virDomainDiskDefFree(def);
@@ -5578,6 +5718,9 @@ qemuParseCommandLineDisk(virCapsPtr caps,
             }
         }
     }
+
+    if (def->rerror_policy == def->error_policy)
+        def->rerror_policy = 0;
 
     if (!def->src &&
         def->device == VIR_DOMAIN_DISK_DEVICE_DISK &&

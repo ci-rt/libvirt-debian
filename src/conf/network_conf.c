@@ -1267,8 +1267,10 @@ virPortGroupDefFormat(virBufferPtr buf,
         virBufferAddLit(buf, " default='yes'");
     }
     virBufferAddLit(buf, ">\n");
-    virVirtualPortProfileFormat(buf, def->virtPortProfile, "    ");
-    virBandwidthDefFormat(buf, def->bandwidth, "    ");
+    virBufferAdjustIndent(buf, 4);
+    virVirtualPortProfileFormat(buf, def->virtPortProfile);
+    virBandwidthDefFormat(buf, def->bandwidth);
+    virBufferAdjustIndent(buf, -4);
     virBufferAddLit(buf, "  </portgroup>\n");
 }
 
@@ -1341,15 +1343,19 @@ char *virNetworkDefFormat(const virNetworkDefPtr def)
     if (virNetworkDNSDefFormat(&buf, def->dns) < 0)
         goto error;
 
-    if (virBandwidthDefFormat(&buf, def->bandwidth, "  ") < 0)
+    virBufferAdjustIndent(&buf, 2);
+    if (virBandwidthDefFormat(&buf, def->bandwidth) < 0)
         goto error;
+    virBufferAdjustIndent(&buf, -2);
 
     for (ii = 0; ii < def->nips; ii++) {
         if (virNetworkIpDefFormat(&buf, &def->ips[ii]) < 0)
             goto error;
     }
 
-    virVirtualPortProfileFormat(&buf, def->virtPortProfile, "  ");
+    virBufferAdjustIndent(&buf, 2);
+    virVirtualPortProfileFormat(&buf, def->virtPortProfile);
+    virBufferAdjustIndent(&buf, -2);
 
     for (ii = 0; ii < def->nPortGroups; ii++)
         virPortGroupDefFormat(&buf, &def->portGroups[ii]);
@@ -1389,8 +1395,7 @@ int virNetworkSaveXML(const char *configDir,
                       const char *xml)
 {
     char *configFile = NULL;
-    int fd = -1, ret = -1;
-    size_t towrite;
+    int ret = -1;
 
     if ((configFile = virNetworkConfigFile(configDir, def->name)) == NULL)
         goto cleanup;
@@ -1402,39 +1407,10 @@ int virNetworkSaveXML(const char *configDir,
         goto cleanup;
     }
 
-    if ((fd = open(configFile,
-                   O_WRONLY | O_CREAT | O_TRUNC,
-                   S_IRUSR | S_IWUSR )) < 0) {
-        virReportSystemError(errno,
-                             _("cannot create config file '%s'"),
-                             configFile);
-        goto cleanup;
-    }
-
-    virEmitXMLWarning(fd, def->name, "net-edit");
-
-    towrite = strlen(xml);
-    if (safewrite(fd, xml, towrite) < 0) {
-        virReportSystemError(errno,
-                             _("cannot write config file '%s'"),
-                             configFile);
-        goto cleanup;
-    }
-
-    if (VIR_CLOSE(fd) < 0) {
-        virReportSystemError(errno,
-                             _("cannot save config file '%s'"),
-                             configFile);
-        goto cleanup;
-    }
-
-    ret = 0;
+    ret = virXMLSaveFile(configFile, def->name, "net-edit", xml);
 
  cleanup:
-    VIR_FORCE_CLOSE(fd);
-
     VIR_FREE(configFile);
-
     return ret;
 }
 

@@ -88,6 +88,12 @@ struct _virDomainEvent {
             int type;
             int status;
         } blockJob;
+        struct {
+            char *oldSrcPath;
+            char *newSrcPath;
+            char *devAlias;
+            int reason;
+        } diskChange;
     } data;
 };
 
@@ -509,6 +515,12 @@ void virDomainEventFree(virDomainEventPtr event)
     case VIR_DOMAIN_EVENT_ID_BLOCK_JOB:
         VIR_FREE(event->data.blockJob.path);
         break;
+
+    case VIR_DOMAIN_EVENT_ID_DISK_CHANGE:
+        VIR_FREE(event->data.diskChange.oldSrcPath);
+        VIR_FREE(event->data.diskChange.newSrcPath);
+        VIR_FREE(event->data.diskChange.devAlias);
+        break;
     }
 
     VIR_FREE(event->dom.name);
@@ -547,6 +559,18 @@ virDomainEventQueuePtr virDomainEventQueueNew(void)
     return ret;
 }
 
+static void
+virDomainEventStateLock(virDomainEventStatePtr state)
+{
+    virMutexLock(&state->lock);
+}
+
+static void
+virDomainEventStateUnlock(virDomainEventStatePtr state)
+{
+    virMutexUnlock(&state->lock);
+}
+
 /**
  * virDomainEventStateFree:
  * @list: virDomainEventStatePtr to free
@@ -564,6 +588,8 @@ virDomainEventStateFree(virDomainEventStatePtr state)
 
     if (state->timer != -1)
         virEventRemoveTimeout(state->timer);
+
+    virMutexDestroy(&state->lock);
     VIR_FREE(state);
 }
 
@@ -587,6 +613,13 @@ virDomainEventStateNew(virEventTimeoutCallback timeout_cb,
 
     if (VIR_ALLOC(state) < 0) {
         virReportOOMError();
+        goto error;
+    }
+
+    if (virMutexInit(&state->lock) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("unable to initialize state mutex"));
+        VIR_FREE(state);
         goto error;
     }
 
@@ -940,6 +973,61 @@ virDomainEventPtr virDomainEventControlErrorNewFromObj(virDomainObjPtr obj)
     return ev;
 }
 
+static virDomainEventPtr
+virDomainEventDiskChangeNew(int id, const char *name,
+                            unsigned char *uuid,
+                            const char *oldSrcPath,
+                            const char *newSrcPath,
+                            const char *devAlias, int reason)
+{
+    virDomainEventPtr ev =
+        virDomainEventNewInternal(VIR_DOMAIN_EVENT_ID_DISK_CHANGE,
+                                  id, name, uuid);
+
+    if (ev) {
+        if (!(ev->data.diskChange.devAlias = strdup(devAlias)))
+            goto error;
+
+        if (oldSrcPath &&
+            !(ev->data.diskChange.oldSrcPath = strdup(oldSrcPath)))
+            goto error;
+
+        if (newSrcPath &&
+            !(ev->data.diskChange.newSrcPath = strdup(newSrcPath)))
+            goto error;
+
+        ev->data.diskChange.reason = reason;
+    }
+
+    return ev;
+
+error:
+    virReportOOMError();
+    virDomainEventFree(ev);
+    return NULL;
+}
+
+virDomainEventPtr virDomainEventDiskChangeNewFromObj(virDomainObjPtr obj,
+                                                     const char *oldSrcPath,
+                                                     const char *newSrcPath,
+                                                     const char *devAlias,
+                                                     int reason)
+{
+    return virDomainEventDiskChangeNew(obj->def->id, obj->def->name,
+                                       obj->def->uuid, oldSrcPath,
+                                       newSrcPath, devAlias, reason);
+}
+
+virDomainEventPtr virDomainEventDiskChangeNewFromDom(virDomainPtr dom,
+                                                     const char *oldSrcPath,
+                                                     const char *newSrcPath,
+                                                     const char *devAlias,
+                                                     int reason)
+{
+    return virDomainEventDiskChangeNew(dom->id, dom->name, dom->uuid,
+                                       oldSrcPath, newSrcPath,
+                                       devAlias, reason);
+}
 
 /**
  * virDomainEventQueuePop:
@@ -1083,6 +1171,15 @@ void virDomainEventDispatchDefaultFunc(virConnectPtr conn,
                                                     cbopaque);
         break;
 
+    case VIR_DOMAIN_EVENT_ID_DISK_CHANGE:
+        ((virConnectDomainEventDiskChangeCallback)cb)(conn, dom,
+                                                      event->data.diskChange.oldSrcPath,
+                                                      event->data.diskChange.newSrcPath,
+                                                      event->data.diskChange.devAlias,
+                                                      event->data.diskChange.reason,
+                                                      cbopaque);
+        break;
+
     default:
         VIR_WARN("Unexpected event ID %d", event->eventID);
         break;
@@ -1166,6 +1263,8 @@ virDomainEventStateQueue(virDomainEventStatePtr state,
         return;
     }
 
+    virDomainEventStateLock(state);
+
     if (virDomainEventQueuePush(state->queue, event) < 0) {
         VIR_DEBUG("Error adding event to queue");
         virDomainEventFree(event);
@@ -1173,6 +1272,7 @@ virDomainEventStateQueue(virDomainEventStatePtr state,
 
     if (state->queue->count == 1)
         virEventUpdateTimeout(state->timer, 0);
+    virDomainEventStateUnlock(state);
 }
 
 void
@@ -1182,6 +1282,7 @@ virDomainEventStateFlush(virDomainEventStatePtr state,
 {
     virDomainEventQueue tempQueue;
 
+    virDomainEventStateLock(state);
     state->isDispatching = true;
 
     /* Copy the queue, so we're reentrant safe when dispatchFunc drops the
@@ -1190,17 +1291,20 @@ virDomainEventStateFlush(virDomainEventStatePtr state,
     tempQueue.events = state->queue->events;
     state->queue->count = 0;
     state->queue->events = NULL;
-
     virEventUpdateTimeout(state->timer, -1);
+    virDomainEventStateUnlock(state);
+
     virDomainEventQueueDispatch(&tempQueue,
                                 state->callbacks,
                                 dispatchFunc,
                                 opaque);
 
     /* Purge any deleted callbacks */
+    virDomainEventStateLock(state);
     virDomainEventCallbackListPurgeMarked(state->callbacks);
 
     state->isDispatching = false;
+    virDomainEventStateUnlock(state);
 }
 
 int
@@ -1208,11 +1312,16 @@ virDomainEventStateDeregister(virConnectPtr conn,
                               virDomainEventStatePtr state,
                               virConnectDomainEventCallback callback)
 {
+    int ret;
+
+    virDomainEventStateLock(state);
     if (state->isDispatching)
-        return virDomainEventCallbackListMarkDelete(conn,
-                                                    state->callbacks, callback);
+        ret = virDomainEventCallbackListMarkDelete(conn,
+                                                   state->callbacks, callback);
     else
-        return virDomainEventCallbackListRemove(conn, state->callbacks, callback);
+        ret = virDomainEventCallbackListRemove(conn, state->callbacks, callback);
+    virDomainEventStateUnlock(state);
+    return ret;
 }
 
 int
@@ -1220,10 +1329,15 @@ virDomainEventStateDeregisterAny(virConnectPtr conn,
                                  virDomainEventStatePtr state,
                                  int callbackID)
 {
+    int ret;
+
+    virDomainEventStateLock(state);
     if (state->isDispatching)
-        return virDomainEventCallbackListMarkDeleteID(conn,
-                                                      state->callbacks, callbackID);
+        ret = virDomainEventCallbackListMarkDeleteID(conn,
+                                                     state->callbacks, callbackID);
     else
-        return virDomainEventCallbackListRemoveID(conn,
-                                                  state->callbacks, callbackID);
+        ret = virDomainEventCallbackListRemoveID(conn,
+                                                 state->callbacks, callbackID);
+    virDomainEventStateUnlock(state);
+    return ret;
 }

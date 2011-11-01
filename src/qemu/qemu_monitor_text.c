@@ -198,6 +198,9 @@ int qemuMonitorTextIOProcess(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                 VIR_DEBUG("Finished 0 byte reply");
 #endif
             }
+            PROBE(QEMU_MONITOR_RECV_REPLY,
+                  "mon=%p reply=%s",
+                  mon, msg->rxBuffer);
             msg->finished = 1;
             used += end - (data + used);
             used += strlen(BASIC_PROMPT);
@@ -392,10 +395,15 @@ qemuMonitorTextStopCPUs(qemuMonitorPtr mon) {
 
 
 int
-qemuMonitorTextGetStatus(qemuMonitorPtr mon, bool *running)
+qemuMonitorTextGetStatus(qemuMonitorPtr mon,
+                         bool *running,
+                         virDomainPausedReason *reason)
 {
     char *reply;
     int ret = -1;
+
+    if (reason)
+        *reason = VIR_DOMAIN_PAUSED_UNKNOWN;
 
     if (qemuMonitorHMPCommand(mon, "info status", &reply) < 0) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
@@ -406,6 +414,19 @@ qemuMonitorTextGetStatus(qemuMonitorPtr mon, bool *running)
     if (strstr(reply, "running")) {
         *running = true;
     } else if (strstr(reply, "paused")) {
+        char *status;
+
+        if ((status = strchr(reply, '('))) {
+            char *end = strchr(status, ')');
+            if (end)
+                *end = '\0';
+            else
+                status = NULL;
+        }
+        if (!status)
+            VIR_DEBUG("info status was missing status details");
+        else if (reason)
+            *reason = qemuMonitorVMStatusToPausedReason(status);
         *running = false;
     } else {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
@@ -750,6 +771,96 @@ int qemuMonitorTextGetMemoryStats(qemuMonitorPtr mon,
 }
 
 
+int qemuMonitorTextGetBlockInfo(qemuMonitorPtr mon,
+                                const char *devname,
+                                struct qemuDomainDiskInfo *info)
+{
+    char *reply = NULL;
+    int ret = -1;
+    char *dummy;
+    const char *p, *eol;
+    int devnamelen = strlen(devname);
+    int tmp;
+
+    if (qemuMonitorHMPCommand(mon, "info block", &reply) < 0) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        "%s", _("info block command failed"));
+        goto cleanup;
+    }
+
+    if (strstr(reply, "\ninfo ")) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID,
+                        "%s",
+                        _("info block not supported by this qemu"));
+        goto cleanup;
+    }
+
+    /* The output looks like this:
+     * drive-ide0-0-0: removable=0 file=<path> ro=0 drv=raw encrypted=0
+     * drive-ide0-1-0: removable=1 locked=0 file=<path> ro=1 drv=raw encrypted=0
+     */
+    p = reply;
+
+    while (*p) {
+        if (STRPREFIX(p, QEMU_DRIVE_HOST_PREFIX))
+            p += strlen(QEMU_DRIVE_HOST_PREFIX);
+
+        if (STREQLEN(p, devname, devnamelen) &&
+            p[devnamelen] == ':' && p[devnamelen+1] == ' ') {
+
+            eol = strchr(p, '\n');
+            if (!eol)
+                eol = p + strlen(p);
+
+            p += devnamelen + 2; /*Skip to first label. */
+
+            while (*p) {
+                if (STRPREFIX(p, "removable=")) {
+                    p += strlen("removable=");
+                    if (virStrToLong_i(p, &dummy, 10, &tmp) == -1)
+                        VIR_DEBUG("error reading removable: %s", p);
+                    else
+                        info->removable = (tmp != 0);
+                } else if (STRPREFIX(p, "locked=")) {
+                    p += strlen("locked=");
+                    if (virStrToLong_i(p, &dummy, 10, &tmp) == -1)
+                        VIR_DEBUG("error reading locked: %s", p);
+                    else
+                        info->locked = (tmp != 0);
+                } else if (STRPREFIX(p, "tray_open=")) {
+                    p += strlen("tray_open=");
+                    if (virStrToLong_i(p, &dummy, 10, &tmp) == -1)
+                        VIR_DEBUG("error reading tray_open: %s", p);
+                    else
+                        info->tray_open = (tmp != 0);
+                } else {
+                    /* ignore because we don't parse all options */
+                }
+
+                /* skip to next label */
+                p = strchr(p, ' ');
+                if (!p || p >= eol) break;
+                p++;
+            }
+
+            ret = 0;
+            goto cleanup;
+        }
+
+        /* skip to next line */
+        p = strchr(p, '\n');
+        if (!p) break;
+        p++;
+    }
+
+    qemuReportError(VIR_ERR_INVALID_ARG,
+                    _("no info for device '%s'"), devname);
+
+cleanup:
+    VIR_FREE(reply);
+    return ret;
+}
+
 int qemuMonitorTextGetBlockStatsInfo(qemuMonitorPtr mon,
                                      const char *dev_name,
                                      long long *rd_req,
@@ -928,26 +1039,23 @@ int qemuMonitorTextGetBlockStatsParamsNumber(qemuMonitorPtr mon,
      * "floppy0: ")
      */
     p = strchr(p, ' ');
-    p++;
 
-    while (*p) {
-            if (STRPREFIX (p, "rd_bytes=") ||
-                STRPREFIX (p, "wr_bytes=") ||
-                STRPREFIX (p, "rd_operations=") ||
-                STRPREFIX (p, "wr_operations=") ||
-                STRPREFIX (p, "rd_total_times_ns=") ||
-                STRPREFIX (p, "wr_total_times_ns=") ||
-                STRPREFIX (p, "flush_operations=") ||
-                STRPREFIX (p, "flush_total_times_ns=")) {
-                num++;
-            } else {
-                VIR_DEBUG ("unknown block stat near %s", p);
-            }
+    while (p && p < eol) {
+        if (STRPREFIX (p, " rd_bytes=") ||
+            STRPREFIX (p, " wr_bytes=") ||
+            STRPREFIX (p, " rd_operations=") ||
+            STRPREFIX (p, " wr_operations=") ||
+            STRPREFIX (p, " rd_total_times_ns=") ||
+            STRPREFIX (p, " wr_total_times_ns=") ||
+            STRPREFIX (p, " flush_operations=") ||
+            STRPREFIX (p, " flush_total_times_ns=")) {
+            num++;
+        } else {
+            VIR_DEBUG ("unknown block stat near %s", p);
+        }
 
-            /* Skip to next label. */
-            p = strchr (p, ' ');
-            if (!p || p >= eol) break;
-            p++;
+        /* Skip to next label. */
+        p = strchr(p + 1, ' ');
     }
 
     *nparams = num;
@@ -2959,7 +3067,8 @@ qemuMonitorTextDiskSnapshot(qemuMonitorPtr mon, const char *device,
         goto cleanup;
     }
 
-    if (strstr(reply, "error while creating qcow2") != NULL) {
+    if (strstr(reply, "error while creating qcow2") != NULL ||
+        strstr(reply, "unknown command:") != NULL) {
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         _("Failed to take snapshot: %s"), reply);
         goto cleanup;
@@ -3286,5 +3395,37 @@ int qemuMonitorTextBlockJob(qemuMonitorPtr mon,
 cleanup:
     VIR_FREE(cmd);
     VIR_FREE(reply);
+    return ret;
+}
+
+
+int qemuMonitorTextOpenGraphics(qemuMonitorPtr mon,
+                                const char *protocol,
+                                const char *fdname,
+                                bool skipauth)
+{
+    char *cmd = NULL;
+    char *reply = NULL;
+    int ret = -1;
+
+    if (virAsprintf(&cmd, "add_client %s %s %d", protocol, fdname, skipauth ? 0 : 1) < 0){
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (qemuMonitorHMPCommand(mon, cmd, &reply) < 0) {
+        qemuReportError(VIR_ERR_OPERATION_FAILED,
+                        "%s", _("adding graphics client failed"));
+        goto cleanup;
+    }
+
+    if (STRNEQ(reply, ""))
+        goto cleanup;
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(reply);
+    VIR_FREE(cmd);
     return ret;
 }

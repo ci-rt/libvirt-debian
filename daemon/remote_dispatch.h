@@ -4,19 +4,19 @@
 static int remoteDispatchAuthList(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_auth_list_ret *ret);
 static int remoteDispatchAuthListHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchAuthList(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchAuthList(server, client, msg, rerr, ret);
 }
 /* remoteDispatchAuthList body has to be implemented manually */
 
@@ -25,19 +25,19 @@ static int remoteDispatchAuthListHelper(
 static int remoteDispatchAuthPolkit(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_auth_polkit_ret *ret);
 static int remoteDispatchAuthPolkitHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchAuthPolkit(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchAuthPolkit(server, client, msg, rerr, ret);
 }
 /* remoteDispatchAuthPolkit body has to be implemented manually */
 
@@ -46,19 +46,19 @@ static int remoteDispatchAuthPolkitHelper(
 static int remoteDispatchAuthSaslInit(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_auth_sasl_init_ret *ret);
 static int remoteDispatchAuthSaslInitHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchAuthSaslInit(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchAuthSaslInit(server, client, msg, rerr, ret);
 }
 /* remoteDispatchAuthSaslInit body has to be implemented manually */
 
@@ -67,20 +67,20 @@ static int remoteDispatchAuthSaslInitHelper(
 static int remoteDispatchAuthSaslStart(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_auth_sasl_start_args *args,
     remote_auth_sasl_start_ret *ret);
 static int remoteDispatchAuthSaslStartHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchAuthSaslStart(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchAuthSaslStart(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchAuthSaslStart body has to be implemented manually */
 
@@ -89,20 +89,20 @@ static int remoteDispatchAuthSaslStartHelper(
 static int remoteDispatchAuthSaslStep(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_auth_sasl_step_args *args,
     remote_auth_sasl_step_ret *ret);
 static int remoteDispatchAuthSaslStepHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchAuthSaslStep(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchAuthSaslStep(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchAuthSaslStep body has to be implemented manually */
 
@@ -111,18 +111,18 @@ static int remoteDispatchAuthSaslStepHelper(
 static int remoteDispatchClose(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr);
 static int remoteDispatchCloseHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchClose(server, client, hdr, rerr);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchClose(server, client, msg, rerr);
 }
 /* remoteDispatchClose body has to be implemented manually */
 
@@ -131,25 +131,25 @@ static int remoteDispatchCloseHelper(
 static int remoteDispatchCPUBaseline(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_cpu_baseline_args *args,
     remote_cpu_baseline_ret *ret);
 static int remoteDispatchCPUBaselineHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchCPUBaseline(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchCPUBaseline(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchCPUBaseline(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_cpu_baseline_args *args,
     remote_cpu_baseline_ret *ret)
@@ -181,25 +181,25 @@ cleanup:
 static int remoteDispatchCPUCompare(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_cpu_compare_args *args,
     remote_cpu_compare_ret *ret);
 static int remoteDispatchCPUCompareHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchCPUCompare(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchCPUCompare(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchCPUCompare(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_cpu_compare_args *args,
     remote_cpu_compare_ret *ret)
@@ -231,24 +231,24 @@ cleanup:
 static int remoteDispatchDomainAbortJob(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_abort_job_args *args);
 static int remoteDispatchDomainAbortJobHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainAbortJob(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainAbortJob(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainAbortJob(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_abort_job_args *args)
 {
@@ -283,24 +283,24 @@ cleanup:
 static int remoteDispatchDomainAttachDevice(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_attach_device_args *args);
 static int remoteDispatchDomainAttachDeviceHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainAttachDevice(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainAttachDevice(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainAttachDevice(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_attach_device_args *args)
 {
@@ -335,24 +335,24 @@ cleanup:
 static int remoteDispatchDomainAttachDeviceFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_attach_device_flags_args *args);
 static int remoteDispatchDomainAttachDeviceFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainAttachDeviceFlags(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainAttachDeviceFlags(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainAttachDeviceFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_attach_device_flags_args *args)
 {
@@ -387,24 +387,24 @@ cleanup:
 static int remoteDispatchDomainBlockJobAbort(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_block_job_abort_args *args);
 static int remoteDispatchDomainBlockJobAbortHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainBlockJobAbort(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainBlockJobAbort(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainBlockJobAbort(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_block_job_abort_args *args)
 {
@@ -439,24 +439,24 @@ cleanup:
 static int remoteDispatchDomainBlockJobSetSpeed(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_block_job_set_speed_args *args);
 static int remoteDispatchDomainBlockJobSetSpeedHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainBlockJobSetSpeed(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainBlockJobSetSpeed(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainBlockJobSetSpeed(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_block_job_set_speed_args *args)
 {
@@ -494,20 +494,20 @@ cleanup:
 static int remoteDispatchDomainBlockPeek(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_block_peek_args *args,
     remote_domain_block_peek_ret *ret);
 static int remoteDispatchDomainBlockPeekHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainBlockPeek(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainBlockPeek(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainBlockPeek body has to be implemented manually */
 
@@ -516,24 +516,24 @@ static int remoteDispatchDomainBlockPeekHelper(
 static int remoteDispatchDomainBlockPull(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_block_pull_args *args);
 static int remoteDispatchDomainBlockPullHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainBlockPull(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainBlockPull(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainBlockPull(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_block_pull_args *args)
 {
@@ -571,25 +571,25 @@ cleanup:
 static int remoteDispatchDomainBlockStats(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_block_stats_args *args,
     remote_domain_block_stats_ret *ret);
 static int remoteDispatchDomainBlockStatsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainBlockStats(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainBlockStats(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainBlockStats(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_block_stats_args *args,
     remote_domain_block_stats_ret *ret)
@@ -631,20 +631,20 @@ cleanup:
 static int remoteDispatchDomainBlockStatsFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_block_stats_flags_args *args,
     remote_domain_block_stats_flags_ret *ret);
 static int remoteDispatchDomainBlockStatsFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainBlockStatsFlags(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainBlockStatsFlags(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainBlockStatsFlags body has to be implemented manually */
 
@@ -653,24 +653,24 @@ static int remoteDispatchDomainBlockStatsFlagsHelper(
 static int remoteDispatchDomainCoreDump(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_core_dump_args *args);
 static int remoteDispatchDomainCoreDumpHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainCoreDump(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainCoreDump(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainCoreDump(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_core_dump_args *args)
 {
@@ -705,24 +705,24 @@ cleanup:
 static int remoteDispatchDomainCreate(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_create_args *args);
 static int remoteDispatchDomainCreateHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainCreate(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainCreate(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainCreate(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_create_args *args)
 {
@@ -757,25 +757,25 @@ cleanup:
 static int remoteDispatchDomainCreateWithFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_create_with_flags_args *args,
     remote_domain_create_with_flags_ret *ret);
 static int remoteDispatchDomainCreateWithFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainCreateWithFlags(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainCreateWithFlags(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainCreateWithFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_create_with_flags_args *args,
     remote_domain_create_with_flags_ret *ret)
@@ -812,25 +812,25 @@ cleanup:
 static int remoteDispatchDomainCreateXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_create_xml_args *args,
     remote_domain_create_xml_ret *ret);
 static int remoteDispatchDomainCreateXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainCreateXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainCreateXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainCreateXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_create_xml_args *args,
     remote_domain_create_xml_ret *ret)
@@ -864,25 +864,25 @@ cleanup:
 static int remoteDispatchDomainDefineXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_define_xml_args *args,
     remote_domain_define_xml_ret *ret);
 static int remoteDispatchDomainDefineXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainDefineXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainDefineXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainDefineXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_define_xml_args *args,
     remote_domain_define_xml_ret *ret)
@@ -916,24 +916,24 @@ cleanup:
 static int remoteDispatchDomainDestroy(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_destroy_args *args);
 static int remoteDispatchDomainDestroyHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainDestroy(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainDestroy(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainDestroy(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_destroy_args *args)
 {
@@ -968,24 +968,24 @@ cleanup:
 static int remoteDispatchDomainDestroyFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_destroy_flags_args *args);
 static int remoteDispatchDomainDestroyFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainDestroyFlags(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainDestroyFlags(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainDestroyFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_destroy_flags_args *args)
 {
@@ -1020,24 +1020,24 @@ cleanup:
 static int remoteDispatchDomainDetachDevice(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_detach_device_args *args);
 static int remoteDispatchDomainDetachDeviceHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainDetachDevice(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainDetachDevice(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainDetachDevice(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_detach_device_args *args)
 {
@@ -1072,24 +1072,24 @@ cleanup:
 static int remoteDispatchDomainDetachDeviceFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_detach_device_flags_args *args);
 static int remoteDispatchDomainDetachDeviceFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainDetachDeviceFlags(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainDetachDeviceFlags(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainDetachDeviceFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_detach_device_flags_args *args)
 {
@@ -1124,19 +1124,19 @@ cleanup:
 static int remoteDispatchDomainEventsDeregister(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_events_deregister_ret *ret);
 static int remoteDispatchDomainEventsDeregisterHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainEventsDeregister(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainEventsDeregister(server, client, msg, rerr, ret);
 }
 /* remoteDispatchDomainEventsDeregister body has to be implemented manually */
 
@@ -1145,19 +1145,19 @@ static int remoteDispatchDomainEventsDeregisterHelper(
 static int remoteDispatchDomainEventsDeregisterAny(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_events_deregister_any_args *args);
 static int remoteDispatchDomainEventsDeregisterAnyHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainEventsDeregisterAny(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainEventsDeregisterAny(server, client, msg, rerr, args);
 }
 /* remoteDispatchDomainEventsDeregisterAny body has to be implemented manually */
 
@@ -1166,19 +1166,19 @@ static int remoteDispatchDomainEventsDeregisterAnyHelper(
 static int remoteDispatchDomainEventsRegister(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_events_register_ret *ret);
 static int remoteDispatchDomainEventsRegisterHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainEventsRegister(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainEventsRegister(server, client, msg, rerr, ret);
 }
 /* remoteDispatchDomainEventsRegister body has to be implemented manually */
 
@@ -1187,19 +1187,19 @@ static int remoteDispatchDomainEventsRegisterHelper(
 static int remoteDispatchDomainEventsRegisterAny(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_events_register_any_args *args);
 static int remoteDispatchDomainEventsRegisterAnyHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainEventsRegisterAny(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainEventsRegisterAny(server, client, msg, rerr, args);
 }
 /* remoteDispatchDomainEventsRegisterAny body has to be implemented manually */
 
@@ -1208,25 +1208,25 @@ static int remoteDispatchDomainEventsRegisterAnyHelper(
 static int remoteDispatchDomainGetAutostart(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_autostart_args *args,
     remote_domain_get_autostart_ret *ret);
 static int remoteDispatchDomainGetAutostartHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetAutostart(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetAutostart(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainGetAutostart(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_get_autostart_args *args,
     remote_domain_get_autostart_ret *ret)
@@ -1264,20 +1264,20 @@ cleanup:
 static int remoteDispatchDomainGetBlkioParameters(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_blkio_parameters_args *args,
     remote_domain_get_blkio_parameters_ret *ret);
 static int remoteDispatchDomainGetBlkioParametersHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetBlkioParameters(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetBlkioParameters(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetBlkioParameters body has to be implemented manually */
 
@@ -1286,25 +1286,25 @@ static int remoteDispatchDomainGetBlkioParametersHelper(
 static int remoteDispatchDomainGetBlockInfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_block_info_args *args,
     remote_domain_get_block_info_ret *ret);
 static int remoteDispatchDomainGetBlockInfoHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetBlockInfo(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetBlockInfo(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainGetBlockInfo(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_get_block_info_args *args,
     remote_domain_get_block_info_ret *ret)
@@ -1344,20 +1344,20 @@ cleanup:
 static int remoteDispatchDomainGetBlockJobInfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_block_job_info_args *args,
     remote_domain_get_block_job_info_ret *ret);
 static int remoteDispatchDomainGetBlockJobInfoHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetBlockJobInfo(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetBlockJobInfo(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetBlockJobInfo body has to be implemented manually */
 
@@ -1366,25 +1366,25 @@ static int remoteDispatchDomainGetBlockJobInfoHelper(
 static int remoteDispatchDomainGetControlInfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_control_info_args *args,
     remote_domain_get_control_info_ret *ret);
 static int remoteDispatchDomainGetControlInfoHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetControlInfo(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetControlInfo(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainGetControlInfo(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_get_control_info_args *args,
     remote_domain_get_control_info_ret *ret)
@@ -1424,25 +1424,25 @@ cleanup:
 static int remoteDispatchDomainGetInfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_info_args *args,
     remote_domain_get_info_ret *ret);
 static int remoteDispatchDomainGetInfoHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetInfo(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetInfo(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainGetInfo(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_get_info_args *args,
     remote_domain_get_info_ret *ret)
@@ -1484,25 +1484,25 @@ cleanup:
 static int remoteDispatchDomainGetJobInfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_job_info_args *args,
     remote_domain_get_job_info_ret *ret);
 static int remoteDispatchDomainGetJobInfoHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetJobInfo(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetJobInfo(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainGetJobInfo(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_get_job_info_args *args,
     remote_domain_get_job_info_ret *ret)
@@ -1551,25 +1551,25 @@ cleanup:
 static int remoteDispatchDomainGetMaxMemory(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_max_memory_args *args,
     remote_domain_get_max_memory_ret *ret);
 static int remoteDispatchDomainGetMaxMemoryHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetMaxMemory(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetMaxMemory(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainGetMaxMemory(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_get_max_memory_args *args,
     remote_domain_get_max_memory_ret *ret)
@@ -1607,25 +1607,25 @@ cleanup:
 static int remoteDispatchDomainGetMaxVcpus(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_max_vcpus_args *args,
     remote_domain_get_max_vcpus_ret *ret);
 static int remoteDispatchDomainGetMaxVcpusHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetMaxVcpus(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetMaxVcpus(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainGetMaxVcpus(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_get_max_vcpus_args *args,
     remote_domain_get_max_vcpus_ret *ret)
@@ -1663,20 +1663,20 @@ cleanup:
 static int remoteDispatchDomainGetMemoryParameters(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_memory_parameters_args *args,
     remote_domain_get_memory_parameters_ret *ret);
 static int remoteDispatchDomainGetMemoryParametersHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetMemoryParameters(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetMemoryParameters(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetMemoryParameters body has to be implemented manually */
 
@@ -1685,25 +1685,25 @@ static int remoteDispatchDomainGetMemoryParametersHelper(
 static int remoteDispatchDomainGetOSType(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_os_type_args *args,
     remote_domain_get_os_type_ret *ret);
 static int remoteDispatchDomainGetOSTypeHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetOSType(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetOSType(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainGetOSType(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_get_os_type_args *args,
     remote_domain_get_os_type_ret *ret)
@@ -1741,20 +1741,20 @@ cleanup:
 static int remoteDispatchDomainGetSchedulerParameters(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_scheduler_parameters_args *args,
     remote_domain_get_scheduler_parameters_ret *ret);
 static int remoteDispatchDomainGetSchedulerParametersHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetSchedulerParameters(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetSchedulerParameters(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetSchedulerParameters body has to be implemented manually */
 
@@ -1763,20 +1763,20 @@ static int remoteDispatchDomainGetSchedulerParametersHelper(
 static int remoteDispatchDomainGetSchedulerParametersFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_scheduler_parameters_flags_args *args,
     remote_domain_get_scheduler_parameters_flags_ret *ret);
 static int remoteDispatchDomainGetSchedulerParametersFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetSchedulerParametersFlags(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetSchedulerParametersFlags(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetSchedulerParametersFlags body has to be implemented manually */
 
@@ -1785,20 +1785,20 @@ static int remoteDispatchDomainGetSchedulerParametersFlagsHelper(
 static int remoteDispatchDomainGetSchedulerType(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_scheduler_type_args *args,
     remote_domain_get_scheduler_type_ret *ret);
 static int remoteDispatchDomainGetSchedulerTypeHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetSchedulerType(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetSchedulerType(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetSchedulerType body has to be implemented manually */
 
@@ -1807,20 +1807,20 @@ static int remoteDispatchDomainGetSchedulerTypeHelper(
 static int remoteDispatchDomainGetSecurityLabel(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_security_label_args *args,
     remote_domain_get_security_label_ret *ret);
 static int remoteDispatchDomainGetSecurityLabelHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetSecurityLabel(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetSecurityLabel(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetSecurityLabel body has to be implemented manually */
 
@@ -1829,20 +1829,20 @@ static int remoteDispatchDomainGetSecurityLabelHelper(
 static int remoteDispatchDomainGetState(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_state_args *args,
     remote_domain_get_state_ret *ret);
 static int remoteDispatchDomainGetStateHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetState(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetState(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetState body has to be implemented manually */
 
@@ -1851,20 +1851,20 @@ static int remoteDispatchDomainGetStateHelper(
 static int remoteDispatchDomainGetVcpuPinInfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_vcpu_pin_info_args *args,
     remote_domain_get_vcpu_pin_info_ret *ret);
 static int remoteDispatchDomainGetVcpuPinInfoHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetVcpuPinInfo(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetVcpuPinInfo(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetVcpuPinInfo body has to be implemented manually */
 
@@ -1873,20 +1873,20 @@ static int remoteDispatchDomainGetVcpuPinInfoHelper(
 static int remoteDispatchDomainGetVcpus(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_vcpus_args *args,
     remote_domain_get_vcpus_ret *ret);
 static int remoteDispatchDomainGetVcpusHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetVcpus(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetVcpus(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetVcpus body has to be implemented manually */
 
@@ -1895,25 +1895,25 @@ static int remoteDispatchDomainGetVcpusHelper(
 static int remoteDispatchDomainGetVcpusFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_vcpus_flags_args *args,
     remote_domain_get_vcpus_flags_ret *ret);
 static int remoteDispatchDomainGetVcpusFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetVcpusFlags(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetVcpusFlags(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainGetVcpusFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_get_vcpus_flags_args *args,
     remote_domain_get_vcpus_flags_ret *ret)
@@ -1951,25 +1951,25 @@ cleanup:
 static int remoteDispatchDomainGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_get_xml_desc_args *args,
     remote_domain_get_xml_desc_ret *ret);
 static int remoteDispatchDomainGetXMLDescHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainGetXMLDesc(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetXMLDesc(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainGetXMLDesc(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_get_xml_desc_args *args,
     remote_domain_get_xml_desc_ret *ret)
@@ -2007,25 +2007,25 @@ cleanup:
 static int remoteDispatchDomainHasCurrentSnapshot(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_has_current_snapshot_args *args,
     remote_domain_has_current_snapshot_ret *ret);
 static int remoteDispatchDomainHasCurrentSnapshotHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainHasCurrentSnapshot(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainHasCurrentSnapshot(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainHasCurrentSnapshot(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_has_current_snapshot_args *args,
     remote_domain_has_current_snapshot_ret *ret)
@@ -2063,25 +2063,25 @@ cleanup:
 static int remoteDispatchDomainHasManagedSaveImage(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_has_managed_save_image_args *args,
     remote_domain_has_managed_save_image_ret *ret);
 static int remoteDispatchDomainHasManagedSaveImageHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainHasManagedSaveImage(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainHasManagedSaveImage(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainHasManagedSaveImage(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_has_managed_save_image_args *args,
     remote_domain_has_managed_save_image_ret *ret)
@@ -2119,24 +2119,24 @@ cleanup:
 static int remoteDispatchDomainInjectNMI(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_inject_nmi_args *args);
 static int remoteDispatchDomainInjectNMIHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainInjectNMI(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainInjectNMI(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainInjectNMI(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_inject_nmi_args *args)
 {
@@ -2171,25 +2171,25 @@ cleanup:
 static int remoteDispatchDomainInterfaceStats(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_interface_stats_args *args,
     remote_domain_interface_stats_ret *ret);
 static int remoteDispatchDomainInterfaceStatsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainInterfaceStats(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainInterfaceStats(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainInterfaceStats(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_interface_stats_args *args,
     remote_domain_interface_stats_ret *ret)
@@ -2234,25 +2234,25 @@ cleanup:
 static int remoteDispatchDomainIsActive(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_is_active_args *args,
     remote_domain_is_active_ret *ret);
 static int remoteDispatchDomainIsActiveHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainIsActive(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainIsActive(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainIsActive(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_is_active_args *args,
     remote_domain_is_active_ret *ret)
@@ -2290,25 +2290,25 @@ cleanup:
 static int remoteDispatchDomainIsPersistent(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_is_persistent_args *args,
     remote_domain_is_persistent_ret *ret);
 static int remoteDispatchDomainIsPersistentHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainIsPersistent(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainIsPersistent(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainIsPersistent(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_is_persistent_args *args,
     remote_domain_is_persistent_ret *ret)
@@ -2346,25 +2346,25 @@ cleanup:
 static int remoteDispatchDomainIsUpdated(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_is_updated_args *args,
     remote_domain_is_updated_ret *ret);
 static int remoteDispatchDomainIsUpdatedHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainIsUpdated(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainIsUpdated(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainIsUpdated(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_is_updated_args *args,
     remote_domain_is_updated_ret *ret)
@@ -2402,25 +2402,25 @@ cleanup:
 static int remoteDispatchDomainLookupByID(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_lookup_by_id_args *args,
     remote_domain_lookup_by_id_ret *ret);
 static int remoteDispatchDomainLookupByIDHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainLookupByID(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainLookupByID(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainLookupByID(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_lookup_by_id_args *args,
     remote_domain_lookup_by_id_ret *ret)
@@ -2454,25 +2454,25 @@ cleanup:
 static int remoteDispatchDomainLookupByName(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_lookup_by_name_args *args,
     remote_domain_lookup_by_name_ret *ret);
 static int remoteDispatchDomainLookupByNameHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainLookupByName(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainLookupByName(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainLookupByName(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_lookup_by_name_args *args,
     remote_domain_lookup_by_name_ret *ret)
@@ -2506,25 +2506,25 @@ cleanup:
 static int remoteDispatchDomainLookupByUUID(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_lookup_by_uuid_args *args,
     remote_domain_lookup_by_uuid_ret *ret);
 static int remoteDispatchDomainLookupByUUIDHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainLookupByUUID(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainLookupByUUID(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainLookupByUUID(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_lookup_by_uuid_args *args,
     remote_domain_lookup_by_uuid_ret *ret)
@@ -2558,24 +2558,24 @@ cleanup:
 static int remoteDispatchDomainManagedSave(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_managed_save_args *args);
 static int remoteDispatchDomainManagedSaveHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainManagedSave(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainManagedSave(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainManagedSave(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_managed_save_args *args)
 {
@@ -2610,24 +2610,24 @@ cleanup:
 static int remoteDispatchDomainManagedSaveRemove(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_managed_save_remove_args *args);
 static int remoteDispatchDomainManagedSaveRemoveHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainManagedSaveRemove(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainManagedSaveRemove(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainManagedSaveRemove(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_managed_save_remove_args *args)
 {
@@ -2662,20 +2662,20 @@ cleanup:
 static int remoteDispatchDomainMemoryPeek(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_memory_peek_args *args,
     remote_domain_memory_peek_ret *ret);
 static int remoteDispatchDomainMemoryPeekHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMemoryPeek(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMemoryPeek(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainMemoryPeek body has to be implemented manually */
 
@@ -2684,20 +2684,20 @@ static int remoteDispatchDomainMemoryPeekHelper(
 static int remoteDispatchDomainMemoryStats(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_memory_stats_args *args,
     remote_domain_memory_stats_ret *ret);
 static int remoteDispatchDomainMemoryStatsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMemoryStats(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMemoryStats(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainMemoryStats body has to be implemented manually */
 
@@ -2706,20 +2706,20 @@ static int remoteDispatchDomainMemoryStatsHelper(
 static int remoteDispatchDomainMigrateBegin3(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_begin3_args *args,
     remote_domain_migrate_begin3_ret *ret);
 static int remoteDispatchDomainMigrateBegin3Helper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigrateBegin3(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateBegin3(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainMigrateBegin3 body has to be implemented manually */
 
@@ -2728,19 +2728,19 @@ static int remoteDispatchDomainMigrateBegin3Helper(
 static int remoteDispatchDomainMigrateConfirm3(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_confirm3_args *args);
 static int remoteDispatchDomainMigrateConfirm3Helper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigrateConfirm3(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateConfirm3(server, client, msg, rerr, args);
 }
 /* remoteDispatchDomainMigrateConfirm3 body has to be implemented manually */
 
@@ -2749,25 +2749,25 @@ static int remoteDispatchDomainMigrateConfirm3Helper(
 static int remoteDispatchDomainMigrateFinish(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_finish_args *args,
     remote_domain_migrate_finish_ret *ret);
 static int remoteDispatchDomainMigrateFinishHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigrateFinish(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateFinish(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainMigrateFinish(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_finish_args *args,
     remote_domain_migrate_finish_ret *ret)
@@ -2804,25 +2804,25 @@ cleanup:
 static int remoteDispatchDomainMigrateFinish2(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_finish2_args *args,
     remote_domain_migrate_finish2_ret *ret);
 static int remoteDispatchDomainMigrateFinish2Helper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigrateFinish2(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateFinish2(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainMigrateFinish2(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_finish2_args *args,
     remote_domain_migrate_finish2_ret *ret)
@@ -2859,20 +2859,20 @@ cleanup:
 static int remoteDispatchDomainMigrateFinish3(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_finish3_args *args,
     remote_domain_migrate_finish3_ret *ret);
 static int remoteDispatchDomainMigrateFinish3Helper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigrateFinish3(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateFinish3(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainMigrateFinish3 body has to be implemented manually */
 
@@ -2881,25 +2881,25 @@ static int remoteDispatchDomainMigrateFinish3Helper(
 static int remoteDispatchDomainMigrateGetMaxSpeed(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_get_max_speed_args *args,
     remote_domain_migrate_get_max_speed_ret *ret);
 static int remoteDispatchDomainMigrateGetMaxSpeedHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigrateGetMaxSpeed(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateGetMaxSpeed(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainMigrateGetMaxSpeed(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_get_max_speed_args *args,
     remote_domain_migrate_get_max_speed_ret *ret)
@@ -2937,24 +2937,24 @@ cleanup:
 static int remoteDispatchDomainMigratePerform(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_perform_args *args);
 static int remoteDispatchDomainMigratePerformHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigratePerform(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigratePerform(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainMigratePerform(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_perform_args *args)
 {
@@ -2998,20 +2998,20 @@ cleanup:
 static int remoteDispatchDomainMigratePerform3(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_perform3_args *args,
     remote_domain_migrate_perform3_ret *ret);
 static int remoteDispatchDomainMigratePerform3Helper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigratePerform3(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigratePerform3(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainMigratePerform3 body has to be implemented manually */
 
@@ -3020,20 +3020,20 @@ static int remoteDispatchDomainMigratePerform3Helper(
 static int remoteDispatchDomainMigratePrepare(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_prepare_args *args,
     remote_domain_migrate_prepare_ret *ret);
 static int remoteDispatchDomainMigratePrepareHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigratePrepare(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigratePrepare(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainMigratePrepare body has to be implemented manually */
 
@@ -3042,20 +3042,20 @@ static int remoteDispatchDomainMigratePrepareHelper(
 static int remoteDispatchDomainMigratePrepare2(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_prepare2_args *args,
     remote_domain_migrate_prepare2_ret *ret);
 static int remoteDispatchDomainMigratePrepare2Helper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigratePrepare2(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigratePrepare2(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainMigratePrepare2 body has to be implemented manually */
 
@@ -3064,20 +3064,20 @@ static int remoteDispatchDomainMigratePrepare2Helper(
 static int remoteDispatchDomainMigratePrepare3(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_prepare3_args *args,
     remote_domain_migrate_prepare3_ret *ret);
 static int remoteDispatchDomainMigratePrepare3Helper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigratePrepare3(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigratePrepare3(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainMigratePrepare3 body has to be implemented manually */
 
@@ -3086,24 +3086,24 @@ static int remoteDispatchDomainMigratePrepare3Helper(
 static int remoteDispatchDomainMigratePrepareTunnel(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_prepare_tunnel_args *args);
 static int remoteDispatchDomainMigratePrepareTunnelHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigratePrepareTunnel(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigratePrepareTunnel(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainMigratePrepareTunnel(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_prepare_tunnel_args *args)
 {
@@ -3130,7 +3130,7 @@ static int remoteDispatchDomainMigratePrepareTunnel(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, hdr)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
         goto cleanup;
 
     if (virDomainMigratePrepareTunnel(priv->conn, st, flags, dname, resource, args->dom_xml) < 0)
@@ -3159,25 +3159,25 @@ cleanup:
 static int remoteDispatchDomainMigratePrepareTunnel3(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_prepare_tunnel3_args *args,
     remote_domain_migrate_prepare_tunnel3_ret *ret);
 static int remoteDispatchDomainMigratePrepareTunnel3Helper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigratePrepareTunnel3(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigratePrepareTunnel3(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainMigratePrepareTunnel3(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_prepare_tunnel3_args *args,
     remote_domain_migrate_prepare_tunnel3_ret *ret)
@@ -3207,7 +3207,7 @@ static int remoteDispatchDomainMigratePrepareTunnel3(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, hdr)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
         goto cleanup;
 
     if (virDomainMigratePrepareTunnel3(priv->conn, st, args->cookie_in.cookie_in_val, args->cookie_in.cookie_in_len, &cookie_out, &cookie_out_len, flags, dname, resource, args->dom_xml) < 0)
@@ -3239,24 +3239,24 @@ cleanup:
 static int remoteDispatchDomainMigrateSetMaxDowntime(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_set_max_downtime_args *args);
 static int remoteDispatchDomainMigrateSetMaxDowntimeHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigrateSetMaxDowntime(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateSetMaxDowntime(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainMigrateSetMaxDowntime(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_set_max_downtime_args *args)
 {
@@ -3291,24 +3291,24 @@ cleanup:
 static int remoteDispatchDomainMigrateSetMaxSpeed(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_set_max_speed_args *args);
 static int remoteDispatchDomainMigrateSetMaxSpeedHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainMigrateSetMaxSpeed(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainMigrateSetMaxSpeed(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainMigrateSetMaxSpeed(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_migrate_set_max_speed_args *args)
 {
@@ -3346,24 +3346,24 @@ cleanup:
 static int remoteDispatchDomainOpenConsole(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_open_console_args *args);
 static int remoteDispatchDomainOpenConsoleHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainOpenConsole(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainOpenConsole(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainOpenConsole(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_open_console_args *args)
 {
@@ -3388,7 +3388,7 @@ static int remoteDispatchDomainOpenConsole(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, hdr)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
         goto cleanup;
 
     if (virDomainOpenConsole(dom, dev_name, st, args->flags) < 0)
@@ -3416,27 +3416,48 @@ cleanup:
 
 
 
+static int remoteDispatchDomainOpenGraphics(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_open_graphics_args *args);
+static int remoteDispatchDomainOpenGraphicsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainOpenGraphics(server, client, msg, rerr, args);
+}
+/* remoteDispatchDomainOpenGraphics body has to be implemented manually */
+
+
+
 static int remoteDispatchDomainPinVcpu(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_pin_vcpu_args *args);
 static int remoteDispatchDomainPinVcpuHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainPinVcpu(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainPinVcpu(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainPinVcpu(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_pin_vcpu_args *args)
 {
@@ -3471,24 +3492,24 @@ cleanup:
 static int remoteDispatchDomainPinVcpuFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_pin_vcpu_flags_args *args);
 static int remoteDispatchDomainPinVcpuFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainPinVcpuFlags(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainPinVcpuFlags(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainPinVcpuFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_pin_vcpu_flags_args *args)
 {
@@ -3523,24 +3544,24 @@ cleanup:
 static int remoteDispatchDomainReboot(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_reboot_args *args);
 static int remoteDispatchDomainRebootHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainReboot(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainReboot(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainReboot(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_reboot_args *args)
 {
@@ -3572,27 +3593,79 @@ cleanup:
 
 
 
+static int remoteDispatchDomainReset(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_reset_args *args);
+static int remoteDispatchDomainResetHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainReset(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainReset(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_reset_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainReset(dom, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainRestore(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_restore_args *args);
 static int remoteDispatchDomainRestoreHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainRestore(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainRestore(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainRestore(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_restore_args *args)
 {
@@ -3621,24 +3694,24 @@ cleanup:
 static int remoteDispatchDomainRestoreFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_restore_flags_args *args);
 static int remoteDispatchDomainRestoreFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainRestoreFlags(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainRestoreFlags(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainRestoreFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_restore_flags_args *args)
 {
@@ -3670,24 +3743,24 @@ cleanup:
 static int remoteDispatchDomainResume(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_resume_args *args);
 static int remoteDispatchDomainResumeHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainResume(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainResume(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainResume(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_resume_args *args)
 {
@@ -3722,24 +3795,24 @@ cleanup:
 static int remoteDispatchDomainRevertToSnapshot(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_revert_to_snapshot_args *args);
 static int remoteDispatchDomainRevertToSnapshotHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainRevertToSnapshot(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainRevertToSnapshot(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainRevertToSnapshot(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_revert_to_snapshot_args *args)
 {
@@ -3780,24 +3853,24 @@ cleanup:
 static int remoteDispatchDomainSave(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_save_args *args);
 static int remoteDispatchDomainSaveHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSave(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSave(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSave(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_save_args *args)
 {
@@ -3832,24 +3905,24 @@ cleanup:
 static int remoteDispatchDomainSaveFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_save_flags_args *args);
 static int remoteDispatchDomainSaveFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSaveFlags(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSaveFlags(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSaveFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_save_flags_args *args)
 {
@@ -3887,24 +3960,24 @@ cleanup:
 static int remoteDispatchDomainSaveImageDefineXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_save_image_define_xml_args *args);
 static int remoteDispatchDomainSaveImageDefineXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSaveImageDefineXML(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSaveImageDefineXML(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSaveImageDefineXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_save_image_define_xml_args *args)
 {
@@ -3933,25 +4006,25 @@ cleanup:
 static int remoteDispatchDomainSaveImageGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_save_image_get_xml_desc_args *args,
     remote_domain_save_image_get_xml_desc_ret *ret);
 static int remoteDispatchDomainSaveImageGetXMLDescHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSaveImageGetXMLDesc(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSaveImageGetXMLDesc(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainSaveImageGetXMLDesc(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_save_image_get_xml_desc_args *args,
     remote_domain_save_image_get_xml_desc_ret *ret)
@@ -3983,25 +4056,25 @@ cleanup:
 static int remoteDispatchDomainScreenshot(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_screenshot_args *args,
     remote_domain_screenshot_ret *ret);
 static int remoteDispatchDomainScreenshotHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainScreenshot(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainScreenshot(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainScreenshot(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_screenshot_args *args,
     remote_domain_screenshot_ret *ret)
@@ -4026,7 +4099,7 @@ static int remoteDispatchDomainScreenshot(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, hdr)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
         goto cleanup;
 
     if ((mime = virDomainScreenshot(dom, st, args->screen, args->flags)) == NULL)
@@ -4071,24 +4144,24 @@ cleanup:
 static int remoteDispatchDomainSendKey(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_send_key_args *args);
 static int remoteDispatchDomainSendKeyHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSendKey(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSendKey(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSendKey(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_send_key_args *args)
 {
@@ -4123,24 +4196,24 @@ cleanup:
 static int remoteDispatchDomainSetAutostart(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_set_autostart_args *args);
 static int remoteDispatchDomainSetAutostartHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSetAutostart(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetAutostart(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSetAutostart(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_set_autostart_args *args)
 {
@@ -4175,24 +4248,24 @@ cleanup:
 static int remoteDispatchDomainSetBlkioParameters(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_set_blkio_parameters_args *args);
 static int remoteDispatchDomainSetBlkioParametersHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSetBlkioParameters(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetBlkioParameters(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSetBlkioParameters(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_set_blkio_parameters_args *args)
 {
@@ -4236,24 +4309,24 @@ cleanup:
 static int remoteDispatchDomainSetMaxMemory(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_set_max_memory_args *args);
 static int remoteDispatchDomainSetMaxMemoryHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSetMaxMemory(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetMaxMemory(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSetMaxMemory(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_set_max_memory_args *args)
 {
@@ -4291,24 +4364,24 @@ cleanup:
 static int remoteDispatchDomainSetMemory(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_set_memory_args *args);
 static int remoteDispatchDomainSetMemoryHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSetMemory(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetMemory(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSetMemory(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_set_memory_args *args)
 {
@@ -4346,24 +4419,24 @@ cleanup:
 static int remoteDispatchDomainSetMemoryFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_set_memory_flags_args *args);
 static int remoteDispatchDomainSetMemoryFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSetMemoryFlags(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetMemoryFlags(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSetMemoryFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_set_memory_flags_args *args)
 {
@@ -4401,24 +4474,24 @@ cleanup:
 static int remoteDispatchDomainSetMemoryParameters(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_set_memory_parameters_args *args);
 static int remoteDispatchDomainSetMemoryParametersHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSetMemoryParameters(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetMemoryParameters(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSetMemoryParameters(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_set_memory_parameters_args *args)
 {
@@ -4462,24 +4535,24 @@ cleanup:
 static int remoteDispatchDomainSetSchedulerParameters(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_set_scheduler_parameters_args *args);
 static int remoteDispatchDomainSetSchedulerParametersHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSetSchedulerParameters(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetSchedulerParameters(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSetSchedulerParameters(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_set_scheduler_parameters_args *args)
 {
@@ -4523,24 +4596,24 @@ cleanup:
 static int remoteDispatchDomainSetSchedulerParametersFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_set_scheduler_parameters_flags_args *args);
 static int remoteDispatchDomainSetSchedulerParametersFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSetSchedulerParametersFlags(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetSchedulerParametersFlags(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSetSchedulerParametersFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_set_scheduler_parameters_flags_args *args)
 {
@@ -4584,24 +4657,24 @@ cleanup:
 static int remoteDispatchDomainSetVcpus(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_set_vcpus_args *args);
 static int remoteDispatchDomainSetVcpusHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSetVcpus(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetVcpus(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSetVcpus(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_set_vcpus_args *args)
 {
@@ -4636,24 +4709,24 @@ cleanup:
 static int remoteDispatchDomainSetVcpusFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_set_vcpus_flags_args *args);
 static int remoteDispatchDomainSetVcpusFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSetVcpusFlags(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetVcpusFlags(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSetVcpusFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_set_vcpus_flags_args *args)
 {
@@ -4688,24 +4761,24 @@ cleanup:
 static int remoteDispatchDomainShutdown(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_shutdown_args *args);
 static int remoteDispatchDomainShutdownHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainShutdown(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainShutdown(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainShutdown(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_shutdown_args *args)
 {
@@ -4740,25 +4813,25 @@ cleanup:
 static int remoteDispatchDomainSnapshotCreateXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_create_xml_args *args,
     remote_domain_snapshot_create_xml_ret *ret);
 static int remoteDispatchDomainSnapshotCreateXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSnapshotCreateXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotCreateXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainSnapshotCreateXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_create_xml_args *args,
     remote_domain_snapshot_create_xml_ret *ret)
@@ -4798,25 +4871,25 @@ cleanup:
 static int remoteDispatchDomainSnapshotCurrent(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_current_args *args,
     remote_domain_snapshot_current_ret *ret);
 static int remoteDispatchDomainSnapshotCurrentHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSnapshotCurrent(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotCurrent(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainSnapshotCurrent(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_current_args *args,
     remote_domain_snapshot_current_ret *ret)
@@ -4856,24 +4929,24 @@ cleanup:
 static int remoteDispatchDomainSnapshotDelete(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_delete_args *args);
 static int remoteDispatchDomainSnapshotDeleteHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSnapshotDelete(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotDelete(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSnapshotDelete(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_delete_args *args)
 {
@@ -4911,28 +4984,92 @@ cleanup:
 
 
 
+static int remoteDispatchDomainSnapshotGetParent(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_get_parent_args *args,
+    remote_domain_snapshot_get_parent_ret *ret);
+static int remoteDispatchDomainSnapshotGetParentHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotGetParent(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainSnapshotGetParent(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_get_parent_args *args,
+    remote_domain_snapshot_get_parent_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainSnapshotPtr snapshot = NULL;
+    virDomainSnapshotPtr snap = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->snap.dom)))
+        goto cleanup;
+
+    if (!(snapshot = get_nonnull_domain_snapshot(dom, args->snap)))
+        goto cleanup;
+
+    if ((snap = virDomainSnapshotGetParent(snapshot, args->flags)) == NULL)
+        goto cleanup;
+
+    make_nonnull_domain_snapshot(&ret->snap, snap);
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (snapshot)
+        virDomainSnapshotFree(snapshot);
+    if (dom)
+        virDomainFree(dom);
+    if (snap)
+        virDomainSnapshotFree(snap);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainSnapshotGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_get_xml_desc_args *args,
     remote_domain_snapshot_get_xml_desc_ret *ret);
 static int remoteDispatchDomainSnapshotGetXMLDescHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSnapshotGetXMLDesc(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotGetXMLDesc(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainSnapshotGetXMLDesc(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_get_xml_desc_args *args,
     remote_domain_snapshot_get_xml_desc_ret *ret)
@@ -4973,28 +5110,104 @@ cleanup:
 
 
 
+static int remoteDispatchDomainSnapshotListChildrenNames(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_list_children_names_args *args,
+    remote_domain_snapshot_list_children_names_ret *ret);
+static int remoteDispatchDomainSnapshotListChildrenNamesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotListChildrenNames(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainSnapshotListChildrenNames(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_list_children_names_args *args,
+    remote_domain_snapshot_list_children_names_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainSnapshotPtr snapshot = NULL;
+    int len;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX) {
+        virNetError(VIR_ERR_INTERNAL_ERROR,
+                    "%s", _("maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->snap.dom)))
+        goto cleanup;
+
+    if (!(snapshot = get_nonnull_domain_snapshot(dom, args->snap)))
+        goto cleanup;
+
+    /* Allocate return buffer. */
+    if (VIR_ALLOC_N(ret->names.names_val, args->maxnames) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virDomainSnapshotListChildrenNames(snapshot, ret->names.names_val, args->maxnames, args->flags)) < 0)
+        goto cleanup;
+
+    ret->names.names_len = len;
+    rv = 0;
+
+cleanup:
+    if (rv < 0) {
+        virNetMessageSaveError(rerr);
+        VIR_FREE(ret->names.names_val);
+    }
+    if (snapshot)
+        virDomainSnapshotFree(snapshot);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainSnapshotListNames(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_list_names_args *args,
     remote_domain_snapshot_list_names_ret *ret);
 static int remoteDispatchDomainSnapshotListNamesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSnapshotListNames(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotListNames(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainSnapshotListNames(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_list_names_args *args,
     remote_domain_snapshot_list_names_ret *ret)
@@ -5046,25 +5259,25 @@ cleanup:
 static int remoteDispatchDomainSnapshotLookupByName(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_lookup_by_name_args *args,
     remote_domain_snapshot_lookup_by_name_ret *ret);
 static int remoteDispatchDomainSnapshotLookupByNameHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSnapshotLookupByName(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotLookupByName(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainSnapshotLookupByName(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_lookup_by_name_args *args,
     remote_domain_snapshot_lookup_by_name_ret *ret)
@@ -5104,25 +5317,25 @@ cleanup:
 static int remoteDispatchDomainSnapshotNum(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_num_args *args,
     remote_domain_snapshot_num_ret *ret);
 static int remoteDispatchDomainSnapshotNumHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSnapshotNum(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotNum(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainSnapshotNum(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_snapshot_num_args *args,
     remote_domain_snapshot_num_ret *ret)
@@ -5157,27 +5370,89 @@ cleanup:
 
 
 
+static int remoteDispatchDomainSnapshotNumChildren(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_num_children_args *args,
+    remote_domain_snapshot_num_children_ret *ret);
+static int remoteDispatchDomainSnapshotNumChildrenHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotNumChildren(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainSnapshotNumChildren(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_num_children_args *args,
+    remote_domain_snapshot_num_children_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainSnapshotPtr snapshot = NULL;
+    int num;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->snap.dom)))
+        goto cleanup;
+
+    if (!(snapshot = get_nonnull_domain_snapshot(dom, args->snap)))
+        goto cleanup;
+
+    if ((num = virDomainSnapshotNumChildren(snapshot, args->flags)) < 0)
+        goto cleanup;
+
+    ret->num = num;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (snapshot)
+        virDomainSnapshotFree(snapshot);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainSuspend(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_suspend_args *args);
 static int remoteDispatchDomainSuspendHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainSuspend(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSuspend(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainSuspend(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_suspend_args *args)
 {
@@ -5212,24 +5487,24 @@ cleanup:
 static int remoteDispatchDomainUndefine(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_undefine_args *args);
 static int remoteDispatchDomainUndefineHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainUndefine(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainUndefine(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainUndefine(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_undefine_args *args)
 {
@@ -5264,24 +5539,24 @@ cleanup:
 static int remoteDispatchDomainUndefineFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_undefine_flags_args *args);
 static int remoteDispatchDomainUndefineFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainUndefineFlags(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainUndefineFlags(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainUndefineFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_undefine_flags_args *args)
 {
@@ -5316,24 +5591,24 @@ cleanup:
 static int remoteDispatchDomainUpdateDeviceFlags(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_update_device_flags_args *args);
 static int remoteDispatchDomainUpdateDeviceFlagsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainUpdateDeviceFlags(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainUpdateDeviceFlags(server, client, msg, rerr, args);
 }
 static int remoteDispatchDomainUpdateDeviceFlags(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_update_device_flags_args *args)
 {
@@ -5368,25 +5643,25 @@ cleanup:
 static int remoteDispatchDomainXMLFromNative(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_xml_from_native_args *args,
     remote_domain_xml_from_native_ret *ret);
 static int remoteDispatchDomainXMLFromNativeHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainXMLFromNative(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainXMLFromNative(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainXMLFromNative(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_xml_from_native_args *args,
     remote_domain_xml_from_native_ret *ret)
@@ -5418,25 +5693,25 @@ cleanup:
 static int remoteDispatchDomainXMLToNative(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_domain_xml_to_native_args *args,
     remote_domain_xml_to_native_ret *ret);
 static int remoteDispatchDomainXMLToNativeHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchDomainXMLToNative(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainXMLToNative(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchDomainXMLToNative(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_domain_xml_to_native_args *args,
     remote_domain_xml_to_native_ret *ret)
@@ -5468,25 +5743,25 @@ cleanup:
 static int remoteDispatchFindStoragePoolSources(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_find_storage_pool_sources_args *args,
     remote_find_storage_pool_sources_ret *ret);
 static int remoteDispatchFindStoragePoolSourcesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchFindStoragePoolSources(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchFindStoragePoolSources(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchFindStoragePoolSources(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_find_storage_pool_sources_args *args,
     remote_find_storage_pool_sources_ret *ret)
@@ -5521,24 +5796,24 @@ cleanup:
 static int remoteDispatchGetCapabilities(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_get_capabilities_ret *ret);
 static int remoteDispatchGetCapabilitiesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchGetCapabilities(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchGetCapabilities(server, client, msg, rerr, ret);
 }
 static int remoteDispatchGetCapabilities(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_get_capabilities_ret *ret)
 {
@@ -5569,24 +5844,24 @@ cleanup:
 static int remoteDispatchGetHostname(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_get_hostname_ret *ret);
 static int remoteDispatchGetHostnameHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchGetHostname(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchGetHostname(server, client, msg, rerr, ret);
 }
 static int remoteDispatchGetHostname(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_get_hostname_ret *ret)
 {
@@ -5617,24 +5892,24 @@ cleanup:
 static int remoteDispatchGetLibVersion(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_get_lib_version_ret *ret);
 static int remoteDispatchGetLibVersionHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchGetLibVersion(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchGetLibVersion(server, client, msg, rerr, ret);
 }
 static int remoteDispatchGetLibVersion(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_get_lib_version_ret *ret)
 {
@@ -5665,25 +5940,25 @@ cleanup:
 static int remoteDispatchGetMaxVcpus(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_get_max_vcpus_args *args,
     remote_get_max_vcpus_ret *ret);
 static int remoteDispatchGetMaxVcpusHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchGetMaxVcpus(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchGetMaxVcpus(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchGetMaxVcpus(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_get_max_vcpus_args *args,
     remote_get_max_vcpus_ret *ret)
@@ -5718,25 +5993,25 @@ cleanup:
 static int remoteDispatchGetSysinfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_get_sysinfo_args *args,
     remote_get_sysinfo_ret *ret);
 static int remoteDispatchGetSysinfoHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchGetSysinfo(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchGetSysinfo(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchGetSysinfo(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_get_sysinfo_args *args,
     remote_get_sysinfo_ret *ret)
@@ -5768,24 +6043,24 @@ cleanup:
 static int remoteDispatchGetType(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_get_type_ret *ret);
 static int remoteDispatchGetTypeHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchGetType(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchGetType(server, client, msg, rerr, ret);
 }
 static int remoteDispatchGetType(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_get_type_ret *ret)
 {
@@ -5821,24 +6096,24 @@ cleanup:
 static int remoteDispatchGetURI(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_get_uri_ret *ret);
 static int remoteDispatchGetURIHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchGetURI(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchGetURI(server, client, msg, rerr, ret);
 }
 static int remoteDispatchGetURI(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_get_uri_ret *ret)
 {
@@ -5869,24 +6144,24 @@ cleanup:
 static int remoteDispatchGetVersion(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_get_version_ret *ret);
 static int remoteDispatchGetVersionHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchGetVersion(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchGetVersion(server, client, msg, rerr, ret);
 }
 static int remoteDispatchGetVersion(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_get_version_ret *ret)
 {
@@ -5917,24 +6192,24 @@ cleanup:
 static int remoteDispatchInterfaceChangeBegin(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_interface_change_begin_args *args);
 static int remoteDispatchInterfaceChangeBeginHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchInterfaceChangeBegin(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchInterfaceChangeBegin(server, client, msg, rerr, args);
 }
 static int remoteDispatchInterfaceChangeBegin(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_interface_change_begin_args *args)
 {
@@ -5963,24 +6238,24 @@ cleanup:
 static int remoteDispatchInterfaceChangeCommit(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_interface_change_commit_args *args);
 static int remoteDispatchInterfaceChangeCommitHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchInterfaceChangeCommit(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchInterfaceChangeCommit(server, client, msg, rerr, args);
 }
 static int remoteDispatchInterfaceChangeCommit(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_interface_change_commit_args *args)
 {
@@ -6009,24 +6284,24 @@ cleanup:
 static int remoteDispatchInterfaceChangeRollback(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_interface_change_rollback_args *args);
 static int remoteDispatchInterfaceChangeRollbackHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchInterfaceChangeRollback(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchInterfaceChangeRollback(server, client, msg, rerr, args);
 }
 static int remoteDispatchInterfaceChangeRollback(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_interface_change_rollback_args *args)
 {
@@ -6055,24 +6330,24 @@ cleanup:
 static int remoteDispatchInterfaceCreate(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_interface_create_args *args);
 static int remoteDispatchInterfaceCreateHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchInterfaceCreate(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchInterfaceCreate(server, client, msg, rerr, args);
 }
 static int remoteDispatchInterfaceCreate(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_interface_create_args *args)
 {
@@ -6107,25 +6382,25 @@ cleanup:
 static int remoteDispatchInterfaceDefineXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_interface_define_xml_args *args,
     remote_interface_define_xml_ret *ret);
 static int remoteDispatchInterfaceDefineXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchInterfaceDefineXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchInterfaceDefineXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchInterfaceDefineXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_interface_define_xml_args *args,
     remote_interface_define_xml_ret *ret)
@@ -6159,24 +6434,24 @@ cleanup:
 static int remoteDispatchInterfaceDestroy(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_interface_destroy_args *args);
 static int remoteDispatchInterfaceDestroyHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchInterfaceDestroy(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchInterfaceDestroy(server, client, msg, rerr, args);
 }
 static int remoteDispatchInterfaceDestroy(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_interface_destroy_args *args)
 {
@@ -6211,25 +6486,25 @@ cleanup:
 static int remoteDispatchInterfaceGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_interface_get_xml_desc_args *args,
     remote_interface_get_xml_desc_ret *ret);
 static int remoteDispatchInterfaceGetXMLDescHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchInterfaceGetXMLDesc(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchInterfaceGetXMLDesc(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchInterfaceGetXMLDesc(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_interface_get_xml_desc_args *args,
     remote_interface_get_xml_desc_ret *ret)
@@ -6267,25 +6542,25 @@ cleanup:
 static int remoteDispatchInterfaceIsActive(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_interface_is_active_args *args,
     remote_interface_is_active_ret *ret);
 static int remoteDispatchInterfaceIsActiveHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchInterfaceIsActive(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchInterfaceIsActive(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchInterfaceIsActive(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_interface_is_active_args *args,
     remote_interface_is_active_ret *ret)
@@ -6323,25 +6598,25 @@ cleanup:
 static int remoteDispatchInterfaceLookupByMACString(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_interface_lookup_by_mac_string_args *args,
     remote_interface_lookup_by_mac_string_ret *ret);
 static int remoteDispatchInterfaceLookupByMACStringHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchInterfaceLookupByMACString(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchInterfaceLookupByMACString(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchInterfaceLookupByMACString(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_interface_lookup_by_mac_string_args *args,
     remote_interface_lookup_by_mac_string_ret *ret)
@@ -6375,25 +6650,25 @@ cleanup:
 static int remoteDispatchInterfaceLookupByName(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_interface_lookup_by_name_args *args,
     remote_interface_lookup_by_name_ret *ret);
 static int remoteDispatchInterfaceLookupByNameHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchInterfaceLookupByName(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchInterfaceLookupByName(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchInterfaceLookupByName(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_interface_lookup_by_name_args *args,
     remote_interface_lookup_by_name_ret *ret)
@@ -6427,24 +6702,24 @@ cleanup:
 static int remoteDispatchInterfaceUndefine(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_interface_undefine_args *args);
 static int remoteDispatchInterfaceUndefineHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchInterfaceUndefine(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchInterfaceUndefine(server, client, msg, rerr, args);
 }
 static int remoteDispatchInterfaceUndefine(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_interface_undefine_args *args)
 {
@@ -6479,24 +6754,24 @@ cleanup:
 static int remoteDispatchIsSecure(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_is_secure_ret *ret);
 static int remoteDispatchIsSecureHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchIsSecure(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchIsSecure(server, client, msg, rerr, ret);
 }
 static int remoteDispatchIsSecure(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_is_secure_ret *ret)
 {
@@ -6527,25 +6802,25 @@ cleanup:
 static int remoteDispatchListDefinedDomains(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_list_defined_domains_args *args,
     remote_list_defined_domains_ret *ret);
 static int remoteDispatchListDefinedDomainsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchListDefinedDomains(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchListDefinedDomains(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchListDefinedDomains(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_list_defined_domains_args *args,
     remote_list_defined_domains_ret *ret)
@@ -6591,25 +6866,25 @@ cleanup:
 static int remoteDispatchListDefinedInterfaces(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_list_defined_interfaces_args *args,
     remote_list_defined_interfaces_ret *ret);
 static int remoteDispatchListDefinedInterfacesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchListDefinedInterfaces(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchListDefinedInterfaces(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchListDefinedInterfaces(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_list_defined_interfaces_args *args,
     remote_list_defined_interfaces_ret *ret)
@@ -6655,25 +6930,25 @@ cleanup:
 static int remoteDispatchListDefinedNetworks(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_list_defined_networks_args *args,
     remote_list_defined_networks_ret *ret);
 static int remoteDispatchListDefinedNetworksHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchListDefinedNetworks(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchListDefinedNetworks(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchListDefinedNetworks(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_list_defined_networks_args *args,
     remote_list_defined_networks_ret *ret)
@@ -6719,25 +6994,25 @@ cleanup:
 static int remoteDispatchListDefinedStoragePools(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_list_defined_storage_pools_args *args,
     remote_list_defined_storage_pools_ret *ret);
 static int remoteDispatchListDefinedStoragePoolsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchListDefinedStoragePools(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchListDefinedStoragePools(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchListDefinedStoragePools(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_list_defined_storage_pools_args *args,
     remote_list_defined_storage_pools_ret *ret)
@@ -6783,25 +7058,25 @@ cleanup:
 static int remoteDispatchListDomains(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_list_domains_args *args,
     remote_list_domains_ret *ret);
 static int remoteDispatchListDomainsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchListDomains(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchListDomains(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchListDomains(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_list_domains_args *args,
     remote_list_domains_ret *ret)
@@ -6847,25 +7122,25 @@ cleanup:
 static int remoteDispatchListInterfaces(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_list_interfaces_args *args,
     remote_list_interfaces_ret *ret);
 static int remoteDispatchListInterfacesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchListInterfaces(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchListInterfaces(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchListInterfaces(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_list_interfaces_args *args,
     remote_list_interfaces_ret *ret)
@@ -6911,25 +7186,25 @@ cleanup:
 static int remoteDispatchListNetworks(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_list_networks_args *args,
     remote_list_networks_ret *ret);
 static int remoteDispatchListNetworksHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchListNetworks(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchListNetworks(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchListNetworks(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_list_networks_args *args,
     remote_list_networks_ret *ret)
@@ -6975,25 +7250,25 @@ cleanup:
 static int remoteDispatchListNWFilters(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_list_nwfilters_args *args,
     remote_list_nwfilters_ret *ret);
 static int remoteDispatchListNWFiltersHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchListNWFilters(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchListNWFilters(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchListNWFilters(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_list_nwfilters_args *args,
     remote_list_nwfilters_ret *ret)
@@ -7039,25 +7314,25 @@ cleanup:
 static int remoteDispatchListSecrets(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_list_secrets_args *args,
     remote_list_secrets_ret *ret);
 static int remoteDispatchListSecretsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchListSecrets(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchListSecrets(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchListSecrets(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_list_secrets_args *args,
     remote_list_secrets_ret *ret)
@@ -7103,25 +7378,25 @@ cleanup:
 static int remoteDispatchListStoragePools(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_list_storage_pools_args *args,
     remote_list_storage_pools_ret *ret);
 static int remoteDispatchListStoragePoolsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchListStoragePools(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchListStoragePools(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchListStoragePools(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_list_storage_pools_args *args,
     remote_list_storage_pools_ret *ret)
@@ -7167,24 +7442,24 @@ cleanup:
 static int remoteDispatchNetworkCreate(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_create_args *args);
 static int remoteDispatchNetworkCreateHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkCreate(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkCreate(server, client, msg, rerr, args);
 }
 static int remoteDispatchNetworkCreate(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_create_args *args)
 {
@@ -7219,25 +7494,25 @@ cleanup:
 static int remoteDispatchNetworkCreateXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_create_xml_args *args,
     remote_network_create_xml_ret *ret);
 static int remoteDispatchNetworkCreateXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkCreateXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkCreateXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNetworkCreateXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_create_xml_args *args,
     remote_network_create_xml_ret *ret)
@@ -7271,25 +7546,25 @@ cleanup:
 static int remoteDispatchNetworkDefineXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_define_xml_args *args,
     remote_network_define_xml_ret *ret);
 static int remoteDispatchNetworkDefineXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkDefineXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkDefineXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNetworkDefineXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_define_xml_args *args,
     remote_network_define_xml_ret *ret)
@@ -7323,24 +7598,24 @@ cleanup:
 static int remoteDispatchNetworkDestroy(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_destroy_args *args);
 static int remoteDispatchNetworkDestroyHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkDestroy(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkDestroy(server, client, msg, rerr, args);
 }
 static int remoteDispatchNetworkDestroy(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_destroy_args *args)
 {
@@ -7375,25 +7650,25 @@ cleanup:
 static int remoteDispatchNetworkGetAutostart(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_get_autostart_args *args,
     remote_network_get_autostart_ret *ret);
 static int remoteDispatchNetworkGetAutostartHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkGetAutostart(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkGetAutostart(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNetworkGetAutostart(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_get_autostart_args *args,
     remote_network_get_autostart_ret *ret)
@@ -7431,25 +7706,25 @@ cleanup:
 static int remoteDispatchNetworkGetBridgeName(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_get_bridge_name_args *args,
     remote_network_get_bridge_name_ret *ret);
 static int remoteDispatchNetworkGetBridgeNameHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkGetBridgeName(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkGetBridgeName(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNetworkGetBridgeName(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_get_bridge_name_args *args,
     remote_network_get_bridge_name_ret *ret)
@@ -7487,25 +7762,25 @@ cleanup:
 static int remoteDispatchNetworkGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_get_xml_desc_args *args,
     remote_network_get_xml_desc_ret *ret);
 static int remoteDispatchNetworkGetXMLDescHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkGetXMLDesc(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkGetXMLDesc(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNetworkGetXMLDesc(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_get_xml_desc_args *args,
     remote_network_get_xml_desc_ret *ret)
@@ -7543,25 +7818,25 @@ cleanup:
 static int remoteDispatchNetworkIsActive(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_is_active_args *args,
     remote_network_is_active_ret *ret);
 static int remoteDispatchNetworkIsActiveHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkIsActive(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkIsActive(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNetworkIsActive(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_is_active_args *args,
     remote_network_is_active_ret *ret)
@@ -7599,25 +7874,25 @@ cleanup:
 static int remoteDispatchNetworkIsPersistent(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_is_persistent_args *args,
     remote_network_is_persistent_ret *ret);
 static int remoteDispatchNetworkIsPersistentHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkIsPersistent(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkIsPersistent(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNetworkIsPersistent(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_is_persistent_args *args,
     remote_network_is_persistent_ret *ret)
@@ -7655,25 +7930,25 @@ cleanup:
 static int remoteDispatchNetworkLookupByName(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_lookup_by_name_args *args,
     remote_network_lookup_by_name_ret *ret);
 static int remoteDispatchNetworkLookupByNameHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkLookupByName(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkLookupByName(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNetworkLookupByName(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_lookup_by_name_args *args,
     remote_network_lookup_by_name_ret *ret)
@@ -7707,25 +7982,25 @@ cleanup:
 static int remoteDispatchNetworkLookupByUUID(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_lookup_by_uuid_args *args,
     remote_network_lookup_by_uuid_ret *ret);
 static int remoteDispatchNetworkLookupByUUIDHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkLookupByUUID(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkLookupByUUID(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNetworkLookupByUUID(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_lookup_by_uuid_args *args,
     remote_network_lookup_by_uuid_ret *ret)
@@ -7759,24 +8034,24 @@ cleanup:
 static int remoteDispatchNetworkSetAutostart(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_set_autostart_args *args);
 static int remoteDispatchNetworkSetAutostartHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkSetAutostart(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkSetAutostart(server, client, msg, rerr, args);
 }
 static int remoteDispatchNetworkSetAutostart(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_set_autostart_args *args)
 {
@@ -7811,24 +8086,24 @@ cleanup:
 static int remoteDispatchNetworkUndefine(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_network_undefine_args *args);
 static int remoteDispatchNetworkUndefineHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNetworkUndefine(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkUndefine(server, client, msg, rerr, args);
 }
 static int remoteDispatchNetworkUndefine(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_network_undefine_args *args)
 {
@@ -7863,25 +8138,25 @@ cleanup:
 static int remoteDispatchNodeDeviceCreateXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_device_create_xml_args *args,
     remote_node_device_create_xml_ret *ret);
 static int remoteDispatchNodeDeviceCreateXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeDeviceCreateXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceCreateXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNodeDeviceCreateXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_device_create_xml_args *args,
     remote_node_device_create_xml_ret *ret)
@@ -7915,24 +8190,24 @@ cleanup:
 static int remoteDispatchNodeDeviceDestroy(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_device_destroy_args *args);
 static int remoteDispatchNodeDeviceDestroyHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeDeviceDestroy(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceDestroy(server, client, msg, rerr, args);
 }
 static int remoteDispatchNodeDeviceDestroy(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_device_destroy_args *args)
 {
@@ -7967,24 +8242,24 @@ cleanup:
 static int remoteDispatchNodeDeviceDettach(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_device_dettach_args *args);
 static int remoteDispatchNodeDeviceDettachHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeDeviceDettach(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceDettach(server, client, msg, rerr, args);
 }
 static int remoteDispatchNodeDeviceDettach(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_device_dettach_args *args)
 {
@@ -8019,20 +8294,20 @@ cleanup:
 static int remoteDispatchNodeDeviceGetParent(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_device_get_parent_args *args,
     remote_node_device_get_parent_ret *ret);
 static int remoteDispatchNodeDeviceGetParentHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeDeviceGetParent(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceGetParent(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchNodeDeviceGetParent body has to be implemented manually */
 
@@ -8041,25 +8316,25 @@ static int remoteDispatchNodeDeviceGetParentHelper(
 static int remoteDispatchNodeDeviceGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_device_get_xml_desc_args *args,
     remote_node_device_get_xml_desc_ret *ret);
 static int remoteDispatchNodeDeviceGetXMLDescHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeDeviceGetXMLDesc(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceGetXMLDesc(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNodeDeviceGetXMLDesc(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_device_get_xml_desc_args *args,
     remote_node_device_get_xml_desc_ret *ret)
@@ -8097,25 +8372,25 @@ cleanup:
 static int remoteDispatchNodeDeviceListCaps(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_device_list_caps_args *args,
     remote_node_device_list_caps_ret *ret);
 static int remoteDispatchNodeDeviceListCapsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeDeviceListCaps(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceListCaps(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNodeDeviceListCaps(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_device_list_caps_args *args,
     remote_node_device_list_caps_ret *ret)
@@ -8167,25 +8442,25 @@ cleanup:
 static int remoteDispatchNodeDeviceLookupByName(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_device_lookup_by_name_args *args,
     remote_node_device_lookup_by_name_ret *ret);
 static int remoteDispatchNodeDeviceLookupByNameHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeDeviceLookupByName(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceLookupByName(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNodeDeviceLookupByName(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_device_lookup_by_name_args *args,
     remote_node_device_lookup_by_name_ret *ret)
@@ -8219,25 +8494,25 @@ cleanup:
 static int remoteDispatchNodeDeviceNumOfCaps(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_device_num_of_caps_args *args,
     remote_node_device_num_of_caps_ret *ret);
 static int remoteDispatchNodeDeviceNumOfCapsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeDeviceNumOfCaps(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceNumOfCaps(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNodeDeviceNumOfCaps(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_device_num_of_caps_args *args,
     remote_node_device_num_of_caps_ret *ret)
@@ -8275,24 +8550,24 @@ cleanup:
 static int remoteDispatchNodeDeviceReAttach(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_device_re_attach_args *args);
 static int remoteDispatchNodeDeviceReAttachHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeDeviceReAttach(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceReAttach(server, client, msg, rerr, args);
 }
 static int remoteDispatchNodeDeviceReAttach(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_device_re_attach_args *args)
 {
@@ -8327,24 +8602,24 @@ cleanup:
 static int remoteDispatchNodeDeviceReset(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_device_reset_args *args);
 static int remoteDispatchNodeDeviceResetHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeDeviceReset(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeDeviceReset(server, client, msg, rerr, args);
 }
 static int remoteDispatchNodeDeviceReset(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_device_reset_args *args)
 {
@@ -8379,25 +8654,25 @@ cleanup:
 static int remoteDispatchNodeGetCellsFreeMemory(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_get_cells_free_memory_args *args,
     remote_node_get_cells_free_memory_ret *ret);
 static int remoteDispatchNodeGetCellsFreeMemoryHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeGetCellsFreeMemory(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeGetCellsFreeMemory(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNodeGetCellsFreeMemory(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_get_cells_free_memory_args *args,
     remote_node_get_cells_free_memory_ret *ret)
@@ -8443,20 +8718,20 @@ cleanup:
 static int remoteDispatchNodeGetCPUStats(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_get_cpu_stats_args *args,
     remote_node_get_cpu_stats_ret *ret);
 static int remoteDispatchNodeGetCPUStatsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeGetCPUStats(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeGetCPUStats(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchNodeGetCPUStats body has to be implemented manually */
 
@@ -8465,24 +8740,24 @@ static int remoteDispatchNodeGetCPUStatsHelper(
 static int remoteDispatchNodeGetFreeMemory(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_get_free_memory_ret *ret);
 static int remoteDispatchNodeGetFreeMemoryHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeGetFreeMemory(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeGetFreeMemory(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNodeGetFreeMemory(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_get_free_memory_ret *ret)
 {
@@ -8513,24 +8788,24 @@ cleanup:
 static int remoteDispatchNodeGetInfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_get_info_ret *ret);
 static int remoteDispatchNodeGetInfoHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeGetInfo(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeGetInfo(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNodeGetInfo(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_get_info_ret *ret)
 {
@@ -8568,20 +8843,20 @@ cleanup:
 static int remoteDispatchNodeGetMemoryStats(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_get_memory_stats_args *args,
     remote_node_get_memory_stats_ret *ret);
 static int remoteDispatchNodeGetMemoryStatsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeGetMemoryStats(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeGetMemoryStats(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchNodeGetMemoryStats body has to be implemented manually */
 
@@ -8590,19 +8865,19 @@ static int remoteDispatchNodeGetMemoryStatsHelper(
 static int remoteDispatchNodeGetSecurityModel(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_get_security_model_ret *ret);
 static int remoteDispatchNodeGetSecurityModelHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeGetSecurityModel(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeGetSecurityModel(server, client, msg, rerr, ret);
 }
 /* remoteDispatchNodeGetSecurityModel body has to be implemented manually */
 
@@ -8611,25 +8886,25 @@ static int remoteDispatchNodeGetSecurityModelHelper(
 static int remoteDispatchNodeListDevices(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_list_devices_args *args,
     remote_node_list_devices_ret *ret);
 static int remoteDispatchNodeListDevicesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeListDevices(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeListDevices(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNodeListDevices(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_list_devices_args *args,
     remote_node_list_devices_ret *ret)
@@ -8678,25 +8953,25 @@ cleanup:
 static int remoteDispatchNodeNumOfDevices(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_node_num_of_devices_args *args,
     remote_node_num_of_devices_ret *ret);
 static int remoteDispatchNodeNumOfDevicesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNodeNumOfDevices(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeNumOfDevices(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNodeNumOfDevices(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_node_num_of_devices_args *args,
     remote_node_num_of_devices_ret *ret)
@@ -8731,24 +9006,24 @@ cleanup:
 static int remoteDispatchNumOfDefinedDomains(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_num_of_defined_domains_ret *ret);
 static int remoteDispatchNumOfDefinedDomainsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNumOfDefinedDomains(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNumOfDefinedDomains(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNumOfDefinedDomains(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_num_of_defined_domains_ret *ret)
 {
@@ -8779,24 +9054,24 @@ cleanup:
 static int remoteDispatchNumOfDefinedInterfaces(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_num_of_defined_interfaces_ret *ret);
 static int remoteDispatchNumOfDefinedInterfacesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNumOfDefinedInterfaces(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNumOfDefinedInterfaces(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNumOfDefinedInterfaces(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_num_of_defined_interfaces_ret *ret)
 {
@@ -8827,24 +9102,24 @@ cleanup:
 static int remoteDispatchNumOfDefinedNetworks(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_num_of_defined_networks_ret *ret);
 static int remoteDispatchNumOfDefinedNetworksHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNumOfDefinedNetworks(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNumOfDefinedNetworks(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNumOfDefinedNetworks(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_num_of_defined_networks_ret *ret)
 {
@@ -8875,24 +9150,24 @@ cleanup:
 static int remoteDispatchNumOfDefinedStoragePools(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_num_of_defined_storage_pools_ret *ret);
 static int remoteDispatchNumOfDefinedStoragePoolsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNumOfDefinedStoragePools(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNumOfDefinedStoragePools(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNumOfDefinedStoragePools(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_num_of_defined_storage_pools_ret *ret)
 {
@@ -8923,24 +9198,24 @@ cleanup:
 static int remoteDispatchNumOfDomains(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_num_of_domains_ret *ret);
 static int remoteDispatchNumOfDomainsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNumOfDomains(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNumOfDomains(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNumOfDomains(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_num_of_domains_ret *ret)
 {
@@ -8971,24 +9246,24 @@ cleanup:
 static int remoteDispatchNumOfInterfaces(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_num_of_interfaces_ret *ret);
 static int remoteDispatchNumOfInterfacesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNumOfInterfaces(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNumOfInterfaces(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNumOfInterfaces(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_num_of_interfaces_ret *ret)
 {
@@ -9019,24 +9294,24 @@ cleanup:
 static int remoteDispatchNumOfNetworks(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_num_of_networks_ret *ret);
 static int remoteDispatchNumOfNetworksHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNumOfNetworks(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNumOfNetworks(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNumOfNetworks(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_num_of_networks_ret *ret)
 {
@@ -9067,24 +9342,24 @@ cleanup:
 static int remoteDispatchNumOfNWFilters(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_num_of_nwfilters_ret *ret);
 static int remoteDispatchNumOfNWFiltersHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNumOfNWFilters(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNumOfNWFilters(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNumOfNWFilters(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_num_of_nwfilters_ret *ret)
 {
@@ -9115,24 +9390,24 @@ cleanup:
 static int remoteDispatchNumOfSecrets(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_num_of_secrets_ret *ret);
 static int remoteDispatchNumOfSecretsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNumOfSecrets(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNumOfSecrets(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNumOfSecrets(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_num_of_secrets_ret *ret)
 {
@@ -9163,24 +9438,24 @@ cleanup:
 static int remoteDispatchNumOfStoragePools(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_num_of_storage_pools_ret *ret);
 static int remoteDispatchNumOfStoragePoolsHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args ATTRIBUTE_UNUSED,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNumOfStoragePools(server, client, hdr, rerr, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNumOfStoragePools(server, client, msg, rerr, ret);
 }
 static int remoteDispatchNumOfStoragePools(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_num_of_storage_pools_ret *ret)
 {
@@ -9211,25 +9486,25 @@ cleanup:
 static int remoteDispatchNWFilterDefineXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_nwfilter_define_xml_args *args,
     remote_nwfilter_define_xml_ret *ret);
 static int remoteDispatchNWFilterDefineXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNWFilterDefineXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNWFilterDefineXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNWFilterDefineXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_nwfilter_define_xml_args *args,
     remote_nwfilter_define_xml_ret *ret)
@@ -9263,25 +9538,25 @@ cleanup:
 static int remoteDispatchNWFilterGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_nwfilter_get_xml_desc_args *args,
     remote_nwfilter_get_xml_desc_ret *ret);
 static int remoteDispatchNWFilterGetXMLDescHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNWFilterGetXMLDesc(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNWFilterGetXMLDesc(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNWFilterGetXMLDesc(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_nwfilter_get_xml_desc_args *args,
     remote_nwfilter_get_xml_desc_ret *ret)
@@ -9319,25 +9594,25 @@ cleanup:
 static int remoteDispatchNWFilterLookupByName(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_nwfilter_lookup_by_name_args *args,
     remote_nwfilter_lookup_by_name_ret *ret);
 static int remoteDispatchNWFilterLookupByNameHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNWFilterLookupByName(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNWFilterLookupByName(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNWFilterLookupByName(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_nwfilter_lookup_by_name_args *args,
     remote_nwfilter_lookup_by_name_ret *ret)
@@ -9371,25 +9646,25 @@ cleanup:
 static int remoteDispatchNWFilterLookupByUUID(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_nwfilter_lookup_by_uuid_args *args,
     remote_nwfilter_lookup_by_uuid_ret *ret);
 static int remoteDispatchNWFilterLookupByUUIDHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNWFilterLookupByUUID(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNWFilterLookupByUUID(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchNWFilterLookupByUUID(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_nwfilter_lookup_by_uuid_args *args,
     remote_nwfilter_lookup_by_uuid_ret *ret)
@@ -9423,24 +9698,24 @@ cleanup:
 static int remoteDispatchNWFilterUndefine(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_nwfilter_undefine_args *args);
 static int remoteDispatchNWFilterUndefineHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchNWFilterUndefine(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNWFilterUndefine(server, client, msg, rerr, args);
 }
 static int remoteDispatchNWFilterUndefine(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_nwfilter_undefine_args *args)
 {
@@ -9475,19 +9750,19 @@ cleanup:
 static int remoteDispatchOpen(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_open_args *args);
 static int remoteDispatchOpenHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchOpen(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchOpen(server, client, msg, rerr, args);
 }
 /* remoteDispatchOpen body has to be implemented manually */
 
@@ -9496,25 +9771,25 @@ static int remoteDispatchOpenHelper(
 static int remoteDispatchSecretDefineXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_secret_define_xml_args *args,
     remote_secret_define_xml_ret *ret);
 static int remoteDispatchSecretDefineXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchSecretDefineXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchSecretDefineXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchSecretDefineXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_secret_define_xml_args *args,
     remote_secret_define_xml_ret *ret)
@@ -9548,20 +9823,20 @@ cleanup:
 static int remoteDispatchSecretGetValue(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_secret_get_value_args *args,
     remote_secret_get_value_ret *ret);
 static int remoteDispatchSecretGetValueHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchSecretGetValue(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchSecretGetValue(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchSecretGetValue body has to be implemented manually */
 
@@ -9570,25 +9845,25 @@ static int remoteDispatchSecretGetValueHelper(
 static int remoteDispatchSecretGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_secret_get_xml_desc_args *args,
     remote_secret_get_xml_desc_ret *ret);
 static int remoteDispatchSecretGetXMLDescHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchSecretGetXMLDesc(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchSecretGetXMLDesc(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchSecretGetXMLDesc(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_secret_get_xml_desc_args *args,
     remote_secret_get_xml_desc_ret *ret)
@@ -9626,25 +9901,25 @@ cleanup:
 static int remoteDispatchSecretLookupByUsage(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_secret_lookup_by_usage_args *args,
     remote_secret_lookup_by_usage_ret *ret);
 static int remoteDispatchSecretLookupByUsageHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchSecretLookupByUsage(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchSecretLookupByUsage(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchSecretLookupByUsage(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_secret_lookup_by_usage_args *args,
     remote_secret_lookup_by_usage_ret *ret)
@@ -9678,25 +9953,25 @@ cleanup:
 static int remoteDispatchSecretLookupByUUID(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_secret_lookup_by_uuid_args *args,
     remote_secret_lookup_by_uuid_ret *ret);
 static int remoteDispatchSecretLookupByUUIDHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchSecretLookupByUUID(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchSecretLookupByUUID(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchSecretLookupByUUID(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_secret_lookup_by_uuid_args *args,
     remote_secret_lookup_by_uuid_ret *ret)
@@ -9730,24 +10005,24 @@ cleanup:
 static int remoteDispatchSecretSetValue(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_secret_set_value_args *args);
 static int remoteDispatchSecretSetValueHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchSecretSetValue(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchSecretSetValue(server, client, msg, rerr, args);
 }
 static int remoteDispatchSecretSetValue(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_secret_set_value_args *args)
 {
@@ -9782,24 +10057,24 @@ cleanup:
 static int remoteDispatchSecretUndefine(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_secret_undefine_args *args);
 static int remoteDispatchSecretUndefineHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchSecretUndefine(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchSecretUndefine(server, client, msg, rerr, args);
 }
 static int remoteDispatchSecretUndefine(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_secret_undefine_args *args)
 {
@@ -9834,24 +10109,24 @@ cleanup:
 static int remoteDispatchStoragePoolBuild(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_build_args *args);
 static int remoteDispatchStoragePoolBuildHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolBuild(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolBuild(server, client, msg, rerr, args);
 }
 static int remoteDispatchStoragePoolBuild(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_build_args *args)
 {
@@ -9886,24 +10161,24 @@ cleanup:
 static int remoteDispatchStoragePoolCreate(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_create_args *args);
 static int remoteDispatchStoragePoolCreateHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolCreate(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolCreate(server, client, msg, rerr, args);
 }
 static int remoteDispatchStoragePoolCreate(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_create_args *args)
 {
@@ -9938,25 +10213,25 @@ cleanup:
 static int remoteDispatchStoragePoolCreateXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_create_xml_args *args,
     remote_storage_pool_create_xml_ret *ret);
 static int remoteDispatchStoragePoolCreateXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolCreateXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolCreateXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolCreateXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_create_xml_args *args,
     remote_storage_pool_create_xml_ret *ret)
@@ -9990,25 +10265,25 @@ cleanup:
 static int remoteDispatchStoragePoolDefineXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_define_xml_args *args,
     remote_storage_pool_define_xml_ret *ret);
 static int remoteDispatchStoragePoolDefineXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolDefineXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolDefineXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolDefineXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_define_xml_args *args,
     remote_storage_pool_define_xml_ret *ret)
@@ -10042,24 +10317,24 @@ cleanup:
 static int remoteDispatchStoragePoolDelete(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_delete_args *args);
 static int remoteDispatchStoragePoolDeleteHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolDelete(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolDelete(server, client, msg, rerr, args);
 }
 static int remoteDispatchStoragePoolDelete(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_delete_args *args)
 {
@@ -10094,24 +10369,24 @@ cleanup:
 static int remoteDispatchStoragePoolDestroy(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_destroy_args *args);
 static int remoteDispatchStoragePoolDestroyHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolDestroy(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolDestroy(server, client, msg, rerr, args);
 }
 static int remoteDispatchStoragePoolDestroy(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_destroy_args *args)
 {
@@ -10146,25 +10421,25 @@ cleanup:
 static int remoteDispatchStoragePoolGetAutostart(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_get_autostart_args *args,
     remote_storage_pool_get_autostart_ret *ret);
 static int remoteDispatchStoragePoolGetAutostartHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolGetAutostart(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolGetAutostart(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolGetAutostart(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_get_autostart_args *args,
     remote_storage_pool_get_autostart_ret *ret)
@@ -10202,25 +10477,25 @@ cleanup:
 static int remoteDispatchStoragePoolGetInfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_get_info_args *args,
     remote_storage_pool_get_info_ret *ret);
 static int remoteDispatchStoragePoolGetInfoHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolGetInfo(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolGetInfo(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolGetInfo(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_get_info_args *args,
     remote_storage_pool_get_info_ret *ret)
@@ -10261,25 +10536,25 @@ cleanup:
 static int remoteDispatchStoragePoolGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_get_xml_desc_args *args,
     remote_storage_pool_get_xml_desc_ret *ret);
 static int remoteDispatchStoragePoolGetXMLDescHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolGetXMLDesc(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolGetXMLDesc(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolGetXMLDesc(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_get_xml_desc_args *args,
     remote_storage_pool_get_xml_desc_ret *ret)
@@ -10317,25 +10592,25 @@ cleanup:
 static int remoteDispatchStoragePoolIsActive(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_is_active_args *args,
     remote_storage_pool_is_active_ret *ret);
 static int remoteDispatchStoragePoolIsActiveHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolIsActive(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolIsActive(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolIsActive(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_is_active_args *args,
     remote_storage_pool_is_active_ret *ret)
@@ -10373,25 +10648,25 @@ cleanup:
 static int remoteDispatchStoragePoolIsPersistent(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_is_persistent_args *args,
     remote_storage_pool_is_persistent_ret *ret);
 static int remoteDispatchStoragePoolIsPersistentHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolIsPersistent(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolIsPersistent(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolIsPersistent(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_is_persistent_args *args,
     remote_storage_pool_is_persistent_ret *ret)
@@ -10429,25 +10704,25 @@ cleanup:
 static int remoteDispatchStoragePoolListVolumes(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_list_volumes_args *args,
     remote_storage_pool_list_volumes_ret *ret);
 static int remoteDispatchStoragePoolListVolumesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolListVolumes(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolListVolumes(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolListVolumes(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_list_volumes_args *args,
     remote_storage_pool_list_volumes_ret *ret)
@@ -10499,25 +10774,25 @@ cleanup:
 static int remoteDispatchStoragePoolLookupByName(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_lookup_by_name_args *args,
     remote_storage_pool_lookup_by_name_ret *ret);
 static int remoteDispatchStoragePoolLookupByNameHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolLookupByName(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolLookupByName(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolLookupByName(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_lookup_by_name_args *args,
     remote_storage_pool_lookup_by_name_ret *ret)
@@ -10551,25 +10826,25 @@ cleanup:
 static int remoteDispatchStoragePoolLookupByUUID(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_lookup_by_uuid_args *args,
     remote_storage_pool_lookup_by_uuid_ret *ret);
 static int remoteDispatchStoragePoolLookupByUUIDHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolLookupByUUID(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolLookupByUUID(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolLookupByUUID(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_lookup_by_uuid_args *args,
     remote_storage_pool_lookup_by_uuid_ret *ret)
@@ -10603,25 +10878,25 @@ cleanup:
 static int remoteDispatchStoragePoolLookupByVolume(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_lookup_by_volume_args *args,
     remote_storage_pool_lookup_by_volume_ret *ret);
 static int remoteDispatchStoragePoolLookupByVolumeHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolLookupByVolume(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolLookupByVolume(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolLookupByVolume(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_lookup_by_volume_args *args,
     remote_storage_pool_lookup_by_volume_ret *ret)
@@ -10661,25 +10936,25 @@ cleanup:
 static int remoteDispatchStoragePoolNumOfVolumes(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_num_of_volumes_args *args,
     remote_storage_pool_num_of_volumes_ret *ret);
 static int remoteDispatchStoragePoolNumOfVolumesHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolNumOfVolumes(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolNumOfVolumes(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStoragePoolNumOfVolumes(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_num_of_volumes_args *args,
     remote_storage_pool_num_of_volumes_ret *ret)
@@ -10717,24 +10992,24 @@ cleanup:
 static int remoteDispatchStoragePoolRefresh(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_refresh_args *args);
 static int remoteDispatchStoragePoolRefreshHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolRefresh(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolRefresh(server, client, msg, rerr, args);
 }
 static int remoteDispatchStoragePoolRefresh(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_refresh_args *args)
 {
@@ -10769,24 +11044,24 @@ cleanup:
 static int remoteDispatchStoragePoolSetAutostart(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_set_autostart_args *args);
 static int remoteDispatchStoragePoolSetAutostartHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolSetAutostart(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolSetAutostart(server, client, msg, rerr, args);
 }
 static int remoteDispatchStoragePoolSetAutostart(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_set_autostart_args *args)
 {
@@ -10821,24 +11096,24 @@ cleanup:
 static int remoteDispatchStoragePoolUndefine(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_undefine_args *args);
 static int remoteDispatchStoragePoolUndefineHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStoragePoolUndefine(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolUndefine(server, client, msg, rerr, args);
 }
 static int remoteDispatchStoragePoolUndefine(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_pool_undefine_args *args)
 {
@@ -10873,25 +11148,25 @@ cleanup:
 static int remoteDispatchStorageVolCreateXML(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_create_xml_args *args,
     remote_storage_vol_create_xml_ret *ret);
 static int remoteDispatchStorageVolCreateXMLHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolCreateXML(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolCreateXML(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStorageVolCreateXML(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_create_xml_args *args,
     remote_storage_vol_create_xml_ret *ret)
@@ -10931,25 +11206,25 @@ cleanup:
 static int remoteDispatchStorageVolCreateXMLFrom(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_create_xml_from_args *args,
     remote_storage_vol_create_xml_from_ret *ret);
 static int remoteDispatchStorageVolCreateXMLFromHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolCreateXMLFrom(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolCreateXMLFrom(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStorageVolCreateXMLFrom(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_create_xml_from_args *args,
     remote_storage_vol_create_xml_from_ret *ret)
@@ -10995,24 +11270,24 @@ cleanup:
 static int remoteDispatchStorageVolDelete(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_delete_args *args);
 static int remoteDispatchStorageVolDeleteHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolDelete(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolDelete(server, client, msg, rerr, args);
 }
 static int remoteDispatchStorageVolDelete(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_delete_args *args)
 {
@@ -11047,24 +11322,24 @@ cleanup:
 static int remoteDispatchStorageVolDownload(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_download_args *args);
 static int remoteDispatchStorageVolDownloadHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolDownload(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolDownload(server, client, msg, rerr, args);
 }
 static int remoteDispatchStorageVolDownload(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_download_args *args)
 {
@@ -11086,7 +11361,7 @@ static int remoteDispatchStorageVolDownload(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, hdr)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
         goto cleanup;
 
     if (virStorageVolDownload(vol, st, args->offset, args->length, args->flags) < 0)
@@ -11117,25 +11392,25 @@ cleanup:
 static int remoteDispatchStorageVolGetInfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_get_info_args *args,
     remote_storage_vol_get_info_ret *ret);
 static int remoteDispatchStorageVolGetInfoHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolGetInfo(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolGetInfo(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStorageVolGetInfo(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_get_info_args *args,
     remote_storage_vol_get_info_ret *ret)
@@ -11175,25 +11450,25 @@ cleanup:
 static int remoteDispatchStorageVolGetPath(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_get_path_args *args,
     remote_storage_vol_get_path_ret *ret);
 static int remoteDispatchStorageVolGetPathHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolGetPath(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolGetPath(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStorageVolGetPath(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_get_path_args *args,
     remote_storage_vol_get_path_ret *ret)
@@ -11231,25 +11506,25 @@ cleanup:
 static int remoteDispatchStorageVolGetXMLDesc(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_get_xml_desc_args *args,
     remote_storage_vol_get_xml_desc_ret *ret);
 static int remoteDispatchStorageVolGetXMLDescHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolGetXMLDesc(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolGetXMLDesc(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStorageVolGetXMLDesc(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_get_xml_desc_args *args,
     remote_storage_vol_get_xml_desc_ret *ret)
@@ -11287,25 +11562,25 @@ cleanup:
 static int remoteDispatchStorageVolLookupByKey(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_lookup_by_key_args *args,
     remote_storage_vol_lookup_by_key_ret *ret);
 static int remoteDispatchStorageVolLookupByKeyHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolLookupByKey(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolLookupByKey(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStorageVolLookupByKey(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_lookup_by_key_args *args,
     remote_storage_vol_lookup_by_key_ret *ret)
@@ -11339,25 +11614,25 @@ cleanup:
 static int remoteDispatchStorageVolLookupByName(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_lookup_by_name_args *args,
     remote_storage_vol_lookup_by_name_ret *ret);
 static int remoteDispatchStorageVolLookupByNameHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolLookupByName(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolLookupByName(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStorageVolLookupByName(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_lookup_by_name_args *args,
     remote_storage_vol_lookup_by_name_ret *ret)
@@ -11397,25 +11672,25 @@ cleanup:
 static int remoteDispatchStorageVolLookupByPath(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_lookup_by_path_args *args,
     remote_storage_vol_lookup_by_path_ret *ret);
 static int remoteDispatchStorageVolLookupByPathHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolLookupByPath(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolLookupByPath(server, client, msg, rerr, args, ret);
 }
 static int remoteDispatchStorageVolLookupByPath(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_lookup_by_path_args *args,
     remote_storage_vol_lookup_by_path_ret *ret)
@@ -11449,24 +11724,24 @@ cleanup:
 static int remoteDispatchStorageVolUpload(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_upload_args *args);
 static int remoteDispatchStorageVolUploadHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolUpload(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolUpload(server, client, msg, rerr, args);
 }
 static int remoteDispatchStorageVolUpload(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_upload_args *args)
 {
@@ -11488,7 +11763,7 @@ static int remoteDispatchStorageVolUpload(
     if (!(st = virStreamNew(priv->conn, VIR_STREAM_NONBLOCK)))
         goto cleanup;
 
-    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, hdr)))
+    if (!(stream = daemonCreateClientStream(client, st, remoteProgram, &msg->header)))
         goto cleanup;
 
     if (virStorageVolUpload(vol, st, args->offset, args->length, args->flags) < 0)
@@ -11519,24 +11794,24 @@ cleanup:
 static int remoteDispatchStorageVolWipe(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_wipe_args *args);
 static int remoteDispatchStorageVolWipeHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret ATTRIBUTE_UNUSED)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchStorageVolWipe(server, client, hdr, rerr, args);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStorageVolWipe(server, client, msg, rerr, args);
 }
 static int remoteDispatchStorageVolWipe(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     remote_storage_vol_wipe_args *args)
 {
@@ -11571,50 +11846,22 @@ cleanup:
 static int remoteDispatchSupportsFeature(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     remote_supports_feature_args *args,
     remote_supports_feature_ret *ret);
 static int remoteDispatchSupportsFeatureHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return remoteDispatchSupportsFeature(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchSupportsFeature(server, client, msg, rerr, args, ret);
 }
-static int remoteDispatchSupportsFeature(
-    virNetServerPtr server ATTRIBUTE_UNUSED,
-    virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
-    virNetMessageErrorPtr rerr,
-    remote_supports_feature_args *args,
-    remote_supports_feature_ret *ret)
-{
-    int rv = -1;
-    int supported;
-    struct daemonClientPrivate *priv =
-        virNetServerClientGetPrivateData(client);
-
-    if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
-        goto cleanup;
-    }
-
-    if ((supported = virDrvSupportsFeature(priv->conn, args->feature)) < 0)
-        goto cleanup;
-
-    ret->supported = supported;
-    rv = 0;
-
-cleanup:
-    if (rv < 0)
-        virNetMessageSaveError(rerr);
-    return rv;
-}
+/* remoteDispatchSupportsFeature body has to be implemented manually */
 
 
 
@@ -13812,6 +14059,60 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_block_stats_flags_args,
    sizeof(remote_domain_block_stats_flags_ret),
    (xdrproc_t)xdr_remote_domain_block_stats_flags_ret,
+   true,
+   0
+},
+{ /* Method DomainSnapshotGetParent => 244 */
+   remoteDispatchDomainSnapshotGetParentHelper,
+   sizeof(remote_domain_snapshot_get_parent_args),
+   (xdrproc_t)xdr_remote_domain_snapshot_get_parent_args,
+   sizeof(remote_domain_snapshot_get_parent_ret),
+   (xdrproc_t)xdr_remote_domain_snapshot_get_parent_ret,
+   true,
+   1
+},
+{ /* Method DomainReset => 245 */
+   remoteDispatchDomainResetHelper,
+   sizeof(remote_domain_reset_args),
+   (xdrproc_t)xdr_remote_domain_reset_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainSnapshotNumChildren => 246 */
+   remoteDispatchDomainSnapshotNumChildrenHelper,
+   sizeof(remote_domain_snapshot_num_children_args),
+   (xdrproc_t)xdr_remote_domain_snapshot_num_children_args,
+   sizeof(remote_domain_snapshot_num_children_ret),
+   (xdrproc_t)xdr_remote_domain_snapshot_num_children_ret,
+   true,
+   1
+},
+{ /* Method DomainSnapshotListChildrenNames => 247 */
+   remoteDispatchDomainSnapshotListChildrenNamesHelper,
+   sizeof(remote_domain_snapshot_list_children_names_args),
+   (xdrproc_t)xdr_remote_domain_snapshot_list_children_names_args,
+   sizeof(remote_domain_snapshot_list_children_names_ret),
+   (xdrproc_t)xdr_remote_domain_snapshot_list_children_names_ret,
+   true,
+   1
+},
+{ /* Async event DomainEventDiskChange => 248 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainOpenGraphics => 249 */
+   remoteDispatchDomainOpenGraphicsHelper,
+   sizeof(remote_domain_open_graphics_args),
+   (xdrproc_t)xdr_remote_domain_open_graphics_args,
+   0,
+   (xdrproc_t)xdr_void,
    true,
    0
 },

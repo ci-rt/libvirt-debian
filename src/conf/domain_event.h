@@ -61,6 +61,7 @@ struct _virDomainEventState {
     int timer;
     /* Flag if we're in process of dispatching */
     bool isDispatching;
+    virMutex lock;
 };
 typedef struct _virDomainEventState virDomainEventState;
 typedef virDomainEventState *virDomainEventStatePtr;
@@ -177,6 +178,17 @@ virDomainEventPtr virDomainEventBlockJobNewFromDom(virDomainPtr dom,
                                                     const char *path,
                                                     int type,
                                                     int status);
+
+virDomainEventPtr virDomainEventDiskChangeNewFromObj(virDomainObjPtr obj,
+                                                     const char *oldSrcPath,
+                                                     const char *newSrcPath,
+                                                     const char *devAlias,
+                                                     int reason);
+virDomainEventPtr virDomainEventDiskChangeNewFromDom(virDomainPtr dom,
+                                                     const char *oldSrcPath,
+                                                     const char *newSrcPath,
+                                                     const char *devAlias,
+                                                     int reason);
 
 int virDomainEventQueuePush(virDomainEventQueuePtr evtQueue,
                             virDomainEventPtr event);

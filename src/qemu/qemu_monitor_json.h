@@ -46,7 +46,9 @@ int qemuMonitorJSONCheckHMP(qemuMonitorPtr mon);
 int qemuMonitorJSONStartCPUs(qemuMonitorPtr mon,
                              virConnectPtr conn);
 int qemuMonitorJSONStopCPUs(qemuMonitorPtr mon);
-int qemuMonitorJSONGetStatus(qemuMonitorPtr mon, bool *running);
+int qemuMonitorJSONGetStatus(qemuMonitorPtr mon,
+                             bool *running,
+                             virDomainPausedReason *reason);
 
 int qemuMonitorJSONSystemPowerdown(qemuMonitorPtr mon);
 int qemuMonitorJSONSystemReset(qemuMonitorPtr mon);
@@ -60,6 +62,9 @@ int qemuMonitorJSONGetBalloonInfo(qemuMonitorPtr mon,
 int qemuMonitorJSONGetMemoryStats(qemuMonitorPtr mon,
                                   virDomainMemoryStatPtr stats,
                                   unsigned int nr_stats);
+int qemuMonitorJSONGetBlockInfo(qemuMonitorPtr mon,
+                                const char *devname,
+                                struct qemuDomainDiskInfo *info);
 int qemuMonitorJSONGetBlockStatsInfo(qemuMonitorPtr mon,
                                      const char *dev_name,
                                      long long *rd_req,
@@ -244,5 +249,10 @@ int qemuMonitorJSONBlockJob(qemuMonitorPtr mon,
 int qemuMonitorJSONSetLink(qemuMonitorPtr mon,
                            const char *name,
                            enum virDomainNetInterfaceLinkState state);
+
+int qemuMonitorJSONOpenGraphics(qemuMonitorPtr mon,
+                                const char *protocol,
+                                const char *fdname,
+                                bool skipauth);
 
 #endif /* QEMU_MONITOR_JSON_H */

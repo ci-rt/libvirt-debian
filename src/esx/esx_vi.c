@@ -1763,11 +1763,8 @@ esxVI_LookupObjectContentByType(esxVI_Context *ctx,
      * Remove values given by the caller from the data structures to prevent
      * them from being freed by the call to esxVI_PropertyFilterSpec_Free().
      */
-    if (objectSpec != NULL) {
-        objectSpec->obj = NULL;
-        objectSpec->selectSet = NULL;
-    }
-
+    objectSpec->obj = NULL;
+    objectSpec->selectSet = NULL;
     if (propertySpec != NULL) {
         propertySpec->type = NULL;
         propertySpec->pathSet = NULL;
@@ -2164,15 +2161,19 @@ esxVI_GetVirtualMachineIdentity(esxVI_ObjectContent *virtualMachine,
 
 int
 esxVI_GetNumberOfSnapshotTrees
-  (esxVI_VirtualMachineSnapshotTree *snapshotTreeList)
+  (esxVI_VirtualMachineSnapshotTree *snapshotTreeList, bool recurse,
+   bool leaves)
 {
     int count = 0;
     esxVI_VirtualMachineSnapshotTree *snapshotTree;
 
     for (snapshotTree = snapshotTreeList; snapshotTree != NULL;
          snapshotTree = snapshotTree->_next) {
-        count += 1 + esxVI_GetNumberOfSnapshotTrees
-                       (snapshotTree->childSnapshotList);
+        if (!(leaves && snapshotTree->childSnapshotList))
+            count++;
+        if (recurse)
+            count += esxVI_GetNumberOfSnapshotTrees
+                (snapshotTree->childSnapshotList, true, leaves);
     }
 
     return count;
@@ -2182,7 +2183,8 @@ esxVI_GetNumberOfSnapshotTrees
 
 int
 esxVI_GetSnapshotTreeNames(esxVI_VirtualMachineSnapshotTree *snapshotTreeList,
-                           char **names, int nameslen)
+                           char **names, int nameslen, bool recurse,
+                           bool leaves)
 {
     int count = 0;
     int result;
@@ -2192,27 +2194,33 @@ esxVI_GetSnapshotTreeNames(esxVI_VirtualMachineSnapshotTree *snapshotTreeList,
     for (snapshotTree = snapshotTreeList;
          snapshotTree != NULL && count < nameslen;
          snapshotTree = snapshotTree->_next) {
-        names[count] = strdup(snapshotTree->name);
+        if (!(leaves && snapshotTree->childSnapshotList)) {
+            names[count] = strdup(snapshotTree->name);
 
-        if (names[count] == NULL) {
-            virReportOOMError();
-            goto failure;
+            if (names[count] == NULL) {
+                virReportOOMError();
+                goto failure;
+            }
+
+            count++;
         }
-
-        count++;
 
         if (count >= nameslen) {
             break;
         }
 
-        result = esxVI_GetSnapshotTreeNames(snapshotTree->childSnapshotList,
-                                            names + count, nameslen - count);
+        if (recurse) {
+            result = esxVI_GetSnapshotTreeNames(snapshotTree->childSnapshotList,
+                                                names + count,
+                                                nameslen - count,
+                                                true, leaves);
 
-        if (result < 0) {
-            goto failure;
+            if (result < 0) {
+                goto failure;
+            }
+
+            count += result;
         }
-
-        count += result;
     }
 
     return count;
@@ -2237,7 +2245,7 @@ esxVI_GetSnapshotTreeByName
     esxVI_VirtualMachineSnapshotTree *candidate;
 
     if (snapshotTree == NULL || *snapshotTree != NULL ||
-        snapshotTreeParent == NULL || *snapshotTreeParent != NULL) {
+        (snapshotTreeParent && *snapshotTreeParent != NULL)) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
@@ -2246,14 +2254,15 @@ esxVI_GetSnapshotTreeByName
          candidate = candidate->_next) {
         if (STREQ(candidate->name, name)) {
             *snapshotTree = candidate;
-            *snapshotTreeParent = NULL;
+            if (snapshotTreeParent)
+                *snapshotTreeParent = NULL;
             return 1;
         }
 
         if (esxVI_GetSnapshotTreeByName(candidate->childSnapshotList, name,
                                         snapshotTree, snapshotTreeParent,
                                         occurrence) > 0) {
-            if (*snapshotTreeParent == NULL) {
+            if (snapshotTreeParent && *snapshotTreeParent == NULL) {
                 *snapshotTreeParent = candidate;
             }
 

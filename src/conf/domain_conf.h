@@ -74,6 +74,14 @@ enum virDomainDeviceAddressType {
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST
 };
 
+enum virDomainDeviceAddressPciMulti {
+    VIR_DOMAIN_DEVICE_ADDRESS_PCI_MULTI_DEFAULT = 0,
+    VIR_DOMAIN_DEVICE_ADDRESS_PCI_MULTI_ON,
+    VIR_DOMAIN_DEVICE_ADDRESS_PCI_MULTI_OFF,
+
+    VIR_DOMAIN_DEVICE_ADDRESS_PCI_MULTI_LAST
+};
+
 typedef struct _virDomainDevicePCIAddress virDomainDevicePCIAddress;
 typedef virDomainDevicePCIAddress *virDomainDevicePCIAddressPtr;
 struct _virDomainDevicePCIAddress {
@@ -81,6 +89,7 @@ struct _virDomainDevicePCIAddress {
     unsigned int bus;
     unsigned int slot;
     unsigned int function;
+    int          multi;  /* enum virDomainDeviceAddressPciMulti */
 };
 
 typedef struct _virDomainDeviceDriveAddress virDomainDeviceDriveAddress;
@@ -144,6 +153,31 @@ struct _virDomainDeviceInfo {
     } master;
 };
 
+typedef struct _virDomainHostdevOrigStates virDomainHostdevOrigStates;
+typedef virDomainHostdevOrigStates *virDomainHostdevOrigStatesPtr;
+struct _virDomainHostdevOrigStates {
+    union {
+        struct {
+            /* Does the device need to unbind from stub when
+             * reattaching to host?
+             */
+            unsigned int unbind_from_stub : 1;
+
+            /* Does it need to use remove_slot when reattaching
+             * the device to host?
+             */
+            unsigned int remove_slot : 1;
+
+            /* Does it need to reprobe driver for the device when
+             * reattaching to host?
+             */
+            unsigned int reprobe :1;
+        } pci;
+
+        /* Perhaps 'usb' in future */
+    } states;
+};
+
 typedef struct _virDomainLeaseDef virDomainLeaseDef;
 typedef virDomainLeaseDef *virDomainLeaseDefPtr;
 struct _virDomainLeaseDef {
@@ -192,6 +226,7 @@ enum  virDomainDiskCache {
     VIR_DOMAIN_DISK_CACHE_WRITETHRU,
     VIR_DOMAIN_DISK_CACHE_WRITEBACK,
     VIR_DOMAIN_DISK_CACHE_DIRECTSYNC,
+    VIR_DOMAIN_DISK_CACHE_UNSAFE,
 
     VIR_DOMAIN_DISK_CACHE_LAST
 };
@@ -199,6 +234,7 @@ enum  virDomainDiskCache {
 enum  virDomainDiskErrorPolicy {
     VIR_DOMAIN_DISK_ERROR_POLICY_DEFAULT,
     VIR_DOMAIN_DISK_ERROR_POLICY_STOP,
+    VIR_DOMAIN_DISK_ERROR_POLICY_REPORT,
     VIR_DOMAIN_DISK_ERROR_POLICY_IGNORE,
     VIR_DOMAIN_DISK_ERROR_POLICY_ENOSPACE,
 
@@ -258,6 +294,23 @@ enum virDomainSnapshotState {
     VIR_DOMAIN_DISK_SNAPSHOT = VIR_DOMAIN_LAST,
 };
 
+enum virDomainStartupPolicy {
+    VIR_DOMAIN_STARTUP_POLICY_DEFAULT = 0,
+    VIR_DOMAIN_STARTUP_POLICY_MANDATORY,
+    VIR_DOMAIN_STARTUP_POLICY_REQUISITE,
+    VIR_DOMAIN_STARTUP_POLICY_OPTIONAL,
+
+    VIR_DOMAIN_STARTUP_POLICY_LAST
+};
+
+enum virDomainDiskSecretType {
+    VIR_DOMAIN_DISK_SECRET_TYPE_NONE,
+    VIR_DOMAIN_DISK_SECRET_TYPE_UUID,
+    VIR_DOMAIN_DISK_SECRET_TYPE_USAGE,
+
+    VIR_DOMAIN_DISK_SECRET_TYPE_LAST
+};
+
 /* Stores the virtual disk configuration */
 typedef struct _virDomainDiskDef virDomainDiskDef;
 typedef virDomainDiskDef *virDomainDiskDefPtr;
@@ -270,16 +323,26 @@ struct _virDomainDiskDef {
     int protocol;
     int nhosts;
     virDomainDiskHostDefPtr hosts;
+    struct {
+        char *username;
+        int secretType; /* enum virDomainDiskSecretType */
+        union {
+            unsigned char uuid[VIR_UUID_BUFLEN];
+            char *usage;
+        } secret;
+    } auth;
     char *driverName;
     char *driverType;
     char *serial;
     int cachemode;
-    int error_policy;
+    int error_policy;  /* enum virDomainDiskErrorPolicy */
+    int rerror_policy; /* enum virDomainDiskErrorPolicy */
     int bootIndex;
     int iomode;
     int ioeventfd;
     int event_idx;
     int snapshot; /* enum virDomainDiskSnapshot */
+    int startupPolicy; /* enum virDomainStartupPolicy */
     unsigned int readonly : 1;
     unsigned int shared : 1;
     unsigned int transient : 1;
@@ -356,6 +419,15 @@ enum virDomainFSType {
     VIR_DOMAIN_FS_TYPE_LAST
 };
 
+/* Filesystem driver type */
+enum virDomainFSDriverType {
+    VIR_DOMAIN_FS_DRIVER_TYPE_DEFAULT = 0,
+    VIR_DOMAIN_FS_DRIVER_TYPE_PATH,
+    VIR_DOMAIN_FS_DRIVER_TYPE_HANDLE,
+
+    VIR_DOMAIN_FS_DRIVER_TYPE_LAST
+};
+
 /* Filesystem mount access mode  */
 enum virDomainFSAccessMode {
     VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH,
@@ -369,6 +441,7 @@ typedef struct _virDomainFSDef virDomainFSDef;
 typedef virDomainFSDef *virDomainFSDefPtr;
 struct _virDomainFSDef {
     int type;
+    int fsdriver;
     int accessmode;
     char *src;
     char *dst;
@@ -936,6 +1009,14 @@ enum virDomainHostdevSubsysType {
     VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_LAST
 };
 
+enum virDomainPciRombarMode {
+    VIR_DOMAIN_PCI_ROMBAR_DEFAULT = 0,
+    VIR_DOMAIN_PCI_ROMBAR_ON,
+    VIR_DOMAIN_PCI_ROMBAR_OFF,
+
+    VIR_DOMAIN_PCI_ROMBAR_LAST
+};
+
 typedef struct _virDomainHostdevDef virDomainHostdevDef;
 typedef virDomainHostdevDef *virDomainHostdevDefPtr;
 struct _virDomainHostdevDef {
@@ -964,6 +1045,8 @@ struct _virDomainHostdevDef {
     } source;
     int bootIndex;
     virDomainDeviceInfo info; /* Guest address */
+    int rombar;               /* enum virDomainPciRombarMode */
+    virDomainHostdevOrigStates origstates;
 };
 
 enum virDomainRedirdevBus {
@@ -1439,8 +1522,10 @@ typedef virDomainSnapshotObj *virDomainSnapshotObjPtr;
 struct _virDomainSnapshotObj {
     virDomainSnapshotDefPtr def;
 
-    /* Internal use only */
-    int mark; /* Used in identifying descendents. */
+    virDomainSnapshotObjPtr parent; /* NULL if root */
+    virDomainSnapshotObjPtr sibling; /* NULL if last child of parent */
+    size_t nchildren;
+    virDomainSnapshotObjPtr first_child; /* NULL if no children */
 };
 
 typedef struct _virDomainSnapshotObjList virDomainSnapshotObjList;
@@ -1449,6 +1534,9 @@ struct _virDomainSnapshotObjList {
     /* name string -> virDomainSnapshotObj  mapping
      * for O(1), lockless lookup-by-name */
     virHashTable *objs;
+
+    size_t nroots;
+    virDomainSnapshotObjPtr first_root;
 };
 
 typedef enum {
@@ -1462,7 +1550,7 @@ virDomainSnapshotDefPtr virDomainSnapshotDefParseString(const char *xmlStr,
                                                         unsigned int expectedVirtTypes,
                                                         unsigned int flags);
 void virDomainSnapshotDefFree(virDomainSnapshotDefPtr def);
-char *virDomainSnapshotDefFormat(char *domain_uuid,
+char *virDomainSnapshotDefFormat(const char *domain_uuid,
                                  virDomainSnapshotDefPtr def,
                                  unsigned int flags,
                                  int internal);
@@ -1478,20 +1566,24 @@ int virDomainSnapshotObjListGetNames(virDomainSnapshotObjListPtr snapshots,
                                      unsigned int flags);
 int virDomainSnapshotObjListNum(virDomainSnapshotObjListPtr snapshots,
                                 unsigned int flags);
+int virDomainSnapshotObjListGetNamesFrom(virDomainSnapshotObjPtr snapshot,
+                                         char **const names, int maxnames,
+                                         unsigned int flags);
+int virDomainSnapshotObjListNumFrom(virDomainSnapshotObjPtr snapshot,
+                                    unsigned int flags);
 virDomainSnapshotObjPtr virDomainSnapshotFindByName(const virDomainSnapshotObjListPtr snapshots,
                                                     const char *name);
 void virDomainSnapshotObjListRemove(virDomainSnapshotObjListPtr snapshots,
                                     virDomainSnapshotObjPtr snapshot);
-int virDomainSnapshotHasChildren(virDomainSnapshotObjPtr snap,
-                                virDomainSnapshotObjListPtr snapshots);
-int virDomainSnapshotForEachChild(virDomainSnapshotObjListPtr snapshots,
-                                  virDomainSnapshotObjPtr snapshot,
+int virDomainSnapshotForEachChild(virDomainSnapshotObjPtr snapshot,
                                   virHashIterator iter,
                                   void *data);
-int virDomainSnapshotForEachDescendant(virDomainSnapshotObjListPtr snapshots,
-                                       virDomainSnapshotObjPtr snapshot,
+int virDomainSnapshotForEachDescendant(virDomainSnapshotObjPtr snapshot,
                                        virHashIterator iter,
                                        void *data);
+int virDomainSnapshotUpdateRelations(virDomainSnapshotObjListPtr snapshots);
+void virDomainSnapshotDropParent(virDomainSnapshotObjListPtr snapshots,
+                                 virDomainSnapshotObjPtr snapshot);
 
 /* Guest VM runtime state */
 typedef struct _virDomainStateReason virDomainStateReason;
@@ -1643,6 +1735,9 @@ int virDomainDefAddImplicitControllers(virDomainDefPtr def);
 
 char *virDomainDefFormat(virDomainDefPtr def,
                          unsigned int flags);
+int virDomainDefFormatInternal(virDomainDefPtr def,
+                               unsigned int flags,
+                               virBufferPtr buf);
 
 int virDomainCpuSetParse(const char **str,
                          char sep,
@@ -1820,7 +1915,7 @@ VIR_ENUM_DECL(virDomainLifecycle)
 VIR_ENUM_DECL(virDomainLifecycleCrash)
 VIR_ENUM_DECL(virDomainDevice)
 VIR_ENUM_DECL(virDomainDeviceAddress)
-VIR_ENUM_DECL(virDomainDeviceAddressMode)
+VIR_ENUM_DECL(virDomainDeviceAddressPciMulti)
 VIR_ENUM_DECL(virDomainDisk)
 VIR_ENUM_DECL(virDomainDiskDevice)
 VIR_ENUM_DECL(virDomainDiskBus)
@@ -1828,6 +1923,7 @@ VIR_ENUM_DECL(virDomainDiskCache)
 VIR_ENUM_DECL(virDomainDiskErrorPolicy)
 VIR_ENUM_DECL(virDomainDiskProtocol)
 VIR_ENUM_DECL(virDomainDiskIo)
+VIR_ENUM_DECL(virDomainDiskSecretType)
 VIR_ENUM_DECL(virDomainDiskSnapshot)
 VIR_ENUM_DECL(virDomainIoEventFd)
 VIR_ENUM_DECL(virDomainVirtioEventIdx)
@@ -1835,6 +1931,7 @@ VIR_ENUM_DECL(virDomainController)
 VIR_ENUM_DECL(virDomainControllerModelSCSI)
 VIR_ENUM_DECL(virDomainControllerModelUSB)
 VIR_ENUM_DECL(virDomainFS)
+VIR_ENUM_DECL(virDomainFSDriverType)
 VIR_ENUM_DECL(virDomainFSAccessMode)
 VIR_ENUM_DECL(virDomainNet)
 VIR_ENUM_DECL(virDomainNetBackend)
@@ -1855,6 +1952,7 @@ VIR_ENUM_DECL(virDomainWatchdogAction)
 VIR_ENUM_DECL(virDomainVideo)
 VIR_ENUM_DECL(virDomainHostdevMode)
 VIR_ENUM_DECL(virDomainHostdevSubsys)
+VIR_ENUM_DECL(virDomainPciRombarMode)
 VIR_ENUM_DECL(virDomainHub)
 VIR_ENUM_DECL(virDomainRedirdevBus)
 VIR_ENUM_DECL(virDomainInput)
@@ -1893,4 +1991,5 @@ VIR_ENUM_DECL(virDomainTimerTrack)
 VIR_ENUM_DECL(virDomainTimerTickpolicy)
 VIR_ENUM_DECL(virDomainTimerMode)
 
+VIR_ENUM_DECL(virDomainStartupPolicy)
 #endif /* __DOMAIN_CONF_H */

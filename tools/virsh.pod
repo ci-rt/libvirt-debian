@@ -628,16 +628,23 @@ named by I<format> to a domain XML format.
 Convert the file I<xml> in domain XML format to the native guest
 configuration format named by I<format>.
 
-=item B<dump> I<domain-id> I<corefilepath> [I<--live>] [I<--crash>]
-[I<--bypass-cache>]
+=item B<dump> I<domain-id> I<corefilepath> [I<--bypass-cache>]
+{ [I<--live>] | [I<--crash>] | [I<--reset>] }
 
 Dumps the core of a domain to a file for analysis.
 If I<--live> is specified, the domain continues to run until the core
 dump is complete, rather than pausing up front.
 If I<--crash> is specified, the domain is halted with a crashed status,
 rather than merely left in a paused state.
+If I<--reset> is specified, the domain is reset after successful dump.
+Note, these three switches are mutually exclusive.
 If I<--bypass-cache> is specified, the save will avoid the file system
 cache, although this may slow down the operation.
+
+The progress may be monitored using B<domjobinfo> virsh command and canceled
+with B<domjobabort> command (sent by another virsh instance). Interrupting
+(usually with C<Ctrl-C>) the virsh process which runs B<dump> command is not
+enough to actually cancel the operation.
 
 NOTE: Some hypervisors may require the user to manually ensure proper
 permissions on file and path specified by argument I<corefilepath>.
@@ -684,6 +691,11 @@ the domain, it will automatically be started from this saved state.
 If I<--bypass-cache> is specified, the save will avoid the file system
 cache, although this may slow down the operation.
 
+The progress may be monitored using B<domjobinfo> virsh command and canceled
+with B<domjobabort> command (sent by another virsh instance). Interrupting
+(usually with C<Ctrl-C>) the virsh process which runs B<managedsave> command
+is not enough to actually cancel the operation.
+
 Normally, starting a managed save will decide between running or paused
 based on the state the domain was in when the save was done; passing
 either the I<--running> or I<--paused> flag will allow overriding which
@@ -717,9 +729,12 @@ and I<--suspend> leaves the domain paused on the destination host.
 I<--copy-storage-all> indicates migration with non-shared storage with full
 disk copy, I<--copy-storage-inc> indicates migration with non-shared storage
 with incremental copy (same base image shared between source and destination).
-I<--change-protection> enforces that no incompatible configuration changes
-will be made to the domain while the migration is underway; this flag is
-implicitly enabled when supported by the hypervisor, but can be explicitly
+In both cases the disk images have to exist on destination host, the
+I<--copy-storage-...> options only tell libvirt to transfer data from the
+images on source host to the images found at the same place on the destination
+host. I<--change-protection> enforces that no incompatible configuration
+changes will be made to the domain while the migration is underway; this flag
+is implicitly enabled when supported by the hypervisor, but can be explicitly
 used to reject the migration if the hypervisor lacks change protection
 support.  I<--verbose> displays the progress of migration.
 
@@ -735,6 +750,9 @@ between source and destination in accessing underlying storage.
 I<--timeout> B<seconds> forces guest to suspend when live migration exceeds
 that many seconds, and
 then the migration will complete offline. It can only be used with I<--live>.
+
+Running migration can be canceled by interrupting virsh (usually using
+C<Ctrl-C>) or by B<domjobabort> command sent from another virsh instance.
 
 B<Note>: The I<desturi> parameter for normal migration and peer2peer migration
 has different semantics:
@@ -774,6 +792,14 @@ domain actually reboots.
 The exact behavior of a domain when it reboots is set by the
 I<on_reboot> parameter in the domain's XML definition.
 
+=item B<reset> I<domain-id>
+
+Reset a domain immediately without any guest shutdown. B<reset>
+emulates the power reset button on a machine, where all guest
+hardware sees the RST line set and reinitializes internal state.
+
+B<Note>: Reset without any guest OS shutdown risks data loss.
+
 =item B<restore> I<state-file> [I<--bypass-cache>] [I<--xml> B<file>]
 [{I<--running> | I<--paused>}]
 
@@ -808,6 +834,11 @@ system, thus the memory allocated for the domain will be free for
 other domains to use.  B<virsh restore> restores from this state file.
 If I<--bypass-cache> is specified, the save will avoid the file system
 cache, although this may slow down the operation.
+
+The progress may be monitored using B<domjobinfo> virsh command and canceled
+with B<domjobabort> command (sent by another virsh instance). Interrupting
+(usually with C<Ctrl-C>) the virsh process which runs B<save> command is not
+enough to actually cancel the operation.
 
 This is roughly equivalent to doing a hibernate on a running computer,
 with all the same limitations.  Open network connections may be
@@ -893,7 +924,8 @@ If I<--current> is specified, affect the current guest state.
 
 B<Note>: The cpu_shares parameter has a valid value range of 0-262144; Negative
 values are wrapped to positive, and larger values are capped at the maximum.
-Therefore, -1 is a useful shorthand for 262144.
+Therefore, -1 is a useful shorthand for 262144. On the Linux kernel, the
+values 0 and 1 are automatically converted to a minimal value of 2.
 
 B<Note>: The weight and cap parameters are defined only for the
 XEN_CREDIT scheduler and are now I<DEPRECATED>.
@@ -959,6 +991,7 @@ Allows you to display or set the domain memory parameters. Without
 flags, the current settings are displayed; with a flag, the
 appropriate limit is adjusted if supported by the hypervisor.  LXC and
 QEMU/KVM support I<--hard-limit>, I<--soft-limit>, and I<--swap-hard-limit>.
+I<--min-guarantee> is supported only by ESX hypervisor.
 
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
@@ -996,6 +1029,8 @@ The guaranteed minimum memory allocation for the guest.  The units for this
 value are kilobytes (i.e. blocks of 1024 bytes).
 
 =back
+
+Specifying -1 as a value for these limits is interpreted as unlimited.
 
 =item B<blkiotune> I<domain-id> [I<--weight> B<weight>] [[I<--config>]
 [I<--live>] | [I<--current>]]
@@ -1087,7 +1122,7 @@ hypervisor.
 Output the device used for the TTY console of the domain. If the information
 is not available the processes will provide an exit code of 1.
 
-=item B<undefine> I<domain-id> [I<--managed-save>] [I<--snapshots-metadata]
+=item B<undefine> I<domain-id> [I<--managed-save>] [I<--snapshots-metadata>]
 
 Undefine a domain. If the domain is running, this converts it to a
 transient domain, without stopping it. If the domain is inactive,
@@ -1176,6 +1211,8 @@ Attach a device to the domain, using a device definition in an XML file.
 See the documentation to learn about libvirt XML format for a device.
 For cdrom and floppy devices, this command only replaces the media within
 the single existing device; consider using B<update-device> for this usage.
+For passthrough host devices, see also B<nodedev-dettach>, needed if
+the device does not use managed mode.
 
 =item B<attach-disk> I<domain-id> I<source> I<target>
 [I<--driver driver>] [I<--subdriver subdriver>] [I<--cache cache>]
@@ -1192,8 +1229,8 @@ floppy device; consider using B<update-device> for this usage instead.
 I<mode> can specify the two specific mode I<readonly> or I<shareable>.
 I<persistent> indicates the changes will affect the next boot of the domain.
 I<sourcetype> can indicate the type of source (block|file)
-I<cache> can be one of "default", "none", "writethrough", "writeback", or
-"directsync".
+I<cache> can be one of "default", "none", "writethrough", "writeback",
+"directsync" or "unsafe".
 I<serial> is the serial of disk device. I<shareable> indicates the disk device
 is shareable between domains.
 I<address> is the address of disk device in the form of pci:domain.bus.slot.function,
@@ -1201,7 +1238,7 @@ scsi:controller.bus.unit or ide:controller.bus.unit.
 
 =item B<attach-interface> I<domain-id> I<type> I<source>
 [I<--target target>] [I<--mac mac>] [I<--script script>] [I<--model model>]
-[I<--persistent>]
+[I<--persistent>] [I<--inbound average,peak,burst>] [I<--outbound average,peak,burst>]
 
 Attach a new network interface to the domain.
 I<type> can be either I<network> to indicate a physical network device or I<bridge> to indicate a bridge to a device.
@@ -1212,11 +1249,20 @@ I<script> allows to specify a path to a script handling a bridge instead of
 the default one.
 I<model> allows to specify the model type.
 I<persistent> indicates the changes will affect the next boot of the domain.
+I<inbound> and I<outbound> control the bandwidth of the interface. I<peak>
+and I<burst> are optional, so "average,peak", "average,,burst" and
+"average" are also legal.
+
+B<Note>: the optional target value is the name of a device to be created
+as the back-end on the node. If not provided a device named "vnetN" or "vifN"
+will be created automatically.
 
 =item B<detach-device> I<domain-id> I<FILE>
 
 Detach a device from the domain, takes the same kind of XML descriptions
 as command B<attach-device>.
+For passthrough host devices, see also B<nodedev-reattach>, needed if
+the device does not use managed mode.
 
 =item B<detach-disk> I<domain-id> I<target>
 
@@ -1238,6 +1284,88 @@ used, the changes will affect the next boot of the domain. The I<--force>
 option can be used to force device update, e.g., to eject a CD-ROM even if it
 is locked/mounted in the domain. See the documentation to learn about libvirt
 XML format for a device.
+
+=back
+
+=head1 NODEDEV COMMANDS
+
+The following commands manipulate host devices that are intended to be
+passed through to guest domains via <hostdev> elements in a domain's
+<devices> section.  A node device key is generally specified by the bus
+name followed by its address, using underscores between all components,
+such as pci_0000_00_02_1, usb_1_5_3, or net_eth1_00_27_13_6a_fe_00.
+The B<nodedev-list> gives the full list of host devices that are known
+to libvirt, although this includes devices that cannot be assigned to
+a guest (for example, attempting to detach the PCI device that controls
+the host's hard disk controller where the guest's disk images live could
+cause the host system to lock up or reboot).
+
+For more information on node device definition see:
+L<http://libvirt.org/formatnode.html>.
+
+Passthrough devices cannot be simultaneously used by the host and its
+guest domains, nor by multiple active guests at once.  If the
+<hostdev> description includes the attribute B<managed='yes'>, and the
+hypervisor driver supports it, then the device is in managed mode, and
+attempts to use that passthrough device in an active guest will
+automatically behave as if B<nodedev-dettach> (guest start, device
+hot-plug) and B<nodedev-reattach> (guest stop, device hot-unplug) were
+called at the right points (currently, qemu does this for PCI devices,
+but not USB).  If a device is not marked as managed, then it must
+manually be detached before guests can use it, and manually reattached
+to be returned to the host.  Also, if a device is manually detached,
+then the host does not regain control of the device without a matching
+reattach, even if the guests use the device in managed mode.
+
+=over 4
+
+=item B<nodedev-create> I<FILE>
+
+Create a device on the host node that can then be assigned to virtual
+machines. Normally, libvirt is able to automatically determine which
+host nodes are available for use, but this allows registration of
+host hardware that libvirt did not automatically detect.  I<file>
+contains xml for a top-level <device> description of a node device.
+
+=item B<nodedev-destroy> I<nodedev>
+
+Destroy (stop) a device on the host.  Note that this makes libvirt
+quit managing a host device, and may even make that device unusable
+by the rest of the physical host until a reboot.
+
+=item B<nodedev-dettach> I<nodedev>
+
+Detach I<nodedev> from the host, so that it can safely be used by
+guests via <hostdev> passthrough.  This is reversed with
+B<nodedev-reattach>, and is done automatically for managed devices.
+
+=item B<nodedev-dumpxml> I<nodedev>
+
+Dump a <device> XML representation for the given node device, including
+such information as the device name, which bus owns the device, the
+vendor and product id, and any capabilities of the device usable by
+libvirt (such as whether device reset is supported).
+
+=item B<nodedev-list> I<cap> I<--tree>
+
+List all of the devices available on the node that are known by libvirt.
+If I<cap> is used, the list is filtered to show only the nodes that
+include the given capability.  If I<--tree> is used, the output is
+formatted in a tree representing parents of each node.
+
+=item B<nodedev-reattach> I<nodedev>
+
+Declare that I<nodedev> is no longer in use by any guests, and that
+the host can resume normal use of the device.  This is done
+automatically for devices in managed mode, but must be done explicitly
+to match any explicit B<nodedev-dettach>.
+
+=item B<nodedev-reset> I<nodedev>
+
+Trigger a device reset for I<nodedev>, useful prior to transferring
+a node device between guest passthrough or the host.  Libvirt will
+often do this action implicitly when required, but this command
+allows an explicit reset when needed.
 
 =back
 
@@ -1824,7 +1952,7 @@ treat the snapshot as current, and cannot revert to the snapshot
 unless B<snapshot-create> is later used to teach libvirt about the
 metadata again).  This flag is incompatible with I<--print-xml>.
 
-=item B<snapshot-current> I<domain> {[I<--name>] | [I<--security-info]
+=item B<snapshot-current> I<domain> {[I<--name>] | [I<--security-info>]
 | [I<snapshotname>]}
 
 Without I<snapshotname>, this will output the snapshot XML for the domain's
@@ -1836,11 +1964,14 @@ the XML.
 With I<snapshotname>, this is a request to make the existing named
 snapshot become the current snapshot, without reverting the domain.
 
-=item B<snapshot-edit> I<domain> I<snapshotname> [I<--current>]
+=item B<snapshot-edit> I<domain> [I<snapshotname>] [I<--current>]
+{[I<--rename>] | [I<--clone>]}
 
 Edit the XML configuration file for I<snapshotname> of a domain.  If
-I<--current> is specified, also force the edited snapshot to become
-the current snapshot.
+both I<snapshotname> and I<--current> are specified, also force the
+edited snapshot to become the current snapshot.  If I<snapshotname>
+is omitted, then I<--current> must be supplied, to edit the current
+snapshot.
 
 This is equivalent to:
 
@@ -1853,15 +1984,38 @@ except that it does some error checking.
 The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
 variables, and defaults to C<vi>.
 
-=item B<snapshot-list> I<domain> [{I<--parent> | I<--roots>}] [I<--metadata>]
+If I<--rename> is specified, then the edits can change the snapshot
+name.  If I<--clone> is specified, then changing the snapshot name
+will create a clone of the snapshot metadata.  If neither is specified,
+then the edits must not change the snapshot name.  Note that changing
+a snapshot name must be done with care, since the contents of some
+snapshots, such as internal snapshots within a single qcow2 file, are
+accessible only from the original name.
 
-List all of the available snapshots for the given domain.
+=item B<snapshot-list> I<domain> [{I<--parent> | I<--roots> | I<--tree>}]
+[{[I<--from>] B<snapshot> | I<--current>} [I<--descendants>]]
+[I<--metadata>] [I<--leaves>]
+
+List all of the available snapshots for the given domain, defaulting
+to show columns for the snapshot name, creation time, and domain state.
 
 If I<--parent> is specified, add a column to the output table giving
-the name of the parent of each snapshot.
+the name of the parent of each snapshot.  If I<--roots> is specified,
+the list will be filtered to just snapshots that have no parents.
+If I<--tree> is specified, the output will be in a tree format, listing
+just snapshot names.  These three options are mutually exclusive.
 
-If I<--roots> is specified, the list will be filtered to just snapshots
-that have no parents; this option is not compatible with I<--parent>.
+If I<--from> is provided, filter the list to snapshots which are
+children of the given B<snapshot>; or if I<--current> is provided,
+start at the current snapshot.  When used in isolation or with
+I<--parent>, the list is limited to direct children unless
+I<--descendants> is also present.  When used with I<--tree>, the
+use of I<--descendants> is implied.  This option is not compatible
+with I<--roots>.
+
+If I<--leaves> is specified, the list will be filtered to just
+snapshots that have no children.  This option is not compatible
+with I<--tree>.
 
 If I<--metadata> is specified, the list will be filtered to just
 snapshots that involve libvirt metadata, and thus would prevent
@@ -1872,14 +2026,18 @@ a transient domain.
 
 Output the snapshot XML for the domain's snapshot named I<snapshot>.
 Using I<--security-info> will also include security sensitive information.
+Use B<snapshot-current> to easily access the XML of the current snapshot.
 
-=item B<snapshot-parent> I<domain> I<snapshot>
+=item B<snapshot-parent> I<domain> {I<snapshot> | I<--current>}
 
-Output the name of the parent snapshot for the given I<snapshot>, if any.
+Output the name of the parent snapshot, if any, for the given
+I<snapshot>, or for the current snapshot with I<--current>.
 
-=item B<snapshot-revert> I<domain> I<snapshot> [{I<--running> | I<--paused>}]
+=item B<snapshot-revert> I<domain> {I<snapshot> | I<--current>}
+[{I<--running> | I<--paused>}] [I<--force>]
 
-Revert the given domain to the snapshot specified by I<snapshot>.  Be aware
+Revert the given domain to the snapshot specified by I<snapshot>, or to
+the current snapshot with I<--current>.  Be aware
 that this is a destructive action; any changes in the domain since the last
 snapshot was taken will be lost.  Also note that the state of the domain after
 snapshot-revert is complete will be the state of the domain at the time
@@ -1893,10 +2051,27 @@ I<--running> or I<--paused> flag will perform additional state changes
 transient domains cannot be inactive, it is required to use one of these
 flags when reverting to a disk snapshot of a transient domain.
 
-=item B<snapshot-delete> I<domain> I<snapshot> [I<--metadata>]
+There are two cases where a snapshot revert involves extra risk, which
+requires the use of I<--force> to proceed.  One is the case of a
+snapshot that lacks full domain information for reverting
+configuration (such as snapshots created prior to libvirt 0.9.5);
+since libvirt cannot prove that the current configuration matches what
+was in use at the time of the snapshot, supplying I<--force> assures
+libvirt that the snapshot is compatible with the current configuration
+(and if it is not, the domain will likely fail to run).  The other is
+the case of reverting from a running domain to an active state where a
+new hypervisor has to be created rather than reusing the existing
+hypervisor, because it implies drawbacks such as breaking any existing
+VNC or Spice connections; this condition happens with an active
+snapshot that uses a provably incompatible configuration, as well as
+with an inactive snapshot that is combined with the I<--start> or
+I<--pause> flag.
+
+=item B<snapshot-delete> I<domain> {I<snapshot> | I<--current>} [I<--metadata>]
 [{I<--children> | I<--children-only>}]
 
-Delete the snapshot for the domain named I<snapshot>.  If this snapshot
+Delete the snapshot for the domain named I<snapshot>, or the current
+snapshot with I<--current>.  If this snapshot
 has child snapshots, changes from this snapshot will be merged into the
 children.  If I<--children> is passed, then delete this snapshot and any
 children of this snapshot.  If I<--children-only> is passed, then delete

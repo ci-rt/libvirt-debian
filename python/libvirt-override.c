@@ -1727,6 +1727,51 @@ libvirt_virDomainSnapshotListNames(PyObject *self ATTRIBUTE_UNUSED,
 }
 
 static PyObject *
+libvirt_virDomainSnapshotListChildrenNames(PyObject *self ATTRIBUTE_UNUSED,
+                                   PyObject *args) {
+    PyObject *py_retval;
+    char **names = NULL;
+    int c_retval, i;
+    virDomainSnapshotPtr snap;
+    PyObject *pyobj_snap;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virDomainSnapshotListChildrenNames", &pyobj_snap, &flags))
+        return(NULL);
+    snap = (virDomainSnapshotPtr) PyvirDomainSnapshot_Get(pyobj_snap);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainSnapshotNumChildren(snap, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    if (c_retval) {
+        names = malloc(sizeof(*names) * c_retval);
+        if (!names)
+            return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
+        c_retval = virDomainSnapshotListChildrenNames(snap, names, c_retval, flags);
+        LIBVIRT_END_ALLOW_THREADS;
+        if (c_retval < 0) {
+            free(names);
+            return VIR_PY_NONE;
+        }
+    }
+    py_retval = PyList_New(c_retval);
+
+    if (names) {
+        for (i = 0;i < c_retval;i++) {
+            PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
+            free(names[i]);
+        }
+        free(names);
+    }
+
+    return(py_retval);
+}
+
+static PyObject *
 libvirt_virDomainRevertToSnapshot(PyObject *self ATTRIBUTE_UNUSED,
                                   PyObject *args) {
     int c_retval;
@@ -4329,6 +4374,56 @@ libvirt_virConnectDomainEventBlockJobCallback(virConnectPtr conn ATTRIBUTE_UNUSE
     return ret;
 }
 
+static int
+libvirt_virConnectDomainEventDiskChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                                virDomainPtr dom,
+                                                const char *oldSrcPath,
+                                                const char *newSrcPath,
+                                                const char *devAlias,
+                                                int reason,
+                                                void *opaque)
+{
+    PyObject *pyobj_cbData = (PyObject*)opaque;
+    PyObject *pyobj_dom;
+    PyObject *pyobj_ret;
+    PyObject *pyobj_conn;
+    PyObject *dictKey;
+    int ret = -1;
+
+    LIBVIRT_ENSURE_THREAD_STATE;
+    /* Create a python instance of this virDomainPtr */
+    virDomainRef(dom);
+
+    pyobj_dom = libvirt_virDomainPtrWrap(dom);
+    Py_INCREF(pyobj_cbData);
+
+    dictKey = libvirt_constcharPtrWrap("conn");
+    pyobj_conn = PyDict_GetItem(pyobj_cbData, dictKey);
+    Py_DECREF(dictKey);
+
+    /* Call the Callback Dispatcher */
+    pyobj_ret = PyObject_CallMethod(pyobj_conn,
+                                    (char*)"_dispatchDomainEventDiskChangeCallback",
+                                    (char*)"OsssiO",
+                                    pyobj_dom,
+                                    oldSrcPath, newSrcPath,
+                                    devAlias, reason, pyobj_cbData);
+
+    Py_DECREF(pyobj_cbData);
+    Py_DECREF(pyobj_dom);
+
+    if(!pyobj_ret) {
+        DEBUG("%s - ret:%p\n", __FUNCTION__, pyobj_ret);
+        PyErr_Print();
+    } else {
+        Py_DECREF(pyobj_ret);
+        ret = 0;
+    }
+
+    LIBVIRT_RELEASE_THREAD_STATE;
+    return ret;
+}
+
 static PyObject *
 libvirt_virConnectDomainEventRegisterAny(ATTRIBUTE_UNUSED PyObject * self,
                                          PyObject * args)
@@ -4385,6 +4480,9 @@ libvirt_virConnectDomainEventRegisterAny(ATTRIBUTE_UNUSED PyObject * self,
         break;
     case VIR_DOMAIN_EVENT_ID_BLOCK_JOB:
         cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventBlockJobCallback);
+        break;
+    case VIR_DOMAIN_EVENT_ID_DISK_CHANGE:
+        cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventDiskChangeCallback);
         break;
     }
 

@@ -222,7 +222,7 @@
         <pre>
         ...
         &lt;bridge name="virbr0" stp="on" delay="5"/&gt;
-        &lt;domain name="example"/&gt;
+        &lt;domain name="example.com"/&gt;
         &lt;forward mode="nat" dev="eth0"/&gt;
         ...</pre>
         <dl><dt><code>bridge</code></dt><dd>The <code>name</code> attribute on the <code>bridge</code> element
@@ -286,12 +286,12 @@
             attribute is set, firewall rules will restrict forwarding
             to the named device only. This presumes that the local LAN
             router has suitable routing table entries to return
-            traffic to this host. Firewall rules are also installed
-            that prevent incoming sessions from the physical network
-            to the guests, but outgoing sessions are unrestricted (as
-            are sessions from the host to the guests, and between
-            guests on the same network.)<span class="since">Since
-            0.4.2</span>
+            traffic to this host. All incoming and outgoing sessions
+            to guest on these networks are unrestricted. (To restrict
+            incoming traffic to a guest on a routed network, you can
+            configure <a href="formatnwfilter.html">nwfilter rules</a>
+            on the guest's interfaces.)
+            <span class="since">Since 0.4.2</span>
           </dd><dt><code>bridge</code></dt><dd>
             This network describes either 1) an existing host bridge
             that was configured outside of libvirt (if
@@ -356,7 +356,7 @@
         As mentioned above, a <code>&lt;forward&gt;</code> element can
         have multiple <code>&lt;interface&gt;</code> subelements, each
         one giving the name of a physical interface that can be used
-        for this network<span class="since">Since 0.9.4</span>:
+        for this network <span class="since">Since 0.9.4</span>:
         <pre>
 ...
   &lt;forward mode='passthrough'&gt;
@@ -441,9 +441,11 @@
   &lt;/portgroup&gt;</b>
 ...</pre>
         <p>
+      <span class="since">Since 0.9.4</span>
       A portgroup provides a method of easily putting guest
       connections to the network into different classes, with each
-      class potentially having a different level/type of service. Each
+      class potentially having a different level/type of service.
+      <span class="since">Since 0.9.4</span> Each
       network can have multiple portgroup elements (and one of those
       can optionally be designated as the 'default' portgroup for the
       network), and each portgroup has a name, as well as various
@@ -479,8 +481,12 @@
         <pre>
         ...
         &lt;mac address='00:16:3E:5D:C7:9E'/&gt;
+        &lt;domain name="example.com"/&gt;
         &lt;dns&gt;
           &lt;txt name="example" value="example value" /&gt;
+          &lt;host ip='192.168.122.2'&gt;
+            &lt;hostname&gt;myhost&lt;/hostname&gt;
+            &lt;hostname&gt;myhostalias&lt;/hostname&gt;
         &lt;/dns&gt;
         &lt;ip address="192.168.122.1" netmask="255.255.255.0"&gt;
           &lt;dhcp&gt;
@@ -650,6 +656,7 @@
           <a name="examplesBridge" id="examplesBridge">Using an existing host bridge</a>
         </h3>
         <p>
+      <span class="since">Since 0.9.4</span>
       This shows how to use a pre-existing host bridge "br0". The
       guests will effectively be directly connected to the physical
       network (i.e. their IP addresses will all be on the subnet of
@@ -666,6 +673,8 @@
           <a name="examplesDirect" id="examplesDirect">Using a macvtap "direct" connection</a>
         </h3>
         <p>
+      <span class="since">Since 0.9.4, QEMU and KVM only, requires
+      Linux kernel 2.6.34 or newer</span>
       This shows how to use macvtap to connect to the physical network
       directly through one of a group of physical devices (without
       using a host bridge device). As with the host bridge network,

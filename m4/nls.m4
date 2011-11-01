@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # nls.m4 serial 3 (gettext-0.15)
 dnl Copyright (C) 1995-2003, 2005-2006 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation

@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2011 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.6], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.7], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -135,12 +135,9 @@ AC_CHECK_SIZEOF([long])
 
 dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
-AC_CHECK_FUNCS_ONCE([cfmakeraw fdatasync geteuid getgid getgrnam_r getmntent_r \
+AC_CHECK_FUNCS_ONCE([cfmakeraw geteuid getgid getgrnam_r getmntent_r \
   getpwuid_r getuid initgroups kill mmap posix_fallocate posix_memalign \
   regexec sched_getaffinity])
-if test $ac_cv_func_fdatasync = no; then
-  AC_DEFINE([fdatasync], [fsync], [Define to fsync if you lack fdatasync])
-fi
 
 dnl Availability of pthread functions (if missing, win32 threading is
 dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
@@ -690,8 +687,9 @@ fi
 if test "$with_lxc" = "yes" || test "$with_lxc" = "check"; then
     AC_TRY_LINK([
         #include <sched.h>
+        #include <linux/loop.h>
     ], [
-        unshare (1);
+        unshare (!LO_FLAGS_AUTOCLEAR);
     ], [
         with_lxc=yes
     ], [

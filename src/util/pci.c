@@ -62,6 +62,7 @@ struct _pciDevice {
     char          name[PCI_ADDR_LEN]; /* domain:bus:slot.function */
     char          id[PCI_ID_LEN];     /* product vendor */
     char          *path;
+    const char    *used_by;           /* The domain which uses the device */
     int           fd;
 
     unsigned      initted;
@@ -1377,6 +1378,12 @@ pciFreeDevice(pciDevice *dev)
     VIR_FREE(dev);
 }
 
+const char *
+pciDeviceGetName(pciDevice *dev)
+{
+    return dev->name;
+}
+
 void pciDeviceSetManaged(pciDevice *dev, unsigned managed)
 {
     dev->managed = !!managed;
@@ -1385,6 +1392,54 @@ void pciDeviceSetManaged(pciDevice *dev, unsigned managed)
 unsigned pciDeviceGetManaged(pciDevice *dev)
 {
     return dev->managed;
+}
+
+unsigned
+pciDeviceGetUnbindFromStub(pciDevice *dev)
+{
+    return dev->unbind_from_stub;
+}
+
+void
+pciDeviceSetUnbindFromStub(pciDevice *dev, unsigned unbind)
+{
+    dev->unbind_from_stub = !!unbind;
+}
+
+unsigned
+pciDeviceGetRemoveSlot(pciDevice *dev)
+{
+    return dev->remove_slot;
+}
+
+void
+pciDeviceSetRemoveSlot(pciDevice *dev, unsigned remove_slot)
+{
+    dev->remove_slot = !!remove_slot;
+}
+
+unsigned
+pciDeviceGetReprobe(pciDevice *dev)
+{
+    return dev->reprobe;
+}
+
+void
+pciDeviceSetReprobe(pciDevice *dev, unsigned reprobe)
+{
+    dev->reprobe = !!reprobe;
+}
+
+void
+pciDeviceSetUsedBy(pciDevice *dev, const char *name)
+{
+    dev->used_by = name;
+}
+
+const char *
+pciDeviceGetUsedBy(pciDevice *dev)
+{
+    return dev->used_by;
 }
 
 void pciDeviceReAttachInit(pciDevice *pci)
@@ -1688,9 +1743,9 @@ int pciDeviceIsAssignable(pciDevice *dev,
 #ifdef __linux__
 
 /*
- * returns 1 if equal and 0 if not
+ * returns true if equal
  */
-static int
+static bool
 pciConfigAddressEqual(struct pci_config_address *bdf1,
                       struct pci_config_address *bdf2)
 {
@@ -1940,11 +1995,11 @@ pciGetVirtualFunctionIndex(const char *pf_sysfs_device_link,
     struct pci_config_address **virt_fns = NULL;
 
     if (pciGetPciConfigAddressFromSysfsDeviceLink(vf_sysfs_device_link,
-        &vf_bdf))
+        &vf_bdf) < 0)
         return ret;
 
     if (pciGetVirtualFunctions(pf_sysfs_device_link, &virt_fns,
-        &num_virt_fns)) {
+        &num_virt_fns) < 0) {
         pciReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Error getting physical function's '%s' "
                       "virtual_functions"), pf_sysfs_device_link);
@@ -1999,7 +2054,10 @@ pciDeviceNetName(char *device_link_sysfs_path, char **netname)
 
             /* Assume a single directory entry */
             *netname = strdup(entry->d_name);
-            ret = 0;
+            if (!*netname)
+                virReportOOMError();
+            else
+                ret = 0;
             break;
      }
 

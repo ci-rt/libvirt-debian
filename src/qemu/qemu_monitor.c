@@ -81,6 +81,12 @@ VIR_ENUM_IMPL(qemuMonitorMigrationStatus,
               QEMU_MONITOR_MIGRATION_STATUS_LAST,
               "inactive", "active", "completed", "failed", "cancelled")
 
+VIR_ENUM_IMPL(qemuMonitorVMStatus,
+              QEMU_MONITOR_VM_STATUS_LAST,
+              "debug", "inmigrate", "internal-error", "io-error", "paused",
+              "postmigrate", "prelaunch", "finish-migrate", "restore-vm",
+              "running", "save-vm", "shutdown", "watchdog")
+
 char *qemuMonitorEscapeArg(const char *in)
 {
     int len = 0;
@@ -133,48 +139,6 @@ char *qemuMonitorEscapeArg(const char *in)
     return out;
 }
 
-char *qemuMonitorEscapeShell(const char *in)
-{
-    int len = 2; /* leading and trailing single quote */
-    int i, j;
-    char *out;
-
-    for (i = 0; in[i] != '\0'; i++) {
-        switch(in[i]) {
-        case '\'':
-            len += 4; /* '\'' */
-            break;
-        default:
-            len += 1;
-            break;
-        }
-    }
-
-    if (VIR_ALLOC_N(out, len + 1) < 0)
-        return NULL;
-
-    j = 0;
-    out[j++] = '\'';
-    for (i = 0; in[i] != '\0'; i++) {
-        switch(in[i]) {
-        case '\'':
-            out[j++] = '\'';
-            out[j++] = '\\';
-            out[j++] = '\'';
-            out[j++] = '\'';
-            break;
-        default:
-            out[j++] = in[i];
-            break;
-        }
-    }
-    out[j++] = '\'';
-    out[j] = '\0';
-
-    return out;
-}
-
-
 #if DEBUG_RAW_IO
 # include <c-ctype.h>
 static char * qemuMonitorEscapeNonPrintable(const char *text)
@@ -219,6 +183,8 @@ static void qemuMonitorFree(qemuMonitorPtr mon)
 int qemuMonitorRef(qemuMonitorPtr mon)
 {
     mon->refs++;
+    PROBE(QEMU_MONITOR_REF,
+          "mon=%p refs=%d", mon, mon->refs);
     return mon->refs;
 }
 
@@ -226,6 +192,8 @@ int qemuMonitorUnref(qemuMonitorPtr mon)
 {
     mon->refs--;
 
+    PROBE(QEMU_MONITOR_UNREF,
+          "mon=%p refs=%d", mon, mon->refs);
     if (mon->refs == 0) {
         qemuMonitorUnlock(mon);
         qemuMonitorFree(mon);
@@ -341,6 +309,9 @@ qemuMonitorIOProcess(qemuMonitorPtr mon)
 # endif
 #endif
 
+    PROBE(QEMU_MONITOR_IO_PROCESS,
+          "mon=%p buf=%s len=%zu", mon, mon->buffer, mon->bufferOffset);
+
     if (mon->json)
         len = qemuMonitorJSONIOProcess(mon,
                                        mon->buffer, mon->bufferOffset,
@@ -438,6 +409,18 @@ qemuMonitorIOWrite(qemuMonitorPtr mon)
                                         mon->msg->txBuffer + mon->msg->txOffset,
                                         mon->msg->txLength - mon->msg->txOffset,
                                         mon->msg->txFD);
+
+    PROBE(QEMU_MONITOR_IO_WRITE,
+          "mon=%p buf=%s len=%d ret=%d errno=%d",
+          mon,
+          mon->msg->txBuffer + mon->msg->txOffset,
+          mon->msg->txLength - mon->msg->txOffset,
+          done, errno);
+
+    if (mon->msg->txFD != -1)
+        PROBE(QEMU_MONITOR_IO_SEND_FD,
+              "mon=%p fd=%d ret=%d errno=%d",
+              mon, mon->msg->txFD, done, errno);
 
     if (done < 0) {
         if (errno == EAGAIN)
@@ -732,7 +715,9 @@ qemuMonitorOpen(virDomainObjPtr vm,
     }
     qemuMonitorRef(mon);
 
-    VIR_DEBUG("New mon %p fd =%d watch=%d", mon, mon->fd, mon->watch);
+    PROBE(QEMU_MONITOR_NEW,
+          "mon=%p refs=%d fd=%d",
+          mon, mon->refs, mon->fd);
     qemuMonitorUnlock(mon);
 
     return mon;
@@ -755,9 +740,9 @@ void qemuMonitorClose(qemuMonitorPtr mon)
     if (!mon)
         return;
 
-    VIR_DEBUG("mon=%p", mon);
-
     qemuMonitorLock(mon);
+    PROBE(QEMU_MONITOR_CLOSE,
+          "mon=%p refs=%d", mon, mon->refs);
 
     if (mon->fd >= 0) {
         if (mon->watch)
@@ -797,6 +782,10 @@ int qemuMonitorSend(qemuMonitorPtr mon,
 
     mon->msg = msg;
     qemuMonitorUpdateWatch(mon);
+
+    PROBE(QEMU_MONITOR_SEND_MSG,
+          "mon=%p msg=%s fd=%d",
+          mon, mon->msg->txBuffer, mon->msg->txFD);
 
     while (!mon->msg->finished) {
         if (virCondWait(&mon->notify, &mon->lock) < 0) {
@@ -1059,10 +1048,12 @@ qemuMonitorStopCPUs(qemuMonitorPtr mon)
 
 
 int
-qemuMonitorGetStatus(qemuMonitorPtr mon, bool *running)
+qemuMonitorGetStatus(qemuMonitorPtr mon,
+                     bool *running,
+                     virDomainPausedReason *reason)
 {
     int ret;
-    VIR_DEBUG("mon=%p, running=%p", mon, running);
+    VIR_DEBUG("mon=%p, running=%p, reason=%p", mon, running, reason);
 
     if (!mon || !running) {
         qemuReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -1071,9 +1062,9 @@ qemuMonitorGetStatus(qemuMonitorPtr mon, bool *running)
     }
 
     if (mon->json)
-        ret = qemuMonitorJSONGetStatus(mon, running);
+        ret = qemuMonitorJSONGetStatus(mon, running, reason);
     else
-        ret = qemuMonitorTextGetStatus(mon, running);
+        ret = qemuMonitorTextGetStatus(mon, running, reason);
     return ret;
 }
 
@@ -1215,6 +1206,25 @@ int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
     return ret;
 }
 
+int qemuMonitorGetBlockInfo(qemuMonitorPtr mon,
+                            const char *devname,
+                            struct qemuDomainDiskInfo *info)
+{
+    int ret;
+
+    VIR_DEBUG("mon=%p dev=%p info=%p", mon, devname, info);
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (mon->json)
+        ret = qemuMonitorJSONGetBlockInfo(mon, devname, info);
+    else
+        ret = qemuMonitorTextGetBlockInfo(mon, devname, info);
+    return ret;
+}
 
 int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
                                  const char *dev_name,
@@ -1707,6 +1717,7 @@ int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
     char *dest = NULL;
     int ret = -1;
     char *safe_target = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
     VIR_DEBUG("mon=%p argv=%p target=%s offset=%llu flags=%x",
           mon, argv, target, offset, flags);
 
@@ -1730,11 +1741,13 @@ int qemuMonitorMigrateToFile(qemuMonitorPtr mon,
     }
 
     /* Migrate to file */
-    safe_target = qemuMonitorEscapeShell(target);
-    if (!safe_target) {
+    virBufferEscapeShell(&buf, target);
+    if (virBufferError(&buf)) {
         virReportOOMError();
+        virBufferFreeAndReset(&buf);
         goto cleanup;
     }
+    safe_target = virBufferContentAndReset(&buf);
 
     /* Two dd processes, sharing the same stdout, are necessary to
      * allow starting at an alignment of 512, but without wasting
@@ -2551,5 +2564,88 @@ int qemuMonitorBlockJob(qemuMonitorPtr mon,
         ret = qemuMonitorJSONBlockJob(mon, device, bandwidth, info, mode);
     else
         ret = qemuMonitorTextBlockJob(mon, device, bandwidth, info, mode);
+    return ret;
+}
+
+int qemuMonitorVMStatusToPausedReason(const char *status)
+{
+    int st;
+
+    if (!status)
+        return VIR_DOMAIN_PAUSED_UNKNOWN;
+
+    if ((st = qemuMonitorVMStatusTypeFromString(status)) < 0) {
+        VIR_WARN("Qemu reported unknown VM status: '%s'", status);
+        return VIR_DOMAIN_PAUSED_UNKNOWN;
+    }
+
+    switch ((qemuMonitorVMStatus) st) {
+    case QEMU_MONITOR_VM_STATUS_DEBUG:
+    case QEMU_MONITOR_VM_STATUS_INTERNAL_ERROR:
+    case QEMU_MONITOR_VM_STATUS_RESTORE_VM:
+        return VIR_DOMAIN_PAUSED_UNKNOWN;
+
+    case QEMU_MONITOR_VM_STATUS_INMIGRATE:
+    case QEMU_MONITOR_VM_STATUS_POSTMIGRATE:
+    case QEMU_MONITOR_VM_STATUS_FINISH_MIGRATE:
+        return VIR_DOMAIN_PAUSED_MIGRATION;
+
+    case QEMU_MONITOR_VM_STATUS_IO_ERROR:
+        return VIR_DOMAIN_PAUSED_IOERROR;
+
+    case QEMU_MONITOR_VM_STATUS_PAUSED:
+    case QEMU_MONITOR_VM_STATUS_PRELAUNCH:
+        return VIR_DOMAIN_PAUSED_USER;
+
+    case QEMU_MONITOR_VM_STATUS_RUNNING:
+        VIR_WARN("Qemu reports the guest is paused but status is 'running'");
+        return VIR_DOMAIN_PAUSED_UNKNOWN;
+
+    case QEMU_MONITOR_VM_STATUS_SAVE_VM:
+        return VIR_DOMAIN_PAUSED_SAVE;
+
+    case QEMU_MONITOR_VM_STATUS_SHUTDOWN:
+        return VIR_DOMAIN_PAUSED_SHUTTING_DOWN;
+
+    case QEMU_MONITOR_VM_STATUS_WATCHDOG:
+        return VIR_DOMAIN_PAUSED_WATCHDOG;
+
+    /* unreachable from this point on */
+    case QEMU_MONITOR_VM_STATUS_LAST:
+        ;
+    }
+    return VIR_DOMAIN_PAUSED_UNKNOWN;
+}
+
+
+int qemuMonitorOpenGraphics(qemuMonitorPtr mon,
+                            const char *protocol,
+                            int fd,
+                            const char *fdname,
+                            bool skipauth)
+{
+    VIR_DEBUG("mon=%p protocol=%s fd=%d fdname=%s skipauth=%d",
+              mon, protocol, fd, NULLSTR(fdname), skipauth);
+    int ret;
+
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (qemuMonitorSendFileHandle(mon, fdname, fd) < 0)
+        return -1;
+
+    if (mon->json)
+        ret = qemuMonitorJSONOpenGraphics(mon, protocol, fdname, skipauth);
+    else
+        ret = qemuMonitorTextOpenGraphics(mon, protocol, fdname, skipauth);
+
+    if (ret < 0) {
+        if (qemuMonitorCloseFileHandle(mon, fdname) < 0)
+            VIR_WARN("failed to close device handle '%s'", fdname);
+    }
+
     return ret;
 }

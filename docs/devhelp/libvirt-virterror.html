@@ -189,7 +189,7 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_INVALID_STORAGE_VOL">VIR_ERR_INVALID_STORAGE_VOL</a> = 47 /* invalid storage vol object */
     <a name="VIR_WAR_NO_STORAGE">VIR_WAR_NO_STORAGE</a> = 48 /* failed to start storage */
     <a name="VIR_ERR_NO_STORAGE_POOL">VIR_ERR_NO_STORAGE_POOL</a> = 49 /* storage pool not found */
-    <a name="VIR_ERR_NO_STORAGE_VOL">VIR_ERR_NO_STORAGE_VOL</a> = 50 /* storage pool not found */
+    <a name="VIR_ERR_NO_STORAGE_VOL">VIR_ERR_NO_STORAGE_VOL</a> = 50 /* storage volume not found */
     <a name="VIR_WAR_NO_NODE">VIR_WAR_NO_NODE</a> = 51 /* failed to start node driver */
     <a name="VIR_ERR_INVALID_NODE_DEVICE">VIR_ERR_INVALID_NODE_DEVICE</a> = 52 /* invalid node device object */
     <a name="VIR_ERR_NO_NODE_DEVICE">VIR_ERR_NO_NODE_DEVICE</a> = 53 /* node device not found */
@@ -214,8 +214,9 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_NO_DOMAIN_SNAPSHOT">VIR_ERR_NO_DOMAIN_SNAPSHOT</a> = 72 /* domain snapshot not found */
     <a name="VIR_ERR_INVALID_STREAM">VIR_ERR_INVALID_STREAM</a> = 73 /* stream pointer not valid */
     <a name="VIR_ERR_ARGUMENT_UNSUPPORTED">VIR_ERR_ARGUMENT_UNSUPPORTED</a> = 74 /* valid API use but unsupported by the given driver */
-    <a name="VIR_ERR_STORAGE_PROBE_FAILED">VIR_ERR_STORAGE_PROBE_FAILED</a> = 75 /* storage pool proble failed */
+    <a name="VIR_ERR_STORAGE_PROBE_FAILED">VIR_ERR_STORAGE_PROBE_FAILED</a> = 75 /* storage pool probe failed */
     <a name="VIR_ERR_STORAGE_POOL_BUILT">VIR_ERR_STORAGE_POOL_BUILT</a> = 76 /* storage pool already built */
+    <a name="VIR_ERR_SNAPSHOT_REVERT_RISKY">VIR_ERR_SNAPSHOT_REVERT_RISKY</a> = 77 /* force was not requested for a risky domain snapshot revert */
 };
 </pre><p/>
 </div>

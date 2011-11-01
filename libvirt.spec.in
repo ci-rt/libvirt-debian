@@ -47,7 +47,7 @@
 %define with_libxl         0%{!?_without_libxl:%{server_drivers}}
 %define with_vmware        0%{!?_without_vmware:%{server_drivers}}
 
-# Then the hypervisor drivers that talk a native remote protocol
+# Then the hypervisor drivers that talk via a native remote protocol
 %define with_phyp          0%{!?_without_phyp:1}
 %define with_esx           0%{!?_without_esx:1}
 %define with_hyperv        0%{!?_without_hyperv:1}
@@ -89,6 +89,7 @@
 # Xen is available only on i386 x86_64 ia64
 %ifnarch i386 i586 i686 x86_64 ia64
 %define with_xen 0
+%define with_libxl 0
 %endif
 
 # Numactl is not available on s390[x]
@@ -97,7 +98,8 @@
 %endif
 
 # RHEL doesn't ship OpenVZ, VBox, UML, PowerHypervisor,
-# VMWare, libxenserver (xenapi), or libxenlight (Xen 4.1 and newer)
+# VMWare, libxenserver (xenapi), libxenlight (Xen 4.1 and newer),
+# or HyperV.
 %if 0%{?rhel}
 %define with_openvz 0
 %define with_vbox 0
@@ -106,6 +108,7 @@
 %define with_vmware 0
 %define with_xenapi 0
 %define with_libxl 0
+%define with_hyperv 0
 %endif
 
 # RHEL-5 has restricted QEMU to x86_64 only and is too old for LXC
@@ -232,10 +235,10 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 1%{?dist}%{?extra_release}
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
-Source: http://libvirt.org/sources/libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/libvirt-%{version}-rc1.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 URL: http://libvirt.org/
 
@@ -708,7 +711,6 @@ of recent versions of Linux (and other OSes).
            %{?_without_python} \
            %{?_without_libvirtd} \
            %{?_without_uml} \
-           %{?_without_one} \
            %{?_without_phyp} \
            %{?_without_esx} \
            %{?_without_hyperv} \
@@ -894,9 +896,9 @@ done
 %endif
 
 %if %{with_cgconfig}
-# Starting with Fedora 15, systemd automounts all cgroups, and cgconfig is
+# Starting with Fedora 16, systemd automounts all cgroups, and cgconfig is
 # no longer a necessary service.
-%if 0%{?fedora} <= 14 || 0%{?rhel} <= 6
+%if 0%{?fedora} <= 15 || 0%{?rhel} <= 6
 if [ "$1" -eq "1" ]; then
 /sbin/chkconfig cgconfig on
 fi
@@ -960,8 +962,14 @@ fi
 %doc daemon/libvirtd.upstart
 %config(noreplace) %{_sysconfdir}/sysconfig/libvirtd
 %config(noreplace) %{_sysconfdir}/libvirt/libvirtd.conf
+%if 0%{?fedora} >= 14 || 0%{?rhel} >= 6
+%config(noreplace) %{_sysconfdir}/sysctl.d/libvirtd
+%else
+rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
+%endif
 %if %{with_dtrace}
-%{_datadir}/systemtap/tapset/libvirtd.stp
+%{_datadir}/systemtap/tapset/libvirt_probes.stp
+%{_datadir}/systemtap/tapset/libvirt_functions.stp
 %endif
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/lxc/
@@ -1076,6 +1084,7 @@ fi
 %defattr(-, root, root)
 %doc AUTHORS ChangeLog.gz NEWS README COPYING.LIB TODO
 
+%config(noreplace) %{_sysconfdir}/libvirt/libvirt.conf
 %{_mandir}/man1/virsh.1*
 %{_mandir}/man1/virt-xml-validate.1*
 %{_mandir}/man1/virt-pki-validate.1*

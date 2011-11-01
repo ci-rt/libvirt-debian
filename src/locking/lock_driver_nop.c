@@ -27,12 +27,12 @@
 #include "uuid.h"
 
 
-static int virLockManagerNopInit(unsigned int version,
-                                 const char *configFile,
-                                 unsigned int flags)
+static int virLockManagerNopInit(unsigned int version ATTRIBUTE_UNUSED,
+                                 const char *configFile ATTRIBUTE_UNUSED,
+                                 unsigned int flags_unused ATTRIBUTE_UNUSED)
 {
     VIR_DEBUG("version=%u configFile=%s flags=%x",
-              version, NULLSTR(configFile), flags);
+              version, NULLSTR(configFile), flags_unused);
 
     return 0;
 }

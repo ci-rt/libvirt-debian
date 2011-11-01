@@ -40,7 +40,9 @@
 #include "memory.h"
 #include "configmake.h"
 #include "intprops.h"
+#include "conf.h"
 #include "rpc/virnettlscontext.h"
+#include "command.h"
 
 #ifndef WITH_DRIVER_MODULES
 # ifdef WITH_TEST
@@ -107,34 +109,22 @@ static int initialized = 0;
 
 #if defined(POLKIT_AUTH)
 static int virConnectAuthGainPolkit(const char *privilege) {
-    const char *const args[] = {
-        POLKIT_AUTH, "--obtain", privilege, NULL
-    };
-    int childpid, status, ret;
+    virCommandPtr cmd;
+    int status;
+    int ret = -1;
 
-    /* Root has all rights */
     if (getuid() == 0)
         return 0;
 
-    if ((childpid = fork()) < 0)
-        return -1;
+    cmd = virCommandNewArgList(POLKIT_AUTH, "--obtain", privilege, NULL);
+    if (virCommandRun(cmd, &status) < 0 ||
+        status > 1)
+        goto cleanup;
 
-    if (!childpid) {
-        execvp(args[0], (char **)args);
-        _exit(-1);
-    }
-
-    while ((ret = waitpid(childpid, &status, 0) == -1) && errno == EINTR);
-    if (ret == -1) {
-        return -1;
-    }
-
-    if (!WIFEXITED(status) ||
-        (WEXITSTATUS(status) != 0 && WEXITSTATUS(status) != 1)) {
-        return -1;
-    }
-
-    return 0;
+    ret = 0;
+cleanup:
+    virCommandFree(cmd);
+    return ret;
 }
 #endif
 
@@ -968,6 +958,126 @@ error:
     return -1;
 }
 
+static char *
+virConnectConfigFile(void)
+{
+    char *path;
+    if (geteuid() == 0) {
+        if (virAsprintf(&path, "%s/libvirt/libvirt.conf",
+                        SYSCONFDIR) < 0)
+            goto no_memory;
+    } else {
+        char *userdir = virGetUserDirectory(geteuid());
+        if (!userdir)
+            goto error;
+
+        if (virAsprintf(&path, "%s/.libvirt/libvirt.conf",
+                        userdir) < 0)
+            goto no_memory;
+    }
+
+    return path;
+
+no_memory:
+    virReportOOMError();
+error:
+    return NULL;
+}
+
+#define URI_ALIAS_CHARS "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+
+static int
+virConnectOpenFindURIAliasMatch(virConfValuePtr value, const char *alias, char **uri)
+{
+    virConfValuePtr entry;
+    if (value->type != VIR_CONF_LIST) {
+        virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("Expected a list for 'uri_aliases' config parameter"));
+        return -1;
+    }
+
+    entry = value->list;
+    while (entry) {
+        char *offset;
+        size_t safe;
+
+        if (entry->type != VIR_CONF_STRING) {
+            virLibConnError(VIR_ERR_CONF_SYNTAX, "%s",
+                            _("Expected a string for 'uri_aliases' config parameter list entry"));
+            return -1;
+        }
+
+        if (!(offset = strchr(entry->str, '='))) {
+            virLibConnError(VIR_ERR_CONF_SYNTAX,
+                            _("Malformed 'uri_aliases' config entry '%s', expected 'alias=uri://host/path'"),
+                            entry->str);
+            return -1;
+        }
+
+        safe  = strspn(entry->str, URI_ALIAS_CHARS);
+        if (safe < (offset - entry->str)) {
+            virLibConnError(VIR_ERR_CONF_SYNTAX,
+                            _("Malformed 'uri_aliases' config entry '%s', aliases may only container 'a-Z, 0-9, _, -'"),
+                            entry->str);
+            return -1;
+        }
+
+        if (STREQLEN(entry->str, alias, offset-entry->str)) {
+            VIR_DEBUG("Resolved alias '%s' to '%s'",
+                      alias, offset+1);
+            if (!(*uri = strdup(offset+1))) {
+                virReportOOMError();
+                return -1;
+            }
+            return 0;
+        }
+
+        entry = entry->next;
+    }
+
+    VIR_DEBUG("No alias found for '%s', passing through to drivers",
+              alias);
+    return 0;
+}
+
+static int
+virConnectOpenResolveURIAlias(const char *alias, char **uri)
+{
+    char *config = NULL;
+    int ret = -1;
+    virConfPtr conf = NULL;
+    virConfValuePtr value = NULL;
+
+    *uri = NULL;
+
+    /* Short circuit to avoid doing URI alias resolution
+     * when it clearly isn't an valid alias */
+    if (strspn(alias, URI_ALIAS_CHARS) != strlen(alias))
+        return 0;
+
+    if (!(config = virConnectConfigFile()))
+        goto cleanup;
+
+    if (!virFileExists(config)) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Loading config file '%s'", config);
+    if (!(conf = virConfReadFile(config, 0)))
+        goto cleanup;
+
+    if ((value = virConfGetValue(conf, "uri_aliases")))
+        ret = virConnectOpenFindURIAliasMatch(value, alias, uri);
+    else
+        ret = 0;
+
+cleanup:
+    virConfFree(conf);
+    VIR_FREE(config);
+    return ret;
+}
+
 static virConnectPtr
 do_open (const char *name,
          virConnectAuthPtr auth,
@@ -998,6 +1108,7 @@ do_open (const char *name,
     }
 
     if (name) {
+        char *alias = NULL;
         /* Convert xen -> xen:/// for back compat */
         if (STRCASEEQ(name, "xen"))
             name = "xen:///";
@@ -1008,26 +1119,34 @@ do_open (const char *name,
         if (STREQ (name, "xen://"))
             name = "xen:///";
 
-        ret->uri = xmlParseURI (name);
+        if (!(flags & VIR_CONNECT_NO_ALIASES) &&
+            virConnectOpenResolveURIAlias(name, &alias) < 0)
+            goto failed;
+
+        ret->uri = xmlParseURI (alias ? alias : name);
         if (!ret->uri) {
             virLibConnError(VIR_ERR_INVALID_ARG,
-                            _("could not parse connection URI"));
+                            _("could not parse connection URI %s"),
+                            alias ? alias : name);
+            VIR_FREE(alias);
             goto failed;
         }
 
         VIR_DEBUG("name \"%s\" to URI components:\n"
-              "  scheme %s\n"
-              "  opaque %s\n"
-              "  authority %s\n"
-              "  server %s\n"
-              "  user %s\n"
-              "  port %d\n"
-              "  path %s\n",
-              name,
-              NULLSTR(ret->uri->scheme), NULLSTR(ret->uri->opaque),
-              NULLSTR(ret->uri->authority), NULLSTR(ret->uri->server),
-              NULLSTR(ret->uri->user), ret->uri->port,
-              NULLSTR(ret->uri->path));
+                  "  scheme %s\n"
+                  "  opaque %s\n"
+                  "  authority %s\n"
+                  "  server %s\n"
+                  "  user %s\n"
+                  "  port %d\n"
+                  "  path %s\n",
+                  alias ? alias : name,
+                  NULLSTR(ret->uri->scheme), NULLSTR(ret->uri->opaque),
+                  NULLSTR(ret->uri->authority), NULLSTR(ret->uri->server),
+                  NULLSTR(ret->uri->user), ret->uri->port,
+                  NULLSTR(ret->uri->path));
+
+        VIR_FREE(alias);
     } else {
         VIR_DEBUG("no name, allowing driver auto-select");
     }
@@ -2784,7 +2903,8 @@ error:
  * a crashed state after the dump completes.  If @flags includes
  * VIR_DUMP_LIVE, then make the core dump while continuing to allow
  * the guest to run; otherwise, the guest is suspended during the dump.
- * The above two flags are mutually exclusive.
+ * VIR_DUMP_RESET flag forces reset of the quest after dump.
+ * The above three flags are mutually exclusive.
  *
  * Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
  * will attempt to bypass the file system cache while creating the file,
@@ -2820,6 +2940,18 @@ virDomainCoreDump(virDomainPtr domain, const char *to, unsigned int flags)
     if ((flags & VIR_DUMP_CRASH) && (flags & VIR_DUMP_LIVE)) {
         virLibDomainError(VIR_ERR_INVALID_ARG,
                           _("crash and live flags are mutually exclusive"));
+        goto error;
+    }
+
+    if ((flags & VIR_DUMP_CRASH) && (flags & VIR_DUMP_RESET)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                         _("crash and reset flags are mutually exclusive"));
+        goto error;
+    }
+
+    if ((flags & VIR_DUMP_LIVE) && (flags & VIR_DUMP_RESET)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("live and reset flags are mutually exclusive"));
         goto error;
     }
 
@@ -3004,6 +3136,56 @@ virDomainReboot(virDomainPtr domain, unsigned int flags)
     if (conn->driver->domainReboot) {
         int ret;
         ret = conn->driver->domainReboot (domain, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainReset:
+ * @domain: a domain object
+ * @flags: extra flags for the reboot operation, not used yet
+ *
+ * Reset a domain immediately without any guest OS shutdown.
+ * Reset emulates the power reset button on a machine, where all
+ * hardware sees the RST line set and reinitializes internal state.
+ *
+ * Note that there is a risk of data loss caused by reset without any
+ * guest OS shutdown.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+int
+virDomainReset(virDomainPtr domain, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "flags=%x", flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    conn = domain->conn;
+
+    if (conn->driver->domainReset) {
+        int ret;
+        ret = conn->driver->domainReset (domain, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -4791,6 +4973,9 @@ error:
  * in accessing the underlying storage.  The migration will fail
  * if @dxml would cause any guest-visible changes.  Pass NULL
  * if no changes are needed to the XML between source and destination.
+ * @dxml cannot be used to rename the domain during migration (use
+ * @dname for that purpose).  Domain name in @dxml must either match the
+ * original domain name or @dname if it was specified.
  *
  * Returns the new domain object if the migration was successful,
  *   or NULL in case of error.  Note that the new domain object
@@ -15919,7 +16104,10 @@ error:
  * Provides the number of domain snapshots for this domain.
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
- * filtered to the number of snapshots that have no parents.
+ * filtered to the number of snapshots that have no parents.  Likewise,
+ * if @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
+ * filtered to the number of snapshots that have no children.  Both flags
+ * can be used together to find unrelated snapshots.
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
  * the number of snapshots that also include metadata that would prevent
@@ -15970,7 +16158,10 @@ error:
  * virDomainSnapshotNum() with the same @flags.
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
- * filtered to the number of snapshots that have no parents.
+ * filtered to the number of snapshots that have no parents.  Likewise,
+ * if @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
+ * filtered to the number of snapshots that have no children.  Both flags
+ * can be used together to find unrelated snapshots.
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
  * the number of snapshots that also include metadata that would prevent
@@ -16006,6 +16197,123 @@ virDomainSnapshotListNames(virDomainPtr domain, char **names, int nameslen,
     if (conn->driver->domainSnapshotListNames) {
         int ret = conn->driver->domainSnapshotListNames(domain, names,
                                                         nameslen, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotNumChildren:
+ * @snapshot: a domain snapshot object
+ * @flags: bitwise-or of supported virDomainSnapshotListFlags
+ *
+ * Provides the number of child snapshots for this domain snapshot.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS, then the result
+ * includes all descendants, otherwise it is limited to direct children.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
+ * filtered to the number of snapshots that have no children.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
+ * the number of snapshots that also include metadata that would prevent
+ * the removal of the last reference to a domain; this value will either
+ * be 0 or the same value as if the flag were not given.
+ *
+ * Returns the number of domain snapshots found or -1 in case of error.
+ */
+int
+virDomainSnapshotNumChildren(virDomainSnapshotPtr snapshot, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("snapshot=%p, flags=%x", snapshot, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = snapshot->domain->conn;
+    if (conn->driver->domainSnapshotNumChildren) {
+        int ret = conn->driver->domainSnapshotNumChildren(snapshot, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotListChildrenNames:
+ * @snapshot: a domain snapshot object
+ * @names: array to collect the list of names of snapshots
+ * @nameslen: size of @names
+ * @flags: bitwise-or of supported virDomainSnapshotListFlags
+ *
+ * Collect the list of domain snapshots that are children of the given
+ * snapshot, and store their names in @names.  Caller is responsible for
+ * freeing each member of the array.  The value to use for @nameslen can
+ * be determined by virDomainSnapshotNumChildren() with the same @flags.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS, then the result
+ * includes all descendants, otherwise it is limited to direct children.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
+ * filtered to the number of snapshots that have no children.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
+ * the number of snapshots that also include metadata that would prevent
+ * the removal of the last reference to a domain; this value will either
+ * be 0 or the same value as if the flag were not given.
+ *
+ * Returns the number of domain snapshots found or -1 in case of error.
+ */
+int
+virDomainSnapshotListChildrenNames(virDomainSnapshotPtr snapshot,
+                                   char **names, int nameslen,
+                                   unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("snapshot=%p, names=%p, nameslen=%d, flags=%x",
+              snapshot, names, nameslen, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = snapshot->domain->conn;
+
+    if ((names == NULL) || (nameslen < 0)) {
+        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainSnapshotListChildrenNames) {
+        int ret = conn->driver->domainSnapshotListChildrenNames(snapshot,
+                                                                names,
+                                                                nameslen,
+                                                                flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -16150,6 +16458,50 @@ error:
 }
 
 /**
+ * virDomainSnapshotGetParent:
+ * @snapshot: a snapshot object
+ * @flags: unused flag parameters; callers should pass 0
+ *
+ * Get the parent snapshot for @snapshot, if any.
+ *
+ * Returns a domain snapshot object or NULL in case of failure.  If the
+ * given snapshot is a root (no parent), then the VIR_ERR_NO_DOMAIN_SNAPSHOT
+ * error is raised.
+ */
+virDomainSnapshotPtr
+virDomainSnapshotGetParent(virDomainSnapshotPtr snapshot,
+                           unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("snapshot=%p, flags=%x", snapshot, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return NULL;
+    }
+
+    conn = snapshot->domain->conn;
+
+    if (conn->driver->domainSnapshotGetParent) {
+        virDomainSnapshotPtr snap;
+        snap = conn->driver->domainSnapshotGetParent(snapshot, flags);
+        if (!snap)
+            goto error;
+        return snap;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+/**
  * virDomainRevertToSnapshot:
  * @snapshot: a domain snapshot object
  * @flags: bitwise-OR of virDomainSnapshotRevertFlags
@@ -16167,6 +16519,28 @@ error:
  * need either flag, it is not possible to revert a transient domain
  * into an inactive state, so transient domains require the use of one
  * of these two flags.
+ *
+ * Reverting to any snapshot discards all configuration changes made since
+ * the last snapshot.  Additionally, reverting to a snapshot from a running
+ * domain is a form of data loss, since it discards whatever is in the
+ * guest's RAM at the time.  Since the very nature of keeping snapshots
+ * implies the intent to roll back state, no additional confirmation is
+ * normally required for these lossy effects.
+ *
+ * However, there are two particular situations where reverting will
+ * be refused by default, and where @flags must include
+ * VIR_DOMAIN_SNAPSHOT_REVERT_FORCE to acknowledge the risks.  1) Any
+ * attempt to revert to a snapshot that lacks the metadata to perform
+ * ABI compatibility checks (generally the case for snapshots that
+ * lack a full <domain> when listed by virDomainSnapshotGetXMLDesc(),
+ * such as those created prior to libvirt 0.9.5).  2) Any attempt to
+ * revert a running domain to an active state that requires starting a
+ * new hypervisor instance rather than reusing the existing hypervisor
+ * (since this would terminate all connections to the domain, such as
+ * such as VNC or Spice graphics) - this condition arises from active
+ * snapshots that are provably ABI incomaptible, as well as from
+ * inactive snapshots with a @flags request to start the domain after
+ * the revert.
  *
  * Returns 0 if the creation is successful, -1 on error.
  */
@@ -16585,6 +16959,91 @@ int virDomainBlockPull(virDomainPtr dom, const char *path,
     }
 
     virLibDomainError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainOpenGraphics:
+ * @dom: pointer to domain object
+ * @idx: index of graphics config to open
+ * @fd: file descriptor to attach graphics to
+ * @flags: flags to control open operation
+ *
+ * This will attempt to connect the file descriptor @fd, to
+ * the graphics backend of @dom. If @dom has multiple graphics
+ * backends configured, then @idx will determine which one is
+ * opened, starting from @idx 0.
+ *
+ * To disable any authentication, pass the VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH
+ * constant for @flags.
+ *
+ * The caller should use an anonymous socketpair to open
+ * @fd before invocation.
+ *
+ * This method can only be used when connected to a local
+ * libvirt hypervisor, over a UNIX domain socket. Attempts
+ * to use this method over a TCP connection will always fail
+ *
+ * Returns 0 on success, -1 on failure
+ */
+int virDomainOpenGraphics(virDomainPtr dom,
+                          unsigned int idx,
+                          int fd,
+                          unsigned int flags)
+{
+    struct stat sb;
+    VIR_DOMAIN_DEBUG(dom, "idx=%u, fd=%d, flags=%x",
+                     idx, fd, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN(dom)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (fd < 0) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (fstat(fd, &sb) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to access file descriptor %d"), fd);
+        goto error;
+    }
+
+    if (!S_ISSOCK(sb.st_mode)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("File descriptor %d must be a socket"), fd);
+        goto error;
+    }
+
+    if (dom->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (!VIR_DRV_SUPPORTS_FEATURE(dom->conn->driver, dom->conn,
+                                  VIR_DRV_FEATURE_FD_PASSING)) {
+        virLibDomainError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        goto error;
+    }
+
+    if (dom->conn->driver->domainOpenGraphics) {
+        int ret;
+        ret = dom->conn->driver->domainOpenGraphics(dom, idx, fd, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
 
 error:
     virDispatchError(dom->conn);

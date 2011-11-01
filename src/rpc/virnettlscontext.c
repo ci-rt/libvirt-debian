@@ -96,7 +96,8 @@ virNetTLSContextCheckCertFile(const char *type, const char *file, bool allowMiss
 }
 
 
-static void virNetTLSLog(int level, const char *str) {
+static void virNetTLSLog(int level ATTRIBUTE_UNUSED,
+                         const char *str ATTRIBUTE_UNUSED) {
     VIR_DEBUG("%d %s", level, str);
 }
 
@@ -382,24 +383,11 @@ static int
 virNetTLSContextCheckCertDN(gnutls_x509_crt_t cert,
                             const char *certFile,
                             const char *hostname,
+                            const char *dname,
                             const char *const* whitelist)
 {
-    int ret;
-    char name[256];
-    size_t namesize = sizeof name;
-
-    memset(name, 0, namesize);
-
-    ret = gnutls_x509_crt_get_dn(cert, name, &namesize);
-    if (ret != 0) {
-        virNetError(VIR_ERR_SYSTEM_ERROR,
-                    _("Failed to get certificate %s distinguished name: %s"),
-                    certFile, gnutls_strerror(ret));
-        return -1;
-    }
-    VIR_DEBUG("Peer DN is %s", name);
-    if (whitelist &&
-        virNetTLSContextCheckCertDNWhitelist(name, whitelist) <= 0)
+    if (whitelist && dname &&
+        virNetTLSContextCheckCertDNWhitelist(dname, whitelist) <= 0)
         return -1;
 
     if (hostname &&
@@ -490,7 +478,7 @@ static int virNetTLSContextCheckCertPair(gnutls_x509_crt_t cert,
 
 static gnutls_x509_crt_t virNetTLSContextLoadCertFromFile(const char *certFile,
                                                           bool isServer,
-                                                          bool isCA)
+                                                          bool isCA ATTRIBUTE_UNUSED)
 {
     gnutls_datum_t data;
     gnutls_x509_crt_t cert = NULL;
@@ -662,9 +650,6 @@ static virNetTLSContextPtr virNetTLSContextNew(const char *cacert,
     char *gnutlsdebug;
     int err;
 
-    VIR_DEBUG("cacert=%s cacrl=%s cert=%s key=%s sanityCheckCert=%d requireValid=%d isServer=%d",
-              cacert, NULLSTR(cacrl), cert, key, sanityCheckCert, requireValidCert, isServer);
-
     if (VIR_ALLOC(ctxt) < 0) {
         virReportOOMError();
         return NULL;
@@ -732,6 +717,10 @@ static virNetTLSContextPtr virNetTLSContextNew(const char *cacert,
     ctxt->requireValidCert = requireValidCert;
     ctxt->x509dnWhitelist = x509dnWhitelist;
     ctxt->isServer = isServer;
+
+    PROBE(RPC_TLS_CONTEXT_NEW,
+          "ctxt=%p refs=%d cacert=%s cacrl=%s cert=%s key=%s sanityCheckCert=%d requireValidCert=%d isServer=%d",
+          ctxt, ctxt->refs, cacert, NULLSTR(cacrl), cert, key, sanityCheckCert, requireValidCert, isServer);
 
     return ctxt;
 
@@ -943,7 +932,12 @@ virNetTLSContextPtr virNetTLSContextNewClient(const char *cacert,
 
 void virNetTLSContextRef(virNetTLSContextPtr ctxt)
 {
+    virMutexLock(&ctxt->lock);
     ctxt->refs++;
+    PROBE(RPC_TLS_CONTEXT_REF,
+          "ctxt=%p refs=%d",
+          ctxt, ctxt->refs);
+    virMutexUnlock(&ctxt->lock);
 }
 
 
@@ -954,6 +948,10 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
     unsigned int status;
     const gnutls_datum_t *certs;
     unsigned int nCerts, i;
+    char dname[256];
+    size_t dnamesize = sizeof(dname);
+
+    memset(dname, 0, dnamesize);
 
     if ((ret = gnutls_certificate_verify_peers2(sess->session, &status)) < 0){
         virNetError(VIR_ERR_SYSTEM_ERROR,
@@ -1020,7 +1018,16 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
         }
 
         if (i == 0) {
-            if (virNetTLSContextCheckCertDN(cert, "[session]", sess->hostname,
+            ret = gnutls_x509_crt_get_dn(cert, dname, &dnamesize);
+            if (ret != 0) {
+                virNetError(VIR_ERR_SYSTEM_ERROR,
+                            _("Failed to get certificate %s distinguished name: %s"),
+                            "[session]", gnutls_strerror(ret));
+                goto authfail;
+            }
+            VIR_DEBUG("Peer DN is %s", dname);
+
+            if (virNetTLSContextCheckCertDN(cert, "[session]", sess->hostname, dname,
                                             ctxt->x509dnWhitelist) < 0) {
                 gnutls_x509_crt_deinit(cert);
                 goto authdeny;
@@ -1053,24 +1060,24 @@ static int virNetTLSContextValidCertificate(virNetTLSContextPtr ctxt,
         gnutls_x509_crt_deinit(cert);
     }
 
-#if 0
-    PROBE(CLIENT_TLS_ALLOW, "fd=%d, name=%s",
-          virNetServerClientGetFD(client), name);
-#endif
+    PROBE(RPC_TLS_CONTEXT_SESSION_ALLOW,
+          "ctxt=%p sess=%p dname=%s",
+          ctxt, sess, dname);
+
     return 0;
 
 authdeny:
-#if 0
-    PROBE(CLIENT_TLS_DENY, "fd=%d, name=%s",
-          virNetServerClientGetFD(client), name);
-#endif
+    PROBE(RPC_TLS_CONTEXT_SESSION_DENY,
+          "ctxt=%p sess=%p dname=%s",
+          ctxt, sess, dname);
+
     return -1;
 
 authfail:
-#if 0
-    PROBE(CLIENT_TLS_FAIL, "fd=%d",
-          virNetServerClientGetFD(client));
-#endif
+    PROBE(RPC_TLS_CONTEXT_SESSION_FAIL,
+          "ctxt=%p sess=%p",
+          ctxt, sess);
+
     return -1;
 }
 
@@ -1108,6 +1115,9 @@ void virNetTLSContextFree(virNetTLSContextPtr ctxt)
         return;
 
     virMutexLock(&ctxt->lock);
+    PROBE(RPC_TLS_CONTEXT_FREE,
+          "ctxt=%p refs=%d",
+          ctxt, ctxt->refs);
     ctxt->refs--;
     if (ctxt->refs > 0) {
         virMutexUnlock(&ctxt->lock);
@@ -1222,6 +1232,10 @@ virNetTLSSessionPtr virNetTLSSessionNew(virNetTLSContextPtr ctxt,
 
     sess->isServer = ctxt->isServer;
 
+    PROBE(RPC_TLS_SESSION_NEW,
+          "sess=%p refs=%d ctxt=%p hostname=%s isServer=%d",
+          sess, sess->refs, ctxt, hostname, sess->isServer);
+
     return sess;
 
 error:
@@ -1234,6 +1248,9 @@ void virNetTLSSessionRef(virNetTLSSessionPtr sess)
 {
     virMutexLock(&sess->lock);
     sess->refs++;
+    PROBE(RPC_TLS_SESSION_REF,
+          "sess=%p refs=%d",
+          sess, sess->refs);
     virMutexUnlock(&sess->lock);
 }
 
@@ -1385,6 +1402,9 @@ void virNetTLSSessionFree(virNetTLSSessionPtr sess)
         return;
 
     virMutexLock(&sess->lock);
+    PROBE(RPC_TLS_SESSION_FREE,
+          "sess=%p refs=%d",
+          sess, sess->refs);
     sess->refs--;
     if (sess->refs > 0) {
         virMutexUnlock(&sess->lock);

@@ -429,23 +429,20 @@ cleanup:
 }
 
 
-static int
-qemuProcessHandleShutdown(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
-                          virDomainObjPtr vm)
+static void
+qemuProcessShutdownOrReboot(virDomainObjPtr vm)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
-    VIR_DEBUG("vm=%p", vm);
 
-    virDomainObjLock(vm);
     if (priv->gotShutdown) {
         VIR_DEBUG("Ignoring repeated SHUTDOWN event from domain %s",
                   vm->def->name);
-        goto cleanup;
+        return;
     }
 
     priv->gotShutdown = true;
     if (priv->fakeReboot) {
-        priv->fakeReboot = false;
+        qemuDomainSetFakeReboot(qemu_driver, vm, false);
         virDomainObjRef(vm);
         virThread th;
         if (virThreadCreate(&th,
@@ -454,16 +451,23 @@ qemuProcessHandleShutdown(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
                             vm) < 0) {
             VIR_ERROR(_("Failed to create reboot thread, killing domain"));
             qemuProcessKill(vm, true);
-            if (virDomainObjUnref(vm) == 0)
-                vm = NULL;
+            /* Safe to ignore value since ref count was incremented above */
+            ignore_value(virDomainObjUnref(vm));
         }
     } else {
         qemuProcessKill(vm, true);
     }
+}
 
-cleanup:
-    if (vm)
-        virDomainObjUnlock(vm);
+static int
+qemuProcessHandleShutdown(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
+                          virDomainObjPtr vm)
+{
+    VIR_DEBUG("vm=%p", vm);
+
+    virDomainObjLock(vm);
+    qemuProcessShutdownOrReboot(vm);
+    virDomainObjUnlock(vm);
     return 0;
 }
 
@@ -2321,11 +2325,12 @@ qemuProcessUpdateState(struct qemud_driver *driver, virDomainObjPtr vm)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virDomainState state;
+    virDomainPausedReason reason;
     bool running;
     int ret;
 
     qemuDomainObjEnterMonitorWithDriver(driver, vm);
-    ret = qemuMonitorGetStatus(priv->mon, &running);
+    ret = qemuMonitorGetStatus(priv->mon, &running, &reason);
     qemuDomainObjExitMonitorWithDriver(driver, vm);
 
     if (ret < 0 || !virDomainObjIsActive(vm))
@@ -2339,9 +2344,10 @@ qemuProcessUpdateState(struct qemud_driver *driver, virDomainObjPtr vm)
         virDomainObjSetState(vm, VIR_DOMAIN_RUNNING,
                              VIR_DOMAIN_RUNNING_UNPAUSED);
     } else if (state == VIR_DOMAIN_RUNNING && !running) {
-        VIR_DEBUG("Domain %s was paused while its monitor was disconnected;"
-                  " changing state to paused", vm->def->name);
-        virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, VIR_DOMAIN_PAUSED_UNKNOWN);
+        VIR_DEBUG("Domain %s was paused (%s) while its monitor was"
+                  " disconnected; changing state to paused",
+                  vm->def->name, virDomainPausedReasonTypeToString(reason));
+        virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, reason);
     } else if (state == VIR_DOMAIN_SHUTOFF && running) {
         VIR_DEBUG("Domain %s finished booting; changing state to running",
                   vm->def->name);
@@ -2570,6 +2576,8 @@ qemuProcessReconnect(void *opaque)
     qemuDomainObjPrivatePtr priv;
     virConnectPtr conn = data->conn;
     struct qemuDomainJobObj oldjob;
+    int state;
+    int reason;
 
     memcpy(&oldjob, &data->oldjob, sizeof(oldjob));
 
@@ -2601,7 +2609,8 @@ qemuProcessReconnect(void *opaque)
     if (qemuProcessUpdateState(driver, obj) < 0)
         goto error;
 
-    if (virDomainObjGetState(obj, NULL) == VIR_DOMAIN_SHUTOFF) {
+    state = virDomainObjGetState(obj, &reason);
+    if (state == VIR_DOMAIN_SHUTOFF) {
         VIR_DEBUG("Domain '%s' wasn't fully started yet, killing it",
                   obj->def->name);
         goto error;
@@ -2615,6 +2624,18 @@ qemuProcessReconnect(void *opaque)
                                    NULL,
                                    &priv->qemuCaps) < 0)
         goto error;
+
+    /* In case the domain was paused for shutdown while we were not running,
+     * we need to finish the shutdown process. And we need to do it after
+     * we have qemuCaps filled in.
+     */
+    if (state == VIR_DOMAIN_PAUSED
+        && reason == VIR_DOMAIN_PAUSED_SHUTTING_DOWN) {
+        VIR_DEBUG("Domain %s shut down while we were not running;"
+                  " finishing shutdown sequence", obj->def->name);
+        qemuProcessShutdownOrReboot(obj);
+        goto endjob;
+    }
 
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_DEVICE)) {
         priv->persistentAddrs = 1;
@@ -2633,6 +2654,9 @@ qemuProcessReconnect(void *opaque)
     if (qemuProcessFiltersInstantiate(conn, obj->def))
         goto error;
 
+    if (qemuDomainCheckEjectableMedia(driver, obj) < 0)
+        goto error;
+
     if (qemuProcessRecoverJob(driver, obj, conn, &oldjob) < 0)
         goto error;
 
@@ -2645,11 +2669,12 @@ qemuProcessReconnect(void *opaque)
     if (obj->def->id >= driver->nextvmid)
         driver->nextvmid = obj->def->id + 1;
 
-    if (virDomainObjUnref(obj) > 0)
-        virDomainObjUnlock(obj);
-
+endjob:
     if (qemuDomainObjEndJob(driver, obj) == 0)
         obj = NULL;
+
+    if (obj && virDomainObjUnref(obj) > 0)
+        virDomainObjUnlock(obj);
 
     qemuDriverUnlock(driver);
 
@@ -2824,7 +2849,7 @@ int qemuProcessStart(virConnectPtr conn,
         goto cleanup;
 
     vm->def->id = driver->nextvmid++;
-    priv->fakeReboot = false;
+    qemuDomainSetFakeReboot(driver, vm, false);
     virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, VIR_DOMAIN_SHUTOFF_UNKNOWN);
 
     /* Run an early hook to set-up missing devices */
@@ -2924,6 +2949,13 @@ int qemuProcessStart(virConnectPtr conn,
                                    &priv->qemuCaps) < 0)
         goto cleanup;
 
+    if (qemuAssignDeviceAliases(vm->def, priv->qemuCaps) < 0)
+        goto cleanup;
+
+    VIR_DEBUG("Checking for CDROM and floppy presence");
+    if (qemuDomainCheckDiskPresence(driver, vm, migrateFrom != NULL) < 0)
+        goto cleanup;
+
     VIR_DEBUG("Setting up domain cgroup (if required)");
     if (qemuSetupCgroup(driver, vm) < 0)
         goto cleanup;
@@ -2937,11 +2969,9 @@ int qemuProcessStart(virConnectPtr conn,
     if (qemuProcessPrepareMonitorChr(driver, priv->monConfig, vm->def->name) < 0)
         goto cleanup;
 
-#if HAVE_YAJL
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_MONITOR_JSON))
         priv->monJSON = 1;
     else
-#endif
         priv->monJSON = 0;
 
     priv->monError = false;
@@ -3470,6 +3500,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
     char *timestamp;
     qemuDomainObjPrivatePtr priv = vm->privateData;
     bool running = true;
+    virDomainPausedReason reason;
     virSecurityLabelPtr seclabel = NULL;
 
     VIR_DEBUG("Beginning VM attach process");
@@ -3599,7 +3630,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
         qemuDomainObjExitMonitorWithDriver(driver, vm);
         goto cleanup;
     }
-    if (qemuMonitorGetStatus(priv->mon, &running) < 0) {
+    if (qemuMonitorGetStatus(priv->mon, &running, &reason) < 0) {
         qemuDomainObjExitMonitorWithDriver(driver, vm);
         goto cleanup;
     }
@@ -3616,7 +3647,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
         virDomainObjSetState(vm, VIR_DOMAIN_RUNNING,
                              VIR_DOMAIN_RUNNING_UNPAUSED);
     else
-        virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, VIR_DOMAIN_PAUSED_UNKNOWN);
+        virDomainObjSetState(vm, VIR_DOMAIN_PAUSED, reason);
 
     VIR_DEBUG("Writing domain status to disk");
     if (virDomainSaveStatus(driver->caps, driver->stateDir, vm) < 0)

@@ -602,6 +602,9 @@
     <optional>
       <ref name="driver"/>
     </optional>
+    <optional>
+      <ref name="diskAuth"/>
+    </optional>
     <ref name="target"/>
     <optional>
       <ref name="deviceBoot"/>
@@ -665,6 +668,17 @@
       </interleave>
     </element>
   </define>
+
+  <define name="startupPolicy">
+    <attribute name="startupPolicy">
+      <choice>
+        <value>mandatory</value>
+        <value>requisite</value>
+        <value>optional</value>
+      </choice>
+    </attribute>
+  </define>
+
   <!--
       A disk description can be either of type file or block
       The name of the attribute on the source element depends on the type
@@ -692,9 +706,14 @@
           <interleave>
             <optional>
               <element name="source">
-                <attribute name="file">
-                  <ref name="absFilePath"/>
-                </attribute>
+                <optional>
+                  <attribute name="file">
+                    <ref name="absFilePath"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <ref name="startupPolicy"/>
+                </optional>
                 <empty/>
               </element>
             </optional>
@@ -790,6 +809,7 @@
             <value>xen</value>
             <value>usb</value>
             <value>uml</value>
+            <value>sata</value>
           </choice>
         </attribute>
       </optional>
@@ -820,6 +840,9 @@
         <ref name="driverErrorPolicy"/>
       </optional>
       <optional>
+        <ref name="driverRerrorPolicy"/>
+      </optional>
+      <optional>
         <ref name="driverIO"/>
       </optional>
       <optional>
@@ -848,6 +871,7 @@
         <value>writeback</value>
         <value>writethrough</value>
         <value>directsync</value>
+        <value>unsafe</value>
       </choice>
     </attribute>
   </define>
@@ -855,8 +879,18 @@
     <attribute name="error_policy">
       <choice>
         <value>stop</value>
+        <value>report</value>
         <value>ignore</value>
         <value>enospace</value>
+      </choice>
+    </attribute>
+  </define>
+  <define name="driverRerrorPolicy">
+    <attribute name="rerror_policy">
+      <choice>
+        <value>stop</value>
+        <value>report</value>
+        <value>ignore</value>
       </choice>
     </attribute>
   </define>
@@ -981,9 +1015,12 @@
           </interleave>
         </group>
         <group>
-          <attribute name="type">
-            <value>mount</value>
-          </attribute>
+          <!-- type='mount' is default -->
+          <optional>
+            <attribute name="type">
+              <value>mount</value>
+            </attribute>
+          </optional>
           <interleave>
             <element name="source">
               <attribute name="dir">
@@ -991,6 +1028,17 @@
               </attribute>
               <empty/>
             </element>
+            <optional>
+              <element name="driver">
+                <attribute name="type">
+                  <choice>
+                    <value>path</value>
+                    <value>handle</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            </optional>
             <ref name="filesystemtgt"/>
           </interleave>
         </group>
@@ -1010,7 +1058,6 @@
         </group>
       </choice>
       <optional>
-        <ref name="address"/>
         <attribute name="accessmode">
         <choice>
           <value>passthrough</value>
@@ -1022,12 +1069,17 @@
     </element>
   </define>
   <define name="filesystemtgt">
-    <element name="target">
-      <attribute name="dir">
-        <ref name="absDirPath"/>
-      </attribute>
-      <empty/>
-    </element>
+    <interleave>
+      <optional>
+        <ref name="address"/>
+      </optional>
+      <element name="target">
+        <attribute name="dir">
+          <ref name="absDirPath"/>
+        </attribute>
+        <empty/>
+      </element>
+    </interleave>
   </define>
   <!--
       An interface description can either be of type bridge in which case
@@ -2059,6 +2111,17 @@
       <optional>
         <ref name="address"/>
       </optional>
+      <optional>
+        <element name="rom">
+          <attribute name="bar">
+            <choice>
+              <value>on</value>
+              <value>off</value>
+            </choice>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="usbproduct">
@@ -2106,6 +2169,14 @@
     <attribute name="function">
       <ref name="pciFunc"/>
     </attribute>
+    <optional>
+      <attribute name="multifunction">
+        <choice>
+          <value>on</value>
+          <value>off</value>
+        </choice>
+      </attribute>
+    </optional>
   </define>
   <define name="driveaddress">
     <optional>
@@ -2467,6 +2538,32 @@
       <empty/>
     </element>
   </define>
+  <define name="diskAuth">
+    <element name="auth">
+      <attribute name="username">
+        <ref name="genericName"/>
+      </attribute>
+      <ref name="diskAuthSecret"/>
+    </element>
+  </define>
+
+  <define name='diskAuthSecret'>
+    <element name='secret'>
+      <attribute name='type'>
+        <choice>
+          <value>ceph</value>
+        </choice>
+      </attribute>
+      <choice>
+        <attribute name='uuid'>
+          <ref name="UUID"/>
+        </attribute>
+        <attribute name='usage'>
+          <ref name='genericName'/>
+        </attribute>
+      </choice>
+    </element>
+  </define>
 
   <!--
        Optional hypervisor extensions in their own namespace:
@@ -2561,11 +2658,6 @@
   <define name="diskSerial">
     <data type="string">
       <param name="pattern">[A-Za-z0-9_\.\+\-]+</param>
-    </data>
-  </define>
-  <define name="genericName">
-    <data type="string">
-      <param name="pattern">[a-zA-Z0-9_\+\-]+</param>
     </data>
   </define>
   <define name="bridgeMode">

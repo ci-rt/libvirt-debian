@@ -43,6 +43,8 @@
 #include "event.h"
 #include "threads.h"
 
+#include "passfd.h"
+
 #define VIR_FROM_THIS VIR_FROM_RPC
 
 #define virNetError(code, ...)                                    \
@@ -170,8 +172,10 @@ static virNetSocketPtr virNetSocketNew(virSocketAddrPtr localAddr,
 
     sock->client = isClient;
 
-    VIR_DEBUG("sock=%p localAddrStr=%s remoteAddrStr=%s",
-              sock, NULLSTR(sock->localAddrStr), NULLSTR(sock->remoteAddrStr));
+    PROBE(RPC_SOCKET_NEW,
+          "sock=%p refs=%d fd=%d errfd=%d pid=%d localAddr=%s, remoteAddr=%s",
+          sock, sock->refs, fd, errfd,
+          pid, NULLSTR(sock->localAddrStr), NULLSTR(sock->remoteAddrStr));
 
     return sock;
 
@@ -610,7 +614,10 @@ int virNetSocketNewConnectSSH(const char *nodename,
                               const char *path,
                               virNetSocketPtr *retsock)
 {
+    char *quoted;
     virCommandPtr cmd;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+
     *retsock = NULL;
 
     cmd = virCommandNew(binary ? binary : "ssh");
@@ -632,10 +639,39 @@ int virNetSocketNewConnectSSH(const char *nodename,
                              "-e", "none", NULL);
     if (noVerify)
         virCommandAddArgList(cmd, "-o", "StrictHostKeyChecking=no", NULL);
-    virCommandAddArgList(cmd, nodename,
-                         netcat ? netcat : "nc",
-                         "-U", path, NULL);
 
+    if (!netcat)
+        netcat = "nc";
+
+    virCommandAddArgList(cmd, nodename, "sh", "-c", NULL);
+
+    virBufferEscapeShell(&buf, netcat);
+    if (virBufferError(&buf)) {
+        virBufferFreeAndReset(&buf);
+        virReportOOMError();
+        return -1;
+    }
+    quoted = virBufferContentAndReset(&buf);
+    /*
+     * This ugly thing is a shell script to detect availability of
+     * the -q option for 'nc': debian and suse based distros need this
+     * flag to ensure the remote nc will exit on EOF, so it will go away
+     * when we close the connection tunnel. If it doesn't go away, subsequent
+     * connection attempts will hang.
+     *
+     * Fedora's 'nc' doesn't have this option, and defaults to the desired
+     * behavior.
+     */
+    virCommandAddArgFormat(cmd,
+         "'if '%s' -q 2>&1 | grep \"requires an argument\" >/dev/null 2>&1; then "
+             "ARG=-q0;"
+         "else "
+             "ARG=;"
+         "fi;"
+         "'%s' $ARG -U %s'",
+         quoted, quoted, path);
+
+    VIR_FREE(quoted);
     return virNetSocketNewConnectCommand(cmd, retsock);
 }
 
@@ -655,12 +691,27 @@ int virNetSocketNewConnectExternal(const char **cmdargv,
 }
 
 
+void virNetSocketRef(virNetSocketPtr sock)
+{
+    virMutexLock(&sock->lock);
+    sock->refs++;
+    PROBE(RPC_SOCKET_REF,
+          "sock=%p refs=%d",
+          sock, sock->refs);
+    virMutexUnlock(&sock->lock);
+}
+
+
 void virNetSocketFree(virNetSocketPtr sock)
 {
     if (!sock)
         return;
 
     virMutexLock(&sock->lock);
+    PROBE(RPC_SOCKET_FREE,
+          "sock=%p refs=%d",
+          sock, sock->refs);
+
     sock->refs--;
     if (sock->refs > 0) {
         virMutexUnlock(&sock->lock);
@@ -739,6 +790,17 @@ bool virNetSocketIsLocal(virNetSocketPtr sock)
         isLocal = true;
     virMutexUnlock(&sock->lock);
     return isLocal;
+}
+
+
+bool virNetSocketHasPassFD(virNetSocketPtr sock)
+{
+    bool hasPassFD = false;
+    virMutexLock(&sock->lock);
+    if (sock->localAddr.data.sa.sa_family == AF_UNIX)
+        hasPassFD = true;
+    virMutexUnlock(&sock->lock);
+    return hasPassFD;
 }
 
 
@@ -1079,6 +1141,55 @@ ssize_t virNetSocketWrite(virNetSocketPtr sock, const char *buf, size_t len)
 }
 
 
+int virNetSocketSendFD(virNetSocketPtr sock, int fd)
+{
+    int ret = -1;
+    if (!virNetSocketHasPassFD(sock)) {
+        virNetError(VIR_ERR_INTERNAL_ERROR,
+                    _("Sending file descriptors is not supported on this socket"));
+        return -1;
+    }
+    virMutexLock(&sock->lock);
+    PROBE(RPC_SOCKET_SEND_FD,
+          "sock=%p fd=%d", sock, fd);
+    if (sendfd(sock->fd, fd) < 0) {
+        virReportSystemError(errno,
+                             _("Failed to send file descriptor %d"),
+                             fd);
+        goto cleanup;
+    }
+    ret = 0;
+
+cleanup:
+    virMutexUnlock(&sock->lock);
+    return ret;
+}
+
+
+int virNetSocketRecvFD(virNetSocketPtr sock)
+{
+    int ret = -1;
+    if (!virNetSocketHasPassFD(sock)) {
+        virNetError(VIR_ERR_INTERNAL_ERROR,
+                    _("Receiving file descriptors is not supported on this socket"));
+        return -1;
+    }
+    virMutexLock(&sock->lock);
+
+    if ((ret = recvfd(sock->fd, O_CLOEXEC)) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Failed to recv file descriptor"));
+        goto cleanup;
+    }
+    PROBE(RPC_SOCKET_RECV_FD,
+          "sock=%p fd=%d", sock, ret);
+
+cleanup:
+    virMutexUnlock(&sock->lock);
+    return ret;
+}
+
+
 int virNetSocketListen(virNetSocketPtr sock, int backlog)
 {
     virMutexLock(&sock->lock);
@@ -1187,20 +1298,19 @@ int virNetSocketAddIOCallback(virNetSocketPtr sock,
 {
     int ret = -1;
 
+    virNetSocketRef(sock);
     virMutexLock(&sock->lock);
     if (sock->watch > 0) {
         VIR_DEBUG("Watch already registered on socket %p", sock);
         goto cleanup;
     }
 
-    sock->refs++;
     if ((sock->watch = virEventAddHandle(sock->fd,
                                          events,
                                          virNetSocketEventHandle,
                                          sock,
                                          virNetSocketEventFree)) < 0) {
         VIR_DEBUG("Failed to register watch on socket %p", sock);
-        sock->refs--;
         goto cleanup;
     }
     sock->func = func;
@@ -1211,6 +1321,8 @@ int virNetSocketAddIOCallback(virNetSocketPtr sock,
 
 cleanup:
     virMutexUnlock(&sock->lock);
+    if (ret != 0)
+        virNetSocketFree(sock);
     return ret;
 }
 

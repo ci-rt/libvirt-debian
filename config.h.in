@@ -158,6 +158,9 @@
 /* Define to 1 when the gnulib module connect should be tested. */
 #undef GNULIB_TEST_CONNECT
 
+/* Define to 1 when the gnulib module dup should be tested. */
+#undef GNULIB_TEST_DUP
+
 /* Define to 1 when the gnulib module dup2 should be tested. */
 #undef GNULIB_TEST_DUP2
 
@@ -169,6 +172,12 @@
 
 /* Define to 1 when the gnulib module fcntl should be tested. */
 #undef GNULIB_TEST_FCNTL
+
+/* Define to 1 when the gnulib module fdatasync should be tested. */
+#undef GNULIB_TEST_FDATASYNC
+
+/* Define to 1 when the gnulib module fdopen should be tested. */
+#undef GNULIB_TEST_FDOPEN
 
 /* Define to 1 when the gnulib module fflush should be tested. */
 #undef GNULIB_TEST_FFLUSH
@@ -182,6 +191,9 @@
 /* Define to 1 when the gnulib module fseeko should be tested. */
 #undef GNULIB_TEST_FSEEKO
 
+/* Define to 1 when the gnulib module fstat should be tested. */
+#undef GNULIB_TEST_FSTAT
+
 /* Define to 1 when the gnulib module fsync should be tested. */
 #undef GNULIB_TEST_FSYNC
 
@@ -190,6 +202,9 @@
 
 /* Define to 1 when the gnulib module ftello should be tested. */
 #undef GNULIB_TEST_FTELLO
+
+/* Define to 1 when the gnulib module ftruncate should be tested. */
+#undef GNULIB_TEST_FTRUNCATE
 
 /* Define to 1 when the gnulib module getaddrinfo should be tested. */
 #undef GNULIB_TEST_GETADDRINFO
@@ -328,6 +343,9 @@
 
 /* Define to 1 when the gnulib module putenv should be tested. */
 #undef GNULIB_TEST_PUTENV
+
+/* Define to 1 when the gnulib module raise should be tested. */
+#undef GNULIB_TEST_RAISE
 
 /* Define to 1 when the gnulib module random_r should be tested. */
 #undef GNULIB_TEST_RANDOM_R
@@ -507,6 +525,9 @@
 /* Define to 1 if you have the `chown' function. */
 #undef HAVE_CHOWN
 
+/* Define to 1 if you have the `chsize' function. */
+#undef HAVE_CHSIZE
+
 /* Define to 1 if you have the `confstr' function. */
 #undef HAVE_CONFSTR
 
@@ -526,6 +547,10 @@
 /* Define to 1 if you have the declaration of `alarm', and to 0 if you don't.
    */
 #undef HAVE_DECL_ALARM
+
+/* Define to 1 if you have the declaration of `fdatasync', and to 0 if you
+   don't. */
+#undef HAVE_DECL_FDATASYNC
 
 /* Define to 1 if you have the declaration of `fflush_unlocked', and to 0 if
    you don't. */
@@ -655,6 +680,10 @@
    don't. */
 #undef HAVE_DECL_STRERROR_R
 
+/* Define to 1 if you have the declaration of `strncasecmp', and to 0 if you
+   don't. */
+#undef HAVE_DECL_STRNCASECMP
+
 /* Define to 1 if you have the declaration of `strndup', and to 0 if you
    don't. */
 #undef HAVE_DECL_STRNDUP
@@ -730,6 +759,9 @@
 
 /* Define to 1 if you have the `fsync' function. */
 #undef HAVE_FSYNC
+
+/* Define to 1 if you have the `ftruncate' function. */
+#undef HAVE_FTRUNCATE
 
 /* Define to 1 if you have the `funlockfile' function. */
 #undef HAVE_FUNLOCKFILE
@@ -978,6 +1010,10 @@
 /* Define to 1 if you have the `mprotect' function. */
 #undef HAVE_MPROTECT
 
+/* Define to 1 on MSVC platforms that have the "invalid parameter handler"
+   concept. */
+#undef HAVE_MSVC_INVALID_PARAMETER_HANDLER
+
 /* we have sufficiently new version of netcf for transaction network API */
 #undef HAVE_NETCF_TRANSACTIONS
 
@@ -1077,6 +1113,9 @@
 
 /* Define to 1 if you have the <pwd.h> header file. */
 #undef HAVE_PWD_H
+
+/* Define to 1 if you have the `raise' function. */
+#undef HAVE_RAISE
 
 /* Define to 1 if you have the <random.h> header file. */
 #undef HAVE_RANDOM_H
@@ -1223,6 +1262,9 @@
 /* Define to 1 if you have the `stpcpy' function. */
 #undef HAVE_STPCPY
 
+/* Define to 1 if you have the `strcasecmp' function. */
+#undef HAVE_STRCASECMP
+
 /* Define to 1 if you have the `strchrnul' function. */
 #undef HAVE_STRCHRNUL
 
@@ -1237,6 +1279,9 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strncasecmp' function. */
+#undef HAVE_STRNCASECMP
 
 /* Define to 1 if you have the `strndup' function. */
 #undef HAVE_STRNDUP
@@ -1522,6 +1567,9 @@
 
 /* Define to 1 if you have the `_ftime' function. */
 #undef HAVE__FTIME
+
+/* Define to 1 if you have the `_set_invalid_parameter_handler' function. */
+#undef HAVE__SET_INVALID_PARAMETER_HANDLER
 
 /* Define to 1 if you have the external variable, _system_configuration with a
    member named physmem. */
@@ -2045,9 +2093,6 @@
 /* Define as a replacement for the ISO C99 __func__ variable. */
 #undef __func__
 
-/* Define to fsync if you lack fdatasync */
-#undef fdatasync
-
 /* Define to a replacement function name for fnmatch(). */
 #undef fnmatch
 
@@ -2093,6 +2138,9 @@
 
 /* Define to the type of st_nlink in struct stat, or a supertype. */
 #undef nlink_t
+
+/* Define to `int' if <sys/types.h> does not define. */
+#undef pid_t
 
 /* Define as the type of the result of subtracting two pointers, if the system
    doesn't define it. */

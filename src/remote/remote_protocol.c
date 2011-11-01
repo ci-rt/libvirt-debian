@@ -1138,6 +1138,17 @@ xdr_remote_domain_reboot_args (XDR *xdrs, remote_domain_reboot_args *objp)
 }
 
 bool_t
+xdr_remote_domain_reset_args (XDR *xdrs, remote_domain_reset_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_destroy_args (XDR *xdrs, remote_domain_destroy_args *objp)
 {
 
@@ -4007,6 +4018,23 @@ xdr_remote_domain_event_block_job_msg (XDR *xdrs, remote_domain_event_block_job_
 }
 
 bool_t
+xdr_remote_domain_event_disk_change_msg (XDR *xdrs, remote_domain_event_disk_change_msg *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->oldSrcPath))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->newSrcPath))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->devAlias))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->reason))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_managed_save_args (XDR *xdrs, remote_domain_managed_save_args *objp)
 {
 
@@ -4135,6 +4163,50 @@ xdr_remote_domain_snapshot_list_names_ret (XDR *xdrs, remote_domain_snapshot_lis
 }
 
 bool_t
+xdr_remote_domain_snapshot_num_children_args (XDR *xdrs, remote_domain_snapshot_num_children_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain_snapshot (xdrs, &objp->snap))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_snapshot_num_children_ret (XDR *xdrs, remote_domain_snapshot_num_children_ret *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->num))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_snapshot_list_children_names_args (XDR *xdrs, remote_domain_snapshot_list_children_names_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain_snapshot (xdrs, &objp->snap))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->maxnames))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_snapshot_list_children_names_ret (XDR *xdrs, remote_domain_snapshot_list_children_names_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->names.names_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->names.names_len, REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX,
+                sizeof (remote_nonnull_string), (xdrproc_t) xdr_remote_nonnull_string))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_snapshot_lookup_by_name_args (XDR *xdrs, remote_domain_snapshot_lookup_by_name_args *objp)
 {
 
@@ -4172,6 +4244,26 @@ xdr_remote_domain_has_current_snapshot_ret (XDR *xdrs, remote_domain_has_current
 {
 
          if (!xdr_int (xdrs, &objp->result))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_snapshot_get_parent_args (XDR *xdrs, remote_domain_snapshot_get_parent_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain_snapshot (xdrs, &objp->snap))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_snapshot_get_parent_ret (XDR *xdrs, remote_domain_snapshot_get_parent_ret *objp)
+{
+
+         if (!xdr_remote_nonnull_domain_snapshot (xdrs, &objp->snap))
                  return FALSE;
         return TRUE;
 }
@@ -4483,6 +4575,19 @@ xdr_remote_domain_get_control_info_ret (XDR *xdrs, remote_domain_get_control_inf
          if (!xdr_u_int (xdrs, &objp->details))
                  return FALSE;
          if (!xdr_uint64_t (xdrs, &objp->stateTime))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_open_graphics_args (XDR *xdrs, remote_domain_open_graphics_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->idx))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
         return TRUE;
 }

@@ -4,7 +4,7 @@
 INCLUDES = \
 	-I../include -I$(top_srcdir)/include \
 	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib	\
-	-I$(top_srcdir)/src				\
+	-I$(top_srcdir)/src -I../src			\
 	-I$(top_srcdir)/src/util			\
 	-I$(top_srcdir)					\
 	$(GETTEXT_CPPFLAGS)
@@ -28,11 +28,14 @@ EXTRA_DIST = \
 	libvirt-guests.init.sh				\
 	libvirt-guests.sysconf
 
+DISTCLEANFILES =
+
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
 bin_PROGRAMS = virsh
 
 if HAVE_SANLOCK
 sbin_SCRIPTS = virt-sanlock-cleanup
+DISTCLEANFILES += virt-sanlock-cleanup
 endif
 
 dist_man1_MANS = virt-xml-validate.1 virt-pki-validate.1 virsh.1
@@ -187,4 +190,4 @@ CLEANFILES = $(bin_SCRIPTS)
 CLEANFILES += *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.i *.s
 MAINTAINERCLEANFILES = $(dist_man1_MANS)
 
-DISTCLEANFILES = $(BUILT_SOURCES)
+DISTCLEANFILES += $(BUILT_SOURCES)

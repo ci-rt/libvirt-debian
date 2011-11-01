@@ -22,12 +22,16 @@ virBitmapString;
 # buf.h
 virBufferAdd;
 virBufferAddChar;
+virBufferAdjustIndent;
 virBufferAsprintf;
 virBufferContentAndReset;
 virBufferError;
+virBufferEscape;
 virBufferEscapeSexpr;
+virBufferEscapeShell;
 virBufferEscapeString;
 virBufferFreeAndReset;
+virBufferGetIndent;
 virBufferStrcat;
 virBufferURIEncodeString;
 virBufferUse;
@@ -263,12 +267,15 @@ virDomainDefCheckABIStability;
 virDomainDefClearDeviceAliases;
 virDomainDefClearPCIAddresses;
 virDomainDefFormat;
+virDomainDefFormatInternal;
 virDomainDefFree;
 virDomainDefParseFile;
 virDomainDefParseNode;
 virDomainDefParseString;
 virDomainDeleteConfig;
 virDomainDeviceAddressIsValid;
+virDomainDeviceAddressPciMultiTypeFromString;
+virDomainDeviceAddressPciMultiTypeToString;
 virDomainDeviceAddressTypeToString;
 virDomainDeviceDefFree;
 virDomainDeviceDefParse;
@@ -385,6 +392,8 @@ virDomainObjUnlock;
 virDomainObjUnref;
 virDomainPausedReasonTypeFromString;
 virDomainPausedReasonTypeToString;
+virDomainPciRombarModeTypeFromString;
+virDomainPciRombarModeTypeToString;
 virDomainRedirdevBusTypeFromString;
 virDomainRedirdevBusTypeToString;
 virDomainRemoveInactive;
@@ -406,18 +415,23 @@ virDomainSnapshotAssignDef;
 virDomainSnapshotDefFormat;
 virDomainSnapshotDefFree;
 virDomainSnapshotDefParseString;
+virDomainSnapshotDropParent;
 virDomainSnapshotFindByName;
 virDomainSnapshotForEachChild;
 virDomainSnapshotForEachDescendant;
-virDomainSnapshotHasChildren;
 virDomainSnapshotObjListGetNames;
+virDomainSnapshotObjListGetNamesFrom;
 virDomainSnapshotObjListNum;
+virDomainSnapshotObjListNumFrom;
 virDomainSnapshotObjListRemove;
 virDomainSnapshotStateTypeFromString;
 virDomainSnapshotStateTypeToString;
+virDomainSnapshotUpdateRelations;
 virDomainSoundDefFree;
 virDomainSoundModelTypeFromString;
 virDomainSoundModelTypeToString;
+virDomainStartupPolicyTypeFromString;
+virDomainStartupPolicyTypeToString;
 virDomainStateReasonFromString;
 virDomainStateReasonToString;
 virDomainStateTypeFromString;
@@ -467,6 +481,8 @@ virDomainEventCallbackListRemoveConn;
 virDomainEventCallbackListRemoveID;
 virDomainEventControlErrorNewFromDom;
 virDomainEventControlErrorNewFromObj;
+virDomainEventDiskChangeNewFromDom;
+virDomainEventDiskChangeNewFromObj;
 virDomainEventDispatch;
 virDomainEventDispatchDefaultFunc;
 virDomainEventFree;
@@ -872,11 +888,17 @@ virNWFilterHashTableRemoveEntry;
 pciDettachDevice;
 pciDeviceFileIterate;
 pciDeviceGetManaged;
+pciDeviceGetName;
+pciDeviceGetRemoveSlot;
+pciDeviceGetReprobe;
+pciDeviceGetUnbindFromStub;
+pciDeviceGetUsedBy;
 pciDeviceIsAssignable;
 pciDeviceIsVirtualFunction;
 pciDeviceListAdd;
 pciDeviceListCount;
 pciDeviceListDel;
+pciDeviceListFind;
 pciDeviceListFree;
 pciDeviceListGet;
 pciDeviceListNew;
@@ -884,6 +906,10 @@ pciDeviceListSteal;
 pciDeviceNetName;
 pciDeviceReAttachInit;
 pciDeviceSetManaged;
+pciDeviceSetRemoveSlot;
+pciDeviceSetReprobe;
+pciDeviceSetUnbindFromStub;
+pciDeviceSetUsedBy;
 pciFreeDevice;
 pciGetDevice;
 pciGetPhysicalFunction;
@@ -910,6 +936,8 @@ virSecretDefFormat;
 virSecretDefFree;
 virSecretDefParseFile;
 virSecretDefParseString;
+virSecretUsageTypeTypeFromString;
+virSecretUsageTypeTypeToString;
 
 
 # security_driver.h
@@ -976,14 +1004,15 @@ virStoragePoolObjClearVols;
 virStoragePoolObjDeleteDef;
 virStoragePoolObjFindByName;
 virStoragePoolObjFindByUUID;
-virStoragePoolSourceFindDuplicateDevices;
 virStoragePoolObjIsDuplicate;
-virStoragePoolSourceFindDuplicate;
 virStoragePoolObjListFree;
 virStoragePoolObjLock;
 virStoragePoolObjRemove;
 virStoragePoolObjSaveDef;
 virStoragePoolObjUnlock;
+virStoragePoolSourceClear;
+virStoragePoolSourceFindDuplicate;
+virStoragePoolSourceFindDuplicateDevices;
 virStoragePoolSourceFree;
 virStoragePoolSourceListFormat;
 virStoragePoolSourceListNewSource;
@@ -1073,6 +1102,7 @@ virEnumToString;
 virEventAddHandle;
 virEventRemoveHandle;
 virFileAbsPath;
+virFileAccessibleAs;
 virFileBuildPath;
 virFileExists;
 virFileFindMountPoint;
@@ -1159,6 +1189,98 @@ virFileDirectFdFree;
 virFileDirectFdNew;
 virFileFclose;
 virFileFdopen;
+virFileRewrite;
+
+
+# virnetclient.h
+virNetClientHasPassFD;
+
+
+# virnetmessage.h
+virNetMessageClear;
+virNetMessageDecodeNumFDs;
+virNetMessageDupFD;
+virNetMessageEncodeHeader;
+virNetMessageEncodePayload;
+virNetMessageEncodeNumFDs;
+virNetMessageFree;
+virNetMessageNew;
+virNetMessageQueuePush;
+virNetMessageQueueServe;
+virNetMessageSaveError;
+
+
+# virnetserver.h
+virNetServerAddProgram;
+virNetServerAddService;
+virNetServerAddSignalHandler;
+virNetServerAutoShutdown;
+virNetServerClose;
+virNetServerFree;
+virNetServerIsPrivileged;
+virNetServerNew;
+virNetServerQuit;
+virNetServerRef;
+virNetServerRun;
+virNetServerServiceFree;
+virNetServerServiceNewTCP;
+virNetServerServiceNewUNIX;
+virNetServerUpdateServices;
+
+
+# virnetserverclient.h
+virNetServerClientAddFilter;
+virNetServerClientClose;
+virNetServerClientDelayedClose;
+virNetServerClientFree;
+virNetServerClientGetAuth;
+virNetServerClientGetFD;
+virNetServerClientGetLocalIdentity;
+virNetServerClientGetPrivateData;
+virNetServerClientGetReadonly;
+virNetServerClientGetTLSKeySize;
+virNetServerClientHasTLSSession;
+virNetServerClientImmediateClose;
+virNetServerClientIsSecure;
+virNetServerClientLocalAddrString;
+virNetServerClientRef;
+virNetServerClientRemoteAddrString;
+virNetServerClientRemoveFilter;
+virNetServerClientSendMessage;
+virNetServerClientSetCloseHook;
+virNetServerClientSetIdentity;
+virNetServerClientSetPrivateData;
+
+
+# virnetserverprogram.h
+virNetServerProgramFree;
+virNetServerProgramGetID;
+virNetServerProgramGetVersion;
+virNetServerProgramMatches;
+virNetServerProgramNew;
+virNetServerProgramRef;
+virNetServerProgramSendReplyError;
+virNetServerProgramSendStreamData;
+virNetServerProgramSendStreamError;
+
+
+# virnetsocket.h
+virNetSocketDupFD;
+virNetSocketFree;
+virNetSocketGetFD;
+virNetSocketHasPassFD;
+virNetSocketIsLocal;
+virNetSocketListen;
+virNetSocketNewConnectTCP;
+virNetSocketNewListenUNIX;
+virNetSocketRecvFD;
+virNetSocketSendFD;
+
+
+# virnettlscontext.h
+virNetTLSContextFree;
+virNetTLSContextNewServer;
+virNetTLSContextNewServerPath;
 
 
 # virpidfile.h
@@ -1197,6 +1319,7 @@ virKeycodeValueTranslate;
 # xml.h
 virXMLParseHelper;
 virXMLPropString;
+virXMLSaveFile;
 virXPathBoolean;
 virXPathInt;
 virXPathLong;
