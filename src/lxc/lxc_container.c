@@ -116,6 +116,8 @@ static virCommandPtr lxcContainerBuildInitCmd(virDomainDefPtr vmDef)
     virCommandAddEnvString(cmd, "TERM=linux");
     virCommandAddEnvPair(cmd, "LIBVIRT_LXC_UUID", uuidstr);
     virCommandAddEnvPair(cmd, "LIBVIRT_LXC_NAME", vmDef->name);
+    if (vmDef->os.cmdline)
+        virCommandAddEnvPair(cmd, "LIBVIRT_LXC_CMDLINE", vmDef->os.cmdline);
 
     return cmd;
 }
@@ -1115,7 +1117,7 @@ cleanup:
     VIR_FORCE_CLOSE(argv->handshakefd);
 
     if (ret == 0) {
-        /* this function will only return if an error occured */
+        /* this function will only return if an error occurred */
         ret = virCommandExec(cmd);
     }
 
@@ -1227,7 +1229,6 @@ int lxcContainerAvailable(int features)
     int cpid;
     char *childStack;
     char *stack;
-    int childStatus;
 
     if (features & LXC_CONTAINER_FEATURE_USER)
         flags |= CLONE_NEWUSER;
@@ -1245,12 +1246,12 @@ int lxcContainerAvailable(int features)
     cpid = clone(lxcContainerDummyChild, childStack, flags, NULL);
     VIR_FREE(stack);
     if (cpid < 0) {
-        char ebuf[1024];
+        char ebuf[1024] ATTRIBUTE_UNUSED;
         VIR_DEBUG("clone call returned %s, container support is not enabled",
               virStrerror(errno, ebuf, sizeof ebuf));
         return -1;
-    } else {
-        waitpid(cpid, &childStatus, 0);
+    } else if (virPidWait(cpid, NULL) < 0) {
+        return -1;
     }
 
     VIR_DEBUG("Mounted all filesystems");

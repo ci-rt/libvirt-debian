@@ -631,8 +631,13 @@ static int virStorageBackendQEMUImgBackingFormat(const char *qemuimg)
     if (virCommandRun(cmd, &exitstatus) < 0)
         goto cleanup;
 
-    start = strstr(help, " create ");
-    end = strstr(start, "\n");
+    if ((start = strstr(help, " create ")) == NULL ||
+        (end = strstr(start, "\n")) == NULL) {
+        virStorageReportError(VIR_ERR_INTERNAL_ERROR,
+                              _("unable to parse qemu-img output '%s'"),
+                              help);
+        goto cleanup;
+    }
     if (((tmp = strstr(start, "-F fmt")) && tmp < end) ||
         ((tmp = strstr(start, "-F backing_fmt")) && tmp < end))
         ret = QEMU_IMG_BACKING_FORMAT_FLAG;
@@ -1400,7 +1405,7 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
                               const char **regex,
                               int *nvars,
                               virStorageBackendListVolRegexFunc func,
-                              void *data)
+                              void *data, const char *prefix)
 {
     int fd = -1, err, ret = -1;
     FILE *list = NULL;
@@ -1460,13 +1465,20 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
     }
 
     while (fgets(line, sizeof(line), list) != NULL) {
+        char *p = NULL;
         /* Strip trailing newline */
         int len = strlen(line);
         if (len && line[len-1] == '\n')
             line[len-1] = '\0';
 
+        /* ignore any command prefix */
+        if (prefix)
+            p = STRSKIP(line, prefix);
+        if (!p)
+            p = line;
+
         for (i = 0 ; i <= maxReg && i < nregex ; i++) {
-            if (regexec(&reg[i], line, nvars[i]+1, vars, 0) == 0) {
+            if (regexec(&reg[i], p, nvars[i]+1, vars, 0) == 0) {
                 maxReg++;
 
                 if (i == 0)
@@ -1475,9 +1487,9 @@ virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
                 /* NULL terminate each captured group in the line */
                 for (j = 0 ; j < nvars[i] ; j++) {
                     /* NB vars[0] is the full pattern, so we offset j by 1 */
-                    line[vars[j+1].rm_eo] = '\0';
+                    p[vars[j+1].rm_eo] = '\0';
                     if ((groups[ngroup++] =
-                         strdup(line + vars[j+1].rm_so)) == NULL) {
+                         strdup(p + vars[j+1].rm_so)) == NULL) {
                         virReportOOMError();
                         goto cleanup;
                     }

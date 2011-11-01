@@ -157,7 +157,10 @@ static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
         VIR_DEBUG("Failed to add event watch, disabling events");
     }
 
-    VIR_DEBUG("client=%p refs=%d", client, client->refs);
+    PROBE(RPC_CLIENT_NEW,
+          "client=%p refs=%d sock=%p",
+          client, client->refs, client->sock);
+
     return client;
 
 no_memory:
@@ -228,7 +231,9 @@ void virNetClientRef(virNetClientPtr client)
 {
     virNetClientLock(client);
     client->refs++;
-    VIR_DEBUG("client=%p refs=%d", client, client->refs);
+    PROBE(RPC_CLIENT_REF,
+          "client=%p refs=%d",
+          client, client->refs);
     virNetClientUnlock(client);
 }
 
@@ -253,6 +258,16 @@ int virNetClientDupFD(virNetClientPtr client, bool cloexec)
 }
 
 
+bool virNetClientHasPassFD(virNetClientPtr client)
+{
+    bool hasPassFD;
+    virNetClientLock(client);
+    hasPassFD = virNetSocketHasPassFD(client->sock);
+    virNetClientUnlock(client);
+    return hasPassFD;
+}
+
+
 void virNetClientFree(virNetClientPtr client)
 {
     int i;
@@ -261,7 +276,9 @@ void virNetClientFree(virNetClientPtr client)
         return;
 
     virNetClientLock(client);
-    VIR_DEBUG("client=%p refs=%d", client, client->refs);
+    PROBE(RPC_CLIENT_FREE,
+          "client=%p refs=%d",
+          client, client->refs);
     client->refs--;
     if (client->refs > 0) {
         virNetClientUnlock(client);
@@ -627,6 +644,15 @@ static int virNetClientCallDispatchStream(virNetClientPtr client)
     case VIR_NET_CONTINUE: {
         if (virNetClientStreamQueuePacket(st, &client->msg) < 0)
             return -1;
+
+        if (thecall && thecall->expectReply) {
+            if (thecall->msg->header.status == VIR_NET_CONTINUE) {
+                VIR_DEBUG("Got a synchronous confirm");
+                thecall->mode = VIR_NET_CLIENT_MODE_COMPLETE;
+            } else {
+                VIR_DEBUG("Not completing call with status %d", thecall->msg->header.status);
+            }
+        }
         return 0;
     }
 
@@ -668,16 +694,27 @@ static int virNetClientCallDispatchStream(virNetClientPtr client)
 static int
 virNetClientCallDispatch(virNetClientPtr client)
 {
+    size_t i;
     if (virNetMessageDecodeHeader(&client->msg) < 0)
         return -1;
 
-    VIR_DEBUG("Incoming message prog %d vers %d proc %d type %d status %d serial %d",
-              client->msg.header.prog, client->msg.header.vers,
-              client->msg.header.proc, client->msg.header.type,
-              client->msg.header.status, client->msg.header.serial);
+    PROBE(RPC_CLIENT_MSG_RX,
+          "client=%p len=%zu prog=%u vers=%u proc=%u type=%u status=%u serial=%u",
+          client, client->msg.bufferLength,
+          client->msg.header.prog, client->msg.header.vers, client->msg.header.proc,
+          client->msg.header.type, client->msg.header.status, client->msg.header.serial);
 
     switch (client->msg.header.type) {
     case VIR_NET_REPLY: /* Normal RPC replies */
+        return virNetClientCallDispatchReply(client);
+
+    case VIR_NET_REPLY_WITH_FDS: /* Normal RPC replies with FDs */
+        if (virNetMessageDecodeNumFDs(&client->msg) < 0)
+            return -1;
+        for (i = 0 ; i < client->msg.nfds ; i++) {
+            if ((client->msg.fds[i] = virNetSocketRecvFD(client->sock)) < 0)
+                return -1;
+        }
         return virNetClientCallDispatchReply(client);
 
     case VIR_NET_MESSAGE: /* Async notifications */
@@ -711,6 +748,11 @@ virNetClientIOWriteMessage(virNetClientPtr client,
     thecall->msg->bufferOffset += ret;
 
     if (thecall->msg->bufferOffset == thecall->msg->bufferLength) {
+        size_t i;
+        for (i = 0 ; i < thecall->msg->nfds ; i++) {
+            if (virNetSocketSendFD(client->sock, thecall->msg->fds[i]) < 0)
+                return -1;
+        }
         thecall->msg->bufferOffset = thecall->msg->bufferLength = 0;
         if (thecall->expectReply)
             thecall->mode = VIR_NET_CLIENT_MODE_WAIT_RX;
@@ -1188,7 +1230,14 @@ int virNetClientSend(virNetClientPtr client,
     virNetClientCallPtr call;
     int ret = -1;
 
+    PROBE(RPC_CLIENT_MSG_TX_QUEUE,
+          "client=%p len=%zu prog=%u vers=%u proc=%u type=%u status=%u serial=%u",
+          client, msg->bufferLength,
+          msg->header.prog, msg->header.vers, msg->header.proc,
+          msg->header.type, msg->header.status, msg->header.serial);
+
     if (expectReply &&
+        (msg->bufferLength != 0) &&
         (msg->header.status == VIR_NET_CONTINUE)) {
         virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
                     _("Attempt to send an asynchronous message with a synchronous reply"));

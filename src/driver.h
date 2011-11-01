@@ -124,6 +124,9 @@ typedef int
         (*virDrvDomainReboot)		(virDomainPtr domain,
                                          unsigned int flags);
 typedef int
+        (*virDrvDomainReset)        (virDomainPtr domain,
+                                         unsigned int flags);
+typedef int
         (*virDrvDomainDestroy)		(virDomainPtr domain);
 typedef int
         (*virDrvDomainDestroyFlags) (virDomainPtr domain,
@@ -581,6 +584,16 @@ typedef int
                                      int nameslen,
                                      unsigned int flags);
 
+typedef int
+    (*virDrvDomainSnapshotNumChildren)(virDomainSnapshotPtr snapshot,
+                                       unsigned int flags);
+
+typedef int
+    (*virDrvDomainSnapshotListChildrenNames)(virDomainSnapshotPtr snapshot,
+                                             char **names,
+                                             int nameslen,
+                                             unsigned int flags);
+
 typedef virDomainSnapshotPtr
     (*virDrvDomainSnapshotLookupByName)(virDomainPtr domain,
                                         const char *name,
@@ -588,6 +601,10 @@ typedef virDomainSnapshotPtr
 
 typedef int
     (*virDrvDomainHasCurrentSnapshot)(virDomainPtr domain, unsigned int flags);
+
+typedef virDomainSnapshotPtr
+    (*virDrvDomainSnapshotGetParent)(virDomainSnapshotPtr snapshot,
+                                     unsigned int flags);
 
 typedef virDomainSnapshotPtr
     (*virDrvDomainSnapshotCurrent)(virDomainPtr domain,
@@ -615,6 +632,11 @@ typedef int
                                const char *dev_name,
                                virStreamPtr st,
                                unsigned int flags);
+typedef int
+    (*virDrvDomainOpenGraphics)(virDomainPtr dom,
+                                unsigned int idx,
+                                int fd,
+                                unsigned int flags);
 
 typedef int
     (*virDrvDomainInjectNMI)(virDomainPtr dom, unsigned int flags);
@@ -755,6 +777,7 @@ struct _virDriver {
     virDrvDomainResume		domainResume;
     virDrvDomainShutdown		domainShutdown;
     virDrvDomainReboot		domainReboot;
+    virDrvDomainReset       domainReset;
     virDrvDomainDestroy		domainDestroy;
     virDrvDomainDestroyFlags    domainDestroyFlags;
     virDrvDomainGetOSType		domainGetOSType;
@@ -852,14 +875,18 @@ struct _virDriver {
     virDrvDomainSnapshotGetXMLDesc domainSnapshotGetXMLDesc;
     virDrvDomainSnapshotNum domainSnapshotNum;
     virDrvDomainSnapshotListNames domainSnapshotListNames;
+    virDrvDomainSnapshotNumChildren domainSnapshotNumChildren;
+    virDrvDomainSnapshotListChildrenNames domainSnapshotListChildrenNames;
     virDrvDomainSnapshotLookupByName domainSnapshotLookupByName;
     virDrvDomainHasCurrentSnapshot domainHasCurrentSnapshot;
+    virDrvDomainSnapshotGetParent domainSnapshotGetParent;
     virDrvDomainSnapshotCurrent domainSnapshotCurrent;
     virDrvDomainRevertToSnapshot domainRevertToSnapshot;
     virDrvDomainSnapshotDelete domainSnapshotDelete;
     virDrvDomainQemuMonitorCommand qemuDomainMonitorCommand;
     virDrvDomainQemuAttach qemuDomainAttach;
     virDrvDomainOpenConsole domainOpenConsole;
+    virDrvDomainOpenGraphics domainOpenGraphics;
     virDrvDomainInjectNMI domainInjectNMI;
     virDrvDomainMigrateBegin3	domainMigrateBegin3;
     virDrvDomainMigratePrepare3	domainMigratePrepare3;

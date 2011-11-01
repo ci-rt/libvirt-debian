@@ -639,6 +639,12 @@ struct remote_domain_reboot_args {
 };
 typedef struct remote_domain_reboot_args remote_domain_reboot_args;
 
+struct remote_domain_reset_args {
+        remote_nonnull_domain dom;
+        u_int flags;
+};
+typedef struct remote_domain_reset_args remote_domain_reset_args;
+
 struct remote_domain_destroy_args {
         remote_nonnull_domain dom;
 };
@@ -2285,6 +2291,15 @@ struct remote_domain_event_block_job_msg {
 };
 typedef struct remote_domain_event_block_job_msg remote_domain_event_block_job_msg;
 
+struct remote_domain_event_disk_change_msg {
+        remote_nonnull_domain dom;
+        remote_string oldSrcPath;
+        remote_string newSrcPath;
+        remote_nonnull_string devAlias;
+        int reason;
+};
+typedef struct remote_domain_event_disk_change_msg remote_domain_event_disk_change_msg;
+
 struct remote_domain_managed_save_args {
         remote_nonnull_domain dom;
         u_int flags;
@@ -2357,6 +2372,32 @@ struct remote_domain_snapshot_list_names_ret {
 };
 typedef struct remote_domain_snapshot_list_names_ret remote_domain_snapshot_list_names_ret;
 
+struct remote_domain_snapshot_num_children_args {
+        remote_nonnull_domain_snapshot snap;
+        u_int flags;
+};
+typedef struct remote_domain_snapshot_num_children_args remote_domain_snapshot_num_children_args;
+
+struct remote_domain_snapshot_num_children_ret {
+        int num;
+};
+typedef struct remote_domain_snapshot_num_children_ret remote_domain_snapshot_num_children_ret;
+
+struct remote_domain_snapshot_list_children_names_args {
+        remote_nonnull_domain_snapshot snap;
+        int maxnames;
+        u_int flags;
+};
+typedef struct remote_domain_snapshot_list_children_names_args remote_domain_snapshot_list_children_names_args;
+
+struct remote_domain_snapshot_list_children_names_ret {
+        struct {
+                u_int names_len;
+                remote_nonnull_string *names_val;
+        } names;
+};
+typedef struct remote_domain_snapshot_list_children_names_ret remote_domain_snapshot_list_children_names_ret;
+
 struct remote_domain_snapshot_lookup_by_name_args {
         remote_nonnull_domain dom;
         remote_nonnull_string name;
@@ -2379,6 +2420,17 @@ struct remote_domain_has_current_snapshot_ret {
         int result;
 };
 typedef struct remote_domain_has_current_snapshot_ret remote_domain_has_current_snapshot_ret;
+
+struct remote_domain_snapshot_get_parent_args {
+        remote_nonnull_domain_snapshot snap;
+        u_int flags;
+};
+typedef struct remote_domain_snapshot_get_parent_args remote_domain_snapshot_get_parent_args;
+
+struct remote_domain_snapshot_get_parent_ret {
+        remote_nonnull_domain_snapshot snap;
+};
+typedef struct remote_domain_snapshot_get_parent_ret remote_domain_snapshot_get_parent_ret;
 
 struct remote_domain_snapshot_current_args {
         remote_nonnull_domain dom;
@@ -2571,6 +2623,13 @@ struct remote_domain_get_control_info_ret {
         uint64_t stateTime;
 };
 typedef struct remote_domain_get_control_info_ret remote_domain_get_control_info_ret;
+
+struct remote_domain_open_graphics_args {
+        remote_nonnull_domain dom;
+        u_int idx;
+        u_int flags;
+};
+typedef struct remote_domain_open_graphics_args remote_domain_open_graphics_args;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -2818,6 +2877,12 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB = 241,
         REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_SPEED = 242,
         REMOTE_PROC_DOMAIN_BLOCK_STATS_FLAGS = 243,
+        REMOTE_PROC_DOMAIN_SNAPSHOT_GET_PARENT = 244,
+        REMOTE_PROC_DOMAIN_RESET = 245,
+        REMOTE_PROC_DOMAIN_SNAPSHOT_NUM_CHILDREN = 246,
+        REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_CHILDREN_NAMES = 247,
+        REMOTE_PROC_DOMAIN_EVENT_DISK_CHANGE = 248,
+        REMOTE_PROC_DOMAIN_OPEN_GRAPHICS = 249,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -2914,6 +2979,7 @@ extern  bool_t xdr_remote_domain_suspend_args (XDR *, remote_domain_suspend_args
 extern  bool_t xdr_remote_domain_resume_args (XDR *, remote_domain_resume_args*);
 extern  bool_t xdr_remote_domain_shutdown_args (XDR *, remote_domain_shutdown_args*);
 extern  bool_t xdr_remote_domain_reboot_args (XDR *, remote_domain_reboot_args*);
+extern  bool_t xdr_remote_domain_reset_args (XDR *, remote_domain_reset_args*);
 extern  bool_t xdr_remote_domain_destroy_args (XDR *, remote_domain_destroy_args*);
 extern  bool_t xdr_remote_domain_destroy_flags_args (XDR *, remote_domain_destroy_flags_args*);
 extern  bool_t xdr_remote_domain_get_os_type_args (XDR *, remote_domain_get_os_type_args*);
@@ -3184,6 +3250,7 @@ extern  bool_t xdr_remote_domain_event_graphics_address (XDR *, remote_domain_ev
 extern  bool_t xdr_remote_domain_event_graphics_identity (XDR *, remote_domain_event_graphics_identity*);
 extern  bool_t xdr_remote_domain_event_graphics_msg (XDR *, remote_domain_event_graphics_msg*);
 extern  bool_t xdr_remote_domain_event_block_job_msg (XDR *, remote_domain_event_block_job_msg*);
+extern  bool_t xdr_remote_domain_event_disk_change_msg (XDR *, remote_domain_event_disk_change_msg*);
 extern  bool_t xdr_remote_domain_managed_save_args (XDR *, remote_domain_managed_save_args*);
 extern  bool_t xdr_remote_domain_has_managed_save_image_args (XDR *, remote_domain_has_managed_save_image_args*);
 extern  bool_t xdr_remote_domain_has_managed_save_image_ret (XDR *, remote_domain_has_managed_save_image_ret*);
@@ -3196,10 +3263,16 @@ extern  bool_t xdr_remote_domain_snapshot_num_args (XDR *, remote_domain_snapsho
 extern  bool_t xdr_remote_domain_snapshot_num_ret (XDR *, remote_domain_snapshot_num_ret*);
 extern  bool_t xdr_remote_domain_snapshot_list_names_args (XDR *, remote_domain_snapshot_list_names_args*);
 extern  bool_t xdr_remote_domain_snapshot_list_names_ret (XDR *, remote_domain_snapshot_list_names_ret*);
+extern  bool_t xdr_remote_domain_snapshot_num_children_args (XDR *, remote_domain_snapshot_num_children_args*);
+extern  bool_t xdr_remote_domain_snapshot_num_children_ret (XDR *, remote_domain_snapshot_num_children_ret*);
+extern  bool_t xdr_remote_domain_snapshot_list_children_names_args (XDR *, remote_domain_snapshot_list_children_names_args*);
+extern  bool_t xdr_remote_domain_snapshot_list_children_names_ret (XDR *, remote_domain_snapshot_list_children_names_ret*);
 extern  bool_t xdr_remote_domain_snapshot_lookup_by_name_args (XDR *, remote_domain_snapshot_lookup_by_name_args*);
 extern  bool_t xdr_remote_domain_snapshot_lookup_by_name_ret (XDR *, remote_domain_snapshot_lookup_by_name_ret*);
 extern  bool_t xdr_remote_domain_has_current_snapshot_args (XDR *, remote_domain_has_current_snapshot_args*);
 extern  bool_t xdr_remote_domain_has_current_snapshot_ret (XDR *, remote_domain_has_current_snapshot_ret*);
+extern  bool_t xdr_remote_domain_snapshot_get_parent_args (XDR *, remote_domain_snapshot_get_parent_args*);
+extern  bool_t xdr_remote_domain_snapshot_get_parent_ret (XDR *, remote_domain_snapshot_get_parent_ret*);
 extern  bool_t xdr_remote_domain_snapshot_current_args (XDR *, remote_domain_snapshot_current_args*);
 extern  bool_t xdr_remote_domain_snapshot_current_ret (XDR *, remote_domain_snapshot_current_ret*);
 extern  bool_t xdr_remote_domain_revert_to_snapshot_args (XDR *, remote_domain_revert_to_snapshot_args*);
@@ -3223,6 +3296,7 @@ extern  bool_t xdr_remote_domain_migrate_confirm3_args (XDR *, remote_domain_mig
 extern  bool_t xdr_remote_domain_event_control_error_msg (XDR *, remote_domain_event_control_error_msg*);
 extern  bool_t xdr_remote_domain_get_control_info_args (XDR *, remote_domain_get_control_info_args*);
 extern  bool_t xdr_remote_domain_get_control_info_ret (XDR *, remote_domain_get_control_info_ret*);
+extern  bool_t xdr_remote_domain_open_graphics_args (XDR *, remote_domain_open_graphics_args*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -3316,6 +3390,7 @@ extern bool_t xdr_remote_domain_suspend_args ();
 extern bool_t xdr_remote_domain_resume_args ();
 extern bool_t xdr_remote_domain_shutdown_args ();
 extern bool_t xdr_remote_domain_reboot_args ();
+extern bool_t xdr_remote_domain_reset_args ();
 extern bool_t xdr_remote_domain_destroy_args ();
 extern bool_t xdr_remote_domain_destroy_flags_args ();
 extern bool_t xdr_remote_domain_get_os_type_args ();
@@ -3586,6 +3661,7 @@ extern bool_t xdr_remote_domain_event_graphics_address ();
 extern bool_t xdr_remote_domain_event_graphics_identity ();
 extern bool_t xdr_remote_domain_event_graphics_msg ();
 extern bool_t xdr_remote_domain_event_block_job_msg ();
+extern bool_t xdr_remote_domain_event_disk_change_msg ();
 extern bool_t xdr_remote_domain_managed_save_args ();
 extern bool_t xdr_remote_domain_has_managed_save_image_args ();
 extern bool_t xdr_remote_domain_has_managed_save_image_ret ();
@@ -3598,10 +3674,16 @@ extern bool_t xdr_remote_domain_snapshot_num_args ();
 extern bool_t xdr_remote_domain_snapshot_num_ret ();
 extern bool_t xdr_remote_domain_snapshot_list_names_args ();
 extern bool_t xdr_remote_domain_snapshot_list_names_ret ();
+extern bool_t xdr_remote_domain_snapshot_num_children_args ();
+extern bool_t xdr_remote_domain_snapshot_num_children_ret ();
+extern bool_t xdr_remote_domain_snapshot_list_children_names_args ();
+extern bool_t xdr_remote_domain_snapshot_list_children_names_ret ();
 extern bool_t xdr_remote_domain_snapshot_lookup_by_name_args ();
 extern bool_t xdr_remote_domain_snapshot_lookup_by_name_ret ();
 extern bool_t xdr_remote_domain_has_current_snapshot_args ();
 extern bool_t xdr_remote_domain_has_current_snapshot_ret ();
+extern bool_t xdr_remote_domain_snapshot_get_parent_args ();
+extern bool_t xdr_remote_domain_snapshot_get_parent_ret ();
 extern bool_t xdr_remote_domain_snapshot_current_args ();
 extern bool_t xdr_remote_domain_snapshot_current_ret ();
 extern bool_t xdr_remote_domain_revert_to_snapshot_args ();
@@ -3625,6 +3707,7 @@ extern bool_t xdr_remote_domain_migrate_confirm3_args ();
 extern bool_t xdr_remote_domain_event_control_error_msg ();
 extern bool_t xdr_remote_domain_get_control_info_args ();
 extern bool_t xdr_remote_domain_get_control_info_ret ();
+extern bool_t xdr_remote_domain_open_graphics_args ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

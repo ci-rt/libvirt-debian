@@ -35,12 +35,15 @@ extern "C" {
 #define VIR_NET_MESSAGE_PAYLOAD_MAX 262120
 #define VIR_NET_MESSAGE_LEN_MAX 4
 #define VIR_NET_MESSAGE_STRING_MAX 65536
+#define VIR_NET_MESSAGE_NUM_FDS_MAX 32
 
 enum virNetMessageType {
         VIR_NET_CALL = 0,
         VIR_NET_REPLY = 1,
         VIR_NET_MESSAGE = 2,
         VIR_NET_STREAM = 3,
+        VIR_NET_CALL_WITH_FDS = 4,
+        VIR_NET_REPLY_WITH_FDS = 5,
 };
 typedef enum virNetMessageType virNetMessageType;
 

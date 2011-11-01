@@ -843,7 +843,7 @@
     &lt;timer name="rtc" tickpolicy="catchup" track="guest"&gt;
       &lt;catchup threshold=123 slew=120 limit=10000/&gt;
     &lt;/timer&gt;
-    &lt;timer name="pit" tickpolicy="none"/&gt;
+    &lt;timer name="pit" tickpolicy="delay"/&gt;
   &lt;/clock&gt;
   ...</pre>
         <dl><dt><code>clock</code></dt><dd>
@@ -864,7 +864,7 @@
             The guest clock will have an arbitrary offset applied
             relative to UTC. The delta relative to UTC is specified
             in seconds, using the <code>adjustment</code> attribute.
-            The guest is free to adjust the RTC over time an expect
+            The guest is free to adjust the RTC over time and expect
             that it will be honoured at next reboot. This is in
             contrast to 'utc' mode, where the RTC adjustments are
             lost at each reboot. <span class="since">Since 0.7.7</span>
@@ -948,7 +948,7 @@
   &lt;devices&gt;
     &lt;disk type='file' snapshot='external'&gt;
       &lt;driver name="tap" type="aio" cache="default"/&gt;
-      &lt;source file='/var/lib/xen/images/fv0'/&gt;
+      &lt;source file='/var/lib/xen/images/fv0'/ startupPolicy='optional'&gt;
       &lt;target dev='hda' bus='ide'/&gt;
       &lt;boot order='2'/&gt;
       &lt;encryption type='...'&gt;
@@ -969,6 +969,16 @@
       &lt;boot order='1'/&gt;
       &lt;transient/&gt;
       &lt;address type='drive' controller='0' bus='1' unit='0'/&gt;
+    &lt;/disk&gt;
+    &lt;disk type='network'&gt;
+      &lt;driver name="qemu" type="raw"/&gt;
+      &lt;source protocol="rbd" name="image_name2"&gt;
+        &lt;host name="hostname" port="7000"/&gt;
+      &lt;/source&gt;
+      &lt;target dev="hdd" bus="ide"/&gt;
+      &lt;auth username='myuser'&gt;
+        &lt;secret type='ceph' usage='mypassid'/&gt;
+      &lt;/auth&gt;
     &lt;/disk&gt;
     &lt;disk type='block' device='cdrom'&gt;
       &lt;driver name='qemu' type='raw'/&gt;
@@ -1014,7 +1024,15 @@
         "network", the <code>source</code> may have zero or
         more <code>host</code> sub-elements used to specify the hosts
         to connect.
-        <span class="since">Since 0.0.3</span></dd><dt><code>target</code></dt><dd>The <code>target</code> element controls the bus / device
+        <span class="since">Since 0.0.3</span>
+        For "file" disk type which represents cdrom or floppy
+        (the <code>device</code> attribute) it is possible to define
+        policy what to do with disk if source is not accessible.
+        This is done by <code>startupPolicy</code> attribute accepting
+        these values:
+        <table class="top_table"><tr><td> mandatory </td><td> fail if missing for any reason (the default) </td></tr><tr><td> requisite </td><td> fail if missing on boot up,
+                 drop if missing on migrate/restore/revert </td></tr><tr><td> optional </td><td> drop if missing at any start attempt </td></tr></table><span class="since">Since 0.9.7</span>
+        </dd><dt><code>target</code></dt><dd>The <code>target</code> element controls the bus / device
         under which the disk is exposed to the guest
         OS. The <code>dev</code> attribute indicates the "logical"
         device name. The actual device name specified is not
@@ -1022,11 +1040,12 @@
         as a device ordering hint.  The optional <code>bus</code>
         attribute specifies the type of disk device to emulate;
         possible values are driver specific, with typical values being
-        "ide", "scsi", "virtio", "xen" or "usb". If omitted, the bus type is
-        inferred from the style of the device name. eg, a device named 'sda'
-        will typically be exported using a SCSI bus.
+        "ide", "scsi", "virtio", "xen", "usb" or "sata". If omitted, the bus
+        type is inferred from the style of the device name. eg, a device named
+        'sda' will typically be exported using a SCSI bus.
         <span class="since">Since 0.0.3; <code>bus</code> attribute since 0.4.3;
-        "usb" attribute value since after 0.4.4</span></dd><dt><code>driver</code></dt><dd>
+        "usb" attribute value since after 0.4.4; "sata" attribute value since
+        0.9.7</span></dd><dt><code>driver</code></dt><dd>
         The optional driver element allows specifying further details
         related to the hypervisor driver used to provide the disk.
         <span class="since">Since 0.1.8</span>
@@ -1042,15 +1061,32 @@
           </li><li>
             The optional <code>cache</code> attribute controls the
             cache mechanism, possible values are "default", "none",
-            "writethrough", "writeback", and "directsync". "directsync"
-            is like "writethrough", but it bypasses the host page
-            cache.
-            <span class="since">Since 0.6.0</span>
+            "writethrough", "writeback", "directsync" (like
+            "writethrough", but it bypasses the host page cache) and
+            "unsafe" (host may cache all disk io, and sync requests from
+            guest are ignored).
+            <span class="since">
+              Since 0.6.0,
+              "directsync" since 0.9.5,
+              "unsafe" since 0.9.7
+            </span>
           </li><li>
             The optional <code>error_policy</code> attribute controls
-            how the hypervisor will behave on an error, possible
-            values are "stop", "ignore", and "enospace".
-            <span class="since">Since 0.8.0</span>
+            how the hypervisor will behave on a disk read or write
+            error, possible values are "stop", "report", "ignore", and
+            "enospace".<span class="since">Since 0.8.0, "report" since
+            0.9.7</span> The default setting of error_policy is "report".
+            There is also an
+            optional <code>rerror_policy</code> that controls behavior
+            for read errors only. <span class="since">Since
+            0.9.7</span>. If no rerror_policy is given, error_policy
+            is used for both read and write errors. If rerror_policy
+            is given, it overrides the <code>error_policy</code> for
+            read errors. Also note that "enospace" is not a valid
+            policy for read errors, so if <code>error_policy</code> is
+            set to "enospace" and no <code>rerror_policy</code> is
+            given, the read error policy will be left at its default,
+            which is "report".
           </li><li>
             The optional <code>io</code> attribute controls specific
             policies on I/O; qemu guests support "threads" and
@@ -1115,10 +1151,29 @@
         The <code>type</code> attribute is mandatory, and is typically
         "pci" or "drive".  For a "pci" controller, additional
         attributes for <code>bus</code>, <code>slot</code>,
-        and <code>function</code> must be present, as well as an
-        optional <code>domain</code>.  For a "drive" controller,
-        additional attributes <code>controller</code>, <code>bus</code>,
+        and <code>function</code> must be present, as well as
+        optional <code>domain</code> and <code>multifunction</code>.
+        Multifunction defaults to 'off'; any other value requires
+        QEMU 0.1.3 and <span class="since">libvirt 0.9.7</span>.  For a
+        "drive" controller, additional attributes
+        <code>controller</code>, <code>bus</code>,
         and <code>unit</code> are available, each defaulting to 0.
+      </dd><dt><code>auth</code></dt><dd>If present, the <code>auth</code> element provides the
+        authentication credentials needed to access the source.  It
+        includes a mandatory attribute <code>username</code>, which
+        identifies the username to use during authentication, as well
+        as a sub-element <code>secret</code> with mandatory
+        attribute <code>type</code>, to tie back to
+        a <a href="formatsecret.html">libvirt secret object</a> that
+        holds the actual password or other credentials (the domain XML
+        intentionally does not expose the password, only the reference
+        to the object that does manage the password).  For now, the
+        only known secret <code>type</code> is "ceph", for Ceph RBD
+        network sources, and requires either an
+        attribute <code>uuid</code> with the UUID of the Ceph secret
+        object, or an attribute <code>usage</code> with the name
+        associated with the Ceph secret
+        object.  <span class="since">libvirt 0.9.7</span>
       </dd></dl>
         <h4>
           <a name="elementsFilesystems" id="elementsFilesystems">Filesystems</a>
@@ -1135,6 +1190,7 @@
       &lt;target dir='/'/&gt;
     &lt;/filesystem&gt;
     &lt;filesystem type='mount' accessmode='passthrough'&gt;
+      &lt;driver type='path'/&gt;
       &lt;source dir='/export/to/guest'/&gt;
       &lt;target dir='/import/from/host'/&gt;
       &lt;readonly/&gt;
@@ -1152,12 +1208,19 @@
         OpenVZ <span class="since">(since 0.6.2)</span>
         and QEMU/KVM <span class="since">(since 0.8.5)</span>.
         This is the default <code>type</code> if one is not specified.
+        This mode also has an optional
+        sub-element <code>driver</code>, with an
+        attribute <code>type='path'</code>
+        or <code>type='handle'</code> <span class="since">(since
+        0.9.7)</span>.
         </dd><dt><code>type='template'</code></dt><dd>
         OpenVZ filesystem template. Only used by OpenVZ driver.
         </dd><dt><code>type='file'</code></dt><dd>
         Currently unused.
         </dd><dt><code>type='block'</code></dt><dd>
-        Currently unused.
+        A host block device to mount in the guest. The filesystem
+        format will be autodetected. Only used by LXC driver
+        <span class="since">(since 0.9.5)</span>.
         </dd></dl>
 
       The filesystem block has an optional attribute <code>accessmode</code>
@@ -1257,7 +1320,7 @@
     &lt;/controller&gt;
     &lt;controller type='usb' index='0' model='ich9-uhci1'&gt;
       &lt;master startport='0'/&gt;
-      &lt;address type='pci' domain='0' bus='0' slot='4' function='0'/&gt;
+      &lt;address type='pci' domain='0' bus='0' slot='4' function='0' multifunction='on'/&gt;
     &lt;/controller&gt;
     ...
   &lt;/devices&gt;
@@ -1323,6 +1386,7 @@
         &lt;address bus='0x06' slot='0x02' function='0x0'/&gt;
       &lt;/source&gt;
       &lt;boot order='1'/&gt;
+      &lt;rom bar='off'/&gt;
     &lt;/hostdev&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -1331,7 +1395,15 @@
         "subsystem" and <code>type</code> is "usb" for a USB device and "pci"
         for a PCI device. When <code>managed</code> is "yes" for a PCI
         device, it is detached from the host before being passed on to
-        the guest.</dd><dt><code>source</code></dt><dd>The source element describes the device as seen from the host.
+        the guest, and reattached to the host after the guest exits.
+        If <code>managed</code> is omitted or "no", and for USB
+        devices, the user is responsible to
+        call <code>virNodeDeviceDettach</code> (or <code>virsh
+        nodedev-dettach</code>) before starting the guest or
+        hot-plugging the device,
+        and <code>virNodeDeviceReAttach</code> (or <code>virsh
+        nodedev-reattach</code>) after hot-unplug or stopping the
+        guest.</dd><dt><code>source</code></dt><dd>The source element describes the device as seen from the host.
       The USB device can either be addressed by vendor / product id using the
       <code>vendor</code> and <code>product</code> elements or by the device's
       address on the hosts using the <code>address</code> element.
@@ -1344,7 +1416,17 @@
       boot sequence. The per-device <code>boot</code> elements cannot be
       used together with general boot elements in
       <a href="#elementsOSBIOS">BIOS bootloader</a> section.
-      <span class="since">Since 0.8.8</span></dd><dt><code>address</code></dt><dd>The <code>address</code> element for USB devices has a
+      <span class="since">Since 0.8.8</span></dd><dt><code>rom</code></dt><dd>The <code>rom</code> element is used to change how a PCI
+        device's ROM is presented to the guest. The <code>bar</code>
+        attribute can be set to "on" or "off", and determines whether
+        or not the device's ROM will be visible in the guest's memory
+        map. (In PCI documentation, the "rombar" setting controls the
+        presence of the Base Address Register for the ROM). If no rom
+        bar is specified, the qemu default will be used (older
+        versions of qemu used a default of "off", while newer qemus
+        have a default of "on"). <span class="since">Since
+        0.9.7</span>
+      </dd><dt><code>address</code></dt><dd>The <code>address</code> element for USB devices has a
       <code>bus</code> and <code>device</code> attribute to specify the
       USB bus and device number the device appears at on the host.
       The values of these attributes can be given in decimal, hexadecimal
@@ -1354,10 +1436,16 @@
       with <code>virsh nodedev-list</code>. The
       <code>bus</code> attribute allows the hexadecimal values 0 to ff, the
       <code>slot</code> attribute allows the hexadecimal values 0 to 1f, and
-      the <code>function</code> attribute allows the hexadecimal values 0 to
-      7. There is also an optional <code>domain</code> attribute for the
-      PCI domain, with hexadecimal values 0 to ffff, but it is currently
-      not used by qemu.</dd></dl>
+      the <code>function</code> attribute allows the hexadecimal values 0 to 7.
+      The <code>multifunction</code> attribute controls turning on the
+      multifunction bit for a particular slot/function in the PCI
+      control register<span class="since">since 0.9.7, requires QEMU
+      0.13</span>. <code>multifunction</code> defaults to 'off', but
+      should be set to 'on' for function 0 of a slot that will have
+      multiple functions used.
+      There is also an optional <code>domain</code> attribute for
+      the PCI domain, with hexadecimal values 0 to ffff, but it is
+      currently not used by qemu.</dd></dl>
         <h4>
           <a name="elementsRedir" id="elementsRedir">Redirected devices</a>
         </h4>
@@ -1504,7 +1592,8 @@
       the interface to a particular pci slot, with
       attribute <code>type='pci'</code> and additional
       attributes <code>domain</code>, <code>bus</code>, <code>slot</code>,
-      and <code>function</code> as appropriate.
+      <code>function</code>, and <code>multifunction</code>
+      <span class="since">since 0.9.7, requires QEMU 0.13</span> as appropriate.
     </p>
         <h5>
           <a name="elementsNICSVirtual" id="elementsNICSVirtual">Virtual network</a>

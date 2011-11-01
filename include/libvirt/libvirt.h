@@ -748,6 +748,7 @@ typedef enum {
     VIR_DUMP_CRASH        = (1 << 0), /* crash after dump */
     VIR_DUMP_LIVE         = (1 << 1), /* live dump */
     VIR_DUMP_BYPASS_CACHE = (1 << 2), /* avoid file system cache pollution */
+    VIR_DUMP_RESET        = (1 << 3), /* reset domain after dump finishes */
 } virDomainCoreDumpFlags;
 
 /* Domain migration flags. */
@@ -843,7 +844,8 @@ typedef virNodeMemoryStats *virNodeMemoryStatsPtr;
  * Flags when opening a connection to a hypervisor
  */
 typedef enum {
-    VIR_CONNECT_RO = 1,    /* A readonly connection */
+    VIR_CONNECT_RO         = (1 << 0),  /* A readonly connection */
+    VIR_CONNECT_NO_ALIASES = (1 << 1),  /* Don't try to resolve URI aliases */
 } virConnectFlags;
 
 
@@ -932,7 +934,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 9006
+#define LIBVIR_VERSION_NUMBER 9007
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -1031,6 +1033,9 @@ virDomainPtr            virDomainLookupByUUIDString     (virConnectPtr conn,
 int                     virDomainShutdown       (virDomainPtr domain);
 int                     virDomainReboot         (virDomainPtr domain,
                                                  unsigned int flags);
+int                     virDomainReset          (virDomainPtr domain,
+                                                 unsigned int flags);
+
 int                     virDomainDestroy        (virDomainPtr domain);
 int                     virDomainDestroyFlags   (virDomainPtr domain,
                                                  unsigned int flags);
@@ -2170,8 +2175,8 @@ typedef enum {
 /**
  * virConnectDomainEventCallback:
  * @conn: virConnect connection
- * @dom: The domain on which the event occured
- * @event: The specfic virDomainEventType which occured
+ * @dom: The domain on which the event occurred
+ * @event: The specfic virDomainEventType which occurred
  * @detail: event specific detail information
  * @opaque: opaque user data
  *
@@ -2240,13 +2245,15 @@ typedef void (*virEventHandleCallback)(int watch, int fd, int events, void *opaq
  * @opaque: user data to pass to the callback
  * @ff: the callback invoked to free opaque data blob
  *
- * Part of the EventImpl, this callback Adds a file handle callback to
+ * Part of the EventImpl, this callback adds a file handle callback to
  * listen for specific events. The same file handle can be registered
  * multiple times provided the requested event sets are non-overlapping
  *
  * If the opaque user data requires free'ing when the handle
  * is unregistered, then a 2nd callback can be supplied for
- * this purpose.
+ * this purpose. This callback needs to be invoked from a clean stack.
+ * If 'ff' callbacks are invoked directly from the virEventRemoveHandleFunc
+ * they will likely deadlock in libvirt.
  *
  * Returns a handle watch number to be used for updating
  * and unregistering for events
@@ -2374,7 +2381,14 @@ typedef virSecret *virSecretPtr;
 typedef enum {
     VIR_SECRET_USAGE_TYPE_NONE = 0,
     VIR_SECRET_USAGE_TYPE_VOLUME = 1,
-    /* Expect more owner types later... */
+    VIR_SECRET_USAGE_TYPE_CEPH = 2,
+
+    /*
+     * NB: this enum value will increase over time as new events are
+     * added to the libvirt API. It reflects the last secret owner ID
+     * supported by this version of the libvirt API.
+     */
+    VIR_SECRET_USAGE_TYPE_LAST
 } virSecretUsageType;
 
 virConnectPtr           virSecretGetConnect     (virSecretPtr secret);
@@ -2683,13 +2697,21 @@ virDomainSnapshotPtr virDomainSnapshotCreateXML(virDomainPtr domain,
 char *virDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
                                   unsigned int flags);
 
-/* Flags valid for both virDomainSnapshotNum() and
- * virDomainSnapshotListNames().  */
+/* Flags valid for virDomainSnapshotNum(),
+ * virDomainSnapshotListNames(), virDomainSnapshotNumChildren(), and
+ * virDomainSnapshotListChildrenNames().  Note that the interpretation
+ * of flag (1<<0) depends on which function it is passed to.  */
 typedef enum {
-    VIR_DOMAIN_SNAPSHOT_LIST_ROOTS    = (1 << 0), /* Filter by snapshots which
-                                                     have no parents */
-    VIR_DOMAIN_SNAPSHOT_LIST_METADATA = (1 << 1), /* Filter by snapshots which
-                                                     have metadata */
+    VIR_DOMAIN_SNAPSHOT_LIST_ROOTS       = (1 << 0), /* Filter by snapshots
+                                                        with no parents, when
+                                                        listing a domain */
+    VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS = (1 << 0), /* List all descendants,
+                                                        not just children, when
+                                                        listing a snapshot */
+    VIR_DOMAIN_SNAPSHOT_LIST_METADATA    = (1 << 1), /* Filter by snapshots
+                                                        which have metadata */
+    VIR_DOMAIN_SNAPSHOT_LIST_LEAVES      = (1 << 2), /* Filter by snapshots
+                                                        with no children */
 } virDomainSnapshotListFlags;
 
 /* Return the number of snapshots for this domain */
@@ -2698,6 +2720,15 @@ int virDomainSnapshotNum(virDomainPtr domain, unsigned int flags);
 /* Get the names of all snapshots for this domain */
 int virDomainSnapshotListNames(virDomainPtr domain, char **names, int nameslen,
                                unsigned int flags);
+
+/* Return the number of child snapshots for this snapshot */
+int virDomainSnapshotNumChildren(virDomainSnapshotPtr snapshot,
+                                 unsigned int flags);
+
+/* Get the names of all child snapshots for this snapshot */
+int virDomainSnapshotListChildrenNames(virDomainSnapshotPtr snapshot,
+                                       char **names, int nameslen,
+                                       unsigned int flags);
 
 /* Get a handle to a named snapshot */
 virDomainSnapshotPtr virDomainSnapshotLookupByName(virDomainPtr domain,
@@ -2711,9 +2742,14 @@ int virDomainHasCurrentSnapshot(virDomainPtr domain, unsigned int flags);
 virDomainSnapshotPtr virDomainSnapshotCurrent(virDomainPtr domain,
                                               unsigned int flags);
 
+/* Get a handle to the parent snapshot, if one exists */
+virDomainSnapshotPtr virDomainSnapshotGetParent(virDomainSnapshotPtr snapshot,
+                                                unsigned int flags);
+
 typedef enum {
     VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING = 1 << 0, /* Run after revert */
     VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED  = 1 << 1, /* Pause after revert */
+    VIR_DOMAIN_SNAPSHOT_REVERT_FORCE   = 1 << 2, /* Allow risky reverts */
 } virDomainSnapshotRevertFlags;
 
 /* Revert the domain to a point-in-time snapshot.  The
@@ -2865,6 +2901,7 @@ typedef enum {
 typedef enum {
     VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4,  /* IPv4 address */
     VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6,  /* IPv6 address */
+    VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX,  /* UNIX socket path */
 } virDomainEventGraphicsAddressType;
 
 
@@ -2876,8 +2913,8 @@ typedef enum {
  */
 struct _virDomainEventGraphicsAddress {
     int family;               /* Address family, virDomainEventGraphicsAddressType */
-    const char *node;         /* Address of node (eg IP address) */
-    const char *service;      /* Service name/number (eg TCP port) */
+    const char *node;         /* Address of node (eg IP address, or UNIX path) */
+    const char *service;      /* Service name/number (eg TCP port, or NULL) */
 };
 typedef struct _virDomainEventGraphicsAddress virDomainEventGraphicsAddress;
 typedef virDomainEventGraphicsAddress *virDomainEventGraphicsAddressPtr;
@@ -2967,6 +3004,41 @@ typedef void (*virConnectDomainEventBlockJobCallback)(virConnectPtr conn,
                                                       void *opaque);
 
 /**
+ * virConnectDomainEventDisChangeReason:
+ *
+ * The reason describing why this callback is called
+ */
+typedef enum {
+    VIR_DOMAIN_DISK_CHANGE_MISSING_ON_START = 0, /* oldSrcPath is set */
+} virConnectDomainEventDiskChangeReason;
+
+/**
+ * virConnectDomainEventDiskChangeCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @oldSrcPath: old source path
+ * @newSrcPath: new source path
+ * @reason: reason why this callback was called; any of
+ *          virConnectDomainEventDiskChangeReason
+ * @opaque: application specified data
+ *
+ * This callback occurs when disk gets changed. However,
+ * not all @reason will cause both @oldSrcPath and @newSrcPath
+ * to be non-NULL. Please see virConnectDomainEventDiskChangeReason
+ * for more details.
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventDiskChangeCallback)(virConnectPtr conn,
+                                                       virDomainPtr dom,
+                                                       const char *oldSrcPath,
+                                                       const char *newSrcPath,
+                                                       const char *devAlias,
+                                                       int reason,
+                                                       void *opaque);
+
+/**
  * VIR_DOMAIN_EVENT_CALLBACK:
  *
  * Used to cast the event specific callback into the generic one
@@ -2985,6 +3057,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON = 6, /* virConnectDomainEventIOErrorReasonCallback */
     VIR_DOMAIN_EVENT_ID_CONTROL_ERROR = 7,   /* virConnectDomainEventGenericCallback */
     VIR_DOMAIN_EVENT_ID_BLOCK_JOB = 8,       /* virConnectDomainEventBlockJobCallback */
+    VIR_DOMAIN_EVENT_ID_DISK_CHANGE = 9,     /* virConnectDomainEventDiskChangeCallback */
 
     /*
      * NB: this enum value will increase over time as new events are
@@ -3074,6 +3147,15 @@ int virDomainOpenConsole(virDomainPtr dom,
                          const char *devname,
                          virStreamPtr st,
                          unsigned int flags);
+
+typedef enum {
+    VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH = (1 << 0),
+} virDomainOpenGraphicsFlags;
+
+int virDomainOpenGraphics(virDomainPtr dom,
+                          unsigned int idx,
+                          int fd,
+                          unsigned int flags);
 
 int virDomainInjectNMI(virDomainPtr domain, unsigned int flags);
 

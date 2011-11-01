@@ -269,7 +269,8 @@ virStorageVolDefFree(virStorageVolDefPtr def) {
 }
 
 void
-virStoragePoolSourceFree(virStoragePoolSourcePtr source) {
+virStoragePoolSourceClear(virStoragePoolSourcePtr source)
+{
     int i;
 
     if (!source)
@@ -295,13 +296,20 @@ virStoragePoolSourceFree(virStoragePoolSourcePtr source) {
 }
 
 void
+virStoragePoolSourceFree(virStoragePoolSourcePtr source)
+{
+    virStoragePoolSourceClear(source);
+    VIR_FREE(source);
+}
+
+void
 virStoragePoolDefFree(virStoragePoolDefPtr def) {
     if (!def)
         return;
 
     VIR_FREE(def->name);
 
-    virStoragePoolSourceFree(&def->source);
+    virStoragePoolSourceClear(&def->source);
 
     VIR_FREE(def->target.path);
     VIR_FREE(def->target.perms.label);
@@ -529,7 +537,6 @@ virStoragePoolDefParseSourceString(const char *srcSpec,
     def = NULL;
 cleanup:
     virStoragePoolSourceFree(def);
-    VIR_FREE(def);
     xmlFreeDoc(doc);
     xmlXPathFreeContext(xpath_ctxt);
 
@@ -1204,9 +1211,12 @@ virStorageVolTargetDefFormat(virStorageVolOptionsPtr options,
 
     virBufferAddLit(buf,"    </permissions>\n");
 
-    if (def->encryption != NULL &&
-        virStorageEncryptionFormat(buf, def->encryption, 4) < 0)
-        return -1;
+    if (def->encryption) {
+        virBufferAdjustIndent(buf, 4);
+        if (virStorageEncryptionFormat(buf, def->encryption) < 0)
+            return -1;
+        virBufferAdjustIndent(buf, -4);
+    }
 
     virBufferAsprintf(buf, "  </%s>\n", type);
 
@@ -1515,10 +1525,10 @@ virStoragePoolLoadAllConfigs(virStoragePoolObjListPtr pools,
 int
 virStoragePoolObjSaveDef(virStorageDriverStatePtr driver,
                          virStoragePoolObjPtr pool,
-                         virStoragePoolDefPtr def) {
+                         virStoragePoolDefPtr def)
+{
     char *xml;
-    int fd = -1, ret = -1;
-    ssize_t towrite;
+    int ret = -1;
 
     if (!pool->configFile) {
         if (virFileMakePath(driver->configDir) < 0) {
@@ -1546,36 +1556,7 @@ virStoragePoolObjSaveDef(virStorageDriverStatePtr driver,
         return -1;
     }
 
-    if ((fd = open(pool->configFile,
-                   O_WRONLY | O_CREAT | O_TRUNC,
-                   S_IRUSR | S_IWUSR )) < 0) {
-        virReportSystemError(errno,
-                             _("cannot create config file %s"),
-                             pool->configFile);
-        goto cleanup;
-    }
-
-    virEmitXMLWarning(fd, def->name, "pool-edit");
-
-    towrite = strlen(xml);
-    if (safewrite(fd, xml, towrite) != towrite) {
-        virReportSystemError(errno,
-                             _("cannot write config file %s"),
-                             pool->configFile);
-        goto cleanup;
-    }
-
-    if (VIR_CLOSE(fd) < 0) {
-        virReportSystemError(errno,
-                             _("cannot save config file %s"),
-                             pool->configFile);
-        goto cleanup;
-    }
-
-    ret = 0;
-
- cleanup:
-    VIR_FORCE_CLOSE(fd);
+    ret = virXMLSaveFile(pool->configFile, def->name, "pool-edit", xml);
     VIR_FREE(xml);
 
     return ret;

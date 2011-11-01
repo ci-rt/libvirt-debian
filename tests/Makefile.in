@@ -35,6 +35,7 @@ host_triplet = @host@
 @WITH_DRIVER_MODULES_TRUE@am__append_1 = \
 @WITH_DRIVER_MODULES_TRUE@	-DTEST_DRIVER_DIR=\"$(top_builddir)/src/.libs\"
 
+@WITH_DTRACE_TRUE@am__append_2 = ../src/probes.o
 check_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 	sockettest$(EXEEXT) nodeinfotest$(EXEEXT) qparamtest$(EXEEXT) \
 	virbuftest$(EXEEXT) commandtest$(EXEEXT) \
@@ -48,17 +49,19 @@ check_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 	storagevolxml2xmltest$(EXEEXT) storagepoolxml2xmltest$(EXEEXT) \
 	nodedevxml2xmltest$(EXEEXT) interfacexml2xmltest$(EXEEXT) \
 	cputest$(EXEEXT) $(am__EXEEXT_9)
-@WITH_XEN_TRUE@am__append_2 = xml2sexprtest sexpr2xmltest \
+@WITH_XEN_TRUE@am__append_3 = xml2sexprtest sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest xencapstest statstest reconnect
 
-@WITH_QEMU_TRUE@am__append_3 = qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
-@WITH_OPENVZ_TRUE@am__append_4 = openvzutilstest
-@WITH_ESX_TRUE@am__append_5 = esxutilstest
-@WITH_VMX_TRUE@am__append_6 = vmx2xmltest xml2vmxtest
-@WITH_CIL_TRUE@am__append_7 = object-locking
-@HAVE_YAJL_TRUE@am__append_8 = jsontest
-@WITH_NETWORK_TRUE@am__append_9 = networkxml2argvtest
-@WITH_LIBVIRTD_TRUE@am__append_10 = \
+@WITH_QEMU_TRUE@am__append_4 = qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
+@WITH_QEMU_TRUE@	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest
+
+@WITH_OPENVZ_TRUE@am__append_5 = openvzutilstest
+@WITH_ESX_TRUE@am__append_6 = esxutilstest
+@WITH_VMX_TRUE@am__append_7 = vmx2xmltest xml2vmxtest
+@WITH_CIL_TRUE@am__append_8 = object-locking
+@HAVE_YAJL_TRUE@am__append_9 = jsontest
+@WITH_NETWORK_TRUE@am__append_10 = networkxml2argvtest
+@WITH_LIBVIRTD_TRUE@am__append_11 = \
 @WITH_LIBVIRTD_TRUE@	test_conf.sh			\
 @WITH_LIBVIRTD_TRUE@	cpuset				\
 @WITH_LIBVIRTD_TRUE@	daemon-conf			\
@@ -76,7 +79,7 @@ check_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 @WITH_LIBVIRTD_TRUE@	virsh-schedinfo			\
 @WITH_LIBVIRTD_TRUE@	virsh-synopsis
 
-@WITH_LIBVIRTD_FALSE@am__append_11 = \
+@WITH_LIBVIRTD_FALSE@am__append_12 = \
 @WITH_LIBVIRTD_FALSE@	test_conf.sh			\
 @WITH_LIBVIRTD_FALSE@	cpuset				\
 @WITH_LIBVIRTD_FALSE@	daemon-conf			\
@@ -94,8 +97,8 @@ check_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 @WITH_LIBVIRTD_FALSE@	virsh-schedinfo			\
 @WITH_LIBVIRTD_FALSE@	virsh-synopsis
 
-@WITH_SECDRIVER_APPARMOR_TRUE@am__append_12 = virt-aa-helper-test
-@WITH_SECDRIVER_APPARMOR_FALSE@am__append_13 = virt-aa-helper-test
+@WITH_SECDRIVER_APPARMOR_TRUE@am__append_13 = virt-aa-helper-test
+@WITH_SECDRIVER_APPARMOR_FALSE@am__append_14 = virt-aa-helper-test
 TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) qparamtest$(EXEEXT) \
 	virbuftest$(EXEEXT) sockettest$(EXEEXT) commandtest$(EXEEXT) \
 	seclabeltest$(EXEEXT) hashtest$(EXEEXT) \
@@ -108,37 +111,40 @@ TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) qparamtest$(EXEEXT) \
 	storagevolxml2xmltest$(EXEEXT) storagepoolxml2xmltest$(EXEEXT) \
 	nodedevxml2xmltest$(EXEEXT) interfacexml2xmltest$(EXEEXT) \
 	cputest$(EXEEXT)
-@HAVE_YAJL_TRUE@am__append_14 = jsontest
-@WITH_XEN_TRUE@am__append_15 = xml2sexprtest \
+@HAVE_YAJL_TRUE@am__append_15 = jsontest
+@WITH_XEN_TRUE@am__append_16 = xml2sexprtest \
 @WITH_XEN_TRUE@	sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest \
 @WITH_XEN_TRUE@	xencapstest \
 @WITH_XEN_TRUE@	reconnect \
 @WITH_XEN_TRUE@	statstest
 
-@WITH_QEMU_TRUE@am__append_16 = qemuxml2argvtest qemuxml2xmltest \
-@WITH_QEMU_TRUE@	qemuargv2xmltest qemuhelptest \
-@WITH_QEMU_TRUE@	nwfilterxml2xmltest
-@WITH_OPENVZ_TRUE@am__append_17 = openvzutilstest
-@WITH_ESX_TRUE@am__append_18 = esxutilstest
-@WITH_VMX_TRUE@am__append_19 = vmx2xmltest xml2vmxtest
-@WITH_LIBVIRTD_TRUE@am__append_20 = eventtest
+@WITH_QEMU_TRUE@am__append_17 = qemuxml2argvtest qemuxml2xmltest qemuxmlnstest qemuargv2xmltest \
+@WITH_QEMU_TRUE@	 qemuhelptest domainsnapshotxml2xmltest nwfilterxml2xmltest
+
+@WITH_OPENVZ_TRUE@am__append_18 = openvzutilstest
+@WITH_ESX_TRUE@am__append_19 = esxutilstest
+@WITH_VMX_TRUE@am__append_20 = vmx2xmltest xml2vmxtest
 @WITH_LIBVIRTD_TRUE@am__append_21 = eventtest
-@WITH_NETWORK_TRUE@am__append_22 = networkxml2argvtest
-@WITH_XEN_FALSE@am__append_23 = xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
+@WITH_LIBVIRTD_TRUE@am__append_22 = eventtest
+@WITH_NETWORK_TRUE@am__append_23 = networkxml2argvtest
+@WITH_XEN_FALSE@am__append_24 = xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
 @WITH_XEN_FALSE@	xencapstest.c reconnect.c \
 @WITH_XEN_FALSE@	testutilsxen.c testutilsxen.h
 
-@WITH_NETWORK_TRUE@@WITH_QEMU_TRUE@am__append_24 = ../src/libvirt_driver_network.la
-@WITH_QEMU_FALSE@am__append_25 = qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c qemuhelptest.c testutilsqemu.c testutilsqemu.h
-@WITH_OPENVZ_FALSE@am__append_26 = openvzutilstest.c
-@WITH_ESX_FALSE@am__append_27 = esxutilstest.c
-@WITH_VMX_FALSE@am__append_28 = vmx2xmltest.c xml2vmxtest.c
-@WITH_NETWORK_FALSE@am__append_29 = networkxml2argvtest.c
-@HAVE_LIBTASN1_TRUE@am__append_30 = pkix_asn1_tab.c
-@HAVE_LIBTASN1_TRUE@am__append_31 = -ltasn1
-@HAVE_LIBTASN1_FALSE@am__append_32 = pkix_asn1_tab.c
-@WITH_CIL_FALSE@am__append_33 = object-locking.ml
+@WITH_NETWORK_TRUE@@WITH_QEMU_TRUE@am__append_25 = ../src/libvirt_driver_network.la
+@WITH_QEMU_FALSE@am__append_26 = qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
+@WITH_QEMU_FALSE@	qemuxmlnstest.c qemuhelptest.c domainsnapshotxml2xmltest.c \
+@WITH_QEMU_FALSE@	testutilsqemu.c testutilsqemu.h
+
+@WITH_OPENVZ_FALSE@am__append_27 = openvzutilstest.c
+@WITH_ESX_FALSE@am__append_28 = esxutilstest.c
+@WITH_VMX_FALSE@am__append_29 = vmx2xmltest.c xml2vmxtest.c
+@WITH_NETWORK_FALSE@am__append_30 = networkxml2argvtest.c
+@HAVE_LIBTASN1_TRUE@am__append_31 = pkix_asn1_tab.c
+@HAVE_LIBTASN1_TRUE@am__append_32 = -ltasn1
+@HAVE_LIBTASN1_FALSE@am__append_33 = pkix_asn1_tab.c
+@WITH_CIL_FALSE@am__append_34 = object-locking.ml
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -157,7 +163,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/count-one-bits.m4 \
 	$(top_srcdir)/gnulib/m4/dirname.m4 \
 	$(top_srcdir)/gnulib/m4/double-slash-root.m4 \
-	$(top_srcdir)/gnulib/m4/dup2.m4 \
+	$(top_srcdir)/gnulib/m4/dup.m4 $(top_srcdir)/gnulib/m4/dup2.m4 \
 	$(top_srcdir)/gnulib/m4/eealloc.m4 \
 	$(top_srcdir)/gnulib/m4/environ.m4 \
 	$(top_srcdir)/gnulib/m4/errno_h.m4 \
@@ -168,6 +174,8 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl-o.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl.m4 \
 	$(top_srcdir)/gnulib/m4/fcntl_h.m4 \
+	$(top_srcdir)/gnulib/m4/fdatasync.m4 \
+	$(top_srcdir)/gnulib/m4/fdopen.m4 \
 	$(top_srcdir)/gnulib/m4/fflush.m4 \
 	$(top_srcdir)/gnulib/m4/ffs.m4 \
 	$(top_srcdir)/gnulib/m4/float_h.m4 \
@@ -177,9 +185,11 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/freading.m4 \
 	$(top_srcdir)/gnulib/m4/fseek.m4 \
 	$(top_srcdir)/gnulib/m4/fseeko.m4 \
+	$(top_srcdir)/gnulib/m4/fstat.m4 \
 	$(top_srcdir)/gnulib/m4/fsync.m4 \
 	$(top_srcdir)/gnulib/m4/ftell.m4 \
 	$(top_srcdir)/gnulib/m4/ftello.m4 \
+	$(top_srcdir)/gnulib/m4/ftruncate.m4 \
 	$(top_srcdir)/gnulib/m4/func.m4 \
 	$(top_srcdir)/gnulib/m4/getaddrinfo.m4 \
 	$(top_srcdir)/gnulib/m4/getcwd.m4 \
@@ -228,6 +238,8 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/mktime.m4 \
 	$(top_srcdir)/gnulib/m4/mmap-anon.m4 \
 	$(top_srcdir)/gnulib/m4/mode_t.m4 \
+	$(top_srcdir)/gnulib/m4/msvc-inval.m4 \
+	$(top_srcdir)/gnulib/m4/msvc-nothrow.m4 \
 	$(top_srcdir)/gnulib/m4/multiarch.m4 \
 	$(top_srcdir)/gnulib/m4/netdb_h.m4 \
 	$(top_srcdir)/gnulib/m4/netinet_in_h.m4 \
@@ -249,6 +261,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/pthread.m4 \
 	$(top_srcdir)/gnulib/m4/pthread_sigmask.m4 \
 	$(top_srcdir)/gnulib/m4/putenv.m4 \
+	$(top_srcdir)/gnulib/m4/raise.m4 \
 	$(top_srcdir)/gnulib/m4/random_r.m4 \
 	$(top_srcdir)/gnulib/m4/rawmemchr.m4 \
 	$(top_srcdir)/gnulib/m4/read.m4 \
@@ -281,6 +294,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/stdio_h.m4 \
 	$(top_srcdir)/gnulib/m4/stdlib_h.m4 \
 	$(top_srcdir)/gnulib/m4/stpcpy.m4 \
+	$(top_srcdir)/gnulib/m4/strcase.m4 \
 	$(top_srcdir)/gnulib/m4/strchrnul.m4 \
 	$(top_srcdir)/gnulib/m4/strdup.m4 \
 	$(top_srcdir)/gnulib/m4/strerror.m4 \
@@ -298,6 +312,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/sys_socket_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_stat_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_time_h.m4 \
+	$(top_srcdir)/gnulib/m4/sys_types_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_uio_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_utsname_h.m4 \
 	$(top_srcdir)/gnulib/m4/sys_wait_h.m4 \
@@ -364,8 +379,10 @@ libshunload_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_XEN_TRUE@	reconnect$(EXEEXT)
 @WITH_QEMU_TRUE@am__EXEEXT_2 = qemuxml2argvtest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuxml2xmltest$(EXEEXT) \
+@WITH_QEMU_TRUE@	qemuxmlnstest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuargv2xmltest$(EXEEXT) \
-@WITH_QEMU_TRUE@	qemuhelptest$(EXEEXT)
+@WITH_QEMU_TRUE@	qemuhelptest$(EXEEXT) \
+@WITH_QEMU_TRUE@	domainsnapshotxml2xmltest$(EXEEXT)
 @WITH_OPENVZ_TRUE@am__EXEEXT_3 = openvzutilstest$(EXEEXT)
 @WITH_ESX_TRUE@am__EXEEXT_4 = esxutilstest$(EXEEXT)
 @WITH_VMX_TRUE@am__EXEEXT_5 = vmx2xmltest$(EXEEXT) \
@@ -381,7 +398,7 @@ am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	../src/libvirt_test.la ../gnulib/lib/libgnu.la \
+	../src/libvirt_test.la $(PROBES_O) ../gnulib/lib/libgnu.la \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 commandhelper_DEPENDENCIES = $(am__DEPENDENCIES_2)
 commandhelper_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -400,6 +417,16 @@ conftest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_cputest_OBJECTS = cputest.$(OBJEXT) testutils.$(OBJEXT)
 cputest_OBJECTS = $(am_cputest_OBJECTS)
 cputest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am__domainsnapshotxml2xmltest_SOURCES_DIST =  \
+	domainsnapshotxml2xmltest.c testutilsqemu.c testutilsqemu.h \
+	testutils.c testutils.h
+@WITH_QEMU_TRUE@am_domainsnapshotxml2xmltest_OBJECTS =  \
+@WITH_QEMU_TRUE@	domainsnapshotxml2xmltest.$(OBJEXT) \
+@WITH_QEMU_TRUE@	testutilsqemu.$(OBJEXT) testutils.$(OBJEXT)
+domainsnapshotxml2xmltest_OBJECTS =  \
+	$(am_domainsnapshotxml2xmltest_OBJECTS)
+@WITH_QEMU_TRUE@domainsnapshotxml2xmltest_DEPENDENCIES =  \
+@WITH_QEMU_TRUE@	$(qemu_LDADDS) $(am__DEPENDENCIES_2)
 am__esxutilstest_SOURCES_DIST = esxutilstest.c testutils.c testutils.h
 @WITH_ESX_TRUE@am_esxutilstest_OBJECTS = esxutilstest.$(OBJEXT) \
 @WITH_ESX_TRUE@	testutils.$(OBJEXT)
@@ -488,6 +515,13 @@ am__qemuxml2xmltest_SOURCES_DIST = qemuxml2xmltest.c testutilsqemu.c \
 @WITH_QEMU_TRUE@	testutilsqemu.$(OBJEXT) testutils.$(OBJEXT)
 qemuxml2xmltest_OBJECTS = $(am_qemuxml2xmltest_OBJECTS)
 @WITH_QEMU_TRUE@qemuxml2xmltest_DEPENDENCIES = $(qemu_LDADDS) \
+@WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
+am__qemuxmlnstest_SOURCES_DIST = qemuxmlnstest.c testutilsqemu.c \
+	testutilsqemu.h testutils.c testutils.h
+@WITH_QEMU_TRUE@am_qemuxmlnstest_OBJECTS = qemuxmlnstest.$(OBJEXT) \
+@WITH_QEMU_TRUE@	testutilsqemu.$(OBJEXT) testutils.$(OBJEXT)
+qemuxmlnstest_OBJECTS = $(am_qemuxmlnstest_OBJECTS)
+@WITH_QEMU_TRUE@qemuxmlnstest_DEPENDENCIES = $(qemu_LDADDS) \
 @WITH_QEMU_TRUE@	$(am__DEPENDENCIES_2)
 am_qparamtest_OBJECTS = qparamtest.$(OBJEXT) testutils.$(OBJEXT)
 qparamtest_OBJECTS = $(am_qparamtest_OBJECTS)
@@ -636,14 +670,15 @@ am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
 	$(commandtest_SOURCES) $(conftest_SOURCES) $(cputest_SOURCES) \
-	$(esxutilstest_SOURCES) $(eventtest_SOURCES) \
-	$(hashtest_SOURCES) $(interfacexml2xmltest_SOURCES) \
-	$(jsontest_SOURCES) $(networkxml2argvtest_SOURCES) \
-	$(networkxml2xmltest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
-	$(nodeinfotest_SOURCES) $(nwfilterxml2xmltest_SOURCES) \
-	$(object_locking_SOURCES) $(openvzutilstest_SOURCES) \
-	$(qemuargv2xmltest_SOURCES) $(qemuhelptest_SOURCES) \
-	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
+	$(domainsnapshotxml2xmltest_SOURCES) $(esxutilstest_SOURCES) \
+	$(eventtest_SOURCES) $(hashtest_SOURCES) \
+	$(interfacexml2xmltest_SOURCES) $(jsontest_SOURCES) \
+	$(networkxml2argvtest_SOURCES) $(networkxml2xmltest_SOURCES) \
+	$(nodedevxml2xmltest_SOURCES) $(nodeinfotest_SOURCES) \
+	$(nwfilterxml2xmltest_SOURCES) $(object_locking_SOURCES) \
+	$(openvzutilstest_SOURCES) $(qemuargv2xmltest_SOURCES) \
+	$(qemuhelptest_SOURCES) $(qemuxml2argvtest_SOURCES) \
+	$(qemuxml2xmltest_SOURCES) $(qemuxmlnstest_SOURCES) \
 	$(qparamtest_SOURCES) $(reconnect_SOURCES) \
 	$(seclabeltest_SOURCES) $(sexpr2xmltest_SOURCES) \
 	$(shunloadtest_SOURCES) $(sockettest_SOURCES) $(ssh_SOURCES) \
@@ -656,6 +691,7 @@ SOURCES = $(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
 	$(xml2sexprtest_SOURCES) $(xml2vmxtest_SOURCES)
 DIST_SOURCES = $(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
 	$(commandtest_SOURCES) $(conftest_SOURCES) $(cputest_SOURCES) \
+	$(am__domainsnapshotxml2xmltest_SOURCES_DIST) \
 	$(am__esxutilstest_SOURCES_DIST) $(am__eventtest_SOURCES_DIST) \
 	$(hashtest_SOURCES) $(interfacexml2xmltest_SOURCES) \
 	$(jsontest_SOURCES) $(am__networkxml2argvtest_SOURCES_DIST) \
@@ -666,7 +702,8 @@ DIST_SOURCES = $(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
 	$(am__qemuargv2xmltest_SOURCES_DIST) \
 	$(am__qemuhelptest_SOURCES_DIST) \
 	$(am__qemuxml2argvtest_SOURCES_DIST) \
-	$(am__qemuxml2xmltest_SOURCES_DIST) $(qparamtest_SOURCES) \
+	$(am__qemuxml2xmltest_SOURCES_DIST) \
+	$(am__qemuxmlnstest_SOURCES_DIST) $(qparamtest_SOURCES) \
 	$(am__reconnect_SOURCES_DIST) $(seclabeltest_SOURCES) \
 	$(am__sexpr2xmltest_SOURCES_DIST) $(shunloadtest_SOURCES) \
 	$(sockettest_SOURCES) $(ssh_SOURCES) \
@@ -691,8 +728,10 @@ red=; grn=; lgn=; blu=; std=
 @WITH_XEN_TRUE@	statstest$(EXEEXT)
 @WITH_QEMU_TRUE@am__EXEEXT_11 = qemuxml2argvtest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuxml2xmltest$(EXEEXT) \
+@WITH_QEMU_TRUE@	qemuxmlnstest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuargv2xmltest$(EXEEXT) \
 @WITH_QEMU_TRUE@	qemuhelptest$(EXEEXT) \
+@WITH_QEMU_TRUE@	domainsnapshotxml2xmltest$(EXEEXT) \
 @WITH_QEMU_TRUE@	nwfilterxml2xmltest$(EXEEXT)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 pkglibexecdir = @pkglibexecdir@
@@ -783,10 +822,12 @@ GNULIB_BIND = @GNULIB_BIND@
 GNULIB_BTOWC = @GNULIB_BTOWC@
 GNULIB_CALLOC_POSIX = @GNULIB_CALLOC_POSIX@
 GNULIB_CANONICALIZE_FILE_NAME = @GNULIB_CANONICALIZE_FILE_NAME@
+GNULIB_CHDIR = @GNULIB_CHDIR@
 GNULIB_CHOWN = @GNULIB_CHOWN@
 GNULIB_CLOSE = @GNULIB_CLOSE@
 GNULIB_CONNECT = @GNULIB_CONNECT@
 GNULIB_DPRINTF = @GNULIB_DPRINTF@
+GNULIB_DUP = @GNULIB_DUP@
 GNULIB_DUP2 = @GNULIB_DUP2@
 GNULIB_DUP3 = @GNULIB_DUP3@
 GNULIB_DUPLOCALE = @GNULIB_DUPLOCALE@
@@ -798,6 +839,8 @@ GNULIB_FCHMODAT = @GNULIB_FCHMODAT@
 GNULIB_FCHOWNAT = @GNULIB_FCHOWNAT@
 GNULIB_FCLOSE = @GNULIB_FCLOSE@
 GNULIB_FCNTL = @GNULIB_FCNTL@
+GNULIB_FDATASYNC = @GNULIB_FDATASYNC@
+GNULIB_FDOPEN = @GNULIB_FDOPEN@
 GNULIB_FFLUSH = @GNULIB_FFLUSH@
 GNULIB_FFS = @GNULIB_FFS@
 GNULIB_FFSL = @GNULIB_FFSL@
@@ -815,6 +858,7 @@ GNULIB_FREOPEN = @GNULIB_FREOPEN@
 GNULIB_FSCANF = @GNULIB_FSCANF@
 GNULIB_FSEEK = @GNULIB_FSEEK@
 GNULIB_FSEEKO = @GNULIB_FSEEKO@
+GNULIB_FSTAT = @GNULIB_FSTAT@
 GNULIB_FSTATAT = @GNULIB_FSTATAT@
 GNULIB_FSYNC = @GNULIB_FSYNC@
 GNULIB_FTELL = @GNULIB_FTELL@
@@ -901,6 +945,7 @@ GNULIB_OBSTACK_PRINTF = @GNULIB_OBSTACK_PRINTF@
 GNULIB_OBSTACK_PRINTF_POSIX = @GNULIB_OBSTACK_PRINTF_POSIX@
 GNULIB_OPEN = @GNULIB_OPEN@
 GNULIB_OPENAT = @GNULIB_OPENAT@
+GNULIB_PCLOSE = @GNULIB_PCLOSE@
 GNULIB_PERROR = @GNULIB_PERROR@
 GNULIB_PIPE = @GNULIB_PIPE@
 GNULIB_PIPE2 = @GNULIB_PIPE2@
@@ -938,6 +983,7 @@ GNULIB_PUTCHAR = @GNULIB_PUTCHAR@
 GNULIB_PUTENV = @GNULIB_PUTENV@
 GNULIB_PUTS = @GNULIB_PUTS@
 GNULIB_PWRITE = @GNULIB_PWRITE@
+GNULIB_RAISE = @GNULIB_RAISE@
 GNULIB_RANDOM_R = @GNULIB_RANDOM_R@
 GNULIB_RAWMEMCHR = @GNULIB_RAWMEMCHR@
 GNULIB_READ = @GNULIB_READ@
@@ -1073,6 +1119,7 @@ HAVE_CANONICALIZE_FILE_NAME = @HAVE_CANONICALIZE_FILE_NAME@
 HAVE_CHOWN = @HAVE_CHOWN@
 HAVE_DECL_ENVIRON = @HAVE_DECL_ENVIRON@
 HAVE_DECL_FCHDIR = @HAVE_DECL_FCHDIR@
+HAVE_DECL_FDATASYNC = @HAVE_DECL_FDATASYNC@
 HAVE_DECL_FPURGE = @HAVE_DECL_FPURGE@
 HAVE_DECL_FREEADDRINFO = @HAVE_DECL_FREEADDRINFO@
 HAVE_DECL_FSEEKO = @HAVE_DECL_FSEEKO@
@@ -1122,6 +1169,7 @@ HAVE_FCHDIR = @HAVE_FCHDIR@
 HAVE_FCHMODAT = @HAVE_FCHMODAT@
 HAVE_FCHOWNAT = @HAVE_FCHOWNAT@
 HAVE_FCNTL = @HAVE_FCNTL@
+HAVE_FDATASYNC = @HAVE_FDATASYNC@
 HAVE_FEATURES_H = @HAVE_FEATURES_H@
 HAVE_FFS = @HAVE_FFS@
 HAVE_FFSL = @HAVE_FFSL@
@@ -1168,15 +1216,18 @@ HAVE_MKOSTEMP = @HAVE_MKOSTEMP@
 HAVE_MKOSTEMPS = @HAVE_MKOSTEMPS@
 HAVE_MKSTEMP = @HAVE_MKSTEMP@
 HAVE_MKSTEMPS = @HAVE_MKSTEMPS@
+HAVE_MSVC_INVALID_PARAMETER_HANDLER = @HAVE_MSVC_INVALID_PARAMETER_HANDLER@
 HAVE_NANOSLEEP = @HAVE_NANOSLEEP@
 HAVE_NETDB_H = @HAVE_NETDB_H@
 HAVE_NETINET_IN_H = @HAVE_NETINET_IN_H@
 HAVE_OPENAT = @HAVE_OPENAT@
 HAVE_OS_H = @HAVE_OS_H@
+HAVE_PCLOSE = @HAVE_PCLOSE@
 HAVE_PIPE = @HAVE_PIPE@
 HAVE_PIPE2 = @HAVE_PIPE2@
 HAVE_POLL = @HAVE_POLL@
 HAVE_POLL_H = @HAVE_POLL_H@
+HAVE_POPEN = @HAVE_POPEN@
 HAVE_POSIX_SIGNALBLOCKING = @HAVE_POSIX_SIGNALBLOCKING@
 HAVE_POSIX_SPAWN = @HAVE_POSIX_SPAWN@
 HAVE_POSIX_SPAWNATTR_T = @HAVE_POSIX_SPAWNATTR_T@
@@ -1189,6 +1240,7 @@ HAVE_PTHREAD_SPINLOCK_T = @HAVE_PTHREAD_SPINLOCK_T@
 HAVE_PTHREAD_T = @HAVE_PTHREAD_T@
 HAVE_PTSNAME = @HAVE_PTSNAME@
 HAVE_PWRITE = @HAVE_PWRITE@
+HAVE_RAISE = @HAVE_RAISE@
 HAVE_RANDOM_H = @HAVE_RANDOM_H@
 HAVE_RANDOM_R = @HAVE_RANDOM_R@
 HAVE_RAWMEMCHR = @HAVE_RAWMEMCHR@
@@ -1215,6 +1267,7 @@ HAVE_STPNCPY = @HAVE_STPNCPY@
 HAVE_STRCASECMP = @HAVE_STRCASECMP@
 HAVE_STRCASESTR = @HAVE_STRCASESTR@
 HAVE_STRCHRNUL = @HAVE_STRCHRNUL@
+HAVE_STRINGS_H = @HAVE_STRINGS_H@
 HAVE_STRPBRK = @HAVE_STRPBRK@
 HAVE_STRPTIME = @HAVE_STRPTIME@
 HAVE_STRSEP = @HAVE_STRSEP@
@@ -1354,8 +1407,11 @@ LIBXL_CFLAGS = @LIBXL_CFLAGS@
 LIBXL_LIBS = @LIBXL_LIBS@
 LIBXML_CFLAGS = @LIBXML_CFLAGS@
 LIBXML_LIBS = @LIBXML_LIBS@
+LIB_FDATASYNC = @LIB_FDATASYNC@
+LIB_POLL = @LIB_POLL@
 LIB_PTHREAD = @LIB_PTHREAD@
 LIB_PTHREAD_SIGMASK = @LIB_PTHREAD_SIGMASK@
+LIB_SELECT = @LIB_SELECT@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LOCALCHARSET_TESTS_ENVIRONMENT = @LOCALCHARSET_TESTS_ENVIRONMENT@
@@ -1416,6 +1472,7 @@ NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_SELECT_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_SOCKET_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_SOCKET_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_STAT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_STAT_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_TIME_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_TIME_H@
+NEXT_AS_FIRST_DIRECTIVE_SYS_TYPES_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_TYPES_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_UIO_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_UIO_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_UTSNAME_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_UTSNAME_H@
 NEXT_AS_FIRST_DIRECTIVE_SYS_WAIT_H = @NEXT_AS_FIRST_DIRECTIVE_SYS_WAIT_H@
@@ -1448,6 +1505,7 @@ NEXT_SYS_SELECT_H = @NEXT_SYS_SELECT_H@
 NEXT_SYS_SOCKET_H = @NEXT_SYS_SOCKET_H@
 NEXT_SYS_STAT_H = @NEXT_SYS_STAT_H@
 NEXT_SYS_TIME_H = @NEXT_SYS_TIME_H@
+NEXT_SYS_TYPES_H = @NEXT_SYS_TYPES_H@
 NEXT_SYS_UIO_H = @NEXT_SYS_UIO_H@
 NEXT_SYS_UTSNAME_H = @NEXT_SYS_UTSNAME_H@
 NEXT_SYS_WAIT_H = @NEXT_SYS_WAIT_H@
@@ -1518,6 +1576,7 @@ REPLACE_DUPLOCALE = @REPLACE_DUPLOCALE@
 REPLACE_FCHOWNAT = @REPLACE_FCHOWNAT@
 REPLACE_FCLOSE = @REPLACE_FCLOSE@
 REPLACE_FCNTL = @REPLACE_FCNTL@
+REPLACE_FDOPEN = @REPLACE_FDOPEN@
 REPLACE_FFLUSH = @REPLACE_FFLUSH@
 REPLACE_FOPEN = @REPLACE_FOPEN@
 REPLACE_FPRINTF = @REPLACE_FPRINTF@
@@ -1539,9 +1598,12 @@ REPLACE_GETLINE = @REPLACE_GETLINE@
 REPLACE_GETLOGIN_R = @REPLACE_GETLOGIN_R@
 REPLACE_GETPAGESIZE = @REPLACE_GETPAGESIZE@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
+REPLACE_INET_NTOP = @REPLACE_INET_NTOP@
+REPLACE_INET_PTON = @REPLACE_INET_PTON@
 REPLACE_IOCTL = @REPLACE_IOCTL@
 REPLACE_ISWBLANK = @REPLACE_ISWBLANK@
 REPLACE_ISWCNTRL = @REPLACE_ISWCNTRL@
+REPLACE_ITOLD = @REPLACE_ITOLD@
 REPLACE_LCHOWN = @REPLACE_LCHOWN@
 REPLACE_LINK = @REPLACE_LINK@
 REPLACE_LINKAT = @REPLACE_LINKAT@
@@ -1578,6 +1640,7 @@ REPLACE_PSELECT = @REPLACE_PSELECT@
 REPLACE_PTHREAD_SIGMASK = @REPLACE_PTHREAD_SIGMASK@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
+REPLACE_RAISE = @REPLACE_RAISE@
 REPLACE_READ = @REPLACE_READ@
 REPLACE_READLINK = @REPLACE_READLINK@
 REPLACE_REALLOC = @REPLACE_REALLOC@
@@ -1762,7 +1825,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 INCLUDES = -I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
 	-I$(top_builddir)/include -I$(top_srcdir)/include \
-	-I$(top_srcdir)/src -I$(top_srcdir)/src/util \
+	-I$(top_srcdir)/src -I../src -I$(top_srcdir)/src/util \
 	-I$(top_srcdir)/src/conf $(GETTEXT_CPPFLAGS) $(am__append_1)
 AM_CFLAGS = \
 	$(LIBXML_CFLAGS) \
@@ -1774,6 +1837,7 @@ AM_CFLAGS = \
 	$(COVERAGE_CFLAGS) \
 	$(WARN_CFLAGS)
 
+PROBES_O = $(am__append_2)
 LDADDS = \
 	$(STATIC_BINARIES) \
 	$(LIBXML_LIBS) \
@@ -1784,6 +1848,7 @@ LDADDS = \
         $(YAJL_LIBS) \
         $(WARN_CFLAGS) \
 	../src/libvirt_test.la \
+	$(PROBES_O) \
 	../gnulib/lib/libgnu.la \
 	$(LIBSOCKET) \
         $(COVERAGE_LDFLAGS)
@@ -1796,15 +1861,15 @@ EXTRA_DIST = capabilityschemadata capabilityschematest commanddata \
 	nodedevschemadata nodedevschematest nodeinfodata \
 	nwfilterschematest nwfilterxml2xmlin nwfilterxml2xmlout \
 	oomtrace.pl qemuhelpdata qemuxml2argvdata qemuxml2xmloutdata \
-	schematestutils.sh sexpr2xmldata storagepoolschematest \
-	storagepoolxml2xmlin storagepoolxml2xmlout \
-	storagevolschematest storagevolxml2xmlin storagevolxml2xmlout \
-	test-lib.sh vmx2xmldata xencapsdata xmconfigdata xml2sexprdata \
-	xml2vmxdata .valgrind.supp $(am__append_11) $(am__append_13) \
-	$(test_scripts) $(am__append_23) $(am__append_25) \
-	$(am__append_26) openvzutilstest.conf $(am__append_27) \
-	$(am__append_28) $(am__append_29) $(am__append_32) \
-	$(am__append_33)
+	qemuxmlnsdata schematestutils.sh sexpr2xmldata \
+	storagepoolschematest storagepoolxml2xmlin \
+	storagepoolxml2xmlout storagevolschematest storagevolxml2xmlin \
+	storagevolxml2xmlout test-lib.sh vmx2xmldata xencapsdata \
+	xmconfigdata xml2sexprdata xml2vmxdata .valgrind.supp \
+	$(am__append_12) $(am__append_14) $(test_scripts) \
+	$(am__append_24) $(am__append_26) $(am__append_27) \
+	openvzutilstest.conf $(am__append_28) $(am__append_29) \
+	$(am__append_30) $(am__append_33) $(am__append_34)
 check_LTLIBRARIES = libshunload.la
 
 # This is a fake SSH we use from virnetsockettest
@@ -1813,7 +1878,7 @@ ssh_LDADD = $(COVERAGE_LDFLAGS)
 test_scripts = capabilityschematest interfaceschematest \
 	networkschematest storagepoolschematest storagevolschematest \
 	domainschematest nodedevschematest nwfilterschematest \
-	domainsnapshotschematest $(am__append_10) $(am__append_12)
+	domainsnapshotschematest $(am__append_11) $(am__append_13)
 
 # NB, automake < 1.10 does not provide the real
 # abs_top_{src/build}dir or builddir variables, so don't rely
@@ -1867,7 +1932,7 @@ sockettest_LDADD = ../src/libvirt_util.la $(LDADDS)
 
 @WITH_XEN_TRUE@statstest_LDADD = ../src/libvirt_driver_xen.la $(LDADDS)
 @WITH_QEMU_TRUE@qemu_LDADDS = ../src/libvirt_driver_qemu.la \
-@WITH_QEMU_TRUE@	$(am__append_24)
+@WITH_QEMU_TRUE@	$(am__append_25)
 @WITH_QEMU_TRUE@qemuxml2argvtest_SOURCES = \
 @WITH_QEMU_TRUE@	qemuxml2argvtest.c testutilsqemu.c testutilsqemu.h \
 @WITH_QEMU_TRUE@	testutils.c testutils.h
@@ -1878,6 +1943,11 @@ sockettest_LDADD = ../src/libvirt_util.la $(LDADDS)
 @WITH_QEMU_TRUE@	testutils.c testutils.h
 
 @WITH_QEMU_TRUE@qemuxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
+@WITH_QEMU_TRUE@qemuxmlnstest_SOURCES = \
+@WITH_QEMU_TRUE@	qemuxmlnstest.c testutilsqemu.c testutilsqemu.h \
+@WITH_QEMU_TRUE@	testutils.c testutils.h
+
+@WITH_QEMU_TRUE@qemuxmlnstest_LDADD = $(qemu_LDADDS)  $(LDADDS)
 @WITH_QEMU_TRUE@qemuargv2xmltest_SOURCES = \
 @WITH_QEMU_TRUE@	qemuargv2xmltest.c testutilsqemu.c testutilsqemu.h \
 @WITH_QEMU_TRUE@	testutils.c testutils.h
@@ -1885,6 +1955,11 @@ sockettest_LDADD = ../src/libvirt_util.la $(LDADDS)
 @WITH_QEMU_TRUE@qemuargv2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 @WITH_QEMU_TRUE@qemuhelptest_SOURCES = qemuhelptest.c testutils.c testutils.h
 @WITH_QEMU_TRUE@qemuhelptest_LDADD = $(qemu_LDADDS) $(LDADDS)
+@WITH_QEMU_TRUE@domainsnapshotxml2xmltest_SOURCES = \
+@WITH_QEMU_TRUE@	domainsnapshotxml2xmltest.c testutilsqemu.c testutilsqemu.h \
+@WITH_QEMU_TRUE@	testutils.c testutils.h
+
+@WITH_QEMU_TRUE@domainsnapshotxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 @WITH_OPENVZ_TRUE@openvzutilstest_SOURCES = \
 @WITH_OPENVZ_TRUE@	openvzutilstest.c \
 @WITH_OPENVZ_TRUE@	testutils.c testutils.h
@@ -1979,10 +2054,10 @@ virnetsockettest_SOURCES = \
 virnetsockettest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virnetsockettest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
 virnettlscontexttest_SOURCES = virnettlscontexttest.c testutils.h \
-	testutils.c $(am__append_30)
+	testutils.c $(am__append_31)
 virnettlscontexttest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virnettlscontexttest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS) \
-	$(am__append_31)
+	$(am__append_32)
 seclabeltest_SOURCES = \
 	seclabeltest.c
 
@@ -2091,6 +2166,9 @@ conftest$(EXEEXT): $(conftest_OBJECTS) $(conftest_DEPENDENCIES)
 cputest$(EXEEXT): $(cputest_OBJECTS) $(cputest_DEPENDENCIES) 
 	@rm -f cputest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(cputest_OBJECTS) $(cputest_LDADD) $(LIBS)
+domainsnapshotxml2xmltest$(EXEEXT): $(domainsnapshotxml2xmltest_OBJECTS) $(domainsnapshotxml2xmltest_DEPENDENCIES) 
+	@rm -f domainsnapshotxml2xmltest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(domainsnapshotxml2xmltest_OBJECTS) $(domainsnapshotxml2xmltest_LDADD) $(LIBS)
 esxutilstest$(EXEEXT): $(esxutilstest_OBJECTS) $(esxutilstest_DEPENDENCIES) 
 	@rm -f esxutilstest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(esxutilstest_OBJECTS) $(esxutilstest_LDADD) $(LIBS)
@@ -2139,6 +2217,9 @@ qemuxml2argvtest$(EXEEXT): $(qemuxml2argvtest_OBJECTS) $(qemuxml2argvtest_DEPEND
 qemuxml2xmltest$(EXEEXT): $(qemuxml2xmltest_OBJECTS) $(qemuxml2xmltest_DEPENDENCIES) 
 	@rm -f qemuxml2xmltest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(qemuxml2xmltest_OBJECTS) $(qemuxml2xmltest_LDADD) $(LIBS)
+qemuxmlnstest$(EXEEXT): $(qemuxmlnstest_OBJECTS) $(qemuxmlnstest_DEPENDENCIES) 
+	@rm -f qemuxmlnstest$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(qemuxmlnstest_OBJECTS) $(qemuxmlnstest_LDADD) $(LIBS)
 qparamtest$(EXEEXT): $(qparamtest_OBJECTS) $(qparamtest_DEPENDENCIES) 
 	@rm -f qparamtest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(qparamtest_OBJECTS) $(qparamtest_LDADD) $(LIBS)
@@ -2214,6 +2295,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/commandtest-testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/conftest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cputest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/domainsnapshotxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/esxutilstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eventtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hashtest.Po@am__quote@
@@ -2229,6 +2311,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuhelptest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuxml2argvtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuxml2xmltest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qemuxmlnstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/qparamtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reconnect.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/seclabeltest.Po@am__quote@

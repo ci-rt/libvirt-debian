@@ -59,6 +59,7 @@
 #include "threads.h"
 #include "command.h"
 #include "virkeycode.h"
+#include "network.h"
 
 static char *progname;
 
@@ -246,6 +247,8 @@ typedef struct __vshControl {
     char *historyfile;          /* readline history file name */
     bool useGetInfo;            /* must use virDomainGetInfo, since
                                    virDomainGetState is not supported */
+    bool useSnapshotOld;        /* cannot use virDomainSnapshotGetParent or
+                                   virDomainSnapshotNumChildren */
 } __vshControl;
 
 typedef struct vshCmdGrp {
@@ -384,9 +387,6 @@ static void *_vshMalloc(vshControl *ctl, size_t sz, const char *filename, int li
 static void *_vshCalloc(vshControl *ctl, size_t nmemb, size_t sz, const char *filename, int line);
 #define vshCalloc(_ctl, _nmemb, _sz)    _vshCalloc(_ctl, _nmemb, _sz, __FILE__, __LINE__)
 
-static void *_vshRealloc(vshControl *ctl, void *ptr, size_t sz, const char *filename, int line);
-#define vshRealloc(_ctl, _ptr, _sz)    _vshRealloc(_ctl, _ptr, _sz, __FILE__, __LINE__)
-
 static char *_vshStrdup(vshControl *ctl, const char *s, const char *filename, int line);
 #define vshStrdup(_ctl, _s)    _vshStrdup(_ctl, _s, __FILE__, __LINE__)
 
@@ -411,19 +411,6 @@ _vshCalloc(vshControl *ctl, size_t nmemb, size_t size, const char *filename, int
         return x;
     vshError(ctl, _("%s: %d: failed to allocate %d bytes"),
              filename, line, (int) (size*nmemb));
-    exit(EXIT_FAILURE);
-}
-
-static void *
-_vshRealloc(vshControl *ctl, void *ptr, size_t size, const char *filename, int line)
-{
-    void *x;
-
-    if ((x = realloc(ptr, size)))
-        return x;
-    VIR_FREE(ptr);
-    vshError(ctl, _("%s: %d: failed to allocate %d bytes"),
-             filename, line, (int) size);
     exit(EXIT_FAILURE);
 }
 
@@ -613,6 +600,7 @@ vshReconnect(vshControl *ctl)
         vshError(ctl, "%s", _("Reconnected to the hypervisor"));
     disconnected = 0;
     ctl->useGetInfo = false;
+    ctl->useSnapshotOld = false;
 }
 
 /* ---------------
@@ -760,6 +748,7 @@ cmdConnect(vshControl *ctl, const vshCmd *cmd)
     ctl->name = vshStrdup(ctl, name);
 
     ctl->useGetInfo = false;
+    ctl->useSnapshotOld = false;
     ctl->readonly = ro;
 
     ctl->conn = virConnectOpenAuth(ctl->name, virConnectAuthPtrDefault,
@@ -1909,8 +1898,9 @@ cmdDefine(vshControl *ctl, const vshCmd *cmd)
  * "undefine" command
  */
 static const vshCmdInfo info_undefine[] = {
-    {"help", N_("undefine an inactive domain")},
-    {"desc", N_("Undefine the configuration for an inactive domain.")},
+    {"help", N_("undefine a domain")},
+    {"desc",
+     N_("Undefine an inactive domain, or convert persistent to transient.")},
     {NULL, NULL}
 };
 
@@ -2346,7 +2336,7 @@ cmdSaveImageDefine(vshControl *ctl, const vshCmd *cmd)
     if (virFileReadAll(xmlfile, 8192, &xml) < 0)
         goto cleanup;
 
-    if (virDomainSaveImageDefineXML(ctl->conn, file, xml, 0) < 0) {
+    if (virDomainSaveImageDefineXML(ctl->conn, file, xml, flags) < 0) {
         vshError(ctl, _("Failed to update %s"), file);
         goto cleanup;
     }
@@ -2899,6 +2889,7 @@ static const vshCmdOptDef opts_dump[] = {
     {"crash", VSH_OT_BOOL, 0, N_("crash the domain after core dump")},
     {"bypass-cache", VSH_OT_BOOL, 0,
      N_("avoid file system cache when saving")},
+    {"reset", VSH_OT_BOOL, 0, N_("reset the domain after core dump")},
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {"file", VSH_OT_DATA, VSH_OFLAG_REQ, N_("where to dump the core")},
     {NULL, 0, 0, NULL}
@@ -2928,6 +2919,8 @@ cmdDump(vshControl *ctl, const vshCmd *cmd)
         flags |= VIR_DUMP_CRASH;
     if (vshCommandOptBool(cmd, "bypass-cache"))
         flags |= VIR_DUMP_BYPASS_CACHE;
+    if (vshCommandOptBool(cmd, "reset"))
+        flags |= VIR_DUMP_RESET;
 
     if (virDomainCoreDump(dom, to, flags) < 0) {
         vshError(ctl, _("Failed to core dump domain %s to %s"), name, to);
@@ -3016,7 +3009,7 @@ cmdScreenshot(vshControl *ctl, const vshCmd *cmd)
     unsigned int screen = 0;
     unsigned int flags = 0; /* currently unused */
     int ret = false;
-    bool created = true;
+    bool created = false;
     bool generated = false;
     char *mime = NULL;
 
@@ -3051,12 +3044,13 @@ cmdScreenshot(vshControl *ctl, const vshCmd *cmd)
     }
 
     if ((fd = open(file, O_WRONLY|O_CREAT|O_EXCL, 0666)) < 0) {
-        created = false;
         if (errno != EEXIST ||
             (fd = open(file, O_WRONLY|O_TRUNC, 0666)) < 0) {
             vshError(ctl, _("cannot create file %s"), file);
             goto cleanup;
         }
+    } else {
+        created = true;
     }
 
     if (virStreamRecvAll(st, vshStreamSink, &fd) < 0) {
@@ -3196,6 +3190,44 @@ cmdReboot(vshControl *ctl, const vshCmd *cmd)
         vshPrint(ctl, _("Domain %s is being rebooted\n"), name);
     } else {
         vshError(ctl, _("Failed to reboot domain %s"), name);
+        ret = false;
+    }
+
+    virDomainFree(dom);
+    return ret;
+}
+
+/*
+ * "reset" command
+ */
+static const vshCmdInfo info_reset[] = {
+    {"help", N_("reset a domain")},
+    {"desc", N_("Reset the target domain as if by power button")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_reset[] = {
+    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdReset(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    bool ret = true;
+    const char *name;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        return false;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
+        return false;
+
+    if (virDomainReset(dom, 0) == 0) {
+        vshPrint(ctl, _("Domain %s was reset\n"), name);
+    } else {
+        vshError(ctl, _("Failed to reset domain %s"), name);
         ret = false;
     }
 
@@ -9508,9 +9540,22 @@ cmdVolInfo(vshControl *ctl, const vshCmd *cmd)
     if (virStorageVolGetInfo(vol, &info) == 0) {
         double val;
         const char *unit;
-        vshPrint(ctl, "%-15s %s\n", _("Type:"),
-                 info.type == VIR_STORAGE_VOL_FILE ?
-                 _("file") : _("block"));
+        switch(info.type) {
+        case VIR_STORAGE_VOL_FILE:
+            vshPrint(ctl, "%-15s %s\n", _("Type:"), _("file"));
+            break;
+
+        case VIR_STORAGE_VOL_BLOCK:
+            vshPrint(ctl, "%-15s %s\n", _("Type:"), _("block"));
+            break;
+
+        case VIR_STORAGE_VOL_DIR:
+            vshPrint(ctl, "%-15s %s\n", _("Type:"), _("dir"));
+            break;
+
+        default:
+            vshPrint(ctl, "%-15s %s\n", _("Type:"), _("unknown"));
+        }
 
         val = prettyCapacity(info.capacity, &unit);
         vshPrint(ctl, "%-15s %2.2lf %s\n", _("Capacity:"), val, unit);
@@ -11197,15 +11242,54 @@ static const vshCmdOptDef opts_attach_interface[] = {
     {"script", VSH_OT_DATA, 0, N_("script used to bridge network interface")},
     {"model", VSH_OT_DATA, 0, N_("model type")},
     {"persistent", VSH_OT_BOOL, 0, N_("persist interface attachment")},
+    {"inbound", VSH_OT_DATA, VSH_OFLAG_NONE, N_("control domain's incoming traffics")},
+    {"outbound", VSH_OT_DATA, VSH_OFLAG_NONE, N_("control domain's outgoing traffics")},
     {NULL, 0, 0, NULL}
 };
+
+/* parse inbound and outbound which are in the format of
+ * 'average,peak,burst', in which peak and burst are optional,
+ * thus 'average,,burst' and 'average,peak' are also legal. */
+static int parseRateStr(const char *rateStr, virRatePtr rate)
+{
+    const char *average = NULL;
+    char *peak = NULL, *burst = NULL;
+
+    average = rateStr;
+    if (!average)
+        return -1;
+    if (virStrToLong_ull(average, &peak, 10, &rate->average) < 0)
+        return -1;
+
+    /* peak will be updated to point to the end of rateStr in case
+     * of 'average' */
+    if (peak && *peak != '\0') {
+        burst = strchr(peak + 1, ',');
+        if (!(burst && (burst - peak == 1))) {
+            if (virStrToLong_ull(peak + 1, &burst, 10, &rate->peak) < 0)
+                return -1;
+        }
+
+        /* burst will be updated to point to the end of rateStr in case
+         * of 'average,peak' */
+        if (burst && *burst != '\0') {
+            if (virStrToLong_ull(burst + 1, NULL, 10, &rate->burst) < 0)
+                return -1;
+        }
+    }
+
+
+    return 0;
+}
 
 static bool
 cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom = NULL;
     const char *mac = NULL, *target = NULL, *script = NULL,
-                *type = NULL, *source = NULL, *model = NULL;
+                *type = NULL, *source = NULL, *model = NULL,
+                *inboundStr = NULL, *outboundStr = NULL;
+    virRate inbound, outbound;
     int typ;
     int ret;
     bool functionReturn = false;
@@ -11226,7 +11310,9 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
         vshCommandOptString(cmd, "target", &target) < 0 ||
         vshCommandOptString(cmd, "mac", &mac) < 0 ||
         vshCommandOptString(cmd, "script", &script) < 0 ||
-        vshCommandOptString(cmd, "model", &model) < 0) {
+        vshCommandOptString(cmd, "model", &model) < 0 ||
+        vshCommandOptString(cmd, "inbound", &inboundStr) < 0 ||
+        vshCommandOptString(cmd, "outbound", &outboundStr) < 0) {
         vshError(ctl, "missing argument");
         goto cleanup;
     }
@@ -11240,6 +11326,29 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
         vshError(ctl, _("No support for %s in command 'attach-interface'"),
                  type);
         goto cleanup;
+    }
+
+    if (inboundStr) {
+        memset(&inbound, 0, sizeof(inbound));
+        if (parseRateStr(inboundStr, &inbound) < 0) {
+            vshError(ctl, _("inbound format is incorrect"));
+            goto cleanup;
+        }
+        if (inbound.average == 0) {
+            vshError(ctl, _("inbound average is mandatory"));
+            goto cleanup;
+        }
+    }
+    if (outboundStr) {
+        memset(&outbound, 0, sizeof(outbound));
+        if (parseRateStr(outboundStr, &outbound) < 0) {
+            vshError(ctl, _("outbound format is incorrect"));
+            goto cleanup;
+        }
+        if (outbound.average == 0) {
+            vshError(ctl, _("outbound average is mandatory"));
+            goto cleanup;
+        }
     }
 
     /* Make XML of interface */
@@ -11258,6 +11367,27 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
         virBufferAsprintf(&buf, "  <script path='%s'/>\n", script);
     if (model != NULL)
         virBufferAsprintf(&buf, "  <model type='%s'/>\n", model);
+
+    if (inboundStr || outboundStr) {
+        virBufferAsprintf(&buf, "  <bandwidth>\n");
+        if (inboundStr && inbound.average > 0) {
+            virBufferAsprintf(&buf, "    <inbound average='%llu'", inbound.average);
+            if (inbound.peak > 0)
+                virBufferAsprintf(&buf, " peak='%llu'", inbound.peak);
+            if (inbound.burst > 0)
+                virBufferAsprintf(&buf, " burst='%llu'", inbound.burst);
+            virBufferAsprintf(&buf, "/>\n");
+        }
+        if (outboundStr && outbound.average > 0) {
+            virBufferAsprintf(&buf, "    <outbound average='%llu'", outbound.average);
+            if (outbound.peak > 0)
+                virBufferAsprintf(&buf, " peak='%llu'", outbound.peak);
+            if (outbound.burst > 0)
+                virBufferAsprintf(&buf, " burst='%llu'", outbound.burst);
+            virBufferAsprintf(&buf, "/>\n");
+        }
+        virBufferAsprintf(&buf, "  </bandwidth>\n");
+    }
 
     virBufferAddLit(&buf, "</interface>\n");
 
@@ -11903,9 +12033,15 @@ static bool
 cmdCPUCompare(vshControl *ctl, const vshCmd *cmd)
 {
     const char *from = NULL;
-    bool ret = true;
+    bool ret = false;
     char *buffer;
     int result;
+    const char *snippet;
+
+    xmlDocPtr xml = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+    xmlBufferPtr xml_buf = NULL;
+    xmlNodePtr node;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
@@ -11913,36 +12049,68 @@ cmdCPUCompare(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptString(cmd, "file", &from) <= 0)
         return false;
 
-    if (virFileReadAll(from, VIRSH_MAX_XML_FILE, &buffer) < 0)
+    if (virFileReadAll(from, VIRSH_MAX_XML_FILE, &buffer) < 0) {
+        vshError(ctl, _("Failed to read file '%s' to compare"),
+                 from);
         return false;
+    }
 
-    result = virConnectCompareCPU(ctl->conn, buffer, 0);
-    VIR_FREE(buffer);
+    /* try to extract the CPU element from as it would appear in a domain XML*/
+    if (!(xml = virXMLParseStringCtxt(buffer, from, &ctxt)))
+        goto cleanup;
+
+    if ((node = virXPathNode("/cpu|"
+                             "/domain/cpu|"
+                              "/capabilities/host/cpu", ctxt))) {
+        if (!(xml_buf = xmlBufferCreate())) {
+            vshError(ctl, _("Can't create XML buffer to extract CPU element."));
+            goto cleanup;
+        }
+
+        if (xmlNodeDump(xml_buf, xml, node, 0, 0) < 0) {
+            vshError(ctl, _("Failed to extract CPU element snippet from domain XML."));
+            goto cleanup;
+        }
+
+        snippet = (const char *) xmlBufferContent(xml_buf);
+    } else {
+        vshError(ctl, _("File '%s' does not contain a <cpu> element or is not "
+                        "a valid domain or capabilities XML"), from);
+        goto cleanup;
+    }
+
+    result = virConnectCompareCPU(ctl->conn, snippet, 0);
 
     switch (result) {
     case VIR_CPU_COMPARE_INCOMPATIBLE:
         vshPrint(ctl, _("CPU described in %s is incompatible with host CPU\n"),
                  from);
-        ret = false;
+        goto cleanup;
         break;
 
     case VIR_CPU_COMPARE_IDENTICAL:
         vshPrint(ctl, _("CPU described in %s is identical to host CPU\n"),
                  from);
-        ret = true;
         break;
 
     case VIR_CPU_COMPARE_SUPERSET:
         vshPrint(ctl, _("Host CPU is a superset of CPU described in %s\n"),
                  from);
-        ret = true;
         break;
 
     case VIR_CPU_COMPARE_ERROR:
     default:
         vshError(ctl, _("Failed to compare host CPU with %s"), from);
-        ret = false;
+        goto cleanup;
     }
+
+    ret = true;
+
+cleanup:
+    VIR_FREE(buffer);
+    xmlBufferFree(xml_buf);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(xml);
 
     return ret;
 }
@@ -11965,18 +12133,18 @@ static bool
 cmdCPUBaseline(vshControl *ctl, const vshCmd *cmd)
 {
     const char *from = NULL;
-    bool ret = true;
+    bool ret = false;
     char *buffer;
     char *result = NULL;
     const char **list = NULL;
-    unsigned int count = 0;
-    xmlDocPtr doc = NULL;
-    xmlNodePtr node_list;
+    int count = 0;
+
+    xmlDocPtr xml = NULL;
+    xmlNodePtr *node_list = NULL;
     xmlXPathContextPtr ctxt = NULL;
-    xmlSaveCtxtPtr sctxt = NULL;
-    xmlBufferPtr buf = NULL;
-    xmlXPathObjectPtr obj = NULL;
-    int res, i;
+    xmlBufferPtr xml_buf = NULL;
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    int i;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
@@ -11987,69 +12155,57 @@ cmdCPUBaseline(vshControl *ctl, const vshCmd *cmd)
     if (virFileReadAll(from, VIRSH_MAX_XML_FILE, &buffer) < 0)
         return false;
 
-    doc = xmlNewDoc(NULL);
-    if (doc == NULL)
+    /* add an separate container around the xml */
+    virBufferStrcat(&buf, "<container>", buffer, "</container>", NULL);
+    if (virBufferError(&buf))
         goto no_memory;
 
-    res = xmlParseBalancedChunkMemory(doc, NULL, NULL, 0,
-                                      (const xmlChar *)buffer, &node_list);
-    if (res != 0) {
-        vshError(ctl, _("Failed to parse XML fragment %s"), from);
-        ret = false;
-        goto cleanup;
-    }
+    VIR_FREE(buffer);
+    buffer = virBufferContentAndReset(&buf);
 
-    xmlAddChildList((xmlNodePtr) doc, node_list);
 
-    ctxt = xmlXPathNewContext(doc);
-    if (!ctxt)
-        goto no_memory;
-
-    obj = xmlXPathEval(BAD_CAST "//cpu[not(ancestor::cpu)]", ctxt);
-    if ((obj == NULL) || (obj->nodesetval == NULL) ||
-        (obj->nodesetval->nodeTab == NULL))
+    if (!(xml = virXMLParseStringCtxt(buffer, from, &ctxt)))
         goto cleanup;
 
-    for (i = 0;i < obj->nodesetval->nodeNr;i++) {
-        buf = xmlBufferCreate();
-        if (buf == NULL)
-            goto no_memory;
-        sctxt = xmlSaveToBuffer(buf, NULL, 0);
-        if (sctxt == NULL) {
-            xmlBufferFree(buf);
-            goto no_memory;
-        }
-
-        xmlSaveTree(sctxt, obj->nodesetval->nodeTab[i]);
-        xmlSaveClose(sctxt);
-
-        list = vshRealloc(ctl, list, sizeof(char *) * (count + 1));
-        list[count++] = (char *) buf->content;
-        buf->content = NULL;
-        xmlBufferFree(buf);
-        buf = NULL;
-    }
+    if ((count = virXPathNodeSet("//cpu[not(ancestor::cpus)]",
+                                 ctxt, &node_list)) == -1)
+        goto cleanup;
 
     if (count == 0) {
         vshError(ctl, _("No host CPU specified in '%s'"), from);
-        ret = false;
         goto cleanup;
+    }
+
+    list = vshCalloc(ctl, count, sizeof(const char *));
+
+    if (!(xml_buf = xmlBufferCreate()))
+        goto no_memory;
+
+    for (i = 0; i < count; i++) {
+        xmlBufferEmpty(xml_buf);
+
+        if (xmlNodeDump(xml_buf, xml,  node_list[i], 0, 0) < 0) {
+            vshError(ctl, _("Failed to extract <cpu> element"));
+            goto cleanup;
+        }
+
+        list[i] = vshStrdup(ctl, (const char *)xmlBufferContent(xml_buf));
     }
 
     result = virConnectBaselineCPU(ctl->conn, list, count, 0);
 
-    if (result)
+    if (result) {
         vshPrint(ctl, "%s", result);
-    else
-        ret = false;
+        ret = true;
+    }
 
 cleanup:
-    xmlXPathFreeObject(obj);
     xmlXPathFreeContext(ctxt);
-    xmlFreeDoc(doc);
+    xmlFreeDoc(xml);
+    xmlBufferFree(xml_buf);
     VIR_FREE(result);
     if ((list != NULL) && (count > 0)) {
-        for (i = 0;i < count;i++)
+        for (i = 0; i < count; i++)
             VIR_FREE(list[i]);
     }
     VIR_FREE(list);
@@ -12265,7 +12421,7 @@ static const vshCmdOptDef opts_echo[] = {
  * quotes for later evaluation.
  */
 static bool
-cmdEcho (vshControl *ctl ATTRIBUTE_UNUSED, const vshCmd *cmd)
+cmdEcho (vshControl *ctl, const vshCmd *cmd)
 {
     bool shell = false;
     bool xml = false;
@@ -12280,34 +12436,31 @@ cmdEcho (vshControl *ctl ATTRIBUTE_UNUSED, const vshCmd *cmd)
         xml = true;
 
     while ((opt = vshCommandOptArgv(cmd, opt))) {
-        bool close_quote = false;
-        char *q;
+        char *str;
+        virBuffer xmlbuf = VIR_BUFFER_INITIALIZER;
 
         arg = opt->data;
+
         if (count)
             virBufferAddChar(&buf, ' ');
-        /* Add outer '' only if arg included shell metacharacters.  */
-        if (shell &&
-            (strpbrk(arg, "\r\t\n !\"#$&'()*;<>?[\\]^`{|}~") || !*arg)) {
-            virBufferAddChar(&buf, '\'');
-            close_quote = true;
-        }
+
         if (xml) {
-            virBufferEscapeString(&buf, "%s", arg);
-        } else {
-            if (shell && (q = strchr(arg, '\''))) {
-                do {
-                    virBufferAdd(&buf, arg, q - arg);
-                    virBufferAddLit(&buf, "'\\''");
-                    arg = q + 1;
-                    q = strchr(arg, '\'');
-                } while (q);
+            virBufferEscapeString(&xmlbuf, "%s", arg);
+            if (virBufferError(&buf)) {
+                vshPrint(ctl, "%s", _("Failed to allocate XML buffer"));
+                return false;
             }
-            virBufferAdd(&buf, arg, strlen(arg));
+            str = virBufferContentAndReset(&xmlbuf);
+        } else {
+            str = vshStrdup(ctl, arg);
         }
-        if (close_quote)
-            virBufferAddChar(&buf, '\'');
+
+        if (shell)
+            virBufferEscapeShell(&buf, str);
+        else
+            virBufferAdd(&buf, str, -1);
         count++;
+        VIR_FREE(str);
     }
 
     if (virBufferError(&buf)) {
@@ -12763,6 +12916,45 @@ cleanup:
     return ret;
 }
 
+/* Helper for resolving {--current | --ARG name} into a snapshot
+ * belonging to DOM.  If EXCLUSIVE, fail if both --current and arg are
+ * present.  On success, populate *SNAP and *NAME, before returning 0.
+ * On failure, return -1 after issuing an error message.  */
+static int
+vshLookupSnapshot(vshControl *ctl, const vshCmd *cmd,
+                  const char *arg, bool exclusive, virDomainPtr dom,
+                  virDomainSnapshotPtr *snap, const char **name)
+{
+    bool current = vshCommandOptBool(cmd, "current");
+    const char *snapname = NULL;
+
+    if (vshCommandOptString(cmd, arg, &snapname) < 0) {
+        vshError(ctl, _("invalid argument for --%s"), arg);
+        return -1;
+    }
+
+    if (exclusive && current && snapname) {
+        vshError(ctl, _("--%s and --current are mutually exclusive"), arg);
+        return -1;
+    }
+
+    if (snapname) {
+        *snap = virDomainSnapshotLookupByName(dom, snapname, 0);
+    } else if (current) {
+        *snap = virDomainSnapshotCurrent(dom, 0);
+    } else {
+        vshError(ctl, _("--%s or --current is required"), arg);
+        return -1;
+    }
+    if (!*snap) {
+        virshReportError(ctl);
+        return -1;
+    }
+
+    *name = virDomainSnapshotGetName(*snap);
+    return 0;
+}
+
 /*
  * "snapshot-edit" command
  */
@@ -12774,8 +12966,10 @@ static const vshCmdInfo info_snapshot_edit[] = {
 
 static const vshCmdOptDef opts_snapshot_edit[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
-    {"snapshotname", VSH_OT_DATA, VSH_OFLAG_REQ, N_("snapshot name")},
+    {"snapshotname", VSH_OT_DATA, 0, N_("snapshot name")},
     {"current", VSH_OT_BOOL, 0, N_("also set edited snapshot as current")},
+    {"rename", VSH_OT_BOOL, 0, N_("allow renaming an existing snapshot")},
+    {"clone", VSH_OT_BOOL, 0, N_("allow cloning to new name")},
     {NULL, 0, 0, NULL}
 };
 
@@ -12784,37 +12978,47 @@ cmdSnapshotEdit(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom = NULL;
     virDomainSnapshotPtr snapshot = NULL;
+    virDomainSnapshotPtr edited = NULL;
     const char *name;
+    const char *edited_name;
     bool ret = false;
     char *tmp = NULL;
     char *doc = NULL;
     char *doc_edited = NULL;
     unsigned int getxml_flags = VIR_DOMAIN_XML_SECURE;
     unsigned int define_flags = VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE;
+    bool rename_okay = vshCommandOptBool(cmd, "rename");
+    bool clone_okay = vshCommandOptBool(cmd, "clone");
 
-    if (vshCommandOptBool(cmd, "current"))
+    if (rename_okay && clone_okay) {
+        vshError(ctl, "%s",
+                 _("--rename and --clone are mutually exclusive"));
+        return false;
+    }
+
+    if (vshCommandOptBool(cmd, "current") &&
+        vshCommandOptBool(cmd, "snapshotname"))
         define_flags |= VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
 
-    if (vshCommandOptString(cmd, "snapshotname", &name) <= 0)
-        goto cleanup;
-
     dom = vshCommandOptDomain(ctl, cmd, NULL);
     if (dom == NULL)
         goto cleanup;
 
-    snapshot = virDomainSnapshotLookupByName(dom, name, 0);
-    if (snapshot == NULL)
+    if (vshLookupSnapshot(ctl, cmd, "snapshotname", false, dom,
+                          &snapshot, &name) < 0)
         goto cleanup;
 
     /* Get the XML configuration of the snapshot.  */
     doc = virDomainSnapshotGetXMLDesc(snapshot, getxml_flags);
     if (!doc)
         goto cleanup;
-    virDomainSnapshotFree(snapshot);
-    snapshot = NULL;
+
+    /* strstr is safe here, since xml came from libvirt API and not user */
+    if (strstr(doc, "<state>disk-snapshot</state>"))
+        define_flags |= VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY;
 
     /* Create and open the temporary file.  */
     tmp = editWriteToTempFile(ctl, doc);
@@ -12841,13 +13045,36 @@ cmdSnapshotEdit(vshControl *ctl, const vshCmd *cmd)
     }
 
     /* Everything checks out, so redefine the xml.  */
-    snapshot = virDomainSnapshotCreateXML(dom, doc_edited, define_flags);
-    if (!snapshot) {
+    edited = virDomainSnapshotCreateXML(dom, doc_edited, define_flags);
+    if (!edited) {
         vshError(ctl, _("Failed to update %s"), name);
         goto cleanup;
     }
 
-    vshPrint(ctl, _("Snapshot %s edited.\n"), name);
+    edited_name = virDomainSnapshotGetName(edited);
+    if (STREQ(name, edited_name)) {
+        vshPrint(ctl, _("Snapshot %s edited.\n"), name);
+    } else if (clone_okay) {
+        vshPrint(ctl, _("Snapshot %s cloned to %s.\n"), name,
+                 edited_name);
+    } else {
+        unsigned int delete_flags;
+
+        delete_flags = VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY;
+        if (virDomainSnapshotDelete(rename_okay ? snapshot : edited,
+                                    delete_flags) < 0) {
+            virshReportError(ctl);
+            vshError(ctl, _("Failed to clean up %s"),
+                     rename_okay ? name : edited_name);
+            goto cleanup;
+        }
+        if (!rename_okay) {
+            vshError(ctl, _("Must use --rename or --clone to change %s to %s"),
+                     name, edited_name);
+            goto cleanup;
+        }
+    }
+
     ret = true;
 
 cleanup:
@@ -12859,6 +13086,8 @@ cleanup:
     }
     if (snapshot)
         virDomainSnapshotFree(snapshot);
+    if (edited)
+        virDomainSnapshotFree(edited);
     if (dom)
         virDomainFree(dom);
     return ret;
@@ -12893,6 +13122,7 @@ cmdSnapshotCurrent(vshControl *ctl, const vshCmd *cmd)
     char *xml = NULL;
     const char *snapshotname = NULL;
     unsigned int flags = 0;
+    const char *domname;
 
     if (vshCommandOptBool(cmd, "security-info"))
         flags |= VIR_DOMAIN_XML_SECURE;
@@ -12900,7 +13130,7 @@ cmdSnapshotCurrent(vshControl *ctl, const vshCmd *cmd)
     if (!vshConnectionUsability(ctl, ctl->conn))
         goto cleanup;
 
-    dom = vshCommandOptDomain(ctl, cmd, NULL);
+    dom = vshCommandOptDomain(ctl, cmd, &domname);
     if (dom == NULL)
         goto cleanup;
 
@@ -12924,6 +13154,9 @@ cmdSnapshotCurrent(vshControl *ctl, const vshCmd *cmd)
         xml = virDomainSnapshotGetXMLDesc(snapshot, VIR_DOMAIN_XML_SECURE);
         if (!xml)
             goto cleanup;
+        /* strstr is safe here, since xml came from libvirt API and not user */
+        if (strstr(xml, "<state>disk-snapshot</state>"))
+            flags |= VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY;
         snapshot2 = virDomainSnapshotCreateXML(dom, xml, flags);
         if (snapshot2 == NULL)
             goto cleanup;
@@ -12934,9 +13167,12 @@ cmdSnapshotCurrent(vshControl *ctl, const vshCmd *cmd)
     }
 
     current = virDomainHasCurrentSnapshot(dom, 0);
-    if (current < 0)
+    if (current < 0) {
         goto cleanup;
-    else if (current) {
+    } else if (!current) {
+        vshError(ctl, _("domain '%s' has no current snapshot"), domname);
+        goto cleanup;
+    } else {
         const char *name = NULL;
 
         if (!(snapshot = virDomainSnapshotCurrent(dom, 0)))
@@ -12958,12 +13194,75 @@ cmdSnapshotCurrent(vshControl *ctl, const vshCmd *cmd)
     ret = true;
 
 cleanup:
+    if (!ret)
+        virshReportError(ctl);
     VIR_FREE(xml);
     if (snapshot)
         virDomainSnapshotFree(snapshot);
     if (dom)
         virDomainFree(dom);
 
+    return ret;
+}
+
+/* Helper function to get the name of a snapshot's parent.  Caller
+ * must free the result.  Returns 0 on success (including when it was
+ * proven no parent exists), and -1 on failure with error reported
+ * (such as no snapshot support or domain deleted in meantime).  */
+static int
+vshGetSnapshotParent(vshControl *ctl, virDomainSnapshotPtr snapshot,
+                     char **parent_name)
+{
+    virDomainSnapshotPtr parent = NULL;
+    char *xml = NULL;
+    xmlDocPtr xmldoc = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+    int ret = -1;
+
+    *parent_name = NULL;
+
+    /* Try new API, since it is faster. */
+    if (!ctl->useSnapshotOld) {
+        parent = virDomainSnapshotGetParent(snapshot, 0);
+        if (parent) {
+            /* API works, and virDomainSnapshotGetName will succeed */
+            *parent_name = vshStrdup(ctl, virDomainSnapshotGetName(parent));
+            ret = 0;
+            goto cleanup;
+        }
+        if (last_error->code == VIR_ERR_NO_DOMAIN_SNAPSHOT) {
+            /* API works, and we found a root with no parent */
+            ret = 0;
+            goto cleanup;
+        }
+        /* API didn't work, fall back to XML scraping. */
+        ctl->useSnapshotOld = true;
+    }
+
+    xml = virDomainSnapshotGetXMLDesc(snapshot, 0);
+    if (!xml)
+        goto cleanup;
+
+    xmldoc = virXMLParseStringCtxt(xml, _("(domain_snapshot)"), &ctxt);
+    if (!xmldoc)
+        goto cleanup;
+
+    *parent_name = virXPathString("string(/domainsnapshot/parent/name)", ctxt);
+    ret = 0;
+
+cleanup:
+    if (ret < 0) {
+        virshReportError(ctl);
+        vshError(ctl, "%s", _("unable to determine if snapshot has parent"));
+    } else {
+        virFreeError(last_error);
+        last_error = NULL;
+    }
+    if (parent)
+        virDomainSnapshotFree(parent);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(xmldoc);
+    VIR_FREE(xml);
     return ret;
 }
 
@@ -12980,8 +13279,14 @@ static const vshCmdOptDef opts_snapshot_list[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {"parent", VSH_OT_BOOL, 0, N_("add a column showing parent snapshot")},
     {"roots", VSH_OT_BOOL, 0, N_("list only snapshots without parents")},
+    {"leaves", VSH_OT_BOOL, 0, N_("list only snapshots without children")},
     {"metadata", VSH_OT_BOOL, 0,
      N_("list only snapshots that have metadata that would prevent undefine")},
+    {"tree", VSH_OT_BOOL, 0, N_("list snapshots in a tree")},
+    {"from", VSH_OT_DATA, 0, N_("limit list to children of given snapshot")},
+    {"current", VSH_OT_BOOL, 0,
+     N_("limit list to children of current snapshot")},
+    {"descendants", VSH_OT_BOOL, 0, N_("with --from, list all descendants")},
     {NULL, 0, 0, NULL}
 };
 
@@ -12995,6 +13300,7 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
                               information needed, 1 for parent column */
     int numsnaps;
     char **names = NULL;
+    char **parents = NULL;
     int actual = 0;
     int i;
     xmlDocPtr xml = NULL;
@@ -13007,21 +13313,12 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
     time_t creation_time_t;
     char timestr[100];
     struct tm time_info;
-
-    if (vshCommandOptBool(cmd, "parent")) {
-        if (vshCommandOptBool(cmd, "roots")) {
-            vshError(ctl, "%s",
-                     _("--parent and --roots are mutually exlusive"));
-            return false;
-        }
-        parent_filter = 1;
-    } else if (vshCommandOptBool(cmd, "roots")) {
-        flags |= VIR_DOMAIN_SNAPSHOT_LIST_ROOTS;
-    }
-
-    if (vshCommandOptBool(cmd, "metadata")) {
-        flags |= VIR_DOMAIN_SNAPSHOT_LIST_METADATA;
-    }
+    bool tree = vshCommandOptBool(cmd, "tree");
+    bool leaves = vshCommandOptBool(cmd, "leaves");
+    const char *from = NULL;
+    virDomainSnapshotPtr start = NULL;
+    int start_index = -1;
+    bool descendants = false;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         goto cleanup;
@@ -13030,41 +13327,232 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
     if (dom == NULL)
         goto cleanup;
 
-    numsnaps = virDomainSnapshotNum(dom, flags);
-
-    /* Fall back to simulation if --roots was unsupported.  */
-    if (numsnaps < 0 && last_error->code == VIR_ERR_INVALID_ARG &&
-        (flags & VIR_DOMAIN_SNAPSHOT_LIST_ROOTS)) {
-        virFreeError(last_error);
-        last_error = NULL;
-        parent_filter = -1;
-        flags &= ~VIR_DOMAIN_SNAPSHOT_LIST_ROOTS;
-        numsnaps = virDomainSnapshotNum(dom, flags);
-    }
-
-    if (numsnaps < 0)
+    if ((vshCommandOptBool(cmd, "from") ||
+         vshCommandOptBool(cmd, "current")) &&
+        vshLookupSnapshot(ctl, cmd, "from", true, dom, &start, &from) < 0)
         goto cleanup;
 
-    if (parent_filter > 0)
-        vshPrintExtra(ctl, " %-20s %-25s %-15s %s",
-                      _("Name"), _("Creation Time"), _("State"), _("Parent"));
-    else
-        vshPrintExtra(ctl, " %-20s %-25s %s",
-                      _("Name"), _("Creation Time"), _("State"));
-    vshPrintExtra(ctl, "\n\
+    if (vshCommandOptBool(cmd, "parent")) {
+        if (vshCommandOptBool(cmd, "roots")) {
+            vshError(ctl, "%s",
+                     _("--parent and --roots are mutually exclusive"));
+            return false;
+        }
+        if (tree) {
+            vshError(ctl, "%s",
+                     _("--parent and --tree are mutually exclusive"));
+            return false;
+        }
+        parent_filter = 1;
+    } else if (vshCommandOptBool(cmd, "roots")) {
+        if (tree) {
+            vshError(ctl, "%s",
+                     _("--roots and --tree are mutually exclusive"));
+            return false;
+        }
+        if (from) {
+            vshError(ctl, "%s",
+                     _("--roots and --from are mutually exclusive"));
+        }
+        flags |= VIR_DOMAIN_SNAPSHOT_LIST_ROOTS;
+    }
+    if (leaves) {
+        if (tree) {
+            vshError(ctl, "%s",
+                     _("--leaves and --tree are mutually exclusive"));
+            return false;
+        }
+        flags |= VIR_DOMAIN_SNAPSHOT_LIST_LEAVES;
+    }
+
+    if (vshCommandOptBool(cmd, "metadata")) {
+        flags |= VIR_DOMAIN_SNAPSHOT_LIST_METADATA;
+    }
+
+    if (from) {
+        descendants = vshCommandOptBool(cmd, "descendants");
+        if (descendants || tree) {
+            flags |= VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS;
+        }
+        numsnaps = ctl->useSnapshotOld ? -1 :
+            virDomainSnapshotNumChildren(start, flags);
+        if (numsnaps < 0) {
+            if (ctl->useSnapshotOld ||
+                last_error->code == VIR_ERR_NO_SUPPORT) {
+                /* We can emulate --from.  */
+                /* XXX can we also emulate --leaves? */
+                virFreeError(last_error);
+                last_error = NULL;
+                ctl->useSnapshotOld = true;
+                flags &= ~VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS;
+                numsnaps = virDomainSnapshotNum(dom, flags);
+            }
+        } else if (tree) {
+            numsnaps++;
+        }
+    } else {
+        numsnaps = virDomainSnapshotNum(dom, flags);
+
+        /* Fall back to simulation if --roots was unsupported. */
+        /* XXX can we also emulate --leaves? */
+        if (numsnaps < 0 && last_error->code == VIR_ERR_INVALID_ARG &&
+            (flags & VIR_DOMAIN_SNAPSHOT_LIST_ROOTS)) {
+            virFreeError(last_error);
+            last_error = NULL;
+            parent_filter = -1;
+            flags &= ~VIR_DOMAIN_SNAPSHOT_LIST_ROOTS;
+            numsnaps = virDomainSnapshotNum(dom, flags);
+        }
+    }
+
+    if (numsnaps < 0) {
+        if (!last_error)
+            vshError(ctl, _("missing support"));
+        goto cleanup;
+    }
+
+    if (!tree) {
+        if (parent_filter > 0)
+            vshPrintExtra(ctl, " %-20s %-25s %-15s %s",
+                          _("Name"), _("Creation Time"), _("State"),
+                          _("Parent"));
+        else
+            vshPrintExtra(ctl, " %-20s %-25s %s",
+                          _("Name"), _("Creation Time"), _("State"));
+        vshPrintExtra(ctl, "\n\
 ------------------------------------------------------------\n");
+    }
 
-    if (numsnaps) {
-        if (VIR_ALLOC_N(names, numsnaps) < 0)
-            goto cleanup;
+    if (!numsnaps) {
+        ret = true;
+        goto cleanup;
+    }
 
+    if (VIR_ALLOC_N(names, numsnaps) < 0)
+        goto cleanup;
+
+    if (from && !ctl->useSnapshotOld) {
+        /* When mixing --from and --tree, we want to start the tree at the
+         * given snapshot.  Without --tree, only list the children.  */
+        if (tree) {
+            if (numsnaps)
+                actual = virDomainSnapshotListChildrenNames(start, names + 1,
+                                                            numsnaps - 1,
+                                                            flags);
+            if (actual >= 0) {
+                actual++;
+                names[0] = vshStrdup(ctl, from);
+            }
+        } else {
+            actual = virDomainSnapshotListChildrenNames(start, names,
+                                                        numsnaps, flags);
+        }
+    } else {
         actual = virDomainSnapshotListNames(dom, names, numsnaps, flags);
-        if (actual < 0)
-            goto cleanup;
+    }
+    if (actual < 0)
+        goto cleanup;
 
-        qsort(&names[0], actual, sizeof(char*), namesorter);
+    qsort(&names[0], actual, sizeof(char*), namesorter);
+
+    if (tree || ctl->useSnapshotOld) {
+        parents = vshCalloc(ctl, sizeof(char *), actual);
+        for (i = (from && !ctl->useSnapshotOld); i < actual; i++) {
+            if (ctl->useSnapshotOld && STREQ(names[i], from)) {
+                start_index = i;
+                continue;
+            }
+
+            /* free up memory from previous iterations of the loop */
+            if (snapshot)
+                virDomainSnapshotFree(snapshot);
+            snapshot = virDomainSnapshotLookupByName(dom, names[i], 0);
+            if (!snapshot ||
+                vshGetSnapshotParent(ctl, snapshot, &parents[i]) < 0) {
+                while (--i >= 0)
+                    VIR_FREE(parents[i]);
+                VIR_FREE(parents);
+                goto cleanup;
+            }
+        }
+    }
+    if (tree) {
+        char indentBuf[INDENT_BUFLEN];
+        for (i = 0 ; i < actual ; i++) {
+            memset(indentBuf, '\0', sizeof indentBuf);
+            if (ctl->useSnapshotOld ? STREQ(names[i], from) : !parents[i])
+                cmdNodeListDevicesPrint(ctl,
+                                        names,
+                                        parents,
+                                        actual,
+                                        i,
+                                        i,
+                                        0,
+                                        0,
+                                        indentBuf);
+        }
+
+        ret = true;
+        goto cleanup;
+    } else {
+        if (ctl->useSnapshotOld && descendants) {
+            bool changed = false;
+
+            /* Make multiple passes over the list - first pass NULLs
+             * out all roots except start, remaining passes NULL out
+             * any entry whose parent is not still in list.  Also, we
+             * NULL out parent when name is known to be in list.
+             * Sorry, this is O(n^3) - hope your hierarchy isn't huge.  */
+            if (start_index < 0) {
+                vshError(ctl, _("snapshot %s disappeared from list"), from);
+                goto cleanup;
+            }
+            for (i = 0; i < actual; i++) {
+                if (i == start_index)
+                    continue;
+                if (!parents[i]) {
+                    VIR_FREE(names[i]);
+                } else if (STREQ(parents[i], from)) {
+                    VIR_FREE(parents[i]);
+                    changed = true;
+                }
+            }
+            if (!changed) {
+                ret = true;
+                goto cleanup;
+            }
+            while (changed) {
+                changed = false;
+                for (i = 0; i < actual; i++) {
+                    bool found = false;
+                    int j;
+
+                    if (!names[i] || !parents[i])
+                        continue;
+                    for (j = 0; j < actual; j++) {
+                        if (!names[j] || i == j)
+                            continue;
+                        if (STREQ(parents[i], names[j])) {
+                            found = true;
+                            if (!parents[j])
+                                VIR_FREE(parents[i]);
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        changed = true;
+                        VIR_FREE(names[i]);
+                    }
+                }
+            }
+            VIR_FREE(names[start_index]);
+        }
 
         for (i = 0; i < actual; i++) {
+            if (ctl->useSnapshotOld &&
+                (descendants ? !names[i] : STRNEQ_NULLABLE(parents[i], from)))
+                continue;
+
             /* free up memory from previous iterations of the loop */
             VIR_FREE(parent);
             VIR_FREE(state);
@@ -13124,12 +13612,18 @@ cleanup:
     VIR_FREE(state);
     if (snapshot)
         virDomainSnapshotFree(snapshot);
+    if (start)
+        virDomainSnapshotFree(start);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(xml);
     VIR_FREE(doc);
-    for (i = 0; i < actual; i++)
+    for (i = 0; i < actual; i++) {
         VIR_FREE(names[i]);
+        if (parents)
+            VIR_FREE(parents[i]);
+    }
     VIR_FREE(names);
+    VIR_FREE(parents);
     if (dom)
         virDomainFree(dom);
 
@@ -13209,7 +13703,8 @@ static const vshCmdInfo info_snapshot_parent[] = {
 
 static const vshCmdOptDef opts_snapshot_parent[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
-    {"snapshotname", VSH_OT_DATA, VSH_OFLAG_REQ, N_("snapshot name")},
+    {"snapshotname", VSH_OT_DATA, 0, N_("find parent of snapshot name")},
+    {"current", VSH_OT_BOOL, 0, N_("find parent of current snapshot")},
     {NULL, 0, 0, NULL}
 };
 
@@ -13220,10 +13715,7 @@ cmdSnapshotParent(vshControl *ctl, const vshCmd *cmd)
     bool ret = false;
     const char *name = NULL;
     virDomainSnapshotPtr snapshot = NULL;
-    char *xml = NULL;
     char *parent = NULL;
-    xmlDocPtr xmldoc = NULL;
-    xmlXPathContextPtr ctxt = NULL;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         goto cleanup;
@@ -13232,24 +13724,16 @@ cmdSnapshotParent(vshControl *ctl, const vshCmd *cmd)
     if (dom == NULL)
         goto cleanup;
 
-    if (vshCommandOptString(cmd, "snapshotname", &name) <= 0)
+    if (vshLookupSnapshot(ctl, cmd, "snapshotname", true, dom,
+                          &snapshot, &name) < 0)
         goto cleanup;
 
-    snapshot = virDomainSnapshotLookupByName(dom, name, 0);
-    if (snapshot == NULL)
+    if (vshGetSnapshotParent(ctl, snapshot, &parent) < 0)
         goto cleanup;
-
-    xml = virDomainSnapshotGetXMLDesc(snapshot, 0);
-    if (!xml)
+    if (!parent) {
+        vshError(ctl, _("snapshot '%s' has no parent"), name);
         goto cleanup;
-
-    xmldoc = virXMLParseStringCtxt(xml, _("(domain_snapshot)"), &ctxt);
-    if (!xmldoc)
-        goto cleanup;
-
-    parent = virXPathString("string(/domainsnapshot/parent/name)", ctxt);
-    if (!parent)
-        goto cleanup;
+    }
 
     vshPrint(ctl, "%s", parent);
 
@@ -13257,9 +13741,6 @@ cmdSnapshotParent(vshControl *ctl, const vshCmd *cmd)
 
 cleanup:
     VIR_FREE(parent);
-    xmlXPathFreeContext(ctxt);
-    xmlFreeDoc(xmldoc);
-    VIR_FREE(xml);
     if (snapshot)
         virDomainSnapshotFree(snapshot);
     if (dom)
@@ -13279,9 +13760,11 @@ static const vshCmdInfo info_snapshot_revert[] = {
 
 static const vshCmdOptDef opts_snapshot_revert[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
-    {"snapshotname", VSH_OT_DATA, VSH_OFLAG_REQ, N_("snapshot name")},
+    {"snapshotname", VSH_OT_DATA, 0, N_("snapshot name")},
+    {"current", VSH_OT_BOOL, 0, N_("revert to current snapshot")},
     {"running", VSH_OT_BOOL, 0, N_("after reverting, change state to running")},
     {"paused", VSH_OT_BOOL, 0, N_("after reverting, change state to paused")},
+    {"force", VSH_OT_BOOL, 0, N_("try harder on risky reverts")},
     {NULL, 0, 0, NULL}
 };
 
@@ -13293,11 +13776,19 @@ cmdDomainSnapshotRevert(vshControl *ctl, const vshCmd *cmd)
     const char *name = NULL;
     virDomainSnapshotPtr snapshot = NULL;
     unsigned int flags = 0;
+    bool force = false;
+    int result;
 
     if (vshCommandOptBool(cmd, "running"))
         flags |= VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING;
     if (vshCommandOptBool(cmd, "paused"))
         flags |= VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED;
+    /* We want virsh snapshot-revert --force to work even when talking
+     * to older servers that did the unsafe revert by default but
+     * reject the flag, so we probe without the flag, and only use it
+     * when the error says it will make a difference.  */
+    if (vshCommandOptBool(cmd, "force"))
+        force = true;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         goto cleanup;
@@ -13306,14 +13797,19 @@ cmdDomainSnapshotRevert(vshControl *ctl, const vshCmd *cmd)
     if (dom == NULL)
         goto cleanup;
 
-    if (vshCommandOptString(cmd, "snapshotname", &name) <= 0)
+    if (vshLookupSnapshot(ctl, cmd, "snapshotname", true, dom,
+                          &snapshot, &name) < 0)
         goto cleanup;
 
-    snapshot = virDomainSnapshotLookupByName(dom, name, 0);
-    if (snapshot == NULL)
-        goto cleanup;
-
-    if (virDomainRevertToSnapshot(snapshot, flags) < 0)
+    result = virDomainRevertToSnapshot(snapshot, flags);
+    if (result < 0 && force &&
+        last_error->code == VIR_ERR_SNAPSHOT_REVERT_RISKY) {
+        flags |= VIR_DOMAIN_SNAPSHOT_REVERT_FORCE;
+        virFreeError(last_error);
+        last_error = NULL;
+        result = virDomainRevertToSnapshot(snapshot, flags);
+    }
+    if (result < 0)
         goto cleanup;
 
     ret = true;
@@ -13338,7 +13834,8 @@ static const vshCmdInfo info_snapshot_delete[] = {
 
 static const vshCmdOptDef opts_snapshot_delete[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
-    {"snapshotname", VSH_OT_DATA, VSH_OFLAG_REQ, N_("snapshot name")},
+    {"snapshotname", VSH_OT_DATA, 0, N_("snapshot name")},
+    {"current", VSH_OT_BOOL, 0, N_("delete current snapshot")},
     {"children", VSH_OT_BOOL, 0, N_("delete snapshot and all children")},
     {"children-only", VSH_OT_BOOL, 0, N_("delete children but not snapshot")},
     {"metadata", VSH_OT_BOOL, 0,
@@ -13362,7 +13859,8 @@ cmdSnapshotDelete(vshControl *ctl, const vshCmd *cmd)
     if (dom == NULL)
         goto cleanup;
 
-    if (vshCommandOptString(cmd, "snapshotname", &name) <= 0)
+    if (vshLookupSnapshot(ctl, cmd, "snapshotname", true, dom,
+                          &snapshot, &name) < 0)
         goto cleanup;
 
     if (vshCommandOptBool(cmd, "children"))
@@ -13371,10 +13869,6 @@ cmdSnapshotDelete(vshControl *ctl, const vshCmd *cmd)
         flags |= VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY;
     if (vshCommandOptBool(cmd, "metadata"))
         flags |= VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY;
-
-    snapshot = virDomainSnapshotLookupByName(dom, name, 0);
-    if (snapshot == NULL)
-        goto cleanup;
 
     /* XXX If we wanted, we could emulate DELETE_CHILDREN_ONLY even on
      * older servers that reject the flag, by manually computing the
@@ -13564,6 +14058,7 @@ static const vshCmdDef domManagementCmds[] = {
     {"migrate-getspeed", cmdMigrateGetMaxSpeed,
      opts_migrate_getspeed, info_migrate_getspeed, 0},
     {"reboot", cmdReboot, opts_reboot, info_reboot, 0},
+    {"reset", cmdReset, opts_reset, info_reset, 0},
     {"restore", cmdRestore, opts_restore, info_restore, 0},
     {"resume", cmdResume, opts_resume, info_resume, 0},
     {"save", cmdSave, opts_save, info_save, 0},
@@ -14721,8 +15216,8 @@ vshCommandOptVolBy(vshControl *ctl, const vshCmd *cmd,
         if (pool)
             vshError(ctl, _("failed to get vol '%s'"), n);
         else
-            vshError(ctl, _("failed to get vol '%s', specifying --pool "
-                            "might help"), n);
+            vshError(ctl, _("failed to get vol '%s', specifying --%s "
+                            "might help"), n, pooloptname);
     }
 
     if (pool)

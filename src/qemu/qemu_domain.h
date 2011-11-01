@@ -126,6 +126,7 @@ struct _qemuDomainObjPrivate {
     int jobs_queued;
 
     unsigned long migMaxBandwidth;
+    char *origname;
 };
 
 struct qemuDomainWatchdogEvent
@@ -273,4 +274,14 @@ int qemuDomainSnapshotDiscardAllMetadata(struct qemud_driver *driver,
 void qemuDomainRemoveInactive(struct qemud_driver *driver,
                               virDomainObjPtr vm);
 
+void qemuDomainSetFakeReboot(struct qemud_driver *driver,
+                             virDomainObjPtr vm,
+                             bool value);
+
+bool qemuDomainJobAllowed(qemuDomainObjPrivatePtr priv,
+                          enum qemuDomainJob job);
+
+int qemuDomainCheckDiskPresence(struct qemud_driver *driver,
+                                virDomainObjPtr vm,
+                                bool start_with_state);
 #endif /* __QEMU_DOMAIN_H__ */

@@ -27,24 +27,69 @@
 struct _virBuffer {
     unsigned int size;
     unsigned int use;
-    unsigned int error;
+    unsigned int error; /* errno value, or -1 for usage error */
+    int indent;
     char *content;
 };
 
 /**
  * virBufferFail
  * @buf: the buffer
+ * @error: which error occurred (errno value, or -1 for usage)
  *
- * Mark the buffer has having failed a memory allocation,
- * freeing the content and setting the error flag.
+ * Mark the buffer as failed, free the content and set the error flag.
  */
 static void
-virBufferSetError(const virBufferPtr buf)
+virBufferSetError(virBufferPtr buf, int error)
 {
     VIR_FREE(buf->content);
     buf->size = 0;
     buf->use = 0;
-    buf->error = 1;
+    buf->indent = 0;
+    buf->error = error;
+}
+
+/**
+ * virBufferAdjustIndent:
+ * @buf: the buffer
+ * @indent: adjustment to make
+ *
+ * Alter the auto-indent value by adding indent (positive to increase,
+ * negative to decrease).  Automatic indentation is performed by all
+ * additive functions when the existing buffer is empty or ends with a
+ * newline (however, note that no indentation is added after newlines
+ * embedded in an appended string).  If @indent would cause overflow,
+ * the buffer error indicator is set.
+ */
+void
+virBufferAdjustIndent(virBufferPtr buf, int indent)
+{
+    if (!buf || buf->error)
+        return;
+    if (indent > 0 ? INT_MAX - indent < buf->indent
+        : buf->indent < -indent) {
+        virBufferSetError(buf, -1);
+        return;
+    }
+    buf->indent += indent;
+}
+
+/**
+ * virBufferGetIndent:
+ * @buf: the buffer
+ * @dynamic: if false, return set value; if true, return 0 unless next
+ * append would be affected by auto-indent
+ *
+ * Return the current auto-indent value, or -1 if there has been an error.
+ */
+int
+virBufferGetIndent(const virBufferPtr buf, bool dynamic)
+{
+    if (!buf || buf->error)
+        return -1;
+    if (dynamic && buf->use && buf->content[buf->use - 1] != '\n')
+        return 0;
+    return buf->indent;
 }
 
 /**
@@ -70,7 +115,7 @@ virBufferGrow(virBufferPtr buf, unsigned int len)
     size = buf->use + len + 1000;
 
     if (VIR_REALLOC_N(buf->content, size) < 0) {
-        virBufferSetError(buf);
+        virBufferSetError(buf, errno);
         return -1;
     }
     buf->size = size;
@@ -79,64 +124,54 @@ virBufferGrow(virBufferPtr buf, unsigned int len)
 
 /**
  * virBufferAdd:
- * @buf:  the buffer to add to
- * @str:  the string
- * @len:  the number of bytes to add
+ * @buf: the buffer to append to
+ * @str: the string
+ * @len: the number of bytes to add, or -1
  *
- * Add a string range to an XML buffer. if len == -1, the length of
- * str is recomputed to the full string.
+ * Add a string range to an XML buffer. If @len == -1, the length of
+ * str is recomputed to the full string.  Auto indentation may be applied.
  *
  */
 void
-virBufferAdd(const virBufferPtr buf, const char *str, int len)
+virBufferAdd(virBufferPtr buf, const char *str, int len)
 {
     unsigned int needSize;
+    int indent;
 
-    if ((str == NULL) || (buf == NULL) || (len == 0))
+    if (!str || !buf || (len == 0 && buf->indent == 0))
         return;
 
     if (buf->error)
         return;
 
+    indent = virBufferGetIndent(buf, true);
+
     if (len < 0)
         len = strlen(str);
 
-    needSize = buf->use + len + 2;
+    needSize = buf->use + indent + len + 2;
     if (needSize > buf->size &&
         virBufferGrow(buf, needSize - buf->use) < 0)
         return;
 
-    memcpy (&buf->content[buf->use], str, len);
-    buf->use += len;
+    memset(&buf->content[buf->use], ' ', indent);
+    memcpy(&buf->content[buf->use + indent], str, len);
+    buf->use += indent + len;
     buf->content[buf->use] = '\0';
 }
 
 /**
  * virBufferAddChar:
- * @buf: the buffer to add to
+ * @buf: the buffer to append to
  * @c: the character to add
  *
- * Add a single character 'c' to a buffer.
+ * Add a single character 'c' to a buffer.  Auto indentation may be applied.
  *
  */
 void
-virBufferAddChar (virBufferPtr buf, char c)
+virBufferAddChar(virBufferPtr buf, char c)
 {
-    unsigned int needSize;
-
-    if (buf == NULL)
-        return;
-
-    if (buf->error)
-        return;
-
-    needSize = buf->use + 2;
-    if (needSize > buf->size &&
-        virBufferGrow (buf, needSize - buf->use) < 0)
-        return;
-
-    buf->content[buf->use++] = c;
-    buf->content[buf->use] = '\0';
+    virBufferAdd(buf, &c, 1);
 }
 
 /**
@@ -150,7 +185,7 @@ virBufferAddChar (virBufferPtr buf, char c)
  * Returns the buffer content or NULL in case of error.
  */
 char *
-virBufferContentAndReset(const virBufferPtr buf)
+virBufferContentAndReset(virBufferPtr buf)
 {
     char *str;
     if (buf == NULL)
@@ -172,7 +207,7 @@ virBufferContentAndReset(const virBufferPtr buf)
  *
  * Frees the buffer content and resets the buffer structure.
  */
-void virBufferFreeAndReset(const virBufferPtr buf)
+void virBufferFreeAndReset(virBufferPtr buf)
 {
     char *str = virBufferContentAndReset(buf);
 
@@ -184,15 +219,15 @@ void virBufferFreeAndReset(const virBufferPtr buf)
  * @buf: the buffer
  *
  * Check to see if the buffer is in an error state due
- * to failed memory allocation
+ * to failed memory allocation or usage error
  *
- * Return true if in error, 0 if normal
+ * Return positive errno value or -1 on usage error, 0 if normal
  */
 int
 virBufferError(const virBufferPtr buf)
 {
     if (buf == NULL)
-        return 1;
+        return -1;
 
     return buf->error;
 }
@@ -214,14 +249,14 @@ virBufferUse(const virBufferPtr buf)
 
 /**
  * virBufferAsprintf:
- * @buf:  the buffer to dump
+ * @buf: the buffer to append to
  * @format:  the format
  * @...:  the variable list of arguments
  *
- * Do a formatted print to an XML buffer.
+ * Do a formatted print to an XML buffer.  Auto indentation may be applied.
  */
 void
-virBufferAsprintf(const virBufferPtr buf, const char *format, ...)
+virBufferAsprintf(virBufferPtr buf, const char *format, ...)
 {
     va_list argptr;
     va_start(argptr, format);
@@ -231,14 +266,14 @@ virBufferAsprintf(const virBufferPtr buf, const char *format, ...)
 
 /**
  * virBufferVasprintf:
- * @buf:  the buffer to dump
+ * @buf: the buffer to append to
  * @format:  the format
  * @argptr:  the variable list of arguments
  *
- * Do a formatted print to an XML buffer.
+ * Do a formatted print to an XML buffer.  Auto indentation may be applied.
  */
 void
-virBufferVasprintf(const virBufferPtr buf, const char *format, va_list argptr)
+virBufferVasprintf(virBufferPtr buf, const char *format, va_list argptr)
 {
     int size, count, grow_size;
     va_list copy;
@@ -249,6 +284,8 @@ virBufferVasprintf(const virBufferPtr buf, const char *format, va_list argptr)
     if (buf->error)
         return;
 
+    virBufferAddLit(buf, ""); /* auto-indent */
+
     if (buf->size == 0 &&
         virBufferGrow(buf, 100) < 0)
         return;
@@ -258,7 +295,7 @@ virBufferVasprintf(const virBufferPtr buf, const char *format, va_list argptr)
     size = buf->size - buf->use;
     if ((count = vsnprintf(&buf->content[buf->use],
                            size, format, copy)) < 0) {
-        virBufferSetError(buf);
+        virBufferSetError(buf, errno);
         va_end(copy);
         return;
     }
@@ -276,7 +313,7 @@ virBufferVasprintf(const virBufferPtr buf, const char *format, va_list argptr)
         size = buf->size - buf->use;
         if ((count = vsnprintf(&buf->content[buf->use],
                                size, format, argptr)) < 0) {
-            virBufferSetError(buf);
+            virBufferSetError(buf, errno);
             return;
         }
     }
@@ -285,15 +322,17 @@ virBufferVasprintf(const virBufferPtr buf, const char *format, va_list argptr)
 
 /**
  * virBufferEscapeString:
- * @buf:  the buffer to dump
+ * @buf: the buffer to append to
  * @format: a printf like format string but with only one %s parameter
- * @str:  the string argument which need to be escaped
+ * @str: the string argument which needs to be escaped
  *
- * Do a formatted print with a single string to an XML buffer. The string
- * is escaped to avoid generating a not well-formed XML instance.
+ * Do a formatted print with a single string to an XML buffer. The
+ * string is escaped for use in XML.  If @str is NULL, nothing is
+ * added (not even the rest of @format).  Auto indentation may be
+ * applied.
  */
 void
-virBufferEscapeString(const virBufferPtr buf, const char *format, const char *str)
+virBufferEscapeString(virBufferPtr buf, const char *format, const char *str)
 {
     int len;
     char *escaped, *out;
@@ -313,7 +352,7 @@ virBufferEscapeString(const virBufferPtr buf, const char *format, const char *st
 
     if (xalloc_oversized(6, len) ||
         VIR_ALLOC_N(escaped, 6 * len + 1) < 0) {
-        virBufferSetError(buf);
+        virBufferSetError(buf, errno);
         return;
     }
 
@@ -370,18 +409,37 @@ virBufferEscapeString(const virBufferPtr buf, const char *format, const char *st
 
 /**
  * virBufferEscapeSexpr:
- * @buf:  the buffer to dump
+ * @buf: the buffer to append to
  * @format: a printf like format string but with only one %s parameter
- * @str:  the string argument which need to be escaped
+ * @str: the string argument which needs to be escaped
  *
- * Do a formatted print with a single string to an sexpr buffer. The string
- * is escaped to avoid generating a sexpr that xen will choke on. This
- * doesn't fully escape the sexpr, just enough for our code to work.
+ * Do a formatted print with a single string to an sexpr buffer. The
+ * string is escaped to avoid generating a sexpr that xen will choke
+ * on. This doesn't fully escape the sexpr, just enough for our code
+ * to work.  Auto indentation may be applied.
  */
 void
-virBufferEscapeSexpr(const virBufferPtr buf,
+virBufferEscapeSexpr(virBufferPtr buf,
                      const char *format,
                      const char *str)
+{
+    virBufferEscape(buf, "\\'", format, str);
+}
+
+/**
+ * virBufferEscape:
+ * @buf: the buffer to append to
+ * @toescape: NUL-terminated list of characters to escape
+ * @format: a printf like format string but with only one %s parameter
+ * @str: the string argument which needs to be escaped
+ *
+ * Do a formatted print with a single string to a buffer.  Any characters
+ * in the provided list are escaped with a preceeding \.  Auto indentation
+ * may be applied.
+ */
+void
+virBufferEscape(virBufferPtr buf, const char *toescape,
+                const char *format, const char *str)
 {
     int len;
     char *escaped, *out;
@@ -394,28 +452,23 @@ virBufferEscapeSexpr(const virBufferPtr buf,
         return;
 
     len = strlen(str);
-    if (strcspn(str, "\\'") == len) {
+    if (strcspn(str, toescape) == len) {
         virBufferAsprintf(buf, format, str);
         return;
     }
 
     if (xalloc_oversized(2, len) ||
         VIR_ALLOC_N(escaped, 2 * len + 1) < 0) {
-        virBufferSetError(buf);
+        virBufferSetError(buf, errno);
         return;
     }
 
     cur = str;
     out = escaped;
     while (*cur != 0) {
-        switch (*cur) {
-        case '\\':
-        case '\'':
+        if (strchr(toescape, *cur))
             *out++ = '\\';
-            /* fallthrough */
-        default:
-            *out++ = *cur;
-        }
+        *out++ = *cur;
         cur++;
     }
     *out = 0;
@@ -426,15 +479,15 @@ virBufferEscapeSexpr(const virBufferPtr buf,
 
 /**
  * virBufferURIEncodeString:
- * @buf:  the buffer to append to
+ * @buf: the buffer to append to
  * @str:  the string argument which will be URI-encoded
  *
  * Append the string to the buffer.  The string will be URI-encoded
  * during the append (ie any non alpha-numeric characters are replaced
- * with '%xx' hex sequences).
+ * with '%xx' hex sequences).  Auto indentation may be applied.
  */
 void
-virBufferURIEncodeString (virBufferPtr buf, const char *str)
+virBufferURIEncodeString(virBufferPtr buf, const char *str)
 {
     int grow_size = 0;
     const char *p;
@@ -447,6 +500,8 @@ virBufferURIEncodeString (virBufferPtr buf, const char *str)
     if (buf->error)
         return;
 
+    virBufferAddLit(buf, ""); /* auto-indent */
+
     for (p = str; *p; ++p) {
         if (c_isalnum(*p))
             grow_size++;
@@ -454,7 +509,7 @@ virBufferURIEncodeString (virBufferPtr buf, const char *str)
             grow_size += 3; /* %ab */
     }
 
-    if (virBufferGrow (buf, grow_size) < 0)
+    if (virBufferGrow(buf, grow_size) < 0)
         return;
 
     for (p = str; *p; ++p) {
@@ -472,11 +527,71 @@ virBufferURIEncodeString (virBufferPtr buf, const char *str)
 }
 
 /**
+ * virBufferEscapeShell:
+ * @buf: the buffer to append to
+ * @str: an unquoted string
+ *
+ * Quotes a string so that the shell (/bin/sh) will interpret the
+ * quoted string to mean str.  Auto indentation may be applied.
+ */
+void
+virBufferEscapeShell(virBufferPtr buf, const char *str)
+{
+    int len;
+    char *escaped, *out;
+    const char *cur;
+
+    if ((buf == NULL) || (str == NULL))
+        return;
+
+    if (buf->error)
+        return;
+
+    /* Only quote if str includes shell metacharacters. */
+    if (*str && !strpbrk(str, "\r\t\n !\"#$&'()*;<>?[\\]^`{|}~")) {
+        virBufferAdd(buf, str, -1);
+        return;
+    }
+
+    if (*str) {
+        len = strlen(str);
+        if (xalloc_oversized(4, len) ||
+            VIR_ALLOC_N(escaped, 4 * len + 3) < 0) {
+            virBufferSetError(buf, errno);
+            return;
+        }
+    } else {
+        virBufferAddLit(buf, "''");
+        return;
+    }
+
+    cur = str;
+    out = escaped;
+
+    *out++ = '\'';
+    while (*cur != 0) {
+        if (*cur == '\'') {
+            *out++ = '\'';
+            /* Replace literal ' with a close ', a \', and a open ' */
+            *out++ = '\\';
+            *out++ = '\'';
+        }
+        *out++ = *cur++;
+    }
+    *out++ = '\'';
+    *out = 0;
+
+    virBufferAdd(buf, escaped, -1);
+    VIR_FREE(escaped);
+}
+
+/**
  * virBufferStrcat:
- * @buf:  the buffer to dump
+ * @buf: the buffer to append to
  * @...:  the variable list of strings, the last argument must be NULL
  *
- * Concatenate strings to an XML buffer.
+ * Concatenate strings to an XML buffer.  Auto indentation may be applied
+ * after each string argument.
  */
 void
 virBufferStrcat(virBufferPtr buf, ...)
@@ -488,18 +603,7 @@ virBufferStrcat(virBufferPtr buf, ...)
         return;
 
     va_start(ap, buf);
-
-    while ((str = va_arg(ap, char *)) != NULL) {
-        unsigned int len = strlen(str);
-        unsigned int needSize = buf->use + len + 2;
-
-        if (needSize > buf->size) {
-            if (virBufferGrow(buf, needSize - buf->use) < 0)
-                break;
-        }
-        memcpy(&buf->content[buf->use], str, len);
-        buf->use += len;
-        buf->content[buf->use] = 0;
-    }
+    while ((str = va_arg(ap, char *)) != NULL)
+        virBufferAdd(buf, str, -1);
     va_end(ap);
 }

@@ -4,25 +4,25 @@
 static int qemuDispatchDomainAttach(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     qemu_domain_attach_args *args,
     qemu_domain_attach_ret *ret);
 static int qemuDispatchDomainAttachHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return qemuDispatchDomainAttach(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return qemuDispatchDomainAttach(server, client, msg, rerr, args, ret);
 }
 static int qemuDispatchDomainAttach(
     virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr ATTRIBUTE_UNUSED,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
     virNetMessageErrorPtr rerr,
     qemu_domain_attach_args *args,
     qemu_domain_attach_ret *ret)
@@ -56,20 +56,20 @@ cleanup:
 static int qemuDispatchMonitorCommand(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     qemu_monitor_command_args *args,
     qemu_monitor_command_ret *ret);
 static int qemuDispatchMonitorCommandHelper(
     virNetServerPtr server,
     virNetServerClientPtr client,
-    virNetMessageHeaderPtr hdr,
+    virNetMessagePtr msg,
     virNetMessageErrorPtr rerr,
     void *args,
     void *ret)
 {
-  VIR_DEBUG("server=%p client=%p hdr=%p rerr=%p args=%p ret=%p", server, client, hdr, rerr, args, ret);
-  return qemuDispatchMonitorCommand(server, client, hdr, rerr, args, ret);
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return qemuDispatchMonitorCommand(server, client, msg, rerr, args, ret);
 }
 /* qemuDispatchMonitorCommand body has to be implemented manually */
 

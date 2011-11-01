@@ -328,7 +328,9 @@ virNetServerClientPtr virNetServerClientNew(virNetSocketPtr sock,
     client->rx->bufferLength = VIR_NET_MESSAGE_LEN_MAX;
     client->nrequests = 1;
 
-    VIR_DEBUG("client=%p refs=%d", client, client->refs);
+    PROBE(RPC_SERVER_CLIENT_NEW,
+          "client=%p refs=%d sock=%p",
+          client, client->refs, client->sock);
 
     return client;
 
@@ -343,7 +345,9 @@ void virNetServerClientRef(virNetServerClientPtr client)
 {
     virNetServerClientLock(client);
     client->refs++;
-    VIR_DEBUG("client=%p refs=%d", client, client->refs);
+    PROBE(RPC_SERVER_CLIENT_REF,
+          "client=%p refs=%d",
+          client, client->refs);
     virNetServerClientUnlock(client);
 }
 
@@ -535,7 +539,9 @@ void virNetServerClientFree(virNetServerClientPtr client)
         return;
 
     virNetServerClientLock(client);
-    VIR_DEBUG("client=%p refs=%d", client, client->refs);
+    PROBE(RPC_SERVER_CLIENT_FREE,
+          "client=%p refs=%d",
+          client, client->refs);
 
     client->refs--;
     if (client->refs > 0) {
@@ -764,6 +770,7 @@ readmore:
         /* Grab the completed message */
         virNetMessagePtr msg = virNetMessageQueueServe(&client->rx);
         virNetServerClientFilterPtr filter;
+        size_t i;
 
         /* Decode the header so we can use it for routing decisions */
         if (virNetMessageDecodeHeader(msg) < 0) {
@@ -771,6 +778,26 @@ readmore:
             client->wantClose = true;
             return;
         }
+
+        if (msg->header.type == VIR_NET_CALL_WITH_FDS &&
+            virNetMessageDecodeNumFDs(msg) < 0) {
+            virNetMessageFree(msg);
+            client->wantClose = true;
+            return;
+        }
+        for (i = 0 ; i < msg->nfds ; i++) {
+            if ((msg->fds[i] = virNetSocketRecvFD(client->sock)) < 0) {
+                virNetMessageFree(msg);
+                client->wantClose = true;
+                return;
+            }
+        }
+
+        PROBE(RPC_SERVER_CLIENT_MSG_RX,
+              "client=%p len=%zu prog=%u vers=%u proc=%u type=%u status=%u serial=%u",
+              client, msg->bufferLength,
+              msg->header.prog, msg->header.vers, msg->header.proc,
+              msg->header.type, msg->header.status, msg->header.serial);
 
         /* Maybe send off for queue against a filter */
         filter = client->filters;
@@ -871,6 +898,15 @@ virNetServerClientDispatchWrite(virNetServerClientPtr client)
 
         if (client->tx->bufferOffset == client->tx->bufferLength) {
             virNetMessagePtr msg;
+            size_t i;
+
+            for (i = 0 ; i < client->tx->nfds ; i++) {
+                if (virNetSocketSendFD(client->sock, client->tx->fds[i]) < 0) {
+                    client->wantClose = true;
+                    return;
+                }
+            }
+
 #if HAVE_SASL
             /* Completed this 'tx' operation, so now read for all
              * future rx/tx to be under a SASL SSF layer
@@ -979,6 +1015,11 @@ int virNetServerClientSendMessage(virNetServerClientPtr client,
     virNetServerClientLock(client);
 
     if (client->sock && !client->wantClose) {
+        PROBE(RPC_SERVER_CLIENT_MSG_TX_QUEUE,
+              "client=%p len=%zu prog=%u vers=%u proc=%u type=%u status=%u serial=%u",
+              client, msg->bufferLength,
+              msg->header.prog, msg->header.vers, msg->header.proc,
+              msg->header.type, msg->header.status, msg->header.serial);
         virNetMessageQueuePush(&client->tx, msg);
 
         virNetServerClientUpdateEvent(client);

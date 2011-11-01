@@ -6,7 +6,7 @@
 INCLUDES = \
 	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
 	-I$(top_srcdir)/include -I$(top_builddir)/include \
-	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/src -I../src \
 	-I$(top_srcdir)/src/util \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/rpc \
@@ -38,6 +38,7 @@ EXTRA_DIST =						\
 	libvirtd.policy-1				\
 	libvirtd.sasl					\
 	libvirtd.sysconf				\
+	libvirtd.sysctl					\
 	libvirtd.aug                                    \
 	libvirtd.logrotate.in                           \
 	libvirtd.qemu.logrotate.in                      \
@@ -47,7 +48,6 @@ EXTRA_DIST =						\
 	THREADS.txt					\
 	libvirtd.pod.in					\
 	libvirtd.8.in					\
-	libvirtd.stp					\
 	$(DAEMON_SOURCES)
 
 BUILT_SOURCES =
@@ -109,9 +109,11 @@ libvirtd_LDADD =					\
 	$(SASL_LIBS)					\
 	$(POLKIT_LIBS)
 
+if WITH_DTRACE
+libvirtd_LDADD += ../src/probes.o
+endif
+
 libvirtd_LDADD += \
-	../src/libvirt-net-rpc-server.la \
-	../src/libvirt-net-rpc.la \
 	../src/libvirt-qemu.la
 
 if ! WITH_DRIVER_MODULES
@@ -166,24 +168,6 @@ else
 policydir = $(datadir)/polkit-1/actions
 policyfile = libvirtd.policy-1
 endif
-endif
-
-if WITH_DTRACE
-libvirtd_LDADD += probes.o
-nodist_libvirtd_SOURCES = probes.h
-
-BUILT_SOURCES += probes.h
-
-tapsetdir = $(datadir)/systemtap/tapset
-tapset_DATA = libvirtd.stp
-
-probes.h: probes.d
-	$(AM_V_GEN)$(DTRACE) -o $@ -h -s $<
-
-probes.o: probes.d
-	$(AM_V_GEN)$(DTRACE) -o $@ -G -s $<
-
-CLEANFILES += probes.h probes.o
 endif
 
 install-data-local: install-init install-data-sasl install-data-polkit \
@@ -252,16 +236,20 @@ install-logrotate: $(LOGROTATE_CONFS)
 
 if LIBVIRT_INIT_SCRIPT_RED_HAT
 install-init: libvirtd.init
-	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d
+	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d \
+	  $(DESTDIR)$(sysconfdir)/sysconfig \
+	  $(DESTDIR)$(sysconfdir)/sysctl.d
 	$(INSTALL_SCRIPT) libvirtd.init \
 	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd
-	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
 	$(INSTALL_DATA) $(srcdir)/libvirtd.sysconf \
 	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
+	$(INSTALL_DATA) $(srcdir)/libvirtd.sysctl \
+	  $(DESTDIR)$(sysconfdir)/sysctl.d/libvirtd
 
 uninstall-init:
 	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd \
-		$(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
+		$(DESTDIR)$(sysconfdir)/sysconfig/libvirtd \
+		$(DESTDIR)$(sysconfdir)/sysctl.d/libvirtd
 
 BUILT_SOURCES += libvirtd.init
 
@@ -295,9 +283,6 @@ else # WITH_LIBVIRTD
 install-data-local: install-data-sasl
 uninstall-local:: uninstall-data-sasl
 endif # WITH_LIBVIRTD
-
-# This is needed for 'make dist' too, so can't wrap in WITH_LIBVIRTD.
-EXTRA_DIST += probes.d libvirtd.stp
 
 POD2MAN = pod2man -c "Virtualization Support" \
 			-r "$(PACKAGE)-$(VERSION)" -s 8

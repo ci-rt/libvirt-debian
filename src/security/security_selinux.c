@@ -419,24 +419,27 @@ SELinuxSetFilecon(const char *path, char *tcon)
          * The user hopefully set one of the necessary SELinux
          * virt_use_{nfs,usb,pci}  boolean tunables to allow it...
          */
-        if (setfilecon_errno != EOPNOTSUPP) {
-            const char *errmsg;
-            if ((virStorageFileIsSharedFSType(path,
-                                             VIR_STORAGE_FILE_SHFS_NFS) == 1) &&
-                security_get_boolean_active("virt_use_nfs") != 1) {
-                errmsg = _("unable to set security context '%s' on '%s'. "
-                           "Consider setting virt_use_nfs");
-            } else {
-                errmsg = _("unable to set security context '%s' on '%s'");
-            }
+        if (setfilecon_errno != EOPNOTSUPP && setfilecon_errno != ENOTSUP) {
             virReportSystemError(setfilecon_errno,
-                                 errmsg,
+                                 _("unable to set security context '%s' on '%s'"),
                                  tcon, path);
             if (security_getenforce() == 1)
                 return -1;
         } else {
-            VIR_INFO("Setting security context '%s' on '%s' not supported",
-                     tcon, path);
+            const char *msg;
+            if ((virStorageFileIsSharedFSType(path,
+                                              VIR_STORAGE_FILE_SHFS_NFS) == 1) &&
+                security_get_boolean_active("virt_use_nfs") != 1) {
+                msg = _("Setting security context '%s' on '%s' not supported. "
+                        "Consider setting virt_use_nfs");
+               if (security_getenforce() == 1)
+                   VIR_WARN(msg, tcon, path);
+               else
+                   VIR_INFO(msg, tcon, path);
+            } else {
+                VIR_INFO("Setting security context '%s' on '%s' not supported",
+                         tcon, path);
+            }
         }
     }
     return 0;
@@ -803,18 +806,18 @@ SELinuxSetSecurityChardevLabel(virDomainObjPtr vm,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_PIPE:
-        if (virFileExists(dev->data.file.path)) {
-            if (SELinuxSetFilecon(dev->data.file.path, secdef->imagelabel) < 0)
-                goto done;
-        } else {
-            if ((virAsprintf(&in, "%s.in", dev->data.file.path) < 0) ||
-                (virAsprintf(&out, "%s.out", dev->data.file.path) < 0)) {
-                virReportOOMError();
+        if ((virAsprintf(&in, "%s.in", dev->data.file.path) < 0) ||
+            (virAsprintf(&out, "%s.out", dev->data.file.path) < 0)) {
+            virReportOOMError();
+            goto done;
+        }
+        if (virFileExists(in) && virFileExists(out)) {
+            if ((SELinuxSetFilecon(in, secdef->imagelabel) < 0) ||
+                (SELinuxSetFilecon(out, secdef->imagelabel) < 0)) {
                 goto done;
             }
-            if ((SELinuxSetFilecon(in, secdef->imagelabel) < 0) ||
-                (SELinuxSetFilecon(out, secdef->imagelabel) < 0))
-                goto done;
+        } else if (SELinuxSetFilecon(dev->data.file.path, secdef->imagelabel) < 0) {
+            goto done;
         }
         ret = 0;
         break;
@@ -855,9 +858,14 @@ SELinuxRestoreSecurityChardevLabel(virDomainObjPtr vm,
             virReportOOMError();
             goto done;
         }
-        if ((SELinuxRestoreSecurityFileLabel(out) < 0) ||
-            (SELinuxRestoreSecurityFileLabel(in) < 0))
+        if (virFileExists(in) && virFileExists(out)) {
+            if ((SELinuxRestoreSecurityFileLabel(out) < 0) ||
+                (SELinuxRestoreSecurityFileLabel(in) < 0)) {
+                goto done;
+            }
+        } else if (SELinuxRestoreSecurityFileLabel(dev->data.file.path) < 0) {
             goto done;
+        }
         ret = 0;
         break;
 

@@ -671,6 +671,67 @@ virFileIsExecutable(const char *file)
 }
 
 #ifndef WIN32
+/* Check that a file is accessible under certain
+ * user & gid.
+ * @mode can be F_OK, or a bitwise combination of R_OK, W_OK, and X_OK.
+ * see 'man access' for more details.
+ * Returns 0 on success, -1 on fail with errno set.
+ */
+int
+virFileAccessibleAs(const char *path, int mode,
+                    uid_t uid, gid_t gid)
+{
+    pid_t pid = 0;
+    int status, ret = 0;
+    int forkRet = 0;
+
+    if (uid == getuid() &&
+        gid == getgid())
+        return access(path, mode);
+
+    forkRet = virFork(&pid);
+
+    if (pid < 0) {
+        return -1;
+    }
+
+    if (pid) { /* parent */
+        if (virPidWait(pid, &status) < 0) {
+            /* virPidWait() already
+             * reported error */
+                return -1;
+        }
+
+        errno = status;
+        return -1;
+    }
+
+    /* child.
+     * Return positive value here. Parent
+     * will change it to negative one. */
+
+    if (forkRet < 0) {
+        ret = errno;
+        goto childerror;
+    }
+
+    if (virSetUIDGID(uid, gid) < 0) {
+        ret = errno;
+        goto childerror;
+    }
+
+    if (access(path, mode) < 0)
+        ret = errno;
+
+childerror:
+    if ((ret & 0xFF) != ret) {
+        VIR_WARN("unable to pass desired return value %d", ret);
+        ret = 0xFF;
+    }
+
+    _exit(ret);
+}
+
 /* return -errno on failure, or 0 on success */
 static int
 virFileOpenAsNoFork(const char *path, int openflags, mode_t mode,
@@ -993,6 +1054,18 @@ childerror:
 
 #else /* WIN32 */
 
+int
+virFileAccessibleAs(const char *path,
+                    int mode,
+                    uid_t uid ATTRIBUTE_UNUSED,
+                    gid_t gid ATTRIBUTE_UNUSED)
+{
+
+    VIR_WARN("Ignoring uid/gid due to WIN32");
+
+    return access(path, mode);
+}
+
 /* return -errno on failure, or 0 on success */
 int virFileOpenAs(const char *path ATTRIBUTE_UNUSED,
                   int openflags ATTRIBUTE_UNUSED,
@@ -1099,26 +1172,14 @@ virFileBuildPath(const char *dir, const char *name, const char *ext)
     return path;
 }
 
-
+#ifndef WIN32
 int virFileOpenTty(int *ttymaster,
                    char **ttyName,
                    int rawmode)
 {
-    return virFileOpenTtyAt("/dev/ptmx",
-                            ttymaster,
-                            ttyName,
-                            rawmode);
-}
-
-#ifdef __linux__
-int virFileOpenTtyAt(const char *ptmx,
-                     int *ttymaster,
-                     char **ttyName,
-                     int rawmode)
-{
     int rc = -1;
 
-    if ((*ttymaster = open(ptmx, O_RDWR|O_NOCTTY|O_NONBLOCK)) < 0)
+    if ((*ttymaster = posix_openpt(O_RDWR|O_NOCTTY|O_NONBLOCK)) < 0)
         goto cleanup;
 
     if (unlockpt(*ttymaster) < 0)
@@ -1157,18 +1218,18 @@ cleanup:
         VIR_FORCE_CLOSE(*ttymaster);
 
     return rc;
-
 }
-#else
-int virFileOpenTtyAt(const char *ptmx ATTRIBUTE_UNUSED,
-                     int *ttymaster ATTRIBUTE_UNUSED,
-                     char **ttyName ATTRIBUTE_UNUSED,
-                     int rawmode ATTRIBUTE_UNUSED)
+#else /* WIN32 */
+int virFileOpenTty(int *ttymaster ATTRIBUTE_UNUSED,
+                   char **ttyName ATTRIBUTE_UNUSED,
+                   int rawmode ATTRIBUTE_UNUSED)
 {
+    /* mingw completely lacks pseudo-terminals, and the gnulib
+     * replacements are not (yet) license compatible.  */
+    errno = ENOSYS;
     return -1;
 }
-#endif
-
+#endif /* WIN32 */
 
 /*
  * Creates an absolute path for a potentially relative path.
@@ -1858,10 +1919,10 @@ char *virIndexToDiskName(int idx, const char *prefix)
  *     try to resolve this to a fully-qualified name.  Therefore we pass it
  *     to getaddrinfo().  There are two possible responses:
  *     a)  getaddrinfo() resolves to a FQDN - return the FQDN
- *     b)  getaddrinfo() resolves to localhost - in this case, the data we got
- *         from gethostname() is actually more useful than what we got from
- *         getaddrinfo().  Return the value from gethostname() and hope for
- *         the best.
+ *     b)  getaddrinfo() fails or resolves to localhost - in this case, the
+ *         data we got from gethostname() is actually more useful than what
+ *         we got from getaddrinfo().  Return the value from gethostname()
+ *         and hope for the best.
  */
 char *virGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
@@ -1897,10 +1958,10 @@ char *virGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
     hints.ai_family = AF_UNSPEC;
     r = getaddrinfo(hostname, NULL, &hints, &info);
     if (r != 0) {
-        virUtilError(VIR_ERR_INTERNAL_ERROR,
-                     _("getaddrinfo failed for '%s': %s"),
-                     hostname, gai_strerror(r));
-        return NULL;
+        VIR_WARN("getaddrinfo failed for '%s': %s",
+                 hostname, gai_strerror(r));
+        result = strdup(hostname);
+        goto check_and_return;
     }
 
     /* Tell static analyzers about getaddrinfo semantics.  */
@@ -2485,8 +2546,10 @@ OVERWRITTEN AND LOST. Changes to this xml configuration should be made using:\n\
 or other application using the libvirt API.\n\
 -->\n\n";
 
-    if (fd < 0 || !name || !cmd)
+    if (fd < 0 || !name || !cmd) {
+        errno = EINVAL;
         return -1;
+    }
 
     len = strlen(prologue);
     if (safewrite(fd, prologue, len) != len)

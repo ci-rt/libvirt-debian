@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # stdint_h.m4 serial 6
 dnl Copyright (C) 1997-2004, 2006 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation

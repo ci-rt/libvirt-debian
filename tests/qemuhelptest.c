@@ -56,6 +56,11 @@ static int testHelpStrParsing(const void *data)
                              &version, &is_kvm, &kvm_version) == -1)
         goto cleanup;
 
+# ifndef HAVE_YAJL
+    if (qemuCapsGet(info->flags, QEMU_CAPS_MONITOR_JSON))
+        qemuCapsSet(flags, QEMU_CAPS_MONITOR_JSON);
+# endif
+
     if (qemuCapsGet(info->flags, QEMU_CAPS_DEVICE)) {
         VIR_FREE(path);
         VIR_FREE(help);
@@ -165,6 +170,7 @@ mymain(void)
             QEMU_CAPS_MIGRATE_QEMU_TCP,
             QEMU_CAPS_MIGRATE_QEMU_EXEC,
             QEMU_CAPS_DRIVE_CACHE_V2,
+            QEMU_CAPS_DRIVE_CACHE_UNSAFE,
             QEMU_CAPS_KVM,
             QEMU_CAPS_DRIVE_FORMAT,
             QEMU_CAPS_DRIVE_SERIAL,
@@ -313,7 +319,8 @@ mymain(void)
             QEMU_CAPS_VGA_NONE,
             QEMU_CAPS_MIGRATE_QEMU_FD,
             QEMU_CAPS_DRIVE_AIO,
-            QEMU_CAPS_NO_SHUTDOWN);
+            QEMU_CAPS_NO_SHUTDOWN,
+            QEMU_CAPS_PCI_ROMBAR);
     DO_TEST("qemu-kvm-0.12.1.2-rhel60", 12001, 1, 0,
             QEMU_CAPS_VNC_COLON,
             QEMU_CAPS_NO_REBOOT,
@@ -358,7 +365,8 @@ mymain(void)
             QEMU_CAPS_PIIX3_USB_UHCI,
             QEMU_CAPS_PIIX4_USB_UHCI,
             QEMU_CAPS_USB_HUB,
-            QEMU_CAPS_NO_SHUTDOWN);
+            QEMU_CAPS_NO_SHUTDOWN,
+            QEMU_CAPS_PCI_ROMBAR);
     DO_TEST("qemu-kvm-0.12.3", 12003, 1, 0,
             QEMU_CAPS_VNC_COLON,
             QEMU_CAPS_NO_REBOOT,
@@ -396,7 +404,8 @@ mymain(void)
             QEMU_CAPS_VGA_NONE,
             QEMU_CAPS_MIGRATE_QEMU_FD,
             QEMU_CAPS_DRIVE_AIO,
-            QEMU_CAPS_NO_SHUTDOWN);
+            QEMU_CAPS_NO_SHUTDOWN,
+            QEMU_CAPS_PCI_ROMBAR);
     DO_TEST("qemu-kvm-0.13.0", 13000, 1, 0,
             QEMU_CAPS_VNC_COLON,
             QEMU_CAPS_NO_REBOOT,
@@ -408,6 +417,7 @@ mymain(void)
             QEMU_CAPS_MIGRATE_QEMU_TCP,
             QEMU_CAPS_MIGRATE_QEMU_EXEC,
             QEMU_CAPS_DRIVE_CACHE_V2,
+            QEMU_CAPS_DRIVE_CACHE_UNSAFE,
             QEMU_CAPS_KVM,
             QEMU_CAPS_DRIVE_FORMAT,
             QEMU_CAPS_DRIVE_SERIAL,
@@ -449,7 +459,8 @@ mymain(void)
             QEMU_CAPS_VT82C686B_USB_UHCI,
             QEMU_CAPS_PCI_OHCI,
             QEMU_CAPS_USB_HUB,
-            QEMU_CAPS_NO_SHUTDOWN);
+            QEMU_CAPS_NO_SHUTDOWN,
+            QEMU_CAPS_PCI_ROMBAR);
     DO_TEST("qemu-kvm-0.12.1.2-rhel61", 12001, 1, 0,
             QEMU_CAPS_VNC_COLON,
             QEMU_CAPS_NO_REBOOT,
@@ -460,6 +471,7 @@ mymain(void)
             QEMU_CAPS_MIGRATE_QEMU_TCP,
             QEMU_CAPS_MIGRATE_QEMU_EXEC,
             QEMU_CAPS_DRIVE_CACHE_V2,
+            QEMU_CAPS_DRIVE_CACHE_UNSAFE,
             QEMU_CAPS_KVM,
             QEMU_CAPS_DRIVE_FORMAT,
             QEMU_CAPS_DRIVE_SERIAL,
@@ -498,7 +510,67 @@ mymain(void)
             QEMU_CAPS_PIIX3_USB_UHCI,
             QEMU_CAPS_PIIX4_USB_UHCI,
             QEMU_CAPS_USB_HUB,
-            QEMU_CAPS_NO_SHUTDOWN);
+            QEMU_CAPS_NO_SHUTDOWN,
+            QEMU_CAPS_PCI_ROMBAR);
+    DO_TEST("qemu-kvm-0.12.1.2-rhel62-beta", 12001, 1, 0,
+            QEMU_CAPS_VNC_COLON,
+            QEMU_CAPS_NO_REBOOT,
+            QEMU_CAPS_DRIVE,
+            QEMU_CAPS_NAME,
+            QEMU_CAPS_UUID,
+            QEMU_CAPS_VNET_HDR,
+            QEMU_CAPS_MIGRATE_QEMU_TCP,
+            QEMU_CAPS_MIGRATE_QEMU_EXEC,
+            QEMU_CAPS_DRIVE_CACHE_V2,
+            QEMU_CAPS_DRIVE_CACHE_UNSAFE,
+            QEMU_CAPS_KVM,
+            QEMU_CAPS_DRIVE_FORMAT,
+            QEMU_CAPS_DRIVE_SERIAL,
+            QEMU_CAPS_DRIVE_READONLY,
+            QEMU_CAPS_VGA,
+            QEMU_CAPS_0_10,
+            QEMU_CAPS_PCIDEVICE,
+            QEMU_CAPS_MEM_PATH,
+            QEMU_CAPS_MIGRATE_QEMU_UNIX,
+            QEMU_CAPS_CHARDEV,
+            QEMU_CAPS_ENABLE_KVM,
+            QEMU_CAPS_BALLOON,
+            QEMU_CAPS_DEVICE,
+            QEMU_CAPS_SMP_TOPOLOGY,
+            QEMU_CAPS_RTC,
+            QEMU_CAPS_VHOST_NET,
+            QEMU_CAPS_NO_KVM_PIT,
+            QEMU_CAPS_TDF,
+            QEMU_CAPS_PCI_CONFIGFD,
+            QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_BOOT_MENU,
+            QEMU_CAPS_NAME_PROCESS,
+            QEMU_CAPS_SMBIOS_TYPE,
+            QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_SPICE,
+            QEMU_CAPS_VGA_NONE,
+            QEMU_CAPS_MIGRATE_QEMU_FD,
+            QEMU_CAPS_BOOTINDEX,
+            QEMU_CAPS_HDA_DUPLEX,
+            QEMU_CAPS_DRIVE_AIO,
+            QEMU_CAPS_PCI_BOOTINDEX,
+            QEMU_CAPS_CCID_PASSTHRU,
+            QEMU_CAPS_CHARDEV_SPICEVMC,
+            QEMU_CAPS_DEVICE_QXL_VGA,
+            QEMU_CAPS_PCI_MULTIFUNCTION,
+            QEMU_CAPS_VIRTIO_IOEVENTFD,
+            QEMU_CAPS_SGA,
+            QEMU_CAPS_VIRTIO_BLK_EVENT_IDX,
+            QEMU_CAPS_VIRTIO_NET_EVENT_IDX,
+            QEMU_CAPS_VIRTIO_TX_ALG,
+            QEMU_CAPS_VIRTIO_IOEVENTFD,
+            QEMU_CAPS_PIIX3_USB_UHCI,
+            QEMU_CAPS_PIIX4_USB_UHCI,
+            QEMU_CAPS_USB_EHCI,
+            QEMU_CAPS_ICH9_USB_EHCI1,
+            QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_NO_SHUTDOWN,
+            QEMU_CAPS_PCI_ROMBAR);
 
     return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

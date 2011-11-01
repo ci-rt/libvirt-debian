@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# signalblocking.m4 serial 12
+# signalblocking.m4 serial 13
 dnl Copyright (C) 2001-2002, 2006-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -24,4 +24,6 @@ AC_DEFUN([gl_SIGNALBLOCKING],
 ])
 
 # Prerequisites of lib/sigprocmask.c.
-AC_DEFUN([gl_PREREQ_SIGPROCMASK], [:])
+AC_DEFUN([gl_PREREQ_SIGPROCMASK], [
+  AC_REQUIRE([AC_C_INLINE])
+])

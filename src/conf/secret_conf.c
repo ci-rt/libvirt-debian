@@ -35,7 +35,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_SECRET
 
-VIR_ENUM_IMPL(virSecretUsageType, VIR_SECRET_USAGE_TYPE_VOLUME + 1, "none", "volume")
+VIR_ENUM_IMPL(virSecretUsageType, VIR_SECRET_USAGE_TYPE_LAST,
+              "none", "volume", "ceph")
 
 void
 virSecretDefFree(virSecretDefPtr def)
@@ -50,6 +51,10 @@ virSecretDefFree(virSecretDefPtr def)
 
     case VIR_SECRET_USAGE_TYPE_VOLUME:
         VIR_FREE(def->usage.volume);
+        break;
+
+    case VIR_SECRET_USAGE_TYPE_CEPH:
+        VIR_FREE(def->usage.ceph);
         break;
 
     default:
@@ -90,6 +95,15 @@ virSecretDefParseUsage(xmlXPathContextPtr ctxt,
         if (!def->usage.volume) {
             virSecretReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                  _("volume usage specified, but volume path is missing"));
+            return -1;
+        }
+        break;
+
+    case VIR_SECRET_USAGE_TYPE_CEPH:
+        def->usage.ceph = virXPathString("string(./usage/name)", ctxt);
+        if (!def->usage.ceph) {
+            virSecretReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                 _("Ceph usage specified, but name is missing"));
             return -1;
         }
         break;
@@ -237,6 +251,13 @@ virSecretDefFormatUsage(virBufferPtr buf,
         if (def->usage.volume != NULL)
             virBufferEscapeString(buf, "    <volume>%s</volume>\n",
                                   def->usage.volume);
+        break;
+
+    case VIR_SECRET_USAGE_TYPE_CEPH:
+        if (def->usage.ceph != NULL) {
+            virBufferEscapeString(buf, "    <name>%s</name>\n",
+                                  def->usage.ceph);
+        }
         break;
 
     default:

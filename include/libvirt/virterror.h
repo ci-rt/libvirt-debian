@@ -66,7 +66,8 @@ typedef enum {
     VIR_FROM_SECURITY = 24,	/* Error from security framework */
     VIR_FROM_VBOX = 25,		/* Error from VirtualBox driver */
     VIR_FROM_INTERFACE = 26,	/* Error when operating on an interface */
-    VIR_FROM_ONE = 27,		/* The OpenNebula driver no longer exists. Retained for ABI/API compat only */
+    VIR_FROM_ONE = 27,		/* The OpenNebula driver no longer exists.
+                                   Retained for ABI/API compat only */
     VIR_FROM_ESX = 28,		/* Error from ESX driver */
     VIR_FROM_PHYP = 29,		/* Error from IBM power hypervisor */
     VIR_FROM_SECRET = 30,	/* Error from secret storage */
@@ -79,10 +80,10 @@ typedef enum {
     VIR_FROM_SYSINFO = 37,	/* Error from sysinfo/SMBIOS */
     VIR_FROM_STREAMS = 38,	/* Error from I/O streams */
     VIR_FROM_VMWARE = 39,	/* Error from VMware driver */
-    VIR_FROM_EVENT = 40,       /* Error from event loop impl */
+    VIR_FROM_EVENT = 40,	/* Error from event loop impl */
     VIR_FROM_LIBXL = 41,	/* Error from libxenlight driver */
-    VIR_FROM_LOCKING = 42,      /* Error from lock manager */
-    VIR_FROM_HYPERV = 43,       /* Error from Hyper-V driver */
+    VIR_FROM_LOCKING = 42,	/* Error from lock manager */
+    VIR_FROM_HYPERV = 43,	/* Error from Hyper-V driver */
 } virErrorDomain;
 
 
@@ -205,7 +206,7 @@ typedef enum {
     VIR_ERR_INVALID_STORAGE_VOL = 47,	/* invalid storage vol object */
     VIR_WAR_NO_STORAGE = 48,		/* failed to start storage */
     VIR_ERR_NO_STORAGE_POOL = 49,	/* storage pool not found */
-    VIR_ERR_NO_STORAGE_VOL = 50,	/* storage pool not found */
+    VIR_ERR_NO_STORAGE_VOL = 50,	/* storage volume not found */
     VIR_WAR_NO_NODE = 51,		/* failed to start node driver */
     VIR_ERR_INVALID_NODE_DEVICE = 52,	/* invalid node device object */
     VIR_ERR_NO_NODE_DEVICE = 53,	/* node device not found */
@@ -232,11 +233,13 @@ typedef enum {
     VIR_ERR_HOOK_SCRIPT_FAILED = 70,	/* a synchronous hook script failed */
     VIR_ERR_INVALID_DOMAIN_SNAPSHOT = 71,/* invalid domain snapshot */
     VIR_ERR_NO_DOMAIN_SNAPSHOT = 72,	/* domain snapshot not found */
-    VIR_ERR_INVALID_STREAM = 73,        /* stream pointer not valid */
-    VIR_ERR_ARGUMENT_UNSUPPORTED = 74,  /* valid API use but unsupported by
+    VIR_ERR_INVALID_STREAM = 73,	/* stream pointer not valid */
+    VIR_ERR_ARGUMENT_UNSUPPORTED = 74,	/* valid API use but unsupported by
                                            the given driver */
-    VIR_ERR_STORAGE_PROBE_FAILED = 75,  /* storage pool proble failed */
-    VIR_ERR_STORAGE_POOL_BUILT = 76,    /* storage pool already built */
+    VIR_ERR_STORAGE_PROBE_FAILED = 75,	/* storage pool probe failed */
+    VIR_ERR_STORAGE_POOL_BUILT = 76,	/* storage pool already built */
+    VIR_ERR_SNAPSHOT_REVERT_RISKY = 77,	/* force was not requested for a
+                                           risky domain snapshot revert */
 } virErrorNumber;
 
 /**

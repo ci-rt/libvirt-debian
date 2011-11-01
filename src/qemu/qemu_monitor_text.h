@@ -43,7 +43,9 @@ int qemuMonitorTextCommandWithFd(qemuMonitorPtr mon,
 int qemuMonitorTextStartCPUs(qemuMonitorPtr mon,
                              virConnectPtr conn);
 int qemuMonitorTextStopCPUs(qemuMonitorPtr mon);
-int qemuMonitorTextGetStatus(qemuMonitorPtr mon, bool *running);
+int qemuMonitorTextGetStatus(qemuMonitorPtr mon,
+                             bool *running,
+                             virDomainPausedReason *reason);
 
 int qemuMonitorTextSystemPowerdown(qemuMonitorPtr mon);
 int qemuMonitorTextSystemReset(qemuMonitorPtr mon);
@@ -57,6 +59,9 @@ int qemuMonitorTextGetBalloonInfo(qemuMonitorPtr mon,
 int qemuMonitorTextGetMemoryStats(qemuMonitorPtr mon,
                                   virDomainMemoryStatPtr stats,
                                   unsigned int nr_stats);
+int qemuMonitorTextGetBlockInfo(qemuMonitorPtr mon,
+                                const char *devname,
+                                struct qemuDomainDiskInfo *info);
 int qemuMonitorTextGetBlockStatsInfo(qemuMonitorPtr mon,
                                      const char *dev_name,
                                      long long *rd_req,
@@ -237,5 +242,10 @@ int qemuMonitorTextBlockJob(qemuMonitorPtr mon,
 int qemuMonitorTextSetLink(qemuMonitorPtr mon,
                            const char *name,
                            enum virDomainNetInterfaceLinkState state);
+
+int qemuMonitorTextOpenGraphics(qemuMonitorPtr mon,
+                                const char *protocol,
+                                const char *fdname,
+                                bool skipauth);
 
 #endif /* QEMU_MONITOR_TEXT_H */

@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# sys_stat_h.m4 serial 24   -*- Autoconf -*-
+# sys_stat_h.m4 serial 26   -*- Autoconf -*-
 dnl Copyright (C) 2006-2011 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -21,6 +21,9 @@ AC_DEFUN([gl_HEADER_SYS_STAT_H],
 
   gl_CHECK_NEXT_HEADERS([sys/stat.h])
 
+  dnl Ensure the type mode_t gets defined.
+  AC_REQUIRE([AC_TYPE_MODE_T])
+
   dnl Define types that are supposed to be defined in <sys/types.h> or
   dnl <sys/stat.h>.
   AC_CHECK_TYPE([nlink_t], [],
@@ -32,7 +35,7 @@ AC_DEFUN([gl_HEADER_SYS_STAT_H],
   dnl Check for declarations of anything we want to poison if the
   dnl corresponding gnulib module is not in use.
   gl_WARN_ON_USE_PREPARE([[#include <sys/stat.h>
-    ]], [fchmodat fstatat futimens lchmod lstat mkdirat mkfifo mkfifoat
+    ]], [fchmodat fstat fstatat futimens lchmod lstat mkdirat mkfifo mkfifoat
     mknod mknodat stat utimensat])
 ]) # gl_HEADER_SYS_STAT_H
 
@@ -49,6 +52,7 @@ AC_DEFUN([gl_SYS_STAT_H_DEFAULTS],
 [
   AC_REQUIRE([gl_UNISTD_H_DEFAULTS]) dnl for REPLACE_FCHDIR
   GNULIB_FCHMODAT=0;    AC_SUBST([GNULIB_FCHMODAT])
+  GNULIB_FSTAT=0;       AC_SUBST([GNULIB_FSTAT])
   GNULIB_FSTATAT=0;     AC_SUBST([GNULIB_FSTATAT])
   GNULIB_FUTIMENS=0;    AC_SUBST([GNULIB_FUTIMENS])
   GNULIB_LCHMOD=0;      AC_SUBST([GNULIB_LCHMOD])

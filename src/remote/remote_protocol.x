@@ -688,6 +688,11 @@ struct remote_domain_reboot_args {
     unsigned int flags;
 };
 
+struct remote_domain_reset_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
 struct remote_domain_destroy_args {
     remote_nonnull_domain dom;
 };
@@ -2005,6 +2010,14 @@ struct remote_domain_event_block_job_msg {
     int status;
 };
 
+struct remote_domain_event_disk_change_msg {
+    remote_nonnull_domain dom;
+    remote_string oldSrcPath;
+    remote_string newSrcPath;
+    remote_nonnull_string devAlias;
+    int reason;
+};
+
 struct remote_domain_managed_save_args {
     remote_nonnull_domain dom;
     unsigned int flags;
@@ -2062,6 +2075,25 @@ struct remote_domain_snapshot_list_names_ret {
     remote_nonnull_string names<REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX>; /* insert@1 */
 };
 
+struct remote_domain_snapshot_num_children_args {
+    remote_nonnull_domain_snapshot snap;
+    unsigned int flags;
+};
+
+struct remote_domain_snapshot_num_children_ret {
+    int num;
+};
+
+struct remote_domain_snapshot_list_children_names_args {
+    remote_nonnull_domain_snapshot snap;
+    int maxnames;
+    unsigned int flags;
+};
+
+struct remote_domain_snapshot_list_children_names_ret {
+    remote_nonnull_string names<REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX>; /* insert@1 */
+};
+
 struct remote_domain_snapshot_lookup_by_name_args {
     remote_nonnull_domain dom;
     remote_nonnull_string name;
@@ -2079,6 +2111,15 @@ struct remote_domain_has_current_snapshot_args {
 
 struct remote_domain_has_current_snapshot_ret {
     int result;
+};
+
+struct remote_domain_snapshot_get_parent_args {
+    remote_nonnull_domain_snapshot snap;
+    unsigned int flags;
+};
+
+struct remote_domain_snapshot_get_parent_ret {
+    remote_nonnull_domain_snapshot snap;
 };
 
 struct remote_domain_snapshot_current_args {
@@ -2220,6 +2261,12 @@ struct remote_domain_get_control_info_ret { /* insert@1 */
     unsigned hyper stateTime;
 };
 
+struct remote_domain_open_graphics_args {
+    remote_nonnull_domain dom;
+    unsigned int idx;
+    unsigned int flags;
+};
+
 /*----- Protocol. -----*/
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -2307,7 +2354,7 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_GET_SCHEDULER_PARAMETERS = 57, /* skipgen autogen */
     REMOTE_PROC_DOMAIN_SET_SCHEDULER_PARAMETERS = 58, /* autogen autogen */
     REMOTE_PROC_GET_HOSTNAME = 59, /* autogen autogen priority:high */
-    REMOTE_PROC_SUPPORTS_FEATURE = 60, /* autogen autogen priority:high */
+    REMOTE_PROC_SUPPORTS_FEATURE = 60, /* skipgen autogen priority:high */
 
     REMOTE_PROC_DOMAIN_MIGRATE_PREPARE = 61, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_MIGRATE_PERFORM = 62, /* autogen autogen */
@@ -2509,7 +2556,13 @@ enum remote_procedure {
 
     REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB = 241, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_SPEED = 242, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_BLOCK_STATS_FLAGS = 243 /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_BLOCK_STATS_FLAGS = 243, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_GET_PARENT = 244, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_RESET = 245, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_NUM_CHILDREN = 246, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_CHILDREN_NAMES = 247, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_EVENT_DISK_CHANGE = 248, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_OPEN_GRAPHICS = 249 /* skipgen skipgen */
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

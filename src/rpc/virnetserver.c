@@ -133,6 +133,30 @@ static void virNetServerHandleJob(void *jobOpaque, void *opaque)
     VIR_DEBUG("server=%p client=%p message=%p prog=%p",
               srv, job->client, job->msg, job->prog);
 
+    if (!job->prog) {
+        /* Only send back an error for type == CALL. Other
+         * message types are not expecting replies, so we
+         * must just log it & drop them
+         */
+        if (job->msg->header.type == VIR_NET_CALL ||
+            job->msg->header.type == VIR_NET_CALL_WITH_FDS) {
+            if (virNetServerProgramUnknownError(job->client,
+                                                job->msg,
+                                                &job->msg->header) < 0)
+                goto error;
+        } else {
+            VIR_INFO("Dropping client mesage, unknown program %d version %d type %d proc %d",
+                     job->msg->header.prog, job->msg->header.vers,
+                     job->msg->header.type, job->msg->header.proc);
+            /* Send a dummy reply to free up 'msg' & unblock client rx */
+            virNetMessageClear(job->msg);
+            job->msg->header.type = VIR_NET_REPLY;
+            if (virNetServerClientSendMessage(job->client, job->msg) < 0)
+                goto error;
+        }
+        goto cleanup;
+    }
+
     if (virNetServerProgramDispatch(job->prog,
                                     srv,
                                     job->client,
@@ -142,6 +166,8 @@ static void virNetServerHandleJob(void *jobOpaque, void *opaque)
     virNetServerLock(srv);
     virNetServerProgramFree(job->prog);
     virNetServerUnlock(srv);
+
+cleanup:
     virNetServerClientFree(job->client);
     VIR_FREE(job);
     return;
@@ -184,18 +210,14 @@ static int virNetServerDispatchNewMessage(virNetServerClientPtr client,
         }
     }
 
-    if (!prog) {
-        virNetServerProgramUnknownError(client, msg, &msg->header);
-        goto cleanup;
+    if (prog) {
+        virNetServerProgramRef(prog);
+        job->prog = prog;
+        priority = virNetServerProgramGetPriority(prog, msg->header.proc);
     }
-
-    virNetServerProgramRef(prog);
-    job->prog = prog;
-    priority = virNetServerProgramGetPriority(prog, msg->header.proc);
 
     ret = virThreadPoolSendJob(srv->workers, priority, job);
 
-cleanup:
     if (ret < 0) {
         VIR_FREE(job);
         virNetServerProgramFree(prog);

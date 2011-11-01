@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # iconv.m4 serial AM6 (gettext-0.17)
 dnl Copyright (C) 2000-2002, 2007 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation

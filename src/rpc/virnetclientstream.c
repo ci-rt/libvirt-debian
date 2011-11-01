@@ -268,6 +268,9 @@ int virNetClientStreamSetError(virNetClientStreamPtr st,
     st->err.int1 = err.int1;
     st->err.int2 = err.int2;
 
+    st->incomingEOF = true;
+    virNetClientStreamEventTimerUpdate(st);
+
     ret = 0;
 
 cleanup:
@@ -400,6 +403,7 @@ int virNetClientStreamRecvPacket(virNetClientStreamPtr st,
         msg->header.type = VIR_NET_STREAM;
         msg->header.serial = st->serial;
         msg->header.proc = st->proc;
+        msg->header.status = VIR_NET_CONTINUE;
 
         VIR_DEBUG("Dummy packet to wait for stream data");
         virMutexUnlock(&st->lock);

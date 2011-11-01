@@ -79,7 +79,7 @@ class libvirtError(Exception):
 # register the libvirt global error handler
 #
 def registerErrorHandler(f, ctx):
-    """Register a Python written function to for error reporting.
+    """Register a Python function for error reporting.
        The function is called back as f(ctx, error), with error
        being a list of information about the error being raised.
        Returns 1 in case of success."""
@@ -179,8 +179,8 @@ def virEventAddHandle(fd, events, cb, opaque):
 
     Example callback prototype is:
         def cb(watch,   # int id of the handle
-               fd,      # int file descriptor the event occured on
-               events,  # int bitmap of events that have occured
+               fd,      # int file descriptor the event occurred on
+               events,  # int bitmap of events that have occurred
                opaque): # opaque data passed to eventAddHandle
     """
     cbData = {"cb" : cb, "opaque" : opaque}

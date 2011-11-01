@@ -68,6 +68,8 @@
 # include "vbox_CAPI_v3_2.h"
 #elif VBOX_API_VERSION == 4000
 # include "vbox_CAPI_v4_0.h"
+#elif VBOX_API_VERSION == 4001
+# include "vbox_CAPI_v4_1.h"
 #else
 # error "Unsupport VBOX_API_VERSION"
 #endif
@@ -300,7 +302,7 @@ static void nsIDtoChar(unsigned char *uuid, const nsID *iid) {
     }
 
     uuidstrdst[VIR_UUID_STRING_BUFLEN-1] = '\0';
-    virUUIDParse(uuidstrdst, uuid);
+    ignore_value(virUUIDParse(uuidstrdst, uuid));
 }
 
 static void nsIDFromChar(nsID *iid, const unsigned char *uuid) {
@@ -339,7 +341,7 @@ static void nsIDFromChar(nsID *iid, const unsigned char *uuid) {
     }
 
     uuidstrdst[VIR_UUID_STRING_BUFLEN-1] = '\0';
-    virUUIDParse(uuidstrdst, uuidinterim);
+    ignore_value(virUUIDParse(uuidstrdst, uuidinterim));
     memcpy(iid, uuidinterim, VIR_UUID_BUFLEN);
 }
 
@@ -511,7 +513,7 @@ vboxIIDToUUID_v3_x(vboxGlobalData *data, vboxIID_v3_x *iid,
 
     data->pFuncs->pfnUtf16ToUtf8(iid->value, &utf8);
 
-    virUUIDParse(utf8, uuid);
+    ignore_value(virUUIDParse(utf8, uuid));
 
     data->pFuncs->pfnUtf8Free(utf8);
 }
@@ -537,7 +539,7 @@ vboxIIDIsEqual_v3_x(vboxGlobalData *data, vboxIID_v3_x *iid1,
     unsigned char uuid2[VIR_UUID_BUFLEN];
 
     /* Note: we can't directly compare the utf8 strings here
-     * cause the two UUID's may have seperators as space or '-'
+     * cause the two UUID's may have separators as space or '-'
      * or mixture of both and we don't want to fail here by
      * using direct string comparison. Here virUUIDParse() takes
      * care of these cases. */
@@ -2207,6 +2209,9 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
 #endif /* VBOX_API_VERSION >= 4000 */
             IAudioAdapter *audioAdapter         = NULL;
             IUSBController *USBController       = NULL;
+#if VBOX_API_VERSION >= 4001
+            PRUint32 chipsetType                = ChipsetType_Null;
+#endif /* VBOX_API_VERSION >= 4001 */
             ISystemProperties *systemProperties = NULL;
 
 
@@ -2218,11 +2223,19 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
             machine->vtbl->GetMemorySize(machine, &memorySize);
             def->mem.cur_balloon = memorySize * 1024;
 
+#if VBOX_API_VERSION >= 4001
+            machine->vtbl->GetChipsetType(machine, &chipsetType);
+#endif /* VBOX_API_VERSION >= 4001 */
+
             data->vboxObj->vtbl->GetSystemProperties(data->vboxObj, &systemProperties);
             if (systemProperties) {
                 systemProperties->vtbl->GetMaxGuestRAM(systemProperties, &maxMemorySize);
                 systemProperties->vtbl->GetMaxBootPosition(systemProperties, &maxBootPosition);
+#if VBOX_API_VERSION < 4001
                 systemProperties->vtbl->GetNetworkAdapterCount(systemProperties, &netAdpCnt);
+#else  /* VBOX_API_VERSION >= 4000 */
+                systemProperties->vtbl->GetMaxNetworkAdapters(systemProperties, chipsetType, &netAdpCnt);
+#endif /* VBOX_API_VERSION >= 4000 */
                 systemProperties->vtbl->GetSerialPortCount(systemProperties, &serialPortCount);
                 systemProperties->vtbl->GetParallelPortCount(systemProperties, &parallelPortCount);
                 VBOX_RELEASE(systemProperties);
@@ -2267,6 +2280,7 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
                     /* Not supported by libvirt yet */
                 } else if (device == DeviceType_SharedFolder) {
                     /* Not supported by libvirt yet */
+                    /* Can VirtualBox really boot from a shared folder? */
                 }
             }
 
@@ -2771,6 +2785,67 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
 
 #endif /* VBOX_API_VERSION >= 3001 */
 
+            /* shared folders */
+            vboxArray sharedFolders = VBOX_ARRAY_INITIALIZER;
+
+            def->nfss = 0;
+
+            vboxArrayGet(&sharedFolders, machine,
+                         machine->vtbl->GetSharedFolders);
+
+            if (sharedFolders.count > 0) {
+                if (VIR_ALLOC_N(def->fss, sharedFolders.count) < 0) {
+                    virReportOOMError();
+                    goto sharedFoldersCleanup;
+                }
+
+                for (i = 0; i < sharedFolders.count; i++) {
+                    ISharedFolder *sharedFolder = sharedFolders.items[i];
+                    PRUnichar *nameUtf16 = NULL;
+                    char *name = NULL;
+                    PRUnichar *hostPathUtf16 = NULL;
+                    char *hostPath = NULL;
+                    PRBool writable = PR_FALSE;
+
+                    if (VIR_ALLOC(def->fss[i]) < 0) {
+                        virReportOOMError();
+                        goto sharedFoldersCleanup;
+                    }
+
+                    def->fss[i]->type = VIR_DOMAIN_FS_TYPE_MOUNT;
+
+                    sharedFolder->vtbl->GetHostPath(sharedFolder, &hostPathUtf16);
+                    VBOX_UTF16_TO_UTF8(hostPathUtf16, &hostPath);
+                    def->fss[i]->src = strdup(hostPath);
+                    VBOX_UTF8_FREE(hostPath);
+                    VBOX_UTF16_FREE(hostPathUtf16);
+
+                    if (def->fss[i]->src == NULL) {
+                        virReportOOMError();
+                        goto sharedFoldersCleanup;
+                    }
+
+                    sharedFolder->vtbl->GetName(sharedFolder, &nameUtf16);
+                    VBOX_UTF16_TO_UTF8(nameUtf16, &name);
+                    def->fss[i]->dst = strdup(name);
+                    VBOX_UTF8_FREE(name);
+                    VBOX_UTF16_FREE(nameUtf16);
+
+                    if (def->fss[i]->dst == NULL) {
+                        virReportOOMError();
+                        goto sharedFoldersCleanup;
+                    }
+
+                    sharedFolder->vtbl->GetWritable(sharedFolder, &writable);
+                    def->fss[i]->readonly = !writable;
+
+                    ++def->nfss;
+                }
+            }
+
+sharedFoldersCleanup:
+            vboxArrayRelease(&sharedFolders);
+
             /* dump network cards if present */
             def->nnets = 0;
             /* Get which network cards are enabled */
@@ -2826,7 +2901,11 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
 
                             def->nets[netAdpIncCnt]->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
 
+#if VBOX_API_VERSION < 4001
                             adapter->vtbl->GetHostInterface(adapter, &hostIntUtf16);
+#else /* VBOX_API_VERSION >= 4001 */
+                            adapter->vtbl->GetBridgedInterface(adapter, &hostIntUtf16);
+#endif /* VBOX_API_VERSION >= 4001 */
 
                             VBOX_UTF16_TO_UTF8(hostIntUtf16, &hostInt);
                             def->nets[netAdpIncCnt]->data.bridge.brname = strdup(hostInt);
@@ -2854,7 +2933,11 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
 
                             def->nets[netAdpIncCnt]->type = VIR_DOMAIN_NET_TYPE_NETWORK;
 
+#if VBOX_API_VERSION < 4001
                             adapter->vtbl->GetHostInterface(adapter, &hostIntUtf16);
+#else /* VBOX_API_VERSION >= 4001 */
+                            adapter->vtbl->GetHostOnlyInterface(adapter, &hostIntUtf16);
+#endif /* VBOX_API_VERSION >= 4001 */
 
                             VBOX_UTF16_TO_UTF8(hostIntUtf16, &hostInt);
                             def->nets[netAdpIncCnt]->data.network.name = strdup(hostInt);
@@ -4072,12 +4155,18 @@ vboxAttachDrives(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                 } else {
                     rc = 0;
                 }
-# else /* VBOX_API_VERSION >= 4000 */
+# elif VBOX_API_VERSION == 4000
                 rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj,
                                                      mediumFileUtf16,
                                                      deviceType, accessMode,
                                                      &medium);
-# endif /* VBOX_API_VERSION >= 4000 */
+# elif VBOX_API_VERSION >= 4001
+                rc = data->vboxObj->vtbl->OpenMedium(data->vboxObj,
+                                                     mediumFileUtf16,
+                                                     deviceType, accessMode,
+                                                     false,
+                                                     &medium);
+# endif /* VBOX_API_VERSION >= 4001 */
 
                 VBOX_UTF16_FREE(mediumEmpty);
             }
@@ -4206,13 +4295,25 @@ static void
 vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
 {
     ISystemProperties *systemProperties = NULL;
+#if VBOX_API_VERSION >= 4001
+    PRUint32 chipsetType                = ChipsetType_Null;
+#endif /* VBOX_API_VERSION >= 4001 */
     PRUint32 networkAdapterCount        = 0;
     int i = 0;
 
+#if VBOX_API_VERSION >= 4001
+    machine->vtbl->GetChipsetType(machine, &chipsetType);
+#endif /* VBOX_API_VERSION >= 4001 */
+
     data->vboxObj->vtbl->GetSystemProperties(data->vboxObj, &systemProperties);
     if (systemProperties) {
+#if VBOX_API_VERSION < 4001
         systemProperties->vtbl->GetNetworkAdapterCount(systemProperties,
                                                        &networkAdapterCount);
+#else  /* VBOX_API_VERSION >= 4000 */
+        systemProperties->vtbl->GetMaxNetworkAdapters(systemProperties, chipsetType,
+                                                      &networkAdapterCount);
+#endif /* VBOX_API_VERSION >= 4000 */
         VBOX_RELEASE(systemProperties);
         systemProperties = NULL;
     }
@@ -4285,19 +4386,31 @@ vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                 PRUnichar *hostInterface = NULL;
                 /* Bridged Network */
 
+#if VBOX_API_VERSION < 4001
                 adapter->vtbl->AttachToBridgedInterface(adapter);
+#else /* VBOX_API_VERSION >= 4001 */
+                adapter->vtbl->SetAttachmentType(adapter, NetworkAttachmentType_Bridged);
+#endif /* VBOX_API_VERSION >= 4001 */
 
                 if (def->nets[i]->data.bridge.brname) {
                     VBOX_UTF8_TO_UTF16(def->nets[i]->data.bridge.brname,
                                        &hostInterface);
+#if VBOX_API_VERSION < 4001
                     adapter->vtbl->SetHostInterface(adapter, hostInterface);
+#else /* VBOX_API_VERSION >= 4001 */
+                    adapter->vtbl->SetBridgedInterface(adapter, hostInterface);
+#endif /* VBOX_API_VERSION >= 4001 */
                     VBOX_UTF16_FREE(hostInterface);
                 }
             } else if (def->nets[i]->type == VIR_DOMAIN_NET_TYPE_INTERNAL) {
                 PRUnichar *internalNetwork = NULL;
                 /* Internal Network */
 
+#if VBOX_API_VERSION < 4001
                 adapter->vtbl->AttachToInternalNetwork(adapter);
+#else /* VBOX_API_VERSION >= 4001 */
+                adapter->vtbl->SetAttachmentType(adapter, NetworkAttachmentType_Internal);
+#endif /* VBOX_API_VERSION >= 4001 */
 
                 if (def->nets[i]->data.internal.name) {
                     VBOX_UTF8_TO_UTF16(def->nets[i]->data.internal.name,
@@ -4311,22 +4424,38 @@ vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
                  * on *nix and mac, on windows you can create and configure
                  * as many as you want)
                  */
+#if VBOX_API_VERSION < 4001
                 adapter->vtbl->AttachToHostOnlyInterface(adapter);
+#else /* VBOX_API_VERSION >= 4001 */
+                adapter->vtbl->SetAttachmentType(adapter, NetworkAttachmentType_HostOnly);
+#endif /* VBOX_API_VERSION >= 4001 */
 
                 if (def->nets[i]->data.network.name) {
                     VBOX_UTF8_TO_UTF16(def->nets[i]->data.network.name,
                                        &hostInterface);
+#if VBOX_API_VERSION < 4001
                     adapter->vtbl->SetHostInterface(adapter, hostInterface);
+#else /* VBOX_API_VERSION >= 4001 */
+                    adapter->vtbl->SetHostOnlyInterface(adapter, hostInterface);
+#endif /* VBOX_API_VERSION >= 4001 */
                     VBOX_UTF16_FREE(hostInterface);
                 }
             } else if (def->nets[i]->type == VIR_DOMAIN_NET_TYPE_USER) {
                 /* NAT */
+#if VBOX_API_VERSION < 4001
                 adapter->vtbl->AttachToNAT(adapter);
+#else /* VBOX_API_VERSION >= 4001 */
+                adapter->vtbl->SetAttachmentType(adapter, NetworkAttachmentType_NAT);
+#endif /* VBOX_API_VERSION >= 4001 */
             } else {
                 /* else always default to NAT if we don't understand
                  * what option is been passed to us
                  */
+#if VBOX_API_VERSION < 4001
                 adapter->vtbl->AttachToNAT(adapter);
+#else /* VBOX_API_VERSION >= 4001 */
+                adapter->vtbl->SetAttachmentType(adapter, NetworkAttachmentType_NAT);
+#endif /* VBOX_API_VERSION >= 4001 */
             }
 
             VBOX_UTF8_TO_UTF16(macaddrvbox, &MACAddress);
@@ -4811,6 +4940,38 @@ vboxAttachUSB(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
     }
 }
 
+static void
+vboxAttachSharedFolder(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
+{
+    int i;
+    PRUnichar *nameUtf16;
+    PRUnichar *hostPathUtf16;
+    PRBool writable;
+
+    if (def->nfss == 0)
+        return;
+
+    for (i = 0; i < def->nfss; i++) {
+        if (def->fss[i]->type != VIR_DOMAIN_FS_TYPE_MOUNT)
+            continue;
+
+        VBOX_UTF8_TO_UTF16(def->fss[i]->dst, &nameUtf16);
+        VBOX_UTF8_TO_UTF16(def->fss[i]->src, &hostPathUtf16);
+        writable = !def->fss[i]->readonly;
+
+#if VBOX_API_VERSION < 4000
+        machine->vtbl->CreateSharedFolder(machine, nameUtf16, hostPathUtf16,
+                                          writable);
+#else /* VBOX_API_VERSION >= 4000 */
+        machine->vtbl->CreateSharedFolder(machine, nameUtf16, hostPathUtf16,
+                                          writable, PR_FALSE);
+#endif /* VBOX_API_VERSION >= 4000 */
+
+        VBOX_UTF16_FREE(nameUtf16);
+        VBOX_UTF16_FREE(hostPathUtf16);
+    }
+}
+
 static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
     VBOX_OBJECT_CHECK(conn, virDomainPtr, NULL);
     IMachine       *machine     = NULL;
@@ -4949,6 +5110,7 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
     vboxAttachVideo(def, machine);
     vboxAttachDisplay(def, data, machine);
     vboxAttachUSB(def, data, machine);
+    vboxAttachSharedFolder(def, data, machine);
 
     /* Save the machine settings made till now and close the
      * session. also free up the mchiid variable used.
@@ -5303,6 +5465,34 @@ static int vboxDomainAttachDeviceImpl(virDomainPtr dom,
                         if (dev->data.hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB) {
                         }
                     }
+                } else if (dev->type == VIR_DOMAIN_DEVICE_FS &&
+                           dev->data.fs->type == VIR_DOMAIN_FS_TYPE_MOUNT) {
+                    PRUnichar *nameUtf16;
+                    PRUnichar *hostPathUtf16;
+                    PRBool writable;
+
+                    VBOX_UTF8_TO_UTF16(dev->data.fs->dst, &nameUtf16);
+                    VBOX_UTF8_TO_UTF16(dev->data.fs->src, &hostPathUtf16);
+                    writable = !dev->data.fs->readonly;
+
+#if VBOX_API_VERSION < 4000
+                    rc = machine->vtbl->CreateSharedFolder(machine, nameUtf16, hostPathUtf16,
+                                                           writable);
+#else /* VBOX_API_VERSION >= 4000 */
+                    rc = machine->vtbl->CreateSharedFolder(machine, nameUtf16, hostPathUtf16,
+                                                           writable, PR_FALSE);
+#endif /* VBOX_API_VERSION >= 4000 */
+
+                    if (NS_FAILED(rc)) {
+                        vboxError(VIR_ERR_INTERNAL_ERROR,
+                                  _("could not attach shared folder '%s', rc=%08x"),
+                                  dev->data.fs->dst, (unsigned)rc);
+                    } else {
+                        ret = 0;
+                    }
+
+                    VBOX_UTF16_FREE(nameUtf16);
+                    VBOX_UTF16_FREE(hostPathUtf16);
                 }
                 machine->vtbl->SaveSettings(machine);
                 VBOX_RELEASE(machine);
@@ -5461,6 +5651,23 @@ static int vboxDomainDetachDevice(virDomainPtr dom, const char *xml) {
                         if (dev->data.hostdev->source.subsys.type == VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB) {
                         }
                     }
+                } else if (dev->type == VIR_DOMAIN_DEVICE_FS &&
+                           dev->data.fs->type == VIR_DOMAIN_FS_TYPE_MOUNT) {
+                    PRUnichar *nameUtf16;
+
+                    VBOX_UTF8_TO_UTF16(dev->data.fs->dst, &nameUtf16);
+
+                    rc = machine->vtbl->RemoveSharedFolder(machine, nameUtf16);
+
+                    if (NS_FAILED(rc)) {
+                        vboxError(VIR_ERR_INTERNAL_ERROR,
+                                  _("could not detach shared folder '%s', rc=%08x"),
+                                  dev->data.fs->dst, (unsigned)rc);
+                    } else {
+                        ret = 0;
+                    }
+
+                    VBOX_UTF16_FREE(nameUtf16);
                 }
                 machine->vtbl->SaveSettings(machine);
                 VBOX_RELEASE(machine);
@@ -5871,7 +6078,8 @@ vboxDomainSnapshotNum(virDomainPtr dom,
     nsresult rc;
     PRUint32 snapshotCount;
 
-    virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_METADATA, -1);
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_ROOTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_METADATA, -1);
 
     vboxIIDFromUUID(&iid, dom->uuid);
     rc = VBOX_OBJECT_GET_MACHINE(iid.value, &machine);
@@ -5895,7 +6103,11 @@ vboxDomainSnapshotNum(virDomainPtr dom,
         goto cleanup;
     }
 
-    ret = snapshotCount;
+    /* VBox has at most one root snapshot.  */
+    if (snapshotCount && (flags & VIR_DOMAIN_SNAPSHOT_LIST_ROOTS))
+        ret = 1;
+    else
+        ret = snapshotCount;
 
 cleanup:
     VBOX_RELEASE(machine);
@@ -5917,7 +6129,8 @@ vboxDomainSnapshotListNames(virDomainPtr dom,
     int count = 0;
     int i;
 
-    virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_METADATA, -1);
+    virCheckFlags(VIR_DOMAIN_SNAPSHOT_LIST_ROOTS |
+                  VIR_DOMAIN_SNAPSHOT_LIST_METADATA, -1);
 
     vboxIIDFromUUID(&iid, dom->uuid);
     rc = VBOX_OBJECT_GET_MACHINE(iid.value, &machine);
@@ -5932,8 +6145,29 @@ vboxDomainSnapshotListNames(virDomainPtr dom,
         goto cleanup;
     }
 
-    if ((count = vboxDomainSnapshotGetAll(dom, machine, &snapshots)) < 0)
-        goto cleanup;
+    if (flags & VIR_DOMAIN_SNAPSHOT_LIST_ROOTS) {
+        vboxIID empty = VBOX_IID_INITIALIZER;
+
+        if (VIR_ALLOC_N(snapshots, 1) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+#if VBOX_API_VERSION < 4000
+        rc = machine->vtbl->GetSnapshot(machine, empty.value, snapshots);
+#else /* VBOX_API_VERSION >= 4000 */
+        rc = machine->vtbl->FindSnapshot(machine, empty.value, snapshots);
+#endif /* VBOX_API_VERSION >= 4000 */
+        if (NS_FAILED(rc) || !snapshots[0]) {
+            vboxError(VIR_ERR_INTERNAL_ERROR,
+                      _("could not get root snapshot for domain %s"),
+                      dom->name);
+            goto cleanup;
+        }
+        count = 1;
+    } else {
+        if ((count = vboxDomainSnapshotGetAll(dom, machine, &snapshots)) < 0)
+            goto cleanup;
+    }
 
     for (i = 0; i < nameslen; i++) {
         PRUnichar *nameUtf16;
@@ -6040,6 +6274,72 @@ vboxDomainHasCurrentSnapshot(virDomainPtr dom,
         ret = 0;
 
 cleanup:
+    VBOX_RELEASE(machine);
+    vboxIIDUnalloc(&iid);
+    return ret;
+}
+
+static virDomainSnapshotPtr
+vboxDomainSnapshotGetParent(virDomainSnapshotPtr snapshot,
+                            unsigned int flags)
+{
+    virDomainPtr dom = snapshot->domain;
+    VBOX_OBJECT_CHECK(dom->conn, virDomainSnapshotPtr, NULL);
+    vboxIID iid = VBOX_IID_INITIALIZER;
+    IMachine *machine = NULL;
+    ISnapshot *snap = NULL;
+    ISnapshot *parent = NULL;
+    PRUnichar *nameUtf16 = NULL;
+    char *name = NULL;
+    nsresult rc;
+
+    virCheckFlags(0, NULL);
+
+    vboxIIDFromUUID(&iid, dom->uuid);
+    rc = VBOX_OBJECT_GET_MACHINE(iid.value, &machine);
+    if (NS_FAILED(rc)) {
+        vboxError(VIR_ERR_NO_DOMAIN, "%s",
+                  _("no domain with matching UUID"));
+        goto cleanup;
+    }
+
+    if (!(snap = vboxDomainSnapshotGet(data, dom, machine, snapshot->name)))
+        goto cleanup;
+
+    rc = snap->vtbl->GetParent(snap, &parent);
+    if (NS_FAILED(rc)) {
+        vboxError(VIR_ERR_INTERNAL_ERROR,
+                  _("could not get parent of snapshot %s"),
+                  snapshot->name);
+        goto cleanup;
+    }
+    if (!parent) {
+        vboxError(VIR_ERR_NO_DOMAIN_SNAPSHOT,
+                  _("snapshot '%s' does not have a parent"),
+                  snapshot->name);
+        goto cleanup;
+    }
+
+    rc = parent->vtbl->GetName(parent, &nameUtf16);
+    if (NS_FAILED(rc) || !nameUtf16) {
+        vboxError(VIR_ERR_INTERNAL_ERROR,
+                  _("could not get name of parent of snapshot %s"),
+                  snapshot->name);
+        goto cleanup;
+    }
+    VBOX_UTF16_TO_UTF8(nameUtf16, &name);
+    if (!name) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    ret = virGetDomainSnapshot(dom, name);
+
+cleanup:
+    VBOX_UTF8_FREE(name);
+    VBOX_UTF16_FREE(nameUtf16);
+    VBOX_RELEASE(snap);
+    VBOX_RELEASE(parent);
     VBOX_RELEASE(machine);
     vboxIIDUnalloc(&iid);
     return ret;
@@ -6441,13 +6741,14 @@ cleanup:
     return ret;
 }
 
-#if VBOX_API_VERSION == 2002 || VBOX_API_VERSION == 4000
+#if VBOX_API_VERSION <= 2002 || VBOX_API_VERSION >= 4000
     /* No Callback support for VirtualBox 2.2.* series */
-#else /* !(VBOX_API_VERSION == 2002) && !(VBOX_API_VERSION == 4000) */
+    /* No Callback support for VirtualBox 4.* series */
+#else /* !(VBOX_API_VERSION == 2002 || VBOX_API_VERSION >= 4000) */
 
 /* Functions needed for Callbacks */
 static nsresult PR_COM_METHOD
-vboxCallbackOnMachineStateChange(IVirtualBoxCallback *pThis,
+vboxCallbackOnMachineStateChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
                                  PRUnichar *machineId, PRUint32 state)
 {
     virDomainPtr dom = NULL;
@@ -6465,7 +6766,7 @@ vboxCallbackOnMachineStateChange(IVirtualBoxCallback *pThis,
         unsigned char uuid[VIR_UUID_BUFLEN];
 
         g_pVBoxGlobalData->pFuncs->pfnUtf16ToUtf8(machineId, &machineIdUtf8);
-        virUUIDParse(machineIdUtf8, uuid);
+        ignore_value(virUUIDParse(machineIdUtf8, uuid));
 
         dom = vboxDomainLookupByUUID(g_pVBoxGlobalData->conn, uuid);
         if (dom) {
@@ -6521,7 +6822,7 @@ vboxCallbackOnMachineStateChange(IVirtualBoxCallback *pThis,
 }
 
 static nsresult PR_COM_METHOD
-vboxCallbackOnMachineDataChange(IVirtualBoxCallback *pThis,
+vboxCallbackOnMachineDataChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
                                 PRUnichar *machineId)
 {
     VIR_DEBUG("IVirtualBoxCallback: %p", pThis);
@@ -6531,11 +6832,11 @@ vboxCallbackOnMachineDataChange(IVirtualBoxCallback *pThis,
 }
 
 static nsresult PR_COM_METHOD
-vboxCallbackOnExtraDataCanChange(IVirtualBoxCallback *pThis,
+vboxCallbackOnExtraDataCanChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
                                  PRUnichar *machineId, PRUnichar *key,
                                  PRUnichar *value,
                                  PRUnichar **error ATTRIBUTE_UNUSED,
-                                 PRBool *allowChange)
+                                 PRBool *allowChange ATTRIBUTE_UNUSED)
 {
     VIR_DEBUG("IVirtualBoxCallback: %p, allowChange: %s", pThis, *allowChange ? "true" : "false");
     DEBUGPRUnichar("machineId", machineId);
@@ -6546,7 +6847,8 @@ vboxCallbackOnExtraDataCanChange(IVirtualBoxCallback *pThis,
 }
 
 static nsresult PR_COM_METHOD
-vboxCallbackOnExtraDataChange(IVirtualBoxCallback *pThis, PRUnichar *machineId,
+vboxCallbackOnExtraDataChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
+                              PRUnichar *machineId,
                               PRUnichar *key, PRUnichar *value)
 {
     VIR_DEBUG("IVirtualBoxCallback: %p", pThis);
@@ -6559,8 +6861,10 @@ vboxCallbackOnExtraDataChange(IVirtualBoxCallback *pThis, PRUnichar *machineId,
 
 # if VBOX_API_VERSION < 3001
 static nsresult PR_COM_METHOD
-vboxCallbackOnMediaRegistered(IVirtualBoxCallback *pThis, PRUnichar *mediaId,
-                              PRUint32 mediaType, PRBool registered)
+vboxCallbackOnMediaRegistered(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
+                              PRUnichar *mediaId,
+                              PRUint32 mediaType ATTRIBUTE_UNUSED,
+                              PRBool registered ATTRIBUTE_UNUSED)
 {
     VIR_DEBUG("IVirtualBoxCallback: %p, registered: %s", pThis, registered ? "true" : "false");
     VIR_DEBUG("mediaType: %d", mediaType);
@@ -6572,7 +6876,7 @@ vboxCallbackOnMediaRegistered(IVirtualBoxCallback *pThis, PRUnichar *mediaId,
 # endif /* VBOX_API_VERSION >= 3001 */
 
 static nsresult PR_COM_METHOD
-vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis,
+vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
                                 PRUnichar *machineId, PRBool registered)
 {
     virDomainPtr dom = NULL;
@@ -6590,7 +6894,7 @@ vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis,
         unsigned char uuid[VIR_UUID_BUFLEN];
 
         g_pVBoxGlobalData->pFuncs->pfnUtf16ToUtf8(machineId, &machineIdUtf8);
-        virUUIDParse(machineIdUtf8, uuid);
+        ignore_value(virUUIDParse(machineIdUtf8, uuid));
 
         dom = vboxDomainLookupByUUID(g_pVBoxGlobalData->conn, uuid);
         if (dom) {
@@ -6631,8 +6935,9 @@ vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis,
 }
 
 static nsresult PR_COM_METHOD
-vboxCallbackOnSessionStateChange(IVirtualBoxCallback *pThis,
-                                 PRUnichar *machineId, PRUint32 state)
+vboxCallbackOnSessionStateChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
+                                 PRUnichar *machineId,
+                                 PRUint32 state ATTRIBUTE_UNUSED)
 {
     VIR_DEBUG("IVirtualBoxCallback: %p, state: %d", pThis, state);
     DEBUGPRUnichar("machineId", machineId);
@@ -6641,7 +6946,8 @@ vboxCallbackOnSessionStateChange(IVirtualBoxCallback *pThis,
 }
 
 static nsresult PR_COM_METHOD
-vboxCallbackOnSnapshotTaken(IVirtualBoxCallback *pThis, PRUnichar *machineId,
+vboxCallbackOnSnapshotTaken(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
+                            PRUnichar *machineId,
                             PRUnichar *snapshotId)
 {
     VIR_DEBUG("IVirtualBoxCallback: %p", pThis);
@@ -6652,7 +6958,8 @@ vboxCallbackOnSnapshotTaken(IVirtualBoxCallback *pThis, PRUnichar *machineId,
 }
 
 static nsresult PR_COM_METHOD
-vboxCallbackOnSnapshotDiscarded(IVirtualBoxCallback *pThis, PRUnichar *machineId,
+vboxCallbackOnSnapshotDiscarded(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
+                                PRUnichar *machineId,
                                 PRUnichar *snapshotId)
 {
     VIR_DEBUG("IVirtualBoxCallback: %p", pThis);
@@ -6663,7 +6970,8 @@ vboxCallbackOnSnapshotDiscarded(IVirtualBoxCallback *pThis, PRUnichar *machineId
 }
 
 static nsresult PR_COM_METHOD
-vboxCallbackOnSnapshotChange(IVirtualBoxCallback *pThis, PRUnichar *machineId,
+vboxCallbackOnSnapshotChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
+                             PRUnichar *machineId,
                              PRUnichar *snapshotId)
 {
     VIR_DEBUG("IVirtualBoxCallback: %p", pThis);
@@ -6674,7 +6982,7 @@ vboxCallbackOnSnapshotChange(IVirtualBoxCallback *pThis, PRUnichar *machineId,
 }
 
 static nsresult PR_COM_METHOD
-vboxCallbackOnGuestPropertyChange(IVirtualBoxCallback *pThis,
+vboxCallbackOnGuestPropertyChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
                                   PRUnichar *machineId, PRUnichar *name,
                                   PRUnichar *value, PRUnichar *flags)
 {
@@ -6688,7 +6996,7 @@ vboxCallbackOnGuestPropertyChange(IVirtualBoxCallback *pThis,
 }
 
 static nsresult PR_COM_METHOD
-vboxCallbackAddRef(nsISupports *pThis)
+vboxCallbackAddRef(nsISupports *pThis ATTRIBUTE_UNUSED)
 {
     nsresult c;
 
@@ -6998,7 +7306,7 @@ static int vboxDomainEventDeregisterAny(virConnectPtr conn,
     return ret;
 }
 
-#endif /* !(VBOX_API_VERSION == 2002) && !(VBOX_API_VERSION == 4000) */
+#endif /* !(VBOX_API_VERSION == 2002 || VBOX_API_VERSION >= 4000) */
 
 /**
  * The Network Functions here on
@@ -7883,7 +8191,7 @@ static virStoragePoolPtr vboxStoragePoolLookupByName(virConnectPtr conn, const c
         unsigned char uuid[VIR_UUID_BUFLEN];
         const char *uuidstr = "1deff1ff-1481-464f-967f-a50fe8936cc4";
 
-        virUUIDParse(uuidstr, uuid);
+        ignore_value(virUUIDParse(uuidstr, uuid));
 
         ret = virGetStoragePool(conn, name, uuid);
     }
@@ -8674,7 +8982,7 @@ static char *vboxStorageVolGetPath(virStorageVolPtr vol) {
     return ret;
 }
 
-#if VBOX_API_VERSION == 4000
+#if VBOX_API_VERSION >= 4000
 static char *
 vboxDomainScreenshot(virDomainPtr dom,
                      virStreamPtr st,
@@ -8798,7 +9106,7 @@ endjob:
     vboxIIDUnalloc(&iid);
     return ret;
 }
-#endif /* VBOX_API_VERSION == 4000 */
+#endif /* VBOX_API_VERSION >= 4000 */
 
 /**
  * Function Tables
@@ -8850,10 +9158,10 @@ virDriver NAME(Driver) = {
     .domainUpdateDeviceFlags = vboxDomainUpdateDeviceFlags, /* 0.8.0 */
     .nodeGetCellsFreeMemory = nodeGetCellsFreeMemory, /* 0.6.5 */
     .nodeGetFreeMemory = nodeGetFreeMemory, /* 0.6.5 */
-#if VBOX_API_VERSION == 4000
+#if VBOX_API_VERSION >= 4000
     .domainScreenshot = vboxDomainScreenshot, /* 0.9.2 */
 #endif
-#if VBOX_API_VERSION != 2002 && VBOX_API_VERSION != 4000
+#if VBOX_API_VERSION > 2002 && VBOX_API_VERSION < 4000
     .domainEventRegister = vboxDomainEventRegister, /* 0.7.0 */
     .domainEventDeregister = vboxDomainEventDeregister, /* 0.7.0 */
 #endif
@@ -8862,7 +9170,7 @@ virDriver NAME(Driver) = {
     .domainIsActive = vboxDomainIsActive, /* 0.7.3 */
     .domainIsPersistent = vboxDomainIsPersistent, /* 0.7.3 */
     .domainIsUpdated = vboxDomainIsUpdated, /* 0.8.6 */
-#if VBOX_API_VERSION != 2002 && VBOX_API_VERSION != 4000
+#if VBOX_API_VERSION > 2002 && VBOX_API_VERSION < 4000
     .domainEventRegisterAny = vboxDomainEventRegisterAny, /* 0.8.0 */
     .domainEventDeregisterAny = vboxDomainEventDeregisterAny, /* 0.8.0 */
 #endif
@@ -8872,6 +9180,7 @@ virDriver NAME(Driver) = {
     .domainSnapshotListNames = vboxDomainSnapshotListNames, /* 0.8.0 */
     .domainSnapshotLookupByName = vboxDomainSnapshotLookupByName, /* 0.8.0 */
     .domainHasCurrentSnapshot = vboxDomainHasCurrentSnapshot, /* 0.8.0 */
+    .domainSnapshotGetParent = vboxDomainSnapshotGetParent, /* 0.9.7 */
     .domainSnapshotCurrent = vboxDomainSnapshotCurrent, /* 0.8.0 */
     .domainRevertToSnapshot = vboxDomainRevertToSnapshot, /* 0.8.0 */
     .domainSnapshotDelete = vboxDomainSnapshotDelete, /* 0.8.0 */

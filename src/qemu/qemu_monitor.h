@@ -28,6 +28,7 @@
 # include "internal.h"
 
 # include "domain_conf.h"
+# include "qemu_conf.h"
 # include "hash.h"
 
 typedef struct _qemuMonitor qemuMonitor;
@@ -126,7 +127,6 @@ struct _qemuMonitorCallbacks {
 
 
 char *qemuMonitorEscapeArg(const char *in);
-char *qemuMonitorEscapeShell(const char *in);
 
 qemuMonitorPtr qemuMonitorOpen(virDomainObjPtr vm,
                                virDomainChrSourceDefPtr config,
@@ -198,7 +198,30 @@ int qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
 int qemuMonitorStopCPUs(qemuMonitorPtr mon);
-int qemuMonitorGetStatus(qemuMonitorPtr mon, bool *running);
+
+typedef enum {
+    QEMU_MONITOR_VM_STATUS_DEBUG,
+    QEMU_MONITOR_VM_STATUS_INMIGRATE,
+    QEMU_MONITOR_VM_STATUS_INTERNAL_ERROR,
+    QEMU_MONITOR_VM_STATUS_IO_ERROR,
+    QEMU_MONITOR_VM_STATUS_PAUSED,
+    QEMU_MONITOR_VM_STATUS_POSTMIGRATE,
+    QEMU_MONITOR_VM_STATUS_PRELAUNCH,
+    QEMU_MONITOR_VM_STATUS_FINISH_MIGRATE,
+    QEMU_MONITOR_VM_STATUS_RESTORE_VM,
+    QEMU_MONITOR_VM_STATUS_RUNNING,
+    QEMU_MONITOR_VM_STATUS_SAVE_VM,
+    QEMU_MONITOR_VM_STATUS_SHUTDOWN,
+    QEMU_MONITOR_VM_STATUS_WATCHDOG,
+
+    QEMU_MONITOR_VM_STATUS_LAST
+} qemuMonitorVMStatus;
+VIR_ENUM_DECL(qemuMonitorVMStatus)
+int qemuMonitorVMStatusToPausedReason(const char *status);
+
+int qemuMonitorGetStatus(qemuMonitorPtr mon,
+                         bool *running,
+                         virDomainPausedReason *reason);
 
 int qemuMonitorSystemReset(qemuMonitorPtr mon);
 int qemuMonitorSystemPowerdown(qemuMonitorPtr mon);
@@ -212,6 +235,9 @@ int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
 int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
                               virDomainMemoryStatPtr stats,
                               unsigned int nr_stats);
+int qemuMonitorGetBlockInfo(qemuMonitorPtr mon,
+                            const char *devname,
+                            struct qemuDomainDiskInfo *info);
 int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
                                  const char *dev_name,
                                  long long *rd_req,
@@ -488,6 +514,12 @@ int qemuMonitorBlockJob(qemuMonitorPtr mon,
                         unsigned long bandwidth,
                         virDomainBlockJobInfoPtr info,
                         int mode);
+
+int qemuMonitorOpenGraphics(qemuMonitorPtr mon,
+                            const char *protocol,
+                            int fd,
+                            const char *fdname,
+                            bool skipauth);
 
 /**
  * When running two dd process and using <> redirection, we need a

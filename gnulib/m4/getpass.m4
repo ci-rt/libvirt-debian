@@ -1,6 +1,6 @@
 # -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# getpass.m4 serial 13
+# getpass.m4 serial 14
 dnl Copyright (C) 2002-2003, 2005-2006, 2009-2011 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
@@ -47,10 +47,10 @@ AC_DEFUN([gl_PREREQ_GETPASS], [
   AC_CHECK_HEADERS_ONCE([stdio_ext.h termios.h])
   AC_CHECK_FUNCS_ONCE([__fsetlocking tcgetattr tcsetattr])
   AC_CHECK_DECLS([__fsetlocking],,,
-    [#include <stdio.h>
-     #if HAVE_STDIO_EXT_H
-      #include <stdio_ext.h>
-     #endif])
+    [[#include <stdio.h>
+      #if HAVE_STDIO_EXT_H
+       #include <stdio_ext.h>
+      #endif]])
   AC_CHECK_DECLS_ONCE([fflush_unlocked])
   AC_CHECK_DECLS_ONCE([flockfile])
   AC_CHECK_DECLS_ONCE([fputs_unlocked])
