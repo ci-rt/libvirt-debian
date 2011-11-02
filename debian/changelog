@@ -1,3 +1,11 @@
+libvirt (0.9.7~rc1-2) experimental; urgency=low
+
+  * [c0292f7] Skip socket test if we exceed UNIX_PATH_MAX.
+  * [764a29c] Fix storage pool source comparison to avoid comparing with self
+    Thanks to Daniel P. Berrange
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 02 Nov 2011 19:07:51 +0100
+
 libvirt (0.9.7~rc1-1) experimental; urgency=low
 
   * [6dba3c4] New upstream version 0.9.7~rc1
