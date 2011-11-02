@@ -1,0 +1,28 @@
+From: "Daniel P. Berrange" <berrange@redhat.com>
+Date: Fri, 7 Oct 2011 17:38:09 +0100
+Subject: Fix storage pool source comparison to avoid comparing with self
+
+If we are comparing storage pools we must skip comparing with
+ourself, so that re-defining an existing pool works
+
+* conf/storage_conf.c: Skip self when comparing
+---
+ src/conf/storage_conf.c |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
+
+diff --git a/src/conf/storage_conf.c b/src/conf/storage_conf.c
+index 18cbfdb..dadc115 100644
+--- a/src/conf/storage_conf.c
++++ b/src/conf/storage_conf.c
+@@ -1711,6 +1711,10 @@ int virStoragePoolSourceFindDuplicate(virStoragePoolObjListPtr pools,
+         if (def->type != pool->def->type)
+             continue;
+ 
++        /* Don't mach against ourself if re-defining existing pool ! */
++        if (STREQ(pool->def->name, def->name))
++            continue;
++
+         virStoragePoolObjLock(pool);
+ 
+         switch (pool->def->type) {
+-- 
