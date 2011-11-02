@@ -1,0 +1,44 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Wed, 2 Nov 2011 19:02:42 +0100
+Subject: Skip socket test if we exceed UNIX_PATH_MAX.
+
+As seen on the amd64 buildd with:
+
+ 5) Socket UNIX Accept... libvir: RPC error : Path /build/buildd-libvirt_0.9.7~rc1-1-amd64-EGXZTE/libvirt-0.9.7~rc1/debian/build/tests/virnetsockettest-test.sock too long for unix socket: Cannot allocate memory
+---
+ tests/virnetsockettest.c |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
+
+diff --git a/tests/virnetsockettest.c b/tests/virnetsockettest.c
+index 1b88605..d7c0c4f 100644
+--- a/tests/virnetsockettest.c
++++ b/tests/virnetsockettest.c
+@@ -205,11 +205,13 @@ static int testSocketUNIXAccept(const void *data ATTRIBUTE_UNUSED)
+     if (progname[0] == '/') {
+         if (virAsprintf(&path, "%s-test.sock", progname) < 0) {
+             virReportOOMError();
++            ret = EXIT_AM_SKIP;
+             goto cleanup;
+         }
+     } else {
+         if (virAsprintf(&path, "%s/%s-test.sock", abs_builddir, progname) < 0) {
+             virReportOOMError();
++            ret = EXIT_AM_SKIP;
+             goto cleanup;
+         }
+     }
+@@ -254,11 +256,13 @@ static int testSocketUNIXAddrs(const void *data ATTRIBUTE_UNUSED)
+     if (progname[0] == '/') {
+         if (virAsprintf(&path, "%s-test.sock", progname) < 0) {
+             virReportOOMError();
++            ret = EXIT_AM_SKIP;
+             goto cleanup;
+         }
+     } else {
+         if (virAsprintf(&path, "%s/%s-test.sock", abs_builddir, progname) < 0) {
+             virReportOOMError();
++            ret = EXIT_AM_SKIP;
+             goto cleanup;
+         }
+     }
+-- 
