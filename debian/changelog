@@ -1,3 +1,16 @@
+libvirt (0.9.7~rc1-1) experimental; urgency=low
+
+  * [6dba3c4] New upstream version 0.9.7~rc1
+  * [456c4b7] Update symbols file
+  * [a5b6513] debian/watch: allow for '-' in the version number so we also
+    catch the release candidates.
+  * [a5d0318] Drop Autodetect-if-the-remote-nc-command-supports-the-q-o.patch
+    fixed upstream.
+  * [fb8aed9] Update remaining patches
+  * [1f841c0] Move Debian specific patches to debian/patches/debian
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 02 Nov 2011 10:04:40 +0100
+
 libvirt (0.9.6-2) unstable; urgency=low
 
   * [6e5ad9d] Install libvirtd manpage. Thanks to Serge E. Hallyn
