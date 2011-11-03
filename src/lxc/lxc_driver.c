@@ -901,11 +901,6 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
         ret = 0;
         goto cleanup;
     }
-    if ((*nparams) < LXC_NB_MEM_PARAM) {
-        lxcError(VIR_ERR_INVALID_ARG,
-                 "%s", _("Invalid parameter count"));
-        goto cleanup;
-    }
 
     if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
         lxcError(VIR_ERR_INTERNAL_ERROR,
@@ -913,7 +908,7 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    for (i = 0; i < LXC_NB_MEM_PARAM; i++) {
+    for (i = 0; i < LXC_NB_MEM_PARAM && i < *nparams; i++) {
         virTypedParameterPtr param = &params[i];
         val = 0;
         param->value.ul = 0;
@@ -971,7 +966,8 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
         }
     }
 
-    *nparams = LXC_NB_MEM_PARAM;
+    if (*nparams > LXC_NB_MEM_PARAM)
+        *nparams = LXC_NB_MEM_PARAM;
     ret = 0;
 
 cleanup:
@@ -1638,6 +1634,7 @@ static int lxcVmStart(virConnectPtr conn,
     char *timestamp;
     virCommandPtr cmd = NULL;
     lxcDomainObjPrivatePtr priv = vm->privateData;
+    virErrorPtr err = NULL;
 
     if (!lxc_driver->cgroup) {
         lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -1769,8 +1766,7 @@ static int lxcVmStart(virConnectPtr conn,
                      _("guest failed to start: %s"), out);
         }
 
-        lxcVmTerminate(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
-        goto cleanup;
+        goto error;
     }
 
     if ((priv->monitorWatch = virEventAddHandle(
@@ -1778,31 +1774,32 @@ static int lxcVmStart(virConnectPtr conn,
              VIR_EVENT_HANDLE_ERROR | VIR_EVENT_HANDLE_HANGUP,
              lxcMonitorEvent,
              vm, NULL)) < 0) {
-        lxcVmTerminate(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
-        goto cleanup;
+        goto error;
     }
 
     if (autoDestroy &&
         lxcProcessAutoDestroyAdd(driver, vm, conn) < 0)
-        goto cleanup;
+        goto error;
 
     /*
      * Again, need to save the live configuration, because the function
      * requires vm->def->id != -1 to save tty info surely.
      */
     if (virDomainSaveConfig(driver->stateDir, vm->def) < 0)
-        goto cleanup;
+        goto error;
 
     if (virDomainObjSetDefTransient(driver->caps, vm, false) < 0)
-        goto cleanup;
+        goto error;
 
     /* Write domain status to disk. */
     if (virDomainSaveStatus(driver->caps, driver->stateDir, vm) < 0)
-        goto cleanup;
+        goto error;
 
     rc = 0;
 
 cleanup:
+    if (rc != 0 && !err)
+        err = virSaveLastError();
     virCommandFree(cmd);
     if (VIR_CLOSE(logfd) < 0) {
         virReportSystemError(errno, "%s", _("could not close logfile"));
@@ -1821,7 +1818,18 @@ cleanup:
     VIR_FORCE_CLOSE(handshakefds[0]);
     VIR_FORCE_CLOSE(handshakefds[1]);
     VIR_FREE(logfile);
+
+    if (err) {
+        virSetError(err);
+        virResetError(err);
+    }
+
     return rc;
+
+error:
+    err = virSaveLastError();
+    lxcVmTerminate(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
+    goto cleanup;
 }
 
 /**
@@ -2512,7 +2520,7 @@ lxcSetSchedulerParametersFlags(virDomainPtr domain,
     for (i = 0; i < nparams; i++) {
         virTypedParameterPtr param = &params[i];
 
-        if (STRNEQ(param->field, "cpu_shares")) {
+        if (STRNEQ(param->field, VIR_DOMAIN_SCHEDULER_CPU_SHARES)) {
             lxcError(VIR_ERR_INVALID_ARG,
                      _("Invalid parameter `%s'"), param->field);
             goto cleanup;
@@ -2568,12 +2576,6 @@ lxcGetSchedulerParametersFlags(virDomainPtr domain,
     if (driver->cgroup == NULL)
         return -1;
 
-    if (*nparams < 1) {
-        lxcError(VIR_ERR_INVALID_ARG,
-                 "%s", _("Invalid parameter count"));
-        return -1;
-    }
-
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, domain->uuid);
 
@@ -2591,7 +2593,8 @@ lxcGetSchedulerParametersFlags(virDomainPtr domain,
     if (virCgroupGetCpuShares(group, &val) != 0)
         goto cleanup;
     params[0].value.ul = val;
-    if (virStrcpyStatic(params[0].field, "cpu_shares") == NULL) {
+    if (virStrcpyStatic(params[0].field,
+                        VIR_DOMAIN_SCHEDULER_CPU_SHARES) == NULL) {
         lxcError(VIR_ERR_INTERNAL_ERROR,
                  "%s", _("Field cpu_shares too big for destination"));
         goto cleanup;

@@ -1,5 +1,3 @@
-# -*- buffer-read-only: t -*- vi: set ro:
-# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # inttypes-pri.m4 serial 4 (gettext-0.16)
 dnl Copyright (C) 1997-2002, 2006 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation

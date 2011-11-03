@@ -28,6 +28,14 @@
      <exports symbol='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_SOFT_LIMIT' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_CAP' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_CPU_SHARES' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_LIMIT' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_RESERVATION' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_SHARES' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_VCPU_QUOTA' type='macro'/>
+     <exports symbol='VIR_DOMAIN_SCHEDULER_WEIGHT' type='macro'/>
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_SEND_KEY_MAX_KEYS' type='macro'/>
      <exports symbol='VIR_GET_CPUMAP' type='macro'/>
@@ -977,37 +985,37 @@
       <info><![CDATA[Macro providing the field length of virBlkioParameter.  Provided for backwards compatibility; VIR_TYPED_PARAM_FIELD_LENGTH is the preferred value since 0.9.2.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLKIO_WEIGHT' file='libvirt'>
-      <info><![CDATA[Macro for the Blkio tunable weight: it represents the io weight the guest can use.]]></info>
+      <info><![CDATA[Macro for the Blkio tunable weight: it represents the io weight the guest can use, as a uint.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_ERRS' file='libvirt'>
-      <info><![CDATA[In Xen this returns the mysterious 'oo_req']]></info>
+      <info><![CDATA[In Xen this returns the mysterious 'oo_req', as an llong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH' file='libvirt'>
-      <info><![CDATA[Macro providing the field length of virDomainBlockStatsFlagsStruct]]></info>
+      <info><![CDATA[Macro providing the field length of parameter names when using virDomainBlockStatsFlags().]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ' file='libvirt'>
-      <info><![CDATA[Macro represents the total flush requests of the block device.]]></info>
+      <info><![CDATA[Macro represents the total flush requests of the block device, as an llong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_FLUSH_TOTAL_TIMES' file='libvirt'>
-      <info><![CDATA[Macro represents the total time spend on cache flushing in nano-seconds of the block device.]]></info>
+      <info><![CDATA[Macro represents the total time spend on cache flushing in nano-seconds of the block device, as an llong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_READ_BYTES' file='libvirt'>
-      <info><![CDATA[Macro represents the total number of read bytes of the block device.]]></info>
+      <info><![CDATA[Macro represents the total number of read bytes of the block device, as an llong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_READ_REQ' file='libvirt'>
-      <info><![CDATA[Macro represents the total read requests of the block device.]]></info>
+      <info><![CDATA[Macro represents the total read requests of the block device, as an llong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_READ_TOTAL_TIMES' file='libvirt'>
-      <info><![CDATA[Macro represents the total time spend on cache reads in nano-seconds of the block device.]]></info>
+      <info><![CDATA[Macro represents the total time spend on cache reads in nano-seconds of the block device, as an llong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES' file='libvirt'>
-      <info><![CDATA[Macro represents the total number of write bytes of the block device.]]></info>
+      <info><![CDATA[Macro represents the total number of write bytes of the block device, as an llong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_WRITE_REQ' file='libvirt'>
-      <info><![CDATA[Macro represents the total write requests of the block device.]]></info>
+      <info><![CDATA[Macro represents the total write requests of the block device, as an llong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES' file='libvirt'>
-      <info><![CDATA[Macro represents the total time spend on cache writes in nano-seconds of the block device.]]></info>
+      <info><![CDATA[Macro represents the total time spend on cache writes in nano-seconds of the block device, as an llong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_EVENT_CALLBACK' file='libvirt'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virDomainEventRegister]]></info>
@@ -1016,19 +1024,43 @@
       <info><![CDATA[Macro providing the field length of virMemoryParameter.  Provided for backwards compatibility; VIR_TYPED_PARAM_FIELD_LENGTH is the preferred value since 0.9.2.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_MEMORY_HARD_LIMIT' file='libvirt'>
-      <info><![CDATA[Macro for the memory tunable hard_limit: it represents the maximum memory the guest can use.]]></info>
+      <info><![CDATA[Macro for the memory tunable hard_limit: it represents the maximum memory the guest can use, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_MEMORY_MIN_GUARANTEE' file='libvirt'>
-      <info><![CDATA[Macro for the memory tunable min_guarantee: it represents the minimum memory guaranteed to be reserved for the guest.]]></info>
+      <info><![CDATA[Macro for the memory tunable min_guarantee: it represents the minimum memory guaranteed to be reserved for the guest, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED' file='libvirt'>
       <info><![CDATA[Macro providing the virMemoryParameter value that indicates "unlimited"]]></info>
     </macro>
     <macro name='VIR_DOMAIN_MEMORY_SOFT_LIMIT' file='libvirt'>
-      <info><![CDATA[Macro for the memory tunable soft_limit: it represents the memory upper limit enforced during memory contention.]]></info>
+      <info><![CDATA[Macro for the memory tunable soft_limit: it represents the memory upper limit enforced during memory contention, as a ullong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT' file='libvirt'>
-      <info><![CDATA[Macro for the swap tunable swap_hard_limit: it represents the maximum swap plus memory the guest can use. This limit has to be more than VIR_DOMAIN_MEMORY_HARD_LIMIT.]]></info>
+      <info><![CDATA[Macro for the swap tunable swap_hard_limit: it represents the maximum swap plus memory the guest can use, as a ullong. This limit has to be more than VIR_DOMAIN_MEMORY_HARD_LIMIT.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_CAP' file='libvirt'>
+      <info><![CDATA[Macro represents the maximum scheduler cap, when using the credit scheduler, as a uint.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_CPU_SHARES' file='libvirt'>
+      <info><![CDATA[Macro represents proportional weight of the scheduler used on the host cpu, when using the posix scheduler, as a ullong.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_LIMIT' file='libvirt'>
+      <info><![CDATA[Macro represents the scheduler limit value, when using the allocation scheduler, as an llong.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_RESERVATION' file='libvirt'>
+      <info><![CDATA[Macro represents the scheduler reservation value, when using the allocation scheduler, as an llong.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_SHARES' file='libvirt'>
+      <info><![CDATA[Macro represents the scheduler shares value, when using the allocation scheduler, as an int.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_VCPU_PERIOD' file='libvirt'>
+      <info><![CDATA[Macro represents the enforcement period for a quota, in microseconds, when using the posix scheduler, as a ullong.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_VCPU_QUOTA' file='libvirt'>
+      <info><![CDATA[Macro represents the maximum bandwidth to be used within a period, when using the posix scheduler, as an llong.]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_SCHEDULER_WEIGHT' file='libvirt'>
+      <info><![CDATA[Macro represents the relative weight,  when using the credit scheduler, as a uint.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_SCHED_FIELD_LENGTH' file='libvirt'>
       <info><![CDATA[Macro providing the field length of virSchedParameter.  Provided for backwards compatibility; VIR_TYPED_PARAM_FIELD_LENGTH is the preferred value since 0.9.2.]]></info>
@@ -2629,22 +2661,24 @@ attribute within //domain/devices/disk.  (For example, "xvda").
 Domains may have more than one block device.  To get stats for
 each you should make multiple calls to this function.
 
-The @params array will be filled with the value equal to the number of
-parameters suggested by @nparams.
+On input, @nparams gives the size of the @params array; on output,
+@nparams gives how many slots were filled with parameter
+information, which might be less but will not exceed the input
+value.
 
-As the value of @nparams is dynamic, call the API setting @nparams to 0 and
-@params as NULL, the API returns the number of parameters supported by the
-HV by updating @nparams on SUCCESS. (Note that block device of different type
-might support different parameters numbers, so it might be necessary to compute
-@nparams for each block device type). The caller should then allocate @params
+As a special case, calling with @params as NULL and @nparams as 0 on
+input will cause @nparams on output to contain the number of parameters
+supported by the hypervisor. (Note that block devices of different types
+might support different parameters, so it might be necessary to compute
+@nparams for each block device). The caller should then allocate @params
 array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
-again. See virDomainGetMemoryParameters for more details.]]></info>
+again. See virDomainGetMemoryParameters() for more details.]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='path' type='const char *' info='path to the block device'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to block stats parameter object (return value)'/>
-      <arg name='nparams' type='int *' info='pointer to number of block stats'/>
-      <arg name='flags' type='unsigned int' info='unused, always passes 0'/>
+      <arg name='nparams' type='int *' info='pointer to number of block stats; input and output'/>
+      <arg name='flags' type='unsigned int' info='unused, always pass 0'/>
     </function>
     <function name='virDomainCoreDump' file='libvirt' module='libvirt'>
       <info><![CDATA[This method will dump the core of a domain on a given file for analysis.
@@ -2812,16 +2846,25 @@ machine boots.]]></info>
       <arg name='autostart' type='int *' info='the value returned'/>
     </function>
     <function name='virDomainGetBlkioParameters' file='libvirt' module='libvirt'>
-      <info><![CDATA[Get all blkio parameters, the @params array will be filled with the values
-equal to the number of parameters suggested by @nparams.
-See virDomainGetMemoryParameters for an equivalent usage example.
+      <info><![CDATA[Get all blkio parameters.  On input, @nparams gives the size of the
+@params array; on output, @nparams gives how many slots were filled
+with parameter information, which might be less but will not exceed
+the input value.
+
+As a special case, calling with @params as NULL and @nparams as 0 on
+input will cause @nparams on output to contain the number of parameters
+supported by the hypervisor. The caller should then allocate @params
+array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
+again.
+
+See virDomainGetMemoryParameters() for an equivalent usage example.
 
 This function may require privileged access to the hypervisor. This function
 expects the caller to allocate the @params.]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to blkio parameter object (return value, allocated by the caller)'/>
-      <arg name='nparams' type='int *' info='pointer to number of blkio parameters'/>
+      <arg name='nparams' type='int *' info='pointer to number of blkio parameters; input and output'/>
       <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainModificationImpact'/>
     </function>
     <function name='virDomainGetBlockInfo' file='libvirt' module='libvirt'>
@@ -2896,12 +2939,14 @@ guest was booted with.  For more details, see virDomainGetVcpusFlags().]]></info
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
     </function>
     <function name='virDomainGetMemoryParameters' file='libvirt' module='libvirt'>
-      <info><![CDATA[Get all memory parameters, the @params array will be filled with the values
-equal to the number of parameters suggested by @nparams
+      <info><![CDATA[Get all memory parameters.  On input, @nparams gives the size of the
+@params array; on output, @nparams gives how many slots were filled
+with parameter information, which might be less but will not exceed
+the input value.
 
-As the value of @nparams is dynamic, call the API setting @nparams to 0 and
-@params as NULL, the API returns the number of parameters supported by the
-HV by updating @nparams on SUCCESS. The caller should then allocate @params
+As a special case, calling with @params as NULL and @nparams as 0 on
+input will cause @nparams on output to contain the number of parameters
+supported by the hypervisor. The caller should then allocate @params
 array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
 again.
 
@@ -2921,7 +2966,7 @@ expects the caller to allocate the @params.]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to memory parameter object (return value, allocated by the caller)'/>
-      <arg name='nparams' type='int *' info='pointer to number of memory parameters'/>
+      <arg name='nparams' type='int *' info='pointer to number of memory parameters; input and output'/>
       <arg name='flags' type='unsigned int' info='one of virDomainModificationImpact'/>
     </function>
     <function name='virDomainGetName' file='libvirt' module='libvirt'>
@@ -2935,26 +2980,42 @@ expects the caller to allocate the @params.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
     </function>
     <function name='virDomainGetSchedulerParameters' file='libvirt' module='libvirt'>
-      <info><![CDATA[Get all scheduler parameters, the @params array will be filled with the
-values and @nparams will be updated to the number of valid elements in
-@params.  It is hypervisor specific whether this returns the live or
+      <info><![CDATA[Get all scheduler parameters.  On input, @nparams gives the size of the
+@params array; on output, @nparams gives how many slots were filled
+with parameter information, which might be less but will not exceed
+the input value.  @nparams cannot be 0.
+
+It is hypervisor specific whether this returns the live or
 persistent state; for more control, use
-virDomainGetSchedulerParametersFlags.]]></info>
+virDomainGetSchedulerParametersFlags().]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to scheduler parameter objects (return value)'/>
-      <arg name='nparams' type='int *' info='pointer to number of scheduler parameter objects (this value must be at least as large as the returned value nparams of virDomainGetSchedulerType)'/>
+      <arg name='nparams' type='int *' info='pointer to number of scheduler parameter objects (this value should generally be as large as the returned value nparams of virDomainGetSchedulerType()); input and output'/>
     </function>
     <function name='virDomainGetSchedulerParametersFlags' file='libvirt' module='libvirt'>
-      <info><![CDATA[Get the scheduler parameters, the @params array will be filled with the
-values.
+      <info><![CDATA[Get all scheduler parameters.  On input, @nparams gives the size of the
+@params array; on output, @nparams gives how many slots were filled
+with parameter information, which might be less but will not exceed
+the input value.  @nparams cannot be 0.
 
 The value of @flags can be exactly VIR_DOMAIN_AFFECT_CURRENT,
-VIR_DOMAIN_AFFECT_LIVE, or VIR_DOMAIN_AFFECT_CONFIG.]]></info>
+VIR_DOMAIN_AFFECT_LIVE, or VIR_DOMAIN_AFFECT_CONFIG.
+
+Here is a sample code snippet:
+
+char *ret = virDomainGetSchedulerType(dom, &nparams);
+if (ret && nparams != 0) {
+    if ((params = malloc(sizeof(*params) * nparams)) == NULL)
+        goto error;
+    memset(params, 0, sizeof(*params) * nparams);
+    if (virDomainGetSchedulerParametersFlags(dom, params, &nparams, 0))
+        goto error;
+}]]></info>
       <return type='int' info='-1 in case of error, 0 in case of success.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to scheduler parameter object (return value)'/>
-      <arg name='nparams' type='int *' info='pointer to number of scheduler parameter (this value should be same than the returned value nparams of virDomainGetSchedulerType)'/>
+      <arg name='nparams' type='int *' info='pointer to number of scheduler parameter (this value should be same than the returned value nparams of virDomainGetSchedulerType()); input and output'/>
       <arg name='flags' type='unsigned int' info='one of virDomainModificationImpact'/>
     </function>
     <function name='virDomainGetSchedulerType' file='libvirt' module='libvirt'>

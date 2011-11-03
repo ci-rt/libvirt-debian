@@ -1,3 +1,293 @@
+2011-11-03  Guido Günther  <agx@sigxcpu.org>
+
+	virnetsockettest: Use a temporary directory in /tmp
+	to avoid exceeding UNIX_PATH_MAX
+
+	Use ENAMETOOLONG if the the socket path is longer than UNIX_PATH_MAX
+
+2011-11-03  Eric Blake  <eblake@redhat.com>
+
+	xen: allow getting < max typed parameters
+	Allow the user to call with nparams too small, per API documentation.
+
+	* src/xen/xen_hypervisor.c (xenHypervisorGetSchedulerParameters):
+	Allow fewer than max.
+	* src/xen/xend_internal.c (xenDaemonGetSchedulerParameters):
+	Likewise.
+
+	test: drop redundant check
+	libvirt.c guarantees that nparams is non-zero for scheduler parameters.
+
+	* src/test/test_driver.c (testDomainGetSchedulerParamsFlags): Drop
+	redundant check.  Avoid strcpy.
+
+	lxc: allow getting < max typed parameters
+	Allow the user to call with nparams too small, per API documentation.
+	Also, libvirt.c filters out nparams of 0 for scheduler parameters.
+
+	* src/lxc/lxc_driver.c (lxcDomainGetMemoryParameters): Allow fewer
+	than max.
+	(lxcGetSchedulerParametersFlags): Drop redundant check.
+
+	libxl: allow getting < max typed parameters
+	Allow the user to call with nparams too small, per API documentation.
+
+	* src/libxl/libxl_driver.c
+	(libxlDomainGetSchedulerParametersFlags): Allow fewer than max.
+
+	esx: allow getting < max typed parameters
+	Allow the user to call with nparams too small, per API documentation.
+
+	* src/esx/esx_driver.c (esxDomainGetMemoryParameters): Drop
+	redundant check.
+	(esxDomainGetSchedulerParametersFlags): Allow fewer than max.
+
+	API: document scheduler parameter names
+	Document the parameter names that will be used by
+	virDomain{Get,Set}SchedulerParameters{,Flags}, rather than
+	hard-coding those names in each driver, to match what is
+	done with memory, blkio, and blockstats parameters.
+
+	* include/libvirt/libvirt.h.in (VIR_DOMAIN_SCHEDULER_CPU_SHARES)
+	(VIR_DOMAIN_SCHEDULER_VCPU_PERIOD)
+	(VIR_DOMAIN_SCHEDULER_VCPU_QUOTA, VIR_DOMAIN_SCHEDULER_WEIGHT)
+	(VIR_DOMAIN_SCHEDULER_CAP, VIR_DOMAIN_SCHEDULER_RESERVATION)
+	(VIR_DOMAIN_SCHEDULER_LIMIT, VIR_DOMAIN_SCHEDULER_SHARES): New
+	field name macros.
+	* src/qemu/qemu_driver.c (qemuSetSchedulerParametersFlags)
+	(qemuGetSchedulerParametersFlags): Use new defines.
+	* src/test/test_driver.c (testDomainGetSchedulerParamsFlags)
+	(testDomainSetSchedulerParamsFlags): Likewise.
+	* src/xen/xen_hypervisor.c (xenHypervisorGetSchedulerParameters)
+	(xenHypervisorSetSchedulerParameters): Likewise.
+	* src/xen/xend_internal.c (xenDaemonGetSchedulerParameters)
+	(xenDaemonSetSchedulerParameters): Likewise.
+	* src/lxc/lxc_driver.c (lxcSetSchedulerParametersFlags)
+	(lxcGetSchedulerParametersFlags): Likewise.
+	* src/esx/esx_driver.c (esxDomainGetSchedulerParametersFlags)
+	(esxDomainSetSchedulerParametersFlags): Likewise.
+	* src/libxl/libxl_driver.c (libxlDomainGetSchedulerParametersFlags)
+	(libxlDomainSetSchedulerParametersFlags): Likewise.
+
+2011-11-02  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix off-by-one printing month in logging code
+	The field 'mon' in 'struct tm' gives months 0-11, where as
+	humans tend to expect months 1-12. Thus the month number
+	needing adjusting by 1
+
+	* src/util/logging.c: Use human friendly month number
+
+	Add missing param initialization in qemuDomainBlockStatsFlags
+	* src/qemu/qemu_driver.c: Fix use of uninitialized 'params'
+
+2011-11-02  Wen Congyang  <wency@cn.fujitsu.com>
+
+	fix crash when starting network
+	commit 27908453 introduces a regression, and it will
+	cause libvirt crashed when starting network.
+
+	The reason is that tapfd may be NULL, but we dereference
+	it without checking whether it is NULL.
+
+2011-11-02  Eric Blake  <eblake@redhat.com>
+
+	qemu: allow getting < max typed parameters
+	Since all virTypedParameter APIs allow us to return the number
+	of slots we actually populated, we should allow the user to
+	call with nparams too small (without overrunning their array)
+	or too large (ignoring the tail of the array that we can't fill),
+	rather than requiring that they get things exactly right.
+
+	Making this change will make it easier for a future patch to
+	introduce VIR_TYPED_PARAM_STRING, with filtering in libvirt.c
+	rather than in every single driver, since users already have
+	to be prepared for *nparams to be smaller on exit than on entry.
+
+	* src/qemu/qemu_driver.c (qemuDomainGetBlkioParameters)
+	(qemuDomainGetMemoryParameters): Allow variable nparams on entry.
+	(qemuGetSchedulerParametersFlags): Drop redundant check.
+	(qemudDomainBlockStats, qemudDomainBlockStatsFlags): Rename...
+	(qemuDomainBlockStats, qemuDomainBlockStatsFlags): ...to this.
+	Don't return unavailable stats.
+
+	docs: improve typed parameter documentation
+	virDomainBlockStatsFlags was missing a check that was present in
+	virDomainGetMemoryParameters.  Additionally, I found that the
+	existing descriptions were a bit hard to read.  A later patch
+	will fix qemu to return fewer than max parameters if @nparams
+	was too small on input.
+
+	* src/libvirt.c (virDomainGetMemoryParameters)
+	(virDomainGetBlkioParameters, virDomainGetSchedulerParameters)
+	(virDomainGetSchedulerParametersFlags):
+	Tweak documentation wording.
+	(virDomainBlockStatsFlags): Likewise, and add sanity check.
+
+2011-11-02  Daniel P. Berrange  <berrange@redhat.com>
+
+	Don't overwrite error message during VM cleanup
+	If an LXC VM fails to start, quite a few cleanup paths will
+	result in the original error message being overwritten. Some
+	other cleanup paths also forgot to actually terminate the VM.
+
+	* src/lxc/lxc_driver.c: Ensure VM is terminated on startup
+	  failure and preserve original error
+
+	Add support for probing filesystem with libblkid
+	The LXC code for mounting container filesystems from block devices
+	tries all filesystems in /etc/filesystems and possibly those in
+	/proc/filesystems. The regular mount binary, however, first tries
+	using libblkid to detect the format. Add support for doing the same
+	in libvirt, since Fedora's /etc/filesystems is missing many formats,
+	most notably ext4 which is the default filesystem Fedora uses!
+
+	* src/Makefile.am: Link libvirt_lxc to libblkid
+	* src/lxc/lxc_container.c: Probe filesystem format with libblkid
+
+	Fix error message when failing to detect filesystem
+	If we looped through /etc/filesystems trying to mount with each
+	type and failed all options, we forget to actually raise an
+	error message.
+
+	* src/lxc/lxc_container.c: Raise error if unable to detect
+	  the filesystems. Also fix existing error message
+
+	Workaround for broken kernel autofs mounts
+	The kernel automounter is mostly broken wrt to containers. Most
+	notably if you start a new filesystem namespace and then attempt
+	to unmount any autofs filesystem, it will typically fail with a
+	weird error message like
+
+	  Failed to unmount '/.oldroot/sys/kernel/security':Too many levels of symbolic links
+
+	Attempting to detach the autofs mount using umount2(MNT_DETACH)
+	will also fail with the same error. Therefore if we get any error on
+	unmount()ing a filesystem from the old root FS when starting a
+	container, we must immediately break out and detach the entire
+	old root filesystem (ignoring any mounts below it).
+
+	This has the effect of making the old root filesystem inaccessible
+	to anything inside the container, but at the cost that the mounts
+	live on in the kernel until the container exits. Given that SystemD
+	uses autofs by default, we need LXC to be robust this scenario and
+	thus this tradeoff is worthwhile.
+
+	* src/lxc/lxc_container.c: Detach root filesystem if any umount
+	  operation fails.
+
+	Correctly handle '*' in /etc/filesystems
+	The /etc/filesystems file can contain a '*' on the last line to
+	indicate that /proc/filessystems should be tried next. We have
+	a check that this '*' only occurs on the last line. Unfortunately
+	when we then start reading /proc/filesystems, we mistakenly think
+	we've seen '*' in /proc/filesystems and fail
+
+	* src/lxc/lxc_container.c: Skip '*' validation when we're reading
+	  /proc/filesystems
+
+	Ensure errno is valid when returning from lxcContainerWaitForContinue
+	Only some of the return paths of lxcContainerWaitForContinue will
+	have set errno. In other paths we need to set it manually to avoid
+	the caller getting a random stale errno value
+
+	* src/lxc/lxc_container.c: Set errno in lxcContainerWaitForContinue
+
+	Create /var/lib/libvirt/filesystems for LXC trees
+	We already have a /var/lib/libvirt/images for OS install images.
+	We need a separate /var/lib/libvirt/filesystems for OS install
+	trees, since SELinux labelling will be different
+
+	* libvirt.spec.in: Add /var/lib/libvirt/filesystems
+	* src/Makefile.am: Create /var/lib/libvirt/filesystems
+
+2011-11-02  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Support folders in the path of vpx:// connection URIs
+	Allow the datacenter and compute resource parts of the path
+	to be prefixed with folders. Therefore, the way the path is
+	parsed has changed. Before, it was split in 2 or 3 items and
+	the items' meanings were determined by their positions. Now
+	the path can have 2 or more items and the the vCenter server
+	is asked whether a folder, datacenter of compute resource
+	with the specified name exists at the current hierarchy level.
+
+	Before the datacenter and compute resource lookup automatically
+	traversed folders during lookup. This is logic got removed
+	and folders have to be specified explicitly.
+
+	The proper datacenter path including folders is now used when
+	accessing a datastore over HTTPS. This makes virsh dumpxml
+	and define work for datacenters in folders.
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=732676
+
+2011-11-02  Patrice LACHANCE  <patlachance@gmail.com>
+
+	esx: Support vSphere 5.x
+	And virtual hardware version 8.
+
+2011-11-02  Wen Ruo Lv  <lvroyce@linux.vnet.ibm.com>
+
+	Fix URI alias prefix matching
+	with /etc/libvirt/libvirt.conf below:
+	uri_aliases = [
+	  "hail=qemu:///system",
+	  "sleet=qemu+ssh://root 9 115 122 57/system",
+	  "sam=qemu+unix:///system?socket=/var/run/libvirt/libvirt-sock",
+	]
+	Neither "virsh -c hailly" nor "hai" should result in matching "hail=qemu:///system"
+
+	Fix URI alias prefix matching when connecting
+
+2011-11-02  Eric Blake  <eblake@redhat.com>
+
+	docs: fix typo in <disk>/<target> example
+	* docs/formatdomain.html.in: Use dev, not def.
+	Reported by Alexander Biryukov.
+
+2011-11-01  Michal Privoznik  <mprivozn@redhat.com>
+
+	ServerClient: Flush cached data
+	If daemon is using SASL it reads client data into a cache. This cache is
+	big (usually 65KB) and can thus contain 2 or more messages. However,
+	on socket event we can dispatch only one message. So if we read two
+	messages at once, the second will not be dispatched as the socket event
+	goes away with filling the cache.
+	Moreover, when dispatching the cache we need to remember to take care
+	of client max requests limit.
+
+2011-11-01  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix storage pool source comparison to avoid comparing with self
+	If we are comparing storage pools we must skip comparing with
+	ourself, so that re-defining an existing pool works
+
+	* conf/storage_conf.c: Skip self when comparing
+
+2011-11-01  Sage Weil  <sage@newdream.net>
+
+	qemu: pass virConnectPtr into Domain{Attach,Detach}*
+	The qemu RBD driver needs access to the conn in order to get the secret
+	needed for connecting to the ceph cluster.
+
+2011-11-01  Alex Jia  <ajia@redhat.com>
+
+	qemu: plug memory leak
+	Detected by Coverity. Leak introduced in commit 6cabc0b.
+
+	* src/qemu/qemu_command.c: Clean up on failure.
+
+2011-11-01  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	python: Fix documentation of virStream recv
+	This was fixed in be757a3f7baf93b for libvirt.c.
+
+2011-10-31  Michal Privoznik  <mprivozn@redhat.com>
+
+	startupPolicty: Minor cleanups
+	This patch does some cleanups to my previous startupPolicy patchset.
+
 2011-10-30  Osier Yang  <jyang@redhat.com>
 
 	qemu: Restore the original states of PCI device when restarting daemon

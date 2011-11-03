@@ -6,6 +6,8 @@ int esxVI_LookupComputeResource(esxVI_Context *ctx, const char *name, esxVI_Mana
 
 int esxVI_LookupDatacenter(esxVI_Context *ctx, const char *name, esxVI_ManagedObjectReference *root, esxVI_String *selectedPropertyNameList, esxVI_Datacenter **item, esxVI_Occurrence occurrence);
 
+int esxVI_LookupFolder(esxVI_Context *ctx, const char *name, esxVI_ManagedObjectReference *root, esxVI_String *selectedPropertyNameList, esxVI_Folder **item, esxVI_Occurrence occurrence);
+
 int esxVI_LookupHostSystem(esxVI_Context *ctx, const char *name, esxVI_ManagedObjectReference *root, esxVI_String *selectedPropertyNameList, esxVI_HostSystem **item, esxVI_Occurrence occurrence);
 
 int esxVI_LookupManagedEntity(esxVI_Context *ctx, const char *name, esxVI_ManagedObjectReference *root, esxVI_String *selectedPropertyNameList, esxVI_ManagedEntity **item, esxVI_Occurrence occurrence);

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2011-10-31 15:27+0800\n"
+"POT-Creation-Date: 2011-11-03 17:44+0800\n"
 "PO-Revision-Date: 2007-10-04 14:21+0200\n"
 "Last-Translator: Kjartan Maraas <kmaraas@gnome.org>\n"
 "Language-Team: Norwegian Bokmål <i18n-nb@lister.ping.uio.no>\n"
@@ -205,18 +205,18 @@ msgstr "kunne ikke koble til %s"
 msgid "unable to create rundir %s: %s"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: daemon/qemu_dispatch.h:36 daemon/remote.c:661 daemon/remote.c:836
-#: daemon/remote.c:889 daemon/remote.c:943 daemon/remote.c:1007
-#: daemon/remote.c:1065 daemon/remote.c:1134 daemon/remote.c:1187
-#: daemon/remote.c:1234 daemon/remote.c:1280 daemon/remote.c:1351
-#: daemon/remote.c:1437 daemon/remote.c:1494 daemon/remote.c:1545
-#: daemon/remote.c:1608 daemon/remote.c:1672 daemon/remote.c:1750
-#: daemon/remote.c:1825 daemon/remote.c:2563 daemon/remote.c:2616
-#: daemon/remote.c:2657 daemon/remote.c:2735 daemon/remote.c:2772
-#: daemon/remote.c:2805 daemon/remote.c:2854 daemon/remote.c:2900
-#: daemon/remote.c:2941 daemon/remote.c:2992 daemon/remote.c:3052
-#: daemon/remote.c:3106 daemon/remote.c:3155 daemon/remote.c:3193
-#: daemon/remote.c:3232 daemon/remote_dispatch.h:163
+#: daemon/qemu_dispatch.h:36 daemon/remote.c:663 daemon/remote.c:838
+#: daemon/remote.c:891 daemon/remote.c:945 daemon/remote.c:1009
+#: daemon/remote.c:1067 daemon/remote.c:1136 daemon/remote.c:1189
+#: daemon/remote.c:1236 daemon/remote.c:1282 daemon/remote.c:1353
+#: daemon/remote.c:1439 daemon/remote.c:1496 daemon/remote.c:1547
+#: daemon/remote.c:1610 daemon/remote.c:1674 daemon/remote.c:1752
+#: daemon/remote.c:1827 daemon/remote.c:2565 daemon/remote.c:2618
+#: daemon/remote.c:2659 daemon/remote.c:2737 daemon/remote.c:2774
+#: daemon/remote.c:2807 daemon/remote.c:2856 daemon/remote.c:2902
+#: daemon/remote.c:2943 daemon/remote.c:2994 daemon/remote.c:3054
+#: daemon/remote.c:3108 daemon/remote.c:3157 daemon/remote.c:3195
+#: daemon/remote.c:3234 daemon/remote_dispatch.h:163
 #: daemon/remote_dispatch.h:213 daemon/remote_dispatch.h:261
 #: daemon/remote_dispatch.h:313 daemon/remote_dispatch.h:365
 #: daemon/remote_dispatch.h:417 daemon/remote_dispatch.h:470
@@ -325,146 +325,146 @@ msgstr ""
 msgid "conversion from hyper to %s overflowed"
 msgstr "operasjon feilet"
 
-#: daemon/remote.c:603
+#: daemon/remote.c:605
 msgid "connection already open"
 msgstr ""
 
-#: daemon/remote.c:728 daemon/remote.c:806 src/remote/remote_driver.c:1298
+#: daemon/remote.c:730 daemon/remote.c:808 src/remote/remote_driver.c:1298
 #: src/remote/remote_driver.c:1369
 #, fuzzy, c-format
 msgid "unknown parameter type: %d"
 msgstr "ukjent OS-type"
 
-#: daemon/remote.c:760 daemon/remote.c:841 daemon/remote.c:894
-#: daemon/remote.c:1074 daemon/remote.c:1552 daemon/remote.c:1615
-#: daemon/remote.c:1679 daemon/remote.c:1757
+#: daemon/remote.c:762 daemon/remote.c:843 daemon/remote.c:896
+#: daemon/remote.c:1076 daemon/remote.c:1554 daemon/remote.c:1617
+#: daemon/remote.c:1681 daemon/remote.c:1759
 msgid "nparams too large"
 msgstr ""
 
-#: daemon/remote.c:775 src/remote/remote_driver.c:1338
+#: daemon/remote.c:777 src/remote/remote_driver.c:1338
 #, c-format
 msgid "Parameter %s too big for destination"
 msgstr ""
 
-#: daemon/remote.c:949
+#: daemon/remote.c:951
 msgid "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
 msgstr ""
 
-#: daemon/remote.c:1020 daemon/remote.c:1146
+#: daemon/remote.c:1022 daemon/remote.c:1148
 msgid "size > maximum buffer size"
 msgstr ""
 
-#: daemon/remote.c:1288
+#: daemon/remote.c:1290
 msgid "ncpumaps > REMOTE_VCPUINFO_MAX"
 msgstr ""
 
-#: daemon/remote.c:1294 daemon/remote.c:1365
+#: daemon/remote.c:1296 daemon/remote.c:1367
 msgid "maxinfo * maplen > REMOTE_CPUMAPS_MAX"
 msgstr ""
 
-#: daemon/remote.c:1359
+#: daemon/remote.c:1361
 msgid "maxinfo > REMOTE_VCPUINFO_MAX"
 msgstr ""
 
-#: daemon/remote.c:1940
+#: daemon/remote.c:1942
 msgid "client tried invalid SASL init request"
 msgstr ""
 
-#: daemon/remote.c:1986 daemon/remote.c:2138 daemon/remote.c:2236
-#: daemon/remote.c:2252 daemon/remote.c:2266 daemon/remote.c:2280
-#: daemon/remote.c:2371 daemon/remote.c:2508 daemon/remote.c:2537
+#: daemon/remote.c:1988 daemon/remote.c:2140 daemon/remote.c:2238
+#: daemon/remote.c:2254 daemon/remote.c:2268 daemon/remote.c:2282
+#: daemon/remote.c:2373 daemon/remote.c:2510 daemon/remote.c:2539
 #: src/util/virterror.c:1017
 #, fuzzy
 msgid "authentication failed"
 msgstr "operasjon feilet"
 
-#: daemon/remote.c:2013
+#: daemon/remote.c:2015
 #, c-format
 msgid "negotiated SSF %d was not strong enough"
 msgstr ""
 
-#: daemon/remote.c:2069 daemon/remote.c:2167
+#: daemon/remote.c:2071 daemon/remote.c:2169
 msgid "client tried invalid SASL start request"
 msgstr ""
 
-#: daemon/remote.c:2087
+#: daemon/remote.c:2089
 #, c-format
 msgid "sasl start reply data too long %d"
 msgstr ""
 
-#: daemon/remote.c:2184
+#: daemon/remote.c:2186
 #, c-format
 msgid "sasl step reply data too long %d"
 msgstr ""
 
-#: daemon/remote.c:2323 daemon/remote.c:2420
+#: daemon/remote.c:2325 daemon/remote.c:2422
 msgid "client tried invalid PolicyKit init request"
 msgstr ""
 
-#: daemon/remote.c:2335
+#: daemon/remote.c:2337
 #, c-format
 msgid "Caller PID was too large %d"
 msgstr ""
 
-#: daemon/remote.c:2341 daemon/remote.c:2431
+#: daemon/remote.c:2343 daemon/remote.c:2433
 #, c-format
 msgid "Caller identity was too large %d:%d"
 msgstr ""
 
-#: daemon/remote.c:2346
+#: daemon/remote.c:2348
 #, c-format
 msgid "Cannot invoke %s"
 msgstr ""
 
-#: daemon/remote.c:2351
+#: daemon/remote.c:2353
 #, c-format
 msgid "Policy kit denied action %s from pid %d, uid %d: %s"
 msgstr ""
 
-#: daemon/remote.c:2425
+#: daemon/remote.c:2427
 msgid "cannot get peer socket identity"
 msgstr ""
 
-#: daemon/remote.c:2439
+#: daemon/remote.c:2441
 #, c-format
 msgid "Failed to lookup policy kit caller: %s"
 msgstr ""
 
-#: daemon/remote.c:2446
+#: daemon/remote.c:2448
 #, fuzzy, c-format
 msgid "Failed to create polkit action %s"
 msgstr "Kunne ikke vise inaktive domener"
 
-#: daemon/remote.c:2456
+#: daemon/remote.c:2458
 #, fuzzy, c-format
 msgid "Failed to create polkit context %s"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: daemon/remote.c:2474
+#: daemon/remote.c:2476
 #, c-format
 msgid "Policy kit failed to check authorization %d %s"
 msgstr ""
 
-#: daemon/remote.c:2488
+#: daemon/remote.c:2490
 #, c-format
 msgid "Policy kit denied action %s from pid %d, uid %d, result: %s"
 msgstr ""
 
-#: daemon/remote.c:2535
+#: daemon/remote.c:2537
 msgid "client tried unsupported PolicyKit init request"
 msgstr ""
 
-#: daemon/remote.c:2623 daemon/remote.c:2818
+#: daemon/remote.c:2625 daemon/remote.c:2820
 #, fuzzy, c-format
 msgid "domain event %d already registered"
 msgstr "for manger drivere er registrert"
 
-#: daemon/remote.c:2664 daemon/remote.c:2868
+#: daemon/remote.c:2666 daemon/remote.c:2870
 #, fuzzy, c-format
 msgid "domain event %d not registered"
 msgstr "for manger drivere er registrert"
 
-#: daemon/remote.c:2813 daemon/remote.c:2862
+#: daemon/remote.c:2815 daemon/remote.c:2864
 #, c-format
 msgid "unsupported event ID %d"
 msgstr ""
@@ -616,7 +616,7 @@ msgstr ""
 msgid "Parameter string not correctly encoded"
 msgstr ""
 
-#: gnulib/lib/gai_strerror.c:90 src/esx/esx_vi.c:3800
+#: gnulib/lib/gai_strerror.c:90 src/esx/esx_vi.c:4031
 #: src/hyperv/hyperv_wmi.c:325 src/rpc/virnetclientprogram.c:183
 #: src/rpc/virnetclientstream.c:218
 #, fuzzy
@@ -1079,7 +1079,7 @@ msgstr ""
 msgid "unknown interface type '%s'"
 msgstr "ukjent OS-type %s"
 
-#: src/conf/domain_conf.c:3287 src/qemu/qemu_command.c:5956
+#: src/conf/domain_conf.c:3287 src/qemu/qemu_command.c:5958
 #, c-format
 msgid "unable to parse mac address '%s'"
 msgstr ""
@@ -2374,7 +2374,7 @@ msgid "Unable to format guestfwd port"
 msgstr ""
 
 #: src/conf/domain_conf.c:10040 src/conf/domain_conf.c:10071
-#: src/qemu/qemu_command.c:4353
+#: src/qemu/qemu_command.c:4354
 #, fuzzy, c-format
 msgid "unexpected smartcard type %d"
 msgstr "udefinert domenenavn eller -id"
@@ -2611,7 +2611,7 @@ msgstr ""
 msgid "unknown disk format '%s' for %s"
 msgstr "ukjent kommando: '%s'"
 
-#: src/conf/domain_conf.c:12768 src/qemu/qemu_driver.c:7665
+#: src/conf/domain_conf.c:12768 src/qemu/qemu_driver.c:7695
 #, c-format
 msgid "no disk format for %s and probing is disabled"
 msgstr ""
@@ -3459,7 +3459,7 @@ msgid "malformed group element"
 msgstr ""
 
 #: src/conf/storage_conf.c:632 src/storage/storage_driver.c:454
-#: src/test/test_driver.c:4054
+#: src/test/test_driver.c:4055
 #, fuzzy, c-format
 msgid "unknown storage pool type %s"
 msgstr "ukjent OS-type %s"
@@ -3568,7 +3568,7 @@ msgstr "Domenet er allerede aktivt"
 msgid "pool '%s' already exists with uuid %s"
 msgstr ""
 
-#: src/conf/storage_conf.c:1759
+#: src/conf/storage_conf.c:1763
 #, c-format
 msgid "Storage source conflict with pool: '%s'"
 msgstr ""
@@ -3946,9 +3946,9 @@ msgstr ""
 msgid "Found unexpected controller model '%s' for disk '%s'"
 msgstr ""
 
-#: src/esx/esx_driver.c:470 src/esx/esx_driver.c:550 src/esx/esx_driver.c:1167
-#: src/esx/esx_driver.c:1268 src/esx/esx_driver.c:1366
-#: src/esx/esx_driver.c:2681
+#: src/esx/esx_driver.c:470 src/esx/esx_driver.c:550 src/esx/esx_driver.c:1177
+#: src/esx/esx_driver.c:1278 src/esx/esx_driver.c:1376
+#: src/esx/esx_driver.c:2691
 msgid "Could not retrieve the HostSystem object"
 msgstr ""
 
@@ -3959,23 +3959,23 @@ msgid ""
 "value '%s' has unexpected value '%c', expecting '0' or '1'"
 msgstr ""
 
-#: src/esx/esx_driver.c:679 src/esx/esx_driver.c:4412
-#: src/esx/esx_driver.c:4505 src/esx/esx_storage_driver.c:669
-#: src/esx/esx_util.c:57 src/esx/esx_util.c:291 src/esx/esx_vi.c:355
-#: src/esx/esx_vi.c:401 src/esx/esx_vi.c:637 src/esx/esx_vi.c:881
-#: src/esx/esx_vi.c:1086 src/esx/esx_vi.c:1122 src/esx/esx_vi.c:1138
-#: src/esx/esx_vi.c:1161 src/esx/esx_vi.c:1201 src/esx/esx_vi.c:1230
-#: src/esx/esx_vi.c:1264 src/esx/esx_vi.c:1319 src/esx/esx_vi.c:1345
-#: src/esx/esx_vi.c:1391 src/esx/esx_vi.c:1419 src/esx/esx_vi.c:1659
-#: src/esx/esx_vi.c:1834 src/esx/esx_vi.c:1860 src/esx/esx_vi.c:1896
-#: src/esx/esx_vi.c:1930 src/esx/esx_vi.c:1967 src/esx/esx_vi.c:2072
-#: src/esx/esx_vi.c:2249 src/esx/esx_vi.c:2294 src/esx/esx_vi.c:2359
-#: src/esx/esx_vi.c:2413 src/esx/esx_vi.c:2548 src/esx/esx_vi.c:2616
-#: src/esx/esx_vi.c:2703 src/esx/esx_vi.c:2769 src/esx/esx_vi.c:2818
-#: src/esx/esx_vi.c:2926 src/esx/esx_vi.c:2982 src/esx/esx_vi.c:3079
-#: src/esx/esx_vi.c:3276 src/esx/esx_vi.c:3384 src/esx/esx_vi.c:3442
-#: src/esx/esx_vi.c:3499 src/esx/esx_vi.c:3554 src/esx/esx_vi.c:3671
-#: src/esx/esx_vi.c:3992 src/esx/esx_vi.c:4072 src/esx/esx_vi_methods.c:44
+#: src/esx/esx_driver.c:679 src/esx/esx_driver.c:4416
+#: src/esx/esx_driver.c:4509 src/esx/esx_storage_driver.c:669
+#: src/esx/esx_util.c:56 src/esx/esx_util.c:275 src/esx/esx_vi.c:355
+#: src/esx/esx_vi.c:401 src/esx/esx_vi.c:640 src/esx/esx_vi.c:1112
+#: src/esx/esx_vi.c:1317 src/esx/esx_vi.c:1353 src/esx/esx_vi.c:1369
+#: src/esx/esx_vi.c:1392 src/esx/esx_vi.c:1432 src/esx/esx_vi.c:1461
+#: src/esx/esx_vi.c:1495 src/esx/esx_vi.c:1550 src/esx/esx_vi.c:1576
+#: src/esx/esx_vi.c:1622 src/esx/esx_vi.c:1650 src/esx/esx_vi.c:1889
+#: src/esx/esx_vi.c:2065 src/esx/esx_vi.c:2091 src/esx/esx_vi.c:2127
+#: src/esx/esx_vi.c:2161 src/esx/esx_vi.c:2198 src/esx/esx_vi.c:2303
+#: src/esx/esx_vi.c:2480 src/esx/esx_vi.c:2525 src/esx/esx_vi.c:2590
+#: src/esx/esx_vi.c:2644 src/esx/esx_vi.c:2779 src/esx/esx_vi.c:2847
+#: src/esx/esx_vi.c:2934 src/esx/esx_vi.c:3000 src/esx/esx_vi.c:3049
+#: src/esx/esx_vi.c:3157 src/esx/esx_vi.c:3213 src/esx/esx_vi.c:3310
+#: src/esx/esx_vi.c:3507 src/esx/esx_vi.c:3615 src/esx/esx_vi.c:3673
+#: src/esx/esx_vi.c:3730 src/esx/esx_vi.c:3785 src/esx/esx_vi.c:3902
+#: src/esx/esx_vi.c:4232 src/esx/esx_vi.c:4312 src/esx/esx_vi_methods.c:44
 #: src/esx/esx_vi_methods.c:240 src/esx/esx_vi_types.c:102
 #: src/esx/esx_vi_types.c:196 src/esx/esx_vi_types.c:243
 #: src/esx/esx_vi_types.c:285 src/esx/esx_vi_types.c:338
@@ -3986,160 +3986,160 @@ msgstr ""
 #: src/esx/esx_vi_types.c:1417 src/esx/esx_vi_types.c:1551
 #: src/esx/esx_vi_types.c:1617 src/esx/esx_vi_types.c:1647
 #: src/hyperv/hyperv_util.c:48 src/hyperv/hyperv_wmi.c:129
-#: src/hyperv/hyperv_wmi.c:627 src/hyperv/hyperv_wmi.c:662 src/vmx/vmx.c:1761
-#: src/vmx/vmx.c:1836 src/vmx/vmx.c:1944 src/vmx/vmx.c:2301 src/vmx/vmx.c:2522
-#: src/vmx/vmx.c:2723 src/vmx/vmx.c:2827 src/vmx/vmx.c:3210 src/vmx/vmx.c:3260
-#: src/vmx/vmx.c:3350 src/vmx/vmx.c:3434
+#: src/hyperv/hyperv_wmi.c:627 src/hyperv/hyperv_wmi.c:662 src/vmx/vmx.c:1763
+#: src/vmx/vmx.c:1838 src/vmx/vmx.c:1946 src/vmx/vmx.c:2303 src/vmx/vmx.c:2524
+#: src/vmx/vmx.c:2725 src/vmx/vmx.c:2829 src/vmx/vmx.c:3212 src/vmx/vmx.c:3262
+#: src/vmx/vmx.c:3352 src/vmx/vmx.c:3436
 #, fuzzy
 msgid "Invalid argument"
 msgstr "ugyldig argument i"
 
-#: src/esx/esx_driver.c:698 src/esx/esx_driver.c:827
+#: src/esx/esx_driver.c:698 src/esx/esx_driver.c:828
 #: src/hyperv/hyperv_driver.c:153 src/phyp/phyp_driver.c:1004
 #: src/xenapi/xenapi_driver.c:133
 #, fuzzy
 msgid "Username request failed"
 msgstr "send forespørsel"
 
-#: src/esx/esx_driver.c:706 src/esx/esx_driver.c:835
+#: src/esx/esx_driver.c:706 src/esx/esx_driver.c:836
 #: src/hyperv/hyperv_driver.c:161 src/phyp/phyp_driver.c:1085
 #: src/xenapi/xenapi_driver.c:142
 msgid "Password request failed"
 msgstr ""
 
-#: src/esx/esx_driver.c:735
+#: src/esx/esx_driver.c:737
 #, c-format
-msgid "%s is neither an ESX 3.5 host nor an ESX 4.x host"
+msgid "%s is neither an ESX 3.5, 4.x nor 5.x host"
 msgstr ""
 
-#: src/esx/esx_driver.c:742
+#: src/esx/esx_driver.c:744
 #, c-format
 msgid "%s isn't a GSX 2.0 host"
 msgstr ""
 
-#: src/esx/esx_driver.c:808
+#: src/esx/esx_driver.c:809
 msgid "Path has to specify the datacenter and compute resource"
 msgstr ""
 
-#: src/esx/esx_driver.c:862
+#: src/esx/esx_driver.c:865
 #, c-format
-msgid "%s is neither a vCenter 2.5 server nor a vCenter 4.x server"
+msgid "%s is neither a vCenter 2.5, 4.x nor 5.x server"
 msgstr ""
 
-#: src/esx/esx_driver.c:971 src/hyperv/hyperv_driver.c:100
+#: src/esx/esx_driver.c:975 src/hyperv/hyperv_driver.c:100
 #, c-format
 msgid ""
 "Transport '%s' in URI scheme is not supported, try again without the "
 "transport part"
 msgstr ""
 
-#: src/esx/esx_driver.c:979 src/hyperv/hyperv_driver.c:108
+#: src/esx/esx_driver.c:989 src/hyperv/hyperv_driver.c:108
 #, fuzzy
 msgid "URI is missing the server part"
 msgstr "mangler kildeinformasjon for enhet"
 
-#: src/esx/esx_driver.c:986 src/hyperv/hyperv_driver.c:115
+#: src/esx/esx_driver.c:996 src/hyperv/hyperv_driver.c:115
 #, fuzzy
 msgid "Missing or invalid auth pointer"
 msgstr "ugyldig argument i"
 
-#: src/esx/esx_driver.c:1045
+#: src/esx/esx_driver.c:1055
 msgid "This host is not managed by a vCenter"
 msgstr ""
 
-#: src/esx/esx_driver.c:1052
+#: src/esx/esx_driver.c:1062
 #, c-format
 msgid "vCenter IP address %s too big for destination"
 msgstr ""
 
-#: src/esx/esx_driver.c:1065
+#: src/esx/esx_driver.c:1075
 #, c-format
 msgid ""
 "This host is managed by a vCenter with IP address %s, but a mismachting "
 "vCenter '%s' (%s) has been specified"
 msgstr ""
 
-#: src/esx/esx_driver.c:1231 src/vbox/vbox_MSCOMGlue.c:434
+#: src/esx/esx_driver.c:1241 src/vbox/vbox_MSCOMGlue.c:434
 #, fuzzy, c-format
 msgid "Could not parse version number from '%s'"
 msgstr "kunne ikke koble til %s"
 
-#: src/esx/esx_driver.c:1297
+#: src/esx/esx_driver.c:1307
 msgid "Missing or empty 'hostName' property"
 msgstr ""
 
-#: src/esx/esx_driver.c:1447
+#: src/esx/esx_driver.c:1457
 #, c-format
 msgid "CPU Model %s too long for destination"
 msgstr ""
 
-#: src/esx/esx_driver.c:1536
+#: src/esx/esx_driver.c:1546
 #, fuzzy, c-format
 msgid "Failed to parse positive integer from '%s'"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/esx/esx_driver.c:1637 src/hyperv/hyperv_driver.c:474
+#: src/esx/esx_driver.c:1647 src/hyperv/hyperv_driver.c:474
 #, c-format
 msgid "No domain with ID %d"
 msgstr ""
 
-#: src/esx/esx_driver.c:1725
+#: src/esx/esx_driver.c:1735
 #, fuzzy, c-format
 msgid "No domain with name '%s'"
 msgstr "domene-id eller -navn"
 
-#: src/esx/esx_driver.c:1783 src/esx/esx_driver.c:1896
-#: src/esx/esx_driver.c:1941 src/esx/esx_driver.c:1997
+#: src/esx/esx_driver.c:1793 src/esx/esx_driver.c:1906
+#: src/esx/esx_driver.c:1951 src/esx/esx_driver.c:2007
 #, fuzzy
 msgid "Domain is not powered on"
 msgstr "Domene ikke funnet"
 
-#: src/esx/esx_driver.c:1796
+#: src/esx/esx_driver.c:1806
 #, fuzzy, c-format
 msgid "Could not suspend domain: %s"
 msgstr "fortsett et domene"
 
-#: src/esx/esx_driver.c:1840
+#: src/esx/esx_driver.c:1850
 #, fuzzy
 msgid "Domain is not suspended"
 msgstr "Domene ikke funnet"
 
-#: src/esx/esx_driver.c:1854
+#: src/esx/esx_driver.c:1864
 #, fuzzy, c-format
 msgid "Could not resume domain: %s"
 msgstr "fortsett et domene"
 
-#: src/esx/esx_driver.c:2010
+#: src/esx/esx_driver.c:2020
 #, fuzzy, c-format
 msgid "Could not destroy domain: %s"
 msgstr "Kunne ikke starte domenet %s"
 
-#: src/esx/esx_driver.c:2081
+#: src/esx/esx_driver.c:2091
 #, c-format
 msgid "Got invalid memory size %d"
 msgstr ""
 
-#: src/esx/esx_driver.c:2130 src/esx/esx_driver.c:3047
+#: src/esx/esx_driver.c:2140 src/esx/esx_driver.c:3057
 #, fuzzy
 msgid "Domain is not powered off"
 msgstr "Domene ikke funnet"
 
-#: src/esx/esx_driver.c:2154
+#: src/esx/esx_driver.c:2164
 #, fuzzy, c-format
 msgid "Could not set max-memory to %lu kilobytes: %s"
 msgstr "kunne ikke koble til %s"
 
-#: src/esx/esx_driver.c:2211
+#: src/esx/esx_driver.c:2221
 #, fuzzy, c-format
 msgid "Could not set memory to %lu kilobytes: %s"
 msgstr "kunne ikke koble til %s"
 
-#: src/esx/esx_driver.c:2447 src/esx/esx_driver.c:2457
+#: src/esx/esx_driver.c:2457 src/esx/esx_driver.c:2467
 #, c-format
 msgid "QueryPerf returned object with unexpected type '%s'"
 msgstr ""
 
-#: src/esx/esx_driver.c:2574 src/esx/esx_driver.c:2658
+#: src/esx/esx_driver.c:2584 src/esx/esx_driver.c:2668
 #: src/phyp/phyp_driver.c:1421 src/phyp/phyp_driver.c:3694
 #: src/vbox/vbox_tmpl.c:2066 src/vbox/vbox_tmpl.c:2124
 #: src/xenapi/xenapi_driver.c:1106 src/xenapi/xenapi_driver.c:1278
@@ -4147,190 +4147,182 @@ msgstr ""
 msgid "unsupported flags: (0x%x)"
 msgstr ""
 
-#: src/esx/esx_driver.c:2580
+#: src/esx/esx_driver.c:2590
 #, fuzzy
 msgid "Requested number of virtual CPUs must at least be 1"
 msgstr "antall virtuelle CPUer"
 
-#: src/esx/esx_driver.c:2596
+#: src/esx/esx_driver.c:2606
 #, c-format
 msgid ""
 "Requested number of virtual CPUs is greater than max allowable number of "
 "virtual CPUs for the domain: %d > %d"
 msgstr ""
 
-#: src/esx/esx_driver.c:2623
+#: src/esx/esx_driver.c:2633
 #, fuzzy, c-format
 msgid "Could not set number of virtual CPUs to %d: %s"
 msgstr "endre antall virtuelle CPUer"
 
-#: src/esx/esx_driver.c:2851 src/esx/esx_driver.c:2894
+#: src/esx/esx_driver.c:2861 src/esx/esx_driver.c:2904
 #, c-format
 msgid "Unsupported config format '%s'"
 msgstr ""
 
-#: src/esx/esx_driver.c:3061
+#: src/esx/esx_driver.c:3071
 #, fuzzy, c-format
 msgid "Could not start domain: %s"
 msgstr "Kunne ikke starte domenet %s"
 
-#: src/esx/esx_driver.c:3145
+#: src/esx/esx_driver.c:3155
 msgid "Domain already exists, editing existing domains is not supported yet"
 msgstr ""
 
-#: src/esx/esx_driver.c:3181 src/vmware/vmware_conf.c:356
+#: src/esx/esx_driver.c:3191 src/vmware/vmware_conf.c:356
 msgid ""
 "Domain XML doesn't contain any disks, cannot deduce datastore and path for "
 "VMX file"
 msgstr ""
 
-#: src/esx/esx_driver.c:3196 src/vmware/vmware_conf.c:371
+#: src/esx/esx_driver.c:3206 src/vmware/vmware_conf.c:371
 msgid ""
 "Domain XML doesn't contain any file-based harddisks, cannot deduce datastore "
 "and path for VMX file"
 msgstr ""
 
-#: src/esx/esx_driver.c:3203 src/vmware/vmware_conf.c:378
+#: src/esx/esx_driver.c:3213 src/vmware/vmware_conf.c:378
 msgid ""
 "First file-based harddisk has no source, cannot deduce datastore and path "
 "for VMX file"
 msgstr ""
 
-#: src/esx/esx_driver.c:3215 src/vmware/vmware_conf.c:389
+#: src/esx/esx_driver.c:3225 src/vmware/vmware_conf.c:389
 #, c-format
 msgid "Expecting source '%s' of first file-based harddisk to be a VMDK image"
 msgstr ""
 
-#: src/esx/esx_driver.c:3285
+#: src/esx/esx_driver.c:3295
 #, fuzzy, c-format
 msgid "Could not define domain: %s"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/esx/esx_driver.c:3360
+#: src/esx/esx_driver.c:3370
 msgid "Domain is not suspended or powered off"
 msgstr ""
 
-#: src/esx/esx_driver.c:3505
+#: src/esx/esx_driver.c:3515
 msgid "Cannot enable general autostart option without affecting other domains"
 msgstr ""
 
-#: src/esx/esx_driver.c:3630
-msgid "Parameter array must have space for 3 items"
-msgstr ""
-
-#: src/esx/esx_driver.c:3714
+#: src/esx/esx_driver.c:3718
 #, c-format
 msgid "Shares level has unknown value %d"
 msgstr ""
 
-#: src/esx/esx_driver.c:3784
+#: src/esx/esx_driver.c:3788
 #, c-format
 msgid "Could not set reservation to %lld MHz, expecting positive value"
 msgstr ""
 
-#: src/esx/esx_driver.c:3798
+#: src/esx/esx_driver.c:3802
 #, c-format
 msgid ""
 "Could not set limit to %lld MHz, expecting positive value or -1 (unlimited)"
 msgstr ""
 
-#: src/esx/esx_driver.c:3838
+#: src/esx/esx_driver.c:3842
 #, c-format
 msgid ""
 "Could not set shares to %d, expecting positive value or -1 (low), -2 "
 "(normal) or -3 (high)"
 msgstr ""
 
-#: src/esx/esx_driver.c:3845 src/esx/esx_driver.c:4827
+#: src/esx/esx_driver.c:3849 src/esx/esx_driver.c:4831
 #, fuzzy, c-format
 msgid "Unknown field '%s'"
 msgstr "ukjent kommando: '%s'"
 
-#: src/esx/esx_driver.c:3862
+#: src/esx/esx_driver.c:3866
 #, fuzzy, c-format
 msgid "Could not change scheduler parameters: %s"
 msgstr "kunne ikke koble til %s"
 
-#: src/esx/esx_driver.c:3948
+#: src/esx/esx_driver.c:3952
 msgid "Migration not possible without a vCenter"
 msgstr ""
 
-#: src/esx/esx_driver.c:3954
+#: src/esx/esx_driver.c:3958
 #, fuzzy
 msgid "Renaming domains on migration not supported"
 msgstr "mangler informasjon om domenenavn i %s"
 
-#: src/esx/esx_driver.c:3972
+#: src/esx/esx_driver.c:3976
 msgid "Only vpxmigr:// migration URIs are supported"
 msgstr ""
 
-#: src/esx/esx_driver.c:3978
+#: src/esx/esx_driver.c:3982
 msgid "Migration source and destination have to refer to the same vCenter"
 msgstr ""
 
-#: src/esx/esx_driver.c:3988
+#: src/esx/esx_driver.c:3992
 msgid "Migration URI has to specify resource pool and host system"
 msgstr ""
 
-#: src/esx/esx_driver.c:4023
+#: src/esx/esx_driver.c:4027
 #, c-format
 msgid "Could not migrate domain, validation reported a problem: %s"
 msgstr ""
 
-#: src/esx/esx_driver.c:4027
+#: src/esx/esx_driver.c:4031
 msgid "Could not migrate domain, validation reported a problem"
 msgstr ""
 
-#: src/esx/esx_driver.c:4049
+#: src/esx/esx_driver.c:4053
 #, c-format
 msgid "Could not migrate domain, migration task finished with an error: %s"
 msgstr ""
 
-#: src/esx/esx_driver.c:4124
+#: src/esx/esx_driver.c:4128
 msgid "Could not retrieve memory usage of resource pool"
 msgstr ""
 
-#: src/esx/esx_driver.c:4251 src/vbox/vbox_tmpl.c:5873
+#: src/esx/esx_driver.c:4255 src/vbox/vbox_tmpl.c:5873
 #, fuzzy
 msgid "disk snapshots not supported yet"
 msgstr "Nettverket %s er startet\n"
 
-#: src/esx/esx_driver.c:4268
+#: src/esx/esx_driver.c:4272
 #, c-format
 msgid "Snapshot '%s' already exists"
 msgstr ""
 
-#: src/esx/esx_driver.c:4284
+#: src/esx/esx_driver.c:4288
 #, fuzzy, c-format
 msgid "Could not create snapshot: %s"
 msgstr "kunne ikke koble til %s"
 
-#: src/esx/esx_driver.c:4628 src/qemu/qemu_driver.c:9721
+#: src/esx/esx_driver.c:4632 src/qemu/qemu_driver.c:9751
 #: src/vbox/vbox_tmpl.c:6318
 #, fuzzy, c-format
 msgid "snapshot '%s' does not have a parent"
 msgstr "Returnerer tilstand om et kjørende domene"
 
-#: src/esx/esx_driver.c:4707
+#: src/esx/esx_driver.c:4711
 #, fuzzy, c-format
 msgid "Could not revert to snapshot '%s': %s"
 msgstr "kunne ikke koble til %s"
 
-#: src/esx/esx_driver.c:4773
+#: src/esx/esx_driver.c:4777
 #, fuzzy, c-format
 msgid "Could not delete snapshot '%s': %s"
 msgstr "kunne ikke koble til %s"
 
-#: src/esx/esx_driver.c:4844
+#: src/esx/esx_driver.c:4848
 #, fuzzy, c-format
 msgid "Could not change memory parameters: %s"
 msgstr "kunne ikke koble til %s"
 
-#: src/esx/esx_driver.c:4881
-msgid "Parameter array must have space for 1 item"
-msgstr ""
-
-#: src/esx/esx_driver.c:4902
+#: src/esx/esx_driver.c:4900
 #, fuzzy, c-format
 msgid "Field %s too big for destination"
 msgstr "feil ved åpning av konfigurasjonfil for lesing"
@@ -4406,63 +4398,63 @@ msgstr "kunne ikke koble til %s"
 msgid "File '%s' has unknown type"
 msgstr ""
 
-#: src/esx/esx_util.c:92 src/hyperv/hyperv_util.c:83
+#: src/esx/esx_util.c:91 src/hyperv/hyperv_util.c:83
 #, c-format
 msgid ""
 "Query parameter 'transport' has unexpected value '%s' (should be http|https)"
 msgstr ""
 
-#: src/esx/esx_util.c:110
+#: src/esx/esx_util.c:109
 #, c-format
 msgid ""
 "Query parameter 'no_verify' has unexpected value '%s' (should be 0 or 1)"
 msgstr ""
 
-#: src/esx/esx_util.c:120
+#: src/esx/esx_util.c:119
 #, c-format
 msgid ""
 "Query parameter 'auto_answer' has unexpected value '%s' (should be 0 or 1)"
 msgstr ""
 
-#: src/esx/esx_util.c:146
+#: src/esx/esx_util.c:145
 #, c-format
 msgid ""
 "Query parameter 'proxy' contains unexpected type '%s' (should be (http|socks"
 "(|4|4a|5))"
 msgstr ""
 
-#: src/esx/esx_util.c:164
+#: src/esx/esx_util.c:163
 msgid "Query parameter 'proxy' doesn't contain a hostname"
 msgstr ""
 
-#: src/esx/esx_util.c:176
+#: src/esx/esx_util.c:175
 #, c-format
 msgid ""
 "Query parameter 'proxy' has unexpected portvalue '%s' (should be [1..65535])"
 msgstr ""
 
-#: src/esx/esx_util.c:303
+#: src/esx/esx_util.c:287
 #, c-format
 msgid "Datastore path '%s' doesn't have expected format '[<datastore>] <path>'"
 msgstr ""
 
-#: src/esx/esx_util.c:386
+#: src/esx/esx_util.c:370
 #, c-format
 msgid "IP address lookup for host '%s' failed: %s"
 msgstr ""
 
-#: src/esx/esx_util.c:393
+#: src/esx/esx_util.c:377
 #, c-format
 msgid "No IP address for host '%s' found: %s"
 msgstr ""
 
-#: src/esx/esx_util.c:403
+#: src/esx/esx_util.c:387
 #, c-format
 msgid "Formating IP address for host '%s' failed: %s"
 msgstr ""
 
-#: src/esx/esx_util.c:423 src/esx/esx_vi.c:2138 src/hyperv/hyperv_driver.c:909
-#: src/hyperv/hyperv_wmi.c:633 src/vmx/vmx.c:696
+#: src/esx/esx_util.c:407 src/esx/esx_vi.c:2369 src/hyperv/hyperv_driver.c:909
+#: src/hyperv/hyperv_wmi.c:633 src/vmx/vmx.c:697
 #, c-format
 msgid "Could not parse UUID from string '%s'"
 msgstr ""
@@ -4567,319 +4559,351 @@ msgstr ""
 msgid "CURL (share) mismatch"
 msgstr ""
 
-#: src/esx/esx_vi.c:657
+#: src/esx/esx_vi.c:660
 #, fuzzy
 msgid "Could not initialize session mutex"
 msgstr "Kunne ikke vise inaktive nettverk"
 
-#: src/esx/esx_vi.c:680
+#: src/esx/esx_vi.c:690
 #, c-format
-msgid "Expecting VI API major/minor version '2.5' or '4.x' but found '%s'"
+msgid ""
+"Expecting VI API major/minor version '2.5', '4.x' or '5.x' but found '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:690
+#: src/esx/esx_vi.c:700
 #, c-format
 msgid "Expecting GSX major/minor version '2.0' but found '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:709
+#: src/esx/esx_vi.c:726
 #, c-format
-msgid "Expecting ESX major/minor version '3.5' or '4.x' but found '%s'"
+msgid "Expecting ESX major/minor version '3.5', '4.x' or '5.x' but found '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:728
+#: src/esx/esx_vi.c:752
 #, c-format
-msgid "Expecting VPX major/minor version '2.5' or '4.x' but found '%s'"
+msgid "Expecting VPX major/minor version '2.5', '4.x' or '5.x' but found '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:734
+#: src/esx/esx_vi.c:759
 #, c-format
 msgid ""
 "Expecting product 'gsx' or 'esx' or 'embeddedEsx' or 'vpx' but found '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:741
+#: src/esx/esx_vi.c:766
 #, c-format
 msgid "Expecting VI API type 'HostAgent' or 'VirtualCenter' but found '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:791 src/esx/esx_vi.c:849
+#: src/esx/esx_vi.c:820 src/esx/esx_vi.c:986 src/esx/esx_vi.c:1080
 msgid "Could not retrieve resource pool"
 msgstr ""
 
-#: src/esx/esx_vi.c:800
-msgid "Path has to specify the host system"
+#: src/esx/esx_vi.c:872
+#, c-format
+msgid "Path '%s' does not specify a datacenter"
 msgstr ""
 
-#: src/esx/esx_vi.c:914
+#: src/esx/esx_vi.c:916
+#, fuzzy, c-format
+msgid "Could not find datacenter specified in '%s'"
+msgstr "Kunne ikke opprette domenet fra %s"
+
+#: src/esx/esx_vi.c:930
+#, c-format
+msgid "Path '%s' does not specify a compute resource"
+msgstr ""
+
+#: src/esx/esx_vi.c:979
+#, fuzzy, c-format
+msgid "Could not find compute resource specified in '%s'"
+msgstr "Kunne ikke opprette domenet fra %s"
+
+#: src/esx/esx_vi.c:1002
+#, fuzzy, c-format
+msgid "Path '%s' does not specify a host system"
+msgstr "kommando '%s' eksisterer ikke"
+
+#: src/esx/esx_vi.c:1013
+#, c-format
+msgid "Path '%s' ends with an excess item"
+msgstr ""
+
+#: src/esx/esx_vi.c:1033
+#, fuzzy, c-format
+msgid "Could not find host system specified in '%s'"
+msgstr "udefinert domenenavn eller -id"
+
+#: src/esx/esx_vi.c:1145
 msgid "(esx execute response)"
 msgstr ""
 
-#: src/esx/esx_vi.c:932
+#: src/esx/esx_vi.c:1163
 #, c-format
 msgid ""
 "HTTP response code %d for call to '%s'. Fault is unknown, XPath evaluation "
 "failed"
 msgstr ""
 
-#: src/esx/esx_vi.c:940
+#: src/esx/esx_vi.c:1171
 #, c-format
 msgid ""
 "HTTP response code %d for call to '%s'. Fault is unknown, deserialization "
 "failed"
 msgstr ""
 
-#: src/esx/esx_vi.c:947
+#: src/esx/esx_vi.c:1178
 #, c-format
 msgid "HTTP response code %d for call to '%s'. Fault: %s - %s"
 msgstr ""
 
-#: src/esx/esx_vi.c:969
+#: src/esx/esx_vi.c:1200
 #, c-format
 msgid "XPath evaluation of response for call to '%s' failed"
 msgstr ""
 
-#: src/esx/esx_vi.c:981 src/esx/esx_vi.c:996
+#: src/esx/esx_vi.c:1212 src/esx/esx_vi.c:1227
 #, c-format
 msgid "Call to '%s' returned an empty result, expecting a non-empty result"
 msgstr ""
 
-#: src/esx/esx_vi.c:986 src/esx/esx_vi.c:1007
+#: src/esx/esx_vi.c:1217 src/esx/esx_vi.c:1238
 #, c-format
 msgid "Call to '%s' returned a list, expecting exactly one item"
 msgstr ""
 
-#: src/esx/esx_vi.c:1021
+#: src/esx/esx_vi.c:1252
 #, c-format
 msgid "Call to '%s' returned something, expecting an empty result"
 msgstr ""
 
-#: src/esx/esx_vi.c:1030
+#: src/esx/esx_vi.c:1261
 #, fuzzy
 msgid "Invalid argument (occurrence)"
 msgstr "ugyldig argument i"
 
-#: src/esx/esx_vi.c:1036
+#: src/esx/esx_vi.c:1267
 #, c-format
 msgid "HTTP response code %d for call to '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:1094 src/esx/esx_vi_types.c:870
+#: src/esx/esx_vi.c:1325 src/esx/esx_vi_types.c:870
 #, c-format
 msgid "Expecting type '%s' but found '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:1108 src/esx/esx_vi.c:1180 src/esx/esx_vi_types.c:357
+#: src/esx/esx_vi.c:1339 src/esx/esx_vi.c:1411 src/esx/esx_vi_types.c:357
 #: src/esx/esx_vi_types.c:1004
 #, c-format
 msgid "Unknown value '%s' for %s"
 msgstr ""
 
-#: src/esx/esx_vi.c:1274
+#: src/esx/esx_vi.c:1505
 #, c-format
 msgid "Expecting type to begin with 'ArrayOf' but found '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:1283 src/esx/esx_vi.c:1356 src/esx/esx_vi_types.c:299
+#: src/esx/esx_vi.c:1514 src/esx/esx_vi.c:1587 src/esx/esx_vi_types.c:299
 #, c-format
 msgid "Wrong XML element type %d"
 msgstr ""
 
-#: src/esx/esx_vi.c:1559
+#: src/esx/esx_vi.c:1789
 #, fuzzy
 msgid "Invalid call, no mutex"
 msgstr "ugyldig argument i"
 
-#: src/esx/esx_vi.c:1566
+#: src/esx/esx_vi.c:1796
 msgid "Invalid call, no session"
 msgstr ""
 
-#: src/esx/esx_vi.c:1625
+#: src/esx/esx_vi.c:1855
 msgid "Key of the current session differs from the key at last login"
 msgstr ""
 
-#: src/esx/esx_vi.c:1677 src/esx/esx_vi.c:1689 src/esx/esx_vi.c:1703
+#: src/esx/esx_vi.c:1908 src/esx/esx_vi.c:1920 src/esx/esx_vi.c:1934
 #, c-format
 msgid "Invalid lookup of '%s' from '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:1709
+#: src/esx/esx_vi.c:1940
 #, c-format
 msgid "Invalid lookup from '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:1740
+#: src/esx/esx_vi.c:1971
 #, fuzzy, c-format
 msgid "Could not lookup '%s' from '%s'"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/esx/esx_vi.c:1746
+#: src/esx/esx_vi.c:1977
 #, fuzzy, c-format
 msgid "Could not lookup '%s' list from '%s'"
 msgstr "kunne ikke koble til %s"
 
-#: src/esx/esx_vi.c:1752
+#: src/esx/esx_vi.c:1983
 #, fuzzy
 msgid "Invalid occurrence value"
 msgstr "ugyldig argument i %s"
 
-#: src/esx/esx_vi.c:1796
+#: src/esx/esx_vi.c:2027
 #, c-format
 msgid "Missing '%s' property while looking for ManagedEntityStatus"
 msgstr ""
 
-#: src/esx/esx_vi.c:1819
+#: src/esx/esx_vi.c:2050
 msgid "Missing 'runtime.powerState' property"
 msgstr ""
 
-#: src/esx/esx_vi.c:1880 src/esx/esx_vi.c:1913 src/esx/esx_vi.c:1949
-#: src/esx/esx_vi.c:1985
+#: src/esx/esx_vi.c:2111 src/esx/esx_vi.c:2144 src/esx/esx_vi.c:2180
+#: src/esx/esx_vi.c:2216
 #, c-format
 msgid "Missing '%s' property"
 msgstr ""
 
-#: src/esx/esx_vi.c:2056
+#: src/esx/esx_vi.c:2287
 msgid "ObjectContent does not reference a virtual machine"
 msgstr ""
 
-#: src/esx/esx_vi.c:2064
+#: src/esx/esx_vi.c:2295
 #, c-format
 msgid "Could not parse positive integer from '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:2094
+#: src/esx/esx_vi.c:2325
 msgid "Domain name contains invalid escape sequence"
 msgstr ""
 
-#: src/esx/esx_vi.c:2104
+#: src/esx/esx_vi.c:2335
 msgid "Could not get name of virtual machine"
 msgstr ""
 
-#: src/esx/esx_vi.c:2132
+#: src/esx/esx_vi.c:2363
 msgid "Could not get UUID of virtual machine"
 msgstr ""
 
-#: src/esx/esx_vi.c:2277
+#: src/esx/esx_vi.c:2508
 #, c-format
 msgid "Could not find snapshot with name '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:2312
+#: src/esx/esx_vi.c:2543
 #, c-format
 msgid "Could not find domain snapshot with internal name '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:2377
+#: src/esx/esx_vi.c:2608
 #, c-format
 msgid "Could not find domain with UUID '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:2452
+#: src/esx/esx_vi.c:2683
 #, fuzzy, c-format
 msgid "Could not find domain with name '%s'"
 msgstr "udefinert domenenavn eller -id"
 
-#: src/esx/esx_vi.c:2505
+#: src/esx/esx_vi.c:2736
 msgid "Other tasks are pending for this domain"
 msgstr ""
 
-#: src/esx/esx_vi.c:2586
+#: src/esx/esx_vi.c:2817
 #, c-format
 msgid "Could not find datastore with name '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:2673
+#: src/esx/esx_vi.c:2904
 #, c-format
 msgid "Could not find datastore containing absolute path '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:2743
+#: src/esx/esx_vi.c:2974
 msgid "Could not lookup datastore host mount"
 msgstr ""
 
-#: src/esx/esx_vi.c:3019
+#: src/esx/esx_vi.c:3250
 msgid "Domain has no current snapshot"
 msgstr ""
 
-#: src/esx/esx_vi.c:3026
+#: src/esx/esx_vi.c:3257
 msgid "Could not lookup root snapshot list"
 msgstr ""
 
-#: src/esx/esx_vi.c:3114
+#: src/esx/esx_vi.c:3345
 #, c-format
 msgid "Datastore path '%s' doesn't reference a file"
 msgstr ""
 
-#: src/esx/esx_vi.c:3201
+#: src/esx/esx_vi.c:3432
 #, fuzzy, c-format
 msgid "Could not search in datastore '%s': %s"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/esx/esx_vi.c:3220
+#: src/esx/esx_vi.c:3451
 #, c-format
 msgid "No storage volume with key or path '%s'"
 msgstr ""
 
-#: src/esx/esx_vi.c:3346
+#: src/esx/esx_vi.c:3577
 #, fuzzy, c-format
 msgid "Could not serach in datastore '%s': %s"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/esx/esx_vi.c:3474
+#: src/esx/esx_vi.c:3705
 #, fuzzy
 msgid "Could not retrieve the AutoStartDefaults object"
 msgstr "feil ved åpning av konfigurasjonfil for lesing"
 
-#: src/esx/esx_vi.c:3590 src/esx/esx_vi.c:3624
+#: src/esx/esx_vi.c:3821 src/esx/esx_vi.c:3855
 #, c-format
 msgid ""
 "Pending question blocks virtual machine execution, question is '%s', no "
 "possible answers"
 msgstr ""
 
-#: src/esx/esx_vi.c:3598
+#: src/esx/esx_vi.c:3829
 #, c-format
 msgid ""
 "Pending question blocks virtual machine execution, question is '%s', "
 "possible answers are %s, but no default answer is specified"
 msgstr ""
 
-#: src/esx/esx_vi.c:3619
+#: src/esx/esx_vi.c:3850
 #, c-format
 msgid ""
 "Pending question blocks virtual machine execution, question is '%s', "
 "possible answers are %s"
 msgstr ""
 
-#: src/esx/esx_vi.c:3726
+#: src/esx/esx_vi.c:3957
 msgid ""
 "Cancelable task is blocked by an unanswered question but cancelation failed"
 msgstr ""
 
-#: src/esx/esx_vi.c:3731
+#: src/esx/esx_vi.c:3962
 msgid "Non-cancelable task is blocked by an unanswered question"
 msgstr ""
 
-#: src/esx/esx_vi.c:3868
+#: src/esx/esx_vi.c:4099
 #, c-format
 msgid "HostCpuIdInfo register '%s' has an unexpected length"
 msgstr ""
 
-#: src/esx/esx_vi.c:3882
+#: src/esx/esx_vi.c:4113
 #, c-format
 msgid "HostCpuIdInfo register '%s' has an unexpected format"
 msgstr ""
 
-#: src/esx/esx_vi.c:3924
+#: src/esx/esx_vi.c:4164
 msgid "Unexpected product version"
 msgstr ""
 
-#: src/esx/esx_vi.c:4078
+#: src/esx/esx_vi.c:4318
 #, fuzzy, c-format
 msgid "Missing 'name' property in %s lookup"
 msgstr "mangler informasjon om domenenavn i %s"
 
-#: src/esx/esx_vi.c:4111
+#: src/esx/esx_vi.c:4351
 #, fuzzy, c-format
 msgid "Could not find %s with name '%s'"
 msgstr "udefinert domenenavn eller -id"
@@ -5046,7 +5070,7 @@ msgstr "Kunne ikke starte domenet %s"
 msgid "%s: Cannot request read and write flags together"
 msgstr ""
 
-#: src/fdstream.c:568 src/lxc/lxc_driver.c:1711
+#: src/fdstream.c:568 src/lxc/lxc_driver.c:1708
 #, fuzzy
 msgid "Unable to create pipe"
 msgstr "Kunne ikke opprette domenet fra %s"
@@ -5404,165 +5428,165 @@ msgstr "Kunne ikke definere domenet fra %s"
 msgid "Initialization of %s state driver failed"
 msgstr ""
 
-#: src/libvirt.c:995
+#: src/libvirt.c:997
 msgid "Expected a list for 'uri_aliases' config parameter"
 msgstr ""
 
-#: src/libvirt.c:1006
+#: src/libvirt.c:1009
 msgid "Expected a string for 'uri_aliases' config parameter list entry"
 msgstr ""
 
-#: src/libvirt.c:1012
+#: src/libvirt.c:1015
 #, c-format
 msgid ""
 "Malformed 'uri_aliases' config entry '%s', expected 'alias=uri://host/path'"
 msgstr ""
 
-#: src/libvirt.c:1020
+#: src/libvirt.c:1023
 #, c-format
 msgid ""
 "Malformed 'uri_aliases' config entry '%s', aliases may only container 'a-Z, "
 "0-9, _, -'"
 msgstr ""
 
-#: src/libvirt.c:1129
+#: src/libvirt.c:1133
 #, fuzzy, c-format
 msgid "could not parse connection URI %s"
 msgstr "kunne ikke koble til %s"
 
-#: src/libvirt.c:1185
+#: src/libvirt.c:1189
 #, c-format
 msgid "libvirt was built without the '%s' driver"
 msgstr ""
 
-#: src/libvirt.c:1208
+#: src/libvirt.c:1212
 #, c-format
 msgid "No connection for URI %s"
 msgstr ""
 
-#: src/libvirt.c:2478 src/libvirt.c:2572
+#: src/libvirt.c:2482 src/libvirt.c:2576
 msgid "could not build absolute output file path"
 msgstr ""
 
-#: src/libvirt.c:2561 src/libvirt.c:2705 src/libvirt.c:2859
-#: src/libvirt.c:15744 src/libvirt.c:16573
+#: src/libvirt.c:2565 src/libvirt.c:2709 src/libvirt.c:2863
+#: src/libvirt.c:15778 src/libvirt.c:16607
 msgid "running and paused flags are mutually exclusive"
 msgstr ""
 
-#: src/libvirt.c:2631 src/libvirt.c:2716 src/libvirt.c:2787 src/libvirt.c:2870
+#: src/libvirt.c:2635 src/libvirt.c:2720 src/libvirt.c:2791 src/libvirt.c:2874
 #, fuzzy
 msgid "could not build absolute input file path"
 msgstr "kunne ikke koble til %s"
 
-#: src/libvirt.c:2776
+#: src/libvirt.c:2780
 msgid "virDomainSaveImageGetXMLDesc with secure flag"
 msgstr ""
 
-#: src/libvirt.c:2942
+#: src/libvirt.c:2946
 msgid "crash and live flags are mutually exclusive"
 msgstr ""
 
-#: src/libvirt.c:2948
+#: src/libvirt.c:2952
 msgid "crash and reset flags are mutually exclusive"
 msgstr ""
 
-#: src/libvirt.c:2954
+#: src/libvirt.c:2958
 msgid "live and reset flags are mutually exclusive"
 msgstr ""
 
-#: src/libvirt.c:2965
+#: src/libvirt.c:2969
 #, fuzzy
 msgid "could not build absolute core file path"
 msgstr "kunne ikke koble til %s"
 
-#: src/libvirt.c:4007
+#: src/libvirt.c:4022
 msgid "virDomainGetXMLDesc with secure flag"
 msgstr ""
 
-#: src/libvirt.c:4193
+#: src/libvirt.c:4208
 msgid "domainMigratePrepare did not set uri"
 msgstr ""
 
-#: src/libvirt.c:4305 src/qemu/qemu_migration.c:1932
+#: src/libvirt.c:4320 src/qemu/qemu_migration.c:1932
 msgid "domainMigratePrepare2 did not set uri"
 msgstr ""
 
-#: src/libvirt.c:4451 src/qemu/qemu_migration.c:2070
+#: src/libvirt.c:4466 src/qemu/qemu_migration.c:2070
 msgid "domainMigratePrepare3 did not set uri"
 msgstr ""
 
-#: src/libvirt.c:4627 src/libvirt.c:4699 src/libvirt.c:5079 src/libvirt.c:5091
+#: src/libvirt.c:4642 src/libvirt.c:4714 src/libvirt.c:5094 src/libvirt.c:5106
 msgid "Unable to change target guest XML during migration"
 msgstr ""
 
-#: src/libvirt.c:4632
+#: src/libvirt.c:4647
 msgid "Unable to override peer2peer migration URI"
 msgstr ""
 
-#: src/libvirt.c:4853 src/libvirt.c:5054
+#: src/libvirt.c:4868 src/libvirt.c:5069
 #, fuzzy
 msgid "cannot enforce change protection"
 msgstr "oppførsel ved omstart av domene"
 
-#: src/libvirt.c:4859 src/libvirt.c:5060
+#: src/libvirt.c:4874 src/libvirt.c:5075
 msgid "cannot perform tunnelled migration without using peer2peer flag"
 msgstr ""
 
-#: src/libvirt.c:6900 src/libvirt.c:16775 src/libvirt.c:16824
-#: src/libvirt.c:16885 src/libvirt.c:16949
+#: src/libvirt.c:6934 src/libvirt.c:16809 src/libvirt.c:16858
+#: src/libvirt.c:16919 src/libvirt.c:16983
 msgid "path is NULL"
 msgstr ""
 
-#: src/libvirt.c:6907
+#: src/libvirt.c:6941
 msgid "buffer is NULL"
 msgstr ""
 
-#: src/libvirt.c:7010
+#: src/libvirt.c:7044
 msgid "flags parameter must include VIR_MEMORY_VIRTUAL or VIR_MEMORY_PHYSICAL"
 msgstr ""
 
-#: src/libvirt.c:7017
+#: src/libvirt.c:7051
 msgid "buffer is NULL but size is non-zero"
 msgstr ""
 
-#: src/libvirt.c:13996
+#: src/libvirt.c:14030
 msgid "data sources cannot be used for non-blocking streams"
 msgstr ""
 
-#: src/libvirt.c:14098
+#: src/libvirt.c:14132
 msgid "data sinks cannot be used for non-blocking streams"
 msgstr ""
 
-#: src/libvirt.c:16016
+#: src/libvirt.c:16050
 msgid "use of current flag requires redefine flag"
 msgstr ""
 
-#: src/libvirt.c:16022
+#: src/libvirt.c:16056
 msgid "redefine and no metadata flags are mutually exclusive"
 msgstr ""
 
-#: src/libvirt.c:16028
+#: src/libvirt.c:16062
 msgid "redefine and halt flags are mutually exclusive"
 msgstr ""
 
-#: src/libvirt.c:16081
+#: src/libvirt.c:16115
 msgid "virDomainSnapshotGetXMLDesc with secure flag"
 msgstr ""
 
-#: src/libvirt.c:16640
+#: src/libvirt.c:16674
 msgid "children and children_only flags are mutually exclusive"
 msgstr ""
 
-#: src/libvirt.c:16830
+#: src/libvirt.c:16864
 msgid "info is NULL"
 msgstr ""
 
-#: src/libvirt.c:17017
+#: src/libvirt.c:17051
 #, fuzzy, c-format
 msgid "Unable to access file descriptor %d"
 msgstr "feil ved lesing av konfigurasjonsfil %s"
 
-#: src/libvirt.c:17023
+#: src/libvirt.c:17057
 #, fuzzy, c-format
 msgid "File descriptor %d must be a socket"
 msgstr "Kunne ikke opprette domenet fra %s"
@@ -5791,187 +5815,237 @@ msgstr ""
 msgid "this platform is missing dlopen"
 msgstr ""
 
-#: src/lxc/lxc_container.c:142
+#: src/lxc/lxc_container.c:146
 #, fuzzy
 msgid "setsid failed"
 msgstr "operasjon feilet"
 
-#: src/lxc/lxc_container.c:148
+#: src/lxc/lxc_container.c:152
 msgid "ioctl(TIOCSTTY) failed"
 msgstr ""
 
-#: src/lxc/lxc_container.c:163
+#: src/lxc/lxc_container.c:167
 #, fuzzy
 msgid "dup2(stdin) failed"
 msgstr "operasjon feilet"
 
-#: src/lxc/lxc_container.c:169
+#: src/lxc/lxc_container.c:173
 msgid "dup2(stdout) failed"
 msgstr ""
 
-#: src/lxc/lxc_container.c:175
+#: src/lxc/lxc_container.c:179
 msgid "dup2(stderr) failed"
 msgstr ""
 
-#: src/lxc/lxc_container.c:323
+#: src/lxc/lxc_container.c:332
 #, fuzzy
 msgid "Failed to make root private"
 msgstr "kunne ikke lagre innhold"
 
-#: src/lxc/lxc_container.c:334 src/lxc/lxc_container.c:356
-#: src/lxc/lxc_container.c:596 src/lxc/lxc_container.c:768
+#: src/lxc/lxc_container.c:343 src/lxc/lxc_container.c:365
+#: src/lxc/lxc_container.c:605 src/lxc/lxc_container.c:866
 #, fuzzy, c-format
 msgid "Failed to create %s"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/lxc/lxc_container.c:343
+#: src/lxc/lxc_container.c:352
 #, fuzzy, c-format
 msgid "Failed to mount empty tmpfs at %s"
 msgstr "Kunne ikke starte domenet %s"
 
-#: src/lxc/lxc_container.c:364
+#: src/lxc/lxc_container.c:373
 #, fuzzy, c-format
 msgid "Failed to bind new root %s into tmpfs"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/lxc/lxc_container.c:372
+#: src/lxc/lxc_container.c:381
 #, fuzzy, c-format
 msgid "Failed to make new root %s readonly"
 msgstr "kunne ikke lagre innhold"
 
-#: src/lxc/lxc_container.c:382
+#: src/lxc/lxc_container.c:391
 #, fuzzy, c-format
 msgid "Failed to chroot into %s"
 msgstr "Kunne ikke starte nettverket %s"
 
-#: src/lxc/lxc_container.c:390
+#: src/lxc/lxc_container.c:399
 #, fuzzy
 msgid "Failed to pivot root"
 msgstr "Kunne ikke vise aktive nettverk"
 
-#: src/lxc/lxc_container.c:449
+#: src/lxc/lxc_container.c:458
 #, fuzzy, c-format
 msgid "Failed to mkdir %s"
 msgstr "Kunne ikke starte domenet %s"
 
-#: src/lxc/lxc_container.c:474
+#: src/lxc/lxc_container.c:483
 #, fuzzy, c-format
 msgid "Failed to mount %s on %s type %s"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/lxc/lxc_container.c:501
+#: src/lxc/lxc_container.c:510
 msgid "Cannot create /dev/pts"
 msgstr ""
 
-#: src/lxc/lxc_container.c:508
+#: src/lxc/lxc_container.c:517
 #, fuzzy
 msgid "Failed to mount /dev/pts in container"
 msgstr "feil ved åpning av konfigurasjonfil for lesing"
 
-#: src/lxc/lxc_container.c:542
+#: src/lxc/lxc_container.c:551
 #, fuzzy, c-format
 msgid "Failed to make device %s"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/lxc/lxc_container.c:552
+#: src/lxc/lxc_container.c:561
 #, fuzzy
 msgid "Failed to make device /dev/ptmx"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/lxc/lxc_container.c:559
+#: src/lxc/lxc_container.c:568
 #, fuzzy
 msgid "Failed to bind-mount /dev/ptmx to /dev/pts/ptmx"
 msgstr "Kunne ikke starte domenet %s"
 
-#: src/lxc/lxc_container.c:570
+#: src/lxc/lxc_container.c:579
 msgid "Failed to symlink /dev/pts/0 to /dev/tty1"
 msgstr ""
 
-#: src/lxc/lxc_container.c:575
+#: src/lxc/lxc_container.c:584
 #, fuzzy
 msgid "Failed to symlink /dev/pts/0 to /dev/console"
 msgstr "feil ved åpning av konfigurasjonfil for lesing"
 
-#: src/lxc/lxc_container.c:603 src/lxc/lxc_container.c:723
+#: src/lxc/lxc_container.c:612
 #, fuzzy, c-format
 msgid "Failed to bind mount directory %s to %s"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/lxc/lxc_container.c:612
+#: src/lxc/lxc_container.c:621
 #, fuzzy, c-format
 msgid "Failed to make directory %s readonly"
 msgstr "kunne ikke lagre innhold"
 
-#: src/lxc/lxc_container.c:670 src/util/iohelper.c:151
+#: src/lxc/lxc_container.c:648
+#, fuzzy, c-format
+msgid "Unable to open filesystem %s"
+msgstr "Kunne ikke lagre domenet %s til %s"
+
+#: src/lxc/lxc_container.c:654
+#, fuzzy
+msgid "Unable to create blkid library handle"
+msgstr "Kunne ikke starte domenet %s"
+
+#: src/lxc/lxc_container.c:659
+#, fuzzy, c-format
+msgid "Unable to associate device %s with blkid library"
+msgstr "Kunne ikke opprette domenet fra %s"
+
+#: src/lxc/lxc_container.c:675
+#, fuzzy, c-format
+msgid "Too many filesystems detected for %s"
+msgstr "Kunne ikke opprette domenet fra %s"
+
+#: src/lxc/lxc_container.c:679
+#, fuzzy, c-format
+msgid "Unable to detect filesystem for %s"
+msgstr "Kunne ikke opprette domenet fra %s"
+
+#: src/lxc/lxc_container.c:687
+#, fuzzy, c-format
+msgid "Unable to find filesystem type for %s"
+msgstr "udefinert domenenavn eller -id"
+
+#: src/lxc/lxc_container.c:760 src/util/iohelper.c:151
 #, fuzzy, c-format
 msgid "Unable to read %s"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/lxc/lxc_container.c:700
+#: src/lxc/lxc_container.c:790
 #, c-format
 msgid "%s has unexpected '*' before last line"
 msgstr ""
 
-#: src/lxc/lxc_container.c:815
+#: src/lxc/lxc_container.c:813
+#, fuzzy, c-format
+msgid "Failed to mount device %s to %s"
+msgstr "Kunne ikke starte domenet %s"
+
+#: src/lxc/lxc_container.c:836
+#, fuzzy, c-format
+msgid "Failed to mount device %s to %s, unable to detect filesystem"
+msgstr "Kunne ikke starte domenet %s"
+
+#: src/lxc/lxc_container.c:878
+#, fuzzy, c-format
+msgid "Failed to mount device %s to %s as %s"
+msgstr "Kunne ikke lagre domenet %s til %s"
+
+#: src/lxc/lxc_container.c:927
 #, fuzzy, c-format
 msgid "Unexpected filesystem type %s"
 msgstr "udefinert domenenavn eller -id"
 
-#: src/lxc/lxc_container.c:820
+#: src/lxc/lxc_container.c:932
 #, fuzzy, c-format
 msgid "Cannot mount filesystem type %s"
 msgstr "ukjent OS-type %s"
 
-#: src/lxc/lxc_container.c:861
+#: src/lxc/lxc_container.c:976
 #, fuzzy
 msgid "Failed to read /proc/mounts"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/lxc/lxc_container.c:890
+#: src/lxc/lxc_container.c:1016
 #, fuzzy, c-format
-msgid "Failed to unmount '%s'"
+msgid "Failed to unmount '%s' and could not detach old root '%s'"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/lxc/lxc_container.c:949
+#: src/lxc/lxc_container.c:1023
+#, fuzzy, c-format
+msgid "Failed to unmount '%s' and could not unmount old root '%s'"
+msgstr "Kunne ikke lagre domenet %s til %s"
+
+#: src/lxc/lxc_container.c:1088
 #, fuzzy
 msgid "Failed to make / slave"
 msgstr "kunne ikke lagre innhold"
 
-#: src/lxc/lxc_container.c:997
+#: src/lxc/lxc_container.c:1136
 #, fuzzy, c-format
 msgid "Failed to remove capabilities: %d"
 msgstr "kunne ikke åpne fil"
 
-#: src/lxc/lxc_container.c:1003
+#: src/lxc/lxc_container.c:1142
 #, fuzzy, c-format
 msgid "Failed to apply capabilities: %d"
 msgstr "kunne ikke åpne fil"
 
-#: src/lxc/lxc_container.c:1044
+#: src/lxc/lxc_container.c:1183
 msgid "lxcChild() passed invalid vm definition"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1069
+#: src/lxc/lxc_container.c:1208
 #, fuzzy, c-format
 msgid "Failed to open tty %s"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/lxc/lxc_container.c:1079
+#: src/lxc/lxc_container.c:1218
 #, c-format
 msgid "cannot find init path '%s' relative to container root"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1087
+#: src/lxc/lxc_container.c:1226
 #, fuzzy
 msgid "Failed to read the container continue message"
 msgstr "Kunne ikke vise inaktive domener"
 
-#: src/lxc/lxc_container.c:1104
+#: src/lxc/lxc_container.c:1243
 #, fuzzy
 msgid "failed to send continue signal to controller"
 msgstr "kunne ikke lagre innhold"
 
-#: src/lxc/lxc_container.c:1212
+#: src/lxc/lxc_container.c:1351
 #, fuzzy
 msgid "Failed to run clone container"
 msgstr "kunne ikke lagre innhold"
@@ -6183,7 +6257,7 @@ msgid "Failed to mount devpts on %s"
 msgstr "Kunne ikke starte domenet %s"
 
 #: src/lxc/lxc_controller.c:947 src/lxc/lxc_controller.c:956
-#: src/lxc/lxc_driver.c:1683
+#: src/lxc/lxc_driver.c:1680
 #, fuzzy
 msgid "Failed to allocate tty"
 msgstr "Kunne ikke vise aktive nettverk"
@@ -6236,19 +6310,19 @@ msgstr ""
 #: src/lxc/lxc_driver.c:361 src/lxc/lxc_driver.c:493 src/lxc/lxc_driver.c:550
 #: src/lxc/lxc_driver.c:616 src/lxc/lxc_driver.c:643 src/lxc/lxc_driver.c:672
 #: src/lxc/lxc_driver.c:697 src/lxc/lxc_driver.c:729 src/lxc/lxc_driver.c:793
-#: src/lxc/lxc_driver.c:894 src/lxc/lxc_driver.c:1003
-#: src/lxc/lxc_driver.c:1851 src/lxc/lxc_driver.c:2109
-#: src/lxc/lxc_driver.c:2505 src/lxc/lxc_driver.c:2584
-#: src/lxc/lxc_driver.c:2639 src/lxc/lxc_driver.c:2694
-#: src/lxc/lxc_driver.c:2721 src/lxc/lxc_driver.c:2889
-#: src/lxc/lxc_driver.c:2954 src/libxl/libxl_driver.c:1342
-#: src/libxl/libxl_driver.c:1400 src/libxl/libxl_driver.c:1456
-#: src/libxl/libxl_driver.c:1502 src/libxl/libxl_driver.c:1545
-#: src/libxl/libxl_driver.c:1600 src/libxl/libxl_driver.c:1939
-#: src/libxl/libxl_driver.c:2037 src/libxl/libxl_driver.c:2127
-#: src/libxl/libxl_driver.c:2173 src/libxl/libxl_driver.c:2207
-#: src/libxl/libxl_driver.c:2705 src/libxl/libxl_driver.c:3447
-#: src/libxl/libxl_driver.c:3475 src/vmware/vmware_driver.c:595
+#: src/lxc/lxc_driver.c:894 src/lxc/lxc_driver.c:999 src/lxc/lxc_driver.c:1859
+#: src/lxc/lxc_driver.c:2117 src/lxc/lxc_driver.c:2513
+#: src/lxc/lxc_driver.c:2586 src/lxc/lxc_driver.c:2642
+#: src/lxc/lxc_driver.c:2697 src/lxc/lxc_driver.c:2724
+#: src/lxc/lxc_driver.c:2892 src/lxc/lxc_driver.c:2957
+#: src/libxl/libxl_driver.c:1342 src/libxl/libxl_driver.c:1400
+#: src/libxl/libxl_driver.c:1456 src/libxl/libxl_driver.c:1502
+#: src/libxl/libxl_driver.c:1545 src/libxl/libxl_driver.c:1600
+#: src/libxl/libxl_driver.c:1939 src/libxl/libxl_driver.c:2037
+#: src/libxl/libxl_driver.c:2127 src/libxl/libxl_driver.c:2173
+#: src/libxl/libxl_driver.c:2207 src/libxl/libxl_driver.c:2705
+#: src/libxl/libxl_driver.c:3447 src/libxl/libxl_driver.c:3475
+#: src/vmware/vmware_driver.c:595
 #, c-format
 msgid "No domain with matching uuid '%s'"
 msgstr ""
@@ -6258,8 +6332,8 @@ msgstr ""
 msgid "No domain with matching name '%s'"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:440 src/lxc/lxc_driver.c:1857
-#: src/lxc/lxc_driver.c:1935
+#: src/lxc/lxc_driver.c:440 src/lxc/lxc_driver.c:1865
+#: src/lxc/lxc_driver.c:1943
 msgid "System lacks NETNS support"
 msgstr ""
 
@@ -6267,7 +6341,7 @@ msgstr ""
 msgid "Cannot undefine transient domain"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:562 src/lxc/lxc_driver.c:753 src/lxc/lxc_driver.c:912
+#: src/lxc/lxc_driver.c:562 src/lxc/lxc_driver.c:753 src/lxc/lxc_driver.c:907
 #, fuzzy, c-format
 msgid "Unable to get cgroup for %s"
 msgstr "Kunne ikke starte domenet %s"
@@ -6289,16 +6363,16 @@ msgstr ""
 msgid "Cannot set memory higher than max memory"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:741 src/lxc/lxc_driver.c:2115
-#: src/lxc/lxc_driver.c:2645 src/lxc/lxc_driver.c:2895
-#: src/lxc/lxc_driver.c:2960 src/libxl/libxl_driver.c:1346
+#: src/lxc/lxc_driver.c:741 src/lxc/lxc_driver.c:2123
+#: src/lxc/lxc_driver.c:2648 src/lxc/lxc_driver.c:2898
+#: src/lxc/lxc_driver.c:2963 src/libxl/libxl_driver.c:1346
 #: src/libxl/libxl_driver.c:1405 src/libxl/libxl_driver.c:1462
 #: src/libxl/libxl_driver.c:1508 src/libxl/libxl_driver.c:1551
 #: src/libxl/libxl_driver.c:1944 src/libxl/libxl_driver.c:2042
 #: src/libxl/libxl_driver.c:2132 src/libxl/libxl_driver.c:2404
 #: src/libxl/libxl_driver.c:2501 src/libxl/libxl_driver.c:3253
 #: src/libxl/libxl_driver.c:3548 src/libxl/libxl_driver.c:3615
-#: src/libxl/libxl_driver.c:3704 src/openvz/openvz_driver.c:525
+#: src/libxl/libxl_driver.c:3706 src/openvz/openvz_driver.c:525
 #: src/openvz/openvz_driver.c:563
 #, fuzzy
 msgid "Domain is not running"
@@ -6313,278 +6387,265 @@ msgstr ""
 msgid "Failed to set memory for domain"
 msgstr "Kunne ikke starte domenet %s"
 
-#: src/lxc/lxc_driver.c:799 src/qemu/qemu_driver.c:5937
-#: src/qemu/qemu_driver.c:6090 src/qemu/qemu_driver.c:6218
-#: src/qemu/qemu_driver.c:6375 src/qemu/qemu_driver.c:6690
-#: src/qemu/qemu_driver.c:6971
+#: src/lxc/lxc_driver.c:799 src/qemu/qemu_driver.c:5938
+#: src/qemu/qemu_driver.c:6085 src/qemu/qemu_driver.c:6217
+#: src/qemu/qemu_driver.c:6375 src/qemu/qemu_driver.c:6691
+#: src/qemu/qemu_driver.c:6966
 #, c-format
 msgid "cannot find cgroup for domain %s"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:811 src/qemu/qemu_driver.c:6241
+#: src/lxc/lxc_driver.c:811 src/qemu/qemu_driver.c:6240
 msgid "invalid type for memory hard_limit tunable, expected a 'ullong'"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:819 src/qemu/qemu_driver.c:6250
+#: src/lxc/lxc_driver.c:819 src/qemu/qemu_driver.c:6249
 msgid "unable to set memory hard_limit tunable"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:826 src/qemu/qemu_driver.c:6262
+#: src/lxc/lxc_driver.c:826 src/qemu/qemu_driver.c:6261
 msgid "invalid type for memory soft_limit tunable, expected a 'ullong'"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:834 src/qemu/qemu_driver.c:6271
+#: src/lxc/lxc_driver.c:834 src/qemu/qemu_driver.c:6270
 msgid "unable to set memory soft_limit tunable"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:841 src/qemu/qemu_driver.c:6283
+#: src/lxc/lxc_driver.c:841 src/qemu/qemu_driver.c:6282
 msgid "invalid type for swap_hard_limit tunable, expected a 'ullong'"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:849 src/qemu/qemu_driver.c:6292
+#: src/lxc/lxc_driver.c:849 src/qemu/qemu_driver.c:6291
 msgid "unable to set swap_hard_limit tunable"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:854 src/qemu/qemu_driver.c:6301
+#: src/lxc/lxc_driver.c:854 src/qemu/qemu_driver.c:6300
 #, c-format
 msgid "Memory tunable `%s' not implemented"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:858 src/qemu/qemu_driver.c:5981
-#: src/qemu/qemu_driver.c:6010 src/qemu/qemu_driver.c:6305
+#: src/lxc/lxc_driver.c:858 src/qemu/qemu_driver.c:5982
+#: src/qemu/qemu_driver.c:6011 src/qemu/qemu_driver.c:6305
 #, c-format
 msgid "Parameter `%s' not supported"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:906 src/lxc/lxc_driver.c:2573
-#: src/libxl/libxl_driver.c:3635 src/nodeinfo.c:417
-#: src/qemu/qemu_driver.c:6063 src/qemu/qemu_driver.c:6399
-#: src/qemu/qemu_driver.c:6898 src/test/test_driver.c:2713
-#: src/xen/xen_hypervisor.c:1272 src/xen/xen_hypervisor.c:1282
-#: src/xen/xend_internal.c:3612 src/xen/xend_internal.c:3622
-#, fuzzy
-msgid "Invalid parameter count"
-msgstr "ugyldig argument i"
-
-#: src/lxc/lxc_driver.c:927 src/qemu/qemu_driver.c:6460
+#: src/lxc/lxc_driver.c:922 src/qemu/qemu_driver.c:6457
 msgid "unable to get memory hard limit"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:932 src/qemu/qemu_driver.c:6414
-#: src/qemu/qemu_driver.c:6465
+#: src/lxc/lxc_driver.c:927
 msgid "Field memory hard limit too long for destination"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:942 src/qemu/qemu_driver.c:6475
+#: src/lxc/lxc_driver.c:937 src/qemu/qemu_driver.c:6473
 msgid "unable to get memory soft limit"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:947 src/qemu/qemu_driver.c:6423
-#: src/qemu/qemu_driver.c:6480
+#: src/lxc/lxc_driver.c:942
 msgid "Field memory soft limit too long for destination"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:957 src/qemu/qemu_driver.c:6490
+#: src/lxc/lxc_driver.c:952 src/qemu/qemu_driver.c:6489
 #, fuzzy
 msgid "unable to get swap hard limit"
 msgstr "kunne ikke åpne fil"
 
-#: src/lxc/lxc_driver.c:962 src/qemu/qemu_driver.c:6432
-#: src/qemu/qemu_driver.c:6495
+#: src/lxc/lxc_driver.c:957
 msgid "Field swap hard limit too long for destination"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:1206
+#: src/lxc/lxc_driver.c:1202
 #, fuzzy
 msgid "Unable to initialize bridging"
 msgstr "Kunne ikke vise inaktive nettverk"
 
-#: src/lxc/lxc_driver.c:1255
+#: src/lxc/lxc_driver.c:1251
 #, fuzzy
 msgid "Failed to get bridge for interface"
 msgstr "feil ved åpning av konfigurasjonfil for lesing"
 
-#: src/lxc/lxc_driver.c:1286
+#: src/lxc/lxc_driver.c:1282
 #, fuzzy, c-format
 msgid "Failed to add %s device to %s"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/lxc/lxc_driver.c:1297 src/network/bridge_driver.c:1815
+#: src/lxc/lxc_driver.c:1293 src/network/bridge_driver.c:1815
 #: src/qemu/qemu_command.c:330 src/util/macvtap.c:369
 #, fuzzy, c-format
 msgid "cannot set bandwidth limits on %s"
 msgstr "ukjent kommando: '%s'"
 
-#: src/lxc/lxc_driver.c:1334
+#: src/lxc/lxc_driver.c:1330
 #, fuzzy
 msgid "Failed to create client socket"
 msgstr "Kunne ikke vise inaktive domener"
 
-#: src/lxc/lxc_driver.c:1342
+#: src/lxc/lxc_driver.c:1338
 #, c-format
 msgid "Socket path %s too big for destination"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:1348
+#: src/lxc/lxc_driver.c:1344
 #, fuzzy
 msgid "Failed to connect to client socket"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/lxc/lxc_driver.c:1371
+#: src/lxc/lxc_driver.c:1367
 #, c-format
 msgid "Invalid PID %d for container"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:1379
+#: src/lxc/lxc_driver.c:1375
 #, fuzzy
 msgid "Failed to kill container PIDs"
 msgstr "kunne ikke lagre innhold"
 
-#: src/lxc/lxc_driver.c:1385
+#: src/lxc/lxc_driver.c:1381
 msgid "Some container PIDs refused to die"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:1550
+#: src/lxc/lxc_driver.c:1546
 #, fuzzy, c-format
 msgid "failed to open logfile %s"
 msgstr "kunne ikke åpne fil"
 
-#: src/lxc/lxc_driver.c:1566 src/qemu/qemu_domain.c:1268
+#: src/lxc/lxc_driver.c:1562 src/qemu/qemu_domain.c:1268
 #, fuzzy, c-format
 msgid "unable to seek to end of log for %s"
 msgstr "kunne ikke lagre innhold"
 
-#: src/lxc/lxc_driver.c:1570 src/qemu/qemu_domain.c:1272
+#: src/lxc/lxc_driver.c:1566 src/qemu/qemu_domain.c:1272
 #, fuzzy, c-format
 msgid "unable to seek to %lld from start for %s"
 msgstr "Kunne ikke starte domenet %s"
 
-#: src/lxc/lxc_driver.c:1587
+#: src/lxc/lxc_driver.c:1583
 msgid "Failure while reading guest log output"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:1644
+#: src/lxc/lxc_driver.c:1641
 msgid "The 'cpuacct', 'devices' & 'memory' cgroups controllers must be mounted"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:1651
+#: src/lxc/lxc_driver.c:1648
 #, fuzzy
 msgid "Unable to find 'cpuacct' cgroups controller mount"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/lxc/lxc_driver.c:1657
+#: src/lxc/lxc_driver.c:1654
 #, fuzzy
 msgid "Unable to find 'devices' cgroups controller mount"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/lxc/lxc_driver.c:1663
+#: src/lxc/lxc_driver.c:1660
 #, fuzzy
 msgid "Unable to find 'memory' cgroups controller mount"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/lxc/lxc_driver.c:1669
+#: src/lxc/lxc_driver.c:1666
 #, c-format
 msgid "Cannot create log directory '%s'"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:1704
+#: src/lxc/lxc_driver.c:1701
 #, fuzzy, c-format
 msgid "Failed to open '%s'"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/lxc/lxc_driver.c:1743
+#: src/lxc/lxc_driver.c:1740
 #, fuzzy
 msgid "could not close handshake fd"
 msgstr "kunne ikke koble til %s"
 
-#: src/lxc/lxc_driver.c:1756
+#: src/lxc/lxc_driver.c:1753
 #, fuzzy, c-format
 msgid "Failed to read pid file %s/%s.pid"
 msgstr "feil ved lesing av konfigurasjonsfil %s"
 
-#: src/lxc/lxc_driver.c:1769
+#: src/lxc/lxc_driver.c:1766
 #, fuzzy, c-format
 msgid "guest failed to start: %s"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/lxc/lxc_driver.c:1808
+#: src/lxc/lxc_driver.c:1805
 #, fuzzy
 msgid "could not close logfile"
 msgstr "kunne ikke koble til %s"
 
-#: src/lxc/lxc_driver.c:1863 src/libxl/libxl_driver.c:2711
+#: src/lxc/lxc_driver.c:1871 src/libxl/libxl_driver.c:2711
 #: src/vmware/vmware_driver.c:601
 msgid "Domain is already running"
 msgstr "Domenet kjører allerede"
 
-#: src/lxc/lxc_driver.c:2187 src/libxl/libxl_driver.c:171
+#: src/lxc/lxc_driver.c:2195 src/libxl/libxl_driver.c:171
 #: src/qemu/qemu_driver.c:163 src/uml/uml_driver.c:167
 #, fuzzy, c-format
 msgid "Failed to autostart VM '%s': %s"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/lxc/lxc_driver.c:2458
+#: src/lxc/lxc_driver.c:2466
 #, fuzzy, c-format
 msgid "Unknown release: %s"
 msgstr "ukjent vert %s"
 
-#: src/lxc/lxc_driver.c:2517 src/qemu/qemu_driver.c:6762
+#: src/lxc/lxc_driver.c:2525 src/qemu/qemu_driver.c:6763
 #, fuzzy, c-format
 msgid "Invalid parameter `%s'"
 msgstr "ugyldig argument i %s"
 
-#: src/lxc/lxc_driver.c:2523
+#: src/lxc/lxc_driver.c:2531
 msgid "Invalid type for cpu_shares tunable, expected a 'ullong'"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2529
+#: src/lxc/lxc_driver.c:2537
 #, fuzzy, c-format
 msgid "failed to set cpu_shares=%llu"
 msgstr "kunne ikke åpne fil"
 
-#: src/lxc/lxc_driver.c:2596
+#: src/lxc/lxc_driver.c:2599
 msgid "Field cpu_shares too big for destination"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2662
+#: src/lxc/lxc_driver.c:2665
 #, c-format
 msgid "Invalid path, '%s' is not a known interface"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2727
+#: src/lxc/lxc_driver.c:2730
 #, fuzzy
 msgid "Cannot set autostart for transient domain"
 msgstr "Start et domene."
 
-#: src/lxc/lxc_driver.c:2750
+#: src/lxc/lxc_driver.c:2753
 #, c-format
 msgid "Cannot create autostart directory %s"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:2757 src/libxl/libxl_driver.c:3503
-#: src/qemu/qemu_driver.c:5796 src/uml/uml_driver.c:2264
+#: src/lxc/lxc_driver.c:2760 src/libxl/libxl_driver.c:3503
+#: src/qemu/qemu_driver.c:5797 src/uml/uml_driver.c:2264
 #, fuzzy, c-format
 msgid "Failed to create symlink '%s to '%s'"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/lxc/lxc_driver.c:2764 src/libxl/libxl_driver.c:3510
-#: src/network/bridge_driver.c:2672 src/qemu/qemu_driver.c:5803
+#: src/lxc/lxc_driver.c:2767 src/libxl/libxl_driver.c:3510
+#: src/network/bridge_driver.c:2672 src/qemu/qemu_driver.c:5804
 #: src/storage/storage_driver.c:1063 src/uml/uml_driver.c:2271
 #, fuzzy, c-format
 msgid "Failed to delete symlink '%s'"
 msgstr "kunne ikke lagre innhold"
 
-#: src/lxc/lxc_driver.c:2902
+#: src/lxc/lxc_driver.c:2905
 #, fuzzy
 msgid "Suspend operation failed"
 msgstr "POST-operasjon feilet"
 
-#: src/lxc/lxc_driver.c:2967
+#: src/lxc/lxc_driver.c:2970
 #, fuzzy
 msgid "Resume operation failed"
 msgstr "operasjon feilet"
 
-#: src/lxc/lxc_driver.c:3010 src/libxl/libxl_driver.c:2801
+#: src/lxc/lxc_driver.c:3013 src/libxl/libxl_driver.c:2801
 #: src/qemu/qemu_driver.c:1138 src/qemu/qemu_driver.c:1190
 #: src/qemu/qemu_driver.c:1214 src/qemu/qemu_driver.c:1238
 #: src/qemu/qemu_driver.c:1390 src/qemu/qemu_driver.c:1457
@@ -6601,24 +6662,24 @@ msgstr "operasjon feilet"
 #: src/qemu/qemu_driver.c:3687 src/qemu/qemu_driver.c:3778
 #: src/qemu/qemu_driver.c:3842 src/qemu/qemu_driver.c:4422
 #: src/qemu/qemu_driver.c:4749 src/qemu/qemu_driver.c:4967
-#: src/qemu/qemu_driver.c:5574 src/qemu/qemu_driver.c:5741
-#: src/qemu/qemu_driver.c:5768 src/qemu/qemu_driver.c:7067
-#: src/qemu/qemu_driver.c:7154 src/qemu/qemu_driver.c:7343
-#: src/qemu/qemu_driver.c:7405 src/qemu/qemu_driver.c:7453
-#: src/qemu/qemu_driver.c:7521 src/qemu/qemu_driver.c:7618
-#: src/qemu/qemu_driver.c:7980 src/qemu/qemu_driver.c:8069
-#: src/qemu/qemu_driver.c:8250 src/qemu/qemu_driver.c:8321
-#: src/qemu/qemu_driver.c:8539 src/qemu/qemu_driver.c:8589
-#: src/qemu/qemu_driver.c:8651 src/qemu/qemu_driver.c:8707
-#: src/qemu/qemu_driver.c:8764 src/qemu/qemu_driver.c:9241
-#: src/qemu/qemu_driver.c:9491 src/qemu/qemu_driver.c:9522
-#: src/qemu/qemu_driver.c:9560 src/qemu/qemu_driver.c:9600
-#: src/qemu/qemu_driver.c:9642 src/qemu/qemu_driver.c:9677
-#: src/qemu/qemu_driver.c:9707 src/qemu/qemu_driver.c:9750
-#: src/qemu/qemu_driver.c:9785 src/qemu/qemu_driver.c:9855
-#: src/qemu/qemu_driver.c:10216 src/qemu/qemu_driver.c:10333
-#: src/qemu/qemu_driver.c:10481 src/qemu/qemu_driver.c:10584
-#: src/qemu/qemu_driver.c:10684 src/test/test_driver.c:2107
+#: src/qemu/qemu_driver.c:5575 src/qemu/qemu_driver.c:5742
+#: src/qemu/qemu_driver.c:5769 src/qemu/qemu_driver.c:7066
+#: src/qemu/qemu_driver.c:7154 src/qemu/qemu_driver.c:7373
+#: src/qemu/qemu_driver.c:7435 src/qemu/qemu_driver.c:7483
+#: src/qemu/qemu_driver.c:7551 src/qemu/qemu_driver.c:7648
+#: src/qemu/qemu_driver.c:8010 src/qemu/qemu_driver.c:8099
+#: src/qemu/qemu_driver.c:8280 src/qemu/qemu_driver.c:8351
+#: src/qemu/qemu_driver.c:8569 src/qemu/qemu_driver.c:8619
+#: src/qemu/qemu_driver.c:8681 src/qemu/qemu_driver.c:8737
+#: src/qemu/qemu_driver.c:8794 src/qemu/qemu_driver.c:9271
+#: src/qemu/qemu_driver.c:9521 src/qemu/qemu_driver.c:9552
+#: src/qemu/qemu_driver.c:9590 src/qemu/qemu_driver.c:9630
+#: src/qemu/qemu_driver.c:9672 src/qemu/qemu_driver.c:9707
+#: src/qemu/qemu_driver.c:9737 src/qemu/qemu_driver.c:9780
+#: src/qemu/qemu_driver.c:9815 src/qemu/qemu_driver.c:9885
+#: src/qemu/qemu_driver.c:10246 src/qemu/qemu_driver.c:10363
+#: src/qemu/qemu_driver.c:10511 src/qemu/qemu_driver.c:10614
+#: src/qemu/qemu_driver.c:10714 src/test/test_driver.c:2107
 #: src/uml/uml_driver.c:1626 src/uml/uml_driver.c:1651
 #: src/uml/uml_driver.c:1684 src/uml/uml_driver.c:2027
 #: src/uml/uml_driver.c:2145 src/uml/uml_driver.c:2377
@@ -6627,7 +6688,7 @@ msgstr "operasjon feilet"
 msgid "no domain with matching uuid '%s'"
 msgstr ""
 
-#: src/lxc/lxc_driver.c:3016 src/qemu/qemu_driver.c:1395
+#: src/lxc/lxc_driver.c:3019 src/qemu/qemu_driver.c:1395
 #: src/qemu/qemu_driver.c:1414 src/qemu/qemu_driver.c:1466
 #: src/qemu/qemu_driver.c:1523 src/qemu/qemu_driver.c:1579
 #: src/qemu/qemu_driver.c:1632 src/qemu/qemu_driver.c:1702
@@ -6637,39 +6698,39 @@ msgstr ""
 #: src/qemu/qemu_driver.c:2749 src/qemu/qemu_driver.c:2962
 #: src/qemu/qemu_driver.c:3073 src/qemu/qemu_driver.c:3164
 #: src/qemu/qemu_driver.c:3316 src/qemu/qemu_driver.c:3604
-#: src/qemu/qemu_driver.c:4439 src/qemu/qemu_driver.c:5926
-#: src/qemu/qemu_driver.c:6079 src/qemu/qemu_driver.c:6206
-#: src/qemu/qemu_driver.c:6363 src/qemu/qemu_driver.c:6679
-#: src/qemu/qemu_driver.c:6959 src/qemu/qemu_driver.c:7073
-#: src/qemu/qemu_driver.c:7102 src/qemu/qemu_driver.c:7160
-#: src/qemu/qemu_driver.c:7193 src/qemu/qemu_driver.c:7349
-#: src/qemu/qemu_driver.c:7419 src/qemu/qemu_driver.c:7536
-#: src/qemu/qemu_driver.c:8083 src/qemu/qemu_driver.c:8563
-#: src/qemu/qemu_driver.c:8598 src/qemu/qemu_driver.c:8660
-#: src/qemu/qemu_driver.c:8718 src/qemu/qemu_driver.c:8827
-#: src/qemu/qemu_driver.c:9105 src/qemu/qemu_driver.c:10339
-#: src/qemu/qemu_driver.c:10348 src/qemu/qemu_driver.c:10487
-#: src/qemu/qemu_driver.c:10590 src/qemu/qemu_driver.c:10604
-#: src/qemu/qemu_driver.c:10690 src/qemu/qemu_migration.c:2307
+#: src/qemu/qemu_driver.c:4439 src/qemu/qemu_driver.c:5927
+#: src/qemu/qemu_driver.c:6074 src/qemu/qemu_driver.c:6205
+#: src/qemu/qemu_driver.c:6363 src/qemu/qemu_driver.c:6680
+#: src/qemu/qemu_driver.c:6954 src/qemu/qemu_driver.c:7072
+#: src/qemu/qemu_driver.c:7101 src/qemu/qemu_driver.c:7160
+#: src/qemu/qemu_driver.c:7194 src/qemu/qemu_driver.c:7379
+#: src/qemu/qemu_driver.c:7449 src/qemu/qemu_driver.c:7566
+#: src/qemu/qemu_driver.c:8113 src/qemu/qemu_driver.c:8593
+#: src/qemu/qemu_driver.c:8628 src/qemu/qemu_driver.c:8690
+#: src/qemu/qemu_driver.c:8748 src/qemu/qemu_driver.c:8857
+#: src/qemu/qemu_driver.c:9135 src/qemu/qemu_driver.c:10369
+#: src/qemu/qemu_driver.c:10378 src/qemu/qemu_driver.c:10517
+#: src/qemu/qemu_driver.c:10620 src/qemu/qemu_driver.c:10634
+#: src/qemu/qemu_driver.c:10720 src/qemu/qemu_migration.c:2307
 #: src/uml/uml_driver.c:2383 src/xen/xen_driver.c:2124
-#: src/xen/xen_hypervisor.c:1158 src/xen/xen_hypervisor.c:1242
-#: src/xen/xen_hypervisor.c:1359 src/xen/xm_internal.c:715
+#: src/xen/xen_hypervisor.c:1158 src/xen/xen_hypervisor.c:1239
+#: src/xen/xen_hypervisor.c:1358 src/xen/xm_internal.c:715
 #, fuzzy
 msgid "domain is not running"
 msgstr "Domenet kjører fremdeles"
 
-#: src/lxc/lxc_driver.c:3023 src/uml/uml_driver.c:2390
+#: src/lxc/lxc_driver.c:3026 src/uml/uml_driver.c:2390
 #: src/xen/xen_driver.c:2131
 #, fuzzy
 msgid "Named device aliases are not supported"
 msgstr "Nettverket %s er startet\n"
 
-#: src/lxc/lxc_driver.c:3034 src/xen/xen_driver.c:2146
+#: src/lxc/lxc_driver.c:3037 src/xen/xen_driver.c:2146
 #, fuzzy
 msgid "cannot find default console device"
 msgstr "nettverksnavn"
 
-#: src/lxc/lxc_driver.c:3040 src/qemu/qemu_driver.c:10519
+#: src/lxc/lxc_driver.c:3043 src/qemu/qemu_driver.c:10549
 #: src/uml/uml_driver.c:2407 src/xen/xen_driver.c:2152
 #, c-format
 msgid "character device %s is not using a PTY"
@@ -6839,7 +6900,7 @@ msgstr "Kunne ikke starte domenet %s"
 #: src/libxl/libxl_driver.c:2440 src/libxl/libxl_driver.c:2496
 #: src/libxl/libxl_driver.c:2560 src/libxl/libxl_driver.c:3240
 #: src/libxl/libxl_driver.c:3543 src/libxl/libxl_driver.c:3610
-#: src/libxl/libxl_driver.c:3699 src/openvz/openvz_driver.c:353
+#: src/libxl/libxl_driver.c:3701 src/openvz/openvz_driver.c:353
 #: src/openvz/openvz_driver.c:401 src/openvz/openvz_driver.c:475
 #: src/openvz/openvz_driver.c:519 src/openvz/openvz_driver.c:557
 #: src/openvz/openvz_driver.c:600 src/openvz/openvz_driver.c:651
@@ -6868,9 +6929,9 @@ msgstr "vis inaktive domener"
 
 #: src/libxl/libxl_driver.c:1684 src/libxl/libxl_driver.c:2276
 #: src/qemu/qemu_driver.c:1841 src/qemu/qemu_driver.c:3322
-#: src/qemu/qemu_driver.c:3458 src/qemu/qemu_driver.c:5945
-#: src/qemu/qemu_driver.c:6098 src/qemu/qemu_driver.c:6226
-#: src/qemu/qemu_driver.c:6383 src/qemu/qemu_driver.c:6666
+#: src/qemu/qemu_driver.c:3458 src/qemu/qemu_driver.c:5946
+#: src/qemu/qemu_driver.c:6093 src/qemu/qemu_driver.c:6225
+#: src/qemu/qemu_driver.c:6383 src/qemu/qemu_driver.c:6667
 #, fuzzy
 msgid "cannot change persistent config of a transient domain"
 msgstr "Start et domene."
@@ -7052,14 +7113,14 @@ msgstr ""
 msgid "libxenlight failed to change media for disk '%s'"
 msgstr "Kunne ikke vise inaktive domener"
 
-#: src/libxl/libxl_driver.c:2934 src/qemu/qemu_hotplug.c:202
-#: src/qemu/qemu_hotplug.c:431 src/qemu/qemu_hotplug.c:553
+#: src/libxl/libxl_driver.c:2934 src/qemu/qemu_hotplug.c:203
+#: src/qemu/qemu_hotplug.c:433 src/qemu/qemu_hotplug.c:556
 #: src/uml/uml_driver.c:1973
 #, c-format
 msgid "target %s already exists"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2940 src/qemu/qemu_hotplug.c:571
+#: src/libxl/libxl_driver.c:2940 src/qemu/qemu_hotplug.c:574
 #: src/uml/uml_driver.c:1980
 msgid "disk source path is missing"
 msgstr ""
@@ -7069,19 +7130,19 @@ msgstr ""
 msgid "libxenlight failed to attach disk '%s'"
 msgstr "Kunne ikke vise inaktive domener"
 
-#: src/libxl/libxl_driver.c:2964 src/qemu/qemu_driver.c:5089
+#: src/libxl/libxl_driver.c:2964 src/qemu/qemu_driver.c:5090
 #: src/uml/uml_driver.c:2050
 #, c-format
 msgid "disk bus '%s' cannot be hotplugged."
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2970 src/qemu/qemu_driver.c:5094
+#: src/libxl/libxl_driver.c:2970 src/qemu/qemu_driver.c:5095
 #, c-format
 msgid "disk device type '%s' cannot be hotplugged"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:2997 src/qemu/qemu_hotplug.c:1502
-#: src/qemu/qemu_hotplug.c:1605 src/uml/uml_driver.c:2104
+#: src/libxl/libxl_driver.c:2997 src/qemu/qemu_hotplug.c:1505
+#: src/qemu/qemu_hotplug.c:1608 src/uml/uml_driver.c:2104
 #, fuzzy, c-format
 msgid "disk %s not found"
 msgstr "Domene ikke funnet"
@@ -7101,125 +7162,130 @@ msgstr ""
 msgid "device type '%s' cannot hot unplugged"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3049 src/qemu/qemu_driver.c:5184
+#: src/libxl/libxl_driver.c:3049 src/qemu/qemu_driver.c:5185
 #: src/uml/uml_driver.c:2055
 #, c-format
 msgid "device type '%s' cannot be attached"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3067 src/qemu/qemu_driver.c:5363
+#: src/libxl/libxl_driver.c:3067 src/qemu/qemu_driver.c:5364
 #, fuzzy, c-format
 msgid "target %s already exists."
 msgstr "Domenet er allerede aktivt"
 
-#: src/libxl/libxl_driver.c:3080 src/qemu/qemu_driver.c:5414
+#: src/libxl/libxl_driver.c:3080 src/qemu/qemu_driver.c:5415
 #, fuzzy
 msgid "persistent attach of device is not supported"
 msgstr "Nettverket %s er startet\n"
 
-#: src/libxl/libxl_driver.c:3099 src/qemu/qemu_driver.c:5214
+#: src/libxl/libxl_driver.c:3099 src/qemu/qemu_driver.c:5215
 #: src/xen/xm_internal.c:1548
 #, c-format
 msgid "device type '%s' cannot be detached"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3118 src/qemu/qemu_driver.c:5434
+#: src/libxl/libxl_driver.c:3118 src/qemu/qemu_driver.c:5435
 #, fuzzy, c-format
 msgid "no target device %s"
 msgstr "mangler kildeinformasjon for enhet %s"
 
-#: src/libxl/libxl_driver.c:3125 src/qemu/qemu_driver.c:5463
+#: src/libxl/libxl_driver.c:3125 src/qemu/qemu_driver.c:5464
 #, fuzzy
 msgid "persistent detach of device is not supported"
 msgstr "Nettverket %s er startet\n"
 
-#: src/libxl/libxl_driver.c:3150 src/qemu/qemu_driver.c:5305
+#: src/libxl/libxl_driver.c:3150 src/qemu/qemu_driver.c:5306
 #, c-format
 msgid "disk bus '%s' cannot be updated."
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3157 src/qemu/qemu_driver.c:5342
+#: src/libxl/libxl_driver.c:3157 src/qemu/qemu_driver.c:5343
 #, c-format
 msgid "device type '%s' cannot be updated"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3178 src/qemu/qemu_driver.c:5483
+#: src/libxl/libxl_driver.c:3178 src/qemu/qemu_driver.c:5484
 #, fuzzy, c-format
 msgid "target %s doesn't exist."
 msgstr "kommando '%s' eksisterer ikke"
 
-#: src/libxl/libxl_driver.c:3184 src/qemu/qemu_driver.c:5490
+#: src/libxl/libxl_driver.c:3184 src/qemu/qemu_driver.c:5491
 #, fuzzy
 msgid "this disk doesn't support update"
 msgstr "kommando '%s' støtter ikke opsjonen --%s"
 
-#: src/libxl/libxl_driver.c:3205 src/qemu/qemu_driver.c:5535
+#: src/libxl/libxl_driver.c:3205 src/qemu/qemu_driver.c:5536
 #, fuzzy
 msgid "persistent update of device is not supported"
 msgstr "Nettverket %s er startet\n"
 
-#: src/libxl/libxl_driver.c:3260 src/qemu/qemu_driver.c:5599
+#: src/libxl/libxl_driver.c:3260 src/qemu/qemu_driver.c:5600
 #, fuzzy
 msgid "cannot modify device on transient domain"
 msgstr "vis aktive og inaktive domener"
 
 #: src/libxl/libxl_driver.c:3290 src/libxl/libxl_driver.c:3314
-#: src/qemu/qemu_driver.c:5625 src/qemu/qemu_driver.c:5655
+#: src/qemu/qemu_driver.c:5626 src/qemu/qemu_driver.c:5656
 #, fuzzy, c-format
 msgid "unknown domain modify action %d"
 msgstr "ukjent kommando: '%s'"
 
-#: src/libxl/libxl_driver.c:3481 src/qemu/qemu_driver.c:5774
+#: src/libxl/libxl_driver.c:3481 src/qemu/qemu_driver.c:5775
 #: src/uml/uml_driver.c:2242
 #, fuzzy
 msgid "cannot set autostart for transient domain"
 msgstr "Start et domene."
 
-#: src/libxl/libxl_driver.c:3496 src/qemu/qemu_driver.c:5789
+#: src/libxl/libxl_driver.c:3496 src/qemu/qemu_driver.c:5790
 #: src/storage/storage_driver.c:1048 src/uml/uml_driver.c:2257
 #, c-format
 msgid "cannot create autostart directory %s"
 msgstr ""
 
 #: src/libxl/libxl_driver.c:3555 src/libxl/libxl_driver.c:3623
-#: src/libxl/libxl_driver.c:3712
+#: src/libxl/libxl_driver.c:3714
 #, fuzzy, c-format
 msgid "Failed to get scheduler id for domain '%d' with libxenlight"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/libxl/libxl_driver.c:3630 src/libxl/libxl_driver.c:3719
+#: src/libxl/libxl_driver.c:3630 src/libxl/libxl_driver.c:3721
 msgid "Only 'credit' scheduler is supported"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3641 src/libxl/libxl_driver.c:3725
+#: src/libxl/libxl_driver.c:3636 src/libxl/libxl_driver.c:3727
 #, fuzzy, c-format
 msgid "Failed to get scheduler parameters for domain '%d' with libxenlight"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/libxl/libxl_driver.c:3650
-#, fuzzy
-msgid "Field weight too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
+#: src/libxl/libxl_driver.c:3646 src/libxl/libxl_driver.c:3657
+#: src/qemu/qemu_driver.c:6117 src/qemu/qemu_driver.c:6140
+#: src/qemu/qemu_driver.c:6408 src/qemu/qemu_driver.c:6418
+#: src/qemu/qemu_driver.c:6428 src/qemu/qemu_driver.c:6462
+#: src/qemu/qemu_driver.c:6478 src/qemu/qemu_driver.c:6494
+#: src/qemu/qemu_driver.c:6988 src/qemu/qemu_driver.c:7002
+#: src/qemu/qemu_driver.c:7015 src/qemu/qemu_driver.c:7232
+#: src/qemu/qemu_driver.c:7246 src/qemu/qemu_driver.c:7260
+#: src/qemu/qemu_driver.c:7274 src/qemu/qemu_driver.c:7288
+#: src/qemu/qemu_driver.c:7302 src/qemu/qemu_driver.c:7316
+#: src/qemu/qemu_driver.c:7330 src/test/test_driver.c:2714
+#, fuzzy, c-format
+msgid "Field name '%s' too long"
+msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/libxl/libxl_driver.c:3658
-#, fuzzy
-msgid "Field cap too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/libxl/libxl_driver.c:3736
+#: src/libxl/libxl_driver.c:3738
 msgid "invalid type for weight tunable, expected a 'uint'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3744
+#: src/libxl/libxl_driver.c:3746
 msgid "invalid type for cap tunable, expected a 'uint'"
 msgstr ""
 
-#: src/libxl/libxl_driver.c:3750
+#: src/libxl/libxl_driver.c:3752
 #, fuzzy, c-format
 msgid "Invalid parameter '%s'"
 msgstr "ugyldig argument i %s"
 
-#: src/libxl/libxl_driver.c:3757
+#: src/libxl/libxl_driver.c:3759
 #, fuzzy, c-format
 msgid "Failed to set scheduler parameters for domain '%d' with libxenlight"
 msgstr "Kunne ikke lagre domenet %s til %s"
@@ -7488,7 +7554,7 @@ msgstr "nettverksnavn"
 msgid "no network with matching id"
 msgstr "domeneinformasjon i XML"
 
-#: src/network/bridge_driver.c:2586 src/test/test_driver.c:3285
+#: src/network/bridge_driver.c:2586 src/test/test_driver.c:3286
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr ""
@@ -7557,14 +7623,14 @@ msgstr ""
 #: src/node_device/node_device_driver.c:275
 #: src/node_device/node_device_driver.c:305
 #: src/node_device/node_device_driver.c:341
-#: src/node_device/node_device_driver.c:372 src/test/test_driver.c:5175
-#: src/test/test_driver.c:5201 src/test/test_driver.c:5237
-#: src/test/test_driver.c:5268
+#: src/node_device/node_device_driver.c:372 src/test/test_driver.c:5176
+#: src/test/test_driver.c:5202 src/test/test_driver.c:5238
+#: src/test/test_driver.c:5269
 #, c-format
 msgid "no node device with matching name '%s'"
 msgstr ""
 
-#: src/node_device/node_device_driver.c:316 src/test/test_driver.c:5212
+#: src/node_device/node_device_driver.c:316 src/test/test_driver.c:5213
 msgid "no parent for this device"
 msgstr ""
 
@@ -7792,6 +7858,12 @@ msgstr "Domene ikke funnet"
 #: src/nodeinfo.c:378
 msgid "no threads found"
 msgstr ""
+
+#: src/nodeinfo.c:417 src/xen/xen_hypervisor.c:1269
+#: src/xen/xend_internal.c:3609
+#, fuzzy
+msgid "Invalid parameter count"
+msgstr "ugyldig argument i"
 
 #: src/nodeinfo.c:448 src/nodeinfo.c:457 src/nodeinfo.c:466 src/nodeinfo.c:475
 #, fuzzy
@@ -8608,16 +8680,16 @@ msgid "Unable to set cpu bandwidth quota"
 msgstr "oppførsel ved omstart av domene"
 
 #: src/qemu/qemu_cgroup.c:422 src/qemu/qemu_cgroup.c:457
-#: src/qemu/qemu_driver.c:6538 src/xenapi/xenapi_utils.c:391
+#: src/qemu/qemu_driver.c:6539 src/xenapi/xenapi_utils.c:391
 #: src/xenapi/xenapi_utils.c:395
 #, c-format
 msgid "%s"
 msgstr ""
 
 #: src/qemu/qemu_cgroup.c:446 src/qemu/qemu_cgroup.c:537
-#: src/qemu/qemu_driver.c:5067 src/qemu/qemu_driver.c:5288
-#: src/qemu/qemu_hotplug.c:1044 src/qemu/qemu_hotplug.c:1518
-#: src/qemu/qemu_hotplug.c:1621 src/qemu/qemu_migration.c:2860
+#: src/qemu/qemu_driver.c:5068 src/qemu/qemu_driver.c:5289
+#: src/qemu/qemu_hotplug.c:1047 src/qemu/qemu_hotplug.c:1521
+#: src/qemu/qemu_hotplug.c:1624 src/qemu/qemu_migration.c:2860
 #, fuzzy, c-format
 msgid "Unable to find cgroup for %s"
 msgstr "Kunne ikke definere domenet fra %s"
@@ -8799,657 +8871,657 @@ msgstr "denne funksjonen er ikke støttet av hypervisor"
 msgid "driver serial '%s' contains unsafe characters"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1511 src/qemu/qemu_command.c:1767
-#: src/qemu/qemu_command.c:4010 src/uml/uml_conf.c:453
+#: src/qemu/qemu_command.c:1512 src/qemu/qemu_command.c:1768
+#: src/qemu/qemu_command.c:4011 src/uml/uml_conf.c:453
 #, c-format
 msgid "unsupported disk type '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1519
+#: src/qemu/qemu_command.c:1520
 msgid "unexpected address type for scsi disk"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1528
+#: src/qemu/qemu_command.c:1529
 msgid "SCSI controller only supports 1 bus"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1538
+#: src/qemu/qemu_command.c:1539
 msgid "unexpected address type for ide disk"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1544 src/qemu/qemu_command.c:1560
+#: src/qemu/qemu_command.c:1545 src/qemu/qemu_command.c:1561
 #, c-format
 msgid "Only 1 %s controller is supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1554
+#: src/qemu/qemu_command.c:1555
 msgid "unexpected address type for fdc disk"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1566
+#: src/qemu/qemu_command.c:1567
 #, c-format
 msgid "Only 1 %s bus is supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1591 src/qemu/qemu_command.c:4020
+#: src/qemu/qemu_command.c:1592 src/qemu/qemu_command.c:4021
 #, c-format
 msgid "unsupported disk driver type for '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1597 src/qemu/qemu_command.c:4026
+#: src/qemu/qemu_command.c:1598 src/qemu/qemu_command.c:4027
 msgid "cannot create virtual FAT disks in read-write mode"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1609 src/qemu/qemu_command.c:4042
+#: src/qemu/qemu_command.c:1610 src/qemu/qemu_command.c:4043
 msgid "NBD accepts only one host"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1664 src/xenxs/xen_sxpr.c:1741
+#: src/qemu/qemu_command.c:1665 src/xenxs/xen_sxpr.c:1741
 #: src/xenxs/xen_xm.c:1186
 #, fuzzy
 msgid "transient disks not supported yet"
 msgstr "Nettverket %s er startet\n"
 
-#: src/qemu/qemu_command.c:1687
+#: src/qemu/qemu_command.c:1688
 #, fuzzy
 msgid "disk cache mode 'directsync' is not supported by this QEMU"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:1693
+#: src/qemu/qemu_command.c:1694
 #, fuzzy
 msgid "disk cache mode 'unsafe' is not supported by this QEMU"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:1737
+#: src/qemu/qemu_command.c:1738
 #, fuzzy
 msgid "disk aio mode not supported with this QEMU binary"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:1807
+#: src/qemu/qemu_command.c:1808
 #, c-format
 msgid "unsupported disk bus '%s' with device setup"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1836
+#: src/qemu/qemu_command.c:1837
 msgid "only supports mount filesystem type"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1842
+#: src/qemu/qemu_command.c:1843
 #, fuzzy
 msgid "Filesystem driver type not supported"
 msgstr "Nettverket %s er startet\n"
 
-#: src/qemu/qemu_command.c:1878
+#: src/qemu/qemu_command.c:1879
 msgid "can only passthrough directories"
 msgstr ""
 
-#: src/qemu/qemu_command.c:1945
+#: src/qemu/qemu_command.c:1946
 #, fuzzy, c-format
 msgid "%s not supported in this QEMU binary"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:2015
+#: src/qemu/qemu_command.c:2016
 #, fuzzy, c-format
 msgid "Unknown controller type: %s"
 msgstr "ukjent OS-type %s"
 
-#: src/qemu/qemu_command.c:2097
+#: src/qemu/qemu_command.c:2098
 msgid "unrecognized virtio-net-pci 'tx' option"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2102
+#: src/qemu/qemu_command.c:2103
 #, fuzzy
 msgid "virtio-net-pci 'tx' option not supported in this QEMU binary"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:2252 src/qemu/qemu_command.c:5030
+#: src/qemu/qemu_command.c:2253 src/qemu/qemu_command.c:5032
 msgid "missing watchdog model"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2332 src/qemu/qemu_command.c:4993
+#: src/qemu/qemu_command.c:2333 src/qemu/qemu_command.c:4994
 msgid "invalid sound model"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2391
+#: src/qemu/qemu_command.c:2392
 #, fuzzy
 msgid "invalid video model"
 msgstr "ugyldig MAC-adresse"
 
-#: src/qemu/qemu_command.c:2400 src/qemu/qemu_command.c:4867
+#: src/qemu/qemu_command.c:2401 src/qemu/qemu_command.c:4868
 #, c-format
 msgid "value for 'vram' must be less than '%u'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2443
+#: src/qemu/qemu_command.c:2444
 #, fuzzy, c-format
 msgid "Failed opening %s"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/qemu/qemu_command.c:2472
+#: src/qemu/qemu_command.c:2473
 #, fuzzy
 msgid "rombar not supported in this QEMU binary"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:2524
+#: src/qemu/qemu_command.c:2525
 #, fuzzy, c-format
 msgid "Redirection bus %s is not supported by QEMU"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:2531
+#: src/qemu/qemu_command.c:2532
 #, fuzzy
 msgid "USB redirection is not supported by this version of QEMU"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:2564 src/qemu/qemu_command.c:2634
+#: src/qemu/qemu_command.c:2565 src/qemu/qemu_command.c:2635
 #, fuzzy
 msgid "USB host device is missing bus/device information"
 msgstr "mangler informasjon om enheter"
 
-#: src/qemu/qemu_command.c:2597
+#: src/qemu/qemu_command.c:2598
 #, fuzzy, c-format
 msgid "hub type %s not supported"
 msgstr "Nettverket %s er startet\n"
 
-#: src/qemu/qemu_command.c:2604
+#: src/qemu/qemu_command.c:2605
 #, fuzzy
 msgid "usb-hub not supported by QEMU binary"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:2732
+#: src/qemu/qemu_command.c:2733
 #, fuzzy
 msgid "spicevmc not supported in this QEMU binary"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:2741
+#: src/qemu/qemu_command.c:2742
 #, fuzzy, c-format
 msgid "unsupported chardev '%s'"
 msgstr "kunne ikke skrive til konfigurasjonsfilen: %s"
 
-#: src/qemu/qemu_command.c:2868
+#: src/qemu/qemu_command.c:2869
 msgid "virtio serial device has invalid address type"
 msgstr ""
 
-#: src/qemu/qemu_command.c:2885
+#: src/qemu/qemu_command.c:2886
 #, c-format
 msgid "Unsupported spicevmc target name '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3026 src/qemu/qemu_command.c:3581
+#: src/qemu/qemu_command.c:3027 src/qemu/qemu_command.c:3582
 #: src/xenxs/xen_sxpr.c:2107 src/xenxs/xen_xm.c:1574
 #, c-format
 msgid "unsupported clock offset '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3040
+#: src/qemu/qemu_command.c:3041
 #, c-format
 msgid "unsupported rtc timer track '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3064
+#: src/qemu/qemu_command.c:3065
 #, c-format
 msgid "unsupported rtc timer tickpolicy '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3113
+#: src/qemu/qemu_command.c:3114
 #, fuzzy
 msgid "CPU specification not supported by hypervisor"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:3127
+#: src/qemu/qemu_command.c:3128
 msgid "guest CPU is not compatible with host CPU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3239
+#: src/qemu/qemu_command.c:3240
 msgid ""
 "setting current vcpu count less than maximum is not supported with this QEMU "
 "binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3321
+#: src/qemu/qemu_command.c:3322
 #, c-format
 msgid "the QEMU binary %s does not support kqemu"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3334
+#: src/qemu/qemu_command.c:3335
 #, c-format
 msgid "the QEMU binary %s does not support kvm"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3345
+#: src/qemu/qemu_command.c:3346
 #, c-format
 msgid "the QEMU binary %s does not support %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3392
+#: src/qemu/qemu_command.c:3393
 msgid "hugetlbfs filesystem is not mounted"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3397
+#: src/qemu/qemu_command.c:3398
 msgid "hugepages are disabled by administrator config"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3402
+#: src/qemu/qemu_command.c:3403
 #, c-format
 msgid "hugepage backing not supported by '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3440
+#: src/qemu/qemu_command.c:3441
 #, fuzzy, c-format
 msgid "qemu emulator '%s' does not support xen"
 msgstr "kommando '%s' støtter ikke opsjonen --%s"
 
-#: src/qemu/qemu_command.c:3453
+#: src/qemu/qemu_command.c:3454
 #, fuzzy, c-format
 msgid "the QEMU binary %s does not support smbios settings"
 msgstr "kommando '%s' støtter ikke opsjonen --%s"
 
-#: src/qemu/qemu_command.c:3462 src/qemu/qemu_driver.c:977
+#: src/qemu/qemu_command.c:3463 src/qemu/qemu_driver.c:977
 msgid "Host SMBIOS information is not available"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3471
+#: src/qemu/qemu_command.c:3472
 #, c-format
 msgid "Domain '%s' sysinfo are not available"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3516
+#: src/qemu/qemu_command.c:3517
 #, fuzzy
 msgid "qemu does not support -device"
 msgstr "kommando '%s' støtter ikke opsjonen --%s"
 
-#: src/qemu/qemu_command.c:3521
+#: src/qemu/qemu_command.c:3522
 #, fuzzy
 msgid "qemu does not support SGA"
 msgstr "kommando '%s' støtter ikke opsjonen --%s"
 
-#: src/qemu/qemu_command.c:3526
+#: src/qemu/qemu_command.c:3527
 msgid "need at least one serial port to use SGA"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3597
+#: src/qemu/qemu_command.c:3598
 #, c-format
 msgid "unsupported timer type (name) '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3617 src/qemu/qemu_command.c:3628
+#: src/qemu/qemu_command.c:3618 src/qemu/qemu_command.c:3629
 #, c-format
 msgid "unsupported rtc tickpolicy '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3652 src/qemu/qemu_command.c:3661
+#: src/qemu/qemu_command.c:3653 src/qemu/qemu_command.c:3662
 #, c-format
 msgid "unsupported pit tickpolicy '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3683
+#: src/qemu/qemu_command.c:3684
 msgid "pit timer is not supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3716
+#: src/qemu/qemu_command.c:3717
 msgid "hypervisor lacks deviceboot feature"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3782 src/qemu/qemu_driver.c:5059
+#: src/qemu/qemu_command.c:3783 src/qemu/qemu_driver.c:5060
 #, c-format
 msgid "unsupported driver name '%s' for disk '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3803
+#: src/qemu/qemu_command.c:3804
 msgid "SATA is not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:3820
+#: src/qemu/qemu_command.c:3821
 #, fuzzy
 msgid "Multiple legacy USB controller not supported"
 msgstr "bibliotekskall feilet, muligens ikke støttet"
 
-#: src/qemu/qemu_command.c:3878 src/qemu/qemu_command.c:3990
+#: src/qemu/qemu_command.c:3879 src/qemu/qemu_command.c:3991
 #, c-format
 msgid "unsupported usb disk type for '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4120
+#: src/qemu/qemu_command.c:4121
 msgid "filesystem passthrough not supported by this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4273
+#: src/qemu/qemu_command.c:4274
 msgid "this QEMU binary lacks multiple smartcard support"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4284 src/qemu/qemu_command.c:4296
+#: src/qemu/qemu_command.c:4285 src/qemu/qemu_command.c:4297
 msgid "this QEMU binary lacks smartcard host mode support"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4306
+#: src/qemu/qemu_command.c:4307
 #, fuzzy, c-format
 msgid "invalid certificate name: %s"
 msgstr "ugyldig argument i %s"
 
-#: src/qemu/qemu_command.c:4317
+#: src/qemu/qemu_command.c:4318
 #, fuzzy, c-format
 msgid "invalid database name: %s"
 msgstr "ugyldig argument i %s"
 
-#: src/qemu/qemu_command.c:4332
+#: src/qemu/qemu_command.c:4333
 msgid "this QEMU binary lacks smartcard passthrough mode support"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4441
+#: src/qemu/qemu_command.c:4442
 msgid "guestfwd requires QEMU to support -chardev & -device"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4469 src/qemu/qemu_command.c:4508
+#: src/qemu/qemu_command.c:4470 src/qemu/qemu_command.c:4509
 msgid "virtio channel requires QEMU to support -device"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4533
+#: src/qemu/qemu_command.c:4534
 #, c-format
 msgid "unsupported console target type %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4574
+#: src/qemu/qemu_command.c:4575
 msgid "only 1 graphics device is supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4613 src/qemu/qemu_command.c:4755
+#: src/qemu/qemu_command.c:4614 src/qemu/qemu_command.c:4756
 msgid "network-based listen not possible, network driver not present"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4619 src/qemu/qemu_command.c:4761
+#: src/qemu/qemu_command.c:4620 src/qemu/qemu_command.c:4762
 #, c-format
 msgid "listen network '%s' had no usable address"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4697
+#: src/qemu/qemu_command.c:4698
 #, fuzzy, c-format
 msgid "sdl not supported by '%s'"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:4734
+#: src/qemu/qemu_command.c:4735
 #, fuzzy
 msgid "spice graphics are not supported with this QEMU"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:4835
+#: src/qemu/qemu_command.c:4836
 #, c-format
 msgid "unsupported graphics type '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4848
+#: src/qemu/qemu_command.c:4849
 msgid "This QEMU does not support QXL graphics adapters"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4855
+#: src/qemu/qemu_command.c:4856
 #, c-format
 msgid "video type %s is not supported with QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4901
+#: src/qemu/qemu_command.c:4902
 #, c-format
 msgid "video type %s is not supported with this QEMU"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4913
+#: src/qemu/qemu_command.c:4914
 #, c-format
 msgid "video type %s is only valid as primary video card"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4928
+#: src/qemu/qemu_command.c:4929
 msgid "only one video card is currently supported"
 msgstr ""
 
-#: src/qemu/qemu_command.c:4964 src/qemu/qemu_command.c:4999
+#: src/qemu/qemu_command.c:4965 src/qemu/qemu_command.c:5001
 msgid "this QEMU binary lacks hda support"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5046
+#: src/qemu/qemu_command.c:5048
 #, fuzzy
 msgid "invalid watchdog action"
 msgstr "ugyldig argument i"
 
-#: src/qemu/qemu_command.c:5087
+#: src/qemu/qemu_command.c:5089
 msgid "booting from assigned devices is only supported for PCI devices"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5092
+#: src/qemu/qemu_command.c:5094
 msgid ""
 "booting from assigned PCI devices is not supported with this version of qemu"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5149 src/qemu/qemu_monitor_text.c:1928
+#: src/qemu/qemu_command.c:5151 src/qemu/qemu_monitor_text.c:1928
 msgid "PCI device assignment is not supported by this version of qemu"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5163
+#: src/qemu/qemu_command.c:5165
 #, fuzzy
 msgid "TCP migration is not supported with this QEMU binary"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:5180
+#: src/qemu/qemu_command.c:5182
 msgid "STDIO migration is not supported with this QEMU binary"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5187
+#: src/qemu/qemu_command.c:5189
 #, fuzzy
 msgid "EXEC migration is not supported with this QEMU binary"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:5195
+#: src/qemu/qemu_command.c:5197
 #, fuzzy
 msgid "FD migration is not supported with this QEMU binary"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:5204
+#: src/qemu/qemu_command.c:5206
 #, fuzzy
 msgid "UNIX migration is not supported with this QEMU binary"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_command.c:5211
+#: src/qemu/qemu_command.c:5213
 #, fuzzy
 msgid "unknown migration protocol"
 msgstr "ukjent kommando: '%s'"
 
-#: src/qemu/qemu_command.c:5226
+#: src/qemu/qemu_command.c:5228
 #, c-format
 msgid ""
 "Memory balloon device type '%s' is not supported by this version of qemu"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5447
+#: src/qemu/qemu_command.c:5449
 #, fuzzy, c-format
 msgid "malformed keyword arguments in '%s'"
 msgstr "ugyldig argument i %s"
 
-#: src/qemu/qemu_command.c:5549 src/qemu/qemu_command.c:6687
+#: src/qemu/qemu_command.c:5551 src/qemu/qemu_command.c:6689
 #, fuzzy, c-format
 msgid "cannot parse nbd filename '%s'"
 msgstr "kunne ikke åpne fil"
 
-#: src/qemu/qemu_command.c:5605 src/qemu/qemu_command.c:6714
+#: src/qemu/qemu_command.c:5607 src/qemu/qemu_command.c:6716
 #, fuzzy, c-format
 msgid "cannot parse sheepdog filename '%s'"
 msgstr "kunne ikke skrive til konfigurasjonsfilen: %s"
 
-#: src/qemu/qemu_command.c:5692
+#: src/qemu/qemu_command.c:5694
 #, c-format
 msgid "cannot parse drive index '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5700
+#: src/qemu/qemu_command.c:5702
 #, c-format
 msgid "cannot parse drive bus '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5708
+#: src/qemu/qemu_command.c:5710
 #, c-format
 msgid "cannot parse drive unit '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5717
+#: src/qemu/qemu_command.c:5719
 #, fuzzy, c-format
 msgid "cannot parse io mode '%s'"
 msgstr "ugyldig MAC-adresse: %s"
 
-#: src/qemu/qemu_command.c:5729
+#: src/qemu/qemu_command.c:5731
 #, fuzzy, c-format
 msgid "missing file parameter in drive '%s'"
 msgstr "mangler informasjon om enheter for %s"
 
-#: src/qemu/qemu_command.c:5742
+#: src/qemu/qemu_command.c:5744
 #, c-format
 msgid "missing index/unit/bus parameter in drive '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5791
+#: src/qemu/qemu_command.c:5793
 #, fuzzy, c-format
 msgid "invalid device name '%s'"
 msgstr "ugyldig argument i %s"
 
-#: src/qemu/qemu_command.c:5827
+#: src/qemu/qemu_command.c:5829
 #, c-format
 msgid "cannot parse NIC vlan in '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5839
+#: src/qemu/qemu_command.c:5841
 #, c-format
 msgid "cannot find NIC definition for vlan %d"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5896
+#: src/qemu/qemu_command.c:5898
 #, c-format
 msgid "cannot parse vlan in '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5926
+#: src/qemu/qemu_command.c:5928
 #, c-format
 msgid "cannot parse NIC definition '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:5974
+#: src/qemu/qemu_command.c:5976
 #, fuzzy, c-format
 msgid "cannot parse sndbuf size in '%s'"
 msgstr "kunne ikke koble til %s"
 
-#: src/qemu/qemu_command.c:6010
+#: src/qemu/qemu_command.c:6012
 #, c-format
 msgid "unknown PCI device syntax '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6018
+#: src/qemu/qemu_command.c:6020
 #, c-format
 msgid "cannot extract PCI device bus '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6025
+#: src/qemu/qemu_command.c:6027
 #, c-format
 msgid "cannot extract PCI device slot '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6032
+#: src/qemu/qemu_command.c:6034
 #, c-format
 msgid "cannot extract PCI device function '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6067
+#: src/qemu/qemu_command.c:6069
 #, c-format
 msgid "unknown USB device syntax '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6076
+#: src/qemu/qemu_command.c:6078
 #, c-format
 msgid "cannot extract USB device vendor '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6083
+#: src/qemu/qemu_command.c:6085
 #, c-format
 msgid "cannot extract USB device product '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6090
+#: src/qemu/qemu_command.c:6092
 #, c-format
 msgid "cannot extract USB device bus '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6097
+#: src/qemu/qemu_command.c:6099
 #, c-format
 msgid "cannot extract USB device address '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6206
+#: src/qemu/qemu_command.c:6208
 #, c-format
 msgid "cannot find port number in character device %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6246
+#: src/qemu/qemu_command.c:6248
 #, c-format
 msgid "unknown character device syntax %s"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6339
+#: src/qemu/qemu_command.c:6341
 #, fuzzy, c-format
 msgid "unknown CPU syntax '%s'"
 msgstr "ukjent vert %s"
 
-#: src/qemu/qemu_command.c:6418
+#: src/qemu/qemu_command.c:6420
 #, c-format
 msgid "cannot parse CPU topology '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6458
+#: src/qemu/qemu_command.c:6460
 #, fuzzy
 msgid "no emulator path found"
 msgstr "Nettverk ikke funnet"
 
-#: src/qemu/qemu_command.c:6471
+#: src/qemu/qemu_command.c:6473
 #, fuzzy
 msgid "failed to generate uuid"
 msgstr "nettverksnavn eller uuid"
 
-#: src/qemu/qemu_command.c:6520
+#: src/qemu/qemu_command.c:6522
 #, c-format
 msgid "missing value for %s argument"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6580
+#: src/qemu/qemu_command.c:6582
 #, fuzzy, c-format
 msgid "missing VNC port number in '%s'"
 msgstr "mangler informasjon om enheter for %s"
 
-#: src/qemu/qemu_command.c:6587
+#: src/qemu/qemu_command.c:6589
 #, c-format
 msgid "cannot parse VNC port '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6614
+#: src/qemu/qemu_command.c:6616
 #, c-format
 msgid "cannot parse memory level '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6626
+#: src/qemu/qemu_command.c:6628
 #, c-format
 msgid "cannot parse UUID '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:6987
+#: src/qemu/qemu_command.c:6989
 #, fuzzy, c-format
 msgid "unknown video adapter type '%s'"
 msgstr "ukjent OS-type %s"
 
-#: src/qemu/qemu_command.c:7056
+#: src/qemu/qemu_command.c:7058
 msgid "CEPH_ARGS was set without an rbd disk"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7063
+#: src/qemu/qemu_command.c:7065
 #, fuzzy, c-format
 msgid "could not parse CEPH_ARGS '%s'"
 msgstr "kunne ikke koble til %s"
 
-#: src/qemu/qemu_command.c:7098
+#: src/qemu/qemu_command.c:7100
 #, c-format
 msgid "found no rbd hosts in CEPH_ARGS '%s'"
 msgstr ""
 
-#: src/qemu/qemu_command.c:7308
+#: src/qemu/qemu_command.c:7310
 #, fuzzy, c-format
 msgid "Unable to resolve %s for pid %u"
 msgstr "Kunne ikke lagre domenet %s til %s"
@@ -9576,7 +9648,7 @@ msgstr "udefinert domenenavn eller -id"
 msgid "domain is no longer running"
 msgstr "Domenet kjører fremdeles"
 
-#: src/qemu/qemu_domain.c:1081 src/qemu/qemu_driver.c:8498
+#: src/qemu/qemu_domain.c:1081 src/qemu/qemu_driver.c:8528
 #, fuzzy
 msgid "cannot get host CPU capabilities"
 msgstr "kunne ikke åpne fil"
@@ -9605,7 +9677,7 @@ msgstr ""
 msgid "Disk device '%s' does not support snapshotting"
 msgstr "kommando '%s' støtter ikke opsjonen --%s"
 
-#: src/qemu/qemu_domain.c:1632 src/qemu/qemu_domain.c:1640
+#: src/qemu/qemu_domain.c:1630 src/qemu/qemu_domain.c:1638
 #, fuzzy, c-format
 msgid "cannot access file '%s'"
 msgstr "kunne ikke åpne fil"
@@ -9720,8 +9792,8 @@ msgstr ""
 msgid "no domain with matching id %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:1163 src/qemu/qemu_driver.c:8026
-#: src/qemu/qemu_driver.c:8287
+#: src/qemu/qemu_driver.c:1163 src/qemu/qemu_driver.c:8056
+#: src/qemu/qemu_driver.c:8317
 #, c-format
 msgid "no domain with matching name '%s'"
 msgstr ""
@@ -9791,16 +9863,16 @@ msgstr "kunne ikke lagre innhold"
 msgid "Error from child process creating '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:2442 src/qemu/qemu_driver.c:9247
+#: src/qemu/qemu_driver.c:2442 src/qemu/qemu_driver.c:9277
 #: src/qemu/qemu_migration.c:798
 #, fuzzy
 msgid "domain is marked for auto destroy"
 msgstr "Domenet %s er startet\n"
 
 #: src/qemu/qemu_driver.c:2470 src/qemu/qemu_driver.c:2980
-#: src/qemu/qemu_driver.c:8843 src/qemu/qemu_driver.c:9125
-#: src/qemu/qemu_driver.c:9989 src/qemu/qemu_driver.c:10040
-#: src/qemu/qemu_hotplug.c:407 src/qemu/qemu_hotplug.c:758
+#: src/qemu/qemu_driver.c:8873 src/qemu/qemu_driver.c:9155
+#: src/qemu/qemu_driver.c:10019 src/qemu/qemu_driver.c:10070
+#: src/qemu/qemu_hotplug.c:408 src/qemu/qemu_hotplug.c:761
 #: src/qemu/qemu_migration.c:1613 src/qemu/qemu_migration.c:1925
 #: src/qemu/qemu_migration.c:2245 src/qemu/qemu_migration.c:2601
 #: src/qemu/qemu_process.c:383 src/qemu/qemu_process.c:396
@@ -9872,7 +9944,7 @@ msgstr "domene-id eller -uuid"
 msgid "currently is supported only taking screenshots of screen ID 0"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:3092 src/qemu/qemu_driver.c:7548
+#: src/qemu/qemu_driver.c:3092 src/qemu/qemu_driver.c:7578
 #: src/vbox/vbox_tmpl.c:9033
 #, c-format
 msgid "mkstemp(\"%s\") failed"
@@ -10047,495 +10119,435 @@ msgstr "Domenet kjører allerede"
 msgid "cannot delete inactive domain with %d snapshots"
 msgstr "Kunne ikke vise aktive domener"
 
-#: src/qemu/qemu_driver.c:5124
+#: src/qemu/qemu_driver.c:5125
 #, c-format
 msgid "disk controller bus '%s' cannot be hotplugged."
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5210 src/uml/uml_driver.c:2166
+#: src/qemu/qemu_driver.c:5211 src/uml/uml_driver.c:2166
 msgid "This type of disk cannot be hot unplugged"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5235
+#: src/qemu/qemu_driver.c:5236
 #, c-format
 msgid "disk controller bus '%s' cannot be hotunplugged."
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5267 src/uml/uml_driver.c:2170
+#: src/qemu/qemu_driver.c:5268 src/uml/uml_driver.c:2170
 msgid "This type of device cannot be hot unplugged"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5385
+#: src/qemu/qemu_driver.c:5386
 #, fuzzy, c-format
 msgid "mac %s already exists"
 msgstr "Domenet er allerede aktivt"
 
-#: src/qemu/qemu_driver.c:5401
+#: src/qemu/qemu_driver.c:5402
 #, fuzzy, c-format
 msgid "Lease %s in lockspace %s already exists"
 msgstr "Domenet er allerede aktivt"
 
-#: src/qemu/qemu_driver.c:5446
+#: src/qemu/qemu_driver.c:5447
 #, c-format
 msgid "no nic of mac %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5455 src/qemu/qemu_hotplug.c:2260
+#: src/qemu/qemu_driver.c:5456 src/qemu/qemu_hotplug.c:2263
 #, fuzzy, c-format
 msgid "Lease %s in lockspace %s does not exist"
 msgstr "kommando '%s' eksisterer ikke"
 
-#: src/qemu/qemu_driver.c:5520
+#: src/qemu/qemu_driver.c:5521
 #, fuzzy, c-format
 msgid "mac %s doesn't exist"
 msgstr "kommando '%s' eksisterer ikke"
 
-#: src/qemu/qemu_driver.c:5591
+#: src/qemu/qemu_driver.c:5592
 #, fuzzy
 msgid "cannot do live update a device on inactive domain"
 msgstr "vis aktive og inaktive domener"
 
-#: src/qemu/qemu_driver.c:5866 src/qemu/qemu_driver.c:6685
-#: src/qemu/qemu_driver.c:6965
+#: src/qemu/qemu_driver.c:5867 src/qemu/qemu_driver.c:6686
+#: src/qemu/qemu_driver.c:6960
 #, fuzzy
 msgid "cgroup CPU controller is not mounted"
 msgstr "Nettverk ikke funnet"
 
-#: src/qemu/qemu_driver.c:5910 src/qemu/qemu_driver.c:6050
-#: src/qemu/qemu_driver.c:6190 src/qemu/qemu_driver.c:6347
-#: src/qemu/qemu_driver.c:6650 src/qemu/qemu_driver.c:6913
+#: src/qemu/qemu_driver.c:5911 src/qemu/qemu_driver.c:6051
+#: src/qemu/qemu_driver.c:6189 src/qemu/qemu_driver.c:6347
+#: src/qemu/qemu_driver.c:6651 src/qemu/qemu_driver.c:6908
 #, fuzzy, c-format
 msgid "No such domain %s"
 msgstr "vis domener"
 
-#: src/qemu/qemu_driver.c:5931 src/qemu/qemu_driver.c:6084
+#: src/qemu/qemu_driver.c:5932 src/qemu/qemu_driver.c:6079
 msgid "blkio cgroup isn't mounted"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5961 src/qemu/qemu_driver.c:5995
+#: src/qemu/qemu_driver.c:5962 src/qemu/qemu_driver.c:5996
 msgid "invalid type for blkio weight tunable, expected a 'unsigned int'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5968 src/qemu/qemu_driver.c:6002
+#: src/qemu/qemu_driver.c:5969 src/qemu/qemu_driver.c:6003
 msgid "out of blkio weight range."
 msgstr ""
 
-#: src/qemu/qemu_driver.c:5976
+#: src/qemu/qemu_driver.c:5977
 #, fuzzy
 msgid "unable to set blkio weight tunable"
 msgstr "kunne ikke lagre innhold"
 
-#: src/qemu/qemu_driver.c:6117
+#: src/qemu/qemu_driver.c:6112
 #, fuzzy
 msgid "unable to get blkio weight"
 msgstr "kunne ikke åpne fil"
 
-#: src/qemu/qemu_driver.c:6122 src/qemu/qemu_driver.c:6144
-#, fuzzy
-msgid "Field blkio weight too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:6212 src/qemu/qemu_driver.c:6369
+#: src/qemu/qemu_driver.c:6211 src/qemu/qemu_driver.c:6369
 msgid "cgroup memory controller is not mounted"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6551 src/qemu/qemu_driver.c:6817
+#: src/qemu/qemu_driver.c:6552 src/qemu/qemu_driver.c:6818
 #, fuzzy
 msgid "unable to get cpu bandwidth tunable"
 msgstr "kunne ikke lagre innhold"
 
-#: src/qemu/qemu_driver.c:6558 src/qemu/qemu_driver.c:6810
+#: src/qemu/qemu_driver.c:6559 src/qemu/qemu_driver.c:6811
 #, fuzzy
 msgid "unable to get cpu bandwidth period tunable"
 msgstr "kunne ikke lagre innhold"
 
-#: src/qemu/qemu_driver.c:6601
+#: src/qemu/qemu_driver.c:6602
 #, fuzzy, c-format
 msgid "Unable to find vcpu cgroup for %s(vcpu: %d)"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/qemu/qemu_driver.c:6702
+#: src/qemu/qemu_driver.c:6703
 msgid "invalid type for cpu_shares tunable, expected a 'ullong'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6710
+#: src/qemu/qemu_driver.c:6711
 msgid "unable to set cpu shares tunable"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6723
+#: src/qemu/qemu_driver.c:6724
 msgid "invalid type for vcpu_period tunable, expected a 'ullong'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6743
+#: src/qemu/qemu_driver.c:6744
 msgid "invalid type for vcpu_quota tunable, expected a 'llong'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6849
+#: src/qemu/qemu_driver.c:6850
 #, fuzzy, c-format
 msgid "Unable to find vcpu cgroup for %s(vcpu: 0)"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/qemu/qemu_driver.c:6892
+#: src/qemu/qemu_driver.c:6893
 msgid "cannot query live and config together"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6929
+#: src/qemu/qemu_driver.c:6924
 #, fuzzy
 msgid "cannot query persistent config of a transient domain"
 msgstr "Start et domene."
 
-#: src/qemu/qemu_driver.c:6939
+#: src/qemu/qemu_driver.c:6934
 msgid "can't get persistentDef"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:6978
+#: src/qemu/qemu_driver.c:6973
 #, fuzzy
 msgid "unable to get cpu shares tunable"
 msgstr "kunne ikke lagre innhold"
 
-#: src/qemu/qemu_driver.c:6992
-#, fuzzy
-msgid "Field cpu_shares too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:7005
-#, fuzzy
-msgid "Field vcpu_period too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:7017
-#, fuzzy
-msgid "Field vcpu_quota too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:7086 src/qemu/qemu_driver.c:7174
-#: src/test/test_driver.c:2819
+#: src/qemu/qemu_driver.c:7085 src/qemu/qemu_driver.c:7174
+#: src/test/test_driver.c:2820
 #, fuzzy, c-format
 msgid "invalid path: %s"
 msgstr "ugyldig MAC-adresse: %s"
 
-#: src/qemu/qemu_driver.c:7092 src/qemu/qemu_driver.c:7180
+#: src/qemu/qemu_driver.c:7091 src/qemu/qemu_driver.c:7180
 #: src/qemu/qemu_hotplug.c:75
 #, fuzzy, c-format
 msgid "missing disk device alias name for %s"
 msgstr "mangler informasjon om enheter for %s"
 
-#: src/qemu/qemu_driver.c:7231
-#, fuzzy
-msgid "Field write bytes too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:7241
-#, fuzzy
-msgid "Field write requests too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:7251
-#, fuzzy
-msgid "Field read bytes too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:7261
-#, fuzzy
-msgid "Field read requests too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:7271
-#, fuzzy
-msgid "Field flush requests too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:7281
-#, fuzzy
-msgid "Field write total times too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:7291
-#, fuzzy
-msgid "Field read total times too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:7301
-#, fuzzy
-msgid "Field flush total times too long for destination"
-msgstr "feil ved åpning av konfigurasjonfil for lesing"
-
-#: src/qemu/qemu_driver.c:7366 src/test/test_driver.c:2874
+#: src/qemu/qemu_driver.c:7396 src/test/test_driver.c:2875
 #, c-format
 msgid "invalid path, '%s' is not a known interface"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7380
+#: src/qemu/qemu_driver.c:7410
 #, fuzzy
 msgid "interface stats not implemented on this platform"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_driver.c:7459 src/qemu/qemu_driver.c:7624
+#: src/qemu/qemu_driver.c:7489 src/qemu/qemu_driver.c:7654
 #: src/uml/uml_driver.c:2317
 msgid "NULL or empty path"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7466 src/uml/uml_driver.c:2324
+#: src/qemu/qemu_driver.c:7496 src/uml/uml_driver.c:2324
 #, fuzzy, c-format
 msgid "invalid path '%s'"
 msgstr "ugyldig MAC-adresse: %s"
 
-#: src/qemu/qemu_driver.c:7475
+#: src/qemu/qemu_driver.c:7505
 #, fuzzy, c-format
 msgid "%s: failed to open"
 msgstr "kunne ikke åpne fil"
 
-#: src/qemu/qemu_driver.c:7486
+#: src/qemu/qemu_driver.c:7516
 #, fuzzy, c-format
 msgid "%s: failed to seek or read"
 msgstr "feil ved åpning av %s for lesing"
 
-#: src/qemu/qemu_driver.c:7527
+#: src/qemu/qemu_driver.c:7557
 msgid "flags parameter must be VIR_MEMORY_VIRTUAL or VIR_MEMORY_PHYSICAL"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7572
+#: src/qemu/qemu_driver.c:7602
 #, fuzzy, c-format
 msgid "failed to read temporary file created with template %s"
 msgstr "feil ved lesing av konfigurasjonsfil %s"
 
-#: src/qemu/qemu_driver.c:7631
+#: src/qemu/qemu_driver.c:7661
 #, c-format
 msgid "invalid path %s not assigned to domain"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7637
+#: src/qemu/qemu_driver.c:7667
 #, c-format
 msgid "disk %s does not currently have a source assigned"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7647
+#: src/qemu/qemu_driver.c:7677
 #, fuzzy, c-format
 msgid "failed to open path '%s'"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/qemu/qemu_driver.c:7655
+#: src/qemu/qemu_driver.c:7685
 #, fuzzy, c-format
 msgid "unknown disk format %s for %s"
 msgstr "mangler informasjon om enheter for %s"
 
-#: src/qemu/qemu_driver.c:7684 src/storage/storage_backend.c:1031
+#: src/qemu/qemu_driver.c:7714 src/storage/storage_backend.c:1031
 #: src/storage/storage_backend.c:1151 src/util/storage_file.c:744
 #: src/util/storage_file.c:840
 #, c-format
 msgid "cannot stat file '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7706
+#: src/qemu/qemu_driver.c:7736
 #, fuzzy, c-format
 msgid "failed to seek to end of %s"
 msgstr "kunne ikke lagre innhold"
 
-#: src/qemu/qemu_driver.c:7859 src/qemu/qemu_driver.c:7931
-#: src/qemu/qemu_driver.c:8164 src/qemu/qemu_driver.c:8199
+#: src/qemu/qemu_driver.c:7889 src/qemu/qemu_driver.c:7961
+#: src/qemu/qemu_driver.c:8194 src/qemu/qemu_driver.c:8229
 msgid "no domain XML passed"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7864 src/qemu/qemu_driver.c:8204
+#: src/qemu/qemu_driver.c:7894 src/qemu/qemu_driver.c:8234
 msgid "PrepareTunnel called but no TUNNELLED flag set"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7869 src/qemu/qemu_driver.c:8209
+#: src/qemu/qemu_driver.c:7899 src/qemu/qemu_driver.c:8239
 msgid "tunnelled migration requested but NULL stream passed"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7875 src/qemu/qemu_driver.c:7915
-#: src/qemu/qemu_driver.c:7970
+#: src/qemu/qemu_driver.c:7905 src/qemu/qemu_driver.c:7945
+#: src/qemu/qemu_driver.c:8000
 #, c-format
 msgid "Cannot use migrate v2 protocol with lock manager %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:7925 src/qemu/qemu_driver.c:8158
+#: src/qemu/qemu_driver.c:7955 src/qemu/qemu_driver.c:8188
 msgid "Tunnelled migration requested but invalid RPC method called"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8106 src/qemu/qemu_migration.c:1199
+#: src/qemu/qemu_driver.c:8136 src/qemu/qemu_migration.c:1199
 #, fuzzy
 msgid "domain disappeared"
 msgstr "domene-id eller -uuid"
 
-#: src/qemu/qemu_driver.c:8392 src/xen/xen_driver.c:1962
+#: src/qemu/qemu_driver.c:8422 src/xen/xen_driver.c:1962
 #, c-format
 msgid "device %s is not a PCI device"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8606
+#: src/qemu/qemu_driver.c:8636
 #, fuzzy
 msgid "no job is active on the domain"
 msgstr "vis aktive og inaktive domener"
 
-#: src/qemu/qemu_driver.c:8610
+#: src/qemu/qemu_driver.c:8640
 msgid "cannot abort incoming migration; use virDomainDestroy instead"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8668
+#: src/qemu/qemu_driver.c:8698
 #, fuzzy
 msgid "domain is not being migrated"
 msgstr "domene-id eller -navn"
 
-#: src/qemu/qemu_driver.c:8791
+#: src/qemu/qemu_driver.c:8821
 #, fuzzy, c-format
 msgid "Disk '%s' does not support snapshotting"
 msgstr "kommando '%s' støtter ikke opsjonen --%s"
 
-#: src/qemu/qemu_driver.c:8877 src/qemu/qemu_driver.c:9184
+#: src/qemu/qemu_driver.c:8907 src/qemu/qemu_driver.c:9214
 #, fuzzy
 msgid "resuming after snapshot failed"
 msgstr "operasjon feilet"
 
-#: src/qemu/qemu_driver.c:8907
+#: src/qemu/qemu_driver.c:8937
 #, c-format
 msgid ""
 "active qemu domains require external disk snapshots; disk %s requested "
 "internal"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8915
+#: src/qemu/qemu_driver.c:8945
 #, c-format
 msgid "internal snapshot for disk %s unsupported for storage type %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8933
+#: src/qemu/qemu_driver.c:8963
 #, c-format
 msgid "external snapshot format for disk %s is unsupported: %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8941
+#: src/qemu/qemu_driver.c:8971
 #, fuzzy, c-format
 msgid "unable to stat for disk %s: %s"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/qemu/qemu_driver.c:8947
+#: src/qemu/qemu_driver.c:8977
 #, c-format
 msgid ""
 "external snapshot file for disk %s already exists and is not a block device: "
 "%s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:8961 src/qemu/qemu_driver.c:9001
+#: src/qemu/qemu_driver.c:8991 src/qemu/qemu_driver.c:9031
 #, fuzzy
 msgid "unexpected code path"
 msgstr "forventer et navn"
 
-#: src/qemu/qemu_driver.c:8968
+#: src/qemu/qemu_driver.c:8998
 msgid "disk snapshots require at least one disk to be selected for snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9252
+#: src/qemu/qemu_driver.c:9282
 #, fuzzy
 msgid "cannot halt after transient domain snapshot"
 msgstr "Start et domene."
 
-#: src/qemu/qemu_driver.c:9266
+#: src/qemu/qemu_driver.c:9296
 #, fuzzy, c-format
 msgid "cannot set snapshot %s as its own parent"
 msgstr "Returnerer tilstand om et kjørende domene"
 
-#: src/qemu/qemu_driver.c:9273
+#: src/qemu/qemu_driver.c:9303
 #, fuzzy, c-format
 msgid "parent %s for snapshot %s not found"
 msgstr "Domene ikke funnet"
 
-#: src/qemu/qemu_driver.c:9280
+#: src/qemu/qemu_driver.c:9310
 #, c-format
 msgid "parent %s would create cycle to %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9298
+#: src/qemu/qemu_driver.c:9328
 #, c-format
 msgid "definition for snapshot %s must use uuid %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9309
+#: src/qemu/qemu_driver.c:9339
 #, fuzzy, c-format
 msgid "cannot change between online and offline snapshot state in snapshot %s"
 msgstr "kunne ikke koble til %s"
 
-#: src/qemu/qemu_driver.c:9317
+#: src/qemu/qemu_driver.c:9347
 #, c-format
 msgid ""
 "cannot change between disk snapshot and system checkpoint in snapshot %s"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9417
+#: src/qemu/qemu_driver.c:9447
 msgid "disk snapshots of inactive domains not implemented yet"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9567 src/qemu/qemu_driver.c:9607
-#: src/qemu/qemu_driver.c:9714 src/qemu/qemu_driver.c:9792
-#: src/qemu/qemu_driver.c:9862 src/qemu/qemu_driver.c:10223
+#: src/qemu/qemu_driver.c:9597 src/qemu/qemu_driver.c:9637
+#: src/qemu/qemu_driver.c:9744 src/qemu/qemu_driver.c:9822
+#: src/qemu/qemu_driver.c:9892 src/qemu/qemu_driver.c:10253
 #, c-format
 msgid "no domain snapshot with matching name '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9649
+#: src/qemu/qemu_driver.c:9679
 #, c-format
 msgid "no snapshot with matching name '%s'"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9756
+#: src/qemu/qemu_driver.c:9786
 msgid "the domain does not have a current snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9873
+#: src/qemu/qemu_driver.c:9903
 msgid ""
 "transient domain needs to request run or pause to revert to inactive snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9879
+#: src/qemu/qemu_driver.c:9909
 #, fuzzy
 msgid "revert to external disk snapshot not supported yet"
 msgstr "Nettverket %s er startet\n"
 
-#: src/qemu/qemu_driver.c:9886
+#: src/qemu/qemu_driver.c:9916
 #, c-format
 msgid "snapshot '%s' lacks domain '%s' rollback info"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:9896
+#: src/qemu/qemu_driver.c:9926
 msgid "must respawn qemu to start inactive snapshot"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:10238
+#: src/qemu/qemu_driver.c:10268
 #, c-format
 msgid "deletion of %d external disk snapshots not supported yet"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:10265
+#: src/qemu/qemu_driver.c:10295
 #, fuzzy, c-format
 msgid "failed to set snapshot '%s' as current"
 msgstr "feil ved åpning av konfigurasjonfil for lesing"
 
-#: src/qemu/qemu_driver.c:10397
+#: src/qemu/qemu_driver.c:10427
 #, c-format
 msgid "No monitor connection for pid %u"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:10403
+#: src/qemu/qemu_driver.c:10433
 #, c-format
 msgid "Cannot connect to monitor connection of type '%s' for pid %u"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:10512 src/uml/uml_driver.c:2401
+#: src/qemu/qemu_driver.c:10542 src/uml/uml_driver.c:2401
 #, fuzzy, c-format
 msgid "cannot find character device %s"
 msgstr "ukjent OS-type %s"
 
-#: src/qemu/qemu_driver.c:10562
+#: src/qemu/qemu_driver.c:10592
 msgid "No device found for specified path"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:10698
+#: src/qemu/qemu_driver.c:10728
 #, c-format
 msgid "No graphics backend with index %d"
 msgstr ""
 
-#: src/qemu/qemu_driver.c:10710
+#: src/qemu/qemu_driver.c:10740
 #, c-format
 msgid "Can only open VNC or SPICE graphics backends, not %s"
 msgstr ""
@@ -10570,212 +10582,212 @@ msgstr "Kunne ikke vise aktive nettverk"
 msgid "Failed to reset PCI device: %s"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/qemu/qemu_hotplug.c:310
+#: src/qemu/qemu_hotplug.c:311
 #, c-format
 msgid "target %s:%d already exists"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:327
+#: src/qemu/qemu_hotplug.c:328
 #, fuzzy
 msgid "USB controller hotplug unsupported in this QEMU binary"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_hotplug.c:449
+#: src/qemu/qemu_hotplug.c:451
 #, c-format
 msgid "unexpected disk address type %s"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:477
+#: src/qemu/qemu_hotplug.c:479
 #, c-format
 msgid "SCSI controller %d was missing its PCI address"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:655
+#: src/qemu/qemu_hotplug.c:658
 msgid "installed qemu version does not support host_net_add"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:708
+#: src/qemu/qemu_hotplug.c:711
 #, fuzzy
 msgid "Unable to attach network devices without vlan"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/qemu/qemu_hotplug.c:794
+#: src/qemu/qemu_hotplug.c:797
 msgid "device alias not found: cannot set link state to down"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:806
+#: src/qemu/qemu_hotplug.c:809
 #, fuzzy
 msgid "setting of link state not supported: Link is up"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/qemu/qemu_hotplug.c:920
+#: src/qemu/qemu_hotplug.c:923
 msgid "guest unexpectedly quit during hotplug"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1089 src/qemu/qemu_hotplug.c:2143
+#: src/qemu/qemu_hotplug.c:1092 src/qemu/qemu_hotplug.c:2146
 #, c-format
 msgid "hostdev mode '%s' not supported"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1130 src/qemu/qemu_hotplug.c:2157
+#: src/qemu/qemu_hotplug.c:1133 src/qemu/qemu_hotplug.c:2160
 #, c-format
 msgid "hostdev subsys type '%s' not supported"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1170
+#: src/qemu/qemu_hotplug.c:1173
 msgid "can't change link state: device alias not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1200
+#: src/qemu/qemu_hotplug.c:1203
 #, fuzzy
 msgid "cannot find existing network device to modify"
 msgstr "nettverksnavn"
 
-#: src/qemu/qemu_hotplug.c:1206
+#: src/qemu/qemu_hotplug.c:1209
 #, fuzzy
 msgid "cannot change network interface type"
 msgstr "nettverksnavn"
 
-#: src/qemu/qemu_hotplug.c:1219
+#: src/qemu/qemu_hotplug.c:1222
 #, fuzzy
 msgid "cannot modify ethernet network device configuration"
 msgstr "vis aktive og inaktive domener"
 
-#: src/qemu/qemu_hotplug.c:1230
+#: src/qemu/qemu_hotplug.c:1233
 #, fuzzy
 msgid "cannot modify network socket device configuration"
 msgstr "vis aktive og inaktive domener"
 
-#: src/qemu/qemu_hotplug.c:1240 src/qemu/qemu_hotplug.c:1276
-#: src/qemu/qemu_hotplug.c:1284
+#: src/qemu/qemu_hotplug.c:1243 src/qemu/qemu_hotplug.c:1279
+#: src/qemu/qemu_hotplug.c:1287
 #, fuzzy
 msgid "cannot modify network device configuration"
 msgstr "vis aktive og inaktive domener"
 
-#: src/qemu/qemu_hotplug.c:1249
+#: src/qemu/qemu_hotplug.c:1252
 #, fuzzy
 msgid "cannot modify internal network device configuration"
 msgstr "vis aktive og inaktive domener"
 
-#: src/qemu/qemu_hotplug.c:1259
+#: src/qemu/qemu_hotplug.c:1262
 #, fuzzy
 msgid "cannot modify direct network device configuration"
 msgstr "vis aktive og inaktive domener"
 
-#: src/qemu/qemu_hotplug.c:1266
+#: src/qemu/qemu_hotplug.c:1269
 #, fuzzy, c-format
 msgid "unable to change config on '%s' network type"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/qemu/qemu_hotplug.c:1324
+#: src/qemu/qemu_hotplug.c:1327
 msgid "cannot find existing graphics device to modify"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1339
+#: src/qemu/qemu_hotplug.c:1342
 msgid "cannot change port settings on vnc graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1344
+#: src/qemu/qemu_hotplug.c:1347
 msgid "cannot change listen address setting on vnc graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1349
+#: src/qemu/qemu_hotplug.c:1352
 msgid "cannot change listen network setting on vnc graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1354
+#: src/qemu/qemu_hotplug.c:1357
 msgid "cannot change keymap setting on vnc graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1392
+#: src/qemu/qemu_hotplug.c:1395
 msgid "cannot change port settings on spice graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1397
+#: src/qemu/qemu_hotplug.c:1400
 msgid "cannot change listen address setting on spice graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1402
+#: src/qemu/qemu_hotplug.c:1405
 #, fuzzy
 msgid "cannot change listen network setting on spice graphics"
 msgstr "nettverksnavn"
 
-#: src/qemu/qemu_hotplug.c:1408
+#: src/qemu/qemu_hotplug.c:1411
 msgid "cannot change keymap setting on spice graphics"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1441
+#: src/qemu/qemu_hotplug.c:1444
 #, c-format
 msgid "unable to change config on '%s' graphics type"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1510 src/qemu/qemu_hotplug.c:1757
-#: src/qemu/qemu_hotplug.c:1993
+#: src/qemu/qemu_hotplug.c:1513 src/qemu/qemu_hotplug.c:1760
+#: src/qemu/qemu_hotplug.c:1996
 #, c-format
 msgid "cannot hot unplug multifunction PCI device: %s"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1527 src/qemu/qemu_hotplug.c:1751
-#: src/qemu/qemu_hotplug.c:1846 src/qemu/qemu_hotplug.c:2001
+#: src/qemu/qemu_hotplug.c:1530 src/qemu/qemu_hotplug.c:1754
+#: src/qemu/qemu_hotplug.c:1849 src/qemu/qemu_hotplug.c:2004
 msgid "device cannot be detached without a PCI address"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1611
+#: src/qemu/qemu_hotplug.c:1614
 #, c-format
 msgid "Underlying qemu does not support %s disk removal"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1742
+#: src/qemu/qemu_hotplug.c:1745
 #, c-format
 msgid "disk controller %s:%d not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1764
+#: src/qemu/qemu_hotplug.c:1767
 msgid "device cannot be detached: device is busy"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1836
+#: src/qemu/qemu_hotplug.c:1839
 #, c-format
 msgid "network device %02x:%02x:%02x:%02x:%02x:%02x not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1852
+#: src/qemu/qemu_hotplug.c:1855
 #, c-format
 msgid "cannot hot unplug multifunction PCI device :%s"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1859
+#: src/qemu/qemu_hotplug.c:1862
 msgid "unable to determine original VLAN"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:1925
+#: src/qemu/qemu_hotplug.c:1928
 #, fuzzy, c-format
 msgid "failed to remove ebtables rule on  '%s'"
 msgstr "kunne ikke lagre innhold"
 
-#: src/qemu/qemu_hotplug.c:1983
+#: src/qemu/qemu_hotplug.c:1986
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2091
+#: src/qemu/qemu_hotplug.c:2094
 #, c-format
 msgid "host usb device %03d.%03d not found"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2099
+#: src/qemu/qemu_hotplug.c:2102
 msgid "device cannot be detached without a device alias"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2105
+#: src/qemu/qemu_hotplug.c:2108
 msgid "device cannot be detached with this QEMU version"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2197
+#: src/qemu/qemu_hotplug.c:2200
 msgid "Graphics password only supported for VNC"
 msgstr ""
 
-#: src/qemu/qemu_hotplug.c:2223
+#: src/qemu/qemu_hotplug.c:2226
 #, fuzzy
 msgid "Expiry of passwords is not supported"
 msgstr "Nettverket %s er startet\n"
@@ -12806,12 +12818,12 @@ msgstr "Kunne ikke starte domenet %s"
 msgid "Unable to disable nagle algorithm"
 msgstr "Kunne ikke starte domenet %s"
 
-#: src/rpc/virnetsocket.c:212 src/rpc/virnetsocket.c:408
+#: src/rpc/virnetsocket.c:212 src/rpc/virnetsocket.c:409
 #, fuzzy, c-format
 msgid "Unable to resolve address '%s' service '%s': %s"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/rpc/virnetsocket.c:225 src/rpc/virnetsocket.c:419
+#: src/rpc/virnetsocket.c:225 src/rpc/virnetsocket.c:420
 #, fuzzy
 msgid "Unable to create socket"
 msgstr "Kunne ikke opprette domenet fra %s"
@@ -12831,130 +12843,130 @@ msgstr "kunne ikke lagre innhold"
 msgid "Unable to bind to port"
 msgstr "Kunne ikke definere domenet fra %s"
 
-#: src/rpc/virnetsocket.c:267 src/rpc/virnetsocket.c:442
-#: src/rpc/virnetsocket.c:515 src/rpc/virnetsocket.c:1234
+#: src/rpc/virnetsocket.c:267 src/rpc/virnetsocket.c:443
+#: src/rpc/virnetsocket.c:516 src/rpc/virnetsocket.c:1235
 #, fuzzy
 msgid "Unable to get local socket name"
 msgstr "kunne ikke lagre innhold"
 
-#: src/rpc/virnetsocket.c:324 src/rpc/virnetsocket.c:483
+#: src/rpc/virnetsocket.c:324 src/rpc/virnetsocket.c:484
 #, fuzzy
 msgid "Failed to create socket"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/rpc/virnetsocket.c:330 src/rpc/virnetsocket.c:489
+#: src/rpc/virnetsocket.c:331 src/rpc/virnetsocket.c:490
 #, c-format
 msgid "Path %s too long for unix socket"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:343
+#: src/rpc/virnetsocket.c:344
 #, fuzzy, c-format
 msgid "Failed to bind socket to '%s'"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/rpc/virnetsocket.c:354
+#: src/rpc/virnetsocket.c:355
 #, fuzzy, c-format
 msgid "Failed to change ownership of '%s' to %d:%d"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/rpc/virnetsocket.c:378 src/rpc/virnetsocket.c:535
+#: src/rpc/virnetsocket.c:379 src/rpc/virnetsocket.c:536
 #, fuzzy
 msgid "UNIX sockets are not supported on this platform"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/rpc/virnetsocket.c:435
+#: src/rpc/virnetsocket.c:436
 #, fuzzy, c-format
 msgid "unable to connect to server at '%s:%s'"
 msgstr "kunne ikke koble til %s"
 
-#: src/rpc/virnetsocket.c:448
+#: src/rpc/virnetsocket.c:449
 #, fuzzy
 msgid "Unable to get remote socket name"
 msgstr "kunne ikke lagre innhold"
 
-#: src/rpc/virnetsocket.c:508
+#: src/rpc/virnetsocket.c:509
 #, fuzzy, c-format
 msgid "Failed to connect socket to '%s'"
 msgstr "kunne ikke koble til %s"
 
-#: src/rpc/virnetsocket.c:557 src/rpc/virnetsocket.c:563
+#: src/rpc/virnetsocket.c:558 src/rpc/virnetsocket.c:564
 #, fuzzy
 msgid "unable to create socket pair"
 msgstr "Kunne ikke opprette domenet fra %s"
 
-#: src/rpc/virnetsocket.c:601
+#: src/rpc/virnetsocket.c:602
 #, fuzzy
 msgid "Tunnelling sockets not supported on this platform"
 msgstr "denne funksjonen er ikke støttet av hypervisor"
 
-#: src/rpc/virnetsocket.c:778
+#: src/rpc/virnetsocket.c:779
 #, fuzzy
 msgid "Unable to copy socket file handle"
 msgstr "feil ved lesing av konfigurasjonsfil %s"
 
-#: src/rpc/virnetsocket.c:828
+#: src/rpc/virnetsocket.c:829
 #, fuzzy
 msgid "Failed to get client socket identity"
 msgstr "Kunne ikke vise inaktive domener"
 
-#: src/rpc/virnetsocket.c:846
+#: src/rpc/virnetsocket.c:847
 msgid "Client socket identity not available"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:963
+#: src/rpc/virnetsocket.c:964
 #, fuzzy, c-format
 msgid "Cannot recv data: %s"
 msgstr "ingen tilstand"
 
-#: src/rpc/virnetsocket.c:966
+#: src/rpc/virnetsocket.c:967
 #, fuzzy
 msgid "Cannot recv data"
 msgstr "ingen tilstand"
 
-#: src/rpc/virnetsocket.c:971
+#: src/rpc/virnetsocket.c:972
 #, c-format
 msgid "End of file while reading data: %s"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:974
+#: src/rpc/virnetsocket.c:975
 msgid "End of file while reading data"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1001
+#: src/rpc/virnetsocket.c:1002
 #, fuzzy
 msgid "Cannot write data"
 msgstr "ingen tilstand"
 
-#: src/rpc/virnetsocket.c:1006
+#: src/rpc/virnetsocket.c:1007
 msgid "End of file while writing data"
 msgstr ""
 
-#: src/rpc/virnetsocket.c:1149
+#: src/rpc/virnetsocket.c:1150
 #, fuzzy
 msgid "Sending file descriptors is not supported on this socket"
 msgstr "denne funksjonen er ikke støttet av hypervisor: %s"
 
-#: src/rpc/virnetsocket.c:1157
+#: src/rpc/virnetsocket.c:1158
 #, fuzzy, c-format
 msgid "Failed to send file descriptor %d"
 msgstr "filen inneholder en beskrivelse om et XML-domene"
 
-#: src/rpc/virnetsocket.c:1174
+#: src/rpc/virnetsocket.c:1175
 #, fuzzy
 msgid "Receiving file descriptors is not supported on this socket"
 msgstr "denne funksjonen er ikke støttet av hypervisor: %s"
 
-#: src/rpc/virnetsocket.c:1181
+#: src/rpc/virnetsocket.c:1182
 #, fuzzy
 msgid "Failed to recv file descriptor"
 msgstr "filen inneholder en beskrivelse om et XML-domene"
 
-#: src/rpc/virnetsocket.c:1197
+#: src/rpc/virnetsocket.c:1198
 #, fuzzy
 msgid "Unable to listen on socket"
 msgstr "Kunne ikke lagre domenet %s til %s"
 
-#: src/rpc/virnetsocket.c:1228
+#: src/rpc/virnetsocket.c:1229
 #, fuzzy
 msgid "Unable to accept client"
 msgstr "Kunne ikke opprette domenet fra %s"
@@ -12994,7 +13006,7 @@ msgstr "feil ved lesing av konfigurasjonsfil %s"
 msgid "Failed to register shutdown timeout"
 msgstr "kunne ikke skrive til konfigurasjonsfil"
 
-#: src/rpc/virnetserverclient.c:724 src/rpc/virnetserverclient.c:861
+#: src/rpc/virnetserverclient.c:750 src/rpc/virnetserverclient.c:887
 #, c-format
 msgid "unexpected zero/negative length request %lld"
 msgstr ""
@@ -14522,7 +14534,7 @@ msgstr ""
 msgid "no pool with matching name '%s'"
 msgstr ""
 
-#: src/storage/storage_driver.c:464 src/test/test_driver.c:4086
+#: src/storage/storage_driver.c:464 src/test/test_driver.c:4087
 #, c-format
 msgid "pool type '%s' does not support source discovery"
 msgstr ""
@@ -14584,7 +14596,7 @@ msgstr ""
 msgid "pool does not support pool deletion"
 msgstr ""
 
-#: src/storage/storage_driver.c:1038 src/test/test_driver.c:4462
+#: src/storage/storage_driver.c:1038 src/test/test_driver.c:4463
 msgid "pool has no config file"
 msgstr ""
 
@@ -14592,10 +14604,10 @@ msgstr ""
 #: src/storage/storage_driver.c:1607 src/storage/storage_driver.c:1669
 #: src/storage/storage_driver.c:1886 src/storage/storage_driver.c:1946
 #: src/storage/storage_driver.c:2024 src/storage/storage_driver.c:2080
-#: src/storage/storage_driver.c:2127 src/test/test_driver.c:4584
-#: src/test/test_driver.c:4791 src/test/test_driver.c:4870
-#: src/test/test_driver.c:4948 src/test/test_driver.c:4996
-#: src/test/test_driver.c:5036
+#: src/storage/storage_driver.c:2127 src/test/test_driver.c:4585
+#: src/test/test_driver.c:4792 src/test/test_driver.c:4871
+#: src/test/test_driver.c:4949 src/test/test_driver.c:4997
+#: src/test/test_driver.c:5037
 #, c-format
 msgid "no storage vol with matching name '%s'"
 msgstr ""
@@ -14608,8 +14620,8 @@ msgstr ""
 msgid "no storage vol with matching path"
 msgstr ""
 
-#: src/storage/storage_driver.c:1322 src/test/test_driver.c:4700
-#: src/test/test_driver.c:4784
+#: src/storage/storage_driver.c:1322 src/test/test_driver.c:4701
+#: src/test/test_driver.c:4785
 msgid "storage vol already exists"
 msgstr ""
 
@@ -14770,7 +14782,7 @@ msgid "domain '%s' not running"
 msgstr "Domenet kjører fremdeles"
 
 #: src/test/test_driver.c:1670 src/test/test_driver.c:2288
-#: src/test/test_driver.c:2825 src/test/test_driver.c:2880
+#: src/test/test_driver.c:2826 src/test/test_driver.c:2881
 msgid "getting time of day"
 msgstr "henter tid på døgnet"
 
@@ -14855,59 +14867,59 @@ msgstr ""
 msgid "Domain '%s' is already running"
 msgstr "Domenet kjører allerede"
 
-#: src/test/test_driver.c:3166
+#: src/test/test_driver.c:3167
 #, fuzzy, c-format
 msgid "Network '%s' is still running"
 msgstr "Nettverket kjører fremdeles"
 
-#: src/test/test_driver.c:3199
+#: src/test/test_driver.c:3200
 #, fuzzy, c-format
 msgid "Network '%s' is already running"
 msgstr "Domenet kjører allerede"
 
-#: src/test/test_driver.c:3554
+#: src/test/test_driver.c:3555
 msgid "there is another transaction running."
 msgstr ""
 
-#: src/test/test_driver.c:3581
+#: src/test/test_driver.c:3582
 msgid "no transaction running, nothing to be commited."
 msgstr ""
 
-#: src/test/test_driver.c:3608
+#: src/test/test_driver.c:3609
 msgid "no transaction running, nothing to rollback."
 msgstr ""
 
-#: src/test/test_driver.c:4026 src/test/test_driver.c:4198
-#: src/test/test_driver.c:4234 src/test/test_driver.c:4305
+#: src/test/test_driver.c:4027 src/test/test_driver.c:4199
+#: src/test/test_driver.c:4235 src/test/test_driver.c:4306
 #, fuzzy, c-format
 msgid "storage pool '%s' is already active"
 msgstr "Domenet er allerede aktivt"
 
-#: src/test/test_driver.c:4116
+#: src/test/test_driver.c:4117
 msgid "storage pool already exists"
 msgstr ""
 
-#: src/test/test_driver.c:4263 src/test/test_driver.c:4340
-#: src/test/test_driver.c:4495 src/test/test_driver.c:4530
-#: src/test/test_driver.c:4576 src/test/test_driver.c:4690
-#: src/test/test_driver.c:4774 src/test/test_driver.c:4877
-#: src/test/test_driver.c:4955 src/test/test_driver.c:5003
-#: src/test/test_driver.c:5043
+#: src/test/test_driver.c:4264 src/test/test_driver.c:4341
+#: src/test/test_driver.c:4496 src/test/test_driver.c:4531
+#: src/test/test_driver.c:4577 src/test/test_driver.c:4691
+#: src/test/test_driver.c:4775 src/test/test_driver.c:4878
+#: src/test/test_driver.c:4956 src/test/test_driver.c:5004
+#: src/test/test_driver.c:5044
 #, c-format
 msgid "storage pool '%s' is not active"
 msgstr ""
 
-#: src/test/test_driver.c:4627
+#: src/test/test_driver.c:4628
 #, c-format
 msgid "no storage vol with matching key '%s'"
 msgstr ""
 
-#: src/test/test_driver.c:4661
+#: src/test/test_driver.c:4662
 #, c-format
 msgid "no storage vol with matching path '%s'"
 msgstr ""
 
-#: src/test/test_driver.c:4708 src/test/test_driver.c:4800
+#: src/test/test_driver.c:4709 src/test/test_driver.c:4801
 #, c-format
 msgid "Not enough free space in pool for volume '%s'"
 msgstr ""
@@ -17837,482 +17849,482 @@ msgstr ""
 msgid "domain is not in suspend state"
 msgstr "Domenet kjører fremdeles"
 
-#: src/vmx/vmx.c:587
+#: src/vmx/vmx.c:588
 #, c-format
 msgid "libxml2 doesn't handle %s encoding"
 msgstr ""
 
-#: src/vmx/vmx.c:596
+#: src/vmx/vmx.c:597
 #, c-format
 msgid "Could not convert from %s to UTF-8 encoding"
 msgstr ""
 
-#: src/vmx/vmx.c:628 src/vmx/vmx.c:644 src/vmx/vmx.c:673 src/vmx/vmx.c:689
-#: src/vmx/vmx.c:719 src/vmx/vmx.c:730 src/vmx/vmx.c:768 src/vmx/vmx.c:779
+#: src/vmx/vmx.c:629 src/vmx/vmx.c:645 src/vmx/vmx.c:674 src/vmx/vmx.c:690
+#: src/vmx/vmx.c:720 src/vmx/vmx.c:731 src/vmx/vmx.c:769 src/vmx/vmx.c:780
 #, c-format
 msgid "Missing essential config entry '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:634 src/vmx/vmx.c:680 src/vmx/vmx.c:745 src/vmx/vmx.c:796
+#: src/vmx/vmx.c:635 src/vmx/vmx.c:681 src/vmx/vmx.c:746 src/vmx/vmx.c:797
 #, c-format
 msgid "Config entry '%s' must be a string"
 msgstr ""
 
-#: src/vmx/vmx.c:739
+#: src/vmx/vmx.c:740
 #, c-format
 msgid "Config entry '%s' must represent an integer value"
 msgstr ""
 
-#: src/vmx/vmx.c:790
+#: src/vmx/vmx.c:791
 #, c-format
 msgid "Config entry '%s' must represent a boolean value (true|false)"
 msgstr ""
 
-#: src/vmx/vmx.c:812
+#: src/vmx/vmx.c:813
 msgid ""
 "Expecting domain XML attribute 'dev' of entry 'devices/disk/target' to start "
 "with 'sd'"
 msgstr ""
 
-#: src/vmx/vmx.c:821 src/vmx/vmx.c:861 src/vmx/vmx.c:896
+#: src/vmx/vmx.c:822 src/vmx/vmx.c:862 src/vmx/vmx.c:897
 #, c-format
 msgid "Could not parse valid disk index from '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:828
+#: src/vmx/vmx.c:829
 #, c-format
 msgid "SCSI disk index (parsed from '%s') is too large"
 msgstr ""
 
-#: src/vmx/vmx.c:852
+#: src/vmx/vmx.c:853
 msgid ""
 "Expecting domain XML attribute 'dev' of entry 'devices/disk/target' to start "
 "with 'hd'"
 msgstr ""
 
-#: src/vmx/vmx.c:868
+#: src/vmx/vmx.c:869
 #, c-format
 msgid "IDE disk index (parsed from '%s') is too large"
 msgstr ""
 
-#: src/vmx/vmx.c:887
+#: src/vmx/vmx.c:888
 msgid ""
 "Expecting domain XML attribute 'dev' of entry 'devices/disk/target' to start "
 "with 'fd'"
 msgstr ""
 
-#: src/vmx/vmx.c:903
+#: src/vmx/vmx.c:904
 #, c-format
 msgid "Floppy disk index (parsed from '%s') is too large"
 msgstr ""
 
-#: src/vmx/vmx.c:924
+#: src/vmx/vmx.c:925
 #, c-format
 msgid "Unsupported disk address type '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:936
+#: src/vmx/vmx.c:937
 msgid "Could not verify disk address"
 msgstr ""
 
-#: src/vmx/vmx.c:944
+#: src/vmx/vmx.c:945
 #, c-format
 msgid "Disk address %d:%d:%d doesn't match target device '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:953 src/vmx/vmx.c:1641 src/vmx/vmx.c:1842 src/vmx/vmx.c:1962
+#: src/vmx/vmx.c:954 src/vmx/vmx.c:1643 src/vmx/vmx.c:1844 src/vmx/vmx.c:1964
 #, c-format
 msgid "SCSI controller index %d out of [0..3] range"
 msgstr ""
 
-#: src/vmx/vmx.c:960
+#: src/vmx/vmx.c:961
 #, c-format
 msgid "SCSI bus index %d out of [0] range"
 msgstr ""
 
-#: src/vmx/vmx.c:967 src/vmx/vmx.c:1969
+#: src/vmx/vmx.c:968 src/vmx/vmx.c:1971
 #, c-format
 msgid "SCSI unit index %d out of [0..6,8..15] range"
 msgstr ""
 
-#: src/vmx/vmx.c:974
+#: src/vmx/vmx.c:975
 #, c-format
 msgid "IDE controller index %d out of [0] range"
 msgstr ""
 
-#: src/vmx/vmx.c:981 src/vmx/vmx.c:1989
+#: src/vmx/vmx.c:982 src/vmx/vmx.c:1991
 #, c-format
 msgid "IDE bus index %d out of [0..1] range"
 msgstr ""
 
-#: src/vmx/vmx.c:988 src/vmx/vmx.c:1996
+#: src/vmx/vmx.c:989 src/vmx/vmx.c:1998
 #, c-format
 msgid "IDE unit index %d out of [0..1] range"
 msgstr ""
 
-#: src/vmx/vmx.c:995 src/vmx/vmx.c:2021
+#: src/vmx/vmx.c:996 src/vmx/vmx.c:2023
 #, c-format
 msgid "FDC controller index %d out of [0] range"
 msgstr ""
 
-#: src/vmx/vmx.c:1002
+#: src/vmx/vmx.c:1003
 #, c-format
 msgid "FDC bus index %d out of [0] range"
 msgstr ""
 
-#: src/vmx/vmx.c:1009 src/vmx/vmx.c:2028
+#: src/vmx/vmx.c:1010 src/vmx/vmx.c:2030
 #, c-format
 msgid "FDC unit index %d out of [0..1] range"
 msgstr ""
 
-#: src/vmx/vmx.c:1015
+#: src/vmx/vmx.c:1016
 #, c-format
 msgid "Unsupported bus type '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:1047
+#: src/vmx/vmx.c:1048
 #, c-format
 msgid "Unknown driver name '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:1060
+#: src/vmx/vmx.c:1061
 #, c-format
 msgid "Missing SCSI controller for index %d"
 msgstr ""
 
-#: src/vmx/vmx.c:1069
+#: src/vmx/vmx.c:1070
 #, c-format
 msgid ""
 "Inconsistent SCSI controller model ('%s' is not '%s') for SCSI controller "
 "index %d"
 msgstr ""
 
-#: src/vmx/vmx.c:1149
+#: src/vmx/vmx.c:1150
 #, c-format
 msgid ""
 "Disks on SCSI controller %d have inconsistent controller models, cannot "
 "autodetect model"
 msgstr ""
 
-#: src/vmx/vmx.c:1165
+#: src/vmx/vmx.c:1166
 #, c-format
 msgid ""
 "Expecting domain XML attribute 'model' of entry 'controller' to be "
 "'buslogic' or 'lsilogic' or 'lsisas1068' or 'vmpvscsi' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:1217
+#: src/vmx/vmx.c:1218
 msgid "virVMXContext has no parseFileName function set"
 msgstr ""
 
-#: src/vmx/vmx.c:1270
+#: src/vmx/vmx.c:1271
 #, c-format
 msgid "Expecting VMX entry 'config.version' to be 8 but found %lld"
 msgstr ""
 
-#: src/vmx/vmx.c:1283
+#: src/vmx/vmx.c:1285
 #, c-format
-msgid "Expecting VMX entry 'virtualHW.version' to be 4 or 7 but found %lld"
+msgid "Expecting VMX entry 'virtualHW.version' to be 4, 7 or 8 but found %lld"
 msgstr ""
 
-#: src/vmx/vmx.c:1304
+#: src/vmx/vmx.c:1306
 msgid "VMX entry 'name' contains invalid escape sequence"
 msgstr ""
 
-#: src/vmx/vmx.c:1318
+#: src/vmx/vmx.c:1320
 msgid "VMX entry 'annotation' contains invalid escape sequence"
 msgstr ""
 
-#: src/vmx/vmx.c:1331
+#: src/vmx/vmx.c:1333
 #, c-format
 msgid ""
 "Expecting VMX entry 'memsize' to be an unsigned integer (multiple of 4) but "
 "found %lld"
 msgstr ""
 
-#: src/vmx/vmx.c:1377
+#: src/vmx/vmx.c:1379
 #, c-format
 msgid ""
 "Expecting VMX entry 'numvcpus' to be an unsigned integer (1 or a multiple of "
 "2) but found %lld"
 msgstr ""
 
-#: src/vmx/vmx.c:1409 src/vmx/vmx.c:1437
+#: src/vmx/vmx.c:1411 src/vmx/vmx.c:1439
 #, c-format
 msgid ""
 "Expecting VMX entry 'sched.cpu.affinity' to be a comma separated list of "
 "unsigned integers but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:1417
+#: src/vmx/vmx.c:1419
 #, c-format
 msgid "VMX entry 'sched.cpu.affinity' contains a %d, this value is too large"
 msgstr ""
 
-#: src/vmx/vmx.c:1448
+#: src/vmx/vmx.c:1450
 #, c-format
 msgid ""
 "Expecting VMX entry 'sched.cpu.affinity' to contain at least as many values "
 "as 'numvcpus' (%lld) but found only %d value(s)"
 msgstr ""
 
-#: src/vmx/vmx.c:1472
+#: src/vmx/vmx.c:1474
 #, c-format
 msgid ""
 "Expecting VMX entry 'sched.cpu.shares' to be an unsigned integer or 'low', "
 "'normal' or 'high' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:1632
+#: src/vmx/vmx.c:1634
 #, fuzzy
 msgid "Could not add controllers"
 msgstr "kunne ikke koble til %s"
 
-#: src/vmx/vmx.c:1880
+#: src/vmx/vmx.c:1882
 #, c-format
 msgid ""
 "Expecting VMX entry '%s' to be 'buslogic' or 'lsilogic' or 'lsisas1068' or "
 "'pvscsi' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2012 src/vmx/vmx.c:2045
+#: src/vmx/vmx.c:2014 src/vmx/vmx.c:2047
 #, c-format
 msgid "Unsupported bus type '%s' for device type '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2052 src/vmx/vmx.c:2227
+#: src/vmx/vmx.c:2054 src/vmx/vmx.c:2229
 #, c-format
 msgid "Unsupported device type '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2124
+#: src/vmx/vmx.c:2126
 #, c-format
 msgid "Expecting VMX entry '%s' to be 'scsi-hardDisk' or 'disk' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2132
+#: src/vmx/vmx.c:2134
 #, c-format
 msgid "Expecting VMX entry '%s' to be 'ata-hardDisk' or 'disk' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2158 src/vmx/vmx.c:2194 src/vmx/vmx.c:2222
+#: src/vmx/vmx.c:2160 src/vmx/vmx.c:2196 src/vmx/vmx.c:2224
 #, c-format
 msgid "Invalid or not yet handled value '%s' for VMX entry '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2167
+#: src/vmx/vmx.c:2169
 #, c-format
 msgid "Expecting VMX entry '%s' to be 'cdrom-image' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2203
+#: src/vmx/vmx.c:2205
 #, c-format
 msgid "Expecting VMX entry '%s' to be 'file' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2234
+#: src/vmx/vmx.c:2236
 #, c-format
 msgid "Could not assign address to disk '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2307 src/vmx/vmx.c:3499
+#: src/vmx/vmx.c:2309 src/vmx/vmx.c:3501
 #, c-format
 msgid "Ethernet controller index %d out of [0..3] range"
 msgstr ""
 
-#: src/vmx/vmx.c:2366 src/vmx/vmx.c:2376
+#: src/vmx/vmx.c:2368 src/vmx/vmx.c:2378
 #, c-format
 msgid "Expecting VMX entry '%s' to be MAC address but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2383
+#: src/vmx/vmx.c:2385
 #, c-format
 msgid ""
 "Expecting VMX entry '%s' to be 'generated' or 'static' or 'vpx' but found "
 "'%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2400
+#: src/vmx/vmx.c:2402
 #, c-format
 msgid ""
 "Expecting VMX entry '%s' to be 'vlance' or 'vmxnet' or 'vmxnet3' or 'e1000' "
 "but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2444 src/vmx/vmx.c:2450
+#: src/vmx/vmx.c:2446 src/vmx/vmx.c:2452
 #, c-format
 msgid "No yet handled value '%s' for VMX entry '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2464
+#: src/vmx/vmx.c:2466
 #, c-format
 msgid "Invalid value '%s' for VMX entry '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2528 src/vmx/vmx.c:3601
+#: src/vmx/vmx.c:2530 src/vmx/vmx.c:3603
 #, c-format
 msgid "Serial port index %d out of [0..3] range"
 msgstr ""
 
-#: src/vmx/vmx.c:2618
+#: src/vmx/vmx.c:2620
 #, c-format
 msgid "VMX entry '%s' doesn't contain a port part"
 msgstr ""
 
-#: src/vmx/vmx.c:2655
+#: src/vmx/vmx.c:2657
 #, c-format
 msgid "VMX entry '%s' contains unsupported scheme '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2666
+#: src/vmx/vmx.c:2668
 #, c-format
 msgid "Expecting VMX entry '%s' to be 'server' or 'client' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2672
+#: src/vmx/vmx.c:2674
 #, c-format
 msgid ""
 "Expecting VMX entry '%s' to be 'device', 'file' or 'pipe' or 'network' but "
 "found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2729 src/vmx/vmx.c:3707
+#: src/vmx/vmx.c:2731 src/vmx/vmx.c:3709
 #, c-format
 msgid "Parallel port index %d out of [0..2] range"
 msgstr ""
 
-#: src/vmx/vmx.c:2791
+#: src/vmx/vmx.c:2793
 #, c-format
 msgid "Expecting VMX entry '%s' to be 'device' or 'file' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2882
+#: src/vmx/vmx.c:2884
 msgid "virVMXContext has no formatFileName function set"
 msgstr ""
 
-#: src/vmx/vmx.c:2890
+#: src/vmx/vmx.c:2892
 #, c-format
 msgid "Expecting virt type to be '%s' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2913
+#: src/vmx/vmx.c:2915
 #, c-format
 msgid ""
 "Expecting domain XML attribute 'arch' of entry 'os/type' to be 'i686' or "
 "'x86_64' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:2926
+#: src/vmx/vmx.c:2928
 #, fuzzy, c-format
 msgid "Unsupported SMBIOS mode '%s'"
 msgstr "ukjent kommando: '%s'"
 
-#: src/vmx/vmx.c:2990
+#: src/vmx/vmx.c:2992
 msgid "No support for domain XML entry 'vcpu' attribute 'current'"
 msgstr ""
 
-#: src/vmx/vmx.c:2996
+#: src/vmx/vmx.c:2998
 #, c-format
 msgid ""
 "Expecting domain XML entry 'vcpu' to be an unsigned integer (1 or a multiple "
 "of 2) but found %d"
 msgstr ""
 
-#: src/vmx/vmx.c:3018
+#: src/vmx/vmx.c:3020
 #, c-format
 msgid ""
 "Expecting domain XML attribute 'cpuset' of entry 'vcpu' to contain at least "
 "%d CPU(s)"
 msgstr ""
 
-#: src/vmx/vmx.c:3066
+#: src/vmx/vmx.c:3068
 #, c-format
 msgid "Unsupported graphics type '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:3123
+#: src/vmx/vmx.c:3125
 #, c-format
 msgid "Unsupported disk device type '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:3156
+#: src/vmx/vmx.c:3158
 msgid "No support for multiple video devices"
 msgstr ""
 
-#: src/vmx/vmx.c:3284
+#: src/vmx/vmx.c:3286
 #, c-format
 msgid "Unsupported bus type '%s' for harddisk"
 msgstr ""
 
-#: src/vmx/vmx.c:3291
+#: src/vmx/vmx.c:3293
 #, c-format
 msgid "%s harddisk '%s' has unsupported type '%s', expecting '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:3305
+#: src/vmx/vmx.c:3307
 #, c-format
 msgid ""
 "Image file for %s harddisk '%s' has unsupported suffix, expecting '.vmdk'"
 msgstr ""
 
-#: src/vmx/vmx.c:3328
+#: src/vmx/vmx.c:3330
 #, c-format
 msgid "%s harddisk '%s' has unsupported cache mode '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:3372
+#: src/vmx/vmx.c:3374
 #, c-format
 msgid "Unsupported bus type '%s' for cdrom"
 msgstr ""
 
-#: src/vmx/vmx.c:3387
+#: src/vmx/vmx.c:3389
 #, c-format
 msgid "Image file for %s cdrom '%s' has unsupported suffix, expecting '.iso'"
 msgstr ""
 
-#: src/vmx/vmx.c:3413
+#: src/vmx/vmx.c:3415
 #, c-format
 msgid "%s cdrom '%s' has unsupported type '%s', expecting '%s' or '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:3452
+#: src/vmx/vmx.c:3454
 #, c-format
 msgid "Image file for floppy '%s' has unsupported suffix, expecting '.flp'"
 msgstr ""
 
-#: src/vmx/vmx.c:3477
+#: src/vmx/vmx.c:3479
 #, c-format
 msgid "Floppy '%s' has unsupported type '%s', expecting '%s' or '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:3514
+#: src/vmx/vmx.c:3516
 #, c-format
 msgid ""
 "Expecting domain XML entry 'devices/interfase/model' to be 'vlance' or "
 "'vmxnet' or 'vmxnet2' or 'vmxnet3' or 'e1000' but found '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:3550
+#: src/vmx/vmx.c:3552
 #, c-format
 msgid "Unsupported net type '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:3666
+#: src/vmx/vmx.c:3668
 #, c-format
 msgid "Unsupported character device TCP protocol '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:3684 src/vmx/vmx.c:3742
+#: src/vmx/vmx.c:3686 src/vmx/vmx.c:3744
 #, c-format
 msgid "Unsupported character device type '%s'"
 msgstr ""
 
-#: src/vmx/vmx.c:3759
+#: src/vmx/vmx.c:3761
 #, fuzzy, c-format
 msgid "Unsupported video device type '%s'"
 msgstr "ukjent vert %s"
 
-#: src/vmx/vmx.c:3772
+#: src/vmx/vmx.c:3774
 msgid "Multi-head video devices are unsupported"
 msgstr ""
 
@@ -18376,40 +18388,40 @@ msgstr "Kunne ikke definere domenet fra %s"
 msgid "Device %s has been assigned to guest %d"
 msgstr ""
 
-#: src/xen/xen_hypervisor.c:1409
+#: src/xen/xen_hypervisor.c:1408
 #, c-format
 msgid "Credit scheduler weight parameter (%d) is out of range (1-65535)"
 msgstr ""
 
-#: src/xen/xen_hypervisor.c:1418
+#: src/xen/xen_hypervisor.c:1417
 #, c-format
 msgid "Credit scheduler cap parameter (%d) is out of range (0-65534)"
 msgstr ""
 
-#: src/xen/xen_hypervisor.c:2436
+#: src/xen/xen_hypervisor.c:2435
 msgid "could not read CPU flags"
 msgstr ""
 
-#: src/xen/xen_hypervisor.c:2717 src/xen/xen_hypervisor.c:2728
+#: src/xen/xen_hypervisor.c:2716 src/xen/xen_hypervisor.c:2727
 #, c-format
 msgid "cannot read file %s"
 msgstr ""
 
-#: src/xen/xen_hypervisor.c:2894 src/xen/xen_hypervisor.c:3587
+#: src/xen/xen_hypervisor.c:2893 src/xen/xen_hypervisor.c:3586
 #, fuzzy
 msgid "domain shut off or invalid"
 msgstr "domene-id eller -uuid"
 
-#: src/xen/xen_hypervisor.c:2902
+#: src/xen/xen_hypervisor.c:2901
 msgid "unsupported in dom interface < 4"
 msgstr ""
 
-#: src/xen/xen_hypervisor.c:2910 src/xen/xen_hypervisor.c:2916
-#: src/xen/xen_hypervisor.c:3602
+#: src/xen/xen_hypervisor.c:2909 src/xen/xen_hypervisor.c:2915
+#: src/xen/xen_hypervisor.c:3601
 msgid "cannot get domain details"
 msgstr ""
 
-#: src/xen/xen_hypervisor.c:3619 src/xen/xen_hypervisor.c:3627
+#: src/xen/xen_hypervisor.c:3618 src/xen/xen_hypervisor.c:3626
 msgid "cannot get VCPUs info"
 msgstr ""
 
@@ -18657,8 +18669,8 @@ msgstr "kunne ikke åpne fil"
 msgid "Failed to create inactive domain %s"
 msgstr "Kunne ikke vise inaktive domener"
 
-#: src/xen/xend_internal.c:3515 src/xen/xend_internal.c:3591
-#: src/xen/xend_internal.c:3698
+#: src/xen/xend_internal.c:3515 src/xen/xend_internal.c:3588
+#: src/xen/xend_internal.c:3696
 msgid "unsupported in xendConfigVersion < 4"
 msgstr ""
 
@@ -18667,56 +18679,56 @@ msgstr ""
 msgid "node information incomplete, missing scheduler name"
 msgstr "domeneinformasjon i XML"
 
-#: src/xen/xend_internal.c:3547 src/xen/xend_internal.c:3658
-#: src/xen/xend_internal.c:3768
+#: src/xen/xend_internal.c:3547 src/xen/xend_internal.c:3656
+#: src/xen/xend_internal.c:3766
 msgid "Unknown scheduler"
 msgstr ""
 
-#: src/xen/xend_internal.c:3604 src/xen/xend_internal.c:3711
+#: src/xen/xend_internal.c:3601 src/xen/xend_internal.c:3709
 #, fuzzy
 msgid "Failed to get a scheduler name"
 msgstr "kunne ikke lagre innhold"
 
-#: src/xen/xend_internal.c:3629 src/xen/xend_internal.c:3747
+#: src/xen/xend_internal.c:3620 src/xen/xend_internal.c:3745
 #, fuzzy
 msgid "domain information incomplete, missing cpu_weight"
 msgstr "domeneinformasjon i XML"
 
-#: src/xen/xend_internal.c:3634 src/xen/xend_internal.c:3756
+#: src/xen/xend_internal.c:3625 src/xen/xend_internal.c:3754
 #, fuzzy
 msgid "domain information incomplete, missing cpu_cap"
 msgstr "domeneinformasjon i XML"
 
-#: src/xen/xend_internal.c:3640
+#: src/xen/xend_internal.c:3632
 #, c-format
 msgid "Weight %s too big for destination"
 msgstr ""
 
-#: src/xen/xend_internal.c:3649
+#: src/xen/xend_internal.c:3643
 #, c-format
 msgid "Cap %s too big for destination"
 msgstr ""
 
-#: src/xen/xend_internal.c:3817
+#: src/xen/xend_internal.c:3815
 msgid "domainBlockPeek is not supported for dom0"
 msgstr ""
 
-#: src/xen/xend_internal.c:3838
+#: src/xen/xend_internal.c:3836
 #, c-format
 msgid "%s: invalid path"
 msgstr ""
 
-#: src/xen/xend_internal.c:3847
+#: src/xen/xend_internal.c:3845
 #, fuzzy, c-format
 msgid "failed to open for reading: %s"
 msgstr "feil ved åpning av %s for lesing"
 
-#: src/xen/xend_internal.c:3859
+#: src/xen/xend_internal.c:3857
 #, fuzzy, c-format
 msgid "failed to lseek or read from file: %s"
 msgstr "feil ved lesing av konfigurasjonsfil %s"
 
-#: src/xen/xend_internal.c:4000
+#: src/xen/xend_internal.c:3998
 msgid "hotplug of device type not supported"
 msgstr ""
 
@@ -24659,12 +24671,72 @@ msgstr ""
 #~ msgstr "feil ved lesing av konfigurasjonsfil %s"
 
 #, fuzzy
+#~ msgid "Failed to unmount '%s'"
+#~ msgstr "Kunne ikke lagre domenet %s til %s"
+
+#, fuzzy
+#~ msgid "Field weight too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field cap too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
 #~ msgid "failed to create snapshot file '%s'"
 #~ msgstr "feil ved lesing av konfigurasjonsfil %s"
 
 #, fuzzy
 #~ msgid "Failed to write snapshot data to %s"
 #~ msgstr "Kunne ikke opprette domenet fra %s"
+
+#, fuzzy
+#~ msgid "Field blkio weight too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field cpu_shares too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field vcpu_period too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field vcpu_quota too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field write bytes too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field write requests too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field read bytes too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field read requests too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field flush requests too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field write total times too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field read total times too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
+
+#, fuzzy
+#~ msgid "Field flush total times too long for destination"
+#~ msgstr "feil ved åpning av konfigurasjonfil for lesing"
 
 #, fuzzy
 #~ msgid "Failed to parse XML fragment %s"
@@ -25152,10 +25224,6 @@ msgstr ""
 #, fuzzy
 #~ msgid "Failed to run '%s' to create snapshot '%s' from disk '%s'"
 #~ msgstr "Kunne ikke opprette domenet fra %s"
-
-#, fuzzy
-#~ msgid "Failed to run %s to get target list"
-#~ msgstr "Kunne ikke starte domenet %s"
 
 #, fuzzy
 #~ msgid "Failed to wait for '%s'"

@@ -114,5 +114,6 @@ typedef struct _esxVI_VmfsDatastoreInfo esxVI_VmfsDatastoreInfo;
 
 typedef struct _esxVI_ComputeResource esxVI_ComputeResource;
 typedef struct _esxVI_Datacenter esxVI_Datacenter;
+typedef struct _esxVI_Folder esxVI_Folder;
 typedef struct _esxVI_HostSystem esxVI_HostSystem;
 typedef struct _esxVI_ManagedEntity esxVI_ManagedEntity;

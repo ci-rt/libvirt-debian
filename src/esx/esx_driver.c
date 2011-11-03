@@ -722,7 +722,7 @@ esxConnectToHost(esxPrivate *priv, virConnectAuthPtr auth,
     if (esxVI_Context_Alloc(&priv->host) < 0 ||
         esxVI_Context_Connect(priv->host, url, ipAddress, username, password,
                               priv->parsedUri) < 0 ||
-        esxVI_Context_LookupObjectsByPath(priv->host, priv->parsedUri) < 0) {
+        esxVI_Context_LookupManagedObjects(priv->host) < 0) {
         goto cleanup;
     }
 
@@ -730,9 +730,11 @@ esxConnectToHost(esxPrivate *priv, virConnectAuthPtr auth,
         if (priv->host->productVersion != esxVI_ProductVersion_ESX35 &&
             priv->host->productVersion != esxVI_ProductVersion_ESX40 &&
             priv->host->productVersion != esxVI_ProductVersion_ESX41 &&
-            priv->host->productVersion != esxVI_ProductVersion_ESX4x) {
+            priv->host->productVersion != esxVI_ProductVersion_ESX4x &&
+            priv->host->productVersion != esxVI_ProductVersion_ESX50 &&
+            priv->host->productVersion != esxVI_ProductVersion_ESX5x) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("%s is neither an ESX 3.5 host nor an ESX 4.x host"),
+                      _("%s is neither an ESX 3.5, 4.x nor 5.x host"),
                       hostname);
             goto cleanup;
         }
@@ -802,8 +804,7 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
     char *url = NULL;
 
     if (hostSystemIpAddress == NULL &&
-        (priv->parsedUri->path_datacenter == NULL ||
-         priv->parsedUri->path_computeResource == NULL)) {
+        (priv->parsedUri->path == NULL || STREQ(priv->parsedUri->path, "/"))) {
         ESX_ERROR(VIR_ERR_INVALID_ARG, "%s",
                   _("Path has to specify the datacenter and compute resource"));
         return -1;
@@ -857,21 +858,23 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
     if (priv->vCenter->productVersion != esxVI_ProductVersion_VPX25 &&
         priv->vCenter->productVersion != esxVI_ProductVersion_VPX40 &&
         priv->vCenter->productVersion != esxVI_ProductVersion_VPX41 &&
-        priv->vCenter->productVersion != esxVI_ProductVersion_VPX4x) {
+        priv->vCenter->productVersion != esxVI_ProductVersion_VPX4x &&
+        priv->vCenter->productVersion != esxVI_ProductVersion_VPX50 &&
+        priv->vCenter->productVersion != esxVI_ProductVersion_VPX5x) {
         ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("%s is neither a vCenter 2.5 server nor a vCenter "
-                    "4.x server"), hostname);
+                  _("%s is neither a vCenter 2.5, 4.x nor 5.x server"),
+                  hostname);
         goto cleanup;
     }
 
     if (hostSystemIpAddress != NULL) {
-        if (esxVI_Context_LookupObjectsByHostSystemIp(priv->vCenter,
-                                                      hostSystemIpAddress) < 0) {
+        if (esxVI_Context_LookupManagedObjectsByHostSystemIp
+              (priv->vCenter, hostSystemIpAddress) < 0) {
             goto cleanup;
         }
     } else {
-        if (esxVI_Context_LookupObjectsByPath(priv->vCenter,
-                                              priv->parsedUri) < 0) {
+        if (esxVI_Context_LookupManagedObjectsByPath(priv->vCenter,
+                                                     priv->parsedUri->path) < 0) {
             goto cleanup;
         }
     }
@@ -890,8 +893,8 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
 
 
 /*
- * URI format: {vpx|esx|gsx}://[<username>@]<hostname>[:<port>]/[<path>][?<query parameter> ...]
- *             <path> = <datacenter>/<computeresource>[/<hostsystem>]
+ * URI format: {vpx|esx|gsx}://[<username>@]<hostname>[:<port>]/[<path>][?<query parameter>...]
+ *             <path> = [<folder>/...]<datacenter>/[<folder>/...]<computeresource>[/<hostsystem>]
  *
  * If no port is specified the default port is set dependent on the scheme and
  * transport parameter:
@@ -905,7 +908,8 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
  * For a vpx:// connection <path> references a host managed by the vCenter.
  * In case the host is part of a cluster then <computeresource> is the cluster
  * name. Otherwise <computeresource> and <hostsystem> are equal and the later
- * can be omitted.
+ * can be omitted. As datacenters and computeresources can be organized in
+ * folders those have to be included in <path>.
  *
  * Optional query parameters:
  * - transport={http|https}
@@ -971,6 +975,12 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth,
                   _("Transport '%s' in URI scheme is not supported, try again "
                     "without the transport part"), plus + 1);
         return VIR_DRV_OPEN_ERROR;
+    }
+
+    if (STRCASENEQ(conn->uri->scheme, "vpx") &&
+        conn->uri->path != NULL && STRNEQ(conn->uri->path, "/")) {
+        VIR_WARN("Ignoring unexpected path '%s' for non-vpx scheme '%s'",
+                 conn->uri->path, conn->uri->scheme);
     }
 
     /* Require server part */
@@ -2765,7 +2775,7 @@ esxDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
                       domain->conn->uri->server, domain->conn->uri->port);
     virBufferURIEncodeString(&buffer, directoryAndFileName);
     virBufferAddLit(&buffer, "?dcPath=");
-    virBufferURIEncodeString(&buffer, priv->primary->datacenter->name);
+    virBufferURIEncodeString(&buffer, priv->primary->datacenterPath);
     virBufferAddLit(&buffer, "&dsName=");
     virBufferURIEncodeString(&buffer, datastoreName);
 
@@ -3233,7 +3243,7 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml)
 
     virBufferURIEncodeString(&buffer, escapedName);
     virBufferAddLit(&buffer, ".vmx?dcPath=");
-    virBufferURIEncodeString(&buffer, priv->primary->datacenter->name);
+    virBufferURIEncodeString(&buffer, priv->primary->datacenterPath);
     virBufferAddLit(&buffer, "&dsName=");
     virBufferURIEncodeString(&buffer, datastoreName);
 
@@ -3625,12 +3635,6 @@ esxDomainGetSchedulerParametersFlags(virDomainPtr domain,
 
     virCheckFlags(0, -1);
 
-    if (*nparams < 3) {
-        ESX_ERROR(VIR_ERR_INVALID_ARG, "%s",
-                  _("Parameter array must have space for 3 items"));
-        return -1;
-    }
-
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
     }
@@ -3646,12 +3650,12 @@ esxDomainGetSchedulerParametersFlags(virDomainPtr domain,
     }
 
     for (dynamicProperty = virtualMachine->propSet;
-         dynamicProperty != NULL && mask != 7 && i < 3;
+         dynamicProperty != NULL && mask != 7 && i < 3 && i < *nparams;
          dynamicProperty = dynamicProperty->_next) {
         if (STREQ(dynamicProperty->name, "config.cpuAllocation.reservation") &&
             ! (mask & (1 << 0))) {
             snprintf (params[i].field, VIR_TYPED_PARAM_FIELD_LENGTH, "%s",
-                      "reservation");
+                      VIR_DOMAIN_SCHEDULER_RESERVATION);
 
             params[i].type = VIR_TYPED_PARAM_LLONG;
 
@@ -3667,7 +3671,7 @@ esxDomainGetSchedulerParametersFlags(virDomainPtr domain,
                          "config.cpuAllocation.limit") &&
                    ! (mask & (1 << 1))) {
             snprintf (params[i].field, VIR_TYPED_PARAM_FIELD_LENGTH, "%s",
-                      "limit");
+                      VIR_DOMAIN_SCHEDULER_LIMIT);
 
             params[i].type = VIR_TYPED_PARAM_LLONG;
 
@@ -3683,7 +3687,7 @@ esxDomainGetSchedulerParametersFlags(virDomainPtr domain,
                          "config.cpuAllocation.shares") &&
                    ! (mask & (1 << 2))) {
             snprintf (params[i].field, VIR_TYPED_PARAM_FIELD_LENGTH, "%s",
-                      "shares");
+                      VIR_DOMAIN_SCHEDULER_SHARES);
 
             params[i].type = VIR_TYPED_PARAM_INT;
 
@@ -3773,7 +3777,7 @@ esxDomainSetSchedulerParametersFlags(virDomainPtr domain,
     }
 
     for (i = 0; i < nparams; ++i) {
-        if (STREQ (params[i].field, "reservation") &&
+        if (STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_RESERVATION) &&
             params[i].type == VIR_TYPED_PARAM_LLONG) {
             if (esxVI_Long_Alloc(&spec->cpuAllocation->reservation) < 0) {
                 goto cleanup;
@@ -3787,7 +3791,7 @@ esxDomainSetSchedulerParametersFlags(virDomainPtr domain,
             }
 
             spec->cpuAllocation->reservation->value = params[i].value.l;
-        } else if (STREQ (params[i].field, "limit") &&
+        } else if (STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_LIMIT) &&
                    params[i].type == VIR_TYPED_PARAM_LLONG) {
             if (esxVI_Long_Alloc(&spec->cpuAllocation->limit) < 0) {
                 goto cleanup;
@@ -3802,7 +3806,7 @@ esxDomainSetSchedulerParametersFlags(virDomainPtr domain,
             }
 
             spec->cpuAllocation->limit->value = params[i].value.l;
-        } else if (STREQ (params[i].field, "shares") &&
+        } else if (STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_SHARES) &&
                    params[i].type == VIR_TYPED_PARAM_INT) {
             if (esxVI_SharesInfo_Alloc(&sharesInfo) < 0 ||
                 esxVI_Int_Alloc(&sharesInfo->shares) < 0) {
@@ -4874,12 +4878,6 @@ esxDomainGetMemoryParameters(virDomainPtr domain, virTypedParameterPtr params,
     if (*nparams == 0) {
         *nparams = 1; /* min_guarantee */
         return 0;
-    }
-
-    if (*nparams < 1) {
-        ESX_ERROR(VIR_ERR_INVALID_ARG, "%s",
-                  _("Parameter array must have space for 1 item"));
-        return -1;
     }
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
