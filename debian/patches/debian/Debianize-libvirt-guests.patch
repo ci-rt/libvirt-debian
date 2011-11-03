@@ -4,6 +4,7 @@ Subject: Debianize libvirt-guests
 
 Origin: vendor
 
+
 ---
  tools/libvirt-guests.init.sh |   43 +++++++++++++----------------------------
  tools/libvirt-guests.sysconf |    6 ++--

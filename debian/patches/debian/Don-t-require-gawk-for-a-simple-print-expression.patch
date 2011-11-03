@@ -5,6 +5,7 @@ Subject: Don't require gawk for a simple print expression
 Closes: #636712
 Thanks: Luca Capello
 
+
 ---
  src/nwfilter/nwfilter_ebiptables_driver.c |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
