@@ -98,5 +98,6 @@
 
     esxVI_Type_ComputeResource,
     esxVI_Type_Datacenter,
+    esxVI_Type_Folder,
     esxVI_Type_HostSystem,
     esxVI_Type_ManagedEntity,

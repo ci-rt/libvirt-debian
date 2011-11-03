@@ -30,6 +30,14 @@
     <function name="VIR_DOMAIN_MEMORY_PARAM_UNLIMITED" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_PARAM_UNLIMITED"/>
     <function name="VIR_DOMAIN_MEMORY_SOFT_LIMIT" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_SOFT_LIMIT"/>
     <function name="VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT" link="libvirt-libvirt.html#VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT"/>
+    <function name="VIR_DOMAIN_SCHEDULER_CAP" link="libvirt-libvirt.html#VIR_DOMAIN_SCHEDULER_CAP"/>
+    <function name="VIR_DOMAIN_SCHEDULER_CPU_SHARES" link="libvirt-libvirt.html#VIR_DOMAIN_SCHEDULER_CPU_SHARES"/>
+    <function name="VIR_DOMAIN_SCHEDULER_LIMIT" link="libvirt-libvirt.html#VIR_DOMAIN_SCHEDULER_LIMIT"/>
+    <function name="VIR_DOMAIN_SCHEDULER_RESERVATION" link="libvirt-libvirt.html#VIR_DOMAIN_SCHEDULER_RESERVATION"/>
+    <function name="VIR_DOMAIN_SCHEDULER_SHARES" link="libvirt-libvirt.html#VIR_DOMAIN_SCHEDULER_SHARES"/>
+    <function name="VIR_DOMAIN_SCHEDULER_VCPU_PERIOD" link="libvirt-libvirt.html#VIR_DOMAIN_SCHEDULER_VCPU_PERIOD"/>
+    <function name="VIR_DOMAIN_SCHEDULER_VCPU_QUOTA" link="libvirt-libvirt.html#VIR_DOMAIN_SCHEDULER_VCPU_QUOTA"/>
+    <function name="VIR_DOMAIN_SCHEDULER_WEIGHT" link="libvirt-libvirt.html#VIR_DOMAIN_SCHEDULER_WEIGHT"/>
     <function name="VIR_DOMAIN_SCHED_FIELD_LENGTH" link="libvirt-libvirt.html#VIR_DOMAIN_SCHED_FIELD_LENGTH"/>
     <function name="VIR_DOMAIN_SEND_KEY_MAX_KEYS" link="libvirt-libvirt.html#VIR_DOMAIN_SEND_KEY_MAX_KEYS"/>
     <function name="VIR_GET_CPUMAP" link="libvirt-libvirt.html#VIR_GET_CPUMAP"/>

@@ -4476,6 +4476,38 @@ ESX_VI__TEMPLATE__MANAGED_VALIDATE(Datacenter,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Object: Folder
+ *                    extends ManagedEntity
+ */
+
+/* esxVI_Folder_Alloc */
+ESX_VI__TEMPLATE__ALLOC(Folder)
+
+/* esxVI_Folder_Free */
+ESX_VI__TEMPLATE__FREE(Folder,
+{
+    esxVI_ManagedObjectReference_Free(&item->_reference);
+
+    /* ManagedEntity */
+    VIR_FREE(item->name);
+
+    /* Folder */
+    /* no properties */
+})
+
+/* esxVI_Folder_Validate */
+ESX_VI__TEMPLATE__MANAGED_VALIDATE(Folder,
+{
+    /* ManagedEntity */
+    ESX_VI__TEMPLATE__PROPERTY__MANAGED_REQUIRE(name)
+
+    /* Folder */
+    /* no properties */
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Managed Object: HostSystem
  *                    extends ManagedEntity
  */
@@ -4511,6 +4543,7 @@ ESX_VI__TEMPLATE__MANAGED_VALIDATE(HostSystem,
  * VI Managed Object: ManagedEntity
  *                    extended by ComputeResource
  *                                Datacenter
+ *                                Folder
  *                                HostSystem
  */
 
@@ -4522,6 +4555,7 @@ ESX_VI__TEMPLATE__DYNAMIC_FREE(ManagedEntity,
 {
     ESX_VI__TEMPLATE__DISPATCH__FREE(ComputeResource)
     ESX_VI__TEMPLATE__DISPATCH__FREE(Datacenter)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(Folder)
     ESX_VI__TEMPLATE__DISPATCH__FREE(HostSystem)
 },
 {

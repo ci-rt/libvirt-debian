@@ -1,5 +1,3 @@
-# -*- buffer-read-only: t -*- vi: set ro:
-# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # lock.m4 serial 7 (gettext-0.17)
 dnl Copyright (C) 2005-2007 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation

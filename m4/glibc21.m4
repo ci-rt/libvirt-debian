@@ -1,5 +1,3 @@
-# -*- buffer-read-only: t -*- vi: set ro:
-# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # glibc21.m4 serial 3
 dnl Copyright (C) 2000-2002, 2004 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation

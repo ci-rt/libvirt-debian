@@ -47,6 +47,10 @@
 # include <cap-ng.h>
 #endif
 
+#if HAVE_LIBBLKID
+# include <blkid/blkid.h>
+#endif
+
 #include "virterror_internal.h"
 #include "logging.h"
 #include "lxc_container.h"
@@ -224,8 +228,13 @@ int lxcContainerWaitForContinue(int control)
     int readLen;
 
     readLen = saferead(control, &msg, sizeof(msg));
-    if (readLen != sizeof(msg) ||
-        msg != LXC_CONTINUE_MSG) {
+    if (readLen != sizeof(msg)) {
+        if (readLen >= 0)
+            errno = EIO;
+        return -1;
+    }
+    if (msg != LXC_CONTINUE_MSG) {
+        errno = EINVAL;
         return -1;
     }
 
@@ -622,6 +631,87 @@ cleanup:
 }
 
 
+#ifdef HAVE_LIBBLKID
+static int
+lxcContainerMountDetectFilesystem(const char *src, char **type)
+{
+    int fd;
+    int ret = -1;
+    int rc;
+    const char *data = NULL;
+    blkid_probe blkid = NULL;
+
+    *type = NULL;
+
+    if ((fd = open(src, O_RDONLY)) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to open filesystem %s"), src);
+        return -1;
+    }
+
+    if (!(blkid = blkid_new_probe())) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to create blkid library handle"));
+        goto cleanup;
+    }
+    if (blkid_probe_set_device(blkid, fd, 0, 0) < 0) {
+        virReportSystemError(EINVAL,
+                             _("Unable to associate device %s with blkid library"),
+                             src);
+        goto cleanup;
+    }
+
+    blkid_probe_enable_superblocks(blkid, 1);
+
+    blkid_probe_set_superblocks_flags(blkid, BLKID_SUBLKS_TYPE);
+
+    rc = blkid_do_safeprobe(blkid);
+    if (rc != 0) {
+        if (rc == 1) /* Nothing found, return success with *type == NULL */
+            goto done;
+
+        if (rc == -2) {
+            virReportSystemError(EINVAL,
+                                 _("Too many filesystems detected for %s"),
+                                 src);
+        } else {
+            virReportSystemError(errno,
+                                 _("Unable to detect filesystem for %s"),
+                                 src);
+        }
+        goto cleanup;
+    }
+
+    if (blkid_probe_lookup_value(blkid, "TYPE", &data, NULL) < 0) {
+        virReportSystemError(ENOENT,
+                             _("Unable to find filesystem type for %s"),
+                             src);
+        goto cleanup;
+    }
+
+    if (!(*type = strdup(data))) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+done:
+    ret = 0;
+cleanup:
+    VIR_FORCE_CLOSE(fd);
+    if (blkid)
+        blkid_free_probe(blkid);
+    return ret;
+}
+#else /* ! HAVE_LIBBLKID */
+static int
+lxcContainerMountDetectFilesystem(const char *src ATTRIBUTE_UNUSED,
+                                  char **type)
+{
+    /* No libblkid, so just return success with no detected type */
+    *type = NULL;
+    return 0;
+}
+#endif /* ! HAVE_LIBBLKID */
 
 /*
  * This functions attempts to do automatic detection of filesystem
@@ -695,7 +785,7 @@ retry:
         /*
          * /etc/filesystems is only allowed to contain '*' on the last line
          */
-        if (gotStar) {
+        if (gotStar && !tryProc) {
             lxcError(VIR_ERR_INTERNAL_ERROR,
                      _("%s has unexpected '*' before last line"),
                      fslist);
@@ -720,7 +810,7 @@ retry:
                 continue;
 
             virReportSystemError(errno,
-                                 _("Failed to bind mount directory %s to %s"),
+                                 _("Failed to mount device %s to %s"),
                                  src, fs->dst);
             goto cleanup;
         }
@@ -739,6 +829,12 @@ retry:
         VIR_FREE(fslist);
         VIR_FORCE_FCLOSE(fp);
         goto retry;
+    }
+
+    if (ret != 0) {
+        virReportSystemError(ENODEV,
+                             _("Failed to mount device %s to %s, unable to detect filesystem"),
+                             src, fs->dst);
     }
 
     VIR_DEBUG("Done mounting filesystem ret=%d tryProc=%d", ret, tryProc);
@@ -760,6 +856,8 @@ static int lxcContainerMountFSBlockHelper(virDomainFSDefPtr fs,
 {
     int fsflags = 0;
     int ret = -1;
+    char *format = NULL;
+
     if (fs->readonly)
         fsflags |= MS_RDONLY;
 
@@ -770,7 +868,21 @@ static int lxcContainerMountFSBlockHelper(virDomainFSDefPtr fs,
         goto cleanup;
     }
 
-    ret = lxcContainerMountFSBlockAuto(fs, fsflags, src, srcprefix);
+    if (lxcContainerMountDetectFilesystem(src, &format) < 0)
+        goto cleanup;
+
+    if (format) {
+        VIR_DEBUG("Mount %s with detected format %s", src, format);
+        if (mount(src, fs->dst, format, fsflags, NULL) < 0) {
+            virReportSystemError(errno,
+                                 _("Failed to mount device %s to %s as %s"),
+                                 src, fs->dst, format);
+            goto cleanup;
+        }
+        ret = 0;
+    } else {
+        ret = lxcContainerMountFSBlockAuto(fs, fsflags, src, srcprefix);
+    }
 
 cleanup:
     return ret;
@@ -855,6 +967,9 @@ static int lxcContainerUnmountOldFS(void)
     FILE *procmnt;
     int i;
     char mntbuf[1024];
+    int saveErrno;
+    const char *failedUmount = NULL;
+    int ret = -1;
 
     if (!(procmnt = setmntent("/proc/mounts", "r"))) {
         virReportSystemError(errno, "%s",
@@ -867,17 +982,15 @@ static int lxcContainerUnmountOldFS(void)
             continue;
 
         if (VIR_REALLOC_N(mounts, nmounts+1) < 0) {
-            endmntent(procmnt);
             virReportOOMError();
-            return -1;
+            goto cleanup;
         }
         if (!(mounts[nmounts++] = strdup(mntent.mnt_dir))) {
-            endmntent(procmnt);
             virReportOOMError();
-            return -1;
+            goto cleanup;
         }
+        VIR_DEBUG("Grabbed %s", mntent.mnt_dir);
     }
-    endmntent(procmnt);
 
     if (mounts)
         qsort(mounts, nmounts, sizeof(mounts[0]),
@@ -886,16 +999,42 @@ static int lxcContainerUnmountOldFS(void)
     for (i = 0 ; i < nmounts ; i++) {
         VIR_DEBUG("Umount %s", mounts[i]);
         if (umount(mounts[i]) < 0) {
-            virReportSystemError(errno,
-                                 _("Failed to unmount '%s'"),
-                                 mounts[i]);
-            return -1;
+            char ebuf[1024];
+            failedUmount = mounts[i];
+            saveErrno = errno;
+            VIR_WARN("Failed to unmount '%s', trying to detach root '%s': %s",
+                     failedUmount, mounts[nmounts-1],
+                     virStrerror(errno, ebuf, sizeof(ebuf)));
+            break;
         }
-        VIR_FREE(mounts[i]);
     }
+
+    if (failedUmount) {
+        /* This detaches the old root filesystem */
+        if (umount2(mounts[nmounts-1], MNT_DETACH) < 0) {
+            virReportSystemError(saveErrno,
+                                 _("Failed to unmount '%s' and could not detach old root '%s'"),
+                                 failedUmount, mounts[nmounts-1]);
+            goto cleanup;
+        }
+        /* This unmounts the tmpfs on which the old root filesystem was hosted */
+        if (umount(mounts[nmounts-1]) < 0) {
+            virReportSystemError(saveErrno,
+                                 _("Failed to unmount '%s' and could not unmount old root '%s'"),
+                                 failedUmount, mounts[nmounts-1]);
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+cleanup:
+    for (i = 0 ; i < nmounts ; i++)
+        VIR_FREE(mounts[i]);
+    endmntent(procmnt);
     VIR_FREE(mounts);
 
-    return 0;
+    return ret;
 }
 
 

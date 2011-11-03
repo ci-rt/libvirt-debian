@@ -216,7 +216,9 @@ libexec_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
 @WITH_LIBVIRTD_TRUE@@WITH_STORAGE_DISK_TRUE@am__append_143 = libvirt_parthelper
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_144 = libvirt_lxc
 @WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_145 = probes.o
-@WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@am__append_146 = virt-aa-helper
+@HAVE_LIBBLKID_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_146 = $(BLKID_CFLAGS)
+@HAVE_LIBBLKID_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_147 = $(BLKID_LIBS)
+@WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@am__append_148 = virt-aa-helper
 subdir = src
 DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -1241,6 +1243,7 @@ am__objects_74 = libvirt_lxc-nwfilter_params.$(OBJEXT)
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__objects_73) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__objects_74)
 libvirt_lxc_OBJECTS = $(am_libvirt_lxc_OBJECTS)
+@HAVE_LIBBLKID_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__DEPENDENCIES_11 = $(am__DEPENDENCIES_1)
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_DEPENDENCIES =  \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__DEPENDENCIES_1) \
@@ -1251,7 +1254,8 @@ libvirt_lxc_OBJECTS = $(am_libvirt_lxc_OBJECTS)
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__DEPENDENCIES_1) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	../gnulib/lib/libgnu.la \
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_145)
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_145) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__DEPENDENCIES_11)
 libvirt_lxc_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libvirt_lxc_CFLAGS) \
 	$(CFLAGS) $(libvirt_lxc_LDFLAGS) $(LDFLAGS) -o $@
@@ -3393,16 +3397,17 @@ libvirt_net_rpc_client_la_LIBADD = \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(LIBNL_LIBS) $(AUDIT_LIBS) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(DEVMAPPER_LIBS) \
 @WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	../gnulib/lib/libgnu.la \
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_145)
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_CFLAGS = \
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(LIBPARTED_CFLAGS)		\
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(NUMACTL_CFLAGS)		\
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(CAPNG_CFLAGS)			\
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(YAJL_CFLAGS)			\
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(AUDIT_CFLAGS)			\
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		-I@top_srcdir@/src/conf		\
-@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@		$(AM_CFLAGS)
-
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_145) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_147)
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@libvirt_lxc_CFLAGS =  \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(LIBPARTED_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(NUMACTL_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(CAPNG_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(YAJL_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(AUDIT_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	-I@top_srcdir@/src/conf \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(AM_CFLAGS) \
+@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@	$(am__append_146)
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@virt_aa_helper_SOURCES = $(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@virt_aa_helper_LDFLAGS = $(WARN_LDFLAGS) $(AM_LDFLAGS)
 @WITH_LIBVIRTD_TRUE@@WITH_SECDRIVER_APPARMOR_TRUE@virt_aa_helper_LDADD = \
@@ -6687,6 +6692,7 @@ libvirt_qemu.def: $(srcdir)/libvirt_qemu.syms
 install-data-local:
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/images"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/filesystems"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/boot"
 @HAVE_SANLOCK_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/sanlock"
 @WITH_QEMU_TRUE@	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu"
@@ -6720,6 +6726,7 @@ install-data-local:
 uninstall-local::
 	rmdir "$(DESTDIR)$(localstatedir)/cache/libvirt" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/images" ||:
+	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/filesystems" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/boot" ||:
 @HAVE_SANLOCK_TRUE@	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/sanlock" ||:
 @WITH_QEMU_TRUE@	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/qemu" ||:
