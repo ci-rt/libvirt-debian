@@ -1,3 +1,12 @@
+libvirt (0.9.7~rc2-1) experimental; urgency=low
+
+  * [2d51700] New upstream version 0.9.7~rc2
+  * [bae02ad] Drop patches, now fixed upstream.
+      - Fix-storage-pool-source-comparison-to-avoid-comparin.patch
+      - Skip-socket-test-if-we-exceed-UNIX_PATH_MAX.patch
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 03 Nov 2011 18:59:03 +0100
+
 libvirt (0.9.7~rc1-2) experimental; urgency=low
 
   * [c0292f7] Skip socket test if we exceed UNIX_PATH_MAX.
