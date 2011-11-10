@@ -48,6 +48,13 @@
 /* Define to 1 if using `alloca.c'. */
 #undef C_ALLOCA
 
+/* Define as the bit index in the word where to find bit 0 of the exponent of
+   'double'. */
+#undef DBL_EXPBIT0_BIT
+
+/* Define as the word index where to find the exponent of 'double'. */
+#undef DBL_EXPBIT0_WORD
+
 /* Location or name of the dmsetup program */
 #undef DMSETUP
 
@@ -242,6 +249,9 @@
 /* Define to 1 when the gnulib module gettimeofday should be tested. */
 #undef GNULIB_TEST_GETTIMEOFDAY
 
+/* Define to 1 when the gnulib module grantpt should be tested. */
+#undef GNULIB_TEST_GRANTPT
+
 /* Define to 1 when the gnulib module ioctl should be tested. */
 #undef GNULIB_TEST_IOCTL
 
@@ -287,6 +297,9 @@
 /* Define to 1 when the gnulib module open should be tested. */
 #undef GNULIB_TEST_OPEN
 
+/* Define to 1 when the gnulib module openpty should be tested. */
+#undef GNULIB_TEST_OPENPTY
+
 /* Define to 1 when the gnulib module perror should be tested. */
 #undef GNULIB_TEST_PERROR
 
@@ -298,6 +311,9 @@
 
 /* Define to 1 when the gnulib module poll should be tested. */
 #undef GNULIB_TEST_POLL
+
+/* Define to 1 when the gnulib module posix_openpt should be tested. */
+#undef GNULIB_TEST_POSIX_OPENPT
 
 /* Define to 1 when the gnulib module posix_spawnattr_destroy should be
    tested. */
@@ -340,6 +356,9 @@
 
 /* Define to 1 when the gnulib module pthread_sigmask should be tested. */
 #undef GNULIB_TEST_PTHREAD_SIGMASK
+
+/* Define to 1 when the gnulib module ptsname should be tested. */
+#undef GNULIB_TEST_PTSNAME
 
 /* Define to 1 when the gnulib module putenv should be tested. */
 #undef GNULIB_TEST_PUTENV
@@ -439,6 +458,12 @@
 
 /* Define to 1 when the gnulib module time_r should be tested. */
 #undef GNULIB_TEST_TIME_R
+
+/* Define to 1 when the gnulib module ttyname_r should be tested. */
+#undef GNULIB_TEST_TTYNAME_R
+
+/* Define to 1 when the gnulib module unlockpt should be tested. */
+#undef GNULIB_TEST_UNLOCKPT
 
 /* Define to 1 when the gnulib module unsetenv should be tested. */
 #undef GNULIB_TEST_UNSETENV
@@ -648,6 +673,10 @@
    don't. */
 #undef HAVE_DECL_MBSRTOWCS
 
+/* Define to 1 if you have the declaration of `openpty', and to 0 if you
+   don't. */
+#undef HAVE_DECL_OPENPTY
+
 /* Define to 1 if you have the declaration of `program_invocation_name', and
    to 0 if you don't. */
 #undef HAVE_DECL_PROGRAM_INVOCATION_NAME
@@ -699,6 +728,10 @@
 /* Define to 1 if you have the declaration of `towlower', and to 0 if you
    don't. */
 #undef HAVE_DECL_TOWLOWER
+
+/* Define to 1 if you have the declaration of `ttyname_r', and to 0 if you
+   don't. */
+#undef HAVE_DECL_TTYNAME_R
 
 /* Define to 1 if you have the declaration of `unsetenv', and to 0 if you
    don't. */
@@ -826,6 +859,9 @@
 /* Define to 1 if you have the `getuid' function. */
 #undef HAVE_GETUID
 
+/* Define to 1 if you have the `grantpt' function. */
+#undef HAVE_GRANTPT
+
 /* Define to 1 if you have the <grp.h> header file. */
 #undef HAVE_GRP_H
 
@@ -937,6 +973,9 @@
 /* Define to 1 if you have the <libtasn1.h> header file. */
 #undef HAVE_LIBTASN1_H
 
+/* Define to 1 if you have the <libutil.h> header file. */
+#undef HAVE_LIBUTIL_H
+
 /* Define to 1 if you have the `uuid' library (-luuid). */
 #undef HAVE_LIBUUID
 
@@ -1035,6 +1074,9 @@
 /* whether numactl is available for topology info */
 #undef HAVE_NUMACTL
 
+/* Define to 1 if the system has the 'openpty' function. */
+#undef HAVE_OPENPTY
+
 /* Define to 1 if you have the <OS.h> header file. */
 #undef HAVE_OS_H
 
@@ -1066,11 +1108,17 @@
 /* Define to 1 if you have the <poll.h> header file. */
 #undef HAVE_POLL_H
 
+/* Define if the ttyname_r function has a POSIX compliant declaration. */
+#undef HAVE_POSIXDECL_TTYNAME_R
+
 /* Define to 1 if you have the `posix_fallocate' function. */
 #undef HAVE_POSIX_FALLOCATE
 
 /* Define to 1 if you have the `posix_memalign' function. */
 #undef HAVE_POSIX_MEMALIGN
+
+/* Define to 1 if you have the `posix_openpt' function. */
+#undef HAVE_POSIX_OPENPT
 
 /* Define to 1 if you have the `posix_spawn' function. */
 #undef HAVE_POSIX_SPAWN
@@ -1110,6 +1158,12 @@
 
 /* Define to 1 if the system has the type `pthread_t'. */
 #undef HAVE_PTHREAD_T
+
+/* Define to 1 if you have the `ptsname' function. */
+#undef HAVE_PTSNAME
+
+/* Define to 1 if you have the <pty.h> header file. */
+#undef HAVE_PTY_H
 
 /* Define to 1 if you have the <pwd.h> header file. */
 #undef HAVE_PWD_H
@@ -1153,6 +1207,9 @@
 
 /* Define to 1 if you have the <regex.h> header file. */
 #undef HAVE_REGEX_H
+
+/* Define to 1 if you have the `revoke' function. */
+#undef HAVE_REVOKE
 
 /* whether Sanlock plugin for lock management is available */
 #undef HAVE_SANLOCK
@@ -1198,6 +1255,9 @@
 
 /* Define to 1 if you have the `setlocale' function. */
 #undef HAVE_SETLOCALE
+
+/* Define to 1 if you have the `setrlimit' function. */
+#undef HAVE_SETRLIMIT
 
 /* Define to 1 if you have the `shutdown' function. */
 #undef HAVE_SHUTDOWN
@@ -1245,6 +1305,9 @@
 
 /* Define to 1 if you have the <spawn.h> header file. */
 #undef HAVE_SPAWN_H
+
+/* Define to 1 if you have the <stdalign.h> header file. */
+#undef HAVE_STDALIGN_H
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -1451,6 +1514,12 @@
 /* Define to 1 if you have the `tsearch' function. */
 #undef HAVE_TSEARCH
 
+/* Define to 1 if you have the `ttyname' function. */
+#undef HAVE_TTYNAME
+
+/* Define to 1 if you have the `ttyname_r' function. */
+#undef HAVE_TTYNAME_R
+
 /* use UDEV for host device enumeration */
 #undef HAVE_UDEV
 
@@ -1459,6 +1528,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the `unlockpt' function. */
+#undef HAVE_UNLOCKPT
 
 /* Define to 1 if you have the `unsetenv' function. */
 #undef HAVE_UNSETENV
@@ -1471,6 +1543,9 @@
 
 /* Define to 1 if you have the `usleep' function. */
 #undef HAVE_USLEEP
+
+/* Define to 1 if you have the <util.h> header file. */
+#undef HAVE_UTIL_H
 
 /* Define to 1 if you have the `vasnprintf' function. */
 #undef HAVE_VASNPRINTF
@@ -1567,6 +1642,9 @@
 
 /* Define to 1 if you have the `_ftime' function. */
 #undef HAVE__FTIME
+
+/* Define to 1 if you have the `_getpty' function. */
+#undef HAVE__GETPTY
 
 /* Define to 1 if you have the `_set_invalid_parameter_handler' function. */
 #undef HAVE__SET_INVALID_PARAMETER_HANDLER

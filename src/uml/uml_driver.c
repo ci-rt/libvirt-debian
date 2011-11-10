@@ -248,10 +248,10 @@ umlIdentifyChrPTY(struct uml_driver *driver,
 {
     int i;
 
-    if (dom->def->console &&
-        dom->def->console->source.type == VIR_DOMAIN_CHR_TYPE_PTY)
+    for (i = 0 ; i < dom->def->nserials; i++)
+        if (dom->def->consoles[i]->source.type == VIR_DOMAIN_CHR_TYPE_PTY)
         if (umlIdentifyOneChrPTY(driver, dom,
-                                 dom->def->console, "con") < 0)
+                                 dom->def->consoles[i], "con") < 0)
             return -1;
 
     for (i = 0 ; i < dom->def->nserials; i++)
@@ -987,11 +987,12 @@ static int umlStartVMDaemon(virConnectPtr conn,
                             struct uml_driver *driver,
                             virDomainObjPtr vm,
                             bool autoDestroy) {
-    int ret;
+    int ret = -1;
     char *logfile;
     int logfd = -1;
     umlDomainObjPrivatePtr priv = vm->privateData;
     virCommandPtr cmd = NULL;
+    size_t i;
 
     if (virDomainObjIsActive(vm)) {
         umlReportError(VIR_ERR_OPERATION_INVALID, "%s",
@@ -1045,11 +1046,29 @@ static int umlStartVMDaemon(virConnectPtr conn,
         return -1;
     }
 
+    /* Do this upfront, so any part of the startup process can add
+     * runtime state to vm->def that won't be persisted. This let's us
+     * report implicit runtime defaults in the XML, like vnc listen/socket
+     */
+    VIR_DEBUG("Setting current domain def as transient");
+    if (virDomainObjSetDefTransient(driver->caps, vm, true) < 0) {
+        VIR_FORCE_CLOSE(logfd);
+        return -1;
+    }
+
     if (!(cmd = umlBuildCommandLine(conn, driver, vm))) {
         VIR_FORCE_CLOSE(logfd);
         virDomainConfVMNWFilterTeardown(vm);
         umlCleanupTapDevices(vm);
         return -1;
+    }
+
+    for (i = 0 ; i < vm->def->nconsoles ; i++) {
+        VIR_FREE(vm->def->consoles[i]->info.alias);
+        if (virAsprintf(&vm->def->consoles[i]->info.alias, "console%zu", i) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
     }
 
     virCommandWriteArgLog(cmd, logfd);
@@ -1077,6 +1096,12 @@ cleanup:
     if (ret < 0) {
         virDomainConfVMNWFilterTeardown(vm);
         umlCleanupTapDevices(vm);
+        if (vm->newDef) {
+            virDomainDefFree(vm->def);
+            vm->def = vm->newDef;
+            vm->def->id = -1;
+            vm->newDef = NULL;
+        }
     }
 
     /* NB we don't mark it running here - we do that async
@@ -2366,6 +2391,7 @@ umlDomainOpenConsole(virDomainPtr dom,
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     int ret = -1;
     virDomainChrDefPtr chr = NULL;
+    size_t i;
 
     virCheckFlags(0, -1);
 
@@ -2385,20 +2411,24 @@ umlDomainOpenConsole(virDomainPtr dom,
     }
 
     if (dev_name) {
-        /* XXX support device aliases in future */
-        umlReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                       _("Named device aliases are not supported"));
-        goto cleanup;
+        for (i = 0 ; i < vm->def->nconsoles ; i++) {
+            if (vm->def->consoles[i]->info.alias &&
+                STREQ(vm->def->consoles[i]->info.alias, dev_name)) {
+                chr = vm->def->consoles[i];
+                break;
+            }
+        }
     } else {
-        if (vm->def->console)
-            chr = vm->def->console;
+        if (vm->def->nconsoles)
+            chr = vm->def->consoles[0];
         else if (vm->def->nserials)
             chr = vm->def->serials[0];
     }
 
     if (!chr) {
         umlReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("cannot find character device %s"), dev_name);
+                       _("cannot find console device '%s'"),
+                       dev_name ? dev_name : _("default"));
         goto cleanup;
     }
 

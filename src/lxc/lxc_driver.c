@@ -1447,11 +1447,11 @@ lxcBuildControllerCmd(lxc_driver_t *driver,
                       virDomainObjPtr vm,
                       int nveths,
                       char **veths,
-                      int appPty,
-                      int logfile,
+                      int *ttyFDs,
+                      size_t nttyFDs,
                       int handshakefd)
 {
-    int i;
+    size_t i;
     char *filterstr;
     char *outputstr;
     virCommandPtr cmd;
@@ -1492,8 +1492,12 @@ lxcBuildControllerCmd(lxc_driver_t *driver,
                                virLogGetDefaultPriority());
     }
 
-    virCommandAddArgList(cmd, "--name", vm->def->name, "--console", NULL);
-    virCommandAddArgFormat(cmd, "%d", appPty);
+    virCommandAddArgList(cmd, "--name", vm->def->name, NULL);
+    for (i = 0 ; i < nttyFDs ; i++) {
+        virCommandAddArg(cmd, "--console");
+        virCommandAddArgFormat(cmd, "%d", ttyFDs[i]);
+        virCommandPreserveFD(cmd, ttyFDs[i]);
+    }
     virCommandAddArg(cmd, "--handshake");
     virCommandAddArgFormat(cmd, "%d", handshakefd);
     virCommandAddArg(cmd, "--background");
@@ -1518,10 +1522,7 @@ lxcBuildControllerCmd(lxc_driver_t *driver,
             goto cleanup;
     }
 
-    virCommandPreserveFD(cmd, appPty);
     virCommandPreserveFD(cmd, handshakefd);
-    virCommandSetOutputFD(cmd, &logfile);
-    virCommandSetErrorFD(cmd, &logfile);
 
     return cmd;
 cleanup:
@@ -1621,9 +1622,9 @@ static int lxcVmStart(virConnectPtr conn,
                       virDomainRunningReason reason)
 {
     int rc = -1, r;
-    unsigned int i;
-    int parentTty;
-    char *parentTtyPath = NULL;
+    size_t nttyFDs = 0;
+    int *ttyFDs = NULL;
+    size_t i;
     char *logfile = NULL;
     int logfd = -1;
     unsigned int nveths = 0;
@@ -1674,18 +1675,48 @@ static int lxcVmStart(virConnectPtr conn,
         return -1;
     }
 
-    /* open parent tty */
-    if (virFileOpenTty(&parentTty, &parentTtyPath, 1) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Failed to allocate tty"));
+    /* Do this up front, so any part of the startup process can add
+     * runtime state to vm->def that won't be persisted. This let's us
+     * report implicit runtime defaults in the XML, like vnc listen/socket
+     */
+    VIR_DEBUG("Setting current domain def as transient");
+    if (virDomainObjSetDefTransient(driver->caps, vm, true) < 0)
+        goto cleanup;
+
+    /* Here we open all the PTYs we need on the host OS side.
+     * The LXC controller will open the guest OS side PTYs
+     * and forward I/O between them.
+     */
+    nttyFDs = vm->def->nconsoles;
+    if (VIR_ALLOC_N(ttyFDs, nttyFDs) < 0) {
+        virReportOOMError();
         goto cleanup;
     }
-    if (vm->def->console &&
-        vm->def->console->source.type == VIR_DOMAIN_CHR_TYPE_PTY) {
-        VIR_FREE(vm->def->console->source.data.file.path);
-        vm->def->console->source.data.file.path = parentTtyPath;
-    } else {
-        VIR_FREE(parentTtyPath);
+    for (i = 0 ; i < vm->def->nconsoles ; i++)
+        ttyFDs[i] = -1;
+
+    for (i = 0 ; i < vm->def->nconsoles ; i++) {
+        char *ttyPath;
+        if (vm->def->consoles[i]->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
+            lxcError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                     _("Only PTY console types are supported"));
+            goto cleanup;
+        }
+
+        if (virFileOpenTty(&ttyFDs[i], &ttyPath, 1) < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("Failed to allocate tty"));
+            goto cleanup;
+        }
+
+        VIR_FREE(vm->def->consoles[i]->source.data.file.path);
+        vm->def->consoles[i]->source.data.file.path = ttyPath;
+
+        VIR_FREE(vm->def->consoles[i]->info.alias);
+        if (virAsprintf(&vm->def->consoles[i]->info.alias, "console%zu", i) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
     }
 
     if (lxcSetupInterfaces(conn, vm->def, &nveths, &veths) != 0)
@@ -1712,8 +1743,11 @@ static int lxcVmStart(virConnectPtr conn,
     if (!(cmd = lxcBuildControllerCmd(driver,
                                       vm,
                                       nveths, veths,
-                                      parentTty, logfd, handshakefds[1])))
+                                      ttyFDs, nttyFDs,
+                                      handshakefds[1])))
         goto cleanup;
+    virCommandSetOutputFD(cmd, &logfd);
+    virCommandSetErrorFD(cmd, &logfd);
 
     /* Log timestamp */
     if ((timestamp = virTimestamp()) == NULL) {
@@ -1814,7 +1848,8 @@ cleanup:
         VIR_FORCE_CLOSE(priv->monitor);
         virDomainConfVMNWFilterTeardown(vm);
     }
-    VIR_FORCE_CLOSE(parentTty);
+    for (i = 0 ; i < nttyFDs ; i++)
+        VIR_FORCE_CLOSE(ttyFDs[i]);
     VIR_FORCE_CLOSE(handshakefds[0]);
     VIR_FORCE_CLOSE(handshakefds[1]);
     VIR_FREE(logfile);
@@ -3002,6 +3037,7 @@ lxcDomainOpenConsole(virDomainPtr dom,
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     int ret = -1;
     virDomainChrDefPtr chr = NULL;
+    size_t i;
 
     virCheckFlags(0, -1);
 
@@ -3021,20 +3057,24 @@ lxcDomainOpenConsole(virDomainPtr dom,
     }
 
     if (dev_name) {
-        /* XXX support device aliases in future */
-        lxcError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                 _("Named device aliases are not supported"));
-        goto cleanup;
+        for (i = 0 ; i < vm->def->nconsoles ; i++) {
+            if (vm->def->consoles[i]->info.alias &&
+                STREQ(vm->def->consoles[i]->info.alias, dev_name)) {
+                chr = vm->def->consoles[i];
+                break;
+            }
+        }
     } else {
-        if (vm->def->console)
-            chr = vm->def->console;
+        if (vm->def->nconsoles)
+            chr = vm->def->consoles[0];
         else if (vm->def->nserials)
             chr = vm->def->serials[0];
     }
 
     if (!chr) {
-        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("cannot find default console device"));
+        lxcError(VIR_ERR_INTERNAL_ERROR,
+                 _("cannot find console device '%s'"),
+                 dev_name ? dev_name : _("default"));
         goto cleanup;
     }
 

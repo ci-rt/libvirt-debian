@@ -67,15 +67,6 @@ EXTRA_DIST += test-accept.c signature.h macros.h
 
 ## end   gnulib module accept-tests
 
-## begin gnulib module alignof-tests
-
-TESTS += test-alignof
-check_PROGRAMS += test-alignof
-
-EXTRA_DIST += test-alignof.c
-
-## end   gnulib module alignof-tests
-
 ## begin gnulib module alloca-opt-tests
 
 TESTS += test-alloca-opt
@@ -651,6 +642,23 @@ EXTRA_DIST += getugroups.h
 
 ## end   gnulib module getugroups
 
+## begin gnulib module grantpt
+
+
+EXTRA_DIST += grantpt.c pty-private.h
+
+EXTRA_libtests_a_SOURCES += grantpt.c
+
+## end   gnulib module grantpt
+
+## begin gnulib module grantpt-tests
+
+TESTS += test-grantpt
+check_PROGRAMS += test-grantpt
+EXTRA_DIST += test-grantpt.c signature.h macros.h
+
+## end   gnulib module grantpt-tests
+
 ## begin gnulib module ignore-value-tests
 
 TESTS += test-ignore-value
@@ -962,6 +970,15 @@ EXTRA_DIST += test-open.h test-open.c signature.h macros.h
 
 ## end   gnulib module open-tests
 
+## begin gnulib module openpty-tests
+
+TESTS += test-openpty
+check_PROGRAMS += test-openpty
+test_openpty_LDADD = $(LDADD) @PTY_LIB@
+EXTRA_DIST += test-openpty.c signature.h
+
+## end   gnulib module openpty-tests
+
 ## begin gnulib module passfd-tests
 
 TESTS += test-passfd
@@ -1020,6 +1037,14 @@ test_poll_LDADD = $(LDADD) $(LIB_POLL) @LIBSOCKET@ $(INET_PTON_LIB)
 EXTRA_DIST += signature.h test-poll.c
 
 ## end   gnulib module poll-tests
+
+## begin gnulib module posix_openpt-tests
+
+TESTS += test-posix_openpt
+check_PROGRAMS += test-posix_openpt
+EXTRA_DIST += test-posix_openpt.c signature.h macros.h
+
+## end   gnulib module posix_openpt-tests
 
 ## begin gnulib module posix_spawn-internal
 
@@ -1183,6 +1208,23 @@ test_pthread_sigmask2_LDADD = $(LDADD) @LIB_PTHREAD_SIGMASK@ @LIBMULTITHREAD@
 EXTRA_DIST += test-pthread_sigmask1.c test-pthread_sigmask2.c signature.h macros.h
 
 ## end   gnulib module pthread_sigmask-tests
+
+## begin gnulib module ptsname
+
+
+EXTRA_DIST += ptsname.c
+
+EXTRA_libtests_a_SOURCES += ptsname.c
+
+## end   gnulib module ptsname
+
+## begin gnulib module ptsname-tests
+
+TESTS += test-ptsname
+check_PROGRAMS += test-ptsname
+EXTRA_DIST += test-ptsname.c signature.h macros.h
+
+## end   gnulib module ptsname-tests
 
 ## begin gnulib module putenv
 
@@ -1576,6 +1618,14 @@ EXTRA_DIST += test-stat-time.c macros.h
 
 ## end   gnulib module stat-time-tests
 
+## begin gnulib module stdalign-tests
+
+TESTS += test-stdalign
+check_PROGRAMS += test-stdalign
+EXTRA_DIST += test-stdalign.c macros.h
+
+## end   gnulib module stdalign-tests
+
 ## begin gnulib module stdbool-tests
 
 TESTS += test-stdbool
@@ -1785,6 +1835,14 @@ EXTRA_DIST += test-time.c
 
 ## end   gnulib module time-tests
 
+## begin gnulib module ttyname_r-tests
+
+TESTS += test-ttyname_r
+check_PROGRAMS += test-ttyname_r
+EXTRA_DIST += test-ttyname_r.c signature.h macros.h
+
+## end   gnulib module ttyname_r-tests
+
 ## begin gnulib module uname-tests
 
 TESTS += test-uname
@@ -1801,6 +1859,23 @@ check_PROGRAMS += test-unistd
 EXTRA_DIST += test-unistd.c
 
 ## end   gnulib module unistd-tests
+
+## begin gnulib module unlockpt
+
+
+EXTRA_DIST += unlockpt.c
+
+EXTRA_libtests_a_SOURCES += unlockpt.c
+
+## end   gnulib module unlockpt
+
+## begin gnulib module unlockpt-tests
+
+TESTS += test-unlockpt
+check_PROGRAMS += test-unlockpt
+EXTRA_DIST += test-unlockpt.c signature.h macros.h
+
+## end   gnulib module unlockpt-tests
 
 ## begin gnulib module unsetenv
 

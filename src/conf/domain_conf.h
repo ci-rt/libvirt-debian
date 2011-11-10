@@ -605,6 +605,8 @@ enum virDomainChrConsoleTargetType {
     VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN,
     VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_UML,
     VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO,
+    VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_LXC,
+    VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_OPENVZ,
 
     VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_LAST,
 };
@@ -1455,6 +1457,9 @@ struct _virDomainDef {
     int nchannels;
     virDomainChrDefPtr *channels;
 
+    int nconsoles;
+    virDomainChrDefPtr *consoles;
+
     size_t nleases;
     virDomainLeaseDefPtr *leases;
 
@@ -1462,7 +1467,6 @@ struct _virDomainDef {
     virDomainHubDefPtr *hubs;
 
     /* Only 1 */
-    virDomainChrDefPtr console;
     virSecurityLabelDef seclabel;
     virDomainWatchdogDefPtr watchdog;
     virDomainMemballoonDefPtr memballoon;

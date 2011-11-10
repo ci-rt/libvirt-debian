@@ -59,6 +59,7 @@
 #include "util.h"
 #include "virfile.h"
 #include "virpidfile.h"
+#include "command.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -438,45 +439,6 @@ error:
     return -1;
 }
 
-/**
- * lxcFdForward:
- * @readFd: file descriptor to read
- * @writeFd: file desriptor to write
- *
- * Reads 1 byte of data from readFd and writes to writeFd.
- *
- * Returns 0 on success, EAGAIN if returned on read, or -1 in case of error
- */
-static int lxcFdForward(int readFd, int writeFd)
-{
-    int rc = -1;
-    char buf[2];
-
-    if (1 != (saferead(readFd, buf, 1))) {
-        if (EAGAIN == errno) {
-            rc = EAGAIN;
-            goto cleanup;
-        }
-
-        virReportSystemError(errno,
-                             _("read of fd %d failed"),
-                             readFd);
-        goto cleanup;
-    }
-
-    if (1 != (safewrite(writeFd, buf, 1))) {
-        virReportSystemError(errno,
-                             _("write to fd %d failed"),
-                             writeFd);
-        goto cleanup;
-    }
-
-    rc = 0;
-
-cleanup:
-    return rc;
-}
-
 
 static int lxcControllerClearCapabilities(void)
 {
@@ -496,15 +458,10 @@ static int lxcControllerClearCapabilities(void)
     return 0;
 }
 
-typedef struct _lxcTtyForwardFd_t {
-    int fd;
-    int active;
-} lxcTtyForwardFd_t;
-
 /* Return true if it is ok to ignore an accept-after-epoll syscall
    that fails with the specified errno value.  Else false.  */
 static bool
-ignorable_epoll_accept_errno(int errnum)
+ignorable_accept_errno(int errnum)
 {
   return (errnum == EINVAL
           || errnum == ECONNABORTED
@@ -512,202 +469,449 @@ ignorable_epoll_accept_errno(int errnum)
           || errnum == EWOULDBLOCK);
 }
 
-static bool
-lxcPidGone(pid_t container)
+static bool quit = false;
+static virMutex lock;
+static int sigpipe[2];
+
+static void lxcSignalChildHandler(int signum ATTRIBUTE_UNUSED)
 {
-    waitpid(container, NULL, WNOHANG);
-
-    if (kill(container, 0) < 0 &&
-        errno == ESRCH)
-        return true;
-
-    return false;
+    ignore_value(write(sigpipe[1], "1", 1));
 }
+
+static void lxcSignalChildIO(int watch ATTRIBUTE_UNUSED,
+                             int fd ATTRIBUTE_UNUSED,
+                             int events ATTRIBUTE_UNUSED, void *opaque)
+{
+    char buf[1];
+    int ret;
+    int *container = opaque;
+
+    ignore_value(read(sigpipe[0], buf, 1));
+    ret = waitpid(-1, NULL, WNOHANG);
+    if (ret == *container) {
+        virMutexLock(&lock);
+        quit = true;
+        virMutexUnlock(&lock);
+    }
+}
+
+
+struct lxcConsole {
+
+    int hostWatch;
+    int hostFd;  /* PTY FD in the host OS */
+    bool hostClosed;
+    int contWatch;
+    int contFd;  /* PTY FD in the container */
+    bool contClosed;
+
+    size_t fromHostLen;
+    char fromHostBuf[1024];
+    size_t fromContLen;
+    char fromContBuf[1024];
+};
+
+struct lxcMonitor {
+    int serverWatch;
+    int serverFd;  /* Server listen socket */
+    int clientWatch;
+    int clientFd;  /* Current client FD (if any) */
+};
+
+
+static void lxcClientIO(int watch ATTRIBUTE_UNUSED, int fd, int events, void *opaque)
+{
+    struct lxcMonitor *monitor = opaque;
+    char buf[1024];
+    ssize_t ret;
+
+    if (events & (VIR_EVENT_HANDLE_HANGUP |
+                  VIR_EVENT_HANDLE_ERROR)) {
+        virEventRemoveHandle(monitor->clientWatch);
+        monitor->clientWatch = -1;
+        return;
+    }
+
+reread:
+    ret = read(fd, buf, sizeof(buf));
+    if (ret == -1 && errno == EINTR)
+        goto reread;
+    if (ret == -1 && errno == EAGAIN)
+        return;
+    if (ret == -1) {
+        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("Unable to read from monitor client"));
+        virMutexLock(&lock);
+        quit = true;
+        virMutexUnlock(&lock);
+        return;
+    }
+    if (ret == 0) {
+        VIR_DEBUG("Client %d gone", fd);
+        VIR_FORCE_CLOSE(monitor->clientFd);
+        virEventRemoveHandle(monitor->clientWatch);
+        monitor->clientWatch = -1;
+    }
+}
+
+
+static void lxcServerAccept(int watch ATTRIBUTE_UNUSED, int fd, int events ATTRIBUTE_UNUSED, void *opaque)
+{
+    struct lxcMonitor *monitor = opaque;
+    int client;
+
+    if ((client = accept(fd, NULL, NULL)) < 0) {
+        /* First reflex may be simply to declare accept failure
+           to be a fatal error.  However, accept may fail when
+           a client quits between the above poll and here.
+           That case is not fatal, but rather to be expected,
+           if not common, so ignore it.  */
+        if (ignorable_accept_errno(errno))
+            return;
+        virReportSystemError(errno, "%s",
+                             _("Unable to accept monitor client"));
+        virMutexLock(&lock);
+        quit = true;
+        virMutexUnlock(&lock);
+        return;
+    }
+    VIR_DEBUG("New client %d (old %d)\n", client, monitor->clientFd);
+    VIR_FORCE_CLOSE(monitor->clientFd);
+    virEventRemoveHandle(monitor->clientWatch);
+
+    monitor->clientFd = client;
+    if ((monitor->clientWatch = virEventAddHandle(monitor->clientFd,
+                                                  VIR_EVENT_HANDLE_READABLE,
+                                                  lxcClientIO,
+                                                  monitor,
+                                                  NULL)) < 0) {
+        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("Unable to watch client socket"));
+        virMutexLock(&lock);
+        quit = true;
+        virMutexUnlock(&lock);
+        return;
+    }
+}
+
+static void lxcConsoleUpdateWatch(struct lxcConsole *console)
+{
+    int hostEvents = 0;
+    int contEvents = 0;
+
+    if (!console->hostClosed) {
+        if (console->fromHostLen < sizeof(console->fromHostBuf))
+            hostEvents |= VIR_EVENT_HANDLE_READABLE;
+        if (console->fromContLen)
+            hostEvents |= VIR_EVENT_HANDLE_WRITABLE;
+    }
+    if (!console->contClosed) {
+        if (console->fromContLen < sizeof(console->fromContBuf))
+            contEvents |= VIR_EVENT_HANDLE_READABLE;
+        if (console->fromHostLen)
+            contEvents |= VIR_EVENT_HANDLE_WRITABLE;
+    }
+
+    virEventUpdateHandle(console->contWatch, contEvents);
+    virEventUpdateHandle(console->hostWatch, hostEvents);
+}
+
+
+struct lxcConsoleEOFData {
+    struct lxcConsole *console;
+    int fd;
+};
+
+
+static void lxcConsoleEOFThread(void *opaque)
+{
+    struct lxcConsoleEOFData *data = opaque;
+    int ret;
+    int epollfd = -1;
+    struct epoll_event event;
+
+    if ((epollfd = epoll_create(2)) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to create epoll fd"));
+        goto cleanup;
+    }
+
+    event.events = EPOLLIN | EPOLLET;
+    event.data.fd = data->fd;
+    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, data->fd, &event) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to add epoll fd"));
+        goto cleanup;
+    }
+
+    for (;;) {
+        ret = epoll_wait(epollfd, &event, 1, -1);
+        if (ret < 0) {
+            if (ret == EINTR)
+                continue;
+            virReportSystemError(errno, "%s",
+                                 _("Unable to wait on epoll"));
+            virMutexLock(&lock);
+            quit = true;
+            virMutexUnlock(&lock);
+            goto cleanup;
+        }
+
+        /* If we get HUP+dead PID, we just re-enable the main loop
+         * which will see the PID has died and exit */
+        if ((event.events & EPOLLIN)) {
+            virMutexLock(&lock);
+            if (event.data.fd == data->console->hostFd) {
+                data->console->hostClosed = false;
+            } else {
+                data->console->contClosed = false;
+            }
+            lxcConsoleUpdateWatch(data->console);
+            virMutexUnlock(&lock);
+            break;
+        }
+    }
+
+cleanup:
+    VIR_FORCE_CLOSE(epollfd);
+    VIR_FREE(data);
+}
+
+static int lxcCheckEOF(struct lxcConsole *console, int fd)
+{
+    struct lxcConsoleEOFData *data;
+    virThread thread;
+
+    if (VIR_ALLOC(data) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    data->console = console;
+    data->fd = fd;
+
+    if (virThreadCreate(&thread, false, lxcConsoleEOFThread, data) < 0) {
+        VIR_FREE(data);
+        return -1;
+    }
+    return 0;
+}
+
+static void lxcConsoleIO(int watch, int fd, int events, void *opaque)
+{
+    struct lxcConsole *console = opaque;
+
+    virMutexLock(&lock);
+    if (events & VIR_EVENT_HANDLE_READABLE) {
+        char *buf;
+        size_t *len;
+        size_t avail;
+        ssize_t done;
+        if (watch == console->hostWatch) {
+            buf = console->fromHostBuf;
+            len = &console->fromHostLen;
+            avail = sizeof(console->fromHostBuf) - *len;
+        } else {
+            buf = console->fromContBuf;
+            len = &console->fromContLen;
+            avail = sizeof(console->fromContBuf) - *len;
+        }
+    reread:
+        done = read(fd, buf + *len, avail);
+        if (done == -1 && errno == EINTR)
+            goto reread;
+        if (done == -1 && errno != EAGAIN) {
+            virReportSystemError(errno, "%s",
+                                 _("Unable to read container pty"));
+            goto error;
+        }
+        if (done > 0) {
+            *len += done;
+        } else {
+            VIR_DEBUG("Read fd %d done %d errno %d", fd, (int)done, errno);
+        }
+    }
+
+    if (events & VIR_EVENT_HANDLE_WRITABLE) {
+        char *buf;
+        size_t *len;
+        ssize_t done;
+        if (watch == console->hostWatch) {
+            buf = console->fromContBuf;
+            len = &console->fromContLen;
+        } else {
+            buf = console->fromHostBuf;
+            len = &console->fromHostLen;
+        }
+
+    rewrite:
+        done = write(fd, buf, *len);
+        if (done == -1 && errno == EINTR)
+            goto rewrite;
+        if (done == -1 && errno != EAGAIN) {
+            virReportSystemError(errno, "%s",
+                                 _("Unable to write to container pty"));
+            goto error;
+        }
+        if (done > 0) {
+            memmove(buf, buf + done, (*len - done));
+            *len -= done;
+        } else {
+            VIR_DEBUG("Write fd %d done %d errno %d", fd, (int)done, errno);
+        }
+    }
+
+    if (events & VIR_EVENT_HANDLE_HANGUP) {
+        if (watch == console->hostWatch) {
+            console->hostClosed = true;
+        } else {
+            console->contClosed = true;
+        }
+        VIR_DEBUG("Got EOF on %d %d", watch, fd);
+        if (lxcCheckEOF(console, fd) < 0)
+            goto error;
+    }
+
+    lxcConsoleUpdateWatch(console);
+    virMutexUnlock(&lock);
+    return;
+
+error:
+    virEventRemoveHandle(console->contWatch);
+    virEventRemoveHandle(console->hostWatch);
+    console->contWatch = console->hostWatch = -1;
+    quit = true;
+    virMutexUnlock(&lock);
+}
+
 
 /**
  * lxcControllerMain
- * @monitor: server socket fd to accept client requests
- * @client: initial client which is the libvirtd daemon
- * @appPty: open fd for application facing Pty
- * @contPty: open fd for container facing Pty
+ * @serverFd: server socket fd to accept client requests
+ * @clientFd: initial client which is the libvirtd daemon
+ * @hostFd: open fd for application facing Pty
+ * @contFd: open fd for container facing Pty
  *
- * Forwards traffic between fds.  Data read from appPty will be written to contPty
- * This process loops forever.
- * This uses epoll in edge triggered mode to avoid a hard loop on POLLHUP
- * events when the user disconnects the virsh console via ctrl-]
+ * Processes I/O on consoles and the monitor
  *
  * Returns 0 on success or -1 in case of error
  */
-static int lxcControllerMain(int monitor,
-                             int client,
-                             int appPty,
-                             int contPty,
+static int lxcControllerMain(int serverFd,
+                             int clientFd,
+                             int *hostFds,
+                             int *contFds,
+                             size_t nFds,
                              pid_t container)
 {
+    struct lxcConsole *consoles;
+    struct lxcMonitor monitor = {
+        .serverFd = serverFd,
+        .clientFd = clientFd,
+    };
+    virErrorPtr err;
     int rc = -1;
-    int epollFd;
-    struct epoll_event epollEvent;
-    int numEvents;
-    int numActive = 0;
-    lxcTtyForwardFd_t fdArray[2];
-    int timeout = -1;
-    int curFdOff = 0;
-    int writeFdOff = 0;
+    size_t i;
 
-    fdArray[0].fd = appPty;
-    fdArray[0].active = 0;
-    fdArray[1].fd = contPty;
-    fdArray[1].active = 0;
+    if (virMutexInit(&lock) < 0)
+        goto cleanup2;
 
-    VIR_DEBUG("monitor=%d client=%d appPty=%d contPty=%d",
-              monitor, client, appPty, contPty);
-
-    /* create the epoll fild descriptor */
-    epollFd = epoll_create(2);
-    if (0 > epollFd) {
+    if (pipe2(sigpipe, O_CLOEXEC|O_NONBLOCK) < 0) {
         virReportSystemError(errno, "%s",
-                             _("epoll_create(2) failed"));
+                             _("Cannot create signal pipe"));
         goto cleanup;
     }
 
-    /* add the file descriptors the epoll fd */
-    memset(&epollEvent, 0x00, sizeof(epollEvent));
-    epollEvent.events = EPOLLIN|EPOLLET;    /* edge triggered */
-    epollEvent.data.fd = appPty;
-    if (0 > epoll_ctl(epollFd, EPOLL_CTL_ADD, appPty, &epollEvent)) {
-        virReportSystemError(errno, "%s",
-                             _("epoll_ctl(appPty) failed"));
-        goto cleanup;
-    }
-    epollEvent.data.fd = contPty;
-    if (0 > epoll_ctl(epollFd, EPOLL_CTL_ADD, contPty, &epollEvent)) {
-        virReportSystemError(errno, "%s",
-                             _("epoll_ctl(contPty) failed"));
+    if (virEventAddHandle(sigpipe[0],
+                          VIR_EVENT_HANDLE_READABLE,
+                          lxcSignalChildIO,
+                          &container,
+                          NULL) < 0) {
+        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("Unable to watch signal pipe"));
         goto cleanup;
     }
 
-    epollEvent.events = EPOLLIN;
-    epollEvent.data.fd = monitor;
-    if (0 > epoll_ctl(epollFd, EPOLL_CTL_ADD, monitor, &epollEvent)) {
+    if (signal(SIGCHLD, lxcSignalChildHandler) == SIG_ERR) {
         virReportSystemError(errno, "%s",
-                             _("epoll_ctl(monitor) failed"));
+                             _("Cannot install signal handler"));
         goto cleanup;
     }
 
-    epollEvent.events = EPOLLHUP;
-    epollEvent.data.fd = client;
-    if (0 > epoll_ctl(epollFd, EPOLL_CTL_ADD, client, &epollEvent)) {
-        virReportSystemError(errno, "%s",
-                             _("epoll_ctl(client) failed"));
+    VIR_DEBUG("serverFd=%d clientFd=%d",
+              serverFd, clientFd);
+    virResetLastError();
+
+    if ((monitor.serverWatch = virEventAddHandle(monitor.serverFd,
+                                                 VIR_EVENT_HANDLE_READABLE,
+                                                 lxcServerAccept,
+                                                 &monitor,
+                                                 NULL)) < 0) {
+        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("Unable to watch monitor socket"));
         goto cleanup;
     }
 
-    while (1) {
-        /* if active fd's, return if no events, else wait forever */
-        timeout = (numActive > 0) ? 0 : -1;
-        numEvents = epoll_wait(epollFd, &epollEvent, 1, timeout);
-        if (numEvents > 0) {
-            if (epollEvent.data.fd == monitor) {
-                int fd = accept(monitor, NULL, 0);
-                if (fd < 0) {
-                    /* First reflex may be simply to declare accept failure
-                       to be a fatal error.  However, accept may fail when
-                       a client quits between the above epoll_wait and here.
-                       That case is not fatal, but rather to be expected,
-                       if not common, so ignore it.  */
-                    if (ignorable_epoll_accept_errno(errno))
-                        continue;
-                    virReportSystemError(errno, "%s",
-                                         _("accept(monitor,...) failed"));
-                    goto cleanup;
-                }
-                if (client != -1) { /* Already connected, so kick new one out */
-                    VIR_FORCE_CLOSE(fd);
-                    continue;
-                }
-                client = fd;
-                epollEvent.events = EPOLLHUP;
-                epollEvent.data.fd = client;
-                if (0 > epoll_ctl(epollFd, EPOLL_CTL_ADD, client, &epollEvent)) {
-                    virReportSystemError(errno, "%s",
-                                         _("epoll_ctl(client) failed"));
-                    goto cleanup;
-                }
-            } else if (client != -1 && epollEvent.data.fd == client) {
-                if (0 > epoll_ctl(epollFd, EPOLL_CTL_DEL, client, &epollEvent)) {
-                    virReportSystemError(errno, "%s",
-                                         _("epoll_ctl(client) failed"));
-                    goto cleanup;
-                }
-                VIR_FORCE_CLOSE(client);
-            } else {
-                if (epollEvent.events & EPOLLIN) {
-                    curFdOff = epollEvent.data.fd == appPty ? 0 : 1;
-                    if (!fdArray[curFdOff].active) {
-                        fdArray[curFdOff].active = 1;
-                        ++numActive;
-                    }
-                } else if (epollEvent.events & EPOLLHUP) {
-                    if (lxcPidGone(container))
-                        goto cleanup;
-                    curFdOff = epollEvent.data.fd == appPty ? 0 : 1;
-                    if (fdArray[curFdOff].active) {
-                        fdArray[curFdOff].active = 0;
-                        --numActive;
-                    }
-                    continue;
-                } else {
-                    lxcError(VIR_ERR_INTERNAL_ERROR,
-                             _("error event %d"), epollEvent.events);
-                    goto cleanup;
-                }
-            }
-        } else if (0 == numEvents) {
-            if (2 == numActive) {
-                /* both fds active, toggle between the two */
-                curFdOff ^= 1;
-            } else {
-                /* only one active, if current is active, use it, else it */
-                /* must be the other one (ie. curFd just went inactive) */
-                curFdOff = fdArray[curFdOff].active ? curFdOff : curFdOff ^ 1;
-            }
+    if (monitor.clientFd != -1 &&
+        (monitor.clientWatch = virEventAddHandle(monitor.clientFd,
+                                                 VIR_EVENT_HANDLE_READABLE,
+                                                 lxcClientIO,
+                                                 &monitor,
+                                                 NULL)) < 0) {
+        lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
+                 _("Unable to watch client socket"));
+        goto cleanup;
+    }
 
-        } else  {
-            if (EINTR == errno) {
-                continue;
-            }
+    if (VIR_ALLOC_N(consoles, nFds) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
 
-            /* error */
-            virReportSystemError(errno, "%s",
-                                 _("epoll_wait() failed"));
+    for (i = 0 ; i < nFds ; i++) {
+        consoles[i].hostFd = hostFds[i];
+        consoles[i].contFd = contFds[i];
+
+        if ((consoles[i].hostWatch = virEventAddHandle(consoles[i].hostFd,
+                                                       VIR_EVENT_HANDLE_READABLE,
+                                                       lxcConsoleIO,
+                                                       &consoles[i],
+                                                       NULL)) < 0) {
+            lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Unable to watch host console PTY"));
             goto cleanup;
-
         }
 
-        if (0 < numActive) {
-            writeFdOff = curFdOff ^ 1;
-            rc = lxcFdForward(fdArray[curFdOff].fd, fdArray[writeFdOff].fd);
-
-            if (EAGAIN == rc) {
-                /* this fd no longer has data, set it as inactive */
-                --numActive;
-                fdArray[curFdOff].active = 0;
-            } else if (-1 == rc) {
-                if (lxcPidGone(container))
-                    goto cleanup;
-                continue;
-            }
-
+        if ((consoles[i].contWatch = virEventAddHandle(consoles[i].contFd,
+                                                       VIR_EVENT_HANDLE_READABLE,
+                                                       lxcConsoleIO,
+                                                       &consoles[i],
+                                                       NULL)) < 0) {
+            lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Unable to watch host console PTY"));
+            goto cleanup;
         }
-
     }
 
-    rc = 0;
+    virMutexLock(&lock);
+    while (!quit) {
+        virMutexUnlock(&lock);
+        if (virEventRunDefaultImpl() < 0)
+            goto cleanup;
+        virMutexLock(&lock);
+    }
+    virMutexUnlock(&lock);
+
+    err = virGetLastError();
+    if (!err || err->code == VIR_ERR_OK)
+        rc = 0;
 
 cleanup:
-    VIR_FORCE_CLOSE(appPty);
-    VIR_FORCE_CLOSE(contPty);
-    VIR_FORCE_CLOSE(epollFd);
+    virMutexDestroy(&lock);
+    signal(SIGCHLD, SIG_DFL);
+cleanup2:
+    VIR_FORCE_CLOSE(monitor.serverFd);
+    VIR_FORCE_CLOSE(monitor.clientFd);
+    VIR_FREE(consoles);
     return rc;
 }
 
@@ -832,14 +1036,15 @@ lxcControllerRun(virDomainDefPtr def,
                  char **veths,
                  int monitor,
                  int client,
-                 int appPty,
+                 int *ttyFDs,
+                 size_t nttyFDs,
                  int handshakefd)
 {
     int rc = -1;
     int control[2] = { -1, -1};
     int containerhandshake[2] = { -1, -1 };
-    int containerPty = -1;
-    char *containerPtyPath = NULL;
+    int *containerTtyFDs = NULL;
+    char **containerTtyPaths = NULL;
     pid_t container = -1;
     virDomainFSDefPtr root;
     char *devpts = NULL;
@@ -847,6 +1052,15 @@ lxcControllerRun(virDomainDefPtr def,
     size_t nloopDevs = 0;
     int *loopDevs = NULL;
     size_t i;
+
+    if (VIR_ALLOC_N(containerTtyFDs, nttyFDs) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    if (VIR_ALLOC_N(containerTtyPaths, nttyFDs) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
 
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, control) < 0) {
         virReportSystemError(errno, "%s",
@@ -938,23 +1152,33 @@ lxcControllerRun(virDomainDefPtr def,
             VIR_WARN("Kernel does not support private devpts, using shared devpts");
             VIR_FREE(devptmx);
         }
-    }
-
-    if (devptmx) {
-        VIR_DEBUG("Opening tty on private %s", devptmx);
-        if (lxcCreateTty(devptmx, &containerPty, &containerPtyPath) < 0) {
-            virReportSystemError(errno, "%s",
-                                 _("Failed to allocate tty"));
+    } else {
+        if (nttyFDs != -1) {
+            lxcError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                     _("Expected exactly one TTY fd"));
             goto cleanup;
         }
-    } else {
-        VIR_DEBUG("Opening tty on shared /dev/ptmx");
-        if (virFileOpenTty(&containerPty,
-                           &containerPtyPath,
-                           0) < 0) {
-            virReportSystemError(errno, "%s",
-                                 _("Failed to allocate tty"));
-            goto cleanup;
+    }
+
+    for (i = 0 ; i < nttyFDs ; i++) {
+        if (devptmx) {
+            VIR_DEBUG("Opening tty on private %s", devptmx);
+            if (lxcCreateTty(devptmx,
+                             &containerTtyFDs[i],
+                             &containerTtyPaths[i]) < 0) {
+                virReportSystemError(errno, "%s",
+                                     _("Failed to allocate tty"));
+                goto cleanup;
+            }
+        } else {
+            VIR_DEBUG("Opening tty on shared /dev/ptmx");
+            if (virFileOpenTty(&containerTtyFDs[i],
+                               &containerTtyPaths[i],
+                               0) < 0) {
+                virReportSystemError(errno, "%s",
+                                     _("Failed to allocate tty"));
+                goto cleanup;
+            }
         }
     }
 
@@ -966,7 +1190,8 @@ lxcControllerRun(virDomainDefPtr def,
                                        veths,
                                        control[1],
                                        containerhandshake[1],
-                                       containerPtyPath)) < 0)
+                                       containerTtyPaths,
+                                       nttyFDs)) < 0)
         goto cleanup;
     VIR_FORCE_CLOSE(control[1]);
     VIR_FORCE_CLOSE(containerhandshake[1]);
@@ -1004,34 +1229,46 @@ lxcControllerRun(virDomainDefPtr def,
     }
     VIR_FORCE_CLOSE(handshakefd);
 
-    rc = lxcControllerMain(monitor, client, appPty, containerPty, container);
+    if (virSetBlocking(monitor, false) < 0 ||
+        virSetBlocking(client, false) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to set file descriptor non blocking"));
+        goto cleanup;
+    }
+    for (i = 0 ; i < nttyFDs ; i++) {
+        if (virSetBlocking(ttyFDs[i], false) < 0 ||
+            virSetBlocking(containerTtyFDs[i], false) < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("Unable to set file descriptor non blocking"));
+            goto cleanup;
+        }
+    }
+
+    rc = lxcControllerMain(monitor, client, ttyFDs, containerTtyFDs, nttyFDs, container);
+    monitor = client = -1;
 
 cleanup:
     VIR_FREE(devptmx);
     VIR_FREE(devpts);
     VIR_FORCE_CLOSE(control[0]);
     VIR_FORCE_CLOSE(control[1]);
-    VIR_FREE(containerPtyPath);
-    VIR_FORCE_CLOSE(containerPty);
     VIR_FORCE_CLOSE(handshakefd);
     VIR_FORCE_CLOSE(containerhandshake[0]);
     VIR_FORCE_CLOSE(containerhandshake[1]);
 
-    if (loopDevs) {
-        for (i = 0 ; i < nloopDevs ; i++)
-            VIR_FORCE_CLOSE(loopDevs[i]);
-    }
+    for (i = 0 ; i < nttyFDs ; i++)
+        VIR_FREE(containerTtyPaths[i]);
+    VIR_FREE(containerTtyPaths);
+    for (i = 0 ; i < nttyFDs ; i++)
+        VIR_FORCE_CLOSE(containerTtyFDs[i]);
+    VIR_FREE(containerTtyFDs);
 
+    for (i = 0 ; i < nloopDevs ; i++)
+        VIR_FORCE_CLOSE(loopDevs[i]);
     VIR_FREE(loopDevs);
 
-    if (container > 1) {
-        int status;
-        kill(container, SIGTERM);
-        if (!(waitpid(container, &status, WNOHANG) == 0 &&
-            WIFEXITED(status)))
-            kill(container, SIGKILL);
-        waitpid(container, NULL, 0);
-    }
+    virPidAbort(container);
+
     return rc;
 }
 
@@ -1045,7 +1282,6 @@ int main(int argc, char *argv[])
     int nveths = 0;
     char **veths = NULL;
     int monitor = -1;
-    int appPty = -1;
     int handshakefd = -1;
     int bg = 0;
     virCapsPtr caps = NULL;
@@ -1061,6 +1297,8 @@ int main(int argc, char *argv[])
         { "help", 0, NULL, 'h' },
         { 0, 0, 0, 0 },
     };
+    int *ttyFDs = NULL;
+    size_t nttyFDs = 0;
 
     if (setlocale(LC_ALL, "") == NULL ||
         bindtextdomain(PACKAGE, LOCALEDIR) == NULL ||
@@ -1102,7 +1340,11 @@ int main(int argc, char *argv[])
             break;
 
         case 'c':
-            if (virStrToLong_i(optarg, NULL, 10, &appPty) < 0) {
+            if (VIR_REALLOC_N(ttyFDs, nttyFDs + 1) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+            if (virStrToLong_i(optarg, NULL, 10, &ttyFDs[nttyFDs++]) < 0) {
                 fprintf(stderr, "malformed --console argument '%s'", optarg);
                 goto cleanup;
             }
@@ -1140,11 +1382,6 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    if (appPty < 0) {
-        fprintf(stderr, "%s: missing --console argument for container PTY\n", argv[0]);
-        goto cleanup;
-    }
-
     if (handshakefd < 0) {
         fprintf(stderr, "%s: missing --handshake argument for container PTY\n",
                 argv[0]);
@@ -1155,6 +1392,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "%s: must be run as the 'root' user\n", argv[0]);
         goto cleanup;
     }
+
+    virEventRegisterDefaultImpl();
 
     if ((caps = lxcCapsInit()) == NULL)
         goto cleanup;
@@ -1222,8 +1461,8 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    rc = lxcControllerRun(def, nveths, veths, monitor, client, appPty,
-                          handshakefd);
+    rc = lxcControllerRun(def, nveths, veths, monitor, client,
+                          ttyFDs, nttyFDs, handshakefd);
 
 
 cleanup:

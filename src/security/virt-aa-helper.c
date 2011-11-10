@@ -685,6 +685,11 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
     return rc;
 }
 
+static int aaDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+{
+    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
+}
+
 static int
 get_definition(vahControl * ctl, const char *xmlStr)
 {
@@ -702,6 +707,8 @@ get_definition(vahControl * ctl, const char *xmlStr)
         vah_error(ctl, 0, _("could not allocate memory"));
         goto exit;
     }
+
+    ctl->caps->defaultConsoleTargetType = aaDefaultConsoleType;
 
     if ((guest = virCapabilitiesAddGuest(ctl->caps,
                                          ctl->hvm,
@@ -925,12 +932,16 @@ get_files(vahControl * ctl)
                                      ctl->def->serials[i]->source.type) != 0)
                 goto clean;
 
-    if (ctl->def->console && ctl->def->console->source.data.file.path)
-        if (vah_add_file_chardev(&buf,
-                                 ctl->def->console->source.data.file.path,
-                                 "rw",
-                                 ctl->def->console->source.type) != 0)
-            goto clean;
+    for (i = 0; i < ctl->def->nconsoles; i++)
+        if (ctl->def->consoles[i] &&
+            (ctl->def->consoles[i]->source.type == VIR_DOMAIN_CHR_TYPE_PTY ||
+             ctl->def->consoles[i]->source.type == VIR_DOMAIN_CHR_TYPE_DEV ||
+             ctl->def->consoles[i]->source.type == VIR_DOMAIN_CHR_TYPE_FILE ||
+             ctl->def->consoles[i]->source.type == VIR_DOMAIN_CHR_TYPE_PIPE) &&
+            ctl->def->consoles[i]->source.data.file.path)
+            if (vah_add_file(&buf,
+                             ctl->def->consoles[i]->source.data.file.path, "rw") != 0)
+                goto clean;
 
     for (i = 0 ; i < ctl->def->nparallels; i++)
         if (ctl->def->parallels[i] &&

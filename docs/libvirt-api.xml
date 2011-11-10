@@ -104,10 +104,10 @@
      <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_CURRENT' type='enum'/>
      <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_FORCE' type='enum'/>
      <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_LIVE' type='enum'/>
-     <exports symbol='VIR_DOMAIN_DISK_CHANGE_MISSING_ON_START' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_ADDED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_UPDATED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX' type='enum'/>
@@ -1196,10 +1196,10 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_DEVICE_MODIFY_FORCE' file='libvirt' value='4' type='virDomainDeviceModifyFlags' info='Forcibly modify device
 (ex. force eject a cdrom)'/>
     <enum name='VIR_DOMAIN_DEVICE_MODIFY_LIVE' file='libvirt' value='VIR_DOMAIN_AFFECT_LIVE' type='virDomainDeviceModifyFlags'/>
-    <enum name='VIR_DOMAIN_DISK_CHANGE_MISSING_ON_START' file='libvirt' value='0' type='virConnectDomainEventDiskChangeReason' info='oldSrcPath is set'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED' file='libvirt' value='0' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_ADDED' file='libvirt' value='0' type='virDomainEventDefinedDetailType' info='Newly created config file'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_UPDATED' file='libvirt' value='1' type='virDomainEventDefinedDetailType' info='Changed config file'/>
+    <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' file='libvirt' value='0' type='virConnectDomainEventDiskChangeReason' info='oldSrcPath is set'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4' file='libvirt' value='1' type='virDomainEventGraphicsAddressType' info='IPv4 address'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6' file='libvirt' value='2' type='virDomainEventGraphicsAddressType' info='IPv6 address'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX' file='libvirt' value='3' type='virDomainEventGraphicsAddressType' info='UNIX socket path'/>

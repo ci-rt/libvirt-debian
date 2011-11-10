@@ -106,10 +106,10 @@
     <function name="VIR_DOMAIN_DEVICE_MODIFY_CURRENT" link="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_CURRENT"/>
     <function name="VIR_DOMAIN_DEVICE_MODIFY_FORCE" link="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_FORCE"/>
     <function name="VIR_DOMAIN_DEVICE_MODIFY_LIVE" link="libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_LIVE"/>
-    <function name="VIR_DOMAIN_DISK_CHANGE_MISSING_ON_START" link="libvirt-libvirt.html#VIR_DOMAIN_DISK_CHANGE_MISSING_ON_START"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED_ADDED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED_ADDED"/>
     <function name="VIR_DOMAIN_EVENT_DEFINED_UPDATED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED_UPDATED"/>
+    <function name="VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START"/>
     <function name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4"/>
     <function name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6"/>
     <function name="VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX"/>

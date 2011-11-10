@@ -57,11 +57,11 @@
     <reference name='VIR_DOMAIN_DEVICE_MODIFY_CURRENT' href='html/libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_CURRENT'/>
     <reference name='VIR_DOMAIN_DEVICE_MODIFY_FORCE' href='html/libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_FORCE'/>
     <reference name='VIR_DOMAIN_DEVICE_MODIFY_LIVE' href='html/libvirt-libvirt.html#VIR_DOMAIN_DEVICE_MODIFY_LIVE'/>
-    <reference name='VIR_DOMAIN_DISK_CHANGE_MISSING_ON_START' href='html/libvirt-libvirt.html#VIR_DOMAIN_DISK_CHANGE_MISSING_ON_START'/>
     <reference name='VIR_DOMAIN_EVENT_CALLBACK' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_CALLBACK'/>
     <reference name='VIR_DOMAIN_EVENT_DEFINED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED'/>
     <reference name='VIR_DOMAIN_EVENT_DEFINED_ADDED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED_ADDED'/>
     <reference name='VIR_DOMAIN_EVENT_DEFINED_UPDATED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_DEFINED_UPDATED'/>
+    <reference name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START'/>
     <reference name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4'/>
     <reference name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6'/>
     <reference name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX'/>
@@ -1009,11 +1009,11 @@
       <ref name='VIR_DOMAIN_DEVICE_MODIFY_CURRENT'/>
       <ref name='VIR_DOMAIN_DEVICE_MODIFY_FORCE'/>
       <ref name='VIR_DOMAIN_DEVICE_MODIFY_LIVE'/>
-      <ref name='VIR_DOMAIN_DISK_CHANGE_MISSING_ON_START'/>
       <ref name='VIR_DOMAIN_EVENT_CALLBACK'/>
       <ref name='VIR_DOMAIN_EVENT_DEFINED'/>
       <ref name='VIR_DOMAIN_EVENT_DEFINED_ADDED'/>
       <ref name='VIR_DOMAIN_EVENT_DEFINED_UPDATED'/>
+      <ref name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX'/>
@@ -2784,11 +2784,11 @@
       <ref name='VIR_DOMAIN_DEVICE_MODIFY_CURRENT'/>
       <ref name='VIR_DOMAIN_DEVICE_MODIFY_FORCE'/>
       <ref name='VIR_DOMAIN_DEVICE_MODIFY_LIVE'/>
-      <ref name='VIR_DOMAIN_DISK_CHANGE_MISSING_ON_START'/>
       <ref name='VIR_DOMAIN_EVENT_CALLBACK'/>
       <ref name='VIR_DOMAIN_EVENT_DEFINED'/>
       <ref name='VIR_DOMAIN_EVENT_DEFINED_ADDED'/>
       <ref name='VIR_DOMAIN_EVENT_DEFINED_UPDATED'/>
+      <ref name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6'/>
       <ref name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX'/>
