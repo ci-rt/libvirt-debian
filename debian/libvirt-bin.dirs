@@ -7,3 +7,4 @@
 /var/log/libvirt/qemu
 /var/log/libvirt/uml
 /var/log/libvirt/lxc
+/etc/libvirt/hooks
