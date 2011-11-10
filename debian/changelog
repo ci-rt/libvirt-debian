@@ -1,3 +1,13 @@
+libvirt (0.9.7-1) experimental; urgency=low
+
+  * [c06e393] debian/watch: match releases and release candidates
+  * [2d08768] New upstream version 0.9.7
+  * [a260f43] Add empty hooks dir (Closes: #623996)
+  * [0b10e48] Install logrotate files again. This got broken by moving to
+    separate build-dir. Based on a patch from Serge Hallyn. (Closes: #647953)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 10 Nov 2011 19:11:02 +0100
+
 libvirt (0.9.7~rc2-1) experimental; urgency=low
 
   * [2d51700] New upstream version 0.9.7~rc2
