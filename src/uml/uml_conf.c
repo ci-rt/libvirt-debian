@@ -54,6 +54,13 @@
 #define umlLog(level, msg, ...)                                     \
         virLogMessage(__FILE__, level, 0, msg, __VA_ARGS__)
 
+
+static int umlDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+{
+    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_UML;
+}
+
+
 virCapsPtr umlCapsInit(void) {
     struct utsname utsname;
     virCapsPtr caps;
@@ -99,7 +106,7 @@ virCapsPtr umlCapsInit(void) {
                                       NULL) == NULL)
         goto error;
 
-    caps->defaultConsoleTargetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_UML;
+    caps->defaultConsoleTargetType = umlDefaultConsoleType;
 
     return caps;
 
@@ -466,9 +473,13 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
     }
 
     for (i = 0 ; i < UML_MAX_CHAR_DEVICE ; i++) {
+        virDomainChrDefPtr chr = NULL;
         char *ret = NULL;
-        if (i == 0 && vm->def->console)
-            ret = umlBuildCommandLineChr(vm->def->console, "con", cmd);
+        for (j = 0 ; j < vm->def->nconsoles ; j++)
+            if (vm->def->consoles[j]->target.port == i)
+                chr = vm->def->consoles[j];
+        if (chr)
+            ret = umlBuildCommandLineChr(chr, "con", cmd);
         if (!ret)
             if (virAsprintf(&ret, "con%d=none", i) < 0)
                 goto no_memory;

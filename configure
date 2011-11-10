@@ -1069,6 +1069,9 @@ GL_GENERATE_STDARG_H_TRUE
 STDARG_H
 NEXT_AS_FIRST_DIRECTIVE_STDARG_H
 NEXT_STDARG_H
+GL_GENERATE_STDALIGN_H_FALSE
+GL_GENERATE_STDALIGN_H_TRUE
+STDALIGN_H
 NEXT_AS_FIRST_DIRECTIVE_SIGNAL_H
 NEXT_SIGNAL_H
 LIB_SELECT
@@ -1123,6 +1126,18 @@ HAVE_POLL_H
 REPLACE_POLL
 HAVE_POLL
 GNULIB_POLL
+NEXT_AS_FIRST_DIRECTIVE_PTY_H
+NEXT_PTY_H
+HAVE_PTY_H
+REPLACE_OPENPTY
+REPLACE_FORKPTY
+HAVE_OPENPTY
+HAVE_FORKPTY
+HAVE_LIBUTIL_H
+HAVE_UTIL_H
+GNULIB_OPENPTY
+GNULIB_FORKPTY
+PTY_LIB
 ASM_SYMBOL_PREFIX
 GL_GENERATE_NETINET_IN_H_FALSE
 GL_GENERATE_NETINET_IN_H_TRUE
@@ -1546,6 +1561,7 @@ HAVE_REALPATH
 HAVE_RANDOM_R
 HAVE_RANDOM_H
 HAVE_PTSNAME
+HAVE_POSIX_OPENPT
 HAVE_MKSTEMPS
 HAVE_MKSTEMP
 HAVE_MKOSTEMPS
@@ -1571,6 +1587,7 @@ GNULIB_REALLOC_POSIX
 GNULIB_RANDOM_R
 GNULIB_PUTENV
 GNULIB_PTSNAME
+GNULIB_POSIX_OPENPT
 GNULIB_MKSTEMPS
 GNULIB_MKSTEMP
 GNULIB_MKOSTEMPS
@@ -3879,6 +3896,7 @@ gl_func_list="$gl_func_list mprotect"
 gl_func_list="$gl_func_list mkstemp"
 gl_func_list="$gl_func_list mkstemps"
 gl_func_list="$gl_func_list alarm"
+gl_header_list="$gl_header_list pty.h"
 gl_func_list="$gl_func_list recvmsg"
 gl_func_list="$gl_func_list sendmsg"
 gl_func_list="$gl_func_list strerror_r"
@@ -3888,6 +3906,7 @@ gl_func_list="$gl_func_list pipe2"
 gl_header_list="$gl_header_list poll.h"
 gl_header_list="$gl_header_list sys/ioctl.h"
 gl_header_list="$gl_header_list sys/filio.h"
+gl_func_list="$gl_func_list posix_openpt"
 gl_header_list="$gl_header_list pthread.h"
 gl_func_list="$gl_func_list pthread_sigmask"
 gl_header_list="$gl_header_list sched.h"
@@ -3897,6 +3916,7 @@ gl_func_list="$gl_func_list sigaltstack"
 gl_func_list="$gl_func_list siginterrupt"
 gl_func_list="$gl_func_list sleep"
 gl_func_list="$gl_func_list snprintf"
+gl_header_list="$gl_header_list stdalign.h"
 gl_header_list="$gl_header_list wchar.h"
 gl_header_list="$gl_header_list stdint.h"
 gl_func_list="$gl_func_list strdup"
@@ -7838,8 +7858,6 @@ fi
 
   # Code from module accept:
   # Code from module accept-tests:
-  # Code from module alignof:
-  # Code from module alignof-tests:
   # Code from module alloca:
   # Code from module alloca-opt:
   # Code from module alloca-opt-tests:
@@ -7974,6 +7992,8 @@ fi
   # Code from module getugroups:
   # Code from module gitlog-to-changelog:
   # Code from module gnumakefile:
+  # Code from module grantpt:
+  # Code from module grantpt-tests:
   # Code from module havelib:
   # Code from module hostent:
   # Code from module ignore-value:
@@ -8040,6 +8060,8 @@ fi
   # Code from module nonblocking-tests:
   # Code from module open:
   # Code from module open-tests:
+  # Code from module openpty:
+  # Code from module openpty-tests:
   # Code from module passfd:
   # Code from module passfd-tests:
   # Code from module pathmax:
@@ -8056,6 +8078,8 @@ fi
   # Code from module poll-h-tests:
   # Code from module poll-tests:
   # Code from module posix-shell:
+  # Code from module posix_openpt:
+  # Code from module posix_openpt-tests:
   # Code from module posix_spawn-internal:
   # Code from module posix_spawn_file_actions_addclose:
   # Code from module posix_spawn_file_actions_addclose-tests:
@@ -8075,6 +8099,10 @@ fi
   # Code from module pthread:
   # Code from module pthread_sigmask:
   # Code from module pthread_sigmask-tests:
+  # Code from module ptsname:
+  # Code from module ptsname-tests:
+  # Code from module pty:
+  # Code from module pty-tests:
   # Code from module putenv:
   # Code from module raise:
   # Code from module raise-tests:
@@ -8134,6 +8162,8 @@ fi
   # Code from module stat-tests:
   # Code from module stat-time:
   # Code from module stat-time-tests:
+  # Code from module stdalign:
+  # Code from module stdalign-tests:
   # Code from module stdarg:
 
 
@@ -8203,10 +8233,14 @@ fi
   # Code from module time-tests:
   # Code from module time_r:
   # Code from module timegm:
+  # Code from module ttyname_r:
+  # Code from module ttyname_r-tests:
   # Code from module uname:
   # Code from module uname-tests:
   # Code from module unistd:
   # Code from module unistd-tests:
+  # Code from module unlockpt:
+  # Code from module unlockpt-tests:
   # Code from module unsetenv:
   # Code from module unsetenv-tests:
   # Code from module useless-if-before-free:
@@ -8726,12 +8760,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sys/socket.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sys/socket.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sys/socket.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -9170,6 +9207,7 @@ _ACEOF
   GNULIB_MKOSTEMPS=0;
   GNULIB_MKSTEMP=0;
   GNULIB_MKSTEMPS=0;
+  GNULIB_POSIX_OPENPT=0;
   GNULIB_PTSNAME=0;
   GNULIB_PUTENV=0;
   GNULIB_RANDOM_R=0;
@@ -9195,6 +9233,7 @@ _ACEOF
   HAVE_MKOSTEMPS=1;
   HAVE_MKSTEMP=1;
   HAVE_MKSTEMPS=1;
+  HAVE_POSIX_OPENPT=1;
   HAVE_PTSNAME=1;
   HAVE_RANDOM_H=1;
   HAVE_RANDOM_R=1;
@@ -10316,12 +10355,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'errno.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'errno.h\)".*|\1|
+               gl_header_literal_regex=`echo 'errno.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -11456,12 +11498,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'netdb.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'netdb.h\)".*|\1|
+               gl_header_literal_regex=`echo 'netdb.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -12322,12 +12367,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sys/time.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sys/time.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sys/time.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -14893,6 +14941,205 @@ _ACEOF
 
 
 
+  # Check for the library required for forkpty.
+  PTY_LIB=
+  save_LIBS="$LIBS"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing forkpty" >&5
+$as_echo_n "checking for library containing forkpty... " >&6; }
+if test "${ac_cv_search_forkpty+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char forkpty ();
+int
+main ()
+{
+return forkpty ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' util; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_forkpty=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if test "${ac_cv_search_forkpty+set}" = set; then :
+  break
+fi
+done
+if test "${ac_cv_search_forkpty+set}" = set; then :
+
+else
+  ac_cv_search_forkpty=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_forkpty" >&5
+$as_echo "$ac_cv_search_forkpty" >&6; }
+ac_res=$ac_cv_search_forkpty
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+  if test "$ac_cv_search_forkpty" != "none required"; then
+       PTY_LIB="$ac_cv_search_forkpty"
+     fi
+fi
+
+  LIBS="$save_LIBS"
+
+
+
+  GNULIB_FORKPTY=0;
+  GNULIB_OPENPTY=0;
+    HAVE_UTIL_H=0;
+  HAVE_LIBUTIL_H=0;
+  HAVE_FORKPTY=1;
+  HAVE_OPENPTY=1;
+  REPLACE_FORKPTY=0;
+  REPLACE_OPENPTY=0;
+
+
+
+
+
+
+
+
+
+  # Make sure that pty.h provides forkpty, or setup the replacement.
+
+  :
+
+
+
+
+
+  if test $ac_cv_header_pty_h != yes; then
+    HAVE_PTY_H=0
+    for ac_header in util.h libutil.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+
+done
+
+    if test $ac_cv_header_util_h = yes; then
+      HAVE_UTIL_H=1
+    fi
+    if test $ac_cv_header_libutil_h = yes; then
+      HAVE_LIBUTIL_H=1
+    fi
+  else # Have <pty.h>, assume forkpty is declared there.
+    HAVE_PTY_H=1
+  fi
+
+
+
+
+
+
+
+  :
+
+
+
+
+
+
+
+
+     if test $gl_cv_have_include_next = yes; then
+       gl_cv_next_pty_h='<'pty.h'>'
+     else
+       { $as_echo "$as_me:${as_lineno-$LINENO}: checking absolute name of <pty.h>" >&5
+$as_echo_n "checking absolute name of <pty.h>... " >&6; }
+if test "${gl_cv_next_pty_h+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+             if test $ac_cv_header_pty_h = yes; then
+
+
+               cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <pty.h>
+
+_ACEOF
+                                                                                                                        case "$host_os" in
+                 aix*) gl_absname_cpp="$ac_cpp -C" ;;
+                 *)    gl_absname_cpp="$ac_cpp" ;;
+               esac
+
+               case "$host_os" in
+                 mingw*)
+                                                                                                                                     gl_dirsep_regex='[/\\]'
+                   ;;
+                 *)
+                   gl_dirsep_regex='\/'
+                   ;;
+               esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
+
+               gl_header_literal_regex=`echo 'pty.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
+                   s|^/[^/]|//&|
+                   p
+                   q
+                 }'
+                                                            gl_cv_next_pty_h='"'`(eval "$gl_absname_cpp conftest.$ac_ext") 2>&5 |
+                      sed -n "$gl_absolute_header_sed"`'"'
+          else
+               gl_cv_next_pty_h='<'pty.h'>'
+             fi
+
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_next_pty_h" >&5
+$as_echo "$gl_cv_next_pty_h" >&6; }
+     fi
+     NEXT_PTY_H=$gl_cv_next_pty_h
+
+     if test $gl_cv_have_include_next = yes || test $gl_cv_have_include_next = buggy; then
+       # INCLUDE_NEXT_AS_FIRST_DIRECTIVE='include_next'
+       gl_next_as_first_directive='<'pty.h'>'
+     else
+       # INCLUDE_NEXT_AS_FIRST_DIRECTIVE='include'
+       gl_next_as_first_directive=$gl_cv_next_pty_h
+     fi
+     NEXT_AS_FIRST_DIRECTIVE_PTY_H=$gl_next_as_first_directive
+
+
+
+
+
+
+
+
 
 
 
@@ -15299,12 +15546,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'poll.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'poll.h\)".*|\1|
+               gl_header_literal_regex=`echo 'poll.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -15533,6 +15783,11 @@ $as_echo "$gl_cv_lib_socket" >&6; }
 
 
   :
+
+
+
+
+
 
 
 
@@ -16652,12 +16907,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sys/select.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sys/select.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sys/select.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -16864,6 +17122,11 @@ fi
 cat >>confdefs.h <<_ACEOF
 #define HAVE_DECL_SNPRINTF $ac_have_decl
 _ACEOF
+
+
+
+
+
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for stdbool.h that conforms to C99" >&5
@@ -17087,12 +17350,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'stdint.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'stdint.h\)".*|\1|
+               gl_header_literal_regex=`echo 'stdint.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -17796,12 +18062,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'string.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'string.h\)".*|\1|
+               gl_header_literal_regex=`echo 'string.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -17881,12 +18150,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'strings.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'strings.h\)".*|\1|
+               gl_header_literal_regex=`echo 'strings.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -18203,12 +18475,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'time.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'time.h\)".*|\1|
+               gl_header_literal_regex=`echo 'time.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -18258,6 +18533,19 @@ _ACEOF
 
 
 
+
+
+
+      ac_fn_c_check_decl "$LINENO" "ttyname_r" "ac_cv_have_decl_ttyname_r" "$ac_includes_default"
+if test "x$ac_cv_have_decl_ttyname_r" = x""yes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_TTYNAME_R $ac_have_decl
+_ACEOF
 
 
 
@@ -18446,6 +18734,352 @@ _ACEOF
   fi
 
 
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking where to find the exponent in a 'double'" >&5
+$as_echo_n "checking where to find the exponent in a 'double'... " >&6; }
+if test "${gl_cv_cc_double_expbit0+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+      if test "$cross_compiling" = yes; then :
+
+                                                            cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#if defined arm || defined __arm || defined __arm__
+  mixed_endianness
+#endif
+
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP "mixed_endianness" >/dev/null 2>&1; then :
+  gl_cv_cc_double_expbit0="unknown"
+else
+
+                                                         :
+if test "${ac_cv_c_bigendian+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_cv_c_bigendian=unknown
+    # See if we're dealing with a universal compiler.
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifndef __APPLE_CC__
+	       not a universal capable compiler
+	     #endif
+	     typedef int dummy;
+
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+	# Check for potential -arch flags.  It is not universal unless
+	# there are at least two -arch flags with different values.
+	ac_arch=
+	ac_prev=
+	for ac_word in $CC $CFLAGS $CPPFLAGS $LDFLAGS; do
+	 if test -n "$ac_prev"; then
+	   case $ac_word in
+	     i?86 | x86_64 | ppc | ppc64)
+	       if test -z "$ac_arch" || test "$ac_arch" = "$ac_word"; then
+		 ac_arch=$ac_word
+	       else
+		 ac_cv_c_bigendian=universal
+		 break
+	       fi
+	       ;;
+	   esac
+	   ac_prev=
+	 elif test "x$ac_word" = "x-arch"; then
+	   ac_prev=arch
+	 fi
+       done
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    if test $ac_cv_c_bigendian = unknown; then
+      # See if sys/param.h defines the BYTE_ORDER macro.
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <sys/types.h>
+	     #include <sys/param.h>
+
+int
+main ()
+{
+#if ! (defined BYTE_ORDER && defined BIG_ENDIAN \
+		     && defined LITTLE_ENDIAN && BYTE_ORDER && BIG_ENDIAN \
+		     && LITTLE_ENDIAN)
+	      bogus endian macros
+	     #endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  # It does; now see whether it defined to BIG_ENDIAN or not.
+	 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <sys/types.h>
+		#include <sys/param.h>
+
+int
+main ()
+{
+#if BYTE_ORDER != BIG_ENDIAN
+		 not big endian
+		#endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ac_cv_c_bigendian=yes
+else
+  ac_cv_c_bigendian=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    fi
+    if test $ac_cv_c_bigendian = unknown; then
+      # See if <limits.h> defines _LITTLE_ENDIAN or _BIG_ENDIAN (e.g., Solaris).
+      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <limits.h>
+
+int
+main ()
+{
+#if ! (defined _LITTLE_ENDIAN || defined _BIG_ENDIAN)
+	      bogus endian macros
+	     #endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  # It does; now see whether it defined to _BIG_ENDIAN or not.
+	 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <limits.h>
+
+int
+main ()
+{
+#ifndef _BIG_ENDIAN
+		 not big endian
+		#endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ac_cv_c_bigendian=yes
+else
+  ac_cv_c_bigendian=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    fi
+    if test $ac_cv_c_bigendian = unknown; then
+      # Compile a test program.
+      if test "$cross_compiling" = yes; then :
+  # Try to guess by grepping values from an object file.
+	 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+short int ascii_mm[] =
+		  { 0x4249, 0x4765, 0x6E44, 0x6961, 0x6E53, 0x7953, 0 };
+		short int ascii_ii[] =
+		  { 0x694C, 0x5454, 0x656C, 0x6E45, 0x6944, 0x6E61, 0 };
+		int use_ascii (int i) {
+		  return ascii_mm[i] + ascii_ii[i];
+		}
+		short int ebcdic_ii[] =
+		  { 0x89D3, 0xE3E3, 0x8593, 0x95C5, 0x89C4, 0x9581, 0 };
+		short int ebcdic_mm[] =
+		  { 0xC2C9, 0xC785, 0x95C4, 0x8981, 0x95E2, 0xA8E2, 0 };
+		int use_ebcdic (int i) {
+		  return ebcdic_mm[i] + ebcdic_ii[i];
+		}
+		extern int foo;
+
+int
+main ()
+{
+return use_ascii (foo) == use_ebcdic (foo);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  if grep BIGenDianSyS conftest.$ac_objext >/dev/null; then
+	      ac_cv_c_bigendian=yes
+	    fi
+	    if grep LiTTleEnDian conftest.$ac_objext >/dev/null ; then
+	      if test "$ac_cv_c_bigendian" = unknown; then
+		ac_cv_c_bigendian=no
+	      else
+		# finding both strings is unlikely to happen, but who knows?
+		ac_cv_c_bigendian=unknown
+	      fi
+	    fi
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$ac_includes_default
+int
+main ()
+{
+
+	     /* Are we little or big endian?  From Harbison&Steele.  */
+	     union
+	     {
+	       long int l;
+	       char c[sizeof (long int)];
+	     } u;
+	     u.l = 1;
+	     return u.c[sizeof (long int) - 1] == 1;
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  ac_cv_c_bigendian=no
+else
+  ac_cv_c_bigendian=yes
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+    fi
+fi
+:
+ case $ac_cv_c_bigendian in #(
+   yes)
+     gl_cv_cc_double_expbit0="word 0 bit 20";; #(
+   no)
+     gl_cv_cc_double_expbit0="word 1 bit 20" ;; #(
+   universal)
+
+$as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
+
+     ;; #(
+   *)
+     gl_cv_cc_double_expbit0="unknown" ;;
+ esac
+
+
+fi
+rm -f conftest*
+
+
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <float.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+#define NWORDS \
+  ((sizeof (double) + sizeof (unsigned int) - 1) / sizeof (unsigned int))
+typedef union { double value; unsigned int word[NWORDS]; } memory_double;
+static unsigned int ored_words[NWORDS];
+static unsigned int anded_words[NWORDS];
+static void add_to_ored_words (double x)
+{
+  memory_double m;
+  size_t i;
+  /* Clear it first, in case sizeof (double) < sizeof (memory_double).  */
+  memset (&m, 0, sizeof (memory_double));
+  m.value = x;
+  for (i = 0; i < NWORDS; i++)
+    {
+      ored_words[i] |= m.word[i];
+      anded_words[i] &= m.word[i];
+    }
+}
+int main ()
+{
+  size_t j;
+  FILE *fp = fopen ("conftest.out", "w");
+  if (fp == NULL)
+    return 1;
+  for (j = 0; j < NWORDS; j++)
+    anded_words[j] = ~ (unsigned int) 0;
+  add_to_ored_words (0.25);
+  add_to_ored_words (0.5);
+  add_to_ored_words (1.0);
+  add_to_ored_words (2.0);
+  add_to_ored_words (4.0);
+  /* Remove bits that are common (e.g. if representation of the first mantissa
+     bit is explicit).  */
+  for (j = 0; j < NWORDS; j++)
+    ored_words[j] &= ~anded_words[j];
+  /* Now find the nonzero word.  */
+  for (j = 0; j < NWORDS; j++)
+    if (ored_words[j] != 0)
+      break;
+  if (j < NWORDS)
+    {
+      size_t i;
+      for (i = j + 1; i < NWORDS; i++)
+        if (ored_words[i] != 0)
+          {
+            fprintf (fp, "unknown");
+            return (fclose (fp) != 0);
+          }
+      for (i = 0; ; i++)
+        if ((ored_words[j] >> i) & 1)
+          {
+            fprintf (fp, "word %d bit %d", (int) j, (int) i);
+            return (fclose (fp) != 0);
+          }
+    }
+  fprintf (fp, "unknown");
+  return (fclose (fp) != 0);
+}
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  gl_cv_cc_double_expbit0=`cat conftest.out`
+else
+  gl_cv_cc_double_expbit0="unknown"
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+      rm -f conftest.out
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_cc_double_expbit0" >&5
+$as_echo "$gl_cv_cc_double_expbit0" >&6; }
+  case "$gl_cv_cc_double_expbit0" in
+    word*bit*)
+      word=`echo "$gl_cv_cc_double_expbit0" | sed -e 's/word //' -e 's/ bit.*//'`
+      bit=`echo "$gl_cv_cc_double_expbit0" | sed -e 's/word.*bit //'`
+
+cat >>confdefs.h <<_ACEOF
+#define DBL_EXPBIT0_WORD $word
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define DBL_EXPBIT0_BIT $bit
+_ACEOF
+
+      ;;
+  esac
+
+
 
 
 
@@ -18474,6 +19108,7 @@ fi
 cat >>confdefs.h <<_ACEOF
 #define HAVE_DECL__SNPRINTF $ac_have_decl
 _ACEOF
+
 
 
   case "$gl_cv_func_snprintf_retval_c99" in
@@ -19009,12 +19644,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'inttypes.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'inttypes.h\)".*|\1|
+               gl_header_literal_regex=`echo 'inttypes.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -19977,12 +20615,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'arpa/inet.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'arpa/inet.h\)".*|\1|
+               gl_header_literal_regex=`echo 'arpa/inet.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -20903,12 +21544,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'fcntl.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'fcntl.h\)".*|\1|
+               gl_header_literal_regex=`echo 'fcntl.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -21369,12 +22013,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'float.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'float.h\)".*|\1|
+               gl_header_literal_regex=`echo 'float.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -26370,12 +27017,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'netdb.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'netdb.h\)".*|\1|
+               gl_header_literal_regex=`echo 'netdb.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -26500,12 +27150,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'netinet/in.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'netinet/in.h\)".*|\1|
+               gl_header_literal_regex=`echo 'netinet/in.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -26707,6 +27360,128 @@ $as_echo "#define GNULIB_TEST_OPEN 1" >>confdefs.h
 
 
 
+
+
+
+      ac_fn_c_check_decl "$LINENO" "openpty" "ac_cv_have_decl_openpty" "
+/* <sys/types.h> is a prerequisite of <libutil.h> on FreeBSD 8.0.  */
+#include <sys/types.h>
+#if HAVE_PTY_H
+# include <pty.h>
+#endif
+#if HAVE_UTIL_H
+# include <util.h>
+#endif
+#if HAVE_LIBUTIL_H
+# include <libutil.h>
+#endif
+
+"
+if test "x$ac_cv_have_decl_openpty" = x""yes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_OPENPTY $ac_have_decl
+_ACEOF
+
+  if test $ac_cv_have_decl_openpty = yes; then
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for const-safe openpty signature" >&5
+$as_echo_n "checking for const-safe openpty signature... " >&6; }
+if test "${gl_cv_func_openpty_const+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* <sys/types.h> is a prerequisite of <libutil.h> on FreeBSD 8.0.  */
+#include <sys/types.h>
+#if HAVE_PTY_H
+# include <pty.h>
+#endif
+#if HAVE_UTIL_H
+# include <util.h>
+#endif
+#if HAVE_LIBUTIL_H
+# include <libutil.h>
+#endif
+
+int
+main ()
+{
+
+            int openpty (int *, int *, char *, struct termios const *,
+                       struct winsize const *);
+
+  ;
+  return 0;
+}
+
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gl_cv_func_openpty_const=yes
+else
+  gl_cv_func_openpty_const=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_openpty_const" >&5
+$as_echo "$gl_cv_func_openpty_const" >&6; }
+    if test $gl_cv_func_openpty_const != yes; then
+      REPLACE_OPENPTY=1
+
+$as_echo "#define HAVE_OPENPTY 1" >>confdefs.h
+
+    fi
+  else
+        HAVE_OPENPTY=0
+        for ac_func in _getpty posix_openpt
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
+  fi
+
+if test $HAVE_OPENPTY = 0 || test $REPLACE_OPENPTY = 1; then
+
+
+
+
+
+
+
+
+  gl_LIBOBJS="$gl_LIBOBJS openpty.$ac_objext"
+
+fi
+
+
+
+
+
+          GNULIB_OPENPTY=1
+
+
+
+
+
+$as_echo "#define GNULIB_TEST_OPENPTY 1" >>confdefs.h
+
+
+
+
+
+
   :
 
 
@@ -26762,11 +27537,14 @@ if test "${gl_cv_func_perror_works+set}" = set; then :
 else
   if test "$cross_compiling" = yes; then :
               gl_cv_func_perror_works="guessing no"
+
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <errno.h>
                 #include <stdio.h>
+                #include <stdlib.h>
+                #include <string.h>
 
 int
 main ()
@@ -26777,14 +27555,15 @@ char *str = strerror (-1);
                 puts (str);
                 errno = -1;
                 perror ("");
+                return 0;
 
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  CONFTEST_OUTPUT=1 ./conftest$EXEEXT >conftest.txt1 2>conftest.txt2
-            if cmp conftest.txt1 conftest.txt2 >/dev/null; then
+  if CONFTEST_OUTPUT=1 ./conftest$EXEEXT >conftest.txt1 2>conftest.txt2 \
+               && cmp conftest.txt1 conftest.txt2 >/dev/null; then
               gl_cv_func_perror_works=yes
             else
               gl_cv_func_perror_works=no
@@ -26797,13 +27576,17 @@ rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
+
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_perror_works" >&5
 $as_echo "$gl_cv_func_perror_works" >&6; }
-       if test "$gl_cv_func_perror_works" != yes; then
-         REPLACE_PERROR=1
-       fi ;;
-    *)              REPLACE_PERROR=1 ;;
+      if test "$gl_cv_func_perror_works" != yes; then
+        REPLACE_PERROR=1
+      fi
+      ;;
+    *)
+                  REPLACE_PERROR=1
+      ;;
   esac
 
 if test $REPLACE_PERROR = 1; then
@@ -27178,12 +27961,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'poll.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'poll.h\)".*|\1|
+               gl_header_literal_regex=`echo 'poll.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -27277,6 +28063,49 @@ $as_echo "$gl_cv_posix_shell" >&6; }
 
 
 
+  :
+
+
+
+
+
+  if test $ac_cv_func_posix_openpt != yes; then
+        HAVE_POSIX_OPENPT=0
+  fi
+
+if test $HAVE_POSIX_OPENPT = 0; then
+
+
+
+
+
+
+
+
+  gl_LIBOBJS="$gl_LIBOBJS posix_openpt.$ac_objext"
+
+fi
+
+
+
+
+
+          GNULIB_POSIX_OPENPT=1
+
+
+
+
+
+$as_echo "#define GNULIB_TEST_POSIX_OPENPT 1" >>confdefs.h
+
+
+
+
+
+
+
+
+
 
 
   :
@@ -27315,12 +28144,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'pthread.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'pthread.h\)".*|\1|
+               gl_header_literal_regex=`echo 'pthread.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -27758,6 +28590,7 @@ fi
 
 
 $as_echo "#define GNULIB_TEST_PTHREAD_SIGMASK 1" >>confdefs.h
+
 
 
 
@@ -28216,12 +29049,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sched.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sched.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sched.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -28697,12 +29533,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'signal.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'signal.h\)".*|\1|
+               gl_header_literal_regex=`echo 'signal.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -29675,6 +30514,31 @@ $as_echo "#define GNULIB_TEST_STAT 1" >>confdefs.h
 
 
 
+
+  :
+
+
+
+
+
+
+  if test $ac_cv_header_stdalign_h = yes; then
+    STDALIGN_H=''
+  else
+    STDALIGN_H='stdalign.h'
+  fi
+
+
+   if test -n "$STDALIGN_H"; then
+  GL_GENERATE_STDALIGN_H_TRUE=
+  GL_GENERATE_STDALIGN_H_FALSE='#'
+else
+  GL_GENERATE_STDALIGN_H_TRUE='#'
+  GL_GENERATE_STDALIGN_H_FALSE=
+fi
+
+
+
   STDARG_H=''
   NEXT_STDARG_H='<stdarg.h>'
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for va_copy" >&5
@@ -29758,12 +30622,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'stdarg.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'stdarg.h\)".*|\1|
+               gl_header_literal_regex=`echo 'stdarg.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -29958,12 +30825,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'stddef.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'stddef.h\)".*|\1|
+               gl_header_literal_regex=`echo 'stddef.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -30028,12 +30898,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'stdio.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'stdio.h\)".*|\1|
+               gl_header_literal_regex=`echo 'stdio.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -30171,12 +31044,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'stdlib.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'stdlib.h\)".*|\1|
+               gl_header_literal_regex=`echo 'stdlib.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -31228,12 +32104,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sys/ioctl.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sys/ioctl.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sys/ioctl.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -31393,12 +32272,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sys/select.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sys/select.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sys/select.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -31601,12 +32483,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sys/socket.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sys/socket.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sys/socket.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -31811,12 +32696,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sys/stat.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sys/stat.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sys/stat.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -31902,12 +32790,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sys/types.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sys/types.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sys/types.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -31984,12 +32875,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sys/uio.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sys/uio.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sys/uio.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -32072,12 +32966,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sys/utsname.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sys/utsname.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sys/utsname.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -32181,12 +33078,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'sys/wait.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'sys/wait.h\)".*|\1|
+               gl_header_literal_regex=`echo 'sys/wait.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -32272,12 +33172,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'termios.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'termios.h\)".*|\1|
+               gl_header_literal_regex=`echo 'termios.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -32473,6 +33376,173 @@ $as_echo "#define GNULIB_TEST_TIMEGM 1" >>confdefs.h
 
 
 
+
+
+
+
+  :
+
+
+
+
+
+  if test $ac_cv_have_decl_ttyname_r = no; then
+    HAVE_DECL_TTYNAME_R=0
+  fi
+
+  for ac_func in ttyname_r
+do :
+  ac_fn_c_check_func "$LINENO" "ttyname_r" "ac_cv_func_ttyname_r"
+if test "x$ac_cv_func_ttyname_r" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_TTYNAME_R 1
+_ACEOF
+
+fi
+done
+
+  if test $ac_cv_func_ttyname_r = no; then
+    HAVE_TTYNAME_R=0
+  else
+    HAVE_TTYNAME_R=1
+            { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ttyname_r is compatible with its POSIX signature" >&5
+$as_echo_n "checking whether ttyname_r is compatible with its POSIX signature... " >&6; }
+if test "${gl_cv_func_ttyname_r_posix+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <stddef.h>
+              #include <unistd.h>
+int
+main ()
+{
+*ttyname_r (0, NULL, 0);
+  ;
+  return 0;
+}
+
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gl_cv_func_ttyname_r_posix=no
+else
+  gl_cv_func_ttyname_r_posix=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_ttyname_r_posix" >&5
+$as_echo "$gl_cv_func_ttyname_r_posix" >&6; }
+    if test $gl_cv_func_ttyname_r_posix = no; then
+      REPLACE_TTYNAME_R=1
+    else
+
+$as_echo "#define HAVE_POSIXDECL_TTYNAME_R 1" >>confdefs.h
+
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ttyname_r works with small buffers" >&5
+$as_echo_n "checking whether ttyname_r works with small buffers... " >&6; }
+if test "${gl_cv_func_ttyname_r_works+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+                              case "$host_os" in
+                      # Guess no on Solaris.
+            solaris*) gl_cv_func_ttyname_r_works="guessing no" ;;
+                      # Guess no on OSF/1.
+            osf*)     gl_cv_func_ttyname_r_works="guessing no" ;;
+                      # Guess yes otherwise.
+            *)        gl_cv_func_ttyname_r_works="guessing yes" ;;
+          esac
+          if test "$cross_compiling" = yes; then :
+  :
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <fcntl.h>
+#include <unistd.h>
+int
+main (void)
+{
+  int result = 0;
+  int fd;
+  char buf[31]; /* use any size < 128 here */
+
+  fd = open ("/dev/tty", O_RDONLY);
+  if (fd < 0)
+    result |= 16;
+  else if (ttyname_r (fd, buf, sizeof (buf)) != 0)
+    result |= 17;
+  else if (ttyname_r (fd, buf, 1) == 0)
+    result |= 18;
+  return result;
+}
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  gl_cv_func_ttyname_r_works=yes
+else
+  case $? in
+               17 | 18) gl_cv_func_ttyname_r_works=no ;;
+             esac
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_ttyname_r_works" >&5
+$as_echo "$gl_cv_func_ttyname_r_works" >&6; }
+      case "$gl_cv_func_ttyname_r_works" in
+        *yes) ;;
+        *) REPLACE_TTYNAME_R=1 ;;
+      esac
+    fi
+  fi
+
+if test $HAVE_TTYNAME_R = 0 || test $REPLACE_TTYNAME_R = 1; then
+
+
+
+
+
+
+
+
+  gl_LIBOBJS="$gl_LIBOBJS ttyname_r.$ac_objext"
+
+
+  for ac_func in ttyname
+do :
+  ac_fn_c_check_func "$LINENO" "ttyname" "ac_cv_func_ttyname"
+if test "x$ac_cv_func_ttyname" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_TTYNAME 1
+_ACEOF
+
+fi
+done
+
+
+fi
+
+
+
+
+
+          GNULIB_TTYNAME_R=1
+
+
+
+
+
+$as_echo "#define GNULIB_TEST_TTYNAME_R 1" >>confdefs.h
+
+
+
+
+
   for ac_func in uname
 do :
   ac_fn_c_check_func "$LINENO" "uname" "ac_cv_func_uname"
@@ -32559,12 +33629,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'unistd.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'unistd.h\)".*|\1|
+               gl_header_literal_regex=`echo 'unistd.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -33110,12 +34183,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'wchar.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'wchar.h\)".*|\1|
+               gl_header_literal_regex=`echo 'wchar.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -33234,12 +34310,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'wctype.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'wctype.h\)".*|\1|
+               gl_header_literal_regex=`echo 'wctype.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -34707,6 +35786,72 @@ $as_echo "#define GNULIB_TEST_GETSOCKOPT 1" >>confdefs.h
 
 
 
+
+
+
+
+
+  for ac_func in grantpt
+do :
+  ac_fn_c_check_func "$LINENO" "grantpt" "ac_cv_func_grantpt"
+if test "x$ac_cv_func_grantpt" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GRANTPT 1
+_ACEOF
+
+fi
+done
+
+  if test $ac_cv_func_grantpt = no; then
+    HAVE_GRANTPT=0
+  fi
+
+if test $HAVE_GRANTPT = 0; then
+
+
+
+
+
+
+
+
+  gltests_LIBOBJS="$gltests_LIBOBJS grantpt.$ac_objext"
+
+
+  for ac_func in setrlimit
+do :
+  ac_fn_c_check_func "$LINENO" "setrlimit" "ac_cv_func_setrlimit"
+if test "x$ac_cv_func_setrlimit" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SETRLIMIT 1
+_ACEOF
+
+fi
+done
+
+
+fi
+
+
+
+
+
+    if test "$GNULIB_GRANTPT" != 1; then
+        if test "$GNULIB_GRANTPT" = 0; then
+      GNULIB_GRANTPT=$gl_module_indicator_condition
+    else
+      GNULIB_GRANTPT="($GNULIB_GRANTPT || $gl_module_indicator_condition)"
+    fi
+  fi
+
+
+
+
+
+$as_echo "#define GNULIB_TEST_GRANTPT 1" >>confdefs.h
+
+
+
  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether byte ordering is bigendian" >&5
 $as_echo_n "checking whether byte ordering is bigendian... " >&6; }
 if test "${ac_cv_c_bigendian+set}" = set; then :
@@ -35561,12 +36706,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'locale.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'locale.h\)".*|\1|
+               gl_header_literal_regex=`echo 'locale.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -37411,6 +38559,69 @@ _ACEOF
 
 
 
+
+
+
+  for ac_func in ptsname
+do :
+  ac_fn_c_check_func "$LINENO" "ptsname" "ac_cv_func_ptsname"
+if test "x$ac_cv_func_ptsname" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PTSNAME 1
+_ACEOF
+
+fi
+done
+
+  if test $ac_cv_func_ptsname = no; then
+    HAVE_PTSNAME=0
+  fi
+
+if test $HAVE_PTSNAME = 0; then
+
+
+
+
+
+
+
+
+  gltests_LIBOBJS="$gltests_LIBOBJS ptsname.$ac_objext"
+
+
+  :
+
+fi
+
+
+
+
+
+    if test "$GNULIB_PTSNAME" != 1; then
+        if test "$GNULIB_PTSNAME" = 0; then
+      GNULIB_PTSNAME=$gl_module_indicator_condition
+    else
+      GNULIB_PTSNAME="($GNULIB_PTSNAME || $gl_module_indicator_condition)"
+    fi
+  fi
+
+
+
+
+
+$as_echo "#define GNULIB_TEST_PTSNAME 1" >>confdefs.h
+
+
+
+
+  :
+
+
+
+
+
+
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for putenv compatible with GNU and SVID" >&5
 $as_echo_n "checking for putenv compatible with GNU and SVID... " >&6; }
 if test "${gl_cv_func_svid_putenv+set}" = set; then :
@@ -38433,12 +39644,15 @@ _ACEOF
                                                                                                                                      gl_dirsep_regex='[/\\]'
                    ;;
                  *)
-                   gl_dirsep_regex='/'
+                   gl_dirsep_regex='\/'
                    ;;
                esac
+                                             gl_make_literal_regex_sed='s,[]$^\\.*/[],\\&,g'
 
-               gl_absolute_header_sed='\|'"${gl_dirsep_regex}"'spawn.h|{
-                   s|.*"\(.*'"${gl_dirsep_regex}"'spawn.h\)".*|\1|
+               gl_header_literal_regex=`echo 'spawn.h' \
+                                        | sed -e "$gl_make_literal_regex_sed"`
+               gl_absolute_header_sed="/${gl_dirsep_regex}${gl_header_literal_regex}/"'{
+                   s/.*"\(.*'"${gl_dirsep_regex}${gl_header_literal_regex}"'\)".*/\1/
                    s|^/[^/]|//&|
                    p
                    q
@@ -38939,6 +40153,72 @@ done
 
     LIBS="$gl_save_LIBS"
   fi
+
+
+
+
+
+
+  for ac_func in unlockpt
+do :
+  ac_fn_c_check_func "$LINENO" "unlockpt" "ac_cv_func_unlockpt"
+if test "x$ac_cv_func_unlockpt" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_UNLOCKPT 1
+_ACEOF
+
+fi
+done
+
+  if test $ac_cv_func_unlockpt = no; then
+    HAVE_UNLOCKPT=0
+  fi
+
+if test $HAVE_UNLOCKPT = 0; then
+
+
+
+
+
+
+
+
+  gltests_LIBOBJS="$gltests_LIBOBJS unlockpt.$ac_objext"
+
+
+  for ac_func in revoke
+do :
+  ac_fn_c_check_func "$LINENO" "revoke" "ac_cv_func_revoke"
+if test "x$ac_cv_func_revoke" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_REVOKE 1
+_ACEOF
+
+fi
+done
+
+
+fi
+
+
+
+
+
+    if test "$GNULIB_UNLOCKPT" != 1; then
+        if test "$GNULIB_UNLOCKPT" = 0; then
+      GNULIB_UNLOCKPT=$gl_module_indicator_condition
+    else
+      GNULIB_UNLOCKPT="($GNULIB_UNLOCKPT || $gl_module_indicator_condition)"
+    fi
+  fi
+
+
+
+
+
+$as_echo "#define GNULIB_TEST_UNLOCKPT 1" >>confdefs.h
+
+
 
 
 
@@ -48222,7 +49502,7 @@ _ACEOF
 
 
 old_LIBS=$LIBS
-LIBS="$LIBS $LIB_PTHREAD"
+LIBS="$LIBS $LIB_PTHREAD $LIBMULTITHREAD"
 for ac_func in pthread_mutexattr_init
 do :
   ac_fn_c_check_func "$LINENO" "pthread_mutexattr_init" "ac_cv_func_pthread_mutexattr_init"
@@ -58203,6 +59483,10 @@ if test -z "${GL_GENERATE_SCHED_H_TRUE}" && test -z "${GL_GENERATE_SCHED_H_FALSE
   as_fn_error $? "conditional \"GL_GENERATE_SCHED_H\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${GL_GENERATE_STDALIGN_H_TRUE}" && test -z "${GL_GENERATE_STDALIGN_H_FALSE}"; then
+  as_fn_error $? "conditional \"GL_GENERATE_STDALIGN_H\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${GL_GENERATE_STDARG_H_TRUE}" && test -z "${GL_GENERATE_STDARG_H_FALSE}"; then
   as_fn_error $? "conditional \"GL_GENERATE_STDARG_H\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -58219,6 +59503,7 @@ if test -z "${GL_GENERATE_STDINT_H_TRUE}" && test -z "${GL_GENERATE_STDINT_H_FAL
   as_fn_error $? "conditional \"GL_GENERATE_STDINT_H\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+
 
     gl_libobjs=
     gl_ltlibobjs=

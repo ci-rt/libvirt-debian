@@ -38,7 +38,7 @@
 
 #if _LIBC
 # if HAVE_GNU_LD
-# define environ __environ
+#  define environ __environ
 # else
 extern char **environ;
 # endif

@@ -1,3 +1,280 @@
+2011-11-08  Eric Blake  <eblake@redhat.com>
+
+	build: fix build on platforms without ptsname_r
+	MacOS lacks ptsname_r, and gnulib doesn't (yet) provide it.
+	But we can avoid it altogether, by using gnulib openpty()
+	instead.  Note that we do _not_ want the pt_chown module;
+	gnulib uses it only to implement a replacement openpty() if
+	the system lacks both openpty() and granpt(), but all
+	systems that we currently port to either have at least one of
+	openpty() and/or grantpt(), or lack ptys altogether.  That is,
+	we aren't porting to any system that requires us to deal with
+	the hassle of installing a setuid pt_chown helper just to use
+	gnulib's ability to provide openpty() on obscure platforms.
+
+	* .gnulib: Update to latest, for openpty fixes
+	* bootstrap.conf (gnulib_modules): Add openpty, ttyname_r.
+	(gnulib_tool_option_extras): Exclude pt_chown module.
+	* src/util/util.c (virFileOpenTty): Rewrite in terms of openpty
+	and ttyname_r.
+	* src/util/util.h (virFileOpenTtyAt): Delete dead prototype.
+
+2011-11-07  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add missing defaultConsoleTargetType callback for AppArmour
+	Every instance of virCapsPtr must have the defaultConsoleTargetType
+	field set.
+
+	* src/security/virt-aa-helper.c: Add defaultConsoleTargetType to
+	  virCapsPtr
+
+	Fix sending/receiving of FDs when stream returns EAGAIN
+	The code calling sendfd/recvfd was mistakenly assuming those
+	calls would never block. They can in fact return EAGAIN and
+	this is causing us to drop the client connection when blocking
+	ocurrs while sending/receiving FDs.
+
+	Fixing this is a little hairy on the incoming side, since at
+	the point where we see the EAGAIN, we already thought we had
+	finished receiving all data for the packet. So we play a little
+	trick to reset bufferOffset again and go back into polling for
+	more data.
+
+	* src/rpc/virnetsocket.c, src/rpc/virnetsocket.h: Update
+	  virNetSocketSendFD/RecvFD to return 0 on EAGAIN, or 1
+	  on success
+	* src/rpc/virnetclient.c: Move decoding of header & fds
+	  out of virNetClientCallDispatch and into virNetClientIOHandleInput.
+	  Handling blocking when sending/receiving FDs
+	* src/rpc/virnetmessage.h: Add a 'donefds' field to track
+	  how many FDs we've sent / received
+	* src/rpc/virnetserverclient.c: Handling blocking when
+	  sending/receiving FDs
+
+2011-11-05  Eric Blake  <eblake@redhat.com>
+
+	build: silence compiler warning on BSD
+	Building on 64-bit FreeBSD 8.2 complained about a cast between
+	a pointer and a smaller integer.  Going through an intermediate
+	cast shuts up the compiler.
+
+	* src/util/threads-pthread.c (virThreadSelfID): Silence a warning.
+
+	build: fix linking on BSD
+	While building on FreeBSD (and after fixing a ptsname_r link error),
+	I got this failure:
+
+	./.libs/libvirt_util.a(libvirt_util_la-threads.o)(.text+0x240): In function `virThreadCreate':
+	util/threads-pthread.c:185: undefined reference to `pthread_create'
+
+	It turns out that gnulib used only pthread_join for LIB_PTHREAD,
+	but on FreeBSD, libc provides that (as a stub function); whereas
+	the more complex pthread_create really does require -pthread,
+	which gnulib tracked under [LT]LIBMULTITHREAD.
+
+	* configure.ac (LIBS): Check LIBMULTITHREAD alongside LIB_PTHREAD.
+	* src/Makefile.am (THREAD_LIBS): New variable.
+	(libvirt_util_la_LIBADD, libvirt_lxc_LDADD): Use it.
+
+2011-11-05  Laine Stump  <laine@laine.org>
+
+	remote: fix mingw32 build
+	tty is initialized, and later set in code that is compiled for all
+	platforms, but is only used in a section that's inside #ifndef WIN32.
+
+2011-11-04  Eric Blake  <eblake@redhat.com>
+
+	lxc: avoid use-after-free
+	I got this weird failure:
+
+	error: Failed to start domain simple
+	error: internal error cannot mix caller fds with blocking execution
+
+	and tracked it down to a use-after-free - virCommandSetOutputFD
+	was storing the address of a stack-local variable, which then
+	went out of scope before the virCommandRun that dereferenced it.
+
+	Bug introduced in commit 451cfd05 (0.9.2).
+
+	* src/lxc/lxc_driver.c (lxcBuildControllerCmd): Move log fd
+	registration...
+	(lxcVmStart): ...to caller.
+
+2011-11-04  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix naming of constant for disk event
+	All constants related to events should have a prefix of
+	VIR_DOMAIN_EVENT_
+
+	* include/libvirt/libvirt.h.in, src/qemu/qemu_domain.c:
+	  Rename VIR_DOMAIN_DISK_CHANGE_MISSING_ON_START to
+	  VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START
+
+2011-11-04  Jiri Denemark  <jdenemar@redhat.com>
+
+	conf: Don't free uninitialized pointer
+	This causes libvirtd to crash when both <boot dev='...'/> and <boot
+	order='...'/> are used in one domain XML. Introduced by
+	5fa3d775a9f8cdb3423373eb084219aaf778df11
+
+2011-11-04  Eric Blake  <eblake@redhat.com>
+
+	build: fix deep VPATH builds
+	I ran into the following build failure:
+	$ mkdir -p build1 build2/a/very/deep/hierarcy
+	$ cd build2/a/very/deep/hierarcy
+	$ ../../../../../configure && make
+	$ cd ../../../../build1
+	$ ../configure && make
+	...
+	../../src/remote/remote_protocol.c:7:55: fatal error: ../../../../../src/remote/remote_protocol.h: No such file or directory
+
+	Turns out that we were sometimes generating the remote_protocol.c
+	file with information from the VPATH build, which is bad, since
+	any file shipped in the tarball should be idempotent no matter how
+	deep the VPATH build tree that created it.
+
+	* src/rpc/genprotocol.pl: Don't embed VPATH into generated file.
+
+2011-11-04  Philipp Hahn  <hahn@univention.de>
+
+	doc: Add <deviceboot> capability.
+	Allow /capabilities/guest/features/deviceboot.
+
+2011-11-03  Eric Blake  <eblake@redhat.com>
+
+	lxc: use common code for process cleanup
+	Based on a Coverity report - the return value of waitpid() should
+	always be checked, to avoid problems with leaking resources.
+
+	* src/lxc/lxc_controller.c (lxcControllerRun): Use simpler virPidAbort.
+
+2011-11-03  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix default console type setting
+	The default console type may vary based on the OS type. ie a Xen
+	paravirt guests wants a 'xen' console, while a fullvirt guests
+	wants a 'serial' console.
+
+	A plain integer default console type in the capabilities does
+	not suffice. Instead introduce a callback that is passed the
+	OS type.
+
+	* src/conf/capabilities.h: Use a callback for default console
+	  type
+	* src/conf/domain_conf.c, src/conf/domain_conf.h: Use callback
+	  for default console type. Add missing LXC/OpenVZ console types.
+	* src/esx/esx_driver.c, src/libxl/libxl_conf.c,
+	  src/lxc/lxc_conf.c, src/openvz/openvz_conf.c,
+	  src/phyp/phyp_driver.c, src/qemu/qemu_capabilities.c,
+	  src/uml/uml_conf.c, src/vbox/vbox_tmpl.c,
+	  src/vmware/vmware_conf.c, src/xen/xen_hypervisor.c,
+	  src/xenapi/xenapi_driver.c: Set default console type callback
+
+	Set aliases for LXC/UML console devices
+	To allow virDomainOpenConsole to access non-primary consoles,
+	device aliases are required to be set. Until now only the QEMU
+	driver has done this. Update LXC & UML to set aliases for any
+	console devices
+
+	* src/lxc/lxc_driver.c, src/uml/uml_driver.c: Set aliases
+	  for console devices
+
+	Default console target type with no <target> element
+	When no <target> element was set at all, the default console
+	target type was not being honoured
+
+	* src/conf/domain_conf.c: Set default target type for consoles
+	  with no <target>
+
+	Add support for multiple consoles in LXC
+	Currently the LXC controller only supports setup of a single
+	text console. This is wired up to the container init's stdio,
+	as well as /dev/console and /dev/tty1. Extending support for
+	multiple consoles, means wiring up additional PTYs to /dev/tty2,
+	/dev/tty3, etc, etc. The LXC controller is passed multiple open
+	file handles, one for each console requested.
+
+	* src/lxc/lxc_container.c, src/lxc/lxc_container.h: Wire up
+	  all the /dev/ttyN links required to symlink to /dev/pts/NN
+	* src/lxc/lxc_container.h: Open more container side /dev/pts/NN
+	  devices, and adapt event loop to handle I/O from all consoles
+	* src/lxc/lxc_driver.c: Setup multiple host side PTYs
+
+	Rewrite LXC I/O forwarding to use main event loop
+	The current I/O code for LXC uses a hand crafted event loop
+	to forward I/O between the container & host app, based on
+	epoll to handle EOF on PTYs. This event loop is not easily
+	extensible to add more consoles, or monitor other types of
+	file descriptors.
+
+	Remove the custom event loop and replace it with a normal
+	libvirt event loop. When detecting EOF on a PTY, disable
+	the event watch on that FD, and fork off a background thread
+	that does a edge-triggered epoll() on the FD. When the FD
+	finally shows new incoming data, the thread re-enables the
+	watch on the FD and exits.
+
+	When getting EOF from a read() on the PTY, the existing code
+	would do waitpid(WNOHANG) to see if the container had exited.
+	Unfortunately there is a race condition, because even though
+	the process has closed its stdio handles, it might still
+	exist.
+
+	To deal with this the new event loop uses a SIG_CHILD handler
+	to perform the waitpid only when the container is known to
+	have actually exited.
+
+	* src/lxc/lxc_controller.c: Rewrite the event loop to use
+	  the standard APIs.
+
+	Fix crash formatting virtio console
+	qemuBuildVirtioSerialPortDevStr was mistakenly accessing the
+	target.name field in the virDomainChrDef object for chardevs
+	belonging to a console. Those chardevs only have port set,
+	and if there's > 1 console, the > 1port number results in
+	trying to access a target.name with address 0x1
+
+	* src/qemu/qemu_command.c: Fix target.name handling and
+	  make code more robust wrt error reporting
+
+	* src/qemu/qemu_command.c: Conditionally access target.name
+
+	Allow multiple consoles per virtual guest
+	While Xen only has a single paravirt console, UML, and
+	QEMU both support multiple paravirt consoles. The LXC
+	driver can also be trivially made to support multiple
+	consoles. This patch extends the XML to allow multiple
+	<console> elements in the XML. It also makes the UML
+	and QEMU drivers support this config.
+
+	* src/conf/domain_conf.c, src/conf/domain_conf.h: Allow
+	  multiple <console> devices
+	* src/lxc/lxc_driver.c, src/xen/xen_driver.c,
+	  src/xenxs/xen_sxpr.c, src/xenxs/xen_xm.c: Update for
+	  internal API changes
+	* src/security/security_selinux.c, src/security/virt-aa-helper.c:
+	  Only label consoles that aren't a copy of the serial device
+	* src/qemu/qemu_command.c, src/qemu/qemu_driver.c,
+	  src/qemu/qemu_process.c, src/uml/uml_conf.c,
+	  src/uml/uml_driver.c: Support multiple console devices
+	* tests/qemuxml2xmltest.c, tests/qemuxml2argvtest.c: Extra
+	  tests for multiple virtio consoles. Set QEMU_CAPS_CHARDEV
+	  for all console /channel tests
+	* tests/qemuxml2argvdata/qemuxml2argv-channel-virtio-auto.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-channel-virtio.args
+	  tests/qemuxml2argvdata/qemuxml2argv-console-virtio.args: Update
+	  for correct chardev syntax
+	* tests/qemuxml2argvdata/qemuxml2argv-console-virtio-many.args,
+	  tests/qemuxml2argvdata/qemuxml2argv-console-virtio-many.xml: New
+	  test file
+
+	Remove translations in socket test case
+	The test case errors should not be translated since they're only
+	targetted at developers, not users.
+
+	* tests/virnetsockettest.c: Remove error reporting with translations
+
 2011-11-03  Guido Günther  <agx@sigxcpu.org>
 
 	virnetsockettest: Use a temporary directory in /tmp

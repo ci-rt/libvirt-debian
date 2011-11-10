@@ -43,8 +43,6 @@ AC_DEFUN([gl_EARLY],
   AC_REQUIRE([AM_PROG_CC_C_O])
   # Code from module accept:
   # Code from module accept-tests:
-  # Code from module alignof:
-  # Code from module alignof-tests:
   # Code from module alloca:
   # Code from module alloca-opt:
   # Code from module alloca-opt-tests:
@@ -179,6 +177,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module getugroups:
   # Code from module gitlog-to-changelog:
   # Code from module gnumakefile:
+  # Code from module grantpt:
+  # Code from module grantpt-tests:
   # Code from module havelib:
   # Code from module hostent:
   # Code from module ignore-value:
@@ -245,6 +245,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module nonblocking-tests:
   # Code from module open:
   # Code from module open-tests:
+  # Code from module openpty:
+  # Code from module openpty-tests:
   # Code from module passfd:
   # Code from module passfd-tests:
   # Code from module pathmax:
@@ -261,6 +263,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module poll-h-tests:
   # Code from module poll-tests:
   # Code from module posix-shell:
+  # Code from module posix_openpt:
+  # Code from module posix_openpt-tests:
   # Code from module posix_spawn-internal:
   # Code from module posix_spawn_file_actions_addclose:
   # Code from module posix_spawn_file_actions_addclose-tests:
@@ -280,6 +284,10 @@ AC_DEFUN([gl_EARLY],
   # Code from module pthread:
   # Code from module pthread_sigmask:
   # Code from module pthread_sigmask-tests:
+  # Code from module ptsname:
+  # Code from module ptsname-tests:
+  # Code from module pty:
+  # Code from module pty-tests:
   # Code from module putenv:
   # Code from module raise:
   # Code from module raise-tests:
@@ -339,6 +347,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module stat-tests:
   # Code from module stat-time:
   # Code from module stat-time-tests:
+  # Code from module stdalign:
+  # Code from module stdalign-tests:
   # Code from module stdarg:
   dnl Some compilers (e.g., AIX 5.3 cc) need to be in c99 mode
   dnl for the builtin va_copy to work.  With Autoconf 2.60 or later,
@@ -408,10 +418,14 @@ AC_DEFUN([gl_EARLY],
   # Code from module time-tests:
   # Code from module time_r:
   # Code from module timegm:
+  # Code from module ttyname_r:
+  # Code from module ttyname_r-tests:
   # Code from module uname:
   # Code from module uname-tests:
   # Code from module unistd:
   # Code from module unistd-tests:
+  # Code from module unlockpt:
+  # Code from module unlockpt-tests:
   # Code from module unsetenv:
   # Code from module unsetenv-tests:
   # Code from module useless-if-before-free:
@@ -800,6 +814,11 @@ if test $REPLACE_OPEN = 1; then
   gl_PREREQ_OPEN
 fi
 gl_FCNTL_MODULE_INDICATOR([open])
+gl_FUNC_OPENPTY
+if test $HAVE_OPENPTY = 0 || test $REPLACE_OPENPTY = 1; then
+  AC_LIBOBJ([openpty])
+fi
+gl_PTY_MODULE_INDICATOR([openpty])
 gl_PASSFD
 gl_PATHMAX
 gl_FUNC_PERROR
@@ -823,6 +842,11 @@ fi
 gl_POLL_MODULE_INDICATOR([poll])
 gl_POLL_H
 gl_POSIX_SHELL
+gl_FUNC_POSIX_OPENPT
+if test $HAVE_POSIX_OPENPT = 0; then
+  AC_LIBOBJ([posix_openpt])
+fi
+gl_STDLIB_MODULE_INDICATOR([posix_openpt])
 gl_PTHREAD_CHECK
 gl_FUNC_PTHREAD_SIGMASK
 if test $HAVE_PTHREAD_SIGMASK = 0 || test $REPLACE_PTHREAD_SIGMASK = 1; then
@@ -830,6 +854,7 @@ if test $HAVE_PTHREAD_SIGMASK = 0 || test $REPLACE_PTHREAD_SIGMASK = 1; then
   gl_PREREQ_PTHREAD_SIGMASK
 fi
 gl_SIGNAL_MODULE_INDICATOR([pthread_sigmask])
+gl_PTY_H
 gl_FUNC_RAISE
 if test $HAVE_RAISE = 0 || test $REPLACE_RAISE = 1; then
   AC_LIBOBJ([raise])
@@ -940,6 +965,7 @@ if test $REPLACE_STAT = 1; then
   gl_PREREQ_STAT
 fi
 gl_SYS_STAT_MODULE_INDICATOR([stat])
+gl_STDALIGN_H
 gl_STDARG_H
 AM_STDBOOL_H
 gl_STDDEF_H
@@ -1056,6 +1082,12 @@ if test $HAVE_TIMEGM = 0 || test $REPLACE_TIMEGM = 1; then
   gl_PREREQ_TIMEGM
 fi
 gl_TIME_MODULE_INDICATOR([timegm])
+gl_FUNC_TTYNAME_R
+if test $HAVE_TTYNAME_R = 0 || test $REPLACE_TTYNAME_R = 1; then
+  AC_LIBOBJ([ttyname_r])
+  gl_PREREQ_TTYNAME_R
+fi
+gl_UNISTD_MODULE_INDICATOR([ttyname_r])
 gl_FUNC_UNAME
 if test $HAVE_UNAME = 0; then
   AC_LIBOBJ([uname])
@@ -1189,6 +1221,12 @@ if test "$ac_cv_header_winsock2_h" = yes; then
 fi
 gl_SYS_SOCKET_MODULE_INDICATOR([getsockopt])
 gl_GETUGROUPS
+gl_FUNC_GRANTPT
+if test $HAVE_GRANTPT = 0; then
+  AC_LIBOBJ([grantpt])
+  gl_PREREQ_GRANTPT
+fi
+gl_STDLIB_MODULE_INDICATOR([grantpt])
 AC_C_BIGENDIAN
 AC_C_BIGENDIAN
 gl_INLINE
@@ -1283,6 +1321,13 @@ AC_EGREP_CPP([notposix], [[
 AM_CONDITIONAL([POSIX_SPAWN_PORTED], [test $posix_spawn_ported = yes])
 AC_CHECK_DECLS([program_invocation_name], [], [], [#include <errno.h>])
 AC_CHECK_DECLS([program_invocation_short_name], [], [], [#include <errno.h>])
+gl_FUNC_PTSNAME
+if test $HAVE_PTSNAME = 0; then
+  AC_LIBOBJ([ptsname])
+  gl_PREREQ_PTSNAME
+fi
+gl_STDLIB_MODULE_INDICATOR([ptsname])
+AC_CHECK_DECLS_ONCE([alarm])
 gl_FUNC_PUTENV
 if test $REPLACE_PUTENV = 1; then
   AC_LIBOBJ([putenv])
@@ -1336,6 +1381,12 @@ fi
 gl_UNISTD_MODULE_INDICATOR([symlink])
 AC_CHECK_FUNCS_ONCE([shutdown])
 gl_THREAD
+gl_FUNC_UNLOCKPT
+if test $HAVE_UNLOCKPT = 0; then
+  AC_LIBOBJ([unlockpt])
+  gl_PREREQ_UNLOCKPT
+fi
+gl_STDLIB_MODULE_INDICATOR([unlockpt])
 gl_FUNC_UNSETENV
 if test $HAVE_UNSETENV = 0 || test $REPLACE_UNSETENV = 1; then
   AC_LIBOBJ([unsetenv])
@@ -1477,7 +1528,6 @@ AC_DEFUN([gl_FILE_LIST], [
   build-aux/useless-if-before-free
   build-aux/vc-list-files
   lib/accept.c
-  lib/alignof.h
   lib/alloca.c
   lib/alloca.in.h
   lib/allocator.c
@@ -1593,6 +1643,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/nonblocking.c
   lib/nonblocking.h
   lib/open.c
+  lib/openpty.c
   lib/passfd.c
   lib/passfd.h
   lib/pathmax.h
@@ -1603,12 +1654,14 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/pipe2.c
   lib/poll.c
   lib/poll.in.h
+  lib/posix_openpt.c
   lib/printf-args.c
   lib/printf-args.h
   lib/printf-parse.c
   lib/printf-parse.h
   lib/pthread.in.h
   lib/pthread_sigmask.c
+  lib/pty.in.h
   lib/raise.c
   lib/random_r.c
   lib/rawmemchr.c
@@ -1633,6 +1686,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/sockets.c
   lib/sockets.h
   lib/stat.c
+  lib/stdalign.in.h
   lib/stdarg.in.h
   lib/stdbool.in.h
   lib/stddef.in.h
@@ -1679,6 +1733,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/time.in.h
   lib/time_r.c
   lib/timegm.c
+  lib/ttyname_r.c
   lib/uname.c
   lib/unistd.in.h
   lib/usleep.c
@@ -1714,6 +1769,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/environ.m4
   m4/errno_h.m4
   m4/error.m4
+  m4/exponentd.m4
   m4/extensions.m4
   m4/fatal-signal.m4
   m4/fclose.m4
@@ -1750,6 +1806,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/getugroups.m4
   m4/glibc21.m4
   m4/gnulib-common.m4
+  m4/grantpt.m4
   m4/hostent.m4
   m4/include_next.m4
   m4/inet_ntop.m4
@@ -1812,10 +1869,14 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/poll.m4
   m4/poll_h.m4
   m4/posix-shell.m4
+  m4/posix_openpt.m4
   m4/posix_spawn.m4
   m4/printf.m4
   m4/pthread.m4
   m4/pthread_sigmask.m4
+  m4/ptsname.m4
+  m4/pty.m4
+  m4/pty_h.m4
   m4/putenv.m4
   m4/raise.m4
   m4/random_r.m4
@@ -1844,6 +1905,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/ssize_t.m4
   m4/stat-time.m4
   m4/stat.m4
+  m4/stdalign.m4
   m4/stdarg.m4
   m4/stdbool.m4
   m4/stddef_h.m4
@@ -1882,9 +1944,11 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/time_r.m4
   m4/timegm.m4
   m4/tm_gmtoff.m4
+  m4/ttyname_r.m4
   m4/uname.m4
   m4/ungetc.m4
   m4/unistd_h.m4
+  m4/unlockpt.m4
   m4/usleep.m4
   m4/vasnprintf.m4
   m4/vasprintf.m4
@@ -1911,7 +1975,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/socket-client.h
   tests/socket-server.h
   tests/test-accept.c
-  tests/test-alignof.c
   tests/test-alloca-opt.c
   tests/test-areadlink.c
   tests/test-areadlink.h
@@ -1993,6 +2056,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-getsockname.c
   tests/test-getsockopt.c
   tests/test-gettimeofday.c
+  tests/test-grantpt.c
   tests/test-ignore-value.c
   tests/test-inet_ntop.c
   tests/test-inet_pton.c
@@ -2044,6 +2108,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-nonblocking.c
   tests/test-open.c
   tests/test-open.h
+  tests/test-openpty.c
   tests/test-passfd.c
   tests/test-pathmax.c
   tests/test-perror.c
@@ -2053,6 +2118,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-pipe2.c
   tests/test-poll-h.c
   tests/test-poll.c
+  tests/test-posix_openpt.c
   tests/test-posix_spawn1.c
   tests/test-posix_spawn1.in.sh
   tests/test-posix_spawn2.c
@@ -2062,6 +2128,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-posix_spawn_file_actions_addopen.c
   tests/test-pthread_sigmask1.c
   tests/test-pthread_sigmask2.c
+  tests/test-ptsname.c
   tests/test-raise.c
   tests/test-random_r.c
   tests/test-rawmemchr.c
@@ -2096,6 +2163,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-stat-time.c
   tests/test-stat.c
   tests/test-stat.h
+  tests/test-stdalign.c
   tests/test-stdbool.c
   tests/test-stddef.c
   tests/test-stdint.c
@@ -2123,8 +2191,10 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-thread_create.c
   tests/test-thread_self.c
   tests/test-time.c
+  tests/test-ttyname_r.c
   tests/test-uname.c
   tests/test-unistd.c
+  tests/test-unlockpt.c
   tests/test-unsetenv.c
   tests/test-usleep.c
   tests/test-vasnprintf.c
@@ -2167,6 +2237,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/glthread/thread.c
   tests=lib/glthread/thread.h
   tests=lib/glthread/yield.h
+  tests=lib/grantpt.c
   tests=lib/inttypes.in.h
   tests=lib/locale.in.h
   tests=lib/localename.c
@@ -2177,6 +2248,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/mgetgroups.h
   tests=lib/progname.c
   tests=lib/progname.h
+  tests=lib/ptsname.c
+  tests=lib/pty-private.h
   tests=lib/putenv.c
   tests=lib/read.c
   tests=lib/realloc.c
@@ -2198,6 +2271,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/spawnp.c
   tests=lib/stat-time.h
   tests=lib/symlink.c
+  tests=lib/unlockpt.c
   tests=lib/unsetenv.c
   tests=lib/w32sock.h
   tests=lib/wait-process.c
