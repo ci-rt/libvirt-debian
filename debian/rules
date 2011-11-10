@@ -92,7 +92,7 @@ binary-install/libvirt-bin::
 	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
 
 	for l in $(LOGROTATE); do \
-		cp $(CURDIR)/daemon/$$l.logrotate    \
+		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
                    debian/libvirt-bin.$$l.logrotate; \
 		dh_installlogrotate --name=$$l;     \
 	done
