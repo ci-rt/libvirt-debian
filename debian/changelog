@@ -1,3 +1,13 @@
+libvirt (0.9.7-2) unstable; urgency=low
+
+  * [b0bdb13] Enable numa support. (Closes: #648323)
+    Thanks to Ralf Spenneberg for testing
+  * [5b55828] Disk storage: forbid rebuilding existing disk storage pools
+    wiping all it's data.
+  * [d77511c] Build depend on radvd (Closes: #648551)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 12 Nov 2011 23:16:21 +0100
+
 libvirt (0.9.7-1) experimental; urgency=low
 
   * [c06e393] debian/watch: match releases and release candidates
