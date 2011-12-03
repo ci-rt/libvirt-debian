@@ -568,6 +568,58 @@ cleanup:
 
 
 
+static int remoteDispatchDomainBlockResize(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_block_resize_args *args);
+static int remoteDispatchDomainBlockResizeHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainBlockResize(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainBlockResize(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_block_resize_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainBlockResize(dom, args->disk, args->size, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainBlockStats(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -1338,6 +1390,28 @@ cleanup:
         virDomainFree(dom);
     return rv;
 }
+
+
+
+static int remoteDispatchDomainGetBlockIoTune(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_block_io_tune_args *args,
+    remote_domain_get_block_io_tune_ret *ret);
+static int remoteDispatchDomainGetBlockIoTuneHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetBlockIoTune(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainGetBlockIoTune body has to be implemented manually */
 
 
 
@@ -4300,6 +4374,69 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
+    virTypedParameterArrayClear(params, nparams);
+    VIR_FREE(params);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSetBlockIoTune(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_block_io_tune_args *args);
+static int remoteDispatchDomainSetBlockIoTuneHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetBlockIoTune(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainSetBlockIoTune(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_block_io_tune_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((params = remoteDeserializeTypedParameters(args->params.params_val,
+                                                   args->params.params_len,
+                                                   REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX,
+                                                   &nparams)) == NULL)
+        goto cleanup;
+
+    if (virDomainSetBlockIoTune(dom, args->disk, params, nparams, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    virTypedParameterArrayClear(params, nparams);
     VIR_FREE(params);
     return rv;
 }
@@ -4526,6 +4663,7 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
+    virTypedParameterArrayClear(params, nparams);
     VIR_FREE(params);
     return rv;
 }
@@ -4587,6 +4725,7 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
+    virTypedParameterArrayClear(params, nparams);
     VIR_FREE(params);
     return rv;
 }
@@ -4648,6 +4787,7 @@ cleanup:
         virNetMessageSaveError(rerr);
     if (dom)
         virDomainFree(dom);
+    virTypedParameterArrayClear(params, nparams);
     VIR_FREE(params);
     return rv;
 }
@@ -8993,6 +9133,52 @@ static int remoteDispatchNodeNumOfDevices(
         goto cleanup;
 
     ret->num = num;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchNodeSuspendForDuration(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_node_suspend_for_duration_args *args);
+static int remoteDispatchNodeSuspendForDurationHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeSuspendForDuration(server, client, msg, rerr, args);
+}
+static int remoteDispatchNodeSuspendForDuration(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_node_suspend_for_duration_args *args)
+{
+    int rv = -1;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (virNodeSuspendForDuration(priv->conn, args->target, args->duration, args->flags) < 0)
+        goto cleanup;
+
     rv = 0;
 
 cleanup:
@@ -14113,6 +14299,42 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_open_graphics_args,
    0,
    (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method NodeSuspendForDuration => 250 */
+   remoteDispatchNodeSuspendForDurationHelper,
+   sizeof(remote_node_suspend_for_duration_args),
+   (xdrproc_t)xdr_remote_node_suspend_for_duration_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainBlockResize => 251 */
+   remoteDispatchDomainBlockResizeHelper,
+   sizeof(remote_domain_block_resize_args),
+   (xdrproc_t)xdr_remote_domain_block_resize_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainSetBlockIoTune => 252 */
+   remoteDispatchDomainSetBlockIoTuneHelper,
+   sizeof(remote_domain_set_block_io_tune_args),
+   (xdrproc_t)xdr_remote_domain_set_block_io_tune_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainGetBlockIoTune => 253 */
+   remoteDispatchDomainGetBlockIoTuneHelper,
+   sizeof(remote_domain_get_block_io_tune_args),
+   (xdrproc_t)xdr_remote_domain_get_block_io_tune_args,
+   sizeof(remote_domain_get_block_io_tune_ret),
+   (xdrproc_t)xdr_remote_domain_get_block_io_tune_ret,
    true,
    0
 },

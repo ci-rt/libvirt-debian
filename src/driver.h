@@ -377,7 +377,12 @@ typedef int
                      unsigned long long offset, size_t size,
                      void *buffer,
                      unsigned int flags);
-
+typedef int
+    (*virDrvDomainBlockResize)
+                    (virDomainPtr domain,
+                     const char *path,
+                     unsigned long long size,
+                     unsigned int flags);
 typedef int
     (*virDrvDomainMemoryPeek)
                     (virDomainPtr domain,
@@ -508,6 +513,8 @@ typedef int
     (*virDrvConnectIsEncrypted)(virConnectPtr conn);
 typedef int
     (*virDrvConnectIsSecure)(virConnectPtr conn);
+typedef int
+    (*virDrvConnectIsAlive)(virConnectPtr conn);
 typedef int
     (*virDrvDomainIsActive)(virDomainPtr dom);
 typedef int
@@ -721,6 +728,11 @@ typedef int
                      unsigned long flags,
                      int cancelled);
 
+typedef int
+    (*virDrvNodeSuspendForDuration)(virConnectPtr conn, unsigned int target,
+                                     unsigned long long duration,
+                                     unsigned int flags);
+
 
 typedef int
     (*virDrvDomainBlockJobAbort)(virDomainPtr dom, const char *path,
@@ -740,6 +752,23 @@ typedef int
     (*virDrvDomainBlockPull)(virDomainPtr dom, const char *path,
                              unsigned long bandwidth, unsigned int flags);
 
+typedef int
+    (*virDrvSetKeepAlive)(virConnectPtr conn,
+                          int interval,
+                          unsigned int count);
+
+typedef int
+    (*virDrvDomainSetBlockIoTune)(virDomainPtr dom,
+                                  const char *disk,
+                                  virTypedParameterPtr params,
+                                  int nparams,
+                                  unsigned int flags);
+typedef int
+    (*virDrvDomainGetBlockIoTune)(virDomainPtr dom,
+                                  const char *disk,
+                                  virTypedParameterPtr params,
+                                  int *nparams,
+                                  unsigned int flags);
 
 /**
  * _virDriver:
@@ -835,6 +864,7 @@ struct _virDriver {
     virDrvDomainMigratePrepare	domainMigratePrepare;
     virDrvDomainMigratePerform	domainMigratePerform;
     virDrvDomainMigrateFinish	domainMigrateFinish;
+    virDrvDomainBlockResize     domainBlockResize;
     virDrvDomainBlockStats      domainBlockStats;
     virDrvDomainBlockStatsFlags domainBlockStatsFlags;
     virDrvDomainInterfaceStats  domainInterfaceStats;
@@ -899,6 +929,11 @@ struct _virDriver {
     virDrvDomainGetBlockJobInfo domainGetBlockJobInfo;
     virDrvDomainBlockJobSetSpeed domainBlockJobSetSpeed;
     virDrvDomainBlockPull domainBlockPull;
+    virDrvSetKeepAlive setKeepAlive;
+    virDrvConnectIsAlive isAlive;
+    virDrvNodeSuspendForDuration nodeSuspendForDuration;
+    virDrvDomainSetBlockIoTune domainSetBlockIoTune;
+    virDrvDomainGetBlockIoTune domainGetBlockIoTune;
 };
 
 typedef int

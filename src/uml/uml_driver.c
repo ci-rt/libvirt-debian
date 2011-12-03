@@ -25,7 +25,6 @@
 
 #include <sys/types.h>
 #include <sys/poll.h>
-#include <dirent.h>
 #include <limits.h>
 #include <string.h>
 #include <stdio.h>
@@ -62,6 +61,8 @@
 #include "virfile.h"
 #include "fdstream.h"
 #include "configmake.h"
+#include "virnetdevtap.h"
+#include "virnodesuspend.h"
 
 #define VIR_FROM_THIS VIR_FROM_UML
 
@@ -627,9 +628,6 @@ umlShutdown(void) {
 
     umlProcessAutoDestroyShutdown(uml_driver);
 
-    if (uml_driver->brctl)
-        brShutdown(uml_driver->brctl);
-
     umlDriverUnlock(uml_driver);
     virMutexDestroy(&uml_driver->lock);
     VIR_FREE(uml_driver);
@@ -955,14 +953,8 @@ error:
 }
 
 
-static int umlCleanupTapDevices(virDomainObjPtr vm) {
+static void umlCleanupTapDevices(virDomainObjPtr vm) {
     int i;
-    int err;
-    int ret = 0;
-    brControl *brctl = NULL;
-    VIR_ERROR(_("Cleanup tap"));
-    if (brInit(&brctl) < 0)
-        return -1;
 
     for (i = 0 ; i < vm->def->nnets ; i++) {
         virDomainNetDefPtr def = vm->def->nets[i];
@@ -971,16 +963,8 @@ static int umlCleanupTapDevices(virDomainObjPtr vm) {
             def->type != VIR_DOMAIN_NET_TYPE_NETWORK)
             continue;
 
-        VIR_ERROR(_("Cleanup '%s'"), def->ifname);
-        err = brDeleteTap(brctl, def->ifname);
-        if (err) {
-            VIR_ERROR(_("Cleanup failed %d"), err);
-            ret = -1;
-        }
+        ignore_value(virNetDevTapDelete(def->ifname));
     }
-    VIR_ERROR(_("Cleanup tap done"));
-    brShutdown(brctl);
-    return ret;
 }
 
 static int umlStartVMDaemon(virConnectPtr conn,
@@ -1056,12 +1040,8 @@ static int umlStartVMDaemon(virConnectPtr conn,
         return -1;
     }
 
-    if (!(cmd = umlBuildCommandLine(conn, driver, vm))) {
-        VIR_FORCE_CLOSE(logfd);
-        virDomainConfVMNWFilterTeardown(vm);
-        umlCleanupTapDevices(vm);
-        return -1;
-    }
+    if (!(cmd = umlBuildCommandLine(conn, driver, vm)))
+        goto cleanup;
 
     for (i = 0 ; i < vm->def->nconsoles ; i++) {
         VIR_FREE(vm->def->consoles[i]->info.alias);
@@ -1081,16 +1061,16 @@ static int umlStartVMDaemon(virConnectPtr conn,
     virCommandDaemonize(cmd);
 
     ret = virCommandRun(cmd, NULL);
-    VIR_FORCE_CLOSE(logfd);
     if (ret < 0)
         goto cleanup;
 
     if (autoDestroy &&
-        umlProcessAutoDestroyAdd(driver, vm, conn) < 0)
+        (ret = umlProcessAutoDestroyAdd(driver, vm, conn)) < 0)
         goto cleanup;
 
     ret = virDomainObjSetDefTransient(driver->caps, vm, false);
 cleanup:
+    VIR_FORCE_CLOSE(logfd);
     virCommandFree(cmd);
 
     if (ret < 0) {
@@ -1240,6 +1220,12 @@ static int umlIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* Not encrypted, but remote driver takes care of that */
     return 0;
+}
+
+
+static int umlIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 1;
 }
 
 
@@ -2614,6 +2600,8 @@ static virDriver umlDriver = {
     .domainEventRegisterAny = umlDomainEventRegisterAny, /* 0.9.4 */
     .domainEventDeregisterAny = umlDomainEventDeregisterAny, /* 0.9.4 */
     .domainOpenConsole = umlDomainOpenConsole, /* 0.8.6 */
+    .isAlive = umlIsAlive, /* 0.9.8 */
+    .nodeSuspendForDuration = nodeSuspendForDuration, /* 0.9.8 */
 };
 
 static int

@@ -1,3 +1,2304 @@
+2011-12-01  Eric Blake  <eblake@redhat.com>
+
+	spec: mark directories in /var/run as ghosts
+	We have several directories that are created on the fly, and which
+	only contain state relevant to a running libvirtd process (all
+	located in /var/run).  Since the directories are created as needed,
+	and make no sense without a running libvirtd, we want them deleted
+	if libvirt is uninstalled.  And in F15 and newer, /var/run is on
+	tmpfs (forcing us to recreate on the fly); which means that someone
+	trying to verify a complete rpm will fail if the directory does not
+	currently exist because libvirtd has not been started since boot.
+	The solution, then, is to mark the directories as %ghost, so that
+	rpm knows that we own them and will clean it up if libvirt is
+	uninstalled, but will no longer create the directory for us at
+	install, nor complain at verify time if the directory does not exist.
+
+	See https://bugzilla.redhat.com/show_bug.cgi?id=656611.
+
+	* libvirt.spec.in (%files): Add %ghost to temporary directories
+	that we don't install, but want cleaned up on libvirt removal.
+
+2011-12-01  Jiri Denemark  <jdenemar@redhat.com>
+
+	virsh: Fix possible deadlock when virsh is about to exit
+	Not only was ctl->quit accessed without a mutex but unfortunately,
+	virEventAddTimeout only interrupts the poll when event loop is running
+	so the hack needs to add a timeout that will make next poll return
+	immediately without blocking.
+
+2011-12-01  Alex Jia  <ajia@redhat.com>
+
+	util: Plug memory leak on virNetDevMacVLanCreateWithVPortProfile() error path
+	Detected by Coverity. Leak introduced in commit 90074ec.
+
+	util: Plug memory leak on virNetDevBridgeGet() sucessful path
+	Detected by Coverity. Leak introduced in commit c1df2c1.
+
+	Two bugs here:
+	1. memory leak on successful parse
+	2. failure to parse still returned success
+
+	uml: Plug memory leak on umlStartVMDaemon() error path
+	Detected by Coverity.  Leak introduced in commit 8866eed.
+
+	Two bugs here:
+	1. logfd wasn't closed on all return paths
+	2. if we failed to mark a domain autodestroy, then the domain
+	was not made transient but we still returned success
+
+	rpc: Plug memory leak on virNetClientSendInternal() error path
+	Detected by Coverity. Leak introduced in commit 673adba.
+
+	Two separate bugs here:
+	1. call was not freed on all error paths
+	2. virCondDestroy was called even if virCondInit failed
+
+	conf: Plug memory leak on virDomainDefParseXML() error path
+	Detected by Coverity. Leak introduced in commit 0873b68.
+
+	qemu: Plug memory leak onqemuProcessWaitForMonitor() error path
+	Detected by Coverity. Leak introduced in commit 109efd7.
+
+2011-12-01  Prerna Saxena  <prerna@linux.vnet.ibm.com>
+
+	Add PPC cpu driver.
+	To add support for running libvirt on PowerPC, a CPU driver for the
+	PowerPC platform must be added.
+	Most generic cpu driver routines such as CPU compare, decode, etc
+	are based on CPUID comparison and are not relevant for non-x86
+	platforms.
+	Here, we introduce stubs for relevant PowerPC routines invoked by libvirt.
+
+2011-12-01  Hu Tao  <hutao@cn.fujitsu.com>
+
+	qemu: filter blkio 0-device-weight at two other places
+	filter 0-device-weight when:
+
+	  - getting blkio parameters with --config
+	  - starting up a domain
+
+	When testing with blkio, I found these issues:
+
+	  (dom is down)
+	  virsh blkiotune dom --device-weights /dev/sda,300,/dev/sdb,500
+	  virsh blkiotune dom --device-weights /dev/sda,300,/dev/sdb,0
+	  virsh blkiotune dom
+	  weight         : 800
+	  device_weight  : /dev/sda,200,/dev/sdb,0
+
+	  # issue 1: shows 0 device weight of /dev/sdb that may confuse user
+
+	  (continued)
+	  virsh start dom
+
+	  # issue 2: If /dev/sdb doesn't exist, libvirt refuses to bring the
+	  # dom up because it wants to set the device weight to 0 of a
+	  # non-existing device. Since 0 means no weight-limit, we really don't
+	  # have to set it.
+
+2011-12-01  Eric Blake  <eblake@redhat.com>
+
+	qemu: amend existing table of device weights
+	Prior to this patch, for a running dom, the commands:
+
+	$ virsh blkiotune dom --device-weights /dev/sda,502,/dev/sdb,498
+	$ virsh blkiotune dom --device-weights /dev/sda,503
+	$ virsh blkiotune dom
+	weight         : 500
+	device_weight  : /dev/sda,503
+
+	claim that /dev/sdb no longer has a non-default weight, but
+	directly querying cgroups says otherwise:
+
+	$ cat /cgroup/blkio/libvirt/qemu/dom/blkio.weight_device
+	8:0     503
+	8:16    498
+
+	After this patch, an explicit 0 is required to remove a device path
+	from the XML, and omitting a device path that was previously
+	specified leaves that device path untouched in the XML, to match
+	cgroups behavior.
+
+	* src/qemu/qemu_driver.c (parseBlkioWeightDeviceStr): Rename...
+	(qemuDomainParseDeviceWeightStr): ...and use correct type.
+	(qemuDomainSetBlkioParameters): After parsing string, modify
+	rather than replacing existing table.
+	* tools/virsh.pod (blkiotune): Tweak wording.
+
+	conf: reject duplicate paths in device weights
+	The next patch will make it possible to have virDomainSetBlkioParameters
+	leave device weights unchanged if they are not mentioned in the incoming
+	string, but this only works if the list of block weights does not allow
+	duplicate paths.  Technically, a user can still confuse libvirt by
+	passing alternate spellings that resolve to the same device, but it
+	is not worth worrying about working around that kind of abuse.
+
+	* src/conf/domain_conf.c (virDomainDefParseXML): Require unique
+	paths.
+
+2011-12-01  Hu Tao  <hutao@cn.fujitsu.com>
+
+	virsh: fix setting weight and device-weights at the same time
+	When setting both blkio weight and device-weights at the same time, the weight
+	is lost. Fix it.
+
+2011-12-01  Lei Li  <lilei@linux.vnet.ibm.com>
+
+	Add tests for blkdeviotune
+
+	Support virDomain{Set, Get}BlockIoTune in the python API
+	Python support for both setting and getting block I/O throttle.
+
+	Enable the blkdeviotune command in virsh
+	Support virsh command blkdeviotune. Can set or query a block disk
+	I/O throttle setting.
+
+	Implement virDomain{Set, Get}BlockIoTune for the qemu driver
+	Implement the block I/O throttle setting and getting support to qemu
+	driver.
+
+	Support block I/O throttle in XML
+	Enable block I/O throttle for per-disk in XML, as the first
+	per-disk IO tuning parameter.
+
+	Add virDomain{Set, Get}BlockIoTune support to the remote driver
+	Support Block I/O Throttle setting and query to remote driver.
+
+2011-11-30  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix leak build config file path
+	* src/libvirt.c: Free user directory path
+
+	Remove time APIs from src/util/util.h
+	The virTimestamp and virTimeMs functions in src/util/util.h
+	duplicate functionality from virtime.h, in a non-async signal
+	safe manner. Remove them, and convert all code over to the new
+	APIs.
+
+	* src/util/util.c, src/util/util.h: Delete virTimeMs and virTimestamp
+	* src/lxc/lxc_driver.c, src/qemu/qemu_domain.c,
+	  src/qemu/qemu_driver.c, src/qemu/qemu_migration.c,
+	  src/qemu/qemu_process.c, src/util/event_poll.c: Convert to use
+	  virtime APIs
+
+	Make logging async signal safe wrt time stamp generation
+	Use the new virTimeStringNowRaw() API for generating log timestamps
+	in an async signal safe manner
+
+	* src/util/logging.c: Use virTimeStringNowRaw
+
+	Add internal APIs for dealing with time
+	The logging APIs need to be able to generate formatted timestamps
+	using only async signal safe functions. This rules out using
+	gmtime/localtime/malloc/gettimeday(!) and much more.
+
+	Introduce a new internal API which is async signal safe.
+
+	  virTimeMillisNowRaw replacement for gettimeofday. Uses clock_gettime
+	                      where available, otherwise falls back to the unsafe
+	                      gettimeofday
+
+	  virTimeFieldsNowRaw  replacements for gmtime(), convert a timestamp
+	  virTimeFieldsThenRaw into a broken out set of fields. No localtime()
+	                       replacement is provided, because converting to
+	                       local time is not practical with only async signal
+	                       safe APIs.
+
+	  virTimeStringNowRaw  replacements for strftime() which print a timestamp
+	  virTimeStringThenRaw into a string, using a pre-determined format, with
+	                       a fixed size buffer (VIR_TIME_STRING_BUFLEN)
+
+	For each of these there is also a version without the Raw postfix
+	which raises a full libvirt error. These versions are not async
+	signal safe
+
+	* src/Makefile.am, src/util/virtime.c, src/util/virtime.h: New files
+	* src/libvirt_private.syms: New APis
+	* configure.ac: Check for clock_gettime in -lrt
+	* tests/virtimetest.c, tests/Makefile.am: Test new APIs
+
+	Remove obsolete virGetPMCapabilities sym from private symbols file
+	Fix the build on Mingw32 by removing the now obsolete
+	virGetPMCapabilities symbol from the private exports file
+
+	* src/libvirt_private.syms: Remove virGetPMCapabilities
+
+	Don't mark suspend as active until we know it is running
+	If suspend failed for some reason (e.g. too short duration) then
+	subsequent attempts to trigger suspend were rejected because we
+	had already marked a suspend as being in progress
+
+	* src/util/virnodesuspend.c: Don't mark suspend as active
+	  until we've successfully triggered it
+
+	Add suspend info to Xen, LXC and UML hypervisor capabilities
+	* src/lxc/lxc_conf.c, src/uml/uml_conf.c,
+	  src/xen/xen_hypervisor.c: Initialize suspend capabilities
+	* tests/xencapsdata/*xml: Add empty powermgmt capabilities
+
+	Remove pointless strdup in node suspend code
+	The command name for the suspend action does not need to be
+	strdup'd. The constant string can be used directly. This
+	also means the code can be trivially rearranged to make the
+	switch clearer
+
+	* src/util/virnodesuspend.c: Remove strdup of cmdString
+
+	Do lazy init of host PM features
+	To avoid probing the host power management features on any
+	call to virInitialize, only initialize the mutex in
+	virNodeSuspendInit. Do lazy load of the supported PM target
+	mask when it is actually needed
+
+	* src/util/virnodesuspend.c: Lazy init of supported features
+
+	Remove powerMgmt_valid field from capabilities struct
+	If we ensure that virNodeSuspendGetTargetMask always resets
+	*bitmask to zero upon failure, there is no need for the
+	powerMgmt_valid field.
+
+	* src/util/virnodesuspend.c: Ensure *bitmask is zero upon
+	  failure
+	* src/conf/capabilities.c, src/conf/capabilities.h: Remove
+	  powerMgmt_valid field
+	* src/qemu/qemu_capabilities.c: Remove powerMgmt_valid
+
+	Add export of node suspend capabilities APIs
+	* src/libvirt_private.syms: Export virNodeSuspendSupportsTarget
+	  and virNodeSuspendGetTargetMask
+
+	Move suspend capabilities APIs out of util.h into virnodesuspend.c
+	The node suspend capabilities APIs should not have been put into
+	util.[ch]. Instead move them into virnodesuspend.[ch]
+
+	* src/util/util.c, src/util/util.h: Remove suspend capabilities APIs
+	* src/util/virnodesuspend.c, src/util/virnodesuspend.h: Add
+	  suspend capabilities APIs
+	* src/qemu/qemu_capabilities.c: Include virnodesuspend.h
+
+	Rename suspend capabilities APIs
+	Rename virGetPMCapabilities to virNodeSuspendGetTargetMask and
+	virDiscoverHostPMFeature to virNodeSuspendSupportsTarget.
+
+	* src/util/util.c, src/util/util.h: Rename APIs
+	* src/qemu/qemu_capabilities.c, src/util/virnodesuspend.c: Adjust
+	  for new names
+
+	Sanitize virDiscoverHostPMFeature to return a boolean
+	Since virDiscoverHostPMFeature is just checking one feature,
+	there is no reason for it to return a bitmask. Change it to
+	return a boolean
+
+	* src/util/util.c, src/util/util.h: Make virDiscoverHostPMFeature
+	  return a boolean
+
+	Move the virHostPMCapability enum helpers into capabilities.c
+	The virHostPMCapability enum helper was declared in util.h
+	but implemented in capabilities.c, which is in a completely
+	separate library at link time. Move the declaration into the
+	capabilities.c file and rename it to match normal conventions
+
+	* src/util/util.h: Remove virHostPMCapability enum decl
+	* src/conf/capabilities.c: Add virCapsHostPMTarget enum
+
+	Fix capabilities XML to use generic terms for suspend targets
+	The capabilities XML uses the x86 specific terms 'S3', 'S4'
+	and 'Hybrid-Syspend'. Switch it to use the same terminology
+	as the API constants and virsh options, eg 'suspend_mem'
+	'suspend_disk' and 'suspend_hybrid'
+
+	* docs/formatcaps.html.in, docs/schemas/capability.rng,
+	  src/conf/capabilities.c: Rename suspend constants
+
+	Remove internal only virHostPMCapability enum
+	The internal virHostPMCapability enum just duplicates the
+	public virNodeSuspendTarget enum, but with different names.
+
+	* src/util/util.c: Use VIR_NODE_SUSPEND_TARGET constants
+	* src/util/util.h: Remove virHostPMCapability enum
+	* src/conf/capabilities.c: Use VIR_NODE_SUSPEND_TARGET_LAST
+
+	Fix values of PM target type constants
+	The VIR_NODE_SUSPEND_TARGET constants are not flags, so they
+	should just be assigned straightforward incrementing values.
+
+	* include/libvirt/libvirt.h.in: Change VIR_NODE_SUSPEND_TARGET
+	  values
+	* src/util/virnodesuspend.c: Fix suspend target checks
+
+2011-11-30  Alex Jia  <ajia@redhat.com>
+
+	util: avoid null deref on qcowXGetBackingStore
+	Detected by Coverity. the only case is caller passes a NULL to 'format' variable,
+	then taking 'if (format)' false branch, the function qcow2GetBackingStoreFormat
+	will directly dereferences the NULL 'format' pointer variable.
+
+	virsh: correct return value error
+	Fix cmdDomblklist to return 'true' on success instead of '0'
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=758590
+
+2011-11-30  Lei Li  <lilei@linux.vnet.ibm.com>
+
+	Add new API virDomain{Set, Get}BlockIoTune
+	This patch add new pulic API virDomainSetBlockIoTune and
+	virDomainGetBlockIoTune.
+
+2011-11-30  Hu Tao  <hutao@cn.fujitsu.com>
+
+	blkiotune: add qemu support for blkiotune.device_weight
+	Implement setting/getting per-device blkio weights in qemu,
+	using the cgroups blkio.weight_device tunable.
+
+	blkiotune: add interface for blkiotune.device_weight
+	This adds per-device weights to <blkiotune>.  Note that the
+	cgroups implementation only supports weights per block device,
+	and not per-file within the device; hence this option must be
+	global to the domain definition rather than tied to individual
+	<devices>/<disk> entries:
+
+	<domain ...>
+	  <blkiotune>
+	    <device>
+	      <path>/path/to/block</path>
+	      <weight>1000</weight>
+	    </device>
+	  </blkiotune>
+	..
+
+	This patch also adds a parameter --device-weights to virsh command
+	blkiotune for setting/getting blkiotune.weight_device for any
+	hypervisor that supports it.  All <device> entries under
+	<blkiotune> are concatenated into a single string attribute under
+	virDomain{Get,Set}BlkioParameters, named "device_weight".
+
+2011-11-30  Eric Blake  <eblake@redhat.com>
+
+	qemu: fix blkiotune --live --config
+	Without this,  'virsh blkiotune --live --config --weight=n'
+	only affected live.
+
+	* src/qemu/qemu_driver.c (qemuDomainSetBlkioParameters): Allow
+	setting both configurations at once.
+
+	qemu, lxc: drop redundant checks
+	After the previous patch, there are now some redundant checks.
+
+	* src/qemu/qemu_driver.c (qemudDomainGetVcpuPinInfo)
+	(qemuGetSchedulerParametersFlags): Drop checks now guaranteed by
+	libvirt.c.
+	* src/lxc/lxc_driver.c (lxcGetSchedulerParametersFlags):
+	Likewise.
+
+	API: prevent query of --live and --config at once
+	Drivers were inconsistent when presented both --live and --config
+	at once.  For example, within qemu, getting memory parameters
+	favored live, getting blkio tuning favored config, and getting
+	scheduler parameters errored out.  Also, some, but not all,
+	attempts to mix flags on query were filtered at the virsh level.
+	We shouldn't have to duplicate efforts in every client app, nor
+	in every driver.  So, it is simpler to just enforce that the two
+	flags cannot both be used at once on query operations, which has
+	precedent in libvirt.c, and which matches the documentation of
+	virDomainModificationImpact.
+
+	* src/libvirt.c (virDomainGetMemoryParameters)
+	(virDomainGetBlkioParameters)
+	(virDomainGetSchedulerParametersFlags, virDomainGetVcpuPinInfo):
+	Borrow sanity checking from virDomainGetVcpusFlags.
+
+	build: fix typo in last patch
+	* src/remote_protocol-structs: Use correct RPC name.
+
+2011-11-29  Osier Yang  <jyang@redhat.com>
+
+	block_resize: Update test file for RPC
+	Pushed under build failure rule.
+
+	block_resize: Expose the new API to virsh
+
+	block_resize: Implement qemu driver method
+	It requires the domain is running, otherwise fails. Resize to a lower
+	size is supported, but should be used with extreme caution.
+
+	In order to prohibit the "size" overflowing after multiplied by
+	1024. We do checking in the codes. For QMP mode, the default units
+	is Bytes, the passed size needs to be multiplied by 1024, however,
+	for HMP mode, the default units is "Megabytes", the passed "size"
+	needs to be divided by 1024 then.
+
+	block_resize: Implement qemu monitor functions
+	Implements functions for both HMP and QMP mode.
+
+	For HMP mode, qemu uses "M" as the units by default, so the passed "sized"
+	is divided by 1024.
+
+	For QMP mode, qemu uses "Bytes" as the units by default, the passed "sized"
+	is multiplied by 1024.
+
+	All of the monitor functions return -1 on failure, 0 on success, or -2 if
+	not supported.
+
+	block_resize: Wire up the remote protocol
+
+	block_resize: Define the new API
+	The new API is named as "virDomainBlockResize", intending to add
+	support for qemu monitor command "block_resize" (both HMP and QMP).
+
+	Similar with APIs like "virDomainSetMemoryFlags", the units for
+	argument "size" is kilobytes.
+
+2011-11-29  Michal Privoznik  <mprivozn@redhat.com>
+
+	bandwidth: Fix funky identation
+
+2011-11-29  Jiri Denemark  <jdenemar@redhat.com>
+
+	virsh: Fix typos in man page
+
+	lxc: Fix suspend/resume with freezer cgroup
+
+2011-11-29  Osier Yang  <jyang@redhat.com>
+
+	examples: Correct the example command to use testnode.xml
+	 * s/-connection/-c/
+	 * Removes the redundant '/'.
+	 * Add "absolute" so that it's more clear.
+
+	Pushed under trivial rule.
+
+2011-11-29  Srivatsa S. Bhat  <srivatsa.bhat@linux.vnet.ibm.com>
+
+	Add virsh command to initiate suspend on the host
+	Add a new command 'nodesuspend' to perform a timed suspend on the host.
+
+	Implement the core API to suspend/resume the host
+	Add the core functions that implement the functionality of the API.
+	Suspend is done by using an asynchronous mechanism so that we can return
+	the status to the caller before the host gets suspended. This asynchronous
+	operation is achieved by suspending the host in a separate thread of
+	execution. However, returning the status to the caller is only best-effort,
+	but not guaranteed.
+
+	To resume the host, an RTC alarm is set up (based on how long we want to
+	suspend) before suspending the host. When this alarm fires, the host
+	gets woken up.
+
+	Suspend-to-RAM operation on a host running Linux can take upto more than 20
+	seconds, depending on the load of the system. (Freezing of tasks, an operation
+	preceding any suspend operation, is given up after a 20 second timeout).
+	And Suspend-to-Disk can take even more time, considering the time required
+	for compaction, creating the memory image and writing it to disk etc.
+	So, we do not allow the user to specify a suspend duration of less than 60
+	seconds, to be on the safer side, since we don't want to prematurely declare
+	failure when we only had to wait for some more time.
+
+	Add the remote protocol implementation for virNodeSuspendForDuration
+	Implement the remote protocol for virNodeSuspendForDuration() API.
+
+	Add a public API to invoke suspend/resume on the host
+	Implement the public definitions for the new API
+	virNodeSuspendForDuration() which will be subsequently used to
+	do a timed suspend on the host.
+
+	Add 'Hybrid-Suspend' power management discovery for the host
+	Some systems support a feature known as 'Hybrid-Suspend', apart from the
+	usual system-wide sleep states such as Suspend-to-RAM (S3) or Suspend-to-Disk
+	(S4). Add the functionality to discover this power management feature and
+	export it in the capabilities XML under the <power_management> tag.
+
+2011-11-29  Jiri Denemark  <jdenemar@redhat.com>
+
+	rpc: Really send non-blocking calls while waiting for another call
+	When another thread was dispatching while we wanted to send a
+	non-blocking call, we correctly queued the call and woke up the thread
+	but the thread just threw the call away since it forgot to recheck if
+	its socket was writable.
+
+2011-11-29  Michal Privoznik  <mprivozn@redhat.com>
+
+	virsh: Don't traverse childless nodes in vshNodeIsSuperset
+	If both nodes do not have any children, we pass zero to
+	virBitmapAlloc which returns NULL. In turn we report OOM error
+	and return false (meaning nodes are different). This is not true.
+
+2011-11-29  Christian Franke  <nobody@nowhere.ws>
+
+	virnetsocket: pass XAUTORITY for ssh connection
+	When spawning an ssh connection, the environment variables
+	DISPLAY, SSH_ASKPASS, ... are passed. However XAUTHORITY,
+	which is necessary if the .Xauthority is in a non default
+	place, was not passed.
+
+2011-11-29  Lorin Hochstein  <lorin@isi.edu>
+
+	conf: make virt-xml-validate work with vbox domains
+	virt-xml-validate fails when run on a domain XML file of type 'vbox'.
+
+	For failing test case, see https://bugzilla.redhat.com/show_bug.cgi?id=757097
+
+	This patch updates the XML schema to accept all valid hypervisor
+	types, as well as dropping hypervisor types that are not in use
+	by the current code base.
+
+2011-11-28  Michal Privoznik  <mprivozn@redhat.com>
+
+	conf: Improve incorrect root element error messages
+	When user pass wrong root element, it is not 'internal error' and
+	we can give him hint what we are expecting.
+
+2011-11-28  Daniel P. Berrange  <berrange@redhat.com>
+
+	Refactor initial LXC mem tune / device ACL code
+	To make lxcSetContainerResources smaller, pull the mem tune
+	and device ACL setup code out into separate methods
+
+	* src/lxc/lxc_controller.c: Introduce lxcSetContainerMemTune
+	  and lxcSetContainerDeviceACL
+
+	Add support for blkio tuning of LXC containers
+	* src/lxc/lxc_controller.c: Refactor setting of initial blkio
+	  tuning parameters
+	* src/lxc/lxc_driver.c: Enable live change of blkio tuning
+
+	Add support for CPU quota/period to LXC driver
+	* src/lxc/lxc_driver.c: Support changing quota/period for LXC
+	  containers
+	* src/lxc/lxc_controller.c: Set initial quota/period at startup
+
+	Support CPU placement in LXC driver
+	While LXC does not have the concept of VCPUS, so we can't do
+	per-VCPU pCPU placement, we can support the VM level CPU
+	placement. Todo this simply set the CPU affinity of the LXC
+	controller at startup. All child processes will inherit this
+	affinity.
+
+	* src/lxc/lxc_controller.c: Set process affinity
+
+	Support NUMA memory placement for LXC containers
+	Use numactl to set NUMA memory placement for LXC containers
+
+	* src/lxc/lxc_controller.c: Support NUMA memory placement
+
+2011-11-25  Michal Privoznik  <mprivozn@redhat.com>
+
+	storage: Refetch file status after open
+	This partly reverts my previous patch f88de3eb. We need to
+	get file status after open, as given path could have been symlink,
+	so fstat() will operate on different file than lstat().
+
+2011-11-25  Paolo Bonzini  <pbonzini@redhat.com>
+
+	util: fix thinko in runIO
+	When aligning you need to clear the bits in the mask and leave the
+	others aside.  Likely this code has never run, and will never run.
+
+2011-11-25  Michal Privoznik  <mprivozn@redhat.com>
+
+	storage: Skip socket and fifo on pool-start
+	If pool directory contains special files like FIFO or sockets
+	we want to skip those on pool-start or pool-refresh otherwise
+	open() will get an error.
+
+	conf: Don't drop console definition on domain restart
+	One of my latest patches 2e37bf42d28d8bb5d045b206587c64643c64d02a
+	copy serial console definition. On domain shutdown we save this
+	info into state XML. However, later on the daemon start we simply
+	drop this info and since we are not re-reading qemu log,
+	vm->def->consoles[0] does not get populated with copy. Therefore
+	we need to avoid dropping console definition if it is just alias
+	for serial console.
+
+2011-11-24  Jiri Denemark  <jdenemar@redhat.com>
+
+	Fix version numbers for isAlive and setKeepAlive driver APIs
+
+	build: Properly generate and check virkeepaliveprotocol-structs
+	This fixes make dist broken by recent keepalive series
+
+	examples: Use virConnectOpenAuth in events-c
+
+	qemu: Cancel p2p migration when connection breaks
+	If a connection to destination host is lost during peer-to-peer
+	migration (because keepalive protocol timed out), we won't be able to
+	finish the migration and it doesn't make sense to wait for qemu to
+	transmit all data. This patch automatically cancels such migration
+	without waiting for virDomainAbortJob to be called.
+
+	qemu: Add support for keepalive messages during p2p migration
+
+	Add keepalive support into domain-events examples
+
+	Implement virConnectIsAlive in all drivers
+
+	Introduce virConnectIsAlive API
+	This API can be used to check if the socket associated with
+	virConnectPtr is still open or it was closed (probably because keepalive
+	protocol timed out). If there the connection is local (i.e., no socket
+	is associated with the connection, it is trivially always alive.
+
+	Implement keepalive protocol in remote driver
+
+	Add support for async close of client RPC socket
+
+	Implement keepalive protocol in libvirt daemon
+
+	virsh: Always run event loop
+	Since virsh already implements event loop, it has to also run it. So far
+	the event loop was only running during virsh console command.
+
+	Introduce virConnectSetKeepAlive
+	virConnectSetKeepAlive public API can be used by a client connecting to
+	remote server to start using keepalive protocol. The API is handled
+	directly by remote driver and not transmitted over the wire to the
+	server.
+
+	Implement common keepalive handling
+	These APIs are used by both client and server RPC layer to handle
+	processing of keepalive messages.
+
+	Define keepalive protocol
+	The keepalive program has two procedures: PING, and PONG.
+	Both are used only in asynchronous messages and the sender doesn't wait
+	for any reply. However, the party which receives PING messages is
+	supposed to react by sending PONG message the other party, but no
+	explicit binding between PING and PONG messages is made. For backward
+	compatibility neither server nor client are allowed to send keepalive
+	messages before checking that remote party supports them.
+
+	rpc: Add some debug messages to virNetClient
+
+	rpc: Fix handling of non-blocking calls that could not be sent
+	When virNetClientIOEventLoop is called for a non-blocking call and not
+	even a single byte can be sent from this call without blocking, we
+	properly reported that to the caller which properly frees the call. But
+	we never removed the call from a call queue.
+
+	rpc: Fix a typo in virNetClientSendNonBlock documentation
+
+	rpc: Pass the buck only to the first available thread
+
+2011-11-24  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	nwfilter: remove virConnectPtr from internal API calls
+	Remove the virConnectPtr from the nwfilter's internal API calls as
+	far as possible.
+
+2011-11-23  Peter Krempa  <pkrempa@redhat.com>
+
+	qemu: Avoid dereference of NULL pointer
+	If something fails while initializing qemu job object in
+	qemuDomainObjPrivateAlloc(), memory to the private pointer is freed, but
+	after that, the pointer is still dereferenced, which may result in a
+	segfault.
+
+	* qemuDomainObjPrivateAlloc() - Don't dereference NULL pointer.
+
+2011-11-23  Eric Blake  <eblake@redhat.com>
+
+	qemu: fix a const-correctness issue
+	Generally, functions which return malloc'd strings should be typed
+	as 'char *', not 'const char *', to make it obvious that the caller
+	is responsible to free things.  free(const char *) fails to compile,
+	and although we have a cast embedded in VIR_FREE to work around poor
+	code that frees const char *, it's better to not rely on that hack.
+
+	* src/qemu/qemu_driver.c (qemuDiskPathToAlias): Change return type.
+	(qemuDomainBlockJobImpl): Update caller.
+
+	API: prefer 'disk' over 'block' or 'path'
+	Given that we can now handle the target's disk shorthand, in addition
+	to an absolute path to the file or block device used on the host,
+	the term 'disk' fits a bit better as the parameter name than 'path'.
+
+	* include/libvirt/libvirt.h.in: Update some parameter names.
+	* src/libvirt.c (virDomainBlockStats, virDomainBlockStatsFlags)
+	(virDomainBlockPeek, virDomainGetBlockInfo, virDomainBlockJobAbort)
+	(virDomainGetBlockJobInfo, virDomainBlockJobSetSpeed)
+	(virDomainBlockPull): Likewise.
+
+	blockstats: support lookup by path in blockstats
+	Commit 89b6284f made it possible to pass either a source name or
+	the target device to most API demanding a disk designation, but
+	forgot to update the documentation.  It also failed to update
+	virDomainBlockStats to take both forms. This patch fixes both the
+	documentation and the remaining function.
+
+	Xen continues to use just device shorthand (that is, I did not
+	implement path lookup there, since xen does not track a domain_conf
+	to quickly tie a path back to the device shorthand).
+
+	* src/libvirt.c (virDomainBlockStats, virDomainBlockStatsFlags)
+	(virDomainGetBlockInfo, virDomainBlockPeek)
+	(virDomainBlockJobAbort, virDomainGetBlockJobInfo)
+	(virDomainBlockJobSetSpeed, virDomainBlockPull): Document
+	acceptable disk naming conventions.
+	* src/qemu/qemu_driver.c (qemuDomainBlockStats)
+	(qemuDomainBlockStatsFlags): Allow lookup by source name.
+	* src/test/test_driver.c (testDomainBlockStats): Likewise.
+
+2011-11-23  Michal Privoznik  <mprivozn@redhat.com>
+
+	nwfilter: Initialize virNWFilterAddIpAddrForIfname return variable
+	Latest nwfilter patch ad6c67cf introduced uninitialized return
+	value. This was spotted by 4.6.2 gcc.
+
+2011-11-23  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix disabling of virtual port profile code on old hosts
+	The WITH_VIRTUALPORT macro is defined to 0 when disabled, not
+	left undefined. So #if must be used instead of #ifdef
+
+	* src/util/virnetdevvportprofile.c: s/#ifdef/#if/
+
+	Fix uninitialized variable in NWfilter IP learning code
+	* src/nwfilter/nwfilter_learnipaddr.c: Initialize ret variable
+
+2011-11-23  Michal Prívozník  <mprivozn@redhat.com>
+
+	virsh: Increase device-detach intelligence
+	Up to now users have to give a full XML description on input when
+	device-detaching. If they omitted something it lead to unclear
+	error messages (like generated MAC wasn't found, etc.).
+	With this patch users can specify only those information which
+	specify one device sufficiently precise. Remaining information is
+	completed from domain.
+
+2011-11-23  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	Enable detection of multiple IP addresses
+	In preparation of DHCP Snooping and the detection of multiple IP
+	addresses per interface:
+
+	The hash table that is used to collect the detected IP address of an
+	interface can so far only handle one IP address per interface. With
+	this patch we extend this to allow it to handle a list of IP addresses.
+
+	Above changes the returned variable type of virNWFilterGetIpAddrForIfname()
+	from char * to virNWFilterVarValuePtr; adapt all existing functions calling
+	this function.
+
+2011-11-23  Eli Qiao  <taget@linux.vnet.ibm.com>
+
+	fix error message when using wrong URI alias
+
+	When configuring a URI alias like this in 'libvirt.conf':
+
+	uri_aliases = [
+	  "jj#j=qemu+ssh://root@127.0.0.1/system",
+	  "sleet=qemu+ssh://root@sleet.cloud.example.com/system",
+	]
+	virsh -c jj#j
+
+	It will show this error message:
+	'no connection driver available for No connection for URI jj#j'
+	Actually，we expect this message below：
+	Malformed 'uri_aliases' config entry 'jj#j=qemu+ssh://root@127.0.0.1/system', aliases may only contain 'a-Z, 0-9, _, -'
+
+	Give this patch to fix this error.
+
+2011-11-23  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	Pass additional parameter into applyDHCPOnly function
+	In preparation for the DHCP Snooping code:
+	Pass an additional parameter into the applyDHCPOnly function
+	of the 'techdriver'.
+
+	nwfilter: use shell variable to invoke 'ip(6)tables' command
+	Introduce a shell variable 'IBT' to invoke the ip(6)tables command.
+
+	Tested with libvirt-tck.
+
+	nwfilter: use shell variable to invoke 'ebtables' command
+	Introduce a shell variable 'EBT' to invoke the ebtables command.
+	Hard-code the used ebtables table to '-t nat'.
+
+	Tested with libvirt-tck.
+
+	Improve error reporting of failures to apply filtering rules
+	Display the executed command and failure message if a command failed to
+	execute.
+
+	Add documentation for STP filtering support
+	Add documentation for the STP filtering support. Describe the XML attributes
+	that are supported.
+
+	Add test cases for STP traffic filtering
+	This patch adds a few test cases for the XML parsing of STP filtering nodes.
+
+	Add support for STP filtering
+	This patch adds support for filtering of STP (spanning tree protocol) traffic
+	to the parser and makes us of the ebtables support for STP filtering. This code
+	now enables the filtering of traffic in chains with prefix 'stp'.
+
+	Add a 'mac' chain
+	With hunks borrowed from one of David Steven's previous patches, we now
+	add the capability of having a 'mac' chain which is useful to filter
+	for multiple valid MAC addresses.
+
+2011-11-23  Eric Blake  <eblake@redhat.com>
+
+	docs: fix grammar of capabilities
+	* docs/formatcaps.html.in: Avoid run-on sentence, wrap lines.
+
+2011-11-22  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add strings.h include to capabilities.h for ffs() function prototype
+	On Mingw32 the ffs() function was not declared due to missing header
+	include
+
+	* src/conf/capabilities.c: The ffs() function lives in strings.h
+
+2011-11-22  Osier Yang  <jyang@redhat.com>
+
+	build: Update AUTHORS
+	Add Chang Liu to the AUTHORS' list.
+
+2011-11-22  Chang Liu  <lingjiao.lc@taobao.com>
+
+	storage: Fallback to use lvchange first if lvremove fails
+	virStorageBackendLogicalDeleteVol() could not remove the lv with error
+	"could not remove open logical volume" sometimes. Generally it's caused
+	by the volume is still active, even if lvremove tries to remove it with
+	option "--force".
+
+	This patch is to fix it by disbale the lv first using "lvchange -aln"
+	and "lvremove -f" afterwards if the direct "lvremove -f" failed.
+
+2011-11-22  Srivatsa S. Bhat  <srivatsa.bhat@linux.vnet.ibm.com>
+
+	Export KVM Host Power Management capabilities
+	This patch exports KVM Host Power Management capabilities as XML so that
+	higher-level systems management software can make use of these features
+	available in the host.
+
+	The script "pm-is-supported" (from pm-utils package) is run to discover if
+	Suspend-to-RAM (S3) or Suspend-to-Disk (S4) is supported by the host.
+	If either of them are supported, then a new tag "<power_management>" is
+	introduced in the XML under the <host> tag.
+
+	However in case the query to check for power management features succeeded,
+	but the host does not support any such feature, then the XML will contain
+	an empty <power_management/> tag. In the event that the PM query itself
+	failed, the XML will not contain any "power_management" tag.
+
+	To use this, new APIs could be implemented in libvirt to exploit power
+	management features such as S3/S4.
+
+2011-11-22  Eric Blake  <eblake@redhat.com>
+
+	conf: don't modify cpu set string during parsing
+	None of the callers cared if str was updated to point to the next
+	byte after the parsed cpuset; simplifying this results in quite
+	a few code simplifications.  Additionally, virCPUDefParseXML was
+	strdup()'ing a malloc()'d string; avoiding a memory copy resulted
+	in less code.
+
+	* src/conf/domain_conf.h (virDomainCpuSetParse): Alter signature.
+	* src/conf/domain_conf.c (virDomainCpuSetParse): Don't modify str.
+	(virDomainVcpuPinDefParseXML, virDomainDefParseXML): Adjust
+	callers.
+	* src/conf/cpu_conf.c (virCPUDefParseXML): Likewise.
+	* src/xen/xend_internal.c (sexpr_to_xend_topology): Likewise.
+	* src/xen/xm_internal.c (xenXMDomainPinVcpu): Likewise.
+	* src/xenxs/xen_sxpr.c (xenParseSxpr): Likewise.
+	* src/xenxs/xen_xm.c (xenParseXM): Likewise.
+
+2011-11-22  Roopa Prabhu  <roprabhu@cisco.com>
+
+	qemu: don't release network actual device twice
+	For direct attach devices, in qemuBuildCommandLine, we seem to be freeing
+	actual device on error path (with networkReleaseActualDevice). But the actual
+	device is not deleted.
+
+	qemuProcessStop eventually deletes the direct attach device and releases
+	actual device. But by the time qemuProcessStop is called qemuBuildCommandLine
+	has already freed actual device, leaving stray macvtap devices behind on error.
+	So the simplest fix is to remove the networkReleaseActualDevice in
+	qemuBuildCommandLine. This patch does just that.
+
+2011-11-21  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemu: Copy console definition from serial
+	Now, when we support multiple consoles per domain,
+	the vm->def->console[0] can still remain an alias
+	for vm->def->serial[0]; However, we need to copy
+	it's source definition as well otherwise we'll regress
+	on virDomainOpenConsole.
+
+2011-11-21  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix distribution of .syms files for previous commit
+	* src/Makefile.am: Remove libvirt_bridge.syms and libvirt_macvtap.syms
+	  from EXTRA_DIST. Add libvirt_dbus.syms
+
+	Fix build on Mingw32 wrt export of virNetServerGetDBusConn
+	Mingw32 complains if you request export of a symbol which does
+	not in fact exist.
+
+	* src/libvirt_bridge.syms, src/libvirt_macvtap.syms: Delete
+	  obsolete files
+	* src/libvirt_private.syms: Remove virNetServerGetDBusConn
+	* src/libvirt_dbus.syms: Add virNetServerGetDBusConn
+
+2011-11-21  Osier Yang  <jyang@redhat.com>
+
+	storage: Skips backingStore of virtual snapshot lv
+	lvs outputs "[$lvname_vorigin]" for the virtual snapshot lv
+	(created with "--virtualsize"), and the original device pointed
+	by "$lvname_vorigin" is just for lvm internal use, one should
+	never use it.
+
+	Per lvm's nameing rules, "[" is not valid as part of the vg/lv name.
+	(man 8 lvm).
+
+	<quote>
+	VALID NAMES
+	The following characters are valid for VG and LV names: a-z A-Z 0-9 + _
+	. -
+
+	VG and LV names cannot begin with a hyphen.   There  are  also  various
+	reserved  names that are used internally by lvm that can not be used as
+	LV or VG names.  A VG cannot be called anything that exists in /dev/ at
+	the time of creation, nor can it be called '.' or '..'.  A LV cannot be
+	called '.' '..' 'snapshot' or 'pvmove'. The LV name may also  not  con‐
+	tain the strings '_mlog' or '_mimage'
+	</quote>
+
+	So we can skip the set the lv's backingStore by checking if the name
+	begins with a "[".
+
+2011-11-19  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	Add documentation for VLAN filtering support
+	Add documentation for the VLAN filtering support. Describe the XML attributes
+	that are supported.
+
+	Add test cases for VLAN traffic filtering
+	This patch adds a few test cases for the XML parsing of VLAN filtering nodes.
+
+	Add support for VLAN filtering
+	This patch adds support for filtering of VLAN (802.1Q) traffic to the
+	parser and makes us of the ebtables support for VLAN filtering. This code
+	now enables the filtering of traffic in chains with prefix 'vlan'.
+
+2011-11-19  Jim Fehlig  <jfehlig@suse.com>
+
+	Don't copy sexpr node value that is an empty string
+	Xen4.1 initializes some unspecified sexpr config items to an empty
+	string, unlike previous Xen versions that would leave the item unset.
+	E.g. the kernel item for an HVM guest (non-direct kernel boot):
+
+	Xen4.0 and earlier
+	  ...
+	  (image
+	    (hvm
+	      (kernel )
+	  ...
+
+	Xen4.1
+	  ...
+	  (image
+	    (hvm
+	      (kernel '')
+	  ...
+
+	The empty string for kernel causes some grief in subsequent parsing
+	where existence of specified kernel is checked, e.g.
+
+	  if (!def->os.kernel)
+	  ...
+
+	This patch solves the problem in sexpr_node_copy() by not copying
+	a node containing an empty string.
+
+2011-11-19  Eric Blake  <eblake@redhat.com>
+
+	tests: avoid xend ABRT crash report
+	I installed the xen development packages on my non-Xen F16 machine
+	in order to compile-test xen code and ensure we don't break things
+	on that front, but being a non-xen machine, /usr/sbin/xend is
+	obviously not running.  Unfortunately, xen-4.1.2-1.fc16 has a bug
+	where merely trying to probe xend status on a non-xen kernel causes
+	xend to issue an ABRT crash report:
+
+	https://bugzilla.redhat.com/show_bug.cgi?id=728696
+
+	Even though libvirt (correctly) skips the test, the xend crash report
+	is unnecessary noise.  Fix this by first filtering out non-xen
+	kernels even before attempting to probe xend.  The test still runs
+	and passes on a RHEL 5 xen kernel after this patch.
+
+	* tests/reconnect.c (mymain): Skip xend probe on non-xen kernel.
+	* tests/statstest.c (mymain): Likewise.
+
+	build: fix compile error with no macvtap
+	Since commit 6ec8288a, compilation has failed on RHEL 5:
+
+	util/virnetdevmacvlan.c:672: error: conflicting types for 'virNetDevMacVLanCreateWithVPortProfile'
+
+	* src/util/virnetdevmacvlan.c
+	(virNetDevMacVLanCreateWithVPortProfile): Add missing parameter.
+
+2011-11-19  Hu Tao  <hutao@cn.fujitsu.com>
+
+	enable cgroup cpuset by default
+	This prepares for subsequent patches which introduce dependence
+	on cgroup cpuset. Enable cgroup cpuset by default so users don't
+	have to modify configuration file before encountering a cpuset
+	error.
+
+2011-11-19  Eric Blake  <eblake@redhat.com>
+
+	build: fix accidental POTFILES.in regression
+	The original patch for commit 4789fb2 considered renaming a file,
+	then backed out the name change, but forgot to back out the POTFILES.in
+	change, resulting in 'make syntax-check' failure.
+
+	tests: test recent hash addition
+	Excercise the new hash API, to ensure we avoid regressions.
+
+	* tests/hashtest.c (testHashGetItems): New test.
+
+2011-11-19  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	Add test cases for parsing of list values
+	This patch adds test cases for parsing of parameters with
+	multiple occurrances of the same name.
+
+	Extend NWFilter parameter parser to cope with lists of values
+	This patch modifies the NWFilter parameter parser to support multiple
+	elements with the same name and to internally build a list of items.
+	An example of the XML looks like this:
+
+	        <parameter name='TEST' value='10.1.2.3'/>
+	        <parameter name='TEST' value='10.2.3.4'/>
+	        <parameter name='TEST' value='10.1.1.1'/>
+
+	The list of values is then stored in the newly introduced data type
+	virNWFilterVarValue.
+
+	The XML formatter is also adapted to print out all items in alphabetical
+	order sorted by 'name'.
+
+	This patch also fixes a bug in the XML schema on the way.
+
+	Create rules for each member of a list
+	This patch extends the NWFilter driver for Linux (ebiptables) to create
+	rules for each member of a previously introduced list. If for example
+	an attribute value (internally) looks like this:
+
+	IP = [10.0.0.1, 10.0.0.2, 10.0.0.3]
+
+	then 3 rules will be generated for a rule accessing the variable 'IP',
+	one for each member of the list. The effect of this is that this now
+	allows for filtering for multiple values in one field. This can then be
+	used to support for filtering/allowing of multiple IP addresses per
+	interface.
+
+	An iterator is introduced that extracts each member of a list and
+	puts it into a hash table which then is passed to the function creating
+	a rule. For the above example the iterator would cause 3 loops.
+
+	Rework value part of name-value pairs
+	NWFilters can be provided name-value pairs using the following
+	XML notation:
+
+	      <filterref filter='xyz'>
+	        <parameter name='PORT' value='80'/>
+	        <parameter name='VAL' value='abc'/>
+	      </filterref>
+
+	The internal representation currently is so that a name is stored as a
+	string and the value as well. This patch now addresses the value part of it
+	and introduces a data structure for storing a value either as a simple
+	value or as an array for later support of lists.
+
+	This patch adjusts all code that was handling the values in hash tables
+	and makes it use the new data type.
+
+	Documentation about chains' priorities, lists of elements etc.
+	This patch adds several aspects of documentation about the network filtering
+	system:
+
+	- chains, chains' priorities and chains' default priorities
+	- talks about lists of elements, i.e., a variable assigned multiple values
+	  (part of already ACK-ed series)
+	- already mentions the vlan, stp and mac chains added later on
+	  (https://www.redhat.com/archives/libvir-list/2011-October/msg01238.html)
+	- mentions limitations of vlan filtering (when sent by VM) on Linux systems
+
+	Add test cases
+	Add test case for the chain names with known prefixes and the chain
+	priority.
+
+	Interleave jumping into chains with filtering rules in 'root' table
+	The previous patch extends the priority of filtering rules into negative
+	numbers. We now use this possibility to interleave the jumping into
+	chains with filtering rules to for example create the 'root' table of
+	an interface with the following sequence of rules:
+
+	Bridge chain: libvirt-I-vnet0, entries: 6, policy: ACCEPT
+	-p IPv4 -j I-vnet0-ipv4
+	-p ARP -j I-vnet0-arp
+	-p ARP -j ACCEPT 
+	-p 0x8035 -j I-vnet0-rarp
+	-p 0x835 -j ACCEPT 
+	-j DROP 
+
+	The '-p ARP -j ACCEPT' rule now appears between the jumps.
+	Since the 'arp' chain has been assigned priority -700 and the 'rarp'
+	chain -600, the above ordering can now be achieved with the following
+	rule:
+
+	  <rule action='accept' direction='out' priority='-650'>
+	    <mac protocolid='arp'/>
+	  </rule>
+
+	This patch now sorts the commands generating the above shown jumps into
+	chains and interleaves their execution with those for generating rules.
+
+	Extend rule priorities into negative numbers
+	So far rules' priorities have only been valid in the range [0,1000].
+	Now I am extending their priority into the range [-1000, 1000] for subsequently
+	being able to sort rules and the access of (jumps into) chains following
+	priorities.
+
+	Enable chains with names having a known prefix
+	This patch enables chains that have a known prefix in their name.
+	Known prefixes are: 'ipv4', 'ipv6', 'arp', 'rarp'. All prefixes
+	are also protocols that can be evaluated on the ebtables level.
+
+	Following the prefix they will be automatically connected to an interface's
+	'root' chain and jumped into following the protocol they evaluate, i.e.,
+	a table 'arp-xyz' will be accessed from the root table using
+
+	ebtables -t nat -A <iface root table> -p arp -j I-<ifname>-arp-xyz
+
+	thus generating a 'root' chain like this one here:
+
+	Bridge chain: libvirt-O-vnet0, entries: 5, policy: ACCEPT
+	-p IPv4 -j O-vnet0-ipv4
+	-p ARP -j O-vnet0-arp
+	-p 0x8035 -j O-vnet0-rarp
+	-p ARP -j O-vnet0-arp-xyz
+	-j DROP 
+
+	where the chain 'arp-xyz' is accessed for filtering of ARP packets.
+
+	Extend the filter XML to support priorities of chains
+	This patch extends the filter XML to support priorities of chains
+	in the XML. An example would be:
+
+	<filter name='allow-arpxyz' chain='arp-xyz' priority='200'>
+	[...]
+	</filter>
+
+	The permitted values for priorities are [-1000, 1000].
+	By setting the priority of a chain the order in which it is accessed
+	from the interface root chain can be influenced.
+
+	Use the actual names of chains in data structure
+	Use the name of the chain rather than its type index (enum).
+	This pushes the later enablement of chains with user-given names
+	into the XML parser. For now we still only allow those names that
+	are well known ('root', 'arp', 'rarp', 'ipv4' and 'ipv6').
+
+	Use scripting for cleaning and renaming of chains
+	Use scripts for the renaming and cleaning up of chains. This allows us to get
+	rid of some of the code that is only capable of renaming and removing chains
+	whose names are hardcoded.
+
+	A shell function 'collect_chains' is introduced that is given the name
+	of an ebtables chain and then recursively determines the names of all
+	chains that are accessed from this chain and its sub-chains using 'jumps'.
+
+	The resulting list of chain names is then used to delete all the found
+	chains by first flushing and then deleting them.
+
+	The same function is also used for renaming temporary filters to their final
+	names.
+
+	I tested this with the bash and dash as script interpreters.
+
+	Make filter creation in root table more flexible
+	Use the previously introduced chain priorities to sort the chains for access
+	from an interface's 'root' table and have them created in the proper order.
+	This gets rid of a lot of code that was previously creating the chains in a 
+	more hardcoded way.
+
+	To determine what protocol a filter is used for evaluation do prefix-
+	matching, i.e., the filter 'arp' is used to filter for the 'arp' protocol,
+	'ipv4' for the 'ipv4' protocol and 'arp-xyz' will also be used to filter
+	for the 'arp' protocol following the prefix 'arp' in its name.
+
+	Introduce an internal priority for chains
+	For better handling of the sorting of chains introduce an internally used
+	priority. Use a lookup table to store the priorities. For now their actual
+	values do not matter just that the values cause the chains to be properly
+	sorted through changes in the following patches. However, the values are
+	chosen as negative so that once they are sorted along with filtering rules
+	(whose priority may only be positive for now) they will always be instantiated
+	before them (lower values cause instantiation before higher values). This
+	is done to maintain backwards compatibility.
+
+	Add function to get hash table's key/value pairs
+	Add a function to the virHashTable for getting an array of the hash table's
+	key-value pairs and have the keys (optionally) sorted.
+
+2011-11-19  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add support for systemd init service
+	This patch adds support for a systemd init service for libvirtd
+	and libvirt-guests. The libvirtd.service is *not* written to use
+	socket activation, since we want libvirtd to start on boot so it
+	can do guest auto-start.
+
+	The libvirt-guests.service is pretty lame, just exec'ing the
+	original init script for now. Ideally we would factor out the
+	functionality, into some shared tool.
+
+	Instead of
+
+	  ./configure --with-init-script=redhat
+
+	You can now do
+
+	  ./configure --with-init-script=systemd
+
+	Or better still:
+
+	  ./configure --with-init-script=systemd+redhat
+
+	We can also now support install of the upstart init script
+
+	* configure.ac: Add systemd, and systemd+redhat options to
+	  --with-init-script option
+	* daemon/Makefile.am: Install systemd services
+	* daemon/libvirtd.sysconf: Add note about unused env variable
+	  with systemd
+	* daemon/libvirtd.service.in: libvirtd systemd service unit
+	* libvirt.spec.in: Add scripts to installing systemd services
+	  and migrating from legacy init scripts
+	* tools/Makefile.am: Install systemd services
+	* tools/libvirt-guests.init.sh: Rename to tools/libvirt-guests.init.in
+	* tools/libvirt-guests.service.in: systemd service unit
+
+	Add support for interfaces with type=direct to LXC
+	Support creation of macvlan devices for LXC containers. Do not
+	allow setting of bandwidth controls or vport profiles due to the
+	complication that there is no host side visible device to work
+	with.
+
+	* src/lxc/lxc_driver.c: Support type=direct interfaces
+
+	Allow creation of plain macvlan devices
+	Update virNetDevMacVLanCreateWithVPortProfile to allow creation
+	of plain macvlan devices, as well as macvtap devices. The former
+	is useful for LXC containers
+
+	* src/qemu/qemu_command.c: Explicitly request a macvtap device
+	* src/util/virnetdevmacvlan.c, src/util/virnetdevmacvlan.h: Add
+	  new flag to allow switching between macvlan and macvtap
+	  creation
+
+	Refactor LXC network setup to allow future enhancements
+	The current lxcSetupInterfaces() method directly performs setup
+	of the bridge devices. Since it will shortly need to also create
+	macvlan devices, move the bridge related code into a separate
+	method
+
+	* src/lxc/lxc_driver.c: Split lxcSetupInterfaces() to create a
+	  new lxcSetupInterfaceBridge()
+
+	Add missing 'const' annotations for internal domain conf helpers
+	The virDomainNetGetActualBridgeName and virDomainNetGetActualDirectDev
+	methods both return strings that point to data in the virDomainDefPtr
+	struct, and should therefore not be freed. The return values should
+	thus be 'const char *' not 'char *'.
+
+	* src/conf/domain_conf.c, src/conf/domain_conf.h: Mark const
+	* src/network/bridge_driver.c: Update to use a const char *
+
+	Fix up ordering of private symbols file
+	Fix ordering of symbols after re-arranging network device
+	management API source files
+
+	* src/libvirt_private.syms: Fix ordering
+
+	Move ifaceMacvtapLinkDump and ifaceGetNthParent functions
+	Move the ifaceMacvtapLinkDump and ifaceGetNthParent functions
+	into virnetdevvportprofile.c since they are specific to that
+	code. This avoids polluting the headers with the Linux specific
+	netlink data types
+
+	* src/util/interface.c, src/util/interface.h: Move
+	  ifaceMacvtapLinkDump and ifaceGetNthParent functions and delete
+	  remaining file
+	* src/util/virnetdevvportprofile.c: Add ifaceMacvtapLinkDump
+	  and ifaceGetNthParent functions
+	* src/network/bridge_driver.c, src/nwfilter/nwfilter_gentech_driver.c,
+	  src/nwfilter/nwfilter_learnipaddr.c, src/util/virnetdevmacvlan.c:
+	  Remove include of interface.h
+
+	Move functions for dealing with physical/virtual devices
+	Move virNetDevIsVirtualFunction, virNetDevGetVirtualFunctionIndex
+	and virNetDevGetPhysicalFunction to virnetdev.c
+
+	* src/util/interface.c, src/util/interface.h, src/util/virnetdev.c,
+	  src/util/virnetdev.h: Move APIs
+
+	Rename APIs for dealing with virtual/physical functions
+	Rename ifaceIsVirtualFunction to virNetDevIsVirtualFunction,
+	ifaceGetVirtualFunctionIndex to virNetDevGetVirtualFunctionIndex
+	and ifaceGetPhysicalFunction to virNetDevGetPhysicalFunction
+
+	* src/util/interface.c, src/util/interface.h: Rename APIs
+	* src/util/virnetdevvportprofile.c: Update for API rename
+
+	Move virNetDevValidateConfig to virnetdev.c
+	* src/util/interface.c, src/util/interface.h: Remove virNetDevValidateConfig
+	* src/util/virnetdev.c, src/util/virnetdev.h: Add virNetDevValidateConfig
+
+	Rename ifaceCheck to virNetDevValidateConfig
+	Rename the ifaceCheck method to virNetDevValidateConfig and change
+	so that it always raises an error and returns -1 on error.
+
+	* src/util/interface.c, src/util/interface.h: Rename ifaceCheck
+	  to virNetDevValidateConfig
+	* src/nwfilter/nwfilter_gentech_driver.c,
+	  src/nwfilter/nwfilter_learnipaddr.c: Update for API rename
+
+	Move virNetDevGetIPv4Address to virnetdev.c
+	Move the virNetDevGetIPv4Address function to virnetdev.c
+
+	* util/interface.c, util/interface.h: Remove virNetDevGetIPv4Address
+	* util/virnetdev.c, util/virnetdev.h: Add virNetDevGetIPv4Address
+
+	Rename ifaceGetIPAddress to virNetDevGetIPv4Address
+	To match up with the existing virNetDevSetIPv4Address, rename
+	ifaceGetIPAddress to virNetDevGetIPv4Address
+
+	* util/interface.h, util/interface.c: Rename API
+	* network/bridge_driver.c: Update for API rename
+
+	Move virNetDevGetIndex & virNetDevGetVLanID to virnetdev.c
+	Move virNetDevGetIndex & virNetDevGetVLanID to virnetdev.c to
+	suit their functional purpose
+
+	* util/interface.c, util/interface.h: Remove virNetDevGetIndex &
+	  virNetDevGetVLanID
+	* util/virnetdev.c, util/virnetdev.h: Add virNetDevGetIndex &
+	  virNetDevGetVLanID
+
+	Rename ifaceGetIndex and ifaceGetVLAN
+	Rename the ifaceGetIndex method to virNetDevGetIndex and
+	ifaceGetVlanID to virNetDevGetVLanID. Also change the error
+	reporting behaviour to always raise errors and return -1 on
+	failure
+
+	* util/interface.c, util/interface.h: Rename ifaceGetIndex
+	  and ifaceGetVLAN
+	* nwfilter/nwfilter_gentech_driver.c, nwfilter/nwfilter_learnipaddr.c,
+	  nwfilter/nwfilter_learnipaddr.c, util/virnetdevvportprofile.c: Update
+	  for API renames and error handling changes
+
+	Move MAC address replacement functions to virnetdev.c
+	Move virNetDevReplaceMacAddress and virNetDevRestoreMacAddress
+	to the virnetdev.c file where they naturally belong
+
+	* util/interface.c, util/interface.h: Remove
+	  virNetDevReplaceMacAddress and virNetDevRestoreMacAddress
+	* util/virnetdev.c, util/virnetdev.h: Add
+	  virNetDevReplaceMacAddress and virNetDevRestoreMacAddress
+
+	Rename interface MAC address replacement APIs
+	Rename ifaceReplaceMacAddress to virNetDevReplaceMacAddress
+	and ifaceRestoreMacAddress to virNetDevRestoreMacAddress.
+
+	* util/interface.c, util/interface.h, util/virnetdevmacvlan.c:
+	  Rename APIs
+
+	Move the low level macvlan creation APIs
+	Move the low level macvlan creation APIs into the
+	virnetdevmacvlan.c file where they more naturally
+	belong
+
+	* util/interface.c, util/interface.h: Remove virNetDevMacVLanCreate
+	  and virNetDevMacVLanDelete
+	* util/virnetdevmacvlan.c, util/virnetdevmacvlan.h: Add
+	  virNetDevMacVLanCreate and virNetDevMacVLanDelete
+
+	Rename low level macvlan creation APIs
+	Rename ifaceMacvtapLinkAdd to virNetDevMacVLanCreate and
+	ifaceLinkDel to virNetDevMacVLanDelete. Strictly speaking
+	the latter isn't restricted to macvlan devices, but that's
+	the only use libvirt has for it.
+
+	* util/interface.c, util/interface.h,
+	  util/virnetdevmacvlan.c: Rename APIs
+
+	Rename high level macvlan creation APIs
+	Rename virNetDevMacVLanCreate to virNetDevMacVLanCreateWithVPortProfile
+	and virNetDevMacVLanDelete to virNetDevMacVLanDeleteWithVPortProfile
+
+	To make way for renaming the other macvlan creation APIs in
+	interface.c
+
+	* util/virnetdevmacvlan.c, util/virnetdevmacvlan.h,
+	  qemu/qemu_command.c, qemu/qemu_hotplug.c, qemu/qemu_process.c:
+	  Rename APIs
+
+	Rename and split the macvtap.c file
+	Rename the macvtap.c file to virnetdevmacvlan.c to reflect its
+	functionality. Move the port profile association code out into
+	virnetdevvportprofile.c. Make the APIs available unconditionally
+	to callers
+
+	* src/util/macvtap.h: rename to src/util/virnetdevmacvlan.h,
+	* src/util/macvtap.c: rename to src/util/virnetdevmacvlan.c
+	* src/util/virnetdevvportprofile.c, src/util/virnetdevvportprofile.h:
+	  Pull in vport association code
+	* src/Makefile.am, src/conf/domain_conf.h, src/qemu/qemu_conf.c,
+	  src/qemu/qemu_conf.h, src/qemu/qemu_driver.c: Update include
+	  paths & remove conditional compilation
+
+	Rename Macvtap management APIs
+	In preparation for code re-organization, rename the Macvtap
+	management APIs to have the following patterns
+
+	  virNetDevMacVLanXXXXX     - macvlan/macvtap interface management
+	  virNetDevVPortProfileXXXX - virtual port profile management
+
+	* src/util/macvtap.c, src/util/macvtap.h: Rename APIs
+	* src/conf/domain_conf.c, src/network/bridge_driver.c,
+	  src/qemu/qemu_command.c, src/qemu/qemu_command.h,
+	  src/qemu/qemu_driver.c, src/qemu/qemu_hotplug.c,
+	  src/qemu/qemu_migration.c, src/qemu/qemu_process.c,
+	  src/qemu/qemu_process.h: Update for renamed APIs
+
+	Fix use of uninitialized variable in QEMU driver
+
+2011-11-18  Bharata B Rao  <bharata@linux.vnet.ibm.com>
+
+	qemu: Generate -numa option
+	Add routines to generate -numa QEMU command line option based on
+	<numa> ... </numa> XML specifications.
+
+	XML definitions for guest NUMA and parsing routines
+	This patch adds XML definitions for guest NUMA specification and contains
+	routines to parse the same. The guest NUMA specification looks like this:
+
+	<cpu>
+	        ...
+	        <topology sockets='2' cores='4' threads='2'/>
+	        <numa>
+	                <cell cpus='0-7' memory='512000'/>
+	                <cell cpus='8-15' memory='512000'/>
+	        </numa>
+	        ...
+	</cpu>
+
+2011-11-18  Eric Blake  <eblake@redhat.com>
+
+	snapshot: refuse to generate names for non-regular backing files
+	For whatever reason, the kernel allows you to create a regular
+	file named /dev/sdc.12345; although this file will disappear the
+	next time devtmpfs is remounted.  If you let libvirt generate
+	the name of the external snapshot for a disk image originally
+	using the block device /dev/sdc, then the domain will be rendered
+	unbootable once the qcow2 file is lost on the next devtmpfs
+	remount.  In this case, the user should have used 'virsh
+	snapshot-create --xmlfile' or 'virsh snapshot-create-as --diskspec'
+	to specify the name for the qcow2 file in a sane location, rather
+	than relying on libvirt generating a name that is most likely to
+	be wrong.  We can help avoid naive mistakes by enforcing that
+	the user provide the external name for any backing file that is
+	not a regular file.
+
+	* src/conf/domain_conf.c (virDomainSnapshotAlignDisks): Only
+	generate names if backing file exists as regular file.
+	Reported by MATSUDA Daiki.
+
+2011-11-17  Jim Fehlig  <jfehlig@suse.com>
+
+	Fix build with polkit0
+	I missed adding virNetServerGetDBusConn() to libvirtd_private.syms
+	in commit b8adfcc6, which didn't cause a problem in 0.9.6 but
+	results in this build error in 0.9.7
+
+	libvirtd-remote.o: In function `remoteDispatchAuthPolkit':
+	remote.c:(.text+0x188dd): undefined reference to `virNetServerGetDBusConn'
+
+	Revert commit 0f590c62
+	As noted by Daniel Berrange [1], the proper fix for the older
+	PolicyKit build issue is to add virNetServerGetDBusConn to
+	libvirt_private.syms.  Revert unnecessary changes to
+	daemon/Makefile.am
+
+	[1] https://www.redhat.com/archives/libvir-list/2011-November/msg00852.html
+
+2011-11-17  Laine Stump  <laine@laine.org>
+
+	virsh: add iface-bridge and iface-unbridge commands
+	One of the top questions by libvirt users is how to create a host
+	bridge device so that guests can be directly on the physical
+	network. There are several example documents that explain how to do
+	this manually, but following them often results in confusion and
+	failure. virt-manager does a good job of creating a bridge based on an
+	existing network device, but not everyone wants to use virt-manager.
+
+	This patch adds a new command, iface-bridge that makes it just about
+	as simple as possible to create a new bridge device based on an
+	existing ethernet/vlan/bond device (including associating IP
+	configuration with the bridge rather than the now-attached device),
+	and start that new bridge up ready for action, eg:
+
+	    virsh iface-bridge eth0 br0
+
+	For symmetry's sake, it also adds a command to remove a device from a
+	bridge, restoring the IP config to the now-unattached device:
+
+	    virsh iface-unbridge br0
+
+	(I had a short debate about whether to do "iface-unbridge eth0"
+	instead, but that would involve searching through all bridge devices
+	for the one that contained eth0, which seems like a bit too much
+	trouble).
+
+	NOTE: These two commands require that the netcf library be available
+	on the host. Hopefully this will provide some extra incentive for
+	people using suse, debian, ubuntu, and other similar systems to polish
+	up (and push downstream) the ports to those distros recently pushed to
+	the upstream netcf repo by Dan Berrange. Anyone interested in helping
+	with that effort in any way should join the netcf-devel mailing list
+	(subscription info at
+	https://fedorahosted.org/mailman/listinfo/netcf-devel)
+
+	During creation of the bridge, it's possible to specify whether or not
+	the STP protocol should be started up on the bridge and, if so, how
+	many seconds the bridge should squelch traffic from newly added
+	devices while learning new topology (defaults are stp='on' and
+	delay='0', which seems to usually work best for bridges used in the
+	context of libvirt guests).
+
+	There is also an option to not immediately start the bridge (and a
+	similar option to not immediately start the un-attached device after
+	destroying the bridge. Default is to start the new device, because in
+	the case of iface-unbridge not starting is strongly discouraged as it
+	will leave the system with no network connectivity on that interface
+	(because it's necessary to destroy/undefine the bridge device before
+	the unattached device can be defined), and it seemed better to make
+	the option for iface-bridge behave consistently.
+
+	NOTE TO THOSE TRYING THESE COMMANDS FOR THE FIRST TIME: to guard
+	against any "unexpected" change to configuration, it is advisable to
+	issue an "virsh iface-begin" command before starting any interface
+	config changes, and "virsh iface-commit" only after you've verified
+	that everything is working as you expect. If something goes wrong,
+	you can always run "virsh iface-rollback" or reboot the system (which
+	should automatically do iface-rollback).
+
+	Aside from adding the code for these two functions, and the two
+	entries into the command table, the only other change to virsh.c was
+	to add the option name to vshCommandOptInterfaceBy(), because the
+	iface-unbridge command names its interface option as "bridge".
+
+	virsh.pod has also been updated with short descriptions of these two
+	new commands.
+
+2011-11-16  Hu Tao  <hutao@cn.fujitsu.com>
+
+	fix a bug in remoteSerializeTypedParameters
+	This is a fatal typo believed to be very likely to happen when using
+	both i and j at the same time for indexing.
+
+2011-11-16  Daniel P. Berrange  <berrange@redhat.com>
+
+	Don't return a fatal error if receiving unexpected stream data
+	Due to the asynchronous nature of streams, we might continue to
+	receive some stream packets from the server even after we have
+	shutdown the stream on the client side. These should be discarded
+	silently, rather than raising an error in the RPC layer.
+
+	* src/rpc/virnetclient.c: Discard stream data silently
+
+	Fix handling of stream EOF
+	Very occasionally the sequence of events from poll would result
+	in getting a HANGUP on its own, instead of a HANGUP+READABLE
+	at the same time. In the former case we would send back an error
+	event to the client, but never send the empty packet to indicate
+	EOF.
+
+	Allow non-blocking message sending on virNetClient
+	Add a new virNetClientSendNonBlock which returns 2 on
+	full send, 1 on partial send, 0 on no send, -1 on error
+
+	If a partial send occurs, then a subsequent call to any
+	of the virNetClientSend* APIs will finish any outstanding
+	I/O.
+
+	TODO: the virNetClientEvent event handler could be used
+	to speed up completion of partial sends if an event loop
+	is present.
+
+	* src/rpc/virnetsocket.h, src/rpc/virnetsocket.c: Add new
+	  virNetSocketHasPendingData() API to test for cached
+	  data pending send.
+	* src/rpc/virnetclient.c, src/rpc/virnetclient.h: Add new
+	  virNetClientSendNonBlock() API to send non-blocking API
+
+	Refactor code for enabling/disabling I/O callback in remote client
+	* src/rpc/virnetclient.c: Add helper for setting I/O callback events
+
+	Split virNetClientSend into 2 methods
+	Stop multiplexing virNetClientSend for two different purposes,
+	instead add virNetClientSendWithReply and virNetClientSendNoReply
+
+	* src/rpc/virnetclient.c, src/rpc/virnetclient.h: Replace
+	  virNetClientSend with virNetClientSendWithReply and
+	  virNetClientSendNoReply
+	* src/rpc/virnetclientprogram.c, src/rpc/virnetclientstream.c:
+	  Update for new API names
+
+	Refactor code for passing the buck in the remote client
+	Remove some duplication by pulling the code for passing the
+	buck out into a helper method
+
+	* src/rpc/virnetclient.c: Introduce virNetClientIOEventLoopPassTheBuck
+
+	Explicitly track whether the buck is held in remote client
+	Instead of inferring whether the buck is held from the waitDispatch
+	pointer, use an explicit 'bool haveTheBuck' field
+
+	* src/rpc/virnetclient.c: Explicitly track the buck
+
+	Remove all linked list handling from remote client event loop
+	Directly messing around with the linked list is potentially
+	dangerous. Introduce some helper APIs to deal with list
+	manipulating the list
+
+	* src/rpc/virnetclient.c: Create linked list handlers
+
+2011-11-16  Eli Qiao  <taget@linux.vnet.ibm.com>
+
+	util: Add netdev helper functions to private symbols
+
+2011-11-16  Sage Weil  <sage@newdream.net>
+
+	qemu/rbd: improve rbd device specification
+	This improves the support for qemu rbd devices by adding support for a few
+	key features (e.g., authentication) and cleaning up the way in which
+	rbd configuration options are passed to qemu.
+
+	An <auth> member of the disk source xml specifies how librbd should
+	authenticate. The username attribute is the Ceph/RBD user to authenticate as.
+	The usage or uuid attributes specify which secret to use. Usage is an
+	arbitrary identifier local to libvirt.
+
+	The old RBD support relied on setting an environment variable to
+	communicate information to qemu/librbd.  Instead, pass those options
+	explicitly to qemu.  Update the qemu argument parsing and tests
+	accordingly.
+
+2011-11-16  Jim Fehlig  <jfehlig@suse.com>
+
+	Fix build with polkit0
+	I missed adding libvirt_driver_remote.la to libvirtd_LDADD in
+	commit b8adfcc6, which didn't cause a problem in 0.9.6 but
+	results in this build error in 0.9.7
+
+	libvirtd-remote.o: In function `remoteDispatchAuthPolkit':
+	remote.c:(.text+0x188dd): undefined reference to `virNetServerGetDBusConn'
+
+2011-11-16  Stefan Berger  <stefanb@us.ibm.com>
+
+	Fix strchr call triggering gcc 4.3 & 4.4 bug
+	Replacing the strchr call with two variables through a strstr call.
+	Calling strchr with two variables triggers a gcc 4.3/4.4
+	bug when used in combination with -Wlogical-op and at least -O1.
+
+	maint: fix build
+	include stdint.h to fix the build
+
+2011-11-15  Daniel P. Berrange  <berrange@redhat.com>
+
+	Remove ifaceSetMac and ifaceGetMac APIs
+	The ifaceSetMac and ifaceGetMac APIs duplicate the functionality
+	of the virNetDevSetMAC and virNetDevGetMAC APIs, but returning
+	errno's instead of raising errors.
+
+	* src/util/interface.c, src/util/interface.h: Remove
+	  ifaceSetMac and ifaceGetMac APIs, adjusting callers
+	  for new error behaviour
+
+	Remove ifaceUp, ifaceDown, ifaceCtrl & ifaceIsUp APIs
+	The ifaceUp, ifaceDown, ifaceCtrl & ifaceIsUp APIs can be replaced
+	with calls to virNetDevSetOnline and virNetDevIsOnline
+
+	* src/util/interface.c, src/util/interface.h: Delete ifaceUp,
+	  ifaceDown, ifaceCtrl & ifaceIsUp
+	* src/nwfilter/nwfilter_gentech_driver.c, src/util/macvtap.c:
+	  Update to use virNetDevSetOnline and virNetDevIsOnline
+
+	Move LXC veth.c code into shared utility APIs
+	Move the virNetDevSetName and virNetDevSetNamespace APIs out
+	of LXC's veth.c and into virnetdev.c.
+
+	Move the remaining content of the file to src/util/virnetdevveth.c
+
+	* src/lxc/veth.c: Rename to src/util/virnetdevveth.c
+	* src/lxc/veth.h: Rename to src/util/virnetdevveth.h
+	* src/util/virnetdev.c, src/util/virnetdev.h: Add
+	  virNetDevSetName and virNetDevSetNamespace
+	* src/lxc/lxc_container.c, src/lxc/lxc_controller.c,
+	  src/lxc/lxc_driver.c: Update include paths
+
+	Rename the LXC veth management APIs and delete duplicated APIs
+	The src/lxc/veth.c file contains APIs for managing veth devices,
+	but some of the APIs duplicate stuff from src/util/virnetdev.h.
+	Delete thed duplicate APIs and rename the remaining ones to
+	follow virNetDevVethXXXX
+
+	* src/lxc/veth.c, src/lxc/veth.h: Rename APIs & delete duplicates
+	* src/lxc/lxc_container.c, src/lxc/lxc_controller.c,
+	  src/lxc/lxc_driver.c: Update for API renaming
+
+	Split src/util/network.{c,h} into 5 pieces
+	The src/util/network.c file is a dumping ground for many different
+	APIs. Split it up into 5 pieces, along functional lines
+
+	 - src/util/virnetdevbandwidth.c: virNetDevBandwidth type & helper APIs
+	 - src/util/virnetdevvportprofile.c: virNetDevVPortProfile type & helper APIs
+	 - src/util/virsocketaddr.c: virSocketAddr and APIs
+	 - src/conf/netdev_bandwidth_conf.c: XML parsing / formatting
+	   for virNetDevBandwidth
+	 - src/conf/netdev_vport_profile_conf.c: XML parsing / formatting
+	   for virNetDevVPortProfile
+
+	* src/util/network.c, src/util/network.h: Split into 5 pieces
+	* src/conf/netdev_bandwidth_conf.c, src/conf/netdev_bandwidth_conf.h,
+	  src/conf/netdev_vport_profile_conf.c, src/conf/netdev_vport_profile_conf.h,
+	  src/util/virnetdevbandwidth.c, src/util/virnetdevbandwidth.h,
+	  src/util/virnetdevvportprofile.c, src/util/virnetdevvportprofile.h,
+	  src/util/virsocketaddr.c, src/util/virsocketaddr.h: New pieces
+	* daemon/libvirtd.h, daemon/remote.c, src/conf/domain_conf.c,
+	  src/conf/domain_conf.h, src/conf/network_conf.c,
+	  src/conf/network_conf.h, src/conf/nwfilter_conf.h,
+	  src/esx/esx_util.h, src/network/bridge_driver.c,
+	  src/qemu/qemu_conf.c, src/rpc/virnetsocket.c,
+	  src/rpc/virnetsocket.h, src/util/dnsmasq.h, src/util/interface.h,
+	  src/util/iptables.h, src/util/macvtap.c, src/util/macvtap.h,
+	  src/util/virnetdev.h, src/util/virnetdevtap.c,
+	  tools/virsh.c: Update include files
+
+	Fix error reporting in port profile parsing/formatting APIs
+	The virtual port profile parsing/formatting APIs do not
+	correctly handle unknown profile type strings/numbers.
+	They behave as a no-op, instead of raising an error
+
+	* src/util/network.c, src/util/network.h: Fix error
+	  handling of port profile APIs
+	* src/conf/domain_conf.c, src/conf/network_conf.c: Update
+	  for API changes
+
+	Rename virVirtualPortProfileParams & APIs
+	Rename the virVirtualPortProfileParams struct to be
+	virNetDevVPortProfile, and rename the APIs to match
+	this prefix.
+
+	* src/util/network.c, src/util/network.h: Rename port profile
+	  APIs
+	* src/conf/domain_conf.c, src/conf/domain_conf.h,
+	  src/conf/network_conf.c, src/conf/network_conf.h,
+	  src/network/bridge_driver.c, src/qemu/qemu_hotplug.c,
+	  src/util/macvtap.c, src/util/macvtap.h: Update for
+	  renamed APIs/structs
+
+2011-11-15  Stefan Berger  <stefanb@us.ibm.com>
+
+	maint: Add Michael Wood as an author
+	Add Michael Wood <esiotrot@gmail.com> as an author.
+
+2011-11-15  Michael Wood  <esiotrot@gmail.com>
+
+	PATCH: Fix build without MACVTAP
+	Hi
+
+	Commit c31d23a78715f1144c73862c46ab0436de8b5e85 removed the "conn"
+	parameter from qemuPhysIfaceConnect(), but it's still used if
+	WITH_MACVTAP is false.  Also, it's still mentioned in the comment
+	above the function:
+
+	/**
+	 * qemuPhysIfaceConnect:
+	 * @def: the definition of the VM (needed by 802.1Qbh and audit)
+	 * @conn: pointer to virConnect object
+	 * @driver: pointer to the qemud_driver
+	 * @net: pointer to he VM's interface description with direct device type
+	 * @qemuCaps: flags for qemu
+	 *
+	 * Returns a filedescriptor on success or -1 in case of error.
+	 */
+	int
+	qemuPhysIfaceConnect(virDomainDefPtr def,
+	                     struct qemud_driver *driver,
+	                     virDomainNetDefPtr net,
+	                     virBitmapPtr qemuCaps,
+	                     enum virVMOperationType vmop)
+	{
+	    int rc;
+	#if WITH_MACVTAP
+	[...]
+	#else
+	    (void)def;
+	    (void)conn;
+	    (void)net;
+	    (void)qemuCaps;
+	    (void)driver;
+	    (void)vmop;
+	    qemuReportError(VIR_ERR_INTERNAL_ERROR,
+	                    "%s", _("No support for macvtap device"));
+	    rc = -1;
+	#endif
+	    return rc;
+	}
+
+	--
+	Michael Wood <esiotrot@gmail.com>
+
+	From f4fc43b4111a4c099395c55902e497b8965e2b53 Mon Sep 17 00:00:00 2001
+	From: Michael Wood <esiotrot@gmail.com>
+	Date: Sat, 12 Nov 2011 13:37:53 +0200
+	Subject: [PATCH] Fix build without MACVTAP.
+
+2011-11-15  Guido Günther  <agx@sigxcpu.org>
+
+	storage: forbid rebuilding existing disk storage pools
+	which would blow away all volumes. Honor VIR_STORAGE_POOL_BUILD_OVERWRITE
+	to force a rebuild.
+
+	This was caught by libvirt-tck's storage/110-disk-pool.t.
+
+2011-11-12  Eric Blake  <eblake@redhat.com>
+
+	API: add trivial qemu support for VIR_TYPED_PARAM_STRING
+	Qemu will be the first driver to make use of a typed string in the
+	next round of additions.  Separate out the trivial addition.
+
+	* src/qemu/qemu_driver.c (qemudSupportsFeature): Advertise feature.
+	(qemuDomainGetBlkioParameters, qemuDomainGetMemoryParameters)
+	(qemuGetSchedulerParametersFlags, qemudDomainBlockStatsFlags):
+	Allow typed strings flag where trivially supported.
+
+	API: remote support for VIR_TYPED_PARAM_STRING
+	Send and receive string typed parameters across RPC.  This also
+	completes the back-compat mentioned in the previous patch - the
+	only time we have an older client talking to a newer server is
+	if RPC is in use, so filtering out strings during RPC prevents
+	returning an unknown type to the older client.
+
+	* src/remote/remote_protocol.x (remote_typed_param_value): Add
+	another union value.
+	* daemon/remote.c (remoteDeserializeTypedParameters): Handle
+	strings on rpc.
+	(remoteSerializeTypedParameters): Likewise; plus filter out
+	strings when replying to older clients.  Adjust callers.
+	* src/remote/remote_driver.c (remoteFreeTypedParameters)
+	(remoteSerializeTypedParameters)
+	(remoteDeserializeTypedParameters): Handle strings on rpc.
+	* src/rpc/gendispatch.pl: Properly clean up typed arrays.
+	* src/remote_protocol-structs: Update.
+	Based on an initial patch by Hu Tao, with feedback from
+	Daniel P. Berrange.
+
+	API: add VIR_TYPED_PARAM_STRING
+	This allows strings to be transported between client and server
+	in the context of name-type-value virTypedParameter functions.
+	For compatibility,
+
+	    o new clients will not send strings to old servers, based on
+	      a feature check
+	    o new servers will not send strings to old clients without the
+	      flag VIR_TYPED_PARAM_STRING_OKAY; this will be enforced at
+	      the RPC layer in the next patch, so that drivers need not
+	      worry about it in general.  The one exception is that
+	      virDomainGetSchedulerParameters lacks a flags argument, so
+	      it must not return a string; drivers that forward that
+	      function on to virDomainGetSchedulerParametersFlags will
+	      have to pay attention to the flag.
+	    o the flag VIR_TYPED_PARAM_STRING_OKAY is set automatically,
+	      based on a feature check (so far, no driver implements it),
+	      so clients do not have to worry about it
+
+	Future patches can then enable the feature on a per-driver basis.
+
+	This patch also ensures that drivers can blindly strdup() field
+	names (previously, a malicious client could stuff 80 non-NUL bytes
+	into field and cause a read overrun).
+
+	* src/libvirt_internal.h (VIR_DRV_FEATURE_TYPED_PARAM_STRING): New
+	driver feature.
+	* src/libvirt.c (virTypedParameterValidateSet)
+	(virTypedParameterSanitizeGet): New helper functions.
+	(virDomainSetMemoryParameters, virDomainSetBlkioParameters)
+	(virDomainSetSchedulerParameters)
+	(virDomainSetSchedulerParametersFlags)
+	(virDomainGetMemoryParameters, virDomainGetBlkioParameters)
+	(virDomainGetSchedulerParameters)
+	(virDomainGetSchedulerParametersFlags, virDomainBlockStatsFlags):
+	Use them.
+	* src/util/util.h (virTypedParameterArrayClear): New helper
+	function.
+	* src/util/util.c (virTypedParameterArrayClear): Implement it.
+	* src/libvirt_private.syms (util.h): Export it.
+	Based on an initial patch by Hu Tao, with feedback from
+	Daniel P. Berrange.
+
+2011-11-12  Eli Qiao  <taget@linux.vnet.ibm.com>
+
+	util: fix compile error on debian
+	Add virnetdev.h,virnetdevbridge.h,virnetdevtap.h to private symbols,
+	since debian linker no longer allows transitive link resolution
+
+2011-11-12  Eric Blake  <eblake@redhat.com>
+
+	qemu: fix domjobabort regression
+	This reverts commit ef1065cf5ac; see also this bug report:
+	https://bugzilla.redhat.com/show_bug.cgi?id=751900
+
+	In qemu 0.15.1 and earlier, during migration to file, the
+	qemu_savevm_state_begin and qemu_savevm_state_iterate methods
+	will both process as much migration data as possible until either
+
+	  1. The file descriptor returns EAGAIN
+	  2. The bandwidth rate limit is reached
+
+	If we set the rate limit to ULONG_MAX, test 2 never becomes true. We're
+	passing a plain file descriptor to QEMU and POSIX does not support EAGAIN on
+	regular files / block devices, so test 1 never becomes true either.
+
+	In the 'virsh save --bypass-cache' case, we pass a pipe instead of a
+	regular fd, but using a pipe adds I/O overhead, so always passing a
+	pipe just so qemu can see EAGAIN doesn't seem nice.
+
+	The ultimate fix needs to come from qemu - background migration must
+	respect asynchronous abort requests, or else periodically return
+	control to the main handling loop without an EAGAIN and without
+	waiting to hit an insanely large amount of data.  But until a
+	version of qemu is fixed to support "unlimited" data rates while
+	still allowing cancellation, the best we can do is avoid the
+	automatic use of unlimited rates from within libvirt (users can
+	still explicitly change the migration rates, if they are aware that
+	they are giving up the ability to cancel a job).
+
+	Reverting the lone use of QEMU_DOMAIN_FILE_MIG_BANDWIDTH_MAX is
+	the simplest patch; this slows migration back down to a default
+	32M/sec cap, but also ensures that the main qemu processing loop
+	will still be responsive to cancellation requests.  Hopefully
+	upstream qemu will provide us a means of safely using unlimited
+	speed, including a runtime probe of that capability.
+
+	* src/qemu/qemu_migration.c (qemuMigrationToFile): Revert attempt
+	to use unlimited migration bandwidth when migrating to file.
+
+2011-11-12  Hu Tao  <hutao@cn.fujitsu.com>
+
+	fix two bugs in bridge_driver.c
+	steps to reproduce:
+
+	1. having a network xml file(named default.xml) like this one:
+
+	<network>
+	  <name>default</name>
+	  <uuid>c5322c4c-81d0-4985-a363-ad6389780d89</uuid>
+	  <bridge name="virbr0" />
+	  <forward/>
+	  <ip address="192.168.122.1" netmask="255.255.255.0">
+	    <dhcp>
+	      <range start="192.168.122.2" end="192.168.122.254" />
+	    </dhcp>
+	  </ip>
+	</network>
+
+	in /etc/libvirt/qemu/networks/, and mark it as autostart:
+
+	$ ls -l /etc/libvirt/qemu/networks/autostart
+	total 0
+	lrwxrwxrwx 1 root root 14 Oct 12 14:02 default.xml -> ../default.xml
+
+	2. start libvirtd and the device virbr0 is not automatically up.
+
+	The reason is that the function virNetDevExists is now returns 1 if
+	the device exists, comparing to the former one returns 0 if the device
+	exists. But with only this fix will cause a segmentation fault(the same
+	steps as above)  that is fixed by the second chunk of code.
+
+2011-11-12  Eric Blake  <eblake@redhat.com>
+
+	build: drop useless dirent.h includes
+	* .gnulib: Update to latest, for improved syntax-check.
+	* src/lxc/lxc_container.c (includes): Drop unused include.
+	* src/network/bridge_driver.c: Likewise.
+	* src/node_device/node_device_linux_sysfs.c: Likewise.
+	* src/openvz/openvz_driver.c: Likewise.
+	* src/qemu/qemu_conf.c: Likewise.
+	* src/storage/storage_backend_iscsi.c: Likewise.
+	* src/storage/storage_backend_mpath.c: Likewise.
+	* src/uml/uml_conf.c: Likewise.
+	* src/uml/uml_driver.c: Likewise.
+
+	xenapi: remove unused variable
+	  CC     libvirt_driver_xenapi_la-xenapi_driver.lo
+	xenapi/xenapi_driver.c: In function 'xenapiDomainGetVcpus':
+	xenapi/xenapi_driver.c:1209:21: error: variable 'cpus' set but not used [-Werror=unused-but-set-variable]
+
+	* src/xenapi/xenapi_driver.c (xenapiDomainGetVcpus): Silence
+	compiler warning.
+
+2011-11-11  Eric Blake  <eblake@redhat.com>
+
+	maint: use mailmap, not AUTHORS, for secondary addresses
+	* AUTHORS: Move Stefan's second entry...
+	* .mailmap: ...here.
+
+2011-11-11  Stefan Berger  <stefanb@us.ibm.com>
+
+	maint: fix make syntax-check
+	Add my 2nd email to the list of AUTHORS to get 'make syntax-check'
+	to pass.
+
+2011-11-11  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	Remove code instantiating filters on direct interfaces
+	Remove the code that instantiates network filters on direct type
+	of interfaces. The parser already does not accept it.
+
+2011-11-10  Daniel P. Berrange  <berrange@redhat.com>
+
+	Disable numactl on ARM architectures too
+	* libvirt.spec.in: Disable numactl on ARM
+
+	Add libvirt confdir to files section in mingw32 spec
+	* mingw32-libvirt.spec.in: Ensure we own the confdir
+
+2011-11-10  Eric Blake  <eblake@redhat.com>
+
+	nwfilter: simplify execution of ebiptables scripts
+	It's not worth even worrying about a temporary file, unless we
+	ever expect the script to exceed maximum command-line argument
+	length limits.
+
+	* src/nwfilter/nwfilter_ebiptables_driver.c (ebiptablesExecCLI):
+	Run the commands as an argument to /bin/sh, rather than worrying
+	about a temporary file.
+	(ebiptablesWriteToTempFile): Delete unused function.
+
+	nwfilter: avoid failure with noexec /tmp
+	If /tmp is mounted with the noexec flag (common on security-conscious
+	systems), then nwfilter will fail to initialize, because we cannot
+	run any temporary script via virRun("/tmp/script"); but we _can_
+	use "/bin/sh /tmp/script".  For that matter, using /tmp risks collisions
+	with other unrelated programs; we already have /var/run/libvirt as a
+	dedicated temporary directory for use by libvirt.
+
+	* src/nwfilter/nwfilter_ebiptables_driver.c
+	(ebiptablesWriteToTempFile): Use internal directory, not /tmp;
+	drop attempts to make script executable; and detect close error.
+	(ebiptablesExecCLI): Switch to virCommand, and invoke the shell to
+	read the script, rather than requiring an executable script.
+
+2011-11-10  Daniel P. Berrange  <berrange@redhat.com>
+
+	Adjust naming of network device bandwidth management APIs
+	Rename virBandwidth to virNetDevBandwidth, and virRate to
+	virNetDevBandwidthRate.
+
+	* src/util/network.c, src/util/network.h: Rename bandwidth
+	  structs and APIs
+	* src/conf/domain_conf.c, src/conf/domain_conf.h,
+	  src/conf/network_conf.c, src/conf/network_conf.h,
+	  src/lxc/lxc_driver.c, src/network/bridge_driver.c,
+	  src/qemu/qemu_command.c, src/util/macvtap.c,
+	  src/util/macvtap.h, tools/virsh.c: Update for API changes.
+
+	Santize naming of socket address APIs
+	The socket address APIs in src/util/network.h either take the
+	form  virSocketAddrXXX, virSocketXXX or virSocketXXXAddr.
+
+	Sanitize this so everything is virSocketAddrXXXX, and ensure
+	that the virSocketAddr parameter is always the first one.
+
+	* src/util/network.c, src/util/network.h: Santize socket
+	  address API naming
+	* src/conf/domain_conf.c, src/conf/network_conf.c,
+	  src/conf/nwfilter_conf.c, src/network/bridge_driver.c,
+	  src/nwfilter/nwfilter_ebiptables_driver.c,
+	  src/nwfilter/nwfilter_learnipaddr.c,
+	  src/qemu/qemu_command.c, src/rpc/virnetsocket.c,
+	  src/util/dnsmasq.c, src/util/iptables.c,
+	  src/util/virnetdev.c, src/vbox/vbox_tmpl.c: Update for
+	  API renaming
+
+	Split bridge.h into three separate files
+	Following the renaming of the bridge management APIs, we can now
+	split the source file into 3 corresponding pieces
+
+	 * src/util/virnetdev.c: APIs for any type of network interface
+	 * src/util/virnetdevbridge.c: APIs for bridge interfaces
+	 * src/util/virnetdevtap.c: APIs for TAP interfaces
+
+	* src/util/virnetdev.c, src/util/virnetdev.h,
+	  src/util/virnetdevbridge.c, src/util/virnetdevbridge.h,
+	  src/util/virnetdevtap.c, src/util/virnetdevtap.h: Copied
+	  from bridge.{c,h}
+	* src/util/bridge.c, src/util/bridge.h: Split into 3 pieces
+	* src/lxc/lxc_driver.c, src/network/bridge_driver.c,
+	  src/openvz/openvz_driver.c, src/qemu/qemu_command.c,
+	  src/qemu/qemu_conf.h, src/uml/uml_conf.c, src/uml/uml_conf.h,
+	  src/uml/uml_driver.c: Update #include directives
+
+	Remove usage of brctl command line tool
+	Convert the virNetDevBridgeSetSTP and virNetDevBridgeSetSTPDelay
+	to use ioctls instead of spawning brctl.
+
+	Implement the virNetDevBridgeGetSTP and virNetDevBridgeGetSTPDelay
+	methods which were declared in the header but never existed
+
+	* src/util/bridge.c: Convert to use bridge ioctls instead of brctl
+
+	Add an API for retrieving the MAC address of an interface
+	* src/util/bridge.c, src/util/bridge.h: Add virNetDevGetMAC
+
+	Expose MTU management APIs
+	The MTU management APIs are useful to other code inside libvirt,
+	so should be exposed as non-static APIs.
+
+	* src/util/bridge.c, src/util/bridge.h: Expose virNetDevSetMTU,
+	  virNetDevSetMTUFromDevice & virNetDevGetMTU
+
+	Turn two int parameters into bools in bridge APIs
+	* src/util/bridge.c, src/util/bridge.h: s/int/bool/ in
+	  virNetDevSetOnline and virNetDevBridgeSetSTP
+
+	Rename all brXXXX APIs to follow new convention
+	The existing brXXX APIs in src/util/bridge.h are renamed to
+	follow one of three different conventions
+
+	 - virNetDevXXX       - operations for any type of interface
+	 - virNetDevBridgeXXX - operations for bridge interfaces
+	 - virNetDevTapXXX    - operations for tap interfaces
+
+	* src/util/bridge.h, src/util/bridge.c: Rename all APIs
+	* src/lxc/lxc_driver.c, src/network/bridge_driver.c,
+	  src/qemu/qemu_command.c, src/uml/uml_conf.c,
+	  src/uml/uml_driver.c: Update for API renaming
+
+	Make all brXXX APIs raise errors, instead of returning errnos
+	Currently every caller of the brXXX APIs has to store the returned
+	errno value and then raise an error message. This results in
+	inconsistent error messages across drivers, additional burden on
+	the callers and makes the error reporting inaccurate since it is
+	hard to distinguish different scenarios from 1 errno value.
+
+	* src/util/bridge.c: Raise errors instead of returning errnos
+	* src/lxc/lxc_driver.c, src/network/bridge_driver.c,
+	  src/qemu/qemu_command.c, src/uml/uml_conf.c,
+	  src/uml/uml_driver.c: Remove error reporting code
+
+	Remove 'brControl' object
+	The bridge management APIs in src/util/bridge.c require a brControl
+	object to be passed around. This holds the file descriptor for the
+	control socket. This extra object complicates use of the API for
+	only a minor efficiency gain, which is in turn entirely offset by
+	the need to fork/exec the brctl command for STP configuration.
+
+	This patch removes the 'brControl' object entirely, instead opening
+	the control socket & closing it again within the scope of each method.
+
+	The parameter names for the APIs are also made to consistently use
+	'brname' for bridge device name, and 'ifname' for an interface
+	device name. Finally annotations are added for non-NULL parameters
+	and return check validation
+
+	* src/util/bridge.c, src/util/bridge.h: Remove brControl object
+	  and update API parameter names & annotations.
+	* src/lxc/lxc_driver.c, src/network/bridge_driver.c,
+	  src/uml/uml_conf.h, src/uml/uml_conf.c, src/uml/uml_driver.c,
+	  src/qemu/qemu_command.c, src/qemu/qemu_conf.h,
+	  src/qemu/qemu_driver.c: Remove reference to 'brControl' object
+
+2011-11-10  Eric Blake  <eblake@redhat.com>
+
+	build: fix mingw build of gnulib openpty
+	Commit f7bd00c12 pulled in a gnulib module that fails to compile
+	on mingw.  Work around it while waiting for an upstream gnulib fix.
+
+	* gnulib/local/lib/pty.in.h (openpty): Provide forward
+	declarations of opaque structs not present on mingw.
+	* gnulib/local/lib/openpty.c (openpty): Provide stub for mingw.
+
+	build: allow for local gnulib diffs
+	Commit f7bd00c12 pulled in a gnulib module that fails to compile
+	on mingw.  While it would be nice to pull in a newer version of
+	.gnulib that fixes this, it is difficult to backport any .gnulib
+	update to older releases.  So, it makes sense to take advantage
+	of gnulib-tool's ability to support local diffs, where we can
+	apply specific diffs in our use of gnulib without waiting for
+	upstream gnulib to pick up those changes, as well as avoiding
+	a wholesale .gnulib update.  The existence of local diffs will
+	also make it easier to backport fixes against a tarball (as long
+	as a tarball and libvirt.git share the same .gnulib commit, then
+	the tarball can be patched by applying the same local diffs as
+	a post-release libvirt.git commit, without having to rerun an
+	entire gnulib-tool bootstrap).
+
+	This patch introduces the framework for supporting local diffs,
+	without actually introducing any.
+
+	* bootstrap.conf (local_gl_dir): New variable.
+	* autogen.sh (bootstrap_hash): Hash any local diffs, to force a
+	re-bootstrap if just diffs change.
+	* cfg.mk (_update_required): Likewise.
+
+2011-11-09  Alex Jia  <ajia@redhat.com>
+
+	lxc: free error object to avoid memory leak
+	Detected by Coverity. Leak introduced in commit 9d201a5.
+
+	* src/lxc/lxc_driver.c: Clean up on failure.
+
+	lxc: free 'ttyFDs' array on return from lxcVmStart
+	Detected by Coverity. Leak introduced in commit 0f31f7b.
+
+	* src/lxc/lxc_driver.c: Clean up on failure.
+
+2011-11-09  Osier Yang  <jyang@redhat.com>
+
+	qemu: Fix improper error message for disk detaching
+	s/virDomainDeviceTypeToString/virDomainDiskDeviceTypeToString/
+
+	Report by Xu He Jie <xuhj@linux.vnet.ibm.
+
+2011-11-09  Xu He Jie  <xuhj@linux.vnet.ibm.com>
+
+	virsh: Add VSH_OFLAG_EMPTY_OK for attach-disk command
+	As the description of removing CDROM media from
+	  http://wiki.libvirt.org/page/QEMUSwitchToLibvirt#eject_DEV
+
+	Add flag 'VSH_OFLAG_EMPTY_OK' to the option 'source' of attach-disk
+
+	Then avoid outputting <source> in the XML if 'source' was empty,
+	rather than trusting libvirt domain_conf.c to understand an empty
+	string.
+
+2011-11-08  Daniel Veillard  <veillard@redhat.com>
+
+	Release of libvirt-0.9.7
+	* confiure.ac docs/news.html.in libvirt.spec.in: update for release
+	* po/*.po*: update localizations and rebuilt
+
 2011-11-08  Eric Blake  <eblake@redhat.com>
 
 	build: fix build on platforms without ptsname_r

@@ -253,6 +253,13 @@ statistics during 1 second.
 Returns memory stats of the node.
 If I<cell> is specified, this will prints specified cell statistics only.
 
+=item B<nodesuspend> [I<target>] [I<duration>] [I<flags>]
+
+Puts the node (host machine) into a system-wide sleep state such as
+Suspend-to-RAM, Suspend-to-Disk or Hybrid-Suspend and sets up a
+Real-Time-Clock interrupt to fire (to wake up the node) after a time delay
+specified by the 'duration' parameter.
+
 =item B<capabilities>
 
 Print an XML document describing the capabilities of the hypervisor
@@ -572,6 +579,36 @@ operation can be checked with B<blockjob>.
 I<path> specifies fully-qualified path of the disk.
 I<bandwidth> specifies copying bandwidth limit in Mbps.
 
+=item B<blkdeviotune> I<domain> I<device>
+[[I<--config>] [I<--live>] | [I<--current>]]
+[[I<total_bytes_sec>] | [I<read_bytes_sec>] [I<write_bytes_sec>]]
+[[I<total_iops_sec>] | [I<read_iops_sec>] [I<write_iops_sec>]]
+
+Set or query the block disk io parameters for a block device of I<domain>.
+I<device> specifies a unique target name (<target dev='name'/>) or source
+file (<source file='name'/>) for one of the disk devices attached to
+I<domain> (see also B<domblklist> for listing these names).
+
+If no limit is specified, it will query current I/O limits setting.
+Otherwise, alter the limits with these flags:
+I<--total_bytes_sec> specifies total throughput limit in bytes per second.
+I<--read_bytes_sec> specifies read throughput limit in bytes per second.
+I<--write_bytes_sec> specifies write throughput limit in bytes per second.
+I<--total_iops_sec> specifies total I/O operations limit per second.
+I<--read_iops_sec> specifies read I/O operations limit per second.
+I<--write_iops_sec> specifies write I/O operations limit per second.
+
+When setting any value, all remaining values are reset to unlimited,
+an explicit 0 also clears any limit.  A non-zero value for a given total
+cannot be mixed with non-zero values for read or write.
+
+If I<--live> is specified, affect a running guest.
+If I<--config> is specified, affect the next boot of a persistent guest.
+If I<--current> is specified, affect the current guest state.
+Both I<--live> and I<--current> flags may be given, but I<--current> is
+exclusive. If no flag is specified, behavior is different depending
+on hypervisor.
+
 =item B<blockjob> I<domain> I<path> [I<--abort>] [I<--info>] [I<bandwidth>]
 
 Manage active block operations.
@@ -582,6 +619,12 @@ be aborted.
 If I<--info> is specified, the active job information on the specified
 disk will be printed.
 I<bandwidth> can be used to set bandwidth limit for the active job.
+
+=item B<blockresize> I<domain> I<--path> I<--size>
+
+Resize a block device of domain while the domain is running, I<--path>
+specifies the absolute path of the block device, I<--size> specifies the
+new size in kilobytes
 
 =item B<dominfo> I<domain-id>
 
@@ -970,7 +1013,7 @@ Change the maximum memory allocation limit for a guest domain.
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
 If I<--current> is specified, affect the current guest state.
-Both I<--live> and I<--current> flags may be given, but I<--current> is
+Both I<--live> and I<--config> flags may be given, but I<--current> is
 exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
 
@@ -996,7 +1039,7 @@ I<--min-guarantee> is supported only by ESX hypervisor.
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
 If I<--current> is specified, affect the current guest state.
-Both I<--live> and I<--current> flags may be given, but I<--current> is
+Both I<--live> and I<--config> flags may be given, but I<--current> is
 exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
 
@@ -1032,16 +1075,24 @@ value are kilobytes (i.e. blocks of 1024 bytes).
 
 Specifying -1 as a value for these limits is interpreted as unlimited.
 
-=item B<blkiotune> I<domain-id> [I<--weight> B<weight>] [[I<--config>]
+=item B<blkiotune> I<domain-id> [I<--weight> B<weight>]
+[I<--device-weights> B<device-weights>] [[I<--config>]
 [I<--live>] | [I<--current>]]
 
 Display or set the blkio parameters. QEMU/KVM supports I<--weight>.
 I<--weight> is in range [100, 1000].
 
+B<device-weights> is a single string listing one or more device/weight
+pairs, in the format of /path/to/device,weight,/path/to/device,weight.
+Each weight is in the range [100, 1000], or the value 0 to remove that
+device from per-device listings.  Only the devices listed in the string
+are modified; any existing per-device weights for other devices remain
+unchanged.
+
 If I<--live> is specified, affect a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
 If I<--current> is specified, affect the current guest state.
-Both I<--live> and I<--current> flags may be given, but I<--current> is
+Both I<--live> and I<--config> flags may be given, but I<--current> is
 exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
 
@@ -1465,6 +1516,18 @@ resort to a name instead).
 
 =over 4
 
+=item B<iface-bridge> I<interface> I<bridge> [I<--no-stp>] [I<delay>]
+[I<--no-start>]
+
+Create a bridge device named I<bridge>, and attach the existing
+network device I<interface> to the new bridge.  The new bridge
+defaults to starting immediately, with STP enabled and a delay of 0;
+these settings can be altered with I<--no-stp>, I<--no-start>, and an
+integer number of seconds for I<delay>. All IP address configuration
+of I<interface> will be moved to the new bridge device.
+
+See also B<iface-unbridge> for undoing this operation.
+
 =item B<iface-define> I<file>
 
 Define a host interface from an XML I<file>, the interface is just defined but
@@ -1518,6 +1581,16 @@ I<interface> specifies the interface name.
 =item B<iface-start> I<interface>
 
 Start a (previously defined) host interface, such as by running "if-up".
+
+=item B<iface-unbridge> I<bridge> [I<--no-start>]
+
+Tear down a bridge device named I<bridge>, releasing its underlying
+interface back to normal usage, and moving all IP address
+configuration from the bridge device to the underlying device.  The
+underlying interface is restarted unless I<--no-start> is present;
+this flag is present for symmetry, but generally not recommended.
+
+See also B<iface-bridge> for creating a bridge.
 
 =item B<iface-undefine> I<interface>
 

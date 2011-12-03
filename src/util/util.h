@@ -249,13 +249,12 @@ void virFileWaitForDevices(void);
 # define virBuildPath(path, ...) virBuildPathInternal(path, __VA_ARGS__, NULL)
 int virBuildPathInternal(char **path, ...) ATTRIBUTE_SENTINEL;
 
-char *virTimestamp(void);
-
-int virTimeMs(unsigned long long *ms) ATTRIBUTE_NONNULL(1);
-
 bool virIsDevMapperDevice(const char *dev_name) ATTRIBUTE_NONNULL(1);
 
 int virEmitXMLWarning(int fd,
                       const char *name,
                       const char *cmd) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
+void virTypedParameterArrayClear(virTypedParameterPtr params, int nparams);
+
 #endif /* __VIR_UTIL_H__ */

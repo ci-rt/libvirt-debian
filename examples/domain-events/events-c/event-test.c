@@ -353,7 +353,9 @@ int main(int argc, char **argv)
     virEventRegisterDefaultImpl();
 
     virConnectPtr dconn = NULL;
-    dconn = virConnectOpenReadOnly (argv[1] ? argv[1] : NULL);
+    dconn = virConnectOpenAuth(argc > 1 ? argv[1] : NULL,
+                               virConnectAuthPtrDefault,
+                               VIR_CONNECT_RO);
     if (!dconn) {
         printf("error opening\n");
         return -1;
@@ -416,7 +418,14 @@ int main(int argc, char **argv)
         (callback6ret != -1) &&
         (callback7ret != -1) &&
         (callback9ret != -1)) {
-        while (run) {
+        if (virConnectSetKeepAlive(dconn, 5, 3) < 0) {
+            virErrorPtr err = virGetLastError();
+            fprintf(stderr, "Failed to start keepalive protocol: %s\n",
+                    err && err->message ? err->message : "Unknown error");
+            run = 0;
+        }
+
+        while (run && virConnectIsAlive(dconn) == 1) {
             if (virEventRunDefaultImpl() < 0) {
                 virErrorPtr err = virGetLastError();
                 fprintf(stderr, "Failed to run event loop: %s\n",

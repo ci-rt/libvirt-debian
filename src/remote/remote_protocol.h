@@ -52,6 +52,7 @@ typedef remote_nonnull_string *remote_string;
 #define REMOTE_DOMAIN_SCHEDULER_PARAMETERS_MAX 16
 #define REMOTE_DOMAIN_BLKIO_PARAMETERS_MAX 16
 #define REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX 16
+#define REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX 16
 #define REMOTE_NODE_CPU_STATS_MAX 16
 #define REMOTE_NODE_MEMORY_STATS_MAX 16
 #define REMOTE_DOMAIN_BLOCK_STATS_PARAMETERS_MAX 16
@@ -179,6 +180,7 @@ struct remote_typed_param_value {
                 uint64_t ul;
                 double d;
                 int b;
+                remote_nonnull_string s;
         } remote_typed_param_value_u;
 };
 typedef struct remote_typed_param_value remote_typed_param_value;
@@ -440,6 +442,14 @@ struct remote_domain_get_memory_parameters_ret {
         int nparams;
 };
 typedef struct remote_domain_get_memory_parameters_ret remote_domain_get_memory_parameters_ret;
+
+struct remote_domain_block_resize_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string disk;
+        uint64_t size;
+        u_int flags;
+};
+typedef struct remote_domain_block_resize_args remote_domain_block_resize_args;
 
 struct remote_domain_block_stats_args {
         remote_nonnull_domain dom;
@@ -1141,6 +1151,34 @@ struct remote_domain_block_pull_args {
         u_int flags;
 };
 typedef struct remote_domain_block_pull_args remote_domain_block_pull_args;
+
+struct remote_domain_set_block_io_tune_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string disk;
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+        u_int flags;
+};
+typedef struct remote_domain_set_block_io_tune_args remote_domain_set_block_io_tune_args;
+
+struct remote_domain_get_block_io_tune_args {
+        remote_nonnull_domain dom;
+        remote_string disk;
+        int nparams;
+        u_int flags;
+};
+typedef struct remote_domain_get_block_io_tune_args remote_domain_get_block_io_tune_args;
+
+struct remote_domain_get_block_io_tune_ret {
+        struct {
+                u_int params_len;
+                remote_typed_param *params_val;
+        } params;
+        int nparams;
+};
+typedef struct remote_domain_get_block_io_tune_ret remote_domain_get_block_io_tune_ret;
 
 struct remote_num_of_networks_ret {
         int num;
@@ -2630,6 +2668,13 @@ struct remote_domain_open_graphics_args {
         u_int flags;
 };
 typedef struct remote_domain_open_graphics_args remote_domain_open_graphics_args;
+
+struct remote_node_suspend_for_duration_args {
+        u_int target;
+        uint64_t duration;
+        u_int flags;
+};
+typedef struct remote_node_suspend_for_duration_args remote_node_suspend_for_duration_args;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -2883,6 +2928,10 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_CHILDREN_NAMES = 247,
         REMOTE_PROC_DOMAIN_EVENT_DISK_CHANGE = 248,
         REMOTE_PROC_DOMAIN_OPEN_GRAPHICS = 249,
+        REMOTE_PROC_NODE_SUSPEND_FOR_DURATION = 250,
+        REMOTE_PROC_DOMAIN_BLOCK_RESIZE = 251,
+        REMOTE_PROC_DOMAIN_SET_BLOCK_IO_TUNE = 252,
+        REMOTE_PROC_DOMAIN_GET_BLOCK_IO_TUNE = 253,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -2949,6 +2998,7 @@ extern  bool_t xdr_remote_domain_get_blkio_parameters_ret (XDR *, remote_domain_
 extern  bool_t xdr_remote_domain_set_memory_parameters_args (XDR *, remote_domain_set_memory_parameters_args*);
 extern  bool_t xdr_remote_domain_get_memory_parameters_args (XDR *, remote_domain_get_memory_parameters_args*);
 extern  bool_t xdr_remote_domain_get_memory_parameters_ret (XDR *, remote_domain_get_memory_parameters_ret*);
+extern  bool_t xdr_remote_domain_block_resize_args (XDR *, remote_domain_block_resize_args*);
 extern  bool_t xdr_remote_domain_block_stats_args (XDR *, remote_domain_block_stats_args*);
 extern  bool_t xdr_remote_domain_block_stats_ret (XDR *, remote_domain_block_stats_ret*);
 extern  bool_t xdr_remote_domain_block_stats_flags_args (XDR *, remote_domain_block_stats_flags_args*);
@@ -3052,6 +3102,9 @@ extern  bool_t xdr_remote_domain_get_block_job_info_args (XDR *, remote_domain_g
 extern  bool_t xdr_remote_domain_get_block_job_info_ret (XDR *, remote_domain_get_block_job_info_ret*);
 extern  bool_t xdr_remote_domain_block_job_set_speed_args (XDR *, remote_domain_block_job_set_speed_args*);
 extern  bool_t xdr_remote_domain_block_pull_args (XDR *, remote_domain_block_pull_args*);
+extern  bool_t xdr_remote_domain_set_block_io_tune_args (XDR *, remote_domain_set_block_io_tune_args*);
+extern  bool_t xdr_remote_domain_get_block_io_tune_args (XDR *, remote_domain_get_block_io_tune_args*);
+extern  bool_t xdr_remote_domain_get_block_io_tune_ret (XDR *, remote_domain_get_block_io_tune_ret*);
 extern  bool_t xdr_remote_num_of_networks_ret (XDR *, remote_num_of_networks_ret*);
 extern  bool_t xdr_remote_list_networks_args (XDR *, remote_list_networks_args*);
 extern  bool_t xdr_remote_list_networks_ret (XDR *, remote_list_networks_ret*);
@@ -3297,6 +3350,7 @@ extern  bool_t xdr_remote_domain_event_control_error_msg (XDR *, remote_domain_e
 extern  bool_t xdr_remote_domain_get_control_info_args (XDR *, remote_domain_get_control_info_args*);
 extern  bool_t xdr_remote_domain_get_control_info_ret (XDR *, remote_domain_get_control_info_ret*);
 extern  bool_t xdr_remote_domain_open_graphics_args (XDR *, remote_domain_open_graphics_args*);
+extern  bool_t xdr_remote_node_suspend_for_duration_args (XDR *, remote_node_suspend_for_duration_args*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -3360,6 +3414,7 @@ extern bool_t xdr_remote_domain_get_blkio_parameters_ret ();
 extern bool_t xdr_remote_domain_set_memory_parameters_args ();
 extern bool_t xdr_remote_domain_get_memory_parameters_args ();
 extern bool_t xdr_remote_domain_get_memory_parameters_ret ();
+extern bool_t xdr_remote_domain_block_resize_args ();
 extern bool_t xdr_remote_domain_block_stats_args ();
 extern bool_t xdr_remote_domain_block_stats_ret ();
 extern bool_t xdr_remote_domain_block_stats_flags_args ();
@@ -3463,6 +3518,9 @@ extern bool_t xdr_remote_domain_get_block_job_info_args ();
 extern bool_t xdr_remote_domain_get_block_job_info_ret ();
 extern bool_t xdr_remote_domain_block_job_set_speed_args ();
 extern bool_t xdr_remote_domain_block_pull_args ();
+extern bool_t xdr_remote_domain_set_block_io_tune_args ();
+extern bool_t xdr_remote_domain_get_block_io_tune_args ();
+extern bool_t xdr_remote_domain_get_block_io_tune_ret ();
 extern bool_t xdr_remote_num_of_networks_ret ();
 extern bool_t xdr_remote_list_networks_args ();
 extern bool_t xdr_remote_list_networks_ret ();
@@ -3708,6 +3766,7 @@ extern bool_t xdr_remote_domain_event_control_error_msg ();
 extern bool_t xdr_remote_domain_get_control_info_args ();
 extern bool_t xdr_remote_domain_get_control_info_ret ();
 extern bool_t xdr_remote_domain_open_graphics_args ();
+extern bool_t xdr_remote_node_suspend_for_duration_args ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

@@ -29,6 +29,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <netdb.h>
 
 #ifdef HAVE_NETINET_TCP_H
 # include <netinet/tcp.h>
@@ -163,11 +164,11 @@ static virNetSocketPtr virNetSocketNew(virSocketAddrPtr localAddr,
 
 
     if (localAddr &&
-        !(sock->localAddrStr = virSocketFormatAddrFull(localAddr, true, ";")))
+        !(sock->localAddrStr = virSocketAddrFormatFull(localAddr, true, ";")))
         goto error;
 
     if (remoteAddr &&
-        !(sock->remoteAddrStr = virSocketFormatAddrFull(remoteAddr, true, ";")))
+        !(sock->remoteAddrStr = virSocketAddrFormatFull(remoteAddr, true, ";")))
         goto error;
 
     sock->client = isClient;
@@ -627,6 +628,7 @@ int virNetSocketNewConnectSSH(const char *nodename,
     virCommandAddEnvPass(cmd, "SSH_AUTH_SOCK");
     virCommandAddEnvPass(cmd, "SSH_ASKPASS");
     virCommandAddEnvPass(cmd, "DISPLAY");
+    virCommandAddEnvPass(cmd, "XAUTHORITY");
     virCommandClearCaps(cmd);
 
     if (service)
@@ -809,7 +811,7 @@ int virNetSocketGetPort(virNetSocketPtr sock)
 {
     int port;
     virMutexLock(&sock->lock);
-    port = virSocketGetPort(&sock->localAddr);
+    port = virSocketAddrGetPort(&sock->localAddr);
     virMutexUnlock(&sock->lock);
     return port;
 }
@@ -928,6 +930,19 @@ bool virNetSocketHasCachedData(virNetSocketPtr sock ATTRIBUTE_UNUSED)
 #endif
     virMutexUnlock(&sock->lock);
     return hasCached;
+}
+
+
+bool virNetSocketHasPendingData(virNetSocketPtr sock ATTRIBUTE_UNUSED)
+{
+    bool hasPending = false;
+    virMutexLock(&sock->lock);
+#if HAVE_SASL
+    if (sock->saslEncoded)
+        hasPending = true;
+#endif
+    virMutexUnlock(&sock->lock);
+    return hasPending;
 }
 
 

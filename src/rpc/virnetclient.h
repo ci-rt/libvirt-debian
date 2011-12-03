@@ -67,9 +67,15 @@ int virNetClientAddStream(virNetClientPtr client,
 void virNetClientRemoveStream(virNetClientPtr client,
                               virNetClientStreamPtr st);
 
-int virNetClientSend(virNetClientPtr client,
-                     virNetMessagePtr msg,
-                     bool expectReply);
+int virNetClientSendWithReply(virNetClientPtr client,
+                              virNetMessagePtr msg);
+
+int virNetClientSendNoReply(virNetClientPtr client,
+                            virNetMessagePtr msg);
+
+int virNetClientSendNonBlock(virNetClientPtr client,
+                             virNetMessagePtr msg);
+
 
 # ifdef HAVE_SASL
 void virNetClientSetSASLSession(virNetClientPtr client,
@@ -80,6 +86,7 @@ int virNetClientSetTLSSession(virNetClientPtr client,
                               virNetTLSContextPtr tls);
 
 bool virNetClientIsEncrypted(virNetClientPtr client);
+bool virNetClientIsOpen(virNetClientPtr client);
 
 const char *virNetClientLocalAddrString(virNetClientPtr client);
 const char *virNetClientRemoteAddrString(virNetClientPtr client);
@@ -88,5 +95,10 @@ int virNetClientGetTLSKeySize(virNetClientPtr client);
 
 void virNetClientFree(virNetClientPtr client);
 void virNetClientClose(virNetClientPtr client);
+
+bool virNetClientKeepAliveIsSupported(virNetClientPtr client);
+int virNetClientKeepAliveStart(virNetClientPtr client,
+                               int interval,
+                               unsigned int count);
 
 #endif /* __VIR_NET_CLIENT_H__ */

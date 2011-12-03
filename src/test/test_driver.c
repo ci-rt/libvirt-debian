@@ -1191,6 +1191,11 @@ static int testIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
     return 0;
 }
 
+static int testIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 1;
+}
+
 static int testGetMaxVCPUs(virConnectPtr conn ATTRIBUTE_UNUSED,
                            const char *type ATTRIBUTE_UNUSED)
 {
@@ -2803,7 +2808,7 @@ static int testDomainBlockStats(virDomainPtr domain,
     virDomainObjPtr privdom;
     struct timeval tv;
     unsigned long long statbase;
-    int i, found = 0, ret = -1;
+    int ret = -1;
 
     testDriverLock(privconn);
     privdom = virDomainFindByName(&privconn->domains,
@@ -2815,14 +2820,7 @@ static int testDomainBlockStats(virDomainPtr domain,
         goto error;
     }
 
-    for (i = 0 ; i < privdom->def->ndisks ; i++) {
-        if (STREQ(path, privdom->def->disks[i]->dst)) {
-            found = 1;
-            break;
-        }
-    }
-
-    if (!found) {
+    if (virDomainDiskIndexByName(privdom->def, path, false) < 0) {
         testError(VIR_ERR_INVALID_ARG,
                   _("invalid path: %s"), path);
         goto error;
@@ -5631,6 +5629,7 @@ static virDriver testDriver = {
     .domainIsUpdated = testDomainIsUpdated, /* 0.8.6 */
     .domainEventRegisterAny = testDomainEventRegisterAny, /* 0.8.0 */
     .domainEventDeregisterAny = testDomainEventDeregisterAny, /* 0.8.0 */
+    .isAlive = testIsAlive, /* 0.9.8 */
 };
 
 static virNetworkDriver testNetworkDriver = {

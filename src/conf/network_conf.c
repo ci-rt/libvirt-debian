@@ -34,7 +34,8 @@
 #include "virterror_internal.h"
 #include "datatypes.h"
 #include "network_conf.h"
-#include "network.h"
+#include "netdev_vport_profile_conf.h"
+#include "netdev_bandwidth_conf.h"
 #include "memory.h"
 #include "xml.h"
 #include "uuid.h"
@@ -92,7 +93,7 @@ virPortGroupDefClear(virPortGroupDefPtr def)
 {
     VIR_FREE(def->name);
     VIR_FREE(def->virtPortProfile);
-    virBandwidthDefFree(def->bandwidth);
+    virNetDevBandwidthFree(def->bandwidth);
     def->bandwidth = NULL;
 }
 
@@ -171,7 +172,7 @@ void virNetworkDefFree(virNetworkDefPtr def)
 
     VIR_FREE(def->virtPortProfile);
 
-    virBandwidthDefFree(def->bandwidth);
+    virNetDevBandwidthFree(def->bandwidth);
 
     VIR_FREE(def);
 }
@@ -286,7 +287,7 @@ virNetworkDefGetIpByIndex(const virNetworkDefPtr def,
 
     /* find the nth ip of type "family" */
     for (ii = 0; ii < def->nips; ii++) {
-        if (VIR_SOCKET_IS_FAMILY(&def->ips[ii].address, family)
+        if (VIR_SOCKET_ADDR_IS_FAMILY(&def->ips[ii].address, family)
             && (n-- <= 0)) {
             return &def->ips[ii];
         }
@@ -302,9 +303,9 @@ int virNetworkIpDefPrefix(const virNetworkIpDefPtr def)
 {
     if (def->prefix > 0) {
         return def->prefix;
-    } else if (VIR_SOCKET_HAS_ADDR(&def->netmask)) {
-        return virSocketGetNumNetmaskBits(&def->netmask);
-    } else if (VIR_SOCKET_IS_FAMILY(&def->address, AF_INET)) {
+    } else if (VIR_SOCKET_ADDR_VALID(&def->netmask)) {
+        return virSocketAddrGetNumNetmaskBits(&def->netmask);
+    } else if (VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET)) {
         /* Return the natural prefix for the network's ip address.
          * On Linux we could use the IN_CLASSx() macros, but those
          * aren't guaranteed on all platforms, so we just deal with
@@ -323,7 +324,7 @@ int virNetworkIpDefPrefix(const virNetworkIpDefPtr def)
             return 24;
         }
         return -1;
-    } else if (VIR_SOCKET_IS_FAMILY(&def->address, AF_INET6)) {
+    } else if (VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET6)) {
         return 64;
     }
     return -1;
@@ -336,13 +337,13 @@ int virNetworkIpDefPrefix(const virNetworkIpDefPtr def)
 int virNetworkIpDefNetmask(const virNetworkIpDefPtr def,
                            virSocketAddrPtr netmask)
 {
-    if (VIR_SOCKET_IS_FAMILY(&def->netmask, AF_INET)) {
+    if (VIR_SOCKET_ADDR_IS_FAMILY(&def->netmask, AF_INET)) {
         *netmask = def->netmask;
         return 0;
     }
 
     return virSocketAddrPrefixToNetmask(virNetworkIpDefPrefix(def), netmask,
-                                        VIR_SOCKET_FAMILY(&def->address));
+                                        VIR_SOCKET_ADDR_FAMILY(&def->address));
 }
 
 
@@ -372,18 +373,18 @@ virNetworkDHCPRangeDefParseXML(const char *networkName,
                 continue;
             }
 
-            if (virSocketParseAddr(start, &saddr, AF_UNSPEC) < 0) {
+            if (virSocketAddrParse(&saddr, start, AF_UNSPEC) < 0) {
                 VIR_FREE(start);
                 VIR_FREE(end);
                 return -1;
             }
-            if (virSocketParseAddr(end, &eaddr, AF_UNSPEC) < 0) {
+            if (virSocketAddrParse(&eaddr, end, AF_UNSPEC) < 0) {
                 VIR_FREE(start);
                 VIR_FREE(end);
                 return -1;
             }
 
-            range = virSocketGetRange(&saddr, &eaddr);
+            range = virSocketAddrGetRange(&saddr, &eaddr);
             if (range < 0) {
                 virNetworkReportError(VIR_ERR_XML_ERROR,
                                       _("Invalid dhcp range '%s' to '%s' in network '%s'"),
@@ -434,7 +435,7 @@ virNetworkDHCPRangeDefParseXML(const char *networkName,
             }
             ip = virXMLPropString(cur, "ip");
             if ((ip == NULL) ||
-                (virSocketParseAddr(ip, &inaddr, AF_UNSPEC) < 0)) {
+                (virSocketAddrParse(&inaddr, ip, AF_UNSPEC) < 0)) {
                 virNetworkReportError(VIR_ERR_XML_ERROR,
                                       _("Missing IP address in static host definition for network '%s'"),
                                       networkName);
@@ -469,7 +470,7 @@ virNetworkDHCPRangeDefParseXML(const char *networkName,
             server = virXMLPropString(cur, "server");
 
             if (server &&
-                virSocketParseAddr(server, &inaddr, AF_UNSPEC) < 0) {
+                virSocketAddrParse(&inaddr, server, AF_UNSPEC) < 0) {
                 VIR_FREE(file);
                 VIR_FREE(server);
                 return -1;
@@ -504,7 +505,7 @@ virNetworkDNSHostsDefParseXML(virNetworkDNSDefPtr def,
     }
 
     if (!(ip = virXMLPropString(node, "ip")) ||
-        (virSocketParseAddr(ip, &inaddr, AF_UNSPEC) < 0)) {
+        (virSocketAddrParse(&inaddr, ip, AF_UNSPEC) < 0)) {
         virNetworkReportError(VIR_ERR_XML_DETAIL,
                               _("Missing IP address in DNS host definition"));
         VIR_FREE(ip);
@@ -649,7 +650,7 @@ virNetworkIPParseXML(const char *networkName,
     netmask = virXPathString("string(./@netmask)", ctxt);
 
     if (address) {
-        if (virSocketParseAddr(address, &def->address, AF_UNSPEC) < 0) {
+        if (virSocketAddrParse(&def->address, address, AF_UNSPEC) < 0) {
             virNetworkReportError(VIR_ERR_XML_ERROR,
                                   _("Bad address '%s' in definition of network '%s'"),
                                   address, networkName);
@@ -660,22 +661,22 @@ virNetworkIPParseXML(const char *networkName,
 
     /* validate family vs. address */
     if (def->family == NULL) {
-        if (!(VIR_SOCKET_IS_FAMILY(&def->address, AF_INET) ||
-              VIR_SOCKET_IS_FAMILY(&def->address, AF_UNSPEC))) {
+        if (!(VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET) ||
+              VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_UNSPEC))) {
             virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                   _("no family specified for non-IPv4 address address '%s' in network '%s'"),
                                   address, networkName);
             goto error;
         }
     } else if (STREQ(def->family, "ipv4")) {
-        if (!VIR_SOCKET_IS_FAMILY(&def->address, AF_INET)) {
+        if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET)) {
             virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                   _("family 'ipv4' specified for non-IPv4 address '%s' in network '%s'"),
                                   address, networkName);
             goto error;
         }
     } else if (STREQ(def->family, "ipv6")) {
-        if (!VIR_SOCKET_IS_FAMILY(&def->address, AF_INET6)) {
+        if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET6)) {
             virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                   _("family 'ipv6' specified for non-IPv6 address '%s' in network '%s'"),
                                   address, networkName);
@@ -698,7 +699,7 @@ virNetworkIPParseXML(const char *networkName,
             goto error;
         }
 
-        if (!VIR_SOCKET_IS_FAMILY(&def->address, AF_INET)) {
+        if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET)) {
             virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                   _("netmask not supported for address '%s' in network '%s' (IPv4 only)"),
                                   address, networkName);
@@ -713,10 +714,10 @@ virNetworkIPParseXML(const char *networkName,
             goto error;
         }
 
-        if (virSocketParseAddr(netmask, &def->netmask, AF_UNSPEC) < 0)
+        if (virSocketAddrParse(&def->netmask, netmask, AF_UNSPEC) < 0)
             goto error;
 
-        if (!VIR_SOCKET_IS_FAMILY(&def->netmask, AF_INET)) {
+        if (!VIR_SOCKET_ADDR_IS_FAMILY(&def->netmask, AF_INET)) {
             virNetworkReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                   _("network '%s' has invalid netmask '%s' for address '%s' (both must be IPv4)"),
                                   networkName, netmask, address);
@@ -724,7 +725,7 @@ virNetworkIPParseXML(const char *networkName,
         }
     }
 
-    if (VIR_SOCKET_IS_FAMILY(&def->address, AF_INET)) {
+    if (VIR_SOCKET_ADDR_IS_FAMILY(&def->address, AF_INET)) {
         /* parse IPv4-related info */
         cur = node->children;
         while (cur != NULL) {
@@ -790,14 +791,12 @@ virNetworkPortGroupParseXML(virPortGroupDefPtr def,
 
     virtPortNode = virXPathNode("./virtualport", ctxt);
     if (virtPortNode &&
-        (virVirtualPortProfileParseXML(virtPortNode,
-                                       &def->virtPortProfile) < 0)) {
+        (!(def->virtPortProfile = virNetDevVPortProfileParse(virtPortNode))))
         goto error;
-    }
 
     bandwidth_node = virXPathNode("./bandwidth", ctxt);
     if (bandwidth_node &&
-        !(def->bandwidth = virBandwidthDefParseNode(bandwidth_node))) {
+        !(def->bandwidth = virNetDevBandwidthParse(bandwidth_node))) {
         goto error;
     }
 
@@ -863,7 +862,7 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
     def->domain = virXPathString("string(./domain[1]/@name)", ctxt);
 
     if ((bandwidthNode = virXPathNode("./bandwidth", ctxt)) != NULL &&
-        (def->bandwidth = virBandwidthDefParseNode(bandwidthNode)) == NULL)
+        (def->bandwidth = virNetDevBandwidthParse(bandwidthNode)) == NULL)
         goto error;
 
     /* Parse bridge information */
@@ -894,10 +893,8 @@ virNetworkDefParseXML(xmlXPathContextPtr ctxt)
 
     virtPortNode = virXPathNode("./virtualport", ctxt);
     if (virtPortNode &&
-        (virVirtualPortProfileParseXML(virtPortNode,
-                                       &def->virtPortProfile) < 0)) {
+        (!(def->virtPortProfile = virNetDevVPortProfileParse(virtPortNode))))
         goto error;
-    }
 
     nPortGroups = virXPathNodeSet("./portgroup", ctxt, &portGroupNodes);
     if (nPortGroups < 0)
@@ -1110,8 +1107,10 @@ virNetworkDefPtr virNetworkDefParseNode(xmlDocPtr xml,
     virNetworkDefPtr def = NULL;
 
     if (!xmlStrEqual(root->name, BAD_CAST "network")) {
-        virNetworkReportError(VIR_ERR_INTERNAL_ERROR,
-                              "%s", _("incorrect root element"));
+        virNetworkReportError(VIR_ERR_XML_ERROR,
+                              _("unexpected root element <%s>, "
+                                "expecting <network>"),
+                              root->name);
         return NULL;
     }
 
@@ -1151,7 +1150,7 @@ virNetworkDNSDefFormat(virBufferPtr buf,
         int ii, j;
 
         for (ii = 0 ; ii < def->nhosts; ii++) {
-            char *ip = virSocketFormatAddr(&def->hosts[ii].ip);
+            char *ip = virSocketAddrFormat(&def->hosts[ii].ip);
 
             virBufferAsprintf(buf, "    <host ip='%s'>\n", ip);
 
@@ -1180,15 +1179,15 @@ virNetworkIpDefFormat(virBufferPtr buf,
     if (def->family) {
         virBufferAsprintf(buf, " family='%s'", def->family);
     }
-    if (VIR_SOCKET_HAS_ADDR(&def->address)) {
-        char *addr = virSocketFormatAddr(&def->address);
+    if (VIR_SOCKET_ADDR_VALID(&def->address)) {
+        char *addr = virSocketAddrFormat(&def->address);
         if (!addr)
             goto error;
         virBufferAsprintf(buf, " address='%s'", addr);
         VIR_FREE(addr);
     }
-    if (VIR_SOCKET_HAS_ADDR(&def->netmask)) {
-        char *addr = virSocketFormatAddr(&def->netmask);
+    if (VIR_SOCKET_ADDR_VALID(&def->netmask)) {
+        char *addr = virSocketAddrFormat(&def->netmask);
         if (!addr)
             goto error;
         virBufferAsprintf(buf, " netmask='%s'", addr);
@@ -1207,10 +1206,10 @@ virNetworkIpDefFormat(virBufferPtr buf,
         int ii;
         virBufferAddLit(buf, "    <dhcp>\n");
         for (ii = 0 ; ii < def->nranges ; ii++) {
-            char *saddr = virSocketFormatAddr(&def->ranges[ii].start);
+            char *saddr = virSocketAddrFormat(&def->ranges[ii].start);
             if (!saddr)
                 goto error;
-            char *eaddr = virSocketFormatAddr(&def->ranges[ii].end);
+            char *eaddr = virSocketAddrFormat(&def->ranges[ii].end);
             if (!eaddr) {
                 VIR_FREE(saddr);
                 goto error;
@@ -1226,8 +1225,8 @@ virNetworkIpDefFormat(virBufferPtr buf,
                 virBufferAsprintf(buf, "mac='%s' ", def->hosts[ii].mac);
             if (def->hosts[ii].name)
                 virBufferAsprintf(buf, "name='%s' ", def->hosts[ii].name);
-            if (VIR_SOCKET_HAS_ADDR(&def->hosts[ii].ip)) {
-                char *ipaddr = virSocketFormatAddr(&def->hosts[ii].ip);
+            if (VIR_SOCKET_ADDR_VALID(&def->hosts[ii].ip)) {
+                char *ipaddr = virSocketAddrFormat(&def->hosts[ii].ip);
                 if (!ipaddr)
                     goto error;
                 virBufferAsprintf(buf, "ip='%s' ", ipaddr);
@@ -1238,8 +1237,8 @@ virNetworkIpDefFormat(virBufferPtr buf,
         if (def->bootfile) {
             virBufferEscapeString(buf, "      <bootp file='%s' ",
                                   def->bootfile);
-            if (VIR_SOCKET_HAS_ADDR(&def->bootserver)) {
-                char *ipaddr = virSocketFormatAddr(&def->bootserver);
+            if (VIR_SOCKET_ADDR_VALID(&def->bootserver)) {
+                char *ipaddr = virSocketAddrFormat(&def->bootserver);
                 if (!ipaddr)
                     goto error;
                 virBufferEscapeString(buf, "server='%s' ", ipaddr);
@@ -1258,7 +1257,7 @@ error:
     return result;
 }
 
-static void
+static int
 virPortGroupDefFormat(virBufferPtr buf,
                       const virPortGroupDefPtr def)
 {
@@ -1268,10 +1267,12 @@ virPortGroupDefFormat(virBufferPtr buf,
     }
     virBufferAddLit(buf, ">\n");
     virBufferAdjustIndent(buf, 4);
-    virVirtualPortProfileFormat(buf, def->virtPortProfile);
-    virBandwidthDefFormat(buf, def->bandwidth);
+    if (virNetDevVPortProfileFormat(def->virtPortProfile, buf) < 0)
+        return -1;
+    virNetDevBandwidthFormat(def->bandwidth, buf);
     virBufferAdjustIndent(buf, -4);
     virBufferAddLit(buf, "  </portgroup>\n");
+    return 0;
 }
 
 char *virNetworkDefFormat(const virNetworkDefPtr def)
@@ -1344,7 +1345,7 @@ char *virNetworkDefFormat(const virNetworkDefPtr def)
         goto error;
 
     virBufferAdjustIndent(&buf, 2);
-    if (virBandwidthDefFormat(&buf, def->bandwidth) < 0)
+    if (virNetDevBandwidthFormat(def->bandwidth, &buf) < 0)
         goto error;
     virBufferAdjustIndent(&buf, -2);
 
@@ -1354,11 +1355,13 @@ char *virNetworkDefFormat(const virNetworkDefPtr def)
     }
 
     virBufferAdjustIndent(&buf, 2);
-    virVirtualPortProfileFormat(&buf, def->virtPortProfile);
+    if (virNetDevVPortProfileFormat(def->virtPortProfile, &buf) < 0)
+        goto error;
     virBufferAdjustIndent(&buf, -2);
 
     for (ii = 0; ii < def->nPortGroups; ii++)
-        virPortGroupDefFormat(&buf, &def->portGroups[ii]);
+        if (virPortGroupDefFormat(&buf, &def->portGroups[ii]) < 0)
+            goto error;
 
     virBufferAddLit(&buf, "</network>\n");
 

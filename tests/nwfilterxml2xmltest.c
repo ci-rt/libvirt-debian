@@ -108,6 +108,8 @@ mymain(void)
     } while (0)
 
     DO_TEST("mac-test", true);
+    DO_TEST("vlan-test", true);
+    DO_TEST("stp-test", false);
     DO_TEST("arp-test", true);
     DO_TEST("rarp-test", true);
     DO_TEST("ip-test", true);
@@ -147,6 +149,10 @@ mymain(void)
 
     DO_TEST("example-1", false);
     DO_TEST("example-2", false);
+
+    DO_TEST("chain_prefixtest1", true); /* derived from arp-test */
+
+    DO_TEST("attr-value-test", false);
 
     return (ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

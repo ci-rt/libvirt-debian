@@ -78,7 +78,9 @@ int qemuMonitorTextGetBlockStatsParamsNumber(qemuMonitorPtr mon,
 int qemuMonitorTextGetBlockExtent(qemuMonitorPtr mon,
                                   const char *dev_name,
                                   unsigned long long *extent);
-
+int qemuMonitorTextBlockResize(qemuMonitorPtr mon,
+                               const char *device,
+                               unsigned long long size);
 int qemuMonitorTextSetVNCPassword(qemuMonitorPtr mon,
                                   const char *password);
 int qemuMonitorTextSetPassword(qemuMonitorPtr mon,
@@ -247,5 +249,13 @@ int qemuMonitorTextOpenGraphics(qemuMonitorPtr mon,
                                 const char *protocol,
                                 const char *fdname,
                                 bool skipauth);
+
+int qemuMonitorTextSetBlockIoThrottle(qemuMonitorPtr mon,
+                                      const char *device,
+                                      virDomainBlockIoTuneInfoPtr info);
+
+int qemuMonitorTextGetBlockIoThrottle(qemuMonitorPtr mon,
+                                      const char *device,
+                                      virDomainBlockIoTuneInfoPtr reply);
 
 #endif /* QEMU_MONITOR_TEXT_H */

@@ -60,6 +60,7 @@
 #include "locking/domain_lock.h"
 #include "network/bridge_driver.h"
 #include "uuid.h"
+#include "virtime.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -849,7 +850,7 @@ qemuConnectMonitor(struct qemud_driver *driver, virDomainObjPtr vm)
      * deleted while the monitor is active */
     virDomainObjRef(vm);
 
-    ignore_value(virTimeMs(&priv->monStart));
+    ignore_value(virTimeMillisNow(&priv->monStart));
     virDomainObjUnlock(vm);
     qemuDriverUnlock(driver);
 
@@ -1163,11 +1164,22 @@ qemuProcessFindCharDevicePTYs(virDomainObjPtr vm,
 
     for (i = 0 ; i < vm->def->nconsoles ; i++) {
         virDomainChrDefPtr chr = vm->def->consoles[i];
-        if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY &&
-            chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO) {
-            if ((ret = qemuProcessExtractTTYPath(output, &offset,
-                                                 &chr->source.data.file.path)) != 0)
+        /* For historical reasons, console[0] can be just an alias
+         * for serial[0]; That's why we need to update it as well */
+        if (i == 0 && vm->def->nserials &&
+            chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE &&
+            chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL) {
+            if ((ret = virDomainChrSourceDefCopy(&chr->source,
+                                                 &((vm->def->serials[0])->source))) != 0)
                 return ret;
+            chr->source.type = VIR_DOMAIN_CHR_TYPE_PTY;
+        } else {
+            if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY &&
+                chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO) {
+                if ((ret = qemuProcessExtractTTYPath(output, &offset,
+                                                     &chr->source.data.file.path)) != 0)
+                    return ret;
+            }
         }
     }
 
@@ -1213,7 +1225,7 @@ qemuProcessWaitForMonitor(struct qemud_driver* driver,
 
         if (VIR_ALLOC_N(buf, buf_size) < 0) {
             virReportOOMError();
-            return -1;
+            goto closelog;
         }
 
         if (qemuProcessReadLogOutput(vm, logfd, buf, buf_size,
@@ -2816,7 +2828,7 @@ int qemuProcessStart(virConnectPtr conn,
                      int stdin_fd,
                      const char *stdin_path,
                      virDomainSnapshotObjPtr snapshot,
-                     enum virVMOperationType vmop)
+                     enum virNetDevVPortProfileOp vmop)
 {
     int ret;
     off_t pos = -1;
@@ -3042,7 +3054,7 @@ int qemuProcessStart(virConnectPtr conn,
             goto cleanup;
     }
 
-    if ((timestamp = virTimestamp()) == NULL) {
+    if ((timestamp = virTimeStringNow()) == NULL) {
         virReportOOMError();
         goto cleanup;
     } else {
@@ -3320,7 +3332,7 @@ void qemuProcessStop(struct qemud_driver *driver,
         VIR_WARN("Unable to open logfile: %s",
                   virStrerror(errno, ebuf, sizeof ebuf));
     } else {
-        if ((timestamp = virTimestamp()) == NULL) {
+        if ((timestamp = virTimeStringNow()) == NULL) {
             virReportOOMError();
         } else {
             if (safewrite(logfile, timestamp, strlen(timestamp)) < 0 ||
@@ -3410,16 +3422,15 @@ void qemuProcessStop(struct qemud_driver *driver,
     def = vm->def;
     for (i = 0; i < def->nnets; i++) {
         virDomainNetDefPtr net = def->nets[i];
-#if WITH_MACVTAP
         if (virDomainNetGetActualType(net) == VIR_DOMAIN_NET_TYPE_DIRECT) {
-            delMacvtap(net->ifname, net->mac,
-                       virDomainNetGetActualDirectDev(net),
-                       virDomainNetGetActualDirectMode(net),
-                       virDomainNetGetActualDirectVirtPortProfile(net),
-                       driver->stateDir);
+            ignore_value(virNetDevMacVLanDeleteWithVPortProfile(
+                             net->ifname, net->mac,
+                             virDomainNetGetActualDirectDev(net),
+                             virDomainNetGetActualDirectMode(net),
+                             virDomainNetGetActualDirectVirtPortProfile(net),
+                             driver->stateDir));
             VIR_FREE(net->ifname);
         }
-#endif
         /* release the physical device (or any other resources used by
          * this interface in the network driver
          */
@@ -3591,7 +3602,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
         priv->persistentAddrs = 0;
     }
 
-    if ((timestamp = virTimestamp()) == NULL) {
+    if ((timestamp = virTimeStringNow()) == NULL) {
         virReportOOMError();
         goto cleanup;
     } else {

@@ -38,7 +38,6 @@
 #include "util.h"
 #include "stream.h"
 #include "uuid.h"
-#include "network.h"
 #include "libvirt/libvirt-qemu.h"
 #include "command.h"
 #include "intprops.h"
@@ -92,11 +91,6 @@ static void make_nonnull_secret(remote_nonnull_secret *secret_dst, virSecretPtr 
 static void make_nonnull_nwfilter(remote_nonnull_nwfilter *net_dst, virNWFilterPtr nwfilter_src);
 static void make_nonnull_domain_snapshot(remote_nonnull_domain_snapshot *snapshot_dst, virDomainSnapshotPtr snapshot_src);
 
-static int
-remoteSerializeTypedParameters(virTypedParameterPtr params,
-                               int nparams,
-                               remote_typed_param **ret_params_val,
-                               u_int *ret_params_len);
 static virTypedParameterPtr
 remoteDeserializeTypedParameters(remote_typed_param *args_params_val,
                                  u_int args_params_len,
@@ -587,7 +581,7 @@ int remoteClientInitHook(virNetServerPtr srv ATTRIBUTE_UNUSED,
 /*----- Functions. -----*/
 
 static int
-remoteDispatchOpen(virNetServerPtr server ATTRIBUTE_UNUSED,
+remoteDispatchOpen(virNetServerPtr server,
                    virNetServerClientPtr client,
                    virNetMessagePtr msg ATTRIBUTE_UNUSED,
                    virNetMessageErrorPtr rerr,
@@ -603,6 +597,12 @@ remoteDispatchOpen(virNetServerPtr server ATTRIBUTE_UNUSED,
     /* Already opened? */
     if (priv->conn) {
         virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection already open"));
+        goto cleanup;
+    }
+
+    if (virNetServerKeepAliveRequired(server) && !priv->keepalive_supported) {
+        virNetError(VIR_ERR_OPERATION_FAILED, "%s",
+                    _("keepalive support is required to connect"));
         goto cleanup;
     }
 
@@ -682,14 +682,17 @@ cleanup:
     return rv;
 }
 
-/* Helper to serialize typed parameters. */
+/* Helper to serialize typed parameters. This also filters out any string
+ * parameters that must not be returned to older clients.  */
 static int
 remoteSerializeTypedParameters(virTypedParameterPtr params,
                                int nparams,
                                remote_typed_param **ret_params_val,
-                               u_int *ret_params_len)
+                               u_int *ret_params_len,
+                               unsigned int flags)
 {
     int i;
+    int j;
     int rv = -1;
     remote_typed_param *val;
 
@@ -699,38 +702,53 @@ remoteSerializeTypedParameters(virTypedParameterPtr params,
         goto cleanup;
     }
 
-    for (i = 0; i < nparams; ++i) {
+    for (i = 0, j = 0; i < nparams; ++i) {
+        if (!(flags & VIR_TYPED_PARAM_STRING_OKAY) &&
+            params[i].type == VIR_TYPED_PARAM_STRING) {
+            --*ret_params_len;
+            continue;
+        }
+
         /* remoteDispatchClientRequest will free this: */
-        val[i].field = strdup (params[i].field);
-        if (val[i].field == NULL) {
+        val[j].field = strdup(params[i].field);
+        if (val[j].field == NULL) {
             virReportOOMError();
             goto cleanup;
         }
-        val[i].value.type = params[i].type;
+        val[j].value.type = params[i].type;
         switch (params[i].type) {
         case VIR_TYPED_PARAM_INT:
-            val[i].value.remote_typed_param_value_u.i = params[i].value.i;
+            val[j].value.remote_typed_param_value_u.i = params[i].value.i;
             break;
         case VIR_TYPED_PARAM_UINT:
-            val[i].value.remote_typed_param_value_u.ui = params[i].value.ui;
+            val[j].value.remote_typed_param_value_u.ui = params[i].value.ui;
             break;
         case VIR_TYPED_PARAM_LLONG:
-            val[i].value.remote_typed_param_value_u.l = params[i].value.l;
+            val[j].value.remote_typed_param_value_u.l = params[i].value.l;
             break;
         case VIR_TYPED_PARAM_ULLONG:
-            val[i].value.remote_typed_param_value_u.ul = params[i].value.ul;
+            val[j].value.remote_typed_param_value_u.ul = params[i].value.ul;
             break;
         case VIR_TYPED_PARAM_DOUBLE:
-            val[i].value.remote_typed_param_value_u.d = params[i].value.d;
+            val[j].value.remote_typed_param_value_u.d = params[i].value.d;
             break;
         case VIR_TYPED_PARAM_BOOLEAN:
-            val[i].value.remote_typed_param_value_u.b = params[i].value.b;
+            val[j].value.remote_typed_param_value_u.b = params[i].value.b;
+            break;
+        case VIR_TYPED_PARAM_STRING:
+            val[j].value.remote_typed_param_value_u.s =
+                strdup(params[i].value.s);
+            if (val[j].value.remote_typed_param_value_u.s == NULL) {
+                virReportOOMError();
+                goto cleanup;
+            }
             break;
         default:
             virNetError(VIR_ERR_RPC, _("unknown parameter type: %d"),
                         params[i].type);
             goto cleanup;
         }
+        j++;
     }
 
     *ret_params_val = val;
@@ -739,8 +757,11 @@ remoteSerializeTypedParameters(virTypedParameterPtr params,
 
 cleanup:
     if (val) {
-        for (i = 0; i < nparams; i++)
+        for (i = 0; i < nparams; i++) {
             VIR_FREE(val[i].field);
+            if (params[i].type == VIR_TYPED_PARAM_STRING)
+                VIR_FREE(val[i].value.remote_typed_param_value_u.s);
+        }
         VIR_FREE(val);
     }
     return rv;
@@ -753,7 +774,7 @@ remoteDeserializeTypedParameters(remote_typed_param *args_params_val,
                                  int limit,
                                  int *nparams)
 {
-    int i;
+    int i = 0;
     int rv = -1;
     virTypedParameterPtr params = NULL;
 
@@ -804,6 +825,14 @@ remoteDeserializeTypedParameters(remote_typed_param *args_params_val,
             params[i].value.b =
                 args_params_val[i].value.remote_typed_param_value_u.b;
             break;
+        case VIR_TYPED_PARAM_STRING:
+            params[i].value.s =
+                strdup(args_params_val[i].value.remote_typed_param_value_u.s);
+            if (params[i].value.s == NULL) {
+                virReportOOMError();
+                goto cleanup;
+            }
+            break;
         default:
             virNetError(VIR_ERR_INTERNAL_ERROR, _("unknown parameter type: %d"),
                         params[i].type);
@@ -814,8 +843,14 @@ remoteDeserializeTypedParameters(remote_typed_param *args_params_val,
     rv = 0;
 
 cleanup:
-    if (rv < 0)
+    if (rv < 0) {
+        int j;
+        for (j = 0; j < i; ++j) {
+            if (params[j].type == VIR_TYPED_PARAM_STRING)
+                VIR_FREE(params[j].value.s);
+        }
         VIR_FREE(params);
+    }
     return params;
 }
 
@@ -854,7 +889,8 @@ remoteDispatchDomainGetSchedulerParameters(virNetServerPtr server ATTRIBUTE_UNUS
 
     if (remoteSerializeTypedParameters(params, nparams,
                                        &ret->params.params_val,
-                                       &ret->params.params_len) < 0)
+                                       &ret->params.params_len,
+                                       0) < 0)
         goto cleanup;
 
     rv = 0;
@@ -908,7 +944,8 @@ remoteDispatchDomainGetSchedulerParametersFlags(virNetServerPtr server ATTRIBUTE
 
     if (remoteSerializeTypedParameters(params, nparams,
                                        &ret->params.params_val,
-                                       &ret->params.params_len) < 0)
+                                       &ret->params.params_len,
+                                       args->flags) < 0)
         goto cleanup;
 
     rv = 0;
@@ -1095,7 +1132,8 @@ remoteDispatchDomainBlockStatsFlags(virNetServerPtr server ATTRIBUTE_UNUSED,
     /* Serialise the block stats. */
     if (remoteSerializeTypedParameters(params, nparams,
                                        &ret->params.params_val,
-                                       &ret->params.params_len) < 0)
+                                       &ret->params.params_len,
+                                       args->flags) < 0)
         goto cleanup;
 
 success:
@@ -1575,7 +1613,8 @@ remoteDispatchDomainGetMemoryParameters(virNetServerPtr server ATTRIBUTE_UNUSED,
 
     if (remoteSerializeTypedParameters(params, nparams,
                                        &ret->params.params_val,
-                                       &ret->params.params_len) < 0)
+                                       &ret->params.params_len,
+                                       args->flags) < 0)
         goto cleanup;
 
 success:
@@ -1638,7 +1677,8 @@ remoteDispatchDomainGetBlkioParameters(virNetServerPtr server ATTRIBUTE_UNUSED,
 
     if (remoteSerializeTypedParameters(params, nparams,
                                        &ret->params.params_val,
-                                       &ret->params.params_len) < 0)
+                                       &ret->params.params_len,
+                                       args->flags) < 0)
         goto cleanup;
 
 success:
@@ -1647,6 +1687,7 @@ success:
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
+    virTypedParameterArrayClear(params, nparams);
     VIR_FREE(params);
     if (dom)
         virDomainFree(dom);
@@ -1850,6 +1891,70 @@ cleanup:
     return rv;
 }
 
+static int
+remoteDispatchDomainGetBlockIoTune(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                   virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                                   virNetMessagePtr hdr ATTRIBUTE_UNUSED,
+                                   virNetMessageErrorPtr rerr,
+                                   remote_domain_get_block_io_tune_args *args,
+                                   remote_domain_get_block_io_tune_ret *ret)
+{
+    virDomainPtr dom = NULL;
+    int rv = -1;
+    virTypedParameterPtr params = NULL;
+    int nparams = args->nparams;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (nparams > REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("nparams too large"));
+        goto cleanup;
+    }
+
+    if (VIR_ALLOC_N(params, nparams) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainGetBlockIoTune(dom, args->disk ? *args->disk : NULL,
+                                params, &nparams, args->flags) < 0)
+        goto cleanup;
+
+    /* In this case, we need to send back the number of parameters
+     * supported
+     */
+    if (args->nparams == 0) {
+        ret->nparams = nparams;
+        goto success;
+    }
+
+    /* Serialise the block I/O tuning parameters. */
+    if (remoteSerializeTypedParameters(params, nparams,
+                                       &ret->params.params_val,
+                                       &ret->params.params_len,
+                                       args->flags) < 0)
+        goto cleanup;
+
+success:
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virTypedParameterArrayClear(params, nparams);
+    VIR_FREE(params);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
 
 /*-------------------------------------------------------------*/
 
@@ -3191,6 +3296,16 @@ static int remoteDispatchSupportsFeature(
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
+    /* This feature is checked before opening the connection, thus we must
+     * check it first.
+     */
+    if (args->feature == VIR_DRV_FEATURE_PROGRAM_KEEPALIVE) {
+        if (virNetServerClientStartKeepAlive(client) < 0)
+            goto cleanup;
+        supported = 1;
+        goto done;
+    }
+
     if (!priv->conn) {
         virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
@@ -3207,6 +3322,7 @@ static int remoteDispatchSupportsFeature(
         break;
     }
 
+done:
     ret->supported = supported;
     rv = 0;
 

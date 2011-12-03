@@ -25,7 +25,6 @@
 # define __UML_CONF_H
 
 # include "internal.h"
-# include "bridge.h"
 # include "capabilities.h"
 # include "network_conf.h"
 # include "domain_conf.h"
@@ -52,7 +51,6 @@ struct uml_driver {
 
     virDomainObjList domains;
 
-    brControl *brctl;
     char *configDir;
     char *autostartDir;
     char *logDir;

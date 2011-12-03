@@ -12,6 +12,7 @@
 
 # include "internal.h"
 # include "testutils.h"
+# include "util/memory.h"
 # include "qemu/qemu_capabilities.h"
 # include "qemu/qemu_command.h"
 # include "qemu/qemu_domain.h"
@@ -22,6 +23,60 @@
 
 static const char *abs_top_srcdir;
 static struct qemud_driver driver;
+
+static unsigned char *
+fakeSecretGetValue(virSecretPtr obj ATTRIBUTE_UNUSED,
+                   size_t *value_size,
+                   unsigned int fakeflags ATTRIBUTE_UNUSED,
+                   unsigned int internalFlags ATTRIBUTE_UNUSED)
+{
+    char *secret = strdup("AQCVn5hO6HzFAhAAq0NCv8jtJcIcE+HOBlMQ1A");
+    *value_size = strlen(secret);
+    return (unsigned char *) secret;
+}
+
+static virSecretPtr
+fakeSecretLookupByUsage(virConnectPtr conn,
+                        int usageType ATTRIBUTE_UNUSED,
+                        const char *usageID)
+{
+    virSecretPtr ret = NULL;
+    int err;
+    if (STRNEQ(usageID, "mycluster_myname"))
+        return NULL;
+    err = VIR_ALLOC(ret);
+    if (err < 0)
+        return NULL;
+    ret->magic = VIR_SECRET_MAGIC;
+    ret->refs = 1;
+    ret->usageID = strdup(usageID);
+    if (!ret->usageID)
+        return NULL;
+    ret->conn = conn;
+    conn->refs++;
+    return ret;
+}
+
+static int
+fakeSecretClose(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+static virSecretDriver fakeSecretDriver = {
+    .name = "fake_secret",
+    .open = NULL,
+    .close = fakeSecretClose,
+    .numOfSecrets = NULL,
+    .listSecrets = NULL,
+    .lookupByUUID = NULL,
+    .lookupByUsage = fakeSecretLookupByUsage,
+    .defineXML = NULL,
+    .getXMLDesc = NULL,
+    .setValue = NULL,
+    .getValue = fakeSecretGetValue,
+    .undefine = NULL,
+};
 
 static int testCompareXMLToArgvFiles(const char *xml,
                                      const char *cmdline,
@@ -44,6 +99,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
     if (!(conn = virGetConnect()))
         goto fail;
+    conn->secretDriver = &fakeSecretDriver;
 
     len = virtTestLoadFile(cmdline, &expectargv);
     if (len < 0)
@@ -124,7 +180,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (!(cmd = qemuBuildCommandLine(conn, &driver,
                                      vmdef, &monitor_chr, json, extraFlags,
                                      migrateFrom, migrateFd, NULL,
-                                     VIR_VM_OP_NO_OP)))
+                                     VIR_NETDEV_VPORT_PROFILE_OP_NO_OP)))
         goto fail;
 
     if (!!virGetLastError() != expectError) {
@@ -357,6 +413,8 @@ mymain(void)
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-sheepdog", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-network-rbd-auth", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-no-boot", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_BOOTINDEX);
     DO_TEST("disk-usb", false, NONE);
@@ -580,11 +638,16 @@ mymain(void)
     DO_TEST("cpu-exact1", false, NONE);
     DO_TEST("cpu-exact2", false, NONE);
     DO_TEST("cpu-strict1", false, NONE);
+    DO_TEST("cpu-numa1", false, NONE);
+    DO_TEST("cpu-numa2", false, QEMU_CAPS_SMP_TOPOLOGY);
 
     DO_TEST("memtune", false, QEMU_CAPS_NAME);
     DO_TEST("blkiotune", false, QEMU_CAPS_NAME);
+    DO_TEST("blkiotune-device", false, QEMU_CAPS_NAME);
     DO_TEST("cputune", false, QEMU_CAPS_NAME);
     DO_TEST("numatune-memory", false, NONE);
+    DO_TEST("blkdeviotune", false, QEMU_CAPS_NAME, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE);
 
     DO_TEST("multifunction-pci-device", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,

@@ -34,6 +34,7 @@
 #include "domain_conf.h"
 #include "qemu_conf.h"
 #include "command.h"
+#include "virnodesuspend.h"
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -847,6 +848,11 @@ virCapsPtr qemuCapsInit(virCapsPtr old_caps)
         caps->host.cpu = old_caps->host.cpu;
         old_caps->host.cpu = NULL;
     }
+
+    /* Add the power management features of the host */
+
+    if (virNodeSuspendGetTargetMask(&caps->host.powerMgmt) < 0)
+        VIR_WARN("Failed to get host power management capabilities");
 
     virCapabilitiesAddHostMigrateTransport(caps,
                                            "tcp");

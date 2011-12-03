@@ -81,7 +81,9 @@ int qemuMonitorJSONGetBlockStatsParamsNumber(qemuMonitorPtr mon,
 int qemuMonitorJSONGetBlockExtent(qemuMonitorPtr mon,
                                   const char *dev_name,
                                   unsigned long long *extent);
-
+int qemuMonitorJSONBlockResize(qemuMonitorPtr mon,
+                               const char *devce,
+                               unsigned long long size);
 
 int qemuMonitorJSONSetVNCPassword(qemuMonitorPtr mon,
                                   const char *password);
@@ -254,5 +256,13 @@ int qemuMonitorJSONOpenGraphics(qemuMonitorPtr mon,
                                 const char *protocol,
                                 const char *fdname,
                                 bool skipauth);
+
+int qemuMonitorJSONSetBlockIoThrottle(qemuMonitorPtr mon,
+                                      const char *device,
+                                      virDomainBlockIoTuneInfoPtr info);
+
+int qemuMonitorJSONGetBlockIoThrottle(qemuMonitorPtr mon,
+                                      const char *device,
+                                      virDomainBlockIoTuneInfoPtr reply);
 
 #endif /* QEMU_MONITOR_JSON_H */

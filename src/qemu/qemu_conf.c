@@ -23,7 +23,6 @@
 
 #include <config.h>
 
-#include <dirent.h>
 #include <string.h>
 #include <limits.h>
 #include <sys/types.h>
@@ -50,8 +49,6 @@
 #include "xml.h"
 #include "nodeinfo.h"
 #include "logging.h"
-#include "network.h"
-#include "macvtap.h"
 #include "cpu/cpu.h"
 #include "domain_nwfilter.h"
 #include "virfile.h"
@@ -117,6 +114,9 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     if (!(driver->lockManager =
           virLockManagerPluginNew("nop", NULL, 0)))
         return -1;
+
+    driver->keepAliveInterval = 5;
+    driver->keepAliveCount = 5;
 
     /* Just check the file is readable before opening it, otherwise
      * libvirt emits an error.
@@ -306,7 +306,8 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
             (1 << VIR_CGROUP_CONTROLLER_CPU) |
             (1 << VIR_CGROUP_CONTROLLER_DEVICES) |
             (1 << VIR_CGROUP_CONTROLLER_MEMORY) |
-            (1 << VIR_CGROUP_CONTROLLER_BLKIO);
+            (1 << VIR_CGROUP_CONTROLLER_BLKIO) |
+            (1 << VIR_CGROUP_CONTROLLER_CPUSET);
     }
     for (i = 0 ; i < VIR_CGROUP_CONTROLLER_LAST ; i++) {
         if (driver->cgroupControllers & (1 << i)) {
@@ -461,6 +462,14 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     p = virConfGetValue(conf, "max_queued");
     CHECK_TYPE("max_queued", VIR_CONF_LONG);
     if (p) driver->max_queued = p->l;
+
+    p = virConfGetValue(conf, "keepalive_interval");
+    CHECK_TYPE("keepalive_interval", VIR_CONF_LONG);
+    if (p) driver->keepAliveInterval = p->l;
+
+    p = virConfGetValue(conf, "keepalive_count");
+    CHECK_TYPE("keepalive_count", VIR_CONF_LONG);
+    if (p) driver->keepAliveCount = p->l;
 
     virConfFree (conf);
     return 0;

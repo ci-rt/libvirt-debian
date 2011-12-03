@@ -448,6 +448,94 @@ __extension__ extern unsigned short libvirt_rpc_tls_session_handshake_fail_semap
 #define LIBVIRT_RPC_TLS_SESSION_HANDSHAKE_FAIL(arg1) \
 STAP_PROBE1(libvirt,rpc_tls_session_handshake_fail,arg1)
 
+/* LIBVIRT_RPC_KEEPALIVE_NEW ( void *ka, void *client, int refs) */
+#if defined STAP_SDT_V1
+#define LIBVIRT_RPC_KEEPALIVE_NEW_ENABLED() __builtin_expect (rpc_keepalive_new_semaphore, 0)
+#define libvirt_rpc_keepalive_new_semaphore rpc_keepalive_new_semaphore
+#else
+#define LIBVIRT_RPC_KEEPALIVE_NEW_ENABLED() __builtin_expect (libvirt_rpc_keepalive_new_semaphore, 0)
+#endif
+__extension__ extern unsigned short libvirt_rpc_keepalive_new_semaphore __attribute__ ((unused)) __attribute__ ((section (".probes")));
+#define LIBVIRT_RPC_KEEPALIVE_NEW(arg1,arg2,arg3) \
+STAP_PROBE3(libvirt,rpc_keepalive_new,arg1,arg2,arg3)
+
+/* LIBVIRT_RPC_KEEPALIVE_REF ( void *ka, void *client, int refs) */
+#if defined STAP_SDT_V1
+#define LIBVIRT_RPC_KEEPALIVE_REF_ENABLED() __builtin_expect (rpc_keepalive_ref_semaphore, 0)
+#define libvirt_rpc_keepalive_ref_semaphore rpc_keepalive_ref_semaphore
+#else
+#define LIBVIRT_RPC_KEEPALIVE_REF_ENABLED() __builtin_expect (libvirt_rpc_keepalive_ref_semaphore, 0)
+#endif
+__extension__ extern unsigned short libvirt_rpc_keepalive_ref_semaphore __attribute__ ((unused)) __attribute__ ((section (".probes")));
+#define LIBVIRT_RPC_KEEPALIVE_REF(arg1,arg2,arg3) \
+STAP_PROBE3(libvirt,rpc_keepalive_ref,arg1,arg2,arg3)
+
+/* LIBVIRT_RPC_KEEPALIVE_FREE ( void *ka, void *client, int refs) */
+#if defined STAP_SDT_V1
+#define LIBVIRT_RPC_KEEPALIVE_FREE_ENABLED() __builtin_expect (rpc_keepalive_free_semaphore, 0)
+#define libvirt_rpc_keepalive_free_semaphore rpc_keepalive_free_semaphore
+#else
+#define LIBVIRT_RPC_KEEPALIVE_FREE_ENABLED() __builtin_expect (libvirt_rpc_keepalive_free_semaphore, 0)
+#endif
+__extension__ extern unsigned short libvirt_rpc_keepalive_free_semaphore __attribute__ ((unused)) __attribute__ ((section (".probes")));
+#define LIBVIRT_RPC_KEEPALIVE_FREE(arg1,arg2,arg3) \
+STAP_PROBE3(libvirt,rpc_keepalive_free,arg1,arg2,arg3)
+
+/* LIBVIRT_RPC_KEEPALIVE_START ( void *ka, void *client, int interval, int count) */
+#if defined STAP_SDT_V1
+#define LIBVIRT_RPC_KEEPALIVE_START_ENABLED() __builtin_expect (rpc_keepalive_start_semaphore, 0)
+#define libvirt_rpc_keepalive_start_semaphore rpc_keepalive_start_semaphore
+#else
+#define LIBVIRT_RPC_KEEPALIVE_START_ENABLED() __builtin_expect (libvirt_rpc_keepalive_start_semaphore, 0)
+#endif
+__extension__ extern unsigned short libvirt_rpc_keepalive_start_semaphore __attribute__ ((unused)) __attribute__ ((section (".probes")));
+#define LIBVIRT_RPC_KEEPALIVE_START(arg1,arg2,arg3,arg4) \
+STAP_PROBE4(libvirt,rpc_keepalive_start,arg1,arg2,arg3,arg4)
+
+/* LIBVIRT_RPC_KEEPALIVE_STOP ( void *ka, void *client) */
+#if defined STAP_SDT_V1
+#define LIBVIRT_RPC_KEEPALIVE_STOP_ENABLED() __builtin_expect (rpc_keepalive_stop_semaphore, 0)
+#define libvirt_rpc_keepalive_stop_semaphore rpc_keepalive_stop_semaphore
+#else
+#define LIBVIRT_RPC_KEEPALIVE_STOP_ENABLED() __builtin_expect (libvirt_rpc_keepalive_stop_semaphore, 0)
+#endif
+__extension__ extern unsigned short libvirt_rpc_keepalive_stop_semaphore __attribute__ ((unused)) __attribute__ ((section (".probes")));
+#define LIBVIRT_RPC_KEEPALIVE_STOP(arg1,arg2) \
+STAP_PROBE2(libvirt,rpc_keepalive_stop,arg1,arg2)
+
+/* LIBVIRT_RPC_KEEPALIVE_SEND ( void *ka, void *client, int prog, int vers, int proc) */
+#if defined STAP_SDT_V1
+#define LIBVIRT_RPC_KEEPALIVE_SEND_ENABLED() __builtin_expect (rpc_keepalive_send_semaphore, 0)
+#define libvirt_rpc_keepalive_send_semaphore rpc_keepalive_send_semaphore
+#else
+#define LIBVIRT_RPC_KEEPALIVE_SEND_ENABLED() __builtin_expect (libvirt_rpc_keepalive_send_semaphore, 0)
+#endif
+__extension__ extern unsigned short libvirt_rpc_keepalive_send_semaphore __attribute__ ((unused)) __attribute__ ((section (".probes")));
+#define LIBVIRT_RPC_KEEPALIVE_SEND(arg1,arg2,arg3,arg4,arg5) \
+STAP_PROBE5(libvirt,rpc_keepalive_send,arg1,arg2,arg3,arg4,arg5)
+
+/* LIBVIRT_RPC_KEEPALIVE_RECEIVED ( void *ka, void *client, int prog, int vers, int proc) */
+#if defined STAP_SDT_V1
+#define LIBVIRT_RPC_KEEPALIVE_RECEIVED_ENABLED() __builtin_expect (rpc_keepalive_received_semaphore, 0)
+#define libvirt_rpc_keepalive_received_semaphore rpc_keepalive_received_semaphore
+#else
+#define LIBVIRT_RPC_KEEPALIVE_RECEIVED_ENABLED() __builtin_expect (libvirt_rpc_keepalive_received_semaphore, 0)
+#endif
+__extension__ extern unsigned short libvirt_rpc_keepalive_received_semaphore __attribute__ ((unused)) __attribute__ ((section (".probes")));
+#define LIBVIRT_RPC_KEEPALIVE_RECEIVED(arg1,arg2,arg3,arg4,arg5) \
+STAP_PROBE5(libvirt,rpc_keepalive_received,arg1,arg2,arg3,arg4,arg5)
+
+/* LIBVIRT_RPC_KEEPALIVE_TIMEOUT ( void *ka, void *client, int coundToDeath, int idle) */
+#if defined STAP_SDT_V1
+#define LIBVIRT_RPC_KEEPALIVE_TIMEOUT_ENABLED() __builtin_expect (rpc_keepalive_timeout_semaphore, 0)
+#define libvirt_rpc_keepalive_timeout_semaphore rpc_keepalive_timeout_semaphore
+#else
+#define LIBVIRT_RPC_KEEPALIVE_TIMEOUT_ENABLED() __builtin_expect (libvirt_rpc_keepalive_timeout_semaphore, 0)
+#endif
+__extension__ extern unsigned short libvirt_rpc_keepalive_timeout_semaphore __attribute__ ((unused)) __attribute__ ((section (".probes")));
+#define LIBVIRT_RPC_KEEPALIVE_TIMEOUT(arg1,arg2,arg3,arg4) \
+STAP_PROBE4(libvirt,rpc_keepalive_timeout,arg1,arg2,arg3,arg4)
+
 /* LIBVIRT_QEMU_MONITOR_NEW ( void *mon, int refs, int fd) */
 #if defined STAP_SDT_V1
 #define LIBVIRT_QEMU_MONITOR_NEW_ENABLED() __builtin_expect (qemu_monitor_new_semaphore, 0)

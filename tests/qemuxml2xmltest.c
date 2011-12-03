@@ -184,6 +184,7 @@ mymain(void)
     DO_TEST("encrypted-disk");
     DO_TEST("memtune");
     DO_TEST("blkiotune");
+    DO_TEST("blkiotune-device");
     DO_TEST("cputune");
 
     DO_TEST("smp");
@@ -191,6 +192,7 @@ mymain(void)
     DO_TEST("event_idx");
 
     DO_TEST("usb-redir");
+    DO_TEST("blkdeviotune");
 
     /* These tests generate different XML */
     DO_TEST_DIFFERENT("balloon-device-auto");

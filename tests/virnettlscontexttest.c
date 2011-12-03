@@ -33,7 +33,7 @@
 #include "logging.h"
 #include "virfile.h"
 #include "command.h"
-#include "network.h"
+#include "virsocketaddr.h"
 #include "gnutls_1_0_compat.h"
 
 #if !defined WIN32 && HAVE_LIBTASN1_H && !defined GNUTLS_1_0_COMPAT
@@ -231,7 +231,7 @@ testTLSGenerateCert(struct testTLSCertReq *req)
         virSocketAddr addr;
         char *data;
         int len;
-        if (virSocketParseAddr(req->ipaddr1, &addr, 0) < 0) {
+        if (virSocketAddrParse(&addr, req->ipaddr1, 0) < 0) {
             VIR_WARN("Cannot parse %s", req->ipaddr1);
             abort();
         }
@@ -254,7 +254,7 @@ testTLSGenerateCert(struct testTLSCertReq *req)
         virSocketAddr addr;
         char *data;
         int len;
-        if (virSocketParseAddr(req->ipaddr2, &addr, 0) < 0) {
+        if (virSocketAddrParse(&addr, req->ipaddr2, 0) < 0) {
             VIR_WARN("Cannot parse %s", req->ipaddr2);
             abort();
         }

@@ -121,7 +121,14 @@ virStorageBackendLogicalMakeVol(virStoragePoolObjPtr pool,
         }
     }
 
-    if (groups[1] && !STREQ(groups[1], "")) {
+    /* Skips the backingStore of lv created with "--virtualsize",
+     * its original device "/dev/$vgname/$lvname_vorigin" is
+     * just for lvm internal use, one should never use it.
+     *
+     * (lvs outputs "[$lvname_vorigin] for field "origin" if the
+     *  lv is created with "--virtualsize").
+     */
+    if (groups[1] && !STREQ(groups[1], "") && (groups[1][0] != '[')) {
         if (virAsprintf(&vol->backingStore.path, "%s/%s",
                         pool->def->target.path, groups[1]) < 0) {
             virReportOOMError();
@@ -768,20 +775,40 @@ virStorageBackendLogicalDeleteVol(virConnectPtr conn ATTRIBUTE_UNUSED,
                                   virStorageVolDefPtr vol,
                                   unsigned int flags)
 {
-    const char *cmdargv[] = {
-        LVREMOVE, "-f", vol->target.path, NULL
-    };
+    int ret = -1;
+
+    virCommandPtr lvchange_cmd = NULL;
+    virCommandPtr lvremove_cmd = NULL;
 
     virCheckFlags(0, -1);
 
     virFileWaitForDevices();
 
-    if (virRun(cmdargv, NULL) < 0)
-        return -1;
+    lvchange_cmd = virCommandNewArgList(LVCHANGE,
+                                        "-aln",
+                                        vol->target.path,
+                                        NULL);
 
-    return 0;
+    lvremove_cmd = virCommandNewArgList(LVREMOVE,
+                                        "-f",
+                                        vol->target.path,
+                                        NULL);
+
+    if (virCommandRun(lvremove_cmd, NULL) < 0) {
+        if (virCommandRun(lvchange_cmd, NULL) < 0) {
+            goto cleanup;
+        } else {
+            if (virCommandRun(lvremove_cmd, NULL) < 0)
+                goto cleanup;
+        }
+    }
+
+    ret = 0;
+cleanup:
+    virCommandFree(lvchange_cmd);
+    virCommandFree(lvremove_cmd);
+    return ret;
 }
-
 
 virStorageBackend virStorageBackendLogical = {
     .type = VIR_STORAGE_POOL_LOGICAL,

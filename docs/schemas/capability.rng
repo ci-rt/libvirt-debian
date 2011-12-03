@@ -35,6 +35,9 @@
         </optional>
       </element>
       <optional>
+        <ref name='power_management'/>
+      </optional>
+      <optional>
         <ref name='migration'/>
       </optional>
       <optional>
@@ -103,6 +106,28 @@
         <empty/>
       </element>
     </zeroOrMore>
+  </define>
+
+  <define name='power_management'>
+    <element name='power_management'>
+      <interleave>
+        <optional>
+          <element name='suspend_mem'>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name='suspend_disk'>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name='suspend_hybrid'>
+            <empty/>
+          </element>
+        </optional>
+      </interleave>
+    </element>
   </define>
 
   <define name='migration'>

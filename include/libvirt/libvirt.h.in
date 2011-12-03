@@ -200,11 +200,14 @@ typedef virDomainControlInfo *virDomainControlInfoPtr;
  * current domain state. VIR_DOMAIN_AFFECT_LIVE requires a running
  * domain, and VIR_DOMAIN_AFFECT_CONFIG requires a persistent domain
  * (whether or not it is running).
+ *
+ * These enums should not conflict with those of virTypedParameterFlags.
  */
 typedef enum {
     VIR_DOMAIN_AFFECT_CURRENT = 0,      /* Affect current domain state.  */
     VIR_DOMAIN_AFFECT_LIVE    = 1 << 0, /* Affect running domain state.  */
     VIR_DOMAIN_AFFECT_CONFIG  = 1 << 1, /* Affect persistent domain state.  */
+    /* 1 << 2 is reserved for virTypedParameterFlags */
 } virDomainModificationImpact;
 
 /**
@@ -247,6 +250,20 @@ typedef enum {
 } virDomainCreateFlags;
 
 
+/**
+ * virNodeSuspendTarget:
+ *
+ * Flags to indicate which system-wide sleep state the host must be
+ * transitioned to.
+ */
+typedef enum {
+    VIR_NODE_SUSPEND_TARGET_MEM     = 0,
+    VIR_NODE_SUSPEND_TARGET_DISK    = 1,
+    VIR_NODE_SUSPEND_TARGET_HYBRID  = 2,
+
+    /* This constant is subject to change */
+    VIR_NODE_SUSPEND_TARGET_LAST,
+} virNodeSuspendTarget;
 
 /**
  * virStream:
@@ -489,8 +506,34 @@ typedef enum {
     VIR_TYPED_PARAM_LLONG   = 3, /* long long case */
     VIR_TYPED_PARAM_ULLONG  = 4, /* unsigned long long case */
     VIR_TYPED_PARAM_DOUBLE  = 5, /* double case */
-    VIR_TYPED_PARAM_BOOLEAN = 6  /* boolean(character) case */
+    VIR_TYPED_PARAM_BOOLEAN = 6, /* boolean(character) case */
+    VIR_TYPED_PARAM_STRING  = 7, /* string case */
 } virTypedParameterType;
+
+/**
+ * virTypedParameterFlags:
+ *
+ * Flags related to libvirt APIs that use virTypedParameter.
+ *
+ * These enums should not conflict with those of virDomainModificationImpact.
+ */
+typedef enum {
+    /* 1 << 0 is reserved for virDomainModificationImpact */
+    /* 1 << 1 is reserved for virDomainModificationImpact */
+
+    /* Older servers lacked the ability to handle string typed
+     * parameters.  Attempts to set a string parameter with an older
+     * server will fail at the client, but attempts to retrieve
+     * parameters must not return strings from a new server to an
+     * older client, so this flag exists to identify newer clients to
+     * newer servers.  This flag is automatically set when needed, so
+     * the user does not have to worry about it; however, manually
+     * setting the flag can be used to reject servers that cannot
+     * return typed strings, even if no strings would be returned.
+     */
+    VIR_TYPED_PARAM_STRING_OKAY = 1 << 2,
+
+} virTypedParameterFlags;
 
 /**
  * VIR_TYPED_PARAM_FIELD_LENGTH:
@@ -520,6 +563,7 @@ struct _virTypedParameter {
         unsigned long long int ul;  /* type is ULLONG */
         double d;                   /* type is DOUBLE */
         char b;                     /* type is BOOLEAN */
+        char *s;                    /* type is STRING, may not be NULL */
     } value; /* parameter value */
 };
 
@@ -1055,6 +1099,11 @@ unsigned long long      virNodeGetFreeMemory    (virConnectPtr conn);
 int                     virNodeGetSecurityModel (virConnectPtr conn,
                                                  virSecurityModelPtr secmodel);
 
+int                     virNodeSuspendForDuration (virConnectPtr conn,
+                                                   unsigned int target,
+                                                   unsigned long long duration,
+                                                   unsigned int flags);
+
 /*
  * Gather list of running domains
  */
@@ -1206,6 +1255,16 @@ char *                  virDomainGetSchedulerType(virDomainPtr domain,
 
 #define VIR_DOMAIN_BLKIO_WEIGHT "weight"
 
+/**
+ * VIR_DOMAIN_BLKIO_DEVICE_WEIGHT:
+ *
+ * Macro for the blkio tunable weight_device: it represents the
+ * per-device weight, as a string.  The string is parsed as a
+ * series of /path/to/device,weight elements, separated by ','.
+ */
+
+#define VIR_DOMAIN_BLKIO_DEVICE_WEIGHT "device_weight"
+
 /* Set Blkio tunables for the domain*/
 int     virDomainSetBlkioParameters(virDomainPtr domain,
                                     virTypedParameterPtr params,
@@ -1332,11 +1391,11 @@ char *                  virConnectDomainXMLToNative(virConnectPtr conn,
                                                     unsigned int flags);
 
 int                     virDomainBlockStats     (virDomainPtr dom,
-                                                 const char *path,
+                                                 const char *disk,
                                                  virDomainBlockStatsPtr stats,
                                                  size_t size);
 int                     virDomainBlockStatsFlags (virDomainPtr dom,
-                                                  const char *path,
+                                                  const char *disk,
                                                   virTypedParameterPtr params,
                                                   int *nparams,
                                                   unsigned int flags);
@@ -1349,12 +1408,15 @@ int                     virDomainMemoryStats (virDomainPtr dom,
                                               unsigned int nr_stats,
                                               unsigned int flags);
 int                     virDomainBlockPeek (virDomainPtr dom,
-                                            const char *path,
+                                            const char *disk,
                                             unsigned long long offset,
                                             size_t size,
                                             void *buffer,
                                             unsigned int flags);
-
+int                     virDomainBlockResize (virDomainPtr dom,
+                                              const char *disk,
+                                              unsigned long long size,
+                                              unsigned int flags);
 
 /** virDomainBlockInfo:
  *
@@ -1387,7 +1449,7 @@ struct _virDomainBlockInfo {
 };
 
 int                     virDomainGetBlockInfo(virDomainPtr dom,
-                                              const char *path,
+                                              const char *disk,
                                               virDomainBlockInfoPtr info,
                                               unsigned int flags);
 
@@ -1629,16 +1691,79 @@ struct _virDomainBlockJobInfo {
 };
 typedef virDomainBlockJobInfo *virDomainBlockJobInfoPtr;
 
-int       virDomainBlockJobAbort(virDomainPtr dom, const char *path,
+int       virDomainBlockJobAbort(virDomainPtr dom, const char *disk,
                                  unsigned int flags);
-int     virDomainGetBlockJobInfo(virDomainPtr dom, const char *path,
+int     virDomainGetBlockJobInfo(virDomainPtr dom, const char *disk,
                                  virDomainBlockJobInfoPtr info,
                                  unsigned int flags);
-int    virDomainBlockJobSetSpeed(virDomainPtr dom, const char *path,
+int    virDomainBlockJobSetSpeed(virDomainPtr dom, const char *disk,
                                  unsigned long bandwidth, unsigned int flags);
 
-int           virDomainBlockPull(virDomainPtr dom, const char *path,
+int           virDomainBlockPull(virDomainPtr dom, const char *disk,
                                  unsigned long bandwidth, unsigned int flags);
+
+
+/* Block I/O throttling support */
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC:
+ *
+ * Macro for the BlockIoTune tunable weight: it represents the total
+ * bytes per second permitted through a block device, as a ullong.
+ */
+#define VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC "total_bytes_sec"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC:
+ *
+ * Macro for the BlockIoTune tunable weight: it repersents the read
+ * bytes per second permitted through a block device, as a ullong.
+ */
+#define VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC "read_bytes_sec"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC:
+ *
+ * Macro for the BlockIoTune tunable weight: it repersents the write
+ * bytes per second permitted through a block device, as a ullong.
+ */
+#define VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC "write_bytes_sec"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC:
+ *
+ * Macro for the BlockIoTune tunable weight: it repersents the total
+ * I/O operations per second permitted through a block device, as a ullong.
+ */
+#define VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC "total_iops_sec"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC:
+ *
+ * Macro for the BlockIoTune tunable weight: it repersents the read
+ * I/O operations per second permitted through a block device, as a ullong.
+ */
+#define VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC "read_iops_sec"
+
+/**
+ * VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC:
+ * Macro for the BlockIoTune tunable weight: it repersents the write
+ * I/O operations per second permitted through a block device, as a ullong.
+ */
+#define VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC "write_iops_sec"
+
+int
+virDomainSetBlockIoTune(virDomainPtr dom,
+                        const char *disk,
+                        virTypedParameterPtr params,
+                        int nparams,
+                        unsigned int flags);
+int
+virDomainGetBlockIoTune(virDomainPtr dom,
+                        const char *disk,
+                        virTypedParameterPtr params,
+                        int *nparams,
+                        unsigned int flags);
 
 
 /*
@@ -2625,6 +2750,7 @@ int virInterfaceIsActive(virInterfacePtr iface);
 
 int virConnectIsEncrypted(virConnectPtr conn);
 int virConnectIsSecure(virConnectPtr conn);
+int virConnectIsAlive(virConnectPtr conn);
 
 /*
  * CPU specification API
@@ -3063,7 +3189,7 @@ typedef enum {
  */
 typedef void (*virConnectDomainEventBlockJobCallback)(virConnectPtr conn,
                                                       virDomainPtr dom,
-                                                      const char *path,
+                                                      const char *disk,
                                                       int type,
                                                       int status,
                                                       void *opaque);
@@ -3356,6 +3482,10 @@ typedef struct _virTypedParameter virMemoryParameter;
  * preferred alias since 0.9.2.
  */
 typedef virMemoryParameter *virMemoryParameterPtr;
+
+int virConnectSetKeepAlive(virConnectPtr conn,
+                           int interval,
+                           unsigned int count);
 
 #ifdef __cplusplus
 }

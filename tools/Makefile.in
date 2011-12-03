@@ -38,6 +38,7 @@ bin_PROGRAMS = virsh$(EXEEXT)
 @HAVE_SANLOCK_TRUE@am__append_1 = virt-sanlock-cleanup
 @WITH_WIN_ICON_TRUE@am__append_2 = virsh_win_icon.$(OBJEXT)
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@am__append_3 = libvirt-guests.init
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@am__append_4 = libvirt-guests.service
 subdir = tools
 DIST_COMMON = $(dist_man1_MANS) $(dist_man8_MANS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -1043,6 +1044,7 @@ LTLIBMULTITHREAD = @LTLIBMULTITHREAD@
 LTLIBOBJS = @LTLIBOBJS@
 LTLIBPTH = @LTLIBPTH@
 LTLIBTHREAD = @LTLIBTHREAD@
+LVCHANGE = @LVCHANGE@
 LVCREATE = @LVCREATE@
 LVREMOVE = @LVREMOVE@
 LVS = @LVS@
@@ -1316,6 +1318,7 @@ REPLACE_WCTOMB = @REPLACE_WCTOMB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
 REPLACE_WRITE = @REPLACE_WRITE@
 RPCGEN = @RPCGEN@
+RT_LIBS = @RT_LIBS@
 SANLOCK_CFLAGS = @SANLOCK_CFLAGS@
 SANLOCK_LIBS = @SANLOCK_LIBS@
 SASL_CFLAGS = @SASL_CFLAGS@
@@ -1460,16 +1463,10 @@ ICON_FILES = \
 	libvirt_win_icon_64x64.ico \
 	virsh_win_icon.rc
 
-EXTRA_DIST = \
-	$(ICON_FILES)					\
-	virt-xml-validate.in				\
-	virt-pki-validate.in				\
-	virt-sanlock-cleanup.in				\
-	virt-sanlock-cleanup.8				\
-	virsh.pod					\
-	libvirt-guests.init.sh				\
-	libvirt-guests.sysconf
-
+EXTRA_DIST = $(ICON_FILES) virt-xml-validate.in virt-pki-validate.in \
+	virt-sanlock-cleanup.in virt-sanlock-cleanup.8 virsh.pod \
+	libvirt-guests.sysconf libvirt-guests.init.sh \
+	libvirt-guests.service.in
 DISTCLEANFILES = $(am__append_1) $(BUILT_SOURCES)
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
 @HAVE_SANLOCK_TRUE@sbin_SCRIPTS = virt-sanlock-cleanup
@@ -1489,7 +1486,8 @@ virsh_CFLAGS = \
 		$(LIBXML_CFLAGS)				\
 		$(READLINE_CFLAGS)
 
-BUILT_SOURCES = virsh-net-edit.c virsh-pool-edit.c $(am__append_3)
+BUILT_SOURCES = virsh-net-edit.c virsh-pool-edit.c $(am__append_3) \
+	$(am__append_4)
 CLEANFILES = $(bin_SCRIPTS) *.gcov .libs/*.gcda .libs/*.gcno *.gcno \
 	*.gcda *.i *.s
 MAINTAINERCLEANFILES = $(dist_man1_MANS)
@@ -2094,32 +2092,59 @@ install-data-local: install-init
 
 uninstall-local: uninstall-init
 
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@install-init: libvirt-guests.init
+install-sysconfig:
+	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
+	$(INSTALL_DATA) $(srcdir)/libvirt-guests.sysconf \
+	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
+
+uninstall-sysconfig:
+	rm -f $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
+
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@install-init: libvirt-guests.init install-sysconfig
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	$(INSTALL_SCRIPT) libvirt-guests.init \
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirt-guests.sysconf \
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
 
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@uninstall-init:
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests \
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@uninstall-init: install-sysconfig
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
 
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@libvirt-guests.init: libvirt-guests.init.sh $(top_builddir)/config.status
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	$(AM_V_GEN)sed					\
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	    -e 's!\@PACKAGE\@!$(PACKAGE)!g'		\
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	    -e 's!\@bindir\@!$(bindir)!g'		\
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	    -e 's!\@localedir\@!$(localedir)!g'		\
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	    -e 's!\@localstatedir\@!$(localstatedir)!g'	\
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	    -e 's!\@sbindir\@!$(sbindir)!g'		\
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	    -e 's!\@sysconfdir\@!$(sysconfdir)!g'	\
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	    < $< > $@-t &&				\
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	    chmod a+x $@-t &&				\
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	    mv $@-t $@
 @LIBVIRT_INIT_SCRIPT_RED_HAT_FALSE@install-init:
 @LIBVIRT_INIT_SCRIPT_RED_HAT_FALSE@uninstall-init:
-@LIBVIRT_INIT_SCRIPT_RED_HAT_FALSE@libvirt-guests.init:
+
+libvirt-guests.init: libvirt-guests.init.sh $(top_builddir)/config.status
+	$(AM_V_GEN)sed					\
+	    -e 's!\@PACKAGE\@!$(PACKAGE)!g'		\
+	    -e 's!\@bindir\@!$(bindir)!g'		\
+	    -e 's!\@localedir\@!$(localedir)!g'		\
+	    -e 's!\@localstatedir\@!$(localstatedir)!g'	\
+	    -e 's!\@sbindir\@!$(sbindir)!g'		\
+	    -e 's!\@sysconfdir\@!$(sysconfdir)!g'	\
+	    < $< > $@-t &&				\
+	    chmod a+x $@-t &&				\
+	    mv $@-t $@
+
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@install-systemd: libvirt-guests.service install-sysconfig
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/systemd.d
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	$(INSTALL_SCRIPT) libvirt-guests.service \
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	  $(DESTDIR)$(sysconfdir)/rc.d/systemd.d/libvirt-guests
+
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@uninstall-systemd: install-sysconfig
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/rc.d/systemd.d/libvirt-guests
+
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@install-systemd:
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@uninstall-systemd:
+
+libvirt-guests.service: libvirt-guests.service.in $(top_builddir)/config.status
+	$(AM_V_GEN)sed					\
+	    -e 's!\@PACKAGE\@!$(PACKAGE)!g'		\
+	    -e 's!\@bindir\@!$(bindir)!g'		\
+	    -e 's!\@localedir\@!$(localedir)!g'		\
+	    -e 's!\@localstatedir\@!$(localstatedir)!g'	\
+	    -e 's!\@sbindir\@!$(sbindir)!g'		\
+	    -e 's!\@sysconfdir\@!$(sysconfdir)!g'	\
+	    < $< > $@-t &&				\
+	    chmod a+x $@-t &&				\
+	    mv $@-t $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
