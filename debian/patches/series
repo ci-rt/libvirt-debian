@@ -9,4 +9,3 @@ virsh-Initialize-library-before-calling-virResetLast.patch
 Disable-daemon-start-test.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
 Disable-failing-virnetsockettest.patch
-storage-forbid-rebuilding-existing-disk-storage-pool.patch
