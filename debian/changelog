@@ -1,3 +1,14 @@
+libvirt (0.9.8~rc1-1) experimental; urgency=low
+
+  * [99476ba] New upstream version 0.9.8~rc1
+  * [3bdcf07] Make radvd a linux-any build-dep (Closes: #649635)
+  * [7546785] Drop patch storage-forbid-rebuilding-existing-disk-storage-pool
+    applied upstream.
+  * [0c2afdb] Rediff remaining patches
+  * [3d121b2] Update symbols file
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 03 Dec 2011 14:49:49 +0100
+
 libvirt (0.9.7-2) unstable; urgency=low
 
   * [b0bdb13] Enable numa support. (Closes: #648323)
