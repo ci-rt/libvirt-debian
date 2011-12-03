@@ -5,6 +5,7 @@ Subject: fix Debian specific path to hvm loader
 Closes: #517059
 
 
+
 ---
  src/xen/xen_hypervisor.c               |    2 +-
  tests/xencapsdata/xen-i686-pae-hvm.xml |    2 +-
@@ -14,10 +15,10 @@ Closes: #517059
  5 files changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
-index 634b23b..0d4adcd 100644
+index 6c71b65..9c924c2 100644
 --- a/src/xen/xen_hypervisor.c
 +++ b/src/xen/xen_hypervisor.c
-@@ -2329,7 +2329,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
+@@ -2338,7 +2338,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
                                                "/usr/lib64/xen/bin/qemu-dm" :
                                                "/usr/lib/xen/bin/qemu-dm"),
                                               (guest_archs[i].hvm ?
@@ -27,10 +28,10 @@ index 634b23b..0d4adcd 100644
                                               1,
                                               machines)) == NULL) {
 diff --git a/tests/xencapsdata/xen-i686-pae-hvm.xml b/tests/xencapsdata/xen-i686-pae-hvm.xml
-index 42b099c..2886c09 100644
+index 872e5f6..7cde6df 100644
 --- a/tests/xencapsdata/xen-i686-pae-hvm.xml
 +++ b/tests/xencapsdata/xen-i686-pae-hvm.xml
-@@ -34,7 +34,7 @@
+@@ -35,7 +35,7 @@
      <arch name='i686'>
        <wordsize>32</wordsize>
        <emulator>/usr/lib/xen/bin/qemu-dm</emulator>
@@ -40,10 +41,10 @@ index 42b099c..2886c09 100644
        <domain type='xen'>
        </domain>
 diff --git a/tests/xencapsdata/xen-ia64-be-hvm.xml b/tests/xencapsdata/xen-ia64-be-hvm.xml
-index 732b693..cf3dfc1 100644
+index 222de1d..e56e306 100644
 --- a/tests/xencapsdata/xen-ia64-be-hvm.xml
 +++ b/tests/xencapsdata/xen-ia64-be-hvm.xml
-@@ -31,7 +31,7 @@
+@@ -32,7 +32,7 @@
      <arch name='ia64'>
        <wordsize>64</wordsize>
        <emulator>/usr/lib/xen/bin/qemu-dm</emulator>
@@ -53,10 +54,10 @@ index 732b693..cf3dfc1 100644
        <domain type='xen'>
        </domain>
 diff --git a/tests/xencapsdata/xen-ia64-hvm.xml b/tests/xencapsdata/xen-ia64-hvm.xml
-index ef48a95..871cd65 100644
+index 33c4946..25617fc 100644
 --- a/tests/xencapsdata/xen-ia64-hvm.xml
 +++ b/tests/xencapsdata/xen-ia64-hvm.xml
-@@ -28,7 +28,7 @@
+@@ -29,7 +29,7 @@
      <arch name='ia64'>
        <wordsize>64</wordsize>
        <emulator>/usr/lib/xen/bin/qemu-dm</emulator>
@@ -66,10 +67,10 @@ index ef48a95..871cd65 100644
        <domain type='xen'>
        </domain>
 diff --git a/tests/xencapsdata/xen-x86_64-hvm.xml b/tests/xencapsdata/xen-x86_64-hvm.xml
-index 52c12c6..83dac3e 100644
+index 8de8cf4..493d1ea 100644
 --- a/tests/xencapsdata/xen-x86_64-hvm.xml
 +++ b/tests/xencapsdata/xen-x86_64-hvm.xml
-@@ -31,7 +31,7 @@
+@@ -32,7 +32,7 @@
      <arch name='i686'>
        <wordsize>32</wordsize>
        <emulator>/usr/lib64/xen/bin/qemu-dm</emulator>
@@ -78,7 +79,7 @@ index 52c12c6..83dac3e 100644
        <machine>xenfv</machine>
        <domain type='xen'>
        </domain>
-@@ -49,7 +49,7 @@
+@@ -50,7 +50,7 @@
      <arch name='x86_64'>
        <wordsize>64</wordsize>
        <emulator>/usr/lib64/xen/bin/qemu-dm</emulator>
@@ -87,4 +88,3 @@ index 52c12c6..83dac3e 100644
        <machine>xenfv</machine>
        <domain type='xen'>
        </domain>
--- 

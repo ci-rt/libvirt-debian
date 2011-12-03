@@ -5,6 +5,7 @@ Subject: Debianize libvirt-guests
 Origin: vendor
 
 
+
 ---
  tools/libvirt-guests.init.sh |   43 +++++++++++++----------------------------
  tools/libvirt-guests.sysconf |    6 ++--
@@ -115,4 +116,3 @@ index 9b8b64f..e0644db 100644
  
  # If non-zero, try to bypass the file system cache when saving and
  # restoring guests, even though this may give slower operation for
--- 

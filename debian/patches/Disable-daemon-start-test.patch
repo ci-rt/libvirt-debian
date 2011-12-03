@@ -30,4 +30,3 @@ index 6aa3269..4dac92e 100755
  test_final $i $fail
  
  # "cat log" would print this for non-root:
--- 

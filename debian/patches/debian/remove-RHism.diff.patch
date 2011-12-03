@@ -7,7 +7,7 @@ Subject: remove-RHism.diff
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index 775d302..d6fbf26 100644
+index 5131ade..35f6a82 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
 @@ -98,7 +98,7 @@ Output elapsed time information for each command.
@@ -19,4 +19,3 @@ index 775d302..d6fbf26 100644
  
  Most B<virsh> commands require root privileges to run due to the
  communications channels used to talk to the hypervisor.  Running as
--- 

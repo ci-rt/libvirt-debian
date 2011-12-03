@@ -8,7 +8,7 @@ Subject: Allow libvirt group to access the socket
  2 files changed, 10 insertions(+), 5 deletions(-)
 
 diff --git a/daemon/libvirtd.conf b/daemon/libvirtd.conf
-index da3983e..7cfb324 100644
+index f218454..bb3efd1 100644
 --- a/daemon/libvirtd.conf
 +++ b/daemon/libvirtd.conf
 @@ -78,7 +78,7 @@
@@ -65,4 +65,3 @@ index f2b513d..6aa3269 100755
    && { echo "$0: found unexpected lines (above) in $conf" 1>&2; exit 1; }
  
  # Start with the sample libvirtd.conf file, uncommenting all real directives.
--- 

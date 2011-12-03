@@ -8,10 +8,10 @@ until we debugged the interaction with pbuilder
  1 files changed, 2 insertions(+), 0 deletions(-)
 
 diff --git a/tests/virnetsockettest.c b/tests/virnetsockettest.c
-index a76e5cc..b271ec4 100644
+index 44d6f65..bcfcbd3 100644
 --- a/tests/virnetsockettest.c
 +++ b/tests/virnetsockettest.c
-@@ -496,10 +496,12 @@ mymain(void)
+@@ -491,10 +491,12 @@ mymain(void)
      if (virtTestRun("Socket UNIX Addrs", 1, testSocketUNIXAddrs, NULL) < 0)
          ret = -1;
  
@@ -24,4 +24,3 @@ index a76e5cc..b271ec4 100644
  
      struct testSSHData sshData1 = {
          .nodename = "somehost",
--- 
