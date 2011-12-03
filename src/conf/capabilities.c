@@ -23,12 +23,22 @@
 
 #include <config.h>
 
+#include <strings.h>
+
 #include "capabilities.h"
 #include "buf.h"
 #include "memory.h"
 #include "util.h"
 #include "uuid.h"
 #include "cpu_conf.h"
+#include "virterror_internal.h"
+
+
+#define VIR_FROM_THIS VIR_FROM_CAPABILITIES
+
+VIR_ENUM_DECL(virCapsHostPMTarget)
+VIR_ENUM_IMPL(virCapsHostPMTarget, VIR_NODE_SUSPEND_TARGET_LAST,
+              "suspend_mem", "suspend_disk", "suspend_hybrid");
 
 /**
  * virCapabilitiesNew:
@@ -200,7 +210,6 @@ virCapabilitiesAddHostFeature(virCapsPtr caps,
 
     return 0;
 }
-
 
 /**
  * virCapabilitiesAddHostMigrateTransport:
@@ -686,6 +695,23 @@ virCapabilitiesFormatXML(virCapsPtr caps)
     virBufferAdjustIndent(&xml, -6);
 
     virBufferAddLit(&xml, "    </cpu>\n");
+
+    /* The PM query was successful. */
+    if (caps->host.powerMgmt) {
+        /* The host supports some PM features. */
+        unsigned int pm = caps->host.powerMgmt;
+        virBufferAddLit(&xml, "    <power_management>\n");
+        while (pm) {
+            int bit = ffs(pm) - 1;
+            virBufferAsprintf(&xml, "      <%s/>\n",
+                              virCapsHostPMTargetTypeToString(bit));
+            pm &= ~(1U << bit);
+        }
+        virBufferAddLit(&xml, "    </power_management>\n");
+    } else {
+        /* The host does not support any PM feature. */
+        virBufferAddLit(&xml, "    <power_management/>\n");
+    }
 
     if (caps->host.offlineMigrate) {
         virBufferAddLit(&xml, "    <migration_features>\n");

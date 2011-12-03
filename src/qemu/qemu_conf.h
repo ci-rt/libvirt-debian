@@ -28,7 +28,6 @@
 
 # include "ebtables.h"
 # include "internal.h"
-# include "bridge.h"
 # include "capabilities.h"
 # include "network_conf.h"
 # include "domain_conf.h"
@@ -40,7 +39,6 @@
 # include "cpu_conf.h"
 # include "driver.h"
 # include "bitmap.h"
-# include "macvtap.h"
 # include "command.h"
 # include "threadpool.h"
 # include "locking/lock_manager.h"
@@ -69,7 +67,6 @@ struct qemud_driver {
 
     virDomainObjList domains;
 
-    brControl *brctl;
     /* These four directories are ones libvirtd uses (so must be root:root
      * to avoid security risk from QEMU processes */
     char *configDir;
@@ -138,6 +135,9 @@ struct qemud_driver {
      * of guests which will be automatically killed
      * when the virConnectPtr is closed*/
     virHashTablePtr autodestroy;
+
+    int keepAliveInterval;
+    unsigned int keepAliveCount;
 };
 
 typedef struct _qemuDomainCmdlineDef qemuDomainCmdlineDef;

@@ -35,11 +35,13 @@
 # include "util.h"
 # include "threads.h"
 # include "hash.h"
-# include "network.h"
+# include "virsocketaddr.h"
 # include "nwfilter_params.h"
 # include "nwfilter_conf.h"
-# include "macvtap.h"
+# include "virnetdevmacvlan.h"
 # include "sysinfo.h"
+# include "virnetdevvportprofile.h"
+# include "virnetdevbandwidth.h"
 
 /* Different types of hypervisor */
 /* NB: Keep in sync with virDomainVirtTypeToString impl */
@@ -51,13 +53,10 @@ enum virDomainVirtType {
     VIR_DOMAIN_VIRT_LXC,
     VIR_DOMAIN_VIRT_UML,
     VIR_DOMAIN_VIRT_OPENVZ,
-    VIR_DOMAIN_VIRT_VSERVER,
-    VIR_DOMAIN_VIRT_LDOM,
     VIR_DOMAIN_VIRT_TEST,
     VIR_DOMAIN_VIRT_VMWARE,
     VIR_DOMAIN_VIRT_HYPERV,
     VIR_DOMAIN_VIRT_VBOX,
-    VIR_DOMAIN_VIRT_ONE,
     VIR_DOMAIN_VIRT_PHYP,
 
     VIR_DOMAIN_VIRT_LAST,
@@ -311,6 +310,17 @@ enum virDomainDiskSecretType {
     VIR_DOMAIN_DISK_SECRET_TYPE_LAST
 };
 
+typedef struct _virDomainBlockIoTuneInfo virDomainBlockIoTuneInfo;
+struct _virDomainBlockIoTuneInfo {
+    unsigned long long total_bytes_sec;
+    unsigned long long read_bytes_sec;
+    unsigned long long write_bytes_sec;
+    unsigned long long total_iops_sec;
+    unsigned long long read_iops_sec;
+    unsigned long long write_iops_sec;
+};
+typedef virDomainBlockIoTuneInfo *virDomainBlockIoTuneInfoPtr;
+
 /* Stores the virtual disk configuration */
 typedef struct _virDomainDiskDef virDomainDiskDef;
 typedef virDomainDiskDef *virDomainDiskDefPtr;
@@ -333,6 +343,9 @@ struct _virDomainDiskDef {
     } auth;
     char *driverName;
     char *driverType;
+
+    virDomainBlockIoTuneInfo blkdeviotune;
+
     char *serial;
     int cachemode;
     int error_policy;  /* enum virDomainDiskErrorPolicy */
@@ -508,10 +521,10 @@ struct _virDomainActualNetDef {
         struct {
             char *linkdev;
             int mode; /* enum virMacvtapMode from util/macvtap.h */
-            virVirtualPortProfileParamsPtr virtPortProfile;
+            virNetDevVPortProfilePtr virtPortProfile;
         } direct;
     } data;
-    virBandwidthPtr bandwidth;
+    virNetDevBandwidthPtr bandwidth;
 };
 
 /* Stores the virtual network interface configuration */
@@ -542,7 +555,7 @@ struct _virDomainNetDef {
         struct {
             char *name;
             char *portgroup;
-            virVirtualPortProfileParamsPtr virtPortProfile;
+            virNetDevVPortProfilePtr virtPortProfile;
             /* actual has info about the currently used physical
              * device (if the network is of type
              * bridge/private/vepa/passthrough). This is saved in the
@@ -564,7 +577,7 @@ struct _virDomainNetDef {
         struct {
             char *linkdev;
             int mode; /* enum virMacvtapMode from util/macvtap.h */
-            virVirtualPortProfileParamsPtr virtPortProfile;
+            virNetDevVPortProfilePtr virtPortProfile;
         } direct;
     } data;
     struct {
@@ -576,7 +589,7 @@ struct _virDomainNetDef {
     virDomainDeviceInfo info;
     char *filter;
     virNWFilterHashTablePtr filterparams;
-    virBandwidthPtr bandwidth;
+    virNetDevBandwidthPtr bandwidth;
     int linkstate;
 };
 
@@ -1361,6 +1374,17 @@ struct _virDomainNumatuneDef {
     /* Future NUMA tuning related stuff should go here. */
 };
 
+typedef struct _virBlkioDeviceWeight virBlkioDeviceWeight;
+typedef virBlkioDeviceWeight *virBlkioDeviceWeightPtr;
+struct _virBlkioDeviceWeight {
+    char *path;
+    unsigned int weight;
+};
+
+void virBlkioDeviceWeightArrayClear(virBlkioDeviceWeightPtr deviceWeights,
+                                    int ndevices);
+
+
 /*
  * Guest VM main configuration
  *
@@ -1378,6 +1402,9 @@ struct _virDomainDef {
 
     struct {
         unsigned int weight;
+
+        size_t ndevices;
+        virBlkioDeviceWeightPtr devices;
     } blkio;
 
     struct {
@@ -1660,6 +1687,8 @@ void virDomainNetDefFree(virDomainNetDefPtr def);
 void virDomainSmartcardDefFree(virDomainSmartcardDefPtr def);
 void virDomainChrDefFree(virDomainChrDefPtr def);
 void virDomainChrSourceDefFree(virDomainChrSourceDefPtr def);
+int virDomainChrSourceDefCopy(virDomainChrSourceDefPtr src,
+                              virDomainChrSourceDefPtr dest);
 void virDomainSoundDefFree(virDomainSoundDefPtr def);
 void virDomainMemballoonDefFree(virDomainMemballoonDefPtr def);
 void virDomainWatchdogDefFree(virDomainWatchdogDefPtr def);
@@ -1743,7 +1772,7 @@ int virDomainDefFormatInternal(virDomainDefPtr def,
                                unsigned int flags,
                                virBufferPtr buf);
 
-int virDomainCpuSetParse(const char **str,
+int virDomainCpuSetParse(const char *str,
                          char sep,
                          char *cpuset,
                          int maxcpu);
@@ -1792,12 +1821,12 @@ int virDomainGraphicsListenSetNetwork(virDomainGraphicsDefPtr def,
             ATTRIBUTE_NONNULL(1);
 
 int virDomainNetGetActualType(virDomainNetDefPtr iface);
-char *virDomainNetGetActualBridgeName(virDomainNetDefPtr iface);
-char *virDomainNetGetActualDirectDev(virDomainNetDefPtr iface);
+const char *virDomainNetGetActualBridgeName(virDomainNetDefPtr iface);
+const char *virDomainNetGetActualDirectDev(virDomainNetDefPtr iface);
 int virDomainNetGetActualDirectMode(virDomainNetDefPtr iface);
-virVirtualPortProfileParamsPtr
+virNetDevVPortProfilePtr
 virDomainNetGetActualDirectVirtPortProfile(virDomainNetDefPtr iface);
-virBandwidthPtr
+virNetDevBandwidthPtr
 virDomainNetGetActualBandwidth(virDomainNetDefPtr iface);
 
 int virDomainControllerInsert(virDomainDefPtr def,

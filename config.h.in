@@ -24,9 +24,6 @@
 /* Define to the number of bits in type 'wint_t'. */
 #undef BITSIZEOF_WINT_T
 
-/* Location or name of the brctl program (see bridge-utils) */
-#undef BRCTL
-
 /* Define to 1 if chown fails to change ctime when at least one argument was
    not -1. */
 #undef CHOWN_CHANGE_TIME_BUG
@@ -553,6 +550,9 @@
 /* Define to 1 if you have the `chsize' function. */
 #undef HAVE_CHSIZE
 
+/* Defined if clock_gettime() exists in librt.so */
+#undef HAVE_CLOCK_GETTIME
+
 /* Define to 1 if you have the `confstr' function. */
 #undef HAVE_CONFSTR
 
@@ -1067,6 +1067,9 @@
 
 /* Define to 1 if you have the <net/ethernet.h> header file. */
 #undef HAVE_NET_ETHERNET_H
+
+/* Define to 1 if you have the <net/if.h> header file. */
+#undef HAVE_NET_IF_H
 
 /* Define to 1 if you have the `newlocale' function. */
 #undef HAVE_NEWLOCALE
@@ -1690,6 +1693,9 @@
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
 #undef LT_OBJDIR
+
+/* Location of lvchange program */
+#undef LVCHANGE
 
 /* Location of lvcreate program */
 #undef LVCREATE

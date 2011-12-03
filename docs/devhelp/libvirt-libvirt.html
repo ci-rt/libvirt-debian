@@ -42,8 +42,15 @@
 #define <a href="#VIR_COPY_CPUMAP">VIR_COPY_CPUMAP</a>(cpumaps, maplen, vcpu, cpumap);
 #define <a href="#VIR_CPU_MAPLEN">VIR_CPU_MAPLEN</a>(cpu);
 #define <a href="#VIR_CPU_USABLE">VIR_CPU_USABLE</a>(cpumaps, maplen, vcpu, cpu);
+#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_WEIGHT">VIR_DOMAIN_BLKIO_DEVICE_WEIGHT</a>;
 #define <a href="#VIR_DOMAIN_BLKIO_FIELD_LENGTH">VIR_DOMAIN_BLKIO_FIELD_LENGTH</a>;
 #define <a href="#VIR_DOMAIN_BLKIO_WEIGHT">VIR_DOMAIN_BLKIO_WEIGHT</a>;
+#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC">VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC</a>;
+#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC">VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC</a>;
+#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC">VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC</a>;
+#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC">VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC</a>;
+#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC">VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC</a>;
+#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC">VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC</a>;
 #define <a href="#VIR_DOMAIN_BLOCK_STATS_ERRS">VIR_DOMAIN_BLOCK_STATS_ERRS</a>;
 #define <a href="#VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH">VIR_DOMAIN_BLOCK_STATS_FIELD_LENGTH</a>;
 #define <a href="#VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ">VIR_DOMAIN_BLOCK_STATS_FLUSH_REQ</a>;
@@ -198,6 +205,7 @@ typedef struct _virNodeInfo <a href="#virNodeInfo">virNodeInfo</a>;
 typedef <a href="libvirt-libvirt.html#virNodeInfo">virNodeInfo</a> * <a href="#virNodeInfoPtr">virNodeInfoPtr</a>;
 typedef struct _virNodeMemoryStats <a href="#virNodeMemoryStats">virNodeMemoryStats</a>;
 typedef <a href="libvirt-libvirt.html#virNodeMemoryStats">virNodeMemoryStats</a> * <a href="#virNodeMemoryStatsPtr">virNodeMemoryStatsPtr</a>;
+typedef enum <a href="#virNodeSuspendTarget">virNodeSuspendTarget</a>;
 typedef struct _virTypedParameter <a href="#virSchedParameter">virSchedParameter</a>;
 typedef <a href="libvirt-libvirt.html#virSchedParameter">virSchedParameter</a> * <a href="#virSchedParameterPtr">virSchedParameterPtr</a>;
 typedef enum <a href="#virSchedParameterType">virSchedParameterType</a>;
@@ -226,6 +234,7 @@ typedef enum <a href="#virStreamEventType">virStreamEventType</a>;
 typedef enum <a href="#virStreamFlags">virStreamFlags</a>;
 typedef <a href="libvirt-libvirt.html#virStream">virStream</a> * <a href="#virStreamPtr">virStreamPtr</a>;
 typedef struct _virTypedParameter <a href="#virTypedParameter">virTypedParameter</a>;
+typedef enum <a href="#virTypedParameterFlags">virTypedParameterFlags</a>;
 typedef <a href="libvirt-libvirt.html#virTypedParameter">virTypedParameter</a> * <a href="#virTypedParameterPtr">virTypedParameterPtr</a>;
 typedef enum <a href="#virTypedParameterType">virTypedParameterType</a>;
 typedef struct _virVcpuInfo <a href="#virVcpuInfo">virVcpuInfo</a>;
@@ -235,7 +244,7 @@ typedef int <a href="#virConnectAuthCallbackPtr">virConnectAuthCallbackPtr</a>	(
 char *	<a href="#virConnectBaselineCPU">virConnectBaselineCPU</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char ** xmlCPUs, <br/>					 unsigned int ncpus, <br/>					 unsigned int flags);
 int	<a href="#virConnectClose">virConnectClose</a>			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectCompareCPU">virConnectCompareCPU</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags);
-typedef void <a href="#virConnectDomainEventBlockJobCallback">virConnectDomainEventBlockJobCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * path, <br/>						 int type, <br/>						 int status, <br/>						 void * opaque);
+typedef void <a href="#virConnectDomainEventBlockJobCallback">virConnectDomainEventBlockJobCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * disk, <br/>						 int type, <br/>						 int status, <br/>						 void * opaque);
 typedef int <a href="#virConnectDomainEventCallback">virConnectDomainEventCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 int event, <br/>					 int detail, <br/>					 void * opaque);
 int	<a href="#virConnectDomainEventDeregister">virConnectDomainEventDeregister</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a> cb);
 int	<a href="#virConnectDomainEventDeregisterAny">virConnectDomainEventDeregisterAny</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 int callbackID);
@@ -259,6 +268,7 @@ char *	<a href="#virConnectGetSysinfo">virConnectGetSysinfo</a>		(<a href="libvi
 const char *	<a href="#virConnectGetType">virConnectGetType</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 char *	<a href="#virConnectGetURI">virConnectGetURI</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectGetVersion">virConnectGetVersion</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long * hvVer);
+int	<a href="#virConnectIsAlive">virConnectIsAlive</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectIsEncrypted">virConnectIsEncrypted</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectIsSecure">virConnectIsSecure</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectListDefinedDomains">virConnectListDefinedDomains</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
@@ -285,15 +295,17 @@ int	<a href="#virConnectNumOfStoragePools">virConnectNumOfStoragePools</a>	(<a h
 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	<a href="#virConnectOpenAuth">virConnectOpenAuth</a>	(const char * name, <br/>					 <a href="libvirt-libvirt.html#virConnectAuthPtr">virConnectAuthPtr</a> auth, <br/>					 unsigned int flags);
 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	<a href="#virConnectOpenReadOnly">virConnectOpenReadOnly</a>	(const char * name);
 int	<a href="#virConnectRef">virConnectRef</a>			(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectSetKeepAlive">virConnectSetKeepAlive</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int interval, <br/>					 unsigned int count);
 int	<a href="#virDomainAbortJob">virDomainAbortJob</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainAttachDevice">virDomainAttachDevice</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml);
 int	<a href="#virDomainAttachDeviceFlags">virDomainAttachDeviceFlags</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * xml, <br/>					 unsigned int flags);
-int	<a href="#virDomainBlockJobAbort">virDomainBlockJobAbort</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 unsigned int flags);
-int	<a href="#virDomainBlockJobSetSpeed">virDomainBlockJobSetSpeed</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags);
-int	<a href="#virDomainBlockPeek">virDomainBlockPeek</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 unsigned long long offset, <br/>					 size_t size, <br/>					 void * buffer, <br/>					 unsigned int flags);
-int	<a href="#virDomainBlockPull">virDomainBlockPull</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags);
-int	<a href="#virDomainBlockStats">virDomainBlockStats</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockStatsPtr">virDomainBlockStatsPtr</a> stats, <br/>					 size_t size);
-int	<a href="#virDomainBlockStatsFlags">virDomainBlockStatsFlags</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
+int	<a href="#virDomainBlockJobAbort">virDomainBlockJobAbort</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned int flags);
+int	<a href="#virDomainBlockJobSetSpeed">virDomainBlockJobSetSpeed</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags);
+int	<a href="#virDomainBlockPeek">virDomainBlockPeek</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long long offset, <br/>					 size_t size, <br/>					 void * buffer, <br/>					 unsigned int flags);
+int	<a href="#virDomainBlockPull">virDomainBlockPull</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags);
+int	<a href="#virDomainBlockResize">virDomainBlockResize</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long long size, <br/>					 unsigned int flags);
+int	<a href="#virDomainBlockStats">virDomainBlockStats</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockStatsPtr">virDomainBlockStatsPtr</a> stats, <br/>					 size_t size);
+int	<a href="#virDomainBlockStatsFlags">virDomainBlockStatsFlags</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
 int	<a href="#virDomainCoreDump">virDomainCoreDump</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * to, <br/>					 unsigned int flags);
 int	<a href="#virDomainCreate">virDomainCreate</a>			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainCreateLinux">virDomainCreateLinux</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xmlDesc, <br/>					 unsigned int flags);
@@ -307,8 +319,9 @@ int	<a href="#virDomainDetachDeviceFlags">virDomainDetachDeviceFlags</a>	(<a hre
 int	<a href="#virDomainFree">virDomainFree</a>			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainGetAutostart">virDomainGetAutostart</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int * autostart);
 int	<a href="#virDomainGetBlkioParameters">virDomainGetBlkioParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
-int	<a href="#virDomainGetBlockInfo">virDomainGetBlockInfo</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockInfoPtr">virDomainBlockInfoPtr</a> info, <br/>					 unsigned int flags);
-int	<a href="#virDomainGetBlockJobInfo">virDomainGetBlockJobInfo</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockJobInfoPtr">virDomainBlockJobInfoPtr</a> info, <br/>					 unsigned int flags);
+int	<a href="#virDomainGetBlockInfo">virDomainGetBlockInfo</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockInfoPtr">virDomainBlockInfoPtr</a> info, <br/>					 unsigned int flags);
+int	<a href="#virDomainGetBlockIoTune">virDomainGetBlockIoTune</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
+int	<a href="#virDomainGetBlockJobInfo">virDomainGetBlockJobInfo</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockJobInfoPtr">virDomainBlockJobInfoPtr</a> info, <br/>					 unsigned int flags);
 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	<a href="#virDomainGetConnect">virDomainGetConnect</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom);
 int	<a href="#virDomainGetControlInfo">virDomainGetControlInfo</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virDomainControlInfoPtr">virDomainControlInfoPtr</a> info, <br/>					 unsigned int flags);
 unsigned int	<a href="#virDomainGetID">virDomainGetID</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
@@ -371,6 +384,7 @@ char *	<a href="#virDomainScreenshot">virDomainScreenshot</a>		(<a href="libvirt
 int	<a href="#virDomainSendKey">virDomainSendKey</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int codeset, <br/>					 unsigned int holdtime, <br/>					 unsigned int * keycodes, <br/>					 int nkeycodes, <br/>					 unsigned int flags);
 int	<a href="#virDomainSetAutostart">virDomainSetAutostart</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int autostart);
 int	<a href="#virDomainSetBlkioParameters">virDomainSetBlkioParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags);
+int	<a href="#virDomainSetBlockIoTune">virDomainSetBlockIoTune</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags);
 int	<a href="#virDomainSetMaxMemory">virDomainSetMaxMemory</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory);
 int	<a href="#virDomainSetMemory">virDomainSetMemory</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory);
 int	<a href="#virDomainSetMemoryFlags">virDomainSetMemoryFlags</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory, <br/>					 unsigned int flags);
@@ -486,6 +500,7 @@ int	<a href="#virNodeGetMemoryStats">virNodeGetMemoryStats</a>		(<a href="libvir
 int	<a href="#virNodeGetSecurityModel">virNodeGetSecurityModel</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virSecurityModelPtr">virSecurityModelPtr</a> secmodel);
 int	<a href="#virNodeListDevices">virNodeListDevices</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * cap, <br/>					 char ** const names, <br/>					 int maxnames, <br/>					 unsigned int flags);
 int	<a href="#virNodeNumOfDevices">virNodeNumOfDevices</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * cap, <br/>					 unsigned int flags);
+int	<a href="#virNodeSuspendForDuration">virNodeSuspendForDuration</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int target, <br/>					 unsigned long long duration, <br/>					 unsigned int flags);
 <a href="libvirt-libvirt.html#virSecretPtr">virSecretPtr</a>	<a href="#virSecretDefineXML">virSecretDefineXML</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml, <br/>					 unsigned int flags);
 int	<a href="#virSecretFree">virSecretFree</a>			(<a href="libvirt-libvirt.html#virSecretPtr">virSecretPtr</a> secret);
 <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	<a href="#virSecretGetConnect">virSecretGetConnect</a>	(<a href="libvirt-libvirt.html#virSecretPtr">virSecretPtr</a> secret);
@@ -583,12 +598,40 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
 </pre><p>This macro is to be used in conjunction with virDomainGetVcpus() API. <a href="libvirt-libvirt.html#VIR_CPU_USABLE">VIR_CPU_USABLE</a> macro returns a non zero value (true) if the cpu is usable by the vcpu, and 0 otherwise.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cpumaps</tt></i>:</span></td><td>pointer to an array of cpumap (in 8-bit bytes) (IN)</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>the length (in bytes) of one cpumap</td></tr><tr><td><span class="term"><i><tt>vcpu</tt></i>:</span></td><td>the virtual CPU number</td></tr><tr><td><span class="term"><i><tt>cpu</tt></i>:</span></td><td>the physical CPU number</td></tr></tbody></table></div>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLKIO_DEVICE_WEIGHT">Macro </a>VIR_DOMAIN_BLKIO_DEVICE_WEIGHT</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_WEIGHT">VIR_DOMAIN_BLKIO_DEVICE_WEIGHT</a>;
+</pre><p>Macro for the blkio tunable weight_device: it represents the per-device weight, as a string. The string is parsed as a series of /path/to/device,weight elements, separated by ','.</p>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLKIO_FIELD_LENGTH">Macro </a>VIR_DOMAIN_BLKIO_FIELD_LENGTH</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLKIO_FIELD_LENGTH">VIR_DOMAIN_BLKIO_FIELD_LENGTH</a>;
 </pre><p>Macro providing the field length of virBlkioParameter. Provided for backwards compatibility; <a href="libvirt-libvirt.html#VIR_TYPED_PARAM_FIELD_LENGTH">VIR_TYPED_PARAM_FIELD_LENGTH</a> is the preferred value since 0.9.2.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLKIO_WEIGHT">Macro </a>VIR_DOMAIN_BLKIO_WEIGHT</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLKIO_WEIGHT">VIR_DOMAIN_BLKIO_WEIGHT</a>;
 </pre><p>Macro for the Blkio tunable weight: it represents the io weight the guest can use, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC">VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC</a>;
+</pre><p>Macro for the BlockIoTune tunable weight: it repersents the read bytes per second permitted through a block device, as a ullong.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC">VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC</a>;
+</pre><p>Macro for the BlockIoTune tunable weight: it repersents the read I/O operations per second permitted through a block device, as a ullong.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC">VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC</a>;
+</pre><p>Macro for the BlockIoTune tunable weight: it represents the total bytes per second permitted through a block device, as a ullong.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC">VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC</a>;
+</pre><p>Macro for the BlockIoTune tunable weight: it repersents the total I/O operations per second permitted through a block device, as a ullong.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC">VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC</a>;
+</pre><p>Macro for the BlockIoTune tunable weight: it repersents the write bytes per second permitted through a block device, as a ullong.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC">Macro </a>VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC">VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC</a>;
+</pre><p>Macro for the BlockIoTune tunable weight: it repersents the write I/O operations per second permitted through a block device, as a ullong.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLOCK_STATS_ERRS">Macro </a>VIR_DOMAIN_BLOCK_STATS_ERRS</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLOCK_STATS_ERRS">VIR_DOMAIN_BLOCK_STATS_ERRS</a>;
@@ -1293,7 +1336,7 @@ The content of this structure is not made public by the API.
         <div class="refsect2" lang="en"><h3><a name="virDomainModificationImpact">Enum </a>virDomainModificationImpact</h3><pre class="programlisting">enum <a href="#virDomainModificationImpact">virDomainModificationImpact</a> {
     <a name="VIR_DOMAIN_AFFECT_CURRENT">VIR_DOMAIN_AFFECT_CURRENT</a> = 0 /* Affect current domain state. */
     <a name="VIR_DOMAIN_AFFECT_LIVE">VIR_DOMAIN_AFFECT_LIVE</a> = 1 /* Affect running domain state. */
-    <a name="VIR_DOMAIN_AFFECT_CONFIG">VIR_DOMAIN_AFFECT_CONFIG</a> = 2 /* Affect persistent domain state. */
+    <a name="VIR_DOMAIN_AFFECT_CONFIG">VIR_DOMAIN_AFFECT_CONFIG</a> = 2 /* Affect persistent domain state.  1 &lt;&lt; 2 is reserved for virTypedParameterFlags */
 };
 </pre><p/>
 </div>
@@ -1584,6 +1627,15 @@ The content of this structure is not made public by the API.
 </pre><p>a <a href="libvirt-libvirt.html#virNodeMemoryStatsPtr">virNodeMemoryStatsPtr</a> is a pointer to a <a href="libvirt-libvirt.html#virNodeMemoryStats">virNodeMemoryStats</a> structure.</p>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeSuspendTarget">Enum </a>virNodeSuspendTarget</h3><pre class="programlisting">enum <a href="#virNodeSuspendTarget">virNodeSuspendTarget</a> {
+    <a name="VIR_NODE_SUSPEND_TARGET_MEM">VIR_NODE_SUSPEND_TARGET_MEM</a> = 0
+    <a name="VIR_NODE_SUSPEND_TARGET_DISK">VIR_NODE_SUSPEND_TARGET_DISK</a> = 1
+    <a name="VIR_NODE_SUSPEND_TARGET_HYBRID">VIR_NODE_SUSPEND_TARGET_HYBRID</a> = 2 /* This constant is subject to change */
+    <a name="VIR_NODE_SUSPEND_TARGET_LAST">VIR_NODE_SUSPEND_TARGET_LAST</a> = 3
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virSchedParameter">Structure </a>virSchedParameter</h3><pre class="programlisting">struct _virTypedParameter {
     char field[VIR_TYPED_PARAM_FIELD_LENGTH]	field	: parameter name
     int	type	: parameter type, <a href="libvirt-libvirt.html#virTypedParameterType">virTypedParameterType</a>
@@ -1766,6 +1818,12 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virTypedParameterFlags">Enum </a>virTypedParameterFlags</h3><pre class="programlisting">enum <a href="#virTypedParameterFlags">virTypedParameterFlags</a> {
+    <a name="VIR_TYPED_PARAM_STRING_OKAY">VIR_TYPED_PARAM_STRING_OKAY</a> = 4
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virTypedParameterPtr">Typedef </a>virTypedParameterPtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virTypedParameter">virTypedParameter</a> * virTypedParameterPtr;
 </pre><p>a pointer to a <a href="libvirt-libvirt.html#virTypedParameter">virTypedParameter</a> structure.</p>
 </div>
@@ -1777,6 +1835,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_TYPED_PARAM_ULLONG">VIR_TYPED_PARAM_ULLONG</a> = 4 /* unsigned long long case */
     <a name="VIR_TYPED_PARAM_DOUBLE">VIR_TYPED_PARAM_DOUBLE</a> = 5 /* double case */
     <a name="VIR_TYPED_PARAM_BOOLEAN">VIR_TYPED_PARAM_BOOLEAN</a> = 6 /* boolean(character) case */
+    <a name="VIR_TYPED_PARAM_STRING">VIR_TYPED_PARAM_STRING</a> = 7 /* string case */
 };
 </pre><p/>
 </div>
@@ -1809,10 +1868,10 @@ from the user and filled in to the 'result' and 'resultlen' fields.
 If an interaction cannot be filled, fill in NULL and 0.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cred</tt></i>:</span></td><td>list of <a href="libvirt-libvirt.html#virConnectCredential">virConnectCredential</a> object to fetch from user</td></tr><tr><td><span class="term"><i><tt>ncred</tt></i>:</span></td><td>size of cred list</td></tr><tr><td><span class="term"><i><tt>cbdata</tt></i>:</span></td><td>opaque data passed to <a href="libvirt-libvirt.html#virConnectOpenAuth">virConnectOpenAuth</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if all interactions were filled, or -1 upon error</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventBlockJobCallback"/>Function type virConnectDomainEventBlockJobCallback</h3><pre class="programlisting">void	virConnectDomainEventBlockJobCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * path, <br/>						 int type, <br/>						 int status, <br/>						 void * opaque)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventBlockJobCallback"/>Function type virConnectDomainEventBlockJobCallback</h3><pre class="programlisting">void	virConnectDomainEventBlockJobCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * disk, <br/>						 int type, <br/>						 int status, <br/>						 void * opaque)<br/>
 </pre><p>The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_BLOCK_JOB with virConnectDomainEventRegisterAny()</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>fully-qualified filename of the affected disk</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>type of block job (virDomainBlockJobType)</td></tr><tr><td><span class="term"><i><tt>status</tt></i>:</span></td><td>final status of the operation (virConnectDomainEventBlockJobStatus)</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td/></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td/></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>type of block job (virDomainBlockJobType)</td></tr><tr><td><span class="term"><i><tt>status</tt></i>:</span></td><td>final status of the operation (virConnectDomainEventBlockJobStatus)</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td/></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventCallback"/>Function type virConnectDomainEventCallback</h3><pre class="programlisting">int	virConnectDomainEventCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 int event, <br/>					 int detail, <br/>					 void * opaque)<br/>
 </pre><p>A callback function to be registered, and called when a domain event occurs</p>
@@ -2111,6 +2170,13 @@ hypervisor call, i.e. with privileged access to the hypervisor, not
 with a Read-Only connection.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>hvVer</tt></i>:</span></td><td>return value for the version of the running hypervisor (OUT)</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 otherwise. if the version can't be extracted by lack of capacities returns 0 and @hvVer is 0, otherwise @hvVer value is major * 1,000,000 + minor * 1,000 + release</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectIsAlive"/>virConnectIsAlive ()</h3><pre class="programlisting">int	virConnectIsAlive		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
+</pre><p>Determine if the connection to the hypervisor is still alive
+
+A connection will be classed as alive if it is either local, or running
+over a channel (TCP or UNIX socket) which is not closed.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if alive, 0 if dead, -1 on error</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectIsEncrypted"/>virConnectIsEncrypted ()</h3><pre class="programlisting">int	virConnectIsEncrypted		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>
 </pre><p>Determine if the connection to the hypervisor is encrypted</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if encrypted, 0 if not encrypted, -1 on error</td></tr></tbody></table></div></div>
@@ -2246,6 +2312,20 @@ it. ie, each new thread using a connection would increment
 the reference count.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>the connection to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectSetKeepAlive"/>virConnectSetKeepAlive ()</h3><pre class="programlisting">int	virConnectSetKeepAlive		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int interval, <br/>					 unsigned int count)<br/>
+</pre><p>Start sending keepalive messages after interval second of inactivity and
+consider the connection to be broken when no response is received after
+count keepalive messages sent in a row. In other words, sending count + 1
+keepalive message results in closing the connection. When interval is &lt;= 0,
+no keepalive messages will be sent. When count is 0, the connection will be
+automatically closed after interval seconds of inactivity without sending
+any keepalive messages.
+
+Note: client has to implement and run event loop to be able to use keepalive
+messages. Failure to do so may result in connections being closed
+unexpectedly.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to a hypervisor connection</td></tr><tr><td><span class="term"><i><tt>interval</tt></i>:</span></td><td>number of seconds of inactivity before a keepalive message is sent</td></tr><tr><td><span class="term"><i><tt>count</tt></i>:</span></td><td>number of messages that can be sent in a row</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 on error, 0 on success, 1 when remote party doesn't support keepalive messages.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainAbortJob"/>virDomainAbortJob ()</h3><pre class="programlisting">int	virDomainAbortJob		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Requests that the current background job be aborted at the
 soonest opportunity. This will block until the job has
@@ -2279,16 +2359,30 @@ in an existing CDROM/Floppy device, however, applications are
 recommended to use the virDomainUpdateDeviceFlag method instead.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobAbort"/>virDomainBlockJobAbort ()</h3><pre class="programlisting">int	virDomainBlockJobAbort		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 unsigned int flags)<br/>
-</pre><p>Cancel the active block job on the given disk.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>fully-qualified filename of disk</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when successful.</td></tr></tbody></table></div></div>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobAbort"/>virDomainBlockJobAbort ()</h3><pre class="programlisting">int	virDomainBlockJobAbort		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned int flags)<br/>
+</pre><p>Cancel the active block job on the given disk.
+
+The @disk parameter is either an unambiguous source name of the
+block device (the &lt;source file='...'/&gt; sub-element, such as
+"/path/to/image"), or (since 0.9.5) the device target shorthand
+(the &lt;target dev='...'/&gt; sub-element, such as "xvda"). Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when successful.</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobSetSpeed"/>virDomainBlockJobSetSpeed ()</h3><pre class="programlisting">int	virDomainBlockJobSetSpeed	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobSetSpeed"/>virDomainBlockJobSetSpeed ()</h3><pre class="programlisting">int	virDomainBlockJobSetSpeed	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
 </pre><p>Set the maximimum allowable bandwidth that a block job may consume. If
-bandwidth is 0, the limit will revert to the hypervisor default.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>fully-qualified filename of disk</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>specify bandwidth limit in Mbps</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when successful.</td></tr></tbody></table></div></div>
+bandwidth is 0, the limit will revert to the hypervisor default.
+
+The @disk parameter is either an unambiguous source name of the
+block device (the &lt;source file='...'/&gt; sub-element, such as
+"/path/to/image"), or (since 0.9.5) the device target shorthand
+(the &lt;target dev='...'/&gt; sub-element, such as "xvda"). Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>specify bandwidth limit in Mbps</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when successful.</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virDomainBlockPeek"/>virDomainBlockPeek ()</h3><pre class="programlisting">int	virDomainBlockPeek		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 unsigned long long offset, <br/>					 size_t size, <br/>					 void * buffer, <br/>					 unsigned int flags)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockPeek"/>virDomainBlockPeek ()</h3><pre class="programlisting">int	virDomainBlockPeek		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long long offset, <br/>					 size_t size, <br/>					 void * buffer, <br/>					 unsigned int flags)<br/>
 </pre><p>This function allows you to read the contents of a domain's
 disk device.
 
@@ -2302,10 +2396,12 @@ block device or file directly, but that won't work in the
 remote case, nor if you don't have sufficient permission.
 Hence the need for this call).
 
-'path' must be a device or file corresponding to the domain.
-In other words it must be the precise string returned in
-a &lt;disk&gt;&lt;source dev='...'/&gt;&lt;/disk&gt; from
-virDomainGetXMLDesc.
+The @disk parameter is either an unambiguous source name of the
+block device (the &lt;source file='...'/&gt; sub-element, such as
+"/path/to/image"), or (since 0.9.5) the device target shorthand
+(the &lt;target dev='...'/&gt; sub-element, such as "xvda"). Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.
 
 'offset' and 'size' represent an area which must lie entirely
 within the device or file. 'size' may be 0 to test if the
@@ -2316,9 +2412,9 @@ call would succeed.
 NB. The remote driver imposes a 64K byte limit on 'size'.
 For your program to be able to work reliably over a remote
 connection you should split large requests to &lt;= 65536 bytes.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>path to the block device</td></tr><tr><td><span class="term"><i><tt>offset</tt></i>:</span></td><td>offset within block device</td></tr><tr><td><span class="term"><i><tt>size</tt></i>:</span></td><td>size to read</td></tr><tr><td><span class="term"><i><tt>buffer</tt></i>:</span></td><td>return buffer (must be at least size bytes)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused, always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of failure. really 64 bits</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>offset</tt></i>:</span></td><td>offset within block device</td></tr><tr><td><span class="term"><i><tt>size</tt></i>:</span></td><td>size to read</td></tr><tr><td><span class="term"><i><tt>buffer</tt></i>:</span></td><td>return buffer (must be at least size bytes)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused, always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of failure. really 64 bits</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virDomainBlockPull"/>virDomainBlockPull ()</h3><pre class="programlisting">int	virDomainBlockPull		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockPull"/>virDomainBlockPull ()</h3><pre class="programlisting">int	virDomainBlockPull		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
 </pre><p>Populate a disk image with data from its backing image. Once all data from
 its backing image has been pulled, the disk no longer depends on a backing
 image. This function pulls data for the entire device in the background.
@@ -2326,19 +2422,44 @@ Progress of the operation can be checked with virDomainGetBlockJobInfo() and
 the operation can be aborted with virDomainBlockJobAbort(). When finished,
 an asynchronous event is raised to indicate the final status.
 
+The @disk parameter is either an unambiguous source name of the
+block device (the &lt;source file='...'/&gt; sub-element, such as
+"/path/to/image"), or (since 0.9.5) the device target shorthand
+(the &lt;target dev='...'/&gt; sub-element, such as "xvda"). Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.
+
 The maximum bandwidth (in Mbps) that will be used to do the copy can be
 specified with the bandwidth parameter. If set to 0, libvirt will choose a
 suitable default. Some hypervisors do not support this feature and will
 return an error if bandwidth is not 0.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>Fully-qualified filename of disk</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify copy bandwidth limit in Mbps</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify copy bandwidth limit in Mbps</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virDomainBlockStats"/>virDomainBlockStats ()</h3><pre class="programlisting">int	virDomainBlockStats		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockStatsPtr">virDomainBlockStatsPtr</a> stats, <br/>					 size_t size)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockResize"/>virDomainBlockResize ()</h3><pre class="programlisting">int	virDomainBlockResize		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long long size, <br/>					 unsigned int flags)<br/>
+</pre><p>Note that this call may fail if the underlying virtualization hypervisor
+does not support it. And this call requires privileged access to the
+hypervisor.
+
+The @disk parameter is either an unambiguous source name of the
+block device (the &lt;source file='...'/&gt; sub-element, such as
+"/path/to/image"), or (since 0.9.5) the device target shorthand
+(the &lt;target dev='...'/&gt; sub-element, such as "xvda"). Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.
+
+Resize a block device of domain while the domain is running.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block image, or shorthand</td></tr><tr><td><span class="term"><i><tt>size</tt></i>:</span></td><td>new size of the block image in kilobytes</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused, always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of failure.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockStats"/>virDomainBlockStats ()</h3><pre class="programlisting">int	virDomainBlockStats		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockStatsPtr">virDomainBlockStatsPtr</a> stats, <br/>					 size_t size)<br/>
 </pre><p>This function returns block device (disk) stats for block
 devices attached to the domain.
 
-The path parameter is the name of the block device. Get this
-by calling <a href="libvirt-libvirt.html#virDomainGetXMLDesc">virDomainGetXMLDesc</a> and finding the &lt;target dev='...'&gt;
-attribute within //domain/devices/disk. (For example, "xvda").
+The @disk parameter is either the device target shorthand (the
+&lt;target dev='...'/&gt; sub-element, such as "xvda"), or (since 0.9.8)
+an unambiguous source name of the block device (the &lt;source
+file='...'/&gt; sub-element, such as "/path/to/image"). Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.
 
 Domains may have more than one block device. To get stats for
 each you should make multiple calls to this function.
@@ -2346,15 +2467,18 @@ each you should make multiple calls to this function.
 Individual fields within the stats structure may be returned
 as -1, which indicates that the hypervisor does not support
 that particular statistic.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>path to the block device</td></tr><tr><td><span class="term"><i><tt>stats</tt></i>:</span></td><td>block device stats (returned)</td></tr><tr><td><span class="term"><i><tt>size</tt></i>:</span></td><td>size of stats structure</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>stats</tt></i>:</span></td><td>block device stats (returned)</td></tr><tr><td><span class="term"><i><tt>size</tt></i>:</span></td><td>size of stats structure</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virDomainBlockStatsFlags"/>virDomainBlockStatsFlags ()</h3><pre class="programlisting">int	virDomainBlockStatsFlags	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockStatsFlags"/>virDomainBlockStatsFlags ()</h3><pre class="programlisting">int	virDomainBlockStatsFlags	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
 </pre><p>This function is to get block stats parameters for block
 devices attached to the domain.
 
-The @path is the name of the block device. Get this
-by calling <a href="libvirt-libvirt.html#virDomainGetXMLDesc">virDomainGetXMLDesc</a> and finding the &lt;target dev='...'&gt;
-attribute within //domain/devices/disk. (For example, "xvda").
+The @disk parameter is either the device target shorthand (the
+&lt;target dev='...'/&gt; sub-element, such as "xvda"), or (since 0.9.8)
+an unambiguous source name of the block device (the &lt;source
+file='...'/&gt; sub-element, such as "/path/to/image"). Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.
 
 Domains may have more than one block device. To get stats for
 each you should make multiple calls to this function.
@@ -2371,7 +2495,7 @@ might support different parameters, so it might be necessary to compute
 @nparams for each block device). The caller should then allocate @params
 array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
 again. See virDomainGetMemoryParameters() for more details.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>path to the block device</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to block stats parameter object (return value)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of block stats; input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>unused, always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to block stats parameter object (return value)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of block stats; input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virTypedParameterFlags">virTypedParameterFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainCoreDump"/>virDomainCoreDump ()</h3><pre class="programlisting">int	virDomainCoreDump		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * to, <br/>					 unsigned int flags)<br/>
 </pre><p>This method will dump the core of a domain on a given file for analysis.
@@ -2529,16 +2653,54 @@ See virDomainGetMemoryParameters() for an equivalent usage example.
 
 This function may require privileged access to the hypervisor. This function
 expects the caller to allocate the @params.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to blkio parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of blkio parameters; input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to blkio parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of blkio parameters; input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a> and <a href="libvirt-libvirt.html#virTypedParameterFlags">virTypedParameterFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virDomainGetBlockInfo"/>virDomainGetBlockInfo ()</h3><pre class="programlisting">int	virDomainGetBlockInfo		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockInfoPtr">virDomainBlockInfoPtr</a> info, <br/>					 unsigned int flags)<br/>
-</pre><p>Extract information about a domain's block device.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>path to the block device or file</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#virDomainBlockInfo">virDomainBlockInfo</a> structure allocated by the user</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, pass zero</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
+        <div class="refsect2" lang="en"><h3><a name="virDomainGetBlockInfo"/>virDomainGetBlockInfo ()</h3><pre class="programlisting">int	virDomainGetBlockInfo		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockInfoPtr">virDomainBlockInfoPtr</a> info, <br/>					 unsigned int flags)<br/>
+</pre><p>Extract information about a domain's block device.
+
+The @disk parameter is either an unambiguous source name of the
+block device (the &lt;source file='...'/&gt; sub-element, such as
+"/path/to/image"), or (since 0.9.5) the device target shorthand
+(the &lt;target dev='...'/&gt; sub-element, such as "xvda"). Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#virDomainBlockInfo">virDomainBlockInfo</a> structure allocated by the user</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, pass zero</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virDomainGetBlockJobInfo"/>virDomainGetBlockJobInfo ()</h3><pre class="programlisting">int	virDomainGetBlockJobInfo	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * path, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockJobInfoPtr">virDomainBlockJobInfoPtr</a> info, <br/>					 unsigned int flags)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainGetBlockIoTune"/>virDomainGetBlockIoTune ()</h3><pre class="programlisting">int	virDomainGetBlockIoTune		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Get all block IO tunable parameters for a given device. On input,
+@nparams gives the size of the @params array; on output, @nparams
+gives how many slots were filled with parameter information, which
+might be less but will not exceed the input value.
+
+As a special case, calling with @params as NULL and @nparams as 0
+on input will cause @nparams on output to contain the number of
+parameters supported by the hypervisor, either for the given @disk
+(note that block devices of different types might support different
+parameters), or if @disk is NULL, for all possible disks. The
+caller should then allocate @params array,
+i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
+again. See virDomainGetMemoryParameters() for more details.
+
+The @disk parameter is either an unambiguous source name of the
+block device (the &lt;source file='...'/&gt; sub-element, such as
+"/path/to/image"), or the device target shorthand (the &lt;target
+dev='...'/&gt; sub-element, such as "xvda"). Valid names can be found
+by calling virDomainGetXMLDesc() and inspecting elements
+within //domain/devices/disk. This parameter cannot be NULL
+unless @nparams is 0 on input.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>Pointer to blkio parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>Pointer to number of blkio parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>An OR'ed set of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainGetBlockJobInfo"/>virDomainGetBlockJobInfo ()</h3><pre class="programlisting">int	virDomainGetBlockJobInfo	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virDomainBlockJobInfoPtr">virDomainBlockJobInfoPtr</a> info, <br/>					 unsigned int flags)<br/>
 </pre><p>Request block job information for the given disk. If an operation is active
-@info will be updated with the current progress.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>path</tt></i>:</span></td><td>fully-qualified filename of disk</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#virDomainBlockJobInfo">virDomainBlockJobInfo</a> structure</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when nothing found, 1 when info was found.</td></tr></tbody></table></div></div>
+@info will be updated with the current progress.
+
+The @disk parameter is either an unambiguous source name of the
+block device (the &lt;source file='...'/&gt; sub-element, such as
+"/path/to/image"), or (since 0.9.5) the device target shorthand
+(the &lt;target dev='...'/&gt; sub-element, such as "xvda"). Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#virDomainBlockJobInfo">virDomainBlockJobInfo</a> structure</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>currently unused, for future extension</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when nothing found, 1 when info was found.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetConnect"/>virDomainGetConnect ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a>	virDomainGetConnect	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom)<br/>
 </pre><p>Provides the connection pointer associated with a domain. The
@@ -2608,7 +2770,7 @@ if ((virDomainGetMemoryParameters(dom, NULL, &amp;nparams, 0) == 0) &amp;&amp;
 
 This function may require privileged access to the hypervisor. This function
 expects the caller to allocate the @params.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to memory parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of memory parameters; input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>one of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to memory parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of memory parameters; input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a> and <a href="libvirt-libvirt.html#virTypedParameterFlags">virTypedParameterFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetName"/>virDomainGetName ()</h3><pre class="programlisting">const char *	virDomainGetName	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Get the public name for that domain</p>
@@ -2648,7 +2810,7 @@ if (ret &amp;&amp; nparams != 0) {
  if (virDomainGetSchedulerParametersFlags(dom, params, &amp;nparams, 0))
  goto error;
 }</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to scheduler parameter object (return value)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of scheduler parameter (this value should be same than the returned value nparams of virDomainGetSchedulerType()); input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>one of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to scheduler parameter object (return value)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of scheduler parameter (this value should be same than the returned value nparams of virDomainGetSchedulerType()); input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a> and <a href="libvirt-libvirt.html#virTypedParameterFlags">virTypedParameterFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetSchedulerType"/>virDomainGetSchedulerType ()</h3><pre class="programlisting">char *	virDomainGetSchedulerType	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int * nparams)<br/>
 </pre><p>Get the scheduler type and the number of scheduler parameters.</p>
@@ -3164,7 +3326,7 @@ just live or both live and persistent state is changed.
 Not all hypervisors can support all flag combinations.
 
 See also <a href="libvirt-libvirt.html#virDomainGetVcpuPinInfo">virDomainGetVcpuPinInfo</a> for querying this information.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>vcpu</tt></i>:</span></td><td>virtual CPU number</td></tr><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>pointer to a bit map of real CPUs (in 8-bit bytes) (IN) Each bit set to 1 means that corresponding CPU is usable. Bytes are stored in little-endian order: CPU0-7, 8-15... In each byte, lowest CPU number is least significant bit.</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>number of bytes in cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...). If maplen &lt; size, missing bytes are set to zero. If maplen &gt; size, failure code is returned.</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of virDomainModificationImpac</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object, or NULL for Domain0</td></tr><tr><td><span class="term"><i><tt>vcpu</tt></i>:</span></td><td>virtual CPU number</td></tr><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>pointer to a bit map of real CPUs (in 8-bit bytes) (IN) Each bit set to 1 means that corresponding CPU is usable. Bytes are stored in little-endian order: CPU0-7, 8-15... In each byte, lowest CPU number is least significant bit.</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>number of bytes in cpumap, from 1 up to size of CPU map in underlying virtualization system (Xen...). If maplen &lt; size, missing bytes are set to zero. If maplen &gt; size, failure code is returned.</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainReboot"/>virDomainReboot ()</h3><pre class="programlisting">int	virDomainReboot			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags)<br/>
 </pre><p>Reboot a domain, the domain object is still usable there after but
@@ -3362,7 +3524,18 @@ when the host machine boots.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetBlkioParameters"/>virDomainSetBlkioParameters ()</h3><pre class="programlisting">int	virDomainSetBlkioParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
 </pre><p>Change all or a subset of the blkio tunables.
 This function may require privileged access to the hypervisor.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to blkio parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of blkio parameters (this value can be the same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>an OR'ed set of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to blkio parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of blkio parameters (this value can be the same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSetBlockIoTune"/>virDomainSetBlockIoTune ()</h3><pre class="programlisting">int	virDomainSetBlockIoTune		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Change all or a subset of the per-device block IO tunables.
+
+The @disk parameter is either an unambiguous source name of the
+block device (the &lt;source file='...'/&gt; sub-element, such as
+"/path/to/image"), or the device target shorthand (the &lt;target
+dev='...'/&gt; sub-element, such as "xvda"). Valid names can be found
+by calling virDomainGetXMLDesc() and inspecting elements
+within //domain/devices/disk.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>Pointer to blkio parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>Number of blkio parameters (this value can be the same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>An OR'ed set of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetMaxMemory"/>virDomainSetMaxMemory ()</h3><pre class="programlisting">int	virDomainSetMaxMemory		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory)<br/>
 </pre><p>Dynamically change the maximum amount of physical memory allocated to a
@@ -3719,9 +3892,9 @@ that can be used by any client application which does
 not have a need to integrate with an external event
 loop impl.
 
-Once registered, the application can invoke
-virEventRunDefaultImpl in a loop to process
-events</p>
+Once registered, the application has to invoke <a href="libvirt-libvirt.html#virEventRunDefaultImpl">virEventRunDefaultImpl</a> in
+a loop to process events. Failure to do so may result in connections being
+closed unexpectedly as a result of keepalive timeout.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virEventRegisterImpl"/>virEventRegisterImpl ()</h3><pre class="programlisting">void	virEventRegisterImpl		(<a href="libvirt-libvirt.html#virEventAddHandleFunc">virEventAddHandleFunc</a> addHandle, <br/>					 <a href="libvirt-libvirt.html#virEventUpdateHandleFunc">virEventUpdateHandleFunc</a> updateHandle, <br/>					 <a href="libvirt-libvirt.html#virEventRemoveHandleFunc">virEventRemoveHandleFunc</a> removeHandle, <br/>					 <a href="libvirt-libvirt.html#virEventAddTimeoutFunc">virEventAddTimeoutFunc</a> addTimeout, <br/>					 <a href="libvirt-libvirt.html#virEventUpdateTimeoutFunc">virEventUpdateTimeoutFunc</a> updateTimeout, <br/>					 <a href="libvirt-libvirt.html#virEventRemoveTimeoutFunc">virEventRemoveTimeoutFunc</a> removeTimeout)<br/>
@@ -4309,6 +4482,13 @@ will be restricted to devices with the specified capability</p>
 If the optional 'cap' argument is non-NULL, then the count
 will be restricted to devices with the specified capability</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>cap</tt></i>:</span></td><td>capability name</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>flags (unused, pass 0)</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of node devices or -1 in case of error</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeSuspendForDuration"/>virNodeSuspendForDuration ()</h3><pre class="programlisting">int	virNodeSuspendForDuration	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int target, <br/>					 unsigned long long duration, <br/>					 unsigned int flags)<br/>
+</pre><p>Attempt to suspend the node (host machine) for the given duration of
+time in the specified state (Suspend-to-RAM, Suspend-to-Disk or
+Hybrid-Suspend). Schedule the node's Real-Time-Clock interrupt to
+resume the node after the duration is complete.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>target</tt></i>:</span></td><td>the state to which the host must be suspended to, such as: <a href="libvirt-libvirt.html#VIR_NODE_SUSPEND_TARGET_MEM">VIR_NODE_SUSPEND_TARGET_MEM</a> (Suspend-to-RAM) <a href="libvirt-libvirt.html#VIR_NODE_SUSPEND_TARGET_DISK">VIR_NODE_SUSPEND_TARGET_DISK</a> (Suspend-to-Disk) <a href="libvirt-libvirt.html#VIR_NODE_SUSPEND_TARGET_HYBRID">VIR_NODE_SUSPEND_TARGET_HYBRID</a> (Hybrid-Suspend, which is a combination of the former modes).</td></tr><tr><td><span class="term"><i><tt>duration</tt></i>:</span></td><td>the time duration in seconds for which the host has to be suspended</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>any flag values that might need to be passed; currently unused (0).</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success (i.e., the node will be suspended after a short delay), -1 on failure (the operation is not supported, or an attempted suspend is already underway).</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virSecretDefineXML"/>virSecretDefineXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virSecretPtr">virSecretPtr</a>	virSecretDefineXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * xml, <br/>					 unsigned int flags)<br/>
 </pre><p>If XML specifies a UUID, locates the specified secret and replaces all

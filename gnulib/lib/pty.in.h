@@ -94,6 +94,8 @@ _GL_WARN_ON_USE (forkpty, "forkpty is not declared consistently - "
 /* Create pseudo tty master slave pair and set terminal attributes
    according to TERMP and WINP.  Return handles for both ends in
    *AMASTER and *ASLAVE, and return the name of the slave end in NAME.  */
+struct termios;
+struct winsize;
 # if @REPLACE_OPENPTY@
 #  if !(defined __cplusplus && defined GNULIB_NAMESPACE)
 #   undef openpty

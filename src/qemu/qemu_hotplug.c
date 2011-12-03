@@ -676,9 +676,9 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
         if (qemuOpenVhostNet(vm->def, net, priv->qemuCaps, &vhostfd) < 0)
             goto cleanup;
     } else if (actualType == VIR_DOMAIN_NET_TYPE_DIRECT) {
-        if ((tapfd = qemuPhysIfaceConnect(vm->def, conn, driver, net,
+        if ((tapfd = qemuPhysIfaceConnect(vm->def, driver, net,
                                           priv->qemuCaps,
-                                          VIR_VM_OP_CREATE)) < 0)
+                                          VIR_NETDEV_VPORT_PROFILE_OP_CREATE)) < 0)
             goto cleanup;
         iface_connected = true;
         if (qemuOpenVhostNet(vm->def, net, priv->qemuCaps, &vhostfd) < 0)
@@ -1238,7 +1238,7 @@ int qemuDomainChangeNet(struct qemud_driver *driver,
     case VIR_DOMAIN_NET_TYPE_NETWORK:
         if (STRNEQ_NULLABLE(olddev->data.network.name, dev->data.network.name) ||
             STRNEQ_NULLABLE(olddev->data.network.portgroup, dev->data.network.portgroup) ||
-            !virVirtualPortProfileEqual(olddev->data.network.virtPortProfile, dev->data.network.virtPortProfile)) {
+            !virNetDevVPortProfileEqual(olddev->data.network.virtPortProfile, dev->data.network.virtPortProfile)) {
             qemuReportError(VIR_ERR_NO_SUPPORT,
                             _("cannot modify network device configuration"));
             return -1;
@@ -1257,7 +1257,7 @@ int qemuDomainChangeNet(struct qemud_driver *driver,
     case VIR_DOMAIN_NET_TYPE_DIRECT:
         if (STRNEQ_NULLABLE(olddev->data.direct.linkdev, dev->data.direct.linkdev) ||
             olddev->data.direct.mode != dev->data.direct.mode ||
-            !virVirtualPortProfileEqual(olddev->data.direct.virtPortProfile, dev->data.direct.virtPortProfile)) {
+            !virNetDevVPortProfileEqual(olddev->data.direct.virtPortProfile, dev->data.direct.virtPortProfile)) {
             qemuReportError(VIR_ERR_NO_SUPPORT,
                             _("cannot modify direct network device configuration"));
             return -1;
@@ -1909,16 +1909,15 @@ int qemuDomainDetachNetDevice(struct qemud_driver *driver,
 
     virDomainConfNWFilterTeardown(detach);
 
-#if WITH_MACVTAP
     if (virDomainNetGetActualType(detach) == VIR_DOMAIN_NET_TYPE_DIRECT) {
-        delMacvtap(detach->ifname, detach->mac,
-                   virDomainNetGetActualDirectDev(detach),
-                   virDomainNetGetActualDirectMode(detach),
-                   virDomainNetGetActualDirectVirtPortProfile(detach),
-                   driver->stateDir);
+        ignore_value(virNetDevMacVLanDeleteWithVPortProfile(
+                         detach->ifname, detach->mac,
+                         virDomainNetGetActualDirectDev(detach),
+                         virDomainNetGetActualDirectMode(detach),
+                         virDomainNetGetActualDirectVirtPortProfile(detach),
+                         driver->stateDir));
         VIR_FREE(detach->ifname);
     }
-#endif
 
     if ((driver->macFilter) && (detach->ifname != NULL)) {
         if ((errno = networkDisallowMacOnPort(driver,

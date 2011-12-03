@@ -35,9 +35,10 @@ typedef struct _ebiptablesRuleInst ebiptablesRuleInst;
 typedef ebiptablesRuleInst *ebiptablesRuleInstPtr;
 struct _ebiptablesRuleInst {
     char *commandTemplate;
-    enum virNWFilterChainSuffixType neededProtocolChain;
+    const char *neededProtocolChain;
+    virNWFilterChainPriority chainPriority;
     char chainprefix;    /* I for incoming, O for outgoing */
-    unsigned int priority;
+    virNWFilterRulePriority priority;
     enum RuleType ruleType;
 };
 

@@ -79,13 +79,18 @@
   <define name="hvs">
     <attribute name="type">
       <choice>
-        <value>xen</value>
-        <value>kvm</value>
-        <value>kqemu</value>
         <value>qemu</value>
+        <value>kqemu</value>
+        <value>kvm</value>
+        <value>xen</value>
         <value>lxc</value>
+        <value>uml</value>
         <value>openvz</value>
         <value>test</value>
+        <value>vmware</value>
+        <value>hyperv</value>
+        <value>vbox</value>
+        <value>phyp</value>
       </choice>
     </attribute>
   </define>
@@ -322,12 +327,26 @@
       <!-- The Blkio cgroup related tunables would go in the blkiotune -->
       <optional>
         <element name="blkiotune">
-          <!-- I/O weight the VM can use -->
-          <optional>
-            <element name="weight">
-              <ref name="weight"/>
-            </element>
-          </optional>
+          <interleave>
+            <!-- I/O weight the VM can use -->
+            <optional>
+              <element name="weight">
+                <ref name="weight"/>
+              </element>
+            </optional>
+            <zeroOrMore>
+              <element name="device">
+                <interleave>
+                  <element name="path">
+                    <ref name="absFilePath"/>
+                  </element>
+                  <element name="weight">
+                    <ref name="weight"/>
+                  </element>
+                </interleave>
+              </element>
+            </zeroOrMore>
+          </interleave>
         </element>
       </optional>
 
@@ -599,42 +618,47 @@
     </element>
   </define>
   <define name="diskspec">
-    <optional>
-      <ref name="driver"/>
-    </optional>
-    <optional>
-      <ref name="diskAuth"/>
-    </optional>
-    <ref name="target"/>
-    <optional>
-      <ref name="deviceBoot"/>
-    </optional>
-    <optional>
-      <element name="readonly">
-        <empty/>
-      </element>
-    </optional>
-    <optional>
-      <element name="shareable">
-        <empty/>
-      </element>
-    </optional>
-    <optional>
-      <element name="transient">
-        <empty/>
-      </element>
-    </optional>
-    <optional>
-      <element name="serial">
-        <ref name="diskSerial"/>
-      </element>
-    </optional>
-    <optional>
-      <ref name="encryption"/>
-    </optional>
-    <optional>
-      <ref name="address"/>
-    </optional>
+    <interleave>
+      <optional>
+        <ref name="driver"/>
+      </optional>
+      <optional>
+        <ref name="diskAuth"/>
+      </optional>
+      <ref name="target"/>
+      <optional>
+        <ref name="deviceBoot"/>
+      </optional>
+      <optional>
+        <element name="readonly">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="shareable">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="transient">
+          <empty/>
+        </element>
+      </optional>
+      <optional>
+        <element name="serial">
+          <ref name="diskSerial"/>
+        </element>
+      </optional>
+      <optional>
+        <ref name="encryption"/>
+      </optional>
+      <optional>
+        <ref name="diskIoTune"/>
+      </optional>
+      <optional>
+        <ref name="address"/>
+      </optional>
+    </interleave>
   </define>
   <define name="snapshot">
     <attribute name="snapshot">
@@ -2297,7 +2321,16 @@
   <define name="cpu">
     <element name="cpu">
       <choice>
-        <ref name="cpuTopology"/>
+        <group>
+          <interleave>
+            <optional>
+              <ref name="cpuTopology"/>
+            </optional>
+            <optional>
+              <ref name="cpuNuma"/>
+            </optional>
+          </interleave>
+        </group>
         <group>
           <ref name="cpuMatch"/>
           <interleave>
@@ -2311,6 +2344,9 @@
             <zeroOrMore>
               <ref name="cpuFeature"/>
             </zeroOrMore>
+            <optional>
+              <ref name="cpuNuma"/>
+            </optional>
           </interleave>
         </group>
       </choice>
@@ -2367,6 +2403,25 @@
       </attribute>
       <attribute name="threads">
         <ref name="positiveInteger"/>
+      </attribute>
+    </element>
+  </define>
+
+  <define name="cpuNuma">
+    <element name="numa">
+      <oneOrMore>
+        <ref name="numaCell"/>
+      </oneOrMore>
+    </element>
+  </define>
+
+  <define name="numaCell">
+    <element name="cell">
+      <attribute name="cpus">
+        <ref name="cpuset"/>
+      </attribute>
+      <attribute name="memory">
+        <ref name="memoryKB"/>
       </attribute>
     </element>
   </define>
@@ -2562,6 +2617,51 @@
           <ref name='genericName'/>
         </attribute>
       </choice>
+    </element>
+  </define>
+
+  <define name='diskIoTune'>
+    <element name="iotune">
+      <interleave>
+        <choice>
+          <element name="total_bytes_sec">
+            <data type="unsignedLong"/>
+          </element>
+          <group>
+            <interleave>
+              <optional>
+                <element name="read_bytes_sec">
+                  <data type="unsignedLong"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="write_bytes_sec">
+                  <data type="unsignedLong"/>
+                </element>
+              </optional>
+            </interleave>
+          </group>
+        </choice>
+        <choice>
+          <element name="total_iops_sec">
+            <data type="unsignedLong"/>
+          </element>
+          <group>
+            <interleave>
+              <optional>
+                <element name="read_iops_sec">
+                  <data type="unsignedLong"/>
+                </element>
+              </optional>
+              <optional>
+                <element name="write_iops_sec">
+                  <data type="unsignedLong"/>
+                </element>
+              </optional>
+            </interleave>
+          </group>
+        </choice>
+      </interleave>
     </element>
   </define>
 

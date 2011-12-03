@@ -290,6 +290,10 @@ xdr_remote_typed_param_value (XDR *xdrs, remote_typed_param_value *objp)
                  if (!xdr_int (xdrs, &objp->remote_typed_param_value_u.b))
                          return FALSE;
                 break;
+        case VIR_TYPED_PARAM_STRING:
+                 if (!xdr_remote_nonnull_string (xdrs, &objp->remote_typed_param_value_u.s))
+                         return FALSE;
+                break;
         default:
                 return FALSE;
         }
@@ -789,6 +793,21 @@ xdr_remote_domain_get_memory_parameters_ret (XDR *xdrs, remote_domain_get_memory
                 sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
                  return FALSE;
          if (!xdr_int (xdrs, &objp->nparams))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_block_resize_args (XDR *xdrs, remote_domain_block_resize_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->disk))
+                 return FALSE;
+         if (!xdr_uint64_t (xdrs, &objp->size))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
         return TRUE;
 }
@@ -1997,6 +2016,51 @@ xdr_remote_domain_block_pull_args (XDR *xdrs, remote_domain_block_pull_args *obj
          if (!xdr_uint64_t (xdrs, &objp->bandwidth))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_set_block_io_tune_args (XDR *xdrs, remote_domain_set_block_io_tune_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->disk))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_block_io_tune_args (XDR *xdrs, remote_domain_get_block_io_tune_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->disk))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->nparams))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_block_io_tune_ret (XDR *xdrs, remote_domain_get_block_io_tune_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->nparams))
                  return FALSE;
         return TRUE;
 }
@@ -4586,6 +4650,19 @@ xdr_remote_domain_open_graphics_args (XDR *xdrs, remote_domain_open_graphics_arg
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->idx))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_suspend_for_duration_args (XDR *xdrs, remote_node_suspend_for_duration_args *objp)
+{
+
+         if (!xdr_u_int (xdrs, &objp->target))
+                 return FALSE;
+         if (!xdr_uint64_t (xdrs, &objp->duration))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;

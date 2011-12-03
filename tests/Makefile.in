@@ -42,13 +42,13 @@ check_PROGRAMS = virshtest$(EXEEXT) conftest$(EXEEXT) \
 	commandhelper$(EXEEXT) seclabeltest$(EXEEXT) hashtest$(EXEEXT) \
 	virnetmessagetest$(EXEEXT) virnetsockettest$(EXEEXT) \
 	ssh$(EXEEXT) utiltest$(EXEEXT) virnettlscontexttest$(EXEEXT) \
-	shunloadtest$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2) \
-	$(am__EXEEXT_3) $(am__EXEEXT_4) $(am__EXEEXT_5) \
-	$(am__EXEEXT_6) $(am__EXEEXT_7) networkxml2xmltest$(EXEEXT) \
-	$(am__EXEEXT_8) nwfilterxml2xmltest$(EXEEXT) \
-	storagevolxml2xmltest$(EXEEXT) storagepoolxml2xmltest$(EXEEXT) \
-	nodedevxml2xmltest$(EXEEXT) interfacexml2xmltest$(EXEEXT) \
-	cputest$(EXEEXT) $(am__EXEEXT_9)
+	shunloadtest$(EXEEXT) virtimetest$(EXEEXT) $(am__EXEEXT_1) \
+	$(am__EXEEXT_2) $(am__EXEEXT_3) $(am__EXEEXT_4) \
+	$(am__EXEEXT_5) $(am__EXEEXT_6) $(am__EXEEXT_7) \
+	networkxml2xmltest$(EXEEXT) $(am__EXEEXT_8) \
+	nwfilterxml2xmltest$(EXEEXT) storagevolxml2xmltest$(EXEEXT) \
+	storagepoolxml2xmltest$(EXEEXT) nodedevxml2xmltest$(EXEEXT) \
+	interfacexml2xmltest$(EXEEXT) cputest$(EXEEXT) $(am__EXEEXT_9)
 @WITH_XEN_TRUE@am__append_3 = xml2sexprtest sexpr2xmltest \
 @WITH_XEN_TRUE@	xmconfigtest xencapstest statstest reconnect
 
@@ -103,11 +103,11 @@ TESTS = virshtest$(EXEEXT) nodeinfotest$(EXEEXT) qparamtest$(EXEEXT) \
 	virbuftest$(EXEEXT) sockettest$(EXEEXT) commandtest$(EXEEXT) \
 	seclabeltest$(EXEEXT) hashtest$(EXEEXT) \
 	virnetmessagetest$(EXEEXT) virnetsockettest$(EXEEXT) \
-	virnettlscontexttest$(EXEEXT) shunloadtest$(EXEEXT) \
-	utiltest$(EXEEXT) $(test_scripts) $(am__EXEEXT_7) \
-	$(am__EXEEXT_10) $(am__EXEEXT_11) $(am__EXEEXT_3) \
-	$(am__EXEEXT_4) $(am__EXEEXT_5) $(am__EXEEXT_9) \
-	networkxml2xmltest$(EXEEXT) $(am__EXEEXT_8) \
+	virnettlscontexttest$(EXEEXT) virtimetest$(EXEEXT) \
+	shunloadtest$(EXEEXT) utiltest$(EXEEXT) $(test_scripts) \
+	$(am__EXEEXT_7) $(am__EXEEXT_10) $(am__EXEEXT_11) \
+	$(am__EXEEXT_3) $(am__EXEEXT_4) $(am__EXEEXT_5) \
+	$(am__EXEEXT_9) networkxml2xmltest$(EXEEXT) $(am__EXEEXT_8) \
 	storagevolxml2xmltest$(EXEEXT) storagepoolxml2xmltest$(EXEEXT) \
 	nodedevxml2xmltest$(EXEEXT) interfacexml2xmltest$(EXEEXT) \
 	cputest$(EXEEXT)
@@ -616,6 +616,14 @@ virnettlscontexttest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 am_virshtest_OBJECTS = virshtest.$(OBJEXT) testutils.$(OBJEXT)
 virshtest_OBJECTS = $(am_virshtest_OBJECTS)
 virshtest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am_virtimetest_OBJECTS = virtimetest-virtimetest.$(OBJEXT) \
+	virtimetest-testutils.$(OBJEXT)
+virtimetest_OBJECTS = $(am_virtimetest_OBJECTS)
+virtimetest_DEPENDENCIES = ../src/libvirt-net-rpc.la \
+	$(am__DEPENDENCIES_2)
+virtimetest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(virtimetest_CFLAGS) \
+	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am__vmx2xmltest_SOURCES_DIST = vmx2xmltest.c testutils.c testutils.h
 @WITH_VMX_TRUE@am_vmx2xmltest_OBJECTS = vmx2xmltest.$(OBJEXT) \
 @WITH_VMX_TRUE@	testutils.$(OBJEXT)
@@ -695,9 +703,10 @@ SOURCES = $(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
 	$(storagevolxml2xmltest_SOURCES) $(utiltest_SOURCES) \
 	$(virbuftest_SOURCES) $(virnetmessagetest_SOURCES) \
 	$(virnetsockettest_SOURCES) $(virnettlscontexttest_SOURCES) \
-	$(virshtest_SOURCES) $(vmx2xmltest_SOURCES) \
-	$(xencapstest_SOURCES) $(xmconfigtest_SOURCES) \
-	$(xml2sexprtest_SOURCES) $(xml2vmxtest_SOURCES)
+	$(virshtest_SOURCES) $(virtimetest_SOURCES) \
+	$(vmx2xmltest_SOURCES) $(xencapstest_SOURCES) \
+	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES) \
+	$(xml2vmxtest_SOURCES)
 DIST_SOURCES = $(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
 	$(commandtest_SOURCES) $(conftest_SOURCES) $(cputest_SOURCES) \
 	$(am__domainsnapshotxml2xmltest_SOURCES_DIST) \
@@ -722,7 +731,7 @@ DIST_SOURCES = $(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
 	$(virbuftest_SOURCES) $(virnetmessagetest_SOURCES) \
 	$(virnetsockettest_SOURCES) \
 	$(am__virnettlscontexttest_SOURCES_DIST) $(virshtest_SOURCES) \
-	$(am__vmx2xmltest_SOURCES_DIST) \
+	$(virtimetest_SOURCES) $(am__vmx2xmltest_SOURCES_DIST) \
 	$(am__xencapstest_SOURCES_DIST) \
 	$(am__xmconfigtest_SOURCES_DIST) \
 	$(am__xml2sexprtest_SOURCES_DIST) \
@@ -1446,6 +1455,7 @@ LTLIBMULTITHREAD = @LTLIBMULTITHREAD@
 LTLIBOBJS = @LTLIBOBJS@
 LTLIBPTH = @LTLIBPTH@
 LTLIBTHREAD = @LTLIBTHREAD@
+LVCHANGE = @LVCHANGE@
 LVCREATE = @LVCREATE@
 LVREMOVE = @LVREMOVE@
 LVS = @LVS@
@@ -1719,6 +1729,7 @@ REPLACE_WCTOMB = @REPLACE_WCTOMB@
 REPLACE_WCWIDTH = @REPLACE_WCWIDTH@
 REPLACE_WRITE = @REPLACE_WRITE@
 RPCGEN = @RPCGEN@
+RT_LIBS = @RT_LIBS@
 SANLOCK_CFLAGS = @SANLOCK_CFLAGS@
 SANLOCK_LIBS = @SANLOCK_LIBS@
 SASL_CFLAGS = @SASL_CFLAGS@
@@ -2082,6 +2093,11 @@ virnettlscontexttest_SOURCES = virnettlscontexttest.c testutils.h \
 virnettlscontexttest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virnettlscontexttest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS) \
 	$(am__append_32)
+virtimetest_SOURCES = \
+	virtimetest.c testutils.h testutils.c
+
+virtimetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virtimetest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
 seclabeltest_SOURCES = \
 	seclabeltest.c
 
@@ -2292,6 +2308,9 @@ virnettlscontexttest$(EXEEXT): $(virnettlscontexttest_OBJECTS) $(virnettlscontex
 virshtest$(EXEEXT): $(virshtest_OBJECTS) $(virshtest_DEPENDENCIES) 
 	@rm -f virshtest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(virshtest_OBJECTS) $(virshtest_LDADD) $(LIBS)
+virtimetest$(EXEEXT): $(virtimetest_OBJECTS) $(virtimetest_DEPENDENCIES) 
+	@rm -f virtimetest$(EXEEXT)
+	$(AM_V_CCLD)$(virtimetest_LINK) $(virtimetest_OBJECTS) $(virtimetest_LDADD) $(LIBS)
 vmx2xmltest$(EXEEXT): $(vmx2xmltest_OBJECTS) $(vmx2xmltest_DEPENDENCIES) 
 	@rm -f vmx2xmltest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(vmx2xmltest_OBJECTS) $(vmx2xmltest_LDADD) $(LIBS)
@@ -2360,6 +2379,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnettlscontexttest-testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnettlscontexttest-virnettlscontexttest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virshtest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virtimetest-testutils.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virtimetest-virtimetest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vmx2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xencapstest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xmconfigtest.Po@am__quote@
@@ -2549,6 +2570,38 @@ virnettlscontexttest-pkix_asn1_tab.obj: pkix_asn1_tab.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pkix_asn1_tab.c' object='virnettlscontexttest-pkix_asn1_tab.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnettlscontexttest_CFLAGS) $(CFLAGS) -c -o virnettlscontexttest-pkix_asn1_tab.obj `if test -f 'pkix_asn1_tab.c'; then $(CYGPATH_W) 'pkix_asn1_tab.c'; else $(CYGPATH_W) '$(srcdir)/pkix_asn1_tab.c'; fi`
+
+virtimetest-virtimetest.o: virtimetest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virtimetest_CFLAGS) $(CFLAGS) -MT virtimetest-virtimetest.o -MD -MP -MF $(DEPDIR)/virtimetest-virtimetest.Tpo -c -o virtimetest-virtimetest.o `test -f 'virtimetest.c' || echo '$(srcdir)/'`virtimetest.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virtimetest-virtimetest.Tpo $(DEPDIR)/virtimetest-virtimetest.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='virtimetest.c' object='virtimetest-virtimetest.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virtimetest_CFLAGS) $(CFLAGS) -c -o virtimetest-virtimetest.o `test -f 'virtimetest.c' || echo '$(srcdir)/'`virtimetest.c
+
+virtimetest-virtimetest.obj: virtimetest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virtimetest_CFLAGS) $(CFLAGS) -MT virtimetest-virtimetest.obj -MD -MP -MF $(DEPDIR)/virtimetest-virtimetest.Tpo -c -o virtimetest-virtimetest.obj `if test -f 'virtimetest.c'; then $(CYGPATH_W) 'virtimetest.c'; else $(CYGPATH_W) '$(srcdir)/virtimetest.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virtimetest-virtimetest.Tpo $(DEPDIR)/virtimetest-virtimetest.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='virtimetest.c' object='virtimetest-virtimetest.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virtimetest_CFLAGS) $(CFLAGS) -c -o virtimetest-virtimetest.obj `if test -f 'virtimetest.c'; then $(CYGPATH_W) 'virtimetest.c'; else $(CYGPATH_W) '$(srcdir)/virtimetest.c'; fi`
+
+virtimetest-testutils.o: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virtimetest_CFLAGS) $(CFLAGS) -MT virtimetest-testutils.o -MD -MP -MF $(DEPDIR)/virtimetest-testutils.Tpo -c -o virtimetest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virtimetest-testutils.Tpo $(DEPDIR)/virtimetest-testutils.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testutils.c' object='virtimetest-testutils.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virtimetest_CFLAGS) $(CFLAGS) -c -o virtimetest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+
+virtimetest-testutils.obj: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virtimetest_CFLAGS) $(CFLAGS) -MT virtimetest-testutils.obj -MD -MP -MF $(DEPDIR)/virtimetest-testutils.Tpo -c -o virtimetest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virtimetest-testutils.Tpo $(DEPDIR)/virtimetest-testutils.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testutils.c' object='virtimetest-testutils.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virtimetest_CFLAGS) $(CFLAGS) -c -o virtimetest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

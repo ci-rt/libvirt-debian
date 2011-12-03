@@ -24,7 +24,7 @@
 #ifndef __VIR_NET_SOCKET_H__
 # define __VIR_NET_SOCKET_H__
 
-# include "network.h"
+# include "virsocketaddr.h"
 # include "command.h"
 # include "virnettlscontext.h"
 # ifdef HAVE_SASL
@@ -106,6 +106,7 @@ void virNetSocketSetSASLSession(virNetSocketPtr sock,
                                 virNetSASLSessionPtr sess);
 # endif
 bool virNetSocketHasCachedData(virNetSocketPtr sock);
+bool virNetSocketHasPendingData(virNetSocketPtr sock);
 void virNetSocketRef(virNetSocketPtr sock);
 void virNetSocketFree(virNetSocketPtr sock);
 

@@ -36,6 +36,7 @@
 #include "uuid.h"
 #include "virfile.h"
 #include "domain_event.h"
+#include "virtime.h"
 
 #include <sys/time.h>
 #include <fcntl.h>
@@ -214,11 +215,15 @@ static void *qemuDomainObjPrivateAlloc(void)
         return NULL;
 
     if (qemuDomainObjInitJob(priv) < 0)
-        VIR_FREE(priv);
+        goto error;
 
     priv->migMaxBandwidth = QEMU_DOMAIN_DEFAULT_MIG_BANDWIDTH_MAX;
 
     return priv;
+
+error:
+    VIR_FREE(priv);
+    return NULL;
 }
 
 static void qemuDomainObjPrivateFree(void *data)
@@ -724,7 +729,7 @@ qemuDomainObjBeginJobInternal(struct qemud_driver *driver,
 
     priv->jobs_queued++;
 
-    if (virTimeMs(&now) < 0)
+    if (virTimeMillisNow(&now) < 0)
         return -1;
     then = now + QEMU_JOB_WAIT_TIME;
 
@@ -930,7 +935,7 @@ qemuDomainObjEnterMonitorInternal(struct qemud_driver *driver,
 
     qemuMonitorLock(priv->mon);
     qemuMonitorRef(priv->mon);
-    ignore_value(virTimeMs(&priv->monStart));
+    ignore_value(virTimeMillisNow(&priv->monStart));
     virDomainObjUnlock(obj);
     if (driver_locked)
         qemuDriverUnlock(driver);

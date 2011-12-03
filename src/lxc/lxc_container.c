@@ -35,7 +35,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <mntent.h>
-#include <dirent.h>
 
 /* Yes, we want linux private one, for _syscall2() macro */
 #include <linux/unistd.h>
@@ -56,10 +55,11 @@
 #include "lxc_container.h"
 #include "util.h"
 #include "memory.h"
-#include "veth.h"
+#include "virnetdevveth.h"
 #include "uuid.h"
 #include "virfile.h"
 #include "command.h"
+#include "virnetdev.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -269,12 +269,12 @@ static int lxcContainerRenameAndEnableInterfaces(unsigned int nveths,
         }
 
         VIR_DEBUG("Renaming %s to %s", veths[i], newname);
-        rc = setInterfaceName(veths[i], newname);
+        rc = virNetDevSetName(veths[i], newname);
         if (rc < 0)
             goto error_out;
 
         VIR_DEBUG("Enabling %s", newname);
-        rc = vethInterfaceUpOrDown(newname, 1);
+        rc = virNetDevSetOnline(newname, true);
         if (rc < 0)
             goto error_out;
 
@@ -283,7 +283,7 @@ static int lxcContainerRenameAndEnableInterfaces(unsigned int nveths,
 
     /* enable lo device only if there were other net devices */
     if (veths)
-        rc = vethInterfaceUpOrDown("lo", 1);
+        rc = virNetDevSetOnline("lo", true);
 
 error_out:
     VIR_FREE(newname);

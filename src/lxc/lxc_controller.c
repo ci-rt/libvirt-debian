@@ -48,18 +48,26 @@
 # include <cap-ng.h>
 #endif
 
+#if HAVE_NUMACTL
+# define NUMA_VERSION1_COMPATIBILITY 1
+# include <numa.h>
+#endif
+
 #include "virterror_internal.h"
 #include "logging.h"
 #include "util.h"
 
 #include "lxc_conf.h"
 #include "lxc_container.h"
-#include "veth.h"
+#include "virnetdev.h"
+#include "virnetdevveth.h"
 #include "memory.h"
 #include "util.h"
 #include "virfile.h"
 #include "virpidfile.h"
 #include "command.h"
+#include "processinfo.h"
+#include "nodeinfo.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -223,52 +231,199 @@ cleanup:
     return ret;
 }
 
-/**
- * lxcSetContainerResources
- * @def: pointer to virtual machine structure
- *
- * Creates a cgroup for the container, moves the task inside,
- * and sets resource limits
- *
- * Returns 0 on success or -1 in case of error
- */
-static int lxcSetContainerResources(virDomainDefPtr def)
+#if HAVE_NUMACTL
+static int lxcSetContainerNUMAPolicy(virDomainDefPtr def)
 {
-    virCgroupPtr driver;
-    virCgroupPtr cgroup;
-    int rc = -1;
-    int i;
-    struct cgroup_device_policy devices[] = {
-        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_NULL},
-        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_ZERO},
-        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_FULL},
-        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_RANDOM},
-        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_URANDOM},
-        {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_TTY},
-        {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_PTMX},
-        {0,   0, 0}};
+    nodemask_t mask;
+    int mode = -1;
+    int node = -1;
+    int ret = -1;
+    int i = 0;
+    int maxnode = 0;
+    bool warned = false;
 
-    rc = virCgroupForDriver("lxc", &driver, 1, 0);
-    if (rc != 0) {
-        /* Skip all if no driver cgroup is configured */
-        if (rc == -ENXIO || rc == -ENOENT)
-            return 0;
+    if (!def->numatune.memory.nodemask)
+        return 0;
 
-        virReportSystemError(-rc, "%s",
-                             _("Unable to get cgroup for driver"));
-        return rc;
+    VIR_DEBUG("Setting NUMA memory policy");
+
+    if (numa_available() < 0) {
+        lxcError(VIR_ERR_CONFIG_UNSUPPORTED,
+                 "%s", _("Host kernel is not aware of NUMA."));
+        return -1;
     }
 
-    rc = virCgroupForDomain(driver, def->name, &cgroup, 1);
-    if (rc != 0) {
-        virReportSystemError(-rc,
-                             _("Unable to create cgroup for domain %s"),
-                             def->name);
+    maxnode = numa_max_node() + 1;
+
+    /* Convert nodemask to NUMA bitmask. */
+    nodemask_zero(&mask);
+    for (i = 0; i < VIR_DOMAIN_CPUMASK_LEN; i++) {
+        if (def->numatune.memory.nodemask[i]) {
+            if (i > NUMA_NUM_NODES) {
+                lxcError(VIR_ERR_CONFIG_UNSUPPORTED,
+                         _("Host cannot support NUMA node %d"), i);
+                return -1;
+            }
+            if (i > maxnode && !warned) {
+                VIR_WARN("nodeset is out of range, there is only %d NUMA "
+                         "nodes on host", maxnode);
+                warned = true;
+            }
+            nodemask_set(&mask, i);
+        }
+    }
+
+    mode = def->numatune.memory.mode;
+
+    if (mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT) {
+        numa_set_bind_policy(1);
+        numa_set_membind(&mask);
+        numa_set_bind_policy(0);
+    } else if (mode == VIR_DOMAIN_NUMATUNE_MEM_PREFERRED) {
+        int nnodes = 0;
+        for (i = 0; i < NUMA_NUM_NODES; i++) {
+            if (nodemask_isset(&mask, i)) {
+                node = i;
+                nnodes++;
+            }
+        }
+
+        if (nnodes != 1) {
+            lxcError(VIR_ERR_CONFIG_UNSUPPORTED,
+                     "%s", _("NUMA memory tuning in 'preferred' mode "
+                             "only supports single node"));
+            goto cleanup;
+        }
+
+        numa_set_bind_policy(0);
+        numa_set_preferred(node);
+    } else if (mode == VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE) {
+        numa_set_interleave_mask(&mask);
+    } else {
+        lxcError(VIR_ERR_CONFIG_UNSUPPORTED,
+                 _("Unable to set NUMA policy %s"),
+                 virDomainNumatuneMemModeTypeToString(mode));
         goto cleanup;
     }
 
+    ret = 0;
+
+cleanup:
+    return ret;
+}
+#else
+static int lxcSetContainerNUMAPolicy(virDomainDefPtr def)
+{
+    if (def->numatune.memory.nodemask) {
+        lxcError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                 _("NUMA policy is not available on this platform"));
+        return -1;
+    }
+
+    return 0;
+}
+#endif
+
+
+/*
+ * To be run while still single threaded
+ */
+static int lxcSetContainerCpuAffinity(virDomainDefPtr def)
+{
+    int i, hostcpus, maxcpu = CPU_SETSIZE;
+    virNodeInfo nodeinfo;
+    unsigned char *cpumap;
+    int cpumaplen;
+
+    VIR_DEBUG("Setting CPU affinity");
+
+    if (nodeGetInfo(NULL, &nodeinfo) < 0)
+        return -1;
+
+    /* setaffinity fails if you set bits for CPUs which
+     * aren't present, so we have to limit ourselves */
+    hostcpus = VIR_NODEINFO_MAXCPUS(nodeinfo);
+    if (maxcpu > hostcpus)
+        maxcpu = hostcpus;
+
+    cpumaplen = VIR_CPU_MAPLEN(maxcpu);
+    if (VIR_ALLOC_N(cpumap, cpumaplen) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    if (def->cpumask) {
+        /* XXX why don't we keep 'cpumask' in the libvirt cpumap
+         * format to start with ?!?! */
+        for (i = 0 ; i < maxcpu && i < def->cpumasklen ; i++)
+            if (def->cpumask[i])
+                VIR_USE_CPU(cpumap, i);
+    } else {
+        /* You may think this is redundant, but we can't assume libvirtd
+         * itself is running on all pCPUs, so we need to explicitly set
+         * the spawned LXC instance to all pCPUs if no map is given in
+         * its config file */
+        for (i = 0 ; i < maxcpu ; i++)
+            VIR_USE_CPU(cpumap, i);
+    }
+
+    /* We are pressuming we are running between fork/exec of LXC
+     * so use '0' to indicate our own process ID. No threads are
+     * running at this point
+     */
+    if (virProcessInfoSetAffinity(0, /* Self */
+                                  cpumap, cpumaplen, maxcpu) < 0) {
+        VIR_FREE(cpumap);
+        return -1;
+    }
+    VIR_FREE(cpumap);
+
+    return 0;
+}
+
+
+static int lxcSetContainerCpuTune(virCgroupPtr cgroup, virDomainDefPtr def)
+{
+    int ret = -1;
+    if (def->cputune.shares != 0) {
+        int rc = virCgroupSetCpuShares(cgroup, def->cputune.shares);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to set io cpu shares for domain %s"),
+                                 def->name);
+            goto cleanup;
+        }
+    }
+    if (def->cputune.quota != 0) {
+        int rc = virCgroupSetCpuCfsQuota(cgroup, def->cputune.quota);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to set io cpu quota for domain %s"),
+                                 def->name);
+            goto cleanup;
+        }
+    }
+    if (def->cputune.period != 0) {
+        int rc = virCgroupSetCpuCfsPeriod(cgroup, def->cputune.period);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to set io cpu period for domain %s"),
+                                 def->name);
+            goto cleanup;
+        }
+    }
+    ret = 0;
+cleanup:
+    return ret;
+}
+
+
+static int lxcSetContainerBlkioTune(virCgroupPtr cgroup, virDomainDefPtr def)
+{
+    int ret = -1;
+
     if (def->blkio.weight) {
-        rc = virCgroupSetBlkioWeight(cgroup, def->blkio.weight);
+        int rc = virCgroupSetBlkioWeight(cgroup, def->blkio.weight);
         if (rc != 0) {
             virReportSystemError(-rc,
                                  _("Unable to set Blkio weight for domain %s"),
@@ -277,15 +432,16 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         }
     }
 
-    if (def->cputune.shares) {
-        rc = virCgroupSetCpuShares(cgroup, def->cputune.shares);
-        if (rc != 0) {
-            virReportSystemError(-rc,
-                                 _("Unable to set cpu shares for domain %s"),
-                                 def->name);
-            goto cleanup;
-        }
-    }
+    ret = 0;
+cleanup:
+    return ret;
+}
+
+
+static int lxcSetContainerMemTune(virCgroupPtr cgroup, virDomainDefPtr def)
+{
+    int ret = -1;
+    int rc;
 
     rc = virCgroupSetMemory(cgroup, def->mem.max_balloon);
     if (rc != 0) {
@@ -325,6 +481,27 @@ static int lxcSetContainerResources(virDomainDefPtr def)
         }
     }
 
+    ret = 0;
+cleanup:
+    return ret;
+}
+
+
+static int lxcSetContainerDeviceACL(virCgroupPtr cgroup, virDomainDefPtr def)
+{
+    int ret = -1;
+    int rc;
+    size_t i;
+    static const struct cgroup_device_policy devices[] = {
+        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_NULL},
+        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_ZERO},
+        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_FULL},
+        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_RANDOM},
+        {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_URANDOM},
+        {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_TTY},
+        {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_PTMX},
+        {0,   0, 0}};
+
     rc = virCgroupDenyAllDevices(cgroup);
     if (rc != 0) {
         virReportSystemError(-rc,
@@ -334,7 +511,7 @@ static int lxcSetContainerResources(virDomainDefPtr def)
     }
 
     for (i = 0; devices[i].type != 0; i++) {
-        struct cgroup_device_policy *dev = &devices[i];
+        const struct cgroup_device_policy *dev = &devices[i];
         rc = virCgroupAllowDevice(cgroup,
                                   dev->type,
                                   dev->major,
@@ -373,6 +550,64 @@ static int lxcSetContainerResources(virDomainDefPtr def)
                              def->name);
         goto cleanup;
     }
+
+    ret = 0;
+cleanup:
+    return ret;
+}
+
+
+/**
+ * lxcSetContainerResources
+ * @def: pointer to virtual machine structure
+ *
+ * Creates a cgroup for the container, moves the task inside,
+ * and sets resource limits
+ *
+ * Returns 0 on success or -1 in case of error
+ */
+static int lxcSetContainerResources(virDomainDefPtr def)
+{
+    virCgroupPtr driver;
+    virCgroupPtr cgroup;
+    int rc = -1;
+
+    if (lxcSetContainerCpuAffinity(def) < 0)
+        return -1;
+
+    if (lxcSetContainerNUMAPolicy(def) < 0)
+        return -1;
+
+    rc = virCgroupForDriver("lxc", &driver, 1, 0);
+    if (rc != 0) {
+        /* Skip all if no driver cgroup is configured */
+        if (rc == -ENXIO || rc == -ENOENT)
+            return 0;
+
+        virReportSystemError(-rc, "%s",
+                             _("Unable to get cgroup for driver"));
+        return rc;
+    }
+
+    rc = virCgroupForDomain(driver, def->name, &cgroup, 1);
+    if (rc != 0) {
+        virReportSystemError(-rc,
+                             _("Unable to create cgroup for domain %s"),
+                             def->name);
+        goto cleanup;
+    }
+
+    if (lxcSetContainerCpuTune(cgroup, def) < 0)
+        goto cleanup;
+
+    if (lxcSetContainerBlkioTune(cgroup, def) < 0)
+        goto cleanup;
+
+    if (lxcSetContainerMemTune(cgroup, def) < 0)
+        goto cleanup;
+
+    if (lxcSetContainerDeviceACL(cgroup, def) < 0)
+        goto cleanup;
 
     rc = virCgroupAddTask(cgroup, getpid());
     if (rc != 0) {
@@ -933,7 +1168,7 @@ static int lxcControllerMoveInterfaces(unsigned int nveths,
 {
     unsigned int i;
     for (i = 0 ; i < nveths ; i++)
-        if (moveInterfaceToNetNs(veths[i], container) < 0)
+        if (virNetDevSetNamespace(veths[i], container) < 0)
             return -1;
 
     return 0;
@@ -954,7 +1189,7 @@ static int lxcControllerCleanupInterfaces(unsigned int nveths,
 {
     unsigned int i;
     for (i = 0 ; i < nveths ; i++)
-        vethDelete(veths[i]);
+        ignore_value(virNetDevVethDelete(veths[i]));
 
     return 0;
 }

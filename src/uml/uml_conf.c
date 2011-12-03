@@ -23,7 +23,6 @@
 
 #include <config.h>
 
-#include <dirent.h>
 #include <string.h>
 #include <limits.h>
 #include <sys/types.h>
@@ -43,11 +42,13 @@
 #include "util.h"
 #include "memory.h"
 #include "nodeinfo.h"
-#include "bridge.h"
 #include "logging.h"
 #include "domain_nwfilter.h"
 #include "virfile.h"
 #include "command.h"
+#include "virnetdevtap.h"
+#include "virnodesuspend.h"
+
 
 #define VIR_FROM_THIS VIR_FROM_UML
 
@@ -81,6 +82,9 @@ virCapsPtr umlCapsInit(void) {
         virCapabilitiesFreeNUMAInfo(caps);
         VIR_WARN("Failed to query host NUMA topology, disabling NUMA capabilities");
     }
+
+    if (virNodeSuspendGetTargetMask(&caps->host.powerMgmt) < 0)
+        VIR_WARN("Failed to get host power management capabilities");
 
     if (virGetHostUUID(caps->host.host_uuid)) {
         umlReportError(VIR_ERR_INTERNAL_ERROR,
@@ -121,16 +125,8 @@ umlConnectTapDevice(virConnectPtr conn,
                     virDomainNetDefPtr net,
                     const char *bridge)
 {
-    brControl *brctl = NULL;
     bool template_ifname = false;
-    int err;
     unsigned char tapmac[VIR_MAC_BUFLEN];
-
-    if ((err = brInit(&brctl))) {
-        virReportSystemError(err, "%s",
-                             _("cannot initialize bridge support"));
-        goto error;
-    }
 
     if (!net->ifname ||
         STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
@@ -144,32 +140,8 @@ umlConnectTapDevice(virConnectPtr conn,
 
     memcpy(tapmac, net->mac, VIR_MAC_BUFLEN);
     tapmac[0] = 0xFE; /* Discourage bridge from using TAP dev MAC */
-    if ((err = brAddTap(brctl,
-                        bridge,
-                        &net->ifname,
-                        tapmac,
-                        0,
-                        true,
-                        NULL))) {
-        if (err == ENOTSUP) {
-            /* In this particular case, give a better diagnostic. */
-            umlReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Failed to add tap interface to bridge. "
-                             "%s is not a bridge device"), bridge);
-        } else if (err == ENOENT) {
-            virReportSystemError(err, "%s",
-                    _("Failed to add tap interface to bridge. Your kernel "
-                      "is missing the 'tun' module or CONFIG_TUN, or you need "
-                      "to add the /dev/net/tun device node."));
-        } else if (template_ifname) {
-            virReportSystemError(err,
-                                 _("Failed to add tap interface to bridge '%s'"),
-                                 bridge);
-        } else {
-            virReportSystemError(err,
-                                 _("Failed to add tap interface '%s' to bridge '%s'"),
-                                 net->ifname, bridge);
-        }
+    if (virNetDevTapCreateInBridgePort(bridge, &net->ifname, tapmac,
+                                       0, true, NULL) < 0) {
         if (template_ifname)
             VIR_FREE(net->ifname);
         goto error;
@@ -183,14 +155,11 @@ umlConnectTapDevice(virConnectPtr conn,
         }
     }
 
-    brShutdown(brctl);
-
     return 0;
 
 no_memory:
     virReportOOMError();
 error:
-    brShutdown(brctl);
     return -1;
 }
 

@@ -1307,6 +1307,21 @@ int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
     return ret;
 }
 
+int qemuMonitorBlockResize(qemuMonitorPtr mon,
+                           const char *device,
+                           unsigned long long size)
+{
+    int ret;
+    VIR_DEBUG("mon=%p, fd=%d, devname=%p size=%llu",
+              mon, mon->fd, device, size);
+
+    if (mon->json)
+        ret = qemuMonitorJSONBlockResize(mon, device, size);
+    else
+        ret = qemuMonitorTextBlockResize(mon, device, size);
+
+    return ret;
+}
 
 int qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
                               const char *password)
@@ -2566,6 +2581,39 @@ int qemuMonitorBlockJob(qemuMonitorPtr mon,
         ret = qemuMonitorTextBlockJob(mon, device, bandwidth, info, mode);
     return ret;
 }
+
+int qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
+                                  const char *device,
+                                  virDomainBlockIoTuneInfoPtr info)
+{
+    int ret;
+
+    VIR_DEBUG("mon=%p, device=%p, info=%p", mon, device, info);
+
+    if (mon->json) {
+        ret = qemuMonitorJSONSetBlockIoThrottle(mon, device, info);
+    } else {
+        ret = qemuMonitorTextSetBlockIoThrottle(mon, device, info);
+    }
+    return ret;
+}
+
+int qemuMonitorGetBlockIoThrottle(qemuMonitorPtr mon,
+                                  const char *device,
+                                  virDomainBlockIoTuneInfoPtr reply)
+{
+    int ret;
+
+    VIR_DEBUG("mon=%p, device=%p, reply=%p", mon, device, reply);
+
+    if (mon->json) {
+        ret = qemuMonitorJSONGetBlockIoThrottle(mon, device, reply);
+    } else {
+        ret = qemuMonitorTextGetBlockIoThrottle(mon, device, reply);
+    }
+    return ret;
+}
+
 
 int qemuMonitorVMStatusToPausedReason(const char *status)
 {

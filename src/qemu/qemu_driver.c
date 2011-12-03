@@ -77,7 +77,6 @@
 #include "libvirt_internal.h"
 #include "xml.h"
 #include "cpu/cpu.h"
-#include "macvtap.h"
 #include "sysinfo.h"
 #include "domain_nwfilter.h"
 #include "hooks.h"
@@ -89,10 +88,14 @@
 #include "locking/lock_manager.h"
 #include "locking/domain_lock.h"
 #include "virkeycode.h"
+#include "virnodesuspend.h"
+#include "virtime.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
 #define QEMU_NB_MEM_PARAM  3
+
+#define QEMU_NB_BLOCK_IO_TUNE_PARAM  6
 
 #if HAVE_LINUX_KVM_H
 # include <linux/kvm.h>
@@ -112,7 +115,7 @@
 # define KVM_CAP_NR_VCPUS 9       /* returns max vcpus per vm */
 #endif
 
-#define QEMU_NB_BLKIO_PARAM  1
+#define QEMU_NB_BLKIO_PARAM  2
 
 static void processWatchdogEvent(void *data, void *opaque);
 
@@ -815,9 +818,6 @@ qemudShutdown(void) {
     /* Free domain callback list */
     virDomainEventStateFree(qemu_driver->domainEventState);
 
-    if (qemu_driver->brctl)
-        brShutdown(qemu_driver->brctl);
-
     virCgroupFree(&qemu_driver->cgroup);
 
     virLockManagerPluginUnref(qemu_driver->lockManager);
@@ -920,6 +920,7 @@ qemudSupportsFeature (virConnectPtr conn ATTRIBUTE_UNUSED, int feature)
     case VIR_DRV_FEATURE_MIGRATION_P2P:
     case VIR_DRV_FEATURE_MIGRATE_CHANGE_PROTECTION:
     case VIR_DRV_FEATURE_FD_PASSING:
+    case VIR_DRV_FEATURE_TYPED_PARAM_STRING:
         return 1;
     default:
         return 0;
@@ -941,6 +942,11 @@ static int qemuIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     /* Not encrypted, but remote driver takes care of that */
     return 0;
+}
+
+static int qemuIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 1;
 }
 
 
@@ -1327,7 +1333,7 @@ static virDomainPtr qemudDomainCreate(virConnectPtr conn, const char *xml,
     if (qemuProcessStart(conn, driver, vm, NULL,
                          (flags & VIR_DOMAIN_START_PAUSED) != 0,
                          (flags & VIR_DOMAIN_START_AUTODESTROY) != 0,
-                         -1, NULL, NULL, VIR_VM_OP_CREATE) < 0) {
+                         -1, NULL, NULL, VIR_NETDEV_VPORT_PROFILE_OP_CREATE) < 0) {
         virDomainAuditStart(vm, "booted", false);
         if (qemuDomainObjEndJob(driver, vm) > 0)
             qemuDomainRemoveInactive(driver, vm);
@@ -2198,12 +2204,12 @@ qemuDomainGetControlInfo(virDomainPtr dom,
     } else if (priv->job.active) {
         if (!priv->monStart) {
             info->state = VIR_DOMAIN_CONTROL_JOB;
-            if (virTimeMs(&info->stateTime) < 0)
+            if (virTimeMillisNow(&info->stateTime) < 0)
                 goto cleanup;
             info->stateTime -= priv->job.start;
         } else {
             info->state = VIR_DOMAIN_CONTROL_OCCUPIED;
-            if (virTimeMs(&info->stateTime) < 0)
+            if (virTimeMillisNow(&info->stateTime) < 0)
                 goto cleanup;
             info->stateTime -= priv->monStart;
         }
@@ -3571,13 +3577,6 @@ qemudDomainGetVcpuPinInfo(virDomainPtr dom,
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
 
-    if ((flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG)) ==
-        (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG)) {
-        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
-                        _("cannot get live and persistent info concurrently"));
-        goto cleanup;
-    }
-
     qemuDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
     qemuDriverUnlock(driver);
@@ -4101,7 +4100,7 @@ qemuDomainSaveImageStartVM(virConnectPtr conn,
 
     /* Set the migration source and start it up. */
     ret = qemuProcessStart(conn, driver, vm, "stdio", true,
-                           false, *fd, path, NULL, VIR_VM_OP_RESTORE);
+                           false, *fd, path, NULL, VIR_NETDEV_VPORT_PROFILE_OP_RESTORE);
 
     if (intermediatefd != -1) {
         if (ret < 0) {
@@ -4621,7 +4620,7 @@ static char *qemuDomainXMLToNative(virConnectPtr conn,
 
     if (!(cmd = qemuBuildCommandLine(conn, driver, def,
                                      &monConfig, monitor_json, qemuCaps,
-                                     NULL, -1, NULL, VIR_VM_OP_NO_OP)))
+                                     NULL, -1, NULL, VIR_NETDEV_VPORT_PROFILE_OP_NO_OP)))
         goto cleanup;
 
     ret = virCommandToString(cmd);
@@ -4703,7 +4702,7 @@ qemuDomainObjStart(virConnectPtr conn,
     }
 
     ret = qemuProcessStart(conn, driver, vm, NULL, start_paused,
-                           autodestroy, -1, NULL, NULL, VIR_VM_OP_CREATE);
+                           autodestroy, -1, NULL, NULL, VIR_NETDEV_VPORT_PROFILE_OP_CREATE);
     virDomainAuditStart(vm, "booted", ret >= 0);
     if (ret >= 0) {
         virDomainEventPtr event =
@@ -5212,8 +5211,8 @@ qemuDomainDetachDeviceDiskLive(struct qemud_driver *driver,
         break;
     default:
         qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                        _("device type '%s' cannot be detached"),
-                        virDomainDeviceTypeToString(dev->type));
+                        _("disk device type '%s' cannot be detached"),
+                        virDomainDiskDeviceTypeToString(disk->type));
         break;
     }
     return ret;
@@ -5887,6 +5886,123 @@ cleanup:
     return ret;
 }
 
+/* deviceWeightStr in the form of /device/path,weight,/device/path,weight
+ * for example, /dev/disk/by-path/pci-0000:00:1f.2-scsi-0:0:0:0,800
+ */
+static int
+qemuDomainParseDeviceWeightStr(char *deviceWeightStr,
+                               virBlkioDeviceWeightPtr *dw, size_t *size)
+{
+    char *temp;
+    int ndevices = 0;
+    int nsep = 0;
+    int i;
+    virBlkioDeviceWeightPtr result = NULL;
+
+    temp = deviceWeightStr;
+    while (temp) {
+        temp = strchr(temp, ',');
+        if (temp) {
+            temp++;
+            nsep++;
+        }
+    }
+
+    /* A valid string must have even number of fields, hence an odd
+     * number of commas.  */
+    if (!(nsep & 1))
+        goto error;
+
+    ndevices = (nsep + 1) / 2;
+
+    if (VIR_ALLOC_N(result, ndevices) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    i = 0;
+    temp = deviceWeightStr;
+    while (temp) {
+        char *p = temp;
+
+        /* device path */
+        p = strchr(p, ',');
+        if (!p)
+            goto error;
+
+        result[i].path = strndup(temp, p - temp);
+        if (!result[i].path) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        /* weight */
+        temp = p + 1;
+
+        if (virStrToLong_ui(temp, &p, 10, &result[i].weight) < 0)
+            goto error;
+
+        i++;
+
+        if (*p == '\0')
+            break;
+        else if (*p != ',')
+            goto error;
+        temp = p + 1;
+    }
+
+    if (!i)
+        VIR_FREE(result);
+
+    *dw = result;
+    *size = i;
+
+    return 0;
+
+error:
+    qemuReportError(VIR_ERR_INVALID_ARG,
+                    _("unable to parse %s"), deviceWeightStr);
+cleanup:
+    virBlkioDeviceWeightArrayClear(result, ndevices);
+    VIR_FREE(result);
+    return -1;
+}
+
+/* Modify def to reflect all device weight changes described in tmp.  */
+static int
+qemuDomainMergeDeviceWeights(virBlkioDeviceWeightPtr *def, size_t *def_size,
+                             virBlkioDeviceWeightPtr tmp, size_t tmp_size)
+{
+    int i, j;
+    virBlkioDeviceWeightPtr dw;
+
+    for (i = 0; i < tmp_size; i++) {
+        bool found = false;
+
+        dw = &tmp[i];
+        for (j = 0; j < *def_size; j++) {
+            if (STREQ(dw->path, (*def)[j].path)) {
+                found = true;
+                (*def)[j].weight = dw->weight;
+                break;
+            }
+        }
+        if (!found) {
+            if (!dw->weight)
+                continue;
+            if (VIR_EXPAND_N(*def, *def_size, 1) < 0) {
+                virReportOOMError();
+                return -1;
+            }
+            (*def)[*def_size - 1].path = dw->path;
+            (*def)[*def_size - 1].weight = dw->weight;
+            dw->path = NULL;
+        }
+    }
+
+    return 0;
+}
+
 static int qemuDomainSetBlkioParameters(virDomainPtr dom,
                                          virTypedParameterPtr params,
                                          int nparams,
@@ -5953,10 +6069,10 @@ static int qemuDomainSetBlkioParameters(virDomainPtr dom,
     ret = 0;
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
         for (i = 0; i < nparams; i++) {
+            int rc;
             virTypedParameterPtr param = &params[i];
 
             if (STREQ(param->field, VIR_DOMAIN_BLKIO_WEIGHT)) {
-                int rc;
                 if (param->type != VIR_TYPED_PARAM_UINT) {
                     qemuReportError(VIR_ERR_INVALID_ARG, "%s",
                                     _("invalid type for blkio weight tunable, expected a 'unsigned int'"));
@@ -5977,13 +6093,56 @@ static int qemuDomainSetBlkioParameters(virDomainPtr dom,
                                          _("unable to set blkio weight tunable"));
                     ret = -1;
                 }
+            } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT)) {
+                size_t ndevices;
+                virBlkioDeviceWeightPtr devices = NULL;
+                if (param->type != VIR_TYPED_PARAM_STRING) {
+                    qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                                    _("invalid type for device_weight tunable, "
+                                      "expected a 'char *'"));
+                    ret = -1;
+                    continue;
+                }
+
+                if (qemuDomainParseDeviceWeightStr(params[i].value.s,
+                                                   &devices,
+                                                   &ndevices) < 0) {
+                    ret = -1;
+                    continue;
+                }
+                for (i = 0; i < ndevices; i++) {
+                    rc = virCgroupSetBlkioDeviceWeight(group,
+                                                       devices[i].path,
+                                                       devices[i].weight);
+                    if (rc < 0) {
+                        virReportSystemError(-rc,
+                                             _("Unable to set io device weight "
+                                               "for path %s"),
+                                             devices[i].path);
+                        break;
+                    }
+                }
+                if (i != ndevices) {
+                    ret = -1;
+                    continue;
+                }
+                if (qemuDomainMergeDeviceWeights(&vm->def->blkio.devices,
+                                                 &vm->def->blkio.ndevices,
+                                                 devices, ndevices) < 0)
+                    ret = -1;
+                virBlkioDeviceWeightArrayClear(devices, ndevices);
+                VIR_FREE(devices);
             } else {
                 qemuReportError(VIR_ERR_INVALID_ARG,
-                                _("Parameter `%s' not supported"), param->field);
+                                _("Parameter `%s' not supported"),
+                                param->field);
                 ret = -1;
             }
         }
-    } else if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+    }
+    if (ret < 0)
+        goto cleanup;
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
         /* Clang can't see that if we get here, persistentDef was set.  */
         sa_assert(persistentDef);
 
@@ -6006,9 +6165,32 @@ static int qemuDomainSetBlkioParameters(virDomainPtr dom,
                 }
 
                 persistentDef->blkio.weight = params[i].value.ui;
+            } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT)) {
+                virBlkioDeviceWeightPtr devices = NULL;
+                size_t ndevices;
+                if (param->type != VIR_TYPED_PARAM_STRING) {
+                    qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                                    _("invalid type for device_weight tunable, "
+                                      "expected a 'char *'"));
+                    ret = -1;
+                    continue;
+                }
+                if (qemuDomainParseDeviceWeightStr(params[i].value.s,
+                                                   &devices,
+                                                   &ndevices) < 0) {
+                    ret = -1;
+                    continue;
+                }
+                if (qemuDomainMergeDeviceWeights(&vm->def->blkio.devices,
+                                                 &vm->def->blkio.ndevices,
+                                                 devices, ndevices) < 0)
+                    ret = -1;
+                virBlkioDeviceWeightArrayClear(devices, ndevices);
+                VIR_FREE(devices);
             } else {
                 qemuReportError(VIR_ERR_INVALID_ARG,
-                                _("Parameter `%s' not supported"), param->field);
+                                _("Parameter `%s' not supported"),
+                                param->field);
                 ret = -1;
             }
         }
@@ -6031,7 +6213,7 @@ static int qemuDomainGetBlkioParameters(virDomainPtr dom,
                                          unsigned int flags)
 {
     struct qemud_driver *driver = dom->conn->privateData;
-    int i;
+    int i, j;
     virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     virDomainDefPtr persistentDef = NULL;
@@ -6041,8 +6223,14 @@ static int qemuDomainGetBlkioParameters(virDomainPtr dom,
     bool isActive;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
-                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
     qemuDriverLock(driver);
+
+    /* We blindly return a string, and let libvirt.c and
+     * remote_driver.c do the filtering on behalf of older clients
+     * that can't parse it.  */
+    flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
 
@@ -6120,6 +6308,44 @@ static int qemuDomainGetBlkioParameters(virDomainPtr dom,
                 }
                 param->value.ui = val;
                 break;
+            case 1: /* blkiotune.device_weight */
+                if (vm->def->blkio.ndevices > 0) {
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+                    bool comma = false;
+
+                    for (j = 0; j < vm->def->blkio.ndevices; j++) {
+                        if (!vm->def->blkio.devices[j].weight)
+                            continue;
+                        if (comma)
+                            virBufferAddChar(&buf, ',');
+                        else
+                            comma = true;
+                        virBufferAsprintf(&buf, "%s,%u",
+                                          vm->def->blkio.devices[j].path,
+                                          vm->def->blkio.devices[j].weight);
+                    }
+                    if (virBufferError(&buf)) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                    param->value.s = virBufferContentAndReset(&buf);
+                }
+                if (!param->value.s) {
+                    param->value.s = strdup("");
+                    if (!param->value.s) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                }
+                param->type = VIR_TYPED_PARAM_STRING;
+                if (virStrcpyStatic(param->field,
+                                    VIR_DOMAIN_BLKIO_DEVICE_WEIGHT) == NULL) {
+                    qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                    _("Field name '%s' too long"),
+                                    VIR_DOMAIN_BLKIO_DEVICE_WEIGHT);
+                    goto cleanup;
+                }
+                break;
 
             default:
                 break;
@@ -6142,6 +6368,45 @@ static int qemuDomainGetBlkioParameters(virDomainPtr dom,
                     goto cleanup;
                 }
                 param->value.ui = persistentDef->blkio.weight;
+                break;
+
+            case 1: /* blkiotune.device_weight */
+                if (persistentDef->blkio.ndevices > 0) {
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+                    bool comma = false;
+
+                    for (j = 0; j < persistentDef->blkio.ndevices; j++) {
+                        if (!persistentDef->blkio.devices[j].weight)
+                            continue;
+                        if (comma)
+                            virBufferAddChar(&buf, ',');
+                        else
+                            comma = true;
+                        virBufferAsprintf(&buf, "%s,%u",
+                                          persistentDef->blkio.devices[j].path,
+                                          persistentDef->blkio.devices[j].weight);
+                    }
+                    if (virBufferError(&buf)) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                    param->value.s = virBufferContentAndReset(&buf);
+                }
+                if (!param->value.s) {
+                    param->value.s = strdup("");
+                    if (!param->value.s) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                }
+                param->type = VIR_TYPED_PARAM_STRING;
+                if (virStrcpyStatic(param->field,
+                                    VIR_DOMAIN_BLKIO_DEVICE_WEIGHT) == NULL) {
+                    qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                    _("Field name '%s' too long"),
+                                    VIR_DOMAIN_BLKIO_DEVICE_WEIGHT);
+                    goto cleanup;
+                }
                 break;
 
             default:
@@ -6336,9 +6601,13 @@ static int qemuDomainGetMemoryParameters(virDomainPtr dom,
     bool isActive;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
-                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
 
     qemuDriverLock(driver);
+
+    /* We don't return strings, and thus trivially support this flag.  */
+    flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
 
@@ -6883,16 +7152,13 @@ qemuGetSchedulerParametersFlags(virDomainPtr dom,
     int saved_nparams = 0;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
-                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
 
     qemuDriverLock(driver);
 
-    if ((flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG)) ==
-        (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG)) {
-        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
-                        _("cannot query live and config together"));
-        goto cleanup;
-    }
+    /* We don't return strings, and thus trivially support this flag.  */
+    flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
     if (*nparams > 1) {
         rc = qemuGetCpuBWStatus(driver->cgroup);
@@ -7041,6 +7307,96 @@ qemuGetSchedulerParameters(virDomainPtr dom,
                                            VIR_DOMAIN_AFFECT_CURRENT);
 }
 
+/**
+ * Resize a block device while a guest is running. Resize to a lower size
+ * is supported, but should be used with extreme caution.  Note that it
+ * only supports to resize image files, it can't resize block devices
+ * like LVM volumes.
+ */
+static int
+qemuDomainBlockResize (virDomainPtr dom,
+                       const char *path,
+                       unsigned long long size,
+                       unsigned int flags)
+{
+    struct qemud_driver *driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    qemuDomainObjPrivatePtr priv;
+    int ret = -1, i;
+    char *device = NULL;
+    virDomainDiskDefPtr disk = NULL;
+
+    virCheckFlags(0, -1);
+
+    if (path[0] == '\0') {
+        qemuReportError(VIR_ERR_INVALID_ARG,
+                        "%s", _("empty path"));
+        return -1;
+    }
+
+    if (size > ULLONG_MAX / 1024) {
+        qemuReportError(VIR_ERR_INVALID_ARG,
+                        _("size must be less than %llu"),
+                        ULLONG_MAX / 1024);
+        return -1;
+    }
+
+    qemuDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    qemuDriverUnlock(driver);
+
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        qemuReportError(VIR_ERR_NO_DOMAIN,
+                        _("no domain matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    priv = vm->privateData;
+
+    if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
+        goto cleanup;
+
+    if (!virDomainObjIsActive(vm)) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID,
+                        "%s", _("domain is not running"));
+        goto endjob;
+    }
+
+    if ((i = virDomainDiskIndexByName(vm->def, path, false)) < 0) {
+        qemuReportError(VIR_ERR_INVALID_ARG,
+                        _("invalid path: %s"), path);
+        goto cleanup;
+    }
+    disk = vm->def->disks[i];
+
+    if (virAsprintf(&device, "%s%s", QEMU_DRIVE_HOST_PREFIX,
+                    disk->info.alias) < 0) {
+        virReportOOMError();
+        goto endjob;
+    }
+
+    qemuDomainObjEnterMonitor(driver, vm);
+    if (qemuMonitorBlockResize(priv->mon, device, size) < 0) {
+        qemuDomainObjExitMonitor(driver, vm);
+        goto endjob;
+    }
+    qemuDomainObjExitMonitor(driver, vm);
+
+    ret = 0;
+
+endjob:
+    if (qemuDomainObjEndJob(driver, vm) == 0)
+        vm = NULL;
+
+cleanup:
+    VIR_FREE(device);
+    if (vm)
+        virDomainObjUnlock(vm);
+    return ret;
+}
+
 /* This uses the 'info blockstats' monitor command which was
  * integrated into both qemu & kvm in late 2007.  If the command is
  * not supported we detect this and return the appropriate error.
@@ -7073,18 +7429,12 @@ qemuDomainBlockStats(virDomainPtr dom,
         goto cleanup;
     }
 
-    for (i = 0 ; i < vm->def->ndisks ; i++) {
-        if (STREQ(path, vm->def->disks[i]->dst)) {
-            disk = vm->def->disks[i];
-            break;
-        }
-    }
-
-    if (!disk) {
+    if ((i = virDomainDiskIndexByName(vm->def, path, false)) < 0) {
         qemuReportError(VIR_ERR_INVALID_ARG,
                         _("invalid path: %s"), path);
         goto cleanup;
     }
+    disk = vm->def->disks[i];
 
     if (!disk->info.alias) {
         qemuReportError(VIR_ERR_INTERNAL_ERROR,
@@ -7142,7 +7492,10 @@ qemuDomainBlockStatsFlags(virDomainPtr dom,
     long long wr_total_times, flush_req, flush_total_times, errs;
     virTypedParameterPtr param;
 
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    /* We don't return strings, and thus trivially support this flag.  */
+    flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
 
     qemuDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -7162,18 +7515,12 @@ qemuDomainBlockStatsFlags(virDomainPtr dom,
     }
 
     if (*nparams != 0) {
-        for (i = 0 ; i < vm->def->ndisks ; i++) {
-            if (STREQ(path, vm->def->disks[i]->dst)) {
-                disk = vm->def->disks[i];
-                break;
-            }
-        }
-
-        if (!disk) {
+        if ((i = virDomainDiskIndexByName(vm->def, path, false)) < 0) {
             qemuReportError(VIR_ERR_INVALID_ARG,
                             _("invalid path: %s"), path);
             goto cleanup;
         }
+        disk = vm->def->disks[i];
 
         if (!disk->info.alias) {
              qemuReportError(VIR_ERR_INTERNAL_ERROR,
@@ -8581,7 +8928,7 @@ static int qemuDomainGetJobInfo(virDomainPtr dom,
              * of incoming migration which we don't currently
              * monitor actively in the background thread
              */
-            if (virTimeMs(&info->timeElapsed) < 0)
+            if (virTimeMillisNow(&info->timeElapsed) < 0)
                 goto cleanup;
             info->timeElapsed -= priv->job.start;
         } else {
@@ -10039,7 +10386,7 @@ static int qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
 
             rc = qemuProcessStart(snapshot->domain->conn, driver, vm, NULL,
                                   true, false, -1, NULL, snap,
-                                  VIR_VM_OP_CREATE);
+                                  VIR_NETDEV_VPORT_PROFILE_OP_CREATE);
             virDomainAuditStart(vm, "from-snapshot", rc >= 0);
             detail = VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT;
             event = virDomainEventNewFromObj(vm,
@@ -10129,7 +10476,7 @@ static int qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
                 qemuDomainEventQueue(driver, event);
             rc = qemuProcessStart(snapshot->domain->conn, driver, vm, NULL,
                                   paused, false, -1, NULL, NULL,
-                                  VIR_VM_OP_CREATE);
+                                  VIR_NETDEV_VPORT_PROFILE_OP_CREATE);
             virDomainAuditStart(vm, "from-snapshot", rc >= 0);
             if (rc < 0) {
                 if (!vm->persistent) {
@@ -10565,8 +10912,9 @@ cleanup:
     return ret;
 }
 
-static const char *
-qemuDiskPathToAlias(virDomainObjPtr vm, const char *path) {
+static char *
+qemuDiskPathToAlias(virDomainObjPtr vm, const char *path)
+{
     int i;
     char *ret = NULL;
     virDomainDiskDefPtr disk;
@@ -10605,7 +10953,7 @@ qemuDomainBlockJobImpl(virDomainPtr dom, const char *path,
     virDomainObjPtr vm = NULL;
     qemuDomainObjPrivatePtr priv;
     char uuidstr[VIR_UUID_STRING_BUFLEN];
-    const char *device = NULL;
+    char *device = NULL;
     int ret = -1;
 
     qemuDriverLock(driver);
@@ -10762,6 +11110,336 @@ cleanup:
     return ret;
 }
 
+static int
+qemuDomainSetBlockIoTune(virDomainPtr dom,
+                         const char *disk,
+                         virTypedParameterPtr params,
+                         int nparams,
+                         unsigned int flags)
+{
+    struct qemud_driver *driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    qemuDomainObjPrivatePtr priv;
+    virDomainDefPtr persistentDef = NULL;
+    virDomainBlockIoTuneInfo info;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    const char *device = NULL;
+    int ret = -1;
+    int i;
+    bool isActive;
+    int idx = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    memset(&info, 0, sizeof(info));
+
+    qemuDriverLock(driver);
+    virUUIDFormat(dom->uuid, uuidstr);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    if (!vm) {
+        qemuReportError(VIR_ERR_NO_DOMAIN,
+                        _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    device = qemuDiskPathToAlias(vm, disk);
+    if (!device) {
+        goto cleanup;
+    }
+
+    if (qemuDomainObjBeginJobWithDriver(driver, vm, QEMU_JOB_MODIFY) < 0)
+        goto cleanup;
+
+    isActive = virDomainObjIsActive(vm);
+
+    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
+        if (isActive)
+            flags = VIR_DOMAIN_AFFECT_LIVE;
+        else
+            flags = VIR_DOMAIN_AFFECT_CONFIG;
+    }
+
+    if (!isActive && (flags & VIR_DOMAIN_AFFECT_LIVE)) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                        _("domain is not running"));
+        goto endjob;
+    }
+
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (!vm->persistent) {
+            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                            _("cannot change persistent config of a transient domain"));
+            goto endjob;
+        }
+        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
+            goto endjob;
+        idx = virDomainDiskIndexByName(persistentDef, disk, true);
+        if (idx < 0)
+            goto endjob;
+    }
+
+    for (i = 0; i < nparams; i++) {
+        virTypedParameterPtr param = &params[i];
+
+        if (param->type != VIR_TYPED_PARAM_ULLONG) {
+            qemuReportError(VIR_ERR_INVALID_ARG,
+                            _("expected unsigned long long for parameter %s"),
+                            param->field);
+            goto endjob;
+        }
+
+        if (STREQ(param->field, VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC)) {
+            info.total_bytes_sec = param->value.ul;
+        } else if (STREQ(param->field,
+                         VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC)) {
+            info.read_bytes_sec = param->value.ul;
+        } else if (STREQ(param->field,
+                         VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC)) {
+            info.write_bytes_sec = param->value.ul;
+        } else if (STREQ(param->field,
+                         VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC)) {
+            info.total_iops_sec = param->value.ul;
+        } else if (STREQ(param->field,
+                         VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC)) {
+            info.read_iops_sec = param->value.ul;
+        } else if (STREQ(param->field,
+                         VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC)) {
+            info.write_iops_sec = param->value.ul;
+        } else {
+            qemuReportError(VIR_ERR_INVALID_ARG,
+                            _("Unrecognized parameter %s"),
+                            param->field);
+            goto endjob;
+        }
+    }
+
+    if ((info.total_bytes_sec && info.read_bytes_sec) ||
+        (info.total_bytes_sec && info.write_bytes_sec)) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("total and read/write of bytes_sec cannot be set at the same time"));
+        goto endjob;
+    }
+
+    if ((info.total_iops_sec && info.read_iops_sec) ||
+        (info.total_iops_sec && info.write_iops_sec)) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("total and read/write of iops_sec cannot be set at the same time"));
+        goto endjob;
+    }
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        priv = vm->privateData;
+        qemuDomainObjEnterMonitorWithDriver(driver, vm);
+        ret = qemuMonitorSetBlockIoThrottle(priv->mon, device, &info);
+        qemuDomainObjExitMonitorWithDriver(driver, vm);
+    }
+    if (ret < 0)
+        goto endjob;
+
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        sa_assert(persistentDef && idx >= 0);
+        persistentDef->disks[idx]->blkdeviotune = info;
+        ret = virDomainSaveConfig(driver->configDir, persistentDef);
+        if (ret < 0) {
+            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("Write to config file failed"));
+            goto endjob;
+        }
+    }
+
+endjob:
+    if (qemuDomainObjEndJob(driver, vm) == 0)
+        vm = NULL;
+
+cleanup:
+    VIR_FREE(device);
+    if (vm)
+        virDomainObjUnlock(vm);
+    qemuDriverUnlock(driver);
+    return ret;
+}
+
+static int
+qemuDomainGetBlockIoTune(virDomainPtr dom,
+                         const char *disk,
+                         virTypedParameterPtr params,
+                         int *nparams,
+                         unsigned int flags)
+{
+    struct qemud_driver *driver = dom->conn->privateData;
+    virDomainObjPtr vm = NULL;
+    qemuDomainObjPrivatePtr priv;
+    virDomainDefPtr persistentDef = NULL;
+    virDomainBlockIoTuneInfo reply;
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    const char *device = NULL;
+    int ret = -1;
+    int i;
+    bool isActive;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    /* We don't return strings, and thus trivially support this flag.  */
+    flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
+
+    qemuDriverLock(driver);
+    virUUIDFormat(dom->uuid, uuidstr);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    if (!vm) {
+        qemuReportError(VIR_ERR_NO_DOMAIN,
+                        _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if ((*nparams) == 0) {
+        /* Current number of parameters supported by QEMU Block I/O Throttling */
+        *nparams = QEMU_NB_BLOCK_IO_TUNE_PARAM;
+        ret = 0;
+        goto cleanup;
+    }
+
+    device = qemuDiskPathToAlias(vm, disk);
+
+    if (!device) {
+        goto cleanup;
+    }
+
+    if (qemuDomainObjBeginJobWithDriver(driver, vm, QEMU_JOB_MODIFY) < 0)
+        goto cleanup;
+
+    isActive = virDomainObjIsActive(vm);
+
+    if (flags  == VIR_DOMAIN_AFFECT_CURRENT) {
+        if (isActive)
+            flags = VIR_DOMAIN_AFFECT_LIVE;
+        else
+            flags = VIR_DOMAIN_AFFECT_CONFIG;
+    }
+
+    if (!isActive && (flags & VIR_DOMAIN_AFFECT_LIVE)) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                        _("domain is not running"));
+        goto endjob;
+    }
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        priv = vm->privateData;
+        qemuDomainObjEnterMonitorWithDriver(driver, vm);
+        ret = qemuMonitorGetBlockIoThrottle(priv->mon, device, &reply);
+        qemuDomainObjExitMonitorWithDriver(driver, vm);
+        if (ret < 0)
+            goto endjob;
+    }
+
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (!vm->persistent) {
+            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                            _("domain is transient"));
+            goto endjob;
+        }
+        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
+            goto endjob;
+
+        int idx = virDomainDiskIndexByName(vm->def, disk, true);
+        if (idx < 0)
+            goto endjob;
+        reply = persistentDef->disks[idx]->blkdeviotune;
+    }
+
+    for (i = 0; i < QEMU_NB_BLOCK_IO_TUNE_PARAM && i < *nparams; i++) {
+        virTypedParameterPtr param = &params[i];
+        param->value.ul = 0;
+        param->type = VIR_TYPED_PARAM_ULLONG;
+
+        switch(i) {
+        case 0:
+            if (virStrcpyStatic(param->field,
+                                VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC);
+                goto endjob;
+            }
+            param->value.ul = reply.total_bytes_sec;
+            break;
+
+        case 1:
+            if (virStrcpyStatic(param->field,
+                                VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC);
+                goto endjob;
+            }
+            param->value.ul = reply.read_bytes_sec;
+            break;
+
+        case 2:
+            if (virStrcpyStatic(param->field,
+                                VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC);
+                goto endjob;
+            }
+            param->value.ul = reply.write_bytes_sec;
+            break;
+
+        case 3:
+            if (virStrcpyStatic(param->field,
+                                VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC);
+                goto endjob;
+            }
+            param->value.ul = reply.total_iops_sec;
+            break;
+
+        case 4:
+            if (virStrcpyStatic(param->field,
+                                VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC);
+                goto endjob;
+            }
+            param->value.ul = reply.read_iops_sec;
+            break;
+
+        case 5:
+            if (virStrcpyStatic(param->field,
+                                VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC);
+                goto endjob;
+            }
+            param->value.ul = reply.write_iops_sec;
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (*nparams > QEMU_NB_BLOCK_IO_TUNE_PARAM)
+        *nparams = QEMU_NB_BLOCK_IO_TUNE_PARAM;
+    ret = 0;
+
+endjob:
+    if (qemuDomainObjEndJob(driver, vm) == 0)
+        vm = NULL;
+
+cleanup:
+    VIR_FREE(device);
+    if (vm)
+        virDomainObjUnlock(vm);
+    qemuDriverUnlock(driver);
+    return ret;
+}
 
 static virDriver qemuDriver = {
     .no = VIR_DRV_QEMU,
@@ -10842,6 +11520,7 @@ static virDriver qemuDriver = {
     .domainSetSchedulerParameters = qemuSetSchedulerParameters, /* 0.7.0 */
     .domainSetSchedulerParametersFlags = qemuSetSchedulerParametersFlags, /* 0.9.2 */
     .domainMigratePerform = qemudDomainMigratePerform, /* 0.5.0 */
+    .domainBlockResize = qemuDomainBlockResize, /* 0.9.8 */
     .domainBlockStats = qemuDomainBlockStats, /* 0.4.1 */
     .domainBlockStatsFlags = qemuDomainBlockStatsFlags, /* 0.9.5 */
     .domainInterfaceStats = qemudDomainInterfaceStats, /* 0.4.1 */
@@ -10906,6 +11585,10 @@ static virDriver qemuDriver = {
     .domainGetBlockJobInfo = qemuDomainGetBlockJobInfo, /* 0.9.4 */
     .domainBlockJobSetSpeed = qemuDomainBlockJobSetSpeed, /* 0.9.4 */
     .domainBlockPull = qemuDomainBlockPull, /* 0.9.4 */
+    .isAlive = qemuIsAlive, /* 0.9.8 */
+    .nodeSuspendForDuration = nodeSuspendForDuration, /* 0.9.8 */
+    .domainSetBlockIoTune = qemuDomainSetBlockIoTune, /* 0.9.8 */
+    .domainGetBlockIoTune = qemuDomainGetBlockIoTune, /* 0.9.8 */
 };
 
 

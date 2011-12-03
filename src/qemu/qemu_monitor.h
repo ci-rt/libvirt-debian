@@ -255,8 +255,9 @@ int qemuMonitorGetBlockStatsParamsNumber(qemuMonitorPtr mon,
 int qemuMonitorGetBlockExtent(qemuMonitorPtr mon,
                               const char *dev_name,
                               unsigned long long *extent);
-
-
+int qemuMonitorBlockResize(qemuMonitorPtr mon,
+                           const char *devname,
+                           unsigned long long size);
 int qemuMonitorSetVNCPassword(qemuMonitorPtr mon,
                               const char *password);
 int qemuMonitorSetPassword(qemuMonitorPtr mon,
@@ -520,6 +521,14 @@ int qemuMonitorOpenGraphics(qemuMonitorPtr mon,
                             int fd,
                             const char *fdname,
                             bool skipauth);
+
+int qemuMonitorSetBlockIoThrottle(qemuMonitorPtr mon,
+                                  const char *device,
+                                  virDomainBlockIoTuneInfoPtr info);
+
+int qemuMonitorGetBlockIoThrottle(qemuMonitorPtr mon,
+                                  const char *device,
+                                  virDomainBlockIoTuneInfoPtr reply);
 
 /**
  * When running two dd process and using <> redirection, we need a

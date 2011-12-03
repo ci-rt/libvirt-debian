@@ -222,6 +222,33 @@ done:
 }
 
 static int
+remoteDomainBlockResize(virDomainPtr dom, const char *disk, unsigned long long size, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_block_resize_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.disk = (char *)disk;
+    args.size = size;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_BLOCK_RESIZE,
+             (xdrproc_t)xdr_remote_domain_block_resize_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainBlockStats(virDomainPtr dom, const char *path, virDomainBlockStatsPtr result)
 {
     int rv = -1;
@@ -1907,6 +1934,38 @@ remoteDomainSetBlkioParameters(virDomainPtr dom, virTypedParameterPtr params, in
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_BLKIO_PARAMETERS,
              (xdrproc_t)xdr_remote_domain_set_blkio_parameters_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSetBlockIoTune(virDomainPtr dom, const char *disk, virTypedParameterPtr params, int nparams, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_set_block_io_tune_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.disk = (char *)disk;
+    args.flags = flags;
+
+    if (remoteSerializeTypedParameters(params, nparams, &args.params.params_val, &args.params.params_len) < 0) {
+        xdr_free((xdrproc_t)xdr_remote_domain_set_block_io_tune_args, (char *)&args);
+        goto done;
+    }
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_BLOCK_IO_TUNE,
+             (xdrproc_t)xdr_remote_domain_set_block_io_tune_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }
@@ -4372,6 +4431,32 @@ remoteNodeNumOfDevices(virConnectPtr conn, const char *cap, unsigned int flags)
     }
 
     rv = ret.num;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteNodeSuspendForDuration(virConnectPtr conn, unsigned int target, unsigned long long duration, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = conn->devMonPrivateData;
+    remote_node_suspend_for_duration_args args;
+
+    remoteDriverLock(priv);
+
+    args.target = target;
+    args.duration = duration;
+    args.flags = flags;
+
+    if (call(conn, priv, 0, REMOTE_PROC_NODE_SUSPEND_FOR_DURATION,
+             (xdrproc_t)xdr_remote_node_suspend_for_duration_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
 
 done:
     remoteDriverUnlock(priv);

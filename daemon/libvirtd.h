@@ -33,7 +33,6 @@
 # include "qemu_protocol.h"
 # include "logging.h"
 # include "threads.h"
-# include "network.h"
 # if HAVE_SASL
 #  include "virnetsaslcontext.h"
 # endif
@@ -62,6 +61,7 @@ struct daemonClientPrivate {
     virConnectPtr conn;
 
     daemonClientStreamPtr streams;
+    bool keepalive_supported;
 };
 
 # if HAVE_SASL

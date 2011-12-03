@@ -42,6 +42,7 @@
 #include "datatypes.h"
 #include "fdstream.h"
 #include "uuid.h"
+#include "virtime.h"
 #include "locking/domain_lock.h"
 #include "rpc/virnetsocket.h"
 
@@ -866,7 +867,7 @@ qemuMigrationUpdateJobStatus(struct qemud_driver *driver,
                                         &memTotal);
     qemuDomainObjExitMonitorWithDriver(driver, vm);
 
-    if (ret < 0 || virTimeMs(&priv->job.info.timeElapsed) < 0) {
+    if (ret < 0 || virTimeMillisNow(&priv->job.info.timeElapsed) < 0) {
         priv->job.info.type = VIR_DOMAIN_JOB_FAILED;
         return -1;
     }
@@ -915,7 +916,8 @@ qemuMigrationUpdateJobStatus(struct qemud_driver *driver,
 
 static int
 qemuMigrationWaitForCompletion(struct qemud_driver *driver, virDomainObjPtr vm,
-                               enum qemuDomainAsyncJob asyncJob)
+                               enum qemuDomainAsyncJob asyncJob,
+                               virConnectPtr dconn)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     const char *job;
@@ -942,6 +944,12 @@ qemuMigrationWaitForCompletion(struct qemud_driver *driver, virDomainObjPtr vm,
 
         if (qemuMigrationUpdateJobStatus(driver, vm, job, asyncJob) < 0)
             goto cleanup;
+
+        if (dconn && virConnectIsAlive(dconn) <= 0) {
+            qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                            _("Lost connection to destination host"));
+            goto cleanup;
+        }
 
         virDomainObjUnlock(vm);
         qemuDriverUnlock(driver);
@@ -1091,7 +1099,7 @@ qemuMigrationPrepareAny(struct qemud_driver *driver,
     bool tunnel = !!st;
     char *origname = NULL;
 
-    if (virTimeMs(&now) < 0)
+    if (virTimeMillisNow(&now) < 0)
         return -1;
 
     if (!(def = virDomainDefParseString(driver->caps, dom_xml,
@@ -1147,7 +1155,7 @@ qemuMigrationPrepareAny(struct qemud_driver *driver,
      */
     if (qemuProcessStart(dconn, driver, vm, migrateFrom, true,
                          true, dataFD[0], NULL, NULL,
-                         VIR_VM_OP_MIGRATE_IN_START) < 0) {
+                         VIR_NETDEV_VPORT_PROFILE_OP_MIGRATE_IN_START) < 0) {
         virDomainAuditStart(vm, "migrated", false);
         /* Note that we don't set an error here because qemuProcessStart
          * should have already done that.
@@ -1521,7 +1529,8 @@ qemuMigrationRun(struct qemud_driver *driver,
                  int *cookieoutlen,
                  unsigned long flags,
                  unsigned long resource,
-                 qemuMigrationSpecPtr spec)
+                 qemuMigrationSpecPtr spec,
+                 virConnectPtr dconn)
 {
     int ret = -1;
     unsigned int migrate_flags = QEMU_MONITOR_MIGRATE_BACKGROUND;
@@ -1640,7 +1649,8 @@ qemuMigrationRun(struct qemud_driver *driver,
         goto cancel;
 
     if (qemuMigrationWaitForCompletion(driver, vm,
-                                       QEMU_ASYNC_JOB_MIGRATION_OUT) < 0)
+                                       QEMU_ASYNC_JOB_MIGRATION_OUT,
+                                       dconn) < 0)
         goto cleanup;
 
     /* When migration completed, QEMU will have paused the
@@ -1697,7 +1707,8 @@ static int doNativeMigrate(struct qemud_driver *driver,
                            char **cookieout,
                            int *cookieoutlen,
                            unsigned long flags,
-                           unsigned long resource)
+                           unsigned long resource,
+                           virConnectPtr dconn)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     xmlURIPtr uribits = NULL;
@@ -1755,7 +1766,7 @@ static int doNativeMigrate(struct qemud_driver *driver,
     }
 
     ret = qemuMigrationRun(driver, vm, cookiein, cookieinlen, cookieout,
-                           cookieoutlen, flags, resource, &spec);
+                           cookieoutlen, flags, resource, &spec, dconn);
 
 cleanup:
     if (spec.destType == MIGRATION_DEST_FD)
@@ -1776,7 +1787,8 @@ static int doTunnelMigrate(struct qemud_driver *driver,
                            char **cookieout,
                            int *cookieoutlen,
                            unsigned long flags,
-                           unsigned long resource)
+                           unsigned long resource,
+                           virConnectPtr dconn)
 {
     qemuDomainObjPrivatePtr priv = vm->privateData;
     virNetSocketPtr sock = NULL;
@@ -1839,7 +1851,7 @@ static int doTunnelMigrate(struct qemud_driver *driver,
     }
 
     ret = qemuMigrationRun(driver, vm, cookiein, cookieinlen, cookieout,
-                           cookieoutlen, flags, resource, &spec);
+                           cookieoutlen, flags, resource, &spec, dconn);
 
 cleanup:
     if (spec.destType == MIGRATION_DEST_FD) {
@@ -1942,12 +1954,12 @@ static int doPeer2PeerMigrate2(struct qemud_driver *driver,
     if (flags & VIR_MIGRATE_TUNNELLED)
         ret = doTunnelMigrate(driver, vm, st,
                               NULL, 0, NULL, NULL,
-                              flags, resource);
+                              flags, resource, dconn);
     else
         ret = doNativeMigrate(driver, vm, uri_out,
                               cookie, cookielen,
                               NULL, NULL, /* No out cookie with v2 migration */
-                              flags, resource);
+                              flags, resource, dconn);
 
     /* Perform failed. Make sure Finish doesn't overwrite the error */
     if (ret < 0)
@@ -2088,12 +2100,12 @@ static int doPeer2PeerMigrate3(struct qemud_driver *driver,
         ret = doTunnelMigrate(driver, vm, st,
                               cookiein, cookieinlen,
                               &cookieout, &cookieoutlen,
-                              flags, resource);
+                              flags, resource, dconn);
     else
         ret = doNativeMigrate(driver, vm, uri_out,
                               cookiein, cookieinlen,
                               &cookieout, &cookieoutlen,
-                              flags, resource);
+                              flags, resource, dconn);
 
     /* Perform failed. Make sure Finish doesn't overwrite the error */
     if (ret < 0) {
@@ -2222,6 +2234,10 @@ static int doPeer2PeerMigrate(struct qemud_driver *driver,
         return -1;
     }
 
+    if (virConnectSetKeepAlive(dconn, driver->keepAliveInterval,
+                               driver->keepAliveCount) < 0)
+        goto cleanup;
+
     qemuDomainObjEnterRemoteWithDriver(driver, vm);
     p2p = VIR_DRV_SUPPORTS_FEATURE(dconn->driver, dconn,
                                    VIR_DRV_FEATURE_MIGRATION_P2P);
@@ -2321,7 +2337,7 @@ qemuMigrationPerformJob(struct qemud_driver *driver,
         qemuMigrationJobSetPhase(driver, vm, QEMU_MIGRATION_PHASE_PERFORM2);
         ret = doNativeMigrate(driver, vm, uri, cookiein, cookieinlen,
                               cookieout, cookieoutlen,
-                              flags, resource);
+                              flags, resource, NULL);
     }
     if (ret < 0)
         goto endjob;
@@ -2410,7 +2426,7 @@ qemuMigrationPerformPhase(struct qemud_driver *driver,
     resume = virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING;
     ret = doNativeMigrate(driver, vm, uri, cookiein, cookieinlen,
                           cookieout, cookieoutlen,
-                          flags, resource);
+                          flags, resource, NULL);
 
     if (ret < 0 && resume &&
         virDomainObjGetState(vm, NULL) == VIR_DOMAIN_PAUSED) {
@@ -2512,7 +2528,6 @@ qemuMigrationPerform(struct qemud_driver *driver,
     }
 }
 
-#if WITH_MACVTAP
 static void
 qemuMigrationVPAssociatePortProfiles(virDomainDefPtr def) {
     int i;
@@ -2522,12 +2537,12 @@ qemuMigrationVPAssociatePortProfiles(virDomainDefPtr def) {
     for (i = 0; i < def->nnets; i++) {
         net = def->nets[i];
         if (virDomainNetGetActualType(net) == VIR_DOMAIN_NET_TYPE_DIRECT) {
-            if (vpAssociatePortProfileId(net->ifname,
-                                         net->mac,
-                                         virDomainNetGetActualDirectDev(net),
-                                         virDomainNetGetActualDirectVirtPortProfile(net),
-                                         def->uuid,
-                                         VIR_VM_OP_MIGRATE_IN_FINISH) < 0)
+            if (virNetDevVPortProfileAssociate(net->ifname,
+                                               virDomainNetGetActualDirectVirtPortProfile(net),
+                                               net->mac,
+                                               virDomainNetGetActualDirectDev(net),
+                                               def->uuid,
+                                               VIR_NETDEV_VPORT_PROFILE_OP_MIGRATE_IN_FINISH) < 0)
                 goto err_exit;
         }
         last_good_net = i;
@@ -2539,18 +2554,14 @@ err_exit:
     for (i = 0; i < last_good_net; i++) {
         net = def->nets[i];
         if (virDomainNetGetActualType(net) == VIR_DOMAIN_NET_TYPE_DIRECT) {
-            vpDisassociatePortProfileId(net->ifname,
-                                        net->mac,
-                                        virDomainNetGetActualDirectDev(net),
-                                        virDomainNetGetActualDirectVirtPortProfile(net),
-                                        VIR_VM_OP_MIGRATE_IN_FINISH);
+            ignore_value(virNetDevVPortProfileDisassociate(net->ifname,
+                                                           virDomainNetGetActualDirectVirtPortProfile(net),
+                                                           net->mac,
+                                                           virDomainNetGetActualDirectDev(net),
+                                                           VIR_NETDEV_VPORT_PROFILE_OP_MIGRATE_IN_FINISH));
         }
     }
 }
-#else /* !WITH_MACVTAP */
-static void
-qemuMigrationVPAssociatePortProfiles(virDomainDefPtr def ATTRIBUTE_UNUSED) { }
-#endif /* WITH_MACVTAP */
 
 
 virDomainPtr
@@ -2825,16 +2836,6 @@ qemuMigrationToFile(struct qemud_driver *driver, virDomainObjPtr vm,
     bool restoreLabel = false;
     virCommandPtr cmd = NULL;
     int pipeFD[2] = { -1, -1 };
-    unsigned long saveMigBandwidth = priv->migMaxBandwidth;
-
-    /* Increase migration bandwidth to unlimited since target is a file.
-     * Failure to change migration speed is not fatal. */
-    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) == 0) {
-        qemuMonitorSetMigrationSpeed(priv->mon,
-                                     QEMU_DOMAIN_FILE_MIG_BANDWIDTH_MAX);
-        priv->migMaxBandwidth = QEMU_DOMAIN_FILE_MIG_BANDWIDTH_MAX;
-        qemuDomainObjExitMonitorWithDriver(driver, vm);
-    }
 
     if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATE_QEMU_FD) &&
         (!compressor || pipe(pipeFD) == 0)) {
@@ -2935,7 +2936,7 @@ qemuMigrationToFile(struct qemud_driver *driver, virDomainObjPtr vm,
     if (rc < 0)
         goto cleanup;
 
-    rc = qemuMigrationWaitForCompletion(driver, vm, asyncJob);
+    rc = qemuMigrationWaitForCompletion(driver, vm, asyncJob, NULL);
 
     if (rc < 0)
         goto cleanup;
@@ -2946,13 +2947,6 @@ qemuMigrationToFile(struct qemud_driver *driver, virDomainObjPtr vm,
     ret = 0;
 
 cleanup:
-    /* Restore max migration bandwidth */
-    if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) == 0) {
-        qemuMonitorSetMigrationSpeed(priv->mon, saveMigBandwidth);
-        priv->migMaxBandwidth = saveMigBandwidth;
-        qemuDomainObjExitMonitorWithDriver(driver, vm);
-    }
-
     VIR_FORCE_CLOSE(pipeFD[0]);
     VIR_FORCE_CLOSE(pipeFD[1]);
     virCommandFree(cmd);

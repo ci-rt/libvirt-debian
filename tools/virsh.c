@@ -59,7 +59,8 @@
 #include "threads.h"
 #include "command.h"
 #include "virkeycode.h"
-#include "network.h"
+#include "virnetdevbandwidth.h"
+#include "util/bitmap.h"
 
 static char *progname;
 
@@ -249,6 +250,10 @@ typedef struct __vshControl {
                                    virDomainGetState is not supported */
     bool useSnapshotOld;        /* cannot use virDomainSnapshotGetParent or
                                    virDomainSnapshotNumChildren */
+    virThread eventLoop;
+    virMutex lock;
+    bool eventLoopStarted;
+    bool quit;
 } __vshControl;
 
 typedef struct vshCmdGrp {
@@ -330,12 +335,13 @@ static virNWFilterPtr vshCommandOptNWFilterBy(vshControl *ctl, const vshCmd *cmd
                             VSH_BYUUID|VSH_BYNAME)
 
 static virInterfacePtr vshCommandOptInterfaceBy(vshControl *ctl, const vshCmd *cmd,
+                                                const char *optname,
                                                 const char **name, int flag);
 
 /* default is lookup by Name and MAC */
 #define vshCommandOptInterface(_ctl, _cmd, _name)                    \
-    vshCommandOptInterfaceBy(_ctl, _cmd, _name,                      \
-                           VSH_BYMAC|VSH_BYNAME)
+    vshCommandOptInterfaceBy(_ctl, _cmd, NULL, _name,                \
+                             VSH_BYMAC|VSH_BYNAME)
 
 static virStoragePoolPtr vshCommandOptPoolBy(vshControl *ctl, const vshCmd *cmd,
                             const char *optname, const char **name, int flag);
@@ -1740,7 +1746,7 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
         VIR_FREE(source);
     }
 
-    ret = 0;
+    ret = true;
 
 cleanup:
     VIR_FREE(disks);
@@ -4648,6 +4654,8 @@ static const vshCmdOptDef opts_blkiotune[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {"weight", VSH_OT_INT, VSH_OFLAG_NONE,
      N_("IO Weight in range [100, 1000]")},
+    {"device-weights", VSH_OT_STRING, VSH_OFLAG_NONE,
+     N_("per-device IO Weights, in the form of /path/to/device,weight,...")},
     {"config", VSH_OT_BOOL, 0, N_("affect next boot")},
     {"live", VSH_OT_BOOL, 0, N_("affect running domain")},
     {"current", VSH_OT_BOOL, 0, N_("affect current domain")},
@@ -4658,6 +4666,7 @@ static bool
 cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
 {
     virDomainPtr dom;
+    const char *device_weight = NULL;
     int weight = 0;
     int nparams = 0;
     int rv = 0;
@@ -4700,6 +4709,16 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
             vshError(ctl, _("Invalid value of %d for I/O weight"), weight);
             goto cleanup;
         }
+    }
+
+    rv = vshCommandOptString(cmd, "device-weights", &device_weight);
+    if (rv < 0) {
+        vshError(ctl, "%s",
+                 _("Unable to parse string parameter"));
+        goto cleanup;
+    }
+    if (rv > 0) {
+        nparams++;
     }
 
     if (nparams == 0) {
@@ -4749,12 +4768,14 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
                     vshPrint(ctl, "%-15s: %d\n", params[i].field,
                              params[i].value.b);
                     break;
+                case VIR_TYPED_PARAM_STRING:
+                    vshPrint(ctl, "%-15s: %s\n", params[i].field,
+                             params[i].value.s);
+                    break;
                 default:
                     vshPrint(ctl, "unimplemented blkio parameter type\n");
             }
         }
-
-        ret = true;
     } else {
         /* set the blkio parameters */
         params = vshCalloc(ctl, nparams, sizeof(*params));
@@ -4765,18 +4786,30 @@ cmdBlkiotune(vshControl * ctl, const vshCmd * cmd)
 
             if (weight) {
                 temp->value.ui = weight;
-                strncpy(temp->field, VIR_DOMAIN_BLKIO_WEIGHT,
-                        sizeof(temp->field));
+                if (!virStrcpy(temp->field, VIR_DOMAIN_BLKIO_WEIGHT,
+                               sizeof(temp->field)))
+                    goto cleanup;
                 weight = 0;
+            } else if (device_weight) {
+                temp->value.s = vshStrdup(ctl, device_weight);
+                temp->type = VIR_TYPED_PARAM_STRING;
+                if (!virStrcpy(temp->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT,
+                               sizeof(temp->field)))
+                    goto cleanup;
+                device_weight = NULL;
             }
         }
-        if (virDomainSetBlkioParameters(dom, params, nparams, flags) != 0)
+
+        if (virDomainSetBlkioParameters(dom, params, nparams, flags) < 0) {
             vshError(ctl, "%s", _("Unable to change blkio parameters"));
-        else
-            ret = true;
+            goto cleanup;
+        }
     }
 
+    ret = true;
+
   cleanup:
+    virTypedParameterArrayClear(params, nparams);
     VIR_FREE(params);
     virDomainFree(dom);
     return ret;
@@ -5195,6 +5228,69 @@ cmdNodeMemStats(vshControl *ctl, const vshCmd *cmd)
     VIR_FREE(params);
     return ret;
 }
+
+/*
+ * "nodesuspend" command
+ */
+static const vshCmdInfo info_nodesuspend[] = {
+    {"help", N_("suspend the host node for a given time duration")},
+    {"desc", N_("Suspend the host node for a given time duration "
+                               "and attempt to resume thereafter.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_node_suspend[] = {
+    {"target", VSH_OT_DATA, VSH_OFLAG_REQ, N_("mem(Suspend-to-RAM), "
+                                               "disk(Suspend-to-Disk), hybrid(Hybrid-Suspend)")},
+    {"duration", VSH_OT_INT, VSH_OFLAG_REQ, N_("Suspend duration in seconds")},
+    {"flags", VSH_OT_INT, VSH_OFLAG_NONE, N_("Suspend flags, 0 for default")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdNodeSuspend(vshControl *ctl, const vshCmd *cmd)
+{
+    const char *target = NULL;
+    unsigned int suspendTarget;
+    long long duration;
+    unsigned int flags = 0;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        return false;
+
+    if (vshCommandOptString(cmd, "target", &target) < 0)
+        return false;
+
+    if (vshCommandOptLongLong(cmd, "duration", &duration) < 0)
+        return false;
+
+    if (vshCommandOptUInt(cmd, "flags", &flags) < 0)
+        return false;
+
+    if (STREQ(target, "mem"))
+        suspendTarget = VIR_NODE_SUSPEND_TARGET_MEM;
+    else if (STREQ(target, "disk"))
+        suspendTarget = VIR_NODE_SUSPEND_TARGET_DISK;
+    else if (STREQ(target, "hybrid"))
+        suspendTarget = VIR_NODE_SUSPEND_TARGET_HYBRID;
+    else {
+        vshError(ctl, "%s", _("Invalid target"));
+        return false;
+    }
+
+    if (duration <= 0) {
+        vshError(ctl, "%s", _("Invalid duration"));
+        return false;
+    }
+
+    if (virNodeSuspendForDuration(ctl->conn, suspendTarget, duration,
+                                  flags) < 0) {
+        vshError(ctl, "%s", _("The host was not suspended"));
+        return false;
+    }
+    return true;
+}
+
 
 /*
  * "capabilities" command
@@ -6023,6 +6119,63 @@ cmdBlockJob(vshControl *ctl, const vshCmd *cmd)
     return true;
 }
 
+/*
+ * "blockresize" command
+ */
+static const vshCmdInfo info_block_resize[] = {
+    {"help", N_("Resize block device of domain.")},
+    {"desc", N_("Resize block device of domain.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_block_resize[] = {
+    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
+    {"path", VSH_OT_DATA, VSH_OFLAG_REQ, N_("Fully-qualified path of block device")},
+    {"size", VSH_OT_INT, VSH_OFLAG_REQ, N_("New size of the block device in kilobytes, "
+                                           "the size must be integer")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdBlockResize(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom;
+    const char *path = NULL;
+    unsigned long long size = 0;
+    unsigned int flags = 0;
+    int ret = false;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        return false;
+
+    if (vshCommandOptString(cmd, "path", (const char **) &path) < 0) {
+        vshError(ctl, "%s", _("Path must not be empty"));
+        return false;
+    }
+
+    if (vshCommandOptULongLong(cmd, "size", &size) < 0) {
+        vshError(ctl, "%s", _("Unable to parse integer"));
+        return false;
+    }
+
+    if (size > ULLONG_MAX / 1024) {
+        vshError(ctl, _("Size must be less than %llu"), ULLONG_MAX / 1024);
+        return false;
+    }
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
+        return false;
+
+    if (virDomainBlockResize(dom, path, size, flags) < 0) {
+        vshError(ctl, _("Failed to resize block device '%s'"), path);
+    } else {
+        vshPrint(ctl, _("Block device '%s' is resized"), path);
+        ret = true;
+    }
+
+    virDomainFree(dom);
+    return ret;
+}
 
 /*
  * "net-autostart" command
@@ -6071,6 +6224,249 @@ cmdNetworkAutostart(vshControl *ctl, const vshCmd *cmd)
 
     virNetworkFree(network);
     return true;
+}
+
+/*
+ * "blkdeviotune" command
+ */
+static const vshCmdInfo info_blkdeviotune[] = {
+    {"help", N_("Set or query a block device I/O tuning parameters.")},
+    {"desc", N_("Set or query disk I/O parameters such as block throttling.")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_blkdeviotune[] = {
+    {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
+    {"device", VSH_OT_DATA, VSH_OFLAG_REQ, N_("block device")},
+    {"total_bytes_sec", VSH_OT_INT, VSH_OFLAG_NONE,
+     N_("total throughput limit in bytes per second")},
+    {"read_bytes_sec", VSH_OT_INT, VSH_OFLAG_NONE,
+     N_("read throughput limit in bytes per second")},
+    {"write_bytes_sec", VSH_OT_INT, VSH_OFLAG_NONE,
+     N_("write throughput limit in bytes per second")},
+    {"total_iops_sec", VSH_OT_INT, VSH_OFLAG_NONE,
+     N_("total I/O operations limit per second")},
+    {"read_iops_sec", VSH_OT_INT, VSH_OFLAG_NONE,
+     N_("read I/O operations limit per second")},
+    {"write_iops_sec", VSH_OT_INT, VSH_OFLAG_NONE,
+     N_("write I/O operations limit per second")},
+    {"config", VSH_OT_BOOL, 0, N_("affect next boot")},
+    {"live", VSH_OT_BOOL, 0, N_("affect running domain")},
+    {"current", VSH_OT_BOOL, 0, N_("affect current domain")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdBlkdeviotune(vshControl *ctl, const vshCmd *cmd)
+{
+    virDomainPtr dom = NULL;
+    const char *name, *disk;
+    unsigned long long total_bytes_sec = 0, read_bytes_sec = 0, write_bytes_sec = 0;
+    unsigned long long total_iops_sec = 0, read_iops_sec = 0, write_iops_sec = 0;
+    int nparams = 0;
+    virTypedParameterPtr params = NULL, temp = NULL;
+    unsigned int flags = 0, i = 0;
+    int rv = 0;
+    int current = vshCommandOptBool(cmd, "current");
+    int config = vshCommandOptBool(cmd, "config");
+    int live = vshCommandOptBool(cmd, "live");
+    bool ret = false;
+
+    if (current) {
+        if (live || config) {
+            vshError(ctl, "%s", _("--current must be specified exclusively"));
+            return false;
+        }
+        flags = VIR_DOMAIN_AFFECT_CURRENT;
+    } else {
+        if (config)
+            flags |= VIR_DOMAIN_AFFECT_CONFIG;
+        if (live)
+            flags |= VIR_DOMAIN_AFFECT_LIVE;
+    }
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        goto cleanup;
+
+    if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
+        goto cleanup;
+
+    if (vshCommandOptString(cmd, "device", &disk) < 0)
+        goto cleanup;
+
+    if ((rv = vshCommandOptULongLong(cmd, "total_bytes_sec", &total_bytes_sec)) < 0) {
+        vshError(ctl, "%s",
+                 _("Unable to parse integer parameter"));
+        goto cleanup;
+    } else if (rv > 0) {
+        nparams++;
+    }
+
+    if ((rv = vshCommandOptULongLong(cmd, "read_bytes_sec", &read_bytes_sec)) < 0) {
+        vshError(ctl, "%s",
+                 _("Unable to parse integer parameter"));
+        goto cleanup;
+    } else if (rv > 0) {
+        nparams++;
+    }
+
+    if ((rv = vshCommandOptULongLong(cmd, "write_bytes_sec", &write_bytes_sec)) < 0) {
+        vshError(ctl, "%s",
+                 _("Unable to parse integer parameter"));
+        goto cleanup;
+    } else if (rv > 0) {
+        nparams++;
+    }
+
+    if ((rv = vshCommandOptULongLong(cmd, "total_iops_sec", &total_iops_sec)) < 0) {
+        vshError(ctl, "%s",
+                 _("Unable to parse integer parameter"));
+        goto cleanup;
+    } else if (rv > 0) {
+        nparams++;
+    }
+
+    if ((rv = vshCommandOptULongLong(cmd, "read_iops_sec", &read_iops_sec)) < 0) {
+        vshError(ctl, "%s",
+                 _("Unable to parse integer parameter"));
+        goto cleanup;
+    } else if (rv > 0) {
+        nparams++;
+    }
+
+    if ((rv = vshCommandOptULongLong(cmd, "write_iops_sec", &write_iops_sec)) < 0) {
+        vshError(ctl, "%s",
+                 _("Unable to parse integer parameter"));
+        goto cleanup;
+    } else if (rv > 0) {
+        nparams++;
+    }
+
+    if (nparams == 0) {
+
+        if ((virDomainGetBlockIoTune(dom, NULL, NULL, &nparams, flags)) != 0) {
+            vshError(ctl, "%s",
+                     _("Unable to get number of block I/O throttle parameters"));
+            goto cleanup;
+        }
+
+        if (nparams == 0) {
+            ret = true;
+            goto cleanup;
+        }
+
+        params = vshCalloc(ctl, nparams, sizeof(*params));
+
+        if ((virDomainGetBlockIoTune(dom, disk, params, &nparams, flags)) != 0) {
+            vshError(ctl, "%s",
+                     _("Unable to get block I/O throttle parameters"));
+            goto cleanup;
+        }
+
+        for (i = 0; i < nparams; i++) {
+            switch(params[i].type) {
+                case VIR_TYPED_PARAM_INT:
+                    vshPrint(ctl, "%-15s: %d\n", params[i].field,
+                             params[i].value.i);
+                    break;
+                case VIR_TYPED_PARAM_UINT:
+                    vshPrint(ctl, "%-15s: %u\n", params[i].field,
+                             params[i].value.ui);
+                    break;
+                case VIR_TYPED_PARAM_LLONG:
+                    vshPrint(ctl, "%-15s: %lld\n", params[i].field,
+                             params[i].value.l);
+                    break;
+                case VIR_TYPED_PARAM_ULLONG:
+                    vshPrint(ctl, "%-15s: %llu\n", params[i].field,
+                             params[i].value.ul);
+                    break;
+                case VIR_TYPED_PARAM_DOUBLE:
+                    vshPrint(ctl, "%-15s: %f\n", params[i].field,
+                             params[i].value.d);
+                    break;
+                case VIR_TYPED_PARAM_BOOLEAN:
+                    vshPrint(ctl, "%-15s: %d\n", params[i].field,
+                             params[i].value.b);
+                    break;
+                default:
+                    vshPrint(ctl, "unimplemented block I/O throttle parameter type\n");
+            }
+        }
+
+        virDomainFree(dom);
+        return true;
+    } else {
+        /* Set the block I/O throttle, match by opt since parameters can be 0 */
+        params = vshCalloc(ctl, nparams, sizeof(*params));
+        i = 0;
+
+        if ((i < nparams) && (vshCommandOptBool(cmd, "total_bytes_sec"))) {
+            temp = &params[i];
+            temp->type = VIR_TYPED_PARAM_ULLONG;
+            strncpy(temp->field, VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC,
+                    sizeof(temp->field));
+            temp->value.ul = total_bytes_sec;
+            i++;
+        }
+
+        if ((i < nparams) && (vshCommandOptBool(cmd, "read_bytes_sec"))) {
+            temp = &params[i];
+            temp->type = VIR_TYPED_PARAM_ULLONG;
+            strncpy(temp->field, VIR_DOMAIN_BLOCK_IOTUNE_READ_BYTES_SEC,
+                    sizeof(temp->field));
+            temp->value.ul = read_bytes_sec;
+            i++;
+        }
+
+        if ((i < nparams) && (vshCommandOptBool(cmd, "write_bytes_sec"))) {
+            temp = &params[i];
+            temp->type = VIR_TYPED_PARAM_ULLONG;
+            strncpy(temp->field, VIR_DOMAIN_BLOCK_IOTUNE_WRITE_BYTES_SEC,
+                    sizeof(temp->field));
+            temp->value.ul = write_bytes_sec;
+            i++;
+        }
+
+        if ((i < nparams) && (vshCommandOptBool(cmd, "total_iops_sec"))) {
+            temp = &params[i];
+            temp->type = VIR_TYPED_PARAM_ULLONG;
+            strncpy(temp->field, VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC,
+                    sizeof(temp->field));
+            temp->value.ul = total_iops_sec;
+            i++;
+        }
+
+        if ((i < nparams) && (vshCommandOptBool(cmd, "read_iops_sec"))) {
+            temp = &params[i];
+            temp->type = VIR_TYPED_PARAM_ULLONG;
+            strncpy(temp->field, VIR_DOMAIN_BLOCK_IOTUNE_READ_IOPS_SEC,
+                    sizeof(temp->field));
+            temp->value.ul = read_iops_sec;
+            i++;
+        }
+
+        if ((i < nparams) && (vshCommandOptBool(cmd, "write_iops_sec"))) {
+            temp = &params[i];
+            temp->type = VIR_TYPED_PARAM_ULLONG;
+            strncpy(temp->field, VIR_DOMAIN_BLOCK_IOTUNE_WRITE_IOPS_SEC,
+                    sizeof(temp->field));
+            temp->value.ul = write_iops_sec;
+        }
+
+        if ((virDomainSetBlockIoTune(dom, disk, params, nparams, flags)) < 0) {
+            vshError(ctl, "%s",
+                     _("Unable to change block I/O throttle"));
+            goto cleanup;
+        }
+    }
+
+    ret = true;
+
+cleanup:
+    VIR_FREE(params);
+    virDomainFree(dom);
+    return ret;
 }
 
 /*
@@ -6807,7 +7203,7 @@ cmdInterfaceName(vshControl *ctl, const vshCmd *cmd)
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
-    if (!(iface = vshCommandOptInterfaceBy(ctl, cmd, NULL,
+    if (!(iface = vshCommandOptInterfaceBy(ctl, cmd, NULL, NULL,
                                            VSH_BYMAC)))
         return false;
 
@@ -6837,7 +7233,7 @@ cmdInterfaceMAC(vshControl *ctl, const vshCmd *cmd)
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
-    if (!(iface = vshCommandOptInterfaceBy(ctl, cmd, NULL,
+    if (!(iface = vshCommandOptInterfaceBy(ctl, cmd, NULL, NULL,
                                            VSH_BYNAME)))
         return false;
 
@@ -7134,6 +7530,419 @@ cmdInterfaceRollback(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 
     vshPrint(ctl, "%s", _("Network config change transaction rolled back\n"));
     return true;
+}
+
+/*
+ * "iface-bridge" command
+ */
+static const vshCmdInfo info_interface_bridge[] = {
+    {"help", N_("create a bridge device and attach an existing network device to it")},
+    {"desc", N_("bridge an existing network device")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_interface_bridge[] = {
+    {"interface", VSH_OT_DATA, VSH_OFLAG_REQ, N_("existing interface name")},
+    {"bridge", VSH_OT_DATA, VSH_OFLAG_REQ, N_("new bridge device name")},
+    {"no-stp", VSH_OT_BOOL, 0, N_("do not enable STP for this bridge")},
+    {"delay", VSH_OT_INT, 0,
+     N_("number of seconds to squelch traffic on newly connected ports")},
+    {"no-start", VSH_OT_BOOL, 0, N_("don't start the bridge immediately")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdInterfaceBridge(vshControl *ctl, const vshCmd *cmd)
+{
+    bool ret = false;
+    virInterfacePtr if_handle = NULL, br_handle = NULL;
+    const char *if_name, *br_name;
+    char *if_type = NULL, *if2_name = NULL, *delay_str = NULL;
+    bool stp = false, nostart = false;
+    unsigned int delay = 0;
+    char *if_xml = NULL;
+    xmlChar *br_xml = NULL;
+    int br_xml_size;
+    xmlDocPtr xml_doc = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+    xmlNodePtr top_node, br_node, if_node, cur;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        goto cleanup;
+
+    /* Get a handle to the original device */
+    if (!(if_handle = vshCommandOptInterfaceBy(ctl, cmd, "interface",
+                                               &if_name, VSH_BYNAME))) {
+        goto cleanup;
+    }
+
+    /* Name for new bridge device */
+    if (vshCommandOptString(cmd, "bridge", &br_name) <= 0) {
+        vshError(ctl, "%s", _("Missing bridge device name in command"));
+        goto cleanup;
+    }
+
+    /* make sure "new" device doesn't already exist */
+    if ((br_handle = virInterfaceLookupByName(ctl->conn, br_name))) {
+        vshError(ctl, _("Network device %s already exists"), br_name);
+        goto cleanup;
+    }
+
+    /* use "no-stp" because we want "stp" to default true */
+    stp = !vshCommandOptBool(cmd, "no-stp");
+
+    if (vshCommandOptUInt(cmd, "delay", &delay) < 0) {
+        vshError(ctl, "%s", _("Unable to parse delay parameter"));
+        goto cleanup;
+    }
+
+    nostart = vshCommandOptBool(cmd, "no-start");
+
+    /* Get the original interface into an xmlDoc */
+    if (!(if_xml = virInterfaceGetXMLDesc(if_handle, VIR_INTERFACE_XML_INACTIVE)))
+        goto cleanup;
+    if (!(xml_doc = virXMLParseStringCtxt(if_xml,
+                                          _("(interface definition)"), &ctxt))) {
+        vshError(ctl, _("Failed to parse configuration of %s"), if_name);
+        goto cleanup;
+    }
+    top_node = ctxt->node;
+
+    /* Verify that the original device isn't already a bridge. */
+    if (!(if_type = virXMLPropString(top_node, "type"))) {
+        vshError(ctl, _("Existing device %s has no type"), if_name);
+        goto cleanup;
+    }
+
+    if (STREQ(if_type, "bridge")) {
+        vshError(ctl, _("Existing device %s is already a bridge"), if_name);
+        goto cleanup;
+    }
+
+    /* verify the name in the XML matches the device name */
+    if (!(if2_name = virXMLPropString(top_node, "name")) ||
+        STRNEQ(if2_name, if_name)) {
+        vshError(ctl, _("Interface name from config %s doesn't match given supplied name %s"),
+                 if2_name, if_name);
+        goto cleanup;
+    }
+
+    /* Create a <bridge> node under <interface>. */
+    if (!(br_node = xmlNewChild(top_node, NULL, BAD_CAST "bridge", NULL))) {
+        vshError(ctl, "%s", _("Failed to create bridge node in xml document"));
+        goto cleanup;
+    }
+
+    /* Set stp and delay attributes in <bridge> according to the
+     * commandline options.
+     */
+    if (!xmlSetProp(br_node, BAD_CAST "stp", BAD_CAST (stp ? "on" : "off"))) {
+        vshError(ctl, "%s", _("Failed to set stp attribute in xml document"));
+        goto cleanup;
+    }
+
+    if ((delay || stp) &&
+        ((virAsprintf(&delay_str, "%d", delay) < 0) ||
+         !xmlSetProp(br_node, BAD_CAST "delay", BAD_CAST delay_str))) {
+        vshError(ctl, _("Failed to set bridge delay %d in xml document"), delay);
+        goto cleanup;
+    }
+
+    /* Change the type of the outer/master interface to "bridge" and the
+     * name to the provided bridge name.
+     */
+    if (!xmlSetProp(top_node, BAD_CAST "type", BAD_CAST "bridge")) {
+        vshError(ctl, "%s", _("Failed to set bridge interface type to 'bridge' in xml document"));
+        goto cleanup;
+    }
+
+    if (!xmlSetProp(top_node, BAD_CAST "name", BAD_CAST br_name)) {
+        vshError(ctl, _("Failed to set master bridge interface name to '%s' in xml document"),
+            br_name);
+        goto cleanup;
+    }
+
+    /* Create an <interface> node under <bridge> that uses the
+     * original interface's type and name.
+     */
+    if (!(if_node = xmlNewChild(br_node, NULL, BAD_CAST "interface", NULL))) {
+        vshError(ctl, "%s", _("Failed to create interface node under bridge node in xml document"));
+        goto cleanup;
+    }
+
+    /* set the type of the inner/slave interface to the original
+     * if_type, and the name to the original if_name.
+     */
+    if (!xmlSetProp(if_node, BAD_CAST "type", BAD_CAST if_type)) {
+        vshError(ctl, _("Failed to set new slave interface type to '%s' in xml document"),
+                 if_name);
+        goto cleanup;
+    }
+
+    if (!xmlSetProp(if_node, BAD_CAST "name", BAD_CAST if_name)) {
+        vshError(ctl, _("Failed to set new slave interface name to '%s' in xml document"),
+            br_name);
+        goto cleanup;
+    }
+
+    /* Cycle through all the nodes under the original <interface>,
+     * moving all <mac>, <bond> and <vlan> nodes down into the new
+     * lower level <interface>.
+     */
+    cur = top_node->children;
+    while (cur) {
+        xmlNodePtr old = cur;
+
+        cur = cur->next;
+        if ((old->type == XML_ELEMENT_NODE) &&
+            (xmlStrEqual(old->name, BAD_CAST "mac") ||  /* ethernet stuff to move down */
+             xmlStrEqual(old->name, BAD_CAST "bond") || /* bond stuff to move down */
+             xmlStrEqual(old->name, BAD_CAST "vlan"))) { /* vlan stuff to move down */
+            xmlUnlinkNode(old);
+            if (!xmlAddChild(if_node, old)) {
+                vshError(ctl, _("Failed to move '%s' element in xml document"), old->name);
+                xmlFreeNode(old);
+                goto cleanup;
+            }
+        }
+    }
+
+    /* The document should now be fully converted; write it out to a string. */
+    xmlDocDumpMemory(xml_doc, &br_xml, &br_xml_size);
+
+    if (!br_xml || br_xml_size <= 0) {
+        vshError(ctl, _("Failed to format new xml document for bridge %s"), br_name);
+        goto cleanup;
+    }
+
+
+    /* br_xml is the new interface to define. It will automatically undefine the
+     * independent original interface.
+     */
+    if (!(br_handle = virInterfaceDefineXML(ctl->conn, (char *) br_xml, 0))) {
+        vshError(ctl, _("Failed to define new bridge interface %s"),
+                 br_name);
+        goto cleanup;
+    }
+
+    vshPrint(ctl, _("Created bridge %s with attached device %s\n"),
+             if_name, br_name);
+
+    /* start it up unless requested not to */
+    if (!nostart) {
+        if (virInterfaceCreate(br_handle, 0) < 0) {
+            vshError(ctl, _("Failed to start bridge interface %s"), br_name);
+            goto cleanup;
+        }
+        vshPrint(ctl, _("Bridge interface %s started\n"), br_name);
+    }
+
+    ret = true;
+ cleanup:
+    if (if_handle)
+       virInterfaceFree(if_handle);
+    if (br_handle)
+       virInterfaceFree(br_handle);
+    VIR_FREE(if_xml);
+    VIR_FREE(br_xml);
+    VIR_FREE(if_type);
+    VIR_FREE(if2_name);
+    VIR_FREE(delay_str);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(xml_doc);
+    return ret;
+}
+
+/*
+ * "iface-unbridge" command
+ */
+static const vshCmdInfo info_interface_unbridge[] = {
+    {"help", N_("undefine a bridge device after detaching its slave device")},
+    {"desc", N_("unbridge a network device")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_interface_unbridge[] = {
+    {"bridge", VSH_OT_DATA, VSH_OFLAG_REQ, N_("current bridge device name")},
+    {"no-start", VSH_OT_BOOL, 0,
+     N_("don't start the un-slaved interface immediately (not recommended)")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdInterfaceUnbridge(vshControl *ctl, const vshCmd *cmd)
+{
+    bool ret = false;
+    virInterfacePtr if_handle = NULL, br_handle = NULL;
+    const char *br_name;
+    char *if_type = NULL, *if_name = NULL;
+    bool nostart = false;
+    char *br_xml = NULL;
+    xmlChar *if_xml = NULL;
+    int if_xml_size;
+    xmlDocPtr xml_doc = NULL;
+    xmlXPathContextPtr ctxt = NULL;
+    xmlNodePtr top_node, br_node, if_node, cur;
+
+    if (!vshConnectionUsability(ctl, ctl->conn))
+        goto cleanup;
+
+    /* Get a handle to the original device */
+    if (!(br_handle = vshCommandOptInterfaceBy(ctl, cmd, "bridge",
+                                               &br_name, VSH_BYNAME))) {
+        goto cleanup;
+    }
+
+    nostart = vshCommandOptBool(cmd, "no-start");
+
+    /* Get the bridge xml into an xmlDoc */
+    if (!(br_xml = virInterfaceGetXMLDesc(br_handle, VIR_INTERFACE_XML_INACTIVE)))
+        goto cleanup;
+    if (!(xml_doc = virXMLParseStringCtxt(br_xml,
+                                          _("(bridge interface definition)"),
+                                          &ctxt))) {
+        vshError(ctl, _("Failed to parse configuration of %s"), br_name);
+        goto cleanup;
+    }
+    top_node = ctxt->node;
+
+    /* Verify that the device really is a bridge. */
+    if (!(if_type = virXMLPropString(top_node, "type"))) {
+        vshError(ctl, _("Existing device %s has no type"), br_name);
+        goto cleanup;
+    }
+
+    if (STRNEQ(if_type, "bridge")) {
+        vshError(ctl, _("Device %s is not a bridge"), br_name);
+        goto cleanup;
+    }
+    VIR_FREE(if_type);
+
+    /* verify the name in the XML matches the device name */
+    if (!(if_name = virXMLPropString(top_node, "name")) ||
+        STRNEQ(if_name, br_name)) {
+        vshError(ctl, _("Interface name from config %s doesn't match given supplied name %s"),
+                 if_name, br_name);
+        goto cleanup;
+    }
+    VIR_FREE(if_name);
+
+    /* Find the <bridge> node under <interface>. */
+    if (!(br_node = virXPathNode("./bridge", ctxt))) {
+        vshError(ctl, "%s", _("No bridge node in xml document"));
+        goto cleanup;
+    }
+
+    if ((if_node = virXPathNode("./bridge/interface[2]", ctxt))) {
+        vshError(ctl, "%s", _("Multiple interfaecs attached to bridge"));
+        goto cleanup;
+    }
+
+    if (!(if_node = virXPathNode("./bridge/interface", ctxt))) {
+        vshError(ctl, "%s", _("No interface attached to bridge"));
+        goto cleanup;
+    }
+
+    /* Change the type and name of the outer/master interface to
+     * the type/name of the attached slave interface.
+     */
+    if (!(if_name = virXMLPropString(if_node, "name"))) {
+        vshError(ctl, _("Device attached to bridge %s has no name"), br_name);
+        goto cleanup;
+    }
+
+    if (!(if_type = virXMLPropString(if_node, "type"))) {
+        vshError(ctl, _("Attached device %s has no type"), if_name);
+        goto cleanup;
+    }
+
+    if (!xmlSetProp(top_node, BAD_CAST "type", BAD_CAST if_type)) {
+        vshError(ctl, _("Failed to set interface type to '%s' in xml document"),
+                 if_type);
+        goto cleanup;
+    }
+
+    if (!xmlSetProp(top_node, BAD_CAST "name", BAD_CAST if_name)) {
+        vshError(ctl, _("Failed to set interface name to '%s' in xml document"),
+                 if_name);
+        goto cleanup;
+    }
+
+    /* Cycle through all the nodes under the attached <interface>,
+     * moving all <mac>, <bond> and <vlan> nodes up into the toplevel
+     * <interface>.
+     */
+    cur = if_node->children;
+    while (cur) {
+        xmlNodePtr old = cur;
+
+        cur = cur->next;
+        if ((old->type == XML_ELEMENT_NODE) &&
+            (xmlStrEqual(old->name, BAD_CAST "mac") ||  /* ethernet stuff to move down */
+             xmlStrEqual(old->name, BAD_CAST "bond") || /* bond stuff to move down */
+             xmlStrEqual(old->name, BAD_CAST "vlan"))) { /* vlan stuff to move down */
+            xmlUnlinkNode(old);
+            if (!xmlAddChild(top_node, old)) {
+                vshError(ctl, _("Failed to move '%s' element in xml document"), old->name);
+                xmlFreeNode(old);
+                goto cleanup;
+            }
+        }
+    }
+
+    /* The document should now be fully converted; write it out to a string. */
+    xmlDocDumpMemory(xml_doc, &if_xml, &if_xml_size);
+
+    if (!if_xml || if_xml_size <= 0) {
+        vshError(ctl, _("Failed to format new xml document for un-enslaved interface %s"),
+                 if_name);
+        goto cleanup;
+    }
+
+    /* Destroy and Undefine the bridge device, since we otherwise
+     * can't safely define the unattached device.
+     */
+    if (virInterfaceDestroy(br_handle, 0) < 0) {
+        vshError(ctl, _("Failed to destroy bridge interface %s"), br_name);
+        goto cleanup;
+    }
+    if (virInterfaceUndefine(br_handle) < 0) {
+        vshError(ctl, _("Failed to undefine bridge interface %s"), br_name);
+        goto cleanup;
+    }
+
+    /* if_xml is the new interface to define.
+     */
+    if (!(if_handle = virInterfaceDefineXML(ctl->conn, (char *) if_xml, 0))) {
+        vshError(ctl, _("Failed to define new interface %s"), if_name);
+        goto cleanup;
+    }
+
+    vshPrint(ctl, _("Device %s un-attached from bridge %s\n"),
+             if_name, br_name);
+
+    /* unless requested otherwise, undefine the bridge device */
+    if (!nostart) {
+        if (virInterfaceCreate(if_handle, 0) < 0) {
+            vshError(ctl, _("Failed to start interface %s"), if_name);
+            goto cleanup;
+        }
+        vshPrint(ctl, _("Interface %s started\n"), if_name);
+    }
+
+    ret = true;
+ cleanup:
+    if (if_handle)
+       virInterfaceFree(if_handle);
+    if (br_handle)
+       virInterfaceFree(br_handle);
+    VIR_FREE(if_xml);
+    VIR_FREE(br_xml);
+    VIR_FREE(if_type);
+    VIR_FREE(if_name);
+    xmlXPathFreeContext(ctxt);
+    xmlFreeDoc(xml_doc);
+    return ret;
 }
 
 /*
@@ -11088,6 +11897,249 @@ cmdAttachDevice(vshControl *ctl, const vshCmd *cmd)
     return true;
 }
 
+/**
+ * Check if n1 is superset of n2, meaning n1 contains all elements and
+ * attributes as n2 at least. Including children.
+ * @n1 first node
+ * @n2 second node
+ * returns true in case n1 covers n2, false otherwise.
+ */
+static bool
+vshNodeIsSuperset(xmlNodePtr n1, xmlNodePtr n2)
+{
+    xmlNodePtr child1, child2;
+    xmlAttrPtr attr;
+    char *prop1, *prop2;
+    bool found;
+    bool visited;
+    bool ret = false;
+    unsigned long n1_child_size, n2_child_size, n1_iter;
+    virBitmapPtr bitmap;
+
+    if (!n1 && !n2)
+        return true;
+
+    if (!n1 || !n2)
+        return false;
+
+    if (!xmlStrEqual(n1->name, n2->name))
+        return false;
+
+    /* Iterate over n2 attributes and check if n1 contains them*/
+    attr = n2->properties;
+    while (attr) {
+        if (attr->type == XML_ATTRIBUTE_NODE) {
+            prop1 = virXMLPropString(n1, (const char *) attr->name);
+            prop2 = virXMLPropString(n2, (const char *) attr->name);
+            if (STRNEQ_NULLABLE(prop1, prop2)) {
+                xmlFree(prop1);
+                xmlFree(prop2);
+                return false;
+            }
+            xmlFree(prop1);
+            xmlFree(prop2);
+        }
+        attr = attr->next;
+    }
+
+    n1_child_size = xmlChildElementCount(n1);
+    n2_child_size = xmlChildElementCount(n2);
+    if (n1_child_size < n2_child_size)
+        return false;
+
+    if (n1_child_size == 0 && n2_child_size == 0)
+        return true;
+
+    if (!(bitmap = virBitmapAlloc(n1_child_size))) {
+        virReportOOMError();
+        return false;
+    }
+
+    child2 = n2->children;
+    while (child2) {
+        if (child2->type != XML_ELEMENT_NODE) {
+            child2 = child2->next;
+            continue;
+        }
+
+        child1 = n1->children;
+        n1_iter = 0;
+        found = false;
+        while (child1) {
+            if (child1->type != XML_ELEMENT_NODE) {
+                child1 = child1->next;
+                continue;
+            }
+
+            if (virBitmapGetBit(bitmap, n1_iter, &visited) < 0) {
+                vshError(NULL, "%s", _("Bad child elements counting."));
+                goto cleanup;
+            }
+
+            if (visited) {
+                child1 = child1->next;
+                n1_iter++;
+                continue;
+            }
+
+            if (xmlStrEqual(child1->name, child2->name)) {
+                found = true;
+                if (virBitmapSetBit(bitmap, n1_iter) < 0) {
+                    vshError(NULL, "%s", _("Bad child elements counting."));
+                    goto cleanup;
+                }
+
+                if (!vshNodeIsSuperset(child1, child2))
+                    goto cleanup;
+
+                break;
+            }
+
+            child1 = child1->next;
+            n1_iter++;
+        }
+
+        if (!found)
+            goto cleanup;
+
+        child2 = child2->next;
+    }
+
+    ret = true;
+
+cleanup:
+    virBitmapFree(bitmap);
+    return ret;
+}
+
+/**
+ * vshCompleteXMLFromDomain:
+ * @ctl vshControl for error messages printing
+ * @dom domain
+ * @oldXML device XML before
+ * @newXML and after completion
+ *
+ * For given domain and (probably incomplete) device XML specification try to
+ * find such device in domain and complete missing parts. This is however
+ * possible only when given device XML is sufficiently precise so it addresses
+ * only one device.
+ *
+ * Returns -2 when no such device exists in domain, -3 when given XML selects many
+ *          (is too ambiguous), 0 in case of success. Otherwise returns -1. @newXML
+ *          is touched only in case of success.
+ */
+static int
+vshCompleteXMLFromDomain(vshControl *ctl, virDomainPtr dom, char *oldXML,
+                         char **newXML)
+{
+    int funcRet = -1;
+    char *domXML = NULL;
+    xmlDocPtr domDoc = NULL, devDoc = NULL;
+    xmlNodePtr node = NULL;
+    xmlXPathContextPtr domCtxt = NULL, devCtxt = NULL;
+    xmlNodePtr *devices = NULL;
+    xmlSaveCtxtPtr sctxt = NULL;
+    int devices_size;
+    char *xpath = NULL;
+    xmlBufferPtr buf = NULL;
+    int i = 0;
+    int indx = -1;
+
+    if (!(domXML = virDomainGetXMLDesc(dom, 0))) {
+        vshError(ctl, _("couldn't get XML description of domain %s"),
+                 virDomainGetName(dom));
+        goto cleanup;
+    }
+
+    domDoc = virXMLParseStringCtxt(domXML, _("(domain_definition)"), &domCtxt);
+    if (!domDoc) {
+        vshError(ctl, _("Failed to parse domain definition xml"));
+        goto cleanup;
+    }
+
+    devDoc = virXMLParseStringCtxt(oldXML, _("(device_definition)"), &devCtxt);
+    if (!devDoc) {
+        vshError(ctl, _("Failed to parse device definition xml"));
+        goto cleanup;
+    }
+
+    node = xmlDocGetRootElement(devDoc);
+
+    buf = xmlBufferCreate();
+    if (!buf) {
+        vshError(ctl, "%s", _("out of memory"));
+        goto cleanup;
+    }
+
+    /* Get all possible devices */
+    virAsprintf(&xpath, "/domain/devices/%s", node->name);
+    if (!xpath) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    devices_size = virXPathNodeSet(xpath, domCtxt, &devices);
+
+    if (devices_size < 0) {
+        /* error */
+        vshError(ctl, "%s", _("error when selecting nodes"));
+        goto cleanup;
+    } else if (devices_size == 0) {
+        /* no such device */
+        funcRet = -2;
+        goto cleanup;
+    }
+
+    /* and refine */
+    for (i = 0; i < devices_size; i++) {
+        if (vshNodeIsSuperset(devices[i], node)) {
+            if (indx >= 0) {
+                funcRet = -3; /* ambiguous */
+                goto cleanup;
+            }
+            indx = i;
+        }
+    }
+
+    if (indx < 0) {
+        funcRet = -2; /* no such device */
+        goto cleanup;
+    }
+
+    vshDebug(ctl, VSH_ERR_DEBUG, "Found device at pos %d\n", indx);
+
+    if (newXML) {
+        sctxt = xmlSaveToBuffer(buf, NULL, 0);
+        if (!sctxt) {
+            vshError(ctl, "%s", _("failed to create document saving context"));
+            goto cleanup;
+        }
+
+        xmlSaveTree(sctxt, devices[indx]);
+        xmlSaveClose(sctxt);
+        *newXML = (char *) xmlBufferContent(buf);
+        if (!*newXML) {
+            virReportOOMError();
+            goto cleanup;
+        }
+        buf->content = NULL;
+    }
+
+    vshDebug(ctl, VSH_ERR_DEBUG, "Old xml:\n%s\nNew xml:\n%s\n", oldXML,
+             newXML ? NULLSTR(*newXML) : "(null)");
+
+    funcRet = 0;
+
+cleanup:
+    xmlBufferFree(buf);
+    VIR_FREE(devices);
+    xmlXPathFreeContext(devCtxt);
+    xmlXPathFreeContext(domCtxt);
+    xmlFreeDoc(devDoc);
+    xmlFreeDoc(domDoc);
+    VIR_FREE(domXML);
+    VIR_FREE(xpath);
+    return funcRet;
+}
 
 /*
  * "detach-device" command
@@ -11108,10 +12160,11 @@ static const vshCmdOptDef opts_detach_device[] = {
 static bool
 cmdDetachDevice(vshControl *ctl, const vshCmd *cmd)
 {
-    virDomainPtr dom;
+    virDomainPtr dom = NULL;
     const char *from = NULL;
-    char *buffer;
+    char *buffer = NULL, *new_buffer = NULL;
     int ret;
+    bool funcRet = false;
     unsigned int flags;
 
     if (!vshConnectionUsability(ctl, ctl->conn))
@@ -11120,37 +12173,50 @@ cmdDetachDevice(vshControl *ctl, const vshCmd *cmd)
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
-    if (vshCommandOptString(cmd, "file", &from) <= 0) {
-        virDomainFree(dom);
-        return false;
-    }
+    if (vshCommandOptString(cmd, "file", &from) <= 0)
+        goto cleanup;
 
     if (virFileReadAll(from, VIRSH_MAX_XML_FILE, &buffer) < 0) {
         virshReportError(ctl);
-        virDomainFree(dom);
-        return false;
+        goto cleanup;
+    }
+
+    ret = vshCompleteXMLFromDomain(ctl, dom, buffer, &new_buffer);
+    if (ret < 0) {
+        if (ret == -2) {
+            vshError(ctl, _("no such device in %s"), virDomainGetName(dom));
+        } else if (ret == -3) {
+            vshError(ctl, "%s", _("given XML selects too many devices. "
+                                  "Please, be more specific"));
+        } else {
+            /* vshCompleteXMLFromDomain() already printed error message,
+             * so nothing to do here. */
+        }
+        goto cleanup;
     }
 
     if (vshCommandOptBool(cmd, "persistent")) {
         flags = VIR_DOMAIN_AFFECT_CONFIG;
         if (virDomainIsActive(dom) == 1)
            flags |= VIR_DOMAIN_AFFECT_LIVE;
-        ret = virDomainDetachDeviceFlags(dom, buffer, flags);
+        ret = virDomainDetachDeviceFlags(dom, new_buffer, flags);
     } else {
-        ret = virDomainDetachDevice(dom, buffer);
+        ret = virDomainDetachDevice(dom, new_buffer);
     }
-    VIR_FREE(buffer);
 
     if (ret < 0) {
         vshError(ctl, _("Failed to detach device from %s"), from);
-        virDomainFree(dom);
-        return false;
-    } else {
-        vshPrint(ctl, "%s", _("Device detached successfully\n"));
+        goto cleanup;
     }
 
+    vshPrint(ctl, "%s", _("Device detached successfully\n"));
+    funcRet = true;
+
+cleanup:
+    VIR_FREE(new_buffer);
+    VIR_FREE(buffer);
     virDomainFree(dom);
-    return true;
+    return funcRet;
 }
 
 
@@ -11250,7 +12316,7 @@ static const vshCmdOptDef opts_attach_interface[] = {
 /* parse inbound and outbound which are in the format of
  * 'average,peak,burst', in which peak and burst are optional,
  * thus 'average,,burst' and 'average,peak' are also legal. */
-static int parseRateStr(const char *rateStr, virRatePtr rate)
+static int parseRateStr(const char *rateStr, virNetDevBandwidthRatePtr rate)
 {
     const char *average = NULL;
     char *peak = NULL, *burst = NULL;
@@ -11289,7 +12355,7 @@ cmdAttachInterface(vshControl *ctl, const vshCmd *cmd)
     const char *mac = NULL, *target = NULL, *script = NULL,
                 *type = NULL, *source = NULL, *model = NULL,
                 *inboundStr = NULL, *outboundStr = NULL;
-    virRate inbound, outbound;
+    virNetDevBandwidthRate inbound, outbound;
     int typ;
     int ret;
     bool functionReturn = false;
@@ -11569,7 +12635,8 @@ static const vshCmdInfo info_attach_disk[] = {
 
 static const vshCmdOptDef opts_attach_disk[] = {
     {"domain",  VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
-    {"source",  VSH_OT_DATA, VSH_OFLAG_REQ, N_("source of disk device")},
+    {"source",  VSH_OT_DATA, VSH_OFLAG_REQ | VSH_OFLAG_EMPTY_OK,
+     N_("source of disk device")},
     {"target",  VSH_OT_DATA, VSH_OFLAG_REQ, N_("target of disk device")},
     {"driver",    VSH_OT_STRING, 0, N_("driver of disk device")},
     {"subdriver", VSH_OT_STRING, 0, N_("subdriver of disk device")},
@@ -11754,6 +12821,10 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
 
     if (vshCommandOptString(cmd, "source", &source) <= 0)
         goto cleanup;
+    /* Allow empty string as a placeholder that implies no source, for
+     * use in adding a cdrom drive with no disk.  */
+    if (!*source)
+        source = NULL;
 
     if (vshCommandOptString(cmd, "target", &target) <= 0)
         goto cleanup;
@@ -11808,9 +12879,10 @@ cmdAttachDisk(vshControl *ctl, const vshCmd *cmd)
     if (driver || subdriver || cache)
         virBufferAddLit(&buf, "/>\n");
 
-    virBufferAsprintf(&buf, "  <source %s='%s'/>\n",
-                      (isFile) ? "file" : "dev",
-                      source);
+    if (source)
+        virBufferAsprintf(&buf, "  <source %s='%s'/>\n",
+                          (isFile) ? "file" : "dev",
+                          source);
     virBufferAsprintf(&buf, "  <target dev='%s'/>\n", target);
     if (mode)
         virBufferAsprintf(&buf, "  <%s/>\n", mode);
@@ -14014,9 +15086,11 @@ static const vshCmdDef domManagementCmds[] = {
     {"attach-interface", cmdAttachInterface, opts_attach_interface,
      info_attach_interface, 0},
     {"autostart", cmdAutostart, opts_autostart, info_autostart, 0},
+    {"blkdeviotune", cmdBlkdeviotune, opts_blkdeviotune, info_blkdeviotune, 0},
     {"blkiotune", cmdBlkiotune, opts_blkiotune, info_blkiotune, 0},
     {"blockpull", cmdBlockPull, opts_block_pull, info_block_pull, 0},
     {"blockjob", cmdBlockJob, opts_block_job, info_block_job, 0},
+    {"blockresize", cmdBlockResize, opts_block_resize, info_block_resize, 0},
 #ifndef WIN32
     {"console", cmdConsole, opts_console, info_console, 0},
 #endif
@@ -14193,6 +15267,8 @@ static const vshCmdDef nodedevCmds[] = {
 static const vshCmdDef ifaceCmds[] = {
     {"iface-begin", cmdInterfaceBegin, opts_interface_begin,
      info_interface_begin, 0},
+    {"iface-bridge", cmdInterfaceBridge, opts_interface_bridge,
+     info_interface_bridge, 0},
     {"iface-commit", cmdInterfaceCommit, opts_interface_commit,
      info_interface_commit, 0},
     {"iface-define", cmdInterfaceDefine, opts_interface_define,
@@ -14213,6 +15289,8 @@ static const vshCmdDef ifaceCmds[] = {
      info_interface_rollback, 0},
     {"iface-start", cmdInterfaceStart, opts_interface_start,
      info_interface_start, 0},
+    {"iface-unbridge", cmdInterfaceUnbridge, opts_interface_unbridge,
+     info_interface_unbridge, 0},
     {"iface-undefine", cmdInterfaceUndefine, opts_interface_undefine,
      info_interface_undefine, 0},
     {NULL, NULL, NULL, NULL, 0}
@@ -14288,6 +15366,7 @@ static const vshCmdDef hostAndHypervisorCmds[] = {
     {"nodecpustats", cmdNodeCpuStats, opts_node_cpustats, info_nodecpustats, 0},
     {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo, 0},
     {"nodememstats", cmdNodeMemStats, opts_node_memstats, info_nodememstats, 0},
+    {"nodesuspend", cmdNodeSuspend, opts_node_suspend, info_nodesuspend, 0},
     {"qemu-attach", cmdQemuAttach, opts_qemu_attach, info_qemu_attach},
     {"qemu-monitor-command", cmdQemuMonitorCommand, opts_qemu_monitor_command,
      info_qemu_monitor_command, 0},
@@ -15095,11 +16174,14 @@ vshCommandOptNWFilterBy(vshControl *ctl, const vshCmd *cmd,
 
 static virInterfacePtr
 vshCommandOptInterfaceBy(vshControl *ctl, const vshCmd *cmd,
+                         const char *optname,
                          const char **name, int flag)
 {
     virInterfacePtr iface = NULL;
     const char *n = NULL;
-    const char *optname = "interface";
+
+    if (!optname)
+       optname = "interface";
     if (!cmd_has_option (ctl, cmd, optname))
         return NULL;
 
@@ -15954,6 +17036,26 @@ vshError(vshControl *ctl, const char *format, ...)
 }
 
 
+static void
+vshEventLoop(void *opaque)
+{
+    vshControl *ctl = opaque;
+
+    while (1) {
+        bool quit;
+        virMutexLock(&ctl->lock);
+        quit = ctl->quit;
+        virMutexUnlock(&ctl->lock);
+
+        if (quit)
+            break;
+
+        if (virEventRunDefaultImpl() < 0)
+            virshReportError(ctl);
+    }
+}
+
+
 /*
  * Initialize connection.
  */
@@ -15998,6 +17100,10 @@ vshInit(vshControl *ctl)
 
     if (virEventRegisterDefaultImpl() < 0)
         return false;
+
+    if (virThreadCreate(&ctl->eventLoop, true, vshEventLoop, ctl) < 0)
+        return false;
+    ctl->eventLoopStarted = true;
 
     if (ctl->name) {
         ctl->conn = virConnectOpenAuth(ctl->name,
@@ -16381,6 +17487,12 @@ vshReadline (vshControl *ctl, const char *prompt)
 
 #endif /* !USE_READLINE */
 
+static void
+vshDeinitTimer(int timer ATTRIBUTE_UNUSED, void *opaque ATTRIBUTE_UNUSED)
+{
+    /* nothing to be done here */
+}
+
 /*
  * Deinitialize virsh
  */
@@ -16397,6 +17509,25 @@ vshDeinit(vshControl *ctl)
         }
     }
     virResetLastError();
+
+    if (ctl->eventLoopStarted) {
+        int timer;
+
+        virMutexLock(&ctl->lock);
+        ctl->quit = true;
+        /* HACK: Add a dummy timeout to break event loop */
+        timer = virEventAddTimeout(0, vshDeinitTimer, NULL, NULL);
+        virMutexUnlock(&ctl->lock);
+
+        virThreadJoin(&ctl->eventLoop);
+
+        if (timer != -1)
+            virEventRemoveTimeout(timer);
+
+        ctl->eventLoopStarted = false;
+    }
+
+    virMutexDestroy(&ctl->lock);
 
     return true;
 }
@@ -16675,6 +17806,11 @@ main(int argc, char **argv)
     }
     if (!textdomain(PACKAGE)) {
         perror("textdomain");
+        return EXIT_FAILURE;
+    }
+
+    if (virMutexInit(&ctl->lock) < 0) {
+        vshError(ctl, "%s", _("Failed to initialize mutex"));
         return EXIT_FAILURE;
     }
 

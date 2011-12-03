@@ -30,7 +30,9 @@
 
 # include "internal.h"
 # include "threads.h"
-# include "network.h"
+# include "virsocketaddr.h"
+# include "virnetdevbandwidth.h"
+# include "virnetdevvportprofile.h"
 # include "util.h"
 
 enum virNetworkForwardType {
@@ -122,8 +124,8 @@ typedef virPortGroupDef *virPortGroupDefPtr;
 struct _virPortGroupDef {
     char *name;
     bool isDefault;
-    virVirtualPortProfileParamsPtr virtPortProfile;
-    virBandwidthPtr bandwidth;
+    virNetDevVPortProfilePtr virtPortProfile;
+    virNetDevBandwidthPtr bandwidth;
 };
 
 typedef struct _virNetworkDef virNetworkDef;
@@ -151,11 +153,11 @@ struct _virNetworkDef {
     virNetworkIpDefPtr ips; /* ptr to array of IP addresses on this network */
 
     virNetworkDNSDefPtr dns; /* ptr to dns related configuration */
-    virVirtualPortProfileParamsPtr virtPortProfile;
+    virNetDevVPortProfilePtr virtPortProfile;
 
     size_t nPortGroups;
     virPortGroupDefPtr portGroups;
-    virBandwidthPtr bandwidth;
+    virNetDevBandwidthPtr bandwidth;
 };
 
 typedef struct _virNetworkObj virNetworkObj;

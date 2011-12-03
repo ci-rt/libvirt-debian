@@ -792,7 +792,7 @@ vboxSocketFormatAddrUtf16(vboxGlobalData *data, virSocketAddrPtr addr)
     char *utf8 = NULL;
     PRUnichar *utf16 = NULL;
 
-    utf8 = virSocketFormatAddr(addr);
+    utf8 = virSocketAddrFormat(addr);
 
     if (utf8 == NULL) {
         return NULL;
@@ -813,7 +813,7 @@ vboxSocketParseAddrUtf16(vboxGlobalData *data, const PRUnichar *utf16,
 
     VBOX_UTF16_TO_UTF8(utf16, &utf8);
 
-    if (virSocketParseAddr(utf8, addr, AF_UNSPEC) < 0) {
+    if (virSocketAddrParse(addr, utf8, AF_UNSPEC) < 0) {
         goto cleanup;
     }
 
@@ -1080,6 +1080,11 @@ static int vboxIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED) {
 static int vboxIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED) {
     /* No encryption is needed, or used on the local transport*/
     return 0;
+}
+
+static int vboxIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 1;
 }
 
 static int vboxGetMaxVcpus(virConnectPtr conn, const char *type ATTRIBUTE_UNUSED) {
@@ -7679,8 +7684,8 @@ static virNetworkPtr vboxNetworkDefineCreateXML(virConnectPtr conn, const char *
          * with contigious address space from start to end
          */
         if ((ipdef->nranges >= 1) &&
-            VIR_SOCKET_HAS_ADDR(&ipdef->ranges[0].start) &&
-            VIR_SOCKET_HAS_ADDR(&ipdef->ranges[0].end)) {
+            VIR_SOCKET_ADDR_VALID(&ipdef->ranges[0].start) &&
+            VIR_SOCKET_ADDR_VALID(&ipdef->ranges[0].end)) {
             IDHCPServer *dhcpServer = NULL;
 
             data->vboxObj->vtbl->FindDHCPServerByNetworkName(data->vboxObj,
@@ -7741,7 +7746,7 @@ static virNetworkPtr vboxNetworkDefineCreateXML(virConnectPtr conn, const char *
         }
 
         if ((ipdef->nhosts >= 1) &&
-            VIR_SOCKET_HAS_ADDR(&ipdef->hosts[0].ip)) {
+            VIR_SOCKET_ADDR_VALID(&ipdef->hosts[0].ip)) {
             PRUnichar *ipAddressUtf16   = NULL;
             PRUnichar *networkMaskUtf16 = NULL;
 
@@ -9194,6 +9199,7 @@ virDriver NAME(Driver) = {
     .domainSnapshotCurrent = vboxDomainSnapshotCurrent, /* 0.8.0 */
     .domainRevertToSnapshot = vboxDomainRevertToSnapshot, /* 0.8.0 */
     .domainSnapshotDelete = vboxDomainSnapshotDelete, /* 0.8.0 */
+    .isAlive = vboxIsAlive, /* 0.9.8 */
 };
 
 virNetworkDriver NAME(NetworkDriver) = {
