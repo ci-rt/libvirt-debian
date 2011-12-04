@@ -286,6 +286,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module pthread_sigmask-tests:
   # Code from module ptsname:
   # Code from module ptsname-tests:
+  # Code from module ptsname_r:
+  # Code from module ptsname_r-tests:
   # Code from module pty:
   # Code from module pty-tests:
   # Code from module putenv:
@@ -1328,6 +1330,13 @@ if test $HAVE_PTSNAME = 0; then
 fi
 gl_STDLIB_MODULE_INDICATOR([ptsname])
 AC_CHECK_DECLS_ONCE([alarm])
+gl_FUNC_PTSNAME_R
+if test $HAVE_PTSNAME_R = 0 || test $REPLACE_PTSNAME_R = 1; then
+  AC_LIBOBJ([ptsname_r])
+  gl_PREREQ_PTSNAME_R
+fi
+gl_STDLIB_MODULE_INDICATOR([ptsname_r])
+AC_CHECK_DECLS_ONCE([alarm])
 gl_FUNC_PUTENV
 if test $REPLACE_PUTENV = 1; then
   AC_LIBOBJ([putenv])
@@ -1875,6 +1884,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/pthread.m4
   m4/pthread_sigmask.m4
   m4/ptsname.m4
+  m4/ptsname_r.m4
   m4/pty.m4
   m4/pty_h.m4
   m4/putenv.m4
@@ -2129,6 +2139,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-pthread_sigmask1.c
   tests/test-pthread_sigmask2.c
   tests/test-ptsname.c
+  tests/test-ptsname_r.c
   tests/test-raise.c
   tests/test-random_r.c
   tests/test-rawmemchr.c
@@ -2249,6 +2260,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/progname.c
   tests=lib/progname.h
   tests=lib/ptsname.c
+  tests=lib/ptsname_r.c
   tests=lib/pty-private.h
   tests=lib/putenv.c
   tests=lib/read.c

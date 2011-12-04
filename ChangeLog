@@ -1,3 +1,294 @@
+2011-12-04  Eric Blake  <eblake@redhat.com>
+
+	maint: fix improper use of 'an'
+	https://bugzilla.redhat.com/show_bug.cgi?id=648855 mentioned a
+	misuse of 'an' where 'a' is proper; that has since been fixed,
+	but a search found other problems (some were a spelling error for
+	'and', while most were fixed by 'a').
+
+	* daemon/stream.c: Fix grammar.
+	* src/conf/domain_conf.c: Likewise.
+	* src/conf/domain_event.c: Likewise.
+	* src/esx/esx_driver.c: Likewise.
+	* src/esx/esx_vi.c: Likewise.
+	* src/rpc/virnetclient.c: Likewise.
+	* src/rpc/virnetserverprogram.c: Likewise.
+	* src/storage/storage_backend_fs.c: Likewise.
+	* src/util/conf.c: Likewise.
+	* src/util/dnsmasq.c: Likewise.
+	* src/util/iptables.c: Likewise.
+	* src/xen/xen_hypervisor.c: Likewise.
+	* src/xen/xend_internal.c: Likewise.
+	* src/xen/xs_internal.c: Likewise.
+	* tools/virsh.c: Likewise.
+
+	build: require more tools from maintainers
+	We want our tarballs to be complete - this means that any
+	generated file that gets shipped as part of the tarball so that
+	ordinary users don't have to rebuild it must be something
+	that the maintainer can generate.  There have been various
+	reports of random build failures when using libvirt.git
+	instead of a tarball, and often it is due to missing a
+	maintainer-specific tool to produce one of these generated
+	files.  This patch raises the bar for what you must have
+	installed to build libvirt.git, but does not impact what
+	you can get away with for building tarballs.
+
+	Note: It still remains possible to do a successful 'make dist'
+	without these tools, when starting from a release tarball.
+
+	* bootstrap.conf (buildreq): Add tools that maintainers need for a
+	successful 'make dist' from a fresh git checkout.
+
+	command: handle empty buffer argument correctly
+	virBufferContentAndReset (intentionally) returns NULL for a buffer
+	with no content, but it is feasible to invoke a command with an
+	explicit empty string.
+
+	* src/util/command.c (virCommandAddEnvBuffer): Reject empty string.
+	(virCommandAddArgBuffer): Allow explicit empty argument.
+	* tests/commandtest.c (test9): Test it.
+	* tests/commanddata/test9.log: Adjust.
+
+	build: fix build on Cygwin
+	The RPC fixups needed on Linux are also needed on cygwin, and
+	worked without further tweaking to the list of fixups.  Also,
+	unlike BSD, Cygwin exports 'struct ifreq', but unlike Linux,
+	Cygwin lacks the ioctls that we were using 'struct ifreq' to
+	access.  This patch allows compilation under cygwin.
+
+	* src/rpc/genprotocol.pl: Also perform fixups on cygwin.
+	* src/util/virnetdev.c (HAVE_STRUCT_IFREQ): Also require AF_PACKET
+	definition.
+	* src/util/virnetdevbridge.c (virNetDevSetupControlFull): Only
+	compile if SIOCBRADDBR works.
+
+2011-12-03  Eric Blake  <eblake@redhat.com>
+
+	build: fix build at -O2 on rawhide
+	I had previously tested commit 059d746 with -O intentionally omitted
+	from my CFLAGS; but that means that I missed out on this warning
+	from gcc 4.6.2 when optimizations are enabled:
+
+	util/buf.c: In function 'virBufferGetIndent':
+	util/buf.c:86:1: error: function might be candidate for attribute 'pure' [-Werror=suggest-attribute=pure]
+
+	While it is probably a good idea to add the attributes and silence
+	this warning, it's also invasive; 'make -k' found more than 75 such
+	complaints.  And it doesn't help that gcc 4.6.2 is still buggy
+	(coreutils reported a case where gcc 4.6.2 incorrectly suggested
+	marking a function pure that incremented a global variable; fixed
+	in gcc 4.7).  So the best fix for now is to disable the warning.
+
+	It also doesn't help that I stumbled across another problem - gcc
+	documents that -Wsuggest-attribute=pure only warns if you use -O,
+	or if you use -fipa-pure-const.  But in practice, when I omitted -O
+	but added -fipa-pure-const, the warnings are fickle - I got warnings
+	for simple compilation that disappeared when I also added -fPIC.
+	And the way libtool compiles things is with -fPIC first, then without
+	-fPIC but with errors sent to /dev/null - which meant that without
+	disabling -Wsuggest-attribute=pure, I got a compile error with no
+	message.  :(  See http://debbugs.gnu.org/cgi/bugreport.cgi?bug=10197
+
+	* m4/virt-compile-warnings.m4 (LIBVIRT_COMPILE_WARNINGS): Silence
+	-Wsuggest-attribute warnings for now.
+
+2011-12-03  Serge Hallyn  <serge.hallyn@canonical.com>
+
+	apparmor: allow tunnelled migrations.
+	The pathname for the pipe for tunnelled migration is unresolvable.  The
+	libvirt apparmor driver therefore refuses access, causing migration to
+	fail.  If we can't resolve the path, the worst that can happen is that
+	we should have given permission to the file but didn't.  Otherwise
+	(especially since this is a /proc/$$/fd/N file) the file is already open
+	and libvirt won't be refused access by apparmor anyway.
+
+	Also adjust virt-aa-helper to allow access to the
+	*.tunnelmigrate.dest.name files.
+
+	For more information, see https://launchpad.net/bugs/869553.
+
+2011-12-02  Peter Krempa  <pkrempa@redhat.com>
+
+	client: Check if other thread claims it has the buck before claiming it.
+	Originaly, the code checked if another client is the queue and infered
+	ownership of the buck from that. Commit fa9595003d043df9f2efe95521c008
+	added a separate variable to track the buck. That caused, that a new
+	call might enter claiming it has the buck, while another thread was
+	signalled to take the buck. This ends in two threads claiming they hold
+	the buck and entering poll(). This happens due to a race on waking up
+	threads on the client lock mutex.
+
+	This caused multi-threaded clients to hang, most prominently visible and
+	reproducible on python based clients, like virt-manager.
+
+	This patch causes threads, that have been signalled to take the buck to
+	re-check if buck is held by another thread.
+
+2011-12-02  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	Update of filters to handle multiple IP addresses
+	With fragments borrowed from David Steven's previous submission and some
+	further modifications:
+
+	A set of modifications to filters to handle multiple IP addresses
+	(and MAC addresses) per interface.
+
+	Also:
+	- enable DHCP traffic from VM to any DHCP server
+	- will require an update to a libvirt-tck data file
+
+2011-12-02  Eric Blake  <eblake@redhat.com>
+
+	virsh: translate net-info help
+	Reported by kato.tomoyuki@jp.fujitsu.com at
+	https://bugzilla.redhat.com/show_bug.cgi?id=749564
+
+	* tools/virsh.c (info_network_info): Mark string for translation.
+
+	maint: typo fixes
+	Many of these were mentioned by Yuri Chornoivan in:
+	https://bugzilla.redhat.com/show_bug.cgi?id=669506
+
+	* src/esx/esx_vi.c (esxVI_WaitForTaskCompletion): Fix spelling.
+	* src/conf/netdev_vport_profile_conf.c
+	(virNetDevVPortProfileParse): Likewise.
+	* src/xen/xend_internal.c (xenDaemonDomainSetVcpusFlags):
+	Likewise.
+	* src/xen/xm_internal.c (xenXMDomainSetVcpusFlags): Likewise.
+	* src/esx/esx_util.c (esxUtil_ResolveHostname): Likewise.
+	* src/storage/storage_backend_fs.c
+	(virStorageBackendFileSystemBuild): Likewise.
+	* daemon/libvirtd.conf: Likewise.
+	* src/util/logging.c (virLogMessage): Likewise.
+	* src/uml/uml_conf.c (umlBuildCommandLineNet): Likewise.
+	* src/vmx/vmx.c (virVMXFormatEthernet): Likewise.
+
+	build: update to latest gnulib
+	* .gnulib: Update to latest, for improved 'make syntax-check' and
+	compiler warnings.
+	* m4/virt-compile-warnings.m4 (LIBVIRT_COMPILE_WARNINGS):
+	Re-silence -Wformat-nonliteral.
+	* cfg.mk (_test_script_regex): Recognize our test scripts.
+	* gnulib/local/lib/*.diff: Drop, now that gnulib has this.
+	* tests/virsh-optparse: Fix use of compare.
+	* tests/virsh-schedinfo: Likewise.
+
+	build: properly skip tests
+	I got this failure on FreeBSD:
+
+	shunloadtest.c: In function 'main':
+	shunloadtest.c:150: error: 'EXIT_AM_SKIP' undeclared (first use in this function)
+
+	but inspection showed several other problems, all fixed here.
+
+	* tests/domainsnapshotxml2xmltest.c [!WITH_QEMU]: Ensure
+	EXIT_AM_SKIP is defined.
+	* tests/esxutilstest.c [!WITH_ESX]: Likewise.
+	* tests/openvzutilstest.c [!WITH_OPENVZ]: Likewise.
+	* tests/qemuargv2xmltest.c [!WITH_QEMU]: Likewise.
+	* tests/qemuhelptest.c [!WITH_QEMU]: Likewise.
+	* tests/qemuxml2argvtest.c [!WITH_QEMU]: Likewise.
+	* tests/qemuxml2xmltest.c [!WITH_QEMU]: Likewise.
+	* tests/qemuxmlnstest.c [!WITH_QEMU]: Likewise.
+	* tests/shunloadtest.c [!linux]: Likewise.
+	* tests/vmx2xmltest.c [!WITH_VMX]: Likewise.
+	* tests/xml2vmxtest.c [!WITH_VMX]: Likewise.
+
+2011-12-02  Daniel P. Berrange  <berrange@redhat.com>
+
+	Avoid crash in shunloadtest
+	For unknown reasons, the shunloadtest will crash on Fedora 16
+	inside dlopen()
+
+	 (gdb) bt
+	 #0  0x00000000000050e6 in ?? ()
+	 #1  0x00007ff61a77b9d5 in floor () from /lib64/libm.so.6
+	 #2  0x00007ff61e522963 in _dl_relocate_object () from /lib64/ld-linux-x86-64.so.2
+	 #3  0x00007ff61e5297e6 in dl_open_worker () from /lib64/ld-linux-x86-64.so.2
+	 #4  0x00007ff61e525006 in _dl_catch_error () from /lib64/ld-linux-x86-64.so.2
+	 #5  0x00007ff61e52917a in _dl_open () from /lib64/ld-linux-x86-64.so.2
+	 #6  0x00007ff61e0f6f26 in dlopen_doit () from /lib64/libdl.so.2
+	 #7  0x00007ff61e525006 in _dl_catch_error () from /lib64/ld-linux-x86-64.so.2
+	 #8  0x00007ff61e0f752f in _dlerror_run () from /lib64/libdl.so.2
+	 #9  0x00007ff61e0f6fc1 in dlopen@@GLIBC_2.2.5 () from /lib64/libdl.so.2
+	 #10 0x0000000000400a15 in main (argc=<optimized out>, argv=<optimized out>) at shunloadtest.c:105
+
+	Changing from RTLD_NOW to RTLD_LAZY avoids this problem,
+	but quite possibly does not fix the root cause.
+
+	* shunloadtest.c: s/NOW/LAZY/
+
+	Fix build for platforms lacking struct ifreq
+	This ought to fix the build if you have net/if.h but do
+	not have struct ifreq
+
+	* configure.ac: Check for struct ifreq in net/if.h
+	* src/util/virnetdev.c: Conditionalize to avoid use of
+	  struct ifreq if it does not exist
+
+2011-12-02  Eric Blake  <eblake@redhat.com>
+
+	build: fix 'make dist' without dtrace
+	probes.h can only be generated on Linux, and then only with dtrace
+	installed.  If it is part of the tarball, then either 'make dist'
+	will fail if you don't have that setup, or we would have to start
+	keeping probes.h in libvirt.git.  Since we only need it to be
+	generated when dtrace is in use, it's better to avoid shipping
+	it in the first place, and avoid tracking it in git.
+
+	Meanwhile, there is a build dependency - since the RPC code is
+	generated, it can be built early; but when dtrace is enabled, we
+	must ensure probes.h is built even earlier.  Commit 1afcfbdd tried
+	to fix this, but did so in a way that added probes.h into the
+	tarball, and broke VPATH as well.  Commit ecbca767 fixed VPATH,
+	but didn't fix the more fundamental problem.  This patch solves
+	the issue by adding a dependency instead.
+
+	Tested with 'make dist' in a clean VPATH builds, for both
+	'./configure --without-dtrace' and './configure --with-dtrace';
+	all configurations were able to correctly build a tarball, and
+	the dtrace configuration no longer sticks probes.h in the tarball.
+
+	* src/Makefile.am (REMOTE_DRIVER_GENERATED): Don't ship probes.h;
+	rather, make it a dependency.
+
+2011-12-01  Lei Li  <lilei@linux.vnet.ibm.com>
+
+	Fix a logic error for setting block I/O
+	Fix a logic error, the initial value of ret = -1, if just set --config,
+	it will goto endjob directly without doing its really job here.
+
+2011-12-01  Daniel P. Berrange  <berrange@redhat.com>
+
+	Don't use undocumented __isleap macro
+	The glibc time.h header has an undocumented __isleap macro
+	that we are using. Since it is undocumented & does not appear
+	on any other OS, stop using it and just define the macro in
+	libvirt code instead.
+
+	* src/util/virtime.c: Remove __isleap usage
+
+2011-12-01  Michal Privoznik  <mprivozn@redhat.com>
+
+	virsh: Allow other escape characters for console
+	Currently virsh supports only ^] as escape character for console.
+	However, some users might want to use something else. This patch
+	creates such ability by specifying '-e' switch on virsh command
+	line.
+
+2011-12-01  Peter Krempa  <pkrempa@redhat.com>
+
+	bridge_driver: Don't define network if XML contains more IPv4 adreses.
+	Only one IPv4 DHCP definition is supported. Originally the code checked
+	for a multiple definition and returned an error, but the new domain
+	definition was already added to networks. This patch moves the check
+	before the newly defined network is added to active networks.
+
+	 *src/network/bridge_driver.c: networkDefine(): - move multiple IPv4
+	                                                  addresses check before
+	                                                  definition is used.
+
 2011-12-01  Eric Blake  <eblake@redhat.com>
 
 	spec: mark directories in /var/run as ghosts

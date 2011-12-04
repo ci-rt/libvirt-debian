@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2011-12-01 11:03+0800\n"
+"POT-Creation-Date: 2011-12-04 15:31+0800\n"
 "PO-Revision-Date: 2011-11-08 05:27+0000\n"
 "Last-Translator: katomo <tomo@dream.daynight.jp>\n"
 "Language-Team: Japanese (http://www.transifex.net/projects/p/libvirt/team/"
@@ -1757,7 +1757,7 @@ msgstr "セキュリティイメージラベルがありません"
 msgid "missing security model"
 msgstr "セキュリティモデルがありません"
 
-#: src/conf/domain_conf.c:6243 tools/virsh.c:12060
+#: src/conf/domain_conf.c:6243 tools/virsh.c:12066
 msgid "(device_definition)"
 msgstr ""
 
@@ -1999,9 +1999,9 @@ msgid "Unknown taint flag %s"
 msgstr ""
 
 #: src/conf/domain_conf.c:8050 src/security/virt-aa-helper.c:641
-#: tools/virsh.c:1363 tools/virsh.c:1510 tools/virsh.c:1719
-#: tools/virsh.c:11747 tools/virsh.c:11815 tools/virsh.c:12054
-#: tools/virsh.c:12544 tools/virsh.c:13017
+#: tools/virsh.c:1369 tools/virsh.c:1516 tools/virsh.c:1725
+#: tools/virsh.c:11753 tools/virsh.c:11821 tools/virsh.c:12060
+#: tools/virsh.c:12550 tools/virsh.c:13023
 msgid "(domain_definition)"
 msgstr ""
 
@@ -2622,7 +2622,7 @@ msgstr ""
 msgid "missing name from disk snapshot element"
 msgstr ""
 
-#: src/conf/domain_conf.c:12307 tools/virsh.c:14318 tools/virsh.c:14645
+#: src/conf/domain_conf.c:12307 tools/virsh.c:14324 tools/virsh.c:14651
 msgid "(domain_snapshot)"
 msgstr ""
 
@@ -2973,7 +2973,7 @@ msgid "profileid parameter too long"
 msgstr ""
 
 #: src/conf/netdev_vport_profile_conf.c:170
-msgid "profileid parameter is missing for 802.1Qbh descripion"
+msgid "profileid parameter is missing for 802.1Qbh description"
 msgstr ""
 
 #: src/conf/netdev_vport_profile_conf.c:177
@@ -4660,9 +4660,9 @@ msgid "No IP address for host '%s' found: %s"
 msgstr ""
 
 #: src/esx/esx_util.c:387
-#, c-format
-msgid "Formating IP address for host '%s' failed: %s"
-msgstr ""
+#, fuzzy, c-format
+msgid "Formatting IP address for host '%s' failed: %s"
+msgstr "ターゲット %s 用の  IP アドレスがありません"
 
 #: src/esx/esx_util.c:407 src/esx/esx_vi.c:2369 src/hyperv/hyperv_driver.c:909
 #: src/hyperv/hyperv_wmi.c:633 src/vmx/vmx.c:697
@@ -5089,7 +5089,7 @@ msgstr ""
 
 #: src/esx/esx_vi.c:3957
 msgid ""
-"Cancelable task is blocked by an unanswered question but cancelation failed"
+"Cancelable task is blocked by an unanswered question but cancellation failed"
 msgstr ""
 
 #: src/esx/esx_vi.c:3962
@@ -5468,10 +5468,10 @@ msgstr ""
 msgid "System is not available"
 msgstr ""
 
-#: src/hyperv/hyperv_wmi.c:382 tools/virsh.c:3000 tools/virsh.c:9222
-#: tools/virsh.c:9309 tools/virsh.c:10691 tools/virsh.c:13289
-#: tools/virsh.c:13828 tools/virsh.c:13971 tools/virsh.c:16890
-#: tools/virsh.c:16999 tools/virsh.c:17414 tools/virsh.c:17420
+#: src/hyperv/hyperv_wmi.c:382 tools/virsh.c:3006 tools/virsh.c:9228
+#: tools/virsh.c:9315 tools/virsh.c:10697 tools/virsh.c:13295
+#: tools/virsh.c:13834 tools/virsh.c:13977 tools/virsh.c:16896
+#: tools/virsh.c:17005 tools/virsh.c:17420 tools/virsh.c:17426
 msgid "Out of memory"
 msgstr "メモリー不足"
 
@@ -7013,7 +7013,7 @@ msgid "Failed to create symlink '%s to '%s'"
 msgstr "'%s' へのシンボルリンク %s の作成に失敗しました"
 
 #: src/lxc/lxc_driver.c:3534 src/libxl/libxl_driver.c:3510
-#: src/network/bridge_driver.c:2607 src/qemu/qemu_driver.c:5803
+#: src/network/bridge_driver.c:2608 src/qemu/qemu_driver.c:5803
 #: src/storage/storage_driver.c:1063 src/uml/uml_driver.c:2282
 #, c-format
 msgid "Failed to delete symlink '%s'"
@@ -7090,7 +7090,7 @@ msgstr ""
 #: src/qemu/qemu_driver.c:168 src/qemu/qemu_hostdev.c:382
 #: src/qemu/qemu_hostdev.c:401 src/qemu/qemu_hostdev.c:429
 #: src/secret/secret_driver.c:505 src/uml/uml_driver.c:169
-#: src/xenapi/xenapi_utils.c:282 tools/virsh.c:524
+#: src/xenapi/xenapi_utils.c:282 tools/virsh.c:530
 msgid "unknown error"
 msgstr ""
 
@@ -7354,6 +7354,7 @@ msgid "cannot set vcpus on an inactive domain"
 msgstr ""
 
 #: src/libxl/libxl_driver.c:2282 src/qemu/qemu_driver.c:3341
+#: src/xen/xend_internal.c:2220 src/xen/xm_internal.c:731
 msgid "could not determine max vcpus for the domain"
 msgstr "ドメイン用の最大 vcpus を決定できません"
 
@@ -7413,7 +7414,7 @@ msgid "Failed to remove domain managed save image"
 msgstr ""
 
 #: src/libxl/libxl_driver.c:2824 src/qemu/qemu_driver.c:5003
-#: tools/virsh.c:2039
+#: tools/virsh.c:2045
 msgid "Refusing to undefine while domain managed save image exists"
 msgstr ""
 
@@ -7774,90 +7775,90 @@ msgstr "IP ホワーディングを有効にするのに失敗"
 msgid "network is already active"
 msgstr "ネットワークはすでにアクティブです"
 
-#: src/network/bridge_driver.c:2016 src/network/bridge_driver.c:2343
-#: src/network/bridge_driver.c:2430 src/network/bridge_driver.c:2453
-#: src/network/bridge_driver.c:2492 src/network/bridge_driver.c:2547
-#: src/network/bridge_driver.c:2572
+#: src/network/bridge_driver.c:2016 src/network/bridge_driver.c:2344
+#: src/network/bridge_driver.c:2431 src/network/bridge_driver.c:2454
+#: src/network/bridge_driver.c:2493 src/network/bridge_driver.c:2548
+#: src/network/bridge_driver.c:2573
 msgid "no network with matching uuid"
 msgstr "一致する uuid のネットワークはありません"
 
-#: src/network/bridge_driver.c:2039 src/network/bridge_driver.c:2705
-#: src/network/bridge_driver.c:2919 src/network/bridge_driver.c:3020
-#: src/network/bridge_driver.c:3107
+#: src/network/bridge_driver.c:2039 src/network/bridge_driver.c:2706
+#: src/network/bridge_driver.c:2920 src/network/bridge_driver.c:3021
+#: src/network/bridge_driver.c:3108
 #, c-format
 msgid "no network with matching name '%s'"
 msgstr ""
 
-#: src/network/bridge_driver.c:2302
+#: src/network/bridge_driver.c:2289
 msgid ""
 "Multiple dhcp sections found. dhcp is supported only for a single IPv4 "
 "address on each network"
 msgstr ""
 
-#: src/network/bridge_driver.c:2349
+#: src/network/bridge_driver.c:2350
 msgid "network is still active"
 msgstr "ネットワークはまだアクティブです"
 
-#: src/network/bridge_driver.c:2459
+#: src/network/bridge_driver.c:2460
 msgid "network is not active"
 msgstr "ネットワークが起動中していません"
 
-#: src/network/bridge_driver.c:2515
+#: src/network/bridge_driver.c:2516
 msgid "no network with matching id"
 msgstr "一致する id を持つネットワークはありません"
 
-#: src/network/bridge_driver.c:2521 src/test/test_driver.c:3291
+#: src/network/bridge_driver.c:2522 src/test/test_driver.c:3291
 #, c-format
 msgid "network '%s' does not have a bridge name."
 msgstr "ネットワーク '%s' に bridge 名がありません"
 
-#: src/network/bridge_driver.c:2578
+#: src/network/bridge_driver.c:2579
 msgid "cannot set autostart for transient network"
 msgstr ""
 
-#: src/network/bridge_driver.c:2593
+#: src/network/bridge_driver.c:2594
 #, c-format
 msgid "cannot create autostart directory '%s'"
 msgstr "autostart ディレクトリ %s を作成できません"
 
-#: src/network/bridge_driver.c:2600 src/storage/storage_driver.c:1055
+#: src/network/bridge_driver.c:2601 src/storage/storage_driver.c:1055
 #, c-format
 msgid "Failed to create symlink '%s' to '%s'"
 msgstr "'%s' へのシンボルリンク %s の作成に失敗しました"
 
-#: src/network/bridge_driver.c:2821 src/network/bridge_driver.c:2934
-#: src/network/bridge_driver.c:3035
+#: src/network/bridge_driver.c:2822 src/network/bridge_driver.c:2935
+#: src/network/bridge_driver.c:3036
 #, c-format
 msgid ""
 "network '%s' uses a direct mode, but has no forward dev and no interface pool"
 msgstr ""
 
-#: src/network/bridge_driver.c:2859
+#: src/network/bridge_driver.c:2860
 #, c-format
 msgid ""
 "network '%s' requires exclusive access to interfaces, but none are available"
 msgstr ""
 
-#: src/network/bridge_driver.c:2927 src/network/bridge_driver.c:3028
+#: src/network/bridge_driver.c:2928 src/network/bridge_driver.c:3029
 msgid "the interface uses a direct mode, but has no source dev"
 msgstr ""
 
-#: src/network/bridge_driver.c:2952 src/network/bridge_driver.c:3051
+#: src/network/bridge_driver.c:2953 src/network/bridge_driver.c:3052
 #, c-format
 msgid "network '%s' doesn't have dev='%s' in use by domain"
 msgstr ""
 
-#: src/network/bridge_driver.c:2968
+#: src/network/bridge_driver.c:2969
 #, c-format
 msgid "network '%s' claims dev='%s' is already in use by a different domain"
 msgstr ""
 
-#: src/network/bridge_driver.c:3121
+#: src/network/bridge_driver.c:3122
 #, c-format
 msgid "network '%s' doesn't have an IPv4 address"
 msgstr ""
 
-#: src/network/bridge_driver.c:3143
+#: src/network/bridge_driver.c:3144
 #, c-format
 msgid "network '%s' has no associated interface or bridge"
 msgstr ""
@@ -12576,7 +12577,7 @@ msgstr ""
 msgid "unable to make pipe"
 msgstr ""
 
-#: src/rpc/virnetclient.c:540 src/rpc/virnetclient.c:1555
+#: src/rpc/virnetclient.c:540 src/rpc/virnetclient.c:1556
 msgid "failed to wake up polling thread"
 msgstr ""
 
@@ -12610,24 +12611,24 @@ msgstr "ソケット上の投票のは失敗しました"
 msgid "received hangup / error event on socket"
 msgstr "ソケット上で切断/エラーのイベントがありました"
 
-#: src/rpc/virnetclient.c:1564
+#: src/rpc/virnetclient.c:1565
 msgid "failed to wait on condition"
 msgstr "条件の待機に失敗しました"
 
-#: src/rpc/virnetclient.c:1691
+#: src/rpc/virnetclient.c:1698
 msgid "Attempt to send an asynchronous message with a synchronous reply"
 msgstr ""
 
-#: src/rpc/virnetclient.c:1697
-msgid "Attempt to send an non-blocking message with a synchronous reply"
+#: src/rpc/virnetclient.c:1704
+msgid "Attempt to send a non-blocking message with a synchronous reply"
 msgstr ""
 
-#: src/rpc/virnetclient.c:1710
+#: src/rpc/virnetclient.c:1717
 #, fuzzy
 msgid "client socket is closed"
 msgstr "ソケット上の投票のは失敗しました"
 
-#: src/rpc/virnetclient.c:1716
+#: src/rpc/virnetclient.c:1723
 msgid "cannot initialize condition variable"
 msgstr "条件変数を初期化出来ません"
 
@@ -13048,7 +13049,7 @@ msgstr ""
 msgid "Failed to add watch for fd %d events %d"
 msgstr ""
 
-#: src/rpc/virnetservermdns.c:344 src/util/virtime.c:244
+#: src/rpc/virnetservermdns.c:344 src/util/virtime.c:247
 msgid "Unable to get current time"
 msgstr ""
 
@@ -13452,58 +13453,58 @@ msgstr "秘密はプライベートです"
 msgid "Out of memory initializing secrets"
 msgstr ""
 
-#: src/security/security_apparmor.c:84
+#: src/security/security_apparmor.c:85
 #, c-format
 msgid "Failed to read AppArmor profiles list '%s'"
 msgstr ""
 
-#: src/security/security_apparmor.c:133
+#: src/security/security_apparmor.c:134
 #, c-format
 msgid "Failed to read '%s'"
 msgstr ""
 
-#: src/security/security_apparmor.c:241
+#: src/security/security_apparmor.c:242
 msgid "could not find libvirtd"
 msgstr ""
 
-#: src/security/security_apparmor.c:278 src/security/security_apparmor.c:302
-#: src/security/security_apparmor.c:320 src/security/security_apparmor.c:642
+#: src/security/security_apparmor.c:279 src/security/security_apparmor.c:303
+#: src/security/security_apparmor.c:321 src/security/security_apparmor.c:643
 #, c-format
 msgid "cannot update AppArmor profile '%s'"
 msgstr ""
 
-#: src/security/security_apparmor.c:347
+#: src/security/security_apparmor.c:348
 #, c-format
 msgid "template '%s' does not exist"
 msgstr ""
 
-#: src/security/security_apparmor.c:403
+#: src/security/security_apparmor.c:404
 msgid "Cannot set a base label with AppArmour"
 msgstr ""
 
-#: src/security/security_apparmor.c:411 src/security/security_selinux.c:185
+#: src/security/security_apparmor.c:412 src/security/security_selinux.c:185
 msgid "security label already defined for VM"
 msgstr "セキュリティラベルは既に VM 用に定義済みです"
 
-#: src/security/security_apparmor.c:441
+#: src/security/security_apparmor.c:442
 #, c-format
 msgid "cannot load AppArmor profile '%s'"
 msgstr ""
 
-#: src/security/security_apparmor.c:492
+#: src/security/security_apparmor.c:493
 msgid "error copying profile name"
 msgstr ""
 
-#: src/security/security_apparmor.c:498
+#: src/security/security_apparmor.c:499
 msgid "error calling profile_status()"
 msgstr ""
 
-#: src/security/security_apparmor.c:537
+#: src/security/security_apparmor.c:538
 #, c-format
 msgid "could not remove profile for '%s'"
 msgstr ""
 
-#: src/security/security_apparmor.c:559 src/security/security_selinux.c:1042
+#: src/security/security_apparmor.c:560 src/security/security_selinux.c:1042
 #: src/security/security_selinux.c:1071 src/security/security_selinux.c:1106
 #: src/security/security_selinux.c:1173 src/security/security_selinux.c:1210
 #, c-format
@@ -13512,23 +13513,19 @@ msgid ""
 "hypervisor driver is '%s'."
 msgstr ""
 
-#: src/security/security_apparmor.c:569
+#: src/security/security_apparmor.c:570
 msgid "error calling aa_change_profile()"
 msgstr ""
 
-#: src/security/security_apparmor.c:630
+#: src/security/security_apparmor.c:631
 #, c-format
 msgid "'%s' does not exist"
 msgstr ""
 
-#: src/security/security_apparmor.c:666
+#: src/security/security_apparmor.c:667
 #, c-format
 msgid "Invalid security label '%s'"
 msgstr "無効なセキュリティラベル '%s'"
-
-#: src/security/security_apparmor.c:795
-msgid "could not find path for descriptor"
-msgstr ""
 
 #: src/security/security_dac.c:124
 #, c-format
@@ -13824,7 +13821,7 @@ msgstr ""
 #: src/security/virt-aa-helper.c:721 src/security/virt-aa-helper.c:815
 #: src/security/virt-aa-helper.c:824 src/security/virt-aa-helper.c:899
 #: src/security/virt-aa-helper.c:1190 src/security/virt-aa-helper.c:1194
-#: src/security/virt-aa-helper.c:1250
+#: src/security/virt-aa-helper.c:1254
 msgid "could not allocate memory"
 msgstr ""
 
@@ -13904,11 +13901,11 @@ msgstr ""
 msgid "could not parse arguments"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1229
+#: src/security/virt-aa-helper.c:1233
 msgid "failed to allocate buffer"
 msgstr ""
 
-#: src/security/virt-aa-helper.c:1260
+#: src/security/virt-aa-helper.c:1264
 msgid "could not create profile"
 msgstr ""
 
@@ -14909,11 +14906,13 @@ msgid "Not enough free space in pool for volume '%s'"
 msgstr "ボリューム '%s' 用のプールに十分な空き領域がありません"
 
 #: src/uml/uml_conf.c:191
-msgid "IP address not supported for ethernet inteface"
+#, fuzzy
+msgid "IP address not supported for ethernet interface"
 msgstr "IP アドレスにはエレメントインターフェイス用のサポートがありません"
 
 #: src/uml/uml_conf.c:196
-msgid "script execution not supported for ethernet inteface"
+#, fuzzy
+msgid "script execution not supported for ethernet interface"
 msgstr "スクリプト実行はエレメントインターフェイス用にサポートされていません"
 
 #: src/uml/uml_conf.c:203
@@ -15061,7 +15060,7 @@ msgstr ""
 msgid "cannot detach device on inactive domain"
 msgstr "停止状態のドメインではデバイスを外せません"
 
-#: src/uml/uml_driver.c:2355 tools/virsh.c:10101
+#: src/uml/uml_driver.c:2355 tools/virsh.c:10107
 #, c-format
 msgid "cannot read %s"
 msgstr ""
@@ -15224,147 +15223,147 @@ msgstr ""
 msgid "virExec is not implemented for WIN32"
 msgstr ""
 
-#: src/util/command.c:1515 src/util/command.c:1734 src/util/command.c:1782
-#: src/util/command.c:2010 src/util/command.c:2156 src/util/command.c:2345
-#: src/util/command.c:2404
+#: src/util/command.c:1526 src/util/command.c:1745 src/util/command.c:1793
+#: src/util/command.c:2021 src/util/command.c:2167 src/util/command.c:2356
+#: src/util/command.c:2415
 msgid "invalid use of command API"
 msgstr ""
 
-#: src/util/command.c:1552
+#: src/util/command.c:1563
 #, c-format
 msgid "exit status %d"
 msgstr ""
 
-#: src/util/command.c:1555
+#: src/util/command.c:1566
 #, c-format
 msgid "fatal signal %d"
 msgstr ""
 
-#: src/util/command.c:1558
+#: src/util/command.c:1569
 #, c-format
 msgid "invalid value %d"
 msgstr "無効な値 %d"
 
-#: src/util/command.c:1632
+#: src/util/command.c:1643
 msgid "unable to poll on child"
 msgstr ""
 
-#: src/util/command.c:1659
+#: src/util/command.c:1670
 msgid "unable to read child stdout"
 msgstr ""
 
-#: src/util/command.c:1660
+#: src/util/command.c:1671
 msgid "unable to read child stderr"
 msgstr ""
 
-#: src/util/command.c:1688
+#: src/util/command.c:1699
 msgid "unable to write to child input"
 msgstr ""
 
-#: src/util/command.c:1748
+#: src/util/command.c:1759
 msgid "Executing new processes is not supported on Win32 platform"
 msgstr ""
 
-#: src/util/command.c:1804
+#: src/util/command.c:1815
 msgid "cannot mix caller fds with blocking execution"
 msgstr ""
 
-#: src/util/command.c:1810
+#: src/util/command.c:1821
 msgid "cannot mix string I/O with daemon"
 msgstr ""
 
-#: src/util/command.c:1820
+#: src/util/command.c:1831
 msgid "unable to open pipe"
 msgstr ""
 
-#: src/util/command.c:1927
+#: src/util/command.c:1938
 #, c-format
 msgid "Unable to change to %s"
 msgstr ""
 
-#: src/util/command.c:1935
+#: src/util/command.c:1946
 msgid "Unable to notify parent process"
 msgstr ""
 
-#: src/util/command.c:1945
+#: src/util/command.c:1956
 msgid "Unknown failure during hook execution"
 msgstr ""
 
-#: src/util/command.c:1948
+#: src/util/command.c:1959
 msgid "Unable to send error to parent process"
 msgstr ""
 
-#: src/util/command.c:1957
+#: src/util/command.c:1968
 msgid "Unable to wait on parent process"
 msgstr ""
 
-#: src/util/command.c:1959
+#: src/util/command.c:1970
 msgid "libvirtd quit during handshake"
 msgstr ""
 
-#: src/util/command.c:1963
+#: src/util/command.c:1974
 #, c-format
 msgid "Unexpected confirm code '%c' from parent process"
 msgstr ""
 
-#: src/util/command.c:2022
+#: src/util/command.c:2033
 msgid "cannot mix string I/O with asynchronous command"
 msgstr ""
 
-#: src/util/command.c:2028
+#: src/util/command.c:2039
 #, c-format
 msgid "command is already running as pid %d"
 msgstr ""
 
-#: src/util/command.c:2035
+#: src/util/command.c:2046
 msgid "daemonized command cannot use virCommandRunAsync"
 msgstr ""
 
-#: src/util/command.c:2040
+#: src/util/command.c:2051
 #, c-format
 msgid "daemonized command cannot set working directory %s"
 msgstr ""
 
-#: src/util/command.c:2046
+#: src/util/command.c:2057
 msgid "creation of pid file requires daemonized command"
 msgstr ""
 
-#: src/util/command.c:2104 src/util/command.c:2113
+#: src/util/command.c:2115 src/util/command.c:2124
 #, c-format
 msgid "unable to wait for process %d"
 msgstr ""
 
-#: src/util/command.c:2121
+#: src/util/command.c:2132
 #, c-format
 msgid "Child process (%d) status unexpected: %s"
 msgstr ""
 
-#: src/util/command.c:2162
+#: src/util/command.c:2173
 msgid "command is not yet running"
 msgstr ""
 
-#: src/util/command.c:2180
+#: src/util/command.c:2191
 #, c-format
 msgid "Child process (%s) status unexpected: %s"
 msgstr ""
 
-#: src/util/command.c:2351 src/util/command.c:2410
+#: src/util/command.c:2362 src/util/command.c:2421
 msgid "Handshake is already complete"
 msgstr ""
 
-#: src/util/command.c:2358
+#: src/util/command.c:2369
 msgid "Unable to wait for child process"
 msgstr ""
 
-#: src/util/command.c:2360
+#: src/util/command.c:2371
 msgid "Child process quit during startup handshake"
 msgstr ""
 
-#: src/util/command.c:2375
+#: src/util/command.c:2386
 msgid "No error message from child failure"
 msgstr ""
 
-#: src/util/command.c:2416
+#: src/util/command.c:2427
 msgid "Unable to notify child process"
 msgstr ""
 
@@ -16086,142 +16085,142 @@ msgstr "ファイル '%s' を保存できません"
 msgid "cannot rename file '%s' as '%s'"
 msgstr "ファイル '%s' を '%s' に名前変更できません"
 
-#: src/util/virnetdev.c:60 src/util/virnetdev.c:484
+#: src/util/virnetdev.c:62 src/util/virnetdev.c:486
 #: src/util/virnetdevbridge.c:61 src/util/virnetdevtap.c:146
 #: src/util/virnetdevtap.c:204
 #, fuzzy, c-format
 msgid "Network interface name '%s' is too long"
 msgstr "ドメインのネットワークインターフェースの状態取得"
 
-#: src/util/virnetdev.c:67 src/util/virnetdevbridge.c:69
+#: src/util/virnetdev.c:69 src/util/virnetdevbridge.c:69
 #, fuzzy
 msgid "Cannot open network interface control socket"
 msgstr "ネットワークインターフェースの形式を変更できません"
 
-#: src/util/virnetdev.c:73 src/util/virnetdevbridge.c:75
+#: src/util/virnetdev.c:75 src/util/virnetdevbridge.c:75
 #, fuzzy
 msgid "Cannot set close-on-exec flag for socket"
 msgstr "モニターの close-on-exec フラグをセットできません"
 
-#: src/util/virnetdev.c:113
+#: src/util/virnetdev.c:115
 #, fuzzy, c-format
 msgid "Unable to check interface flags for %s"
 msgstr "インターフェース情報 %s %s の取得に失敗しました"
 
-#: src/util/virnetdev.c:127
+#: src/util/virnetdev.c:129
 #, fuzzy, c-format
 msgid "Unable to check interface %s"
 msgstr "インターフェース '%s' を取得できませんでした"
 
-#: src/util/virnetdev.c:157 src/util/virnetdev.c:211 src/util/virnetdev.c:229
+#: src/util/virnetdev.c:159 src/util/virnetdev.c:213 src/util/virnetdev.c:231
 #, fuzzy, c-format
 msgid "Cannot get interface MAC on '%s'"
 msgstr "インターフェース '%s' を取得できませんでした"
 
-#: src/util/virnetdev.c:166 src/util/virnetdev.c:182
+#: src/util/virnetdev.c:168 src/util/virnetdev.c:184
 #, fuzzy, c-format
 msgid "Cannot set interface MAC on '%s'"
 msgstr "ファイルオーナー '%s' をセットできません"
 
-#: src/util/virnetdev.c:267
+#: src/util/virnetdev.c:269
 #, c-format
 msgid "Unable to preserve mac for %s"
 msgstr ""
 
-#: src/util/virnetdev.c:308
+#: src/util/virnetdev.c:310
 #, c-format
 msgid "Cannot parse MAC address from '%s'"
 msgstr "'%s' から MAC アドレスを解析できませんでした"
 
-#: src/util/virnetdev.c:343 src/util/virnetdev.c:358
+#: src/util/virnetdev.c:345 src/util/virnetdev.c:360
 #, fuzzy, c-format
 msgid "Cannot get interface MTU on '%s'"
 msgstr "インターフェース '%s' を取得できませんでした"
 
-#: src/util/virnetdev.c:389 src/util/virnetdev.c:404
+#: src/util/virnetdev.c:391 src/util/virnetdev.c:406
 #, fuzzy, c-format
 msgid "Cannot set interface MTU on '%s'"
 msgstr "ファイルオーナー '%s' をセットできません"
 
-#: src/util/virnetdev.c:491
+#: src/util/virnetdev.c:493
 #, fuzzy, c-format
 msgid "Unable to rename '%s' to '%s'"
 msgstr "'%s' へのシンボルリンク %s の作成に失敗しました"
 
-#: src/util/virnetdev.c:506
+#: src/util/virnetdev.c:508
 #, fuzzy, c-format
 msgid "Cannot rename interface '%s' to '%s' on this platform"
 msgstr "ファイル '%s' を '%s' に名前変更できません"
 
-#: src/util/virnetdev.c:536 src/util/virnetdev.c:596 src/util/virnetdev.c:613
+#: src/util/virnetdev.c:538 src/util/virnetdev.c:598 src/util/virnetdev.c:615
 #, fuzzy, c-format
 msgid "Cannot get interface flags on '%s'"
 msgstr "インターフェース '%s' を取得できませんでした"
 
-#: src/util/virnetdev.c:550 src/util/virnetdev.c:567
+#: src/util/virnetdev.c:552 src/util/virnetdev.c:569
 #, fuzzy, c-format
 msgid "Cannot set interface flags on '%s'"
 msgstr "'%s' 用にネットワークインターフェースがありません"
 
-#: src/util/virnetdev.c:638 src/util/virnetdev.c:687
+#: src/util/virnetdev.c:640 src/util/virnetdev.c:689
 #, fuzzy
 msgid "Unable to open control socket"
 msgstr "UNIX ソケットを開けません"
 
-#: src/util/virnetdev.c:647 src/util/virnetdev.c:693
+#: src/util/virnetdev.c:649 src/util/virnetdev.c:695
 #, c-format
 msgid "invalid interface name %s"
 msgstr "無効なインターフェース名 %s"
 
-#: src/util/virnetdev.c:654
+#: src/util/virnetdev.c:656
 #, fuzzy, c-format
 msgid "Unable to get index for interface %s"
 msgstr "インターフェース '%s' を取得できませんでした"
 
-#: src/util/virnetdev.c:670
+#: src/util/virnetdev.c:672
 #, fuzzy
 msgid "Unable to get interface index on this platform"
 msgstr "インターフェース情報の取得に失敗しました"
 
-#: src/util/virnetdev.c:700
+#: src/util/virnetdev.c:702
 #, fuzzy, c-format
 msgid "Unable to get VLAN for interface %s"
 msgstr "インターフェース '%s' を取得できませんでした"
 
-#: src/util/virnetdev.c:717
+#: src/util/virnetdev.c:719
 #, fuzzy
 msgid "Unable to get VLAN on this platform"
 msgstr "ドメインの状態が得られません"
 
-#: src/util/virnetdev.c:835
+#: src/util/virnetdev.c:837
 #, fuzzy, c-format
 msgid "Unable to get IPv4 address for interface %s"
 msgstr "ターゲット %s 用の  IP アドレスがありません"
 
-#: src/util/virnetdev.c:855
+#: src/util/virnetdev.c:857
 #, fuzzy
 msgid "Unable to get IPv4 address on this platform"
 msgstr "ドメインの状態が得られません"
 
-#: src/util/virnetdev.c:901
+#: src/util/virnetdev.c:903
 #, c-format
 msgid "coud not get MAC address of interface %s"
 msgstr ""
 
-#: src/util/virnetdev.c:933
+#: src/util/virnetdev.c:935
 msgid "Unable to check interface config on this platform"
 msgstr ""
 
-#: src/util/virnetdev.c:1061
+#: src/util/virnetdev.c:1063
 msgid "Unable to check virtual function status on this platfornm"
 msgstr ""
 
-#: src/util/virnetdev.c:1071
+#: src/util/virnetdev.c:1073
 #, fuzzy
 msgid "Unable to get virtual function index on this platfornm"
 msgstr "このプラットフォームではノード情報は実装されていません。"
 
-#: src/util/virnetdev.c:1080
+#: src/util/virnetdev.c:1082
 #, fuzzy
 msgid "Unable to get physical function status on this platfornm"
 msgstr ""
@@ -16547,7 +16546,7 @@ msgstr "エラーが発生しましたが、原因がわかりません"
 msgid "warning"
 msgstr "警告"
 
-#: src/util/virterror.c:575 tools/virsh.c:16925
+#: src/util/virterror.c:575 tools/virsh.c:16931
 msgid "error"
 msgstr "エラー"
 
@@ -16564,7 +16563,7 @@ msgstr "内部エラー %s"
 msgid "internal error"
 msgstr "内部エラー"
 
-#: src/util/virterror.c:773 tools/virsh.c:12070
+#: src/util/virterror.c:773 tools/virsh.c:12076
 msgid "out of memory"
 msgstr "メモリー不足"
 
@@ -17207,12 +17206,12 @@ msgstr ""
 msgid "revert requires force: %s"
 msgstr ""
 
-#: src/util/virtime.c:285
+#: src/util/virtime.c:288
 #, fuzzy
 msgid "Unable to break out time format"
 msgstr "JSON フォーマッターを作成できません"
 
-#: src/util/virtime.c:313 src/util/virtime.c:344
+#: src/util/virtime.c:316 src/util/virtime.c:347
 #, fuzzy
 msgid "Unable to format time"
 msgstr "JSON フォーマッターを作成できません"
@@ -18275,7 +18274,7 @@ msgstr ""
 #: src/vmx/vmx.c:3516
 #, c-format
 msgid ""
-"Expecting domain XML entry 'devices/interfase/model' to be 'vlance' or "
+"Expecting domain XML entry 'devices/interface/model' to be 'vlance' or "
 "'vmxnet' or 'vmxnet2' or 'vmxnet3' or 'e1000' but found '%s'"
 msgstr ""
 
@@ -18540,10 +18539,6 @@ msgstr ""
 #: src/xen/xend_internal.c:2210 src/xen/xend_internal.c:2671
 #: src/xen/xend_internal.c:2839 src/xen/xend_internal.c:2952
 msgid "Xend only supports modifying both live and persistent config"
-msgstr ""
-
-#: src/xen/xend_internal.c:2220 src/xen/xm_internal.c:731
-msgid "could not determin max vcpus for the domain"
 msgstr ""
 
 #: src/xen/xend_internal.c:2299
@@ -19175,17 +19170,17 @@ msgstr ""
 msgid "unexpected lifecycle action %d"
 msgstr ""
 
-#: tools/console.c:302
+#: tools/console.c:317
 #, c-format
 msgid "unable to get tty attributes: %s"
 msgstr ""
 
-#: tools/console.c:311
+#: tools/console.c:326
 #, c-format
 msgid "unable to set tty attributes: %s"
 msgstr ""
 
-#: tools/console.c:363
+#: tools/console.c:379
 #, fuzzy
 msgid "unable to wait on console condition"
 msgstr "条件の待機に失敗しました"
@@ -19280,29 +19275,29 @@ msgstr ""
 "使用法: $program_name {start|stop|status|restart|condrestart|try-restart|"
 "reload|force-reload|gueststatus|shutdown}"
 
-#: tools/virsh.c:406 tools/virsh.c:418
+#: tools/virsh.c:412 tools/virsh.c:424
 #, c-format
 msgid "%s: %d: failed to allocate %d bytes"
 msgstr "%s: %d: %d バイトを割り当てるのに失敗しました"
 
-#: tools/virsh.c:432
+#: tools/virsh.c:438
 #, c-format
 msgid "%s: %d: failed to allocate %lu bytes"
 msgstr "%s: %d: %lu バイトを割り当てるのに失敗しました"
 
-#: tools/virsh.c:604
+#: tools/virsh.c:610
 msgid "Failed to reconnect to the hypervisor"
 msgstr "ハイパーバイザーへの再接続に失敗しました"
 
-#: tools/virsh.c:606
+#: tools/virsh.c:612
 msgid "Reconnected to the hypervisor"
 msgstr "ハイパーバイザーに再接続しました"
 
-#: tools/virsh.c:621
+#: tools/virsh.c:627
 msgid "print help"
 msgstr "ヘルプの表示"
 
-#: tools/virsh.c:622
+#: tools/virsh.c:628
 msgid ""
 "Prints global help, command specific help, or help for a\n"
 "    group of related commands"
@@ -19310,14 +19305,14 @@ msgstr ""
 "全体ヘルプ、コマンド固有ヘルプ、関連するコマンドグループ\n"
 "    のヘルプを表示します。"
 
-#: tools/virsh.c:629
+#: tools/virsh.c:635
 msgid ""
 "Prints global help, command specific help, or help for a group of related "
 "commands"
 msgstr ""
 "全体ヘルプ、コマンド固有ヘルプ、または関連するコマンドグループのヘルプの表示"
 
-#: tools/virsh.c:642
+#: tools/virsh.c:648
 msgid ""
 "Grouped commands:\n"
 "\n"
@@ -19325,289 +19320,290 @@ msgstr ""
 "グループ別コマンド:\n"
 "\n"
 
-#: tools/virsh.c:645 tools/virsh.c:15567
+#: tools/virsh.c:651 tools/virsh.c:15573
 #, c-format
 msgid " %s (help keyword '%s'):\n"
 msgstr " %s (ヘルプキーワード '%s'):\n"
 
-#: tools/virsh.c:663
+#: tools/virsh.c:669
 #, c-format
 msgid "command or command group '%s' doesn't exist"
 msgstr "コマンドまたはコマンドグループ '%s' が存在しません"
 
-#: tools/virsh.c:672
+#: tools/virsh.c:678
 msgid "autostart a domain"
 msgstr "ドメインの自動起動"
 
-#: tools/virsh.c:674
+#: tools/virsh.c:680
 msgid "Configure a domain to be automatically started at boot."
 msgstr "ブート時に自動的に起動するようドメインを設定します。"
 
-#: tools/virsh.c:679 tools/virsh.c:782 tools/virsh.c:967 tools/virsh.c:1015
-#: tools/virsh.c:1062 tools/virsh.c:1237 tools/virsh.c:1303 tools/virsh.c:1468
-#: tools/virsh.c:1584 tools/virsh.c:1640 tools/virsh.c:1687 tools/virsh.c:1767
-#: tools/virsh.c:2193 tools/virsh.c:2467 tools/virsh.c:2517 tools/virsh.c:2571
-#: tools/virsh.c:2899 tools/virsh.c:2952 tools/virsh.c:3102 tools/virsh.c:3140
-#: tools/virsh.c:3178 tools/virsh.c:3216 tools/virsh.c:3255 tools/virsh.c:3293
-#: tools/virsh.c:3431 tools/virsh.c:3514 tools/virsh.c:3711 tools/virsh.c:3919
-#: tools/virsh.c:4025 tools/virsh.c:4269 tools/virsh.c:4363 tools/virsh.c:4397
-#: tools/virsh.c:4484 tools/virsh.c:4574 tools/virsh.c:4654 tools/virsh.c:4831
-#: tools/virsh.c:5332 tools/virsh.c:5589 tools/virsh.c:5880 tools/virsh.c:5925
-#: tools/virsh.c:5968 tools/virsh.c:6052 tools/virsh.c:6076 tools/virsh.c:6132
-#: tools/virsh.c:6239 tools/virsh.c:11722 tools/virsh.c:11791
-#: tools/virsh.c:11846 tools/virsh.c:12154 tools/virsh.c:12233
-#: tools/virsh.c:12303 tools/virsh.c:12502 tools/virsh.c:12637
-#: tools/virsh.c:12982 tools/virsh.c:13559 tools/virsh.c:13778
-#: tools/virsh.c:13908 tools/virsh.c:14040 tools/virsh.c:14178
-#: tools/virsh.c:14351 tools/virsh.c:14715 tools/virsh.c:14777
-#: tools/virsh.c:14834 tools/virsh.c:14908 tools/virsh.c:14979
+#: tools/virsh.c:685 tools/virsh.c:788 tools/virsh.c:973 tools/virsh.c:1021
+#: tools/virsh.c:1068 tools/virsh.c:1243 tools/virsh.c:1309 tools/virsh.c:1474
+#: tools/virsh.c:1590 tools/virsh.c:1646 tools/virsh.c:1693 tools/virsh.c:1773
+#: tools/virsh.c:2199 tools/virsh.c:2473 tools/virsh.c:2523 tools/virsh.c:2577
+#: tools/virsh.c:2905 tools/virsh.c:2958 tools/virsh.c:3108 tools/virsh.c:3146
+#: tools/virsh.c:3184 tools/virsh.c:3222 tools/virsh.c:3261 tools/virsh.c:3299
+#: tools/virsh.c:3437 tools/virsh.c:3520 tools/virsh.c:3717 tools/virsh.c:3925
+#: tools/virsh.c:4031 tools/virsh.c:4275 tools/virsh.c:4369 tools/virsh.c:4403
+#: tools/virsh.c:4490 tools/virsh.c:4580 tools/virsh.c:4660 tools/virsh.c:4837
+#: tools/virsh.c:5338 tools/virsh.c:5595 tools/virsh.c:5886 tools/virsh.c:5931
+#: tools/virsh.c:5974 tools/virsh.c:6058 tools/virsh.c:6082 tools/virsh.c:6138
+#: tools/virsh.c:6245 tools/virsh.c:11728 tools/virsh.c:11797
+#: tools/virsh.c:11852 tools/virsh.c:12160 tools/virsh.c:12239
+#: tools/virsh.c:12309 tools/virsh.c:12508 tools/virsh.c:12643
+#: tools/virsh.c:12988 tools/virsh.c:13565 tools/virsh.c:13784
+#: tools/virsh.c:13914 tools/virsh.c:14046 tools/virsh.c:14184
+#: tools/virsh.c:14357 tools/virsh.c:14721 tools/virsh.c:14783
+#: tools/virsh.c:14840 tools/virsh.c:14914 tools/virsh.c:14985
 msgid "domain name, id or uuid"
 msgstr "ドメインの名前、ID または UUID"
 
-#: tools/virsh.c:680 tools/virsh.c:6192 tools/virsh.c:8249
+#: tools/virsh.c:686 tools/virsh.c:6198 tools/virsh.c:8255
 msgid "disable autostarting"
 msgstr "自動起動の設定解除"
 
-#: tools/virsh.c:701
+#: tools/virsh.c:707
 #, c-format
 msgid "Failed to mark domain %s as autostarted"
 msgstr "ドメイン %s の自動起動の設定に失敗しました"
 
-#: tools/virsh.c:703
+#: tools/virsh.c:709
 #, c-format
 msgid "Failed to unmark domain %s as autostarted"
 msgstr "ドメイン %s の自動起動の設定解除に失敗しました"
 
-#: tools/virsh.c:709
+#: tools/virsh.c:715
 #, c-format
 msgid "Domain %s marked as autostarted\n"
 msgstr "ドメイン %s が自動起動に設定されました\n"
 
-#: tools/virsh.c:711
+#: tools/virsh.c:717
 #, c-format
 msgid "Domain %s unmarked as autostarted\n"
 msgstr "ドメイン %s の自動起動設定が解除されました\n"
 
-#: tools/virsh.c:721
+#: tools/virsh.c:727
 msgid "(re)connect to hypervisor"
 msgstr "ハイパーバイザーへの（再）接続"
 
-#: tools/virsh.c:723
+#: tools/virsh.c:729
 msgid ""
 "Connect to local hypervisor. This is built-in command after shell start up."
 msgstr ""
 "ローカルのハイパーバイザーに接続します。これはシェル起動後の組み込みコマンド"
 "です。"
 
-#: tools/virsh.c:729
+#: tools/virsh.c:735
 msgid "hypervisor connection URI"
 msgstr "ハイパーバイザーの接続 URI"
 
-#: tools/virsh.c:730
+#: tools/virsh.c:736
 msgid "read-only connection"
 msgstr "読み込み専用の接続"
 
-#: tools/virsh.c:743 tools/virsh.c:17508
+#: tools/virsh.c:749 tools/virsh.c:17514
 #, c-format
 msgid "Failed to disconnect from the hypervisor, %d leaked reference(s)"
 msgstr "ハイパーバイザーからの切断に失敗しました、%d 参照が失われました"
 
-#: tools/virsh.c:751
+#: tools/virsh.c:757
 msgid "Please specify valid connection URI"
 msgstr "有効な接続 URI を指定してください"
 
-#: tools/virsh.c:764
+#: tools/virsh.c:770
 msgid "Failed to connect to the hypervisor"
 msgstr "ハイパーバイザーへの接続に失敗しました"
 
-#: tools/virsh.c:775
+#: tools/virsh.c:781
 msgid "connect to the guest console"
 msgstr "ゲストのコンソールへの接続"
 
-#: tools/virsh.c:777
+#: tools/virsh.c:783
 msgid "Connect the virtual serial console for the guest"
 msgstr "ゲストの仮想シリアルコンソールに接続します。"
 
-#: tools/virsh.c:783
+#: tools/virsh.c:789
 msgid "character device name"
 msgstr "キャラクタデバイス名"
 
-#: tools/virsh.c:794
+#: tools/virsh.c:800
 msgid "Unable to get domain status"
 msgstr "ドメインの状態が得られません"
 
-#: tools/virsh.c:799
+#: tools/virsh.c:805
 msgid "The domain is not running"
 msgstr "ドメインが実行していません"
 
-#: tools/virsh.c:803
+#: tools/virsh.c:809
 #, c-format
 msgid "Connected to domain %s\n"
 msgstr "ドメイン %s に接続しました\n"
 
-#: tools/virsh.c:804
-msgid "Escape character is ^]\n"
+#: tools/virsh.c:810
+#, fuzzy, c-format
+msgid "Escape character is %s\n"
 msgstr "エスケープ文字は ^] です\n"
 
-#: tools/virsh.c:827
+#: tools/virsh.c:833
 msgid "Invalid devname"
 msgstr "不正なデバイス名"
 
-#: tools/virsh.c:845
+#: tools/virsh.c:851
 msgid "list domains"
 msgstr "ドメインの一覧表示"
 
-#: tools/virsh.c:846
+#: tools/virsh.c:852
 msgid "Returns list of domains."
 msgstr "ドメインの一覧を表示します。"
 
-#: tools/virsh.c:851
+#: tools/virsh.c:857
 msgid "list inactive domains"
 msgstr "停止状態のドメインの一覧表示"
 
-#: tools/virsh.c:852
+#: tools/virsh.c:858
 msgid "list inactive & active domains"
 msgstr "停止状態および動作中のドメインの一覧表示"
 
-#: tools/virsh.c:854
+#: tools/virsh.c:860
 msgid "mark domains with managed save state"
 msgstr "ドメインを管理中の保存状態にする"
 
-#: tools/virsh.c:879 tools/virsh.c:886
+#: tools/virsh.c:885 tools/virsh.c:892
 msgid "Failed to list active domains"
 msgstr "動作中のドメインの一覧表示に失敗しました"
 
-#: tools/virsh.c:897 tools/virsh.c:905
+#: tools/virsh.c:903 tools/virsh.c:911
 msgid "Failed to list inactive domains"
 msgstr "停止状態のドメインの一覧表示に失敗しました"
 
-#: tools/virsh.c:914
+#: tools/virsh.c:920
 msgid "Id"
 msgstr "Id"
 
-#: tools/virsh.c:914 tools/virsh.c:6673 tools/virsh.c:6868 tools/virsh.c:7141
-#: tools/virsh.c:8112 tools/virsh.c:9102 tools/virsh.c:9122 tools/virsh.c:9191
-#: tools/virsh.c:10598 tools/virsh.c:10613 tools/virsh.c:10663
-#: tools/virsh.c:14489 tools/virsh.c:14493
+#: tools/virsh.c:920 tools/virsh.c:6679 tools/virsh.c:6874 tools/virsh.c:7147
+#: tools/virsh.c:8118 tools/virsh.c:9108 tools/virsh.c:9128 tools/virsh.c:9197
+#: tools/virsh.c:10604 tools/virsh.c:10619 tools/virsh.c:10669
+#: tools/virsh.c:14495 tools/virsh.c:14499
 msgid "Name"
 msgstr "名前"
 
-#: tools/virsh.c:914 tools/virsh.c:6868 tools/virsh.c:7141 tools/virsh.c:9102
-#: tools/virsh.c:9127 tools/virsh.c:9191 tools/virsh.c:14489
-#: tools/virsh.c:14493
+#: tools/virsh.c:920 tools/virsh.c:6874 tools/virsh.c:7147 tools/virsh.c:9108
+#: tools/virsh.c:9133 tools/virsh.c:9197 tools/virsh.c:14495
+#: tools/virsh.c:14499
 msgid "State"
 msgstr "状態"
 
-#: tools/virsh.c:947 tools/virsh.c:16827
+#: tools/virsh.c:953 tools/virsh.c:16833
 msgid "saved"
 msgstr "保存されました"
 
-#: tools/virsh.c:961
+#: tools/virsh.c:967
 msgid "domain state"
 msgstr "ドメインの状態"
 
-#: tools/virsh.c:962
+#: tools/virsh.c:968
 msgid "Returns state about a domain."
 msgstr "ドメインの状態を返します。"
 
-#: tools/virsh.c:968
+#: tools/virsh.c:974
 msgid "also print reason for the state"
 msgstr ""
 
-#: tools/virsh.c:1009
+#: tools/virsh.c:1015
 msgid "domain control interface state"
 msgstr "ドメイン制御インターフェース状態"
 
-#: tools/virsh.c:1010
+#: tools/virsh.c:1016
 msgid "Returns state of a control interface to the domain."
 msgstr "ドメインの制御インターフェースの状態を返します。"
 
-#: tools/virsh.c:1055
+#: tools/virsh.c:1061
 msgid "get device block stats for a domain"
 msgstr "ドメインのデバイスブロックの状態の取得"
 
-#: tools/virsh.c:1056
+#: tools/virsh.c:1062
 msgid ""
 "Get device block stats for a running domain. See man page or use --human for "
 "explanation of fields"
 msgstr ""
 
-#: tools/virsh.c:1063 tools/virsh.c:1641 tools/virsh.c:6240
+#: tools/virsh.c:1069 tools/virsh.c:1647 tools/virsh.c:6246
 msgid "block device"
 msgstr "ブロックデバイス"
 
-#: tools/virsh.c:1064
+#: tools/virsh.c:1070
 msgid "print a more human readable output"
 msgstr ""
 
-#: tools/virsh.c:1078
+#: tools/virsh.c:1084
 msgid "number of read operations:"
 msgstr "読み込み回数:"
 
-#: tools/virsh.c:1080
+#: tools/virsh.c:1086
 msgid "number of bytes read:"
 msgstr "読み込みバイト数:"
 
-#: tools/virsh.c:1082
+#: tools/virsh.c:1088
 msgid "number of write operations:"
 msgstr "書き込み回数:"
 
-#: tools/virsh.c:1084
+#: tools/virsh.c:1090
 msgid "number of bytes written:"
 msgstr "書き込みバイト数"
 
-#: tools/virsh.c:1086
+#: tools/virsh.c:1092
 msgid "error count:"
 msgstr "エラーカウント:"
 
-#: tools/virsh.c:1088
+#: tools/virsh.c:1094
 msgid "number of flush operations:"
 msgstr ""
 
-#: tools/virsh.c:1090
+#: tools/virsh.c:1096
 msgid "total duration of reads (ns):"
 msgstr ""
 
-#: tools/virsh.c:1092
+#: tools/virsh.c:1098
 msgid "total duration of writes (ns):"
 msgstr ""
 
-#: tools/virsh.c:1094
+#: tools/virsh.c:1100
 msgid "total duration of flushes (ns):"
 msgstr ""
 
-#: tools/virsh.c:1146 tools/virsh.c:1166
+#: tools/virsh.c:1152 tools/virsh.c:1172
 #, c-format
 msgid "Failed to get block stats %s %s"
 msgstr "ブロックの状態 %s  %s の取得に失敗しました"
 
-#: tools/virsh.c:1153 tools/virsh.c:1172
+#: tools/virsh.c:1159 tools/virsh.c:1178
 #, c-format
 msgid "Device: %s\n"
 msgstr "デバイス: %s\n"
 
-#: tools/virsh.c:1231
+#: tools/virsh.c:1237
 msgid "get network interface stats for a domain"
 msgstr "ドメインのネットワークインターフェースの状態取得"
 
-#: tools/virsh.c:1232
+#: tools/virsh.c:1238
 msgid "Get network interface stats for a running domain."
 msgstr "実行中のドメインのネットワークインターフェースの状態を取得します。"
 
-#: tools/virsh.c:1238
+#: tools/virsh.c:1244
 msgid "interface device"
 msgstr "インターフェースデバイス"
 
-#: tools/virsh.c:1261
+#: tools/virsh.c:1267
 #, c-format
 msgid "Failed to get interface stats %s %s"
 msgstr "インターフェース情報 %s %s の取得に失敗しました"
 
-#: tools/virsh.c:1297
+#: tools/virsh.c:1303
 msgid "set link state of a virtual interface"
 msgstr "仮想インターフェースのリンク状態の設定"
 
-#: tools/virsh.c:1298
+#: tools/virsh.c:1304
 msgid ""
 "Set link state of a domain's virtual interface. This command wraps usage of "
 "update-device command."
@@ -19615,395 +19611,395 @@ msgstr ""
 "ドメインの仮想インターフェースのリンク状態を設定します。このコマンドは "
 "update-device コマンドの使用を覆い隠します。"
 
-#: tools/virsh.c:1304 tools/virsh.c:1469
+#: tools/virsh.c:1310 tools/virsh.c:1475
 msgid "interface device (MAC Address)"
 msgstr "インターフェースデバイス (MAC アドレス)"
 
-#: tools/virsh.c:1305
+#: tools/virsh.c:1311
 msgid "new state of the device"
 msgstr "デバイスの新しい状態"
 
-#: tools/virsh.c:1306
+#: tools/virsh.c:1312
 msgid "persist interface state"
 msgstr "インターフェース状態の永続化"
 
-#: tools/virsh.c:1343
+#: tools/virsh.c:1349
 #, c-format
 msgid "invalid link state '%s'"
 msgstr "不正なリンク状態 '%s'"
 
-#: tools/virsh.c:1350 tools/virsh.c:1506
+#: tools/virsh.c:1356 tools/virsh.c:1512
 msgid "Failed to get domain description xml"
 msgstr "ドメイン記述 XML の取得に失敗しました"
 
-#: tools/virsh.c:1366 tools/virsh.c:1513
+#: tools/virsh.c:1372 tools/virsh.c:1519
 msgid "Failed to parse domain description xml"
 msgstr "ドメイン記述 XML の構文解析に失敗しました"
 
-#: tools/virsh.c:1373 tools/virsh.c:1520
+#: tools/virsh.c:1379 tools/virsh.c:1526
 msgid "Failed to extract interface information or no interfaces found"
 msgstr ""
 "インターフェース情報の取得に失敗しました、またはインターフェースが見つかりま"
 "せん"
 
-#: tools/virsh.c:1396
+#: tools/virsh.c:1402
 #, c-format
 msgid "interface with address '%s' not found"
 msgstr "アドレス '%s' を持つインターフェースが見つかりません"
 
-#: tools/virsh.c:1430 tools/virsh.c:11012 tools/virsh.c:11071
-#: tools/virsh.c:12590 tools/virsh.c:13053
+#: tools/virsh.c:1436 tools/virsh.c:11018 tools/virsh.c:11077
+#: tools/virsh.c:12596 tools/virsh.c:13059
 msgid "Failed to allocate memory"
 msgstr "メモリーの割り当てに失敗しました"
 
-#: tools/virsh.c:1435 tools/virsh.c:12595 tools/virsh.c:13058
+#: tools/virsh.c:1441 tools/virsh.c:12601 tools/virsh.c:13064
 msgid "Failed to create XML"
 msgstr "XML の作成に失敗しました"
 
-#: tools/virsh.c:1440
+#: tools/virsh.c:1446
 msgid "Failed to update interface link state"
 msgstr "インターフェースのリンク状態の更新に失敗しました"
 
-#: tools/virsh.c:1443 tools/virsh.c:12285
+#: tools/virsh.c:1449 tools/virsh.c:12291
 msgid "Device updated successfully\n"
 msgstr "デバイスが正常に更新されました\n"
 
-#: tools/virsh.c:1462
+#: tools/virsh.c:1468
 msgid "get link state of a virtual interface"
 msgstr "仮想インターフェースのリンク状態の取得"
 
-#: tools/virsh.c:1463
+#: tools/virsh.c:1469
 msgid "Get link state of a domain's virtual interface."
 msgstr "ドメインの仮想インターフェースのリンク状態を取得します。"
 
-#: tools/virsh.c:1470
+#: tools/virsh.c:1476
 msgid "Get persistent interface state"
 msgstr "永続的なインターフェース状態の取得"
 
-#: tools/virsh.c:1543
+#: tools/virsh.c:1549
 #, c-format
 msgid "Interface with address '%s' not found."
 msgstr "アドレス '%s' を持つインターフェースが見つかりません"
 
-#: tools/virsh.c:1578
+#: tools/virsh.c:1584
 msgid "get memory statistics for a domain"
 msgstr "ドメインのメモリー統計情報の取得"
 
-#: tools/virsh.c:1579
+#: tools/virsh.c:1585
 msgid "Get memory statistics for a runnng domain."
 msgstr "実行しているドメインのメモリー統計情報を取得します。"
 
-#: tools/virsh.c:1604
+#: tools/virsh.c:1610
 #, c-format
 msgid "Failed to get memory statistics for domain %s"
 msgstr "ドメイン %s のメモリー統計情報の取得に失敗しました"
 
-#: tools/virsh.c:1634
+#: tools/virsh.c:1640
 msgid "domain block device size information"
 msgstr "ドメインのブロックデバイス容量の情報"
 
-#: tools/virsh.c:1635
+#: tools/virsh.c:1641
 msgid "Get block device size info for a domain."
 msgstr "ドメインのブロックデバイスの容量情報を取得します。"
 
-#: tools/virsh.c:1669 tools/virsh.c:9460 tools/virsh.c:10370
+#: tools/virsh.c:1675 tools/virsh.c:9466 tools/virsh.c:10376
 msgid "Capacity:"
 msgstr "容量:"
 
-#: tools/virsh.c:1670 tools/virsh.c:9463 tools/virsh.c:10373
+#: tools/virsh.c:1676 tools/virsh.c:9469 tools/virsh.c:10379
 msgid "Allocation:"
 msgstr "割り当て:"
 
-#: tools/virsh.c:1671
+#: tools/virsh.c:1677
 msgid "Physical:"
 msgstr "物理:"
 
-#: tools/virsh.c:1681
+#: tools/virsh.c:1687
 msgid "list all domain blocks"
 msgstr "ドメインの全ブロックの一覧表示"
 
-#: tools/virsh.c:1682
+#: tools/virsh.c:1688
 msgid "Get the names of block devices for a domain."
 msgstr "ドメインのブロックデバイスの名前を取得します。"
 
-#: tools/virsh.c:1689
+#: tools/virsh.c:1695
 msgid "get inactive rather than running configuration"
 msgstr ""
 
-#: tools/virsh.c:1727
+#: tools/virsh.c:1733
 msgid "Target"
 msgstr "ターゲット"
 
-#: tools/virsh.c:1727
+#: tools/virsh.c:1733
 msgid "Source"
 msgstr "ソース"
 
-#: tools/virsh.c:1761
+#: tools/virsh.c:1767
 msgid "suspend a domain"
 msgstr "ドメインの一時停止"
 
-#: tools/virsh.c:1762
+#: tools/virsh.c:1768
 msgid "Suspend a running domain."
 msgstr "実行中のドメインを一時停止状態にします。"
 
-#: tools/virsh.c:1785
+#: tools/virsh.c:1791
 #, c-format
 msgid "Domain %s suspended\n"
 msgstr "ドメイン %s は一時停止されました\n"
 
-#: tools/virsh.c:1787
+#: tools/virsh.c:1793
 #, c-format
 msgid "Failed to suspend domain %s"
 msgstr "ドメイン %s の一時停止に失敗しました"
 
-#: tools/virsh.c:1799
+#: tools/virsh.c:1805
 msgid "create a domain from an XML file"
 msgstr "XML ファイルからドメインの作成"
 
-#: tools/virsh.c:1800
+#: tools/virsh.c:1806
 msgid "Create a domain."
 msgstr "ドメインを作成します。"
 
-#: tools/virsh.c:1805 tools/virsh.c:1868
+#: tools/virsh.c:1811 tools/virsh.c:1874
 msgid "file containing an XML domain description"
 msgstr "XML 形式のドメイン記述を含むファイル"
 
-#: tools/virsh.c:1807 tools/virsh.c:2090
+#: tools/virsh.c:1813 tools/virsh.c:2096
 msgid "attach to console after creation"
 msgstr "起動後にコンソールへ接続する"
 
-#: tools/virsh.c:1809 tools/virsh.c:2092
+#: tools/virsh.c:1815 tools/virsh.c:2098
 msgid "leave the guest paused after creation"
 msgstr "作成後にゲストを一時停止状態にしておく"
 
-#: tools/virsh.c:1810 tools/virsh.c:2094
+#: tools/virsh.c:1816 tools/virsh.c:2100
 msgid "automatically destroy the guest when virsh disconnects"
 msgstr "virsh 切断時にゲストを自動的に削除する"
 
-#: tools/virsh.c:1844
+#: tools/virsh.c:1850
 #, c-format
 msgid "Domain %s created from %s\n"
 msgstr "ドメイン %s が %s から作成されました\n"
 
-#: tools/virsh.c:1852
+#: tools/virsh.c:1858
 #, c-format
 msgid "Failed to create domain from %s"
 msgstr "%s からのドメイン作成に失敗しました"
 
-#: tools/virsh.c:1862
+#: tools/virsh.c:1868
 msgid "define (but don't start) a domain from an XML file"
 msgstr "XML ファイルからドメインの定義（起動なし）"
 
-#: tools/virsh.c:1863
+#: tools/virsh.c:1869
 msgid "Define a domain."
 msgstr "ドメインを登録します。"
 
-#: tools/virsh.c:1893
+#: tools/virsh.c:1899
 #, c-format
 msgid "Domain %s defined from %s\n"
 msgstr "ドメイン %s が %s から定義されました\n"
 
-#: tools/virsh.c:1897
+#: tools/virsh.c:1903
 #, c-format
 msgid "Failed to define domain from %s"
 msgstr "%s からのドメイン定義に失敗しました"
 
-#: tools/virsh.c:1907
+#: tools/virsh.c:1913
 msgid "undefine a domain"
 msgstr "ドメインの定義解除"
 
-#: tools/virsh.c:1909
+#: tools/virsh.c:1915
 msgid "Undefine an inactive domain, or convert persistent to transient."
 msgstr ""
 "休止状態のドメインを定義解除します、または永続的から一時的に変更します。"
 
-#: tools/virsh.c:1914 tools/virsh.c:5507
+#: tools/virsh.c:1920 tools/virsh.c:5513
 msgid "domain name or uuid"
 msgstr "ドメインの名前または UUID"
 
-#: tools/virsh.c:1915
+#: tools/virsh.c:1921
 msgid "remove domain managed state file"
 msgstr "ドメインの状態管理ファイルの削除"
 
-#: tools/virsh.c:1917
+#: tools/virsh.c:1923
 msgid "remove all domain snapshot metadata, if inactive"
 msgstr "休止状態なら、ドメインのスナップショットの管理情報をすべて削除"
 
-#: tools/virsh.c:2054
+#: tools/virsh.c:2060
 #, c-format
 msgid "Unable to remove metadata of %d snapshots"
 msgstr ""
 
-#: tools/virsh.c:2055
+#: tools/virsh.c:2061
 #, c-format
 msgid "Refusing to undefine while %d snapshots exist"
 msgstr ""
 
-#: tools/virsh.c:2064
+#: tools/virsh.c:2070
 #, c-format
 msgid "Domain %s has been undefined\n"
 msgstr "ドメイン %s の定義は削除されています\n"
 
-#: tools/virsh.c:2067
+#: tools/virsh.c:2073
 #, c-format
 msgid "Failed to undefine domain %s"
 msgstr "ドメイン %s の定義の削除に失敗しました"
 
-#: tools/virsh.c:2080
+#: tools/virsh.c:2086
 msgid "start a (previously defined) inactive domain"
 msgstr "停止状態の（定義済み）ドメインの起動"
 
-#: tools/virsh.c:2081
+#: tools/virsh.c:2087
 msgid ""
 "Start a domain, either from the last managedsave\n"
 "    state, or via a fresh boot if no managedsave state\n"
 "    is present."
 msgstr ""
 
-#: tools/virsh.c:2088
+#: tools/virsh.c:2094
 msgid "name of the inactive domain"
 msgstr "停止状態のドメイン名"
 
-#: tools/virsh.c:2096
+#: tools/virsh.c:2102
 msgid "avoid file system cache when loading"
 msgstr ""
 
-#: tools/virsh.c:2098
+#: tools/virsh.c:2104
 msgid "force fresh boot by discarding any managed save"
 msgstr ""
 
-#: tools/virsh.c:2121
+#: tools/virsh.c:2127
 msgid "Domain is already active"
 msgstr "ドメインはすでに起動中です"
 
-#: tools/virsh.c:2163
+#: tools/virsh.c:2169
 #, c-format
 msgid "Failed to start domain %s"
 msgstr "ドメイン %s の起動に失敗しました"
 
-#: tools/virsh.c:2168
+#: tools/virsh.c:2174
 #, c-format
 msgid "Domain %s started\n"
 msgstr "ドメイン %s が起動されました\n"
 
-#: tools/virsh.c:2186
+#: tools/virsh.c:2192
 msgid "save a domain state to a file"
 msgstr "ドメイン状態のファイルへの保存"
 
-#: tools/virsh.c:2187
+#: tools/virsh.c:2193
 msgid "Save the RAM state of a running domain."
 msgstr "実行中のドメインの RAM 状態を保存します。"
 
-#: tools/virsh.c:2192 tools/virsh.c:2466 tools/virsh.c:2897
+#: tools/virsh.c:2198 tools/virsh.c:2472 tools/virsh.c:2903
 msgid "avoid file system cache when saving"
 msgstr "保存するときにファイルシステムキャッシュを回避します"
 
-#: tools/virsh.c:2194
+#: tools/virsh.c:2200
 msgid "where to save the data"
 msgstr "データの保存場所"
 
-#: tools/virsh.c:2196 tools/virsh.c:2311 tools/virsh.c:2832 tools/virsh.c:5594
+#: tools/virsh.c:2202 tools/virsh.c:2317 tools/virsh.c:2838 tools/virsh.c:5600
 msgid "filename containing updated XML for the target"
 msgstr "ターゲットの更新した XML を含むファイル名"
 
-#: tools/virsh.c:2197 tools/virsh.c:2312 tools/virsh.c:2369
+#: tools/virsh.c:2203 tools/virsh.c:2318 tools/virsh.c:2375
 msgid "set domain to be running on restore"
 msgstr "ドメインの復元時に実行状態にします"
 
-#: tools/virsh.c:2198 tools/virsh.c:2313 tools/virsh.c:2370
+#: tools/virsh.c:2204 tools/virsh.c:2319 tools/virsh.c:2376
 msgid "set domain to be paused on restore"
 msgstr "ドメインの復元時に一時停止状態にします"
 
-#: tools/virsh.c:2227 tools/virsh.c:2861 tools/virsh.c:5639
+#: tools/virsh.c:2233 tools/virsh.c:2867 tools/virsh.c:5645
 msgid "malformed xml argument"
 msgstr "不正な形式の XML 引数"
 
-#: tools/virsh.c:2241
+#: tools/virsh.c:2247
 #, c-format
 msgid "Failed to save domain %s to %s"
 msgstr "ドメイン %s の %s への保存に失敗しました"
 
-#: tools/virsh.c:2245
+#: tools/virsh.c:2251
 #, c-format
 msgid "Domain %s saved to %s\n"
 msgstr "ドメイン %s は %s に保存されました\n"
 
-#: tools/virsh.c:2258
+#: tools/virsh.c:2264
 msgid "saved state domain information in XML"
 msgstr "XML 形式の状態保存されたドメイン情報"
 
-#: tools/virsh.c:2259
+#: tools/virsh.c:2265
 msgid ""
 "Output the domain information for a saved state file,\n"
 "as an XML dump to stdout."
 msgstr "状態保存ファイルのドメイン情報を XML 形式で出力します。"
 
-#: tools/virsh.c:2265
+#: tools/virsh.c:2271
 msgid "saved state file to read"
 msgstr "読み込む状態保存ファイル"
 
-#: tools/virsh.c:2266 tools/virsh.c:5334 tools/virsh.c:14181
-#: tools/virsh.c:14718
+#: tools/virsh.c:2272 tools/virsh.c:5340 tools/virsh.c:14187
+#: tools/virsh.c:14724
 msgid "include security sensitive information in XML dump"
 msgstr "XML ダンプ内にセキュリティの機密情報を含む"
 
-#: tools/virsh.c:2303
+#: tools/virsh.c:2309
 msgid "redefine the XML for a domain's saved state file"
 msgstr "ドメインの状態保存ファイルの XML の再定義"
 
-#: tools/virsh.c:2304
+#: tools/virsh.c:2310
 msgid "Replace the domain XML associated with a saved state file"
 msgstr "状態保存ファイルと関連づけられたドメインの XML を置き換えます。"
 
-#: tools/virsh.c:2309
+#: tools/virsh.c:2315
 msgid "saved state file to modify"
 msgstr "変更する状態保存ファイル"
 
-#: tools/virsh.c:2338
+#: tools/virsh.c:2344
 msgid "malformed or missing xml argument"
 msgstr "不正な形式または存在しない XML 引数"
 
-#: tools/virsh.c:2346 tools/virsh.c:2436 tools/virsh.c:14122
+#: tools/virsh.c:2352 tools/virsh.c:2442 tools/virsh.c:14128
 #, c-format
 msgid "Failed to update %s"
 msgstr ""
 
-#: tools/virsh.c:2350
+#: tools/virsh.c:2356
 #, c-format
 msgid "State file %s updated.\n"
 msgstr ""
 
-#: tools/virsh.c:2362
+#: tools/virsh.c:2368
 msgid "edit XML for a domain's saved state file"
 msgstr "ドメインの状態保存ファイルの XML の編集"
 
-#: tools/virsh.c:2363
+#: tools/virsh.c:2369
 msgid "Edit the domain XML associated with a saved state file"
 msgstr "状態保存ファイルと関連づけられたドメインの XML を編集します。"
 
-#: tools/virsh.c:2368
+#: tools/virsh.c:2374
 msgid "saved state file to edit"
 msgstr "編集する状態保存ファイル"
 
-#: tools/virsh.c:2395
+#: tools/virsh.c:2401
 msgid "--running and --saved are mutually exclusive"
 msgstr "--running と --saved は相互排他です"
 
-#: tools/virsh.c:2427
+#: tools/virsh.c:2433
 #, c-format
 msgid "Saved image %s XML configuration not changed.\n"
 msgstr ""
 
-#: tools/virsh.c:2440
+#: tools/virsh.c:2446
 #, c-format
 msgid "State file %s edited.\n"
 msgstr "状態ファイル %s が編集されました。\n"
 
-#: tools/virsh.c:2457
+#: tools/virsh.c:2463
 msgid "managed save of a domain state"
 msgstr "ドメインの状態の管理保存"
 
-#: tools/virsh.c:2458
+#: tools/virsh.c:2464
 msgid ""
 "Save and destroy a running domain, so it can be restarted from\n"
 "    the same state at a later time.  When the virsh 'start'\n"
@@ -20015,630 +20011,630 @@ msgstr ""
 "virsh 'start' コマンドが次回ドメインを実行するとき、\n"
 "自動的にこの管理された状態から起動されます。"
 
-#: tools/virsh.c:2468
+#: tools/virsh.c:2474
 msgid "set domain to be running on next start"
 msgstr "次回起動時にドメインを実行状態にする"
 
-#: tools/virsh.c:2469
+#: tools/virsh.c:2475
 msgid "set domain to be paused on next start"
 msgstr "次回起動時にドメインを一時停止状態にする"
 
-#: tools/virsh.c:2495
+#: tools/virsh.c:2501
 #, c-format
 msgid "Failed to save domain %s state"
 msgstr "ドメイン %s の状態を保存できませんでした"
 
-#: tools/virsh.c:2499
+#: tools/virsh.c:2505
 #, c-format
 msgid "Domain %s state saved by libvirt\n"
 msgstr "ドメイン %s の状態が libvirt により保存されました\n"
 
-#: tools/virsh.c:2511
+#: tools/virsh.c:2517
 msgid "Remove managed save of a domain"
 msgstr "ドメインの管理保存の削除"
 
-#: tools/virsh.c:2512
+#: tools/virsh.c:2518
 msgid "Remove an existing managed save state file from a domain"
 msgstr "ドメインから既存の管理情報状態を削除します。"
 
-#: tools/virsh.c:2537
+#: tools/virsh.c:2543
 msgid "Failed to check for domain managed save image"
 msgstr ""
 
-#: tools/virsh.c:2543
+#: tools/virsh.c:2549
 #, c-format
 msgid "Failed to remove managed save image for domain %s"
 msgstr ""
 
-#: tools/virsh.c:2548
+#: tools/virsh.c:2554
 #, c-format
 msgid "Removed managedsave image for domain %s"
 msgstr ""
 
-#: tools/virsh.c:2551
+#: tools/virsh.c:2557
 #, c-format
 msgid "Domain %s has no manage save image; removal skipped"
 msgstr ""
 
-#: tools/virsh.c:2565
+#: tools/virsh.c:2571
 msgid "show/set scheduler parameters"
 msgstr "スケジューラーパラメーターを見る/設定する"
 
-#: tools/virsh.c:2566
+#: tools/virsh.c:2572
 msgid "Show/Set scheduler parameters."
 msgstr "スケジューラーパラメーターを見る/設定する。"
 
-#: tools/virsh.c:2572
+#: tools/virsh.c:2578
 msgid "parameter=value"
 msgstr ""
 
-#: tools/virsh.c:2573
+#: tools/virsh.c:2579
 msgid "weight for XEN_CREDIT"
 msgstr "XEN_CREDIT への重み付け"
 
-#: tools/virsh.c:2574
+#: tools/virsh.c:2580
 msgid "cap for XEN_CREDIT"
 msgstr "XEN_CREDIT への上限値"
 
-#: tools/virsh.c:2575
+#: tools/virsh.c:2581
 msgid "get/set current scheduler info"
 msgstr ""
 
-#: tools/virsh.c:2576
+#: tools/virsh.c:2582
 msgid "get/set value to be used on next boot"
 msgstr ""
 
-#: tools/virsh.c:2577
+#: tools/virsh.c:2583
 msgid "get/set value from running domain"
 msgstr ""
 
-#: tools/virsh.c:2593
+#: tools/virsh.c:2599
 msgid "Invalid value of weight"
 msgstr "不適切な weight の値"
 
-#: tools/virsh.c:2607
+#: tools/virsh.c:2613
 msgid "Invalid value of cap"
 msgstr "不適切な cap の値"
 
-#: tools/virsh.c:2619
+#: tools/virsh.c:2625
 msgid "Invalid syntax for --set, expecting name=value"
 msgstr "--set 構文が無効です、期待値は name=value"
 
-#: tools/virsh.c:2634
+#: tools/virsh.c:2640
 msgid "Invalid value for parameter, expecting an int"
 msgstr "無効なパラメーター値、期待値は int 型です"
 
-#: tools/virsh.c:2641
+#: tools/virsh.c:2647
 msgid "Invalid value for parameter, expecting an unsigned int"
 msgstr "無効なパラメーター値、期待値は unsigned int 型です"
 
-#: tools/virsh.c:2648
+#: tools/virsh.c:2654
 msgid "Invalid value for parameter, expecting a long long"
 msgstr "無効なパラメーター値、期待値は long long 型です"
 
-#: tools/virsh.c:2655
+#: tools/virsh.c:2661
 msgid "Invalid value for parameter, expecting an unsigned long long"
 msgstr "無効なパラメーター値、期待値は unsigned long long 型です"
 
-#: tools/virsh.c:2661
+#: tools/virsh.c:2667
 msgid "Invalid value for parameter, expecting a double"
 msgstr "無効なパラメーター値、期待値は double 型です"
 
-#: tools/virsh.c:2692 tools/virsh.c:4059 tools/virsh.c:4292 tools/virsh.c:4506
-#: tools/virsh.c:4595 tools/virsh.c:4683 tools/virsh.c:4863 tools/virsh.c:6277
+#: tools/virsh.c:2698 tools/virsh.c:4065 tools/virsh.c:4298 tools/virsh.c:4512
+#: tools/virsh.c:4601 tools/virsh.c:4689 tools/virsh.c:4869 tools/virsh.c:6283
 msgid "--current must be specified exclusively"
 msgstr ""
 
-#: tools/virsh.c:2712 tools/virsh.c:2716
+#: tools/virsh.c:2718 tools/virsh.c:2722
 msgid "Scheduler"
 msgstr "スケジューラー"
 
-#: tools/virsh.c:2716
+#: tools/virsh.c:2722
 msgid "Unknown"
 msgstr "不明"
 
-#: tools/virsh.c:2773
+#: tools/virsh.c:2779
 #, c-format
 msgid "invalid scheduler option: %s"
 msgstr "無効なスケジューラーオプション: %s"
 
-#: tools/virsh.c:2780
+#: tools/virsh.c:2786
 msgid "cannot query both live and config at once"
 msgstr ""
 
-#: tools/virsh.c:2822
+#: tools/virsh.c:2828
 msgid "restore a domain from a saved state in a file"
 msgstr "ファイルに保存している状態からドメインを復元"
 
-#: tools/virsh.c:2823
+#: tools/virsh.c:2829
 msgid "Restore a domain."
 msgstr "ドメインを復元します。"
 
-#: tools/virsh.c:2828
+#: tools/virsh.c:2834
 msgid "the state to restore"
 msgstr "復元する状態"
 
-#: tools/virsh.c:2830
+#: tools/virsh.c:2836
 msgid "avoid file system cache when restoring"
 msgstr ""
 
-#: tools/virsh.c:2833
+#: tools/virsh.c:2839
 msgid "restore domain into running state"
 msgstr ""
 
-#: tools/virsh.c:2834
+#: tools/virsh.c:2840
 msgid "restore domain into paused state"
 msgstr ""
 
-#: tools/virsh.c:2872
+#: tools/virsh.c:2878
 #, c-format
 msgid "Failed to restore domain from %s"
 msgstr "ドメインの %s からの復元に失敗しました"
 
-#: tools/virsh.c:2876
+#: tools/virsh.c:2882
 #, c-format
 msgid "Domain restored from %s\n"
 msgstr "ドメインは %s から復元されました\n"
 
-#: tools/virsh.c:2888
+#: tools/virsh.c:2894
 msgid "dump the core of a domain to a file for analysis"
 msgstr "解析用ファイルへのドメインのコアのダンプ"
 
-#: tools/virsh.c:2889
+#: tools/virsh.c:2895
 msgid "Core dump a domain."
 msgstr "ドメインのコアダンプを取得します。"
 
-#: tools/virsh.c:2894
+#: tools/virsh.c:2900
 msgid "perform a live core dump if supported"
 msgstr "サポートされれば活性コアダンプを実行する"
 
-#: tools/virsh.c:2895
+#: tools/virsh.c:2901
 msgid "crash the domain after core dump"
 msgstr "コアダンプ後にドメインをクラッシュさせる"
 
-#: tools/virsh.c:2898
+#: tools/virsh.c:2904
 msgid "reset the domain after core dump"
 msgstr ""
 
-#: tools/virsh.c:2900
+#: tools/virsh.c:2906
 msgid "where to dump the core"
 msgstr "コアをダンプする場所"
 
-#: tools/virsh.c:2932
+#: tools/virsh.c:2938
 #, c-format
 msgid "Failed to core dump domain %s to %s"
 msgstr "ドメイン %s の %s へのダンプは失敗しました"
 
-#: tools/virsh.c:2936
+#: tools/virsh.c:2942
 #, c-format
 msgid "Domain %s dumped to %s\n"
 msgstr "ドメイン %s は %s にダンプされました \n"
 
-#: tools/virsh.c:2945
+#: tools/virsh.c:2951
 msgid "take a screenshot of a current domain console and store it into a file"
 msgstr ""
 "現在のドメインのコンソールのスクリーンショットの取得およびファイルへの保存"
 
-#: tools/virsh.c:2947
+#: tools/virsh.c:2953
 msgid "screenshot of a current domain console"
 msgstr "現在のドメインのコンソールのスクリーンショット"
 
-#: tools/virsh.c:2953
+#: tools/virsh.c:2959
 msgid "where to store the screenshot"
 msgstr "スクリーンショットを保存する場所"
 
-#: tools/virsh.c:2954
+#: tools/virsh.c:2960
 msgid "ID of a screen to take screenshot of"
 msgstr "スクリーンショットを取得するスクリーンの ID"
 
-#: tools/virsh.c:2984
+#: tools/virsh.c:2990
 msgid "Invalid domain supplied"
 msgstr ""
 
-#: tools/virsh.c:3026 tools/virsh.c:10096 tools/virsh.c:10187
+#: tools/virsh.c:3032 tools/virsh.c:10102 tools/virsh.c:10193
 msgid "file must not be empty"
 msgstr ""
 
-#: tools/virsh.c:3031
+#: tools/virsh.c:3037
 msgid "invalid screen ID"
 msgstr ""
 
-#: tools/virsh.c:3042
+#: tools/virsh.c:3048
 #, c-format
 msgid "could not take a screenshot of %s"
 msgstr ""
 
-#: tools/virsh.c:3055
+#: tools/virsh.c:3061
 #, c-format
 msgid "cannot create file %s"
 msgstr ""
 
-#: tools/virsh.c:3063
+#: tools/virsh.c:3069
 #, c-format
 msgid "could not receive data from domain %s"
 msgstr ""
 
-#: tools/virsh.c:3068 tools/virsh.c:10117 tools/virsh.c:10213
+#: tools/virsh.c:3074 tools/virsh.c:10123 tools/virsh.c:10219
 #, c-format
 msgid "cannot close file %s"
 msgstr ""
 
-#: tools/virsh.c:3073
+#: tools/virsh.c:3079
 #, c-format
 msgid "cannot close stream on domain %s"
 msgstr ""
 
-#: tools/virsh.c:3077
+#: tools/virsh.c:3083
 #, c-format
 msgid "Screenshot saved to %s, with type of %s"
 msgstr ""
 
-#: tools/virsh.c:3096
+#: tools/virsh.c:3102
 msgid "resume a domain"
 msgstr "ドメインの再開"
 
-#: tools/virsh.c:3097
+#: tools/virsh.c:3103
 msgid "Resume a previously suspended domain."
 msgstr "一時停止状態のドメインを再開します。"
 
-#: tools/virsh.c:3120
+#: tools/virsh.c:3126
 #, c-format
 msgid "Domain %s resumed\n"
 msgstr "ドメイン %s が再開されました\n"
 
-#: tools/virsh.c:3122
+#: tools/virsh.c:3128
 #, c-format
 msgid "Failed to resume domain %s"
 msgstr "ドメイン %s の再開に失敗しました"
 
-#: tools/virsh.c:3134
+#: tools/virsh.c:3140
 msgid "gracefully shutdown a domain"
 msgstr "ドメインの穏やかな停止"
 
-#: tools/virsh.c:3135
+#: tools/virsh.c:3141
 msgid "Run shutdown in the target domain."
 msgstr "指定したドメインで shutdown を実行します。"
 
-#: tools/virsh.c:3158
+#: tools/virsh.c:3164
 #, c-format
 msgid "Domain %s is being shutdown\n"
 msgstr "ドメイン %s をシャットダウンしています\n"
 
-#: tools/virsh.c:3160
+#: tools/virsh.c:3166
 #, c-format
 msgid "Failed to shutdown domain %s"
 msgstr "ドメイン %s のシャットダウンに失敗しました"
 
-#: tools/virsh.c:3172
+#: tools/virsh.c:3178
 msgid "reboot a domain"
 msgstr "ドメインの再起動"
 
-#: tools/virsh.c:3173
+#: tools/virsh.c:3179
 msgid "Run a reboot command in the target domain."
 msgstr "指定したドメインで reboot コマンドを実行します。"
 
-#: tools/virsh.c:3196
+#: tools/virsh.c:3202
 #, c-format
 msgid "Domain %s is being rebooted\n"
 msgstr "ドメイン %s を再起動しています\n"
 
-#: tools/virsh.c:3198
+#: tools/virsh.c:3204
 #, c-format
 msgid "Failed to reboot domain %s"
 msgstr "ドメイン %s の再起動に失敗しました"
 
-#: tools/virsh.c:3210
+#: tools/virsh.c:3216
 msgid "reset a domain"
 msgstr "ドメインのリセット"
 
-#: tools/virsh.c:3211
+#: tools/virsh.c:3217
 msgid "Reset the target domain as if by power button"
 msgstr "電源ボタンが押されたかのように対象ドメインをリセットします。"
 
-#: tools/virsh.c:3234
+#: tools/virsh.c:3240
 #, c-format
 msgid "Domain %s was reset\n"
 msgstr "ドメイン %s がリセットされました\n"
 
-#: tools/virsh.c:3236
+#: tools/virsh.c:3242
 #, c-format
 msgid "Failed to reset domain %s"
 msgstr "ドメイン %s のリセットに失敗しました"
 
-#: tools/virsh.c:3248
+#: tools/virsh.c:3254
 msgid "destroy (stop) a domain"
 msgstr "ドメインの強制停止"
 
-#: tools/virsh.c:3250
+#: tools/virsh.c:3256
 msgid "Forcefully stop a given domain, but leave its resources intact."
 msgstr ""
 "与えられたドメインを強制的に停止しますが、そのリソースをそのままにします。"
 
-#: tools/virsh.c:3273
+#: tools/virsh.c:3279
 #, c-format
 msgid "Domain %s destroyed\n"
 msgstr "ドメイン %s は強制停止されました\n"
 
-#: tools/virsh.c:3275
+#: tools/virsh.c:3281
 #, c-format
 msgid "Failed to destroy domain %s"
 msgstr "ドメイン %s の強制停止に失敗しました"
 
-#: tools/virsh.c:3287
+#: tools/virsh.c:3293
 msgid "domain information"
 msgstr "ドメインの情報"
 
-#: tools/virsh.c:3288
+#: tools/virsh.c:3294
 msgid "Returns basic information about the domain."
 msgstr "ドメインの基本情報を表示します。"
 
-#: tools/virsh.c:3319 tools/virsh.c:3321
+#: tools/virsh.c:3325 tools/virsh.c:3327
 msgid "Id:"
 msgstr "Id:"
 
-#: tools/virsh.c:3322 tools/virsh.c:9408 tools/virsh.c:10347
+#: tools/virsh.c:3328 tools/virsh.c:9414 tools/virsh.c:10353
 msgid "Name:"
 msgstr "名前:"
 
-#: tools/virsh.c:3325 tools/virsh.c:9411
+#: tools/virsh.c:3331 tools/virsh.c:9417
 msgid "UUID:"
 msgstr "UUID:"
 
-#: tools/virsh.c:3328
+#: tools/virsh.c:3334
 msgid "OS Type:"
 msgstr "OS タイプ:"
 
-#: tools/virsh.c:3333 tools/virsh.c:3963 tools/virsh.c:3992 tools/virsh.c:9418
-#: tools/virsh.c:9422 tools/virsh.c:9426 tools/virsh.c:9430 tools/virsh.c:9434
+#: tools/virsh.c:3339 tools/virsh.c:3969 tools/virsh.c:3998 tools/virsh.c:9424
+#: tools/virsh.c:9428 tools/virsh.c:9432 tools/virsh.c:9436 tools/virsh.c:9440
 msgid "State:"
 msgstr "状態:"
 
-#: tools/virsh.c:3336 tools/virsh.c:5031
+#: tools/virsh.c:3342 tools/virsh.c:5037
 msgid "CPU(s):"
 msgstr "CPU:"
 
-#: tools/virsh.c:3343 tools/virsh.c:3970
+#: tools/virsh.c:3349 tools/virsh.c:3976
 msgid "CPU time:"
 msgstr "CPU 時間:"
 
-#: tools/virsh.c:3347 tools/virsh.c:3350
+#: tools/virsh.c:3353 tools/virsh.c:3356
 msgid "Max memory:"
 msgstr "最大メモリー:"
 
-#: tools/virsh.c:3351
+#: tools/virsh.c:3357
 msgid "no limit"
 msgstr "制限なし"
 
-#: tools/virsh.c:3353
+#: tools/virsh.c:3359
 msgid "Used memory:"
 msgstr "使用メモリー:"
 
-#: tools/virsh.c:3365 tools/virsh.c:3367 tools/virsh.c:6684 tools/virsh.c:6686
-#: tools/virsh.c:9444 tools/virsh.c:9446
+#: tools/virsh.c:3371 tools/virsh.c:3373 tools/virsh.c:6690 tools/virsh.c:6692
+#: tools/virsh.c:9450 tools/virsh.c:9452
 msgid "Persistent:"
 msgstr ""
 
-#: tools/virsh.c:3365 tools/virsh.c:3377 tools/virsh.c:6684 tools/virsh.c:8968
-#: tools/virsh.c:8983 tools/virsh.c:8985 tools/virsh.c:8986 tools/virsh.c:8987
-#: tools/virsh.c:9444 tools/virsh.c:10366 tools/virsh.c:10508
-#: tools/virsh.c:10515 tools/virsh.c:10516 tools/virsh.c:10517
-#: tools/virsh.c:10533 tools/virsh.c:16848 tools/virsh.c:16928
+#: tools/virsh.c:3371 tools/virsh.c:3383 tools/virsh.c:6690 tools/virsh.c:8974
+#: tools/virsh.c:8989 tools/virsh.c:8991 tools/virsh.c:8992 tools/virsh.c:8993
+#: tools/virsh.c:9450 tools/virsh.c:10372 tools/virsh.c:10514
+#: tools/virsh.c:10521 tools/virsh.c:10522 tools/virsh.c:10523
+#: tools/virsh.c:10539 tools/virsh.c:16854 tools/virsh.c:16934
 msgid "unknown"
 msgstr ""
 
-#: tools/virsh.c:3367 tools/virsh.c:3380 tools/virsh.c:6680 tools/virsh.c:6686
-#: tools/virsh.c:6691 tools/virsh.c:6887 tools/virsh.c:6910 tools/virsh.c:8960
-#: tools/virsh.c:8971 tools/virsh.c:9446 tools/virsh.c:9455
-#: tools/virsh.c:16882
+#: tools/virsh.c:3373 tools/virsh.c:3386 tools/virsh.c:6686 tools/virsh.c:6692
+#: tools/virsh.c:6697 tools/virsh.c:6893 tools/virsh.c:6916 tools/virsh.c:8966
+#: tools/virsh.c:8977 tools/virsh.c:9452 tools/virsh.c:9461
+#: tools/virsh.c:16888
 msgid "yes"
 msgstr ""
 
-#: tools/virsh.c:3367 tools/virsh.c:3380 tools/virsh.c:6680 tools/virsh.c:6686
-#: tools/virsh.c:6691 tools/virsh.c:6887 tools/virsh.c:6910 tools/virsh.c:8960
-#: tools/virsh.c:8971 tools/virsh.c:9446 tools/virsh.c:9455
-#: tools/virsh.c:16882
+#: tools/virsh.c:3373 tools/virsh.c:3386 tools/virsh.c:6686 tools/virsh.c:6692
+#: tools/virsh.c:6697 tools/virsh.c:6893 tools/virsh.c:6916 tools/virsh.c:8966
+#: tools/virsh.c:8977 tools/virsh.c:9452 tools/virsh.c:9461
+#: tools/virsh.c:16888
 msgid "no"
 msgstr ""
 
-#: tools/virsh.c:3371 tools/virsh.c:6689 tools/virsh.c:6691 tools/virsh.c:9453
-#: tools/virsh.c:9455
+#: tools/virsh.c:3377 tools/virsh.c:6695 tools/virsh.c:6697 tools/virsh.c:9459
+#: tools/virsh.c:9461
 msgid "Autostart:"
 msgstr "自動起動:"
 
-#: tools/virsh.c:3372
+#: tools/virsh.c:3378
 msgid "enable"
 msgstr "有効にする"
 
-#: tools/virsh.c:3372
+#: tools/virsh.c:3378
 msgid "disable"
 msgstr "無効にする"
 
-#: tools/virsh.c:3377 tools/virsh.c:3379
+#: tools/virsh.c:3383 tools/virsh.c:3385
 msgid "Managed save:"
 msgstr ""
 
-#: tools/virsh.c:3395
+#: tools/virsh.c:3401
 msgid "Security model:"
 msgstr "セキュリティモデル:"
 
-#: tools/virsh.c:3396
+#: tools/virsh.c:3402
 msgid "Security DOI:"
 msgstr "セキュリティ DOI:"
 
-#: tools/virsh.c:3410
+#: tools/virsh.c:3416
 msgid "Security label:"
 msgstr "セキュリティラベル:"
 
-#: tools/virsh.c:3425
+#: tools/virsh.c:3431
 msgid "domain job information"
 msgstr "ドメインのジョブ情報"
 
-#: tools/virsh.c:3426
+#: tools/virsh.c:3432
 msgid "Returns information about jobs running on a domain."
 msgstr "ドメインで実行しているジョブの情報を表示します。"
 
-#: tools/virsh.c:3453
+#: tools/virsh.c:3459
 msgid "Job type:"
 msgstr ""
 
-#: tools/virsh.c:3456
+#: tools/virsh.c:3462
 msgid "Bounded"
 msgstr ""
 
-#: tools/virsh.c:3460
+#: tools/virsh.c:3466
 msgid "Unbounded"
 msgstr ""
 
-#: tools/virsh.c:3465
+#: tools/virsh.c:3471
 msgid "None"
 msgstr ""
 
-#: tools/virsh.c:3469
+#: tools/virsh.c:3475
 msgid "Time elapsed:"
 msgstr ""
 
-#: tools/virsh.c:3471
+#: tools/virsh.c:3477
 msgid "Time remaining:"
 msgstr ""
 
-#: tools/virsh.c:3474
+#: tools/virsh.c:3480
 msgid "Data processed:"
 msgstr ""
 
-#: tools/virsh.c:3476
+#: tools/virsh.c:3482
 msgid "Data remaining:"
 msgstr ""
 
-#: tools/virsh.c:3478
+#: tools/virsh.c:3484
 msgid "Data total:"
 msgstr ""
 
-#: tools/virsh.c:3482
+#: tools/virsh.c:3488
 msgid "Memory processed:"
 msgstr ""
 
-#: tools/virsh.c:3484
+#: tools/virsh.c:3490
 msgid "Memory remaining:"
 msgstr ""
 
-#: tools/virsh.c:3486
+#: tools/virsh.c:3492
 msgid "Memory total:"
 msgstr ""
 
-#: tools/virsh.c:3490
+#: tools/virsh.c:3496
 msgid "File processed:"
 msgstr ""
 
-#: tools/virsh.c:3492
+#: tools/virsh.c:3498
 msgid "File remaining:"
 msgstr ""
 
-#: tools/virsh.c:3494
+#: tools/virsh.c:3500
 msgid "File total:"
 msgstr ""
 
-#: tools/virsh.c:3508
+#: tools/virsh.c:3514
 msgid "abort active domain job"
 msgstr "ドメインのアクティブなジョブの中止"
 
-#: tools/virsh.c:3509
+#: tools/virsh.c:3515
 msgid "Aborts the currently running domain job"
 msgstr "現在実行しているドメインのジョブを中止します。"
 
-#: tools/virsh.c:3541
+#: tools/virsh.c:3547
 msgid "NUMA free memory"
 msgstr "NUMA 空きメモリー"
 
-#: tools/virsh.c:3542
+#: tools/virsh.c:3548
 msgid "display available free memory for the NUMA cell."
 msgstr "NUMA セル用の利用可能な空きメモリーを表示します。"
 
-#: tools/virsh.c:3547
+#: tools/virsh.c:3553
 msgid "NUMA cell number"
 msgstr "NUMA セル番号"
 
-#: tools/virsh.c:3548
+#: tools/virsh.c:3554
 msgid "show free memory for all NUMA cells"
 msgstr "すべての NUMA セルの空きメモリーの表示"
 
-#: tools/virsh.c:3574
+#: tools/virsh.c:3580
 msgid "cell number has to be a number"
 msgstr "セル番号は数値でなければいけません"
 
-#: tools/virsh.c:3580
+#: tools/virsh.c:3586
 msgid "--cellno and --all are mutually exclusive. Please choose only one."
 msgstr "--cellno と --all は相互排他です。どちらか一方を選択してください。"
 
-#: tools/virsh.c:3588 tools/virsh.c:3594
+#: tools/virsh.c:3594 tools/virsh.c:3600
 msgid "unable to get node capabilities"
 msgstr ""
 
-#: tools/virsh.c:3592
+#: tools/virsh.c:3598
 msgid "(capabilities)"
 msgstr ""
 
-#: tools/virsh.c:3601
+#: tools/virsh.c:3607
 msgid "could not get information about NUMA topology"
 msgstr ""
 
-#: tools/virsh.c:3613
+#: tools/virsh.c:3619
 msgid "conversion from string failed"
 msgstr ""
 
-#: tools/virsh.c:3621
+#: tools/virsh.c:3627
 #, c-format
 msgid "failed to get free memory for NUMA node number: %lu"
 msgstr ""
 
-#: tools/virsh.c:3635 tools/virsh.c:3648
+#: tools/virsh.c:3641 tools/virsh.c:3654
 msgid "Total"
 msgstr "合計"
 
-#: tools/virsh.c:3669
+#: tools/virsh.c:3675
 msgid "connection vcpu maximum"
 msgstr "コネクションの最大仮想 CPU 数"
 
-#: tools/virsh.c:3670
+#: tools/virsh.c:3676
 msgid "Show maximum number of virtual CPUs for guests on this connection."
 msgstr "このコネクションにおけるゲストの最大仮想 CPU 数を表示します。"
 
-#: tools/virsh.c:3675
+#: tools/virsh.c:3681
 msgid "domain type"
 msgstr "ドメイン形式"
 
-#: tools/virsh.c:3686
+#: tools/virsh.c:3692
 msgid "Invalid type"
 msgstr "無効な形式"
 
-#: tools/virsh.c:3705
+#: tools/virsh.c:3711
 msgid "domain vcpu counts"
 msgstr "ドメインの仮想 CPU 数"
 
-#: tools/virsh.c:3706
+#: tools/virsh.c:3712
 msgid "Returns the number of virtual CPUs used by the domain."
 msgstr "ドメインにより使用される仮想 CPU 数を表示します。"
 
-#: tools/virsh.c:3712
+#: tools/virsh.c:3718
 msgid "get maximum cap on vcpus"
 msgstr ""
 
-#: tools/virsh.c:3713
+#: tools/virsh.c:3719
 msgid "get number of currently active vcpus"
 msgstr ""
 
-#: tools/virsh.c:3714
+#: tools/virsh.c:3720
 msgid "get value from running domain"
 msgstr "実行中のドメインから値の取得"
 
-#: tools/virsh.c:3715
+#: tools/virsh.c:3721
 msgid "get value to be used on next boot"
 msgstr "次回起動時に使用される値の取得"
 
-#: tools/virsh.c:3717
+#: tools/virsh.c:3723
 msgid "get value according to current domain state"
 msgstr ""
 
-#: tools/virsh.c:3740
+#: tools/virsh.c:3746
 #, c-format
 msgid ""
 "when using --%s, one of --config, --live, or --current must be specified"
@@ -20646,247 +20642,247 @@ msgstr ""
 "--%s を使用するとき、--config, --live, または --current のどれかが指定されな"
 "ければいけません"
 
-#: tools/virsh.c:3745
+#: tools/virsh.c:3751
 #, c-format
 msgid "when using --%s, either --maximum or --active must be specified"
 msgstr ""
 "--%s を使用するとき、--maximum または --active のどちらかが指定されなければい"
 "けません"
 
-#: tools/virsh.c:3765
+#: tools/virsh.c:3771
 msgid "--maximum and --active cannot both be specified"
 msgstr "--maximum は --active cannot は同時に指定できません"
 
-#: tools/virsh.c:3770
+#: tools/virsh.c:3776
 msgid "--config, --live, and --current are mutually exclusive"
 msgstr "--config, --live, および --current は相互排他です"
 
-#: tools/virsh.c:3816 tools/virsh.c:3837
+#: tools/virsh.c:3822 tools/virsh.c:3843
 msgid "maximum"
 msgstr ""
 
-#: tools/virsh.c:3816 tools/virsh.c:3874
+#: tools/virsh.c:3822 tools/virsh.c:3880
 msgid "config"
 msgstr ""
 
-#: tools/virsh.c:3837 tools/virsh.c:3896
+#: tools/virsh.c:3843 tools/virsh.c:3902
 msgid "live"
 msgstr ""
 
-#: tools/virsh.c:3874 tools/virsh.c:3896
+#: tools/virsh.c:3880 tools/virsh.c:3902
 msgid "current"
 msgstr ""
 
-#: tools/virsh.c:3913
+#: tools/virsh.c:3919
 msgid "detailed domain vcpu information"
 msgstr "ドメインの仮想 CPU 情報の表示"
 
-#: tools/virsh.c:3914
+#: tools/virsh.c:3920
 msgid "Returns basic information about the domain virtual CPUs."
 msgstr "ドメインの仮想 CPU の基本情報を表示します。"
 
-#: tools/virsh.c:3961 tools/virsh.c:3990 tools/virsh.c:4125
+#: tools/virsh.c:3967 tools/virsh.c:3996 tools/virsh.c:4131
 msgid "VCPU:"
 msgstr "VCPU:"
 
-#: tools/virsh.c:3962 tools/virsh.c:3991
+#: tools/virsh.c:3968 tools/virsh.c:3997
 msgid "CPU:"
 msgstr "CPU:"
 
-#: tools/virsh.c:3972 tools/virsh.c:3994
+#: tools/virsh.c:3978 tools/virsh.c:4000
 msgid "CPU Affinity:"
 msgstr "CPU アフィニティー:"
 
-#: tools/virsh.c:3991 tools/virsh.c:3992 tools/virsh.c:3993
+#: tools/virsh.c:3997 tools/virsh.c:3998 tools/virsh.c:3999
 msgid "N/A"
 msgstr "N/A"
 
-#: tools/virsh.c:3993
+#: tools/virsh.c:3999
 msgid "CPU time"
 msgstr "CPU 時間"
 
-#: tools/virsh.c:4019
+#: tools/virsh.c:4025
 msgid "control or query domain vcpu affinity"
 msgstr "ドメインの仮想 CPU アフィニティーの制御または表示"
 
-#: tools/virsh.c:4020
+#: tools/virsh.c:4026
 msgid "Pin domain VCPUs to host physical CPUs."
 msgstr "ドメインの仮想 CPU をホストの物理 CPU に割り当てます。"
 
-#: tools/virsh.c:4026
+#: tools/virsh.c:4032
 msgid "vcpu number"
 msgstr "仮想 CPU 番号"
 
-#: tools/virsh.c:4028
+#: tools/virsh.c:4034
 msgid "host cpu number(s) to set, or omit option to query"
 msgstr ""
 
-#: tools/virsh.c:4029 tools/virsh.c:4272 tools/virsh.c:4486 tools/virsh.c:4576
-#: tools/virsh.c:4659 tools/virsh.c:4840 tools/virsh.c:6253
+#: tools/virsh.c:4035 tools/virsh.c:4278 tools/virsh.c:4492 tools/virsh.c:4582
+#: tools/virsh.c:4665 tools/virsh.c:4846 tools/virsh.c:6259
 msgid "affect next boot"
 msgstr ""
 
-#: tools/virsh.c:4030 tools/virsh.c:4273 tools/virsh.c:4487 tools/virsh.c:4577
-#: tools/virsh.c:4660 tools/virsh.c:4841 tools/virsh.c:6254
+#: tools/virsh.c:4036 tools/virsh.c:4279 tools/virsh.c:4493 tools/virsh.c:4583
+#: tools/virsh.c:4666 tools/virsh.c:4847 tools/virsh.c:6260
 msgid "affect running domain"
 msgstr ""
 
-#: tools/virsh.c:4031 tools/virsh.c:4274 tools/virsh.c:4488 tools/virsh.c:4578
-#: tools/virsh.c:4661 tools/virsh.c:4842 tools/virsh.c:6255
+#: tools/virsh.c:4037 tools/virsh.c:4280 tools/virsh.c:4494 tools/virsh.c:4584
+#: tools/virsh.c:4667 tools/virsh.c:4848 tools/virsh.c:6261
 msgid "affect current domain"
 msgstr ""
 
-#: tools/virsh.c:4080
+#: tools/virsh.c:4086
 msgid "vcpupin: Missing cpulist."
 msgstr ""
 
-#: tools/virsh.c:4089
+#: tools/virsh.c:4095
 msgid "vcpupin: Invalid or missing vCPU number."
 msgstr "vcpupin: 無効、又は欠如した vCPU 数値"
 
-#: tools/virsh.c:4100
+#: tools/virsh.c:4106
 msgid "vcpupin: failed to get domain information."
 msgstr ""
 
-#: tools/virsh.c:4106
+#: tools/virsh.c:4112
 msgid "vcpupin: Invalid vCPU number."
 msgstr "vcpupin: 無効な vCPU 数値"
 
-#: tools/virsh.c:4125
+#: tools/virsh.c:4131
 msgid "CPU Affinity"
 msgstr "CPU アフィニティー"
 
-#: tools/virsh.c:4194 tools/virsh.c:4218
+#: tools/virsh.c:4200 tools/virsh.c:4224
 #, c-format
 msgid "Physical CPU %d doesn't exist."
 msgstr "物理 CPU '%d' は存在していません"
 
-#: tools/virsh.c:4254
+#: tools/virsh.c:4260
 msgid "cpulist: Invalid format."
 msgstr ""
 
-#: tools/virsh.c:4263
+#: tools/virsh.c:4269
 msgid "change number of virtual CPUs"
 msgstr "仮想 CPU 数の変更"
 
-#: tools/virsh.c:4264
+#: tools/virsh.c:4270
 msgid "Change the number of virtual CPUs in the guest domain."
 msgstr "ゲストドメインの仮想 CPU 数を変更します。"
 
-#: tools/virsh.c:4270
+#: tools/virsh.c:4276
 msgid "number of virtual CPUs"
 msgstr "仮想 CPU 数"
 
-#: tools/virsh.c:4271
+#: tools/virsh.c:4277
 msgid "set maximum limit on next boot"
 msgstr ""
 
-#: tools/virsh.c:4313
+#: tools/virsh.c:4319
 msgid "Invalid number of virtual CPUs"
 msgstr "無効な仮想 CPU 数"
 
-#: tools/virsh.c:4336
+#: tools/virsh.c:4342
 msgid "--maximum must be used with --config only"
 msgstr ""
 
-#: tools/virsh.c:4357
+#: tools/virsh.c:4363
 msgid "Inject NMI to the guest"
 msgstr "ゲストへの NMI の送信"
 
-#: tools/virsh.c:4358
+#: tools/virsh.c:4364
 msgid "Inject NMI to the guest domain."
 msgstr "ゲストドメインに NMI を送信します。"
 
-#: tools/virsh.c:4391
+#: tools/virsh.c:4397
 msgid "Send keycodes to the guest"
 msgstr "ゲストへのキーコードの送信"
 
-#: tools/virsh.c:4392
+#: tools/virsh.c:4398
 msgid "Send keycodes (integers or symbolic names) to the guest"
 msgstr "ゲストにキーコード（数値またはシンボル名）を送信します。"
 
-#: tools/virsh.c:4399
+#: tools/virsh.c:4405
 msgid "the codeset of keycodes, default:linux"
 msgstr "キーコードのコードセット、デフォルト:linux"
 
-#: tools/virsh.c:4401
+#: tools/virsh.c:4407
 msgid "the time (in milliseconds) how long the keys will be held"
 msgstr "キーが保たれる時間（ミリ秒単位）"
 
-#: tools/virsh.c:4402
+#: tools/virsh.c:4408
 msgid "the key code"
 msgstr "キーコード"
 
-#: tools/virsh.c:4445
+#: tools/virsh.c:4451
 #, c-format
 msgid "unknown codeset: '%s'"
 msgstr "未知のコードセット: '%s'"
 
-#: tools/virsh.c:4451
+#: tools/virsh.c:4457
 msgid "too many keycodes"
 msgstr "キーコードが多過ぎます"
 
-#: tools/virsh.c:4457
+#: tools/virsh.c:4463
 #, c-format
 msgid "invalid keycode: '%s'"
 msgstr "無効なキーコード: '%s'"
 
-#: tools/virsh.c:4478
+#: tools/virsh.c:4484
 msgid "change memory allocation"
 msgstr "メモリーサイズの変更"
 
-#: tools/virsh.c:4479
+#: tools/virsh.c:4485
 msgid "Change the current memory allocation in the guest domain."
 msgstr "ゲストドメインの現在のメモリーサイズを変更します。"
 
-#: tools/virsh.c:4485
+#: tools/virsh.c:4491
 msgid "number of kilobytes of memory"
 msgstr "キロバイト単位でのメモリーサイズ"
 
-#: tools/virsh.c:4527 tools/virsh.c:4615
+#: tools/virsh.c:4533 tools/virsh.c:4621
 msgid "memory size has to be a number"
 msgstr "メモリー容量は数値でなければいけません"
 
-#: tools/virsh.c:4533
+#: tools/virsh.c:4539
 #, c-format
 msgid "Invalid value of %lu for memory size"
 msgstr "%lu はメモリー容量として無効な値です"
 
-#: tools/virsh.c:4539
+#: tools/virsh.c:4545
 msgid "Unable to verify MaxMemorySize"
 msgstr "最大メモリーサイズを確認できません"
 
-#: tools/virsh.c:4545
+#: tools/virsh.c:4551
 #, c-format
 msgid "Requested memory size %lu kb is larger than maximum of %lu kb"
 msgstr "要求されたメモリー容量 %lu KB は、最大値の %lu KB よりも大きいです"
 
-#: tools/virsh.c:4568
+#: tools/virsh.c:4574
 msgid "change maximum memory limit"
 msgstr "最大メモリー上限の変更"
 
-#: tools/virsh.c:4569
+#: tools/virsh.c:4575
 msgid "Change the maximum memory allocation limit in the guest domain."
 msgstr "ゲストドメインの最大メモリー上限を変更します。"
 
-#: tools/virsh.c:4575
+#: tools/virsh.c:4581
 msgid "maximum memory limit in kilobytes"
 msgstr "キロバイト単位での最大メモリー上限"
 
-#: tools/virsh.c:4621
+#: tools/virsh.c:4627
 #, c-format
 msgid "Invalid value of %d for memory size"
 msgstr "%d はメモリーサイズとしては不適切な値"
 
-#: tools/virsh.c:4627 tools/virsh.c:4632
+#: tools/virsh.c:4633 tools/virsh.c:4638
 msgid "Unable to change MaxMemorySize"
 msgstr "最大メモリーサイズを変更できません"
 
-#: tools/virsh.c:4645
+#: tools/virsh.c:4651
 msgid "Get or set blkio parameters"
 msgstr "ブロック I/O パラメーターの取得または設定"
 
-#: tools/virsh.c:4646
+#: tools/virsh.c:4652
 msgid ""
 "Get or set the current blkio parameters for a guest domain.\n"
 "    To get the blkio parameters use following command: \n"
@@ -20898,46 +20894,46 @@ msgstr ""
 "\n"
 "    virsh # blkiotune <domain>"
 
-#: tools/virsh.c:4656
+#: tools/virsh.c:4662
 msgid "IO Weight in range [100, 1000]"
 msgstr "[100, 1000] の範囲の I/O ウェイト"
 
-#: tools/virsh.c:4658
+#: tools/virsh.c:4664
 msgid "per-device IO Weights, in the form of /path/to/device,weight,..."
 msgstr ""
 
-#: tools/virsh.c:4702 tools/virsh.c:4885 tools/virsh.c:6299 tools/virsh.c:6307
-#: tools/virsh.c:6315 tools/virsh.c:6323 tools/virsh.c:6331 tools/virsh.c:6339
+#: tools/virsh.c:4708 tools/virsh.c:4891 tools/virsh.c:6305 tools/virsh.c:6313
+#: tools/virsh.c:6321 tools/virsh.c:6329 tools/virsh.c:6337 tools/virsh.c:6345
 msgid "Unable to parse integer parameter"
 msgstr "整数値のパラメーターを構文解析できませんでした"
 
-#: tools/virsh.c:4709
+#: tools/virsh.c:4715
 #, c-format
 msgid "Invalid value of %d for I/O weight"
 msgstr ""
 
-#: tools/virsh.c:4717
+#: tools/virsh.c:4723
 #, fuzzy
 msgid "Unable to parse string parameter"
 msgstr "整数値のパラメーターを構文解析できませんでした"
 
-#: tools/virsh.c:4728
+#: tools/virsh.c:4734
 msgid "Unable to get number of blkio parameters"
 msgstr "ブロック I/O のパラメーターの数を取得できませんでした"
 
-#: tools/virsh.c:4741
+#: tools/virsh.c:4747
 msgid "Unable to get blkio parameters"
 msgstr "ブロック I/O のパラメーターを取得できませんでした"
 
-#: tools/virsh.c:4804
+#: tools/virsh.c:4810
 msgid "Unable to change blkio parameters"
 msgstr "ブロック I/O のパラメーターを変更できませんでした"
 
-#: tools/virsh.c:4822
+#: tools/virsh.c:4828
 msgid "Get or set memory parameters"
 msgstr "メモリーのパラメーターの取得または設定"
 
-#: tools/virsh.c:4823
+#: tools/virsh.c:4829
 msgid ""
 "Get or set the current memory parameters for a guest domain.\n"
 "    To get the memory parameters use following command: \n"
@@ -20949,368 +20945,368 @@ msgstr ""
 "\n"
 "    virsh # memtune <domain>"
 
-#: tools/virsh.c:4833
+#: tools/virsh.c:4839
 msgid "Max memory in kilobytes"
 msgstr "キロバイト単位の最大メモリー"
 
-#: tools/virsh.c:4835
+#: tools/virsh.c:4841
 msgid "Memory during contention in kilobytes"
 msgstr ""
 
-#: tools/virsh.c:4837
+#: tools/virsh.c:4843
 msgid "Max memory plus swap in kilobytes"
 msgstr ""
 
-#: tools/virsh.c:4839
+#: tools/virsh.c:4845
 msgid "Min guaranteed memory in kilobytes"
 msgstr ""
 
-#: tools/virsh.c:4905
+#: tools/virsh.c:4911
 msgid "Unable to get number of memory parameters"
 msgstr "メモリーのパラメーターの数を取得できませんでした"
 
-#: tools/virsh.c:4918
+#: tools/virsh.c:4924
 msgid "Unable to get memory parameters"
 msgstr "メモリーのパラメーターを取得できませんでした"
 
-#: tools/virsh.c:4998
+#: tools/virsh.c:5004
 msgid "Unable to change memory parameters"
 msgstr "メモリーのパラメーターを変更できませんでした"
 
-#: tools/virsh.c:5013
+#: tools/virsh.c:5019
 msgid "node information"
 msgstr "ノード情報"
 
-#: tools/virsh.c:5014
+#: tools/virsh.c:5020
 msgid "Returns basic information about the node."
 msgstr "ノードの基本情報を表示します。"
 
-#: tools/virsh.c:5027
+#: tools/virsh.c:5033
 msgid "failed to get node information"
 msgstr "ノード情報の取得に失敗しました"
 
-#: tools/virsh.c:5030
+#: tools/virsh.c:5036
 msgid "CPU model:"
 msgstr "CPU モデル:"
 
-#: tools/virsh.c:5032
+#: tools/virsh.c:5038
 msgid "CPU frequency:"
 msgstr "CPU 周波数:"
 
-#: tools/virsh.c:5033
+#: tools/virsh.c:5039
 msgid "CPU socket(s):"
 msgstr "CPU ソケット数:"
 
-#: tools/virsh.c:5034
+#: tools/virsh.c:5040
 msgid "Core(s) per socket:"
 msgstr "ソケットあたりのコア数:"
 
-#: tools/virsh.c:5035
+#: tools/virsh.c:5041
 msgid "Thread(s) per core:"
 msgstr "コアあたりのスレッド数:"
 
-#: tools/virsh.c:5036
+#: tools/virsh.c:5042
 msgid "NUMA cell(s):"
 msgstr "NUMA セル数:"
 
-#: tools/virsh.c:5037
+#: tools/virsh.c:5043
 msgid "Memory size:"
 msgstr "メモリーサイズ:"
 
-#: tools/virsh.c:5046
+#: tools/virsh.c:5052
 msgid "Prints cpu stats of the node."
 msgstr "ノードの CPU 統計情報の表示"
 
-#: tools/virsh.c:5047
+#: tools/virsh.c:5053
 msgid "Returns cpu stats of the node, in nanoseconds."
 msgstr "ノードの CPU 統計情報をナノ秒単位で表示します。"
 
-#: tools/virsh.c:5052
+#: tools/virsh.c:5058
 msgid "prints specified cpu statistics only."
 msgstr "指定した CPU の統計情報のみを表示します。"
 
-#: tools/virsh.c:5053
+#: tools/virsh.c:5059
 msgid "prints by percentage during 1 second."
 msgstr "1秒間のパーセンテージにより表示します。"
 
-#: tools/virsh.c:5081
+#: tools/virsh.c:5087
 msgid "Invalid value of cpuNum"
 msgstr ""
 
-#: tools/virsh.c:5087
+#: tools/virsh.c:5093
 msgid "Unable to get number of cpu stats"
 msgstr ""
 
-#: tools/virsh.c:5101
+#: tools/virsh.c:5107
 msgid "Unable to get node cpu stats"
 msgstr ""
 
-#: tools/virsh.c:5131 tools/virsh.c:5154
+#: tools/virsh.c:5137 tools/virsh.c:5160
 msgid "user:"
 msgstr "user:"
 
-#: tools/virsh.c:5132 tools/virsh.c:5156
+#: tools/virsh.c:5138 tools/virsh.c:5162
 msgid "system:"
 msgstr ""
 
-#: tools/virsh.c:5133 tools/virsh.c:5141 tools/virsh.c:5158
+#: tools/virsh.c:5139 tools/virsh.c:5147 tools/virsh.c:5164
 msgid "idle:"
 msgstr "idle:"
 
-#: tools/virsh.c:5134 tools/virsh.c:5160
+#: tools/virsh.c:5140 tools/virsh.c:5166
 msgid "iowait:"
 msgstr ""
 
-#: tools/virsh.c:5140 tools/virsh.c:5152
+#: tools/virsh.c:5146 tools/virsh.c:5158
 msgid "usage:"
 msgstr "使用法:"
 
-#: tools/virsh.c:5175
+#: tools/virsh.c:5181
 msgid "Prints memory stats of the node."
 msgstr ""
 
-#: tools/virsh.c:5176
+#: tools/virsh.c:5182
 msgid "Returns memory stats of the node, in kilobytes."
 msgstr ""
 
-#: tools/virsh.c:5181
+#: tools/virsh.c:5187
 msgid "prints specified cell statistics only."
 msgstr ""
 
-#: tools/virsh.c:5198
+#: tools/virsh.c:5204
 msgid "Invalid value of cellNum"
 msgstr ""
 
-#: tools/virsh.c:5205
+#: tools/virsh.c:5211
 msgid "Unable to get number of memory stats"
 msgstr ""
 
-#: tools/virsh.c:5218
+#: tools/virsh.c:5224
 msgid "Unable to get memory stats"
 msgstr ""
 
-#: tools/virsh.c:5236
+#: tools/virsh.c:5242
 msgid "suspend the host node for a given time duration"
 msgstr ""
 
-#: tools/virsh.c:5237
+#: tools/virsh.c:5243
 msgid ""
 "Suspend the host node for a given time duration and attempt to resume "
 "thereafter."
 msgstr ""
 
-#: tools/virsh.c:5243
+#: tools/virsh.c:5249
 msgid "mem(Suspend-to-RAM), disk(Suspend-to-Disk), hybrid(Hybrid-Suspend)"
 msgstr ""
 
-#: tools/virsh.c:5245
+#: tools/virsh.c:5251
 msgid "Suspend duration in seconds"
 msgstr ""
 
-#: tools/virsh.c:5246
+#: tools/virsh.c:5252
 msgid "Suspend flags, 0 for default"
 msgstr ""
 
-#: tools/virsh.c:5277
+#: tools/virsh.c:5283
 #, fuzzy
 msgid "Invalid target"
 msgstr "不正な引数"
 
-#: tools/virsh.c:5282
+#: tools/virsh.c:5288
 #, fuzzy
 msgid "Invalid duration"
 msgstr "無効なパーティション形式"
 
-#: tools/virsh.c:5288
+#: tools/virsh.c:5294
 msgid "The host was not suspended"
 msgstr ""
 
-#: tools/virsh.c:5299
+#: tools/virsh.c:5305
 msgid "capabilities"
 msgstr "ケイパビリティ"
 
-#: tools/virsh.c:5300
+#: tools/virsh.c:5306
 msgid "Returns capabilities of hypervisor/driver."
 msgstr "ハイパーバイザー/ドライバーのケイパビリティを表示します。"
 
-#: tools/virsh.c:5313
+#: tools/virsh.c:5319
 msgid "failed to get capabilities"
 msgstr "ケイパビリティを取得できませんでした"
 
-#: tools/virsh.c:5326
+#: tools/virsh.c:5332
 msgid "domain information in XML"
 msgstr "XML 形式のドメイン情報"
 
-#: tools/virsh.c:5327
+#: tools/virsh.c:5333
 msgid "Output the domain information as an XML dump to stdout."
 msgstr "ドメインの情報を XML ダンプ形式で stdout に出力します。"
 
-#: tools/virsh.c:5333 tools/virsh.c:7256
+#: tools/virsh.c:5339 tools/virsh.c:7262
 msgid "show inactive defined XML"
 msgstr "アクティブでない定義済み XML の表示"
 
-#: tools/virsh.c:5335
+#: tools/virsh.c:5341
 msgid "update guest CPU according to host CPU"
 msgstr ""
 
-#: tools/virsh.c:5379
+#: tools/virsh.c:5385
 msgid "Convert native config to domain XML"
 msgstr "ネイティブ設定をドメイン XML に変換"
 
-#: tools/virsh.c:5380
+#: tools/virsh.c:5386
 msgid "Convert native guest configuration format to domain XML format."
 msgstr "ネイティブゲスト設定の形式をドメイン XML 形式に変換"
 
-#: tools/virsh.c:5385
+#: tools/virsh.c:5391
 msgid "source config data format"
 msgstr "ソース設定データの形式"
 
-#: tools/virsh.c:5386
+#: tools/virsh.c:5392
 msgid "config data file to import from"
 msgstr "次からインポートする為にデータファイルを設定"
 
-#: tools/virsh.c:5425
+#: tools/virsh.c:5431
 msgid "Convert domain XML to native config"
 msgstr "ドメイン XML をネイティブ設定に変換"
 
-#: tools/virsh.c:5426
+#: tools/virsh.c:5432
 msgid "Convert domain XML config to a native guest configuration format."
 msgstr "ドメイン XML 設定をネイティブのゲスト設定形式に変換"
 
-#: tools/virsh.c:5431
+#: tools/virsh.c:5437
 msgid "target config data type format"
 msgstr "ターゲット設定データタイプの形式"
 
-#: tools/virsh.c:5432
+#: tools/virsh.c:5438
 msgid "xml data file to export from"
 msgstr "以下からエキスポートする xml データファイル"
 
-#: tools/virsh.c:5471
+#: tools/virsh.c:5477
 msgid "convert a domain id or UUID to domain name"
 msgstr "ドメイン ID または UUID からドメイン名への変換"
 
-#: tools/virsh.c:5477
+#: tools/virsh.c:5483
 msgid "domain id or uuid"
 msgstr "ドメイン ID または UUID"
 
-#: tools/virsh.c:5501
+#: tools/virsh.c:5507
 msgid "convert a domain name or UUID to domain id"
 msgstr "ドメイン名または UUID からドメイン ID への変換"
 
-#: tools/virsh.c:5536
+#: tools/virsh.c:5542
 msgid "convert a domain name or id to domain UUID"
 msgstr "ドメイン名または ID からドメイン UUID への変換"
 
-#: tools/virsh.c:5542
+#: tools/virsh.c:5548
 msgid "domain id or name"
 msgstr "ドメイン名または ID"
 
-#: tools/virsh.c:5561
+#: tools/virsh.c:5567
 msgid "failed to get domain UUID"
 msgstr "ドメイン UUID の取得に失敗しました"
 
-#: tools/virsh.c:5571
+#: tools/virsh.c:5577
 msgid "migrate domain to another host"
 msgstr "他ホストへのドメインのマイグレーション"
 
-#: tools/virsh.c:5572
+#: tools/virsh.c:5578
 msgid "Migrate domain to another host.  Add --live for live migration."
 msgstr ""
 "ドメインを他のホストにマイグレーションします。ライブマイグレーションは --"
 "live を付加します。"
 
-#: tools/virsh.c:5577
+#: tools/virsh.c:5583
 msgid "live migration"
 msgstr "ライブマイグレーション"
 
-#: tools/virsh.c:5578
+#: tools/virsh.c:5584
 msgid "peer-2-peer migration"
 msgstr "ピアツーピア・マイグレーション"
 
-#: tools/virsh.c:5579
+#: tools/virsh.c:5585
 msgid "direct migration"
 msgstr "ダイレクト・マイグレーション"
 
-#: tools/virsh.c:5580
+#: tools/virsh.c:5586
 msgid "tunnelled migration"
 msgstr "トンネル・マイグレーション"
 
-#: tools/virsh.c:5581
+#: tools/virsh.c:5587
 msgid "persist VM on destination"
 msgstr "宛先における仮想マシンの永続化"
 
-#: tools/virsh.c:5582
+#: tools/virsh.c:5588
 msgid "undefine VM on source"
 msgstr "ソースから VM の登録解除"
 
-#: tools/virsh.c:5583
+#: tools/virsh.c:5589
 msgid "do not restart the domain on the destination host"
 msgstr ""
 
-#: tools/virsh.c:5584
+#: tools/virsh.c:5590
 msgid "migration with non-shared storage with full disk copy"
 msgstr ""
 
-#: tools/virsh.c:5585
+#: tools/virsh.c:5591
 msgid ""
 "migration with non-shared storage with incremental copy (same base image "
 "shared between source and destination)"
 msgstr ""
 
-#: tools/virsh.c:5587
+#: tools/virsh.c:5593
 msgid "prevent any configuration changes to domain until migration ends)"
 msgstr ""
 
-#: tools/virsh.c:5588
+#: tools/virsh.c:5594
 msgid "display the progress of migration"
 msgstr "マイグレーションの進行状況の表示"
 
-#: tools/virsh.c:5590
+#: tools/virsh.c:5596
 msgid ""
 "connection URI of the destination host as seen from the client(normal "
 "migration) or source(p2p migration)"
 msgstr ""
 
-#: tools/virsh.c:5591
+#: tools/virsh.c:5597
 msgid "migration URI, usually can be omitted"
 msgstr "マイグレーション URI（通常は省略可）"
 
-#: tools/virsh.c:5592
+#: tools/virsh.c:5598
 msgid "rename to new name during migration (if supported)"
 msgstr "マイグレーション中に名前の変更（サポートされる場合）"
 
-#: tools/virsh.c:5593
+#: tools/virsh.c:5599
 msgid "force guest to suspend if live migration exceeds timeout (in seconds)"
 msgstr ""
 "ライブマイグレーションがタイムアウトするとゲストを強制的に一時停止する（秒単"
 "位）"
 
-#: tools/virsh.c:5634 tools/virsh.c:8461 tools/virsh.c:9281 tools/virsh.c:9293
-#: tools/virsh.c:9632
+#: tools/virsh.c:5640 tools/virsh.c:8467 tools/virsh.c:9287 tools/virsh.c:9299
+#: tools/virsh.c:9638
 msgid "missing argument"
 msgstr ""
 
-#: tools/virsh.c:5678
+#: tools/virsh.c:5684
 msgid "migrate: Unexpected migrateuri for peer2peer/direct migration"
 msgstr ""
 
-#: tools/virsh.c:5769
+#: tools/virsh.c:5775
 msgid "migrate: Unexpected timeout for offline migration"
 msgstr ""
 
-#: tools/virsh.c:5774
+#: tools/virsh.c:5780
 msgid "migrate: Invalid timeout"
 msgstr "migrate: 無効なタイムアウト値"
 
-#: tools/virsh.c:5780
+#: tools/virsh.c:5786
 msgid "migrate: Timeout is too big"
 msgstr "migrate: タイムアウト値が大きすぎます"
 
-#: tools/virsh.c:5874
+#: tools/virsh.c:5880
 msgid "set maximum tolerable downtime"
 msgstr "最大許容ダウンタイムの設定"
 
-#: tools/virsh.c:5875
+#: tools/virsh.c:5881
 msgid ""
 "Set maximum tolerable downtime of a domain which is being live-migrated to "
 "another host."
@@ -21318,19 +21314,19 @@ msgstr ""
 "他のホストにライブマイグレーションしようとしているドメインの最大許容ダウンタ"
 "イムを設定します。"
 
-#: tools/virsh.c:5881
+#: tools/virsh.c:5887
 msgid "maximum tolerable downtime (in milliseconds) for migration"
 msgstr "マイグレーションの最大許容ダウンタイム（ミリ秒単位）"
 
-#: tools/virsh.c:5900
+#: tools/virsh.c:5906
 msgid "migrate: Invalid downtime"
 msgstr "migrate: 無効なダウンタイム値"
 
-#: tools/virsh.c:5918
+#: tools/virsh.c:5924
 msgid "Set the maximum migration bandwidth"
 msgstr "マイグレーションの最大帯域の設定"
 
-#: tools/virsh.c:5919
+#: tools/virsh.c:5925
 msgid ""
 "Set the maximum migration bandwidth (in Mbps) for a domain which is being "
 "migrated to another host."
@@ -21338,518 +21334,523 @@ msgstr ""
 "他のホストにマイグレーションしようとしているドメインに対してマイグレーション"
 "の最大帯域を設定します。"
 
-#: tools/virsh.c:5926
+#: tools/virsh.c:5932
 msgid "migration bandwidth limit in Mbps"
 msgstr "マイグレーション帯域の Mbps 単位の制限"
 
-#: tools/virsh.c:5944
+#: tools/virsh.c:5950
 msgid "migrate: Invalid bandwidth"
 msgstr "migrate: 不正な帯域"
 
-#: tools/virsh.c:5962
+#: tools/virsh.c:5968
 msgid "Get the maximum migration bandwidth"
 msgstr "マイグレーションの最大帯域の取得"
 
-#: tools/virsh.c:5963
+#: tools/virsh.c:5969
 msgid "Get the maximum migration bandwidth (in Mbps) for a domain."
 msgstr "ドメインのマイグレーションの最大帯域（Mbps）を取得します。"
 
-#: tools/virsh.c:6023
+#: tools/virsh.c:6029
 msgid "bandwidth must be a number"
 msgstr "帯域は数値でなければいけません"
 
-#: tools/virsh.c:6046 tools/virsh.c:6047
+#: tools/virsh.c:6052 tools/virsh.c:6053
 msgid "Populate a disk from its backing image."
 msgstr "既存のイメージからのディスクの配置"
 
-#: tools/virsh.c:6053 tools/virsh.c:6077
+#: tools/virsh.c:6059 tools/virsh.c:6083
 msgid "Fully-qualified path of disk"
 msgstr "ディスクの完全修飾パス"
 
-#: tools/virsh.c:6054
+#: tools/virsh.c:6060
 msgid "Bandwidth limit in MB/s"
 msgstr "MB/s 単位の帯域制限値"
 
-#: tools/virsh.c:6070 tools/virsh.c:6071
+#: tools/virsh.c:6076 tools/virsh.c:6077
 msgid "Manage active block operations."
 msgstr "アクティブなブロック操作の管理"
 
-#: tools/virsh.c:6078
+#: tools/virsh.c:6084
 msgid "Abort the active job on the speficied disk"
 msgstr "指定したディスクにおけるアクティブなジョブの中止"
 
-#: tools/virsh.c:6079
+#: tools/virsh.c:6085
 msgid "Get active job information for the specified disk"
 msgstr "指定したディスクのアクティブなジョブの情報の取得"
 
-#: tools/virsh.c:6080
+#: tools/virsh.c:6086
 msgid "Set the Bandwidth limit in MB/s"
 msgstr "MB/s 単位の帯域制限の設定"
 
-#: tools/virsh.c:6100
+#: tools/virsh.c:6106
 msgid "One of --abort, --info, or --bandwidth is required"
 msgstr "--abort, --info, または --bandwidth のどれかが必要です"
 
-#: tools/virsh.c:6126 tools/virsh.c:6127
+#: tools/virsh.c:6132 tools/virsh.c:6133
 #, fuzzy
 msgid "Resize block device of domain."
 msgstr "ドメインのブロックデバイスの容量情報を取得します。"
 
-#: tools/virsh.c:6133
+#: tools/virsh.c:6139
 #, fuzzy
 msgid "Fully-qualified path of block device"
 msgstr "ディスクの完全修飾パス"
 
-#: tools/virsh.c:6134
+#: tools/virsh.c:6140
 msgid "New size of the block device in kilobytes, the size must be integer"
 msgstr ""
 
-#: tools/virsh.c:6152
+#: tools/virsh.c:6158
 #, fuzzy
 msgid "Path must not be empty"
 msgstr "引数は空白ではいけません"
 
-#: tools/virsh.c:6157 tools/virsh.c:10082 tools/virsh.c:10087
-#: tools/virsh.c:10174 tools/virsh.c:10179
+#: tools/virsh.c:6163 tools/virsh.c:10088 tools/virsh.c:10093
+#: tools/virsh.c:10180 tools/virsh.c:10185
 msgid "Unable to parse integer"
 msgstr "整数値を構文解析できませんでした"
 
-#: tools/virsh.c:6162
+#: tools/virsh.c:6168
 #, c-format
 msgid "Size must be less than %llu"
 msgstr ""
 
-#: tools/virsh.c:6170
+#: tools/virsh.c:6176
 #, fuzzy, c-format
 msgid "Failed to resize block device '%s'"
 msgstr "モード '%s' の構文解析に失敗"
 
-#: tools/virsh.c:6172
+#: tools/virsh.c:6178
 #, fuzzy, c-format
 msgid "Block device '%s' is resized"
 msgstr "PCI デバイス %s はすでに使用中です"
 
-#: tools/virsh.c:6184
+#: tools/virsh.c:6190
 msgid "autostart a network"
 msgstr "ネットワークの自動起動"
 
-#: tools/virsh.c:6186
+#: tools/virsh.c:6192
 msgid "Configure a network to be automatically started at boot."
 msgstr "ブート時にネットワークを自動的に起動するよう設定します。"
 
-#: tools/virsh.c:6191 tools/virsh.c:6574 tools/virsh.c:6613 tools/virsh.c:7006
-#: tools/virsh.c:13660
+#: tools/virsh.c:6197 tools/virsh.c:6580 tools/virsh.c:6619 tools/virsh.c:7012
+#: tools/virsh.c:13666
 msgid "network name or uuid"
 msgstr "ネットワークの名前または UUID"
 
-#: tools/virsh.c:6213
+#: tools/virsh.c:6219
 #, c-format
 msgid "failed to mark network %s as autostarted"
 msgstr "ネットワーク %s を自動起動に設定するのに失敗しました"
 
-#: tools/virsh.c:6215
+#: tools/virsh.c:6221
 #, c-format
 msgid "failed to unmark network %s as autostarted"
 msgstr "ネットワーク %s の自動起動設定の解除に失敗しました"
 
-#: tools/virsh.c:6221
+#: tools/virsh.c:6227
 #, c-format
 msgid "Network %s marked as autostarted\n"
 msgstr "ネットワーク %s が自動起動に設定されました\n"
 
-#: tools/virsh.c:6223
+#: tools/virsh.c:6229
 #, c-format
 msgid "Network %s unmarked as autostarted\n"
 msgstr "ネットワーク %s の自動起動設定が解除されました\n"
 
-#: tools/virsh.c:6233
+#: tools/virsh.c:6239
 msgid "Set or query a block device I/O tuning parameters."
 msgstr ""
 
-#: tools/virsh.c:6234
+#: tools/virsh.c:6240
 msgid "Set or query disk I/O parameters such as block throttling."
 msgstr ""
 
-#: tools/virsh.c:6242
+#: tools/virsh.c:6248
 msgid "total throughput limit in bytes per second"
 msgstr ""
 
-#: tools/virsh.c:6244
+#: tools/virsh.c:6250
 msgid "read throughput limit in bytes per second"
 msgstr ""
 
-#: tools/virsh.c:6246
+#: tools/virsh.c:6252
 msgid "write throughput limit in bytes per second"
 msgstr ""
 
-#: tools/virsh.c:6248
+#: tools/virsh.c:6254
 msgid "total I/O operations limit per second"
 msgstr ""
 
-#: tools/virsh.c:6250
+#: tools/virsh.c:6256
 msgid "read I/O operations limit per second"
 msgstr ""
 
-#: tools/virsh.c:6252
+#: tools/virsh.c:6258
 msgid "write I/O operations limit per second"
 msgstr ""
 
-#: tools/virsh.c:6349
+#: tools/virsh.c:6355
 #, fuzzy
 msgid "Unable to get number of block I/O throttle parameters"
 msgstr "ブロック I/O のパラメーターの数を取得できませんでした"
 
-#: tools/virsh.c:6362
+#: tools/virsh.c:6368
 #, fuzzy
 msgid "Unable to get block I/O throttle parameters"
 msgstr "ブロック I/O のパラメーターを取得できませんでした"
 
-#: tools/virsh.c:6459
+#: tools/virsh.c:6465
 #, fuzzy
 msgid "Unable to change block I/O throttle"
 msgstr "ブロック I/O のパラメーターを変更できませんでした"
 
-#: tools/virsh.c:6476
+#: tools/virsh.c:6482
 msgid "create a network from an XML file"
 msgstr "XML ファイルからネットワークの作成"
 
-#: tools/virsh.c:6477
+#: tools/virsh.c:6483
 msgid "Create a network."
 msgstr "ネットワークを作成します。"
 
-#: tools/virsh.c:6482 tools/virsh.c:6528
+#: tools/virsh.c:6488 tools/virsh.c:6534
 msgid "file containing an XML network description"
 msgstr "ネットワーク の XML 記述を含むファイル"
 
-#: tools/virsh.c:6507
+#: tools/virsh.c:6513
 #, c-format
 msgid "Network %s created from %s\n"
 msgstr "ネットワーク %s が %s から作成されました\n"
 
-#: tools/virsh.c:6511
+#: tools/virsh.c:6517
 #, c-format
 msgid "Failed to create network from %s"
 msgstr "%s からのネットワーク作成に失敗しました"
 
-#: tools/virsh.c:6522
+#: tools/virsh.c:6528
 msgid "define (but don't start) a network from an XML file"
 msgstr "XML ファイルからネットワークの登録（起動なし)"
 
-#: tools/virsh.c:6523
+#: tools/virsh.c:6529
 msgid "Define a network."
 msgstr "ネットワークを登録します。"
 
-#: tools/virsh.c:6553
+#: tools/virsh.c:6559
 #, c-format
 msgid "Network %s defined from %s\n"
 msgstr "ネットワーク %s が %s から定義されました\n"
 
-#: tools/virsh.c:6557
+#: tools/virsh.c:6563
 #, c-format
 msgid "Failed to define network from %s"
 msgstr "%s からのネットワーク定義に失敗しました"
 
-#: tools/virsh.c:6568
+#: tools/virsh.c:6574
 msgid "destroy (stop) a network"
 msgstr "ネットワークの強制停止"
 
-#: tools/virsh.c:6569
+#: tools/virsh.c:6575
 msgid "Forcefully stop a given network."
 msgstr "与えられたネットワークを強制的に停止します。"
 
-#: tools/virsh.c:6592
+#: tools/virsh.c:6598
 #, c-format
 msgid "Network %s destroyed\n"
 msgstr "ネットワーク %s は強制停止されました\n"
 
-#: tools/virsh.c:6594
+#: tools/virsh.c:6600
 #, c-format
 msgid "Failed to destroy network %s"
 msgstr "ネットワーク %s の強制停止に失敗しました"
 
-#: tools/virsh.c:6607
+#: tools/virsh.c:6613
 msgid "network information in XML"
 msgstr "XML 形式のネットワーク情報"
 
-#: tools/virsh.c:6608
+#: tools/virsh.c:6614
 msgid "Output the network information as an XML dump to stdout."
 msgstr "ネットワークの構成情報を XML 形式で表示します。"
 
-#: tools/virsh.c:6646
+#: tools/virsh.c:6652
 msgid "network information"
 msgstr "ネットワーク情報"
 
-#: tools/virsh.c:6652 tools/virsh.c:7045
+#: tools/virsh.c:6653
+#, fuzzy
+msgid "Returns basic information about the network"
+msgstr "ノードの基本情報を表示します。"
+
+#: tools/virsh.c:6658 tools/virsh.c:7051
 msgid "network name"
 msgstr "ネットワーク名"
 
-#: tools/virsh.c:6676 tools/virsh.c:8112 tools/virsh.c:11158
+#: tools/virsh.c:6682 tools/virsh.c:8118 tools/virsh.c:11164
 msgid "UUID"
 msgstr "UUID"
 
-#: tools/virsh.c:6680
+#: tools/virsh.c:6686
 msgid "Active:"
 msgstr "起動中:"
 
-#: tools/virsh.c:6689 tools/virsh.c:6885 tools/virsh.c:6908 tools/virsh.c:8957
-#: tools/virsh.c:9453
+#: tools/virsh.c:6695 tools/virsh.c:6891 tools/virsh.c:6914 tools/virsh.c:8963
+#: tools/virsh.c:9459
 msgid "no autostart"
 msgstr "自動起動なし"
 
-#: tools/virsh.c:6695
+#: tools/virsh.c:6701
 msgid "Bridge:"
 msgstr "ブリッジ:"
 
-#: tools/virsh.c:6706
+#: tools/virsh.c:6712
 msgid "edit XML configuration for a physical host interface"
 msgstr "XML 設定を物理ホストインターフェイス用に編集"
 
-#: tools/virsh.c:6707
+#: tools/virsh.c:6713
 msgid "Edit the XML configuration for a physical host interface."
 msgstr "XML 設定を物理ホストインターフェイス用に編集"
 
-#: tools/virsh.c:6712 tools/virsh.c:7255 tools/virsh.c:7345 tools/virsh.c:7383
-#: tools/virsh.c:7421
+#: tools/virsh.c:6718 tools/virsh.c:7261 tools/virsh.c:7351 tools/virsh.c:7389
+#: tools/virsh.c:7427
 msgid "interface name or MAC address"
 msgstr "インターフェイス名または MAC アドレス"
 
-#: tools/virsh.c:6752
+#: tools/virsh.c:6758
 #, c-format
 msgid "Interface %s XML configuration not changed.\n"
 msgstr "インターフェース %s の XML 設定は変更されませんでした。\n"
 
-#: tools/virsh.c:6768 tools/virsh.c:8204 tools/virsh.c:13618
+#: tools/virsh.c:6774 tools/virsh.c:8210 tools/virsh.c:13624
 msgid "ERROR: the XML configuration was changed by another user"
 msgstr "エラー: XML 設定は別のユーザーにより変更されました"
 
-#: tools/virsh.c:6778
+#: tools/virsh.c:6784
 #, c-format
 msgid "Interface %s XML configuration edited.\n"
 msgstr "インターフェース %s の XML 設定が編集されました。\n"
 
-#: tools/virsh.c:6803
+#: tools/virsh.c:6809
 msgid "list networks"
 msgstr "ネットワークの一覧表示"
 
-#: tools/virsh.c:6804
+#: tools/virsh.c:6810
 msgid "Returns list of networks."
 msgstr "ネットワークの一覧を表示します。"
 
-#: tools/virsh.c:6809
+#: tools/virsh.c:6815
 msgid "list inactive networks"
 msgstr "停止状態のネットワークの一覧を表示"
 
-#: tools/virsh.c:6810
+#: tools/virsh.c:6816
 msgid "list inactive & active networks"
 msgstr "停止状態および動作中のネットワークの一覧を表示"
 
-#: tools/virsh.c:6830 tools/virsh.c:6838
+#: tools/virsh.c:6836 tools/virsh.c:6844
 msgid "Failed to list active networks"
 msgstr "動作中のネットワークの一覧表示に失敗しました"
 
-#: tools/virsh.c:6849 tools/virsh.c:6859
+#: tools/virsh.c:6855 tools/virsh.c:6865
 msgid "Failed to list inactive networks"
 msgstr "停止状態のネットワークの一覧表示に失敗しました"
 
-#: tools/virsh.c:6869 tools/virsh.c:9103 tools/virsh.c:9132 tools/virsh.c:9191
+#: tools/virsh.c:6875 tools/virsh.c:9109 tools/virsh.c:9138 tools/virsh.c:9197
 msgid "Autostart"
 msgstr "自動起動"
 
-#: tools/virsh.c:6891 tools/virsh.c:7157 tools/virsh.c:9071
+#: tools/virsh.c:6897 tools/virsh.c:7163 tools/virsh.c:9077
 msgid "active"
 msgstr "動作中"
 
-#: tools/virsh.c:6914 tools/virsh.c:7174 tools/virsh.c:8996 tools/virsh.c:9069
-#: tools/virsh.c:9419
+#: tools/virsh.c:6920 tools/virsh.c:7180 tools/virsh.c:9002 tools/virsh.c:9075
+#: tools/virsh.c:9425
 msgid "inactive"
 msgstr "停止状態"
 
-#: tools/virsh.c:6930
+#: tools/virsh.c:6936
 msgid "convert a network UUID to network name"
 msgstr "ネットワーク UUID からネットワーク名への変換"
 
-#: tools/virsh.c:6936
+#: tools/virsh.c:6942
 msgid "network uuid"
 msgstr "ネットワーク UUID"
 
-#: tools/virsh.c:6961
+#: tools/virsh.c:6967
 msgid "start a (previously defined) inactive network"
 msgstr "停止状態の（定義済み）ネットワークの起動"
 
-#: tools/virsh.c:6962
+#: tools/virsh.c:6968
 msgid "Start a network."
 msgstr "ネットワークを起動します。"
 
-#: tools/virsh.c:6967
+#: tools/virsh.c:6973
 msgid "name of the inactive network"
 msgstr "停止状態のネットワーク名"
 
-#: tools/virsh.c:6984
+#: tools/virsh.c:6990
 #, c-format
 msgid "Network %s started\n"
 msgstr "ネットワーク %s が起動されました\n"
 
-#: tools/virsh.c:6987
+#: tools/virsh.c:6993
 #, c-format
 msgid "Failed to start network %s"
 msgstr "ネットワーク %s の起動に失敗しました"
 
-#: tools/virsh.c:7000
+#: tools/virsh.c:7006
 msgid "undefine an inactive network"
 msgstr "停止状態のネットワークの登録削除"
 
-#: tools/virsh.c:7001
+#: tools/virsh.c:7007
 msgid "Undefine the configuration for an inactive network."
 msgstr "登録されている停止状態のネットワークを削除します。"
 
-#: tools/virsh.c:7024
+#: tools/virsh.c:7030
 #, c-format
 msgid "Network %s has been undefined\n"
 msgstr "ネットワーク %s の定義が削除されました\n"
 
-#: tools/virsh.c:7026
+#: tools/virsh.c:7032
 #, c-format
 msgid "Failed to undefine network %s"
 msgstr "ネットワーク %s の定義の削除に失敗しました"
 
-#: tools/virsh.c:7039
+#: tools/virsh.c:7045
 msgid "convert a network name to network UUID"
 msgstr "ネットワーク名からネットワーク UUID への変換"
 
-#: tools/virsh.c:7065
+#: tools/virsh.c:7071
 msgid "failed to get network UUID"
 msgstr "ネットワーク UUID の取得に失敗しました"
 
-#: tools/virsh.c:7077
+#: tools/virsh.c:7083
 msgid "list physical host interfaces"
 msgstr "物理ホストのインターフェイスの一覧表示"
 
-#: tools/virsh.c:7078
+#: tools/virsh.c:7084
 msgid "Returns list of physical host interfaces."
 msgstr "物理ホストのインターフェースの一覧を表示します。"
 
-#: tools/virsh.c:7083
+#: tools/virsh.c:7089
 msgid "list inactive interfaces"
 msgstr "停止中のインターフェースの表示"
 
-#: tools/virsh.c:7084
+#: tools/virsh.c:7090
 msgid "list inactive & active interfaces"
 msgstr "停止中および起動中のインターフェースの表示"
 
-#: tools/virsh.c:7103 tools/virsh.c:7111
+#: tools/virsh.c:7109 tools/virsh.c:7117
 msgid "Failed to list active interfaces"
 msgstr "起動中のインターフェースの一覧表示に失敗しました"
 
-#: tools/virsh.c:7122 tools/virsh.c:7132
+#: tools/virsh.c:7128 tools/virsh.c:7138
 msgid "Failed to list inactive interfaces"
 msgstr "停止中のインターフェースの一覧表示に失敗しました"
 
-#: tools/virsh.c:7142
+#: tools/virsh.c:7148
 msgid "MAC Address"
 msgstr "MAC アドレス"
 
-#: tools/virsh.c:7189
+#: tools/virsh.c:7195
 msgid "convert an interface MAC address to interface name"
 msgstr "インターフェースの MAC アドレスからインターフェース名への変換"
 
-#: tools/virsh.c:7195
+#: tools/virsh.c:7201
 msgid "interface mac"
 msgstr "インターフェースの MAC"
 
-#: tools/virsh.c:7219
+#: tools/virsh.c:7225
 msgid "convert an interface name to interface MAC address"
 msgstr "インターフェース名からインターフェースの MAC アドレスへの変換"
 
-#: tools/virsh.c:7225
+#: tools/virsh.c:7231
 msgid "interface name"
 msgstr "インターフェース名"
 
-#: tools/virsh.c:7249
+#: tools/virsh.c:7255
 msgid "interface information in XML"
 msgstr "XML 形式のインターフェース情報"
 
-#: tools/virsh.c:7250
+#: tools/virsh.c:7256
 msgid ""
 "Output the physical host interface information as an XML dump to stdout."
 msgstr "物理ホストのインターフェース情報を XML ダンプとして表示します。"
 
-#: tools/virsh.c:7294
+#: tools/virsh.c:7300
 msgid "define (but don't start) a physical host interface from an XML file"
 msgstr "XML ファイルから物理ホストインターフェースの定義（起動なし）"
 
-#: tools/virsh.c:7295
+#: tools/virsh.c:7301
 msgid "Define a physical host interface."
 msgstr "物理ホストのインターフェイスを定義します。"
 
-#: tools/virsh.c:7300
+#: tools/virsh.c:7306
 msgid "file containing an XML interface description"
 msgstr "XML インターフェイス記述を含んだファイル"
 
-#: tools/virsh.c:7325
+#: tools/virsh.c:7331
 #, c-format
 msgid "Interface %s defined from %s\n"
 msgstr "インターフェース %s が %s から定義されました\n"
 
-#: tools/virsh.c:7329
+#: tools/virsh.c:7335
 #, c-format
 msgid "Failed to define interface from %s"
 msgstr "%s からインターフェースの定義に失敗しました"
 
-#: tools/virsh.c:7339
+#: tools/virsh.c:7345
 msgid "undefine a physical host interface (remove it from configuration)"
 msgstr "物理ホストインターフェイスの定義解除（設定から削除）"
 
-#: tools/virsh.c:7340
+#: tools/virsh.c:7346
 msgid "undefine an interface."
 msgstr "インターフェイスの定義解除"
 
-#: tools/virsh.c:7363
+#: tools/virsh.c:7369
 #, c-format
 msgid "Interface %s undefined\n"
 msgstr "インターフェース %s の定義が解除されました\n"
 
-#: tools/virsh.c:7365
+#: tools/virsh.c:7371
 #, c-format
 msgid "Failed to undefine interface %s"
 msgstr "インターフェース %s の定義解除に失敗しました"
 
-#: tools/virsh.c:7377
+#: tools/virsh.c:7383
 msgid "start a physical host interface (enable it / \"if-up\")"
 msgstr "物理ホストインターフェイスの開始（\"ifup\" による有効化）"
 
-#: tools/virsh.c:7378
+#: tools/virsh.c:7384
 msgid "start a physical host interface."
 msgstr "物理ホストインターフェイスを開始します。"
 
-#: tools/virsh.c:7401 tools/virsh.c:7930
+#: tools/virsh.c:7407 tools/virsh.c:7936
 #, c-format
 msgid "Interface %s started\n"
 msgstr "インターフェース %s が開始されました\n"
 
-#: tools/virsh.c:7403 tools/virsh.c:7927
+#: tools/virsh.c:7409 tools/virsh.c:7933
 #, c-format
 msgid "Failed to start interface %s"
 msgstr "インターフェイス %s の開始に失敗しました"
 
-#: tools/virsh.c:7415
+#: tools/virsh.c:7421
 msgid "destroy a physical host interface (disable it / \"if-down\")"
 msgstr "物理ホストインターフェイスの停止（\"if-down\" による無効化）"
 
-#: tools/virsh.c:7416
+#: tools/virsh.c:7422
 msgid "forcefully stop a physical host interface."
 msgstr "物理ホストインターフェースを強制的に停止します。"
 
-#: tools/virsh.c:7439
+#: tools/virsh.c:7445
 #, c-format
 msgid "Interface %s destroyed\n"
 msgstr "インターフェイス %s は停止されました\n"
 
-#: tools/virsh.c:7441
+#: tools/virsh.c:7447
 #, c-format
 msgid "Failed to destroy interface %s"
 msgstr "インターフェイス %s の停止に失敗しました"
 
-#: tools/virsh.c:7453
+#: tools/virsh.c:7459
 msgid ""
 "create a snapshot of current interfaces settings, which can be later "
 "commited (iface-commit) or restored (iface-rollback)"
@@ -21857,427 +21858,427 @@ msgstr ""
 "現在のインターフェース設定のスナップショット作成、後からコミット (iface-"
 "commit) または復元 (iface-rollback) 可能"
 
-#: tools/virsh.c:7456
+#: tools/virsh.c:7462
 msgid "Create a restore point for interfaces settings"
 msgstr ""
 
-#: tools/virsh.c:7471
+#: tools/virsh.c:7477
 msgid "Failed to begin network config change transaction"
 msgstr ""
 
-#: tools/virsh.c:7475
+#: tools/virsh.c:7481
 msgid "Network config change transaction started\n"
 msgstr ""
 
-#: tools/virsh.c:7483
+#: tools/virsh.c:7489
 msgid "commit changes made since iface-begin and free restore point"
 msgstr ""
 
-#: tools/virsh.c:7484
+#: tools/virsh.c:7490
 msgid "commit changes and free restore point"
 msgstr ""
 
-#: tools/virsh.c:7499
+#: tools/virsh.c:7505
 msgid "Failed to commit network config change transaction"
 msgstr ""
 
-#: tools/virsh.c:7503
+#: tools/virsh.c:7509
 msgid "Network config change transaction committed\n"
 msgstr ""
 
-#: tools/virsh.c:7511
+#: tools/virsh.c:7517
 msgid "rollback to previous saved configuration created via iface-begin"
 msgstr ""
 
-#: tools/virsh.c:7512
+#: tools/virsh.c:7518
 msgid "rollback to previous restore point"
 msgstr ""
 
-#: tools/virsh.c:7527
+#: tools/virsh.c:7533
 msgid "Failed to rollback network config change transaction"
 msgstr ""
 
-#: tools/virsh.c:7531
+#: tools/virsh.c:7537
 msgid "Network config change transaction rolled back\n"
 msgstr ""
 
-#: tools/virsh.c:7539
+#: tools/virsh.c:7545
 msgid "create a bridge device and attach an existing network device to it"
 msgstr ""
 
-#: tools/virsh.c:7540
+#: tools/virsh.c:7546
 msgid "bridge an existing network device"
 msgstr ""
 
-#: tools/virsh.c:7545
+#: tools/virsh.c:7551
 #, fuzzy
 msgid "existing interface name"
 msgstr "インターフェース名"
 
-#: tools/virsh.c:7546
+#: tools/virsh.c:7552
 #, fuzzy
 msgid "new bridge device name"
 msgstr "bridge 名が長すぎます"
 
-#: tools/virsh.c:7547
+#: tools/virsh.c:7553
 #, fuzzy
 msgid "do not enable STP for this bridge"
 msgstr "IP ホワーディングを有効にするのに失敗"
 
-#: tools/virsh.c:7549
+#: tools/virsh.c:7555
 msgid "number of seconds to squelch traffic on newly connected ports"
 msgstr ""
 
-#: tools/virsh.c:7550
+#: tools/virsh.c:7556
 msgid "don't start the bridge immediately"
 msgstr ""
 
-#: tools/virsh.c:7581
+#: tools/virsh.c:7587
 #, fuzzy
 msgid "Missing bridge device name in command"
 msgstr "bridge 名が長すぎます"
 
-#: tools/virsh.c:7587
+#: tools/virsh.c:7593
 #, fuzzy, c-format
 msgid "Network device %s already exists"
 msgstr "ターゲット %s は既に存在します"
 
-#: tools/virsh.c:7595
+#: tools/virsh.c:7601
 #, fuzzy
 msgid "Unable to parse delay parameter"
 msgstr "整数値のパラメーターを構文解析できませんでした"
 
-#: tools/virsh.c:7605
+#: tools/virsh.c:7611
 #, fuzzy
 msgid "(interface definition)"
 msgstr "インターフェースデバイス"
 
-#: tools/virsh.c:7606 tools/virsh.c:7804
+#: tools/virsh.c:7612 tools/virsh.c:7810
 #, fuzzy, c-format
 msgid "Failed to parse configuration of %s"
 msgstr "設定ファイル %s の解析に失敗しました"
 
-#: tools/virsh.c:7613 tools/virsh.c:7811
+#: tools/virsh.c:7619 tools/virsh.c:7817
 #, fuzzy, c-format
 msgid "Existing device %s has no type"
 msgstr "入力デバイスタイプがありません"
 
-#: tools/virsh.c:7618
+#: tools/virsh.c:7624
 #, fuzzy, c-format
 msgid "Existing device %s is already a bridge"
 msgstr "PCI デバイス %s はすでに使用中です"
 
-#: tools/virsh.c:7625 tools/virsh.c:7824
+#: tools/virsh.c:7631 tools/virsh.c:7830
 #, c-format
 msgid "Interface name from config %s doesn't match given supplied name %s"
 msgstr ""
 
-#: tools/virsh.c:7632
+#: tools/virsh.c:7638
 #, fuzzy
 msgid "Failed to create bridge node in xml document"
 msgstr "xml ドキュメントパースに失敗"
 
-#: tools/virsh.c:7640
+#: tools/virsh.c:7646
 #, fuzzy
 msgid "Failed to set stp attribute in xml document"
 msgstr "xml ドキュメントパースに失敗"
 
-#: tools/virsh.c:7647
+#: tools/virsh.c:7653
 #, fuzzy, c-format
 msgid "Failed to set bridge delay %d in xml document"
 msgstr "xml ドキュメントパースに失敗"
 
-#: tools/virsh.c:7655
+#: tools/virsh.c:7661
 #, fuzzy
 msgid "Failed to set bridge interface type to 'bridge' in xml document"
 msgstr "bridge インターフェイスに bridge 要素がありません"
 
-#: tools/virsh.c:7660
+#: tools/virsh.c:7666
 #, c-format
 msgid "Failed to set master bridge interface name to '%s' in xml document"
 msgstr ""
 
-#: tools/virsh.c:7669
+#: tools/virsh.c:7675
 #, fuzzy
 msgid "Failed to create interface node under bridge node in xml document"
 msgstr ""
 "ブリッジする tap インターフェースの追加に失敗。 %s はブリッジデバイスではあり"
 "ません"
 
-#: tools/virsh.c:7677
+#: tools/virsh.c:7683
 #, c-format
 msgid "Failed to set new slave interface type to '%s' in xml document"
 msgstr ""
 
-#: tools/virsh.c:7683
+#: tools/virsh.c:7689
 #, c-format
 msgid "Failed to set new slave interface name to '%s' in xml document"
 msgstr ""
 
-#: tools/virsh.c:7703 tools/virsh.c:7886
+#: tools/virsh.c:7709 tools/virsh.c:7892
 #, fuzzy, c-format
 msgid "Failed to move '%s' element in xml document"
 msgstr "xml ドキュメントパースに失敗"
 
-#: tools/virsh.c:7714
+#: tools/virsh.c:7720
 #, fuzzy, c-format
 msgid "Failed to format new xml document for bridge %s"
 msgstr "%s からのドメイン作成に失敗しました"
 
-#: tools/virsh.c:7723
+#: tools/virsh.c:7729
 #, fuzzy, c-format
 msgid "Failed to define new bridge interface %s"
 msgstr "インターフェース %s の定義解除に失敗しました"
 
-#: tools/virsh.c:7728
+#: tools/virsh.c:7734
 #, fuzzy, c-format
 msgid "Created bridge %s with attached device %s\n"
 msgstr "%s からデバイスの接続に失敗しました"
 
-#: tools/virsh.c:7734
+#: tools/virsh.c:7740
 #, fuzzy, c-format
 msgid "Failed to start bridge interface %s"
 msgstr "インターフェイス %s の開始に失敗しました"
 
-#: tools/virsh.c:7737
+#: tools/virsh.c:7743
 #, fuzzy, c-format
 msgid "Bridge interface %s started\n"
 msgstr "インターフェース %s が開始されました\n"
 
-#: tools/virsh.c:7760
+#: tools/virsh.c:7766
 msgid "undefine a bridge device after detaching its slave device"
 msgstr ""
 
-#: tools/virsh.c:7761
+#: tools/virsh.c:7767
 #, fuzzy
 msgid "unbridge a network device"
 msgstr "ネットワークフィルターの定義解除"
 
-#: tools/virsh.c:7766
+#: tools/virsh.c:7772
 #, fuzzy
 msgid "current bridge device name"
 msgstr "bridge 名が長すぎます"
 
-#: tools/virsh.c:7768
+#: tools/virsh.c:7774
 msgid "don't start the un-slaved interface immediately (not recommended)"
 msgstr ""
 
-#: tools/virsh.c:7802
+#: tools/virsh.c:7808
 #, fuzzy
 msgid "(bridge interface definition)"
 msgstr "インターフェース情報の取得に失敗しました"
 
-#: tools/virsh.c:7816
+#: tools/virsh.c:7822
 #, fuzzy, c-format
 msgid "Device %s is not a bridge"
 msgstr "デバイス %s  PCI デバイスではありません"
 
-#: tools/virsh.c:7832
+#: tools/virsh.c:7838
 #, fuzzy
 msgid "No bridge node in xml document"
 msgstr "xml ドキュメントパースに失敗"
 
-#: tools/virsh.c:7837
+#: tools/virsh.c:7843
 #, fuzzy
 msgid "Multiple interfaecs attached to bridge"
 msgstr "一致する MAC アドレスのインターフェイスが複数あります"
 
-#: tools/virsh.c:7842
+#: tools/virsh.c:7848
 #, fuzzy
 msgid "No interface attached to bridge"
 msgstr "永続的なインターフェース接続"
 
-#: tools/virsh.c:7850
+#: tools/virsh.c:7856
 #, c-format
 msgid "Device attached to bridge %s has no name"
 msgstr ""
 
-#: tools/virsh.c:7855
+#: tools/virsh.c:7861
 #, fuzzy, c-format
 msgid "Attached device %s has no type"
 msgstr "ターゲットデバイスの形式"
 
-#: tools/virsh.c:7860
+#: tools/virsh.c:7866
 #, fuzzy, c-format
 msgid "Failed to set interface type to '%s' in xml document"
 msgstr "インターフェース情報 %s %s の取得に失敗しました"
 
-#: tools/virsh.c:7866
+#: tools/virsh.c:7872
 #, fuzzy, c-format
 msgid "Failed to set interface name to '%s' in xml document"
 msgstr "インターフェース情報 %s %s の取得に失敗しました"
 
-#: tools/virsh.c:7897
+#: tools/virsh.c:7903
 #, fuzzy, c-format
 msgid "Failed to format new xml document for un-enslaved interface %s"
 msgstr "インターフェース %s の定義解除に失敗しました"
 
-#: tools/virsh.c:7906
+#: tools/virsh.c:7912
 #, fuzzy, c-format
 msgid "Failed to destroy bridge interface %s"
 msgstr "インターフェイス %s の停止に失敗しました"
 
-#: tools/virsh.c:7910
+#: tools/virsh.c:7916
 #, fuzzy, c-format
 msgid "Failed to undefine bridge interface %s"
 msgstr "インターフェース %s の定義解除に失敗しました"
 
-#: tools/virsh.c:7917
+#: tools/virsh.c:7923
 #, fuzzy, c-format
 msgid "Failed to define new interface %s"
 msgstr "インターフェース %s の定義解除に失敗しました"
 
-#: tools/virsh.c:7921
+#: tools/virsh.c:7927
 #, fuzzy, c-format
 msgid "Device %s un-attached from bridge %s\n"
 msgstr "ドメイン %s は プロセス ID %u に接続しました\n"
 
-#: tools/virsh.c:7952
+#: tools/virsh.c:7958
 msgid "define or update a network filter from an XML file"
 msgstr "XML ファイルからネットワークフィルターの定義または更新"
 
-#: tools/virsh.c:7953
+#: tools/virsh.c:7959
 msgid "Define a new network filter or update an existing one."
 msgstr "新規ネットワークフィルターを定義します、または既存のものを更新します。"
 
-#: tools/virsh.c:7958
+#: tools/virsh.c:7964
 msgid "file containing an XML network filter description"
 msgstr "XML ネットワークフィルター記述を含むファイル"
 
-#: tools/virsh.c:7983
+#: tools/virsh.c:7989
 #, c-format
 msgid "Network filter %s defined from %s\n"
 msgstr "ネットワークフィルター %s が %s から定義されました\n"
 
-#: tools/virsh.c:7987
+#: tools/virsh.c:7993
 #, c-format
 msgid "Failed to define network filter from %s"
 msgstr "%s からネットワークフィルターの定義に失敗しました"
 
-#: tools/virsh.c:7998
+#: tools/virsh.c:8004
 msgid "undefine a network filter"
 msgstr "ネットワークフィルターの定義解除"
 
-#: tools/virsh.c:7999
+#: tools/virsh.c:8005
 msgid "Undefine a given network filter."
 msgstr "任意のネットワークフィルターを定義解除します。"
 
-#: tools/virsh.c:8004 tools/virsh.c:8043 tools/virsh.c:8149
+#: tools/virsh.c:8010 tools/virsh.c:8049 tools/virsh.c:8155
 msgid "network filter name or uuid"
 msgstr "ネットワークフィルターの名前または UUID"
 
-#: tools/virsh.c:8022
+#: tools/virsh.c:8028
 #, c-format
 msgid "Network filter %s undefined\n"
 msgstr "ネットワークフィルター %s を定義解除しました\n"
 
-#: tools/virsh.c:8024
+#: tools/virsh.c:8030
 #, c-format
 msgid "Failed to undefine network filter %s"
 msgstr "ネットワークフィルター %s の定義解除に失敗しました"
 
-#: tools/virsh.c:8037
+#: tools/virsh.c:8043
 msgid "network filter information in XML"
 msgstr "XML 形式のネットワークフィルター情報"
 
-#: tools/virsh.c:8038
+#: tools/virsh.c:8044
 msgid "Output the network filter information as an XML dump to stdout."
 msgstr "標準出力に XML 形式のネットワークフィルター情報を出力します。"
 
-#: tools/virsh.c:8076
+#: tools/virsh.c:8082
 msgid "list network filters"
 msgstr "ネットワークフィルターの一覧表示"
 
-#: tools/virsh.c:8077
+#: tools/virsh.c:8083
 msgid "Returns list of network filters."
 msgstr "ネットワークフィルターの一覧を表示します。"
 
-#: tools/virsh.c:8097 tools/virsh.c:8105
+#: tools/virsh.c:8103 tools/virsh.c:8111
 msgid "Failed to list network filters"
 msgstr "ネットワークフィルターの一覧表示に失敗しました"
 
-#: tools/virsh.c:8143
+#: tools/virsh.c:8149
 msgid "edit XML configuration for a network filter"
 msgstr "ネットワークフィルターの XML 設定の編集"
 
-#: tools/virsh.c:8144
+#: tools/virsh.c:8150
 msgid "Edit the XML configuration for a network filter."
 msgstr "ネットワークフィルターの XML 設定を編集します。"
 
-#: tools/virsh.c:8188
+#: tools/virsh.c:8194
 #, c-format
 msgid "Network filter %s XML configuration not changed.\n"
 msgstr "ネットワークフィルター %s の XML 設定は変更されませんでした。\n"
 
-#: tools/virsh.c:8214
+#: tools/virsh.c:8220
 #, c-format
 msgid "Network filter %s XML configuration edited.\n"
 msgstr "ネットワークフィルター %s の XML 設定が編集されました。\n"
 
-#: tools/virsh.c:8241
+#: tools/virsh.c:8247
 msgid "autostart a pool"
 msgstr "プールの自動起動"
 
-#: tools/virsh.c:8243
+#: tools/virsh.c:8249
 msgid "Configure a pool to be automatically started at boot."
 msgstr "起動時にプールを自動で起動するように設定します。"
 
-#: tools/virsh.c:8248 tools/virsh.c:8644 tools/virsh.c:8695 tools/virsh.c:8734
-#: tools/virsh.c:8773 tools/virsh.c:8812 tools/virsh.c:9388 tools/virsh.c:9745
-#: tools/virsh.c:9975 tools/virsh.c:10052 tools/virsh.c:10152
-#: tools/virsh.c:10248 tools/virsh.c:10289 tools/virsh.c:10330
-#: tools/virsh.c:10394 tools/virsh.c:10434 tools/virsh.c:10822
-#: tools/virsh.c:10855 tools/virsh.c:13677
+#: tools/virsh.c:8254 tools/virsh.c:8650 tools/virsh.c:8701 tools/virsh.c:8740
+#: tools/virsh.c:8779 tools/virsh.c:8818 tools/virsh.c:9394 tools/virsh.c:9751
+#: tools/virsh.c:9981 tools/virsh.c:10058 tools/virsh.c:10158
+#: tools/virsh.c:10254 tools/virsh.c:10295 tools/virsh.c:10336
+#: tools/virsh.c:10400 tools/virsh.c:10440 tools/virsh.c:10828
+#: tools/virsh.c:10861 tools/virsh.c:13683
 msgid "pool name or uuid"
 msgstr "プール名または UUID"
 
-#: tools/virsh.c:8270
+#: tools/virsh.c:8276
 #, c-format
 msgid "failed to mark pool %s as autostarted"
 msgstr "プール %s を自動起動としてマークするのに失敗しました"
 
-#: tools/virsh.c:8272
+#: tools/virsh.c:8278
 #, c-format
 msgid "failed to unmark pool %s as autostarted"
 msgstr "プール %s の自動起動マークの解除に失敗しました"
 
-#: tools/virsh.c:8278
+#: tools/virsh.c:8284
 #, c-format
 msgid "Pool %s marked as autostarted\n"
 msgstr "プール %s が自動起動としてマークされました\n"
 
-#: tools/virsh.c:8280
+#: tools/virsh.c:8286
 #, c-format
 msgid "Pool %s unmarked as autostarted\n"
 msgstr "プール %s の自動起動マークが解除されました\n"
 
-#: tools/virsh.c:8290
+#: tools/virsh.c:8296
 msgid "create a pool from an XML file"
 msgstr "XML ファイルからプールの作成"
 
-#: tools/virsh.c:8291 tools/virsh.c:8509
+#: tools/virsh.c:8297 tools/virsh.c:8515
 msgid "Create a pool."
 msgstr "プールを作成します。"
 
-#: tools/virsh.c:8297 tools/virsh.c:8556
+#: tools/virsh.c:8303 tools/virsh.c:8562
 msgid "file containing an XML pool description"
 msgstr "XML プール記述を含むファイル"
 
-#: tools/virsh.c:8322
+#: tools/virsh.c:8328
 #, c-format
 msgid "Pool %s created from %s\n"
 msgstr "プール %s が %s から作成されました\n"
 
-#: tools/virsh.c:8326
+#: tools/virsh.c:8332
 #, c-format
 msgid "Failed to create pool from %s"
 msgstr "%s からのプール作成に失敗しました"
 
-#: tools/virsh.c:8337
+#: tools/virsh.c:8343
 msgid "create a device defined by an XML file on the node"
 msgstr "ノードに XML ファイルで定義されたデバイスの作成"
 
-#: tools/virsh.c:8339
+#: tools/virsh.c:8345
 msgid ""
 "Create a device on the node.  Note that this command creates devices on the "
 "physical host that can then be assigned to a virtual machine."
@@ -22285,2012 +22286,2012 @@ msgstr ""
 "ノードにおいてデバイスを作成します。このコマンドは、仮想マシンに割り当てでき"
 "るデバイスを物理ホストに作成します。"
 
-#: tools/virsh.c:8347
+#: tools/virsh.c:8353
 msgid "file containing an XML description of the device"
 msgstr "デバイスの XML 記述を含むファイル"
 
-#: tools/virsh.c:8372
+#: tools/virsh.c:8378
 #, c-format
 msgid "Node device %s created from %s\n"
 msgstr "ノードデバイス %s が %s から作成されました\n"
 
-#: tools/virsh.c:8376
+#: tools/virsh.c:8382
 #, c-format
 msgid "Failed to create node device from %s"
 msgstr "%s からのノードデバイス作成に失敗しました"
 
-#: tools/virsh.c:8388
+#: tools/virsh.c:8394
 msgid "destroy (stop) a device on the node"
 msgstr ""
 
-#: tools/virsh.c:8389
+#: tools/virsh.c:8395
 msgid ""
 "Destroy a device on the node.  Note that this command destroys devices on "
 "the physical host"
 msgstr ""
 
-#: tools/virsh.c:8396
+#: tools/virsh.c:8402
 msgid "name of the device to be destroyed"
 msgstr "停止予定デバイスの名前"
 
-#: tools/virsh.c:8417
+#: tools/virsh.c:8423
 #, c-format
 msgid "Destroyed node device '%s'\n"
 msgstr "ノードデバイス '%s' を停止しました\n"
 
-#: tools/virsh.c:8419
+#: tools/virsh.c:8425
 #, c-format
 msgid "Failed to destroy node device '%s'"
 msgstr ""
 
-#: tools/virsh.c:8432
+#: tools/virsh.c:8438
 msgid "name of the pool"
 msgstr "プールの名前"
 
-#: tools/virsh.c:8433
+#: tools/virsh.c:8439
 msgid "print XML document, but don't define/create"
 msgstr "XML ドキュメントを表示して、定義/作成はしない"
 
-#: tools/virsh.c:8434
+#: tools/virsh.c:8440
 msgid "type of the pool"
 msgstr "プールのタイプ"
 
-#: tools/virsh.c:8435
+#: tools/virsh.c:8441
 msgid "source-host for underlying storage"
 msgstr "背後にあるストレージ用のソースホスト"
 
-#: tools/virsh.c:8436
+#: tools/virsh.c:8442
 msgid "source path for underlying storage"
 msgstr "背後にあるストレージ用のソースパス"
 
-#: tools/virsh.c:8437
+#: tools/virsh.c:8443
 msgid "source device for underlying storage"
 msgstr "背後にあるストレージ用のソースデバイス"
 
-#: tools/virsh.c:8438
+#: tools/virsh.c:8444
 msgid "source name for underlying storage"
 msgstr ""
 
-#: tools/virsh.c:8439
+#: tools/virsh.c:8445
 msgid "target for underlying storage"
 msgstr "背後にあるストレージ用のターゲット"
 
-#: tools/virsh.c:8440
+#: tools/virsh.c:8446
 msgid "format for underlying storage"
 msgstr ""
 
-#: tools/virsh.c:8491 tools/virsh.c:9711 tools/virsh.c:10010
-#: tools/virsh.c:12461 tools/virsh.c:12941 tools/virsh.c:13522
-#: tools/virsh.c:13539
+#: tools/virsh.c:8497 tools/virsh.c:9717 tools/virsh.c:10016
+#: tools/virsh.c:12467 tools/virsh.c:12947 tools/virsh.c:13528
+#: tools/virsh.c:13545
 msgid "Failed to allocate XML buffer"
 msgstr "XML バッファの割り当てに失敗しました"
 
-#: tools/virsh.c:8508
+#: tools/virsh.c:8514
 msgid "create a pool from a set of args"
 msgstr "引数のセットからプールの作成"
 
-#: tools/virsh.c:8535
+#: tools/virsh.c:8541
 #, c-format
 msgid "Pool %s created\n"
 msgstr "プール %s が作成されました\n"
 
-#: tools/virsh.c:8538
+#: tools/virsh.c:8544
 #, c-format
 msgid "Failed to create pool %s"
 msgstr "プール %s の作成に失敗しました"
 
-#: tools/virsh.c:8550
+#: tools/virsh.c:8556
 msgid "define (but don't start) a pool from an XML file"
 msgstr "XML ファイルからプールを定義 (ただし起動しない)"
 
-#: tools/virsh.c:8551 tools/virsh.c:8597
+#: tools/virsh.c:8557 tools/virsh.c:8603
 msgid "Define a pool."
 msgstr "プールを定義します。"
 
-#: tools/virsh.c:8581
+#: tools/virsh.c:8587
 #, c-format
 msgid "Pool %s defined from %s\n"
 msgstr "プール %s が %s から定義されました\n"
 
-#: tools/virsh.c:8585
+#: tools/virsh.c:8591
 #, c-format
 msgid "Failed to define pool from %s"
 msgstr "%s からのプール定義に失敗しました"
 
-#: tools/virsh.c:8596
+#: tools/virsh.c:8602
 msgid "define a pool from a set of args"
 msgstr "引数のセットからプールを定義"
 
-#: tools/virsh.c:8623
+#: tools/virsh.c:8629
 #, c-format
 msgid "Pool %s defined\n"
 msgstr "プール %s が定義されました\n"
 
-#: tools/virsh.c:8626
+#: tools/virsh.c:8632
 #, c-format
 msgid "Failed to define pool %s"
 msgstr "プール %s の定義に失敗しました"
 
-#: tools/virsh.c:8638
+#: tools/virsh.c:8644
 msgid "build a pool"
 msgstr "プールを構築"
 
-#: tools/virsh.c:8639
+#: tools/virsh.c:8645
 msgid "Build a given pool."
 msgstr "任意のプールを構築"
 
-#: tools/virsh.c:8645
+#: tools/virsh.c:8651
 msgid "do not overwrite an existing pool of this type"
 msgstr ""
 
-#: tools/virsh.c:8646
+#: tools/virsh.c:8652
 msgid "overwrite any existing data"
 msgstr ""
 
-#: tools/virsh.c:8673
+#: tools/virsh.c:8679
 #, c-format
 msgid "Pool %s built\n"
 msgstr ""
 
-#: tools/virsh.c:8675
+#: tools/virsh.c:8681
 #, c-format
 msgid "Failed to build pool %s"
 msgstr "プール %s の構築に失敗しました"
 
-#: tools/virsh.c:8688
+#: tools/virsh.c:8694
 msgid "destroy (stop) a pool"
 msgstr "プールの強制停止"
 
-#: tools/virsh.c:8690
+#: tools/virsh.c:8696
 msgid "Forcefully stop a given pool. Raw data in the pool is untouched"
 msgstr ""
 
-#: tools/virsh.c:8713
+#: tools/virsh.c:8719
 #, c-format
 msgid "Pool %s destroyed\n"
 msgstr "プール %s は破壊されました\n"
 
-#: tools/virsh.c:8715
+#: tools/virsh.c:8721
 #, c-format
 msgid "Failed to destroy pool %s"
 msgstr "プール %s の破壊に失敗しました"
 
-#: tools/virsh.c:8728
+#: tools/virsh.c:8734
 msgid "delete a pool"
 msgstr "プールの削除"
 
-#: tools/virsh.c:8729
+#: tools/virsh.c:8735
 msgid "Delete a given pool."
 msgstr "任意のプールを削除"
 
-#: tools/virsh.c:8752
+#: tools/virsh.c:8758
 #, c-format
 msgid "Pool %s deleted\n"
 msgstr "プール %s は削除されました\n"
 
-#: tools/virsh.c:8754
+#: tools/virsh.c:8760
 #, c-format
 msgid "Failed to delete pool %s"
 msgstr "プール %s の削除に失敗しました"
 
-#: tools/virsh.c:8767
+#: tools/virsh.c:8773
 msgid "refresh a pool"
 msgstr "プールのリフレッシュ"
 
-#: tools/virsh.c:8768
+#: tools/virsh.c:8774
 msgid "Refresh a given pool."
 msgstr "任意のプールをリフレッシュします。"
 
-#: tools/virsh.c:8791
+#: tools/virsh.c:8797
 #, c-format
 msgid "Pool %s refreshed\n"
 msgstr "プール %s がリフレッシュされました\n"
 
-#: tools/virsh.c:8793
+#: tools/virsh.c:8799
 #, c-format
 msgid "Failed to refresh pool %s"
 msgstr "プール %s のリフレッシュに失敗しました"
 
-#: tools/virsh.c:8806
+#: tools/virsh.c:8812
 msgid "pool information in XML"
 msgstr "XML 形式のプール情報"
 
-#: tools/virsh.c:8807
+#: tools/virsh.c:8813
 msgid "Output the pool information as an XML dump to stdout."
 msgstr "プール情報を XML ダンプ形式で stdout に出力します。"
 
-#: tools/virsh.c:8846
+#: tools/virsh.c:8852
 msgid "list pools"
 msgstr "プールの一覧を表示"
 
-#: tools/virsh.c:8847
+#: tools/virsh.c:8853
 msgid "Returns list of pools."
 msgstr "プールの一覧を返します。"
 
-#: tools/virsh.c:8852
+#: tools/virsh.c:8858
 msgid "list inactive pools"
 msgstr "停止状態のプール一覧を表示"
 
-#: tools/virsh.c:8853
+#: tools/virsh.c:8859
 msgid "list inactive & active pools"
 msgstr "停止中および動作中のプールの一覧を表示"
 
-#: tools/virsh.c:8854
+#: tools/virsh.c:8860
 msgid "display extended details for pools"
 msgstr ""
 
-#: tools/virsh.c:8895 tools/virsh.c:8921
+#: tools/virsh.c:8901 tools/virsh.c:8927
 msgid "Failed to list active pools"
 msgstr "動作中のプールの一覧表示に失敗しました"
 
-#: tools/virsh.c:8904 tools/virsh.c:8933
+#: tools/virsh.c:8910 tools/virsh.c:8939
 msgid "Failed to list inactive pools"
 msgstr "停止状態のプールの一覧表示に失敗しました"
 
-#: tools/virsh.c:8982
+#: tools/virsh.c:8988
 msgid "Could not retrieve pool information"
 msgstr ""
 
-#: tools/virsh.c:8999 tools/virsh.c:9423
+#: tools/virsh.c:9005 tools/virsh.c:9429
 msgid "building"
 msgstr "構築中"
 
-#: tools/virsh.c:9002 tools/virsh.c:9427 tools/virsh.c:16727
-#: tools/virsh.c:16940
+#: tools/virsh.c:9008 tools/virsh.c:9433 tools/virsh.c:16733
+#: tools/virsh.c:16946
 msgid "running"
 msgstr "実行中"
 
-#: tools/virsh.c:9005 tools/virsh.c:9431
+#: tools/virsh.c:9011 tools/virsh.c:9437
 msgid "degraded"
 msgstr "分解済み"
 
-#: tools/virsh.c:9008 tools/virsh.c:9435
+#: tools/virsh.c:9014 tools/virsh.c:9441
 msgid "inaccessible"
 msgstr ""
 
-#: tools/virsh.c:9046 tools/virsh.c:9047 tools/virsh.c:9048
+#: tools/virsh.c:9052 tools/virsh.c:9053 tools/virsh.c:9054
 msgid "-"
 msgstr "-"
 
-#: tools/virsh.c:9137 tools/virsh.c:9192
+#: tools/virsh.c:9143 tools/virsh.c:9198
 msgid "Persistent"
 msgstr ""
 
-#: tools/virsh.c:9142 tools/virsh.c:9192 tools/virsh.c:10628
+#: tools/virsh.c:9148 tools/virsh.c:9198 tools/virsh.c:10634
 msgid "Capacity"
 msgstr ""
 
-#: tools/virsh.c:9147 tools/virsh.c:9192 tools/virsh.c:10633
-#: tools/virsh.c:10664
+#: tools/virsh.c:9153 tools/virsh.c:9198 tools/virsh.c:10639
+#: tools/virsh.c:10670
 msgid "Allocation"
 msgstr ""
 
-#: tools/virsh.c:9152 tools/virsh.c:9192
+#: tools/virsh.c:9158 tools/virsh.c:9198
 msgid "Available"
 msgstr "利用可能"
 
-#: tools/virsh.c:9226 tools/virsh.c:10695
+#: tools/virsh.c:9232 tools/virsh.c:10701
 #, c-format
 msgid "virAsprintf failed (errno %d)"
 msgstr "virAsprintf は失敗しました (errno %d)"
 
-#: tools/virsh.c:9256
+#: tools/virsh.c:9262
 msgid "find potential storage pool sources"
 msgstr "可能なストレージプールソースを探す"
 
-#: tools/virsh.c:9257 tools/virsh.c:9333
+#: tools/virsh.c:9263 tools/virsh.c:9339
 msgid "Returns XML <sources> document."
 msgstr "XML <sources> ドキュメントを返します。"
 
-#: tools/virsh.c:9263
+#: tools/virsh.c:9269
 msgid "type of storage pool sources to find"
 msgstr "探すストレージプールソースを記入"
 
-#: tools/virsh.c:9264
+#: tools/virsh.c:9270
 msgid "optional host to query"
 msgstr "クエリするオプションのホスト"
 
-#: tools/virsh.c:9265
+#: tools/virsh.c:9271
 msgid "optional port to query"
 msgstr "クエリするオプションのポート"
 
-#: tools/virsh.c:9266
+#: tools/virsh.c:9272
 msgid "optional initiator IQN to use for query"
 msgstr ""
 
-#: tools/virsh.c:9318 tools/virsh.c:9368
+#: tools/virsh.c:9324 tools/virsh.c:9374
 #, c-format
 msgid "Failed to find any %s pool sources"
 msgstr ""
 
-#: tools/virsh.c:9332
+#: tools/virsh.c:9338
 msgid "discover potential storage pool sources"
 msgstr "可能なストレージプールソースを見つける"
 
-#: tools/virsh.c:9339
+#: tools/virsh.c:9345
 msgid "type of storage pool sources to discover"
 msgstr "見つけるストレージプールソースを記入"
 
-#: tools/virsh.c:9341
+#: tools/virsh.c:9347
 msgid "optional file of source xml to query for pools"
 msgstr "プール用にクエリするソース xml のオプションファイル"
 
-#: tools/virsh.c:9355 tools/virsh.c:12536 tools/virsh.c:12840
-#: tools/virsh.c:16265
+#: tools/virsh.c:9361 tools/virsh.c:12542 tools/virsh.c:12846
+#: tools/virsh.c:16271
 msgid "missing option"
 msgstr ""
 
-#: tools/virsh.c:9382
+#: tools/virsh.c:9388
 msgid "storage pool information"
 msgstr "ストレージプール情報"
 
-#: tools/virsh.c:9383
+#: tools/virsh.c:9389
 msgid "Returns basic information about the storage pool."
 msgstr "ストレージプールの基本情報を返します。"
 
-#: tools/virsh.c:9466
+#: tools/virsh.c:9472
 msgid "Available:"
 msgstr "利用可能:"
 
-#: tools/virsh.c:9481
+#: tools/virsh.c:9487
 msgid "convert a pool UUID to pool name"
 msgstr "プール UUID からプール名への変換"
 
-#: tools/virsh.c:9487
+#: tools/virsh.c:9493
 msgid "pool uuid"
 msgstr "プール UUID"
 
-#: tools/virsh.c:9512
+#: tools/virsh.c:9518
 msgid "start a (previously defined) inactive pool"
 msgstr "(以前に定義した)停止状態のプールの起動"
 
-#: tools/virsh.c:9513
+#: tools/virsh.c:9519
 msgid "Start a pool."
 msgstr "プールを起動します。"
 
-#: tools/virsh.c:9518
+#: tools/virsh.c:9524
 msgid "name of the inactive pool"
 msgstr "停止状態のプール名"
 
-#: tools/virsh.c:9535
+#: tools/virsh.c:9541
 #, c-format
 msgid "Pool %s started\n"
 msgstr "プール %s が起動されました\n"
 
-#: tools/virsh.c:9538
+#: tools/virsh.c:9544
 #, c-format
 msgid "Failed to start pool %s"
 msgstr "プール %s の起動に失敗しました"
 
-#: tools/virsh.c:9551
+#: tools/virsh.c:9557
 msgid "create a volume from a set of args"
 msgstr "引数のセットからボリュームの作成"
 
-#: tools/virsh.c:9552 tools/virsh.c:9816
+#: tools/virsh.c:9558 tools/virsh.c:9822
 msgid "Create a vol."
 msgstr "ボリュームを作成します。"
 
-#: tools/virsh.c:9557 tools/virsh.c:9784 tools/virsh.c:9821 tools/virsh.c:9878
+#: tools/virsh.c:9563 tools/virsh.c:9790 tools/virsh.c:9827 tools/virsh.c:9884
 msgid "pool name"
 msgstr "プール名"
 
-#: tools/virsh.c:9558
+#: tools/virsh.c:9564
 msgid "name of the volume"
 msgstr "ボリュームの名前"
 
-#: tools/virsh.c:9559
+#: tools/virsh.c:9565
 msgid "size of the vol with optional k,M,G,T suffix"
 msgstr "オプションの k,M,G,T 接尾辞を持つボリュームのサイズ"
 
-#: tools/virsh.c:9560
+#: tools/virsh.c:9566
 msgid "initial allocation size with optional k,M,G,T suffix"
 msgstr "オプションの k,M,G,T 接尾辞を持つ初期割り当てのサイズ"
 
-#: tools/virsh.c:9561
+#: tools/virsh.c:9567
 msgid "file format type raw,bochs,qcow,qcow2,vmdk"
 msgstr "ファイル形式タイプ raw,bochs,qcow,qcow2,vmdk"
 
-#: tools/virsh.c:9562
+#: tools/virsh.c:9568
 msgid "the backing volume if taking a snapshot"
 msgstr ""
 
-#: tools/virsh.c:9563
+#: tools/virsh.c:9569
 msgid "format of backing volume if taking a snapshot"
 msgstr ""
 
-#: tools/virsh.c:9622 tools/virsh.c:9626
+#: tools/virsh.c:9628 tools/virsh.c:9632
 #, c-format
 msgid "Malformed size %s"
 msgstr "不正な形式のサイズ %s"
 
-#: tools/virsh.c:9686 tools/virsh.c:16299
+#: tools/virsh.c:9692 tools/virsh.c:16305
 #, c-format
 msgid "failed to get vol '%s'"
 msgstr "ボリューム '%s' の取得に失敗しました"
 
-#: tools/virsh.c:9720
+#: tools/virsh.c:9726
 #, c-format
 msgid "Vol %s created\n"
 msgstr "ボリューム %s が 作成されました\n"
 
-#: tools/virsh.c:9724
+#: tools/virsh.c:9730
 #, c-format
 msgid "Failed to create vol %s"
 msgstr "ボリューム %s の作成に失敗しました"
 
-#: tools/virsh.c:9739
+#: tools/virsh.c:9745
 msgid "undefine an inactive pool"
 msgstr "停止状態プールの定義解除"
 
-#: tools/virsh.c:9740
+#: tools/virsh.c:9746
 msgid "Undefine the configuration for an inactive pool."
 msgstr "停止状態プールの設定を定義解除します。"
 
-#: tools/virsh.c:9763
+#: tools/virsh.c:9769
 #, c-format
 msgid "Pool %s has been undefined\n"
 msgstr "プール %s の定義は解除されています\n"
 
-#: tools/virsh.c:9765
+#: tools/virsh.c:9771
 #, c-format
 msgid "Failed to undefine pool %s"
 msgstr "プール %s の定義解除に失敗しました"
 
-#: tools/virsh.c:9778
+#: tools/virsh.c:9784
 msgid "convert a pool name to pool UUID"
 msgstr "プール名からプール UUID への変換"
 
-#: tools/virsh.c:9804
+#: tools/virsh.c:9810
 msgid "failed to get pool UUID"
 msgstr "プール UUID の取得に失敗しました"
 
-#: tools/virsh.c:9815
+#: tools/virsh.c:9821
 msgid "create a vol from an XML file"
 msgstr "XML ファイルからボリュームの作成"
 
-#: tools/virsh.c:9822 tools/virsh.c:9879
+#: tools/virsh.c:9828 tools/virsh.c:9885
 msgid "file containing an XML vol description"
 msgstr "XML ボリューム記述を含むファイル"
 
-#: tools/virsh.c:9858
+#: tools/virsh.c:9864
 #, c-format
 msgid "Vol %s created from %s\n"
 msgstr "ボリューム %s が %s から作成されました\n"
 
-#: tools/virsh.c:9862 tools/virsh.c:9918
+#: tools/virsh.c:9868 tools/virsh.c:9924
 #, c-format
 msgid "Failed to create vol from %s"
 msgstr "%s からのボリューム作成に失敗しました"
 
-#: tools/virsh.c:9872
+#: tools/virsh.c:9878
 msgid "create a vol, using another volume as input"
 msgstr "別のボリュームを入力として使用したボリュームの作成"
 
-#: tools/virsh.c:9873
+#: tools/virsh.c:9879
 msgid "Create a vol from an existing volume."
 msgstr "既存のボリュームからボリュームを作成します。"
 
-#: tools/virsh.c:9880
+#: tools/virsh.c:9886
 msgid "input vol name or key"
 msgstr "入力ボリュームの名前またはキー"
 
-#: tools/virsh.c:9881
+#: tools/virsh.c:9887
 msgid "pool name or uuid of the input volume's pool"
 msgstr "入力ボリュームプールのプール名または UUID"
 
-#: tools/virsh.c:9915
+#: tools/virsh.c:9921
 #, c-format
 msgid "Vol %s created from input vol %s\n"
 msgstr "ボリューム %s が入力ボリューム %s から作成されました\n"
 
-#: tools/virsh.c:9944
+#: tools/virsh.c:9950
 msgid "(volume_definition)"
 msgstr ""
 
-#: tools/virsh.c:9967
+#: tools/virsh.c:9973
 msgid "clone a volume."
 msgstr "ボリュームのクローン"
 
-#: tools/virsh.c:9968
+#: tools/virsh.c:9974
 msgid "Clone an existing volume."
 msgstr "既存のボリュームをクローンします。"
 
-#: tools/virsh.c:9973
+#: tools/virsh.c:9979
 msgid "orig vol name or key"
 msgstr "元のボリュームの名前またはキー"
 
-#: tools/virsh.c:9974
+#: tools/virsh.c:9980
 msgid "clone name"
 msgstr "クローンの名前"
 
-#: tools/virsh.c:9997 tools/virsh.c:10789
+#: tools/virsh.c:10003 tools/virsh.c:10795
 msgid "failed to get parent pool"
 msgstr "親プールの取得に失敗しました"
 
-#: tools/virsh.c:10017
+#: tools/virsh.c:10023
 #, c-format
 msgid "Vol %s cloned from %s\n"
 msgstr "ボリューム %s が %s からクローンされました\n"
 
-#: tools/virsh.c:10020
+#: tools/virsh.c:10026
 #, c-format
 msgid "Failed to clone vol from %s"
 msgstr "%s からボリュームのクローンに失敗しました"
 
-#: tools/virsh.c:10044
+#: tools/virsh.c:10050
 msgid "upload a file into a volume"
 msgstr "ボリュームへのファイルのアップロード"
 
-#: tools/virsh.c:10045
+#: tools/virsh.c:10051
 msgid "Upload a file into a volume"
 msgstr "ボリュームの中にファイルをアップロードします。"
 
-#: tools/virsh.c:10050 tools/virsh.c:10150 tools/virsh.c:10247
-#: tools/virsh.c:10288 tools/virsh.c:10329 tools/virsh.c:10393
+#: tools/virsh.c:10056 tools/virsh.c:10156 tools/virsh.c:10253
+#: tools/virsh.c:10294 tools/virsh.c:10335 tools/virsh.c:10399
 msgid "vol name, key or path"
 msgstr "ボリューム名、キー、またはパス"
 
-#: tools/virsh.c:10051 tools/virsh.c:10151 tools/virsh.c:10354
-#: tools/virsh.c:10524
+#: tools/virsh.c:10057 tools/virsh.c:10157 tools/virsh.c:10360
+#: tools/virsh.c:10530
 msgid "file"
 msgstr "ファイル"
 
-#: tools/virsh.c:10053
+#: tools/virsh.c:10059
 msgid "volume offset to upload to"
 msgstr "アップロードするボリュームのオフセット"
 
-#: tools/virsh.c:10054
+#: tools/virsh.c:10060
 msgid "amount of data to upload"
 msgstr "アップロードするデータの量"
 
-#: tools/virsh.c:10107
+#: tools/virsh.c:10113
 #, c-format
 msgid "cannot upload to volume %s"
 msgstr "ボリューム %s にアップロードできませんでした"
 
-#: tools/virsh.c:10112
+#: tools/virsh.c:10118
 #, c-format
 msgid "cannot send data to volume %s"
 msgstr "ボリューム %s にデータを送信できませんでした"
 
-#: tools/virsh.c:10123 tools/virsh.c:10219
+#: tools/virsh.c:10129 tools/virsh.c:10225
 #, c-format
 msgid "cannot close volume %s"
 msgstr "ボリューム %s を閉じられませんでした"
 
-#: tools/virsh.c:10144 tools/virsh.c:10145
+#: tools/virsh.c:10150 tools/virsh.c:10151
 msgid "Download a volume to a file"
 msgstr "ボリュームのファイルへのダウンロード"
 
-#: tools/virsh.c:10153
+#: tools/virsh.c:10159
 msgid "volume offset to download from"
 msgstr "ダウンロードするボリュームのオフセット"
 
-#: tools/virsh.c:10154
+#: tools/virsh.c:10160
 msgid "amount of data to download"
 msgstr "ダウンロードするデータの量"
 
-#: tools/virsh.c:10194
+#: tools/virsh.c:10200
 #, c-format
 msgid "cannot create %s"
 msgstr "%s を作成できませんでした"
 
-#: tools/virsh.c:10203
+#: tools/virsh.c:10209
 #, c-format
 msgid "cannot download from volume %s"
 msgstr "ボリューム %s からダウンロードできませんでした"
 
-#: tools/virsh.c:10208
+#: tools/virsh.c:10214
 #, c-format
 msgid "cannot receive data from volume %s"
 msgstr "ボリューム %s からデータを受信できませんでした"
 
-#: tools/virsh.c:10241
+#: tools/virsh.c:10247
 msgid "delete a vol"
 msgstr "ボリュームの削除"
 
-#: tools/virsh.c:10242
+#: tools/virsh.c:10248
 msgid "Delete a given vol."
 msgstr "任意のボリュームを削除します。"
 
-#: tools/virsh.c:10267
+#: tools/virsh.c:10273
 #, c-format
 msgid "Vol %s deleted\n"
 msgstr "ボリューム %s は削除されました\n"
 
-#: tools/virsh.c:10269
+#: tools/virsh.c:10275
 #, c-format
 msgid "Failed to delete vol %s"
 msgstr "ボリューム %s の削除に失敗しました"
 
-#: tools/virsh.c:10282
+#: tools/virsh.c:10288
 msgid "wipe a vol"
 msgstr "ボリュームの完全消去"
 
-#: tools/virsh.c:10283
+#: tools/virsh.c:10289
 msgid "Ensure data previously on a volume is not accessible to future reads"
 msgstr "以前ボリュームに存在したデータが確実に読み取れないようにします。"
 
-#: tools/virsh.c:10308
+#: tools/virsh.c:10314
 #, c-format
 msgid "Vol %s wiped\n"
 msgstr "ボリューム %s が完全消去されました\n"
 
-#: tools/virsh.c:10310
+#: tools/virsh.c:10316
 #, c-format
 msgid "Failed to wipe vol %s"
 msgstr "ボリューム %s の完全消去に失敗しました"
 
-#: tools/virsh.c:10323
+#: tools/virsh.c:10329
 msgid "storage vol information"
 msgstr "ストレージボリューム情報"
 
-#: tools/virsh.c:10324
+#: tools/virsh.c:10330
 msgid "Returns basic information about the storage vol."
 msgstr "ストレージボリュームの基本情報を返します。"
 
-#: tools/virsh.c:10354 tools/virsh.c:10358 tools/virsh.c:10362
-#: tools/virsh.c:10366
+#: tools/virsh.c:10360 tools/virsh.c:10364 tools/virsh.c:10368
+#: tools/virsh.c:10372
 msgid "Type:"
 msgstr "タイプ:"
 
-#: tools/virsh.c:10358 tools/virsh.c:10527
+#: tools/virsh.c:10364 tools/virsh.c:10533
 msgid "block"
 msgstr "ブロック"
 
-#: tools/virsh.c:10362 tools/virsh.c:10530
+#: tools/virsh.c:10368 tools/virsh.c:10536
 msgid "dir"
 msgstr "ディレクトリ"
 
-#: tools/virsh.c:10387
+#: tools/virsh.c:10393
 msgid "vol information in XML"
 msgstr "XML 形式のボリューム情報"
 
-#: tools/virsh.c:10388
+#: tools/virsh.c:10394
 msgid "Output the vol information as an XML dump to stdout."
 msgstr "ボリューム情報を XML ダンプ形式で標準出力に出力します。"
 
-#: tools/virsh.c:10428
+#: tools/virsh.c:10434
 msgid "list vols"
 msgstr "ボリューム一覧の表示"
 
-#: tools/virsh.c:10429
+#: tools/virsh.c:10435
 msgid "Returns list of vols by pool."
 msgstr "プール別にボリュームの一覧を表示します。"
 
-#: tools/virsh.c:10435
+#: tools/virsh.c:10441
 msgid "display extended details for volumes"
 msgstr "ボリュームの詳細の表示"
 
-#: tools/virsh.c:10476
+#: tools/virsh.c:10482
 msgid "Failed to list storage volumes"
 msgstr ""
 
-#: tools/virsh.c:10486
+#: tools/virsh.c:10492
 msgid "Failed to list active vols"
 msgstr "動作中のボリュームの一覧表示に失敗しました"
 
-#: tools/virsh.c:10598 tools/virsh.c:10618 tools/virsh.c:10663
+#: tools/virsh.c:10604 tools/virsh.c:10624 tools/virsh.c:10669
 msgid "Path"
 msgstr "パス"
 
-#: tools/virsh.c:10623 tools/virsh.c:10663
+#: tools/virsh.c:10629 tools/virsh.c:10669
 msgid "Type"
 msgstr "タイプ"
 
-#: tools/virsh.c:10726
+#: tools/virsh.c:10732
 msgid "returns the volume name for a given volume key or path"
 msgstr "任意のボリュームキーまたはパスのボリューム名の表示"
 
-#: tools/virsh.c:10732 tools/virsh.c:10765
+#: tools/virsh.c:10738 tools/virsh.c:10771
 msgid "volume key or path"
 msgstr "ボリュームキーまたはパス"
 
-#: tools/virsh.c:10758
+#: tools/virsh.c:10764
 msgid "returns the storage pool for a given volume key or path"
 msgstr "任意のボリュームキーまたはパスのストレージプールの表示"
 
-#: tools/virsh.c:10764
+#: tools/virsh.c:10770
 msgid "return the pool uuid rather than pool name"
 msgstr "プール名の代わりにプールの UUID の表示"
 
-#: tools/virsh.c:10815
+#: tools/virsh.c:10821
 msgid "returns the volume key for a given volume name or path"
 msgstr "任意のボリューム名またはパスのボリュームキーの表示"
 
-#: tools/virsh.c:10821
+#: tools/virsh.c:10827
 msgid "volume name or path"
 msgstr "ボリューム名またはパス"
 
-#: tools/virsh.c:10848
+#: tools/virsh.c:10854
 msgid "returns the volume path for a given volume name or key"
 msgstr "任意のボリューム名またはキーのボリュームパスの表示"
 
-#: tools/virsh.c:10854
+#: tools/virsh.c:10860
 msgid "volume name or key"
 msgstr "ボリューム名またはキー"
 
-#: tools/virsh.c:10888
+#: tools/virsh.c:10894
 msgid "define or modify a secret from an XML file"
 msgstr "XML ファイルからシークレットの定義または変更"
 
-#: tools/virsh.c:10889
+#: tools/virsh.c:10895
 msgid "Define or modify a secret."
 msgstr "シークレットを定義または変更します。"
 
-#: tools/virsh.c:10894
+#: tools/virsh.c:10900
 msgid "file containing secret attributes in XML"
 msgstr "secret 属性を含む XML ファイル"
 
-#: tools/virsh.c:10919
+#: tools/virsh.c:10925
 #, c-format
 msgid "Failed to set attributes from %s"
 msgstr "%s から属性の設定に失敗しました"
 
-#: tools/virsh.c:10923
+#: tools/virsh.c:10929
 msgid "Failed to get UUID of created secret"
 msgstr "作成されたシークレットの UUID の取得に失敗しました"
 
-#: tools/virsh.c:10927
+#: tools/virsh.c:10933
 #, c-format
 msgid "Secret %s created\n"
 msgstr "シークレット %s が作成されました\n"
 
-#: tools/virsh.c:10936
+#: tools/virsh.c:10942
 msgid "secret attributes in XML"
 msgstr "XML 形式の secret 属性"
 
-#: tools/virsh.c:10937
+#: tools/virsh.c:10943
 msgid "Output attributes of a secret as an XML dump to stdout."
 msgstr "標準出力に XML 形式のシークレットの属性を出力します。"
 
-#: tools/virsh.c:10942 tools/virsh.c:10982 tools/virsh.c:11042
-#: tools/virsh.c:11094
+#: tools/virsh.c:10948 tools/virsh.c:10988 tools/virsh.c:11048
+#: tools/virsh.c:11100
 msgid "secret UUID"
 msgstr "シークレットの UUID"
 
-#: tools/virsh.c:10976
+#: tools/virsh.c:10982
 msgid "set a secret value"
 msgstr "シークレット値の設定"
 
-#: tools/virsh.c:10977
+#: tools/virsh.c:10983
 msgid "Set a secret value."
 msgstr "シークレット値を設定します。"
 
-#: tools/virsh.c:10983
+#: tools/virsh.c:10989
 msgid "base64-encoded secret value"
 msgstr "base64 エンコードされたシークレット値"
 
-#: tools/virsh.c:11008
+#: tools/virsh.c:11014
 msgid "Invalid base64 data"
 msgstr "無効な base64 データ"
 
-#: tools/virsh.c:11021
+#: tools/virsh.c:11027
 msgid "Failed to set secret value"
 msgstr "シークレット値の設定に失敗しました"
 
-#: tools/virsh.c:11024
+#: tools/virsh.c:11030
 msgid "Secret value set\n"
 msgstr "シークレット値が設定されました\n"
 
-#: tools/virsh.c:11036
+#: tools/virsh.c:11042
 msgid "Output a secret value"
 msgstr "シークレット値の出力"
 
-#: tools/virsh.c:11037
+#: tools/virsh.c:11043
 msgid "Output a secret value to stdout."
 msgstr "シークレット値を標準出力に出力します。"
 
-#: tools/virsh.c:11088
+#: tools/virsh.c:11094
 msgid "undefine a secret"
 msgstr "シークレットの定義解除"
 
-#: tools/virsh.c:11089
+#: tools/virsh.c:11095
 msgid "Undefine a secret."
 msgstr "シークレットの定義を解除します。"
 
-#: tools/virsh.c:11113
+#: tools/virsh.c:11119
 #, c-format
 msgid "Failed to delete secret %s"
 msgstr "シークレット %s の削除に失敗しました"
 
-#: tools/virsh.c:11116
+#: tools/virsh.c:11122
 #, c-format
 msgid "Secret %s deleted\n"
 msgstr "シークレット %s を削除しました\n"
 
-#: tools/virsh.c:11128
+#: tools/virsh.c:11134
 msgid "list secrets"
 msgstr "シークレットの一覧表示"
 
-#: tools/virsh.c:11129
+#: tools/virsh.c:11135
 msgid "Returns a list of secrets"
 msgstr "シークレットの一覧を表示します。"
 
-#: tools/virsh.c:11144 tools/virsh.c:11151
+#: tools/virsh.c:11150 tools/virsh.c:11157
 msgid "Failed to list secrets"
 msgstr "シークレットの一覧の表示に失敗しました"
 
-#: tools/virsh.c:11158
+#: tools/virsh.c:11164
 msgid "Usage"
 msgstr "使用法"
 
-#: tools/virsh.c:11172
+#: tools/virsh.c:11178
 msgid "Volume"
 msgstr "ボリューム"
 
-#: tools/virsh.c:11182
+#: tools/virsh.c:11188
 msgid "Unused"
 msgstr ""
 
-#: tools/virsh.c:11196
+#: tools/virsh.c:11202
 msgid "show version"
 msgstr "バージョンの表示"
 
-#: tools/virsh.c:11197
+#: tools/virsh.c:11203
 msgid "Display the system version information."
 msgstr "システムのバージョン情報を表示します。"
 
-#: tools/virsh.c:11202
+#: tools/virsh.c:11208
 msgid "report daemon version too"
 msgstr "デーモンのバージョンの表示"
 
-#: tools/virsh.c:11225
+#: tools/virsh.c:11231
 msgid "failed to get hypervisor type"
 msgstr "ハイパーバイザータイプの取得に失敗しました"
 
-#: tools/virsh.c:11234
+#: tools/virsh.c:11240
 #, c-format
 msgid "Compiled against library: libvir %d.%d.%d\n"
 msgstr "コンパイル時に使用したライブラリ: libvir %d.%d.%d\n"
 
-#: tools/virsh.c:11239
+#: tools/virsh.c:11245
 msgid "failed to get the library version"
 msgstr "ライブラリのバージョンの取得に失敗しました"
 
-#: tools/virsh.c:11246
+#: tools/virsh.c:11252
 #, c-format
 msgid "Using library: libvir %d.%d.%d\n"
 msgstr "使用中のライブラリ: libvir %d.%d.%d\n"
 
-#: tools/virsh.c:11253
+#: tools/virsh.c:11259
 #, c-format
 msgid "Using API: %s %d.%d.%d\n"
 msgstr "使用中の API: %s %d.%d.%d\n"
 
-#: tools/virsh.c:11258
+#: tools/virsh.c:11264
 msgid "failed to get the hypervisor version"
 msgstr "ハイパーバイザーのバージョンの取得に失敗しました"
 
-#: tools/virsh.c:11263
+#: tools/virsh.c:11269
 #, c-format
 msgid "Cannot extract running %s hypervisor version\n"
 msgstr "実行中の %s ハイパーバイザーのバージョンを抽出できません\n"
 
-#: tools/virsh.c:11270
+#: tools/virsh.c:11276
 #, c-format
 msgid "Running hypervisor: %s %d.%d.%d\n"
 msgstr "実行中のハイパーバイザー: %s %d.%d.%d\n"
 
-#: tools/virsh.c:11277
+#: tools/virsh.c:11283
 msgid "failed to get the daemon version"
 msgstr ""
 
-#: tools/virsh.c:11283
+#: tools/virsh.c:11289
 #, c-format
 msgid "Running against daemon: %d.%d.%d\n"
 msgstr ""
 
-#: tools/virsh.c:11295
+#: tools/virsh.c:11301
 msgid "enumerate devices on this host"
 msgstr "ホストにあるデバイスの一覧表示"
 
-#: tools/virsh.c:11301
+#: tools/virsh.c:11307
 msgid "list devices in a tree"
 msgstr "ツリー形式によるデバイスの一覧表示"
 
-#: tools/virsh.c:11302
+#: tools/virsh.c:11308
 msgid "capability name"
 msgstr "ケイパビリティ名"
 
-#: tools/virsh.c:11402
+#: tools/virsh.c:11408
 msgid "Failed to count node devices"
 msgstr ""
 
-#: tools/virsh.c:11412
+#: tools/virsh.c:11418
 msgid "Failed to list node devices"
 msgstr ""
 
-#: tools/virsh.c:11462
+#: tools/virsh.c:11468
 msgid "node device details in XML"
 msgstr "XML 形式のノードデバイス詳細"
 
-#: tools/virsh.c:11463
+#: tools/virsh.c:11469
 msgid "Output the node device details as an XML dump to stdout."
 msgstr "ノードデバイスの詳細を標準出力に XML 形式で出力します。"
 
-#: tools/virsh.c:11469 tools/virsh.c:11512 tools/virsh.c:11553
-#: tools/virsh.c:11594
+#: tools/virsh.c:11475 tools/virsh.c:11518 tools/virsh.c:11559
+#: tools/virsh.c:11600
 msgid "device key"
 msgstr "デバイスキー"
 
-#: tools/virsh.c:11485 tools/virsh.c:11528 tools/virsh.c:11569
-#: tools/virsh.c:11610
+#: tools/virsh.c:11491 tools/virsh.c:11534 tools/virsh.c:11575
+#: tools/virsh.c:11616
 msgid "Could not find matching device"
 msgstr "一致するデバイスを見つけられませんでした"
 
-#: tools/virsh.c:11505
+#: tools/virsh.c:11511
 msgid "dettach node device from its device driver"
 msgstr ""
 
-#: tools/virsh.c:11506
+#: tools/virsh.c:11512
 msgid ""
 "Dettach node device from its device driver before assigning to a domain."
 msgstr ""
 
-#: tools/virsh.c:11533
+#: tools/virsh.c:11539
 #, c-format
 msgid "Device %s dettached\n"
 msgstr ""
 
-#: tools/virsh.c:11535
+#: tools/virsh.c:11541
 #, c-format
 msgid "Failed to dettach device %s"
 msgstr ""
 
-#: tools/virsh.c:11546
+#: tools/virsh.c:11552
 msgid "reattach node device to its device driver"
 msgstr ""
 
-#: tools/virsh.c:11547
+#: tools/virsh.c:11553
 msgid "Reattach node device to its device driver once released by the domain."
 msgstr ""
 
-#: tools/virsh.c:11574
+#: tools/virsh.c:11580
 #, c-format
 msgid "Device %s re-attached\n"
 msgstr ""
 
-#: tools/virsh.c:11576
+#: tools/virsh.c:11582
 #, c-format
 msgid "Failed to re-attach device %s"
 msgstr ""
 
-#: tools/virsh.c:11587
+#: tools/virsh.c:11593
 msgid "reset node device"
 msgstr ""
 
-#: tools/virsh.c:11588
+#: tools/virsh.c:11594
 msgid "Reset node device before or after assigning to a domain."
 msgstr ""
 
-#: tools/virsh.c:11615
+#: tools/virsh.c:11621
 #, c-format
 msgid "Device %s reset\n"
 msgstr ""
 
-#: tools/virsh.c:11617
+#: tools/virsh.c:11623
 #, c-format
 msgid "Failed to reset device %s"
 msgstr ""
 
-#: tools/virsh.c:11628
+#: tools/virsh.c:11634
 msgid "print the hypervisor hostname"
 msgstr "ハイパーバイザーのホスト名の表示"
 
-#: tools/virsh.c:11643
+#: tools/virsh.c:11649
 msgid "failed to get hostname"
 msgstr "ホスト名の取得に失敗しました"
 
-#: tools/virsh.c:11657
+#: tools/virsh.c:11663
 msgid "print the hypervisor canonical URI"
 msgstr "ハイパーバイザーの正規化 URI の表示"
 
-#: tools/virsh.c:11672
+#: tools/virsh.c:11678
 msgid "failed to get URI"
 msgstr "URI の取得に失敗しました"
 
-#: tools/virsh.c:11686
+#: tools/virsh.c:11692
 msgid "print the hypervisor sysinfo"
 msgstr "ハイパーバイザーのシステム情報の表示"
 
-#: tools/virsh.c:11688
+#: tools/virsh.c:11694
 msgid "output an XML string for the hypervisor sysinfo, if available"
 msgstr ""
 "取得可能ならば、ハイパーバイザーのシステム情報の XML 文字列を出力します"
 
-#: tools/virsh.c:11702
+#: tools/virsh.c:11708
 msgid "failed to get sysinfo"
 msgstr "システム情報を取得できませんでした"
 
-#: tools/virsh.c:11716
+#: tools/virsh.c:11722
 msgid "vnc display"
 msgstr "VNC ディスプレイ"
 
-#: tools/virsh.c:11717
+#: tools/virsh.c:11723
 msgid "Output the IP address and port number for the VNC display."
 msgstr "VNC ディスプレイの IP アドレスとポート番号を出力します。"
 
-#: tools/virsh.c:11785
+#: tools/virsh.c:11791
 msgid "tty console"
 msgstr "TTY コンソール"
 
-#: tools/virsh.c:11786
+#: tools/virsh.c:11792
 msgid "Output the device for the TTY console."
 msgstr "TTY コンソールのデバイスを出力します。"
 
-#: tools/virsh.c:11840
+#: tools/virsh.c:11846
 msgid "attach device from an XML file"
 msgstr "XML ファイルからデバイスの接続"
 
-#: tools/virsh.c:11841
+#: tools/virsh.c:11847
 msgid "Attach device from an XML <file>."
 msgstr "XML <file> からデバイスを接続します。"
 
-#: tools/virsh.c:11847 tools/virsh.c:12155 tools/virsh.c:12234
+#: tools/virsh.c:11853 tools/virsh.c:12161 tools/virsh.c:12240
 msgid "XML file"
 msgstr "XML ファイル"
 
-#: tools/virsh.c:11848
+#: tools/virsh.c:11854
 msgid "persist device attachment"
 msgstr "永続的なデバイスの接続"
 
-#: tools/virsh.c:11889
+#: tools/virsh.c:11895
 #, c-format
 msgid "Failed to attach device from %s"
 msgstr "%s からデバイスの接続に失敗しました"
 
-#: tools/virsh.c:11893
+#: tools/virsh.c:11899
 msgid "Device attached successfully\n"
 msgstr "デバイスが正常に接続されました\n"
 
-#: tools/virsh.c:11975 tools/virsh.c:11988
+#: tools/virsh.c:11981 tools/virsh.c:11994
 msgid "Bad child elements counting."
 msgstr ""
 
-#: tools/virsh.c:12049
+#: tools/virsh.c:12055
 #, fuzzy, c-format
 msgid "couldn't get XML description of domain %s"
 msgstr "ドメインを強制停止できません: %s"
 
-#: tools/virsh.c:12056
+#: tools/virsh.c:12062
 #, fuzzy
 msgid "Failed to parse domain definition xml"
 msgstr "ドメイン記述 XML の構文解析に失敗しました"
 
-#: tools/virsh.c:12062
+#: tools/virsh.c:12068
 #, fuzzy
 msgid "Failed to parse device definition xml"
 msgstr "ドメイン記述 XML の構文解析に失敗しました"
 
-#: tools/virsh.c:12084
+#: tools/virsh.c:12090
 msgid "error when selecting nodes"
 msgstr ""
 
-#: tools/virsh.c:12113
+#: tools/virsh.c:12119
 #, fuzzy
 msgid "failed to create document saving context"
 msgstr "ソケットの作成に失敗しました"
 
-#: tools/virsh.c:12148
+#: tools/virsh.c:12154
 msgid "detach device from an XML file"
 msgstr "XML ファイルからデバイスの切断"
 
-#: tools/virsh.c:12149
+#: tools/virsh.c:12155
 msgid "Detach device from an XML <file>"
 msgstr "XML <file> からデバイスを切断します。"
 
-#: tools/virsh.c:12156
+#: tools/virsh.c:12162
 msgid "persist device detachment"
 msgstr "永続的なデバイスの切断"
 
-#: tools/virsh.c:12187
+#: tools/virsh.c:12193
 #, fuzzy, c-format
 msgid "no such device in %s"
 msgstr "ドメイン %s はありません"
 
-#: tools/virsh.c:12189
+#: tools/virsh.c:12195
 msgid "given XML selects too many devices. Please, be more specific"
 msgstr ""
 
-#: tools/virsh.c:12208
+#: tools/virsh.c:12214
 #, c-format
 msgid "Failed to detach device from %s"
 msgstr "%s からデバイスの切断に失敗しました"
 
-#: tools/virsh.c:12212
+#: tools/virsh.c:12218
 msgid "Device detached successfully\n"
 msgstr "デバイスが正常に切断されました\n"
 
-#: tools/virsh.c:12227
+#: tools/virsh.c:12233
 msgid "update device from an XML file"
 msgstr "XML ファイルからデバイスの更新"
 
-#: tools/virsh.c:12228
+#: tools/virsh.c:12234
 msgid "Update device from an XML <file>."
 msgstr "XML <file> からデバイスを更新します。"
 
-#: tools/virsh.c:12235
+#: tools/virsh.c:12241
 msgid "persist device update"
 msgstr "永続的なデバイスの更新"
 
-#: tools/virsh.c:12236
+#: tools/virsh.c:12242
 msgid "force device update"
 msgstr "強制的なデバイスの更新"
 
-#: tools/virsh.c:12281
+#: tools/virsh.c:12287
 #, c-format
 msgid "Failed to update device from %s"
 msgstr "%s からデバイスの更新に失敗しました"
 
-#: tools/virsh.c:12297
+#: tools/virsh.c:12303
 msgid "attach network interface"
 msgstr "ネットワークインターフェースの接続"
 
-#: tools/virsh.c:12298
+#: tools/virsh.c:12304
 msgid "Attach new network interface."
 msgstr "新しいネットワークインターフェースを接続します。"
 
-#: tools/virsh.c:12304 tools/virsh.c:12503
+#: tools/virsh.c:12310 tools/virsh.c:12509
 msgid "network interface type"
 msgstr "ネットワークインターフェースの形式"
 
-#: tools/virsh.c:12305
+#: tools/virsh.c:12311
 msgid "source of network interface"
 msgstr "ネットワークインターフェースのソース"
 
-#: tools/virsh.c:12306
+#: tools/virsh.c:12312
 msgid "target network name"
 msgstr "ターゲットネットワーク名"
 
-#: tools/virsh.c:12307 tools/virsh.c:12504
+#: tools/virsh.c:12313 tools/virsh.c:12510
 msgid "MAC address"
 msgstr "MAC アドレス"
 
-#: tools/virsh.c:12308
+#: tools/virsh.c:12314
 msgid "script used to bridge network interface"
 msgstr "ネットワークインターフェースを接続するために使用されるスクリプト"
 
-#: tools/virsh.c:12309
+#: tools/virsh.c:12315
 msgid "model type"
 msgstr "モデル形式"
 
-#: tools/virsh.c:12310
+#: tools/virsh.c:12316
 msgid "persist interface attachment"
 msgstr "永続的なインターフェース接続"
 
-#: tools/virsh.c:12311
+#: tools/virsh.c:12317
 msgid "control domain's incoming traffics"
 msgstr ""
 
-#: tools/virsh.c:12312
+#: tools/virsh.c:12318
 msgid "control domain's outgoing traffics"
 msgstr ""
 
-#: tools/virsh.c:12392
+#: tools/virsh.c:12398
 #, c-format
 msgid "No support for %s in command 'attach-interface'"
 msgstr ""
 
-#: tools/virsh.c:12400
+#: tools/virsh.c:12406
 msgid "inbound format is incorrect"
 msgstr ""
 
-#: tools/virsh.c:12404
+#: tools/virsh.c:12410
 msgid "inbound average is mandatory"
 msgstr ""
 
-#: tools/virsh.c:12411
+#: tools/virsh.c:12417
 msgid "outbound format is incorrect"
 msgstr ""
 
-#: tools/virsh.c:12415
+#: tools/virsh.c:12421
 msgid "outbound average is mandatory"
 msgstr ""
 
-#: tools/virsh.c:12479
+#: tools/virsh.c:12485
 msgid "Failed to attach interface"
 msgstr ""
 
-#: tools/virsh.c:12481
+#: tools/virsh.c:12487
 msgid "Interface attached successfully\n"
 msgstr ""
 
-#: tools/virsh.c:12496
+#: tools/virsh.c:12502
 msgid "detach network interface"
 msgstr "ネットワークインターフェースの削除"
 
-#: tools/virsh.c:12497
+#: tools/virsh.c:12503
 msgid "Detach network interface."
 msgstr "ネットワークインターフェースの削除。"
 
-#: tools/virsh.c:12505
+#: tools/virsh.c:12511
 msgid "persist interface detachment"
 msgstr ""
 
-#: tools/virsh.c:12547
+#: tools/virsh.c:12553
 msgid "Failed to get interface information"
 msgstr "インターフェース情報の取得に失敗しました"
 
-#: tools/virsh.c:12555
+#: tools/virsh.c:12561
 #, c-format
 msgid "No found interface whose type is %s"
 msgstr "%s というタイプのインターフェースは見つかりませんでした"
 
-#: tools/virsh.c:12560
+#: tools/virsh.c:12566
 #, c-format
 msgid ""
 "Domain has %d interfaces. Please specify which one to detach using --mac"
 msgstr ""
 
-#: tools/virsh.c:12584
+#: tools/virsh.c:12590
 #, c-format
 msgid "No found interface whose MAC address is %s"
 msgstr "%s という MAC アドレスのインターフェースは見つかりませんでした"
 
-#: tools/virsh.c:12611
+#: tools/virsh.c:12617
 msgid "Failed to detach interface"
 msgstr ""
 
-#: tools/virsh.c:12613
+#: tools/virsh.c:12619
 msgid "Interface detached successfully\n"
 msgstr ""
 
-#: tools/virsh.c:12631
+#: tools/virsh.c:12637
 msgid "attach disk device"
 msgstr "ディスクデバイスの接続"
 
-#: tools/virsh.c:12632
+#: tools/virsh.c:12638
 msgid "Attach new disk device."
 msgstr "新しいディスクデバイスを接続します。"
 
-#: tools/virsh.c:12639
+#: tools/virsh.c:12645
 msgid "source of disk device"
 msgstr "ディスクデバイスのソース"
 
-#: tools/virsh.c:12640 tools/virsh.c:12983
+#: tools/virsh.c:12646 tools/virsh.c:12989
 msgid "target of disk device"
 msgstr "ディスクデバイスのターゲット"
 
-#: tools/virsh.c:12641
+#: tools/virsh.c:12647
 msgid "driver of disk device"
 msgstr "ディスクデバイスのドライバー"
 
-#: tools/virsh.c:12642
+#: tools/virsh.c:12648
 msgid "subdriver of disk device"
 msgstr "ディスクデバイスのサブドライバー"
 
-#: tools/virsh.c:12643
+#: tools/virsh.c:12649
 msgid "cache mode of disk device"
 msgstr "ディスクデバイスのキャッシュモード"
 
-#: tools/virsh.c:12644
+#: tools/virsh.c:12650
 msgid "target device type"
 msgstr "ターゲットデバイスの形式"
 
-#: tools/virsh.c:12645
+#: tools/virsh.c:12651
 msgid "mode of device reading and writing"
 msgstr "デバイスの読み書きモード"
 
-#: tools/virsh.c:12646
+#: tools/virsh.c:12652
 msgid "persist disk attachment"
 msgstr "永続的なディスク接続"
 
-#: tools/virsh.c:12647
+#: tools/virsh.c:12653
 msgid "type of source (block|file)"
 msgstr "ソースの形式 (block|file)"
 
-#: tools/virsh.c:12648
+#: tools/virsh.c:12654
 msgid "serial of disk device"
 msgstr "ディスクデバイスのシリアル"
 
-#: tools/virsh.c:12649
+#: tools/virsh.c:12655
 msgid "shareable between domains"
 msgstr "ドメイン間の共有化"
 
-#: tools/virsh.c:12650
+#: tools/virsh.c:12656
 msgid "address of disk device"
 msgstr "ディスクデバイスのアドレス"
 
-#: tools/virsh.c:12850
+#: tools/virsh.c:12856
 #, c-format
 msgid "Unknown source type: '%s'"
 msgstr ""
 
-#: tools/virsh.c:12856
+#: tools/virsh.c:12862
 #, c-format
 msgid "No support for %s in command 'attach-disk'"
 msgstr ""
 
-#: tools/virsh.c:12898
+#: tools/virsh.c:12904
 msgid "Invalid address."
 msgstr "不正なアドレスです。"
 
-#: tools/virsh.c:12910
+#: tools/virsh.c:12916
 msgid "expecting a pci:0000.00.00.00 address."
 msgstr "pci:0000.00.00.00 アドレスが期待されます。"
 
-#: tools/virsh.c:12921
+#: tools/virsh.c:12927
 msgid "expecting a scsi:00.00.00 address."
 msgstr "scsi:00.00.00 アドレスが期待されます。"
 
-#: tools/virsh.c:12932
+#: tools/virsh.c:12938
 msgid "expecting an ide:00.00.00 address."
 msgstr "ide:00.00.00 アドレスが期待されます。"
 
-#: tools/virsh.c:12959
+#: tools/virsh.c:12965
 msgid "Failed to attach disk"
 msgstr "ディスクの接続に失敗しました"
 
-#: tools/virsh.c:12961
+#: tools/virsh.c:12967
 msgid "Disk attached successfully\n"
 msgstr "ディスクが正常に接続されました\n"
 
-#: tools/virsh.c:12976
+#: tools/virsh.c:12982
 msgid "detach disk device"
 msgstr "ディスクデバイスの切断"
 
-#: tools/virsh.c:12977
+#: tools/virsh.c:12983
 msgid "Detach disk device."
 msgstr "ディスクデバイスを切断します。"
 
-#: tools/virsh.c:12984
+#: tools/virsh.c:12990
 msgid "persist disk detachment"
 msgstr "永続的なディスク切断"
 
-#: tools/virsh.c:13020 tools/virsh.c:13027
+#: tools/virsh.c:13026 tools/virsh.c:13033
 msgid "Failed to get disk information"
 msgstr "ディスク情報の取得に失敗しました"
 
-#: tools/virsh.c:13047
+#: tools/virsh.c:13053
 #, c-format
 msgid "No found disk whose target is %s"
 msgstr "ターゲットが %s であるディスクは見つかりませんでした"
 
-#: tools/virsh.c:13074
+#: tools/virsh.c:13080
 msgid "Failed to detach disk"
 msgstr "ディスクの切断に失敗しました"
 
-#: tools/virsh.c:13076
+#: tools/virsh.c:13082
 msgid "Disk detached successfully\n"
 msgstr "ディスクが正常に切断されました\n"
 
-#: tools/virsh.c:13094
+#: tools/virsh.c:13100
 msgid "compare host CPU with a CPU described by an XML file"
 msgstr "XML ファイルに記載された CPU とホスト CPU の比較"
 
-#: tools/virsh.c:13095
+#: tools/virsh.c:13101
 msgid "compare CPU with host CPU"
 msgstr "ホスト CPU と CPU を比較します。"
 
-#: tools/virsh.c:13100
+#: tools/virsh.c:13106
 msgid "file containing an XML CPU description"
 msgstr "CPU の XML 記述を含むファイル"
 
-#: tools/virsh.c:13125
+#: tools/virsh.c:13131
 #, c-format
 msgid "Failed to read file '%s' to compare"
 msgstr ""
 
-#: tools/virsh.c:13138
+#: tools/virsh.c:13144
 msgid "Can't create XML buffer to extract CPU element."
 msgstr "CPU 要素を抽出するための XML バッファーを作成できません"
 
-#: tools/virsh.c:13143
+#: tools/virsh.c:13149
 msgid "Failed to extract CPU element snippet from domain XML."
 msgstr ""
 
-#: tools/virsh.c:13149
+#: tools/virsh.c:13155
 #, c-format
 msgid ""
 "File '%s' does not contain a <cpu> element or is not a valid domain or "
 "capabilities XML"
 msgstr ""
 
-#: tools/virsh.c:13158
+#: tools/virsh.c:13164
 #, c-format
 msgid "CPU described in %s is incompatible with host CPU\n"
 msgstr ""
 
-#: tools/virsh.c:13164
+#: tools/virsh.c:13170
 #, c-format
 msgid "CPU described in %s is identical to host CPU\n"
 msgstr ""
 
-#: tools/virsh.c:13169
+#: tools/virsh.c:13175
 #, c-format
 msgid "Host CPU is a superset of CPU described in %s\n"
 msgstr ""
 
-#: tools/virsh.c:13175
+#: tools/virsh.c:13181
 #, c-format
 msgid "Failed to compare host CPU with %s"
 msgstr ""
 
-#: tools/virsh.c:13194
+#: tools/virsh.c:13200
 msgid "compute baseline CPU"
 msgstr ""
 
-#: tools/virsh.c:13195
+#: tools/virsh.c:13201
 msgid "Compute baseline CPU for a set of given CPUs."
 msgstr ""
 
-#: tools/virsh.c:13200
+#: tools/virsh.c:13206
 msgid "file containing XML CPU descriptions"
 msgstr ""
 
-#: tools/virsh.c:13247
+#: tools/virsh.c:13253
 #, c-format
 msgid "No host CPU specified in '%s'"
 msgstr ""
 
-#: tools/virsh.c:13260
+#: tools/virsh.c:13266
 msgid "Failed to extract <cpu> element"
 msgstr "<cpu> 要素の抽出に失敗しました"
 
-#: tools/virsh.c:13309
+#: tools/virsh.c:13315
 #, c-format
 msgid "mkstemps: failed to create temporary file: %s"
 msgstr ""
 
-#: tools/virsh.c:13316
+#: tools/virsh.c:13322
 #, c-format
 msgid "write: %s: failed to write to temporary file: %s"
 msgstr ""
 
-#: tools/virsh.c:13324
+#: tools/virsh.c:13330
 #, c-format
 msgid "close: %s: failed to write or close temporary file: %s"
 msgstr ""
 
-#: tools/virsh.c:13365
+#: tools/virsh.c:13371
 #, c-format
 msgid ""
 "%s: temporary filename contains shell meta or other unacceptable characters "
 "(is $TMPDIR wrong?)"
 msgstr ""
 
-#: tools/virsh.c:13398
+#: tools/virsh.c:13404
 #, c-format
 msgid "%s: failed to read temporary file: %s"
 msgstr "%s: 一時ファイルの読み込みに失敗しました: %s"
 
-#: tools/virsh.c:13410
+#: tools/virsh.c:13416
 msgid "change the current directory"
 msgstr "カレントディレクトリの変更"
 
-#: tools/virsh.c:13411
+#: tools/virsh.c:13417
 msgid "Change the current directory."
 msgstr "カレントディレクトリを変更します。"
 
-#: tools/virsh.c:13416
+#: tools/virsh.c:13422
 msgid "directory to switch to (default: home or else root)"
 msgstr "切り替え先のディレクトリ (デフォルト: ホームまたはルート)"
 
-#: tools/virsh.c:13428
+#: tools/virsh.c:13434
 msgid "cd: command valid only in interactive mode"
 msgstr "cd: コマンドは対話モードにおいてのみ有効です"
 
-#: tools/virsh.c:13440
+#: tools/virsh.c:13446
 #, c-format
 msgid "cd: %s: %s"
 msgstr "cd: %s: %s"
 
-#: tools/virsh.c:13452
+#: tools/virsh.c:13458
 msgid "print the current directory"
 msgstr "カレントディレクトリの表示"
 
-#: tools/virsh.c:13453
+#: tools/virsh.c:13459
 msgid "Print the current directory."
 msgstr "カレントディレクトリを表示します。"
 
-#: tools/virsh.c:13465
+#: tools/virsh.c:13471
 #, c-format
 msgid "pwd: cannot get current directory: %s"
 msgstr "pwd: カレントディレクトリを取得できません: %s"
 
-#: tools/virsh.c:13469
+#: tools/virsh.c:13475
 #, c-format
 msgid "%s\n"
 msgstr "%s\n"
 
-#: tools/virsh.c:13480
+#: tools/virsh.c:13486
 msgid "echo arguments"
 msgstr "引数のエコー"
 
-#: tools/virsh.c:13481
+#: tools/virsh.c:13487
 msgid "Echo back arguments, possibly with quoting."
 msgstr "できる限り引用して、引数をエコーバックします。"
 
-#: tools/virsh.c:13486
+#: tools/virsh.c:13492
 msgid "escape for shell use"
 msgstr "シェルにおける使用のためのエスケープ"
 
-#: tools/virsh.c:13487
+#: tools/virsh.c:13493
 msgid "escape for XML use"
 msgstr "XML における使用のためのエスケープ"
 
-#: tools/virsh.c:13488
+#: tools/virsh.c:13494
 msgid "arguments to echo"
 msgstr "エコーする引数"
 
-#: tools/virsh.c:13553
+#: tools/virsh.c:13559
 msgid "edit XML configuration for a domain"
 msgstr "ドメインの XML 設定の編集"
 
-#: tools/virsh.c:13554
+#: tools/virsh.c:13560
 msgid "Edit the XML configuration for a domain."
 msgstr "ドメインの XML 設定を編集します。"
 
-#: tools/virsh.c:13602
+#: tools/virsh.c:13608
 #, c-format
 msgid "Domain %s XML configuration not changed.\n"
 msgstr "ドメインの %s XML 設定は変更されていません \n"
 
-#: tools/virsh.c:13628
+#: tools/virsh.c:13634
 #, c-format
 msgid "Domain %s XML configuration edited.\n"
 msgstr "ドメイン %s XML の設定は編集されました \n"
 
-#: tools/virsh.c:13654
+#: tools/virsh.c:13660
 msgid "edit XML configuration for a network"
 msgstr "ネットワークの XML 設定の編集"
 
-#: tools/virsh.c:13655
+#: tools/virsh.c:13661
 msgid "Edit the XML configuration for a network."
 msgstr "ネットワークの XML 設定を編集します。"
 
-#: tools/virsh.c:13671
+#: tools/virsh.c:13677
 msgid "edit XML configuration for a storage pool"
 msgstr "ストレージプールの XML 設定の編集"
 
-#: tools/virsh.c:13672
+#: tools/virsh.c:13678
 msgid "Edit the XML configuration for a storage pool."
 msgstr "ストレージプールの XML 設定を編集します。"
 
-#: tools/virsh.c:13688
+#: tools/virsh.c:13694
 msgid "quit this interactive terminal"
 msgstr "対話式ターミナルの終了"
 
-#: tools/virsh.c:13729
+#: tools/virsh.c:13735
 msgid "cannot halt after snapshot of transient domain"
 msgstr "一時的なドメインのスナップショット後に停止できません"
 
-#: tools/virsh.c:13748
+#: tools/virsh.c:13754
 msgid "Could not get snapshot name"
 msgstr "スナップショット名を取得できませんでした"
 
-#: tools/virsh.c:13753
+#: tools/virsh.c:13759
 #, c-format
 msgid "Domain snapshot %s created from '%s'"
 msgstr "ドメインのスナップショット %s が '%s' から作成されました"
 
-#: tools/virsh.c:13755
+#: tools/virsh.c:13761
 #, c-format
 msgid "Domain snapshot %s created"
 msgstr "ドメインのスナップショット %s が作成されました"
 
-#: tools/virsh.c:13772
+#: tools/virsh.c:13778
 msgid "Create a snapshot from XML"
 msgstr "XML からのスナップショットの作成"
 
-#: tools/virsh.c:13773
+#: tools/virsh.c:13779
 msgid "Create a snapshot (disk and RAM) from XML"
 msgstr "XML からスナップショット（ディスクおよび RAM）を作成します。"
 
-#: tools/virsh.c:13779
+#: tools/virsh.c:13785
 msgid "domain snapshot XML"
 msgstr "ドメインのスナップショットの XML"
 
-#: tools/virsh.c:13780
+#: tools/virsh.c:13786
 msgid "redefine metadata for existing snapshot"
 msgstr "既存のスナップショットのための管理情報の再定義"
 
-#: tools/virsh.c:13781
+#: tools/virsh.c:13787
 msgid "with redefine, set current snapshot"
 msgstr "--redefine と併用して、現行のスナップショットに設定"
 
-#: tools/virsh.c:13782 tools/virsh.c:13912
+#: tools/virsh.c:13788 tools/virsh.c:13918
 msgid "take snapshot but create no metadata"
 msgstr "管理情報を作成せずにスナップショットの取得"
 
-#: tools/virsh.c:13783 tools/virsh.c:13913
+#: tools/virsh.c:13789 tools/virsh.c:13919
 msgid "halt domain after snapshot is created"
 msgstr "スナップショット作成後、ドメインの停止"
 
-#: tools/virsh.c:13784 tools/virsh.c:13914
+#: tools/virsh.c:13790 tools/virsh.c:13920
 msgid "capture disk state but not vm state"
 msgstr "仮想マシンの状態以外のディスク状態のキャプチャー"
 
-#: tools/virsh.c:13896
+#: tools/virsh.c:13902
 #, c-format
 msgid "unable to parse diskspec: %s"
 msgstr "ディスク仕様を構文解析できません: %s"
 
-#: tools/virsh.c:13902
+#: tools/virsh.c:13908
 msgid "Create a snapshot from a set of args"
 msgstr "引数の組からのスナップショットの作成"
 
-#: tools/virsh.c:13903
+#: tools/virsh.c:13909
 msgid "Create a snapshot (disk and RAM) from arguments"
 msgstr "引数からスナップショット（ディスクおよび RAM）を作成します。"
 
-#: tools/virsh.c:13909
+#: tools/virsh.c:13915
 msgid "name of snapshot"
 msgstr "スナップショットの名前"
 
-#: tools/virsh.c:13910
+#: tools/virsh.c:13916
 msgid "description of snapshot"
 msgstr "スナップショットの説明"
 
-#: tools/virsh.c:13911
+#: tools/virsh.c:13917
 msgid "print XML document rather than create"
 msgstr "XML ドキュメントを作成せずに出力する"
 
-#: tools/virsh.c:13916
+#: tools/virsh.c:13922
 msgid "disk attributes: disk[,snapshot=type][,driver=type][,file=name]"
 msgstr "ディスク属性: disk[,snapshot=type][,driver=type][,file=name]"
 
-#: tools/virsh.c:13948
+#: tools/virsh.c:13954
 msgid "argument must not be empty"
 msgstr "引数は空白ではいけません"
 
-#: tools/virsh.c:14004
+#: tools/virsh.c:14010
 #, c-format
 msgid "invalid argument for --%s"
 msgstr "--%s に対する無効な引数"
 
-#: tools/virsh.c:14009
+#: tools/virsh.c:14015
 #, c-format
 msgid "--%s and --current are mutually exclusive"
 msgstr "--%s と --current は相互排他です"
 
-#: tools/virsh.c:14018
+#: tools/virsh.c:14024
 #, c-format
 msgid "--%s or --current is required"
 msgstr "--%s または --current が必要です"
 
-#: tools/virsh.c:14034
+#: tools/virsh.c:14040
 msgid "edit XML for a snapshot"
 msgstr "スナップショットの XML の編集"
 
-#: tools/virsh.c:14035
+#: tools/virsh.c:14041
 msgid "Edit the domain snapshot XML for a named snapshot"
 msgstr "名前付きスナップショットのドメインスナップショット XML を編集します。"
 
-#: tools/virsh.c:14041 tools/virsh.c:14716 tools/virsh.c:14835
-#: tools/virsh.c:14909
+#: tools/virsh.c:14047 tools/virsh.c:14722 tools/virsh.c:14841
+#: tools/virsh.c:14915
 msgid "snapshot name"
 msgstr "スナップショット名"
 
-#: tools/virsh.c:14042
+#: tools/virsh.c:14048
 msgid "also set edited snapshot as current"
 msgstr "編集したスナップショットを現行に設定します"
 
-#: tools/virsh.c:14043
+#: tools/virsh.c:14049
 msgid "allow renaming an existing snapshot"
 msgstr "既存のスナップショットの名前変更を許可します"
 
-#: tools/virsh.c:14044
+#: tools/virsh.c:14050
 msgid "allow cloning to new name"
 msgstr "新しい名前へのクローンを許可します"
 
-#: tools/virsh.c:14067
+#: tools/virsh.c:14073
 msgid "--rename and --clone are mutually exclusive"
 msgstr "--rename と --clone は相互排他です"
 
-#: tools/virsh.c:14113
+#: tools/virsh.c:14119
 #, c-format
 msgid "Snapshot %s XML configuration not changed.\n"
 msgstr "スナップショット %s の XML 設定は変更されませんでした。\n"
 
-#: tools/virsh.c:14128
+#: tools/virsh.c:14134
 #, c-format
 msgid "Snapshot %s edited.\n"
 msgstr "スナップショット %s が編集されました。\n"
 
-#: tools/virsh.c:14130
+#: tools/virsh.c:14136
 #, c-format
 msgid "Snapshot %s cloned to %s.\n"
 msgstr "スナップショット %s が %s にクローンされました。\n"
 
-#: tools/virsh.c:14139
+#: tools/virsh.c:14145
 #, c-format
 msgid "Failed to clean up %s"
 msgstr "%s のクリーンアップに失敗しました"
 
-#: tools/virsh.c:14144
+#: tools/virsh.c:14150
 #, c-format
 msgid "Must use --rename or --clone to change %s to %s"
 msgstr ""
 "%s を %s に変更するには --rename または --clone を使用しなければいけません"
 
-#: tools/virsh.c:14172 tools/virsh.c:14173
+#: tools/virsh.c:14178 tools/virsh.c:14179
 msgid "Get or set the current snapshot"
 msgstr "現行のスナップショットの取得または設定"
 
-#: tools/virsh.c:14179
+#: tools/virsh.c:14185
 msgid "list the name, rather than the full xml"
 msgstr "完全な XML の代わりに名前の一覧表示"
 
-#: tools/virsh.c:14183
+#: tools/virsh.c:14189
 msgid "name of existing snapshot to make current"
 msgstr "現行にする既存のスナップショットの名前"
 
-#: tools/virsh.c:14210
+#: tools/virsh.c:14216
 #, c-format
 msgid "invalid snapshotname argument '%s'"
 msgstr "無効なスナップショット名の引数 '%s'"
 
-#: tools/virsh.c:14220
+#: tools/virsh.c:14226
 msgid "--name and snapshotname are mutually exclusive"
 msgstr "--name と スナップショット名は相互排他です"
 
-#: tools/virsh.c:14236
+#: tools/virsh.c:14242
 #, c-format
 msgid "Snapshot %s set as current"
 msgstr "スナップショット %s が現行として設定されました"
 
-#: tools/virsh.c:14245
+#: tools/virsh.c:14251
 #, c-format
 msgid "domain '%s' has no current snapshot"
 msgstr "ドメイン '%s' は現行のスナップショットを持っていません"
 
-#: tools/virsh.c:14328
+#: tools/virsh.c:14334
 msgid "unable to determine if snapshot has parent"
 msgstr "スナップショットが親を持つかどうかを決められません"
 
-#: tools/virsh.c:14345
+#: tools/virsh.c:14351
 msgid "List snapshots for a domain"
 msgstr "ドメインのスナップショットの一覧表示"
 
-#: tools/virsh.c:14346
+#: tools/virsh.c:14352
 msgid "Snapshot List"
 msgstr "スナップショットを一覧表示します。"
 
-#: tools/virsh.c:14352
+#: tools/virsh.c:14358
 msgid "add a column showing parent snapshot"
 msgstr "親スナップショットの表示列の追加"
 
-#: tools/virsh.c:14353
+#: tools/virsh.c:14359
 msgid "list only snapshots without parents"
 msgstr "親のないスナップショットのみの表示"
 
-#: tools/virsh.c:14354
+#: tools/virsh.c:14360
 msgid "list only snapshots without children"
 msgstr "子のないスナップショットのみの表示"
 
-#: tools/virsh.c:14356
+#: tools/virsh.c:14362
 msgid "list only snapshots that have metadata that would prevent undefine"
 msgstr "定義解除を妨げる管理情報を持つスナップショットのみの表示"
 
-#: tools/virsh.c:14357
+#: tools/virsh.c:14363
 msgid "list snapshots in a tree"
 msgstr "スナップショットのツリー形式表示"
 
-#: tools/virsh.c:14358
+#: tools/virsh.c:14364
 msgid "limit list to children of given snapshot"
 msgstr "与えられたスナップショットの子のみの一覧表示"
 
-#: tools/virsh.c:14360
+#: tools/virsh.c:14366
 msgid "limit list to children of current snapshot"
 msgstr "現在のスナップショットの子のみの一覧表示"
 
-#: tools/virsh.c:14361
+#: tools/virsh.c:14367
 msgid "with --from, list all descendants"
 msgstr "--from と併用して、すべての子孫の一覧表示"
 
-#: tools/virsh.c:14410
+#: tools/virsh.c:14416
 msgid "--parent and --roots are mutually exclusive"
 msgstr "--parent と --roots は相互排他です"
 
-#: tools/virsh.c:14415
+#: tools/virsh.c:14421
 msgid "--parent and --tree are mutually exclusive"
 msgstr "--parent と --tree は相互排他です"
 
-#: tools/virsh.c:14422
+#: tools/virsh.c:14428
 msgid "--roots and --tree are mutually exclusive"
 msgstr "--roots と --tree は相互排他です"
 
-#: tools/virsh.c:14427
+#: tools/virsh.c:14433
 msgid "--roots and --from are mutually exclusive"
 msgstr "--roots と --from は相互排他です"
 
-#: tools/virsh.c:14434
+#: tools/virsh.c:14440
 msgid "--leaves and --tree are mutually exclusive"
 msgstr "--leaves と --tree は相互排他です"
 
-#: tools/virsh.c:14482
+#: tools/virsh.c:14488
 msgid "missing support"
 msgstr ""
 
-#: tools/virsh.c:14489 tools/virsh.c:14493
+#: tools/virsh.c:14495 tools/virsh.c:14499
 msgid "Creation Time"
 msgstr "作成時間"
 
-#: tools/virsh.c:14490
+#: tools/virsh.c:14496
 msgid "Parent"
 msgstr "親"
 
-#: tools/virsh.c:14579
+#: tools/virsh.c:14585
 #, c-format
 msgid "snapshot %s disappeared from list"
 msgstr "スナップショット %s が一覧から消えました"
 
-#: tools/virsh.c:14664
+#: tools/virsh.c:14670
 msgid "time_t overflow"
 msgstr "time_t オーバーフロー"
 
-#: tools/virsh.c:14709
+#: tools/virsh.c:14715
 msgid "Dump XML for a domain snapshot"
 msgstr "ドメインのスナップショットの XML 形式ダンプ"
 
-#: tools/virsh.c:14710
+#: tools/virsh.c:14716
 msgid "Snapshot Dump XML"
 msgstr "スナップショットを XML 形式でダンプします。"
 
-#: tools/virsh.c:14771
+#: tools/virsh.c:14777
 msgid "Get the name of the parent of a snapshot"
 msgstr "スナップショットの親の名前の取得"
 
-#: tools/virsh.c:14772
+#: tools/virsh.c:14778
 msgid "Extract the snapshot's parent, if any"
 msgstr "スナップショットの親があれば、それを抽出します。"
 
-#: tools/virsh.c:14778
+#: tools/virsh.c:14784
 msgid "find parent of snapshot name"
 msgstr "指定されたスナップショット名の親の検索"
 
-#: tools/virsh.c:14779
+#: tools/virsh.c:14785
 msgid "find parent of current snapshot"
 msgstr "現行のスナップショットの親の検索"
 
-#: tools/virsh.c:14806
+#: tools/virsh.c:14812
 #, c-format
 msgid "snapshot '%s' has no parent"
 msgstr "スナップショット '%s' の親がありません"
 
-#: tools/virsh.c:14828
+#: tools/virsh.c:14834
 msgid "Revert a domain to a snapshot"
 msgstr "ドメインのスナップショットへの復帰"
 
-#: tools/virsh.c:14829
+#: tools/virsh.c:14835
 msgid "Revert domain to snapshot"
 msgstr "ドメインをスナップショットに復帰します。"
 
-#: tools/virsh.c:14836
+#: tools/virsh.c:14842
 msgid "revert to current snapshot"
 msgstr "現行のスナップショットへの復帰"
 
-#: tools/virsh.c:14837
+#: tools/virsh.c:14843
 msgid "after reverting, change state to running"
 msgstr "復帰後、実行状態への変更"
 
-#: tools/virsh.c:14838
+#: tools/virsh.c:14844
 msgid "after reverting, change state to paused"
 msgstr "復帰後、一時停止状態への変更"
 
-#: tools/virsh.c:14839
+#: tools/virsh.c:14845
 msgid "try harder on risky reverts"
 msgstr "危険性の高い復帰の試行"
 
-#: tools/virsh.c:14902
+#: tools/virsh.c:14908
 msgid "Delete a domain snapshot"
 msgstr "ドメインのスナップショットの削除"
 
-#: tools/virsh.c:14903
+#: tools/virsh.c:14909
 msgid "Snapshot Delete"
 msgstr "スナップショットを削除します。"
 
-#: tools/virsh.c:14910
+#: tools/virsh.c:14916
 msgid "delete current snapshot"
 msgstr "現行のスナップショットの削除"
 
-#: tools/virsh.c:14911
+#: tools/virsh.c:14917
 msgid "delete snapshot and all children"
 msgstr "スナップショットとすべての子どもの削除"
 
-#: tools/virsh.c:14912
+#: tools/virsh.c:14918
 msgid "delete children but not snapshot"
 msgstr "スナップショット以外の子どもの削除"
 
-#: tools/virsh.c:14914
+#: tools/virsh.c:14920
 msgid "delete only libvirt metadata, leaving snapshot contents behind"
 msgstr "libvirt の管理情報のみの削除、スナップショットの内容の保存"
 
-#: tools/virsh.c:14950
+#: tools/virsh.c:14956
 #, c-format
 msgid "Domain snapshot %s children deleted\n"
 msgstr "ドメインのスナップショット %s の子どもが削除されました\n"
 
-#: tools/virsh.c:14952
+#: tools/virsh.c:14958
 #, c-format
 msgid "Domain snapshot %s deleted\n"
 msgstr "ドメインのスナップショット %s が削除されました\n"
 
-#: tools/virsh.c:14954
+#: tools/virsh.c:14960
 #, c-format
 msgid "Failed to delete snapshot %s"
 msgstr "スナップショット %s の削除に失敗しました"
 
-#: tools/virsh.c:14973 tools/virsh.c:14974
+#: tools/virsh.c:14979 tools/virsh.c:14980
 msgid "QEMU Monitor Command"
 msgstr "QEMU モニターコマンド"
 
-#: tools/virsh.c:14980
+#: tools/virsh.c:14986
 msgid "command is in human monitor protocol"
 msgstr "Human Monitor Protocol のコマンド"
 
-#: tools/virsh.c:14981
+#: tools/virsh.c:14987
 msgid "command"
 msgstr "コマンド"
 
-#: tools/virsh.c:15011
+#: tools/virsh.c:15017
 msgid "Failed to collect command"
 msgstr "コマンドが収集できませんでした"
 
-#: tools/virsh.c:15039 tools/virsh.c:15040
+#: tools/virsh.c:15045 tools/virsh.c:15046
 msgid "QEMU Attach"
 msgstr "QEMU 接続"
 
-#: tools/virsh.c:15045
+#: tools/virsh.c:15051
 msgid "pid"
 msgstr "プロセス ID"
 
-#: tools/virsh.c:15061
+#: tools/virsh.c:15067
 msgid "missing pid value"
 msgstr "プロセス ID 値が見つかりません"
 
-#: tools/virsh.c:15069
+#: tools/virsh.c:15075
 #, c-format
 msgid "Domain %s attached to pid %u\n"
 msgstr "ドメイン %s は プロセス ID %u に接続しました\n"
 
-#: tools/virsh.c:15074
+#: tools/virsh.c:15080
 #, c-format
 msgid "Failed to attach to pid %u"
 msgstr "プロセス ID %u に接続できませんでした"
 
-#: tools/virsh.c:15467
+#: tools/virsh.c:15473
 #, c-format
 msgid "option --%s already seen"
 msgstr "オプション --%s はすでに指定されています"
 
-#: tools/virsh.c:15476
+#: tools/virsh.c:15482
 #, c-format
 msgid "command '%s' doesn't support option --%s"
 msgstr "コマンド '%s' はオプション --%s をサポートしていません"
 
-#: tools/virsh.c:15520
+#: tools/virsh.c:15526
 #, c-format
 msgid "command '%s' requires <%s> option"
 msgstr "コマンド '%s' には <%s> オプションが必要です"
 
-#: tools/virsh.c:15521
+#: tools/virsh.c:15527
 #, c-format
 msgid "command '%s' requires --%s option"
 msgstr "コマンド '%s' には --%s オプションが必要です"
 
-#: tools/virsh.c:15564
+#: tools/virsh.c:15570
 #, c-format
 msgid "command group '%s' doesn't exist"
 msgstr "コマンドグループ '%s' は存在しません"
 
-#: tools/virsh.c:15585
+#: tools/virsh.c:15591
 #, c-format
 msgid "command '%s' doesn't exist"
 msgstr "コマンド '%s' は存在しません"
 
-#: tools/virsh.c:15597 tools/virsh.c:16456
+#: tools/virsh.c:15603 tools/virsh.c:16462
 #, c-format
 msgid "internal error: bad options in command: '%s'"
 msgstr "内部エラー: コマンドに不正なオプションがあります: '%s'"
 
-#: tools/virsh.c:15602
+#: tools/virsh.c:15608
 msgid "  NAME\n"
 msgstr "  名前\n"
 
-#: tools/virsh.c:15605
+#: tools/virsh.c:15611
 msgid ""
 "\n"
 "  SYNOPSIS\n"
@@ -24298,37 +24299,37 @@ msgstr ""
 "\n"
 "  形式\n"
 
-#: tools/virsh.c:15618
+#: tools/virsh.c:15624
 #, c-format
 msgid "[--%s <number>]"
 msgstr "[--%s <number>]"
 
-#: tools/virsh.c:15624
+#: tools/virsh.c:15630
 #, c-format
 msgid "[--%s <string>]"
 msgstr "[--%s <string>]"
 
-#: tools/virsh.c:15637
+#: tools/virsh.c:15643
 #, c-format
 msgid "{[--%s] <string>}..."
 msgstr "{[--%s] <string>}..."
 
-#: tools/virsh.c:15638
+#: tools/virsh.c:15644
 #, c-format
 msgid "[[--%s] <string>]..."
 msgstr "[[--%s] <string>]..."
 
-#: tools/virsh.c:15640
+#: tools/virsh.c:15646
 #, c-format
 msgid "<%s>..."
 msgstr "<%s>..."
 
-#: tools/virsh.c:15641
+#: tools/virsh.c:15647
 #, c-format
 msgid "[<%s>]..."
 msgstr "[<%s>]..."
 
-#: tools/virsh.c:15655
+#: tools/virsh.c:15661
 msgid ""
 "\n"
 "  DESCRIPTION\n"
@@ -24336,7 +24337,7 @@ msgstr ""
 "\n"
 "  詳細\n"
 
-#: tools/virsh.c:15661
+#: tools/virsh.c:15667
 msgid ""
 "\n"
 "  OPTIONS\n"
@@ -24344,72 +24345,72 @@ msgstr ""
 "\n"
 "  オプション\n"
 
-#: tools/virsh.c:15669
+#: tools/virsh.c:15675
 #, c-format
 msgid "[--%s] <number>"
 msgstr "[--%s] <number>"
 
-#: tools/virsh.c:15670
+#: tools/virsh.c:15676
 #, c-format
 msgid "--%s <number>"
 msgstr "--%s <number>"
 
-#: tools/virsh.c:15674
+#: tools/virsh.c:15680
 #, c-format
 msgid "--%s <string>"
 msgstr "--%s <string>"
 
-#: tools/virsh.c:15677 tools/virsh.c:15682
+#: tools/virsh.c:15683 tools/virsh.c:15688
 #, c-format
 msgid "[--%s] <string>"
 msgstr "[--%s] <string>"
 
-#: tools/virsh.c:15682
+#: tools/virsh.c:15688
 #, c-format
 msgid "<%s>"
 msgstr "<%s>"
 
-#: tools/virsh.c:16045
+#: tools/virsh.c:16051
 #, c-format
 msgid "internal error: virsh %s: no %s VSH_OT_DATA option"
 msgstr "内部エラー: virsh %s: %s VSH_OT_DATA オプションがありません"
 
-#: tools/virsh.c:16093
+#: tools/virsh.c:16099
 #, c-format
 msgid "failed to get domain '%s'"
 msgstr "ドメイン '%s' を取得できませんでした"
 
-#: tools/virsh.c:16131
+#: tools/virsh.c:16137
 #, c-format
 msgid "failed to get network '%s'"
 msgstr "ネットワーク '%s' を取得できませんでした"
 
-#: tools/virsh.c:16170
+#: tools/virsh.c:16176
 #, c-format
 msgid "failed to get nwfilter '%s'"
 msgstr "ネットワークフィルター '%s' を取得できませんでした"
 
-#: tools/virsh.c:16211
+#: tools/virsh.c:16217
 #, c-format
 msgid "failed to get interface '%s'"
 msgstr "インターフェース '%s' を取得できませんでした"
 
-#: tools/virsh.c:16246
+#: tools/virsh.c:16252
 #, c-format
 msgid "failed to get pool '%s'"
 msgstr "プール '%s' を取得できませんでした"
 
-#: tools/virsh.c:16301
+#: tools/virsh.c:16307
 #, c-format
 msgid "failed to get vol '%s', specifying --%s might help"
 msgstr ""
 
-#: tools/virsh.c:16333
+#: tools/virsh.c:16339
 #, c-format
 msgid "failed to get secret '%s'"
 msgstr "シークレット '%s' を取得できませんでした"
 
-#: tools/virsh.c:16380
+#: tools/virsh.c:16386
 #, c-format
 msgid ""
 "\n"
@@ -24420,229 +24421,231 @@ msgstr ""
 "(時間: %.3f ms)\n"
 "\n"
 
-#: tools/virsh.c:16450
+#: tools/virsh.c:16456
 #, c-format
 msgid "unknown command: '%s'"
 msgstr "不明なコマンド: '%s'"
 
-#: tools/virsh.c:16489
+#: tools/virsh.c:16495
 #, c-format
 msgid "expected syntax: --%s <%s>"
 msgstr "予期される構文: --%s <%s>"
 
-#: tools/virsh.c:16492
+#: tools/virsh.c:16498
 msgid "number"
 msgstr "数値"
 
-#: tools/virsh.c:16492
+#: tools/virsh.c:16498
 msgid "string"
 msgstr "文字列"
 
-#: tools/virsh.c:16500
+#: tools/virsh.c:16506
 #, c-format
 msgid "invalid '=' after option --%s"
 msgstr "オプション --%s の後に無効な '=' があります。"
 
-#: tools/virsh.c:16514
+#: tools/virsh.c:16520
 #, c-format
 msgid "unexpected data '%s'"
 msgstr "予期しないデータ '%s'"
 
-#: tools/virsh.c:16536
+#: tools/virsh.c:16542
 msgid "optdata"
 msgstr ""
 
-#: tools/virsh.c:16536
+#: tools/virsh.c:16542
 msgid "bool"
 msgstr ""
 
-#: tools/virsh.c:16537
+#: tools/virsh.c:16543
 msgid "(none)"
 msgstr ""
 
-#: tools/virsh.c:16653
+#: tools/virsh.c:16659
 msgid "dangling \\"
 msgstr ""
 
-#: tools/virsh.c:16666
+#: tools/virsh.c:16672
 msgid "missing \""
 msgstr "不足 \""
 
-#: tools/virsh.c:16729 tools/virsh.c:16938
+#: tools/virsh.c:16735 tools/virsh.c:16944
 msgid "idle"
 msgstr ""
 
-#: tools/virsh.c:16731
+#: tools/virsh.c:16737
 msgid "paused"
 msgstr "一時停止中"
 
-#: tools/virsh.c:16733
+#: tools/virsh.c:16739
 msgid "in shutdown"
 msgstr "シャットダウン中"
 
-#: tools/virsh.c:16735
+#: tools/virsh.c:16741
 msgid "shut off"
 msgstr "シャットオフ"
 
-#: tools/virsh.c:16737 tools/virsh.c:16823
+#: tools/virsh.c:16743 tools/virsh.c:16829
 msgid "crashed"
 msgstr "クラッシュしました"
 
-#: tools/virsh.c:16742 tools/virsh.c:16944
+#: tools/virsh.c:16748 tools/virsh.c:16950
 msgid "no state"
 msgstr "状態なし"
 
-#: tools/virsh.c:16759
+#: tools/virsh.c:16765
 msgid "booted"
 msgstr ""
 
-#: tools/virsh.c:16761 tools/virsh.c:16825
+#: tools/virsh.c:16767 tools/virsh.c:16831
 msgid "migrated"
 msgstr ""
 
-#: tools/virsh.c:16763
+#: tools/virsh.c:16769
 msgid "restored"
 msgstr ""
 
-#: tools/virsh.c:16765 tools/virsh.c:16799 tools/virsh.c:16831
+#: tools/virsh.c:16771 tools/virsh.c:16805 tools/virsh.c:16837
 msgid "from snapshot"
 msgstr ""
 
-#: tools/virsh.c:16767
+#: tools/virsh.c:16773
 msgid "unpaused"
 msgstr ""
 
-#: tools/virsh.c:16769
+#: tools/virsh.c:16775
 msgid "migration canceled"
 msgstr ""
 
-#: tools/virsh.c:16771
+#: tools/virsh.c:16777
 msgid "save canceled"
 msgstr "保存が取り消されました"
 
-#: tools/virsh.c:16787 tools/virsh.c:16810
+#: tools/virsh.c:16793 tools/virsh.c:16816
 msgid "user"
 msgstr ""
 
-#: tools/virsh.c:16789
+#: tools/virsh.c:16795
 msgid "migrating"
 msgstr ""
 
-#: tools/virsh.c:16791
+#: tools/virsh.c:16797
 msgid "saving"
 msgstr ""
 
-#: tools/virsh.c:16793
+#: tools/virsh.c:16799
 msgid "dumping"
 msgstr ""
 
-#: tools/virsh.c:16795
+#: tools/virsh.c:16801
 msgid "I/O error"
 msgstr ""
 
-#: tools/virsh.c:16797
+#: tools/virsh.c:16803
 msgid "watchdog"
 msgstr ""
 
-#: tools/virsh.c:16801
+#: tools/virsh.c:16807
 msgid "shutting down"
 msgstr ""
 
-#: tools/virsh.c:16819
+#: tools/virsh.c:16825
 msgid "shutdown"
 msgstr ""
 
-#: tools/virsh.c:16821
+#: tools/virsh.c:16827
 msgid "destroyed"
 msgstr ""
 
-#: tools/virsh.c:16829
+#: tools/virsh.c:16835
 msgid "failed"
 msgstr ""
 
-#: tools/virsh.c:16886
+#: tools/virsh.c:16892
 msgid "unimplemented block statistics parameter type"
 msgstr ""
 
-#: tools/virsh.c:16919
+#: tools/virsh.c:16925
 msgid "ok"
 msgstr ""
 
-#: tools/virsh.c:16921
+#: tools/virsh.c:16927
 msgid "background job"
 msgstr ""
 
-#: tools/virsh.c:16923
+#: tools/virsh.c:16929
 msgid "occupied"
 msgstr ""
 
-#: tools/virsh.c:16936
+#: tools/virsh.c:16942
 msgid "offline"
 msgstr "オフライン"
 
-#: tools/virsh.c:16954
+#: tools/virsh.c:16960
 msgid "no valid connection"
 msgstr "有効な接続ではありません"
 
-#: tools/virsh.c:17025
+#: tools/virsh.c:17031
 msgid "error: "
 msgstr "エラー: "
 
-#: tools/virsh.c:17078
+#: tools/virsh.c:17084
 msgid "VIRSH_DEBUG not set with a valid numeric value"
 msgstr "VIRSH_DEBUG が有効な数値を設定されていません"
 
-#: tools/virsh.c:17121
+#: tools/virsh.c:17127
 msgid "failed to connect to the hypervisor"
 msgstr "ハイパーバイザーへの接続に失敗しました"
 
-#: tools/virsh.c:17151
+#: tools/virsh.c:17157
 msgid "failed to get the log file information"
 msgstr "ログファイル情報の取得に失敗しました"
 
-#: tools/virsh.c:17156
+#: tools/virsh.c:17162
 msgid "the log path is not a file"
 msgstr "ログのパスがファイルではありません"
 
-#: tools/virsh.c:17164
+#: tools/virsh.c:17170
 msgid "failed to open the log file. check the log file path"
 msgstr "ログファイルを開けません。ログファイルのパスを確認してください"
 
-#: tools/virsh.c:17246
+#: tools/virsh.c:17252
 msgid "failed to write the log file"
 msgstr "ログファイルの書き込みに失敗しました"
 
-#: tools/virsh.c:17261
+#: tools/virsh.c:17267
 #, c-format
 msgid "%s: failed to write log file: %s"
 msgstr "%s: ログファイルの書き込みに失敗しました: %s"
 
-#: tools/virsh.c:17409
+#: tools/virsh.c:17415
 msgid "Could not determine home directory"
 msgstr "ホームディレクトリが決定できませんでした"
 
-#: tools/virsh.c:17438
+#: tools/virsh.c:17444
 #, c-format
 msgid "Failed to create '%s': %s"
 msgstr "'%s' の作成に失敗しました: %s"
 
-#: tools/virsh.c:17544
-#, c-format
+#: tools/virsh.c:17550
+#, fuzzy, c-format
 msgid ""
 "\n"
 "%s [options]... [<command_string>]\n"
 "%s [options]... <command> [args...]\n"
 "\n"
 "  options:\n"
-"    -c | --connect <uri>    hypervisor connection URI\n"
+"    -c | --connect=URI      hypervisor connection URI\n"
 "    -r | --readonly         connect readonly\n"
-"    -d | --debug <num>      debug level [0-4]\n"
+"    -d | --debug=NUM        debug level [0-4]\n"
 "    -h | --help             this help\n"
 "    -q | --quiet            quiet mode\n"
 "    -t | --timing           print timing information\n"
-"    -l | --log <file>       output logging to file\n"
-"    -v | --version[=short]  program version\n"
-"    -V | --version=long     version and full options\n"
+"    -l | --log=FILE         output logging to file\n"
+"    -v                      short version\n"
+"    -V                      long version\n"
+"         --version[=TYPE]   version, TYPE is short or long (default short)\n"
+"    -e | --escape <char>    set escape sequence for console\n"
 "\n"
 "  commands (non interactive mode):\n"
 "\n"
@@ -24665,12 +24668,12 @@ msgstr ""
 "  コマンド (非対話モード):\n"
 "\n"
 
-#: tools/virsh.c:17559
+#: tools/virsh.c:17567
 #, c-format
 msgid " %s (help keyword '%s')\n"
 msgstr " %s (ヘルプのキーワード '%s')\n"
 
-#: tools/virsh.c:17569
+#: tools/virsh.c:17577
 msgid ""
 "\n"
 "  (specify help <group> for details about the commands in the group)\n"
@@ -24678,7 +24681,7 @@ msgstr ""
 "\n"
 "  (グループにあるコマンドの詳細は help <group> を指定します)\n"
 
-#: tools/virsh.c:17571
+#: tools/virsh.c:17579
 msgid ""
 "\n"
 "  (specify help <command> for details about the command)\n"
@@ -24688,12 +24691,12 @@ msgstr ""
 "  (コマンドの詳細は help <command> を指定します)\n"
 "\n"
 
-#: tools/virsh.c:17582
+#: tools/virsh.c:17590
 #, c-format
 msgid "Virsh command line tool of libvirt %s\n"
 msgstr "libvirt の Virsh コマンドラインツール %s\n"
 
-#: tools/virsh.c:17583
+#: tools/virsh.c:17591
 #, c-format
 msgid ""
 "See web site at %s\n"
@@ -24702,50 +24705,55 @@ msgstr ""
 "%s にあるウェブサイトを参照してください。\n"
 "\n"
 
-#: tools/virsh.c:17585
+#: tools/virsh.c:17593
 msgid "Compiled with support for:\n"
 msgstr "以下のサポート付きでコンパイルされました:\n"
 
-#: tools/virsh.c:17586
+#: tools/virsh.c:17594
 msgid " Hypervisors:"
 msgstr "ハイパーバイザー:"
 
-#: tools/virsh.c:17622
+#: tools/virsh.c:17630
 msgid " Networking:"
 msgstr "ネットワーク:"
 
-#: tools/virsh.c:17649
+#: tools/virsh.c:17657
 msgid " Storage:"
 msgstr "ストレージ:"
 
-#: tools/virsh.c:17673
+#: tools/virsh.c:17681
 msgid " Miscellaneous:"
 msgstr "その他:"
 
-#: tools/virsh.c:17726
+#: tools/virsh.c:17735
 msgid "option -d takes a numeric argument"
 msgstr "オプション -d は数値の引数をとります"
 
-#: tools/virsh.c:17758
+#: tools/virsh.c:17773
+#, fuzzy, c-format
+msgid "Invalid string '%s' for escape sequence"
+msgstr "無効なディスクのバス形式 '%s'"
+
+#: tools/virsh.c:17779
 #, c-format
 msgid "unsupported option '-%c'. See --help."
 msgstr "サポートされていないオプション '-%c' です。--help を参照してください。"
 
-#: tools/virsh.c:17765
+#: tools/virsh.c:17786
 #, c-format
 msgid "extra argument '%s'. See --help."
 msgstr "余分な引数 '%s' です。--help を参照してください。"
 
-#: tools/virsh.c:17813
+#: tools/virsh.c:17836
 #, fuzzy
 msgid "Failed to initialize mutex"
 msgstr "libvirt の初期化に失敗しました"
 
-#: tools/virsh.c:17818
+#: tools/virsh.c:17841
 msgid "Failed to initialize libvirt"
 msgstr "libvirt の初期化に失敗しました"
 
-#: tools/virsh.c:17847
+#: tools/virsh.c:17870
 #, c-format
 msgid ""
 "Welcome to %s, the virtualization interactive terminal.\n"
@@ -24754,7 +24762,7 @@ msgstr ""
 "%s にようこそ、仮想化対話式ターミナルです。\n"
 "\n"
 
-#: tools/virsh.c:17850
+#: tools/virsh.c:17873
 msgid ""
 "Type:  'help' for help with commands\n"
 "       'quit' to quit\n"

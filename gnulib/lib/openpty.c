@@ -49,7 +49,7 @@ openpty (int *amaster _GL_UNUSED, int *aslave _GL_UNUSED,
   return -1;
 }
 
-#else /* AIX 5.1, HP-UX 11, IRIX 6.5, Solaris 10, mingw */
+#else /* AIX 5.1, HP-UX 11, IRIX 6.5, Solaris 10 */
 
 # include <fcntl.h>
 # include <stdlib.h>

@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # wint_t.m4 serial 2 (gettext-0.17)
 dnl Copyright (C) 2003, 2007 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation

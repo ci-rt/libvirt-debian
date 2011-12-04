@@ -170,7 +170,6 @@ static int posixly_correct;
 #  endif
 # endif
 # define MEMCHR(S, C, N) memchr (S, C, N)
-# define STRCOLL(S1, S2) strcoll (S1, S2)
 # include "fnmatch_loop.c"
 
 
@@ -198,7 +197,6 @@ static int posixly_correct;
 #   endif
 #  endif
 #  define MEMCHR(S, C, N) wmemchr (S, C, N)
-#  define STRCOLL(S1, S2) wcscoll (S1, S2)
 #  define WIDE_CHAR_VERSION 1
 
 #  undef IS_CHAR_CLASS
