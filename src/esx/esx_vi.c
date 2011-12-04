@@ -1800,7 +1800,7 @@ esxVI_EnsureSession(esxVI_Context *ctx)
     if (ctx->hasSessionIsActive) {
         /*
          * Use SessionIsActive to check if there is an active session for this
-         * connection an re-login in there isn't.
+         * connection, and re-login if there isn't.
          */
         if (esxVI_SessionIsActive(ctx, ctx->session->key,
                                   ctx->session->userName, &active) < 0) {
@@ -3955,7 +3955,7 @@ esxVI_WaitForTaskCompletion(esxVI_Context *ctx,
                 if (taskInfo->cancelable == esxVI_Boolean_True) {
                     if (esxVI_CancelTask(ctx, task) < 0 && blocked) {
                         VIR_ERROR(_("Cancelable task is blocked by an "
-                                     "unanswered question but cancelation "
+                                     "unanswered question but cancellation "
                                      "failed"));
                     }
                 } else if (blocked) {

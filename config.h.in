@@ -357,6 +357,9 @@
 /* Define to 1 when the gnulib module ptsname should be tested. */
 #undef GNULIB_TEST_PTSNAME
 
+/* Define to 1 when the gnulib module ptsname_r should be tested. */
+#undef GNULIB_TEST_PTSNAME_R
+
 /* Define to 1 when the gnulib module putenv should be tested. */
 #undef GNULIB_TEST_PUTENV
 
@@ -1165,6 +1168,9 @@
 /* Define to 1 if you have the `ptsname' function. */
 #undef HAVE_PTSNAME
 
+/* Define to 1 if you have the `ptsname_r' function. */
+#undef HAVE_PTSNAME_R
+
 /* Define to 1 if you have the <pty.h> header file. */
 #undef HAVE_PTY_H
 
@@ -1366,6 +1372,9 @@
 
 /* Define to 1 if the system has the type `struct addrinfo'. */
 #undef HAVE_STRUCT_ADDRINFO
+
+/* Defined if struct ifreq existsin net/if.h */
+#undef HAVE_STRUCT_IFREQ
 
 /* Define to 1 if `msg_accrights' is a member of `struct msghdr'. */
 #undef HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTS
@@ -2116,7 +2125,7 @@
 # if (3 <= __GNUC__ || (__GNUC__ == 2 && 8 <= __GNUC_MINOR__) \
       || 0x5110 <= __SUNPRO_C)
 #  define _Noreturn __attribute__ ((__noreturn__))
-# elif 1200 <= _MSC_VER
+# elif defined _MSC_VER && 1200 <= _MSC_VER
 #  define _Noreturn __declspec (noreturn)
 # else
 #  define _Noreturn

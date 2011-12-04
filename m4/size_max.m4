@@ -1,3 +1,5 @@
+# -*- buffer-read-only: t -*- vi: set ro:
+# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # size_max.m4 serial 6
 dnl Copyright (C) 2003, 2005-2006 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation

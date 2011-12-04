@@ -1157,6 +1157,16 @@ sc_cross_check_PATH_usage_in_tests:
 		1>&2; exit 1; } || :;					\
 	fi
 
+# BRE regex of file contents to identify a test script.
+_test_script_regex ?= \<init\.sh\>
+
+# In tests, use "compare expected actual", not the reverse.
+sc_prohibit_reversed_compare_failure:
+	@prohibit='\<compare [^ ]+ ([^ ]*exp|/dev/null)'		\
+	containing='$(_test_script_regex)'				\
+	halt='reversed compare arguments'				\
+	  $(_sc_search_regexp)
+
 # #if HAVE_... will evaluate to false for any non numeric string.
 # That would be flagged by using -Wundef, however gnulib currently
 # tests many undefined macros, and so we can't enable that option.
@@ -1203,9 +1213,9 @@ bootstrap-tools ?= autoconf,automake,gnulib
 # If it's not already specified, derive the GPG key ID from
 # the signed tag we've just applied to mark this release.
 gpg_key_ID ?= \
-  $$(git cat-file tag v$(VERSION) > .ann-sig \
-     && gpgv .ann-sig - < /dev/null 2>&1 \
-	  | sed -n '/.*key ID \([0-9A-F]*\)/s//\1/p'; rm -f .ann-sig)
+  $$(git cat-file tag v$(VERSION) \
+     | gpgv --status-fd 1 --keyring /dev/null - - 2>/dev/null \
+     | sed -n '/^\[GNUPG:\] ERRSIG /{s///;s/ .*//p;q}')
 
 translation_project_ ?= coordinator@translationproject.org
 
@@ -1438,7 +1448,7 @@ sc_tight_scope: tight-scope.mk
 
 tight-scope.mk: $(ME)
 	@rm -f $@ $@-t
-	@perl -ne '/^# TS-start/.../^# TS-end/ and print' $(ME) > $@-t
+	@perl -ne '/^# TS-start/.../^# TS-end/ and print' $(srcdir)/$(ME) > $@-t
 	@chmod a=r $@-t && mv $@-t $@
 
 ifeq (a,b)

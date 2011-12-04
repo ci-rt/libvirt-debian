@@ -1226,6 +1226,23 @@ EXTRA_DIST += test-ptsname.c signature.h macros.h
 
 ## end   gnulib module ptsname-tests
 
+## begin gnulib module ptsname_r
+
+
+EXTRA_DIST += ptsname_r.c
+
+EXTRA_libtests_a_SOURCES += ptsname_r.c
+
+## end   gnulib module ptsname_r
+
+## begin gnulib module ptsname_r-tests
+
+TESTS += test-ptsname_r
+check_PROGRAMS += test-ptsname_r
+EXTRA_DIST += test-ptsname_r.c signature.h macros.h
+
+## end   gnulib module ptsname_r-tests
+
 ## begin gnulib module putenv
 
 

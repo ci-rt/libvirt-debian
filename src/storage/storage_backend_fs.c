@@ -706,7 +706,7 @@ error:
 /**
  * @conn connection to report errors against
  * @pool storage pool to build
- * @flags controls the pool formating behaviour
+ * @flags controls the pool formatting behaviour
  *
  * Build a directory or FS based storage pool.
  *
@@ -880,7 +880,7 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
                                         VIR_STORAGE_VOL_OPEN_DEFAULT) < 0) {
                 /* The backing file is currently unavailable, the capacity,
                  * allocation, owner, group and mode are unknown. Just log the
-                 * error an continue.
+                 * error and continue.
                  * Unfortunately virStorageBackendProbeTarget() might already
                  * have logged a similar message for the same problem, but only
                  * if AUTO format detection was used. */

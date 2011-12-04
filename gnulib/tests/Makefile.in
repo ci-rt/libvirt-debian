@@ -108,14 +108,15 @@ TESTS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-posix_spawn_file_actions_adddup2$(EXEEXT) \
 	test-posix_spawn_file_actions_addopen$(EXEEXT) $(am__EXEEXT_1) \
 	test-pthread_sigmask1$(EXEEXT) test-pthread_sigmask2$(EXEEXT) \
-	test-ptsname$(EXEEXT) test-raise$(EXEEXT) \
-	test-random_r$(EXEEXT) test-rawmemchr$(EXEEXT) \
-	test-read$(EXEEXT) test-readlink$(EXEEXT) \
-	test-realloc-gnu$(EXEEXT) test-recv$(EXEEXT) \
-	test-sched$(EXEEXT) test-select$(EXEEXT) test-select-in.sh \
-	test-select-out.sh test-send$(EXEEXT) test-setenv$(EXEEXT) \
-	test-setlocale1.sh test-setlocale2.sh test-setsockopt$(EXEEXT) \
-	test-sigaction$(EXEEXT) test-signal-h$(EXEEXT) test-sigpipe.sh \
+	test-ptsname$(EXEEXT) test-ptsname_r$(EXEEXT) \
+	test-raise$(EXEEXT) test-random_r$(EXEEXT) \
+	test-rawmemchr$(EXEEXT) test-read$(EXEEXT) \
+	test-readlink$(EXEEXT) test-realloc-gnu$(EXEEXT) \
+	test-recv$(EXEEXT) test-sched$(EXEEXT) test-select$(EXEEXT) \
+	test-select-in.sh test-select-out.sh test-send$(EXEEXT) \
+	test-setenv$(EXEEXT) test-setlocale1.sh test-setlocale2.sh \
+	test-setsockopt$(EXEEXT) test-sigaction$(EXEEXT) \
+	test-signal-h$(EXEEXT) test-sigpipe.sh \
 	test-sigprocmask$(EXEEXT) test-sleep$(EXEEXT) \
 	test-snprintf$(EXEEXT) test-sockets$(EXEEXT) \
 	test-spawn$(EXEEXT) test-stat$(EXEEXT) test-stat-time$(EXEEXT) \
@@ -194,11 +195,11 @@ check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-posix_spawn_file_actions_adddup2$(EXEEXT) \
 	test-posix_spawn_file_actions_addopen$(EXEEXT) $(am__EXEEXT_1) \
 	test-pthread_sigmask1$(EXEEXT) test-pthread_sigmask2$(EXEEXT) \
-	test-ptsname$(EXEEXT) test-raise$(EXEEXT) \
-	test-random_r$(EXEEXT) test-rawmemchr$(EXEEXT) \
-	test-read$(EXEEXT) test-readlink$(EXEEXT) \
-	test-realloc-gnu$(EXEEXT) test-recv$(EXEEXT) \
-	test-sched$(EXEEXT) test-select$(EXEEXT) \
+	test-ptsname$(EXEEXT) test-ptsname_r$(EXEEXT) \
+	test-raise$(EXEEXT) test-random_r$(EXEEXT) \
+	test-rawmemchr$(EXEEXT) test-read$(EXEEXT) \
+	test-readlink$(EXEEXT) test-realloc-gnu$(EXEEXT) \
+	test-recv$(EXEEXT) test-sched$(EXEEXT) test-select$(EXEEXT) \
 	test-select-fd$(EXEEXT) test-select-stdin$(EXEEXT) \
 	test-send$(EXEEXT) test-setenv$(EXEEXT) \
 	test-setlocale1$(EXEEXT) test-setlocale2$(EXEEXT) \
@@ -353,6 +354,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/pthread.m4 \
 	$(top_srcdir)/gnulib/m4/pthread_sigmask.m4 \
 	$(top_srcdir)/gnulib/m4/ptsname.m4 \
+	$(top_srcdir)/gnulib/m4/ptsname_r.m4 \
 	$(top_srcdir)/gnulib/m4/pty.m4 \
 	$(top_srcdir)/gnulib/m4/pty_h.m4 \
 	$(top_srcdir)/gnulib/m4/putenv.m4 \
@@ -998,6 +1000,11 @@ test_ptsname_OBJECTS = test-ptsname.$(OBJEXT)
 test_ptsname_LDADD = $(LDADD)
 test_ptsname_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
+test_ptsname_r_SOURCES = test-ptsname_r.c
+test_ptsname_r_OBJECTS = test-ptsname_r.$(OBJEXT)
+test_ptsname_r_LDADD = $(LDADD)
+test_ptsname_r_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_raise_SOURCES = test-raise.c
 test_raise_OBJECTS = test-raise.$(OBJEXT)
 test_raise_LDADD = $(LDADD)
@@ -1372,15 +1379,16 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-posix_spawn_file_actions_adddup2.c \
 	test-posix_spawn_file_actions_addopen.c \
 	test-pthread_sigmask1.c test-pthread_sigmask2.c test-ptsname.c \
-	test-raise.c test-random_r.c test-rawmemchr.c test-read.c \
-	test-readlink.c test-realloc-gnu.c test-recv.c test-sched.c \
-	test-select.c test-select-fd.c test-select-stdin.c test-send.c \
-	test-setenv.c test-setlocale1.c test-setlocale2.c \
-	test-setsockopt.c test-sigaction.c test-signal-h.c \
-	test-sigpipe.c test-sigprocmask.c test-sleep.c test-snprintf.c \
-	test-sockets.c test-spawn.c test-stat.c test-stat-time.c \
-	test-stdalign.c test-stdbool.c test-stddef.c test-stdint.c \
-	test-stdio.c test-stdlib.c test-strchrnul.c test-strerror.c \
+	test-ptsname_r.c test-raise.c test-random_r.c test-rawmemchr.c \
+	test-read.c test-readlink.c test-realloc-gnu.c test-recv.c \
+	test-sched.c test-select.c test-select-fd.c \
+	test-select-stdin.c test-send.c test-setenv.c \
+	test-setlocale1.c test-setlocale2.c test-setsockopt.c \
+	test-sigaction.c test-signal-h.c test-sigpipe.c \
+	test-sigprocmask.c test-sleep.c test-snprintf.c test-sockets.c \
+	test-spawn.c test-stat.c test-stat-time.c test-stdalign.c \
+	test-stdbool.c test-stddef.c test-stdint.c test-stdio.c \
+	test-stdlib.c test-strchrnul.c test-strerror.c \
 	test-strerror_r.c test-string.c test-strings.c test-strnlen.c \
 	test-symlink.c test-sys_ioctl.c test-sys_select.c \
 	test-sys_socket.c test-sys_stat.c test-sys_time.c \
@@ -1427,15 +1435,16 @@ DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-posix_spawn_file_actions_adddup2.c \
 	test-posix_spawn_file_actions_addopen.c \
 	test-pthread_sigmask1.c test-pthread_sigmask2.c test-ptsname.c \
-	test-raise.c test-random_r.c test-rawmemchr.c test-read.c \
-	test-readlink.c test-realloc-gnu.c test-recv.c test-sched.c \
-	test-select.c test-select-fd.c test-select-stdin.c test-send.c \
-	test-setenv.c test-setlocale1.c test-setlocale2.c \
-	test-setsockopt.c test-sigaction.c test-signal-h.c \
-	test-sigpipe.c test-sigprocmask.c test-sleep.c test-snprintf.c \
-	test-sockets.c test-spawn.c test-stat.c test-stat-time.c \
-	test-stdalign.c test-stdbool.c test-stddef.c test-stdint.c \
-	test-stdio.c test-stdlib.c test-strchrnul.c test-strerror.c \
+	test-ptsname_r.c test-raise.c test-random_r.c test-rawmemchr.c \
+	test-read.c test-readlink.c test-realloc-gnu.c test-recv.c \
+	test-sched.c test-select.c test-select-fd.c \
+	test-select-stdin.c test-send.c test-setenv.c \
+	test-setlocale1.c test-setlocale2.c test-setsockopt.c \
+	test-sigaction.c test-signal-h.c test-sigpipe.c \
+	test-sigprocmask.c test-sleep.c test-snprintf.c test-sockets.c \
+	test-spawn.c test-stat.c test-stat-time.c test-stdalign.c \
+	test-stdbool.c test-stddef.c test-stdint.c test-stdio.c \
+	test-stdlib.c test-strchrnul.c test-strerror.c \
 	test-strerror_r.c test-string.c test-strings.c test-strnlen.c \
 	test-symlink.c test-sys_ioctl.c test-sys_select.c \
 	test-sys_socket.c test-sys_stat.c test-sys_time.c \
@@ -1738,6 +1747,7 @@ GNULIB_PRINTF_POSIX = @GNULIB_PRINTF_POSIX@
 GNULIB_PSELECT = @GNULIB_PSELECT@
 GNULIB_PTHREAD_SIGMASK = @GNULIB_PTHREAD_SIGMASK@
 GNULIB_PTSNAME = @GNULIB_PTSNAME@
+GNULIB_PTSNAME_R = @GNULIB_PTSNAME_R@
 GNULIB_PUTC = @GNULIB_PUTC@
 GNULIB_PUTCHAR = @GNULIB_PUTCHAR@
 GNULIB_PUTENV = @GNULIB_PUTENV@
@@ -1808,7 +1818,6 @@ GNULIB_TMPFILE = @GNULIB_TMPFILE@
 GNULIB_TOWCTRANS = @GNULIB_TOWCTRANS@
 GNULIB_TTYNAME_R = @GNULIB_TTYNAME_R@
 GNULIB_UNAME = @GNULIB_UNAME@
-GNULIB_UNISTD_H_GETOPT = @GNULIB_UNISTD_H_GETOPT@
 GNULIB_UNISTD_H_NONBLOCKING = @GNULIB_UNISTD_H_NONBLOCKING@
 GNULIB_UNISTD_H_SIGPIPE = @GNULIB_UNISTD_H_SIGPIPE@
 GNULIB_UNLINK = @GNULIB_UNLINK@
@@ -2003,6 +2012,7 @@ HAVE_PTHREAD_SIGMASK = @HAVE_PTHREAD_SIGMASK@
 HAVE_PTHREAD_SPINLOCK_T = @HAVE_PTHREAD_SPINLOCK_T@
 HAVE_PTHREAD_T = @HAVE_PTHREAD_T@
 HAVE_PTSNAME = @HAVE_PTSNAME@
+HAVE_PTSNAME_R = @HAVE_PTSNAME_R@
 HAVE_PTY_H = @HAVE_PTY_H@
 HAVE_PWRITE = @HAVE_PWRITE@
 HAVE_RAISE = @HAVE_RAISE@
@@ -2410,6 +2420,7 @@ REPLACE_PREAD = @REPLACE_PREAD@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PSELECT = @REPLACE_PSELECT@
 REPLACE_PTHREAD_SIGMASK = @REPLACE_PTHREAD_SIGMASK@
+REPLACE_PTSNAME_R = @REPLACE_PTSNAME_R@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
 REPLACE_RAISE = @REPLACE_RAISE@
@@ -2700,7 +2711,8 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-posix_spawn1.in.sh test-posix_spawn2.c \
 	test-posix_spawn2.in.sh signature.h test-pthread_sigmask1.c \
 	test-pthread_sigmask2.c signature.h macros.h ptsname.c \
-	test-ptsname.c signature.h macros.h putenv.c test-raise.c \
+	test-ptsname.c signature.h macros.h ptsname_r.c \
+	test-ptsname_r.c signature.h macros.h putenv.c test-raise.c \
 	signature.h macros.h test-random_r.c signature.h macros.h \
 	test-rawmemchr.c zerosize-ptr.h signature.h macros.h read.c \
 	test-read.c signature.h macros.h test-readlink.h \
@@ -2790,8 +2802,9 @@ EXTRA_libtests_a_SOURCES = btowc.c dup.c error.c fdopen.c ftruncate.c \
 	spawn_faction_addopen.c spawn_faction_destroy.c \
 	spawn_faction_init.c spawnattr_destroy.c spawnattr_init.c \
 	spawnattr_setflags.c spawnattr_setsigmask.c spawnp.c ptsname.c \
-	putenv.c read.c realloc.c setenv.c setlocale.c symlink.c \
-	unlockpt.c unsetenv.c wcrtomb.c wctob.c wctomb.c write.c
+	ptsname_r.c putenv.c read.c realloc.c setenv.c setlocale.c \
+	symlink.c unlockpt.c unsetenv.c wcrtomb.c wctob.c wctomb.c \
+	write.c
 AM_LIBTOOLFLAGS = --preserve-dup-deps
 test_accept_LDADD = $(LDADD) @LIBSOCKET@
 test_bind_LDADD = $(LDADD) @LIBSOCKET@ $(INET_PTON_LIB)
@@ -3237,6 +3250,9 @@ test-pthread_sigmask2$(EXEEXT): $(test_pthread_sigmask2_OBJECTS) $(test_pthread_
 test-ptsname$(EXEEXT): $(test_ptsname_OBJECTS) $(test_ptsname_DEPENDENCIES) 
 	@rm -f test-ptsname$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_ptsname_OBJECTS) $(test_ptsname_LDADD) $(LIBS)
+test-ptsname_r$(EXEEXT): $(test_ptsname_r_OBJECTS) $(test_ptsname_r_DEPENDENCIES) 
+	@rm -f test-ptsname_r$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_ptsname_r_OBJECTS) $(test_ptsname_r_LDADD) $(LIBS)
 test-raise$(EXEEXT): $(test_raise_OBJECTS) $(test_raise_DEPENDENCIES) 
 	@rm -f test-raise$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_raise_OBJECTS) $(test_raise_LDADD) $(LIBS)
@@ -3466,6 +3482,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mgetgroups.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/progname.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ptsname.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ptsname_r.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/putenv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/read.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/realloc.Po@am__quote@
@@ -3592,6 +3609,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-pthread_sigmask1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-pthread_sigmask2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-ptsname.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-ptsname_r.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-raise.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-random_r.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-rawmemchr.Po@am__quote@
