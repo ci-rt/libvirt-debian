@@ -32,6 +32,7 @@ Build-Depends: cdbs (>= 0.4.90~),
  libpcap0.8-dev,
  libnuma-dev [amd64 i386 ia64 mips mipsel powerpc],
  radvd [linux-any],
+ libnetcf-dev [linux-any],
 # For "make check"
  libxml2-utils,
  dnsmasq-base,

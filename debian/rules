@@ -27,6 +27,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_NETWORK        = --with-network
   WITH_QEMU           = --with-qemu
   WITH_OPENVZ         = --with-openvz
+  WITH_NETCF          = --with-netcf
   ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 i386 ia64 mips mipsel powerpc))
       WITH_NUMA       = --with-numactl
   else
@@ -49,6 +50,7 @@ else
   WITH_QEMU           = --without-qemu
   WITH_LXC            = --without-lxc
   WITH_NUMA           = --without-numactl
+  WITH_NETCF          = --without-netcf
 endif
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
@@ -76,7 +78,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	--enable-debug		 \
 	$(WITH_MACVTAP)		 \
 	$(WITH_NETWORK)		 \
-	--without-netcf		 \
+	$(WITH_NETCF)		 \
 	$(WITH_XEN)		 \
 	$(WITH_VBOX)		 \
 	$(WITH_LXC)
