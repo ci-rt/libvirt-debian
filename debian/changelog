@@ -1,3 +1,10 @@
+libvirt (0.9.8~rc2-2) experimental; urgency=low
+
+  * [e50aac4] remote_driver: don't fail if keepalive check fails. This fixes
+    remote connections to older libvirt versions.
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 05 Dec 2011 18:00:06 +0100
+
 libvirt (0.9.8~rc2-1) experimental; urgency=low
 
   * [9b1abb2] New upstream version 0.9.8~rc2
