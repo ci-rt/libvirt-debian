@@ -1,5 +1,3 @@
-# -*- buffer-read-only: t -*- vi: set ro:
-# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # longlong.m4 serial 13
 dnl Copyright (C) 1999-2007 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation

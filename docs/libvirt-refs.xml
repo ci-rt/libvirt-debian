@@ -93,6 +93,8 @@
     <reference name='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT'/>
     <reference name='VIR_DOMAIN_EVENT_RESUMED_MIGRATED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_RESUMED_MIGRATED'/>
     <reference name='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_RESUMED_UNPAUSED'/>
+    <reference name='VIR_DOMAIN_EVENT_SHUTDOWN' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_SHUTDOWN'/>
+    <reference name='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED'/>
     <reference name='VIR_DOMAIN_EVENT_STARTED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_STARTED'/>
     <reference name='VIR_DOMAIN_EVENT_STARTED_BOOTED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_STARTED_BOOTED'/>
     <reference name='VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT'/>
@@ -607,6 +609,7 @@
     <reference name='virDomainEventID' href='html/libvirt-libvirt.html#virDomainEventID'/>
     <reference name='virDomainEventIOErrorAction' href='html/libvirt-libvirt.html#virDomainEventIOErrorAction'/>
     <reference name='virDomainEventResumedDetailType' href='html/libvirt-libvirt.html#virDomainEventResumedDetailType'/>
+    <reference name='virDomainEventShutdownDetailType' href='html/libvirt-libvirt.html#virDomainEventShutdownDetailType'/>
     <reference name='virDomainEventStartedDetailType' href='html/libvirt-libvirt.html#virDomainEventStartedDetailType'/>
     <reference name='virDomainEventStoppedDetailType' href='html/libvirt-libvirt.html#virDomainEventStoppedDetailType'/>
     <reference name='virDomainEventSuspendedDetailType' href='html/libvirt-libvirt.html#virDomainEventSuspendedDetailType'/>
@@ -846,10 +849,12 @@
     <reference name='virNodeDeviceRef' href='html/libvirt-libvirt.html#virNodeDeviceRef'/>
     <reference name='virNodeDeviceReset' href='html/libvirt-libvirt.html#virNodeDeviceReset'/>
     <reference name='virNodeGetCPUStats' href='html/libvirt-libvirt.html#virNodeGetCPUStats'/>
+    <reference name='virNodeGetCPUStatsAllCPUs' href='html/libvirt-libvirt.html#virNodeGetCPUStatsAllCPUs'/>
     <reference name='virNodeGetCellsFreeMemory' href='html/libvirt-libvirt.html#virNodeGetCellsFreeMemory'/>
     <reference name='virNodeGetFreeMemory' href='html/libvirt-libvirt.html#virNodeGetFreeMemory'/>
     <reference name='virNodeGetInfo' href='html/libvirt-libvirt.html#virNodeGetInfo'/>
     <reference name='virNodeGetMemoryStats' href='html/libvirt-libvirt.html#virNodeGetMemoryStats'/>
+    <reference name='virNodeGetMemoryStatsAllCells' href='html/libvirt-libvirt.html#virNodeGetMemoryStatsAllCells'/>
     <reference name='virNodeGetSecurityModel' href='html/libvirt-libvirt.html#virNodeGetSecurityModel'/>
     <reference name='virNodeInfo' href='html/libvirt-libvirt.html#virNodeInfo'/>
     <reference name='virNodeInfoPtr' href='html/libvirt-libvirt.html#virNodeInfoPtr'/>
@@ -1067,6 +1072,8 @@
       <ref name='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT'/>
       <ref name='VIR_DOMAIN_EVENT_RESUMED_MIGRATED'/>
       <ref name='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED'/>
+      <ref name='VIR_DOMAIN_EVENT_SHUTDOWN'/>
+      <ref name='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED'/>
       <ref name='VIR_DOMAIN_EVENT_STARTED'/>
       <ref name='VIR_DOMAIN_EVENT_STARTED_BOOTED'/>
       <ref name='VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT'/>
@@ -1585,6 +1592,7 @@
       <ref name='virDomainEventID'/>
       <ref name='virDomainEventIOErrorAction'/>
       <ref name='virDomainEventResumedDetailType'/>
+      <ref name='virDomainEventShutdownDetailType'/>
       <ref name='virDomainEventStartedDetailType'/>
       <ref name='virDomainEventStoppedDetailType'/>
       <ref name='virDomainEventSuspendedDetailType'/>
@@ -1824,10 +1832,12 @@
       <ref name='virNodeDeviceRef'/>
       <ref name='virNodeDeviceReset'/>
       <ref name='virNodeGetCPUStats'/>
+      <ref name='virNodeGetCPUStatsAllCPUs'/>
       <ref name='virNodeGetCellsFreeMemory'/>
       <ref name='virNodeGetFreeMemory'/>
       <ref name='virNodeGetInfo'/>
       <ref name='virNodeGetMemoryStats'/>
+      <ref name='virNodeGetMemoryStatsAllCells'/>
       <ref name='virNodeGetSecurityModel'/>
       <ref name='virNodeInfo'/>
       <ref name='virNodeInfoPtr'/>
@@ -2880,6 +2890,8 @@
       <ref name='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT'/>
       <ref name='VIR_DOMAIN_EVENT_RESUMED_MIGRATED'/>
       <ref name='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED'/>
+      <ref name='VIR_DOMAIN_EVENT_SHUTDOWN'/>
+      <ref name='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED'/>
       <ref name='VIR_DOMAIN_EVENT_STARTED'/>
       <ref name='VIR_DOMAIN_EVENT_STARTED_BOOTED'/>
       <ref name='VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT'/>
@@ -3261,6 +3273,7 @@
       <ref name='virDomainEventID'/>
       <ref name='virDomainEventIOErrorAction'/>
       <ref name='virDomainEventResumedDetailType'/>
+      <ref name='virDomainEventShutdownDetailType'/>
       <ref name='virDomainEventStartedDetailType'/>
       <ref name='virDomainEventStoppedDetailType'/>
       <ref name='virDomainEventSuspendedDetailType'/>
@@ -3492,10 +3505,12 @@
       <ref name='virNodeDeviceRef'/>
       <ref name='virNodeDeviceReset'/>
       <ref name='virNodeGetCPUStats'/>
+      <ref name='virNodeGetCPUStatsAllCPUs'/>
       <ref name='virNodeGetCellsFreeMemory'/>
       <ref name='virNodeGetFreeMemory'/>
       <ref name='virNodeGetInfo'/>
       <ref name='virNodeGetMemoryStats'/>
+      <ref name='virNodeGetMemoryStatsAllCells'/>
       <ref name='virNodeGetSecurityModel'/>
       <ref name='virNodeInfo'/>
       <ref name='virNodeInfoPtr'/>
@@ -6562,7 +6577,6 @@
           <ref name='virNodeGetMemoryStats'/>
         </word>
         <word name='cells'>
-          <ref name='VIR_NODE_MEMORY_STATS_ALL_CELLS'/>
           <ref name='virNodeGetCellsFreeMemory'/>
         </word>
         <word name='challenge'>
@@ -13067,8 +13081,6 @@
           <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_REQ'/>
           <ref name='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES'/>
           <ref name='VIR_NODEINFO_MAXCPUS'/>
-          <ref name='VIR_NODE_CPU_STATS_ALL_CPUS'/>
-          <ref name='VIR_NODE_MEMORY_STATS_ALL_CELLS'/>
           <ref name='VIR_NODE_MEMORY_STATS_TOTAL'/>
           <ref name='_virNodeInfo'/>
           <ref name='virDomainMemoryStats'/>
@@ -13539,7 +13551,6 @@
           <ref name='virConnectDomainEventGenericCallback'/>
         </word>
         <word name='utilization'>
-          <ref name='VIR_NODE_CPU_STATS_ALL_CPUS'/>
           <ref name='VIR_NODE_CPU_STATS_UTILIZATION'/>
           <ref name='virNodeGetCPUStats'/>
         </word>
@@ -13989,6 +14000,9 @@
           <ref name='_virDomainInfo'/>
           <ref name='virDomainGetState'/>
         </word>
+        <word name='virDomainSuspend'>
+          <ref name='virDomainResume'/>
+        </word>
         <word name='virDomainUndefine'>
           <ref name='virDomainDefineXML'/>
         </word>
@@ -14257,9 +14271,6 @@
         </word>
         <word name='virStreamSourceFunc'>
           <ref name='virStreamSourceFunc'/>
-        </word>
-        <word name='virSuspendDomain'>
-          <ref name='virDomainResume'/>
         </word>
         <word name='virTypedParameter'>
           <ref name='VIR_TYPED_PARAM_FIELD_LENGTH'/>

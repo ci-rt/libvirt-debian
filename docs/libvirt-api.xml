@@ -47,14 +47,12 @@
      <exports symbol='VIR_DOMAIN_SEND_KEY_MAX_KEYS' type='macro'/>
      <exports symbol='VIR_GET_CPUMAP' type='macro'/>
      <exports symbol='VIR_NODEINFO_MAXCPUS' type='macro'/>
-     <exports symbol='VIR_NODE_CPU_STATS_ALL_CPUS' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_IDLE' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_IOWAIT' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_KERNEL' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_USER' type='macro'/>
      <exports symbol='VIR_NODE_CPU_STATS_UTILIZATION' type='macro'/>
-     <exports symbol='VIR_NODE_MEMORY_STATS_ALL_CELLS' type='macro'/>
      <exports symbol='VIR_NODE_MEMORY_STATS_BUFFERS' type='macro'/>
      <exports symbol='VIR_NODE_MEMORY_STATS_CACHED' type='macro'/>
      <exports symbol='VIR_NODE_MEMORY_STATS_FIELD_LENGTH' type='macro'/>
@@ -139,6 +137,8 @@
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_MIGRATED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STARTED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STARTED_BOOTED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT' type='enum'/>
@@ -295,6 +295,8 @@
      <exports symbol='VIR_MIGRATE_PERSIST_DEST' type='enum'/>
      <exports symbol='VIR_MIGRATE_TUNNELLED' type='enum'/>
      <exports symbol='VIR_MIGRATE_UNDEFINE_SOURCE' type='enum'/>
+     <exports symbol='VIR_NODE_CPU_STATS_ALL_CPUS' type='enum'/>
+     <exports symbol='VIR_NODE_MEMORY_STATS_ALL_CELLS' type='enum'/>
      <exports symbol='VIR_NODE_SUSPEND_TARGET_DISK' type='enum'/>
      <exports symbol='VIR_NODE_SUSPEND_TARGET_HYBRID' type='enum'/>
      <exports symbol='VIR_NODE_SUSPEND_TARGET_LAST' type='enum'/>
@@ -379,6 +381,7 @@
      <exports symbol='virDomainEventID' type='typedef'/>
      <exports symbol='virDomainEventIOErrorAction' type='typedef'/>
      <exports symbol='virDomainEventResumedDetailType' type='typedef'/>
+     <exports symbol='virDomainEventShutdownDetailType' type='typedef'/>
      <exports symbol='virDomainEventStartedDetailType' type='typedef'/>
      <exports symbol='virDomainEventStoppedDetailType' type='typedef'/>
      <exports symbol='virDomainEventSuspendedDetailType' type='typedef'/>
@@ -433,6 +436,8 @@
      <exports symbol='virNodeCPUStatsPtr' type='typedef'/>
      <exports symbol='virNodeDevice' type='typedef'/>
      <exports symbol='virNodeDevicePtr' type='typedef'/>
+     <exports symbol='virNodeGetCPUStatsAllCPUs' type='typedef'/>
+     <exports symbol='virNodeGetMemoryStatsAllCells' type='typedef'/>
      <exports symbol='virNodeInfo' type='typedef'/>
      <exports symbol='virNodeInfoPtr' type='typedef'/>
      <exports symbol='virNodeMemoryStats' type='typedef'/>
@@ -1121,9 +1126,6 @@
       <info><![CDATA[This macro is to calculate the total number of CPUs supported but not necessary active in the host.]]></info>
       <arg name='nodeinfo' info='virNodeInfo instance'/>
     </macro>
-    <macro name='VIR_NODE_CPU_STATS_ALL_CPUS' file='libvirt'>
-      <info><![CDATA[Macro for the total CPU time/utilization]]></info>
-    </macro>
     <macro name='VIR_NODE_CPU_STATS_FIELD_LENGTH' file='libvirt'>
       <info><![CDATA[Macro providing the field length of virNodeCPUStats]]></info>
     </macro>
@@ -1141,9 +1143,6 @@
     </macro>
     <macro name='VIR_NODE_CPU_STATS_UTILIZATION' file='libvirt'>
       <info><![CDATA[The CPU utilization of a node. The usage value is in percent and 100% represents all CPUs of the node.]]></info>
-    </macro>
-    <macro name='VIR_NODE_MEMORY_STATS_ALL_CELLS' file='libvirt'>
-      <info><![CDATA[Macro for the total memory of all cells.]]></info>
     </macro>
     <macro name='VIR_NODE_MEMORY_STATS_BUFFERS' file='libvirt'>
       <info><![CDATA[Macro for the buffer memory: On Linux, it is only returned in case of VIR_NODE_MEMORY_STATS_ALL_CELLS.]]></info>
@@ -1269,6 +1268,8 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT' file='libvirt' value='2' type='virDomainEventResumedDetailType' info='Resumed from snapshot'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_MIGRATED' file='libvirt' value='1' type='virDomainEventResumedDetailType' info='Resumed for completion of migration'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED' file='libvirt' value='0' type='virDomainEventResumedDetailType' info='Normal resume due to admin unpause'/>
+    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN' file='libvirt' value='6' type='virDomainEventType'/>
+    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' file='libvirt' value='0' type='virDomainEventShutdownDetailType' info='Guest finished shutdown sequence'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED' file='libvirt' value='2' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED_BOOTED' file='libvirt' value='0' type='virDomainEventStartedDetailType' info='Normal startup from boot'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT' file='libvirt' value='3' type='virDomainEventStartedDetailType' info='Restored from snapshot'/>
@@ -1588,6 +1589,8 @@ VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
     <enum name='VIR_MIGRATE_PERSIST_DEST' file='libvirt' value='8' type='virDomainMigrateFlags' info='persist the VM on the destination'/>
     <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt' value='4' type='virDomainMigrateFlags' info='tunnel migration data over libvirtd connection'/>
     <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt' value='16' type='virDomainMigrateFlags' info='undefine the VM on the source'/>
+    <enum name='VIR_NODE_CPU_STATS_ALL_CPUS' file='libvirt' value='-1' type='virNodeGetCPUStatsAllCPUs'/>
+    <enum name='VIR_NODE_MEMORY_STATS_ALL_CELLS' file='libvirt' value='-1' type='virNodeGetMemoryStatsAllCells'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_DISK' file='libvirt' value='1' type='virNodeSuspendTarget'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_HYBRID' file='libvirt' value='2' type='virNodeSuspendTarget' info='This constant is subject to change'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_LAST' file='libvirt' value='3' type='virNodeSuspendTarget'/>
@@ -1748,6 +1751,7 @@ and ERROR states)'/>
     <typedef name='virDomainEventID' file='libvirt' type='enum'/>
     <typedef name='virDomainEventIOErrorAction' file='libvirt' type='enum'/>
     <typedef name='virDomainEventResumedDetailType' file='libvirt' type='enum'/>
+    <typedef name='virDomainEventShutdownDetailType' file='libvirt' type='enum'/>
     <typedef name='virDomainEventStartedDetailType' file='libvirt' type='enum'/>
     <typedef name='virDomainEventStoppedDetailType' file='libvirt' type='enum'/>
     <typedef name='virDomainEventSuspendedDetailType' file='libvirt' type='enum'/>
@@ -1900,6 +1904,8 @@ see note above'/>
     <typedef name='virNodeDevicePtr' file='libvirt' type='virNodeDevice *'>
       <info><![CDATA[A virNodeDevicePtr is a pointer to a virNodeDevice structure.  Get one via virNodeDeviceLookupByKey, virNodeDeviceLookupByName, or virNodeDeviceCreate.  Be sure to Call virNodeDeviceFree when done using a virNodeDevicePtr obtained from any of the above functions to avoid leaking memory.]]></info>
     </typedef>
+    <typedef name='virNodeGetCPUStatsAllCPUs' file='libvirt' type='enum'/>
+    <typedef name='virNodeGetMemoryStatsAllCells' file='libvirt' type='enum'/>
     <struct name='virNodeInfo' file='libvirt' type='struct _virNodeInfo'>
       <field name='model' type='char model[32]' info='string indicating the CPU model'/>
       <field name='memory' type='unsigned long' info='memory size in kilobytes'/>
@@ -3886,7 +3892,7 @@ flags are mutually exclusive.]]></info>
     </function>
     <function name='virDomainResume' file='libvirt' module='libvirt'>
       <info><![CDATA[Resume a suspended domain, the process is restarted from the state where
-it was frozen by calling virSuspendDomain().
+it was frozen by calling virDomainSuspend().
 This function may require privileged access]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>

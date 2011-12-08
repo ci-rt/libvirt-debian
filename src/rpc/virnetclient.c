@@ -1265,6 +1265,7 @@ static void virNetClientIOEventLoopPassTheBuck(virNetClientPtr client, virNetCli
         }
         tmp = tmp->next;
     }
+    client->haveTheBuck = false;
 
     VIR_DEBUG("No thread to pass the buck to");
     if (client->wantClose) {
@@ -1545,7 +1546,6 @@ static int virNetClientIO(virNetClientPtr client,
     virNetClientCallQueue(&client->waitDispatch, thiscall);
 
     /* Check to see if another thread is dispatching */
-recheck:
     if (client->haveTheBuck) {
         char ignore = 1;
 
@@ -1593,17 +1593,12 @@ recheck:
             goto cleanup;
         }
 
-        /* Grr, someone might have passed the buck onto us ... */
-
-        /* We need to re-check if the buck has been passed to this thread
-         * as this thread might have been signalled to wake up, but another
-         * call might acquire the lock before this thread manages to wake up.
-         * This could cause that two threads claim they have the buck */
-        goto recheck;
+        /* Grr, someone passed the buck onto us ... */
+    } else {
+        client->haveTheBuck = true;
     }
 
     VIR_DEBUG("We have the buck %p %p", client->waitDispatch, thiscall);
-    client->haveTheBuck = true;
 
     /*
      * The buck stops here!
@@ -1630,8 +1625,6 @@ recheck:
     if (rv == 0 &&
         virGetLastError())
         rv = -1;
-
-    client->haveTheBuck = false;
 
 cleanup:
     VIR_DEBUG("All done with our call %p %p %d", client->waitDispatch, thiscall, rv);
