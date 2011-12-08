@@ -1,3 +1,11 @@
+libvirt (0.9.8-1) experimental; urgency=low
+
+  * [8a35c97] New upstream version 0.9.8
+  * [52e19b5] Drop remote_driver-don-t-fail-if-keepalive-check-fails.patch
+    applied upstream.
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 08 Dec 2011 23:31:31 +0100
+
 libvirt (0.9.8~rc2-2) experimental; urgency=low
 
   * [e50aac4] remote_driver: don't fail if keepalive check fails. This fixes
