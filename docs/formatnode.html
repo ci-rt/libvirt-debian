@@ -215,8 +215,12 @@
             <dl><dt><code>interface</code></dt><dd>The interface name tied to this device.</dd><dt><code>address</code></dt><dd>If present, the MAC address of the device.</dd><dt><code>capability</code></dt><dd>A network protocol exposed by the device, where the
                 attribute <code>type</code> can be "80203" for IEEE
                 802.3, or "80211" for various flavors of IEEE 802.11.
-            </dd></dl></dd><dt><code>scsi_host</code></dt><dd>Describes a SCSI host device.  Sub-elements include:
-            <dl><dt><code>host</code></dt><dd>The SCSI host number.</dd></dl></dd><dt><code>scsi</code></dt><dd>Desribes a SCSI device.  Sub-elements include:
+              </dd></dl></dd><dt><code>scsi_host</code></dt><dd>Describes a SCSI host device.  Sub-elements include:
+            <dl><dt><code>host</code></dt><dd>The SCSI host number.</dd><dt><code>capability</code></dt><dd>Current capabilities include "vports_ops" (indicates
+                vport operations are supported) and "fc_host", the later
+                implies following sub-elements: <code>wwnn</code>,
+                <code>wwpn</code>, <code>fabric_wwn</code>.
+              </dd></dl></dd><dt><code>scsi</code></dt><dd>Desribes a SCSI device.  Sub-elements include:
             <dl><dt><code>host</code></dt><dd>The SCSI host containing the device.</dd><dt><code>bus</code></dt><dd>The bus within the host.</dd><dt><code>target</code></dt><dd>The target within the bus.</dd><dt><code>lun</code></dt><dd>The lun within the target.</dd><dt><code>type</code></dt><dd>The type of SCSI device.</dd></dl></dd><dt><code>storage</code></dt><dd>Describes a device usable for storage.  Sub-elements
             include:
             <dl><dt><code>block</code></dt><dd>A block device file name that accesses the storage

@@ -1,3 +1,211 @@
+2011-12-08  Eric Blake  <eblake@redhat.com>
+
+	spec: don't use chkconfig --list
+	https://bugzilla.redhat.com/show_bug.cgi?id=694403 reports that
+	the specfile is incorrectly checking for a running libvirt-guests
+	service.  For example,
+
+	$ LC_ALL=es_ES chkconfig --list libvirt-guests
+	libvirt-guests 	  0:desactivado		 1:desactivado	   2:desactivado     3:activo	 4:activo  5:activo	    6:desactivado
+
+	will fail to find 5:on, even though it is active.  But chkconfig
+	already has a mode where you can silently use the exit status to
+	check for an active service.
+
+	* libvirt.spec.in (%post): Use simpler chkconfig options, to avoid
+	issues with localization.
+
+	build: fix build with older libxml2
+	On RHEL 5, with libxml2-2.6.26, the build failed with:
+	virsh.c: In function 'vshNodeIsSuperset':
+	virsh.c:11951: warning: implicit declaration of function 'xmlChildElementCount'
+
+	(or if warnings aren't errors, a link failure later on).
+
+	* src/util/xml.h (virXMLChildElementCount): New prototype.
+	* src/util/xml.c (virXMLChildElementCount): New function.
+	* src/libvirt_private.syms (xml.h): Export it.
+	* tools/virsh.c (vshNodeIsSuperset): Use it.
+
+2011-12-08  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix updating of haveTheBuck in RPC client to be race-free
+	When one thread passes the buck to another thread, it uses
+	virCondSignal to wake up the target thread. The variable
+	'haveTheBuck' is not updated in a race-free manner when
+	this occurs. The current thread sets it to false, and the
+	woken up thread sets it to true. There is a window where
+	a 3rd thread can come in and grab the buck.
+
+	Even if this didn't lead to crashes & deadlocks, this would
+	still result in unfairness in the buckpassing algorithm.
+
+	A better solution is to *never* set haveTheBuck to false
+	when we're passing the buck. Only set it to false when there
+	is no further thread waiting for the buck.
+
+	* src/rpc/virnetclient.c: Only set haveTheBuck to false
+	  if no thread is waiting
+
+	Revert fd066925440ba48acc95d8f31b2c98b1cc9d582d
+	Commit fd066925440ba48acc95d8f31b2c98b1cc9d582d tried to fix
+	a race condition in
+
+	  commit fa9595003d043df9f2efe95521c00898cef27106
+	  Author: Daniel P. Berrange <berrange@redhat.com>
+	  Date:   Fri Nov 11 15:28:41 2011 +0000
+
+	    Explicitly track whether the buck is held in remote client
+
+	Unfortunately there is a second race condition whereby the
+	event loop can trigger due to incoming data to read. Revert
+	this fix, so a complete fix for the problem can be cleanly
+	applied
+
+	* src/rpc/virnetclient.c: Revert fd066925440ba48acc95d8f31b2c98b1cc9d582d
+
+2011-12-08  Jim Fehlig  <jfehlig@suse.com>
+
+	Prevent crash of libvirtd when attaching to existing qemu process
+	With security_driver set to "none" in /etc/libvirt/qemu.conf,
+	libvirtd would crash when attempted to attach to an existing
+	qemu process.  Only copy the security model if it actually exists.
+
+2011-12-08  Christophe Fergeau  <cfergeau@redhat.com>
+
+	Add documentation for <disk><source type="dir">
+
+	Fix typo in virDomainResume API doc
+	It's referring to virSuspendDomain instead of
+	virDomainSuspend.
+
+2011-12-07  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Ignore shutdown event from destroyed domain
+	During virDomainDestroy, QEMU may emit SHUTDOWN event as a response to
+	SIGTERM and since domain object is still locked, the event is processed
+	after the domain is destroyed. We need to ignore this event in such case
+	to avoid changing domain state from shutoff to shutdown.
+
+2011-12-07  Osier Yang  <jyang@redhat.com>
+
+	npiv: Expose fabric_name outside
+	This patch is to expose the fabric_name of fc_host class, which
+	might be useful for users who wants to known which fabric the
+	(v)HBA connects to.
+
+	The patch also adds the missed capabilities' XML schema of scsi_host,
+	(of course, with fabric_wwn added), and update the documents
+	(docs/formatnode.html.in)
+
+2011-12-07  Daniel P. Berrange  <berrange@redhat.com>
+
+	Conditionalize daemonPath decl for Win32 which lacks UNIX sockets
+
+	Improve error reporting when libvirtd is not installed
+	Currently if you try to connect to a local libvirtd when
+	libvirtd is not in $PATH, you'll get an error
+
+	  error: internal error invalid use of command API
+
+	This is because remoteFindDaemonPath() returns NULL, which
+	causes us to pass NULL into virNetSocketConnectUNIX which
+	in turn causes us to pass NULL into virCommandNewArgList.
+
+	Adding missing error checks improves this to
+
+	  error: internal error Unable to locate libvirtd daemon in $PATH
+
+	* src/remote/remote_driver.c: Report error if libvirtd
+	  cannot be found
+	* src/rpc/virnetsocket.c: Report error if caller requested
+	  spawning of daemon, but provided no binary path
+
+2011-12-06  Eric Blake  <eblake@redhat.com>
+
+	spec: fix sanlock dependency
+	* libvirt.spec.in (with_sanlock): On RHEL, don't force sanlock
+	on architectures where it isn't available.
+
+	spec: add dmidecode as prereq
+	https://bugzilla.redhat.com/show_bug.cgi?id=754909 complains that
+	because libvirt didn't require dmidecode, that the logs are noisy
+	and virConnectGetSysinfo needlessly fails.  Even 'virt-what' requires
+	dmidecode, so it's not that onerous of a dependency.  We may be
+	able to drop this in the future when we move to parsing sysfs data,
+	but for now, listing the dependency will help matters.
+
+	* libvirt.spec.in (Requires): Sort Requires before BuildRequires.
+	Add dmidecode.
+
+	build: reduce warnings from older gcc
+	Older gcc warns (on every file!) that -Wabi and -Wdeprecated only
+	make sense on C++ projects.  Newer gcc accepts these warnings for
+	C, but it is not clear that they can do anything useful, so it
+	is easier to just drop the warnings altogether.
+
+	* m4/virt-compile-warnings.m4 (LIBVIRT_COMPILE_WARNINGS): Silence
+	-Wabi and -Wdeprecated on older gcc.
+	Reported by Peter Krempa.
+
+2011-12-06  Jiri Denemark  <jdenemar@redhat.com>
+
+	examples: Update event tests for shutdown event
+
+2011-12-05  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix incorrect symbols for virtime.h module breaking Mingw32
+	The Mingw32 linker highlighted that the symbols for virtime.h
+	declared in libvirt_private.syms were incorrect
+
+	* src/libvirt_private.syms: Fix virtime.h symbols
+
+2011-12-05  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Rework handling of shutdown event
+	When QEMU guest finishes its shutdown sequence, qemu stops virtual CPUs
+	and when started with -no-shutdown waits for us to kill it using
+	SGITERM. Since QEMU is flushing its internal buffers, some time may pass
+	before QEMU actually dies. We mistakenly used "paused" state (and
+	events) for this which is quite confusing since users may see a domain
+	going to pause while they expect it to shutdown. Since we already have
+	"shutdown" state with "the domain is being shut down" semantics, we
+	should use it for this state.
+
+	However, the state didn't have a corresponding event so I created one
+	and called its detail as VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED (guest OS
+	finished its shutdown sequence) with the intent to add
+	VIR_DOMAIN_EVENT_SHUTDOWN_STARTED in the future if we have a
+	sufficiently capable guest agent that can notify us when guest OS starts
+	to shutdown.
+
+2011-12-05  Guido Günther  <agx@sigxcpu.org>
+
+	remote_driver: don't fail if keepalive check fails
+	Otherwise connections to older libvirt abort with:
+
+	$ virsh -c qemu+ssh://host.example.com/system list
+	error: invalid connection pointer in virDrvSupportsFeature
+	error: failed to connect to the hypervisor
+
+	Tested against 0.8.3 and 0.9.8-rc2.
+
+2011-12-05  Jiri Denemark  <jdenemar@redhat.com>
+
+	Add support for QEMU 1.0
+
+2011-12-05  Peter Krempa  <pkrempa@redhat.com>
+
+	python: Expose binding for virNodeGetMemoryStats()
+	This patch adds binding for virNodeGetMemoryStats method of libvirtd.
+	Return value is represented as a python dictionary mapping field
+	names to values.
+
+	python: Expose binding for virNodeGetCPUStats()
+	This patch adds binding for virNodeGetCPUStats method of libvirtd.
+	Return value is represented as a python dictionary mapping field names
+	to values.
+
 2011-12-04  Eric Blake  <eblake@redhat.com>
 
 	maint: fix improper use of 'an'

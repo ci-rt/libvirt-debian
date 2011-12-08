@@ -80,14 +80,12 @@
 #define <a href="#VIR_DOMAIN_SEND_KEY_MAX_KEYS">VIR_DOMAIN_SEND_KEY_MAX_KEYS</a>;
 #define <a href="#VIR_GET_CPUMAP">VIR_GET_CPUMAP</a>(cpumaps, maplen, vcpu);
 #define <a href="#VIR_NODEINFO_MAXCPUS">VIR_NODEINFO_MAXCPUS</a>(nodeinfo);
-#define <a href="#VIR_NODE_CPU_STATS_ALL_CPUS">VIR_NODE_CPU_STATS_ALL_CPUS</a>;
 #define <a href="#VIR_NODE_CPU_STATS_FIELD_LENGTH">VIR_NODE_CPU_STATS_FIELD_LENGTH</a>;
 #define <a href="#VIR_NODE_CPU_STATS_IDLE">VIR_NODE_CPU_STATS_IDLE</a>;
 #define <a href="#VIR_NODE_CPU_STATS_IOWAIT">VIR_NODE_CPU_STATS_IOWAIT</a>;
 #define <a href="#VIR_NODE_CPU_STATS_KERNEL">VIR_NODE_CPU_STATS_KERNEL</a>;
 #define <a href="#VIR_NODE_CPU_STATS_USER">VIR_NODE_CPU_STATS_USER</a>;
 #define <a href="#VIR_NODE_CPU_STATS_UTILIZATION">VIR_NODE_CPU_STATS_UTILIZATION</a>;
-#define <a href="#VIR_NODE_MEMORY_STATS_ALL_CELLS">VIR_NODE_MEMORY_STATS_ALL_CELLS</a>;
 #define <a href="#VIR_NODE_MEMORY_STATS_BUFFERS">VIR_NODE_MEMORY_STATS_BUFFERS</a>;
 #define <a href="#VIR_NODE_MEMORY_STATS_CACHED">VIR_NODE_MEMORY_STATS_CACHED</a>;
 #define <a href="#VIR_NODE_MEMORY_STATS_FIELD_LENGTH">VIR_NODE_MEMORY_STATS_FIELD_LENGTH</a>;
@@ -147,6 +145,7 @@ typedef <a href="libvirt-libvirt.html#virDomainEventGraphicsSubject">virDomainEv
 typedef enum <a href="#virDomainEventID">virDomainEventID</a>;
 typedef enum <a href="#virDomainEventIOErrorAction">virDomainEventIOErrorAction</a>;
 typedef enum <a href="#virDomainEventResumedDetailType">virDomainEventResumedDetailType</a>;
+typedef enum <a href="#virDomainEventShutdownDetailType">virDomainEventShutdownDetailType</a>;
 typedef enum <a href="#virDomainEventStartedDetailType">virDomainEventStartedDetailType</a>;
 typedef enum <a href="#virDomainEventStoppedDetailType">virDomainEventStoppedDetailType</a>;
 typedef enum <a href="#virDomainEventSuspendedDetailType">virDomainEventSuspendedDetailType</a>;
@@ -201,6 +200,8 @@ typedef struct _virNodeCPUStats <a href="#virNodeCPUStats">virNodeCPUStats</a>;
 typedef <a href="libvirt-libvirt.html#virNodeCPUStats">virNodeCPUStats</a> * <a href="#virNodeCPUStatsPtr">virNodeCPUStatsPtr</a>;
 typedef struct _virNodeDevice <a href="#virNodeDevice">virNodeDevice</a>;
 typedef <a href="libvirt-libvirt.html#virNodeDevice">virNodeDevice</a> * <a href="#virNodeDevicePtr">virNodeDevicePtr</a>;
+typedef enum <a href="#virNodeGetCPUStatsAllCPUs">virNodeGetCPUStatsAllCPUs</a>;
+typedef enum <a href="#virNodeGetMemoryStatsAllCells">virNodeGetMemoryStatsAllCells</a>;
 typedef struct _virNodeInfo <a href="#virNodeInfo">virNodeInfo</a>;
 typedef <a href="libvirt-libvirt.html#virNodeInfo">virNodeInfo</a> * <a href="#virNodeInfoPtr">virNodeInfoPtr</a>;
 typedef struct _virNodeMemoryStats <a href="#virNodeMemoryStats">virNodeMemoryStats</a>;
@@ -750,10 +751,6 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
 </pre><p>This macro is to calculate the total number of CPUs supported but not necessary active in the host.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>nodeinfo</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virNodeInfo">virNodeInfo</a> instance</td></tr></tbody></table></div>
 </div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_ALL_CPUS">Macro </a>VIR_NODE_CPU_STATS_ALL_CPUS</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_ALL_CPUS">VIR_NODE_CPU_STATS_ALL_CPUS</a>;
-</pre><p>Macro for the total CPU time/utilization</p>
-</div>
-        <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_FIELD_LENGTH">Macro </a>VIR_NODE_CPU_STATS_FIELD_LENGTH</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_FIELD_LENGTH">VIR_NODE_CPU_STATS_FIELD_LENGTH</a>;
 </pre><p>Macro providing the field length of <a href="libvirt-libvirt.html#virNodeCPUStats">virNodeCPUStats</a></p>
 </div>
@@ -776,10 +773,6 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_NODE_CPU_STATS_UTILIZATION">Macro </a>VIR_NODE_CPU_STATS_UTILIZATION</h3><pre class="programlisting">#define <a href="#VIR_NODE_CPU_STATS_UTILIZATION">VIR_NODE_CPU_STATS_UTILIZATION</a>;
 </pre><p>The CPU utilization of a node. The usage value is in percent and 100% represents all CPUs of the node.</p>
-</div>
-        <hr/>
-        <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_STATS_ALL_CELLS">Macro </a>VIR_NODE_MEMORY_STATS_ALL_CELLS</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_STATS_ALL_CELLS">VIR_NODE_MEMORY_STATS_ALL_CELLS</a>;
-</pre><p>Macro for the total memory of all cells.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_NODE_MEMORY_STATS_BUFFERS">Macro </a>VIR_NODE_MEMORY_STATS_BUFFERS</h3><pre class="programlisting">#define <a href="#VIR_NODE_MEMORY_STATS_BUFFERS">VIR_NODE_MEMORY_STATS_BUFFERS</a>;
@@ -1156,6 +1149,12 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainEventShutdownDetailType">Enum </a>virDomainEventShutdownDetailType</h3><pre class="programlisting">enum <a href="#virDomainEventShutdownDetailType">virDomainEventShutdownDetailType</a> {
+    <a name="VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED">VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED</a> = 0 /* Guest finished shutdown sequence */
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainEventStartedDetailType">Enum </a>virDomainEventStartedDetailType</h3><pre class="programlisting">enum <a href="#virDomainEventStartedDetailType">virDomainEventStartedDetailType</a> {
     <a name="VIR_DOMAIN_EVENT_STARTED_BOOTED">VIR_DOMAIN_EVENT_STARTED_BOOTED</a> = 0 /* Normal startup from boot */
     <a name="VIR_DOMAIN_EVENT_STARTED_MIGRATED">VIR_DOMAIN_EVENT_STARTED_MIGRATED</a> = 1 /* Incoming migration from another host */
@@ -1195,6 +1194,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_EVENT_SUSPENDED">VIR_DOMAIN_EVENT_SUSPENDED</a> = 3
     <a name="VIR_DOMAIN_EVENT_RESUMED">VIR_DOMAIN_EVENT_RESUMED</a> = 4
     <a name="VIR_DOMAIN_EVENT_STOPPED">VIR_DOMAIN_EVENT_STOPPED</a> = 5
+    <a name="VIR_DOMAIN_EVENT_SHUTDOWN">VIR_DOMAIN_EVENT_SHUTDOWN</a> = 6
 };
 </pre><p/>
 </div>
@@ -1597,6 +1597,18 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeDevicePtr">Typedef </a>virNodeDevicePtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virNodeDevice">virNodeDevice</a> * virNodeDevicePtr;
 </pre><p>A <a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> is a pointer to a <a href="libvirt-libvirt.html#virNodeDevice">virNodeDevice</a> structure. Get one via virNodeDeviceLookupByKey, virNodeDeviceLookupByName, or virNodeDeviceCreate. Be sure to Call <a href="libvirt-libvirt.html#virNodeDeviceFree">virNodeDeviceFree</a> when done using a <a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> obtained from any of the above functions to avoid leaking memory.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetCPUStatsAllCPUs">Enum </a>virNodeGetCPUStatsAllCPUs</h3><pre class="programlisting">enum <a href="#virNodeGetCPUStatsAllCPUs">virNodeGetCPUStatsAllCPUs</a> {
+    <a name="VIR_NODE_CPU_STATS_ALL_CPUS">VIR_NODE_CPU_STATS_ALL_CPUS</a> = -1
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetMemoryStatsAllCells">Enum </a>virNodeGetMemoryStatsAllCells</h3><pre class="programlisting">enum <a href="#virNodeGetMemoryStatsAllCells">virNodeGetMemoryStatsAllCells</a> {
+    <a name="VIR_NODE_MEMORY_STATS_ALL_CELLS">VIR_NODE_MEMORY_STATS_ALL_CELLS</a> = -1
+};
+</pre><p/>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeInfo">Structure </a>virNodeInfo</h3><pre class="programlisting">struct _virNodeInfo {
@@ -3386,7 +3398,7 @@ flags are mutually exclusive.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainResume"/>virDomainResume ()</h3><pre class="programlisting">int	virDomainResume			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Resume a suspended domain, the process is restarted from the state where
-it was frozen by calling virSuspendDomain().
+it was frozen by calling virDomainSuspend().
 This function may require privileged access</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
