@@ -1,3 +1,10 @@
+libvirt (0.9.8-2) unstable; urgency=low
+
+  * Upload to unstable. Works with qemu-kvm and qemu 1.0.
+    (Closes: #652454)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 17 Dec 2011 14:01:20 +0100
+
 libvirt (0.9.8-1) experimental; urgency=low
 
   * [8a35c97] New upstream version 0.9.8
