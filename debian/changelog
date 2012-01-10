@@ -1,3 +1,13 @@
+libvirt (0.9.8-2~bpo60+1) squeeze-backports; urgency=low
+
+  * Rebuild for squeeze-backports.
+  * [82758c4] Use dh_pycentral on Squeez
+  * [e9ebaaf] Use XS-Python-Version instead of X-Python-Version
+    since we still use dh_pycentral
+  * [c754689] Disable the testsuite for backport builds
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 10 Jan 2012 20:16:01 +0100
+
 libvirt (0.9.8-2) unstable; urgency=low
 
   * Upload to unstable. Works with qemu-kvm and qemu 1.0.
