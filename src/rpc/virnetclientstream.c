@@ -268,6 +268,9 @@ int virNetClientStreamSetError(virNetClientStreamPtr st,
     st->err.int1 = err.int1;
     st->err.int2 = err.int2;
 
+    st->incomingEOF = true;
+    virNetClientStreamEventTimerUpdate(st);
+
     ret = 0;
 
 cleanup:
@@ -325,7 +328,6 @@ int virNetClientStreamSendPacket(virNetClientStreamPtr st,
                                  size_t nbytes)
 {
     virNetMessagePtr msg;
-    bool wantReply;
     VIR_DEBUG("st=%p status=%d data=%p nbytes=%zu", st, status, data, nbytes);
 
     if (!(msg = virNetMessageNew(false)))
@@ -351,15 +353,17 @@ int virNetClientStreamSendPacket(virNetClientStreamPtr st,
     if (status == VIR_NET_CONTINUE) {
         if (virNetMessageEncodePayloadRaw(msg, data, nbytes) < 0)
             goto error;
-        wantReply = false;
+
+        if (virNetClientSendNoReply(client, msg) < 0)
+            goto error;
     } else {
         if (virNetMessageEncodePayloadRaw(msg, NULL, 0) < 0)
             goto error;
-        wantReply = true;
+
+        if (virNetClientSendWithReply(client, msg) < 0)
+            goto error;
     }
 
-    if (virNetClientSend(client, msg, wantReply) < 0)
-        goto error;
 
     virNetMessageFree(msg);
 
@@ -400,10 +404,11 @@ int virNetClientStreamRecvPacket(virNetClientStreamPtr st,
         msg->header.type = VIR_NET_STREAM;
         msg->header.serial = st->serial;
         msg->header.proc = st->proc;
+        msg->header.status = VIR_NET_CONTINUE;
 
         VIR_DEBUG("Dummy packet to wait for stream data");
         virMutexUnlock(&st->lock);
-        ret = virNetClientSend(client, msg, true);
+        ret = virNetClientSendWithReply(client, msg);
         virMutexLock(&st->lock);
         virNetMessageFree(msg);
 

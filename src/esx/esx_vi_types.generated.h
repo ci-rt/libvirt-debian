@@ -2303,6 +2303,29 @@ int esxVI_Datacenter_Validate(esxVI_Datacenter *item, esxVI_String *selectedProp
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Managed Object: Folder
+ *                    extends ManagedEntity
+ */
+
+struct _esxVI_Folder {
+    esxVI_Folder *_unused;                                 /* optional */
+    esxVI_Type _type;                                      /* required */
+    esxVI_ManagedObjectReference *_reference;              /* required */
+
+    /* ManagedEntity */
+    char *name;                                            /* required */
+
+    /* Folder */
+    /* no properties */
+};
+
+int esxVI_Folder_Alloc(esxVI_Folder **item);
+void esxVI_Folder_Free(esxVI_Folder **item);
+int esxVI_Folder_Validate(esxVI_Folder *item, esxVI_String *selectedPropertyNameList);
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Managed Object: HostSystem
  *                    extends ManagedEntity
  */
@@ -2329,6 +2352,7 @@ int esxVI_HostSystem_Validate(esxVI_HostSystem *item, esxVI_String *selectedProp
  * VI Managed Object: ManagedEntity
  *                    extended by ComputeResource
  *                                Datacenter
+ *                                Folder
  *                                HostSystem
  */
 

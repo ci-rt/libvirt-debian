@@ -30,7 +30,6 @@
 
 #include <sys/types.h>
 #include <sys/poll.h>
-#include <dirent.h>
 #include <limits.h>
 #include <string.h>
 #include <stdio.h>
@@ -54,7 +53,6 @@
 #include "openvz_conf.h"
 #include "nodeinfo.h"
 #include "memory.h"
-#include "bridge.h"
 #include "virfile.h"
 #include "logging.h"
 #include "command.h"
@@ -1426,6 +1424,12 @@ static int openvzIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED) {
     return 1;
 }
 
+static int
+openvzIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 1;
+}
+
 static char *openvzGetCapabilities(virConnectPtr conn) {
     struct openvz_driver *driver = conn->privateData;
     char *ret;
@@ -1714,6 +1718,7 @@ static virDriver openvzDriver = {
     .domainIsActive = openvzDomainIsActive, /* 0.7.3 */
     .domainIsPersistent = openvzDomainIsPersistent, /* 0.7.3 */
     .domainIsUpdated = openvzDomainIsUpdated, /* 0.8.6 */
+    .isAlive = openvzIsAlive, /* 0.9.8 */
 };
 
 int openvzRegister(void) {

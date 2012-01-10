@@ -44,6 +44,25 @@ ESX_VI__TEMPLATE__LOOKUP(Datacenter,
 
 
 
+/* esxVI_LookupFolder */
+ESX_VI__TEMPLATE__LOOKUP(Folder,
+{
+    /* ManagedEntity */
+    "name\0"
+
+    /* Folder */
+    /* no properties */
+},
+{
+    /* ManagedEntity */
+    ESX_VI__TEMPLATE__PROPERTY__CAST_VALUE_FROM_ANY_TYPE(String, name)
+
+    /* Folder */
+    /* no properties */
+})
+
+
+
 /* esxVI_LookupHostSystem */
 ESX_VI__TEMPLATE__LOOKUP(HostSystem,
 {

@@ -125,6 +125,12 @@ xenParseSxprOS(const struct sexpr *node,
         STREQ(def->os.kernel, def->os.loader)) {
         VIR_FREE(def->os.kernel);
     }
+    /* Drop kernel argument that has no value */
+    if (hvm &&
+        def->os.kernel && *def->os.kernel == '\0' &&
+        def->os.loader) {
+        VIR_FREE(def->os.kernel);
+    }
 
     if (!def->os.kernel &&
         hvm) {
@@ -196,7 +202,6 @@ xenParseSxprChar(const char *value,
         }
     }
 
-    /* Compat with legacy  <console tty='/dev/pts/5'/> syntax */
     switch (def->source.type) {
     case VIR_DOMAIN_CHR_TYPE_PTY:
         if (tty != NULL &&
@@ -342,20 +347,24 @@ xenParseSxprDisks(virDomainDefPtr def,
             const char *src = NULL;
             const char *dst = NULL;
             const char *mode = NULL;
+            const char *bootable = NULL;
 
             /* Again dealing with (vbd...) vs (tap ...) differences */
             if (sexpr_lookup(node, "device/vbd")) {
                 src = sexpr_node(node, "device/vbd/uname");
                 dst = sexpr_node(node, "device/vbd/dev");
                 mode = sexpr_node(node, "device/vbd/mode");
+                bootable = sexpr_node(node, "device/vbd/bootable");
             } else if (sexpr_lookup(node, "device/tap2")) {
                 src = sexpr_node(node, "device/tap2/uname");
                 dst = sexpr_node(node, "device/tap2/dev");
                 mode = sexpr_node(node, "device/tap2/mode");
+                bootable = sexpr_node(node, "device/tap2/bootable");
             } else {
                 src = sexpr_node(node, "device/tap/uname");
                 dst = sexpr_node(node, "device/tap/dev");
                 mode = sexpr_node(node, "device/tap/mode");
+                bootable = sexpr_node(node, "device/tap/bootable");
             }
 
             if (VIR_ALLOC(disk) < 0)
@@ -387,14 +396,20 @@ xenParseSxprDisks(virDomainDefPtr def,
                     goto error;
                 }
 
-                if (VIR_ALLOC_N(disk->driverName, (offset-src)+1) < 0)
-                    goto no_memory;
-                if (virStrncpy(disk->driverName, src, offset-src,
-                              (offset-src)+1) == NULL) {
-                    XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
-                                 _("Driver name %s too big for destination"),
-                                 src);
-                    goto error;
+                if (sexpr_lookup(node, "device/tap2") &&
+                    STRPREFIX(src, "tap:")) {
+                    if (!(disk->driverName = strdup("tap2")))
+                        goto no_memory;
+                } else {
+                    if (VIR_ALLOC_N(disk->driverName, (offset-src)+1) < 0)
+                        goto no_memory;
+                    if (virStrncpy(disk->driverName, src, offset-src,
+                                   (offset-src)+1) == NULL) {
+                        XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
+                                    _("Driver name %s too big for destination"),
+                                    src);
+                        goto error;
+                    }
                 }
 
                 src = offset + 1;
@@ -481,7 +496,13 @@ xenParseSxprDisks(virDomainDefPtr def,
             if (VIR_REALLOC_N(def->disks, def->ndisks+1) < 0)
                 goto no_memory;
 
-            def->disks[def->ndisks++] = disk;
+            /* re-order disks if there is a bootable device */
+            if (STREQ_NULLABLE(bootable, "1")) {
+                def->disks[def->ndisks++] = def->disks[0];
+                def->disks[0] = disk;
+            } else {
+                def->disks[def->ndisks++] = disk;
+            }
             disk = NULL;
         }
     }
@@ -1072,7 +1093,8 @@ xenParseSxpr(const struct sexpr *root,
                      "%s", _("domain information incomplete, missing name"));
         goto error;
     }
-    virUUIDParse(tmp, def->uuid);
+    if (virUUIDParse(tmp, def->uuid) < 0)
+        goto error;
 
     if (sexpr_node_copy(root, "domain/description", &def->description) < 0)
         goto no_memory;
@@ -1118,8 +1140,7 @@ xenParseSxpr(const struct sexpr *root,
             goto error;
         }
 
-        if (virDomainCpuSetParse(&cpus,
-                                 0, def->cpumask,
+        if (virDomainCpuSetParse(cpus, 0, def->cpumask,
                                  def->cpumasklen) < 0) {
             XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
                          _("invalid CPU mask %s"), cpus);
@@ -1372,12 +1393,15 @@ xenParseSxpr(const struct sexpr *root,
             def->parallels[def->nparallels++] = chr;
         }
     } else {
+        def->nconsoles = 1;
+        if (VIR_ALLOC_N(def->consoles, 1) < 0)
+            goto no_memory;
         /* Fake a paravirt console, since that's not in the sexpr */
-        if (!(def->console = xenParseSxprChar("pty", tty)))
+        if (!(def->consoles[0] = xenParseSxprChar("pty", tty)))
             goto error;
-        def->console->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE;
-        def->console->target.port = 0;
-        def->console->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
+        def->consoles[0]->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE;
+        def->consoles[0]->target.port = 0;
+        def->consoles[0]->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
     }
     VIR_FREE(tty);
 
@@ -1590,6 +1614,11 @@ xenFormatSxprChr(virDomainChrDefPtr def,
         if (def->source.data.nix.listen)
             virBufferAddLit(buf, ",server,nowait");
         break;
+
+    default:
+        XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
+                    _("unsupported chr device type '%s'"), type);
+        return -1;
     }
 
     if (virBufferError(buf)) {

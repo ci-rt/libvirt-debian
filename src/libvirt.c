@@ -40,7 +40,10 @@
 #include "memory.h"
 #include "configmake.h"
 #include "intprops.h"
+#include "conf.h"
 #include "rpc/virnettlscontext.h"
+#include "command.h"
+#include "virnodesuspend.h"
 
 #ifndef WITH_DRIVER_MODULES
 # ifdef WITH_TEST
@@ -107,34 +110,22 @@ static int initialized = 0;
 
 #if defined(POLKIT_AUTH)
 static int virConnectAuthGainPolkit(const char *privilege) {
-    const char *const args[] = {
-        POLKIT_AUTH, "--obtain", privilege, NULL
-    };
-    int childpid, status, ret;
+    virCommandPtr cmd;
+    int status;
+    int ret = -1;
 
-    /* Root has all rights */
     if (getuid() == 0)
         return 0;
 
-    if ((childpid = fork()) < 0)
-        return -1;
+    cmd = virCommandNewArgList(POLKIT_AUTH, "--obtain", privilege, NULL);
+    if (virCommandRun(cmd, &status) < 0 ||
+        status > 1)
+        goto cleanup;
 
-    if (!childpid) {
-        execvp(args[0], (char **)args);
-        _exit(-1);
-    }
-
-    while ((ret = waitpid(childpid, &status, 0) == -1) && errno == EINTR);
-    if (ret == -1) {
-        return -1;
-    }
-
-    if (!WIFEXITED(status) ||
-        (WEXITSTATUS(status) != 0 && WEXITSTATUS(status) != 1)) {
-        return -1;
-    }
-
-    return 0;
+    ret = 0;
+cleanup:
+    virCommandFree(cmd);
+    return ret;
 }
 #endif
 
@@ -409,7 +400,8 @@ virInitialize(void)
 
     if (virThreadInitialize() < 0 ||
         virErrorInitialize() < 0 ||
-        virRandomInitialize(time(NULL) ^ getpid()))
+        virRandomInitialize(time(NULL) ^ getpid()) ||
+        virNodeSuspendInit() < 0)
         return -1;
 
     gcry_control(GCRYCTL_SET_THREAD_CBS, &virTLSThreadImpl);
@@ -968,6 +960,128 @@ error:
     return -1;
 }
 
+static char *
+virConnectConfigFile(void)
+{
+    char *path;
+    if (geteuid() == 0) {
+        if (virAsprintf(&path, "%s/libvirt/libvirt.conf",
+                        SYSCONFDIR) < 0)
+            goto no_memory;
+    } else {
+        char *userdir = virGetUserDirectory(geteuid());
+        if (!userdir)
+            goto error;
+
+        if (virAsprintf(&path, "%s/.libvirt/libvirt.conf",
+                        userdir) < 0) {
+            VIR_FREE(userdir);
+            goto no_memory;
+        }
+        VIR_FREE(userdir);
+    }
+
+    return path;
+
+no_memory:
+    virReportOOMError();
+error:
+    return NULL;
+}
+
+#define URI_ALIAS_CHARS "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+
+static int
+virConnectOpenFindURIAliasMatch(virConfValuePtr value, const char *alias, char **uri)
+{
+    virConfValuePtr entry;
+    size_t alias_len;
+
+    if (value->type != VIR_CONF_LIST) {
+        virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("Expected a list for 'uri_aliases' config parameter"));
+        return -1;
+    }
+
+    entry = value->list;
+    alias_len = strlen(alias);
+    while (entry) {
+        char *offset;
+        size_t safe;
+
+        if (entry->type != VIR_CONF_STRING) {
+            virLibConnError(VIR_ERR_CONF_SYNTAX, "%s",
+                            _("Expected a string for 'uri_aliases' config parameter list entry"));
+            return -1;
+        }
+
+        if (!(offset = strchr(entry->str, '='))) {
+            virLibConnError(VIR_ERR_CONF_SYNTAX,
+                            _("Malformed 'uri_aliases' config entry '%s', expected 'alias=uri://host/path'"),
+                            entry->str);
+            return -1;
+        }
+
+        safe  = strspn(entry->str, URI_ALIAS_CHARS);
+        if (safe < (offset - entry->str)) {
+            virLibConnError(VIR_ERR_CONF_SYNTAX,
+                            _("Malformed 'uri_aliases' config entry '%s', aliases may only container 'a-Z, 0-9, _, -'"),
+                            entry->str);
+            return -1;
+        }
+
+        if (alias_len == (offset - entry->str) &&
+            STREQLEN(entry->str, alias, alias_len)) {
+            VIR_DEBUG("Resolved alias '%s' to '%s'",
+                      alias, offset+1);
+            if (!(*uri = strdup(offset+1))) {
+                virReportOOMError();
+                return -1;
+            }
+            return 0;
+        }
+
+        entry = entry->next;
+    }
+
+    VIR_DEBUG("No alias found for '%s', passing through to drivers",
+              alias);
+    return 0;
+}
+
+static int
+virConnectOpenResolveURIAlias(const char *alias, char **uri)
+{
+    char *config = NULL;
+    int ret = -1;
+    virConfPtr conf = NULL;
+    virConfValuePtr value = NULL;
+
+    *uri = NULL;
+
+    if (!(config = virConnectConfigFile()))
+        goto cleanup;
+
+    if (!virFileExists(config)) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Loading config file '%s'", config);
+    if (!(conf = virConfReadFile(config, 0)))
+        goto cleanup;
+
+    if ((value = virConfGetValue(conf, "uri_aliases")))
+        ret = virConnectOpenFindURIAliasMatch(value, alias, uri);
+    else
+        ret = 0;
+
+cleanup:
+    virConfFree(conf);
+    VIR_FREE(config);
+    return ret;
+}
+
 static virConnectPtr
 do_open (const char *name,
          virConnectAuthPtr auth,
@@ -998,6 +1112,7 @@ do_open (const char *name,
     }
 
     if (name) {
+        char *alias = NULL;
         /* Convert xen -> xen:/// for back compat */
         if (STRCASEEQ(name, "xen"))
             name = "xen:///";
@@ -1008,26 +1123,34 @@ do_open (const char *name,
         if (STREQ (name, "xen://"))
             name = "xen:///";
 
-        ret->uri = xmlParseURI (name);
+        if (!(flags & VIR_CONNECT_NO_ALIASES) &&
+            virConnectOpenResolveURIAlias(name, &alias) < 0)
+            goto failed;
+
+        ret->uri = xmlParseURI (alias ? alias : name);
         if (!ret->uri) {
             virLibConnError(VIR_ERR_INVALID_ARG,
-                            _("could not parse connection URI"));
+                            _("could not parse connection URI %s"),
+                            alias ? alias : name);
+            VIR_FREE(alias);
             goto failed;
         }
 
         VIR_DEBUG("name \"%s\" to URI components:\n"
-              "  scheme %s\n"
-              "  opaque %s\n"
-              "  authority %s\n"
-              "  server %s\n"
-              "  user %s\n"
-              "  port %d\n"
-              "  path %s\n",
-              name,
-              NULLSTR(ret->uri->scheme), NULLSTR(ret->uri->opaque),
-              NULLSTR(ret->uri->authority), NULLSTR(ret->uri->server),
-              NULLSTR(ret->uri->user), ret->uri->port,
-              NULLSTR(ret->uri->path));
+                  "  scheme %s\n"
+                  "  opaque %s\n"
+                  "  authority %s\n"
+                  "  server %s\n"
+                  "  user %s\n"
+                  "  port %d\n"
+                  "  path %s\n",
+                  alias ? alias : name,
+                  NULLSTR(ret->uri->scheme), NULLSTR(ret->uri->opaque),
+                  NULLSTR(ret->uri->authority), NULLSTR(ret->uri->server),
+                  NULLSTR(ret->uri->user), ret->uri->port,
+                  NULLSTR(ret->uri->path));
+
+        VIR_FREE(alias);
     } else {
         VIR_DEBUG("no name, allowing driver auto-select");
     }
@@ -2268,7 +2391,7 @@ error:
  * @domain: a domain object
  *
  * Resume a suspended domain, the process is restarted from the state where
- * it was frozen by calling virSuspendDomain().
+ * it was frozen by calling virDomainSuspend().
  * This function may require privileged access
  *
  * Returns 0 in case of success and -1 in case of failure.
@@ -2784,7 +2907,8 @@ error:
  * a crashed state after the dump completes.  If @flags includes
  * VIR_DUMP_LIVE, then make the core dump while continuing to allow
  * the guest to run; otherwise, the guest is suspended during the dump.
- * The above two flags are mutually exclusive.
+ * VIR_DUMP_RESET flag forces reset of the quest after dump.
+ * The above three flags are mutually exclusive.
  *
  * Additionally, if @flags includes VIR_DUMP_BYPASS_CACHE, then libvirt
  * will attempt to bypass the file system cache while creating the file,
@@ -2820,6 +2944,18 @@ virDomainCoreDump(virDomainPtr domain, const char *to, unsigned int flags)
     if ((flags & VIR_DUMP_CRASH) && (flags & VIR_DUMP_LIVE)) {
         virLibDomainError(VIR_ERR_INVALID_ARG,
                           _("crash and live flags are mutually exclusive"));
+        goto error;
+    }
+
+    if ((flags & VIR_DUMP_CRASH) && (flags & VIR_DUMP_RESET)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                         _("crash and reset flags are mutually exclusive"));
+        goto error;
+    }
+
+    if ((flags & VIR_DUMP_LIVE) && (flags & VIR_DUMP_RESET)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("live and reset flags are mutually exclusive"));
         goto error;
     }
 
@@ -3004,6 +3140,56 @@ virDomainReboot(virDomainPtr domain, unsigned int flags)
     if (conn->driver->domainReboot) {
         int ret;
         ret = conn->driver->domainReboot (domain, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainReset:
+ * @domain: a domain object
+ * @flags: extra flags for the reboot operation, not used yet
+ *
+ * Reset a domain immediately without any guest OS shutdown.
+ * Reset emulates the power reset button on a machine, where all
+ * hardware sees the RST line set and reinitializes internal state.
+ *
+ * Note that there is a risk of data loss caused by reset without any
+ * guest OS shutdown.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+int
+virDomainReset(virDomainPtr domain, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "flags=%x", flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    conn = domain->conn;
+
+    if (conn->driver->domainReset) {
+        int ret;
+        ret = conn->driver->domainReset (domain, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -3397,6 +3583,50 @@ error:
     return -1;
 }
 
+/* Helper function called to validate incoming client array on any
+ * interface that sets typed parameters in the hypervisor.  */
+static int
+virTypedParameterValidateSet(virDomainPtr domain,
+                             virTypedParameterPtr params,
+                             int nparams)
+{
+    bool string_okay;
+    int i;
+
+    string_okay = VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver,
+                                           domain->conn,
+                                           VIR_DRV_FEATURE_TYPED_PARAM_STRING);
+    for (i = 0; i < nparams; i++) {
+        if (strnlen(params[i].field, VIR_TYPED_PARAM_FIELD_LENGTH) ==
+            VIR_TYPED_PARAM_FIELD_LENGTH) {
+            virLibDomainError(VIR_ERR_INVALID_ARG,
+                              _("string parameter name '%.*s' too long"),
+                              VIR_TYPED_PARAM_FIELD_LENGTH,
+                              params[i].field);
+            virDispatchError(NULL);
+            return -1;
+        }
+        if (params[i].type == VIR_TYPED_PARAM_STRING) {
+            if (string_okay) {
+                if (!params[i].value.s) {
+                    virLibDomainError(VIR_ERR_INVALID_ARG,
+                                      _("NULL string parameter '%s'"),
+                                      params[i].field);
+                    virDispatchError(NULL);
+                    return -1;
+                }
+            } else {
+                virLibDomainError(VIR_ERR_INVALID_ARG,
+                                  _("string parameter '%s' unsupported"),
+                                  params[i].field);
+                virDispatchError(NULL);
+                return -1;
+            }
+        }
+    }
+    return 0;
+}
+
 /**
  * virDomainSetMemoryParameters:
  * @domain: pointer to domain object
@@ -3435,6 +3665,9 @@ virDomainSetMemoryParameters(virDomainPtr domain,
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
+    if (virTypedParameterValidateSet(domain, params, nparams) < 0)
+        return -1;
+
     conn = domain->conn;
 
     if (conn->driver->domainSetMemoryParameters) {
@@ -3457,15 +3690,17 @@ error:
  * @domain: pointer to domain object
  * @params: pointer to memory parameter object
  *          (return value, allocated by the caller)
- * @nparams: pointer to number of memory parameters
- * @flags: one of virDomainModificationImpact
+ * @nparams: pointer to number of memory parameters; input and output
+ * @flags: bitwise-OR of virDomainModificationImpact and virTypedParameterFlags
  *
- * Get all memory parameters, the @params array will be filled with the values
- * equal to the number of parameters suggested by @nparams
+ * Get all memory parameters.  On input, @nparams gives the size of the
+ * @params array; on output, @nparams gives how many slots were filled
+ * with parameter information, which might be less but will not exceed
+ * the input value.
  *
- * As the value of @nparams is dynamic, call the API setting @nparams to 0 and
- * @params as NULL, the API returns the number of parameters supported by the
- * HV by updating @nparams on SUCCESS. The caller should then allocate @params
+ * As a special case, calling with @params as NULL and @nparams as 0 on
+ * input will cause @nparams on output to contain the number of parameters
+ * supported by the hypervisor. The caller should then allocate @params
  * array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
  * again.
  *
@@ -3507,6 +3742,16 @@ virDomainGetMemoryParameters(virDomainPtr domain,
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
+    if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
+                                 VIR_DRV_FEATURE_TYPED_PARAM_STRING))
+        flags |= VIR_TYPED_PARAM_STRING_OKAY;
+
+    /* At most one of these two flags should be set.  */
+    if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
+        (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
     conn = domain->conn;
 
     if (conn->driver->domainGetMemoryParameters) {
@@ -3529,7 +3774,7 @@ error:
  * @params: pointer to blkio parameter objects
  * @nparams: number of blkio parameters (this value can be the same or
  *          less than the number of parameters supported)
- * @flags: an OR'ed set of virDomainModificationImpact
+ * @flags: bitwise-OR of virDomainModificationImpact
  *
  * Change all or a subset of the blkio tunables.
  * This function may require privileged access to the hypervisor.
@@ -3561,6 +3806,9 @@ virDomainSetBlkioParameters(virDomainPtr domain,
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
+    if (virTypedParameterValidateSet(domain, params, nparams) < 0)
+        return -1;
+
     conn = domain->conn;
 
     if (conn->driver->domainSetBlkioParameters) {
@@ -3583,12 +3831,21 @@ error:
  * @domain: pointer to domain object
  * @params: pointer to blkio parameter object
  *          (return value, allocated by the caller)
- * @nparams: pointer to number of blkio parameters
- * @flags: an OR'ed set of virDomainModificationImpact
+ * @nparams: pointer to number of blkio parameters; input and output
+ * @flags: bitwise-OR of virDomainModificationImpact and virTypedParameterFlags
  *
- * Get all blkio parameters, the @params array will be filled with the values
- * equal to the number of parameters suggested by @nparams.
- * See virDomainGetMemoryParameters for an equivalent usage example.
+ * Get all blkio parameters.  On input, @nparams gives the size of the
+ * @params array; on output, @nparams gives how many slots were filled
+ * with parameter information, which might be less but will not exceed
+ * the input value.
+ *
+ * As a special case, calling with @params as NULL and @nparams as 0 on
+ * input will cause @nparams on output to contain the number of parameters
+ * supported by the hypervisor. The caller should then allocate @params
+ * array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
+ * again.
+ *
+ * See virDomainGetMemoryParameters() for an equivalent usage example.
  *
  * This function may require privileged access to the hypervisor. This function
  * expects the caller to allocate the @params.
@@ -3614,6 +3871,16 @@ virDomainGetBlkioParameters(virDomainPtr domain,
     }
     if ((nparams == NULL) || (*nparams < 0) ||
         (params == NULL && *nparams != 0)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
+                                 VIR_DRV_FEATURE_TYPED_PARAM_STRING))
+        flags |= VIR_TYPED_PARAM_STRING_OKAY;
+
+    /* At most one of these two flags should be set.  */
+    if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
+        (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
@@ -4791,6 +5058,9 @@ error:
  * in accessing the underlying storage.  The migration will fail
  * if @dxml would cause any guest-visible changes.  Pass NULL
  * if no changes are needed to the XML between source and destination.
+ * @dxml cannot be used to rename the domain during migration (use
+ * @dname for that purpose).  Domain name in @dxml must either match the
+ * original domain name or @dname if it was specified.
  *
  * Returns the new domain object if the migration was successful,
  *   or NULL in case of error.  Note that the new domain object
@@ -6103,6 +6373,67 @@ error:
 }
 
 /**
+ * virNodeSuspendForDuration:
+ * @conn: pointer to the hypervisor connection
+ * @target: the state to which the host must be suspended to,
+ *         such as: VIR_NODE_SUSPEND_TARGET_MEM (Suspend-to-RAM)
+ *                  VIR_NODE_SUSPEND_TARGET_DISK (Suspend-to-Disk)
+ *                  VIR_NODE_SUSPEND_TARGET_HYBRID (Hybrid-Suspend,
+ *                  which is a combination of the former modes).
+ * @duration: the time duration in seconds for which the host
+ *            has to be suspended
+ * @flags: any flag values that might need to be passed;
+ *         currently unused (0).
+ *
+ * Attempt to suspend the node (host machine) for the given duration of
+ * time in the specified state (Suspend-to-RAM, Suspend-to-Disk or
+ * Hybrid-Suspend). Schedule the node's Real-Time-Clock interrupt to
+ * resume the node after the duration is complete.
+ *
+ * Returns 0 on success (i.e., the node will be suspended after a short
+ * delay), -1 on failure (the operation is not supported, or an attempted
+ * suspend is already underway).
+ */
+int
+virNodeSuspendForDuration(virConnectPtr conn,
+                          unsigned int target,
+                          unsigned long long duration,
+                          unsigned int flags)
+{
+
+    VIR_DEBUG("conn=%p, target=%d, duration=%lld", conn, target, duration);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->nodeSuspendForDuration) {
+        int ret;
+        ret = conn->driver->nodeSuspendForDuration(conn, target,
+                                                   duration, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+
+/**
  * virDomainGetSchedulerType:
  * @domain: pointer to domain object
  * @nparams: pointer to number of scheduler parameters, can be NULL
@@ -6150,14 +6481,17 @@ error:
  * @params: pointer to scheduler parameter objects
  *          (return value)
  * @nparams: pointer to number of scheduler parameter objects
- *          (this value must be at least as large as the returned value
- *           nparams of virDomainGetSchedulerType)
+ *          (this value should generally be as large as the returned value
+ *           nparams of virDomainGetSchedulerType()); input and output
  *
- * Get all scheduler parameters, the @params array will be filled with the
- * values and @nparams will be updated to the number of valid elements in
- * @params.  It is hypervisor specific whether this returns the live or
+ * Get all scheduler parameters.  On input, @nparams gives the size of the
+ * @params array; on output, @nparams gives how many slots were filled
+ * with parameter information, which might be less but will not exceed
+ * the input value.  @nparams cannot be 0.
+ *
+ * It is hypervisor specific whether this returns the live or
  * persistent state; for more control, use
- * virDomainGetSchedulerParametersFlags.
+ * virDomainGetSchedulerParametersFlags().
  *
  * Returns -1 in case of error, 0 in case of success.
  */
@@ -6206,14 +6540,27 @@ error:
  *          (return value)
  * @nparams: pointer to number of scheduler parameter
  *          (this value should be same than the returned value
- *           nparams of virDomainGetSchedulerType)
- * @flags: one of virDomainModificationImpact
+ *           nparams of virDomainGetSchedulerType()); input and output
+ * @flags: bitwise-OR of virDomainModificationImpact and virTypedParameterFlags
  *
- * Get the scheduler parameters, the @params array will be filled with the
- * values.
+ * Get all scheduler parameters.  On input, @nparams gives the size of the
+ * @params array; on output, @nparams gives how many slots were filled
+ * with parameter information, which might be less but will not exceed
+ * the input value.  @nparams cannot be 0.
  *
  * The value of @flags can be exactly VIR_DOMAIN_AFFECT_CURRENT,
  * VIR_DOMAIN_AFFECT_LIVE, or VIR_DOMAIN_AFFECT_CONFIG.
+ *
+ * Here is a sample code snippet:
+ *
+ * char *ret = virDomainGetSchedulerType(dom, &nparams);
+ * if (ret && nparams != 0) {
+ *     if ((params = malloc(sizeof(*params) * nparams)) == NULL)
+ *         goto error;
+ *     memset(params, 0, sizeof(*params) * nparams);
+ *     if (virDomainGetSchedulerParametersFlags(dom, params, &nparams, 0))
+ *         goto error;
+ * }
  *
  * Returns -1 in case of error, 0 in case of success.
  */
@@ -6240,6 +6587,16 @@ virDomainGetSchedulerParametersFlags(virDomainPtr domain,
         goto error;
     }
 
+    if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
+                                 VIR_DRV_FEATURE_TYPED_PARAM_STRING))
+        flags |= VIR_TYPED_PARAM_STRING_OKAY;
+
+    /* At most one of these two flags should be set.  */
+    if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
+        (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
     conn = domain->conn;
 
     if (conn->driver->domainGetSchedulerParametersFlags) {
@@ -6289,15 +6646,17 @@ virDomainSetSchedulerParameters(virDomainPtr domain,
         return -1;
     }
 
-    if (params == NULL || nparams < 0) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
-
     if (domain->conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
+    if (params == NULL || nparams < 0) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (virTypedParameterValidateSet(domain, params, nparams) < 0)
+        return -1;
+
     conn = domain->conn;
 
     if (conn->driver->domainSetSchedulerParameters) {
@@ -6352,15 +6711,17 @@ virDomainSetSchedulerParametersFlags(virDomainPtr domain,
         return -1;
     }
 
-    if (params == NULL || nparams < 0) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
-
     if (domain->conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
+    if (params == NULL || nparams < 0) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (virTypedParameterValidateSet(domain, params, nparams) < 0)
+        return -1;
+
     conn = domain->conn;
 
     if (conn->driver->domainSetSchedulerParametersFlags) {
@@ -6385,16 +6746,19 @@ error:
 /**
  * virDomainBlockStats:
  * @dom: pointer to the domain object
- * @path: path to the block device
+ * @disk: path to the block device, or device shorthand
  * @stats: block device stats (returned)
  * @size: size of stats structure
  *
  * This function returns block device (disk) stats for block
  * devices attached to the domain.
  *
- * The path parameter is the name of the block device.  Get this
- * by calling virDomainGetXMLDesc and finding the <target dev='...'>
- * attribute within //domain/devices/disk.  (For example, "xvda").
+ * The @disk parameter is either the device target shorthand (the
+ * <target dev='...'/> sub-element, such as "xvda"), or (since 0.9.8)
+ * an unambiguous source name of the block device (the <source
+ * file='...'/> sub-element, such as "/path/to/image").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
  *
  * Domains may have more than one block device.  To get stats for
  * each you should make multiple calls to this function.
@@ -6406,13 +6770,13 @@ error:
  * Returns: 0 in case of success or -1 in case of failure.
  */
 int
-virDomainBlockStats (virDomainPtr dom, const char *path,
-                     virDomainBlockStatsPtr stats, size_t size)
+virDomainBlockStats(virDomainPtr dom, const char *disk,
+                    virDomainBlockStatsPtr stats, size_t size)
 {
     virConnectPtr conn;
     struct _virDomainBlockStats stats2 = { -1, -1, -1, -1, -1 };
 
-    VIR_DOMAIN_DEBUG(dom, "path=%s, stats=%p, size=%zi", path, stats, size);
+    VIR_DOMAIN_DEBUG(dom, "disk=%s, stats=%p, size=%zi", disk, stats, size);
 
     virResetLastError();
 
@@ -6421,14 +6785,14 @@ virDomainBlockStats (virDomainPtr dom, const char *path,
         virDispatchError(NULL);
         return -1;
     }
-    if (!path || !stats || size > sizeof stats2) {
+    if (!disk || !stats || size > sizeof stats2) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
     conn = dom->conn;
 
     if (conn->driver->domainBlockStats) {
-        if (conn->driver->domainBlockStats (dom, path, &stats2) == -1)
+        if (conn->driver->domainBlockStats (dom, disk, &stats2) == -1)
             goto error;
 
         memcpy (stats, &stats2, size);
@@ -6445,45 +6809,50 @@ error:
 /**
  * virDomainBlockStatsFlags:
  * @dom: pointer to domain object
- * @path: path to the block device
+ * @disk: path to the block device, or device shorthand
  * @params: pointer to block stats parameter object
  *          (return value)
- * @nparams: pointer to number of block stats
- * @flags: unused, always passes 0
+ * @nparams: pointer to number of block stats; input and output
+ * @flags: bitwise-OR of virTypedParameterFlags
  *
  * This function is to get block stats parameters for block
  * devices attached to the domain.
  *
- * The @path is the name of the block device.  Get this
- * by calling virDomainGetXMLDesc and finding the <target dev='...'>
- * attribute within //domain/devices/disk.  (For example, "xvda").
+ * The @disk parameter is either the device target shorthand (the
+ * <target dev='...'/> sub-element, such as "xvda"), or (since 0.9.8)
+ * an unambiguous source name of the block device (the <source
+ * file='...'/> sub-element, such as "/path/to/image").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
  *
  * Domains may have more than one block device.  To get stats for
  * each you should make multiple calls to this function.
  *
- * The @params array will be filled with the value equal to the number of
- * parameters suggested by @nparams.
+ * On input, @nparams gives the size of the @params array; on output,
+ * @nparams gives how many slots were filled with parameter
+ * information, which might be less but will not exceed the input
+ * value.
  *
- * As the value of @nparams is dynamic, call the API setting @nparams to 0 and
- * @params as NULL, the API returns the number of parameters supported by the
- * HV by updating @nparams on SUCCESS. (Note that block device of different type
- * might support different parameters numbers, so it might be necessary to compute
- * @nparams for each block device type). The caller should then allocate @params
+ * As a special case, calling with @params as NULL and @nparams as 0 on
+ * input will cause @nparams on output to contain the number of parameters
+ * supported by the hypervisor. (Note that block devices of different types
+ * might support different parameters, so it might be necessary to compute
+ * @nparams for each block device). The caller should then allocate @params
  * array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
- * again. See virDomainGetMemoryParameters for more details.
+ * again. See virDomainGetMemoryParameters() for more details.
  *
  * Returns -1 in case of error, 0 in case of success.
  */
-int virDomainBlockStatsFlags (virDomainPtr dom,
-                              const char *path,
-                              virTypedParameterPtr params,
-                              int *nparams,
-                              unsigned int flags)
+int virDomainBlockStatsFlags(virDomainPtr dom,
+                             const char *disk,
+                             virTypedParameterPtr params,
+                             int *nparams,
+                             unsigned int flags)
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "path=%s, params=%p, nparams=%d, flags=%x",
-                     path, params, nparams ? *nparams : -1, flags);
+    VIR_DOMAIN_DEBUG(dom, "disk=%s, params=%p, nparams=%d, flags=%x",
+                     disk, params, nparams ? *nparams : -1, flags);
 
     virResetLastError();
 
@@ -6492,15 +6861,19 @@ int virDomainBlockStatsFlags (virDomainPtr dom,
         virDispatchError(NULL);
         return -1;
     }
-    if (!path || (nparams == NULL) || (*nparams < 0)) {
+    if (!disk || (nparams == NULL) || (*nparams < 0) ||
+        (params == NULL && *nparams != 0)) {
         virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
+    if (VIR_DRV_SUPPORTS_FEATURE(dom->conn->driver, dom->conn,
+                                 VIR_DRV_FEATURE_TYPED_PARAM_STRING))
+        flags |= VIR_TYPED_PARAM_STRING_OKAY;
     conn = dom->conn;
 
     if (conn->driver->domainBlockStatsFlags) {
         int ret;
-        ret = conn->driver->domainBlockStatsFlags(dom, path, params, nparams, flags);
+        ret = conn->driver->domainBlockStatsFlags(dom, disk, params, nparams, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -6647,7 +7020,7 @@ error:
 /**
  * virDomainBlockPeek:
  * @dom: pointer to the domain object
- * @path: path to the block device
+ * @disk: path to the block device, or device shorthand
  * @offset: offset within block device
  * @size: size to read
  * @buffer: return buffer (must be at least size bytes)
@@ -6666,10 +7039,12 @@ error:
  * remote case, nor if you don't have sufficient permission.
  * Hence the need for this call).
  *
- * 'path' must be a device or file corresponding to the domain.
- * In other words it must be the precise string returned in
- * a <disk><source dev='...'/></disk> from
- * virDomainGetXMLDesc.
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or (since 0.9.5) the device target shorthand
+ * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
  *
  * 'offset' and 'size' represent an area which must lie entirely
  * within the device or file.  'size' may be 0 to test if the
@@ -6685,7 +7060,7 @@ error:
  */
 int
 virDomainBlockPeek (virDomainPtr dom,
-                    const char *path,
+                    const char *disk,
                     unsigned long long offset /* really 64 bits */,
                     size_t size,
                     void *buffer,
@@ -6693,8 +7068,8 @@ virDomainBlockPeek (virDomainPtr dom,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "path=%s, offset=%lld, size=%zi, buffer=%p, flags=%x",
-                     path, offset, size, buffer, flags);
+    VIR_DOMAIN_DEBUG(dom, "disk=%s, offset=%lld, size=%zi, buffer=%p, flags=%x",
+                     disk, offset, size, buffer, flags);
 
     virResetLastError();
 
@@ -6710,9 +7085,9 @@ virDomainBlockPeek (virDomainPtr dom,
         goto error;
     }
 
-    if (!path) {
+    if (!disk) {
         virLibDomainError(VIR_ERR_INVALID_ARG,
-                           _("path is NULL"));
+                          _("disk is NULL"));
         goto error;
     }
 
@@ -6725,8 +7100,76 @@ virDomainBlockPeek (virDomainPtr dom,
 
     if (conn->driver->domainBlockPeek) {
         int ret;
-        ret =conn->driver->domainBlockPeek (dom, path, offset, size,
+        ret = conn->driver->domainBlockPeek(dom, disk, offset, size,
                                             buffer, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibDomainError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+/**
+ * virDomainBlockResize:
+ * @dom: pointer to the domain object
+ * @disk: path to the block image, or shorthand
+ * @size: new size of the block image in kilobytes
+ * @flags: unused, always pass 0
+ *
+ * Note that this call may fail if the underlying virtualization hypervisor
+ * does not support it. And this call requires privileged access to the
+ * hypervisor.
+ *
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or (since 0.9.5) the device target shorthand
+ * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
+ *
+ * Resize a block device of domain while the domain is running.
+ *
+ * Returns: 0 in case of success or -1 in case of failure.
+ */
+
+int
+virDomainBlockResize (virDomainPtr dom,
+                      const char *disk,
+                      unsigned long long size,
+                      unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(dom, "disk=%s, size=%llu, flags=%x", disk, size, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN (dom)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    conn = dom->conn;
+
+    if (dom->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (!disk) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                           _("disk is NULL"));
+        goto error;
+    }
+
+    if (conn->driver->domainBlockResize) {
+        int ret;
+        ret =conn->driver->domainBlockResize(dom, disk, size, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -6853,16 +7296,24 @@ error:
 /**
  * virDomainGetBlockInfo:
  * @domain: a domain object
- * @path: path to the block device or file
+ * @disk: path to the block device, or device shorthand
  * @info: pointer to a virDomainBlockInfo structure allocated by the user
  * @flags: currently unused, pass zero
  *
  * Extract information about a domain's block device.
  *
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or (since 0.9.5) the device target shorthand
+ * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
+ *
  * Returns 0 in case of success and -1 in case of failure.
  */
 int
-virDomainGetBlockInfo(virDomainPtr domain, const char *path, virDomainBlockInfoPtr info, unsigned int flags)
+virDomainGetBlockInfo(virDomainPtr domain, const char *disk,
+                      virDomainBlockInfoPtr info, unsigned int flags)
 {
     virConnectPtr conn;
 
@@ -6875,7 +7326,7 @@ virDomainGetBlockInfo(virDomainPtr domain, const char *path, virDomainBlockInfoP
         virDispatchError(NULL);
         return -1;
     }
-    if (path == NULL || info == NULL) {
+    if (disk == NULL || info == NULL) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
@@ -6886,7 +7337,7 @@ virDomainGetBlockInfo(virDomainPtr domain, const char *path, virDomainBlockInfoP
 
     if (conn->driver->domainGetBlockInfo) {
         int ret;
-        ret = conn->driver->domainGetBlockInfo (domain, path, info, flags);
+        ret = conn->driver->domainGetBlockInfo (domain, disk, info, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -7629,7 +8080,8 @@ virDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
     }
 
     /* At most one of these two flags should be set.  */
-    if ((flags & VIR_DOMAIN_AFFECT_LIVE) && (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
+    if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
+        (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
@@ -7726,7 +8178,7 @@ error:
  *      underlying virtualization system (Xen...).
  *      If maplen < size, missing bytes are set to zero.
  *      If maplen > size, failure code is returned.
- * @flags: bitwise-OR of virDomainModificationImpac
+ * @flags: bitwise-OR of virDomainModificationImpact
  *
  * Dynamically change the real CPUs which can be allocated to a virtual CPU.
  * This function may require privileged access to the hypervisor.
@@ -7817,8 +8269,8 @@ error:
  * -1 in case of failure.
  */
 int
-virDomainGetVcpuPinInfo (virDomainPtr domain, int ncpumaps,
-                         unsigned char *cpumaps, int maplen, unsigned int flags)
+virDomainGetVcpuPinInfo(virDomainPtr domain, int ncpumaps,
+                        unsigned char *cpumaps, int maplen, unsigned int flags)
 {
     virConnectPtr conn;
 
@@ -7839,6 +8291,12 @@ virDomainGetVcpuPinInfo (virDomainPtr domain, int ncpumaps,
         goto error;
     }
 
+    /* At most one of these two flags should be set.  */
+    if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
+        (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
     conn = domain->conn;
 
     if (conn->driver->domainGetVcpuPinInfo) {
@@ -15919,7 +16377,10 @@ error:
  * Provides the number of domain snapshots for this domain.
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
- * filtered to the number of snapshots that have no parents.
+ * filtered to the number of snapshots that have no parents.  Likewise,
+ * if @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
+ * filtered to the number of snapshots that have no children.  Both flags
+ * can be used together to find unrelated snapshots.
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
  * the number of snapshots that also include metadata that would prevent
@@ -15970,7 +16431,10 @@ error:
  * virDomainSnapshotNum() with the same @flags.
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
- * filtered to the number of snapshots that have no parents.
+ * filtered to the number of snapshots that have no parents.  Likewise,
+ * if @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
+ * filtered to the number of snapshots that have no children.  Both flags
+ * can be used together to find unrelated snapshots.
  *
  * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
  * the number of snapshots that also include metadata that would prevent
@@ -16006,6 +16470,123 @@ virDomainSnapshotListNames(virDomainPtr domain, char **names, int nameslen,
     if (conn->driver->domainSnapshotListNames) {
         int ret = conn->driver->domainSnapshotListNames(domain, names,
                                                         nameslen, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotNumChildren:
+ * @snapshot: a domain snapshot object
+ * @flags: bitwise-or of supported virDomainSnapshotListFlags
+ *
+ * Provides the number of child snapshots for this domain snapshot.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS, then the result
+ * includes all descendants, otherwise it is limited to direct children.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
+ * filtered to the number of snapshots that have no children.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
+ * the number of snapshots that also include metadata that would prevent
+ * the removal of the last reference to a domain; this value will either
+ * be 0 or the same value as if the flag were not given.
+ *
+ * Returns the number of domain snapshots found or -1 in case of error.
+ */
+int
+virDomainSnapshotNumChildren(virDomainSnapshotPtr snapshot, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("snapshot=%p, flags=%x", snapshot, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = snapshot->domain->conn;
+    if (conn->driver->domainSnapshotNumChildren) {
+        int ret = conn->driver->domainSnapshotNumChildren(snapshot, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotListChildrenNames:
+ * @snapshot: a domain snapshot object
+ * @names: array to collect the list of names of snapshots
+ * @nameslen: size of @names
+ * @flags: bitwise-or of supported virDomainSnapshotListFlags
+ *
+ * Collect the list of domain snapshots that are children of the given
+ * snapshot, and store their names in @names.  Caller is responsible for
+ * freeing each member of the array.  The value to use for @nameslen can
+ * be determined by virDomainSnapshotNumChildren() with the same @flags.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS, then the result
+ * includes all descendants, otherwise it is limited to direct children.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
+ * filtered to the number of snapshots that have no children.
+ *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
+ * the number of snapshots that also include metadata that would prevent
+ * the removal of the last reference to a domain; this value will either
+ * be 0 or the same value as if the flag were not given.
+ *
+ * Returns the number of domain snapshots found or -1 in case of error.
+ */
+int
+virDomainSnapshotListChildrenNames(virDomainSnapshotPtr snapshot,
+                                   char **names, int nameslen,
+                                   unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("snapshot=%p, names=%p, nameslen=%d, flags=%x",
+              snapshot, names, nameslen, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = snapshot->domain->conn;
+
+    if ((names == NULL) || (nameslen < 0)) {
+        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainSnapshotListChildrenNames) {
+        int ret = conn->driver->domainSnapshotListChildrenNames(snapshot,
+                                                                names,
+                                                                nameslen,
+                                                                flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -16150,6 +16731,50 @@ error:
 }
 
 /**
+ * virDomainSnapshotGetParent:
+ * @snapshot: a snapshot object
+ * @flags: unused flag parameters; callers should pass 0
+ *
+ * Get the parent snapshot for @snapshot, if any.
+ *
+ * Returns a domain snapshot object or NULL in case of failure.  If the
+ * given snapshot is a root (no parent), then the VIR_ERR_NO_DOMAIN_SNAPSHOT
+ * error is raised.
+ */
+virDomainSnapshotPtr
+virDomainSnapshotGetParent(virDomainSnapshotPtr snapshot,
+                           unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("snapshot=%p, flags=%x", snapshot, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return NULL;
+    }
+
+    conn = snapshot->domain->conn;
+
+    if (conn->driver->domainSnapshotGetParent) {
+        virDomainSnapshotPtr snap;
+        snap = conn->driver->domainSnapshotGetParent(snapshot, flags);
+        if (!snap)
+            goto error;
+        return snap;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return NULL;
+}
+
+/**
  * virDomainRevertToSnapshot:
  * @snapshot: a domain snapshot object
  * @flags: bitwise-OR of virDomainSnapshotRevertFlags
@@ -16167,6 +16792,28 @@ error:
  * need either flag, it is not possible to revert a transient domain
  * into an inactive state, so transient domains require the use of one
  * of these two flags.
+ *
+ * Reverting to any snapshot discards all configuration changes made since
+ * the last snapshot.  Additionally, reverting to a snapshot from a running
+ * domain is a form of data loss, since it discards whatever is in the
+ * guest's RAM at the time.  Since the very nature of keeping snapshots
+ * implies the intent to roll back state, no additional confirmation is
+ * normally required for these lossy effects.
+ *
+ * However, there are two particular situations where reverting will
+ * be refused by default, and where @flags must include
+ * VIR_DOMAIN_SNAPSHOT_REVERT_FORCE to acknowledge the risks.  1) Any
+ * attempt to revert to a snapshot that lacks the metadata to perform
+ * ABI compatibility checks (generally the case for snapshots that
+ * lack a full <domain> when listed by virDomainSnapshotGetXMLDesc(),
+ * such as those created prior to libvirt 0.9.5).  2) Any attempt to
+ * revert a running domain to an active state that requires starting a
+ * new hypervisor instance rather than reusing the existing hypervisor
+ * (since this would terminate all connections to the domain, such as
+ * such as VNC or Spice graphics) - this condition arises from active
+ * snapshots that are provably ABI incomaptible, as well as from
+ * inactive snapshots with a @flags request to start the domain after
+ * the revert.
  *
  * Returns 0 if the creation is successful, -1 on error.
  */
@@ -16368,19 +17015,26 @@ error:
 /**
  * virDomainBlockJobAbort:
  * @dom: pointer to domain object
- * @path: fully-qualified filename of disk
+ * @disk: path to the block device, or device shorthand
  * @flags: currently unused, for future extension
  *
  * Cancel the active block job on the given disk.
  *
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or (since 0.9.5) the device target shorthand
+ * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
+ *
  * Returns -1 in case of failure, 0 when successful.
  */
-int virDomainBlockJobAbort(virDomainPtr dom, const char *path,
+int virDomainBlockJobAbort(virDomainPtr dom, const char *disk,
                            unsigned int flags)
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "path=%p, flags=%x", path, flags);
+    VIR_DOMAIN_DEBUG(dom, "disk=%p, flags=%x", disk, flags);
 
     virResetLastError();
 
@@ -16396,15 +17050,15 @@ int virDomainBlockJobAbort(virDomainPtr dom, const char *path,
         goto error;
     }
 
-    if (!path) {
+    if (!disk) {
         virLibDomainError(VIR_ERR_INVALID_ARG,
-                           _("path is NULL"));
+                          _("disk is NULL"));
         goto error;
     }
 
     if (conn->driver->domainBlockJobAbort) {
         int ret;
-        ret = conn->driver->domainBlockJobAbort(dom, path, flags);
+        ret = conn->driver->domainBlockJobAbort(dom, disk, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -16420,21 +17074,28 @@ error:
 /**
  * virDomainGetBlockJobInfo:
  * @dom: pointer to domain object
- * @path: fully-qualified filename of disk
+ * @disk: path to the block device, or device shorthand
  * @info: pointer to a virDomainBlockJobInfo structure
  * @flags: currently unused, for future extension
  *
  * Request block job information for the given disk.  If an operation is active
  * @info will be updated with the current progress.
  *
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or (since 0.9.5) the device target shorthand
+ * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
+ *
  * Returns -1 in case of failure, 0 when nothing found, 1 when info was found.
  */
-int virDomainGetBlockJobInfo(virDomainPtr dom, const char *path,
+int virDomainGetBlockJobInfo(virDomainPtr dom, const char *disk,
                              virDomainBlockJobInfoPtr info, unsigned int flags)
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "path=%p, info=%p, flags=%x", path, info, flags);
+    VIR_DOMAIN_DEBUG(dom, "disk=%p, info=%p, flags=%x", disk, info, flags);
 
     virResetLastError();
 
@@ -16445,9 +17106,9 @@ int virDomainGetBlockJobInfo(virDomainPtr dom, const char *path,
     }
     conn = dom->conn;
 
-    if (!path) {
+    if (!disk) {
         virLibDomainError(VIR_ERR_INVALID_ARG,
-                           _("path is NULL"));
+                          _("disk is NULL"));
         goto error;
     }
 
@@ -16459,7 +17120,7 @@ int virDomainGetBlockJobInfo(virDomainPtr dom, const char *path,
 
     if (conn->driver->domainGetBlockJobInfo) {
         int ret;
-        ret = conn->driver->domainGetBlockJobInfo(dom, path, info, flags);
+        ret = conn->driver->domainGetBlockJobInfo(dom, disk, info, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -16475,22 +17136,29 @@ error:
 /**
  * virDomainBlockJobSetSpeed:
  * @dom: pointer to domain object
- * @path: fully-qualified filename of disk
+ * @disk: path to the block device, or device shorthand
  * @bandwidth: specify bandwidth limit in Mbps
  * @flags: currently unused, for future extension
  *
  * Set the maximimum allowable bandwidth that a block job may consume.  If
  * bandwidth is 0, the limit will revert to the hypervisor default.
  *
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or (since 0.9.5) the device target shorthand
+ * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
+ *
  * Returns -1 in case of failure, 0 when successful.
  */
-int virDomainBlockJobSetSpeed(virDomainPtr dom, const char *path,
+int virDomainBlockJobSetSpeed(virDomainPtr dom, const char *disk,
                               unsigned long bandwidth, unsigned int flags)
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "path=%p, bandwidth=%lu, flags=%x",
-                     path, bandwidth, flags);
+    VIR_DOMAIN_DEBUG(dom, "disk=%p, bandwidth=%lu, flags=%x",
+                     disk, bandwidth, flags);
 
     virResetLastError();
 
@@ -16506,15 +17174,15 @@ int virDomainBlockJobSetSpeed(virDomainPtr dom, const char *path,
         goto error;
     }
 
-    if (!path) {
+    if (!disk) {
         virLibDomainError(VIR_ERR_INVALID_ARG,
-                           _("path is NULL"));
+                          _("disk is NULL"));
         goto error;
     }
 
     if (conn->driver->domainBlockJobSetSpeed) {
         int ret;
-        ret = conn->driver->domainBlockJobSetSpeed(dom, path, bandwidth, flags);
+        ret = conn->driver->domainBlockJobSetSpeed(dom, disk, bandwidth, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -16530,7 +17198,7 @@ error:
 /**
  * virDomainBlockPull:
  * @dom: pointer to domain object
- * @path: Fully-qualified filename of disk
+ * @disk: path to the block device, or device shorthand
  * @bandwidth: (optional) specify copy bandwidth limit in Mbps
  * @flags: currently unused, for future extension
  *
@@ -16541,6 +17209,13 @@ error:
  * the operation can be aborted with virDomainBlockJobAbort().  When finished,
  * an asynchronous event is raised to indicate the final status.
  *
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or (since 0.9.5) the device target shorthand
+ * (the <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
+ *
  * The maximum bandwidth (in Mbps) that will be used to do the copy can be
  * specified with the bandwidth parameter.  If set to 0, libvirt will choose a
  * suitable default.  Some hypervisors do not support this feature and will
@@ -16548,13 +17223,13 @@ error:
  *
  * Returns 0 if the operation has started, -1 on failure.
  */
-int virDomainBlockPull(virDomainPtr dom, const char *path,
+int virDomainBlockPull(virDomainPtr dom, const char *disk,
                        unsigned long bandwidth, unsigned int flags)
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "path=%p, bandwidth=%lu, flags=%x",
-                     path, bandwidth, flags);
+    VIR_DOMAIN_DEBUG(dom, "disk=%p, bandwidth=%lu, flags=%x",
+                     disk, bandwidth, flags);
 
     virResetLastError();
 
@@ -16570,15 +17245,349 @@ int virDomainBlockPull(virDomainPtr dom, const char *path,
         goto error;
     }
 
-    if (!path) {
+    if (!disk) {
         virLibDomainError(VIR_ERR_INVALID_ARG,
-                           _("path is NULL"));
+                          _("disk is NULL"));
         goto error;
     }
 
     if (conn->driver->domainBlockPull) {
         int ret;
-        ret = conn->driver->domainBlockPull(dom, path, bandwidth, flags);
+        ret = conn->driver->domainBlockPull(dom, disk, bandwidth, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibDomainError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
+ * virDomainOpenGraphics:
+ * @dom: pointer to domain object
+ * @idx: index of graphics config to open
+ * @fd: file descriptor to attach graphics to
+ * @flags: flags to control open operation
+ *
+ * This will attempt to connect the file descriptor @fd, to
+ * the graphics backend of @dom. If @dom has multiple graphics
+ * backends configured, then @idx will determine which one is
+ * opened, starting from @idx 0.
+ *
+ * To disable any authentication, pass the VIR_DOMAIN_OPEN_GRAPHICS_SKIPAUTH
+ * constant for @flags.
+ *
+ * The caller should use an anonymous socketpair to open
+ * @fd before invocation.
+ *
+ * This method can only be used when connected to a local
+ * libvirt hypervisor, over a UNIX domain socket. Attempts
+ * to use this method over a TCP connection will always fail
+ *
+ * Returns 0 on success, -1 on failure
+ */
+int virDomainOpenGraphics(virDomainPtr dom,
+                          unsigned int idx,
+                          int fd,
+                          unsigned int flags)
+{
+    struct stat sb;
+    VIR_DOMAIN_DEBUG(dom, "idx=%u, fd=%d, flags=%x",
+                     idx, fd, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN(dom)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (fd < 0) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (fstat(fd, &sb) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to access file descriptor %d"), fd);
+        goto error;
+    }
+
+    if (!S_ISSOCK(sb.st_mode)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("File descriptor %d must be a socket"), fd);
+        goto error;
+    }
+
+    if (dom->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (!VIR_DRV_SUPPORTS_FEATURE(dom->conn->driver, dom->conn,
+                                  VIR_DRV_FEATURE_FD_PASSING)) {
+        virLibDomainError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        goto error;
+    }
+
+    if (dom->conn->driver->domainOpenGraphics) {
+        int ret;
+        ret = dom->conn->driver->domainOpenGraphics(dom, idx, fd, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
+ * virConnectSetKeepAlive:
+ * @conn: pointer to a hypervisor connection
+ * @interval: number of seconds of inactivity before a keepalive message is sent
+ * @count: number of messages that can be sent in a row
+ *
+ * Start sending keepalive messages after interval second of inactivity and
+ * consider the connection to be broken when no response is received after
+ * count keepalive messages sent in a row.  In other words, sending count + 1
+ * keepalive message results in closing the connection.  When interval is <= 0,
+ * no keepalive messages will be sent.  When count is 0, the connection will be
+ * automatically closed after interval seconds of inactivity without sending
+ * any keepalive messages.
+ *
+ * Note: client has to implement and run event loop to be able to use keepalive
+ * messages.  Failure to do so may result in connections being closed
+ * unexpectedly.
+ *
+ * Returns -1 on error, 0 on success, 1 when remote party doesn't support
+ * keepalive messages.
+ */
+int virConnectSetKeepAlive(virConnectPtr conn,
+                           int interval,
+                           unsigned int count)
+{
+    int ret = -1;
+
+    VIR_DEBUG("conn=%p, interval=%d, count=%u", conn, interval, count);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (interval <= 0) {
+        virLibConnError(VIR_ERR_INVALID_ARG,
+                        _("negative or zero interval make no sense"));
+        goto error;
+    }
+
+    if (conn->driver->setKeepAlive) {
+        ret = conn->driver->setKeepAlive(conn, interval, count);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virConnectIsAlive:
+ * @conn: pointer to the connection object
+ *
+ * Determine if the connection to the hypervisor is still alive
+ *
+ * A connection will be classed as alive if it is either local, or running
+ * over a channel (TCP or UNIX socket) which is not closed.
+ *
+ * Returns 1 if alive, 0 if dead, -1 on error
+ */
+int virConnectIsAlive(virConnectPtr conn)
+{
+    VIR_DEBUG("conn=%p", conn);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (conn->driver->isAlive) {
+        int ret;
+        ret = conn->driver->isAlive(conn);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+
+/**
+ * virDomainSetBlockIoTune:
+ * @dom: pointer to domain object
+ * @disk: path to the block device, or device shorthand
+ * @params: Pointer to blkio parameter objects
+ * @nparams: Number of blkio parameters (this value can be the same or
+ *           less than the number of parameters supported)
+ * @flags: An OR'ed set of virDomainModificationImpact
+ *
+ * Change all or a subset of the per-device block IO tunables.
+ *
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or the device target shorthand (the <target
+ * dev='...'/> sub-element, such as "xvda").  Valid names can be found
+ * by calling virDomainGetXMLDesc() and inspecting elements
+ * within //domain/devices/disk.
+ *
+ * Returns -1 in case of error, 0 in case of success.
+ */
+int virDomainSetBlockIoTune(virDomainPtr dom,
+                            const char *disk,
+                            virTypedParameterPtr params,
+                            int nparams,
+                            unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(dom, "disk=%p, params=%p, nparams=%d, flags=%x",
+                     disk, params, nparams, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(dom)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (dom->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (!disk || (nparams <= 0) || (params == NULL)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (virTypedParameterValidateSet(dom, params, nparams) < 0)
+        return -1;
+
+    conn = dom->conn;
+
+    if (conn->driver->domainSetBlockIoTune) {
+        int ret;
+        ret = conn->driver->domainSetBlockIoTune(dom, disk, params, nparams, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibDomainError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+/**
+ * virDomainGetBlockIoTune:
+ * @dom: pointer to domain object
+ * @disk: path to the block device, or device shorthand
+ * @params: Pointer to blkio parameter object
+ *          (return value, allocated by the caller)
+ * @nparams: Pointer to number of blkio parameters
+ * @flags: An OR'ed set of virDomainModificationImpact
+ *
+ * Get all block IO tunable parameters for a given device.  On input,
+ * @nparams gives the size of the @params array; on output, @nparams
+ * gives how many slots were filled with parameter information, which
+ * might be less but will not exceed the input value.
+ *
+ * As a special case, calling with @params as NULL and @nparams as 0
+ * on input will cause @nparams on output to contain the number of
+ * parameters supported by the hypervisor, either for the given @disk
+ * (note that block devices of different types might support different
+ * parameters), or if @disk is NULL, for all possible disks. The
+ * caller should then allocate @params array,
+ * i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
+ * again.  See virDomainGetMemoryParameters() for more details.
+ *
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or the device target shorthand (the <target
+ * dev='...'/> sub-element, such as "xvda").  Valid names can be found
+ * by calling virDomainGetXMLDesc() and inspecting elements
+ * within //domain/devices/disk.  This parameter cannot be NULL
+ * unless @nparams is 0 on input.
+ *
+ * Returns -1 in case of error, 0 in case of success.
+ */
+int virDomainGetBlockIoTune(virDomainPtr dom,
+                            const char *disk,
+                            virTypedParameterPtr params,
+                            int *nparams,
+                            unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(dom, "disk=%p, params=%p, nparams=%d, flags=%x",
+                     NULLSTR(disk), params, (nparams) ? *nparams : -1, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN (dom)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (nparams == NULL || *nparams < 0 ||
+        ((params == NULL || disk == NULL) && *nparams != 0)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (VIR_DRV_SUPPORTS_FEATURE(dom->conn->driver, dom->conn,
+                                 VIR_DRV_FEATURE_TYPED_PARAM_STRING))
+        flags |= VIR_TYPED_PARAM_STRING_OKAY;
+
+    /* At most one of these two flags should be set.  */
+    if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
+        (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    conn = dom->conn;
+
+    if (conn->driver->domainGetBlockIoTune) {
+        int ret;
+        ret = conn->driver->domainGetBlockIoTune(dom, disk, params, nparams, flags);
         if (ret < 0)
             goto error;
         return ret;

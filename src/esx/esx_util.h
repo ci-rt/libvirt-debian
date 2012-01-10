@@ -23,7 +23,7 @@
 # define __ESX_UTIL_H__
 
 # include <libxml/uri.h>
-
+# include <netdb.h>
 # include "internal.h"
 
 typedef struct _esxUtil_ParsedUri esxUtil_ParsedUri;
@@ -37,9 +37,7 @@ struct _esxUtil_ParsedUri {
     int proxy_type;
     char *proxy_hostname;
     int proxy_port;
-    char *path_datacenter;
-    char *path_computeResource;
-    char *path_hostSystem;
+    char *path;
 };
 
 int esxUtil_ParseUri(esxUtil_ParsedUri **parsedUri, xmlURIPtr uri);

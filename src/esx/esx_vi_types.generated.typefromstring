@@ -286,6 +286,9 @@
            else if (STREQ(type, "Datacenter")) {
                return esxVI_Type_Datacenter;
            }
+           else if (STREQ(type, "Folder")) {
+               return esxVI_Type_Folder;
+           }
            else if (STREQ(type, "HostSystem")) {
                return esxVI_Type_HostSystem;
            }

@@ -2,6 +2,7 @@
 /*
  * esx_vi.h: client for the VMware VI API 2.5 to manage ESX hosts
  *
+ * Copyright (C) 2011 Red Hat, Inc.
  * Copyright (C) 2009-2010 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -98,7 +99,9 @@ enum _esxVI_APIVersion {
     esxVI_APIVersion_25,
     esxVI_APIVersion_40,
     esxVI_APIVersion_41,
-    esxVI_APIVersion_4x /* > 4.1 */
+    esxVI_APIVersion_4x, /* > 4.1 */
+    esxVI_APIVersion_50,
+    esxVI_APIVersion_5x  /* > 5.0 */
 };
 
 /*
@@ -116,12 +119,16 @@ enum _esxVI_ProductVersion {
     esxVI_ProductVersion_ESX40 = esxVI_ProductVersion_ESX | 2,
     esxVI_ProductVersion_ESX41 = esxVI_ProductVersion_ESX | 3,
     esxVI_ProductVersion_ESX4x = esxVI_ProductVersion_ESX | 4, /* > 4.1 */
+    esxVI_ProductVersion_ESX50 = esxVI_ProductVersion_ESX | 5,
+    esxVI_ProductVersion_ESX5x = esxVI_ProductVersion_ESX | 6, /* > 5.0 */
 
     esxVI_ProductVersion_VPX   = (1 << 2) << 16,
     esxVI_ProductVersion_VPX25 = esxVI_ProductVersion_VPX | 1,
     esxVI_ProductVersion_VPX40 = esxVI_ProductVersion_VPX | 2,
     esxVI_ProductVersion_VPX41 = esxVI_ProductVersion_VPX | 3,
-    esxVI_ProductVersion_VPX4x = esxVI_ProductVersion_VPX | 4  /* > 4.1 */
+    esxVI_ProductVersion_VPX4x = esxVI_ProductVersion_VPX | 4, /* > 4.1 */
+    esxVI_ProductVersion_VPX50 = esxVI_ProductVersion_VPX | 5,
+    esxVI_ProductVersion_VPX5x = esxVI_ProductVersion_VPX | 6  /* > 5.0 */
 };
 
 enum _esxVI_Occurrence {
@@ -197,8 +204,11 @@ struct _esxVI_Context {
     esxVI_UserSession *session; /* ... except the session ... */
     virMutexPtr sessionLock; /* ... that is protected by this mutex */
     esxVI_Datacenter *datacenter;
+    char *datacenterPath; /* including folders */
     esxVI_ComputeResource *computeResource;
+    char *computeResourcePath; /* including folders */
     esxVI_HostSystem *hostSystem;
+    char *hostSystemName;
     esxVI_SelectionSpec *selectSet_folderToChildEntity;
     esxVI_SelectionSpec *selectSet_hostSystemToParent;
     esxVI_SelectionSpec *selectSet_hostSystemToVm;
@@ -214,10 +224,10 @@ void esxVI_Context_Free(esxVI_Context **ctx);
 int esxVI_Context_Connect(esxVI_Context *ctx, const char *ipAddress,
                           const char *url, const char *username,
                           const char *password, esxUtil_ParsedUri *parsedUri);
-int esxVI_Context_LookupObjectsByPath(esxVI_Context *ctx,
-                                      esxUtil_ParsedUri *parsedUri);
-int esxVI_Context_LookupObjectsByHostSystemIp(esxVI_Context *ctx,
-                                              const char *hostSystemIpAddress);
+int esxVI_Context_LookupManagedObjects(esxVI_Context *ctx);
+int esxVI_Context_LookupManagedObjectsByPath(esxVI_Context *ctx, const char *path);
+int esxVI_Context_LookupManagedObjectsByHostSystemIp(esxVI_Context *ctx,
+                                                     const char *hostSystemIpAddress);
 int esxVI_Context_Execute(esxVI_Context *ctx, const char *methodName,
                           const char *request, esxVI_Response **response,
                           esxVI_Occurrence occurrence);
@@ -357,11 +367,12 @@ int esxVI_GetVirtualMachineIdentity(esxVI_ObjectContent *virtualMachine,
                                     int *id, char **name, unsigned char *uuid);
 
 int esxVI_GetNumberOfSnapshotTrees
-      (esxVI_VirtualMachineSnapshotTree *snapshotTreeList);
+      (esxVI_VirtualMachineSnapshotTree *snapshotTreeList,
+       bool recurse, bool leaves);
 
 int esxVI_GetSnapshotTreeNames
       (esxVI_VirtualMachineSnapshotTree *snapshotTreeList, char **names,
-       int nameslen);
+       int nameslen, bool recurse, bool leaves);
 
 int esxVI_GetSnapshotTreeByName
       (esxVI_VirtualMachineSnapshotTree *snapshotTreeList, const char *name,

@@ -34,6 +34,7 @@
 #include "domain_conf.h"
 #include "qemu_conf.h"
 #include "command.h"
+#include "virnodesuspend.h"
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -137,6 +138,10 @@ VIR_ENUM_IMPL(qemuCaps, QEMU_CAPS_LAST,
               "usb-redir",
               "usb-hub",
               "no-shutdown",
+
+              "cache-unsafe", /* 75 */
+              "rombar",
+              "ich9-ahci",
     );
 
 struct qemu_feature_flags {
@@ -803,6 +808,12 @@ error:
 }
 
 
+static int qemuDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+{
+    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
+}
+
+
 virCapsPtr qemuCapsInit(virCapsPtr old_caps)
 {
     struct utsname utsname;
@@ -838,6 +849,11 @@ virCapsPtr qemuCapsInit(virCapsPtr old_caps)
         old_caps->host.cpu = NULL;
     }
 
+    /* Add the power management features of the host */
+
+    if (virNodeSuspendGetTargetMask(&caps->host.powerMgmt) < 0)
+        VIR_WARN("Failed to get host power management capabilities");
+
     virCapabilitiesAddHostMigrateTransport(caps,
                                            "tcp");
 
@@ -870,7 +886,7 @@ virCapsPtr qemuCapsInit(virCapsPtr old_caps)
     /* QEMU Requires an emulator in the XML */
     virCapabilitiesSetEmulatorRequired(caps);
 
-    caps->defaultConsoleTargetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
+    caps->defaultConsoleTargetType = qemuDefaultConsoleType;
 
     return caps;
 
@@ -912,12 +928,16 @@ qemuCapsComputeCmdFlags(const char *help,
     else if (strstr(help, "-domid"))
         qemuCapsSet(flags, QEMU_CAPS_DOMID);
     if (strstr(help, "-drive")) {
+        const char *cache = strstr(help, "cache=");
+
         qemuCapsSet(flags, QEMU_CAPS_DRIVE);
-        if (strstr(help, "cache=") &&
-            !strstr(help, "cache=on|off")) {
-            qemuCapsSet(flags, QEMU_CAPS_DRIVE_CACHE_V2);
-            if (strstr(help, "directsync"))
+        if (cache && (p = strchr(cache, ']'))) {
+            if (memmem(cache, p - cache, "on|off", sizeof("on|off") - 1) == NULL)
+                qemuCapsSet(flags, QEMU_CAPS_DRIVE_CACHE_V2);
+            if (memmem(cache, p - cache, "directsync", sizeof("directsync") - 1))
                 qemuCapsSet(flags, QEMU_CAPS_DRIVE_CACHE_DIRECTSYNC);
+            if (memmem(cache, p - cache, "unsafe", sizeof("unsafe") - 1))
+                qemuCapsSet(flags, QEMU_CAPS_DRIVE_CACHE_UNSAFE);
         }
         if (strstr(help, "format="))
             qemuCapsSet(flags, QEMU_CAPS_DRIVE_FORMAT);
@@ -1011,9 +1031,9 @@ qemuCapsComputeCmdFlags(const char *help,
 
     /* Do not use -no-shutdown if qemu doesn't support it or SIGTERM handling
      * is most likely buggy when used with -no-shutdown (which applies for qemu
-     * 0.14.* and 0.15.*)
+     * 0.14.* and 0.15.0)
      */
-    if (strstr(help, "-no-shutdown") && (version < 14000 || version > 15999))
+    if (strstr(help, "-no-shutdown") && (version < 14000 || version > 15000))
         qemuCapsSet(flags, QEMU_CAPS_NO_SHUTDOWN);
 
     /*
@@ -1052,11 +1072,26 @@ qemuCapsComputeCmdFlags(const char *help,
      * two features. The benefits of JSON mode now outweigh
      * the downside.
      */
+#if HAVE_YAJL
      if (version >= 13000)
         qemuCapsSet(flags, QEMU_CAPS_MONITOR_JSON);
+#endif
 
     if (version >= 13000)
         qemuCapsSet(flags, QEMU_CAPS_PCI_MULTIFUNCTION);
+
+    /* Although very new versions of qemu advertise the presence of
+     * the rombar option in the output of "qemu -device pci-assign,?",
+     * this advertisement was added to the code long after the option
+     * itself. According to qemu developers, though, rombar is
+     * available in all qemu binaries from release 0.12 onward.
+     * Setting the capability this way makes it available in more
+     * cases where it might be needed, and shouldn't cause any false
+     * positives (in the case that it did, qemu would produce an error
+     * log and refuse to start, so it would be immediately obvious).
+     */
+    if (version >= 12000)
+        qemuCapsSet(flags, QEMU_CAPS_PCI_ROMBAR);
 }
 
 /* We parse the output of 'qemu -help' to get the QEMU
@@ -1112,14 +1147,17 @@ int qemuCapsParseHelpStr(const char *qemu,
     ++p;
 
     minor = virParseNumber(&p);
-    if (minor == -1 || *p != '.')
+    if (minor == -1)
         goto fail;
 
-    ++p;
-
-    micro = virParseNumber(&p);
-    if (micro == -1)
-        goto fail;
+    if (*p != '.') {
+        micro = 0;
+    } else {
+        ++p;
+        micro = virParseNumber(&p);
+        if (micro == -1)
+            goto fail;
+    }
 
     SKIP_BLANKS(p);
 
@@ -1235,6 +1273,8 @@ qemuCapsParseDeviceStr(const char *str, virBitmapPtr flags)
         qemuCapsSet(flags, QEMU_CAPS_USB_REDIR);
     if (strstr(str, "name \"usb-hub\""))
         qemuCapsSet(flags, QEMU_CAPS_USB_HUB);
+    if (strstr(str, "name \"ich9-ahci\""))
+        qemuCapsSet(flags, QEMU_CAPS_ICH9_AHCI);
 
     /* Prefer -chardev spicevmc (detected earlier) over -device spicevmc */
     if (!qemuCapsGet(flags, QEMU_CAPS_CHARDEV_SPICEVMC) &&
@@ -1244,6 +1284,8 @@ qemuCapsParseDeviceStr(const char *str, virBitmapPtr flags)
     /* Features of given devices. */
     if (strstr(str, "pci-assign.configfd"))
         qemuCapsSet(flags, QEMU_CAPS_PCI_CONFIGFD);
+    if (strstr(str, "virtio-blk-pci.multifunction"))
+        qemuCapsSet(flags, QEMU_CAPS_PCI_MULTIFUNCTION);
     if (strstr(str, "virtio-blk-pci.bootindex")) {
         qemuCapsSet(flags, QEMU_CAPS_BOOTINDEX);
         if (strstr(str, "pci-assign.bootindex"))

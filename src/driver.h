@@ -124,6 +124,9 @@ typedef int
         (*virDrvDomainReboot)		(virDomainPtr domain,
                                          unsigned int flags);
 typedef int
+        (*virDrvDomainReset)        (virDomainPtr domain,
+                                         unsigned int flags);
+typedef int
         (*virDrvDomainDestroy)		(virDomainPtr domain);
 typedef int
         (*virDrvDomainDestroyFlags) (virDomainPtr domain,
@@ -374,7 +377,12 @@ typedef int
                      unsigned long long offset, size_t size,
                      void *buffer,
                      unsigned int flags);
-
+typedef int
+    (*virDrvDomainBlockResize)
+                    (virDomainPtr domain,
+                     const char *path,
+                     unsigned long long size,
+                     unsigned int flags);
 typedef int
     (*virDrvDomainMemoryPeek)
                     (virDomainPtr domain,
@@ -506,6 +514,8 @@ typedef int
 typedef int
     (*virDrvConnectIsSecure)(virConnectPtr conn);
 typedef int
+    (*virDrvConnectIsAlive)(virConnectPtr conn);
+typedef int
     (*virDrvDomainIsActive)(virDomainPtr dom);
 typedef int
     (*virDrvDomainIsPersistent)(virDomainPtr dom);
@@ -581,6 +591,16 @@ typedef int
                                      int nameslen,
                                      unsigned int flags);
 
+typedef int
+    (*virDrvDomainSnapshotNumChildren)(virDomainSnapshotPtr snapshot,
+                                       unsigned int flags);
+
+typedef int
+    (*virDrvDomainSnapshotListChildrenNames)(virDomainSnapshotPtr snapshot,
+                                             char **names,
+                                             int nameslen,
+                                             unsigned int flags);
+
 typedef virDomainSnapshotPtr
     (*virDrvDomainSnapshotLookupByName)(virDomainPtr domain,
                                         const char *name,
@@ -588,6 +608,10 @@ typedef virDomainSnapshotPtr
 
 typedef int
     (*virDrvDomainHasCurrentSnapshot)(virDomainPtr domain, unsigned int flags);
+
+typedef virDomainSnapshotPtr
+    (*virDrvDomainSnapshotGetParent)(virDomainSnapshotPtr snapshot,
+                                     unsigned int flags);
 
 typedef virDomainSnapshotPtr
     (*virDrvDomainSnapshotCurrent)(virDomainPtr domain,
@@ -615,6 +639,11 @@ typedef int
                                const char *dev_name,
                                virStreamPtr st,
                                unsigned int flags);
+typedef int
+    (*virDrvDomainOpenGraphics)(virDomainPtr dom,
+                                unsigned int idx,
+                                int fd,
+                                unsigned int flags);
 
 typedef int
     (*virDrvDomainInjectNMI)(virDomainPtr dom, unsigned int flags);
@@ -699,6 +728,11 @@ typedef int
                      unsigned long flags,
                      int cancelled);
 
+typedef int
+    (*virDrvNodeSuspendForDuration)(virConnectPtr conn, unsigned int target,
+                                     unsigned long long duration,
+                                     unsigned int flags);
+
 
 typedef int
     (*virDrvDomainBlockJobAbort)(virDomainPtr dom, const char *path,
@@ -718,6 +752,23 @@ typedef int
     (*virDrvDomainBlockPull)(virDomainPtr dom, const char *path,
                              unsigned long bandwidth, unsigned int flags);
 
+typedef int
+    (*virDrvSetKeepAlive)(virConnectPtr conn,
+                          int interval,
+                          unsigned int count);
+
+typedef int
+    (*virDrvDomainSetBlockIoTune)(virDomainPtr dom,
+                                  const char *disk,
+                                  virTypedParameterPtr params,
+                                  int nparams,
+                                  unsigned int flags);
+typedef int
+    (*virDrvDomainGetBlockIoTune)(virDomainPtr dom,
+                                  const char *disk,
+                                  virTypedParameterPtr params,
+                                  int *nparams,
+                                  unsigned int flags);
 
 /**
  * _virDriver:
@@ -755,6 +806,7 @@ struct _virDriver {
     virDrvDomainResume		domainResume;
     virDrvDomainShutdown		domainShutdown;
     virDrvDomainReboot		domainReboot;
+    virDrvDomainReset       domainReset;
     virDrvDomainDestroy		domainDestroy;
     virDrvDomainDestroyFlags    domainDestroyFlags;
     virDrvDomainGetOSType		domainGetOSType;
@@ -812,6 +864,7 @@ struct _virDriver {
     virDrvDomainMigratePrepare	domainMigratePrepare;
     virDrvDomainMigratePerform	domainMigratePerform;
     virDrvDomainMigrateFinish	domainMigrateFinish;
+    virDrvDomainBlockResize     domainBlockResize;
     virDrvDomainBlockStats      domainBlockStats;
     virDrvDomainBlockStatsFlags domainBlockStatsFlags;
     virDrvDomainInterfaceStats  domainInterfaceStats;
@@ -852,14 +905,18 @@ struct _virDriver {
     virDrvDomainSnapshotGetXMLDesc domainSnapshotGetXMLDesc;
     virDrvDomainSnapshotNum domainSnapshotNum;
     virDrvDomainSnapshotListNames domainSnapshotListNames;
+    virDrvDomainSnapshotNumChildren domainSnapshotNumChildren;
+    virDrvDomainSnapshotListChildrenNames domainSnapshotListChildrenNames;
     virDrvDomainSnapshotLookupByName domainSnapshotLookupByName;
     virDrvDomainHasCurrentSnapshot domainHasCurrentSnapshot;
+    virDrvDomainSnapshotGetParent domainSnapshotGetParent;
     virDrvDomainSnapshotCurrent domainSnapshotCurrent;
     virDrvDomainRevertToSnapshot domainRevertToSnapshot;
     virDrvDomainSnapshotDelete domainSnapshotDelete;
     virDrvDomainQemuMonitorCommand qemuDomainMonitorCommand;
     virDrvDomainQemuAttach qemuDomainAttach;
     virDrvDomainOpenConsole domainOpenConsole;
+    virDrvDomainOpenGraphics domainOpenGraphics;
     virDrvDomainInjectNMI domainInjectNMI;
     virDrvDomainMigrateBegin3	domainMigrateBegin3;
     virDrvDomainMigratePrepare3	domainMigratePrepare3;
@@ -872,6 +929,11 @@ struct _virDriver {
     virDrvDomainGetBlockJobInfo domainGetBlockJobInfo;
     virDrvDomainBlockJobSetSpeed domainBlockJobSetSpeed;
     virDrvDomainBlockPull domainBlockPull;
+    virDrvSetKeepAlive setKeepAlive;
+    virDrvConnectIsAlive isAlive;
+    virDrvNodeSuspendForDuration nodeSuspendForDuration;
+    virDrvDomainSetBlockIoTune domainSetBlockIoTune;
+    virDrvDomainGetBlockIoTune domainGetBlockIoTune;
 };
 
 typedef int

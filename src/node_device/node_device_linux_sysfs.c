@@ -2,7 +2,7 @@
  * node_device_hal_linuc.c: Linux specific code to gather device data
  * not available through HAL.
  *
- * Copyright (C) 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2009-2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,6 @@
 #include "memory.h"
 #include "logging.h"
 #include "virfile.h"
-#include <dirent.h>
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
 
@@ -150,10 +149,20 @@ int check_fc_host_linux(union _virNodeDevCapData *d)
         retval = -1;
     }
 
+    if (read_wwn(d->scsi_host.host,
+                 "fabric_name",
+                 &d->scsi_host.fabric_wwn) == -1) {
+        VIR_ERROR(_("Failed to read fabric WWN for host%d"),
+                  d->scsi_host.host);
+        retval = -1;
+        goto out;
+    }
+
 out:
     if (retval == -1) {
         VIR_FREE(d->scsi_host.wwnn);
         VIR_FREE(d->scsi_host.wwpn);
+        VIR_FREE(d->scsi_host.fabric_wwn);
     }
     VIR_FREE(sysfs_path);
     return retval;

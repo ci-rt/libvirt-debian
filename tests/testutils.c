@@ -33,6 +33,7 @@
 #include "virterror_internal.h"
 #include "buf.h"
 #include "logging.h"
+#include "command.h"
 
 #if TEST_OOM_TRACE
 # include <execinfo.h>
@@ -160,6 +161,8 @@ virtTestRun(const char *title, int nloops, int (*body)(const void *data), const 
                         virtTestCountAverage(ts, nloops));
             else if (ret == 0)
                 fprintf(stderr, "OK\n");
+            else if (ret == EXIT_AM_SKIP)
+                fprintf(stderr, "SKIP\n");
             else
                 fprintf(stderr, "FAILED\n");
         } else {
@@ -170,6 +173,8 @@ virtTestRun(const char *title, int nloops, int (*body)(const void *data), const 
             }
             if (ret == 0)
                 fprintf(stderr, ".");
+            else if (ret == EXIT_AM_SKIP)
+                fprintf(stderr, "_");
             else
                 fprintf(stderr, "!");
         }
@@ -305,7 +310,8 @@ virtTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen)
         VIR_FORCE_CLOSE(pipefd[1]);
         len = virFileReadLimFD(pipefd[0], maxlen, buf);
         VIR_FORCE_CLOSE(pipefd[0]);
-        waitpid(pid, NULL, 0);
+        if (virPidWait(pid, NULL) < 0)
+            return -1;
 
         return len;
     }
@@ -359,7 +365,7 @@ int virtTestDifference(FILE *stream,
     }
 
     /* Show the trimmed differences */
-    fprintf(stream, "\nExpect [");
+    fprintf(stream, "\nOffset %d\nExpect [", (int) (expectStart - expect));
     if ((expectEnd - expectStart + 1) &&
         fwrite(expectStart, (expectEnd-expectStart+1), 1, stream) != 1)
         return -1;
@@ -458,11 +464,13 @@ virtTestLogOutput(const char *category ATTRIBUTE_UNUSED,
                   int priority ATTRIBUTE_UNUSED,
                   const char *funcname ATTRIBUTE_UNUSED,
                   long long lineno ATTRIBUTE_UNUSED,
-                  const char *str, int len, void *data)
+                  const char *timestamp,
+                  const char *str,
+                  void *data)
 {
     struct virtTestLogData *log = data;
-    virBufferAdd(&log->buf, str, len);
-    return len;
+    virBufferAsprintf(&log->buf, "%s: %s", timestamp, str);
+    return strlen(timestamp) + 2 + strlen(str);
 }
 
 static void
@@ -668,8 +676,7 @@ int virtTestMain(int argc,
             } else {
                 int i, status;
                 for (i = 0 ; i < mp ; i++) {
-                    waitpid(workers[i], &status, 0);
-                    if (WEXITSTATUS(status) != EXIT_SUCCESS)
+                    if (virPidWait(workers[i], NULL) < 0)
                         ret = EXIT_FAILURE;
                 }
                 VIR_FREE(workers);

@@ -222,6 +222,33 @@ done:
 }
 
 static int
+remoteDomainBlockResize(virDomainPtr dom, const char *disk, unsigned long long size, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_block_resize_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.disk = (char *)disk;
+    args.size = size;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_BLOCK_RESIZE,
+             (xdrproc_t)xdr_remote_domain_block_resize_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainBlockStats(virDomainPtr dom, const char *path, virDomainBlockStatsPtr result)
 {
     int rv = -1;
@@ -1352,6 +1379,8 @@ remoteDomainMigratePrepareTunnel(virConnectPtr conn, virStreamPtr st, unsigned l
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         virNetClientRemoveStream(priv->client, netst);
         virNetClientStreamFree(netst);
+        st->driver = NULL;
+        st->privateData = NULL;
         goto done;
     }
 
@@ -1443,6 +1472,8 @@ remoteDomainOpenConsole(virDomainPtr dom, const char *dev_name, virStreamPtr st,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         virNetClientRemoveStream(priv->client, netst);
         virNetClientStreamFree(netst);
+        st->driver = NULL;
+        st->privateData = NULL;
         goto done;
     }
 
@@ -1536,6 +1567,31 @@ remoteDomainReboot(virDomainPtr dom, unsigned int flags)
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_REBOOT,
              (xdrproc_t)xdr_remote_domain_reboot_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainReset(virDomainPtr dom, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_reset_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_RESET,
+             (xdrproc_t)xdr_remote_domain_reset_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }
@@ -1785,6 +1841,8 @@ remoteDomainScreenshot(virDomainPtr dom, virStreamPtr st, unsigned int screen, u
              (xdrproc_t)xdr_remote_domain_screenshot_ret, (char *)&ret) == -1) {
         virNetClientRemoveStream(priv->client, netst);
         virNetClientStreamFree(netst);
+        st->driver = NULL;
+        st->privateData = NULL;
         goto done;
     }
 
@@ -1876,6 +1934,38 @@ remoteDomainSetBlkioParameters(virDomainPtr dom, virTypedParameterPtr params, in
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_BLKIO_PARAMETERS,
              (xdrproc_t)xdr_remote_domain_set_blkio_parameters_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSetBlockIoTune(virDomainPtr dom, const char *disk, virTypedParameterPtr params, int nparams, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_set_block_io_tune_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.disk = (char *)disk;
+    args.flags = flags;
+
+    if (remoteSerializeTypedParameters(params, nparams, &args.params.params_val, &args.params.params_len) < 0) {
+        xdr_free((xdrproc_t)xdr_remote_domain_set_block_io_tune_args, (char *)&args);
+        goto done;
+    }
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_BLOCK_IO_TUNE,
+             (xdrproc_t)xdr_remote_domain_set_block_io_tune_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }
@@ -2215,6 +2305,35 @@ done:
     return rv;
 }
 
+static virDomainSnapshotPtr
+remoteDomainSnapshotGetParent(virDomainSnapshotPtr snap, unsigned int flags)
+{
+    virDomainSnapshotPtr rv = NULL;
+    struct private_data *priv = snap->domain->conn->privateData;
+    remote_domain_snapshot_get_parent_args args;
+    remote_domain_snapshot_get_parent_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain_snapshot(&args.snap, snap);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof ret);
+
+    if (call(snap->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_GET_PARENT,
+             (xdrproc_t)xdr_remote_domain_snapshot_get_parent_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_snapshot_get_parent_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = get_nonnull_domain_snapshot(snap->domain, ret.snap);
+    xdr_free((xdrproc_t)xdr_remote_domain_snapshot_get_parent_ret, (char *)&ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static char *
 remoteDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snap, unsigned int flags)
 {
@@ -2237,6 +2356,69 @@ remoteDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snap, unsigned int flags)
     }
 
     rv = ret.xml;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const names, int maxnames, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = snap->domain->conn->privateData;
+    remote_domain_snapshot_list_children_names_args args;
+    remote_domain_snapshot_list_children_names_ret ret;
+    int i;
+
+    remoteDriverLock(priv);
+
+    if (maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX) {
+        remoteError(VIR_ERR_RPC,
+                    _("too many remote undefineds: %d > %d"),
+                    maxnames, REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX);
+        goto done;
+    }
+
+    make_nonnull_domain_snapshot(&args.snap, snap);
+    args.maxnames = maxnames;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof ret);
+
+    if (call(snap->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_CHILDREN_NAMES,
+             (xdrproc_t)xdr_remote_domain_snapshot_list_children_names_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_snapshot_list_children_names_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    if (ret.names.names_len > maxnames) {
+        remoteError(VIR_ERR_RPC,
+                    _("too many remote undefineds: %d > %d"),
+                    ret.names.names_len, maxnames);
+        goto cleanup;
+    }
+
+    /* This call is caller-frees (although that isn't clear from
+     * the documentation).  However xdr_free will free up both the
+     * names and the list of pointers, so we have to strdup the
+     * names here. */
+    for (i = 0; i < ret.names.names_len; ++i) {
+        names[i] = strdup(ret.names.names_val[i]);
+
+        if (names[i] == NULL) {
+            for (--i; i >= 0; --i)
+                VIR_FREE(names[i]);
+
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+    rv = ret.names.names_len;
+
+cleanup:
+    xdr_free((xdrproc_t)xdr_remote_domain_snapshot_list_children_names_ret, (char *)&ret);
 
 done:
     remoteDriverUnlock(priv);
@@ -2354,6 +2536,34 @@ remoteDomainSnapshotNum(virDomainPtr dom, unsigned int flags)
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_NUM,
              (xdrproc_t)xdr_remote_domain_snapshot_num_args, (char *)&args,
              (xdrproc_t)xdr_remote_domain_snapshot_num_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.num;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSnapshotNumChildren(virDomainSnapshotPtr snap, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = snap->domain->conn->privateData;
+    remote_domain_snapshot_num_children_args args;
+    remote_domain_snapshot_num_children_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain_snapshot(&args.snap, snap);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof ret);
+
+    if (call(snap->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_NUM_CHILDREN,
+             (xdrproc_t)xdr_remote_domain_snapshot_num_children_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_snapshot_num_children_ret, (char *)&ret) == -1) {
         goto done;
     }
 
@@ -4228,6 +4438,32 @@ done:
 }
 
 static int
+remoteNodeSuspendForDuration(virConnectPtr conn, unsigned int target, unsigned long long duration, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = conn->devMonPrivateData;
+    remote_node_suspend_for_duration_args args;
+
+    remoteDriverLock(priv);
+
+    args.target = target;
+    args.duration = duration;
+    args.flags = flags;
+
+    if (call(conn, priv, 0, REMOTE_PROC_NODE_SUSPEND_FOR_DURATION,
+             (xdrproc_t)xdr_remote_node_suspend_for_duration_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteNumOfDefinedDomains(virConnectPtr conn)
 {
     int rv = -1;
@@ -5436,6 +5672,8 @@ remoteStorageVolDownload(virStorageVolPtr vol, virStreamPtr st, unsigned long lo
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         virNetClientRemoveStream(priv->client, netst);
         virNetClientStreamFree(netst);
+        st->driver = NULL;
+        st->privateData = NULL;
         goto done;
     }
 
@@ -5646,6 +5884,8 @@ remoteStorageVolUpload(virStorageVolPtr vol, virStreamPtr st, unsigned long long
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         virNetClientRemoveStream(priv->client, netst);
         virNetClientStreamFree(netst);
+        st->driver = NULL;
+        st->privateData = NULL;
         goto done;
     }
 

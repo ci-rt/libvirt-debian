@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2011 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.6], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.8], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -135,25 +135,47 @@ AC_CHECK_SIZEOF([long])
 
 dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
-AC_CHECK_FUNCS_ONCE([cfmakeraw fdatasync geteuid getgid getgrnam_r getmntent_r \
+AC_CHECK_FUNCS_ONCE([cfmakeraw geteuid getgid getgrnam_r getmntent_r \
   getpwuid_r getuid initgroups kill mmap posix_fallocate posix_memalign \
   regexec sched_getaffinity])
-if test $ac_cv_func_fdatasync = no; then
-  AC_DEFINE([fdatasync], [fsync], [Define to fsync if you lack fdatasync])
-fi
 
 dnl Availability of pthread functions (if missing, win32 threading is
 dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
-dnl LIB_PTHREAD was set during gl_INIT by gnulib.
+dnl LIB_PTHREAD and LIBMULTITHREAD were set during gl_INIT by gnulib.
 old_LIBS=$LIBS
-LIBS="$LIBS $LIB_PTHREAD"
+LIBS="$LIBS $LIB_PTHREAD $LIBMULTITHREAD"
 AC_CHECK_FUNCS([pthread_mutexattr_init])
 LIBS=$old_libs
+
+old_LIBS=$LIBS
+RT_LIBS=
+LIBS="$LIBS $LIB_PTHREAD -lrt"
+AC_CHECK_FUNC([clock_gettime],[
+     AC_DEFINE([HAVE_CLOCK_GETTIME],[],[Defined if clock_gettime() exists in librt.so])
+     RT_LIBS=-lrt
+])
+LIBS=$old_libs
+AC_SUBST(RT_LIBS)
 
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
-  sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h])
+  sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h \
+  net/if.h])
+
+AC_MSG_CHECKING([for struct ifreq in net/if.h])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+   [[
+     #include <net/if.h>
+   ]],
+   [[
+     struct ifreq ifr;
+   ]])],[
+     AC_DEFINE([HAVE_STRUCT_IFREQ],[],[Defined if struct ifreq existsin net/if.h])
+     AC_MSG_RESULT([yes])
+   ],[
+     AC_MSG_RESULT([yes])
+   ])
 
 dnl Our only use of libtasn1.h is in the testsuite, and can be skipped
 dnl if the header is not present.  Assume -ltasn1 is present if the
@@ -200,8 +222,6 @@ AC_DEFINE_UNQUOTED([DNSMASQ],["$DNSMASQ"],
         [Location or name of the dnsmasq program])
 AC_DEFINE_UNQUOTED([RADVD],["$RADVD"],
         [Location or name of the radvd program])
-AC_DEFINE_UNQUOTED([BRCTL],["$BRCTL"],
-        [Location or name of the brctl program (see bridge-utils)])
 AC_DEFINE_UNQUOTED([TC],["$TC"],
         [Location or name of the tc profram (see iproute2)])
 if test -n "$UDEVADM"; then
@@ -333,16 +353,41 @@ dnl init script flavor
 dnl
 AC_MSG_CHECKING([for init script flavor])
 AC_ARG_WITH([init-script],
-            [AC_HELP_STRING([--with-init-script=@<:@redhat|auto|none@:>@],
-		     [Style of init script to install @<:@default=auto@:>@])])
-if test "x$with_init_script" = "x" || test "x$with_init_script" = "xauto"; then
-    if test "$cross_compiling" = yes || test ! -f /etc/redhat-release; then
-        with_init_script=none
-    else
-        with_init_script=redhat
-    fi
-fi
-AM_CONDITIONAL([LIBVIRT_INIT_SCRIPT_RED_HAT], test x$with_init_script = xredhat)
+            [AC_HELP_STRING([--with-init-script@<:@=STYLE@:>@],
+                            [Style of init script to install: redhat, systemd, systemd+redhat,
+                             upstart, auto, none @<:@default=auto@:>@])],[],[with_init_script=check])
+init_redhat=no
+init_systemd=no
+init_upstart=no
+case "$with_init_script" in
+    systemd+redhat)
+       init_redhat=yes
+       init_systemd=yes
+       ;;
+    systemd)
+       init_systemd=yes
+       ;;
+    upstart)
+       init_upstart=yes
+       ;;
+    redhat)
+       init_redhat=yes
+       ;;
+    none)
+       ;;
+    check)
+       if test "$cross_compiling" != yes && test -f /etc/redhat-release; then
+          init_redhat=yes
+          with_init_script=redhat
+       fi
+       ;;
+    *)
+       AC_MSG_ERROR([Unknown initscript flavour $with_init_script])
+    ;;
+esac
+AM_CONDITIONAL([LIBVIRT_INIT_SCRIPT_RED_HAT], test "$init_redhat" = "yes")
+AM_CONDITIONAL([LIBVIRT_INIT_SCRIPT_UPSTART], test "$init_upstart" = "yes")
+AM_CONDITIONAL([LIBVIRT_INIT_SCRIPT_SYSTEMD], test "$init_systemd" = "yes")
 AC_MSG_RESULT($with_init_script)
 
 dnl RHEL-5 has a peculiar version of Xen, which requires some special casing
@@ -690,8 +735,9 @@ fi
 if test "$with_lxc" = "yes" || test "$with_lxc" = "check"; then
     AC_TRY_LINK([
         #include <sched.h>
+        #include <linux/loop.h>
     ], [
-        unshare (1);
+        unshare (!LO_FLAGS_AUTOCLEAR);
     ], [
         with_lxc=yes
     ], [
@@ -1693,6 +1739,7 @@ if test "$with_storage_lvm" = "yes" || test "$with_storage_lvm" = "check"; then
   AC_PATH_PROG([PVREMOVE], [pvremove], [], [$PATH:/sbin:/usr/sbin])
   AC_PATH_PROG([VGREMOVE], [vgremove], [], [$PATH:/sbin:/usr/sbin])
   AC_PATH_PROG([LVREMOVE], [lvremove], [], [$PATH:/sbin:/usr/sbin])
+  AC_PATH_PROG([LVCHANGE], [lvchange], [], [$PATH:/sbin:/usr/sbin])
   AC_PATH_PROG([VGCHANGE], [vgchange], [], [$PATH:/sbin:/usr/sbin])
   AC_PATH_PROG([VGSCAN], [vgscan], [], [$PATH:/sbin:/usr/sbin])
   AC_PATH_PROG([PVS], [pvs], [], [$PATH:/sbin:/usr/sbin])
@@ -1706,6 +1753,7 @@ if test "$with_storage_lvm" = "yes" || test "$with_storage_lvm" = "check"; then
     if test -z "$PVREMOVE" ; then AC_MSG_ERROR([We need pvremove for LVM storage driver]) ; fi
     if test -z "$VGREMOVE" ; then AC_MSG_ERROR([We need vgremove for LVM storage driver]) ; fi
     if test -z "$LVREMOVE" ; then AC_MSG_ERROR([We need lvremove for LVM storage driver]) ; fi
+    if test -z "$LVCHANGE" ; then AC_MSG_ERROR([We need lvchange for LVM storage driver]) ; fi
     if test -z "$VGCHANGE" ; then AC_MSG_ERROR([We need vgchange for LVM storage driver]) ; fi
     if test -z "$VGSCAN" ; then AC_MSG_ERROR([We need vgscan for LVM storage driver]) ; fi
     if test -z "$PVS" ; then AC_MSG_ERROR([We need pvs for LVM storage driver]) ; fi
@@ -1718,6 +1766,7 @@ if test "$with_storage_lvm" = "yes" || test "$with_storage_lvm" = "check"; then
     if test -z "$PVREMOVE" ; then with_storage_lvm=no ; fi
     if test -z "$VGREMOVE" ; then with_storage_lvm=no ; fi
     if test -z "$LVREMOVE" ; then with_storage_lvm=no ; fi
+    if test -z "$LVCHANGE" ; then with_storage_lvm=no ; fi
     if test -z "$VGCHANGE" ; then with_storage_lvm=no ; fi
     if test -z "$VGSCAN" ; then with_storage_lvm=no ; fi
     if test -z "$PVS" ; then with_storage_lvm=no ; fi
@@ -1735,6 +1784,7 @@ if test "$with_storage_lvm" = "yes" || test "$with_storage_lvm" = "check"; then
     AC_DEFINE_UNQUOTED([PVREMOVE],["$PVREMOVE"],[Location of pvremove program])
     AC_DEFINE_UNQUOTED([VGREMOVE],["$VGREMOVE"],[Location of vgremove program])
     AC_DEFINE_UNQUOTED([LVREMOVE],["$LVREMOVE"],[Location of lvremove program])
+    AC_DEFINE_UNQUOTED([LVCHANGE],["$LVCHANGE"],[Location of lvchange program])
     AC_DEFINE_UNQUOTED([VGCHANGE],["$VGCHANGE"],[Location of vgchange program])
     AC_DEFINE_UNQUOTED([VGSCAN],["$VGSCAN"],[Location of vgscan program])
     AC_DEFINE_UNQUOTED([PVS],["$PVS"],[Location of pvs program])
@@ -2683,6 +2733,7 @@ AC_MSG_NOTICE([     Readline: $lv_use_readline])
 AC_MSG_NOTICE([       Python: $with_python])
 AC_MSG_NOTICE([       DTrace: $with_dtrace])
 AC_MSG_NOTICE([  XML Catalog: $XML_CATALOG_FILE])
+AC_MSG_NOTICE([  Init script: $with_init_script])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Privileges])
 AC_MSG_NOTICE([])

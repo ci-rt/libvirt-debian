@@ -146,6 +146,10 @@ struct daemonConfig {
 
     int audit_level;
     int audit_logging;
+
+    int keepalive_interval;
+    unsigned int keepalive_count;
+    int keepalive_required;
 };
 
 enum {
@@ -232,18 +236,14 @@ static int daemonForkIntoBackground(const char *argv0)
 
     default:
         {
-            int got, exitstatus = 0;
             int ret;
             char status;
 
             VIR_FORCE_CLOSE(statuspipe[1]);
 
             /* We wait to make sure the first child forked successfully */
-            if ((got = waitpid(pid, &exitstatus, 0)) < 0 ||
-                got != pid ||
-                exitstatus != 0) {
+            if (virPidWait(pid, NULL) < 0)
                 return -1;
-            }
 
             /* Now block until the second child initializes successfully */
         again:
@@ -470,8 +470,12 @@ static int daemonSetupNetworking(virNetServerPtr srv,
                                              NULL)))
         goto error;
 
-    if (virNetServerAddService(srv, svc, NULL) < 0)
+    if (virNetServerAddService(srv, svc,
+                               config->mdns_adv && !ipsock ?
+                               "_libvirt._tcp" :
+                               NULL) < 0)
         goto error;
+
     if (svcRO &&
         virNetServerAddService(srv, svcRO, NULL) < 0)
         goto error;
@@ -899,6 +903,10 @@ daemonConfigNew(bool privileged ATTRIBUTE_UNUSED)
     data->audit_level = 1;
     data->audit_logging = 0;
 
+    data->keepalive_interval = 5;
+    data->keepalive_count = 5;
+    data->keepalive_required = 0;
+
     localhost = virGetHostname(NULL);
     if (localhost == NULL) {
         /* we couldn't resolve the hostname; assume that we are
@@ -1061,6 +1069,10 @@ daemonConfigLoad(struct daemonConfig *data,
     GET_CONF_STR (conf, filename, log_filters);
     GET_CONF_STR (conf, filename, log_outputs);
     GET_CONF_INT (conf, filename, log_buffer_size);
+
+    GET_CONF_INT (conf, filename, keepalive_interval);
+    GET_CONF_INT (conf, filename, keepalive_count);
+    GET_CONF_INT (conf, filename, keepalive_required);
 
     virConfFree (conf);
     return 0;
@@ -1452,6 +1464,9 @@ int main(int argc, char **argv) {
                                 config->max_workers,
                                 config->prio_workers,
                                 config->max_clients,
+                                config->keepalive_interval,
+                                config->keepalive_count,
+                                !!config->keepalive_required,
                                 config->mdns_adv ? config->mdns_name : NULL,
                                 use_polkit_dbus,
                                 remoteClientInitHook))) {

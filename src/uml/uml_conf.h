@@ -25,7 +25,6 @@
 # define __UML_CONF_H
 
 # include "internal.h"
-# include "bridge.h"
 # include "capabilities.h"
 # include "network_conf.h"
 # include "domain_conf.h"
@@ -33,6 +32,7 @@
 # include "virterror_internal.h"
 # include "threads.h"
 # include "command.h"
+# include "hash.h"
 
 # define umlDebug(fmt, ...) do {} while(0)
 
@@ -51,7 +51,6 @@ struct uml_driver {
 
     virDomainObjList domains;
 
-    brControl *brctl;
     char *configDir;
     char *autostartDir;
     char *logDir;
@@ -64,6 +63,11 @@ struct uml_driver {
 
     /* Event handling */
     virDomainEventStatePtr domainEventState;
+
+    /* Mapping of 'char *uuidstr' -> virConnectPtr
+     * of guests which will be automatically killed
+     * when the virConnectPtr is closed*/
+    virHashTablePtr autodestroy;
 };
 
 

@@ -43,7 +43,9 @@ int qemuMonitorTextCommandWithFd(qemuMonitorPtr mon,
 int qemuMonitorTextStartCPUs(qemuMonitorPtr mon,
                              virConnectPtr conn);
 int qemuMonitorTextStopCPUs(qemuMonitorPtr mon);
-int qemuMonitorTextGetStatus(qemuMonitorPtr mon, bool *running);
+int qemuMonitorTextGetStatus(qemuMonitorPtr mon,
+                             bool *running,
+                             virDomainPausedReason *reason);
 
 int qemuMonitorTextSystemPowerdown(qemuMonitorPtr mon);
 int qemuMonitorTextSystemReset(qemuMonitorPtr mon);
@@ -57,6 +59,9 @@ int qemuMonitorTextGetBalloonInfo(qemuMonitorPtr mon,
 int qemuMonitorTextGetMemoryStats(qemuMonitorPtr mon,
                                   virDomainMemoryStatPtr stats,
                                   unsigned int nr_stats);
+int qemuMonitorTextGetBlockInfo(qemuMonitorPtr mon,
+                                const char *devname,
+                                struct qemuDomainDiskInfo *info);
 int qemuMonitorTextGetBlockStatsInfo(qemuMonitorPtr mon,
                                      const char *dev_name,
                                      long long *rd_req,
@@ -73,7 +78,9 @@ int qemuMonitorTextGetBlockStatsParamsNumber(qemuMonitorPtr mon,
 int qemuMonitorTextGetBlockExtent(qemuMonitorPtr mon,
                                   const char *dev_name,
                                   unsigned long long *extent);
-
+int qemuMonitorTextBlockResize(qemuMonitorPtr mon,
+                               const char *device,
+                               unsigned long long size);
 int qemuMonitorTextSetVNCPassword(qemuMonitorPtr mon,
                                   const char *password);
 int qemuMonitorTextSetPassword(qemuMonitorPtr mon,
@@ -237,5 +244,18 @@ int qemuMonitorTextBlockJob(qemuMonitorPtr mon,
 int qemuMonitorTextSetLink(qemuMonitorPtr mon,
                            const char *name,
                            enum virDomainNetInterfaceLinkState state);
+
+int qemuMonitorTextOpenGraphics(qemuMonitorPtr mon,
+                                const char *protocol,
+                                const char *fdname,
+                                bool skipauth);
+
+int qemuMonitorTextSetBlockIoThrottle(qemuMonitorPtr mon,
+                                      const char *device,
+                                      virDomainBlockIoTuneInfoPtr info);
+
+int qemuMonitorTextGetBlockIoThrottle(qemuMonitorPtr mon,
+                                      const char *device,
+                                      virDomainBlockIoTuneInfoPtr reply);
 
 #endif /* QEMU_MONITOR_TEXT_H */

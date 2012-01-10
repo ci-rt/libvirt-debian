@@ -104,6 +104,12 @@ case "$1" in
 		update-rc.d -f libvirt-bin remove >/dev/null
 	    fi
 	fi
+
+	# Make sure the directories don't get removed on package removal since
+	# logrotate chokes otherwise.
+	for dir in qemu uml lxc; do
+	    touch /var/log/libvirt/"${dir}"/.placeholder
+	done
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

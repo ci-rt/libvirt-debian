@@ -1,3 +1,105 @@
+libvirt (0.9.8-2) unstable; urgency=low
+
+  * Upload to unstable. Works with qemu-kvm and qemu 1.0.
+    (Closes: #652454)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 17 Dec 2011 14:01:20 +0100
+
+libvirt (0.9.8-1) experimental; urgency=low
+
+  * [8a35c97] New upstream version 0.9.8
+  * [52e19b5] Drop remote_driver-don-t-fail-if-keepalive-check-fails.patch
+    applied upstream.
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 08 Dec 2011 23:31:31 +0100
+
+libvirt (0.9.8~rc2-2) experimental; urgency=low
+
+  * [e50aac4] remote_driver: don't fail if keepalive check fails. This fixes
+    remote connections to older libvirt versions.
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 05 Dec 2011 18:00:06 +0100
+
+libvirt (0.9.8~rc2-1) experimental; urgency=low
+
+  * [9b1abb2] New upstream version 0.9.8~rc2
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 04 Dec 2011 13:58:31 +0100
+
+libvirt (0.9.8~rc1-1) experimental; urgency=low
+
+  * [99476ba] New upstream version 0.9.8~rc1
+  * [3bdcf07] Make radvd a linux-any build-dep (Closes: #649635)
+  * [7546785] Drop patch storage-forbid-rebuilding-existing-disk-storage-pool
+    applied upstream.
+  * [0c2afdb] Rediff remaining patches
+  * [3d121b2] Update symbols file
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 03 Dec 2011 14:49:49 +0100
+
+libvirt (0.9.7-2) unstable; urgency=low
+
+  * [b0bdb13] Enable numa support. (Closes: #648323)
+    Thanks to Ralf Spenneberg for testing
+  * [5b55828] Disk storage: forbid rebuilding existing disk storage pools
+    wiping all it's data.
+  * [d77511c] Build depend on radvd (Closes: #648551)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 12 Nov 2011 23:16:21 +0100
+
+libvirt (0.9.7-1) experimental; urgency=low
+
+  * [c06e393] debian/watch: match releases and release candidates
+  * [2d08768] New upstream version 0.9.7
+  * [a260f43] Add empty hooks dir (Closes: #623996)
+  * [0b10e48] Install logrotate files again. This got broken by moving to
+    separate build-dir. Based on a patch from Serge Hallyn. (Closes: #647953)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 10 Nov 2011 19:11:02 +0100
+
+libvirt (0.9.7~rc2-1) experimental; urgency=low
+
+  * [2d51700] New upstream version 0.9.7~rc2
+  * [bae02ad] Drop patches, now fixed upstream.
+      - Fix-storage-pool-source-comparison-to-avoid-comparin.patch
+      - Skip-socket-test-if-we-exceed-UNIX_PATH_MAX.patch
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 03 Nov 2011 18:59:03 +0100
+
+libvirt (0.9.7~rc1-2) experimental; urgency=low
+
+  * [c0292f7] Skip socket test if we exceed UNIX_PATH_MAX.
+  * [764a29c] Fix storage pool source comparison to avoid comparing with self
+    Thanks to Daniel P. Berrange
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 02 Nov 2011 19:07:51 +0100
+
+libvirt (0.9.7~rc1-1) experimental; urgency=low
+
+  * [6dba3c4] New upstream version 0.9.7~rc1
+  * [456c4b7] Update symbols file
+  * [a5b6513] debian/watch: allow for '-' in the version number so we also
+    catch the release candidates.
+  * [a5d0318] Drop Autodetect-if-the-remote-nc-command-supports-the-q-o.patch
+    fixed upstream.
+  * [fb8aed9] Update remaining patches
+  * [1f841c0] Move Debian specific patches to debian/patches/debian
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 02 Nov 2011 10:04:40 +0100
+
+libvirt (0.9.6-2) unstable; urgency=low
+
+  * [6e5ad9d] Install libvirtd manpage. Thanks to Serge E. Hallyn
+    (Closes: #644457, #606069)
+  * [480ef36] Remove now superfluous build-dep on QEMU
+  * [86140cf] python-libvirt: Recommend libvirt-bin (Closes: #646440)
+  * [a76d37f] Build-depend and Recommend: parted since it's needed for disk
+    storage pool creation (found by libvirt-tck)
+  * [2e7bee9] Remove workaround for m68k ICE fixed in gcc-4.6 upstream and
+    Debian's gcc-4.4. Thanks to Thorsten Glaser
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 30 Oct 2011 17:14:21 +0100
+
 libvirt (0.9.6-1~bpo60+1) squeeze-backports; urgency=low
 
   * Rebuild for squeeze-backports.

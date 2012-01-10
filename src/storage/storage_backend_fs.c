@@ -217,7 +217,6 @@ virStorageBackendFileSystemNetFindPoolSourcesFunc(virStoragePoolObjPtr pool ATTR
     ret = 0;
 cleanup:
     virStoragePoolSourceFree(src);
-    VIR_FREE(src);
     return ret;
 }
 
@@ -266,7 +265,7 @@ virStorageBackendFileSystemNetFindPoolSources(virConnectPtr conn ATTRIBUTE_UNUSE
 
     if (virStorageBackendRunProgRegex(NULL, prog, 1, regexes, vars,
                             virStorageBackendFileSystemNetFindPoolSourcesFunc,
-                            &state) < 0)
+                            &state, NULL) < 0)
         goto cleanup;
 
     retval = virStoragePoolSourceListFormat(&state.list);
@@ -277,12 +276,10 @@ virStorageBackendFileSystemNetFindPoolSources(virConnectPtr conn ATTRIBUTE_UNUSE
 
  cleanup:
     for (i = 0; i < state.list.nsources; i++)
-        virStoragePoolSourceFree(&state.list.sources[i]);
+        virStoragePoolSourceClear(&state.list.sources[i]);
+    VIR_FREE(state.list.sources);
 
     virStoragePoolSourceFree(source);
-    VIR_FREE(source);
-
-    VIR_FREE(state.list.sources);
 
     return retval;
 }
@@ -709,7 +706,7 @@ error:
 /**
  * @conn connection to report errors against
  * @pool storage pool to build
- * @flags controls the pool formating behaviour
+ * @flags controls the pool formatting behaviour
  *
  * Build a directory or FS based storage pool.
  *
@@ -883,7 +880,7 @@ virStorageBackendFileSystemRefresh(virConnectPtr conn ATTRIBUTE_UNUSED,
                                         VIR_STORAGE_VOL_OPEN_DEFAULT) < 0) {
                 /* The backing file is currently unavailable, the capacity,
                  * allocation, owner, group and mode are unknown. Just log the
-                 * error an continue.
+                 * error and continue.
                  * Unfortunately virStorageBackendProbeTarget() might already
                  * have logged a similar message for the same problem, but only
                  * if AUTO format detection was used. */

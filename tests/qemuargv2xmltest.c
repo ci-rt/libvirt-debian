@@ -165,12 +165,16 @@ mymain(void)
     DO_TEST("disk-drive-cache-v1-none");
     DO_TEST("disk-drive-error-policy-stop");
     DO_TEST("disk-drive-error-policy-enospace");
+    DO_TEST("disk-drive-error-policy-wreport-rignore");
     DO_TEST("disk-drive-cache-v2-wt");
     DO_TEST("disk-drive-cache-v2-wb");
     DO_TEST("disk-drive-cache-v2-none");
     DO_TEST("disk-drive-cache-directsync");
+    DO_TEST("disk-drive-cache-unsafe");
     DO_TEST("disk-drive-network-nbd");
     DO_TEST("disk-drive-network-rbd");
+    /* older format using CEPH_ARGS env var */
+    DO_TEST("disk-drive-network-rbd-ceph-env");
     DO_TEST("disk-drive-network-sheepdog");
     DO_TEST("disk-usb");
     DO_TEST("graphics-vnc");
@@ -239,6 +243,7 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
+# include "testutils.h"
 
 int
 main(void)

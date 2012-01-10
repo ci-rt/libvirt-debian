@@ -16,9 +16,9 @@ Build-Depends: cdbs (>= 0.4.89~),
  libsasl2-dev,
  libxen-dev [i386 amd64],
  lvm2 [linux-any],
- qemu [amd64 i386 powerpc sparc],
  open-iscsi [linux-any],
  libparted0-dev (>= 2.2),
+ parted (>= 2.2),
  libdevmapper-dev [linux-any],
  uuid-dev,
  libudev-dev [linux-any],
@@ -31,6 +31,8 @@ Build-Depends: cdbs (>= 0.4.89~),
  libnl-dev [linux-any],
  libyajl-dev,
  libpcap0.8-dev,
+ libnuma-dev [amd64 i386 ia64 mips mipsel powerpc],
+ radvd [linux-any],
 # For "make check"
  libxml2-utils,
  dnsmasq-base,
@@ -58,7 +60,8 @@ Recommends: netcat-openbsd,
  gawk,
  ebtables,
  dmidecode,
- iproute
+ iproute,
+ parted
 Suggests: policykit-1, radvd
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
@@ -122,6 +125,7 @@ Package: python-libvirt
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends}, libvirt0 (>= ${binary:Version})
 Provides: ${python:Provides}
+Recommends: libvirt-bin
 Section: python
 XB-Python-Version: ${python:Versions}
 Description: libvirt Python bindings

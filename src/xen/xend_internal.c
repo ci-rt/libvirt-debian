@@ -1153,7 +1153,7 @@ sexpr_to_xend_topology(const struct sexpr *root,
             for (cpu = 0; cpu < numCpus; cpu++)
                 cpuset[cpu] = 0;
         } else {
-            nb_cpus = virDomainCpuSetParse(&cur, 'n', cpuset, numCpus);
+            nb_cpus = virDomainCpuSetParse(cur, 'n', cpuset, numCpus);
             if (nb_cpus < 0)
                 goto error;
         }
@@ -2217,7 +2217,7 @@ xenDaemonDomainSetVcpusFlags(virDomainPtr domain, unsigned int vcpus,
     flags |= VIR_DOMAIN_VCPU_MAXIMUM;
     if ((max = xenDaemonDomainGetVcpusFlags(domain, flags)) < 0) {
         virXendError(VIR_ERR_OPERATION_INVALID, "%s",
-                     _("could not determin max vcpus for the domain"));
+                     _("could not determine max vcpus for the domain"));
         return -1;
     }
     if (vcpus > max) {
@@ -2369,7 +2369,7 @@ xenDaemonDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
  * @domain: pointer to domain object, or NULL for Domain0
  * @info: pointer to an array of virVcpuInfo structures (OUT)
  * @maxinfo: number of structures in info array
- * @cpumaps: pointer to an bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT)
+ * @cpumaps: pointer to a bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT)
  *	If cpumaps is NULL, then no cpumap information is returned by the API.
  *	It's assumed there is <maxinfo> cpumap in cpumaps array.
  *	The memory allocated to cpumaps must be (maxinfo * maplen) bytes
@@ -3554,9 +3554,6 @@ error:
 
 }
 
-static const char *str_weight = "weight";
-static const char *str_cap = "cap";
-
 /**
  * xenDaemonGetSchedulerParameters:
  * @domain: pointer to the Domain block
@@ -3617,12 +3614,6 @@ xenDaemonGetSchedulerParameters(virDomainPtr domain,
             TODO
             goto error;
         case XEN_SCHED_CRED_NPARAM:
-            if (*nparams < XEN_SCHED_CRED_NPARAM) {
-                virXendError(VIR_ERR_INVALID_ARG,
-                             "%s", _("Invalid parameter count"));
-                goto error;
-            }
-
             /* get cpu_weight/cpu_cap from xend/domain */
             if (sexpr_node(root, "domain/cpu_weight") == NULL) {
                 virXendError(VIR_ERR_INTERNAL_ERROR,
@@ -3635,23 +3626,30 @@ xenDaemonGetSchedulerParameters(virDomainPtr domain,
                 goto error;
             }
 
-            if (virStrcpyStatic(params[0].field, str_weight) == NULL) {
+            if (virStrcpyStatic(params[0].field,
+                                VIR_DOMAIN_SCHEDULER_WEIGHT) == NULL) {
                 virXendError(VIR_ERR_INTERNAL_ERROR,
                              _("Weight %s too big for destination"),
-                             str_weight);
+                             VIR_DOMAIN_SCHEDULER_WEIGHT);
                 goto error;
             }
             params[0].type = VIR_TYPED_PARAM_UINT;
             params[0].value.ui = sexpr_int(root, "domain/cpu_weight");
 
-            if (virStrcpyStatic(params[1].field, str_cap) == NULL) {
-                virXendError(VIR_ERR_INTERNAL_ERROR,
-                             _("Cap %s too big for destination"), str_cap);
-                goto error;
+            if (*nparams > 1) {
+                if (virStrcpyStatic(params[1].field,
+                                    VIR_DOMAIN_SCHEDULER_CAP) == NULL) {
+                    virXendError(VIR_ERR_INTERNAL_ERROR,
+                                 _("Cap %s too big for destination"),
+                                 VIR_DOMAIN_SCHEDULER_CAP);
+                    goto error;
+                }
+                params[1].type = VIR_TYPED_PARAM_UINT;
+                params[1].value.ui = sexpr_int(root, "domain/cpu_cap");
             }
-            params[1].type = VIR_TYPED_PARAM_UINT;
-            params[1].value.ui = sexpr_int(root, "domain/cpu_cap");
-            *nparams = XEN_SCHED_CRED_NPARAM;
+
+            if (*nparams > XEN_SCHED_CRED_NPARAM)
+                *nparams = XEN_SCHED_CRED_NPARAM;
             ret = 0;
             break;
         default:
@@ -3727,10 +3725,10 @@ xenDaemonSetSchedulerParameters(virDomainPtr domain,
             memset(&buf_weight, 0, VIR_UUID_BUFLEN);
             memset(&buf_cap, 0, VIR_UUID_BUFLEN);
             for (i = 0; i < nparams; i++) {
-                if (STREQ (params[i].field, str_weight) &&
+                if (STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_WEIGHT) &&
                     params[i].type == VIR_TYPED_PARAM_UINT) {
                     snprintf(buf_weight, sizeof(buf_weight), "%u", params[i].value.ui);
-                } else if (STREQ (params[i].field, str_cap) &&
+                } else if (STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_CAP) &&
                     params[i].type == VIR_TYPED_PARAM_UINT) {
                     snprintf(buf_cap, sizeof(buf_cap), "%u", params[i].value.ui);
                 } else {

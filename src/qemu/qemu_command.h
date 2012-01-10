@@ -50,7 +50,7 @@ virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    const char *migrateFrom,
                                    int migrateFd,
                                    virDomainSnapshotObjPtr current_snapshot,
-                                   enum virVMOperationType vmop)
+                                   enum virNetDevVPortProfileOp vmop)
     ATTRIBUTE_NONNULL(1);
 
 /* With vlan == -1, use netdev syntax, else old hostnet */
@@ -75,7 +75,8 @@ char *qemuDeviceDriveHostAlias(virDomainDiskDefPtr disk,
                                virBitmapPtr qemuCaps);
 
 /* Both legacy & current support */
-char *qemuBuildDriveStr(virDomainDiskDefPtr disk,
+char *qemuBuildDriveStr(virConnectPtr conn,
+                        virDomainDiskDefPtr disk,
                         bool bootable,
                         virBitmapPtr qemuCaps);
 char *qemuBuildFSStr(virDomainFSDefPtr fs,
@@ -131,11 +132,10 @@ int qemuNetworkIfaceConnect(virDomainDefPtr def,
     ATTRIBUTE_NONNULL(2);
 
 int qemuPhysIfaceConnect(virDomainDefPtr def,
-                         virConnectPtr conn,
                          struct qemud_driver *driver,
                          virDomainNetDefPtr net,
                          virBitmapPtr qemuCaps,
-                         enum virVMOperationType vmop);
+                         enum virNetDevVPortProfileOp vmop);
 
 int qemuOpenVhostNet(virDomainDefPtr def,
                      virDomainNetDefPtr net,
@@ -187,6 +187,7 @@ int qemuDomainPCIAddressReleaseSlot(qemuDomainPCIAddressSetPtr addrs, int slot);
 void qemuDomainPCIAddressSetFree(qemuDomainPCIAddressSetPtr addrs);
 int  qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs);
 
+int qemuAssignDeviceAliases(virDomainDefPtr def, virBitmapPtr qemuCaps);
 int qemuDomainNetVLAN(virDomainNetDefPtr def);
 int qemuAssignDeviceNetAlias(virDomainDefPtr def, virDomainNetDefPtr net, int idx);
 int qemuAssignDeviceDiskAlias(virDomainDiskDefPtr def, virBitmapPtr qemuCaps);

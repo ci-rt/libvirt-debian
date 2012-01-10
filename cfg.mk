@@ -36,6 +36,9 @@ generated_files = \
   $(srcdir)/src/remote/*_protocol.[ch] \
   $(srcdir)/gnulib/lib/*.[ch]
 
+# We haven't converted all scripts to using gnulib's init.sh yet.
+_test_script_regex = \<\(init\|test-lib\)\.sh\>
+
 # Tests not to run as part of "make distcheck".
 local-checks-to-skip =			\
   changelog-check			\
@@ -627,6 +630,7 @@ ifeq (0,$(MAKELEVEL))
       test -f po/Makevars || { echo 1; exit; };				\
       actual=$$(git submodule status | $(_submodule_hash);		\
 		git hash-object bootstrap.conf;				\
+		git ls-tree -d HEAD gnulib/local | awk '{print $$3}';	\
 		git diff .gnulib);					\
       stamp="$$($(_submodule_hash) $(_curr_status) 2>/dev/null)";	\
       test "$$stamp" = "$$actual"; echo $$?)
@@ -676,7 +680,7 @@ $(srcdir)/src/remote/remote_client_bodies.h: $(srcdir)/src/remote/remote_protoco
 # List all syntax-check exemptions:
 exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.c$$
 
-_src1=libvirt|fdstream|qemu/qemu_monitor|util/(command|util)|xen/xend_internal|rpc/virnetsocket
+_src1=libvirt|fdstream|qemu/qemu_monitor|util/(command|util)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller
 exclude_file_name_regexp--sc_avoid_write = \
   ^(src/($(_src1))|daemon/libvirtd|tools/console|tests/(shunload|virnettlscontext)test)\.c$$
 
@@ -725,7 +729,8 @@ exclude_file_name_regexp--sc_prohibit_readlink = ^src/util/util\.c$$
 
 exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/util\.c$$
 
-exclude_file_name_regexp--sc_prohibit_sprintf = ^docs/hacking\.html\.in$$
+exclude_file_name_regexp--sc_prohibit_sprintf = \
+  ^(docs/hacking\.html\.in)|(examples/systemtap/.*stp)|(src/dtrace2systemtap\.pl)|(src/rpc/gensystemtap\.pl)$$
 
 exclude_file_name_regexp--sc_prohibit_strncpy = \
   ^(src/util/util|tools/virsh)\.c$$

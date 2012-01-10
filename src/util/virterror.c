@@ -175,6 +175,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
         case VIR_FROM_HYPERV:
             dom = "Hyper-V ";
             break;
+        case VIR_FROM_CAPABILITIES:
+            dom = "Capabilities ";
+            break;
     }
     return(dom);
 }
@@ -1203,6 +1206,12 @@ virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("argument unsupported");
             else
                 errmsg = _("argument unsupported: %s");
+            break;
+        case VIR_ERR_SNAPSHOT_REVERT_RISKY:
+            if (info == NULL)
+                errmsg = _("revert requires force");
+            else
+                errmsg = _("revert requires force: %s");
             break;
     }
     return (errmsg);

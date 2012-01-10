@@ -47,7 +47,7 @@
 %define with_libxl         0%{!?_without_libxl:%{server_drivers}}
 %define with_vmware        0%{!?_without_vmware:%{server_drivers}}
 
-# Then the hypervisor drivers that talk a native remote protocol
+# Then the hypervisor drivers that talk via a native remote protocol
 %define with_phyp          0%{!?_without_phyp:1}
 %define with_esx           0%{!?_without_esx:1}
 %define with_hyperv        0%{!?_without_hyperv:1}
@@ -78,6 +78,7 @@
 %define with_dtrace        0%{!?_without_dtrace:0}
 %define with_cgconfig      0%{!?_without_cgconfig:0}
 %define with_sanlock       0%{!?_without_sanlock:0}
+%define with_systemd       0%{!?_without_systemd:0}
 
 # Non-server/HV driver defaults which are always enabled
 %define with_python        0%{!?_without_python:1}
@@ -89,15 +90,17 @@
 # Xen is available only on i386 x86_64 ia64
 %ifnarch i386 i586 i686 x86_64 ia64
 %define with_xen 0
+%define with_libxl 0
 %endif
 
-# Numactl is not available on s390[x]
-%ifarch s390 s390x
+# Numactl is not available on s390[x] and ARM
+%ifarch s390 s390x %{arm}
 %define with_numactl 0
 %endif
 
 # RHEL doesn't ship OpenVZ, VBox, UML, PowerHypervisor,
-# VMWare, libxenserver (xenapi), or libxenlight (Xen 4.1 and newer)
+# VMWare, libxenserver (xenapi), libxenlight (Xen 4.1 and newer),
+# or HyperV.
 %if 0%{?rhel}
 %define with_openvz 0
 %define with_vbox 0
@@ -106,6 +109,12 @@
 %define with_vmware 0
 %define with_xenapi 0
 %define with_libxl 0
+%define with_hyperv 0
+%endif
+
+# Although earlier Fedora has systemd, libvirt still used sysvinit
+%if 0%{?fedora} >= 17
+%define with_systemd 1
 %endif
 
 # RHEL-5 has restricted QEMU to x86_64 only and is too old for LXC
@@ -165,8 +174,14 @@
 %endif
 
 # Enable sanlock library for lock management with QEMU
-%if 0%{?fedora} >= 16 || 0%{?rhel} >= 6
-%define with_sanlock  0%{!?_without_sanlock:%{server_drivers}}
+# Sanlock is available only on i686 x86_64 for RHEL
+%if 0%{?fedora} >= 16
+%define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
+%endif
+%if 0%{?rhel} >= 6
+%ifnarch i386 i586 i686 x86_64
+%define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
+%endif
 %endif
 
 # Disable some drivers when building without libvirt daemon.
@@ -231,7 +246,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.9.6
+Version: 0.9.8
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -248,7 +263,6 @@ Requires: %{name}-client = %{version}-%{release}
 # Used by many of the drivers, so turn it on whenever the
 # daemon is present
 %if %{with_libvirtd}
-Requires: bridge-utils
 # for modprobe of pci devices
 Requires: module-init-tools
 # for /sbin/ip & /sbin/tc
@@ -324,10 +338,21 @@ Requires: device-mapper
 %if %{with_cgconfig}
 Requires: libcgroup
 %endif
+# For virConnectGetSysinfo
+Requires: dmidecode
+# For service management
+%if %{with_systemd}
+Requires(post): systemd-units
+Requires(post): systemd-sysv
+Requires(preun): systemd-units
+Requires(postun): systemd-units
+%endif
 
 # All build-time requirements
 BuildRequires: python-devel
-
+%if %{with_systemd}
+BuildRequires: systemd-units
+%endif
 %if %{with_xen}
 BuildRequires: xen-devel
 %endif
@@ -377,7 +402,6 @@ BuildRequires: radvd
 %if %{with_nwfilter}
 BuildRequires: ebtables
 %endif
-BuildRequires: bridge-utils
 BuildRequires: module-init-tools
 %if %{with_sasl}
 BuildRequires: cyrus-sasl-devel
@@ -490,6 +514,8 @@ Requires: nc
 Requires: gettext
 # Needed by virt-pki-validate script.
 Requires: gnutls-utils
+# Needed for probing the power management features of the host.
+Requires: pm-utils
 %if %{with_sasl}
 Requires: cyrus-sasl
 # Not technically required, but makes 'out-of-box' config
@@ -695,6 +721,13 @@ of recent versions of Linux (and other OSes).
 %define with_packager --with-packager="%{who}, %{when}, %{where}"
 %define with_packager_version --with-packager-version="%{release}"
 
+%if %{with_systemd}
+# We use 'systemd+redhat', so if someone installs upstart or
+# legacy init scripts, they can still start libvirtd, etc
+%define init_scripts --with-init_script=systemd+redhat
+%else
+%define init_scripts --with-init_script=redhat
+%endif
 
 %configure %{?_without_xen} \
            %{?_without_qemu} \
@@ -708,7 +741,6 @@ of recent versions of Linux (and other OSes).
            %{?_without_python} \
            %{?_without_libvirtd} \
            %{?_without_uml} \
-           %{?_without_one} \
            %{?_without_phyp} \
            %{?_without_esx} \
            %{?_without_hyperv} \
@@ -736,7 +768,7 @@ of recent versions of Linux (and other OSes).
            %{with_packager_version} \
            --with-qemu-user=%{qemu_user} \
            --with-qemu-group=%{qemu_group} \
-           --with-init-script=redhat \
+           %{init_scripts} \
            --with-remote-pid-file=%{_localstatedir}/run/libvirtd.pid
 make %{?_smp_mflags}
 gzip -9 ChangeLog
@@ -744,7 +776,7 @@ gzip -9 ChangeLog
 %install
 rm -fr %{buildroot}
 
-%makeinstall
+%makeinstall SYSTEMD_UNIT_DIR=%{_unitdir}
 for i in domain-events/events-c dominfo domsuspend hellolibvirt openauth python xml/nwfilter systemtap
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
@@ -842,8 +874,7 @@ getent passwd qemu >/dev/null || \
 # We want to install the default network for initial RPM installs
 # or on the first upgrade from a non-network aware libvirt only.
 # We check this by looking to see if the daemon is already installed
-/sbin/chkconfig --list libvirtd 1>/dev/null 2>&1
-if test $? != 0 && test ! -f %{_sysconfdir}/libvirt/qemu/networks/default.xml
+if ! /sbin/chkconfig libvirtd && test ! -f %{_sysconfdir}/libvirt/qemu/networks/default.xml
 then
     UUID=`/usr/bin/uuidgen`
     sed -e "s,</name>,</name>\n  <uuid>$UUID</uuid>," \
@@ -893,10 +924,17 @@ do
 done
 %endif
 
+%if %{with_systemd}
+if [ $1 -eq 1 ] ; then
+    # Initial installation
+    /bin/systemctl enable libvirtd.service >/dev/null 2>&1 || :
+    /bin/systemctl enable cgconfig.service >/dev/null 2>&1 || :
+fi
+%else
 %if %{with_cgconfig}
-# Starting with Fedora 15, systemd automounts all cgroups, and cgconfig is
+# Starting with Fedora 16, systemd automounts all cgroups, and cgconfig is
 # no longer a necessary service.
-%if 0%{?fedora} <= 14 || 0%{?rhel} <= 6
+%if 0%{?fedora} <= 15 || 0%{?rhel} <= 6
 if [ "$1" -eq "1" ]; then
 /sbin/chkconfig cgconfig on
 fi
@@ -908,37 +946,88 @@ if [ "$1" -ge "1" ]; then
 	/sbin/service libvirtd condrestart > /dev/null 2>&1
 fi
 %endif
+%endif
 
 %preun
 %if %{with_libvirtd}
+%if %{with_systemd}
+if [ $1 -eq 0 ] ; then
+    # Package removal, not upgrade
+    /bin/systemctl --no-reload disable libvirtd.service > /dev/null 2>&1 || :
+    /bin/systemctl stop libvirtd.service > /dev/null 2>&1 || :
+fi
+%else
 if [ $1 = 0 ]; then
     /sbin/service libvirtd stop 1>/dev/null 2>&1
     /sbin/chkconfig --del libvirtd
 fi
 %endif
+%endif
+
+%postun
+%if %{with_libvirtd}
+%if %{with_systemd}
+/bin/systemctl daemon-reload >/dev/null 2>&1 || :
+if [ $1 -ge 1 ] ; then
+    # Package upgrade, not uninstall
+    /bin/systemctl try-restart libvirtd.service >/dev/null 2>&1 || :
+fi
+%endif
+%endif
+
+%if %{with_libvirtd}
+%if %{with_systemd}
+%triggerun -- libvirt < 0.9.4
+%{_bindir}/systemd-sysv-convert --save libvirtd >/dev/null 2>&1 ||:
+
+# If the package is allowed to autostart:
+/bin/systemctl --no-reload enable libvirtd.service >/dev/null 2>&1 ||:
+
+# Run these because the SysV package being removed won't do them
+/sbin/chkconfig --del libvirtd >/dev/null 2>&1 || :
+/bin/systemctl try-restart libvirtd.service >/dev/null 2>&1 || :
+%endif
+%endif
 
 %preun client
 
+%if %{with_systemd}
+%else
 if [ $1 = 0 ]; then
     /sbin/chkconfig --del libvirt-guests
     rm -f /var/lib/libvirt/libvirt-guests
 fi
+%endif
 
 %post client
 
 /sbin/ldconfig
+%if %{with_systemd}
+%else
 /sbin/chkconfig --add libvirt-guests
 if [ $1 -ge 1 ]; then
     level=$(/sbin/runlevel | /bin/cut -d ' ' -f 2)
-    if /sbin/chkconfig --list libvirt-guests 2>/dev/null \
-        | /bin/grep -q $level:on ; then
+    if /sbin/chkconfig --levels $level libvirt-guests; then
         # this doesn't do anything but allowing for libvirt-guests to be
         # stopped on the first shutdown
         /sbin/service libvirt-guests start > /dev/null 2>&1 || true
     fi
 fi
+%endif
 
 %postun client -p /sbin/ldconfig
+
+%if %{with_systemd}
+%triggerun client -- libvirt < 0.9.4
+%{_bindir}/systemd-sysv-convert --save libvirt-guests >/dev/null 2>&1 ||:
+
+# If the package is allowed to autostart:
+/bin/systemctl --no-reload enable libvirt-guests.service >/dev/null 2>&1 ||:
+
+# Run these because the SysV package being removed won't do them
+/sbin/chkconfig --del libvirt-guests >/dev/null 2>&1 || :
+/bin/systemctl try-restart libvirt-guests.service >/dev/null 2>&1 || :
+%endif
 
 %if %{with_libvirtd}
 %files
@@ -957,11 +1046,20 @@ fi
 %{_sysconfdir}/libvirt/nwfilter/*.xml
 
 %{_sysconfdir}/rc.d/init.d/libvirtd
+%if %{with_systemd}
+%{_unitdir}/libvirtd.service
+%endif
 %doc daemon/libvirtd.upstart
 %config(noreplace) %{_sysconfdir}/sysconfig/libvirtd
 %config(noreplace) %{_sysconfdir}/libvirt/libvirtd.conf
+%if 0%{?fedora} >= 14 || 0%{?rhel} >= 6
+%config(noreplace) %{_sysconfdir}/sysctl.d/libvirtd
+%else
+rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
+%endif
 %if %{with_dtrace}
-%{_datadir}/systemtap/tapset/libvirtd.stp
+%{_datadir}/systemtap/tapset/libvirt_probes.stp
+%{_datadir}/systemtap/tapset/libvirt_functions.stp
 %endif
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/lxc/
@@ -990,31 +1088,32 @@ fi
 %{_datadir}/libvirt/networks/default.xml
 %endif
 
-%dir %{_localstatedir}/run/libvirt/
+%ghost %dir %{_localstatedir}/run/libvirt/
 
 %dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/images/
+%dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/filesystems/
 %dir %attr(0711, root, root) %{_localstatedir}/lib/libvirt/boot/
 %dir %attr(0711, root, root) %{_localstatedir}/cache/libvirt/
 
 %if %{with_qemu}
-%dir %attr(0700, root, root) %{_localstatedir}/run/libvirt/qemu/
+%ghost %dir %attr(0700, root, root) %{_localstatedir}/run/libvirt/qemu/
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/lib/libvirt/qemu/
 %dir %attr(0750, %{qemu_user}, %{qemu_group}) %{_localstatedir}/cache/libvirt/qemu/
 %endif
 %if %{with_lxc}
-%dir %{_localstatedir}/run/libvirt/lxc/
+%ghost %dir %{_localstatedir}/run/libvirt/lxc/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/lxc/
 %endif
 %if %{with_uml}
-%dir %{_localstatedir}/run/libvirt/uml/
+%ghost %dir %{_localstatedir}/run/libvirt/uml/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/uml/
 %endif
 %if %{with_libxl}
-%dir %{_localstatedir}/run/libvirt/libxl/
+%ghost %dir %{_localstatedir}/run/libvirt/libxl/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/libxl/
 %endif
 %if %{with_network}
-%dir %{_localstatedir}/run/libvirt/network/
+%ghost %dir %{_localstatedir}/run/libvirt/network/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/network/
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/dnsmasq/
 %endif
@@ -1076,6 +1175,7 @@ fi
 %defattr(-, root, root)
 %doc AUTHORS ChangeLog.gz NEWS README COPYING.LIB TODO
 
+%config(noreplace) %{_sysconfdir}/libvirt/libvirt.conf
 %{_mandir}/man1/virsh.1*
 %{_mandir}/man1/virt-xml-validate.1*
 %{_mandir}/man1/virt-pki-validate.1*
@@ -1105,6 +1205,9 @@ fi
 %{_datadir}/libvirt/cpu_map.xml
 
 %{_sysconfdir}/rc.d/init.d/libvirt-guests
+%if %{with_systemd}
+%{_unitdir}/libvirt-guests.service
+%endif
 %config(noreplace) %{_sysconfdir}/sysconfig/libvirt-guests
 %dir %attr(0755, root, root) %{_localstatedir}/lib/libvirt/
 
@@ -1150,6 +1253,26 @@ fi
 %endif
 
 %changelog
+* Thu Dec  8 2011 Daniel Veillard <veillard@redhat.com> - 0.9.8-1
+- Add support for QEMU 1.0
+- Add preliminary PPC cpu driver
+- Add new API virDomain{Set, Get}BlockIoTune
+- block_resize: Define the new API
+- Add a public API to invoke suspend/resume on the host
+- various improvements for LXC containers
+- Define keepalive protocol and add virConnectIsAlive API
+- Add support for STP and VLAN filtering
+- many improvements and bug fixes
+
+* Tue Nov  8 2011 Daniel Veillard <veillard@redhat.com> - 0.9.7-1
+- esx: support vSphere 5.x
+- vbox: support for VirtualBox 4.1
+- Introduce the virDomainOpenGraphics API
+- Add AHCI support to qemu driver
+- snapshot: many improvements and 2 new APIs
+- api: Add public api for 'reset'
+- many improvements and bug fixes
+
 * Thu Sep 22 2011 Daniel Veillard <veillard@redhat.com> - 0.9.6-1
 - Fix the qemu reboot bug and a few others bug fixes
 

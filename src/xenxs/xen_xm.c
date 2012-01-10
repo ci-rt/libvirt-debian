@@ -174,21 +174,38 @@ static int xenXMConfigCopyStringOpt(virConfPtr conf,
 /* Convenience method to grab a string UUID from the config file object */
 static int xenXMConfigGetUUID(virConfPtr conf, const char *name, unsigned char *uuid) {
     virConfValuePtr val;
-    if (!uuid || !name || !conf)
-        return (-1);
-    if (!(val = virConfGetValue(conf, name))) {
-        return (-1);
+
+    if (!uuid || !name || !conf) {
+        XENXS_ERROR(VIR_ERR_INVALID_ARG,
+                   _("Arguments must be non null"));
+        return -1;
     }
 
-    if (val->type != VIR_CONF_STRING)
-        return (-1);
-    if (!val->str)
-        return (-1);
+    if (!(val = virConfGetValue(conf, name))) {
+        XENXS_ERROR(VIR_ERR_CONF_SYNTAX,
+                   _("config value %s was missing"), name);
+        return -1;
+    }
 
-    if (virUUIDParse(val->str, uuid) < 0)
-        return (-1);
+    if (val->type != VIR_CONF_STRING) {
+        XENXS_ERROR(VIR_ERR_CONF_SYNTAX,
+                   _("config value %s not a string"), name);
+        return -1;
+    }
 
-    return (0);
+    if (!val->str) {
+        XENXS_ERROR(VIR_ERR_CONF_SYNTAX,
+                   _("%s can't be empty"), name);
+        return -1;
+    }
+
+    if (virUUIDParse(val->str, uuid) < 0) {
+        XENXS_ERROR(VIR_ERR_CONF_SYNTAX,
+                   _("%s not parseable"), val->str);
+        return -1;
+    }
+
+    return 0;
 }
 
 #define MAX_VFB 1024
@@ -321,7 +338,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
         if (VIR_ALLOC_N(def->cpumask, def->cpumasklen) < 0)
             goto no_memory;
 
-        if (virDomainCpuSetParse(&str, 0,
+        if (virDomainCpuSetParse(str, 0,
                                  def->cpumask, def->cpumasklen) < 0)
             goto cleanup;
     }
@@ -680,8 +697,8 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 }
             }
 
-            if (bridge[0] || STREQ(script, "vif-bridge") ||
-                STREQ(script, "vif-vnic")) {
+            if (bridge[0] || STREQ_NULLABLE(script, "vif-bridge") ||
+                STREQ_NULLABLE(script, "vif-vnic")) {
                 net->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
             } else {
                 net->type = VIR_DOMAIN_NET_TYPE_ETHERNET;
@@ -698,7 +715,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                     !(net->data.bridge.ipaddr = strdup(ip)))
                     goto no_memory;
             } else {
-                if (script[0] &&
+                if (script && script[0] &&
                     !(net->data.ethernet.script = strdup(script)))
                     goto no_memory;
                 if (ip[0] &&
@@ -1049,11 +1066,14 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             }
         }
     } else {
-        if (!(def->console = xenParseSxprChar("pty", NULL)))
+        def->nconsoles = 1;
+        if (VIR_ALLOC_N(def->consoles, 1) < 0)
+            goto no_memory;
+        if (!(def->consoles[0] = xenParseSxprChar("pty", NULL)))
             goto cleanup;
-        def->console->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE;
-        def->console->target.port = 0;
-        def->console->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
+        def->consoles[0]->deviceType = VIR_DOMAIN_CHR_DEVICE_TYPE_CONSOLE;
+        def->consoles[0]->target.port = 0;
+        def->consoles[0]->targetType = VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
     }
 
     if (hvm) {

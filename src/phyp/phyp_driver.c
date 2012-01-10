@@ -291,6 +291,13 @@ phypGetVIOSPartitionID(virConnectPtr conn)
     return id;
 }
 
+
+static int phypDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+{
+    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
+}
+
+
 static virCapsPtr
 phypCapsInit(void)
 {
@@ -327,6 +334,8 @@ phypCapsInit(void)
     if (virCapabilitiesAddGuestDomain(guest,
                                       "phyp", NULL, NULL, 0, NULL) == NULL)
         goto no_memory;
+
+    caps->defaultConsoleTargetType = phypDefaultConsoleType;
 
     return caps;
 
@@ -1283,6 +1292,23 @@ phypIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
     /* Phyp uses an SSH tunnel, so is always secure */
     return 1;
 }
+
+
+static int
+phypIsAlive(virConnectPtr conn)
+{
+    ConnectionData *connection_data = conn->networkPrivateData;
+
+    /* XXX we should be able to do something better but this is simple, safe,
+     * and good enough for now. In worst case, the function will return true
+     * even though the connection is not alive.
+     */
+    if (connection_data && connection_data->session)
+        return 1;
+    else
+        return 0;
+}
+
 
 static int
 phypIsUpdated(virDomainPtr conn ATTRIBUTE_UNUSED)
@@ -3786,6 +3812,7 @@ static virDriver phypDriver = {
     .isEncrypted = phypIsEncrypted, /* 0.7.3 */
     .isSecure = phypIsSecure, /* 0.7.3 */
     .domainIsUpdated = phypIsUpdated, /* 0.8.6 */
+    .isAlive = phypIsAlive, /* 0.9.8 */
 };
 
 static virStorageDriver phypStorageDriver = {

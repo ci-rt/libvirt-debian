@@ -33,22 +33,21 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <poll.h>
-#include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
-#include <sys/time.h>
 #if HAVE_MMAP
 # include <sys/mman.h>
 #endif
 #include <string.h>
 #include <signal.h>
 #include <termios.h>
+#include <pty.h>
+
 #if HAVE_LIBDEVMAPPER_H
 # include <libdevmapper.h>
 #endif
-#include "c-ctype.h"
 
 #ifdef HAVE_PATHS_H
 # include <paths.h>
@@ -65,6 +64,7 @@
 # include <mntent.h>
 #endif
 
+#include "c-ctype.h"
 #include "dirname.h"
 #include "virterror_internal.h"
 #include "logging.h"
@@ -671,6 +671,67 @@ virFileIsExecutable(const char *file)
 }
 
 #ifndef WIN32
+/* Check that a file is accessible under certain
+ * user & gid.
+ * @mode can be F_OK, or a bitwise combination of R_OK, W_OK, and X_OK.
+ * see 'man access' for more details.
+ * Returns 0 on success, -1 on fail with errno set.
+ */
+int
+virFileAccessibleAs(const char *path, int mode,
+                    uid_t uid, gid_t gid)
+{
+    pid_t pid = 0;
+    int status, ret = 0;
+    int forkRet = 0;
+
+    if (uid == getuid() &&
+        gid == getgid())
+        return access(path, mode);
+
+    forkRet = virFork(&pid);
+
+    if (pid < 0) {
+        return -1;
+    }
+
+    if (pid) { /* parent */
+        if (virPidWait(pid, &status) < 0) {
+            /* virPidWait() already
+             * reported error */
+                return -1;
+        }
+
+        errno = status;
+        return -1;
+    }
+
+    /* child.
+     * Return positive value here. Parent
+     * will change it to negative one. */
+
+    if (forkRet < 0) {
+        ret = errno;
+        goto childerror;
+    }
+
+    if (virSetUIDGID(uid, gid) < 0) {
+        ret = errno;
+        goto childerror;
+    }
+
+    if (access(path, mode) < 0)
+        ret = errno;
+
+childerror:
+    if ((ret & 0xFF) != ret) {
+        VIR_WARN("unable to pass desired return value %d", ret);
+        ret = 0xFF;
+    }
+
+    _exit(ret);
+}
+
 /* return -errno on failure, or 0 on success */
 static int
 virFileOpenAsNoFork(const char *path, int openflags, mode_t mode,
@@ -993,6 +1054,18 @@ childerror:
 
 #else /* WIN32 */
 
+int
+virFileAccessibleAs(const char *path,
+                    int mode,
+                    uid_t uid ATTRIBUTE_UNUSED,
+                    gid_t gid ATTRIBUTE_UNUSED)
+{
+
+    VIR_WARN("Ignoring uid/gid due to WIN32");
+
+    return access(path, mode);
+}
+
 /* return -errno on failure, or 0 on success */
 int virFileOpenAs(const char *path ATTRIBUTE_UNUSED,
                   int openflags ATTRIBUTE_UNUSED,
@@ -1099,76 +1172,97 @@ virFileBuildPath(const char *dir, const char *name, const char *ext)
     return path;
 }
 
-
+/* Open a non-blocking master side of a pty.  If ttyName is not NULL,
+ * then populate it with the name of the slave.  If rawmode is set,
+ * also put the master side into raw mode before returning.  */
+#ifndef WIN32
 int virFileOpenTty(int *ttymaster,
                    char **ttyName,
                    int rawmode)
 {
-    return virFileOpenTtyAt("/dev/ptmx",
-                            ttymaster,
-                            ttyName,
-                            rawmode);
-}
+    /* XXX A word of caution - on some platforms (Solaris and HP-UX),
+     * additional ioctl() calls are needs after opening the slave
+     * before it will cause isatty() to return true.  Should we make
+     * virFileOpenTty also return the opened slave fd, so the caller
+     * doesn't have to worry about that mess?  */
+    int ret = -1;
+    int slave = -1;
+    char *name = NULL;
 
-#ifdef __linux__
-int virFileOpenTtyAt(const char *ptmx,
-                     int *ttymaster,
-                     char **ttyName,
-                     int rawmode)
-{
-    int rc = -1;
+    /* Unfortunately, we can't use the name argument of openpty, since
+     * there is no guarantee on how large the buffer has to be.
+     * Likewise, we can't use the termios argument: we have to use
+     * read-modify-write since there is no portable way to initialize
+     * a struct termios without use of tcgetattr.  */
+    if (openpty(ttymaster, &slave, NULL, NULL, NULL) < 0)
+        return -1;
 
-    if ((*ttymaster = open(ptmx, O_RDWR|O_NOCTTY|O_NONBLOCK)) < 0)
+    /* What a shame that openpty cannot atomically set FD_CLOEXEC, but
+     * that using posix_openpt/grantpt/unlockpt/ptsname is not
+     * thread-safe, and that ptsname_r is not portable.  */
+    if (virSetNonBlock(*ttymaster) < 0 ||
+        virSetCloseExec(*ttymaster) < 0)
         goto cleanup;
 
-    if (unlockpt(*ttymaster) < 0)
-        goto cleanup;
-
-    if (grantpt(*ttymaster) < 0)
-        goto cleanup;
-
+    /* While Linux supports tcgetattr on either the master or the
+     * slave, Solaris requires it to be on the slave.  */
     if (rawmode) {
         struct termios ttyAttr;
-        if (tcgetattr(*ttymaster, &ttyAttr) < 0)
+        if (tcgetattr(slave, &ttyAttr) < 0)
             goto cleanup;
 
         cfmakeraw(&ttyAttr);
 
-        if (tcsetattr(*ttymaster, TCSADRAIN, &ttyAttr) < 0)
+        if (tcsetattr(slave, TCSADRAIN, &ttyAttr) < 0)
             goto cleanup;
     }
 
+    /* ttyname_r on the slave is required by POSIX, while ptsname_r on
+     * the master is a glibc extension, and the POSIX ptsname is not
+     * thread-safe.  Since openpty gave us both descriptors, guess
+     * which way we will determine the name?  :)  */
     if (ttyName) {
-        if (VIR_ALLOC_N(*ttyName, PATH_MAX) < 0) {
-            errno = ENOMEM;
-            goto cleanup;
-        }
+        /* Initial guess of 64 is generally sufficient; rely on ERANGE
+         * to tell us if we need to grow.  */
+        size_t len = 64;
+        int rc;
 
-        if (ptsname_r(*ttymaster, *ttyName, PATH_MAX) != 0) {
-            VIR_FREE(*ttyName);
+        if (VIR_ALLOC_N(name, len) < 0)
+            goto cleanup;
+
+        while ((rc = ttyname_r(slave, name, len)) == ERANGE) {
+            if (VIR_RESIZE_N(name, len, len, len) < 0)
+                goto cleanup;
+        }
+        if (rc != 0) {
+            errno = rc;
             goto cleanup;
         }
+        *ttyName = name;
+        name = NULL;
     }
 
-    rc = 0;
+    ret = 0;
 
 cleanup:
-    if (rc != 0)
+    if (ret != 0)
         VIR_FORCE_CLOSE(*ttymaster);
+    VIR_FORCE_CLOSE(slave);
+    VIR_FREE(name);
 
-    return rc;
-
+    return ret;
 }
-#else
-int virFileOpenTtyAt(const char *ptmx ATTRIBUTE_UNUSED,
-                     int *ttymaster ATTRIBUTE_UNUSED,
-                     char **ttyName ATTRIBUTE_UNUSED,
-                     int rawmode ATTRIBUTE_UNUSED)
+#else /* WIN32 */
+int virFileOpenTty(int *ttymaster ATTRIBUTE_UNUSED,
+                   char **ttyName ATTRIBUTE_UNUSED,
+                   int rawmode ATTRIBUTE_UNUSED)
 {
+    /* mingw completely lacks pseudo-terminals, and the gnulib
+     * replacements are not (yet) license compatible.  */
+    errno = ENOSYS;
     return -1;
 }
-#endif
-
+#endif /* WIN32 */
 
 /*
  * Creates an absolute path for a potentially relative path.
@@ -1858,10 +1952,10 @@ char *virIndexToDiskName(int idx, const char *prefix)
  *     try to resolve this to a fully-qualified name.  Therefore we pass it
  *     to getaddrinfo().  There are two possible responses:
  *     a)  getaddrinfo() resolves to a FQDN - return the FQDN
- *     b)  getaddrinfo() resolves to localhost - in this case, the data we got
- *         from gethostname() is actually more useful than what we got from
- *         getaddrinfo().  Return the value from gethostname() and hope for
- *         the best.
+ *     b)  getaddrinfo() fails or resolves to localhost - in this case, the
+ *         data we got from gethostname() is actually more useful than what
+ *         we got from getaddrinfo().  Return the value from gethostname()
+ *         and hope for the best.
  */
 char *virGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
@@ -1897,10 +1991,10 @@ char *virGetHostname(virConnectPtr conn ATTRIBUTE_UNUSED)
     hints.ai_family = AF_UNSPEC;
     r = getaddrinfo(hostname, NULL, &hints, &info);
     if (r != 0) {
-        virUtilError(VIR_ERR_INTERNAL_ERROR,
-                     _("getaddrinfo failed for '%s': %s"),
-                     hostname, gai_strerror(r));
-        return NULL;
+        VIR_WARN("getaddrinfo failed for '%s': %s",
+                 hostname, gai_strerror(r));
+        result = strdup(hostname);
+        goto check_and_return;
     }
 
     /* Tell static analyzers about getaddrinfo semantics.  */
@@ -2402,57 +2496,6 @@ int virBuildPathInternal(char **path, ...)
     return ret;
 }
 
-/**
- * virTimestamp:
- *
- * Return an allocated string containing the current date and time,
- * followed by ": ".  Return NULL on allocation failure.
- */
-char *
-virTimestamp(void)
-{
-    struct timeval cur_time;
-    struct tm time_info;
-    char timestr[100];
-    char *timestamp;
-
-    gettimeofday(&cur_time, NULL);
-    localtime_r(&cur_time.tv_sec, &time_info);
-
-    strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", &time_info);
-
-    if (virAsprintf(&timestamp, "%s.%03d",
-                    timestr, (int) cur_time.tv_usec / 1000) < 0) {
-        return NULL;
-    }
-
-    return timestamp;
-}
-
-#define timeval_to_ms(tv)   (((tv).tv_sec * 1000ull) + ((tv).tv_usec / 1000))
-
-/**
- * virTimeMs:
- *
- * Get current time in milliseconds.
- *
- * Returns 0 on success, -1 on failure.
- */
-int
-virTimeMs(unsigned long long *ms)
-{
-    struct timeval now;
-
-    if (gettimeofday(&now, NULL) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("cannot get time of day"));
-        return -1;
-    }
-
-    *ms = timeval_to_ms(now);
-    return 0;
-}
-
 #if HAVE_LIBDEVMAPPER_H
 bool
 virIsDevMapperDevice(const char *dev_name)
@@ -2485,8 +2528,10 @@ OVERWRITTEN AND LOST. Changes to this xml configuration should be made using:\n\
 or other application using the libvirt API.\n\
 -->\n\n";
 
-    if (fd < 0 || !name || !cmd)
+    if (fd < 0 || !name || !cmd) {
+        errno = EINVAL;
         return -1;
+    }
 
     len = strlen(prologue);
     if (safewrite(fd, prologue, len) != len)
@@ -2508,4 +2553,18 @@ or other application using the libvirt API.\n\
         return -1;
 
     return 0;
+}
+
+void
+virTypedParameterArrayClear(virTypedParameterPtr params, int nparams)
+{
+    int i;
+
+    if (!params)
+        return;
+
+    for (i = 0; i < nparams; i++) {
+        if (params[i].type == VIR_TYPED_PARAM_STRING)
+            VIR_FREE(params[i].value.s);
+    }
 }

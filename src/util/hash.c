@@ -120,7 +120,7 @@ virHashComputeKey(virHashTablePtr table, const void *name)
  *
  * Create a new virHashTablePtr.
  *
- * Returns the newly created object, or NULL if an error occured.
+ * Returns the newly created object, or NULL if an error occurred.
  */
 virHashTablePtr virHashCreateFull(int size,
                                   virHashDataFree dataFree,
@@ -617,4 +617,49 @@ void *virHashSearch(virHashTablePtr table,
     table->iterating = false;
 
     return NULL;
+}
+
+struct getKeysIter
+{
+    virHashKeyValuePair *sortArray;
+    unsigned arrayIdx;
+};
+
+static void virHashGetKeysIterator(void *payload,
+                                   const void *key, void *data)
+{
+    struct getKeysIter *iter = data;
+
+    iter->sortArray[iter->arrayIdx].key = key;
+    iter->sortArray[iter->arrayIdx].value = payload;
+
+    iter->arrayIdx++;
+}
+
+typedef int (*qsort_comp)(const void *, const void *);
+
+virHashKeyValuePairPtr virHashGetItems(virHashTablePtr table,
+                                       virHashKeyComparator compar)
+{
+    int numElems = virHashSize(table);
+    struct getKeysIter iter = {
+        .arrayIdx = 0,
+        .sortArray = NULL,
+    };
+
+    if (numElems < 0)
+        return NULL;
+
+    if (VIR_ALLOC_N(iter.sortArray, numElems + 1)) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    virHashForEach(table, virHashGetKeysIterator, &iter);
+
+    if (compar)
+        qsort(&iter.sortArray[0], numElems, sizeof(iter.sortArray[0]),
+              (qsort_comp)compar);
+
+    return iter.sortArray;
 }

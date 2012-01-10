@@ -489,4 +489,23 @@ LIBVIRT_0.9.5 {
         virDomainSnapshotGetName;
 } LIBVIRT_0.9.4;
 
+LIBVIRT_0.9.7 {
+    global:
+        virDomainOpenGraphics;
+        virDomainReset;
+        virDomainSnapshotGetParent;
+        virDomainSnapshotListChildrenNames;
+        virDomainSnapshotNumChildren;
+} LIBVIRT_0.9.5;
+
+LIBVIRT_0.9.8 {
+    global:
+        virConnectIsAlive;
+        virConnectSetKeepAlive;
+        virDomainBlockResize;
+        virDomainGetBlockIoTune;
+        virDomainSetBlockIoTune;
+        virNodeSuspendForDuration;
+} LIBVIRT_0.9.7;
+
 # .... define new API here using predicted next version number ....

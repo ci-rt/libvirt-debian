@@ -39,13 +39,25 @@
 /* Specification.  */
 #include <arpa/inet.h>
 
-#include <c-ctype.h>
-#include <string.h>
-#include <errno.h>
+#if HAVE_DECL_INET_PTON
 
-#define NS_INADDRSZ 4
-#define NS_IN6ADDRSZ 16
-#define NS_INT16SZ 2
+# undef inet_pton
+
+int
+rpl_inet_pton (int af, const char *restrict src, void *restrict dst)
+{
+  return inet_pton (af, src, dst);
+}
+
+#else
+
+# include <c-ctype.h>
+# include <string.h>
+# include <errno.h>
+
+# define NS_INADDRSZ 4
+# define NS_IN6ADDRSZ 16
+# define NS_INT16SZ 2
 
 /*
  * WARNING: Don't even consider trying to compile this on a system where
@@ -53,9 +65,9 @@
  */
 
 static int inet_pton4 (const char *src, unsigned char *dst);
-#if HAVE_IPV6
+# if HAVE_IPV6
 static int inet_pton6 (const char *src, unsigned char *dst);
-#endif
+# endif
 
 /* int
  * inet_pton(af, src, dst)
@@ -76,10 +88,10 @@ inet_pton (int af, const char *restrict src, void *restrict dst)
     case AF_INET:
       return (inet_pton4 (src, dst));
 
-#if HAVE_IPV6
+# if HAVE_IPV6
     case AF_INET6:
       return (inet_pton6 (src, dst));
-#endif
+# endif
 
     default:
       errno = EAFNOSUPPORT;
@@ -143,7 +155,7 @@ inet_pton4 (const char *restrict src, unsigned char *restrict dst)
   return (1);
 }
 
-#if HAVE_IPV6
+# if HAVE_IPV6
 
 /* int
  * inet_pton6(src, dst)
@@ -252,4 +264,7 @@ inet_pton6 (const char *restrict src, unsigned char *restrict dst)
   memcpy (dst, tmp, NS_IN6ADDRSZ);
   return (1);
 }
+
+# endif
+
 #endif

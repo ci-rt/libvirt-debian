@@ -28,6 +28,7 @@
 #include "util.h"
 #include "buf.h"
 #include "cpu_conf.h"
+#include "domain_conf.h"
 
 #define VIR_FROM_THIS VIR_FROM_CPU
 
@@ -66,6 +67,12 @@ virCPUDefFree(virCPUDefPtr def)
     for (i = 0 ; i < def->nfeatures ; i++)
         VIR_FREE(def->features[i].name);
     VIR_FREE(def->features);
+
+    for (i = 0 ; i < def->ncells ; i++) {
+        VIR_FREE(def->cells[i].cpumask);
+        VIR_FREE(def->cells[i].cpustr);
+    }
+    VIR_FREE(def->cells);
 
     VIR_FREE(def);
 }
@@ -108,7 +115,6 @@ no_memory:
     virCPUDefFree(copy);
     return NULL;
 }
-
 
 virCPUDefPtr
 virCPUDefParseXML(const xmlNodePtr node,
@@ -289,9 +295,64 @@ virCPUDefParseXML(const xmlNodePtr node,
         def->features[i].policy = policy;
     }
 
+    if (virXPathNode("./numa[1]", ctxt)) {
+        VIR_FREE(nodes);
+        n = virXPathNodeSet("./numa[1]/cell", ctxt, &nodes);
+        if (n <= 0) {
+            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                    "%s", _("NUMA topology defined without NUMA cells"));
+            goto error;
+        }
+
+        if (VIR_RESIZE_N(def->cells, def->ncells_max,
+                         def->ncells, n) < 0)
+            goto no_memory;
+
+        def->ncells = n;
+
+        for (i = 0 ; i < n ; i++) {
+            char *cpus, *memory;
+            int cpumasklen = VIR_DOMAIN_CPUMASK_LEN;
+            int ret, ncpus = 0;
+
+            def->cells[i].cellid = i;
+            cpus = virXMLPropString(nodes[i], "cpus");
+            if (!cpus) {
+                virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                    "%s", _("Missing 'cpus' attribute in NUMA cell"));
+                goto error;
+            }
+            def->cells[i].cpustr = cpus;
+
+            if (VIR_ALLOC_N(def->cells[i].cpumask, cpumasklen) < 0)
+                goto no_memory;
+
+            ncpus = virDomainCpuSetParse(cpus, 0, def->cells[i].cpumask,
+                                         cpumasklen);
+            if (ncpus <= 0)
+                goto error;
+            def->cells_cpus += ncpus;
+
+            memory = virXMLPropString(nodes[i], "memory");
+            if (!memory) {
+                virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                    "%s", _("Missing 'memory' attribute in NUMA cell"));
+                goto error;
+            }
+
+            ret  = virStrToLong_ui(memory, NULL, 10, &def->cells[i].mem);
+            if (ret == -1) {
+                virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                    "%s", _("Invalid 'memory' attribute in NUMA cell"));
+                VIR_FREE(memory);
+                goto error;
+            }
+            VIR_FREE(memory);
+        }
+    }
+
 cleanup:
     VIR_FREE(nodes);
-
     return def;
 
 no_memory:
@@ -305,13 +366,11 @@ error:
 
 
 char *
-virCPUDefFormat(virCPUDefPtr def,
-                const char *indent,
-                unsigned int flags)
+virCPUDefFormat(virCPUDefPtr def)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    if (virCPUDefFormatBuf(&buf, def, indent, flags) < 0)
+    if (virCPUDefFormatBufFull(&buf, def) < 0)
         goto cleanup;
 
     if (virBufferError(&buf))
@@ -328,18 +387,46 @@ cleanup:
 
 
 int
+virCPUDefFormatBufFull(virBufferPtr buf,
+                       virCPUDefPtr def)
+{
+    if (!def)
+        return 0;
+
+    if (def->type == VIR_CPU_TYPE_GUEST && def->model) {
+        const char *match;
+        if (!(match = virCPUMatchTypeToString(def->match))) {
+            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
+                              _("Unexpected CPU match policy %d"), def->match);
+            return -1;
+        }
+
+        virBufferAsprintf(buf, "<cpu match='%s'>\n", match);
+    } else {
+        virBufferAddLit(buf, "<cpu>\n");
+    }
+
+    if (def->arch)
+        virBufferAsprintf(buf, "  <arch>%s</arch>\n", def->arch);
+
+    virBufferAdjustIndent(buf, 2);
+    if (virCPUDefFormatBuf(buf, def) < 0)
+        return -1;
+    virBufferAdjustIndent(buf, -2);
+
+    virBufferAddLit(buf, "</cpu>\n");
+
+    return 0;
+}
+
+int
 virCPUDefFormatBuf(virBufferPtr buf,
-                   virCPUDefPtr def,
-                   const char *indent,
-                   unsigned int flags)
+                   virCPUDefPtr def)
 {
     unsigned int i;
 
     if (!def)
         return 0;
-
-    if (indent == NULL)
-        indent = "";
 
     if (!def->model && def->nfeatures) {
         virCPUReportError(VIR_ERR_INTERNAL_ERROR,
@@ -347,34 +434,15 @@ virCPUDefFormatBuf(virBufferPtr buf,
         return -1;
     }
 
-    if (!(flags & VIR_CPU_FORMAT_EMBEDED)) {
-        if (def->type == VIR_CPU_TYPE_GUEST && def->model) {
-            const char *match;
-            if (!(match = virCPUMatchTypeToString(def->match))) {
-                virCPUReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("Unexpected CPU match policy %d"), def->match);
-                return -1;
-            }
-
-            virBufferAsprintf(buf, "%s<cpu match='%s'>\n", indent, match);
-        }
-        else
-            virBufferAsprintf(buf, "%s<cpu>\n", indent);
-
-        if (def->arch)
-            virBufferAsprintf(buf, "%s  <arch>%s</arch>\n", indent, def->arch);
-    }
-
     if (def->model)
-        virBufferAsprintf(buf, "%s  <model>%s</model>\n", indent, def->model);
+        virBufferAsprintf(buf, "<model>%s</model>\n", def->model);
 
     if (def->vendor) {
-        virBufferAsprintf(buf, "%s  <vendor>%s</vendor>\n",
-                          indent, def->vendor);
+        virBufferAsprintf(buf, "<vendor>%s</vendor>\n", def->vendor);
     }
 
     if (def->sockets && def->cores && def->threads) {
-        virBufferAsprintf(buf, "%s  <topology", indent);
+        virBufferAddLit(buf, "<topology");
         virBufferAsprintf(buf, " sockets='%u'", def->sockets);
         virBufferAsprintf(buf, " cores='%u'", def->cores);
         virBufferAsprintf(buf, " threads='%u'", def->threads);
@@ -399,18 +467,24 @@ virCPUDefFormatBuf(virBufferPtr buf,
                         _("Unexpected CPU feature policy %d"), feature->policy);
                 return -1;
             }
-            virBufferAsprintf(buf, "%s  <feature policy='%s' name='%s'/>\n",
-                    indent, policy, feature->name);
-        }
-        else {
-            virBufferAsprintf(buf, "%s  <feature name='%s'/>\n",
-                    indent, feature->name);
+            virBufferAsprintf(buf, "<feature policy='%s' name='%s'/>\n",
+                              policy, feature->name);
+        } else {
+            virBufferAsprintf(buf, "<feature name='%s'/>\n",
+                              feature->name);
         }
     }
 
-    if (!(flags & VIR_CPU_FORMAT_EMBEDED))
-        virBufferAsprintf(buf, "%s</cpu>\n", indent);
-
+    if (def->ncells) {
+        virBufferAddLit(buf, "<numa>\n");
+        for (i = 0; i < def->ncells; i++) {
+            virBufferAddLit(buf, "  <cell");
+            virBufferAsprintf(buf, " cpus='%s'", def->cells[i].cpustr);
+            virBufferAsprintf(buf, " memory='%d'", def->cells[i].mem);
+            virBufferAddLit(buf, "/>\n");
+        }
+        virBufferAddLit(buf, "</numa>\n");
+    }
     return 0;
 }
 

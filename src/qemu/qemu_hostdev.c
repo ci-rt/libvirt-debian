@@ -1,7 +1,7 @@
 /*
  * qemu_hostdev.c: QEMU hostdev management
  *
- * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2006-2007, 2009-2011 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -69,38 +69,95 @@ qemuGetPciHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
     return list;
 }
 
+static pciDeviceList *
+qemuGetActivePciHostDeviceList(struct qemud_driver *driver,
+                               virDomainHostdevDefPtr *hostdevs,
+                               int nhostdevs)
+{
+    pciDeviceList *list;
+    int i;
+
+    if (!(list = pciDeviceListNew()))
+        return NULL;
+
+    for (i = 0 ; i < nhostdevs ; i++) {
+        virDomainHostdevDefPtr hostdev = hostdevs[i];
+        pciDevice *dev;
+        pciDevice *activeDev;
+
+        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
+            continue;
+        if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
+            continue;
+
+        dev = pciGetDevice(hostdev->source.subsys.u.pci.domain,
+                           hostdev->source.subsys.u.pci.bus,
+                           hostdev->source.subsys.u.pci.slot,
+                           hostdev->source.subsys.u.pci.function);
+        if (!dev) {
+            pciDeviceListFree(list);
+            return NULL;
+        }
+
+        if ((activeDev = pciDeviceListFind(driver->activePciHostdevs, dev))) {
+            if (pciDeviceListAdd(list, activeDev) < 0) {
+                pciFreeDevice(dev);
+                pciDeviceListFree(list);
+                return NULL;
+            }
+        }
+
+        pciFreeDevice(dev);
+    }
+
+    return list;
+}
 
 int qemuUpdateActivePciHostdevs(struct qemud_driver *driver,
                                 virDomainDefPtr def)
 {
-    pciDeviceList *pcidevs;
-    int ret = -1;
+    virDomainHostdevDefPtr hostdev = NULL;
+    int i;
 
     if (!def->nhostdevs)
         return 0;
 
-    if (!(pcidevs = qemuGetPciHostDeviceList(def->hostdevs, def->nhostdevs)))
-        return -1;
+    for (i = 0; i < def->nhostdevs; i++) {
+        pciDevice *dev = NULL;
+        hostdev = def->hostdevs[i];
 
-    while (pciDeviceListCount(pcidevs) > 0) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, 0);
-        pciDeviceListSteal(pcidevs, dev);
+        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
+            continue;
+        if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
+            continue;
+
+        dev = pciGetDevice(hostdev->source.subsys.u.pci.domain,
+                           hostdev->source.subsys.u.pci.bus,
+                           hostdev->source.subsys.u.pci.slot,
+                           hostdev->source.subsys.u.pci.function);
+
+        if (!dev)
+            return -1;
+
+        pciDeviceSetManaged(dev, hostdev->managed);
+        pciDeviceSetUsedBy(dev, def->name);
+
+        /* Setup the original states for the PCI device */
+        pciDeviceSetUnbindFromStub(dev, hostdev->origstates.states.pci.unbind_from_stub);
+        pciDeviceSetRemoveSlot(dev, hostdev->origstates.states.pci.remove_slot);
+        pciDeviceSetReprobe(dev, hostdev->origstates.states.pci.reprobe);
+
         if (pciDeviceListAdd(driver->activePciHostdevs, dev) < 0) {
             pciFreeDevice(dev);
-            goto cleanup;
+            return -1;
         }
     }
 
-    ret = 0;
-
-cleanup:
-    pciDeviceListFree(pcidevs);
-    return ret;
+    return 0;
 }
 
-
-
 int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
+                                 const char *name,
                                  virDomainHostdevDefPtr *hostdevs,
                                  int nhostdevs)
 {
@@ -111,37 +168,63 @@ int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
     if (!(pcidevs = qemuGetPciHostDeviceList(hostdevs, nhostdevs)))
         return -1;
 
-    /* We have to use 4 loops here. *All* devices must
+    /* We have to use 7 loops here. *All* devices must
      * be detached before we reset any of them, because
      * in some cases you have to reset the whole PCI,
      * which impacts all devices on it. Also, all devices
      * must be reset before being marked as active.
      */
 
-    /* XXX validate that non-managed device isn't in use, eg
+    /* Loop 1: validate that non-managed device isn't in use, eg
      * by checking that device is either un-bound, or bound
      * to pci-stub.ko
      */
 
     for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
         pciDevice *dev = pciDeviceListGet(pcidevs, i);
-        if (!pciDeviceIsAssignable(dev, !driver->relaxedACS))
-            goto reattachdevs;
+        pciDevice *other;
 
+        if (!pciDeviceIsAssignable(dev, !driver->relaxedACS)) {
+            qemuReportError(VIR_ERR_OPERATION_INVALID,
+                            _("PCI device %s is not assignable"),
+                            pciDeviceGetName(dev));
+            goto cleanup;
+        }
+        /* The device is in use by other active domain if
+         * the dev is in list driver->activePciHostdevs.
+         */
+        if ((other = pciDeviceListFind(driver->activePciHostdevs, dev))) {
+            const char *other_name = pciDeviceGetUsedBy(other);
+
+            if (other_name)
+                qemuReportError(VIR_ERR_OPERATION_INVALID,
+                                _("PCI device %s is in use by domain %s"),
+                                pciDeviceGetName(dev), other_name);
+            else
+                qemuReportError(VIR_ERR_OPERATION_INVALID,
+                                _("PCI device %s is already in use"),
+                                pciDeviceGetName(dev));
+            goto cleanup;
+        }
+    }
+
+    /* Loop 2: detach managed devices */
+    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
+        pciDevice *dev = pciDeviceListGet(pcidevs, i);
         if (pciDeviceGetManaged(dev) &&
             pciDettachDevice(dev, driver->activePciHostdevs) < 0)
             goto reattachdevs;
     }
 
-    /* Now that all the PCI hostdevs have be dettached, we can safely
-     * reset them */
+    /* Loop 3: Now that all the PCI hostdevs have been detached, we
+     * can safely reset them */
     for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
         pciDevice *dev = pciDeviceListGet(pcidevs, i);
         if (pciResetDevice(dev, driver->activePciHostdevs, pcidevs) < 0)
             goto reattachdevs;
     }
 
-    /* Now mark all the devices as active */
+    /* Loop 4: Now mark all the devices as active */
     for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
         pciDevice *dev = pciDeviceListGet(pcidevs, i);
         if (pciDeviceListAdd(driver->activePciHostdevs, dev) < 0) {
@@ -150,7 +233,51 @@ int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
         }
     }
 
-    /* Now steal all the devices from pcidevs */
+    /* Loop 5: Now set the used_by_domain of the device in
+     * driver->activePciHostdevs as domain name.
+     */
+    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
+        pciDevice *dev, *activeDev;
+
+        dev = pciDeviceListGet(pcidevs, i);
+        activeDev = pciDeviceListFind(driver->activePciHostdevs, dev);
+
+        pciDeviceSetUsedBy(activeDev, name);
+    }
+
+    /* Loop 6: Now set the original states for hostdev def */
+    for (i = 0; i < nhostdevs; i++) {
+        pciDevice *dev;
+        pciDevice *pcidev;
+        virDomainHostdevDefPtr hostdev = hostdevs[i];
+
+        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
+            continue;
+        if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI)
+            continue;
+
+        dev = pciGetDevice(hostdev->source.subsys.u.pci.domain,
+                           hostdev->source.subsys.u.pci.bus,
+                           hostdev->source.subsys.u.pci.slot,
+                           hostdev->source.subsys.u.pci.function);
+
+        /* original states "unbind_from_stub", "remove_slot",
+         * "reprobe" were already set by pciDettachDevice in
+         * loop 2.
+         */
+        if ((pcidev = pciDeviceListFind(pcidevs, dev))) {
+            hostdev->origstates.states.pci.unbind_from_stub =
+                pciDeviceGetUnbindFromStub(pcidev);
+            hostdev->origstates.states.pci.remove_slot =
+                pciDeviceGetRemoveSlot(pcidev);
+            hostdev->origstates.states.pci.reprobe =
+                pciDeviceGetReprobe(pcidev);
+        }
+
+        pciFreeDevice(dev);
+    }
+
+    /* Loop 7: Now steal all the devices from pcidevs */
     while (pciDeviceListCount(pcidevs) > 0) {
         pciDevice *dev = pciDeviceListGet(pcidevs, 0);
         pciDeviceListSteal(pcidevs, dev);
@@ -183,7 +310,7 @@ static int
 qemuPrepareHostPCIDevices(struct qemud_driver *driver,
                           virDomainDefPtr def)
 {
-    return qemuPrepareHostdevPCIDevices(driver, def->hostdevs, def->nhostdevs);
+    return qemuPrepareHostdevPCIDevices(driver, def->name, def->hostdevs, def->nhostdevs);
 }
 
 
@@ -240,31 +367,35 @@ void qemuReattachPciDevice(pciDevice *dev, struct qemud_driver *driver)
 {
     int retries = 100;
 
+    if (!pciDeviceGetManaged(dev))
+        return;
+
     while (pciWaitForDeviceCleanup(dev, "kvm_assigned_device")
            && retries) {
         usleep(100*1000);
         retries--;
     }
 
-    if (pciDeviceGetManaged(dev)) {
-        if (pciReAttachDevice(dev, driver->activePciHostdevs) < 0) {
-            virErrorPtr err = virGetLastError();
-            VIR_ERROR(_("Failed to re-attach PCI device: %s"),
-                      err ? err->message : _("unknown error"));
-            virResetError(err);
-        }
+    if (pciReAttachDevice(dev, driver->activePciHostdevs) < 0) {
+        virErrorPtr err = virGetLastError();
+        VIR_ERROR(_("Failed to re-attach PCI device: %s"),
+                  err ? err->message : _("unknown error"));
+        virResetError(err);
     }
 }
 
 
 void qemuDomainReAttachHostdevDevices(struct qemud_driver *driver,
+                                      const char *name,
                                       virDomainHostdevDefPtr *hostdevs,
                                       int nhostdevs)
 {
     pciDeviceList *pcidevs;
     int i;
 
-    if (!(pcidevs = qemuGetPciHostDeviceList(hostdevs, nhostdevs))) {
+    if (!(pcidevs = qemuGetActivePciHostDeviceList(driver,
+                                                   hostdevs,
+                                                   nhostdevs))) {
         virErrorPtr err = virGetLastError();
         VIR_ERROR(_("Failed to allocate pciDeviceList: %s"),
                   err ? err->message : _("unknown error"));
@@ -274,10 +405,20 @@ void qemuDomainReAttachHostdevDevices(struct qemud_driver *driver,
 
     /* Again 3 loops; mark all devices as inactive before reset
      * them and reset all the devices before re-attach */
-
     for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
         pciDevice *dev = pciDeviceListGet(pcidevs, i);
-        pciDeviceListDel(driver->activePciHostdevs, dev);
+        pciDevice *activeDev = NULL;
+
+        /* Never delete the dev from list driver->activePciHostdevs
+         * if it's used by other domain.
+         */
+        activeDev = pciDeviceListFind(driver->activePciHostdevs, dev);
+        if (activeDev &&
+            STRNEQ_NULLABLE(name, pciDeviceGetUsedBy(activeDev)))
+            continue;
+
+        /* pciDeviceListFree() will take care of freeing the dev. */
+        pciDeviceListSteal(driver->activePciHostdevs, dev);
     }
 
     for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
@@ -305,5 +446,5 @@ void qemuDomainReAttachHostDevices(struct qemud_driver *driver,
     if (!def->nhostdevs)
         return;
 
-    qemuDomainReAttachHostdevDevices(driver, def->hostdevs, def->nhostdevs);
+    qemuDomainReAttachHostdevDevices(driver, def->name, def->hostdevs, def->nhostdevs);
 }

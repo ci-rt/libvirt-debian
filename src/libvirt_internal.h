@@ -1,7 +1,7 @@
 /*
  * libvirt.h: publically exported APIs, not for public use
  *
- * Copyright (C) 2006-2008 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,8 +39,8 @@ int virStateActive(void);
  *
  * The remote driver passes features through to the real driver at the
  * remote end unmodified, except if you query a VIR_DRV_FEATURE_REMOTE*
- * feature.
- *
+ * feature.  Queries for VIR_DRV_FEATURE_PROGRAM* features are answered
+ * directly by the RPC layer and not by the real driver.
  */
 enum {
     /* Driver supports V1-style virDomainMigrate, ie. domainMigratePrepare/
@@ -79,6 +79,22 @@ enum {
      * to domain configuration, i.e., starting from Begin3 and not Perform3.
      */
     VIR_DRV_FEATURE_MIGRATE_CHANGE_PROTECTION = 7,
+
+    /*
+     * Support for file descriptor passing
+     */
+    VIR_DRV_FEATURE_FD_PASSING = 8,
+
+    /*
+     * Support for VIR_TYPED_PARAM_STRING
+     */
+    VIR_DRV_FEATURE_TYPED_PARAM_STRING = 9,
+
+    /*
+     * Remote party supports keepalive program (i.e., sending keepalive
+     * messages).
+     */
+    VIR_DRV_FEATURE_PROGRAM_KEEPALIVE = 10,
 };
 
 

@@ -12,6 +12,7 @@
 
 # include "internal.h"
 # include "testutils.h"
+# include "util/memory.h"
 # include "qemu/qemu_capabilities.h"
 # include "qemu/qemu_command.h"
 # include "qemu/qemu_domain.h"
@@ -22,6 +23,60 @@
 
 static const char *abs_top_srcdir;
 static struct qemud_driver driver;
+
+static unsigned char *
+fakeSecretGetValue(virSecretPtr obj ATTRIBUTE_UNUSED,
+                   size_t *value_size,
+                   unsigned int fakeflags ATTRIBUTE_UNUSED,
+                   unsigned int internalFlags ATTRIBUTE_UNUSED)
+{
+    char *secret = strdup("AQCVn5hO6HzFAhAAq0NCv8jtJcIcE+HOBlMQ1A");
+    *value_size = strlen(secret);
+    return (unsigned char *) secret;
+}
+
+static virSecretPtr
+fakeSecretLookupByUsage(virConnectPtr conn,
+                        int usageType ATTRIBUTE_UNUSED,
+                        const char *usageID)
+{
+    virSecretPtr ret = NULL;
+    int err;
+    if (STRNEQ(usageID, "mycluster_myname"))
+        return NULL;
+    err = VIR_ALLOC(ret);
+    if (err < 0)
+        return NULL;
+    ret->magic = VIR_SECRET_MAGIC;
+    ret->refs = 1;
+    ret->usageID = strdup(usageID);
+    if (!ret->usageID)
+        return NULL;
+    ret->conn = conn;
+    conn->refs++;
+    return ret;
+}
+
+static int
+fakeSecretClose(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+static virSecretDriver fakeSecretDriver = {
+    .name = "fake_secret",
+    .open = NULL,
+    .close = fakeSecretClose,
+    .numOfSecrets = NULL,
+    .listSecrets = NULL,
+    .lookupByUUID = NULL,
+    .lookupByUsage = fakeSecretLookupByUsage,
+    .defineXML = NULL,
+    .getXMLDesc = NULL,
+    .setValue = NULL,
+    .getValue = fakeSecretGetValue,
+    .undefine = NULL,
+};
 
 static int testCompareXMLToArgvFiles(const char *xml,
                                      const char *cmdline,
@@ -44,6 +99,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
 
     if (!(conn = virGetConnect()))
         goto fail;
+    conn->secretDriver = &fakeSecretDriver;
 
     len = virtTestLoadFile(cmdline, &expectargv);
     if (len < 0)
@@ -118,10 +174,13 @@ static int testCompareXMLToArgvFiles(const char *xml,
         qemuCapsSet(extraFlags, QEMU_CAPS_PCI_MULTIBUS);
     }
 
+    if (qemuAssignDeviceAliases(vmdef, extraFlags) < 0)
+        goto fail;
+
     if (!(cmd = qemuBuildCommandLine(conn, &driver,
                                      vmdef, &monitor_chr, json, extraFlags,
                                      migrateFrom, migrateFd, NULL,
-                                     VIR_VM_OP_NO_OP)))
+                                     VIR_NETDEV_VPORT_PROFILE_OP_NO_OP)))
         goto fail;
 
     if (!!virGetLastError() != expectError) {
@@ -171,7 +230,6 @@ struct testInfo {
     virBitmapPtr extraFlags;
     const char *migrateFrom;
     int migrateFd;
-    bool json;
     bool expectError;
 };
 
@@ -191,7 +249,9 @@ testCompareXMLToArgvHelper(const void *data)
 
     result = testCompareXMLToArgvFiles(xml, args, info->extraFlags,
                                        info->migrateFrom, info->migrateFd,
-                                       info->json, info->expectError);
+                                       qemuCapsGet(info->extraFlags,
+                                                   QEMU_CAPS_MONITOR_JSON),
+                                       info->expectError);
 
 cleanup:
     free(xml);
@@ -206,7 +266,6 @@ mymain(void)
 {
     int ret = 0;
     char *map = NULL;
-    bool json = false;
 
     abs_top_srcdir = getenv("abs_top_srcdir");
     if (!abs_top_srcdir)
@@ -234,7 +293,7 @@ mymain(void)
 # define DO_TEST_FULL(name, migrateFrom, migrateFd, expectError, ...)   \
     do {                                                                \
         struct testInfo info = {                                        \
-            name, NULL, migrateFrom, migrateFd, json, expectError       \
+            name, NULL, migrateFrom, migrateFd, expectError             \
         };                                                              \
         if (!(info.extraFlags = qemuCapsNew()))                         \
             return EXIT_FAILURE;                                        \
@@ -332,6 +391,10 @@ mymain(void)
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-error-policy-stop", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_MONITOR_JSON, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-error-policy-enospace", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_MONITOR_JSON, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-error-policy-wreport-rignore", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_MONITOR_JSON, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-cache-v2-wt", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-cache-v2-wb", false,
@@ -341,11 +404,16 @@ mymain(void)
     DO_TEST("disk-drive-cache-directsync", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2,
             QEMU_CAPS_DRIVE_CACHE_DIRECTSYNC, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-cache-unsafe", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2,
+            QEMU_CAPS_DRIVE_CACHE_UNSAFE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-nbd", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-rbd", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-sheepdog", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-network-rbd-auth", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-no-boot", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_BOOTINDEX);
@@ -356,6 +424,9 @@ mymain(void)
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-scsi-device-auto", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("disk-sata-device", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_ICH9_AHCI);
     DO_TEST("disk-aio", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_AIO,
             QEMU_CAPS_DRIVE_CACHE_V2, QEMU_CAPS_DRIVE_FORMAT);
@@ -461,11 +532,13 @@ mymain(void)
     DO_TEST("channel-guestfwd", false,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("channel-virtio", false,
-            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("channel-virtio-auto", false,
-            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("console-virtio", false,
-            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("console-virtio-many", false,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_CHARDEV, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("channel-spicevmc", false,
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC);
@@ -565,23 +638,26 @@ mymain(void)
     DO_TEST("cpu-exact1", false, NONE);
     DO_TEST("cpu-exact2", false, NONE);
     DO_TEST("cpu-strict1", false, NONE);
+    DO_TEST("cpu-numa1", false, NONE);
+    DO_TEST("cpu-numa2", false, QEMU_CAPS_SMP_TOPOLOGY);
 
     DO_TEST("memtune", false, QEMU_CAPS_NAME);
     DO_TEST("blkiotune", false, QEMU_CAPS_NAME);
+    DO_TEST("blkiotune-device", false, QEMU_CAPS_NAME);
     DO_TEST("cputune", false, QEMU_CAPS_NAME);
     DO_TEST("numatune-memory", false, NONE);
+    DO_TEST("blkdeviotune", false, QEMU_CAPS_NAME, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_DRIVE);
 
     DO_TEST("multifunction-pci-device", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_PCI_MULTIFUNCTION);
 
-    json = true;
     DO_TEST("monitor-json", false, QEMU_CAPS_DEVICE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_MONITOR_JSON, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("no-shutdown", false, QEMU_CAPS_DEVICE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_MONITOR_JSON, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_NO_SHUTDOWN);
-    json = false;
 
     free(driver.stateDir);
     virCapabilitiesFree(driver.caps);
@@ -593,6 +669,7 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
+# include "testutils.h"
 
 int main(void)
 {

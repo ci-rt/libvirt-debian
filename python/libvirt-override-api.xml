@@ -77,6 +77,20 @@
       <return type='int *' info='the list of information or None in case of error'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
     </function>
+    <function name='virNodeGetCPUStats' file='python'>
+      <info>Extract node's CPU statistics.</info>
+      <return type='virNodeCPUStats' info='dictionary mapping field names to values or None in case of error'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
+      <arg name='cpuNum' type='int' info='number of node cpu. (VIR_NODE_CPU_STATS_ALL_CPUS means total cpu statistics)'/>
+      <arg name='flags' type='unsigned int' info='additional flags'/>
+    </function>
+    <function name='virNodeGetMemoryStats' file='python'>
+      <info>Extract node's memory statistics.</info>
+      <return type='virNodeMemoryStats' info='dictionary mapping field names to values or None in case of error'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
+      <arg name='cellNum' type='int' info='number of node cell. (VIR_NODE_MEMORY_STATS_ALL_CELLS means total cell statistics)'/>
+      <arg name='flags' type='unsigned int' info='additional flags'/>
+    </function>
     <function name='virDomainGetUUID' file='python'>
       <info>Extract the UUID unique Identifier of a domain.</info>
       <return type='char *' info='the 16 bytes string or None in case of error'/>
@@ -346,14 +360,20 @@
     <function name='virDomainSnapshotListNames' file='python'>
       <info>collect the list of snapshots for the given domain</info>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain'/>
-      <arg name='flags' type='unsigned int' info='flags, curently unused'/>
-      <return type='str *' info='the list of Names of None in case of error'/>
+      <arg name='flags' type='unsigned int' info='flags'/>
+      <return type='str *' info='the list of Names or None in case of error'/>
+    </function>
+    <function name='virDomainSnapshotListChildrenNames' file='python'>
+      <info>collect the list of child snapshots for the given snapshot</info>
+      <arg name='snapshot' type='virDomainSnapshotPtr' info='pointer to the snapshot'/>
+      <arg name='flags' type='unsigned int' info='flags'/>
+      <return type='str *' info='the list of Names or None in case of error'/>
     </function>
     <function name='virDomainRevertToSnapshot' file='python'>
       <info>revert the domain to the given snapshot</info>
       <arg name='dom' type='virDomainPtr' info='dummy domain pointer'/>
       <arg name='snap' type='virDomainSnapshotPtr' info='pointer to the snapshot'/>
-      <arg name='flags' type='unsigned int' info='flags, curently unused'/>
+      <arg name='flags' type='unsigned int' info='flags'/>
       <return type='int' info="0 on success, -1 on error"/>
     </function>
     <function name='virDomainGetBlockJobInfo' file='python'>
@@ -368,6 +388,22 @@
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='flags' type='unsigned int' info='flags, currently unused, pass 0.'/>
       <return type='unsigned long' info='current max migration speed, or None in case of error'/>
+    </function>
+    <function name='virDomainSetBlockIoTune' file='python'>
+      <info>Change the I/O tunables for a block device</info>
+      <arg name='dom' type='virDomainPtr' info='pointer to the domain'/>
+      <arg name='disk' type='const char *' info='disk name'/>
+      <arg name='params' type='virTypedParameterPtr' info='Pointer to blkio tuning params object'/>
+      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainModificationImpact'/>
+      <return type='int' info='0 in case of success, -1 in case of failure'/>
+    </function>
+    <function name='virDomainGetBlockIoTune' file='python'>
+      <info>Get the I/O tunables for a block device</info>
+      <arg name='dom' type='virDomainPtr' info='pointer to the domain'/>
+      <arg name='disk' type='const char *' info='disk name'/>
+      <arg name='params' type='virTypedParameterPtr' info='Pointer to blkio tuning params object'/>
+      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainModificationImpact'/>
+      <return type='int' info='0 in case of success, -1 in case of failure'/>
     </function>
   </symbols>
 </api>

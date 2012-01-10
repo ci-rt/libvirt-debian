@@ -1,7 +1,7 @@
 /*
  * stream.c: APIs for managing client streams
  *
- * Copyright (C) 2009 Red Hat, Inc.
+ * Copyright (C) 2009, 2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -94,7 +94,7 @@ daemonStreamUpdateEvents(daemonClientStream *stream)
  * fast stream, but slow client
  */
 static void
-daemonStreamMessageFinished(virNetMessagePtr msg,
+daemonStreamMessageFinished(virNetMessagePtr msg ATTRIBUTE_UNUSED,
                             void *opaque)
 {
     daemonClientStream *stream = opaque;
@@ -143,7 +143,8 @@ daemonStreamEvent(virStreamPtr st, int events, void *opaque)
 
     VIR_DEBUG("st=%p events=%d EOF=%d closed=%d", st, events, stream->recvEOF, stream->closed);
 
-    if (events & VIR_STREAM_EVENT_WRITABLE) {
+    if (!stream->closed &&
+        (events & VIR_STREAM_EVENT_WRITABLE)) {
         if (daemonStreamHandleWrite(client, stream) < 0) {
             daemonRemoveClientStream(client, stream);
             virNetServerClientClose(client);
@@ -151,9 +152,9 @@ daemonStreamEvent(virStreamPtr st, int events, void *opaque)
         }
     }
 
-    if (!stream->recvEOF &&
-        (events & (VIR_STREAM_EVENT_READABLE | VIR_STREAM_EVENT_HANGUP))) {
-        events = events & ~(VIR_STREAM_EVENT_READABLE | VIR_STREAM_EVENT_HANGUP);
+    if (!stream->closed && !stream->recvEOF &&
+        (events & (VIR_STREAM_EVENT_READABLE))) {
+        events = events & ~(VIR_STREAM_EVENT_READABLE);
         if (daemonStreamHandleRead(client, stream) < 0) {
             daemonRemoveClientStream(client, stream);
             virNetServerClientClose(client);
@@ -187,6 +188,37 @@ daemonStreamEvent(virStreamPtr st, int events, void *opaque)
                 goto cleanup;
             }
             break;
+        }
+    }
+
+
+    /* If we got HANGUP, we need to only send an empty
+     * packet so the client sees an EOF and cleans up
+     */
+    if (!stream->closed && !stream->recvEOF &&
+        (events & VIR_STREAM_EVENT_HANGUP)) {
+        virNetMessagePtr msg;
+        events &= ~(VIR_STREAM_EVENT_HANGUP);
+        stream->tx = 0;
+        stream->recvEOF = 1;
+        if (!(msg = virNetMessageNew(false))) {
+            daemonRemoveClientStream(client, stream);
+            virNetServerClientClose(client);
+            goto cleanup;
+        }
+        msg->cb = daemonStreamMessageFinished;
+        msg->opaque = stream;
+        stream->refs++;
+        if (virNetServerProgramSendStreamData(remoteProgram,
+                                              client,
+                                              msg,
+                                              stream->procedure,
+                                              stream->serial,
+                                              "", 0) < 0) {
+            virNetMessageFree(msg);
+            daemonRemoveClientStream(client, stream);
+            virNetServerClientClose(client);
+            goto cleanup;
         }
     }
 
@@ -244,7 +276,7 @@ cleanup:
  * -1 on fatal client error
  */
 static int
-daemonStreamFilter(virNetServerClientPtr client,
+daemonStreamFilter(virNetServerClientPtr client ATTRIBUTE_UNUSED,
                    virNetMessagePtr msg,
                    void *opaque)
 {
@@ -524,7 +556,7 @@ daemonStreamHandleWriteData(virNetServerClientPtr client,
 
 
 /*
- * Process an finish handshake from the client.
+ * Process a finish handshake from the client.
  *
  * Returns a VIR_NET_OK confirmation if successful, or a VIR_NET_ERROR
  * if there was a stream error

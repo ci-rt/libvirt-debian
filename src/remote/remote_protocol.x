@@ -125,6 +125,9 @@ const REMOTE_DOMAIN_BLKIO_PARAMETERS_MAX = 16;
 /* Upper limit on list of memory parameters. */
 const REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX = 16;
 
+/* Upper limit on list of blockio tuning parameters. */
+const REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX = 16;
+
 /* Upper limit on list of node cpu stats. */
 const REMOTE_NODE_CPU_STATS_MAX = 16;
 
@@ -317,6 +320,8 @@ union remote_typed_param_value switch (int type) {
      double d;
  case VIR_TYPED_PARAM_BOOLEAN:
      int b;
+ case VIR_TYPED_PARAM_STRING:
+     remote_nonnull_string s;
 };
 
 struct remote_typed_param {
@@ -535,6 +540,13 @@ struct remote_domain_get_memory_parameters_ret {
     int nparams;
 };
 
+struct remote_domain_block_resize_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string disk;
+    unsigned hyper size;
+    unsigned int flags;
+};
+
 struct remote_domain_block_stats_args {
     remote_nonnull_domain dom;
     remote_nonnull_string path;
@@ -684,6 +696,11 @@ struct remote_domain_shutdown_args {
 };
 
 struct remote_domain_reboot_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_reset_args {
     remote_nonnull_domain dom;
     unsigned int flags;
 };
@@ -1066,6 +1083,25 @@ struct remote_domain_block_pull_args {
     remote_nonnull_string path;
     unsigned hyper bandwidth;
     unsigned int flags;
+};
+
+struct remote_domain_set_block_io_tune_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string disk;
+    remote_typed_param params<REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX>;
+    unsigned int flags;
+};
+
+struct remote_domain_get_block_io_tune_args {
+    remote_nonnull_domain dom;
+    remote_string disk;
+    int nparams;
+    unsigned int flags;
+};
+
+struct remote_domain_get_block_io_tune_ret {
+    remote_typed_param params<REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX>;
+    int nparams;
 };
 
 /* Network calls: */
@@ -2005,6 +2041,14 @@ struct remote_domain_event_block_job_msg {
     int status;
 };
 
+struct remote_domain_event_disk_change_msg {
+    remote_nonnull_domain dom;
+    remote_string oldSrcPath;
+    remote_string newSrcPath;
+    remote_nonnull_string devAlias;
+    int reason;
+};
+
 struct remote_domain_managed_save_args {
     remote_nonnull_domain dom;
     unsigned int flags;
@@ -2062,6 +2106,25 @@ struct remote_domain_snapshot_list_names_ret {
     remote_nonnull_string names<REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX>; /* insert@1 */
 };
 
+struct remote_domain_snapshot_num_children_args {
+    remote_nonnull_domain_snapshot snap;
+    unsigned int flags;
+};
+
+struct remote_domain_snapshot_num_children_ret {
+    int num;
+};
+
+struct remote_domain_snapshot_list_children_names_args {
+    remote_nonnull_domain_snapshot snap;
+    int maxnames;
+    unsigned int flags;
+};
+
+struct remote_domain_snapshot_list_children_names_ret {
+    remote_nonnull_string names<REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX>; /* insert@1 */
+};
+
 struct remote_domain_snapshot_lookup_by_name_args {
     remote_nonnull_domain dom;
     remote_nonnull_string name;
@@ -2079,6 +2142,15 @@ struct remote_domain_has_current_snapshot_args {
 
 struct remote_domain_has_current_snapshot_ret {
     int result;
+};
+
+struct remote_domain_snapshot_get_parent_args {
+    remote_nonnull_domain_snapshot snap;
+    unsigned int flags;
+};
+
+struct remote_domain_snapshot_get_parent_ret {
+    remote_nonnull_domain_snapshot snap;
 };
 
 struct remote_domain_snapshot_current_args {
@@ -2220,6 +2292,19 @@ struct remote_domain_get_control_info_ret { /* insert@1 */
     unsigned hyper stateTime;
 };
 
+struct remote_domain_open_graphics_args {
+    remote_nonnull_domain dom;
+    unsigned int idx;
+    unsigned int flags;
+};
+
+struct remote_node_suspend_for_duration_args {
+    unsigned int target;
+    unsigned hyper duration;
+    unsigned int flags;
+};
+
+
 /*----- Protocol. -----*/
 
 /* Define the program number, protocol version and procedure numbers here. */
@@ -2307,7 +2392,7 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_GET_SCHEDULER_PARAMETERS = 57, /* skipgen autogen */
     REMOTE_PROC_DOMAIN_SET_SCHEDULER_PARAMETERS = 58, /* autogen autogen */
     REMOTE_PROC_GET_HOSTNAME = 59, /* autogen autogen priority:high */
-    REMOTE_PROC_SUPPORTS_FEATURE = 60, /* autogen autogen priority:high */
+    REMOTE_PROC_SUPPORTS_FEATURE = 60, /* skipgen autogen priority:high */
 
     REMOTE_PROC_DOMAIN_MIGRATE_PREPARE = 61, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_MIGRATE_PERFORM = 62, /* autogen autogen */
@@ -2509,7 +2594,18 @@ enum remote_procedure {
 
     REMOTE_PROC_DOMAIN_EVENT_BLOCK_JOB = 241, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_SPEED = 242, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_BLOCK_STATS_FLAGS = 243 /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_BLOCK_STATS_FLAGS = 243, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_GET_PARENT = 244, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_RESET = 245, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_NUM_CHILDREN = 246, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_CHILDREN_NAMES = 247, /* autogen autogen priority:high */
+    REMOTE_PROC_DOMAIN_EVENT_DISK_CHANGE = 248, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_OPEN_GRAPHICS = 249, /* skipgen skipgen */
+    REMOTE_PROC_NODE_SUSPEND_FOR_DURATION = 250, /* autogen autogen */
+
+    REMOTE_PROC_DOMAIN_BLOCK_RESIZE = 251, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SET_BLOCK_IO_TUNE = 252, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_GET_BLOCK_IO_TUNE = 253 /* skipgen skipgen */
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

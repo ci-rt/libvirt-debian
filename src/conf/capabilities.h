@@ -105,6 +105,9 @@ struct _virCapsHost {
     size_t nfeatures;
     size_t nfeatures_max;
     char **features;
+    unsigned int powerMgmt;    /* Bitmask of the PM capabilities.
+                                * See enum virHostPMCapability.
+                                */
     int offlineMigrate;
     int liveMigrate;
     size_t nmigrateTrans;
@@ -144,7 +147,7 @@ struct _virCaps {
     unsigned int emulatorRequired : 1;
     const char *defaultDiskDriverName;
     const char *defaultDiskDriverType;
-    int defaultConsoleTargetType;
+    int (*defaultConsoleTargetType)(const char *ostype);
     void *(*privateDataAllocFunc)(void);
     void (*privateDataFreeFunc)(void *);
     int (*privateDataXMLFormat)(virBufferPtr, void *);

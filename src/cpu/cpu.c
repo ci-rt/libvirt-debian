@@ -28,6 +28,7 @@
 #include "xml.h"
 #include "cpu.h"
 #include "cpu_x86.h"
+#include "cpu_powerpc.h"
 #include "cpu_generic.h"
 
 
@@ -36,6 +37,7 @@
 
 static struct cpuArchDriver *drivers[] = {
     &cpuDriverX86,
+    &cpuDriverPowerPC,
     /* generic driver must always be the last one */
     &cpuDriverGeneric
 };
@@ -320,7 +322,7 @@ cpuBaselineXML(const char **xmlCPUs,
     if (!(cpu = cpuBaseline(cpus, ncpus, models, nmodels)))
         goto error;
 
-    cpustr = virCPUDefFormat(cpu, "", 0);
+    cpustr = virCPUDefFormat(cpu);
 
 cleanup:
     if (cpus) {

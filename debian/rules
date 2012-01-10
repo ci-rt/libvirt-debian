@@ -28,6 +28,11 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_NETWORK        = --with-network
   WITH_QEMU           = --with-qemu
   WITH_OPENVZ         = --with-openvz
+  ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 i386 ia64 mips mipsel powerpc))
+      WITH_NUMA       = --with-numactl
+  else
+      WITH_NUMA       = --without-numactl
+  endif
   ifneq (,$(findstring $(DEB_HOST_ARCH), ia64))
       WITH_LXC        = --without-lxc
   else
@@ -44,10 +49,7 @@ else
   WITH_NETWORK        = --without-network
   WITH_QEMU           = --without-qemu
   WITH_LXC            = --without-lxc
-endif
-
-ifneq (,$(findstring ${DEB_BUILD_ARCH}, m68k))
-	CFLAGS = -fwrapv -DWRAPV
+  WITH_NUMA           = --without-numactl
 endif
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
@@ -67,7 +69,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	$(WITH_STORAGE_ISCSI)	 \
 	$(WITH_STORAGE_DISK)	 \
 	--with-init-script=none  \
-	--without-numactl	 \
+	$(WITH_NUMA)             \
 	--without-selinux        \
 	--without-esx		 \
 	--without-libssh2	 \
@@ -97,7 +99,7 @@ binary-install/libvirt-bin::
 	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
 
 	for l in $(LOGROTATE); do \
-		cp $(CURDIR)/daemon/$$l.logrotate    \
+		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
                    debian/libvirt-bin.$$l.logrotate; \
 		dh_installlogrotate --name=$$l;     \
 	done

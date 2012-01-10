@@ -16,12 +16,14 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <math.h>               /* for isnan() */
+#include <sys/stat.h>
 
 #include "virterror_internal.h"
 #include "xml.h"
 #include "buf.h"
 #include "util.h"
 #include "memory.h"
+#include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_XML
 
@@ -796,4 +798,58 @@ error:
                               "%s", _("failed to parse xml document"));
     }
     goto cleanup;
+}
+
+
+struct virXMLRewritFileData {
+    const char *warnName;
+    const char *warnCommand;
+    const char *xml;
+};
+
+static int
+virXMLRewriteFile(int fd, void *opaque)
+{
+    struct virXMLRewritFileData *data = opaque;
+
+    if (data->warnName && data->warnCommand) {
+        if (virEmitXMLWarning(fd, data->warnName, data->warnCommand) < 0)
+            return -1;
+    }
+
+    if (safewrite(fd, data->xml, strlen(data->xml)) < 0)
+        return -1;
+
+    return 0;
+}
+
+int
+virXMLSaveFile(const char *path,
+               const char *warnName,
+               const char *warnCommand,
+               const char *xml)
+{
+    struct virXMLRewritFileData data = { warnName, warnCommand, xml };
+
+    return virFileRewrite(path, S_IRUSR | S_IWUSR, virXMLRewriteFile, &data);
+}
+
+/* Returns the number of children of node, or -1 on error.  */
+long
+virXMLChildElementCount(xmlNodePtr node)
+{
+    long ret = 0;
+    xmlNodePtr cur = NULL;
+
+    /* xmlChildElementCount returns 0 on error, which isn't helpful;
+     * besides, it is not available in libxml2 2.6.  */
+    if (!node || node->type != XML_ELEMENT_NODE)
+        return -1;
+    cur = node->children;
+    while (cur) {
+        if (cur->type == XML_ELEMENT_NODE)
+            ret++;
+        cur = cur->next;
+    }
+    return ret;
 }

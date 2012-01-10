@@ -174,6 +174,7 @@ mymain(void)
     DO_TEST("serial-many");
     DO_TEST("parallel-tcp");
     DO_TEST("console-compat");
+    DO_TEST("console-virtio-many");
     DO_TEST("channel-guestfwd");
     DO_TEST("channel-virtio");
 
@@ -183,6 +184,7 @@ mymain(void)
     DO_TEST("encrypted-disk");
     DO_TEST("memtune");
     DO_TEST("blkiotune");
+    DO_TEST("blkiotune-device");
     DO_TEST("cputune");
 
     DO_TEST("smp");
@@ -190,6 +192,7 @@ mymain(void)
     DO_TEST("event_idx");
 
     DO_TEST("usb-redir");
+    DO_TEST("blkdeviotune");
 
     /* These tests generate different XML */
     DO_TEST_DIFFERENT("balloon-device-auto");
@@ -208,6 +211,7 @@ mymain(void)
 VIRT_TEST_MAIN(mymain)
 
 #else
+# include "testutils.h"
 
 int
 main(void)

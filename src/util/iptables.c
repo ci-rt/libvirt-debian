@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2010 Red Hat, Inc.
+ * Copyright (C) 2007-2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -291,8 +291,8 @@ static char *iptablesFormatNetwork(virSocketAddr *netaddr,
     char *netstr;
     char *ret;
 
-    if (!(VIR_SOCKET_IS_FAMILY(netaddr, AF_INET) ||
-          VIR_SOCKET_IS_FAMILY(netaddr, AF_INET6))) {
+    if (!(VIR_SOCKET_ADDR_IS_FAMILY(netaddr, AF_INET) ||
+          VIR_SOCKET_ADDR_IS_FAMILY(netaddr, AF_INET6))) {
         iptablesError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                       _("Only IPv4 or IPv6 addresses can be used with iptables"));
         return NULL;
@@ -304,7 +304,7 @@ static char *iptablesFormatNetwork(virSocketAddr *netaddr,
         return NULL;
     }
 
-    netstr = virSocketFormatAddr(&network);
+    netstr = virSocketAddrFormat(&network);
 
     if (!netstr)
         return NULL;
@@ -336,7 +336,7 @@ iptablesForwardAllowOut(iptablesContext *ctx,
 
     if (physdev && physdev[0]) {
         ret = iptablesAddRemoveRule(ctx->forward_filter,
-                                    VIR_SOCKET_FAMILY(netaddr),
+                                    VIR_SOCKET_ADDR_FAMILY(netaddr),
                                     action,
                                     "--source", networkstr,
                                     "--in-interface", iface,
@@ -345,7 +345,7 @@ iptablesForwardAllowOut(iptablesContext *ctx,
                                     NULL);
     } else {
         ret = iptablesAddRemoveRule(ctx->forward_filter,
-                                    VIR_SOCKET_FAMILY(netaddr),
+                                    VIR_SOCKET_ADDR_FAMILY(netaddr),
                                     action,
                                     "--source", networkstr,
                                     "--in-interface", iface,
@@ -422,7 +422,7 @@ iptablesForwardAllowRelatedIn(iptablesContext *ctx,
 
     if (physdev && physdev[0]) {
         ret = iptablesAddRemoveRule(ctx->forward_filter,
-                                    VIR_SOCKET_FAMILY(netaddr),
+                                    VIR_SOCKET_ADDR_FAMILY(netaddr),
                                     action,
                                     "--destination", networkstr,
                                     "--in-interface", physdev,
@@ -433,7 +433,7 @@ iptablesForwardAllowRelatedIn(iptablesContext *ctx,
                                     NULL);
     } else {
         ret = iptablesAddRemoveRule(ctx->forward_filter,
-                                    VIR_SOCKET_FAMILY(netaddr),
+                                    VIR_SOCKET_ADDR_FAMILY(netaddr),
                                     action,
                                     "--destination", networkstr,
                                     "--out-interface", iface,
@@ -510,7 +510,7 @@ iptablesForwardAllowIn(iptablesContext *ctx,
 
     if (physdev && physdev[0]) {
         ret = iptablesAddRemoveRule(ctx->forward_filter,
-                                    VIR_SOCKET_FAMILY(netaddr),
+                                    VIR_SOCKET_ADDR_FAMILY(netaddr),
                                     action,
                                     "--destination", networkstr,
                                     "--in-interface", physdev,
@@ -519,7 +519,7 @@ iptablesForwardAllowIn(iptablesContext *ctx,
                                     NULL);
     } else {
         ret = iptablesAddRemoveRule(ctx->forward_filter,
-                                    VIR_SOCKET_FAMILY(netaddr),
+                                    VIR_SOCKET_ADDR_FAMILY(netaddr),
                                     action,
                                     "--destination", networkstr,
                                     "--out-interface", iface,
@@ -761,7 +761,7 @@ iptablesForwardMasquerade(iptablesContext *ctx,
     if (!(networkstr = iptablesFormatNetwork(netaddr, prefix)))
         return -1;
 
-    if (!VIR_SOCKET_IS_FAMILY(netaddr, AF_INET)) {
+    if (!VIR_SOCKET_ADDR_IS_FAMILY(netaddr, AF_INET)) {
         /* Higher level code *should* guaranteee it's impossible to get here. */
         iptablesError(VIR_ERR_INTERNAL_ERROR,
                       _("Attempted to NAT '%s'. NAT is only supported for IPv4."),
@@ -891,7 +891,7 @@ iptablesOutputFixUdpChecksum(iptablesContext *ctx,
  * @iface: the interface name
  * @port: the UDP port to match
  *
- * Add an rule to the mangle table's POSTROUTING chain that fixes up the
+ * Add a rule to the mangle table's POSTROUTING chain that fixes up the
  * checksum of packets with the given destination @port.
  * the given @iface interface for TCP packets.
  *

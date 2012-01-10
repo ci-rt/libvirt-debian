@@ -430,7 +430,8 @@ def eventToString(event):
                      "Started",
                      "Suspended",
                      "Resumed",
-                     "Stopped" );
+                     "Stopped",
+                     "Shutdown" );
     return eventStrings[event];
 
 def detailToString(event, detail):
@@ -440,7 +441,8 @@ def detailToString(event, detail):
         ( "Booted", "Migrated", "Restored", "Snapshot" ),
         ( "Paused", "Migrated", "IOError", "Watchdog" ),
         ( "Unpaused", "Migrated"),
-        ( "Shutdown", "Destroyed", "Crashed", "Migrated", "Saved", "Failed", "Snapshot")
+        ( "Shutdown", "Destroyed", "Crashed", "Migrated", "Saved", "Failed", "Snapshot"),
+        ( "Finished" )
         )
     return eventStrings[event][detail]
 
@@ -469,13 +471,19 @@ def myDomainEventIOErrorCallback(conn, dom, srcpath, devalias, action, opaque):
 def myDomainEventGraphicsCallback(conn, dom, phase, localAddr, remoteAddr, authScheme, subject, opaque):
     print "myDomainEventGraphicsCallback: Domain %s(%s) %d %s" % (dom.name(), dom.ID(), phase, authScheme)
 
-def usage():
-        print "usage: "+os.path.basename(sys.argv[0])+" [uri]"
-        print "   uri will default to qemu:///system"
+def myDomainEventDiskChangeCallback(conn, dom, oldSrcPath, newSrcPath, devAlias, reason, opaque):
+    print "myDomainEventDiskChangeCallback: Domain %s(%s) disk change oldSrcPath: %s newSrcPath: %s devAlias: %s reason: %s" % (
+            dom.name(), dom.ID(), oldSrcPath, newSrcPath, devAlias, reason)
+def usage(out=sys.stderr):
+    print >>out, "usage: "+os.path.basename(sys.argv[0])+" [-hdl] [uri]"
+    print >>out, "   uri will default to qemu:///system"
+    print >>out, "   --help, -h   Print this help message"
+    print >>out, "   --debug, -d  Print debug output"
+    print >>out, "   --loop, -l   Toggle event-loop-implementation"
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "h", ["help"] )
+        opts, args = getopt.getopt(sys.argv[1:], "hdl", ["help", "debug", "loop"])
     except getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -483,11 +491,17 @@ def main():
         sys.exit(2)
     for o, a in opts:
         if o in ("-h", "--help"):
-            usage()
+            usage(sys.stdout)
             sys.exit()
+        if o in ("-d", "--debug"):
+            global do_debug
+            do_debug = True
+        if o in ("-l", "--loop"):
+            global use_pure_python_event_loop
+            use_pure_python_event_loop ^= True
 
-    if len(sys.argv) > 1:
-        uri = sys.argv[1]
+    if len(args) >= 1:
+        uri = args[0]
     else:
         uri = "qemu:///system"
 
@@ -517,12 +531,15 @@ def main():
     vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_IO_ERROR, myDomainEventIOErrorCallback, None)
     vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_WATCHDOG, myDomainEventWatchdogCallback, None)
     vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_GRAPHICS, myDomainEventGraphicsCallback, None)
+    vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_DISK_CHANGE, myDomainEventDiskChangeCallback, None)
+
+    vc.setKeepAlive(5, 3)
 
     # The rest of your app would go here normally, but for sake
     # of demo we'll just go to sleep. The other option is to
     # run the event loop in your main thread if your app is
     # totally event based.
-    while 1:
+    while vc.isAlive() == 1:
         time.sleep(1)
 
 

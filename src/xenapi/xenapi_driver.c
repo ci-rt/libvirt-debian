@@ -40,12 +40,23 @@
 #include "xenapi_driver.h"
 #include "xenapi_driver_private.h"
 #include "xenapi_utils.h"
+#include "ignore-value.h"
 
 #define VIR_FROM_THIS VIR_FROM_XENAPI
 
 #define xenapiError(code, ...)                                    \
         virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,       \
                              __FUNCTION__, __LINE__, __VA_ARGS__)
+
+
+static int xenapiDefaultConsoleType(const char *ostype)
+{
+    if (STREQ(ostype, "hvm"))
+        return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
+    else
+        return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_XEN;
+}
+
 
 /*
  * getCapsObject
@@ -76,6 +87,8 @@ getCapsObject (void)
     domain2 = virCapabilitiesAddGuestDomain(guest2, "xen", "", "", 0, NULL);
     if (!domain2)
         goto error_cleanup;
+
+    caps->defaultConsoleTargetType = xenapiDefaultConsoleType;
 
     return caps;
 
@@ -193,10 +206,7 @@ xenapiOpen (virConnectPtr conn, virConnectAuthPtr auth,
         return VIR_DRV_OPEN_SUCCESS;
     }
 
-    xenapiSessionErrorHandler(conn, VIR_ERR_AUTH_FAILED,
-                              *privP->session->error_description != NULL ?
-                              *privP->session->error_description :
-                              _("unknown error"));
+    xenapiSessionErrorHandler(conn, VIR_ERR_AUTH_FAILED, NULL);
 
   error:
     VIR_FREE(username);
@@ -528,7 +538,7 @@ xenapiDomainCreateXML (virConnectPtr conn,
     virDomainDefFree(defPtr);
     if (record) {
         unsigned char raw_uuid[VIR_UUID_BUFLEN];
-        virUUIDParse(record->uuid, raw_uuid);
+        ignore_value(virUUIDParse(record->uuid, raw_uuid));
         if (vm) {
             if (xen_vm_start(session, vm, false, false)) {
                 domP = virGetDomain(conn, record->name_label, raw_uuid);
@@ -574,13 +584,13 @@ xenapiDomainLookupByID (virConnectPtr conn, int id)
     xen_session_get_this_host(session, &host, session);
     if (host != NULL && session->ok) {
         xen_host_get_resident_vms(session, &result, host);
-        if (result != NULL ) {
+        if (result != NULL) {
             for (i = 0; i < result->size; i++) {
                 xen_vm_get_domid(session, &domID, result->contents[i]);
                 if (domID == id) {
                     xen_vm_get_record(session, &record, result->contents[i]);
                     xen_vm_get_uuid(session, &uuid, result->contents[i]);
-                    virUUIDParse(uuid, raw_uuid);
+                    ignore_value(virUUIDParse(uuid, raw_uuid));
                     domP = virGetDomain(conn, record->name_label, raw_uuid);
                     if (domP) {
                         int64_t domid = -1;
@@ -672,7 +682,7 @@ xenapiDomainLookupByName (virConnectPtr conn,
         vm = vms->contents[0];
         xen_vm_get_uuid(session, &uuid, vm);
         if (uuid!=NULL) {
-            virUUIDParse(uuid, raw_uuid);
+            ignore_value(virUUIDParse(uuid, raw_uuid));
             domP = virGetDomain(conn, name, raw_uuid);
             if (domP != NULL) {
                 int64_t domid = -1;
@@ -1196,7 +1206,7 @@ xenapiDomainGetVcpus (virDomainPtr dom,
     xen_vm_set *vms = NULL;
     xen_vm vm = NULL;
     xen_string_string_map *vcpu_params = NULL;
-    int nvcpus = 0, cpus = 0, i;
+    int nvcpus = 0, i;
     virDomainInfo domInfo;
     virNodeInfo nodeInfo;
     virVcpuInfoPtr ifptr;
@@ -1211,9 +1221,7 @@ xenapiDomainGetVcpus (virDomainPtr dom,
                                   _("Couldn't fetch Domain Information"));
         return -1;
     }
-    if (xenapiNodeGetInfo(dom->conn, &nodeInfo) == 0)
-        cpus = nodeInfo.cpus;
-    else {
+    if (xenapiNodeGetInfo(dom->conn, &nodeInfo) != 0) {
         xenapiSessionErrorHandler(dom->conn, VIR_ERR_INTERNAL_ERROR,
                                   _("Couldn't fetch Node Information"));
         return -1;
@@ -1683,7 +1691,7 @@ xenapiDomainDefineXML (virConnectPtr conn, const char *xml)
     }
     if (record != NULL) {
         unsigned char raw_uuid[VIR_UUID_BUFLEN];
-        virUUIDParse(record->uuid, raw_uuid);
+        ignore_value(virUUIDParse(record->uuid, raw_uuid));
         domP = virGetDomain(conn, record->name_label, raw_uuid);
         if (!domP && !session->ok)
             xenapiSessionErrorHandler(conn, VIR_ERR_NO_DOMAIN, NULL);
@@ -1887,6 +1895,17 @@ xenapiNodeGetCellsFreeMemory (virConnectPtr conn, unsigned long long *freeMems,
     }
 }
 
+static int
+xenapiIsAlive(virConnectPtr conn)
+{
+    struct _xenapiPrivate *priv = conn->privateData;
+
+    if (priv->session && priv->session->ok)
+        return 1;
+    else
+        return 0;
+}
+
 /* The interface which we export upwards to libvirt.c. */
 static virDriver xenapiDriver = {
     .no = VIR_DRV_XENAPI,
@@ -1937,6 +1956,7 @@ static virDriver xenapiDriver = {
     .nodeGetCellsFreeMemory = xenapiNodeGetCellsFreeMemory, /* 0.8.0 */
     .nodeGetFreeMemory = xenapiNodeGetFreeMemory, /* 0.8.0 */
     .domainIsUpdated = xenapiDomainIsUpdated, /* 0.8.6 */
+    .isAlive = xenapiIsAlive, /* 0.9.8 */
 };
 
 /**

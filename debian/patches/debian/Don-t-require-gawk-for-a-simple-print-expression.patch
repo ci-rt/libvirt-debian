@@ -5,15 +5,17 @@ Subject: Don't require gawk for a simple print expression
 Closes: #636712
 Thanks: Luca Capello
 
+
+
 ---
  src/nwfilter/nwfilter_ebiptables_driver.c |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/src/nwfilter/nwfilter_ebiptables_driver.c b/src/nwfilter/nwfilter_ebiptables_driver.c
-index f87cfa1..a057799 100644
+index a62833e..3ec4f6c 100644
 --- a/src/nwfilter/nwfilter_ebiptables_driver.c
 +++ b/src/nwfilter/nwfilter_ebiptables_driver.c
-@@ -3719,7 +3719,7 @@ ebiptablesDriverInit(bool privileged)
+@@ -4025,7 +4025,7 @@ ebiptablesDriverInit(bool privileged)
      if (virMutexInit(&execCLIMutex))
          return EINVAL;
  
@@ -22,4 +24,3 @@ index f87cfa1..a057799 100644
      grep_cmd_path = virFindFileInPath("grep");
  
      ebtables_cmd_path = virFindFileInPath("ebtables");
--- 

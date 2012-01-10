@@ -24,7 +24,7 @@
 #ifndef __VIR_NET_SOCKET_H__
 # define __VIR_NET_SOCKET_H__
 
-# include "network.h"
+# include "virsocketaddr.h"
 # include "command.h"
 # include "virnettlscontext.h"
 # ifdef HAVE_SASL
@@ -82,6 +82,8 @@ int virNetSocketDupFD(virNetSocketPtr sock, bool cloexec);
 
 bool virNetSocketIsLocal(virNetSocketPtr sock);
 
+bool virNetSocketHasPassFD(virNetSocketPtr sock);
+
 int virNetSocketGetPort(virNetSocketPtr sock);
 
 int virNetSocketGetLocalIdentity(virNetSocketPtr sock,
@@ -94,6 +96,9 @@ int virNetSocketSetBlocking(virNetSocketPtr sock,
 ssize_t virNetSocketRead(virNetSocketPtr sock, char *buf, size_t len);
 ssize_t virNetSocketWrite(virNetSocketPtr sock, const char *buf, size_t len);
 
+int virNetSocketSendFD(virNetSocketPtr sock, int fd);
+int virNetSocketRecvFD(virNetSocketPtr sock, int *fd);
+
 void virNetSocketSetTLSSession(virNetSocketPtr sock,
                                virNetTLSSessionPtr sess);
 # ifdef HAVE_SASL
@@ -101,6 +106,8 @@ void virNetSocketSetSASLSession(virNetSocketPtr sock,
                                 virNetSASLSessionPtr sess);
 # endif
 bool virNetSocketHasCachedData(virNetSocketPtr sock);
+bool virNetSocketHasPendingData(virNetSocketPtr sock);
+void virNetSocketRef(virNetSocketPtr sock);
 void virNetSocketFree(virNetSocketPtr sock);
 
 const char *virNetSocketLocalAddrString(virNetSocketPtr sock);

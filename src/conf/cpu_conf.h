@@ -67,6 +67,15 @@ struct _virCPUFeatureDef {
     int policy;         /* enum virCPUFeaturePolicy */
 };
 
+typedef struct _virCellDef virCellDef;
+typedef virCellDef *virCellDefPtr;
+struct _virCellDef {
+   int cellid;
+   char *cpumask;	/* CPUs that are part of this node */
+   char *cpustr;	/* CPUs stored in string form for dumpxml */
+   unsigned int mem;	/* Node memory in kB */
+};
+
 typedef struct _virCPUDef virCPUDef;
 typedef virCPUDef *virCPUDefPtr;
 struct _virCPUDef {
@@ -81,6 +90,10 @@ struct _virCPUDef {
     size_t nfeatures;
     size_t nfeatures_max;
     virCPUFeatureDefPtr features;
+    size_t ncells;
+    size_t ncells_max;
+    virCellDefPtr cells;
+    unsigned int cells_cpus;
 };
 
 
@@ -95,25 +108,19 @@ virCPUDefParseXML(const xmlNodePtr node,
                   xmlXPathContextPtr ctxt,
                   enum virCPUType mode);
 
-enum virCPUFormatFlags {
-    VIR_CPU_FORMAT_EMBEDED  = (1 << 0)  /* embed into existing <cpu/> element
-                                         * in host capabilities */
-};
-
 bool
 virCPUDefIsEqual(virCPUDefPtr src,
                  virCPUDefPtr dst);
 
 char *
-virCPUDefFormat(virCPUDefPtr def,
-                const char *indent,
-                unsigned int flags);
+virCPUDefFormat(virCPUDefPtr def);
 
 int
 virCPUDefFormatBuf(virBufferPtr buf,
-                   virCPUDefPtr def,
-                   const char *indent,
-                   unsigned int flags);
+                   virCPUDefPtr def);
+int
+virCPUDefFormatBufFull(virBufferPtr buf,
+                       virCPUDefPtr def);
 
 int
 virCPUDefAddFeature(virCPUDefPtr cpu,

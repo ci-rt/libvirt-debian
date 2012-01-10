@@ -1,3 +1,4 @@
 version=3
 
-http://libvirt.org/sources/libvirt-([\d\.]+)\.tar\.gz
+opts="uversionmangle=s/\.-rc/~rc/;s/\.+$//" \
+    http://libvirt.org/sources/libvirt-([\d\.]+)(-rc\d)?\.tar\.gz

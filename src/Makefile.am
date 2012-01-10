@@ -25,6 +25,11 @@ AM_LDFLAGS = $(COVERAGE_LDFLAGS)
 EXTRA_DIST = $(conf_DATA) util/keymaps.csv
 
 BUILT_SOURCES =
+CLEANFILES =
+DISTCLEANFILES =
+MAINTAINERCLEANFILES =
+
+THREAD_LIBS = $(LIB_PTHREAD) $(LTLIBMULTITHREAD)
 
 if WITH_NETWORK
 UUID=$(shell uuidgen 2>/dev/null)
@@ -36,7 +41,7 @@ moddir = $(libdir)/libvirt/connection-driver
 mod_LTLIBRARIES =
 
 confdir = $(sysconfdir)/libvirt
-conf_DATA =
+conf_DATA = libvirt.conf
 
 augeasdir = $(datadir)/augeas/lenses
 augeas_DATA =
@@ -49,7 +54,6 @@ augeastest_DATA =
 UTIL_SOURCES =							\
 		util/authhelper.c util/authhelper.h		\
 		util/bitmap.c util/bitmap.h			\
-		util/bridge.c util/bridge.h			\
 		util/buf.c util/buf.h				\
 		util/command.c util/command.h			\
 		util/conf.c util/conf.h				\
@@ -63,14 +67,11 @@ UTIL_SOURCES =							\
 		util/dnsmasq.c util/dnsmasq.h                   \
 		util/json.c util/json.h				\
 		util/logging.c util/logging.h			\
-		util/macvtap.c util/macvtap.h			\
 		util/memory.c util/memory.h			\
 		util/netlink.c util/netlink.h			\
 		util/pci.c util/pci.h				\
 		util/processinfo.c util/processinfo.h		\
 		util/hostusb.c util/hostusb.h			\
-		util/network.c util/network.h			\
-		util/interface.c util/interface.h		\
 		util/qparams.c util/qparams.h			\
 		util/sexpr.c util/sexpr.h			\
 		util/stats_linux.c util/stats_linux.h		\
@@ -84,11 +85,21 @@ UTIL_SOURCES =							\
 		util/util.c util/util.h				\
 		util/viraudit.c util/viraudit.h			\
 		util/virfile.c util/virfile.h			\
+		util/virnodesuspend.c util/virnodesuspend.h	\
 		util/virpidfile.c util/virpidfile.h		\
 		util/xml.c util/xml.h				\
 		util/virterror.c util/virterror_internal.h	\
 		util/virkeycode.c util/virkeycode.h		\
-		util/virkeymaps.h
+		util/virkeymaps.h				\
+		util/virnetdev.h util/virnetdev.c		\
+		util/virnetdevbandwidth.h util/virnetdevbandwidth.c \
+		util/virnetdevbridge.h util/virnetdevbridge.c	\
+		util/virnetdevmacvlan.c util/virnetdevmacvlan.h	\
+		util/virnetdevtap.h util/virnetdevtap.c		\
+		util/virnetdevveth.h util/virnetdevveth.c \
+		util/virnetdevvportprofile.h util/virnetdevvportprofile.c \
+		util/virsocketaddr.h util/virsocketaddr.c \
+		util/virtime.h util/virtime.c
 
 EXTRA_DIST += $(srcdir)/util/virkeymaps.h $(srcdir)/util/keymaps.csv \
 		$(srcdir)/util/virkeycode-mapgen.py
@@ -118,6 +129,10 @@ DRIVER_SOURCES =						\
 LOCK_DRIVER_SANLOCK_SOURCES = \
 		locking/lock_driver_sanlock.c
 
+
+NETDEV_CONF_SOURCES =						\
+		conf/netdev_bandwidth_conf.h conf/netdev_bandwidth_conf.c \
+		conf/netdev_vport_profile_conf.h conf/netdev_vport_profile_conf.c
 
 # XML configuration format handling sources
 # Domain driver generic impl APIs
@@ -166,6 +181,7 @@ CPU_CONF_SOURCES =						\
 		conf/cpu_conf.c conf/cpu_conf.h
 
 CONF_SOURCES =							\
+		$(NETDEV_CONF_SOURCES)				\
 		$(DOMAIN_CONF_SOURCES)				\
 		$(DOMAIN_EVENT_SOURCES)				\
 		$(NETWORK_CONF_SOURCES)				\
@@ -228,14 +244,15 @@ EXTRA_DIST +=  $(REMOTE_DRIVER_PROTOCOL) \
 # The alternation of the following regexps matches both cases.
 r1 = /\* \d+ \*/
 r2 = /\* <[[:xdigit:]]+> \S+:\d+ \*/
+struct_prefix = (remote_|qemu_|virNet|keepalive_)
 
 PDWTAGS = \
 	$(AM_V_GEN)if (pdwtags --help) > /dev/null 2>&1; then		\
 	  pdwtags --verbose $(<:.lo=.$(OBJEXT))				\
 	    | perl -0777 -n						\
 		-e 'foreach my $$p (split m!\n*(?:$(r1)|$(r2))\n!) {'	\
-		-e '  if ($$p =~ /^(struct|enum) (remote_|qemu_|virNet)/ ||' \
-		-e '      $$p =~ /^enum {/) {' \
+		-e '  if ($$p =~ /^(struct|enum) $(struct_prefix)/ ||'	\
+		-e '      $$p =~ /^enum {/) {'				\
 		-e '    $$p =~ s!\t*/\*.*?\*/!!sg;'			\
 		-e '    $$p =~ s!\s+\n!\n!sg;'				\
 		-e '    $$p =~ s!\s+$$!!;'				\
@@ -248,16 +265,16 @@ PDWTAGS = \
 		-e '  print "/* -*- c -*- */\n";'			\
 		-e '}'							\
 		-e 'END {'						\
-		-e '  if ($$n < 3) {'					\
+		-e '  if ($$n < 1) {'					\
 		-e '    warn "WARNING: your pdwtags program is too old\n";' \
 		-e '    warn "WARNING: skipping the $@ test\n";'	\
 		-e '    warn "WARNING: install dwarves-1.3 or newer\n";' \
 		-e '    exit 8;'					\
 		-e '  }'						\
 		-e '}'							\
-		> $@-t;							\
+		> $(@F)-t;						\
 	  case $$? in 8) exit 0;; 0) ;; *) exit 1;; esac;		\
-	  diff -u $@-t $@; st=$$?; rm -f $@-t; exit $$st;	\
+	  diff -u $(@F)-t $@; st=$$?; rm -f $(@F)-t; exit $$st;		\
 	else								\
 	  echo 'WARNING: you lack pdwtags; skipping the $@ test' >&2;	\
 	  echo 'WARNING: install the dwarves package to get pdwtags' >&2; \
@@ -266,13 +283,16 @@ PDWTAGS = \
 PROTOCOL_STRUCTS = \
 	$(srcdir)/remote_protocol-structs \
 	$(srcdir)/qemu_protocol-structs \
-	$(srcdir)/virnetprotocol-structs
+	$(srcdir)/virnetprotocol-structs \
+	$(srcdir)/virkeepaliveprotocol-structs
 if WITH_REMOTE
 # The .o file that pdwtags parses is created as a side effect of running
 # libtool; but from make's perspective we depend on the .lo file.
 $(srcdir)/%_protocol-structs: libvirt_driver_remote_la-%_protocol.lo
 	$(PDWTAGS)
 $(srcdir)/virnetprotocol-structs: libvirt_net_rpc_la-virnetprotocol.lo
+	$(PDWTAGS)
+$(srcdir)/virkeepaliveprotocol-structs: libvirt_net_rpc_la-virkeepaliveprotocol.lo
 	$(PDWTAGS)
 else !WITH_REMOTE
 # These generated files must live in git, because they cannot be re-generated
@@ -301,14 +321,12 @@ endif
 LXC_DRIVER_SOURCES =						\
 		lxc/lxc_conf.c lxc/lxc_conf.h			\
 		lxc/lxc_container.c lxc/lxc_container.h		\
-		lxc/lxc_driver.c lxc/lxc_driver.h		\
-		lxc/veth.c lxc/veth.h
+		lxc/lxc_driver.c lxc/lxc_driver.h
 
 LXC_CONTROLLER_SOURCES =					\
 		lxc/lxc_conf.c lxc/lxc_conf.h			\
 		lxc/lxc_container.c lxc/lxc_container.h		\
-		lxc/lxc_controller.c				\
-		lxc/veth.c lxc/veth.h
+		lxc/lxc_controller.c
 
 SECURITY_DRIVER_APPARMOR_HELPER_SOURCES =			\
 		security/virt-aa-helper.c
@@ -331,7 +349,8 @@ VBOX_DRIVER_SOURCES =						\
 	vbox/vbox_V3_0.c vbox/vbox_CAPI_v3_0.h			\
 	vbox/vbox_V3_1.c vbox/vbox_CAPI_v3_1.h			\
 	vbox/vbox_V3_2.c vbox/vbox_CAPI_v3_2.h			\
-	vbox/vbox_V4_0.c vbox/vbox_CAPI_v4_0.h
+	vbox/vbox_V4_0.c vbox/vbox_CAPI_v4_0.h			\
+	vbox/vbox_V4_1.c vbox/vbox_CAPI_v4_1.h
 
 VBOX_DRIVER_EXTRA_DIST =					\
 		vbox/vbox_tmpl.c vbox/README			\
@@ -511,7 +530,8 @@ CPU_SOURCES =							\
 		cpu/cpu.h cpu/cpu.c				\
 		cpu/cpu_generic.h cpu/cpu_generic.c		\
 		cpu/cpu_x86.h cpu/cpu_x86.c cpu/cpu_x86_data.h	\
-		cpu/cpu_map.h cpu/cpu_map.c
+		cpu/cpu_map.h cpu/cpu_map.c cpu/cpu_powerpc.h	\
+		cpu/cpu_powerpc.c
 
 VMX_SOURCES =							\
 		vmx/vmx.c vmx/vmx.h
@@ -539,7 +559,8 @@ libvirt_util_la_SOURCES =					\
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
 		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS)
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
-		$(LIB_PTHREAD) $(AUDIT_LIBS) $(DEVMAPPER_LIBS)
+		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
+		$(RT_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -610,13 +631,15 @@ libvirt_driver_remote_la_CFLAGS =				\
 		-I@top_srcdir@/src/rpc				\
 		$(AM_CFLAGS)
 libvirt_driver_remote_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_remote_la_LIBADD = $(GNUTLS_LIBS) libvirt-net-rpc-client.la libvirt-net-rpc.la
+libvirt_driver_remote_la_LIBADD = $(GNUTLS_LIBS) \
+                libvirt-net-rpc-client.la \
+                libvirt-net-rpc-server.la \
+                libvirt-net-rpc.la
 if WITH_DRIVER_MODULES
 libvirt_driver_remote_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_remote_la_LDFLAGS += -module -avoid-version
 endif
 libvirt_driver_remote_la_SOURCES = $(REMOTE_DRIVER_SOURCES)
-
 
 $(srcdir)/remote/remote_driver.c: $(REMOTE_DRIVER_GENERATED)
 
@@ -765,10 +788,14 @@ noinst_LTLIBRARIES += libvirt_driver_qemu.la
 #libvirt_la_BUILT_LIBADD += libvirt_driver_qemu.la
 endif
 libvirt_driver_qemu_la_CFLAGS = $(NUMACTL_CFLAGS) \
+                                $(GNUTLS_CFLAGS) \
+                                $(LIBXML_CFLAGS) \
 		-I@top_srcdir@/src/conf $(AM_CFLAGS)
 libvirt_driver_qemu_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_qemu_la_LIBADD = $(NUMACTL_LIBS) \
-				$(CAPNG_LIBS)
+				$(CAPNG_LIBS) \
+                                $(GNUTLS_LIBS) \
+                                $(LIBXML_LIBS)
 if WITH_DRIVER_MODULES
 libvirt_driver_qemu_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_qemu_la_LDFLAGS += -module -avoid-version
@@ -1150,16 +1177,12 @@ if WITH_DRIVER_MODULES
 USED_SYM_FILES += libvirt_driver_modules.syms
 endif
 
-if WITH_BRIDGE
-USED_SYM_FILES += libvirt_bridge.syms
-endif
-
 if WITH_LINUX
 USED_SYM_FILES += libvirt_linux.syms
 endif
 
-if WITH_MACVTAP
-USED_SYM_FILES += libvirt_macvtap.syms
+if HAVE_DBUS
+USED_SYM_FILES += libvirt_dbus.syms
 endif
 
 if WITH_LIBVIRTD
@@ -1182,18 +1205,22 @@ if WITH_NETWORK
 USED_SYM_FILES += libvirt_network.syms
 endif
 
+if HAVE_SASL
+USED_SYM_FILES += libvirt_sasl.syms
+endif
+
 EXTRA_DIST += \
   libvirt_public.syms		\
   libvirt_private.syms		\
   libvirt_driver_modules.syms	\
-  libvirt_bridge.syms		\
-  libvirt_linux.syms		\
-  libvirt_macvtap.syms		\
   libvirt_daemon.syms		\
-  libvirt_nwfilter.syms	\
+  libvirt_linux.syms		\
+  libvirt_dbus.syms		\
+  libvirt_network.syms		\
+  libvirt_nwfilter.syms		\
+  libvirt_sasl.syms		\
   libvirt_vmx.syms		\
-  libvirt_xenxs.syms		\
-  libvirt_network.syms
+  libvirt_xenxs.syms
 
 GENERATED_SYM_FILES = libvirt.syms libvirt.def libvirt_qemu.def
 
@@ -1246,6 +1273,42 @@ libvirt_la_CFLAGS = -DIN_LIBVIRT $(AM_CFLAGS)
 # picked out for us.
 libvirt_la_DEPENDENCIES = $(libvirt_la_BUILT_LIBADD) $(LIBVIRT_SYMBOL_FILE)
 
+if WITH_DTRACE
+libvirt_la_BUILT_LIBADD += probes.o
+libvirt_la_DEPENDENCIES += probes.o
+nodist_libvirt_la_SOURCES = probes.h
+if WITH_REMOTE
+$(REMOTE_DRIVER_GENERATED): probes.h
+endif WITH_REMOTE
+
+BUILT_SOURCES += probes.h libvirt_probes.stp libvirt_functions.stp
+
+tapsetdir = $(datadir)/systemtap/tapset
+tapset_DATA = libvirt_probes.stp libvirt_functions.stp
+
+probes.h: probes.d
+	$(AM_V_GEN)$(DTRACE) -o $@ -h -s $<
+
+probes.o: probes.d
+	$(AM_V_GEN)$(DTRACE) -o $@ -G -s $<
+
+RPC_PROBE_FILES = $(srcdir)/rpc/virnetprotocol.x \
+		  $(srcdir)/rpc/virkeepaliveprotocol.x \
+		  $(srcdir)/remote/remote_protocol.x \
+		  $(srcdir)/remote/qemu_protocol.x
+
+libvirt_functions.stp: $(RPC_PROBE_FILES) $(srcdir)/rpc/gensystemtap.pl
+	$(AM_V_GEN)perl -w $(srcdir)/rpc/gensystemtap.pl $(RPC_PROBE_FILES) > $@
+
+libvirt_probes.stp: probes.d $(srcdir)/dtrace2systemtap.pl
+	$(AM_V_GEN)perl -w $(srcdir)/dtrace2systemtap.pl $(bindir) $(sbindir) $(libdir) $< > $@
+
+CLEANFILES += probes.h probes.o libvirt_functions.stp libvirt_probes.stp
+endif
+
+EXTRA_DIST += probes.d
+
+
 # Create an automake "convenience library" version of libvirt_la,
 # just for testing, since the test harness requires access to internal
 # bits and pieces that we don't want to make publicly accessible.
@@ -1292,6 +1355,7 @@ $(builddir)/locking/%-sanlock.conf: $(srcdir)/locking/sanlock.conf
 if WITH_QEMU
 conf_DATA += locking/qemu-sanlock.conf
 BUILT_SOURCES += locking/qemu-sanlock.conf
+DISTCLEANFILES += locking/qemu-sanlock.conf
 endif
 else
 EXTRA_DIST += $(LOCK_DRIVER_SANLOCK_SOURCES)
@@ -1306,13 +1370,18 @@ noinst_LTLIBRARIES += \
 	libvirt-net-rpc-client.la
 
 EXTRA_DIST += \
-       rpc/virnetprotocol.x \
-       rpc/gendispatch.pl \
-       rpc/genprotocol.pl
+	dtrace2systemtap.pl \
+	rpc/gendispatch.pl \
+	rpc/genprotocol.pl \
+	rpc/gensystemtap.pl \
+	rpc/virnetprotocol.x \
+	rpc/virkeepaliveprotocol.x
 
 VIR_NET_RPC_GENERATED = \
 	$(srcdir)/rpc/virnetprotocol.h \
-	$(srcdir)/rpc/virnetprotocol.c
+	$(srcdir)/rpc/virnetprotocol.c \
+	$(srcdir)/rpc/virkeepaliveprotocol.h \
+	$(srcdir)/rpc/virkeepaliveprotocol.c
 
 BUILT_SOURCES += $(VIR_NET_RPC_GENERATED)
 
@@ -1320,7 +1389,9 @@ libvirt_net_rpc_la_SOURCES = \
 	rpc/virnetmessage.h rpc/virnetmessage.c \
 	rpc/virnetprotocol.h rpc/virnetprotocol.c \
 	rpc/virnetsocket.h rpc/virnetsocket.c \
-	rpc/virnettlscontext.h rpc/virnettlscontext.c
+	rpc/virnettlscontext.h rpc/virnettlscontext.c \
+	rpc/virkeepaliveprotocol.h rpc/virkeepaliveprotocol.c \
+	rpc/virkeepalive.h rpc/virkeepalive.c
 if HAVE_SASL
 libvirt_net_rpc_la_SOURCES += \
 	rpc/virnetsaslcontext.h rpc/virnetsaslcontext.c
@@ -1421,14 +1492,20 @@ libvirt_lxc_SOURCES =						\
 		$(UTIL_SOURCES)					\
 		$(NODE_INFO_SOURCES)				\
 		$(ENCRYPTION_CONF_SOURCES)			\
+		$(NETDEV_CONF_SOURCES)				\
 		$(DOMAIN_CONF_SOURCES)				\
+		$(SECRET_CONF_SOURCES)				\
 		$(CPU_CONF_SOURCES)				\
 		$(NWFILTER_PARAM_CONF_SOURCES)
 libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(AM_LDFLAGS)
 libvirt_lxc_LDADD = $(CAPNG_LIBS) $(YAJL_LIBS) \
-		$(LIBXML_LIBS) $(NUMACTL_LIBS) $(LIB_PTHREAD) \
+		$(LIBXML_LIBS) $(NUMACTL_LIBS) $(THREAD_LIBS) \
 		$(LIBNL_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
+		$(RT_LIBS) \
 		../gnulib/lib/libgnu.la
+if WITH_DTRACE
+libvirt_lxc_LDADD += probes.o
+endif
 libvirt_lxc_CFLAGS =				\
 		$(LIBPARTED_CFLAGS)		\
 		$(NUMACTL_CFLAGS)		\
@@ -1437,6 +1514,10 @@ libvirt_lxc_CFLAGS =				\
 		$(AUDIT_CFLAGS)			\
 		-I@top_srcdir@/src/conf		\
 		$(AM_CFLAGS)
+if HAVE_LIBBLKID
+libvirt_lxc_CFLAGS += $(BLKID_CFLAGS)
+libvirt_lxc_LDADD += $(BLKID_LIBS)
+endif
 endif
 endif
 EXTRA_DIST += $(LXC_CONTROLLER_SOURCES)
@@ -1464,6 +1545,7 @@ EXTRA_DIST += $(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)
 install-data-local:
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/cache/libvirt"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/images"
+	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/filesystems"
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/boot"
 if HAVE_SANLOCK
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/libvirt/sanlock"
@@ -1509,6 +1591,7 @@ endif
 uninstall-local::
 	rmdir "$(DESTDIR)$(localstatedir)/cache/libvirt" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/images" ||:
+	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/filesystems" ||:
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/boot" ||:
 if HAVE_SANLOCK
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt/sanlock" ||:
@@ -1542,6 +1625,6 @@ if WITH_NETWORK
 endif
 	rmdir "$(DESTDIR)$(localstatedir)/lib/libvirt" ||:
 
-CLEANFILES = *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.i *.s
-DISTCLEANFILES = $(GENERATED_SYM_FILES)
-MAINTAINERCLEANFILES = $(REMOTE_DRIVER_GENERATED) $(VIR_NET_RPC_GENERATED) $(ESX_DRIVER_GENERATED)
+CLEANFILES += *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.i *.s
+DISTCLEANFILES += $(GENERATED_SYM_FILES)
+MAINTAINERCLEANFILES += $(REMOTE_DRIVER_GENERATED) $(VIR_NET_RPC_GENERATED) $(ESX_DRIVER_GENERATED)

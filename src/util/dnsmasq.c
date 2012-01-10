@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2010 Red Hat, Inc.
+ * Copyright (C) 2007-2011 Red Hat, Inc.
  * Copyright (C) 2010 Satoru SATOH <satoru.satoh@gmail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -95,7 +95,7 @@ addnhostsAdd(dnsmasqAddnHostsfile *addnhostsfile,
     int idx = -1;
     int i;
 
-    if (!(ipstr = virSocketFormatAddr(ip)))
+    if (!(ipstr = virSocketAddrFormat(ip)))
         return -1;
 
     for (i = 0; i < addnhostsfile->nhosts; i++) {
@@ -300,7 +300,7 @@ hostsfileAdd(dnsmasqHostsfile *hostsfile,
     if (VIR_REALLOC_N(hostsfile->hosts, hostsfile->nhosts + 1) < 0)
         goto alloc_error;
 
-    if (!(ipstr = virSocketFormatAddr(ip)))
+    if (!(ipstr = virSocketAddrFormat(ip)))
         return -1;
 
     if (name) {
@@ -461,7 +461,7 @@ dnsmasqContextNew(const char *network_name,
  * dnsmasqContextFree:
  * @ctx: pointer to the dnsmasq context
  *
- * Free the resources associated with an dnsmasq context
+ * Free the resources associated with a dnsmasq context
  */
 void
 dnsmasqContextFree(dnsmasqContext *ctx)

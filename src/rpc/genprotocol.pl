@@ -31,7 +31,7 @@ open RPCGEN, "-|", $rpcgen, $mode, $xdrdef
 open TARGET, ">$target"
     or die "cannot create $target: $!";
 
-my $fixup = $^O eq "linux";
+my $fixup = $^O eq "linux" || $^O eq "cygwin";
 
 if ($mode eq "-c") {
     print TARGET "#include <config.h>\n";
@@ -59,7 +59,7 @@ while (<RPCGEN>) {
     s/xdr_u_quad_t/xdr_uint64_t/g;
     s/xdr_quad_t/xdr_int64_t/g;
     s/(?<!IXDR_GET_INT32 )IXDR_GET_LONG/IXDR_GET_INT32/g;
-    s,#include "remote/remote_protocol\.h",#include "remote_protocol.h",;
+    s,#include ".*remote/remote_protocol\.h",#include "remote_protocol.h",;
 
     if (m/^}/) {
 	$in_function = 0;

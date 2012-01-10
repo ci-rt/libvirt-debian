@@ -152,6 +152,11 @@ static void testDomainObjPrivateFree(void *data)
 }
 
 
+static int testDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+{
+    return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
+}
+
 static virCapsPtr
 testBuildCapabilities(virConnectPtr conn) {
     testConnPtr privconn = conn->privateData;
@@ -162,6 +167,8 @@ testBuildCapabilities(virConnectPtr conn) {
 
     if ((caps = virCapabilitiesNew(TEST_MODEL, 0, 0)) == NULL)
         goto no_memory;
+
+    caps->defaultConsoleTargetType = testDefaultConsoleType;
 
     if (virCapabilitiesAddHostFeature(caps, "pae") < 0)
         goto no_memory;
@@ -1182,6 +1189,11 @@ static int testIsSecure(virConnectPtr conn ATTRIBUTE_UNUSED)
 static int testIsEncrypted(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
     return 0;
+}
+
+static int testIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    return 1;
 }
 
 static int testGetMaxVCPUs(virConnectPtr conn ATTRIBUTE_UNUSED,
@@ -2709,11 +2721,12 @@ testDomainGetSchedulerParamsFlags(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (*nparams < 1) {
-        testError(VIR_ERR_INVALID_ARG, "%s", _("Invalid parameter count"));
+    if (virStrcpyStatic(params[0].field,
+                        VIR_DOMAIN_SCHEDULER_WEIGHT) == NULL) {
+        testError(VIR_ERR_INTERNAL_ERROR, _("Field name '%s' too long"),
+                  VIR_DOMAIN_SCHEDULER_WEIGHT);
         goto cleanup;
     }
-    strcpy(params[0].field, "weight");
     params[0].type = VIR_TYPED_PARAM_UINT;
     /* XXX */
     /*params[0].value.ui = privdom->weight;*/
@@ -2759,7 +2772,7 @@ testDomainSetSchedulerParamsFlags(virDomainPtr domain,
     }
 
     for (i = 0; i < nparams; i++) {
-        if (STRNEQ(params[i].field, "weight")) {
+        if (STRNEQ(params[i].field, VIR_DOMAIN_SCHEDULER_WEIGHT)) {
             testError(VIR_ERR_INVALID_ARG, "field");
             goto cleanup;
         }
@@ -2795,7 +2808,7 @@ static int testDomainBlockStats(virDomainPtr domain,
     virDomainObjPtr privdom;
     struct timeval tv;
     unsigned long long statbase;
-    int i, found = 0, ret = -1;
+    int ret = -1;
 
     testDriverLock(privconn);
     privdom = virDomainFindByName(&privconn->domains,
@@ -2807,14 +2820,7 @@ static int testDomainBlockStats(virDomainPtr domain,
         goto error;
     }
 
-    for (i = 0 ; i < privdom->def->ndisks ; i++) {
-        if (STREQ(path, privdom->def->disks[i]->dst)) {
-            found = 1;
-            break;
-        }
-    }
-
-    if (!found) {
+    if (virDomainDiskIndexByName(privdom->def, path, false) < 0) {
         testError(VIR_ERR_INVALID_ARG,
                   _("invalid path: %s"), path);
         goto error;
@@ -4088,7 +4094,6 @@ testStorageFindPoolSources(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 cleanup:
     virStoragePoolSourceFree(source);
-    VIR_FREE(source);
     return ret;
 }
 
@@ -5624,6 +5629,7 @@ static virDriver testDriver = {
     .domainIsUpdated = testDomainIsUpdated, /* 0.8.6 */
     .domainEventRegisterAny = testDomainEventRegisterAny, /* 0.8.0 */
     .domainEventDeregisterAny = testDomainEventDeregisterAny, /* 0.8.0 */
+    .isAlive = testIsAlive, /* 0.9.8 */
 };
 
 static virNetworkDriver testNetworkDriver = {

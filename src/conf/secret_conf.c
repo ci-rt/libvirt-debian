@@ -35,7 +35,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_SECRET
 
-VIR_ENUM_IMPL(virSecretUsageType, VIR_SECRET_USAGE_TYPE_VOLUME + 1, "none", "volume")
+VIR_ENUM_IMPL(virSecretUsageType, VIR_SECRET_USAGE_TYPE_LAST,
+              "none", "volume", "ceph")
 
 void
 virSecretDefFree(virSecretDefPtr def)
@@ -50,6 +51,10 @@ virSecretDefFree(virSecretDefPtr def)
 
     case VIR_SECRET_USAGE_TYPE_VOLUME:
         VIR_FREE(def->usage.volume);
+        break;
+
+    case VIR_SECRET_USAGE_TYPE_CEPH:
+        VIR_FREE(def->usage.ceph);
         break;
 
     default:
@@ -94,6 +99,15 @@ virSecretDefParseUsage(xmlXPathContextPtr ctxt,
         }
         break;
 
+    case VIR_SECRET_USAGE_TYPE_CEPH:
+        def->usage.ceph = virXPathString("string(./usage/name)", ctxt);
+        if (!def->usage.ceph) {
+            virSecretReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                 _("Ceph usage specified, but name is missing"));
+            return -1;
+        }
+        break;
+
     default:
         virSecretReportError(VIR_ERR_INTERNAL_ERROR,
                              _("unexpected secret usage type %d"),
@@ -112,8 +126,10 @@ secretXMLParseNode(xmlDocPtr xml, xmlNodePtr root)
     char *uuidstr = NULL;
 
     if (!xmlStrEqual(root->name, BAD_CAST "secret")) {
-        virSecretReportError(VIR_ERR_XML_ERROR, "%s",
-                             _("incorrect root element"));
+        virSecretReportError(VIR_ERR_XML_ERROR,
+                             _("unexpected root element <%s>, "
+                               "expecting <secret>"),
+                             root->name);
         goto cleanup;
     }
 
@@ -237,6 +253,13 @@ virSecretDefFormatUsage(virBufferPtr buf,
         if (def->usage.volume != NULL)
             virBufferEscapeString(buf, "    <volume>%s</volume>\n",
                                   def->usage.volume);
+        break;
+
+    case VIR_SECRET_USAGE_TYPE_CEPH:
+        if (def->usage.ceph != NULL) {
+            virBufferEscapeString(buf, "    <name>%s</name>\n",
+                                  def->usage.ceph);
+        }
         break;
 
     default:

@@ -44,6 +44,7 @@ domain-xml                        <=>   vmx
                                         config.version = "8"                    # essential
                                         virtualHW.version = "4"                 # essential for ESX 3.5
                                         virtualHW.version = "7"                 # essential for ESX 4.0
+                                        virtualHW.version = "8"                 # essential for ESX 5.0
 
 
 ???                               <=>   guestOS = "<value>"                     # essential, FIXME: not representable
@@ -1278,9 +1279,10 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
         goto cleanup;
     }
 
-    if (virtualHW_version != 4 && virtualHW_version != 7) {
+    if (virtualHW_version != 4 && virtualHW_version != 7 &&
+        virtualHW_version != 8) {
         VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting VMX entry 'virtualHW.version' to be 4 or 7 "
+                  _("Expecting VMX entry 'virtualHW.version' to be 4, 7 or 8 "
                     "but found %lld"),
                   virtualHW_version);
         goto cleanup;
@@ -3511,7 +3513,7 @@ virVMXFormatEthernet(virDomainNetDefPtr def, int controller,
             STRCASENEQ(def->model, "vmxnet3") &&
             STRCASENEQ(def->model, "e1000")) {
             VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting domain XML entry 'devices/interfase/model' "
+                      _("Expecting domain XML entry 'devices/interface/model' "
                         "to be 'vlance' or 'vmxnet' or 'vmxnet2' or 'vmxnet3' "
                         "or 'e1000' but found '%s'"), def->model);
             return -1;

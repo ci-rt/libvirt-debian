@@ -51,6 +51,7 @@
 #include "fdstream.h"
 #include "virfile.h"
 #include "command.h"
+#include "virnodesuspend.h"
 
 #define VIR_FROM_THIS VIR_FROM_XEN
 
@@ -296,17 +297,7 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
                 conn->uri->server)
                 return VIR_DRV_OPEN_DECLINED;
         } else {
-            /* Special case URI for Xen driver only:
-             *
-             * Treat a plain path as a Xen UNIX socket path, and give
-             * error unless path is absolute
-             */
-            if (!conn->uri->path || conn->uri->path[0] != '/') {
-                xenUnifiedError(VIR_ERR_INTERNAL_ERROR,
-                                _("unexpected Xen URI path '%s', try ///var/lib/xen/xend-socket"),
-                                NULLSTR(conn->uri->path));
-                return VIR_DRV_OPEN_ERROR;
-            }
+            return VIR_DRV_OPEN_DECLINED;
         }
     }
 
@@ -514,6 +505,13 @@ xenUnifiedIsSecure(virConnectPtr conn)
         ret = 0;
 
     return ret;
+}
+
+static int
+xenUnifiedIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
+{
+    /* XenD reconnects for each request */
+    return 1;
 }
 
 int
@@ -2146,8 +2144,8 @@ xenUnifiedDomainOpenConsole(virDomainPtr dom,
     if (!def)
         goto cleanup;
 
-    if (def->console)
-        chr = def->console;
+    if (def->nconsoles)
+        chr = def->consoles[0];
     else if (def->nserials)
         chr = def->serials[0];
 
@@ -2259,6 +2257,8 @@ static virDriver xenUnifiedDriver = {
     .domainEventRegisterAny = xenUnifiedDomainEventRegisterAny, /* 0.8.0 */
     .domainEventDeregisterAny = xenUnifiedDomainEventDeregisterAny, /* 0.8.0 */
     .domainOpenConsole = xenUnifiedDomainOpenConsole, /* 0.8.6 */
+    .isAlive = xenUnifiedIsAlive, /* 0.9.8 */
+    .nodeSuspendForDuration = nodeSuspendForDuration, /* 0.9.8 */
 };
 
 /**
@@ -2272,7 +2272,7 @@ int
 xenRegister (void)
 {
     /* Ignore failures here. */
-    (void) xenHypervisorInit ();
+    (void) xenHypervisorInit (NULL);
 
 #ifdef WITH_LIBVIRTD
     if (virRegisterStateDriver (&state_driver) == -1) return -1;

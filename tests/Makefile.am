@@ -9,7 +9,7 @@ INCLUDES = \
 	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
 	-I$(top_builddir)/include \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/src -I../src \
 	-I$(top_srcdir)/src/util \
 	-I$(top_srcdir)/src/conf \
 	$(GETTEXT_CPPFLAGS)
@@ -29,6 +29,11 @@ INCLUDES += \
 	-DTEST_DRIVER_DIR=\"$(top_builddir)/src/.libs\"
 endif
 
+PROBES_O =
+if WITH_DTRACE
+PROBES_O += ../src/probes.o
+endif
+
 LDADDS = \
 	$(STATIC_BINARIES) \
 	$(LIBXML_LIBS) \
@@ -39,6 +44,7 @@ LDADDS = \
         $(YAJL_LIBS) \
         $(WARN_CFLAGS) \
 	../src/libvirt_test.la \
+	$(PROBES_O) \
 	../gnulib/lib/libgnu.la \
 	$(LIBSOCKET) \
         $(COVERAGE_LDFLAGS)
@@ -69,6 +75,7 @@ EXTRA_DIST =		\
 	qemuhelpdata \
 	qemuxml2argvdata \
 	qemuxml2xmloutdata \
+	qemuxmlnsdata \
 	schematestutils.sh \
 	sexpr2xmldata \
 	storagepoolschematest \
@@ -89,7 +96,8 @@ check_PROGRAMS = virshtest conftest sockettest \
 	nodeinfotest qparamtest virbuftest \
 	commandtest commandhelper seclabeltest \
 	hashtest virnetmessagetest virnetsockettest ssh \
-	utiltest virnettlscontexttest shunloadtest
+	utiltest virnettlscontexttest shunloadtest \
+	virtimetest
 
 check_LTLIBRARIES = libshunload.la
 
@@ -102,7 +110,8 @@ check_PROGRAMS += xml2sexprtest sexpr2xmltest \
 	xmconfigtest xencapstest statstest reconnect
 endif
 if WITH_QEMU
-check_PROGRAMS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
+check_PROGRAMS += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
+	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest
 endif
 
 if WITH_OPENVZ
@@ -209,6 +218,7 @@ TESTS = virshtest \
 	virnetmessagetest \
 	virnetsockettest \
 	virnettlscontexttest \
+	virtimetest \
 	shunloadtest \
 	utiltest \
 	$(test_scripts)
@@ -227,8 +237,8 @@ TESTS += xml2sexprtest \
 endif
 
 if WITH_QEMU
-TESTS += qemuxml2argvtest qemuxml2xmltest qemuargv2xmltest qemuhelptest
-TESTS += nwfilterxml2xmltest
+TESTS += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest qemuargv2xmltest \
+	 qemuhelptest domainsnapshotxml2xmltest nwfilterxml2xmltest
 endif
 
 if WITH_OPENVZ
@@ -343,6 +353,11 @@ qemuxml2xmltest_SOURCES = \
 	testutils.c testutils.h
 qemuxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 
+qemuxmlnstest_SOURCES = \
+	qemuxmlnstest.c testutilsqemu.c testutilsqemu.h \
+	testutils.c testutils.h
+qemuxmlnstest_LDADD = $(qemu_LDADDS)  $(LDADDS)
+
 qemuargv2xmltest_SOURCES = \
 	qemuargv2xmltest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
@@ -350,8 +365,15 @@ qemuargv2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 
 qemuhelptest_SOURCES = qemuhelptest.c testutils.c testutils.h
 qemuhelptest_LDADD = $(qemu_LDADDS) $(LDADDS)
+
+domainsnapshotxml2xmltest_SOURCES = \
+	domainsnapshotxml2xmltest.c testutilsqemu.c testutilsqemu.h \
+	testutils.c testutils.h
+domainsnapshotxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 else
-EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c qemuhelptest.c testutilsqemu.c testutilsqemu.h
+EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
+	qemuxmlnstest.c qemuhelptest.c domainsnapshotxml2xmltest.c \
+	testutilsqemu.c testutilsqemu.h
 endif
 
 if WITH_OPENVZ
@@ -474,6 +496,11 @@ virnettlscontexttest_LDADD += -ltasn1
 else
 EXTRA_DIST += pkix_asn1_tab.c
 endif
+
+virtimetest_SOURCES = \
+	virtimetest.c testutils.h testutils.c
+virtimetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virtimetest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
 
 
 seclabeltest_SOURCES = \

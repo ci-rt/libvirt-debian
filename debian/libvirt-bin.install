@@ -6,3 +6,4 @@ usr/share/polkit-1
 usr/lib/libvirt/*
 usr/share/augeas/*
 usr/share/libvirt/*
+usr/share/man/man8/*

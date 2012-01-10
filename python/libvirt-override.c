@@ -1727,6 +1727,51 @@ libvirt_virDomainSnapshotListNames(PyObject *self ATTRIBUTE_UNUSED,
 }
 
 static PyObject *
+libvirt_virDomainSnapshotListChildrenNames(PyObject *self ATTRIBUTE_UNUSED,
+                                   PyObject *args) {
+    PyObject *py_retval;
+    char **names = NULL;
+    int c_retval, i;
+    virDomainSnapshotPtr snap;
+    PyObject *pyobj_snap;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virDomainSnapshotListChildrenNames", &pyobj_snap, &flags))
+        return(NULL);
+    snap = (virDomainSnapshotPtr) PyvirDomainSnapshot_Get(pyobj_snap);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainSnapshotNumChildren(snap, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    if (c_retval) {
+        names = malloc(sizeof(*names) * c_retval);
+        if (!names)
+            return VIR_PY_NONE;
+        LIBVIRT_BEGIN_ALLOW_THREADS;
+        c_retval = virDomainSnapshotListChildrenNames(snap, names, c_retval, flags);
+        LIBVIRT_END_ALLOW_THREADS;
+        if (c_retval < 0) {
+            free(names);
+            return VIR_PY_NONE;
+        }
+    }
+    py_retval = PyList_New(c_retval);
+
+    if (names) {
+        for (i = 0;i < c_retval;i++) {
+            PyList_SetItem(py_retval, i, libvirt_constcharPtrWrap(names[i]));
+            free(names[i]);
+        }
+        free(names);
+    }
+
+    return(py_retval);
+}
+
+static PyObject *
 libvirt_virDomainRevertToSnapshot(PyObject *self ATTRIBUTE_UNUSED,
                                   PyObject *args) {
     int c_retval;
@@ -2211,6 +2256,99 @@ libvirt_virNodeGetCellsFreeMemory(PyObject *self ATTRIBUTE_UNUSED, PyObject *arg
     return(py_retval);
 }
 
+static PyObject *
+libvirt_virNodeGetCPUStats(PyObject *self ATTRIBUTE_UNUSED, PyObject *args)
+{
+    PyObject *ret;
+    PyObject *pyobj_conn;
+    virConnectPtr conn;
+    unsigned int flags;
+    int cpuNum, c_retval, i;
+    int nparams = 0;
+    virNodeCPUStatsPtr stats = NULL;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oii:virNodeGetCPUStats", &pyobj_conn, &cpuNum, &flags))
+        return(NULL);
+    conn = (virConnectPtr)(PyvirConnect_Get(pyobj_conn));
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virNodeGetCPUStats(conn, cpuNum, NULL, &nparams, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    if (nparams) {
+        if (!(stats = malloc(sizeof(*stats) * nparams)))
+            return VIR_PY_NONE;
+
+        LIBVIRT_BEGIN_ALLOW_THREADS;
+        c_retval = virNodeGetCPUStats(conn, cpuNum, stats, &nparams, flags);
+        LIBVIRT_END_ALLOW_THREADS;
+        if (c_retval < 0) {
+            free(stats);
+            return VIR_PY_NONE;
+        }
+    }
+    if (!(ret = PyDict_New())) {
+        free(stats);
+        return VIR_PY_NONE;
+    }
+    for (i = 0; i < nparams; i++) {
+        PyDict_SetItem(ret,
+                       libvirt_constcharPtrWrap(stats[i].field),
+                       libvirt_ulonglongWrap(stats[i].value));
+    }
+
+    free(stats);
+    return ret;
+}
+
+static PyObject *
+libvirt_virNodeGetMemoryStats(PyObject *self ATTRIBUTE_UNUSED, PyObject *args)
+{
+    PyObject *ret;
+    PyObject *pyobj_conn;
+    virConnectPtr conn;
+    unsigned int flags;
+    int cellNum, c_retval, i;
+    int nparams = 0;
+    virNodeMemoryStatsPtr stats = NULL;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oii:virNodeGetMemoryStats", &pyobj_conn, &cellNum, &flags))
+        return(NULL);
+    conn = (virConnectPtr)(PyvirConnect_Get(pyobj_conn));
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virNodeGetMemoryStats(conn, cellNum, NULL, &nparams, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+    if (c_retval < 0)
+        return VIR_PY_NONE;
+
+    if (nparams) {
+        if (!(stats = malloc(sizeof(*stats) * nparams)))
+            return VIR_PY_NONE;
+
+        LIBVIRT_BEGIN_ALLOW_THREADS;
+        c_retval = virNodeGetMemoryStats(conn, cellNum, stats, &nparams, flags);
+        LIBVIRT_END_ALLOW_THREADS;
+        if (c_retval < 0) {
+            free(stats);
+            return VIR_PY_NONE;
+        }
+    }
+    if (!(ret = PyDict_New())) {
+        free(stats);
+        return VIR_PY_NONE;
+    }
+    for (i = 0; i < nparams; i++) {
+        PyDict_SetItem(ret,
+                       libvirt_constcharPtrWrap(stats[i].field),
+                       libvirt_ulonglongWrap(stats[i].value));
+    }
+
+    free(stats);
+    return ret;
+}
 
 static PyObject *
 libvirt_virConnectListStoragePools(PyObject *self ATTRIBUTE_UNUSED,
@@ -3148,6 +3286,182 @@ LIBVIRT_END_ALLOW_THREADS;
                    libvirt_ulonglongWrap(info.end));
 
     return ret;
+}
+
+static PyObject *
+libvirt_virDomainSetBlockIoTune(PyObject *self ATTRIBUTE_UNUSED,
+                                PyObject *args)
+{
+    virDomainPtr domain;
+    PyObject *pyobj_domain, *pyinfo;
+    const char *disk;
+    unsigned int flags;
+    virTypedParameterPtr params;
+    int nparams = 0, i;
+    int c_ret;
+
+    if (!PyArg_ParseTuple(args, (char *)"Ozi:virDomainSetBlockIoTune",
+                          &pyobj_domain, &disk, &pyinfo, &flags))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_ret = virDomainGetBlockIoTune(domain, disk, NULL, &nparams, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_ret < 0)
+        return VIR_PY_INT_FAIL;
+
+    if ((params = malloc(sizeof(*params)*nparams)) == NULL)
+        return VIR_PY_INT_FAIL;
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_ret = virDomainGetBlockIoTune(domain, disk, params, &nparams, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_ret < 0) {
+        free(params);
+        return VIR_PY_INT_FAIL;
+    }
+
+    /* convert to a Python tuple of long objects */
+    for (i = 0; i < nparams; i++) {
+        PyObject *key, *val;
+        key = libvirt_constcharPtrWrap(params[i].field);
+        val = PyDict_GetItem(pyinfo, key);
+        Py_DECREF(key);
+
+        if (val == NULL)
+            continue;
+
+        switch (params[i].type) {
+        case VIR_TYPED_PARAM_INT:
+            params[i].value.i = (int)PyInt_AS_LONG(val);
+            break;
+
+        case VIR_TYPED_PARAM_UINT:
+            params[i].value.ui = (unsigned int)PyInt_AS_LONG(val);
+            break;
+
+        case VIR_TYPED_PARAM_LLONG:
+            params[i].value.l = (long long)PyLong_AsLongLong(val);
+            break;
+
+        case VIR_TYPED_PARAM_ULLONG:
+            params[i].value.ul = (unsigned long long)PyLong_AsLongLong(val);
+            break;
+
+        case VIR_TYPED_PARAM_DOUBLE:
+            params[i].value.d = (double)PyFloat_AsDouble(val);
+            break;
+
+        case VIR_TYPED_PARAM_BOOLEAN:
+            {
+                PyObject *hacktrue = PyBool_FromLong(1);
+                params[i].value.b = hacktrue == val ? 1: 0;
+                Py_DECREF(hacktrue);
+            }
+            break;
+
+        default:
+            free(params);
+            return VIR_PY_INT_FAIL;
+        }
+    }
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_ret = virDomainSetBlockIoTune(domain, disk, params, nparams, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_ret < 0) {
+        free(params);
+        return VIR_PY_INT_FAIL;
+    }
+
+    free(params);
+    return VIR_PY_INT_SUCCESS;
+}
+
+static PyObject *
+libvirt_virDomainGetBlockIoTune(PyObject *self ATTRIBUTE_UNUSED,
+                                PyObject *args)
+{
+    virDomainPtr domain;
+    PyObject *pyobj_domain, *pyreply;
+    const char *disk;
+    int nparams = 0, i;
+    unsigned int flags;
+    virTypedParameterPtr params;
+    int c_ret;
+
+    if (!PyArg_ParseTuple(args, (char *)"Oi:virDomainGetBlockIoTune",
+                          &pyobj_domain, &disk, &flags))
+        return(NULL);
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_ret = virDomainGetBlockIoTune(domain, disk, NULL, &nparams, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_ret < 0)
+        return VIR_PY_NONE;
+
+    if ((params = malloc(sizeof(*params)*nparams)) == NULL)
+        return VIR_PY_NONE;
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_ret = virDomainGetBlockIoTune(domain, disk, params, &nparams, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_ret < 0) {
+        free(params);
+        return VIR_PY_NONE;
+    }
+
+    /* convert to a Python tuple of long objects */
+    if ((pyreply = PyDict_New()) == NULL) {
+        free(params);
+        return VIR_PY_NONE;
+    }
+    for (i = 0 ; i < nparams ; i++) {
+        PyObject *key, *val;
+
+        switch (params[i].type) {
+        case VIR_TYPED_PARAM_INT:
+            val = PyInt_FromLong((long)params[i].value.i);
+            break;
+
+        case VIR_TYPED_PARAM_UINT:
+            val = PyInt_FromLong((long)params[i].value.ui);
+            break;
+
+        case VIR_TYPED_PARAM_LLONG:
+            val = PyLong_FromLongLong((long long)params[i].value.l);
+            break;
+
+        case VIR_TYPED_PARAM_ULLONG:
+            val = PyLong_FromLongLong((unsigned long long)params[i].value.ul);
+            break;
+
+        case VIR_TYPED_PARAM_DOUBLE:
+            val = PyFloat_FromDouble((double)params[i].value.d);
+            break;
+
+        case VIR_TYPED_PARAM_BOOLEAN:
+            val = PyBool_FromLong((long)params[i].value.b);
+            break;
+
+        default:
+            free(params);
+            Py_DECREF(pyreply);
+            return VIR_PY_NONE;
+        }
+
+        key = libvirt_constcharPtrWrap(params[i].field);
+        PyDict_SetItem(pyreply, key, val);
+    }
+    free(params);
+    return(pyreply);
 }
 
 /*******************************************
@@ -4329,6 +4643,56 @@ libvirt_virConnectDomainEventBlockJobCallback(virConnectPtr conn ATTRIBUTE_UNUSE
     return ret;
 }
 
+static int
+libvirt_virConnectDomainEventDiskChangeCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                                virDomainPtr dom,
+                                                const char *oldSrcPath,
+                                                const char *newSrcPath,
+                                                const char *devAlias,
+                                                int reason,
+                                                void *opaque)
+{
+    PyObject *pyobj_cbData = (PyObject*)opaque;
+    PyObject *pyobj_dom;
+    PyObject *pyobj_ret;
+    PyObject *pyobj_conn;
+    PyObject *dictKey;
+    int ret = -1;
+
+    LIBVIRT_ENSURE_THREAD_STATE;
+    /* Create a python instance of this virDomainPtr */
+    virDomainRef(dom);
+
+    pyobj_dom = libvirt_virDomainPtrWrap(dom);
+    Py_INCREF(pyobj_cbData);
+
+    dictKey = libvirt_constcharPtrWrap("conn");
+    pyobj_conn = PyDict_GetItem(pyobj_cbData, dictKey);
+    Py_DECREF(dictKey);
+
+    /* Call the Callback Dispatcher */
+    pyobj_ret = PyObject_CallMethod(pyobj_conn,
+                                    (char*)"_dispatchDomainEventDiskChangeCallback",
+                                    (char*)"OsssiO",
+                                    pyobj_dom,
+                                    oldSrcPath, newSrcPath,
+                                    devAlias, reason, pyobj_cbData);
+
+    Py_DECREF(pyobj_cbData);
+    Py_DECREF(pyobj_dom);
+
+    if(!pyobj_ret) {
+        DEBUG("%s - ret:%p\n", __FUNCTION__, pyobj_ret);
+        PyErr_Print();
+    } else {
+        Py_DECREF(pyobj_ret);
+        ret = 0;
+    }
+
+    LIBVIRT_RELEASE_THREAD_STATE;
+    return ret;
+}
+
 static PyObject *
 libvirt_virConnectDomainEventRegisterAny(ATTRIBUTE_UNUSED PyObject * self,
                                          PyObject * args)
@@ -4385,6 +4749,9 @@ libvirt_virConnectDomainEventRegisterAny(ATTRIBUTE_UNUSED PyObject * self,
         break;
     case VIR_DOMAIN_EVENT_ID_BLOCK_JOB:
         cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventBlockJobCallback);
+        break;
+    case VIR_DOMAIN_EVENT_ID_DISK_CHANGE:
+        cb = VIR_DOMAIN_EVENT_CALLBACK(libvirt_virConnectDomainEventDiskChangeCallback);
         break;
     }
 
@@ -4675,6 +5042,8 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virDomainGetControlInfo", libvirt_virDomainGetControlInfo, METH_VARARGS, NULL},
     {(char *) "virDomainGetBlockInfo", libvirt_virDomainGetBlockInfo, METH_VARARGS, NULL},
     {(char *) "virNodeGetInfo", libvirt_virNodeGetInfo, METH_VARARGS, NULL},
+    {(char *) "virNodeGetCPUStats", libvirt_virNodeGetCPUStats, METH_VARARGS, NULL},
+    {(char *) "virNodeGetMemoryStats", libvirt_virNodeGetMemoryStats, METH_VARARGS, NULL},
     {(char *) "virDomainGetUUID", libvirt_virDomainGetUUID, METH_VARARGS, NULL},
     {(char *) "virDomainGetUUIDString", libvirt_virDomainGetUUIDString, METH_VARARGS, NULL},
     {(char *) "virDomainLookupByUUID", libvirt_virDomainLookupByUUID, METH_VARARGS, NULL},
@@ -4739,6 +5108,8 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virDomainSnapshotListNames", libvirt_virDomainSnapshotListNames, METH_VARARGS, NULL},
     {(char *) "virDomainRevertToSnapshot", libvirt_virDomainRevertToSnapshot, METH_VARARGS, NULL},
     {(char *) "virDomainGetBlockJobInfo", libvirt_virDomainGetBlockJobInfo, METH_VARARGS, NULL},
+    {(char *) "virDomainSetBlockIoTune", libvirt_virDomainSetBlockIoTune, METH_VARARGS, NULL},
+    {(char *) "virDomainGetBlockIoTune", libvirt_virDomainGetBlockIoTune, METH_VARARGS, NULL},
     {(char *) "virDomainSendKey", libvirt_virDomainSendKey, METH_VARARGS, NULL},
     {(char *) "virDomainMigrateGetMaxSpeed", libvirt_virDomainMigrateGetMaxSpeed, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}

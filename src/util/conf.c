@@ -698,7 +698,7 @@ virConfParseStatement(virConfParserCtxtPtr ctxt)
  * Parse the subset of the Python language needed to handle simple
  * Xen configuration files.
  *
- * Returns an handle to lookup settings or NULL if it failed to
+ * Returns a handle to lookup settings or NULL if it failed to
  *         read or parse the file, use virConfFree() to free the data.
  */
 static virConfPtr
@@ -745,7 +745,7 @@ error:
  *
  * Reads a configuration file.
  *
- * Returns an handle to lookup settings or NULL if it failed to
+ * Returns a handle to lookup settings or NULL if it failed to
  *         read or parse the file, use virConfFree() to free the data.
  */
 virConfPtr
@@ -780,7 +780,7 @@ virConfReadFile(const char *filename, unsigned int flags)
  * Reads a configuration file loaded in memory. The string can be
  * zero terminated in which case @len can be 0
  *
- * Returns an handle to lookup settings or NULL if it failed to
+ * Returns a handle to lookup settings or NULL if it failed to
  *         parse the content, use virConfFree() to free the data.
  */
 virConfPtr
@@ -808,10 +808,8 @@ int
 virConfFree(virConfPtr conf)
 {
     virConfEntryPtr tmp;
-    if (conf == NULL) {
-        virConfError(NULL, VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return(-1);
-    }
+    if (conf == NULL)
+        return 0;
 
     tmp = conf->entries;
     while (tmp) {

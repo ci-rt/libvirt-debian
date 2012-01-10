@@ -69,6 +69,7 @@ static virDrvOpenStatus
 hypervOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
 {
     virDrvOpenStatus result = VIR_DRV_OPEN_ERROR;
+    char *plus;
     hypervPrivate *priv = NULL;
     char *username = NULL;
     char *password = NULL;
@@ -77,10 +78,28 @@ hypervOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
 
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    /* Decline if the URI is NULL or the scheme is not hyperv */
-    if (conn->uri == NULL || conn->uri->scheme == NULL ||
-        STRCASENEQ(conn->uri->scheme, "hyperv")) {
+    /* Decline if the URI is NULL or the scheme is NULL */
+    if (conn->uri == NULL || conn->uri->scheme == NULL) {
         return VIR_DRV_OPEN_DECLINED;
+    }
+
+    /* Decline if the scheme is not hyperv */
+    plus = strchr(conn->uri->scheme, '+');
+
+    if (plus == NULL) {
+        if (STRCASENEQ(conn->uri->scheme, "hyperv")) {
+            return VIR_DRV_OPEN_DECLINED;
+        }
+    } else {
+        if (plus - conn->uri->scheme != 6 ||
+            STRCASENEQLEN(conn->uri->scheme, "hyperv", 6)) {
+            return VIR_DRV_OPEN_DECLINED;
+        }
+
+        HYPERV_ERROR(VIR_ERR_INVALID_ARG,
+                     _("Transport '%s' in URI scheme is not supported, try again "
+                       "without the transport part"), plus + 1);
+        return VIR_DRV_OPEN_ERROR;
     }
 
     /* Require server part */
@@ -1100,6 +1119,23 @@ hypervIsSecure(virConnectPtr conn)
 
 
 static int
+hypervIsAlive(virConnectPtr conn)
+{
+    hypervPrivate *priv = conn->privateData;
+
+    /* XXX we should be able to do something better than this is simple, safe,
+     * and good enough for now. In worst case, the function will return true
+     * even though the connection is not alive.
+     */
+    if (priv->client)
+        return 1;
+    else
+        return 0;
+}
+
+
+
+static int
 hypervDomainIsActive(virDomainPtr domain)
 {
     int result = -1;
@@ -1257,6 +1293,7 @@ static virDriver hypervDriver = {
     .domainManagedSave = hypervDomainManagedSave, /* 0.9.5 */
     .domainHasManagedSaveImage = hypervDomainHasManagedSaveImage, /* 0.9.5 */
     .domainManagedSaveRemove = hypervDomainManagedSaveRemove, /* 0.9.5 */
+    .isAlive = hypervIsAlive, /* 0.9.8 */
 };
 
 
