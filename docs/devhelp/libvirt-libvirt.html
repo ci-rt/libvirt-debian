@@ -42,6 +42,12 @@
 #define <a href="#VIR_COPY_CPUMAP">VIR_COPY_CPUMAP</a>(cpumaps, maplen, vcpu, cpumap);
 #define <a href="#VIR_CPU_MAPLEN">VIR_CPU_MAPLEN</a>(cpu);
 #define <a href="#VIR_CPU_USABLE">VIR_CPU_USABLE</a>(cpumaps, maplen, vcpu, cpu);
+#define <a href="#VIR_DOMAIN_BANDWIDTH_IN_AVERAGE">VIR_DOMAIN_BANDWIDTH_IN_AVERAGE</a>;
+#define <a href="#VIR_DOMAIN_BANDWIDTH_IN_BURST">VIR_DOMAIN_BANDWIDTH_IN_BURST</a>;
+#define <a href="#VIR_DOMAIN_BANDWIDTH_IN_PEAK">VIR_DOMAIN_BANDWIDTH_IN_PEAK</a>;
+#define <a href="#VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE">VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE</a>;
+#define <a href="#VIR_DOMAIN_BANDWIDTH_OUT_BURST">VIR_DOMAIN_BANDWIDTH_OUT_BURST</a>;
+#define <a href="#VIR_DOMAIN_BANDWIDTH_OUT_PEAK">VIR_DOMAIN_BANDWIDTH_OUT_PEAK</a>;
 #define <a href="#VIR_DOMAIN_BLKIO_DEVICE_WEIGHT">VIR_DOMAIN_BLKIO_DEVICE_WEIGHT</a>;
 #define <a href="#VIR_DOMAIN_BLKIO_FIELD_LENGTH">VIR_DOMAIN_BLKIO_FIELD_LENGTH</a>;
 #define <a href="#VIR_DOMAIN_BLKIO_WEIGHT">VIR_DOMAIN_BLKIO_WEIGHT</a>;
@@ -68,6 +74,8 @@
 #define <a href="#VIR_DOMAIN_MEMORY_PARAM_UNLIMITED">VIR_DOMAIN_MEMORY_PARAM_UNLIMITED</a>;
 #define <a href="#VIR_DOMAIN_MEMORY_SOFT_LIMIT">VIR_DOMAIN_MEMORY_SOFT_LIMIT</a>;
 #define <a href="#VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT">VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT</a>;
+#define <a href="#VIR_DOMAIN_NUMA_MODE">VIR_DOMAIN_NUMA_MODE</a>;
+#define <a href="#VIR_DOMAIN_NUMA_NODESET">VIR_DOMAIN_NUMA_NODESET</a>;
 #define <a href="#VIR_DOMAIN_SCHEDULER_CAP">VIR_DOMAIN_SCHEDULER_CAP</a>;
 #define <a href="#VIR_DOMAIN_SCHEDULER_CPU_SHARES">VIR_DOMAIN_SCHEDULER_CPU_SHARES</a>;
 #define <a href="#VIR_DOMAIN_SCHEDULER_LIMIT">VIR_DOMAIN_SCHEDULER_LIMIT</a>;
@@ -167,6 +175,7 @@ typedef enum <a href="#virDomainMemoryStatTags">virDomainMemoryStatTags</a>;
 typedef enum <a href="#virDomainMigrateFlags">virDomainMigrateFlags</a>;
 typedef enum <a href="#virDomainModificationImpact">virDomainModificationImpact</a>;
 typedef enum <a href="#virDomainNostateReason">virDomainNostateReason</a>;
+typedef enum <a href="#virDomainNumatuneMemMode">virDomainNumatuneMemMode</a>;
 typedef enum <a href="#virDomainOpenGraphicsFlags">virDomainOpenGraphicsFlags</a>;
 typedef enum <a href="#virDomainPausedReason">virDomainPausedReason</a>;
 typedef <a href="libvirt-libvirt.html#virDomain">virDomain</a> * <a href="#virDomainPtr">virDomainPtr</a>;
@@ -327,11 +336,13 @@ int	<a href="#virDomainGetBlockJobInfo">virDomainGetBlockJobInfo</a>	(<a href="l
 int	<a href="#virDomainGetControlInfo">virDomainGetControlInfo</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virDomainControlInfoPtr">virDomainControlInfoPtr</a> info, <br/>					 unsigned int flags);
 unsigned int	<a href="#virDomainGetID">virDomainGetID</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainGetInfo">virDomainGetInfo</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virDomainInfoPtr">virDomainInfoPtr</a> info);
+int	<a href="#virDomainGetInterfaceParameters">virDomainGetInterfaceParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * device, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
 int	<a href="#virDomainGetJobInfo">virDomainGetJobInfo</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virDomainJobInfoPtr">virDomainJobInfoPtr</a> info);
 unsigned long	<a href="#virDomainGetMaxMemory">virDomainGetMaxMemory</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainGetMaxVcpus">virDomainGetMaxVcpus</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainGetMemoryParameters">virDomainGetMemoryParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
 const char *	<a href="#virDomainGetName">virDomainGetName</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
+int	<a href="#virDomainGetNumaParameters">virDomainGetNumaParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
 char *	<a href="#virDomainGetOSType">virDomainGetOSType</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainGetSchedulerParameters">virDomainGetSchedulerParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams);
 int	<a href="#virDomainGetSchedulerParametersFlags">virDomainGetSchedulerParametersFlags</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>						 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>						 int * nparams, <br/>						 unsigned int flags);
@@ -386,10 +397,12 @@ int	<a href="#virDomainSendKey">virDomainSendKey</a>		(<a href="libvirt-libvirt.
 int	<a href="#virDomainSetAutostart">virDomainSetAutostart</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 int autostart);
 int	<a href="#virDomainSetBlkioParameters">virDomainSetBlkioParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags);
 int	<a href="#virDomainSetBlockIoTune">virDomainSetBlockIoTune</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags);
+int	<a href="#virDomainSetInterfaceParameters">virDomainSetInterfaceParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * device, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags);
 int	<a href="#virDomainSetMaxMemory">virDomainSetMaxMemory</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory);
 int	<a href="#virDomainSetMemory">virDomainSetMemory</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory);
 int	<a href="#virDomainSetMemoryFlags">virDomainSetMemoryFlags</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory, <br/>					 unsigned int flags);
 int	<a href="#virDomainSetMemoryParameters">virDomainSetMemoryParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags);
+int	<a href="#virDomainSetNumaParameters">virDomainSetNumaParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags);
 int	<a href="#virDomainSetSchedulerParameters">virDomainSetSchedulerParameters</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams);
 int	<a href="#virDomainSetSchedulerParametersFlags">virDomainSetSchedulerParametersFlags</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>						 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>						 int nparams, <br/>						 unsigned int flags);
 int	<a href="#virDomainSetVcpus">virDomainSetVcpus</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int nvcpus);
@@ -599,6 +612,30 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
 </pre><p>This macro is to be used in conjunction with virDomainGetVcpus() API. <a href="libvirt-libvirt.html#VIR_CPU_USABLE">VIR_CPU_USABLE</a> macro returns a non zero value (true) if the cpu is usable by the vcpu, and 0 otherwise.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cpumaps</tt></i>:</span></td><td>pointer to an array of cpumap (in 8-bit bytes) (IN)</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>the length (in bytes) of one cpumap</td></tr><tr><td><span class="term"><i><tt>vcpu</tt></i>:</span></td><td>the virtual CPU number</td></tr><tr><td><span class="term"><i><tt>cpu</tt></i>:</span></td><td>the physical CPU number</td></tr></tbody></table></div>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BANDWIDTH_IN_AVERAGE">Macro </a>VIR_DOMAIN_BANDWIDTH_IN_AVERAGE</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BANDWIDTH_IN_AVERAGE">VIR_DOMAIN_BANDWIDTH_IN_AVERAGE</a>;
+</pre><p>Macro represents the inbound average of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BANDWIDTH_IN_BURST">Macro </a>VIR_DOMAIN_BANDWIDTH_IN_BURST</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BANDWIDTH_IN_BURST">VIR_DOMAIN_BANDWIDTH_IN_BURST</a>;
+</pre><p>Macro represents the inbound burst of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BANDWIDTH_IN_PEAK">Macro </a>VIR_DOMAIN_BANDWIDTH_IN_PEAK</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BANDWIDTH_IN_PEAK">VIR_DOMAIN_BANDWIDTH_IN_PEAK</a>;
+</pre><p>Macro represents the inbound peak of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE">Macro </a>VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE">VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE</a>;
+</pre><p>Macro represents the outbound average of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BANDWIDTH_OUT_BURST">Macro </a>VIR_DOMAIN_BANDWIDTH_OUT_BURST</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BANDWIDTH_OUT_BURST">VIR_DOMAIN_BANDWIDTH_OUT_BURST</a>;
+</pre><p>Macro represents the outbound burst of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BANDWIDTH_OUT_PEAK">Macro </a>VIR_DOMAIN_BANDWIDTH_OUT_PEAK</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BANDWIDTH_OUT_PEAK">VIR_DOMAIN_BANDWIDTH_OUT_PEAK</a>;
+</pre><p>Macro represents the outbound peak of NIC bandwidth, as a uint.</p>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BLKIO_DEVICE_WEIGHT">Macro </a>VIR_DOMAIN_BLKIO_DEVICE_WEIGHT</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BLKIO_DEVICE_WEIGHT">VIR_DOMAIN_BLKIO_DEVICE_WEIGHT</a>;
 </pre><p>Macro for the blkio tunable weight_device: it represents the per-device weight, as a string. The string is parsed as a series of /path/to/device,weight elements, separated by ','.</p>
 </div>
@@ -701,6 +738,14 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT">Macro </a>VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT">VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT</a>;
 </pre><p>Macro for the swap tunable swap_hard_limit: it represents the maximum swap plus memory the guest can use, as a ullong. This limit has to be more than VIR_DOMAIN_MEMORY_HARD_LIMIT.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_NUMA_MODE">Macro </a>VIR_DOMAIN_NUMA_MODE</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_NUMA_MODE">VIR_DOMAIN_NUMA_MODE</a>;
+</pre><p>Macro for typed parameter name that lists the numa mode of a domain, as an int containing a <a href="libvirt-libvirt.html#virDomainNumatuneMemMode">virDomainNumatuneMemMode</a> value.</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_NUMA_NODESET">Macro </a>VIR_DOMAIN_NUMA_NODESET</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_NUMA_NODESET">VIR_DOMAIN_NUMA_NODESET</a>;
+</pre><p>Macro for typed parameter name that lists the numa nodeset of a domain, as a string.</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_SCHEDULER_CAP">Macro </a>VIR_DOMAIN_SCHEDULER_CAP</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_SCHEDULER_CAP">VIR_DOMAIN_SCHEDULER_CAP</a>;
@@ -1343,6 +1388,15 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainNostateReason">Enum </a>virDomainNostateReason</h3><pre class="programlisting">enum <a href="#virDomainNostateReason">virDomainNostateReason</a> {
     <a name="VIR_DOMAIN_NOSTATE_UNKNOWN">VIR_DOMAIN_NOSTATE_UNKNOWN</a> = 0
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainNumatuneMemMode">Enum </a>virDomainNumatuneMemMode</h3><pre class="programlisting">enum <a href="#virDomainNumatuneMemMode">virDomainNumatuneMemMode</a> {
+    <a name="VIR_DOMAIN_NUMATUNE_MEM_STRICT">VIR_DOMAIN_NUMATUNE_MEM_STRICT</a> = 0
+    <a name="VIR_DOMAIN_NUMATUNE_MEM_PREFERRED">VIR_DOMAIN_NUMATUNE_MEM_PREFERRED</a> = 1
+    <a name="VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE">VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE</a> = 2 /* This constant is subject to change */
+    <a name="VIR_DOMAIN_NUMATUNE_MEM_LAST">VIR_DOMAIN_NUMATUNE_MEM_LAST</a> = 3
 };
 </pre><p/>
 </div>
@@ -2738,6 +2792,23 @@ used to get the domain is limited only a partial set of the information
 can be extracted.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>info</tt></i>:</span></td><td>pointer to a <a href="libvirt-libvirt.html#virDomainInfo">virDomainInfo</a> structure allocated by the user</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainGetInterfaceParameters"/>virDomainGetInterfaceParameters ()</h3><pre class="programlisting">int	virDomainGetInterfaceParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * device, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Get all interface parameters. On input, @nparams gives the size of
+the @params array; on output, @nparams gives how many slots were
+filled with parameter information, which might be less but will not
+exceed the input value.
+
+As a special case, calling with @params as NULL and @nparams as 0 on
+input will cause @nparams on output to contain the number of parameters
+supported by the hypervisor. The caller should then allocate @params
+array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the
+API again. See virDomainGetMemoryParameters() for an equivalent usage
+example.
+
+This function may require privileged access to the hypervisor. This function
+expects the caller to allocate the @params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>device</tt></i>:</span></td><td>the interface name or mac address</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to interface parameter objects (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of interface parameter; input and output</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a> and <a href="libvirt-libvirt.html#virTypedParameterFlags">virTypedParameterFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetJobInfo"/>virDomainGetJobInfo ()</h3><pre class="programlisting">int	virDomainGetJobInfo		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virDomainJobInfoPtr">virDomainJobInfoPtr</a> info)<br/>
 </pre><p>Extract information about progress of a background job on a domain.
 Will return an error if the domain is not active.</p>
@@ -2787,6 +2858,24 @@ expects the caller to allocate the @params.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetName"/>virDomainGetName ()</h3><pre class="programlisting">const char *	virDomainGetName	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Get the public name for that domain</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the name or NULL, the string need not be deallocated its lifetime will be the same as the domain object.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainGetNumaParameters"/>virDomainGetNumaParameters ()</h3><pre class="programlisting">int	virDomainGetNumaParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Get all numa parameters. On input, @nparams gives the size of the
+@params array; on output, @nparams gives how many slots were filled
+with parameter information, which might be less but will not exceed
+the input value.
+
+As a special case, calling with @params as NULL and @nparams as 0 on
+input will cause @nparams on output to contain the number of parameters
+supported by the hypervisor. The caller should then allocate @params
+array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
+again.
+
+See virDomainGetMemoryParameters() for an equivalent usage example.
+
+This function may require privileged access to the hypervisor. This function
+expects the caller to allocate the @params.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to numa parameter object (return value, allocated by the caller)</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>pointer to number of numa parameters</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a> and <a href="libvirt-libvirt.html#virTypedParameterFlags">virTypedParameterFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainGetOSType"/>virDomainGetOSType ()</h3><pre class="programlisting">char *	virDomainGetOSType		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Get the type of domain operation system.</p>
@@ -3549,6 +3638,16 @@ by calling virDomainGetXMLDesc() and inspecting elements
 within //domain/devices/disk.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>Pointer to blkio parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>Number of blkio parameters (this value can be the same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>An OR'ed set of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSetInterfaceParameters"/>virDomainSetInterfaceParameters ()</h3><pre class="programlisting">int	virDomainSetInterfaceParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 const char * device, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Change a subset or all parameters of interface; currently this
+includes bandwidth parameters. The value of @flags should be
+either VIR_DOMAIN_AFFECT_CURRENT, or a bitwise-or of values from
+VIR_DOMAIN_AFFECT_LIVE and VIR_DOMAIN_AFFECT_CURRENT, although
+hypervisors vary in which flags are supported.
+
+This function may require privileged access to the hypervisor.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>device</tt></i>:</span></td><td>the interface name or mac address</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to interface parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of interface parameter (this value can be the same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetMaxMemory"/>virDomainSetMaxMemory ()</h3><pre class="programlisting">int	virDomainSetMaxMemory		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned long memory)<br/>
 </pre><p>Dynamically change the maximum amount of physical memory allocated to a
 domain. If domain is NULL, then this change the amount of memory reserved
@@ -3593,6 +3692,11 @@ Not all hypervisors can support all flag combinations.</p>
 </pre><p>Change all or a subset of the memory tunables.
 This function may require privileged access to the hypervisor.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to memory parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of memory parameter (this value can be the same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSetNumaParameters"/>virDomainSetNumaParameters ()</h3><pre class="programlisting">int	virDomainSetNumaParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
+</pre><p>Change all or a subset of the numa tunables.
+This function may require privileged access to the hypervisor.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to numa parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of numa parameters (this value can be the same or less than the number of parameters supported)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainModificationImpact">virDomainModificationImpact</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of error, 0 in case of success.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSetSchedulerParameters"/>virDomainSetSchedulerParameters ()</h3><pre class="programlisting">int	virDomainSetSchedulerParameters	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams)<br/>
 </pre><p>Change all or a subset or the scheduler parameters. It is
@@ -3972,10 +4076,10 @@ virConnectOpen*.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInterfaceChangeBegin"/>virInterfaceChangeBegin ()</h3><pre class="programlisting">int	virInterfaceChangeBegin		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags)<br/>
-</pre><p>This functions creates a restore point to which one can return
+</pre><p>This function creates a restore point to which one can return
 later by calling virInterfaceChangeRollback(). This function should
 be called before any transaction with interface configuration.
-Once knowing, new configuration works, it can be commited via
+Once it is known that a new configuration works, it can be committed via
 virInterfaceChangeCommit(), which frees the restore point.
 
 If virInterfaceChangeBegin() is called when a transaction is

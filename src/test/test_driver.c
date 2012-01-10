@@ -117,7 +117,6 @@ static const virNodeInfo defaultNodeInfo = {
                              __FUNCTION__, __LINE__, __VA_ARGS__)
 
 static int testClose(virConnectPtr conn);
-static void testDomainEventFlush(int timer, void *opaque);
 static void testDomainEventQueue(testConnPtr driver,
                                  virDomainEventPtr event);
 
@@ -1138,10 +1137,7 @@ static virDrvOpenStatus testOpen(virConnectPtr conn,
     privconn = conn->privateData;
     testDriverLock(privconn);
 
-    privconn->domainEventState = virDomainEventStateNew(testDomainEventFlush,
-                                                        privconn,
-                                                        NULL,
-                                                        false);
+    privconn->domainEventState = virDomainEventStateNew();
     if (!privconn->domainEventState) {
         testDriverUnlock(privconn);
         testClose(conn);
@@ -1861,6 +1857,8 @@ testDomainRestoreFlags(virConnectPtr conn,
         return -1;
     }
 
+    testDriverLock(privconn);
+
     if ((fd = open(path, O_RDONLY)) < 0) {
         virReportSystemError(errno,
                              _("cannot read domain image '%s'"),
@@ -1900,7 +1898,6 @@ testDomainRestoreFlags(virConnectPtr conn,
     }
     xml[len] = '\0';
 
-    testDriverLock(privconn);
     def = virDomainDefParseString(privconn->caps, xml,
                                   1 << VIR_DOMAIN_VIRT_TEST,
                                   VIR_DOMAIN_XML_INACTIVE);
@@ -2102,7 +2099,6 @@ testDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
     virDomainObjPtr vm;
     virDomainDefPtr def;
     int ret = -1;
-    bool active;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -2120,37 +2116,11 @@ testDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
         goto cleanup;
     }
 
-    active = virDomainObjIsActive(vm);
+    if (virDomainLiveConfigHelperMethod(privconn->caps, vm, &flags, &def) < 0)
+        goto cleanup;
 
-    if ((flags & (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_CONFIG)) == 0) {
-        if (active)
-            flags |= VIR_DOMAIN_VCPU_LIVE;
-        else
-            flags |= VIR_DOMAIN_VCPU_CONFIG;
-    }
-    if ((flags & VIR_DOMAIN_AFFECT_LIVE) && (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
-        testError(VIR_ERR_INVALID_ARG,
-                  _("invalid flag combination: (0x%x)"), flags);
-        return -1;
-    }
-
-
-
-    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!active) {
-            testError(VIR_ERR_OPERATION_INVALID, "%s",
-                      _("domain not active"));
-            goto cleanup;
-        }
+    if (flags & VIR_DOMAIN_AFFECT_LIVE)
         def = vm->def;
-    } else {
-        if (!vm->persistent) {
-            testError(VIR_ERR_OPERATION_INVALID, "%s",
-                      _("domain is transient"));
-            goto cleanup;
-        }
-        def = vm->newDef ? vm->newDef : vm->def;
-    }
 
     ret = (flags & VIR_DOMAIN_VCPU_MAXIMUM) ? def->maxvcpus : def->vcpus;
 
@@ -3585,7 +3555,7 @@ static int testInterfaceChangeCommit(virConnectPtr conn,
 
     if (!privconn->transaction_running) {
         testError(VIR_ERR_OPERATION_INVALID, _("no transaction running, "
-                  "nothing to be commited."));
+                  "nothing to be committed."));
         goto cleanup;
     }
 
@@ -5430,9 +5400,9 @@ testDomainEventRegister(virConnectPtr conn,
     int ret;
 
     testDriverLock(driver);
-    ret = virDomainEventCallbackListAdd(conn,
-                                        driver->domainEventState->callbacks,
-                                        callback, opaque, freecb);
+    ret = virDomainEventStateRegister(conn,
+                                      driver->domainEventState,
+                                      callback, opaque, freecb);
     testDriverUnlock(driver);
 
     return ret;
@@ -5468,10 +5438,11 @@ testDomainEventRegisterAny(virConnectPtr conn,
     int ret;
 
     testDriverLock(driver);
-    ret = virDomainEventCallbackListAddID(conn,
-                                          driver->domainEventState->callbacks,
-                                          dom, eventID,
-                                          callback, opaque, freecb);
+    if (virDomainEventStateRegisterID(conn,
+                                      driver->domainEventState,
+                                      dom, eventID,
+                                      callback, opaque, freecb, &ret) < 0)
+        ret = -1;
     testDriverUnlock(driver);
 
     return ret;
@@ -5485,38 +5456,12 @@ testDomainEventDeregisterAny(virConnectPtr conn,
     int ret;
 
     testDriverLock(driver);
-    ret = virDomainEventStateDeregisterAny(conn,
-                                           driver->domainEventState,
-                                           callbackID);
+    ret = virDomainEventStateDeregisterID(conn,
+                                          driver->domainEventState,
+                                          callbackID);
     testDriverUnlock(driver);
 
     return ret;
-}
-
-
-static void testDomainEventDispatchFunc(virConnectPtr conn,
-                                        virDomainEventPtr event,
-                                        virConnectDomainEventGenericCallback cb,
-                                        void *cbopaque,
-                                        void *opaque)
-{
-    testConnPtr driver = opaque;
-
-    /* Drop the lock whle dispatching, for sake of re-entrancy */
-    testDriverUnlock(driver);
-    virDomainEventDispatchDefaultFunc(conn, event, cb, cbopaque, NULL);
-    testDriverLock(driver);
-}
-
-static void testDomainEventFlush(int timer ATTRIBUTE_UNUSED, void *opaque)
-{
-    testConnPtr driver = opaque;
-
-    testDriverLock(driver);
-    virDomainEventStateFlush(driver->domainEventState,
-                             testDomainEventDispatchFunc,
-                             driver);
-    testDriverUnlock(driver);
 }
 
 

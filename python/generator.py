@@ -262,6 +262,7 @@ py_types = {
     'unsigned char *':  ('z', None, "charPtr", "char *"),
     'char *':  ('z', None, "charPtr", "char *"),
     'const char *':  ('z', None, "charPtrConst", "const char *"),
+    'size_t': ('n', None, "size_t", "size_t"),
 
     'virDomainPtr':  ('O', "virDomain", "virDomainPtr", "virDomainPtr"),
     'const virDomainPtr':  ('O', "virDomain", "virDomainPtr", "virDomainPtr"),
@@ -382,6 +383,8 @@ skip_impl = (
     'virDomainGetBlkioParameters',
     'virDomainSetMemoryParameters',
     'virDomainGetMemoryParameters',
+    'virDomainSetNumaParameters',
+    'virDomainGetNumaParameters',
     'virDomainGetVcpus',
     'virDomainPinVcpu',
     'virDomainPinVcpuFlags',
@@ -416,6 +419,8 @@ skip_impl = (
     'virDomainBlockStatsFlags',
     'virDomainSetBlockIoTune',
     'virDomainGetBlockIoTune',
+    'virDomainSetInterfaceParameters',
+    'virDomainGetInterfaceParameters',
 )
 
 qemu_skip_impl = (

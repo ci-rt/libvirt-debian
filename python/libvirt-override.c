@@ -1520,6 +1520,7 @@ libvirt_virConnectOpenAuth(PyObject *self ATTRIBUTE_UNUSED, PyObject *args) {
 
     c_retval = virConnectOpenAuth(name, &auth, flags);
     LIBVIRT_END_ALLOW_THREADS;
+    free(auth.credtype);
     py_retval = libvirt_virConnectPtrWrap((virConnectPtr) c_retval);
     return(py_retval);
 }
@@ -1615,7 +1616,7 @@ static PyObject *
 libvirt_virConnectListDomainsID(PyObject *self ATTRIBUTE_UNUSED,
                                PyObject *args) {
     PyObject *py_retval;
-    int ids[500], c_retval, i;
+    int *ids = NULL, c_retval, i;
     virConnectPtr conn;
     PyObject *pyobj_conn;
 
@@ -1625,14 +1626,33 @@ libvirt_virConnectListDomainsID(PyObject *self ATTRIBUTE_UNUSED,
     conn = (virConnectPtr) PyvirConnect_Get(pyobj_conn);
 
     LIBVIRT_BEGIN_ALLOW_THREADS;
-    c_retval = virConnectListDomains(conn, &ids[0], 500);
+    c_retval = virConnectNumOfDomains(conn);
     LIBVIRT_END_ALLOW_THREADS;
     if (c_retval < 0)
         return VIR_PY_NONE;
-    py_retval = PyList_New(c_retval);
-    for (i = 0;i < c_retval;i++) {
-        PyList_SetItem(py_retval, i, libvirt_intWrap(ids[i]));
+
+    if (c_retval) {
+        ids = malloc(sizeof(*ids) * c_retval);
+        if (!ids)
+            return VIR_PY_NONE;
+
+        LIBVIRT_BEGIN_ALLOW_THREADS;
+        c_retval = virConnectListDomains(conn, ids, c_retval);
+        LIBVIRT_END_ALLOW_THREADS;
+        if (c_retval < 0) {
+            free(ids);
+            return VIR_PY_NONE;
+        }
     }
+    py_retval = PyList_New(c_retval);
+
+    if (ids) {
+        for (i = 0;i < c_retval;i++) {
+            PyList_SetItem(py_retval, i, libvirt_intWrap(ids[i]));
+        }
+        free(ids);
+    }
+
     return(py_retval);
 }
 
@@ -3300,7 +3320,7 @@ libvirt_virDomainSetBlockIoTune(PyObject *self ATTRIBUTE_UNUSED,
     int nparams = 0, i;
     int c_ret;
 
-    if (!PyArg_ParseTuple(args, (char *)"Ozi:virDomainSetBlockIoTune",
+    if (!PyArg_ParseTuple(args, (char *)"OzOi:virDomainSetBlockIoTune",
                           &pyobj_domain, &disk, &pyinfo, &flags))
         return(NULL);
     domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
@@ -3394,7 +3414,7 @@ libvirt_virDomainGetBlockIoTune(PyObject *self ATTRIBUTE_UNUSED,
     virTypedParameterPtr params;
     int c_ret;
 
-    if (!PyArg_ParseTuple(args, (char *)"Oi:virDomainGetBlockIoTune",
+    if (!PyArg_ParseTuple(args, (char *)"Ozi:virDomainGetBlockIoTune",
                           &pyobj_domain, &disk, &flags))
         return(NULL);
     domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
@@ -5017,6 +5037,77 @@ libvirt_virDomainMigrateGetMaxSpeed(PyObject *self ATTRIBUTE_UNUSED, PyObject *a
     return(py_retval);
 }
 
+static PyObject *
+libvirt_virDomainBlockPeek(PyObject *self ATTRIBUTE_UNUSED,
+                           PyObject *args) {
+    PyObject *py_retval = NULL;
+    int c_retval;
+    virDomainPtr domain;
+    PyObject *pyobj_domain;
+    const char *disk;
+    unsigned long long offset;
+    size_t size;
+    char *buf;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"OzLni:virDomainBlockPeek", &pyobj_domain,
+                          &disk, &offset, &size, &flags))
+        return(NULL);
+
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    if ((buf = malloc(size)) == NULL)
+        return VIR_PY_NONE;
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainBlockPeek(domain, disk, offset, size, buf, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_retval < 0)
+        goto cleanup;
+
+    py_retval = PyString_FromStringAndSize(buf, size);
+
+cleanup:
+    free(buf);
+    return py_retval;
+}
+
+static PyObject *
+libvirt_virDomainMemoryPeek(PyObject *self ATTRIBUTE_UNUSED,
+                            PyObject *args) {
+    PyObject *py_retval = NULL;
+    int c_retval;
+    virDomainPtr domain;
+    PyObject *pyobj_domain;
+    unsigned long long start;
+    size_t size;
+    char *buf;
+    unsigned int flags;
+
+    if (!PyArg_ParseTuple(args, (char *)"OLni:virDomainMemoryPeek", &pyobj_domain,
+                          &start, &size, &flags))
+        return(NULL);
+
+    domain = (virDomainPtr) PyvirDomain_Get(pyobj_domain);
+
+    if ((buf = malloc(size)) == NULL)
+        return VIR_PY_NONE;
+
+    LIBVIRT_BEGIN_ALLOW_THREADS;
+    c_retval = virDomainMemoryPeek(domain, start, size, buf, flags);
+    LIBVIRT_END_ALLOW_THREADS;
+
+    if (c_retval < 0)
+        goto cleanup;
+
+    py_retval = PyString_FromStringAndSize(buf, size);
+
+cleanup:
+    free(buf);
+    return py_retval;
+}
+
 /************************************************************************
  *									*
  *			The registration stuff				*
@@ -5106,12 +5197,15 @@ static PyMethodDef libvirtMethods[] = {
     {(char *) "virConnectBaselineCPU", libvirt_virConnectBaselineCPU, METH_VARARGS, NULL},
     {(char *) "virDomainGetJobInfo", libvirt_virDomainGetJobInfo, METH_VARARGS, NULL},
     {(char *) "virDomainSnapshotListNames", libvirt_virDomainSnapshotListNames, METH_VARARGS, NULL},
+    {(char *) "virDomainSnapshotListChildrenNames", libvirt_virDomainSnapshotListChildrenNames, METH_VARARGS, NULL},
     {(char *) "virDomainRevertToSnapshot", libvirt_virDomainRevertToSnapshot, METH_VARARGS, NULL},
     {(char *) "virDomainGetBlockJobInfo", libvirt_virDomainGetBlockJobInfo, METH_VARARGS, NULL},
     {(char *) "virDomainSetBlockIoTune", libvirt_virDomainSetBlockIoTune, METH_VARARGS, NULL},
     {(char *) "virDomainGetBlockIoTune", libvirt_virDomainGetBlockIoTune, METH_VARARGS, NULL},
     {(char *) "virDomainSendKey", libvirt_virDomainSendKey, METH_VARARGS, NULL},
     {(char *) "virDomainMigrateGetMaxSpeed", libvirt_virDomainMigrateGetMaxSpeed, METH_VARARGS, NULL},
+    {(char *) "virDomainBlockPeek", libvirt_virDomainBlockPeek, METH_VARARGS, NULL},
+    {(char *) "virDomainMemoryPeek", libvirt_virDomainMemoryPeek, METH_VARARGS, NULL},
     {NULL, NULL, 0, NULL}
 };
 

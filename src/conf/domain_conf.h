@@ -69,6 +69,7 @@ enum virDomainDeviceAddressType {
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_VIRTIO_SERIAL,
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_CCID,
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_USB,
+    VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO,
 
     VIR_DOMAIN_DEVICE_ADDRESS_TYPE_LAST
 };
@@ -121,6 +122,13 @@ struct _virDomainDeviceUSBAddress {
     char *port;
 };
 
+typedef struct _virDomainDeviceSpaprVioAddress virDomainDeviceSpaprVioAddress;
+typedef virDomainDeviceSpaprVioAddress *virDomainDeviceSpaprVioAddressPtr;
+struct _virDomainDeviceSpaprVioAddress {
+    unsigned long long reg;
+    bool has_reg;
+};
+
 enum virDomainControllerMaster {
     VIR_DOMAIN_CONTROLLER_MASTER_NONE,
     VIR_DOMAIN_CONTROLLER_MASTER_USB,
@@ -145,11 +153,31 @@ struct _virDomainDeviceInfo {
         virDomainDeviceVirtioSerialAddress vioserial;
         virDomainDeviceCcidAddress ccid;
         virDomainDeviceUSBAddress usb;
+        virDomainDeviceSpaprVioAddress spaprvio;
     } addr;
     int mastertype;
     union {
         virDomainDeviceUSBMaster usb;
     } master;
+};
+
+enum virDomainSeclabelType {
+    VIR_DOMAIN_SECLABEL_DYNAMIC,
+    VIR_DOMAIN_SECLABEL_STATIC,
+
+    VIR_DOMAIN_SECLABEL_LAST,
+};
+
+/* Security configuration for domain */
+typedef struct _virSecurityLabelDef virSecurityLabelDef;
+typedef virSecurityLabelDef *virSecurityLabelDefPtr;
+struct _virSecurityLabelDef {
+    char *model;        /* name of security model */
+    char *label;        /* security label string */
+    char *imagelabel;   /* security image label string */
+    char *baselabel;    /* base name of label string */
+    int type;           /* virDomainSeclabelType */
+    bool norelabel;
 };
 
 typedef struct _virDomainHostdevOrigStates virDomainHostdevOrigStates;
@@ -329,6 +357,7 @@ struct _virDomainDiskDef {
     int device;
     int bus;
     char *src;
+    virSecurityLabelDefPtr seclabel;
     char *dst;
     int protocol;
     int nhosts;
@@ -1229,25 +1258,6 @@ struct _virDomainOSDef {
     virDomainBIOSDef bios;
 };
 
-enum virDomainSeclabelType {
-    VIR_DOMAIN_SECLABEL_DYNAMIC,
-    VIR_DOMAIN_SECLABEL_STATIC,
-
-    VIR_DOMAIN_SECLABEL_LAST,
-};
-
-/* Security configuration for domain */
-typedef struct _virSecurityLabelDef virSecurityLabelDef;
-typedef virSecurityLabelDef *virSecurityLabelDefPtr;
-struct _virSecurityLabelDef {
-    char *model;        /* name of security model */
-    char *label;        /* security label string */
-    char *imagelabel;   /* security image label string */
-    char *baselabel;    /* base name of label string */
-    int type;           /* virDomainSeclabelType */
-    bool norelabel;
-};
-
 enum virDomainTimerNameType {
     VIR_DOMAIN_TIMER_NAME_PLATFORM = 0,
     VIR_DOMAIN_TIMER_NAME_PIT,
@@ -1354,14 +1364,6 @@ int virDomainVcpuPinIsDuplicate(virDomainVcpuPinDefPtr *def,
 virDomainVcpuPinDefPtr virDomainVcpuPinFindByVcpu(virDomainVcpuPinDefPtr *def,
                                                   int nvcpupin,
                                                   int vcpu);
-
-enum virDomainNumatuneMemMode {
-    VIR_DOMAIN_NUMATUNE_MEM_STRICT,
-    VIR_DOMAIN_NUMATUNE_MEM_PREFERRED,
-    VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE,
-
-    VIR_DOMAIN_NUMATUNE_MEM_LAST
-};
 
 typedef struct _virDomainNumatuneDef virDomainNumatuneDef;
 typedef virDomainNumatuneDef *virDomainNumatuneDefPtr;
@@ -1737,6 +1739,13 @@ int virDomainObjSetDefTransient(virCapsPtr caps,
 virDomainDefPtr
 virDomainObjGetPersistentDef(virCapsPtr caps,
                              virDomainObjPtr domain);
+
+int
+virDomainLiveConfigHelperMethod(virCapsPtr caps,
+                                virDomainObjPtr dom,
+                                unsigned int *flags,
+                                virDomainDefPtr *persistentDef);
+
 virDomainDefPtr
 virDomainObjCopyPersistentDef(virCapsPtr caps, virDomainObjPtr dom);
 
@@ -2025,4 +2034,7 @@ VIR_ENUM_DECL(virDomainTimerTickpolicy)
 VIR_ENUM_DECL(virDomainTimerMode)
 
 VIR_ENUM_DECL(virDomainStartupPolicy)
+
+virDomainNetDefPtr virDomainNetFind(virDomainDefPtr def,
+                                    const char *device);
 #endif /* __DOMAIN_CONF_H */

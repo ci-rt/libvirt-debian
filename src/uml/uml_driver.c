@@ -124,7 +124,6 @@ static int umlOpenMonitor(struct uml_driver *driver,
                           virDomainObjPtr vm);
 static int umlReadPidFile(struct uml_driver *driver,
                           virDomainObjPtr vm);
-static void umlDomainEventFlush(int timer, void *opaque);
 static void umlDomainEventQueue(struct uml_driver *driver,
                                 virDomainEventPtr event);
 
@@ -414,10 +413,7 @@ umlStartup(int privileged)
     if (virDomainObjListInit(&uml_driver->domains) < 0)
         goto error;
 
-    uml_driver->domainEventState = virDomainEventStateNew(umlDomainEventFlush,
-                                                          uml_driver,
-                                                          NULL,
-                                                          true);
+    uml_driver->domainEventState = virDomainEventStateNew();
     if (!uml_driver->domainEventState)
         goto error;
 
@@ -1194,8 +1190,8 @@ static int umlClose(virConnectPtr conn) {
     struct uml_driver *driver = conn->privateData;
 
     umlDriverLock(driver);
-    virDomainEventCallbackListRemoveConn(conn,
-                                         driver->domainEventState->callbacks);
+    virDomainEventStateDeregisterConn(conn,
+                                      driver->domainEventState);
     umlProcessAutoDestroyRun(driver, conn);
     umlDriverUnlock(driver);
 
@@ -2447,9 +2443,9 @@ umlDomainEventRegister(virConnectPtr conn,
     int ret;
 
     umlDriverLock(driver);
-    ret = virDomainEventCallbackListAdd(conn,
-                                        driver->domainEventState->callbacks,
-                                        callback, opaque, freecb);
+    ret = virDomainEventStateRegister(conn,
+                                      driver->domainEventState,
+                                      callback, opaque, freecb);
     umlDriverUnlock(driver);
 
     return ret;
@@ -2483,10 +2479,11 @@ umlDomainEventRegisterAny(virConnectPtr conn,
     int ret;
 
     umlDriverLock(driver);
-    ret = virDomainEventCallbackListAddID(conn,
-                                          driver->domainEventState->callbacks,
-                                          dom, eventID,
-                                          callback, opaque, freecb);
+    if (virDomainEventStateRegisterID(conn,
+                                      driver->domainEventState,
+                                      dom, eventID,
+                                      callback, opaque, freecb, &ret) < 0)
+        ret = -1;
     umlDriverUnlock(driver);
 
     return ret;
@@ -2501,39 +2498,12 @@ umlDomainEventDeregisterAny(virConnectPtr conn,
     int ret;
 
     umlDriverLock(driver);
-    ret = virDomainEventStateDeregisterAny(conn,
-                                           driver->domainEventState,
-                                           callbackID);
+    ret = virDomainEventStateDeregisterID(conn,
+                                          driver->domainEventState,
+                                          callbackID);
     umlDriverUnlock(driver);
 
     return ret;
-}
-
-
-static void umlDomainEventDispatchFunc(virConnectPtr conn,
-                                       virDomainEventPtr event,
-                                       virConnectDomainEventGenericCallback cb,
-                                       void *cbopaque,
-                                       void *opaque)
-{
-    struct uml_driver *driver = opaque;
-
-    /* Drop the lock whle dispatching, for sake of re-entrancy */
-    umlDriverUnlock(driver);
-    virDomainEventDispatchDefaultFunc(conn, event, cb, cbopaque, NULL);
-    umlDriverLock(driver);
-}
-
-
-static void umlDomainEventFlush(int timer ATTRIBUTE_UNUSED, void *opaque)
-{
-    struct uml_driver *driver = opaque;
-
-    umlDriverLock(driver);
-    virDomainEventStateFlush(driver->domainEventState,
-                             umlDomainEventDispatchFunc,
-                             driver);
-    umlDriverUnlock(driver);
 }
 
 

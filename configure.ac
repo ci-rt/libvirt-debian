@@ -1,9 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
 
-dnl Copyright (C) 2005-2011 Red Hat, Inc.
+dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.8], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.9], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -85,10 +85,6 @@ gl_EARLY
 gl_INIT
 
 AC_TYPE_UID_T
-
-dnl Make sure we have an ANSI compiler
-AM_C_PROTOTYPES
-test "x$U" != "x" && AC_MSG_ERROR([Compiler not ANSI compliant])
 
 dnl Support building Win32 DLLs (must appear *before* AM_PROG_LIBTOOL)
 AC_LIBTOOL_WIN32_DLL
@@ -269,9 +265,10 @@ if test "$prefix" = "/usr" && test "$sysconfdir" = '${prefix}/etc' ; then
 fi
 
 dnl Make some notes about which OS we're compiling for, as the lxc and qemu
-dnl drivers require linux headers, while storage_mpath and nwfilter are also
-dnl linux specific.  The "network" and storage_fs drivers are known to not
-dnl work on MacOS X presently, so we also make a note if compiling for that
+dnl drivers require linux headers, and storage_mpath, dtrace, and nwfilter
+dnl are also linux specific.  The "network" and storage_fs drivers are known
+dnl to not work on MacOS X presently, so we also make a note if compiling
+dnl for that
 
 with_linux=no with_osx=no
 case $host in
@@ -288,6 +285,7 @@ if test $with_linux = no; then
     then
         with_qemu=no
     fi
+    with_dtrace=no
 fi
 
 AM_CONDITIONAL([WITH_LINUX], [test "$with_linux" = "yes"])

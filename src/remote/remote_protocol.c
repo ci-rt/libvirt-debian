@@ -268,6 +268,7 @@ xdr_remote_typed_param_value (XDR *xdrs, remote_typed_param_value *objp)
                  return FALSE;
         switch (objp->type) {
         case VIR_TYPED_PARAM_INT:
+                 if (!xdr_int (xdrs, &objp->remote_typed_param_value_u.i))
                          return FALSE;
                 break;
         case VIR_TYPED_PARAM_UINT:
@@ -813,6 +814,47 @@ xdr_remote_domain_block_resize_args (XDR *xdrs, remote_domain_block_resize_args 
 }
 
 bool_t
+xdr_remote_domain_set_numa_parameters_args (XDR *xdrs, remote_domain_set_numa_parameters_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_NUMA_PARAMETERS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_numa_parameters_args (XDR *xdrs, remote_domain_get_numa_parameters_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->nparams))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_numa_parameters_ret (XDR *xdrs, remote_domain_get_numa_parameters_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_NUMA_PARAMETERS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->nparams))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_block_stats_args (XDR *xdrs, remote_domain_block_stats_args *objp)
 {
 
@@ -898,6 +940,51 @@ xdr_remote_domain_interface_stats_ret (XDR *xdrs, remote_domain_interface_stats_
          if (!xdr_int64_t (xdrs, &objp->tx_errs))
                  return FALSE;
          if (!xdr_int64_t (xdrs, &objp->tx_drop))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_set_interface_parameters_args (XDR *xdrs, remote_domain_set_interface_parameters_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->device))
+                 return FALSE;
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_INTERFACE_PARAMETERS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_interface_parameters_args (XDR *xdrs, remote_domain_get_interface_parameters_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->device))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->nparams))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_get_interface_parameters_ret (XDR *xdrs, remote_domain_get_interface_parameters_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_DOMAIN_INTERFACE_PARAMETERS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->nparams))
                  return FALSE;
         return TRUE;
 }

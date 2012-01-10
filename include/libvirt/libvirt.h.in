@@ -4,7 +4,7 @@
  * Description: Provides the interfaces of the libvirt library to handle
  *              virtualized domains
  *
- * Copy:  Copyright (C) 2005-2006, 2010-2011 Red Hat, Inc.
+ * Copy:  Copyright (C) 2005-2006, 2010-2012 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -1344,6 +1344,45 @@ typedef enum {
 } virDomainMemoryModFlags;
 
 
+/* Manage numa parameters */
+
+/**
+ * virDomainNumatuneMemMode:
+ * Representation of the various modes in the <numatune> element of
+ * a domain.
+ */
+typedef enum {
+    VIR_DOMAIN_NUMATUNE_MEM_STRICT      = 0,
+    VIR_DOMAIN_NUMATUNE_MEM_PREFERRED   = 1,
+    VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE  = 2,
+
+    /* This constant is subject to change */
+    VIR_DOMAIN_NUMATUNE_MEM_LAST
+} virDomainNumatuneMemMode;
+
+/**
+ * VIR_DOMAIN_NUMA_NODESET:
+ *
+ * Macro for typed parameter name that lists the numa nodeset of a
+ * domain, as a string.
+ */
+#define VIR_DOMAIN_NUMA_NODESET "numa_nodeset"
+
+/**
+ * VIR_DOMAIN_NUMA_MODE:
+ *
+ * Macro for typed parameter name that lists the numa mode of a domain,
+ * as an int containing a virDomainNumatuneMemMode value.
+ */
+#define VIR_DOMAIN_NUMA_MODE "numa_mode"
+
+int     virDomainSetNumaParameters(virDomainPtr domain,
+                                   virTypedParameterPtr params,
+                                   int nparams, unsigned int flags);
+int     virDomainGetNumaParameters(virDomainPtr domain,
+                                   virTypedParameterPtr params,
+                                   int *nparams, unsigned int flags);
+
 /*
  * Dynamic control of domains
  */
@@ -1407,10 +1446,62 @@ int                     virDomainInterfaceStats (virDomainPtr dom,
                                                  const char *path,
                                                  virDomainInterfaceStatsPtr stats,
                                                  size_t size);
-int                     virDomainMemoryStats (virDomainPtr dom,
-                                              virDomainMemoryStatPtr stats,
-                                              unsigned int nr_stats,
-                                              unsigned int flags);
+
+/* Management of interface parameters */
+
+/**
+ * VIR_DOMAIN_BANDWIDTH_IN_AVERAGE:
+ *
+ * Macro represents the inbound average of NIC bandwidth, as a uint.
+ */
+#define VIR_DOMAIN_BANDWIDTH_IN_AVERAGE "inbound.average"
+
+/**
+ * VIR_DOMAIN_BANDWIDTH_IN_PEAK:
+ *
+ * Macro represents the inbound peak of NIC bandwidth, as a uint.
+ */
+#define VIR_DOMAIN_BANDWIDTH_IN_PEAK "inbound.peak"
+
+/**
+ * VIR_DOMAIN_BANDWIDTH_IN_BURST:
+ *
+ * Macro represents the inbound burst of NIC bandwidth, as a uint.
+ */
+#define VIR_DOMAIN_BANDWIDTH_IN_BURST "inbound.burst"
+
+/**
+ * VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE:
+ *
+ * Macro represents the outbound average of NIC bandwidth, as a uint.
+ */
+#define VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE "outbound.average"
+
+/**
+ * VIR_DOMAIN_BANDWIDTH_OUT_PEAK:
+ *
+ * Macro represents the outbound peak of NIC bandwidth, as a uint.
+ */
+#define VIR_DOMAIN_BANDWIDTH_OUT_PEAK "outbound.peak"
+
+/**
+ * VIR_DOMAIN_BANDWIDTH_OUT_BURST:
+ *
+ * Macro represents the outbound burst of NIC bandwidth, as a uint.
+ */
+#define VIR_DOMAIN_BANDWIDTH_OUT_BURST "outbound.burst"
+
+int                     virDomainSetInterfaceParameters (virDomainPtr dom,
+                                                        const char *device,
+                                                        virTypedParameterPtr params,
+                                                        int nparams, unsigned int flags);
+int                     virDomainGetInterfaceParameters (virDomainPtr dom,
+                                                        const char *device,
+                                                        virTypedParameterPtr params,
+                                                        int *nparams, unsigned int flags);
+
+/* Management of domain block devices */
+
 int                     virDomainBlockPeek (virDomainPtr dom,
                                             const char *disk,
                                             unsigned long long offset,
@@ -1457,7 +1548,15 @@ int                     virDomainGetBlockInfo(virDomainPtr dom,
                                               virDomainBlockInfoPtr info,
                                               unsigned int flags);
 
+/* Management of domain memory */
+
+int                     virDomainMemoryStats (virDomainPtr dom,
+                                              virDomainMemoryStatPtr stats,
+                                              unsigned int nr_stats,
+                                              unsigned int flags);
+
 /* Memory peeking flags. */
+
 typedef enum {
   VIR_MEMORY_VIRTUAL              = 1, /* addresses are virtual addresses */
   VIR_MEMORY_PHYSICAL             = 2, /* addresses are physical addresses */

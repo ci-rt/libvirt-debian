@@ -1555,6 +1555,28 @@ cleanup:
 
 
 
+static int remoteDispatchDomainGetInterfaceParameters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_interface_parameters_args *args,
+    remote_domain_get_interface_parameters_ret *ret);
+static int remoteDispatchDomainGetInterfaceParametersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetInterfaceParameters(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainGetInterfaceParameters body has to be implemented manually */
+
+
+
 static int remoteDispatchDomainGetJobInfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -1753,6 +1775,28 @@ static int remoteDispatchDomainGetMemoryParametersHelper(
   return remoteDispatchDomainGetMemoryParameters(server, client, msg, rerr, args, ret);
 }
 /* remoteDispatchDomainGetMemoryParameters body has to be implemented manually */
+
+
+
+static int remoteDispatchDomainGetNumaParameters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_numa_parameters_args *args,
+    remote_domain_get_numa_parameters_ret *ret);
+static int remoteDispatchDomainGetNumaParametersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetNumaParameters(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainGetNumaParameters body has to be implemented manually */
 
 
 
@@ -4443,6 +4487,68 @@ cleanup:
 
 
 
+static int remoteDispatchDomainSetInterfaceParameters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_interface_parameters_args *args);
+static int remoteDispatchDomainSetInterfaceParametersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetInterfaceParameters(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainSetInterfaceParameters(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_interface_parameters_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((params = remoteDeserializeTypedParameters(args->params.params_val,
+                                                   args->params.params_len,
+                                                   REMOTE_DOMAIN_INTERFACE_PARAMETERS_MAX,
+                                                   &nparams)) == NULL)
+        goto cleanup;
+
+    if (virDomainSetInterfaceParameters(dom, args->device, params, nparams, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    virTypedParameterArrayClear(params, nparams);
+    VIR_FREE(params);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainSetMaxMemory(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -4654,6 +4760,68 @@ static int remoteDispatchDomainSetMemoryParameters(
         goto cleanup;
 
     if (virDomainSetMemoryParameters(dom, params, nparams, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    virTypedParameterArrayClear(params, nparams);
+    VIR_FREE(params);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSetNumaParameters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_numa_parameters_args *args);
+static int remoteDispatchDomainSetNumaParametersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSetNumaParameters(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainSetNumaParameters(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_set_numa_parameters_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((params = remoteDeserializeTypedParameters(args->params.params_val,
+                                                   args->params.params_len,
+                                                   REMOTE_DOMAIN_NUMA_PARAMETERS_MAX,
+                                                   &nparams)) == NULL)
+        goto cleanup;
+
+    if (virDomainSetNumaParameters(dom, params, nparams, args->flags) < 0)
         goto cleanup;
 
     rv = 0;
@@ -14335,6 +14503,42 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_domain_get_block_io_tune_args,
    sizeof(remote_domain_get_block_io_tune_ret),
    (xdrproc_t)xdr_remote_domain_get_block_io_tune_ret,
+   true,
+   0
+},
+{ /* Method DomainSetNumaParameters => 254 */
+   remoteDispatchDomainSetNumaParametersHelper,
+   sizeof(remote_domain_set_numa_parameters_args),
+   (xdrproc_t)xdr_remote_domain_set_numa_parameters_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainGetNumaParameters => 255 */
+   remoteDispatchDomainGetNumaParametersHelper,
+   sizeof(remote_domain_get_numa_parameters_args),
+   (xdrproc_t)xdr_remote_domain_get_numa_parameters_args,
+   sizeof(remote_domain_get_numa_parameters_ret),
+   (xdrproc_t)xdr_remote_domain_get_numa_parameters_ret,
+   true,
+   0
+},
+{ /* Method DomainSetInterfaceParameters => 256 */
+   remoteDispatchDomainSetInterfaceParametersHelper,
+   sizeof(remote_domain_set_interface_parameters_args),
+   (xdrproc_t)xdr_remote_domain_set_interface_parameters_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainGetInterfaceParameters => 257 */
+   remoteDispatchDomainGetInterfaceParametersHelper,
+   sizeof(remote_domain_get_interface_parameters_args),
+   (xdrproc_t)xdr_remote_domain_get_interface_parameters_args,
+   sizeof(remote_domain_get_interface_parameters_ret),
+   (xdrproc_t)xdr_remote_domain_get_interface_parameters_ret,
    true,
    0
 },

@@ -5,6 +5,164 @@
        http://libvirt.org/news.html
 
 
+0.9.9: Jan 7 2012:
+   -  Features:
+      Add new API virDomain{S,G}etInterfaceParameters (Hu Tao),
+      Add new API virDomain{G,S}etNumaParameters (Hu Tao),
+      Add support for ppc64 qemu (Prerna Saxena, Bharata B Rao, Michael Ellerman),
+      Support Xen domctl v8 (Jim Fehlig)
+
+   -  Documentation:
+      Fix typos in messages. (Yuri Chornoivan),
+      docs: re-fix stray / (Eric Blake),
+      virsh: move version command to host group (Lai Jiangshan),
+      docs: Move 'echo' command description into the generic commands section (Satoru SATOH),
+      docs: Move 'send-key' command description into the domain commands section (Satoru SATOH),
+      docs: remove stray / (Eric Blake),
+      docs: fix missing / in xml examples (Eric Blake),
+      docs: improve virsh domxml-*-native command docs (Alex Jia),
+      docs: document <qemu:commandline> xml (Eric Blake),
+      Fix typo in storage pool documentation (Christophe Fergeau),
+      docs: tweak 'virsh edit' wording (Eric Blake),
+      docs: document <address> elements in one place (Eric Blake),
+      threads: Document spurious wakeups on virCondWait (Michal Privoznik)
+
+   -  Portability:
+      build: fix mingw virCommand build (Eric Blake),
+      tests: avoid test failure on rawhide gnutls (Eric Blake),
+      build: drop check for ANSI compiler (Eric Blake),
+      Fix build on s390(x) and other stange arches (Daniel Veillard),
+      Require avahi as an rpm dependancy (Daniel Veillard),
+      Disable python explicitly in mingw32 autobuild (Daniel P. Berrange),
+      build: disable dtrace on non-Linux builds (Eric Blake),
+      build: let autobuild check more code (Eric Blake),
+      maint: allow bootstrap in a sandbox (Eric Blake)
+
+   -  Bug Fixes:
+      qemu: Avoid memory leaks on qemuParseRBDString (Alex Jia),
+      qemu: fix a bug in numatune (Hu Tao),
+      qemu: fix use-after-free regression (Eric Blake),
+      seclabel: fix regression in libvirtd restart (Eric Blake),
+      command: Discard FD_SETSIZE limit for opened files (Michal Privoznik),
+      Fix xenstore serial console path for HVM guests (Jim Fehlig),
+      schemas: Allow '.' in CPU feature name (Jiri Denemark),
+      virCommand: Properly handle POLLHUP (Michal Privoznik),
+      virCPUDefCopy forgot to copy NUMA topology (Jiri Denemark),
+      qemu: fix block stat naming (Eric Blake),
+      domiftune: clean up previous patches (Eric Blake),
+      virsh: Fix checking for reconnect conditions (Peter Krempa),
+      qemu: Fix bandwidth memory leak on failure (Alex Jia),
+      qemu: fix blkio memory leak on failure (Eric Blake),
+      remove a static limit on max domains in python bindings (Daniel Veillard),
+      python: Fix problems of virDomain{Set, Get}BlockIoTune bindings (Alex Jia),
+      qemu: fix inf-loop in blkio parameters (Eric Blake),
+      qemu: Keep list of USB devices attached to domains (Michal Privoznik),
+      qemu: Release the lock on domobj if fails on finding the disk path (Osier Yang),
+      virsh: plug mem leaks in domxml-*-native (Alex Jia),
+      console: plug memory leaks (Alex Jia),
+      rpc: handle param_int, plug memory leaks (Eric Blake),
+      python: plug memory leak on libvirt_virConnectOpenAuth (Alex Jia),
+      Only add the timer when a callback is registered (Daniel P. Berrange),
+      qemu: detect truncated file as invalid save image (Eric Blake),
+      qemu: Don't drop hostdev config until security label restore (Michal Privoznik),
+      Fix default migration speed in qemu driver (Jim Fehlig),
+      qemu: Fix race between async and query jobs (Jiri Denemark),
+      qemu: Do not free the device from activePciHostdevs if it's in use (Osier Yang),
+      qemu: Honor the original properties of PCI device when detaching (Osier Yang),
+      spec: fix inverted logic on sanlock (Wen Congyang),
+      tests: plug memory leak on linuxTestNodeInfo (Alex Jia),
+      storage: Fix a potential crash when creating vol object (Osier Yang),
+      qemu: Disable EOF processing during qemuDomainDestroy (Jiri Denemark),
+      virsh: Free returned MIME type string (Michal Privoznik),
+      storage: Activate/deactivate logical volumes only on local node (Rommer),
+      security: don't try to label network disks (Josh Durgin),
+      test: replace deprecated "fedora-13" machine with "pc-0.13" (Laine Stump),
+      network: don't add iptables rules for externally managed networks (Laine Stump),
+      threadpool: Use while loop on virCondWait (Michal Privoznik),
+      virsh: plug memory leak on cmdDomblklist (Alex Jia),
+      fix error when parsing ppc64 models on x86 host (Stefan Berger),
+      fix memory leak in src/nodeinfo.c (Stefan Berger),
+      threadpool: Don't wait on condition if pool has no workers (Michal Privoznik),
+      bridge: Fix forward delay APIs (Jiri Denemark),
+      virsh: return correct value from cmdDomIfGetLink (Peter Krempa),
+      virsh: plug memory leak on cmdDomIfGetLink() sucessful path (Alex Jia),
+      virsh: plug memory leak on cmdBlkdeviotune() sucessful path (Alex Jia),
+      test: fix potential lock corruption in test driver (Laine Stump),
+      spec: fix logic bug in deciding to turn on cgconfig (Eric Blake),
+      When checking nttyFDs to see if it is != 1, be sure to use '1' and not '-1' (Daniel P. Berrange),
+      Fix installation of libvirt-guests.service (Daniel P. Berrange)
+
+   -  Improvements:
+      Implement DNS SRV record into the bridge driver (Michal Novotny),
+      seclabel: honor device override in selinux (Eric Blake),
+      seclabel: allow a seclabel override on a disk src (Eric Blake),
+      seclabel: extend XML to allow per-disk label overrides (Eric Blake),
+      seclabel: move seclabel stuff earlier (Eric Blake),
+      seclabel: refactor existing domain_conf usage (Eric Blake),
+      schema: rewrite seclabel rng to match code (Eric Blake),
+      domiftune: Enable the virDomain{S,G}etInterfaceParameters in virsh (Hu Tao),
+      domiftune: Add virDomain{S,G}etInterfaceParameters support to qemu driver (Hu Tao),
+      domiftune: Add a util function virDomainNetFind (Hu Tao),
+      domiftune: Add support of new APIs to the remote driver (Hu Tao),
+      domiftune: virDomain{S,G}etInterfaceParameters: the main entry points (Hu Tao),
+      daemon: clean up daemonization (Eric Blake),
+      tests: fix schema checks sorting (Eric Blake),
+      qemu: Support for overriding NOFILE limit (Michal Privoznik),
+      virsh: Use vshWatchJob in cmdManagedSave (Michal Privoznik),
+      virsh: Use vshWatchJob in cmdSave (Michal Privoznik),
+      virsh: Use vshWatchJob in cmdDump (Michal Privoznik),
+      virsh: Move job watch code to a separate function (Michal Privoznik),
+      qemuhelptest: Add new qemuCap flag (Michal Privoznik),
+      qemu: Support readonly filesystem passthrough (Osier Yang),
+      nwfilter: Do not require DHCP requests to be broadcasted (Stefan Berger),
+      tests: run schema checks in sorted order (Eric Blake),
+      tests: Add fake PPC64 emulator for QEMU testing (Michael Ellerman),
+      qemu: Add spapr-vio address assignment (Michael Ellerman),
+      Add New address type spapr-vio to domain.rng (Bharata B Rao),
+      Add address type for SPAPR VIO devices (Michael Ellerman),
+      qemu: Add a capability flag for -no-acpi (Michael Ellerman),
+      add new command numatune to virsh (Hu Tao),
+      Implement virDomain{G, S}etNumaParameters for the qemu driver (Hu Tao),
+      Add virDomain{G, S}etNumaParameters support to the remote driver (Hu Tao),
+      use cpuset to manage numa (Hu Tao),
+      Add functions to set/get cgroup cpuset parameters (Hu Tao),
+      virsh: simplify printing of typed parameters (Eric Blake),
+      Hide use of timers for domain event dispatch (Daniel P. Berrange),
+      Remove decl of all APIs related to domain event callbacks & queues (Daniel P. Berrange),
+      Remove all domain event structs from header (Daniel P. Berrange),
+      Convert drivers to thread safe APIs for adding callbacks (Daniel P. Berrange),
+      Add APIs to allow management of callbacks purely with virDomainEventState (Daniel P. Berrange),
+      Return count of callbacks when registering callbacks (Daniel P. Berrange),
+      Convert Xen & VBox drivers to use virDomainEventState (Daniel P. Berrange),
+      nwfilter: do not create ebtables chain unnecessarily (Stefan Berger),
+      migration: Add more specific error code/message on migration abort (Peter Krempa),
+      virsh: Add option to undefine storage with domains (Peter Krempa),
+      python: Expose blockPeek and memoryPeek in Python binding (Osier Yang),
+      virsh: support multifunction in attach-disk (KAMEZAWA Hiroyuki),
+      python: Fix export of virDomainSnapshotListChildrenNames (Peter Krempa),
+      Provide a helper method virDomainLiveConfigHelperMethod (Lei Li),
+      virsh: Print error message if argument parsing fails for cmdNodesuspend (Peter Krempa),
+      build: follow directory install conventions (Eric Blake),
+      Fix make uninstall (Dave Allan),
+      qemu: Prepare to cater for more general address assignment (Michael Ellerman),
+      qemu: Add address in qemuBuildChrDeviceStr() on pseries (Michael Ellerman),
+      qemu: Use spapr-vscsi on pseries machine type (Michael Ellerman),
+      network: allow '-' in model name (Eric Blake),
+      cpu: Add cpu flags supported by newest qemu (Peter Krempa),
+      Pass the VM's UUID into the nwfilter subsystem (Stefan Berger),
+      nwfilter: cleanup return codes in nwfilter subsystem (Stefan Berger),
+      spec: make it easier to autoreconf when building rpm (Eric Blake),
+      Ensure to prefix %{buildroot} when overriding systemd install location (Daniel P. Berrange),
+      Add ppc64 specific definitions to domain.rng (Bharata B Rao),
+      Clean up qemuBuildCommandLine to remove x86-specific (Prerna Saxena),
+      Modify the tests/nodeinfotest.c to use sysfs in addition (Prerna Saxena),
+      Use sysfs to gather host topology, in place of (Prerna Saxena)
+
+   -  Cleanups:
+      network_conf: Fix whitespace to pass syntax-check (Peter Krempa)
+
+
+
 0.9.8: Dec 8 2011:
    -  Features:
       Add support for QEMU 1.0 (Jiri Denemark),
@@ -7264,7 +7422,7 @@
       from virsh (Saori Fukuta), Coverage files (Daniel Berrange),
       Solaris fixes (Mark Johnson), avoid [r]index calls (Richard Jones),
       release information in Xen backend, virsh cpupin command cleanups
-      (Masayuki Sunou), xen:/// suppport as standard Xen URI (Richard Jones and
+      (Masayuki Sunou), xen:/// support as standard Xen URI (Richard Jones and
       Daniel Berrange), improve driver selection/decline mechanism (Richard
       Jones), error reporting on XML dump (Richard Jones), Remove unused
       virDomainKernel structure (Richard Jones), daemon event loop event

@@ -1078,6 +1078,7 @@ LVS = @LVS@
 LV_LIBTOOL_OBJDIR = @LV_LIBTOOL_OBJDIR@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
+MANIFEST_TOOL = @MANIFEST_TOOL@
 MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
 MKFS = @MKFS@
@@ -1373,7 +1374,6 @@ SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_U
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
 TC = @TC@
 TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
-U = @U@
 UDEVADM = @UDEVADM@
 UDEVSETTLE = @UDEVSETTLE@
 UDEV_CFLAGS = @UDEV_CFLAGS@
@@ -1418,6 +1418,7 @@ abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
+ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 am__include = @am__include@
@@ -2109,22 +2110,23 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@install-data-local: install-init-redhat install-init-systemd install-init-upstart \
 @WITH_LIBVIRTD_TRUE@		install-data-sasl install-data-polkit \
 @WITH_LIBVIRTD_TRUE@		install-logrotate install-sysctl
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
+@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(localstatedir)/log/libvirt \
+@WITH_LIBVIRTD_TRUE@		   $(DESTDIR)$(localstatedir)/run/libvirt \
+@WITH_LIBVIRTD_TRUE@		   $(DESTDIR)$(localstatedir)/lib/libvirt
 
 @WITH_LIBVIRTD_TRUE@uninstall-local:: uninstall-init-redhat uninstall-init-systemd uninstall-init-upstart \
 @WITH_LIBVIRTD_TRUE@		uninstall-data-sasl uninstall-data-polkit \
-@WITH_LIBVIRTD_TRUE@		uninstall-sysctl
+@WITH_LIBVIRTD_TRUE@		uninstall-logrotate uninstall-sysctl
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/log/libvirt || :
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/run/libvirt || :
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/lib/libvirt || :
 
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@install-data-polkit::
-@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(policydir)
+@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(policydir)
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) $(srcdir)/$(policyfile) $(DESTDIR)$(policydir)/org.libvirt.unix.policy
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-data-polkit::
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(policydir) || :
 @HAVE_POLKIT_FALSE@@WITH_LIBVIRTD_TRUE@install-data-polkit::
 @HAVE_POLKIT_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-data-polkit::
 
@@ -2156,57 +2158,72 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@install-logrotate: $(LOGROTATE_CONFS)
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/qemu/
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/lxc/
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/uml/
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/logrotate.d/
+@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(localstatedir)/log/libvirt/qemu/ \
+@WITH_LIBVIRTD_TRUE@		   $(DESTDIR)$(localstatedir)/log/libvirt/lxc/ \
+@WITH_LIBVIRTD_TRUE@		   $(DESTDIR)$(localstatedir)/log/libvirt/uml/ \
+@WITH_LIBVIRTD_TRUE@		   $(DESTDIR)$(sysconfdir)/logrotate.d/
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.qemu.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.qemu
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.lxc.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.lxc
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.uml.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
 
+@WITH_LIBVIRTD_TRUE@uninstall-logrotate:
+@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd \
+@WITH_LIBVIRTD_TRUE@	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.qemu \
+@WITH_LIBVIRTD_TRUE@	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.lxc \
+@WITH_LIBVIRTD_TRUE@	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/log/libvirt/qemu || :
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/log/libvirt/lxc || :
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/log/libvirt/uml || :
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/logrotate.d || :
+
 @WITH_LIBVIRTD_TRUE@install-sysconfig:
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
+@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysconfig
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.sysconf \
 @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
 @WITH_LIBVIRTD_TRUE@uninstall-sysconfig:
 @WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sysconfig || :
 
 @WITH_LIBVIRTD_TRUE@install-sysctl:
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/sysctl.d
+@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysctl.d
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.sysctl \
 @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/sysctl.d/libvirtd
 
 @WITH_LIBVIRTD_TRUE@uninstall-sysctl:
 @WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/sysctl.d/libvirtd
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sysctl.d || :
 
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@install-init-redhat: install-sysconfig libvirtd.init
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/rc.d/init.d
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_SCRIPT) libvirtd.init \
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd
 
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-init-redhat: uninstall-sysconfig
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/rc.d/init.d || :
 @LIBVIRT_INIT_SCRIPT_RED_HAT_FALSE@@WITH_LIBVIRTD_TRUE@install-init-redhat:
 @LIBVIRT_INIT_SCRIPT_RED_HAT_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-redhat:
 
 @LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@install-init-upstart: install-sysconfig
-@LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/event.d
+@LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/event.d
 @LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_SCRIPT) libvirtd.upstart \
 @LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/event.d/libvirtd
 
 @LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-init-upstart: uninstall-sysconfig
 @LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/event.d/libvirtd
+@LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/event.d || :
 @LIBVIRT_INIT_SCRIPT_UPSTART_FALSE@@WITH_LIBVIRTD_TRUE@install-init-upstart:
 @LIBVIRT_INIT_SCRIPT_UPSTART_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-upstart:
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@install-init-systemd: install-sysconfig libvirtd.service
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(SYSTEMD_UNIT_DIR)
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(SYSTEMD_UNIT_DIR)
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_SCRIPT) libvirtd.service \
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.service
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-init-systemd: uninstall-sysconfig
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.service
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(SYSTEMD_UNIT_DIR) || :
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@@WITH_LIBVIRTD_TRUE@install-init-systemd:
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-systemd:
 
@@ -2242,12 +2259,12 @@ $(srcdir)/libvirtd.8.in: libvirtd.pod.in
 # This is needed for clients too, so can't wrap in
 # the WITH_LIBVIRTD conditional
 @HAVE_SASL_TRUE@install-data-sasl:
-@HAVE_SASL_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/sasl2/
+@HAVE_SASL_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sasl2/
 @HAVE_SASL_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.sasl $(DESTDIR)$(sysconfdir)/sasl2/libvirt.conf
 
 @HAVE_SASL_TRUE@uninstall-data-sasl:
 @HAVE_SASL_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/sasl2/libvirt.conf
-@HAVE_SASL_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sasl2/
+@HAVE_SASL_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sasl2/ || :
 @HAVE_SASL_FALSE@install-data-sasl:
 @HAVE_SASL_FALSE@uninstall-data-sasl:
 

@@ -1053,6 +1053,7 @@ LVS = @LVS@
 LV_LIBTOOL_OBJDIR = @LV_LIBTOOL_OBJDIR@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
+MANIFEST_TOOL = @MANIFEST_TOOL@
 MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
 MKFS = @MKFS@
@@ -1348,7 +1349,6 @@ SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_U
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
 TC = @TC@
 TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
-U = @U@
 UDEVADM = @UDEVADM@
 UDEVSETTLE = @UDEVSETTLE@
 UDEV_CFLAGS = @UDEV_CFLAGS@
@@ -1393,6 +1393,7 @@ abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
+ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 am__include = @am__include@
@@ -1491,6 +1492,7 @@ virsh_CFLAGS = \
 
 BUILT_SOURCES = virsh-net-edit.c virsh-pool-edit.c $(am__append_3) \
 	$(am__append_4)
+SYSTEMD_UNIT_DIR = /lib/systemd/system
 CLEANFILES = $(bin_SCRIPTS) *.gcov .libs/*.gcda .libs/*.gcno *.gcno \
 	*.gcda *.i *.s
 MAINTAINERCLEANFILES = $(dist_man1_MANS)
@@ -2091,26 +2093,29 @@ virsh-pool-edit.c: virsh.c Makefile.am
 virsh.1: virsh.pod
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
-install-data-local: install-init
+install-data-local: install-init install-systemd
 
-uninstall-local: uninstall-init
+uninstall-local: uninstall-init uninstall-systemd
 
 install-sysconfig:
-	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
+	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysconfig
 	$(INSTALL_DATA) $(srcdir)/libvirt-guests.sysconf \
 	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
 
 uninstall-sysconfig:
 	rm -f $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
+	rmdir $(DESTDIR)$(sysconfdir)/sysconfig ||:
 
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@install-init: libvirt-guests.init install-sysconfig
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	$(INSTALL_SCRIPT) libvirt-guests.init \
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
+install-initscript: libvirt-guests.init
+	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/rc.d/init.d
+	$(INSTALL_SCRIPT) libvirt-guests.init \
+	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
 
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@uninstall-init: install-sysconfig
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
-
+uninstall-initscript:
+	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
+	rmdir $(DESTDIR)$(sysconfdir)/rc.d/init.d ||:
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@install-init: install-sysconfig install-initscript
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@uninstall-init: uninstall-sysconfig uninstall-initscript
 @LIBVIRT_INIT_SCRIPT_RED_HAT_FALSE@install-init:
 @LIBVIRT_INIT_SCRIPT_RED_HAT_FALSE@uninstall-init:
 
@@ -2126,13 +2131,14 @@ libvirt-guests.init: libvirt-guests.init.sh $(top_builddir)/config.status
 	    chmod a+x $@-t &&				\
 	    mv $@-t $@
 
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@install-systemd: libvirt-guests.service install-sysconfig
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/systemd.d
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@install-systemd: libvirt-guests.service install-initscript install-sysconfig
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	$(MKDIR_P) $(DESTDIR)$(SYSTEMD_UNIT_DIR)
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	$(INSTALL_SCRIPT) libvirt-guests.service \
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	  $(DESTDIR)$(sysconfdir)/rc.d/systemd.d/libvirt-guests
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirt-guests.service
 
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@uninstall-systemd: install-sysconfig
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/rc.d/systemd.d/libvirt-guests
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@uninstall-systemd: uninstall-initscript uninstall-sysconfig
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirt-guests.service
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	rmdir $(DESTDIR)$(SYSTEMD_UNIT_DIR) ||:
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@install-systemd:
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@uninstall-systemd:

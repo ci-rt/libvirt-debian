@@ -158,6 +158,19 @@ typedef int
                                          int *nparams,
                                          unsigned int flags);
 typedef int
+        (*virDrvDomainSetNumaParameters)
+                                        (virDomainPtr domain,
+                                         virTypedParameterPtr params,
+                                         int nparams,
+                                         unsigned int flags);
+typedef int
+        (*virDrvDomainGetNumaParameters)
+                                        (virDomainPtr domain,
+                                         virTypedParameterPtr params,
+                                         int *nparams,
+                                         unsigned int flags);
+
+typedef int
         (*virDrvDomainSetBlkioParameters)
                                         (virDomainPtr domain,
                                          virTypedParameterPtr params,
@@ -362,6 +375,16 @@ typedef int
                     (virDomainPtr domain,
                      const char *path,
                      struct _virDomainInterfaceStats *stats);
+typedef int
+    (*virDrvDomainSetInterfaceParameters) (virDomainPtr dom,
+                                          const char *device,
+                                          virTypedParameterPtr params,
+                                          int nparams, unsigned int flags);
+typedef int
+    (*virDrvDomainGetInterfaceParameters) (virDomainPtr dom,
+                                          const char *device,
+                                          virTypedParameterPtr params,
+                                          int *nparams, unsigned int flags);
 
 typedef int
     (*virDrvDomainMemoryStats)
@@ -816,6 +839,8 @@ struct _virDriver {
     virDrvDomainSetMemoryFlags  domainSetMemoryFlags;
     virDrvDomainSetMemoryParameters domainSetMemoryParameters;
     virDrvDomainGetMemoryParameters domainGetMemoryParameters;
+    virDrvDomainSetNumaParameters domainSetNumaParameters;
+    virDrvDomainGetNumaParameters domainGetNumaParameters;
     virDrvDomainSetBlkioParameters domainSetBlkioParameters;
     virDrvDomainGetBlkioParameters domainGetBlkioParameters;
     virDrvDomainGetInfo		domainGetInfo;
@@ -868,6 +893,8 @@ struct _virDriver {
     virDrvDomainBlockStats      domainBlockStats;
     virDrvDomainBlockStatsFlags domainBlockStatsFlags;
     virDrvDomainInterfaceStats  domainInterfaceStats;
+    virDrvDomainSetInterfaceParameters domainSetInterfaceParameters;
+    virDrvDomainGetInterfaceParameters domainGetInterfaceParameters;
     virDrvDomainMemoryStats     domainMemoryStats;
     virDrvDomainBlockPeek	domainBlockPeek;
     virDrvDomainMemoryPeek      domainMemoryPeek;
