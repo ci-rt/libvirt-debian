@@ -1,3 +1,11 @@
+libvirt (0.9.9-1) experimental; urgency=low
+
+  * [dd5f96f] New upstream version 0.9.9
+  * [623022f] Rebase patches
+  * [77eb5a4] Update symbols file
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 10 Jan 2012 13:40:41 +0100
+
 libvirt (0.9.8-2) unstable; urgency=low
 
   * Upload to unstable. Works with qemu-kvm and qemu 1.0.
