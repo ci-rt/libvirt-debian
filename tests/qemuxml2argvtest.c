@@ -145,6 +145,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     qemuCapsSetList(extraFlags,
                     QEMU_CAPS_VNC_COLON,
                     QEMU_CAPS_NO_REBOOT,
+                    QEMU_CAPS_NO_ACPI,
                     QEMU_CAPS_LAST);
 
     if (qemudCanonicalizeMachine(&driver, vmdef) < 0)
@@ -658,6 +659,12 @@ mymain(void)
     DO_TEST("no-shutdown", false, QEMU_CAPS_DEVICE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_MONITOR_JSON, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_NO_SHUTDOWN);
+
+    DO_TEST("seclabel-dynamic", false, QEMU_CAPS_NAME);
+    DO_TEST("seclabel-dynamic-baselabel", false, QEMU_CAPS_NAME);
+    DO_TEST("seclabel-dynamic-override", false, QEMU_CAPS_NAME);
+    DO_TEST("seclabel-static", false, QEMU_CAPS_NAME);
+    DO_TEST("seclabel-static-relabel", false, QEMU_CAPS_NAME);
 
     free(driver.stateDir);
     virCapabilitiesFree(driver.caps);

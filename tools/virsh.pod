@@ -322,87 +322,6 @@ running B<virsh suspend>.  When in a paused state the domain will still
 consume allocated resources like memory, but will not be eligible for
 scheduling by the hypervisor.
 
-=item B<send-key> I<domain-id> [I<--codeset> B<codeset>]
-[I<--holdtime> B<holdtime>] I<keycode>...
-
-Parse the I<keycode> sequence as keystrokes to send to I<domain-id>.
-Each I<keycode> can either be a numeric value or a symbolic name from
-the corresponding codeset.  If I<--holdtime> is given, each keystroke
-will be held for that many milliseconds.  The default codeset is
-B<linux>, but use of the I<--codeset> option allows other codesets to
-be chosen.
-
-=over 4
-
-=item B<linux>
-
-The numeric values are those defined by the Linux generic input
-event subsystem. The symbolic names match the corresponding
-Linux key constant macro names.
-
-=item B<xt>
-
-The numeric values are those defined by the original XT keyboard
-controller. No symbolic names are provided
-
-=item B<atset1>
-
-The numeric values are those defined by the AT keyboard controller,
-set 1 (aka XT compatible set). Extended keycoes from B<atset1>
-may differ from extended keycodes in the B<xt> codeset. No symbolic
-names are provided
-
-=item B<atset2>
-
-The numeric values are those defined by the AT keyboard controller,
-set 2. No symbolic names are provided
-
-=item B<atset3>
-
-The numeric values are those defined by the AT keyboard controller,
-set 3 (aka PS/2 compatible set). No symbolic names are provided
-
-=item B<os_x>
-
-The numeric values are those defined by the OS-X keyboard input
-subsystem. The symbolic names match the corresponding OS-X key
-constant macro names
-
-=item B<xt_kbd>
-
-The numeric values are those defined by the Linux KBD device.
-These are a variant on the original XT codeset, but often with
-different encoding for extended keycodes. No symbolic names are
-provided.
-
-=item B<win32>
-
-The numeric values are those defined by the Win32 keyboard input
-subsystem. The symbolic names match the corresponding Win32 key
-constant macro names
-
-=item B<usb>
-
-The numeric values are those defined by the USB HID specification
-for keyboard input. No symbolic names are provided
-
-=item B<rfb>
-
-The numeric values are those defined by the RFB extension for sending
-raw keycodes. These are a variant on the XT codeset, but extended
-keycodes have the low bit of the second byte set, instead of the high
-bit of the first byte. No symbolic names are provided.
-
-=back
-
-B<Examples>
-  # send three strokes 'k', 'e', 'y', using xt codeset
-  virsh send-key dom --codeset xt 37 18 21
-  # send one stroke 'right-ctrl+C'
-  virsh send-key dom KEY_RIGHTCTRL KEY_C
-  # send a tab, held for 1 second
-  virsh send-key --holdtime 1000 0xf
-
 =item B<shutdown>
 
 The domain is in the process of shutting down, i.e. the guest operating system
@@ -454,6 +373,13 @@ guest CPU definition is the <cpu> element and its contents from domain XML
 definition. For more information on guest CPU definition see:
 L<http://libvirt.org/formatdomain.html#elementsCPU>
 
+=item B<echo> [I<--shell>] [I<--xml>] [I<arg>...]
+
+Echo back each I<arg>, separated by space.  If I<--shell> is
+specified, then the output will be single-quoted where needed, so that
+it is suitable for reuse in a shell context.  If I<--xml> is
+specified, then the output will be escaped for use in XML.
+
 =back
 
 =head1 DOMAIN COMMANDS
@@ -497,7 +423,8 @@ B<Example>
 =item B<define> I<FILE>
 
 Define a domain from an XML <file>. The domain definition is registered
-but not started.
+but not started.  If domain is already running, the changes will take
+effect on the next boot.
 
 =item B<destroy> I<domain-id>
 
@@ -552,6 +479,27 @@ configuration of the domain is modified.
 
 Query link state of the domain's virtual interface. If --persistent
 is specified, query the persistent configuration.
+
+=item B<domiftune> I<domain> I<interface-device>
+[[I<--config>] [I<--live>] | [I<--current>]]
+[I<--inbound average,peak,burst>]
+[I<--outbound average,peak,burst>]
+
+Set or query the domain's network interface's bandwidth parameters.
+I<interface-device> can be the interface's target name (<target dev='name'/>),
+or the MAC address.
+
+If no I<--inbound> or I<--outbound> is specified, this command will
+query and show the bandwidth settings. Otherwise, it will set the
+inbound or outbound bandwidth. I<average,peak,burst> is the same as
+in command I<attach-interface>.
+
+If I<--live> is specified, affect a running guest.
+If I<--config> is specified, affect the next boot of a persistent guest.
+If I<--current> is specified, affect the current guest state.
+Both I<--live> and I<--current> flags may be given, but I<--current> is
+exclusive. If no flag is specified, behavior is different depending
+on hypervisor.
 
 =item B<dommemstat> I<domain>
 
@@ -669,15 +617,19 @@ seconds elapsed since the control interface entered its current state.
 =item B<domxml-from-native> I<format> I<config>
 
 Convert the file I<config> in the native guest configuration format
-named by I<format> to a domain XML format.
+named by I<format> to a domain XML format. For QEMU/KVM hypervisor,
+the I<format> argument must be B<qemu-argv>. For Xen hypervisor, the
+I<format> argument may be B<xen-xm> or B<xen-sxpr>.
 
 =item B<domxml-to-native> I<format> I<xml>
 
 Convert the file I<xml> in domain XML format to the native guest
-configuration format named by I<format>.
+configuration format named by I<format>. For QEMU/KVM hypervisor,
+the I<format> argument must be B<qemu-argv>. For Xen hypervisor, the
+I<format> argument may be B<xen-xm> or B<xen-sxpr>.
 
 =item B<dump> I<domain-id> I<corefilepath> [I<--bypass-cache>]
-{ [I<--live>] | [I<--crash>] | [I<--reset>] }
+{ [I<--live>] | [I<--crash>] | [I<--reset>] } [I<--verbose>]
 
 Dumps the core of a domain to a file for analysis.
 If I<--live> is specified, the domain continues to run until the core
@@ -690,9 +642,9 @@ If I<--bypass-cache> is specified, the save will avoid the file system
 cache, although this may slow down the operation.
 
 The progress may be monitored using B<domjobinfo> virsh command and canceled
-with B<domjobabort> command (sent by another virsh instance). Interrupting
-(usually with C<Ctrl-C>) the virsh process which runs B<dump> command is not
-enough to actually cancel the operation.
+with B<domjobabort> command (sent by another virsh instance). Another option
+is to send SIGINT (usually with C<Ctrl-C>) to the virsh process running
+B<dump> command. I<--verbose> displays the progress of dump.
 
 NOTE: Some hypervisors may require the user to manually ensure proper
 permissions on file and path specified by argument I<corefilepath>.
@@ -708,20 +660,14 @@ Using I<--security-info> will also include security sensitive information
 in the XML dump. I<--update-cpu> updates domain CPU requirements according to
 host CPU.
 
-=item B<echo> [I<--shell>] [I<--xml>] [I<arg>...]
-
-Echo back each I<arg>, separated by space.  If I<--shell> is
-specified, then the output will be single-quoted where needed, so that
-it is suitable for reuse in a shell context.  If I<--xml> is
-specified, then the output will be escaped for use in XML.
-
 =item B<edit> I<domain-id>
 
-Edit the XML configuration file for a domain.
+Edit the XML configuration file for a domain, which will affect the
+next boot of the guest.
 
 This is equivalent to:
 
- virsh dumpxml domain > domain.xml
+ virsh dumpxml --inactive --security-info domain > domain.xml
  vi domain.xml (or make changes with your other text editor)
  virsh define domain.xml
 
@@ -731,7 +677,7 @@ The editor used can be supplied by the C<$VISUAL> or C<$EDITOR> environment
 variables, and defaults to C<vi>.
 
 =item B<managedsave> I<domain-id> [I<--bypass-cache>]
-[{I<--running> | I<--paused>}]
+[{I<--running> | I<--paused>}] [I<--verbose>]
 
 Save and destroy (stop) a running domain, so it can be restarted from the same
 state at a later time.  When the virsh B<start> command is next run for
@@ -740,9 +686,9 @@ If I<--bypass-cache> is specified, the save will avoid the file system
 cache, although this may slow down the operation.
 
 The progress may be monitored using B<domjobinfo> virsh command and canceled
-with B<domjobabort> command (sent by another virsh instance). Interrupting
-(usually with C<Ctrl-C>) the virsh process which runs B<managedsave> command
-is not enough to actually cancel the operation.
+with B<domjobabort> command (sent by another virsh instance). Another option
+is to send SIGINT (usually with C<Ctrl-C>) to the virsh process running
+B<managedsave> command. I<--verbose> displays the progress of save.
 
 Normally, starting a managed save will decide between running or paused
 based on the state the domain was in when the save was done; passing
@@ -830,6 +776,25 @@ migrated to another host.
 
 Get the maximum migration bandwidth (in Mbps) for a domain.
 
+=item B<numatune> I<domain> [I<--mode> B<mode>] [I<--nodeset> B<nodeset>]
+[[I<--config>] [I<--live>] | [I<--current>]]
+
+Set or get a domain's numa parameters, corresponding to the <numatune>
+element of domain XML.  Without flags, the current settings are
+displayed.
+
+I<mode> can be one of `strict', `interleave' and `preferred'.  For a
+running domain, the mode can't be changed, and the nodeset can be
+changed only if the domain was started with a mode of `strict'.
+
+I<nodeset> is a list of numa nodes used by the host for running the domain.
+Its syntax is a comma separated list, with '-' for ranges and '^' for
+excluding a node.
+
+If I<--live> is specified, set scheduler information of a running guest.
+If I<--config> is specified, affect the next boot of a persistent guest.
+If I<--current> is specified, affect the current guest state.
+
 =item B<reboot> I<domain-id>
 
 Reboot a domain.  This acts just as if the domain had the B<reboot>
@@ -873,7 +838,7 @@ have also reverted all storage volumes back to the same contents as when
 the state file was created.
 
 =item B<save> I<domain-id> I<state-file> [I<--bypass-cache>] [I<--xml> B<file>]
-[{I<--running> | I<--paused>}]
+[{I<--running> | I<--paused>}] [I<--verbose>]
 
 Saves a running domain (RAM, but not disk state) to a state file so that
 it can be restored
@@ -884,9 +849,9 @@ If I<--bypass-cache> is specified, the save will avoid the file system
 cache, although this may slow down the operation.
 
 The progress may be monitored using B<domjobinfo> virsh command and canceled
-with B<domjobabort> command (sent by another virsh instance). Interrupting
-(usually with C<Ctrl-C>) the virsh process which runs B<save> command is not
-enough to actually cancel the operation.
+with B<domjobabort> command (sent by another virsh instance). Another option
+is to send SIGINT (usually with C<Ctrl-C>) to the virsh process running
+B<save> command. I<--verbose> displays the progress of save.
 
 This is roughly equivalent to doing a hibernate on a running computer,
 with all the same limitations.  Open network connections may be
@@ -991,6 +956,87 @@ allows to specify which screen will be captured. It is the sequential number
 of screen. In case of multiple graphics cards, heads are enumerated before
 devices, e.g. having two graphics cards, both with four heads, screen ID 5
 addresses the second head on the second card.
+
+=item B<send-key> I<domain-id> [I<--codeset> B<codeset>]
+[I<--holdtime> B<holdtime>] I<keycode>...
+
+Parse the I<keycode> sequence as keystrokes to send to I<domain-id>.
+Each I<keycode> can either be a numeric value or a symbolic name from
+the corresponding codeset.  If I<--holdtime> is given, each keystroke
+will be held for that many milliseconds.  The default codeset is
+B<linux>, but use of the I<--codeset> option allows other codesets to
+be chosen.
+
+=over 4
+
+=item B<linux>
+
+The numeric values are those defined by the Linux generic input
+event subsystem. The symbolic names match the corresponding
+Linux key constant macro names.
+
+=item B<xt>
+
+The numeric values are those defined by the original XT keyboard
+controller. No symbolic names are provided
+
+=item B<atset1>
+
+The numeric values are those defined by the AT keyboard controller,
+set 1 (aka XT compatible set). Extended keycoes from B<atset1>
+may differ from extended keycodes in the B<xt> codeset. No symbolic
+names are provided
+
+=item B<atset2>
+
+The numeric values are those defined by the AT keyboard controller,
+set 2. No symbolic names are provided
+
+=item B<atset3>
+
+The numeric values are those defined by the AT keyboard controller,
+set 3 (aka PS/2 compatible set). No symbolic names are provided
+
+=item B<os_x>
+
+The numeric values are those defined by the OS-X keyboard input
+subsystem. The symbolic names match the corresponding OS-X key
+constant macro names
+
+=item B<xt_kbd>
+
+The numeric values are those defined by the Linux KBD device.
+These are a variant on the original XT codeset, but often with
+different encoding for extended keycodes. No symbolic names are
+provided.
+
+=item B<win32>
+
+The numeric values are those defined by the Win32 keyboard input
+subsystem. The symbolic names match the corresponding Win32 key
+constant macro names
+
+=item B<usb>
+
+The numeric values are those defined by the USB HID specification
+for keyboard input. No symbolic names are provided
+
+=item B<rfb>
+
+The numeric values are those defined by the RFB extension for sending
+raw keycodes. These are a variant on the XT codeset, but extended
+keycodes have the low bit of the second byte set, instead of the high
+bit of the first byte. No symbolic names are provided.
+
+=back
+
+B<Examples>
+  # send three strokes 'k', 'e', 'y', using xt codeset
+  virsh send-key dom --codeset xt 37 18 21
+  # send one stroke 'right-ctrl+C'
+  virsh send-key dom KEY_RIGHTCTRL KEY_C
+  # send a tab, held for 1 second
+  virsh send-key --holdtime 1000 0xf
 
 =item B<setmem> I<domain-id> B<kilobytes> [[I<--config>] [I<--live>] |
 [I<--current>]]
@@ -1179,6 +1225,7 @@ Output the device used for the TTY console of the domain. If the information
 is not available the processes will provide an exit code of 1.
 
 =item B<undefine> I<domain-id> [I<--managed-save>] [I<--snapshots-metadata>]
+[ {I<--storage> B<volumes> | I<--remove-all-storage>} I<--wipe-storage>]
 
 Undefine a domain. If the domain is running, this converts it to a
 transient domain, without stopping it. If the domain is inactive,
@@ -1193,6 +1240,23 @@ B<snapshot-list> command) are also cleaned up when undefining an inactive
 domain.  Without the flag, attempts to undefine an inactive domain with
 snapshot metadata will fail.  If the domain is active, this flag is
 ignored.
+
+The I<--storage> flag takes a parameter B<volumes>, which is a comma separated
+list of volume target names or source paths of storage volumes to be removed
+along with the undefined domain. Volumes can be undefined and thus removed only
+on inactive domains. Volume deletion is only attempted after the domain is
+undefined; if not all of the requested volumes could be deleted, the
+error message indicates what still remains behind. If a volume path is not
+found in the domain definition, it's treated as if the volume was successfully
+deleted.
+(See B<domblklist> for list of target names associated to a domain).
+Example: --storage vda,/path/to/storage.img
+
+The I<--remove-all-storage> flag specifies that all of the domain's storage
+volumes should be deleted.
+
+The flag I<--wipe-storage> specifies that the storage volumes should be
+wiped before removal.
 
 NOTE: For an inactive domain, the domain name or UUID must be used as the
 I<domain-id>.
@@ -1274,6 +1338,7 @@ the device does not use managed mode.
 [I<--driver driver>] [I<--subdriver subdriver>] [I<--cache cache>]
 [I<--type type>] [I<--mode mode>] [I<--persistent>] [I<--sourcetype soucetype>]
 [I<--serial serial>] [I<--shareable>] [I<--address address>]
+[I<--multifunction>]
 
 Attach a new disk device to the domain.
 I<source> and I<target> are paths for the files and devices.
@@ -1291,6 +1356,8 @@ I<serial> is the serial of disk device. I<shareable> indicates the disk device
 is shareable between domains.
 I<address> is the address of disk device in the form of pci:domain.bus.slot.function,
 scsi:controller.bus.unit or ide:controller.bus.unit.
+I<multifunction> indicates specified pci address is a multifunction pci device
+address.
 
 =item B<attach-interface> I<domain-id> I<type> I<source>
 [I<--target target>] [I<--mac mac>] [I<--script script>] [I<--model model>]

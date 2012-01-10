@@ -1,7 +1,7 @@
 /*
  * command.c: Child command execution
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -75,9 +75,10 @@ struct _virCommand {
 
     char *pwd;
 
-    /* XXX Use int[] if we ever need to support more than FD_SETSIZE fd's.  */
-    fd_set preserve; /* FDs to pass to child. */
-    fd_set transfer; /* FDs to close in parent. */
+    int *preserve; /* FDs to pass to child. */
+    int preserve_size;
+    int *transfer; /* FDs to close in parent. */
+    int transfer_size;
 
     unsigned int flags;
 
@@ -104,6 +105,66 @@ struct _virCommand {
     bool reap;
 };
 
+/*
+ * virCommandFDIsSet:
+ * @fd: FD to test
+ * @set: the set
+ * @set_size: actual size of @set
+ *
+ * Check if FD is already in @set or not.
+ *
+ * Returns true if @set contains @fd,
+ * false otherwise.
+ */
+static bool
+virCommandFDIsSet(int fd,
+                  const int *set,
+                  int set_size)
+{
+    int i = 0;
+
+    while (i < set_size)
+        if (set[i++] == fd)
+            return true;
+
+    return false;
+}
+
+/*
+ * virCommandFDSet:
+ * @fd: FD to be put into @set
+ * @set: the set
+ * @set_size: actual size of @set
+ *
+ * This is practically generalized implementation
+ * of FD_SET() as we do not want to be limited
+ * by FD_SETSIZE.
+ *
+ * Returns: 0 on success,
+ *          -1 on usage error,
+ *          ENOMEM on OOM
+ */
+static int
+virCommandFDSet(int fd,
+                int **set,
+                int *set_size)
+{
+    if (fd < 0 || !set || !set_size)
+        return -1;
+
+    if (virCommandFDIsSet(fd, *set, *set_size))
+        return 0;
+
+    if (VIR_REALLOC_N(*set, *set_size + 1) < 0) {
+        return ENOMEM;
+    }
+
+    (*set)[*set_size] = fd;
+    (*set_size)++;
+
+    return 0;
+}
+
 #ifndef WIN32
 
 # if HAVE_CAPNG
@@ -129,7 +190,6 @@ static int virClearCapabilities(void)
     return 0;
 }
 # endif
-
 
 /**
  * virFork:
@@ -303,7 +363,8 @@ prepareStdFd(int fd, int std)
 static int
 virExecWithHook(const char *const*argv,
                 const char *const*envp,
-                const fd_set *keepfd,
+                const int *keepfd,
+                int keepfd_size,
                 pid_t *retpid,
                 int infd, int *outfd, int *errfd,
                 unsigned int flags,
@@ -430,7 +491,7 @@ virExecWithHook(const char *const*argv,
     for (i = 3; i < openmax; i++) {
         if (i == infd || i == childout || i == childerr)
             continue;
-        if (!keepfd || i >= FD_SETSIZE || !FD_ISSET(i, keepfd)) {
+        if (!keepfd || !virCommandFDIsSet(i, keepfd, keepfd_size)) {
             tmpfd = i;
             VIR_FORCE_CLOSE(tmpfd);
         } else if (virSetInherit(i, true) < 0) {
@@ -619,7 +680,8 @@ virRun(const char *const *argv ATTRIBUTE_UNUSED,
 static int
 virExecWithHook(const char *const*argv ATTRIBUTE_UNUSED,
                 const char *const*envp ATTRIBUTE_UNUSED,
-                const fd_set *keepfd ATTRIBUTE_UNUSED,
+                const int *keepfd ATTRIBUTE_UNUSED,
+                int keepfd_size ATTRIBUTE_UNUSED,
                 pid_t *retpid ATTRIBUTE_UNUSED,
                 int infd ATTRIBUTE_UNUSED,
                 int *outfd ATTRIBUTE_UNUSED,
@@ -687,8 +749,6 @@ virCommandNewArgs(const char *const*args)
     cmd->handshakeNotify[0] = -1;
     cmd->handshakeNotify[1] = -1;
 
-    FD_ZERO(&cmd->preserve);
-    FD_ZERO(&cmd->transfer);
     cmd->infd = cmd->outfd = cmd->errfd = -1;
     cmd->inpipe = -1;
     cmd->pid = -1;
@@ -736,19 +796,21 @@ virCommandNewArgList(const char *binary, ...)
 static bool
 virCommandKeepFD(virCommandPtr cmd, int fd, bool transfer)
 {
+    int ret = 0;
+
     if (!cmd)
         return fd > STDERR_FILENO;
 
-    if (fd <= STDERR_FILENO || FD_SETSIZE <= fd) {
+    if (fd <= STDERR_FILENO ||
+        (ret = virCommandFDSet(fd, &cmd->preserve, &cmd->preserve_size)) ||
+        (transfer && (ret = virCommandFDSet(fd, &cmd->transfer,
+                                            &cmd->transfer_size)))) {
         if (!cmd->has_error)
-            cmd->has_error = -1;
+            cmd->has_error = ret ? ret : -1 ;
         VIR_DEBUG("cannot preserve %d", fd);
         return fd > STDERR_FILENO;
     }
 
-    FD_SET(fd, &cmd->preserve);
-    if (transfer)
-        FD_SET(fd, &cmd->transfer);
     return false;
 }
 
@@ -1620,16 +1682,19 @@ virCommandProcessIO(virCommandPtr cmd)
         if (infd != -1) {
             fds[nfds].fd = infd;
             fds[nfds].events = POLLOUT;
+            fds[nfds].revents = 0;
             nfds++;
         }
         if (outfd != -1) {
             fds[nfds].fd = outfd;
             fds[nfds].events = POLLIN;
+            fds[nfds].revents = 0;
             nfds++;
         }
         if (errfd != -1) {
             fds[nfds].fd = errfd;
             fds[nfds].events = POLLIN;
+            fds[nfds].revents = 0;
             nfds++;
         }
 
@@ -1645,8 +1710,8 @@ virCommandProcessIO(virCommandPtr cmd)
         }
 
         for (i = 0; i < nfds ; i++) {
-            if (fds[i].fd == errfd ||
-                fds[i].fd == outfd) {
+            if (fds[i].revents & POLLIN &&
+                (fds[i].fd == errfd || fds[i].fd == outfd)) {
                 char data[1024];
                 char **buf;
                 size_t *len;
@@ -1684,7 +1749,10 @@ virCommandProcessIO(virCommandPtr cmd)
                     memcpy(*buf + *len, data, done);
                     *len += done;
                 }
-            } else {
+            }
+
+            if (fds[i].revents & POLLOUT &&
+                fds[i].fd == infd) {
                 int done;
 
                 /* Coverity 5.3.0 can't see that we only get here if
@@ -1710,6 +1778,18 @@ virCommandProcessIO(virCommandPtr cmd)
                 }
             }
 
+            if (fds[i].revents & (POLLHUP | POLLERR)) {
+                if (fds[i].fd == errfd) {
+                    VIR_DEBUG("hangup on stderr");
+                    errfd = -1;
+                } else if (fds[i].fd == outfd) {
+                    VIR_DEBUG("hangup on stdout");
+                    outfd = -1;
+                } else {
+                    VIR_DEBUG("hangup on stdin");
+                    infd = -1;
+                }
+            }
         }
     }
 
@@ -2064,7 +2144,8 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
 
     ret = virExecWithHook((const char *const *)cmd->args,
                           (const char *const *)cmd->env,
-                          &cmd->preserve,
+                          cmd->preserve,
+                          cmd->preserve_size,
                           &cmd->pid,
                           cmd->infd,
                           cmd->outfdptr,
@@ -2077,13 +2158,11 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
     VIR_DEBUG("Command result %d, with PID %d",
               ret, (int)cmd->pid);
 
-    for (i = STDERR_FILENO + 1; i < FD_SETSIZE; i++) {
-        if (FD_ISSET(i, &cmd->transfer)) {
-            int tmpfd = i;
-            VIR_FORCE_CLOSE(tmpfd);
-            FD_CLR(i, &cmd->transfer);
-        }
+    for (i = 0; i < cmd->transfer_size; i++) {
+        VIR_FORCE_CLOSE(cmd->transfer[i]);
     }
+    cmd->transfer_size = 0;
+    VIR_FREE(cmd->transfer);
 
     if (ret == 0 && pid)
         *pid = cmd->pid;
@@ -2448,11 +2527,8 @@ virCommandFree(virCommandPtr cmd)
     if (!cmd)
         return;
 
-    for (i = STDERR_FILENO + 1; i < FD_SETSIZE; i++) {
-        if (FD_ISSET(i, &cmd->transfer)) {
-            int tmpfd = i;
-            VIR_FORCE_CLOSE(tmpfd);
-        }
+    for (i = 0; i < cmd->transfer_size; i++) {
+        VIR_FORCE_CLOSE(cmd->transfer[i]);
     }
 
     VIR_FREE(cmd->inbuf);
@@ -2481,6 +2557,9 @@ virCommandFree(virCommandPtr cmd)
 
     if (cmd->reap)
         virCommandAbort(cmd);
+
+    VIR_FREE(cmd->transfer);
+    VIR_FREE(cmd->preserve);
 
     VIR_FREE(cmd);
 }

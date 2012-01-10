@@ -1,7 +1,7 @@
 /*
  * qemu_driver.c: core driver methods for managing qemu guests
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -97,6 +97,8 @@
 
 #define QEMU_NB_BLOCK_IO_TUNE_PARAM  6
 
+#define QEMU_NB_NUMA_PARAM 2
+
 #if HAVE_LINUX_KVM_H
 # include <linux/kvm.h>
 #endif
@@ -116,6 +118,8 @@
 #endif
 
 #define QEMU_NB_BLKIO_PARAM  2
+
+#define QEMU_NB_BANDWIDTH_PARAM 6
 
 static void processWatchdogEvent(void *data, void *opaque);
 
@@ -431,10 +435,7 @@ qemudStartup(int privileged) {
         goto out_of_memory;
 
     /* Init domain events */
-    qemu_driver->domainEventState = virDomainEventStateNew(qemuDomainEventFlush,
-                                                           qemu_driver,
-                                                           NULL,
-                                                           true);
+    qemu_driver->domainEventState = virDomainEventStateNew();
     if (!qemu_driver->domainEventState)
         goto error;
 
@@ -582,6 +583,9 @@ qemudStartup(int privileged) {
         goto error;
 
     if ((qemu_driver->activePciHostdevs = pciDeviceListNew()) == NULL)
+        goto error;
+
+    if ((qemu_driver->activeUsbHostdevs = usbDeviceListNew()) == NULL)
         goto error;
 
     if (privileged) {
@@ -774,6 +778,7 @@ qemudShutdown(void) {
 
     qemuDriverLock(qemu_driver);
     pciDeviceListFree(qemu_driver->activePciHostdevs);
+    usbDeviceListFree(qemu_driver->activeUsbHostdevs);
     virCapabilitiesFree(qemu_driver->caps);
 
     virDomainObjListDeinit(&qemu_driver->domains);
@@ -900,8 +905,8 @@ static int qemudClose(virConnectPtr conn) {
 
     /* Get rid of callbacks registered for this conn */
     qemuDriverLock(driver);
-    virDomainEventCallbackListRemoveConn(conn,
-                                         driver->domainEventState->callbacks);
+    virDomainEventStateDeregisterConn(conn,
+                                      driver->domainEventState);
     qemuProcessAutoDestroyRun(driver, conn);
     qemuDriverUnlock(driver);
 
@@ -1317,7 +1322,7 @@ static virDomainPtr qemudDomainCreate(virConnectPtr conn, const char *xml,
     if (qemudCanonicalizeMachine(driver, def) < 0)
         goto cleanup;
 
-    if (qemuDomainAssignPCIAddresses(def) < 0)
+    if (qemuDomainAssignAddresses(def) < 0)
         goto cleanup;
 
     if (!(vm = virDomainAssignDef(driver->caps,
@@ -1678,6 +1683,7 @@ qemuDomainDestroyFlags(virDomainPtr dom,
     virDomainObjPtr vm;
     int ret = -1;
     virDomainEventPtr event = NULL;
+    qemuDomainObjPrivatePtr priv;
 
     virCheckFlags(0, -1);
 
@@ -1691,6 +1697,8 @@ qemuDomainDestroyFlags(virDomainPtr dom,
         goto cleanup;
     }
 
+    priv = vm->privateData;
+
     qemuDomainSetFakeReboot(driver, vm, false);
 
     /* Although qemuProcessStop does this already, there may
@@ -1700,8 +1708,15 @@ qemuDomainDestroyFlags(virDomainPtr dom,
      */
     qemuProcessKill(vm, false);
 
+    /* We need to prevent monitor EOF callback from doing our work (and sending
+     * misleading events) while the vm is unlocked inside BeginJob API
+     */
+    priv->beingDestroyed = true;
+
     if (qemuDomainObjBeginJobWithDriver(driver, vm, QEMU_JOB_DESTROY) < 0)
         goto cleanup;
+
+    priv->beingDestroyed = false;
 
     if (!virDomainObjIsActive(vm)) {
         qemuReportError(VIR_ERR_OPERATION_INVALID,
@@ -1800,7 +1815,6 @@ static int qemudDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
     virDomainObjPtr vm;
     virDomainDefPtr persistentDef = NULL;
     int ret = -1, r;
-    bool isActive;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -1820,36 +1834,9 @@ static int qemudDomainSetMemoryFlags(virDomainPtr dom, unsigned long newmem,
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
-    isActive = virDomainObjIsActive(vm);
-
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
-    if (flags == VIR_DOMAIN_MEM_MAXIMUM) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_MEM_MAXIMUM;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_MEM_MAXIMUM;
-    }
-
-    if (!isActive && (flags & VIR_DOMAIN_AFFECT_LIVE)) {
-        qemuReportError(VIR_ERR_OPERATION_INVALID,
-                        "%s", _("domain is not running"));
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
         goto endjob;
-    }
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("cannot change persistent config of a transient domain"));
-            goto endjob;
-        }
-        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-            goto endjob;
-    }
 
     if (flags & VIR_DOMAIN_MEM_MAXIMUM) {
         /* resize the maximum memory */
@@ -3271,7 +3258,6 @@ qemuDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
     const char * type;
     int max;
     int ret = -1;
-    bool isActive;
     bool maximum;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
@@ -3299,33 +3285,17 @@ qemuDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
     if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
-    isActive = virDomainObjIsActive(vm);
     maximum = (flags & VIR_DOMAIN_VCPU_MAXIMUM) != 0;
     flags &= ~VIR_DOMAIN_VCPU_MAXIMUM;
 
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags |= VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags |= VIR_DOMAIN_AFFECT_CONFIG;
-    }
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto endjob;
 
     /* MAXIMUM cannot be mixed with LIVE.  */
     if (maximum && (flags & VIR_DOMAIN_AFFECT_LIVE)) {
         qemuReportError(VIR_ERR_INVALID_ARG, "%s",
                         _("cannot adjust maximum on running domain"));
-        goto endjob;
-    }
-
-    if (!isActive && (flags & VIR_DOMAIN_AFFECT_LIVE)) {
-        qemuReportError(VIR_ERR_OPERATION_INVALID,
-                         "%s", _("domain is not running"));
-        goto endjob;
-    }
-
-    if (!vm->persistent && (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
-        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                        _("cannot change persistent config of a transient domain"));
         goto endjob;
     }
 
@@ -3352,9 +3322,6 @@ qemuDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
                           " vcpus for the domain: %d > %d"), nvcpus, max);
         goto endjob;
     }
-
-    if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-        goto endjob;
 
     switch (flags) {
     case VIR_DOMAIN_AFFECT_CONFIG:
@@ -3414,7 +3381,6 @@ qemudDomainPinVcpuFlags(virDomainPtr dom,
     int maxcpu, hostcpus;
     virNodeInfo nodeinfo;
     int ret = -1;
-    bool isActive;
     qemuDomainObjPrivatePtr priv;
     bool canResetting = true;
     int pcpu;
@@ -3434,20 +3400,9 @@ qemudDomainPinVcpuFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    isActive = virDomainObjIsActive(vm);
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
-
-    if (!isActive && (flags & VIR_DOMAIN_AFFECT_LIVE)) {
-        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                        _("a domain is inactive; can change only "
-                          "persistent config"));
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
         goto cleanup;
-    }
 
     priv = vm->privateData;
 
@@ -3456,16 +3411,6 @@ qemudDomainPinVcpuFlags(virDomainPtr dom,
                         _("vcpu number out of range %d > %d"),
                         vcpu, priv->nvcpupids);
         goto cleanup;
-    }
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                   _("cannot change persistent config of a transient domain"));
-            goto cleanup;
-        }
-        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-            goto cleanup;
     }
 
     if (nodeGetInfo(dom->conn, &nodeinfo) < 0)
@@ -3567,7 +3512,6 @@ qemudDomainGetVcpuPinInfo(virDomainPtr dom,
     virNodeInfo nodeinfo;
     virDomainDefPtr targetDef = NULL;
     int ret = -1;
-    bool isActive;
     int maxcpu, hostcpus, vcpu, pcpu;
     int n;
     virDomainVcpuPinDefPtr *vcpupin_list;
@@ -3589,31 +3533,12 @@ qemudDomainGetVcpuPinInfo(virDomainPtr dom,
         goto cleanup;
     }
 
-    isActive = virDomainObjIsActive(vm);
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &targetDef) < 0)
+        goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!isActive) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID,
-                            "%s", _("domain is not running"));
-            goto cleanup;
-        }
         targetDef = vm->def;
-    }
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                   _("cannot get persistent config of a transient domain"));
-            goto cleanup;
-        }
-        if (!(targetDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-            goto cleanup;
     }
 
     /* Coverity didn't realize that targetDef must be set if we got here.  */
@@ -3760,7 +3685,6 @@ qemudDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
     virDomainObjPtr vm;
     virDomainDefPtr def;
     int ret = -1;
-    bool active;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -3778,34 +3702,11 @@ qemudDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
         goto cleanup;
     }
 
-    active = virDomainObjIsActive(vm);
-
-    if ((flags & (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_CONFIG)) == 0) {
-        if (active)
-            flags |= VIR_DOMAIN_VCPU_LIVE;
-        else
-            flags |= VIR_DOMAIN_VCPU_CONFIG;
-    }
-    if ((flags & VIR_DOMAIN_AFFECT_LIVE) && (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
-        qemuReportError(VIR_ERR_INVALID_ARG,
-                        _("invalid flag combination: (0x%x)"), flags);
-        return -1;
-    }
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags, &def) < 0)
+        goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!active) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("domain not active"));
-            goto cleanup;
-        }
         def = vm->def;
-    } else {
-        if (!vm->persistent) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("domain is transient"));
-            goto cleanup;
-        }
-        def = vm->newDef ? vm->newDef : vm->def;
     }
 
     ret = (flags & VIR_DOMAIN_VCPU_MAXIMUM) ? def->maxvcpus : def->vcpus;
@@ -3956,6 +3857,15 @@ qemuDomainSaveImageOpen(struct qemud_driver *driver,
         goto error;
 
     if (saferead(fd, &header, sizeof(header)) != sizeof(header)) {
+        if (unlink_corrupt) {
+            if (VIR_CLOSE(fd) < 0 || unlink(path) < 0) {
+                virReportSystemError(errno,
+                                     _("cannot remove corrupt file: %s"),
+                                     path);
+                goto error;
+            }
+            return -3;
+        }
         qemuReportError(VIR_ERR_OPERATION_FAILED,
                         "%s", _("failed to read qemu header"));
         goto error;
@@ -4903,7 +4813,7 @@ static virDomainPtr qemudDomainDefine(virConnectPtr conn, const char *xml) {
     if (qemudCanonicalizeMachine(driver, def) < 0)
         goto cleanup;
 
-    if (qemuDomainAssignPCIAddresses(def) < 0)
+    if (qemuDomainAssignAddresses(def) < 0)
         goto cleanup;
 
     if (!(vm = virDomainAssignDef(driver->caps,
@@ -5372,7 +5282,7 @@ qemuDomainAttachDeviceConfig(virDomainDefPtr vmdef,
         if (disk->bus != VIR_DOMAIN_DISK_BUS_VIRTIO)
             if (virDomainDefAddImplicitControllers(vmdef) < 0)
                 return -1;
-        if (qemuDomainAssignPCIAddresses(vmdef) < 0)
+        if (qemuDomainAssignAddresses(vmdef) < 0)
             return -1;
         break;
 
@@ -5390,7 +5300,7 @@ qemuDomainAttachDeviceConfig(virDomainDefPtr vmdef,
             return -1;
         }
         dev->data.net = NULL;
-        if (qemuDomainAssignPCIAddresses(vmdef) < 0)
+        if (qemuDomainAssignAddresses(vmdef) < 0)
             return -1;
         break;
 
@@ -5526,7 +5436,7 @@ qemuDomainUpdateDeviceConfig(virDomainDefPtr vmdef,
         vmdef->nets[pos] = net;
         dev->data.net = NULL;
 
-        if (qemuDomainAssignPCIAddresses(vmdef) < 0)
+        if (qemuDomainAssignAddresses(vmdef) < 0)
             return -1;
         break;
 
@@ -6014,7 +5924,6 @@ static int qemuDomainSetBlkioParameters(virDomainPtr dom,
     virDomainObjPtr vm = NULL;
     virDomainDefPtr persistentDef = NULL;
     int ret = -1;
-    bool isActive;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
@@ -6028,22 +5937,11 @@ static int qemuDomainSetBlkioParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    isActive = virDomainObjIsActive(vm);
-
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!isActive) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID,
-                            "%s", _("domain is not running"));
-            goto cleanup;
-        }
-
         if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_BLKIO)) {
             qemuReportError(VIR_ERR_OPERATION_INVALID, _("blkio cgroup isn't mounted"));
             goto cleanup;
@@ -6054,16 +5952,6 @@ static int qemuDomainSetBlkioParameters(virDomainPtr dom,
                             _("cannot find cgroup for domain %s"), vm->def->name);
             goto cleanup;
         }
-    }
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("cannot change persistent config of a transient domain"));
-            goto cleanup;
-        }
-        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-            goto cleanup;
     }
 
     ret = 0;
@@ -6096,6 +5984,8 @@ static int qemuDomainSetBlkioParameters(virDomainPtr dom,
             } else if (STREQ(param->field, VIR_DOMAIN_BLKIO_DEVICE_WEIGHT)) {
                 size_t ndevices;
                 virBlkioDeviceWeightPtr devices = NULL;
+                int j;
+
                 if (param->type != VIR_TYPED_PARAM_STRING) {
                     qemuReportError(VIR_ERR_INVALID_ARG, "%s",
                                     _("invalid type for device_weight tunable, "
@@ -6110,23 +6000,20 @@ static int qemuDomainSetBlkioParameters(virDomainPtr dom,
                     ret = -1;
                     continue;
                 }
-                for (i = 0; i < ndevices; i++) {
+                for (j = 0; j < ndevices; i++) {
                     rc = virCgroupSetBlkioDeviceWeight(group,
-                                                       devices[i].path,
-                                                       devices[i].weight);
+                                                       devices[j].path,
+                                                       devices[j].weight);
                     if (rc < 0) {
                         virReportSystemError(-rc,
                                              _("Unable to set io device weight "
                                                "for path %s"),
-                                             devices[i].path);
+                                             devices[j].path);
                         break;
                     }
                 }
-                if (i != ndevices) {
-                    ret = -1;
-                    continue;
-                }
-                if (qemuDomainMergeDeviceWeights(&vm->def->blkio.devices,
+                if (j != ndevices ||
+                    qemuDomainMergeDeviceWeights(&vm->def->blkio.devices,
                                                  &vm->def->blkio.ndevices,
                                                  devices, ndevices) < 0)
                     ret = -1;
@@ -6220,7 +6107,6 @@ static int qemuDomainGetBlkioParameters(virDomainPtr dom,
     unsigned int val;
     int ret = -1;
     int rc;
-    bool isActive;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -6247,22 +6133,11 @@ static int qemuDomainGetBlkioParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    isActive = virDomainObjIsActive(vm);
-
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!isActive) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID,
-                            "%s", _("domain is not running"));
-            goto cleanup;
-        }
-
         if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_BLKIO)) {
             qemuReportError(VIR_ERR_OPERATION_INVALID, _("blkio cgroup isn't mounted"));
             goto cleanup;
@@ -6273,16 +6148,6 @@ static int qemuDomainGetBlkioParameters(virDomainPtr dom,
                             _("cannot find cgroup for domain %s"), vm->def->name);
             goto cleanup;
         }
-    }
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("cannot change persistent config of a transient domain"));
-            goto cleanup;
-        }
-        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-            goto cleanup;
     }
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
@@ -6440,7 +6305,6 @@ static int qemuDomainSetMemoryParameters(virDomainPtr dom,
     virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
     int ret = -1;
-    bool isActive;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
@@ -6455,22 +6319,11 @@ static int qemuDomainSetMemoryParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    isActive = virDomainObjIsActive(vm);
-
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!isActive) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID,
-                            "%s", _("domain is not running"));
-            goto cleanup;
-        }
-
         if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_MEMORY)) {
             qemuReportError(VIR_ERR_OPERATION_INVALID,
                             "%s", _("cgroup memory controller is not mounted"));
@@ -6482,16 +6335,6 @@ static int qemuDomainSetMemoryParameters(virDomainPtr dom,
                             _("cannot find cgroup for domain %s"), vm->def->name);
             goto cleanup;
         }
-    }
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("cannot change persistent config of a transient domain"));
-            goto cleanup;
-        }
-        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-            goto cleanup;
     }
 
     ret = 0;
@@ -6598,7 +6441,6 @@ static int qemuDomainGetMemoryParameters(virDomainPtr dom,
     unsigned long long val;
     int ret = -1;
     int rc;
-    bool isActive;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -6617,22 +6459,11 @@ static int qemuDomainGetMemoryParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    isActive = virDomainObjIsActive(vm);
-
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!isActive) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID,
-                            "%s", _("domain is not running"));
-            goto cleanup;
-        }
-
         if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_MEMORY)) {
             qemuReportError(VIR_ERR_OPERATION_INVALID,
                             "%s", _("cgroup memory controller is not mounted"));
@@ -6644,16 +6475,6 @@ static int qemuDomainGetMemoryParameters(virDomainPtr dom,
                             _("cannot find cgroup for domain %s"), vm->def->name);
             goto cleanup;
         }
-    }
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("cannot change persistent config of a transient domain"));
-            goto cleanup;
-        }
-        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-            goto cleanup;
     }
 
     if ((*nparams) == 0) {
@@ -6781,6 +6602,305 @@ out:
 cleanup:
     if (group)
         virCgroupFree(&group);
+    if (vm)
+        virDomainObjUnlock(vm);
+    qemuDriverUnlock(driver);
+    return ret;
+}
+
+static int
+qemuDomainSetNumaParameters(virDomainPtr dom,
+                            virTypedParameterPtr params,
+                            int nparams,
+                            unsigned int flags)
+{
+    struct qemud_driver *driver = dom->conn->privateData;
+    int i;
+    virDomainDefPtr persistentDef = NULL;
+    virCgroupPtr group = NULL;
+    virDomainObjPtr vm = NULL;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+
+    qemuDriverLock(driver);
+
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+
+    if (vm == NULL) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("No such domain %s"), dom->uuid);
+        goto cleanup;
+    }
+
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPUSET)) {
+            qemuReportError(VIR_ERR_OPERATION_INVALID,
+                            "%s", _("cgroup cpuset controller is not mounted"));
+            goto cleanup;
+        }
+
+        if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                            _("cannot find cgroup for domain %s"),
+                            vm->def->name);
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+    for (i = 0; i < nparams; i++) {
+        virTypedParameterPtr param = &params[i];
+
+        if (STREQ(param->field, VIR_DOMAIN_NUMA_MODE)) {
+            if (param->type != VIR_TYPED_PARAM_INT) {
+                qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                                _("invalid type for numa strict tunable, "
+                                  "expected an 'int'"));
+                ret = -1;
+                continue;
+            }
+
+            if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
+                vm->def->numatune.memory.mode != params[i].value.i) {
+                qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                                _("can't change numa mode for running domain"));
+                ret = -1;
+                goto cleanup;
+            }
+
+            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+                persistentDef->numatune.memory.mode = params[i].value.i;
+            }
+        } else if (STREQ(param->field, VIR_DOMAIN_NUMA_NODESET)) {
+            int rc;
+            bool savedmask;
+            char oldnodemask[VIR_DOMAIN_CPUMASK_LEN];
+            if (param->type != VIR_TYPED_PARAM_STRING) {
+                qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                                _("invalid type for numa nodeset tunable, "
+                                  "expected a 'string'"));
+                ret = -1;
+                continue;
+            }
+
+            if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+                if (vm->def->numatune.memory.mode !=
+                    VIR_DOMAIN_NUMATUNE_MEM_STRICT) {
+                    qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                                    _("change of nodeset for running domain "
+                                      "requires strict numa mode"));
+                    ret = -1;
+                    continue;
+                }
+                rc = virCgroupSetCpusetMems(group, params[i].value.s);
+                if (rc != 0) {
+                    virReportSystemError(-rc, "%s",
+                                         _("unable to set numa tunable"));
+                    ret = -1;
+                    continue;
+                }
+
+                /* update vm->def here so that dumpxml can read the new
+                 * values from vm->def. */
+                savedmask = false;
+                if (!vm->def->numatune.memory.nodemask) {
+                    if (VIR_ALLOC_N(vm->def->numatune.memory.nodemask,
+                                    VIR_DOMAIN_CPUMASK_LEN) < 0) {
+                        virReportOOMError();
+                        ret = -1;
+                        goto cleanup;
+                    }
+                } else {
+                    memcpy(oldnodemask, vm->def->numatune.memory.nodemask,
+                           VIR_DOMAIN_CPUMASK_LEN);
+                    savedmask = true;
+                }
+                if (virDomainCpuSetParse(params[i].value.s,
+                                         0,
+                                         vm->def->numatune.memory.nodemask,
+                                         VIR_DOMAIN_CPUMASK_LEN) < 0) {
+                    if (savedmask)
+                        memcpy(vm->def->numatune.memory.nodemask,
+                               oldnodemask, VIR_DOMAIN_CPUMASK_LEN);
+                    else
+                        VIR_FREE(vm->def->numatune.memory.nodemask);
+                    ret = -1;
+                    continue;
+                }
+            }
+
+            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+                savedmask = false;
+                if (!persistentDef->numatune.memory.nodemask) {
+                    if (VIR_ALLOC_N(persistentDef->numatune.memory.nodemask,
+                                    VIR_DOMAIN_CPUMASK_LEN) < 0) {
+                        virReportOOMError();
+                        ret = -1;
+                        goto cleanup;
+                    }
+                } else {
+                    memcpy(oldnodemask, persistentDef->numatune.memory.nodemask,
+                           VIR_DOMAIN_CPUMASK_LEN);
+                    savedmask = true;
+                }
+                if (virDomainCpuSetParse(params[i].value.s,
+                                         0,
+                                         persistentDef->numatune.memory.nodemask,
+                                         VIR_DOMAIN_CPUMASK_LEN) < 0) {
+                    if (savedmask)
+                        memcpy(persistentDef->numatune.memory.nodemask,
+                               oldnodemask, VIR_DOMAIN_CPUMASK_LEN);
+                    else
+                        VIR_FREE(persistentDef->numatune.memory.nodemask);
+                    ret = -1;
+                    continue;
+                }
+            }
+        } else {
+            qemuReportError(VIR_ERR_INVALID_ARG,
+                            _("Parameter `%s' not supported"), param->field);
+            ret = -1;
+        }
+    }
+
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (virDomainSaveConfig(driver->configDir, persistentDef) < 0)
+            ret = -1;
+    }
+
+cleanup:
+    virCgroupFree(&group);
+    if (vm)
+        virDomainObjUnlock(vm);
+    qemuDriverUnlock(driver);
+    return ret;
+}
+
+static int
+qemuDomainGetNumaParameters(virDomainPtr dom,
+                            virTypedParameterPtr params,
+                            int *nparams,
+                            unsigned int flags)
+{
+    struct qemud_driver *driver = dom->conn->privateData;
+    int i;
+    virCgroupPtr group = NULL;
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr persistentDef = NULL;
+    char *nodeset = NULL;
+    int ret = -1;
+    int rc;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    qemuDriverLock(driver);
+
+    /* We blindly return a string, and let libvirt.c and
+     * remote_driver.c do the filtering on behalf of older clients
+     * that can't parse it.  */
+    flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
+
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+
+    if (vm == NULL) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("No such domain %s"), dom->uuid);
+        goto cleanup;
+    }
+
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
+
+    if ((*nparams) == 0) {
+        *nparams = QEMU_NB_NUMA_PARAM;
+        ret = 0;
+        goto cleanup;
+    }
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_MEMORY)) {
+            qemuReportError(VIR_ERR_OPERATION_INVALID,
+                            "%s", _("cgroup memory controller is not mounted"));
+            goto cleanup;
+        }
+
+        if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) != 0) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                            _("cannot find cgroup for domain %s"),
+                            vm->def->name);
+            goto cleanup;
+        }
+    }
+
+    for (i = 0; i < QEMU_NB_NUMA_PARAM && i < *nparams; i++) {
+        virMemoryParameterPtr param = &params[i];
+
+        switch (i) {
+        case 0: /* fill numa mode here */
+            if (!virStrcpyStatic(param->field, VIR_DOMAIN_NUMA_MODE)) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field '%s' too long for destination"),
+                                VIR_DOMAIN_NUMA_MODE);
+                goto cleanup;
+            }
+            param->type = VIR_TYPED_PARAM_INT;
+            if (flags & VIR_DOMAIN_AFFECT_CONFIG)
+                param->value.i = persistentDef->numatune.memory.mode;
+            else
+                param->value.i = vm->def->numatune.memory.mode;
+            break;
+
+        case 1: /* fill numa nodeset here */
+            if (!virStrcpyStatic(param->field, VIR_DOMAIN_NUMA_NODESET)) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field '%s' too long for destination"),
+                                VIR_DOMAIN_NUMA_NODESET);
+                goto cleanup;
+            }
+            if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+                char *mask = persistentDef->numatune.memory.nodemask;
+                if (mask)
+                    nodeset = virDomainCpuSetFormat(mask,
+                                                    VIR_DOMAIN_CPUMASK_LEN);
+                else
+                    nodeset = strdup("");
+            } else {
+                rc = virCgroupGetCpusetMems(group, &nodeset);
+                if (rc != 0) {
+                    virReportSystemError(-rc, "%s",
+                                         _("unable to get numa nodeset"));
+                    goto cleanup;
+                }
+            }
+            if (!nodeset) {
+                virReportOOMError();
+                goto cleanup;
+            }
+            param->type = VIR_TYPED_PARAM_STRING;
+            param->value.s = nodeset;
+            break;
+
+        default:
+            break;
+            /* should not hit here */
+        }
+    }
+
+    if (*nparams > QEMU_NB_NUMA_PARAM)
+        *nparams = QEMU_NB_NUMA_PARAM;
+    ret = 0;
+
+cleanup:
+    virCgroupFree(&group);
     if (vm)
         virDomainObjUnlock(vm);
     qemuDriverUnlock(driver);
@@ -7367,7 +7487,7 @@ qemuDomainBlockResize (virDomainPtr dom,
     if ((i = virDomainDiskIndexByName(vm->def, path, false)) < 0) {
         qemuReportError(VIR_ERR_INVALID_ARG,
                         _("invalid path: %s"), path);
-        goto cleanup;
+        goto endjob;
     }
     disk = vm->def->disks[i];
 
@@ -7672,10 +7792,10 @@ qemuDomainBlockStatsFlags(virDomainPtr dom,
     if (tmp < *nparams && flush_total_times != -1) {
         param = &params[tmp];
         if (virStrcpyStatic(param->field,
-                            VIR_DOMAIN_BLOCK_STATS_READ_TOTAL_TIMES) == NULL) {
+                            VIR_DOMAIN_BLOCK_STATS_FLUSH_TOTAL_TIMES) == NULL) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
                             _("Field name '%s' too long"),
-                            VIR_DOMAIN_BLOCK_STATS_READ_TOTAL_TIMES);
+                            VIR_DOMAIN_BLOCK_STATS_FLUSH_TOTAL_TIMES);
             goto endjob;
         }
         param->type = VIR_TYPED_PARAM_LLONG;
@@ -7758,6 +7878,361 @@ qemudDomainInterfaceStats (virDomainPtr dom,
     return -1;
 }
 #endif
+
+static int
+qemuDomainSetInterfaceParameters(virDomainPtr dom,
+                                 const char *device,
+                                 virTypedParameterPtr params,
+                                 int nparams,
+                                 unsigned int flags)
+{
+    struct qemud_driver *driver = dom->conn->privateData;
+    int i;
+    virCgroupPtr group = NULL;
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr persistentDef = NULL;
+    int ret = -1;
+    virDomainNetDefPtr net = NULL, persistentNet = NULL;
+    virNetDevBandwidthPtr bandwidth = NULL, newBandwidth = NULL;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG, -1);
+    qemuDriverLock(driver);
+
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+
+    if (vm == NULL) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("No such domain %s"), dom->uuid);
+        goto cleanup;
+    }
+
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        net = virDomainNetFind(vm->def, device);
+        if (!net) {
+            qemuReportError(VIR_ERR_INVALID_ARG,
+                            _("Can't find device %s"), device);
+            goto cleanup;
+        }
+    }
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        persistentNet = virDomainNetFind(persistentDef, device);
+        if (!persistentNet) {
+            qemuReportError(VIR_ERR_INVALID_ARG,
+                            _("Can't find device %s"), device);
+            goto cleanup;
+        }
+    }
+
+    if (VIR_ALLOC(bandwidth) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    if (VIR_ALLOC(bandwidth->in) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    memset(bandwidth->in, 0, sizeof(*bandwidth->in));
+    if (VIR_ALLOC(bandwidth->out) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    memset(bandwidth->out, 0, sizeof(*bandwidth->out));
+
+    for (i = 0; i < nparams; i++) {
+        virTypedParameterPtr param = &params[i];
+
+        if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_AVERAGE)) {
+            if (param->type != VIR_TYPED_PARAM_UINT) {
+                qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                                _("invalid type for bandwidth average tunable, "
+                                  "expected an 'unsigned int'"));
+                goto cleanup;
+            }
+
+            bandwidth->in->average = params[i].value.ui;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_PEAK)) {
+            if (param->type != VIR_TYPED_PARAM_UINT) {
+                qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                                _("invalid type for bandwidth peak tunable, "
+                                  "expected an 'unsigned int'"));
+                goto cleanup;
+            }
+
+            bandwidth->in->peak = params[i].value.ui;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_IN_BURST)) {
+            if (param->type != VIR_TYPED_PARAM_UINT) {
+                qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                                _("invalid type for bandwidth burst tunable, "
+                                  "expected an 'unsigned int'"));
+                goto cleanup;
+            }
+
+            bandwidth->in->burst = params[i].value.ui;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE)) {
+            if (param->type != VIR_TYPED_PARAM_UINT) {
+                qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                                _("invalid type for bandwidth average tunable, "
+                                  "expected an 'unsigned int'"));
+                goto cleanup;
+            }
+
+            bandwidth->out->average = params[i].value.ui;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_OUT_PEAK)) {
+            if (param->type != VIR_TYPED_PARAM_UINT) {
+                qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                                _("invalid type for bandwidth peak tunable, "
+                                  "expected an 'unsigned int'"));
+                goto cleanup;
+            }
+
+            bandwidth->out->peak = params[i].value.ui;
+        } else if (STREQ(param->field, VIR_DOMAIN_BANDWIDTH_OUT_BURST)) {
+            if (param->type != VIR_TYPED_PARAM_UINT) {
+                qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                                _("invalid type for bandwidth burst tunable, "
+                                  "expected an 'unsigned int'"));
+                goto cleanup;
+            }
+
+            bandwidth->out->burst = params[i].value.ui;
+        } else {
+            qemuReportError(VIR_ERR_INVALID_ARG,
+                            _("Parameter `%s' not supported"),
+                            param->field);
+            goto cleanup;
+        }
+    }
+
+    /* average is mandatory, peak and burst are optional. So if no
+     * average is given, we free inbound/outbound here which causes
+     * inbound/outbound to not be set. */
+    if (!bandwidth->in->average) {
+        VIR_FREE(bandwidth->in);
+        bandwidth->in = NULL;
+    }
+    if (!bandwidth->out->average) {
+        VIR_FREE(bandwidth->out);
+        bandwidth->out = NULL;
+    }
+
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        if (VIR_ALLOC(newBandwidth) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        /* virNetDevBandwidthSet() will clear any previous value of
+         * bandwidth parameters, so merge with old bandwidth parameters
+         * here to prevent them from being lost. */
+        if (bandwidth->in || net->bandwidth->in) {
+            if (VIR_ALLOC(newBandwidth->in) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+            if (bandwidth->in)
+                memcpy(newBandwidth->in, bandwidth->in,
+                       sizeof(*newBandwidth->in));
+            else if (net->bandwidth->in)
+                memcpy(newBandwidth->in, net->bandwidth->in,
+                       sizeof(*newBandwidth->in));
+        }
+        if (bandwidth->out || net->bandwidth->out) {
+            if (VIR_ALLOC(newBandwidth->out) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+            if (bandwidth->out)
+                memcpy(newBandwidth->out, bandwidth->out,
+                       sizeof(*newBandwidth->out));
+            else if (net->bandwidth->out)
+                memcpy(newBandwidth->out, net->bandwidth->out,
+                       sizeof(*newBandwidth->out));
+        }
+
+        if (virNetDevBandwidthSet(net->ifname, newBandwidth) < 0) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                            _("cannot set bandwidth limits on %s"),
+                            device);
+            goto cleanup;
+        }
+
+        virNetDevBandwidthFree(net->bandwidth);
+        net->bandwidth = newBandwidth;
+        newBandwidth = NULL;
+    }
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (!persistentNet->bandwidth) {
+            persistentNet->bandwidth = bandwidth;
+            bandwidth = NULL;
+        } else {
+            if (bandwidth->in) {
+                VIR_FREE(persistentNet->bandwidth->in);
+                persistentNet->bandwidth->in = bandwidth->in;
+                bandwidth->in = NULL;
+            }
+            if (bandwidth->out) {
+                VIR_FREE(persistentNet->bandwidth->out);
+                persistentNet->bandwidth->out = bandwidth->out;
+                bandwidth->out = NULL;
+            }
+        }
+
+        if (virDomainSaveConfig(driver->configDir, persistentDef) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    virNetDevBandwidthFree(bandwidth);
+    virNetDevBandwidthFree(newBandwidth);
+    virCgroupFree(&group);
+    if (vm)
+        virDomainObjUnlock(vm);
+    qemuDriverUnlock(driver);
+    return ret;
+}
+
+static int
+qemuDomainGetInterfaceParameters(virDomainPtr dom,
+                                 const char *device,
+                                 virTypedParameterPtr params,
+                                 int *nparams,
+                                 unsigned int flags)
+{
+    struct qemud_driver *driver = dom->conn->privateData;
+    int i;
+    virCgroupPtr group = NULL;
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr def = NULL;
+    virDomainDefPtr persistentDef = NULL;
+    virDomainNetDefPtr net = NULL;
+    int ret = -1;
+
+    virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
+                  VIR_DOMAIN_AFFECT_CONFIG |
+                  VIR_TYPED_PARAM_STRING_OKAY, -1);
+
+    qemuDriverLock(driver);
+
+    flags &= ~VIR_TYPED_PARAM_STRING_OKAY;
+
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+
+    if (vm == NULL) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("No such domain %s"), dom->uuid);
+        goto cleanup;
+    }
+
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
+
+    if ((*nparams) == 0) {
+        *nparams = QEMU_NB_BANDWIDTH_PARAM;
+        ret = 0;
+        goto cleanup;
+    }
+
+    def = persistentDef;
+    if (!def)
+        def = vm->def;
+
+    net = virDomainNetFind(def, device);
+    if (!net) {
+        qemuReportError(VIR_ERR_INVALID_ARG,
+                        _("Can't find device %s"), device);
+        goto cleanup;
+    }
+
+    for (i = 0; i < *nparams && i < QEMU_NB_BANDWIDTH_PARAM; i++) {
+        params[i].value.ui = 0;
+        params[i].type = VIR_TYPED_PARAM_UINT;
+
+        switch(i) {
+        case 0: /* inbound.average */
+            if (virStrcpyStatic(params[i].field, VIR_DOMAIN_BANDWIDTH_IN_AVERAGE) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BANDWIDTH_IN_AVERAGE);
+                goto cleanup;
+            }
+            if (net->bandwidth && net->bandwidth->in)
+                params[i].value.ui = net->bandwidth->in->average;
+            break;
+        case 1: /* inbound.peak */
+            if (virStrcpyStatic(params[i].field, VIR_DOMAIN_BANDWIDTH_IN_PEAK) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BANDWIDTH_IN_PEAK);
+                goto cleanup;
+            }
+            if (net->bandwidth && net->bandwidth->in)
+                params[i].value.ui = net->bandwidth->in->peak;
+            break;
+        case 2: /* inbound.burst */
+            if (virStrcpyStatic(params[i].field, VIR_DOMAIN_BANDWIDTH_IN_BURST) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BANDWIDTH_IN_BURST);
+                goto cleanup;
+            }
+            if (net->bandwidth && net->bandwidth->in)
+                params[i].value.ui = net->bandwidth->in->burst;
+            break;
+        case 3: /* outbound.average */
+            if (virStrcpyStatic(params[i].field, VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE);
+                goto cleanup;
+            }
+            if (net->bandwidth && net->bandwidth->out)
+                params[i].value.ui = net->bandwidth->out->average;
+            break;
+        case 4: /* outbound.peak */
+            if (virStrcpyStatic(params[i].field, VIR_DOMAIN_BANDWIDTH_OUT_PEAK) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BANDWIDTH_OUT_PEAK);
+                goto cleanup;
+            }
+            if (net->bandwidth && net->bandwidth->out)
+                params[i].value.ui = net->bandwidth->out->peak;
+            break;
+        case 5: /* outbound.burst */
+            if (virStrcpyStatic(params[i].field, VIR_DOMAIN_BANDWIDTH_OUT_BURST) == NULL) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("Field name '%s' too long"),
+                                VIR_DOMAIN_BANDWIDTH_OUT_BURST);
+                goto cleanup;
+            }
+            if (net->bandwidth && net->bandwidth->out)
+                params[i].value.ui = net->bandwidth->out->burst;
+            break;
+        default:
+            break;
+            /* should not hit here */
+        }
+    }
+
+    if (*nparams > QEMU_NB_BANDWIDTH_PARAM)
+        *nparams = QEMU_NB_BANDWIDTH_PARAM;
+    ret = 0;
+
+cleanup:
+    if (group)
+        virCgroupFree(&group);
+    if (vm)
+        virDomainObjUnlock(vm);
+    qemuDriverUnlock(driver);
+    return ret;
+}
 
 static int
 qemudDomainMemoryStats (virDomainPtr dom,
@@ -8142,9 +8617,9 @@ qemuDomainEventRegister(virConnectPtr conn,
     int ret;
 
     qemuDriverLock(driver);
-    ret = virDomainEventCallbackListAdd(conn,
-                                        driver->domainEventState->callbacks,
-                                        callback, opaque, freecb);
+    ret = virDomainEventStateRegister(conn,
+                                      driver->domainEventState,
+                                      callback, opaque, freecb);
     qemuDriverUnlock(driver);
 
     return ret;
@@ -8180,10 +8655,11 @@ qemuDomainEventRegisterAny(virConnectPtr conn,
     int ret;
 
     qemuDriverLock(driver);
-    ret = virDomainEventCallbackListAddID(conn,
-                                          driver->domainEventState->callbacks,
-                                          dom, eventID,
-                                          callback, opaque, freecb);
+    if (virDomainEventStateRegisterID(conn,
+                                      driver->domainEventState,
+                                      dom, eventID,
+                                      callback, opaque, freecb, &ret) < 0)
+        ret = -1;
     qemuDriverUnlock(driver);
 
     return ret;
@@ -8198,9 +8674,9 @@ qemuDomainEventDeregisterAny(virConnectPtr conn,
     int ret;
 
     qemuDriverLock(driver);
-    ret = virDomainEventStateDeregisterAny(conn,
-                                           driver->domainEventState,
-                                           callbackID);
+    ret = virDomainEventStateDeregisterID(conn,
+                                          driver->domainEventState,
+                                          callbackID);
     qemuDriverUnlock(driver);
 
     return ret;
@@ -10794,7 +11270,7 @@ static virDomainPtr qemuDomainAttach(virConnectPtr conn,
     if (qemudCanonicalizeMachine(driver, def) < 0)
         goto cleanup;
 
-    if (qemuDomainAssignPCIAddresses(def) < 0)
+    if (qemuDomainAssignAddresses(def) < 0)
         goto cleanup;
 
     if (!(vm = virDomainAssignDef(driver->caps,
@@ -11126,7 +11602,6 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     const char *device = NULL;
     int ret = -1;
     int i;
-    bool isActive;
     int idx = -1;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
@@ -11151,33 +11626,9 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     if (qemuDomainObjBeginJobWithDriver(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
-    isActive = virDomainObjIsActive(vm);
-
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
-
-    if (!isActive && (flags & VIR_DOMAIN_AFFECT_LIVE)) {
-        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                        _("domain is not running"));
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
         goto endjob;
-    }
-
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("cannot change persistent config of a transient domain"));
-            goto endjob;
-        }
-        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-            goto endjob;
-        idx = virDomainDiskIndexByName(persistentDef, disk, true);
-        if (idx < 0)
-            goto endjob;
-    }
 
     for (i = 0; i < nparams; i++) {
         virTypedParameterPtr param = &params[i];
@@ -11238,7 +11689,10 @@ qemuDomainSetBlockIoTune(virDomainPtr dom,
     }
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        sa_assert(persistentDef && idx >= 0);
+        sa_assert(persistentDef);
+        idx = virDomainDiskIndexByName(persistentDef, disk, true);
+        if (idx < 0)
+            goto endjob;
         persistentDef->disks[idx]->blkdeviotune = info;
         ret = virDomainSaveConfig(driver->configDir, persistentDef);
         if (ret < 0) {
@@ -11276,7 +11730,6 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
     const char *device = NULL;
     int ret = -1;
     int i;
-    bool isActive;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG |
@@ -11310,20 +11763,9 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
     if (qemuDomainObjBeginJobWithDriver(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
-    isActive = virDomainObjIsActive(vm);
-
-    if (flags  == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
-
-    if (!isActive && (flags & VIR_DOMAIN_AFFECT_LIVE)) {
-        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                        _("domain is not running"));
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
         goto endjob;
-    }
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
         priv = vm->privateData;
@@ -11335,14 +11777,6 @@ qemuDomainGetBlockIoTune(virDomainPtr dom,
     }
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                            _("domain is transient"));
-            goto endjob;
-        }
-        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-            goto endjob;
-
         int idx = virDomainDiskIndexByName(vm->def, disk, true);
         if (idx < 0)
             goto endjob;
@@ -11589,6 +12023,10 @@ static virDriver qemuDriver = {
     .nodeSuspendForDuration = nodeSuspendForDuration, /* 0.9.8 */
     .domainSetBlockIoTune = qemuDomainSetBlockIoTune, /* 0.9.8 */
     .domainGetBlockIoTune = qemuDomainGetBlockIoTune, /* 0.9.8 */
+    .domainSetNumaParameters = qemuDomainSetNumaParameters, /* 0.9.9 */
+    .domainGetNumaParameters = qemuDomainGetNumaParameters, /* 0.9.9 */
+    .domainGetInterfaceParameters = qemuDomainGetInterfaceParameters, /* 0.9.9 */
+    .domainSetInterfaceParameters = qemuDomainSetInterfaceParameters, /* 0.9.9 */
 };
 
 

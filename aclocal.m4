@@ -13,8 +13,8 @@
 
 m4_ifndef([AC_AUTOCONF_VERSION],
   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
-m4_if(m4_defn([AC_AUTOCONF_VERSION]), [2.66],,
-[m4_warning([this file was generated for autoconf 2.66.
+m4_if(m4_defn([AC_AUTOCONF_VERSION]), [2.68],,
+[m4_warning([this file was generated for autoconf 2.68.
 You have another version of autoconf.  It may work, but is not guaranteed to.
 If you have problems, you may need to regenerate the build system entirely.
 To do so, use the procedure documented by the package, typically `autoreconf'.])])
@@ -996,32 +996,6 @@ AC_DEFUN([_AM_SET_OPTIONS],
 # Execute IF-SET if OPTION is set, IF-NOT-SET otherwise.
 AC_DEFUN([_AM_IF_OPTION],
 [m4_ifset(_AM_MANGLE_OPTION([$1]), [$2], [$3])])
-
-# Copyright (C) 1996, 1997, 1998, 2000, 2001, 2002, 2003, 2005, 2006
-# Free Software Foundation, Inc.
-#
-# This file is free software; the Free Software Foundation
-# gives unlimited permission to copy and/or distribute it,
-# with or without modifications, as long as this notice is preserved.
-
-# serial 5
-
-AC_DEFUN([AM_C_PROTOTYPES],
-[AC_REQUIRE([AC_C_PROTOTYPES])
-if test "$ac_cv_prog_cc_stdc" != no; then
-  U= ANSI2KNR=
-else
-  U=_ ANSI2KNR=./ansi2knr
-fi
-# Ensure some checks needed by ansi2knr itself.
-AC_REQUIRE([AC_HEADER_STDC])
-AC_CHECK_HEADERS([string.h])
-AC_SUBST([U])dnl
-AC_SUBST([ANSI2KNR])dnl
-_AM_SUBST_NOTMAKE([ANSI2KNR])dnl
-])
-
-AU_DEFUN([fp_C_PROTOTYPES], [AM_C_PROTOTYPES])
 
 # Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2008, 2009
 # Free Software Foundation, Inc.

@@ -8,6 +8,11 @@
   sed -ne 's/^\.fc\?\([0-9]\+\).*/%%define fedora \1/p')}
 %endif
 
+# Default to skipping autoreconf.  Distros can change just this one line
+# (or provide a command-line override) if they backport any patches that
+# touch configure.ac or Makefile.am.
+%{!?enable_autotools:%define enable_autotools 0}
+
 # A client only build will create a libvirt.so only containing
 # the generic RPC driver, and test driver and no libvirtd
 # Default to a full server + client build
@@ -142,7 +147,7 @@
 %endif
 
 # Fedora doesn't have new enough Xen for libxl until F16
-%if 0%{?fedora} < 16
+%if 0%{?fedora} && 0%{?fedora} < 16
 %define with_libxl 0
 %endif
 
@@ -179,7 +184,7 @@
 %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
 %endif
 %if 0%{?rhel} >= 6
-%ifnarch i386 i586 i686 x86_64
+%ifarch i386 i586 i686 x86_64
 %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
 %endif
 %endif
@@ -267,6 +272,9 @@ Requires: %{name}-client = %{version}-%{release}
 Requires: module-init-tools
 # for /sbin/ip & /sbin/tc
 Requires: iproute
+%if %{with_avahi}
+Requires: avahi
+%endif
 %endif
 %if %{with_network}
 Requires: dnsmasq >= 2.41
@@ -349,6 +357,12 @@ Requires(postun): systemd-units
 %endif
 
 # All build-time requirements
+%if 0%{?enable_autotools}
+BuildRequires: autoconf
+BuildRequires: automake
+BuildRequires: gettext-devel
+BuildRequires: libtool
+%endif
 BuildRequires: python-devel
 %if %{with_systemd}
 BuildRequires: systemd-units
@@ -729,6 +743,9 @@ of recent versions of Linux (and other OSes).
 %define init_scripts --with-init_script=redhat
 %endif
 
+%if 0%{?enable_autotools}
+autoreconf -if
+%endif
 %configure %{?_without_xen} \
            %{?_without_qemu} \
            %{?_without_openvz} \
@@ -776,7 +793,7 @@ gzip -9 ChangeLog
 %install
 rm -fr %{buildroot}
 
-%makeinstall SYSTEMD_UNIT_DIR=%{_unitdir}
+%makeinstall SYSTEMD_UNIT_DIR=%{buildroot}%{_unitdir}
 for i in domain-events/events-c dominfo domsuspend hellolibvirt openauth python xml/nwfilter systemtap
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
@@ -934,7 +951,7 @@ fi
 %if %{with_cgconfig}
 # Starting with Fedora 16, systemd automounts all cgroups, and cgconfig is
 # no longer a necessary service.
-%if 0%{?fedora} <= 15 || 0%{?rhel} <= 6
+%if 0%{?rhel} || (0%{?fedora} && 0%{?fedora} < 16)
 if [ "$1" -eq "1" ]; then
 /sbin/chkconfig cgconfig on
 fi
@@ -1253,6 +1270,13 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %endif
 
 %changelog
+* Sat Jan  7 2012 Daniel Veillard <veillard@redhat.com> - 0.9.9-1
+- Add API virDomain{S,G}etInterfaceParameters
+- Add API virDomain{G, S}etNumaParameters
+- Add support for ppc64 qemu
+- Support Xen domctl v8
+- many improvements and bug fixes
+
 * Thu Dec  8 2011 Daniel Veillard <veillard@redhat.com> - 0.9.8-1
 - Add support for QEMU 1.0
 - Add preliminary PPC cpu driver

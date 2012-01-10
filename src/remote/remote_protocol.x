@@ -128,6 +128,9 @@ const REMOTE_DOMAIN_MEMORY_PARAMETERS_MAX = 16;
 /* Upper limit on list of blockio tuning parameters. */
 const REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX = 16;
 
+/* Upper limit on list of numa parameters. */
+const REMOTE_DOMAIN_NUMA_PARAMETERS_MAX = 16;
+
 /* Upper limit on list of node cpu stats. */
 const REMOTE_NODE_CPU_STATS_MAX = 16;
 
@@ -198,6 +201,11 @@ const REMOTE_CPU_BASELINE_MAX = 256;
  * Max number of sending keycodes.
  */
 const REMOTE_DOMAIN_SEND_KEY_MAX = 16;
+
+/*
+ * Upper limit on list of interface parameters
+ */
+const REMOTE_DOMAIN_INTERFACE_PARAMETERS_MAX = 16;
 
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
@@ -547,6 +555,23 @@ struct remote_domain_block_resize_args {
     unsigned int flags;
 };
 
+struct remote_domain_set_numa_parameters_args {
+    remote_nonnull_domain dom;
+    remote_typed_param params<REMOTE_DOMAIN_NUMA_PARAMETERS_MAX>;
+    unsigned int flags;
+};
+
+struct remote_domain_get_numa_parameters_args {
+    remote_nonnull_domain dom;
+    int nparams;
+    unsigned int flags;
+};
+
+struct remote_domain_get_numa_parameters_ret {
+    remote_typed_param params<REMOTE_DOMAIN_NUMA_PARAMETERS_MAX>;
+    int nparams;
+};
+
 struct remote_domain_block_stats_args {
     remote_nonnull_domain dom;
     remote_nonnull_string path;
@@ -586,6 +611,25 @@ struct remote_domain_interface_stats_ret { /* insert@2 */
     hyper tx_packets;
     hyper tx_errs;
     hyper tx_drop;
+};
+
+struct remote_domain_set_interface_parameters_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string device;
+    remote_typed_param params<REMOTE_DOMAIN_INTERFACE_PARAMETERS_MAX>;
+    unsigned int flags;
+};
+
+struct remote_domain_get_interface_parameters_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string device;
+    int nparams;
+    unsigned int flags;
+};
+
+struct remote_domain_get_interface_parameters_ret {
+    remote_typed_param params<REMOTE_DOMAIN_INTERFACE_PARAMETERS_MAX>;
+    int nparams;
 };
 
 struct remote_domain_memory_stats_args {
@@ -2605,7 +2649,11 @@ enum remote_procedure {
 
     REMOTE_PROC_DOMAIN_BLOCK_RESIZE = 251, /* autogen autogen */
     REMOTE_PROC_DOMAIN_SET_BLOCK_IO_TUNE = 252, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_GET_BLOCK_IO_TUNE = 253 /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_GET_BLOCK_IO_TUNE = 253, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_SET_NUMA_PARAMETERS = 254, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_GET_NUMA_PARAMETERS = 255, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_SET_INTERFACE_PARAMETERS = 256, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_GET_INTERFACE_PARAMETERS = 257 /* skipgen skipgen */
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

@@ -1791,9 +1791,6 @@
    type mode_t. */
 #undef PROMOTED_MODE_T
 
-/* Define to 1 if the C compiler supports function prototypes. */
-#undef PROTOTYPES
-
 /* Define if the pthread_in_use() detection is hard. */
 #undef PTHREAD_IN_USE_DETECTION_HARD
 
@@ -2172,9 +2169,6 @@
 # undef __EXTENSIONS__
 #endif
 
-
-/* Define like PROTOTYPES; this can be used by system headers. */
-#undef __PROTOTYPES
 
 /* Ensure that <stdint.h> defines the limit macros, since gnulib's
    <inttypes.h> relies on them.  */

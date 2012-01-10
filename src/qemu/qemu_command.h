@@ -53,6 +53,13 @@ virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    enum virNetDevVPortProfileOp vmop)
     ATTRIBUTE_NONNULL(1);
 
+/* Generate string for arch-specific '-device' parameter */
+char *
+qemuBuildChrDeviceStr (virDomainChrDefPtr serial,
+                       virBitmapPtr qemuCaps,
+                       char *os_arch,
+                       char *machine);
+
 /* With vlan == -1, use netdev syntax, else old hostnet */
 char * qemuBuildHostNetStr(virDomainNetDefPtr net,
                            char type_sep,
@@ -89,7 +96,8 @@ char * qemuBuildDriveDevStr(virDomainDiskDefPtr disk,
 char * qemuBuildFSDevStr(virDomainFSDefPtr fs,
                          virBitmapPtr qemuCaps);
 /* Current, best practice */
-char * qemuBuildControllerDevStr(virDomainControllerDefPtr def,
+char * qemuBuildControllerDevStr(virDomainDefPtr domainDef,
+                                 virDomainControllerDefPtr def,
                                  virBitmapPtr qemuCaps,
                                  int *nusbcontroller);
 
@@ -165,6 +173,8 @@ virDomainDefPtr qemuParseCommandLinePid(virCapsPtr caps,
                                         char **pidfile,
                                         virDomainChrSourceDefPtr *monConfig,
                                         bool *monJSON);
+
+int qemuDomainAssignAddresses(virDomainDefPtr def);
 
 int qemuDomainAssignPCIAddresses(virDomainDefPtr def);
 qemuDomainPCIAddressSetPtr qemuDomainPCIAddressSetCreate(virDomainDefPtr def);

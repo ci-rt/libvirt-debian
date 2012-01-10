@@ -2,7 +2,7 @@
  * libvirt.c: Main interfaces for the libvirt library to handle virtualization
  *           domains from a process running in domain 0
  *
- * Copyright (C) 2005-2006, 2008-2011 Red Hat, Inc.
+ * Copyright (C) 2005-2006, 2008-2012 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -1025,7 +1025,7 @@ virConnectOpenFindURIAliasMatch(virConfValuePtr value, const char *alias, char *
         safe  = strspn(entry->str, URI_ALIAS_CHARS);
         if (safe < (offset - entry->str)) {
             virLibConnError(VIR_ERR_CONF_SYNTAX,
-                            _("Malformed 'uri_aliases' config entry '%s', aliases may only container 'a-Z, 0-9, _, -'"),
+                            _("Malformed 'uri_aliases' config entry '%s', aliases may only contain 'a-Z, 0-9, _, -'"),
                             entry->str);
             return -1;
         }
@@ -3757,6 +3757,135 @@ virDomainGetMemoryParameters(virDomainPtr domain,
     if (conn->driver->domainGetMemoryParameters) {
         int ret;
         ret = conn->driver->domainGetMemoryParameters (domain, params, nparams, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainSetNumaParameters:
+ * @domain: pointer to domain object
+ * @params: pointer to numa parameter objects
+ * @nparams: number of numa parameters (this value can be the same or
+ *          less than the number of parameters supported)
+ * @flags: bitwise-OR of virDomainModificationImpact
+ *
+ * Change all or a subset of the numa tunables.
+ * This function may require privileged access to the hypervisor.
+ *
+ * Returns -1 in case of error, 0 in case of success.
+ */
+int
+virDomainSetNumaParameters(virDomainPtr domain,
+                           virTypedParameterPtr params,
+                           int nparams, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "params=%p, nparams=%d, flags=%x",
+                     params, nparams, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+    if ((nparams <= 0) || (params == NULL)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (virTypedParameterValidateSet(domain, params, nparams) < 0)
+        return -1;
+
+    conn = domain->conn;
+
+    if (conn->driver->domainSetNumaParameters) {
+        int ret;
+        ret = conn->driver->domainSetNumaParameters(domain, params, nparams,
+                                                    flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainGetNumaParameters:
+ * @domain: pointer to domain object
+ * @params: pointer to numa parameter object
+ *          (return value, allocated by the caller)
+ * @nparams: pointer to number of numa parameters
+ * @flags: bitwise-OR of virDomainModificationImpact and virTypedParameterFlags
+ *
+ * Get all numa parameters.  On input, @nparams gives the size of the
+ * @params array; on output, @nparams gives how many slots were filled
+ * with parameter information, which might be less but will not exceed
+ * the input value.
+ *
+ * As a special case, calling with @params as NULL and @nparams as 0 on
+ * input will cause @nparams on output to contain the number of parameters
+ * supported by the hypervisor. The caller should then allocate @params
+ * array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
+ * again.
+ *
+ * See virDomainGetMemoryParameters() for an equivalent usage example.
+ *
+ * This function may require privileged access to the hypervisor. This function
+ * expects the caller to allocate the @params.
+ *
+ * Returns -1 in case of error, 0 in case of success.
+ */
+
+int
+virDomainGetNumaParameters(virDomainPtr domain,
+                           virTypedParameterPtr params,
+                           int *nparams, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "params=%p, nparams=%d, flags=%x",
+                     params, (nparams) ? *nparams : -1, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if ((nparams == NULL) || (*nparams < 0) ||
+        (params == NULL && *nparams != 0)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
+                                 VIR_DRV_FEATURE_TYPED_PARAM_STRING))
+        flags |= VIR_TYPED_PARAM_STRING_OKAY;
+
+    conn = domain->conn;
+
+    if (conn->driver->domainGetNumaParameters) {
+        int ret;
+        ret = conn->driver->domainGetNumaParameters(domain, params, nparams,
+                                                    flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -6943,6 +7072,145 @@ virDomainInterfaceStats (virDomainPtr dom, const char *path,
 
 error:
     virDispatchError(dom->conn);
+    return -1;
+}
+
+ /**
+ * virDomainSetInterfaceParameters:
+ * @domain: pointer to domain object
+ * @device: the interface name or mac address
+ * @params: pointer to interface parameter objects
+ * @nparams: number of interface parameter (this value can be the same or
+ *          less than the number of parameters supported)
+ * @flags: bitwise-OR of virDomainModificationImpact
+ *
+ * Change a subset or all parameters of interface; currently this
+ * includes bandwidth parameters.  The value of @flags should be
+ * either VIR_DOMAIN_AFFECT_CURRENT, or a bitwise-or of values from
+ * VIR_DOMAIN_AFFECT_LIVE and VIR_DOMAIN_AFFECT_CURRENT, although
+ * hypervisors vary in which flags are supported.
+ *
+ * This function may require privileged access to the hypervisor.
+ *
+ * Returns -1 in case of error, 0 in case of success.
+ */
+int
+virDomainSetInterfaceParameters(virDomainPtr domain,
+                                const char *device,
+                                virTypedParameterPtr params,
+                                int nparams, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "device=%s, params=%p, nparams=%d, flags=%x",
+                     device, params, nparams, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+    if ((nparams <= 0) || (params == NULL)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (virTypedParameterValidateSet(domain, params, nparams) < 0)
+        return -1;
+
+    conn = domain->conn;
+
+    if (conn->driver->domainSetInterfaceParameters) {
+        int ret;
+        ret = conn->driver->domainSetInterfaceParameters(domain, device,
+                                                         params, nparams,
+                                                         flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+ /**
+ * virDomainGetInterfaceParameters:
+ * @domain: pointer to domain object
+ * @device: the interface name or mac address
+ * @params: pointer to interface parameter objects
+ *          (return value, allocated by the caller)
+ * @nparams: pointer to number of interface parameter; input and output
+ * @flags: bitwise-OR of virDomainModificationImpact and virTypedParameterFlags
+ *
+ * Get all interface parameters. On input, @nparams gives the size of
+ * the @params array; on output, @nparams gives how many slots were
+ * filled with parameter information, which might be less but will not
+ * exceed the input value.
+ *
+ * As a special case, calling with @params as NULL and @nparams as 0 on
+ * input will cause @nparams on output to contain the number of parameters
+ * supported by the hypervisor. The caller should then allocate @params
+ * array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the
+ * API again. See virDomainGetMemoryParameters() for an equivalent usage
+ * example.
+ *
+ * This function may require privileged access to the hypervisor. This function
+ * expects the caller to allocate the @params.
+ *
+ * Returns -1 in case of error, 0 in case of success.
+ */
+
+int
+virDomainGetInterfaceParameters(virDomainPtr domain,
+                                const char *device,
+                                virTypedParameterPtr params,
+                                int *nparams, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "device=%s, params=%p, nparams=%d, flags=%x",
+                     device, params, (nparams) ? *nparams : -1, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if ((nparams == NULL) || (*nparams < 0) ||
+        (params == NULL && *nparams != 0)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
+                                 VIR_DRV_FEATURE_TYPED_PARAM_STRING))
+        flags |= VIR_TYPED_PARAM_STRING_OKAY;
+
+    conn = domain->conn;
+
+    if (conn->driver->domainGetInterfaceParameters) {
+        int ret;
+        ret = conn->driver->domainGetInterfaceParameters(domain, device,
+                                                         params, nparams,
+                                                         flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
     return -1;
 }
 
@@ -10391,10 +10659,10 @@ virInterfaceFree(virInterfacePtr iface)
  * @conn: pointer to hypervisor connection
  * @flags: flags, not used yet
  *
- * This functions creates a restore point to which one can return
+ * This function creates a restore point to which one can return
  * later by calling virInterfaceChangeRollback(). This function should
  * be called before any transaction with interface configuration.
- * Once knowing, new configuration works, it can be commited via
+ * Once it is known that a new configuration works, it can be committed via
  * virInterfaceChangeCommit(), which frees the restore point.
  *
  * If virInterfaceChangeBegin() is called when a transaction is

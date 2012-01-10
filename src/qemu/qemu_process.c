@@ -128,14 +128,18 @@ qemuProcessHandleMonitorEOF(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     qemuDriverLock(driver);
     virDomainObjLock(vm);
 
-    if (!virDomainObjIsActive(vm)) {
-        VIR_DEBUG("Domain %p is not active, ignoring EOF", vm);
-        virDomainObjUnlock(vm);
-        qemuDriverUnlock(driver);
-        return;
+    priv = vm->privateData;
+
+    if (priv->beingDestroyed) {
+        VIR_DEBUG("Domain is being destroyed, EOF is expected");
+        goto unlock;
     }
 
-    priv = vm->privateData;
+    if (!virDomainObjIsActive(vm)) {
+        VIR_DEBUG("Domain %p is not active, ignoring EOF", vm);
+        goto unlock;
+    }
+
     if (priv->monJSON && !priv->gotShutdown) {
         VIR_DEBUG("Monitor connection to '%s' closed without SHUTDOWN event; "
                   "assuming the domain crashed", vm->def->name);
@@ -150,11 +154,15 @@ qemuProcessHandleMonitorEOF(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     qemuProcessStop(driver, vm, 0, stopReason);
     virDomainAuditStop(vm, auditReason);
 
-    if (!vm->persistent)
+    if (!vm->persistent) {
         qemuDomainRemoveInactive(driver, vm);
-    else
-        virDomainObjUnlock(vm);
+        goto cleanup;
+    }
 
+unlock:
+    virDomainObjUnlock(vm);
+
+cleanup:
     if (event)
         qemuDomainEventQueue(driver, event);
     qemuDriverUnlock(driver);
@@ -2158,14 +2166,26 @@ qemuProcessPrepareChardevDevice(virDomainDefPtr def ATTRIBUTE_UNUSED,
 static int
 qemuProcessLimits(struct qemud_driver *driver)
 {
-    if (driver->maxProcesses > 0) {
-        struct rlimit rlim;
+    struct rlimit rlim;
 
+    if (driver->maxProcesses > 0) {
         rlim.rlim_cur = rlim.rlim_max = driver->maxProcesses;
         if (setrlimit(RLIMIT_NPROC, &rlim) < 0) {
             virReportSystemError(errno,
                                  _("cannot limit number of processes to %d"),
                                  driver->maxProcesses);
+            return -1;
+        }
+    }
+
+    if (driver->maxFiles > 0) {
+        /* Max number of opened files is one greater than
+         * actual limit. See man setrlimit */
+        rlim.rlim_cur = rlim.rlim_max = driver->maxFiles + 1;
+        if (setrlimit(RLIMIT_NOFILE, &rlim) < 0) {
+            virReportSystemError(errno,
+                                 _("cannot set max opened files to %d"),
+                                 driver->maxFiles);
             return -1;
         }
     }
@@ -2355,7 +2375,7 @@ qemuProcessFiltersInstantiate(virConnectPtr conn,
     for (i = 0 ; i < def->nnets ; i++) {
         virDomainNetDefPtr net = def->nets[i];
         if ((net->filter) && (net->ifname)) {
-           if (virDomainConfNWFilterInstantiate(conn, net)) {
+           if (virDomainConfNWFilterInstantiate(conn, def->uuid, net) < 0) {
                 err = 1;
                 break;
             }

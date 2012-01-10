@@ -115,6 +115,8 @@ enum qemuCapsFlags {
     QEMU_CAPS_DRIVE_CACHE_UNSAFE = 75, /* Is cache=unsafe supported? */
     QEMU_CAPS_PCI_ROMBAR         = 76, /* -device rombar=0|1 */
     QEMU_CAPS_ICH9_AHCI         = 77, /* -device ich9-ahci */
+    QEMU_CAPS_NO_ACPI		= 78, /* -no-acpi */
+    QEMU_CAPS_FSDEV_READONLY    =79, /* -fsdev readonly supported */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 };

@@ -275,8 +275,7 @@ qemuNetworkIfaceConnect(virDomainDefPtr def,
 
     if (tapfd >= 0) {
         if ((net->filter) && (net->ifname)) {
-            err = virDomainConfNWFilterInstantiate(conn, net);
-            if (err)
+            if (virDomainConfNWFilterInstantiate(conn, def->uuid, net) < 0)
                 VIR_FORCE_CLOSE(tapfd);
         }
     }
@@ -684,6 +683,89 @@ qemuAssignDeviceAliases(virDomainDefPtr def, virBitmapPtr qemuCaps)
     return -1;
 }
 
+static int
+qemuSpaprVIOFindByReg(virDomainDefPtr def ATTRIBUTE_UNUSED,
+                      virDomainDeviceInfoPtr info, void *opaque)
+{
+    virDomainDeviceInfoPtr target = opaque;
+
+    if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO)
+        return 0;
+
+    /* Match a dev that has a reg, is not us, and has a matching reg */
+    if (info->addr.spaprvio.has_reg && info != target &&
+        info->addr.spaprvio.reg == target->addr.spaprvio.reg)
+        /* Has to be < 0 so virDomainDeviceInfoIterate() will exit */
+        return -1;
+
+    return 0;
+}
+
+static int
+qemuAssignSpaprVIOAddress(virDomainDefPtr def, virDomainDeviceInfoPtr info,
+                          unsigned long long default_reg)
+{
+    bool user_reg;
+    int rc;
+
+    if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO)
+        return 0;
+
+    /* Check if the user has assigned the reg already, if so use it */
+    user_reg = info->addr.spaprvio.has_reg;
+    if (!user_reg) {
+        info->addr.spaprvio.reg = default_reg;
+        info->addr.spaprvio.has_reg = true;
+    }
+
+    rc = virDomainDeviceInfoIterate(def, qemuSpaprVIOFindByReg, info);
+    while (rc != 0) {
+        if (user_reg) {
+            qemuReportError(VIR_ERR_XML_ERROR,
+                            _("spapr-vio address %#llx already in use"),
+                            info->addr.spaprvio.reg);
+            return -EEXIST;
+        }
+
+        /* We assigned the reg, so try a new value */
+        info->addr.spaprvio.reg += 0x1000;
+        rc = virDomainDeviceInfoIterate(def, qemuSpaprVIOFindByReg, info);
+    }
+
+    return 0;
+}
+
+static int qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def)
+{
+    int i, rc;
+
+    /* Default values match QEMU. See spapr_(llan|vscsi|vty).c */
+
+    for (i = 0 ; i < def->nnets; i++) {
+        rc = qemuAssignSpaprVIOAddress(def, &def->nets[i]->info,
+                                       0x1000ul);
+        if (rc)
+            return rc;
+    }
+
+    for (i = 0 ; i < def->ncontrollers; i++) {
+        rc = qemuAssignSpaprVIOAddress(def, &def->controllers[i]->info,
+                                       0x2000ul);
+        if (rc)
+            return rc;
+    }
+
+    for (i = 0 ; i < def->nserials; i++) {
+        rc = qemuAssignSpaprVIOAddress(def, &def->serials[i]->info,
+                                       0x30000000ul);
+        if (rc)
+            return rc;
+    }
+
+    /* No other devices are currently supported on spapr-vio */
+
+    return 0;
+}
 
 #define QEMU_PCI_ADDRESS_LAST_SLOT 31
 #define QEMU_PCI_ADDRESS_LAST_FUNCTION 8
@@ -811,6 +893,16 @@ cleanup:
     return ret;
 }
 
+int qemuDomainAssignAddresses(virDomainDefPtr def)
+{
+    int rc;
+
+    rc = qemuDomainAssignSpaprVIOAddresses(def);
+    if (rc)
+        return rc;
+
+    return qemuDomainAssignPCIAddresses(def);
+}
 
 static void
 qemuDomainPCIAddressSetFreeEntry(void *payload,
@@ -1253,6 +1345,8 @@ qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
             def->controllers[i]->idx == 0)
             continue;
 
+        if (def->controllers[i]->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO)
+            continue;
         if (def->controllers[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
             continue;
         if (qemuDomainPCIAddressSetNextAddr(addrs, &def->controllers[i]->info) < 0)
@@ -1403,6 +1497,9 @@ qemuBuildDeviceAddressStr(virBufferPtr buf,
         virBufferAsprintf(buf, ",bus=");
         qemuUsbId(buf, info->addr.usb.bus);
         virBufferAsprintf(buf, ".0,port=%s", info->addr.usb.port);
+    } else if (info->type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO) {
+        if (info->addr.spaprvio.has_reg)
+            virBufferAsprintf(buf, ",reg=0x%llx", info->addr.spaprvio.reg);
     }
 
     return 0;
@@ -1612,9 +1709,11 @@ static int qemuParseRBDString(virDomainDiskDefPtr disk)
 
         p = next;
     }
+    VIR_FREE(options);
     return 0;
 
 no_memory:
+    VIR_FREE(options);
     virReportOOMError();
     return -1;
 }
@@ -2011,6 +2110,17 @@ char *qemuBuildFSStr(virDomainFSDefPtr fs,
     virBufferAsprintf(&opt, ",id=%s%s", QEMU_FSDEV_HOST_PREFIX, fs->info.alias);
     virBufferAsprintf(&opt, ",path=%s", fs->src);
 
+    if (fs->readonly) {
+        if (qemuCapsGet(qemuCaps, QEMU_CAPS_FSDEV_READONLY)) {
+            virBufferAddLit(&opt, ",readonly");
+        } else {
+            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                            _("readonly filesystem is not supported by this "
+                              "QEMU binary"));
+            goto error;
+        }
+    }
+
     if (virBufferError(&opt)) {
         virReportOOMError();
         goto error;
@@ -2118,7 +2228,8 @@ qemuBuildUSBControllerDevStr(virDomainControllerDefPtr def,
 }
 
 char *
-qemuBuildControllerDevStr(virDomainControllerDefPtr def,
+qemuBuildControllerDevStr(virDomainDefPtr domainDef,
+                          virDomainControllerDefPtr def,
                           virBitmapPtr qemuCaps,
                           int *nusbcontroller)
 {
@@ -2126,7 +2237,12 @@ qemuBuildControllerDevStr(virDomainControllerDefPtr def,
 
     switch (def->type) {
     case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
-        virBufferAddLit(&buf, "lsi");
+        if (STREQ(domainDef->os.arch, "ppc64") &&
+            STREQ(domainDef->os.machine, "pseries")) {
+            virBufferAddLit(&buf, "spapr-vscsi");
+        } else {
+            virBufferAddLit(&buf, "lsi");
+        }
         virBufferAsprintf(&buf, ",id=scsi%d", def->idx);
         break;
 
@@ -3932,8 +4048,10 @@ qemuBuildCommandLine(virConnectPtr conn,
     if (monitor_json && qemuCapsGet(qemuCaps, QEMU_CAPS_NO_SHUTDOWN))
         virCommandAddArg(cmd, "-no-shutdown");
 
-    if (!(def->features & (1 << VIR_DOMAIN_FEATURE_ACPI)))
-        virCommandAddArg(cmd, "-no-acpi");
+    if (qemuCapsGet(qemuCaps, QEMU_CAPS_NO_ACPI)) {
+        if (!(def->features & (1 << VIR_DOMAIN_FEATURE_ACPI)))
+            virCommandAddArg(cmd, "-no-acpi");
+    }
 
     if (!def->os.bootloader) {
         /*
@@ -4040,7 +4158,7 @@ qemuBuildCommandLine(virConnectPtr conn,
                     char *devstr;
 
                     virCommandAddArg(cmd, "-device");
-                    if (!(devstr = qemuBuildControllerDevStr(cont, qemuCaps, NULL)))
+                    if (!(devstr = qemuBuildControllerDevStr(def, cont, qemuCaps, NULL)))
                         goto error;
 
                     virCommandAddArg(cmd, devstr);
@@ -4059,7 +4177,7 @@ qemuBuildCommandLine(virConnectPtr conn,
                 virCommandAddArg(cmd, "-device");
 
                 char *devstr;
-                if (!(devstr = qemuBuildControllerDevStr(def->controllers[i], qemuCaps,
+                if (!(devstr = qemuBuildControllerDevStr(def, def->controllers[i], qemuCaps,
                                                          &usbcontroller)))
                     goto error;
 
@@ -4581,8 +4699,12 @@ qemuBuildCommandLine(virConnectPtr conn,
                 VIR_FREE(devstr);
 
                 virCommandAddArg(cmd, "-device");
-                virCommandAddArgFormat(cmd, "isa-serial,chardev=char%s,id=%s",
-                                       serial->info.alias, serial->info.alias);
+                if (!(devstr = qemuBuildChrDeviceStr(serial, qemuCaps,
+                                                     def->os.arch,
+                                                     def->os.machine)))
+                   goto error;
+                virCommandAddArg(cmd, devstr);
+                VIR_FREE(devstr);
             } else {
                 virCommandAddArg(cmd, "-serial");
                 if (!(devstr = qemuBuildChrArgStr(&serial->source, NULL)))
@@ -5469,6 +5591,37 @@ qemuBuildCommandLine(virConnectPtr conn,
     return NULL;
 }
 
+/* This function generates the correct '-device' string for character
+ * devices of each architecture.
+ */
+char *
+qemuBuildChrDeviceStr(virDomainChrDefPtr serial,
+                       virBitmapPtr qemuCaps,
+                       char *os_arch,
+                       char *machine)
+{
+    virBuffer cmd = VIR_BUFFER_INITIALIZER;
+
+    if (STREQ(os_arch, "ppc64") && STREQ(machine, "pseries")) {
+        virBufferAsprintf(&cmd, "spapr-vty,chardev=char%s",
+                          serial->info.alias);
+        if (qemuBuildDeviceAddressStr(&cmd, &serial->info, qemuCaps) < 0)
+            goto error;
+    } else
+        virBufferAsprintf(&cmd, "isa-serial,chardev=char%s,id=%s",
+                          serial->info.alias, serial->info.alias);
+
+    if (virBufferError(&cmd)) {
+        virReportOOMError();
+        goto error;
+    }
+
+    return virBufferContentAndReset(&cmd);
+
+ error:
+    virBufferFreeAndReset(&cmd);
+    return NULL;
+}
 
 /*
  * This method takes a string representing a QEMU command line ARGV set
@@ -6680,8 +6833,7 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
     def->maxvcpus = 1;
     def->vcpus = 1;
     def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_UTC;
-    def->features = (1 << VIR_DOMAIN_FEATURE_ACPI)
-        /*| (1 << VIR_DOMAIN_FEATURE_APIC)*/;
+
     def->onReboot = VIR_DOMAIN_LIFECYCLE_RESTART;
     def->onCrash = VIR_DOMAIN_LIFECYCLE_DESTROY;
     def->onPoweroff = VIR_DOMAIN_LIFECYCLE_DESTROY;
@@ -6716,6 +6868,9 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
     if (!def->os.arch)
         goto no_memory;
 
+    if (STREQ(def->os.arch, "i686")||STREQ(def->os.arch, "x86_64"))
+        def->features = (1 << VIR_DOMAIN_FEATURE_ACPI)
+        /*| (1 << VIR_DOMAIN_FEATURE_APIC)*/;
 #define WANT_VALUE()                                                   \
     const char *val = progargv[++i];                                   \
     if (!val) {                                                        \

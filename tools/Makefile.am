@@ -148,31 +148,35 @@ endif
 virsh.1: virsh.pod
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
-install-data-local: install-init
+install-data-local: install-init install-systemd
 
-uninstall-local: uninstall-init
+uninstall-local: uninstall-init uninstall-systemd
 
 install-sysconfig:
-	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
+	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysconfig
 	$(INSTALL_DATA) $(srcdir)/libvirt-guests.sysconf \
 	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
 
 uninstall-sysconfig:
 	rm -f $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
+	rmdir $(DESTDIR)$(sysconfdir)/sysconfig ||:
 
 EXTRA_DIST += libvirt-guests.init.sh
 
-if LIBVIRT_INIT_SCRIPT_RED_HAT
-install-init: libvirt-guests.init install-sysconfig
-	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d
+install-initscript: libvirt-guests.init
+	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/rc.d/init.d
 	$(INSTALL_SCRIPT) libvirt-guests.init \
 	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
 
-uninstall-init: install-sysconfig
+uninstall-initscript:
 	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
+	rmdir $(DESTDIR)$(sysconfdir)/rc.d/init.d ||:
 
+
+if LIBVIRT_INIT_SCRIPT_RED_HAT
 BUILT_SOURCES += libvirt-guests.init
-
+install-init: install-sysconfig install-initscript
+uninstall-init: uninstall-sysconfig uninstall-initscript
 else
 install-init:
 uninstall-init:
@@ -194,14 +198,17 @@ libvirt-guests.init: libvirt-guests.init.sh $(top_builddir)/config.status
 
 EXTRA_DIST += libvirt-guests.service.in
 
-if LIBVIRT_INIT_SCRIPT_SYSTEMD
-install-systemd: libvirt-guests.service install-sysconfig
-	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/systemd.d
-	$(INSTALL_SCRIPT) libvirt-guests.service \
-	  $(DESTDIR)$(sysconfdir)/rc.d/systemd.d/libvirt-guests
+SYSTEMD_UNIT_DIR = /lib/systemd/system
 
-uninstall-systemd: install-sysconfig
-	rm -f $(DESTDIR)$(sysconfdir)/rc.d/systemd.d/libvirt-guests
+if LIBVIRT_INIT_SCRIPT_SYSTEMD
+install-systemd: libvirt-guests.service install-initscript install-sysconfig
+	$(MKDIR_P) $(DESTDIR)$(SYSTEMD_UNIT_DIR)
+	$(INSTALL_SCRIPT) libvirt-guests.service \
+	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirt-guests.service
+
+uninstall-systemd: uninstall-initscript uninstall-sysconfig
+	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirt-guests.service
+	rmdir $(DESTDIR)$(SYSTEMD_UNIT_DIR) ||:
 
 BUILT_SOURCES += libvirt-guests.service
 

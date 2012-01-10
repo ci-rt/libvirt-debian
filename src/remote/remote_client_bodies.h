@@ -1979,6 +1979,38 @@ done:
 }
 
 static int
+remoteDomainSetInterfaceParameters(virDomainPtr dom, const char *device, virTypedParameterPtr params, int nparams, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_set_interface_parameters_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.device = (char *)device;
+    args.flags = flags;
+
+    if (remoteSerializeTypedParameters(params, nparams, &args.params.params_val, &args.params.params_len) < 0) {
+        xdr_free((xdrproc_t)xdr_remote_domain_set_interface_parameters_args, (char *)&args);
+        goto done;
+    }
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_INTERFACE_PARAMETERS,
+             (xdrproc_t)xdr_remote_domain_set_interface_parameters_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainSetMaxMemory(virDomainPtr dom, unsigned long memory)
 {
     int rv = -1;
@@ -2073,6 +2105,37 @@ remoteDomainSetMemoryParameters(virDomainPtr dom, virTypedParameterPtr params, i
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_MEMORY_PARAMETERS,
              (xdrproc_t)xdr_remote_domain_set_memory_parameters_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSetNumaParameters(virDomainPtr dom, virTypedParameterPtr params, int nparams, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_set_numa_parameters_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    if (remoteSerializeTypedParameters(params, nparams, &args.params.params_val, &args.params.params_len) < 0) {
+        xdr_free((xdrproc_t)xdr_remote_domain_set_numa_parameters_args, (char *)&args);
+        goto done;
+    }
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_NUMA_PARAMETERS,
+             (xdrproc_t)xdr_remote_domain_set_numa_parameters_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }

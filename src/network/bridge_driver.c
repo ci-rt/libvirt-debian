@@ -527,6 +527,49 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
             virCommandAddArgPair(cmd, "--txt-record", record);
             VIR_FREE(record);
         }
+
+        for (i = 0; i < dns->nsrvrecords; i++) {
+            char *record = NULL;
+            char *recordPort = NULL;
+            char *recordPriority = NULL;
+            char *recordWeight = NULL;
+
+            if (dns->srvrecords[i].service && dns->srvrecords[i].protocol) {
+                if (dns->srvrecords[i].port) {
+                    if (virAsprintf(&recordPort, "%d", dns->srvrecords[i].port) < 0) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                }
+                if (dns->srvrecords[i].priority) {
+                    if (virAsprintf(&recordPriority, "%d", dns->srvrecords[i].priority) < 0) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                }
+                if (dns->srvrecords[i].weight) {
+                    if (virAsprintf(&recordWeight, "%d", dns->srvrecords[i].weight) < 0) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                }
+
+                if (virAsprintf(&record, "%s.%s.%s,%s,%s,%s,%s",
+                                dns->srvrecords[i].service,
+                                dns->srvrecords[i].protocol,
+                                dns->srvrecords[i].domain   ? dns->srvrecords[i].domain : "",
+                                dns->srvrecords[i].target   ? dns->srvrecords[i].target : "",
+                                recordPort                  ? recordPort                : "",
+                                recordPriority              ? recordPriority            : "",
+                                recordWeight                ? recordWeight              : "") < 0) {
+                    virReportOOMError();
+                    goto cleanup;
+                }
+
+                virCommandAddArgPair(cmd, "--srv-host", record);
+                VIR_FREE(record);
+            }
+        }
     }
 
     /*
@@ -1470,14 +1513,22 @@ networkReloadIptablesRules(struct network_driver *driver)
     VIR_INFO("Reloading iptables rules");
 
     for (i = 0 ; i < driver->networks.count ; i++) {
-        virNetworkObjLock(driver->networks.objs[i]);
-        if (virNetworkObjIsActive(driver->networks.objs[i])) {
-            networkRemoveIptablesRules(driver, driver->networks.objs[i]);
-            if (networkAddIptablesRules(driver, driver->networks.objs[i]) < 0) {
+        virNetworkObjPtr network = driver->networks.objs[i];
+
+        virNetworkObjLock(network);
+        if (virNetworkObjIsActive(network) &&
+            ((network->def->forwardType == VIR_NETWORK_FORWARD_NONE) ||
+             (network->def->forwardType == VIR_NETWORK_FORWARD_NAT) ||
+             (network->def->forwardType == VIR_NETWORK_FORWARD_ROUTE))) {
+            /* Only the three L3 network types that are configured by libvirt
+             * need to have iptables rules reloaded.
+             */
+            networkRemoveIptablesRules(driver, network);
+            if (networkAddIptablesRules(driver, network) < 0) {
                 /* failed to add but already logged */
             }
         }
-        virNetworkObjUnlock(driver->networks.objs[i]);
+        virNetworkObjUnlock(network);
     }
 }
 
