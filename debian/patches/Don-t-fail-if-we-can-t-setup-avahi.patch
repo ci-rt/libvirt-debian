@@ -1,0 +1,24 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Sat, 14 Jan 2012 18:09:01 +0100
+Subject: Don't fail if we can't setup avahi
+
+---
+ src/rpc/virnetserver.c |    5 ++---
+ 1 files changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/src/rpc/virnetserver.c b/src/rpc/virnetserver.c
+index f761e6b..ab6d112 100644
+--- a/src/rpc/virnetserver.c
++++ b/src/rpc/virnetserver.c
+@@ -695,9 +695,8 @@ void virNetServerRun(virNetServerPtr srv)
+     virNetServerLock(srv);
+ 
+ #if HAVE_AVAHI
+-    if (srv->mdns &&
+-        virNetServerMDNSStart(srv->mdns) < 0)
+-        goto cleanup;
++    if (srv->mdns)
++        virNetServerMDNSStart(srv->mdns);
+ #endif
+ 
+     if (srv->autoShutdownTimeout &&
