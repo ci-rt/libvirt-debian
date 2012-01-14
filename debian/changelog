@@ -1,3 +1,10 @@
+libvirt (0.9.8-2~bpo60+2) squeeze-backports; urgency=low
+
+  * [69fd64c] Don't fail if we can't setup avahi otherwise we'd
+    have to make avahi a hard dependency.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 14 Jan 2012 21:02:16 +0100
+
 libvirt (0.9.8-2~bpo60+1) squeeze-backports; urgency=low
 
   * Rebuild for squeeze-backports.
