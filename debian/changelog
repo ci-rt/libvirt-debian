@@ -1,3 +1,12 @@
+libvirt (0.9.9-2) experimental; urgency=low
+
+  * [97182f9] Don't fail if we can't setup avahi. We'd need to make this a
+    hard dependency otherwise.
+  * [bf94bbd] xen: Don't crash when we fail to init caps (Closes: #656075)
+  * [56f2dbc] Cleanup /var/log/libvirt on purge (Closes: #656460)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 03 Feb 2012 17:45:12 +0100
+
 libvirt (0.9.9-1) experimental; urgency=low
 
   * [dd5f96f] New upstream version 0.9.9
