@@ -1,0 +1,23 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Fri, 20 Jan 2012 08:56:39 +0100
+Subject: xen: Don't crash when we fail to init caps
+
+by dereferencing a NULL pointer in the call to
+virNodeSuspendGetTargetMask.
+---
+ src/xen/xen_hypervisor.c |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
+
+diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
+index 5357ac1..6d8dda7 100644
+--- a/src/xen/xen_hypervisor.c
++++ b/src/xen/xen_hypervisor.c
+@@ -2802,6 +2802,8 @@ xenHypervisorMakeCapabilities(virConnectPtr conn)
+                                                  utsname.machine,
+                                                  cpuinfo,
+                                                  capabilities);
++    if (caps == NULL)
++        return NULL;
+ 
+     if (virNodeSuspendGetTargetMask(&caps->host.powerMgmt) < 0)
+         VIR_WARN("Failed to get host power management capabilities");
