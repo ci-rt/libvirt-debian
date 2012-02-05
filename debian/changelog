@@ -1,3 +1,10 @@
+libvirt (0.9.9-3) unstable; urgency=low
+
+  * Upload to unstable
+  * [367b47b] Enable netcf support (Closes: #567606)
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 05 Feb 2012 14:10:07 +0100
+
 libvirt (0.9.9-2) experimental; urgency=low
 
   * [97182f9] Don't fail if we can't setup avahi. We'd need to make this a
