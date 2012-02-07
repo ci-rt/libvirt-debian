@@ -1,3 +1,13 @@
+libvirt (0.9.10~rc1-1) experimental; urgency=low
+
+  * Upload to experimental
+  * [8f97b0f] New upstream version 0.9.10~rc1
+  * [7636706] Update symbols
+  * [8d776a5] Drop xen-Don-t-crash-when-we-fail-to-init-caps.patch applied
+    upstream.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 07 Feb 2012 19:47:45 +0100
+
 libvirt (0.9.9-3) unstable; urgency=low
 
   * Upload to unstable
