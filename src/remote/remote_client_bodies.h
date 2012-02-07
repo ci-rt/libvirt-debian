@@ -222,6 +222,34 @@ done:
 }
 
 static int
+remoteDomainBlockRebase(virDomainPtr dom, const char *path, const char *base, unsigned long bandwidth, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_block_rebase_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.path = (char *)path;
+    args.base = base ? (char **)&base : NULL;
+    args.bandwidth = bandwidth;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_BLOCK_REBASE,
+             (xdrproc_t)xdr_remote_domain_block_rebase_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainBlockResize(virDomainPtr dom, const char *disk, unsigned long long size, unsigned int flags)
 {
     int rv = -1;
@@ -705,6 +733,36 @@ remoteDomainGetMaxVcpus(virDomainPtr dom)
     }
 
     rv = ret.num;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
+remoteDomainGetMetadata(virDomainPtr dom, int type, const char *uri, unsigned int flags)
+{
+    char *rv = NULL;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_get_metadata_args args;
+    remote_domain_get_metadata_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.type = type;
+    args.uri = uri ? (char **)&uri : NULL;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof ret);
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_METADATA,
+             (xdrproc_t)xdr_remote_domain_get_metadata_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_get_metadata_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.metadata;
 
 done:
     remoteDriverUnlock(priv);
@@ -1554,6 +1612,33 @@ done:
 }
 
 static int
+remoteDomainPMSuspendForDuration(virDomainPtr dom, unsigned int target, unsigned long long duration, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_pm_suspend_for_duration_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.target = target;
+    args.duration = duration;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_PM_SUSPEND_FOR_DURATION,
+             (xdrproc_t)xdr_remote_domain_pm_suspend_for_duration_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainReboot(virDomainPtr dom, unsigned int flags)
 {
     int rv = -1;
@@ -2118,6 +2203,35 @@ done:
 }
 
 static int
+remoteDomainSetMetadata(virDomainPtr dom, int type, const char *metadata, const char *key, const char *uri, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_set_metadata_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.type = type;
+    args.metadata = metadata ? (char **)&metadata : NULL;
+    args.key = key ? (char **)&key : NULL;
+    args.uri = uri ? (char **)&uri : NULL;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SET_METADATA,
+             (xdrproc_t)xdr_remote_domain_set_metadata_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainSetNumaParameters(virDomainPtr dom, virTypedParameterPtr params, int nparams, unsigned int flags)
 {
     int rv = -1;
@@ -2273,6 +2387,31 @@ remoteDomainShutdown(virDomainPtr dom)
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SHUTDOWN,
              (xdrproc_t)xdr_remote_domain_shutdown_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainShutdownFlags(virDomainPtr dom, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_shutdown_flags_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SHUTDOWN_FLAGS,
+             (xdrproc_t)xdr_remote_domain_shutdown_flags_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }
@@ -5918,6 +6057,32 @@ done:
 }
 
 static int
+remoteStorageVolResize(virStorageVolPtr vol, unsigned long long capacity, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = vol->conn->storagePrivateData;
+    remote_storage_vol_resize_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_storage_vol(&args.vol, vol);
+    args.capacity = capacity;
+    args.flags = flags;
+
+    if (call(vol->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_RESIZE,
+             (xdrproc_t)xdr_remote_storage_vol_resize_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteStorageVolUpload(virStorageVolPtr vol, virStreamPtr st, unsigned long long offset, unsigned long long length, unsigned int flags)
 {
     int rv = -1;
@@ -5973,6 +6138,32 @@ remoteStorageVolWipe(virStorageVolPtr vol, unsigned int flags)
 
     if (call(vol->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_WIPE,
              (xdrproc_t)xdr_remote_storage_vol_wipe_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteStorageVolWipePattern(virStorageVolPtr vol, unsigned int algorithm, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = vol->conn->storagePrivateData;
+    remote_storage_vol_wipe_pattern_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_storage_vol(&args.vol, vol);
+    args.algorithm = algorithm;
+    args.flags = flags;
+
+    if (call(vol->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_WIPE_PATTERN,
+             (xdrproc_t)xdr_remote_storage_vol_wipe_pattern_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }

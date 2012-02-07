@@ -3,7 +3,8 @@
  * Description: This module implements the hash table and allocation and
  *              deallocation of domains and connections
  *
- * Copy: Copyright (C) 2005, 2011 Red Hat, Inc.
+ * Copyright (C) 2005-2012 Red Hat, Inc.
+ * Copyright (C) 2000 Bjorn Reese and Daniel Veillard.
  *
  * Author: Bjorn Reese <bjorn.reese@systematic.dk>
  *         Daniel Veillard <veillard@redhat.com>
@@ -11,6 +12,8 @@
 
 #ifndef __VIR_HASH_H__
 # define __VIR_HASH_H__
+
+# include <stdint.h>
 
 /*
  * The hash table.
@@ -55,12 +58,15 @@ typedef int (*virHashSearcher) (const void *payload, const void *name,
 /**
  * virHashKeyCode:
  * @name: the hash key
+ * @seed: random seed
  *
- * Compute the hash code corresponding to the key @name
+ * Compute the hash code corresponding to the key @name, using
+ * @seed to perturb the hashing algorithm
  *
  * Returns the hash code
  */
-typedef unsigned long (*virHashKeyCode)(const void *name);
+typedef uint32_t (*virHashKeyCode)(const void *name,
+                                   uint32_t seed);
 /**
  * virHashKeyEqual:
  * @namea: the first hash key
@@ -93,17 +99,17 @@ typedef void (*virHashKeyFree)(void *name);
 /*
  * Constructor and destructor.
  */
-virHashTablePtr virHashCreate(int size,
+virHashTablePtr virHashCreate(ssize_t size,
                               virHashDataFree dataFree);
-virHashTablePtr virHashCreateFull(int size,
+virHashTablePtr virHashCreateFull(ssize_t size,
                                   virHashDataFree dataFree,
                                   virHashKeyCode keyCode,
                                   virHashKeyEqual keyEqual,
                                   virHashKeyCopy keyCopy,
                                   virHashKeyFree keyFree);
 void virHashFree(virHashTablePtr table);
-int virHashSize(virHashTablePtr table);
-int virHashTableSize(virHashTablePtr table);
+ssize_t virHashSize(virHashTablePtr table);
+ssize_t virHashTableSize(virHashTablePtr table);
 
 /*
  * Add a new entry to the hash table.
@@ -154,10 +160,22 @@ virHashKeyValuePairPtr virHashGetItems(virHashTablePtr table,
                                        virHashKeyComparator compar);
 
 /*
+ * Compare two tables for equality: the lookup of a key's value in
+ * both tables must result in an equivalent value.
+ * The caller must pass in a comparator function for comparing the values
+ * of two keys.
+ */
+typedef int (*virHashValueComparator)(const void *value1, const void *value2);
+bool virHashEqual(const virHashTablePtr table1,
+                  const virHashTablePtr table2,
+                  virHashValueComparator compar);
+
+
+/*
  * Iterators
  */
-int virHashForEach(virHashTablePtr table, virHashIterator iter, void *data);
-int virHashRemoveSet(virHashTablePtr table, virHashSearcher iter, const void *data);
+ssize_t virHashForEach(virHashTablePtr table, virHashIterator iter, void *data);
+ssize_t virHashRemoveSet(virHashTablePtr table, virHashSearcher iter, const void *data);
 void *virHashSearch(virHashTablePtr table, virHashSearcher iter, const void *data);
 
 #endif                          /* ! __VIR_HASH_H__ */

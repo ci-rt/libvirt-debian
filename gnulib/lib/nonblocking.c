@@ -1,7 +1,5 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Non-blocking I/O for pipe or socket descriptors.
-   Copyright (C) 2011 Free Software Foundation, Inc.
+   Copyright (C) 2011-2012 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -24,13 +22,13 @@
 #include <errno.h>
 
 #if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
-/* Native Woe32 API.  */
+/* Native Windows API.  */
 
 # include <sys/ioctl.h>
 # include <sys/socket.h>
 # include <unistd.h>
 
-/* Get declarations of the Win32 API functions.  */
+/* Get declarations of the native Windows API functions.  */
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
 
@@ -58,7 +56,8 @@ get_nonblocking_flag (int desc)
         return -1;
     }
   else
-    /* Win32 does not support non-blocking on regular files.  */
+    /* The native Windows API does not support non-blocking on regular
+       files.  */
     return 0;
 }
 
@@ -104,7 +103,8 @@ set_nonblocking_flag (int desc, bool value)
     }
   else
     {
-      /* Win32 does not support non-blocking on regular files.  */
+      /* The native Windows API does not support non-blocking on regular
+         files.  */
       if (!value)
         return 0;
       errno = ENOTSUP;

@@ -1,8 +1,6 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Memory allocation on the stack.
 
-   Copyright (C) 1995, 1999, 2001-2004, 2006-2011 Free Software Foundation,
+   Copyright (C) 1995, 1999, 2001-2004, 2006-2012 Free Software Foundation,
    Inc.
 
    This program is free software; you can redistribute it and/or modify it

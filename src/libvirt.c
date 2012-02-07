@@ -36,7 +36,6 @@
 #include "driver.h"
 
 #include "uuid.h"
-#include "util.h"
 #include "memory.h"
 #include "configmake.h"
 #include "intprops.h"
@@ -44,6 +43,7 @@
 #include "rpc/virnettlscontext.h"
 #include "command.h"
 #include "virnodesuspend.h"
+#include "virrandom.h"
 
 #ifndef WITH_DRIVER_MODULES
 # ifdef WITH_TEST
@@ -119,7 +119,7 @@ static int virConnectAuthGainPolkit(const char *privilege) {
 
     cmd = virCommandNewArgList(POLKIT_AUTH, "--obtain", privilege, NULL);
     if (virCommandRun(cmd, &status) < 0 ||
-        status > 1)
+        status > 0)
         goto cleanup;
 
     ret = 0;
@@ -1395,7 +1395,7 @@ error:
  * virConnectOpenAuth:
  * @name: URI of the hypervisor
  * @auth: Authenticate callback parameters
- * @flags: Open flags
+ * @flags: bitwise-OR of virConnectFlags
  *
  * This function should be called first to get a connection to the
  * Hypervisor. If necessary, authentication will be performed fetching
@@ -1744,7 +1744,7 @@ error:
 /**
  * virConnectGetSysinfo:
  * @conn: pointer to a hypervisor connection
- * @flags: callers should always pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * This returns the XML description of the sysinfo details for the
  * host on which the hypervisor is running, in the same format as the
@@ -1927,7 +1927,7 @@ virDomainGetConnect (virDomainPtr dom)
  * virDomainCreateXML:
  * @conn: pointer to the hypervisor connection
  * @xmlDesc: string containing an XML description of the domain
- * @flags: bitwise-or of supported virDomainCreateFlags
+ * @flags: bitwise-OR of supported virDomainCreateFlags
  *
  * Launch a new guest domain, based on an XML description similar
  * to the one returned by virDomainGetXMLDesc()
@@ -1989,7 +1989,7 @@ error:
  * virDomainCreateLinux:
  * @conn: pointer to the hypervisor connection
  * @xmlDesc: string containing an XML description of the domain
- * @flags: callers should always pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Deprecated after 0.4.6.
  * Renamed to virDomainCreateXML() providing identical functionality.
@@ -2181,6 +2181,15 @@ error:
  * does not free the associated virDomainPtr object.
  * This function may require privileged access
  *
+ * virDomainDestroy first requests that a guest terminate
+ * (e.g. SIGTERM), then waits for it to comply. After a reasonable
+ * timeout, if the guest still exists, virDomainDestory will
+ * forcefully terminate the guest (e.g. SIGKILL) if necessary (which
+ * may produce undesirable results, for example unflushed disk cache
+ * in the guest). To avoid this possibility, it's recommended to
+ * instead call virDomainDestroyFlags, sending the
+ * VIR_DOMAIN_DESTROY_GRACEFUL flag.
+ *
  * If the domain is transient and has any snapshot metadata (see
  * virDomainSnapshotNum()), then that metadata will automatically
  * be deleted when the domain quits.
@@ -2226,17 +2235,29 @@ error:
 /**
  * virDomainDestroyFlags:
  * @domain: a domain object
- * @flags: an OR'ed set of virDomainDestroyFlagsValues
+ * @flags: bitwise-OR of virDomainDestroyFlagsValues
  *
  * Destroy the domain object. The running instance is shutdown if not down
  * already and all resources used by it are given back to the hypervisor.
  * This does not free the associated virDomainPtr object.
  * This function may require privileged access.
  *
- * Calling this function with no @flags set (equal to zero)
- * is equivalent to calling virDomainDestroy.  Using virDomainShutdown()
- * may produce cleaner results for the guest's disks, but depends on guest
- * support.
+ * Calling this function with no @flags set (equal to zero) is
+ * equivalent to calling virDomainDestroy, and after a reasonable
+ * timeout will forcefully terminate the guest (e.g. SIGKILL) if
+ * necessary (which may produce undesirable results, for example
+ * unflushed disk cache in the guest). Including
+ * VIR_DOMAIN_DESTROY_GRACEFUL in the flags will prevent the forceful
+ * termination of the guest, and virDomainDestroyFlags will instead
+ * return an error if the guest doesn't terminate by the end of the
+ * timeout; at that time, the management application can decide if
+ * calling again without VIR_DOMAIN_DESTROY_GRACEFUL is appropriate.
+ *
+ * Another alternative which may produce cleaner results for the
+ * guest's disks is to use virDomainShutdown() instead, but that
+ * depends on guest support (some hypervisor/guest combinations may
+ * ignore the shutdown request).
+ *
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -2429,6 +2450,67 @@ virDomainResume(virDomainPtr domain)
 
 error:
     virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainPMSuspendForDuration:
+ * @dom: a domain object
+ * @target: a value from virNodeSuspendTarget
+ * @duration: duration in seconds to suspend, or 0 for indefinite
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Attempt to have the guest enter the given @target power management
+ * suspension level.  If @duration is non-zero, also schedule the guest to
+ * resume normal operation after that many seconds, if nothing else has
+ * resumed it earlier.  Some hypervisors require that @duration be 0, for
+ * an indefinite suspension.
+ *
+ * Dependent on hypervisor used, this may require a
+ * guest agent to be available, e.g. QEMU.
+ *
+ * Returns: 0 on success,
+ *          -1 on failure.
+ */
+int
+virDomainPMSuspendForDuration(virDomainPtr dom,
+                              unsigned int target,
+                              unsigned long long duration,
+                              unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(dom, "target=%u duration=%llu flags=%x",
+                     target, duration, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(dom)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = dom->conn;
+
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainPMSuspendForDuration) {
+        int ret;
+        ret = conn->driver->domainPMSuspendForDuration(dom, target,
+                                                       duration, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
     return -1;
 }
 
@@ -2896,7 +2978,7 @@ error:
  * virDomainCoreDump:
  * @domain: a domain object
  * @to: path for the core file
- * @flags: an OR'ed set of virDomainCoreDumpFlags
+ * @flags: bitwise-OR of virDomainCoreDumpFlags
  *
  * This method will dump the core of a domain on a given file for analysis.
  * Note that for remote Xen Daemon the file path will be interpreted in
@@ -2991,7 +3073,7 @@ error:
  * @domain: a domain object
  * @stream: stream to use as output
  * @screen: monitor ID to take screenshot from
- * @flags: extra flags, currently unused
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Take a screenshot of current domain console as a stream. The image format
  * is hypervisor specific. Moreover, some hypervisors supports multiple
@@ -3106,13 +3188,86 @@ error:
 }
 
 /**
+ * virDomainShutdownFlags:
+ * @domain: a domain object
+ * @flags: bitwise-OR of virDomainShutdownFlagValues
+ *
+ * Shutdown a domain, the domain object is still usable thereafter but
+ * the domain OS is being stopped. Note that the guest OS may ignore the
+ * request.  For guests that react to a shutdown request, the differences
+ * from virDomainDestroy() are that the guest's disk storage will be in a
+ * stable state rather than having the (virtual) power cord pulled, and
+ * this command returns as soon as the shutdown request is issued rather
+ * than blocking until the guest is no longer running.
+ *
+ * If the domain is transient and has any snapshot metadata (see
+ * virDomainSnapshotNum()), then that metadata will automatically
+ * be deleted when the domain quits.
+ *
+ * If @flags is set to zero, then the hypervisor will choose the
+ * method of shutdown it considers best. To have greater control
+ * pass exactly one of the virDomainShutdownFlagValues.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+int
+virDomainShutdownFlags(virDomainPtr domain, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    /* At most one of these two flags should be set.  */
+    if ((flags & VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN) &&
+        (flags & VIR_DOMAIN_SHUTDOWN_GUEST_AGENT)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    conn = domain->conn;
+
+    if (conn->driver->domainShutdownFlags) {
+        int ret;
+        ret = conn->driver->domainShutdownFlags(domain, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
  * virDomainReboot:
  * @domain: a domain object
- * @flags: extra flags for the reboot operation, not used yet
+ * @flags: bitwise-OR of virDomainRebootFlagValues
  *
  * Reboot a domain, the domain object is still usable there after but
  * the domain OS is being stopped for a restart.
  * Note that the guest OS may ignore the request.
+ *
+ * If @flags is set to zero, then the hypervisor will choose the
+ * method of shutdown it considers best. To have greater control
+ * pass exactly one of the virDomainRebootFlagValues.
+ *
+ * To use guest agent (VIR_DOMAIN_REBOOT_GUEST_AGENT) the domain XML
+ * must have <channel> configured.
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -3132,6 +3287,13 @@ virDomainReboot(virDomainPtr domain, unsigned int flags)
     }
     if (domain->conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    /* At most one of these two flags should be set.  */
+    if ((flags & VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN) &&
+        (flags & VIR_DOMAIN_SHUTDOWN_GUEST_AGENT)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         goto error;
     }
 
@@ -3155,7 +3317,7 @@ error:
 /**
  * virDomainReset:
  * @domain: a domain object
- * @flags: extra flags for the reboot operation, not used yet
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Reset a domain immediately without any guest OS shutdown.
  * Reset emulates the power reset button on a machine, where all
@@ -3514,11 +3676,11 @@ error:
     return -1;
 }
 
-/*
+/**
  * virDomainSetMemoryFlags:
  * @domain: a domain object or NULL
  * @memory: the memory size in kilobytes
- * @flags: an OR'ed set of virDomainMemoryModFlags
+ * @flags: bitwise-OR of virDomainMemoryModFlags
  *
  * Dynamically change the target amount of physical memory allocated to a
  * domain. If domain is NULL, then this change the amount of memory reserved
@@ -4084,7 +4246,7 @@ error:
  * @state: returned state of the domain (one of virDomainState)
  * @reason: returned reason which led to @state (one of virDomain*Reason
  * corresponding to the current state); it is allowed to be NULL
- * @flags: additional flags, 0 for now.
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Extract domain state. Each state can be accompanied with a reason (if known)
  * which led to the state.
@@ -4134,7 +4296,7 @@ error:
  * virDomainGetControlInfo:
  * @domain: a domain object
  * @info: pointer to a virDomainControlInfo structure allocated by the user
- * @flags: additional flags, 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Extract details about current state of control interface to a domain.
  *
@@ -4181,7 +4343,7 @@ error:
 /**
  * virDomainGetXMLDesc:
  * @domain: a domain object
- * @flags: an OR'ed set of virDomainXMLFlags
+ * @flags: bitwise-OR of virDomainXMLFlags
  *
  * Provide an XML description of the domain. The description may be reused
  * later to relaunch the domain with virDomainCreateXML().
@@ -4242,7 +4404,7 @@ error:
  * @conn: a connection object
  * @nativeFormat: configuration format importing from
  * @nativeConfig: the configuration data to import
- * @flags: currently unused, pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Reads native configuration data  describing a domain, and
  * generates libvirt domain XML. The format of the native
@@ -4295,7 +4457,7 @@ error:
  * @conn: a connection object
  * @nativeFormat: configuration format exporting to
  * @domainXml: the domain configuration to export
- * @flags: currently unused, pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Reads a domain XML configuration document, and generates
  * a native configuration file describing the domain.
@@ -4928,7 +5090,7 @@ virDomainMigrateDirect (virDomainPtr domain,
  * virDomainMigrate:
  * @domain: a domain object
  * @dconn: destination host (a connection object)
- * @flags: flags
+ * @flags: bitwise-OR of virDomainMigrateFlags
  * @dname: (optional) rename domain to this at destination
  * @uri: (optional) dest hostname/URI as seen from the source host
  * @bandwidth: (optional) specify migration bandwidth limit in Mbps
@@ -5118,7 +5280,7 @@ error:
  * virDomainMigrate2:
  * @domain: a domain object
  * @dconn: destination host (a connection object)
- * @flags: flags
+ * @flags: bitwise-OR of virDomainMigrateFlags
  * @dxml: (optional) XML config for launching guest on target
  * @dname: (optional) rename domain to this at destination
  * @uri: (optional) dest hostname/URI as seen from the source host
@@ -5188,8 +5350,8 @@ error:
  * if @dxml would cause any guest-visible changes.  Pass NULL
  * if no changes are needed to the XML between source and destination.
  * @dxml cannot be used to rename the domain during migration (use
- * @dname for that purpose).  Domain name in @dxml must either match the
- * original domain name or @dname if it was specified.
+ * @dname for that purpose).  Domain name in @dxml must match the
+ * original domain name.
  *
  * Returns the new domain object if the migration was successful,
  *   or NULL in case of error.  Note that the new domain object
@@ -5329,7 +5491,7 @@ error:
  * virDomainMigrateToURI:
  * @domain: a domain object
  * @duri: mandatory URI for the destination host
- * @flags: flags
+ * @flags: bitwise-OR of virDomainMigrateFlags
  * @dname: (optional) rename domain to this at destination
  * @bandwidth: (optional) specify migration bandwidth limit in Mbps
  *
@@ -5453,7 +5615,7 @@ error:
  * @dconnuri: (optional) URI for target libvirtd if @flags includes VIR_MIGRATE_PEER2PEER
  * @miguri: (optional) URI for invoking the migration, not if @flags includs VIR_MIGRATE_TUNNELLED
  * @dxml: (optional) XML config for launching guest on target
- * @flags: flags
+ * @flags: bitwise-OR of virDomainMigrateFlags
  * @dname: (optional) rename domain to this at destination
  * @bandwidth: (optional) specify migration bandwidth limit in Mbps
  *
@@ -6295,7 +6457,7 @@ error:
  * @params: pointer to node cpu time parameter objects
  * @nparams: number of node cpu time parameter (this value should be same or
  *          less than the number of parameters supported)
- * @flags: currently unused, for future extension. always pass 0.
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * This function provides individual cpu statistics of the node.
  * If you want to get total cpu statistics of the node, you must specify
@@ -6385,7 +6547,7 @@ error:
  * @params: pointer to node memory stats objects
  * @nparams: number of node memory stats (this value should be same or
  *          less than the number of stats supported)
- * @flags: currently unused, for future extension. always pass 0.
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * This function provides memory stats of the node.
  * If you want to get total cpu statistics of the node, you must specify
@@ -6511,8 +6673,7 @@ error:
  *                  which is a combination of the former modes).
  * @duration: the time duration in seconds for which the host
  *            has to be suspended
- * @flags: any flag values that might need to be passed;
- *         currently unused (0).
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Attempt to suspend the node (host machine) for the given duration of
  * time in the specified state (Suspend-to-RAM, Suspend-to-Disk or
@@ -7086,8 +7247,8 @@ error:
  *
  * Change a subset or all parameters of interface; currently this
  * includes bandwidth parameters.  The value of @flags should be
- * either VIR_DOMAIN_AFFECT_CURRENT, or a bitwise-or of values from
- * VIR_DOMAIN_AFFECT_LIVE and VIR_DOMAIN_AFFECT_CURRENT, although
+ * either VIR_DOMAIN_AFFECT_CURRENT, or a bitwise-or of values
+ * VIR_DOMAIN_AFFECT_LIVE and VIR_DOMAIN_AFFECT_CONFIG, although
  * hypervisors vary in which flags are supported.
  *
  * This function may require privileged access to the hypervisor.
@@ -7219,7 +7380,7 @@ error:
  * @dom: pointer to the domain object
  * @stats: nr_stats-sized array of stat structures (returned)
  * @nr_stats: number of memory statistics requested
- * @flags: unused, always pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * This function provides memory statistics for the domain.
  *
@@ -7292,7 +7453,7 @@ error:
  * @offset: offset within block device
  * @size: size to read
  * @buffer: return buffer (must be at least size bytes)
- * @flags: unused, always pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * This function allows you to read the contents of a domain's
  * disk device.
@@ -7387,7 +7548,7 @@ error:
  * @dom: pointer to the domain object
  * @disk: path to the block image, or shorthand
  * @size: new size of the block image in kilobytes
- * @flags: unused, always pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Note that this call may fail if the underlying virtualization hypervisor
  * does not support it. And this call requires privileged access to the
@@ -7456,7 +7617,7 @@ error:
  * @start: start of memory to peek
  * @size: size of memory to peek
  * @buffer: return buffer (must be at least size bytes)
- * @flags: flags, see below
+ * @flags: bitwise-OR of virDomainMemoryFlags
  *
  * This function allows you to read the contents of a domain's
  * memory.
@@ -7566,7 +7727,7 @@ error:
  * @domain: a domain object
  * @disk: path to the block device, or device shorthand
  * @info: pointer to a virDomainBlockInfo structure allocated by the user
- * @flags: currently unused, pass zero
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Extract information about a domain's block device.
  *
@@ -7724,7 +7885,7 @@ error:
 /**
  * virDomainUndefineFlags:
  * @domain: pointer to a defined domain
- * @flags: bitwise-or of supported virDomainUndefineFlagsValues
+ * @flags: bitwise-OR of supported virDomainUndefineFlagsValues
  *
  * Undefine a domain. If the domain is running, it's converted to
  * transient domain, without stopping it. If the domain is inactive,
@@ -7910,7 +8071,7 @@ error:
 /**
  * virDomainCreateWithFlags:
  * @domain: pointer to a defined domain
- * @flags: bitwise-or of supported virDomainCreateFlags
+ * @flags: bitwise-OR of supported virDomainCreateFlags
  *
  * Launch a defined domain. If the call succeeds the domain moves from the
  * defined to the running domains pools.
@@ -8073,7 +8234,7 @@ error:
 /**
  * virDomainInjectNMI:
  * @domain: pointer to domain object, or NULL for Domain0
- * @flags:  the flags for controlling behavior, pass 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Send NMI to the guest
  *
@@ -8121,7 +8282,7 @@ error:
  * @holdtime:  the duration (in milliseconds) that the keys will be held
  * @keycodes:  array of keycodes
  * @nkeycodes: number of keycodes, up to VIR_DOMAIN_SEND_KEY_MAX_KEYS
- * @flags:     the flags for controlling behavior, pass 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Send key(s) to the guest.
  *
@@ -8238,7 +8399,7 @@ error:
  * virDomainSetVcpusFlags:
  * @domain: pointer to domain object, or NULL for Domain0
  * @nvcpus: the new number of virtual CPUs for this domain, must be at least 1
- * @flags: an OR'ed set of virDomainVcpuFlags
+ * @flags: bitwise-OR of virDomainVcpuFlags
  *
  * Dynamically change the number of virtual CPUs used by the domain.
  * Note that this call may fail if the underlying virtualization hypervisor
@@ -8310,7 +8471,7 @@ error:
 /**
  * virDomainGetVcpusFlags:
  * @domain: pointer to domain object, or NULL for Domain0
- * @flags: an OR'ed set of virDomainVcpuFlags
+ * @flags: bitwise-OR of virDomainVcpuFlags
  *
  * Query the number of virtual CPUs used by the domain.  Note that
  * this call may fail if the underlying virtualization hypervisor does
@@ -8379,9 +8540,9 @@ error:
  *      Bytes are stored in little-endian order: CPU0-7, 8-15...
  *      In each byte, lowest CPU number is least significant bit.
  * @maplen: number of bytes in cpumap, from 1 up to size of CPU map in
- *	underlying virtualization system (Xen...).
- *	If maplen < size, missing bytes are set to zero.
- *	If maplen > size, failure code is returned.
+ *      underlying virtualization system (Xen...).
+ *      If maplen < size, missing bytes are set to zero.
+ *      If maplen > size, failure code is returned.
  *
  * Dynamically change the real CPUs which can be allocated to a virtual CPU.
  * This function may require privileged access to the hypervisor.
@@ -8526,7 +8687,7 @@ error:
  *     Must not be NULL.
  * @maplen: the number of bytes in one cpumap, from 1 up to size of CPU map.
  *     Must be positive.
- * @flags: an OR'ed set of virDomainModificationImpact
+ * @flags: bitwise-OR of virDomainModificationImpact
  *     Must not be VIR_DOMAIN_AFFECT_LIVE and
  *     VIR_DOMAIN_AFFECT_CONFIG concurrently.
  *
@@ -8590,15 +8751,15 @@ error:
  * @maxinfo: number of structures in info array
  * @cpumaps: pointer to a bit map of real CPUs for all vcpus of this
  *      domain (in 8-bit bytes) (OUT)
- *	If cpumaps is NULL, then no cpumap information is returned by the API.
- *	It's assumed there is <maxinfo> cpumap in cpumaps array.
- *	The memory allocated to cpumaps must be (maxinfo * maplen) bytes
- *	(ie: calloc(maxinfo, maplen)).
- *	One cpumap inside cpumaps has the format described in
+ *      If cpumaps is NULL, then no cpumap information is returned by the API.
+ *      It's assumed there is <maxinfo> cpumap in cpumaps array.
+ *      The memory allocated to cpumaps must be (maxinfo * maplen) bytes
+ *      (ie: calloc(maxinfo, maplen)).
+ *      One cpumap inside cpumaps has the format described in
  *      virDomainPinVcpu() API.
  * @maplen: number of bytes in one cpumap, from 1 up to size of CPU map in
- *	underlying virtualization system (Xen...).
- *	Must be zero when cpumaps is NULL and positive when it is non-NULL.
+ *      underlying virtualization system (Xen...).
+ *      Must be zero when cpumaps is NULL and positive when it is non-NULL.
  *
  * Extract information about virtual CPUs of domain, store it in info array
  * and also in cpumaps if this pointer isn't NULL.  This call may fail
@@ -8747,6 +8908,184 @@ error:
 }
 
 /**
+ * virDomainSetMetadata:
+ * @domain: a domain object
+ * @type: type of description, from virDomainMetadataType
+ * @metadata: new metadata text
+ * @key: XML namespace key, or NULL
+ * @uri: XML namespace URI, or NULL
+ * @flags: bitwise-OR of virDomainModificationImpact
+ *
+ * Sets the appropriate domain element given by @type to the
+ * value of @description.  A @type of VIR_DOMAIN_METADATA_DESCRIPTION
+ * is free-form text; VIR_DOMAIN_METADATA_TITLE is free-form, but no
+ * newlines are permitted, and should be short (although the length is
+ * not enforced). For these two options @key and @uri are irrelevant and
+ * must be set to NULL.
+ *
+ * For type VIR_DOMAIN_METADATA_ELEMENT @metadata  must be well-formed
+ * XML belonging to namespace defined by @uri with local name @key.
+ *
+ * Passing NULL for @metadata says to remove that element from the
+ * domain XML (passing the empty string leaves the element present).
+ *
+ * The resulting metadata will be present in virDomainGetXMLDesc(),
+ * as well as quick access through virDomainGetMetadata().
+ *
+ * @flags controls whether the live domain, persistent configuration,
+ * or both will be modified.
+ *
+ * Returns 0 on success, -1 in case of failure.
+ */
+int
+virDomainSetMetadata(virDomainPtr domain,
+                     int type,
+                     const char *metadata,
+                     const char *key,
+                     const char *uri,
+                     unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain,
+                     "type=%d, metadata='%s', key='%s', uri='%s', flags=%x",
+                     type, NULLSTR(metadata), NULLSTR(key), NULLSTR(uri),
+                     flags);
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        goto error;
+    }
+
+    conn = domain->conn;
+
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    switch (type) {
+    case VIR_DOMAIN_METADATA_TITLE:
+        if (metadata && strchr(metadata, '\n')) {
+                virLibDomainError(VIR_ERR_INVALID_ARG, "%s",
+                                  _("Domain title can't contain newlines"));
+                goto error;
+        }
+        /* fallthrough */
+    case VIR_DOMAIN_METADATA_DESCRIPTION:
+        if (uri || key) {
+            virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+            goto error;
+        }
+        break;
+    case VIR_DOMAIN_METADATA_ELEMENT:
+        if (!uri || !key) {
+            virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+            goto error;
+        }
+        break;
+    default:
+        /* For future expansion */
+        break;
+    }
+
+    if (conn->driver->domainSetMetadata) {
+        int ret;
+        ret = conn->driver->domainSetMetadata(domain, type, metadata, key, uri,
+                                              flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainGetMetadata:
+ * @domain: a domain object
+ * @type: type of description, from virDomainMetadataType
+ * @uri: XML namespace identifier
+ * @flags: bitwise-OR of virDomainModificationImpact
+ *
+ * Retrieves the appropriate domain element given by @type.
+ * If VIR_DOMAIN_METADATA_ELEMENT is requested parameter @uri
+ * must be set to the name of the namespace the requested elements
+ * belong to, otherwise must be NULL.
+ *
+ * If an element of the domain XML is not present, the resulting
+ * error will be VIR_ERR_NO_DOMAIN_METADATA.  This method forms
+ * a shortcut for seeing information from virDomainSetMetadata()
+ * without having to go through virDomainGetXMLDesc().
+ *
+ * @flags controls whether the live domain or persistent
+ * configuration will be queried.
+ *
+ * Returns the metadata string on success (caller must free),
+ * or NULL in case of failure.
+ */
+char *
+virDomainGetMetadata(virDomainPtr domain,
+                     int type,
+                     const char *uri,
+                     unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "type=%d, uri='%s', flags=%x",
+                     type, NULLSTR(uri), flags);
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        goto error;
+    }
+
+    if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
+        (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    switch (type) {
+    case VIR_DOMAIN_METADATA_TITLE:
+    case VIR_DOMAIN_METADATA_DESCRIPTION:
+        if (uri) {
+            virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+            goto error;
+        }
+        break;
+    case VIR_DOMAIN_METADATA_ELEMENT:
+        if (!uri) {
+            virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+            goto error;
+        }
+        break;
+    default:
+        /* For future expansion */
+        break;
+    }
+
+    conn = domain->conn;
+
+    if (conn->driver->domainGetMetadata) {
+        char *ret;
+        if (!(ret = conn->driver->domainGetMetadata(domain, type, uri, flags)))
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return NULL;
+}
+
+/**
  * virNodeGetSecurityModel:
  * @conn: a connection object
  * @secmodel: pointer to a virSecurityModel structure
@@ -8847,7 +9186,7 @@ error:
  * virDomainAttachDeviceFlags:
  * @domain: pointer to domain object
  * @xml: pointer to XML description of one device
- * @flags: an OR'ed set of virDomainDeviceModifyFlags
+ * @flags: bitwise-OR of virDomainDeviceModifyFlags
  *
  * Attach a virtual device to a domain, using the flags parameter
  * to control how the device is attached.  VIR_DOMAIN_AFFECT_CURRENT
@@ -8964,7 +9303,7 @@ error:
  * virDomainDetachDeviceFlags:
  * @domain: pointer to domain object
  * @xml: pointer to XML description of one device
- * @flags: an OR'ed set of virDomainDeviceModifyFlags
+ * @flags: bitwise-OR of virDomainDeviceModifyFlags
  *
  * Detach a virtual device from a domain, using the flags parameter
  * to control how the device is detached.  VIR_DOMAIN_AFFECT_CURRENT
@@ -9026,7 +9365,7 @@ error:
  * virDomainUpdateDeviceFlags:
  * @domain: pointer to domain object
  * @xml: pointer to XML description of one device
- * @flags: an OR'ed set of virDomainDeviceModifyFlags
+ * @flags: bitwise-OR of virDomainDeviceModifyFlags
  *
  * Change a virtual device on a domain, using the flags parameter
  * to control how the device is changed.  VIR_DOMAIN_AFFECT_CURRENT
@@ -9836,10 +10175,15 @@ error:
 /**
  * virNetworkGetXMLDesc:
  * @network: a network object
- * @flags: an OR'ed set of extraction flags, not used yet
+ * @flags: bitwise-OR of virNetworkXMLFlags
  *
  * Provide an XML description of the network. The description may be reused
  * later to relaunch the network with virNetworkCreateXML().
+ *
+ * Normally, if a network included a physical function, the output includes
+ * all virtual functions tied to that physical interface.  If @flags includes
+ * VIR_NETWORK_XML_INACTIVE, then the expansion of virtual interfaces is
+ * not performed.
  *
  * Returns a 0 terminated UTF-8 encoded XML instance, or NULL in case of error.
  *         the caller must free() the returned value.
@@ -10338,7 +10682,7 @@ virInterfaceGetMACString(virInterfacePtr iface)
 /**
  * virInterfaceGetXMLDesc:
  * @iface: an interface object
- * @flags: an OR'ed set of extraction flags. Current valid bits:
+ * @flags: bitwise-OR of extraction flags. Current valid bits:
  *
  *      VIR_INTERFACE_XML_INACTIVE - return the static configuration,
  *                                   suitable for use redefining the
@@ -10388,9 +10732,8 @@ error:
  * virInterfaceDefineXML:
  * @conn: pointer to the hypervisor connection
  * @xml: the XML description for the interface, preferably in UTF-8
- * @flags: and OR'ed set of extraction flags, not used yet
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
-
  * Define an interface (or modify existing interface configuration).
  *
  * Normally this change in the interface configuration is immediately
@@ -10496,7 +10839,7 @@ error:
 /**
  * virInterfaceCreate:
  * @iface: pointer to a defined interface
- * @flags: and OR'ed set of extraction flags, not used yet
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Activate an interface (i.e. call "ifup").
  *
@@ -10544,7 +10887,7 @@ error:
 /**
  * virInterfaceDestroy:
  * @iface: an interface object
- * @flags: and OR'ed set of extraction flags, not used yet
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * deactivate an interface (ie call "ifdown")
  * This does not remove the interface from the config, and
@@ -10657,7 +11000,7 @@ virInterfaceFree(virInterfacePtr iface)
 /**
  * virInterfaceChangeBegin:
  * @conn: pointer to hypervisor connection
- * @flags: flags, not used yet
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * This function creates a restore point to which one can return
  * later by calling virInterfaceChangeRollback(). This function should
@@ -10707,7 +11050,7 @@ error:
 /**
  * virInterfaceChangeCommit:
  * @conn: pointer to hypervisor connection
- * @flags: flags, not used yet
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * This commits the changes made to interfaces and frees the restore point
  * created by virInterfaceChangeBegin().
@@ -10754,7 +11097,7 @@ error:
 /**
  * virInterfaceChangeRollback:
  * @conn: pointer to hypervisor connection
- * @flags: flags, not used yet
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * This cancels changes made to interfaces settings by restoring previous
  * state created by virInterfaceChangeBegin().
@@ -10838,7 +11181,7 @@ virStoragePoolGetConnect (virStoragePoolPtr pool)
  * Returns the number of pools found, or -1 on error
  */
 int
-virConnectNumOfStoragePools	(virConnectPtr conn)
+virConnectNumOfStoragePools(virConnectPtr conn)
 {
     VIR_DEBUG("conn=%p", conn);
 
@@ -10878,9 +11221,9 @@ error:
  * Returns 0 on success, -1 on error
  */
 int
-virConnectListStoragePools	(virConnectPtr conn,
-                             char **const names,
-                             int maxnames)
+virConnectListStoragePools(virConnectPtr conn,
+                           char **const names,
+                           int maxnames)
 {
     VIR_DEBUG("conn=%p, names=%p, maxnames=%d", conn, names, maxnames);
 
@@ -11003,7 +11346,7 @@ error:
  * @conn: pointer to hypervisor connection
  * @type: type of storage pool sources to discover
  * @srcSpec: XML document specifying discovery source
- * @flags: flags for discovery (unused, pass 0)
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Talks to a storage backend and attempts to auto-discover the set of
  * available storage pool sources. e.g. For iSCSI this would be a set of
@@ -11228,7 +11571,7 @@ error:
  * virStoragePoolCreateXML:
  * @conn: pointer to hypervisor connection
  * @xmlDesc: XML description for new pool
- * @flags: future flags, use 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Create a new storage based on its XML description. The
  * pool is not persistent, so its definition will disappear
@@ -11278,7 +11621,7 @@ error:
  * virStoragePoolDefineXML:
  * @conn: pointer to hypervisor connection
  * @xml: XML description for new pool
- * @flags: future flags, use 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Define a new inactive storage pool based on its XML description. The
  * pool is persistent, until explicitly undefined.
@@ -11326,8 +11669,7 @@ error:
 /**
  * virStoragePoolBuild:
  * @pool: pointer to storage pool
- * @flags: future flags, use 0 for now
- * @flags: flags to control pool build behaviour
+ * @flags: bitwise-OR of virStoragePoolBuildFlags
  *
  * Currently only filesystem pool accepts flags VIR_STORAGE_POOL_BUILD_OVERWRITE
  * and VIR_STORAGE_POOL_BUILD_NO_OVERWRITE.
@@ -11418,7 +11760,7 @@ error:
 /**
  * virStoragePoolCreate:
  * @pool: pointer to storage pool
- * @flags: future flags, use 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Starts an inactive storage pool
  *
@@ -11510,7 +11852,7 @@ error:
 /**
  * virStoragePoolDelete:
  * @pool: pointer to storage pool
- * @flags: flags for obliteration process
+ * @flags: bitwise-OR of virStoragePoolDeleteFlags
  *
  * Delete the underlying pool resources. This is
  * a non-recoverable operation. The virStoragePoolPtr object
@@ -11620,7 +11962,7 @@ virStoragePoolRef(virStoragePoolPtr pool)
 /**
  * virStoragePoolRefresh:
  * @pool: pointer to storage pool
- * @flags: flags to control refresh behaviour (currently unused, use 0)
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Request that the pool refresh its list of volumes. This may
  * involve communicating with a remote server, and/or initializing
@@ -11817,7 +12159,7 @@ error:
 /**
  * virStoragePoolGetXMLDesc:
  * @pool: pointer to storage pool
- * @flags: flags for XML format options (set of virDomainXMLFlags)
+ * @flags: bitwise-OR of virDomainXMLFlags
  *
  * Fetch an XML document describing all aspects of the
  * storage pool. This is suitable for later feeding back
@@ -12253,7 +12595,7 @@ virStorageVolGetKey(virStorageVolPtr vol)
  * virStorageVolCreateXML:
  * @pool: pointer to storage pool
  * @xmldesc: description of volume to create
- * @flags: flags for creation (unused, pass 0)
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Create a storage volume within a pool based
  * on an XML description. Not all pools support
@@ -12307,7 +12649,7 @@ error:
  * @pool: pointer to parent pool for the new volume
  * @xmldesc: description of volume to create
  * @clonevol: storage volume to use as input
- * @flags: flags for creation (unused, pass 0)
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Create a storage volume in the parent pool, using the
  * 'clonevol' volume as input. Information for the new
@@ -12372,7 +12714,7 @@ error:
  * @stream: stream to use as output
  * @offset: position in @vol to start reading from
  * @length: limit on amount of data to download
- * @flags: future flags (unused, pass 0)
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Download the content of the volume as a stream. If @length
  * is zero, then the remaining contents of the volume after
@@ -12441,7 +12783,7 @@ error:
  * @stream: stream to use as input
  * @offset: position to start writing to
  * @length: limit on amount of data to upload
- * @flags: flags for creation (unused, pass 0)
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Upload new content to the volume from a stream. This call
  * will fail if @offset + @length exceeds the size of the
@@ -12509,7 +12851,7 @@ error:
 /**
  * virStorageVolDelete:
  * @vol: pointer to storage volume
- * @flags: future flags, use 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Delete the storage volume from the pool
  *
@@ -12555,7 +12897,7 @@ error:
 /**
  * virStorageVolWipe:
  * @vol: pointer to storage volume
- * @flags: future flags, use 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Ensure data previously on a volume is not accessible to future reads
  *
@@ -12598,6 +12940,55 @@ error:
     return -1;
 }
 
+
+/**
+ * virStorageVolWipePattern:
+ * @vol: pointer to storage volume
+ * @algorithm: one of virStorageVolWipeAlgorithm
+ * @flags: future flags, use 0 for now
+ *
+ * Similar to virStorageVolWipe, but one can choose
+ * between different wiping algorithms.
+ *
+ * Returns 0 on success, or -1 on error.
+ */
+int
+virStorageVolWipePattern(virStorageVolPtr vol,
+                         unsigned int algorithm,
+                         unsigned int flags)
+{
+    virConnectPtr conn;
+    VIR_DEBUG("vol=%p, algorithm=%u, flags=%x", vol, algorithm, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_STORAGE_VOL(vol)) {
+        virLibStorageVolError(VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = vol->conn;
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibStorageVolError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->storageDriver && conn->storageDriver->volWipePattern) {
+        int ret;
+        ret = conn->storageDriver->volWipePattern(vol, algorithm, flags);
+        if (ret < 0) {
+            goto error;
+        }
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(vol->conn);
+    return -1;
+}
 
 /**
  * virStorageVolFree:
@@ -12712,7 +13103,7 @@ error:
 /**
  * virStorageVolGetXMLDesc:
  * @vol: pointer to storage volume
- * @flags: flags for XML generation (unused, pass 0)
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Fetch an XML document describing all aspects of
  * the storage volume
@@ -12796,12 +13187,89 @@ error:
     return NULL;
 }
 
+/**
+ * virStorageVolResize:
+ * @vol: pointer to storage volume
+ * @capacity: new capacity, in bytes
+ * @flags: bitwise-OR of virStorageVolResizeFlags
+ *
+ * Changes the capacity of the storage volume @vol to @capacity. The
+ * operation will fail if the new capacity requires allocation that would
+ * exceed the remaining free space in the parent pool.  The contents of
+ * the new capacity will appear as all zero bytes.
+ *
+ * Normally, the operation will attempt to affect capacity with a minimum
+ * impact on allocation (that is, the default operation favors a sparse
+ * resize).  If @flags contains VIR_STORAGE_VOL_RESIZE_ALLOCATE, then the
+ * operation will ensure that allocation is sufficient for the new
+ * capacity; this may make the operation take noticeably longer.
+ *
+ * Normally, the operation treats @capacity as the new size in bytes;
+ * but if @flags contains VIR_STORAGE_RESIZE_DELTA, then @capacity
+ * represents the size difference to add to the current size.  It is
+ * up to the storage pool implementation whether unaligned requests are
+ * rounded up to the next valid boundary, or rejected.
+ *
+ * Normally, this operation should only be used to enlarge capacity;
+ * but if @flags contains VIR_STORAGE_RESIZE_SHRINK, it is possible to
+ * attempt a reduction in capacity even though it might cause data loss.
+ * If VIR_STORAGE_RESIZE_DELTA is also present, then @capacity is
+ * subtracted from the current size; without it, @capacity represents
+ * the absolute new size regardless of whether it is larger or smaller
+ * than the current size.
+ *
+ * Returns 0 on success, or -1 on error.
+ */
+int
+virStorageVolResize(virStorageVolPtr vol,
+                    unsigned long long capacity,
+                    unsigned int flags)
+{
+    virConnectPtr conn;
+    VIR_DEBUG("vol=%p capacity=%llu flags=%x", vol, capacity, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_STORAGE_VOL(vol)) {
+        virLibStorageVolError(VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = vol->conn;
+
+    if (conn->flags & VIR_CONNECT_RO) {
+       virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+       goto error;
+    }
+
+    /* Zero capacity is only valid with either delta or shrink.  */
+    if (capacity == 0 && !((flags & VIR_STORAGE_VOL_RESIZE_DELTA) ||
+                           (flags & VIR_STORAGE_VOL_RESIZE_SHRINK))) {
+        virLibStorageVolError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->storageDriver && conn->storageDriver->volResize) {
+        int ret;
+        ret = conn->storageDriver->volResize(vol, capacity, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(vol->conn);
+    return -1;
+}
 
 /**
  * virNodeNumOfDevices:
  * @conn: pointer to the hypervisor connection
  * @cap: capability name
- * @flags: flags (unused, pass 0)
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Provides the number of node devices.
  *
@@ -12845,7 +13313,7 @@ error:
  * @cap: capability name
  * @names: array to collect the list of node device names
  * @maxnames: size of @names
- * @flags: flags (unused, pass 0)
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Collect the list of node devices, and store their names in @names
  *
@@ -12936,7 +13404,7 @@ error:
 /**
  * virNodeDeviceGetXMLDesc:
  * @dev: pointer to the node device
- * @flags: flags for XML generation (unused, pass 0)
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Fetch an XML document describing all aspects of
  * the device.
@@ -13321,7 +13789,7 @@ error:
  * virNodeDeviceCreateXML:
  * @conn: pointer to the hypervisor connection
  * @xmlDesc: string containing an XML description of the device to be created
- * @flags: callers should always pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Create a new device on the VM host machine, for example, virtual
  * HBAs created using vport_create.
@@ -13766,7 +14234,7 @@ error:
  * virSecretDefineXML:
  * @conn: virConnect connection
  * @xml: XML describing the secret.
- * @flags: flags, use 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * If XML specifies a UUID, locates the specified secret and replaces all
  * attributes of the secret specified by UUID by attributes specified in xml
@@ -13949,7 +14417,7 @@ virSecretGetUsageID(virSecretPtr secret)
 /**
  * virSecretGetXMLDesc:
  * @secret: A virSecret secret
- * @flags: flags, use 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Fetches an XML document describing attributes of the secret.
  *
@@ -13993,7 +14461,7 @@ error:
  * @secret: A virSecret secret
  * @value: Value of the secret
  * @value_size: Size of the value
- * @flags: flags, use 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Sets the value of a secret.
  *
@@ -14045,7 +14513,7 @@ error:
  * virSecretGetValue:
  * @secret: A virSecret connection
  * @value_size: Place for storing size of the secret value
- * @flags: flags, use 0 for now
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Fetches the value of a secret.
  *
@@ -14199,7 +14667,7 @@ virSecretFree(virSecretPtr secret)
 /**
  * virStreamNew:
  * @conn: pointer to the connection
- * @flags: control features of the stream
+ * @flags: bitwise-OR of virStreamFlags
  *
  * Creates a new stream object which can be used to perform
  * streamed I/O with other public API function.
@@ -15591,7 +16059,7 @@ error:
 /**
  * virNWFilterGetXMLDesc:
  * @nwfilter: a nwfilter object
- * @flags: an OR'ed set of extraction flags, not used yet
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Provide an XML description of the network filter. The description may be
  * reused later to redefine the network filter with virNWFilterCreateXML().
@@ -15773,7 +16241,7 @@ error:
  * virConnectCompareCPU:
  * @conn: virConnect connection
  * @xmlDesc: XML describing the CPU to compare with host CPU
- * @flags: currently unused, pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Compares the given CPU description with the host CPU
  *
@@ -15821,7 +16289,7 @@ error:
  * @conn: virConnect connection
  * @xmlCPUs: array of XML descriptions of host CPUs
  * @ncpus: number of CPUs in xmlCPUs
- * @flags: fine-tuning flags, currently unused, pass 0.
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Computes the most feature-rich CPU which is compatible with all given
  * host CPUs.
@@ -15972,7 +16440,7 @@ error:
  * virDomainMigrateSetMaxDowntime:
  * @domain: a domain object
  * @downtime: maximum tolerable downtime for live migration, in milliseconds
- * @flags: fine-tuning flags, currently unused, use 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Sets maximum tolerable time for which the domain is allowed to be paused
  * at the end of live migration. It's supposed to be called while the domain is
@@ -16019,7 +16487,7 @@ error:
  * virDomainMigrateSetMaxSpeed:
  * @domain: a domain object
  * @bandwidth: migration bandwidth limit in Mbps
- * @flags: fine-tuning flags, currently unused, use 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * The maximum bandwidth (in Mbps) that will be used to do migration
  * can be specified with the bandwidth parameter. Not all hypervisors
@@ -16066,7 +16534,7 @@ error:
  * virDomainMigrateGetMaxSpeed:
  * @domain: a domain object
  * @bandwidth: return value of current migration bandwidth limit in Mbps
- * @flags: fine-tuning flags, currently unused, use 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Get the current maximum bandwidth (in Mbps) that will be used if the
  * domain is migrated.  Not all hypervisors will support a bandwidth limit.
@@ -16130,7 +16598,7 @@ error:
  * is non-NULL, then only the specific domain will be monitored
  *
  * Most types of event have a callback providing a custom set of parameters
- * for the event. When registering an event, it is thus neccessary to use
+ * for the event. When registering an event, it is thus necessary to use
  * the VIR_DOMAIN_EVENT_CALLBACK() macro to cast the supplied function pointer
  * to match the signature of this method.
  *
@@ -16305,7 +16773,7 @@ error:
 /**
  * virDomainHasManagedSaveImage:
  * @dom: pointer to the domain
- * @flags: optional flags currently unused
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Check if a domain has a managed save image as created by
  * virDomainManagedSave(). Note that any running domain should not have
@@ -16349,7 +16817,7 @@ error:
 /**
  * virDomainManagedSaveRemove:
  * @dom: pointer to the domain
- * @flags: optional flags currently unused
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Remove any managed save image for this domain.
  *
@@ -16520,7 +16988,26 @@ virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot)
  * inconsistent (as if power had been pulled), and specifying this
  * with the VIR_DOMAIN_SNAPSHOT_CREATE_HALT flag risks data loss.
  *
+ * If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE, then the
+ * libvirt will attempt to use guest agent to freeze and thaw all
+ * file systems in use within domain OS. However, if the guest agent
+ * is not present, an error is thrown. Moreover, this flag requires
+ * VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY to be passed as well.
+ *
+ * By default, if the snapshot involves external files, and any of the
+ * destination files already exist as a regular file, the snapshot is
+ * rejected to avoid losing contents of those files.  However, if
+ * @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT, then existing
+ * destination files are instead truncated and reused.
+ *
  * Returns an (opaque) virDomainSnapshotPtr on success, NULL on failure.
+ * Be aware that although libvirt prefers to report errors up front with
+ * no other effect, there are certain types of failures where a failure
+ * can occur even though the guest configuration was changed (for
+ * example, if a disk snapshot request over two disks only fails on the
+ * second disk, leaving the first disk altered); so after getting a NULL
+ * return, it can be wise to use virDomainGetXMLDesc() to determine if
+ * any partial changes occurred.
  */
 virDomainSnapshotPtr
 virDomainSnapshotCreateXML(virDomainPtr domain,
@@ -16640,7 +17127,7 @@ error:
 /**
  * virDomainSnapshotNum:
  * @domain: a domain object
- * @flags: bitwise-or of supported virDomainSnapshotListFlags
+ * @flags: bitwise-OR of supported virDomainSnapshotListFlags
  *
  * Provides the number of domain snapshots for this domain.
  *
@@ -16691,7 +17178,7 @@ error:
  * @domain: a domain object
  * @names: array to collect the list of names of snapshots
  * @nameslen: size of @names
- * @flags: bitwise-or of supported virDomainSnapshotListFlags
+ * @flags: bitwise-OR of supported virDomainSnapshotListFlags
  *
  * Collect the list of domain snapshots for the given domain, and store
  * their names in @names.  Caller is responsible for freeing each member
@@ -16752,7 +17239,7 @@ error:
 /**
  * virDomainSnapshotNumChildren:
  * @snapshot: a domain snapshot object
- * @flags: bitwise-or of supported virDomainSnapshotListFlags
+ * @flags: bitwise-OR of supported virDomainSnapshotListFlags
  *
  * Provides the number of child snapshots for this domain snapshot.
  *
@@ -16804,7 +17291,7 @@ error:
  * @snapshot: a domain snapshot object
  * @names: array to collect the list of names of snapshots
  * @nameslen: size of @names
- * @flags: bitwise-or of supported virDomainSnapshotListFlags
+ * @flags: bitwise-OR of supported virDomainSnapshotListFlags
  *
  * Collect the list of domain snapshots that are children of the given
  * snapshot, and store their names in @names.  Caller is responsible for
@@ -16870,7 +17357,7 @@ error:
  * virDomainSnapshotLookupByName:
  * @domain: a domain object
  * @name: name for the domain snapshot
- * @flags: unused flag parameters; callers should pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Try to lookup a domain snapshot based on its name.
  *
@@ -16919,7 +17406,7 @@ error:
 /**
  * virDomainHasCurrentSnapshot:
  * @domain: pointer to the domain object
- * @flags: unused flag parameters; callers should pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Determine if the domain has a current snapshot.
  *
@@ -16958,7 +17445,7 @@ error:
 /**
  * virDomainSnapshotCurrent:
  * @domain: a domain object
- * @flags: unused flag parameters; callers should pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Get the current snapshot for a domain, if any.
  *
@@ -17001,7 +17488,7 @@ error:
 /**
  * virDomainSnapshotGetParent:
  * @snapshot: a snapshot object
- * @flags: unused flag parameters; callers should pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Get the parent snapshot for @snapshot, if any.
  *
@@ -17131,7 +17618,7 @@ error:
 /**
  * virDomainSnapshotDelete:
  * @snapshot: a domain snapshot object
- * @flags: bitwise-or of supported virDomainSnapshotDeleteFlags
+ * @flags: bitwise-OR of supported virDomainSnapshotDeleteFlags
  *
  * Delete the snapshot.
  *
@@ -17230,7 +17717,7 @@ virDomainSnapshotFree(virDomainSnapshotPtr snapshot)
  * @dom: a domain object
  * @dev_name: the console, serial or parallel port device alias, or NULL
  * @st: a stream to associate with the console
- * @flags: unused, pass 0
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * This opens the backend associated with a console, serial or
  * parallel port device on a guest, if the backend is supported.
@@ -17284,7 +17771,7 @@ error:
  * virDomainBlockJobAbort:
  * @dom: pointer to domain object
  * @disk: path to the block device, or device shorthand
- * @flags: currently unused, for future extension
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Cancel the active block job on the given disk.
  *
@@ -17302,7 +17789,7 @@ int virDomainBlockJobAbort(virDomainPtr dom, const char *disk,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "disk=%p, flags=%x", disk, flags);
+    VIR_DOMAIN_DEBUG(dom, "disk=%s, flags=%x", disk, flags);
 
     virResetLastError();
 
@@ -17344,7 +17831,7 @@ error:
  * @dom: pointer to domain object
  * @disk: path to the block device, or device shorthand
  * @info: pointer to a virDomainBlockJobInfo structure
- * @flags: currently unused, for future extension
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Request block job information for the given disk.  If an operation is active
  * @info will be updated with the current progress.
@@ -17363,7 +17850,7 @@ int virDomainGetBlockJobInfo(virDomainPtr dom, const char *disk,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "disk=%p, info=%p, flags=%x", disk, info, flags);
+    VIR_DOMAIN_DEBUG(dom, "disk=%s, info=%p, flags=%x", disk, info, flags);
 
     virResetLastError();
 
@@ -17406,7 +17893,7 @@ error:
  * @dom: pointer to domain object
  * @disk: path to the block device, or device shorthand
  * @bandwidth: specify bandwidth limit in Mbps
- * @flags: currently unused, for future extension
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Set the maximimum allowable bandwidth that a block job may consume.  If
  * bandwidth is 0, the limit will revert to the hypervisor default.
@@ -17425,7 +17912,7 @@ int virDomainBlockJobSetSpeed(virDomainPtr dom, const char *disk,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "disk=%p, bandwidth=%lu, flags=%x",
+    VIR_DOMAIN_DEBUG(dom, "disk=%s, bandwidth=%lu, flags=%x",
                      disk, bandwidth, flags);
 
     virResetLastError();
@@ -17468,7 +17955,7 @@ error:
  * @dom: pointer to domain object
  * @disk: path to the block device, or device shorthand
  * @bandwidth: (optional) specify copy bandwidth limit in Mbps
- * @flags: currently unused, for future extension
+ * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Populate a disk image with data from its backing image.  Once all data from
  * its backing image has been pulled, the disk no longer depends on a backing
@@ -17489,6 +17976,8 @@ error:
  * suitable default.  Some hypervisors do not support this feature and will
  * return an error if bandwidth is not 0.
  *
+ * This is shorthand for virDomainBlockRebase() with a NULL base.
+ *
  * Returns 0 if the operation has started, -1 on failure.
  */
 int virDomainBlockPull(virDomainPtr dom, const char *disk,
@@ -17496,7 +17985,7 @@ int virDomainBlockPull(virDomainPtr dom, const char *disk,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "disk=%p, bandwidth=%lu, flags=%x",
+    VIR_DOMAIN_DEBUG(dom, "disk=%s, bandwidth=%lu, flags=%x",
                      disk, bandwidth, flags);
 
     virResetLastError();
@@ -17536,11 +18025,93 @@ error:
 
 
 /**
+ * virDomainBlockRebase:
+ * @dom: pointer to domain object
+ * @disk: path to the block device, or device shorthand
+ * @base: path to backing file to keep, or NULL for no backing file
+ * @bandwidth: (optional) specify copy bandwidth limit in Mbps
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Populate a disk image with data from its backing image chain, and
+ * setting the backing image to @base.  @base must be the absolute
+ * path of one of the backing images further up the chain, or NULL to
+ * convert the disk image so that it has no backing image.  Once all
+ * data from its backing image chain has been pulled, the disk no
+ * longer depends on those intermediate backing images.  This function
+ * pulls data for the entire device in the background.  Progress of
+ * the operation can be checked with virDomainGetBlockJobInfo() and
+ * the operation can be aborted with virDomainBlockJobAbort().  When
+ * finished, an asynchronous event is raised to indicate the final
+ * status.
+ *
+ * The @disk parameter is either an unambiguous source name of the
+ * block device (the <source file='...'/> sub-element, such as
+ * "/path/to/image"), or the device target shorthand (the
+ * <target dev='...'/> sub-element, such as "xvda").  Valid names
+ * can be found by calling virDomainGetXMLDesc() and inspecting
+ * elements within //domain/devices/disk.
+ *
+ * The maximum bandwidth (in Mbps) that will be used to do the copy can be
+ * specified with the bandwidth parameter.  If set to 0, libvirt will choose a
+ * suitable default.  Some hypervisors do not support this feature and will
+ * return an error if bandwidth is not 0.
+ *
+ * When @base is NULL, this is identical to virDomainBlockPull().
+ *
+ * Returns 0 if the operation has started, -1 on failure.
+ */
+int virDomainBlockRebase(virDomainPtr dom, const char *disk,
+                         const char *base, unsigned long bandwidth,
+                         unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(dom, "disk=%s, base=%s bandwidth=%lu, flags=%x",
+                     disk, NULLSTR(base), bandwidth, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN (dom)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    conn = dom->conn;
+
+    if (dom->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (!disk) {
+        virLibDomainError(VIR_ERR_INVALID_ARG,
+                          _("disk is NULL"));
+        goto error;
+    }
+
+    if (conn->driver->domainBlockRebase) {
+        int ret;
+        ret = conn->driver->domainBlockRebase(dom, disk, base, bandwidth,
+                                              flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibDomainError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+
+/**
  * virDomainOpenGraphics:
  * @dom: pointer to domain object
  * @idx: index of graphics config to open
  * @fd: file descriptor to attach graphics to
- * @flags: flags to control open operation
+ * @flags: bitwise-OR of virDomainOpenGraphicsFlags
  *
  * This will attempt to connect the file descriptor @fd, to
  * the graphics backend of @dom. If @dom has multiple graphics
@@ -17721,7 +18292,7 @@ error:
  * @params: Pointer to blkio parameter objects
  * @nparams: Number of blkio parameters (this value can be the same or
  *           less than the number of parameters supported)
- * @flags: An OR'ed set of virDomainModificationImpact
+ * @flags: bitwise-OR of virDomainModificationImpact
  *
  * Change all or a subset of the per-device block IO tunables.
  *
@@ -17742,7 +18313,7 @@ int virDomainSetBlockIoTune(virDomainPtr dom,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "disk=%p, params=%p, nparams=%d, flags=%x",
+    VIR_DOMAIN_DEBUG(dom, "disk=%s, params=%p, nparams=%d, flags=%x",
                      disk, params, nparams, flags);
 
     virResetLastError();
@@ -17790,7 +18361,7 @@ error:
  * @params: Pointer to blkio parameter object
  *          (return value, allocated by the caller)
  * @nparams: Pointer to number of blkio parameters
- * @flags: An OR'ed set of virDomainModificationImpact
+ * @flags: bitwise-OR of virDomainModificationImpact and virTypedParameterFlags
  *
  * Get all block IO tunable parameters for a given device.  On input,
  * @nparams gives the size of the @params array; on output, @nparams
@@ -17824,7 +18395,7 @@ int virDomainGetBlockIoTune(virDomainPtr dom,
 {
     virConnectPtr conn;
 
-    VIR_DOMAIN_DEBUG(dom, "disk=%p, params=%p, nparams=%d, flags=%x",
+    VIR_DOMAIN_DEBUG(dom, "disk=%s, params=%p, nparams=%d, flags=%x",
                      NULLSTR(disk), params, (nparams) ? *nparams : -1, flags);
 
     virResetLastError();
@@ -17862,6 +18433,198 @@ int virDomainGetBlockIoTune(virDomainPtr dom,
     }
 
     virLibDomainError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(dom->conn);
+    return -1;
+}
+
+/**
+ * virDomainGetCPUStats:
+ * @domain: domain to query
+ * @params: array to populate on output
+ * @nparams: number of parameters per cpu
+ * @start_cpu: which cpu to start with, or -1 for summary
+ * @ncpus: how many cpus to query
+ * @flags: bitwise-OR of virTypedParameterFlags
+ *
+ * Get statistics relating to CPU usage attributable to a single
+ * domain (in contrast to the statistics returned by
+ * virNodeGetCPUStats() for all processes on the host).  @dom
+ * must be running (an inactive domain has no attributable cpu
+ * usage).  On input, @params must contain at least @nparams * @ncpus
+ * entries, allocated by the caller.
+ *
+ * If @start_cpu is -1, then @ncpus must be 1, and the returned
+ * results reflect the statistics attributable to the entire
+ * domain (such as user and system time for the process as a
+ * whole).  Otherwise, @start_cpu represents which cpu to start
+ * with, and @ncpus represents how many consecutive processors to
+ * query, with statistics attributable per processor (such as
+ * per-cpu usage).
+ *
+ * The remote driver imposes a limit of 128 @ncpus and 16 @nparams;
+ * the number of parameters per cpu should not exceed 16, but if you
+ * have a host with more than 128 CPUs, your program should split
+ * the request into multiple calls.
+ *
+ * As special cases, if @params is NULL and @nparams is 0 and
+ * @ncpus is 1, and the return value will be how many
+ * statistics are available for the given @start_cpu.  This number
+ * may be different for @start_cpu of -1 than for any non-negative
+ * value, but will be the same for all non-negative @start_cpu.
+ * Likewise, if @params is NULL and @nparams is 0 and @ncpus is 0,
+ * the number of cpus available to query is returned.  From the
+ * host perspective, this would typically match the cpus member
+ * of virNodeGetInfo(), but might be less due to host cpu hotplug.
+ *
+ * For now, @flags is unused, and the statistics all relate to the
+ * usage from the host perspective.  It is possible that a future
+ * version will support a flag that queries the cpu usage from the
+ * guest's perspective, where the maximum cpu to query would be
+ * related to virDomainGetVcpusFlags() rather than virNodeGetInfo().
+ * An individual guest vcpu cannot be reliably mapped back to a
+ * specific host cpu unless a single-processor vcpu pinning was used,
+ * but when @start_cpu is -1, any difference in usage between a host
+ * and guest perspective would serve as a measure of hypervisor overhead.
+ *
+ * Typical use sequence is below.
+ *
+ * getting total stats: set start_cpu as -1, ncpus 1
+ * virDomainGetCPUStats(dom, NULL, 0, -1, 1, 0) => nparams
+ * params = calloc(nparams, sizeof (virTypedParameter))
+ * virDomainGetCPUStats(dom, params, nparams, -1, 1, 0) => total stats.
+ *
+ * getting per-cpu stats:
+ * virDomainGetCPUStats(dom, NULL, 0, 0, 0, 0) => ncpus
+ * virDomainGetCPUStats(dom, NULL, 0, 0, 1, 0) => nparams
+ * params = calloc(ncpus * nparams, sizeof (virTypedParameter))
+ * virDomainGetCPUStats(dom, params, nparams, 0, ncpus, 0) => per-cpu stats
+ *
+ * Returns -1 on failure, or the number of statistics that were
+ * populated per cpu on success (this will be less than the total
+ * number of populated @params, unless @ncpus was 1; and may be
+ * less than @nparams).  The populated parameters start at each
+ * stride of @nparams, which means the results may be discontiguous;
+ * any unpopulated parameters will be zeroed on success.  The caller
+ * is responsible for freeing any returned string parameters.
+ */
+int virDomainGetCPUStats(virDomainPtr domain,
+                         virTypedParameterPtr params,
+                         unsigned int nparams,
+                         int start_cpu,
+                         unsigned int ncpus,
+                         unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain,
+                     "params=%p, nparams=%d, start_cpu=%d, ncpus=%u, flags=%x",
+                     params, nparams, start_cpu, ncpus, flags);
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = domain->conn;
+    /* Special cases:
+     * start_cpu must be non-negative, or else -1
+     * if start_cpu is -1, ncpus must be 1
+     * params == NULL must match nparams == 0
+     * ncpus must be non-zero unless params == NULL
+     * nparams * ncpus must not overflow (RPC may restrict it even more)
+     */
+    if (start_cpu < -1 ||
+        (start_cpu == -1 && ncpus != 1) ||
+        ((params == NULL) != (nparams == 0)) ||
+        (ncpus == 0 && params != NULL) ||
+        ncpus < UINT_MAX / nparams) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
+                                 VIR_DRV_FEATURE_TYPED_PARAM_STRING))
+        flags |= VIR_TYPED_PARAM_STRING_OKAY;
+
+    if (conn->driver->domainGetCPUStats) {
+        int ret;
+
+        ret = conn->driver->domainGetCPUStats(domain, params, nparams,
+                                              start_cpu, ncpus, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibDomainError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainGetDiskErrors:
+ * @dom: a domain object
+ * @errors: array to populate on output
+ * @maxerrors: size of @errors array
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * The function populates @errors array with all disks that encountered an
+ * I/O error.  Disks with no error will not be returned in the @errors array.
+ * Each disk is identified by its target (the dev attribute of target
+ * subelement in domain XML), such as "vda", and accompanied with the error
+ * that was seen on it.  The caller is also responsible for calling free()
+ * on each disk name returned.
+ *
+ * In a special case when @errors is NULL and @maxerrors is 0, the function
+ * returns preferred size of @errors that the caller should use to get all
+ * disk errors.
+ *
+ * Since calling virDomainGetDiskErrors(dom, NULL, 0, 0) to get preferred size
+ * of @errors array and getting the errors are two separate operations, new
+ * disks may be hotplugged to the domain and new errors may be encountered
+ * between the two calls.  Thus, this function may not return all disk errors
+ * because the supplied array is not large enough.  Such errors may, however,
+ * be detected by listening to domain events.
+ *
+ * Returns number of disks with errors filled in the @errors array or -1 on
+ * error.
+ */
+int
+virDomainGetDiskErrors(virDomainPtr dom,
+                       virDomainDiskErrorPtr errors,
+                       unsigned int maxerrors,
+                       unsigned int flags)
+{
+    VIR_DOMAIN_DEBUG(dom, "errors=%p, maxerrors=%u, flags=%x",
+                     errors, maxerrors, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN(dom)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if ((!errors && maxerrors) || (errors && !maxerrors)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        goto error;
+    }
+
+    if (dom->conn->driver->domainGetDiskErrors) {
+        int ret = dom->conn->driver->domainGetDiskErrors(dom, errors,
+                                                         maxerrors, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
 
 error:
     virDispatchError(dom->conn);

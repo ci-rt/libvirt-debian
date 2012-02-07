@@ -1,7 +1,5 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Interface to the pt_chown program.
-   Copyright (C) 1998-1999, 2009-2011 Free Software Foundation, Inc.
+   Copyright (C) 1998-1999, 2009-2012 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Zack Weinberg <zack@rabi.phys.columbia.edu>, 1998.
 
@@ -29,7 +27,7 @@
 /* The file descriptor connected to the master pseudo terminal.  */
 #define PTY_FILENO 3
 
-/* Path to the helper program that implements `grantpt' in user space.  */
+/* Path to the helper program that implements 'grantpt' in user space.  */
 #define _PATH_PT_CHOWN PKGLIBEXECDIR "/pt_chown"
 
 /* Test whether given TTY is really a Unix98 pseudo terminal.  */

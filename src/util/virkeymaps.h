@@ -50,6 +50,7 @@ struct keycode virKeycodes[] = {
     { "KEY_SEMICOLON","ANSI_Semicolon","VK_OEM_1",39,0x29,39,76,76,39,39,51,0xba,39},
     { "KEY_APOSTROPHE","ANSI_Quote","VK_OEM_2",40,0x27,40,82,82,40,40,52,0xbf,40},
     { "KEY_GRAVE","ANSI_Grave","VK_OEM_3",41,0x32,41,14,14,41,41,53,0xc0,41},
+    { "KEY_SHIFT","Shift","VK_SHIFT",42,0x38,42,18,18,42,42,225,0x10,42},
     { "KEY_LEFTSHIFT","Shift","VK_LSHIFT",42,0x38,42,18,18,42,42,225,0xa0,42},
     { "KEY_BACKSLASH","ANSI_Backslash","VK_OEM_5",43,0x2a,43,93,93,43,43,50,0xdc,43},
     { "KEY_Z","ANSI_Z","VK_Z",44,0x6,44,26,26,44,44,29,0x5a,44},

@@ -1,7 +1,7 @@
 /*
  * qemu_process.h: QEMU process management
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <linux/capability.h>
 
 #include "qemu_process.h"
 #include "qemu_domain.h"
@@ -105,6 +106,164 @@ qemuProcessRemoveDomainStatus(struct qemud_driver *driver,
 
 /* XXX figure out how to remove this */
 extern struct qemud_driver *qemu_driver;
+
+/*
+ * This is a callback registered with a qemuAgentPtr instance,
+ * and to be invoked when the agent console hits an end of file
+ * condition, or error, thus indicating VM shutdown should be
+ * performed
+ */
+static void
+qemuProcessHandleAgentEOF(qemuAgentPtr agent ATTRIBUTE_UNUSED,
+                          virDomainObjPtr vm)
+{
+    struct qemud_driver *driver = qemu_driver;
+    qemuDomainObjPrivatePtr priv;
+
+    VIR_DEBUG("Received EOF from agent on %p '%s'", vm, vm->def->name);
+
+    qemuDriverLock(driver);
+    virDomainObjLock(vm);
+
+    priv = vm->privateData;
+
+    qemuAgentClose(agent);
+    priv->agent = NULL;
+
+    virDomainObjUnlock(vm);
+    qemuDriverUnlock(driver);
+}
+
+
+/*
+ * This is invoked when there is some kind of error
+ * parsing data to/from the agent. The VM can continue
+ * to run, but no further agent commands will be
+ * allowed
+ */
+static void
+qemuProcessHandleAgentError(qemuAgentPtr agent ATTRIBUTE_UNUSED,
+                            virDomainObjPtr vm)
+{
+    struct qemud_driver *driver = qemu_driver;
+    qemuDomainObjPrivatePtr priv;
+
+    VIR_DEBUG("Received error from agent on %p '%s'", vm, vm->def->name);
+
+    qemuDriverLock(driver);
+    virDomainObjLock(vm);
+
+    priv = vm->privateData;
+
+    priv->agentError = true;
+
+    virDomainObjUnlock(vm);
+    qemuDriverUnlock(driver);
+}
+
+static void qemuProcessHandleAgentDestroy(qemuAgentPtr agent,
+                                          virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv;
+
+    virDomainObjLock(vm);
+    priv = vm->privateData;
+    if (priv->agent == agent)
+        priv->agent = NULL;
+    if (virDomainObjUnref(vm) > 0)
+        virDomainObjUnlock(vm);
+}
+
+
+static qemuAgentCallbacks agentCallbacks = {
+    .destroy = qemuProcessHandleAgentDestroy,
+    .eofNotify = qemuProcessHandleAgentEOF,
+    .errorNotify = qemuProcessHandleAgentError,
+};
+
+static virDomainChrSourceDefPtr
+qemuFindAgentConfig(virDomainDefPtr def)
+{
+    virDomainChrSourceDefPtr config = NULL;
+    int i;
+
+    for (i = 0 ; i < def->nchannels ; i++) {
+        virDomainChrDefPtr channel = def->channels[i];
+
+        if (channel->targetType != VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO)
+            continue;
+
+        if (STREQ(channel->target.name, "org.qemu.guest_agent.0")) {
+            config = &channel->source;
+            break;
+        }
+    }
+
+    return config;
+}
+
+static int
+qemuConnectAgent(struct qemud_driver *driver, virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    int ret = -1;
+    qemuAgentPtr agent = NULL;
+    virDomainChrSourceDefPtr config = qemuFindAgentConfig(vm->def);
+
+    if (!config)
+        return 0;
+
+    if (virSecurityManagerSetDaemonSocketLabel(driver->securityManager,
+                                               vm->def) < 0) {
+        VIR_ERROR(_("Failed to set security context for agent for %s"),
+                  vm->def->name);
+        goto cleanup;
+    }
+
+    /* Hold an extra reference because we can't allow 'vm' to be
+     * deleted while the agent is active */
+    virDomainObjRef(vm);
+
+    ignore_value(virTimeMillisNow(&priv->agentStart));
+    virDomainObjUnlock(vm);
+    qemuDriverUnlock(driver);
+
+    agent = qemuAgentOpen(vm,
+                          config,
+                          &agentCallbacks);
+
+    qemuDriverLock(driver);
+    virDomainObjLock(vm);
+    priv->agentStart = 0;
+
+    if (virSecurityManagerClearSocketLabel(driver->securityManager,
+                                           vm->def) < 0) {
+        VIR_ERROR(_("Failed to clear security context for agent for %s"),
+                  vm->def->name);
+        goto cleanup;
+    }
+
+    /* Safe to ignore value since ref count was incremented above */
+    if (agent == NULL)
+        ignore_value(virDomainObjUnref(vm));
+
+    if (!virDomainObjIsActive(vm)) {
+        qemuAgentClose(agent);
+        goto cleanup;
+    }
+    priv->agent = agent;
+
+    if (priv->agent == NULL) {
+        VIR_INFO("Failed to connect agent for %s", vm->def->name);
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    return ret;
+}
+
 
 /*
  * This is a callback registered with a qemuMonitorPtr instance,
@@ -428,7 +587,7 @@ endjob:
 cleanup:
     if (vm) {
         if (ret == -1)
-            qemuProcessKill(vm, false);
+            ignore_value(qemuProcessKill(vm, VIR_QEMU_PROCESS_KILL_FORCE));
         if (virDomainObjUnref(vm) > 0)
             virDomainObjUnlock(vm);
     }
@@ -453,12 +612,12 @@ qemuProcessShutdownOrReboot(struct qemud_driver *driver,
                             qemuProcessFakeReboot,
                             vm) < 0) {
             VIR_ERROR(_("Failed to create reboot thread, killing domain"));
-            qemuProcessKill(vm, true);
+            ignore_value(qemuProcessKill(vm, VIR_QEMU_PROCESS_KILL_NOWAIT));
             /* Safe to ignore value since ref count was incremented above */
             ignore_value(virDomainObjUnref(vm));
         }
     } else {
-        qemuProcessKill(vm, true);
+        ignore_value(qemuProcessKill(vm, VIR_QEMU_PROCESS_KILL_NOWAIT));
     }
 }
 
@@ -881,7 +1040,7 @@ qemuConnectMonitor(struct qemud_driver *driver, virDomainObjPtr vm)
     qemuMonitorPtr mon = NULL;
 
     if (virSecurityManagerSetDaemonSocketLabel(driver->securityManager,
-                                               vm) < 0) {
+                                               vm->def) < 0) {
         VIR_ERROR(_("Failed to set security context for monitor for %s"),
                   vm->def->name);
         goto error;
@@ -914,7 +1073,7 @@ qemuConnectMonitor(struct qemud_driver *driver, virDomainObjPtr vm)
     }
     priv->mon = mon;
 
-    if (virSecurityManagerClearSocketLabel(driver->securityManager, vm) < 0) {
+    if (virSecurityManagerClearSocketLabel(driver->securityManager, vm->def) < 0) {
         VIR_ERROR(_("Failed to clear security context for monitor for %s"),
                   vm->def->name);
         goto error;
@@ -2217,7 +2376,7 @@ static int qemuProcessHook(void *data)
      * sockets the lock driver opens that we don't want
      * labelled. So far we're ok though.
      */
-    if (virSecurityManagerSetSocketLabel(h->driver->securityManager, h->vm) < 0)
+    if (virSecurityManagerSetSocketLabel(h->driver->securityManager, h->vm->def) < 0)
         goto cleanup;
     if (virDomainLockProcessStart(h->driver->lockManager,
                                   h->vm,
@@ -2225,7 +2384,7 @@ static int qemuProcessHook(void *data)
                                   true,
                                   &fd) < 0)
         goto cleanup;
-    if (virSecurityManagerClearSocketLabel(h->driver->securityManager, h->vm) < 0)
+    if (virSecurityManagerClearSocketLabel(h->driver->securityManager, h->vm->def) < 0)
         goto cleanup;
 
     if (qemuProcessLimits(h->driver) < 0)
@@ -2248,7 +2407,7 @@ static int qemuProcessHook(void *data)
         return -1;
 
     VIR_DEBUG("Setting up security labelling");
-    if (virSecurityManagerSetProcessLabel(h->driver->securityManager, h->vm) < 0)
+    if (virSecurityManagerSetProcessLabel(h->driver->securityManager, h->vm->def) < 0)
         goto cleanup;
 
     ret = 0;
@@ -2691,6 +2850,14 @@ qemuProcessReconnect(void *opaque)
     if (qemuConnectMonitor(driver, obj) < 0)
         goto error;
 
+    /* Failure to connect to agent shouldn't be fatal */
+    if (qemuConnectAgent(driver, obj) < 0) {
+        VIR_WARN("Cannot connect to QEMU guest agent for %s",
+                 obj->def->name);
+        virResetLastError();
+        priv->agentError = true;
+    }
+
     if (qemuUpdateActivePciHostdevs(driver, obj->def) < 0) {
         goto error;
     }
@@ -2735,7 +2902,7 @@ qemuProcessReconnect(void *opaque)
             goto error;
     }
 
-    if (virSecurityManagerReserveLabel(driver->securityManager, obj) < 0)
+    if (virSecurityManagerReserveLabel(driver->securityManager, obj->def, obj->pid) < 0)
         goto error;
 
     if (qemuProcessNotifyNets(obj->def) < 0)
@@ -2917,6 +3084,7 @@ int qemuProcessStart(virConnectPtr conn,
     virCommandPtr cmd = NULL;
     struct qemuProcessHookData hookData;
     unsigned long cur_balloon;
+    int i;
 
     hookData.conn = conn;
     hookData.vm = vm;
@@ -2973,7 +3141,7 @@ int qemuProcessStart(virConnectPtr conn,
     /* If you are using a SecurityDriver with dynamic labelling,
        then generate a security label for isolation */
     VIR_DEBUG("Generating domain security label (if required)");
-    if (virSecurityManagerGenLabel(driver->securityManager, vm) < 0) {
+    if (virSecurityManagerGenLabel(driver->securityManager, vm->def) < 0) {
         virDomainAuditSecurityLabel(vm, false);
         goto cleanup;
     }
@@ -3030,6 +3198,17 @@ int qemuProcessStart(virConnectPtr conn,
     VIR_DEBUG("Creating domain log file");
     if ((logfile = qemuDomainCreateLog(driver, vm, false)) < 0)
         goto cleanup;
+
+    if (vm->def->virtType == VIR_DOMAIN_VIRT_KVM) {
+        VIR_DEBUG("Checking for KVM availability");
+        if (access("/dev/kvm", F_OK) != 0) {
+            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                            _("Domain requires KVM, but it is not available. "
+                              "Check that virtualization is enabled in the host BIOS, "
+                              "and host configuration is setup to load the kvm modules."));
+            goto cleanup;
+        }
+    }
 
     VIR_DEBUG("Determining emulator version");
     qemuCapsFree(priv->qemuCaps);
@@ -3158,6 +3337,12 @@ int qemuProcessStart(virConnectPtr conn,
     if (driver->clearEmulatorCapabilities)
         virCommandClearCaps(cmd);
 
+    /* in case a certain disk is desirous of CAP_SYS_RAWIO, add this */
+    for (i = 0; i < vm->def->ndisks; i++) {
+        if (vm->def->disks[i]->rawio == 1)
+            virCommandAllowCap(cmd, CAP_SYS_RAWIO);
+    }
+
     virCommandSetPreExecHook(cmd, qemuProcessHook, &hookData);
 
     virCommandSetOutputFD(cmd, &logfile);
@@ -3207,7 +3392,7 @@ int qemuProcessStart(virConnectPtr conn,
 
     VIR_DEBUG("Setting domain security labels");
     if (virSecurityManagerSetAllLabel(driver->securityManager,
-                                      vm, stdin_path) < 0)
+                                      vm->def, stdin_path) < 0)
         goto cleanup;
 
     if (stdin_fd != -1) {
@@ -3224,7 +3409,7 @@ int qemuProcessStart(virConnectPtr conn,
             goto cleanup;
         }
         if (S_ISFIFO(stdin_sb.st_mode) &&
-            virSecurityManagerSetImageFDLabel(driver->securityManager, vm, stdin_fd) < 0)
+            virSecurityManagerSetImageFDLabel(driver->securityManager, vm->def, stdin_fd) < 0)
             goto cleanup;
     }
 
@@ -3246,6 +3431,14 @@ int qemuProcessStart(virConnectPtr conn,
     VIR_DEBUG("Waiting for monitor to show up");
     if (qemuProcessWaitForMonitor(driver, vm, priv->qemuCaps, pos) < 0)
         goto cleanup;
+
+    /* Failure to connect to agent shouldn't be fatal */
+    if (qemuConnectAgent(driver, vm) < 0) {
+        VIR_WARN("Cannot connect to QEMU guest agent for %s",
+                 vm->def->name);
+        virResetLastError();
+        priv->agentError = true;
+    }
 
     VIR_DEBUG("Detecting VCPU PIDs");
     if (qemuProcessDetectVcpuPIDs(driver, vm) < 0)
@@ -3339,45 +3532,65 @@ cleanup:
 }
 
 
-void qemuProcessKill(virDomainObjPtr vm, bool gracefully)
+int qemuProcessKill(virDomainObjPtr vm, unsigned int flags)
 {
     int i;
-    VIR_DEBUG("vm=%s pid=%d gracefully=%d",
-              vm->def->name, vm->pid, gracefully);
+    const char *signame = "TERM";
+
+    VIR_DEBUG("vm=%s pid=%d flags=%x",
+              vm->def->name, vm->pid, flags);
 
     if (!virDomainObjIsActive(vm)) {
         VIR_DEBUG("VM '%s' not active", vm->def->name);
-        return;
+        return 0;
     }
 
-    /* This loop sends SIGTERM, then waits a few iterations
-     * (1.6 seconds) to see if it dies. If still alive then
-     * it does SIGKILL, and waits a few more iterations (1.6
-     * seconds more) to confirm that it has really gone.
+    /* This loop sends SIGTERM (or SIGKILL if flags has
+     * VIR_QEMU_PROCESS_KILL_FORCE and VIR_QEMU_PROCESS_KILL_NOWAIT),
+     * then waits a few iterations (3 seconds) to see if it
+     * dies. Halfway through this wait, if the qemu process still
+     * hasn't exited, and VIR_QEMU_PROCESS_KILL_FORCE is requested, a
+     * SIGKILL will be sent.  Note that the FORCE mode could result
+     * in lost data in the guest, so it should only be used if the
+     * guest is hung and can't be destroyed in any other manner.
      */
-    for (i = 0 ; i < 15 ; i++) {
+    for (i = 0 ; i < 15; i++) {
         int signum;
-        if (i == 0)
-            signum = SIGTERM;
-        else if (i == 8)
-            signum = SIGKILL;
-        else
+        if (i == 0) {
+            if ((flags & VIR_QEMU_PROCESS_KILL_FORCE) &&
+                (flags & VIR_QEMU_PROCESS_KILL_NOWAIT)) {
+                signum = SIGKILL; /* kill it immediately */
+                signame="KILL";
+            } else {
+                signum = SIGTERM; /* kindly suggest it should exit */
+            }
+        } else if ((i == 8) & (flags & VIR_QEMU_PROCESS_KILL_FORCE)) {
+            VIR_WARN("Timed out waiting after SIG%s to process %d, "
+                     "sending SIGKILL", signame, vm->pid);
+            signum = SIGKILL; /* kill it after a grace period */
+            signame="KILL";
+        } else {
             signum = 0; /* Just check for existence */
+        }
 
         if (virKillProcess(vm->pid, signum) < 0) {
             if (errno != ESRCH) {
                 char ebuf[1024];
-                VIR_WARN("Failed to kill process %d %s",
-                         vm->pid, virStrerror(errno, ebuf, sizeof ebuf));
+                VIR_WARN("Failed to terminate process %d with SIG%s: %s",
+                         vm->pid, signame,
+                         virStrerror(errno, ebuf, sizeof ebuf));
+                return -1;
             }
-            break;
+            return 0; /* process is dead */
         }
 
-        if (i == 0 && gracefully)
-            break;
+        if (i == 0 && (flags & VIR_QEMU_PROCESS_KILL_NOWAIT))
+            return 0;
 
         usleep(200 * 1000);
     }
+    VIR_WARN("Timed out waiting after SIG%s to process %d", signame, vm->pid);
+    return -1;
 }
 
 
@@ -3449,6 +3662,12 @@ void qemuProcessStop(struct qemud_driver *driver,
         }
     }
 
+    if (priv->agent) {
+        qemuAgentClose(priv->agent);
+        priv->agent = NULL;
+        priv->agentError = false;
+    }
+
     if (priv->mon)
         qemuMonitorClose(priv->mon);
 
@@ -3460,7 +3679,7 @@ void qemuProcessStop(struct qemud_driver *driver,
     }
 
     /* shut it off for sure */
-    qemuProcessKill(vm, false);
+    ignore_value(qemuProcessKill(vm, VIR_QEMU_PROCESS_KILL_FORCE));
 
     /* Stop autodestroy in case guest is restarted */
     qemuProcessAutoDestroyRemove(driver, vm);
@@ -3477,8 +3696,8 @@ void qemuProcessStop(struct qemud_driver *driver,
 
     /* Reset Security Labels */
     virSecurityManagerRestoreAllLabel(driver->securityManager,
-                                      vm, migrated);
-    virSecurityManagerReleaseLabel(driver->securityManager, vm);
+                                      vm->def, migrated);
+    virSecurityManagerReleaseLabel(driver->securityManager, vm->def);
 
     /* Clear out dynamically assigned labels */
     if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_DYNAMIC) {
@@ -3627,7 +3846,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
     if (VIR_ALLOC(seclabel) < 0)
         goto no_memory;
     if (virSecurityManagerGetProcessLabel(driver->securityManager,
-                                          vm, seclabel) < 0)
+                                          vm->def, vm->pid, seclabel) < 0)
         goto cleanup;
     if (driver->caps->host.secModel.model &&
         !(vm->def->seclabel.model = strdup(driver->caps->host.secModel.model)))
@@ -3701,6 +3920,14 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
     VIR_DEBUG("Waiting for monitor to show up");
     if (qemuProcessWaitForMonitor(driver, vm, priv->qemuCaps, -1) < 0)
         goto cleanup;
+
+    /* Failure to connect to agent shouldn't be fatal */
+    if (qemuConnectAgent(driver, vm) < 0) {
+        VIR_WARN("Cannot connect to QEMU guest agent for %s",
+                 vm->def->name);
+        virResetLastError();
+        priv->agentError = true;
+    }
 
     VIR_DEBUG("Detecting VCPU PIDs");
     if (qemuProcessDetectVcpuPIDs(driver, vm) < 0)

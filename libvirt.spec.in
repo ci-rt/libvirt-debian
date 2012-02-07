@@ -252,10 +252,10 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 1%{?dist}%{?extra_release}
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
-Source: http://libvirt.org/sources/libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/libvirt-%{version}-rc1.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 URL: http://libvirt.org/
 
@@ -346,8 +346,10 @@ Requires: device-mapper
 %if %{with_cgconfig}
 Requires: libcgroup
 %endif
+%ifarch i386 i586 i686 x86_64 ia64
 # For virConnectGetSysinfo
 Requires: dmidecode
+%endif
 # For service management
 %if %{with_systemd}
 Requires(post): systemd-units
@@ -1196,9 +1198,11 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %{_mandir}/man1/virsh.1*
 %{_mandir}/man1/virt-xml-validate.1*
 %{_mandir}/man1/virt-pki-validate.1*
+%{_mandir}/man1/virt-host-validate.1*
 %{_bindir}/virsh
 %{_bindir}/virt-xml-validate
 %{_bindir}/virt-pki-validate
+%{_bindir}/virt-host-validate
 %{_libdir}/lib*.so.*
 
 %dir %{_datadir}/libvirt/

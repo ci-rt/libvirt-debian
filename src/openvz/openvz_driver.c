@@ -763,9 +763,9 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
         ADD_ARG_LIT(vpsid);
     }
 
-    virFormatMacAddr(net->mac, macaddr);
+    virMacAddrFormat(net->mac, macaddr);
     virCapabilitiesGenerateMac(driver->caps, host_mac);
-    virFormatMacAddr(host_mac, host_macaddr);
+    virMacAddrFormat(host_mac, host_macaddr);
 
     if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE ||
         (net->type == VIR_DOMAIN_NET_TYPE_ETHERNET &&
@@ -1693,6 +1693,7 @@ static virDriver openvzDriver = {
     .domainSuspend = openvzDomainSuspend, /* 0.8.3 */
     .domainResume = openvzDomainResume, /* 0.8.3 */
     .domainShutdown = openvzDomainShutdown, /* 0.3.1 */
+    .domainShutdownFlags = openvzDomainShutdownFlags, /* 0.9.10 */
     .domainReboot = openvzDomainReboot, /* 0.3.1 */
     .domainDestroy = openvzDomainShutdown, /* 0.3.1 */
     .domainDestroyFlags = openvzDomainShutdownFlags, /* 0.9.4 */

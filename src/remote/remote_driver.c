@@ -2,7 +2,7 @@
  * remote_driver.c: driver to provide access to libvirtd running
  *   on a remote machine
  *
- * Copyright (C) 2007-2011 Red Hat, Inc.
+ * Copyright (C) 2007-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -46,6 +46,7 @@
 #include "virfile.h"
 #include "command.h"
 #include "intprops.h"
+#include "virtypedparam.h"
 
 #define VIR_FROM_THIS VIR_FROM_REMOTE
 
@@ -1417,13 +1418,42 @@ remoteDeserializeTypedParameters(remote_typed_param *ret_params_val,
     rv = 0;
 
 cleanup:
-    if (rv < 0) {
-        int j;
-        for (j = 0; j < i; j++)
-            if (params[j].type == VIR_TYPED_PARAM_STRING)
-                VIR_FREE(params[j].value.s);
-    }
+    if (rv < 0)
+        virTypedParameterArrayClear(params, i);
     return rv;
+}
+
+static int
+remoteDeserializeDomainDiskErrors(remote_domain_disk_error *ret_errors_val,
+                                  u_int ret_errors_len,
+                                  int limit,
+                                  virDomainDiskErrorPtr errors,
+                                  int maxerrors)
+{
+    int i = 0;
+    int j;
+
+    if (ret_errors_len > limit || ret_errors_len > maxerrors) {
+        remoteError(VIR_ERR_RPC, "%s",
+                    _("returned number of disk errors exceeds limit"));
+        goto error;
+    }
+
+    for (i = 0; i < ret_errors_len; i++) {
+        if (!(errors[i].disk = strdup(ret_errors_val[i].disk))) {
+            virReportOOMError();
+            goto error;
+        }
+        errors[i].error = ret_errors_val[i].error;
+    }
+
+    return 0;
+
+error:
+    for (j = 0; j < i; j++)
+        VIR_FREE(errors[i].disk);
+
+    return -1;
 }
 
 static int
@@ -2305,6 +2335,96 @@ done:
     return rv;
 }
 
+static int remoteDomainGetCPUStats(virDomainPtr domain,
+                                   virTypedParameterPtr params,
+                                   unsigned int nparams,
+                                   int start_cpu,
+                                   unsigned int ncpus,
+                                   unsigned int flags)
+{
+    struct private_data *priv = domain->conn->privateData;
+    remote_domain_get_cpu_stats_args args;
+    remote_domain_get_cpu_stats_ret ret;
+    int rv = -1;
+    int cpu;
+
+    remoteDriverLock(priv);
+
+    if (nparams > REMOTE_NODE_CPU_STATS_MAX) {
+        remoteError(VIR_ERR_RPC,
+                    _("nparams count exceeds maximum: %u > %u"),
+                    nparams, REMOTE_NODE_CPU_STATS_MAX);
+        goto done;
+    }
+    if (ncpus > REMOTE_DOMAIN_GET_CPU_STATS_NCPUS_MAX) {
+        remoteError(VIR_ERR_RPC,
+                    _("ncpus count exceeds maximum: %u > %u"),
+                    ncpus, REMOTE_DOMAIN_GET_CPU_STATS_NCPUS_MAX);
+        goto done;
+    }
+
+    make_nonnull_domain(&args.dom, domain);
+    args.nparams = nparams;
+    args.start_cpu = start_cpu;
+    args.ncpus = ncpus;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(domain->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_CPU_STATS,
+             (xdrproc_t) xdr_remote_domain_get_cpu_stats_args,
+             (char *) &args,
+             (xdrproc_t) xdr_remote_domain_get_cpu_stats_ret,
+             (char *) &ret) == -1)
+        goto done;
+
+    /* Check the length of the returned list carefully. */
+    if (ret.params.params_len > nparams * ncpus ||
+        (ret.params.params_len &&
+         ret.nparams * ncpus != ret.params.params_len)) {
+        remoteError(VIR_ERR_RPC, "%s",
+                    _("remoteDomainGetCPUStats: "
+                      "returned number of stats exceeds limit"));
+        memset(params, 0, sizeof(*params) * nparams * ncpus);
+        goto cleanup;
+    }
+
+    /* Handle the case when the caller does not know the number of stats
+     * and is asking for the number of stats supported
+     */
+    if (nparams == 0) {
+        rv = ret.nparams;
+        goto cleanup;
+    }
+
+    /* The remote side did not send back any zero entries, so we have
+     * to expand things back into a possibly sparse array.
+     */
+    memset(params, 0, sizeof(*params) * nparams * ncpus);
+    for (cpu = 0; cpu < ncpus; cpu++) {
+        int tmp = nparams;
+        remote_typed_param *stride = &ret.params.params_val[cpu * ret.nparams];
+
+        if (remoteDeserializeTypedParameters(stride, ret.nparams,
+                                             REMOTE_NODE_CPU_STATS_MAX,
+                                             &params[cpu * nparams],
+                                             &tmp) < 0)
+            goto cleanup;
+    }
+
+    rv = ret.nparams;
+cleanup:
+    if (rv < 0)
+        virTypedParameterArrayClear(params, nparams * ncpus);
+
+    xdr_free ((xdrproc_t) xdr_remote_domain_get_cpu_stats_ret,
+              (char *) &ret);
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+
 /*----------------------------------------------------------------------*/
 
 static virDrvOpenStatus ATTRIBUTE_NONNULL (1)
@@ -3121,6 +3241,14 @@ remoteAuthPolkit (virConnectPtr conn, struct private_data *priv,
     };
     VIR_DEBUG("Client initialize PolicyKit-0 authentication");
 
+    /* Check auth first and if it succeeds we are done. */
+    memset (&ret, 0, sizeof ret);
+    if (call (conn, priv, 0, REMOTE_PROC_AUTH_POLKIT,
+              (xdrproc_t) xdr_void, (char *)NULL,
+              (xdrproc_t) xdr_remote_auth_polkit_ret, (char *) &ret) == 0)
+        goto out;
+
+    /* Auth failed.  Ask client to obtain it and check again. */
     if (auth && auth->cb) {
         /* Check if the necessary credential type for PolicyKit is supported */
         for (i = 0 ; i < auth->ncredtype ; i++) {
@@ -3138,9 +3266,11 @@ remoteAuthPolkit (virConnectPtr conn, struct private_data *priv,
             }
         } else {
             VIR_DEBUG("Client auth callback does not support PolicyKit");
+            return -1;
         }
     } else {
         VIR_DEBUG("No auth callback provided");
+        return -1;
     }
 
     memset (&ret, 0, sizeof ret);
@@ -3150,6 +3280,7 @@ remoteAuthPolkit (virConnectPtr conn, struct private_data *priv,
         return -1; /* virError already set by call */
     }
 
+out:
     VIR_DEBUG("PolicyKit-0 authentication complete");
     return 0;
 }
@@ -4340,6 +4471,49 @@ remoteIsAlive(virConnectPtr conn)
 }
 
 
+static int
+remoteDomainGetDiskErrors(virDomainPtr dom,
+                          virDomainDiskErrorPtr errors,
+                          unsigned int maxerrors,
+                          unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_get_disk_errors_args args;
+    remote_domain_get_disk_errors_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.maxerrors = maxerrors;
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof ret);
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_DISK_ERRORS,
+             (xdrproc_t) xdr_remote_domain_get_disk_errors_args,
+             (char *) &args,
+             (xdrproc_t) xdr_remote_domain_get_disk_errors_ret,
+             (char *) &ret) == -1)
+        goto done;
+
+    if (remoteDeserializeDomainDiskErrors(ret.errors.errors_val,
+                                          ret.errors.errors_len,
+                                          REMOTE_DOMAIN_DISK_ERRORS_MAX,
+                                          errors,
+                                          maxerrors) < 0)
+        goto cleanup;
+
+    rv = ret.nerrors;
+
+cleanup:
+    xdr_free((xdrproc_t) xdr_remote_domain_get_disk_errors_ret, (char *) &ret);
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 #include "remote_client_bodies.h"
 #include "qemu_client_bodies.h"
 
@@ -4605,7 +4779,9 @@ static virDriver remote_driver = {
     .domainLookupByName = remoteDomainLookupByName, /* 0.3.0 */
     .domainSuspend = remoteDomainSuspend, /* 0.3.0 */
     .domainResume = remoteDomainResume, /* 0.3.0 */
+    .domainPMSuspendForDuration = remoteDomainPMSuspendForDuration, /* 0.9.10 */
     .domainShutdown = remoteDomainShutdown, /* 0.3.0 */
+    .domainShutdownFlags = remoteDomainShutdownFlags, /* 0.9.10 */
     .domainReboot = remoteDomainReboot, /* 0.3.0 */
     .domainReset = remoteDomainReset, /* 0.9.7 */
     .domainDestroy = remoteDomainDestroy, /* 0.3.0 */
@@ -4732,6 +4908,7 @@ static virDriver remote_driver = {
     .domainGetBlockJobInfo = remoteDomainGetBlockJobInfo, /* 0.9.4 */
     .domainBlockJobSetSpeed = remoteDomainBlockJobSetSpeed, /* 0.9.4 */
     .domainBlockPull = remoteDomainBlockPull, /* 0.9.4 */
+    .domainBlockRebase = remoteDomainBlockRebase, /* 0.9.10 */
     .setKeepAlive = remoteSetKeepAlive, /* 0.9.8 */
     .isAlive = remoteIsAlive, /* 0.9.8 */
     .nodeSuspendForDuration = remoteNodeSuspendForDuration, /* 0.9.8 */
@@ -4739,6 +4916,10 @@ static virDriver remote_driver = {
     .domainGetBlockIoTune = remoteDomainGetBlockIoTune, /* 0.9.8 */
     .domainSetNumaParameters = remoteDomainSetNumaParameters, /* 0.9.9 */
     .domainGetNumaParameters = remoteDomainGetNumaParameters, /* 0.9.9 */
+    .domainGetCPUStats = remoteDomainGetCPUStats, /* 0.9.10 */
+    .domainGetDiskErrors = remoteDomainGetDiskErrors, /* 0.9.10 */
+    .domainSetMetadata = remoteDomainSetMetadata, /* 0.9.10 */
+    .domainGetMetadata = remoteDomainGetMetadata, /* 0.9.10 */
 };
 
 static virNetworkDriver network_driver = {
@@ -4821,9 +5002,11 @@ static virStorageDriver storage_driver = {
     .volUpload = remoteStorageVolUpload, /* 0.9.0 */
     .volDelete = remoteStorageVolDelete, /* 0.4.1 */
     .volWipe = remoteStorageVolWipe, /* 0.8.0 */
+    .volWipePattern = remoteStorageVolWipePattern, /* 0.9.10 */
     .volGetInfo = remoteStorageVolGetInfo, /* 0.4.1 */
     .volGetXMLDesc = remoteStorageVolGetXMLDesc, /* 0.4.1 */
     .volGetPath = remoteStorageVolGetPath, /* 0.4.1 */
+    .volResize = remoteStorageVolResize, /* 0.9.10 */
     .poolIsActive = remoteStoragePoolIsActive, /* 0.7.3 */
     .poolIsPersistent = remoteStoragePoolIsPersistent, /* 0.7.3 */
 };

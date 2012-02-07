@@ -84,7 +84,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
                                      const char *migrateFrom,
                                      int migrateFd,
                                      bool json,
-                                     bool expectError)
+                                     bool expectError,
+                                     bool expectFailure)
 {
     char *expectargv = NULL;
     int len;
@@ -98,19 +99,13 @@ static int testCompareXMLToArgvFiles(const char *xml,
     virCommandPtr cmd = NULL;
 
     if (!(conn = virGetConnect()))
-        goto fail;
+        goto out;
     conn->secretDriver = &fakeSecretDriver;
-
-    len = virtTestLoadFile(cmdline, &expectargv);
-    if (len < 0)
-        goto fail;
-    if (len && expectargv[len - 1] == '\n')
-        expectargv[len - 1] = '\0';
 
     if (!(vmdef = virDomainDefParseFile(driver.caps, xml,
                                         QEMU_EXPECTED_VIRT_TYPES,
                                         VIR_DOMAIN_XML_INACTIVE)))
-        goto fail;
+        goto out;
 
     /*
      * For test purposes, we may want to fake emulator's output by providing
@@ -124,12 +119,12 @@ static int testCompareXMLToArgvFiles(const char *xml,
      */
     if (vmdef->emulator && STRPREFIX(vmdef->emulator, "/.")) {
         if (!(emulator = strdup(vmdef->emulator + 1)))
-            goto fail;
-        free(vmdef->emulator);
+            goto out;
+        VIR_FREE(vmdef->emulator);
         vmdef->emulator = NULL;
         if (virAsprintf(&vmdef->emulator, "%s/qemuxml2argvdata/%s",
                         abs_srcdir, emulator) < 0)
-            goto fail;
+            goto out;
     }
 
     if (qemuCapsGet(extraFlags, QEMU_CAPS_DOMID))
@@ -149,21 +144,28 @@ static int testCompareXMLToArgvFiles(const char *xml,
                     QEMU_CAPS_LAST);
 
     if (qemudCanonicalizeMachine(&driver, vmdef) < 0)
-        goto fail;
+        goto out;
 
     if (qemuCapsGet(extraFlags, QEMU_CAPS_DEVICE)) {
         qemuDomainPCIAddressSetPtr pciaddrs;
+
+        if (qemuDomainAssignSpaprVIOAddresses(vmdef)) {
+            if (expectError)
+                goto ok;
+            goto out;
+        }
+
         if (!(pciaddrs = qemuDomainPCIAddressSetCreate(vmdef)))
-            goto fail;
+            goto out;
 
         if (qemuAssignDevicePCISlots(vmdef, pciaddrs) < 0)
-            goto fail;
+            goto out;
 
         qemuDomainPCIAddressSetFree(pciaddrs);
     }
 
-
-    free(virtTestLogContentAndReset());
+    log = virtTestLogContentAndReset();
+    VIR_FREE(log);
     virResetLastError();
 
     /* We do not call qemuCapsExtractVersionInfo() before calling
@@ -176,49 +178,65 @@ static int testCompareXMLToArgvFiles(const char *xml,
     }
 
     if (qemuAssignDeviceAliases(vmdef, extraFlags) < 0)
-        goto fail;
+        goto out;
 
     if (!(cmd = qemuBuildCommandLine(conn, &driver,
                                      vmdef, &monitor_chr, json, extraFlags,
                                      migrateFrom, migrateFd, NULL,
-                                     VIR_NETDEV_VPORT_PROFILE_OP_NO_OP)))
-        goto fail;
+                                     VIR_NETDEV_VPORT_PROFILE_OP_NO_OP))) {
+        if (expectFailure) {
+            ret = 0;
+            virResetLastError();
+        }
+        goto out;
+    } else if (expectFailure) {
+        if (virTestGetDebug())
+            fprintf(stderr, "qemuBuildCommandLine should have failed\n");
+        goto out;
+    }
 
     if (!!virGetLastError() != expectError) {
         if (virTestGetDebug() && (log = virtTestLogContentAndReset()))
             fprintf(stderr, "\n%s", log);
-        goto fail;
-    }
-
-    if (expectError) {
-        /* need to suppress the errors */
-        virResetLastError();
+        goto out;
     }
 
     if (!(actualargv = virCommandToString(cmd)))
-        goto fail;
+        goto out;
 
     if (emulator) {
         /* Skip the abs_srcdir portion of replacement emulator.  */
         char *start_skip = strstr(actualargv, abs_srcdir);
         char *end_skip = strstr(actualargv, emulator);
         if (!start_skip || !end_skip)
-            goto fail;
+            goto out;
         memmove(start_skip, end_skip, strlen(end_skip) + 1);
     }
 
+    len = virtTestLoadFile(cmdline, &expectargv);
+    if (len < 0)
+        goto out;
+    if (len && expectargv[len - 1] == '\n')
+        expectargv[len - 1] = '\0';
+
     if (STRNEQ(expectargv, actualargv)) {
         virtTestDifference(stderr, expectargv, actualargv);
-        goto fail;
+        goto out;
+    }
+
+ ok:
+    if (expectError) {
+        /* need to suppress the errors */
+        virResetLastError();
     }
 
     ret = 0;
 
- fail:
-    free(log);
-    free(emulator);
-    free(expectargv);
-    free(actualargv);
+out:
+    VIR_FREE(log);
+    VIR_FREE(emulator);
+    VIR_FREE(expectargv);
+    VIR_FREE(actualargv);
     virCommandFree(cmd);
     virDomainDefFree(vmdef);
     virUnrefConnect(conn);
@@ -232,6 +250,7 @@ struct testInfo {
     const char *migrateFrom;
     int migrateFd;
     bool expectError;
+    bool expectFailure;
 };
 
 static int
@@ -252,11 +271,12 @@ testCompareXMLToArgvHelper(const void *data)
                                        info->migrateFrom, info->migrateFd,
                                        qemuCapsGet(info->extraFlags,
                                                    QEMU_CAPS_MONITOR_JSON),
-                                       info->expectError);
+                                       info->expectError,
+                                       info->expectFailure);
 
 cleanup:
-    free(xml);
-    free(args);
+    VIR_FREE(xml);
+    VIR_FREE(args);
     return result;
 }
 
@@ -287,14 +307,16 @@ mymain(void)
         return EXIT_FAILURE;
     if (virAsprintf(&map, "%s/src/cpu/cpu_map.xml", abs_top_srcdir) < 0 ||
         cpuMapOverride(map) < 0) {
-        free(map);
+        VIR_FREE(map);
         return EXIT_FAILURE;
     }
 
-# define DO_TEST_FULL(name, migrateFrom, migrateFd, expectError, ...)   \
+# define DO_TEST_FULL(name, migrateFrom, migrateFd,                     \
+                      expectError, expectFailure, ...)                  \
     do {                                                                \
         struct testInfo info = {                                        \
-            name, NULL, migrateFrom, migrateFd, expectError             \
+            name, NULL, migrateFrom, migrateFd,                         \
+            expectError, expectFailure                                  \
         };                                                              \
         if (!(info.extraFlags = qemuCapsNew()))                         \
             return EXIT_FAILURE;                                        \
@@ -306,7 +328,10 @@ mymain(void)
     } while (0)
 
 # define DO_TEST(name, expectError, ...)                                \
-    DO_TEST_FULL(name, NULL, -1, expectError, __VA_ARGS__)
+    DO_TEST_FULL(name, NULL, -1, expectError, false, __VA_ARGS__)
+
+# define DO_TEST_FAILURE(name, ...)                                     \
+    DO_TEST_FULL(name, NULL, -1, false, true, __VA_ARGS__)
 
 # define NONE QEMU_CAPS_LAST
 
@@ -342,12 +367,15 @@ mymain(void)
             QEMU_CAPS_BOOT_MENU, QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE,
             QEMU_CAPS_BOOTINDEX);
     DO_TEST("boot-order", false,
-            QEMU_CAPS_BOOTINDEX, QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE);
+            QEMU_CAPS_BOOTINDEX, QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_VIRTIO_BLK_SCSI, QEMU_CAPS_VIRTIO_BLK_SG_IO);
     DO_TEST("boot-complex", false,
-            QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT);
+            QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT,
+            QEMU_CAPS_VIRTIO_BLK_SCSI, QEMU_CAPS_VIRTIO_BLK_SG_IO);
     DO_TEST("boot-complex-bootindex", false,
             QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT,
-            QEMU_CAPS_BOOTINDEX);
+            QEMU_CAPS_BOOTINDEX,
+            QEMU_CAPS_VIRTIO_BLK_SCSI, QEMU_CAPS_VIRTIO_BLK_SG_IO);
     DO_TEST("bootloader", true, QEMU_CAPS_DOMID);
     DO_TEST("bios", false, QEMU_CAPS_DEVICE, QEMU_CAPS_SGA);
     DO_TEST("clock-utc", false, NONE);
@@ -357,6 +385,9 @@ mymain(void)
     DO_TEST("clock-variable", false, QEMU_CAPS_RTC);
     */
     DO_TEST("clock-france", false, QEMU_CAPS_RTC);
+    DO_TEST("cpu-kvmclock", false, QEMU_CAPS_ENABLE_KVM);
+    DO_TEST("cpu-host-kvmclock", false, QEMU_CAPS_ENABLE_KVM, QEMU_CAPS_CPU_HOST);
+    DO_TEST("kvmclock", false, QEMU_CAPS_KVM);
 
     DO_TEST("hugepages", false, QEMU_CAPS_MEM_PATH);
     DO_TEST("disk-cdrom", false, NONE);
@@ -365,7 +396,8 @@ mymain(void)
     DO_TEST("disk-many", false, NONE);
     DO_TEST("disk-virtio", false, QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT);
     DO_TEST("disk-order", false,
-            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE_BOOT);
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_DRIVE_BOOT,
+            QEMU_CAPS_VIRTIO_BLK_SCSI, QEMU_CAPS_VIRTIO_BLK_SG_IO);
     DO_TEST("disk-xenvbd", false, QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT);
     DO_TEST("disk-drive-boot-disk", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT);
@@ -425,6 +457,10 @@ mymain(void)
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-scsi-device-auto", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("disk-scsi-vscsi", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("disk-scsi-virtio-scsi", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-sata-device", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE,
             QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_ICH9_AHCI);
@@ -433,14 +469,24 @@ mymain(void)
             QEMU_CAPS_DRIVE_CACHE_V2, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-ioeventfd", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_VIRTIO_IOEVENTFD,
-            QEMU_CAPS_VIRTIO_TX_ALG, QEMU_CAPS_DEVICE);
+            QEMU_CAPS_VIRTIO_TX_ALG, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_VIRTIO_BLK_SCSI, QEMU_CAPS_VIRTIO_BLK_SG_IO);
+    DO_TEST("disk-copy_on_read", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_COPY_ON_READ,
+            QEMU_CAPS_VIRTIO_TX_ALG, QEMU_CAPS_DEVICE,
+            QEMU_CAPS_VIRTIO_BLK_SCSI, QEMU_CAPS_VIRTIO_BLK_SG_IO);
     DO_TEST("disk-snapshot", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_CACHE_V2, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("event_idx", false,
             QEMU_CAPS_DRIVE,
             QEMU_CAPS_VIRTIO_BLK_EVENT_IDX,
             QEMU_CAPS_VIRTIO_NET_EVENT_IDX,
-            QEMU_CAPS_DEVICE);
+            QEMU_CAPS_DEVICE,
+            QEMU_CAPS_VIRTIO_BLK_SCSI, QEMU_CAPS_VIRTIO_BLK_SG_IO);
+    DO_TEST("virtio-lun", false,
+            QEMU_CAPS_DRIVE,
+            QEMU_CAPS_DEVICE,
+            QEMU_CAPS_VIRTIO_BLK_SCSI, QEMU_CAPS_VIRTIO_BLK_SG_IO);
 
     DO_TEST("graphics-vnc", false, NONE);
     DO_TEST("graphics-vnc-socket", false, NONE);
@@ -453,8 +499,8 @@ mymain(void)
     driver.vncTLSx509certdir = strdup("/etc/pki/tls/qemu");
     DO_TEST("graphics-vnc-tls", false, NONE);
     driver.vncSASL = driver.vncTLSx509verify = driver.vncTLS = 0;
-    free(driver.vncSASLdir);
-    free(driver.vncTLSx509certdir);
+    VIR_FREE(driver.vncSASLdir);
+    VIR_FREE(driver.vncTLSx509certdir);
     driver.vncSASLdir = driver.vncTLSx509certdir = NULL;
 
     DO_TEST("graphics-sdl", false, NONE);
@@ -493,6 +539,9 @@ mymain(void)
     DO_TEST("net-eth", false, NONE);
     DO_TEST("net-eth-ifname", false, NONE);
     DO_TEST("net-eth-names", false, QEMU_CAPS_NET_NAME);
+    DO_TEST("net-client", false, NONE);
+    DO_TEST("net-server", false, NONE);
+    DO_TEST("net-mcast", false, NONE);
 
     DO_TEST("serial-vc", false, NONE);
     DO_TEST("serial-pty", false, NONE);
@@ -605,7 +654,8 @@ mymain(void)
     DO_TEST("sound-device", false,
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_HDA_DUPLEX);
     DO_TEST("fs9p", false,
-            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_FSDEV);
+            QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_FSDEV,
+            QEMU_CAPS_FSDEV_WRITEOUT);
 
     DO_TEST("hostdev-usb-address", false, NONE);
     DO_TEST("hostdev-usb-address-device", false,
@@ -613,18 +663,21 @@ mymain(void)
     DO_TEST("hostdev-pci-address", false, QEMU_CAPS_PCIDEVICE);
     DO_TEST("hostdev-pci-address-device", false,
             QEMU_CAPS_PCIDEVICE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("pci-rom", false,
+            QEMU_CAPS_PCIDEVICE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_PCI_ROMBAR);
 
-    DO_TEST_FULL("restore-v1", "stdio", 7, false,
+    DO_TEST_FULL("restore-v1", "stdio", 7, false, false,
             QEMU_CAPS_MIGRATE_KVM_STDIO);
-    DO_TEST_FULL("restore-v2", "stdio", 7, false,
+    DO_TEST_FULL("restore-v2", "stdio", 7, false, false,
             QEMU_CAPS_MIGRATE_QEMU_EXEC);
-    DO_TEST_FULL("restore-v2", "exec:cat", 7, false,
+    DO_TEST_FULL("restore-v2", "exec:cat", 7, false, false,
             QEMU_CAPS_MIGRATE_QEMU_EXEC);
-    DO_TEST_FULL("restore-v2-fd", "stdio", 7, false,
+    DO_TEST_FULL("restore-v2-fd", "stdio", 7, false, false,
             QEMU_CAPS_MIGRATE_QEMU_FD);
-    DO_TEST_FULL("restore-v2-fd", "fd:7", 7, false,
+    DO_TEST_FULL("restore-v2-fd", "fd:7", 7, false, false,
             QEMU_CAPS_MIGRATE_QEMU_FD);
-    DO_TEST_FULL("migrate", "tcp:10.0.0.1:5000", -1, false,
+    DO_TEST_FULL("migrate", "tcp:10.0.0.1:5000", -1, false, false,
             QEMU_CAPS_MIGRATE_QEMU_TCP);
 
     DO_TEST("qemu-ns", false, NONE);
@@ -638,9 +691,19 @@ mymain(void)
     DO_TEST("cpu-minimum2", false, NONE);
     DO_TEST("cpu-exact1", false, NONE);
     DO_TEST("cpu-exact2", false, NONE);
+    DO_TEST("cpu-exact2-nofallback", false, NONE);
+    DO_TEST("cpu-fallback", false, NONE);
+    DO_TEST_FAILURE("cpu-nofallback", NONE);
     DO_TEST("cpu-strict1", false, NONE);
     DO_TEST("cpu-numa1", false, NONE);
     DO_TEST("cpu-numa2", false, QEMU_CAPS_SMP_TOPOLOGY);
+    DO_TEST("cpu-host-model", false, NONE);
+    DO_TEST("cpu-host-model-fallback", false, NONE);
+    DO_TEST_FAILURE("cpu-host-model-nofallback", NONE);
+    DO_TEST("cpu-host-passthrough", false, QEMU_CAPS_KVM, QEMU_CAPS_CPU_HOST);
+    DO_TEST_FAILURE("cpu-host-passthrough", NONE);
+    DO_TEST_FAILURE("cpu-qemu-host-passthrough",
+                    QEMU_CAPS_KVM, QEMU_CAPS_CPU_HOST);
 
     DO_TEST("memtune", false, QEMU_CAPS_NAME);
     DO_TEST("blkiotune", false, QEMU_CAPS_NAME);
@@ -648,7 +711,7 @@ mymain(void)
     DO_TEST("cputune", false, QEMU_CAPS_NAME);
     DO_TEST("numatune-memory", false, NONE);
     DO_TEST("blkdeviotune", false, QEMU_CAPS_NAME, QEMU_CAPS_DEVICE,
-            QEMU_CAPS_DRIVE);
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_IOTUNE);
 
     DO_TEST("multifunction-pci-device", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
@@ -666,9 +729,18 @@ mymain(void)
     DO_TEST("seclabel-static", false, QEMU_CAPS_NAME);
     DO_TEST("seclabel-static-relabel", false, QEMU_CAPS_NAME);
 
-    free(driver.stateDir);
+    DO_TEST("pseries-basic", false,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("pseries-vio", false, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("pseries-vio-user-assigned", false, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("pseries-vio-address-clash", true, QEMU_CAPS_DRIVE,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+
+    VIR_FREE(driver.stateDir);
     virCapabilitiesFree(driver.caps);
-    free(map);
+    VIR_FREE(map);
 
     return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

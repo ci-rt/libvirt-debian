@@ -103,6 +103,8 @@ struct _virCommand {
     pid_t pid;
     char *pidfile;
     bool reap;
+
+    unsigned long long capabilities;
 };
 
 /*
@@ -167,6 +169,8 @@ virCommandFDSet(int fd,
 
 #ifndef WIN32
 
+static int virClearCapabilities(void) ATTRIBUTE_UNUSED;
+
 # if HAVE_CAPNG
 static int virClearCapabilities(void)
 {
@@ -182,11 +186,44 @@ static int virClearCapabilities(void)
 
     return 0;
 }
+
+/**
+ * virSetCapabilities:
+ *  @capabilities - capability flag to set.
+ *                  In case of 0, this function is identical to
+ *                  virClearCapabilities()
+ *
+ */
+static int virSetCapabilities(unsigned long long capabilities)
+{
+    int ret, i;
+
+    capng_clear(CAPNG_SELECT_BOTH);
+
+    for (i = 0; i <= CAP_LAST_CAP; i++) {
+        if (capabilities & (1ULL << i))
+            capng_update(CAPNG_ADD, CAPNG_BOUNDING_SET, i);
+    }
+
+    if ((ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
+        virCommandError(VIR_ERR_INTERNAL_ERROR,
+                        _("cannot apply process capabilities %d"), ret);
+        return -1;
+    }
+
+    return 0;
+}
 # else
 static int virClearCapabilities(void)
 {
 //    VIR_WARN("libcap-ng support not compiled in, unable to clear "
 //             "capabilities");
+    return 0;
+}
+
+static int
+virSetCapabilities(unsigned long long capabilities ATTRIBUTE_UNUSED)
+{
     return 0;
 }
 # endif
@@ -359,6 +396,7 @@ prepareStdFd(int fd, int std)
  * @hook optional virExecHook function to call prior to exec
  * @data data to pass to the hook function
  * @pidfile path to use as pidfile for daemonized process (needs DAEMON flag)
+ * @capabilities capabilities to keep
  */
 static int
 virExecWithHook(const char *const*argv,
@@ -370,7 +408,8 @@ virExecWithHook(const char *const*argv,
                 unsigned int flags,
                 virExecHook hook,
                 void *data,
-                char *pidfile)
+                char *pidfile,
+                unsigned long long capabilities)
 {
     pid_t pid;
     int null = -1, i, openmax;
@@ -425,7 +464,9 @@ virExecWithHook(const char *const*argv,
     }
 
     if (errfd != NULL) {
-        if (*errfd == -1) {
+        if (errfd == outfd) {
+            childerr = childout;
+        } else if (*errfd == -1) {
             if (pipe2(pipeerr, O_CLOEXEC) < 0) {
                 virReportSystemError(errno,
                                      "%s", _("Failed to create pipe"));
@@ -599,9 +640,9 @@ virExecWithHook(const char *const*argv,
 
     /* The steps above may need todo something privileged, so
      * we delay clearing capabilities until the last minute */
-    if ((flags & VIR_EXEC_CLEAR_CAPS) &&
-        virClearCapabilities() < 0)
-        goto fork_error;
+    if (capabilities || (flags & VIR_EXEC_CLEAR_CAPS))
+        if (virSetCapabilities(capabilities) < 0)
+            goto fork_error;
 
     /* Close logging again to ensure no FDs leak to child */
     virLogReset();
@@ -689,7 +730,8 @@ virExecWithHook(const char *const*argv ATTRIBUTE_UNUSED,
                 int flags_unused ATTRIBUTE_UNUSED,
                 virExecHook hook ATTRIBUTE_UNUSED,
                 void *data ATTRIBUTE_UNUSED,
-                char *pidfile ATTRIBUTE_UNUSED)
+                char *pidfile ATTRIBUTE_UNUSED,
+                unsigned long long capabilities ATTRIBUTE_UNUSED)
 {
     /* XXX: Some day we can implement pieces of virCommand/virExec on
      * top of _spawn() or CreateProcess(), but we can't implement
@@ -883,26 +925,23 @@ virCommandClearCaps(virCommandPtr cmd)
     cmd->flags |= VIR_EXEC_CLEAR_CAPS;
 }
 
-#if 0 /* XXX Enable if we have a need for capability management.  */
-
 /**
  * virCommandAllowCap:
  * @cmd: the command to modify
  * @capability: what to allow
  *
- * Re-allow a specific capability
+ * Allow specific capabilities
  */
 void
 virCommandAllowCap(virCommandPtr cmd,
-                   int capability ATTRIBUTE_UNUSED)
+                   int capability)
 {
     if (!cmd || cmd->has_error)
         return;
 
-    /* XXX ? */
+    cmd->capabilities |= (1ULL << capability);
 }
 
-#endif /* 0 */
 
 
 /**
@@ -1391,7 +1430,10 @@ virCommandSetOutputBuffer(virCommandPtr cmd, char **outbuf)
  * guaranteed to be allocated after successful virCommandRun or
  * virCommandWait, and is best-effort allocated after failed
  * virCommandRun; caller is responsible for freeing *errbuf.
- * This requires the use of virCommandRun.
+ * This requires the use of virCommandRun.  It is possible to
+ * pass the same pointer as for virCommandSetOutputBuffer(), in
+ * which case the child process will interleave all output into
+ * a single string.
  */
 void
 virCommandSetErrorBuffer(virCommandPtr cmd, char **errbuf)
@@ -1710,7 +1752,7 @@ virCommandProcessIO(virCommandPtr cmd)
         }
 
         for (i = 0; i < nfds ; i++) {
-            if (fds[i].revents & POLLIN &&
+            if (fds[i].revents & (POLLIN | POLLHUP | POLLERR) &&
                 (fds[i].fd == errfd || fds[i].fd == outfd)) {
                 char data[1024];
                 char **buf;
@@ -1751,7 +1793,7 @@ virCommandProcessIO(virCommandPtr cmd)
                 }
             }
 
-            if (fds[i].revents & POLLOUT &&
+            if (fds[i].revents & (POLLOUT | POLLERR) &&
                 fds[i].fd == infd) {
                 int done;
 
@@ -1775,19 +1817,6 @@ virCommandProcessIO(virCommandPtr cmd)
                         if (VIR_CLOSE(infd) < 0)
                             VIR_DEBUG("ignoring failed close on fd %d", tmpfd);
                     }
-                }
-            }
-
-            if (fds[i].revents & (POLLHUP | POLLERR)) {
-                if (fds[i].fd == errfd) {
-                    VIR_DEBUG("hangup on stderr");
-                    errfd = -1;
-                } else if (fds[i].fd == outfd) {
-                    VIR_DEBUG("hangup on stdout");
-                    outfd = -1;
-                } else {
-                    VIR_DEBUG("hangup on stdin");
-                    infd = -1;
                 }
             }
         }
@@ -1914,6 +1943,13 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
         }
         cmd->infd = infd[0];
         cmd->inpipe = infd[1];
+    }
+
+    /* If caller requested the same string for stdout and stderr, then
+     * merge those into one string.  */
+    if (cmd->outbuf && cmd->outbuf == cmd->errbuf) {
+        cmd->errfdptr = &cmd->outfd;
+        cmd->errbuf = NULL;
     }
 
     /* If caller hasn't requested capture of stdout/err, then capture
@@ -2153,7 +2189,8 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
                           cmd->flags,
                           virCommandHook,
                           cmd,
-                          cmd->pidfile);
+                          cmd->pidfile,
+                          cmd->capabilities);
 
     VIR_DEBUG("Command result %d, with PID %d",
               ret, (int)cmd->pid);

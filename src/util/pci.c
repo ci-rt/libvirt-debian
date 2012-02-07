@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2011 Red Hat, Inc.
+ * Copyright (C) 2009-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -1117,7 +1117,9 @@ cleanup:
 }
 
 int
-pciDettachDevice(pciDevice *dev, pciDeviceList *activeDevs)
+pciDettachDevice(pciDevice *dev,
+                 pciDeviceList *activeDevs,
+                 pciDeviceList *inactiveDevs)
 {
     const char *driver = pciFindStubDriver();
     if (!driver) {
@@ -1132,11 +1134,22 @@ pciDettachDevice(pciDevice *dev, pciDeviceList *activeDevs)
         return -1;
     }
 
-    return pciBindDeviceToStub(dev, driver);
+    if (pciBindDeviceToStub(dev, driver) < 0)
+        return -1;
+
+    /* Add the dev into list inactiveDevs */
+    if (inactiveDevs && !pciDeviceListFind(inactiveDevs, dev)) {
+        if (pciDeviceListAdd(inactiveDevs, dev) < 0)
+            return -1;
+    }
+
+    return 0;
 }
 
 int
-pciReAttachDevice(pciDevice *dev, pciDeviceList *activeDevs)
+pciReAttachDevice(pciDevice *dev,
+                  pciDeviceList *activeDevs,
+                  pciDeviceList *inactiveDevs)
 {
     const char *driver = pciFindStubDriver();
     if (!driver) {
@@ -1151,7 +1164,14 @@ pciReAttachDevice(pciDevice *dev, pciDeviceList *activeDevs)
         return -1;
     }
 
-    return pciUnbindDeviceFromStub(dev, driver);
+    if (pciUnbindDeviceFromStub(dev, driver) < 0)
+        return -1;
+
+    /* Steal the dev from list inactiveDevs */
+    if (inactiveDevs)
+        pciDeviceListSteal(inactiveDevs, dev);
+
+    return 0;
 }
 
 /* Certain hypervisors (like qemu/kvm) map the PCI bar(s) on
@@ -1291,6 +1311,30 @@ pciReadDeviceID(pciDevice *dev, const char *id_name)
     id_str[6] = '\0';
 
     return id_str;
+}
+
+int
+pciGetDeviceAddrString(unsigned domain,
+                       unsigned bus,
+                       unsigned slot,
+                       unsigned function,
+                       char **pciConfigAddr)
+{
+    pciDevice *dev = NULL;
+    int ret = -1;
+
+    dev = pciGetDevice(domain, bus, slot, function);
+    if (dev != NULL) {
+        if ((*pciConfigAddr = strdup(dev->name)) == NULL) {
+            virReportOOMError();
+            goto cleanup;
+        }
+        ret = 0;
+    }
+
+cleanup:
+    pciFreeDevice(dev);
+    return ret;
 }
 
 pciDevice *
@@ -2024,6 +2068,22 @@ out:
     VIR_FREE(vf_bdf);
 
     return ret;
+}
+
+/*
+ * Returns a path to the PCI sysfs file given the BDF of the PCI function
+ */
+
+int
+pciSysfsFile(char *pciDeviceName, char **pci_sysfs_device_link)
+{
+    if (virAsprintf(pci_sysfs_device_link, PCI_SYSFS "devices/%s",
+                    pciDeviceName) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    return 0;
 }
 
 /*

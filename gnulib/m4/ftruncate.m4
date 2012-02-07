@@ -1,10 +1,8 @@
-# -*- buffer-read-only: t -*- vi: set ro:
-# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # serial 18
 
 # See if we need to emulate a missing ftruncate function using chsize.
 
-# Copyright (C) 2000-2001, 2003-2007, 2009-2011 Free Software Foundation, Inc.
+# Copyright (C) 2000-2001, 2003-2007, 2009-2012 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.

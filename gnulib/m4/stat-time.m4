@@ -1,8 +1,6 @@
-# -*- buffer-read-only: t -*- vi: set ro:
-# DO NOT EDIT! GENERATED AUTOMATICALLY!
 # Checks for stat-related time functions.
 
-# Copyright (C) 1998-1999, 2001, 2003, 2005-2007, 2009-2011 Free Software
+# Copyright (C) 1998-1999, 2001, 2003, 2005-2007, 2009-2012 Free Software
 # Foundation, Inc.
 
 # This file is free software; the Free Software Foundation

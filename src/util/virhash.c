@@ -1,9 +1,9 @@
 /*
- * hash.c: chained hash tables for domain and domain/connection deallocations
+ * virhash.c: chained hash tables
  *
  * Reference: Your favorite introductory book on algorithms
  *
- * Copyright (C) 2011 Red Hat, Inc.
+ * Copyright (C) 2005-2012 Red Hat, Inc.
  * Copyright (C) 2000 Bjorn Reese and Daniel Veillard.
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -15,7 +15,7 @@
  * MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS AND
  * CONTRIBUTORS ACCEPT NO RESPONSIBILITY IN ANY CONCEIVABLE MANNER.
  *
- * Author: breese@users.sourceforge.net
+ * Author: Bjorn Reese <bjorn.reese@systematic.dk>
  *         Daniel Veillard <veillard@redhat.com>
  */
 
@@ -25,9 +25,11 @@
 #include <stdlib.h>
 
 #include "virterror_internal.h"
-#include "hash.h"
+#include "virhash.h"
 #include "memory.h"
 #include "logging.h"
+#include "virhashcode.h"
+#include "virrandom.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -57,8 +59,9 @@ struct _virHashEntry {
  */
 struct _virHashTable {
     virHashEntryPtr *table;
-    int size;
-    int nbElems;
+    uint32_t seed;
+    size_t size;
+    size_t nbElems;
     /* True iff we are iterating over hash entries. */
     bool iterating;
     /* Pointer to the current entry during iteration. */
@@ -70,20 +73,9 @@ struct _virHashTable {
     virHashKeyFree keyFree;
 };
 
-static unsigned long virHashStrCode(const void *name)
+static uint32_t virHashStrCode(const void *name, uint32_t seed)
 {
-    const char *str = name;
-    unsigned long value = 0L;
-    char ch;
-
-    if (str != NULL) {
-        value += 30 * (*str);
-        while ((ch = *str++) != 0) {
-            value =
-                value ^ ((value << 5) + (value >> 3) + (unsigned long) ch);
-        }
-    }
-    return value;
+    return virHashCodeGen(name, strlen(name), seed);
 }
 
 static bool virHashStrEqual(const void *namea, const void *nameb)
@@ -102,10 +94,10 @@ static void virHashStrFree(void *name)
 }
 
 
-static unsigned long
+static size_t
 virHashComputeKey(virHashTablePtr table, const void *name)
 {
-    unsigned long value = table->keyCode(name);
+    uint32_t value = table->keyCode(name, table->seed);
     return (value % table->size);
 }
 
@@ -122,7 +114,7 @@ virHashComputeKey(virHashTablePtr table, const void *name)
  *
  * Returns the newly created object, or NULL if an error occurred.
  */
-virHashTablePtr virHashCreateFull(int size,
+virHashTablePtr virHashCreateFull(ssize_t size,
                                   virHashDataFree dataFree,
                                   virHashKeyCode keyCode,
                                   virHashKeyEqual keyEqual,
@@ -139,6 +131,7 @@ virHashTablePtr virHashCreateFull(int size,
         return NULL;
     }
 
+    table->seed = virRandomBits(32);
     table->size = size;
     table->nbElems = 0;
     table->dataFree = dataFree;
@@ -166,7 +159,7 @@ virHashTablePtr virHashCreateFull(int size,
  *
  * Returns the newly created object, or NULL if an error occurred.
  */
-virHashTablePtr virHashCreate(int size, virHashDataFree dataFree)
+virHashTablePtr virHashCreate(ssize_t size, virHashDataFree dataFree)
 {
     return virHashCreateFull(size,
                              dataFree,
@@ -186,13 +179,13 @@ virHashTablePtr virHashCreate(int size, virHashDataFree dataFree)
  * Returns 0 in case of success, -1 in case of failure
  */
 static int
-virHashGrow(virHashTablePtr table, int size)
+virHashGrow(virHashTablePtr table, size_t size)
 {
-    int oldsize, i;
+    size_t oldsize, i;
     virHashEntryPtr *oldtable;
 
 #ifdef DEBUG_GROW
-    unsigned long nbElem = 0;
+    size_t nbElem = 0;
 #endif
 
     if (table == NULL)
@@ -218,7 +211,7 @@ virHashGrow(virHashTablePtr table, int size)
         virHashEntryPtr iter = oldtable[i];
         while (iter) {
             virHashEntryPtr next = iter->next;
-            unsigned long key = virHashComputeKey(table, iter->name);
+            size_t key = virHashComputeKey(table, iter->name);
 
             iter->next = table->table[key];
             table->table[key] = iter;
@@ -250,7 +243,7 @@ virHashGrow(virHashTablePtr table, int size)
 void
 virHashFree(virHashTablePtr table)
 {
-    int i;
+    size_t i;
 
     if (table == NULL)
         return;
@@ -278,7 +271,7 @@ virHashAddOrUpdateEntry(virHashTablePtr table, const void *name,
                         void *userdata,
                         bool is_update)
 {
-    unsigned long key, len = 0;
+    size_t key, len = 0;
     virHashEntryPtr entry;
     char *new_name;
 
@@ -372,7 +365,7 @@ virHashUpdateEntry(virHashTablePtr table, const void *name,
 void *
 virHashLookup(virHashTablePtr table, const void *name)
 {
-    unsigned long key;
+    size_t key;
     virHashEntryPtr entry;
 
     if (!table || !name)
@@ -419,7 +412,7 @@ void *virHashSteal(virHashTablePtr table, const void *name)
  * Returns the number of elements in the hash table or
  * -1 in case of error
  */
-int
+ssize_t
 virHashSize(virHashTablePtr table)
 {
     if (table == NULL)
@@ -436,7 +429,7 @@ virHashSize(virHashTablePtr table)
  * Returns the number of keys in the hash table or
  * -1 in case of error
  */
-int
+ssize_t
 virHashTableSize(virHashTablePtr table)
 {
     if (table == NULL)
@@ -499,9 +492,10 @@ virHashRemoveEntry(virHashTablePtr table, const void *name)
  *
  * Returns number of items iterated over upon completion, -1 on failure
  */
-int virHashForEach(virHashTablePtr table, virHashIterator iter, void *data)
+ssize_t
+virHashForEach(virHashTablePtr table, virHashIterator iter, void *data)
 {
-    int i, count = 0;
+    size_t i, count = 0;
 
     if (table == NULL || iter == NULL)
         return (-1);
@@ -542,11 +536,12 @@ int virHashForEach(virHashTablePtr table, virHashIterator iter, void *data)
  *
  * Returns number of items removed on success, -1 on failure
  */
-int virHashRemoveSet(virHashTablePtr table,
-                     virHashSearcher iter,
-                     const void *data)
+ssize_t
+virHashRemoveSet(virHashTablePtr table,
+                 virHashSearcher iter,
+                 const void *data)
 {
-    int i, count = 0;
+    size_t i, count = 0;
 
     if (table == NULL || iter == NULL)
         return (-1);
@@ -595,7 +590,7 @@ void *virHashSearch(virHashTablePtr table,
                     virHashSearcher iter,
                     const void *data)
 {
-    int i;
+    size_t i;
 
     if (table == NULL || iter == NULL)
         return (NULL);
@@ -622,7 +617,7 @@ void *virHashSearch(virHashTablePtr table,
 struct getKeysIter
 {
     virHashKeyValuePair *sortArray;
-    unsigned arrayIdx;
+    size_t arrayIdx;
 };
 
 static void virHashGetKeysIterator(void *payload,
@@ -641,7 +636,7 @@ typedef int (*qsort_comp)(const void *, const void *);
 virHashKeyValuePairPtr virHashGetItems(virHashTablePtr table,
                                        virHashKeyComparator compar)
 {
-    int numElems = virHashSize(table);
+    ssize_t numElems = virHashSize(table);
     struct getKeysIter iter = {
         .arrayIdx = 0,
         .sortArray = NULL,
@@ -662,4 +657,50 @@ virHashKeyValuePairPtr virHashGetItems(virHashTablePtr table,
               (qsort_comp)compar);
 
     return iter.sortArray;
+}
+
+struct virHashEqualData
+{
+    bool equal;
+    const virHashTablePtr table2;
+    virHashValueComparator compar;
+};
+
+static int virHashEqualSearcher(const void *payload, const void *name,
+                                const void *data)
+{
+    struct virHashEqualData *vhed = (void *)data;
+    const void *value;
+
+    value = virHashLookup(vhed->table2, name);
+    if (!value ||
+        vhed->compar(value, payload) != 0) {
+        /* key is missing in 2nd table or values are different */
+        vhed->equal = false;
+        /* stop 'iteration' */
+        return 1;
+    }
+    return 0;
+}
+
+bool virHashEqual(const virHashTablePtr table1,
+                  const virHashTablePtr table2,
+                  virHashValueComparator compar)
+{
+    struct virHashEqualData data = {
+        .equal = true,
+        .table2 = table2,
+        .compar = compar,
+    };
+
+    if (table1 == table2)
+        return true;
+
+    if (!table1 || !table2 ||
+        virHashSize(table1) != virHashSize(table2))
+        return false;
+
+    virHashSearch(table1, virHashEqualSearcher, &data);
+
+    return data.equal;
 }

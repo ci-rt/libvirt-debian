@@ -2,7 +2,7 @@
  * types.c: converter functions between the internal representation
  *          and the Python objects
  *
- * Copyright (C) 2005, 2007 Red Hat, Inc.
+ * Copyright (C) 2005, 2007, 2012 Red Hat, Inc.
  *
  * Daniel Veillard <veillard@redhat.com>
  */
@@ -15,6 +15,8 @@
 #undef HAVE_PTHREAD_H
 
 #include "typewrappers.h"
+
+#include "memory.h"
 
 #ifndef Py_CAPSULE_H
 typedef void(*PyCapsule_Destructor)(void *, void *);
@@ -86,7 +88,7 @@ libvirt_charPtrSizeWrap(char *str, Py_ssize_t size)
         return (Py_None);
     }
     ret = PyString_FromStringAndSize(str, size);
-    free(str);
+    VIR_FREE(str);
     return (ret);
 }
 
@@ -100,25 +102,12 @@ libvirt_charPtrWrap(char *str)
         return (Py_None);
     }
     ret = PyString_FromString(str);
-    free(str);
+    VIR_FREE(str);
     return (ret);
 }
 
 PyObject *
 libvirt_constcharPtrWrap(const char *str)
-{
-    PyObject *ret;
-
-    if (str == NULL) {
-        Py_INCREF(Py_None);
-        return (Py_None);
-    }
-    ret = PyString_FromString(str);
-    return (ret);
-}
-
-PyObject *
-libvirt_charPtrConstWrap(const char *str)
 {
     PyObject *ret;
 

@@ -500,15 +500,30 @@ virNWFilterDetermineMissingVarsRec(virNWFilterDefPtr filter,
         virNWFilterIncludeDefPtr inc  = filter->filterEntries[i]->include;
         if (rule) {
             /* check all variables of this rule */
-            for (j = 0; j < rule->nvars; j++) {
-                if (!virHashLookup(vars->hashTable, rule->vars[j])) {
-                    val = virNWFilterVarValueCreateSimpleCopyValue("1");
-                    if (!val) {
+            for (j = 0; j < rule->nVarAccess; j++) {
+                if (!virNWFilterVarAccessIsAvailable(rule->varAccess[j],
+                                                     vars)) {
+                    const char *varAccess;
+                    virBuffer buf = VIR_BUFFER_INITIALIZER;
+
+                    virNWFilterVarAccessPrint(rule->varAccess[j], &buf);
+                    if (virBufferError(&buf)) {
+                        virReportOOMError();
                         rc = -1;
                         break;
                     }
-                    virNWFilterHashTablePut(missing_vars, rule->vars[j],
+
+                    val = virNWFilterVarValueCreateSimpleCopyValue("1");
+                    if (!val) {
+                        virBufferFreeAndReset(&buf);
+                        rc = -1;
+                        break;
+                    }
+
+                    varAccess = virBufferContentAndReset(&buf);
+                    virNWFilterHashTablePut(missing_vars, varAccess,
                                             val, 1);
+                    VIR_FREE(varAccess);
                 }
             }
             if (rc)
@@ -750,7 +765,7 @@ err_unresolvable_vars:
     if (buf) {
         virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
                    _("Cannot instantiate filter due to unresolvable "
-                     "variables: %s"), buf);
+                     "variables or unavailable list elements: %s"), buf);
         VIR_FREE(buf);
     }
 
@@ -816,7 +831,7 @@ __virNWFilterInstantiateFilter(const unsigned char *vmuuid,
         goto err_exit;
     }
 
-    virFormatMacAddr(macaddr, vmmacaddr);
+    virMacAddrFormat(macaddr, vmmacaddr);
     str_macaddr = strdup(vmmacaddr);
     if (!str_macaddr) {
         virReportOOMError();
@@ -1107,7 +1122,7 @@ virNWFilterDomainFWUpdateCB(void *payload,
     virDomainObjPtr obj = payload;
     virDomainDefPtr vm = obj->def;
     struct domUpdateCBStruct *cb = data;
-    int i;
+    int i, err;
     bool skipIface;
 
     virDomainObjLock(obj);
@@ -1140,6 +1155,16 @@ virNWFilterDomainFWUpdateCB(void *payload,
                     if ( !virHashLookup(cb->skipInterfaces, net->ifname)) {
                         cb->err = virNWFilterTearOldFilter(net);
                     }
+                    break;
+
+                case STEP_APPLY_CURRENT:
+                    err = virNWFilterInstantiateFilter(cb->conn,
+                                                       vm->uuid,
+                                                       net);
+                    if (err)
+                        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
+                            _("Failure while applying current filter on "
+                            "VM %s"), vm->name);
                     break;
                 }
                 if (cb->err)

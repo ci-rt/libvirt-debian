@@ -1046,11 +1046,9 @@ char *qemuMigrationBegin(struct qemud_driver *driver,
                                             VIR_DOMAIN_XML_INACTIVE)))
             goto cleanup;
 
-        if (STRNEQ(def->name, vm->def->name) &&
-            STRNEQ_NULLABLE(def->name, dname)) {
+        if (STRNEQ(def->name, vm->def->name)) {
             qemuReportError(VIR_ERR_INVALID_ARG, "%s",
-                            _("target domain name doesn't match source name"
-                              " nor destination name"));
+                            _("target domain name doesn't match source name"));
             goto cleanup;
         }
 
@@ -1319,7 +1317,7 @@ qemuMigrationPrepareDirect(struct qemud_driver *driver,
 
         /* XXX this really should have been a properly well-formed
          * URI, but we can't add in tcp:// now without breaking
-         * compatability with old targets. We at least make the
+         * compatibility with old targets. We at least make the
          * new targets accept both syntaxes though.
          */
         /* Caller frees */
@@ -1750,13 +1748,13 @@ static int doNativeMigrate(struct qemud_driver *driver,
             virReportOOMError();
             goto cleanup;
         }
-        if (virSecurityManagerSetSocketLabel(driver->securityManager, vm) < 0)
+        if (virSecurityManagerSetSocketLabel(driver->securityManager, vm->def) < 0)
             goto cleanup;
         if (virNetSocketNewConnectTCP(uribits->server, tmp, &sock) == 0) {
             spec.dest.fd.qemu = virNetSocketDupFD(sock, true);
             virNetSocketFree(sock);
         }
-        if (virSecurityManagerClearSocketLabel(driver->securityManager, vm) < 0 ||
+        if (virSecurityManagerClearSocketLabel(driver->securityManager, vm->def) < 0 ||
             spec.dest.fd.qemu == -1)
             goto cleanup;
     } else {
@@ -1823,7 +1821,7 @@ static int doTunnelMigrate(struct qemud_driver *driver,
             spec.dest.fd.local = fds[0];
         }
         if (spec.dest.fd.qemu == -1 ||
-            virSecurityManagerSetImageFDLabel(driver->securityManager, vm,
+            virSecurityManagerSetImageFDLabel(driver->securityManager, vm->def,
                                               spec.dest.fd.qemu) < 0) {
             virReportSystemError(errno, "%s",
                         _("cannot create pipe for tunnelled migration"));
@@ -2843,7 +2841,7 @@ qemuMigrationToFile(struct qemud_driver *driver, virDomainObjPtr vm,
          * doesn't have to open() the file, so while we still have to
          * grant SELinux access, we can do it on fd and avoid cleanup
          * later, as well as skip futzing with cgroup.  */
-        if (virSecurityManagerSetImageFDLabel(driver->securityManager, vm,
+        if (virSecurityManagerSetImageFDLabel(driver->securityManager, vm->def,
                                               compressor ? pipeFD[1] : fd) < 0)
             goto cleanup;
         bypassSecurityDriver = true;
@@ -2877,7 +2875,7 @@ qemuMigrationToFile(struct qemud_driver *driver, virDomainObjPtr vm,
         }
         if ((!bypassSecurityDriver) &&
             virSecurityManagerSetSavedStateLabel(driver->securityManager,
-                                                 vm, path) < 0)
+                                                 vm->def, path) < 0)
             goto cleanup;
         restoreLabel = true;
     }
@@ -2952,7 +2950,7 @@ cleanup:
     virCommandFree(cmd);
     if (restoreLabel && (!bypassSecurityDriver) &&
         virSecurityManagerRestoreSavedStateLabel(driver->securityManager,
-                                                 vm, path) < 0)
+                                                 vm->def, path) < 0)
         VIR_WARN("failed to restore save state label on %s", path);
 
     if (cgroup != NULL) {

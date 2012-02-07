@@ -1,7 +1,7 @@
 /*
  * virterror.c: implements error handling and reporting code for libvirt
  *
- * Copy:  Copyright (C) 2006, 2008-2011 Red Hat, Inc.
+ * Copy:  Copyright (C) 2006, 2008-2012 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -228,7 +228,7 @@ virErrorGenericFailure(virErrorPtr err)
 
 
 /*
- * Internal helper to perform a deep copy of the an error
+ * Internal helper to perform a deep copy of an error
  */
 static int
 virCopyError(virErrorPtr from,
@@ -267,7 +267,8 @@ virLastErrorObject(void)
     if (!err) {
         if (VIR_ALLOC(err) < 0)
             return NULL;
-        virThreadLocalSet(&virLastErr, err);
+        if (virThreadLocalSet(&virLastErr, err) < 0)
+            VIR_FREE(err);
     }
     return err;
 }
@@ -438,7 +439,7 @@ virResetLastError(void)
  * Since 0.6.0, all errors reported in the per-connection object
  * are also duplicated in the global error object. As such an
  * application can always use virGetLastError(). This method
- * remains for backwards compatability.
+ * remains for backwards compatibility.
  *
  * Returns a pointer to the last error or NULL if none occurred.
  */
@@ -469,7 +470,7 @@ virConnGetLastError(virConnectPtr conn)
  * Since 0.6.0, all errors reported in the per-connection object
  * are also duplicated in the global error object. As such an
  * application can always use virGetLastError(). This method
- * remains for backwards compatability.
+ * remains for backwards compatibility.
  *
  * One will need to free the result with virResetError()
  *
@@ -612,7 +613,7 @@ virDispatchError(virConnectPtr conn)
     virErrorFunc handler = virErrorHandler;
     void *userData = virUserData;
 
-    /* Should never happen, but doesn't hurt to check */
+    /* Can only happen on OOM.  */
     if (!err)
         return;
 
@@ -682,7 +683,7 @@ virRaiseErrorFull(const char *filename ATTRIBUTE_UNUSED,
 
     /*
      * All errors are recorded in thread local storage
-     * For compatability, public API calls will copy them
+     * For compatibility, public API calls will copy them
      * to the per-connection error object when necessary
      */
     to = virLastErrorObject();
@@ -755,7 +756,7 @@ virRaiseErrorFull(const char *filename ATTRIBUTE_UNUSED,
  *
  * Returns the constant string associated to @error
  */
-const char *
+static const char *
 virErrorMsg(virErrorNumber error, const char *info)
 {
     const char *errmsg = NULL;
@@ -1021,6 +1022,12 @@ virErrorMsg(virErrorNumber error, const char *info)
             else
                 errmsg = _("authentication failed: %s");
             break;
+        case VIR_ERR_AUTH_CANCELLED:
+            if (info == NULL)
+                errmsg = _("authentication cancelled");
+            else
+                errmsg = _("authentication cancelled: %s");
+            break;
         case VIR_ERR_NO_STORAGE_POOL:
             if (info == NULL)
                 errmsg = _("Storage pool not found");
@@ -1219,6 +1226,12 @@ virErrorMsg(virErrorNumber error, const char *info)
             else
                 errmsg = _("operation aborted: %s");
             break;
+        case VIR_ERR_NO_DOMAIN_METADATA:
+            if (info == NULL)
+                errmsg = _("metadata not found");
+            else
+                errmsg = _("metadata not found: %s");
+            break;
     }
     return (errmsg);
 }
@@ -1227,7 +1240,7 @@ virErrorMsg(virErrorNumber error, const char *info)
  * virReportErrorHelper:
  *
  * @domcode: the virErrorDomain indicating where it's coming from
- * @errcode: the virErrorNumber code for the error
+ * @errorcode: the virErrorNumber code for the error
  * @filename: Source file error is dispatched from
  * @funcname: Function error is dispatched from
  * @linenr: Line number error is dispatched from
@@ -1238,7 +1251,7 @@ virErrorMsg(virErrorNumber error, const char *info)
  * ReportError
  */
 void virReportErrorHelper(int domcode,
-                          int errcode,
+                          int errorcode,
                           const char *filename,
                           const char *funcname,
                           size_t linenr,
@@ -1257,9 +1270,9 @@ void virReportErrorHelper(int domcode,
         errorMessage[0] = '\0';
     }
 
-    virerr = virErrorMsg(errcode, (errorMessage[0] ? errorMessage : NULL));
+    virerr = virErrorMsg(errorcode, (errorMessage[0] ? errorMessage : NULL));
     virRaiseErrorFull(filename, funcname, linenr,
-                      domcode, errcode, VIR_ERR_ERROR,
+                      domcode, errorcode, VIR_ERR_ERROR,
                       virerr, errorMessage, NULL,
                       -1, -1, virerr, errorMessage);
     errno = save_errno;

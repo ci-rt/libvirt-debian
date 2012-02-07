@@ -272,13 +272,13 @@ virNWFilterRuleDefFree(virNWFilterRuleDefPtr def) {
     if (!def)
         return;
 
-    for (i = 0; i < def->nvars; i++)
-        VIR_FREE(def->vars[i]);
+    for (i = 0; i < def->nVarAccess; i++)
+        virNWFilterVarAccessFree(def->varAccess[i]);
 
     for (i = 0; i < def->nstrings; i++)
         VIR_FREE(def->strings[i]);
 
-    VIR_FREE(def->vars);
+    VIR_FREE(def->varAccess);
     VIR_FREE(def->strings);
 
     VIR_FREE(def);
@@ -358,28 +358,28 @@ virNWFilterRuleDefAddVar(virNWFilterRuleDefPtr nwf,
                          const char *var)
 {
     int i = 0;
+    virNWFilterVarAccessPtr varAccess;
 
-    if (nwf->vars) {
-        for (i = 0; i < nwf->nvars; i++)
-            if (STREQ(nwf->vars[i], var)) {
-                item->var = nwf->vars[i];
+    varAccess = virNWFilterVarAccessParse(var);
+    if (varAccess == NULL)
+        return -1;
+
+    if (nwf->varAccess) {
+        for (i = 0; i < nwf->nVarAccess; i++)
+            if (virNWFilterVarAccessEqual(nwf->varAccess[i], varAccess)) {
+                virNWFilterVarAccessFree(varAccess);
+                item->varAccess = nwf->varAccess[i];
                 return 0;
             }
     }
 
-    if (VIR_REALLOC_N(nwf->vars, nwf->nvars+1) < 0) {
+    if (VIR_EXPAND_N(nwf->varAccess, nwf->nVarAccess, 1) < 0) {
         virReportOOMError();
         return -1;
     }
 
-    nwf->vars[nwf->nvars] = strdup(var);
-
-    if (!nwf->vars[nwf->nvars]) {
-        virReportOOMError();
-        return -1;
-    }
-
-    item->var = nwf->vars[nwf->nvars++];
+    nwf->varAccess[nwf->nVarAccess - 1] = varAccess;
+    item->varAccess = varAccess;
 
     return 0;
 }
@@ -1670,7 +1670,7 @@ static int
 virNWMACAddressParser(const char *input,
                       nwMACAddressPtr output)
 {
-    return virParseMacAddr(input, &output->addr[0]);
+    return virMacAddrParse(input, &output->addr[0]);
 }
 
 
@@ -2723,6 +2723,29 @@ virNWFilterCallbackDriversUnlock(void)
 
 static virHashIterator virNWFilterDomainFWUpdateCB;
 
+/**
+ * virNWFilterInstFiltersOnAllVMs:
+ * Apply all filters on all running VMs. Don't terminate in case of an
+ * error. This should be called upon reloading of the driver.
+ */
+int
+virNWFilterInstFiltersOnAllVMs(virConnectPtr conn)
+{
+    int i;
+    struct domUpdateCBStruct cb = {
+        .conn = conn,
+        .err = 0, /* ignored here */
+        .step = STEP_APPLY_CURRENT,
+        .skipInterfaces = NULL, /* not needed */
+    };
+
+    for (i = 0; i < nCallbackDriver; i++)
+        callbackDrvArray[i]->vmFilterRebuild(conn,
+                                             virNWFilterDomainFWUpdateCB,
+                                             &cb);
+
+    return 0;
+}
 
 static int
 virNWFilterTriggerVMFilterRebuild(virConnectPtr conn)
@@ -2786,6 +2809,35 @@ virNWFilterTestUnassignDef(virConnectPtr conn,
     return rc;
 }
 
+static bool
+virNWFilterDefEqual(const virNWFilterDefPtr def1, virNWFilterDefPtr def2,
+                    bool cmpUUIDs)
+{
+    bool ret = false;
+    unsigned char rem_uuid[VIR_UUID_BUFLEN];
+    char *xml1, *xml2 = NULL;
+
+    if (!cmpUUIDs) {
+        /* make sure the UUIDs are equal */
+        memcpy(rem_uuid, def2->uuid, sizeof(rem_uuid));
+        memcpy(def2->uuid, def1->uuid, sizeof(def2->uuid));
+    }
+
+    if (!(xml1 = virNWFilterDefFormat(def1)) ||
+        !(xml2 = virNWFilterDefFormat(def2)))
+        goto cleanup;
+
+    ret = STREQ(xml1, xml2);
+
+cleanup:
+    if (!cmpUUIDs)
+        memcpy(def2->uuid, rem_uuid, sizeof(rem_uuid));
+
+    VIR_FREE(xml1);
+    VIR_FREE(xml2);
+
+    return ret;
+}
 
 virNWFilterObjPtr
 virNWFilterObjAssignDef(virConnectPtr conn,
@@ -2817,6 +2869,14 @@ virNWFilterObjAssignDef(virConnectPtr conn,
     virNWFilterLockFilterUpdates();
 
     if ((nwfilter = virNWFilterObjFindByName(nwfilters, def->name))) {
+
+        if (virNWFilterDefEqual(def, nwfilter->def, false)) {
+            virNWFilterDefFree(nwfilter->def);
+            nwfilter->def = def;
+            virNWFilterUnlockFilterUpdates();
+            return nwfilter;
+        }
+
         nwfilter->newDef = def;
         /* trigger the update on VMs referencing the filter */
         if (virNWFilterTriggerVMFilterRebuild(conn)) {
@@ -3069,7 +3129,8 @@ virNWFilterRuleDefDetailsFormat(virBufferPtr buf,
                    goto err_exit;
                }
             } else if ((flags & NWFILTER_ENTRY_ITEM_FLAG_HAS_VAR)) {
-                virBufferAsprintf(buf, "$%s", item->var);
+                virBufferAddChar(buf, '$');
+                virNWFilterVarAccessPrint(item->varAccess, buf);
             } else {
                asHex = false;
 

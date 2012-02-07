@@ -9,7 +9,7 @@
     <boot dev='network'/>
   </os>
   <cpu match='exact'>
-    <model>qemu64</model>
+    <model fallback='allow'>qemu64</model>
     <feature policy='disable' name='svm'/>
     <feature policy='disable' name='lm'/>
     <feature policy='disable' name='nx'/>

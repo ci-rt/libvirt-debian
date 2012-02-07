@@ -155,7 +155,10 @@ int virCondWait(virCondPtr c, virMutexPtr m)
         if (!event) {
             return -1;
         }
-        virThreadLocalSet(&virCondEvent, event);
+        if (virThreadLocalSet(&virCondEvent, event) < 0) {
+            CloseHandle(event);
+            return -1;
+        }
     }
 
     virMutexLock(&c->lock);
@@ -333,7 +336,7 @@ int virThreadSelfID(void)
 /* For debugging use only; see comments in threads-pthread.c.  */
 int virThreadID(virThreadPtr thread)
 {
-    return (int)thread->thread;
+    return (intptr_t)thread->thread;
 }
 
 
@@ -376,7 +379,7 @@ void *virThreadLocalGet(virThreadLocalPtr l)
     return TlsGetValue(l->key);
 }
 
-void virThreadLocalSet(virThreadLocalPtr l, void *val)
+int virThreadLocalSet(virThreadLocalPtr l, void *val)
 {
-    TlsSetValue(l->key, val);
+    return TlsSetValue(l->key, val) == 0 ? -1 : 0;
 }

@@ -1,6 +1,4 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* Copyright (C) 2002, 2004-2005, 2007, 2009-2011 Free Software Foundation,
+/* Copyright (C) 2002, 2004-2005, 2007, 2009-2012 Free Software Foundation,
    Inc.
    This file is part of the GNU C Library.
 
@@ -242,7 +240,6 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
   struct locale_data *const current = locale->__locales[LC_TIME];
 #endif
 
-  const char *rp_backup;
   int cnt;
   size_t val;
   int have_I, is_pm;
@@ -255,14 +252,14 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
   int week_no;
 #ifdef _NL_CURRENT
   size_t num_eras;
+  struct era_entry *era = NULL;
+  const char *rp_backup;
 #endif
-  struct era_entry *era;
 
   have_I = is_pm = 0;
   century = -1;
   want_century = 0;
   want_era = 0;
-  era = NULL;
   week_no = 0;
 
   have_wday = want_xday = have_yday = have_mon = have_mday = have_uweek = 0;
@@ -280,7 +277,7 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
           continue;
         }
 
-      /* Any character but `%' must be matched by the same character
+      /* Any character but '%' must be matched by the same character
          in the iput string.  */
       if (*fmt != '%')
         {
@@ -290,17 +287,17 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
 
       ++fmt;
 #ifndef _NL_CURRENT
-      /* We need this for handling the `E' modifier.  */
+      /* We need this for handling the 'E' modifier.  */
     start_over:
-#endif
-
+#else
       /* Make back up of current processing pointer.  */
       rp_backup = rp;
+#endif
 
       switch (*fmt++)
         {
         case '%':
-          /* Match the `%' character itself.  */
+          /* Match the '%' character itself.  */
           match_char ('%', *rp++);
           break;
         case 'a':
@@ -561,7 +558,7 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
         case 's':
           {
             /* The number of seconds may be very high so we cannot use
-               the `get_number' macro.  Instead read the number
+               the 'get_number' macro.  Instead read the number
                character for character and construct the result while
                doing this.  */
             time_t secs = 0;
@@ -677,7 +674,7 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
              specify hours.  If fours digits are used, minutes are
              also specified.  */
           {
-            bool neg;
+            bool neg _GL_UNUSED;
             int n;
 
             val = 0;

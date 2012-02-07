@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009, 2011 Red Hat, Inc.
+ * Copyright (C) 2009, 2011-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,8 +40,12 @@ pciDevice *pciGetDevice      (unsigned       domain,
                               unsigned       function);
 void       pciFreeDevice     (pciDevice     *dev);
 const char *pciDeviceGetName (pciDevice     *dev);
-int        pciDettachDevice  (pciDevice     *dev, pciDeviceList *activeDevs);
-int        pciReAttachDevice (pciDevice     *dev, pciDeviceList *activeDevs);
+int        pciDettachDevice  (pciDevice     *dev,
+                              pciDeviceList *activeDevs,
+                              pciDeviceList *inactiveDevs);
+int        pciReAttachDevice (pciDevice     *dev,
+                              pciDeviceList *activeDevs,
+                              pciDeviceList *inactiveDevs);
 int        pciResetDevice    (pciDevice     *dev,
                               pciDeviceList *activeDevs,
                               pciDeviceList *inactiveDevs);
@@ -109,4 +113,13 @@ int pciGetVirtualFunctionIndex(const char *pf_sysfs_device_link,
 
 int pciDeviceNetName(char *device_link_sysfs_path, char **netname);
 
+int pciSysfsFile(char *pciDeviceName, char **pci_sysfs_device_link)
+    ATTRIBUTE_RETURN_CHECK;
+
+int pciGetDeviceAddrString(unsigned domain,
+                           unsigned bus,
+                           unsigned slot,
+                           unsigned function,
+                           char **pciConfigAddr)
+    ATTRIBUTE_NONNULL(5) ATTRIBUTE_RETURN_CHECK;
 #endif /* __VIR_PCI_H__ */

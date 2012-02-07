@@ -1,7 +1,7 @@
 /*
  * qemu_capabilities.c: QEMU capabilities generation
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -144,6 +144,14 @@ VIR_ENUM_IMPL(qemuCaps, QEMU_CAPS_LAST,
               "ich9-ahci",
               "no-acpi",
               "fsdev-readonly",
+
+              "virtio-blk-pci.scsi", /* 80 */
+              "blk-sg-io",
+              "drive-copy-on-read",
+              "cpu-host",
+              "fsdev-writeout",
+
+              "drive-iotune", /* 85 */
     );
 
 struct qemu_feature_flags {
@@ -974,12 +982,13 @@ virCapsPtr qemuCapsInit(virCapsPtr old_caps)
 }
 
 
-static void
+static int
 qemuCapsComputeCmdFlags(const char *help,
                         unsigned int version,
                         unsigned int is_kvm,
                         unsigned int kvm_version,
-                        virBitmapPtr flags)
+                        virBitmapPtr flags,
+                        bool check_yajl ATTRIBUTE_UNUSED)
 {
     const char *p;
     const char *fsdev;
@@ -1023,6 +1032,10 @@ qemuCapsComputeCmdFlags(const char *help,
             qemuCapsSet(flags, QEMU_CAPS_DRIVE_READONLY);
         if (strstr(help, "aio=threads|native"))
             qemuCapsSet(flags, QEMU_CAPS_DRIVE_AIO);
+        if (strstr(help, "copy-on-read=on|off"))
+            qemuCapsSet(flags, QEMU_CAPS_DRIVE_COPY_ON_READ);
+        if (strstr(help, "bps="))
+            qemuCapsSet(flags, QEMU_CAPS_DRIVE_IOTUNE);
     }
     if ((p = strstr(help, "-vga")) && !strstr(help, "-std-vga")) {
         const char *nl = strstr(p, "\n");
@@ -1083,6 +1096,8 @@ qemuCapsComputeCmdFlags(const char *help,
         qemuCapsSet(flags, QEMU_CAPS_FSDEV);
         if (strstr(fsdev, "readonly"))
             qemuCapsSet(flags, QEMU_CAPS_FSDEV_READONLY);
+        if (strstr(fsdev, "writeout"))
+            qemuCapsSet(flags, QEMU_CAPS_FSDEV_WRITEOUT);
     }
     if (strstr(help, "-smbios type"))
         qemuCapsSet(flags, QEMU_CAPS_SMBIOS_TYPE);
@@ -1090,7 +1105,8 @@ qemuCapsComputeCmdFlags(const char *help,
     if (strstr(help, "-netdev")) {
         /* Disable -netdev on 0.12 since although it exists,
          * the corresponding netdev_add/remove monitor commands
-         * do not, and we need them to be able todo hotplug */
+         * do not, and we need them to be able to do hotplug.
+         * But see below about RHEL build. */
         if (version >= 13000)
             qemuCapsSet(flags, QEMU_CAPS_NETDEV);
     }
@@ -1149,15 +1165,44 @@ qemuCapsComputeCmdFlags(const char *help,
     if (version >= 10000)
         qemuCapsSet(flags, QEMU_CAPS_0_10);
 
+    if (version >= 11000)
+        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_BLK_SG_IO);
+
     /* While JSON mode was available in 0.12.0, it was too
      * incomplete to contemplate using. The 0.13.0 release
      * is good enough to use, even though it lacks one or
-     * two features. The benefits of JSON mode now outweigh
-     * the downside.
+     * two features. This is also true of versions of qemu
+     * built for RHEL, labeled 0.12.1, but with extra text
+     * in the help output that mentions that features were
+     * backported for libvirt. The benefits of JSON mode now
+     * outweigh the downside.
      */
 #if HAVE_YAJL
-     if (version >= 13000)
+    if (version >= 13000) {
         qemuCapsSet(flags, QEMU_CAPS_MONITOR_JSON);
+    } else if (version >= 12000 &&
+               strstr(help, "libvirt")) {
+        qemuCapsSet(flags, QEMU_CAPS_MONITOR_JSON);
+        qemuCapsSet(flags, QEMU_CAPS_NETDEV);
+    }
+#else
+    /* Starting with qemu 0.15 and newer, upstream qemu no longer
+     * promises to keep the human interface stable, but requests that
+     * we use QMP (the JSON interface) for everything.  If the user
+     * forgot to include YAJL libraries when building their own
+     * libvirt but is targetting a newer qemu, we are better off
+     * telling them to recompile (the spec file includes the
+     * dependency, so distros won't hit this).  */
+    if (version >= 15000 ||
+        (version >= 12000 && strstr(help, "libvirt"))) {
+        if (check_yajl) {
+            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                            _("this qemu binary requires libvirt to be "
+                              "compiled with yajl"));
+            return -1;
+        }
+        qemuCapsSet(flags, QEMU_CAPS_NETDEV);
+    }
 #endif
 
     if (version >= 13000)
@@ -1175,6 +1220,10 @@ qemuCapsComputeCmdFlags(const char *help,
      */
     if (version >= 12000)
         qemuCapsSet(flags, QEMU_CAPS_PCI_ROMBAR);
+
+    if (version >= 11000)
+        qemuCapsSet(flags, QEMU_CAPS_CPU_HOST);
+    return 0;
 }
 
 /* We parse the output of 'qemu -help' to get the QEMU
@@ -1206,7 +1255,8 @@ int qemuCapsParseHelpStr(const char *qemu,
                          virBitmapPtr flags,
                          unsigned int *version,
                          unsigned int *is_kvm,
-                         unsigned int *kvm_version)
+                         unsigned int *kvm_version,
+                         bool check_yajl)
 {
     unsigned major, minor, micro;
     const char *p = help;
@@ -1262,7 +1312,9 @@ int qemuCapsParseHelpStr(const char *qemu,
 
     *version = (major * 1000 * 1000) + (minor * 1000) + micro;
 
-    qemuCapsComputeCmdFlags(help, *version, *is_kvm, *kvm_version, flags);
+    if (qemuCapsComputeCmdFlags(help, *version, *is_kvm, *kvm_version,
+                                flags, check_yajl) < 0)
+        goto cleanup;
 
     strflags = virBitmapString(flags);
     VIR_DEBUG("Version %u.%u.%u, cooked version %u, flags %s",
@@ -1278,15 +1330,14 @@ int qemuCapsParseHelpStr(const char *qemu,
 
 fail:
     p = strchr(help, '\n');
-    if (p)
-        p = strndup(help, p - help);
+    if (!p)
+        p = strchr(help, '\0');
 
     qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                    _("cannot parse %s version number in '%s'"),
-                    qemu, p ? p : help);
+                    _("cannot parse %s version number in '%.*s'"),
+                    qemu, (int) (p - help), help);
 
-    VIR_FREE(p);
-
+cleanup:
     return -1;
 }
 
@@ -1386,6 +1437,8 @@ qemuCapsParseDeviceStr(const char *str, virBitmapPtr flags)
         qemuCapsSet(flags, QEMU_CAPS_VIRTIO_BLK_EVENT_IDX);
     if (strstr(str, "virtio-net-pci.event_idx"))
         qemuCapsSet(flags, QEMU_CAPS_VIRTIO_NET_EVENT_IDX);
+    if (strstr(str, "virtio-blk-pci.scsi"))
+        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_BLK_SCSI);
 
     return 0;
 }
@@ -1424,7 +1477,7 @@ int qemuCapsExtractVersionInfo(const char *qemu, const char *arch,
 
     if (!(flags = qemuCapsNew()) ||
         qemuCapsParseHelpStr(qemu, help, flags,
-                             &version, &is_kvm, &kvm_version) == -1)
+                             &version, &is_kvm, &kvm_version, true) == -1)
         goto cleanup;
 
     /* Currently only x86_64 and i686 support PCI-multibus. */

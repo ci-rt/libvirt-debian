@@ -1,8 +1,6 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Provide a more complete sys/time.h.
 
-   Copyright (C) 2007-2011 Free Software Foundation, Inc.
+   Copyright (C) 2007-2012 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -42,9 +40,11 @@
 #  include <time.h>
 # endif
 
-/* On native Windows with MSVC:
-   Get the 'struct timeval' type.  */
-# if defined _MSC_VER && @HAVE_WINSOCK2_H@ && !defined _GL_INCLUDING_WINSOCK2_H
+/* On native Windows with MSVC, get the 'struct timeval' type.
+   Also, on native Windows with a 64-bit time_t, where we are overriding the
+   'struct timeval' type, get all declarations of system functions whose
+   signature contains 'struct timeval'.  */
+# if (defined _MSC_VER || @REPLACE_STRUCT_TIMEVAL@) && @HAVE_WINSOCK2_H@ && !defined _GL_INCLUDING_WINSOCK2_H
 #  define _GL_INCLUDING_WINSOCK2_H
 #  include <winsock2.h>
 #  undef _GL_INCLUDING_WINSOCK2_H
@@ -60,7 +60,11 @@
 extern "C" {
 # endif
 
-# if ! @HAVE_STRUCT_TIMEVAL@
+# if !@HAVE_STRUCT_TIMEVAL@ || @REPLACE_STRUCT_TIMEVAL@
+
+#  if @REPLACE_STRUCT_TIMEVAL@
+#   define timeval rpl_timeval
+#  endif
 
 #  if !GNULIB_defined_struct_timeval
 struct timeval

@@ -8,6 +8,7 @@
 
 # include "config.h"
 
+# include <unistd.h>
 # include <libxml/uri.h>
 
 # include "internal.h"
@@ -118,6 +119,11 @@ typedef int
         (*virDrvDomainSuspend)		(virDomainPtr domain);
 typedef int
         (*virDrvDomainResume)		(virDomainPtr domain);
+typedef int
+        (*virDrvDomainPMSuspendForDuration) (virDomainPtr,
+                                             unsigned int target,
+                                             unsigned long long duration,
+                                             unsigned int flags);
 typedef int
         (*virDrvDomainShutdown)		(virDomainPtr domain);
 typedef int
@@ -774,6 +780,10 @@ typedef int
 typedef int
     (*virDrvDomainBlockPull)(virDomainPtr dom, const char *path,
                              unsigned long bandwidth, unsigned int flags);
+typedef int
+    (*virDrvDomainBlockRebase)(virDomainPtr dom, const char *path,
+                               const char *base, unsigned long bandwidth,
+                               unsigned int flags);
 
 typedef int
     (*virDrvSetKeepAlive)(virConnectPtr conn,
@@ -792,6 +802,37 @@ typedef int
                                   virTypedParameterPtr params,
                                   int *nparams,
                                   unsigned int flags);
+typedef int
+    (*virDrvDomainShutdownFlags)(virDomainPtr domain,
+                                 unsigned int flags);
+
+typedef int
+    (*virDrvDomainGetCPUStats)(virDomainPtr domain,
+                               virTypedParameterPtr params,
+                               unsigned int nparams,
+                               int start_cpu,
+                               unsigned int ncpus,
+                               unsigned int flags);
+
+typedef int
+    (*virDrvDomainGetDiskErrors)(virDomainPtr dom,
+                                 virDomainDiskErrorPtr errors,
+                                 unsigned int maxerrors,
+                                 unsigned int flags);
+
+typedef int
+    (*virDrvDomainSetMetadata)(virDomainPtr dom,
+                               int type,
+                               const char *metadata,
+                               const char *key,
+                               const char *uri,
+                               unsigned int flags);
+
+typedef char *
+    (*virDrvDomainGetMetadata)(virDomainPtr dom,
+                               int type,
+                               const char *uri,
+                               unsigned int flags);
 
 /**
  * _virDriver:
@@ -826,8 +867,10 @@ struct _virDriver {
     virDrvDomainLookupByUUID	domainLookupByUUID;
     virDrvDomainLookupByName	domainLookupByName;
     virDrvDomainSuspend		domainSuspend;
+    virDrvDomainPMSuspendForDuration domainPMSuspendForDuration;
     virDrvDomainResume		domainResume;
     virDrvDomainShutdown		domainShutdown;
+    virDrvDomainShutdownFlags   domainShutdownFlags;
     virDrvDomainReboot		domainReboot;
     virDrvDomainReset       domainReset;
     virDrvDomainDestroy		domainDestroy;
@@ -956,11 +999,16 @@ struct _virDriver {
     virDrvDomainGetBlockJobInfo domainGetBlockJobInfo;
     virDrvDomainBlockJobSetSpeed domainBlockJobSetSpeed;
     virDrvDomainBlockPull domainBlockPull;
+    virDrvDomainBlockRebase domainBlockRebase;
     virDrvSetKeepAlive setKeepAlive;
     virDrvConnectIsAlive isAlive;
     virDrvNodeSuspendForDuration nodeSuspendForDuration;
     virDrvDomainSetBlockIoTune domainSetBlockIoTune;
     virDrvDomainGetBlockIoTune domainGetBlockIoTune;
+    virDrvDomainGetCPUStats domainGetCPUStats;
+    virDrvDomainGetDiskErrors domainGetDiskErrors;
+    virDrvDomainSetMetadata domainSetMetadata;
+    virDrvDomainGetMetadata domainGetMetadata;
 };
 
 typedef int
@@ -1224,6 +1272,10 @@ typedef int
 typedef int
     (*virDrvStorageVolWipe)                  (virStorageVolPtr vol,
                                               unsigned int flags);
+typedef int
+    (*virDrvStorageVolWipePattern)           (virStorageVolPtr vol,
+                                              unsigned int algorithm,
+                                              unsigned int flags);
 
 typedef int
     (*virDrvStorageVolGetInfo)               (virStorageVolPtr vol,
@@ -1251,6 +1303,10 @@ typedef int
                                unsigned long long offset,
                                unsigned long long length,
                                unsigned int flags);
+typedef int
+        (*virDrvStorageVolResize) (virStorageVolPtr vol,
+                                   unsigned long long capacity,
+                                   unsigned int flags);
 
 typedef int
         (*virDrvStoragePoolIsActive)(virStoragePoolPtr pool);
@@ -1309,9 +1365,11 @@ struct _virStorageDriver {
     virDrvStorageVolUpload volUpload;
     virDrvStorageVolDelete volDelete;
     virDrvStorageVolWipe volWipe;
+    virDrvStorageVolWipePattern volWipePattern;
     virDrvStorageVolGetInfo volGetInfo;
     virDrvStorageVolGetXMLDesc volGetXMLDesc;
     virDrvStorageVolGetPath volGetPath;
+    virDrvStorageVolResize volResize;
     virDrvStoragePoolIsActive   poolIsActive;
     virDrvStoragePoolIsPersistent   poolIsPersistent;
 };

@@ -15,7 +15,7 @@
 
 @SET_MAKE@
 
-# Copyright (C) 2002-2011 Free Software Foundation, Inc.
+# Copyright (C) 2002-2012 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -62,8 +62,8 @@ DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 TESTS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-areadlink$(EXEEXT) test-arpa_inet$(EXEEXT) \
 	test-base64$(EXEEXT) test-binary-io.sh test-bind$(EXEEXT) \
-	test-btowc1.sh test-btowc2.sh test-byteswap$(EXEEXT) \
-	test-c-ctype$(EXEEXT) test-c-strcase.sh \
+	test-bitrotate$(EXEEXT) test-btowc1.sh test-btowc2.sh \
+	test-byteswap$(EXEEXT) test-c-ctype$(EXEEXT) test-c-strcase.sh \
 	test-c-strcasestr$(EXEEXT) test-canonicalize-lgpl$(EXEEXT) \
 	test-chown$(EXEEXT) test-cloexec$(EXEEXT) test-close$(EXEEXT) \
 	test-connect$(EXEEXT) test-count-one-bits$(EXEEXT) \
@@ -130,7 +130,7 @@ TESTS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-sys_socket$(EXEEXT) test-sys_stat$(EXEEXT) \
 	test-sys_time$(EXEEXT) test-sys_types$(EXEEXT) \
 	test-sys_uio$(EXEEXT) test-sys_utsname$(EXEEXT) \
-	test-sys_wait$(EXEEXT) test-termios$(EXEEXT) \
+	test-sys_wait$(EXEEXT) test-termios$(EXEEXT) test-init.sh \
 	test-thread_self$(EXEEXT) test-thread_create$(EXEEXT) \
 	test-time$(EXEEXT) test-ttyname_r$(EXEEXT) test-uname$(EXEEXT) \
 	test-unistd$(EXEEXT) test-unlockpt$(EXEEXT) \
@@ -147,11 +147,11 @@ noinst_PROGRAMS =
 check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-areadlink$(EXEEXT) test-arpa_inet$(EXEEXT) \
 	test-base64$(EXEEXT) test-binary-io$(EXEEXT) \
-	test-bind$(EXEEXT) test-btowc$(EXEEXT) test-byteswap$(EXEEXT) \
-	test-c-ctype$(EXEEXT) test-c-strcasecmp$(EXEEXT) \
-	test-c-strncasecmp$(EXEEXT) test-c-strcasestr$(EXEEXT) \
-	test-canonicalize-lgpl$(EXEEXT) test-chown$(EXEEXT) \
-	test-cloexec$(EXEEXT) test-close$(EXEEXT) \
+	test-bind$(EXEEXT) test-bitrotate$(EXEEXT) test-btowc$(EXEEXT) \
+	test-byteswap$(EXEEXT) test-c-ctype$(EXEEXT) \
+	test-c-strcasecmp$(EXEEXT) test-c-strncasecmp$(EXEEXT) \
+	test-c-strcasestr$(EXEEXT) test-canonicalize-lgpl$(EXEEXT) \
+	test-chown$(EXEEXT) test-cloexec$(EXEEXT) test-close$(EXEEXT) \
 	test-connect$(EXEEXT) test-count-one-bits$(EXEEXT) \
 	test-md5$(EXEEXT) test-dup$(EXEEXT) test-dup2$(EXEEXT) \
 	test-environ$(EXEEXT) test-errno$(EXEEXT) test-fclose$(EXEEXT) \
@@ -517,6 +517,11 @@ test_binary_io_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 test_bind_SOURCES = test-bind.c
 test_bind_OBJECTS = test-bind.$(OBJEXT)
 test_bind_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1)
+test_bitrotate_SOURCES = test-bitrotate.c
+test_bitrotate_OBJECTS = test-bitrotate.$(OBJEXT)
+test_bitrotate_LDADD = $(LDADD)
+test_bitrotate_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
 test_btowc_SOURCES = test-btowc.c
 test_btowc_OBJECTS = test-btowc.$(OBJEXT)
 test_btowc_LDADD = $(LDADD)
@@ -1347,7 +1352,7 @@ am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-accept.c test-alloca-opt.c test-areadlink.c \
 	test-arpa_inet.c test-base64.c test-binary-io.c test-bind.c \
-	test-btowc.c test-byteswap.c test-c-ctype.c \
+	test-bitrotate.c test-btowc.c test-byteswap.c test-c-ctype.c \
 	test-c-strcasecmp.c test-c-strcasestr.c test-c-strncasecmp.c \
 	test-canonicalize-lgpl.c test-chown.c test-cloexec.c \
 	test-close.c test-connect.c test-count-one-bits.c test-dup.c \
@@ -1403,7 +1408,7 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-accept.c test-alloca-opt.c test-areadlink.c \
 	test-arpa_inet.c test-base64.c test-binary-io.c test-bind.c \
-	test-btowc.c test-byteswap.c test-c-ctype.c \
+	test-bitrotate.c test-btowc.c test-byteswap.c test-c-ctype.c \
 	test-c-strcasecmp.c test-c-strcasestr.c test-c-strncasecmp.c \
 	test-canonicalize-lgpl.c test-chown.c test-cloexec.c \
 	test-close.c test-connect.c test-count-one-bits.c test-dup.c \
@@ -1661,6 +1666,7 @@ GNULIB_IMAXDIV = @GNULIB_IMAXDIV@
 GNULIB_INET_NTOP = @GNULIB_INET_NTOP@
 GNULIB_INET_PTON = @GNULIB_INET_PTON@
 GNULIB_IOCTL = @GNULIB_IOCTL@
+GNULIB_ISATTY = @GNULIB_ISATTY@
 GNULIB_ISWBLANK = @GNULIB_ISWBLANK@
 GNULIB_ISWCTYPE = @GNULIB_ISWCTYPE@
 GNULIB_LCHMOD = @GNULIB_LCHMOD@
@@ -1754,6 +1760,7 @@ GNULIB_PUTENV = @GNULIB_PUTENV@
 GNULIB_PUTS = @GNULIB_PUTS@
 GNULIB_PWRITE = @GNULIB_PWRITE@
 GNULIB_RAISE = @GNULIB_RAISE@
+GNULIB_RANDOM = @GNULIB_RANDOM@
 GNULIB_RANDOM_R = @GNULIB_RANDOM_R@
 GNULIB_RAWMEMCHR = @GNULIB_RAWMEMCHR@
 GNULIB_READ = @GNULIB_READ@
@@ -1773,6 +1780,7 @@ GNULIB_SELECT = @GNULIB_SELECT@
 GNULIB_SEND = @GNULIB_SEND@
 GNULIB_SENDTO = @GNULIB_SENDTO@
 GNULIB_SETENV = @GNULIB_SETENV@
+GNULIB_SETHOSTNAME = @GNULIB_SETHOSTNAME@
 GNULIB_SETLOCALE = @GNULIB_SETLOCALE@
 GNULIB_SETSOCKOPT = @GNULIB_SETSOCKOPT@
 GNULIB_SHUTDOWN = @GNULIB_SHUTDOWN@
@@ -1912,6 +1920,7 @@ HAVE_DECL_MEMMEM = @HAVE_DECL_MEMMEM@
 HAVE_DECL_MEMRCHR = @HAVE_DECL_MEMRCHR@
 HAVE_DECL_OBSTACK_PRINTF = @HAVE_DECL_OBSTACK_PRINTF@
 HAVE_DECL_SETENV = @HAVE_DECL_SETENV@
+HAVE_DECL_SETHOSTNAME = @HAVE_DECL_SETHOSTNAME@
 HAVE_DECL_SNPRINTF = @HAVE_DECL_SNPRINTF@
 HAVE_DECL_STRDUP = @HAVE_DECL_STRDUP@
 HAVE_DECL_STRERROR_R = @HAVE_DECL_STRERROR_R@
@@ -2016,6 +2025,7 @@ HAVE_PTSNAME_R = @HAVE_PTSNAME_R@
 HAVE_PTY_H = @HAVE_PTY_H@
 HAVE_PWRITE = @HAVE_PWRITE@
 HAVE_RAISE = @HAVE_RAISE@
+HAVE_RANDOM = @HAVE_RANDOM@
 HAVE_RANDOM_H = @HAVE_RANDOM_H@
 HAVE_RANDOM_R = @HAVE_RANDOM_R@
 HAVE_RAWMEMCHR = @HAVE_RAWMEMCHR@
@@ -2027,6 +2037,7 @@ HAVE_RPMATCH = @HAVE_RPMATCH@
 HAVE_SA_FAMILY_T = @HAVE_SA_FAMILY_T@
 HAVE_SCHED_H = @HAVE_SCHED_H@
 HAVE_SETENV = @HAVE_SETENV@
+HAVE_SETHOSTNAME = @HAVE_SETHOSTNAME@
 HAVE_SIGACTION = @HAVE_SIGACTION@
 HAVE_SIGHANDLER_T = @HAVE_SIGHANDLER_T@
 HAVE_SIGINFO_T = @HAVE_SIGINFO_T@
@@ -2383,6 +2394,7 @@ REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
 REPLACE_INET_NTOP = @REPLACE_INET_NTOP@
 REPLACE_INET_PTON = @REPLACE_INET_PTON@
 REPLACE_IOCTL = @REPLACE_IOCTL@
+REPLACE_ISATTY = @REPLACE_ISATTY@
 REPLACE_ISWBLANK = @REPLACE_ISWBLANK@
 REPLACE_ISWCNTRL = @REPLACE_ISWCNTRL@
 REPLACE_ITOLD = @REPLACE_ITOLD@
@@ -2417,6 +2429,9 @@ REPLACE_PERROR = @REPLACE_PERROR@
 REPLACE_POLL = @REPLACE_POLL@
 REPLACE_POPEN = @REPLACE_POPEN@
 REPLACE_POSIX_SPAWN = @REPLACE_POSIX_SPAWN@
+REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE = @REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE@
+REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2 = @REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2@
+REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN = @REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN@
 REPLACE_PREAD = @REPLACE_PREAD@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PSELECT = @REPLACE_PSELECT@
@@ -2425,6 +2440,7 @@ REPLACE_PTSNAME_R = @REPLACE_PTSNAME_R@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
 REPLACE_RAISE = @REPLACE_RAISE@
+REPLACE_RANDOM_R = @REPLACE_RANDOM_R@
 REPLACE_READ = @REPLACE_READ@
 REPLACE_READLINK = @REPLACE_READLINK@
 REPLACE_REALLOC = @REPLACE_REALLOC@
@@ -2454,7 +2470,9 @@ REPLACE_STRNLEN = @REPLACE_STRNLEN@
 REPLACE_STRSIGNAL = @REPLACE_STRSIGNAL@
 REPLACE_STRSTR = @REPLACE_STRSTR@
 REPLACE_STRTOD = @REPLACE_STRTOD@
+REPLACE_STRTOIMAX = @REPLACE_STRTOIMAX@
 REPLACE_STRTOK_R = @REPLACE_STRTOK_R@
+REPLACE_STRUCT_TIMEVAL = @REPLACE_STRUCT_TIMEVAL@
 REPLACE_SYMLINK = @REPLACE_SYMLINK@
 REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
@@ -2486,6 +2504,7 @@ SANLOCK_LIBS = @SANLOCK_LIBS@
 SASL_CFLAGS = @SASL_CFLAGS@
 SASL_LIBS = @SASL_LIBS@
 SCHED_H = @SCHED_H@
+SCRUB = @SCRUB@
 SED = @SED@
 SELINUX_CFLAGS = @SELINUX_CFLAGS@
 SELINUX_LIBS = @SELINUX_LIBS@
@@ -2630,37 +2649,37 @@ check_LIBRARIES = libtests.a
 EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-areadlink.h test-areadlink.c macros.h test-arpa_inet.c \
 	test-base64.c macros.h test-binary-io.sh test-binary-io.c \
-	macros.h test-bind.c signature.h macros.h btowc.c \
-	test-btowc1.sh test-btowc2.sh test-btowc.c signature.h \
-	macros.h test-byteswap.c macros.h test-c-ctype.c macros.h \
-	test-c-strcase.sh test-c-strcasecmp.c test-c-strncasecmp.c \
-	macros.h test-c-strcasestr.c macros.h test-canonicalize-lgpl.c \
-	signature.h macros.h nap.h test-chown.h test-chown.c \
-	signature.h macros.h test-cloexec.c macros.h test-close.c \
-	signature.h macros.h test-connect.c signature.h macros.h \
-	test-count-one-bits.c macros.h test-md5.c dup.c test-dup.c \
-	signature.h macros.h test-dup2.c signature.h macros.h \
-	test-environ.c test-errno.c error.c error.h exitfail.h \
-	test-fclose.c test-fcntl-h.c test-fcntl.c signature.h macros.h \
-	test-fdatasync.c signature.h macros.h fdopen.c test-fdopen.c \
-	signature.h macros.h test-fflush.c test-fflush2.sh \
-	test-fflush2.c signature.h macros.h test-ffs.c macros.h \
-	signature.h test-fgetc.c signature.h macros.h test-float.c \
-	macros.h test-fnmatch.c signature.h macros.h fpucw.h \
-	test-fpurge.c macros.h test-fputc.c signature.h macros.h \
-	test-fread.c signature.h macros.h test-freading.c macros.h \
-	test-fseek.c test-fseek.sh test-fseek2.sh signature.h macros.h \
-	test-fseeko.c test-fseeko.sh test-fseeko2.sh test-fseeko3.c \
-	test-fseeko3.sh test-fseeko4.c test-fseeko4.sh signature.h \
-	macros.h test-fstat.c signature.h macros.h test-fsync.c \
-	signature.h macros.h test-ftell.c test-ftell.sh test-ftell2.sh \
-	test-ftell3.c signature.h macros.h test-ftello.c \
-	test-ftello.sh test-ftello2.sh test-ftello3.c test-ftello4.c \
-	test-ftello4.sh signature.h macros.h ftruncate.c \
-	test-ftruncate.c test-ftruncate.sh signature.h macros.h \
-	test-func.c macros.h test-fwrite.c signature.h macros.h \
-	signature.h test-getaddrinfo.c test-getcwd-lgpl.c signature.h \
-	macros.h test-getdelim.c signature.h macros.h \
+	macros.h test-bind.c signature.h macros.h test-bitrotate.c \
+	macros.h btowc.c test-btowc1.sh test-btowc2.sh test-btowc.c \
+	signature.h macros.h test-byteswap.c macros.h test-c-ctype.c \
+	macros.h test-c-strcase.sh test-c-strcasecmp.c \
+	test-c-strncasecmp.c macros.h test-c-strcasestr.c macros.h \
+	test-canonicalize-lgpl.c signature.h macros.h nap.h \
+	test-chown.h test-chown.c signature.h macros.h test-cloexec.c \
+	macros.h test-close.c signature.h macros.h test-connect.c \
+	signature.h macros.h test-count-one-bits.c macros.h test-md5.c \
+	dup.c test-dup.c signature.h macros.h test-dup2.c signature.h \
+	macros.h test-environ.c test-errno.c error.c error.h \
+	exitfail.h test-fclose.c test-fcntl-h.c test-fcntl.c \
+	signature.h macros.h test-fdatasync.c signature.h macros.h \
+	fdopen.c test-fdopen.c signature.h macros.h test-fflush.c \
+	test-fflush2.sh test-fflush2.c signature.h macros.h test-ffs.c \
+	macros.h signature.h test-fgetc.c signature.h macros.h \
+	test-float.c macros.h test-fnmatch.c signature.h macros.h \
+	fpucw.h test-fpurge.c macros.h test-fputc.c signature.h \
+	macros.h test-fread.c signature.h macros.h test-freading.c \
+	macros.h test-fseek.c test-fseek.sh test-fseek2.sh signature.h \
+	macros.h test-fseeko.c test-fseeko.sh test-fseeko2.sh \
+	test-fseeko3.c test-fseeko3.sh test-fseeko4.c test-fseeko4.sh \
+	signature.h macros.h test-fstat.c signature.h macros.h \
+	test-fsync.c signature.h macros.h test-ftell.c test-ftell.sh \
+	test-ftell2.sh test-ftell3.c signature.h macros.h \
+	test-ftello.c test-ftello.sh test-ftello2.sh test-ftello3.c \
+	test-ftello4.c test-ftello4.sh signature.h macros.h \
+	ftruncate.c test-ftruncate.c test-ftruncate.sh signature.h \
+	macros.h test-func.c macros.h test-fwrite.c signature.h \
+	macros.h signature.h test-getaddrinfo.c test-getcwd-lgpl.c \
+	signature.h macros.h test-getdelim.c signature.h macros.h \
 	test-getdtablesize.c signature.h macros.h getgroups.c \
 	test-getgroups.c signature.h macros.h signature.h \
 	test-gethostname.c test-getline.c signature.h macros.h \
@@ -2695,12 +2714,11 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-nonblocking-misc.h socket-server.h socket-client.h \
 	macros.h test-nonblocking.c macros.h test-open.h test-open.c \
 	signature.h macros.h test-openpty.c signature.h test-passfd.c \
-	macros.h test-pathmax.c init.sh macros.h signature.h \
-	test-perror.c test-perror2.c test-perror.sh test-pipe.c \
-	signature.h macros.h test-pipe2.c signature.h macros.h \
-	test-poll-h.c signature.h test-poll.c test-posix_openpt.c \
-	signature.h macros.h spawn_int.h spawni.c \
-	spawn_faction_addclose.c spawn_int.h \
+	macros.h test-pathmax.c macros.h signature.h test-perror.c \
+	test-perror2.c test-perror.sh test-pipe.c signature.h macros.h \
+	test-pipe2.c signature.h macros.h test-poll-h.c test-poll.c \
+	signature.h macros.h test-posix_openpt.c signature.h macros.h \
+	spawn_int.h spawni.c spawn_faction_addclose.c spawn_int.h \
 	test-posix_spawn_file_actions_addclose.c signature.h macros.h \
 	spawn_faction_adddup2.c spawn_int.h \
 	test-posix_spawn_file_actions_adddup2.c signature.h macros.h \
@@ -2745,23 +2763,22 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	macros.h test-sys_ioctl.c test-sys_select.c signature.h \
 	test-sys_socket.c test-sys_stat.c test-sys_time.c \
 	test-sys_types.c test-sys_uio.c test-sys_utsname.c \
-	test-sys_wait.c test-sys_wait.h test-termios.c \
-	test-thread_self.c test-thread_create.c macros.h test-time.c \
-	test-ttyname_r.c signature.h macros.h test-uname.c signature.h \
-	macros.h test-unistd.c unlockpt.c test-unlockpt.c signature.h \
-	macros.h unsetenv.c test-unsetenv.c signature.h macros.h \
-	test-usleep.c signature.h macros.h test-vasnprintf.c macros.h \
-	test-vasprintf.c signature.h macros.h \
-	test-vc-list-files-git.sh test-vc-list-files-cvs.sh init.sh \
-	test-verify.c test-verify.sh init.sh test-vsnprintf.c \
-	signature.h macros.h test-wchar.c wcrtomb.c test-wcrtomb.sh \
-	test-wcrtomb.c test-wcrtomb-w32-1.sh test-wcrtomb-w32-2.sh \
+	test-sys_wait.c test-sys_wait.h test-termios.c init.sh \
+	test-init.sh test-thread_self.c test-thread_create.c macros.h \
+	test-time.c test-ttyname_r.c signature.h macros.h test-uname.c \
+	signature.h macros.h test-unistd.c unlockpt.c test-unlockpt.c \
+	signature.h macros.h unsetenv.c test-unsetenv.c signature.h \
+	macros.h test-usleep.c signature.h macros.h test-vasnprintf.c \
+	macros.h test-vasprintf.c signature.h macros.h \
+	test-vc-list-files-git.sh test-vc-list-files-cvs.sh \
+	test-verify.c test-verify.sh test-vsnprintf.c signature.h \
+	macros.h test-wchar.c wcrtomb.c test-wcrtomb.sh test-wcrtomb.c \
+	test-wcrtomb-w32-1.sh test-wcrtomb-w32-2.sh \
 	test-wcrtomb-w32-3.sh test-wcrtomb-w32-4.sh \
 	test-wcrtomb-w32-5.sh test-wcrtomb-w32.c signature.h macros.h \
 	wctob.c wctomb-impl.h wctomb.c test-wctype-h.c macros.h \
 	write.c test-write.c signature.h macros.h xalloc.h \
-	test-xalloc-die.c test-xalloc-die.sh init.sh \
-	xalloc-oversized.h
+	test-xalloc-die.c test-xalloc-die.sh xalloc-oversized.h
 
 # The BUILT_SOURCES created by this Makefile snippet are not used via #include
 # statements but through direct file reference. Therefore this snippet must be
@@ -2945,6 +2962,9 @@ test-binary-io$(EXEEXT): $(test_binary_io_OBJECTS) $(test_binary_io_DEPENDENCIES
 test-bind$(EXEEXT): $(test_bind_OBJECTS) $(test_bind_DEPENDENCIES) 
 	@rm -f test-bind$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_bind_OBJECTS) $(test_bind_LDADD) $(LIBS)
+test-bitrotate$(EXEEXT): $(test_bitrotate_OBJECTS) $(test_bitrotate_DEPENDENCIES) 
+	@rm -f test-bitrotate$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_bitrotate_OBJECTS) $(test_bitrotate_LDADD) $(LIBS)
 test-btowc$(EXEEXT): $(test_btowc_OBJECTS) $(test_btowc_DEPENDENCIES) 
 	@rm -f test-btowc$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_btowc_OBJECTS) $(test_btowc_LDADD) $(LIBS)
@@ -3508,6 +3528,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-base64.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-binary-io.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-bind.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-bitrotate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-btowc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-byteswap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-c-ctype.Po@am__quote@
@@ -4145,7 +4166,7 @@ uninstall-am:
 
 # We need the following in order to create <inttypes.h> when the system
 # doesn't have one that works with the given compiler.
-inttypes.h: inttypes.in.h $(top_builddir)/config.status $(WARN_ON_USE_H) $(ARG_NONNULL_H)
+inttypes.h: inttypes.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(WARN_ON_USE_H) $(ARG_NONNULL_H)
 	$(AM_V_GEN)rm -f $@-t $@ && \
 	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */'; \
 	  sed -e 's/@''HAVE_INTTYPES_H''@/$(HAVE_INTTYPES_H)/g' \
@@ -4166,10 +4187,12 @@ inttypes.h: inttypes.in.h $(top_builddir)/config.status $(WARN_ON_USE_H) $(ARG_N
 	      -e 's/@''HAVE_DECL_IMAXDIV''@/$(HAVE_DECL_IMAXDIV)/g' \
 	      -e 's/@''HAVE_DECL_STRTOIMAX''@/$(HAVE_DECL_STRTOIMAX)/g' \
 	      -e 's/@''HAVE_DECL_STRTOUMAX''@/$(HAVE_DECL_STRTOUMAX)/g' \
+	      -e 's/@''REPLACE_STRTOIMAX''@/$(REPLACE_STRTOIMAX)/g' \
 	      -e 's/@''INT32_MAX_LT_INTMAX_MAX''@/$(INT32_MAX_LT_INTMAX_MAX)/g' \
 	      -e 's/@''INT64_MAX_EQ_LONG_MAX''@/$(INT64_MAX_EQ_LONG_MAX)/g' \
 	      -e 's/@''UINT32_MAX_LT_UINTMAX_MAX''@/$(UINT32_MAX_LT_UINTMAX_MAX)/g' \
 	      -e 's/@''UINT64_MAX_EQ_ULONG_MAX''@/$(UINT64_MAX_EQ_ULONG_MAX)/g' \
+	      -e '/definitions of _GL_FUNCDECL_RPL/r $(CXXDEFS_H)' \
 	      -e '/definition of _GL_ARG_NONNULL/r $(ARG_NONNULL_H)' \
 	      -e '/definition of _GL_WARN_ON_USE/r $(WARN_ON_USE_H)' \
 	      < $(srcdir)/inttypes.in.h; \
@@ -4269,6 +4292,9 @@ spawn.h: spawn.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) 
 	      -e 's|@''HAVE_POSIX_SPAWNATTR_T''@|$(HAVE_POSIX_SPAWNATTR_T)|g' \
 	      -e 's|@''HAVE_POSIX_SPAWN_FILE_ACTIONS_T''@|$(HAVE_POSIX_SPAWN_FILE_ACTIONS_T)|g' \
 	      -e 's|@''REPLACE_POSIX_SPAWN''@|$(REPLACE_POSIX_SPAWN)|g' \
+	      -e 's|@''REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE''@|$(REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE)|g' \
+	      -e 's|@''REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2''@|$(REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2)|g' \
+	      -e 's|@''REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN''@|$(REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN)|g' \
 	      -e '/definitions of _GL_FUNCDECL_RPL/r $(CXXDEFS_H)' \
 	      -e '/definition of _GL_ARG_NONNULL/r $(ARG_NONNULL_H)' \
 	      -e '/definition of _GL_WARN_ON_USE/r $(WARN_ON_USE_H)' \

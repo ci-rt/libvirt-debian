@@ -570,7 +570,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
         }
     }
 
-    if (hvm && xendConfigVersion == 1) {
+    if (hvm && xendConfigVersion == XEND_CONFIG_VERSION_3_0_2) {
         if (xenXMConfigGetString(conf, "cdrom", &str, NULL) < 0)
             goto cleanup;
         if (str) {
@@ -690,7 +690,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 goto no_memory;
 
             if (mac[0]) {
-                if (virParseMacAddr(mac, net->mac) < 0) {
+                if (virMacAddrParse(mac, net->mac) < 0) {
                     XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
                                _("malformed mac address '%s'"), mac);
                     goto cleanup;
@@ -708,20 +708,18 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 if (bridge[0] &&
                     !(net->data.bridge.brname = strdup(bridge)))
                     goto no_memory;
-                if (script[0] &&
-                    !(net->data.bridge.script = strdup(script)))
-                    goto no_memory;
                 if (ip[0] &&
                     !(net->data.bridge.ipaddr = strdup(ip)))
                     goto no_memory;
             } else {
-                if (script && script[0] &&
-                    !(net->data.ethernet.script = strdup(script)))
-                    goto no_memory;
                 if (ip[0] &&
                     !(net->data.ethernet.ipaddr = strdup(ip)))
                     goto no_memory;
             }
+
+            if (script && script[0] &&
+                !(net->script = strdup(script)))
+               goto no_memory;
 
             if (model[0] &&
                 !(net->model = strdup(model)))
@@ -860,7 +858,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
     }
 
     /* HVM guests, or old PV guests use this config format */
-    if (hvm || xendConfigVersion < 3) {
+    if (hvm || xendConfigVersion < XEND_CONFIG_VERSION_3_0_4) {
         if (xenXMConfigGetBool(conf, "vnc", &val, 0) < 0)
             goto cleanup;
 
@@ -1171,7 +1169,7 @@ static int xenFormatXMDisk(virConfValuePtr list,
         virBufferAdd(&buf, disk->src, -1);
     }
     virBufferAddLit(&buf, ",");
-    if (hvm && xendConfigVersion == 1)
+    if (hvm && xendConfigVersion == XEND_CONFIG_VERSION_3_0_2)
         virBufferAddLit(&buf, "ioemu:");
 
     virBufferAdd(&buf, disk->dst, -1);
@@ -1282,8 +1280,8 @@ static int xenFormatXMNet(virConnectPtr conn,
         break;
 
     case VIR_DOMAIN_NET_TYPE_ETHERNET:
-        if (net->data.ethernet.script)
-            virBufferAsprintf(&buf, ",script=%s", net->data.ethernet.script);
+        if (net->script)
+            virBufferAsprintf(&buf, ",script=%s", net->script);
         if (net->data.ethernet.ipaddr)
             virBufferAsprintf(&buf, ",ip=%s", net->data.ethernet.ipaddr);
         break;
@@ -1547,7 +1545,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
                                (1 << VIR_DOMAIN_FEATURE_APIC)) ? 1 : 0) < 0)
             goto no_memory;
 
-        if (xendConfigVersion >= 3) {
+        if (xendConfigVersion >= XEND_CONFIG_VERSION_3_0_4) {
             if (xenXMConfigSetInt(conf, "hap",
                                   (def->features &
                                    (1 << VIR_DOMAIN_FEATURE_HAP)) ? 1 : 0) < 0)
@@ -1586,7 +1584,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
                     break;
         }
 
-        if (xendConfigVersion == 1) {
+        if (xendConfigVersion == XEND_CONFIG_VERSION_3_0_2) {
             for (i = 0 ; i < def->ndisks ; i++) {
                 if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_CDROM &&
                     def->disks[i]->dst &&
@@ -1667,7 +1665,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
     }
 
     if (def->ngraphics == 1) {
-        if (xendConfigVersion < (hvm ? 4 : XEND_CONFIG_MIN_VERS_PVFB_NEWCONF)) {
+        if (xendConfigVersion < (hvm ? XEND_CONFIG_VERSION_3_1_0 : XEND_CONFIG_MIN_VERS_PVFB_NEWCONF)) {
             if (def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
                 if (xenXMConfigSetInt(conf, "sdl", 1) < 0)
                     goto no_memory;
@@ -1774,7 +1772,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
     diskVal->list = NULL;
 
     for (i = 0 ; i < def->ndisks ; i++) {
-        if (xendConfigVersion == 1 &&
+        if (xendConfigVersion == XEND_CONFIG_VERSION_3_0_2 &&
             def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_CDROM &&
             def->disks[i]->dst &&
             STREQ(def->disks[i]->dst, "hdc")) {

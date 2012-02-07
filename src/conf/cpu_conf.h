@@ -38,6 +38,16 @@ enum virCPUType {
 
 VIR_ENUM_DECL(virCPU)
 
+enum virCPUMode {
+    VIR_CPU_MODE_CUSTOM,
+    VIR_CPU_MODE_HOST_MODEL,
+    VIR_CPU_MODE_HOST_PASSTHROUGH,
+
+    VIR_CPU_MODE_LAST
+};
+
+VIR_ENUM_DECL(virCPUMode)
+
 enum virCPUMatch {
     VIR_CPU_MATCH_MINIMUM,
     VIR_CPU_MATCH_EXACT,
@@ -47,6 +57,15 @@ enum virCPUMatch {
 };
 
 VIR_ENUM_DECL(virCPUMatch)
+
+enum virCPUFallback {
+    VIR_CPU_FALLBACK_ALLOW,
+    VIR_CPU_FALLBACK_FORBID,
+
+    VIR_CPU_FALLBACK_LAST
+};
+
+VIR_ENUM_DECL(virCPUFallback)
 
 enum virCPUFeaturePolicy {
     VIR_CPU_FEATURE_FORCE,
@@ -80,9 +99,11 @@ typedef struct _virCPUDef virCPUDef;
 typedef virCPUDef *virCPUDefPtr;
 struct _virCPUDef {
     int type;           /* enum virCPUType */
+    int mode;           /* enum virCPUMode */
     int match;          /* enum virCPUMatch */
     char *arch;
     char *model;
+    int fallback;       /* enum virCPUFallback */
     char *vendor;
     unsigned int sockets;
     unsigned int cores;
@@ -97,8 +118,16 @@ struct _virCPUDef {
 };
 
 
+void ATTRIBUTE_NONNULL(1)
+virCPUDefFreeModel(virCPUDefPtr def);
+
 void
 virCPUDefFree(virCPUDefPtr def);
+
+int ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2)
+virCPUDefCopyModel(virCPUDefPtr dst,
+                   const virCPUDefPtr src,
+                   bool resetPolicy);
 
 virCPUDefPtr
 virCPUDefCopy(const virCPUDefPtr cpu);
@@ -113,14 +142,17 @@ virCPUDefIsEqual(virCPUDefPtr src,
                  virCPUDefPtr dst);
 
 char *
-virCPUDefFormat(virCPUDefPtr def);
+virCPUDefFormat(virCPUDefPtr def,
+                unsigned int flags);
 
 int
 virCPUDefFormatBuf(virBufferPtr buf,
-                   virCPUDefPtr def);
+                   virCPUDefPtr def,
+                   unsigned int flags);
 int
 virCPUDefFormatBufFull(virBufferPtr buf,
-                       virCPUDefPtr def);
+                       virCPUDefPtr def,
+                       unsigned int flags);
 
 int
 virCPUDefAddFeature(virCPUDefPtr cpu,

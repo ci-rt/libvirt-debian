@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2010-2011 Red Hat, Inc.
- * Copyright (C) 2010 IBM Corporation
+ * virmacaddr.h: MAC address handling
+ *
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,25 +16,26 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ *
+ * Authors:
+ *     Daniel P. Berrange <berrange@redhat.com>
  */
 
-#ifndef __VIR_NETLINK_H__
-# define __VIR_NETLINK_H__
+#ifndef __VIR_MACADDR_H__
+# define __VIR_MACADDR_H__
 
-# include "config.h"
+# include "internal.h"
 
-# if defined(__linux__) && defined(HAVE_LIBNL)
+# define VIR_MAC_BUFLEN 6
+# define VIR_MAC_PREFIX_BUFLEN 3
+# define VIR_MAC_STRING_BUFLEN VIR_MAC_BUFLEN * 3
 
-#  include <netlink/msg.h>
+int virMacAddrCompare(const char *mac1, const char *mac2);
+void virMacAddrFormat(const unsigned char *addr,
+                      char *str);
+void virMacAddrGenerate(const unsigned char *prefix,
+                        unsigned char *addr);
+int virMacAddrParse(const char* str,
+                    unsigned char *addr) ATTRIBUTE_RETURN_CHECK;
 
-# else
-
-struct nl_msg;
-
-# endif /* __linux__ */
-
-int nlComm(struct nl_msg *nl_msg,
-           unsigned char **respbuf, unsigned int *respbuflen,
-           int nl_pid);
-
-#endif /* __VIR_NETLINK_H__ */
+#endif /* __VIR_MACADDR_H__ */

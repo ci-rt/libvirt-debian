@@ -117,6 +117,7 @@ virCommandAddEnvPair;
 virCommandAddEnvPass;
 virCommandAddEnvPassCommon;
 virCommandAddEnvString;
+virCommandAllowCap;
 virCommandClearCaps;
 virCommandDaemonize;
 virCommandExec;
@@ -181,10 +182,13 @@ cpuUpdate;
 # cpu_conf.h
 virCPUDefAddFeature;
 virCPUDefCopy;
+virCPUDefCopyModel;
 virCPUDefFormat;
 virCPUDefFormatBuf;
 virCPUDefFree;
+virCPUDefFreeModel;
 virCPUDefParseXML;
+virCPUModeTypeToString;
 
 
 # datatypes.h
@@ -290,6 +294,8 @@ virDomainDeviceTypeToString;
 virDomainDiskBusTypeToString;
 virDomainDiskCacheTypeFromString;
 virDomainDiskCacheTypeToString;
+virDomainDiskCopyOnReadTypeFromString;
+virDomainDiskCopyOnReadTypeToString;
 virDomainDiskDefAssignAddress;
 virDomainDiskDefForeachPath;
 virDomainDiskDefFree;
@@ -311,6 +317,8 @@ virDomainDiskTypeToString;
 virDomainFSDefFree;
 virDomainFSTypeFromString;
 virDomainFSTypeToString;
+virDomainFSWrpolicyTypeFromString;
+virDomainFSWrpolicyTypeToString;
 virDomainFindByID;
 virDomainFindByName;
 virDomainFindByUUID;
@@ -726,10 +734,6 @@ virResizeN;
 virShrinkN;
 
 
-#netlink.h
-nlComm;
-
-
 # netdev_bandwidth_conf.h
 virNetDevBandwidthFormat;
 virNetDevBandwidthParse;
@@ -804,6 +808,7 @@ virNWFilterConfLayerShutdown;
 virNWFilterDefFormat;
 virNWFilterDefFree;
 virNWFilterDefParseString;
+virNWFilterInstFiltersOnAllVMs;
 virNWFilterJumpTargetTypeToString;
 virNWFilterLoadAllConfigs;
 virNWFilterLockFilterUpdates;
@@ -832,6 +837,9 @@ virNWFilterHashTableFree;
 virNWFilterHashTablePut;
 virNWFilterHashTablePutAll;
 virNWFilterHashTableRemoveEntry;
+virNWFilterVarAccessGetVarName;
+virNWFilterVarAccessIsAvailable;
+virNWFilterVarAccessPrint;
 virNWFilterVarCombIterCreate;
 virNWFilterVarCombIterFree;
 virNWFilterVarCombIterGetVarValue;
@@ -1007,7 +1015,7 @@ virStorageFileIsSharedFS;
 virStorageFileIsSharedFSType;
 virStorageFileProbeFormat;
 virStorageFileProbeFormatFromFD;
-
+virStorageFileResize;
 
 # sysinfo.h
 virSysinfoDefFree;
@@ -1070,7 +1078,6 @@ virArgvToString;
 virAsprintf;
 virBuildPathInternal;
 virDirCreate;
-virEmitXMLWarning;
 virEnumFromString;
 virEnumToString;
 virEventAddHandle;
@@ -1091,6 +1098,7 @@ virFileOpenAs;
 virFileOpenTty;
 virFileReadAll;
 virFileReadLimFD;
+virFileResolveAllLinks;
 virFileResolveLink;
 virFileSanitizePath;
 virFileStripSuffix;
@@ -1098,9 +1106,8 @@ virFileUnlock;
 virFileWaitForDevices;
 virFileWriteStr;
 virFindFileInPath;
-virFormatMacAddr;
-virGenerateMacAddr;
 virGetGroupID;
+virGetGroupName;
 virGetHostname;
 virGetUserDirectory;
 virGetUserID;
@@ -1109,13 +1116,9 @@ virHexToBin;
 virIndexToDiskName;
 virIsDevMapperDevice;
 virKillProcess;
-virMacAddrCompare;
-virParseMacAddr;
 virParseNumber;
 virParseVersionString;
 virPipeReadUntilEOF;
-virRandom;
-virRandomInitialize;
 virSetBlocking;
 virSetCloseExec;
 virSetInherit;
@@ -1134,7 +1137,6 @@ virStrToLong_ull;
 virStrcpy;
 virStrncpy;
 virTrimSpaces;
-virTypedParameterArrayClear;
 virVasprintf;
 
 
@@ -1163,6 +1165,21 @@ virFileDirectFdNew;
 virFileFclose;
 virFileFdopen;
 virFileRewrite;
+virFileTouch;
+
+
+# virkeycode.h
+virKeycodeSetTypeFromString;
+virKeycodeSetTypeToString;
+virKeycodeValueFromString;
+virKeycodeValueTranslate;
+
+
+# virmacaddr.h
+virMacAddrCompare;
+virMacAddrFormat;
+virMacAddrGenerate;
+virMacAddrParse;
 
 
 # virnetclient.h
@@ -1172,13 +1189,14 @@ virNetClientHasPassFD;
 # virnetdev.h
 virNetDevClearIPv4Address;
 virNetDevExists;
-virNetDevGetIndex;
 virNetDevGetIPv4Address;
+virNetDevGetIndex;
 virNetDevGetMAC;
 virNetDevGetMTU;
 virNetDevGetPhysicalFunction;
-virNetDevGetVirtualFunctionIndex;
 virNetDevGetVLanID;
+virNetDevGetVirtualFunctionIndex;
+virNetDevGetVirtualFunctions;
 virNetDevIsOnline;
 virNetDevIsVirtualFunction;
 virNetDevReplaceMacAddress;
@@ -1238,6 +1256,10 @@ virNetDevVPortProfileOpTypeFromString;
 virNetDevVPortProfileOpTypeToString;
 
 
+#virnetlink.h
+virNetlinkCommand;
+
+
 # virnetmessage.h
 virNetMessageClear;
 virNetMessageDecodeNumFDs;
@@ -1278,10 +1300,10 @@ virNetServerClientDelayedClose;
 virNetServerClientFree;
 virNetServerClientGetAuth;
 virNetServerClientGetFD;
-virNetServerClientGetLocalIdentity;
 virNetServerClientGetPrivateData;
 virNetServerClientGetReadonly;
 virNetServerClientGetTLSKeySize;
+virNetServerClientGetUNIXIdentity;
 virNetServerClientHasTLSSession;
 virNetServerClientImmediateClose;
 virNetServerClientIsSecure;
@@ -1349,6 +1371,11 @@ virPidFileDelete;
 virPidFileDeletePath;
 
 
+# virrandom.h
+virRandomBits;
+virRandomInitialize;
+
+
 # virsocketaddr.h
 virSocketAddrBroadcast;
 virSocketAddrBroadcastByPrefix;
@@ -1369,7 +1396,6 @@ virSocketAddrSetPort;
 
 # virterror_internal.h
 virDispatchError;
-virErrorMsg;
 virRaiseErrorFull;
 virReportErrorHelper;
 virReportOOMErrorFull;
@@ -1377,12 +1403,6 @@ virReportSystemErrorFull;
 virSetError;
 virSetErrorLogPriorityFunc;
 virStrerror;
-
-# virkeycode.h
-virKeycodeSetTypeToString;
-virKeycodeSetTypeFromString;
-virKeycodeValueFromString;
-virKeycodeValueTranslate;
 
 
 # virtime.h
@@ -1396,6 +1416,12 @@ virTimeStringNow;
 virTimeStringNowRaw;
 virTimeStringThen;
 virTimeStringThenRaw;
+
+
+# virtypedparam.h
+virTypedParameterArrayClear;
+virTypedParameterArrayValidate;
+virTypedParameterAssign;
 
 
 # xml.h

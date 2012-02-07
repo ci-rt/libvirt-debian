@@ -1,7 +1,7 @@
 /*
  * xml.c: XML based interfaces for the libvir library
  *
- * Copyright (C) 2005, 2007-2011 Red Hat, Inc.
+ * Copyright (C) 2005, 2007-2012 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -801,7 +801,48 @@ error:
 }
 
 
-struct virXMLRewritFileData {
+static int virXMLEmitWarning(int fd,
+                             const char *name,
+                             const char *cmd)
+{
+    size_t len;
+    const char *prologue = "<!--\n\
+WARNING: THIS IS AN AUTO-GENERATED FILE. CHANGES TO IT ARE LIKELY TO BE \n\
+OVERWRITTEN AND LOST. Changes to this xml configuration should be made using:\n\
+  virsh ";
+    const char *epilogue = "\n\
+or other application using the libvirt API.\n\
+-->\n\n";
+
+    if (fd < 0 || !name || !cmd) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    len = strlen(prologue);
+    if (safewrite(fd, prologue, len) != len)
+        return -1;
+
+    len = strlen(cmd);
+    if (safewrite(fd, cmd, len) != len)
+        return -1;
+
+    if (safewrite(fd, " ", 1) != 1)
+        return -1;
+
+    len = strlen(name);
+    if (safewrite(fd, name, len) != len)
+        return -1;
+
+    len = strlen(epilogue);
+    if (safewrite(fd, epilogue, len) != len)
+        return -1;
+
+    return 0;
+}
+
+
+struct virXMLRewriteFileData {
     const char *warnName;
     const char *warnCommand;
     const char *xml;
@@ -810,10 +851,10 @@ struct virXMLRewritFileData {
 static int
 virXMLRewriteFile(int fd, void *opaque)
 {
-    struct virXMLRewritFileData *data = opaque;
+    struct virXMLRewriteFileData *data = opaque;
 
     if (data->warnName && data->warnCommand) {
-        if (virEmitXMLWarning(fd, data->warnName, data->warnCommand) < 0)
+        if (virXMLEmitWarning(fd, data->warnName, data->warnCommand) < 0)
             return -1;
     }
 
@@ -829,7 +870,7 @@ virXMLSaveFile(const char *path,
                const char *warnCommand,
                const char *xml)
 {
-    struct virXMLRewritFileData data = { warnName, warnCommand, xml };
+    struct virXMLRewriteFileData data = { warnName, warnCommand, xml };
 
     return virFileRewrite(path, S_IRUSR | S_IWUSR, virXMLRewriteFile, &data);
 }

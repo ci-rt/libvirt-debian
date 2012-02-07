@@ -1,7 +1,5 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* POSIX compatible signal blocking.
-   Copyright (C) 2006-2011 Free Software Foundation, Inc.
+   Copyright (C) 2006-2012 Free Software Foundation, Inc.
    Written by Bruno Haible <bruno@clisp.org>, 2006.
 
    This program is free software: you can redistribute it and/or modify
@@ -34,7 +32,7 @@
    also does not have the POSIX sigaction() function, only the
    signal() function.  We also assume signal() has SysV semantics,
    where any handler is uninstalled prior to being invoked.  This is
-   true for Woe32 platforms.  */
+   true for native Windows platforms.  */
 
 /* We use raw signal(), but also provide a wrapper rpl_signal() so
    that applications can query or change a blocked signal.  */

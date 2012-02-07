@@ -380,8 +380,6 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
 {
     int ret = -1;
     int fd = -1;
-    uid_t uid;
-    gid_t gid;
     int operation_flags;
 
     virCheckFlags(0, -1);
@@ -393,15 +391,15 @@ virStorageBackendCreateRaw(virConnectPtr conn ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    uid = (vol->target.perms.uid == -1) ? getuid() : vol->target.perms.uid;
-    gid = (vol->target.perms.gid == -1) ? getgid() : vol->target.perms.gid;
-    operation_flags = VIR_FILE_OPEN_FORCE_PERMS;
+    operation_flags = VIR_FILE_OPEN_FORCE_MODE | VIR_FILE_OPEN_FORCE_OWNER;
     if (pool->def->type == VIR_STORAGE_POOL_NETFS)
-        operation_flags |= VIR_FILE_OPEN_AS_UID;
+        operation_flags |= VIR_FILE_OPEN_FORK;
 
     if ((fd = virFileOpenAs(vol->target.path,
                             O_RDWR | O_CREAT | O_EXCL,
-                            vol->target.perms.mode, uid, gid,
+                            vol->target.perms.mode,
+                            vol->target.perms.uid,
+                            vol->target.perms.gid,
                             operation_flags)) < 0) {
         virReportSystemError(-fd,
                              _("cannot create path '%s'"),
@@ -1345,6 +1343,10 @@ virStorageBackendStablePath(virStoragePoolObjPtr pool,
      * so we don't mess will filesystem/dir based pools
      */
     if (!STRPREFIX(pool->def->target.path, "/dev"))
+        goto ret_strdup;
+
+    /* Logical pools are under /dev but already have stable paths */
+    if (pool->def->type == VIR_STORAGE_POOL_LOGICAL)
         goto ret_strdup;
 
     /* We loop here because /dev/disk/by-{id,path} may not have existed

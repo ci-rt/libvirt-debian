@@ -230,17 +230,19 @@ printVar(virNWFilterVarCombIterPtr vars,
     if ((item->flags & NWFILTER_ENTRY_ITEM_FLAG_HAS_VAR)) {
         const char *val;
 
-        val = virNWFilterVarCombIterGetVarValue(vars, item->var);
+        val = virNWFilterVarCombIterGetVarValue(vars, item->varAccess);
         if (!val) {
             /* error has been reported */
             return -1;
         }
 
         if (!virStrcpy(buf, val, bufsize)) {
+            const char *varName;
+
+            varName = virNWFilterVarAccessGetVarName(item->varAccess);
             virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Buffer too small to print MAC address "
-                                   "'%s' into"),
-                                   item->var);
+                                   _("Buffer too small to print variable "
+                                   "'%s' into"), varName);
             return -1;
         }
 
@@ -301,7 +303,7 @@ _printDataType(virNWFilterVarCombIterPtr vars,
             return -1;
         }
 
-        virFormatMacAddr(item->u.macaddr.addr, buf);
+        virMacAddrFormat(item->u.macaddr.addr, buf);
     break;
 
     case DATATYPE_IPV6MASK:
@@ -2631,7 +2633,8 @@ ebiptablesCreateRuleInstanceIterate(
      * iterate over all combinations of the variables' values and instantiate
      * the filtering rule with each combination.
      */
-    vciter = virNWFilterVarCombIterCreate(vars, rule->vars, rule->nvars);
+    vciter = virNWFilterVarCombIterCreate(vars,
+                                          rule->varAccess, rule->nVarAccess);
     if (!vciter)
         return -1;
 
@@ -3126,7 +3129,7 @@ ebtablesApplyBasicRules(const char *ifname,
         return -1;
     }
 
-    virFormatMacAddr(macaddr, macaddr_str);
+    virMacAddrFormat(macaddr, macaddr_str);
 
     ebiptablesAllTeardown(ifname);
 
@@ -3231,7 +3234,7 @@ ebtablesApplyDHCPOnlyRules(const char *ifname,
         srcIPParam = virBufferContentAndReset(&buf);
     }
 
-    virFormatMacAddr(macaddr, macaddr_str);
+    virMacAddrFormat(macaddr, macaddr_str);
 
     ebiptablesAllTeardown(ifname);
 
