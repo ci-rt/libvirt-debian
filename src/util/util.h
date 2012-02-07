@@ -1,7 +1,7 @@
 /*
  * utils.h: common, generic utility functions
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
  *
@@ -77,6 +77,8 @@ int virFileLinkPointsTo(const char *checkLink,
 
 int virFileResolveLink(const char *linkpath,
                        char **resultpath) ATTRIBUTE_RETURN_CHECK;
+int virFileResolveAllLinks(const char *linkpath,
+                           char **resultpath) ATTRIBUTE_RETURN_CHECK;
 
 int virFileIsLink(const char *linkpath)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
@@ -90,8 +92,10 @@ char *virFileSanitizePath(const char *path);
 
 enum {
     VIR_FILE_OPEN_NONE        = 0,
-    VIR_FILE_OPEN_AS_UID      = (1 << 0),
-    VIR_FILE_OPEN_FORCE_PERMS = (1 << 1),
+    VIR_FILE_OPEN_NOFORK      = (1 << 0),
+    VIR_FILE_OPEN_FORK        = (1 << 1),
+    VIR_FILE_OPEN_FORCE_MODE  = (1 << 2),
+    VIR_FILE_OPEN_FORCE_OWNER = (1 << 3),
 };
 int virFileAccessibleAs(const char *path, int mode,
                         uid_t uid, gid_t gid)
@@ -155,8 +159,6 @@ int virStrToDouble(char const *s,
 
 int virHexToBin(unsigned char c);
 
-int virMacAddrCompare (const char *mac1, const char *mac2);
-
 void virSkipSpaces(const char **str) ATTRIBUTE_NONNULL(1);
 void virSkipSpacesAndBackslash(const char **str) ATTRIBUTE_NONNULL(1);
 void virTrimSpaces(char *str, char **endp) ATTRIBUTE_NONNULL(1);
@@ -175,17 +177,6 @@ char *virStrncpy(char *dest, const char *src, size_t n, size_t destbytes)
 char *virStrcpy(char *dest, const char *src, size_t destbytes)
     ATTRIBUTE_RETURN_CHECK;
 # define virStrcpyStatic(dest, src) virStrcpy((dest), (src), sizeof(dest))
-
-# define VIR_MAC_BUFLEN 6
-# define VIR_MAC_PREFIX_BUFLEN 3
-# define VIR_MAC_STRING_BUFLEN VIR_MAC_BUFLEN * 3
-
-int virParseMacAddr(const char* str,
-                    unsigned char *addr) ATTRIBUTE_RETURN_CHECK;
-void virFormatMacAddr(const unsigned char *addr,
-                      char *str);
-void virGenerateMacAddr(const unsigned char *prefix,
-                        unsigned char *addr);
 
 int virDiskNameToIndex(const char* str);
 char *virIndexToDiskName(int idx, const char *prefix);
@@ -234,13 +225,11 @@ int virKillProcess(pid_t pid, int sig);
 
 char *virGetUserDirectory(uid_t uid);
 char *virGetUserName(uid_t uid);
+char *virGetGroupName(gid_t gid);
 int virGetUserID(const char *name,
                  uid_t *uid) ATTRIBUTE_RETURN_CHECK;
 int virGetGroupID(const char *name,
                   gid_t *gid) ATTRIBUTE_RETURN_CHECK;
-
-int virRandomInitialize(unsigned int seed) ATTRIBUTE_RETURN_CHECK;
-int virRandom(int max);
 
 char *virFileFindMountPoint(const char *type);
 
@@ -250,11 +239,5 @@ void virFileWaitForDevices(void);
 int virBuildPathInternal(char **path, ...) ATTRIBUTE_SENTINEL;
 
 bool virIsDevMapperDevice(const char *dev_name) ATTRIBUTE_NONNULL(1);
-
-int virEmitXMLWarning(int fd,
-                      const char *name,
-                      const char *cmd) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
-
-void virTypedParameterArrayClear(virTypedParameterPtr params, int nparams);
 
 #endif /* __VIR_UTIL_H__ */

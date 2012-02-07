@@ -57,6 +57,7 @@ src/nwfilter/nwfilter_learnipaddr.c
 src/openvz/openvz_conf.c
 src/openvz/openvz_driver.c
 src/phyp/phyp_driver.c
+src/qemu/qemu_agent.c
 src/qemu/qemu_bridge_filter.c
 src/qemu/qemu_capabilities.c
 src/qemu/qemu_cgroup.c
@@ -89,6 +90,7 @@ src/secret/secret_driver.c
 src/security/security_apparmor.c
 src/security/security_dac.c
 src/security/security_driver.c
+src/security/security_manager.c
 src/security/security_selinux.c
 src/security/virt-aa-helper.c
 src/storage/parthelper.c
@@ -109,13 +111,11 @@ src/util/command.c
 src/util/conf.c
 src/util/dnsmasq.c
 src/util/event_poll.c
-src/util/hash.c
 src/util/hooks.c
 src/util/hostusb.c
 src/util/iohelper.c
 src/util/iptables.c
 src/util/json.c
-src/util/netlink.c
 src/util/pci.c
 src/util/processinfo.c
 src/util/sexpr.c
@@ -125,16 +125,19 @@ src/util/sysinfo.c
 src/util/util.c
 src/util/viraudit.c
 src/util/virfile.c
+src/util/virhash.c
 src/util/virnetdev.c
 src/util/virnetdevbridge.c
 src/util/virnetdevmacvlan.c
 src/util/virnetdevtap.c
 src/util/virnetdevvportprofile.c
+src/util/virnetlink.c
 src/util/virnodesuspend.c
 src/util/virpidfile.c
 src/util/virsocketaddr.c
 src/util/virterror.c
 src/util/virtime.c
+src/util/virtypedparam.c
 src/util/xml.c
 src/vbox/vbox_MSCOMGlue.c
 src/vbox/vbox_XPCOMCGlue.c
@@ -157,3 +160,7 @@ src/xenxs/xen_xm.c
 tools/console.c
 tools/libvirt-guests.init.sh
 tools/virsh.c
+tools/virt-host-validate-common.c
+tools/virt-host-validate-lxc.c
+tools/virt-host-validate-qemu.c
+tools/virt-host-validate.c

@@ -1606,7 +1606,8 @@ cleanup:
     return ret;
 }
 
-static int vboxDomainShutdown(virDomainPtr dom) {
+static int vboxDomainShutdownFlags(virDomainPtr dom,
+                                   unsigned int flags) {
     VBOX_OBJECT_CHECK(dom->conn, int, -1);
     IMachine *machine    = NULL;
     vboxIID iid = VBOX_IID_INITIALIZER;
@@ -1614,6 +1615,8 @@ static int vboxDomainShutdown(virDomainPtr dom) {
     PRUint32 state       = MachineState_Null;
     PRBool isAccessible  = PR_FALSE;
     nsresult rc;
+
+    virCheckFlags(0, -1);
 
     vboxIIDFromUUID(&iid, dom->uuid);
     rc = VBOX_OBJECT_GET_MACHINE(iid.value, &machine);
@@ -1655,6 +1658,11 @@ cleanup:
     vboxIIDUnalloc(&iid);
     return ret;
 }
+
+static int vboxDomainShutdown(virDomainPtr dom) {
+    return vboxDomainShutdownFlags(dom, 0);
+}
+
 
 static int vboxDomainReboot(virDomainPtr dom, unsigned int flags)
 {
@@ -2992,7 +3000,7 @@ sharedFoldersCleanup:
                                  MACAddress[8], MACAddress[9], MACAddress[10], MACAddress[11]);
 
                         /* XXX some real error handling here some day ... */
-                        if (virParseMacAddr(macaddr, def->nets[netAdpIncCnt]->mac) < 0)
+                        if (virMacAddrParse(macaddr, def->nets[netAdpIncCnt]->mac) < 0)
                         {}
 
                         netAdpIncCnt++;
@@ -4341,7 +4349,7 @@ vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         char macaddr[VIR_MAC_STRING_BUFLEN] = {0};
         char macaddrvbox[VIR_MAC_STRING_BUFLEN - 5] = {0};
 
-        virFormatMacAddr(def->nets[i]->mac, macaddr);
+        virMacAddrFormat(def->nets[i]->mac, macaddr);
         snprintf(macaddrvbox, VIR_MAC_STRING_BUFLEN - 5,
                  "%02X%02X%02X%02X%02X%02X",
                  def->nets[i]->mac[0],
@@ -4364,7 +4372,7 @@ vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
             VIR_DEBUG("NIC(%d): NAT.", i);
         } else if (def->nets[i]->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
             VIR_DEBUG("NIC(%d): brname: %s", i, def->nets[i]->data.bridge.brname);
-            VIR_DEBUG("NIC(%d): script: %s", i, def->nets[i]->data.bridge.script);
+            VIR_DEBUG("NIC(%d): script: %s", i, def->nets[i]->script);
             VIR_DEBUG("NIC(%d): ipaddr: %s", i, def->nets[i]->data.bridge.ipaddr);
         }
 
@@ -8098,7 +8106,7 @@ static char *vboxNetworkGetXMLDesc(virNetworkPtr network,
     VBOX_UTF16_FREE(networkInterfaceNameUtf16);
     VBOX_RELEASE(host);
 
-    ret = virNetworkDefFormat(def);
+    ret = virNetworkDefFormat(def, 0);
 
 cleanup:
     virNetworkDefFree(def);
@@ -9112,6 +9120,7 @@ virDriver NAME(Driver) = {
     .domainSuspend = vboxDomainSuspend, /* 0.6.3 */
     .domainResume = vboxDomainResume, /* 0.6.3 */
     .domainShutdown = vboxDomainShutdown, /* 0.6.3 */
+    .domainShutdownFlags = vboxDomainShutdownFlags, /* 0.9.10 */
     .domainReboot = vboxDomainReboot, /* 0.6.3 */
     .domainDestroy = vboxDomainDestroy, /* 0.6.3 */
     .domainDestroyFlags = vboxDomainDestroyFlags, /* 0.9.4 */

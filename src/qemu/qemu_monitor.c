@@ -87,6 +87,20 @@ VIR_ENUM_IMPL(qemuMonitorVMStatus,
               "postmigrate", "prelaunch", "finish-migrate", "restore-vm",
               "running", "save-vm", "shutdown", "watchdog")
 
+typedef enum {
+    QEMU_MONITOR_BLOCK_IO_STATUS_OK,
+    QEMU_MONITOR_BLOCK_IO_STATUS_FAILED,
+    QEMU_MONITOR_BLOCK_IO_STATUS_NOSPACE,
+
+    QEMU_MONITOR_BLOCK_IO_STATUS_LAST
+} qemuMonitorBlockIOStatus;
+
+VIR_ENUM_DECL(qemuMonitorBlockIOStatus)
+
+VIR_ENUM_IMPL(qemuMonitorBlockIOStatus,
+              QEMU_MONITOR_BLOCK_IO_STATUS_LAST,
+              "ok", "failed", "nospace")
+
 char *qemuMonitorEscapeArg(const char *in)
 {
     int len = 0;
@@ -1227,24 +1241,77 @@ int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
     return ret;
 }
 
-int qemuMonitorGetBlockInfo(qemuMonitorPtr mon,
-                            const char *devname,
-                            struct qemuDomainDiskInfo *info)
+int
+qemuMonitorBlockIOStatusToError(const char *status)
 {
-    int ret;
+    int st = qemuMonitorBlockIOStatusTypeFromString(status);
 
-    VIR_DEBUG("mon=%p dev=%p info=%p", mon, devname, info);
-    if (!mon) {
-        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
-                        _("monitor must not be NULL"));
+    if (st < 0) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("unknown block IO status: %s"), status);
         return -1;
     }
 
+    switch ((qemuMonitorBlockIOStatus) st) {
+    case QEMU_MONITOR_BLOCK_IO_STATUS_OK:
+        return VIR_DOMAIN_DISK_ERROR_NONE;
+    case QEMU_MONITOR_BLOCK_IO_STATUS_FAILED:
+        return VIR_DOMAIN_DISK_ERROR_UNSPEC;
+    case QEMU_MONITOR_BLOCK_IO_STATUS_NOSPACE:
+        return VIR_DOMAIN_DISK_ERROR_NO_SPACE;
+
+    /* unreachable */
+    case QEMU_MONITOR_BLOCK_IO_STATUS_LAST:
+        break;
+    }
+    return -1;
+}
+
+virHashTablePtr
+qemuMonitorGetBlockInfo(qemuMonitorPtr mon)
+{
+    int ret;
+    virHashTablePtr table;
+
+    VIR_DEBUG("mon=%p", mon);
+
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return NULL;
+    }
+
+    if (!(table = virHashCreate(32, (virHashDataFree) free)))
+        return NULL;
+
     if (mon->json)
-        ret = qemuMonitorJSONGetBlockInfo(mon, devname, info);
+        ret = qemuMonitorJSONGetBlockInfo(mon, table);
     else
-        ret = qemuMonitorTextGetBlockInfo(mon, devname, info);
-    return ret;
+        ret = qemuMonitorTextGetBlockInfo(mon, table);
+
+    if (ret < 0) {
+        virHashFree(table);
+        return NULL;
+    }
+
+    return table;
+}
+
+struct qemuDomainDiskInfo *
+qemuMonitorBlockInfoLookup(virHashTablePtr blockInfo,
+                           const char *devname)
+{
+    struct qemuDomainDiskInfo *info;
+
+    VIR_DEBUG("blockInfo=%p dev=%s", blockInfo, NULLSTR(devname));
+
+    if (!(info = virHashLookup(blockInfo, devname))) {
+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("cannot find info for device '%s'"),
+                        NULLSTR(devname));
+    }
+
+    return info;
 }
 
 int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,

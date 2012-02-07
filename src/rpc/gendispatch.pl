@@ -34,10 +34,10 @@ sub name_to_ProcName {
     my $name = shift;
     my @elems = split /_/, $name;
     @elems = map ucfirst, @elems;
-    @elems = map { $_ =~ s/Nwfilter/NWFilter/; $_ =~ s/Xml/XML/;
-                   $_ =~ s/Uri/URI/; $_ =~ s/Uuid/UUID/; $_ =~ s/Id/ID/;
-                   $_ =~ s/Mac/MAC/; $_ =~ s/Cpu/CPU/; $_ =~ s/Os/OS/;
-                   $_ =~ s/Nmi/NMI/; $_ } @elems;
+    @elems = map { $_ =~ s/Nwfilter/NWFilter/; $_ =~ s/Xml$/XML/;
+                   $_ =~ s/Uri$/URI/; $_ =~ s/Uuid$/UUID/; $_ =~ s/Id$/ID/;
+                   $_ =~ s/Mac$/MAC/; $_ =~ s/Cpu$/CPU/; $_ =~ s/Os$/OS/;
+                   $_ =~ s/Nmi$/NMI/; $_ =~ s/Pm/PM/; $_ } @elems;
     join "", @elems
 }
 
@@ -232,6 +232,7 @@ my $long_legacy = {
     GetVersion                  => { ret => { hv_ver => 1 } },
     NodeGetInfo                 => { ret => { memory => 1 } },
     DomainBlockPull             => { arg => { bandwidth => 1 } },
+    DomainBlockRebase           => { arg => { bandwidth => 1 } },
     DomainBlockJobSetSpeed      => { arg => { bandwidth => 1 } },
     DomainMigrateGetMaxSpeed    => { ret => { bandwidth => 1 } },
 };

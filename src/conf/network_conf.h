@@ -1,7 +1,7 @@
 /*
  * network_conf.h: network XML handling
  *
- * Copyright (C) 2006-2008 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2012 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -35,7 +35,7 @@
 # include "virsocketaddr.h"
 # include "virnetdevbandwidth.h"
 # include "virnetdevvportprofile.h"
-# include "util.h"
+# include "virmacaddr.h"
 
 enum virNetworkForwardType {
     VIR_NETWORK_FORWARD_NONE   = 0,
@@ -162,6 +162,9 @@ struct _virNetworkDef {
     /* If there are multiple forward devices (i.e. a pool of
      * interfaces), they will be listed here.
      */
+    size_t nForwardPfs;
+    virNetworkForwardIfDefPtr forwardPfs;
+
     size_t nForwardIfs;
     virNetworkForwardIfDefPtr forwardIfs;
 
@@ -224,7 +227,7 @@ virNetworkDefPtr virNetworkDefParseFile(const char *filename);
 virNetworkDefPtr virNetworkDefParseNode(xmlDocPtr xml,
                                         xmlNodePtr root);
 
-char *virNetworkDefFormat(const virNetworkDefPtr def);
+char *virNetworkDefFormat(const virNetworkDefPtr def, unsigned int flags);
 
 static inline const char *
 virNetworkDefForwardIf(const virNetworkDefPtr def, size_t n)

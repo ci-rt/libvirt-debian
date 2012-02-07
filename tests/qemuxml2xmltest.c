@@ -48,9 +48,9 @@ testCompareXMLToXMLFiles(const char *inxml, const char *outxml)
 
     ret = 0;
  fail:
-    free(inXmlData);
-    free(outXmlData);
-    free(actual);
+    VIR_FREE(inXmlData);
+    VIR_FREE(outXmlData);
+    VIR_FREE(actual);
     virDomainDefFree(def);
     return ret;
 }
@@ -81,8 +81,8 @@ testCompareXMLToXMLHelper(const void *data)
     }
 
 cleanup:
-    free(xml_in);
-    free(xml_out);
+    VIR_FREE(xml_in);
+    VIR_FREE(xml_out);
     return ret;
 }
 
@@ -124,6 +124,9 @@ mymain(void)
     DO_TEST("bootloader");
     DO_TEST("clock-utc");
     DO_TEST("clock-localtime");
+    DO_TEST("cpu-kvmclock");
+    DO_TEST("cpu-host-kvmclock");
+    DO_TEST("kvmclock");
     DO_TEST("hugepages");
     DO_TEST("disk-aio");
     DO_TEST("disk-cdrom");
@@ -139,6 +142,8 @@ mymain(void)
     DO_TEST("disk-drive-cache-v1-wb");
     DO_TEST("disk-drive-cache-v1-none");
     DO_TEST("disk-scsi-device");
+    DO_TEST("disk-scsi-vscsi");
+    DO_TEST("disk-scsi-virtio-scsi");
     DO_TEST("graphics-listen-network");
     DO_TEST("graphics-vnc");
     DO_TEST("graphics-vnc-sasl");
@@ -147,7 +152,6 @@ mymain(void)
     DO_TEST("graphics-sdl-fullscreen");
     DO_TEST("graphics-spice");
     DO_TEST("graphics-spice-compression");
-    DO_TEST("graphics-spice-timeout");
     DO_TEST("graphics-spice-qxl-vga");
     DO_TEST("input-usbmouse");
     DO_TEST("input-usbtablet");
@@ -180,6 +184,7 @@ mymain(void)
 
     DO_TEST("hostdev-usb-address");
     DO_TEST("hostdev-pci-address");
+    DO_TEST("pci-rom");
 
     DO_TEST("encrypted-disk");
     DO_TEST("memtune");
@@ -190,6 +195,7 @@ mymain(void)
     DO_TEST("smp");
     DO_TEST("lease");
     DO_TEST("event_idx");
+    DO_TEST("virtio-lun");
 
     DO_TEST("usb-redir");
     DO_TEST("blkdeviotune");
@@ -206,6 +212,9 @@ mymain(void)
     DO_TEST_DIFFERENT("console-virtio");
     DO_TEST_DIFFERENT("serial-target-port-auto");
     DO_TEST_DIFFERENT("graphics-listen-network2");
+    DO_TEST_DIFFERENT("graphics-spice-timeout");
+
+    DO_TEST_DIFFERENT("metadata");
 
     virCapabilitiesFree(driver.caps);
 

@@ -1,8 +1,6 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* w32sock.h --- internal auxilliary functions for Windows socket functions
 
-   Copyright (C) 2008-2011 Free Software Foundation, Inc.
+   Copyright (C) 2008-2012 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -31,7 +29,7 @@
 #include "msvc-nothrow.h"
 
 #define FD_TO_SOCKET(fd)   ((SOCKET) _get_osfhandle ((fd)))
-#define SOCKET_TO_FD(fh)   (_open_osfhandle ((long) (fh), O_RDWR | O_BINARY))
+#define SOCKET_TO_FD(fh)   (_open_osfhandle ((intptr_t) (fh), O_RDWR | O_BINARY))
 
 static inline void
 set_winsock_errno (void)

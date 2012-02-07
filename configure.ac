@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.9], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.10], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -734,16 +734,17 @@ if test "$with_lxc" = "yes" || test "$with_lxc" = "check"; then
     AC_TRY_LINK([
         #include <sched.h>
         #include <linux/loop.h>
+        #include <sys/epoll.h>
     ], [
-        unshare (!LO_FLAGS_AUTOCLEAR);
+        unshare (!(LO_FLAGS_AUTOCLEAR + EPOLL_CLOEXEC));
     ], [
         with_lxc=yes
     ], [
         if test "$with_lxc" = "check"; then
             with_lxc=no
-            AC_MSG_NOTICE([Function unshare() not present in <sched.h> header but required for LXC driver, disabling it])
+            AC_MSG_NOTICE([Required kernel features were not found, disabling LXC])
         else
-            AC_MSG_ERROR([Function unshare() not present in <sched.h> header, but required for LXC driver])
+            AC_MSG_ERROR([Required kernel features for LXC were not found])
         fi
     ])
 fi
@@ -1613,6 +1614,9 @@ AC_ARG_WITH([netcf],
 
 NETCF_CFLAGS=
 NETCF_LIBS=
+if test "$with_libvirtd" = "no" ; then
+  with_netcf=no
+fi
 if test "$with_netcf" = "yes" || test "$with_netcf" = "check"; then
   PKG_CHECK_MODULES(NETCF, netcf >= $NETCF_REQUIRED,
     [with_netcf=yes], [
@@ -2496,8 +2500,31 @@ AM_CONDITIONAL([HAVE_LIBNL], [test "$have_libnl" = "yes"])
 AC_SUBST([LIBNL_CFLAGS])
 AC_SUBST([LIBNL_LIBS])
 
+dnl scrub program for different volume wiping algorithms
 
+AC_ARG_WITH([scrub],
+            AC_HELP_STRING([--with-scrub], [enable different volume wiping algorithms
+                            @<:@default=check@:>@]),
+            [with_macvtap=${withval}],
+            [with_scrub=check])
 
+if test "$with_scrub" != "no"; then
+  AC_PATH_PROG([SCRUB], [scrub])
+  if test -z "$SCRUB" ; then
+    if test "$with_scrub" = "check"; then
+      with_scrub=no
+    else
+      AC_MSG_ERROR([You must install the 'scrub' binary to enable
+                    different volume wiping algorithms])
+    fi
+  else
+    with_scrub=yes
+  fi
+  if test "$with_scrub" = "yes"; then
+    AC_DEFINE_UNQUOTED([SCRUB], ["$SCRUB"],
+                       [Location of the scrub program])
+  fi
+fi
 
 # Only COPYING.LIB is under version control, yet COPYING
 # is included as part of the distribution tarball.

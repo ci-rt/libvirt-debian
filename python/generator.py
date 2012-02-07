@@ -205,7 +205,8 @@ def enum(type, name, value):
         value = 1
     elif value == 'VIR_DOMAIN_AFFECT_CONFIG':
         value = 2
-    enums[type][name] = value
+    if name[-5:] != '_LAST':
+        enums[type][name] = value
 
 def qemu_enum(type, name, value):
     if not qemu_enums.has_key(type):
@@ -258,10 +259,11 @@ py_types = {
     'double':  ('d', None, "double", "double"),
     'unsigned int':  ('i', None, "int", "int"),
     'unsigned long':  ('l', None, "long", "long"),
+    'long long':  ('l', None, "longlong", "long long"),
     'unsigned long long':  ('l', None, "longlong", "long long"),
     'unsigned char *':  ('z', None, "charPtr", "char *"),
     'char *':  ('z', None, "charPtr", "char *"),
-    'const char *':  ('z', None, "charPtrConst", "const char *"),
+    'const char *':  ('z', None, "constcharPtr", "const char *"),
     'size_t': ('n', None, "size_t", "size_t"),
 
     'virDomainPtr':  ('O', "virDomain", "virDomainPtr", "virDomainPtr"),
@@ -421,6 +423,8 @@ skip_impl = (
     'virDomainGetBlockIoTune',
     'virDomainSetInterfaceParameters',
     'virDomainGetInterfaceParameters',
+    'virDomainGetCPUStats',  # not implemented now.
+    'virDomainGetDiskErrors',
 )
 
 qemu_skip_impl = (
@@ -576,7 +580,7 @@ def print_function_wrapper(module, name, output, export, include):
     if ret[0] == 'void':
         if file == "python_accessor":
             if args[1][1] == "char *":
-                c_call = "\n    free(%s->%s);\n" % (
+                c_call = "\n    VIR_FREE(%s->%s);\n" % (
                                  args[0][0], args[1][0], args[0][0], args[1][0])
                 c_call = c_call + "    %s->%s = (%s)strdup((const xmlChar *)%s);\n" % (args[0][0],
                                  args[1][0], args[1][1], args[1][0])

@@ -161,9 +161,9 @@ virDomainAuditNet(virDomainObjPtr vm,
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (oldDef)
-        virFormatMacAddr(oldDef->mac, oldMacstr);
+        virMacAddrFormat(oldDef->mac, oldMacstr);
     if (newDef)
-        virFormatMacAddr(newDef->mac, newMacstr);
+        virMacAddrFormat(newDef->mac, newMacstr);
     if (!(vmname = virAuditEncode("vm", vm->def->name))) {
         VIR_WARN("OOM while encoding audit message");
         return;
@@ -207,7 +207,7 @@ virDomainAuditNetDevice(virDomainDefPtr vmDef, virDomainNetDefPtr netDef,
     const char *virt;
 
     virUUIDFormat(vmDef->uuid, uuidstr);
-    virFormatMacAddr(netDef->mac, macstr);
+    virMacAddrFormat(netDef->mac, macstr);
     rdev = virDomainAuditGetRdev(device);
 
     if (!(vmname = virAuditEncode("vm", vmDef->name)) ||
@@ -562,8 +562,8 @@ virDomainAuditLifecycle(virDomainObjPtr vm, const char *op,
     }
 
     VIR_AUDIT(VIR_AUDIT_RECORD_MACHINE_CONTROL, success,
-              "virt=%s op=%s reason=%s %s uuid=%s",
-              virt, op, reason, vmname, uuidstr);
+              "virt=%s op=%s reason=%s %s uuid=%s vm-pid=%d",
+              virt, op, reason, vmname, uuidstr, vm->pid);
 
     VIR_FREE(vmname);
 }

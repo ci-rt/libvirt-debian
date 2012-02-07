@@ -1,5 +1,5 @@
 # Customize Makefile.maint.                           -*- makefile -*-
-# Copyright (C) 2008-2011 Red Hat, Inc.
+# Copyright (C) 2008-2012 Red Hat, Inc.
 # Copyright (C) 2003-2008 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
@@ -171,6 +171,7 @@ useless_free_options =				\
   --name=xmlBufferFree				\
   --name=xmlFree				\
   --name=xmlFreeDoc				\
+  --name=xmlFreeNode				\
   --name=xmlXPathFreeContext			\
   --name=xmlXPathFreeObject
 
@@ -315,6 +316,12 @@ sc_prohibit_internal_functions:
 	halt='use VIR_ macros instead of internal functions'		\
 	  $(_sc_search_regexp)
 
+# Avoid raw malloc and free, except in documentation comments.
+sc_prohibit_raw_allocation:
+	@prohibit='^.[^*].*\<((m|c|re)alloc|free) *\([^)]'		\
+	halt='use VIR_ macros from memory.h instead of malloc/free'	\
+	  $(_sc_search_regexp)
+
 # Avoid functions that can lead to double-close bugs.
 sc_prohibit_close:
 	@prohibit='([^>.]|^)\<[fp]?close *\('				\
@@ -412,11 +419,11 @@ sc_prohibit_ctype_h:
 # Ensure that no C source file, docs, or rng schema uses TABs for
 # indentation.  Also match *.h.in files, to get libvirt.h.in.  Exclude
 # files in gnulib, since they're imported.
-space_indent_files=(\.(rng|s?[ch](\.in)?|html.in|py)|(daemon|tools)/.*\.in)
+space_indent_files=(\.(rng|s?[ch](\.in)?|html.in|py|syms)|(daemon|tools)/.*\.in)
 sc_TAB_in_indentation:
 	@prohibit='^ *	'						\
 	in_vc_files='$(space_indent_files)$$'				\
-	halt='indent with space, not TAB, in C, sh, html, py, and RNG schemas' \
+	halt='indent with space, not TAB, in C, sh, html, py, syms and RNG schemas' \
 	  $(_sc_search_regexp)
 
 ctype_re = isalnum|isalpha|isascii|isblank|iscntrl|isdigit|isgraph|islower\
@@ -610,6 +617,17 @@ sc_prohibit_gettext_markup:
 	halt='do not mark these strings for translation'		\
 	  $(_sc_search_regexp)
 
+# When converting an enum to a string, make sure that we track any new
+# elements added to the enum by using a _LAST marker.
+sc_require_enum_last_marker:
+	@grep -A1 -nE '^[^#]*VIR_ENUM_IMPL *\(' $$($(VC_LIST_EXCEPT))	\
+	   | sed -ne '/VIR_ENUM_IMPL[^,]*,$$/N'				\
+	     -e '/VIR_ENUM_IMPL[^,]*,[^,]*[^_,][^L,][^A,][^S,][^T,],/p'	\
+	     -e '/VIR_ENUM_IMPL[^,]*,[^,]\{0,4\},/p'			\
+	   | grep . &&							\
+	  { echo '$(ME): enum impl needs to use _LAST marker' 1>&2;	\
+	    exit 1; } || :
+
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
 
@@ -724,6 +742,9 @@ exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
 
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
   ^((po|tests)/|docs/.*py$$|tools/(virsh|console)\.c$$)
+
+exclude_file_name_regexp--sc_prohibit_raw_allocation = \
+  ^(src/util/memory\.[ch]|examples/.*)$$
 
 exclude_file_name_regexp--sc_prohibit_readlink = ^src/util/util\.c$$
 

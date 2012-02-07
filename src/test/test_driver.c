@@ -1,7 +1,7 @@
 /*
  * test.c: A "mock" hypervisor for use by application unit tests
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -50,6 +50,8 @@
 #include "threads.h"
 #include "logging.h"
 #include "virfile.h"
+#include "virtypedparam.h"
+#include "virrandom.h"
 
 #define VIR_FROM_THIS VIR_FROM_TEST
 
@@ -1541,12 +1543,15 @@ cleanup:
     return ret;
 }
 
-static int testShutdownDomain (virDomainPtr domain)
+static int testShutdownDomainFlags(virDomainPtr domain,
+                                   unsigned int flags)
 {
     testConnPtr privconn = domain->conn->privateData;
     virDomainObjPtr privdom;
     virDomainEventPtr event = NULL;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     testDriverLock(privconn);
     privdom = virDomainFindByName(&privconn->domains,
@@ -1582,6 +1587,11 @@ cleanup:
         testDomainEventQueue(privconn, event);
     testDriverUnlock(privconn);
     return ret;
+}
+
+static int testShutdownDomain (virDomainPtr domain)
+{
+    return testShutdownDomainFlags(domain, 0);
 }
 
 /* Similar behaviour as shutdown */
@@ -2691,16 +2701,11 @@ testDomainGetSchedulerParamsFlags(virDomainPtr domain,
         goto cleanup;
     }
 
-    if (virStrcpyStatic(params[0].field,
-                        VIR_DOMAIN_SCHEDULER_WEIGHT) == NULL) {
-        testError(VIR_ERR_INTERNAL_ERROR, _("Field name '%s' too long"),
-                  VIR_DOMAIN_SCHEDULER_WEIGHT);
+    if (virTypedParameterAssign(params, VIR_DOMAIN_SCHEDULER_WEIGHT,
+                                VIR_TYPED_PARAM_UINT, 50) < 0)
         goto cleanup;
-    }
-    params[0].type = VIR_TYPED_PARAM_UINT;
     /* XXX */
     /*params[0].value.ui = privdom->weight;*/
-    params[0].value.ui = 50;
 
     *nparams = 1;
     ret = 0;
@@ -2730,6 +2735,11 @@ testDomainSetSchedulerParamsFlags(virDomainPtr domain,
     int ret = -1, i;
 
     virCheckFlags(0, -1);
+    if (virTypedParameterArrayValidate(params, nparams,
+                                       VIR_DOMAIN_SCHEDULER_WEIGHT,
+                                       VIR_TYPED_PARAM_UINT,
+                                       NULL) < 0)
+        return -1;
 
     testDriverLock(privconn);
     privdom = virDomainFindByName(&privconn->domains,
@@ -2742,16 +2752,10 @@ testDomainSetSchedulerParamsFlags(virDomainPtr domain,
     }
 
     for (i = 0; i < nparams; i++) {
-        if (STRNEQ(params[i].field, VIR_DOMAIN_SCHEDULER_WEIGHT)) {
-            testError(VIR_ERR_INVALID_ARG, "field");
-            goto cleanup;
+        if (STREQ(params[i].field, VIR_DOMAIN_SCHEDULER_WEIGHT)) {
+            /* XXX */
+            /*privdom->weight = params[i].value.ui;*/
         }
-        if (params[i].type != VIR_TYPED_PARAM_UINT) {
-            testError(VIR_ERR_INVALID_ARG, "type");
-            goto cleanup;
-        }
-        /* XXX */
-        /*privdom->weight = params[i].value.ui;*/
     }
 
     ret = 0;
@@ -3233,7 +3237,7 @@ static char *testNetworkGetXMLDesc(virNetworkPtr network,
         goto cleanup;
     }
 
-    ret = virNetworkDefFormat(privnet->def);
+    ret = virNetworkDefFormat(privnet->def, flags);
 
 cleanup:
     if (privnet)
@@ -5313,7 +5317,7 @@ testNodeDeviceCreateXML(virConnectPtr conn,
         if (caps->type != VIR_NODE_DEV_CAP_SCSI_HOST)
             continue;
 
-        caps->data.scsi_host.host = virRandom(1024);
+        caps->data.scsi_host.host = virRandomBits(10);
         caps = caps->next;
     }
 
@@ -5528,6 +5532,7 @@ static virDriver testDriver = {
     .domainSuspend = testPauseDomain, /* 0.1.1 */
     .domainResume = testResumeDomain, /* 0.1.1 */
     .domainShutdown = testShutdownDomain, /* 0.1.1 */
+    .domainShutdownFlags = testShutdownDomainFlags, /* 0.9.10 */
     .domainReboot = testRebootDomain, /* 0.1.1 */
     .domainDestroy = testDestroyDomain, /* 0.1.1 */
     .domainGetOSType = testGetOSType, /* 0.1.9 */

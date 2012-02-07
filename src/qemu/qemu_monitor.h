@@ -29,7 +29,7 @@
 
 # include "domain_conf.h"
 # include "qemu_conf.h"
-# include "hash.h"
+# include "virhash.h"
 
 typedef struct _qemuMonitor qemuMonitor;
 typedef qemuMonitor *qemuMonitorPtr;
@@ -235,9 +235,13 @@ int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
 int qemuMonitorGetMemoryStats(qemuMonitorPtr mon,
                               virDomainMemoryStatPtr stats,
                               unsigned int nr_stats);
-int qemuMonitorGetBlockInfo(qemuMonitorPtr mon,
-                            const char *devname,
-                            struct qemuDomainDiskInfo *info);
+
+int qemuMonitorBlockIOStatusToError(const char *status);
+virHashTablePtr qemuMonitorGetBlockInfo(qemuMonitorPtr mon);
+struct qemuDomainDiskInfo *
+qemuMonitorBlockInfoLookup(virHashTablePtr blockInfo,
+                           const char *devname);
+
 int qemuMonitorGetBlockStatsInfo(qemuMonitorPtr mon,
                                  const char *dev_name,
                                  long long *rd_req,

@@ -1,8 +1,6 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Duplicate an open file descriptor to a specified file descriptor.
 
-   Copyright (C) 1999, 2004-2007, 2009-2011 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2004-2007, 2009-2012 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -33,7 +31,7 @@
 
 # if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
 
-/* Get declarations of the Win32 API functions.  */
+/* Get declarations of the native Windows API functions.  */
 #  define WIN32_LEAN_AND_MEAN
 #  include <windows.h>
 

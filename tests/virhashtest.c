@@ -6,8 +6,8 @@
 #include <time.h>
 
 #include "internal.h"
-#include "hash.h"
-#include "hashdata.h"
+#include "virhash.h"
+#include "virhashdata.h"
 #include "testutils.h"
 #include "memory.h"
 
@@ -24,7 +24,7 @@ static virHashTablePtr
 testHashInit(int size)
 {
     virHashTablePtr hash;
-    int i;
+    ssize_t i;
 
     if (!(hash = virHashCreate(size, NULL)))
         return NULL;
@@ -33,14 +33,14 @@ testHashInit(int size)
      * collision list in the same order as in the uuids array
      */
     for (i = ARRAY_CARDINALITY(uuids) - 1; i >= 0; i--) {
-        int oldsize = virHashTableSize(hash);
+        ssize_t oldsize = virHashTableSize(hash);
         if (virHashAddEntry(hash, uuids[i], (void *) uuids[i]) < 0) {
             virHashFree(hash);
             return NULL;
         }
 
         if (virHashTableSize(hash) != oldsize && virTestGetDebug()) {
-            fprintf(stderr, "\nhash grown from %d to %d",
+            fprintf(stderr, "\nhash grown from %zd to %zd",
                     oldsize, virHashTableSize(hash));
         }
     }
@@ -70,19 +70,19 @@ testHashCheckForEachCount(void *payload ATTRIBUTE_UNUSED,
 }
 
 static int
-testHashCheckCount(virHashTablePtr hash, int count)
+testHashCheckCount(virHashTablePtr hash, size_t count)
 {
-    int iter_count = 0;
+    ssize_t iter_count = 0;
 
     if (virHashSize(hash) != count) {
-        testError("\nhash contains %d instead of %d elements\n",
+        testError("\nhash contains %zd instead of %zu elements\n",
                   virHashSize(hash), count);
         return -1;
     }
 
     iter_count = virHashForEach(hash, testHashCheckForEachCount, NULL);
     if (count != iter_count) {
-        testError("\nhash claims to have %d elements but iteration finds %d\n",
+        testError("\nhash claims to have %zu elements but iteration finds %zd\n",
                   count, iter_count);
         return -1;
     }
@@ -93,7 +93,7 @@ testHashCheckCount(virHashTablePtr hash, int count)
 
 struct testInfo {
     void *data;
-    int count;
+    size_t count;
 };
 
 
@@ -574,6 +574,84 @@ cleanup:
     return ret;
 }
 
+static int
+testHashEqualCompValue(const void *value1, const void *value2)
+{
+    return c_strcasecmp(value1, value2);
+}
+
+static int
+testHashEqual(const void *data ATTRIBUTE_UNUSED)
+{
+    virHashTablePtr hash1, hash2 = NULL;
+    int ret = -1;
+    char keya[] = "a";
+    char keyb[] = "b";
+    char keyc[] = "c";
+    char value1_l[] = "m";
+    char value2_l[] = "n";
+    char value3_l[] = "o";
+    char value1_u[] = "M";
+    char value2_u[] = "N";
+    char value3_u[] = "O";
+    char value4_u[] = "P";
+
+    if (!(hash1 = virHashCreate(0, NULL)) ||
+        !(hash2 = virHashCreate(0, NULL)) ||
+        virHashAddEntry(hash1, keya, value1_l) < 0 ||
+        virHashAddEntry(hash1, keyb, value2_l) < 0 ||
+        virHashAddEntry(hash1, keyc, value3_l) < 0 ||
+        virHashAddEntry(hash2, keya, value1_u) < 0 ||
+        virHashAddEntry(hash2, keyb, value2_u) < 0) {
+        if (virTestGetVerbose()) {
+            testError("\nfailed to create hashes");
+        }
+        goto cleanup;
+    }
+
+    if (virHashEqual(hash1, hash2, testHashEqualCompValue)) {
+        if (virTestGetVerbose()) {
+            testError("\nfailed equal test for different number of elements");
+        }
+        goto cleanup;
+    }
+
+    if (virHashAddEntry(hash2, keyc, value4_u) < 0) {
+        if (virTestGetVerbose()) {
+            testError("\nfailed to add element to hash2");
+        }
+        goto cleanup;
+    }
+
+    if (virHashEqual(hash1, hash2, testHashEqualCompValue)) {
+        if (virTestGetVerbose()) {
+            testError("\nfailed equal test for same number of elements");
+        }
+        goto cleanup;
+    }
+
+    if (virHashUpdateEntry(hash2, keyc, value3_u) < 0) {
+        if (virTestGetVerbose()) {
+            testError("\nfailed to update element in hash2");
+        }
+        goto cleanup;
+    }
+
+    if (!virHashEqual(hash1, hash2, testHashEqualCompValue)) {
+        if (virTestGetVerbose()) {
+            testError("\nfailed equal test for equal hash tables");
+        }
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    virHashFree(hash1);
+    virHashFree(hash2);
+    return ret;
+}
+
 
 static int
 mymain(void)
@@ -612,6 +690,7 @@ mymain(void)
     DO_TEST("RemoveSet", RemoveSet);
     DO_TEST("Search", Search);
     DO_TEST("GetItems", GetItems);
+    DO_TEST("Equal", Equal);
 
     return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

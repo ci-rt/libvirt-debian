@@ -1,7 +1,7 @@
 /*
  * commandtest.c: Test the libCommand API
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -481,7 +481,7 @@ static int test13(const void *unused ATTRIBUTE_UNUSED)
     cmd = NULL;
 
     if (!STREQ(outactual, outexpect)) {
-        virtTestDifference(stderr, outactual, outexpect);
+        virtTestDifference(stderr, outexpect, outactual);
         goto cleanup;
     }
 
@@ -508,6 +508,14 @@ static int test14(const void *unused ATTRIBUTE_UNUSED)
     const char *errexpect = "BEGIN STDERR\n"
         "Hello World\n"
         "END STDERR\n";
+
+    char *jointactual = NULL;
+    const char *jointexpect = "BEGIN STDOUT\n"
+        "BEGIN STDERR\n"
+        "Hello World\n"
+        "Hello World\n"
+        "END STDOUT\n"
+        "END STDERR\n";
     int ret = -1;
 
     virCommandSetInputBuffer(cmd, "Hello World\n");
@@ -523,14 +531,29 @@ static int test14(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
 
     virCommandFree(cmd);
-    cmd = NULL;
+
+    cmd = virCommandNew(abs_builddir "/commandhelper");
+    virCommandSetInputBuffer(cmd, "Hello World\n");
+    virCommandSetOutputBuffer(cmd, &jointactual);
+    virCommandSetErrorBuffer(cmd, &jointactual);
+    if (virCommandRun(cmd, NULL) < 0) {
+        virErrorPtr err = virGetLastError();
+        printf("Cannot run child %s\n", err->message);
+        goto cleanup;
+    }
+    if (!jointactual)
+        goto cleanup;
 
     if (!STREQ(outactual, outexpect)) {
-        virtTestDifference(stderr, outactual, outexpect);
+        virtTestDifference(stderr, outexpect, outactual);
         goto cleanup;
     }
     if (!STREQ(erractual, errexpect)) {
-        virtTestDifference(stderr, erractual, errexpect);
+        virtTestDifference(stderr, errexpect, erractual);
+        goto cleanup;
+    }
+    if (!STREQ(jointactual, jointexpect)) {
+        virtTestDifference(stderr, jointexpect, jointactual);
         goto cleanup;
     }
 
@@ -540,6 +563,7 @@ cleanup:
     virCommandFree(cmd);
     VIR_FREE(outactual);
     VIR_FREE(erractual);
+    VIR_FREE(jointactual);
     return ret;
 }
 
@@ -604,7 +628,7 @@ static int test16(const void *unused ATTRIBUTE_UNUSED)
     }
 
     if (!STREQ(outactual, outexpect)) {
-        virtTestDifference(stderr, outactual, outexpect);
+        virtTestDifference(stderr, outexpect, outactual);
         goto cleanup;
     }
 

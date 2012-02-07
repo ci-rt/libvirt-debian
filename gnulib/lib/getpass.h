@@ -1,7 +1,5 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* getpass.h -- Read a password of arbitrary length from /dev/tty or stdin.
-   Copyright (C) 2004, 2009-2011 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2009-2012 Free Software Foundation, Inc.
    Contributed by Simon Josefsson <jas@extundo.com>, 2004.
 
    This program is free software; you can redistribute it and/or modify

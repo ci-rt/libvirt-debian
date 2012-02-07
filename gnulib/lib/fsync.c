@@ -1,5 +1,3 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Emulate fsync on platforms that lack it, primarily Windows and
    cross-compilers like MinGW.
 
@@ -9,7 +7,7 @@
 
    Written by Richard W.M. Jones <rjones.at.redhat.com>
 
-   Copyright (C) 2008-2011 Free Software Foundation, Inc.
+   Copyright (C) 2008-2012 Free Software Foundation, Inc.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public

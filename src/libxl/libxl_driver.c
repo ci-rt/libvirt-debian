@@ -43,7 +43,7 @@
 #include "libxl_driver.h"
 #include "libxl_conf.h"
 #include "xen_xm.h"
-
+#include "virtypedparam.h"
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
 
@@ -216,7 +216,7 @@ libxlSaveImageOpen(libxlDriverPrivatePtr driver, const char *from,
     libxlSavefileHeader hdr;
     char *xml = NULL;
 
-    if ((fd = virFileOpenAs(from, O_RDONLY, 0, getuid(), getgid(), 0)) < 0) {
+    if ((fd = virFileOpenAs(from, O_RDONLY, 0, -1, -1, 0)) < 0) {
         libxlError(VIR_ERR_OPERATION_FAILED,
                    "%s", _("cannot read domain image"));
         goto error;
@@ -1412,12 +1412,14 @@ cleanup:
 }
 
 static int
-libxlDomainShutdown(virDomainPtr dom)
+libxlDomainShutdownFlags(virDomainPtr dom, unsigned int flags)
 {
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
     int ret = -1;
     libxlDomainObjPrivatePtr priv;
+
+    virCheckFlags(0, -1);
 
     libxlDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -1454,6 +1456,13 @@ cleanup:
     libxlDriverUnlock(driver);
     return ret;
 }
+
+static int
+libxlDomainShutdown(virDomainPtr dom)
+{
+    return libxlDomainShutdownFlags(dom, 0);
+}
+
 
 static int
 libxlDomainReboot(virDomainPtr dom, unsigned int flags)
@@ -1827,7 +1836,7 @@ libxlDoDomainSave(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
     }
 
     if ((fd = virFileOpenAs(to, O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR,
-                            getuid(), getgid(), 0)) < 0) {
+                            -1, -1, 0)) < 0) {
         virReportSystemError(-fd,
                              _("Failed to create domain save file '%s'"), to);
         goto cleanup;
@@ -3610,26 +3619,14 @@ libxlDomainGetSchedulerParametersFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    params[0].value.ui = sc_info.weight;
-    params[0].type = VIR_TYPED_PARAM_UINT;
-    if (virStrcpyStatic(params[0].field,
-                        VIR_DOMAIN_SCHEDULER_WEIGHT) == NULL) {
-        libxlError(VIR_ERR_INTERNAL_ERROR,
-                   _("Field name '%s' too long"),
-                   VIR_DOMAIN_SCHEDULER_WEIGHT);
+    if (virTypedParameterAssign(&params[0], VIR_DOMAIN_SCHEDULER_WEIGHT,
+                                VIR_TYPED_PARAM_UINT, sc_info.weight) < 0)
         goto cleanup;
-    }
 
     if (*nparams > 1) {
-        params[1].value.ui = sc_info.cap;
-        params[1].type = VIR_TYPED_PARAM_UINT;
-        if (virStrcpyStatic(params[1].field,
-                            VIR_DOMAIN_SCHEDULER_CAP) == NULL) {
-            libxlError(VIR_ERR_INTERNAL_ERROR,
-                       _("Field name '%s' too long"),
-                       VIR_DOMAIN_SCHEDULER_CAP);
+        if (virTypedParameterAssign(&params[0], VIR_DOMAIN_SCHEDULER_CAP,
+                                    VIR_TYPED_PARAM_UINT, sc_info.cap) < 0)
             goto cleanup;
-        }
     }
 
     if (*nparams > XEN_SCHED_CREDIT_NPARAM)
@@ -3664,6 +3661,13 @@ libxlDomainSetSchedulerParametersFlags(virDomainPtr dom,
     int ret = -1;
 
     virCheckFlags(0, -1);
+    if (virTypedParameterArrayValidate(params, nparams,
+                                       VIR_DOMAIN_SCHEDULER_WEIGHT,
+                                       VIR_TYPED_PARAM_UINT,
+                                       VIR_DOMAIN_SCHEDULER_CAP,
+                                       VIR_TYPED_PARAM_UINT,
+                                       NULL) < 0)
+        return -1;
 
     libxlDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -3705,24 +3709,9 @@ libxlDomainSetSchedulerParametersFlags(virDomainPtr dom,
         virTypedParameterPtr param = &params[i];
 
         if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_WEIGHT)) {
-            if (param->type != VIR_TYPED_PARAM_UINT) {
-                libxlError(VIR_ERR_INVALID_ARG, "%s",
-                           _("invalid type for weight tunable, expected a 'uint'"));
-                goto cleanup;
-            }
             sc_info.weight = params[i].value.ui;
-
         } else if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_CAP)) {
-            if (param->type != VIR_TYPED_PARAM_UINT) {
-                libxlError(VIR_ERR_INVALID_ARG, "%s",
-                           _("invalid type for cap tunable, expected a 'uint'"));
-                goto cleanup;
-            }
             sc_info.cap = params[i].value.ui;
-        } else {
-            libxlError(VIR_ERR_INVALID_ARG,
-                       _("Invalid parameter '%s'"), param->field);
-            goto cleanup;
         }
     }
 
@@ -3877,6 +3866,7 @@ static virDriver libxlDriver = {
     .domainSuspend = libxlDomainSuspend, /* 0.9.0 */
     .domainResume = libxlDomainResume, /* 0.9.0 */
     .domainShutdown = libxlDomainShutdown, /* 0.9.0 */
+    .domainShutdownFlags = libxlDomainShutdownFlags, /* 0.9.10 */
     .domainReboot = libxlDomainReboot, /* 0.9.0 */
     .domainDestroy = libxlDomainDestroy, /* 0.9.0 */
     .domainDestroyFlags = libxlDomainDestroyFlags, /* 0.9.4 */

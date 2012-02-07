@@ -34,6 +34,7 @@
      <exports symbol='VIR_DOMAIN_BLOCK_STATS_WRITE_BYTES' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_STATS_WRITE_REQ' type='macro'/>
      <exports symbol='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES' type='macro'/>
+     <exports symbol='VIR_DOMAIN_CPU_STATS_CPUTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_EVENT_CALLBACK' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_HARD_LIMIT' type='macro'/>
@@ -82,12 +83,14 @@
      <exports symbol='VIR_CPU_COMPARE_ERROR' type='enum'/>
      <exports symbol='VIR_CPU_COMPARE_IDENTICAL' type='enum'/>
      <exports symbol='VIR_CPU_COMPARE_INCOMPATIBLE' type='enum'/>
+     <exports symbol='VIR_CPU_COMPARE_LAST' type='enum'/>
      <exports symbol='VIR_CPU_COMPARE_SUPERSET' type='enum'/>
      <exports symbol='VIR_CRED_AUTHNAME' type='enum'/>
      <exports symbol='VIR_CRED_CNONCE' type='enum'/>
      <exports symbol='VIR_CRED_ECHOPROMPT' type='enum'/>
      <exports symbol='VIR_CRED_EXTERNAL' type='enum'/>
      <exports symbol='VIR_CRED_LANGUAGE' type='enum'/>
+     <exports symbol='VIR_CRED_LAST' type='enum'/>
      <exports symbol='VIR_CRED_NOECHOPROMPT' type='enum'/>
      <exports symbol='VIR_CRED_PASSPHRASE' type='enum'/>
      <exports symbol='VIR_CRED_REALM' type='enum'/>
@@ -102,31 +105,46 @@
      <exports symbol='VIR_DOMAIN_BLKIO_PARAM_UINT' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLKIO_PARAM_ULLONG' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCKED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCKED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCKED_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_COMPLETED' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_FAILED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_JOB_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_PULL' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_ERROR' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_JOB' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CONTROL_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_OCCUPIED' type='enum'/>
      <exports symbol='VIR_DOMAIN_CONTROL_OK' type='enum'/>
      <exports symbol='VIR_DOMAIN_CRASHED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_CRASHED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_CRASHED_UNKNOWN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_DESTROY_DEFAULT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_DESTROY_GRACEFUL' type='enum'/>
      <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_CONFIG' type='enum'/>
      <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_CURRENT' type='enum'/>
      <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_FORCE' type='enum'/>
      <exports symbol='VIR_DOMAIN_DEVICE_MODIFY_LIVE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_DISK_ERROR_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_DISK_ERROR_NONE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_DISK_ERROR_NO_SPACE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_DISK_ERROR_UNSPEC' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_ADDED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_DEFINED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DEFINED_UPDATED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_DISK_CHANGE_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_GRAPHICS_CONNECT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_GRAPHICS_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_BLOCK_JOB' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_CONTROL_ERROR' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_DISK_CHANGE' type='enum'/>
@@ -138,18 +156,23 @@
      <exports symbol='VIR_DOMAIN_EVENT_ID_REBOOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_RTC_CHANGE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_WATCHDOG' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_IO_ERROR_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_IO_ERROR_NONE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_IO_ERROR_PAUSE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_IO_ERROR_REPORT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_RESUMED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_MIGRATED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_SHUTDOWN_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STARTED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STARTED_BOOTED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_STARTED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STARTED_MIGRATED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STARTED_RESTORED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STOPPED' type='enum'/>
@@ -157,19 +180,23 @@
      <exports symbol='VIR_DOMAIN_EVENT_STOPPED_DESTROYED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STOPPED_FAILED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_STOPPED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STOPPED_MIGRATED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STOPPED_SAVED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_IOERROR' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_PAUSED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_RESTORED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_UNDEFINED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_UNDEFINED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_UNDEFINED_REMOVED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_DEBUG' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_NONE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_PAUSE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF' type='enum'/>
@@ -179,6 +206,7 @@
      <exports symbol='VIR_DOMAIN_JOB_CANCELLED' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_COMPLETED' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_FAILED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_JOB_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_NONE' type='enum'/>
      <exports symbol='VIR_DOMAIN_JOB_UNBOUNDED' type='enum'/>
      <exports symbol='VIR_DOMAIN_LAST' type='enum'/>
@@ -190,9 +218,11 @@
      <exports symbol='VIR_DOMAIN_MEMORY_PARAM_ULLONG' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_NR' type='enum'/>
+     <exports symbol='VIR_DOMAIN_MEMORY_STAT_RSS' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_SWAP_IN' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_SWAP_OUT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEMORY_STAT_UNUSED' type='enum'/>
@@ -200,8 +230,13 @@
      <exports symbol='VIR_DOMAIN_MEM_CURRENT' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEM_LIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_MEM_MAXIMUM' type='enum'/>
+     <exports symbol='VIR_DOMAIN_METADATA_DESCRIPTION' type='enum'/>
+     <exports symbol='VIR_DOMAIN_METADATA_ELEMENT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_METADATA_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_METADATA_TITLE' type='enum'/>
      <exports symbol='VIR_DOMAIN_NONE' type='enum'/>
      <exports symbol='VIR_DOMAIN_NOSTATE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_NOSTATE_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_NOSTATE_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_NUMATUNE_MEM_LAST' type='enum'/>
@@ -212,15 +247,20 @@
      <exports symbol='VIR_DOMAIN_PAUSED_DUMP' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_FROM_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_IOERROR' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PAUSED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_MIGRATION' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_SAVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_SHUTTING_DOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_USER' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_WATCHDOG' type='enum'/>
+     <exports symbol='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_REBOOT_DEFAULT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_REBOOT_GUEST_AGENT' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_BOOTED' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_FROM_SNAPSHOT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_RUNNING_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_MIGRATED' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_MIGRATION_CANCELED' type='enum'/>
      <exports symbol='VIR_DOMAIN_RUNNING_RESTORED' type='enum'/>
@@ -237,6 +277,10 @@
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_UINT' type='enum'/>
      <exports symbol='VIR_DOMAIN_SCHED_FIELD_ULLONG' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SHUTDOWN_DEFAULT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SHUTDOWN_GUEST_AGENT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SHUTDOWN_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTDOWN_USER' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF' type='enum'/>
@@ -244,6 +288,7 @@
      <exports symbol='VIR_DOMAIN_SHUTOFF_DESTROYED' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF_FAILED' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SHUTOFF_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF_MIGRATED' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF_SAVED' type='enum'/>
      <exports symbol='VIR_DOMAIN_SHUTOFF_SHUTDOWN' type='enum'/>
@@ -252,7 +297,9 @@
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_HALT' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY' type='enum'/>
@@ -307,6 +354,7 @@
      <exports symbol='VIR_MIGRATE_PERSIST_DEST' type='enum'/>
      <exports symbol='VIR_MIGRATE_TUNNELLED' type='enum'/>
      <exports symbol='VIR_MIGRATE_UNDEFINE_SOURCE' type='enum'/>
+     <exports symbol='VIR_NETWORK_XML_INACTIVE' type='enum'/>
      <exports symbol='VIR_NODE_CPU_STATS_ALL_CPUS' type='enum'/>
      <exports symbol='VIR_NODE_MEMORY_STATS_ALL_CELLS' type='enum'/>
      <exports symbol='VIR_NODE_SUSPEND_TARGET_DISK' type='enum'/>
@@ -329,11 +377,26 @@
      <exports symbol='VIR_STORAGE_POOL_INACCESSIBLE' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_INACTIVE' type='enum'/>
      <exports symbol='VIR_STORAGE_POOL_RUNNING' type='enum'/>
+     <exports symbol='VIR_STORAGE_POOL_STATE_LAST' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_BLOCK' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DELETE_NORMAL' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DELETE_ZEROED' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_DIR' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_FILE' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_LAST' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_RESIZE_ALLOCATE' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_RESIZE_DELTA' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_RESIZE_SHRINK' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_BSI' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_DOD' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_GUTMANN' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_LAST' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_NNSA' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_RANDOM' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_ZERO' type='enum'/>
      <exports symbol='VIR_STREAM_EVENT_ERROR' type='enum'/>
      <exports symbol='VIR_STREAM_EVENT_HANGUP' type='enum'/>
      <exports symbol='VIR_STREAM_EVENT_READABLE' type='enum'/>
@@ -342,12 +405,14 @@
      <exports symbol='VIR_TYPED_PARAM_BOOLEAN' type='enum'/>
      <exports symbol='VIR_TYPED_PARAM_DOUBLE' type='enum'/>
      <exports symbol='VIR_TYPED_PARAM_INT' type='enum'/>
+     <exports symbol='VIR_TYPED_PARAM_LAST' type='enum'/>
      <exports symbol='VIR_TYPED_PARAM_LLONG' type='enum'/>
      <exports symbol='VIR_TYPED_PARAM_STRING' type='enum'/>
      <exports symbol='VIR_TYPED_PARAM_STRING_OKAY' type='enum'/>
      <exports symbol='VIR_TYPED_PARAM_UINT' type='enum'/>
      <exports symbol='VIR_TYPED_PARAM_ULLONG' type='enum'/>
      <exports symbol='VIR_VCPU_BLOCKED' type='enum'/>
+     <exports symbol='VIR_VCPU_LAST' type='enum'/>
      <exports symbol='VIR_VCPU_OFFLINE' type='enum'/>
      <exports symbol='VIR_VCPU_RUNNING' type='enum'/>
      <exports symbol='virBlkioParameter' type='typedef'/>
@@ -380,7 +445,11 @@
      <exports symbol='virDomainCoreDumpFlags' type='typedef'/>
      <exports symbol='virDomainCrashedReason' type='typedef'/>
      <exports symbol='virDomainCreateFlags' type='typedef'/>
+     <exports symbol='virDomainDestroyFlagsValues' type='typedef'/>
      <exports symbol='virDomainDeviceModifyFlags' type='typedef'/>
+     <exports symbol='virDomainDiskError' type='typedef'/>
+     <exports symbol='virDomainDiskErrorCode' type='typedef'/>
+     <exports symbol='virDomainDiskErrorPtr' type='typedef'/>
      <exports symbol='virDomainEventDefinedDetailType' type='typedef'/>
      <exports symbol='virDomainEventGraphicsAddress' type='typedef'/>
      <exports symbol='virDomainEventGraphicsAddressPtr' type='typedef'/>
@@ -412,6 +481,7 @@
      <exports symbol='virDomainMemoryStatPtr' type='typedef'/>
      <exports symbol='virDomainMemoryStatStruct' type='typedef'/>
      <exports symbol='virDomainMemoryStatTags' type='typedef'/>
+     <exports symbol='virDomainMetadataType' type='typedef'/>
      <exports symbol='virDomainMigrateFlags' type='typedef'/>
      <exports symbol='virDomainModificationImpact' type='typedef'/>
      <exports symbol='virDomainNostateReason' type='typedef'/>
@@ -419,8 +489,10 @@
      <exports symbol='virDomainOpenGraphicsFlags' type='typedef'/>
      <exports symbol='virDomainPausedReason' type='typedef'/>
      <exports symbol='virDomainPtr' type='typedef'/>
+     <exports symbol='virDomainRebootFlagValues' type='typedef'/>
      <exports symbol='virDomainRunningReason' type='typedef'/>
      <exports symbol='virDomainSaveRestoreFlags' type='typedef'/>
+     <exports symbol='virDomainShutdownFlagValues' type='typedef'/>
      <exports symbol='virDomainShutdownReason' type='typedef'/>
      <exports symbol='virDomainShutoffReason' type='typedef'/>
      <exports symbol='virDomainSnapshot' type='typedef'/>
@@ -445,6 +517,7 @@
      <exports symbol='virNWFilterPtr' type='typedef'/>
      <exports symbol='virNetwork' type='typedef'/>
      <exports symbol='virNetworkPtr' type='typedef'/>
+     <exports symbol='virNetworkXMLFlags' type='typedef'/>
      <exports symbol='virNodeCPUStats' type='typedef'/>
      <exports symbol='virNodeCPUStatsPtr' type='typedef'/>
      <exports symbol='virNodeDevice' type='typedef'/>
@@ -478,7 +551,9 @@
      <exports symbol='virStorageVolInfo' type='typedef'/>
      <exports symbol='virStorageVolInfoPtr' type='typedef'/>
      <exports symbol='virStorageVolPtr' type='typedef'/>
+     <exports symbol='virStorageVolResizeFlags' type='typedef'/>
      <exports symbol='virStorageVolType' type='typedef'/>
+     <exports symbol='virStorageVolWipeAlgorithm' type='typedef'/>
      <exports symbol='virStream' type='typedef'/>
      <exports symbol='virStreamEventType' type='typedef'/>
      <exports symbol='virStreamFlags' type='typedef'/>
@@ -496,6 +571,7 @@
      <exports symbol='_virDomainBlockJobInfo' type='struct'/>
      <exports symbol='_virDomainBlockStats' type='struct'/>
      <exports symbol='_virDomainControlInfo' type='struct'/>
+     <exports symbol='_virDomainDiskError' type='struct'/>
      <exports symbol='_virDomainEventGraphicsAddress' type='struct'/>
      <exports symbol='_virDomainEventGraphicsSubject' type='struct'/>
      <exports symbol='_virDomainEventGraphicsSubjectIdentity' type='struct'/>
@@ -576,6 +652,7 @@
      <exports symbol='virDomainBlockJobSetSpeed' type='function'/>
      <exports symbol='virDomainBlockPeek' type='function'/>
      <exports symbol='virDomainBlockPull' type='function'/>
+     <exports symbol='virDomainBlockRebase' type='function'/>
      <exports symbol='virDomainBlockResize' type='function'/>
      <exports symbol='virDomainBlockStats' type='function'/>
      <exports symbol='virDomainBlockStatsFlags' type='function'/>
@@ -595,8 +672,10 @@
      <exports symbol='virDomainGetBlockInfo' type='function'/>
      <exports symbol='virDomainGetBlockIoTune' type='function'/>
      <exports symbol='virDomainGetBlockJobInfo' type='function'/>
+     <exports symbol='virDomainGetCPUStats' type='function'/>
      <exports symbol='virDomainGetConnect' type='function'/>
      <exports symbol='virDomainGetControlInfo' type='function'/>
+     <exports symbol='virDomainGetDiskErrors' type='function'/>
      <exports symbol='virDomainGetID' type='function'/>
      <exports symbol='virDomainGetInfo' type='function'/>
      <exports symbol='virDomainGetInterfaceParameters' type='function'/>
@@ -604,6 +683,7 @@
      <exports symbol='virDomainGetMaxMemory' type='function'/>
      <exports symbol='virDomainGetMaxVcpus' type='function'/>
      <exports symbol='virDomainGetMemoryParameters' type='function'/>
+     <exports symbol='virDomainGetMetadata' type='function'/>
      <exports symbol='virDomainGetName' type='function'/>
      <exports symbol='virDomainGetNumaParameters' type='function'/>
      <exports symbol='virDomainGetOSType' type='function'/>
@@ -642,6 +722,7 @@
      <exports symbol='virDomainMigrateToURI2' type='function'/>
      <exports symbol='virDomainOpenConsole' type='function'/>
      <exports symbol='virDomainOpenGraphics' type='function'/>
+     <exports symbol='virDomainPMSuspendForDuration' type='function'/>
      <exports symbol='virDomainPinVcpu' type='function'/>
      <exports symbol='virDomainPinVcpuFlags' type='function'/>
      <exports symbol='virDomainReboot' type='function'/>
@@ -665,12 +746,14 @@
      <exports symbol='virDomainSetMemory' type='function'/>
      <exports symbol='virDomainSetMemoryFlags' type='function'/>
      <exports symbol='virDomainSetMemoryParameters' type='function'/>
+     <exports symbol='virDomainSetMetadata' type='function'/>
      <exports symbol='virDomainSetNumaParameters' type='function'/>
      <exports symbol='virDomainSetSchedulerParameters' type='function'/>
      <exports symbol='virDomainSetSchedulerParametersFlags' type='function'/>
      <exports symbol='virDomainSetVcpus' type='function'/>
      <exports symbol='virDomainSetVcpusFlags' type='function'/>
      <exports symbol='virDomainShutdown' type='function'/>
+     <exports symbol='virDomainShutdownFlags' type='function'/>
      <exports symbol='virDomainSnapshotCreateXML' type='function'/>
      <exports symbol='virDomainSnapshotCurrent' type='function'/>
      <exports symbol='virDomainSnapshotDelete' type='function'/>
@@ -834,8 +917,10 @@
      <exports symbol='virStorageVolLookupByName' type='function'/>
      <exports symbol='virStorageVolLookupByPath' type='function'/>
      <exports symbol='virStorageVolRef' type='function'/>
+     <exports symbol='virStorageVolResize' type='function'/>
      <exports symbol='virStorageVolUpload' type='function'/>
      <exports symbol='virStorageVolWipe' type='function'/>
+     <exports symbol='virStorageVolWipePattern' type='function'/>
      <exports symbol='virStreamAbort' type='function'/>
      <exports symbol='virStreamEventAddCallback' type='function'/>
      <exports symbol='virStreamEventCallback' type='function'/>
@@ -857,6 +942,7 @@
      <description>Provides the interfaces of the libvirt library to handle errors raised while using the library. </description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='VIR_ERR_ARGUMENT_UNSUPPORTED' type='enum'/>
+     <exports symbol='VIR_ERR_AUTH_CANCELLED' type='enum'/>
      <exports symbol='VIR_ERR_AUTH_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_BUILD_FIREWALL' type='enum'/>
      <exports symbol='VIR_ERR_CALL_FAILED' type='enum'/>
@@ -890,6 +976,7 @@
      <exports symbol='VIR_ERR_NO_CONNECT' type='enum'/>
      <exports symbol='VIR_ERR_NO_DEVICE' type='enum'/>
      <exports symbol='VIR_ERR_NO_DOMAIN' type='enum'/>
+     <exports symbol='VIR_ERR_NO_DOMAIN_METADATA' type='enum'/>
      <exports symbol='VIR_ERR_NO_DOMAIN_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_ERR_NO_INTERFACE' type='enum'/>
      <exports symbol='VIR_ERR_NO_KERNEL' type='enum'/>
@@ -1101,6 +1188,9 @@
     <macro name='VIR_DOMAIN_BLOCK_STATS_WRITE_TOTAL_TIMES' file='libvirt'>
       <info><![CDATA[Macro represents the total time spend on cache writes in nano-seconds of the block device, as an llong.]]></info>
     </macro>
+    <macro name='VIR_DOMAIN_CPU_STATS_CPUTIME' file='libvirt'>
+      <info><![CDATA[cpu usage in nanoseconds, as a ullong]]></info>
+    </macro>
     <macro name='VIR_DOMAIN_EVENT_CALLBACK' file='libvirt'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virDomainEventRegister]]></info>
     </macro>
@@ -1240,12 +1330,14 @@
     <enum name='VIR_CPU_COMPARE_ERROR' file='libvirt' value='-1' type='virCPUCompareResult'/>
     <enum name='VIR_CPU_COMPARE_IDENTICAL' file='libvirt' value='1' type='virCPUCompareResult'/>
     <enum name='VIR_CPU_COMPARE_INCOMPATIBLE' file='libvirt' value='0' type='virCPUCompareResult'/>
+    <enum name='VIR_CPU_COMPARE_LAST' file='libvirt' value='3' type='virCPUCompareResult'/>
     <enum name='VIR_CPU_COMPARE_SUPERSET' file='libvirt' value='2' type='virCPUCompareResult'/>
     <enum name='VIR_CRED_AUTHNAME' file='libvirt' value='2' type='virConnectCredentialType' info='Identify to authorize as'/>
     <enum name='VIR_CRED_CNONCE' file='libvirt' value='4' type='virConnectCredentialType' info='client supplies a nonce'/>
     <enum name='VIR_CRED_ECHOPROMPT' file='libvirt' value='6' type='virConnectCredentialType' info='Challenge response'/>
     <enum name='VIR_CRED_EXTERNAL' file='libvirt' value='9' type='virConnectCredentialType' info='Externally managed credential More may be added - expect the unexpected'/>
     <enum name='VIR_CRED_LANGUAGE' file='libvirt' value='3' type='virConnectCredentialType' info='RFC 1766 languages, comma separated'/>
+    <enum name='VIR_CRED_LAST' file='libvirt' value='10' type='virConnectCredentialType'/>
     <enum name='VIR_CRED_NOECHOPROMPT' file='libvirt' value='7' type='virConnectCredentialType' info='Challenge response'/>
     <enum name='VIR_CRED_PASSPHRASE' file='libvirt' value='5' type='virConnectCredentialType' info='Passphrase secret'/>
     <enum name='VIR_CRED_REALM' file='libvirt' value='8' type='virConnectCredentialType' info='Authentication realm'/>
@@ -1260,36 +1352,51 @@
     <enum name='VIR_DOMAIN_BLKIO_PARAM_UINT' file='libvirt' value='VIR_TYPED_PARAM_UINT' type='virBlkioParameterType'/>
     <enum name='VIR_DOMAIN_BLKIO_PARAM_ULLONG' file='libvirt' value='VIR_TYPED_PARAM_ULLONG' type='virBlkioParameterType'/>
     <enum name='VIR_DOMAIN_BLOCKED' file='libvirt' value='2' type='virDomainState' info='the domain is blocked on resource'/>
+    <enum name='VIR_DOMAIN_BLOCKED_LAST' file='libvirt' value='1' type='virDomainBlockedReason'/>
     <enum name='VIR_DOMAIN_BLOCKED_UNKNOWN' file='libvirt' value='0' type='virDomainBlockedReason' info='the reason is unknown'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_COMPLETED' file='libvirt' value='0' type='virConnectDomainEventBlockJobStatus'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_FAILED' file='libvirt' value='1' type='virConnectDomainEventBlockJobStatus'/>
+    <enum name='VIR_DOMAIN_BLOCK_JOB_LAST' file='libvirt' value='2' type='virConnectDomainEventBlockJobStatus'/>
+    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST' file='libvirt' value='2' type='virDomainBlockJobType'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_PULL' file='libvirt' value='1' type='virDomainBlockJobType'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN' file='libvirt' value='0' type='virDomainBlockJobType'/>
     <enum name='VIR_DOMAIN_CONTROL_ERROR' file='libvirt' value='3' type='virDomainControlState' info='unusable, domain cannot be fully operated'/>
     <enum name='VIR_DOMAIN_CONTROL_JOB' file='libvirt' value='1' type='virDomainControlState' info='background job is running (can be
 monitored by virDomainGetJobInfo); only
 limited set of commands may be allowed'/>
+    <enum name='VIR_DOMAIN_CONTROL_LAST' file='libvirt' value='4' type='virDomainControlState'/>
     <enum name='VIR_DOMAIN_CONTROL_OCCUPIED' file='libvirt' value='2' type='virDomainControlState' info='occupied by a running command'/>
     <enum name='VIR_DOMAIN_CONTROL_OK' file='libvirt' value='0' type='virDomainControlState' info='operational, ready to accept commands'/>
     <enum name='VIR_DOMAIN_CRASHED' file='libvirt' value='6' type='virDomainState' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last state supported
  by this version of the libvirt API.'/>
+    <enum name='VIR_DOMAIN_CRASHED_LAST' file='libvirt' value='1' type='virDomainCrashedReason'/>
     <enum name='VIR_DOMAIN_CRASHED_UNKNOWN' file='libvirt' value='0' type='virDomainCrashedReason' info='crashed for unknown reason'/>
+    <enum name='VIR_DOMAIN_DESTROY_DEFAULT' file='libvirt' value='0' type='virDomainDestroyFlagsValues' info='Default behavior - could lead to data loss!!'/>
+    <enum name='VIR_DOMAIN_DESTROY_GRACEFUL' file='libvirt' value='1' type='virDomainDestroyFlagsValues' info='only SIGTERM, no SIGKILL'/>
     <enum name='VIR_DOMAIN_DEVICE_MODIFY_CONFIG' file='libvirt' value='VIR_DOMAIN_AFFECT_CONFIG' type='virDomainDeviceModifyFlags' info='Additionally, these flags may be bitwise-OR&apos;d in.'/>
     <enum name='VIR_DOMAIN_DEVICE_MODIFY_CURRENT' file='libvirt' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainDeviceModifyFlags'/>
     <enum name='VIR_DOMAIN_DEVICE_MODIFY_FORCE' file='libvirt' value='4' type='virDomainDeviceModifyFlags' info='Forcibly modify device
 (ex. force eject a cdrom)'/>
     <enum name='VIR_DOMAIN_DEVICE_MODIFY_LIVE' file='libvirt' value='VIR_DOMAIN_AFFECT_LIVE' type='virDomainDeviceModifyFlags'/>
+    <enum name='VIR_DOMAIN_DISK_ERROR_LAST' file='libvirt' value='3' type='virDomainDiskErrorCode'/>
+    <enum name='VIR_DOMAIN_DISK_ERROR_NONE' file='libvirt' value='0' type='virDomainDiskErrorCode' info='no error'/>
+    <enum name='VIR_DOMAIN_DISK_ERROR_NO_SPACE' file='libvirt' value='2' type='virDomainDiskErrorCode' info='no space left on the device'/>
+    <enum name='VIR_DOMAIN_DISK_ERROR_UNSPEC' file='libvirt' value='1' type='virDomainDiskErrorCode' info='unspecified I/O error'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED' file='libvirt' value='0' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_ADDED' file='libvirt' value='0' type='virDomainEventDefinedDetailType' info='Newly created config file'/>
+    <enum name='VIR_DOMAIN_EVENT_DEFINED_LAST' file='libvirt' value='2' type='virDomainEventDefinedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_DEFINED_UPDATED' file='libvirt' value='1' type='virDomainEventDefinedDetailType' info='Changed config file'/>
+    <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_LAST' file='libvirt' value='1' type='virConnectDomainEventDiskChangeReason'/>
     <enum name='VIR_DOMAIN_EVENT_DISK_CHANGE_MISSING_ON_START' file='libvirt' value='0' type='virConnectDomainEventDiskChangeReason' info='oldSrcPath is set'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV4' file='libvirt' value='1' type='virDomainEventGraphicsAddressType' info='IPv4 address'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_IPV6' file='libvirt' value='2' type='virDomainEventGraphicsAddressType' info='IPv6 address'/>
+    <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_LAST' file='libvirt' value='4' type='virDomainEventGraphicsAddressType'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_ADDRESS_UNIX' file='libvirt' value='3' type='virDomainEventGraphicsAddressType' info='UNIX socket path'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_CONNECT' file='libvirt' value='0' type='virDomainEventGraphicsPhase' info='Initial socket connection established'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT' file='libvirt' value='2' type='virDomainEventGraphicsPhase' info='Final socket disconnection'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE' file='libvirt' value='1' type='virDomainEventGraphicsPhase' info='Authentication &amp; setup completed'/>
+    <enum name='VIR_DOMAIN_EVENT_GRAPHICS_LAST' file='libvirt' value='3' type='virDomainEventGraphicsPhase'/>
     <enum name='VIR_DOMAIN_EVENT_ID_BLOCK_JOB' file='libvirt' value='8' type='virDomainEventID' info='virConnectDomainEventBlockJobCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_CONTROL_ERROR' file='libvirt' value='7' type='virDomainEventID' info='virConnectDomainEventGenericCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_DISK_CHANGE' file='libvirt' value='9' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
@@ -1303,18 +1410,23 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_ID_REBOOT' file='libvirt' value='1' type='virDomainEventID' info='virConnectDomainEventGenericCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_RTC_CHANGE' file='libvirt' value='2' type='virDomainEventID' info='virConnectDomainEventRTCChangeCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_WATCHDOG' file='libvirt' value='3' type='virDomainEventID' info='virConnectDomainEventWatchdogCallback'/>
+    <enum name='VIR_DOMAIN_EVENT_IO_ERROR_LAST' file='libvirt' value='3' type='virDomainEventIOErrorAction'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_NONE' file='libvirt' value='0' type='virDomainEventIOErrorAction' info='No action, IO error ignored'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_PAUSE' file='libvirt' value='1' type='virDomainEventIOErrorAction' info='Guest CPUs are pausde'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_REPORT' file='libvirt' value='2' type='virDomainEventIOErrorAction' info='IO error reported to guest OS'/>
+    <enum name='VIR_DOMAIN_EVENT_LAST' file='libvirt' value='7' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED' file='libvirt' value='4' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT' file='libvirt' value='2' type='virDomainEventResumedDetailType' info='Resumed from snapshot'/>
+    <enum name='VIR_DOMAIN_EVENT_RESUMED_LAST' file='libvirt' value='3' type='virDomainEventResumedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_MIGRATED' file='libvirt' value='1' type='virDomainEventResumedDetailType' info='Resumed for completion of migration'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_UNPAUSED' file='libvirt' value='0' type='virDomainEventResumedDetailType' info='Normal resume due to admin unpause'/>
     <enum name='VIR_DOMAIN_EVENT_SHUTDOWN' file='libvirt' value='6' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED' file='libvirt' value='0' type='virDomainEventShutdownDetailType' info='Guest finished shutdown sequence'/>
+    <enum name='VIR_DOMAIN_EVENT_SHUTDOWN_LAST' file='libvirt' value='1' type='virDomainEventShutdownDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED' file='libvirt' value='2' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED_BOOTED' file='libvirt' value='0' type='virDomainEventStartedDetailType' info='Normal startup from boot'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT' file='libvirt' value='3' type='virDomainEventStartedDetailType' info='Restored from snapshot'/>
+    <enum name='VIR_DOMAIN_EVENT_STARTED_LAST' file='libvirt' value='4' type='virDomainEventStartedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED_MIGRATED' file='libvirt' value='1' type='virDomainEventStartedDetailType' info='Incoming migration from another host'/>
     <enum name='VIR_DOMAIN_EVENT_STARTED_RESTORED' file='libvirt' value='2' type='virDomainEventStartedDetailType' info='Restored from a state file'/>
     <enum name='VIR_DOMAIN_EVENT_STOPPED' file='libvirt' value='5' type='virDomainEventType'/>
@@ -1322,19 +1434,23 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_STOPPED_DESTROYED' file='libvirt' value='1' type='virDomainEventStoppedDetailType' info='Forced poweroff from host'/>
     <enum name='VIR_DOMAIN_EVENT_STOPPED_FAILED' file='libvirt' value='5' type='virDomainEventStoppedDetailType' info='Host emulator/mgmt failed'/>
     <enum name='VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT' file='libvirt' value='6' type='virDomainEventStoppedDetailType' info='offline snapshot loaded'/>
+    <enum name='VIR_DOMAIN_EVENT_STOPPED_LAST' file='libvirt' value='7' type='virDomainEventStoppedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_STOPPED_MIGRATED' file='libvirt' value='3' type='virDomainEventStoppedDetailType' info='Migrated off to another host'/>
     <enum name='VIR_DOMAIN_EVENT_STOPPED_SAVED' file='libvirt' value='4' type='virDomainEventStoppedDetailType' info='Saved to a state file'/>
     <enum name='VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN' file='libvirt' value='0' type='virDomainEventStoppedDetailType' info='Normal shutdown'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED' file='libvirt' value='3' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT' file='libvirt' value='5' type='virDomainEventSuspendedDetailType' info='Restored from paused snapshot'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_IOERROR' file='libvirt' value='2' type='virDomainEventSuspendedDetailType' info='Suspended due to a disk I/O error'/>
+    <enum name='VIR_DOMAIN_EVENT_SUSPENDED_LAST' file='libvirt' value='6' type='virDomainEventSuspendedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED' file='libvirt' value='1' type='virDomainEventSuspendedDetailType' info='Suspended for offline migration'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_PAUSED' file='libvirt' value='0' type='virDomainEventSuspendedDetailType' info='Normal suspend due to admin pause'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_RESTORED' file='libvirt' value='4' type='virDomainEventSuspendedDetailType' info='Restored from paused state file'/>
     <enum name='VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG' file='libvirt' value='3' type='virDomainEventSuspendedDetailType' info='Suspended due to a watchdog firing'/>
     <enum name='VIR_DOMAIN_EVENT_UNDEFINED' file='libvirt' value='1' type='virDomainEventType'/>
+    <enum name='VIR_DOMAIN_EVENT_UNDEFINED_LAST' file='libvirt' value='1' type='virDomainEventUndefinedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_UNDEFINED_REMOVED' file='libvirt' value='0' type='virDomainEventUndefinedDetailType' info='Deleted the config file'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_DEBUG' file='libvirt' value='5' type='virDomainEventWatchdogAction' info='No action, a debug message logged'/>
+    <enum name='VIR_DOMAIN_EVENT_WATCHDOG_LAST' file='libvirt' value='6' type='virDomainEventWatchdogAction'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_NONE' file='libvirt' value='0' type='virDomainEventWatchdogAction' info='No action, watchdog ignored'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_PAUSE' file='libvirt' value='1' type='virDomainEventWatchdogAction' info='Guest CPUs are paused'/>
     <enum name='VIR_DOMAIN_EVENT_WATCHDOG_POWEROFF' file='libvirt' value='3' type='virDomainEventWatchdogAction' info='Guest is forcably powered off'/>
@@ -1344,6 +1460,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_JOB_CANCELLED' file='libvirt' value='5' type='virDomainJobType' info='Job was aborted, but isn&apos;t cleaned up'/>
     <enum name='VIR_DOMAIN_JOB_COMPLETED' file='libvirt' value='3' type='virDomainJobType' info='Job has finished, but isn&apos;t cleaned up'/>
     <enum name='VIR_DOMAIN_JOB_FAILED' file='libvirt' value='4' type='virDomainJobType' info='Job hit error, but isn&apos;t cleaned up'/>
+    <enum name='VIR_DOMAIN_JOB_LAST' file='libvirt' value='6' type='virDomainJobType'/>
     <enum name='VIR_DOMAIN_JOB_NONE' file='libvirt' value='0' type='virDomainJobType' info='No job is active'/>
     <enum name='VIR_DOMAIN_JOB_UNBOUNDED' file='libvirt' value='2' type='virDomainJobType' info='Job without a finite completion time'/>
     <enum name='VIR_DOMAIN_LAST' file='libvirt' value='7' type='virDomainState'/>
@@ -1353,14 +1470,17 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_LLONG' file='libvirt' value='VIR_TYPED_PARAM_LLONG' type='virMemoryParameterType'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_UINT' file='libvirt' value='VIR_TYPED_PARAM_UINT' type='virMemoryParameterType'/>
     <enum name='VIR_DOMAIN_MEMORY_PARAM_ULLONG' file='libvirt' value='VIR_TYPED_PARAM_ULLONG' type='virMemoryParameterType'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON' file='libvirt' value='6' type='virDomainMemoryStatTags' info='The number of statistics supported by this version of the interface.
- To add new statistics, add them to the enum and increase this value.'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON' file='libvirt' value='6' type='virDomainMemoryStatTags' info='Resident Set Size of the process running the domain. This value
+ is in kB'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_AVAILABLE' file='libvirt' value='5' type='virDomainMemoryStatTags' info='Current balloon value (in KB).'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_LAST' file='libvirt' value='VIR_DOMAIN_MEMORY_STAT_NR' type='virDomainMemoryStatTags'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT' file='libvirt' value='2' type='virDomainMemoryStatTags'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT' file='libvirt' value='3' type='virDomainMemoryStatTags' info='The amount of memory left completely unused by the system.  Memory that
  is available but used for reclaimable caches should NOT be reported as
  free.  This value is expressed in kB.'/>
-    <enum name='VIR_DOMAIN_MEMORY_STAT_NR' file='libvirt' value='7' type='virDomainMemoryStatTags'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_NR' file='libvirt' value='8' type='virDomainMemoryStatTags'/>
+    <enum name='VIR_DOMAIN_MEMORY_STAT_RSS' file='libvirt' value='7' type='virDomainMemoryStatTags' info='The number of statistics supported by this version of the interface.
+ To add new statistics, add them to the enum and increase this value.'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_SWAP_IN' file='libvirt' value='0' type='virDomainMemoryStatTags' info='The total amount of memory written out to swap space (in kB).'/>
     <enum name='VIR_DOMAIN_MEMORY_STAT_SWAP_OUT' file='libvirt' value='1' type='virDomainMemoryStatTags' info='Page faults occur when a process makes a valid access to virtual memory
  that is not available.  When servicing the page fault, if disk IO is
@@ -1374,8 +1494,13 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_MEM_CURRENT' file='libvirt' value='VIR_DOMAIN_AFFECT_CURRENT' type='virDomainMemoryModFlags'/>
     <enum name='VIR_DOMAIN_MEM_LIVE' file='libvirt' value='VIR_DOMAIN_AFFECT_LIVE' type='virDomainMemoryModFlags'/>
     <enum name='VIR_DOMAIN_MEM_MAXIMUM' file='libvirt' value='4' type='virDomainMemoryModFlags' info='affect Max rather than current'/>
+    <enum name='VIR_DOMAIN_METADATA_DESCRIPTION' file='libvirt' value='0' type='virDomainMetadataType' info='Operate on &lt;description&gt;'/>
+    <enum name='VIR_DOMAIN_METADATA_ELEMENT' file='libvirt' value='2' type='virDomainMetadataType' info='Operate on &lt;metadata&gt;'/>
+    <enum name='VIR_DOMAIN_METADATA_LAST' file='libvirt' value='3' type='virDomainMetadataType'/>
+    <enum name='VIR_DOMAIN_METADATA_TITLE' file='libvirt' value='1' type='virDomainMetadataType' info='Operate on &lt;title&gt;'/>
     <enum name='VIR_DOMAIN_NONE' file='libvirt' value='0' type='virDomainCreateFlags' info='Default behavior'/>
     <enum name='VIR_DOMAIN_NOSTATE' file='libvirt' value='0' type='virDomainState' info='no state'/>
+    <enum name='VIR_DOMAIN_NOSTATE_LAST' file='libvirt' value='1' type='virDomainNostateReason'/>
     <enum name='VIR_DOMAIN_NOSTATE_UNKNOWN' file='libvirt' value='0' type='virDomainNostateReason'/>
     <enum name='VIR_DOMAIN_NUMATUNE_MEM_INTERLEAVE' file='libvirt' value='2' type='virDomainNumatuneMemMode' info='This constant is subject to change'/>
     <enum name='VIR_DOMAIN_NUMATUNE_MEM_LAST' file='libvirt' value='3' type='virDomainNumatuneMemMode'/>
@@ -1386,15 +1511,20 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_PAUSED_DUMP' file='libvirt' value='4' type='virDomainPausedReason' info='paused for offline core dump'/>
     <enum name='VIR_DOMAIN_PAUSED_FROM_SNAPSHOT' file='libvirt' value='7' type='virDomainPausedReason' info='paused after restoring from snapshot'/>
     <enum name='VIR_DOMAIN_PAUSED_IOERROR' file='libvirt' value='5' type='virDomainPausedReason' info='paused due to a disk I/O error'/>
+    <enum name='VIR_DOMAIN_PAUSED_LAST' file='libvirt' value='9' type='virDomainPausedReason'/>
     <enum name='VIR_DOMAIN_PAUSED_MIGRATION' file='libvirt' value='2' type='virDomainPausedReason' info='paused for offline migration'/>
     <enum name='VIR_DOMAIN_PAUSED_SAVE' file='libvirt' value='3' type='virDomainPausedReason' info='paused for save'/>
     <enum name='VIR_DOMAIN_PAUSED_SHUTTING_DOWN' file='libvirt' value='8' type='virDomainPausedReason' info='paused during shutdown process'/>
     <enum name='VIR_DOMAIN_PAUSED_UNKNOWN' file='libvirt' value='0' type='virDomainPausedReason' info='the reason is unknown'/>
     <enum name='VIR_DOMAIN_PAUSED_USER' file='libvirt' value='1' type='virDomainPausedReason' info='paused on user request'/>
     <enum name='VIR_DOMAIN_PAUSED_WATCHDOG' file='libvirt' value='6' type='virDomainPausedReason' info='paused due to a watchdog event'/>
+    <enum name='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN' file='libvirt' value='1' type='virDomainRebootFlagValues' info='Send ACPI event'/>
+    <enum name='VIR_DOMAIN_REBOOT_DEFAULT' file='libvirt' value='0' type='virDomainRebootFlagValues' info='hypervisor choice'/>
+    <enum name='VIR_DOMAIN_REBOOT_GUEST_AGENT' file='libvirt' value='2' type='virDomainRebootFlagValues' info='Use guest agent'/>
     <enum name='VIR_DOMAIN_RUNNING' file='libvirt' value='1' type='virDomainState' info='the domain is running'/>
     <enum name='VIR_DOMAIN_RUNNING_BOOTED' file='libvirt' value='1' type='virDomainRunningReason' info='normal startup from boot'/>
     <enum name='VIR_DOMAIN_RUNNING_FROM_SNAPSHOT' file='libvirt' value='4' type='virDomainRunningReason' info='restored from snapshot'/>
+    <enum name='VIR_DOMAIN_RUNNING_LAST' file='libvirt' value='8' type='virDomainRunningReason'/>
     <enum name='VIR_DOMAIN_RUNNING_MIGRATED' file='libvirt' value='2' type='virDomainRunningReason' info='migrated from another host'/>
     <enum name='VIR_DOMAIN_RUNNING_MIGRATION_CANCELED' file='libvirt' value='6' type='virDomainRunningReason' info='returned from migration'/>
     <enum name='VIR_DOMAIN_RUNNING_RESTORED' file='libvirt' value='3' type='virDomainRunningReason' info='restored from a state file'/>
@@ -1411,6 +1541,10 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_SCHED_FIELD_UINT' file='libvirt' value='VIR_TYPED_PARAM_UINT' type='virSchedParameterType'/>
     <enum name='VIR_DOMAIN_SCHED_FIELD_ULLONG' file='libvirt' value='VIR_TYPED_PARAM_ULLONG' type='virSchedParameterType'/>
     <enum name='VIR_DOMAIN_SHUTDOWN' file='libvirt' value='4' type='virDomainState' info='the domain is being shut down'/>
+    <enum name='VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN' file='libvirt' value='1' type='virDomainShutdownFlagValues' info='Send ACPI event'/>
+    <enum name='VIR_DOMAIN_SHUTDOWN_DEFAULT' file='libvirt' value='0' type='virDomainShutdownFlagValues' info='hypervisor choice'/>
+    <enum name='VIR_DOMAIN_SHUTDOWN_GUEST_AGENT' file='libvirt' value='2' type='virDomainShutdownFlagValues' info='Use guest agent'/>
+    <enum name='VIR_DOMAIN_SHUTDOWN_LAST' file='libvirt' value='2' type='virDomainShutdownReason'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_UNKNOWN' file='libvirt' value='0' type='virDomainShutdownReason' info='the reason is unknown'/>
     <enum name='VIR_DOMAIN_SHUTDOWN_USER' file='libvirt' value='1' type='virDomainShutdownReason' info='shutting down on user request'/>
     <enum name='VIR_DOMAIN_SHUTOFF' file='libvirt' value='5' type='virDomainState' info='the domain is shut off'/>
@@ -1419,6 +1553,7 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_SHUTOFF_FAILED' file='libvirt' value='6' type='virDomainShutoffReason' info='domain failed to start'/>
     <enum name='VIR_DOMAIN_SHUTOFF_FROM_SNAPSHOT' file='libvirt' value='7' type='virDomainShutoffReason' info='restored from a snapshot which was
  taken while domain was shutoff'/>
+    <enum name='VIR_DOMAIN_SHUTOFF_LAST' file='libvirt' value='8' type='virDomainShutoffReason'/>
     <enum name='VIR_DOMAIN_SHUTOFF_MIGRATED' file='libvirt' value='4' type='virDomainShutoffReason' info='migrated to another host'/>
     <enum name='VIR_DOMAIN_SHUTOFF_SAVED' file='libvirt' value='5' type='virDomainShutoffReason' info='saved to a file'/>
     <enum name='VIR_DOMAIN_SHUTOFF_SHUTDOWN' file='libvirt' value='1' type='virDomainShutoffReason' info='normal shutdown'/>
@@ -1431,8 +1566,14 @@ system checkpoint'/>
 after snapshot'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA' file='libvirt' value='4' type='virDomainSnapshotCreateFlags' info='Make snapshot without
 remembering it'/>
+    <enum name='VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE' file='libvirt' value='64' type='virDomainSnapshotCreateFlags' info='use guest agent to
+quiesce all mounted
+file systems within
+the domain'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE' file='libvirt' value='1' type='virDomainSnapshotCreateFlags' info='Restore or alter
 metadata'/>
+    <enum name='VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT' file='libvirt' value='32' type='virDomainSnapshotCreateFlags' info='reuse any existing
+external files'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN' file='libvirt' value='1' type='virDomainSnapshotDeleteFlags' info='Also delete children'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY' file='libvirt' value='4' type='virDomainSnapshotDeleteFlags' info='Delete just children'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY' file='libvirt' value='2' type='virDomainSnapshotDeleteFlags' info='Delete just metadata'/>
@@ -1471,6 +1612,7 @@ snapshot metadata Future undefine control flags should come here.'/>
     <enum name='VIR_DUMP_RESET' file='libvirt' value='8' type='virDomainCoreDumpFlags' info='reset domain after dump finishes'/>
     <enum name='VIR_ERR_ARGUMENT_UNSUPPORTED' file='virterror' value='74' type='virErrorNumber' info='valid API use but unsupported by
 the given driver'/>
+    <enum name='VIR_ERR_AUTH_CANCELLED' file='virterror' value='79' type='virErrorNumber' info='authentication cancelled'/>
     <enum name='VIR_ERR_AUTH_FAILED' file='virterror' value='45' type='virErrorNumber' info='authentication failed'/>
     <enum name='VIR_ERR_BUILD_FIREWALL' file='virterror' value='63' type='virErrorNumber' info='nw filter pool not found'/>
     <enum name='VIR_ERR_CALL_FAILED' file='virterror' value='26' type='virErrorNumber' info='not supported by the drivers
@@ -1510,6 +1652,7 @@ found'/>
     <enum name='VIR_ERR_NO_DEVICE' file='virterror' value='23' type='virErrorNumber' info='missing domain devices information'/>
     <enum name='VIR_ERR_NO_DOMAIN' file='virterror' value='42' type='virErrorNumber' info='domain not found or unexpectedly
 disappeared'/>
+    <enum name='VIR_ERR_NO_DOMAIN_METADATA' file='virterror' value='80' type='virErrorNumber' info='The metadata is not present'/>
     <enum name='VIR_ERR_NO_DOMAIN_SNAPSHOT' file='virterror' value='72' type='virErrorNumber' info='domain snapshot not found'/>
     <enum name='VIR_ERR_NO_INTERFACE' file='virterror' value='57' type='virErrorNumber' info='interface driver not running'/>
     <enum name='VIR_ERR_NO_KERNEL' file='virterror' value='17' type='virErrorNumber' info='missing kernel information'/>
@@ -1637,6 +1780,7 @@ VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
     <enum name='VIR_MIGRATE_PERSIST_DEST' file='libvirt' value='8' type='virDomainMigrateFlags' info='persist the VM on the destination'/>
     <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt' value='4' type='virDomainMigrateFlags' info='tunnel migration data over libvirtd connection'/>
     <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt' value='16' type='virDomainMigrateFlags' info='undefine the VM on the source'/>
+    <enum name='VIR_NETWORK_XML_INACTIVE' file='libvirt' value='1' type='virNetworkXMLFlags' info='dump inactive network information'/>
     <enum name='VIR_NODE_CPU_STATS_ALL_CPUS' file='libvirt' value='-1' type='virNodeGetCPUStatsAllCPUs'/>
     <enum name='VIR_NODE_MEMORY_STATS_ALL_CELLS' file='libvirt' value='-1' type='virNodeGetMemoryStatsAllCells'/>
     <enum name='VIR_NODE_SUSPEND_TARGET_DISK' file='libvirt' value='1' type='virNodeSuspendTarget'/>
@@ -1661,11 +1805,34 @@ VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
     <enum name='VIR_STORAGE_POOL_INACCESSIBLE' file='libvirt' value='4' type='virStoragePoolState' info='Running, but not accessible'/>
     <enum name='VIR_STORAGE_POOL_INACTIVE' file='libvirt' value='0' type='virStoragePoolState' info='Not running'/>
     <enum name='VIR_STORAGE_POOL_RUNNING' file='libvirt' value='2' type='virStoragePoolState' info='Running normally'/>
+    <enum name='VIR_STORAGE_POOL_STATE_LAST' file='libvirt' value='5' type='virStoragePoolState'/>
     <enum name='VIR_STORAGE_VOL_BLOCK' file='libvirt' value='1' type='virStorageVolType' info='Block based volumes'/>
     <enum name='VIR_STORAGE_VOL_DELETE_NORMAL' file='libvirt' value='0' type='virStorageVolDeleteFlags' info='Delete metadata only    (fast)'/>
     <enum name='VIR_STORAGE_VOL_DELETE_ZEROED' file='libvirt' value='1' type='virStorageVolDeleteFlags' info='Clear all data to zeros (slow)'/>
     <enum name='VIR_STORAGE_VOL_DIR' file='libvirt' value='2' type='virStorageVolType' info='Directory-passthrough based volume'/>
     <enum name='VIR_STORAGE_VOL_FILE' file='libvirt' value='0' type='virStorageVolType' info='Regular file based volumes'/>
+    <enum name='VIR_STORAGE_VOL_LAST' file='libvirt' value='3' type='virStorageVolType'/>
+    <enum name='VIR_STORAGE_VOL_RESIZE_ALLOCATE' file='libvirt' value='1' type='virStorageVolResizeFlags' info='force allocation of new size'/>
+    <enum name='VIR_STORAGE_VOL_RESIZE_DELTA' file='libvirt' value='2' type='virStorageVolResizeFlags' info='size is relative to current'/>
+    <enum name='VIR_STORAGE_VOL_RESIZE_SHRINK' file='libvirt' value='4' type='virStorageVolResizeFlags' info='allow decrease in capacity'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_BSI' file='libvirt' value='3' type='virStorageVolWipeAlgorithm' info='9-pass method recommended by the
+German Center of Security in
+Information Technologies'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_DOD' file='libvirt' value='2' type='virStorageVolWipeAlgorithm' info='4-pass DoD 5220.22-M section
+8-306 procedure'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_GUTMANN' file='libvirt' value='4' type='virStorageVolWipeAlgorithm' info='The canonical 35-pass sequence'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_LAST' file='libvirt' value='9' type='virStorageVolWipeAlgorithm'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_NNSA' file='libvirt' value='1' type='virStorageVolWipeAlgorithm' info='4-pass  NNSA Policy Letter
+NAP-14.1-C (XVI-8)'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_PFITZNER33' file='libvirt' value='7' type='virStorageVolWipeAlgorithm' info='33-pass random'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_PFITZNER7' file='libvirt' value='6' type='virStorageVolWipeAlgorithm' info='7-pass random'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_RANDOM' file='libvirt' value='8' type='virStorageVolWipeAlgorithm' info='NB: this enum value will increase over time as new algorithms are
+ added to the libvirt API. It reflects the last algorithm supported
+ by this version of the libvirt API.'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER' file='libvirt' value='5' type='virStorageVolWipeAlgorithm' info='7-pass method described by
+Bruce Schneier in &quot;Applied
+Cryptography&quot; (1996)'/>
+    <enum name='VIR_STORAGE_VOL_WIPE_ALG_ZERO' file='libvirt' value='0' type='virStorageVolWipeAlgorithm' info='1-pass, all zeroes'/>
     <enum name='VIR_STREAM_EVENT_ERROR' file='libvirt' value='4' type='virStreamEventType'/>
     <enum name='VIR_STREAM_EVENT_HANGUP' file='libvirt' value='8' type='virStreamEventType'/>
     <enum name='VIR_STREAM_EVENT_READABLE' file='libvirt' value='1' type='virStreamEventType'/>
@@ -1674,12 +1841,14 @@ VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
     <enum name='VIR_TYPED_PARAM_BOOLEAN' file='libvirt' value='6' type='virTypedParameterType' info='boolean(character) case'/>
     <enum name='VIR_TYPED_PARAM_DOUBLE' file='libvirt' value='5' type='virTypedParameterType' info='double case'/>
     <enum name='VIR_TYPED_PARAM_INT' file='libvirt' value='1' type='virTypedParameterType' info='integer case'/>
+    <enum name='VIR_TYPED_PARAM_LAST' file='libvirt' value='8' type='virTypedParameterType'/>
     <enum name='VIR_TYPED_PARAM_LLONG' file='libvirt' value='3' type='virTypedParameterType' info='long long case'/>
     <enum name='VIR_TYPED_PARAM_STRING' file='libvirt' value='7' type='virTypedParameterType' info='string case'/>
     <enum name='VIR_TYPED_PARAM_STRING_OKAY' file='libvirt' value='4' type='virTypedParameterFlags'/>
     <enum name='VIR_TYPED_PARAM_UINT' file='libvirt' value='2' type='virTypedParameterType' info='unsigned integer case'/>
     <enum name='VIR_TYPED_PARAM_ULLONG' file='libvirt' value='4' type='virTypedParameterType' info='unsigned long long case'/>
     <enum name='VIR_VCPU_BLOCKED' file='libvirt' value='2' type='virVcpuState' info='the virtual CPU is blocked on resource'/>
+    <enum name='VIR_VCPU_LAST' file='libvirt' value='3' type='virVcpuState'/>
     <enum name='VIR_VCPU_OFFLINE' file='libvirt' value='0' type='virVcpuState' info='the virtual CPU is offline'/>
     <enum name='VIR_VCPU_RUNNING' file='libvirt' value='1' type='virVcpuState' info='the virtual CPU is running'/>
     <enum name='VIR_WAR_NO_INTERFACE' file='virterror' value='56' type='virErrorNumber' info='failed to start interface driver'/>
@@ -1776,7 +1945,14 @@ and ERROR states)'/>
     <typedef name='virDomainCoreDumpFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainCrashedReason' file='libvirt' type='enum'/>
     <typedef name='virDomainCreateFlags' file='libvirt' type='enum'/>
+    <typedef name='virDomainDestroyFlagsValues' file='libvirt' type='enum'/>
     <typedef name='virDomainDeviceModifyFlags' file='libvirt' type='enum'/>
+    <struct name='virDomainDiskError' file='libvirt' type='struct _virDomainDiskError'>
+      <field name='disk' type='char *' info='disk target'/>
+      <field name='error' type='int' info='virDomainDiskErrorCode'/>
+    </struct>
+    <typedef name='virDomainDiskErrorCode' file='libvirt' type='enum'/>
+    <typedef name='virDomainDiskErrorPtr' file='libvirt' type='virDomainDiskError *'/>
     <typedef name='virDomainEventDefinedDetailType' file='libvirt' type='enum'/>
     <struct name='virDomainEventGraphicsAddress' file='libvirt' type='struct _virDomainEventGraphicsAddress'>
       <field name='family' type='int' info='Address family, virDomainEventGraphicsAddressType'/>
@@ -1862,6 +2038,7 @@ and ERROR states)'/>
       <field name='val' type='unsigned long long' info=''/>
     </struct>
     <typedef name='virDomainMemoryStatTags' file='libvirt' type='enum'/>
+    <typedef name='virDomainMetadataType' file='libvirt' type='enum'/>
     <typedef name='virDomainMigrateFlags' file='libvirt' type='enum'/>
     <typedef name='virDomainModificationImpact' file='libvirt' type='enum'/>
     <typedef name='virDomainNostateReason' file='libvirt' type='enum'/>
@@ -1871,8 +2048,10 @@ and ERROR states)'/>
     <typedef name='virDomainPtr' file='libvirt' type='virDomain *'>
       <info><![CDATA[a virDomainPtr is pointer to a virDomain private structure, this is the type used to reference a domain in the API.]]></info>
     </typedef>
+    <typedef name='virDomainRebootFlagValues' file='libvirt' type='enum'/>
     <typedef name='virDomainRunningReason' file='libvirt' type='enum'/>
     <typedef name='virDomainSaveRestoreFlags' file='libvirt' type='enum'/>
+    <typedef name='virDomainShutdownFlagValues' file='libvirt' type='enum'/>
     <typedef name='virDomainShutdownReason' file='libvirt' type='enum'/>
     <typedef name='virDomainShutoffReason' file='libvirt' type='enum'/>
     <struct name='virDomainSnapshot' file='libvirt' type='struct _virDomainSnapshot'/>
@@ -1942,6 +2121,7 @@ see note above'/>
     <typedef name='virNetworkPtr' file='libvirt' type='virNetwork *'>
       <info><![CDATA[a virNetworkPtr is pointer to a virNetwork private structure, this is the type used to reference a virtual network in the API.]]></info>
     </typedef>
+    <typedef name='virNetworkXMLFlags' file='libvirt' type='enum'/>
     <struct name='virNodeCPUStats' file='libvirt' type='struct _virNodeCPUStats'>
       <field name='field' type='char field[VIR_NODE_CPU_STATS_FIELD_LENGTH]' info=''/>
       <field name='value' type='unsigned long long' info=''/>
@@ -2034,7 +2214,9 @@ total number of CPU sockets otherwise'/>
     <typedef name='virStorageVolPtr' file='libvirt' type='virStorageVol *'>
       <info><![CDATA[a virStorageVolPtr is pointer to a virStorageVol private structure, this is the type used to reference a storage volume in the API.]]></info>
     </typedef>
+    <typedef name='virStorageVolResizeFlags' file='libvirt' type='enum'/>
     <typedef name='virStorageVolType' file='libvirt' type='enum'/>
+    <typedef name='virStorageVolWipeAlgorithm' file='libvirt' type='enum'/>
     <struct name='virStream' file='libvirt' type='struct _virStream'/>
     <typedef name='virStreamEventType' file='libvirt' type='enum'/>
     <typedef name='virStreamFlags' file='libvirt' type='enum'/>
@@ -2085,7 +2267,7 @@ global error object.
 Since 0.6.0, all errors reported in the per-connection object
 are also duplicated in the global error object. As such an
 application can always use virGetLastError(). This method
-remains for backwards compatability.
+remains for backwards compatibility.
 
 One will need to free the result with virResetError()]]></info>
       <return type='int' info='0 if no error was found and the error code otherwise and -1 in case of parameter error.'/>
@@ -2107,7 +2289,7 @@ global error object.
 Since 0.6.0, all errors reported in the per-connection object
 are also duplicated in the global error object. As such an
 application can always use virGetLastError(). This method
-remains for backwards compatability.]]></info>
+remains for backwards compatibility.]]></info>
       <return type='virErrorPtr' info='a pointer to the last error or NULL if none occurred.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
     </function>
@@ -2145,7 +2327,7 @@ host CPUs.]]></info>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <arg name='xmlCPUs' type='const char **' info='array of XML descriptions of host CPUs'/>
       <arg name='ncpus' type='unsigned int' info='number of CPUs in xmlCPUs'/>
-      <arg name='flags' type='unsigned int' info='fine-tuning flags, currently unused, pass 0.'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virConnectClose' file='libvirt' module='libvirt'>
       <info><![CDATA[This function closes the connection to the Hypervisor. This should
@@ -2168,7 +2350,7 @@ after the corresponding operation completes.]]></info>
       <return type='int' info='comparison result according to enum virCPUCompareResult'/>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <arg name='xmlDesc' type='const char *' info='XML describing the CPU to compare with host CPU'/>
-      <arg name='flags' type='unsigned int' info='currently unused, pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <functype name='virConnectDomainEventBlockJobCallback' file='libvirt' module='libvirt'>
       <info><![CDATA[The callback signature to use when registering for an event of type
@@ -2306,7 +2488,7 @@ If dom is NULL, then events will be monitored for any domain. If dom
 is non-NULL, then only the specific domain will be monitored
 
 Most types of event have a callback providing a custom set of parameters
-for the event. When registering an event, it is thus neccessary to use
+for the event. When registering an event, it is thus necessary to use
 the VIR_DOMAIN_EVENT_CALLBACK() macro to cast the supplied function pointer
 to match the signature of this method.
 
@@ -2345,7 +2527,7 @@ data is hypervisor dependant.]]></info>
       <arg name='conn' type='virConnectPtr' info='a connection object'/>
       <arg name='nativeFormat' type='const char *' info='configuration format importing from'/>
       <arg name='nativeConfig' type='const char *' info='the configuration data to import'/>
-      <arg name='flags' type='unsigned int' info='currently unused, pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virConnectDomainXMLToNative' file='libvirt' module='libvirt'>
       <info><![CDATA[Reads a domain XML configuration document, and generates
@@ -2355,7 +2537,7 @@ The format of the native data is hypervisor dependant.]]></info>
       <arg name='conn' type='virConnectPtr' info='a connection object'/>
       <arg name='nativeFormat' type='const char *' info='configuration format exporting to'/>
       <arg name='domainXml' type='const char *' info='the domain configuration to export'/>
-      <arg name='flags' type='unsigned int' info='currently unused, pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virConnectFindStoragePoolSources' file='libvirt' module='libvirt'>
       <info><![CDATA[Talks to a storage backend and attempts to auto-discover the set of
@@ -2371,7 +2553,7 @@ local storage resources only)]]></info>
       <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
       <arg name='type' type='const char *' info='type of storage pool sources to discover'/>
       <arg name='srcSpec' type='const char *' info='XML document specifying discovery source'/>
-      <arg name='flags' type='unsigned int' info='flags for discovery (unused, pass 0)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virConnectGetCapabilities' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides capabilities of the hypervisor / driver.]]></info>
@@ -2408,7 +2590,7 @@ host on which the hypervisor is running, in the same format as the
 available only for hypervisors running with root privileges.]]></info>
       <return type='char *' info='the XML string which must be freed by the caller, or NULL if there was an error.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to a hypervisor connection'/>
-      <arg name='flags' type='unsigned int' info='callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virConnectGetType' file='libvirt' module='libvirt'>
       <info><![CDATA[Get the name of the Hypervisor software used.]]></info>
@@ -2599,7 +2781,7 @@ have an effect on opening drivers]]></info>
       <return type='virConnectPtr' info='a pointer to the hypervisor connection or NULL in case of error  URIs are documented at http://libvirt.org/uri.html'/>
       <arg name='name' type='const char *' info='URI of the hypervisor'/>
       <arg name='auth' type='virConnectAuthPtr' info='Authenticate callback parameters'/>
-      <arg name='flags' type='unsigned int' info='Open flags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectFlags'/>
     </function>
     <function name='virConnectOpenReadOnly' file='libvirt' module='libvirt'>
       <info><![CDATA[This function should be called first to get a restricted connection to the
@@ -2694,7 +2876,7 @@ recommended to use the virDomainUpdateDeviceFlag method instead.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainDeviceModifyFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainDeviceModifyFlags'/>
     </function>
     <function name='virDomainBlockJobAbort' file='libvirt' module='libvirt'>
       <info><![CDATA[Cancel the active block job on the given disk.
@@ -2708,7 +2890,7 @@ elements within //domain/devices/disk.]]></info>
       <return type='int' info='-1 in case of failure, 0 when successful.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
-      <arg name='flags' type='unsigned int' info='currently unused, for future extension'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainBlockJobSetSpeed' file='libvirt' module='libvirt'>
       <info><![CDATA[Set the maximimum allowable bandwidth that a block job may consume.  If
@@ -2724,7 +2906,7 @@ elements within //domain/devices/disk.]]></info>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
       <arg name='bandwidth' type='unsigned long' info='specify bandwidth limit in Mbps'/>
-      <arg name='flags' type='unsigned int' info='currently unused, for future extension'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainBlockPeek' file='libvirt' module='libvirt'>
       <info><![CDATA[This function allows you to read the contents of a domain's
@@ -2762,7 +2944,7 @@ connection you should split large requests to <= 65536 bytes.]]></info>
       <arg name='offset' type='unsigned long long' info='offset within block device'/>
       <arg name='size' type='size_t' info='size to read'/>
       <arg name='buffer' type='void *' info='return buffer (must be at least size bytes)'/>
-      <arg name='flags' type='unsigned int' info='unused, always pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainBlockPull' file='libvirt' module='libvirt'>
       <info><![CDATA[Populate a disk image with data from its backing image.  Once all data from
@@ -2782,12 +2964,47 @@ elements within //domain/devices/disk.
 The maximum bandwidth (in Mbps) that will be used to do the copy can be
 specified with the bandwidth parameter.  If set to 0, libvirt will choose a
 suitable default.  Some hypervisors do not support this feature and will
-return an error if bandwidth is not 0.]]></info>
+return an error if bandwidth is not 0.
+
+This is shorthand for virDomainBlockRebase() with a NULL base.]]></info>
       <return type='int' info='0 if the operation has started, -1 on failure.'/>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify copy bandwidth limit in Mbps'/>
-      <arg name='flags' type='unsigned int' info='currently unused, for future extension'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainBlockRebase' file='libvirt' module='libvirt'>
+      <info><![CDATA[Populate a disk image with data from its backing image chain, and
+setting the backing image to @base.  @base must be the absolute
+path of one of the backing images further up the chain, or NULL to
+convert the disk image so that it has no backing image.  Once all
+data from its backing image chain has been pulled, the disk no
+longer depends on those intermediate backing images.  This function
+pulls data for the entire device in the background.  Progress of
+the operation can be checked with virDomainGetBlockJobInfo() and
+the operation can be aborted with virDomainBlockJobAbort().  When
+finished, an asynchronous event is raised to indicate the final
+status.
+
+The @disk parameter is either an unambiguous source name of the
+block device (the <source file='...'/> sub-element, such as
+"/path/to/image"), or the device target shorthand (the
+<target dev='...'/> sub-element, such as "xvda").  Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.
+
+The maximum bandwidth (in Mbps) that will be used to do the copy can be
+specified with the bandwidth parameter.  If set to 0, libvirt will choose a
+suitable default.  Some hypervisors do not support this feature and will
+return an error if bandwidth is not 0.
+
+When @base is NULL, this is identical to virDomainBlockPull().]]></info>
+      <return type='int' info='0 if the operation has started, -1 on failure.'/>
+      <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
+      <arg name='base' type='const char *' info='path to backing file to keep, or NULL for no backing file'/>
+      <arg name='bandwidth' type='unsigned long' info='(optional) specify copy bandwidth limit in Mbps'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainBlockResize' file='libvirt' module='libvirt'>
       <info><![CDATA[Note that this call may fail if the underlying virtualization hypervisor
@@ -2806,7 +3023,7 @@ Resize a block device of domain while the domain is running.]]></info>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
       <arg name='disk' type='const char *' info='path to the block image, or shorthand'/>
       <arg name='size' type='unsigned long long' info='new size of the block image in kilobytes'/>
-      <arg name='flags' type='unsigned int' info='unused, always pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainBlockStats' file='libvirt' module='libvirt'>
       <info><![CDATA[This function returns block device (disk) stats for block
@@ -2884,7 +3101,7 @@ pressure on file system cache, but also risks slowing saves to NFS.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='to' type='const char *' info='path for the core file'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainCoreDumpFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainCoreDumpFlags'/>
     </function>
     <function name='virDomainCreate' file='libvirt' module='libvirt'>
       <info><![CDATA[Launch a defined domain. If the call succeeds the domain moves from the
@@ -2901,7 +3118,7 @@ This existing name will left indefinitely for API compatibility.]]></info>
       <return type='virDomainPtr' info='a new domain object or NULL in case of failure'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='xmlDesc' type='const char *' info='string containing an XML description of the domain'/>
-      <arg name='flags' type='unsigned int' info='callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainCreateWithFlags' file='libvirt' module='libvirt'>
       <info><![CDATA[Launch a defined domain. If the call succeeds the domain moves from the
@@ -2931,7 +3148,7 @@ If the VIR_DOMAIN_START_FORCE_BOOT flag is set, then any managed save
 file for this domain is discarded, and the domain boots from scratch.]]></info>
       <return type='int' info='0 in case of success, -1 in case of error'/>
       <arg name='domain' type='virDomainPtr' info='pointer to a defined domain'/>
-      <arg name='flags' type='unsigned int' info='bitwise-or of supported virDomainCreateFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainCreateFlags'/>
     </function>
     <function name='virDomainCreateXML' file='libvirt' module='libvirt'>
       <info><![CDATA[Launch a new guest domain, based on an XML description similar
@@ -2954,7 +3171,7 @@ block attempts at migration, save-to-file, or snapshots.]]></info>
       <return type='virDomainPtr' info='a new domain object or NULL in case of failure'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='xmlDesc' type='const char *' info='string containing an XML description of the domain'/>
-      <arg name='flags' type='unsigned int' info='bitwise-or of supported virDomainCreateFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainCreateFlags'/>
     </function>
     <function name='virDomainDefineXML' file='libvirt' module='libvirt'>
       <info><![CDATA[Define a domain, but does not start it.
@@ -2971,6 +3188,15 @@ already and all resources used by it are given back to the hypervisor. This
 does not free the associated virDomainPtr object.
 This function may require privileged access
 
+virDomainDestroy first requests that a guest terminate
+(e.g. SIGTERM), then waits for it to comply. After a reasonable
+timeout, if the guest still exists, virDomainDestory will
+forcefully terminate the guest (e.g. SIGKILL) if necessary (which
+may produce undesirable results, for example unflushed disk cache
+in the guest). To avoid this possibility, it's recommended to
+instead call virDomainDestroyFlags, sending the
+VIR_DOMAIN_DESTROY_GRACEFUL flag.
+
 If the domain is transient and has any snapshot metadata (see
 virDomainSnapshotNum()), then that metadata will automatically
 be deleted when the domain quits.]]></info>
@@ -2983,13 +3209,24 @@ already and all resources used by it are given back to the hypervisor.
 This does not free the associated virDomainPtr object.
 This function may require privileged access.
 
-Calling this function with no @flags set (equal to zero)
-is equivalent to calling virDomainDestroy.  Using virDomainShutdown()
-may produce cleaner results for the guest's disks, but depends on guest
-support.]]></info>
+Calling this function with no @flags set (equal to zero) is
+equivalent to calling virDomainDestroy, and after a reasonable
+timeout will forcefully terminate the guest (e.g. SIGKILL) if
+necessary (which may produce undesirable results, for example
+unflushed disk cache in the guest). Including
+VIR_DOMAIN_DESTROY_GRACEFUL in the flags will prevent the forceful
+termination of the guest, and virDomainDestroyFlags will instead
+return an error if the guest doesn't terminate by the end of the
+timeout; at that time, the management application can decide if
+calling again without VIR_DOMAIN_DESTROY_GRACEFUL is appropriate.
+
+Another alternative which may produce cleaner results for the
+guest's disks is to use virDomainShutdown() instead, but that
+depends on guest support (some hypervisor/guest combinations may
+ignore the shutdown request).]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainDestroyFlagsValues'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainDestroyFlagsValues'/>
     </function>
     <function name='virDomainDetachDevice' file='libvirt' module='libvirt'>
       <info><![CDATA[Destroy a virtual device attachment to backend.  This function,
@@ -3013,7 +3250,7 @@ persisted device allocation.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainDeviceModifyFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainDeviceModifyFlags'/>
     </function>
     <function name='virDomainFree' file='libvirt' module='libvirt'>
       <info><![CDATA[Free the domain object. The running instance is kept alive.
@@ -3064,7 +3301,7 @@ elements within //domain/devices/disk.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
       <arg name='info' type='virDomainBlockInfoPtr' info='pointer to a virDomainBlockInfo structure allocated by the user'/>
-      <arg name='flags' type='unsigned int' info='currently unused, pass zero'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainGetBlockIoTune' file='libvirt' module='libvirt'>
       <info><![CDATA[Get all block IO tunable parameters for a given device.  On input,
@@ -3093,7 +3330,7 @@ unless @nparams is 0 on input.]]></info>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
       <arg name='params' type='virTypedParameterPtr' info='Pointer to blkio parameter object (return value, allocated by the caller)'/>
       <arg name='nparams' type='int *' info='Pointer to number of blkio parameters'/>
-      <arg name='flags' type='unsigned int' info='An OR&apos;ed set of virDomainModificationImpact'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact and virTypedParameterFlags'/>
     </function>
     <function name='virDomainGetBlockJobInfo' file='libvirt' module='libvirt'>
       <info><![CDATA[Request block job information for the given disk.  If an operation is active
@@ -3109,7 +3346,68 @@ elements within //domain/devices/disk.]]></info>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
       <arg name='info' type='virDomainBlockJobInfoPtr' info='pointer to a virDomainBlockJobInfo structure'/>
-      <arg name='flags' type='unsigned int' info='currently unused, for future extension'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainGetCPUStats' file='libvirt' module='libvirt'>
+      <info><![CDATA[Get statistics relating to CPU usage attributable to a single
+domain (in contrast to the statistics returned by
+virNodeGetCPUStats() for all processes on the host).  @dom
+must be running (an inactive domain has no attributable cpu
+usage).  On input, @params must contain at least @nparams * @ncpus
+entries, allocated by the caller.
+
+If @start_cpu is -1, then @ncpus must be 1, and the returned
+results reflect the statistics attributable to the entire
+domain (such as user and system time for the process as a
+whole).  Otherwise, @start_cpu represents which cpu to start
+with, and @ncpus represents how many consecutive processors to
+query, with statistics attributable per processor (such as
+per-cpu usage).
+
+The remote driver imposes a limit of 128 @ncpus and 16 @nparams;
+the number of parameters per cpu should not exceed 16, but if you
+have a host with more than 128 CPUs, your program should split
+the request into multiple calls.
+
+As special cases, if @params is NULL and @nparams is 0 and
+@ncpus is 1, and the return value will be how many
+statistics are available for the given @start_cpu.  This number
+may be different for @start_cpu of -1 than for any non-negative
+value, but will be the same for all non-negative @start_cpu.
+Likewise, if @params is NULL and @nparams is 0 and @ncpus is 0,
+the number of cpus available to query is returned.  From the
+host perspective, this would typically match the cpus member
+of virNodeGetInfo(), but might be less due to host cpu hotplug.
+
+For now, @flags is unused, and the statistics all relate to the
+usage from the host perspective.  It is possible that a future
+version will support a flag that queries the cpu usage from the
+guest's perspective, where the maximum cpu to query would be
+related to virDomainGetVcpusFlags() rather than virNodeGetInfo().
+An individual guest vcpu cannot be reliably mapped back to a
+specific host cpu unless a single-processor vcpu pinning was used,
+but when @start_cpu is -1, any difference in usage between a host
+and guest perspective would serve as a measure of hypervisor overhead.
+
+Typical use sequence is below.
+
+getting total stats: set start_cpu as -1, ncpus 1
+virDomainGetCPUStats(dom, NULL, 0, -1, 1, 0) => nparams
+params = calloc(nparams, sizeof (virTypedParameter))
+virDomainGetCPUStats(dom, params, nparams, -1, 1, 0) => total stats.
+
+getting per-cpu stats:
+virDomainGetCPUStats(dom, NULL, 0, 0, 0, 0) => ncpus
+virDomainGetCPUStats(dom, NULL, 0, 0, 1, 0) => nparams
+params = calloc(ncpus * nparams, sizeof (virTypedParameter))
+virDomainGetCPUStats(dom, params, nparams, 0, ncpus, 0) => per-cpu stats]]></info>
+      <return type='int' info='-1 on failure, or the number of statistics that were populated per cpu on success (this will be less than the total number of populated @params, unless @ncpus was 1; and may be less than @nparams).  The populated parameters start at each stride of @nparams, which means the results may be discontiguous; any unpopulated parameters will be zeroed on success.  The caller is responsible for freeing any returned string parameters.'/>
+      <arg name='domain' type='virDomainPtr' info='domain to query'/>
+      <arg name='params' type='virTypedParameterPtr' info='array to populate on output'/>
+      <arg name='nparams' type='unsigned int' info='number of parameters per cpu'/>
+      <arg name='start_cpu' type='int' info='which cpu to start with, or -1 for summary'/>
+      <arg name='ncpus' type='unsigned int' info='how many cpus to query'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virTypedParameterFlags'/>
     </function>
     <function name='virDomainGetConnect' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides the connection pointer associated with a domain.  The
@@ -3127,7 +3425,22 @@ the domain object together.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='info' type='virDomainControlInfoPtr' info='pointer to a virDomainControlInfo structure allocated by the user'/>
-      <arg name='flags' type='unsigned int' info='additional flags, 0 for now'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainGetDiskErrors' file='libvirt' module='libvirt'>
+      <info><![CDATA[The function populates @errors array with all disks that encountered an
+I/O error.  Disks with no error will not be returned in the @errors array.
+Each disk is identified by its target (the dev attribute of target
+subelement in domain XML), such as "vda", and accompanied with the error
+that was seen on it.  The caller is also responsible for calling free()
+on each disk name returned.
+
+In a special case when @errors is NULL and @maxerrors is 0, the function]]></info>
+      <return type='int' info='preferred size of @errors that the caller should use to get all disk errors.  Since calling virDomainGetDiskErrors(dom, NULL, 0, 0) to get preferred size of @errors array and getting the errors are two separate operations, new disks may be hotplugged to the domain and new errors may be encountered between the two calls.  Thus, this function may not return all disk errors because the supplied array is not large enough.  Such errors may, however, be detected by listening to domain events.  Returns number of disks with errors filled in the @errors array or -1 on error.'/>
+      <arg name='dom' type='virDomainPtr' info='a domain object'/>
+      <arg name='errors' type='virDomainDiskErrorPtr' info='array to populate on output'/>
+      <arg name='maxerrors' type='unsigned int' info='size of @errors array'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainGetID' file='libvirt' module='libvirt'>
       <info><![CDATA[Get the hypervisor ID number for the domain]]></info>
@@ -3217,6 +3530,25 @@ expects the caller to allocate the @params.]]></info>
       <arg name='params' type='virTypedParameterPtr' info='pointer to memory parameter object (return value, allocated by the caller)'/>
       <arg name='nparams' type='int *' info='pointer to number of memory parameters; input and output'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact and virTypedParameterFlags'/>
+    </function>
+    <function name='virDomainGetMetadata' file='libvirt' module='libvirt'>
+      <info><![CDATA[Retrieves the appropriate domain element given by @type.
+If VIR_DOMAIN_METADATA_ELEMENT is requested parameter @uri
+must be set to the name of the namespace the requested elements
+belong to, otherwise must be NULL.
+
+If an element of the domain XML is not present, the resulting
+error will be VIR_ERR_NO_DOMAIN_METADATA.  This method forms
+a shortcut for seeing information from virDomainSetMetadata()
+without having to go through virDomainGetXMLDesc().
+
+@flags controls whether the live domain or persistent
+configuration will be queried.]]></info>
+      <return type='char *' info='the metadata string on success (caller must free), or NULL in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='type' type='int' info='type of description, from virDomainMetadataType'/>
+      <arg name='uri' type='const char *' info='XML namespace identifier'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
     <function name='virDomainGetName' file='libvirt' module='libvirt'>
       <info><![CDATA[Get the public name for that domain]]></info>
@@ -3310,7 +3642,7 @@ which led to the state.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='state' type='int *' info='returned state of the domain (one of virDomainState)'/>
       <arg name='reason' type='int *' info='returned reason which led to @state (one of virDomain*Reason corresponding to the current state); it is allowed to be NULL'/>
-      <arg name='flags' type='unsigned int' info='additional flags, 0 for now.'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainGetUUID' file='libvirt' module='libvirt'>
       <info><![CDATA[Get the UUID for a domain]]></info>
@@ -3333,7 +3665,7 @@ in cpumaps.]]></info>
       <arg name='ncpumaps' type='int' info='the number of cpumap (listed first to match virDomainGetVcpus)'/>
       <arg name='cpumaps' type='unsigned char *' info='pointer to a bit map of real CPUs for all vcpus of this domain (in 8-bit bytes) (OUT) It&apos;s assumed there is &lt;ncpumaps&gt; cpumap in cpumaps array. The memory allocated to cpumaps must be (ncpumaps * maplen) bytes (ie: calloc(ncpumaps, maplen)). One cpumap inside cpumaps has the format described in virDomainPinVcpu() API. Must not be NULL.'/>
       <arg name='maplen' type='int' info='the number of bytes in one cpumap, from 1 up to size of CPU map. Must be positive.'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainModificationImpact Must not be VIR_DOMAIN_AFFECT_LIVE and VIR_DOMAIN_AFFECT_CONFIG concurrently.'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact Must not be VIR_DOMAIN_AFFECT_LIVE and VIR_DOMAIN_AFFECT_CONFIG concurrently.'/>
     </function>
     <function name='virDomainGetVcpus' file='libvirt' module='libvirt'>
       <info><![CDATA[Extract information about virtual CPUs of domain, store it in info array
@@ -3368,7 +3700,7 @@ virtual CPU limit is queried.  Otherwise, this call queries the
 current virtual CPU limit.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainVcpuFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainVcpuFlags'/>
     </function>
     <function name='virDomainGetXMLDesc' file='libvirt' module='libvirt'>
       <info><![CDATA[Provide an XML description of the domain. The description may be reused
@@ -3385,13 +3717,13 @@ describing CPU capabilities is modified to match actual
 capabilities of the host.]]></info>
       <return type='char *' info='a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainXMLFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainXMLFlags'/>
     </function>
     <function name='virDomainHasCurrentSnapshot' file='libvirt' module='libvirt'>
       <info><![CDATA[Determine if the domain has a current snapshot.]]></info>
       <return type='int' info='1 if such snapshot exists, 0 if it doesn&apos;t, -1 on error.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to the domain object'/>
-      <arg name='flags' type='unsigned int' info='unused flag parameters; callers should pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainHasManagedSaveImage' file='libvirt' module='libvirt'>
       <info><![CDATA[Check if a domain has a managed save image as created by
@@ -3399,13 +3731,13 @@ virDomainManagedSave(). Note that any running domain should not have
 such an image, as it should have been removed on restart.]]></info>
       <return type='int' info='0 if no image is present, 1 if an image is present, and -1 in case of error'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain'/>
-      <arg name='flags' type='unsigned int' info='optional flags currently unused'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainInjectNMI' file='libvirt' module='libvirt'>
       <info><![CDATA[Send NMI to the guest]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>
-      <arg name='flags' type='unsigned int' info='the flags for controlling behavior, pass 0 for now'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainInterfaceStats' file='libvirt' module='libvirt'>
       <info><![CDATA[This function returns network interface stats for interfaces
@@ -3497,7 +3829,7 @@ flags are mutually exclusive.]]></info>
       <info><![CDATA[Remove any managed save image for this domain.]]></info>
       <return type='int' info='0 in case of success, and -1 in case of error'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain'/>
-      <arg name='flags' type='unsigned int' info='optional flags currently unused'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainMemoryPeek' file='libvirt' module='libvirt'>
       <info><![CDATA[This function allows you to read the contents of a domain's
@@ -3525,7 +3857,7 @@ connection you should split large requests to <= 65536 bytes.]]></info>
       <arg name='start' type='unsigned long long' info='start of memory to peek'/>
       <arg name='size' type='size_t' info='size of memory to peek'/>
       <arg name='buffer' type='void *' info='return buffer (must be at least size bytes)'/>
-      <arg name='flags' type='unsigned int' info='flags, see below'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainMemoryFlags'/>
     </function>
     <function name='virDomainMemoryStats' file='libvirt' module='libvirt'>
       <info><![CDATA[This function provides memory statistics for the domain.
@@ -3554,7 +3886,7 @@ VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON:
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
       <arg name='stats' type='virDomainMemoryStatPtr' info='nr_stats-sized array of stat structures (returned)'/>
       <arg name='nr_stats' type='unsigned int' info='number of memory statistics requested'/>
-      <arg name='flags' type='unsigned int' info='unused, always pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainMigrate' file='libvirt' module='libvirt'>
       <info><![CDATA[Migrate the domain object from its current host to the destination
@@ -3614,7 +3946,7 @@ different types of hypervisor.]]></info>
       <return type='virDomainPtr' info='the new domain object if the migration was successful, or NULL in case of error.  Note that the new domain object exists in the scope of the destination connection (dconn).'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='dconn' type='virConnectPtr' info='destination host (a connection object)'/>
-      <arg name='flags' type='unsigned long' info='flags'/>
+      <arg name='flags' type='unsigned long' info='bitwise-OR of virDomainMigrateFlags'/>
       <arg name='dname' type='const char *' info='(optional) rename domain to this at destination'/>
       <arg name='uri' type='const char *' info='(optional) dest hostname/URI as seen from the source host'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in Mbps'/>
@@ -3684,13 +4016,13 @@ in accessing the underlying storage.  The migration will fail
 if @dxml would cause any guest-visible changes.  Pass NULL
 if no changes are needed to the XML between source and destination.
 @dxml cannot be used to rename the domain during migration (use
-@dname for that purpose).  Domain name in @dxml must either match the
-original domain name or @dname if it was specified.]]></info>
+@dname for that purpose).  Domain name in @dxml must match the
+original domain name.]]></info>
       <return type='virDomainPtr' info='the new domain object if the migration was successful, or NULL in case of error.  Note that the new domain object exists in the scope of the destination connection (dconn).'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='dconn' type='virConnectPtr' info='destination host (a connection object)'/>
       <arg name='dxml' type='const char *' info='(optional) XML config for launching guest on target'/>
-      <arg name='flags' type='unsigned long' info='flags'/>
+      <arg name='flags' type='unsigned long' info='bitwise-OR of virDomainMigrateFlags'/>
       <arg name='dname' type='const char *' info='(optional) rename domain to this at destination'/>
       <arg name='uri' type='const char *' info='(optional) dest hostname/URI as seen from the source host'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in Mbps'/>
@@ -3701,7 +4033,7 @@ domain is migrated.  Not all hypervisors will support a bandwidth limit.]]></inf
       <return type='int' info='0 in case of success, -1 otherwise.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='bandwidth' type='unsigned long *' info='return value of current migration bandwidth limit in Mbps'/>
-      <arg name='flags' type='unsigned int' info='fine-tuning flags, currently unused, use 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainMigrateSetMaxDowntime' file='libvirt' module='libvirt'>
       <info><![CDATA[Sets maximum tolerable time for which the domain is allowed to be paused
@@ -3710,7 +4042,7 @@ being live-migrated as a reaction to migration progress.]]></info>
       <return type='int' info='0 in case of success, -1 otherwise.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='downtime' type='unsigned long long' info='maximum tolerable downtime for live migration, in milliseconds'/>
-      <arg name='flags' type='unsigned int' info='fine-tuning flags, currently unused, use 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainMigrateSetMaxSpeed' file='libvirt' module='libvirt'>
       <info><![CDATA[The maximum bandwidth (in Mbps) that will be used to do migration
@@ -3719,7 +4051,7 @@ will support a bandwidth cap]]></info>
       <return type='int' info='0 in case of success, -1 otherwise.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='bandwidth' type='unsigned long' info='migration bandwidth limit in Mbps'/>
-      <arg name='flags' type='unsigned int' info='fine-tuning flags, currently unused, use 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainMigrateToURI' file='libvirt' module='libvirt'>
       <info><![CDATA[Migrate the domain object from its current host to the destination
@@ -3774,7 +4106,7 @@ different types of hypervisor.]]></info>
       <return type='int' info='0 if the migration succeeded, -1 upon error.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='duri' type='const char *' info='mandatory URI for the destination host'/>
-      <arg name='flags' type='unsigned long' info='flags'/>
+      <arg name='flags' type='unsigned long' info='bitwise-OR of virDomainMigrateFlags'/>
       <arg name='dname' type='const char *' info='(optional) rename domain to this at destination'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in Mbps'/>
     </function>
@@ -3843,7 +4175,7 @@ different types of hypervisor.]]></info>
       <arg name='dconnuri' type='const char *' info='(optional) URI for target libvirtd if @flags includes VIR_MIGRATE_PEER2PEER'/>
       <arg name='miguri' type='const char *' info='(optional) URI for invoking the migration, not if @flags includs VIR_MIGRATE_TUNNELLED'/>
       <arg name='dxml' type='const char *' info='(optional) XML config for launching guest on target'/>
-      <arg name='flags' type='unsigned long' info='flags'/>
+      <arg name='flags' type='unsigned long' info='bitwise-OR of virDomainMigrateFlags'/>
       <arg name='dname' type='const char *' info='(optional) rename domain to this at destination'/>
       <arg name='bandwidth' type='unsigned long' info='(optional) specify migration bandwidth limit in Mbps'/>
     </function>
@@ -3858,7 +4190,7 @@ mode for bi-directional I/O.]]></info>
       <arg name='dom' type='virDomainPtr' info='a domain object'/>
       <arg name='dev_name' type='const char *' info='the console, serial or parallel port device alias, or NULL'/>
       <arg name='st' type='virStreamPtr' info='a stream to associate with the console'/>
-      <arg name='flags' type='unsigned int' info='unused, pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainOpenGraphics' file='libvirt' module='libvirt'>
       <info><![CDATA[This will attempt to connect the file descriptor @fd, to
@@ -3879,7 +4211,22 @@ to use this method over a TCP connection will always fail]]></info>
       <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='idx' type='unsigned int' info='index of graphics config to open'/>
       <arg name='fd' type='int' info='file descriptor to attach graphics to'/>
-      <arg name='flags' type='unsigned int' info='flags to control open operation'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainOpenGraphicsFlags'/>
+    </function>
+    <function name='virDomainPMSuspendForDuration' file='libvirt' module='libvirt'>
+      <info><![CDATA[Attempt to have the guest enter the given @target power management
+suspension level.  If @duration is non-zero, also schedule the guest to
+resume normal operation after that many seconds, if nothing else has
+resumed it earlier.  Some hypervisors require that @duration be 0, for
+an indefinite suspension.
+
+Dependent on hypervisor used, this may require a
+guest agent to be available, e.g. QEMU.]]></info>
+      <return type='int' info='0 on success, -1 on failure.'/>
+      <arg name='dom' type='virDomainPtr' info='a domain object'/>
+      <arg name='target' type='unsigned int' info='a value from virNodeSuspendTarget'/>
+      <arg name='duration' type='unsigned long long' info='duration in seconds to suspend, or 0 for indefinite'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainPinVcpu' file='libvirt' module='libvirt'>
       <info><![CDATA[Dynamically change the real CPUs which can be allocated to a virtual CPU.
@@ -3919,10 +4266,17 @@ See also virDomainGetVcpuPinInfo for querying this information.]]></info>
     <function name='virDomainReboot' file='libvirt' module='libvirt'>
       <info><![CDATA[Reboot a domain, the domain object is still usable there after but
 the domain OS is being stopped for a restart.
-Note that the guest OS may ignore the request.]]></info>
+Note that the guest OS may ignore the request.
+
+If @flags is set to zero, then the hypervisor will choose the
+method of shutdown it considers best. To have greater control
+pass exactly one of the virDomainRebootFlagValues.
+
+To use guest agent (VIR_DOMAIN_REBOOT_GUEST_AGENT) the domain XML
+must have <channel> configured.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
-      <arg name='flags' type='unsigned int' info='extra flags for the reboot operation, not used yet'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainRebootFlagValues'/>
     </function>
     <function name='virDomainRef' file='libvirt' module='libvirt'>
       <info><![CDATA[Increment the reference count on the domain. For each
@@ -3947,7 +4301,7 @@ Note that there is a risk of data loss caused by reset without any
 guest OS shutdown.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
-      <arg name='flags' type='unsigned int' info='extra flags for the reboot operation, not used yet'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainRestore' file='libvirt' module='libvirt'>
       <info><![CDATA[This method will restore a domain saved to disk by virDomainSave().
@@ -4129,7 +4483,7 @@ the second head on the second card.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='stream' type='virStreamPtr' info='stream to use as output'/>
       <arg name='screen' type='unsigned int' info='monitor ID to take screenshot from'/>
-      <arg name='flags' type='unsigned int' info='extra flags, currently unused'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainSendKey' file='libvirt' module='libvirt'>
       <info><![CDATA[Send key(s) to the guest.]]></info>
@@ -4139,7 +4493,7 @@ the second head on the second card.]]></info>
       <arg name='holdtime' type='unsigned int' info='the duration (in milliseconds) that the keys will be held'/>
       <arg name='keycodes' type='unsigned int *' info='array of keycodes'/>
       <arg name='nkeycodes' type='int' info='number of keycodes, up to VIR_DOMAIN_SEND_KEY_MAX_KEYS'/>
-      <arg name='flags' type='unsigned int' info='the flags for controlling behavior, pass 0 for now'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainSetAutostart' file='libvirt' module='libvirt'>
       <info><![CDATA[Configure the domain to be automatically started
@@ -4171,13 +4525,13 @@ within //domain/devices/disk.]]></info>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
       <arg name='params' type='virTypedParameterPtr' info='Pointer to blkio parameter objects'/>
       <arg name='nparams' type='int' info='Number of blkio parameters (this value can be the same or less than the number of parameters supported)'/>
-      <arg name='flags' type='unsigned int' info='An OR&apos;ed set of virDomainModificationImpact'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
     <function name='virDomainSetInterfaceParameters' file='libvirt' module='libvirt'>
       <info><![CDATA[Change a subset or all parameters of interface; currently this
 includes bandwidth parameters.  The value of @flags should be
-either VIR_DOMAIN_AFFECT_CURRENT, or a bitwise-or of values from
-VIR_DOMAIN_AFFECT_LIVE and VIR_DOMAIN_AFFECT_CURRENT, although
+either VIR_DOMAIN_AFFECT_CURRENT, or a bitwise-or of values
+VIR_DOMAIN_AFFECT_LIVE and VIR_DOMAIN_AFFECT_CONFIG, although
 hypervisors vary in which flags are supported.
 
 This function may require privileged access to the hypervisor.]]></info>
@@ -4233,7 +4587,7 @@ Not all hypervisors can support all flag combinations.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object or NULL'/>
       <arg name='memory' type='unsigned long' info='the memory size in kilobytes'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainMemoryModFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainMemoryModFlags'/>
     </function>
     <function name='virDomainSetMemoryParameters' file='libvirt' module='libvirt'>
       <info><![CDATA[Change all or a subset of the memory tunables.
@@ -4242,6 +4596,33 @@ This function may require privileged access to the hypervisor.]]></info>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='params' type='virTypedParameterPtr' info='pointer to memory parameter objects'/>
       <arg name='nparams' type='int' info='number of memory parameter (this value can be the same or less than the number of parameters supported)'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
+    </function>
+    <function name='virDomainSetMetadata' file='libvirt' module='libvirt'>
+      <info><![CDATA[Sets the appropriate domain element given by @type to the
+value of @description.  A @type of VIR_DOMAIN_METADATA_DESCRIPTION
+is free-form text; VIR_DOMAIN_METADATA_TITLE is free-form, but no
+newlines are permitted, and should be short (although the length is
+not enforced). For these two options @key and @uri are irrelevant and
+must be set to NULL.
+
+For type VIR_DOMAIN_METADATA_ELEMENT @metadata  must be well-formed
+XML belonging to namespace defined by @uri with local name @key.
+
+Passing NULL for @metadata says to remove that element from the
+domain XML (passing the empty string leaves the element present).
+
+The resulting metadata will be present in virDomainGetXMLDesc(),
+as well as quick access through virDomainGetMetadata().
+
+@flags controls whether the live domain, persistent configuration,
+or both will be modified.]]></info>
+      <return type='int' info='0 on success, -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='type' type='int' info='type of description, from virDomainMetadataType'/>
+      <arg name='metadata' type='const char *' info='new metadata text'/>
+      <arg name='key' type='const char *' info='XML namespace key, or NULL'/>
+      <arg name='uri' type='const char *' info='XML namespace URI, or NULL'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainModificationImpact'/>
     </function>
     <function name='virDomainSetNumaParameters' file='libvirt' module='libvirt'>
@@ -4314,7 +4695,7 @@ Not all hypervisors can support all flag combinations.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object, or NULL for Domain0'/>
       <arg name='nvcpus' type='unsigned int' info='the new number of virtual CPUs for this domain, must be at least 1'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainVcpuFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainVcpuFlags'/>
     </function>
     <function name='virDomainShutdown' file='libvirt' module='libvirt'>
       <info><![CDATA[Shutdown a domain, the domain object is still usable thereafter but
@@ -4330,6 +4711,26 @@ virDomainSnapshotNum()), then that metadata will automatically
 be deleted when the domain quits.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
+    </function>
+    <function name='virDomainShutdownFlags' file='libvirt' module='libvirt'>
+      <info><![CDATA[Shutdown a domain, the domain object is still usable thereafter but
+the domain OS is being stopped. Note that the guest OS may ignore the
+request.  For guests that react to a shutdown request, the differences
+from virDomainDestroy() are that the guest's disk storage will be in a
+stable state rather than having the (virtual) power cord pulled, and
+this command returns as soon as the shutdown request is issued rather
+than blocking until the guest is no longer running.
+
+If the domain is transient and has any snapshot metadata (see
+virDomainSnapshotNum()), then that metadata will automatically
+be deleted when the domain quits.
+
+If @flags is set to zero, then the hypervisor will choose the
+method of shutdown it considers best. To have greater control
+pass exactly one of the virDomainShutdownFlagValues.]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainShutdownFlagValues'/>
     </function>
     <function name='virDomainSnapshotCreateXML' file='libvirt' module='libvirt'>
       <info><![CDATA[Creates a new snapshot of a domain based on the snapshot xml
@@ -4380,8 +4781,20 @@ If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY, then the
 snapshot will be limited to the disks described in @xmlDesc, and no
 VM state will be saved.  For an active guest, the disk image may be
 inconsistent (as if power had been pulled), and specifying this
-with the VIR_DOMAIN_SNAPSHOT_CREATE_HALT flag risks data loss.]]></info>
-      <return type='virDomainSnapshotPtr' info='an (opaque) virDomainSnapshotPtr on success, NULL on failure.'/>
+with the VIR_DOMAIN_SNAPSHOT_CREATE_HALT flag risks data loss.
+
+If @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE, then the
+libvirt will attempt to use guest agent to freeze and thaw all
+file systems in use within domain OS. However, if the guest agent
+is not present, an error is thrown. Moreover, this flag requires
+VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY to be passed as well.
+
+By default, if the snapshot involves external files, and any of the
+destination files already exist as a regular file, the snapshot is
+rejected to avoid losing contents of those files.  However, if
+@flags includes VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT, then existing
+destination files are instead truncated and reused.]]></info>
+      <return type='virDomainSnapshotPtr' info='an (opaque) virDomainSnapshotPtr on success, NULL on failure. Be aware that although libvirt prefers to report errors up front with no other effect, there are certain types of failures where a failure can occur even though the guest configuration was changed (for example, if a disk snapshot request over two disks only fails on the second disk, leaving the first disk altered); so after getting a NULL return, it can be wise to use virDomainGetXMLDesc() to determine if any partial changes occurred.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='xmlDesc' type='const char *' info='string containing an XML description of the domain'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainSnapshotCreateFlags'/>
@@ -4390,7 +4803,7 @@ with the VIR_DOMAIN_SNAPSHOT_CREATE_HALT flag risks data loss.]]></info>
       <info><![CDATA[Get the current snapshot for a domain, if any.]]></info>
       <return type='virDomainSnapshotPtr' info='a domain snapshot object or NULL in case of failure.  If the current domain snapshot cannot be found, then the VIR_ERR_NO_DOMAIN_SNAPSHOT error is raised.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
-      <arg name='flags' type='unsigned int' info='unused flag parameters; callers should pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainSnapshotDelete' file='libvirt' module='libvirt'>
       <info><![CDATA[Delete the snapshot.
@@ -4410,7 +4823,7 @@ libvirt metadata to track snapshots, then this flag is silently
 ignored.]]></info>
       <return type='int' info='0 if the selected snapshot(s) were successfully deleted, -1 on error.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a domain snapshot object'/>
-      <arg name='flags' type='unsigned int' info='bitwise-or of supported virDomainSnapshotDeleteFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotDeleteFlags'/>
     </function>
     <function name='virDomainSnapshotFree' file='libvirt' module='libvirt'>
       <info><![CDATA[Free the domain snapshot object.  The snapshot itself is not modified.
@@ -4437,7 +4850,7 @@ The data structure is freed and should not be used thereafter.]]></info>
       <info><![CDATA[Get the parent snapshot for @snapshot, if any.]]></info>
       <return type='virDomainSnapshotPtr' info='a domain snapshot object or NULL in case of failure.  If the given snapshot is a root (no parent), then the VIR_ERR_NO_DOMAIN_SNAPSHOT error is raised.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a snapshot object'/>
-      <arg name='flags' type='unsigned int' info='unused flag parameters; callers should pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainSnapshotGetXMLDesc' file='libvirt' module='libvirt'>
       <info><![CDATA[Provide an XML description of the domain snapshot.
@@ -4470,7 +4883,7 @@ be 0 or the same value as if the flag were not given.]]></info>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a domain snapshot object'/>
       <arg name='names' type='char **' info='array to collect the list of names of snapshots'/>
       <arg name='nameslen' type='int' info='size of @names'/>
-      <arg name='flags' type='unsigned int' info='bitwise-or of supported virDomainSnapshotListFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotListFlags'/>
     </function>
     <function name='virDomainSnapshotListNames' file='libvirt' module='libvirt'>
       <info><![CDATA[Collect the list of domain snapshots for the given domain, and store
@@ -4492,14 +4905,14 @@ be 0 or the same value as if the flag were not given.]]></info>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='names' type='char **' info='array to collect the list of names of snapshots'/>
       <arg name='nameslen' type='int' info='size of @names'/>
-      <arg name='flags' type='unsigned int' info='bitwise-or of supported virDomainSnapshotListFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotListFlags'/>
     </function>
     <function name='virDomainSnapshotLookupByName' file='libvirt' module='libvirt'>
       <info><![CDATA[Try to lookup a domain snapshot based on its name.]]></info>
       <return type='virDomainSnapshotPtr' info='a domain snapshot object or NULL in case of failure.  If the domain snapshot cannot be found, then the VIR_ERR_NO_DOMAIN_SNAPSHOT error is raised.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='name' type='const char *' info='name for the domain snapshot'/>
-      <arg name='flags' type='unsigned int' info='unused flag parameters; callers should pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virDomainSnapshotNum' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides the number of domain snapshots for this domain.
@@ -4516,7 +4929,7 @@ the removal of the last reference to a domain; this value will either
 be 0 or the same value as if the flag were not given.]]></info>
       <return type='int' info='the number of domain snapshots found or -1 in case of error.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
-      <arg name='flags' type='unsigned int' info='bitwise-or of supported virDomainSnapshotListFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotListFlags'/>
     </function>
     <function name='virDomainSnapshotNumChildren' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides the number of child snapshots for this domain snapshot.
@@ -4533,7 +4946,7 @@ the removal of the last reference to a domain; this value will either
 be 0 or the same value as if the flag were not given.]]></info>
       <return type='int' info='the number of domain snapshots found or -1 in case of error.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a domain snapshot object'/>
-      <arg name='flags' type='unsigned int' info='bitwise-or of supported virDomainSnapshotListFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotListFlags'/>
     </function>
     <function name='virDomainSuspend' file='libvirt' module='libvirt'>
       <info><![CDATA[Suspends an active domain, the process is frozen without further access
@@ -4575,7 +4988,7 @@ whether this flag is present.  On hypervisors where snapshots do
 not use libvirt metadata, this flag has no effect.]]></info>
       <return type='int' info='0 in case of success, -1 in case of error'/>
       <arg name='domain' type='virDomainPtr' info='pointer to a defined domain'/>
-      <arg name='flags' type='unsigned int' info='bitwise-or of supported virDomainUndefineFlagsValues'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainUndefineFlagsValues'/>
     </function>
     <function name='virDomainUpdateDeviceFlags' file='libvirt' module='libvirt'>
       <info><![CDATA[Change a virtual device on a domain, using the flags parameter
@@ -4596,7 +5009,7 @@ reconfiguring the NIC device backend connectivity, etc.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='domain' type='virDomainPtr' info='pointer to domain object'/>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of virDomainDeviceModifyFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainDeviceModifyFlags'/>
     </function>
     <functype name='virErrorFunc' file='virterror' module='virterror'>
       <info><![CDATA[Signature of a function to use when there is an error raised by the library.]]></info>
@@ -4819,7 +5232,7 @@ already opened, this function will fail, and a
 VIR_ERR_INVALID_OPERATION will be logged.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
-      <arg name='flags' type='unsigned int' info='flags, not used yet'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virInterfaceChangeCommit' file='libvirt' module='libvirt'>
       <info><![CDATA[This commits the changes made to interfaces and frees the restore point
@@ -4830,7 +5243,7 @@ opened, this function will fail, and a VIR_ERR_INVALID_OPERATION
 will be logged.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
-      <arg name='flags' type='unsigned int' info='flags, not used yet'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virInterfaceChangeRollback' file='libvirt' module='libvirt'>
       <info><![CDATA[This cancels changes made to interfaces settings by restoring previous
@@ -4841,7 +5254,7 @@ opened, this function will fail, and a VIR_ERR_INVALID_OPERATION
 will be logged.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
-      <arg name='flags' type='unsigned int' info='flags, not used yet'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virInterfaceCreate' file='libvirt' module='libvirt'>
       <info><![CDATA[Activate an interface (i.e. call "ifup").
@@ -4853,7 +5266,7 @@ undefined) if virInterfaceChangeRollback() is called.
 p *]]></info>
       <return type='int' info='0 in case of success, -1 in case of error'/>
       <arg name='iface' type='virInterfacePtr' info='pointer to a defined interface'/>
-      <arg name='flags' type='unsigned int' info='and OR&apos;ed set of extraction flags, not used yet'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virInterfaceDefineXML' file='libvirt' module='libvirt'>
       <info><![CDATA[Define an interface (or modify existing interface configuration).
@@ -4870,7 +5283,7 @@ libvirtd.]]></info>
       <return type='virInterfacePtr' info='NULL in case of error, a pointer to the interface otherwise'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='xml' type='const char *' info='the XML description for the interface, preferably in UTF-8'/>
-      <arg name='flags' type='unsigned int' info='and OR&apos;ed set of extraction flags, not used yet'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virInterfaceDestroy' file='libvirt' module='libvirt'>
       <info><![CDATA[deactivate an interface (ie call "ifdown")
@@ -4884,7 +5297,7 @@ virInterfaceChangeRollback() is called, the restoral of the
 interface definition will also bring the interface back up.]]></info>
       <return type='int' info='0 in case of success and -1 in case of failure.'/>
       <arg name='iface' type='virInterfacePtr' info='an interface object'/>
-      <arg name='flags' type='unsigned int' info='and OR&apos;ed set of extraction flags, not used yet'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virInterfaceFree' file='libvirt' module='libvirt'>
       <info><![CDATA[Free the interface object. The interface itself is unaltered.
@@ -4926,7 +5339,7 @@ is not set, the ip address and netmask will be the current live
 setting of the interface, not the settings from the config files.]]></info>
       <return type='char *' info='a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.'/>
       <arg name='iface' type='virInterfacePtr' info='an interface object'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of extraction flags. Current valid bits:'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of extraction flags. Current valid bits:'/>
     </function>
     <function name='virInterfaceIsActive' file='libvirt' module='libvirt'>
       <info><![CDATA[Determine if the interface is currently running]]></info>
@@ -5011,7 +5424,7 @@ UUID see RFC4122.]]></info>
 reused later to redefine the network filter with virNWFilterCreateXML().]]></info>
       <return type='char *' info='a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.'/>
       <arg name='nwfilter' type='virNWFilterPtr' info='a nwfilter object'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of extraction flags, not used yet'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNWFilterLookupByName' file='libvirt' module='libvirt'>
       <info><![CDATA[Try to lookup a network filter on the given hypervisor based on its name.]]></info>
@@ -5130,10 +5543,15 @@ UUID see RFC4122.]]></info>
     </function>
     <function name='virNetworkGetXMLDesc' file='libvirt' module='libvirt'>
       <info><![CDATA[Provide an XML description of the network. The description may be reused
-later to relaunch the network with virNetworkCreateXML().]]></info>
+later to relaunch the network with virNetworkCreateXML().
+
+Normally, if a network included a physical function, the output includes
+all virtual functions tied to that physical interface.  If @flags includes
+VIR_NETWORK_XML_INACTIVE, then the expansion of virtual interfaces is
+not performed.]]></info>
       <return type='char *' info='a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.'/>
       <arg name='network' type='virNetworkPtr' info='a network object'/>
-      <arg name='flags' type='unsigned int' info='an OR&apos;ed set of extraction flags, not used yet'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virNetworkXMLFlags'/>
     </function>
     <function name='virNetworkIsActive' file='libvirt' module='libvirt'>
       <info><![CDATA[Determine if the network is currently running]]></info>
@@ -5196,7 +5614,7 @@ HBAs created using vport_create.]]></info>
       <return type='virNodeDevicePtr' info='a node device object if successful, NULL in case of failure'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='xmlDesc' type='const char *' info='string containing an XML description of the device to be created'/>
-      <arg name='flags' type='unsigned int' info='callers should always pass 0'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNodeDeviceDestroy' file='libvirt' module='libvirt'>
       <info><![CDATA[Destroy the device object. The virtual device is removed from the host operating system.
@@ -5241,7 +5659,7 @@ this was the last reference.]]></info>
 the device.]]></info>
       <return type='char *' info='the XML document, or NULL on error'/>
       <arg name='dev' type='virNodeDevicePtr' info='pointer to the node device'/>
-      <arg name='flags' type='unsigned int' info='flags for XML generation (unused, pass 0)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNodeDeviceListCaps' file='libvirt' module='libvirt'>
       <info><![CDATA[Lists the names of the capabilities supported by the device.]]></info>
@@ -5348,7 +5766,7 @@ VIR_NODE_CPU_STATS_UTILIZATION:
       <arg name='cpuNum' type='int' info='number of node cpu. (VIR_NODE_CPU_STATS_ALL_CPUS means total cpu statistics)'/>
       <arg name='params' type='virNodeCPUStatsPtr' info='pointer to node cpu time parameter objects'/>
       <arg name='nparams' type='int *' info='number of node cpu time parameter (this value should be same or less than the number of parameters supported)'/>
-      <arg name='flags' type='unsigned int' info='currently unused, for future extension. always pass 0.'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNodeGetCellsFreeMemory' file='libvirt' module='libvirt'>
       <info><![CDATA[This call returns the amount of free memory in one or more NUMA cells.
@@ -5419,7 +5837,7 @@ VIR_NODE_MEMORY_STATS_CACHED:
       <arg name='cellNum' type='int' info='number of node cell. (VIR_NODE_MEMORY_STATS_ALL_CELLS means total cell statistics)'/>
       <arg name='params' type='virNodeMemoryStatsPtr' info='pointer to node memory stats objects'/>
       <arg name='nparams' type='int *' info='number of node memory stats (this value should be same or less than the number of stats supported)'/>
-      <arg name='flags' type='unsigned int' info='currently unused, for future extension. always pass 0.'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNodeGetSecurityModel' file='libvirt' module='libvirt'>
       <info><![CDATA[Extract the security model of a hypervisor. The 'model' field
@@ -5439,7 +5857,7 @@ will be restricted to devices with the specified capability]]></info>
       <arg name='cap' type='const char *' info='capability name'/>
       <arg name='names' type='char ** const' info='array to collect the list of node device names'/>
       <arg name='maxnames' type='int' info='size of @names'/>
-      <arg name='flags' type='unsigned int' info='flags (unused, pass 0)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNodeNumOfDevices' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides the number of node devices.
@@ -5449,7 +5867,7 @@ will be restricted to devices with the specified capability]]></info>
       <return type='int' info='the number of node devices or -1 in case of error'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='cap' type='const char *' info='capability name'/>
-      <arg name='flags' type='unsigned int' info='flags (unused, pass 0)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNodeSuspendForDuration' file='libvirt' module='libvirt'>
       <info><![CDATA[Attempt to suspend the node (host machine) for the given duration of
@@ -5460,7 +5878,7 @@ resume the node after the duration is complete.]]></info>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='target' type='unsigned int' info='the state to which the host must be suspended to, such as: VIR_NODE_SUSPEND_TARGET_MEM (Suspend-to-RAM) VIR_NODE_SUSPEND_TARGET_DISK (Suspend-to-Disk) VIR_NODE_SUSPEND_TARGET_HYBRID (Hybrid-Suspend, which is a combination of the former modes).'/>
       <arg name='duration' type='unsigned long long' info='the time duration in seconds for which the host has to be suspended'/>
-      <arg name='flags' type='unsigned int' info='any flag values that might need to be passed; currently unused (0).'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virResetError' file='virterror' module='virterror'>
       <info><![CDATA[Reset the error being pointed to]]></info>
@@ -5490,7 +5908,7 @@ initializes its attributes from xml.]]></info>
       <return type='virSecretPtr' info='a the secret on success, NULL on failure.'/>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <arg name='xml' type='const char *' info='XML describing the secret.'/>
-      <arg name='flags' type='unsigned int' info='flags, use 0 for now'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virSecretFree' file='libvirt' module='libvirt'>
       <info><![CDATA[Release the secret handle. The underlying secret continues to exist.]]></info>
@@ -5545,13 +5963,13 @@ do not explicitly know about.]]></info>
       <return type='unsigned char *' info='the secret value on success, NULL on failure.  The caller must free() the secret value.'/>
       <arg name='secret' type='virSecretPtr' info='A virSecret connection'/>
       <arg name='value_size' type='size_t *' info='Place for storing size of the secret value'/>
-      <arg name='flags' type='unsigned int' info='flags, use 0 for now'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virSecretGetXMLDesc' file='libvirt' module='libvirt'>
       <info><![CDATA[Fetches an XML document describing attributes of the secret.]]></info>
       <return type='char *' info='the XML document on success, NULL on failure.  The caller must free() the XML.'/>
       <arg name='secret' type='virSecretPtr' info='A virSecret secret'/>
-      <arg name='flags' type='unsigned int' info='flags, use 0 for now'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virSecretLookupByUUID' file='libvirt' module='libvirt'>
       <info><![CDATA[Try to lookup a secret on the given hypervisor based on its UUID.
@@ -5595,7 +6013,7 @@ increment the reference count.]]></info>
       <arg name='secret' type='virSecretPtr' info='A virSecret secret'/>
       <arg name='value' type='const unsigned char *' info='Value of the secret'/>
       <arg name='value_size' type='size_t' info='Size of the value'/>
-      <arg name='flags' type='unsigned int' info='flags, use 0 for now'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virSecretUndefine' file='libvirt' module='libvirt'>
       <info><![CDATA[Deletes the specified secret.  This does not free the associated
@@ -5618,13 +6036,13 @@ and VIR_STORAGE_POOL_BUILD_NO_OVERWRITE.
 Build the underlying storage pool]]></info>
       <return type='int' info='0 on success, or -1 upon failure'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to storage pool'/>
-      <arg name='flags' type='unsigned int' info='flags to control pool build behaviour'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virStoragePoolBuildFlags'/>
     </function>
     <function name='virStoragePoolCreate' file='libvirt' module='libvirt'>
       <info><![CDATA[Starts an inactive storage pool]]></info>
       <return type='int' info='0 on success, or -1 if it could not be started'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to storage pool'/>
-      <arg name='flags' type='unsigned int' info='future flags, use 0 for now'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virStoragePoolCreateXML' file='libvirt' module='libvirt'>
       <info><![CDATA[Create a new storage based on its XML description. The
@@ -5633,7 +6051,7 @@ when it is destroyed, or if the host is restarted]]></info>
       <return type='virStoragePoolPtr' info='a virStoragePoolPtr object, or NULL if creation failed'/>
       <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
       <arg name='xmlDesc' type='const char *' info='XML description for new pool'/>
-      <arg name='flags' type='unsigned int' info='future flags, use 0 for now'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virStoragePoolDefineXML' file='libvirt' module='libvirt'>
       <info><![CDATA[Define a new inactive storage pool based on its XML description. The
@@ -5641,7 +6059,7 @@ pool is persistent, until explicitly undefined.]]></info>
       <return type='virStoragePoolPtr' info='a virStoragePoolPtr object, or NULL if creation failed'/>
       <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
       <arg name='xml' type='const char *' info='XML description for new pool'/>
-      <arg name='flags' type='unsigned int' info='future flags, use 0 for now'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virStoragePoolDelete' file='libvirt' module='libvirt'>
       <info><![CDATA[Delete the underlying pool resources. This is
@@ -5649,7 +6067,7 @@ a non-recoverable operation. The virStoragePoolPtr object
 itself is not free'd.]]></info>
       <return type='int' info='0 on success, or -1 if it could not be obliterate'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to storage pool'/>
-      <arg name='flags' type='unsigned int' info='flags for obliteration process'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virStoragePoolDeleteFlags'/>
     </function>
     <function name='virStoragePoolDestroy' file='libvirt' module='libvirt'>
       <info><![CDATA[Destroy an active storage pool. This will deactivate the
@@ -5714,7 +6132,7 @@ storage pool. This is suitable for later feeding back
 into the virStoragePoolCreateXML method.]]></info>
       <return type='char *' info='a XML document, or NULL on error'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to storage pool'/>
-      <arg name='flags' type='unsigned int' info='flags for XML format options (set of virDomainXMLFlags)'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainXMLFlags'/>
     </function>
     <function name='virStoragePoolIsActive' file='libvirt' module='libvirt'>
       <info><![CDATA[Determine if the storage pool is currently running]]></info>
@@ -5783,7 +6201,7 @@ involve communicating with a remote server, and/or initializing
 new devices at the OS layer]]></info>
       <return type='int' info='0 if the volume list was refreshed, -1 on failure'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to storage pool'/>
-      <arg name='flags' type='unsigned int' info='flags to control refresh behaviour (currently unused, use 0)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virStoragePoolSetAutostart' file='libvirt' module='libvirt'>
       <info><![CDATA[Sets the autostart flag]]></info>
@@ -5803,7 +6221,7 @@ creation of volumes]]></info>
       <return type='virStorageVolPtr' info='the storage volume, or NULL on error'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to storage pool'/>
       <arg name='xmldesc' type='const char *' info='description of volume to create'/>
-      <arg name='flags' type='unsigned int' info='flags for creation (unused, pass 0)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virStorageVolCreateXMLFrom' file='libvirt' module='libvirt'>
       <info><![CDATA[Create a storage volume in the parent pool, using the
@@ -5814,13 +6232,13 @@ XML description.]]></info>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to parent pool for the new volume'/>
       <arg name='xmldesc' type='const char *' info='description of volume to create'/>
       <arg name='clonevol' type='virStorageVolPtr' info='storage volume to use as input'/>
-      <arg name='flags' type='unsigned int' info='flags for creation (unused, pass 0)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virStorageVolDelete' file='libvirt' module='libvirt'>
       <info><![CDATA[Delete the storage volume from the pool]]></info>
       <return type='int' info='0 on success, or -1 on error'/>
       <arg name='vol' type='virStorageVolPtr' info='pointer to storage volume'/>
-      <arg name='flags' type='unsigned int' info='future flags, use 0 for now'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virStorageVolDownload' file='libvirt' module='libvirt'>
       <info><![CDATA[Download the content of the volume as a stream. If @length
@@ -5837,7 +6255,7 @@ another active stream is writing to the storage volume.]]></info>
       <arg name='stream' type='virStreamPtr' info='stream to use as output'/>
       <arg name='offset' type='unsigned long long' info='position in @vol to start reading from'/>
       <arg name='length' type='unsigned long long' info='limit on amount of data to download'/>
-      <arg name='flags' type='unsigned int' info='future flags (unused, pass 0)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virStorageVolFree' file='libvirt' module='libvirt'>
       <info><![CDATA[Release the storage volume handle. The underlying
@@ -5890,7 +6308,7 @@ persistent naming]]></info>
 the storage volume]]></info>
       <return type='char *' info='the XML document, or NULL on error'/>
       <arg name='vol' type='virStorageVolPtr' info='pointer to storage volume'/>
-      <arg name='flags' type='unsigned int' info='flags for XML generation (unused, pass 0)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virStorageVolLookupByKey' file='libvirt' module='libvirt'>
       <info><![CDATA[Fetch a pointer to a storage volume based on its
@@ -5927,6 +6345,36 @@ the reference count.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='vol' type='virStorageVolPtr' info='the vol to hold a reference on'/>
     </function>
+    <function name='virStorageVolResize' file='libvirt' module='libvirt'>
+      <info><![CDATA[Changes the capacity of the storage volume @vol to @capacity. The
+operation will fail if the new capacity requires allocation that would
+exceed the remaining free space in the parent pool.  The contents of
+the new capacity will appear as all zero bytes.
+
+Normally, the operation will attempt to affect capacity with a minimum
+impact on allocation (that is, the default operation favors a sparse
+resize).  If @flags contains VIR_STORAGE_VOL_RESIZE_ALLOCATE, then the
+operation will ensure that allocation is sufficient for the new
+capacity; this may make the operation take noticeably longer.
+
+Normally, the operation treats @capacity as the new size in bytes;
+but if @flags contains VIR_STORAGE_RESIZE_DELTA, then @capacity
+represents the size difference to add to the current size.  It is
+up to the storage pool implementation whether unaligned requests are
+rounded up to the next valid boundary, or rejected.
+
+Normally, this operation should only be used to enlarge capacity;
+but if @flags contains VIR_STORAGE_RESIZE_SHRINK, it is possible to
+attempt a reduction in capacity even though it might cause data loss.
+If VIR_STORAGE_RESIZE_DELTA is also present, then @capacity is
+subtracted from the current size; without it, @capacity represents
+the absolute new size regardless of whether it is larger or smaller
+than the current size.]]></info>
+      <return type='int' info='0 on success, or -1 on error.'/>
+      <arg name='vol' type='virStorageVolPtr' info='pointer to storage volume'/>
+      <arg name='capacity' type='unsigned long long' info='new capacity, in bytes'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virStorageVolResizeFlags'/>
+    </function>
     <function name='virStorageVolUpload' file='libvirt' module='libvirt'>
       <info><![CDATA[Upload new content to the volume from a stream. This call
 will fail if @offset + @length exceeds the size of the
@@ -5944,12 +6392,20 @@ another active stream is writing to the storage volume.]]></info>
       <arg name='stream' type='virStreamPtr' info='stream to use as input'/>
       <arg name='offset' type='unsigned long long' info='position to start writing to'/>
       <arg name='length' type='unsigned long long' info='limit on amount of data to upload'/>
-      <arg name='flags' type='unsigned int' info='flags for creation (unused, pass 0)'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virStorageVolWipe' file='libvirt' module='libvirt'>
       <info><![CDATA[Ensure data previously on a volume is not accessible to future reads]]></info>
       <return type='int' info='0 on success, or -1 on error'/>
       <arg name='vol' type='virStorageVolPtr' info='pointer to storage volume'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virStorageVolWipePattern' file='libvirt' module='libvirt'>
+      <info><![CDATA[Similar to virStorageVolWipe, but one can choose
+between different wiping algorithms.]]></info>
+      <return type='int' info='0 on success, or -1 on error.'/>
+      <arg name='vol' type='virStorageVolPtr' info='pointer to storage volume'/>
+      <arg name='algorithm' type='unsigned int' info='one of virStorageVolWipeAlgorithm'/>
       <arg name='flags' type='unsigned int' info='future flags, use 0 for now'/>
     </function>
     <function name='virStreamAbort' file='libvirt' module='libvirt'>
@@ -6033,7 +6489,7 @@ If a non-blocking data stream is required passed
 VIR_STREAM_NONBLOCK for flags, otherwise pass 0.]]></info>
       <return type='virStreamPtr' info='the new stream, or NULL upon error'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the connection'/>
-      <arg name='flags' type='unsigned int' info='control features of the stream'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virStreamFlags'/>
     </function>
     <function name='virStreamRecv' file='libvirt' module='libvirt'>
       <info><![CDATA[Reads a series of bytes from the stream. This method may

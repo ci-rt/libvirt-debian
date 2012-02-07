@@ -52,6 +52,9 @@
 # define NUMA_VERSION1_COMPATIBILITY 1
 # include <numa.h>
 #endif
+#if HAVE_SELINUX
+# include <selinux/selinux.h>
+#endif
 
 #include "virterror_internal.h"
 #include "logging.h"
@@ -736,9 +739,17 @@ struct lxcConsole {
     int hostWatch;
     int hostFd;  /* PTY FD in the host OS */
     bool hostClosed;
+    int hostEpoll;
+    bool hostBlocking;
+
     int contWatch;
     int contFd;  /* PTY FD in the container */
     bool contClosed;
+    int contEpoll;
+    bool contBlocking;
+
+    int epollWatch;
+    int epollFd; /* epoll FD for dealing with EOF */
 
     size_t fromHostLen;
     char fromHostBuf[1024];
@@ -834,102 +845,148 @@ static void lxcConsoleUpdateWatch(struct lxcConsole *console)
     int hostEvents = 0;
     int contEvents = 0;
 
-    if (!console->hostClosed) {
+    if (!console->hostClosed || (!console->hostBlocking && console->fromContLen)) {
         if (console->fromHostLen < sizeof(console->fromHostBuf))
             hostEvents |= VIR_EVENT_HANDLE_READABLE;
         if (console->fromContLen)
             hostEvents |= VIR_EVENT_HANDLE_WRITABLE;
     }
-    if (!console->contClosed) {
+    if (!console->contClosed || (!console->contBlocking && console->fromHostLen)) {
         if (console->fromContLen < sizeof(console->fromContBuf))
             contEvents |= VIR_EVENT_HANDLE_READABLE;
         if (console->fromHostLen)
             contEvents |= VIR_EVENT_HANDLE_WRITABLE;
     }
 
+    VIR_DEBUG("Container watch %d=%d host watch %d=%d",
+              console->contWatch, contEvents,
+              console->hostWatch, hostEvents);
     virEventUpdateHandle(console->contWatch, contEvents);
     virEventUpdateHandle(console->hostWatch, hostEvents);
+
+    if (console->hostClosed) {
+        int events = EPOLLIN | EPOLLET;
+        if (console->hostBlocking)
+            events |= EPOLLOUT;
+
+        if (events != console->hostEpoll) {
+            struct epoll_event event;
+            int action = EPOLL_CTL_ADD;
+            if (console->hostEpoll)
+                action = EPOLL_CTL_MOD;
+
+            VIR_DEBUG("newHostEvents=%x oldHostEvents=%x", events, console->hostEpoll);
+
+            event.events = events;
+            event.data.fd = console->hostFd;
+            if (epoll_ctl(console->epollFd, action, console->hostFd, &event) < 0) {
+                VIR_DEBUG(":fail");
+                virReportSystemError(errno, "%s",
+                                     _("Unable to add epoll fd"));
+                quit = true;
+                goto cleanup;
+            }
+            console->hostEpoll = events;
+            VIR_DEBUG("newHostEvents=%x oldHostEvents=%x", events, console->hostEpoll);
+        }
+    } else if (console->hostEpoll) {
+        VIR_DEBUG("Stop epoll oldContEvents=%x", console->hostEpoll);
+        if (epoll_ctl(console->epollFd, EPOLL_CTL_DEL, console->hostFd, NULL) < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("Unable to remove epoll fd"));
+                VIR_DEBUG(":fail");
+            quit = true;
+            goto cleanup;
+        }
+        console->hostEpoll = 0;
+    }
+
+    if (console->contClosed) {
+        int events = EPOLLIN | EPOLLET;
+        if (console->contBlocking)
+            events |= EPOLLOUT;
+
+        if (events != console->contEpoll) {
+            struct epoll_event event;
+            int action = EPOLL_CTL_ADD;
+            if (console->contEpoll)
+                action = EPOLL_CTL_MOD;
+
+            VIR_DEBUG("newContEvents=%x oldContEvents=%x", events, console->contEpoll);
+
+            event.events = events;
+            event.data.fd = console->contFd;
+            if (epoll_ctl(console->epollFd, action, console->contFd, &event) < 0) {
+                virReportSystemError(errno, "%s",
+                                     _("Unable to add epoll fd"));
+                VIR_DEBUG(":fail");
+                quit = true;
+                goto cleanup;
+            }
+            console->contEpoll = events;
+            VIR_DEBUG("newHostEvents=%x oldHostEvents=%x", events, console->contEpoll);
+        }
+    } else if (console->contEpoll) {
+        VIR_DEBUG("Stop epoll oldContEvents=%x", console->contEpoll);
+        if (epoll_ctl(console->epollFd, EPOLL_CTL_DEL, console->contFd, NULL) < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("Unable to remove epoll fd"));
+                VIR_DEBUG(":fail");
+            quit = true;
+            goto cleanup;
+        }
+        console->contEpoll = 0;
+    }
+cleanup:
+    return;
 }
 
 
-struct lxcConsoleEOFData {
-    struct lxcConsole *console;
-    int fd;
-};
-
-
-static void lxcConsoleEOFThread(void *opaque)
+static void lxcEpollIO(int watch, int fd, int events, void *opaque)
 {
-    struct lxcConsoleEOFData *data = opaque;
-    int ret;
-    int epollfd = -1;
-    struct epoll_event event;
+    struct lxcConsole *console = opaque;
 
-    if ((epollfd = epoll_create(2)) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to create epoll fd"));
-        goto cleanup;
-    }
+    virMutexLock(&lock);
+    VIR_DEBUG("IO event watch=%d fd=%d events=%d fromHost=%zu fromcont=%zu",
+              watch, fd, events,
+              console->fromHostLen,
+              console->fromContLen);
 
-    event.events = EPOLLIN | EPOLLET;
-    event.data.fd = data->fd;
-    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, data->fd, &event) < 0) {
-        virReportSystemError(errno, "%s",
-                             _("Unable to add epoll fd"));
-        goto cleanup;
-    }
-
-    for (;;) {
-        ret = epoll_wait(epollfd, &event, 1, -1);
+    while (1) {
+        struct epoll_event event;
+        int ret;
+        ret = epoll_wait(console->epollFd, &event, 1, 0);
         if (ret < 0) {
             if (ret == EINTR)
                 continue;
             virReportSystemError(errno, "%s",
                                  _("Unable to wait on epoll"));
-            virMutexLock(&lock);
             quit = true;
-            virMutexUnlock(&lock);
             goto cleanup;
         }
+
+        if (ret == 0)
+            break;
+
+        VIR_DEBUG("fd=%d hostFd=%d contFd=%d hostEpoll=%x contEpoll=%x",
+                  event.data.fd, console->hostFd, console->contFd,
+                  console->hostEpoll, console->contEpoll);
 
         /* If we get HUP+dead PID, we just re-enable the main loop
          * which will see the PID has died and exit */
         if ((event.events & EPOLLIN)) {
-            virMutexLock(&lock);
-            if (event.data.fd == data->console->hostFd) {
-                data->console->hostClosed = false;
+            if (event.data.fd == console->hostFd) {
+                console->hostClosed = false;
             } else {
-                data->console->contClosed = false;
+                console->contClosed = false;
             }
-            lxcConsoleUpdateWatch(data->console);
-            virMutexUnlock(&lock);
+            lxcConsoleUpdateWatch(console);
             break;
         }
     }
 
 cleanup:
-    VIR_FORCE_CLOSE(epollfd);
-    VIR_FREE(data);
-}
-
-static int lxcCheckEOF(struct lxcConsole *console, int fd)
-{
-    struct lxcConsoleEOFData *data;
-    virThread thread;
-
-    if (VIR_ALLOC(data) < 0) {
-        virReportOOMError();
-        return -1;
-    }
-
-    data->console = console;
-    data->fd = fd;
-
-    if (virThreadCreate(&thread, false, lxcConsoleEOFThread, data) < 0) {
-        VIR_FREE(data);
-        return -1;
-    }
-    return 0;
+    virMutexUnlock(&lock);
 }
 
 static void lxcConsoleIO(int watch, int fd, int events, void *opaque)
@@ -937,6 +994,10 @@ static void lxcConsoleIO(int watch, int fd, int events, void *opaque)
     struct lxcConsole *console = opaque;
 
     virMutexLock(&lock);
+    VIR_DEBUG("IO event watch=%d fd=%d events=%d fromHost=%zu fromcont=%zu",
+              watch, fd, events,
+              console->fromHostLen,
+              console->fromContLen);
     if (events & VIR_EVENT_HANDLE_READABLE) {
         char *buf;
         size_t *len;
@@ -993,6 +1054,10 @@ static void lxcConsoleIO(int watch, int fd, int events, void *opaque)
             *len -= done;
         } else {
             VIR_DEBUG("Write fd %d done %d errno %d", fd, (int)done, errno);
+            if (watch == console->hostWatch)
+                console->hostBlocking = true;
+            else
+                console->contBlocking = true;
         }
     }
 
@@ -1003,8 +1068,6 @@ static void lxcConsoleIO(int watch, int fd, int events, void *opaque)
             console->contClosed = true;
         }
         VIR_DEBUG("Got EOF on %d %d", watch, fd);
-        if (lxcCheckEOF(console, fd) < 0)
-            goto error;
     }
 
     lxcConsoleUpdateWatch(console);
@@ -1103,8 +1166,31 @@ static int lxcControllerMain(int serverFd,
     }
 
     for (i = 0 ; i < nFds ; i++) {
+        consoles[i].epollFd = -1;
+        consoles[i].epollWatch = -1;
+        consoles[i].hostWatch = -1;
+        consoles[i].contWatch = -1;
+    }
+
+    for (i = 0 ; i < nFds ; i++) {
         consoles[i].hostFd = hostFds[i];
         consoles[i].contFd = contFds[i];
+
+        if ((consoles[i].epollFd = epoll_create1(EPOLL_CLOEXEC)) < 0) {
+            virReportSystemError(errno, "%s",
+                                 _("Unable to create epoll fd"));
+            goto cleanup;
+        }
+
+        if ((consoles[i].epollWatch = virEventAddHandle(consoles[i].epollFd,
+                                                        VIR_EVENT_HANDLE_READABLE,
+                                                        lxcEpollIO,
+                                                        &consoles[i],
+                                                        NULL)) < 0) {
+            lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("Unable to watch epoll FD"));
+            goto cleanup;
+        }
 
         if ((consoles[i].hostWatch = virEventAddHandle(consoles[i].hostFd,
                                                        VIR_EVENT_HANDLE_READABLE,
@@ -1146,6 +1232,17 @@ cleanup:
 cleanup2:
     VIR_FORCE_CLOSE(monitor.serverFd);
     VIR_FORCE_CLOSE(monitor.clientFd);
+
+    for (i = 0 ; i < nFds ; i++) {
+        if (consoles[i].epollWatch != -1)
+            virEventRemoveHandle(consoles[i].epollWatch);
+        VIR_FORCE_CLOSE(consoles[i].epollFd);
+        if (consoles[i].contWatch != -1)
+            virEventRemoveHandle(consoles[i].contWatch);
+        if (consoles[i].hostWatch != -1)
+            virEventRemoveHandle(consoles[i].hostWatch);
+    }
+
     VIR_FREE(consoles);
     return rc;
 }
@@ -1267,6 +1364,7 @@ cleanup:
 
 static int
 lxcControllerRun(virDomainDefPtr def,
+                 virSecurityManagerPtr securityDriver,
                  unsigned int nveths,
                  char **veths,
                  int monitor,
@@ -1338,6 +1436,12 @@ lxcControllerRun(virDomainDefPtr def,
      * marked as shared
      */
     if (root) {
+#if HAVE_SELINUX
+        security_context_t con;
+#else
+        bool con = false;
+#endif
+        char *opts;
         VIR_DEBUG("Setting up private /dev/pts");
 
         if (!virFileExists(root->src)) {
@@ -1372,16 +1476,35 @@ lxcControllerRun(virDomainDefPtr def,
             goto cleanup;
         }
 
+#if HAVE_SELINUX
+        if (getfilecon(root->src, &con) < 0 &&
+            errno != ENOTSUP) {
+            virReportSystemError(errno,
+                                 _("Failed to query file context on %s"),
+                                 root->src);
+            goto cleanup;
+        }
+#endif
         /* XXX should we support gid=X for X!=5 for distros which use
          * a different gid for tty?  */
-        VIR_DEBUG("Mounting 'devpts' on %s", devpts);
-        if (mount("devpts", devpts, "devpts", 0,
-                  "newinstance,ptmxmode=0666,mode=0620,gid=5") < 0) {
+        if (virAsprintf(&opts, "newinstance,ptmxmode=0666,mode=0620,gid=5%s%s%s",
+                        con ? ",context=\"" : "",
+                        con ? (const char *)con : "",
+                        con ? "\"" : "") < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        VIR_DEBUG("Mount devpts on %s type=tmpfs flags=%x, opts=%s",
+                  devpts, MS_NOSUID, opts);
+        if (mount("devpts", devpts, "devpts", MS_NOSUID, opts) < 0) {
+            VIR_FREE(opts);
             virReportSystemError(errno,
                                  _("Failed to mount devpts on %s"),
                                  devpts);
             goto cleanup;
         }
+        VIR_FREE(opts);
 
         if (access(devptmx, R_OK) < 0) {
             VIR_WARN("Kernel does not support private devpts, using shared devpts");
@@ -1421,6 +1544,7 @@ lxcControllerRun(virDomainDefPtr def,
         goto cleanup;
 
     if ((container = lxcContainerStart(def,
+                                       securityDriver,
                                        nveths,
                                        veths,
                                        control[1],
@@ -1529,11 +1653,13 @@ int main(int argc, char *argv[])
         { "veth",   1, NULL, 'v' },
         { "console", 1, NULL, 'c' },
         { "handshakefd", 1, NULL, 's' },
+        { "security", 1, NULL, 'S' },
         { "help", 0, NULL, 'h' },
         { 0, 0, 0, 0 },
     };
     int *ttyFDs = NULL;
     size_t nttyFDs = 0;
+    virSecurityManagerPtr securityDriver = NULL;
 
     if (setlocale(LC_ALL, "") == NULL ||
         bindtextdomain(PACKAGE, LOCALEDIR) == NULL ||
@@ -1545,7 +1671,7 @@ int main(int argc, char *argv[])
     while (1) {
         int c;
 
-        c = getopt_long(argc, argv, "dn:v:m:c:s:h",
+        c = getopt_long(argc, argv, "dn:v:m:c:s:h:S:",
                        options, NULL);
 
         if (c == -1)
@@ -1593,6 +1719,14 @@ int main(int argc, char *argv[])
             }
             break;
 
+        case 'S':
+            if (!(securityDriver = virSecurityManagerNew(optarg, false, false, false))) {
+                fprintf(stderr, "Cannot create security manager '%s'",
+                        optarg);
+                goto cleanup;
+            }
+            break;
+
         case 'h':
         case '?':
             fprintf(stderr, "\n");
@@ -1605,8 +1739,16 @@ int main(int argc, char *argv[])
             fprintf(stderr, "  -c FD, --console FD\n");
             fprintf(stderr, "  -v VETH, --veth VETH\n");
             fprintf(stderr, "  -s FD, --handshakefd FD\n");
+            fprintf(stderr, "  -S NAME, --security NAME\n");
             fprintf(stderr, "  -h, --help\n");
             fprintf(stderr, "\n");
+            goto cleanup;
+        }
+    }
+
+    if (securityDriver == NULL) {
+        if (!(securityDriver = virSecurityManagerNew("none", false, false, false))) {
+            fprintf(stderr, "%s: cannot initialize nop security manager", argv[0]);
             goto cleanup;
         }
     }
@@ -1630,7 +1772,7 @@ int main(int argc, char *argv[])
 
     virEventRegisterDefaultImpl();
 
-    if ((caps = lxcCapsInit()) == NULL)
+    if ((caps = lxcCapsInit(NULL)) == NULL)
         goto cleanup;
 
     if ((configFile = virDomainConfigFile(LXC_STATE_DIR,
@@ -1696,9 +1838,9 @@ int main(int argc, char *argv[])
         goto cleanup;
     }
 
-    rc = lxcControllerRun(def, nveths, veths, monitor, client,
+    rc = lxcControllerRun(def, securityDriver,
+                          nveths, veths, monitor, client,
                           ttyFDs, nttyFDs, handshakefd);
-
 
 cleanup:
     if (def)

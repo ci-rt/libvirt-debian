@@ -42,6 +42,7 @@
 #include "pci.h"
 #include "virfile.h"
 #include "configmake.h"
+#include "virrandom.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
@@ -909,10 +910,14 @@ get_files(vahControl * ctl)
         /* XXX passing ignoreOpenFailure = true to get back to the behavior
          * from before using virDomainDiskDefForeachPath. actually we should
          * be passing ignoreOpenFailure = false and handle open errors more
-         * careful than just ignoring them */
+         * careful than just ignoring them.
+         * XXX2 - if we knew the qemu user:group here we could send it in
+         *        so that the open could be re-tried as that user:group.
+         */
         int ret = virDomainDiskDefForeachPath(ctl->def->disks[i],
                                               ctl->allowDiskFormatProbing,
                                               true,
+                                              -1, -1 /* current uid:gid */
                                               add_file_path,
                                               &buf);
         if (ret != 0)
@@ -1181,6 +1186,9 @@ main(int argc, char **argv)
         progname++;
 
     memset(ctl, 0, sizeof(vahControl));
+
+    if (virRandomInitialize(time(NULL) ^ getpid()) < 0)
+        vah_error(ctl, 1, _("could not initialize random generator"));
 
     if (vahParseArgv(ctl, argc, argv) != 0)
         vah_error(ctl, 1, _("could not parse arguments"));

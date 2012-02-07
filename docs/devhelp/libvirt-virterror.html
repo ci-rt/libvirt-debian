@@ -219,6 +219,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_STORAGE_POOL_BUILT">VIR_ERR_STORAGE_POOL_BUILT</a> = 76 /* storage pool already built */
     <a name="VIR_ERR_SNAPSHOT_REVERT_RISKY">VIR_ERR_SNAPSHOT_REVERT_RISKY</a> = 77 /* force was not requested for a risky domain snapshot revert */
     <a name="VIR_ERR_OPERATION_ABORTED">VIR_ERR_OPERATION_ABORTED</a> = 78 /* operation on a domain was canceled/aborted by user */
+    <a name="VIR_ERR_AUTH_CANCELLED">VIR_ERR_AUTH_CANCELLED</a> = 79 /* authentication cancelled */
+    <a name="VIR_ERR_NO_DOMAIN_METADATA">VIR_ERR_NO_DOMAIN_METADATA</a> = 80 /* The metadata is not present */
 };
 </pre><p/>
 </div>
@@ -246,7 +248,7 @@ global error object.
 Since 0.6.0, all errors reported in the per-connection object
 are also duplicated in the global error object. As such an
 application can always use virGetLastError(). This method
-remains for backwards compatability.
+remains for backwards compatibility.
 
 One will need to free the result with virResetError()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>to</tt></i>:</span></td><td>target to receive the copy</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if no error was found and the error code otherwise and -1 in case of parameter error.</td></tr></tbody></table></div></div>
@@ -266,7 +268,7 @@ global error object.
 Since 0.6.0, all errors reported in the per-connection object
 are also duplicated in the global error object. As such an
 application can always use virGetLastError(). This method
-remains for backwards compatability.</p>
+remains for backwards compatibility.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a pointer to the last error or NULL if none occurred.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnResetLastError"/>virConnResetLastError ()</h3><pre class="programlisting">void	virConnResetLastError		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn)<br/>

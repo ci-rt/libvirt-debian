@@ -219,6 +219,10 @@ static void qemuDomainObjPrivateFree(void *data)
         VIR_ERROR(_("Unexpected QEMU monitor still active during domain deletion"));
         qemuMonitorClose(priv->mon);
     }
+    if (priv->agent) {
+        VIR_ERROR(_("Unexpected QEMU agent still active during domain deletion"));
+        qemuAgentClose(priv->agent);
+    }
     VIR_FREE(priv);
 }
 
@@ -1025,6 +1029,99 @@ void qemuDomainObjExitMonitorWithDriver(struct qemud_driver *driver,
     qemuDomainObjExitMonitorInternal(driver, true, obj);
 }
 
+
+
+static int
+qemuDomainObjEnterAgentInternal(struct qemud_driver *driver,
+                                bool driver_locked,
+                                virDomainObjPtr obj)
+{
+    qemuDomainObjPrivatePtr priv = obj->privateData;
+
+    qemuAgentLock(priv->agent);
+    qemuAgentRef(priv->agent);
+    ignore_value(virTimeMillisNow(&priv->agentStart));
+    virDomainObjUnlock(obj);
+    if (driver_locked)
+        qemuDriverUnlock(driver);
+
+    return 0;
+}
+
+static void ATTRIBUTE_NONNULL(1)
+qemuDomainObjExitAgentInternal(struct qemud_driver *driver,
+                               bool driver_locked,
+                               virDomainObjPtr obj)
+{
+    qemuDomainObjPrivatePtr priv = obj->privateData;
+    int refs;
+
+    refs = qemuAgentUnref(priv->agent);
+
+    if (refs > 0)
+        qemuAgentUnlock(priv->agent);
+
+    if (driver_locked)
+        qemuDriverLock(driver);
+    virDomainObjLock(obj);
+
+    priv->agentStart = 0;
+    if (refs == 0) {
+        priv->agent = NULL;
+    }
+}
+
+/*
+ * obj must be locked before calling, qemud_driver must be unlocked
+ *
+ * To be called immediately before any QEMU agent API call
+ * Must have already either called qemuDomainObjBeginJob() and checked
+ * that the VM is still active;
+ *
+ * To be followed with qemuDomainObjExitAgent() once complete
+ */
+void qemuDomainObjEnterAgent(struct qemud_driver *driver,
+                             virDomainObjPtr obj)
+{
+    ignore_value(qemuDomainObjEnterAgentInternal(driver, false, obj));
+}
+
+/* obj must NOT be locked before calling, qemud_driver must be unlocked
+ *
+ * Should be paired with an earlier qemuDomainObjEnterAgent() call
+ */
+void qemuDomainObjExitAgent(struct qemud_driver *driver,
+                            virDomainObjPtr obj)
+{
+    qemuDomainObjExitAgentInternal(driver, false, obj);
+}
+
+/*
+ * obj must be locked before calling, qemud_driver must be locked
+ *
+ * To be called immediately before any QEMU agent API call
+ * Must have already either called qemuDomainObjBeginJobWithDriver() and
+ * checked that the VM is still active; may not be used for nested async jobs.
+ *
+ * To be followed with qemuDomainObjExitAgentWithDriver() once complete
+ */
+void qemuDomainObjEnterAgentWithDriver(struct qemud_driver *driver,
+                                       virDomainObjPtr obj)
+{
+    ignore_value(qemuDomainObjEnterAgentInternal(driver, true, obj));
+}
+
+/* obj must NOT be locked before calling, qemud_driver must be unlocked,
+ * and will be locked after returning
+ *
+ * Should be paired with an earlier qemuDomainObjEnterAgentWithDriver() call
+ */
+void qemuDomainObjExitAgentWithDriver(struct qemud_driver *driver,
+                                      virDomainObjPtr obj)
+{
+    qemuDomainObjExitAgentInternal(driver, true, obj);
+}
+
 void qemuDomainObjEnterRemoteWithDriver(struct qemud_driver *driver,
                                         virDomainObjPtr obj)
 {
@@ -1050,20 +1147,20 @@ char *qemuDomainDefFormatXML(struct qemud_driver *driver,
 {
     char *ret = NULL;
     virCPUDefPtr cpu = NULL;
-    virCPUDefPtr def_cpu;
-
-    def_cpu = def->cpu;
+    virCPUDefPtr def_cpu = def->cpu;
 
     /* Update guest CPU requirements according to host CPU */
-    if ((flags & VIR_DOMAIN_XML_UPDATE_CPU) && def_cpu && def_cpu->model) {
+    if ((flags & VIR_DOMAIN_XML_UPDATE_CPU) &&
+        def_cpu &&
+        (def_cpu->mode != VIR_CPU_MODE_CUSTOM || def_cpu->model)) {
         if (!driver->caps || !driver->caps->host.cpu) {
             qemuReportError(VIR_ERR_OPERATION_FAILED,
                             "%s", _("cannot get host CPU capabilities"));
             goto cleanup;
         }
 
-        if (!(cpu = virCPUDefCopy(def_cpu))
-            || cpuUpdate(cpu, driver->caps->host.cpu))
+        if (!(cpu = virCPUDefCopy(def_cpu)) ||
+            cpuUpdate(cpu, driver->caps->host.cpu) < 0)
             goto cleanup;
         def->cpu = cpu;
     }
@@ -1143,6 +1240,9 @@ void qemuDomainObjCheckTaint(struct qemud_driver *driver,
             qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_CUSTOM_ARGV, logFD);
     }
 
+    if (obj->def->cpu && obj->def->cpu->mode == VIR_CPU_MODE_HOST_PASSTHROUGH)
+        qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_HOST_CPU, logFD);
+
     for (i = 0 ; i < obj->def->ndisks ; i++)
         qemuDomainObjCheckDiskTaint(driver, obj, obj->def->disks[i], logFD);
 
@@ -1159,6 +1259,9 @@ void qemuDomainObjCheckDiskTaint(struct qemud_driver *driver,
     if (!disk->driverType &&
         driver->allowDiskFormatProbing)
         qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_DISK_PROBING, logFD);
+
+    if (disk->rawio == 1)
+        qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_HIGH_PRIVILEGES, logFD);
 }
 
 
@@ -1167,10 +1270,12 @@ void qemuDomainObjCheckNetTaint(struct qemud_driver *driver,
                                 virDomainNetDefPtr net,
                                 int logFD)
 {
-    if ((net->type == VIR_DOMAIN_NET_TYPE_ETHERNET &&
-         net->data.ethernet.script != NULL) ||
-        (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE &&
-         net->data.bridge.script != NULL))
+    /* script is only useful for NET_TYPE_ETHERNET (qemu) and
+     * NET_TYPE_BRIDGE (xen), but could be (incorrectly) specified for
+     * any interface type. In any case, it's adding user sauce into
+     * the soup, so it should taint the domain.
+     */
+    if (net->script != NULL)
         qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_SHELL_SCRIPTS, logFD);
 }
 

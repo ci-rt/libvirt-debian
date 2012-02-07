@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2011 Red Hat, Inc.
+ * Copyright (C) 2007-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,6 +40,7 @@
 #include "logging.h"
 #include "memory.h"
 #include "virfile.h"
+#include "virrandom.h"
 
 #ifndef ENODATA
 # define ENODATA EIO
@@ -80,7 +81,7 @@ virUUIDGeneratePseudoRandomBytes(unsigned char *buf,
                                  int buflen)
 {
     while (buflen > 0) {
-        *buf++ = virRandom(256);
+        *buf++ = virRandomBits(8);
         buflen--;
     }
 
@@ -236,7 +237,7 @@ getDMISystemUUID(char *uuid, int len)
 
     while (paths[i]) {
         int fd = open(paths[i], O_RDONLY);
-        if (fd > 0) {
+        if (fd >= 0) {
             if (saferead(fd, uuid, len) == len) {
                 VIR_FORCE_CLOSE(fd);
                 return 0;

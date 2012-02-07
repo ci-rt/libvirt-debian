@@ -3,7 +3,7 @@
  *   remote_internal driver and libvirtd.  This protocol is
  *   internal and may change at any time.
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,6 +36,7 @@
  * 'REMOTE_'.  This makes names quite long.
  */
 
+%#include <libvirt/libvirt.h>
 %#include "internal.h"
 %#include <arpa/inet.h>
 
@@ -207,6 +208,22 @@ const REMOTE_DOMAIN_SEND_KEY_MAX = 16;
  */
 const REMOTE_DOMAIN_INTERFACE_PARAMETERS_MAX = 16;
 
+/*
+ * Upper limit on cpus involved in per-cpu stats
+ */
+const REMOTE_DOMAIN_GET_CPU_STATS_NCPUS_MAX = 128;
+
+/*
+ * Upper limit on list of per-cpu stats:
+ *  REMOTE_NODE_CPU_STATS_MAX * REMOTE_DOMAIN_GET_CPU_STATS_MAX
+ */
+const REMOTE_DOMAIN_GET_CPU_STATS_MAX = 2048;
+
+/*
+ * Upper limit on number of disks with errors
+ */
+const REMOTE_DOMAIN_DISK_ERRORS_MAX = 256;
+
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
 
@@ -347,6 +364,10 @@ struct remote_node_get_memory_stats {
     unsigned hyper value;
 };
 
+struct remote_domain_disk_error {
+    remote_nonnull_string disk;
+    int error;
+};
 
 /*----- Calls. -----*/
 
@@ -731,6 +752,13 @@ struct remote_domain_suspend_args {
     remote_nonnull_domain dom;
 };
 
+struct remote_domain_pm_suspend_for_duration_args {
+    remote_nonnull_domain dom;
+    unsigned int target;
+    unsigned hyper duration;
+    unsigned int flags;
+};
+
 struct remote_domain_resume_args {
     remote_nonnull_domain dom;
 };
@@ -1095,6 +1123,26 @@ struct remote_domain_set_autostart_args {
     int autostart;
 };
 
+struct remote_domain_set_metadata_args {
+    remote_nonnull_domain dom;
+    int type;
+    remote_string metadata;
+    remote_string key;
+    remote_string uri;
+    unsigned int flags;
+};
+
+struct remote_domain_get_metadata_args {
+    remote_nonnull_domain dom;
+    int type;
+    remote_string uri;
+    unsigned int flags;
+};
+
+struct remote_domain_get_metadata_ret {
+    remote_nonnull_string metadata;
+};
+
 struct remote_domain_block_job_abort_args {
     remote_nonnull_domain dom;
     remote_nonnull_string path;
@@ -1128,6 +1176,13 @@ struct remote_domain_block_pull_args {
     unsigned hyper bandwidth;
     unsigned int flags;
 };
+struct remote_domain_block_rebase_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string path;
+    remote_string base;
+    unsigned hyper bandwidth;
+    unsigned int flags;
+};
 
 struct remote_domain_set_block_io_tune_args {
     remote_nonnull_domain dom;
@@ -1145,6 +1200,19 @@ struct remote_domain_get_block_io_tune_args {
 
 struct remote_domain_get_block_io_tune_ret {
     remote_typed_param params<REMOTE_DOMAIN_BLOCK_IO_TUNE_PARAMETERS_MAX>;
+    int nparams;
+};
+
+struct remote_domain_get_cpu_stats_args {
+    remote_nonnull_domain dom;
+    unsigned int nparams;
+    int          start_cpu;
+    unsigned int ncpus;
+    unsigned int flags;
+};
+
+struct remote_domain_get_cpu_stats_ret {
+    remote_typed_param params<REMOTE_DOMAIN_GET_CPU_STATS_MAX>;
     int nparams;
 };
 
@@ -1642,6 +1710,12 @@ struct remote_storage_vol_wipe_args {
     unsigned int flags;
 };
 
+struct remote_storage_vol_wipe_pattern_args {
+    remote_nonnull_storage_vol vol;
+    unsigned int algorithm;
+    unsigned int flags;
+};
+
 struct remote_storage_vol_get_xml_desc_args {
     remote_nonnull_storage_vol vol;
     unsigned int flags;
@@ -1667,6 +1741,12 @@ struct remote_storage_vol_get_path_args {
 
 struct remote_storage_vol_get_path_ret {
     remote_nonnull_string name;
+};
+
+struct remote_storage_vol_resize_args {
+    remote_nonnull_storage_vol vol;
+    unsigned hyper capacity;
+    unsigned int flags;
 };
 
 /* Node driver calls: */
@@ -2348,6 +2428,22 @@ struct remote_node_suspend_for_duration_args {
     unsigned int flags;
 };
 
+struct remote_domain_shutdown_flags_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_get_disk_errors_args {
+    remote_nonnull_domain dom;
+    unsigned int maxerrors;
+    unsigned int flags;
+};
+
+struct remote_domain_get_disk_errors_ret {
+    remote_domain_disk_error errors<REMOTE_DOMAIN_DISK_ERRORS_MAX>;
+    int nerrors;
+};
+
 
 /*----- Protocol. -----*/
 
@@ -2653,7 +2749,17 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_SET_NUMA_PARAMETERS = 254, /* autogen autogen */
     REMOTE_PROC_DOMAIN_GET_NUMA_PARAMETERS = 255, /* skipgen skipgen */
     REMOTE_PROC_DOMAIN_SET_INTERFACE_PARAMETERS = 256, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_GET_INTERFACE_PARAMETERS = 257 /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_GET_INTERFACE_PARAMETERS = 257, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_SHUTDOWN_FLAGS = 258, /* autogen autogen */
+    REMOTE_PROC_STORAGE_VOL_WIPE_PATTERN = 259, /* autogen autogen */
+    REMOTE_PROC_STORAGE_VOL_RESIZE = 260, /* autogen autogen */
+
+    REMOTE_PROC_DOMAIN_PM_SUSPEND_FOR_DURATION = 261, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_GET_CPU_STATS = 262, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_GET_DISK_ERRORS = 263, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_SET_METADATA = 264, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_GET_METADATA = 265, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_BLOCK_REBASE = 266 /* autogen autogen */
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

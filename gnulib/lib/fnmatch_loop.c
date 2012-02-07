@@ -1,6 +1,4 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
-/* Copyright (C) 1991-1993, 1996-2006, 2009-2011 Free Software Foundation, Inc.
+/* Copyright (C) 1991-1993, 1996-2006, 2009-2012 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    This program is free software; you can redistribute it and/or modify
@@ -218,7 +216,7 @@ FCT (const CHAR *pattern, const CHAR *string, const CHAR *string_end,
               return FNM_NOMATCH;
 
             if (*n == L_('/') && (flags & FNM_FILE_NAME))
-              /* `/' cannot be matched.  */
+              /* '/' cannot be matched.  */
               return FNM_NOMATCH;
 
             not = (*p == L_('!') || (posixly_correct < 0 && *p == L_('^')));
@@ -638,7 +636,7 @@ FCT (const CHAR *pattern, const CHAR *string, const CHAR *string_end,
                         UCHAR cend = *p++;
 
 # ifdef WIDE_CHAR_VERSION
-                        /* Search in the `names' array for the characters.  */
+                        /* Search in the 'names' array for the characters.  */
                         fcollseq = __collseq_table_lookup (collseq, fn);
                         if (fcollseq == ~((uint32_t) 0))
                           /* XXX We don't know anything about the character
@@ -841,7 +839,7 @@ FCT (const CHAR *pattern, const CHAR *string, const CHAR *string_end,
 #else
                         /* We use a boring value comparison of the character
                            values.  This is better than comparing using
-                           `strcoll' since the latter would have surprising
+                           'strcoll' since the latter would have surprising
                            and sometimes fatal consequences.  */
                         UCHAR cend = *p++;
 
@@ -1158,7 +1156,7 @@ EXT (INT opt, const CHAR *pattern, const CHAR *string, const CHAR *string_end,
 
     case L_('@'):
       do
-        /* I cannot believe it but `strcat' is actually acceptable
+        /* I cannot believe it but 'strcat' is actually acceptable
            here.  Match the entire string with the prefix from the
            pattern list and the rest of the pattern following the
            pattern list.  */
