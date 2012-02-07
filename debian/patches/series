@@ -10,4 +10,3 @@ Disable-daemon-start-test.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
 Disable-failing-virnetsockettest.patch
 Don-t-fail-if-we-can-t-setup-avahi.patch
-xen-Don-t-crash-when-we-fail-to-init-caps.patch
