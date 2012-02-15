@@ -457,10 +457,6 @@ mymain(void)
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-scsi-device-auto", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
-    DO_TEST("disk-scsi-vscsi", false,
-            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
-    DO_TEST("disk-scsi-virtio-scsi", false,
-            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-sata-device", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE,
             QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_ICH9_AHCI);
@@ -728,6 +724,7 @@ mymain(void)
     DO_TEST("seclabel-dynamic-override", false, QEMU_CAPS_NAME);
     DO_TEST("seclabel-static", false, QEMU_CAPS_NAME);
     DO_TEST("seclabel-static-relabel", false, QEMU_CAPS_NAME);
+    DO_TEST("seclabel-none", false, QEMU_CAPS_NAME);
 
     DO_TEST("pseries-basic", false,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);

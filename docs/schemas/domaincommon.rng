@@ -130,9 +130,15 @@
           </interleave>
         </group>
         <group>
+          <!-- with none, relabel must be no if present -->
           <attribute name='type'>
             <value>none</value>
           </attribute>
+          <optional>
+            <attribute name='relabel'>
+              <value>no</value>
+            </attribute>
+          </optional>
         </group>
       </choice>
     </element>
@@ -1114,8 +1120,6 @@
             <value>lsilogic</value>
             <value>lsisas1068</value>
             <value>vmpvscsi</value>
-            <value>ibmvscsi</value>
-            <value>virtio-scsi</value>
             <value>piix3-uhci</value>
             <value>piix4-uhci</value>
             <value>ehci</value>

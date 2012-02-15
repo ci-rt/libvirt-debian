@@ -2355,33 +2355,14 @@ qemuBuildControllerDevStr(virDomainDefPtr domainDef,
                           int *nusbcontroller)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    int model;
 
     switch (def->type) {
     case VIR_DOMAIN_CONTROLLER_TYPE_SCSI:
-        model = def->model;
-        if (model == -1 || model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_AUTO) {
-            if (STREQ(domainDef->os.arch, "ppc64") &&
-                STREQ(domainDef->os.machine, "pseries")) {
-                model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI;
-            } else {
-                model = VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC;
-            }
-        }
-        switch (model) {
-        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VIRTIO_SCSI:
-            virBufferAddLit(&buf, "virtio-scsi");
-            break;
-        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC:
-            virBufferAddLit(&buf, "lsi");
-            break;
-        case VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI:
+        if (STREQ(domainDef->os.arch, "ppc64") &&
+            STREQ(domainDef->os.machine, "pseries")) {
             virBufferAddLit(&buf, "spapr-vscsi");
-            break;
-        default:
-            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                            _("Unsupported controller model: %s"),
-                            virDomainControllerModelSCSITypeToString(model));
+        } else {
+            virBufferAddLit(&buf, "lsi");
         }
         virBufferAsprintf(&buf, ",id=scsi%d", def->idx);
         break;
@@ -3666,8 +3647,7 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
     ret = 0;
 
 cleanup:
-    if (guest)
-        cpuDataFree(guest->arch, data);
+    cpuDataFree(host->arch, data);
     virCPUDefFree(guest);
     virCPUDefFree(cpu);
 
@@ -7621,7 +7601,13 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
             WANT_VALUE();
             /* ignore, generted on the fly */
         } else if (STREQ(arg, "-usb")) {
-            /* ignore, always added by libvirt */
+            virDomainControllerDefPtr ctldef;
+            if (VIR_ALLOC(ctldef) < 0)
+                goto no_memory;
+            ctldef->type = VIR_DOMAIN_CONTROLLER_TYPE_USB;
+            ctldef->idx = 0;
+            ctldef->model = -1;
+            virDomainControllerInsert(def, ctldef);
         } else if (STREQ(arg, "-pidfile")) {
             WANT_VALUE();
             if (pidfile)

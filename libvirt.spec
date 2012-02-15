@@ -252,10 +252,10 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 0.9.10
-Release: 0rc1%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
-Source: http://libvirt.org/sources/libvirt-%{version}-rc1.tar.gz
+Source: http://libvirt.org/sources/libvirt-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 URL: http://libvirt.org/
 
@@ -273,7 +273,7 @@ Requires: module-init-tools
 # for /sbin/ip & /sbin/tc
 Requires: iproute
 %if %{with_avahi}
-Requires: avahi
+Requires: avahi-libs
 %endif
 %endif
 %if %{with_network}
@@ -1274,6 +1274,20 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %endif
 
 %changelog
+* Mon Feb 13 2012 Daniel Veillard <veillard@redhat.com> - 0.9.10-1
+- Add support for sVirt in the LXC driver
+- block rebase: add new API virDomainBlockRebase
+- API: Add api to set and get domain metadata
+- virDomainGetDiskErrors public API
+- conf: add rawio attribute to disk element of domain XML
+- Add new public API virDomainGetCPUStats()
+- Introduce virDomainPMSuspendForDuration API
+- resize: add virStorageVolResize() API
+- Add a virt-host-validate command to sanity check HV config
+- Add new virDomainShutdownFlags API
+- QEMU guest agent support
+- many improvements and bug fixes
+
 * Sat Jan  7 2012 Daniel Veillard <veillard@redhat.com> - 0.9.9-1
 - Add API virDomain{S,G}etInterfaceParameters
 - Add API virDomain{G, S}etNumaParameters

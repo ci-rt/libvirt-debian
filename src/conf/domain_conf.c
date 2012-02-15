@@ -237,9 +237,7 @@ VIR_ENUM_IMPL(virDomainControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAS
               "buslogic",
               "lsilogic",
               "lsisas1068",
-              "vmpvscsi",
-              "ibmvscsi",
-              "virtio-scsi");
+              "vmpvscsi")
 
 VIR_ENUM_IMPL(virDomainControllerModelUSB, VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
               "piix3-uhci",
@@ -618,7 +616,6 @@ VIR_ENUM_IMPL(virDomainStartupPolicy, VIR_DOMAIN_STARTUP_POLICY_LAST,
 
 #define VIR_DOMAIN_XML_WRITE_FLAGS  VIR_DOMAIN_XML_SECURE
 #define VIR_DOMAIN_XML_READ_FLAGS   VIR_DOMAIN_XML_INACTIVE
-
 
 void
 virBlkioDeviceWeightArrayClear(virBlkioDeviceWeightPtr deviceWeights,
@@ -2583,17 +2580,15 @@ virSecurityLabelDefParseXML(virSecurityLabelDefPtr def,
     p = virXPathStringLimit("string(./seclabel/@type)",
                             VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
     if (p == NULL) {
-        virDomainReportError(VIR_ERR_XML_ERROR,
-                             "%s", _("missing security type"));
-        goto error;
-    }
-
-    def->type = virDomainSeclabelTypeFromString(p);
-    VIR_FREE(p);
-    if (def->type <= 0) {
-        virDomainReportError(VIR_ERR_XML_ERROR,
-                             "%s", _("invalid security type"));
-        goto error;
+        def->type = VIR_DOMAIN_SECLABEL_DYNAMIC;
+    } else {
+        def->type = virDomainSeclabelTypeFromString(p);
+        VIR_FREE(p);
+        if (def->type <= 0) {
+            virDomainReportError(VIR_ERR_XML_ERROR,
+                                 "%s", _("invalid security type"));
+            goto error;
+        }
     }
 
     p = virXPathStringLimit("string(./seclabel/@relabel)",
@@ -2634,7 +2629,8 @@ virSecurityLabelDefParseXML(virSecurityLabelDefPtr def,
      * if the 'live' VM XML is requested
      */
     if (def->type == VIR_DOMAIN_SECLABEL_STATIC ||
-        !(flags & VIR_DOMAIN_XML_INACTIVE)) {
+        (!(flags & VIR_DOMAIN_XML_INACTIVE) &&
+         def->type != VIR_DOMAIN_SECLABEL_NONE)) {
         p = virXPathStringLimit("string(./seclabel/label[1])",
                                 VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
         if (p == NULL) {
@@ -2648,7 +2644,8 @@ virSecurityLabelDefParseXML(virSecurityLabelDefPtr def,
 
     /* Only parse imagelabel, if requested live XML with relabeling */
     if (!def->norelabel &&
-        !(flags & VIR_DOMAIN_XML_INACTIVE)) {
+        (!(flags & VIR_DOMAIN_XML_INACTIVE) &&
+         def->type != VIR_DOMAIN_SECLABEL_NONE)) {
         p = virXPathStringLimit("string(./seclabel/imagelabel[1])",
                                 VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
         if (p == NULL) {
@@ -2659,16 +2656,11 @@ virSecurityLabelDefParseXML(virSecurityLabelDefPtr def,
         def->imagelabel = p;
     }
 
-    /* Only parse baselabel, for dynamic or none label types */
-    if (def->type == VIR_DOMAIN_SECLABEL_DYNAMIC ||
-        def->type == VIR_DOMAIN_SECLABEL_NONE) {
+    /* Only parse baselabel for dynamic label type */
+    if (def->type == VIR_DOMAIN_SECLABEL_DYNAMIC) {
         p = virXPathStringLimit("string(./seclabel/baselabel[1])",
                                 VIR_SECURITY_LABEL_BUFLEN-1, ctxt);
-        if (p != NULL) {
-            def->baselabel = p;
-            /* Forces none type to dynamic for back compat */
-            def->type = VIR_DOMAIN_SECLABEL_DYNAMIC;
-        }
+        def->baselabel = p;
     }
 
     /* Only parse model, if static labelling, or a base
@@ -2676,7 +2668,8 @@ virSecurityLabelDefParseXML(virSecurityLabelDefPtr def,
      */
     if (def->type == VIR_DOMAIN_SECLABEL_STATIC ||
         def->baselabel ||
-        !(flags & VIR_DOMAIN_XML_INACTIVE)) {
+        (!(flags & VIR_DOMAIN_XML_INACTIVE) &&
+         def->type != VIR_DOMAIN_SECLABEL_NONE)) {
         p = virXPathStringLimit("string(./seclabel/@model)",
                                 VIR_SECURITY_MODEL_BUFLEN-1, ctxt);
         if (p == NULL) {
@@ -7095,6 +7088,49 @@ error:
 }
 
 
+static int virDomainDefMaybeAddController(virDomainDefPtr def,
+                                          int type,
+                                          int idx)
+{
+    int found = 0;
+    int i;
+    virDomainControllerDefPtr cont;
+
+    for (i = 0 ; (i < def->ncontrollers) && !found; i++) {
+        if (def->controllers[i]->type == type &&
+            def->controllers[i]->idx == idx)
+            found = 1;
+    }
+
+    if (found)
+        return 0;
+
+    if (VIR_ALLOC(cont) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    cont->type = type;
+    cont->idx = idx;
+    cont->model = -1;
+
+    if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL) {
+        cont->opts.vioserial.ports = -1;
+        cont->opts.vioserial.vectors = -1;
+    }
+
+
+    if (VIR_REALLOC_N(def->controllers, def->ncontrollers+1) < 0) {
+        VIR_FREE(cont);
+        virReportOOMError();
+        return -1;
+    }
+    def->controllers[def->ncontrollers] = cont;
+    def->ncontrollers++;
+
+    return 0;
+}
+
 static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
                                             xmlDocPtr xml,
                                             xmlNodePtr root,
@@ -7652,6 +7688,12 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         virDomainControllerInsertPreAlloced(def, controller);
     }
     VIR_FREE(nodes);
+
+    if (def->virtType == VIR_DOMAIN_VIRT_QEMU ||
+        def->virtType == VIR_DOMAIN_VIRT_KQEMU ||
+        def->virtType == VIR_DOMAIN_VIRT_KVM)
+        if (virDomainDefMaybeAddController(def, VIR_DOMAIN_CONTROLLER_TYPE_USB, 0) < 0)
+            goto error;
 
     /* analysis of the resource leases */
     if ((n = virXPathNodeSet("./devices/lease", ctxt, &nodes)) < 0) {
@@ -9382,49 +9424,6 @@ cleanup:
 }
 
 
-static int virDomainDefMaybeAddController(virDomainDefPtr def,
-                                          int type,
-                                          int idx)
-{
-    int found = 0;
-    int i;
-    virDomainControllerDefPtr cont;
-
-    for (i = 0 ; (i < def->ncontrollers) && !found; i++) {
-        if (def->controllers[i]->type == type &&
-            def->controllers[i]->idx == idx)
-            found = 1;
-    }
-
-    if (found)
-        return 0;
-
-    if (VIR_ALLOC(cont) < 0) {
-        virReportOOMError();
-        return -1;
-    }
-
-    cont->type = type;
-    cont->idx = idx;
-    cont->model = -1;
-
-    if (cont->type == VIR_DOMAIN_CONTROLLER_TYPE_VIRTIO_SERIAL) {
-        cont->opts.vioserial.ports = -1;
-        cont->opts.vioserial.vectors = -1;
-    }
-
-
-    if (VIR_REALLOC_N(def->controllers, def->ncontrollers+1) < 0) {
-        VIR_FREE(cont);
-        virReportOOMError();
-        return -1;
-    }
-    def->controllers[def->ncontrollers] = cont;
-    def->ncontrollers++;
-
-    return 0;
-}
-
 static int virDomainDefAddDiskControllersForType(virDomainDefPtr def,
                                                  int controllerType,
                                                  int diskBus)
@@ -9952,15 +9951,16 @@ virSecurityLabelDefFormat(virBufferPtr buf, virSecurityLabelDefPtr def)
 
     virBufferAsprintf(buf, "<seclabel type='%s'",
                       sectype);
-    virBufferEscapeString(buf, " model='%s'", def->model);
-
-    virBufferAsprintf(buf, " relabel='%s'",
-                      def->norelabel ? "no" : "yes");
 
     if (def->type == VIR_DOMAIN_SECLABEL_NONE) {
         virBufferAddLit(buf, "/>\n");
         return;
     }
+
+    virBufferEscapeString(buf, " model='%s'", def->model);
+
+    virBufferAsprintf(buf, " relabel='%s'",
+                      def->norelabel ? "no" : "yes");
 
     if (def->label || def->imagelabel || def->baselabel) {
         virBufferAddLit(buf, ">\n");

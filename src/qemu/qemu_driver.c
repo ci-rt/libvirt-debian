@@ -2521,8 +2521,8 @@ qemuDomainSaveInternal(struct qemud_driver *driver, virDomainPtr dom,
     unsigned long long pad;
     int fd = -1;
     int directFlag = 0;
-    virFileDirectFdPtr directFd = NULL;
-    bool bypass_cache = flags & VIR_DOMAIN_SAVE_BYPASS_CACHE;
+    virFileWrapperFdPtr wrapperFd = NULL;
+    unsigned int wrapperFlags = VIR_FILE_WRAPPER_NON_BLOCKING;
 
     if (qemuProcessAutoDestroyActive(driver, vm)) {
         qemuReportError(VIR_ERR_OPERATION_INVALID,
@@ -2613,7 +2613,8 @@ qemuDomainSaveInternal(struct qemud_driver *driver, virDomainPtr dom,
     header.xml_len = len;
 
     /* Obtain the file handle.  */
-    if (bypass_cache) {
+    if ((flags & VIR_DOMAIN_SAVE_BYPASS_CACHE)) {
+        wrapperFlags |= VIR_FILE_WRAPPER_BYPASS_CACHE;
         directFlag = virFileDirectFdFlag();
         if (directFlag < 0) {
             qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
@@ -2625,7 +2626,7 @@ qemuDomainSaveInternal(struct qemud_driver *driver, virDomainPtr dom,
                       &needUnlink, &bypassSecurityDriver);
     if (fd < 0)
         goto endjob;
-    if (bypass_cache && (directFd = virFileDirectFdNew(&fd, path)) == NULL)
+    if (!(wrapperFd = virFileWrapperFdNew(&fd, path, wrapperFlags)))
         goto endjob;
 
     /* Write header to file, followed by XML */
@@ -2641,27 +2642,22 @@ qemuDomainSaveInternal(struct qemud_driver *driver, virDomainPtr dom,
                             QEMU_ASYNC_JOB_SAVE) < 0)
         goto endjob;
 
-    /* Touch up file header to mark image complete.  */
-    if (bypass_cache) {
-        /* Reopen the file to touch up the header, since we aren't set
-         * up to seek backwards on directFd.  The reopened fd will
-         * trigger a single page of file system cache pollution, but
-         * that's acceptable.  */
-        if (VIR_CLOSE(fd) < 0) {
-            virReportSystemError(errno, _("unable to close %s"), path);
-            goto endjob;
-        }
-        if (virFileDirectFdClose(directFd) < 0)
-            goto endjob;
-        fd = qemuOpenFile(driver, path, O_WRONLY, NULL, NULL);
-        if (fd < 0)
-            goto endjob;
-    } else {
-        if (lseek(fd, 0, SEEK_SET) != 0) {
-            virReportSystemError(errno, _("unable to seek %s"), path);
-            goto endjob;
-        }
+    /* Touch up file header to mark image complete. */
+
+    /* Reopen the file to touch up the header, since we aren't set
+     * up to seek backwards on wrapperFd.  The reopened fd will
+     * trigger a single page of file system cache pollution, but
+     * that's acceptable.  */
+    if (VIR_CLOSE(fd) < 0) {
+        virReportSystemError(errno, _("unable to close %s"), path);
+        goto endjob;
     }
+    if (virFileWrapperFdClose(wrapperFd) < 0)
+        goto endjob;
+    fd = qemuOpenFile(driver, path, O_WRONLY, NULL, NULL);
+    if (fd < 0)
+        goto endjob;
+
     memcpy(header.magic, QEMUD_SAVE_MAGIC, sizeof(header.magic));
     if (safewrite(fd, &header, sizeof(header)) != sizeof(header)) {
         virReportSystemError(errno, _("unable to write %s"), path);
@@ -2703,7 +2699,7 @@ endjob:
 
 cleanup:
     VIR_FORCE_CLOSE(fd);
-    virFileDirectFdFree(directFd);
+    virFileWrapperFdFree(wrapperFd);
     VIR_FREE(xml);
     if (ret != 0 && needUnlink)
         unlink(path);
@@ -2939,11 +2935,13 @@ doCoreDump(struct qemud_driver *driver,
 {
     int fd = -1;
     int ret = -1;
-    virFileDirectFdPtr directFd = NULL;
+    virFileWrapperFdPtr wrapperFd = NULL;
     int directFlag = 0;
+    unsigned int flags = VIR_FILE_WRAPPER_NON_BLOCKING;
 
     /* Create an empty file with appropriate ownership.  */
     if (bypass_cache) {
+        flags |= VIR_FILE_WRAPPER_BYPASS_CACHE;
         directFlag = virFileDirectFdFlag();
         if (directFlag < 0) {
             qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
@@ -2959,7 +2957,7 @@ doCoreDump(struct qemud_driver *driver,
                            NULL, NULL)) < 0)
         goto cleanup;
 
-    if (bypass_cache && (directFd = virFileDirectFdNew(&fd, path)) == NULL)
+    if (!(wrapperFd = virFileWrapperFdNew(&fd, path, flags)))
         goto cleanup;
 
     if (qemuMigrationToFile(driver, vm, fd, 0, path,
@@ -2973,14 +2971,14 @@ doCoreDump(struct qemud_driver *driver,
                              path);
         goto cleanup;
     }
-    if (virFileDirectFdClose(directFd) < 0)
+    if (virFileWrapperFdClose(wrapperFd) < 0)
         goto cleanup;
 
     ret = 0;
 
 cleanup:
     VIR_FORCE_CLOSE(fd);
-    virFileDirectFdFree(directFd);
+    virFileWrapperFdFree(wrapperFd);
     if (ret != 0)
         unlink(path);
     return ret;
@@ -3926,7 +3924,8 @@ qemuDomainSaveImageOpen(struct qemud_driver *driver,
                         const char *path,
                         virDomainDefPtr *ret_def,
                         struct qemud_save_header *ret_header,
-                        bool bypass_cache, virFileDirectFdPtr *directFd,
+                        bool bypass_cache,
+                        virFileWrapperFdPtr *wrapperFd,
                         const char *xmlin, int state, bool edit,
                         bool unlink_corrupt)
 {
@@ -3948,7 +3947,9 @@ qemuDomainSaveImageOpen(struct qemud_driver *driver,
 
     if ((fd = qemuOpenFile(driver, path, oflags, NULL, NULL)) < 0)
         goto error;
-    if (bypass_cache && (*directFd = virFileDirectFdNew(&fd, path)) == NULL)
+    if (bypass_cache &&
+        !(*wrapperFd = virFileWrapperFdNew(&fd, path,
+                                           VIR_FILE_WRAPPER_BYPASS_CACHE)))
         goto error;
 
     if (saferead(fd, &header, sizeof(header)) != sizeof(header)) {
@@ -4187,7 +4188,7 @@ qemuDomainRestoreFlags(virConnectPtr conn,
     int fd = -1;
     int ret = -1;
     struct qemud_save_header header;
-    virFileDirectFdPtr directFd = NULL;
+    virFileWrapperFdPtr wrapperFd = NULL;
     int state = -1;
 
     virCheckFlags(VIR_DOMAIN_SAVE_BYPASS_CACHE |
@@ -4203,7 +4204,7 @@ qemuDomainRestoreFlags(virConnectPtr conn,
 
     fd = qemuDomainSaveImageOpen(driver, path, &def, &header,
                                  (flags & VIR_DOMAIN_SAVE_BYPASS_CACHE) != 0,
-                                 &directFd, dxml, state, false, false);
+                                 &wrapperFd, dxml, state, false, false);
     if (fd < 0)
         goto cleanup;
 
@@ -4223,7 +4224,7 @@ qemuDomainRestoreFlags(virConnectPtr conn,
 
     ret = qemuDomainSaveImageStartVM(conn, driver, vm, &fd, &header, path,
                                      false);
-    if (virFileDirectFdClose(directFd) < 0)
+    if (virFileWrapperFdClose(wrapperFd) < 0)
         VIR_WARN("Failed to close %s", path);
 
     if (qemuDomainObjEndJob(driver, vm) == 0)
@@ -4236,7 +4237,7 @@ qemuDomainRestoreFlags(virConnectPtr conn,
 cleanup:
     virDomainDefFree(def);
     VIR_FORCE_CLOSE(fd);
-    virFileDirectFdFree(directFd);
+    virFileWrapperFdFree(wrapperFd);
     if (vm)
         virDomainObjUnlock(vm);
     qemuDriverUnlock(driver);
@@ -4364,10 +4365,10 @@ qemuDomainObjRestore(virConnectPtr conn,
     int fd = -1;
     int ret = -1;
     struct qemud_save_header header;
-    virFileDirectFdPtr directFd = NULL;
+    virFileWrapperFdPtr wrapperFd = NULL;
 
     fd = qemuDomainSaveImageOpen(driver, path, &def, &header,
-                                 bypass_cache, &directFd, NULL, -1, false,
+                                 bypass_cache, &wrapperFd, NULL, -1, false,
                                  true);
     if (fd < 0) {
         if (fd == -3)
@@ -4394,13 +4395,13 @@ qemuDomainObjRestore(virConnectPtr conn,
 
     ret = qemuDomainSaveImageStartVM(conn, driver, vm, &fd, &header, path,
                                      start_paused);
-    if (virFileDirectFdClose(directFd) < 0)
+    if (virFileWrapperFdClose(wrapperFd) < 0)
         VIR_WARN("Failed to close %s", path);
 
 cleanup:
     virDomainDefFree(def);
     VIR_FORCE_CLOSE(fd);
-    virFileDirectFdFree(directFd);
+    virFileWrapperFdFree(wrapperFd);
     return ret;
 }
 
@@ -5975,35 +5976,40 @@ cleanup:
     return -1;
 }
 
-/* Modify def to reflect all device weight changes described in tmp.  */
+/* Modify dest_array to reflect all device weight changes described in
+ * src_array.  */
 static int
-qemuDomainMergeDeviceWeights(virBlkioDeviceWeightPtr *def, size_t *def_size,
-                             virBlkioDeviceWeightPtr tmp, size_t tmp_size)
+qemuDomainMergeDeviceWeights(virBlkioDeviceWeightPtr *dest_array,
+                             size_t *dest_size,
+                             virBlkioDeviceWeightPtr src_array,
+                             size_t src_size)
 {
     int i, j;
-    virBlkioDeviceWeightPtr dw;
+    virBlkioDeviceWeightPtr dest, src;
 
-    for (i = 0; i < tmp_size; i++) {
+    for (i = 0; i < src_size; i++) {
         bool found = false;
 
-        dw = &tmp[i];
-        for (j = 0; j < *def_size; j++) {
-            if (STREQ(dw->path, (*def)[j].path)) {
+        src = &src_array[i];
+        for (j = 0; j < *dest_size; j++) {
+            dest = &(*dest_array)[j];
+            if (STREQ(src->path, dest->path)) {
                 found = true;
-                (*def)[j].weight = dw->weight;
+                dest->weight = src->weight;
                 break;
             }
         }
         if (!found) {
-            if (!dw->weight)
+            if (!src->weight)
                 continue;
-            if (VIR_EXPAND_N(*def, *def_size, 1) < 0) {
+            if (VIR_EXPAND_N(*dest_array, *dest_size, 1) < 0) {
                 virReportOOMError();
                 return -1;
             }
-            (*def)[*def_size - 1].path = dw->path;
-            (*def)[*def_size - 1].weight = dw->weight;
-            dw->path = NULL;
+            dest = &(*dest_array)[*dest_size - 1];
+            dest->path = src->path;
+            dest->weight = src->weight;
+            src->path = NULL;
         }
     }
 
@@ -6142,8 +6148,8 @@ qemuDomainSetBlkioParameters(virDomainPtr dom,
                     ret = -1;
                     continue;
                 }
-                if (qemuDomainMergeDeviceWeights(&vm->def->blkio.devices,
-                                                 &vm->def->blkio.ndevices,
+                if (qemuDomainMergeDeviceWeights(&persistentDef->blkio.devices,
+                                                 &persistentDef->blkio.ndevices,
                                                  devices, ndevices) < 0)
                     ret = -1;
                 virBlkioDeviceWeightArrayClear(devices, ndevices);
@@ -9039,7 +9045,7 @@ qemudNodeDeviceGetPciInfo (virNodeDevicePtr dev,
     if (!xml)
         goto out;
 
-    def = virNodeDeviceDefParseString(xml, EXISTING_DEVICE);
+    def = virNodeDeviceDefParseString(xml, EXISTING_DEVICE, NULL);
     if (!def)
         goto out;
 
