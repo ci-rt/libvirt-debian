@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2012-02-06" "libvirt-0.9.10" "Virtualization Support"
+.TH VIRSH 1 "2012-02-13" "libvirt-0.9.10" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -515,19 +515,17 @@ exits.
 Define a domain from an \s-1XML\s0 <file>. The domain definition is registered
 but not started.  If domain is already running, the changes will take
 effect on the next boot.
-.IP "\fBdesc\fR [\fI\-\-live\fR | \fI\-\-config\fR] [\fI\-\-title\fR] [\fI\-\-edit\fR] [\fI\-\-new\-desc\fR New description or title message]" 4
-.IX Item "desc [--live | --config] [--title] [--edit] [--new-desc New description or title message]"
+.IP "\fBdesc\fR [[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]] [\fI\-\-title\fR] [\fI\-\-edit\fR] [\fI\-\-new\-desc\fR New description or title message]" 4
+.IX Item "desc [[--live] [--config] | [--current]] [--title] [--edit] [--new-desc New description or title message]"
 Show or modify description and title of a domain. These values are user
 fields that allow to store arbitrary textual data to allow easy
 identification of domains. Title should be short, although it's not enforced.
 .Sp
 Flags \fI\-\-live\fR or \fI\-\-config\fR select whether this command works on live
-or persistent definitions of the domain. By default both are influenced, while
-modifying and running definition is used while reading the note.
-.Sp
-If both \fI\-\-live\fR and \fI\-\-config\fR are specified, the \fI\-\-config\fR option takes
-precedence on getting the current description and both live configuration
-and config are updated while setting the description.
+or persistent definitions of the domain. If both \fI\-\-live\fR and \fI\-\-config\fR
+are specified, the \fI\-\-config\fR option takes precedence on getting the current
+description and both live configuration and config are updated while setting
+the description. \fI\-\-current\fR is exclusive and implied if none of these was specified.
 .Sp
 Flag \fI\-\-edit\fR specifies that an editor with the contents of current
 description or title should be opened and the contents saved back afterwards.
@@ -1269,8 +1267,8 @@ anymore.
 Moves a domain out of the suspended state.  This will allow a previously
 suspended domain to now be eligible for scheduling by the underlying
 hypervisor.
-.IP "\fBsuspend-duration\fR \fIdomain-id\fR \fItarget\fR" 4
-.IX Item "suspend-duration domain-id target"
+.IP "\fBdompmsuspend\fR \fIdomain-id\fR \fItarget\fR" 4
+.IX Item "dompmsuspend domain-id target"
 Suspend a running domain into one of these states (possible \fItarget\fR
 values):
     mem equivallent of S3 \s-1ACPI\s0 state

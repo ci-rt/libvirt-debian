@@ -1548,12 +1548,10 @@ EXTRA_DIST = \
 
 @WITH_PYTHON_TRUE@mylibs = \
 @WITH_PYTHON_TRUE@	$(top_builddir)/src/libvirt.la \
-@WITH_PYTHON_TRUE@	$(top_builddir)/src/libvirt_util.la \
 @WITH_PYTHON_TRUE@	$(top_builddir)/gnulib/lib/libgnu.la
 
 @WITH_PYTHON_TRUE@myqemulibs = \
 @WITH_PYTHON_TRUE@	$(top_builddir)/src/libvirt-qemu.la \
-@WITH_PYTHON_TRUE@	$(top_builddir)/src/libvirt_util.la \
 @WITH_PYTHON_TRUE@	$(top_builddir)/gnulib/lib/libgnu.la
 
 @WITH_PYTHON_TRUE@pyexec_LTLIBRARIES = libvirtmod.la libvirtmod_qemu.la

@@ -1012,10 +1012,10 @@ cmdList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
                      "-",
                      names[i],
                      state == -2 ? _("saved") : _(vshDomainStateToString(state)));
+        }
 
         virDomainFree(dom);
         VIR_FREE(names[i]);
-        }
     }
 
     ret = true;
@@ -1051,7 +1051,7 @@ cmdDesc(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     virDomainPtr dom;
     bool config = vshCommandOptBool(cmd, "config");
     bool live = vshCommandOptBool(cmd, "live");
-    /* current is ignored */
+    bool current = vshCommandOptBool(cmd, "current");
 
     bool title = vshCommandOptBool(cmd, "title");
     bool edit = vshCommandOptBool(cmd, "edit");
@@ -1067,6 +1067,19 @@ cmdDesc(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     bool pad = false;
     bool ret = false;
     unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+
+    if (current) {
+        if (live || config) {
+            vshError(ctl, "%s", _("--current must be specified exclusively"));
+            return false;
+        }
+        flags = VIR_DOMAIN_AFFECT_CURRENT;
+    } else {
+        if (config)
+            flags |= VIR_DOMAIN_AFFECT_CONFIG;
+        if (live)
+            flags |= VIR_DOMAIN_AFFECT_LIVE;
+    }
 
     if (!vshConnectionUsability(ctl, ctl->conn))
         return false;
@@ -1084,10 +1097,6 @@ cmdDesc(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
         virBufferAdd(&buf, opt->data, -1);
     }
 
-    if (live)
-        flags |= VIR_DOMAIN_AFFECT_LIVE;
-    if (config)
-        flags |= VIR_DOMAIN_AFFECT_CONFIG;
     if (title)
         type = VIR_DOMAIN_METADATA_TITLE;
     else
@@ -1122,7 +1131,7 @@ cmdDesc(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 
             /* strip a possible newline at the end of file; some
              * editors enforce a newline, this makes editing the title
-             * more convinient */
+             * more convenient */
             if (title &&
                 (tmpstr = strrchr(desc_edited, '\n')) &&
                 *(tmpstr+1) == '\0')
@@ -1167,6 +1176,8 @@ cleanup:
         unlink(tmp);
         VIR_FREE(tmp);
     }
+    if (dom)
+        virDomainFree(dom);
     return ret;
 }
 
@@ -13153,6 +13164,7 @@ cmdAttachDevice(vshControl *ctl, const vshCmd *cmd)
  * @n2 second node
  * returns true in case n1 covers n2, false otherwise.
  */
+ATTRIBUTE_UNUSED
 static bool
 vshNodeIsSuperset(xmlNodePtr n1, xmlNodePtr n2)
 {
@@ -13278,6 +13290,7 @@ cleanup:
  *          (is too ambiguous), 0 in case of success. Otherwise returns -1. @newXML
  *          is touched only in case of success.
  */
+ATTRIBUTE_UNUSED
 static int
 vshCompleteXMLFromDomain(vshControl *ctl, virDomainPtr dom, char *oldXML,
                          char **newXML)
@@ -13412,7 +13425,7 @@ cmdDetachDevice(vshControl *ctl, const vshCmd *cmd)
 {
     virDomainPtr dom = NULL;
     const char *from = NULL;
-    char *buffer = NULL, *new_buffer = NULL;
+    char *buffer = NULL;
     int ret;
     bool funcRet = false;
     unsigned int flags;
@@ -13431,27 +13444,13 @@ cmdDetachDevice(vshControl *ctl, const vshCmd *cmd)
         goto cleanup;
     }
 
-    ret = vshCompleteXMLFromDomain(ctl, dom, buffer, &new_buffer);
-    if (ret < 0) {
-        if (ret == -2) {
-            vshError(ctl, _("no such device in %s"), virDomainGetName(dom));
-        } else if (ret == -3) {
-            vshError(ctl, "%s", _("given XML selects too many devices. "
-                                  "Please, be more specific"));
-        } else {
-            /* vshCompleteXMLFromDomain() already printed error message,
-             * so nothing to do here. */
-        }
-        goto cleanup;
-    }
-
     if (vshCommandOptBool(cmd, "persistent")) {
         flags = VIR_DOMAIN_AFFECT_CONFIG;
         if (virDomainIsActive(dom) == 1)
            flags |= VIR_DOMAIN_AFFECT_LIVE;
-        ret = virDomainDetachDeviceFlags(dom, new_buffer, flags);
+        ret = virDomainDetachDeviceFlags(dom, buffer, flags);
     } else {
-        ret = virDomainDetachDevice(dom, new_buffer);
+        ret = virDomainDetachDevice(dom, buffer);
     }
 
     if (ret < 0) {
@@ -13463,7 +13462,6 @@ cmdDetachDevice(vshControl *ctl, const vshCmd *cmd)
     funcRet = true;
 
 cleanup:
-    VIR_FREE(new_buffer);
     VIR_FREE(buffer);
     virDomainFree(dom);
     return funcRet;
