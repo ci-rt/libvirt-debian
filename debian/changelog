@@ -1,3 +1,9 @@
+libvirt (0.9.10-2) unstable; urgency=low
+
+  * Upload to unstable
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 22 Feb 2012 13:42:23 +0100
+
 libvirt (0.9.10-1) experimental; urgency=low
 
   * [63a7e8c] New upstream version 0.9.10
