@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright IBM Corp. 2009
  *
  * phyp_driver.c: ssh layer to access Power Hypervisors
@@ -44,7 +44,7 @@
 #include <domain_event.h>
 
 #include "internal.h"
-#include "authhelper.h"
+#include "virauth.h"
 #include "util.h"
 #include "datatypes.h"
 #include "buf.h"
@@ -1006,7 +1006,7 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
             goto err;
         }
 
-        username = virRequestUsername(auth, NULL, conn->uri->server);
+        username = virAuthGetUsername(conn, auth, "ssh", NULL, conn->uri->server);
 
         if (username == NULL) {
             PHYP_ERROR(VIR_ERR_AUTH_FAILED, "%s",
@@ -1087,7 +1087,7 @@ keyboard_interactive:
             goto disconnect;
         }
 
-        password = virRequestPassword(auth, username, conn->uri->server);
+        password = virAuthGetPassword(conn, auth, "ssh", username, conn->uri->server);
 
         if (password == NULL) {
             PHYP_ERROR(VIR_ERR_AUTH_FAILED, "%s",
@@ -3608,10 +3608,10 @@ phypBuildLpar(virConnectPtr conn, virDomainDefPtr def)
     virBufferAddLit(&buf, "mksyscfg");
     if (system_type == HMC)
         virBufferAsprintf(&buf, " -m %s", managed_system);
-    virBufferAsprintf(&buf, " -r lpar -p %s -i min_mem=%d,desired_mem=%d,"
-                      "max_mem=%d,desired_procs=%d,virtual_scsi_adapters=%s",
-                      def->name, (int) def->mem.cur_balloon,
-                      (int) def->mem.cur_balloon, (int) def->mem.max_balloon,
+    virBufferAsprintf(&buf, " -r lpar -p %s -i min_mem=%lld,desired_mem=%lld,"
+                      "max_mem=%lld,desired_procs=%d,virtual_scsi_adapters=%s",
+                      def->name, def->mem.cur_balloon,
+                      def->mem.cur_balloon, def->mem.max_balloon,
                       (int) def->vcpus, def->disks[0]->src);
     ret = phypExecBuffer(session, &buf, &exit_status, conn, false);
 

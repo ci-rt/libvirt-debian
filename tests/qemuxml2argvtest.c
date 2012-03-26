@@ -392,7 +392,13 @@ mymain(void)
     DO_TEST("hugepages", false, QEMU_CAPS_MEM_PATH);
     DO_TEST("disk-cdrom", false, NONE);
     DO_TEST("disk-cdrom-empty", false, QEMU_CAPS_DRIVE);
+    DO_TEST("disk-cdrom-tray", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_VIRTIO_TX_ALG);
+    DO_TEST("disk-cdrom-tray-no-device-cap", false, NONE);
     DO_TEST("disk-floppy", false, NONE);
+    DO_TEST("disk-floppy-tray-no-device-cap", false, NONE);
+    DO_TEST("disk-floppy-tray", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE);
     DO_TEST("disk-many", false, NONE);
     DO_TEST("disk-virtio", false, QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_BOOT);
     DO_TEST("disk-order", false,
@@ -457,6 +463,10 @@ mymain(void)
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-scsi-device-auto", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("disk-scsi-vscsi", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("disk-scsi-virtio-scsi", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-sata-device", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE,
             QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_ICH9_AHCI);
@@ -483,6 +493,10 @@ mymain(void)
             QEMU_CAPS_DRIVE,
             QEMU_CAPS_DEVICE,
             QEMU_CAPS_VIRTIO_BLK_SCSI, QEMU_CAPS_VIRTIO_BLK_SG_IO);
+    DO_TEST("disk-scsi-lun-passthrough", false,
+            QEMU_CAPS_DRIVE,
+            QEMU_CAPS_DEVICE,
+            QEMU_CAPS_SCSI_BLOCK, QEMU_CAPS_VIRTIO_BLK_SG_IO);
 
     DO_TEST("graphics-vnc", false, NONE);
     DO_TEST("graphics-vnc-socket", false, NONE);
@@ -507,6 +521,11 @@ mymain(void)
     DO_TEST("graphics-spice", false,
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE);
+    DO_TEST("graphics-spice-agentmouse", false,
+            QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
+            QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
+            QEMU_CAPS_CHARDEV_SPICEVMC,
+            QEMU_CAPS_NODEFCONFIG);
     DO_TEST("graphics-spice-compression", false,
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE);
@@ -538,6 +557,8 @@ mymain(void)
     DO_TEST("net-client", false, NONE);
     DO_TEST("net-server", false, NONE);
     DO_TEST("net-mcast", false, NONE);
+    DO_TEST("net-hostdev", false,
+            QEMU_CAPS_PCIDEVICE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
 
     DO_TEST("serial-vc", false, NONE);
     DO_TEST("serial-pty", false, NONE);

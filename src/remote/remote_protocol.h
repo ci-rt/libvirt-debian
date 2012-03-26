@@ -699,6 +699,11 @@ struct remote_domain_suspend_args {
 };
 typedef struct remote_domain_suspend_args remote_domain_suspend_args;
 
+struct remote_domain_resume_args {
+        remote_nonnull_domain dom;
+};
+typedef struct remote_domain_resume_args remote_domain_resume_args;
+
 struct remote_domain_pm_suspend_for_duration_args {
         remote_nonnull_domain dom;
         u_int target;
@@ -707,10 +712,11 @@ struct remote_domain_pm_suspend_for_duration_args {
 };
 typedef struct remote_domain_pm_suspend_for_duration_args remote_domain_pm_suspend_for_duration_args;
 
-struct remote_domain_resume_args {
+struct remote_domain_pm_wakeup_args {
         remote_nonnull_domain dom;
+        u_int flags;
 };
-typedef struct remote_domain_resume_args remote_domain_resume_args;
+typedef struct remote_domain_pm_wakeup_args remote_domain_pm_wakeup_args;
 
 struct remote_domain_shutdown_args {
         remote_nonnull_domain dom;
@@ -2476,6 +2482,23 @@ struct remote_domain_event_disk_change_msg {
 };
 typedef struct remote_domain_event_disk_change_msg remote_domain_event_disk_change_msg;
 
+struct remote_domain_event_tray_change_msg {
+        remote_nonnull_domain dom;
+        remote_nonnull_string devAlias;
+        int reason;
+};
+typedef struct remote_domain_event_tray_change_msg remote_domain_event_tray_change_msg;
+
+struct remote_domain_event_pmwakeup_msg {
+        remote_nonnull_domain dom;
+};
+typedef struct remote_domain_event_pmwakeup_msg remote_domain_event_pmwakeup_msg;
+
+struct remote_domain_event_pmsuspend_msg {
+        remote_nonnull_domain dom;
+};
+typedef struct remote_domain_event_pmsuspend_msg remote_domain_event_pmsuspend_msg;
+
 struct remote_domain_managed_save_args {
         remote_nonnull_domain dom;
         u_int flags;
@@ -3105,6 +3128,10 @@ enum remote_procedure {
         REMOTE_PROC_DOMAIN_SET_METADATA = 264,
         REMOTE_PROC_DOMAIN_GET_METADATA = 265,
         REMOTE_PROC_DOMAIN_BLOCK_REBASE = 266,
+        REMOTE_PROC_DOMAIN_PM_WAKEUP = 267,
+        REMOTE_PROC_DOMAIN_EVENT_TRAY_CHANGE = 268,
+        REMOTE_PROC_DOMAIN_EVENT_PMWAKEUP = 269,
+        REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND = 270,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -3206,8 +3233,9 @@ extern  bool_t xdr_remote_domain_lookup_by_uuid_ret (XDR *, remote_domain_lookup
 extern  bool_t xdr_remote_domain_lookup_by_name_args (XDR *, remote_domain_lookup_by_name_args*);
 extern  bool_t xdr_remote_domain_lookup_by_name_ret (XDR *, remote_domain_lookup_by_name_ret*);
 extern  bool_t xdr_remote_domain_suspend_args (XDR *, remote_domain_suspend_args*);
-extern  bool_t xdr_remote_domain_pm_suspend_for_duration_args (XDR *, remote_domain_pm_suspend_for_duration_args*);
 extern  bool_t xdr_remote_domain_resume_args (XDR *, remote_domain_resume_args*);
+extern  bool_t xdr_remote_domain_pm_suspend_for_duration_args (XDR *, remote_domain_pm_suspend_for_duration_args*);
+extern  bool_t xdr_remote_domain_pm_wakeup_args (XDR *, remote_domain_pm_wakeup_args*);
 extern  bool_t xdr_remote_domain_shutdown_args (XDR *, remote_domain_shutdown_args*);
 extern  bool_t xdr_remote_domain_reboot_args (XDR *, remote_domain_reboot_args*);
 extern  bool_t xdr_remote_domain_reset_args (XDR *, remote_domain_reset_args*);
@@ -3493,6 +3521,9 @@ extern  bool_t xdr_remote_domain_event_graphics_identity (XDR *, remote_domain_e
 extern  bool_t xdr_remote_domain_event_graphics_msg (XDR *, remote_domain_event_graphics_msg*);
 extern  bool_t xdr_remote_domain_event_block_job_msg (XDR *, remote_domain_event_block_job_msg*);
 extern  bool_t xdr_remote_domain_event_disk_change_msg (XDR *, remote_domain_event_disk_change_msg*);
+extern  bool_t xdr_remote_domain_event_tray_change_msg (XDR *, remote_domain_event_tray_change_msg*);
+extern  bool_t xdr_remote_domain_event_pmwakeup_msg (XDR *, remote_domain_event_pmwakeup_msg*);
+extern  bool_t xdr_remote_domain_event_pmsuspend_msg (XDR *, remote_domain_event_pmsuspend_msg*);
 extern  bool_t xdr_remote_domain_managed_save_args (XDR *, remote_domain_managed_save_args*);
 extern  bool_t xdr_remote_domain_has_managed_save_image_args (XDR *, remote_domain_has_managed_save_image_args*);
 extern  bool_t xdr_remote_domain_has_managed_save_image_ret (XDR *, remote_domain_has_managed_save_image_ret*);
@@ -3641,8 +3672,9 @@ extern bool_t xdr_remote_domain_lookup_by_uuid_ret ();
 extern bool_t xdr_remote_domain_lookup_by_name_args ();
 extern bool_t xdr_remote_domain_lookup_by_name_ret ();
 extern bool_t xdr_remote_domain_suspend_args ();
-extern bool_t xdr_remote_domain_pm_suspend_for_duration_args ();
 extern bool_t xdr_remote_domain_resume_args ();
+extern bool_t xdr_remote_domain_pm_suspend_for_duration_args ();
+extern bool_t xdr_remote_domain_pm_wakeup_args ();
 extern bool_t xdr_remote_domain_shutdown_args ();
 extern bool_t xdr_remote_domain_reboot_args ();
 extern bool_t xdr_remote_domain_reset_args ();
@@ -3928,6 +3960,9 @@ extern bool_t xdr_remote_domain_event_graphics_identity ();
 extern bool_t xdr_remote_domain_event_graphics_msg ();
 extern bool_t xdr_remote_domain_event_block_job_msg ();
 extern bool_t xdr_remote_domain_event_disk_change_msg ();
+extern bool_t xdr_remote_domain_event_tray_change_msg ();
+extern bool_t xdr_remote_domain_event_pmwakeup_msg ();
+extern bool_t xdr_remote_domain_event_pmsuspend_msg ();
 extern bool_t xdr_remote_domain_managed_save_args ();
 extern bool_t xdr_remote_domain_has_managed_save_image_args ();
 extern bool_t xdr_remote_domain_has_managed_save_image_ret ();

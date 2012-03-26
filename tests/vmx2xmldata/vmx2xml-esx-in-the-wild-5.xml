@@ -2,10 +2,10 @@
   <name>vmtest.local</name>
   <uuid>423e94a9-a1c7-b31d-7161-76c7586c830e</uuid>
   <description>Centos 5.5 64bit Server</description>
-  <memory>2097152</memory>
-  <currentMemory>2097152</currentMemory>
+  <memory unit='KiB'>2097152</memory>
+  <currentMemory unit='KiB'>2097152</currentMemory>
   <memtune>
-    <min_guarantee>262144</min_guarantee>
+    <min_guarantee unit='KiB'>262144</min_guarantee>
   </memtune>
   <vcpu>2</vcpu>
   <cputune>
@@ -22,12 +22,12 @@
     <disk type='file' device='disk'>
       <source file='[datastore] directory/vmtest-000001.vmdk'/>
       <target dev='sda' bus='scsi'/>
-      <address type='drive' controller='0' bus='0' unit='0'/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
     </disk>
     <disk type='file' device='cdrom'>
       <source file='[4af0231d-1eff559a-6369-0024e84773b6] isos/CentOS-5.5-x86_64-bin-DVD-1of2.iso'/>
       <target dev='hda' bus='ide'/>
-      <address type='drive' controller='0' bus='0' unit='0'/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
     </disk>
     <controller type='scsi' index='0' model='lsilogic'/>
     <controller type='ide' index='0'/>

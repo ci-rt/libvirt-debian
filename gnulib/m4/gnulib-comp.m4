@@ -206,7 +206,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module localename:
   # Code from module localename-tests:
   # Code from module lock:
-  # Code from module lock-tests:
   # Code from module lseek:
   # Code from module lseek-tests:
   # Code from module lstat:
@@ -463,7 +462,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module xalloc-die-tests:
   # Code from module xalloc-oversized:
   # Code from module xsize:
-  # Code from module yield:
 ])
 
 # This macro should be invoked from ./configure.ac, in the section
@@ -1437,7 +1435,6 @@ if test $REPLACE_WRITE = 1; then
 fi
 gl_UNISTD_MODULE_INDICATOR([write])
 gl_XALLOC
-gl_YIELD
   m4_popdef([gl_MODULE_INDICATOR_CONDITION])
   m4_ifval(gltests_LIBSOURCES_LIST, [
     m4_syscmd([test ! -d ]m4_defn([gltests_LIBSOURCES_DIR])[ ||
@@ -1981,7 +1978,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/write.m4
   m4/xalloc.m4
   m4/xsize.m4
-  m4/yield.m4
   tests/init.sh
   tests/macros.h
   tests/nap.h
@@ -2082,7 +2078,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-listen.c
   tests/test-locale.c
   tests/test-localename.c
-  tests/test-lock.c
   tests/test-lseek.c
   tests/test-lseek.sh
   tests/test-lstat.c
@@ -2253,7 +2248,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/getugroups.h
   tests=lib/glthread/thread.c
   tests=lib/glthread/thread.h
-  tests=lib/glthread/yield.h
   tests=lib/grantpt.c
   tests=lib/inttypes.in.h
   tests=lib/locale.in.h

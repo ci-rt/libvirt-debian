@@ -117,6 +117,10 @@ struct _virDomainEvent {
             char *devAlias;
             int reason;
         } diskChange;
+        struct {
+            char *devAlias;
+            int reason;
+        } trayChange;
     } data;
 };
 
@@ -545,6 +549,9 @@ void virDomainEventFree(virDomainEventPtr event)
         VIR_FREE(event->data.diskChange.oldSrcPath);
         VIR_FREE(event->data.diskChange.newSrcPath);
         VIR_FREE(event->data.diskChange.devAlias);
+        break;
+    case VIR_DOMAIN_EVENT_ID_TRAY_CHANGE:
+        VIR_FREE(event->data.trayChange.devAlias);
         break;
     }
 
@@ -1043,6 +1050,99 @@ virDomainEventPtr virDomainEventDiskChangeNewFromDom(virDomainPtr dom,
                                        devAlias, reason);
 }
 
+static virDomainEventPtr
+virDomainEventTrayChangeNew(int id, const char *name,
+                            unsigned char *uuid,
+                            const char *devAlias,
+                            int reason)
+{
+    virDomainEventPtr ev =
+        virDomainEventNewInternal(VIR_DOMAIN_EVENT_ID_TRAY_CHANGE,
+                                  id, name, uuid);
+
+    if (ev) {
+        if (!(ev->data.trayChange.devAlias = strdup(devAlias)))
+            goto error;
+
+        ev->data.trayChange.reason = reason;
+    }
+
+    return ev;
+
+error:
+    virReportOOMError();
+    virDomainEventFree(ev);
+    return NULL;
+}
+
+virDomainEventPtr virDomainEventTrayChangeNewFromObj(virDomainObjPtr obj,
+                                                     const char *devAlias,
+                                                     int reason)
+{
+    return virDomainEventTrayChangeNew(obj->def->id,
+                                       obj->def->name,
+                                       obj->def->uuid,
+                                       devAlias,
+                                       reason);
+}
+
+virDomainEventPtr virDomainEventTrayChangeNewFromDom(virDomainPtr dom,
+                                                     const char *devAlias,
+                                                     int reason)
+{
+    return virDomainEventTrayChangeNew(dom->id, dom->name, dom->uuid,
+                                       devAlias, reason);
+}
+
+static virDomainEventPtr
+virDomainEventPMWakeupNew(int id, const char *name,
+                          unsigned char *uuid)
+{
+    virDomainEventPtr ev =
+        virDomainEventNewInternal(VIR_DOMAIN_EVENT_ID_PMWAKEUP,
+                                  id, name, uuid);
+
+    return ev;
+}
+
+virDomainEventPtr
+virDomainEventPMWakeupNewFromObj(virDomainObjPtr obj)
+{
+    return virDomainEventPMWakeupNew(obj->def->id,
+                                     obj->def->name,
+                                     obj->def->uuid);
+}
+
+virDomainEventPtr
+virDomainEventPMWakeupNewFromDom(virDomainPtr dom)
+{
+    return virDomainEventPMWakeupNew(dom->id, dom->name, dom->uuid);
+}
+
+static virDomainEventPtr
+virDomainEventPMSuspendNew(int id, const char *name,
+                           unsigned char *uuid)
+{
+    virDomainEventPtr ev =
+        virDomainEventNewInternal(VIR_DOMAIN_EVENT_ID_PMSUSPEND,
+                                  id, name, uuid);
+
+    return ev;
+}
+
+virDomainEventPtr
+virDomainEventPMSuspendNewFromObj(virDomainObjPtr obj)
+{
+    return virDomainEventPMSuspendNew(obj->def->id,
+                                      obj->def->name,
+                                      obj->def->uuid);
+}
+
+virDomainEventPtr
+virDomainEventPMSuspendNewFromDom(virDomainPtr dom)
+{
+    return virDomainEventPMSuspendNew(dom->id, dom->name, dom->uuid);
+}
 
 /**
  * virDomainEventQueuePush:
@@ -1165,6 +1265,21 @@ virDomainEventDispatchDefaultFunc(virConnectPtr conn,
                                                       event->data.diskChange.devAlias,
                                                       event->data.diskChange.reason,
                                                       cbopaque);
+        break;
+
+    case VIR_DOMAIN_EVENT_ID_TRAY_CHANGE:
+        ((virConnectDomainEventTrayChangeCallback)cb)(conn, dom,
+                                                      event->data.trayChange.devAlias,
+                                                      event->data.trayChange.reason,
+                                                      cbopaque);
+        break;
+
+    case VIR_DOMAIN_EVENT_ID_PMWAKEUP:
+        ((virConnectDomainEventPMWakeupCallback)cb)(conn, dom, 0, cbopaque);
+        break;
+
+    case VIR_DOMAIN_EVENT_ID_PMSUSPEND:
+        ((virConnectDomainEventPMSuspendCallback)cb)(conn, dom, 0, cbopaque);
         break;
 
     default:

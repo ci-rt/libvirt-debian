@@ -685,10 +685,10 @@ done:
     return rv;
 }
 
-static unsigned long
+static unsigned long long
 remoteDomainGetMaxMemory(virDomainPtr dom)
 {
-    unsigned long rv = 0;
+    unsigned long long rv = 0;
     struct private_data *priv = dom->conn->privateData;
     remote_domain_get_max_memory_args args;
     remote_domain_get_max_memory_ret ret;
@@ -705,7 +705,7 @@ remoteDomainGetMaxMemory(virDomainPtr dom)
         goto done;
     }
 
-    HYPER_TO_ULONG(rv, ret.memory);
+    rv = ret.memory;
 
 done:
     remoteDriverUnlock(priv);
@@ -1627,6 +1627,31 @@ remoteDomainPMSuspendForDuration(virDomainPtr dom, unsigned int target, unsigned
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_PM_SUSPEND_FOR_DURATION,
              (xdrproc_t)xdr_remote_domain_pm_suspend_for_duration_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainPMWakeup(virDomainPtr dom, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_pm_wakeup_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_PM_WAKEUP,
+             (xdrproc_t)xdr_remote_domain_pm_wakeup_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }

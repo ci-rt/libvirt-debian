@@ -1077,6 +1077,9 @@
 /* whether numactl is available for topology info */
 #undef HAVE_NUMACTL
 
+/* whether numad is available */
+#undef HAVE_NUMAD
+
 /* Define to 1 if the system has the 'openpty' function. */
 #undef HAVE_OPENPTY
 
@@ -1743,8 +1746,14 @@
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
 #undef NO_MINUS_C_MINUS_O
 
+/* Location or name of the numad program */
+#undef NUMAD
+
 /* Define to 1 if open() fails to recognize a trailing slash. */
 #undef OPEN_TRAILING_SLASH_BUG
+
+/* Location or name of the ovs-vsctl program */
+#undef OVSVSCTL
 
 /* Name of package */
 #undef PACKAGE
@@ -1841,7 +1850,7 @@
 /* Define if vasnprintf exists but is overridden by gnulib. */
 #undef REPLACE_VASNPRINTF
 
-/* Location of the scrub program */
+/* Location or name of the scrub program (for wiping algorithms) */
 #undef SCRUB
 
 /* Location or name of the showmount program */
@@ -1959,6 +1968,9 @@
 /* Location of vgscan program */
 #undef VGSCAN
 
+/* path to directory containing UUCP pty lock files */
+#undef VIR_PTY_LOCK_FILE_PATH
+
 /* Define to the absolute path of a shell that does not truncate on <>
    redirection, if /bin/sh does not fit the bill */
 #undef VIR_WRAPPER_SHELL
@@ -1984,7 +1996,7 @@
 #undef WITH_DRIVER_MODULES
 
 /* whether DTrace static probes are available */
-#undef WITH_DTRACE
+#undef WITH_DTRACE_PROBES
 
 /* whether ESX driver is enabled */
 #undef WITH_ESX
@@ -2251,7 +2263,7 @@
 #endif
 
 /* Define as an integer type suitable for memory locations that can be
-   accessed atomically even in the presence of asynchnonous signals. */
+   accessed atomically even in the presence of asynchronous signals. */
 #undef sig_atomic_t
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */

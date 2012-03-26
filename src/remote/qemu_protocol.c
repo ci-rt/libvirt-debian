@@ -4,7 +4,7 @@
  * It was generated using rpcgen.
  */
 
-#include "remote/qemu_protocol.h"
+#include "qemu_protocol.h"
 #include "internal.h"
 #include "remote_protocol.h"
 #include <arpa/inet.h>
@@ -35,7 +35,7 @@ bool_t
 xdr_qemu_domain_attach_args (XDR *xdrs, qemu_domain_attach_args *objp)
 {
 
-         if (!xdr_u_int (xdrs, &objp->pid))
+         if (!xdr_u_int (xdrs, &objp->pid_value))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;

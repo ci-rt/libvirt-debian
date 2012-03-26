@@ -1,7 +1,7 @@
 /*
  * cgroup.h: Interface to tools for managing cgroups
  *
- * Copyright (C) 2011 Red Hat, Inc.
+ * Copyright (C) 2011-2012 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * See COPYING.LIB for the License of this software
@@ -115,6 +115,9 @@ int virCgroupSetCpuCfsQuota(virCgroupPtr group, long long cfs_quota);
 int virCgroupGetCpuCfsQuota(virCgroupPtr group, long long *cfs_quota);
 
 int virCgroupGetCpuacctUsage(virCgroupPtr group, unsigned long long *usage);
+int virCgroupGetCpuacctPercpuUsage(virCgroupPtr group, char **usage);
+int virCgroupGetCpuacctStat(virCgroupPtr group, unsigned long long *user,
+                            unsigned long long *sys);
 
 int virCgroupSetFreezerState(virCgroupPtr group, const char *state);
 int virCgroupGetFreezerState(virCgroupPtr group, char **state);

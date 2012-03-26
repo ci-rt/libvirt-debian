@@ -90,14 +90,13 @@ TESTS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-inet_pton$(EXEEXT) test-intprops$(EXEEXT) \
 	test-inttypes$(EXEEXT) test-ioctl$(EXEEXT) \
 	test-listen$(EXEEXT) test-locale$(EXEEXT) \
-	test-localename$(EXEEXT) test-lock$(EXEEXT) test-lseek.sh \
-	test-lstat$(EXEEXT) test-malloca$(EXEEXT) test-mbrtowc1.sh \
-	test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
-	test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
-	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
-	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
-	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
-	test-memchr$(EXEEXT) test-netdb$(EXEEXT) \
+	test-localename$(EXEEXT) test-lseek.sh test-lstat$(EXEEXT) \
+	test-malloca$(EXEEXT) test-mbrtowc1.sh test-mbrtowc2.sh \
+	test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc-w32-1.sh \
+	test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
+	test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbsinit.sh \
+	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
+	test-mbsrtowcs4.sh test-memchr$(EXEEXT) test-netdb$(EXEEXT) \
 	test-netinet_in$(EXEEXT) test-nonblocking-pipe.sh \
 	test-nonblocking-socket.sh test-nonblocking$(EXEEXT) \
 	test-open$(EXEEXT) test-openpty$(EXEEXT) test-passfd$(EXEEXT) \
@@ -176,8 +175,8 @@ check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-inet_ntop$(EXEEXT) test-inet_pton$(EXEEXT) \
 	test-intprops$(EXEEXT) test-inttypes$(EXEEXT) \
 	test-ioctl$(EXEEXT) test-listen$(EXEEXT) test-locale$(EXEEXT) \
-	test-localename$(EXEEXT) test-lock$(EXEEXT) \
-	test-lseek$(EXEEXT) test-lstat$(EXEEXT) test-malloca$(EXEEXT) \
+	test-localename$(EXEEXT) test-lseek$(EXEEXT) \
+	test-lstat$(EXEEXT) test-malloca$(EXEEXT) \
 	test-mbrtowc$(EXEEXT) test-mbrtowc-w32$(EXEEXT) \
 	test-mbsinit$(EXEEXT) test-mbsrtowcs$(EXEEXT) \
 	test-memchr$(EXEEXT) test-netdb$(EXEEXT) \
@@ -440,8 +439,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/wctomb.m4 \
 	$(top_srcdir)/gnulib/m4/wctype_h.m4 \
 	$(top_srcdir)/gnulib/m4/write.m4 \
-	$(top_srcdir)/gnulib/m4/xalloc.m4 \
-	$(top_srcdir)/gnulib/m4/yield.m4 $(top_srcdir)/m4/codeset.m4 \
+	$(top_srcdir)/gnulib/m4/xalloc.m4 $(top_srcdir)/m4/codeset.m4 \
 	$(top_srcdir)/m4/gettext.m4 $(top_srcdir)/m4/glibc21.m4 \
 	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/intlmacosx.m4 \
 	$(top_srcdir)/m4/inttypes-pri.m4 \
@@ -832,9 +830,6 @@ test_localename_SOURCES = test-localename.c
 test_localename_OBJECTS = test-localename.$(OBJEXT)
 test_localename_DEPENDENCIES = $(am__DEPENDENCIES_2) \
 	$(am__DEPENDENCIES_1)
-test_lock_SOURCES = test-lock.c
-test_lock_OBJECTS = test-lock.$(OBJEXT)
-test_lock_DEPENDENCIES = $(am__DEPENDENCIES_2)
 test_lseek_SOURCES = test-lseek.c
 test_lseek_OBJECTS = test-lseek.$(OBJEXT)
 test_lseek_LDADD = $(LDADD)
@@ -1370,8 +1365,8 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-getsockopt.c test-gettimeofday.c test-grantpt.c \
 	test-ignore-value.c test-inet_ntop.c test-inet_pton.c \
 	test-intprops.c test-inttypes.c test-ioctl.c test-listen.c \
-	test-locale.c test-localename.c test-lock.c test-lseek.c \
-	test-lstat.c test-malloca.c test-mbrtowc.c test-mbrtowc-w32.c \
+	test-locale.c test-localename.c test-lseek.c test-lstat.c \
+	test-malloca.c test-mbrtowc.c test-mbrtowc-w32.c \
 	test-mbsinit.c test-mbsrtowcs.c test-md5.c test-memchr.c \
 	test-netdb.c test-netinet_in.c test-nonblocking.c \
 	test-nonblocking-pipe-child.c test-nonblocking-pipe-main.c \
@@ -1426,8 +1421,8 @@ DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-getsockopt.c test-gettimeofday.c test-grantpt.c \
 	test-ignore-value.c test-inet_ntop.c test-inet_pton.c \
 	test-intprops.c test-inttypes.c test-ioctl.c test-listen.c \
-	test-locale.c test-localename.c test-lock.c test-lseek.c \
-	test-lstat.c test-malloca.c test-mbrtowc.c test-mbrtowc-w32.c \
+	test-locale.c test-localename.c test-lseek.c test-lstat.c \
+	test-malloca.c test-mbrtowc.c test-mbrtowc-w32.c \
 	test-mbsinit.c test-mbsrtowcs.c test-md5.c test-memchr.c \
 	test-netdb.c test-netinet_in.c test-nonblocking.c \
 	test-nonblocking-pipe-child.c test-nonblocking-pipe-main.c \
@@ -2309,12 +2304,14 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
+NUMAD = @NUMAD@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OPENWSMAN_CFLAGS = @OPENWSMAN_CFLAGS@
 OPENWSMAN_LIBS = @OPENWSMAN_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
+OVSVSCTL = @OVSVSCTL@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -2564,7 +2561,6 @@ XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
 YAJL_LIBS = @YAJL_LIBS@
-YIELD_LIB = @YIELD_LIB@
 abs_aux_dir = @abs_aux_dir@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -2692,18 +2688,18 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	signature.h macros.h test-intprops.c macros.h inttypes.in.h \
 	test-inttypes.c test-ioctl.c signature.h macros.h \
 	test-listen.c signature.h macros.h locale.in.h test-locale.c \
-	localename.h test-localename.c macros.h test-lock.c \
-	test-lseek.c test-lseek.sh signature.h macros.h test-lstat.h \
-	test-lstat.c signature.h macros.h test-malloca.c \
-	test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh \
-	test-mbrtowc4.sh test-mbrtowc.c test-mbrtowc-w32-1.sh \
-	test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
-	test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbrtowc-w32.c \
-	signature.h macros.h test-mbsinit.sh test-mbsinit.c \
-	signature.h macros.h test-mbsrtowcs1.sh test-mbsrtowcs2.sh \
-	test-mbsrtowcs3.sh test-mbsrtowcs4.sh test-mbsrtowcs.c \
-	signature.h macros.h mbtowc-impl.h mbtowc.c test-memchr.c \
-	zerosize-ptr.h signature.h macros.h mgetgroups.h test-netdb.c \
+	localename.h test-localename.c macros.h test-lseek.c \
+	test-lseek.sh signature.h macros.h test-lstat.h test-lstat.c \
+	signature.h macros.h test-malloca.c test-mbrtowc1.sh \
+	test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
+	test-mbrtowc.c test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
+	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
+	test-mbrtowc-w32-5.sh test-mbrtowc-w32.c signature.h macros.h \
+	test-mbsinit.sh test-mbsinit.c signature.h macros.h \
+	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
+	test-mbsrtowcs4.sh test-mbsrtowcs.c signature.h macros.h \
+	mbtowc-impl.h mbtowc.c test-memchr.c zerosize-ptr.h \
+	signature.h macros.h mgetgroups.h test-netdb.c \
 	test-netinet_in.c test-nonblocking-pipe.sh \
 	test-nonblocking-pipe-main.c test-nonblocking-pipe-child.c \
 	test-nonblocking-pipe.h test-nonblocking-writer.h \
@@ -2811,7 +2807,7 @@ LDADD = libtests.a ../../gnulib/lib/libgnu.la libtests.a $(LIBTESTS_LIBDEPS)
 libtests_a_SOURCES = exitfail.c fatal-signal.h fatal-signal.c \
 	getugroups.c localename.c mgetgroups.c progname.h progname.c \
 	glthread/thread.h glthread/thread.c wait-process.h \
-	wait-process.c xmalloc.c xalloc-die.c glthread/yield.h
+	wait-process.c xmalloc.c xalloc-die.c
 libtests_a_LIBADD = $(gltests_LIBOBJS)
 libtests_a_DEPENDENCIES = $(gltests_LIBOBJS)
 EXTRA_libtests_a_SOURCES = btowc.c dup.c error.c fdopen.c ftruncate.c \
@@ -2838,7 +2834,6 @@ test_inet_ntop_LDADD = $(LDADD) @INET_NTOP_LIB@
 test_inet_pton_LDADD = $(LDADD) @INET_PTON_LIB@
 test_listen_LDADD = $(LDADD) @LIBSOCKET@
 test_localename_LDADD = $(LDADD) @INTL_MACOSX_LIBS@ $(LIBTHREAD)
-test_lock_LDADD = $(LDADD) @LIBMULTITHREAD@ @YIELD_LIB@
 test_nonblocking_pipe_main_LDADD = $(LDADD) @LIBINTL@
 test_nonblocking_socket_main_LDADD = $(LDADD) $(LIBSOCKET) @LIBINTL@
 test_nonblocking_socket_child_LDADD = $(LDADD) $(LIBSOCKET)
@@ -3163,9 +3158,6 @@ test-locale$(EXEEXT): $(test_locale_OBJECTS) $(test_locale_DEPENDENCIES)
 test-localename$(EXEEXT): $(test_localename_OBJECTS) $(test_localename_DEPENDENCIES) 
 	@rm -f test-localename$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_localename_OBJECTS) $(test_localename_LDADD) $(LIBS)
-test-lock$(EXEEXT): $(test_lock_OBJECTS) $(test_lock_DEPENDENCIES) 
-	@rm -f test-lock$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(test_lock_OBJECTS) $(test_lock_LDADD) $(LIBS)
 test-lseek$(EXEEXT): $(test_lseek_OBJECTS) $(test_lseek_DEPENDENCIES) 
 	@rm -f test-lseek$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_lseek_OBJECTS) $(test_lseek_LDADD) $(LIBS)
@@ -3595,7 +3587,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-listen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-locale.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-localename.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-lock.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-lseek.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-lstat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-malloca.Po@am__quote@

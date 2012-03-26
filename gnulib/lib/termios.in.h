@@ -12,8 +12,7 @@
    GNU Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public License
-   along with this program; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
+   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
 
 #ifndef _@GUARD_PREFIX@_TERMIOS_H
 
@@ -41,10 +40,8 @@ extern "C" {
 #ifndef _@GUARD_PREFIX@_TERMIOS_H
 #define _@GUARD_PREFIX@_TERMIOS_H
 
-#if @GNULIB_TCGETSID@
 /* Get pid_t.  */
-# include <sys/types.h>
-#endif
+#include <sys/types.h>
 
 /* The definitions of _GL_FUNCDECL_RPL etc. are copied here.  */
 

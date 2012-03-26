@@ -160,6 +160,9 @@
     <feature name='popcnt'> <!-- CPUID_EXT_POPCNT -->
       <cpuid function='0x00000001' ecx='0x00800000'/>
     </feature>
+    <feature name='tsc-deadline'>
+      <cpuid function='0x00000001' ecx='0x01000000'/>
+    </feature>
     <feature name='aes'>
       <cpuid function='0x00000001' ecx='0x02000000'/>
     </feature>
@@ -236,11 +239,26 @@
     <feature name='osvw'> <!-- CPUID_EXT3_OSVW -->
       <cpuid function='0x80000001' ecx='0x00000200'/>
     </feature>
+    <feature name='ibs'>
+      <cpuid function='0x80000001' ecx='0x00000400'/>
+    </feature>
+    <feature name='xop'>
+      <cpuid function='0x80000001' ecx='0x00000800'/>
+    </feature>
     <feature name='skinit'> <!-- CPUID_EXT3_SKINIT -->
       <cpuid function='0x80000001' ecx='0x00001000'/>
     </feature>
     <feature name='wdt'>
       <cpuid function='0x80000001' ecx='0x00002000'/>
+    </feature>
+    <feature name='fma4'>
+      <cpuid function='0x80000001' ecx='0x00010000'/>
+    </feature>
+    <feature name='cvt16'>
+      <cpuid function='0x80000001' ecx='0x00040000'/>
+    </feature>
+    <feature name='nodeid_msr'>
+      <cpuid function='0x80000001' ecx='0x00080000'/>
     </feature>
 
     <!-- models -->
@@ -250,6 +268,7 @@
       <feature name='pse'/>
     </model>
 
+    <!-- Intel-based QEMU generic CPU models -->
     <model name='pentium'>
       <model name='486'/>
       <feature name='de'/>
@@ -284,57 +303,78 @@
       <feature name='pse'/>
       <feature name='tsc'/>
       <feature name='msr'/>
+      <feature name='pae'/>
       <feature name='mce'/>
       <feature name='cx8'/>
+      <feature name='apic'/>
+      <feature name='sep'/>
       <feature name='pge'/>
       <feature name='cmov'/>
       <feature name='pat'/>
-      <feature name='fxsr'/>
       <feature name='mmx'/>
+      <feature name='fxsr'/>
       <feature name='sse'/>
       <feature name='sse2'/>
-      <feature name='pae'/>
-      <feature name='sep'/>
-      <feature name='apic'/>
     </model>
 
+    <model name='coreduo'>
+      <model name='pentiumpro'/>
+      <vendor name='Intel'/>
+      <feature name='vme'/>
+      <feature name='mtrr'/>
+      <feature name='mca'/>
+      <feature name='clflush'/>
+      <feature name='pni'/>
+      <feature name='monitor'/>
+      <feature name='nx'/>
+    </model>
+
+    <model name='n270'>
+      <model name='coreduo'/>
+      <feature name='ssse3'/>
+    </model>
+
+    <model name='core2duo'>
+      <model name='n270'/>
+      <feature name='pse36'/>
+      <feature name='syscall'/>
+      <feature name='lm'/>
+    </model>
+
+    <!-- Generic QEMU CPU models -->
     <model name='qemu32'>
       <model name='pentiumpro'/>
       <feature name='pni'/>
     </model>
 
     <model name='kvm32'>
-      <model name='pentiumpro'/>
+      <model name='qemu32'/>
       <feature name='mtrr'/>
-      <feature name='clflush'/>
       <feature name='mca'/>
       <feature name='pse36'/>
-      <feature name='pni'/>
+      <feature name='clflush'/>
     </model>
 
-    <model name='coreduo'>
-      <model name='pentiumpro'/>
-      <feature name='vme'/>
-      <feature name='mtrr'/>
-      <feature name='clflush'/>
-      <feature name='mca'/>
-      <feature name='pni'/>
-      <feature name='monitor'/>
+    <model name='cpu64-rhel5'>
+      <model name='kvm32'/>
+      <feature name='syscall'/>
       <feature name='nx'/>
+      <feature name='lm'/>
+    </model>
+
+    <model name='cpu64-rhel6'>
+      <model name='cpu64-rhel5'/>
+      <feature name='cx16'/>
+      <feature name='lahf_lm'/>
+    </model>
+
+    <model name='kvm64'>
+      <model name='cpu64-rhel5'/>
+      <feature name='cx16'/>
     </model>
 
     <model name='qemu64'>
-      <model name='pentiumpro'/>
-      <feature name='mtrr'/>
-      <feature name='clflush'/>
-      <feature name='mca'/>
-      <feature name='pse36'/>
-      <feature name='pni'/>
-      <feature name='cx16'/>
-      <feature name='lm'/>
-      <feature name='syscall'/>
-      <feature name='nx'/>
-      <feature name='svm'/>
+      <model name='kvm64'/>
       <!-- These are supported only by TCG.  KVM supports them only if the
            host does.  So we leave them out:
 
@@ -343,281 +383,116 @@
            <feature name='sse4a'/>
            <feature name='abm'/>
       -->
-    </model>
-
-    <model name='kvm64'>
-      <model name='pentiumpro'/>
-      <feature name='mtrr'/>
-      <feature name='clflush'/>
-      <feature name='mca'/>
-      <feature name='pse36'/>
-      <feature name='pni'/>
-      <feature name='cx16'/>
-      <feature name='lm'/>
-      <feature name='syscall'/>
-      <feature name='nx'/>
-    </model>
-
-    <model name='core2duo'>
-      <model name='pentiumpro'/>
-      <feature name='mtrr'/>
-      <feature name='clflush'/>
-      <feature name='mca'/>
-      <feature name='vme'/>
-      <feature name='pse36'/>
-      <feature name='pni'/>
-      <feature name='monitor'/>
-      <feature name='ssse3'/>
-      <feature name='lm'/>
-      <feature name='syscall'/>
-      <feature name='nx'/>
-    </model>
-
-    <model name='phenom'>
-      <model name='pentiumpro'/>
-      <vendor name='AMD'/>
-      <feature name='mtrr'/>
-      <feature name='clflush'/>
-      <feature name='mca'/>
-      <feature name='pse36'/>
-      <feature name='pni'/>
-      <feature name='monitor'/>
-      <feature name='lm'/>
-      <feature name='syscall'/>
-      <feature name='nx'/>
-      <feature name='3dnow'/>
-      <feature name='3dnowext'/>
-      <feature name='mmxext'/>
-      <feature name='fxsr_opt'/>
       <feature name='svm'/>
     </model>
 
-    <model name='athlon'>
-      <model name='pentiumpro'/>
-      <vendor name='AMD'/>
-      <feature name='pse36'/>
-      <feature name='vme'/>
-      <feature name='mtrr'/>
-      <feature name='mmxext'/>
-      <feature name='3dnow'/>
-      <feature name='3dnowext'/>
-    </model>
-
-    <model name='n270'>
-      <model name='pentiumpro'/>
-      <feature name='mtrr'/>
-      <feature name='clflush'/>
-      <feature name='mca'/>
-      <feature name='vme'/>
-      <feature name='monitor'/>
-      <feature name='pni'/>
-      <feature name='ssse3'/>
-      <feature name='nx'/>
-    </model>
-
+    <!-- Intel CPU models -->
     <model name='Conroe'>
+      <model name='pentiumpro'/>
       <vendor name='Intel'/>
-      <feature name='sse2'/>
-      <feature name='sse'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='sep'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
       <feature name='mtrr'/>
-      <feature name='clflush'/>
       <feature name='mca'/>
       <feature name='pse36'/>
+      <feature name='clflush'/>
       <feature name='pni'/>
       <feature name='ssse3'/>
-      <feature name='lm'/>
       <feature name='syscall'/>
       <feature name='nx'/>
+      <feature name='lm'/>
       <feature name='lahf_lm'/>
     </model>
 
     <model name='Penryn'>
-      <vendor name='Intel'/>
-      <feature name='sse2'/>
-      <feature name='sse'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='sep'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
-      <feature name='mtrr'/>
-      <feature name='clflush'/>
-      <feature name='mca'/>
-      <feature name='pse36'/>
-      <feature name='pni'/>
+      <model name='Conroe'/>
       <feature name='cx16'/>
-      <feature name='ssse3'/>
       <feature name='sse4.1'/>
-      <feature name='lm'/>
-      <feature name='syscall'/>
-      <feature name='nx'/>
-      <feature name='lahf_lm'/>
     </model>
 
     <model name='Nehalem'>
-      <vendor name='Intel'/>
-      <feature name='sse2'/>
-      <feature name='sse'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='sep'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
-      <feature name='mtrr'/>
-      <feature name='clflush'/>
-      <feature name='mca'/>
-      <feature name='pse36'/>
-      <feature name='pni'/>
-      <feature name='cx16'/>
-      <feature name='ssse3'/>
-      <feature name='sse4.1'/>
+      <model name='Penryn'/>
       <feature name='sse4.2'/>
       <feature name='popcnt'/>
-      <feature name='lm'/>
-      <feature name='syscall'/>
-      <feature name='nx'/>
-      <feature name='lahf_lm'/>
     </model>
 
     <model name='Westmere'>
-      <vendor name='Intel'/>
       <model name='Nehalem'/>
       <feature name='aes'/>
     </model>
 
-    <model name='Opteron_G1'>
+    <model name='SandyBridge'>
+      <model name='Westmere'/>
+      <feature name='pclmuldq'/>
+      <feature name='x2apic'/>
+      <feature name='tsc-deadline'/>
+      <feature name='xsave'/>
+      <feature name='avx'/>
+      <feature name='rdtscp'/>
+    </model>
+
+    <!-- AMD CPUs -->
+    <model name='athlon'>
+      <model name='pentiumpro'/>
       <vendor name='AMD'/>
-      <feature name='sse2'/>
-      <feature name='sse'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='sep'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
+      <feature name='vme'/>
       <feature name='mtrr'/>
-      <feature name='clflush'/>
-      <feature name='mca'/>
       <feature name='pse36'/>
-      <feature name='pni'/>
-      <feature name='lm'/>
-      <feature name='syscall'/>
-      <feature name='nx'/>
+      <feature name='mmxext'/>
+      <feature name='3dnowext'/>
+      <feature name='3dnow'/>
+    </model>
+
+    <model name='phenom'>
+      <model name='cpu64-rhel5'/>
+      <vendor name='AMD'/>
+      <feature name='monitor'/>
+      <feature name='mmxext'/>
+      <feature name='fxsr_opt'/>
+      <feature name='3dnowext'/>
+      <feature name='3dnow'/>
+      <feature name='svm'/>
+    </model>
+
+    <model name='Opteron_G1'>
+      <model name='cpu64-rhel5'/>
+      <vendor name='AMD'/>
     </model>
 
     <model name='Opteron_G2'>
-      <vendor name='AMD'/>
-      <feature name='sse2'/>
-      <feature name='sse'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='sep'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
-      <feature name='mtrr'/>
-      <feature name='clflush'/>
-      <feature name='mca'/>
-      <feature name='pse36'/>
-      <feature name='pni'/>
+      <model name='Opteron_G1'/>
       <feature name='cx16'/>
-      <feature name='lm'/>
-      <feature name='syscall'/>
-      <feature name='nx'/>
       <feature name='rdtscp'/>
-      <feature name='svm'/>
       <feature name='lahf_lm'/>
+      <feature name='svm'/>
     </model>
 
     <model name='Opteron_G3'>
-      <vendor name='AMD'/>
-      <feature name='sse2'/>
-      <feature name='sse'/>
-      <feature name='fxsr'/>
-      <feature name='mmx'/>
-      <feature name='pat'/>
-      <feature name='cmov'/>
-      <feature name='pge'/>
-      <feature name='sep'/>
-      <feature name='apic'/>
-      <feature name='cx8'/>
-      <feature name='mce'/>
-      <feature name='pae'/>
-      <feature name='msr'/>
-      <feature name='tsc'/>
-      <feature name='pse'/>
-      <feature name='de'/>
-      <feature name='fpu'/>
-      <feature name='mtrr'/>
-      <feature name='clflush'/>
-      <feature name='mca'/>
-      <feature name='pse36'/>
-      <feature name='pni'/>
-      <feature name='cx16'/>
+      <model name='Opteron_G2'/>
       <feature name='monitor'/>
       <feature name='popcnt'/>
-      <feature name='lm'/>
-      <feature name='syscall'/>
-      <feature name='nx'/>
-      <feature name='rdtscp'/>
-      <feature name='svm'/>
-      <feature name='sse4a'/>
       <feature name='abm'/>
+      <feature name='sse4a'/>
       <feature name='misalignsse'/>
-      <feature name='lahf_lm'/>
+    </model>
+
+    <model name='Opteron_G4'>
+      <model name='Opteron_G2'/>
+      <!-- Can't inherit from G3 because of missing "monitor"
+           feature -->
+      <feature name='pclmuldq'/>
+      <feature name='ssse3'/>
+      <feature name='sse4.1'/>
+      <feature name='sse4.2'/>
+      <feature name='popcnt'/>
+      <feature name='aes'/>
+      <feature name='xsave'/>
+      <feature name='avx'/>
+      <feature name='pdpe1gb'/>
+      <feature name='abm'/>
+      <feature name='sse4a'/>
+      <feature name='misalignsse'/>
+      <feature name='3dnowprefetch'/>
+      <feature name='xop'/>
+      <feature name='fma4'/>
     </model>
   </arch>
 </cpus>

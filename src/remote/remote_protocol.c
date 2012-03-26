@@ -1227,6 +1227,15 @@ xdr_remote_domain_suspend_args (XDR *xdrs, remote_domain_suspend_args *objp)
 }
 
 bool_t
+xdr_remote_domain_resume_args (XDR *xdrs, remote_domain_resume_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_pm_suspend_for_duration_args (XDR *xdrs, remote_domain_pm_suspend_for_duration_args *objp)
 {
 
@@ -1242,10 +1251,12 @@ xdr_remote_domain_pm_suspend_for_duration_args (XDR *xdrs, remote_domain_pm_susp
 }
 
 bool_t
-xdr_remote_domain_resume_args (XDR *xdrs, remote_domain_resume_args *objp)
+xdr_remote_domain_pm_wakeup_args (XDR *xdrs, remote_domain_pm_wakeup_args *objp)
 {
 
          if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
         return TRUE;
 }
@@ -4368,6 +4379,37 @@ xdr_remote_domain_event_disk_change_msg (XDR *xdrs, remote_domain_event_disk_cha
          if (!xdr_remote_nonnull_string (xdrs, &objp->devAlias))
                  return FALSE;
          if (!xdr_int (xdrs, &objp->reason))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_tray_change_msg (XDR *xdrs, remote_domain_event_tray_change_msg *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->devAlias))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->reason))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_pmwakeup_msg (XDR *xdrs, remote_domain_event_pmwakeup_msg *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_event_pmsuspend_msg (XDR *xdrs, remote_domain_event_pmsuspend_msg *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
                  return FALSE;
         return TRUE;
 }

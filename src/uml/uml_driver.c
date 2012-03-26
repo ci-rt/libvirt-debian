@@ -1,7 +1,7 @@
 /*
  * uml_driver.c: core driver methods for managing UML guests
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -63,6 +63,7 @@
 #include "configmake.h"
 #include "virnetdevtap.h"
 #include "virnodesuspend.h"
+#include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_UML
 
@@ -1138,13 +1139,10 @@ static virDrvOpenStatus umlOpen(virConnectPtr conn,
         if (uml_driver == NULL)
             return VIR_DRV_OPEN_DECLINED;
 
-        conn->uri = xmlParseURI(uml_driver->privileged ?
-                                "uml:///system" :
-                                "uml:///session");
-        if (!conn->uri) {
-            virReportOOMError();
+        if (!(conn->uri = virURIParse(uml_driver->privileged ?
+                                      "uml:///system" :
+                                      "uml:///session")))
             return VIR_DRV_OPEN_ERROR;
-        }
     } else {
         if (conn->uri->scheme == NULL ||
             STRNEQ (conn->uri->scheme, "uml"))
@@ -1239,13 +1237,13 @@ static char *umlGetCapabilities(virConnectPtr conn) {
 
 
 
-static int umlGetProcessInfo(unsigned long long *cpuTime, int pid)
+static int umlGetProcessInfo(unsigned long long *cpuTime, pid_t pid)
 {
     char *proc;
     FILE *pidinfo;
     unsigned long long usertime, systime;
 
-    if (virAsprintf(&proc, "/proc/%d/stat", pid) < 0) {
+    if (virAsprintf(&proc, "/proc/%lld/stat", (long long) pid) < 0) {
         return -1;
     }
 
@@ -1624,10 +1622,12 @@ cleanup:
 }
 
 /* Returns max memory in kb, 0 if error */
-static unsigned long umlDomainGetMaxMemory(virDomainPtr dom) {
+static unsigned long long
+umlDomainGetMaxMemory(virDomainPtr dom)
+{
     struct uml_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    unsigned long ret = 0;
+    unsigned long long ret = 0;
 
     umlDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);

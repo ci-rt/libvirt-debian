@@ -1,7 +1,7 @@
 /*
  * xend_internal.c: access to Xen though the Xen Daemon interface
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2005 Anthony Liguori <aliguori@us.ibm.com>
  *
  *  This file is subject to the terms and conditions of the GNU Lesser General
@@ -27,7 +27,6 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <libxml/uri.h>
 #include <errno.h>
 
 #include "virterror_internal.h"
@@ -46,6 +45,7 @@
 #include "memory.h"
 #include "count-one-bits.h"
 #include "virfile.h"
+#include "viruri.h"
 
 /* required for cpumap_t */
 #include <xen/dom0_ops.h>
@@ -1638,32 +1638,32 @@ xenDaemonDomainRestore(virConnectPtr conn, const char *filename)
  *
  * Returns the memory size in kilobytes or 0 in case of error.
  */
-unsigned long
+unsigned long long
 xenDaemonDomainGetMaxMemory(virDomainPtr domain)
 {
-    unsigned long ret = 0;
+    unsigned long long ret = 0;
     struct sexpr *root;
     xenUnifiedPrivatePtr priv;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
         virXendError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return(-1);
+        return 0;
     }
 
     priv = (xenUnifiedPrivatePtr) domain->conn->privateData;
 
     if (domain->id < 0 && priv->xendConfigVersion < XEND_CONFIG_VERSION_3_0_4)
-        return(-1);
+        return 0;
 
     /* can we ask for a subset ? worth it ? */
     root = sexpr_get(domain->conn, "/xend/domain/%s?detail=1", domain->name);
     if (root == NULL)
-        return(0);
+        return 0;
 
-    ret = (unsigned long) sexpr_u64(root, "domain/memory") << 10;
+    ret = sexpr_u64(root, "domain/memory") << 10;
     sexpr_free(root);
 
-    return(ret);
+    return ret;
 }
 
 
@@ -3224,35 +3224,33 @@ xenDaemonDomainMigratePerform (virDomainPtr domain,
      * "hostname", "hostname:port" or "xenmigr://hostname[:port]/".
      */
     if (strstr (uri, "//")) {   /* Full URI. */
-        xmlURIPtr uriptr = xmlParseURI (uri);
-        if (!uriptr) {
-            virXendError(VIR_ERR_INVALID_ARG,
-                          "%s", _("xenDaemonDomainMigrate: invalid URI"));
+        virURIPtr uriptr;
+        if (!(uriptr = virURIParse (uri)))
             return -1;
-        }
+
         if (uriptr->scheme && STRCASENEQ (uriptr->scheme, "xenmigr")) {
             virXendError(VIR_ERR_INVALID_ARG,
                           "%s", _("xenDaemonDomainMigrate: only xenmigr://"
                             " migrations are supported by Xen"));
-            xmlFreeURI (uriptr);
+            virURIFree (uriptr);
             return -1;
         }
         if (!uriptr->server) {
             virXendError(VIR_ERR_INVALID_ARG,
                           "%s", _("xenDaemonDomainMigrate: a hostname must be"
                             " specified in the URI"));
-            xmlFreeURI (uriptr);
+            virURIFree (uriptr);
             return -1;
         }
         hostname = strdup (uriptr->server);
         if (!hostname) {
             virReportOOMError();
-            xmlFreeURI (uriptr);
+            virURIFree (uriptr);
             return -1;
         }
         if (uriptr->port)
             snprintf (port, sizeof port, "%d", uriptr->port);
-        xmlFreeURI (uriptr);
+        virURIFree (uriptr);
     }
     else if ((p = strrchr (uri, ':')) != NULL) { /* "hostname:port" */
         int port_nr, n;

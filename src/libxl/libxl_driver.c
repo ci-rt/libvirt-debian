@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------*/
-/*  Copyright (c) 2011 SUSE LINUX Products GmbH, Nuernberg, Germany.
+/*  Copyright (C) 2006-2012 Red Hat, Inc.
+ *  Copyright (c) 2011 SUSE LINUX Products GmbH, Nuernberg, Germany.
  *  Copyright (C) 2011 Univention GmbH.
- *  Copyright (C) 2006-2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -44,6 +44,7 @@
 #include "libxl_conf.h"
 #include "xen_xm.h"
 #include "virtypedparam.h"
+#include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
 
@@ -1043,11 +1044,8 @@ libxlOpen(virConnectPtr conn,
         if (libxl_driver == NULL)
             return VIR_DRV_OPEN_DECLINED;
 
-        conn->uri = xmlParseURI("xen:///");
-        if (!conn->uri) {
-            virReportOOMError();
+        if (!(conn->uri = virURIParse("xen:///")))
             return VIR_DRV_OPEN_ERROR;
-        }
     } else {
         /* Only xen scheme */
         if (conn->uri->scheme == NULL || STRNEQ(conn->uri->scheme, "xen"))
@@ -1591,12 +1589,12 @@ cleanup:
     return type;
 }
 
-static unsigned long
+static unsigned long long
 libxlDomainGetMaxMemory(virDomainPtr dom)
 {
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    unsigned long ret = 0;
+    unsigned long long ret = 0;
 
     libxlDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -3088,17 +3086,18 @@ libxlDomainDetachDeviceLive(libxlDomainObjPrivatePtr priv, virDomainObjPtr vm,
 static int
 libxlDomainDetachDeviceConfig(virDomainDefPtr vmdef, virDomainDeviceDefPtr dev)
 {
-    virDomainDiskDefPtr disk;
+    virDomainDiskDefPtr disk, detach;
     int ret = -1;
 
     switch (dev->type) {
         case VIR_DOMAIN_DEVICE_DISK:
             disk = dev->data.disk;
-            if (virDomainDiskRemoveByName(vmdef, disk->dst)) {
+            if (!(detach = virDomainDiskRemoveByName(vmdef, disk->dst))) {
                 libxlError(VIR_ERR_INVALID_ARG,
                             _("no target device %s"), disk->dst);
                 break;
             }
+            virDomainDiskDefFree(detach);
             ret = 0;
             break;
         default:
@@ -3241,10 +3240,6 @@ libxlDomainModifyDeviceFlags(virDomainPtr dom, const char *xml,
                     "%s", _("cannot modify device on transient domain"));
          goto cleanup;
     }
-
-    if (!(dev = virDomainDeviceDefParse(driver->caps, vm->def, xml,
-                                  VIR_DOMAIN_XML_INACTIVE)))
-        goto cleanup;
 
     priv = vm->privateData;
 

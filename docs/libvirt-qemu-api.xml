@@ -31,12 +31,16 @@ attach to an external QEMU process:
   - The '-name' and '-uuid' arguments should have been set (not
     mandatory, but strongly recommended)
 
+To date, the only platforms we know of where pid_t is larger than
+unsigned int (64-bit Windows) also lack UNIX sockets, so the choice
+of @pid_value as an unsigned int should not present any difficulties.
+
 If successful, then the guest will appear in the list of running
 domains for this connection, and other APIs should operate
 normally (provided the above requirements were honored).]]></info>
       <return type='virDomainPtr' info='a new domain object on success, NULL otherwise'/>
       <arg name='conn' type='virConnectPtr' info='pointer to a hypervisor connection'/>
-      <arg name='pid' type='unsigned int' info='the UNIX process ID of the external QEMU process'/>
+      <arg name='pid_value' type='unsigned int' info='the UNIX process ID of the external QEMU process'/>
       <arg name='flags' type='unsigned int' info='optional flags, currently unused'/>
     </function>
     <function name='virDomainQemuMonitorCommand' file='libvirt-qemu' module='libvirt-qemu'>

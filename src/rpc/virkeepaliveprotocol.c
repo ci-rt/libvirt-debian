@@ -4,7 +4,7 @@
  * It was generated using rpcgen.
  */
 
-#include "rpc/virkeepaliveprotocol.h"
+#include "virkeepaliveprotocol.h"
 
 bool_t
 xdr_keepalive_procedure (XDR *xdrs, keepalive_procedure *objp)
