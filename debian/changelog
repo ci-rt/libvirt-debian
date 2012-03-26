@@ -1,3 +1,16 @@
+libvirt (0.9.11~rc1-1) experimental; urgency=low
+
+  * [b8ad28b] Build-dependency on virtualbox-ose no longer needed.
+    Thanks to Jean-Baptiste Rouault (Closes: #663589)
+  * [049b63b] New upstream version 0.9.11~rc1
+  * [deacbc5] Update symbols file
+  * [697838f] Update Debianize-libvirt-guests.patch
+    with new config option PARALLEL_SHUTDOWN
+  * [ba62183] Bump standards version (no changes)
+  * [bece9d3] Install missing manpages
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 26 Mar 2012 21:35:21 +0200
+
 libvirt (0.9.10-1) experimental; urgency=low
 
   * [63a7e8c] New upstream version 0.9.10
