@@ -9,9 +9,9 @@
 # include "config.h"
 
 # include <unistd.h>
-# include <libxml/uri.h>
 
 # include "internal.h"
+# include "viruri.h"
 /*
  * List of registered drivers numbers
  */
@@ -125,6 +125,9 @@ typedef int
                                              unsigned long long duration,
                                              unsigned int flags);
 typedef int
+        (*virDrvDomainPMWakeup)     (virDomainPtr domain,
+                                     unsigned int flags);
+typedef int
         (*virDrvDomainShutdown)		(virDomainPtr domain);
 typedef int
         (*virDrvDomainReboot)		(virDomainPtr domain,
@@ -139,7 +142,7 @@ typedef int
                                          unsigned int flags);
 typedef char *
         (*virDrvDomainGetOSType)	(virDomainPtr domain);
-typedef unsigned long
+typedef unsigned long long
         (*virDrvDomainGetMaxMemory)	(virDomainPtr domain);
 typedef int
         (*virDrvDomainSetMaxMemory)	(virDomainPtr domain,
@@ -658,9 +661,10 @@ typedef int
     (*virDrvDomainQemuMonitorCommand)(virDomainPtr domain, const char *cmd,
                                       char **result, unsigned int flags);
 
+/* Choice of unsigned int rather than pid_t is intentional.  */
 typedef virDomainPtr
     (*virDrvDomainQemuAttach)(virConnectPtr conn,
-                              unsigned int pid,
+                              unsigned int pid_value,
                               unsigned int flags);
 
 typedef int
@@ -867,8 +871,9 @@ struct _virDriver {
     virDrvDomainLookupByUUID	domainLookupByUUID;
     virDrvDomainLookupByName	domainLookupByName;
     virDrvDomainSuspend		domainSuspend;
-    virDrvDomainPMSuspendForDuration domainPMSuspendForDuration;
     virDrvDomainResume		domainResume;
+    virDrvDomainPMSuspendForDuration domainPMSuspendForDuration;
+    virDrvDomainPMWakeup    domainPMWakeup;
     virDrvDomainShutdown		domainShutdown;
     virDrvDomainShutdownFlags   domainShutdownFlags;
     virDrvDomainReboot		domainReboot;

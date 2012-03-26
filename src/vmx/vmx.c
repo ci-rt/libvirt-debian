@@ -2,7 +2,7 @@
 /*
  * vmx.c: VMware VMX parsing/formatting functions
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2009-2010 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -24,7 +24,6 @@
 #include <config.h>
 
 #include <c-ctype.h>
-#include <libxml/uri.h>
 
 #include "internal.h"
 #include "virterror_internal.h"
@@ -33,6 +32,7 @@
 #include "logging.h"
 #include "uuid.h"
 #include "vmx.h"
+#include "viruri.h"
 
 /*
 
@@ -490,7 +490,9 @@ VIR_ENUM_IMPL(virVMXControllerModelSCSI, VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LAST,
               "buslogic",
               "lsilogic",
               "lsisas1068",
-              "pvscsi");
+              "pvscsi",
+              "UNUSED ibmvscsi",
+              "UNUSED virtio-scsi");
 
 
 
@@ -2418,12 +2420,20 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
     }
 
     /* vmx:networkName -> def:data.bridge.brname */
-    if ((connectionType == NULL ||
-         STRCASEEQ(connectionType, "bridged") ||
-         STRCASEEQ(connectionType, "custom")) &&
-        virVMXGetConfigString(conf, networkName_name, &networkName,
-                              false) < 0) {
-        goto cleanup;
+    if (connectionType == NULL ||
+        STRCASEEQ(connectionType, "bridged") ||
+        STRCASEEQ(connectionType, "custom")) {
+        if (virVMXGetConfigString(conf, networkName_name, &networkName,
+                                  true) < 0)
+            goto cleanup;
+
+        if (networkName == NULL) {
+            networkName = strdup("");
+            if (networkName == NULL) {
+                virReportOOMError();
+                goto cleanup;
+            }
+        }
     }
 
     /* vmx:vnet -> def:data.ifname */
@@ -2447,11 +2457,10 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
                   connectionType, connectionType_name);
         goto cleanup;
     } else if (STRCASEEQ(connectionType, "nat")) {
-        /* FIXME */
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("No yet handled value '%s' for VMX entry '%s'"),
-                  connectionType, connectionType_name);
-        goto cleanup;
+        (*def)->type = VIR_DOMAIN_NET_TYPE_USER;
+        (*def)->model = virtualDev;
+
+        virtualDev = NULL;
     } else if (STRCASEEQ(connectionType, "custom")) {
         (*def)->type = VIR_DOMAIN_NET_TYPE_BRIDGE;
         (*def)->model = virtualDev;
@@ -2518,7 +2527,7 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
     char network_endPoint_name[48] = "";
     char *network_endPoint = NULL;
 
-    xmlURIPtr parsedUri = NULL;
+    virURIPtr parsedUri = NULL;
 
     if (def == NULL || *def != NULL) {
         VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
@@ -2608,12 +2617,8 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
         (*def)->target.port = port;
         (*def)->source.type = VIR_DOMAIN_CHR_TYPE_TCP;
 
-        parsedUri = xmlParseURI(fileName);
-
-        if (parsedUri == NULL) {
-            virReportOOMError();
+        if (!(parsedUri = virURIParse(fileName)))
             goto cleanup;
-        }
 
         if (parsedUri->port == 0) {
             VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -2687,7 +2692,7 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
     VIR_FREE(fileType);
     VIR_FREE(fileName);
     VIR_FREE(network_endPoint);
-    xmlFreeURI(parsedUri);
+    virURIFree(parsedUri);
 
     return result;
 
@@ -2874,7 +2879,7 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
     char *preliminaryDisplayName = NULL;
     char *displayName = NULL;
     char *annotation = NULL;
-    unsigned long max_balloon;
+    unsigned long long max_balloon;
     bool scsi_present[4] = { false, false, false, false };
     int scsi_virtualDev[4] = { -1, -1, -1, -1 };
     bool floppy_present[2] = { false, false };
@@ -2969,19 +2974,19 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
     /* max-memory must be a multiple of 4096 kilobyte */
     max_balloon = VIR_DIV_UP(def->mem.max_balloon, 4096) * 4096;
 
-    virBufferAsprintf(&buffer, "memsize = \"%lu\"\n",
+    virBufferAsprintf(&buffer, "memsize = \"%llu\"\n",
                       max_balloon / 1024); /* Scale from kilobytes to megabytes */
 
     /* def:mem.cur_balloon -> vmx:sched.mem.max */
     if (def->mem.cur_balloon < max_balloon) {
-        virBufferAsprintf(&buffer, "sched.mem.max = \"%lu\"\n",
+        virBufferAsprintf(&buffer, "sched.mem.max = \"%llu\"\n",
                           VIR_DIV_UP(def->mem.cur_balloon,
                                      1024)); /* Scale from kilobytes to megabytes */
     }
 
     /* def:mem.min_guarantee -> vmx:sched.mem.minsize */
     if (def->mem.min_guarantee > 0) {
-        virBufferAsprintf(&buffer, "sched.mem.minsize = \"%lu\"\n",
+        virBufferAsprintf(&buffer, "sched.mem.minsize = \"%llu\"\n",
                           VIR_DIV_UP(def->mem.min_guarantee,
                                      1024)); /* Scale from kilobytes to megabytes */
     }
@@ -3533,8 +3538,9 @@ virVMXFormatEthernet(virDomainNetDefPtr def, int controller,
     /* def:type, def:ifname -> vmx:connectionType */
     switch (def->type) {
       case VIR_DOMAIN_NET_TYPE_BRIDGE:
-        virBufferAsprintf(buffer, "ethernet%d.networkName = \"%s\"\n",
-                          controller, def->data.bridge.brname);
+        if (STRNEQ(def->data.bridge.brname, ""))
+            virBufferAsprintf(buffer, "ethernet%d.networkName = \"%s\"\n",
+                              controller, def->data.bridge.brname);
 
         if (def->ifname != NULL) {
             virBufferAsprintf(buffer, "ethernet%d.connectionType = \"custom\"\n",
@@ -3546,6 +3552,11 @@ virVMXFormatEthernet(virDomainNetDefPtr def, int controller,
                               controller);
         }
 
+        break;
+
+      case VIR_DOMAIN_NET_TYPE_USER:
+        virBufferAsprintf(buffer, "ethernet%d.connectionType = \"nat\"\n",
+                          controller);
         break;
 
       default:

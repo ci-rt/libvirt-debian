@@ -1,7 +1,7 @@
 /*
  * libvirtd.c: daemon start of day, guest process & i/o management
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -47,6 +47,7 @@
 #include "conf.h"
 #include "memory.h"
 #include "conf.h"
+#include "virnetlink.h"
 #include "virnetserver.h"
 #include "threads.h"
 #include "remote.h"
@@ -186,7 +187,7 @@ static int daemonForkIntoBackground(const char *argv0)
     if (pipe(statuspipe) < 0)
         return -1;
 
-    int pid = fork();
+    pid_t pid = fork();
     switch (pid) {
     case 0:
         {
@@ -1148,7 +1149,7 @@ static void daemonReloadHandler(virNetServerPtr srv ATTRIBUTE_UNUSED,
 {
         VIR_INFO("Reloading configuration on SIGHUP");
         virHookCall(VIR_HOOK_DRIVER_DAEMON, "-",
-                    VIR_HOOK_DAEMON_OP_RELOAD, SIGHUP, "SIGHUP", NULL);
+                    VIR_HOOK_DAEMON_OP_RELOAD, SIGHUP, "SIGHUP", NULL, NULL);
         if (virStateReload() < 0)
             VIR_WARN("Error while reloading drivers");
 }
@@ -1571,7 +1572,7 @@ int main(int argc, char **argv) {
      *       an error ?
      */
     virHookCall(VIR_HOOK_DRIVER_DAEMON, "-", VIR_HOOK_DAEMON_OP_START,
-                0, "start", NULL);
+                0, "start", NULL, NULL);
 
     if (daemonSetupNetworking(srv, config,
                               sock_file, sock_file_ro,
@@ -1598,15 +1599,22 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
 
+    /* Register the netlink event service */
+    if (virNetlinkEventServiceStart() < 0) {
+        ret = VIR_DAEMON_ERR_NETWORK;
+        goto cleanup;
+    }
+
     /* Run event loop. */
     virNetServerRun(srv);
 
     ret = 0;
 
     virHookCall(VIR_HOOK_DRIVER_DAEMON, "-", VIR_HOOK_DAEMON_OP_SHUTDOWN,
-                0, "shutdown", NULL);
+                0, "shutdown", NULL, NULL);
 
 cleanup:
+    virNetlinkEventServiceStop();
     virNetServerProgramFree(remoteProgram);
     virNetServerProgramFree(qemuProgram);
     virNetServerClose(srv);

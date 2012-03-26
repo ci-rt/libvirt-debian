@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2012-02-13" "libvirt-0.9.10" "Virtualization Support"
+.TH VIRSH 1 "2012-03-24" "libvirt-0.9.11" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -196,7 +196,7 @@ instead of the default connection.
 .IX Item "-d, --debug LEVEL"
 Enable debug messages at integer \fI\s-1LEVEL\s0\fR and above.  \fI\s-1LEVEL\s0\fR can
 range from 0 to 4 (default).  See the documentation of \fB\s-1VIRSH_DEBUG\s0\fR
-environment variable for the description of each \fI\s-1LEVEL\s0\fR.
+environment variable below for the description of each \fI\s-1LEVEL\s0\fR.
 .IP "\fB\-l\fR, \fB\-\-log\fR \fI\s-1FILE\s0\fR" 4
 .IX Item "-l, --log FILE"
 Output logging details to \fI\s-1FILE\s0\fR.
@@ -229,6 +229,31 @@ setvcpus and setmem. In those cases the fact that the \fBvirsh\fR
 program returned, may not mean the action is complete and you
 must poll periodically to detect that the guest completed the
 operation.
+.PP
+\&\fBvirsh\fR strives for backward compatibility.  Although the \fBhelp\fR
+command only lists the preferred usage of a command, if an older
+version of \fBvirsh\fR supported an alternate spelling of a command or
+option (such as \fI\-\-tunnelled\fR instead of \fI\-\-tunneled\fR), then
+scripts using that older spelling will continue to work.
+.PP
+Several \fBvirsh\fR commands take an optionally scaled integer; if no
+scale is provided, then the default is listed in the command (for
+historical reasons, some commands default to bytes, while other
+commands default to kibibytes).  The following case-insensitive
+suffixes can be used to select a specfic scale:
+  b, byte  byte      1
+  \s-1KB\s0       kilobyte  1,000
+  k, KiB   kibibyte  1,024
+  \s-1MB\s0       megabyte  1,000,000
+  M, MiB   mebibyte  1,048,576
+  \s-1GB\s0       gigabyte  1,000,000,000
+  G, GiB   gibibyte  1,073,741,824
+  \s-1TB\s0       terabyte  1,000,000,000,000
+  T, TiB   tebibyte  1,099,511,627,776
+  \s-1PB\s0       petabyte  1,000,000,000,000,000
+  P, PiB   pebibyte  1,125,899,906,842,624
+  \s-1EB\s0       exabyte   1,000,000,000,000,000,000
+  E, EiB   exbibyte  1,152,921,504,606,846,976
 .SH "GENERIC COMMANDS"
 .IX Header "GENERIC COMMANDS"
 The following commands are generic i.e. not specific to a domain.
@@ -331,7 +356,8 @@ connect to a local linux container
 .RE
 .RS 4
 .Sp
-For remote access see the documentation page on how to make URIs.
+For remote access see the documentation page at
+<http://libvirt.org/uri.html> on how to make URIs.
 The \fI\-\-readonly\fR option allows for read-only connection
 .RE
 .IP "\fBuri\fR" 4
@@ -377,8 +403,8 @@ The \s-1XML\s0 also show the \s-1NUMA\s0 topology information if available.
 .IP "\fBinject-nmi\fR \fIdomain-id\fR" 4
 .IX Item "inject-nmi domain-id"
 Inject \s-1NMI\s0 to the guest.
-.IP "\fBlist\fR [\fI\-\-inactive\fR | \fI\-\-all\fR] [\fI\-\-managed\-save\fR] [\fI\-\-title\fR]" 4
-.IX Item "list [--inactive | --all] [--managed-save] [--title]"
+.IP "\fBlist\fR [\fI\-\-inactive\fR | \fI\-\-all\fR] [\fI\-\-managed\-save\fR] [\fI\-\-title\fR] { [\fI\-\-table\fR] | \fI\-\-name\fR | \fI\-\-uuid\fR } [\fI\-\-persistent\fR] [\fI\-\-transient\fR]" 4
+.IX Item "list [--inactive | --all] [--managed-save] [--title] { [--table] | --name | --uuid } [--persistent] [--transient]"
 Prints information about existing domains.  If no options are
 specified it prints out information about running domains.
 .Sp
@@ -399,7 +425,7 @@ State is the run state (see below).
 .Sp
 \&\fB\s-1STATES\s0\fR
 .Sp
-The State field lists 7 states for a domain, and which ones the
+The State field lists 8 states for a domain, and which ones the
 current domain is in.
 .RS 4
 .IP "\fBrunning\fR" 4
@@ -434,27 +460,50 @@ restart on crash.
 .IX Item "dying"
 The domain is in process of dying, but hasn't completely shutdown or
 crashed.
+.IP "\fBpmsuspended\fR" 4
+.IX Item "pmsuspended"
+The domain has been suspended by guest power management, e.g. entered
+into s3 state.
 .RE
 .RS 4
 .Sp
 If \fI\-\-managed\-save\fR is specified, then domains that have managed save
 state (only possible if they are in the \fBshut off\fR state) will
-instead show as \fBsaved\fR in the listing.
+instead show as \fBsaved\fR in the listing. This flag is usable only with the
+default \fI\-\-table\fR output.
+.Sp
+If \fI\-\-name\fR is specified, domain names are printed instead of the table
+formatted one per line. If \fI\-\-uuid\fR is specified domain's \s-1UUID\s0's are printed
+instead of names. Flag \fI\-\-table\fR specifies that the legacy table-formatted
+output should be used. This is the default. All of these are mutually
+exclusive.
+.Sp
+Flag \fI\-\-persistent\fR specifies that persistent domains should be printed.
+Similarly \fI\-\-transient\fR enables output of transient domains. These flags
+may be combined. Default behavior is as though both were specified. (Note that
+if any of these flags is specified, the check for the persistence state is done
+and may fail. If none of these flags is specified, the check is skipped.)
 .Sp
 If \fI\-\-title\fR is specified, then the domain note is printed. The output then
-the output looks as follows.
+the output looks as follows. This flag is usable only with the default
+\&\fI\-\-table\fR output.
 .Sp
-\&\fBvirsh\fR list \-\-note
+\&\fBvirsh\fR list \-\-title
  Id Name                 State      Title
 \&\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
   0 Domain\-0             running    Mailserver 1
   2 fedora               paused
 .RE
-.IP "\fBfreecell\fR [\fBcellno\fR | \fI\-\-all\fR]" 4
-.IX Item "freecell [cellno | --all]"
-Prints the available amount of memory on the machine or within a
-\&\s-1NUMA\s0 cell if \fIcellno\fR is provided.  If \fI\-\-all\fR is provided instead
-of \fI\-\-cellno\fR, then show the information on all \s-1NUMA\s0 cells.
+.IP "\fBfreecell\fR [{ [\fI\-\-cellno\fR] \fBcellno\fR | \fI\-\-all\fR }]" 4
+.IX Item "freecell [{ [--cellno] cellno | --all }]"
+Prints the available amount of memory on the machine or within a \s-1NUMA\s0
+cell.  The freecell command can provide one of three different
+displays of available memory on the machine depending on the options
+specified.  With no options, it displays the total free memory on the
+machine.  With the \-\-all option, it displays the free memory in each
+cell and the total free memory on the machine.  Finally, with a
+numeric argument or with \-\-cellno plus a cell number it will display
+the free memory for the specified cell only.
 .IP "\fBcpu-baseline\fR \fI\s-1FILE\s0\fR" 4
 .IX Item "cpu-baseline FILE"
 Compute baseline \s-1CPU\s0 which will be supported by all host CPUs given in <file>.
@@ -486,12 +535,18 @@ previously most commands take domain-id as the first parameter. The
 Configure a domain to be automatically started at boot.
 .Sp
 The option \fI\-\-disable\fR disables autostarting.
-.IP "\fBconsole\fR \fIdomain-id\fR [\fIdevname\fR]" 4
-.IX Item "console domain-id [devname]"
+.IP "\fBconsole\fR \fIdomain-id\fR [\fIdevname\fR] [\fI\-\-safe\fR] [\fI\-\-force\fR]" 4
+.IX Item "console domain-id [devname] [--safe] [--force]"
 Connect the virtual serial console for the guest. The optional
 \&\fIdevname\fR parameter refers to the device alias of an alternate
 console, serial or parallel device configured for the guest.
 If omitted, the primary console will be opened.
+.Sp
+If the flag \fI\-\-safe\fR is specified, the connection is only attempted
+if the driver supports safe console handling. This flag specifies that
+the server has to ensure exclusive access to console devices. Optionally
+the \fI\-\-force\fR flag may be specified, requesting to disconnect any existing
+sessions, such as in a case of a broken connection.
 .IP "\fBcreate\fR \fI\s-1FILE\s0\fR [\fI\-\-console\fR] [\fI\-\-paused\fR] [\fI\-\-autodestroy\fR]" 4
 .IX Item "create FILE [--console] [--paused] [--autodestroy]"
 Create a domain from an \s-1XML\s0 <file>. An easy way to create the \s-1XML\s0
@@ -525,7 +580,8 @@ Flags \fI\-\-live\fR or \fI\-\-config\fR select whether this command works on li
 or persistent definitions of the domain. If both \fI\-\-live\fR and \fI\-\-config\fR
 are specified, the \fI\-\-config\fR option takes precedence on getting the current
 description and both live configuration and config are updated while setting
-the description. \fI\-\-current\fR is exclusive and implied if none of these was specified.
+the description. \fI\-\-current\fR is exclusive and implied if none of these was
+specified.
 .Sp
 Flag \fI\-\-edit\fR specifies that an editor with the contents of current
 description or title should be opened and the contents saved back afterwards.
@@ -578,16 +634,19 @@ version of libvirtd.
 .IP "\fBdomifstat\fR \fIdomain\fR \fIinterface-device\fR" 4
 .IX Item "domifstat domain interface-device"
 Get network interface stats for a running domain.
-.IP "\fBdomif-setlink\fR \fIdomain\fR \fIinterface-device\fR \fIstate\fR \fI\-\-persistent\fR" 4
-.IX Item "domif-setlink domain interface-device state --persistent"
+.IP "\fBdomif-setlink\fR \fIdomain\fR \fIinterface-device\fR \fIstate\fR [\fI\-\-config\fR]" 4
+.IX Item "domif-setlink domain interface-device state [--config]"
 Modify link state of the domain's virtual interface. Possible values for
-state are \*(L"up\*(R" and "down. If \-\-persistent is specified, only the persistent
-configuration of the domain is modified.
+state are \*(L"up\*(R" and "down. If \fI\-\-config\fR is specified, only the persistent
+configuration of the domain is modified, for compatibility purposes,
+\&\fI\-\-persistent\fR is alias of \fI\-\-config\fR.
 \&\fIinterface-device\fR can be the interface's target name or the \s-1MAC\s0 address.
-.IP "\fBdomif-getlink\fR \fIdomain\fR \fIinterface-device\fR \fI\-\-persistent\fR" 4
-.IX Item "domif-getlink domain interface-device --persistent"
-Query link state of the domain's virtual interface. If \-\-persistent
-is specified, query the persistent configuration.
+.IP "\fBdomif-getlink\fR \fIdomain\fR \fIinterface-device\fR [\fI\-\-config\fR]" 4
+.IX Item "domif-getlink domain interface-device [--config]"
+Query link state of the domain's virtual interface. If \fI\-\-config\fR
+is specified, query the persistent configuration, for compatibility
+purposes, \fI\-\-persistent\fR is alias of \fI\-\-config\fR.
+.Sp
 \&\fIinterface-device\fR can be the interface's target name or the \s-1MAC\s0 address.
 .IP "\fBdomiftune\fR \fIdomain\fR \fIinterface-device\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
 .IX Item "domiftune domain interface-device [[--config] [--live] | [--current]] [--inbound average,peak,burst] [--outbound average,peak,burst]"
@@ -639,17 +698,21 @@ virtual interfaces that will be used on the next boot, rather than those
 currently in use by a running domain. Other contexts that require a \s-1MAC\s0
 address of virtual interface (such as \fIdetach-interface\fR or
 \&\fIdomif-setlink\fR) will accept the \s-1MAC\s0 address printed by this command.
-.IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR]" 4
-.IX Item "blockpull domain path [bandwidth]"
-Populate a disk from its backing image. Once all data from its backing
-image has been pulled, the disk no longer depends on the backing image.
+.IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR]" 4
+.IX Item "blockpull domain path [bandwidth] [base]"
+Populate a disk from its backing image chain. By default, this command
+flattens the entire chain; but if \fIbase\fR is specified, containing the
+name of one of the backing files in the chain, then that file becomes
+the new backing file and only the intermediate portion of the chain is
+pulled.  Once all requested data from the backing image chain has been
+pulled, the disk no longer depends on that portion of the backing chain.
 It pulls data for the entire disk in the background, the process of the
 operation can be checked with \fBblockjob\fR.
 .Sp
 \&\fIpath\fR specifies fully-qualified path of the disk.
 \&\fIbandwidth\fR specifies copying bandwidth limit in Mbps.
-.IP "\fBblkdeviotune\fR \fIdomain\fR \fIdevice\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]] [[\fItotal_bytes_sec\fR] | [\fIread_bytes_sec\fR] [\fIwrite_bytes_sec\fR]] [[\fItotal_iops_sec\fR] | [\fIread_iops_sec\fR] [\fIwrite_iops_sec\fR]]" 4
-.IX Item "blkdeviotune domain device [[--config] [--live] | [--current]] [[total_bytes_sec] | [read_bytes_sec] [write_bytes_sec]] [[total_iops_sec] | [read_iops_sec] [write_iops_sec]]"
+.IP "\fBblkdeviotune\fR \fIdomain\fR \fIdevice\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]] [[\fItotal-bytes-sec\fR] | [\fIread-bytes-sec\fR] [\fIwrite-bytes-sec\fR]] [[\fItotal-iops-sec\fR] | [\fIread-iops-sec\fR] [\fIwrite-iops-sec\fR]]" 4
+.IX Item "blkdeviotune domain device [[--config] [--live] | [--current]] [[total-bytes-sec] | [read-bytes-sec] [write-bytes-sec]] [[total-iops-sec] | [read-iops-sec] [write-iops-sec]]"
 Set or query the block disk io parameters for a block device of \fIdomain\fR.
 \&\fIdevice\fR specifies a unique target name (<target dev='name'/>) or source
 file (<source file='name'/>) for one of the disk devices attached to
@@ -657,15 +720,19 @@ file (<source file='name'/>) for one of the disk devices attached to
 .Sp
 If no limit is specified, it will query current I/O limits setting.
 Otherwise, alter the limits with these flags:
-\&\fI\-\-total_bytes_sec\fR specifies total throughput limit in bytes per second.
-\&\fI\-\-read_bytes_sec\fR specifies read throughput limit in bytes per second.
-\&\fI\-\-write_bytes_sec\fR specifies write throughput limit in bytes per second.
-\&\fI\-\-total_iops_sec\fR specifies total I/O operations limit per second.
-\&\fI\-\-read_iops_sec\fR specifies read I/O operations limit per second.
-\&\fI\-\-write_iops_sec\fR specifies write I/O operations limit per second.
+\&\fI\-\-total\-bytes\-sec\fR specifies total throughput limit in bytes per second.
+\&\fI\-\-read\-bytes\-sec\fR specifies read throughput limit in bytes per second.
+\&\fI\-\-write\-bytes\-sec\fR specifies write throughput limit in bytes per second.
+\&\fI\-\-total\-iops\-sec\fR specifies total I/O operations limit per second.
+\&\fI\-\-read\-iops\-sec\fR specifies read I/O operations limit per second.
+\&\fI\-\-write\-iops\-sec\fR specifies write I/O operations limit per second.
 .Sp
-When setting any value, all remaining values are reset to unlimited,
-an explicit 0 also clears any limit.  A non-zero value for a given total
+Older versions of virsh only accepted these options with underscore
+instead of dash, as in \fI\-\-total_bytes_sec\fR.
+.Sp
+Bytes and iops values are independent, but setting only one value (such
+as \-\-read\-bytes\-sec) resets the other two in that category to unlimited.
+An explicit 0 also clears any limit.  A non-zero value for a given total
 cannot be mixed with non-zero values for read or write.
 .Sp
 If \fI\-\-live\fR is specified, affect a running guest.
@@ -684,11 +751,14 @@ be aborted.
 If \fI\-\-info\fR is specified, the active job information on the specified
 disk will be printed.
 \&\fIbandwidth\fR can be used to set bandwidth limit for the active job.
-.IP "\fBblockresize\fR \fIdomain\fR \fI\-\-path\fR \fI\-\-size\fR" 4
-.IX Item "blockresize domain --path --size"
-Resize a block device of domain while the domain is running, \fI\-\-path\fR
-specifies the absolute path of the block device, \fI\-\-size\fR specifies the
-new size in kilobytes
+.IP "\fBblockresize\fR \fIdomain\fR \fIpath\fR \fIsize\fR" 4
+.IX Item "blockresize domain path size"
+Resize a block device of domain while the domain is running, \fIpath\fR
+specifies the absolute path of the block device, \fIsize\fR is a scaled
+integer (see \fB\s-1NOTES\s0\fR above) which defaults to KiB (blocks of 1024 bytes)
+if there is no suffix.  You must use a suffix of \*(L"B\*(R" to get bytes (note
+that for historical reasons, this differs from \fBvol-resize\fR which
+defaults to bytes without a suffix).
 .IP "\fBdominfo\fR \fIdomain-id\fR" 4
 .IX Item "dominfo domain-id"
 Returns basic information about the domain.
@@ -802,8 +872,15 @@ ensures the domain will do a full boot the next time it is started.
 Provide the maximum number of virtual CPUs supported for a guest \s-1VM\s0 on
 this connection.  If provided, the \fItype\fR parameter must be a valid
 type attribute for the <domain> element of \s-1XML\s0.
-.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-verbose\fR] \fIdomain-id\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
-.IX Item "migrate [--live] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--verbose] domain-id desturi [migrateuri] [dname] [--timeout seconds] [--xml file]"
+.IP "\fBcpu-stats\fR \fIdomain\fR [\fI\-\-total\fR] [\fIstart\fR] [\fIcount\fR]" 4
+.IX Item "cpu-stats domain [--total] [start] [count]"
+Provide cpu statistics information of a domain. The domain should
+be running. Default it shows stats for all CPUs, and a total. Use
+\&\fI\-\-total\fR for only the total stats, \fIstart\fR for only the per-cpu
+stats of the CPUs from \fIstart\fR, \fIcount\fR for only \fIcount\fR CPUs'
+stats.
+.IP "\fBmigrate\fR [\fI\-\-live\fR] [\fI\-\-direct\fR] [\fI\-\-p2p\fR [\fI\-\-tunnelled\fR]] [\fI\-\-persistent\fR] [\fI\-\-undefinesource\fR] [\fI\-\-suspend\fR] [\fI\-\-copy\-storage\-all\fR] [\fI\-\-copy\-storage\-inc\fR] [\fI\-\-change\-protection\fR] [\fI\-\-unsafe\fR] [\fI\-\-verbose\fR] \fIdomain-id\fR \fIdesturi\fR [\fImigrateuri\fR] [\fIdname\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-xml\fR \fBfile\fR]" 4
+.IX Item "migrate [--live] [--direct] [--p2p [--tunnelled]] [--persistent] [--undefinesource] [--suspend] [--copy-storage-all] [--copy-storage-inc] [--change-protection] [--unsafe] [--verbose] domain-id desturi [migrateuri] [dname] [--timeout seconds] [--xml file]"
 Migrate domain to another host.  Add \fI\-\-live\fR for live migration; \fI\-\-p2p\fR
 for peer\-2\-peer migration; \fI\-\-direct\fR for direct migration; or \fI\-\-tunnelled\fR
 for tunnelled migration.  \fI\-\-persistent\fR leaves the domain persistent on
@@ -820,6 +897,14 @@ changes will be made to the domain while the migration is underway; this flag
 is implicitly enabled when supported by the hypervisor, but can be explicitly
 used to reject the migration if the hypervisor lacks change protection
 support.  \fI\-\-verbose\fR displays the progress of migration.
+.Sp
+In some cases libvirt may refuse to migrate the domain because doing so may
+lead to potential problems such as data corruption, and thus the migration is
+considered unsafe. For \s-1QEMU\s0 domain, this may happen if the domain uses disks
+without explicitly setting cache mode to \*(L"none\*(R". Migrating such domains is
+unsafe unless the disk images are stored on coherent clustered filesystem,
+such as \s-1GFS2\s0 or \s-1GPFS\s0. If you are sure the migration is safe or you just do not
+care, use \fI\-\-unsafe\fR to force the migration.
 .Sp
 The \fIdesturi\fR is the connection \s-1URI\s0 of the destination host, and
 \&\fImigrateuri\fR is the migration \s-1URI\s0, which usually can be omitted.
@@ -1104,8 +1189,8 @@ bit of the first byte. No symbolic names are provided.
   # send a tab, held for 1 second
   virsh send-key \-\-holdtime 1000 0xf
 .RE
-.IP "\fBsetmem\fR \fIdomain-id\fR \fBkilobytes\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
-.IX Item "setmem domain-id kilobytes [[--config] [--live] | [--current]]"
+.IP "\fBsetmem\fR \fIdomain-id\fR \fBsize\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
+.IX Item "setmem domain-id size [[--config] [--live] | [--current]]"
 Change the memory allocation for a guest domain.
 If \fI\-\-live\fR is specified, perform a memory balloon of a running guest.
 If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
@@ -1114,15 +1199,17 @@ Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given, but \fI\-\-current\
 exclusive. If no flag is specified, behavior is different depending
 on hypervisor.
 .Sp
-Some hypervisors require a larger granularity than kilobytes, and requests
-that are not an even multiple will be rounded up.  For example, vSphere/ESX
-rounds the parameter up unless the kB argument is evenly divisible by 1024
-(that is, the kB argument happens to represent megabytes).
+\&\fIsize\fR is a scaled integer (see \fB\s-1NOTES\s0\fR above); it defaults to kibibytes
+(blocks of 1024 bytes) unless you provide a suffix (and the older option
+name \fI\-\-kilobytes\fR is available as a deprecated synonym) .  Libvirt rounds
+up to the nearest kibibyte.  Some hypervisors require a larger granularity
+than KiB, and requests that are not an even multiple will be rounded up.
+For example, vSphere/ESX rounds the parameter up to mebibytes (1024 kibibytes).
 .Sp
 For Xen, you can only adjust the memory of a running domain if the domain is
 paravirtualized or running the \s-1PV\s0 balloon driver.
-.IP "\fBsetmaxmem\fR \fIdomain-id\fR \fBkilobytes\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
-.IX Item "setmaxmem domain-id kilobytes [[--config] [--live] | [--current]]"
+.IP "\fBsetmaxmem\fR \fIdomain-id\fR \fBsize\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
+.IX Item "setmaxmem domain-id size [[--config] [--live] | [--current]]"
 Change the maximum memory allocation limit for a guest domain.
 If \fI\-\-live\fR is specified, affect a running guest.
 If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
@@ -1133,18 +1220,21 @@ on hypervisor.
 .Sp
 This command works for at least the Xen, \s-1QEMU/KVM\s0 and vSphere/ESX hypervisors.
 .Sp
-Some hypervisors require a larger granularity than kilobytes, rounding up
-requests that are not an even multiple of the desired amount.  vSphere/ESX
-is one of these, requiring the parameter to be evenly divisible by 4MB.  For
-vSphere/ESX, 263168 (257MB) would be rounded up because it's not a multiple
-of 4MB, while 266240 (260MB) is valid without rounding.
-.IP "\fBmemtune\fR \fIdomain-id\fR [\fI\-\-hard\-limit\fR \fBkilobytes\fR] [\fI\-\-soft\-limit\fR \fBkilobytes\fR] [\fI\-\-swap\-hard\-limit\fR \fBkilobytes\fR] [\fI\-\-min\-guarantee\fR \fBkilobytes\fR] [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
-.IX Item "memtune domain-id [--hard-limit kilobytes] [--soft-limit kilobytes] [--swap-hard-limit kilobytes] [--min-guarantee kilobytes] [[--config] [--live] | [--current]]"
+\&\fIsize\fR is a scaled integer (see \fB\s-1NOTES\s0\fR above); it defaults to kibibytes
+(blocks of 1024 bytes) unless you provide a suffix (and the older option
+name \fI\-\-kilobytes\fR is available as a deprecated synonym) .  Libvirt rounds
+up to the nearest kibibyte.  Some hypervisors require a larger granularity
+than KiB, and requests that are not an even multiple will be rounded up.
+For example, vSphere/ESX rounds the parameter up to mebibytes (1024 kibibytes).
+.IP "\fBmemtune\fR \fIdomain-id\fR [\fI\-\-hard\-limit\fR \fBsize\fR] [\fI\-\-soft\-limit\fR \fBsize\fR] [\fI\-\-swap\-hard\-limit\fR \fBsize\fR] [\fI\-\-min\-guarantee\fR \fBsize\fR] [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
+.IX Item "memtune domain-id [--hard-limit size] [--soft-limit size] [--swap-hard-limit size] [--min-guarantee size] [[--config] [--live] | [--current]]"
 Allows you to display or set the domain memory parameters. Without
 flags, the current settings are displayed; with a flag, the
 appropriate limit is adjusted if supported by the hypervisor.  \s-1LXC\s0 and
 \&\s-1QEMU/KVM\s0 support \fI\-\-hard\-limit\fR, \fI\-\-soft\-limit\fR, and \fI\-\-swap\-hard\-limit\fR.
-\&\fI\-\-min\-guarantee\fR is supported only by \s-1ESX\s0 hypervisor.
+\&\fI\-\-min\-guarantee\fR is supported only by \s-1ESX\s0 hypervisor.  Each of these
+limits are scaled integers (see \fB\s-1NOTES\s0\fR above), with a default of
+kibibytes (blocks of 1024 bytes) if no suffix is present.
 .Sp
 If \fI\-\-live\fR is specified, affect a running guest.
 If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
@@ -1160,21 +1250,17 @@ one needs guess and try.
 .RS 4
 .IP "\fI\-\-hard\-limit\fR" 4
 .IX Item "--hard-limit"
-The maximum memory the guest can use.  The units for this value are kilobytes
-(i.e. blocks of 1024 bytes).
+The maximum memory the guest can use.
 .IP "\fI\-\-soft\-limit\fR" 4
 .IX Item "--soft-limit"
-The memory limit to enforce during memory contention.  The units for this
-value are kilobytes (i.e. blocks of 1024 bytes).
+The memory limit to enforce during memory contention.
 .IP "\fI\-\-swap\-hard\-limit\fR" 4
 .IX Item "--swap-hard-limit"
-The maximum memory plus swap the guest can use.  The units for this value are
-kilobytes (i.e. blocks of 1024 bytes).  This has to be more than hard-limit
-value provided.
+The maximum memory plus swap the guest can use.  This has to be more
+than hard-limit value provided.
 .IP "\fI\-\-min\-guarantee\fR" 4
 .IX Item "--min-guarantee"
-The guaranteed minimum memory allocation for the guest.  The units for this
-value are kilobytes (i.e. blocks of 1024 bytes).
+The guaranteed minimum memory allocation for the guest.
 .RE
 .RS 4
 .Sp
@@ -1274,6 +1360,11 @@ values):
     mem equivallent of S3 \s-1ACPI\s0 state
     disk equivallent of S4 \s-1ACPI\s0 state
     hybrid \s-1RAM\s0 is saved to disk but not powered off
+.IP "\fBdompmwakeup\fR \fIdomain-id\fR" 4
+.IX Item "dompmwakeup domain-id"
+Wakeup a domain suspended by dompmsuspend command. Injects a wakeup
+into the guest that previously used dompmsuspend, rather than waiting
+for the previously requested duration (if any) to elapse.
 .IP "\fBttyconsole\fR \fIdomain-id\fR" 4
 .IX Item "ttyconsole domain-id"
 Output the device used for the \s-1TTY\s0 console of the domain. If the information
@@ -1366,16 +1457,22 @@ The domain-id can be specified as a short integer, a name or a full \s-1UUID\s0.
 To better understand the values allowed as options for the command
 reading the documentation at <http://libvirt.org/formatdomain.html> on the
 format of the device sections to get the most accurate set of accepted values.
-.IP "\fBattach-device\fR \fIdomain-id\fR \fI\s-1FILE\s0\fR" 4
-.IX Item "attach-device domain-id FILE"
-Attach a device to the domain, using a device definition in an \s-1XML\s0 file.
-See the documentation to learn about libvirt \s-1XML\s0 format for a device.
-For cdrom and floppy devices, this command only replaces the media within
-the single existing device; consider using \fBupdate-device\fR for this usage.
-For passthrough host devices, see also \fBnodedev-dettach\fR, needed if
-the device does not use managed mode.
-.IP "\fBattach-disk\fR \fIdomain-id\fR \fIsource\fR \fItarget\fR [\fI\-\-driver driver\fR] [\fI\-\-subdriver subdriver\fR] [\fI\-\-cache cache\fR] [\fI\-\-type type\fR] [\fI\-\-mode mode\fR] [\fI\-\-persistent\fR] [\fI\-\-sourcetype soucetype\fR] [\fI\-\-serial serial\fR] [\fI\-\-shareable\fR] [\fI\-\-rawio\fR] [\fI\-\-address address\fR] [\fI\-\-multifunction\fR]" 4
-.IX Item "attach-disk domain-id source target [--driver driver] [--subdriver subdriver] [--cache cache] [--type type] [--mode mode] [--persistent] [--sourcetype soucetype] [--serial serial] [--shareable] [--rawio] [--address address] [--multifunction]"
+.IP "\fBattach-device\fR \fIdomain-id\fR \fI\s-1FILE\s0\fR [\fI\-\-config\fR]" 4
+.IX Item "attach-device domain-id FILE [--config]"
+Attach a device to the domain, using a device definition in an \s-1XML\s0
+file using a device definition element such as <disk> or <interface>
+as the top-level element.  See the documentation at
+<http://libvirt.org/formatdomain.html#elementsDevices> to learn about
+libvirt \s-1XML\s0 format for a device.  If \fI\-\-config\fR is specified the
+command alters the persistent domain configuration with the device
+attach taking effect the next time libvirt starts the domain.  For
+compatibility purposes, \fI\-\-persistent\fR is an alias of \fI\-\-config\fR.
+For cdrom and floppy devices, this command only replaces the media
+within an existing device; consider using \fBupdate-device\fR for this
+usage.  For passthrough host devices, see also \fBnodedev-detach\fR,
+needed if the device does not use managed mode.
+.IP "\fBattach-disk\fR \fIdomain-id\fR \fIsource\fR \fItarget\fR [\fI\-\-driver driver\fR] [\fI\-\-subdriver subdriver\fR] [\fI\-\-cache cache\fR] [\fI\-\-type type\fR] [\fI\-\-mode mode\fR] [\fI\-\-config\fR] [\fI\-\-sourcetype soucetype\fR] [\fI\-\-serial serial\fR] [\fI\-\-shareable\fR] [\fI\-\-rawio\fR] [\fI\-\-address address\fR] [\fI\-\-multifunction\fR]" 4
+.IX Item "attach-disk domain-id source target [--driver driver] [--subdriver subdriver] [--cache cache] [--type type] [--mode mode] [--config] [--sourcetype soucetype] [--serial serial] [--shareable] [--rawio] [--address address] [--multifunction]"
 Attach a new disk device to the domain.
 \&\fIsource\fR and \fItarget\fR are paths for the files and devices.
 \&\fIdriver\fR can be \fIfile\fR, \fItap\fR or \fIphy\fR for the Xen hypervisor depending on
@@ -1384,7 +1481,8 @@ the kind of access; or \fIqemu\fR for the \s-1QEMU\s0 emulator.
 although this use only replaces the media within the existing virtual cdrom or
 floppy device; consider using \fBupdate-device\fR for this usage instead.
 \&\fImode\fR can specify the two specific mode \fIreadonly\fR or \fIshareable\fR.
-\&\fIpersistent\fR indicates the changes will affect the next boot of the domain.
+\&\fI\-\-config\fR indicates the changes will affect the next boot of the domain,
+for compatibility purposes, \fI\-\-persistent\fR is alias of \fI\-\-config\fR.
 \&\fIsourcetype\fR can indicate the type of source (block|file)
 \&\fIcache\fR can be one of \*(L"default\*(R", \*(L"none\*(R", \*(L"writethrough\*(R", \*(L"writeback\*(R",
 \&\*(L"directsync\*(R" or \*(L"unsafe\*(R".
@@ -1395,17 +1493,19 @@ is shareable between domains.
 scsi:controller.bus.unit or ide:controller.bus.unit.
 \&\fImultifunction\fR indicates specified pci address is a multifunction pci device
 address.
-.IP "\fBattach-interface\fR \fIdomain-id\fR \fItype\fR \fIsource\fR [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-persistent\fR] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
-.IX Item "attach-interface domain-id type source [--target target] [--mac mac] [--script script] [--model model] [--persistent] [--inbound average,peak,burst] [--outbound average,peak,burst]"
+.IP "\fBattach-interface\fR \fIdomain-id\fR \fItype\fR \fIsource\fR [\fI\-\-target target\fR] [\fI\-\-mac mac\fR] [\fI\-\-script script\fR] [\fI\-\-model model\fR] [\fI\-\-config\fR] [\fI\-\-inbound average,peak,burst\fR] [\fI\-\-outbound average,peak,burst\fR]" 4
+.IX Item "attach-interface domain-id type source [--target target] [--mac mac] [--script script] [--model model] [--config] [--inbound average,peak,burst] [--outbound average,peak,burst]"
 Attach a new network interface to the domain.
-\&\fItype\fR can be either \fInetwork\fR to indicate a physical network device or \fIbridge\fR to indicate a bridge to a device.
+\&\fItype\fR can be either \fInetwork\fR to indicate a physical network device or
+\&\fIbridge\fR to indicate a bridge to a device.
 \&\fIsource\fR indicates the source device.
 \&\fItarget\fR allows to indicate the target device in the guest.
 \&\fImac\fR allows to specify the \s-1MAC\s0 address of the network interface.
 \&\fIscript\fR allows to specify a path to a script handling a bridge instead of
 the default one.
 \&\fImodel\fR allows to specify the model type.
-\&\fIpersistent\fR indicates the changes will affect the next boot of the domain.
+\&\fI\-\-config\fR indicates the changes will affect the next boot of the domain,
+for compatibility purposes, \fI\-\-persistent\fR is alias of \fI\-\-config\fR.
 \&\fIinbound\fR and \fIoutbound\fR control the bandwidth of the interface. \fIpeak\fR
 and \fIburst\fR are optional, so \*(L"average,peak\*(R", \*(L"average,,burst\*(R" and
 \&\*(L"average\*(R" are also legal.
@@ -1413,30 +1513,67 @@ and \fIburst\fR are optional, so \*(L"average,peak\*(R", \*(L"average,,burst\*(R
 \&\fBNote\fR: the optional target value is the name of a device to be created
 as the back-end on the node. If not provided a device named \*(L"vnetN\*(R" or \*(L"vifN\*(R"
 will be created automatically.
-.IP "\fBdetach-device\fR \fIdomain-id\fR \fI\s-1FILE\s0\fR" 4
-.IX Item "detach-device domain-id FILE"
+.IP "\fBdetach-device\fR \fIdomain-id\fR \fI\s-1FILE\s0\fR [\fI\-\-config\fR]" 4
+.IX Item "detach-device domain-id FILE [--config]"
 Detach a device from the domain, takes the same kind of \s-1XML\s0 descriptions
 as command \fBattach-device\fR.
+If \fI\-\-config\fR is specified, alter persistent configuration, effect observed
+on next boot, for compatibility purposes, \fI\-\-persistent\fR is alias of
+\&\fI\-\-config\fR.
 For passthrough host devices, see also \fBnodedev-reattach\fR, needed if
 the device does not use managed mode.
-.IP "\fBdetach-disk\fR \fIdomain-id\fR \fItarget\fR" 4
-.IX Item "detach-disk domain-id target"
+.IP "\fBdetach-disk\fR \fIdomain-id\fR \fItarget\fR [\fI\-\-config\fR]" 4
+.IX Item "detach-disk domain-id target [--config]"
 Detach a disk device from a domain. The \fItarget\fR is the device as seen
 from the domain.
-.IP "\fBdetach-interface\fR \fIdomain-id\fR \fItype\fR [\fI\-\-mac mac\fR]" 4
-.IX Item "detach-interface domain-id type [--mac mac]"
+If \fI\-\-config\fR is specified, alter persistent configuration, effect observed
+on next boot, for compatibility purposes, \fI\-\-persistent\fR is alias of
+\&\fI\-\-config\fR.
+.IP "\fBdetach-interface\fR \fIdomain-id\fR \fItype\fR [\fI\-\-mac mac\fR] [\fI\-\-config\fR]" 4
+.IX Item "detach-interface domain-id type [--mac mac] [--config]"
 Detach a network interface from a domain.
-\&\fItype\fR can be either \fInetwork\fR to indicate a physical network device or \fIbridge\fR to indicate a bridge to a device.
-It is recommended to use the \fImac\fR option to distinguish between the interfaces
-if more than one are present on the domain.
-.IP "\fBupdate-device\fR \fIdomain-id\fR \fIfile\fR [\fI\-\-persistent\fR] [\fI\-\-force\fR]" 4
-.IX Item "update-device domain-id file [--persistent] [--force]"
-Update the characteristics of a device associated with \fIdomain-id\fR, based on
-the device definition in an \s-1XML\s0 \fIfile\fR.  If the \fI\-\-persistent\fR option is
-used, the changes will affect the next boot of the domain. The \fI\-\-force\fR
-option can be used to force device update, e.g., to eject a CD-ROM even if it
-is locked/mounted in the domain. See the documentation to learn about libvirt
-\&\s-1XML\s0 format for a device.
+\&\fItype\fR can be either \fInetwork\fR to indicate a physical network device or
+\&\fIbridge\fR to indicate a bridge to a device. It is recommended to use the
+\&\fImac\fR option to distinguish between the interfaces if more than one are
+present on the domain.
+If \fI\-\-config\fR is specified, alter persistent configuration, effect observed
+on next boot, for compatibility purposes, \fI\-\-persistent\fR is alias of
+\&\fI\-\-config\fR.
+.IP "\fBupdate-device\fR \fIdomain-id\fR \fIfile\fR [\fI\-\-config\fR] [\fI\-\-force\fR]" 4
+.IX Item "update-device domain-id file [--config] [--force]"
+Update the characteristics of a device associated with \fIdomain-id\fR,
+based on the device definition in an \s-1XML\s0 \fIfile\fR.  If the \fI\-\-config\fR
+option is used, the changes will take affect the next time libvirt
+starts the domain.  For compatibility purposes, \fI\-\-persistent\fR is
+alias of \fI\-\-config\fR.  The \fI\-\-force\fR option can be used to force
+device update, e.g., to eject a CD-ROM even if it is locked/mounted in
+the domain. See the documentation at
+<http://libvirt.org/formatdomain.html#elementsDevices> to learn about
+libvirt \s-1XML\s0 format for a device.
+.IP "\fBchange-media\fR \fIdomain-id\fR \fIpath\fR [\fI\-\-eject\fR] [\fI\-\-insert\fR] [\fI\-\-update\fR] [\fIsource\fR] [\fI\-\-force\fR] [[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]]" 4
+.IX Item "change-media domain-id path [--eject] [--insert] [--update] [source] [--force] [[--live] [--config] | [--current]]"
+Change media of \s-1CDROM\s0 or floppy drive. \fIpath\fR can be the fully-qualified path
+or the unique target name (<target dev='hdc'>) of the disk device. \fIsource\fR
+specifies the path of the media to be inserted or updated.
+.Sp
+\&\fI\-\-eject\fR indicates the media will be ejected.
+\&\fI\-\-insert\fR indicates the media will be inserted. \fIsource\fR must be specified.
+If the device has source (e.g. <source file='media'>), and \fIsource\fR is not
+specified, \fI\-\-update\fR is equal to \fI\-\-eject\fR. If the device has no source,
+and \fIsource\fR is specified, \fI\-\-update\fR is equal to \fI\-\-insert\fR. If the device
+has source, and \fIsource\fR is specified, \fI\-\-update\fR behaves like combination
+of \fI\-\-eject\fR and \fI\-\-insert\fR.
+If none of \fI\-\-eject\fR, \fI\-\-insert\fR, and \fI\-\-update\fR is specified, \fI\-\-update\fR
+is used by default.
+The \fI\-\-force\fR option can be used to force media changing.
+If \fI\-\-live\fR is specified, alter live configuration of running guest.
+If \fI\-\-config\fR is specified, alter persistent configuration, effect observed
+on next boot.
+\&\fI\-\-current\fR can be either or both of \fIlive\fR and \fIconfig\fR, depends on
+the hypervisor's implementation.
+Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given, but \fI\-\-current\fR is
+exclusive. If no flag is specified, behavior is different depending
+on hypervisor.
 .SH "NODEDEV COMMANDS"
 .IX Header "NODEDEV COMMANDS"
 The following commands manipulate host devices that are intended to be
@@ -1458,7 +1595,7 @@ guest domains, nor by multiple active guests at once.  If the
 <hostdev> description includes the attribute \fBmanaged='yes'\fR, and the
 hypervisor driver supports it, then the device is in managed mode, and
 attempts to use that passthrough device in an active guest will
-automatically behave as if \fBnodedev-dettach\fR (guest start, device
+automatically behave as if \fBnodedev-detach\fR (guest start, device
 hot-plug) and \fBnodedev-reattach\fR (guest stop, device hot-unplug) were
 called at the right points (currently, qemu does this for \s-1PCI\s0 devices,
 but not \s-1USB\s0).  If a device is not marked as managed, then it must
@@ -1478,11 +1615,13 @@ contains xml for a top-level <device> description of a node device.
 Destroy (stop) a device on the host.  Note that this makes libvirt
 quit managing a host device, and may even make that device unusable
 by the rest of the physical host until a reboot.
-.IP "\fBnodedev-dettach\fR \fInodedev\fR" 4
-.IX Item "nodedev-dettach nodedev"
+.IP "\fBnodedev-detach\fR \fInodedev\fR" 4
+.IX Item "nodedev-detach nodedev"
 Detach \fInodedev\fR from the host, so that it can safely be used by
 guests via <hostdev> passthrough.  This is reversed with
 \&\fBnodedev-reattach\fR, and is done automatically for managed devices.
+For compatibility purposes, this command can also be spelled
+\&\fBnodedev-dettach\fR.
 .IP "\fBnodedev-dumpxml\fR \fInodedev\fR" 4
 .IX Item "nodedev-dumpxml nodedev"
 Dump a <device> \s-1XML\s0 representation for the given node device, including
@@ -1500,7 +1639,7 @@ formatted in a tree representing parents of each node.
 Declare that \fInodedev\fR is no longer in use by any guests, and that
 the host can resume normal use of the device.  This is done
 automatically for devices in managed mode, but must be done explicitly
-to match any explicit \fBnodedev-dettach\fR.
+to match any explicit \fBnodedev-detach\fR.
 .IP "\fBnodedev-reset\fR \fInodedev\fR" 4
 .IX Item "nodedev-reset nodedev"
 Trigger a device reset for \fInodedev\fR, useful prior to transferring
@@ -1521,8 +1660,9 @@ Configure a virtual network to be automatically started at boot.
 The \fI\-\-disable\fR option disable autostarting.
 .IP "\fBnet-create\fR \fIfile\fR" 4
 .IX Item "net-create file"
-Create a virtual network from an \s-1XML\s0 \fIfile\fR, see the documentation to get
-a description of the \s-1XML\s0 network format used by libvirt.
+Create a virtual network from an \s-1XML\s0 \fIfile\fR, see the documentation at
+<http://libvirt.org/formatnetwork.html> to get a description of the
+\&\s-1XML\s0 network format used by libvirt.
 .IP "\fBnet-define\fR \fIfile\fR" 4
 .IX Item "net-define file"
 Define a virtual network from an \s-1XML\s0 \fIfile\fR, the network is just defined but
@@ -1815,10 +1955,10 @@ Create a volume from a set of arguments.
 \&\fIpool-or-uuid\fR is the name or \s-1UUID\s0 of the storage pool to create the volume
 in.
 \&\fIname\fR is the name of the new volume.
-\&\fIcapacity\fR is the size of the volume to be created, with optional k, M, G, or
-T suffix.
-\&\fI\-\-allocation\fR \fIsize\fR is the initial size to be allocated in the volume, with
-optional k, M, G, or T suffix.
+\&\fIcapacity\fR is the size of the volume to be created, as a scaled integer
+(see \fB\s-1NOTES\s0\fR above), defaulting to bytes if there is no suffix.
+\&\fI\-\-allocation\fR \fIsize\fR is the initial size to be allocated in the volume,
+also as a scaled integer defaulting to bytes.
 \&\fI\-\-format\fR \fIstring\fR is used in file based storage pools to specify the volume
 file format to use; raw, bochs, qcow, qcow2, vmdk.
 \&\fI\-\-backing\-vol\fR \fIvol-name-or-key-or-path\fR is the source backing
@@ -1885,6 +2025,9 @@ volume with zeroes. This can be done via \fI\-\-algorithm\fR switch.
   pfitzner7  \- Roy Pfitzner's 7\-random\-pass method: random x7.
   pfitzner33 \- Roy Pfitzner's 33\-random\-pass method: random x33.
   random     \- 1\-pass pattern: random.
+.Sp
+\&\fBNote\fR: The availability of algorithms may be limited by the version
+of the \f(CW\*(C`scrub\*(C'\fR binary installed on the host.
 .IP "\fBvol-dumpxml\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] \fIvol-name-or-key-or-path\fR" 4
 .IX Item "vol-dumpxml [--pool pool-or-uuid] vol-name-or-key-or-path"
 Output the volume information as an \s-1XML\s0 dump to stdout.
@@ -1933,7 +2076,12 @@ is in. \fIvol-name-or-key-or-path\fR is the name or key or path of the volume
 to resize.  The new capacity might be sparse unless \fI\-\-allocate\fR is
 specified.  Normally, \fIcapacity\fR is the new size, but if \fI\-\-delta\fR
 is present, then it is added to the existing size.  Attempts to shrink
-the volume will fail unless \fI\-\-shrink\fR is present.
+the volume will fail unless \fI\-\-shrink\fR is present; \fIcapacity\fR cannot
+be negative unless \fI\-\-shrink\fR is provided, but a negative sign is not
+necessary. \fIcapacity\fR is a scaled integer (see \fB\s-1NOTES\s0\fR above), which
+defaults to bytes if there is no suffix.  This command is only safe
+for storage volumes not in use by an active guest; see also
+\&\fBblockresize\fR for live resizing.
 .SH "SECRET COMMMANDS"
 .IX Header "SECRET COMMMANDS"
 The following commands manipulate \*(L"secrets\*(R" (e.g. passwords, passphrases and
@@ -1975,8 +2123,8 @@ image to saving a domain's state before a potentially destructive operation.
 Snapshots are identified with a unique name.  See
 <http://libvirt.org/formatsnapshot.html> for documentation of the \s-1XML\s0 format
 used to represent properties of snapshots.
-.IP "\fBsnapshot-create\fR \fIdomain\fR [\fIxmlfile\fR] {[\fI\-\-redefine\fR [\fI\-\-current\fR]] | [\fI\-\-no\-metadata\fR] [\fI\-\-halt\fR] [\fI\-\-disk\-only\fR] [\fI\-\-reuse\-external\fR] [\fI\-\-quiesce\fR]}" 4
-.IX Item "snapshot-create domain [xmlfile] {[--redefine [--current]] | [--no-metadata] [--halt] [--disk-only] [--reuse-external] [--quiesce]}"
+.IP "\fBsnapshot-create\fR \fIdomain\fR [\fIxmlfile\fR] {[\fI\-\-redefine\fR [\fI\-\-current\fR]] | [\fI\-\-no\-metadata\fR] [\fI\-\-halt\fR] [\fI\-\-disk\-only\fR] [\fI\-\-reuse\-external\fR] [\fI\-\-quiesce\fR] [\fI\-\-atomic\fR]}" 4
+.IX Item "snapshot-create domain [xmlfile] {[--redefine [--current]] | [--no-metadata] [--halt] [--disk-only] [--reuse-external] [--quiesce] [--atomic]}"
 Create a snapshot for domain \fIdomain\fR with the properties specified in
 \&\fIxmlfile\fR.  Normally, the only properties settable for a domain snapshot
 are the <name> and <description> elements, as well as <disks> if
@@ -2022,12 +2170,18 @@ to freeze and unfreeze domain's mounted file systems. However,
 if domain has no guest agent, snapshot creation will fail.
 Currently, this requires \fI\-\-disk\-only\fR to be passed as well.
 .Sp
+If \fI\-\-atomic\fR is specified, libvirt will guarantee that the snapshot
+either succeeds, or fails with no changes; not all hypervisors support
+this.  If this flag is not specified, then some hypervisors may fail
+after partially performing the action, and \fBdumpxml\fR must be used to
+see whether any partial changes occurred.
+.Sp
 Existence of snapshot metadata will prevent attempts to \fBundefine\fR
 a persistent domain.  However, for transient domains, snapshot
 metadata is silently lost when the domain quits running (whether
 by command such as \fBdestroy\fR or by internal guest action).
-.IP "\fBsnapshot-create-as\fR \fIdomain\fR {[\fI\-\-print\-xml\fR] | [\fI\-\-no\-metadata\fR] [\fI\-\-halt\fR] [\fI\-\-reuse\-existing\fR]} [\fIname\fR] [\fIdescription\fR] [\fI\-\-disk\-only\fR [\fI\-\-quiesce\fR] [[\fI\-\-diskspec\fR] \fBdiskspec\fR]...]" 4
-.IX Item "snapshot-create-as domain {[--print-xml] | [--no-metadata] [--halt] [--reuse-existing]} [name] [description] [--disk-only [--quiesce] [[--diskspec] diskspec]...]"
+.IP "\fBsnapshot-create-as\fR \fIdomain\fR {[\fI\-\-print\-xml\fR] | [\fI\-\-no\-metadata\fR] [\fI\-\-halt\fR] [\fI\-\-reuse\-existing\fR]} [\fIname\fR] [\fIdescription\fR] [\fI\-\-disk\-only\fR [\fI\-\-quiesce\fR] [\fI\-\-atomic\fR] [[\fI\-\-diskspec\fR] \fBdiskspec\fR]...]" 4
+.IX Item "snapshot-create-as domain {[--print-xml] | [--no-metadata] [--halt] [--reuse-existing]} [name] [description] [--disk-only [--quiesce] [--atomic] [[--diskspec] diskspec]...]"
 Create a snapshot for domain \fIdomain\fR with the given <name> and
 <description>; if either value is omitted, libvirt will choose a
 value.  If \fI\-\-print\-xml\fR is specified, then \s-1XML\s0 appropriate for
@@ -2064,6 +2218,12 @@ but any metadata is immediately discarded (that is, libvirt does not
 treat the snapshot as current, and cannot revert to the snapshot
 unless \fBsnapshot-create\fR is later used to teach libvirt about the
 metadata again).  This flag is incompatible with \fI\-\-print\-xml\fR.
+.Sp
+If \fI\-\-atomic\fR is specified, libvirt will guarantee that the snapshot
+either succeeds, or fails with no changes; not all hypervisors support
+this.  If this flag is not specified, then some hypervisors may fail
+after partially performing the action, and \fBdumpxml\fR must be used to
+see whether any partial changes occurred.
 .IP "\fBsnapshot-current\fR \fIdomain\fR {[\fI\-\-name\fR] | [\fI\-\-security\-info\fR] | [\fIsnapshotname\fR]}" 4
 .IX Item "snapshot-current domain {[--name] | [--security-info] | [snapshotname]}"
 Without \fIsnapshotname\fR, this will output the snapshot \s-1XML\s0 for the domain's
@@ -2297,7 +2457,15 @@ The file to log virsh debug messages.
 .IP "\s-1VIRSH_DEFAULT_CONNECT_URI\s0" 4
 .IX Item "VIRSH_DEFAULT_CONNECT_URI"
 The hypervisor to connect to by default. Set this to a \s-1URI\s0, in the same
-format as accepted by the \fBconnect\fR option.
+format as accepted by the \fBconnect\fR option. This environment variable
+is deprecated in favour of the global \fB\s-1LIBVIRT_DEFAULT_URI\s0\fR variable
+which serves the same purpose.
+.IP "\s-1LIBVIRT_DEFAULT_URI\s0" 4
+.IX Item "LIBVIRT_DEFAULT_URI"
+The hypervisor to connect to by default. Set this to a \s-1URI\s0, in the
+same format as accepted by the \fBconnect\fR option. This overrides
+the default \s-1URI\s0 set in any client config file and prevents libvirt
+from probing for drivers.
 .IP "\s-1VISUAL\s0" 4
 .IX Item "VISUAL"
 The editor to use by the \fBedit\fR and related options.

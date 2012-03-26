@@ -222,6 +222,8 @@
                       </li><li>
                         <a href="#elementsNICSDirect">Direct attachment to physical interface</a>
                       </li><li>
+                        <a href="#elementsNICSHostdev">PCI Passthrough</a>
+                      </li><li>
                         <a href="#elementsNICSMulticast">Multicast tunnel</a>
                       </li><li>
                         <a href="#elementsNICSTCP">TCP tunnel</a>
@@ -238,7 +240,7 @@
                       </li><li>
                         <a href="#elementQoS">Quality of service</a>
                       </li><li>
-                        <a href="#elementLink">Modyfing virtual link state</a>
+                        <a href="#elementLink">Modifying virtual link state</a>
                       </li></ul>
                   </li><li>
                     <a href="#elementsInput">Input devices</a>
@@ -547,7 +549,7 @@
         <pre>
 &lt;domain&gt;
   ...
-  &lt;vcpu cpuset="1-4,^3,6" current="1"&gt;2&lt;/vcpu&gt;
+  &lt;vcpu placement='static' cpuset="1-4,^3,6" current="1"&gt;2&lt;/vcpu&gt;
   ...
 &lt;/domain&gt;
 </pre>
@@ -562,8 +564,19 @@
         be excluded from a previous range.  <span class="since">Since
         0.8.5</span>, the optional attribute <code>current</code> can
         be used to specify whether fewer than the maximum number of
-        virtual CPUs should be enabled.
-      </dd></dl>
+        virtual CPUs should be enabled.  <span class="since">Since
+        0.9.11 (QEMU and KVM only), the optional attribute
+        <code>placement</code> can be used to indicate the CPU placement
+        mode for domain process, its value can be either "static" or
+        "auto", defaults to "static" if <code>cpuset</code> is specified,
+        "auto" indicates the domain process will be pinned to the advisory
+        nodeset from querying numad, and the value of attribute
+        <code>cpuset</code> will be overridden by the advisory nodeset
+        from numad if it's specified. If both <code>cpuset</code> and
+        <code>placement</code> are not specified, or if <code>placement</code>
+        is "static", but no <code>cpuset</code> is specified, the domain
+        process will be pinned to all the available physical CPUs.
+      </span></dd></dl>
         <h3>
           <a name="elementsCPUTuning" id="elementsCPUTuning">CPU Tuning</a>
         </h3>
@@ -626,16 +639,35 @@
         <pre>
 &lt;domain&gt;
   ...
-  &lt;memory&gt;524288&lt;/memory&gt;
-  &lt;currentMemory&gt;524288&lt;/currentMemory&gt;
+  &lt;memory unit='KiB'&gt;524288&lt;/memory&gt;
+  &lt;currentMemory unit='KiB'&gt;524288&lt;/currentMemory&gt;
   ...
 &lt;/domain&gt;
 </pre>
         <dl><dt><code>memory</code></dt><dd>The maximum allocation of memory for the guest at boot time.
-        The units for this value are kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>currentMemory</code></dt><dd>The actual allocation of memory for the guest. This value can
+        The units for this value are determined by the optional
+        atttribute <code>unit</code>, which defaults to "KiB"
+        (kibibytes, 2<sup>10</sup> or blocks of 1024 bytes).  Valid
+        units are "b" or "bytes" for bytes, "KB" for kilobytes
+        (10<sup>3</sup> or 1,000 bytes), "k" or "KiB" for kibibytes
+        (1024 bytes), "MB" for megabytes (10<sup>6</sup> or 1,000,000
+        bytes), "M" or "MiB" for mebibytes (2<sup>20</sup> or
+        1,048,576 bytes), "GB" for gigabytes (10<sup>9</sup> or
+        1,000,000,000 bytes), "G" or "GiB" for gibibytes
+        (2<sup>30</sup> or 1,073,741,824 bytes), "TB" for terabytes
+        (10<sup>12</sup> or 1,000,000,000,000 bytes), or "T" or "TiB"
+        for tebibytes (2<sup>40</sup> or 1,099,511,627,776 bytes).
+        However, the value will be rounded up to the nearest kibibyte
+        by libvirt, and may be further rounded to the granularity
+        supported by the hypervisor.  Some hypervisors also enforce a
+        minimum, such as
+        4000KiB. <span class="since"><code>unit</code> since
+        0.9.11</span></dd><dt><code>currentMemory</code></dt><dd>The actual allocation of memory for the guest. This value can
         be less than the maximum allocation, to allow for ballooning
         up the guests memory on the fly. If this is omitted, it defaults
-        to the same value as the <code>memory</code> element</dd></dl>
+        to the same value as the <code>memory</code> element.
+        The <code>unit</code> attribute behaves the same as
+        for <code>memory</code>.</dd></dl>
         <h3>
           <a name="elementsMemoryBacking" id="elementsMemoryBacking">Memory Backing</a>
         </h3>
@@ -659,10 +691,10 @@
 &lt;domain&gt;
   ...
   &lt;memtune&gt;
-    &lt;hard_limit&gt;1048576&lt;/hard_limit&gt;
-    &lt;soft_limit&gt;131072&lt;/soft_limit&gt;
-    &lt;swap_hard_limit&gt;2097152&lt;/swap_hard_limit&gt;
-    &lt;min_guarantee&gt;65536&lt;/min_guarantee&gt;
+    &lt;hard_limit unit='G'&gt;1&lt;/hard_limit&gt;
+    &lt;soft_limit unit='M'&gt;128&lt;/soft_limit&gt;
+    &lt;swap_hard_limit unit='G'&gt;2&lt;/swap_hard_limit&gt;
+    &lt;min_guarantee unit='bytes'&gt;67108864&lt;/min_guarantee&gt;
   &lt;/memtune&gt;
   ...
 &lt;/domain&gt;
@@ -673,16 +705,22 @@
         parameters are applied to the QEMU process as a whole. Thus, when
         counting them, one needs to add up guest RAM, guest video RAM, and
         some memory overhead of QEMU itself. The last piece is hard to
-        determine so one needs guess and try.</dd><dt><code>hard_limit</code></dt><dd> The optional <code>hard_limit</code> element is the maximum memory
-        the guest can use. The units for this value are kilobytes (i.e. blocks
+        determine so one needs guess and try.  For each tunable, it
+        is possible to designate which unit the number is in on
+        input, using the same values as
+        for <code>&lt;memory&gt;</code>.  For backwards
+        compatibility, output is always in
+        KiB.  <span class="since"><code>unit</code>
+        since 0.9.11</span></dd><dt><code>hard_limit</code></dt><dd> The optional <code>hard_limit</code> element is the maximum memory
+        the guest can use. The units for this value are kibibytes (i.e. blocks
         of 1024 bytes)</dd><dt><code>soft_limit</code></dt><dd> The optional <code>soft_limit</code> element is the memory limit to
         enforce during memory contention. The units for this value are
-        kilobytes (i.e. blocks of 1024 bytes)</dd><dt><code>swap_hard_limit</code></dt><dd> The optional <code>swap_hard_limit</code> element is the maximum
+        kibibytes (i.e. blocks of 1024 bytes)</dd><dt><code>swap_hard_limit</code></dt><dd> The optional <code>swap_hard_limit</code> element is the maximum
         memory plus swap the guest can use. The units for this value are
-        kilobytes (i.e. blocks of 1024 bytes). This has to be more than
+        kibibytes (i.e. blocks of 1024 bytes). This has to be more than
         hard_limit value provided</dd><dt><code>min_guarantee</code></dt><dd> The optional <code>min_guarantee</code> element is the guaranteed
         minimum memory allocation for the guest. The units for this value are
-        kilobytes (i.e. blocks of 1024 bytes)</dd></dl>
+        kibibytes (i.e. blocks of 1024 bytes)</dd></dl>
         <h3>
           <a name="elementsNUMATuning" id="elementsNUMATuning">NUMA Node Tuning</a>
         </h3>
@@ -701,7 +739,7 @@
         for domain process. NB, only supported by QEMU driver.
         <span class="since">Since 0.9.3</span>
       </dd><dt><code>memory</code></dt><dd>
-        The optional <code>memory</code> element specify how to allocate memory
+        The optional <code>memory</code> element specifies how to allocate memory
         for the domain process on a NUMA host. It contains two attributes,
         attribute <code>mode</code> is either 'interleave', 'strict',
         or 'preferred',
@@ -893,7 +931,7 @@
         <p>
       Each <code>cell</code> element specifies a NUMA cell or a NUMA node.
       <code>cpus</code> specifies the CPU or range of CPUs that are part of
-      the node. <code>memory</code> specifies the node memory in kilobytes
+      the node. <code>memory</code> specifies the node memory in kibibytes
       (i.e. blocks of 1024 bytes). Each cell or node is assigned cellid
       or nodeid in the increasing order starting from 0.
     </p>
@@ -951,6 +989,7 @@
     &lt;acpi/&gt;
     &lt;apic/&gt;
     &lt;hap/&gt;
+    &lt;privnet/&gt;
   &lt;/features&gt;
   ...</pre>
         <p>
@@ -967,6 +1006,10 @@
         the hardware.
       </dd><dt><code>viridian</code></dt><dd>Enable Viridian hypervisor extensions for paravirtualizing
         guest operating systems
+      </dd><dt><code>privnet</code></dt><dd>Always create a private network namespace. This is
+        automatically set if any interface devices are defined.
+        This feature is only relevant for container based
+        virtualization drivers, such as LXC.
       </dd></dl>
         <h3>
           <a name="elementsTime" id="elementsTime">Time keeping</a>
@@ -1129,8 +1172,14 @@
     &lt;/disk&gt;
     &lt;disk type='block' device='cdrom'&gt;
       &lt;driver name='qemu' type='raw'/&gt;
-      &lt;target dev='hdc' bus='ide'/&gt;
+      &lt;target dev='hdc' bus='ide' tray='open'/&gt;
       &lt;readonly/&gt;
+    &lt;/disk&gt;
+    &lt;disk type='block' device='lun'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
+      &lt;source dev='/dev/sda'/&gt;
+      &lt;target dev='sda' bus='scsi'/&gt;
+      &lt;address type='drive' controller='0' bus='0' target='3' unit='0'/&gt;
     &lt;/disk&gt;
   &lt;/devices&gt;
   ...</pre>
@@ -1213,10 +1262,15 @@
         possible values are driver specific, with typical values being
         "ide", "scsi", "virtio", "xen", "usb" or "sata". If omitted, the bus
         type is inferred from the style of the device name. eg, a device named
-        'sda' will typically be exported using a SCSI bus.
+        'sda' will typically be exported using a SCSI bus. The optional
+        attribute <code>tray</code> indicates the tray status of the
+        removable disks (i.e. CDROM or Floppy disk), the value can be either
+        "open" or "closed", defaults to "closed". NB, the value of
+        <code>tray</code> could be updated while the domain is running.
         <span class="since">Since 0.0.3; <code>bus</code> attribute since 0.4.3;
-        "usb" attribute value since after 0.4.4; "sata" attribute value since
-        0.9.7</span></dd><dt><code>iotune</code></dt><dd>The optional <code>iotune</code> element provides the
+        <code>tray</code> attribute since 0.9.11; "usb" attribute value since
+        after 0.4.4; "sata" attribute value since 0.9.7</span>
+      </dd><dt><code>iotune</code></dt><dd>The optional <code>iotune</code> element provides the
         ability to provide additional per-device I/O tuning, with
         values that can vary for each device (contrast this to
         the <a href="#elementsBlockTuning"><code>&lt;blkiotune&gt;</code></a>
@@ -1354,8 +1408,9 @@
         Multifunction defaults to 'off'; any other value requires
         QEMU 0.1.3 and <span class="since">libvirt 0.9.7</span>.  For a
         "drive" controller, additional attributes
-        <code>controller</code>, <code>bus</code>,
-        and <code>unit</code> are available, each defaulting to 0.
+        <code>controller</code>, <code>bus</code>, <code>target</code>
+        (<span class="since">libvirt 0.9.11</span>), and <code>unit</code>
+        are available, each defaulting to 0.
       </dd><dt><code>auth</code></dt><dd>If present, the <code>auth</code> element provides the
         authentication credentials needed to access the source.  It
         includes a mandatory attribute <code>username</code>, which
@@ -1504,6 +1559,7 @@
       </dd><dt><code>type='drive'</code></dt><dd>Drive addresses have the following additional
         attributes: <code>controller</code> (a 2-digit controller
         number), <code>bus</code> (a 2-digit bus number),
+        <code>target</code> (a 2-digit bus number),
         and <code>unit</code> (a 2-digit unit number on the bus).
       </dd><dt><code>type='virtio-serial'</code></dt><dd>Each virtio-serial address has the following additional
         attributes: <code>controller</code> (a 2-digit controller
@@ -1559,8 +1615,8 @@
       attributes <code>ports</code> and <code>vectors</code>, which
       control how many devices can be connected through the
       controller.  A "scsi" controller has an optional
-      attribute <code>model</code>, which is one of "auto",
-      "buslogic", "lsilogic", "lsias1068", or "vmpvscsi".
+      attribute <code>model</code>, which is one of "auto", "buslogic",
+      "ibmvscsi", "lsilogic", "lsias1068", "virtio-scsi" or "vmpvscsi".
       A "usb" controller has an optional attribute <code>model</code>,
       which is one of "piix3-uhci", "piix4-uhci", "ehci",
       "ich9-ehci1", "ich9-uhci1", "ich9-uhci2", "ich9-uhci3",
@@ -2117,6 +2173,51 @@
   ...
   </pre>
         <h5>
+          <a name="elementsNICSHostdev" id="elementsNICSHostdev">PCI Passthrough</a>
+        </h5>
+        <p>
+      A PCI network device (specified by the &lt;source&gt; element)
+      is directly assigned to the guest using generic device
+      passthrough, after first optionally setting the device's MAC
+      address to the configured value, and associating the device with
+      an 802.1Qgh capable switch using an optionally specified
+      %lt;virtualport%gt; element (see the examples of virtualport
+      given above for type='direct' network devices). Note that - due
+      to limitations in standard single-port PCI ethernet card driver
+      design - only SR-IOV (Single Root I/O Virtualization) virtual
+      function (VF) devices can be assigned in this manner; to assign
+      a standard single-port PCI or PCIe ethernet card to a guest, use
+      the traditional &lt;hostdev&gt; device definition and
+      <span class="since">Since 0.9.11</span>
+    </p>
+        <p>
+      Note that this "intelligent passthrough" of network devices is
+      very similar to the functionality of a standard &lt;hostdev&gt;
+      device, the difference being that this method allows specifying
+      a MAC address and &lt;virtualport&gt; for the passed-through
+      device. If these capabilities are not required, if you have a
+      standard single-port PCI, PCIe, or USB network card that doesn't
+      support SR-IOV (and hence would anyway lose the configured MAC
+      address during reset after being assigned to the guest domain),
+      or if you are using a version of libvirt older than 0.9.11, you
+      should use standard &lt;hostdev&gt; to assign the device to the
+      guest instead of &lt;interface type='hostdev'/&gt;.
+    </p>
+        <pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='hostdev'&gt;
+      &lt;source&gt;
+        &lt;address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/&gt;
+      &lt;/source&gt;
+      &lt;mac address='52:54:00:6d:90:02'&gt;
+      &lt;virtualport type='802.1Qbh'&gt;
+        &lt;parameters profileid='finance'/&gt;
+      &lt;/virtualport&gt;
+    &lt;/interface&gt;
+  &lt;/devices&gt;
+  ...</pre>
+        <h5>
           <a name="elementsNICSMulticast" id="elementsNICSMulticast">Multicast tunnel</a>
         </h5>
         <p>
@@ -2375,7 +2476,7 @@ qemu-kvm -net nic,model=? /dev/null
       <span class="since">Since 0.9.4</span>
     </p>
         <h5>
-          <a name="elementLink" id="elementLink">Modyfing virtual link state</a>
+          <a name="elementLink" id="elementLink">Modifying virtual link state</a>
         </h5>
         <pre>
   ...
@@ -2542,6 +2643,7 @@ qemu-kvm -net nic,model=? /dev/null
     &lt;image compression='auto_glz'/&gt;
     &lt;streaming mode='filter'/&gt;
     &lt;clipboard copypaste='no'/&gt;
+    &lt;mouse mode='client'/&gt;
   &lt;/graphics&gt;</pre>
             <p>
               Spice supports variable compression settings for audio,
@@ -2562,7 +2664,7 @@ qemu-kvm -net nic,model=? /dev/null
             </p>
             <p>
               Streaming mode is set by the <code>streaming</code>
-              element, settings it's <code>mode</code> attribute to one
+              element, settings its <code>mode</code> attribute to one
               of <code>filter</code>, <code>all</code>
               or <code>off</code>, <span class="since">since 0.9.2</span>.
             </p>
@@ -2573,6 +2675,13 @@ qemu-kvm -net nic,model=? /dev/null
               the <code>copypaste</code> property
               to <code>no</code>, <span class="since">since
               0.9.3</span>.
+            </p>
+            <p>
+              Mouse mode is set by the <code>mouse</code> element,
+              setting its <code>mode</code> attribute to one of
+              <code>server</code> or <code>client</code> ,
+              <span class="since">since 0.9.11</span>. If no mode is
+              specified, the qemu default will be used (client mode).
             </p>
           </dd><dt><code>"rdp"</code></dt><dd>
             Starts a RDP server. The <code>port</code> attribute
@@ -2662,7 +2771,8 @@ qemu-kvm -net nic,model=? /dev/null
         attribute which takes the value "vga", "cirrus", "vmvga", "xen",
         "vbox", or "qxl" (<span class="since">since 0.8.6</span>)
         depending on the hypervisor features available.
-        You can also provide the amount of video memory in kilobytes using
+        You can also provide the amount of video memory in kibibytes
+        (blocks of 1024 bytes) using
         <code>vram</code> and the number of screen with <code>heads</code>.
       </dd><dt><code>acceleration</code></dt><dd>
         If acceleration should be enabled (if supported) using the

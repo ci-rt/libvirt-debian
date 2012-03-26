@@ -100,17 +100,24 @@
           <ref name='virDomainQemuMonitorCommand'/>
         </word>
       </letter>
+      <letter name='W'>
+        <word name='Windows'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
+      </letter>
       <letter name='a'>
         <word name='above'>
           <ref name='virDomainQemuAttach'/>
         </word>
         <word name='also'>
+          <ref name='virDomainQemuAttach'/>
           <ref name='virDomainQemuMonitorCommand'/>
         </word>
         <word name='alters'>
           <ref name='virDomainQemuMonitorCommand'/>
         </word>
         <word name='any'>
+          <ref name='virDomainQemuAttach'/>
           <ref name='virDomainQemuMonitorCommand'/>
         </word>
         <word name='appear'>
@@ -167,6 +174,9 @@
         <word name='changes'>
           <ref name='virDomainQemuAttach'/>
         </word>
+        <word name='choice'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
         <word name='command'>
           <ref name='virDomainQemuMonitorCommand'/>
         </word>
@@ -200,7 +210,13 @@
         </word>
       </letter>
       <letter name='d'>
+        <word name='date'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
         <word name='device'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
+        <word name='difficulties'>
           <ref name='virDomainQemuAttach'/>
         </word>
         <word name='domain'>
@@ -277,11 +293,25 @@
         <word name='identified'>
           <ref name='virDomainQemuAttach'/>
         </word>
+        <word name='int'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
         <word name='into'>
           <ref name='virDomainQemuMonitorCommand'/>
         </word>
       </letter>
+      <letter name='k'>
+        <word name='know'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
+      </letter>
       <letter name='l'>
+        <word name='lack'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
+        <word name='larger'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
         <word name='launched'>
           <ref name='virDomainQemuAttach'/>
         </word>
@@ -366,11 +396,20 @@
         </word>
       </letter>
       <letter name='p'>
+        <word name='pid_t'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
+        <word name='platforms'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
         <word name='pointer'>
           <ref name='virDomainQemuAttach'/>
         </word>
         <word name='possible'>
           <ref name='virDomainQemuMonitorCommand'/>
+        </word>
+        <word name='present'>
+          <ref name='virDomainQemuAttach'/>
         </word>
         <word name='process'>
           <ref name='virDomainQemuAttach'/>
@@ -435,6 +474,9 @@
         <word name='socket'>
           <ref name='virDomainQemuAttach'/>
         </word>
+        <word name='sockets'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
         <word name='specific'>
           <ref name='virDomainQemuAttach'/>
           <ref name='virDomainQemuMonitorCommand'/>
@@ -474,6 +516,9 @@
         <word name='test'>
           <ref name='virDomainQemuMonitorCommand'/>
         </word>
+        <word name='than'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
         <word name='that'>
           <ref name='virDomainQemuMonitorCommand'/>
         </word>
@@ -501,6 +546,9 @@
         <word name='unsafe'>
           <ref name='virDomainQemuMonitorCommand'/>
         </word>
+        <word name='unsigned'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
         <word name='unused'>
           <ref name='virDomainQemuAttach'/>
         </word>
@@ -524,6 +572,9 @@
       </letter>
       <letter name='w'>
         <word name='were'>
+          <ref name='virDomainQemuAttach'/>
+        </word>
+        <word name='where'>
           <ref name='virDomainQemuAttach'/>
         </word>
         <word name='will'>

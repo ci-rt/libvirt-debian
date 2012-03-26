@@ -1,8 +1,8 @@
 <domain type='qemu'>
   <name>test</name>
   <uuid>bba65c0e-c049-934f-b6aa-4e2c0582acdf</uuid>
-  <memory>1048576</memory>
-  <currentMemory>1048576</currentMemory>
+  <memory unit='KiB'>1048576</memory>
+  <currentMemory unit='KiB'>1048576</currentMemory>
   <vcpu>1</vcpu>
   <os>
     <type arch='x86_64' machine='pc-0.13'>hvm</type>
@@ -27,7 +27,7 @@
       <source file='/var/lib/libvirt/Fedora-14-x86_64-Live-KDE.iso'/>
       <target dev='hdc' bus='ide'/>
       <readonly/>
-      <address type='drive' controller='0' bus='1' unit='0'/>
+      <address type='drive' controller='0' bus='1' target='0' unit='0'/>
     </disk>
     <controller type='usb' index='0'/>
     <controller type='virtio-serial' index='0'>

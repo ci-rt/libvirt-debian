@@ -52,7 +52,6 @@ augeastest_DATA =
 # These files are not related to driver APIs. Simply generic
 # helper APIs for various purposes
 UTIL_SOURCES =							\
-		util/authhelper.c util/authhelper.h		\
 		util/bitmap.c util/bitmap.h			\
 		util/buf.c util/buf.h				\
 		util/command.c util/command.h			\
@@ -70,7 +69,6 @@ UTIL_SOURCES =							\
 		util/pci.c util/pci.h				\
 		util/processinfo.c util/processinfo.h		\
 		util/hostusb.c util/hostusb.h			\
-		util/qparams.c util/qparams.h			\
 		util/sexpr.c util/sexpr.h			\
 		util/stats_linux.c util/stats_linux.h		\
 		util/storage_file.c util/storage_file.h		\
@@ -82,6 +80,8 @@ UTIL_SOURCES =							\
 		util/uuid.c util/uuid.h				\
 		util/util.c util/util.h				\
 		util/viraudit.c util/viraudit.h			\
+		util/virauth.c util/virauth.h			\
+		util/virauthconfig.c util/virauthconfig.h	\
 		util/virfile.c util/virfile.h			\
 		util/virnodesuspend.c util/virnodesuspend.h	\
 		util/virpidfile.c util/virpidfile.h		\
@@ -91,19 +91,22 @@ UTIL_SOURCES =							\
 		util/virhash.c util/virhash.h			\
 		util/virhashcode.c util/virhashcode.h           \
 		util/virkeycode.c util/virkeycode.h		\
+		util/virkeyfile.c util/virkeyfile.h		\
 		util/virkeymaps.h				\
 		util/virmacaddr.h util/virmacaddr.c		\
 		util/virnetdev.h util/virnetdev.c		\
 		util/virnetdevbandwidth.h util/virnetdevbandwidth.c \
 		util/virnetdevbridge.h util/virnetdevbridge.c	\
 		util/virnetdevmacvlan.c util/virnetdevmacvlan.h	\
+		util/virnetdevopenvswitch.h util/virnetdevopenvswitch.c \
 		util/virnetdevtap.h util/virnetdevtap.c		\
 		util/virnetdevveth.h util/virnetdevveth.c \
 		util/virnetdevvportprofile.h util/virnetdevvportprofile.c \
 		util/virnetlink.c util/virnetlink.h		\
 		util/virrandom.h util/virrandom.c		\
 		util/virsocketaddr.h util/virsocketaddr.c \
-		util/virtime.h util/virtime.c
+		util/virtime.h util/virtime.c \
+		util/viruri.h util/viruri.c
 
 EXTRA_DIST += $(srcdir)/util/virkeymaps.h $(srcdir)/util/keymaps.csv \
 		$(srcdir)/util/virkeycode-mapgen.py
@@ -183,6 +186,9 @@ ENCRYPTION_CONF_SOURCES =					\
 
 CPU_CONF_SOURCES =						\
 		conf/cpu_conf.c conf/cpu_conf.h
+# Safe console handling helper APIs
+CONSOLE_CONF_SOURCES =						\
+		conf/virconsole.c conf/virconsole.h
 
 CONF_SOURCES =							\
 		$(NETDEV_CONF_SOURCES)				\
@@ -195,7 +201,8 @@ CONF_SOURCES =							\
 		$(ENCRYPTION_CONF_SOURCES)			\
 		$(INTERFACE_CONF_SOURCES)			\
 		$(SECRET_CONF_SOURCES)				\
-		$(CPU_CONF_SOURCES)
+		$(CPU_CONF_SOURCES)				\
+		$(CONSOLE_CONF_SOURCES)
 
 # The remote RPC driver, covering domains, storage, networks, etc
 REMOTE_DRIVER_GENERATED = \
@@ -1283,7 +1290,7 @@ libvirt_la_CFLAGS = -DIN_LIBVIRT $(AM_CFLAGS)
 # picked out for us.
 libvirt_la_DEPENDENCIES = $(libvirt_la_BUILT_LIBADD) $(LIBVIRT_SYMBOL_FILE)
 
-if WITH_DTRACE
+if WITH_DTRACE_PROBES
 libvirt_la_BUILT_LIBADD += probes.o
 libvirt_la_DEPENDENCIES += probes.o
 nodist_libvirt_la_SOURCES = probes.h
@@ -1520,7 +1527,7 @@ libvirt_lxc_LDADD = $(CAPNG_LIBS) $(YAJL_LIBS) \
 		$(LIBNL_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
 		$(RT_LIBS) \
 		../gnulib/lib/libgnu.la
-if WITH_DTRACE
+if WITH_DTRACE_PROBES
 libvirt_lxc_LDADD += probes.o
 endif
 if WITH_SECDRIVER_SELINUX
@@ -1563,6 +1570,9 @@ virt_aa_helper_LDADD =						\
 		libvirt_conf.la					\
 		libvirt_util.la					\
 		../gnulib/lib/libgnu.la
+if WITH_DTRACE_PROBES
+virt_aa_helper_LDADD += probes.o
+endif
 virt_aa_helper_CFLAGS =						\
 		-I$(top_srcdir)/src/conf			\
 		-I$(top_srcdir)/src/security			\

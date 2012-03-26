@@ -1774,7 +1774,7 @@ static int remoteDispatchDomainGetMaxMemory(
 {
     int rv = -1;
     virDomainPtr dom = NULL;
-    unsigned long memory;
+    unsigned long long memory;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
 
@@ -1789,7 +1789,7 @@ static int remoteDispatchDomainGetMaxMemory(
     if ((memory = virDomainGetMaxMemory(dom)) == 0)
         goto cleanup;
 
-    HYPER_TO_ULONG(ret->memory, memory);
+    ret->memory = memory;
     rv = 0;
 
 cleanup:
@@ -3858,6 +3858,58 @@ static int remoteDispatchDomainPMSuspendForDuration(
         goto cleanup;
 
     if (virDomainPMSuspendForDuration(dom, args->target, args->duration, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainPMWakeup(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_pm_wakeup_args *args);
+static int remoteDispatchDomainPMWakeupHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainPMWakeup(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainPMWakeup(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_pm_wakeup_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainPMWakeup(dom, args->flags) < 0)
         goto cleanup;
 
     rv = 0;
@@ -15046,6 +15098,42 @@ virNetServerProgramProc remoteProcs[] = {
    remoteDispatchDomainBlockRebaseHelper,
    sizeof(remote_domain_block_rebase_args),
    (xdrproc_t)xdr_remote_domain_block_rebase_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainPMWakeup => 267 */
+   remoteDispatchDomainPMWakeupHelper,
+   sizeof(remote_domain_pm_wakeup_args),
+   (xdrproc_t)xdr_remote_domain_pm_wakeup_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventTrayChange => 268 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventPMwakeup => 269 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Async event DomainEventPMsuspend => 270 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
    true,

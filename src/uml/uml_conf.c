@@ -1,7 +1,7 @@
 /*
  * uml_conf.c: UML driver configuration
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -127,7 +127,6 @@ umlConnectTapDevice(virConnectPtr conn,
                     const char *bridge)
 {
     bool template_ifname = false;
-    unsigned char tapmac[VIR_MAC_BUFLEN];
 
     if (!net->ifname ||
         STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
@@ -139,10 +138,10 @@ umlConnectTapDevice(virConnectPtr conn,
         template_ifname = true;
     }
 
-    memcpy(tapmac, net->mac, VIR_MAC_BUFLEN);
-    tapmac[0] = 0xFE; /* Discourage bridge from using TAP dev MAC */
-    if (virNetDevTapCreateInBridgePort(bridge, &net->ifname, tapmac,
-                                       0, true, NULL) < 0) {
+    if (virNetDevTapCreateInBridgePort(bridge, &net->ifname, net->mac,
+                                       vm->uuid, NULL,
+                                       virDomainNetGetActualVirtPortProfile(net),
+                                       VIR_NETDEV_TAP_CREATE_IFUP) < 0) {
         if (template_ifname)
             VIR_FREE(net->ifname);
         goto error;
@@ -254,6 +253,11 @@ umlBuildCommandLineNet(virConnectPtr conn,
     case VIR_DOMAIN_NET_TYPE_DIRECT:
         umlReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("direct networking type not supported"));
+        goto error;
+
+    case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+        umlReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("hostdev networking type not supported"));
         goto error;
 
     case VIR_DOMAIN_NET_TYPE_LAST:
@@ -418,7 +422,7 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
     virCommandAddEnvPassCommon(cmd);
 
     //virCommandAddArgPair(cmd, "con0", "fd:0,fd:1");
-    virCommandAddArgFormat(cmd, "mem=%luK", vm->def->mem.cur_balloon);
+    virCommandAddArgFormat(cmd, "mem=%lluK", vm->def->mem.cur_balloon);
     virCommandAddArgPair(cmd, "umid", vm->def->name);
     virCommandAddArgPair(cmd, "uml_dir", driver->monitorDir);
 

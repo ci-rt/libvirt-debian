@@ -114,6 +114,16 @@ virDomainEventPtr virDomainEventDiskChangeNewFromDom(virDomainPtr dom,
                                                      const char *newSrcPath,
                                                      const char *devAlias,
                                                      int reason);
+virDomainEventPtr virDomainEventTrayChangeNewFromObj(virDomainObjPtr obj,
+                                                     const char *devAlias,
+                                                     int reason);
+virDomainEventPtr virDomainEventTrayChangeNewFromDom(virDomainPtr dom,
+                                                     const char *devAlias,
+                                                     int reason);
+virDomainEventPtr virDomainEventPMWakeupNewFromObj(virDomainObjPtr obj);
+virDomainEventPtr virDomainEventPMWakeupNewFromDom(virDomainPtr dom);
+virDomainEventPtr virDomainEventPMSuspendNewFromObj(virDomainObjPtr obj);
+virDomainEventPtr virDomainEventPMSuspendNewFromDom(virDomainPtr dom);
 
 void virDomainEventFree(virDomainEventPtr event);
 

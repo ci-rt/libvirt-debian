@@ -86,13 +86,15 @@ typedef virDomain *virDomainPtr;
  * A domain may be in different states at a given point in time
  */
 typedef enum {
-     VIR_DOMAIN_NOSTATE = 0, /* no state */
-     VIR_DOMAIN_RUNNING = 1, /* the domain is running */
-     VIR_DOMAIN_BLOCKED = 2, /* the domain is blocked on resource */
-     VIR_DOMAIN_PAUSED  = 3, /* the domain is paused by user */
-     VIR_DOMAIN_SHUTDOWN= 4, /* the domain is being shut down */
-     VIR_DOMAIN_SHUTOFF = 5, /* the domain is shut off */
-     VIR_DOMAIN_CRASHED = 6, /* the domain is crashed */
+     VIR_DOMAIN_NOSTATE = 0,     /* no state */
+     VIR_DOMAIN_RUNNING = 1,     /* the domain is running */
+     VIR_DOMAIN_BLOCKED = 2,     /* the domain is blocked on resource */
+     VIR_DOMAIN_PAUSED  = 3,     /* the domain is paused by user */
+     VIR_DOMAIN_SHUTDOWN= 4,     /* the domain is being shut down */
+     VIR_DOMAIN_SHUTOFF = 5,     /* the domain is shut off */
+     VIR_DOMAIN_CRASHED = 6,     /* the domain is crashed */
+     VIR_DOMAIN_PMSUSPENDED = 7, /* the domain is suspended by guest
+                                    power management */
 
 #ifdef VIR_ENUM_SENTINELS
     /*
@@ -121,6 +123,8 @@ typedef enum {
     VIR_DOMAIN_RUNNING_UNPAUSED = 5,        /* returned from paused state */
     VIR_DOMAIN_RUNNING_MIGRATION_CANCELED = 6,  /* returned from migration */
     VIR_DOMAIN_RUNNING_SAVE_CANCELED = 7,   /* returned from failed save process */
+    VIR_DOMAIN_RUNNING_WAKEUP = 8,          /* returned from pmsuspended due to
+                                               wakeup event */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_RUNNING_LAST
@@ -183,6 +187,13 @@ typedef enum {
 #endif
 } virDomainCrashedReason;
 
+typedef enum {
+    VIR_DOMAIN_PMSUSPENDED_UNKNOWN = 0,
+
+#ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_PMSUSPENDED_LAST
+#endif
+} virDomainPMSuspendedReason;
 
 /**
  * virDomainControlState:
@@ -934,7 +945,7 @@ typedef enum {
     VIR_MIGRATE_CHANGE_PROTECTION = (1 << 8), /* protect for changing domain configuration through the
                                                * whole migration process; this will be used automatically
                                                * when supported */
-
+    VIR_MIGRATE_UNSAFE            = (1 << 9), /* force migration even if it is considered unsafe */
 } virDomainMigrateFlags;
 
 /* Domain migration. */
@@ -1104,7 +1115,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 9010
+#define LIBVIR_VERSION_NUMBER 9011
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -1251,6 +1262,8 @@ int                     virDomainPMSuspendForDuration (virDomainPtr domain,
                                                        unsigned int target,
                                                        unsigned long long duration,
                                                        unsigned int flags);
+int                     virDomainPMWakeup       (virDomainPtr domain,
+                                                 unsigned int flags);
 /*
  * Domain save/restore
  */
@@ -1329,6 +1342,18 @@ int                     virDomainGetState       (virDomainPtr domain,
  * cpu usage in nanoseconds, as a ullong
  */
 #define VIR_DOMAIN_CPU_STATS_CPUTIME "cpu_time"
+
+/**
+ * VIR_DOMAIN_CPU_STATS_USERTIME:
+ * cpu time charged to user instructions in nanoseconds, as a ullong
+ */
+#define VIR_DOMAIN_CPU_STATS_USERTIME "user_time"
+
+/**
+ * VIR_DOMAIN_CPU_STATS_SYSTEMTIME:
+ * cpu time charged to system instructions in nanoseconds, as a ullong
+ */
+#define VIR_DOMAIN_CPU_STATS_SYSTEMTIME "system_time"
 
 int virDomainGetCPUStats(virDomainPtr domain,
                          virTypedParameterPtr params,
@@ -1634,6 +1659,16 @@ int                     virDomainBlockPeek (virDomainPtr dom,
                                             size_t size,
                                             void *buffer,
                                             unsigned int flags);
+
+/**
+ * virDomainBlockResizeFlags:
+ *
+ * Flags available for virDomainBlockResize().
+ */
+typedef enum {
+    VIR_DOMAIN_BLOCK_RESIZE_BYTES = 1 << 0, /* size in bytes instead of KiB */
+} virDomainBlockResizeFlags;
+
 int                     virDomainBlockResize (virDomainPtr dom,
                                               const char *disk,
                                               unsigned long long size,
@@ -2662,6 +2697,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_STARTED_MIGRATED = 1, /* Incoming migration from another host */
     VIR_DOMAIN_EVENT_STARTED_RESTORED = 2, /* Restored from a state file */
     VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT = 3, /* Restored from snapshot */
+    VIR_DOMAIN_EVENT_STARTED_WAKEUP = 4,   /* Started due to wakeup event */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_STARTED_LAST
@@ -3265,6 +3301,8 @@ typedef enum {
                                                           quiesce all mounted
                                                           file systems within
                                                           the domain */
+    VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC      = (1 << 7), /* atomically avoid
+                                                          partial changes */
 } virDomainSnapshotCreateFlags;
 
 /* Take a snapshot of the current VM state */
@@ -3622,6 +3660,7 @@ typedef enum {
  * @dom: domain on which the event occurred
  * @oldSrcPath: old source path
  * @newSrcPath: new source path
+ * @devAlias: device alias name
  * @reason: reason why this callback was called; any of
  *          virConnectDomainEventDiskChangeReason
  * @opaque: application specified data
@@ -3632,13 +3671,82 @@ typedef enum {
  * for more details.
  *
  * The callback signature to use when registering for an event of type
- * VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()
+ * VIR_DOMAIN_EVENT_ID_DISK_CHANGE with virConnectDomainEventRegisterAny()
  */
 typedef void (*virConnectDomainEventDiskChangeCallback)(virConnectPtr conn,
                                                        virDomainPtr dom,
                                                        const char *oldSrcPath,
                                                        const char *newSrcPath,
                                                        const char *devAlias,
+                                                       int reason,
+                                                       void *opaque);
+
+/**
+ * virConnectDomainEventTrayChangeReason:
+ *
+ * The reason describing why the callback was called
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_TRAY_CHANGE_OPEN = 0,
+    VIR_DOMAIN_EVENT_TRAY_CHANGE_CLOSE,
+
+#ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_EVENT_TRAY_CHANGE_LAST
+#endif
+} virDomainEventTrayChangeReason;
+
+/**
+ * virConnectDomainEventTrayChangeCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @devAlias: device alias
+ * @reason: why the tray status was changed?
+ * @opaque: application specified data
+ *
+ * This callback occurs when the tray of a removable device is moved.
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_TRAY_CHANGE with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventTrayChangeCallback)(virConnectPtr conn,
+                                                        virDomainPtr dom,
+                                                        const char *devAlias,
+                                                        int reason,
+                                                        void *opaque);
+
+/**
+ * virConnectDomainEventPMWakeupCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @reason: reason why the callback was called, unused currently,
+ *          always passes 0
+ * @opaque: application specified data
+ *
+ * This callback occurs when the guest is waken up.
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_PMWAKEUP with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventPMWakeupCallback)(virConnectPtr conn,
+                                                      virDomainPtr dom,
+                                                      int reason,
+                                                      void *opaque);
+
+/**
+ * virConnectDomainEventPMSuspendCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @reason: reason why the callback was called, unused currently,
+ *          always passes 0
+ * @opaque: application specified data
+ *
+ * This callback occurs when the guest is waken up.
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_PMSuspend with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventPMSuspendCallback)(virConnectPtr conn,
+                                                       virDomainPtr dom,
                                                        int reason,
                                                        void *opaque);
 
@@ -3662,6 +3770,9 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_CONTROL_ERROR = 7,   /* virConnectDomainEventGenericCallback */
     VIR_DOMAIN_EVENT_ID_BLOCK_JOB = 8,       /* virConnectDomainEventBlockJobCallback */
     VIR_DOMAIN_EVENT_ID_DISK_CHANGE = 9,     /* virConnectDomainEventDiskChangeCallback */
+    VIR_DOMAIN_EVENT_ID_TRAY_CHANGE = 10,    /* virConnectDomainEventTrayChangeCallback */
+    VIR_DOMAIN_EVENT_ID_PMWAKEUP = 11,       /* virConnectDomainEventPMWakeupCallback */
+    VIR_DOMAIN_EVENT_ID_PMSUSPEND = 12,      /* virConnectDomainEventPMSuspendCallback */
 
 #ifdef VIR_ENUM_SENTINELS
     /*
@@ -3747,7 +3858,19 @@ int                     virNWFilterGetUUIDString (virNWFilterPtr nwfilter,
                                                   char *buf);
 char *                  virNWFilterGetXMLDesc    (virNWFilterPtr nwfilter,
                                                   unsigned int flags);
+/**
+ * virDomainConsoleFlags
+ *
+ * Since 0.9.10
+ */
+typedef enum {
 
+    VIR_DOMAIN_CONSOLE_FORCE = (1 << 0), /* abort a (possibly) active console
+                                            connection to force a new
+                                            connection */
+    VIR_DOMAIN_CONSOLE_SAFE = (1 << 1), /* check if the console driver supports
+                                           safe console operations */
+} virDomainConsoleFlags;
 
 int virDomainOpenConsole(virDomainPtr dom,
                          const char *devname,

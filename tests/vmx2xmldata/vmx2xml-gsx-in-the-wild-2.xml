@@ -1,8 +1,8 @@
 <domain type='vmware'>
   <name>Server2</name>
   <uuid>564d3301-267f-a0ef-8b7d-d45e98d6cba4</uuid>
-  <memory>32768</memory>
-  <currentMemory>32768</currentMemory>
+  <memory unit='KiB'>32768</memory>
+  <currentMemory unit='KiB'>32768</currentMemory>
   <vcpu>1</vcpu>
   <os>
     <type arch='i686'>hvm</type>
@@ -15,7 +15,7 @@
     <disk type='file' device='disk'>
       <source file='[datastore] directory/Debian-System1-0-cl3.vmdk'/>
       <target dev='hda' bus='ide'/>
-      <address type='drive' controller='0' bus='0' unit='0'/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
     </disk>
     <controller type='ide' index='0'/>
     <interface type='bridge'>

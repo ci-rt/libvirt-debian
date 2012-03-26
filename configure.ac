@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.10], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.11], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -211,7 +211,11 @@ AC_PATH_PROG([UDEVADM], [udevadm], [],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([UDEVSETTLE], [udevsettle], [],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
-AC_PATH_PROG([MODPROBE], [modprobe], [],
+AC_PATH_PROG([MODPROBE], [modprobe], [modprobe],
+	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+AC_PATH_PROG([OVSVSCTL], [ovs-vsctl], [ovs-vsctl],
+	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+AC_PATH_PROG([SCRUB], [scrub], [scrub],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 
 AC_DEFINE_UNQUOTED([DNSMASQ],["$DNSMASQ"],
@@ -220,6 +224,9 @@ AC_DEFINE_UNQUOTED([RADVD],["$RADVD"],
         [Location or name of the radvd program])
 AC_DEFINE_UNQUOTED([TC],["$TC"],
         [Location or name of the tc profram (see iproute2)])
+AC_DEFINE_UNQUOTED([OVSVSCTL],["$OVSVSCTL"],
+        [Location or name of the ovs-vsctl program])
+
 if test -n "$UDEVADM"; then
   AC_DEFINE_UNQUOTED([UDEVADM],["$UDEVADM"],
         [Location or name of the udevadm program])
@@ -232,6 +239,8 @@ if test -n "$MODPROBE"; then
   AC_DEFINE_UNQUOTED([MODPROBE],["$MODPROBE"],
         [Location or name of the modprobe program])
 fi
+AC_DEFINE_UNQUOTED([SCRUB],["$SCRUB"],
+        [Location or name of the scrub program (for wiping algorithms)])
 
 dnl Specific dir for HTML output ?
 AC_ARG_WITH([html-dir], [AC_HELP_STRING([--with-html-dir=path],
@@ -327,6 +336,12 @@ AC_ARG_WITH([remote],
   AC_HELP_STRING([--with-remote], [add remote driver support @<:@default=yes@:>@]),[],[with_remote=yes])
 AC_ARG_WITH([libvirtd],
   AC_HELP_STRING([--with-libvirtd], [add libvirtd support @<:@default=yes@:>@]),[],[with_libvirtd=yes])
+AC_ARG_WITH([console-lock-files],
+  AC_HELP_STRING([--with-console-lock-files],
+                 [location for UUCP style lock files for console PTYs
+                  (use auto for default paths on some platforms)
+                  @<:@default=auto@:>@]),
+  [],[with_console_lock_files=auto])
 
 dnl
 dnl in case someone want to build static binaries
@@ -1197,6 +1212,26 @@ AM_CONDITIONAL([HAVE_AUDIT], [test "$with_audit" = "yes"])
 AC_SUBST([AUDIT_CFLAGS])
 AC_SUBST([AUDIT_LIBS])
 
+dnl UUCP style file locks for PTY consoles
+if test "$with_console_lock_files" != "no"; then
+  case $with_console_lock_files in
+  yes | auto)
+    dnl Default locations for platforms, or disable if unknown
+    if test "$with_linux" = "yes"; then
+      with_console_lock_files=/var/lock
+    elif test "$with_console_lock_files" = "auto"; then
+      with_console_lock_files=no
+    fi ;;
+  esac
+  if test "$with_console_lock_files" = "yes"; then
+    AC_MSG_ERROR([You must specify path for the lock files on this
+platform])
+  fi
+  AC_DEFINE_UNQUOTED([VIR_PTY_LOCK_FILE_PATH], "$with_console_lock_files",
+                      [path to directory containing UUCP pty lock files])
+fi
+AM_CONDITIONAL([VIR_PTY_LOCK_FILE_PATH], [test "$with_console_lock_files" != "no"])
+
 
 dnl SELinux
 AC_ARG_WITH([selinux],
@@ -1369,10 +1404,10 @@ if test "$with_dtrace" != "no" ; then
     with_dtrace=yes
   fi
   if test "$with_dtrace" = "yes"; then
-    AC_DEFINE_UNQUOTED([WITH_DTRACE], 1, [whether DTrace static probes are available])
+    AC_DEFINE_UNQUOTED([WITH_DTRACE_PROBES], 1, [whether DTrace static probes are available])
   fi
 fi
-AM_CONDITIONAL([WITH_DTRACE], [test "$with_dtrace" != "no"])
+AM_CONDITIONAL([WITH_DTRACE_PROBES], [test "$with_dtrace" != "no"])
 
 
 dnl NUMA lib
@@ -1410,6 +1445,29 @@ AM_CONDITIONAL([HAVE_NUMACTL], [test "$with_numactl" != "no"])
 AC_SUBST([NUMACTL_CFLAGS])
 AC_SUBST([NUMACTL_LIBS])
 
+dnl numad
+AC_ARG_WITH([numad],
+  AC_HELP_STRING([--with-numad], [use numad to manage CPU placement dynamically @<:@default=check@:>@]),
+  [],
+  [with_numad=check])
+
+if test "$with_numad" != "no" ; then
+  AC_PATH_PROG([NUMAD], [numad], [], [/bin:/usr/bin])
+  if test -z "$NUMAD" ; then
+    if test "$with_numad" = "check"; then
+      with_numad="no"
+    else
+      AC_MSG_ERROR([You must install the 'numad' to manage CPU placement dynamically])
+    fi
+  else
+    with_numad="yes"
+  fi
+  if test "$with_numad" = "yes"; then
+    AC_DEFINE_UNQUOTED([HAVE_NUMAD], 1, [whether numad is available])
+    AC_DEFINE_UNQUOTED([NUMAD],["$NUMAD"], [Location or name of the numad program])
+  fi
+fi
+AM_CONDITIONAL([HAVE_NUMAD], [test "$with_numad" != "no"])
 
 dnl pcap lib
 LIBPCAP_CONFIG="pcap-config"
@@ -2500,32 +2558,6 @@ AM_CONDITIONAL([HAVE_LIBNL], [test "$have_libnl" = "yes"])
 AC_SUBST([LIBNL_CFLAGS])
 AC_SUBST([LIBNL_LIBS])
 
-dnl scrub program for different volume wiping algorithms
-
-AC_ARG_WITH([scrub],
-            AC_HELP_STRING([--with-scrub], [enable different volume wiping algorithms
-                            @<:@default=check@:>@]),
-            [with_macvtap=${withval}],
-            [with_scrub=check])
-
-if test "$with_scrub" != "no"; then
-  AC_PATH_PROG([SCRUB], [scrub])
-  if test -z "$SCRUB" ; then
-    if test "$with_scrub" = "check"; then
-      with_scrub=no
-    else
-      AC_MSG_ERROR([You must install the 'scrub' binary to enable
-                    different volume wiping algorithms])
-    fi
-  else
-    with_scrub=yes
-  fi
-  if test "$with_scrub" = "yes"; then
-    AC_DEFINE_UNQUOTED([SCRUB], ["$SCRUB"],
-                       [Location of the scrub program])
-  fi
-fi
-
 # Only COPYING.LIB is under version control, yet COPYING
 # is included as part of the distribution tarball.
 # Copy one to the other, but only if this is a srcdir-build.
@@ -2757,8 +2789,10 @@ AC_MSG_NOTICE([Warning Flags: $WARN_CFLAGS])
 AC_MSG_NOTICE([     Readline: $lv_use_readline])
 AC_MSG_NOTICE([       Python: $with_python])
 AC_MSG_NOTICE([       DTrace: $with_dtrace])
+AC_MSG_NOTICE([        numad: $with_numad])
 AC_MSG_NOTICE([  XML Catalog: $XML_CATALOG_FILE])
 AC_MSG_NOTICE([  Init script: $with_init_script])
+AC_MSG_NOTICE([Console locks: $with_console_lock_files])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Privileges])
 AC_MSG_NOTICE([])

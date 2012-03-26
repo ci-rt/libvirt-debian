@@ -412,11 +412,11 @@
   <define name="resources">
     <interleave>
       <element name="memory">
-        <ref name="memoryKB"/>
+        <ref name='scaledInteger'/>
       </element>
       <optional>
         <element name="currentMemory">
-          <ref name="memoryKB"/>
+          <ref name='scaledInteger'/>
         </element>
       </optional>
       <optional>
@@ -461,25 +461,25 @@
           <!-- Maximum memory the VM can use -->
           <optional>
             <element name="hard_limit">
-              <ref name="memoryKB"/>
+              <ref name='scaledInteger'/>
             </element>
           </optional>
           <!-- Minimum memory ascertained for the VM during contention -->
           <optional>
             <element name="soft_limit">
-              <ref name="memoryKB"/>
+              <ref name='scaledInteger'/>
             </element>
           </optional>
           <!-- Minimum amount of memory required to start the VM -->
           <optional>
             <element name="min_guarantee">
-              <ref name="memoryKB"/>
+              <ref name='scaledInteger'/>
             </element>
           </optional>
           <!-- Maximum swap area the VM can use -->
           <optional>
             <element name="swap_hard_limit">
-              <ref name="memoryKB"/>
+              <ref name='scaledInteger'/>
             </element>
           </optional>
         </element>
@@ -487,6 +487,14 @@
 
       <optional>
         <element name="vcpu">
+          <optional>
+            <attribute name="placement">
+              <choice>
+                <value>static</value>
+                <value>auto</value>
+              </choice>
+            </attribute>
+          </optional>
           <optional>
             <attribute name="cpuset">
               <ref name="cpuset"/>
@@ -959,6 +967,14 @@
           </choice>
         </attribute>
       </optional>
+      <optional>
+        <attribute name="tray">
+          <choice>
+            <value>open</value>
+            <value>closed</value>
+          </choice>
+        </attribute>
+      </optional>
     </element>
   </define>
   <!--
@@ -1120,6 +1136,8 @@
             <value>lsilogic</value>
             <value>lsisas1068</value>
             <value>vmpvscsi</value>
+            <value>ibmvscsi</value>
+            <value>virtio-scsi</value>
             <value>piix3-uhci</value>
             <value>piix4-uhci</value>
             <value>ehci</value>
@@ -1381,7 +1399,7 @@
             <optional>
               <element name="mac">
                 <attribute name="address">
-                  <ref name="macAddr"/>
+                  <ref name="uniMacAddr"/>
                 </attribute>
                 <empty/>
               </element>
@@ -1407,11 +1425,61 @@
             <optional>
               <element name="mac">
                 <attribute name="address">
-                  <ref name="macAddr"/>
+                  <ref name="uniMacAddr"/>
                 </attribute>
                 <empty/>
               </element>
             </optional>
+          </interleave>
+        </group>
+        <group>
+          <attribute name="type">
+            <value>hostdev</value>
+          </attribute>
+          <optional>
+            <attribute name="managed">
+              <choice>
+                <value>yes</value>
+                <value>no</value>
+              </choice>
+            </attribute>
+          </optional>
+          <interleave>
+            <element name="source">
+              <choice>
+                <group>
+                  <ref name="usbproduct"/>
+                  <optional>
+                    <ref name="usbaddress"/>
+                  </optional>
+                </group>
+                <element name="address">
+                  <choice>
+                    <group>
+                      <attribute name="type">
+                        <value>pci</value>
+                      </attribute>
+                      <ref name="pciaddress"/>
+                    </group>
+                    <group>
+                      <attribute name="type">
+                        <value>usb</value>
+                      </attribute>
+                      <attribute name="bus">
+                        <ref name="usbAddr"/>
+                      </attribute>
+                      <attribute name="device">
+                        <ref name="usbPort"/>
+                      </attribute>
+                    </group>
+                  </choice>
+                </element>
+              </choice>
+            </element>
+            <optional>
+              <ref name="virtualPortProfile"/>
+            </optional>
+            <ref name="interface-options"/>
           </interleave>
         </group>
       </choice>
@@ -1438,7 +1506,7 @@
       <optional>
         <element name="mac">
           <attribute name="address">
-            <ref name="macAddr"/>
+            <ref name="uniMacAddr"/>
           </attribute>
           <empty/>
         </element>
@@ -1769,6 +1837,17 @@
                   <choice>
                     <value>yes</value>
                     <value>no</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="mouse">
+                <attribute name="mode">
+                  <choice>
+                    <value>server</value>
+                    <value>client</value>
                   </choice>
                 </attribute>
                 <empty/>
@@ -2458,6 +2537,11 @@
       </attribute>
     </optional>
     <optional>
+      <attribute name="target">
+        <ref name="driveTarget"/>
+      </attribute>
+    </optional>
+    <optional>
       <attribute name="unit">
         <ref name="driveUnit"/>
       </attribute>
@@ -2553,6 +2637,11 @@
           </optional>
           <optional>
             <element name="viridian">
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="privnet">
               <empty/>
             </element>
           </optional>
@@ -3020,10 +3109,6 @@
 
   <!--
        Type library
-
-       A domain name should be made of ascii, numbers, _-+ and is non-empty
-       memoryKB request at least 4Mbytes though Xen will grow bigger if too low
-       weight currently is in range [100, 1000]
     -->
   <define name="cpuset">
     <data type="string">
@@ -3065,6 +3150,7 @@
       <param name="minInclusive">-1</param>
     </data>
   </define>
+  <!-- weight currently is in range [100, 1000] -->
   <define name="weight">
     <data type="unsignedInt">
       <param name="pattern">[0-9]+</param>
@@ -3072,10 +3158,10 @@
       <param name="maxInclusive">1000</param>
     </data>
   </define>
+  <!-- Memory as an attribute is in KiB, no way to express a unit -->
   <define name="memoryKB">
     <data type="unsignedInt">
       <param name="pattern">[0-9]+</param>
-      <param name="minInclusive">4000</param>
     </data>
   </define>
   <define name="domainName">
@@ -3141,6 +3227,11 @@
     </data>
   </define>
   <define name="driveBus">
+    <data type="string">
+      <param name="pattern">[0-9]{1,2}</param>
+    </data>
+  </define>
+  <define name="driveTarget">
     <data type="string">
       <param name="pattern">[0-9]{1,2}</param>
     </data>

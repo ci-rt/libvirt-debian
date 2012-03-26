@@ -11,8 +11,7 @@
    GNU Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public License
-   along with this program; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
+   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
 
 #ifndef _LIBC
 # include <config.h>
@@ -42,7 +41,7 @@
   (HAVE_WCTYPE_H && HAVE_BTOWC && HAVE_ISWCTYPE \
    && HAVE_WMEMCHR && (HAVE_WMEMCPY || HAVE_WMEMPCPY))
 
-/* For platform which support the ISO C amendement 1 functionality we
+/* For platform which support the ISO C amendment 1 functionality we
    support user defined character classes.  */
 #if defined _LIBC || WIDE_CHAR_SUPPORT
 # include <wctype.h>
@@ -92,7 +91,7 @@ extern int fnmatch (const char *pattern, const char *string, int flags);
 
 # if defined _LIBC || WIDE_CHAR_SUPPORT
 /* The GNU C library provides support for user-defined character classes
-   and the functions from ISO C amendement 1.  */
+   and the functions from ISO C amendment 1.  */
 #  ifdef CHARCLASS_NAME_MAX
 #   define CHAR_CLASS_MAX_LENGTH CHARCLASS_NAME_MAX
 #  else

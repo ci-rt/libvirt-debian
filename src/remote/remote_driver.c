@@ -26,8 +26,6 @@
 #include <unistd.h>
 #include <assert.h>
 
-#include <libxml/uri.h>
-
 #include "virnetclient.h"
 #include "virnetclientprogram.h"
 #include "virnetclientstream.h"
@@ -37,7 +35,6 @@
 #include "domain_event.h"
 #include "driver.h"
 #include "buf.h"
-#include "qparams.h"
 #include "remote_driver.h"
 #include "remote_protocol.h"
 #include "qemu_protocol.h"
@@ -47,6 +44,9 @@
 #include "command.h"
 #include "intprops.h"
 #include "virtypedparam.h"
+#include "viruri.h"
+#include "virauth.h"
+#include "virauthconfig.h"
 
 #define VIR_FROM_THIS VIR_FROM_REMOTE
 
@@ -239,6 +239,21 @@ remoteDomainBuildEventDiskChange(virNetClientProgramPtr prog,
                                  virNetClientPtr client,
                                  void *evdata, void *opaque);
 
+static void
+remoteDomainBuildEventTrayChange(virNetClientProgramPtr prog,
+                                 virNetClientPtr client,
+                                 void *evdata, void *opaque);
+
+static void
+remoteDomainBuildEventPMWakeup(virNetClientProgramPtr prog,
+                               virNetClientPtr client,
+                               void *evdata, void *opaque);
+
+static void
+remoteDomainBuildEventPMSuspend(virNetClientProgramPtr prog,
+                                virNetClientPtr client,
+                                void *evdata, void *opaque);
+
 static virNetClientProgramEvent remoteDomainEvents[] = {
     { REMOTE_PROC_DOMAIN_EVENT_RTC_CHANGE,
       remoteDomainBuildEventRTCChange,
@@ -280,6 +295,18 @@ static virNetClientProgramEvent remoteDomainEvents[] = {
       remoteDomainBuildEventDiskChange,
       sizeof(remote_domain_event_disk_change_msg),
       (xdrproc_t)xdr_remote_domain_event_disk_change_msg },
+    { REMOTE_PROC_DOMAIN_EVENT_TRAY_CHANGE,
+      remoteDomainBuildEventTrayChange,
+      sizeof(remote_domain_event_tray_change_msg),
+      (xdrproc_t)xdr_remote_domain_event_tray_change_msg },
+    { REMOTE_PROC_DOMAIN_EVENT_PMWAKEUP,
+      remoteDomainBuildEventPMWakeup,
+      sizeof(remote_domain_event_pmwakeup_msg),
+      (xdrproc_t)xdr_remote_domain_event_pmwakeup_msg },
+    { REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND,
+      remoteDomainBuildEventPMSuspend,
+      sizeof(remote_domain_event_pmsuspend_msg),
+      (xdrproc_t)xdr_remote_domain_event_pmsuspend_msg },
 };
 
 enum virDrvOpenRemoteFlags {
@@ -312,7 +339,6 @@ doRemoteOpen (virConnectPtr conn,
               virConnectAuthPtr auth ATTRIBUTE_UNUSED,
               unsigned int flags)
 {
-    struct qparam_set *vars = NULL;
     char *transport_str = NULL;
     enum {
         trans_tls,
@@ -416,21 +442,11 @@ doRemoteOpen (virConnectPtr conn,
      * feasibly it might contain variables needed by the real driver,
      * although that won't be the case for now).
      */
-    struct qparam *var;
     int i;
-    char *query;
 
     if (conn->uri) {
-#ifdef HAVE_XMLURI_QUERY_RAW
-        query = conn->uri->query_raw;
-#else
-        query = conn->uri->query;
-#endif
-        vars = qparam_query_parse (query);
-        if (vars == NULL) goto failed;
-
-        for (i = 0; i < vars->n; i++) {
-            var = &vars->p[i];
+        for (i = 0; i < conn->uri->paramsCount ; i++) {
+            virURIParamPtr var = &conn->uri->params[i];
             if (STRCASEEQ (var->name, "name")) {
                 VIR_FREE(name);
                 name = strdup (var->value);
@@ -474,6 +490,9 @@ doRemoteOpen (virConnectPtr conn,
                 pkipath = strdup(var->value);
                 if (!pkipath) goto out_of_memory;
                 var->ignore = 1;
+            } else if (STRCASEEQ(var->name, "authfile")) {
+                /* Strip this param, used by virauth.c */
+                var->ignore = 1;
             } else {
                 VIR_DEBUG("passing through variable '%s' ('%s') to remote end",
                       var->name, var->value);
@@ -486,15 +505,12 @@ doRemoteOpen (virConnectPtr conn,
                 (STREQ(conn->uri->scheme, "remote") ||
                  STRPREFIX(conn->uri->scheme, "remote+"))) {
                 /* Allow remote serve to probe */
-                name = strdup("");
+                if (!(name = strdup("")))
+                    goto out_of_memory;
             } else {
-                xmlURI tmpuri = {
+                virURI tmpuri = {
                     .scheme = conn->uri->scheme,
-#ifdef HAVE_XMLURI_QUERY_RAW
-                    .query_raw = qparam_get_query (vars),
-#else
-                    .query = qparam_get_query (vars),
-#endif
+                    .query = virURIFormatParams(conn->uri),
                     .path = conn->uri->path,
                     .fragment = conn->uri->fragment,
                 };
@@ -505,30 +521,22 @@ doRemoteOpen (virConnectPtr conn,
                     transport_str[-1] = '\0';
                 }
 
-                name = (char *) xmlSaveUri (&tmpuri);
+                name = virURIFormat(&tmpuri);
 
-#ifdef HAVE_XMLURI_QUERY_RAW
-                VIR_FREE(tmpuri.query_raw);
-#else
                 VIR_FREE(tmpuri.query);
-#endif
 
                 /* Restore transport scheme */
                 if (transport_str)
                     transport_str[-1] = '+';
+
+                if (!name)
+                    goto failed;
             }
         }
-
-        free_qparam_set (vars);
-        vars = NULL;
     } else {
         /* Probe URI server side */
-        name = strdup("");
-    }
-
-    if (!name) {
-        virReportOOMError();
-        goto failed;
+        if (!(name = strdup("")))
+            goto out_of_memory;
     }
 
     VIR_DEBUG("proceeding with name = %s", name);
@@ -719,12 +727,10 @@ doRemoteOpen (virConnectPtr conn,
             goto failed;
 
         VIR_DEBUG("Auto-probed URI is %s", uriret.uri);
-        conn->uri = xmlParseURI(uriret.uri);
+        conn->uri = virURIParse(uriret.uri);
         VIR_FREE(uriret.uri);
-        if (!conn->uri) {
-            virReportOOMError();
+        if (!conn->uri)
             goto failed;
-        }
     }
 
     if (!(priv->domainEventState = virDomainEventStateNew()))
@@ -749,8 +755,6 @@ doRemoteOpen (virConnectPtr conn,
 
  out_of_memory:
     virReportOOMError();
-    if (vars)
-        free_qparam_set (vars);
 
  failed:
     virNetClientProgramFree(priv->remoteProgram);
@@ -1964,6 +1968,7 @@ remoteDomainMigratePrepare (virConnectPtr dconn,
     if (ret.uri_out)
         *uri_out = *ret.uri_out; /* Caller frees. */
 
+    VIR_FREE(ret.uri_out);
     rv = 0;
 
 done:
@@ -2019,6 +2024,7 @@ remoteDomainMigratePrepare2 (virConnectPtr dconn,
     rv = 0;
 
 done:
+    VIR_FREE(ret.uri_out);
     remoteDriverUnlock(priv);
     return rv;
 error:
@@ -2383,7 +2389,7 @@ static int remoteDomainGetCPUStats(virDomainPtr domain,
     /* Check the length of the returned list carefully. */
     if (ret.params.params_len > nparams * ncpus ||
         (ret.params.params_len &&
-         ret.nparams * ncpus != ret.params.params_len)) {
+         ((ret.params.params_len % ret.nparams) || ret.nparams > nparams))) {
         remoteError(VIR_ERR_RPC, "%s",
                     _("remoteDomainGetCPUStats: "
                       "returned number of stats exceeds limit"));
@@ -2400,9 +2406,11 @@ static int remoteDomainGetCPUStats(virDomainPtr domain,
     }
 
     /* The remote side did not send back any zero entries, so we have
-     * to expand things back into a possibly sparse array.
+     * to expand things back into a possibly sparse array, where the
+     * tail of the array may be omitted.
      */
     memset(params, 0, sizeof(*params) * nparams * ncpus);
+    ncpus = ret.params.params_len / ret.nparams;
     for (cpu = 0; cpu < ncpus; cpu++) {
         int tmp = nparams;
         remote_typed_param *stride = &ret.params.params_val[cpu * ret.nparams];
@@ -2887,42 +2895,43 @@ static sasl_callback_t *remoteAuthMakeCallbacks(int *credtype, int ncredtype)
  * are basically a 1-to-1 copy of each other.
  */
 static int remoteAuthMakeCredentials(sasl_interact_t *interact,
-                                     virConnectCredentialPtr *cred)
+                                     virConnectCredentialPtr *cred,
+                                     size_t *ncred)
 {
     int ninteract;
     if (!cred)
         return -1;
 
-    for (ninteract = 0 ; interact[ninteract].id != 0 ; ninteract++)
-        ; /* empty */
+    for (ninteract = 0, *ncred = 0 ; interact[ninteract].id != 0 ; ninteract++) {
+        if (interact[ninteract].result)
+            continue;
+        (*ncred)++;
+    }
 
-    if (VIR_ALLOC_N(*cred, ninteract) < 0)
+    if (VIR_ALLOC_N(*cred, *ncred) < 0)
         return -1;
 
-    for (ninteract = 0 ; interact[ninteract].id != 0 ; ninteract++) {
-        (*cred)[ninteract].type = remoteAuthCredSASL2Vir(interact[ninteract].id);
-        if (!(*cred)[ninteract].type) {
+    for (ninteract = 0, *ncred = 0 ; interact[ninteract].id != 0 ; ninteract++) {
+        if (interact[ninteract].result)
+            continue;
+
+        (*cred)[*ncred].type = remoteAuthCredSASL2Vir(interact[ninteract].id);
+        if (!(*cred)[*ncred].type) {
+            *ncred = 0;
             VIR_FREE(*cred);
             return -1;
         }
-        if (interact[ninteract].challenge)
-            (*cred)[ninteract].challenge = interact[ninteract].challenge;
-        (*cred)[ninteract].prompt = interact[ninteract].prompt;
-        if (interact[ninteract].defresult)
-            (*cred)[ninteract].defresult = interact[ninteract].defresult;
-        (*cred)[ninteract].result = NULL;
+        if (interact[*ncred].challenge)
+            (*cred)[*ncred].challenge = interact[ninteract].challenge;
+        (*cred)[*ncred].prompt = interact[ninteract].prompt;
+        if (interact[*ncred].defresult)
+            (*cred)[*ncred].defresult = interact[ninteract].defresult;
+        (*cred)[*ncred].result = NULL;
+
+        (*ncred)++;
     }
 
-    return ninteract;
-}
-
-static void remoteAuthFreeCredentials(virConnectCredentialPtr cred,
-                                      int ncred)
-{
-    int i;
-    for (i = 0 ; i < ncred ; i++)
-        VIR_FREE(cred[i].result);
-    VIR_FREE(cred);
+    return 0;
 }
 
 
@@ -2936,12 +2945,152 @@ static void remoteAuthFreeCredentials(virConnectCredentialPtr cred,
 static void remoteAuthFillInteract(virConnectCredentialPtr cred,
                                    sasl_interact_t *interact)
 {
-    int ninteract;
-    for (ninteract = 0 ; interact[ninteract].id != 0 ; ninteract++) {
-        interact[ninteract].result = cred[ninteract].result;
-        interact[ninteract].len = cred[ninteract].resultlen;
+    int ninteract, ncred;
+    for (ninteract = 0, ncred = 0 ; interact[ninteract].id != 0 ; ninteract++) {
+        if (interact[ninteract].result)
+            continue;
+        interact[ninteract].result = cred[ncred].result;
+        interact[ninteract].len = cred[ncred].resultlen;
+        ncred++;
     }
 }
+
+struct remoteAuthInteractState {
+    sasl_interact_t *interact;
+    virConnectCredentialPtr cred;
+    size_t ncred;
+    virAuthConfigPtr config;
+};
+
+
+
+static int remoteAuthFillFromConfig(virConnectPtr conn,
+                                    struct remoteAuthInteractState *state)
+{
+    int ret = -1;
+    int ninteract;
+    const char *credname;
+    char *path = NULL;
+
+    VIR_DEBUG("Trying to fill auth parameters from config file");
+
+    if (!state->config) {
+        if (virAuthGetConfigFilePath(conn, &path) < 0)
+            goto cleanup;
+        if (path == NULL) {
+            ret = 0;
+            goto cleanup;
+        }
+
+        if (!(state->config = virAuthConfigNew(path)))
+            goto cleanup;
+    }
+
+    for (ninteract = 0 ; state->interact[ninteract].id != 0 ; ninteract++) {
+        const char *value = NULL;
+
+        switch (state->interact[ninteract].id) {
+        case SASL_CB_USER:
+            credname = "username";
+            break;
+        case SASL_CB_AUTHNAME:
+            credname = "authname";
+            break;
+        case SASL_CB_PASS:
+            credname = "password";
+            break;
+        case SASL_CB_GETREALM:
+            credname = "realm";
+            break;
+        default:
+            credname = NULL;
+            break;
+        }
+
+        if (virAuthConfigLookup(state->config,
+                                "libvirt",
+                                conn->uri->server,
+                                credname,
+                                &value) < 0)
+            goto cleanup;
+
+        if (value) {
+            state->interact[ninteract].result = value;
+            state->interact[ninteract].len = strlen(value);
+        }
+    }
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(path);
+    return ret;
+}
+
+
+static void remoteAuthInteractStateClear(struct remoteAuthInteractState *state,
+                                         bool final)
+{
+    size_t i;
+    if (!state)
+        return;
+
+    for (i = 0 ; i < state->ncred ; i++)
+        VIR_FREE(state->cred[i].result);
+    VIR_FREE(state->cred);
+    state->ncred = 0;
+
+    if (final)
+        virAuthConfigFree(state->config);
+}
+
+
+static int remoteAuthInteract(virConnectPtr conn,
+                              struct remoteAuthInteractState *state,
+                              virConnectAuthPtr auth)
+{
+    int ret = -1;
+
+    VIR_DEBUG("Starting SASL interaction");
+    remoteAuthInteractStateClear(state, false);
+
+    if (remoteAuthFillFromConfig(conn, state) < 0)
+        goto cleanup;
+
+    if (remoteAuthMakeCredentials(state->interact, &state->cred, &state->ncred) < 0) {
+        remoteError(VIR_ERR_AUTH_FAILED, "%s",
+                    _("Failed to make auth credentials"));
+        goto cleanup;
+    }
+
+    /* Run the authentication callback */
+    if (!auth || !auth->cb) {
+        remoteError(VIR_ERR_AUTH_FAILED, "%s",
+                    _("No authentication callback available"));
+        goto cleanup;
+    }
+
+    if ((*(auth->cb))(state->cred, state->ncred, auth->cbdata) < 0) {
+        remoteError(VIR_ERR_AUTH_FAILED, "%s",
+                    _("Failed to collect auth credentials"));
+        goto cleanup;
+    }
+
+    remoteAuthFillInteract(state->cred, state->interact);
+    /*
+     * 'interact' now has pointers to strings in 'state->cred'
+     * so we must not free state->cred until the *next*
+     * sasl_start/step function is complete. Hence we
+     * call remoteAuthInteractStateClear() at the *start*
+     * of this method, rather than the end.
+     */
+
+    ret = 0;
+
+cleanup:
+    return ret;
+}
+
 
 /* Perform the SASL authentication process
  */
@@ -2961,13 +3110,13 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv,
     int err, complete;
     int ssf;
     sasl_callback_t *saslcb = NULL;
-    sasl_interact_t *interact = NULL;
-    virConnectCredentialPtr cred = NULL;
-    int ncred = 0;
     int ret = -1;
     const char *mechlist;
     virNetSASLContextPtr saslCtxt;
     virNetSASLSessionPtr sasl = NULL;
+    struct remoteAuthInteractState state;
+
+    memset(&state, 0, sizeof(state));
 
     VIR_DEBUG("Client initialize SASL authentication");
 
@@ -3034,7 +3183,7 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv,
     VIR_DEBUG("Client start negotiation mechlist '%s'", mechlist);
     if ((err = virNetSASLSessionClientStart(sasl,
                                             mechlist,
-                                            &interact,
+                                            &state.interact,
                                             &clientout,
                                             &clientoutlen,
                                             &mech)) < 0)
@@ -3042,29 +3191,11 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv,
 
     /* Need to gather some credentials from the client */
     if (err == VIR_NET_SASL_INTERACT) {
-        const char *msg;
-        if (cred) {
-            remoteAuthFreeCredentials(cred, ncred);
-            cred = NULL;
-        }
-        if ((ncred = remoteAuthMakeCredentials(interact, &cred)) < 0) {
-            remoteError(VIR_ERR_AUTH_FAILED, "%s",
-                        _("Failed to make auth credentials"));
+        if (remoteAuthInteract(conn, &state, auth) < 0) {
             VIR_FREE(iret.mechlist);
             goto cleanup;
         }
-        /* Run the authentication callback */
-        if (auth && auth->cb) {
-            if ((*(auth->cb))(cred, ncred, auth->cbdata) >= 0) {
-                remoteAuthFillInteract(cred, interact);
-                goto restart;
-            }
-            msg = "Failed to collect auth credentials";
-        } else {
-            msg = "No authentication callback available";
-        }
-        remoteError(VIR_ERR_AUTH_FAILED, "%s", msg);
-        goto cleanup;
+        goto restart;
     }
     VIR_FREE(iret.mechlist);
 
@@ -3105,35 +3236,18 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv,
         if ((err = virNetSASLSessionClientStep(sasl,
                                                serverin,
                                                serverinlen,
-                                               &interact,
+                                               &state.interact,
                                                &clientout,
                                                &clientoutlen)) < 0)
             goto cleanup;
 
         /* Need to gather some credentials from the client */
         if (err == VIR_NET_SASL_INTERACT) {
-            const char *msg;
-            if (cred) {
-                remoteAuthFreeCredentials(cred, ncred);
-                cred = NULL;
-            }
-            if ((ncred = remoteAuthMakeCredentials(interact, &cred)) < 0) {
-                remoteError(VIR_ERR_AUTH_FAILED, "%s",
-                            _("Failed to make auth credentials"));
+            if (remoteAuthInteract(conn, &state, auth) < 0) {
+                VIR_FREE(iret.mechlist);
                 goto cleanup;
             }
-            /* Run the authentication callback */
-            if (auth && auth->cb) {
-                if ((*(auth->cb))(cred, ncred, auth->cbdata) >= 0) {
-                    remoteAuthFillInteract(cred, interact);
-                    goto restep;
-                }
-                msg = _("Failed to collect auth credentials");
-            } else {
-                msg = _("No authentication callback available");
-            }
-            remoteError(VIR_ERR_AUTH_FAILED, "%s", msg);
-            goto cleanup;
+            goto restep;
         }
 
         VIR_FREE(serverin);
@@ -3195,8 +3309,8 @@ remoteAuthSASL (virConnectPtr conn, struct private_data *priv,
  cleanup:
     VIR_FREE(serverin);
 
+    remoteAuthInteractStateClear(&state, true);
     VIR_FREE(saslcb);
-    remoteAuthFreeCredentials(cred, ncred);
     virNetSASLSessionFree(sasl);
     virNetSASLContextFree(saslCtxt);
 
@@ -3643,6 +3757,74 @@ remoteDomainBuildEventDiskChange(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
     remoteDomainEventQueue(priv, event);
 }
 
+
+static void
+remoteDomainBuildEventTrayChange(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                 virNetClientPtr client ATTRIBUTE_UNUSED,
+                                 void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    struct private_data *priv = conn->privateData;
+    remote_domain_event_tray_change_msg *msg = evdata;
+    virDomainPtr dom;
+    virDomainEventPtr event = NULL;
+
+    dom = get_nonnull_domain(conn, msg->dom);
+    if (!dom)
+        return;
+
+    event = virDomainEventTrayChangeNewFromDom(dom,
+                                               msg->devAlias,
+                                               msg->reason);
+
+    virDomainFree(dom);
+
+    remoteDomainEventQueue(priv, event);
+}
+
+static void
+remoteDomainBuildEventPMWakeup(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                               virNetClientPtr client ATTRIBUTE_UNUSED,
+                               void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    struct private_data *priv = conn->privateData;
+    remote_domain_event_pmwakeup_msg *msg = evdata;
+    virDomainPtr dom;
+    virDomainEventPtr event = NULL;
+
+    dom = get_nonnull_domain(conn, msg->dom);
+    if (!dom)
+        return;
+
+    event = virDomainEventPMWakeupNewFromDom(dom);
+
+    virDomainFree(dom);
+
+    remoteDomainEventQueue(priv, event);
+}
+
+static void
+remoteDomainBuildEventPMSuspend(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                virNetClientPtr client ATTRIBUTE_UNUSED,
+                                void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    struct private_data *priv = conn->privateData;
+    remote_domain_event_pmsuspend_msg *msg = evdata;
+    virDomainPtr dom;
+    virDomainEventPtr event = NULL;
+
+    dom = get_nonnull_domain(conn, msg->dom);
+    if (!dom)
+        return;
+
+    event = virDomainEventPMSuspendNewFromDom(dom);
+
+    virDomainFree(dom);
+
+    remoteDomainEventQueue(priv, event);
+}
 
 static virDrvOpenStatus ATTRIBUTE_NONNULL (1)
 remoteSecretOpen(virConnectPtr conn, virConnectAuthPtr auth,
@@ -4160,6 +4342,7 @@ remoteDomainMigratePrepare3(virConnectPtr dconn,
     rv = 0;
 
 done:
+    VIR_FREE(ret.uri_out);
     remoteDriverUnlock(priv);
     return rv;
 error:
@@ -4782,6 +4965,7 @@ static virDriver remote_driver = {
     .domainSuspend = remoteDomainSuspend, /* 0.3.0 */
     .domainResume = remoteDomainResume, /* 0.3.0 */
     .domainPMSuspendForDuration = remoteDomainPMSuspendForDuration, /* 0.9.10 */
+    .domainPMWakeup = remoteDomainPMWakeup, /* 0.9.11 */
     .domainShutdown = remoteDomainShutdown, /* 0.3.0 */
     .domainShutdownFlags = remoteDomainShutdownFlags, /* 0.9.10 */
     .domainReboot = remoteDomainReboot, /* 0.3.0 */

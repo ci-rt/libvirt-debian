@@ -48,6 +48,7 @@ int qemuProcessStart(virConnectPtr conn,
                      struct qemud_driver *driver,
                      virDomainObjPtr vm,
                      const char *migrateFrom,
+                     bool cold_boot,
                      bool start_paused,
                      bool autodestroy,
                      int stdin_fd,
@@ -63,7 +64,7 @@ void qemuProcessStop(struct qemud_driver *driver,
 int qemuProcessAttach(virConnectPtr conn,
                       struct qemud_driver *driver,
                       virDomainObjPtr vm,
-                      int pid,
+                      pid_t pid,
                       const char *pidfile,
                       virDomainChrSourceDefPtr monConfig,
                       bool monJSON);
@@ -73,7 +74,8 @@ typedef enum {
    VIR_QEMU_PROCESS_KILL_NOWAIT = 1 << 1,
 } virQemuProcessKillMode;
 
-int qemuProcessKill(virDomainObjPtr vm, unsigned int flags);
+int qemuProcessKill(struct qemud_driver *driver,
+                    virDomainObjPtr vm, unsigned int flags);
 
 int qemuProcessAutoDestroyInit(struct qemud_driver *driver);
 void qemuProcessAutoDestroyRun(struct qemud_driver *driver,

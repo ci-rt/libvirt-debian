@@ -1,7 +1,7 @@
 /*
  * xen_driver.c: Unified Xen driver.
  *
- * Copyright (C) 2007-2011 Red Hat, Inc.
+ * Copyright (C) 2007-2012 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -26,7 +26,6 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <xen/dom0_ops.h>
-#include <libxml/uri.h>
 
 #include "virterror_internal.h"
 #include "logging.h"
@@ -50,6 +49,7 @@
 #include "uuid.h"
 #include "fdstream.h"
 #include "virfile.h"
+#include "viruri.h"
 #include "command.h"
 #include "virnodesuspend.h"
 
@@ -270,11 +270,8 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
         if (!xenUnifiedProbe())
             return VIR_DRV_OPEN_DECLINED;
 
-        conn->uri = xmlParseURI("xen:///");
-        if (!conn->uri) {
-            virReportOOMError();
+        if (!(conn->uri = virURIParse("xen:///")))
             return VIR_DRV_OPEN_ERROR;
-        }
     } else {
         if (conn->uri->scheme) {
             /* Decline any scheme which isn't "xen://" or "http://". */
@@ -937,12 +934,12 @@ xenUnifiedDomainGetOSType (virDomainPtr dom)
     return NULL;
 }
 
-static unsigned long
+static unsigned long long
 xenUnifiedDomainGetMaxMemory (virDomainPtr dom)
 {
     GET_PRIVATE(dom->conn);
     int i;
-    unsigned long ret;
+    unsigned long long ret;
 
     for (i = 0; i < XEN_UNIFIED_NR_DRIVERS; ++i)
         if (priv->opened[i] && drivers[i]->xenDomainGetMaxMemory) {

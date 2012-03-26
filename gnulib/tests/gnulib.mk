@@ -828,15 +828,6 @@ EXTRA_DIST += test-localename.c macros.h
 
 ## end   gnulib module localename-tests
 
-## begin gnulib module lock-tests
-
-TESTS += test-lock
-check_PROGRAMS += test-lock
-test_lock_LDADD = $(LDADD) @LIBMULTITHREAD@ @YIELD_LIB@
-EXTRA_DIST += test-lock.c
-
-## end   gnulib module lock-tests
-
 ## begin gnulib module lseek-tests
 
 TESTS += test-lseek.sh
@@ -2097,12 +2088,6 @@ EXTRA_DIST += test-xalloc-die.c test-xalloc-die.sh
 EXTRA_DIST += xalloc-oversized.h
 
 ## end   gnulib module xalloc-oversized
-
-## begin gnulib module yield
-
-libtests_a_SOURCES += glthread/yield.h
-
-## end   gnulib module yield
 
 # Clean up after Solaris cc.
 clean-local:
