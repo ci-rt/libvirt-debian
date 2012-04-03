@@ -39,7 +39,7 @@ testCompareFiles(const char *xml, const char *sexpr, int xendConfigVersion)
   if (virtTestLoadFile(sexpr, &sexprData) < 0)
       goto fail;
 
-  memset(&priv, 0, sizeof priv);
+  memset(&priv, 0, sizeof(priv));
   /* Many puppies died to bring you this code. */
   priv.xendConfigVersion = xendConfigVersion;
   priv.caps = caps;
@@ -113,7 +113,7 @@ mymain(void)
     int ret = 0;
 
     if (!(caps = testXenCapsInit()))
-        return(EXIT_FAILURE);
+        return EXIT_FAILURE;
 
 #define DO_TEST(in, out, version)                                      \
     do {                                                               \
@@ -186,7 +186,7 @@ mymain(void)
 
     virCapabilitiesFree(caps);
 
-    return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
+    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

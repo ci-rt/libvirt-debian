@@ -688,6 +688,8 @@ WITH_CIL_TRUE
 LOCK_CHECKING_CFLAGS
 COVERAGE_LDFLAGS
 COVERAGE_CFLAGS
+WITH_TESTS_FALSE
+WITH_TESTS_TRUE
 PYTHON_INCLUDES
 WITH_PYTHON_FALSE
 WITH_PYTHON_TRUE
@@ -1925,7 +1927,7 @@ with_pic
 enable_fast_install
 with_sysroot
 enable_libtool_lock
-enable_compile_warnings
+enable_werror
 with_html_dir
 with_html_subdir
 with_xml_catalog_file
@@ -1958,6 +1960,7 @@ with_polkit
 with_avahi
 with_audit
 with_selinux
+with_selinux_mount
 with_secdriver_selinux
 with_apparmor
 with_secdriver_apparmor
@@ -1977,6 +1980,7 @@ with_storage_scsi
 with_storage_mpath
 with_storage_disk
 with_python
+enable_with_test_suite
 enable_test_coverage
 enable_test_oom
 enable_test_locking
@@ -2673,9 +2677,9 @@ Optional Features:
   --enable-fast-install[=PKGS]
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
-  --enable-compile-warnings=[no/yes/error]
-                          Turn on compiler warnings
+  --enable-werror         Use -Werror (if supported)
   --enable-debug=[no|yes] enable debugging output [default=yes]
+  --with-test-suite       build test suite by default [default=check]
   --enable-test-coverage  turn on code coverage instrumentation [default=no]
   --enable-test-oom       memory allocation failure checking [default=no]
   --enable-test-locking   thread locking tests using CIL [default=no]
@@ -2736,6 +2740,7 @@ Optional Packages:
   --with-avahi            use avahi to advertise remote daemon [default=check]
   --with-audit            use audit library [default=check]
   --with-selinux          use SELinux to manage security [default=check]
+  --with-selinux-mount    set SELinux mount point [default=check]
   --with-secdriver-selinux
                           use SELinux security driver [default=check]
   --with-apparmor         use AppArmor to manage security [default=check]
@@ -30503,8 +30508,44 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_ssize_t" >&5
 $as_echo "$gt_cv_ssize_t" >&6; }
   if test $gt_cv_ssize_t = no; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for rank of size_t" >&5
+$as_echo_n "checking for rank of size_t... " >&6; }
+if ${gt_cv_size_t_rank+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <sys/types.h>
+          #ifdef __cplusplus
+          extern "C" {
+          #endif
+            int foo(unsigned long bar);
+            int foo(size_t bar);
+          #ifdef __cplusplus
+          }
+          #endif
 
-$as_echo "#define ssize_t int" >>confdefs.h
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  gt_cv_size_t_rank=long
+else
+  gt_cv_size_t_rank=int
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gt_cv_size_t_rank" >&5
+$as_echo "$gt_cv_size_t_rank" >&6; }
+
+cat >>confdefs.h <<_ACEOF
+#define ssize_t $gt_cv_size_t_rank
+_ACEOF
 
   fi
 
@@ -49564,72 +49605,71 @@ $as_echo "$VERSION_SCRIPT_FLAGS" >&6; }
 
 
 
-    # Check whether --enable-compile-warnings was given.
-if test "${enable_compile_warnings+set}" = set; then :
-  enableval=$enable_compile_warnings;
+    # Check whether --enable-werror was given.
+if test "${enable_werror+set}" = set; then :
+  enableval=$enable_werror; set_werror="$enableval"
 else
-  enable_compile_warnings="maximum"
+  if test -d $srcdir/.git; then
+                     is_git_version=true
+                     set_werror=yes
+                   else
+                     set_werror=no
+                   fi
 fi
 
 
-    case "$enable_compile_warnings" in
-    no)
-        try_compiler_flags=""
-        ;;
-    yes|minimum|maximum|error)
+    # List of warnings that are not relevant / wanted
 
-        # List of warnings that are not relevant / wanted
+    # Don't care about C++ compiler compat
+    dontwarn="$dontwarn -Wc++-compat"
+    dontwarn="$dontwarn -Wabi"
+    dontwarn="$dontwarn -Wdeprecated"
+    # Don't care about ancient C standard compat
+    dontwarn="$dontwarn -Wtraditional"
+    # Don't care about ancient C standard compat
+    dontwarn="$dontwarn -Wtraditional-conversion"
+    # Ignore warnings in /usr/include
+    dontwarn="$dontwarn -Wsystem-headers"
+    # Happy for compiler to add struct padding
+    dontwarn="$dontwarn -Wpadded"
+    # GCC very confused with -O2
+    dontwarn="$dontwarn -Wunreachable-code"
+    # Too many to deal with
+    dontwarn="$dontwarn -Wconversion"
+    # Too many to deal with
+    dontwarn="$dontwarn -Wsign-conversion"
+    # GNULIB gettext.h violates
+    dontwarn="$dontwarn -Wvla"
+    # Many GNULIB header violations
+    dontwarn="$dontwarn -Wundef"
+    # Need to allow bad cast for execve()
+    dontwarn="$dontwarn -Wcast-qual"
+    # We need to use long long in many places
+    dontwarn="$dontwarn -Wlong-long"
+    # We allow manual list of all enum cases without default:
+    dontwarn="$dontwarn -Wswitch-default"
+    # We allow optional default: instead of listing all enum values
+    dontwarn="$dontwarn -Wswitch-enum"
+    # Not a problem since we don't use -fstrict-overflow
+    dontwarn="$dontwarn -Wstrict-overflow"
+    # Not a problem since we don't use -funsafe-loop-optimizations
+    dontwarn="$dontwarn -Wunsafe-loop-optimizations"
+    # Things like virAsprintf mean we can't use this
+    dontwarn="$dontwarn -Wformat-nonliteral"
 
-        # Don't care about C++ compiler compat
-        dontwarn="$dontwarn -Wc++-compat"
-        dontwarn="$dontwarn -Wabi"
-        dontwarn="$dontwarn -Wdeprecated"
-        # Don't care about ancient C standard compat
-        dontwarn="$dontwarn -Wtraditional"
-        # Don't care about ancient C standard compat
-        dontwarn="$dontwarn -Wtraditional-conversion"
-        # Ignore warnings in /usr/include
-        dontwarn="$dontwarn -Wsystem-headers"
-        # Happy for compiler to add struct padding
-        dontwarn="$dontwarn -Wpadded"
-        # GCC very confused with -O2
-        dontwarn="$dontwarn -Wunreachable-code"
-        # Too many to deal with
-        dontwarn="$dontwarn -Wconversion"
-        # Too many to deal with
-        dontwarn="$dontwarn -Wsign-conversion"
-        # GNULIB gettext.h violates
-        dontwarn="$dontwarn -Wvla"
-        # Many GNULIB header violations
-        dontwarn="$dontwarn -Wundef"
-        # Need to allow bad cast for execve()
-        dontwarn="$dontwarn -Wcast-qual"
-        # We need to use long long in many places
-        dontwarn="$dontwarn -Wlong-long"
-        # We allow manual list of all enum cases without default:
-        dontwarn="$dontwarn -Wswitch-default"
-        # We allow optional default: instead of listing all enum values
-        dontwarn="$dontwarn -Wswitch-enum"
-        # Not a problem since we don't use -fstrict-overflow
-        dontwarn="$dontwarn -Wstrict-overflow"
-        # Not a problem since we don't use -funsafe-loop-optimizations
-        dontwarn="$dontwarn -Wunsafe-loop-optimizations"
-        # Things like virAsprintf mean we can't use this
-        dontwarn="$dontwarn -Wformat-nonliteral"
+    # We might fundamentally need some of these disabled forever, but
+    # ideally we'd turn many of them on
+    dontwarn="$dontwarn -Wfloat-equal"
+    dontwarn="$dontwarn -Wdeclaration-after-statement"
+    dontwarn="$dontwarn -Wcast-qual"
+    dontwarn="$dontwarn -Wconversion"
+    dontwarn="$dontwarn -Wsign-conversion"
+    dontwarn="$dontwarn -Wpacked"
+    dontwarn="$dontwarn -Wunused-macros"
+    dontwarn="$dontwarn -Woverlength-strings"
+    dontwarn="$dontwarn -Wstack-protector"
 
-        # We might fundamentally need some of these disabled forever, but
-        # ideally we'd turn many of them on
-        dontwarn="$dontwarn -Wfloat-equal"
-        dontwarn="$dontwarn -Wdeclaration-after-statement"
-        dontwarn="$dontwarn -Wcast-qual"
-        dontwarn="$dontwarn -Wconversion"
-        dontwarn="$dontwarn -Wsign-conversion"
-        dontwarn="$dontwarn -Wpacked"
-        dontwarn="$dontwarn -Wunused-macros"
-        dontwarn="$dontwarn -Woverlength-strings"
-        dontwarn="$dontwarn -Wstack-protector"
-
-        # Get all possible GCC warnings
+    # Get all possible GCC warnings
 
 
   if test -n "$GCC"; then
@@ -49809,7 +49849,7 @@ $as_echo "$gl_cv_cc_nomfi_needed" >&6; }
   maybewarn=$gl_manywarn_set
 
 
-        # Remove the ones we don't want, blacklisted earlier
+    # Remove the ones we don't want, blacklisted earlier
 
   gl_warn_set=
   set x $maybewarn; shift
@@ -49826,9 +49866,9 @@ $as_echo "$gl_cv_cc_nomfi_needed" >&6; }
   wantwarn=$gl_warn_set
 
 
-        # Check for $CC support of each warning
-        for w in $wantwarn; do
-          as_gl_Warn=`$as_echo "gl_cv_warn_$w" | $as_tr_sh`
+    # Check for $CC support of each warning
+    for w in $wantwarn; do
+      as_gl_Warn=`$as_echo "gl_cv_warn_$w" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles $w" >&5
 $as_echo_n "checking whether compiler handles $w... " >&6; }
 if eval \${$as_gl_Warn+:} false; then :
@@ -49864,13 +49904,13 @@ if eval test \"x\$"$as_gl_Warn"\" = x"yes"; then :
   as_fn_append WARN_CFLAGS " $w"
 fi
 
-        done
+    done
 
-        # GNULIB uses '-W' (aka -Wextra) which includes a bunch of stuff.
-        # Unfortunately, this means you can't simply use '-Wsign-compare'
-        # with gl_MANYWARN_COMPLEMENT
-        # So we have -W enabled, and then have to explicitly turn off...
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -Wno-sign-compare" >&5
+    # GNULIB uses '-W' (aka -Wextra) which includes a bunch of stuff.
+    # Unfortunately, this means you can't simply use '-Wsign-compare'
+    # with gl_MANYWARN_COMPLEMENT
+    # So we have -W enabled, and then have to explicitly turn off...
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -Wno-sign-compare" >&5
 $as_echo_n "checking whether compiler handles -Wno-sign-compare... " >&6; }
 if ${gl_cv_warn__Wno_sign_compare+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -49905,9 +49945,9 @@ if test "x$gl_cv_warn__Wno_sign_compare" = xyes; then :
 fi
 
 
-        # GNULIB expects this to be part of -Wc++-compat, but we turn
-        # that one off, so we need to manually enable this again
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -Wjump-misses-init" >&5
+    # GNULIB expects this to be part of -Wc++-compat, but we turn
+    # that one off, so we need to manually enable this again
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -Wjump-misses-init" >&5
 $as_echo_n "checking whether compiler handles -Wjump-misses-init... " >&6; }
 if ${gl_cv_warn__Wjump_misses_init+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -49942,9 +49982,9 @@ if test "x$gl_cv_warn__Wjump_misses_init" = xyes; then :
 fi
 
 
-        # GNULIB turns on -Wformat=2 which implies -Wformat-nonliteral,
-        # so we need to manually re-exclude it.
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -Wno-format-nonliteral" >&5
+    # GNULIB turns on -Wformat=2 which implies -Wformat-nonliteral,
+    # so we need to manually re-exclude it.
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -Wno-format-nonliteral" >&5
 $as_echo_n "checking whether compiler handles -Wno-format-nonliteral... " >&6; }
 if ${gl_cv_warn__Wno_format_nonliteral+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -49979,10 +50019,10 @@ if test "x$gl_cv_warn__Wno_format_nonliteral" = xyes; then :
 fi
 
 
-        # This should be < 256 really. Currently we're down to 4096,
-        # but using 1024 bytes sized buffers (mostly for virStrerror)
-        # stops us from going down further
-        as_gl_Warn=`$as_echo "gl_cv_warn_-Wframe-larger-than=4096" | $as_tr_sh`
+    # This should be < 256 really. Currently we're down to 4096,
+    # but using 1024 bytes sized buffers (mostly for virStrerror)
+    # stops us from going down further
+    as_gl_Warn=`$as_echo "gl_cv_warn_-Wframe-larger-than=4096" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -Wframe-larger-than=4096" >&5
 $as_echo_n "checking whether compiler handles -Wframe-larger-than=4096... " >&6; }
 if eval \${$as_gl_Warn+:} false; then :
@@ -50019,7 +50059,7 @@ if eval test \"x\$"$as_gl_Warn"\" = x"yes"; then :
 fi
 
 
-        # Silence certain warnings in gnulib, and use improved glibc headers
+    # Silence certain warnings in gnulib, and use improved glibc headers
 
 $as_echo "#define lint 1" >>confdefs.h
 
@@ -50027,10 +50067,10 @@ $as_echo "#define lint 1" >>confdefs.h
 $as_echo "#define _FORTIFY_SOURCE 2" >>confdefs.h
 
 
-        # Extra special flags
-                        case $host in
-           *-*-linux*)
-                                            { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -fstack-protector-all" >&5
+    # Extra special flags
+            case $host in
+       *-*-linux*)
+                            { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -fstack-protector-all" >&5
 $as_echo_n "checking whether compiler handles -fstack-protector-all... " >&6; }
 if ${gl_cv_warn__fstack_protector_all+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -50064,7 +50104,7 @@ if test "x$gl_cv_warn__fstack_protector_all" = xyes; then :
   as_fn_append WARN_CFLAGS " -fstack-protector-all"
 fi
 
-           as_gl_Warn=`$as_echo "gl_cv_warn_--param=ssp-buffer-size=4" | $as_tr_sh`
+       as_gl_Warn=`$as_echo "gl_cv_warn_--param=ssp-buffer-size=4" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles --param=ssp-buffer-size=4" >&5
 $as_echo_n "checking whether compiler handles --param=ssp-buffer-size=4... " >&6; }
 if eval \${$as_gl_Warn+:} false; then :
@@ -50100,9 +50140,9 @@ if eval test \"x\$"$as_gl_Warn"\" = x"yes"; then :
   as_fn_append WARN_CFLAGS " --param=ssp-buffer-size=4"
 fi
 
-           ;;
-        esac
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -fexceptions" >&5
+       ;;
+    esac
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -fexceptions" >&5
 $as_echo_n "checking whether compiler handles -fexceptions... " >&6; }
 if ${gl_cv_warn__fexceptions+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -50136,7 +50176,7 @@ if test "x$gl_cv_warn__fexceptions" = xyes; then :
   as_fn_append WARN_CFLAGS " -fexceptions"
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -fasynchronous-unwind-tables" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -fasynchronous-unwind-tables" >&5
 $as_echo_n "checking whether compiler handles -fasynchronous-unwind-tables... " >&6; }
 if ${gl_cv_warn__fasynchronous_unwind_tables+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -50170,7 +50210,7 @@ if test "x$gl_cv_warn__fasynchronous_unwind_tables" = xyes; then :
   as_fn_append WARN_CFLAGS " -fasynchronous-unwind-tables"
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -fdiagnostics-show-option" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -fdiagnostics-show-option" >&5
 $as_echo_n "checking whether compiler handles -fdiagnostics-show-option... " >&6; }
 if ${gl_cv_warn__fdiagnostics_show_option+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -50204,7 +50244,7 @@ if test "x$gl_cv_warn__fdiagnostics_show_option" = xyes; then :
   as_fn_append WARN_CFLAGS " -fdiagnostics-show-option"
 fi
 
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -funit-at-a-time" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -funit-at-a-time" >&5
 $as_echo_n "checking whether compiler handles -funit-at-a-time... " >&6; }
 if ${gl_cv_warn__funit_at_a_time+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -50239,9 +50279,9 @@ if test "x$gl_cv_warn__funit_at_a_time" = xyes; then :
 fi
 
 
-        # Need -fipa-pure-const in order to make -Wsuggest-attribute=pure
-        # fire even without -O.
-        { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -fipa-pure-const" >&5
+    # Need -fipa-pure-const in order to make -Wsuggest-attribute=pure
+    # fire even without -O.
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -fipa-pure-const" >&5
 $as_echo_n "checking whether compiler handles -fipa-pure-const... " >&6; }
 if ${gl_cv_warn__fipa_pure_const+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -50275,9 +50315,9 @@ if test "x$gl_cv_warn__fipa_pure_const" = xyes; then :
   as_fn_append WARN_CFLAGS " -fipa-pure-const"
 fi
 
-        # We should eventually enable this, but right now there are at
-        # least 75 functions triggering warnings.
-        as_gl_Warn=`$as_echo "gl_cv_warn_-Wno-suggest-attribute=pure" | $as_tr_sh`
+    # We should eventually enable this, but right now there are at
+    # least 75 functions triggering warnings.
+    as_gl_Warn=`$as_echo "gl_cv_warn_-Wno-suggest-attribute=pure" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -Wno-suggest-attribute=pure" >&5
 $as_echo_n "checking whether compiler handles -Wno-suggest-attribute=pure... " >&6; }
 if eval \${$as_gl_Warn+:} false; then :
@@ -50313,7 +50353,7 @@ if eval test \"x\$"$as_gl_Warn"\" = x"yes"; then :
   as_fn_append WARN_CFLAGS " -Wno-suggest-attribute=pure"
 fi
 
-        as_gl_Warn=`$as_echo "gl_cv_warn_-Wno-suggest-attribute=const" | $as_tr_sh`
+    as_gl_Warn=`$as_echo "gl_cv_warn_-Wno-suggest-attribute=const" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -Wno-suggest-attribute=const" >&5
 $as_echo_n "checking whether compiler handles -Wno-suggest-attribute=const... " >&6; }
 if eval \${$as_gl_Warn+:} false; then :
@@ -50350,9 +50390,9 @@ if eval test \"x\$"$as_gl_Warn"\" = x"yes"; then :
 fi
 
 
-        if test "$enable_compile_warnings" = "error"
-        then
-          { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -Werror" >&5
+    if test "$set_werror" = "yes"
+    then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler handles -Werror" >&5
 $as_echo_n "checking whether compiler handles -Werror... " >&6; }
 if ${gl_cv_warn__Werror+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -50386,12 +50426,7 @@ if test "x$gl_cv_warn__Werror" = xyes; then :
   as_fn_append WARN_CFLAGS " -Werror"
 fi
 
-        fi
-        ;;
-    *)
-        as_fn_error $? "Unknown argument '$enable_compile_warnings' to --enable-compile-warnings" "$LINENO" 5
-        ;;
-    esac
+    fi
 
     WARN_LDFLAGS=$WARN_CFLAGS
 
@@ -54182,6 +54217,14 @@ else
 fi
 
 
+# Check whether --with-selinux_mount was given.
+if test "${with_selinux_mount+set}" = set; then :
+  withval=$with_selinux_mount;
+else
+  with_selinux_mount=check
+fi
+
+
 SELINUX_CFLAGS=
 SELINUX_LIBS=
 if test "$with_selinux" != "no"; then
@@ -54310,7 +54353,26 @@ fi
   LIBS="$old_libs"
 fi
 if test "$with_selinux" = "yes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking SELinux mount point" >&5
+$as_echo_n "checking SELinux mount point... " >&6; }
+  if test "$with_selinux_mount" = "check" || test -z "$with_selinux_mount"; then
+    if test -d /sys/fs/selinux ; then
+      SELINUX_MOUNT=/sys/fs/selinux
+    else
+      SELINUX_MOUNT=/selinux
+    fi
+  else
+    SELINUX_MOUNT=$with_selinux_mount
+  fi
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $SELINUX_MOUNT" >&5
+$as_echo "$SELINUX_MOUNT" >&6; }
+
   SELINUX_LIBS="-lselinux"
+
+cat >>confdefs.h <<_ACEOF
+#define SELINUX_MOUNT "$SELINUX_MOUNT"
+_ACEOF
+
 
 cat >>confdefs.h <<_ACEOF
 #define HAVE_SELINUX 1
@@ -57902,6 +57964,37 @@ fi
 
 
 
+# Check whether --enable-with-test-suite was given.
+if test "${enable_with_test_suite+set}" = set; then :
+  enableval=$enable_with_test_suite; case "${withval}" in
+                 yes|no|check) ;;
+                 *)      as_fn_error $? "bad value ${withval} for tests option" "$LINENO" 5 ;;
+              esac
+else
+  withval=check
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking Whether to build test suite by default" >&5
+$as_echo_n "checking Whether to build test suite by default... " >&6; }
+if test "$withval" = "check" ; then
+  if test -d $srcdir/.git ; then
+    withval=yes
+  else
+    withval=no
+  fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $withval" >&5
+$as_echo "$withval" >&6; }
+ if test "$withval" = "yes"; then
+  WITH_TESTS_TRUE=
+  WITH_TESTS_FALSE='#'
+else
+  WITH_TESTS_TRUE='#'
+  WITH_TESTS_FALSE=
+fi
+
+
 # Check whether --enable-test-coverage was given.
 if test "${enable_test_coverage+set}" = set; then :
   enableval=$enable_test_coverage; case "${enableval}" in
@@ -61251,6 +61344,10 @@ if test -z "${WITH_PYTHON_TRUE}" && test -z "${WITH_PYTHON_FALSE}"; then
   as_fn_error $? "conditional \"WITH_PYTHON\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${WITH_TESTS_TRUE}" && test -z "${WITH_TESTS_FALSE}"; then
+  as_fn_error $? "conditional \"WITH_TESTS\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${WITH_CIL_TRUE}" && test -z "${WITH_CIL_FALSE}"; then
   as_fn_error $? "conditional \"WITH_CIL\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -63813,8 +63910,8 @@ $as_echo "$as_me: " >&6;}
 $as_echo "$as_me: Security Drivers" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}: " >&5
 $as_echo "$as_me: " >&6;}
-{ $as_echo "$as_me:${as_lineno-$LINENO}:  SELinux: $with_secdriver_selinux" >&5
-$as_echo "$as_me:  SELinux: $with_secdriver_selinux" >&6;}
+{ $as_echo "$as_me:${as_lineno-$LINENO}:  SELinux: $with_secdriver_selinux ($SELINUX_MOUNT)" >&5
+$as_echo "$as_me:  SELinux: $with_secdriver_selinux ($SELINUX_MOUNT)" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}: AppArmor: $with_secdriver_apparmor" >&5
 $as_echo "$as_me: AppArmor: $with_secdriver_apparmor" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}: " >&5
@@ -64026,8 +64123,8 @@ $as_echo "$as_me: Miscellaneous" >&6;}
 $as_echo "$as_me: " >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}:         Debug: $enable_debug" >&5
 $as_echo "$as_me:         Debug: $enable_debug" >&6;}
-{ $as_echo "$as_me:${as_lineno-$LINENO}:      Warnings: $enable_compile_warnings" >&5
-$as_echo "$as_me:      Warnings: $enable_compile_warnings" >&6;}
+{ $as_echo "$as_me:${as_lineno-$LINENO}:   Use -Werror: $set_werror" >&5
+$as_echo "$as_me:   Use -Werror: $set_werror" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}: Warning Flags: $WARN_CFLAGS" >&5
 $as_echo "$as_me: Warning Flags: $WARN_CFLAGS" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}:      Readline: $lv_use_readline" >&5

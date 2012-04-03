@@ -87,7 +87,7 @@ qemuProcessRemoveDomainStatus(struct qemud_driver *driver,
 
     if (virAsprintf(&file, "%s/%s.xml", driver->stateDir, vm->def->name) < 0) {
         virReportOOMError();
-        return(-1);
+        return -1;
     }
 
     if (unlink(file) < 0 && errno != ENOENT && errno != ENOTDIR)
@@ -738,7 +738,7 @@ qemuProcessHandleRTCChange(qemuMonitorPtr mon ATTRIBUTE_UNUSED,
     event = virDomainEventRTCChangeNewFromObj(vm, offset);
 
     if (vm->def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_VARIABLE)
-        vm->def->clock.data.adjustment = offset;
+        vm->def->clock.data.variable.adjustment = offset;
 
     if (virDomainSaveStatus(driver->caps, driver->stateDir, vm) < 0)
         VIR_WARN("unable to save domain status with RTC change");
@@ -1598,7 +1598,7 @@ closelog:
     if (VIR_CLOSE(logfd) < 0) {
         char ebuf[1024];
         VIR_WARN("Unable to close logfile: %s",
-                 virStrerror(errno, ebuf, sizeof ebuf));
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
     }
 
     VIR_FREE(buf);
@@ -3106,7 +3106,7 @@ qemuProcessReconnect(void *opaque)
     if (qemuProcessFiltersInstantiate(conn, obj->def))
         goto error;
 
-    if (qemuDomainCheckEjectableMedia(driver, obj) < 0)
+    if (qemuDomainCheckEjectableMedia(driver, obj, QEMU_ASYNC_JOB_NONE) < 0)
         goto error;
 
     if (qemuProcessRecoverJob(driver, obj, conn, &oldjob) < 0)
@@ -3255,7 +3255,7 @@ error:
 void
 qemuProcessReconnectAll(virConnectPtr conn, struct qemud_driver *driver)
 {
-    struct qemuProcessReconnectData data = {conn, driver};
+    struct qemuProcessReconnectData data = {.conn = conn, .driver = driver};
     virHashForEach(driver->domains.objs, qemuProcessReconnectHelper, &data);
 }
 
@@ -3523,7 +3523,7 @@ int qemuProcessStart(virConnectPtr conn,
         if (safewrite(logfile, timestamp, strlen(timestamp)) < 0 ||
             safewrite(logfile, START_POSTFIX, strlen(START_POSTFIX)) < 0) {
             VIR_WARN("Unable to write timestamp to logfile: %s",
-                     virStrerror(errno, ebuf, sizeof ebuf));
+                     virStrerror(errno, ebuf, sizeof(ebuf)));
         }
 
         VIR_FREE(timestamp);
@@ -3535,7 +3535,7 @@ int qemuProcessStart(virConnectPtr conn,
 
     if ((pos = lseek(logfile, 0, SEEK_END)) < 0)
         VIR_WARN("Unable to seek to end of logfile: %s",
-                 virStrerror(errno, ebuf, sizeof ebuf));
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
 
     VIR_DEBUG("Clear emulator capabilities: %d",
               driver->clearEmulatorCapabilities);
@@ -3754,9 +3754,11 @@ qemuProcessKill(struct qemud_driver *driver,
     VIR_DEBUG("vm=%s pid=%d flags=%x",
               vm->def->name, vm->pid, flags);
 
-    if (!virDomainObjIsActive(vm)) {
-        VIR_DEBUG("VM '%s' not active", vm->def->name);
-        return 0;
+    if (!(flags & VIR_QEMU_PROCESS_KILL_NOCHECK)) {
+        if (!virDomainObjIsActive(vm)) {
+            VIR_DEBUG("VM '%s' not active", vm->def->name);
+            return 0;
+        }
     }
 
     /* This loop sends SIGTERM (or SIGKILL if flags has
@@ -3794,7 +3796,7 @@ qemuProcessKill(struct qemud_driver *driver,
                 char ebuf[1024];
                 VIR_WARN("Failed to terminate process %d with SIG%s: %s",
                          vm->pid, signame,
-                         virStrerror(errno, ebuf, sizeof ebuf));
+                         virStrerror(errno, ebuf, sizeof(ebuf)));
                 goto cleanup;
             }
             ret = 0;
@@ -3860,11 +3862,18 @@ void qemuProcessStop(struct qemud_driver *driver,
         return;
     }
 
+    /*
+     * We may unlock the driver and vm in qemuProcessKill(), and another thread
+     * can lock driver and vm, and then call qemuProcessStop(). So we should
+     * set vm->def->id to -1 here to avoid qemuProcessStop() to be called twice.
+     */
+    vm->def->id = -1;
+
     if ((logfile = qemuDomainCreateLog(driver, vm, true)) < 0) {
         /* To not break the normal domain shutdown process, skip the
          * timestamp log writing if failed on opening log file. */
         VIR_WARN("Unable to open logfile: %s",
-                  virStrerror(errno, ebuf, sizeof ebuf));
+                  virStrerror(errno, ebuf, sizeof(ebuf)));
     } else {
         if ((timestamp = virTimeStringNow()) == NULL) {
             virReportOOMError();
@@ -3873,7 +3882,7 @@ void qemuProcessStop(struct qemud_driver *driver,
                 safewrite(logfile, SHUTDOWN_POSTFIX,
                           strlen(SHUTDOWN_POSTFIX)) < 0) {
                 VIR_WARN("Unable to write timestamp to logfile: %s",
-                         virStrerror(errno, ebuf, sizeof ebuf));
+                         virStrerror(errno, ebuf, sizeof(ebuf)));
             }
 
             VIR_FREE(timestamp);
@@ -3881,7 +3890,7 @@ void qemuProcessStop(struct qemud_driver *driver,
 
         if (VIR_CLOSE(logfile) < 0)
              VIR_WARN("Unable to close logfile: %s",
-                      virStrerror(errno, ebuf, sizeof ebuf));
+                      virStrerror(errno, ebuf, sizeof(ebuf)));
     }
 
     /* This method is routinely used in clean up paths. Disable error
@@ -3922,7 +3931,8 @@ void qemuProcessStop(struct qemud_driver *driver,
     }
 
     /* shut it off for sure */
-    ignore_value(qemuProcessKill(driver, vm, VIR_QEMU_PROCESS_KILL_FORCE));
+    ignore_value(qemuProcessKill(driver, vm, VIR_QEMU_PROCESS_KILL_FORCE|
+                                             VIR_QEMU_PROCESS_KILL_NOCHECK));
 
     qemuDomainCleanupRun(driver, vm);
 
@@ -4015,7 +4025,6 @@ retry:
 
     vm->taint = 0;
     vm->pid = -1;
-    vm->def->id = -1;
     virDomainObjSetState(vm, VIR_DOMAIN_SHUTOFF, reason);
     VIR_FREE(priv->vcpupids);
     priv->nvcpupids = 0;
@@ -4160,7 +4169,7 @@ int qemuProcessAttach(virConnectPtr conn ATTRIBUTE_UNUSED,
         if (safewrite(logfile, timestamp, strlen(timestamp)) < 0 ||
             safewrite(logfile, ATTACH_POSTFIX, strlen(ATTACH_POSTFIX)) < 0) {
             VIR_WARN("Unable to write timestamp to logfile: %s",
-                     virStrerror(errno, ebuf, sizeof ebuf));
+                     virStrerror(errno, ebuf, sizeof(ebuf)));
         }
 
         VIR_FREE(timestamp);
