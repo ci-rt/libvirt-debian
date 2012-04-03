@@ -2721,8 +2721,7 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
     case VIR_DOMAIN_NET_TYPE_NETWORK:
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
     case VIR_DOMAIN_NET_TYPE_DIRECT:
-        virBufferAddLit(&buf, "tap");
-        virBufferAsprintf(&buf, "%cfd=%s", type_sep, tapfd);
+        virBufferAsprintf(&buf, "tap%cfd=%s", type_sep, tapfd);
         type_sep = ',';
         is_tap = true;
         break;
@@ -2742,40 +2741,28 @@ qemuBuildHostNetStr(virDomainNetDefPtr net,
         break;
 
     case VIR_DOMAIN_NET_TYPE_CLIENT:
+       virBufferAsprintf(&buf, "socket%cconnect=%s:%d",
+                         type_sep,
+                         net->data.socket.address,
+                         net->data.socket.port);
+       type_sep = ',';
+       break;
+
     case VIR_DOMAIN_NET_TYPE_SERVER:
+       virBufferAsprintf(&buf, "socket%clisten=%s:%d",
+                         type_sep,
+                         net->data.socket.address,
+                         net->data.socket.port);
+       type_sep = ',';
+       break;
+
     case VIR_DOMAIN_NET_TYPE_MCAST:
-        virBufferAddLit(&buf, "socket");
-        switch (netType) {
-        case VIR_DOMAIN_NET_TYPE_CLIENT:
-            virBufferAsprintf(&buf, "%cconnect=%s:%d",
-                              type_sep,
-                              net->data.socket.address,
-                              net->data.socket.port);
-            break;
-        case VIR_DOMAIN_NET_TYPE_SERVER:
-            virBufferAsprintf(&buf, "%clisten=%s:%d",
-                              type_sep,
-                              net->data.socket.address,
-                              net->data.socket.port);
-            break;
-        case VIR_DOMAIN_NET_TYPE_MCAST:
-            virBufferAsprintf(&buf, "%cmcast=%s:%d",
-                              type_sep,
-                              net->data.socket.address,
-                              net->data.socket.port);
-            break;
-        case VIR_DOMAIN_NET_TYPE_USER:
-        case VIR_DOMAIN_NET_TYPE_ETHERNET:
-        case VIR_DOMAIN_NET_TYPE_NETWORK:
-        case VIR_DOMAIN_NET_TYPE_BRIDGE:
-        case VIR_DOMAIN_NET_TYPE_INTERNAL:
-        case VIR_DOMAIN_NET_TYPE_DIRECT:
-        case VIR_DOMAIN_NET_TYPE_HOSTDEV:
-        case VIR_DOMAIN_NET_TYPE_LAST:
-            break;
-        }
-        type_sep = ',';
-        break;
+       virBufferAsprintf(&buf, "socket%cmcast=%s:%d",
+                         type_sep,
+                         net->data.socket.address,
+                         net->data.socket.port);
+       type_sep = ',';
+       break;
 
     case VIR_DOMAIN_NET_TYPE_USER:
     default:
@@ -3444,8 +3431,7 @@ qemuBuildVirtioSerialPortDevStr(virDomainChrDefPtr dev,
 
     if (dev->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL &&
         dev->source.type == VIR_DOMAIN_CHR_TYPE_SPICEVMC &&
-        dev->target.name &&
-        STRNEQ(dev->target.name, "com.redhat.spice.0")) {
+        STRNEQ_NULLABLE(dev->target.name, "com.redhat.spice.0")) {
         qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                         _("Unsupported spicevmc target name '%s'"),
                         dev->target.name);
@@ -3457,9 +3443,9 @@ qemuBuildVirtioSerialPortDevStr(virDomainChrDefPtr dev,
           qemuCapsGet(qemuCaps, QEMU_CAPS_DEVICE_SPICEVMC))) {
         virBufferAsprintf(&buf, ",chardev=char%s,id=%s",
                           dev->info.alias, dev->info.alias);
-        if (dev->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL &&
-            dev->target.name) {
-            virBufferAsprintf(&buf, ",name=%s", dev->target.name);
+        if (dev->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_CHANNEL) {
+            virBufferAsprintf(&buf, ",name=%s", dev->target.name
+                              ? dev->target.name : "com.redhat.spice.0");
         }
     } else {
         virBufferAsprintf(&buf, ",id=%s", dev->info.alias);
@@ -3482,7 +3468,7 @@ static char *qemuBuildSmbiosBiosStr(virSysinfoDefPtr def)
 
     if ((def->bios_vendor == NULL) && (def->bios_version == NULL) &&
         (def->bios_date == NULL) && (def->bios_release == NULL))
-        return(NULL);
+        return NULL;
 
     virBufferAddLit(&buf, "type=0");
 
@@ -3508,7 +3494,7 @@ static char *qemuBuildSmbiosBiosStr(virSysinfoDefPtr def)
 
 error:
     virBufferFreeAndReset(&buf);
-    return(NULL);
+    return NULL;
 }
 
 static char *qemuBuildSmbiosSystemStr(virSysinfoDefPtr def, bool skip_uuid)
@@ -3555,7 +3541,7 @@ static char *qemuBuildSmbiosSystemStr(virSysinfoDefPtr def, bool skip_uuid)
 
 error:
     virBufferFreeAndReset(&buf);
-    return(NULL);
+    return NULL;
 }
 
 static char *
@@ -3577,7 +3563,13 @@ qemuBuildClockArgStr(virDomainClockDefPtr def)
         time_t now = time(NULL);
         struct tm nowbits;
 
-        now += def->data.adjustment;
+        if (def->data.variable.basis != VIR_DOMAIN_CLOCK_BASIS_UTC) {
+            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                            _("unsupported clock basis '%s'"),
+                            virDomainClockBasisTypeToString(def->data.variable.basis));
+            goto error;
+        }
+        now += def->data.variable.adjustment;
         gmtime_r(&now, &nowbits);
 
         virBufferAsprintf(&buf, "base=%d-%02d-%02dT%02d:%02d:%02d",
@@ -3916,8 +3908,9 @@ qemuBuildNumaArgStr(const virDomainDefPtr def, virCommandPtr cmd)
         virBufferAsprintf(&buf, "node,nodeid=%d", def->cpu->cells[i].cellid);
         virBufferAddLit(&buf, ",cpus=");
         qemuBuildNumaCPUArgStr(def->cpu->cells[i].cpumask, &buf);
-        virBufferAsprintf(&buf, "mem=%d",
-            VIR_DIV_UP(def->cpu->cells[i].mem, 1024));
+        def->cpu->cells[i].mem = VIR_DIV_UP(def->cpu->cells[i].mem,
+                                            1024) * 1024;
+        virBufferAsprintf(&buf, "mem=%d", def->cpu->cells[i].mem / 1024);
 
         if (virBufferError(&buf))
             goto error;
@@ -4061,10 +4054,12 @@ qemuBuildCommandLine(virConnectPtr conn,
 
     /* Set '-m MB' based on maxmem, because the lower 'memory' limit
      * is set post-startup using the balloon driver. If balloon driver
-     * is not supported, then they're out of luck anyway
+     * is not supported, then they're out of luck anyway.  Update the
+     * XML to reflect our rounding.
      */
     virCommandAddArg(cmd, "-m");
-    virCommandAddArgFormat(cmd, "%llu", VIR_DIV_UP(def->mem.max_balloon, 1024));
+    def->mem.max_balloon = VIR_DIV_UP(def->mem.max_balloon, 1024) * 1024;
+    virCommandAddArgFormat(cmd, "%llu", def->mem.max_balloon / 1024);
     if (def->mem.hugepage_backed) {
         if (!driver->hugetlbfs_mount) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,

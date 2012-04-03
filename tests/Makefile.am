@@ -60,6 +60,7 @@ EXTRA_DIST =		\
 	domainsnapshotxml2xmlin \
 	domainsnapshotxml2xmlout \
 	interfaceschemadata \
+	lxcxml2xmldata \
 	networkschematest \
 	networkxml2xmlin \
 	networkxml2xmlout \
@@ -91,65 +92,68 @@ EXTRA_DIST =		\
 	xml2vmxdata \
 	.valgrind.supp
 
-check_PROGRAMS = virshtest conftest sockettest \
+test_helpers = commandhelper ssh conftest
+test_programs = virshtest sockettest \
 	nodeinfotest virbuftest \
-	commandtest commandhelper seclabeltest \
-	virhashtest virnetmessagetest virnetsockettest ssh \
+	commandtest seclabeltest \
+	virhashtest virnetmessagetest virnetsockettest \
 	utiltest virnettlscontexttest shunloadtest \
 	virtimetest viruritest virkeyfiletest \
 	virauthconfigtest
-
-check_LTLIBRARIES = libshunload.la
 
 # This is a fake SSH we use from virnetsockettest
 ssh_SOURCES = ssh.c
 ssh_LDADD = $(COVERAGE_LDFLAGS)
 
 if WITH_XEN
-check_PROGRAMS += xml2sexprtest sexpr2xmltest \
+test_programs += xml2sexprtest sexpr2xmltest \
 	xmconfigtest xencapstest statstest reconnect
 endif
 if WITH_QEMU
-check_PROGRAMS += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
+test_programs += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
 	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
 	qemumonitortest
 endif
 
+if WITH_LXC
+test_programs += lxcxml2xmltest
+endif
+
 if WITH_OPENVZ
-check_PROGRAMS += openvzutilstest
+test_programs += openvzutilstest
 endif
 
 if WITH_ESX
-check_PROGRAMS += esxutilstest
+test_programs += esxutilstest
 endif
 
 if WITH_VMX
-check_PROGRAMS += vmx2xmltest xml2vmxtest
+test_programs += vmx2xmltest xml2vmxtest
 endif
 
 if WITH_CIL
-check_PROGRAMS += object-locking
+test_programs += object-locking
 endif
 
 if HAVE_YAJL
-check_PROGRAMS += jsontest
+test_programs += jsontest
 endif
 
-check_PROGRAMS += networkxml2xmltest
+test_programs += networkxml2xmltest
 
 if WITH_NETWORK
-check_PROGRAMS += networkxml2argvtest
+test_programs += networkxml2argvtest
 endif
 
-check_PROGRAMS += nwfilterxml2xmltest
+test_programs += nwfilterxml2xmltest
 
-check_PROGRAMS += storagevolxml2xmltest storagepoolxml2xmltest
+test_programs += storagevolxml2xmltest storagepoolxml2xmltest
 
-check_PROGRAMS += nodedevxml2xmltest
+test_programs += nodedevxml2xmltest
 
-check_PROGRAMS += interfacexml2xmltest
+test_programs += interfacexml2xmltest
 
-check_PROGRAMS += cputest
+test_programs += cputest
 
 test_scripts = \
 	capabilityschematest \
@@ -180,6 +184,8 @@ test_scripts +=				\
 	virsh-optparse			\
 	virsh-schedinfo			\
 	virsh-synopsis
+
+test_programs += eventtest
 else
 EXTRA_DIST += 				\
 	test_conf.sh			\
@@ -208,73 +214,16 @@ endif
 
 EXTRA_DIST += $(test_scripts)
 
-TESTS = virshtest \
-        nodeinfotest \
-	virbuftest \
-	sockettest \
-	commandtest \
-	seclabeltest \
-	virhashtest \
-	virnetmessagetest \
-	virnetsockettest \
-	virnettlscontexttest \
-	virtimetest \
-	viruritest \
-	virkeyfiletest \
-	virauthconfigtest \
-	shunloadtest \
-	utiltest \
+if WITH_TESTS
+noinst_PROGRAMS = $(test_programs) $(test_helpers)
+noinst_LTLIBRARIES = libshunload.la
+else
+check_PROGRAMS = $(test_programs) $(test_helpers)
+check_LTLIBRARIES = libshunload.la
+endif
+
+TESTS = $(test_programs) \
 	$(test_scripts)
-
-if HAVE_YAJL
-TESTS += jsontest
-endif
-
-if WITH_XEN
-TESTS += xml2sexprtest \
-	sexpr2xmltest \
-	xmconfigtest \
-	xencapstest \
-	reconnect \
-	statstest
-endif
-
-if WITH_QEMU
-TESTS += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest qemuargv2xmltest \
-	 qemuhelptest domainsnapshotxml2xmltest nwfilterxml2xmltest \
-	 qemumonitortest
-endif
-
-if WITH_OPENVZ
-TESTS += openvzutilstest
-endif
-
-if WITH_ESX
-TESTS += esxutilstest
-endif
-
-if WITH_VMX
-TESTS += vmx2xmltest xml2vmxtest
-endif
-
-if WITH_LIBVIRTD
-check_PROGRAMS += eventtest
-TESTS += eventtest
-endif
-
-TESTS += networkxml2xmltest
-
-if WITH_NETWORK
-TESTS += networkxml2argvtest
-endif
-
-TESTS += storagevolxml2xmltest storagepoolxml2xmltest
-
-TESTS += nodedevxml2xmltest
-
-TESTS += interfacexml2xmltest
-
-TESTS += cputest
 
 # NB, automake < 1.10 does not provide the real
 # abs_top_{src/build}dir or builddir variables, so don't rely
@@ -296,6 +245,7 @@ TESTS_ENVIRONMENT =				\
   LIBVIRT_DRIVER_DIR="$(abs_top_builddir)/src/.libs" \
   LC_ALL=C					\
   $(VG)
+
 
 valgrind:
 	$(MAKE) check VG="valgrind --quiet --leak-check=full --suppressions=$(srcdir)/.valgrind.supp"
@@ -381,6 +331,18 @@ else
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemuxmlnstest.c qemuhelptest.c domainsnapshotxml2xmltest.c \
 	qemumonitortest.c testutilsqemu.c testutilsqemu.h
+endif
+
+if WITH_LXC
+
+lxc_LDADDS = ../src/libvirt_driver_lxc.la
+
+lxcxml2xmltest_SOURCES = \
+	lxcxml2xmltest.c testutilslxc.c testutilslxc.h \
+	testutils.c testutils.h
+lxcxml2xmltest_LDADD = $(lxc_LDADDS) $(LDADDS)
+else
+EXTRA_DIST += lxcxml2xmltest.c testutilslxc.c testutilslxc.h
 endif
 
 if WITH_OPENVZ

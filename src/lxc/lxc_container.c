@@ -122,6 +122,9 @@ static virCommandPtr lxcContainerBuildInitCmd(virDomainDefPtr vmDef)
 
     cmd = virCommandNew(vmDef->os.init);
 
+    if (vmDef->os.initargv && vmDef->os.initargv[0])
+        virCommandAddArgSet(cmd, (const char **)vmDef->os.initargv);
+
     virCommandAddEnvString(cmd, "PATH=/bin:/sbin");
     virCommandAddEnvString(cmd, "TERM=linux");
     virCommandAddEnvString(cmd, "container=lxc-libvirt");
@@ -444,8 +447,10 @@ static int lxcContainerMountBasicFS(const char *srcprefix, bool pivotRoot)
         { false, "/proc/sys", "/proc/sys", NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
         { true, "/sys", "/sys", NULL, NULL, MS_BIND },
         { true, "/sys", "/sys", NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
-        { true, "/selinux", "/selinux", NULL, NULL, MS_BIND },
-        { true, "/selinux", "/selinux", NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
+#if HAVE_SELINUX
+        { true, SELINUX_MOUNT, SELINUX_MOUNT, NULL, NULL, MS_BIND },
+        { true, SELINUX_MOUNT, SELINUX_MOUNT, NULL, NULL, MS_BIND|MS_REMOUNT|MS_RDONLY },
+#endif
     };
     int i, rc = -1;
     char *opts = NULL;
@@ -1512,7 +1517,7 @@ int lxcContainerAvailable(int features)
     if (cpid < 0) {
         char ebuf[1024] ATTRIBUTE_UNUSED;
         VIR_DEBUG("clone call returned %s, container support is not enabled",
-              virStrerror(errno, ebuf, sizeof ebuf));
+                  virStrerror(errno, ebuf, sizeof(ebuf)));
         return -1;
     } else if (virPidWait(cpid, NULL) < 0) {
         return -1;

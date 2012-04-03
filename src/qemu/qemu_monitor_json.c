@@ -214,7 +214,7 @@ qemuMonitorJSONCommandWithFd(qemuMonitorPtr mon,
 
     *reply = NULL;
 
-    memset(&msg, 0, sizeof msg);
+    memset(&msg, 0, sizeof(msg));
 
     exe = virJSONValueObjectGet(cmd, "execute");
     if (exe) {
@@ -417,6 +417,12 @@ qemuMonitorJSONMakeCommandRaw(bool wrap, const char *cmdname, ...)
         switch (type) {
         case 's': {
             char *val = va_arg(args, char *);
+            if (!val) {
+                qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                                _("argument key '%s' must not have null value"),
+                                key);
+                goto error;
+            }
             ret = virJSONValueObjectAppendString(jargs, key, val);
         }   break;
         case 'i': {

@@ -422,6 +422,12 @@ sc_correct_id_types:
 	halt="use pid_t for pid, uid_t for uid, gid_t for gid"		\
 	  $(_sc_search_regexp)
 
+# Forbid sizeof foo or sizeof (foo), require sizeof(foo)
+sc_size_of_brackets:
+	@prohibit='sizeof\s'						\
+	halt='use sizeof(foo), not sizeof (foo) or sizeof foo'		\
+	  $(_sc_search_regexp)
+
 # Ensure that no C source file, docs, or rng schema uses TABs for
 # indentation.  Also match *.h.in files, to get libvirt.h.in.  Exclude
 # files in gnulib, since they're imported.
@@ -467,6 +473,12 @@ sc_prohibit_xmlGetProp:
 sc_prohibit_xmlURI:
 	@prohibit='\<xml(ParseURI|SaveUri) *\('				\
 	halt='use virURI(Parse|Format), not xml(ParseURI|SaveUri)'	\
+	  $(_sc_search_regexp)
+
+# we don't want old old-style return with parentheses around argument
+sc_prohibit_return_as_function:
+	@prohibit='\<return *\(([^()]*(\([^()]*\)[^()]*)*)\) *;'    \
+	halt='avoid extra () with return statements'                \
 	  $(_sc_search_regexp)
 
 # ATTRIBUTE_UNUSED should only be applied in implementations, not
@@ -735,7 +747,7 @@ exclude_file_name_regexp--sc_avoid_write = \
 
 exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 
-exclude_file_name_regexp--sc_flags_usage = ^docs/
+exclude_file_name_regexp--sc_flags_usage = ^(docs/|src/util/virnetdevtap\.c$$)
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
   ^src/rpc/gendispatch\.pl$$
@@ -757,7 +769,7 @@ exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^tests/qemuhelpdata/|\.(gif|ico|png)$$)
+  (^tests/qemuhelpdata/|\.(gif|ico|png|diff)$$)
 
 _src2=src/(util/command|libvirt|lxc/lxc_controller)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
@@ -791,6 +803,8 @@ exclude_file_name_regexp--sc_prohibit_xmlGetProp = ^src/util/xml\.c$$
 
 exclude_file_name_regexp--sc_prohibit_xmlURI = ^src/util/viruri\.c$$
 
+exclude_file_name_regexp--sc_prohibit_return_as_function = \.py$$
+
 exclude_file_name_regexp--sc_require_config_h = ^examples/
 
 exclude_file_name_regexp--sc_require_config_h_first = ^examples/
@@ -799,3 +813,5 @@ exclude_file_name_regexp--sc_trailing_blank = \.(fig|gif|ico|png)$$
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = \
   ^(docs/apibuild.py|tests/virt-aa-helper-test)$$
+
+exclude_file_name_regexp--sc_size_of_brackets = cfg.mk

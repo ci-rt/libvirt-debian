@@ -102,17 +102,17 @@ virUUIDGenerate(unsigned char *uuid)
     int err;
 
     if (uuid == NULL)
-        return(-1);
+        return -1;
 
     if ((err = virUUIDGenerateRandomBytes(uuid, VIR_UUID_BUFLEN))) {
         char ebuf[1024];
         VIR_WARN("Falling back to pseudorandom UUID,"
                  " failed to generate random bytes: %s",
-                 virStrerror(err, ebuf, sizeof ebuf));
+                 virStrerror(err, ebuf, sizeof(ebuf)));
         err = virUUIDGeneratePseudoRandomBytes(uuid, VIR_UUID_BUFLEN);
     }
 
-    return(err);
+    return err;
 }
 
 /**
@@ -222,7 +222,7 @@ virUUIDIsValid(unsigned char *uuid)
         if (uuid[i] == c)
             ctr++;
 
-    return (ctr != VIR_UUID_BUFLEN);
+    return ctr != VIR_UUID_BUFLEN;
 }
 
 static int

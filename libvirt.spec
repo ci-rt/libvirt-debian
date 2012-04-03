@@ -261,10 +261,10 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 0.9.11
-Release: 0rc1%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
-Source: http://libvirt.org/sources/libvirt-%{version}-rc1.tar.gz
+Source: http://libvirt.org/sources/libvirt-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 URL: http://libvirt.org/
 
@@ -776,6 +776,7 @@ autoreconf -if
            %{?_without_openvz} \
            %{?_without_lxc} \
            %{?_without_vbox} \
+           %{?_without_libxl} \
            %{?_without_xenapi} \
            %{?_without_sasl} \
            %{?_without_avahi} \
@@ -811,8 +812,7 @@ autoreconf -if
            %{with_packager_version} \
            --with-qemu-user=%{qemu_user} \
            --with-qemu-group=%{qemu_group} \
-           %{init_scripts} \
-           --with-remote-pid-file=%{_localstatedir}/run/libvirtd.pid
+           %{init_scripts}
 make %{?_smp_mflags}
 gzip -9 ChangeLog
 
@@ -860,16 +860,6 @@ rm -f $RPM_BUILD_ROOT%{_datadir}/augeas/lenses/tests/test_libvirtd_lxc.aug
 
 %if ! %{with_python}
 rm -rf $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-python-%{version}
-%endif
-
-%if %{client_only}
-rm -rf $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version}
-%endif
-
-%if ! %{with_libvirtd}
-rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/nwfilter
-mv $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version}/html \
-   $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-devel-%{version}/
 %endif
 
 %if ! %{with_qemu}
@@ -1092,10 +1082,6 @@ fi
 %else
 rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %endif
-%if %{with_dtrace}
-%{_datadir}/systemtap/tapset/libvirt_probes.stp
-%{_datadir}/systemtap/tapset/libvirt_functions.stp
-%endif
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/lxc/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/uml/
@@ -1221,6 +1207,11 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %{_bindir}/virt-host-validate
 %{_libdir}/lib*.so.*
 
+%if %{with_dtrace}
+%{_datadir}/systemtap/tapset/libvirt_probes.stp
+%{_datadir}/systemtap/tapset/libvirt_functions.stp
+%endif
+
 %dir %{_datadir}/libvirt/
 %dir %{_datadir}/libvirt/schemas/
 
@@ -1294,6 +1285,17 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %endif
 
 %changelog
+* Tue Apr  3 2012 Daniel Veillard <veillard@redhat.com> - 0.9.11-1
+- Add support for the suspend event
+- Add support for event tray moved of removable disks
+- qemu: Support numad
+- cpustats: API, improvements and qemu support
+- qemu: support type='hostdev' network devices at domain start
+- Introduce virDomainPMWakeup API
+- network: support Open vSwitch
+- a number of snapshot improvements
+- many improvements and bug fixes
+
 * Mon Feb 13 2012 Daniel Veillard <veillard@redhat.com> - 0.9.10-1
 - Add support for sVirt in the LXC driver
 - block rebase: add new API virDomainBlockRebase

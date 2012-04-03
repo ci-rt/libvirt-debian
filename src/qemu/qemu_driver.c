@@ -415,6 +415,35 @@ cleanup:
     virDomainObjUnlock(vm);
 }
 
+
+static void qemuDomainNetsRestart(void *payload,
+                                const void *name ATTRIBUTE_UNUSED,
+                                void *data ATTRIBUTE_UNUSED)
+{
+   int i;
+   virDomainObjPtr vm = (virDomainObjPtr)payload;
+   virDomainDefPtr def = vm->def;
+
+   virDomainObjLock(vm);
+
+   for (i = 0; i < def->nnets; i++) {
+       virDomainNetDefPtr net = def->nets[i];
+       if (virDomainNetGetActualType(net) == VIR_DOMAIN_NET_TYPE_DIRECT &&
+           virDomainNetGetActualDirectMode(net) == VIR_NETDEV_MACVLAN_MODE_VEPA) {
+           VIR_DEBUG("VEPA mode device %s active in domain %s. Reassociating.",
+                     net->ifname, def->name);
+           ignore_value(virNetDevMacVLanRestartWithVPortProfile(net->ifname,
+                                                                net->mac,
+                                                                virDomainNetGetActualDirectDev(net),
+                                                                def->uuid,
+                                                                virDomainNetGetActualVirtPortProfile(net),
+                                                                VIR_NETDEV_VPORT_PROFILE_OP_CREATE));
+       }
+   }
+
+   virDomainObjUnlock(vm);
+}
+
 /**
  * qemudStartup:
  *
@@ -426,6 +455,7 @@ qemudStartup(int privileged) {
     char *driverConf = NULL;
     int rc;
     virConnectPtr conn = NULL;
+    char ebuf[1024];
 
     if (VIR_ALLOC(qemu_driver) < 0)
         return -1;
@@ -519,39 +549,33 @@ qemudStartup(int privileged) {
     }
 
     if (virFileMakePath(qemu_driver->stateDir) < 0) {
-        char ebuf[1024];
         VIR_ERROR(_("Failed to create state dir '%s': %s"),
-                  qemu_driver->stateDir, virStrerror(errno, ebuf, sizeof ebuf));
+                  qemu_driver->stateDir, virStrerror(errno, ebuf, sizeof(ebuf)));
         goto error;
     }
     if (virFileMakePath(qemu_driver->libDir) < 0) {
-        char ebuf[1024];
         VIR_ERROR(_("Failed to create lib dir '%s': %s"),
-                  qemu_driver->libDir, virStrerror(errno, ebuf, sizeof ebuf));
+                  qemu_driver->libDir, virStrerror(errno, ebuf, sizeof(ebuf)));
         goto error;
     }
     if (virFileMakePath(qemu_driver->cacheDir) < 0) {
-        char ebuf[1024];
         VIR_ERROR(_("Failed to create cache dir '%s': %s"),
-                  qemu_driver->cacheDir, virStrerror(errno, ebuf, sizeof ebuf));
+                  qemu_driver->cacheDir, virStrerror(errno, ebuf, sizeof(ebuf)));
         goto error;
     }
     if (virFileMakePath(qemu_driver->saveDir) < 0) {
-        char ebuf[1024];
         VIR_ERROR(_("Failed to create save dir '%s': %s"),
-                  qemu_driver->saveDir, virStrerror(errno, ebuf, sizeof ebuf));
+                  qemu_driver->saveDir, virStrerror(errno, ebuf, sizeof(ebuf)));
         goto error;
     }
     if (virFileMakePath(qemu_driver->snapshotDir) < 0) {
-        char ebuf[1024];
         VIR_ERROR(_("Failed to create save dir '%s': %s"),
-                  qemu_driver->snapshotDir, virStrerror(errno, ebuf, sizeof ebuf));
+                  qemu_driver->snapshotDir, virStrerror(errno, ebuf, sizeof(ebuf)));
         goto error;
     }
     if (virFileMakePath(qemu_driver->autoDumpPath) < 0) {
-        char ebuf[1024];
         VIR_ERROR(_("Failed to create dump dir '%s': %s"),
-                  qemu_driver->autoDumpPath, virStrerror(errno, ebuf, sizeof ebuf));
+                  qemu_driver->autoDumpPath, virStrerror(errno, ebuf, sizeof(ebuf)));
         goto error;
     }
 
@@ -567,9 +591,8 @@ qemudStartup(int privileged) {
 
     rc = virCgroupForDriver("qemu", &qemu_driver->cgroup, privileged, 1);
     if (rc < 0) {
-        char buf[1024];
         VIR_INFO("Unable to create cgroup for driver: %s",
-                 virStrerror(-rc, buf, sizeof(buf)));
+                 virStrerror(-rc, ebuf, sizeof(ebuf)));
     }
 
     if (qemudLoadDriverConfig(qemu_driver, driverConf) < 0) {
@@ -670,6 +693,8 @@ qemudStartup(int privileged) {
                                 1, QEMU_EXPECTED_VIRT_TYPES,
                                 NULL, NULL) < 0)
         goto error;
+
+    virHashForEach(qemu_driver->domains.objs, qemuDomainNetsRestart, NULL);
 
     conn = virConnectOpen(qemu_driver->privileged ?
                           "qemu:///system" :
@@ -2800,10 +2825,10 @@ qemuDomainManagedSavePath(struct qemud_driver *driver, virDomainObjPtr vm) {
 
     if (virAsprintf(&ret, "%s/%s.save", driver->saveDir, vm->def->name) < 0) {
         virReportOOMError();
-        return(NULL);
+        return NULL;
     }
 
-    return(ret);
+    return ret;
 }
 
 static int
@@ -4566,7 +4591,7 @@ static char *qemuDomainXMLToNative(virConnectPtr conn,
 
                 virDomainActualNetDefFree(net->data.network.actual);
 
-                memset(net, 0, sizeof *net);
+                memset(net, 0, sizeof(*net));
 
                 net->type = VIR_DOMAIN_NET_TYPE_ETHERNET;
                 net->script = NULL;
@@ -4577,7 +4602,7 @@ static char *qemuDomainXMLToNative(virConnectPtr conn,
                  * case, the best we can do is NULL everything out.
                  */
                 virDomainActualNetDefFree(net->data.network.actual);
-                memset(net, 0, sizeof *net);
+                memset(net, 0, sizeof(*net));
 
                 net->type = VIR_DOMAIN_NET_TYPE_ETHERNET;
                 net->script = NULL;
@@ -4588,7 +4613,7 @@ static char *qemuDomainXMLToNative(virConnectPtr conn,
             VIR_FREE(net->data.direct.linkdev);
             VIR_FREE(net->data.direct.virtPortProfile);
 
-            memset(net, 0, sizeof *net);
+            memset(net, 0, sizeof(*net));
 
             net->type = VIR_DOMAIN_NET_TYPE_ETHERNET;
             net->script = NULL;
@@ -4599,7 +4624,7 @@ static char *qemuDomainXMLToNative(virConnectPtr conn,
             char *brname = net->data.bridge.brname;
             char *ipaddr = net->data.bridge.ipaddr;
 
-            memset(net, 0, sizeof *net);
+            memset(net, 0, sizeof(*net));
 
             net->type = VIR_DOMAIN_NET_TYPE_ETHERNET;
             net->script = script;
@@ -8791,6 +8816,7 @@ qemuDomainMigrateBegin3(virDomainPtr domain,
     struct qemud_driver *driver = domain->conn->privateData;
     virDomainObjPtr vm;
     char *xml = NULL;
+    enum qemuDomainAsyncJob asyncJob;
 
     virCheckFlags(QEMU_MIGRATION_FLAGS, NULL);
 
@@ -8807,9 +8833,11 @@ qemuDomainMigrateBegin3(virDomainPtr domain,
     if ((flags & VIR_MIGRATE_CHANGE_PROTECTION)) {
         if (qemuMigrationJobStart(driver, vm, QEMU_ASYNC_JOB_MIGRATION_OUT) < 0)
             goto cleanup;
+        asyncJob = QEMU_ASYNC_JOB_MIGRATION_OUT;
     } else {
         if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
             goto cleanup;
+        asyncJob = QEMU_ASYNC_JOB_NONE;
     }
 
     if (!virDomainObjIsActive(vm)) {
@@ -8822,7 +8850,7 @@ qemuDomainMigrateBegin3(virDomainPtr domain,
      * We don't want to require them on the destination.
      */
 
-    if (qemuDomainCheckEjectableMedia(driver, vm) < 0)
+    if (qemuDomainCheckEjectableMedia(driver, vm, asyncJob) < 0)
         goto endjob;
 
     if (!(xml = qemuMigrationBegin(driver, vm, xmlin, dname,
@@ -9894,7 +9922,7 @@ qemuDomainSnapshotCreateSingleDiskActive(struct qemud_driver *driver,
 
     /* create the actual snapshot */
     ret = qemuMonitorDiskSnapshot(priv->mon, actions, device, source,
-                                  driverType, reuse);
+                                  snap->driverType, reuse);
     virDomainAuditDisk(vm, disk->src, source, "snapshot", ret >= 0);
     if (ret < 0)
         goto cleanup;

@@ -471,7 +471,7 @@ _vshStrdup(vshControl *ctl, const char *s, const char *filename, int line)
     char *x;
 
     if (s == NULL)
-        return(NULL);
+        return NULL;
     if ((x = strdup(s)))
         return x;
     vshError(ctl, _("%s: %d: failed to allocate %lu bytes"),
@@ -518,13 +518,13 @@ prettyCapacity(unsigned long long val,
         return (((double)val / 1024.0l));
     } else if (val < (1024.0l * 1024.0l * 1024.0l)) {
         *unit = "MB";
-        return ((double)val / (1024.0l * 1024.0l));
+        return (double)val / (1024.0l * 1024.0l);
     } else if (val < (1024.0l * 1024.0l * 1024.0l * 1024.0l)) {
         *unit = "GB";
-        return ((double)val / (1024.0l * 1024.0l * 1024.0l));
+        return (double)val / (1024.0l * 1024.0l * 1024.0l);
     } else {
         *unit = "TB";
-        return ((double)val / (1024.0l * 1024.0l * 1024.0l * 1024.0l));
+        return (double)val / (1024.0l * 1024.0l * 1024.0l * 1024.0l);
     }
 }
 
@@ -965,7 +965,7 @@ cmdList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 
     if (optTable + optName + optUUID > 1) {
         vshError(ctl, "%s",
-                 _("Only one argument from --table, --name and --uuid"
+                 _("Only one argument from --table, --name and --uuid "
                    "may be specified."));
         return false;
     }
@@ -1485,7 +1485,7 @@ cmdDomblkstat (vshControl *ctl, const vshCmd *cmd)
         last_error = NULL;
 
         if (virDomainBlockStats(dom, device, &stats,
-                                sizeof stats) == -1) {
+                                sizeof(stats)) == -1) {
             vshError(ctl, _("Failed to get block stats %s %s"),
                      name, device);
             goto cleanup;
@@ -1597,7 +1597,7 @@ cmdDomIfstat (vshControl *ctl, const vshCmd *cmd)
         return false;
     }
 
-    if (virDomainInterfaceStats (dom, device, &stats, sizeof stats) == -1) {
+    if (virDomainInterfaceStats (dom, device, &stats, sizeof(stats)) == -1) {
         vshError(ctl, _("Failed to get interface stats %s %s"), name, device);
         virDomainFree(dom);
         return false;
@@ -4578,7 +4578,7 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
                  has_managed_save ? _("yes") : _("no"));
 
     /* Security model and label information */
-    memset(&secmodel, 0, sizeof secmodel);
+    memset(&secmodel, 0, sizeof(secmodel));
     if (virNodeGetSecurityModel(ctl->conn, &secmodel) == -1) {
         if (last_error->code != VIR_ERR_NO_SUPPORT) {
             virDomainFree(dom);
@@ -13045,7 +13045,7 @@ cmdNodeListDevices (vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
             virNodeDeviceFree(dev);
         }
         for (i = 0 ; i < num_devices ; i++) {
-            memset(indentBuf, '\0', sizeof indentBuf);
+            memset(indentBuf, '\0', sizeof(indentBuf));
             if (parents[i] == NULL)
                 cmdNodeListDevicesPrint(ctl,
                                         devices,
@@ -16357,23 +16357,24 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
         if (vshCommandOptBool(cmd, "roots")) {
             vshError(ctl, "%s",
                      _("--parent and --roots are mutually exclusive"));
-            return false;
+            goto cleanup;
         }
         if (tree) {
             vshError(ctl, "%s",
                      _("--parent and --tree are mutually exclusive"));
-            return false;
+            goto cleanup;
         }
         parent_filter = 1;
     } else if (vshCommandOptBool(cmd, "roots")) {
         if (tree) {
             vshError(ctl, "%s",
                      _("--roots and --tree are mutually exclusive"));
-            return false;
+            goto cleanup;
         }
         if (from) {
             vshError(ctl, "%s",
                      _("--roots and --from are mutually exclusive"));
+            goto cleanup;
         }
         flags |= VIR_DOMAIN_SNAPSHOT_LIST_ROOTS;
     }
@@ -16381,7 +16382,7 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
         if (tree) {
             vshError(ctl, "%s",
                      _("--leaves and --tree are mutually exclusive"));
-            return false;
+            goto cleanup;
         }
         flags |= VIR_DOMAIN_SNAPSHOT_LIST_LEAVES;
     }
@@ -16500,7 +16501,7 @@ cmdSnapshotList(vshControl *ctl, const vshCmd *cmd)
     if (tree) {
         char indentBuf[INDENT_BUFLEN];
         for (i = 0 ; i < actual ; i++) {
-            memset(indentBuf, '\0', sizeof indentBuf);
+            memset(indentBuf, '\0', sizeof(indentBuf));
             if (ctl->useSnapshotOld ? STREQ(names[i], from) : !parents[i])
                 cmdNodeListDevicesPrint(ctl,
                                         names,
@@ -17152,7 +17153,7 @@ static const vshCmdDef domManagementCmds[] = {
     {"dumpxml", cmdDumpXML, opts_dumpxml, info_dumpxml, 0},
     {"edit", cmdEdit, opts_edit, info_edit, 0},
     {"inject-nmi", cmdInjectNMI, opts_inject_nmi, info_inject_nmi, 0},
-    {"send-key", cmdSendKey, opts_send_key, info_send_key},
+    {"send-key", cmdSendKey, opts_send_key, info_send_key, 0},
     {"managedsave", cmdManagedSave, opts_managedsave, info_managedsave, 0},
     {"managedsave-remove", cmdManagedSaveRemove, opts_managedsaveremove,
      info_managedsaveremove, 0},
@@ -17406,7 +17407,7 @@ static const vshCmdDef hostAndHypervisorCmds[] = {
     {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo, 0},
     {"nodememstats", cmdNodeMemStats, opts_node_memstats, info_nodememstats, 0},
     {"nodesuspend", cmdNodeSuspend, opts_node_suspend, info_nodesuspend, 0},
-    {"qemu-attach", cmdQemuAttach, opts_qemu_attach, info_qemu_attach},
+    {"qemu-attach", cmdQemuAttach, opts_qemu_attach, info_qemu_attach, 0},
     {"qemu-monitor-command", cmdQemuMonitorCommand, opts_qemu_monitor_command,
      info_qemu_monitor_command, 0},
     {"sysinfo", cmdSysinfo, NULL, info_sysinfo, 0},
@@ -19614,7 +19615,7 @@ vshReadlineDeinit (vshControl *ctl)
         if (mkdir(ctl->historydir, 0755) < 0 && errno != EEXIST) {
             char ebuf[1024];
             vshError(ctl, _("Failed to create '%s': %s"),
-                     ctl->historydir, virStrerror(errno, ebuf, sizeof ebuf));
+                     ctl->historydir, virStrerror(errno, ebuf, sizeof(ebuf)));
         } else
             write_history(ctl->historyfile);
     }
@@ -19652,7 +19653,7 @@ vshReadline (vshControl *ctl, const char *prompt)
     int len;
 
     fputs (prompt, stdout);
-    r = fgets (line, sizeof line, stdin);
+    r = fgets (line, sizeof(line), stdin);
     if (r == NULL) return NULL; /* EOF */
 
     /* Chomp trailing \n */

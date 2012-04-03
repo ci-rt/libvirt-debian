@@ -83,8 +83,8 @@
 # define NSIG 32
 #endif
 
-verify(sizeof(gid_t) <= sizeof (unsigned int) &&
-       sizeof(uid_t) <= sizeof (unsigned int));
+verify(sizeof(gid_t) <= sizeof(unsigned int) &&
+       sizeof(uid_t) <= sizeof(unsigned int));
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -605,7 +605,7 @@ int virFileIsLink(const char *linkpath)
     if (lstat(linkpath, &st) < 0)
         return -errno;
 
-    return (S_ISLNK(st.st_mode) != 0);
+    return S_ISLNK(st.st_mode) != 0;
 }
 
 
@@ -1030,7 +1030,7 @@ virFileOpenAs(const char *path, int openflags, mode_t mode,
                 break;
             case -1:
                 /* failure detecting fstype */
-                virReportSystemError(errno, _("couldn't determine fs type of"
+                virReportSystemError(errno, _("couldn't determine fs type "
                                               "of mount containing '%s'"), path);
                 goto error;
             case 0:
@@ -1813,19 +1813,19 @@ virParseNumber(const char **str)
     const char *cur = *str;
 
     if ((*cur < '0') || (*cur > '9'))
-        return (-1);
+        return -1;
 
     while (c_isdigit(*cur)) {
         unsigned int c = *cur - '0';
 
         if ((ret > INT_MAX / 10) ||
             ((ret == INT_MAX / 10) && (c > INT_MAX % 10)))
-            return (-1);
+            return -1;
         ret = ret * 10 + c;
         cur++;
     }
     *str = cur;
-    return (ret);
+    return ret;
 }
 
 

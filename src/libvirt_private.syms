@@ -255,6 +255,7 @@ virDomainChrTcpProtocolTypeFromString;
 virDomainChrTcpProtocolTypeToString;
 virDomainChrTypeFromString;
 virDomainChrTypeToString;
+virDomainClockBasisTypeToString;
 virDomainClockOffsetTypeFromString;
 virDomainClockOffsetTypeToString;
 virDomainConfigFile;
@@ -1288,6 +1289,7 @@ virNetDevMacVLanCreate;
 virNetDevMacVLanDelete;
 virNetDevMacVLanCreateWithVPortProfile;
 virNetDevMacVLanDeleteWithVPortProfile;
+virNetDevMacVLanRestartWithVPortProfile;
 
 
 # virnetdevopenvswitch.h
