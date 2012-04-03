@@ -4,7 +4,7 @@
  * It was generated using rpcgen.
  */
 
-#include "rpc/virnetprotocol.h"
+#include "virnetprotocol.h"
 #include "internal.h"
 #include <arpa/inet.h>
 #ifdef HAVE_XDR_U_INT64_T

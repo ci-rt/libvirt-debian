@@ -12,8 +12,7 @@
    GNU Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public License
-   along with this program; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
+   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
 
 /* Match STRING against the file name pattern PATTERN, returning zero if
    it matches, nonzero if not.  */
@@ -382,7 +381,7 @@ FCT (const CHAR *pattern, const CHAR *string, const CHAR *string_end,
                           {
                             /* We found a table entry.  Now see whether the
                                character we are currently at has the same
-                               equivalance class value.  */
+                               equivalence class value.  */
                             int len = weights[idx & 0xffffff];
                             int32_t idx2;
                             const UCHAR *np = (const UCHAR *) n;

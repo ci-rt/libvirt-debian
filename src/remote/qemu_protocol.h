@@ -30,7 +30,7 @@ struct qemu_monitor_command_ret {
 typedef struct qemu_monitor_command_ret qemu_monitor_command_ret;
 
 struct qemu_domain_attach_args {
-        u_int pid;
+        u_int pid_value;
         u_int flags;
 };
 typedef struct qemu_domain_attach_args qemu_domain_attach_args;

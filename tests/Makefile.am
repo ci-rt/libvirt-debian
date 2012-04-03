@@ -29,7 +29,7 @@ INCLUDES += \
 endif
 
 PROBES_O =
-if WITH_DTRACE
+if WITH_DTRACE_PROBES
 PROBES_O += ../src/probes.o
 endif
 
@@ -92,11 +92,12 @@ EXTRA_DIST =		\
 	.valgrind.supp
 
 check_PROGRAMS = virshtest conftest sockettest \
-	nodeinfotest qparamtest virbuftest \
+	nodeinfotest virbuftest \
 	commandtest commandhelper seclabeltest \
 	virhashtest virnetmessagetest virnetsockettest ssh \
 	utiltest virnettlscontexttest shunloadtest \
-	virtimetest
+	virtimetest viruritest virkeyfiletest \
+	virauthconfigtest
 
 check_LTLIBRARIES = libshunload.la
 
@@ -110,7 +111,8 @@ check_PROGRAMS += xml2sexprtest sexpr2xmltest \
 endif
 if WITH_QEMU
 check_PROGRAMS += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
-	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest
+	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
+	qemumonitortest
 endif
 
 if WITH_OPENVZ
@@ -208,7 +210,6 @@ EXTRA_DIST += $(test_scripts)
 
 TESTS = virshtest \
         nodeinfotest \
-	qparamtest \
 	virbuftest \
 	sockettest \
 	commandtest \
@@ -218,6 +219,9 @@ TESTS = virshtest \
 	virnetsockettest \
 	virnettlscontexttest \
 	virtimetest \
+	viruritest \
+	virkeyfiletest \
+	virauthconfigtest \
 	shunloadtest \
 	utiltest \
 	$(test_scripts)
@@ -237,7 +241,8 @@ endif
 
 if WITH_QEMU
 TESTS += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest qemuargv2xmltest \
-	 qemuhelptest domainsnapshotxml2xmltest nwfilterxml2xmltest
+	 qemuhelptest domainsnapshotxml2xmltest nwfilterxml2xmltest \
+	 qemumonitortest
 endif
 
 if WITH_OPENVZ
@@ -365,6 +370,9 @@ qemuargv2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 qemuhelptest_SOURCES = qemuhelptest.c testutils.c testutils.h
 qemuhelptest_LDADD = $(qemu_LDADDS) $(LDADDS)
 
+qemumonitortest_SOURCES = qemumonitortest.c testutils.c testutils.h
+qemumonitortest_LDADD = $(qemu_LDADDS) $(LDADDS)
+
 domainsnapshotxml2xmltest_SOURCES = \
 	domainsnapshotxml2xmltest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
@@ -372,7 +380,7 @@ domainsnapshotxml2xmltest_LDADD = $(qemu_LDADDS) $(LDADDS)
 else
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemuxmlnstest.c qemuhelptest.c domainsnapshotxml2xmltest.c \
-	testutilsqemu.c testutilsqemu.h
+	qemumonitortest.c testutilsqemu.c testutilsqemu.h
 endif
 
 if WITH_OPENVZ
@@ -501,14 +509,24 @@ virtimetest_SOURCES = \
 virtimetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virtimetest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
 
+viruritest_SOURCES = \
+	viruritest.c testutils.h testutils.c
+viruritest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+viruritest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
+
+virkeyfiletest_SOURCES = \
+	virkeyfiletest.c testutils.h testutils.c
+virkeyfiletest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virkeyfiletest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
+
+virauthconfigtest_SOURCES = \
+	virauthconfigtest.c testutils.h testutils.c
+virauthconfigtest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virauthconfigtest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
 
 seclabeltest_SOURCES = \
 	seclabeltest.c
 seclabeltest_LDADD = ../src/libvirt_driver_security.la $(LDADDS)
-
-qparamtest_SOURCES = \
-	qparamtest.c testutils.h testutils.c
-qparamtest_LDADD = $(LDADDS)
 
 virbuftest_SOURCES = \
 	virbuftest.c testutils.h testutils.c

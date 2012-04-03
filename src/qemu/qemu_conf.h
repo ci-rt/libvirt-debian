@@ -46,6 +46,8 @@
 
 # define QEMUD_CPUMASK_LEN CPU_SETSIZE
 
+typedef struct _qemuDriverCloseDef qemuDriverCloseDef;
+typedef qemuDriverCloseDef *qemuDriverCloseDefPtr;
 
 /* Main driver state */
 struct qemud_driver {
@@ -139,10 +141,12 @@ struct qemud_driver {
 
     virLockManagerPluginPtr lockManager;
 
-    /* Mapping of 'char *uuidstr' -> virConnectPtr
-     * of guests which will be automatically killed
-     * when the virConnectPtr is closed*/
-    virHashTablePtr autodestroy;
+    /* Mapping of 'char *uuidstr' -> qemuDriverCloseDefPtr of domains
+     * which want a specific cleanup to be done when a connection is
+     * closed. Such cleanup may be to automatically destroy the
+     * domain or abort a particular job running on it.
+     */
+    virHashTablePtr closeCallbacks;
 
     int keepAliveInterval;
     unsigned int keepAliveCount;
@@ -179,5 +183,23 @@ struct qemuDomainDiskInfo {
     bool tray_open;
     int io_status;
 };
+
+typedef virDomainObjPtr (*qemuDriverCloseCallback)(struct qemud_driver *driver,
+                                                   virDomainObjPtr vm,
+                                                   virConnectPtr conn);
+int qemuDriverCloseCallbackInit(struct qemud_driver *driver);
+void qemuDriverCloseCallbackShutdown(struct qemud_driver *driver);
+int qemuDriverCloseCallbackSet(struct qemud_driver *driver,
+                               virDomainObjPtr vm,
+                               virConnectPtr conn,
+                               qemuDriverCloseCallback cb);
+int qemuDriverCloseCallbackUnset(struct qemud_driver *driver,
+                                 virDomainObjPtr vm,
+                                 qemuDriverCloseCallback cb);
+qemuDriverCloseCallback qemuDriverCloseCallbackGet(struct qemud_driver *driver,
+                                                   virDomainObjPtr vm,
+                                                   virConnectPtr conn);
+void qemuDriverCloseCallbackRunAll(struct qemud_driver *driver,
+                                   virConnectPtr conn);
 
 #endif /* __QEMUD_CONF_H */

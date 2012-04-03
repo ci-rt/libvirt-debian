@@ -23,7 +23,6 @@
 
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
-#include <libxml/uri.h>
 #include "getpass.h"
 
 #ifdef HAVE_WINSOCK2_H
@@ -44,6 +43,7 @@
 #include "command.h"
 #include "virnodesuspend.h"
 #include "virrandom.h"
+#include "viruri.h"
 
 #ifndef WITH_DRIVER_MODULES
 # ifdef WITH_TEST
@@ -961,7 +961,7 @@ error:
 }
 
 static char *
-virConnectConfigFile(void)
+virConnectGetConfigFilePath(void)
 {
     char *path;
     if (geteuid() == 0) {
@@ -987,6 +987,33 @@ no_memory:
     virReportOOMError();
 error:
     return NULL;
+}
+
+static int
+virConnectGetConfigFile(virConfPtr *conf)
+{
+    char *filename = NULL;
+    int ret = -1;
+
+    *conf = NULL;
+
+    if (!(filename = virConnectGetConfigFilePath()))
+        goto cleanup;
+
+    if (!virFileExists(filename)) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Loading config file '%s'", filename);
+    if (!(*conf = virConfReadFile(filename, 0)))
+        goto cleanup;
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(filename);
+    return ret;
 }
 
 #define URI_ALIAS_CHARS "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
@@ -1050,35 +1077,45 @@ virConnectOpenFindURIAliasMatch(virConfValuePtr value, const char *alias, char *
 }
 
 static int
-virConnectOpenResolveURIAlias(const char *alias, char **uri)
+virConnectOpenResolveURIAlias(virConfPtr conf,
+                              const char *alias, char **uri)
 {
-    char *config = NULL;
     int ret = -1;
-    virConfPtr conf = NULL;
     virConfValuePtr value = NULL;
 
     *uri = NULL;
-
-    if (!(config = virConnectConfigFile()))
-        goto cleanup;
-
-    if (!virFileExists(config)) {
-        ret = 0;
-        goto cleanup;
-    }
-
-    VIR_DEBUG("Loading config file '%s'", config);
-    if (!(conf = virConfReadFile(config, 0)))
-        goto cleanup;
 
     if ((value = virConfGetValue(conf, "uri_aliases")))
         ret = virConnectOpenFindURIAliasMatch(value, alias, uri);
     else
         ret = 0;
 
+    return ret;
+}
+
+
+static int
+virConnectGetDefaultURI(virConfPtr conf,
+                        const char **name)
+{
+    int ret = -1;
+    virConfValuePtr value = NULL;
+    char *defname = getenv("LIBVIRT_DEFAULT_URI");
+    if (defname && *defname) {
+        VIR_DEBUG("Using LIBVIRT_DEFAULT_URI '%s'", defname);
+        *name = defname;
+    } else if ((value = virConfGetValue(conf, "uri_default"))) {
+        if (value->type != VIR_CONF_STRING) {
+            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("Expected a string for 'uri_default' config parameter"));
+            goto cleanup;
+        }
+        VIR_DEBUG("Using config file uri '%s'", value->str);
+        *name = value->str;
+    }
+
+    ret = 0;
 cleanup:
-    virConfFree(conf);
-    VIR_FREE(config);
     return ret;
 }
 
@@ -1089,6 +1126,7 @@ do_open (const char *name,
 {
     int i, res;
     virConnectPtr ret;
+    virConfPtr conf = NULL;
 
     virResetLastError();
 
@@ -1096,20 +1134,20 @@ do_open (const char *name,
     if (ret == NULL)
         return NULL;
 
+    if (virConnectGetConfigFile(&conf) < 0)
+        goto failed;
+
+    if (name && name[0] == '\0')
+        name = NULL;
+
     /*
      *  If no URI is passed, then check for an environment string if not
      *  available probe the compiled in drivers to find a default hypervisor
      *  if detectable.
      */
-    if (!name || name[0] == '\0') {
-        char *defname = getenv("LIBVIRT_DEFAULT_URI");
-        if (defname && *defname) {
-            VIR_DEBUG("Using LIBVIRT_DEFAULT_URI %s", defname);
-            name = defname;
-        } else {
-            name = NULL;
-        }
-    }
+    if (!name &&
+        virConnectGetDefaultURI(conf, &name) < 0)
+        goto failed;
 
     if (name) {
         char *alias = NULL;
@@ -1124,29 +1162,22 @@ do_open (const char *name,
             name = "xen:///";
 
         if (!(flags & VIR_CONNECT_NO_ALIASES) &&
-            virConnectOpenResolveURIAlias(name, &alias) < 0)
+            virConnectOpenResolveURIAlias(conf, name, &alias) < 0)
             goto failed;
 
-        ret->uri = xmlParseURI (alias ? alias : name);
-        if (!ret->uri) {
-            virLibConnError(VIR_ERR_INVALID_ARG,
-                            _("could not parse connection URI %s"),
-                            alias ? alias : name);
+        if (!(ret->uri = virURIParse (alias ? alias : name))) {
             VIR_FREE(alias);
             goto failed;
         }
 
         VIR_DEBUG("name \"%s\" to URI components:\n"
                   "  scheme %s\n"
-                  "  opaque %s\n"
-                  "  authority %s\n"
                   "  server %s\n"
                   "  user %s\n"
                   "  port %d\n"
                   "  path %s\n",
                   alias ? alias : name,
-                  NULLSTR(ret->uri->scheme), NULLSTR(ret->uri->opaque),
-                  NULLSTR(ret->uri->authority), NULLSTR(ret->uri->server),
+                  NULLSTR(ret->uri->scheme), NULLSTR(ret->uri->server),
                   NULLSTR(ret->uri->user), ret->uri->port,
                   NULLSTR(ret->uri->path));
 
@@ -1308,9 +1339,12 @@ do_open (const char *name,
         }
     }
 
+    virConfFree(conf);
+
     return ret;
 
 failed:
+    virConfFree(conf);
     virUnrefConnect(ret);
 
     return NULL;
@@ -1325,11 +1359,11 @@ failed:
  *
  * Returns a pointer to the hypervisor connection or NULL in case of error
  *
- * If @name is NULL then probing will be done to determine a suitable
- * default driver to activate. This involves trying each hypervisor
- * in turn until one successfully opens. If the LIBVIRT_DEFAULT_URI
- * environment variable is set, then it will be used in preference
- * to probing for a driver.
+ * If @name is NULL, if the LIBVIRT_DEFAULT_URI environment variable is set,
+ * then it will be used. Otherwise if the client configuration file
+ * has the "uri_default" parameter set, then it will be used. Finally
+ * probing will be done to determine a suitable default driver to activate.
+ * This involves trying each hypervisor in turn until one successfully opens.
  *
  * If connecting to an unprivileged hypervisor driver which requires
  * the libvirtd daemon to be active, it will automatically be launched
@@ -1729,11 +1763,9 @@ virConnectGetURI (virConnectPtr conn)
         return NULL;
     }
 
-    name = (char *)xmlSaveUri(conn->uri);
-    if (!name) {
-        virReportOOMError();
+    if (!(name = virURIFormat(conn->uri)))
         goto error;
-    }
+
     return name;
 
 error:
@@ -1825,9 +1857,9 @@ error:
  * @ids: array to collect the list of IDs of active domains
  * @maxids: size of @ids
  *
- * Collect the list of active domains, and store their ID in @maxids
+ * Collect the list of active domains, and store their IDs in array @ids
  *
- * Returns the number of domain found or -1 in case of error
+ * Returns the number of domains found or -1 in case of error
  */
 int
 virConnectListDomains(virConnectPtr conn, int *ids, int maxids)
@@ -2502,6 +2534,56 @@ virDomainPMSuspendForDuration(virDomainPtr dom,
         int ret;
         ret = conn->driver->domainPMSuspendForDuration(dom, target,
                                                        duration, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainPMWakeup:
+ * @dom: a domain object
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Inject a wakeup into the guest that previously used
+ * virDomainPMSuspendForDuration, rather than waiting for the
+ * previously requested duration (if any) to elapse.
+ *
+ * Returns: 0 on success,
+ *          -1 on failure.
+ */
+int
+virDomainPMWakeup(virDomainPtr dom,
+                  unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(dom, "flags=%x", flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(dom)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = dom->conn;
+
+    if (conn->flags & VIR_CONNECT_RO) {
+        virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if (conn->driver->domainPMWakeup) {
+        int ret;
+        ret = conn->driver->domainPMWakeup(dom, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -3532,7 +3614,8 @@ error:
  * domain. If domain is NULL, then this get the amount of memory reserved
  * to Domain0 i.e. the domain where the application runs.
  *
- * Returns the memory size in kilobytes or 0 in case of error.
+ * Returns the memory size in kibibytes (blocks of 1024 bytes), or 0 in
+ * case of error.
  */
 unsigned long
 virDomainGetMaxMemory(virDomainPtr domain)
@@ -3552,10 +3635,15 @@ virDomainGetMaxMemory(virDomainPtr domain)
     conn = domain->conn;
 
     if (conn->driver->domainGetMaxMemory) {
-        unsigned long ret;
+        unsigned long long ret;
         ret = conn->driver->domainGetMaxMemory (domain);
         if (ret == 0)
             goto error;
+        if ((unsigned long) ret != ret) {
+            virLibDomainError(VIR_ERR_OVERFLOW, _("result too large: %llu"),
+                              ret);
+            goto error;
+        }
         return ret;
     }
 
@@ -3569,7 +3657,7 @@ error:
 /**
  * virDomainSetMaxMemory:
  * @domain: a domain object or NULL
- * @memory: the memory size in kilobytes
+ * @memory: the memory size in kibibytes (blocks of 1024 bytes)
  *
  * Dynamically change the maximum amount of physical memory allocated to a
  * domain. If domain is NULL, then this change the amount of memory reserved
@@ -3624,7 +3712,7 @@ error:
 /**
  * virDomainSetMemory:
  * @domain: a domain object or NULL
- * @memory: the memory size in kilobytes
+ * @memory: the memory size in kibibytes (blocks of 1024 bytes)
  *
  * Dynamically change the target amount of physical memory allocated to a
  * domain. If domain is NULL, then this change the amount of memory reserved
@@ -3679,7 +3767,7 @@ error:
 /**
  * virDomainSetMemoryFlags:
  * @domain: a domain object or NULL
- * @memory: the memory size in kilobytes
+ * @memory: the memory size in kibibytes (blocks of 1024 bytes)
  * @flags: bitwise-OR of virDomainMemoryModFlags
  *
  * Dynamically change the target amount of physical memory allocated to a
@@ -4952,7 +5040,7 @@ virDomainMigratePeer2Peer (virDomainPtr domain,
                            const char *uri,
                            unsigned long bandwidth)
 {
-    xmlURIPtr tempuri = NULL;
+    virURIPtr tempuri = NULL;
     VIR_DOMAIN_DEBUG(domain, "xmlin=%s, flags=%lx, dname=%s, "
                      "dconnuri=%s, uri=%s, bandwidth=%lu",
                      NULLSTR(xmlin), flags, NULLSTR(dname),
@@ -4964,9 +5052,7 @@ virDomainMigratePeer2Peer (virDomainPtr domain,
         return -1;
     }
 
-    tempuri = xmlParseURI(dconnuri);
-    if (!tempuri) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+    if (!(tempuri = virURIParse(dconnuri))) {
         virDispatchError(domain->conn);
         return -1;
     }
@@ -4974,10 +5060,10 @@ virDomainMigratePeer2Peer (virDomainPtr domain,
     if (!tempuri->server || STRPREFIX(tempuri->server, "localhost")) {
         virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         virDispatchError(domain->conn);
-        xmlFreeURI(tempuri);
+        virURIFree(tempuri);
         return -1;
     }
-    xmlFreeURI(tempuri);
+    virURIFree(tempuri);
 
     /* Perform the migration.  The driver isn't supposed to return
      * until the migration is complete.
@@ -5110,6 +5196,7 @@ virDomainMigrateDirect (virDomainPtr domain,
  *   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
  *                                 changes during the migration process (set
  *                                 automatically when supported).
+ *   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
  *
  * VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
  * Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -5301,6 +5388,7 @@ error:
  *   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
  *                                 changes during the migration process (set
  *                                 automatically when supported).
+ *   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
  *
  * VIR_MIGRATE_TUNNELLED requires that VIR_MIGRATE_PEER2PEER be set.
  * Applications using the VIR_MIGRATE_PEER2PEER flag will probably
@@ -5509,6 +5597,7 @@ error:
  *   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
  *                                 changes during the migration process (set
  *                                 automatically when supported).
+ *   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
  *
  * The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
  * If the VIR_MIGRATE_PEER2PEER flag is NOT set, the duri parameter
@@ -5633,6 +5722,7 @@ error:
  *   VIR_MIGRATE_CHANGE_PROTECTION Protect against domain configuration
  *                                 changes during the migration process (set
  *                                 automatically when supported).
+ *   VIR_MIGRATE_UNSAFE    Force migration even if it is considered unsafe.
  *
  * The operation of this API hinges on the VIR_MIGRATE_PEER2PEER flag.
  *
@@ -6630,7 +6720,7 @@ error:
  * @conn: pointer to the hypervisor connection
  *
  * provides the free memory available on the Node
- * Note: most libvirt APIs provide memory sizes in kilobytes, but in this
+ * Note: most libvirt APIs provide memory sizes in kibibytes, but in this
  * function the returned value is in bytes. Divide by 1024 as necessary.
  *
  * Returns the available free memory in bytes or 0 in case of error
@@ -7547,12 +7637,15 @@ error:
  * virDomainBlockResize:
  * @dom: pointer to the domain object
  * @disk: path to the block image, or shorthand
- * @size: new size of the block image in kilobytes
- * @flags: extra flags; not used yet, so callers should always pass 0
+ * @size: new size of the block image, see below for unit
+ * @flags: bitwise-OR of virDomainBlockResizeFlags
  *
- * Note that this call may fail if the underlying virtualization hypervisor
- * does not support it. And this call requires privileged access to the
- * hypervisor.
+ * Resize a block device of domain while the domain is running.  If
+ * @flags is 0, then @size is in kibibytes (blocks of 1024 bytes);
+ * since 0.9.11, if @flags includes VIR_DOMAIN_BLOCK_RESIZE_BYTES,
+ * @size is in bytes instead.  @size is taken directly as the new
+ * size.  Depending on the file format, the hypervisor may round up
+ * to the next alignment boundary.
  *
  * The @disk parameter is either an unambiguous source name of the
  * block device (the <source file='...'/> sub-element, such as
@@ -7561,7 +7654,9 @@ error:
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
- * Resize a block device of domain while the domain is running.
+ * Note that this call may fail if the underlying virtualization hypervisor
+ * does not support it; this call requires privileged access to the
+ * hypervisor.
  *
  * Returns: 0 in case of success or -1 in case of failure.
  */
@@ -8447,8 +8542,12 @@ virDomainSetVcpusFlags(virDomainPtr domain, unsigned int nvcpus,
     }
 
     /* Perform some argument validation common to all implementations.  */
-    if (nvcpus < 1 || (unsigned short) nvcpus != nvcpus) {
+    if (nvcpus < 1) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if ((unsigned short) nvcpus != nvcpus) {
+        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %u"), nvcpus);
         goto error;
     }
     conn = domain->conn;
@@ -8714,9 +8813,13 @@ virDomainGetVcpuPinInfo(virDomainPtr domain, int ncpumaps,
         return -1;
     }
 
-    if (ncpumaps < 1 || !cpumaps || maplen <= 0 ||
-        INT_MULTIPLY_OVERFLOW(ncpumaps, maplen)) {
+    if (ncpumaps < 1 || !cpumaps || maplen <= 0) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (INT_MULTIPLY_OVERFLOW(ncpumaps, maplen)) {
+        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %d * %d"),
+                          ncpumaps, maplen);
         goto error;
     }
 
@@ -8793,9 +8896,13 @@ virDomainGetVcpus(virDomainPtr domain, virVcpuInfoPtr info, int maxinfo,
 
     /* Ensure that domainGetVcpus (aka remoteDomainGetVcpus) does not
        try to memcpy anything into a NULL pointer.  */
-    if (!cpumaps ? maplen != 0
-        : (maplen <= 0 || INT_MULTIPLY_OVERFLOW(maxinfo, maplen))) {
+    if (!cpumaps ? maplen != 0 : maplen <= 0) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (cpumaps && INT_MULTIPLY_OVERFLOW(maxinfo, maplen)) {
+        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %d * %d"),
+                          maxinfo, maplen);
         goto error;
     }
 
@@ -13205,15 +13312,15 @@ error:
  * capacity; this may make the operation take noticeably longer.
  *
  * Normally, the operation treats @capacity as the new size in bytes;
- * but if @flags contains VIR_STORAGE_RESIZE_DELTA, then @capacity
+ * but if @flags contains VIR_STORAGE_VOL_RESIZE_DELTA, then @capacity
  * represents the size difference to add to the current size.  It is
  * up to the storage pool implementation whether unaligned requests are
  * rounded up to the next valid boundary, or rejected.
  *
  * Normally, this operation should only be used to enlarge capacity;
- * but if @flags contains VIR_STORAGE_RESIZE_SHRINK, it is possible to
+ * but if @flags contains VIR_STORAGE_VOL_RESIZE_SHRINK, it is possible to
  * attempt a reduction in capacity even though it might cause data loss.
- * If VIR_STORAGE_RESIZE_DELTA is also present, then @capacity is
+ * If VIR_STORAGE_VOL_RESIZE_DELTA is also present, then @capacity is
  * subtracted from the current size; without it, @capacity represents
  * the absolute new size regardless of whether it is larger or smaller
  * than the current size.
@@ -16995,19 +17102,29 @@ virDomainSnapshotGetConnect(virDomainSnapshotPtr snapshot)
  * VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY to be passed as well.
  *
  * By default, if the snapshot involves external files, and any of the
- * destination files already exist as a regular file, the snapshot is
- * rejected to avoid losing contents of those files.  However, if
- * @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT, then existing
- * destination files are instead truncated and reused.
+ * destination files already exist as a non-empty regular file, the
+ * snapshot is rejected to avoid losing contents of those files.
+ * However, if @flags includes VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT,
+ * then the destination files must already exist and contain content
+ * identical to the source files (this allows a management app to
+ * pre-create files with relative backing file names, rather than the
+ * default of creating with absolute backing file names).
+ *
+ * Be aware that although libvirt prefers to report errors up front with
+ * no other effect, some hypervisors have certain types of failures where
+ * the overall command can easily fail even though the guest configuration
+ * was partially altered (for example, if a disk snapshot request for two
+ * disks fails on the second disk, but the first disk alteration cannot be
+ * rolled back).  If this API call fails, it is therefore normally
+ * necessary to follow up with virDomainGetXMLDesc() and check each disk
+ * to determine if any partial changes occurred.  However, if @flags
+ * contains VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC, then libvirt guarantees
+ * that this command will not alter any disks unless the entire set of
+ * changes can be done atomically, making failure recovery simpler (note
+ * that it is still possible to fail after disks have changed, but only
+ * in the much rarer cases of running out of memory or disk space).
  *
  * Returns an (opaque) virDomainSnapshotPtr on success, NULL on failure.
- * Be aware that although libvirt prefers to report errors up front with
- * no other effect, there are certain types of failures where a failure
- * can occur even though the guest configuration was changed (for
- * example, if a disk snapshot request over two disks only fails on the
- * second disk, leaving the first disk altered); so after getting a NULL
- * return, it can be wise to use virDomainGetXMLDesc() to determine if
- * any partial changes occurred.
  */
 virDomainSnapshotPtr
 virDomainSnapshotCreateXML(virDomainPtr domain,
@@ -17717,7 +17834,7 @@ virDomainSnapshotFree(virDomainSnapshotPtr snapshot)
  * @dom: a domain object
  * @dev_name: the console, serial or parallel port device alias, or NULL
  * @st: a stream to associate with the console
- * @flags: extra flags; not used yet, so callers should always pass 0
+ * @flags: bitwise-OR of virDomainConsoleFlags
  *
  * This opens the backend associated with a console, serial or
  * parallel port device on a guest, if the backend is supported.
@@ -17726,7 +17843,21 @@ virDomainSnapshotFree(virDomainSnapshotPtr snapshot)
  * in @st stream, which should have been opened in non-blocking
  * mode for bi-directional I/O.
  *
- * returns 0 if the console was opened, -1 on error
+ * By default, when @flags is 0, the open will fail if libvirt
+ * detects that the console is already in use by another client;
+ * passing VIR_DOMAIN_CONSOLE_FORCE will cause libvirt to forcefully
+ * remove the other client prior to opening this console.
+ *
+ * If flag VIR_DOMAIN_CONSOLE_SAFE the console is opened only in the
+ * case where the hypervisor driver supports safe (mutually exclusive)
+ * console handling.
+ *
+ * Older servers did not support either flag, and also did not forbid
+ * simultaneous clients on a console, with potentially confusing results.
+ * When passing @flags of 0 in order to support a wider range of server
+ * versions, it is up to the client to ensure mutual exclusion.
+ *
+ * Returns 0 if the console was opened, -1 on error
  */
 int virDomainOpenConsole(virDomainPtr dom,
                          const char *dev_name,
@@ -18461,7 +18592,9 @@ error:
  * whole).  Otherwise, @start_cpu represents which cpu to start
  * with, and @ncpus represents how many consecutive processors to
  * query, with statistics attributable per processor (such as
- * per-cpu usage).
+ * per-cpu usage).  If @ncpus is larger than the number of cpus
+ * available to query, then the trailing part of the array will
+ * be unpopulated.
  *
  * The remote driver imposes a limit of 128 @ncpus and 16 @nparams;
  * the number of parameters per cpu should not exceed 16, but if you
@@ -18506,8 +18639,10 @@ error:
  * number of populated @params, unless @ncpus was 1; and may be
  * less than @nparams).  The populated parameters start at each
  * stride of @nparams, which means the results may be discontiguous;
- * any unpopulated parameters will be zeroed on success.  The caller
- * is responsible for freeing any returned string parameters.
+ * any unpopulated parameters will be zeroed on success (this includes
+ * skipped elements if @nparams is too large, and tail elements if
+ * @ncpus is too large).  The caller is responsible for freeing any
+ * returned string parameters.
  */
 int virDomainGetCPUStats(virDomainPtr domain,
                          virTypedParameterPtr params,
@@ -18540,9 +18675,13 @@ int virDomainGetCPUStats(virDomainPtr domain,
     if (start_cpu < -1 ||
         (start_cpu == -1 && ncpus != 1) ||
         ((params == NULL) != (nparams == 0)) ||
-        (ncpus == 0 && params != NULL) ||
-        (nparams && ncpus > UINT_MAX / nparams)) {
+        (ncpus == 0 && params != NULL)) {
         virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (nparams && ncpus > UINT_MAX / nparams) {
+        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %u * %u"),
+                          nparams, ncpus);
         goto error;
     }
     if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,

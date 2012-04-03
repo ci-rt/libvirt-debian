@@ -26,7 +26,7 @@
 #include "internal.h"
 #include "datatypes.h"
 #include "domain_conf.h"
-#include "authhelper.h"
+#include "virauth.h"
 #include "util.h"
 #include "memory.h"
 #include "logging.h"
@@ -147,7 +147,7 @@ hypervOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
             goto cleanup;
         }
     } else {
-        username = virRequestUsername(auth, "administrator", conn->uri->server);
+        username = virAuthGetUsername(conn, auth, "hyperv", "administrator", conn->uri->server);
 
         if (username == NULL) {
             HYPERV_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Username request failed"));
@@ -155,7 +155,7 @@ hypervOpen(virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
         }
     }
 
-    password = virRequestPassword(auth, username, conn->uri->server);
+    password = virAuthGetPassword(conn, auth, "hyperv", username, conn->uri->server);
 
     if (password == NULL) {
         HYPERV_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Password request failed"));

@@ -57,14 +57,15 @@
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #if SIZEOF_LONG < 8
-# define HYPER_TO_TYPE(_type, _to, _from)                                     \
-    do {                                                                      \
-        if ((_from) != (_type)(_from)) {                                      \
-            virNetError(VIR_ERR_INTERNAL_ERROR,                               \
-                        _("conversion from hyper to %s overflowed"), #_type); \
-            goto cleanup;                                                     \
-        }                                                                     \
-        (_to) = (_from);                                                      \
+# define HYPER_TO_TYPE(_type, _to, _from)                               \
+    do {                                                                \
+        if ((_from) != (_type)(_from)) {                                \
+            virNetError(VIR_ERR_OVERFLOW,                               \
+                        _("conversion from hyper to %s overflowed"),    \
+                        #_type);                                        \
+            goto cleanup;                                               \
+        }                                                               \
+        (_to) = (_from);                                                \
     } while (0)
 
 # define HYPER_TO_LONG(_to, _from) HYPER_TO_TYPE(long, _to, _from)
@@ -505,6 +506,82 @@ mem_error:
 }
 
 
+static int remoteRelayDomainEventTrayChange(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                            virDomainPtr dom,
+                                            const char *devAlias,
+                                            int reason,
+                                            void *opaque) {
+    virNetServerClientPtr client = opaque;
+    remote_domain_event_tray_change_msg data;
+
+    if (!client)
+        return -1;
+
+    VIR_DEBUG("Relaying domain %s %d tray change devAlias: %s reason: %d",
+              dom->name, dom->id, devAlias, reason);
+
+    /* build return data */
+    memset(&data, 0, sizeof data);
+
+    if (!(data.devAlias = strdup(devAlias))) {
+        virReportOOMError();
+        return -1;
+    }
+    data.reason = reason;
+
+    make_nonnull_domain(&data.dom, dom);
+
+    remoteDispatchDomainEventSend(client, remoteProgram,
+                                  REMOTE_PROC_DOMAIN_EVENT_TRAY_CHANGE,
+                                  (xdrproc_t)xdr_remote_domain_event_tray_change_msg, &data);
+
+    return 0;
+}
+
+static int remoteRelayDomainEventPMWakeup(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                          virDomainPtr dom,
+                                          void *opaque) {
+    virNetServerClientPtr client = opaque;
+    remote_domain_event_pmwakeup_msg data;
+
+    if (!client)
+        return -1;
+
+    VIR_DEBUG("Relaying domain %s %d system pmwakeup", dom->name, dom->id);
+
+    /* build return data */
+    memset(&data, 0, sizeof data);
+    make_nonnull_domain(&data.dom, dom);
+
+    remoteDispatchDomainEventSend(client, remoteProgram,
+                                  REMOTE_PROC_DOMAIN_EVENT_PMWAKEUP,
+                                  (xdrproc_t)xdr_remote_domain_event_pmwakeup_msg, &data);
+
+    return 0;
+}
+
+static int remoteRelayDomainEventPMSuspend(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                           virDomainPtr dom,
+                                           void *opaque) {
+    virNetServerClientPtr client = opaque;
+    remote_domain_event_pmsuspend_msg data;
+
+    if (!client)
+        return -1;
+
+    VIR_DEBUG("Relaying domain %s %d system pmsuspend", dom->name, dom->id);
+
+    /* build return data */
+    memset(&data, 0, sizeof data);
+    make_nonnull_domain(&data.dom, dom);
+
+    remoteDispatchDomainEventSend(client, remoteProgram,
+                                  REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND,
+                                  (xdrproc_t)xdr_remote_domain_event_pmsuspend_msg, &data);
+
+    return 0;
+}
+
 static virConnectDomainEventGenericCallback domainEventCallbacks[] = {
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventLifecycle),
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventReboot),
@@ -516,6 +593,9 @@ static virConnectDomainEventGenericCallback domainEventCallbacks[] = {
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventControlError),
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventBlockJob),
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventDiskChange),
+    VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventTrayChange),
+    VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventPMWakeup),
+    VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventPMSuspend),
 };
 
 verify(ARRAY_CARDINALITY(domainEventCallbacks) == VIR_DOMAIN_EVENT_ID_LAST);
@@ -2052,16 +2132,16 @@ remoteDispatchAuthList(virNetServerPtr server ATTRIBUTE_UNUSED,
         } else if (callerUid == 0) {
             char *ident;
             if (virAsprintf(&ident, "pid:%lld,uid:%d",
-                            (long long) callerPid, callerUid) == 0) {
-                VIR_INFO("Bypass polkit auth for privileged client %s",
-                         ident);
-                if (virNetServerClientSetIdentity(client, ident) < 0)
-                    virResetLastError();
-                else
-                    auth = VIR_NET_SERVER_SERVICE_AUTH_NONE;
-                VIR_FREE(ident);
+                            (long long) callerPid, callerUid) < 0) {
+                virReportOOMError();
+                goto cleanup;
             }
-            rv = -1;
+            VIR_INFO("Bypass polkit auth for privileged client %s", ident);
+            if (virNetServerClientSetIdentity(client, ident) < 0)
+                virResetLastError();
+            else
+                auth = VIR_NET_SERVER_SERVICE_AUTH_NONE;
+            VIR_FREE(ident);
         }
     }
 
@@ -2536,6 +2616,7 @@ remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
     virNetServerClientSetIdentity(client, ident);
     virMutexUnlock(&priv->lock);
     virCommandFree(cmd);
+    VIR_FREE(pkout);
     VIR_FREE(ident);
 
     return 0;
@@ -2589,11 +2670,8 @@ remoteDispatchAuthPolkit(virNetServerPtr server,
     DBusError err;
     const char *action;
     char *ident = NULL;
-    int rv = -1;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
-
-    memset(ident, 0, sizeof ident);
 
     virMutexLock(&priv->lock);
 
@@ -3576,11 +3654,17 @@ remoteDispatchDomainGetCPUStats(virNetServerPtr server ATTRIBUTE_UNUSED,
                                        args->flags) < 0)
         goto cleanup;
 
-    percpu_len = ret->params.params_len / args->ncpus;
-
 success:
     rv = 0;
     ret->nparams = percpu_len;
+    if (args->nparams && !(args->flags & VIR_TYPED_PARAM_STRING_OKAY)) {
+        int i;
+
+        for (i = 0; i < percpu_len; i++) {
+            if (params[i].type == VIR_TYPED_PARAM_STRING)
+                ret->nparams--;
+        }
+    }
 
 cleanup:
     if (rv < 0)

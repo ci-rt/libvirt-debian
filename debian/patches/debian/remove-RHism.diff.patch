@@ -7,7 +7,7 @@ Subject: remove-RHism.diff
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index 138f886..5623dd2 100644
+index c7d5bbd..747832a 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
 @@ -103,7 +103,7 @@ telnet's B<^]> is used.

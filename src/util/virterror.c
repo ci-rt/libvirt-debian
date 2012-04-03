@@ -178,6 +178,12 @@ static const char *virErrorDomainName(virErrorDomain domain) {
         case VIR_FROM_CAPABILITIES:
             dom = "Capabilities ";
             break;
+        case VIR_FROM_URI:
+            dom = "URI ";
+            break;
+        case VIR_FROM_AUTH:
+            dom = "Auth ";
+            break;
     }
     return(dom);
 }
@@ -880,9 +886,9 @@ virErrorMsg(virErrorNumber error, const char *info)
             break;
         case VIR_ERR_NO_NAME:
             if (info == NULL)
-                errmsg = _("missing domain name information");
+                errmsg = _("missing name information");
             else
-                errmsg = _("missing domain name information in %s");
+                errmsg = _("missing name information in %s");
             break;
         case VIR_ERR_NO_OS:
             if (info == NULL)
@@ -1231,6 +1237,18 @@ virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("metadata not found");
             else
                 errmsg = _("metadata not found: %s");
+            break;
+        case VIR_ERR_MIGRATE_UNSAFE:
+            if (!info)
+                errmsg = _("Unsafe migration");
+            else
+                errmsg = _("Unsafe migration: %s");
+            break;
+        case VIR_ERR_OVERFLOW:
+            if (!info)
+                errmsg = _("numerical overflow");
+            else
+                errmsg = _("numerical overflow: %s");
             break;
     }
     return (errmsg);

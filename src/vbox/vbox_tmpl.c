@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2008-2009 Sun Microsystems, Inc.
  *
  * This file is part of a free software library; you can redistribute
@@ -56,6 +56,7 @@
 #include "configmake.h"
 #include "virfile.h"
 #include "fdstream.h"
+#include "viruri.h"
 
 /* This one changes from version to version. */
 #if VBOX_API_VERSION == 2002
@@ -979,13 +980,9 @@ static virDrvOpenStatus vboxOpen(virConnectPtr conn,
 
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (conn->uri == NULL) {
-        conn->uri = xmlParseURI(uid ? "vbox:///session" : "vbox:///system");
-        if (conn->uri == NULL) {
-            virReportOOMError();
-            return VIR_DRV_OPEN_ERROR;
-        }
-    }
+    if (conn->uri == NULL &&
+        !(conn->uri = virURIParse(uid ? "vbox:///session" : "vbox:///system")))
+        return VIR_DRV_OPEN_ERROR;
 
     if (conn->uri->scheme == NULL ||
         STRNEQ (conn->uri->scheme, "vbox"))
@@ -5051,7 +5048,7 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
                                       VIR_DIV_UP(def->mem.cur_balloon, 1024));
     if (NS_FAILED(rc)) {
         vboxError(VIR_ERR_INTERNAL_ERROR,
-                  _("could not set the memory size of the domain to: %lu Kb, "
+                  _("could not set the memory size of the domain to: %llu Kb, "
                     "rc=%08x"),
                   def->mem.cur_balloon, (unsigned)rc);
     }

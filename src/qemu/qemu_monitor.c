@@ -1,7 +1,7 @@
 /*
  * qemu_monitor.c: interaction with QEMU monitor console
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -147,6 +147,49 @@ char *qemuMonitorEscapeArg(const char *in)
             out[j++] = in[i];
             break;
         }
+    }
+    out[j] = '\0';
+
+    return out;
+}
+
+char *qemuMonitorUnescapeArg(const char *in)
+{
+    int i, j;
+    char *out;
+    int len = strlen(in) + 1;
+    char next;
+
+    if (VIR_ALLOC_N(out, len) < 0)
+        return NULL;
+
+    for (i = j = 0; i < len; ++i) {
+        next = in[i];
+        if (in[i] == '\\') {
+            if (len < i + 1) {
+                /* trailing backslash shouldn't be possible */
+                VIR_FREE(out);
+                return NULL;
+            }
+            ++i;
+            switch(in[i]) {
+            case 'r':
+                next = '\r';
+                break;
+            case 'n':
+                next = '\n';
+                break;
+            case '"':
+            case '\\':
+                next = in[i];
+                break;
+            default:
+                /* invalid input */
+                VIR_FREE(out);
+                return NULL;
+            }
+        }
+        out[j++] = next;
     }
     out[j] = '\0';
 
@@ -852,10 +895,26 @@ int qemuMonitorHMPCommandWithFd(qemuMonitorPtr mon,
                                 int scm_fd,
                                 char **reply)
 {
-    if (mon->json)
-        return qemuMonitorJSONHumanCommandWithFd(mon, cmd, scm_fd, reply);
-    else
-        return qemuMonitorTextCommandWithFd(mon, cmd, scm_fd, reply);
+    char *json_cmd = NULL;
+    int ret = -1;
+
+    if (mon->json) {
+        /* hack to avoid complicating each call to text monitor functions */
+        json_cmd = qemuMonitorUnescapeArg(cmd);
+        if (!json_cmd) {
+            VIR_DEBUG("Could not unescape command: %s", cmd);
+            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                            _("Unable to unescape command"));
+            goto cleanup;
+        }
+        ret = qemuMonitorJSONHumanCommandWithFd(mon, json_cmd, scm_fd, reply);
+    } else {
+        ret = qemuMonitorTextCommandWithFd(mon, cmd, scm_fd, reply);
+    }
+
+cleanup:
+    VIR_FREE(json_cmd);
+    return ret;
 }
 
 /* Ensure proper locking around callbacks.  */
@@ -981,6 +1040,39 @@ int qemuMonitorEmitGraphics(qemuMonitorPtr mon,
     return ret;
 }
 
+int qemuMonitorEmitTrayChange(qemuMonitorPtr mon,
+                              const char *devAlias,
+                              int reason)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainTrayChange, mon->vm,
+                          devAlias, reason);
+
+    return ret;
+}
+
+int qemuMonitorEmitPMWakeup(qemuMonitorPtr mon)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainPMWakeup, mon->vm);
+
+    return ret;
+}
+
+int qemuMonitorEmitPMSuspend(qemuMonitorPtr mon)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainPMSuspend, mon->vm);
+
+    return ret;
+}
+
 int qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
                             const char *diskAlias,
                             int type,
@@ -996,9 +1088,11 @@ int qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
 
 
 
-int qemuMonitorSetCapabilities(qemuMonitorPtr mon)
+int qemuMonitorSetCapabilities(qemuMonitorPtr mon,
+                               virBitmapPtr qemuCaps)
 {
     int ret;
+    int json_hmp;
     VIR_DEBUG("mon=%p", mon);
 
     if (!mon) {
@@ -1009,19 +1103,16 @@ int qemuMonitorSetCapabilities(qemuMonitorPtr mon)
 
     if (mon->json) {
         ret = qemuMonitorJSONSetCapabilities(mon);
-        if (ret == 0) {
-            int hmp = qemuMonitorJSONCheckHMP(mon);
-            if (hmp < 0) {
-                /* qemu may quited unexpectedly when we call
-                 * qemuMonitorJSONCheckHMP() */
-                ret = -1;
-            } else {
-                mon->json_hmp = hmp > 0;
-            }
-        }
+        if (ret)
+            goto cleanup;
+
+        ret = qemuMonitorJSONCheckCommands(mon, qemuCaps, &json_hmp);
+        mon->json_hmp = json_hmp > 0;
     } else {
         ret = 0;
     }
+
+cleanup:
     return ret;
 }
 
@@ -1202,7 +1293,7 @@ int qemuMonitorGetVirtType(qemuMonitorPtr mon,
 
 
 int qemuMonitorGetBalloonInfo(qemuMonitorPtr mon,
-                              unsigned long *currmem)
+                              unsigned long long *currmem)
 {
     int ret;
     VIR_DEBUG("mon=%p", mon);
@@ -2565,12 +2656,14 @@ int qemuMonitorDeleteSnapshot(qemuMonitorPtr mon, const char *name)
  * device into a read-only backing file of a new qcow2 image located
  * at file.  */
 int
-qemuMonitorDiskSnapshot(qemuMonitorPtr mon, const char *device,
-                        const char *file)
+qemuMonitorDiskSnapshot(qemuMonitorPtr mon, virJSONValuePtr actions,
+                        const char *device, const char *file,
+                        const char *format, bool reuse)
 {
     int ret;
 
-    VIR_DEBUG("mon=%p, device=%s, file=%s", mon, device, file);
+    VIR_DEBUG("mon=%p, actions=%p, device=%s, file=%s, format=%s, reuse=%d",
+              mon, actions, device, file, format, reuse);
 
     if (!mon) {
         qemuReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -2578,10 +2671,33 @@ qemuMonitorDiskSnapshot(qemuMonitorPtr mon, const char *device,
         return -1;
     }
 
-    if (mon->json)
-        ret = qemuMonitorJSONDiskSnapshot(mon, device, file);
-    else
+    if (mon->json) {
+        ret = qemuMonitorJSONDiskSnapshot(mon, actions, device, file, format,
+                                          reuse);
+    } else {
+        if (actions || STRNEQ(format, "qcow2") || reuse) {
+            qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                            _("text monitor lacks several snapshot features"));
+            return -1;
+        }
         ret = qemuMonitorTextDiskSnapshot(mon, device, file);
+    }
+    return ret;
+}
+
+/* Use the transaction QMP command to run atomic snapshot commands.  */
+int
+qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
+{
+    int ret = -1;
+
+    VIR_DEBUG("mon=%p, actions=%p", mon, actions);
+
+    if (mon->json)
+        ret = qemuMonitorJSONTransaction(mon, actions);
+    else
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("transaction requires JSON monitor"));
     return ret;
 }
 
@@ -2654,19 +2770,21 @@ int qemuMonitorScreendump(qemuMonitorPtr mon,
 
 int qemuMonitorBlockJob(qemuMonitorPtr mon,
                         const char *device,
+                        const char *base,
                         unsigned long bandwidth,
                         virDomainBlockJobInfoPtr info,
                         int mode)
 {
-    int ret;
+    int ret = -1;
 
-    VIR_DEBUG("mon=%p, device=%p, bandwidth=%lu, info=%p, mode=%o",
-              mon, device, bandwidth, info, mode);
+    VIR_DEBUG("mon=%p, device=%s, base=%s, bandwidth=%lu, info=%p, mode=%o",
+              mon, device, NULLSTR(base), bandwidth, info, mode);
 
     if (mon->json)
-        ret = qemuMonitorJSONBlockJob(mon, device, bandwidth, info, mode);
+        ret = qemuMonitorJSONBlockJob(mon, device, base, bandwidth, info, mode);
     else
-        ret = qemuMonitorTextBlockJob(mon, device, bandwidth, info, mode);
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("block jobs require JSON monitor"));
     return ret;
 }
 
@@ -2784,4 +2902,23 @@ int qemuMonitorOpenGraphics(qemuMonitorPtr mon,
     }
 
     return ret;
+}
+
+int qemuMonitorSystemWakeup(qemuMonitorPtr mon)
+{
+    VIR_DEBUG("mon=%p", mon);
+
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        qemuReportError(VIR_ERR_NO_SUPPORT, "%s",
+                        _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONSystemWakeup(mon);
 }

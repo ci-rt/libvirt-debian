@@ -22,7 +22,7 @@
 
 # RHEL-5 builds are client-only for s390, ppc
 %if 0%{?rhel} == 5
-%ifnarch i386 i586 i686 x86_64 ia64
+%ifnarch %{ix86} x86_64 ia64
 %define client_only        1
 %endif
 %endif
@@ -84,6 +84,7 @@
 %define with_cgconfig      0%{!?_without_cgconfig:0}
 %define with_sanlock       0%{!?_without_sanlock:0}
 %define with_systemd       0%{!?_without_systemd:0}
+%define with_numad         0%{!?_without_numad:0}
 
 # Non-server/HV driver defaults which are always enabled
 %define with_python        0%{!?_without_python:1}
@@ -93,7 +94,7 @@
 # Finally set the OS / architecture specific special cases
 
 # Xen is available only on i386 x86_64 ia64
-%ifnarch i386 i586 i686 x86_64 ia64
+%ifnarch %{ix86} x86_64 ia64
 %define with_xen 0
 %define with_libxl 0
 %endif
@@ -139,8 +140,8 @@
 %define with_xen 0
 %endif
 
-# Fedora doesn't have any QEMU on ppc64 - only ppc
-%if 0%{?fedora}
+# Fedora doesn't have any QEMU on ppc64 until FC16 - only ppc
+%if 0%{?fedora} && 0%{?fedora} < 16
 %ifarch ppc64
 %define with_qemu 0
 %endif
@@ -184,7 +185,7 @@
 %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
 %endif
 %if 0%{?rhel} >= 6
-%ifarch i386 i586 i686 x86_64
+%ifarch %{ix86} x86_64
 %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
 %endif
 %endif
@@ -205,11 +206,19 @@
 %define with_storage_disk 0
 %endif
 
-# Enable libpcap library
 %if %{with_qemu}
 %define with_nwfilter 0%{!?_without_nwfilter:%{server_drivers}}
+# Enable libpcap library
 %define with_libpcap  0%{!?_without_libpcap:%{server_drivers}}
 %define with_macvtap  0%{!?_without_macvtap:%{server_drivers}}
+
+# numad is used to manage the CPU placement dynamically,
+# it's not available on s390[x] and ARM.
+%if 0%{?fedora} >= 17 || 0%{?rhel} >= 6
+%ifnarch s390 s390x %{arm}
+%define with_numad    0%{!?_without_numad:%{server_drivers}}
+%endif
+%endif
 %endif
 
 %if %{with_macvtap}
@@ -252,10 +261,10 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 1%{?dist}%{?extra_release}
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
-Source: http://libvirt.org/sources/libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/libvirt-%{version}-rc1.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 URL: http://libvirt.org/
 
@@ -346,7 +355,7 @@ Requires: device-mapper
 %if %{with_cgconfig}
 Requires: libcgroup
 %endif
-%ifarch i386 i586 i686 x86_64 ia64
+%ifarch %{ix86} x86_64 ia64
 # For virConnectGetSysinfo
 Requires: dmidecode
 %endif
@@ -356,6 +365,9 @@ Requires(post): systemd-units
 Requires(post): systemd-sysv
 Requires(preun): systemd-units
 Requires(postun): systemd-units
+%endif
+%if %{with_numad}
+Requires: numad
 %endif
 
 # All build-time requirements
@@ -512,6 +524,13 @@ BuildRequires: nfs-utils
 
 # Fedora build root suckage
 BuildRequires: gawk
+
+# For storage wiping with different algorithms
+BuildRequires: scrub
+
+%if %{with_numad}
+BuildRequires: numad
+%endif
 
 %description
 Libvirt is a C toolkit to interact with the virtualization capabilities
@@ -687,6 +706,10 @@ of recent versions of Linux (and other OSes).
 %define _without_numactl --without-numactl
 %endif
 
+%if ! %{with_numad}
+%define _without_numad --without-numad
+%endif
+
 %if ! %{with_capng}
 %define _without_capng --without-capng
 %endif
@@ -772,6 +795,7 @@ autoreconf -if
            %{?_without_storage_disk} \
            %{?_without_storage_mpath} \
            %{?_without_numactl} \
+           %{?_without_numad} \
            %{?_without_capng} \
            %{?_without_netcf} \
            %{?_without_selinux} \
@@ -1024,14 +1048,6 @@ fi
 %if %{with_systemd}
 %else
 /sbin/chkconfig --add libvirt-guests
-if [ $1 -ge 1 ]; then
-    level=$(/sbin/runlevel | /bin/cut -d ' ' -f 2)
-    if /sbin/chkconfig --levels $level libvirt-guests; then
-        # this doesn't do anything but allowing for libvirt-guests to be
-        # stopped on the first shutdown
-        /sbin/service libvirt-guests start > /dev/null 2>&1 || true
-    fi
-fi
 %endif
 
 %postun client -p /sbin/ldconfig
@@ -1248,6 +1264,10 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %doc %{_datadir}/gtk-doc/html/libvirt/*.html
 %doc %{_datadir}/gtk-doc/html/libvirt/*.png
 %doc %{_datadir}/gtk-doc/html/libvirt/*.css
+
+%dir %{_datadir}/libvirt/api/
+%{_datadir}/libvirt/api/libvirt-api.xml
+%{_datadir}/libvirt/api/libvirt-qemu-api.xml
 
 %doc docs/*.html docs/html docs/*.gif
 %doc docs/libvirt-api.xml

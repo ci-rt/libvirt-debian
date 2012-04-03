@@ -1,7 +1,7 @@
 <domain type='vmware'>
   <uuid>00000000-0000-0000-0000-000000000000</uuid>
-  <memory>32768</memory>
-  <currentMemory>32768</currentMemory>
+  <memory unit='KiB'>32768</memory>
+  <currentMemory unit='KiB'>32768</currentMemory>
   <vcpu>1</vcpu>
   <os>
     <type arch='i686'>hvm</type>
@@ -14,7 +14,7 @@
     <disk type='file' device='cdrom'>
       <source file='[datastore] directory/cdrom.iso'/>
       <target dev='sda' bus='scsi'/>
-      <address type='drive' controller='0' bus='0' unit='0'/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
     </disk>
     <controller type='scsi' index='0'/>
     <video>

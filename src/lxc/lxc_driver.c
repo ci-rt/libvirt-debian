@@ -56,9 +56,11 @@
 #include "domain_nwfilter.h"
 #include "network/bridge_driver.h"
 #include "virnetdev.h"
+#include "virnetdevtap.h"
 #include "virnodesuspend.h"
 #include "virtime.h"
 #include "virtypedparam.h"
+#include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -138,11 +140,8 @@ static virDrvOpenStatus lxcOpen(virConnectPtr conn,
         if (lxc_driver == NULL)
             return VIR_DRV_OPEN_DECLINED;
 
-        conn->uri = xmlParseURI("lxc:///");
-        if (!conn->uri) {
-            virReportOOMError();
+        if (!(conn->uri = virURIParse("lxc:///")))
             return VIR_DRV_OPEN_ERROR;
-        }
     } else {
         if (conn->uri->scheme == NULL ||
             STRNEQ(conn->uri->scheme, "lxc"))
@@ -668,10 +667,12 @@ cleanup:
 }
 
 /* Returns max memory in kb, 0 if error */
-static unsigned long lxcDomainGetMaxMemory(virDomainPtr dom) {
+static unsigned long long
+lxcDomainGetMaxMemory(virDomainPtr dom)
+{
     lxc_driver_t *driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    unsigned long ret = 0;
+    unsigned long long ret = 0;
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -1105,6 +1106,7 @@ static void lxcVmCleanup(lxc_driver_t *driver,
     virCgroupPtr cgroup;
     int i;
     lxcDomainObjPrivatePtr priv = vm->privateData;
+    virNetDevVPortProfilePtr vport = NULL;
 
     /* now that we know it's stopped call the hook if present */
     if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
@@ -1112,7 +1114,8 @@ static void lxcVmCleanup(lxc_driver_t *driver,
 
         /* we can't stop the operation even if the script raised an error */
         virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
-                    VIR_HOOK_LXC_OP_STOPPED, VIR_HOOK_SUBOP_END, NULL, xml);
+                    VIR_HOOK_LXC_OP_STOPPED, VIR_HOOK_SUBOP_END,
+                    NULL, xml, NULL);
         VIR_FREE(xml);
     }
 
@@ -1132,10 +1135,15 @@ static void lxcVmCleanup(lxc_driver_t *driver,
     priv->monitorWatch = -1;
 
     for (i = 0 ; i < vm->def->nnets ; i++) {
-        ignore_value(virNetDevSetOnline(vm->def->nets[i]->ifname, false));
-        ignore_value(virNetDevVethDelete(vm->def->nets[i]->ifname));
-
-        networkReleaseActualDevice(vm->def->nets[i]);
+        virDomainNetDefPtr iface = vm->def->nets[i];
+        vport = virDomainNetGetActualVirtPortProfile(iface);
+        ignore_value(virNetDevSetOnline(iface->ifname, false));
+        if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH)
+            ignore_value(virNetDevOpenvswitchRemovePort(
+                            virDomainNetGetActualBridgeName(iface),
+                            iface->ifname));
+        ignore_value(virNetDevVethDelete(iface->ifname));
+        networkReleaseActualDevice(iface);
     }
 
     virDomainConfVMNWFilterTeardown(vm);
@@ -1165,6 +1173,7 @@ static int lxcSetupInterfaceBridged(virConnectPtr conn,
     int ret = -1;
     char *parentVeth;
     char *containerVeth = NULL;
+    const virNetDevVPortProfilePtr vport = virDomainNetGetActualVirtPortProfile(net);
 
     VIR_DEBUG("calling vethCreate()");
     parentVeth = net->ifname;
@@ -1186,7 +1195,12 @@ static int lxcSetupInterfaceBridged(virConnectPtr conn,
     if (virNetDevSetMAC(containerVeth, net->mac) < 0)
         goto cleanup;
 
-    if (virNetDevBridgeAddPort(brname, parentVeth) < 0)
+    if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH)
+        ret = virNetDevOpenvswitchAddPort(brname, parentVeth, net->mac,
+                                          vm->uuid, vport);
+    else
+        ret = virNetDevBridgeAddPort(brname, parentVeth);
+    if (ret < 0)
         goto cleanup;
 
     if (virNetDevSetOnline(parentVeth, true) < 0)
@@ -1242,7 +1256,7 @@ static int lxcSetupInterfaceDirect(virConnectPtr conn,
      * and automagically dies when the container dies. So
      * we have no dev to perform disassociation with.
      */
-    prof = virDomainNetGetActualDirectVirtPortProfile(net);
+    prof = virDomainNetGetActualVirtPortProfile(net);
     if (prof) {
         lxcError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                  _("Unable to set port profile on direct interfaces"));
@@ -1260,7 +1274,7 @@ static int lxcSetupInterfaceDirect(virConnectPtr conn,
             virDomainNetGetActualDirectDev(net),
             virDomainNetGetActualDirectMode(net),
             false, false, def->uuid,
-            virDomainNetGetActualDirectVirtPortProfile(net),
+            virDomainNetGetActualVirtPortProfile(net),
             &res_ifname,
             VIR_NETDEV_VPORT_PROFILE_OP_CREATE,
             driver->stateDir,
@@ -1377,8 +1391,15 @@ static int lxcSetupInterfaces(virConnectPtr conn,
 
 cleanup:
     if (ret != 0) {
-        for (i = 0 ; i < def->nnets ; i++)
-            networkReleaseActualDevice(def->nets[i]);
+        for (i = 0 ; i < def->nnets ; i++) {
+            virDomainNetDefPtr iface = def->nets[i];
+            virNetDevVPortProfilePtr vport = virDomainNetGetActualVirtPortProfile(iface);
+            if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH)
+                ignore_value(virNetDevOpenvswitchRemovePort(
+                                virDomainNetGetActualBridgeName(iface),
+                                iface->ifname));
+            networkReleaseActualDevice(iface);
+        }
     }
     return ret;
 }
@@ -1612,7 +1633,8 @@ lxcBuildControllerCmd(lxc_driver_t *driver,
         int hookret;
 
         hookret = virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
-                    VIR_HOOK_LXC_OP_START, VIR_HOOK_SUBOP_BEGIN, NULL, xml);
+                              VIR_HOOK_LXC_OP_START, VIR_HOOK_SUBOP_BEGIN,
+                              NULL, xml, NULL);
         VIR_FREE(xml);
 
         /*

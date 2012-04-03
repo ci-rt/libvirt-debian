@@ -1,7 +1,7 @@
 /*
  * qemu_command.h: QEMU command generation
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -90,7 +90,8 @@ char *qemuBuildFSStr(virDomainFSDefPtr fs,
                      virBitmapPtr qemuCaps);
 
 /* Current, best practice */
-char * qemuBuildDriveDevStr(virDomainDiskDefPtr disk,
+char * qemuBuildDriveDevStr(virDomainDefPtr def,
+                            virDomainDiskDefPtr disk,
                             int bootindex,
                             virBitmapPtr qemuCaps);
 char * qemuBuildFSDevStr(virDomainFSDefPtr fs,
@@ -169,7 +170,7 @@ virDomainDefPtr qemuParseCommandLineString(virCapsPtr caps,
                                            virDomainChrSourceDefPtr *monConfig,
                                            bool *monJSON);
 virDomainDefPtr qemuParseCommandLinePid(virCapsPtr caps,
-                                        unsigned int pid,
+                                        pid_t pid,
                                         char **pidfile,
                                         virDomainChrSourceDefPtr *monConfig,
                                         bool *monJSON);
@@ -201,7 +202,9 @@ int  qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr ad
 int qemuAssignDeviceAliases(virDomainDefPtr def, virBitmapPtr qemuCaps);
 int qemuDomainNetVLAN(virDomainNetDefPtr def);
 int qemuAssignDeviceNetAlias(virDomainDefPtr def, virDomainNetDefPtr net, int idx);
-int qemuAssignDeviceDiskAlias(virDomainDiskDefPtr def, virBitmapPtr qemuCaps);
+int qemuAssignDeviceDiskAlias(virDomainDefPtr vmdef,
+                              virDomainDiskDefPtr def,
+                              virBitmapPtr qemuCaps);
 int qemuAssignDeviceHostdevAlias(virDomainDefPtr def, virDomainHostdevDefPtr hostdev, int idx);
 int qemuAssignDeviceControllerAlias(virDomainControllerDefPtr controller);
 int qemuAssignDeviceRedirdevAlias(virDomainDefPtr def, virDomainRedirdevDefPtr redirdev, int idx);

@@ -1,7 +1,7 @@
 /*
  * openvz_driver.c: core driver methods for managing OpenVZ VEs
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
  * Copyright (C) 2007 Anoop Joe Cyriac
@@ -56,6 +56,7 @@
 #include "virfile.h"
 #include "logging.h"
 #include "command.h"
+#include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
@@ -69,7 +70,7 @@ static int openvzDomainGetMaxVcpus(virDomainPtr dom);
 static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
                                         unsigned int nvcpus);
 static int openvzDomainSetMemoryInternal(virDomainObjPtr vm,
-                                         unsigned long memory);
+                                         unsigned long long memory);
 static int openvzGetVEStatus(virDomainObjPtr vm, int *status, int *reason);
 
 static void openvzDriverLock(struct openvz_driver *driver)
@@ -1335,11 +1336,8 @@ static virDrvOpenStatus openvzOpen(virConnectPtr conn,
         if (access("/proc/vz", W_OK) < 0)
             return VIR_DRV_OPEN_DECLINED;
 
-        conn->uri = xmlParseURI("openvz:///system");
-        if (conn->uri == NULL) {
-            virReportOOMError();
+        if (!(conn->uri = virURIParse("openvz:///system")))
             return VIR_DRV_OPEN_ERROR;
-        }
     } else {
         /* If scheme isn't 'openvz', then its for another driver */
         if (conn->uri->scheme == NULL ||
@@ -1611,7 +1609,7 @@ static int openvzNumDefinedDomains(virConnectPtr conn) {
 
 static int
 openvzDomainSetMemoryInternal(virDomainObjPtr vm,
-                              unsigned long mem)
+                              unsigned long long mem)
 {
     char str_mem[16];
     const char *prog[] = { VZCTL, "--quiet", "set", PROGRAM_SENTINAL,
@@ -1619,7 +1617,7 @@ openvzDomainSetMemoryInternal(virDomainObjPtr vm,
     };
 
     /* memory has to be changed its format from kbyte to byte */
-    snprintf(str_mem, sizeof(str_mem), "%lu", mem * 1024);
+    snprintf(str_mem, sizeof(str_mem), "%llu", mem * 1024);
 
     openvzSetProgramSentinal(prog, vm->def->name);
     if (virRun(prog, NULL) < 0) {

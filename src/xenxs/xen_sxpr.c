@@ -1076,8 +1076,8 @@ xenParseSxprPCI(virDomainDefPtr def,
             goto error;
         }
 
-        if (VIR_ALLOC(dev) < 0)
-            goto no_memory;
+        if (!(dev = virDomainHostdevDefAlloc()))
+           goto error;
 
         dev->mode = VIR_DOMAIN_HOSTDEV_MODE_SUBSYS;
         dev->managed = 0;
@@ -1088,6 +1088,7 @@ xenParseSxprPCI(virDomainDefPtr def,
         dev->source.subsys.u.pci.function = funcID;
 
         if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0) {
+            virDomainHostdevDefFree(dev);
             goto no_memory;
         }
 
@@ -1190,10 +1191,8 @@ xenParseSxpr(const struct sexpr *root,
         }
     }
 
-    def->mem.max_balloon = (unsigned long)
-                           (sexpr_u64(root, "domain/maxmem") << 10);
-    def->mem.cur_balloon = (unsigned long)
-                           (sexpr_u64(root, "domain/memory") << 10);
+    def->mem.max_balloon = (sexpr_u64(root, "domain/maxmem") << 10);
+    def->mem.cur_balloon = (sexpr_u64(root, "domain/memory") << 10);
     if (def->mem.cur_balloon > def->mem.max_balloon)
         def->mem.cur_balloon = def->mem.max_balloon;
 
@@ -1955,6 +1954,7 @@ xenFormatSxprNet(virConnectPtr conn,
     case VIR_DOMAIN_NET_TYPE_MCAST:
     case VIR_DOMAIN_NET_TYPE_INTERNAL:
     case VIR_DOMAIN_NET_TYPE_DIRECT:
+    case VIR_DOMAIN_NET_TYPE_HOSTDEV:
     case VIR_DOMAIN_NET_TYPE_LAST:
         break;
     }
@@ -2201,7 +2201,7 @@ xenFormatSxpr(virConnectPtr conn,
 
     virBufferAddLit(&buf, "(vm ");
     virBufferEscapeSexpr(&buf, "(name '%s')", def->name);
-    virBufferAsprintf(&buf, "(memory %lu)(maxmem %lu)",
+    virBufferAsprintf(&buf, "(memory %llu)(maxmem %llu)",
                       VIR_DIV_UP(def->mem.cur_balloon, 1024),
                       VIR_DIV_UP(def->mem.max_balloon, 1024));
     virBufferAsprintf(&buf, "(vcpus %u)", def->maxvcpus);

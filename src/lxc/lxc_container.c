@@ -125,6 +125,7 @@ static virCommandPtr lxcContainerBuildInitCmd(virDomainDefPtr vmDef)
     virCommandAddEnvString(cmd, "PATH=/bin:/sbin");
     virCommandAddEnvString(cmd, "TERM=linux");
     virCommandAddEnvString(cmd, "container=lxc-libvirt");
+    virCommandAddEnvPair(cmd, "container_uuid", uuidstr);
     virCommandAddEnvPair(cmd, "LIBVIRT_LXC_UUID", uuidstr);
     virCommandAddEnvPair(cmd, "LIBVIRT_LXC_NAME", vmDef->name);
     if (vmDef->os.cmdline)
@@ -260,7 +261,8 @@ int lxcContainerWaitForContinue(int control)
  *
  * Returns 0 on success or nonzero in case of error
  */
-static int lxcContainerRenameAndEnableInterfaces(unsigned int nveths,
+static int lxcContainerRenameAndEnableInterfaces(bool privNet,
+                                                 unsigned int nveths,
                                                  char **veths)
 {
     int rc = 0;
@@ -288,7 +290,7 @@ static int lxcContainerRenameAndEnableInterfaces(unsigned int nveths,
     }
 
     /* enable lo device only if there were other net devices */
-    if (veths)
+    if (veths || privNet)
         rc = virNetDevSetOnline("lo", true);
 
 error_out:
@@ -449,8 +451,6 @@ static int lxcContainerMountBasicFS(const char *srcprefix, bool pivotRoot)
     char *opts = NULL;
 #if HAVE_SELINUX
     security_context_t con;
-#else
-    bool con = false;
 #endif
 
     VIR_DEBUG("Mounting basic filesystems %s pivotRoot=%d", NULLSTR(srcprefix), pivotRoot);
@@ -511,10 +511,17 @@ static int lxcContainerMountBasicFS(const char *srcprefix, bool pivotRoot)
          * tmpfs is limited to 64kb, since we only have device nodes in there
          * and don't want to DOS the entire OS RAM usage
          */
-        if (virAsprintf(&opts, "mode=755,size=65536%s%s%s",
-                        con ? ",context=\"" : "",
-                        con ? (const char *)con : "",
-                        con ? "\"" : "") < 0) {
+
+#if HAVE_SELINUX
+        if (con)
+            ignore_value(virAsprintf(&opts,
+                                     "mode=755,size=65536,context=\"%s\"",
+                                     (const char *)con));
+        else
+#endif
+            opts = strdup("mode=755,size=65536");
+
+        if (!opts) {
             virReportOOMError();
             goto cleanup;
         }
@@ -1337,7 +1344,9 @@ static int lxcContainerChild( void *data )
     VIR_DEBUG("Received container continue message");
 
     /* rename and enable interfaces */
-    if (lxcContainerRenameAndEnableInterfaces(argv->nveths,
+    if (lxcContainerRenameAndEnableInterfaces(!!(vmDef->features &
+                                                 (1 << VIR_DOMAIN_FEATURE_PRIVNET)),
+                                              argv->nveths,
                                               argv->veths) < 0) {
         goto cleanup;
     }
@@ -1452,7 +1461,8 @@ int lxcContainerStart(virDomainDefPtr def,
         cflags |= CLONE_NEWUSER;
     }
 
-    if (def->nets != NULL) {
+    if (def->nets != NULL ||
+        (def->features & (1 << VIR_DOMAIN_FEATURE_PRIVNET))) {
         VIR_DEBUG("Enable network namespaces");
         cflags |= CLONE_NEWNET;
     }
