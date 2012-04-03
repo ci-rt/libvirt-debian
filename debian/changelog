@@ -1,3 +1,14 @@
+libvirt (0.9.11-1) unstable; urgency=low
+
+  * Upload to unstable
+  * [34aa61b] New upstream version 0.9.11
+  * [649c570] Build-dependency on virtualbox-ose no longer needed.
+    Thanks to Jean-Baptiste Rouault (Closes: #663589)
+  * [8323080] We need gcrypt so build-depend on it although it's already being
+    pulled in by gnutls. Thanks to Serge Hallyn (Closes: #660018)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 03 Apr 2012 20:18:08 +0200
+
 libvirt (0.9.11~rc1-1) experimental; urgency=low
 
   * [b8ad28b] Build-dependency on virtualbox-ose no longer needed.
