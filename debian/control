@@ -34,6 +34,7 @@ Build-Depends: cdbs (>= 0.4.90~),
  radvd [linux-any],
  libnetcf-dev [linux-any],
 # For "make check"
+ dwarves,
  libxml2-utils,
  dnsmasq-base,
  openssh-client,
