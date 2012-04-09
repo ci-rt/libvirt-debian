@@ -1,3 +1,13 @@
+libvirt (0.9.11-2) unstable; urgency=low
+
+  * [70dcb2e] Make module-init-tools a linux-any dependency
+    (Closes: #667477)
+  * [ea112f4] Depend on dwarves for checks requiring pdwtags
+  * [5152b85] virURIParse: don't forget to copy the user part
+    (Closes: #667636)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 09 Apr 2012 17:29:46 +0200
+
 libvirt (0.9.11-1) unstable; urgency=low
 
   * Upload to unstable
