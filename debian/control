@@ -32,6 +32,7 @@ Build-Depends: cdbs (>= 0.4.89~),
  libyajl-dev,
  libpcap0.8-dev,
  libnuma-dev [amd64 i386 ia64 mips mipsel powerpc],
+ lsb-release,
  radvd [linux-any],
  libnetcf-dev [linux-any],
 # For "make check"

@@ -8,6 +8,8 @@ include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/autotools.mk
 include /usr/share/cdbs/1/class/python-distutils.mk
 
+DISTREL := $(shell lsb_release -cs)
+
 ifneq (,$(findstring $(DEB_HOST_ARCH), i386 amd64))
   WITH_XEN = --with-xen
   WITH_VBOX = --with-vbox
@@ -51,6 +53,11 @@ else
   WITH_LXC            = --without-lxc
   WITH_NUMA           = --without-numactl
   WITH_NETCF          = --without-netcf
+endif
+
+ifeq "$(DISTREL)" "squeeze"
+    # Squeeze's kernel headers are too old to compile macvtap
+    WITH_MACVTAP    = --without-macvtap
 endif
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
