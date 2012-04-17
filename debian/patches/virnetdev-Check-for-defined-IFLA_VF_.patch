@@ -1,0 +1,28 @@
+From: Philipp Hahn <hahn@univention.de>
+Date: Fri, 13 Apr 2012 15:43:58 +0200
+Subject: virnetdev: Check for defined IFLA_VF_*
+
+The linux-2.6.32 kernel header does not yet define IFLA_VF_MAX and others,
+which breaks compiling a new libvirt on old systems like Debian Squeeze.
+
+(I also have to add --without-macvtap --disable-werror --without-virtualport to
+ ./configure to get it to compile.)
+
+Signed-off-by: Philipp Hahn <hahn@univention.de>
+---
+ src/util/virnetdev.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/util/virnetdev.c b/src/util/virnetdev.c
+index ec7435a..460aa83 100644
+--- a/src/util/virnetdev.c
++++ b/src/util/virnetdev.c
+@@ -1215,7 +1215,7 @@ virNetDevGetVirtualFunctionInfo(const char *vfname ATTRIBUTE_UNUSED,
+     return -1;
+ }
+ #endif /* !__linux__ */
+-#if defined(__linux__) && defined(HAVE_LIBNL)
++#if defined(__linux__) && defined(HAVE_LIBNL) && defined(IFLA_VF_MAX)
+ 
+ static struct nla_policy ifla_vf_policy[IFLA_VF_MAX+1] = {
+     [IFLA_VF_MAC]       = { .type = NLA_UNSPEC,

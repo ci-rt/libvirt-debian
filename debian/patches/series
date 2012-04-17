@@ -11,3 +11,4 @@ Disable-gnulib-s-test-nonplocking-pipe.sh.patch
 Disable-failing-virnetsockettest.patch
 Don-t-fail-if-we-can-t-setup-avahi.patch
 virURIParse-don-t-forget-to-copy-the-user-part.patch
+virnetdev-Check-for-defined-IFLA_VF_.patch
