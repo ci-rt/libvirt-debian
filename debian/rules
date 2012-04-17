@@ -58,6 +58,8 @@ endif
 ifeq "$(DISTREL)" "squeeze"
     # Squeeze's kernel headers are too old to compile macvtap
     WITH_MACVTAP    = --without-macvtap
+    # Squeeze's libnl throws warnings
+    WITH_WERROR     = --without-werror
 endif
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
@@ -88,7 +90,8 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	$(WITH_NETCF)		 \
 	$(WITH_XEN)		 \
 	$(WITH_VBOX)		 \
-	$(WITH_LXC)
+	$(WITH_LXC)              \
+	$(WITH_WERROR)
 
 DEB_COMPRESS_EXCLUDE = .o event-test hellolibvirt info1 suspend
 DEB_PYTHON_SETUP_CMD = /dev/null
