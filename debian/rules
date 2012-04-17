@@ -60,6 +60,8 @@ ifeq "$(DISTREL)" "squeeze"
     WITH_MACVTAP    = --without-macvtap
     # Squeeze's libnl throws warnings
     WITH_WERROR     = --without-werror
+    # netcf not available in Squeeze
+    WITH_NETCF          = --without-netcf
 endif
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
