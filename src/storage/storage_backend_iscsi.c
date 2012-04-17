@@ -42,6 +42,7 @@
 #include "logging.h"
 #include "virfile.h"
 #include "command.h"
+#include "virrandom.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
@@ -54,7 +55,7 @@ virStorageBackendISCSITargetIP(const char *hostname,
     struct addrinfo *result = NULL;
     int ret;
 
-    memset(&hints, 0, sizeof hints);
+    memset(&hints, 0, sizeof(hints));
     hints.ai_flags = AI_ADDRCONFIG;
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -206,7 +207,7 @@ virStorageBackendIQNFound(const char *initiatoriqn,
         virStorageReportError(VIR_ERR_INTERNAL_ERROR,
                               _("Failed to open stream for file descriptor "
                                 "when reading output from '%s': '%s'"),
-                              ISCSIADM, virStrerror(errno, ebuf, sizeof ebuf));
+                              ISCSIADM, virStrerror(errno, ebuf, sizeof(ebuf)));
         ret = IQN_ERROR;
         goto out;
     }
@@ -283,15 +284,8 @@ virStorageBackendCreateIfaceIQN(const char *initiatoriqn,
         initiatoriqn, NULL
     };
 
-    if (virRandomInitialize(time(NULL) ^ getpid()) == -1) {
-        virStorageReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                              _("Failed to initialize random generator "
-                                "when creating iscsi interface"));
-        goto out;
-    }
-
-    snprintf(temp_ifacename, sizeof(temp_ifacename), "libvirt-iface-%08x",
-             virRandom(1024 * 1024 * 1024));
+    snprintf(temp_ifacename, sizeof(temp_ifacename), "libvirt-iface-%08llx",
+             (unsigned long long)virRandomBits(30));
 
     VIR_DEBUG("Attempting to create interface '%s' with IQN '%s'",
               &temp_ifacename[0], initiatoriqn);

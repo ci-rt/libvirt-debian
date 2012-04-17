@@ -24,7 +24,8 @@ case "$1" in
     	if getent group libvirt >/dev/null; then
     		delgroup libvirt || true
 	fi
-	
+
+	rm -rf /var/log/libvirt
     ;;
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
     ;;

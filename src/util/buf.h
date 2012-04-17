@@ -1,7 +1,7 @@
 /*
  * buf.h: buffers for libvirt
  *
- * Copyright (C) 2005-2008, 2011 Red Hat, Inc.
+ * Copyright (C) 2005-2008, 2011, 2012 Red Hat, Inc.
  *
  * See COPYING.LIB for the License of this software
  *
@@ -49,7 +49,7 @@ void virBufferVasprintf(virBufferPtr buf, const char *format, va_list ap)
   ATTRIBUTE_FMT_PRINTF(2, 0);
 void virBufferStrcat(virBufferPtr buf, ...)
   ATTRIBUTE_SENTINEL;
-void virBufferEscape(virBufferPtr buf, const char *toescape,
+void virBufferEscape(virBufferPtr buf, char escape, const char *toescape,
                      const char *format, const char *str);
 void virBufferEscapeString(virBufferPtr buf, const char *format,
                            const char *str);
@@ -59,7 +59,7 @@ void virBufferEscapeShell(virBufferPtr buf, const char *str);
 void virBufferURIEncodeString(virBufferPtr buf, const char *str);
 
 # define virBufferAddLit(buf_, literal_string_) \
-    virBufferAdd(buf_, "" literal_string_ "", sizeof literal_string_ - 1)
+    virBufferAdd(buf_, "" literal_string_ "", sizeof(literal_string_) - 1)
 
 void virBufferAdjustIndent(virBufferPtr buf, int indent);
 int virBufferGetIndent(const virBufferPtr buf, bool dynamic);

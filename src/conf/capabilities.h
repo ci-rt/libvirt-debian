@@ -25,9 +25,9 @@
 # define __VIR_CAPABILITIES_H
 
 # include "internal.h"
-# include "util.h"
 # include "buf.h"
 # include "cpu_conf.h"
+# include "virmacaddr.h"
 
 # include <libxml/xpath.h>
 
@@ -237,12 +237,15 @@ virCapabilitiesAddGuestFeature(virCapsGuestPtr guest,
                                int toggle);
 
 extern int
+virCapabilitiesSupportsGuestArch(virCapsPtr caps,
+                                 const char *arch);
+extern int
 virCapabilitiesSupportsGuestOSType(virCapsPtr caps,
                                    const char *ostype);
 extern int
-virCapabilitiesSupportsGuestArch(virCapsPtr caps,
-                                 const char *ostype,
-                                 const char *arch);
+virCapabilitiesSupportsGuestOSTypeArch(virCapsPtr caps,
+                                       const char *ostype,
+                                       const char *arch);
 
 
 extern const char *

@@ -162,6 +162,8 @@ nwfilterDriverReload(void) {
         virNWFilterCallbackDriversUnlock();
         nwfilterDriverUnlock(driverState);
 
+        virNWFilterInstFiltersOnAllVMs(conn);
+
         virConnectClose(conn);
     }
 
@@ -384,7 +386,7 @@ nwfilterUndefine(virNWFilterPtr obj) {
         goto cleanup;
     }
 
-    if (virNWFilterTestUnassignDef(obj->conn, nwfilter)) {
+    if (virNWFilterTestUnassignDef(obj->conn, nwfilter) < 0) {
         virNWFilterReportError(VIR_ERR_OPERATION_INVALID,
                                "%s",
                                _("nwfilter is in use"));
@@ -443,8 +445,10 @@ cleanup:
 
 static int
 nwfilterInstantiateFilter(virConnectPtr conn,
-                          virDomainNetDefPtr net) {
-    return virNWFilterInstantiateFilter(conn, net);
+                          const unsigned char *vmuuid,
+                          virDomainNetDefPtr net)
+{
+    return virNWFilterInstantiateFilter(conn, vmuuid, net);
 }
 
 

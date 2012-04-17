@@ -8,7 +8,7 @@
 # actually fixes for 64 bit, so this file is necessary.  Arguably
 # so is the type-punning fix.
 #
-# Copyright (C) 2007, 2011 Red Hat, Inc.
+# Copyright (C) 2007, 2011-2012 Red Hat, Inc.
 #
 # See COPYING for the license of this software.
 #
@@ -53,13 +53,15 @@ while (<RPCGEN>) {
 
     s/\t/        /g;
 
+    # Fix VPATH builds
+    s,#include ".*/([^/]+)protocol\.h",#include "${1}protocol.h",;
+
     # Portability for Solaris RPC
     s/u_quad_t/uint64_t/g;
     s/quad_t/int64_t/g;
     s/xdr_u_quad_t/xdr_uint64_t/g;
     s/xdr_quad_t/xdr_int64_t/g;
     s/(?<!IXDR_GET_INT32 )IXDR_GET_LONG/IXDR_GET_INT32/g;
-    s,#include ".*remote/remote_protocol\.h",#include "remote_protocol.h",;
 
     if (m/^}/) {
 	$in_function = 0;
@@ -67,12 +69,12 @@ while (<RPCGEN>) {
 	# Note: The body of the function is in @function.
 
 	# Remove decl of buf, if buf isn't used in the function.
-	my @uses = grep /\bbuf\b/, @function;
-	@function = grep !/\bbuf\b/, @function if @uses == 1;
+	my @uses = grep /[^.>]\bbuf\b/, @function;
+	@function = grep !/[^.>]\bbuf\b/, @function if @uses == 1;
 
 	# Remove decl of i, if i isn't used in the function.
-	@uses = grep /\bi\b/, @function;
-	@function = grep !/\bi\b/, @function if @uses == 1;
+	@uses = grep /[^.>]\bi\b/, @function;
+	@function = grep !/[^.>]\bi\b/, @function if @uses == 1;
 
 	# (char **)&objp->... gives:
 	# warning: dereferencing type-punned pointer will break

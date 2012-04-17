@@ -32,7 +32,7 @@
 # include "internal.h"
 
 # include "util.h"
-# include "hash.h"
+# include "virhash.h"
 # include "xml.h"
 # include "buf.h"
 # include "virsocketaddr.h"
@@ -121,7 +121,7 @@ typedef struct _nwItemDesc nwItemDesc;
 typedef nwItemDesc *nwItemDescPtr;
 struct _nwItemDesc {
     enum virNWFilterEntryItemFlags flags;
-    char *var;
+    virNWFilterVarAccessPtr varAccess;
     enum attrDatatype datatype;
     union {
         nwMACAddress macaddr;
@@ -470,8 +470,8 @@ struct _virNWFilterRuleDef {
         sctpHdrFilterDef sctpHdrFilter;
     } p;
 
-    int nvars;
-    char **vars;
+    size_t nVarAccess;
+    virNWFilterVarAccessPtr *varAccess;
 
     int nstrings;
     char **strings;
@@ -577,6 +577,7 @@ enum UpdateStep {
     STEP_APPLY_NEW,
     STEP_TEAR_NEW,
     STEP_TEAR_OLD,
+    STEP_APPLY_CURRENT,
 };
 
 struct domUpdateCBStruct {
@@ -721,6 +722,8 @@ void virNWFilterUnlockFilterUpdates(void);
 
 int virNWFilterConfLayerInit(virHashIterator domUpdateCB);
 void virNWFilterConfLayerShutdown(void);
+
+int virNWFilterInstFiltersOnAllVMs(virConnectPtr conn);
 
 # define virNWFilterReportError(code, fmt...)                      \
         virReportErrorHelper(VIR_FROM_NWFILTER, code, __FILE__,    \

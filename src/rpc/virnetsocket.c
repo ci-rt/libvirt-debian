@@ -1,7 +1,7 @@
 /*
  * virnetsocket.c: generic network socket handling
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -114,9 +114,9 @@ static virNetSocketPtr virNetSocketNew(virSocketAddrPtr localAddr,
     virNetSocketPtr sock;
     int no_slow_start = 1;
 
-    VIR_DEBUG("localAddr=%p remoteAddr=%p fd=%d errfd=%d pid=%d",
+    VIR_DEBUG("localAddr=%p remoteAddr=%p fd=%d errfd=%d pid=%lld",
               localAddr, remoteAddr,
-              fd, errfd, pid);
+              fd, errfd, (long long) pid);
 
     if (virSetCloseExec(fd) < 0) {
         virReportSystemError(errno, "%s",
@@ -174,9 +174,9 @@ static virNetSocketPtr virNetSocketNew(virSocketAddrPtr localAddr,
     sock->client = isClient;
 
     PROBE(RPC_SOCKET_NEW,
-          "sock=%p refs=%d fd=%d errfd=%d pid=%d localAddr=%s, remoteAddr=%s",
-          sock, sock->refs, fd, errfd,
-          pid, NULLSTR(sock->localAddrStr), NULLSTR(sock->remoteAddrStr));
+          "sock=%p refs=%d fd=%d errfd=%d pid=%lld localAddr=%s, remoteAddr=%s",
+          sock, sock->refs, fd, errfd, (long long) pid,
+          NULLSTR(sock->localAddrStr), NULLSTR(sock->remoteAddrStr));
 
     return sock;
 
@@ -203,7 +203,7 @@ int virNetSocketNewListenTCP(const char *nodename,
     *retsocks = NULL;
     *nretsocks = 0;
 
-    memset(&hints, 0, sizeof hints);
+    memset(&hints, 0, sizeof(hints));
     hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
     hints.ai_socktype = SOCK_STREAM;
 
@@ -228,7 +228,7 @@ int virNetSocketNewListenTCP(const char *nodename,
         }
 
         int opt = 1;
-        if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof opt) < 0) {
+        if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
             virReportSystemError(errno, "%s", _("Unable to enable port reuse"));
             goto error;
         }
@@ -244,7 +244,7 @@ int virNetSocketNewListenTCP(const char *nodename,
              * we force it to only listen on IPv6
              */
             if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY,
-                           (void*)&on, sizeof on) < 0) {
+                           (void*)&on, sizeof(on)) < 0) {
                 virReportSystemError(errno, "%s",
                                      _("Unable to force bind to IPv6 only"));
                 goto error;
@@ -400,7 +400,7 @@ int virNetSocketNewConnectTCP(const char *nodename,
     memset(&localAddr, 0, sizeof(localAddr));
     memset(&remoteAddr, 0, sizeof(remoteAddr));
 
-    memset(&hints, 0, sizeof hints);
+    memset(&hints, 0, sizeof(hints));
     hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
     hints.ai_socktype = SOCK_STREAM;
 
@@ -422,7 +422,7 @@ int virNetSocketNewConnectTCP(const char *nodename,
             goto error;
         }
 
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof opt);
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
         if (connect(fd, runp->ai_addr, runp->ai_addrlen) >= 0)
             break;
@@ -824,12 +824,13 @@ int virNetSocketGetPort(virNetSocketPtr sock)
 
 
 #ifdef SO_PEERCRED
-int virNetSocketGetLocalIdentity(virNetSocketPtr sock,
-                                 uid_t *uid,
-                                 pid_t *pid)
+int virNetSocketGetUNIXIdentity(virNetSocketPtr sock,
+                                uid_t *uid,
+                                gid_t *gid,
+                                pid_t *pid)
 {
     struct ucred cr;
-    socklen_t cr_len = sizeof (cr);
+    socklen_t cr_len = sizeof(cr);
     virMutexLock(&sock->lock);
 
     if (getsockopt(sock->fd, SOL_SOCKET, SO_PEERCRED, &cr, &cr_len) < 0) {
@@ -841,14 +842,16 @@ int virNetSocketGetLocalIdentity(virNetSocketPtr sock,
 
     *pid = cr.pid;
     *uid = cr.uid;
+    *gid = cr.gid;
 
     virMutexUnlock(&sock->lock);
     return 0;
 }
 #else
-int virNetSocketGetLocalIdentity(virNetSocketPtr sock ATTRIBUTE_UNUSED,
-                                 uid_t *uid ATTRIBUTE_UNUSED,
-                                 pid_t *pid ATTRIBUTE_UNUSED)
+int virNetSocketGetUNIXIdentity(virNetSocketPtr sock ATTRIBUTE_UNUSED,
+                                uid_t *uid ATTRIBUTE_UNUSED,
+                                gid_t *gid ATTRIBUTE_UNUSED,
+                                pid_t *pid ATTRIBUTE_UNUSED)
 {
     /* XXX Many more OS support UNIX socket credentials we could port to. See dbus ....*/
     virReportSystemError(ENOSYS, "%s",

@@ -1,7 +1,5 @@
-# -*- buffer-read-only: t -*- vi: set ro:
-# DO NOT EDIT! GENERATED AUTOMATICALLY!
-# onceonly.m4 serial 8
-dnl Copyright (C) 2002-2003, 2005-2006, 2008-2011 Free Software Foundation,
+# onceonly.m4 serial 9
+dnl Copyright (C) 2002-2003, 2005-2006, 2008-2012 Free Software Foundation,
 dnl Inc.
 dnl
 dnl This file is free software; you can redistribute it and/or modify
@@ -82,7 +80,7 @@ AC_DEFUN([AC_CHECK_FUNCS_ONCE], [
         [gl_func_list="$gl_func_list gl_FUNC_NAME"])
       gl_FUNCS_EXPANSION
       AH_TEMPLATE(AS_TR_CPP([HAVE_]m4_defn([gl_FUNC_NAME])),
-        [Define to 1 if you have the `]m4_defn([gl_FUNC_NAME])[' function.])
+        [Define to 1 if you have the ']m4_defn([gl_FUNC_NAME])[' function.])
     ])
     AC_REQUIRE([gl_CHECK_FUNC_]m4_defn([gl_FUNC_NAME]))
   ])

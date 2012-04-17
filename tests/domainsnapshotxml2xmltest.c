@@ -51,8 +51,8 @@ testCompareXMLToXMLFiles(const char *inxml, const char *uuid, int internal)
 
     ret = 0;
  fail:
-    free(inXmlData);
-    free(actual);
+    VIR_FREE(inXmlData);
+    VIR_FREE(actual);
     virDomainSnapshotDefFree(def);
     return ret;
 }
@@ -77,7 +77,7 @@ testCompareXMLToXMLHelper(const void *data)
     ret = testCompareXMLToXMLFiles(xml_in, info->uuid, info->internal);
 
 cleanup:
-    free(xml_in);
+    VIR_FREE(xml_in);
     return ret;
 }
 
@@ -88,7 +88,7 @@ mymain(void)
     int ret = 0;
 
     if ((driver.caps = testQemuCapsInit()) == NULL)
-        return (EXIT_FAILURE);
+        return EXIT_FAILURE;
 
 # define DO_TEST(name, uuid, internal)                                  \
     do {                                                                \
@@ -109,10 +109,11 @@ mymain(void)
     DO_TEST("noparent_nodescription_noactive", NULL, 0);
     DO_TEST("noparent_nodescription", NULL, 1);
     DO_TEST("noparent", "9d37b878-a7cc-9f9a-b78f-49b3abad25a8", 0);
+    DO_TEST("metadata", "c7a5fdbd-edaf-9455-926a-d65c16db1809", 0);
 
     virCapabilitiesFree(driver.caps);
 
-    return (ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
+    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

@@ -1,7 +1,5 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* byteswap.h - Byte swapping
-   Copyright (C) 2005, 2007, 2009-2011 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2009-2012 Free Software Foundation, Inc.
    Written by Oskar Liljeblad <oskar@osk.mine.nu>, 2005.
 
    This program is free software: you can redistribute it and/or modify

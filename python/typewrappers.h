@@ -1,12 +1,13 @@
 /*
  * libvirt_wrap.h: type wrappers for libvir python bindings
  *
- * Copyright (C) 2005, 2011 Red Hat, Inc.
+ * Copyright (C) 2005, 2011-2012 Red Hat, Inc.
  *
  * Daniel Veillard <veillard@redhat.com>
  */
 
 #include <Python.h>
+#include <stdbool.h>
 #include "libvirt/libvirt.h"
 #include "libvirt/virterror.h"
 
@@ -163,7 +164,14 @@ PyObject * libvirt_ulonglongWrap(unsigned long long val);
 PyObject * libvirt_charPtrWrap(char *str);
 PyObject * libvirt_charPtrSizeWrap(char *str, Py_ssize_t size);
 PyObject * libvirt_constcharPtrWrap(const char *str);
-PyObject * libvirt_charPtrConstWrap(const char *str);
+int libvirt_intUnwrap(PyObject *obj, int *val);
+int libvirt_uintUnwrap(PyObject *obj, unsigned int *val);
+int libvirt_longUnwrap(PyObject *obj, long *val);
+int libvirt_ulongUnwrap(PyObject *obj, unsigned long *val);
+int libvirt_longlongUnwrap(PyObject *obj, long long *val);
+int libvirt_ulonglongUnwrap(PyObject *obj, unsigned long long *val);
+int libvirt_doubleUnwrap(PyObject *obj, double *val);
+int libvirt_boolUnwrap(PyObject *obj, bool *val);
 PyObject * libvirt_virConnectPtrWrap(virConnectPtr node);
 PyObject * libvirt_virDomainPtrWrap(virDomainPtr node);
 PyObject * libvirt_virNetworkPtrWrap(virNetworkPtr node);

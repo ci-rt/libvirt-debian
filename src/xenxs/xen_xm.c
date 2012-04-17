@@ -1,8 +1,8 @@
 /*
  * xen_xm.c: Xen XM parsing functions
  *
+ * Copyright (C) 2006-2007, 2009-2010, 2012 Red Hat, Inc.
  * Copyright (C) 2011 Univention GmbH
- * Copyright (C) 2006-2007, 2009-2010 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -38,7 +38,7 @@
 #include "xen_sxpr.h"
 #include "domain_conf.h"
 
-/* Convenience method to grab a int from the config file object */
+/* Convenience method to grab a long int from the config file object */
 static int xenXMConfigGetBool(virConfPtr conf,
                               const char *name,
                               int *value,
@@ -68,7 +68,7 @@ static int xenXMConfigGetBool(virConfPtr conf,
 static int xenXMConfigGetULong(virConfPtr conf,
                                const char *name,
                                unsigned long *value,
-                               int def) {
+                               unsigned long def) {
     virConfValuePtr val;
 
     *value = 0;
@@ -82,6 +82,38 @@ static int xenXMConfigGetULong(virConfPtr conf,
     } else if (val->type == VIR_CONF_STRING) {
         char *ret;
         *value = strtol(val->str, &ret, 10);
+        if (ret == val->str) {
+            XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
+                       _("config value %s was malformed"), name);
+            return -1;
+        }
+    } else {
+        XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
+                   _("config value %s was malformed"), name);
+        return -1;
+    }
+    return 0;
+}
+
+
+/* Convenience method to grab a int from the config file object */
+static int xenXMConfigGetULongLong(virConfPtr conf,
+                                   const char *name,
+                                   unsigned long long *value,
+                                   unsigned long long def) {
+    virConfValuePtr val;
+
+    *value = 0;
+    if (!(val = virConfGetValue(conf, name))) {
+        *value = def;
+        return 0;
+    }
+
+    if (val->type == VIR_CONF_LONG) {
+        *value = val->l;
+    } else if (val->type == VIR_CONF_STRING) {
+        char *ret;
+        *value = strtoll(val->str, &ret, 10);
         if (ret == val->str) {
             XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
                        _("config value %s was malformed"), name);
@@ -312,12 +344,12 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             goto cleanup;
     }
 
-    if (xenXMConfigGetULong(conf, "memory", &def->mem.cur_balloon,
-                            MIN_XEN_GUEST_SIZE * 2) < 0)
+    if (xenXMConfigGetULongLong(conf, "memory", &def->mem.cur_balloon,
+                                MIN_XEN_GUEST_SIZE * 2) < 0)
         goto cleanup;
 
-    if (xenXMConfigGetULong(conf, "maxmem", &def->mem.max_balloon,
-                            def->mem.cur_balloon) < 0)
+    if (xenXMConfigGetULongLong(conf, "maxmem", &def->mem.max_balloon,
+                                def->mem.cur_balloon) < 0)
         goto cleanup;
 
     def->mem.cur_balloon *= 1024;
@@ -414,9 +446,31 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
     if (xenXMConfigGetBool(conf, "localtime", &vmlocaltime, 0) < 0)
         goto cleanup;
 
-    def->clock.offset = vmlocaltime ?
-        VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME :
-        VIR_DOMAIN_CLOCK_OFFSET_UTC;
+    if (hvm) {
+        /* only managed HVM domains since 3.1.0 have persistent rtc_timeoffset */
+        if (xendConfigVersion < XEND_CONFIG_VERSION_3_1_0) {
+            if (vmlocaltime)
+                def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME;
+            else
+                def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_UTC;
+            def->clock.data.utc_reset = true;
+        } else {
+            unsigned long rtc_timeoffset;
+            def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_VARIABLE;
+            if (xenXMConfigGetULong(conf, "rtc_timeoffset", &rtc_timeoffset, 0) < 0)
+                goto cleanup;
+            def->clock.data.variable.adjustment = (int)rtc_timeoffset;
+            def->clock.data.variable.basis = vmlocaltime ?
+                VIR_DOMAIN_CLOCK_BASIS_LOCALTIME :
+                VIR_DOMAIN_CLOCK_BASIS_UTC;
+        }
+    } else {
+        /* PV domains do not have an emulated RTC and the offset is fixed. */
+        def->clock.offset = vmlocaltime ?
+            VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME :
+            VIR_DOMAIN_CLOCK_OFFSET_UTC;
+        def->clock.data.utc_reset = true;
+    } /* !hvm */
 
     if (xenXMConfigCopyStringOpt(conf, "device_model", &def->emulator) < 0)
         goto cleanup;
@@ -570,7 +624,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
         }
     }
 
-    if (hvm && xendConfigVersion == 1) {
+    if (hvm && xendConfigVersion == XEND_CONFIG_VERSION_3_0_2) {
         if (xenXMConfigGetString(conf, "cdrom", &str, NULL) < 0)
             goto cleanup;
         if (str) {
@@ -690,7 +744,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 goto no_memory;
 
             if (mac[0]) {
-                if (virParseMacAddr(mac, net->mac) < 0) {
+                if (virMacAddrParse(mac, net->mac) < 0) {
                     XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
                                _("malformed mac address '%s'"), mac);
                     goto cleanup;
@@ -708,20 +762,18 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
                 if (bridge[0] &&
                     !(net->data.bridge.brname = strdup(bridge)))
                     goto no_memory;
-                if (script[0] &&
-                    !(net->data.bridge.script = strdup(script)))
-                    goto no_memory;
                 if (ip[0] &&
                     !(net->data.bridge.ipaddr = strdup(ip)))
                     goto no_memory;
             } else {
-                if (script && script[0] &&
-                    !(net->data.ethernet.script = strdup(script)))
-                    goto no_memory;
                 if (ip[0] &&
                     !(net->data.ethernet.ipaddr = strdup(ip)))
                     goto no_memory;
             }
+
+            if (script && script[0] &&
+                !(net->script = strdup(script)))
+               goto no_memory;
 
             if (model[0] &&
                 !(net->model = strdup(model)))
@@ -817,8 +869,8 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             if (virStrToLong_i(func, NULL, 16, &funcID) < 0)
                 goto skippci;
 
-            if (VIR_ALLOC(hostdev) < 0)
-                goto no_memory;
+            if (!(hostdev = virDomainHostdevDefAlloc()))
+               goto cleanup;
 
             hostdev->managed = 0;
             hostdev->source.subsys.type = VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI;
@@ -827,8 +879,10 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
             hostdev->source.subsys.u.pci.slot = slotID;
             hostdev->source.subsys.u.pci.function = funcID;
 
-            if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0)
+            if (VIR_REALLOC_N(def->hostdevs, def->nhostdevs+1) < 0) {
+                virDomainHostdevDefFree(hostdev);
                 goto no_memory;
+            }
             def->hostdevs[def->nhostdevs++] = hostdev;
             hostdev = NULL;
 
@@ -860,7 +914,7 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
     }
 
     /* HVM guests, or old PV guests use this config format */
-    if (hvm || xendConfigVersion < 3) {
+    if (hvm || xendConfigVersion < XEND_CONFIG_VERSION_3_0_4) {
         if (xenXMConfigGetBool(conf, "vnc", &val, 0) < 0)
             goto cleanup;
 
@@ -1103,9 +1157,14 @@ cleanup:
 
 
 static
-int xenXMConfigSetInt(virConfPtr conf, const char *setting, long l) {
+int xenXMConfigSetInt(virConfPtr conf, const char *setting, long long l) {
     virConfValuePtr value = NULL;
 
+    if ((long) l != l) {
+        XENXS_ERROR(VIR_ERR_OVERFLOW, _("failed to store %lld to %s"),
+                    l, setting);
+        return -1;
+    }
     if (VIR_ALLOC(value) < 0) {
         virReportOOMError();
         return -1;
@@ -1171,7 +1230,7 @@ static int xenFormatXMDisk(virConfValuePtr list,
         virBufferAdd(&buf, disk->src, -1);
     }
     virBufferAddLit(&buf, ",");
-    if (hvm && xendConfigVersion == 1)
+    if (hvm && xendConfigVersion == XEND_CONFIG_VERSION_3_0_2)
         virBufferAddLit(&buf, "ioemu:");
 
     virBufferAdd(&buf, disk->dst, -1);
@@ -1282,8 +1341,8 @@ static int xenFormatXMNet(virConnectPtr conn,
         break;
 
     case VIR_DOMAIN_NET_TYPE_ETHERNET:
-        if (net->data.ethernet.script)
-            virBufferAsprintf(&buf, ",script=%s", net->data.ethernet.script);
+        if (net->script)
+            virBufferAsprintf(&buf, ",script=%s", net->script);
         if (net->data.ethernet.ipaddr)
             virBufferAsprintf(&buf, ",ip=%s", net->data.ethernet.ipaddr);
         break;
@@ -1452,7 +1511,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
                                    virDomainDefPtr def,
                                    int xendConfigVersion) {
     virConfPtr conf = NULL;
-    int hvm = 0, i;
+    int hvm = 0, i, vmlocaltime = 0;
     char *cpus = NULL;
     const char *lifecycle;
     char uuid[VIR_UUID_STRING_BUFLEN];
@@ -1470,10 +1529,12 @@ virConfPtr xenFormatXM(virConnectPtr conn,
     if (xenXMConfigSetString(conf, "uuid", uuid) < 0)
         goto no_memory;
 
-    if (xenXMConfigSetInt(conf, "maxmem", VIR_DIV_UP(def->mem.max_balloon, 1024)) < 0)
+    if (xenXMConfigSetInt(conf, "maxmem",
+                          VIR_DIV_UP(def->mem.max_balloon, 1024)) < 0)
         goto no_memory;
 
-    if (xenXMConfigSetInt(conf, "memory", VIR_DIV_UP(def->mem.cur_balloon, 1024)) < 0)
+    if (xenXMConfigSetInt(conf, "memory",
+                          VIR_DIV_UP(def->mem.cur_balloon, 1024)) < 0)
         goto no_memory;
 
     if (xenXMConfigSetInt(conf, "vcpus", def->maxvcpus) < 0)
@@ -1547,7 +1608,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
                                (1 << VIR_DOMAIN_FEATURE_APIC)) ? 1 : 0) < 0)
             goto no_memory;
 
-        if (xendConfigVersion >= 3) {
+        if (xendConfigVersion >= XEND_CONFIG_VERSION_3_0_4) {
             if (xenXMConfigSetInt(conf, "hap",
                                   (def->features &
                                    (1 << VIR_DOMAIN_FEATURE_HAP)) ? 1 : 0) < 0)
@@ -1559,26 +1620,6 @@ virConfPtr xenFormatXM(virConnectPtr conn,
                 goto no_memory;
         }
 
-        if (def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME) {
-            if (def->clock.data.timezone) {
-                XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                           "%s", _("configurable timezones are not supported"));
-                goto cleanup;
-            }
-
-            if (xenXMConfigSetInt(conf, "localtime", 1) < 0)
-                goto no_memory;
-        } else if (def->clock.offset == VIR_DOMAIN_CLOCK_OFFSET_UTC) {
-            if (xenXMConfigSetInt(conf, "localtime", 0) < 0)
-                goto no_memory;
-        } else {
-            /* XXX We could support Xen's rtc clock offset */
-            XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("unsupported clock offset '%s'"),
-                       virDomainClockOffsetTypeToString(def->clock.offset));
-            goto cleanup;
-        }
-
         for (i = 0; i < def->clock.ntimers; i++) {
             if (def->clock.timers[i]->name == VIR_DOMAIN_TIMER_NAME_HPET &&
                 def->clock.timers[i]->present != -1 &&
@@ -1586,7 +1627,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
                     break;
         }
 
-        if (xendConfigVersion == 1) {
+        if (xendConfigVersion == XEND_CONFIG_VERSION_3_0_2) {
             for (i = 0 ; i < def->ndisks ; i++) {
                 if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_CDROM &&
                     def->disks[i]->dst &&
@@ -1617,8 +1658,79 @@ virConfPtr xenFormatXM(virConnectPtr conn,
         if (def->os.cmdline &&
             xenXMConfigSetString(conf, "extra", def->os.cmdline) < 0)
             goto no_memory;
+    } /* !hvm */
 
+
+    if (xendConfigVersion < XEND_CONFIG_VERSION_3_1_0) {
+        /* <3.1: UTC and LOCALTIME */
+        switch (def->clock.offset) {
+        case VIR_DOMAIN_CLOCK_OFFSET_UTC:
+            vmlocaltime = 0;
+            break;
+        case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
+            vmlocaltime = 1;
+            break;
+        default:
+            XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
+                        _("unsupported clock offset='%s'"),
+                        virDomainClockOffsetTypeToString(def->clock.offset));
+            goto cleanup;
+        }
+    } else {
+        if (hvm) {
+            /* >=3.1 HV: VARIABLE */
+            int rtc_timeoffset;
+            switch (def->clock.offset) {
+            case VIR_DOMAIN_CLOCK_OFFSET_VARIABLE:
+                vmlocaltime = (int)def->clock.data.variable.basis;
+                rtc_timeoffset = def->clock.data.variable.adjustment;
+                break;
+            case VIR_DOMAIN_CLOCK_OFFSET_UTC:
+                if (def->clock.data.utc_reset) {
+                    XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
+                                _("unsupported clock adjustment='reset'"));
+                    goto cleanup;
+                }
+                vmlocaltime = 0;
+                rtc_timeoffset = 0;
+                break;
+            case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
+                if (def->clock.data.utc_reset) {
+                    XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
+                                _("unsupported clock adjustment='reset'"));
+                    goto cleanup;
+                }
+                vmlocaltime = 1;
+                rtc_timeoffset = 0;
+                break;
+            default:
+                XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
+                            _("unsupported clock offset='%s'"),
+                            virDomainClockOffsetTypeToString(def->clock.offset));
+                goto cleanup;
+            }
+            if (xenXMConfigSetInt(conf, "rtc_timeoffset", rtc_timeoffset) < 0)
+                goto no_memory;
+        } else {
+            /* >=3.1 PV: UTC and LOCALTIME */
+            switch (def->clock.offset) {
+            case VIR_DOMAIN_CLOCK_OFFSET_UTC:
+                vmlocaltime = 0;
+                break;
+            case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
+                vmlocaltime = 1;
+                break;
+            default:
+                XENXS_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
+                            _("unsupported clock offset='%s'"),
+                            virDomainClockOffsetTypeToString(def->clock.offset));
+                goto cleanup;
+            }
+        } /* !hvm */
     }
+    if (xenXMConfigSetInt(conf, "localtime", vmlocaltime) < 0)
+        goto no_memory;
+
 
     if (!(lifecycle = virDomainLifecycleTypeToString(def->onPoweroff))) {
         XENXS_ERROR(VIR_ERR_INTERNAL_ERROR,
@@ -1667,7 +1779,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
     }
 
     if (def->ngraphics == 1) {
-        if (xendConfigVersion < (hvm ? 4 : XEND_CONFIG_MIN_VERS_PVFB_NEWCONF)) {
+        if (xendConfigVersion < (hvm ? XEND_CONFIG_VERSION_3_1_0 : XEND_CONFIG_MIN_VERS_PVFB_NEWCONF)) {
             if (def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
                 if (xenXMConfigSetInt(conf, "sdl", 1) < 0)
                     goto no_memory;
@@ -1774,7 +1886,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
     diskVal->list = NULL;
 
     for (i = 0 ; i < def->ndisks ; i++) {
-        if (xendConfigVersion == 1 &&
+        if (xendConfigVersion == XEND_CONFIG_VERSION_3_0_2 &&
             def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_CDROM &&
             def->disks[i]->dst &&
             STREQ(def->disks[i]->dst, "hdc")) {
@@ -1912,5 +2024,5 @@ cleanup:
     VIR_FREE(cpus);
     if (conf)
         virConfFree(conf);
-    return (NULL);
+    return NULL;
 }

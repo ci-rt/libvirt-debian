@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
  * lxc_driver.c: linux container driver functions
@@ -56,8 +56,11 @@
 #include "domain_nwfilter.h"
 #include "network/bridge_driver.h"
 #include "virnetdev.h"
+#include "virnetdevtap.h"
 #include "virnodesuspend.h"
 #include "virtime.h"
+#include "virtypedparam.h"
+#include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -109,7 +112,6 @@ static void lxcDomainObjPrivateFree(void *data)
 }
 
 
-static void lxcDomainEventFlush(int timer, void *opaque);
 static void lxcDomainEventQueue(lxc_driver_t *driver,
                                 virDomainEventPtr event);
 
@@ -138,11 +140,8 @@ static virDrvOpenStatus lxcOpen(virConnectPtr conn,
         if (lxc_driver == NULL)
             return VIR_DRV_OPEN_DECLINED;
 
-        conn->uri = xmlParseURI("lxc:///");
-        if (!conn->uri) {
-            virReportOOMError();
+        if (!(conn->uri = virURIParse("lxc:///")))
             return VIR_DRV_OPEN_ERROR;
-        }
     } else {
         if (conn->uri->scheme == NULL ||
             STRNEQ(conn->uri->scheme, "lxc"))
@@ -179,8 +178,8 @@ static int lxcClose(virConnectPtr conn)
     lxc_driver_t *driver = conn->privateData;
 
     lxcDriverLock(driver);
-    virDomainEventCallbackListRemoveConn(conn,
-                                         driver->domainEventState->callbacks);
+    virDomainEventStateDeregisterConn(conn,
+                                      driver->domainEventState);
     lxcProcessAutoDestroyRun(driver, conn);
     lxcDriverUnlock(driver);
 
@@ -441,6 +440,9 @@ static virDomainPtr lxcDomainDefine(virConnectPtr conn, const char *xml)
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
+    if (virSecurityManagerVerify(driver->securityManager, def) < 0)
+        goto cleanup;
+
     if ((dupVM = virDomainObjIsDuplicate(&driver->domains, def, 0)) < 0)
         goto cleanup;
 
@@ -665,10 +667,12 @@ cleanup:
 }
 
 /* Returns max memory in kb, 0 if error */
-static unsigned long lxcDomainGetMaxMemory(virDomainPtr dom) {
+static unsigned long long
+lxcDomainGetMaxMemory(virDomainPtr dom)
+{
     lxc_driver_t *driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    unsigned long ret = 0;
+    unsigned long long ret = 0;
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -779,18 +783,29 @@ cleanup:
     return ret;
 }
 
-static int lxcDomainSetMemoryParameters(virDomainPtr dom,
-                                        virTypedParameterPtr params,
-                                        int nparams,
-                                        unsigned int flags)
+static int
+lxcDomainSetMemoryParameters(virDomainPtr dom,
+                             virTypedParameterPtr params,
+                             int nparams,
+                             unsigned int flags)
 {
     lxc_driver_t *driver = dom->conn->privateData;
     int i;
     virCgroupPtr cgroup = NULL;
     virDomainObjPtr vm = NULL;
     int ret = -1;
+    int rc;
 
     virCheckFlags(0, -1);
+    if (virTypedParameterArrayValidate(params, nparams,
+                                       VIR_DOMAIN_MEMORY_HARD_LIMIT,
+                                       VIR_TYPED_PARAM_ULLONG,
+                                       VIR_DOMAIN_MEMORY_SOFT_LIMIT,
+                                       VIR_TYPED_PARAM_ULLONG,
+                                       VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT,
+                                       VIR_TYPED_PARAM_ULLONG,
+                                       NULL) < 0)
+        return -1;
 
     lxcDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -814,14 +829,6 @@ static int lxcDomainSetMemoryParameters(virDomainPtr dom,
         virTypedParameterPtr param = &params[i];
 
         if (STREQ(param->field, VIR_DOMAIN_MEMORY_HARD_LIMIT)) {
-            int rc;
-            if (param->type != VIR_TYPED_PARAM_ULLONG) {
-                lxcError(VIR_ERR_INVALID_ARG, "%s",
-                         _("invalid type for memory hard_limit tunable, expected a 'ullong'"));
-                ret = -1;
-                continue;
-            }
-
             rc = virCgroupSetMemoryHardLimit(cgroup, params[i].value.ul);
             if (rc != 0) {
                 virReportSystemError(-rc, "%s",
@@ -829,14 +836,6 @@ static int lxcDomainSetMemoryParameters(virDomainPtr dom,
                 ret = -1;
             }
         } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_SOFT_LIMIT)) {
-            int rc;
-            if (param->type != VIR_TYPED_PARAM_ULLONG) {
-                lxcError(VIR_ERR_INVALID_ARG, "%s",
-                         _("invalid type for memory soft_limit tunable, expected a 'ullong'"));
-                ret = -1;
-                continue;
-            }
-
             rc = virCgroupSetMemorySoftLimit(cgroup, params[i].value.ul);
             if (rc != 0) {
                 virReportSystemError(-rc, "%s",
@@ -844,28 +843,12 @@ static int lxcDomainSetMemoryParameters(virDomainPtr dom,
                 ret = -1;
             }
         } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT)) {
-            int rc;
-            if (param->type != VIR_TYPED_PARAM_ULLONG) {
-                lxcError(VIR_ERR_INVALID_ARG, "%s",
-                         _("invalid type for swap_hard_limit tunable, expected a 'ullong'"));
-                ret = -1;
-                continue;
-            }
-
             rc = virCgroupSetMemSwapHardLimit(cgroup, params[i].value.ul);
             if (rc != 0) {
                 virReportSystemError(-rc, "%s",
                                      _("unable to set swap_hard_limit tunable"));
                 ret = -1;
             }
-        } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_MIN_GUARANTEE)) {
-            lxcError(VIR_ERR_INVALID_ARG,
-                     _("Memory tunable `%s' not implemented"), param->field);
-            ret = -1;
-        } else {
-            lxcError(VIR_ERR_INVALID_ARG,
-                     _("Parameter `%s' not supported"), param->field);
-            ret = -1;
         }
     }
 
@@ -878,10 +861,11 @@ cleanup:
     return ret;
 }
 
-static int lxcDomainGetMemoryParameters(virDomainPtr dom,
-                                        virTypedParameterPtr params,
-                                        int *nparams,
-                                        unsigned int flags)
+static int
+lxcDomainGetMemoryParameters(virDomainPtr dom,
+                             virTypedParameterPtr params,
+                             int *nparams,
+                             unsigned int flags)
 {
     lxc_driver_t *driver = dom->conn->privateData;
     int i;
@@ -920,8 +904,6 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
     for (i = 0; i < LXC_NB_MEM_PARAM && i < *nparams; i++) {
         virTypedParameterPtr param = &params[i];
         val = 0;
-        param->value.ul = 0;
-        param->type = VIR_TYPED_PARAM_ULLONG;
 
         switch(i) {
         case 0: /* fill memory hard limit here */
@@ -931,14 +913,10 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
                                      _("unable to get memory hard limit"));
                 goto cleanup;
             }
-            if (virStrcpyStatic(param->field, VIR_DOMAIN_MEMORY_HARD_LIMIT) == NULL) {
-                lxcError(VIR_ERR_INTERNAL_ERROR,
-                         "%s", _("Field memory hard limit too long for destination"));
+            if (virTypedParameterAssign(param, VIR_DOMAIN_MEMORY_HARD_LIMIT,
+                                        VIR_TYPED_PARAM_ULLONG, val) < 0)
                 goto cleanup;
-            }
-            param->value.ul = val;
             break;
-
         case 1: /* fill memory soft limit here */
             rc = virCgroupGetMemorySoftLimit(cgroup, &val);
             if (rc != 0) {
@@ -946,14 +924,10 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
                                      _("unable to get memory soft limit"));
                 goto cleanup;
             }
-            if (virStrcpyStatic(param->field, VIR_DOMAIN_MEMORY_SOFT_LIMIT) == NULL) {
-                lxcError(VIR_ERR_INTERNAL_ERROR,
-                         "%s", _("Field memory soft limit too long for destination"));
+            if (virTypedParameterAssign(param, VIR_DOMAIN_MEMORY_SOFT_LIMIT,
+                                        VIR_TYPED_PARAM_ULLONG, val) < 0)
                 goto cleanup;
-            }
-            param->value.ul = val;
             break;
-
         case 2: /* fill swap hard limit here */
             rc = virCgroupGetMemSwapHardLimit(cgroup, &val);
             if (rc != 0) {
@@ -961,12 +935,10 @@ static int lxcDomainGetMemoryParameters(virDomainPtr dom,
                                      _("unable to get swap hard limit"));
                 goto cleanup;
             }
-            if (virStrcpyStatic(param->field, VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT) == NULL) {
-                lxcError(VIR_ERR_INTERNAL_ERROR,
-                         "%s", _("Field swap hard limit too long for destination"));
+            if (virTypedParameterAssign(param,
+                                        VIR_DOMAIN_MEMORY_SWAP_HARD_LIMIT,
+                                        VIR_TYPED_PARAM_ULLONG, val) < 0)
                 goto cleanup;
-            }
-            param->value.ul = val;
             break;
 
         default:
@@ -1134,6 +1106,7 @@ static void lxcVmCleanup(lxc_driver_t *driver,
     virCgroupPtr cgroup;
     int i;
     lxcDomainObjPrivatePtr priv = vm->privateData;
+    virNetDevVPortProfilePtr vport = NULL;
 
     /* now that we know it's stopped call the hook if present */
     if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
@@ -1141,7 +1114,8 @@ static void lxcVmCleanup(lxc_driver_t *driver,
 
         /* we can't stop the operation even if the script raised an error */
         virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
-                    VIR_HOOK_LXC_OP_STOPPED, VIR_HOOK_SUBOP_END, NULL, xml);
+                    VIR_HOOK_LXC_OP_STOPPED, VIR_HOOK_SUBOP_END,
+                    NULL, xml, NULL);
         VIR_FREE(xml);
     }
 
@@ -1161,10 +1135,15 @@ static void lxcVmCleanup(lxc_driver_t *driver,
     priv->monitorWatch = -1;
 
     for (i = 0 ; i < vm->def->nnets ; i++) {
-        ignore_value(virNetDevSetOnline(vm->def->nets[i]->ifname, false));
-        ignore_value(virNetDevVethDelete(vm->def->nets[i]->ifname));
-
-        networkReleaseActualDevice(vm->def->nets[i]);
+        virDomainNetDefPtr iface = vm->def->nets[i];
+        vport = virDomainNetGetActualVirtPortProfile(iface);
+        ignore_value(virNetDevSetOnline(iface->ifname, false));
+        if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH)
+            ignore_value(virNetDevOpenvswitchRemovePort(
+                            virDomainNetGetActualBridgeName(iface),
+                            iface->ifname));
+        ignore_value(virNetDevVethDelete(iface->ifname));
+        networkReleaseActualDevice(iface);
     }
 
     virDomainConfVMNWFilterTeardown(vm);
@@ -1185,6 +1164,7 @@ static void lxcVmCleanup(lxc_driver_t *driver,
 
 
 static int lxcSetupInterfaceBridged(virConnectPtr conn,
+                                    virDomainDefPtr vm,
                                     virDomainNetDefPtr net,
                                     const char *brname,
                                     unsigned int *nveths,
@@ -1193,6 +1173,7 @@ static int lxcSetupInterfaceBridged(virConnectPtr conn,
     int ret = -1;
     char *parentVeth;
     char *containerVeth = NULL;
+    const virNetDevVPortProfilePtr vport = virDomainNetGetActualVirtPortProfile(net);
 
     VIR_DEBUG("calling vethCreate()");
     parentVeth = net->ifname;
@@ -1214,7 +1195,12 @@ static int lxcSetupInterfaceBridged(virConnectPtr conn,
     if (virNetDevSetMAC(containerVeth, net->mac) < 0)
         goto cleanup;
 
-    if (virNetDevBridgeAddPort(brname, parentVeth) < 0)
+    if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH)
+        ret = virNetDevOpenvswitchAddPort(brname, parentVeth, net->mac,
+                                          vm->uuid, vport);
+    else
+        ret = virNetDevBridgeAddPort(brname, parentVeth);
+    if (ret < 0)
         goto cleanup;
 
     if (virNetDevSetOnline(parentVeth, true) < 0)
@@ -1229,7 +1215,7 @@ static int lxcSetupInterfaceBridged(virConnectPtr conn,
     }
 
     if (net->filter &&
-        virDomainConfNWFilterInstantiate(conn, net) < 0)
+        virDomainConfNWFilterInstantiate(conn, vm->uuid, net) < 0)
         goto cleanup;
 
     ret = 0;
@@ -1270,7 +1256,7 @@ static int lxcSetupInterfaceDirect(virConnectPtr conn,
      * and automagically dies when the container dies. So
      * we have no dev to perform disassociation with.
      */
-    prof = virDomainNetGetActualDirectVirtPortProfile(net);
+    prof = virDomainNetGetActualVirtPortProfile(net);
     if (prof) {
         lxcError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                  _("Unable to set port profile on direct interfaces"));
@@ -1288,7 +1274,7 @@ static int lxcSetupInterfaceDirect(virConnectPtr conn,
             virDomainNetGetActualDirectDev(net),
             virDomainNetGetActualDirectMode(net),
             false, false, def->uuid,
-            virDomainNetGetActualDirectVirtPortProfile(net),
+            virDomainNetGetActualVirtPortProfile(net),
             &res_ifname,
             VIR_NETDEV_VPORT_PROFILE_OP_CREATE,
             driver->stateDir,
@@ -1349,6 +1335,7 @@ static int lxcSetupInterfaces(virConnectPtr conn,
                 goto cleanup;
 
             if (lxcSetupInterfaceBridged(conn,
+                                         def,
                                          def->nets[i],
                                          brname,
                                          nveths,
@@ -1367,6 +1354,7 @@ static int lxcSetupInterfaces(virConnectPtr conn,
                 goto cleanup;
             }
             if (lxcSetupInterfaceBridged(conn,
+                                         def,
                                          def->nets[i],
                                          brname,
                                          nveths,
@@ -1403,8 +1391,15 @@ static int lxcSetupInterfaces(virConnectPtr conn,
 
 cleanup:
     if (ret != 0) {
-        for (i = 0 ; i < def->nnets ; i++)
-            networkReleaseActualDevice(def->nets[i]);
+        for (i = 0 ; i < def->nnets ; i++) {
+            virDomainNetDefPtr iface = def->nets[i];
+            virNetDevVPortProfilePtr vport = virDomainNetGetActualVirtPortProfile(iface);
+            if (vport && vport->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH)
+                ignore_value(virNetDevOpenvswitchRemovePort(
+                                virDomainNetGetActualBridgeName(iface),
+                                iface->ifname));
+            networkReleaseActualDevice(iface);
+        }
     }
     return ret;
 }
@@ -1423,7 +1418,21 @@ static int lxcMonitorClient(lxc_driver_t * driver,
         return -1;
     }
 
-    if ((fd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0) {
+    if (virSecurityManagerSetSocketLabel(driver->securityManager, vm->def) < 0) {
+        VIR_ERROR(_("Failed to set security context for monitor for %s"),
+                  vm->def->name);
+        goto error;
+    }
+
+    fd = socket(PF_UNIX, SOCK_STREAM, 0);
+
+    if (virSecurityManagerClearSocketLabel(driver->securityManager, vm->def) < 0) {
+        VIR_ERROR(_("Failed to clear security context for monitor for %s"),
+                  vm->def->name);
+        goto error;
+    }
+
+    if (fd < 0) {
         virReportSystemError(errno, "%s",
                              _("Failed to create client socket"));
         goto error;
@@ -1464,6 +1473,16 @@ static int lxcVmTerminate(lxc_driver_t *driver,
         lxcError(VIR_ERR_INTERNAL_ERROR,
                  _("Invalid PID %d for container"), vm->pid);
         return -1;
+    }
+
+    virSecurityManagerRestoreAllLabel(driver->securityManager,
+                                      vm->def, false);
+    virSecurityManagerReleaseLabel(driver->securityManager, vm->def);
+    /* Clear out dynamically assigned labels */
+    if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_DYNAMIC) {
+        VIR_FREE(vm->def->seclabel.model);
+        VIR_FREE(vm->def->seclabel.label);
+        VIR_FREE(vm->def->seclabel.imagelabel);
     }
 
     if (virCgroupForDomain(driver->cgroup, vm->def->name, &group, 0) == 0) {
@@ -1596,6 +1615,10 @@ lxcBuildControllerCmd(lxc_driver_t *driver,
         virCommandAddArgFormat(cmd, "%d", ttyFDs[i]);
         virCommandPreserveFD(cmd, ttyFDs[i]);
     }
+
+    if (driver->securityDriverName)
+        virCommandAddArgPair(cmd, "--security", driver->securityDriverName);
+
     virCommandAddArg(cmd, "--handshake");
     virCommandAddArgFormat(cmd, "%d", handshakefd);
     virCommandAddArg(cmd, "--background");
@@ -1610,7 +1633,8 @@ lxcBuildControllerCmd(lxc_driver_t *driver,
         int hookret;
 
         hookret = virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
-                    VIR_HOOK_LXC_OP_START, VIR_HOOK_SUBOP_BEGIN, NULL, xml);
+                              VIR_HOOK_LXC_OP_START, VIR_HOOK_SUBOP_BEGIN,
+                              NULL, xml, NULL);
         VIR_FREE(xml);
 
         /*
@@ -1790,6 +1814,24 @@ static int lxcVmStart(virConnectPtr conn,
         virReportOOMError();
         goto cleanup;
     }
+
+    /* If you are using a SecurityDriver with dynamic labelling,
+       then generate a security label for isolation */
+    VIR_DEBUG("Generating domain security label (if required)");
+    if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_DEFAULT)
+        vm->def->seclabel.type = VIR_DOMAIN_SECLABEL_NONE;
+
+    if (virSecurityManagerGenLabel(driver->securityManager, vm->def) < 0) {
+        virDomainAuditSecurityLabel(vm, false);
+        goto cleanup;
+    }
+    virDomainAuditSecurityLabel(vm, true);
+
+    VIR_DEBUG("Setting domain security labels");
+    if (virSecurityManagerSetAllLabel(driver->securityManager,
+                                      vm->def, NULL) < 0)
+        goto cleanup;
+
     for (i = 0 ; i < vm->def->nconsoles ; i++)
         ttyFDs[i] = -1;
 
@@ -1855,7 +1897,7 @@ static int lxcVmStart(virConnectPtr conn,
     if (safewrite(logfd, timestamp, strlen(timestamp)) < 0 ||
         safewrite(logfd, START_POSTFIX, strlen(START_POSTFIX)) < 0) {
         VIR_WARN("Unable to write timestamp to logfile: %s",
-                 virStrerror(errno, ebuf, sizeof ebuf));
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
     }
     VIR_FREE(timestamp);
 
@@ -1863,7 +1905,7 @@ static int lxcVmStart(virConnectPtr conn,
     virCommandWriteArgLog(cmd, logfd);
     if ((pos = lseek(logfd, 0, SEEK_END)) < 0)
         VIR_WARN("Unable to seek to end of logfile: %s",
-                 virStrerror(errno, ebuf, sizeof ebuf));
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
 
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
@@ -1945,6 +1987,16 @@ cleanup:
     if (rc != 0) {
         VIR_FORCE_CLOSE(priv->monitor);
         virDomainConfVMNWFilterTeardown(vm);
+
+        virSecurityManagerRestoreAllLabel(driver->securityManager,
+                                          vm->def, false);
+        virSecurityManagerReleaseLabel(driver->securityManager, vm->def);
+        /* Clear out dynamically assigned labels */
+        if (vm->def->seclabel.type == VIR_DOMAIN_SECLABEL_DYNAMIC) {
+            VIR_FREE(vm->def->seclabel.model);
+            VIR_FREE(vm->def->seclabel.label);
+            VIR_FREE(vm->def->seclabel.imagelabel);
+        }
     }
     for (i = 0 ; i < nttyFDs ; i++)
         VIR_FORCE_CLOSE(ttyFDs[i]);
@@ -2069,6 +2121,9 @@ lxcDomainCreateAndStart(virConnectPtr conn,
                                         VIR_DOMAIN_XML_INACTIVE)))
         goto cleanup;
 
+    if (virSecurityManagerVerify(driver->securityManager, def) < 0)
+        goto cleanup;
+
     if (virDomainObjIsDuplicate(&driver->domains, def, 1) < 0)
         goto cleanup;
 
@@ -2113,6 +2168,102 @@ cleanup:
 }
 
 
+static int lxcDomainGetSecurityLabel(virDomainPtr dom, virSecurityLabelPtr seclabel)
+{
+    lxc_driver_t *driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    int ret = -1;
+
+    lxcDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+
+    memset(seclabel, 0, sizeof(*seclabel));
+
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        lxcError(VIR_ERR_NO_DOMAIN,
+                 _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (!virDomainVirtTypeToString(vm->def->virtType)) {
+        lxcError(VIR_ERR_INTERNAL_ERROR,
+                 _("unknown virt type in domain definition '%d'"),
+                 vm->def->virtType);
+        goto cleanup;
+    }
+
+    /*
+     * Theoretically, the pid can be replaced during this operation and
+     * return the label of a different process.  If atomicity is needed,
+     * further validation will be required.
+     *
+     * Comment from Dan Berrange:
+     *
+     *   Well the PID as stored in the virDomainObjPtr can't be changed
+     *   because you've got a locked object.  The OS level PID could have
+     *   exited, though and in extreme circumstances have cycled through all
+     *   PIDs back to ours. We could sanity check that our PID still exists
+     *   after reading the label, by checking that our FD connecting to the
+     *   LXC monitor hasn't seen SIGHUP/ERR on poll().
+     */
+    if (virDomainObjIsActive(vm)) {
+        if (virSecurityManagerGetProcessLabel(driver->securityManager,
+                                              vm->def, vm->pid, seclabel) < 0) {
+            lxcError(VIR_ERR_INTERNAL_ERROR,
+                     "%s", _("Failed to get security label"));
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+
+cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    lxcDriverUnlock(driver);
+    return ret;
+}
+
+static int lxcNodeGetSecurityModel(virConnectPtr conn,
+                                   virSecurityModelPtr secmodel)
+{
+    lxc_driver_t *driver = conn->privateData;
+    int ret = 0;
+
+    lxcDriverLock(driver);
+    memset(secmodel, 0, sizeof(*secmodel));
+
+    /* NULL indicates no driver, which we treat as
+     * success, but simply return no data in *secmodel */
+    if (driver->caps->host.secModel.model == NULL)
+        goto cleanup;
+
+    if (!virStrcpy(secmodel->model, driver->caps->host.secModel.model,
+                   VIR_SECURITY_MODEL_BUFLEN)) {
+        lxcError(VIR_ERR_INTERNAL_ERROR,
+                 _("security model string exceeds max %d bytes"),
+                 VIR_SECURITY_MODEL_BUFLEN - 1);
+        ret = -1;
+        goto cleanup;
+    }
+
+    if (!virStrcpy(secmodel->doi, driver->caps->host.secModel.doi,
+                   VIR_SECURITY_DOI_BUFLEN)) {
+        lxcError(VIR_ERR_INTERNAL_ERROR,
+                 _("security DOI string exceeds max %d bytes"),
+                 VIR_SECURITY_DOI_BUFLEN-1);
+        ret = -1;
+        goto cleanup;
+    }
+
+cleanup:
+    lxcDriverUnlock(driver);
+    return ret;
+}
+
+
 static int
 lxcDomainEventRegister(virConnectPtr conn,
                        virConnectDomainEventCallback callback,
@@ -2123,9 +2274,9 @@ lxcDomainEventRegister(virConnectPtr conn,
     int ret;
 
     lxcDriverLock(driver);
-    ret = virDomainEventCallbackListAdd(conn,
-                                        driver->domainEventState->callbacks,
-                                        callback, opaque, freecb);
+    ret = virDomainEventStateRegister(conn,
+                                      driver->domainEventState,
+                                      callback, opaque, freecb);
     lxcDriverUnlock(driver);
 
     return ret;
@@ -2161,10 +2312,11 @@ lxcDomainEventRegisterAny(virConnectPtr conn,
     int ret;
 
     lxcDriverLock(driver);
-    ret = virDomainEventCallbackListAddID(conn,
-                                          driver->domainEventState->callbacks,
-                                          dom, eventID,
-                                          callback, opaque, freecb);
+    if (virDomainEventStateRegisterID(conn,
+                                      driver->domainEventState,
+                                      dom, eventID,
+                                      callback, opaque, freecb, &ret) < 0)
+        ret = -1;
     lxcDriverUnlock(driver);
 
     return ret;
@@ -2179,39 +2331,12 @@ lxcDomainEventDeregisterAny(virConnectPtr conn,
     int ret;
 
     lxcDriverLock(driver);
-    ret = virDomainEventStateDeregisterAny(conn,
-                                           driver->domainEventState,
-                                           callbackID);
+    ret = virDomainEventStateDeregisterID(conn,
+                                          driver->domainEventState,
+                                          callbackID);
     lxcDriverUnlock(driver);
 
     return ret;
-}
-
-
-static void lxcDomainEventDispatchFunc(virConnectPtr conn,
-                                       virDomainEventPtr event,
-                                       virConnectDomainEventGenericCallback cb,
-                                       void *cbopaque,
-                                       void *opaque)
-{
-    lxc_driver_t *driver = opaque;
-
-    /* Drop the lock whle dispatching, for sake of re-entrancy */
-    lxcDriverUnlock(driver);
-    virDomainEventDispatchDefaultFunc(conn, event, cb, cbopaque, NULL);
-    lxcDriverLock(driver);
-}
-
-
-static void lxcDomainEventFlush(int timer ATTRIBUTE_UNUSED, void *opaque)
-{
-    lxc_driver_t *driver = opaque;
-
-    lxcDriverLock(driver);
-    virDomainEventStateFlush(driver->domainEventState,
-                             lxcDomainEventDispatchFunc,
-                             driver);
-    lxcDriverUnlock(driver);
 }
 
 
@@ -2387,6 +2512,10 @@ lxcReconnectVM(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaque)
                  lxcMonitorEvent,
                  vm, NULL)) < 0)
             goto error;
+
+        if (virSecurityManagerReserveLabel(driver->securityManager,
+                                           vm->def, vm->pid) < 0)
+            goto error;
     } else {
         vm->def->id = -1;
         VIR_FORCE_CLOSE(priv->monitor);
@@ -2400,6 +2529,27 @@ error:
     lxcVmTerminate(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED);
     virDomainAuditStop(vm, "failed");
     goto cleanup;
+}
+
+
+static int
+lxcSecurityInit(lxc_driver_t *driver)
+{
+    virSecurityManagerPtr mgr = virSecurityManagerNew(driver->securityDriverName,
+                                                      false,
+                                                      driver->securityDefaultConfined,
+                                                      driver->securityRequireConfined);
+    if (!mgr)
+        goto error;
+
+    driver->securityManager = mgr;
+
+    return 0;
+
+error:
+    VIR_ERROR(_("Failed to initialize security drivers"));
+    virSecurityManagerFree(mgr);
+    return -1;
 }
 
 
@@ -2442,10 +2592,7 @@ static int lxcStartup(int privileged)
     if (virDomainObjListInit(&lxc_driver->domains) < 0)
         goto cleanup;
 
-    lxc_driver->domainEventState = virDomainEventStateNew(lxcDomainEventFlush,
-                                                          lxc_driver,
-                                                          NULL,
-                                                          true);
+    lxc_driver->domainEventState = virDomainEventStateNew();
     if (!lxc_driver->domainEventState)
         goto cleanup;
 
@@ -2466,7 +2613,10 @@ static int lxcStartup(int privileged)
     if (lxcLoadDriverConfig(lxc_driver) < 0)
         goto cleanup;
 
-    if ((lxc_driver->caps = lxcCapsInit()) == NULL)
+    if (lxcSecurityInit(lxc_driver) < 0)
+        goto cleanup;
+
+    if ((lxc_driver->caps = lxcCapsInit(lxc_driver)) == NULL)
         goto cleanup;
 
     lxc_driver->caps->privateDataAllocFunc = lxcDomainObjPrivateAlloc;
@@ -2549,7 +2699,7 @@ lxcReload(void) {
 static int lxcShutdown(void)
 {
     if (lxc_driver == NULL)
-        return(-1);
+        return -1;
 
     lxcDriverLock(lxc_driver);
     virDomainObjListDeinit(&lxc_driver->domains);
@@ -2558,6 +2708,7 @@ static int lxcShutdown(void)
     lxcProcessAutoDestroyShutdown(lxc_driver);
 
     virCapabilitiesFree(lxc_driver->caps);
+    virSecurityManagerFree(lxc_driver->securityManager);
     VIR_FREE(lxc_driver->configDir);
     VIR_FREE(lxc_driver->autostartDir);
     VIR_FREE(lxc_driver->stateDir);
@@ -2581,7 +2732,7 @@ lxcActive(void) {
     int active;
 
     if (lxc_driver == NULL)
-        return(0);
+        return 0;
 
     lxcDriverLock(lxc_driver);
     active = virDomainObjListNumOfDomains(&lxc_driver->domains, 1);
@@ -2776,11 +2927,19 @@ lxcSetSchedulerParametersFlags(virDomainPtr dom,
     virDomainObjPtr vm = NULL;
     virDomainDefPtr vmdef = NULL;
     int ret = -1;
-    bool isActive;
     int rc;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
+    if (virTypedParameterArrayValidate(params, nparams,
+                                       VIR_DOMAIN_SCHEDULER_CPU_SHARES,
+                                       VIR_TYPED_PARAM_ULLONG,
+                                       VIR_DOMAIN_SCHEDULER_VCPU_PERIOD,
+                                       VIR_TYPED_PARAM_ULLONG,
+                                       VIR_DOMAIN_SCHEDULER_VCPU_QUOTA,
+                                       VIR_TYPED_PARAM_LLONG,
+                                       NULL) < 0)
+        return -1;
 
     lxcDriverLock(driver);
 
@@ -2792,22 +2951,11 @@ lxcSetSchedulerParametersFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    isActive = virDomainObjIsActive(vm);
-
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &vmdef) < 0)
+        goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            lxcError(VIR_ERR_OPERATION_INVALID, "%s",
-                     _("cannot change persistent config of a transient domain"));
-            goto cleanup;
-        }
-
         /* Make a copy for updated domain. */
         vmdef = virDomainObjCopyPersistentDef(driver->caps, vm);
         if (!vmdef)
@@ -2815,12 +2963,6 @@ lxcSetSchedulerParametersFlags(virDomainPtr dom,
     }
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!isActive) {
-            lxcError(VIR_ERR_OPERATION_INVALID,
-                     "%s", _("domain is not running"));
-            goto cleanup;
-        }
-
         if (!lxcCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPU)) {
             lxcError(VIR_ERR_OPERATION_INVALID,
                      "%s", _("cgroup CPU controller is not mounted"));
@@ -2838,12 +2980,6 @@ lxcSetSchedulerParametersFlags(virDomainPtr dom,
         virTypedParameterPtr param = &params[i];
 
         if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_CPU_SHARES)) {
-            if (param->type != VIR_TYPED_PARAM_ULLONG) {
-                lxcError(VIR_ERR_INVALID_ARG, "%s",
-                         _("invalid type for cpu_shares tunable, expected a 'ullong'"));
-                goto cleanup;
-            }
-
             if (flags & VIR_DOMAIN_AFFECT_LIVE) {
                 rc = virCgroupSetCpuShares(group, params[i].value.ul);
                 if (rc != 0) {
@@ -2859,13 +2995,6 @@ lxcSetSchedulerParametersFlags(virDomainPtr dom,
                 vmdef->cputune.shares = params[i].value.ul;
             }
         } else if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_VCPU_PERIOD)) {
-            if (param->type != VIR_TYPED_PARAM_ULLONG) {
-                lxcError(VIR_ERR_INVALID_ARG, "%s",
-                         _("invalid type for vcpu_period tunable,"
-                           " expected a 'ullong'"));
-                goto cleanup;
-            }
-
             if (flags & VIR_DOMAIN_AFFECT_LIVE) {
                 rc = lxcSetVcpuBWLive(group, params[i].value.ul, 0);
                 if (rc != 0)
@@ -2879,13 +3008,6 @@ lxcSetSchedulerParametersFlags(virDomainPtr dom,
                 vmdef->cputune.period = params[i].value.ul;
             }
         } else if (STREQ(param->field, VIR_DOMAIN_SCHEDULER_VCPU_QUOTA)) {
-            if (param->type != VIR_TYPED_PARAM_LLONG) {
-                lxcError(VIR_ERR_INVALID_ARG, "%s",
-                         _("invalid type for vcpu_quota tunable,"
-                           " expected a 'llong'"));
-                goto cleanup;
-            }
-
             if (flags & VIR_DOMAIN_AFFECT_LIVE) {
                 rc = lxcSetVcpuBWLive(group, 0, params[i].value.l);
                 if (rc != 0)
@@ -2898,10 +3020,6 @@ lxcSetSchedulerParametersFlags(virDomainPtr dom,
             if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
                 vmdef->cputune.quota = params[i].value.l;
             }
-        } else {
-            lxcError(VIR_ERR_INVALID_ARG,
-                     _("Invalid parameter `%s'"), param->field);
-            goto cleanup;
         }
     }
 
@@ -2946,12 +3064,12 @@ lxcGetSchedulerParametersFlags(virDomainPtr dom,
     lxc_driver_t *driver = dom->conn->privateData;
     virCgroupPtr group = NULL;
     virDomainObjPtr vm = NULL;
+    virDomainDefPtr persistentDef;
     unsigned long long shares = 0;
     unsigned long long period = 0;
     long long quota = 0;
     int ret = -1;
     int rc;
-    bool isActive;
     bool cpu_bw_status = false;
     int saved_nparams = 0;
 
@@ -2975,50 +3093,17 @@ lxcGetSchedulerParametersFlags(virDomainPtr dom,
         goto cleanup;
     }
 
-    isActive = virDomainObjIsActive(vm);
-
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            lxcError(VIR_ERR_OPERATION_INVALID, "%s",
-                     _("cannot query persistent config of a transient domain"));
-            goto cleanup;
-        }
-
-        if (isActive) {
-            virDomainDefPtr persistentDef;
-
-            persistentDef = virDomainObjGetPersistentDef(driver->caps, vm);
-            if (!persistentDef) {
-                lxcError(VIR_ERR_INTERNAL_ERROR, "%s",
-                         _("can't get persistentDef"));
-                goto cleanup;
-            }
-            shares = persistentDef->cputune.shares;
-            if (*nparams > 1 && cpu_bw_status) {
-                period = persistentDef->cputune.period;
-                quota = persistentDef->cputune.quota;
-            }
-        } else {
-            shares = vm->def->cputune.shares;
-            if (*nparams > 1 && cpu_bw_status) {
-                period = vm->def->cputune.period;
-                quota = vm->def->cputune.quota;
-            }
+        shares = persistentDef->cputune.shares;
+        if (*nparams > 1 && cpu_bw_status) {
+            period = persistentDef->cputune.period;
+            quota = persistentDef->cputune.quota;
         }
         goto out;
-    }
-
-    if (!isActive) {
-        lxcError(VIR_ERR_OPERATION_INVALID, "%s",
-                 _("domain is not running"));
-        goto cleanup;
     }
 
     if (!lxcCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPU)) {
@@ -3046,42 +3131,25 @@ lxcGetSchedulerParametersFlags(virDomainPtr dom,
             goto cleanup;
     }
 out:
-    params[0].value.ul = shares;
-    params[0].type = VIR_TYPED_PARAM_ULLONG;
-    if (virStrcpyStatic(params[0].field,
-                        VIR_DOMAIN_SCHEDULER_CPU_SHARES) == NULL) {
-        lxcError(VIR_ERR_INTERNAL_ERROR,
-                 _("Field name '%s' too long"),
-                 VIR_DOMAIN_SCHEDULER_CPU_SHARES);
+    if (virTypedParameterAssign(&params[0], VIR_DOMAIN_SCHEDULER_CPU_SHARES,
+                                VIR_TYPED_PARAM_ULLONG, shares) < 0)
         goto cleanup;
-    }
-
     saved_nparams++;
 
     if (cpu_bw_status) {
         if (*nparams > saved_nparams) {
-            params[1].value.ul = period;
-            params[1].type = VIR_TYPED_PARAM_ULLONG;
-            if (virStrcpyStatic(params[1].field,
-                                VIR_DOMAIN_SCHEDULER_VCPU_PERIOD) == NULL) {
-                lxcError(VIR_ERR_INTERNAL_ERROR,
-                         _("Field name '%s' too long"),
-                         VIR_DOMAIN_SCHEDULER_VCPU_PERIOD);
+            if (virTypedParameterAssign(&params[1],
+                                        VIR_DOMAIN_SCHEDULER_VCPU_PERIOD,
+                                        VIR_TYPED_PARAM_ULLONG, period) < 0)
                 goto cleanup;
-            }
             saved_nparams++;
         }
 
         if (*nparams > saved_nparams) {
-            params[2].value.ul = quota;
-            params[2].type = VIR_TYPED_PARAM_LLONG;
-            if (virStrcpyStatic(params[2].field,
-                                VIR_DOMAIN_SCHEDULER_VCPU_QUOTA) == NULL) {
-                lxcError(VIR_ERR_INTERNAL_ERROR,
-                         _("Field name '%s' too long"),
-                         VIR_DOMAIN_SCHEDULER_VCPU_QUOTA);
+            if (virTypedParameterAssign(&params[2],
+                                        VIR_DOMAIN_SCHEDULER_VCPU_QUOTA,
+                                        VIR_TYPED_PARAM_LLONG, quota) < 0)
                 goto cleanup;
-            }
             saved_nparams++;
         }
     }
@@ -3107,10 +3175,11 @@ lxcGetSchedulerParameters(virDomainPtr domain,
 }
 
 
-static int lxcDomainSetBlkioParameters(virDomainPtr dom,
-                                       virTypedParameterPtr params,
-                                       int nparams,
-                                       unsigned int flags)
+static int
+lxcDomainSetBlkioParameters(virDomainPtr dom,
+                            virTypedParameterPtr params,
+                            int nparams,
+                            unsigned int flags)
 {
     lxc_driver_t *driver = dom->conn->privateData;
     int i;
@@ -3118,10 +3187,15 @@ static int lxcDomainSetBlkioParameters(virDomainPtr dom,
     virDomainObjPtr vm = NULL;
     virDomainDefPtr persistentDef = NULL;
     int ret = -1;
-    bool isActive;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
+    if (virTypedParameterArrayValidate(params, nparams,
+                                       VIR_DOMAIN_BLKIO_WEIGHT,
+                                       VIR_TYPED_PARAM_UINT,
+                                       NULL) < 0)
+        return -1;
+
     lxcDriverLock(driver);
 
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -3132,22 +3206,11 @@ static int lxcDomainSetBlkioParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    isActive = virDomainObjIsActive(vm);
-
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!isActive) {
-            lxcError(VIR_ERR_OPERATION_INVALID,
-                     "%s", _("domain is not running"));
-            goto cleanup;
-        }
-
         if (!lxcCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_BLKIO)) {
             lxcError(VIR_ERR_OPERATION_INVALID, _("blkio cgroup isn't mounted"));
             goto cleanup;
@@ -3158,52 +3221,29 @@ static int lxcDomainSetBlkioParameters(virDomainPtr dom,
                      _("cannot find cgroup for domain %s"), vm->def->name);
             goto cleanup;
         }
-    }
 
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            lxcError(VIR_ERR_OPERATION_INVALID, "%s",
-                     _("cannot change persistent config of a transient domain"));
-            goto cleanup;
-        }
-        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-            goto cleanup;
-    }
-
-    ret = 0;
-    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
         for (i = 0; i < nparams; i++) {
             virTypedParameterPtr param = &params[i];
 
             if (STREQ(param->field, VIR_DOMAIN_BLKIO_WEIGHT)) {
                 int rc;
-                if (param->type != VIR_TYPED_PARAM_UINT) {
-                    lxcError(VIR_ERR_INVALID_ARG, "%s",
-                             _("invalid type for blkio weight tunable, expected a 'unsigned int'"));
-                    ret = -1;
-                    continue;
-                }
 
                 if (params[i].value.ui > 1000 || params[i].value.ui < 100) {
                     lxcError(VIR_ERR_INVALID_ARG, "%s",
                              _("out of blkio weight range."));
-                    ret = -1;
-                    continue;
+                    goto cleanup;
                 }
 
                 rc = virCgroupSetBlkioWeight(group, params[i].value.ui);
                 if (rc != 0) {
                     virReportSystemError(-rc, "%s",
                                          _("unable to set blkio weight tunable"));
-                    ret = -1;
+                    goto cleanup;
                 }
-            } else {
-                lxcError(VIR_ERR_INVALID_ARG,
-                         _("Parameter `%s' not supported"), param->field);
-                ret = -1;
             }
         }
-    } else if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+    }
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
         /* Clang can't see that if we get here, persistentDef was set.  */
         sa_assert(persistentDef);
 
@@ -3211,32 +3251,21 @@ static int lxcDomainSetBlkioParameters(virDomainPtr dom,
             virTypedParameterPtr param = &params[i];
 
             if (STREQ(param->field, VIR_DOMAIN_BLKIO_WEIGHT)) {
-                if (param->type != VIR_TYPED_PARAM_UINT) {
-                    lxcError(VIR_ERR_INVALID_ARG, "%s",
-                             _("invalid type for blkio weight tunable, expected a 'unsigned int'"));
-                    ret = -1;
-                    continue;
-                }
-
                 if (params[i].value.ui > 1000 || params[i].value.ui < 100) {
                     lxcError(VIR_ERR_INVALID_ARG, "%s",
                              _("out of blkio weight range."));
-                    ret = -1;
-                    continue;
+                    goto cleanup;
                 }
 
                 persistentDef->blkio.weight = params[i].value.ui;
-            } else {
-                lxcError(VIR_ERR_INVALID_ARG,
-                         _("Parameter `%s' not supported"), param->field);
-                ret = -1;
             }
         }
 
         if (virDomainSaveConfig(driver->configDir, persistentDef) < 0)
-            ret = -1;
+            goto cleanup;
     }
 
+    ret = 0;
 cleanup:
     virCgroupFree(&group);
     if (vm)
@@ -3247,10 +3276,11 @@ cleanup:
 
 
 #define LXC_NB_BLKIO_PARAM  1
-static int lxcDomainGetBlkioParameters(virDomainPtr dom,
-                                       virTypedParameterPtr params,
-                                       int *nparams,
-                                       unsigned int flags)
+static int
+lxcDomainGetBlkioParameters(virDomainPtr dom,
+                            virTypedParameterPtr params,
+                            int *nparams,
+                            unsigned int flags)
 {
     lxc_driver_t *driver = dom->conn->privateData;
     int i;
@@ -3260,7 +3290,6 @@ static int lxcDomainGetBlkioParameters(virDomainPtr dom,
     unsigned int val;
     int ret = -1;
     int rc;
-    bool isActive;
 
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE |
                   VIR_DOMAIN_AFFECT_CONFIG, -1);
@@ -3281,22 +3310,11 @@ static int lxcDomainGetBlkioParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    isActive = virDomainObjIsActive(vm);
-
-    if (flags == VIR_DOMAIN_AFFECT_CURRENT) {
-        if (isActive)
-            flags = VIR_DOMAIN_AFFECT_LIVE;
-        else
-            flags = VIR_DOMAIN_AFFECT_CONFIG;
-    }
+    if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
+                                        &persistentDef) < 0)
+        goto cleanup;
 
     if (flags & VIR_DOMAIN_AFFECT_LIVE) {
-        if (!isActive) {
-            lxcError(VIR_ERR_OPERATION_INVALID,
-                     "%s", _("domain is not running"));
-            goto cleanup;
-        }
-
         if (!lxcCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_BLKIO)) {
             lxcError(VIR_ERR_OPERATION_INVALID, _("blkio cgroup isn't mounted"));
             goto cleanup;
@@ -3307,24 +3325,10 @@ static int lxcDomainGetBlkioParameters(virDomainPtr dom,
                      _("cannot find cgroup for domain %s"), vm->def->name);
             goto cleanup;
         }
-    }
 
-    if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
-        if (!vm->persistent) {
-            lxcError(VIR_ERR_OPERATION_INVALID, "%s",
-                     _("cannot change persistent config of a transient domain"));
-            goto cleanup;
-        }
-        if (!(persistentDef = virDomainObjGetPersistentDef(driver->caps, vm)))
-            goto cleanup;
-    }
-
-    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
         for (i = 0; i < *nparams && i < LXC_NB_BLKIO_PARAM; i++) {
             virTypedParameterPtr param = &params[i];
             val = 0;
-            param->value.ui = 0;
-            param->type = VIR_TYPED_PARAM_UINT;
 
             switch (i) {
             case 0: /* fill blkio weight here */
@@ -3334,13 +3338,9 @@ static int lxcDomainGetBlkioParameters(virDomainPtr dom,
                                          _("unable to get blkio weight"));
                     goto cleanup;
                 }
-                if (virStrcpyStatic(param->field, VIR_DOMAIN_BLKIO_WEIGHT) == NULL) {
-                    lxcError(VIR_ERR_INTERNAL_ERROR,
-                             _("Field name '%s' too long"),
-                             VIR_DOMAIN_BLKIO_WEIGHT);
+                if (virTypedParameterAssign(param, VIR_DOMAIN_BLKIO_WEIGHT,
+                                            VIR_TYPED_PARAM_UINT, val) < 0)
                     goto cleanup;
-                }
-                param->value.ui = val;
                 break;
 
             default:
@@ -3351,19 +3351,13 @@ static int lxcDomainGetBlkioParameters(virDomainPtr dom,
     } else if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
         for (i = 0; i < *nparams && i < LXC_NB_BLKIO_PARAM; i++) {
             virTypedParameterPtr param = &params[i];
-            val = 0;
-            param->value.ui = 0;
-            param->type = VIR_TYPED_PARAM_UINT;
 
             switch (i) {
             case 0: /* fill blkio weight here */
-                if (virStrcpyStatic(param->field, VIR_DOMAIN_BLKIO_WEIGHT) == NULL) {
-                    lxcError(VIR_ERR_INTERNAL_ERROR,
-                             _("Field name '%s' too long"),
-                             VIR_DOMAIN_BLKIO_WEIGHT);
+                if (virTypedParameterAssign(param, VIR_DOMAIN_BLKIO_WEIGHT,
+                                            VIR_TYPED_PARAM_UINT,
+                                            persistentDef->blkio.weight) < 0)
                     goto cleanup;
-                }
-                param->value.ui = persistentDef->blkio.weight;
                 break;
 
             default:
@@ -3886,6 +3880,8 @@ static virDriver lxcDriver = {
     .domainGetBlkioParameters = lxcDomainGetBlkioParameters, /* 0.9.8 */
     .domainGetInfo = lxcDomainGetInfo, /* 0.4.2 */
     .domainGetState = lxcDomainGetState, /* 0.9.2 */
+    .domainGetSecurityLabel = lxcDomainGetSecurityLabel, /* 0.9.10 */
+    .nodeGetSecurityModel = lxcNodeGetSecurityModel, /* 0.9.10 */
     .domainGetXMLDesc = lxcDomainGetXMLDesc, /* 0.4.2 */
     .listDefinedDomains = lxcListDefinedDomains, /* 0.4.2 */
     .numOfDefinedDomains = lxcNumDefinedDomains, /* 0.4.2 */

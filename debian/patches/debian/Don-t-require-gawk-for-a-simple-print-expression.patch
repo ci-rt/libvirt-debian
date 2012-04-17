@@ -6,18 +6,17 @@ Closes: #636712
 Thanks: Luca Capello
 
 
-
 ---
  src/nwfilter/nwfilter_ebiptables_driver.c |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
 diff --git a/src/nwfilter/nwfilter_ebiptables_driver.c b/src/nwfilter/nwfilter_ebiptables_driver.c
-index a62833e..3ec4f6c 100644
+index 0db9f19..09538a2 100644
 --- a/src/nwfilter/nwfilter_ebiptables_driver.c
 +++ b/src/nwfilter/nwfilter_ebiptables_driver.c
-@@ -4025,7 +4025,7 @@ ebiptablesDriverInit(bool privileged)
-     if (virMutexInit(&execCLIMutex))
-         return EINVAL;
+@@ -4044,7 +4044,7 @@ ebiptablesDriverInit(bool privileged)
+     if (virMutexInit(&execCLIMutex) < 0)
+         return -EINVAL;
  
 -    gawk_cmd_path = virFindFileInPath("gawk");
 +    gawk_cmd_path = virFindFileInPath("awk");

@@ -28,7 +28,6 @@
 
 #include "internal.h"
 #include "datatypes.h"
-#include "qparams.h"
 #include "util.h"
 #include "memory.h"
 #include "logging.h"
@@ -42,11 +41,9 @@
 
 
 int
-esxUtil_ParseUri(esxUtil_ParsedUri **parsedUri, xmlURIPtr uri)
+esxUtil_ParseUri(esxUtil_ParsedUri **parsedUri, virURIPtr uri)
 {
     int result = -1;
-    struct qparam_set *queryParamSet = NULL;
-    struct qparam *queryParam = NULL;
     int i;
     int noVerify;
     int autoAnswer;
@@ -62,18 +59,8 @@ esxUtil_ParseUri(esxUtil_ParsedUri **parsedUri, xmlURIPtr uri)
         return -1;
     }
 
-#ifdef HAVE_XMLURI_QUERY_RAW
-    queryParamSet = qparam_query_parse(uri->query_raw);
-#else
-    queryParamSet = qparam_query_parse(uri->query);
-#endif
-
-    if (queryParamSet == NULL) {
-        goto cleanup;
-    }
-
-    for (i = 0; i < queryParamSet->n; i++) {
-        queryParam = &queryParamSet->p[i];
+    for (i = 0; i < uri->paramsCount; i++) {
+        virURIParamPtr queryParam = &uri->params[i];
 
         if (STRCASEEQ(queryParam->name, "transport")) {
             VIR_FREE((*parsedUri)->transport);
@@ -206,10 +193,6 @@ esxUtil_ParseUri(esxUtil_ParsedUri **parsedUri, xmlURIPtr uri)
   cleanup:
     if (result < 0) {
         esxUtil_FreeParsedUri(parsedUri);
-    }
-
-    if (queryParamSet != NULL) {
-        free_qparam_set(queryParamSet);
     }
 
     return result;
@@ -356,7 +339,7 @@ esxUtil_ResolveHostname(const char *hostname,
     struct addrinfo *result = NULL;
     int errcode;
 
-    memset(&hints, 0, sizeof (hints));
+    memset(&hints, 0, sizeof(hints));
 
     hints.ai_flags = AI_ADDRCONFIG;
     hints.ai_family = AF_INET;

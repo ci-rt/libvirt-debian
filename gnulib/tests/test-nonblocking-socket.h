@@ -1,8 +1,6 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Test for nonblocking read and write.
 
-   Copyright (C) 2011 Free Software Foundation, Inc.
+   Copyright (C) 2011-2012 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -38,7 +36,7 @@
      Solaris 11 2010-11              >= 73729
      Cygwin 1.5.x                    >= 66294401 but then write() fails with ENOBUFS
      Cygwin 1.7.x                    >= 163838 (depends on circumstances)
-     native Win32                    >= 66294401
+     native Windows                  >= 66294401
  */
 #if defined __OpenBSD__
 # define SOCKET_DATA_BLOCK_SIZE  100000
@@ -46,7 +44,7 @@
 # define SOCKET_DATA_BLOCK_SIZE 1000000
 #endif
 
-/* On Linux, MacOS X, Cygwin 1.5.x, native Win32,
+/* On Linux, MacOS X, Cygwin 1.5.x, native Windows,
    sockets have very large buffers in the kernel, so that write() calls
    succeed before the reader has started reading, even if fd is blocking
    and the amount of data is larger than 1 MB.  */

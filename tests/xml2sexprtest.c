@@ -46,9 +46,9 @@ testCompareFiles(const char *xml, const char *sexpr, int xendConfigVersion)
   ret = 0;
 
  fail:
-  free(xmlData);
-  free(sexprData);
-  free(gotsexpr);
+  VIR_FREE(xmlData);
+  VIR_FREE(sexprData);
+  VIR_FREE(gotsexpr);
   virDomainDefFree(def);
 
   return ret;
@@ -79,8 +79,8 @@ testCompareHelper(const void *data)
     result = testCompareFiles(xml, args, info->version);
 
 cleanup:
-    free(xml);
-    free(args);
+    VIR_FREE(xml);
+    VIR_FREE(args);
 
     return result;
 }
@@ -100,7 +100,7 @@ mymain(void)
     } while (0)
 
     if (!(caps = testXenCapsInit()))
-        return(EXIT_FAILURE);
+        return EXIT_FAILURE;
 
     DO_TEST("pv", "pv", "pvtest", 1);
     DO_TEST("fv", "fv", "fvtest", 1);
@@ -170,7 +170,7 @@ mymain(void)
 
     virCapabilitiesFree(caps);
 
-    return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
+    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

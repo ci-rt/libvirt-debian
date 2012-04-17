@@ -1,7 +1,7 @@
 /*
  * qemu_command.h: QEMU command generation
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -53,6 +53,13 @@ virCommandPtr qemuBuildCommandLine(virConnectPtr conn,
                                    enum virNetDevVPortProfileOp vmop)
     ATTRIBUTE_NONNULL(1);
 
+/* Generate string for arch-specific '-device' parameter */
+char *
+qemuBuildChrDeviceStr (virDomainChrDefPtr serial,
+                       virBitmapPtr qemuCaps,
+                       char *os_arch,
+                       char *machine);
+
 /* With vlan == -1, use netdev syntax, else old hostnet */
 char * qemuBuildHostNetStr(virDomainNetDefPtr net,
                            char type_sep,
@@ -83,13 +90,15 @@ char *qemuBuildFSStr(virDomainFSDefPtr fs,
                      virBitmapPtr qemuCaps);
 
 /* Current, best practice */
-char * qemuBuildDriveDevStr(virDomainDiskDefPtr disk,
+char * qemuBuildDriveDevStr(virDomainDefPtr def,
+                            virDomainDiskDefPtr disk,
                             int bootindex,
                             virBitmapPtr qemuCaps);
 char * qemuBuildFSDevStr(virDomainFSDefPtr fs,
                          virBitmapPtr qemuCaps);
 /* Current, best practice */
-char * qemuBuildControllerDevStr(virDomainControllerDefPtr def,
+char * qemuBuildControllerDevStr(virDomainDefPtr domainDef,
+                                 virDomainControllerDefPtr def,
                                  virBitmapPtr qemuCaps,
                                  int *nusbcontroller);
 
@@ -161,10 +170,13 @@ virDomainDefPtr qemuParseCommandLineString(virCapsPtr caps,
                                            virDomainChrSourceDefPtr *monConfig,
                                            bool *monJSON);
 virDomainDefPtr qemuParseCommandLinePid(virCapsPtr caps,
-                                        unsigned int pid,
+                                        pid_t pid,
                                         char **pidfile,
                                         virDomainChrSourceDefPtr *monConfig,
                                         bool *monJSON);
+
+int qemuDomainAssignAddresses(virDomainDefPtr def);
+int qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def);
 
 int qemuDomainAssignPCIAddresses(virDomainDefPtr def);
 qemuDomainPCIAddressSetPtr qemuDomainPCIAddressSetCreate(virDomainDefPtr def);
@@ -190,7 +202,9 @@ int  qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr ad
 int qemuAssignDeviceAliases(virDomainDefPtr def, virBitmapPtr qemuCaps);
 int qemuDomainNetVLAN(virDomainNetDefPtr def);
 int qemuAssignDeviceNetAlias(virDomainDefPtr def, virDomainNetDefPtr net, int idx);
-int qemuAssignDeviceDiskAlias(virDomainDiskDefPtr def, virBitmapPtr qemuCaps);
+int qemuAssignDeviceDiskAlias(virDomainDefPtr vmdef,
+                              virDomainDiskDefPtr def,
+                              virBitmapPtr qemuCaps);
 int qemuAssignDeviceHostdevAlias(virDomainDefPtr def, virDomainHostdevDefPtr hostdev, int idx);
 int qemuAssignDeviceControllerAlias(virDomainControllerDefPtr controller);
 int qemuAssignDeviceRedirdevAlias(virDomainDefPtr def, virDomainRedirdevDefPtr redirdev, int idx);

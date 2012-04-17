@@ -1,12 +1,12 @@
-## Copyright (C) 2005-2011 Red Hat, Inc.
+## Copyright (C) 2005-2012 Red Hat, Inc.
 ## See COPYING.LIB for the License of this software
 
 INCLUDES = \
-	-I../include -I$(top_srcdir)/include \
-	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib	\
-	-I$(top_srcdir)/src -I../src			\
-	-I$(top_srcdir)/src/util			\
-	-I$(top_srcdir)					\
+	-I$(top_builddir)/include -I$(top_srcdir)/include	\
+	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib	\
+	-I$(top_builddir)/src -I$(top_srcdir)/src		\
+	-I$(top_srcdir)/src/util				\
+	-I$(top_srcdir)						\
 	$(GETTEXT_CPPFLAGS)
 
 POD2MAN = pod2man -c "Virtualization Support" -r "$(PACKAGE)-$(VERSION)"
@@ -30,14 +30,18 @@ EXTRA_DIST = \
 DISTCLEANFILES =
 
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
-bin_PROGRAMS = virsh
+bin_PROGRAMS = virsh virt-host-validate
 
 if HAVE_SANLOCK
 sbin_SCRIPTS = virt-sanlock-cleanup
 DISTCLEANFILES += virt-sanlock-cleanup
 endif
 
-dist_man1_MANS = virt-xml-validate.1 virt-pki-validate.1 virsh.1
+dist_man1_MANS = \
+		virt-host-validate.1 \
+		virt-pki-validate.1 \
+		virt-xml-validate.1 \
+		virsh.1
 if HAVE_SANLOCK
 dist_man8_MANS = virt-sanlock-cleanup.8
 endif
@@ -56,6 +60,9 @@ virt-pki-validate: virt-pki-validate.in Makefile
 virt-pki-validate.1: virt-pki-validate.in
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
+virt-host-validate.1: virt-host-validate.c
+	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
+
 virt-sanlock-cleanup: virt-sanlock-cleanup.in Makefile
 	$(AM_V_GEN)sed -e 's,[@]SYSCONFDIR@,$(sysconfdir),' \
 	    -e 's,[@]LOCALSTATEDIR@,$(localstatedir),' < $< > $@ \
@@ -63,6 +70,28 @@ virt-sanlock-cleanup: virt-sanlock-cleanup.in Makefile
 
 virt-sanlock-cleanup.8: virt-sanlock-cleanup.in
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
+
+virt_host_validate_SOURCES = \
+		virt-host-validate.c \
+		virt-host-validate-common.c virt-host-validate-common.h \
+		virt-host-validate-qemu.c virt-host-validate-qemu.h \
+		virt-host-validate-lxc.c virt-host-validate-lxc.h \
+		$(NULL)
+
+virt_host_validate_LDFLAGS = \
+		$(WARN_LDFLAGS) \
+		$(COVERAGE_LDFLAGS) \
+		$(NULL)
+
+virt_host_validate_LDADD = \
+		../src/libvirt.la				\
+		../gnulib/lib/libgnu.la				\
+		$(NULL)
+
+virt_host_validate_CFLAGS = \
+		$(WARN_CFLAGS)					\
+		$(COVERAGE_CFLAGS)				\
+		$(NULL)
 
 virsh_SOURCES =							\
 		console.c console.h				\
@@ -148,31 +177,35 @@ endif
 virsh.1: virsh.pod
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
 
-install-data-local: install-init
+install-data-local: install-init install-systemd
 
-uninstall-local: uninstall-init
+uninstall-local: uninstall-init uninstall-systemd
 
 install-sysconfig:
-	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
+	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysconfig
 	$(INSTALL_DATA) $(srcdir)/libvirt-guests.sysconf \
 	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
 
 uninstall-sysconfig:
 	rm -f $(DESTDIR)$(sysconfdir)/sysconfig/libvirt-guests
+	rmdir $(DESTDIR)$(sysconfdir)/sysconfig ||:
 
 EXTRA_DIST += libvirt-guests.init.sh
 
-if LIBVIRT_INIT_SCRIPT_RED_HAT
-install-init: libvirt-guests.init install-sysconfig
-	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d
+install-initscript: libvirt-guests.init
+	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/rc.d/init.d
 	$(INSTALL_SCRIPT) libvirt-guests.init \
 	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
 
-uninstall-init: install-sysconfig
+uninstall-initscript:
 	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirt-guests
+	rmdir $(DESTDIR)$(sysconfdir)/rc.d/init.d ||:
 
+
+if LIBVIRT_INIT_SCRIPT_RED_HAT
 BUILT_SOURCES += libvirt-guests.init
-
+install-init: install-sysconfig install-initscript
+uninstall-init: uninstall-sysconfig uninstall-initscript
 else
 install-init:
 uninstall-init:
@@ -194,14 +227,17 @@ libvirt-guests.init: libvirt-guests.init.sh $(top_builddir)/config.status
 
 EXTRA_DIST += libvirt-guests.service.in
 
-if LIBVIRT_INIT_SCRIPT_SYSTEMD
-install-systemd: libvirt-guests.service install-sysconfig
-	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/systemd.d
-	$(INSTALL_SCRIPT) libvirt-guests.service \
-	  $(DESTDIR)$(sysconfdir)/rc.d/systemd.d/libvirt-guests
+SYSTEMD_UNIT_DIR = /lib/systemd/system
 
-uninstall-systemd: install-sysconfig
-	rm -f $(DESTDIR)$(sysconfdir)/rc.d/systemd.d/libvirt-guests
+if LIBVIRT_INIT_SCRIPT_SYSTEMD
+install-systemd: libvirt-guests.service install-initscript install-sysconfig
+	$(MKDIR_P) $(DESTDIR)$(SYSTEMD_UNIT_DIR)
+	$(INSTALL_SCRIPT) libvirt-guests.service \
+	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirt-guests.service
+
+uninstall-systemd: uninstall-initscript uninstall-sysconfig
+	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirt-guests.service
+	rmdir $(DESTDIR)$(SYSTEMD_UNIT_DIR) ||:
 
 BUILT_SOURCES += libvirt-guests.service
 

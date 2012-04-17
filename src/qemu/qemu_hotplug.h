@@ -25,6 +25,7 @@
 # define __QEMU_HOTPLUG_H__
 
 # include "qemu_conf.h"
+# include "qemu_domain.h"
 # include "domain_conf.h"
 
 int qemuDomainChangeEjectableMedia(struct qemud_driver *driver,
@@ -32,7 +33,8 @@ int qemuDomainChangeEjectableMedia(struct qemud_driver *driver,
                                    virDomainDiskDefPtr disk,
                                    bool force);
 int qemuDomainCheckEjectableMedia(struct qemud_driver *driver,
-                                  virDomainObjPtr vm);
+                                  virDomainObjPtr vm,
+                                  enum qemuDomainAsyncJob asyncJob);
 int qemuDomainAttachPciDiskDevice(virConnectPtr conn,
                                   struct qemud_driver *driver,
                                   virDomainObjPtr vm,
@@ -92,12 +94,6 @@ int qemuDomainDetachPciControllerDevice(struct qemud_driver *driver,
 int qemuDomainDetachNetDevice(struct qemud_driver *driver,
                               virDomainObjPtr vm,
                               virDomainDeviceDefPtr dev);
-int qemuDomainDetachHostPciDevice(struct qemud_driver *driver,
-                                  virDomainObjPtr vm,
-                                  virDomainDeviceDefPtr dev);
-int qemuDomainDetachHostUsbDevice(struct qemud_driver *driver,
-                                  virDomainObjPtr vm,
-                                  virDomainDeviceDefPtr dev);
 int qemuDomainDetachHostDevice(struct qemud_driver *driver,
                                virDomainObjPtr vm,
                                virDomainDeviceDefPtr dev);

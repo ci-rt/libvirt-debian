@@ -1,7 +1,7 @@
 /*
  * uml_conf.c: UML driver configuration
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -122,11 +122,11 @@ virCapsPtr umlCapsInit(void) {
 
 static int
 umlConnectTapDevice(virConnectPtr conn,
+                    virDomainDefPtr vm,
                     virDomainNetDefPtr net,
                     const char *bridge)
 {
     bool template_ifname = false;
-    unsigned char tapmac[VIR_MAC_BUFLEN];
 
     if (!net->ifname ||
         STRPREFIX(net->ifname, VIR_NET_GENERATED_PREFIX) ||
@@ -138,17 +138,17 @@ umlConnectTapDevice(virConnectPtr conn,
         template_ifname = true;
     }
 
-    memcpy(tapmac, net->mac, VIR_MAC_BUFLEN);
-    tapmac[0] = 0xFE; /* Discourage bridge from using TAP dev MAC */
-    if (virNetDevTapCreateInBridgePort(bridge, &net->ifname, tapmac,
-                                       0, true, NULL) < 0) {
+    if (virNetDevTapCreateInBridgePort(bridge, &net->ifname, net->mac,
+                                       vm->uuid, NULL,
+                                       virDomainNetGetActualVirtPortProfile(net),
+                                       VIR_NETDEV_TAP_CREATE_IFUP) < 0) {
         if (template_ifname)
             VIR_FREE(net->ifname);
         goto error;
     }
 
     if (net->filter) {
-        if (virDomainConfNWFilterInstantiate(conn, net)) {
+        if (virDomainConfNWFilterInstantiate(conn, vm->uuid, net) < 0) {
             if (template_ifname)
                 VIR_FREE(net->ifname);
             goto error;
@@ -165,6 +165,7 @@ error:
 
 static char *
 umlBuildCommandLineNet(virConnectPtr conn,
+                       virDomainDefPtr vm,
                        virDomainNetDefPtr def,
                        int idx)
 {
@@ -189,11 +190,6 @@ umlBuildCommandLineNet(virConnectPtr conn,
         if (def->data.ethernet.ipaddr) {
             umlReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("IP address not supported for ethernet interface"));
-            goto error;
-        }
-        if (def->data.ethernet.script) {
-            umlReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("script execution not supported for ethernet interface"));
             goto error;
         }
         break;
@@ -230,7 +226,7 @@ umlBuildCommandLineNet(virConnectPtr conn,
             goto error;
         }
 
-        if (umlConnectTapDevice(conn, def, bridge) < 0) {
+        if (umlConnectTapDevice(conn, vm, def, bridge) < 0) {
             VIR_FREE(bridge);
             goto error;
         }
@@ -241,7 +237,8 @@ umlBuildCommandLineNet(virConnectPtr conn,
     }
 
     case VIR_DOMAIN_NET_TYPE_BRIDGE:
-        if (umlConnectTapDevice(conn, def, def->data.bridge.brname) < 0)
+        if (umlConnectTapDevice(conn, vm, def,
+                                def->data.bridge.brname) < 0)
             goto error;
 
         /* ethNNN=tuntap,tapname,macaddr,gateway */
@@ -258,8 +255,19 @@ umlBuildCommandLineNet(virConnectPtr conn,
                        _("direct networking type not supported"));
         goto error;
 
+    case VIR_DOMAIN_NET_TYPE_HOSTDEV:
+        umlReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("hostdev networking type not supported"));
+        goto error;
+
     case VIR_DOMAIN_NET_TYPE_LAST:
         break;
+    }
+
+    if (def->script) {
+        umlReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("interface script execution not supported by this driver"));
+        goto error;
     }
 
     virBufferAsprintf(&buf, ",%02x:%02x:%02x:%02x:%02x:%02x",
@@ -414,7 +422,7 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
     virCommandAddEnvPassCommon(cmd);
 
     //virCommandAddArgPair(cmd, "con0", "fd:0,fd:1");
-    virCommandAddArgFormat(cmd, "mem=%luK", vm->def->mem.cur_balloon);
+    virCommandAddArgFormat(cmd, "mem=%lluK", vm->def->mem.cur_balloon);
     virCommandAddArgPair(cmd, "umid", vm->def->name);
     virCommandAddArgPair(cmd, "uml_dir", driver->monitorDir);
 
@@ -434,7 +442,7 @@ virCommandPtr umlBuildCommandLine(virConnectPtr conn,
     }
 
     for (i = 0 ; i < vm->def->nnets ; i++) {
-        char *ret = umlBuildCommandLineNet(conn, vm->def->nets[i], i);
+        char *ret = umlBuildCommandLineNet(conn, vm->def, vm->def->nets[i], i);
         if (!ret)
             goto error;
         virCommandAddArg(cmd, ret);

@@ -1,8 +1,6 @@
-# -*- buffer-read-only: t -*- vi: set ro:
-# DO NOT EDIT! GENERATED AUTOMATICALLY!
-# calloc.m4 serial 13
+# calloc.m4 serial 14
 
-# Copyright (C) 2004-2011 Free Software Foundation, Inc.
+# Copyright (C) 2004-2012 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -16,7 +14,7 @@
 
 # _AC_FUNC_CALLOC_IF([IF-WORKS], [IF-NOT])
 # -------------------------------------
-# If `calloc (0, 0)' is properly handled, run IF-WORKS, otherwise, IF-NOT.
+# If 'calloc (0, 0)' is properly handled, run IF-WORKS, otherwise, IF-NOT.
 AC_DEFUN([_AC_FUNC_CALLOC_IF],
 [
   AC_REQUIRE([AC_TYPE_SIZE_T])dnl
@@ -41,14 +39,14 @@ AC_DEFUN([_AC_FUNC_CALLOC_IF],
 
 # gl_FUNC_CALLOC_GNU
 # ------------------
-# Report whether `calloc (0, 0)' is properly handled, and replace calloc if
+# Report whether 'calloc (0, 0)' is properly handled, and replace calloc if
 # needed.
 AC_DEFUN([gl_FUNC_CALLOC_GNU],
 [
   AC_REQUIRE([gl_STDLIB_H_DEFAULTS])
   _AC_FUNC_CALLOC_IF(
     [AC_DEFINE([HAVE_CALLOC_GNU], [1],
-               [Define to 1 if your system has a GNU libc compatible `calloc'
+               [Define to 1 if your system has a GNU libc compatible 'calloc'
                 function, and to 0 otherwise.])],
     [AC_DEFINE([HAVE_CALLOC_GNU], [0])
      REPLACE_CALLOC=1

@@ -1,7 +1,7 @@
 /*
  * libvirtd.c: daemon start of day, guest process & i/o management
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -47,6 +47,7 @@
 #include "conf.h"
 #include "memory.h"
 #include "conf.h"
+#include "virnetlink.h"
 #include "virnetserver.h"
 #include "threads.h"
 #include "remote.h"
@@ -186,10 +187,11 @@ static int daemonForkIntoBackground(const char *argv0)
     if (pipe(statuspipe) < 0)
         return -1;
 
-    int pid = fork();
+    pid_t pid = fork();
     switch (pid) {
     case 0:
         {
+            /* intermediate child */
             int stdinfd = -1;
             int stdoutfd = -1;
             int nextpid;
@@ -206,9 +208,9 @@ static int daemonForkIntoBackground(const char *argv0)
                 goto cleanup;
             if (dup2(stdoutfd, STDERR_FILENO) != STDERR_FILENO)
                 goto cleanup;
-            if (VIR_CLOSE(stdinfd) < 0)
+            if (stdinfd > STDERR_FILENO && VIR_CLOSE(stdinfd) < 0)
                 goto cleanup;
-            if (VIR_CLOSE(stdoutfd) < 0)
+            if (stdoutfd > STDERR_FILENO && VIR_CLOSE(stdoutfd) < 0)
                 goto cleanup;
 
             if (setsid() < 0)
@@ -216,26 +218,28 @@ static int daemonForkIntoBackground(const char *argv0)
 
             nextpid = fork();
             switch (nextpid) {
-            case 0:
+            case 0: /* grandchild */
                 return statuspipe[1];
-            case -1:
-                return -1;
-            default:
-                _exit(0);
+            case -1: /* error */
+                goto cleanup;
+            default: /* intermediate child succeeded */
+                _exit(EXIT_SUCCESS);
             }
 
         cleanup:
             VIR_FORCE_CLOSE(stdoutfd);
             VIR_FORCE_CLOSE(stdinfd);
-            return -1;
+            VIR_FORCE_CLOSE(statuspipe[1]);
+            _exit(EXIT_FAILURE);
 
         }
 
-    case -1:
-        return -1;
+    case -1: /* error in parent */
+        goto error;
 
     default:
         {
+            /* parent */
             int ret;
             char status;
 
@@ -243,23 +247,41 @@ static int daemonForkIntoBackground(const char *argv0)
 
             /* We wait to make sure the first child forked successfully */
             if (virPidWait(pid, NULL) < 0)
-                return -1;
+                goto error;
 
-            /* Now block until the second child initializes successfully */
+            /* If we get here, then the grandchild was spawned, so we
+             * must exit.  Block until the second child initializes
+             * successfully */
         again:
             ret = read(statuspipe[0], &status, 1);
             if (ret == -1 && errno == EINTR)
                 goto again;
 
-            if (ret == 1 && status != 0) {
+            VIR_FORCE_CLOSE(statuspipe[0]);
+
+            if (ret != 1) {
+                char ebuf[1024];
+
                 fprintf(stderr,
-                        _("%s: error: %s. Check /var/log/messages or run without "
-                          "--daemon for more info.\n"), argv0,
+                        _("%s: error: unable to determine if daemon is "
+                          "running: %s\n"), argv0,
+                        virStrerror(errno, ebuf, sizeof(ebuf)));
+                exit(EXIT_FAILURE);
+            } else if (status != 0) {
+                fprintf(stderr,
+                        _("%s: error: %s. Check /var/log/messages or run "
+                          "without --daemon for more info.\n"), argv0,
                         virDaemonErrTypeToString(status));
+                exit(EXIT_FAILURE);
             }
-            _exit(ret == 1 && status == 0 ? 0 : 1);
+            _exit(EXIT_SUCCESS);
         }
     }
+
+error:
+    VIR_FORCE_CLOSE(statuspipe[0]);
+    VIR_FORCE_CLOSE(statuspipe[1]);
+    return -1;
 }
 
 
@@ -887,7 +909,7 @@ daemonConfigNew(bool privileged ATTRIBUTE_UNUSED)
 #endif
     data->auth_tls = REMOTE_AUTH_NONE;
 
-    data->mdns_adv = 1;
+    data->mdns_adv = 0;
 
     data->min_workers = 5;
     data->max_workers = 20;
@@ -1127,7 +1149,7 @@ static void daemonReloadHandler(virNetServerPtr srv ATTRIBUTE_UNUSED,
 {
         VIR_INFO("Reloading configuration on SIGHUP");
         virHookCall(VIR_HOOK_DRIVER_DAEMON, "-",
-                    VIR_HOOK_DAEMON_OP_RELOAD, SIGHUP, "SIGHUP", NULL);
+                    VIR_HOOK_DAEMON_OP_RELOAD, SIGHUP, "SIGHUP", NULL, NULL);
         if (virStateReload() < 0)
             VIR_WARN("Error while reloading drivers");
 }
@@ -1419,7 +1441,7 @@ int main(int argc, char **argv) {
 
         if ((statuswrite = daemonForkIntoBackground(argv[0])) < 0) {
             VIR_ERROR(_("Failed to fork as daemon: %s"),
-                      virStrerror(errno, ebuf, sizeof ebuf));
+                      virStrerror(errno, ebuf, sizeof(ebuf)));
             goto cleanup;
         }
     }
@@ -1550,7 +1572,7 @@ int main(int argc, char **argv) {
      *       an error ?
      */
     virHookCall(VIR_HOOK_DRIVER_DAEMON, "-", VIR_HOOK_DAEMON_OP_START,
-                0, "start", NULL);
+                0, "start", NULL, NULL);
 
     if (daemonSetupNetworking(srv, config,
                               sock_file, sock_file_ro,
@@ -1577,15 +1599,22 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
 
+    /* Register the netlink event service */
+    if (virNetlinkEventServiceStart() < 0) {
+        ret = VIR_DAEMON_ERR_NETWORK;
+        goto cleanup;
+    }
+
     /* Run event loop. */
     virNetServerRun(srv);
 
     ret = 0;
 
     virHookCall(VIR_HOOK_DRIVER_DAEMON, "-", VIR_HOOK_DAEMON_OP_SHUTDOWN,
-                0, "shutdown", NULL);
+                0, "shutdown", NULL, NULL);
 
 cleanup:
+    virNetlinkEventServiceStop();
     virNetServerProgramFree(remoteProgram);
     virNetServerProgramFree(qemuProgram);
     virNetServerClose(srv);

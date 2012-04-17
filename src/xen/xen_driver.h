@@ -20,7 +20,7 @@
 #  include "xen_inotify.h"
 # endif
 # include "domain_event.h"
-# include "hash.h"
+# include "virhash.h"
 
 # ifndef HAVE_WINSOCK2_H
 #  include <sys/un.h>
@@ -183,9 +183,7 @@ struct _xenUnifiedPrivate {
     int nbNodeCells;
     int nbNodeCpus;
 
-    /* An list of callbacks */
-    virDomainEventCallbackListPtr domainEventCallbacks;
-    int domainEventDispatching;
+    virDomainEventStatePtr domainEvents;
 
     /* Location of config files, either /etc
      * or /var/lib/xen */

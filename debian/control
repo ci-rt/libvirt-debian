@@ -10,6 +10,7 @@ Build-Depends: cdbs (>= 0.4.89~),
  libncurses5-dev,
  libreadline-dev,
  zlib1g-dev,
+ libgcrypt11-dev,
  libgnutls-dev,
  python-all-dev (>= 2.6.6-3~),
  libavahi-client-dev,
@@ -24,16 +25,17 @@ Build-Depends: cdbs (>= 0.4.89~),
  libudev-dev [linux-any],
  libhal-dev [!linux-any],
  libpciaccess-dev,
- module-init-tools,
+ module-init-tools [linux-any],
  policykit-1,
  libcap-ng-dev [linux-any],
- virtualbox-ose [amd64 i386],
  libnl-dev [linux-any],
  libyajl-dev,
  libpcap0.8-dev,
  libnuma-dev [amd64 i386 ia64 mips mipsel powerpc],
  radvd [linux-any],
+ libnetcf-dev [linux-any],
 # For "make check"
+ dwarves,
  libxml2-utils,
  dnsmasq-base,
  openssh-client,
@@ -42,7 +44,7 @@ Build-Conflicts: dpkg-dev (= 1.15.3)
 Vcs-Git: git://git.debian.org/git/pkg-libvirt/libvirt.git
 Vcs-Browser: http://git.debian.org/?p=pkg-libvirt/libvirt.git
 Homepage: http://libvirt.org
-Standards-Version: 3.9.2
+Standards-Version: 3.9.3
 DM-Upload-Allowed: yes
 XS-Python-Version: >= 2.6
 

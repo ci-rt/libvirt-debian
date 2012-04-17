@@ -1,7 +1,5 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Reentrant string tokenizer.  Generic version.
-   Copyright (C) 1991, 1996-1999, 2001, 2004, 2007, 2009-2011 Free Software
+   Copyright (C) 1991, 1996-1999, 2001, 2004, 2007, 2009-2012 Free Software
    Foundation, Inc.
    This file is part of the GNU C Library.
 

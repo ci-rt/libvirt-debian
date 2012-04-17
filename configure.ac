@@ -1,9 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
 
-dnl Copyright (C) 2005-2011 Red Hat, Inc.
+dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.8], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.11], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -86,10 +86,6 @@ gl_INIT
 
 AC_TYPE_UID_T
 
-dnl Make sure we have an ANSI compiler
-AM_C_PROTOTYPES
-test "x$U" != "x" && AC_MSG_ERROR([Compiler not ANSI compliant])
-
 dnl Support building Win32 DLLs (must appear *before* AM_PROG_LIBTOOL)
 AC_LIBTOOL_WIN32_DLL
 
@@ -110,7 +106,7 @@ VERSION_SCRIPT_FLAGS=-Wl,--version-script=
     VERSION_SCRIPT_FLAGS="-Wl,-M -Wl,"
 AC_MSG_RESULT([$VERSION_SCRIPT_FLAGS])
 
-LIBVIRT_COMPILE_WARNINGS([maximum])
+LIBVIRT_COMPILE_WARNINGS
 
 AC_MSG_CHECKING([for CPUID instruction])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
@@ -215,7 +211,11 @@ AC_PATH_PROG([UDEVADM], [udevadm], [],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 AC_PATH_PROG([UDEVSETTLE], [udevsettle], [],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
-AC_PATH_PROG([MODPROBE], [modprobe], [],
+AC_PATH_PROG([MODPROBE], [modprobe], [modprobe],
+	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+AC_PATH_PROG([OVSVSCTL], [ovs-vsctl], [ovs-vsctl],
+	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
+AC_PATH_PROG([SCRUB], [scrub], [scrub],
 	[/sbin:/usr/sbin:/usr/local/sbin:$PATH])
 
 AC_DEFINE_UNQUOTED([DNSMASQ],["$DNSMASQ"],
@@ -224,6 +224,9 @@ AC_DEFINE_UNQUOTED([RADVD],["$RADVD"],
         [Location or name of the radvd program])
 AC_DEFINE_UNQUOTED([TC],["$TC"],
         [Location or name of the tc profram (see iproute2)])
+AC_DEFINE_UNQUOTED([OVSVSCTL],["$OVSVSCTL"],
+        [Location or name of the ovs-vsctl program])
+
 if test -n "$UDEVADM"; then
   AC_DEFINE_UNQUOTED([UDEVADM],["$UDEVADM"],
         [Location or name of the udevadm program])
@@ -236,6 +239,8 @@ if test -n "$MODPROBE"; then
   AC_DEFINE_UNQUOTED([MODPROBE],["$MODPROBE"],
         [Location or name of the modprobe program])
 fi
+AC_DEFINE_UNQUOTED([SCRUB],["$SCRUB"],
+        [Location or name of the scrub program (for wiping algorithms)])
 
 dnl Specific dir for HTML output ?
 AC_ARG_WITH([html-dir], [AC_HELP_STRING([--with-html-dir=path],
@@ -269,9 +274,10 @@ if test "$prefix" = "/usr" && test "$sysconfdir" = '${prefix}/etc' ; then
 fi
 
 dnl Make some notes about which OS we're compiling for, as the lxc and qemu
-dnl drivers require linux headers, while storage_mpath and nwfilter are also
-dnl linux specific.  The "network" and storage_fs drivers are known to not
-dnl work on MacOS X presently, so we also make a note if compiling for that
+dnl drivers require linux headers, and storage_mpath, dtrace, and nwfilter
+dnl are also linux specific.  The "network" and storage_fs drivers are known
+dnl to not work on MacOS X presently, so we also make a note if compiling
+dnl for that
 
 with_linux=no with_osx=no
 case $host in
@@ -288,6 +294,7 @@ if test $with_linux = no; then
     then
         with_qemu=no
     fi
+    with_dtrace=no
 fi
 
 AM_CONDITIONAL([WITH_LINUX], [test "$with_linux" = "yes"])
@@ -329,6 +336,12 @@ AC_ARG_WITH([remote],
   AC_HELP_STRING([--with-remote], [add remote driver support @<:@default=yes@:>@]),[],[with_remote=yes])
 AC_ARG_WITH([libvirtd],
   AC_HELP_STRING([--with-libvirtd], [add libvirtd support @<:@default=yes@:>@]),[],[with_libvirtd=yes])
+AC_ARG_WITH([console-lock-files],
+  AC_HELP_STRING([--with-console-lock-files],
+                 [location for UUCP style lock files for console PTYs
+                  (use auto for default paths on some platforms)
+                  @<:@default=auto@:>@]),
+  [],[with_console_lock_files=auto])
 
 dnl
 dnl in case someone want to build static binaries
@@ -736,16 +749,17 @@ if test "$with_lxc" = "yes" || test "$with_lxc" = "check"; then
     AC_TRY_LINK([
         #include <sched.h>
         #include <linux/loop.h>
+        #include <sys/epoll.h>
     ], [
-        unshare (!LO_FLAGS_AUTOCLEAR);
+        unshare (!(LO_FLAGS_AUTOCLEAR + EPOLL_CLOEXEC));
     ], [
         with_lxc=yes
     ], [
         if test "$with_lxc" = "check"; then
             with_lxc=no
-            AC_MSG_NOTICE([Function unshare() not present in <sched.h> header but required for LXC driver, disabling it])
+            AC_MSG_NOTICE([Required kernel features were not found, disabling LXC])
         else
-            AC_MSG_ERROR([Function unshare() not present in <sched.h> header, but required for LXC driver])
+            AC_MSG_ERROR([Required kernel features for LXC were not found])
         fi
     ])
 fi
@@ -1198,12 +1212,36 @@ AM_CONDITIONAL([HAVE_AUDIT], [test "$with_audit" = "yes"])
 AC_SUBST([AUDIT_CFLAGS])
 AC_SUBST([AUDIT_LIBS])
 
+dnl UUCP style file locks for PTY consoles
+if test "$with_console_lock_files" != "no"; then
+  case $with_console_lock_files in
+  yes | auto)
+    dnl Default locations for platforms, or disable if unknown
+    if test "$with_linux" = "yes"; then
+      with_console_lock_files=/var/lock
+    elif test "$with_console_lock_files" = "auto"; then
+      with_console_lock_files=no
+    fi ;;
+  esac
+  if test "$with_console_lock_files" = "yes"; then
+    AC_MSG_ERROR([You must specify path for the lock files on this
+platform])
+  fi
+  AC_DEFINE_UNQUOTED([VIR_PTY_LOCK_FILE_PATH], "$with_console_lock_files",
+                      [path to directory containing UUCP pty lock files])
+fi
+AM_CONDITIONAL([VIR_PTY_LOCK_FILE_PATH], [test "$with_console_lock_files" != "no"])
+
 
 dnl SELinux
 AC_ARG_WITH([selinux],
   AC_HELP_STRING([--with-selinux], [use SELinux to manage security @<:@default=check@:>@]),
   [],
   [with_selinux=check])
+AC_ARG_WITH([selinux_mount],
+  AC_HELP_STRING([--with-selinux-mount], [set SELinux mount point @<:@default=check@:>@]),
+  [],
+  [with_selinux_mount=check])
 
 SELINUX_CFLAGS=
 SELINUX_LIBS=
@@ -1227,7 +1265,20 @@ if test "$with_selinux" != "no"; then
   LIBS="$old_libs"
 fi
 if test "$with_selinux" = "yes"; then
+  AC_MSG_CHECKING([SELinux mount point])
+  if test "$with_selinux_mount" = "check" || test -z "$with_selinux_mount"; then
+    if test -d /sys/fs/selinux ; then
+      SELINUX_MOUNT=/sys/fs/selinux
+    else
+      SELINUX_MOUNT=/selinux
+    fi
+  else
+    SELINUX_MOUNT=$with_selinux_mount
+  fi
+  AC_MSG_RESULT([$SELINUX_MOUNT])
+
   SELINUX_LIBS="-lselinux"
+  AC_DEFINE_UNQUOTED([SELINUX_MOUNT], ["$SELINUX_MOUNT"], [SELinux mount point])
   AC_DEFINE_UNQUOTED([HAVE_SELINUX], 1, [whether basic SELinux functionality is available])
   dnl We prefer to use <selinux/label.h> and selabel_open, but can fall
   dnl back to matchpathcon for the sake of RHEL 5's version of libselinux.
@@ -1370,10 +1421,10 @@ if test "$with_dtrace" != "no" ; then
     with_dtrace=yes
   fi
   if test "$with_dtrace" = "yes"; then
-    AC_DEFINE_UNQUOTED([WITH_DTRACE], 1, [whether DTrace static probes are available])
+    AC_DEFINE_UNQUOTED([WITH_DTRACE_PROBES], 1, [whether DTrace static probes are available])
   fi
 fi
-AM_CONDITIONAL([WITH_DTRACE], [test "$with_dtrace" != "no"])
+AM_CONDITIONAL([WITH_DTRACE_PROBES], [test "$with_dtrace" != "no"])
 
 
 dnl NUMA lib
@@ -1411,6 +1462,29 @@ AM_CONDITIONAL([HAVE_NUMACTL], [test "$with_numactl" != "no"])
 AC_SUBST([NUMACTL_CFLAGS])
 AC_SUBST([NUMACTL_LIBS])
 
+dnl numad
+AC_ARG_WITH([numad],
+  AC_HELP_STRING([--with-numad], [use numad to manage CPU placement dynamically @<:@default=check@:>@]),
+  [],
+  [with_numad=check])
+
+if test "$with_numad" != "no" ; then
+  AC_PATH_PROG([NUMAD], [numad], [], [/bin:/usr/bin])
+  if test -z "$NUMAD" ; then
+    if test "$with_numad" = "check"; then
+      with_numad="no"
+    else
+      AC_MSG_ERROR([You must install the 'numad' to manage CPU placement dynamically])
+    fi
+  else
+    with_numad="yes"
+  fi
+  if test "$with_numad" = "yes"; then
+    AC_DEFINE_UNQUOTED([HAVE_NUMAD], 1, [whether numad is available])
+    AC_DEFINE_UNQUOTED([NUMAD],["$NUMAD"], [Location or name of the numad program])
+  fi
+fi
+AM_CONDITIONAL([HAVE_NUMAD], [test "$with_numad" != "no"])
 
 dnl pcap lib
 LIBPCAP_CONFIG="pcap-config"
@@ -1615,6 +1689,9 @@ AC_ARG_WITH([netcf],
 
 NETCF_CFLAGS=
 NETCF_LIBS=
+if test "$with_libvirtd" = "no" ; then
+  with_netcf=no
+fi
 if test "$with_netcf" = "yes" || test "$with_netcf" = "check"; then
   PKG_CHECK_MODULES(NETCF, netcf >= $NETCF_REQUIRED,
     [with_netcf=yes], [
@@ -2085,6 +2162,25 @@ AM_CONDITIONAL([WITH_PYTHON], [test "$with_python" = "yes"])
 AC_SUBST([PYTHON_VERSION])
 AC_SUBST([PYTHON_INCLUDES])
 
+AC_ARG_ENABLE([with-test-suite],
+              AC_HELP_STRING([--with-test-suite], [build test suite by default @<:@default=check@:>@]),
+              [case "${withval}" in
+                 yes|no|check) ;;
+                 *)      AC_MSG_ERROR([bad value ${withval} for tests option]) ;;
+              esac],
+              [withval=check])
+
+AC_MSG_CHECKING([Whether to build test suite by default])
+if test "$withval" = "check" ; then
+  if test -d $srcdir/.git ; then
+    withval=yes
+  else
+    withval=no
+  fi
+fi
+AC_MSG_RESULT([$withval])
+AM_CONDITIONAL([WITH_TESTS], [test "$withval" = "yes"])
+
 AC_ARG_ENABLE([test-coverage],
   AC_HELP_STRING([--enable-test-coverage], [turn on code coverage instrumentation @<:@default=no@:>@]),
 [case "${enableval}" in
@@ -2498,9 +2594,6 @@ AM_CONDITIONAL([HAVE_LIBNL], [test "$have_libnl" = "yes"])
 AC_SUBST([LIBNL_CFLAGS])
 AC_SUBST([LIBNL_LIBS])
 
-
-
-
 # Only COPYING.LIB is under version control, yet COPYING
 # is included as part of the distribution tarball.
 # Copy one to the other, but only if this is a srcdir-build.
@@ -2583,7 +2676,7 @@ AC_MSG_NOTICE([    Disk: $with_storage_disk])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Security Drivers])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([ SELinux: $with_secdriver_selinux])
+AC_MSG_NOTICE([ SELinux: $with_secdriver_selinux ($SELINUX_MOUNT)])
 AC_MSG_NOTICE([AppArmor: $with_secdriver_apparmor])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Driver Loadable Modules])
@@ -2727,13 +2820,15 @@ AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Miscellaneous])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([        Debug: $enable_debug])
-AC_MSG_NOTICE([     Warnings: $enable_compile_warnings])
+AC_MSG_NOTICE([  Use -Werror: $set_werror])
 AC_MSG_NOTICE([Warning Flags: $WARN_CFLAGS])
 AC_MSG_NOTICE([     Readline: $lv_use_readline])
 AC_MSG_NOTICE([       Python: $with_python])
 AC_MSG_NOTICE([       DTrace: $with_dtrace])
+AC_MSG_NOTICE([        numad: $with_numad])
 AC_MSG_NOTICE([  XML Catalog: $XML_CATALOG_FILE])
 AC_MSG_NOTICE([  Init script: $with_init_script])
+AC_MSG_NOTICE([Console locks: $with_console_lock_files])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Privileges])
 AC_MSG_NOTICE([])

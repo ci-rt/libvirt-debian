@@ -24,7 +24,6 @@
 
 #include "internal.h"
 #include "datatypes.h"
-#include "qparams.h"
 #include "util.h"
 #include "memory.h"
 #include "logging.h"
@@ -37,11 +36,9 @@
 
 
 int
-hypervParseUri(hypervParsedUri **parsedUri, xmlURIPtr uri)
+hypervParseUri(hypervParsedUri **parsedUri, virURIPtr uri)
 {
     int result = -1;
-    struct qparam_set *queryParamSet = NULL;
-    struct qparam *queryParam = NULL;
     int i;
 
     if (parsedUri == NULL || *parsedUri != NULL) {
@@ -54,18 +51,8 @@ hypervParseUri(hypervParsedUri **parsedUri, xmlURIPtr uri)
         return -1;
     }
 
-#ifdef HAVE_XMLURI_QUERY_RAW
-    queryParamSet = qparam_query_parse(uri->query_raw);
-#else
-    queryParamSet = qparam_query_parse(uri->query);
-#endif
-
-    if (queryParamSet == NULL) {
-        goto cleanup;
-    }
-
-    for (i = 0; i < queryParamSet->n; i++) {
-        queryParam = &queryParamSet->p[i];
+    for (i = 0; i < uri->paramsCount; i++) {
+        virURIParamPtr queryParam = &uri->params[i];
 
         if (STRCASEEQ(queryParam->name, "transport")) {
             VIR_FREE((*parsedUri)->transport);
@@ -105,10 +92,6 @@ hypervParseUri(hypervParsedUri **parsedUri, xmlURIPtr uri)
   cleanup:
     if (result < 0) {
         hypervFreeParsedUri(parsedUri);
-    }
-
-    if (queryParamSet != NULL) {
-        free_qparam_set(queryParamSet);
     }
 
     return result;

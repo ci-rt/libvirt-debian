@@ -1,7 +1,7 @@
 /*
  * command.c: Child command execution
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -42,16 +42,12 @@
 #include "virpidfile.h"
 #include "buf.h"
 #include "ignore-value.h"
-#include "verify.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
 #define virCommandError(code, ...)                                      \
     virReportErrorHelper(VIR_FROM_NONE, code, __FILE__,                 \
                          __FUNCTION__, __LINE__, __VA_ARGS__)
-
-/* We have quite a bit of changes to make if this doesn't hold.  */
-verify(sizeof(pid_t) <= sizeof(int));
 
 /* Flags for virExecWithHook */
 enum {
@@ -75,9 +71,10 @@ struct _virCommand {
 
     char *pwd;
 
-    /* XXX Use int[] if we ever need to support more than FD_SETSIZE fd's.  */
-    fd_set preserve; /* FDs to pass to child. */
-    fd_set transfer; /* FDs to close in parent. */
+    int *preserve; /* FDs to pass to child. */
+    int preserve_size;
+    int *transfer; /* FDs to close in parent. */
+    int transfer_size;
 
     unsigned int flags;
 
@@ -102,9 +99,73 @@ struct _virCommand {
     pid_t pid;
     char *pidfile;
     bool reap;
+
+    unsigned long long capabilities;
 };
 
+/*
+ * virCommandFDIsSet:
+ * @fd: FD to test
+ * @set: the set
+ * @set_size: actual size of @set
+ *
+ * Check if FD is already in @set or not.
+ *
+ * Returns true if @set contains @fd,
+ * false otherwise.
+ */
+static bool
+virCommandFDIsSet(int fd,
+                  const int *set,
+                  int set_size)
+{
+    int i = 0;
+
+    while (i < set_size)
+        if (set[i++] == fd)
+            return true;
+
+    return false;
+}
+
+/*
+ * virCommandFDSet:
+ * @fd: FD to be put into @set
+ * @set: the set
+ * @set_size: actual size of @set
+ *
+ * This is practically generalized implementation
+ * of FD_SET() as we do not want to be limited
+ * by FD_SETSIZE.
+ *
+ * Returns: 0 on success,
+ *          -1 on usage error,
+ *          ENOMEM on OOM
+ */
+static int
+virCommandFDSet(int fd,
+                int **set,
+                int *set_size)
+{
+    if (fd < 0 || !set || !set_size)
+        return -1;
+
+    if (virCommandFDIsSet(fd, *set, *set_size))
+        return 0;
+
+    if (VIR_REALLOC_N(*set, *set_size + 1) < 0) {
+        return ENOMEM;
+    }
+
+    (*set)[*set_size] = fd;
+    (*set_size)++;
+
+    return 0;
+}
+
 #ifndef WIN32
+
+static int virClearCapabilities(void) ATTRIBUTE_UNUSED;
 
 # if HAVE_CAPNG
 static int virClearCapabilities(void)
@@ -121,6 +182,33 @@ static int virClearCapabilities(void)
 
     return 0;
 }
+
+/**
+ * virSetCapabilities:
+ *  @capabilities - capability flag to set.
+ *                  In case of 0, this function is identical to
+ *                  virClearCapabilities()
+ *
+ */
+static int virSetCapabilities(unsigned long long capabilities)
+{
+    int ret, i;
+
+    capng_clear(CAPNG_SELECT_BOTH);
+
+    for (i = 0; i <= CAP_LAST_CAP; i++) {
+        if (capabilities & (1ULL << i))
+            capng_update(CAPNG_ADD, CAPNG_BOUNDING_SET, i);
+    }
+
+    if ((ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
+        virCommandError(VIR_ERR_INTERNAL_ERROR,
+                        _("cannot apply process capabilities %d"), ret);
+        return -1;
+    }
+
+    return 0;
+}
 # else
 static int virClearCapabilities(void)
 {
@@ -128,8 +216,13 @@ static int virClearCapabilities(void)
 //             "capabilities");
     return 0;
 }
-# endif
 
+static int
+virSetCapabilities(unsigned long long capabilities ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+# endif
 
 /**
  * virFork:
@@ -299,17 +392,20 @@ prepareStdFd(int fd, int std)
  * @hook optional virExecHook function to call prior to exec
  * @data data to pass to the hook function
  * @pidfile path to use as pidfile for daemonized process (needs DAEMON flag)
+ * @capabilities capabilities to keep
  */
 static int
 virExecWithHook(const char *const*argv,
                 const char *const*envp,
-                const fd_set *keepfd,
+                const int *keepfd,
+                int keepfd_size,
                 pid_t *retpid,
                 int infd, int *outfd, int *errfd,
                 unsigned int flags,
                 virExecHook hook,
                 void *data,
-                char *pidfile)
+                char *pidfile,
+                unsigned long long capabilities)
 {
     pid_t pid;
     int null = -1, i, openmax;
@@ -364,7 +460,9 @@ virExecWithHook(const char *const*argv,
     }
 
     if (errfd != NULL) {
-        if (*errfd == -1) {
+        if (errfd == outfd) {
+            childerr = childout;
+        } else if (*errfd == -1) {
             if (pipe2(pipeerr, O_CLOEXEC) < 0) {
                 virReportSystemError(errno,
                                      "%s", _("Failed to create pipe"));
@@ -430,7 +528,7 @@ virExecWithHook(const char *const*argv,
     for (i = 3; i < openmax; i++) {
         if (i == infd || i == childout || i == childerr)
             continue;
-        if (!keepfd || i >= FD_SETSIZE || !FD_ISSET(i, keepfd)) {
+        if (!keepfd || !virCommandFDIsSet(i, keepfd, keepfd_size)) {
             tmpfd = i;
             VIR_FORCE_CLOSE(tmpfd);
         } else if (virSetInherit(i, true) < 0) {
@@ -538,9 +636,9 @@ virExecWithHook(const char *const*argv,
 
     /* The steps above may need todo something privileged, so
      * we delay clearing capabilities until the last minute */
-    if ((flags & VIR_EXEC_CLEAR_CAPS) &&
-        virClearCapabilities() < 0)
-        goto fork_error;
+    if (capabilities || (flags & VIR_EXEC_CLEAR_CAPS))
+        if (virSetCapabilities(capabilities) < 0)
+            goto fork_error;
 
     /* Close logging again to ensure no FDs leak to child */
     virLogReset();
@@ -619,7 +717,8 @@ virRun(const char *const *argv ATTRIBUTE_UNUSED,
 static int
 virExecWithHook(const char *const*argv ATTRIBUTE_UNUSED,
                 const char *const*envp ATTRIBUTE_UNUSED,
-                const fd_set *keepfd ATTRIBUTE_UNUSED,
+                const int *keepfd ATTRIBUTE_UNUSED,
+                int keepfd_size ATTRIBUTE_UNUSED,
                 pid_t *retpid ATTRIBUTE_UNUSED,
                 int infd ATTRIBUTE_UNUSED,
                 int *outfd ATTRIBUTE_UNUSED,
@@ -627,7 +726,8 @@ virExecWithHook(const char *const*argv ATTRIBUTE_UNUSED,
                 int flags_unused ATTRIBUTE_UNUSED,
                 virExecHook hook ATTRIBUTE_UNUSED,
                 void *data ATTRIBUTE_UNUSED,
-                char *pidfile ATTRIBUTE_UNUSED)
+                char *pidfile ATTRIBUTE_UNUSED,
+                unsigned long long capabilities ATTRIBUTE_UNUSED)
 {
     /* XXX: Some day we can implement pieces of virCommand/virExec on
      * top of _spawn() or CreateProcess(), but we can't implement
@@ -687,8 +787,6 @@ virCommandNewArgs(const char *const*args)
     cmd->handshakeNotify[0] = -1;
     cmd->handshakeNotify[1] = -1;
 
-    FD_ZERO(&cmd->preserve);
-    FD_ZERO(&cmd->transfer);
     cmd->infd = cmd->outfd = cmd->errfd = -1;
     cmd->inpipe = -1;
     cmd->pid = -1;
@@ -736,19 +834,21 @@ virCommandNewArgList(const char *binary, ...)
 static bool
 virCommandKeepFD(virCommandPtr cmd, int fd, bool transfer)
 {
+    int ret = 0;
+
     if (!cmd)
         return fd > STDERR_FILENO;
 
-    if (fd <= STDERR_FILENO || FD_SETSIZE <= fd) {
+    if (fd <= STDERR_FILENO ||
+        (ret = virCommandFDSet(fd, &cmd->preserve, &cmd->preserve_size)) ||
+        (transfer && (ret = virCommandFDSet(fd, &cmd->transfer,
+                                            &cmd->transfer_size)))) {
         if (!cmd->has_error)
-            cmd->has_error = -1;
+            cmd->has_error = ret ? ret : -1 ;
         VIR_DEBUG("cannot preserve %d", fd);
         return fd > STDERR_FILENO;
     }
 
-    FD_SET(fd, &cmd->preserve);
-    if (transfer)
-        FD_SET(fd, &cmd->transfer);
     return false;
 }
 
@@ -821,26 +921,23 @@ virCommandClearCaps(virCommandPtr cmd)
     cmd->flags |= VIR_EXEC_CLEAR_CAPS;
 }
 
-#if 0 /* XXX Enable if we have a need for capability management.  */
-
 /**
  * virCommandAllowCap:
  * @cmd: the command to modify
  * @capability: what to allow
  *
- * Re-allow a specific capability
+ * Allow specific capabilities
  */
 void
 virCommandAllowCap(virCommandPtr cmd,
-                   int capability ATTRIBUTE_UNUSED)
+                   int capability)
 {
     if (!cmd || cmd->has_error)
         return;
 
-    /* XXX ? */
+    cmd->capabilities |= (1ULL << capability);
 }
 
-#endif /* 0 */
 
 
 /**
@@ -1329,7 +1426,10 @@ virCommandSetOutputBuffer(virCommandPtr cmd, char **outbuf)
  * guaranteed to be allocated after successful virCommandRun or
  * virCommandWait, and is best-effort allocated after failed
  * virCommandRun; caller is responsible for freeing *errbuf.
- * This requires the use of virCommandRun.
+ * This requires the use of virCommandRun.  It is possible to
+ * pass the same pointer as for virCommandSetOutputBuffer(), in
+ * which case the child process will interleave all output into
+ * a single string.
  */
 void
 virCommandSetErrorBuffer(virCommandPtr cmd, char **errbuf)
@@ -1494,7 +1594,7 @@ virCommandWriteArgLog(virCommandPtr cmd, int logfd)
     if (ioError) {
         char ebuf[1024];
         VIR_WARN("Unable to write command %s args to logfile: %s",
-                 cmd->args[0], virStrerror(ioError, ebuf, sizeof ebuf));
+                 cmd->args[0], virStrerror(ioError, ebuf, sizeof(ebuf)));
     }
 }
 
@@ -1620,16 +1720,19 @@ virCommandProcessIO(virCommandPtr cmd)
         if (infd != -1) {
             fds[nfds].fd = infd;
             fds[nfds].events = POLLOUT;
+            fds[nfds].revents = 0;
             nfds++;
         }
         if (outfd != -1) {
             fds[nfds].fd = outfd;
             fds[nfds].events = POLLIN;
+            fds[nfds].revents = 0;
             nfds++;
         }
         if (errfd != -1) {
             fds[nfds].fd = errfd;
             fds[nfds].events = POLLIN;
+            fds[nfds].revents = 0;
             nfds++;
         }
 
@@ -1645,8 +1748,8 @@ virCommandProcessIO(virCommandPtr cmd)
         }
 
         for (i = 0; i < nfds ; i++) {
-            if (fds[i].fd == errfd ||
-                fds[i].fd == outfd) {
+            if (fds[i].revents & (POLLIN | POLLHUP | POLLERR) &&
+                (fds[i].fd == errfd || fds[i].fd == outfd)) {
                 char data[1024];
                 char **buf;
                 size_t *len;
@@ -1684,7 +1787,10 @@ virCommandProcessIO(virCommandPtr cmd)
                     memcpy(*buf + *len, data, done);
                     *len += done;
                 }
-            } else {
+            }
+
+            if (fds[i].revents & (POLLOUT | POLLERR) &&
+                fds[i].fd == infd) {
                 int done;
 
                 /* Coverity 5.3.0 can't see that we only get here if
@@ -1709,7 +1815,6 @@ virCommandProcessIO(virCommandPtr cmd)
                     }
                 }
             }
-
         }
     }
 
@@ -1834,6 +1939,13 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
         }
         cmd->infd = infd[0];
         cmd->inpipe = infd[1];
+    }
+
+    /* If caller requested the same string for stdout and stderr, then
+     * merge those into one string.  */
+    if (cmd->outbuf && cmd->outbuf == cmd->errbuf) {
+        cmd->errfdptr = &cmd->outfd;
+        cmd->errbuf = NULL;
     }
 
     /* If caller hasn't requested capture of stdout/err, then capture
@@ -2036,8 +2148,8 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
 
     if (cmd->pid != -1) {
         virCommandError(VIR_ERR_INTERNAL_ERROR,
-                        _("command is already running as pid %d"),
-                        cmd->pid);
+                        _("command is already running as pid %lld"),
+                        (long long) cmd->pid);
         return -1;
     }
 
@@ -2064,7 +2176,8 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
 
     ret = virExecWithHook((const char *const *)cmd->args,
                           (const char *const *)cmd->env,
-                          &cmd->preserve,
+                          cmd->preserve,
+                          cmd->preserve_size,
                           &cmd->pid,
                           cmd->infd,
                           cmd->outfdptr,
@@ -2072,18 +2185,17 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
                           cmd->flags,
                           virCommandHook,
                           cmd,
-                          cmd->pidfile);
+                          cmd->pidfile,
+                          cmd->capabilities);
 
     VIR_DEBUG("Command result %d, with PID %d",
               ret, (int)cmd->pid);
 
-    for (i = STDERR_FILENO + 1; i < FD_SETSIZE; i++) {
-        if (FD_ISSET(i, &cmd->transfer)) {
-            int tmpfd = i;
-            VIR_FORCE_CLOSE(tmpfd);
-            FD_CLR(i, &cmd->transfer);
-        }
+    for (i = 0; i < cmd->transfer_size; i++) {
+        VIR_FORCE_CLOSE(cmd->transfer[i]);
     }
+    cmd->transfer_size = 0;
+    VIR_FREE(cmd->transfer);
 
     if (ret == 0 && pid)
         *pid = cmd->pid;
@@ -2112,7 +2224,8 @@ virPidWait(pid_t pid, int *exitstatus)
     int status;
 
     if (pid <= 0) {
-        virReportSystemError(EINVAL, _("unable to wait for process %d"), pid);
+        virReportSystemError(EINVAL, _("unable to wait for process %lld"),
+                             (long long) pid);
         return -1;
     }
 
@@ -2121,7 +2234,8 @@ virPidWait(pid_t pid, int *exitstatus)
            errno == EINTR);
 
     if (ret == -1) {
-        virReportSystemError(errno, _("unable to wait for process %d"), pid);
+        virReportSystemError(errno, _("unable to wait for process %lld"),
+                             (long long) pid);
         return -1;
     }
 
@@ -2129,8 +2243,8 @@ virPidWait(pid_t pid, int *exitstatus)
         if (status != 0) {
             char *st = virCommandTranslateStatus(status);
             virCommandError(VIR_ERR_INTERNAL_ERROR,
-                            _("Child process (%d) status unexpected: %s"),
-                            pid, NULLSTR(st));
+                            _("Child process (%lld) status unexpected: %s"),
+                            (long long) pid, NULLSTR(st));
             VIR_FREE(st);
             return -1;
         }
@@ -2255,7 +2369,7 @@ virPidAbort(pid_t pid)
             }
         }
     }
-    VIR_DEBUG("failed to reap child %d, abandoning it", pid);
+    VIR_DEBUG("failed to reap child %lld, abandoning it", (long long) pid);
 
 cleanup:
     VIR_FREE(tmp);
@@ -2448,11 +2562,8 @@ virCommandFree(virCommandPtr cmd)
     if (!cmd)
         return;
 
-    for (i = STDERR_FILENO + 1; i < FD_SETSIZE; i++) {
-        if (FD_ISSET(i, &cmd->transfer)) {
-            int tmpfd = i;
-            VIR_FORCE_CLOSE(tmpfd);
-        }
+    for (i = 0; i < cmd->transfer_size; i++) {
+        VIR_FORCE_CLOSE(cmd->transfer[i]);
     }
 
     VIR_FREE(cmd->inbuf);
@@ -2481,6 +2592,9 @@ virCommandFree(virCommandPtr cmd)
 
     if (cmd->reap)
         virCommandAbort(cmd);
+
+    VIR_FREE(cmd->transfer);
+    VIR_FREE(cmd->preserve);
 
     VIR_FREE(cmd);
 }

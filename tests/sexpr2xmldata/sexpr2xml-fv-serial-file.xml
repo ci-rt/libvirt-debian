@@ -1,8 +1,8 @@
 <domain type='xen' id='1'>
   <name>fvtest</name>
   <uuid>b5d70dd2-75cd-aca5-1776-9660b059d8bc</uuid>
-  <memory>409600</memory>
-  <currentMemory>409600</currentMemory>
+  <memory unit='KiB'>409600</memory>
+  <currentMemory unit='KiB'>409600</currentMemory>
   <vcpu>1</vcpu>
   <os>
     <type>hvm</type>
@@ -12,7 +12,7 @@
   <features>
     <acpi/>
   </features>
-  <clock offset='utc'/>
+  <clock offset='utc' adjustment='reset'/>
   <on_poweroff>destroy</on_poweroff>
   <on_reboot>restart</on_reboot>
   <on_crash>restart</on_crash>

@@ -72,6 +72,8 @@ int virStorageFileGetMetadataFromFD(const char *path,
 
 void virStorageFileFreeMetadata(virStorageFileMetadata *meta);
 
+int virStorageFileResize(const char *path, unsigned long long capacity);
+
 enum {
     VIR_STORAGE_FILE_SHFS_NFS = (1 << 0),
     VIR_STORAGE_FILE_SHFS_GFS2 = (1 << 1),
@@ -80,6 +82,7 @@ enum {
 };
 
 int virStorageFileIsSharedFS(const char *path);
+int virStorageFileIsClusterFS(const char *path);
 int virStorageFileIsSharedFSType(const char *path,
                                  int fstypes);
 

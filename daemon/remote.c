@@ -1,7 +1,7 @@
 /*
  * remote.c: handlers for RPC method calls
  *
- * Copyright (C) 2007-2011 Red Hat, Inc.
+ * Copyright (C) 2007-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -44,6 +44,7 @@
 #include "virnetserverservice.h"
 #include "virnetserver.h"
 #include "virfile.h"
+#include "virtypedparam.h"
 
 #include "remote_protocol.h"
 #include "qemu_protocol.h"
@@ -56,14 +57,15 @@
                          __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #if SIZEOF_LONG < 8
-# define HYPER_TO_TYPE(_type, _to, _from)                                     \
-    do {                                                                      \
-        if ((_from) != (_type)(_from)) {                                      \
-            virNetError(VIR_ERR_INTERNAL_ERROR,                               \
-                        _("conversion from hyper to %s overflowed"), #_type); \
-            goto cleanup;                                                     \
-        }                                                                     \
-        (_to) = (_from);                                                      \
+# define HYPER_TO_TYPE(_type, _to, _from)                               \
+    do {                                                                \
+        if ((_from) != (_type)(_from)) {                                \
+            virNetError(VIR_ERR_OVERFLOW,                               \
+                        _("conversion from hyper to %s overflowed"),    \
+                        #_type);                                        \
+            goto cleanup;                                               \
+        }                                                               \
+        (_to) = (_from);                                                \
     } while (0)
 
 # define HYPER_TO_LONG(_to, _from) HYPER_TO_TYPE(long, _to, _from)
@@ -97,6 +99,12 @@ remoteDeserializeTypedParameters(remote_typed_param *args_params_val,
                                  int limit,
                                  int *nparams);
 
+static int
+remoteSerializeDomainDiskErrors(virDomainDiskErrorPtr errors,
+                                int nerrors,
+                                remote_domain_disk_error **ret_errors_val,
+                                u_int *ret_errors_len);
+
 #include "remote_dispatch.h"
 #include "qemu_dispatch.h"
 
@@ -124,7 +132,7 @@ static int remoteRelayDomainEventLifecycle(virConnectPtr conn ATTRIBUTE_UNUSED,
     VIR_DEBUG("Relaying domain lifecycle event %d %d", event, detail);
 
     /* build return data */
-    memset(&data, 0, sizeof data);
+    memset(&data, 0, sizeof(data));
     make_nonnull_domain(&data.dom, dom);
     data.event = event;
     data.detail = detail;
@@ -149,7 +157,7 @@ static int remoteRelayDomainEventReboot(virConnectPtr conn ATTRIBUTE_UNUSED,
     VIR_DEBUG("Relaying domain reboot event %s %d", dom->name, dom->id);
 
     /* build return data */
-    memset(&data, 0, sizeof data);
+    memset(&data, 0, sizeof(data));
     make_nonnull_domain(&data.dom, dom);
 
     remoteDispatchDomainEventSend(client, remoteProgram,
@@ -174,7 +182,7 @@ static int remoteRelayDomainEventRTCChange(virConnectPtr conn ATTRIBUTE_UNUSED,
     VIR_DEBUG("Relaying domain rtc change event %s %d %lld", dom->name, dom->id, offset);
 
     /* build return data */
-    memset(&data, 0, sizeof data);
+    memset(&data, 0, sizeof(data));
     make_nonnull_domain(&data.dom, dom);
     data.offset = offset;
 
@@ -200,7 +208,7 @@ static int remoteRelayDomainEventWatchdog(virConnectPtr conn ATTRIBUTE_UNUSED,
     VIR_DEBUG("Relaying domain watchdog event %s %d %d", dom->name, dom->id, action);
 
     /* build return data */
-    memset(&data, 0, sizeof data);
+    memset(&data, 0, sizeof(data));
     make_nonnull_domain(&data.dom, dom);
     data.action = action;
 
@@ -228,7 +236,7 @@ static int remoteRelayDomainEventIOError(virConnectPtr conn ATTRIBUTE_UNUSED,
     VIR_DEBUG("Relaying domain io error %s %d %s %s %d", dom->name, dom->id, srcPath, devAlias, action);
 
     /* build return data */
-    memset(&data, 0, sizeof data);
+    memset(&data, 0, sizeof(data));
     data.srcPath = strdup(srcPath);
     if (data.srcPath == NULL)
         goto mem_error;
@@ -269,7 +277,7 @@ static int remoteRelayDomainEventIOErrorReason(virConnectPtr conn ATTRIBUTE_UNUS
               dom->name, dom->id, srcPath, devAlias, action, reason);
 
     /* build return data */
-    memset(&data, 0, sizeof data);
+    memset(&data, 0, sizeof(data));
     data.srcPath = strdup(srcPath);
     if (data.srcPath == NULL)
         goto mem_error;
@@ -325,7 +333,7 @@ static int remoteRelayDomainEventGraphics(virConnectPtr conn ATTRIBUTE_UNUSED,
     }
 
     /* build return data */
-    memset(&data, 0, sizeof data);
+    memset(&data, 0, sizeof(data));
     data.phase = phase;
     data.local.family = local->family;
     data.remote.family = remote->family;
@@ -401,7 +409,7 @@ static int remoteRelayDomainEventBlockJob(virConnectPtr conn ATTRIBUTE_UNUSED,
               dom->name, dom->id, path, type, status);
 
     /* build return data */
-    memset(&data, 0, sizeof data);
+    memset(&data, 0, sizeof(data));
     data.path = strdup(path);
     if (data.path == NULL)
         goto mem_error;
@@ -435,7 +443,7 @@ static int remoteRelayDomainEventControlError(virConnectPtr conn ATTRIBUTE_UNUSE
     VIR_DEBUG("Relaying domain control error %s %d", dom->name, dom->id);
 
     /* build return data */
-    memset(&data, 0, sizeof data);
+    memset(&data, 0, sizeof(data));
     make_nonnull_domain(&data.dom, dom);
 
     remoteDispatchDomainEventSend(client, remoteProgram,
@@ -465,7 +473,7 @@ static int remoteRelayDomainEventDiskChange(virConnectPtr conn ATTRIBUTE_UNUSED,
               dom->name, dom->id, oldSrcPath, newSrcPath, devAlias, reason);
 
     /* build return data */
-    memset(&data, 0, sizeof data);
+    memset(&data, 0, sizeof(data));
     if (oldSrcPath &&
         ((VIR_ALLOC(oldSrcPath_p) < 0) ||
          !(*oldSrcPath_p = strdup(oldSrcPath))))
@@ -498,6 +506,82 @@ mem_error:
 }
 
 
+static int remoteRelayDomainEventTrayChange(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                            virDomainPtr dom,
+                                            const char *devAlias,
+                                            int reason,
+                                            void *opaque) {
+    virNetServerClientPtr client = opaque;
+    remote_domain_event_tray_change_msg data;
+
+    if (!client)
+        return -1;
+
+    VIR_DEBUG("Relaying domain %s %d tray change devAlias: %s reason: %d",
+              dom->name, dom->id, devAlias, reason);
+
+    /* build return data */
+    memset(&data, 0, sizeof(data));
+
+    if (!(data.devAlias = strdup(devAlias))) {
+        virReportOOMError();
+        return -1;
+    }
+    data.reason = reason;
+
+    make_nonnull_domain(&data.dom, dom);
+
+    remoteDispatchDomainEventSend(client, remoteProgram,
+                                  REMOTE_PROC_DOMAIN_EVENT_TRAY_CHANGE,
+                                  (xdrproc_t)xdr_remote_domain_event_tray_change_msg, &data);
+
+    return 0;
+}
+
+static int remoteRelayDomainEventPMWakeup(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                          virDomainPtr dom,
+                                          void *opaque) {
+    virNetServerClientPtr client = opaque;
+    remote_domain_event_pmwakeup_msg data;
+
+    if (!client)
+        return -1;
+
+    VIR_DEBUG("Relaying domain %s %d system pmwakeup", dom->name, dom->id);
+
+    /* build return data */
+    memset(&data, 0, sizeof(data));
+    make_nonnull_domain(&data.dom, dom);
+
+    remoteDispatchDomainEventSend(client, remoteProgram,
+                                  REMOTE_PROC_DOMAIN_EVENT_PMWAKEUP,
+                                  (xdrproc_t)xdr_remote_domain_event_pmwakeup_msg, &data);
+
+    return 0;
+}
+
+static int remoteRelayDomainEventPMSuspend(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                           virDomainPtr dom,
+                                           void *opaque) {
+    virNetServerClientPtr client = opaque;
+    remote_domain_event_pmsuspend_msg data;
+
+    if (!client)
+        return -1;
+
+    VIR_DEBUG("Relaying domain %s %d system pmsuspend", dom->name, dom->id);
+
+    /* build return data */
+    memset(&data, 0, sizeof(data));
+    make_nonnull_domain(&data.dom, dom);
+
+    remoteDispatchDomainEventSend(client, remoteProgram,
+                                  REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND,
+                                  (xdrproc_t)xdr_remote_domain_event_pmsuspend_msg, &data);
+
+    return 0;
+}
+
 static virConnectDomainEventGenericCallback domainEventCallbacks[] = {
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventLifecycle),
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventReboot),
@@ -509,6 +593,9 @@ static virConnectDomainEventGenericCallback domainEventCallbacks[] = {
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventControlError),
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventBlockJob),
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventDiskChange),
+    VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventTrayChange),
+    VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventPMWakeup),
+    VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventPMSuspend),
 };
 
 verify(ARRAY_CARDINALITY(domainEventCallbacks) == VIR_DOMAIN_EVENT_ID_LAST);
@@ -703,8 +790,11 @@ remoteSerializeTypedParameters(virTypedParameterPtr params,
     }
 
     for (i = 0, j = 0; i < nparams; ++i) {
-        if (!(flags & VIR_TYPED_PARAM_STRING_OKAY) &&
-            params[i].type == VIR_TYPED_PARAM_STRING) {
+        /* virDomainGetCPUStats can return a sparse array; also, we
+         * can't pass back strings to older clients.  */
+        if (!params[i].type ||
+            (!(flags & VIR_TYPED_PARAM_STRING_OKAY) &&
+             params[i].type == VIR_TYPED_PARAM_STRING)) {
             --*ret_params_len;
             continue;
         }
@@ -759,7 +849,7 @@ cleanup:
     if (val) {
         for (i = 0; i < nparams; i++) {
             VIR_FREE(val[i].field);
-            if (params[i].type == VIR_TYPED_PARAM_STRING)
+            if (val[i].value.type == VIR_TYPED_PARAM_STRING)
                 VIR_FREE(val[i].value.remote_typed_param_value_u.s);
         }
         VIR_FREE(val);
@@ -844,11 +934,7 @@ remoteDeserializeTypedParameters(remote_typed_param *args_params_val,
 
 cleanup:
     if (rv < 0) {
-        int j;
-        for (j = 0; j < i; ++j) {
-            if (params[j].type == VIR_TYPED_PARAM_STRING)
-                VIR_FREE(params[j].value.s);
-        }
+        virTypedParameterArrayClear(params, i);
         VIR_FREE(params);
     }
     return params;
@@ -898,9 +984,10 @@ remoteDispatchDomainGetSchedulerParameters(virNetServerPtr server ATTRIBUTE_UNUS
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
+    virTypedParameterArrayClear(params, nparams);
+    VIR_FREE(params);
     if (dom)
         virDomainFree(dom);
-    VIR_FREE(params);
     return rv;
 
 no_memory:
@@ -953,9 +1040,10 @@ remoteDispatchDomainGetSchedulerParametersFlags(virNetServerPtr server ATTRIBUTE
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
+    virTypedParameterArrayClear(params, nparams);
+    VIR_FREE(params);
     if (dom)
         virDomainFree(dom);
-    VIR_FREE(params);
     return rv;
 
 no_memory:
@@ -1092,7 +1180,6 @@ remoteDispatchDomainBlockStatsFlags(virNetServerPtr server ATTRIBUTE_UNUSED,
 {
     virTypedParameterPtr params = NULL;
     virDomainPtr dom = NULL;
-    int i;
     const char *path = args->path;
     int nparams = args->nparams;
     unsigned int flags;
@@ -1140,17 +1227,12 @@ success:
     rv = 0;
 
 cleanup:
-    if (rv < 0) {
+    if (rv < 0)
         virNetMessageSaveError(rerr);
-        if (ret->params.params_val) {
-            for (i = 0; i < nparams; i++)
-                VIR_FREE(ret->params.params_val[i].field);
-            VIR_FREE(ret->params.params_val);
-        }
-    }
+    virTypedParameterArrayClear(params, nparams);
+    VIR_FREE(params);
     if (dom)
         virDomainFree(dom);
-    VIR_FREE(params);
     return rv;
 }
 
@@ -1275,7 +1357,7 @@ remoteDispatchNodeGetSecurityModel(virNetServerPtr server ATTRIBUTE_UNUSED,
         goto cleanup;
     }
 
-    memset(&secmodel, 0, sizeof secmodel);
+    memset(&secmodel, 0, sizeof(secmodel));
     if (virNodeGetSecurityModel(priv->conn, &secmodel) < 0)
         goto cleanup;
 
@@ -1623,9 +1705,75 @@ success:
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
+    virTypedParameterArrayClear(params, nparams);
+    VIR_FREE(params);
     if (dom)
         virDomainFree(dom);
+    return rv;
+}
+
+static int
+remoteDispatchDomainGetNumaParameters(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                      virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                                      virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                                      virNetMessageErrorPtr rerr,
+                                      remote_domain_get_numa_parameters_args *args,
+                                      remote_domain_get_numa_parameters_ret *ret)
+{
+    virDomainPtr dom = NULL;
+    virTypedParameterPtr params = NULL;
+    int nparams = args->nparams;
+    unsigned int flags;
+    int rv = -1;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    flags = args->flags;
+
+    if (nparams > REMOTE_DOMAIN_NUMA_PARAMETERS_MAX) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("nparams too large"));
+        goto cleanup;
+    }
+    if (VIR_ALLOC_N(params, nparams) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainGetNumaParameters(dom, params, &nparams, flags) < 0)
+        goto cleanup;
+
+    /* In this case, we need to send back the number of parameters
+     * supported
+     */
+    if (args->nparams == 0) {
+        ret->nparams = nparams;
+        goto success;
+    }
+
+    if (remoteSerializeTypedParameters(params, nparams,
+                                       &ret->params.params_val,
+                                       &ret->params.params_len,
+                                       flags) < 0)
+        goto cleanup;
+
+success:
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virTypedParameterArrayClear(params, nparams);
     VIR_FREE(params);
+    if (dom)
+        virDomainFree(dom);
     return rv;
 }
 
@@ -1968,6 +2116,7 @@ remoteDispatchAuthList(virNetServerPtr server ATTRIBUTE_UNUSED,
     int rv = -1;
     int auth = virNetServerClientGetAuth(client);
     uid_t callerUid;
+    gid_t callerGid;
     pid_t callerPid;
 
     /* If the client is root then we want to bypass the
@@ -1975,22 +2124,24 @@ remoteDispatchAuthList(virNetServerPtr server ATTRIBUTE_UNUSED,
      * some piece of polkit isn't present/running
      */
     if (auth == VIR_NET_SERVER_SERVICE_AUTH_POLKIT) {
-        if (virNetServerClientGetLocalIdentity(client, &callerUid, &callerPid) < 0) {
+        if (virNetServerClientGetUNIXIdentity(client, &callerUid, &callerGid,
+                                              &callerPid) < 0) {
             /* Don't do anything on error - it'll be validated at next
              * phase of auth anyway */
             virResetLastError();
         } else if (callerUid == 0) {
-            char ident[100];
-            rv = snprintf(ident, sizeof ident, "pid:%d,uid:%d", callerPid, callerUid);
-            if (rv > 0 || rv < sizeof ident) {
-                VIR_INFO("Bypass polkit auth for privileged client %s",
-                         ident);
-                if (virNetServerClientSetIdentity(client, ident) < 0)
-                    virResetLastError();
-                else
-                    auth = VIR_NET_SERVER_SERVICE_AUTH_NONE;
+            char *ident;
+            if (virAsprintf(&ident, "pid:%lld,uid:%d",
+                            (long long) callerPid, callerUid) < 0) {
+                virReportOOMError();
+                goto cleanup;
             }
-            rv = -1;
+            VIR_INFO("Bypass polkit auth for privileged client %s", ident);
+            if (virNetServerClientSetIdentity(client, ident) < 0)
+                virResetLastError();
+            else
+                auth = VIR_NET_SERVER_SERVICE_AUTH_NONE;
+            VIR_FREE(ident);
         }
     }
 
@@ -2135,7 +2286,6 @@ remoteSASLFinish(virNetServerClientPtr client)
 
     VIR_DEBUG("Authentication successful %d", virNetServerClientGetFD(client));
 
-    identity = virNetSASLSessionGetIdentity(priv->sasl);
     PROBE(RPC_SERVER_CLIENT_AUTH_ALLOW,
           "client=%p auth=%d identity=%s",
           client, REMOTE_AUTH_SASL, identity);
@@ -2401,29 +2551,25 @@ remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
                          remote_auth_polkit_ret *ret)
 {
     pid_t callerPid = -1;
+    gid_t callerGid = -1;
     uid_t callerUid = -1;
     const char *action;
     int status = -1;
-    char pidbuf[50];
-    char ident[100];
-    int rv = -1;
+    char *ident = NULL;
+    bool authdismissed = 0;
+    char *pkout = NULL;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
-
-    memset(ident, 0, sizeof ident);
+    virCommandPtr cmd = NULL;
 
     virMutexLock(&priv->lock);
     action = virNetServerClientGetReadonly(client) ?
         "org.libvirt.unix.monitor" :
         "org.libvirt.unix.manage";
 
-    const char * const pkcheck [] = {
-      PKCHECK_PATH,
-      "--action-id", action,
-      "--process", pidbuf,
-      "--allow-user-interaction",
-      NULL
-    };
+    cmd = virCommandNewArgList(PKCHECK_PATH, "--action-id", action, NULL);
+    virCommandSetOutputBuffer(cmd, &pkout);
+    virCommandSetErrorBuffer(cmd, &pkout);
 
     VIR_DEBUG("Start PolicyKit auth %d", virNetServerClientGetFD(client));
     if (virNetServerClientGetAuth(client) != VIR_NET_SERVER_SERVICE_AUTH_POLKIT) {
@@ -2431,51 +2577,64 @@ remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
         goto authfail;
     }
 
-    if (virNetServerClientGetLocalIdentity(client, &callerUid, &callerPid) < 0) {
+    if (virNetServerClientGetUNIXIdentity(client, &callerUid, &callerGid,
+                                          &callerPid) < 0) {
         goto authfail;
     }
 
-    VIR_INFO("Checking PID %d running as %d", callerPid, callerUid);
+    VIR_INFO("Checking PID %lld running as %d",
+             (long long) callerPid, callerUid);
 
-    rv = snprintf(pidbuf, sizeof pidbuf, "%d", callerPid);
-    if (rv < 0 || rv >= sizeof pidbuf) {
-        VIR_ERROR(_("Caller PID was too large %d"), callerPid);
+    virCommandAddArg(cmd, "--process");
+    virCommandAddArgFormat(cmd, "%lld", (long long) callerPid);
+    virCommandAddArg(cmd, "--allow-user-interaction");
+
+    if (virAsprintf(&ident, "pid:%lld,uid:%d",
+                    (long long) callerPid, callerUid) < 0) {
+        virReportOOMError();
         goto authfail;
     }
 
-    rv = snprintf(ident, sizeof ident, "pid:%d,uid:%d", callerPid, callerUid);
-    if (rv < 0 || rv >= sizeof ident) {
-        VIR_ERROR(_("Caller identity was too large %d:%d"), callerPid, callerUid);
+    if (virCommandRun(cmd, &status) < 0)
         goto authfail;
-    }
 
-    if (virRun(pkcheck, &status) < 0) {
-        VIR_ERROR(_("Cannot invoke %s"), PKCHECK_PATH);
-        goto authfail;
-    }
+    authdismissed = (pkout && strstr(pkout, "dismissed=true"));
     if (status != 0) {
         char *tmp = virCommandTranslateStatus(status);
-        VIR_ERROR(_("Policy kit denied action %s from pid %d, uid %d: %s"),
-                  action, callerPid, callerUid, NULLSTR(tmp));
+        VIR_ERROR(_("Policy kit denied action %s from pid %lld, uid %d: %s"),
+                  action, (long long) callerPid, callerUid, NULLSTR(tmp));
         VIR_FREE(tmp);
         goto authdeny;
     }
     PROBE(RPC_SERVER_CLIENT_AUTH_ALLOW,
           "client=%p auth=%d identity=%s",
           client, REMOTE_AUTH_POLKIT, ident);
-    VIR_INFO("Policy allowed action %s from pid %d, uid %d",
-             action, callerPid, callerUid);
+    VIR_INFO("Policy allowed action %s from pid %lld, uid %d",
+             action, (long long) callerPid, callerUid);
     ret->complete = 1;
 
     virNetServerClientSetIdentity(client, ident);
     virMutexUnlock(&priv->lock);
+    virCommandFree(cmd);
+    VIR_FREE(pkout);
+    VIR_FREE(ident);
 
     return 0;
 
 error:
+    virCommandFree(cmd);
+    VIR_FREE(ident);
     virResetLastError();
-    virNetError(VIR_ERR_AUTH_FAILED, "%s",
-                _("authentication failed"));
+
+    if (authdismissed) {
+        virNetError(VIR_ERR_AUTH_CANCELLED, "%s",
+                    _("authentication cancelled by user"));
+    } else {
+        virNetError(VIR_ERR_AUTH_FAILED, "%s",
+                    pkout && *pkout ? pkout : _("authentication failed"));
+    }
+
+    VIR_FREE(pkout);
     virNetMessageSaveError(rerr);
     virMutexUnlock(&priv->lock);
     return -1;
@@ -2489,7 +2648,7 @@ authfail:
 authdeny:
     PROBE(RPC_SERVER_CLIENT_AUTH_DENY,
           "client=%p auth=%d identity=%s",
-          client, REMOTE_AUTH_POLKIT, (char *)ident);
+          client, REMOTE_AUTH_POLKIT, ident);
     goto error;
 }
 #elif HAVE_POLKIT0
@@ -2501,6 +2660,7 @@ remoteDispatchAuthPolkit(virNetServerPtr server,
                          remote_auth_polkit_ret *ret)
 {
     pid_t callerPid;
+    gid_t callerGid;
     uid_t callerUid;
     PolKitCaller *pkcaller = NULL;
     PolKitAction *pkaction = NULL;
@@ -2509,12 +2669,9 @@ remoteDispatchAuthPolkit(virNetServerPtr server,
     PolKitResult pkresult;
     DBusError err;
     const char *action;
-    char ident[100];
-    int rv = -1;
+    char *ident = NULL;
     struct daemonClientPrivate *priv =
         virNetServerClientGetPrivateData(client);
-
-    memset(ident, 0, sizeof ident);
 
     virMutexLock(&priv->lock);
 
@@ -2528,18 +2685,20 @@ remoteDispatchAuthPolkit(virNetServerPtr server,
         goto authfail;
     }
 
-    if (virNetServerClientGetLocalIdentity(client, &callerUid, &callerPid) < 0) {
+    if (virNetServerClientGetUNIXIdentity(client, &callerUid, &callerGid,
+                                          &callerPid) < 0) {
         VIR_ERROR(_("cannot get peer socket identity"));
         goto authfail;
     }
 
-    rv = snprintf(ident, sizeof ident, "pid:%d,uid:%d", callerPid, callerUid);
-    if (rv < 0 || rv >= sizeof ident) {
-        VIR_ERROR(_("Caller identity was too large %d:%d"), callerPid, callerUid);
+    if (virAsprintf(&ident, "pid:%lld,uid:%d",
+                    (long long) callerPid, callerUid) < 0) {
+        virReportOOMError();
         goto authfail;
     }
 
-    VIR_INFO("Checking PID %d running as %d", callerPid, callerUid);
+    VIR_INFO("Checking PID %lld running as %d",
+             (long long) callerPid, callerUid);
     dbus_error_init(&err);
     if (!(pkcaller = polkit_caller_new_from_pid(virNetServerGetDBusConn(server),
                                                 callerPid, &err))) {
@@ -2551,7 +2710,7 @@ remoteDispatchAuthPolkit(virNetServerPtr server,
     if (!(pkaction = polkit_action_new())) {
         char ebuf[1024];
         VIR_ERROR(_("Failed to create polkit action %s"),
-                  virStrerror(errno, ebuf, sizeof ebuf));
+                  virStrerror(errno, ebuf, sizeof(ebuf)));
         polkit_caller_unref(pkcaller);
         goto authfail;
     }
@@ -2562,7 +2721,7 @@ remoteDispatchAuthPolkit(virNetServerPtr server,
         char ebuf[1024];
         VIR_ERROR(_("Failed to create polkit context %s"),
                   (pkerr ? polkit_error_get_error_message(pkerr)
-                   : virStrerror(errno, ebuf, sizeof ebuf)));
+                   : virStrerror(errno, ebuf, sizeof(ebuf))));
         if (pkerr)
             polkit_error_free(pkerr);
         polkit_caller_unref(pkcaller);
@@ -2592,24 +2751,26 @@ remoteDispatchAuthPolkit(virNetServerPtr server,
     polkit_caller_unref(pkcaller);
     polkit_action_unref(pkaction);
     if (pkresult != POLKIT_RESULT_YES) {
-        VIR_ERROR(_("Policy kit denied action %s from pid %d, uid %d, result: %s"),
-                  action, callerPid, callerUid,
+        VIR_ERROR(_("Policy kit denied action %s from pid %lld, uid %d, result: %s"),
+                  action, (long long) callerPid, callerUid,
                   polkit_result_to_string_representation(pkresult));
         goto authdeny;
     }
     PROBE(RPC_SERVER_CLIENT_AUTH_ALLOW,
           "client=%p auth=%d identity=%s",
           client, REMOTE_AUTH_POLKIT, ident);
-    VIR_INFO("Policy allowed action %s from pid %d, uid %d, result %s",
-             action, callerPid, callerUid,
+    VIR_INFO("Policy allowed action %s from pid %lld, uid %d, result %s",
+             action, (long long) callerPid, callerUid,
              polkit_result_to_string_representation(pkresult));
     ret->complete = 1;
     virNetServerClientSetIdentity(client, ident);
 
     virMutexUnlock(&priv->lock);
+    VIR_FREE(ident);
     return 0;
 
 error:
+    VIR_FREE(ident);
     virResetLastError();
     virNetError(VIR_ERR_AUTH_FAILED, "%s",
                 _("authentication failed"));
@@ -3374,6 +3535,209 @@ cleanup:
     return rv;
 }
 
+static int
+remoteDispatchDomainGetInterfaceParameters(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                           virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                                           virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                                           virNetMessageErrorPtr rerr,
+                                           remote_domain_get_interface_parameters_args *args,
+                                           remote_domain_get_interface_parameters_ret *ret)
+{
+    virDomainPtr dom = NULL;
+    virTypedParameterPtr params = NULL;
+    const char *device = args->device;
+    int nparams = args->nparams;
+    unsigned int flags;
+    int rv = -1;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    flags = args->flags;
+
+    if (nparams > REMOTE_DOMAIN_INTERFACE_PARAMETERS_MAX) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("nparams too large"));
+        goto cleanup;
+    }
+    if (VIR_ALLOC_N(params, nparams) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainGetInterfaceParameters(dom, device, params, &nparams, flags) < 0)
+        goto cleanup;
+
+    /* In this case, we need to send back the number of parameters
+     * supported
+     */
+    if (args->nparams == 0) {
+        ret->nparams = nparams;
+        goto success;
+    }
+
+    if (remoteSerializeTypedParameters(params, nparams,
+                                       &ret->params.params_val,
+                                       &ret->params.params_len,
+                                       flags) < 0)
+        goto cleanup;
+
+success:
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virTypedParameterArrayClear(params, nparams);
+    VIR_FREE(params);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+static int
+remoteDispatchDomainGetCPUStats(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                                virNetMessagePtr hdr ATTRIBUTE_UNUSED,
+                                virNetMessageErrorPtr rerr,
+                                remote_domain_get_cpu_stats_args *args,
+                                remote_domain_get_cpu_stats_ret *ret)
+{
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv;
+    virTypedParameterPtr params = NULL;
+    int rv = -1;
+    int percpu_len = 0;
+
+    priv = virNetServerClientGetPrivateData(client);
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (args->nparams > REMOTE_NODE_CPU_STATS_MAX) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("nparams too large"));
+        goto cleanup;
+    }
+    if (args->ncpus > REMOTE_DOMAIN_GET_CPU_STATS_NCPUS_MAX) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("ncpus too large"));
+        goto cleanup;
+    }
+
+    if (args->nparams > 0 &&
+        VIR_ALLOC_N(params, args->ncpus * args->nparams) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    percpu_len = virDomainGetCPUStats(dom, params, args->nparams,
+                                      args->start_cpu, args->ncpus,
+                                      args->flags);
+    if (percpu_len < 0)
+        goto cleanup;
+    /* If nparams == 0, the function returns a single value */
+    if (args->nparams == 0)
+        goto success;
+
+    if (remoteSerializeTypedParameters(params, args->nparams * args->ncpus,
+                                       &ret->params.params_val,
+                                       &ret->params.params_len,
+                                       args->flags) < 0)
+        goto cleanup;
+
+success:
+    rv = 0;
+    ret->nparams = percpu_len;
+    if (args->nparams && !(args->flags & VIR_TYPED_PARAM_STRING_OKAY)) {
+        int i;
+
+        for (i = 0; i < percpu_len; i++) {
+            if (params[i].type == VIR_TYPED_PARAM_STRING)
+                ret->nparams--;
+        }
+    }
+
+cleanup:
+    if (rv < 0)
+         virNetMessageSaveError(rerr);
+    virTypedParameterArrayClear(params, args->ncpus * args->nparams);
+    VIR_FREE(params);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+static int remoteDispatchDomainGetDiskErrors(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_disk_errors_args *args,
+    remote_domain_get_disk_errors_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainDiskErrorPtr errors = NULL;
+    int len = 0;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (args->maxerrors > REMOTE_DOMAIN_DISK_ERRORS_MAX) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
+                    _("maxerrors too large"));
+        goto cleanup;
+    }
+
+    if (args->maxerrors &&
+        VIR_ALLOC_N(errors, args->maxerrors) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    if ((len = virDomainGetDiskErrors(dom, errors,
+                                      args->maxerrors,
+                                      args->flags)) < 0)
+        goto cleanup;
+
+    ret->nerrors = len;
+    if (errors &&
+        remoteSerializeDomainDiskErrors(errors, len,
+                                        &ret->errors.errors_val,
+                                        &ret->errors.errors_len) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    if (errors) {
+        int i;
+        for (i = 0; i < len; i++)
+            VIR_FREE(errors[i].disk);
+    }
+    VIR_FREE(errors);
+    return rv;
+}
 
 /*----- Helpers. -----*/
 
@@ -3504,4 +3868,38 @@ make_nonnull_domain_snapshot(remote_nonnull_domain_snapshot *snapshot_dst, virDo
 {
     snapshot_dst->name = strdup(snapshot_src->name);
     make_nonnull_domain(&snapshot_dst->dom, snapshot_src->domain);
+}
+
+static int
+remoteSerializeDomainDiskErrors(virDomainDiskErrorPtr errors,
+                                int nerrors,
+                                remote_domain_disk_error **ret_errors_val,
+                                u_int *ret_errors_len)
+{
+    remote_domain_disk_error *val = NULL;
+    int i = 0;
+
+    if (VIR_ALLOC_N(val, nerrors) < 0)
+        goto no_memory;
+
+    for (i = 0; i < nerrors; i++) {
+        if (!(val[i].disk = strdup(errors[i].disk)))
+            goto no_memory;
+        val[i].error = errors[i].error;
+    }
+
+    *ret_errors_len = nerrors;
+    *ret_errors_val = val;
+
+    return 0;
+
+no_memory:
+    if (val) {
+        int j;
+        for (j = 0; j < i; j++)
+            VIR_FREE(val[j].disk);
+        VIR_FREE(val);
+    }
+    virReportOOMError();
+    return -1;
 }

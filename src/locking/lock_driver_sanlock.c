@@ -702,7 +702,7 @@ static int virLockManagerSanlockAcquire(virLockManagerPtr lock,
         goto error;
     }
 
-    if (state && STRNEQ(state, "") && 0) {
+    if (state && STRNEQ(state, "")) {
         if ((rv = sanlock_state_to_args((char *)state,
                                         &res_count,
                                         &res_args)) < 0) {
@@ -828,7 +828,7 @@ static int virLockManagerSanlockRelease(virLockManagerPtr lock,
             return -1;
         }
 
-        if (STREQ(*state, ""))
+        if (STREQ_NULLABLE(*state, ""))
             VIR_FREE(*state);
     }
 
@@ -871,7 +871,7 @@ static int virLockManagerSanlockInquire(virLockManagerPtr lock,
         return -1;
     }
 
-    if (STREQ(*state, ""))
+    if (STREQ_NULLABLE(*state, ""))
         VIR_FREE(*state);
 
     return 0;

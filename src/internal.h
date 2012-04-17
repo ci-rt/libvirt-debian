@@ -22,7 +22,11 @@
  * variables, so effectively undefine the deprecated attribute
  * which would otherwise be defined in libvirt.h.
  */
+# undef VIR_DEPRECATED
 # define VIR_DEPRECATED /*empty*/
+
+/* The library itself needs to know enum sizes.  */
+# define VIR_ENUM_SENTINELS
 
 /* All uses of _() within the library should pick up translations from
  * libvirt's message files, rather than from the package that is
@@ -79,7 +83,7 @@
 
 
 # define NUL_TERMINATE(buf) do { (buf)[sizeof(buf)-1] = '\0'; } while (0)
-# define ARRAY_CARDINALITY(Array) (sizeof (Array) / sizeof *(Array))
+# define ARRAY_CARDINALITY(Array) (sizeof(Array) / sizeof(*(Array)))
 
 /* C99 uses __func__.  __FUNCTION__ is legacy. */
 # ifndef __GNUC__
@@ -201,7 +205,7 @@
  * Use this when passing possibly-NULL strings to printf-a-likes.
  */
 # define NULLSTR(s) \
-    ((void)verify_true(sizeof *(s) == sizeof (char)), \
+    ((void)verify_true(sizeof(*(s)) == sizeof(char)),   \
      (s) ? (s) : "(null)")
 
 /**
@@ -243,7 +247,7 @@
 # define VIR_DIV_UP(value, size) (((value) + (size) - 1) / (size))
 
 
-# if WITH_DTRACE
+# if WITH_DTRACE_PROBES
 #  ifndef LIBVIRT_PROBES_H
 #   define LIBVIRT_PROBES_H
 #   include "probes.h"

@@ -1,7 +1,5 @@
-# -*- buffer-read-only: t -*- vi: set ro:
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2011 Free Software Foundation, Inc.
+# Copyright (C) 2002-2012 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -57,6 +55,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module binary-io-tests:
   # Code from module bind:
   # Code from module bind-tests:
+  # Code from module bitrotate:
+  # Code from module bitrotate-tests:
   # Code from module btowc:
   # Code from module btowc-tests:
   # Code from module byteswap:
@@ -206,7 +206,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module localename:
   # Code from module localename-tests:
   # Code from module lock:
-  # Code from module lock-tests:
   # Code from module lseek:
   # Code from module lseek-tests:
   # Code from module lstat:
@@ -412,6 +411,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module tempname:
   # Code from module termios:
   # Code from module termios-tests:
+  # Code from module test-framework-sh:
+  # Code from module test-framework-sh-tests:
   # Code from module thread:
   # Code from module thread-tests:
   # Code from module threadlib:
@@ -461,7 +462,6 @@ AC_DEFUN([gl_EARLY],
   # Code from module xalloc-die-tests:
   # Code from module xalloc-oversized:
   # Code from module xsize:
-  # Code from module yield:
 ])
 
 # This macro should be invoked from ./configure.ac, in the section
@@ -496,6 +496,7 @@ if test "$ac_cv_header_winsock2_h" = yes; then
   AC_LIBOBJ([bind])
 fi
 gl_SYS_SOCKET_MODULE_INDICATOR([bind])
+AC_REQUIRE([AC_C_INLINE])
 gl_BYTESWAP
 gl_FUNC_CALLOC_POSIX
 if test $REPLACE_CALLOC = 1; then
@@ -717,7 +718,7 @@ if test "$ac_cv_header_winsock2_h" = yes; then
 fi
 gl_SYS_SOCKET_MODULE_INDICATOR([listen])
 gl_LOCALCHARSET
-LOCALCHARSET_TESTS_ENVIRONMENT="CHARSETALIASDIR=\"\$(top_builddir)/$gl_source_base\""
+LOCALCHARSET_TESTS_ENVIRONMENT="CHARSETALIASDIR=\"\$(abs_top_builddir)/$gl_source_base\""
 AC_SUBST([LOCALCHARSET_TESTS_ENVIRONMENT])
 gl_LOCK
 gl_FUNC_LSEEK
@@ -864,7 +865,7 @@ if test $HAVE_RAISE = 0 || test $REPLACE_RAISE = 1; then
 fi
 gl_SIGNAL_MODULE_INDICATOR([raise])
 gl_FUNC_RANDOM_R
-if test $HAVE_RANDOM_R = 0; then
+if test $HAVE_RANDOM_R = 0 || test $REPLACE_RANDOM_R = 1; then
   AC_LIBOBJ([random_r])
   gl_PREREQ_RANDOM_R
 fi
@@ -1261,18 +1262,18 @@ gl_MGETGROUPS
 AC_CHECK_DECLS_ONCE([alarm])
 AC_CHECK_FUNCS_ONCE([socketpair])
 AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
-gl_POSIX_SPAWN
-if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN = 1; then
+gl_FUNC_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE
+if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE = 1; then
   AC_LIBOBJ([spawn_faction_addclose])
 fi
 gl_SPAWN_MODULE_INDICATOR([posix_spawn_file_actions_addclose])
-gl_POSIX_SPAWN
-if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN = 1; then
+gl_FUNC_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2
+if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2 = 1; then
   AC_LIBOBJ([spawn_faction_adddup2])
 fi
 gl_SPAWN_MODULE_INDICATOR([posix_spawn_file_actions_adddup2])
-gl_POSIX_SPAWN
-if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN = 1; then
+gl_FUNC_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN
+if test $HAVE_POSIX_SPAWN = 0 || test $REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN = 1; then
   AC_LIBOBJ([spawn_faction_addopen])
 fi
 gl_SPAWN_MODULE_INDICATOR([posix_spawn_file_actions_addopen])
@@ -1434,7 +1435,6 @@ if test $REPLACE_WRITE = 1; then
 fi
 gl_UNISTD_MODULE_INDICATOR([write])
 gl_XALLOC
-gl_YIELD
   m4_popdef([gl_MODULE_INDICATOR_CONDITION])
   m4_ifval(gltests_LIBSOURCES_LIST, [
     m4_syscmd([test ! -d ]m4_defn([gltests_LIBSOURCES_DIR])[ ||
@@ -1551,6 +1551,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/basename-lgpl.c
   lib/binary-io.h
   lib/bind.c
+  lib/bitrotate.h
   lib/byteswap.in.h
   lib/c-ctype.c
   lib/c-ctype.h
@@ -1977,7 +1978,6 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/write.m4
   m4/xalloc.m4
   m4/xsize.m4
-  m4/yield.m4
   tests/init.sh
   tests/macros.h
   tests/nap.h
@@ -1993,6 +1993,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-binary-io.c
   tests/test-binary-io.sh
   tests/test-bind.c
+  tests/test-bitrotate.c
   tests/test-btowc.c
   tests/test-btowc1.sh
   tests/test-btowc2.sh
@@ -2070,13 +2071,13 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-ignore-value.c
   tests/test-inet_ntop.c
   tests/test-inet_pton.c
+  tests/test-init.sh
   tests/test-intprops.c
   tests/test-inttypes.c
   tests/test-ioctl.c
   tests/test-listen.c
   tests/test-locale.c
   tests/test-localename.c
-  tests/test-lock.c
   tests/test-lseek.c
   tests/test-lseek.sh
   tests/test-lstat.c
@@ -2247,7 +2248,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/getugroups.h
   tests=lib/glthread/thread.c
   tests=lib/glthread/thread.h
-  tests=lib/glthread/yield.h
   tests=lib/grantpt.c
   tests=lib/inttypes.in.h
   tests=lib/locale.in.h

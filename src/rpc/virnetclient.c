@@ -108,8 +108,6 @@ struct _virNetClient {
 };
 
 
-static void virNetClientRequestClose(virNetClientPtr client);
-
 static void virNetClientLock(virNetClientPtr client)
 {
     virMutexLock(&client->lock);
@@ -253,7 +251,7 @@ virNetClientKeepAliveStart(virNetClientPtr client,
 static void
 virNetClientKeepAliveDeadCB(void *opaque)
 {
-    virNetClientRequestClose(opaque);
+    virNetClientClose(opaque);
 }
 
 static int
@@ -512,18 +510,10 @@ virNetClientCloseLocked(virNetClientPtr client)
 
 void virNetClientClose(virNetClientPtr client)
 {
+    VIR_DEBUG("client=%p", client);
+
     if (!client)
         return;
-
-    virNetClientLock(client);
-    virNetClientCloseLocked(client);
-    virNetClientUnlock(client);
-}
-
-static void
-virNetClientRequestClose(virNetClientPtr client)
-{
-    VIR_DEBUG("client=%p", client);
 
     virNetClientLock(client);
 
@@ -1479,7 +1469,7 @@ static void virNetClientIOUpdateCallback(virNetClientPtr client,
  * which come from the user).  It does however free any intermediate
  * results, eg. the error structure if there is one.
  *
- * NB(2). Make sure to memset (&ret, 0, sizeof ret) before calling,
+ * NB(2). Make sure to memset (&ret, 0, sizeof(ret)) before calling,
  * else Bad Things will happen in the XDR code.
  *
  * NB(3) You must have the client lock before calling this
@@ -1703,8 +1693,6 @@ static int virNetClientSendInternal(virNetClientPtr client,
         return -1;
     }
 
-    virNetClientLock(client);
-
     if (!client->sock || client->wantClose) {
         virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
                     _("client socket is closed"));
@@ -1739,7 +1727,6 @@ static int virNetClientSendInternal(virNetClientPtr client,
 cleanup:
     if (ret != 1)
         VIR_FREE(call);
-    virNetClientUnlock(client);
     return ret;
 }
 
@@ -1757,7 +1744,10 @@ cleanup:
 int virNetClientSendWithReply(virNetClientPtr client,
                               virNetMessagePtr msg)
 {
-    int ret = virNetClientSendInternal(client, msg, true, false);
+    int ret;
+    virNetClientLock(client);
+    ret = virNetClientSendInternal(client, msg, true, false);
+    virNetClientUnlock(client);
     if (ret < 0)
         return -1;
     return 0;
@@ -1777,7 +1767,10 @@ int virNetClientSendWithReply(virNetClientPtr client,
 int virNetClientSendNoReply(virNetClientPtr client,
                             virNetMessagePtr msg)
 {
-    int ret = virNetClientSendInternal(client, msg, false, false);
+    int ret;
+    virNetClientLock(client);
+    ret = virNetClientSendInternal(client, msg, false, false);
+    virNetClientUnlock(client);
     if (ret < 0)
         return -1;
     return 0;
@@ -1796,5 +1789,41 @@ int virNetClientSendNoReply(virNetClientPtr client,
 int virNetClientSendNonBlock(virNetClientPtr client,
                              virNetMessagePtr msg)
 {
-    return virNetClientSendInternal(client, msg, false, true);
+    int ret;
+    virNetClientLock(client);
+    ret = virNetClientSendInternal(client, msg, false, true);
+    virNetClientUnlock(client);
+    return ret;
+}
+
+/*
+ * @msg: a message allocated on heap or stack
+ *
+ * Send a message synchronously, and wait for the reply synchronously
+ *
+ * The caller is responsible for free'ing @msg if it was allocated
+ * on the heap
+ *
+ * Returns 0 on success, -1 on failure
+ */
+int virNetClientSendWithReplyStream(virNetClientPtr client,
+                                    virNetMessagePtr msg,
+                                    virNetClientStreamPtr st)
+{
+    int ret;
+    virNetClientLock(client);
+    /* Other thread might have already received
+     * stream EOF so we don't want sent anything.
+     * Server won't respond anyway.
+     */
+    if (virNetClientStreamEOF(st)) {
+        virNetClientUnlock(client);
+        return 0;
+    }
+
+    ret = virNetClientSendInternal(client, msg, true, false);
+    virNetClientUnlock(client);
+    if (ret < 0)
+        return -1;
+    return 0;
 }

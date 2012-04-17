@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2011 Red Hat, Inc.
+ * Copyright (C) 2007-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,6 +40,7 @@
 #include "logging.h"
 #include "memory.h"
 #include "virfile.h"
+#include "virrandom.h"
 
 #ifndef ENODATA
 # define ENODATA EIO
@@ -80,7 +81,7 @@ virUUIDGeneratePseudoRandomBytes(unsigned char *buf,
                                  int buflen)
 {
     while (buflen > 0) {
-        *buf++ = virRandom(256);
+        *buf++ = virRandomBits(8);
         buflen--;
     }
 
@@ -101,17 +102,17 @@ virUUIDGenerate(unsigned char *uuid)
     int err;
 
     if (uuid == NULL)
-        return(-1);
+        return -1;
 
     if ((err = virUUIDGenerateRandomBytes(uuid, VIR_UUID_BUFLEN))) {
         char ebuf[1024];
         VIR_WARN("Falling back to pseudorandom UUID,"
                  " failed to generate random bytes: %s",
-                 virStrerror(err, ebuf, sizeof ebuf));
+                 virStrerror(err, ebuf, sizeof(ebuf)));
         err = virUUIDGeneratePseudoRandomBytes(uuid, VIR_UUID_BUFLEN);
     }
 
-    return(err);
+    return err;
 }
 
 /**
@@ -221,7 +222,7 @@ virUUIDIsValid(unsigned char *uuid)
         if (uuid[i] == c)
             ctr++;
 
-    return (ctr != VIR_UUID_BUFLEN);
+    return ctr != VIR_UUID_BUFLEN;
 }
 
 static int
@@ -236,7 +237,7 @@ getDMISystemUUID(char *uuid, int len)
 
     while (paths[i]) {
         int fd = open(paths[i], O_RDONLY);
-        if (fd > 0) {
+        if (fd >= 0) {
             if (saferead(fd, uuid, len) == len) {
                 VIR_FORCE_CLOSE(fd);
                 return 0;

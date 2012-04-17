@@ -1,5 +1,5 @@
 # Customize Makefile.maint.                           -*- makefile -*-
-# Copyright (C) 2008-2011 Red Hat, Inc.
+# Copyright (C) 2008-2012 Red Hat, Inc.
 # Copyright (C) 2003-2008 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
@@ -171,6 +171,7 @@ useless_free_options =				\
   --name=xmlBufferFree				\
   --name=xmlFree				\
   --name=xmlFreeDoc				\
+  --name=xmlFreeNode				\
   --name=xmlXPathFreeContext			\
   --name=xmlXPathFreeObject
 
@@ -315,6 +316,12 @@ sc_prohibit_internal_functions:
 	halt='use VIR_ macros instead of internal functions'		\
 	  $(_sc_search_regexp)
 
+# Avoid raw malloc and free, except in documentation comments.
+sc_prohibit_raw_allocation:
+	@prohibit='^.[^*].*\<((m|c|re)alloc|free) *\([^)]'		\
+	halt='use VIR_ macros from memory.h instead of malloc/free'	\
+	  $(_sc_search_regexp)
+
 # Avoid functions that can lead to double-close bugs.
 sc_prohibit_close:
 	@prohibit='([^>.]|^)\<[fp]?close *\('				\
@@ -339,12 +346,12 @@ sc_prohibit_access_xok:
 
 # Similar to the gnulib maint.mk rule for sc_prohibit_strcmp
 # Use STREQLEN or STRPREFIX rather than comparing strncmp == 0, or != 0.
+snp_ = strncmp *\(.+\)
 sc_prohibit_strncmp:
-	@grep -nE '! *str''ncmp *\(|\<str''ncmp *\(.+\) *[!=]='		\
-	    $$($(VC_LIST_EXCEPT))					\
-	  | grep -vE ':# *define STR(N?EQLEN|PREFIX)\(' &&		\
-	  { echo '$(ME): use STREQLEN or STRPREFIX instead of str''ncmp' \
-		1>&2; exit 1; } || :
+	@prohibit='! *strncmp *\(|\<$(snp_) *[!=]=|[!=]= *$(snp_)'	\
+	exclude=':# *define STR(N?EQLEN|PREFIX)\('			\
+	halt='$(ME): use STREQLEN or STRPREFIX instead of str''ncmp'	\
+	  $(_sc_search_regexp)
 
 # Use virAsprintf rather than as'printf since *strp is undefined on error.
 sc_prohibit_asprintf:
@@ -409,14 +416,26 @@ sc_prohibit_ctype_h:
 	halt="don't use ctype.h; instead, use c-ctype.h"		\
 	  $(_sc_search_regexp)
 
+# Insist on correct types for [pug]id.
+sc_correct_id_types:
+	@prohibit='\<(int|long) *[pug]id\>'				\
+	halt="use pid_t for pid, uid_t for uid, gid_t for gid"		\
+	  $(_sc_search_regexp)
+
+# Forbid sizeof foo or sizeof (foo), require sizeof(foo)
+sc_size_of_brackets:
+	@prohibit='sizeof\s'						\
+	halt='use sizeof(foo), not sizeof (foo) or sizeof foo'		\
+	  $(_sc_search_regexp)
+
 # Ensure that no C source file, docs, or rng schema uses TABs for
 # indentation.  Also match *.h.in files, to get libvirt.h.in.  Exclude
 # files in gnulib, since they're imported.
-space_indent_files=(\.(rng|s?[ch](\.in)?|html.in|py)|(daemon|tools)/.*\.in)
+space_indent_files=(\.(rng|s?[ch](\.in)?|html.in|py|syms)|(daemon|tools)/.*\.in)
 sc_TAB_in_indentation:
 	@prohibit='^ *	'						\
 	in_vc_files='$(space_indent_files)$$'				\
-	halt='indent with space, not TAB, in C, sh, html, py, and RNG schemas' \
+	halt='indent with space, not TAB, in C, sh, html, py, syms and RNG schemas' \
 	  $(_sc_search_regexp)
 
 ctype_re = isalnum|isalpha|isascii|isblank|iscntrl|isdigit|isgraph|islower\
@@ -448,6 +467,18 @@ sc_prohibit_gethostby:
 sc_prohibit_xmlGetProp:
 	@prohibit='\<xmlGetProp *\('					\
 	halt='use virXMLPropString, not xmlGetProp'			\
+	  $(_sc_search_regexp)
+
+# xml(ParseURI|SaveUri) doesn't handle IPv6 URIs well
+sc_prohibit_xmlURI:
+	@prohibit='\<xml(ParseURI|SaveUri) *\('				\
+	halt='use virURI(Parse|Format), not xml(ParseURI|SaveUri)'	\
+	  $(_sc_search_regexp)
+
+# we don't want old old-style return with parentheses around argument
+sc_prohibit_return_as_function:
+	@prohibit='\<return *\(([^()]*(\([^()]*\)[^()]*)*)\) *;'    \
+	halt='avoid extra () with return statements'                \
 	  $(_sc_search_regexp)
 
 # ATTRIBUTE_UNUSED should only be applied in implementations, not
@@ -555,11 +586,10 @@ func_re := ($(func_or))
 #    _("...: "
 #    "%s", _("no storage vol w..."
 sc_libvirt_unmarked_diagnostics:
-	@grep -nE							\
-	    '\<$(func_re) *\([^"]*"[^"]*[a-z]{3}' $$($(VC_LIST_EXCEPT))	\
-	  | grep -v '_''(' &&						\
-	  { echo '$(ME): found unmarked diagnostic(s)' 1>&2;		\
-	    exit 1; } || :
+	@prohibit='\<$(func_re) *\([^"]*"[^"]*[a-z]{3}'			\
+	exclude='_\('							\
+	halt='$(ME): found unmarked diagnostic(s)'			\
+	  $(_sc_search_regexp)
 	@{ grep     -nE '\<$(func_re) *\(.*;$$' $$($(VC_LIST_EXCEPT));   \
 	   grep -A1 -nE '\<$(func_re) *\(.*,$$' $$($(VC_LIST_EXCEPT)); } \
 	   | sed 's/_("[^"][^"]*"//;s/[	 ]"%s"//'			\
@@ -609,6 +639,37 @@ sc_prohibit_gettext_markup:
 	@prohibit='\<VIR_(WARN|INFO|DEBUG) *\(_\('			\
 	halt='do not mark these strings for translation'		\
 	  $(_sc_search_regexp)
+
+# Our code is divided into modular subdirectories for a reason, and
+# lower-level code must not include higher-level headers.
+cross_dirs=$(patsubst $(srcdir)/src/%.,%,$(wildcard $(srcdir)/src/*/.))
+cross_dirs_re=($(subst / ,/|,$(cross_dirs)))
+sc_prohibit_cross_inclusion:
+	@for dir in $(cross_dirs); do					\
+	  case $$dir in							\
+	    util/) safe="util";;					\
+	    cpu/ | locking/ | network/ | rpc/ | security/)		\
+	      safe="($$dir|util|conf)";;				\
+	    xenapi/ | xenxs/ ) safe="($$dir|util|conf|xen)";;		\
+	    *) safe="($$dir|util|conf|cpu|network|locking|rpc|security)";; \
+	  esac;								\
+	  in_vc_files="^src/$$dir"					\
+	  prohibit='^# *include .$(cross_dirs_re)'			\
+	  exclude="# *include .$$safe"					\
+	  halt='unsafe cross-directory include'				\
+	    $(_sc_search_regexp)					\
+	done
+
+# When converting an enum to a string, make sure that we track any new
+# elements added to the enum by using a _LAST marker.
+sc_require_enum_last_marker:
+	@grep -A1 -nE '^[^#]*VIR_ENUM_IMPL *\(' $$($(VC_LIST_EXCEPT))	\
+	   | sed -ne '/VIR_ENUM_IMPL[^,]*,$$/N'				\
+	     -e '/VIR_ENUM_IMPL[^,]*,[^,]*[^_,][^L,][^A,][^S,][^T,],/p'	\
+	     -e '/VIR_ENUM_IMPL[^,]*,[^,]\{0,4\},/p'			\
+	   | grep . &&							\
+	  { echo '$(ME): enum impl needs to use _LAST marker' 1>&2;	\
+	    exit 1; } || :
 
 # We don't use this feature of maint.mk.
 prev_version_file = /dev/null
@@ -686,7 +747,7 @@ exclude_file_name_regexp--sc_avoid_write = \
 
 exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 
-exclude_file_name_regexp--sc_flags_usage = ^docs/
+exclude_file_name_regexp--sc_flags_usage = ^(docs/|src/util/virnetdevtap\.c$$)
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
   ^src/rpc/gendispatch\.pl$$
@@ -708,7 +769,7 @@ exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^tests/qemuhelpdata/|\.(gif|ico|png)$$)
+  (^tests/qemuhelpdata/|\.(gif|ico|png|diff)$$)
 
 _src2=src/(util/command|libvirt|lxc/lxc_controller)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
@@ -725,6 +786,9 @@ exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
   ^((po|tests)/|docs/.*py$$|tools/(virsh|console)\.c$$)
 
+exclude_file_name_regexp--sc_prohibit_raw_allocation = \
+  ^(src/util/memory\.[ch]|examples/.*)$$
+
 exclude_file_name_regexp--sc_prohibit_readlink = ^src/util/util\.c$$
 
 exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/util\.c$$
@@ -737,6 +801,10 @@ exclude_file_name_regexp--sc_prohibit_strncpy = \
 
 exclude_file_name_regexp--sc_prohibit_xmlGetProp = ^src/util/xml\.c$$
 
+exclude_file_name_regexp--sc_prohibit_xmlURI = ^src/util/viruri\.c$$
+
+exclude_file_name_regexp--sc_prohibit_return_as_function = \.py$$
+
 exclude_file_name_regexp--sc_require_config_h = ^examples/
 
 exclude_file_name_regexp--sc_require_config_h_first = ^examples/
@@ -745,3 +813,5 @@ exclude_file_name_regexp--sc_trailing_blank = \.(fig|gif|ico|png)$$
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = \
   ^(docs/apibuild.py|tests/virt-aa-helper-test)$$
+
+exclude_file_name_regexp--sc_size_of_brackets = cfg.mk

@@ -1,7 +1,7 @@
 /*
  * commandhelper.c: Auxiliary program for commandtest
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,9 @@
 #include "util.h"
 #include "memory.h"
 #include "virfile.h"
+#include "testutils.h"
+
+#ifndef WIN32
 
 
 static int envsort(const void *a, const void *b) {
@@ -42,8 +45,8 @@ static int envsort(const void *a, const void *b) {
     char *akey = strndup(astr, aeq - astr);
     char *bkey = strndup(bstr, beq - bstr);
     int ret = strcmp(akey, bkey);
-    free(akey);
-    free(bkey);
+    VIR_FREE(akey);
+    VIR_FREE(bkey);
     return ret;
 }
 
@@ -140,3 +143,13 @@ int main(int argc, char **argv) {
 error:
     return EXIT_FAILURE;
 }
+
+#else
+
+int
+main(void)
+{
+    return EXIT_AM_SKIP;
+}
+
+#endif

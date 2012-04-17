@@ -1,7 +1,5 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Retrieve information about a FILE stream.
-   Copyright (C) 2007-2011 Free Software Foundation, Inc.
+   Copyright (C) 2007-2012 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -64,6 +62,10 @@ freading (FILE *fp)
 #  else
   return (fp->__buffer < fp->__get_limit /*|| fp->__bufp == fp->__put_limit ??*/);
 #  endif
+# elif defined EPLAN9                /* Plan9 */
+  if (fp->state == 0 /* CLOSED */ || fp->state == 4 /* WR */)
+    return 0;
+  return (fp->state == 3 /* RD */ && (fp->bufl == 0 || fp->rp < fp->wp));
 # else
 #  error "Please port gnulib freading.c to your platform!"
 # endif

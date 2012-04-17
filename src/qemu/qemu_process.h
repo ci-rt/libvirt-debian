@@ -1,7 +1,7 @@
 /*
  * qemu_process.c: QEMU process management
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -48,6 +48,7 @@ int qemuProcessStart(virConnectPtr conn,
                      struct qemud_driver *driver,
                      virDomainObjPtr vm,
                      const char *migrateFrom,
+                     bool cold_boot,
                      bool start_paused,
                      bool autodestroy,
                      int stdin_fd,
@@ -63,12 +64,19 @@ void qemuProcessStop(struct qemud_driver *driver,
 int qemuProcessAttach(virConnectPtr conn,
                       struct qemud_driver *driver,
                       virDomainObjPtr vm,
-                      int pid,
+                      pid_t pid,
                       const char *pidfile,
                       virDomainChrSourceDefPtr monConfig,
                       bool monJSON);
 
-void qemuProcessKill(virDomainObjPtr vm, bool gracefully);
+typedef enum {
+   VIR_QEMU_PROCESS_KILL_FORCE  = 1 << 0,
+   VIR_QEMU_PROCESS_KILL_NOWAIT = 1 << 1,
+   VIR_QEMU_PROCESS_KILL_NOCHECK = 1 << 2, /* bypass the running vm check */
+} virQemuProcessKillMode;
+
+int qemuProcessKill(struct qemud_driver *driver,
+                    virDomainObjPtr vm, unsigned int flags);
 
 int qemuProcessAutoDestroyInit(struct qemud_driver *driver);
 void qemuProcessAutoDestroyRun(struct qemud_driver *driver,

@@ -1,8 +1,6 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Test for nonblocking read and write on pipes.
 
-   Copyright (C) 2011 Free Software Foundation, Inc.
+   Copyright (C) 2011-2012 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -34,6 +32,7 @@
 
 #include "nonblocking.h"
 #include "wait-process.h"
+#include "progname.h"
 
 #include "macros.h"
 #include "test-nonblocking-pipe.h"
@@ -43,11 +42,16 @@
 int
 main (int argc, char *argv[])
 {
-  const char *child_path = argv[1];
-  int test = atoi (argv[2]);
+  const char *child_path;
+  int test;
   int fd[2];
   int child;
   int exitcode;
+
+  set_program_name (argv[0]);
+
+  child_path = argv[1];
+  test = atoi (argv[2]);
 
   /* Create a pipe.  */
   ASSERT (pipe (fd) >= 0);

@@ -1,7 +1,7 @@
 /*
  * uml_driver.c: core driver methods for managing UML guests
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -63,6 +63,7 @@
 #include "configmake.h"
 #include "virnetdevtap.h"
 #include "virnodesuspend.h"
+#include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_UML
 
@@ -124,7 +125,6 @@ static int umlOpenMonitor(struct uml_driver *driver,
                           virDomainObjPtr vm);
 static int umlReadPidFile(struct uml_driver *driver,
                           virDomainObjPtr vm);
-static void umlDomainEventFlush(int timer, void *opaque);
 static void umlDomainEventQueue(struct uml_driver *driver,
                                 virDomainEventPtr event);
 
@@ -414,10 +414,7 @@ umlStartup(int privileged)
     if (virDomainObjListInit(&uml_driver->domains) < 0)
         goto error;
 
-    uml_driver->domainEventState = virDomainEventStateNew(umlDomainEventFlush,
-                                                          uml_driver,
-                                                          NULL,
-                                                          true);
+    uml_driver->domainEventState = virDomainEventStateNew();
     if (!uml_driver->domainEventState)
         goto error;
 
@@ -475,7 +472,7 @@ umlStartup(int privileged)
     if (virFileMakePath(uml_driver->monitorDir) < 0) {
         char ebuf[1024];
         VIR_ERROR(_("Failed to create monitor directory %s: %s"),
-               uml_driver->monitorDir, virStrerror(errno, ebuf, sizeof ebuf));
+                  uml_driver->monitorDir, virStrerror(errno, ebuf, sizeof(ebuf)));
         goto error;
     }
 
@@ -791,7 +788,7 @@ static int umlMonitorAddress(const struct uml_driver *driver,
         return -1;
     }
 
-    memset(addr, 0, sizeof *addr);
+    memset(addr, 0, sizeof(*addr));
     addr->sun_family = AF_UNIX;
     if (virStrcpyStatic(addr->sun_path, sockname) == NULL) {
         umlReportError(VIR_ERR_INTERNAL_ERROR,
@@ -829,11 +826,11 @@ restat:
         return -1;
     }
 
-    memset(addr.sun_path, 0, sizeof addr.sun_path);
+    memset(addr.sun_path, 0, sizeof(addr.sun_path));
     snprintf(addr.sun_path + 1, sizeof(addr.sun_path) - 1,
              "libvirt-uml-%u", vm->pid);
     VIR_DEBUG("Reply address for monitor is '%s'", addr.sun_path+1);
-    if (bind(priv->monitor, (struct sockaddr *)&addr, sizeof addr) < 0) {
+    if (bind(priv->monitor, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         virReportSystemError(errno,
                              "%s", _("cannot bind socket"));
         VIR_FORCE_CLOSE(priv->monitor);
@@ -899,8 +896,8 @@ static int umlMonitorCommand(const struct uml_driver *driver,
         return -1;
     }
 
-    if (sendto(priv->monitor, &req, sizeof req, 0,
-               (struct sockaddr *)&addr, sizeof addr) != (sizeof req)) {
+    if (sendto(priv->monitor, &req, sizeof(req), 0,
+               (struct sockaddr *)&addr, sizeof(addr)) != sizeof(req)) {
         virReportSystemError(errno,
                              _("cannot send command %s"),
                              cmd);
@@ -910,7 +907,7 @@ static int umlMonitorCommand(const struct uml_driver *driver,
     do {
         ssize_t nbytes;
         addrlen = sizeof(addr);
-        nbytes = recvfrom(priv->monitor, &res, sizeof res, 0,
+        nbytes = recvfrom(priv->monitor, &res, sizeof(res), 0,
                           (struct sockaddr *)&addr, &addrlen);
         if (nbytes < 0) {
             if (errno == EAGAIN || errno == EINTR)
@@ -1142,13 +1139,10 @@ static virDrvOpenStatus umlOpen(virConnectPtr conn,
         if (uml_driver == NULL)
             return VIR_DRV_OPEN_DECLINED;
 
-        conn->uri = xmlParseURI(uml_driver->privileged ?
-                                "uml:///system" :
-                                "uml:///session");
-        if (!conn->uri) {
-            virReportOOMError();
+        if (!(conn->uri = virURIParse(uml_driver->privileged ?
+                                      "uml:///system" :
+                                      "uml:///session")))
             return VIR_DRV_OPEN_ERROR;
-        }
     } else {
         if (conn->uri->scheme == NULL ||
             STRNEQ (conn->uri->scheme, "uml"))
@@ -1194,8 +1188,8 @@ static int umlClose(virConnectPtr conn) {
     struct uml_driver *driver = conn->privateData;
 
     umlDriverLock(driver);
-    virDomainEventCallbackListRemoveConn(conn,
-                                         driver->domainEventState->callbacks);
+    virDomainEventStateDeregisterConn(conn,
+                                      driver->domainEventState);
     umlProcessAutoDestroyRun(driver, conn);
     umlDriverUnlock(driver);
 
@@ -1243,13 +1237,13 @@ static char *umlGetCapabilities(virConnectPtr conn) {
 
 
 
-static int umlGetProcessInfo(unsigned long long *cpuTime, int pid)
+static int umlGetProcessInfo(unsigned long long *cpuTime, pid_t pid)
 {
     char *proc;
     FILE *pidinfo;
     unsigned long long usertime, systime;
 
-    if (virAsprintf(&proc, "/proc/%d/stat", pid) < 0) {
+    if (virAsprintf(&proc, "/proc/%lld/stat", (long long) pid) < 0) {
         return -1;
     }
 
@@ -1517,11 +1511,14 @@ cleanup:
 }
 
 
-static int umlDomainShutdown(virDomainPtr dom) {
+static int umlDomainShutdownFlags(virDomainPtr dom,
+                                  unsigned int flags) {
     struct uml_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
     char *info = NULL;
     int ret = -1;
+
+    virCheckFlags(0, -1);
 
     umlDriverLock(driver);
     vm = virDomainFindByID(&driver->domains, dom->id);
@@ -1548,6 +1545,11 @@ cleanup:
     return ret;
 }
 
+static int
+umlDomainShutdown(virDomainPtr dom)
+{
+    return umlDomainShutdownFlags(dom, 0);
+}
 
 static int
 umlDomainDestroyFlags(virDomainPtr dom,
@@ -1620,10 +1622,12 @@ cleanup:
 }
 
 /* Returns max memory in kb, 0 if error */
-static unsigned long umlDomainGetMaxMemory(virDomainPtr dom) {
+static unsigned long long
+umlDomainGetMaxMemory(virDomainPtr dom)
+{
     struct uml_driver *driver = dom->conn->privateData;
     virDomainObjPtr vm;
-    unsigned long ret = 0;
+    unsigned long long ret = 0;
 
     umlDriverLock(driver);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
@@ -2447,9 +2451,9 @@ umlDomainEventRegister(virConnectPtr conn,
     int ret;
 
     umlDriverLock(driver);
-    ret = virDomainEventCallbackListAdd(conn,
-                                        driver->domainEventState->callbacks,
-                                        callback, opaque, freecb);
+    ret = virDomainEventStateRegister(conn,
+                                      driver->domainEventState,
+                                      callback, opaque, freecb);
     umlDriverUnlock(driver);
 
     return ret;
@@ -2483,10 +2487,11 @@ umlDomainEventRegisterAny(virConnectPtr conn,
     int ret;
 
     umlDriverLock(driver);
-    ret = virDomainEventCallbackListAddID(conn,
-                                          driver->domainEventState->callbacks,
-                                          dom, eventID,
-                                          callback, opaque, freecb);
+    if (virDomainEventStateRegisterID(conn,
+                                      driver->domainEventState,
+                                      dom, eventID,
+                                      callback, opaque, freecb, &ret) < 0)
+        ret = -1;
     umlDriverUnlock(driver);
 
     return ret;
@@ -2501,39 +2506,12 @@ umlDomainEventDeregisterAny(virConnectPtr conn,
     int ret;
 
     umlDriverLock(driver);
-    ret = virDomainEventStateDeregisterAny(conn,
-                                           driver->domainEventState,
-                                           callbackID);
+    ret = virDomainEventStateDeregisterID(conn,
+                                          driver->domainEventState,
+                                          callbackID);
     umlDriverUnlock(driver);
 
     return ret;
-}
-
-
-static void umlDomainEventDispatchFunc(virConnectPtr conn,
-                                       virDomainEventPtr event,
-                                       virConnectDomainEventGenericCallback cb,
-                                       void *cbopaque,
-                                       void *opaque)
-{
-    struct uml_driver *driver = opaque;
-
-    /* Drop the lock whle dispatching, for sake of re-entrancy */
-    umlDriverUnlock(driver);
-    virDomainEventDispatchDefaultFunc(conn, event, cb, cbopaque, NULL);
-    umlDriverLock(driver);
-}
-
-
-static void umlDomainEventFlush(int timer ATTRIBUTE_UNUSED, void *opaque)
-{
-    struct uml_driver *driver = opaque;
-
-    umlDriverLock(driver);
-    virDomainEventStateFlush(driver->domainEventState,
-                             umlDomainEventDispatchFunc,
-                             driver);
-    umlDriverUnlock(driver);
 }
 
 
@@ -2563,6 +2541,7 @@ static virDriver umlDriver = {
     .domainLookupByUUID = umlDomainLookupByUUID, /* 0.5.0 */
     .domainLookupByName = umlDomainLookupByName, /* 0.5.0 */
     .domainShutdown = umlDomainShutdown, /* 0.5.0 */
+    .domainShutdownFlags = umlDomainShutdownFlags, /* 0.9.10 */
     .domainDestroy = umlDomainDestroy, /* 0.5.0 */
     .domainDestroyFlags = umlDomainDestroyFlags, /* 0.9.4 */
     .domainGetOSType = umlDomainGetOSType, /* 0.5.0 */

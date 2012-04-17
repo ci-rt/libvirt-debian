@@ -1,6 +1,6 @@
 # source this file; set up for tests
 
-# Copyright (C) 2009-2011 Free Software Foundation, Inc.
+# Copyright (C) 2009-2012 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -61,7 +61,7 @@ ME_=`expr "./$0" : '.*/\(.*\)$'`
 
 # We use a trap below for cleanup.  This requires us to go through
 # hoops to get the right exit status transported through the handler.
-# So use `Exit STATUS' instead of `exit STATUS' inside of the tests.
+# So use 'Exit STATUS' instead of 'exit STATUS' inside of the tests.
 # Turn off errexit here so that we don't trip the bug with OSF1/Tru64
 # sh inside this function.
 Exit () { set +e; (exit $1); exit $1; }
@@ -172,7 +172,7 @@ else
     if test "$re_shell_" = __current__; then
       # 'eval'ing this code makes Solaris 10's /bin/sh exit with
       # $? set to 2.  It does not evaluate any of the code after the
-      # "unexpected" first `('.  Thus, we must run it in a subshell.
+      # "unexpected" first '('.  Thus, we must run it in a subshell.
       ( eval "$gl_shell_test_script_" ) > /dev/null 2>&1
     else
       "$re_shell_" -c "$gl_shell_test_script_" 2>/dev/null
@@ -242,20 +242,23 @@ compare_dev_null_ ()
 
   if test "x$1" = x/dev/null; then
     test -s "$2" || return 0
-    { emit_diff_u_header_ "$@"; sed 's/^/+/' -- "$2"; } >&2
+    emit_diff_u_header_ "$@"; sed 's/^/+/' "$2"
     return 1
   fi
 
   if test "x$2" = x/dev/null; then
     test -s "$1" || return 0
-    { emit_diff_u_header_ "$@"; sed 's/^/-/' -- "$1"; } >&2
+    emit_diff_u_header_ "$@"; sed 's/^/-/' "$1"
     return 1
   fi
 
   return 2
 }
 
-if diff_out_=`( diff -u "$0" "$0" < /dev/null ) 2>/dev/null`; then
+if diff_out_=`exec 2>/dev/null; diff -u "$0" "$0" < /dev/null` \
+   && diff -u Makefile "$0" 2>/dev/null | grep '^[+]#!' >/dev/null; then
+  # diff accepts the -u option and does not (like AIX 7 'diff') produce an
+  # extra space on column 1 of every content line.
   if test -z "$diff_out_"; then
     compare_ () { diff -u "$@"; }
   else
@@ -273,7 +276,7 @@ if diff_out_=`( diff -u "$0" "$0" < /dev/null ) 2>/dev/null`; then
       fi
     }
   fi
-elif diff_out_=`( diff -c "$0" "$0" < /dev/null ) 2>/dev/null`; then
+elif diff_out_=`exec 2>/dev/null; diff -c "$0" "$0" < /dev/null`; then
   if test -z "$diff_out_"; then
     compare_ () { diff -c "$@"; }
   else
@@ -304,11 +307,17 @@ fi
 # Otherwise, propagate $? to caller: any diffs have already been printed.
 compare ()
 {
-  compare_dev_null_ "$@"
-  case $? in
-    0|1) return $?;;
-    *) compare_ "$@";;
-  esac
+  # This looks like it can be factored to use a simple "case $?"
+  # after unchecked compare_dev_null_ invocation, but that would
+  # fail in a "set -e" environment.
+  if compare_dev_null_ "$@"; then
+    return 0
+  else
+    case $? in
+      1) return 1;;
+      *) compare_ "$@";;
+    esac
+  fi
 }
 
 # An arbitrary prefix to help distinguish test directories.
@@ -521,7 +530,7 @@ mktempd_ ()
   esac
 
   # First, try to use mktemp.
-  d=`unset TMPDIR; mktemp -d -t -p "$destdir_" "$template_" 2>/dev/null` \
+  d=`unset TMPDIR; { mktemp -d -t -p "$destdir_" "$template_"; } 2>/dev/null` \
     || fail=1
 
   # The resulting name must be in the specified directory.

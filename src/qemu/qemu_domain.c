@@ -1,7 +1,7 @@
 /*
  * qemu_domain.h: QEMU domain private state
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -47,7 +47,10 @@
 
 #define QEMU_NAMESPACE_HREF "http://libvirt.org/schemas/domain/qemu/1.0"
 
-VIR_ENUM_DECL(qemuDomainJob)
+#define QEMU_DOMAIN_FORMAT_LIVE_FLAGS       \
+    (VIR_DOMAIN_XML_SECURE |                \
+     VIR_DOMAIN_XML_UPDATE_CPU)
+
 VIR_ENUM_IMPL(qemuDomainJob, QEMU_JOB_LAST,
               "none",
               "query",
@@ -60,7 +63,6 @@ VIR_ENUM_IMPL(qemuDomainJob, QEMU_JOB_LAST,
               "async nested",
 );
 
-VIR_ENUM_DECL(qemuDomainAsyncJob)
 VIR_ENUM_IMPL(qemuDomainAsyncJob, QEMU_ASYNC_JOB_LAST,
               "none",
               "migration out",
@@ -112,31 +114,6 @@ qemuDomainAsyncJobPhaseFromString(enum qemuDomainAsyncJob job,
         return 0;
     else
         return -1;
-}
-
-static void qemuDomainEventDispatchFunc(virConnectPtr conn,
-                                        virDomainEventPtr event,
-                                        virConnectDomainEventGenericCallback cb,
-                                        void *cbopaque,
-                                        void *opaque)
-{
-    struct qemud_driver *driver = opaque;
-
-    /* Drop the lock whle dispatching, for sake of re-entrancy */
-    qemuDriverUnlock(driver);
-    virDomainEventDispatchDefaultFunc(conn, event, cb, cbopaque, NULL);
-    qemuDriverLock(driver);
-}
-
-void qemuDomainEventFlush(int timer ATTRIBUTE_UNUSED, void *opaque)
-{
-    struct qemud_driver *driver = opaque;
-
-    qemuDriverLock(driver);
-    virDomainEventStateFlush(driver->domainEventState,
-                             qemuDomainEventDispatchFunc,
-                             driver);
-    qemuDriverUnlock(driver);
 }
 
 
@@ -217,6 +194,9 @@ static void *qemuDomainObjPrivateAlloc(void)
     if (qemuDomainObjInitJob(priv) < 0)
         goto error;
 
+    if (!(priv->cons = virConsoleAlloc()))
+        goto error;
+
     priv->migMaxBandwidth = QEMU_DOMAIN_DEFAULT_MIG_BANDWIDTH_MAX;
 
     return priv;
@@ -239,11 +219,18 @@ static void qemuDomainObjPrivateFree(void *data)
     VIR_FREE(priv->lockState);
     VIR_FREE(priv->origname);
 
+    virConsoleFree(priv->cons);
+
     /* This should never be non-NULL if we get here, but just in case... */
     if (priv->mon) {
         VIR_ERROR(_("Unexpected QEMU monitor still active during domain deletion"));
         qemuMonitorClose(priv->mon);
     }
+    if (priv->agent) {
+        VIR_ERROR(_("Unexpected QEMU agent still active during domain deletion"));
+        qemuAgentClose(priv->agent);
+    }
+    VIR_FREE(priv->cleanupCallbacks);
     VIR_FREE(priv);
 }
 
@@ -917,7 +904,7 @@ qemuDomainObjEnterMonitorInternal(struct qemud_driver *driver,
     if (asyncJob != QEMU_ASYNC_JOB_NONE) {
         if (asyncJob != priv->job.asyncJob) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("unepxected async job %d"), asyncJob);
+                            _("unexpected async job %d"), asyncJob);
             return -1;
         }
         if (qemuDomainObjBeginJobInternal(driver, driver_locked, obj,
@@ -1050,6 +1037,99 @@ void qemuDomainObjExitMonitorWithDriver(struct qemud_driver *driver,
     qemuDomainObjExitMonitorInternal(driver, true, obj);
 }
 
+
+
+static int
+qemuDomainObjEnterAgentInternal(struct qemud_driver *driver,
+                                bool driver_locked,
+                                virDomainObjPtr obj)
+{
+    qemuDomainObjPrivatePtr priv = obj->privateData;
+
+    qemuAgentLock(priv->agent);
+    qemuAgentRef(priv->agent);
+    ignore_value(virTimeMillisNow(&priv->agentStart));
+    virDomainObjUnlock(obj);
+    if (driver_locked)
+        qemuDriverUnlock(driver);
+
+    return 0;
+}
+
+static void ATTRIBUTE_NONNULL(1)
+qemuDomainObjExitAgentInternal(struct qemud_driver *driver,
+                               bool driver_locked,
+                               virDomainObjPtr obj)
+{
+    qemuDomainObjPrivatePtr priv = obj->privateData;
+    int refs;
+
+    refs = qemuAgentUnref(priv->agent);
+
+    if (refs > 0)
+        qemuAgentUnlock(priv->agent);
+
+    if (driver_locked)
+        qemuDriverLock(driver);
+    virDomainObjLock(obj);
+
+    priv->agentStart = 0;
+    if (refs == 0) {
+        priv->agent = NULL;
+    }
+}
+
+/*
+ * obj must be locked before calling, qemud_driver must be unlocked
+ *
+ * To be called immediately before any QEMU agent API call
+ * Must have already either called qemuDomainObjBeginJob() and checked
+ * that the VM is still active;
+ *
+ * To be followed with qemuDomainObjExitAgent() once complete
+ */
+void qemuDomainObjEnterAgent(struct qemud_driver *driver,
+                             virDomainObjPtr obj)
+{
+    ignore_value(qemuDomainObjEnterAgentInternal(driver, false, obj));
+}
+
+/* obj must NOT be locked before calling, qemud_driver must be unlocked
+ *
+ * Should be paired with an earlier qemuDomainObjEnterAgent() call
+ */
+void qemuDomainObjExitAgent(struct qemud_driver *driver,
+                            virDomainObjPtr obj)
+{
+    qemuDomainObjExitAgentInternal(driver, false, obj);
+}
+
+/*
+ * obj must be locked before calling, qemud_driver must be locked
+ *
+ * To be called immediately before any QEMU agent API call
+ * Must have already either called qemuDomainObjBeginJobWithDriver() and
+ * checked that the VM is still active; may not be used for nested async jobs.
+ *
+ * To be followed with qemuDomainObjExitAgentWithDriver() once complete
+ */
+void qemuDomainObjEnterAgentWithDriver(struct qemud_driver *driver,
+                                       virDomainObjPtr obj)
+{
+    ignore_value(qemuDomainObjEnterAgentInternal(driver, true, obj));
+}
+
+/* obj must NOT be locked before calling, qemud_driver must be unlocked,
+ * and will be locked after returning
+ *
+ * Should be paired with an earlier qemuDomainObjEnterAgentWithDriver() call
+ */
+void qemuDomainObjExitAgentWithDriver(struct qemud_driver *driver,
+                                      virDomainObjPtr obj)
+{
+    qemuDomainObjExitAgentInternal(driver, true, obj);
+}
+
 void qemuDomainObjEnterRemoteWithDriver(struct qemud_driver *driver,
                                         virDomainObjPtr obj)
 {
@@ -1075,20 +1155,20 @@ char *qemuDomainDefFormatXML(struct qemud_driver *driver,
 {
     char *ret = NULL;
     virCPUDefPtr cpu = NULL;
-    virCPUDefPtr def_cpu;
-
-    def_cpu = def->cpu;
+    virCPUDefPtr def_cpu = def->cpu;
 
     /* Update guest CPU requirements according to host CPU */
-    if ((flags & VIR_DOMAIN_XML_UPDATE_CPU) && def_cpu && def_cpu->model) {
+    if ((flags & VIR_DOMAIN_XML_UPDATE_CPU) &&
+        def_cpu &&
+        (def_cpu->mode != VIR_CPU_MODE_CUSTOM || def_cpu->model)) {
         if (!driver->caps || !driver->caps->host.cpu) {
             qemuReportError(VIR_ERR_OPERATION_FAILED,
                             "%s", _("cannot get host CPU capabilities"));
             goto cleanup;
         }
 
-        if (!(cpu = virCPUDefCopy(def_cpu))
-            || cpuUpdate(cpu, driver->caps->host.cpu))
+        if (!(cpu = virCPUDefCopy(def_cpu)) ||
+            cpuUpdate(cpu, driver->caps->host.cpu) < 0)
             goto cleanup;
         def->cpu = cpu;
     }
@@ -1111,6 +1191,19 @@ char *qemuDomainFormatXML(struct qemud_driver *driver,
         def = vm->newDef;
     else
         def = vm->def;
+
+    return qemuDomainDefFormatXML(driver, def, flags);
+}
+
+char *
+qemuDomainDefFormatLive(struct qemud_driver *driver,
+                        virDomainDefPtr def,
+                        bool inactive)
+{
+    unsigned int flags = QEMU_DOMAIN_FORMAT_LIVE_FLAGS;
+
+    if (inactive)
+        flags |= VIR_DOMAIN_XML_INACTIVE;
 
     return qemuDomainDefFormatXML(driver, def, flags);
 }
@@ -1168,6 +1261,9 @@ void qemuDomainObjCheckTaint(struct qemud_driver *driver,
             qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_CUSTOM_ARGV, logFD);
     }
 
+    if (obj->def->cpu && obj->def->cpu->mode == VIR_CPU_MODE_HOST_PASSTHROUGH)
+        qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_HOST_CPU, logFD);
+
     for (i = 0 ; i < obj->def->ndisks ; i++)
         qemuDomainObjCheckDiskTaint(driver, obj, obj->def->disks[i], logFD);
 
@@ -1184,6 +1280,9 @@ void qemuDomainObjCheckDiskTaint(struct qemud_driver *driver,
     if (!disk->driverType &&
         driver->allowDiskFormatProbing)
         qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_DISK_PROBING, logFD);
+
+    if (disk->rawio == 1)
+        qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_HIGH_PRIVILEGES, logFD);
 }
 
 
@@ -1192,10 +1291,12 @@ void qemuDomainObjCheckNetTaint(struct qemud_driver *driver,
                                 virDomainNetDefPtr net,
                                 int logFD)
 {
-    if ((net->type == VIR_DOMAIN_NET_TYPE_ETHERNET &&
-         net->data.ethernet.script != NULL) ||
-        (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE &&
-         net->data.bridge.script != NULL))
+    /* script is only useful for NET_TYPE_ETHERNET (qemu) and
+     * NET_TYPE_BRIDGE (xen), but could be (incorrectly) specified for
+     * any interface type. In any case, it's adding user sauce into
+     * the soup, so it should taint the domain.
+     */
+    if (net->script != NULL)
         qemuDomainObjTaint(driver, obj, VIR_DOMAIN_TAINT_SHELL_SCRIPTS, logFD);
 }
 
@@ -1351,11 +1452,9 @@ qemuDomainSnapshotWriteMetadata(virDomainObjPtr vm,
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     newxml = virDomainSnapshotDefFormat(uuidstr, snapshot->def,
-                                        VIR_DOMAIN_XML_SECURE, 1);
-    if (newxml == NULL) {
-        virReportOOMError();
+                                        QEMU_DOMAIN_FORMAT_LIVE_FLAGS, 1);
+    if (newxml == NULL)
         return -1;
-    }
 
     if (virAsprintf(&snapDir, "%s/%s", snapshotDir, vm->def->name) < 0) {
         virReportOOMError();
@@ -1389,24 +1488,17 @@ cleanup:
 
 /* The domain is expected to be locked and inactive. Return -1 on normal
  * failure, 1 if we skipped a disk due to try_all.  */
-int
-qemuDomainSnapshotForEachQcow2(struct qemud_driver *driver,
-                               virDomainObjPtr vm,
-                               virDomainSnapshotObjPtr snap,
-                               const char *op,
-                               bool try_all)
+static int
+qemuDomainSnapshotForEachQcow2Raw(struct qemud_driver *driver,
+                                  virDomainDefPtr def,
+                                  const char *name,
+                                  const char *op,
+                                  bool try_all,
+                                  int ndisks)
 {
     const char *qemuimgarg[] = { NULL, "snapshot", NULL, NULL, NULL, NULL };
     int i;
     bool skipped = false;
-    virDomainDefPtr def;
-
-    /* Prefer action on the disks in use at the time the snapshot was
-     * created; but fall back to current definition if dealing with a
-     * snapshot created prior to libvirt 0.9.5.  */
-    def = snap->def->dom;
-    if (!def)
-        def = vm->def;
 
     qemuimgarg[0] = qemuFindQemuImgBinary(driver);
     if (qemuimgarg[0] == NULL) {
@@ -1415,13 +1507,10 @@ qemuDomainSnapshotForEachQcow2(struct qemud_driver *driver,
     }
 
     qemuimgarg[2] = op;
-    qemuimgarg[3] = snap->def->name;
+    qemuimgarg[3] = name;
 
-    for (i = 0; i < def->ndisks; i++) {
+    for (i = 0; i < ndisks; i++) {
         /* FIXME: we also need to handle LVM here */
-        /* FIXME: if we fail halfway through this loop, we are in an
-         * inconsistent state.  I'm not quite sure what to do about that
-         */
         if (def->disks[i]->device == VIR_DOMAIN_DISK_DEVICE_DISK) {
             if (!def->disks[i]->driverType ||
                 STRNEQ(def->disks[i]->driverType, "qcow2")) {
@@ -1433,6 +1522,11 @@ qemuDomainSnapshotForEachQcow2(struct qemud_driver *driver,
                              def->disks[i]->dst);
                     skipped = true;
                     continue;
+                } else if (STREQ(op, "-c") && i) {
+                    /* We must roll back partial creation by deleting
+                     * all earlier snapshots.  */
+                    qemuDomainSnapshotForEachQcow2Raw(driver, def, name,
+                                                      "-d", false, i);
                 }
                 qemuReportError(VIR_ERR_OPERATION_INVALID,
                                 _("Disk device '%s' does not support"
@@ -1449,6 +1543,11 @@ qemuDomainSnapshotForEachQcow2(struct qemud_driver *driver,
                              def->disks[i]->dst);
                     skipped = true;
                     continue;
+                } else if (STREQ(op, "-c") && i) {
+                    /* We must roll back partial creation by deleting
+                     * all earlier snapshots.  */
+                    qemuDomainSnapshotForEachQcow2Raw(driver, def, name,
+                                                      "-d", false, i);
                 }
                 return -1;
             }
@@ -1456,6 +1555,26 @@ qemuDomainSnapshotForEachQcow2(struct qemud_driver *driver,
     }
 
     return skipped ? 1 : 0;
+}
+
+/* The domain is expected to be locked and inactive. Return -1 on normal
+ * failure, 1 if we skipped a disk due to try_all.  */
+int
+qemuDomainSnapshotForEachQcow2(struct qemud_driver *driver,
+                               virDomainObjPtr vm,
+                               virDomainSnapshotObjPtr snap,
+                               const char *op,
+                               bool try_all)
+{
+    /* Prefer action on the disks in use at the time the snapshot was
+     * created; but fall back to current definition if dealing with a
+     * snapshot created prior to libvirt 0.9.5.  */
+    virDomainDefPtr def = snap->def->dom;
+
+    if (!def)
+        def = vm->def;
+    return qemuDomainSnapshotForEachQcow2Raw(driver, def, snap->def->name,
+                                             op, try_all, def->ndisks);
 }
 
 /* Discard one snapshot (or its metadata), without reparenting any children.  */
@@ -1603,7 +1722,7 @@ qemuDomainSetFakeReboot(struct qemud_driver *driver,
 int
 qemuDomainCheckDiskPresence(struct qemud_driver *driver,
                             virDomainObjPtr vm,
-                            bool start_with_state)
+                            bool cold_boot)
 {
     int ret = -1;
     int i;
@@ -1638,7 +1757,7 @@ qemuDomainCheckDiskPresence(struct qemud_driver *driver,
                 break;
 
             case VIR_DOMAIN_STARTUP_POLICY_REQUISITE:
-                if (!start_with_state) {
+                if (cold_boot) {
                     virReportSystemError(errno,
                                          _("cannot access file '%s'"),
                                          disk->src);
@@ -1668,4 +1787,76 @@ qemuDomainCheckDiskPresence(struct qemud_driver *driver,
 
 cleanup:
     return ret;
+}
+
+/*
+ * The vm must be locked when any of the following cleanup functions is
+ * called.
+ */
+int
+qemuDomainCleanupAdd(virDomainObjPtr vm,
+                     qemuDomainCleanupCallback cb)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    int i;
+
+    VIR_DEBUG("vm=%s, cb=%p", vm->def->name, cb);
+
+    for (i = 0; i < priv->ncleanupCallbacks; i++) {
+        if (priv->cleanupCallbacks[i] == cb)
+            return 0;
+    }
+
+    if (VIR_RESIZE_N(priv->cleanupCallbacks,
+                     priv->ncleanupCallbacks_max,
+                     priv->ncleanupCallbacks, 1) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    priv->cleanupCallbacks[priv->ncleanupCallbacks++] = cb;
+    return 0;
+}
+
+void
+qemuDomainCleanupRemove(virDomainObjPtr vm,
+                        qemuDomainCleanupCallback cb)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    int i;
+
+    VIR_DEBUG("vm=%s, cb=%p", vm->def->name, cb);
+
+    for (i = 0; i < priv->ncleanupCallbacks; i++) {
+        if (priv->cleanupCallbacks[i] == cb) {
+            memmove(priv->cleanupCallbacks + i,
+                    priv->cleanupCallbacks + i + 1,
+                    priv->ncleanupCallbacks - i - 1);
+            priv->ncleanupCallbacks--;
+        }
+    }
+
+    VIR_SHRINK_N(priv->cleanupCallbacks,
+                 priv->ncleanupCallbacks_max,
+                 priv->ncleanupCallbacks_max - priv->ncleanupCallbacks);
+}
+
+void
+qemuDomainCleanupRun(struct qemud_driver *driver,
+                     virDomainObjPtr vm)
+{
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    int i;
+
+    VIR_DEBUG("driver=%p, vm=%s", driver, vm->def->name);
+
+    /* run cleanup callbacks in reverse order */
+    for (i = priv->ncleanupCallbacks - 1; i >= 0; i--) {
+        if (priv->cleanupCallbacks[i])
+            priv->cleanupCallbacks[i](driver, vm);
+    }
+
+    VIR_FREE(priv->cleanupCallbacks);
+    priv->ncleanupCallbacks = 0;
+    priv->ncleanupCallbacks_max = 0;
 }

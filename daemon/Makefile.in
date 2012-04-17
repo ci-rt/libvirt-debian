@@ -35,7 +35,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 @WITH_LIBVIRTD_TRUE@sbin_PROGRAMS = libvirtd$(EXEEXT)
-@WITH_DTRACE_TRUE@@WITH_LIBVIRTD_TRUE@am__append_1 = ../src/probes.o
+@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@am__append_1 = ../src/probes.o
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_2 = ../src/libvirt_driver_qemu.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_3 = ../src/libvirt_driver_lxc.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LIBXL_TRUE@am__append_4 = ../src/libvirt_driver_libxl.la
@@ -255,8 +255,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/wctomb.m4 \
 	$(top_srcdir)/gnulib/m4/wctype_h.m4 \
 	$(top_srcdir)/gnulib/m4/write.m4 \
-	$(top_srcdir)/gnulib/m4/xalloc.m4 \
-	$(top_srcdir)/gnulib/m4/yield.m4 $(top_srcdir)/m4/codeset.m4 \
+	$(top_srcdir)/gnulib/m4/xalloc.m4 $(top_srcdir)/m4/codeset.m4 \
 	$(top_srcdir)/m4/gettext.m4 $(top_srcdir)/m4/glibc21.m4 \
 	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/intlmacosx.m4 \
 	$(top_srcdir)/m4/inttypes-pri.m4 \
@@ -528,6 +527,7 @@ GNULIB_IMAXDIV = @GNULIB_IMAXDIV@
 GNULIB_INET_NTOP = @GNULIB_INET_NTOP@
 GNULIB_INET_PTON = @GNULIB_INET_PTON@
 GNULIB_IOCTL = @GNULIB_IOCTL@
+GNULIB_ISATTY = @GNULIB_ISATTY@
 GNULIB_ISWBLANK = @GNULIB_ISWBLANK@
 GNULIB_ISWCTYPE = @GNULIB_ISWCTYPE@
 GNULIB_LCHMOD = @GNULIB_LCHMOD@
@@ -621,6 +621,7 @@ GNULIB_PUTENV = @GNULIB_PUTENV@
 GNULIB_PUTS = @GNULIB_PUTS@
 GNULIB_PWRITE = @GNULIB_PWRITE@
 GNULIB_RAISE = @GNULIB_RAISE@
+GNULIB_RANDOM = @GNULIB_RANDOM@
 GNULIB_RANDOM_R = @GNULIB_RANDOM_R@
 GNULIB_RAWMEMCHR = @GNULIB_RAWMEMCHR@
 GNULIB_READ = @GNULIB_READ@
@@ -640,6 +641,7 @@ GNULIB_SELECT = @GNULIB_SELECT@
 GNULIB_SEND = @GNULIB_SEND@
 GNULIB_SENDTO = @GNULIB_SENDTO@
 GNULIB_SETENV = @GNULIB_SETENV@
+GNULIB_SETHOSTNAME = @GNULIB_SETHOSTNAME@
 GNULIB_SETLOCALE = @GNULIB_SETLOCALE@
 GNULIB_SETSOCKOPT = @GNULIB_SETSOCKOPT@
 GNULIB_SHUTDOWN = @GNULIB_SHUTDOWN@
@@ -779,6 +781,7 @@ HAVE_DECL_MEMMEM = @HAVE_DECL_MEMMEM@
 HAVE_DECL_MEMRCHR = @HAVE_DECL_MEMRCHR@
 HAVE_DECL_OBSTACK_PRINTF = @HAVE_DECL_OBSTACK_PRINTF@
 HAVE_DECL_SETENV = @HAVE_DECL_SETENV@
+HAVE_DECL_SETHOSTNAME = @HAVE_DECL_SETHOSTNAME@
 HAVE_DECL_SNPRINTF = @HAVE_DECL_SNPRINTF@
 HAVE_DECL_STRDUP = @HAVE_DECL_STRDUP@
 HAVE_DECL_STRERROR_R = @HAVE_DECL_STRERROR_R@
@@ -883,6 +886,7 @@ HAVE_PTSNAME_R = @HAVE_PTSNAME_R@
 HAVE_PTY_H = @HAVE_PTY_H@
 HAVE_PWRITE = @HAVE_PWRITE@
 HAVE_RAISE = @HAVE_RAISE@
+HAVE_RANDOM = @HAVE_RANDOM@
 HAVE_RANDOM_H = @HAVE_RANDOM_H@
 HAVE_RANDOM_R = @HAVE_RANDOM_R@
 HAVE_RAWMEMCHR = @HAVE_RAWMEMCHR@
@@ -894,6 +898,7 @@ HAVE_RPMATCH = @HAVE_RPMATCH@
 HAVE_SA_FAMILY_T = @HAVE_SA_FAMILY_T@
 HAVE_SCHED_H = @HAVE_SCHED_H@
 HAVE_SETENV = @HAVE_SETENV@
+HAVE_SETHOSTNAME = @HAVE_SETHOSTNAME@
 HAVE_SIGACTION = @HAVE_SIGACTION@
 HAVE_SIGHANDLER_T = @HAVE_SIGHANDLER_T@
 HAVE_SIGINFO_T = @HAVE_SIGINFO_T@
@@ -1078,6 +1083,7 @@ LVS = @LVS@
 LV_LIBTOOL_OBJDIR = @LV_LIBTOOL_OBJDIR@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
+MANIFEST_TOOL = @MANIFEST_TOOL@
 MINGW_EXTRA_LDFLAGS = @MINGW_EXTRA_LDFLAGS@
 MKDIR_P = @MKDIR_P@
 MKFS = @MKFS@
@@ -1164,12 +1170,14 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 NUMACTL_CFLAGS = @NUMACTL_CFLAGS@
 NUMACTL_LIBS = @NUMACTL_LIBS@
+NUMAD = @NUMAD@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OPENWSMAN_CFLAGS = @OPENWSMAN_CFLAGS@
 OPENWSMAN_LIBS = @OPENWSMAN_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
+OVSVSCTL = @OVSVSCTL@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -1249,6 +1257,7 @@ REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
 REPLACE_INET_NTOP = @REPLACE_INET_NTOP@
 REPLACE_INET_PTON = @REPLACE_INET_PTON@
 REPLACE_IOCTL = @REPLACE_IOCTL@
+REPLACE_ISATTY = @REPLACE_ISATTY@
 REPLACE_ISWBLANK = @REPLACE_ISWBLANK@
 REPLACE_ISWCNTRL = @REPLACE_ISWCNTRL@
 REPLACE_ITOLD = @REPLACE_ITOLD@
@@ -1283,6 +1292,9 @@ REPLACE_PERROR = @REPLACE_PERROR@
 REPLACE_POLL = @REPLACE_POLL@
 REPLACE_POPEN = @REPLACE_POPEN@
 REPLACE_POSIX_SPAWN = @REPLACE_POSIX_SPAWN@
+REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE = @REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSE@
+REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2 = @REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDDUP2@
+REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN = @REPLACE_POSIX_SPAWN_FILE_ACTIONS_ADDOPEN@
 REPLACE_PREAD = @REPLACE_PREAD@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PSELECT = @REPLACE_PSELECT@
@@ -1291,6 +1303,7 @@ REPLACE_PTSNAME_R = @REPLACE_PTSNAME_R@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
 REPLACE_RAISE = @REPLACE_RAISE@
+REPLACE_RANDOM_R = @REPLACE_RANDOM_R@
 REPLACE_READ = @REPLACE_READ@
 REPLACE_READLINK = @REPLACE_READLINK@
 REPLACE_REALLOC = @REPLACE_REALLOC@
@@ -1320,7 +1333,9 @@ REPLACE_STRNLEN = @REPLACE_STRNLEN@
 REPLACE_STRSIGNAL = @REPLACE_STRSIGNAL@
 REPLACE_STRSTR = @REPLACE_STRSTR@
 REPLACE_STRTOD = @REPLACE_STRTOD@
+REPLACE_STRTOIMAX = @REPLACE_STRTOIMAX@
 REPLACE_STRTOK_R = @REPLACE_STRTOK_R@
+REPLACE_STRUCT_TIMEVAL = @REPLACE_STRUCT_TIMEVAL@
 REPLACE_SYMLINK = @REPLACE_SYMLINK@
 REPLACE_TIMEGM = @REPLACE_TIMEGM@
 REPLACE_TMPFILE = @REPLACE_TMPFILE@
@@ -1352,6 +1367,7 @@ SANLOCK_LIBS = @SANLOCK_LIBS@
 SASL_CFLAGS = @SASL_CFLAGS@
 SASL_LIBS = @SASL_LIBS@
 SCHED_H = @SCHED_H@
+SCRUB = @SCRUB@
 SED = @SED@
 SELINUX_CFLAGS = @SELINUX_CFLAGS@
 SELINUX_LIBS = @SELINUX_LIBS@
@@ -1373,7 +1389,6 @@ SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_USE_SOCKETS = @SYS_IOCTL_H_HAVE_WINSOCK2_H_AND_U
 SYS_TIME_H_DEFINES_STRUCT_TIMESPEC = @SYS_TIME_H_DEFINES_STRUCT_TIMESPEC@
 TC = @TC@
 TIME_H_DEFINES_STRUCT_TIMESPEC = @TIME_H_DEFINES_STRUCT_TIMESPEC@
-U = @U@
 UDEVADM = @UDEVADM@
 UDEVSETTLE = @UDEVSETTLE@
 UDEV_CFLAGS = @UDEV_CFLAGS@
@@ -1412,12 +1427,12 @@ XML_CATALOG_FILE = @XML_CATALOG_FILE@
 XSLTPROC = @XSLTPROC@
 YAJL_CFLAGS = @YAJL_CFLAGS@
 YAJL_LIBS = @YAJL_LIBS@
-YIELD_LIB = @YIELD_LIB@
 abs_aux_dir = @abs_aux_dir@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
+ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 am__include = @am__include@
@@ -1476,9 +1491,9 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 INCLUDES = \
-	-I$(top_srcdir)/gnulib/lib -I../gnulib/lib \
-	-I$(top_srcdir)/include -I$(top_builddir)/include \
-	-I$(top_srcdir)/src -I../src \
+	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib \
+	-I$(top_builddir)/include -I$(top_srcdir)/include \
+	-I$(top_builddir)/src -I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/util \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/rpc \
@@ -2109,22 +2124,23 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@install-data-local: install-init-redhat install-init-systemd install-init-upstart \
 @WITH_LIBVIRTD_TRUE@		install-data-sasl install-data-polkit \
 @WITH_LIBVIRTD_TRUE@		install-logrotate install-sysctl
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/run/libvirt
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/lib/libvirt
+@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(localstatedir)/log/libvirt \
+@WITH_LIBVIRTD_TRUE@		   $(DESTDIR)$(localstatedir)/run/libvirt \
+@WITH_LIBVIRTD_TRUE@		   $(DESTDIR)$(localstatedir)/lib/libvirt
 
 @WITH_LIBVIRTD_TRUE@uninstall-local:: uninstall-init-redhat uninstall-init-systemd uninstall-init-upstart \
 @WITH_LIBVIRTD_TRUE@		uninstall-data-sasl uninstall-data-polkit \
-@WITH_LIBVIRTD_TRUE@		uninstall-sysctl
+@WITH_LIBVIRTD_TRUE@		uninstall-logrotate uninstall-sysctl
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/log/libvirt || :
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/run/libvirt || :
 @WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/lib/libvirt || :
 
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@install-data-polkit::
-@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(policydir)
+@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(policydir)
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) $(srcdir)/$(policyfile) $(DESTDIR)$(policydir)/org.libvirt.unix.policy
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-data-polkit::
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(policydir) || :
 @HAVE_POLKIT_FALSE@@WITH_LIBVIRTD_TRUE@install-data-polkit::
 @HAVE_POLKIT_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-data-polkit::
 
@@ -2156,74 +2172,89 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@install-logrotate: $(LOGROTATE_CONFS)
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/qemu/
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/lxc/
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(localstatedir)/log/libvirt/uml/
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/logrotate.d/
+@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(localstatedir)/log/libvirt/qemu/ \
+@WITH_LIBVIRTD_TRUE@		   $(DESTDIR)$(localstatedir)/log/libvirt/lxc/ \
+@WITH_LIBVIRTD_TRUE@		   $(DESTDIR)$(localstatedir)/log/libvirt/uml/ \
+@WITH_LIBVIRTD_TRUE@		   $(DESTDIR)$(sysconfdir)/logrotate.d/
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.qemu.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.qemu
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.lxc.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.lxc
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.uml.logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
 
+@WITH_LIBVIRTD_TRUE@uninstall-logrotate:
+@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd \
+@WITH_LIBVIRTD_TRUE@	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.qemu \
+@WITH_LIBVIRTD_TRUE@	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.lxc \
+@WITH_LIBVIRTD_TRUE@	      $(DESTDIR)$(sysconfdir)/logrotate.d/libvirtd.uml
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/log/libvirt/qemu || :
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/log/libvirt/lxc || :
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(localstatedir)/log/libvirt/uml || :
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/logrotate.d || :
+
 @WITH_LIBVIRTD_TRUE@install-sysconfig:
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/sysconfig
+@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysconfig
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.sysconf \
 @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
 @WITH_LIBVIRTD_TRUE@uninstall-sysconfig:
 @WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sysconfig || :
 
 @WITH_LIBVIRTD_TRUE@install-sysctl:
-@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/sysctl.d
+@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysctl.d
 @WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.sysctl \
 @WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/sysctl.d/libvirtd
 
 @WITH_LIBVIRTD_TRUE@uninstall-sysctl:
 @WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/sysctl.d/libvirtd
+@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sysctl.d || :
 
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@install-init-redhat: install-sysconfig libvirtd.init
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/rc.d/init.d
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/rc.d/init.d
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_SCRIPT) libvirtd.init \
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd
 
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-init-redhat: uninstall-sysconfig
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/rc.d/init.d/libvirtd
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/rc.d/init.d || :
 @LIBVIRT_INIT_SCRIPT_RED_HAT_FALSE@@WITH_LIBVIRTD_TRUE@install-init-redhat:
 @LIBVIRT_INIT_SCRIPT_RED_HAT_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-redhat:
 
 @LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@install-init-upstart: install-sysconfig
-@LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/event.d
+@LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/event.d
 @LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_SCRIPT) libvirtd.upstart \
 @LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(sysconfdir)/event.d/libvirtd
 
 @LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-init-upstart: uninstall-sysconfig
 @LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/event.d/libvirtd
+@LIBVIRT_INIT_SCRIPT_UPSTART_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/event.d || :
 @LIBVIRT_INIT_SCRIPT_UPSTART_FALSE@@WITH_LIBVIRTD_TRUE@install-init-upstart:
 @LIBVIRT_INIT_SCRIPT_UPSTART_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-upstart:
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@install-init-systemd: install-sysconfig libvirtd.service
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	mkdir -p $(DESTDIR)$(SYSTEMD_UNIT_DIR)
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(SYSTEMD_UNIT_DIR)
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_SCRIPT) libvirtd.service \
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.service
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-init-systemd: uninstall-sysconfig
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirtd.service
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(SYSTEMD_UNIT_DIR) || :
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@@WITH_LIBVIRTD_TRUE@install-init-systemd:
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_FALSE@@WITH_LIBVIRTD_TRUE@uninstall-init-systemd:
 
 @WITH_LIBVIRTD_TRUE@libvirtd.init: libvirtd.init.in $(top_builddir)/config.status
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed					\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@localstatedir\@!@localstatedir@!g	\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@sbindir\@!@sbindir@!g		\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@sysconfdir\@!@sysconfdir@!g		\
+@WITH_LIBVIRTD_TRUE@	    -e s!\@localstatedir\@!$(localstatedir)!g	\
+@WITH_LIBVIRTD_TRUE@	    -e s!\@sbindir\@!$(sbindir)!g		\
+@WITH_LIBVIRTD_TRUE@	    -e s!\@sysconfdir\@!$(sysconfdir)!g		\
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&				\
 @WITH_LIBVIRTD_TRUE@	    chmod a+x $@-t &&				\
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.service: libvirtd.service.in $(top_builddir)/config.status
 @WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed					\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@localstatedir\@!@localstatedir@!g	\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@sbindir\@!@sbindir@!g		\
-@WITH_LIBVIRTD_TRUE@	    -e s!\@sysconfdir\@!@sysconfdir@!g		\
+@WITH_LIBVIRTD_TRUE@	    -e s!\@localstatedir\@!$(localstatedir)!g	\
+@WITH_LIBVIRTD_TRUE@	    -e s!\@sbindir\@!$(sbindir)!g		\
+@WITH_LIBVIRTD_TRUE@	    -e s!\@sysconfdir\@!$(sysconfdir)!g		\
 @WITH_LIBVIRTD_TRUE@	    < $< > $@-t &&				\
 @WITH_LIBVIRTD_TRUE@	    chmod a+x $@-t &&				\
 @WITH_LIBVIRTD_TRUE@	    mv $@-t $@
@@ -2242,12 +2273,12 @@ $(srcdir)/libvirtd.8.in: libvirtd.pod.in
 # This is needed for clients too, so can't wrap in
 # the WITH_LIBVIRTD conditional
 @HAVE_SASL_TRUE@install-data-sasl:
-@HAVE_SASL_TRUE@	mkdir -p $(DESTDIR)$(sysconfdir)/sasl2/
+@HAVE_SASL_TRUE@	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sasl2/
 @HAVE_SASL_TRUE@	$(INSTALL_DATA) $(srcdir)/libvirtd.sasl $(DESTDIR)$(sysconfdir)/sasl2/libvirt.conf
 
 @HAVE_SASL_TRUE@uninstall-data-sasl:
 @HAVE_SASL_TRUE@	rm -f $(DESTDIR)$(sysconfdir)/sasl2/libvirt.conf
-@HAVE_SASL_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sasl2/
+@HAVE_SASL_TRUE@	rmdir $(DESTDIR)$(sysconfdir)/sasl2/ || :
 @HAVE_SASL_FALSE@install-data-sasl:
 @HAVE_SASL_FALSE@uninstall-data-sasl:
 

@@ -76,7 +76,7 @@ testCompareOutputLit(const char *expectData,
     result = 0;
 
 cleanup:
-    free(actualData);
+    VIR_FREE(actualData);
 
     return result;
 }
@@ -94,9 +94,9 @@ static char *custom_uri;
 static int testCompareListDefault(const void *data ATTRIBUTE_UNUSED) {
   const char *const argv[] = { VIRSH_DEFAULT, "list", NULL };
   const char *exp = "\
- Id Name                 State\n\
-----------------------------------\n\
-  1 test                 running\n\
+ Id    Name                           State\n\
+----------------------------------------------------\n\
+ 1     test                           running\n\
 \n";
   return testCompareOutputLit(exp, NULL, argv);
 }
@@ -104,10 +104,10 @@ static int testCompareListDefault(const void *data ATTRIBUTE_UNUSED) {
 static int testCompareListCustom(const void *data ATTRIBUTE_UNUSED) {
   const char *const argv[] = { VIRSH_CUSTOM, "list", NULL };
   const char *exp = "\
- Id Name                 State\n\
-----------------------------------\n\
-  1 fv0                  running\n\
-  2 fc4                  running\n\
+ Id    Name                           State\n\
+----------------------------------------------------\n\
+ 1     fv0                            running\n\
+ 2     fc4                            running\n\
 \n";
   return testCompareOutputLit(exp, NULL, argv);
 }
@@ -386,10 +386,16 @@ mymain(void)
     DO_TEST(30, "--shell a\n",
             "echo \t '-'\"-\" \t --shell \t a");
 
+    /* Tests of alias handling.  */
+    DO_TEST(31, "hello\n", "echo", "--string", "hello");
+    DO_TEST(32, "hello\n", "echo --string hello");
+    DO_TEST(33, "hello\n", "echo", "--str", "hello");
+    DO_TEST(34, "hello\n", "echo --str hello");
+
 # undef DO_TEST
 
-    free(custom_uri);
-    return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
+    VIR_FREE(custom_uri);
+    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

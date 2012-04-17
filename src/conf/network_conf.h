@@ -1,7 +1,7 @@
 /*
  * network_conf.h: network XML handling
  *
- * Copyright (C) 2006-2008 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2012 Red Hat, Inc.
  * Copyright (C) 2006-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -24,6 +24,8 @@
 #ifndef __NETWORK_CONF_H__
 # define __NETWORK_CONF_H__
 
+# define DNS_RECORD_LENGTH_SRV  (512 - 30)  /* Limit minus overhead as mentioned in RFC-2782 */
+
 # include <libxml/parser.h>
 # include <libxml/tree.h>
 # include <libxml/xpath.h>
@@ -33,7 +35,7 @@
 # include "virsocketaddr.h"
 # include "virnetdevbandwidth.h"
 # include "virnetdevvportprofile.h"
-# include "util.h"
+# include "virmacaddr.h"
 
 enum virNetworkForwardType {
     VIR_NETWORK_FORWARD_NONE   = 0,
@@ -69,6 +71,18 @@ struct _virNetworkDNSTxtRecordsDef {
     char *value;
 };
 
+typedef struct _virNetworkDNSSrvRecordsDef virNetworkDNSSrvRecordsDef;
+typedef virNetworkDNSSrvRecordsDef *virNetworkDNSSrvRecordsDefPtr;
+struct _virNetworkDNSSrvRecordsDef {
+    char *domain;
+    char *service;
+    char *protocol;
+    char *target;
+    int port;
+    int priority;
+    int weight;
+};
+
 struct _virNetworkDNSHostsDef {
     virSocketAddr ip;
     int nnames;
@@ -82,6 +96,8 @@ struct _virNetworkDNSDef {
     virNetworkDNSTxtRecordsDefPtr txtrecords;
     unsigned int nhosts;
     virNetworkDNSHostsDefPtr hosts;
+    unsigned int nsrvrecords;
+    virNetworkDNSSrvRecordsDefPtr srvrecords;
 };
 
 typedef struct _virNetworkDNSDef *virNetworkDNSDefPtr;
@@ -146,6 +162,9 @@ struct _virNetworkDef {
     /* If there are multiple forward devices (i.e. a pool of
      * interfaces), they will be listed here.
      */
+    size_t nForwardPfs;
+    virNetworkForwardIfDefPtr forwardPfs;
+
     size_t nForwardIfs;
     virNetworkForwardIfDefPtr forwardIfs;
 
@@ -208,7 +227,7 @@ virNetworkDefPtr virNetworkDefParseFile(const char *filename);
 virNetworkDefPtr virNetworkDefParseNode(xmlDocPtr xml,
                                         xmlNodePtr root);
 
-char *virNetworkDefFormat(const virNetworkDefPtr def);
+char *virNetworkDefFormat(const virNetworkDefPtr def, unsigned int flags);
 
 static inline const char *
 virNetworkDefForwardIf(const virNetworkDefPtr def, size_t n)

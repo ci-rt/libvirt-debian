@@ -1,7 +1,5 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Formatted output to strings.
-   Copyright (C) 1999-2000, 2002-2003, 2006-2011 Free Software Foundation, Inc.
+   Copyright (C) 1999-2000, 2002-2003, 2006-2012 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by
@@ -14,8 +12,7 @@
    GNU Lesser General Public License for more details.
 
    You should have received a copy of the GNU Lesser General Public License along
-   with this program; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
+   with this program; if not, see <http://www.gnu.org/licenses/>.  */
 
 /* This file can be parametrized with the following macros:
      CHAR_T             The element type of the format string.
@@ -423,7 +420,7 @@ PRINTF_PARSE (const CHAR_T *format, DIRECTIVES *d, arguments *a)
                     }
 #endif
 #if (defined _WIN32 || defined __WIN32__) && ! defined __CYGWIN__
-                  /* On native Win32, PRIdMAX is defined as "I64d".
+                  /* On native Windows, PRIdMAX is defined as "I64d".
                      We cannot change it to "lld" because PRIdMAX must also
                      be understood by the system's printf routines.  */
                   else if (*cp == 'I' && cp[1] == '6' && cp[2] == '4')

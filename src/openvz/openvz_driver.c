@@ -1,7 +1,7 @@
 /*
  * openvz_driver.c: core driver methods for managing OpenVZ VEs
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
  * Copyright (C) 2007 Anoop Joe Cyriac
@@ -56,6 +56,7 @@
 #include "virfile.h"
 #include "logging.h"
 #include "command.h"
+#include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
@@ -69,7 +70,7 @@ static int openvzDomainGetMaxVcpus(virDomainPtr dom);
 static int openvzDomainSetVcpusInternal(virDomainObjPtr vm,
                                         unsigned int nvcpus);
 static int openvzDomainSetMemoryInternal(virDomainObjPtr vm,
-                                         unsigned long memory);
+                                         unsigned long long memory);
 static int openvzGetVEStatus(virDomainObjPtr vm, int *status, int *reason);
 
 static void openvzDriverLock(struct openvz_driver *driver)
@@ -763,9 +764,9 @@ openvzDomainSetNetwork(virConnectPtr conn, const char *vpsid,
         ADD_ARG_LIT(vpsid);
     }
 
-    virFormatMacAddr(net->mac, macaddr);
+    virMacAddrFormat(net->mac, macaddr);
     virCapabilitiesGenerateMac(driver->caps, host_mac);
-    virFormatMacAddr(host_mac, host_macaddr);
+    virMacAddrFormat(host_mac, host_macaddr);
 
     if (net->type == VIR_DOMAIN_NET_TYPE_BRIDGE ||
         (net->type == VIR_DOMAIN_NET_TYPE_ETHERNET &&
@@ -1335,11 +1336,8 @@ static virDrvOpenStatus openvzOpen(virConnectPtr conn,
         if (access("/proc/vz", W_OK) < 0)
             return VIR_DRV_OPEN_DECLINED;
 
-        conn->uri = xmlParseURI("openvz:///system");
-        if (conn->uri == NULL) {
-            virReportOOMError();
+        if (!(conn->uri = virURIParse("openvz:///system")))
             return VIR_DRV_OPEN_ERROR;
-        }
     } else {
         /* If scheme isn't 'openvz', then its for another driver */
         if (conn->uri->scheme == NULL ||
@@ -1611,7 +1609,7 @@ static int openvzNumDefinedDomains(virConnectPtr conn) {
 
 static int
 openvzDomainSetMemoryInternal(virDomainObjPtr vm,
-                              unsigned long mem)
+                              unsigned long long mem)
 {
     char str_mem[16];
     const char *prog[] = { VZCTL, "--quiet", "set", PROGRAM_SENTINAL,
@@ -1619,7 +1617,7 @@ openvzDomainSetMemoryInternal(virDomainObjPtr vm,
     };
 
     /* memory has to be changed its format from kbyte to byte */
-    snprintf(str_mem, sizeof(str_mem), "%lu", mem * 1024);
+    snprintf(str_mem, sizeof(str_mem), "%llu", mem * 1024);
 
     openvzSetProgramSentinal(prog, vm->def->name);
     if (virRun(prog, NULL) < 0) {
@@ -1693,6 +1691,7 @@ static virDriver openvzDriver = {
     .domainSuspend = openvzDomainSuspend, /* 0.8.3 */
     .domainResume = openvzDomainResume, /* 0.8.3 */
     .domainShutdown = openvzDomainShutdown, /* 0.3.1 */
+    .domainShutdownFlags = openvzDomainShutdownFlags, /* 0.9.10 */
     .domainReboot = openvzDomainReboot, /* 0.3.1 */
     .domainDestroy = openvzDomainShutdown, /* 0.3.1 */
     .domainDestroyFlags = openvzDomainShutdownFlags, /* 0.9.4 */

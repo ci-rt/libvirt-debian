@@ -3,7 +3,7 @@
  */
 
 static virDomainPtr
-qemuDomainAttach(virConnectPtr conn, unsigned int pid, unsigned int flags)
+qemuDomainAttach(virConnectPtr conn, unsigned int pid_value, unsigned int flags)
 {
     virDomainPtr rv = NULL;
     struct private_data *priv = conn->privateData;
@@ -12,10 +12,10 @@ qemuDomainAttach(virConnectPtr conn, unsigned int pid, unsigned int flags)
 
     remoteDriverLock(priv);
 
-    args.pid = pid;
+    args.pid_value = pid_value;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, REMOTE_CALL_QEMU, QEMU_PROC_DOMAIN_ATTACH,
              (xdrproc_t)xdr_qemu_domain_attach_args, (char *)&args,

@@ -27,8 +27,10 @@
 # include "threads.h"
 # include "domain_conf.h"
 # include "qemu_monitor.h"
+# include "qemu_agent.h"
 # include "qemu_conf.h"
 # include "bitmap.h"
+# include "virconsole.h"
 
 # define QEMU_EXPECTED_VIRT_TYPES      \
     ((1 << VIR_DOMAIN_VIRT_QEMU) |     \
@@ -36,7 +38,7 @@
      (1 << VIR_DOMAIN_VIRT_KVM) |      \
      (1 << VIR_DOMAIN_VIRT_XEN))
 
-# define QEMU_DOMAIN_DEFAULT_MIG_BANDWIDTH_MAX (32 << 20)
+# define QEMU_DOMAIN_DEFAULT_MIG_BANDWIDTH_MAX 32
 # if ULONG_MAX == 4294967295
 /* Qemu has a 64-bit limit, but we are limited by our historical choice of
  * representing bandwidth in a long instead of a 64-bit int.  */
@@ -69,6 +71,7 @@ enum qemuDomainJob {
 
     QEMU_JOB_LAST
 };
+VIR_ENUM_DECL(qemuDomainJob)
 
 /* Async job consists of a series of jobs that may change state. Independent
  * jobs that do not change state (and possibly others if explicitly allowed by
@@ -83,6 +86,7 @@ enum qemuDomainAsyncJob {
 
     QEMU_ASYNC_JOB_LAST
 };
+VIR_ENUM_DECL(qemuDomainAsyncJob)
 
 struct qemuDomainJobObj {
     virCond cond;                       /* Use to coordinate jobs */
@@ -99,6 +103,9 @@ struct qemuDomainJobObj {
 typedef struct _qemuDomainPCIAddressSet qemuDomainPCIAddressSet;
 typedef qemuDomainPCIAddressSet *qemuDomainPCIAddressSetPtr;
 
+typedef void (*qemuDomainCleanupCallback)(struct qemud_driver *driver,
+                                          virDomainObjPtr vm);
+
 typedef struct _qemuDomainObjPrivate qemuDomainObjPrivate;
 typedef qemuDomainObjPrivate *qemuDomainObjPrivatePtr;
 struct _qemuDomainObjPrivate {
@@ -109,7 +116,13 @@ struct _qemuDomainObjPrivate {
     int monJSON;
     bool monError;
     unsigned long long monStart;
+
+    qemuAgentPtr agent;
+    bool agentError;
+    unsigned long long agentStart;
+
     bool gotShutdown;
+    bool beingDestroyed;
     char *pidfile;
 
     int nvcpupids;
@@ -127,6 +140,12 @@ struct _qemuDomainObjPrivate {
 
     unsigned long migMaxBandwidth;
     char *origname;
+
+    virConsolesPtr cons;
+
+    qemuDomainCleanupCallback *cleanupCallbacks;
+    size_t ncleanupCallbacks;
+    size_t ncleanupCallbacks_max;
 };
 
 struct qemuDomainWatchdogEvent
@@ -198,6 +217,22 @@ int qemuDomainObjEnterMonitorAsync(struct qemud_driver *driver,
 void qemuDomainObjExitMonitorWithDriver(struct qemud_driver *driver,
                                         virDomainObjPtr obj)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+
+void qemuDomainObjEnterAgent(struct qemud_driver *driver,
+                             virDomainObjPtr obj)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+void qemuDomainObjExitAgent(struct qemud_driver *driver,
+                            virDomainObjPtr obj)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+void qemuDomainObjEnterAgentWithDriver(struct qemud_driver *driver,
+                                       virDomainObjPtr obj)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+void qemuDomainObjExitAgentWithDriver(struct qemud_driver *driver,
+                                      virDomainObjPtr obj)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+
 void qemuDomainObjEnterRemoteWithDriver(struct qemud_driver *driver,
                                         virDomainObjPtr obj)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
@@ -212,6 +247,10 @@ char *qemuDomainDefFormatXML(struct qemud_driver *driver,
 char *qemuDomainFormatXML(struct qemud_driver *driver,
                           virDomainObjPtr vm,
                           unsigned int flags);
+
+char *qemuDomainDefFormatLive(struct qemud_driver *driver,
+                              virDomainDefPtr def,
+                              bool inactive);
 
 void qemuDomainObjTaint(struct qemud_driver *driver,
                         virDomainObjPtr obj,
@@ -284,4 +323,12 @@ bool qemuDomainJobAllowed(qemuDomainObjPrivatePtr priv,
 int qemuDomainCheckDiskPresence(struct qemud_driver *driver,
                                 virDomainObjPtr vm,
                                 bool start_with_state);
+
+int qemuDomainCleanupAdd(virDomainObjPtr vm,
+                         qemuDomainCleanupCallback cb);
+void qemuDomainCleanupRemove(virDomainObjPtr vm,
+                             qemuDomainCleanupCallback cb);
+void qemuDomainCleanupRun(struct qemud_driver *driver,
+                          virDomainObjPtr vm);
+
 #endif /* __QEMU_DOMAIN_H__ */

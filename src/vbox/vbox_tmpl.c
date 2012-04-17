@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2008-2009 Sun Microsystems, Inc.
  *
  * This file is part of a free software library; you can redistribute
@@ -56,6 +56,7 @@
 #include "configmake.h"
 #include "virfile.h"
 #include "fdstream.h"
+#include "viruri.h"
 
 /* This one changes from version to version. */
 #if VBOX_API_VERSION == 2002
@@ -188,11 +189,9 @@ typedef struct {
 
 #else /* !(VBOX_API_VERSION == 2002) */
 
-    /* An array of callbacks */
-    virDomainEventCallbackListPtr domainEventCallbacks;
-
+    /* Async event handling */
+    virDomainEventStatePtr domainEvents;
     int fdWatch;
-    int domainEventDispatching;
 
 # if VBOX_API_VERSION <= 3002
     /* IVirtualBoxCallback is used in VirtualBox 3.x only */
@@ -382,7 +381,7 @@ vboxIIDFromUUID_v2_x_WIN32(vboxGlobalData *data, vboxIID_v2_x_WIN32 *iid,
 static bool
 vboxIIDIsEqual_v2_x_WIN32(vboxIID_v2_x_WIN32 *iid1, vboxIID_v2_x_WIN32 *iid2)
 {
-    return memcmp(&iid1->value, &iid2->value, sizeof (GUID)) == 0;
+    return memcmp(&iid1->value, &iid2->value, sizeof(GUID)) == 0;
 }
 
 static void
@@ -393,7 +392,7 @@ vboxIIDFromArrayItem_v2_x_WIN32(vboxGlobalData *data, vboxIID_v2_x_WIN32 *iid,
 
     vboxIIDUnalloc_v2_x_WIN32(data, iid);
 
-    memcpy(&iid->value, &items[idx], sizeof (GUID));
+    memcpy(&iid->value, &items[idx], sizeof(GUID));
 }
 
 #  define vboxIIDUnalloc(iid) vboxIIDUnalloc_v2_x_WIN32(data, iid)
@@ -455,7 +454,7 @@ vboxIIDFromUUID_v2_x(vboxGlobalData *data, vboxIID_v2_x *iid,
 static bool
 vboxIIDIsEqual_v2_x(vboxIID_v2_x *iid1, vboxIID_v2_x *iid2)
 {
-    return memcmp(iid1->value, iid2->value, sizeof (nsID)) == 0;
+    return memcmp(iid1->value, iid2->value, sizeof(nsID)) == 0;
 }
 
 static void
@@ -466,7 +465,7 @@ vboxIIDFromArrayItem_v2_x(vboxGlobalData *data, vboxIID_v2_x *iid,
 
     iid->value = &iid->backing;
 
-    memcpy(iid->value, array->items[idx], sizeof (nsID));
+    memcpy(iid->value, array->items[idx], sizeof(nsID));
 }
 
 #  define vboxIIDUnalloc(iid) vboxIIDUnalloc_v2_x(data, iid)
@@ -950,7 +949,7 @@ static int vboxExtractVersion(vboxGlobalData *data) {
 
     if (ret != 0)
         vboxError(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("Cound not extract VirtualBox version"));
+                  _("Could not extract VirtualBox version"));
 
     return ret;
 }
@@ -966,10 +965,11 @@ static void vboxUninitialize(vboxGlobalData *data) {
 #if VBOX_API_VERSION == 2002
     /* No domainEventCallbacks in 2.2.* version */
 #else  /* !(VBOX_API_VERSION == 2002) */
-    VIR_FREE(data->domainEventCallbacks);
+    virDomainEventStateFree(data->domainEvents);
 #endif /* !(VBOX_API_VERSION == 2002) */
     VIR_FREE(data);
 }
+
 
 static virDrvOpenStatus vboxOpen(virConnectPtr conn,
                                  virConnectAuthPtr auth ATTRIBUTE_UNUSED,
@@ -980,13 +980,9 @@ static virDrvOpenStatus vboxOpen(virConnectPtr conn,
 
     virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
 
-    if (conn->uri == NULL) {
-        conn->uri = xmlParseURI(uid ? "vbox:///session" : "vbox:///system");
-        if (conn->uri == NULL) {
-            virReportOOMError();
-            return VIR_DRV_OPEN_ERROR;
-        }
-    }
+    if (conn->uri == NULL &&
+        !(conn->uri = virURIParse(uid ? "vbox:///session" : "vbox:///system")))
+        return VIR_DRV_OPEN_ERROR;
 
     if (conn->uri->scheme == NULL ||
         STRNEQ (conn->uri->scheme, "vbox"))
@@ -1035,8 +1031,8 @@ static virDrvOpenStatus vboxOpen(virConnectPtr conn,
 
 #else  /* !(VBOX_API_VERSION == 2002) */
 
-    if (VIR_ALLOC(data->domainEventCallbacks) < 0) {
-        virReportOOMError();
+    if (!(data->domainEvents = virDomainEventStateNew())) {
+        vboxUninitialize(data);
         return VIR_DRV_OPEN_ERROR;
     }
 
@@ -1607,7 +1603,8 @@ cleanup:
     return ret;
 }
 
-static int vboxDomainShutdown(virDomainPtr dom) {
+static int vboxDomainShutdownFlags(virDomainPtr dom,
+                                   unsigned int flags) {
     VBOX_OBJECT_CHECK(dom->conn, int, -1);
     IMachine *machine    = NULL;
     vboxIID iid = VBOX_IID_INITIALIZER;
@@ -1615,6 +1612,8 @@ static int vboxDomainShutdown(virDomainPtr dom) {
     PRUint32 state       = MachineState_Null;
     PRBool isAccessible  = PR_FALSE;
     nsresult rc;
+
+    virCheckFlags(0, -1);
 
     vboxIIDFromUUID(&iid, dom->uuid);
     rc = VBOX_OBJECT_GET_MACHINE(iid.value, &machine);
@@ -1656,6 +1655,11 @@ cleanup:
     vboxIIDUnalloc(&iid);
     return ret;
 }
+
+static int vboxDomainShutdown(virDomainPtr dom) {
+    return vboxDomainShutdownFlags(dom, 0);
+}
+
 
 static int vboxDomainReboot(virDomainPtr dom, unsigned int flags)
 {
@@ -2993,7 +2997,7 @@ sharedFoldersCleanup:
                                  MACAddress[8], MACAddress[9], MACAddress[10], MACAddress[11]);
 
                         /* XXX some real error handling here some day ... */
-                        if (virParseMacAddr(macaddr, def->nets[netAdpIncCnt]->mac) < 0)
+                        if (virMacAddrParse(macaddr, def->nets[netAdpIncCnt]->mac) < 0)
                         {}
 
                         netAdpIncCnt++;
@@ -4342,7 +4346,7 @@ vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         char macaddr[VIR_MAC_STRING_BUFLEN] = {0};
         char macaddrvbox[VIR_MAC_STRING_BUFLEN - 5] = {0};
 
-        virFormatMacAddr(def->nets[i]->mac, macaddr);
+        virMacAddrFormat(def->nets[i]->mac, macaddr);
         snprintf(macaddrvbox, VIR_MAC_STRING_BUFLEN - 5,
                  "%02X%02X%02X%02X%02X%02X",
                  def->nets[i]->mac[0],
@@ -4365,7 +4369,7 @@ vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
             VIR_DEBUG("NIC(%d): NAT.", i);
         } else if (def->nets[i]->type == VIR_DOMAIN_NET_TYPE_BRIDGE) {
             VIR_DEBUG("NIC(%d): brname: %s", i, def->nets[i]->data.bridge.brname);
-            VIR_DEBUG("NIC(%d): script: %s", i, def->nets[i]->data.bridge.script);
+            VIR_DEBUG("NIC(%d): script: %s", i, def->nets[i]->script);
             VIR_DEBUG("NIC(%d): ipaddr: %s", i, def->nets[i]->data.bridge.ipaddr);
         }
 
@@ -5044,7 +5048,7 @@ static virDomainPtr vboxDomainDefineXML(virConnectPtr conn, const char *xml) {
                                       VIR_DIV_UP(def->mem.cur_balloon, 1024));
     if (NS_FAILED(rc)) {
         vboxError(VIR_ERR_INTERNAL_ERROR,
-                  _("could not set the memory size of the domain to: %lu Kb, "
+                  _("could not set the memory size of the domain to: %llu Kb, "
                     "rc=%08x"),
                   def->mem.cur_balloon, (unsigned)rc);
     }
@@ -6770,7 +6774,6 @@ vboxCallbackOnMachineStateChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
     int event        = 0;
     int detail       = 0;
 
-    g_pVBoxGlobalData->domainEventDispatching = 1;
     vboxDriverLock(g_pVBoxGlobalData);
 
     VIR_DEBUG("IVirtualBoxCallback: %p, State: %d", pThis, state);
@@ -6818,20 +6821,12 @@ vboxCallbackOnMachineStateChange(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
 
             ev = virDomainEventNewFromDom(dom, event, detail);
 
-            if (ev) {
-                virDomainEventDispatch(ev,
-                                       g_pVBoxGlobalData->domainEventCallbacks,
-                                       virDomainEventDispatchDefaultFunc,
-                                       NULL);
-                virDomainEventFree(ev);
-            }
+            if (ev)
+                virDomainEventStateQueue(g_pVBoxGlobalData->domainEvents, ev);
         }
     }
 
-    virDomainEventCallbackListPurgeMarked(g_pVBoxGlobalData->domainEventCallbacks);
-
     vboxDriverUnlock(g_pVBoxGlobalData);
-    g_pVBoxGlobalData->domainEventDispatching = 0;
 
     return NS_OK;
 }
@@ -6898,7 +6893,6 @@ vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
     int event        = 0;
     int detail       = 0;
 
-    g_pVBoxGlobalData->domainEventDispatching = 1;
     vboxDriverLock(g_pVBoxGlobalData);
 
     VIR_DEBUG("IVirtualBoxCallback: %p, registered: %s", pThis, registered ? "true" : "false");
@@ -6931,20 +6925,12 @@ vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
 
             ev = virDomainEventNewFromDom(dom, event, detail);
 
-            if (ev) {
-                virDomainEventDispatch(ev,
-                                       g_pVBoxGlobalData->domainEventCallbacks,
-                                       virDomainEventDispatchDefaultFunc,
-                                       NULL);
-                virDomainEventFree(ev);
-            }
+            if (ev)
+                virDomainEventStateQueue(g_pVBoxGlobalData->domainEvents, ev);
         }
     }
 
-    virDomainEventCallbackListPurgeMarked(g_pVBoxGlobalData->domainEventCallbacks);
-
     vboxDriverUnlock(g_pVBoxGlobalData);
-    g_pVBoxGlobalData->domainEventDispatching = 0;
 
     return NS_OK;
 }
@@ -7164,12 +7150,12 @@ static int vboxDomainEventRegister (virConnectPtr conn,
              * later you can iterate over them
              */
 
-            ret = virDomainEventCallbackListAdd(conn, data->domainEventCallbacks,
-                                                callback, opaque, freecb);
-            VIR_DEBUG("virDomainEventCallbackListAdd (ret = %d) ( conn: %p, "
-                  "data->domainEventCallbacks: %p, callback: %p, opaque: %p, "
-                  "freecb: %p )", ret, conn, data->domainEventCallbacks, callback,
-                  opaque, freecb);
+            ret = virDomainEventStateRegister(conn, data->domainEvents,
+                                              callback, opaque, freecb);
+            VIR_DEBUG("virDomainEventStateRegister (ret = %d) ( conn: %p, "
+                      "callback: %p, opaque: %p, "
+                      "freecb: %p )", ret, conn, callback,
+                      opaque, freecb);
         }
     }
 
@@ -7188,31 +7174,23 @@ static int vboxDomainEventRegister (virConnectPtr conn,
 static int vboxDomainEventDeregister (virConnectPtr conn,
                                       virConnectDomainEventCallback callback) {
     VBOX_OBJECT_CHECK(conn, int, -1);
+    int cnt;
 
     /* Locking has to be there as callbacks are not
      * really fully thread safe
      */
     vboxDriverLock(data);
 
-    if (data->domainEventDispatching)
-        ret = virDomainEventCallbackListMarkDelete(conn, data->domainEventCallbacks,
-                                                   callback);
-    else
-        ret = virDomainEventCallbackListRemove(conn, data->domainEventCallbacks,
-                                               callback);
+    cnt = virDomainEventStateDeregister(conn, data->domainEvents,
+                                        callback);
 
-    if (data->vboxCallback) {
-        /* check count here of how many times register was called
-         * and only on the last de-register do the un-register call
-         */
-        if (data->domainEventCallbacks && virDomainEventCallbackListCount(data->domainEventCallbacks) == 0) {
-            data->vboxObj->vtbl->UnregisterCallback(data->vboxObj, data->vboxCallback);
-            VBOX_RELEASE(data->vboxCallback);
+    if (data->vboxCallback && cnt == 0) {
+        data->vboxObj->vtbl->UnregisterCallback(data->vboxObj, data->vboxCallback);
+        VBOX_RELEASE(data->vboxCallback);
 
-            /* Remove the Event file handle on which we are listening as well */
-            virEventRemoveHandle(data->fdWatch);
-            data->fdWatch = -1;
-        }
+        /* Remove the Event file handle on which we are listening as well */
+        virEventRemoveHandle(data->fdWatch);
+        data->fdWatch = -1;
     }
 
     vboxDriverUnlock(data);
@@ -7264,13 +7242,14 @@ static int vboxDomainEventRegisterAny(virConnectPtr conn,
              * later you can iterate over them
              */
 
-            ret = virDomainEventCallbackListAddID(conn, data->domainEventCallbacks,
-                                                  dom, eventID,
-                                                  callback, opaque, freecb);
-            VIR_DEBUG("virDomainEventCallbackListAddID (ret = %d) ( conn: %p, "
-                  "data->domainEventCallbacks: %p, callback: %p, opaque: %p, "
-                  "freecb: %p )", ret, conn, data->domainEventCallbacks, callback,
-                  opaque, freecb);
+            if (virDomainEventStateRegisterID(conn, data->domainEvents,
+                                              dom, eventID,
+                                              callback, opaque, freecb, &ret) < 0)
+                ret = -1;
+            VIR_DEBUG("virDomainEventStateRegisterID (ret = %d) ( conn: %p, "
+                      "callback: %p, opaque: %p, "
+                      "freecb: %p )", ret, conn, callback,
+                      opaque, freecb);
         }
     }
 
@@ -7289,31 +7268,23 @@ static int vboxDomainEventRegisterAny(virConnectPtr conn,
 static int vboxDomainEventDeregisterAny(virConnectPtr conn,
                                         int callbackID) {
     VBOX_OBJECT_CHECK(conn, int, -1);
+    int cnt;
 
     /* Locking has to be there as callbacks are not
      * really fully thread safe
      */
     vboxDriverLock(data);
 
-    if (data->domainEventDispatching)
-        ret = virDomainEventCallbackListMarkDeleteID(conn, data->domainEventCallbacks,
-                                                     callbackID);
-    else
-        ret = virDomainEventCallbackListRemoveID(conn, data->domainEventCallbacks,
-                                                 callbackID);
+    cnt = virDomainEventStateDeregisterID(conn, data->domainEvents,
+                                          callbackID);
 
-    if (data->vboxCallback) {
-        /* check count here of how many times register was called
-         * and only on the last de-register do the un-register call
-         */
-        if (data->domainEventCallbacks && virDomainEventCallbackListCount(data->domainEventCallbacks) == 0) {
-            data->vboxObj->vtbl->UnregisterCallback(data->vboxObj, data->vboxCallback);
-            VBOX_RELEASE(data->vboxCallback);
+    if (data->vboxCallback && cnt == 0) {
+        data->vboxObj->vtbl->UnregisterCallback(data->vboxObj, data->vboxCallback);
+        VBOX_RELEASE(data->vboxCallback);
 
-            /* Remove the Event file handle on which we are listening as well */
-            virEventRemoveHandle(data->fdWatch);
-            data->fdWatch = -1;
-        }
+        /* Remove the Event file handle on which we are listening as well */
+        virEventRemoveHandle(data->fdWatch);
+        data->fdWatch = -1;
     }
 
     vboxDriverUnlock(data);
@@ -8132,7 +8103,7 @@ static char *vboxNetworkGetXMLDesc(virNetworkPtr network,
     VBOX_UTF16_FREE(networkInterfaceNameUtf16);
     VBOX_RELEASE(host);
 
-    ret = virNetworkDefFormat(def);
+    ret = virNetworkDefFormat(def, 0);
 
 cleanup:
     virNetworkDefFree(def);
@@ -9146,6 +9117,7 @@ virDriver NAME(Driver) = {
     .domainSuspend = vboxDomainSuspend, /* 0.6.3 */
     .domainResume = vboxDomainResume, /* 0.6.3 */
     .domainShutdown = vboxDomainShutdown, /* 0.6.3 */
+    .domainShutdownFlags = vboxDomainShutdownFlags, /* 0.9.10 */
     .domainReboot = vboxDomainReboot, /* 0.6.3 */
     .domainDestroy = vboxDomainDestroy, /* 0.6.3 */
     .domainDestroyFlags = vboxDomainDestroyFlags, /* 0.9.4 */

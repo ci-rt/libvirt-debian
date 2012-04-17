@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2011 Red Hat, Inc.
+ * Copyright (C) 2009-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,11 +39,6 @@
 #include "command.h"
 #include "virterror_internal.h"
 #include "virfile.h"
-
-/* avoid compilation breakage on some systems */
-#ifndef MODPROBE
-# define MODPROBE "modprobe"
-#endif
 
 #define PCI_SYSFS "/sys/bus/pci/"
 #define PCI_ID_LEN 10   /* "XXXX XXXX" */
@@ -868,7 +863,7 @@ recheck:
             virRun(stubprobe, NULL) < 0) {
             char ebuf[1024];
             VIR_WARN("failed to load pci-stub or pciback drivers: %s",
-                     virStrerror(errno, ebuf, sizeof ebuf));
+                     virStrerror(errno, ebuf, sizeof(ebuf)));
             return NULL;
         }
 
@@ -1117,7 +1112,9 @@ cleanup:
 }
 
 int
-pciDettachDevice(pciDevice *dev, pciDeviceList *activeDevs)
+pciDettachDevice(pciDevice *dev,
+                 pciDeviceList *activeDevs,
+                 pciDeviceList *inactiveDevs)
 {
     const char *driver = pciFindStubDriver();
     if (!driver) {
@@ -1132,11 +1129,22 @@ pciDettachDevice(pciDevice *dev, pciDeviceList *activeDevs)
         return -1;
     }
 
-    return pciBindDeviceToStub(dev, driver);
+    if (pciBindDeviceToStub(dev, driver) < 0)
+        return -1;
+
+    /* Add the dev into list inactiveDevs */
+    if (inactiveDevs && !pciDeviceListFind(inactiveDevs, dev)) {
+        if (pciDeviceListAdd(inactiveDevs, dev) < 0)
+            return -1;
+    }
+
+    return 0;
 }
 
 int
-pciReAttachDevice(pciDevice *dev, pciDeviceList *activeDevs)
+pciReAttachDevice(pciDevice *dev,
+                  pciDeviceList *activeDevs,
+                  pciDeviceList *inactiveDevs)
 {
     const char *driver = pciFindStubDriver();
     if (!driver) {
@@ -1151,7 +1159,14 @@ pciReAttachDevice(pciDevice *dev, pciDeviceList *activeDevs)
         return -1;
     }
 
-    return pciUnbindDeviceFromStub(dev, driver);
+    if (pciUnbindDeviceFromStub(dev, driver) < 0)
+        return -1;
+
+    /* Steal the dev from list inactiveDevs */
+    if (inactiveDevs)
+        pciDeviceListSteal(inactiveDevs, dev);
+
+    return 0;
 }
 
 /* Certain hypervisors (like qemu/kvm) map the PCI bar(s) on
@@ -1291,6 +1306,30 @@ pciReadDeviceID(pciDevice *dev, const char *id_name)
     id_str[6] = '\0';
 
     return id_str;
+}
+
+int
+pciGetDeviceAddrString(unsigned domain,
+                       unsigned bus,
+                       unsigned slot,
+                       unsigned function,
+                       char **pciConfigAddr)
+{
+    pciDevice *dev = NULL;
+    int ret = -1;
+
+    dev = pciGetDevice(domain, bus, slot, function);
+    if (dev != NULL) {
+        if ((*pciConfigAddr = strdup(dev->name)) == NULL) {
+            virReportOOMError();
+            goto cleanup;
+        }
+        ret = 0;
+    }
+
+cleanup:
+    pciFreeDevice(dev);
+    return ret;
 }
 
 pciDevice *
@@ -2027,6 +2066,36 @@ out:
 }
 
 /*
+ * Returns a path to the PCI sysfs file given the BDF of the PCI function
+ */
+
+int
+pciSysfsFile(char *pciDeviceName, char **pci_sysfs_device_link)
+{
+    if (virAsprintf(pci_sysfs_device_link, PCI_SYSFS "devices/%s",
+                    pciDeviceName) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+pciConfigAddressToSysfsFile(struct pci_config_address *dev,
+                            char **pci_sysfs_device_link)
+{
+    if (virAsprintf(pci_sysfs_device_link,
+                    PCI_SYSFS "devices/%04x:%02x:%02x.%x", dev->domain,
+                    dev->bus, dev->slot, dev->function) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    return 0;
+}
+
+/*
  * Returns the network device name of a pci device
  */
 int
@@ -2068,13 +2137,46 @@ out:
 
      return ret;
 }
+
+int
+pciDeviceGetVirtualFunctionInfo(const char *vf_sysfs_device_path,
+                                char **pfname, int *vf_index)
+{
+    struct pci_config_address *pf_config_address = NULL;
+    char *pf_sysfs_device_path = NULL;
+    int ret = -1;
+
+    if (pciGetPhysicalFunction(vf_sysfs_device_path, &pf_config_address) < 0)
+        return ret;
+
+    if (pciConfigAddressToSysfsFile(pf_config_address,
+                                    &pf_sysfs_device_path) < 0) {
+
+        VIR_FREE(pf_config_address);
+        return ret;
+    }
+
+    if (pciGetVirtualFunctionIndex(pf_sysfs_device_path, vf_sysfs_device_path,
+        vf_index) < 0)
+        goto cleanup;
+
+    ret = pciDeviceNetName(pf_sysfs_device_path, pfname);
+
+cleanup:
+    VIR_FREE(pf_config_address);
+    VIR_FREE(pf_sysfs_device_path);
+
+    return ret;
+}
+
 #else
+static const char *unsupported = N_("not supported on non-linux platforms");
+
 int
 pciGetPhysicalFunction(const char *vf_sysfs_path ATTRIBUTE_UNUSED,
               struct pci_config_address **physical_function ATTRIBUTE_UNUSED)
 {
-    pciReportError(VIR_ERR_INTERNAL_ERROR, _("pciGetPhysicalFunction is not "
-                   "supported on non-linux platforms"));
+    pciReportError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
     return -1;
 }
 
@@ -2083,16 +2185,14 @@ pciGetVirtualFunctions(const char *sysfs_path ATTRIBUTE_UNUSED,
              struct pci_config_address ***virtual_functions ATTRIBUTE_UNUSED,
              unsigned int *num_virtual_functions ATTRIBUTE_UNUSED)
 {
-    pciReportError(VIR_ERR_INTERNAL_ERROR, _("pciGetVirtualFunctions is not "
-                   "supported on non-linux platforms"));
+    pciReportError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
     return -1;
 }
 
 int
 pciDeviceIsVirtualFunction(const char *vf_sysfs_device_link ATTRIBUTE_UNUSED)
 {
-    pciReportError(VIR_ERR_INTERNAL_ERROR, _("pciDeviceIsVirtualFunction is "
-                   "not supported on non-linux platforms"));
+    pciReportError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
     return -1;
 }
 
@@ -2101,18 +2201,33 @@ pciGetVirtualFunctionIndex(const char *pf_sysfs_device_link ATTRIBUTE_UNUSED,
                            const char *vf_sysfs_device_link ATTRIBUTE_UNUSED,
                            int *vf_index ATTRIBUTE_UNUSED)
 {
-    pciReportError(VIR_ERR_INTERNAL_ERROR, _("pciGetVirtualFunctionIndex is "
-                   "not supported on non-linux platforms"));
+    pciReportError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
     return -1;
 
+}
+
+int
+pciConfigAddressToSysfsFile(struct pci_config_address *dev ATTRIBUTE_UNUSED,
+                            char **pci_sysfs_device_link ATTRIBUTE_UNUSED)
+{
+    pciReportError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
+    return -1;
 }
 
 int
 pciDeviceNetName(char *device_link_sysfs_path ATTRIBUTE_UNUSED,
                  char **netname ATTRIBUTE_UNUSED)
 {
-    pciReportError(VIR_ERR_INTERNAL_ERROR, _("pciDeviceNetName is not "
-                   "supported on non-linux platforms"));
+    pciReportError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
+    return -1;
+}
+
+int
+pciDeviceGetVirtualFunctionInfo(const char *vf_sysfs_device_path ATTRIBUTE_UNUSED,
+                                char **pfname ATTRIBUTE_UNUSED,
+                                int *vf_index ATTRIBUTE_UNUSED)
+{
+    pciReportError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
     return -1;
 }
 #endif /* __linux__ */

@@ -1,7 +1,7 @@
 /*
  * cputest.c: Test the libvirtd internal CPU APIs
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -42,13 +42,6 @@
 static const char *abs_top_srcdir;
 
 #define VIR_FROM_THIS VIR_FROM_CPU
-
-enum compResultShadow {
-    ERROR           = VIR_CPU_COMPARE_ERROR,
-    INCOMPATIBLE    = VIR_CPU_COMPARE_INCOMPATIBLE,
-    IDENTICAL       = VIR_CPU_COMPARE_IDENTICAL,
-    SUPERSET        = VIR_CPU_COMPARE_SUPERSET
-};
 
 enum cpuTestBoolWithError {
     FAIL    = -1,
@@ -104,7 +97,7 @@ cpuTestLoadXML(const char *arch, const char *name)
 cleanup:
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(doc);
-    free(xml);
+    VIR_FREE(xml);
     return cpu;
 }
 
@@ -126,35 +119,32 @@ cpuTestLoadMultiXML(const char *arch,
         goto cleanup;
 
     if (!(doc = virXMLParseFileCtxt(xml, &ctxt)))
-        goto error;
+        goto cleanup;
 
     n = virXPathNodeSet("/cpuTest/cpu", ctxt, &nodes);
-    if (n <= 0 || !(cpus = calloc(n, sizeof(virCPUDefPtr))))
-        goto error;
+    if (n <= 0 || (VIR_ALLOC_N(cpus, n) < 0))
+        goto cleanup;
 
     for (i = 0; i < n; i++) {
         ctxt->node = nodes[i];
         cpus[i] = virCPUDefParseXML(nodes[i], ctxt, VIR_CPU_TYPE_HOST);
         if (!cpus[i])
-            goto error;
+            goto cleanup_cpus;
     }
 
     *count = n;
 
 cleanup:
-    free(xml);
-    free(nodes);
+    VIR_FREE(xml);
+    VIR_FREE(nodes);
     xmlXPathFreeContext(ctxt);
     xmlFreeDoc(doc);
     return cpus;
 
-error:
-    if (cpus) {
-        for (i = 0; i < n; i++)
-            virCPUDefFree(cpus[i]);
-        free(cpus);
-        cpus = NULL;
-    }
+cleanup_cpus:
+    for (i = 0; i < n; i++)
+        virCPUDefFree(cpus[i]);
+    VIR_FREE(cpus);
     goto cleanup;
 }
 
@@ -162,7 +152,8 @@ error:
 static int
 cpuTestCompareXML(const char *arch,
                   const virCPUDefPtr cpu,
-                  const char *name)
+                  const char *name,
+                  unsigned int flags)
 {
     char *xml = NULL;
     char *expected = NULL;
@@ -176,10 +167,12 @@ cpuTestCompareXML(const char *arch,
     if (virtTestLoadFile(xml, &expected) < 0)
         goto cleanup;
 
-    if (!(actual = virCPUDefFormat(cpu)))
+    if (!(actual = virCPUDefFormat(cpu, flags)))
         goto cleanup;
 
     if (STRNEQ(expected, actual)) {
+        if (virTestGetVerbose())
+            fprintf(stderr, "\nCompared to %s-%s.xml", arch, name);
         virtTestDifference(stderr, expected, actual);
         goto cleanup;
     }
@@ -187,9 +180,9 @@ cpuTestCompareXML(const char *arch,
     ret = 0;
 
 cleanup:
-    free(xml);
-    free(expected);
-    free(actual);
+    VIR_FREE(xml);
+    VIR_FREE(expected);
+    VIR_FREE(actual);
     return ret;
 }
 
@@ -202,6 +195,7 @@ cpuTestCompResStr(virCPUCompareResult result)
     case VIR_CPU_COMPARE_INCOMPATIBLE:  return "INCOMPATIBLE";
     case VIR_CPU_COMPARE_IDENTICAL:     return "IDENTICAL";
     case VIR_CPU_COMPARE_SUPERSET:      return "SUPERSET";
+    case VIR_CPU_COMPARE_LAST:          break;
     }
 
     return "unknown";
@@ -285,6 +279,7 @@ cpuTestGuestData(const void *arg)
 
     guest->type = VIR_CPU_TYPE_GUEST;
     guest->match = VIR_CPU_MATCH_EXACT;
+    guest->fallback = cpu->fallback;
     if (cpuDecode(guest, guestData, data->models,
                   data->nmodels, data->preferred) < 0) {
         if (data->result < 0) {
@@ -307,7 +302,7 @@ cpuTestGuestData(const void *arg)
     }
     result = virBufferContentAndReset(&buf);
 
-    ret = cpuTestCompareXML(data->arch, guest, result);
+    ret = cpuTestCompareXML(data->arch, guest, result, 0);
 
 cleanup:
     VIR_FREE(result);
@@ -351,7 +346,7 @@ cpuTestBaseline(const void *arg)
     if (virAsprintf(&result, "%s-result", data->name) < 0)
         goto cleanup;
 
-    if (cpuTestCompareXML(data->arch, baseline, result) < 0)
+    if (cpuTestCompareXML(data->arch, baseline, result, 0) < 0)
         goto cleanup;
 
     for (i = 0; i < ncpus; i++) {
@@ -376,10 +371,10 @@ cleanup:
     if (cpus) {
         for (i = 0; i < ncpus; i++)
             virCPUDefFree(cpus[i]);
-        free(cpus);
+        VIR_FREE(cpus);
     }
     virCPUDefFree(baseline);
-    free(result);
+    VIR_FREE(result);
     return ret;
 }
 
@@ -403,12 +398,13 @@ cpuTestUpdate(const void *arg)
     if (virAsprintf(&result, "%s+%s", data->host, data->name) < 0)
         goto cleanup;
 
-    ret = cpuTestCompareXML(data->arch, cpu, result);
+    ret = cpuTestCompareXML(data->arch, cpu, result,
+                            VIR_DOMAIN_XML_UPDATE_CPU);
 
 cleanup:
     virCPUDefFree(host);
     virCPUDefFree(cpu);
-    free(result);
+    VIR_FREE(result);
     return ret;
 }
 
@@ -467,11 +463,13 @@ static int
 cpuTestRun(const char *name, const struct data *data)
 {
     char *label = NULL;
+    char *tmp;
 
     if (virAsprintf(&label, "CPU %s(%s): %s", apis[data->api], data->arch, name) < 0)
         return -1;
 
-    free(virtTestLogContentAndReset());
+    tmp = virtTestLogContentAndReset();
+    VIR_FREE(tmp);
 
     if (virtTestRun(label, 1, cpuTest[data->api], data) < 0) {
         if (virTestGetDebug()) {
@@ -479,14 +477,14 @@ cpuTestRun(const char *name, const struct data *data)
             if ((log = virtTestLogContentAndReset()) &&
                  strlen(log) > 0)
                 fprintf(stderr, "\n%s\n", log);
-            free(log);
+            VIR_FREE(log);
         }
 
-        free(label);
+        VIR_FREE(label);
         return -1;
     }
 
-    free(label);
+    VIR_FREE(label);
     return 0;
 }
 
@@ -507,7 +505,7 @@ mymain(void)
 
     if (virAsprintf(&map, "%s/src/cpu/cpu_map.xml", abs_top_srcdir) < 0 ||
         cpuMapOverride(map) < 0) {
-        free(map);
+        VIR_FREE(map);
         return EXIT_FAILURE;
     }
 
@@ -553,42 +551,45 @@ mymain(void)
             preferred, result)
 
     /* host to host comparison */
-    DO_TEST_COMPARE("x86", "host", "host", IDENTICAL);
-    DO_TEST_COMPARE("x86", "host", "host-better", INCOMPATIBLE);
-    DO_TEST_COMPARE("x86", "host", "host-worse", SUPERSET);
-    DO_TEST_COMPARE("x86", "host", "host-amd-fake", INCOMPATIBLE);
-    DO_TEST_COMPARE("x86", "host", "host-incomp-arch", INCOMPATIBLE);
-    DO_TEST_COMPARE("x86", "host", "host-no-vendor", IDENTICAL);
-    DO_TEST_COMPARE("x86", "host-no-vendor", "host", INCOMPATIBLE);
+    DO_TEST_COMPARE("x86", "host", "host", VIR_CPU_COMPARE_IDENTICAL);
+    DO_TEST_COMPARE("x86", "host", "host-better", VIR_CPU_COMPARE_INCOMPATIBLE);
+    DO_TEST_COMPARE("x86", "host", "host-worse", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host", "host-amd-fake", VIR_CPU_COMPARE_INCOMPATIBLE);
+    DO_TEST_COMPARE("x86", "host", "host-incomp-arch", VIR_CPU_COMPARE_INCOMPATIBLE);
+    DO_TEST_COMPARE("x86", "host", "host-no-vendor", VIR_CPU_COMPARE_IDENTICAL);
+    DO_TEST_COMPARE("x86", "host-no-vendor", "host", VIR_CPU_COMPARE_INCOMPATIBLE);
 
     /* guest to host comparison */
-    DO_TEST_COMPARE("x86", "host", "bogus-model", ERROR);
-    DO_TEST_COMPARE("x86", "host", "bogus-feature", ERROR);
-    DO_TEST_COMPARE("x86", "host", "min", SUPERSET);
-    DO_TEST_COMPARE("x86", "host", "pentium3", SUPERSET);
-    DO_TEST_COMPARE("x86", "host", "exact", SUPERSET);
-    DO_TEST_COMPARE("x86", "host", "exact-forbid", INCOMPATIBLE);
-    DO_TEST_COMPARE("x86", "host", "exact-forbid-extra", SUPERSET);
-    DO_TEST_COMPARE("x86", "host", "exact-disable", SUPERSET);
-    DO_TEST_COMPARE("x86", "host", "exact-disable2", SUPERSET);
-    DO_TEST_COMPARE("x86", "host", "exact-disable-extra", SUPERSET);
-    DO_TEST_COMPARE("x86", "host", "exact-require", SUPERSET);
-    DO_TEST_COMPARE("x86", "host", "exact-require-extra", INCOMPATIBLE);
-    DO_TEST_COMPARE("x86", "host", "exact-force", SUPERSET);
-    DO_TEST_COMPARE("x86", "host", "strict", INCOMPATIBLE);
-    DO_TEST_COMPARE("x86", "host", "strict-full", IDENTICAL);
-    DO_TEST_COMPARE("x86", "host", "strict-disable", IDENTICAL);
-    DO_TEST_COMPARE("x86", "host", "strict-force-extra", IDENTICAL);
-    DO_TEST_COMPARE("x86", "host", "guest", SUPERSET);
-    DO_TEST_COMPARE("x86", "host", "pentium3-amd", INCOMPATIBLE);
-    DO_TEST_COMPARE("x86", "host-amd", "pentium3-amd", SUPERSET);
-    DO_TEST_COMPARE("x86", "host-worse", "nehalem-force", IDENTICAL);
+    DO_TEST_COMPARE("x86", "host", "bogus-model", VIR_CPU_COMPARE_ERROR);
+    DO_TEST_COMPARE("x86", "host", "bogus-feature", VIR_CPU_COMPARE_ERROR);
+    DO_TEST_COMPARE("x86", "host", "min", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host", "pentium3", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host", "exact", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host", "exact-forbid", VIR_CPU_COMPARE_INCOMPATIBLE);
+    DO_TEST_COMPARE("x86", "host", "exact-forbid-extra", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host", "exact-disable", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host", "exact-disable2", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host", "exact-disable-extra", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host", "exact-require", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host", "exact-require-extra", VIR_CPU_COMPARE_INCOMPATIBLE);
+    DO_TEST_COMPARE("x86", "host", "exact-force", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host", "strict", VIR_CPU_COMPARE_INCOMPATIBLE);
+    DO_TEST_COMPARE("x86", "host", "strict-full", VIR_CPU_COMPARE_IDENTICAL);
+    DO_TEST_COMPARE("x86", "host", "strict-disable", VIR_CPU_COMPARE_IDENTICAL);
+    DO_TEST_COMPARE("x86", "host", "strict-force-extra", VIR_CPU_COMPARE_IDENTICAL);
+    DO_TEST_COMPARE("x86", "host", "guest", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host", "pentium3-amd", VIR_CPU_COMPARE_INCOMPATIBLE);
+    DO_TEST_COMPARE("x86", "host-amd", "pentium3-amd", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_COMPARE("x86", "host-worse", "nehalem-force", VIR_CPU_COMPARE_IDENTICAL);
 
     /* guest updates for migration
      * automatically compares host CPU with the result */
-    DO_TEST_UPDATE("x86", "host", "min", IDENTICAL);
-    DO_TEST_UPDATE("x86", "host", "pentium3", IDENTICAL);
-    DO_TEST_UPDATE("x86", "host", "guest", SUPERSET);
+    DO_TEST_UPDATE("x86", "host", "min", VIR_CPU_COMPARE_IDENTICAL);
+    DO_TEST_UPDATE("x86", "host", "pentium3", VIR_CPU_COMPARE_IDENTICAL);
+    DO_TEST_UPDATE("x86", "host", "guest", VIR_CPU_COMPARE_SUPERSET);
+    DO_TEST_UPDATE("x86", "host", "host-model", VIR_CPU_COMPARE_IDENTICAL);
+    DO_TEST_UPDATE("x86", "host", "host-model-nofallback", VIR_CPU_COMPARE_IDENTICAL);
+    DO_TEST_UPDATE("x86", "host", "host-passthrough", VIR_CPU_COMPARE_IDENTICAL);
 
     /* computing baseline CPUs */
     DO_TEST_BASELINE("x86", "incompatible-vendors", -1);
@@ -618,9 +619,13 @@ mymain(void)
     DO_TEST_GUESTDATA("x86", "host", "guest", models, "Penryn", 0);
     DO_TEST_GUESTDATA("x86", "host", "guest", models, "qemu64", 0);
     DO_TEST_GUESTDATA("x86", "host", "guest", nomodel, NULL, -1);
+    DO_TEST_GUESTDATA("x86", "host", "guest-nofallback", models, "Penryn", -1);
+    DO_TEST_GUESTDATA("x86", "host", "host+host-model", models, "Penryn", 0);
+    DO_TEST_GUESTDATA("x86", "host", "host+host-model-nofallback",
+                      models, "Penryn", -1);
 
-    free(map);
-    return (ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+    VIR_FREE(map);
+    return ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

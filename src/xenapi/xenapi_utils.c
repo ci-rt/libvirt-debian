@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <libxml/uri.h>
 #include <xen/api/xen_all.h>
 #include "internal.h"
 #include "domain_conf.h"
@@ -36,7 +35,7 @@
 #include "memory.h"
 #include "buf.h"
 #include "logging.h"
-#include "qparams.h"
+#include "viruri.h"
 #include "xenapi_driver_private.h"
 #include "xenapi_utils.h"
 
@@ -61,7 +60,7 @@ xenapiUtil_RequestPassword(virConnectAuthPtr auth, const char *username,
     virConnectCredential cred;
     char *prompt;
 
-    memset(&cred, 0, sizeof (virConnectCredential));
+    memset(&cred, 0, sizeof(virConnectCredential));
 
     if (virAsprintf(&prompt, "Enter %s password for %s", username,
                     hostname) < 0) {
@@ -94,25 +93,13 @@ xenapiUtil_RequestPassword(virConnectAuthPtr auth, const char *username,
 }
 
 int
-xenapiUtil_ParseQuery(virConnectPtr conn, xmlURIPtr uri, int *noVerify)
+xenapiUtil_ParseQuery(virConnectPtr conn, virURIPtr uri, int *noVerify)
 {
     int result = 0;
     int i;
-    struct qparam_set *queryParamSet = NULL;
-    struct qparam *queryParam = NULL;
 
-#ifdef HAVE_XMLURI_QUERY_RAW
-    queryParamSet = qparam_query_parse(uri->query_raw);
-#else
-    queryParamSet = qparam_query_parse(uri->query);
-#endif
-
-    if (queryParamSet == NULL) {
-        goto failure;
-    }
-
-    for (i = 0; i < queryParamSet->n; i++) {
-        queryParam = &queryParamSet->p[i];
+    for (i = 0; i < uri->paramsCount; i++) {
+        virURIParamPtr queryParam = &uri->params[i];
         if (STRCASEEQ(queryParam->name, "no_verify")) {
             if (noVerify == NULL) {
                 continue;
@@ -127,9 +114,6 @@ xenapiUtil_ParseQuery(virConnectPtr conn, xmlURIPtr uri, int *noVerify)
     }
 
   cleanup:
-    if (queryParamSet != NULL) {
-        free_qparam_set(queryParamSet);
-    }
 
     return result;
 
@@ -562,7 +546,7 @@ createVMRecordFromXml (virConnectPtr conn, virDomainDefPtr def,
                     goto error_cleanup;
             if (def->nets[i]->mac) {
                 char macStr[VIR_MAC_STRING_BUFLEN];
-                virFormatMacAddr(def->nets[i]->mac, macStr);
+                virMacAddrFormat(def->nets[i]->mac, macStr);
                 if (!(mac = strdup(macStr))) {
                     VIR_FREE(bridge);
                     goto error_cleanup;

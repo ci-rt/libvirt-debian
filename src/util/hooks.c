@@ -73,7 +73,8 @@ VIR_ENUM_IMPL(virHookQemuOp, VIR_HOOK_QEMU_OP_LAST,
               "start",
               "stopped",
               "prepare",
-              "release")
+              "release",
+              "migrate")
 
 VIR_ENUM_IMPL(virHookLxcOp, VIR_HOOK_LXC_OP_LAST,
               "start",
@@ -141,14 +142,14 @@ virHookInitialize(void) {
     for (i = 0;i < VIR_HOOK_DRIVER_LAST;i++) {
         res = virHookCheck(i, virHookDriverTypeToString(i));
         if (res < 0)
-            return(-1);
+            return -1;
 
         if (res == 1) {
             virHooksFound |= (1 << i);
             ret++;
         }
     }
-    return(ret);
+    return ret;
 }
 
 /**
@@ -164,16 +165,16 @@ int
 virHookPresent(int driver) {
     if ((driver < VIR_HOOK_DRIVER_DAEMON) ||
         (driver >= VIR_HOOK_DRIVER_LAST))
-        return(0);
+        return 0;
     if (virHooksFound == -1)
-        return(0);
+        return 0;
 
     if ((virHooksFound & (1 << driver)) == 0)
-        return(0);
-    return(1);
+        return 0;
+    return 1;
 }
 
-/*
+/**
  * virHookCall:
  * @driver: the driver number (from virHookDriver enum)
  * @id: an id for the object '-' if non available for example on daemon hooks
@@ -181,17 +182,26 @@ virHookPresent(int driver) {
  * @sub_op: a sub_operation, currently unused
  * @extra: optional string information
  * @input: extra input given to the script on stdin
+ * @output: optional address of variable to store malloced result buffer
  *
  * Implement a hook call, where the external script for the driver is
  * called with the given information. This is a synchronous call, we wait for
- * execution completion
+ * execution completion. If @output is non-NULL, *output is guaranteed to be
+ * allocated after successful virHookCall, and is best-effort allocated after
+ * failed virHookCall; the caller is responsible for freeing *output.
  *
  * Returns: 0 if the execution succeeded, 1 if the script was not found or
  *          invalid parameters, and -1 if script returned an error
  */
 int
-virHookCall(int driver, const char *id, int op, int sub_op, const char *extra,
-            const char *input) {
+virHookCall(int driver,
+            const char *id,
+            int op,
+            int sub_op,
+            const char *extra,
+            const char *input,
+            char **output)
+{
     int ret;
     int exitstatus;
     char *path;
@@ -200,9 +210,12 @@ virHookCall(int driver, const char *id, int op, int sub_op, const char *extra,
     const char *opstr;
     const char *subopstr;
 
+    if (output)
+        *output = NULL;
+
     if ((driver < VIR_HOOK_DRIVER_DAEMON) ||
         (driver >= VIR_HOOK_DRIVER_LAST))
-        return(1);
+        return 1;
 
     /*
      * We cache the availability of the script to minimize impact at
@@ -215,7 +228,7 @@ virHookCall(int driver, const char *id, int op, int sub_op, const char *extra,
         virHookInitialize();
 
     if ((virHooksFound & (1 << driver)) == 0)
-        return(1);
+        return 1;
 
     drvstr = virHookDriverTypeToString(driver);
 
@@ -235,7 +248,7 @@ virHookCall(int driver, const char *id, int op, int sub_op, const char *extra,
         virHookReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Hook for %s, failed to find operation #%d"),
                            drvstr, op);
-        return(1);
+        return 1;
     }
     subopstr = virHookSubopTypeToString(sub_op);
     if (subopstr == NULL)
@@ -248,7 +261,7 @@ virHookCall(int driver, const char *id, int op, int sub_op, const char *extra,
         virHookReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Failed to build path for %s hook"),
                            drvstr);
-        return(-1);
+        return -1;
     }
 
     cmd = virCommandNewArgList(path, id, opstr, subopstr, extra, NULL);
@@ -257,6 +270,8 @@ virHookCall(int driver, const char *id, int op, int sub_op, const char *extra,
 
     if (input)
         virCommandSetInputBuffer(cmd, input);
+    if (output)
+        virCommandSetOutputBuffer(cmd, output);
 
     ret = virCommandRun(cmd, &exitstatus);
     if (ret == 0 && exitstatus != 0) {

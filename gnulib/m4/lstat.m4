@@ -1,8 +1,6 @@
-# -*- buffer-read-only: t -*- vi: set ro:
-# DO NOT EDIT! GENERATED AUTOMATICALLY!
-# serial 23
+# serial 24
 
-# Copyright (C) 1997-2001, 2003-2011 Free Software Foundation, Inc.
+# Copyright (C) 1997-2001, 2003-2012 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -67,6 +65,6 @@ AC_DEFUN([gl_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK],
     ])
   test $gl_cv_func_lstat_dereferences_slashed_symlink = yes &&
     AC_DEFINE_UNQUOTED([LSTAT_FOLLOWS_SLASHED_SYMLINK], [1],
-      [Define to 1 if `lstat' dereferences a symlink specified
+      [Define to 1 if 'lstat' dereferences a symlink specified
        with a trailing slash.])
 ])

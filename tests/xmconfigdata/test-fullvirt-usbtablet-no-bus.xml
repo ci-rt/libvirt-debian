@@ -6,8 +6,8 @@
     <loader>/usr/lib/xen/boot/hvmloader</loader>
     <boot dev='cdrom'/>
   </os>
-  <currentMemory>403456</currentMemory>
-  <memory>592896</memory>
+  <currentMemory unit='KiB'>403456</currentMemory>
+  <memory unit='KiB'>592896</memory>
   <vcpu>1</vcpu>
   <on_poweroff>destroy</on_poweroff>
   <on_reboot>restart</on_reboot>
@@ -17,7 +17,7 @@
     <acpi/>
     <apic/>
   </features>
-  <clock offset='utc'/>
+  <clock offset='utc' adjustment='reset'/>
   <devices>
     <emulator>/usr/lib/xen/bin/qemu-dm</emulator>
     <disk type='block' device='disk'>

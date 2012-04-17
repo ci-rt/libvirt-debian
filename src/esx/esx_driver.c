@@ -2,7 +2,7 @@
 /*
  * esx_driver.c: core driver functions for managing VMware ESX hosts
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2009-2011 Matthias Bolte <matthias.bolte@googlemail.com>
  * Copyright (C) 2009 Maximilian Wilhelm <max@rfc2324.org>
  *
@@ -26,12 +26,13 @@
 
 #include "internal.h"
 #include "domain_conf.h"
-#include "authhelper.h"
+#include "virauth.h"
 #include "util.h"
 #include "memory.h"
 #include "logging.h"
 #include "uuid.h"
 #include "vmx.h"
+#include "virtypedparam.h"
 #include "esx_driver.h"
 #include "esx_interface_driver.h"
 #include "esx_network_driver.h"
@@ -43,6 +44,7 @@
 #include "esx_vi.h"
 #include "esx_vi_methods.h"
 #include "esx_util.h"
+#include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_ESX
 
@@ -665,10 +667,8 @@ esxCapsInit(esxPrivate *priv)
 
 
 static int
-esxConnectToHost(esxPrivate *priv, virConnectAuthPtr auth,
-                 const char *hostname, int port,
-                 const char *predefinedUsername,
-                 esxVI_ProductVersion expectedProductVersion,
+esxConnectToHost(virConnectPtr conn,
+                 virConnectAuthPtr auth,
                  char **vCenterIpAddress)
 {
     int result = -1;
@@ -680,25 +680,29 @@ esxConnectToHost(esxPrivate *priv, virConnectAuthPtr auth,
     esxVI_String *propertyNameList = NULL;
     esxVI_ObjectContent *hostSystem = NULL;
     esxVI_Boolean inMaintenanceMode = esxVI_Boolean_Undefined;
+    esxPrivate *priv = conn->privateData;
+    esxVI_ProductVersion expectedProductVersion = STRCASEEQ(conn->uri->scheme, "esx")
+        ? esxVI_ProductVersion_ESX
+        : esxVI_ProductVersion_GSX;
 
     if (vCenterIpAddress == NULL || *vCenterIpAddress != NULL) {
         ESX_VI_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
-    if (esxUtil_ResolveHostname(hostname, ipAddress, NI_MAXHOST) < 0) {
+    if (esxUtil_ResolveHostname(conn->uri->server, ipAddress, NI_MAXHOST) < 0) {
         return -1;
     }
 
-    if (predefinedUsername != NULL) {
-        username = strdup(predefinedUsername);
+    if (conn->uri->user != NULL) {
+        username = strdup(conn->uri->user);
 
         if (username == NULL) {
             virReportOOMError();
             goto cleanup;
         }
     } else {
-        username = virRequestUsername(auth, "root", hostname);
+        username = virAuthGetUsername(conn, auth, "esx", "root", conn->uri->server);
 
         if (username == NULL) {
             ESX_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Username request failed"));
@@ -706,7 +710,7 @@ esxConnectToHost(esxPrivate *priv, virConnectAuthPtr auth,
         }
     }
 
-    unescapedPassword = virRequestPassword(auth, username, hostname);
+    unescapedPassword = virAuthGetPassword(conn, auth, "esx", username, conn->uri->server);
 
     if (unescapedPassword == NULL) {
         ESX_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Password request failed"));
@@ -720,7 +724,7 @@ esxConnectToHost(esxPrivate *priv, virConnectAuthPtr auth,
     }
 
     if (virAsprintf(&url, "%s://%s:%d/sdk", priv->parsedUri->transport,
-                    hostname, port) < 0) {
+                    conn->uri->server, conn->uri->port) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -741,13 +745,13 @@ esxConnectToHost(esxPrivate *priv, virConnectAuthPtr auth,
             priv->host->productVersion != esxVI_ProductVersion_ESX5x) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
                       _("%s is neither an ESX 3.5, 4.x nor 5.x host"),
-                      hostname);
+                      conn->uri->server);
             goto cleanup;
         }
     } else { /* GSX */
         if (priv->host->productVersion != esxVI_ProductVersion_GSX20) {
             ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("%s isn't a GSX 2.0 host"), hostname);
+                      _("%s isn't a GSX 2.0 host"), conn->uri->server);
             goto cleanup;
         }
     }
@@ -797,9 +801,9 @@ esxConnectToHost(esxPrivate *priv, virConnectAuthPtr auth,
 
 
 static int
-esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
-                    const char *hostname, int port,
-                    const char *predefinedUsername,
+esxConnectToVCenter(virConnectPtr conn,
+                    virConnectAuthPtr auth,
+                    const char *hostname,
                     const char *hostSystemIpAddress)
 {
     int result = -1;
@@ -808,6 +812,7 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
     char *unescapedPassword = NULL;
     char *password = NULL;
     char *url = NULL;
+    esxPrivate *priv = conn->privateData;
 
     if (hostSystemIpAddress == NULL &&
         (priv->parsedUri->path == NULL || STREQ(priv->parsedUri->path, "/"))) {
@@ -820,15 +825,15 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
         return -1;
     }
 
-    if (predefinedUsername != NULL) {
-        username = strdup(predefinedUsername);
+    if (conn->uri->user != NULL) {
+        username = strdup(conn->uri->user);
 
         if (username == NULL) {
             virReportOOMError();
             goto cleanup;
         }
     } else {
-        username = virRequestUsername(auth, "administrator", hostname);
+        username = virAuthGetUsername(conn, auth, "esx", "administrator", hostname);
 
         if (username == NULL) {
             ESX_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Username request failed"));
@@ -836,7 +841,7 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
         }
     }
 
-    unescapedPassword = virRequestPassword(auth, username, hostname);
+    unescapedPassword = virAuthGetPassword(conn, auth, "esx", username, hostname);
 
     if (unescapedPassword == NULL) {
         ESX_ERROR(VIR_ERR_AUTH_FAILED, "%s", _("Password request failed"));
@@ -850,7 +855,7 @@ esxConnectToVCenter(esxPrivate *priv, virConnectAuthPtr auth,
     }
 
     if (virAsprintf(&url, "%s://%s:%d/sdk", priv->parsedUri->transport,
-                    hostname, port) < 0) {
+                    hostname, conn->uri->port) < 0) {
         virReportOOMError();
         goto cleanup;
     }
@@ -1044,11 +1049,7 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth,
     if (STRCASEEQ(conn->uri->scheme, "esx") ||
         STRCASEEQ(conn->uri->scheme, "gsx")) {
         /* Connect to host */
-        if (esxConnectToHost(priv, auth, conn->uri->server, conn->uri->port,
-                             conn->uri->user,
-                             STRCASEEQ(conn->uri->scheme, "esx")
-                               ? esxVI_ProductVersion_ESX
-                               : esxVI_ProductVersion_GSX,
+        if (esxConnectToHost(conn, auth,
                              &potentialVCenterIpAddress) < 0) {
             goto cleanup;
         }
@@ -1087,8 +1088,8 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth,
                 }
             }
 
-            if (esxConnectToVCenter(priv, auth, vCenterIpAddress,
-                                    conn->uri->port, NULL,
+            if (esxConnectToVCenter(conn, auth,
+                                    vCenterIpAddress,
                                     priv->host->ipAddress) < 0) {
                 goto cleanup;
             }
@@ -1097,8 +1098,9 @@ esxOpen(virConnectPtr conn, virConnectAuthPtr auth,
         priv->primary = priv->host;
     } else { /* VPX */
         /* Connect to vCenter */
-        if (esxConnectToVCenter(priv, auth, conn->uri->server, conn->uri->port,
-                                conn->uri->user, NULL) < 0) {
+        if (esxConnectToVCenter(conn, auth,
+                                conn->uri->server,
+                                NULL) < 0) {
             goto cleanup;
         }
 
@@ -1358,7 +1360,7 @@ esxNodeGetInfo(virConnectPtr conn, virNodeInfoPtr nodeinfo)
     int32_t numaInfo_numNodes = 0;
     char *ptr = NULL;
 
-    memset(nodeinfo, 0, sizeof (*nodeinfo));
+    memset(nodeinfo, 0, sizeof(*nodeinfo));
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
@@ -1886,13 +1888,15 @@ esxDomainResume(virDomainPtr domain)
 
 
 static int
-esxDomainShutdown(virDomainPtr domain)
+esxDomainShutdownFlags(virDomainPtr domain, unsigned int flags)
 {
     int result = -1;
     esxPrivate *priv = domain->conn->privateData;
     esxVI_ObjectContent *virtualMachine = NULL;
     esxVI_String *propertyNameList = NULL;
     esxVI_VirtualMachinePowerState powerState;
+
+    virCheckFlags(0, -1);
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
@@ -1926,6 +1930,12 @@ esxDomainShutdown(virDomainPtr domain)
     return result;
 }
 
+
+static int
+esxDomainShutdown(virDomainPtr domain)
+{
+    return esxDomainShutdownFlags(domain, 0);
+}
 
 
 static int
@@ -2063,7 +2073,7 @@ esxDomainGetOSType(virDomainPtr domain ATTRIBUTE_UNUSED)
 
 
 
-static unsigned long
+static unsigned long long
 esxDomainGetMaxMemory(virDomainPtr domain)
 {
     esxPrivate *priv = domain->conn->privateData;
@@ -2276,7 +2286,7 @@ esxDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
     esxVI_Long *value = NULL;
 #endif
 
-    memset(info, 0, sizeof (*info));
+    memset(info, 0, sizeof(*info));
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
@@ -2753,7 +2763,7 @@ esxDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
 
     /* Flags checked by virDomainDefFormat */
 
-    memset(&data, 0, sizeof (data));
+    memset(&data, 0, sizeof(data));
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return NULL;
@@ -2860,7 +2870,7 @@ esxDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat,
 
     virCheckFlags(0, NULL);
 
-    memset(&data, 0, sizeof (data));
+    memset(&data, 0, sizeof(data));
 
     if (STRNEQ(nativeFormat, "vmware-vmx")) {
         ESX_ERROR(VIR_ERR_INVALID_ARG,
@@ -2903,7 +2913,7 @@ esxDomainXMLToNative(virConnectPtr conn, const char *nativeFormat,
 
     virCheckFlags(0, NULL);
 
-    memset(&data, 0, sizeof (data));
+    memset(&data, 0, sizeof(data));
 
     if (STRNEQ(nativeFormat, "vmware-vmx")) {
         ESX_ERROR(VIR_ERR_INVALID_ARG,
@@ -3127,7 +3137,7 @@ esxDomainDefineXML(virConnectPtr conn, const char *xml)
     char *taskInfoErrorMessage = NULL;
     virDomainPtr domain = NULL;
 
-    memset(&data, 0, sizeof (data));
+    memset(&data, 0, sizeof(data));
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return NULL;
@@ -3660,43 +3670,38 @@ esxDomainGetSchedulerParametersFlags(virDomainPtr domain,
          dynamicProperty = dynamicProperty->_next) {
         if (STREQ(dynamicProperty->name, "config.cpuAllocation.reservation") &&
             ! (mask & (1 << 0))) {
-            snprintf (params[i].field, VIR_TYPED_PARAM_FIELD_LENGTH, "%s",
-                      VIR_DOMAIN_SCHEDULER_RESERVATION);
-
-            params[i].type = VIR_TYPED_PARAM_LLONG;
-
             if (esxVI_AnyType_ExpectType(dynamicProperty->val,
                                          esxVI_Type_Long) < 0) {
                 goto cleanup;
             }
-
-            params[i].value.l = dynamicProperty->val->int64;
+            if (virTypedParameterAssign(&params[i],
+                                        VIR_DOMAIN_SCHEDULER_RESERVATION,
+                                        VIR_TYPED_PARAM_LLONG,
+                                        dynamicProperty->val->int64) < 0)
+                goto cleanup;
             mask |= 1 << 0;
             ++i;
         } else if (STREQ(dynamicProperty->name,
                          "config.cpuAllocation.limit") &&
                    ! (mask & (1 << 1))) {
-            snprintf (params[i].field, VIR_TYPED_PARAM_FIELD_LENGTH, "%s",
-                      VIR_DOMAIN_SCHEDULER_LIMIT);
-
-            params[i].type = VIR_TYPED_PARAM_LLONG;
-
             if (esxVI_AnyType_ExpectType(dynamicProperty->val,
                                          esxVI_Type_Long) < 0) {
                 goto cleanup;
             }
-
-            params[i].value.l = dynamicProperty->val->int64;
+            if (virTypedParameterAssign(&params[i],
+                                        VIR_DOMAIN_SCHEDULER_LIMIT,
+                                        VIR_TYPED_PARAM_LLONG,
+                                        dynamicProperty->val->int64) < 0)
+                goto cleanup;
             mask |= 1 << 1;
             ++i;
         } else if (STREQ(dynamicProperty->name,
                          "config.cpuAllocation.shares") &&
                    ! (mask & (1 << 2))) {
-            snprintf (params[i].field, VIR_TYPED_PARAM_FIELD_LENGTH, "%s",
-                      VIR_DOMAIN_SCHEDULER_SHARES);
-
-            params[i].type = VIR_TYPED_PARAM_INT;
-
+            if (virTypedParameterAssign(&params[i],
+                                        VIR_DOMAIN_SCHEDULER_SHARES,
+                                        VIR_TYPED_PARAM_INT, 0) < 0)
+                goto cleanup;
             if (esxVI_SharesInfo_CastFromAnyType(dynamicProperty->val,
                                                  &sharesInfo) < 0) {
                 goto cleanup;
@@ -3769,6 +3774,15 @@ esxDomainSetSchedulerParametersFlags(virDomainPtr domain,
     int i;
 
     virCheckFlags(0, -1);
+    if (virTypedParameterArrayValidate(params, nparams,
+                                       VIR_DOMAIN_SCHEDULER_RESERVATION,
+                                       VIR_TYPED_PARAM_LLONG,
+                                       VIR_DOMAIN_SCHEDULER_LIMIT,
+                                       VIR_TYPED_PARAM_LLONG,
+                                       VIR_DOMAIN_SCHEDULER_SHARES,
+                                       VIR_TYPED_PARAM_INT,
+                                       NULL) < 0)
+        return -1;
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
@@ -3783,8 +3797,7 @@ esxDomainSetSchedulerParametersFlags(virDomainPtr domain,
     }
 
     for (i = 0; i < nparams; ++i) {
-        if (STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_RESERVATION) &&
-            params[i].type == VIR_TYPED_PARAM_LLONG) {
+        if (STREQ(params[i].field, VIR_DOMAIN_SCHEDULER_RESERVATION)) {
             if (esxVI_Long_Alloc(&spec->cpuAllocation->reservation) < 0) {
                 goto cleanup;
             }
@@ -3797,8 +3810,7 @@ esxDomainSetSchedulerParametersFlags(virDomainPtr domain,
             }
 
             spec->cpuAllocation->reservation->value = params[i].value.l;
-        } else if (STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_LIMIT) &&
-                   params[i].type == VIR_TYPED_PARAM_LLONG) {
+        } else if(STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_LIMIT)) {
             if (esxVI_Long_Alloc(&spec->cpuAllocation->limit) < 0) {
                 goto cleanup;
             }
@@ -3812,8 +3824,7 @@ esxDomainSetSchedulerParametersFlags(virDomainPtr domain,
             }
 
             spec->cpuAllocation->limit->value = params[i].value.l;
-        } else if (STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_SHARES) &&
-                   params[i].type == VIR_TYPED_PARAM_INT) {
+        } else if(STREQ (params[i].field, VIR_DOMAIN_SCHEDULER_SHARES)) {
             if (esxVI_SharesInfo_Alloc(&sharesInfo) < 0 ||
                 esxVI_Int_Alloc(&sharesInfo->shares) < 0) {
                 goto cleanup;
@@ -3851,10 +3862,6 @@ esxDomainSetSchedulerParametersFlags(virDomainPtr domain,
                     goto cleanup;
                 }
             }
-        } else {
-            ESX_ERROR(VIR_ERR_INVALID_ARG, _("Unknown field '%s'"),
-                      params[i].field);
-            goto cleanup;
         }
     }
 
@@ -3939,7 +3946,7 @@ esxDomainMigratePerform(virDomainPtr domain,
 {
     int result = -1;
     esxPrivate *priv = domain->conn->privateData;
-    xmlURIPtr parsedUri = NULL;
+    virURIPtr parsedUri = NULL;
     char *saveptr;
     char *path_resourcePool;
     char *path_hostSystem;
@@ -3970,12 +3977,8 @@ esxDomainMigratePerform(virDomainPtr domain,
     }
 
     /* Parse migration URI */
-    parsedUri = xmlParseURI(uri);
-
-    if (parsedUri == NULL) {
-        virReportOOMError();
+    if (!(parsedUri = virURIParse(uri)))
         return -1;
-    }
 
     if (parsedUri->scheme == NULL || STRCASENEQ(parsedUri->scheme, "vpxmigr")) {
         ESX_ERROR(VIR_ERR_INVALID_ARG, "%s",
@@ -4065,7 +4068,7 @@ esxDomainMigratePerform(virDomainPtr domain,
     result = 0;
 
   cleanup:
-    xmlFreeURI(parsedUri);
+    virURIFree(parsedUri);
     esxVI_ObjectContent_Free(&virtualMachine);
     esxVI_Event_Free(&eventList);
     esxVI_ManagedObjectReference_Free(&task);
@@ -4341,7 +4344,7 @@ esxDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
 
     virCheckFlags(0, NULL);
 
-    memset(&def, 0, sizeof (def));
+    memset(&def, 0, sizeof(def));
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return NULL;
@@ -4828,6 +4831,11 @@ esxDomainSetMemoryParameters(virDomainPtr domain, virTypedParameterPtr params,
     int i;
 
     virCheckFlags(0, -1);
+    if (virTypedParameterArrayValidate(params, nparams,
+                                       VIR_DOMAIN_MEMORY_MIN_GUARANTEE,
+                                       VIR_TYPED_PARAM_ULLONG,
+                                       NULL) < 0)
+        return -1;
 
     if (esxVI_EnsureSession(priv->primary) < 0) {
         return -1;
@@ -4842,18 +4850,13 @@ esxDomainSetMemoryParameters(virDomainPtr domain, virTypedParameterPtr params,
     }
 
     for (i = 0; i < nparams; ++i) {
-        if (STREQ (params[i].field, VIR_DOMAIN_MEMORY_MIN_GUARANTEE) &&
-            params[i].type == VIR_TYPED_PARAM_ULLONG) {
+        if (STREQ(params[i].field, VIR_DOMAIN_MEMORY_MIN_GUARANTEE)) {
             if (esxVI_Long_Alloc(&spec->memoryAllocation->reservation) < 0) {
                 goto cleanup;
             }
 
             spec->memoryAllocation->reservation->value =
               VIR_DIV_UP(params[i].value.ul, 1024); /* Scale from kilobytes to megabytes */
-        } else {
-            ESX_ERROR(VIR_ERR_INVALID_ARG, _("Unknown field '%s'"),
-                      params[i].field);
-            goto cleanup;
         }
     }
 
@@ -4917,16 +4920,11 @@ esxDomainGetMemoryParameters(virDomainPtr domain, virTypedParameterPtr params,
         goto cleanup;
     }
 
-    if (virStrcpyStatic(params[0].field,
-                        VIR_DOMAIN_MEMORY_MIN_GUARANTEE) == NULL) {
-        ESX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Field %s too big for destination"),
-                  VIR_DOMAIN_MEMORY_MIN_GUARANTEE);
+    /* Scale from megabytes to kilobytes */
+    if (virTypedParameterAssign(params, VIR_DOMAIN_MEMORY_MIN_GUARANTEE,
+                                VIR_TYPED_PARAM_ULLONG,
+                                reservation->value * 1024) < 0)
         goto cleanup;
-    }
-
-    params[0].type = VIR_TYPED_PARAM_ULLONG;
-    params[0].value.ul = reservation->value * 1024; /* Scale from megabytes to kilobytes */
 
     *nparams = 1;
     result = 0;
@@ -4960,6 +4958,7 @@ static virDriver esxDriver = {
     .domainSuspend = esxDomainSuspend, /* 0.7.0 */
     .domainResume = esxDomainResume, /* 0.7.0 */
     .domainShutdown = esxDomainShutdown, /* 0.7.0 */
+    .domainShutdownFlags = esxDomainShutdownFlags, /* 0.9.10 */
     .domainReboot = esxDomainReboot, /* 0.7.0 */
     .domainDestroy = esxDomainDestroy, /* 0.7.0 */
     .domainDestroyFlags = esxDomainDestroyFlags, /* 0.9.4 */

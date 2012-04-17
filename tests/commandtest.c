@@ -1,7 +1,7 @@
 /*
  * commandtest.c: Test the libCommand API
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -481,7 +481,7 @@ static int test13(const void *unused ATTRIBUTE_UNUSED)
     cmd = NULL;
 
     if (!STREQ(outactual, outexpect)) {
-        virtTestDifference(stderr, outactual, outexpect);
+        virtTestDifference(stderr, outexpect, outactual);
         goto cleanup;
     }
 
@@ -508,6 +508,14 @@ static int test14(const void *unused ATTRIBUTE_UNUSED)
     const char *errexpect = "BEGIN STDERR\n"
         "Hello World\n"
         "END STDERR\n";
+
+    char *jointactual = NULL;
+    const char *jointexpect = "BEGIN STDOUT\n"
+        "BEGIN STDERR\n"
+        "Hello World\n"
+        "Hello World\n"
+        "END STDOUT\n"
+        "END STDERR\n";
     int ret = -1;
 
     virCommandSetInputBuffer(cmd, "Hello World\n");
@@ -523,14 +531,29 @@ static int test14(const void *unused ATTRIBUTE_UNUSED)
         goto cleanup;
 
     virCommandFree(cmd);
-    cmd = NULL;
+
+    cmd = virCommandNew(abs_builddir "/commandhelper");
+    virCommandSetInputBuffer(cmd, "Hello World\n");
+    virCommandSetOutputBuffer(cmd, &jointactual);
+    virCommandSetErrorBuffer(cmd, &jointactual);
+    if (virCommandRun(cmd, NULL) < 0) {
+        virErrorPtr err = virGetLastError();
+        printf("Cannot run child %s\n", err->message);
+        goto cleanup;
+    }
+    if (!jointactual)
+        goto cleanup;
 
     if (!STREQ(outactual, outexpect)) {
-        virtTestDifference(stderr, outactual, outexpect);
+        virtTestDifference(stderr, outexpect, outactual);
         goto cleanup;
     }
     if (!STREQ(erractual, errexpect)) {
-        virtTestDifference(stderr, erractual, errexpect);
+        virtTestDifference(stderr, errexpect, erractual);
+        goto cleanup;
+    }
+    if (!STREQ(jointactual, jointexpect)) {
+        virtTestDifference(stderr, jointexpect, jointactual);
         goto cleanup;
     }
 
@@ -540,6 +563,7 @@ cleanup:
     virCommandFree(cmd);
     VIR_FREE(outactual);
     VIR_FREE(erractual);
+    VIR_FREE(jointactual);
     return ret;
 }
 
@@ -604,7 +628,7 @@ static int test16(const void *unused ATTRIBUTE_UNUSED)
     }
 
     if (!STREQ(outactual, outexpect)) {
-        virtTestDifference(stderr, outactual, outexpect);
+        virtTestDifference(stderr, outexpect, outactual);
         goto cleanup;
     }
 
@@ -779,11 +803,27 @@ mymain(void)
     int fd;
 
     if (chdir("/tmp") < 0)
-        return(EXIT_FAILURE);
+        return EXIT_FAILURE;
 
     setpgid(0, 0);
     setsid();
 
+    /* Our test expects particular fd values; to get that, we must not
+     * leak fds that we inherited from a lazy parent.  At the same
+     * time, virInitialize may open some fds (perhaps via third-party
+     * libraries that it uses), and we must not kill off an fd that
+     * this process opens as it might break expectations of a
+     * pthread_atfork handler, as well as interfering with our tests
+     * trying to ensure we aren't leaking to our children.  The
+     * solution is to do things in two phases - reserve the fds we
+     * want by overwriting any externally inherited fds, then
+     * initialize, then clear the slots for testing.  */
+    if ((fd = open("/dev/null", O_RDONLY)) < 0 ||
+        dup2(fd, 3) < 0 ||
+        dup2(fd, 4) < 0 ||
+        dup2(fd, 5) < 0 ||
+        (fd > 5 && VIR_CLOSE(fd) < 0))
+        return EXIT_FAILURE;
 
     /* Prime the debug/verbose settings from the env vars,
      * since we're about to reset 'environ' */
@@ -791,8 +831,8 @@ mymain(void)
     virTestGetVerbose();
 
     virInitialize();
-    /* Kill off any inherited fds that might interfere with our
-     * testing.  */
+
+    /* Phase two of killing interfering fds; see above.  */
     fd = 3;
     VIR_FORCE_CLOSE(fd);
     fd = 4;
@@ -828,7 +868,7 @@ mymain(void)
     DO_TEST(test18);
     DO_TEST(test19);
 
-    return(ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
+    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)

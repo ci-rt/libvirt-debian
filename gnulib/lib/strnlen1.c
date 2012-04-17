@@ -1,7 +1,5 @@
-/* -*- buffer-read-only: t -*- vi: set ro: */
-/* DO NOT EDIT! GENERATED AUTOMATICALLY! */
 /* Find the length of STRING + 1, but scan at most MAXLEN bytes.
-   Copyright (C) 2005-2006, 2009-2011 Free Software Foundation, Inc.
+   Copyright (C) 2005-2006, 2009-2012 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as published by

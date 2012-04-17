@@ -96,6 +96,7 @@ int qemuSetupDiskCgroup(struct qemud_driver *driver,
     return virDomainDiskDefForeachPath(disk,
                                        driver->allowDiskFormatProbing,
                                        true,
+                                       driver->user, driver->group,
                                        qemuSetupDiskPathAllow,
                                        &data);
 }
@@ -137,6 +138,7 @@ int qemuTeardownDiskCgroup(struct qemud_driver *driver,
     return virDomainDiskDefForeachPath(disk,
                                        driver->allowDiskFormatProbing,
                                        true,
+                                       driver->user, driver->group,
                                        qemuTeardownDiskPathDeny,
                                        &data);
 }
@@ -389,6 +391,25 @@ int qemuSetupCgroup(struct qemud_driver *driver,
         }
     }
 
+    if (vm->def->numatune.memory.nodemask &&
+        vm->def->numatune.memory.mode == VIR_DOMAIN_NUMATUNE_MEM_STRICT &&
+        qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPUSET)) {
+        char *mask = virDomainCpuSetFormat(vm->def->numatune.memory.nodemask, VIR_DOMAIN_CPUMASK_LEN);
+        if (!mask) {
+            qemuReportError(VIR_ERR_INTERNAL_ERROR,
+                            _("failed to convert memory nodemask"));
+            goto cleanup;
+        }
+
+        rc = virCgroupSetCpusetMems(cgroup, mask);
+        VIR_FREE(mask);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to set cpuset.mems for domain %s"),
+                                 vm->def->name);
+            goto cleanup;
+        }
+    }
 done:
     virCgroupFree(&cgroup);
     return 0;

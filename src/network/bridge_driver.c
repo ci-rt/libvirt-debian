@@ -1,7 +1,7 @@
 /*
  * bridge_driver.c: core driver methods for managing network
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -459,6 +459,10 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
     int r, ret = -1;
     int nbleases = 0;
     int ii;
+    char *record = NULL;
+    char *recordPort = NULL;
+    char *recordWeight = NULL;
+    char *recordPriority = NULL;
     virNetworkIpDefPtr tmpipdef;
 
     /*
@@ -516,16 +520,50 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
         int i;
 
         for (i = 0; i < dns->ntxtrecords; i++) {
-            char *record = NULL;
-            if (virAsprintf(&record, "%s,%s",
-                            dns->txtrecords[i].name,
-                            dns->txtrecords[i].value) < 0) {
-                virReportOOMError();
-                goto cleanup;
-            }
+            virCommandAddArgFormat(cmd, "--txt-record=%s,%s",
+                                   dns->txtrecords[i].name,
+                                   dns->txtrecords[i].value);
+        }
 
-            virCommandAddArgPair(cmd, "--txt-record", record);
-            VIR_FREE(record);
+        for (i = 0; i < dns->nsrvrecords; i++) {
+            if (dns->srvrecords[i].service && dns->srvrecords[i].protocol) {
+                if (dns->srvrecords[i].port) {
+                    if (virAsprintf(&recordPort, "%d", dns->srvrecords[i].port) < 0) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                }
+                if (dns->srvrecords[i].priority) {
+                    if (virAsprintf(&recordPriority, "%d", dns->srvrecords[i].priority) < 0) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                }
+                if (dns->srvrecords[i].weight) {
+                    if (virAsprintf(&recordWeight, "%d", dns->srvrecords[i].weight) < 0) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+                }
+
+                if (virAsprintf(&record, "%s.%s.%s,%s,%s,%s,%s",
+                                dns->srvrecords[i].service,
+                                dns->srvrecords[i].protocol,
+                                dns->srvrecords[i].domain   ? dns->srvrecords[i].domain : "",
+                                dns->srvrecords[i].target   ? dns->srvrecords[i].target : "",
+                                recordPort                  ? recordPort                : "",
+                                recordPriority              ? recordPriority            : "",
+                                recordWeight                ? recordWeight              : "") < 0) {
+                    virReportOOMError();
+                    goto cleanup;
+                }
+
+                virCommandAddArgPair(cmd, "--srv-host", record);
+                VIR_FREE(record);
+                VIR_FREE(recordPort);
+                VIR_FREE(recordWeight);
+                VIR_FREE(recordPriority);
+            }
         }
     }
 
@@ -628,6 +666,10 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
 
     ret = 0;
 cleanup:
+    VIR_FREE(record);
+    VIR_FREE(recordPort);
+    VIR_FREE(recordWeight);
+    VIR_FREE(recordPriority);
     return ret;
 }
 
@@ -1470,14 +1512,22 @@ networkReloadIptablesRules(struct network_driver *driver)
     VIR_INFO("Reloading iptables rules");
 
     for (i = 0 ; i < driver->networks.count ; i++) {
-        virNetworkObjLock(driver->networks.objs[i]);
-        if (virNetworkObjIsActive(driver->networks.objs[i])) {
-            networkRemoveIptablesRules(driver, driver->networks.objs[i]);
-            if (networkAddIptablesRules(driver, driver->networks.objs[i]) < 0) {
+        virNetworkObjPtr network = driver->networks.objs[i];
+
+        virNetworkObjLock(network);
+        if (virNetworkObjIsActive(network) &&
+            ((network->def->forwardType == VIR_NETWORK_FORWARD_NONE) ||
+             (network->def->forwardType == VIR_NETWORK_FORWARD_NAT) ||
+             (network->def->forwardType == VIR_NETWORK_FORWARD_ROUTE))) {
+            /* Only the three L3 network types that are configured by libvirt
+             * need to have iptables rules reloaded.
+             */
+            networkRemoveIptablesRules(driver, network);
+            if (networkAddIptablesRules(driver, network) < 0) {
                 /* failed to add but already logged */
             }
         }
-        virNetworkObjUnlock(driver->networks.objs[i]);
+        virNetworkObjUnlock(network);
     }
 }
 
@@ -1715,7 +1765,9 @@ networkStartNetworkVirtual(struct network_driver *driver,
             goto err0;
         }
         if (virNetDevTapCreateInBridgePort(network->def->bridge,
-                                           &macTapIfName, network->def->mac, 0, false, NULL) < 0) {
+                                           &macTapIfName, network->def->mac,
+                                           NULL, NULL, NULL,
+                                           VIR_NETDEV_TAP_CREATE_USE_MAC_FOR_BRIDGE) < 0) {
             VIR_FREE(macTapIfName);
             goto err0;
         }
@@ -2482,7 +2534,7 @@ static char *networkGetXMLDesc(virNetworkPtr net,
     virNetworkObjPtr network;
     char *ret = NULL;
 
-    virCheckFlags(0, NULL);
+    virCheckFlags(VIR_NETWORK_XML_INACTIVE, NULL);
 
     networkDriverLock(driver);
     network = virNetworkFindByUUID(&driver->networks, net->uuid);
@@ -2494,7 +2546,7 @@ static char *networkGetXMLDesc(virNetworkPtr net,
         goto cleanup;
     }
 
-    ret = virNetworkDefFormat(network->def);
+    ret = virNetworkDefFormat(network->def, flags);
 
 cleanup:
     if (network)
@@ -2690,6 +2742,9 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
     virNetworkObjPtr network;
     virNetworkDefPtr netdef;
     virPortGroupDefPtr portgroup;
+    unsigned int num_virt_fns = 0;
+    char **vfname = NULL;
+    int ii;
     int ret = -1;
 
     if (iface->type != VIR_DOMAIN_NET_TYPE_NETWORK)
@@ -2817,13 +2872,12 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
         /* If there is only a single device, just return it (caller will detect
          * any error if exclusive use is required but could not be acquired).
          */
-        if (netdef->nForwardIfs == 0) {
+        if ((netdef->nForwardIfs <= 0) && (netdef->nForwardPfs <= 0)) {
             networkReportError(VIR_ERR_INTERNAL_ERROR,
                                _("network '%s' uses a direct mode, but has no forward dev and no interface pool"),
                                netdef->name);
             goto cleanup;
         } else {
-            int ii;
             virNetworkForwardIfDefPtr dev = NULL;
 
             /* pick an interface from the pool */
@@ -2833,13 +2887,54 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
              * 0.  Other modes can share, so just search for the one with
              * the lowest usageCount.
              */
-            if ((netdef->forwardType == VIR_NETWORK_FORWARD_PASSTHROUGH) ||
-                ((netdef->forwardType == VIR_NETWORK_FORWARD_PRIVATE) &&
-                 iface->data.network.actual->data.direct.virtPortProfile &&
-                 (iface->data.network.actual->data.direct.virtPortProfile->virtPortType
-                  == VIR_NETDEV_VPORT_PROFILE_8021QBH))) {
+            if (netdef->forwardType == VIR_NETWORK_FORWARD_PASSTHROUGH) {
+                if ((netdef->nForwardPfs > 0) && (netdef->nForwardIfs <= 0)) {
+                    if ((virNetDevGetVirtualFunctions(netdef->forwardPfs->dev,
+                                                      &vfname, &num_virt_fns)) < 0) {
+                        networkReportError(VIR_ERR_INTERNAL_ERROR,
+                                           _("Could not get Virtual functions on %s"),
+                                           netdef->forwardPfs->dev);
+                        goto cleanup;
+                    }
+
+                    if (num_virt_fns == 0) {
+                        networkReportError(VIR_ERR_INTERNAL_ERROR,
+                                           _("No Vf's present on SRIOV PF %s"),
+                                           netdef->forwardPfs->dev);
+                        goto cleanup;
+                    }
+
+                    if ((VIR_ALLOC_N(netdef->forwardIfs, num_virt_fns)) < 0) {
+                        virReportOOMError();
+                        goto cleanup;
+                    }
+
+                    netdef->nForwardIfs = num_virt_fns;
+
+                    for (ii = 0; ii < netdef->nForwardIfs; ii++) {
+                        netdef->forwardIfs[ii].dev = strdup(vfname[ii]);
+                        if (!netdef->forwardIfs[ii].dev) {
+                            virReportOOMError();
+                            goto cleanup;
+                        }
+                        netdef->forwardIfs[ii].usageCount = 0;
+                    }
+                }
+
                 /* pick first dev with 0 usageCount */
 
+                for (ii = 0; ii < netdef->nForwardIfs; ii++) {
+                    if (netdef->forwardIfs[ii].usageCount == 0) {
+                        dev = &netdef->forwardIfs[ii];
+                        break;
+                    }
+                }
+            } else if ((netdef->forwardType == VIR_NETWORK_FORWARD_PRIVATE) &&
+                       iface->data.network.actual->data.direct.virtPortProfile &&
+                       (iface->data.network.actual->data.direct.virtPortProfile->virtPortType
+                        == VIR_NETDEV_VPORT_PROFILE_8021QBH)) {
+
+                /* pick first dev with 0 usageCount */
                 for (ii = 0; ii < netdef->nForwardIfs; ii++) {
                     if (netdef->forwardIfs[ii].usageCount == 0) {
                         dev = &netdef->forwardIfs[ii];
@@ -2858,7 +2953,7 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
             if (!dev) {
                 networkReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("network '%s' requires exclusive access to interfaces, but none are available"),
-                               netdef->name);
+                                   netdef->name);
                 goto cleanup;
             }
             iface->data.network.actual->data.direct.linkdev = strdup(dev->dev);
@@ -2875,6 +2970,9 @@ networkAllocateActualDevice(virDomainNetDefPtr iface)
 
     ret = 0;
 cleanup:
+    for (ii = 0; ii < num_virt_fns; ii++)
+        VIR_FREE(vfname[ii]);
+    VIR_FREE(vfname);
     if (network)
         virNetworkObjUnlock(network);
     if (ret < 0) {

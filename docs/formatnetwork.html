@@ -368,7 +368,21 @@
   &lt;/forward&gt;
 ...
         </pre>
-        When a guest interface is being constructed, libvirt will pick
+        Additionally, <span class="since">since 0.9.10</span>, libvirt
+        allows a shorthand for specifying all virtual interfaces
+        associated with a single physical function, by using
+        the <code>&lt;pf&gt;</code> subelement to call out the
+        corresponding physical interface associated with multiple
+        virtual interfaces:
+        <pre>
+...
+  &lt;forward mode='passthrough'&gt;
+    &lt;pf dev='eth0'/&gt;
+  &lt;/forward&gt;
+...
+        </pre>
+
+        <p>When a guest interface is being constructed, libvirt will pick
         an interface from this list to use for the connection. In
         modes where physical interfaces can be shared by multiple
         guest interfaces, libvirt will choose the interface that
@@ -376,7 +390,7 @@
         that do not allow sharing of the physical device (in
         particular, 'passthrough' mode, and 'private' mode when using
         802.1Qbh), libvirt will choose an unused physical interface
-        or, if it can't find an unused interface, fail the operation.
+        or, if it can't find an unused interface, fail the operation.</p>
       </dd></dl>
         <h5>
           <a name="elementQoS" id="elementQoS">Quality of service</a>
@@ -484,9 +498,11 @@
         &lt;domain name="example.com"/&gt;
         &lt;dns&gt;
           &lt;txt name="example" value="example value" /&gt;
+          &lt;srv service='name' protocol='tcp' domain='test-domain-name' target='.' port='1024' priority='10' weight='10'/&gt;
           &lt;host ip='192.168.122.2'&gt;
             &lt;hostname&gt;myhost&lt;/hostname&gt;
             &lt;hostname&gt;myhostalias&lt;/hostname&gt;
+          &lt;/host&gt;
         &lt;/dns&gt;
         &lt;ip address="192.168.122.1" netmask="255.255.255.0"&gt;
           &lt;dhcp&gt;
@@ -525,6 +541,13 @@
             for that IP address are identified in the <code>hostname</code>
             sub-elements of the <code>host</code> element.
             <span class="since">Since 0.9.3</span>
+          </dd></dl><dl><dt><code>srv</code></dt><dd>The <code>dns</code> element can have also 0 or more <code>srv</code>
+            record elements. Each <code>srv</code> record element defines a DNS SRV record
+            and has 2 mandatory and 5 optional attributes. The mandatory attributes
+            are service name and protocol (tcp, udp) and the optional attributes are
+            target, port, priority, weight and domain as defined in DNS server SRV
+            RFC (RFC 2782).
+            <span class="since">Since 0.9.9</span>
           </dd></dl></dd><dt><code>ip</code></dt><dd>The <code>address</code> attribute defines an IPv4 address in
         dotted-decimal format, or an IPv6 address in standard
         colon-separated hexadecimal format, that will be configured on

@@ -1,7 +1,7 @@
 /*
  * console.c: A dumb serial console client
  *
- * Copyright (C) 2007, 2008, 2010 Red Hat, Inc.
+ * Copyright (C) 2007-2008, 2010-2011 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -101,6 +101,8 @@ virConsoleShutdown(virConsolePtr con)
         virStreamAbort(con->st);
         virStreamFree(con->st);
     }
+    VIR_FREE(con->streamToTerminal.data);
+    VIR_FREE(con->terminalToStream.data);
     if (con->stdinWatch != -1)
         virEventRemoveHandle(con->stdinWatch);
     if (con->stdoutWatch != -1)
@@ -297,7 +299,8 @@ vshGetEscapeChar(const char *s)
 
 int vshRunConsole(virDomainPtr dom,
                   const char *dev_name,
-                  const char *escape_seq)
+                  const char *escape_seq,
+                  unsigned int flags)
 {
     int ret = -1;
     struct termios ttyattr, rawattr;
@@ -351,7 +354,7 @@ int vshRunConsole(virDomainPtr dom,
     if (!con->st)
         goto cleanup;
 
-    if (virDomainOpenConsole(dom, dev_name, con->st, 0) < 0)
+    if (virDomainOpenConsole(dom, dev_name, con->st, flags) < 0)
         goto cleanup;
 
     if (virCondInit(&con->cond) < 0 || virMutexInit(&con->lock) < 0)

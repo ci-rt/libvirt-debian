@@ -57,7 +57,7 @@
         <!-- <mac> element -->
         <optional>
           <element name="mac">
-            <attribute name="address"><ref name="macAddr"/></attribute>
+            <attribute name="address"><ref name="uniMacAddr"/></attribute>
             <empty/>
           </element>
         </optional>
@@ -85,13 +85,22 @@
                 </choice>
               </attribute>
             </optional>
-            <zeroOrMore>
-              <element name='interface'>
-                <attribute name='dev'>
-                  <ref name='deviceName'/>
-                </attribute>
-              </element>
-            </zeroOrMore>
+            <interleave>
+              <zeroOrMore>
+                <element name='interface'>
+                  <attribute name='dev'>
+                    <ref name='deviceName'/>
+                  </attribute>
+                </element>
+              </zeroOrMore>
+              <optional>
+                <element name='pf'>
+                  <attribute name='dev'>
+                    <ref name='deviceName'/>
+                  </attribute>
+                </element>
+              </optional>
+            </interleave>
           </element>
         </optional>
 
@@ -135,6 +144,19 @@
                 <element name="txt">
                   <attribute name="name"><ref name="dnsName"/></attribute>
                   <attribute name="value"><text/></attribute>
+                </element>
+              </zeroOrMore>
+              <zeroOrMore>
+                <element name="srv">
+                  <attribute name="service"><text/></attribute>
+                  <attribute name="protocol"><ref name="protocol"/></attribute>
+                  <optional>
+                    <attribute name="domain"><ref name="dnsName"/></attribute>
+                    <attribute name="target"><text/></attribute>
+                    <attribute name="port"><ref name="unsignedShort"/></attribute>
+                    <attribute name="priority"><ref name="unsignedShort"/></attribute>
+                    <attribute name="weight"><ref name="unsignedShort"/></attribute>
+                  </optional>
                 </element>
               </zeroOrMore>
               <zeroOrMore>
@@ -196,7 +218,7 @@
                 </zeroOrMore>
                 <zeroOrMore>
                   <element name="host">
-                    <attribute name="mac"><ref name="macAddr"/></attribute>
+                    <attribute name="mac"><ref name="uniMacAddr"/></attribute>
                     <attribute name="name"><text/></attribute>
                     <attribute name="ip"><ref name="ipv4Addr"/></attribute>
                   </element>
@@ -216,11 +238,4 @@
       </interleave>
     </element>
   </define>
-
-  <define name='addr-family'>
-    <data type='string'>
-      <param name="pattern">(ipv4)|(ipv6)</param>
-    </data>
-  </define>
-
 </grammar>

@@ -1,7 +1,7 @@
 /*
  * domain_audit.c: Domain audit management
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -161,9 +161,9 @@ virDomainAuditNet(virDomainObjPtr vm,
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (oldDef)
-        virFormatMacAddr(oldDef->mac, oldMacstr);
+        virMacAddrFormat(oldDef->mac, oldMacstr);
     if (newDef)
-        virFormatMacAddr(newDef->mac, newMacstr);
+        virMacAddrFormat(newDef->mac, newMacstr);
     if (!(vmname = virAuditEncode("vm", vm->def->name))) {
         VIR_WARN("OOM while encoding audit message");
         return;
@@ -175,7 +175,7 @@ virDomainAuditNet(virDomainObjPtr vm,
     }
 
     VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
-              "virt=%s resrc=net reason=%s %s uuid=%s old-net='%s' new-net='%s'",
+              "virt=%s resrc=net reason=%s %s uuid=%s old-net=%s new-net=%s",
               virt, reason, vmname, uuidstr,
               oldDef ? oldMacstr : "?",
               newDef ? newMacstr : "?");
@@ -207,7 +207,7 @@ virDomainAuditNetDevice(virDomainDefPtr vmDef, virDomainNetDefPtr netDef,
     const char *virt;
 
     virUUIDFormat(vmDef->uuid, uuidstr);
-    virFormatMacAddr(netDef->mac, macstr);
+    virMacAddrFormat(netDef->mac, macstr);
     rdev = virDomainAuditGetRdev(device);
 
     if (!(vmname = virAuditEncode("vm", vmDef->name)) ||
@@ -222,7 +222,7 @@ virDomainAuditNetDevice(virDomainDefPtr vmDef, virDomainNetDefPtr netDef,
     }
 
     VIR_AUDIT(VIR_AUDIT_RECORD_RESOURCE, success,
-              "virt=%s resrc=net reason=open %s uuid=%s net='%s' %s rdev=%s",
+              "virt=%s resrc=net reason=open %s uuid=%s net=%s %s rdev=%s",
               virt, vmname, uuidstr, macstr, dev_name, VIR_AUDIT_STR(rdev));
 
 cleanup:
@@ -562,8 +562,8 @@ virDomainAuditLifecycle(virDomainObjPtr vm, const char *op,
     }
 
     VIR_AUDIT(VIR_AUDIT_RECORD_MACHINE_CONTROL, success,
-              "virt=%s op=%s reason=%s %s uuid=%s",
-              virt, op, reason, vmname, uuidstr);
+              "virt=%s op=%s reason=%s %s uuid=%s vm-pid=%d",
+              virt, op, reason, vmname, uuidstr, vm->pid);
 
     VIR_FREE(vmname);
 }

@@ -8,6 +8,11 @@
   sed -ne 's/^\.fc\?\([0-9]\+\).*/%%define fedora \1/p')}
 %endif
 
+# Default to skipping autoreconf.  Distros can change just this one line
+# (or provide a command-line override) if they backport any patches that
+# touch configure.ac or Makefile.am.
+%{!?enable_autotools:%define enable_autotools 0}
+
 # A client only build will create a libvirt.so only containing
 # the generic RPC driver, and test driver and no libvirtd
 # Default to a full server + client build
@@ -17,7 +22,7 @@
 
 # RHEL-5 builds are client-only for s390, ppc
 %if 0%{?rhel} == 5
-%ifnarch i386 i586 i686 x86_64 ia64
+%ifnarch %{ix86} x86_64 ia64
 %define client_only        1
 %endif
 %endif
@@ -79,6 +84,7 @@
 %define with_cgconfig      0%{!?_without_cgconfig:0}
 %define with_sanlock       0%{!?_without_sanlock:0}
 %define with_systemd       0%{!?_without_systemd:0}
+%define with_numad         0%{!?_without_numad:0}
 
 # Non-server/HV driver defaults which are always enabled
 %define with_python        0%{!?_without_python:1}
@@ -88,7 +94,7 @@
 # Finally set the OS / architecture specific special cases
 
 # Xen is available only on i386 x86_64 ia64
-%ifnarch i386 i586 i686 x86_64 ia64
+%ifnarch %{ix86} x86_64 ia64
 %define with_xen 0
 %define with_libxl 0
 %endif
@@ -134,15 +140,15 @@
 %define with_xen 0
 %endif
 
-# Fedora doesn't have any QEMU on ppc64 - only ppc
-%if 0%{?fedora}
+# Fedora doesn't have any QEMU on ppc64 until FC16 - only ppc
+%if 0%{?fedora} && 0%{?fedora} < 16
 %ifarch ppc64
 %define with_qemu 0
 %endif
 %endif
 
 # Fedora doesn't have new enough Xen for libxl until F16
-%if 0%{?fedora} < 16
+%if 0%{?fedora} && 0%{?fedora} < 16
 %define with_libxl 0
 %endif
 
@@ -179,7 +185,7 @@
 %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
 %endif
 %if 0%{?rhel} >= 6
-%ifnarch i386 i586 i686 x86_64
+%ifarch %{ix86} x86_64
 %define with_sanlock 0%{!?_without_sanlock:%{server_drivers}}
 %endif
 %endif
@@ -200,11 +206,19 @@
 %define with_storage_disk 0
 %endif
 
-# Enable libpcap library
 %if %{with_qemu}
 %define with_nwfilter 0%{!?_without_nwfilter:%{server_drivers}}
+# Enable libpcap library
 %define with_libpcap  0%{!?_without_libpcap:%{server_drivers}}
 %define with_macvtap  0%{!?_without_macvtap:%{server_drivers}}
+
+# numad is used to manage the CPU placement dynamically,
+# it's not available on s390[x] and ARM.
+%if 0%{?fedora} >= 17 || 0%{?rhel} >= 6
+%ifnarch s390 s390x %{arm}
+%define with_numad    0%{!?_without_numad:%{server_drivers}}
+%endif
+%endif
 %endif
 
 %if %{with_macvtap}
@@ -246,7 +260,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.9.8
+Version: 0.9.11
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -267,6 +281,9 @@ Requires: %{name}-client = %{version}-%{release}
 Requires: module-init-tools
 # for /sbin/ip & /sbin/tc
 Requires: iproute
+%if %{with_avahi}
+Requires: avahi-libs
+%endif
 %endif
 %if %{with_network}
 Requires: dnsmasq >= 2.41
@@ -338,8 +355,10 @@ Requires: device-mapper
 %if %{with_cgconfig}
 Requires: libcgroup
 %endif
+%ifarch %{ix86} x86_64 ia64
 # For virConnectGetSysinfo
 Requires: dmidecode
+%endif
 # For service management
 %if %{with_systemd}
 Requires(post): systemd-units
@@ -347,8 +366,17 @@ Requires(post): systemd-sysv
 Requires(preun): systemd-units
 Requires(postun): systemd-units
 %endif
+%if %{with_numad}
+Requires: numad
+%endif
 
 # All build-time requirements
+%if 0%{?enable_autotools}
+BuildRequires: autoconf
+BuildRequires: automake
+BuildRequires: gettext-devel
+BuildRequires: libtool
+%endif
 BuildRequires: python-devel
 %if %{with_systemd}
 BuildRequires: systemd-units
@@ -496,6 +524,13 @@ BuildRequires: nfs-utils
 
 # Fedora build root suckage
 BuildRequires: gawk
+
+# For storage wiping with different algorithms
+BuildRequires: scrub
+
+%if %{with_numad}
+BuildRequires: numad
+%endif
 
 %description
 Libvirt is a C toolkit to interact with the virtualization capabilities
@@ -671,6 +706,10 @@ of recent versions of Linux (and other OSes).
 %define _without_numactl --without-numactl
 %endif
 
+%if ! %{with_numad}
+%define _without_numad --without-numad
+%endif
+
 %if ! %{with_capng}
 %define _without_capng --without-capng
 %endif
@@ -729,11 +768,15 @@ of recent versions of Linux (and other OSes).
 %define init_scripts --with-init_script=redhat
 %endif
 
+%if 0%{?enable_autotools}
+autoreconf -if
+%endif
 %configure %{?_without_xen} \
            %{?_without_qemu} \
            %{?_without_openvz} \
            %{?_without_lxc} \
            %{?_without_vbox} \
+           %{?_without_libxl} \
            %{?_without_xenapi} \
            %{?_without_sasl} \
            %{?_without_avahi} \
@@ -753,6 +796,7 @@ of recent versions of Linux (and other OSes).
            %{?_without_storage_disk} \
            %{?_without_storage_mpath} \
            %{?_without_numactl} \
+           %{?_without_numad} \
            %{?_without_capng} \
            %{?_without_netcf} \
            %{?_without_selinux} \
@@ -768,15 +812,14 @@ of recent versions of Linux (and other OSes).
            %{with_packager_version} \
            --with-qemu-user=%{qemu_user} \
            --with-qemu-group=%{qemu_group} \
-           %{init_scripts} \
-           --with-remote-pid-file=%{_localstatedir}/run/libvirtd.pid
+           %{init_scripts}
 make %{?_smp_mflags}
 gzip -9 ChangeLog
 
 %install
 rm -fr %{buildroot}
 
-%makeinstall SYSTEMD_UNIT_DIR=%{_unitdir}
+%makeinstall SYSTEMD_UNIT_DIR=%{buildroot}%{_unitdir}
 for i in domain-events/events-c dominfo domsuspend hellolibvirt openauth python xml/nwfilter systemtap
 do
   (cd examples/$i ; make clean ; rm -rf .deps .libs Makefile Makefile.in)
@@ -817,16 +860,6 @@ rm -f $RPM_BUILD_ROOT%{_datadir}/augeas/lenses/tests/test_libvirtd_lxc.aug
 
 %if ! %{with_python}
 rm -rf $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-python-%{version}
-%endif
-
-%if %{client_only}
-rm -rf $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version}
-%endif
-
-%if ! %{with_libvirtd}
-rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/libvirt/nwfilter
-mv $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version}/html \
-   $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-devel-%{version}/
 %endif
 
 %if ! %{with_qemu}
@@ -934,7 +967,7 @@ fi
 %if %{with_cgconfig}
 # Starting with Fedora 16, systemd automounts all cgroups, and cgconfig is
 # no longer a necessary service.
-%if 0%{?fedora} <= 15 || 0%{?rhel} <= 6
+%if 0%{?rhel} || (0%{?fedora} && 0%{?fedora} < 16)
 if [ "$1" -eq "1" ]; then
 /sbin/chkconfig cgconfig on
 fi
@@ -1005,14 +1038,6 @@ fi
 %if %{with_systemd}
 %else
 /sbin/chkconfig --add libvirt-guests
-if [ $1 -ge 1 ]; then
-    level=$(/sbin/runlevel | /bin/cut -d ' ' -f 2)
-    if /sbin/chkconfig --levels $level libvirt-guests; then
-        # this doesn't do anything but allowing for libvirt-guests to be
-        # stopped on the first shutdown
-        /sbin/service libvirt-guests start > /dev/null 2>&1 || true
-    fi
-fi
 %endif
 
 %postun client -p /sbin/ldconfig
@@ -1056,10 +1081,6 @@ fi
 %config(noreplace) %{_sysconfdir}/sysctl.d/libvirtd
 %else
 rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
-%endif
-%if %{with_dtrace}
-%{_datadir}/systemtap/tapset/libvirt_probes.stp
-%{_datadir}/systemtap/tapset/libvirt_functions.stp
 %endif
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/qemu/
 %dir %attr(0700, root, root) %{_localstatedir}/log/libvirt/lxc/
@@ -1179,10 +1200,17 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %{_mandir}/man1/virsh.1*
 %{_mandir}/man1/virt-xml-validate.1*
 %{_mandir}/man1/virt-pki-validate.1*
+%{_mandir}/man1/virt-host-validate.1*
 %{_bindir}/virsh
 %{_bindir}/virt-xml-validate
 %{_bindir}/virt-pki-validate
+%{_bindir}/virt-host-validate
 %{_libdir}/lib*.so.*
+
+%if %{with_dtrace}
+%{_datadir}/systemtap/tapset/libvirt_probes.stp
+%{_datadir}/systemtap/tapset/libvirt_functions.stp
+%endif
 
 %dir %{_datadir}/libvirt/
 %dir %{_datadir}/libvirt/schemas/
@@ -1228,6 +1256,10 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %doc %{_datadir}/gtk-doc/html/libvirt/*.png
 %doc %{_datadir}/gtk-doc/html/libvirt/*.css
 
+%dir %{_datadir}/libvirt/api/
+%{_datadir}/libvirt/api/libvirt-api.xml
+%{_datadir}/libvirt/api/libvirt-qemu-api.xml
+
 %doc docs/*.html docs/html docs/*.gif
 %doc docs/libvirt-api.xml
 %doc examples/hellolibvirt
@@ -1253,6 +1285,38 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %endif
 
 %changelog
+* Tue Apr  3 2012 Daniel Veillard <veillard@redhat.com> - 0.9.11-1
+- Add support for the suspend event
+- Add support for event tray moved of removable disks
+- qemu: Support numad
+- cpustats: API, improvements and qemu support
+- qemu: support type='hostdev' network devices at domain start
+- Introduce virDomainPMWakeup API
+- network: support Open vSwitch
+- a number of snapshot improvements
+- many improvements and bug fixes
+
+* Mon Feb 13 2012 Daniel Veillard <veillard@redhat.com> - 0.9.10-1
+- Add support for sVirt in the LXC driver
+- block rebase: add new API virDomainBlockRebase
+- API: Add api to set and get domain metadata
+- virDomainGetDiskErrors public API
+- conf: add rawio attribute to disk element of domain XML
+- Add new public API virDomainGetCPUStats()
+- Introduce virDomainPMSuspendForDuration API
+- resize: add virStorageVolResize() API
+- Add a virt-host-validate command to sanity check HV config
+- Add new virDomainShutdownFlags API
+- QEMU guest agent support
+- many improvements and bug fixes
+
+* Sat Jan  7 2012 Daniel Veillard <veillard@redhat.com> - 0.9.9-1
+- Add API virDomain{S,G}etInterfaceParameters
+- Add API virDomain{G, S}etNumaParameters
+- Add support for ppc64 qemu
+- Support Xen domctl v8
+- many improvements and bug fixes
+
 * Thu Dec  8 2011 Daniel Veillard <veillard@redhat.com> - 0.9.8-1
 - Add support for QEMU 1.0
 - Add preliminary PPC cpu driver

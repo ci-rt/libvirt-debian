@@ -51,7 +51,7 @@ virStorageBackendLogicalSetActive(virStoragePoolObjPtr pool,
     const char *cmdargv[4];
 
     cmdargv[0] = VGCHANGE;
-    cmdargv[1] = on ? "-ay" : "-an";
+    cmdargv[1] = on ? "-aly" : "-aln";
     cmdargv[2] = pool->def->source.name;
     cmdargv[3] = NULL;
 
@@ -110,7 +110,6 @@ virStorageBackendLogicalMakeVol(virStoragePoolObjPtr pool,
             virReportOOMError();
             goto cleanup;
         }
-        pool->volumes.objs[pool->volumes.count++] = vol;
     }
 
     if (vol->target.path == NULL) {
@@ -253,6 +252,9 @@ virStorageBackendLogicalMakeVol(virStoragePoolObjPtr pool,
         vol->source.extents[vol->source.nextent].end = (offset * size) + length;
         vol->source.nextent++;
     }
+
+    if (is_new_vol)
+        pool->volumes.objs[pool->volumes.count++] = vol;
 
     ret = 0;
 
