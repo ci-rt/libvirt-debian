@@ -2429,6 +2429,7 @@ qemuOpenFile(struct qemud_driver *driver, const char *path, int oflags,
     bool bypass_security = false;
     unsigned int vfoflags = 0;
     int fd = -1;
+    int path_shared = virStorageFileIsSharedFS(path);
     uid_t uid = getuid();
     gid_t gid = getgid();
 
@@ -2437,7 +2438,12 @@ qemuOpenFile(struct qemud_driver *driver, const char *path, int oflags,
      * in the failure case */
     if (oflags & O_CREAT) {
         need_unlink = true;
-        vfoflags |= VIR_FILE_OPEN_FORCE_OWNER;
+
+        /* Don't force chown on network-shared FS
+         * as it is likely to fail. */
+        if (path_shared <= 0 || driver->dynamicOwnership)
+            vfoflags |= VIR_FILE_OPEN_FORCE_OWNER;
+
         if (stat(path, &sb) == 0) {
             is_reg = !!S_ISREG(sb.st_mode);
             /* If the path is regular file which exists
@@ -2475,7 +2481,7 @@ qemuOpenFile(struct qemud_driver *driver, const char *path, int oflags,
             }
 
             /* On Linux we can also verify the FS-type of the directory. */
-            switch (virStorageFileIsSharedFS(path)) {
+            switch (path_shared) {
                 case 1:
                    /* it was on a network share, so we'll continue
                     * as outlined above
@@ -9636,16 +9642,13 @@ qemuDomainSnapshotFSThaw(struct qemud_driver *driver,
 
     qemuDomainObjEnterAgent(driver, vm);
     if (!report)
-        err = virGetLastError();
+        err = virSaveLastError();
     thawed = qemuAgentFSThaw(priv->agent);
-    if (!report) {
-        if (err)
-            virResetError(err);
-        else
-            virResetLastError();
-    }
+    if (!report)
+        virSetError(err);
     qemuDomainObjExitAgent(driver, vm);
 
+    virFreeError(err);
     return thawed;
 }
 
@@ -10127,6 +10130,7 @@ qemuDomainSnapshotCreateDiskActive(virConnectPtr conn,
     if (actions) {
         if (ret == 0)
             ret = qemuMonitorTransaction(priv->mon, actions);
+        virJSONValueFree(actions);
         if (ret < 0) {
             /* Transaction failed; undo the changes to vm.  */
             bool need_unlink = !(flags & VIR_DOMAIN_SNAPSHOT_CREATE_REUSE_EXT);
@@ -10374,6 +10378,12 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
             goto cleanup;
 
         if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY) {
+            if (!virDomainObjIsActive(vm)) {
+                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                                _("disk snapshots of inactive domains not "
+                                  "implemented yet"));
+                goto cleanup;
+            }
             if (virDomainSnapshotAlignDisks(def,
                                             VIR_DOMAIN_DISK_SNAPSHOT_EXTERNAL,
                                             false) < 0)
@@ -10428,12 +10438,6 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
          * makes sense, such as checking that qemu-img recognizes the
          * snapshot name in at least one of the domain's disks?  */
     } else if (flags & VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY) {
-        if (!virDomainObjIsActive(vm)) {
-            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                            _("disk snapshots of inactive domains not "
-                              "implemented yet"));
-            goto cleanup;
-        }
         if (qemuDomainSnapshotCreateDiskActive(domain->conn, driver,
                                                &vm, snap, flags) < 0)
             goto cleanup;
@@ -11496,6 +11500,7 @@ qemuDomainOpenConsole(virDomainPtr dom,
     qemuDriverLock(driver);
     virUUIDFormat(dom->uuid, uuidstr);
     vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    qemuDriverUnlock(driver);
     if (!vm) {
         qemuReportError(VIR_ERR_NO_DOMAIN,
                         _("no domain with matching uuid '%s'"), uuidstr);
@@ -11560,7 +11565,6 @@ qemuDomainOpenConsole(virDomainPtr dom,
 cleanup:
     if (vm)
         virDomainObjUnlock(vm);
-    qemuDriverUnlock(driver);
     return ret;
 }
 
@@ -11616,6 +11620,12 @@ qemuDomainBlockJobImpl(virDomainPtr dom, const char *path, const char *base,
     if (!vm) {
         qemuReportError(VIR_ERR_NO_DOMAIN,
                         _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                        _("domain is not running"));
         goto cleanup;
     }
 
@@ -12551,6 +12561,12 @@ qemuDomainPMSuspendForDuration(virDomainPtr dom,
     }
 
     priv = vm->privateData;
+
+    if (!virDomainObjIsActive(vm)) {
+        qemuReportError(VIR_ERR_OPERATION_INVALID,
+                        "%s", _("domain is not running"));
+        goto cleanup;
+    }
 
     if (!qemuCapsGet(priv->qemuCaps, QEMU_CAPS_WAKEUP) &&
         (target == VIR_NODE_SUSPEND_TARGET_MEM ||

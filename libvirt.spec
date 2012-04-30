@@ -260,7 +260,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.9.11
+Version: 0.9.11.3
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -1285,6 +1285,15 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %endif
 
 %changelog
+* Fri Apr 27 2012 Cole Robinson <crobinso@redhat.com> 0.9.11.3-1
+- Stable release 0.9.11.3
+
+* Thu Apr 26 2012 Cole Robinson <crobinso@redhat.com> 0.9.11.2-1
+- Stable release 0.9.11.2 (previous tarball was busted)
+
+* Thu Apr 26 2012 Cole Robinson <crobinso@redhat.com> 0.9.11.1-1
+- Stable release 0.9.11.1
+
 * Tue Apr  3 2012 Daniel Veillard <veillard@redhat.com> - 0.9.11-1
 - Add support for the suspend event
 - Add support for event tray moved of removable disks
