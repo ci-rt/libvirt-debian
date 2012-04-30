@@ -3,13 +3,13 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.11], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.11.3], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 dnl Make automake keep quiet about wildcards & other GNUmake-isms
-AM_INIT_AUTOMAKE([-Wno-portability])
+AM_INIT_AUTOMAKE([-Wno-portability tar-ustar])
 AM_MAINTAINER_MODE([enable])
 
 # Maintainer note - comment this line out if you plan to rerun
@@ -402,6 +402,31 @@ AM_CONDITIONAL([LIBVIRT_INIT_SCRIPT_RED_HAT], test "$init_redhat" = "yes")
 AM_CONDITIONAL([LIBVIRT_INIT_SCRIPT_UPSTART], test "$init_upstart" = "yes")
 AM_CONDITIONAL([LIBVIRT_INIT_SCRIPT_SYSTEMD], test "$init_systemd" = "yes")
 AC_MSG_RESULT($with_init_script)
+
+
+AC_MSG_CHECKING([for whether to install sysctl config])
+AC_ARG_WITH([sysctl],
+            [AC_HELP_STRING([--with-sysctl@<:@=yes/no@:>@],
+                            [Whether to install sysctl configs @<:@default=auto@:>@])],
+                            [],[with_sysctl=check])
+
+if test "$with_sysctl" = "yes" || test "$with_sysctl" = "check"
+then
+  case $host in
+    *-*-linux*)
+      with_sysctl=yes
+      ;;
+    **)
+      if test "$with_sysctl" = "yes"; then
+         AC_MSG_ERROR([No sysctl configuration supported for $host])
+      else
+         with_sysctl=no
+      fi
+      ;;
+  esac
+fi
+AM_CONDITIONAL([WITH_SYSCTL], test "$with_sysctl" = "yes")
+AC_MSG_RESULT($with_sysctl)
 
 dnl RHEL-5 has a peculiar version of Xen, which requires some special casing
 AC_ARG_WITH([rhel5-api],
@@ -2509,7 +2534,8 @@ AC_MSG_CHECKING([whether to compile with macvtap support])
 if test "$with_macvtap" != "no" ; then
     AC_TRY_COMPILE([ #include <sys/socket.h>
                      #include <linux/rtnetlink.h> ],
-                   [ int x = MACVLAN_MODE_BRIDGE; ],
+                   [ int x = MACVLAN_MODE_BRIDGE;
+                     int y = IFLA_VF_MAX; ],
                    [ with_macvtap=yes ],
                    [ if test "$with_macvtap" = "yes" ; then
                          AC_MSG_ERROR([Installed linux headers don't show support for macvtap device.])

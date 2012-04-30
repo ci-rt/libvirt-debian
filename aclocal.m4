@@ -1202,6 +1202,23 @@ for i in list(range(0, 4)): minverhex = (minverhex << 8) + minver[[i]]
 sys.exit(sys.hexversion < minverhex)"
   AS_IF([AM_RUN_LOG([$1 -c "$prog"])], [$3], [$4])])
 
+# Copyright (C) 2001, 2003, 2005  Free Software Foundation, Inc.
+#
+# This file is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+# AM_RUN_LOG(COMMAND)
+# -------------------
+# Run COMMAND, save the exit status in ac_status, and log it.
+# (This has been adapted from Autoconf's _AC_RUN_LOG macro.)
+AC_DEFUN([AM_RUN_LOG],
+[{ echo "$as_me:$LINENO: $1" >&AS_MESSAGE_LOG_FD
+   ($1) >&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD
+   ac_status=$?
+   echo "$as_me:$LINENO: \$? = $ac_status" >&AS_MESSAGE_LOG_FD
+   (exit $ac_status); }])
+
 # Check to make sure that the build environment is sane.    -*- Autoconf -*-
 
 # Copyright (C) 1996, 1997, 2000, 2001, 2003, 2005, 2008
@@ -1504,6 +1521,7 @@ m4_include([gnulib/m4/inline.m4])
 m4_include([gnulib/m4/intmax_t.m4])
 m4_include([gnulib/m4/inttypes.m4])
 m4_include([gnulib/m4/ioctl.m4])
+m4_include([gnulib/m4/langinfo_h.m4])
 m4_include([gnulib/m4/largefile.m4])
 m4_include([gnulib/m4/localcharset.m4])
 m4_include([gnulib/m4/locale-fr.m4])
@@ -1511,6 +1529,7 @@ m4_include([gnulib/m4/locale-ja.m4])
 m4_include([gnulib/m4/locale-tr.m4])
 m4_include([gnulib/m4/locale-zh.m4])
 m4_include([gnulib/m4/locale_h.m4])
+m4_include([gnulib/m4/localeconv.m4])
 m4_include([gnulib/m4/localename.m4])
 m4_include([gnulib/m4/lseek.m4])
 m4_include([gnulib/m4/lstat.m4])
@@ -1535,6 +1554,7 @@ m4_include([gnulib/m4/msvc-nothrow.m4])
 m4_include([gnulib/m4/multiarch.m4])
 m4_include([gnulib/m4/netdb_h.m4])
 m4_include([gnulib/m4/netinet_in_h.m4])
+m4_include([gnulib/m4/nl_langinfo.m4])
 m4_include([gnulib/m4/nocrash.m4])
 m4_include([gnulib/m4/nonblocking.m4])
 m4_include([gnulib/m4/onceonly.m4])
@@ -1564,6 +1584,7 @@ m4_include([gnulib/m4/rawmemchr.m4])
 m4_include([gnulib/m4/read.m4])
 m4_include([gnulib/m4/readlink.m4])
 m4_include([gnulib/m4/realloc.m4])
+m4_include([gnulib/m4/regex.m4])
 m4_include([gnulib/m4/sched_h.m4])
 m4_include([gnulib/m4/select.m4])
 m4_include([gnulib/m4/servent.m4])

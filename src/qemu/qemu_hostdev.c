@@ -157,6 +157,46 @@ int qemuUpdateActivePciHostdevs(struct qemud_driver *driver,
     return 0;
 }
 
+int
+qemuUpdateActiveUsbHostdevs(struct qemud_driver *driver,
+                            virDomainDefPtr def)
+{
+    virDomainHostdevDefPtr hostdev = NULL;
+    int i;
+
+    if (!def->nhostdevs)
+        return 0;
+
+    for (i = 0; i < def->nhostdevs; i++) {
+        usbDevice *usb = NULL;
+        hostdev = def->hostdevs[i];
+
+        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
+            continue;
+        if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)
+            continue;
+
+        usb = usbGetDevice(hostdev->source.subsys.u.usb.bus,
+                           hostdev->source.subsys.u.usb.device);
+        if (!usb) {
+            VIR_WARN("Unable to reattach USB device %03d.%03d on domain %s",
+                     hostdev->source.subsys.u.usb.bus,
+                     hostdev->source.subsys.u.usb.device,
+                     def->name);
+            continue;
+        }
+
+        usbDeviceSetUsedBy(usb, def->name);
+
+        if (usbDeviceListAdd(driver->activeUsbHostdevs, usb) < 0) {
+            usbFreeDevice(usb);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 static int
 qemuDomainHostdevPciSysfsPath(virDomainHostdevDefPtr hostdev, char **sysfs_path)
 {
@@ -559,10 +599,7 @@ qemuPrepareHostdevUSBDevices(struct qemud_driver *driver,
                                 hostdev->source.subsys.u.usb.product);
 
             if (!usb)
-                return -1;
-
-            hostdev->source.subsys.u.usb.bus = usbDeviceGetBus(usb);
-            hostdev->source.subsys.u.usb.device = usbDeviceGetDevno(usb);
+                goto cleanup;
 
             if ((tmp = usbDeviceListFind(driver->activeUsbHostdevs, usb))) {
                 const char *other_name = usbDeviceGetUsedBy(tmp);
@@ -579,6 +616,9 @@ qemuPrepareHostdevUSBDevices(struct qemud_driver *driver,
                 goto cleanup;
             }
 
+            hostdev->source.subsys.u.usb.bus = usbDeviceGetBus(usb);
+            hostdev->source.subsys.u.usb.device = usbDeviceGetDevno(usb);
+
             if (usbDeviceListAdd(list, usb) < 0) {
                 usbFreeDevice(usb);
                 goto cleanup;
@@ -594,6 +634,9 @@ qemuPrepareHostdevUSBDevices(struct qemud_driver *driver,
     for (i = 0; i < usbDeviceListCount(list); i++) {
         tmp = usbDeviceListGet(list, i);
         usbDeviceSetUsedBy(tmp, name);
+
+        VIR_DEBUG("Adding %03d.%03d dom=%s to activeUsbHostdevs",
+                  usbDeviceGetBus(tmp), usbDeviceGetDevno(tmp), name);
         if (usbDeviceListAdd(driver->activeUsbHostdevs, tmp) < 0) {
             usbFreeDevice(tmp);
             goto inactivedevs;
@@ -752,6 +795,63 @@ void qemuDomainReAttachHostdevDevices(struct qemud_driver *driver,
     pciDeviceListFree(pcidevs);
 }
 
+static void
+qemuDomainReAttachHostUsbDevices(struct qemud_driver *driver,
+                                 const char *name,
+                                 virDomainHostdevDefPtr *hostdevs,
+                                 int nhostdevs)
+{
+    int i;
+
+    for (i = 0; i < nhostdevs; i++) {
+        virDomainHostdevDefPtr hostdev = hostdevs[i];
+        usbDevice *usb, *tmp;
+        const char *used_by = NULL;
+
+        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
+            continue;
+        if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)
+            continue;
+
+        usb = usbGetDevice(hostdev->source.subsys.u.usb.bus,
+                           hostdev->source.subsys.u.usb.device);
+
+        if (!usb) {
+            VIR_WARN("Unable to reattach USB device %03d.%03d on domain %s",
+                     hostdev->source.subsys.u.usb.bus,
+                     hostdev->source.subsys.u.usb.device,
+                     name);
+            continue;
+        }
+
+        /* Delete only those USB devices which belongs
+         * to domain @name because qemuProcessStart() might
+         * have failed because USB device is already taken.
+         * Therefore we want to steal only those devices from
+         * the list which were taken by @name */
+
+        tmp = usbDeviceListFind(driver->activeUsbHostdevs, usb);
+        usbFreeDevice(usb);
+
+        if (!tmp) {
+            VIR_WARN("Unable to find device %03d.%03d "
+                     "in list of active USB devices",
+                     hostdev->source.subsys.u.usb.bus,
+                     hostdev->source.subsys.u.usb.device);
+            continue;
+        }
+
+        used_by = usbDeviceGetUsedBy(tmp);
+        if (STREQ_NULLABLE(used_by, name)) {
+            VIR_DEBUG("Removing %03d.%03d dom=%s from activeUsbHostdevs",
+                      hostdev->source.subsys.u.usb.bus,
+                      hostdev->source.subsys.u.usb.device,
+                      name);
+
+            usbDeviceListDel(driver->activeUsbHostdevs, tmp);
+        }
+    }
+}
 
 void qemuDomainReAttachHostDevices(struct qemud_driver *driver,
                                    virDomainDefPtr def)
@@ -760,5 +860,8 @@ void qemuDomainReAttachHostDevices(struct qemud_driver *driver,
         return;
 
     qemuDomainReAttachHostdevDevices(driver, def->name, def->hostdevs,
+                                     def->nhostdevs);
+
+    qemuDomainReAttachHostUsbDevices(driver, def->name, def->hostdevs,
                                      def->nhostdevs);
 }

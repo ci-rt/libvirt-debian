@@ -77,6 +77,9 @@
 /* Define to 1 if the system's ftello function has the Solaris bug. */
 #undef FTELLO_BROKEN_AFTER_SWITCHING_FROM_READ_TO_WRITE
 
+/* Define to 1 if nl_langinfo (YESEXPR) returns a non-empty string. */
+#undef FUNC_NL_LANGINFO_YESEXPR_WORKS
+
 /* Define to 1 if realpath() can malloc memory, always gives an absolute path,
    and handles trailing slash correctly. */
 #undef FUNC_REALPATH_WORKS
@@ -106,6 +109,10 @@
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module fflush shall be considered present. */
 #undef GNULIB_FFLUSH
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module malloc-gnu shall be considered present. */
+#undef GNULIB_MALLOC_GNU
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module mkstemps shall be considered present. */
@@ -252,6 +259,9 @@
 /* Define to 1 when the gnulib module listen should be tested. */
 #undef GNULIB_TEST_LISTEN
 
+/* Define to 1 when the gnulib module localeconv should be tested. */
+#undef GNULIB_TEST_LOCALECONV
+
 /* Define to 1 when the gnulib module lseek should be tested. */
 #undef GNULIB_TEST_LSEEK
 
@@ -284,6 +294,9 @@
 
 /* Define to 1 when the gnulib module mktime should be tested. */
 #undef GNULIB_TEST_MKTIME
+
+/* Define to 1 when the gnulib module nl_langinfo should be tested. */
+#undef GNULIB_TEST_NL_LANGINFO
 
 /* Define to 1 when the gnulib module nonblocking should be tested. */
 #undef GNULIB_TEST_NONBLOCKING
@@ -922,6 +935,9 @@
 /* Define if you have <langinfo.h> and nl_langinfo(CODESET). */
 #undef HAVE_LANGINFO_CODESET
 
+/* Define to 1 if you have the <langinfo.h> header file. */
+#undef HAVE_LANGINFO_H
+
 /* Define if your <locale.h> file defines LC_MESSAGES. */
 #undef HAVE_LC_MESSAGES
 
@@ -951,6 +967,9 @@
 
 /* Define to 1 if you have the `intl' library (-lintl). */
 #undef HAVE_LIBINTL
+
+/* Define to 1 if you have the <libintl.h> header file. */
+#undef HAVE_LIBINTL_H
 
 /* whether the netlink library is available */
 #undef HAVE_LIBNL
@@ -1008,6 +1027,10 @@
 
 /* Define to 1 if you have the <machine/hal_sysinfo.h> header file. */
 #undef HAVE_MACHINE_HAL_SYSINFO_H
+
+/* Define to 1 if your system has a GNU libc compatible 'malloc' function, and
+   to 0 otherwise. */
+#undef HAVE_MALLOC_GNU
 
 /* Define if the 'malloc' function is POSIX compliant. */
 #undef HAVE_MALLOC_POSIX
@@ -1073,6 +1096,9 @@
 
 /* Define to 1 if you have the 'newlocale' function. */
 #undef HAVE_NEWLOCALE
+
+/* Define to 1 if you have the 'nl_langinfo' function. */
+#undef HAVE_NL_LANGINFO
 
 /* whether numactl is available for topology info */
 #undef HAVE_NUMACTL
@@ -1373,6 +1399,9 @@
 /* Defined if struct ifreq existsin net/if.h */
 #undef HAVE_STRUCT_IFREQ
 
+/* Define to 1 if `decimal_point' is a member of `struct lconv'. */
+#undef HAVE_STRUCT_LCONV_DECIMAL_POINT
+
 /* Define to 1 if `msg_accrights' is a member of `struct msghdr'. */
 #undef HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTS
 
@@ -1580,6 +1609,9 @@
 /* Define to 1 if you have the 'wcrtomb' function. */
 #undef HAVE_WCRTOMB
 
+/* Define to 1 if you have the 'wcscoll' function. */
+#undef HAVE_WCSCOLL
+
 /* Define to 1 if you have the `wcslen' function. */
 #undef HAVE_WCSLEN
 
@@ -1652,6 +1684,12 @@
 
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
+
+/* Define to 1 if you have the `_fseeki64' function. */
+#undef HAVE__FSEEKI64
+
+/* Define to 1 if you have the `_ftelli64' function. */
+#undef HAVE__FTELLI64
 
 /* Define to 1 if you have the `_ftime' function. */
 #undef HAVE__FTIME
@@ -1843,6 +1881,9 @@
 /* Define to 1 if stat needs help when passed a file name with a trailing
    slash */
 #undef REPLACE_FUNC_STAT_FILE
+
+/* Define if nl_langinfo exists but is overridden by gnulib. */
+#undef REPLACE_NL_LANGINFO
 
 /* Define to 1 if strerror(0) does not return a message implying success. */
 #undef REPLACE_STRERROR_0
@@ -2127,11 +2168,18 @@
 /* enable compile-time and run-time bounds-checking, and some warnings */
 #undef _FORTIFY_SOURCE
 
+/* Define to 1 if Gnulib overrides 'struct stat' on Windows so that struct
+   stat.st_size becomes 64-bit. */
+#undef _GL_WINDOWS_64_BIT_ST_SIZE
+
 /* Define to 1 to make fseeko visible on some hosts (e.g. glibc 2.2). */
 #undef _LARGEFILE_SOURCE
 
 /* Define for large files, on AIX-style hosts. */
 #undef _LARGE_FILES
+
+/* Define to 1 on Solaris. */
+#undef _LCONV_C99
 
 /* Define in order to get some macros on AIX systems. */
 #undef _LINUX_SOURCE_COMPAT
@@ -2162,6 +2210,13 @@
 
 /* Define to 1 if you need to in order for 'stat' and other things to work. */
 #undef _POSIX_SOURCE
+
+/* Define if you want <regex.h> to include <limits.h>, so that it consistently
+   overrides <limits.h>'s RE_DUP_MAX. */
+#undef _REGEX_INCLUDE_LIMITS_H
+
+/* Define if you want regoff_t to be at least as wide POSIX requires. */
+#undef _REGEX_LARGE_OFFSETS
 
 /* Define to 500 only on HP-UX. */
 #undef _XOPEN_SOURCE
@@ -2250,6 +2305,51 @@
 /* Define as the type of the result of subtracting two pointers, if the system
    doesn't define it. */
 #undef ptrdiff_t
+
+/* Define to rpl_re_comp if the replacement should be used. */
+#undef re_comp
+
+/* Define to rpl_re_compile_fastmap if the replacement should be used. */
+#undef re_compile_fastmap
+
+/* Define to rpl_re_compile_pattern if the replacement should be used. */
+#undef re_compile_pattern
+
+/* Define to rpl_re_exec if the replacement should be used. */
+#undef re_exec
+
+/* Define to rpl_re_match if the replacement should be used. */
+#undef re_match
+
+/* Define to rpl_re_match_2 if the replacement should be used. */
+#undef re_match_2
+
+/* Define to rpl_re_search if the replacement should be used. */
+#undef re_search
+
+/* Define to rpl_re_search_2 if the replacement should be used. */
+#undef re_search_2
+
+/* Define to rpl_re_set_registers if the replacement should be used. */
+#undef re_set_registers
+
+/* Define to rpl_re_set_syntax if the replacement should be used. */
+#undef re_set_syntax
+
+/* Define to rpl_re_syntax_options if the replacement should be used. */
+#undef re_syntax_options
+
+/* Define to rpl_regcomp if the replacement should be used. */
+#undef regcomp
+
+/* Define to rpl_regerror if the replacement should be used. */
+#undef regerror
+
+/* Define to rpl_regexec if the replacement should be used. */
+#undef regexec
+
+/* Define to rpl_regfree if the replacement should be used. */
+#undef regfree
 
 /* Define to the equivalent of the C99 'restrict' keyword, or to
    nothing if this is not supported.  Do not define if restrict is

@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2012-03-30" "libvirt-0.9.10" "Virtualization Support"
+.TH VIRSH 1 "2012-04-27" "libvirt-0.9.11.3" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -213,7 +213,8 @@ Output elapsed time information for each command.
 .IP "\fB\-e\fR, \fB\-\-escape\fR \fIstring\fR" 4
 .IX Item "-e, --escape string"
 Set alternative escape sequence for \fIconsole\fR command. By default,
-telnet's \fB^]\fR is used.
+telnet's \fB^]\fR is used. Allowed characters when using hat notation are:
+alphabetic character, @, [, ], \e, ^, _.
 .SH "NOTES"
 .IX Header "NOTES"
 Most \fBvirsh\fR operations rely upon the libvirt library being able to
@@ -468,8 +469,9 @@ into s3 state.
 .RS 4
 .Sp
 If \fI\-\-managed\-save\fR is specified, then domains that have managed save
-state (only possible if they are in the \fBshut off\fR state) will
-instead show as \fBsaved\fR in the listing. This flag is usable only with the
+state (only possible if they are in the \fBshut off\fR state, so you need to
+specify \fI\-\-inactive\fR or \fI\-\-all\fR to actually list them) will instead
+show as \fBsaved\fR in the listing. This flag is usable only with the
 default \fI\-\-table\fR output.
 .Sp
 If \fI\-\-name\fR is specified, domain names are printed instead of the table
