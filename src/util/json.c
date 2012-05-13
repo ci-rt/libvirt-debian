@@ -1,7 +1,7 @@
 /*
  * json.c: JSON object parsing/formatting
  *
- * Copyright (C) 2009-2010 Red Hat, Inc.
+ * Copyright (C) 2009-2010, 2012 Red Hat, Inc.
  * Copyright (C) 2009 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -67,10 +67,10 @@ struct _virJSONParser {
 void virJSONValueFree(virJSONValuePtr value)
 {
     int i;
-    if (!value)
+    if (!value || value->protect)
         return;
 
-    switch (value->type) {
+    switch ((virJSONType) value->type) {
     case VIR_JSON_TYPE_OBJECT:
         for (i = 0 ; i < value->data.object.npairs; i++) {
             VIR_FREE(value->data.object.pairs[i].key);
@@ -88,6 +88,9 @@ void virJSONValueFree(virJSONValuePtr value)
         break;
     case VIR_JSON_TYPE_NUMBER:
         VIR_FREE(value->data.number);
+        break;
+    case VIR_JSON_TYPE_BOOLEAN:
+    case VIR_JSON_TYPE_NULL:
         break;
     }
 
@@ -426,6 +429,36 @@ virJSONValuePtr virJSONValueObjectGet(virJSONValuePtr object, const char *key)
     }
 
     return NULL;
+}
+
+int virJSONValueObjectKeysNumber(virJSONValuePtr object)
+{
+    if (object->type != VIR_JSON_TYPE_OBJECT)
+        return -1;
+
+    return object->data.object.npairs;
+}
+
+const char *virJSONValueObjectGetKey(virJSONValuePtr object, unsigned int n)
+{
+    if (object->type != VIR_JSON_TYPE_OBJECT)
+        return NULL;
+
+    if (n >= object->data.object.npairs)
+        return NULL;
+
+    return object->data.object.pairs[n].key;
+}
+
+virJSONValuePtr virJSONValueObjectGetValue(virJSONValuePtr object, unsigned int n)
+{
+    if (object->type != VIR_JSON_TYPE_OBJECT)
+        return NULL;
+
+    if (n >= object->data.object.npairs)
+        return NULL;
+
+    return object->data.object.pairs[n].value;
 }
 
 int virJSONValueArraySize(virJSONValuePtr array)

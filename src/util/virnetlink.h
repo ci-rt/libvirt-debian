@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2010-2012 IBM Corporation
  *
  * This library is free software; you can redistribute it and/or
@@ -35,9 +35,12 @@ struct nlattr;
 
 # endif /* __linux__ */
 
+int virNetlinkStartup(void);
+void virNetlinkShutdown(void);
+
 int virNetlinkCommand(struct nl_msg *nl_msg,
                       unsigned char **respbuf, unsigned int *respbuflen,
-                      int nl_pid);
+                      uint32_t src_port, uint32_t dst_port);
 
 typedef void (*virNetlinkEventHandleCallback)(unsigned char *msg, int length, struct sockaddr_nl *peer, bool *handled, void *opaque);
 
@@ -57,6 +60,11 @@ int virNetlinkEventServiceStart(void);
  * virNetlinkEventServiceIsRunning: returns if the netlink event service is running.
  */
 bool virNetlinkEventServiceIsRunning(void);
+
+/**
+ * virNetlinkEventServiceLocalPid: returns nl_pid used to bind() netlink socket
+ */
+int virNetlinkEventServiceLocalPid(void);
 
 /**
  * virNetlinkEventAddClient: register a callback for handling of netlink messages

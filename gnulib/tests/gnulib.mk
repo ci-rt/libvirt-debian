@@ -126,15 +126,6 @@ EXTRA_DIST += test-bitrotate.c macros.h
 
 ## end   gnulib module bitrotate-tests
 
-## begin gnulib module btowc
-
-
-EXTRA_DIST += btowc.c
-
-EXTRA_libtests_a_SOURCES += btowc.c
-
-## end   gnulib module btowc
-
 ## begin gnulib module btowc-tests
 
 TESTS += test-btowc1.sh test-btowc2.sh
@@ -761,6 +752,14 @@ EXTRA_DIST += test-ioctl.c signature.h macros.h
 
 ## end   gnulib module ioctl-tests
 
+## begin gnulib module langinfo-tests
+
+TESTS += test-langinfo
+check_PROGRAMS += test-langinfo
+EXTRA_DIST += test-langinfo.c
+
+## end   gnulib module langinfo-tests
+
 ## begin gnulib module listen-tests
 
 TESTS += test-listen
@@ -770,38 +769,6 @@ EXTRA_DIST += test-listen.c signature.h macros.h
 
 ## end   gnulib module listen-tests
 
-## begin gnulib module locale
-
-BUILT_SOURCES += locale.h
-
-# We need the following in order to create <locale.h> when the system
-# doesn't have one that provides all definitions.
-locale.h: locale.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) $(WARN_ON_USE_H)
-	$(AM_V_GEN)rm -f $@-t $@ && \
-	{ echo '/* DO NOT EDIT! GENERATED AUTOMATICALLY! */' && \
-	  sed -e 's|@''GUARD_PREFIX''@|GL|g' \
-	      -e 's|@''INCLUDE_NEXT''@|$(INCLUDE_NEXT)|g' \
-	      -e 's|@''PRAGMA_SYSTEM_HEADER''@|@PRAGMA_SYSTEM_HEADER@|g' \
-	      -e 's|@''PRAGMA_COLUMNS''@|@PRAGMA_COLUMNS@|g' \
-	      -e 's|@''NEXT_LOCALE_H''@|$(NEXT_LOCALE_H)|g' \
-	      -e 's/@''GNULIB_SETLOCALE''@/$(GNULIB_SETLOCALE)/g' \
-	      -e 's/@''GNULIB_DUPLOCALE''@/$(GNULIB_DUPLOCALE)/g' \
-	      -e 's|@''HAVE_DUPLOCALE''@|$(HAVE_DUPLOCALE)|g' \
-	      -e 's|@''HAVE_XLOCALE_H''@|$(HAVE_XLOCALE_H)|g' \
-	      -e 's|@''REPLACE_SETLOCALE''@|$(REPLACE_SETLOCALE)|g' \
-	      -e 's|@''REPLACE_DUPLOCALE''@|$(REPLACE_DUPLOCALE)|g' \
-	      -e '/definitions of _GL_FUNCDECL_RPL/r $(CXXDEFS_H)' \
-	      -e '/definition of _GL_ARG_NONNULL/r $(ARG_NONNULL_H)' \
-	      -e '/definition of _GL_WARN_ON_USE/r $(WARN_ON_USE_H)' \
-	      < $(srcdir)/locale.in.h; \
-	} > $@-t && \
-	mv $@-t $@
-MOSTLYCLEANFILES += locale.h locale.h-t
-
-EXTRA_DIST += locale.in.h
-
-## end   gnulib module locale
-
 ## begin gnulib module locale-tests
 
 TESTS += test-locale
@@ -809,6 +776,14 @@ check_PROGRAMS += test-locale
 EXTRA_DIST += test-locale.c
 
 ## end   gnulib module locale-tests
+
+## begin gnulib module localeconv-tests
+
+TESTS += test-localeconv
+check_PROGRAMS += test-localeconv
+EXTRA_DIST += test-localeconv.c signature.h macros.h
+
+## end   gnulib module localeconv-tests
 
 ## begin gnulib module localename
 
@@ -843,6 +818,14 @@ check_PROGRAMS += test-lstat
 EXTRA_DIST += test-lstat.h test-lstat.c signature.h macros.h
 
 ## end   gnulib module lstat-tests
+
+## begin gnulib module malloc-gnu-tests
+
+TESTS += test-malloc-gnu
+check_PROGRAMS += test-malloc-gnu
+EXTRA_DIST += test-malloc-gnu.c
+
+## end   gnulib module malloc-gnu-tests
 
 ## begin gnulib module malloca-tests
 
@@ -894,15 +877,6 @@ EXTRA_DIST += test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsr
 
 ## end   gnulib module mbsrtowcs-tests
 
-## begin gnulib module mbtowc
-
-
-EXTRA_DIST += mbtowc-impl.h mbtowc.c
-
-EXTRA_libtests_a_SOURCES += mbtowc.c
-
-## end   gnulib module mbtowc
-
 ## begin gnulib module memchr-tests
 
 TESTS += test-memchr
@@ -934,6 +908,15 @@ check_PROGRAMS += test-netinet_in
 EXTRA_DIST += test-netinet_in.c
 
 ## end   gnulib module netinet_in-tests
+
+## begin gnulib module nl_langinfo-tests
+
+TESTS += test-nl_langinfo.sh
+TESTS_ENVIRONMENT += LOCALE_FR='@LOCALE_FR@' LOCALE_FR_UTF8='@LOCALE_FR_UTF8@'
+check_PROGRAMS += test-nl_langinfo
+EXTRA_DIST += test-nl_langinfo.sh test-nl_langinfo.c signature.h macros.h
+
+## end   gnulib module nl_langinfo-tests
 
 ## begin gnulib module nonblocking-pipe-tests
 
@@ -1514,6 +1497,31 @@ EXTRA_DIST += $(top_srcdir)/build-aux/snippet/c++defs.h
 
 ## end   gnulib module snippet/c++defs
 
+## begin gnulib module snippet/unused-parameter
+
+# The BUILT_SOURCES created by this Makefile snippet are not used via #include
+# statements but through direct file reference. Therefore this snippet must be
+# present in all Makefile.am that need it. This is ensured by the applicability
+# 'all' defined above.
+
+BUILT_SOURCES += unused-parameter.h
+# The unused-parameter.h that gets inserted into generated .h files is the same
+# as build-aux/snippet/unused-parameter.h, except that it has the copyright
+# header cut off.
+unused-parameter.h: $(top_srcdir)/build-aux/snippet/unused-parameter.h
+	$(AM_V_GEN)rm -f $@-t $@ && \
+	sed -n -e '/GL_UNUSED_PARAMETER/,$$p' \
+	  < $(top_srcdir)/build-aux/snippet/unused-parameter.h \
+	  > $@-t && \
+	mv $@-t $@
+MOSTLYCLEANFILES += unused-parameter.h unused-parameter.h-t
+
+UNUSED_PARAMETER_H=unused-parameter.h
+
+EXTRA_DIST += $(top_srcdir)/build-aux/snippet/unused-parameter.h
+
+## end   gnulib module snippet/unused-parameter
+
 ## begin gnulib module snippet/warn-on-use
 
 BUILT_SOURCES += warn-on-use.h
@@ -1989,15 +1997,6 @@ check_PROGRAMS += test-wchar
 EXTRA_DIST += test-wchar.c
 
 ## end   gnulib module wchar-tests
-
-## begin gnulib module wcrtomb
-
-
-EXTRA_DIST += wcrtomb.c
-
-EXTRA_libtests_a_SOURCES += wcrtomb.c
-
-## end   gnulib module wcrtomb
 
 ## begin gnulib module wcrtomb-tests
 

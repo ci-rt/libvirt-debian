@@ -1,9 +1,11 @@
+daemon/libvirtd-config.c
 daemon/libvirtd.c
 daemon/qemu_dispatch.h
 daemon/remote.c
 daemon/remote_dispatch.h
 daemon/stream.c
 gnulib/lib/gai_strerror.c
+gnulib/lib/regcomp.c
 src/conf/cpu_conf.c
 src/conf/domain_conf.c
 src/conf/domain_event.c
@@ -126,6 +128,7 @@ src/util/util.c
 src/util/viraudit.c
 src/util/virauth.c
 src/util/virauthconfig.c
+src/util/virdbus.c
 src/util/virfile.c
 src/util/virhash.c
 src/util/virkeyfile.c

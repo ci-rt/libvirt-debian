@@ -563,6 +563,10 @@ struct _virDomainDiskDef {
     char *driverName;
     char *driverType;
 
+    char *mirror;
+    char *mirrorFormat;
+    bool mirroring;
+
     virDomainBlockIoTuneInfo blkdeviotune;
 
     char *serial;
@@ -1093,6 +1097,7 @@ enum virDomainGraphicsSpiceChannelName {
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_PLAYBACK,
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_RECORD,
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_SMARTCARD,
+    VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_USBREDIR,
 
     VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST
 };
@@ -1228,6 +1233,7 @@ struct _virDomainGraphicsDef {
             virDomainGraphicsAuthDef auth;
             unsigned int autoport :1;
             int channels[VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST];
+            int defaultMode; /* enum virDomainGraphicsSpiceChannelMode */
             int image;
             int jpeg;
             int zlib;
@@ -1405,11 +1411,18 @@ enum virDomainTimerModeType {
 };
 
 enum virDomainCpuPlacementMode {
-    VIR_DOMAIN_CPU_PLACEMENT_MODE_DEFAULT = 0,
-    VIR_DOMAIN_CPU_PLACEMENT_MODE_STATIC,
+    VIR_DOMAIN_CPU_PLACEMENT_MODE_STATIC = 0,
     VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO,
 
     VIR_DOMAIN_CPU_PLACEMENT_MODE_LAST,
+};
+
+enum virDomainNumatuneMemPlacementMode {
+    VIR_DOMAIN_NUMATUNE_MEM_PLACEMENT_MODE_DEFAULT = 0,
+    VIR_DOMAIN_NUMATUNE_MEM_PLACEMENT_MODE_STATIC,
+    VIR_DOMAIN_NUMATUNE_MEM_PLACEMENT_MODE_AUTO,
+
+    VIR_DOMAIN_NUMATUNE_MEM_PLACEMENT_MODE_LAST,
 };
 
 typedef struct _virDomainTimerCatchupDef virDomainTimerCatchupDef;
@@ -1500,6 +1513,7 @@ struct _virDomainNumatuneDef {
     struct {
         char *nodemask;
         int mode;
+        int placement_mode; /* enum virDomainNumatuneMemPlacementMode */
     } memory;
 
     /* Future NUMA tuning related stuff should go here. */
@@ -2172,6 +2186,7 @@ VIR_ENUM_DECL(virDomainGraphicsSpiceStreamingMode)
 VIR_ENUM_DECL(virDomainGraphicsSpiceClipboardCopypaste)
 VIR_ENUM_DECL(virDomainGraphicsSpiceMouseMode)
 VIR_ENUM_DECL(virDomainNumatuneMemMode)
+VIR_ENUM_DECL(virDomainNumatuneMemPlacementMode)
 VIR_ENUM_DECL(virDomainSnapshotState)
 /* from libvirt.h */
 VIR_ENUM_DECL(virDomainState)

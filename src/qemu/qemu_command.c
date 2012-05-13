@@ -1527,7 +1527,7 @@ qemuBuildDeviceAddressStr(virBufferPtr buf,
             }
         } else {
             if (info->addr.pci.function != 0) {
-                qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                                 _("Only PCI device addresses with function=0 "
                                   "are supported with this QEMU binary"));
                 return -1;
@@ -1674,7 +1674,7 @@ qemuBuildRBDString(virConnectPtr conn,
                 goto error;
             }
             virBufferEscape(opt, '\\', ":",
-                            ":key=%s:auth_supported=cephx none",
+                            ":key=%s:auth_supported=cephx\\;none",
                             base64);
             VIR_FREE(base64);
         } else {
@@ -1978,8 +1978,17 @@ qemuBuildDriveStr(virConnectPtr conn ATTRIBUTE_UNUSED,
     else
         virBufferAsprintf(&opt, "if=%s", bus);
 
-    if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
-        virBufferAddLit(&opt, ",media=cdrom");
+    if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
+        if ((disk->bus == VIR_DOMAIN_DISK_BUS_SCSI)) {
+            if (!qemuCapsGet(qemuCaps, QEMU_CAPS_SCSI_CD))
+                virBufferAddLit(&opt, ",media=cdrom");
+        } else if (disk->bus == VIR_DOMAIN_DISK_BUS_IDE) {
+            if (!qemuCapsGet(qemuCaps, QEMU_CAPS_IDE_CD))
+                virBufferAddLit(&opt, ",media=cdrom");
+        } else {
+            virBufferAddLit(&opt, ",media=cdrom");
+        }
+    }
 
     if (qemuCapsGet(qemuCaps, QEMU_CAPS_DEVICE)) {
         virBufferAsprintf(&opt, ",id=%s%s", QEMU_DRIVE_HOST_PREFIX, disk->info.alias);
@@ -2199,7 +2208,16 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
                             _("target must be 0 for ide controller"));
             goto error;
         }
-        virBufferAddLit(&opt, "ide-drive");
+
+        if (qemuCapsGet(qemuCaps, QEMU_CAPS_IDE_CD)) {
+            if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
+                virBufferAddLit(&opt, "ide-cd");
+            else
+                virBufferAddLit(&opt, "ide-hd");
+        } else {
+            virBufferAddLit(&opt, "ide-drive");
+        }
+
         virBufferAsprintf(&opt, ",bus=ide.%d,unit=%d",
                           disk->info.addr.drive.bus,
                           disk->info.addr.drive.unit);
@@ -2229,10 +2247,19 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
                 goto error;
             }
 
-            if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN)
+            if (disk->device == VIR_DOMAIN_DISK_DEVICE_LUN) {
                 virBufferAddLit(&opt, "scsi-block");
-            else
-                virBufferAddLit(&opt, "scsi-disk");
+            } else {
+                if (qemuCapsGet(qemuCaps, QEMU_CAPS_SCSI_CD)) {
+                    if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
+                        virBufferAddLit(&opt, "scsi-cd");
+                    else
+                        virBufferAddLit(&opt, "scsi-hd");
+                } else {
+                    virBufferAddLit(&opt, "scsi-disk");
+                }
+            }
+
             virBufferAsprintf(&opt, ",bus=scsi%d.%d,scsi-id=%d",
                               disk->info.addr.drive.controller,
                               disk->info.addr.drive.bus,
@@ -2255,10 +2282,18 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
                 }
             }
 
-            if (disk->device != VIR_DOMAIN_DISK_DEVICE_LUN)
-                virBufferAddLit(&opt, "scsi-disk");
-            else
+            if (disk->device != VIR_DOMAIN_DISK_DEVICE_LUN) {
+                if (qemuCapsGet(qemuCaps, QEMU_CAPS_SCSI_CD)) {
+                    if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
+                        virBufferAddLit(&opt, "scsi-cd");
+                    else
+                        virBufferAddLit(&opt, "scsi-hd");
+                } else {
+                    virBufferAddLit(&opt, "scsi-disk");
+                }
+            } else {
                 virBufferAddLit(&opt, "scsi-block");
+            }
 
             virBufferAsprintf(&opt, ",bus=scsi%d.0,channel=%d,scsi-id=%d,lun=%d",
                               disk->info.addr.drive.controller,
@@ -2278,7 +2313,16 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
                             _("target must be 0 for ide controller"));
             goto error;
         }
-        virBufferAddLit(&opt, "ide-drive");
+
+        if (qemuCapsGet(qemuCaps, QEMU_CAPS_IDE_CD)) {
+            if (disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM)
+                virBufferAddLit(&opt, "ide-cd");
+            else
+                virBufferAddLit(&opt, "ide-hd");
+        } else {
+            virBufferAddLit(&opt, "ide-drive");
+        }
+
         virBufferAsprintf(&opt, ",bus=ahci%d.%d",
                           disk->info.addr.drive.controller,
                           disk->info.addr.drive.unit);
@@ -3660,6 +3704,7 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
     const char *default_model;
     union cpuData *data = NULL;
     bool have_cpu = false;
+    char *compare_msg = NULL;
     int ret = -1;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     int i;
@@ -3696,11 +3741,17 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
             cpuUpdate(cpu, host) < 0)
             goto cleanup;
 
-        cmp = cpuGuestData(host, cpu, &data);
+        cmp = cpuGuestData(host, cpu, &data, &compare_msg);
         switch (cmp) {
         case VIR_CPU_COMPARE_INCOMPATIBLE:
-            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+            if (compare_msg) {
+                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                _("guest and host CPU are not compatible: %s"),
+                                compare_msg);
+            } else {
+                qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                             _("guest CPU is not compatible with host CPU"));
+            }
             /* fall through */
         case VIR_CPU_COMPARE_ERROR:
             goto cleanup;
@@ -3804,6 +3855,7 @@ qemuBuildCpuArgStr(const struct qemud_driver *driver,
     ret = 0;
 
 cleanup:
+    VIR_FREE(compare_msg);
     if (host)
         cpuDataFree(host->arch, data);
     virCPUDefFree(guest);
@@ -4051,6 +4103,11 @@ qemuBuildCommandLine(virConnectPtr conn,
         virCommandAddArg(cmd, "-no-kvm");
     if (enableKVM)
         virCommandAddArg(cmd, "-enable-kvm");
+
+    if (def->os.loader) {
+        virCommandAddArg(cmd, "-bios");
+        virCommandAddArg(cmd, def->os.loader);
+    }
 
     /* Set '-m MB' based on maxmem, because the lower 'memory' limit
      * is set post-startup using the balloon driver. If balloon driver
@@ -5406,6 +5463,7 @@ qemuBuildCommandLine(virConnectPtr conn,
         const char *listenAddr = NULL;
         char *netAddr = NULL;
         int ret;
+        int defaultMode = def->graphics[0]->data.spice.defaultMode;
 
         if (!qemuCapsGet(qemuCaps, QEMU_CAPS_SPICE)) {
             qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
@@ -5488,6 +5546,18 @@ qemuBuildCommandLine(virConnectPtr conn,
         if (driver->spiceTLS)
             virBufferAsprintf(&opt, ",x509-dir=%s",
                               driver->spiceTLSx509certdir);
+
+        switch (defaultMode) {
+        case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_SECURE:
+            virBufferAsprintf(&opt, ",tls-channel=default");
+            break;
+        case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_INSECURE:
+            virBufferAsprintf(&opt, ",plaintext-channel=default");
+            break;
+        case VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_MODE_ANY:
+            /* nothing */
+            break;
+        }
 
         for (i = 0 ; i < VIR_DOMAIN_GRAPHICS_SPICE_CHANNEL_LAST ; i++) {
             int mode = def->graphics[0]->data.spice.channels[i];
@@ -7580,6 +7650,10 @@ virDomainDefPtr qemuParseCommandLine(virCapsPtr caps,
         } else if (STREQ(arg, "-kernel")) {
             WANT_VALUE();
             if (!(def->os.kernel = strdup(val)))
+                goto no_memory;
+        } else if (STREQ(arg, "-bios")) {
+            WANT_VALUE();
+            if (!(def->os.loader = strdup(val)))
                 goto no_memory;
         } else if (STREQ(arg, "-initrd")) {
             WANT_VALUE();

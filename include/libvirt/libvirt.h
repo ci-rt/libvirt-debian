@@ -1115,7 +1115,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 9011
+#define LIBVIR_VERSION_NUMBER 9012
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -1934,17 +1934,31 @@ int virDomainUpdateDeviceFlags(virDomainPtr domain,
 /**
  * virDomainBlockJobType:
  *
- * VIR_DOMAIN_BLOCK_JOB_TYPE_PULL: Block Pull (virDomainBlockPull or
- * virDomainBlockRebase)
+ * VIR_DOMAIN_BLOCK_JOB_TYPE_PULL: Block Pull (virDomainBlockPull, or
+ * virDomainBlockRebase without flags), job ends on completion
+ * VIR_DOMAIN_BLOCK_JOB_TYPE_COPY: Block Copy (virDomainBlockRebase with
+ * flags), job exists as long as mirroring is active
  */
 typedef enum {
     VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN = 0,
     VIR_DOMAIN_BLOCK_JOB_TYPE_PULL = 1,
+    VIR_DOMAIN_BLOCK_JOB_TYPE_COPY = 2,
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_BLOCK_JOB_TYPE_LAST
 #endif
 } virDomainBlockJobType;
+
+/**
+ * virDomainBlockJobAbortFlags:
+ *
+ * VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC: Request only, do not wait for completion
+ * VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT: Pivot to mirror when ending a copy job
+ */
+typedef enum {
+    VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC = 1 << 0,
+    VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT = 1 << 1,
+} virDomainBlockJobAbortFlags;
 
 /* An iterator for monitoring block job operations */
 typedef unsigned long long virDomainBlockJobCursor;
@@ -1974,6 +1988,21 @@ int    virDomainBlockJobSetSpeed(virDomainPtr dom, const char *disk,
 
 int           virDomainBlockPull(virDomainPtr dom, const char *disk,
                                  unsigned long bandwidth, unsigned int flags);
+
+/**
+ * virDomainBlockRebaseFlags:
+ *
+ * Flags available for virDomainBlockRebase().
+ */
+typedef enum {
+    VIR_DOMAIN_BLOCK_REBASE_SHALLOW   = 1 << 0, /* Limit copy to top of source
+                                                   backing chain */
+    VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT = 1 << 1, /* Reuse existing external
+                                                   file for a copy */
+    VIR_DOMAIN_BLOCK_REBASE_COPY_RAW  = 1 << 2, /* Make destination file raw */
+    VIR_DOMAIN_BLOCK_REBASE_COPY      = 1 << 3, /* Start a copy job */
+} virDomainBlockRebaseFlags;
+
 int           virDomainBlockRebase(virDomainPtr dom, const char *disk,
                                    const char *base, unsigned long bandwidth,
                                    unsigned int flags);
@@ -3617,6 +3646,7 @@ typedef void (*virConnectDomainEventGraphicsCallback)(virConnectPtr conn,
 typedef enum {
     VIR_DOMAIN_BLOCK_JOB_COMPLETED = 0,
     VIR_DOMAIN_BLOCK_JOB_FAILED = 1,
+    VIR_DOMAIN_BLOCK_JOB_CANCELED = 2,
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_BLOCK_JOB_LAST

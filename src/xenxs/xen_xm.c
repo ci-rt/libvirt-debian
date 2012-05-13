@@ -1381,20 +1381,21 @@ static int xenFormatXMNet(virConnectPtr conn,
         if (net->model != NULL)
             virBufferAsprintf(&buf, ",model=%s", net->model);
     }
-    else if (net->model == NULL) {
-        /*
-         * apparently type ioemu breaks paravirt drivers on HVM so skip this
-         * from XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU
-         */
-        if (xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU)
-            virBufferAddLit(&buf, ",type=ioemu");
-    }
-    else if (STREQ(net->model, "netfront")) {
-        virBufferAddLit(&buf, ",type=netfront");
-    }
     else {
-        virBufferAsprintf(&buf, ",model=%s", net->model);
-        virBufferAddLit(&buf, ",type=ioemu");
+        if (net->model != NULL && STREQ(net->model, "netfront")) {
+            virBufferAddLit(&buf, ",type=netfront");
+        }
+        else {
+            if (net->model != NULL)
+                virBufferAsprintf(&buf, ",model=%s", net->model);
+
+            /*
+             * apparently type ioemu breaks paravirt drivers on HVM so skip this
+             * from XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU
+             */
+            if (xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU)
+                virBufferAddLit(&buf, ",type=ioemu");
+        }
     }
 
     if (net->ifname)
@@ -1779,7 +1780,7 @@ virConfPtr xenFormatXM(virConnectPtr conn,
     }
 
     if (def->ngraphics == 1) {
-        if (xendConfigVersion < (hvm ? XEND_CONFIG_VERSION_3_1_0 : XEND_CONFIG_MIN_VERS_PVFB_NEWCONF)) {
+        if (hvm || (xendConfigVersion < XEND_CONFIG_MIN_VERS_PVFB_NEWCONF)) {
             if (def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL) {
                 if (xenXMConfigSetInt(conf, "sdl", 1) < 0)
                     goto no_memory;

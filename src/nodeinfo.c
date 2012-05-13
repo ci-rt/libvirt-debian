@@ -231,10 +231,10 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
 
     /* NOTE: hyperthreads are ignored here; they are parsed out of /sys */
     while (fgets(line, sizeof(line), cpuinfo) != NULL) {
-        char *buf = line;
 # if defined(__x86_64__) || \
     defined(__amd64__)  || \
     defined(__i386__)
+        char *buf = line;
         if (STRPREFIX(buf, "cpu MHz")) {
             char *p;
             unsigned int ui;
@@ -253,6 +253,7 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
         }
 # elif defined(__powerpc__) || \
       defined(__powerpc64__)
+        char *buf = line;
         if (STRPREFIX(buf, "clock")) {
             char *p;
             unsigned int ui;
@@ -604,6 +605,7 @@ linuxParseCPUmap(int *max_cpuid, const char *path)
     }
     *max_cpuid = max_id;
 
+    VIR_FREE(str);
     return map;
 
 error:
@@ -624,8 +626,8 @@ int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo) {
 
 #ifdef __linux__
     {
-    int ret;
-    char *sysfs_cpuinfo;
+    int ret = -1;
+    char *sysfs_cpuinfo = NULL;
     FILE *cpuinfo = fopen(CPUINFO_PATH, "r");
     if (!cpuinfo) {
         virReportSystemError(errno,
@@ -635,20 +637,19 @@ int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo) {
 
     if (virAsprintf(&sysfs_cpuinfo, CPU_SYS_PATH) < 0) {
         virReportOOMError();
-        return -1;
+        goto cleanup;
     }
 
     ret = linuxNodeInfoCPUPopulate(cpuinfo, sysfs_cpuinfo, nodeinfo);
-    VIR_FORCE_FCLOSE(cpuinfo);
-    if (ret < 0) {
-        VIR_FREE(sysfs_cpuinfo);
-        return -1;
-    }
+    if (ret < 0)
+        goto cleanup;
 
-    VIR_FREE(sysfs_cpuinfo);
     /* Convert to KB. */
     nodeinfo->memory = physmem_total () / 1024;
 
+cleanup:
+    VIR_FORCE_FCLOSE(cpuinfo);
+    VIR_FREE(sysfs_cpuinfo);
     return ret;
     }
 #else
