@@ -527,19 +527,20 @@ int qemuMonitorSendKey(qemuMonitorPtr mon,
                        unsigned int nkeycodes);
 
 typedef enum {
-    BLOCK_JOB_ABORT = 0,
-    BLOCK_JOB_INFO = 1,
-    BLOCK_JOB_SPEED = 2,
-    BLOCK_JOB_PULL = 3,
-} BLOCK_JOB_CMD;
+    BLOCK_JOB_ABORT,
+    BLOCK_JOB_INFO,
+    BLOCK_JOB_SPEED,
+    BLOCK_JOB_PULL,
+} qemuMonitorBlockJobCmd;
 
 int qemuMonitorBlockJob(qemuMonitorPtr mon,
                         const char *device,
                         const char *back,
                         unsigned long bandwidth,
                         virDomainBlockJobInfoPtr info,
-                        int mode)
-    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(5);
+                        qemuMonitorBlockJobCmd mode,
+                        bool modern)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
 int qemuMonitorOpenGraphics(qemuMonitorPtr mon,
                             const char *protocol,

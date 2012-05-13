@@ -1,7 +1,7 @@
 /*
  * openvz_conf.c: config functions for managing OpenVZ VEs
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2006, 2007 Binary Karma
  * Copyright (C) 2006 Shuveb Hussain
  * Copyright (C) 2007 Anoop Joe Cyriac
@@ -99,7 +99,7 @@ openvzExtractVersionInfo(const char *cmdstr, int *retversion)
     if ((tmp = STRSKIP(tmp, "vzctl version ")) == NULL)
         goto cleanup;
 
-    if (virParseVersionString(tmp, &version, false) < 0)
+    if (virParseVersionString(tmp, &version, true) < 0)
         goto cleanup;
 
     if (retversion)
@@ -126,6 +126,46 @@ int openvzExtractVersion(struct openvz_driver *driver)
     }
 
     return 0;
+}
+
+
+/* Parse config values of the form barrier:limit into barrier and limit */
+static int
+openvzParseBarrierLimit(const char* value,
+                        unsigned long long *barrier,
+                        unsigned long long *limit)
+{
+    char *token;
+    char *saveptr = NULL;
+    char *str = strdup(value);
+
+    if (str == NULL) {
+        virReportOOMError();
+        goto error;
+    }
+
+    token = strtok_r(str, ":", &saveptr);
+    if (token == NULL) {
+        goto error;
+    } else {
+        if (barrier != NULL) {
+            if (virStrToLong_ull(token, NULL, 10, barrier))
+                goto error;
+        }
+    }
+    token = strtok_r(NULL, ":", &saveptr);
+    if (token == NULL) {
+        goto error;
+    } else {
+        if (limit != NULL) {
+            if (virStrToLong_ull(token, NULL, 10, limit))
+                goto error;
+        }
+    }
+    return 0;
+error:
+    VIR_FREE(str);
+    return -1;
 }
 
 
@@ -423,6 +463,80 @@ error:
 }
 
 
+static int
+openvzReadMemConf(virDomainDefPtr def, int veid)
+{
+    int ret;
+    char *temp = NULL;
+    unsigned long long barrier, limit;
+    const char *param;
+    unsigned long kb_per_pages;
+
+    kb_per_pages = sysconf(_SC_PAGESIZE);
+    if (kb_per_pages > 0) {
+        kb_per_pages /= 1024;
+    } else {
+        openvzError(VIR_ERR_INTERNAL_ERROR,
+                    _("Can't determine page size"));
+        goto error;
+    }
+
+    /* Memory allocation guarantee */
+    param = "VMGUARPAGES";
+    ret = openvzReadVPSConfigParam(veid, param, &temp);
+    if (ret < 0) {
+        openvzError(VIR_ERR_INTERNAL_ERROR,
+                    _("Could not read '%s' from config for container %d"),
+                    param, veid);
+        goto error;
+    } else if (ret > 0) {
+        ret = openvzParseBarrierLimit(temp, &barrier, NULL);
+        if (ret < 0) {
+            openvzError(VIR_ERR_INTERNAL_ERROR,
+                        _("Could not parse  barrier of '%s' "
+                          "from config for container %d"), param, veid);
+            goto error;
+        }
+        if (barrier == LONG_MAX)
+            def->mem.min_guarantee = 0ull;
+        else
+            def->mem.min_guarantee = barrier * kb_per_pages;
+    }
+
+    /* Memory hard and soft limits */
+    param = "PRIVVMPAGES";
+    ret = openvzReadVPSConfigParam(veid, param, &temp);
+    if (ret < 0) {
+        openvzError(VIR_ERR_INTERNAL_ERROR,
+                    _("Could not read '%s' from config for container %d"),
+                    param, veid);
+        goto error;
+    } else if (ret > 0) {
+        ret = openvzParseBarrierLimit(temp, &barrier, &limit);
+        if (ret < 0) {
+            openvzError(VIR_ERR_INTERNAL_ERROR,
+                        _("Could not parse barrier and limit of '%s' "
+                          "from config for container %d"), param, veid);
+            goto error;
+        }
+        if (barrier == LONG_MAX)
+            def->mem.soft_limit = 0ull;
+        else
+            def->mem.soft_limit = barrier * kb_per_pages;
+
+        if (limit == LONG_MAX)
+            def->mem.hard_limit = 0ull;
+        else
+            def->mem.hard_limit = limit * kb_per_pages;
+    }
+
+    ret = 0;
+error:
+    VIR_FREE(temp);
+    return ret;
+}
+
+
 /* Free all memory associated with a openvz_driver structure */
 void
 openvzFreeDriver(struct openvz_driver *driver)
@@ -535,6 +649,7 @@ int openvzLoadDomains(struct openvz_driver *driver) {
 
         openvzReadNetworkConf(dom->def, veid);
         openvzReadFSConf(dom->def, veid);
+        openvzReadMemConf(dom->def, veid);
 
         virUUIDFormat(dom->def->uuid, uuidstr);
         if (virHashAddEntry(driver->domains.objs, uuidstr, dom) < 0)

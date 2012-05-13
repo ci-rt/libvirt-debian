@@ -562,16 +562,32 @@
         <element name="numatune">
           <optional>
             <element name="memory">
-              <attribute name="mode">
-                <choice>
-                  <value>strict</value>
-                  <value>preferred</value>
-                  <value>interleave</value>
-                </choice>
-              </attribute>
-              <attribute name="nodeset">
-                <ref name="cpuset"/>
-              </attribute>
+              <optional>
+                <attribute name="mode">
+                  <choice>
+                    <value>strict</value>
+                    <value>preferred</value>
+                    <value>interleave</value>
+                  </choice>
+                </attribute>
+              </optional>
+              <choice>
+                <group>
+                  <optional>
+                    <attribute name='placement'>
+                      <value>static</value>
+                    </attribute>
+                  </optional>
+                  <optional>
+                    <attribute name='nodeset'>
+                      <ref name='cpuset'/>
+                    </attribute>
+                  </optional>
+                </group>
+                <attribute name='placement'>
+                  <value>auto</value>
+                </attribute>
+              </choice>
             </element>
           </optional>
         </element>
@@ -770,6 +786,9 @@
     <interleave>
       <optional>
         <ref name="driver"/>
+      </optional>
+      <optional>
+        <ref name='diskMirror'/>
       </optional>
       <optional>
         <ref name="diskAuth"/>
@@ -1013,9 +1032,7 @@
     </element>
   </define>
   <!--
-      Disk may use a special driver for access. Currently this is
-      only defined for Xen for tap/aio and file, but will certainly be
-      extended in the future, and libvirt doesn't look for specific values.
+      Disk may use a special driver for access.
     -->
   <define name="driver">
     <element name="driver">
@@ -1210,7 +1227,6 @@
               </attribute>
               <empty/>
             </element>
-            <ref name="filesystemtgt"/>
           </interleave>
         </group>
         <group>
@@ -1224,7 +1240,6 @@
               </attribute>
               <empty/>
             </element>
-            <ref name="filesystemtgt"/>
           </interleave>
         </group>
         <group>
@@ -1257,7 +1272,6 @@
                 <empty/>
               </element>
             </optional>
-            <ref name="filesystemtgt"/>
           </interleave>
         </group>
         <group>
@@ -1271,41 +1285,38 @@
               </attribute>
               <empty/>
             </element>
-            <ref name="filesystemtgt"/>
           </interleave>
         </group>
       </choice>
-      <optional>
-        <attribute name="accessmode">
-        <choice>
-          <value>passthrough</value>
-          <value>mapped</value>
-          <value>squash</value>
-        </choice>
-        </attribute>
-      </optional>
-      <optional>
-        <element name='readonly'>
+      <interleave>
+        <element name="target">
+          <attribute name="dir">
+            <ref name="absDirPath"/>
+          </attribute>
           <empty/>
         </element>
-      </optional>
+        <optional>
+          <attribute name="accessmode">
+            <choice>
+              <value>passthrough</value>
+              <value>mapped</value>
+              <value>squash</value>
+            </choice>
+          </attribute>
+        </optional>
+        <optional>
+          <element name='readonly'>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <ref name="alias"/>
+        </optional>
+        <optional>
+          <ref name="address"/>
+        </optional>
+      </interleave>
     </element>
-  </define>
-  <define name="filesystemtgt">
-    <interleave>
-      <optional>
-        <ref name="alias"/>
-      </optional>
-      <optional>
-        <ref name="address"/>
-      </optional>
-      <element name="target">
-        <attribute name="dir">
-          <ref name="absDirPath"/>
-        </attribute>
-        <empty/>
-      </element>
-    </interleave>
   </define>
   <!--
       An interface description can either be of type bridge in which case
@@ -1779,6 +1790,15 @@
               </choice>
             </attribute>
           </optional>
+          <optional>
+            <attribute name="defaultMode">
+              <choice>
+                <value>any</value>
+                <value>secure</value>
+                <value>insecure</value>
+              </choice>
+            </attribute>
+          </optional>
           <interleave>
             <ref name="listenElements"/>
             <zeroOrMore>
@@ -1792,6 +1812,7 @@
                     <value>playback</value>
                     <value>record</value>
                     <value>smartcard</value>
+                    <value>usbredir</value>
                   </choice>
                 </attribute>
                 <attribute name="mode">
@@ -3022,6 +3043,23 @@
         <ref name="positiveInteger"/>
       </attribute>
       <empty/>
+    </element>
+  </define>
+  <define name='diskMirror'>
+    <element name='mirror'>
+      <attribute name='file'>
+        <ref name='absFilePath'/>
+      </attribute>
+      <optional>
+        <attribute name='format'>
+          <ref name="genericName"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='ready'>
+          <value>yes</value>
+        </attribute>
+      </optional>
     </element>
   </define>
   <define name="diskAuth">

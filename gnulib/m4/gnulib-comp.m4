@@ -196,6 +196,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module inttypes-tests:
   # Code from module ioctl:
   # Code from module ioctl-tests:
+  # Code from module langinfo:
+  # Code from module langinfo-tests:
   # Code from module largefile:
   AC_REQUIRE([AC_SYS_LARGEFILE])
   # Code from module listen:
@@ -203,6 +205,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module localcharset:
   # Code from module locale:
   # Code from module locale-tests:
+  # Code from module localeconv:
+  # Code from module localeconv-tests:
   # Code from module localename:
   # Code from module localename-tests:
   # Code from module lock:
@@ -211,6 +215,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module lstat:
   # Code from module lstat-tests:
   # Code from module maintainer-makefile:
+  # Code from module malloc-gnu:
+  # Code from module malloc-gnu-tests:
   # Code from module malloc-posix:
   # Code from module malloca:
   # Code from module malloca-tests:
@@ -237,6 +243,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module netdb-tests:
   # Code from module netinet_in:
   # Code from module netinet_in-tests:
+  # Code from module nl_langinfo:
+  # Code from module nl_langinfo-tests:
   # Code from module nocrash:
   # Code from module nonblocking:
   # Code from module nonblocking-pipe-tests:
@@ -305,6 +313,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module realloc-posix:
   # Code from module recv:
   # Code from module recv-tests:
+  # Code from module regex:
   # Code from module same-inode:
   # Code from module sched:
   # Code from module sched-tests:
@@ -333,6 +342,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module snippet/_Noreturn:
   # Code from module snippet/arg-nonnull:
   # Code from module snippet/c++defs:
+  # Code from module snippet/unused-parameter:
   # Code from module snippet/warn-on-use:
   # Code from module snprintf:
   # Code from module snprintf-tests:
@@ -497,6 +507,12 @@ if test "$ac_cv_header_winsock2_h" = yes; then
 fi
 gl_SYS_SOCKET_MODULE_INDICATOR([bind])
 AC_REQUIRE([AC_C_INLINE])
+gl_FUNC_BTOWC
+if test $HAVE_BTOWC = 0 || test $REPLACE_BTOWC = 1; then
+  AC_LIBOBJ([btowc])
+  gl_PREREQ_BTOWC
+fi
+gl_WCHAR_MODULE_INDICATOR([btowc])
 gl_BYTESWAP
 gl_FUNC_CALLOC_POSIX
 if test $REPLACE_CALLOC = 1; then
@@ -598,6 +614,7 @@ gl_STDIO_MODULE_INDICATOR([fseek])
 gl_FUNC_FSEEKO
 if test $HAVE_FSEEKO = 0 || test $REPLACE_FSEEKO = 1; then
   AC_LIBOBJ([fseeko])
+  gl_PREREQ_FSEEKO
 fi
 gl_STDIO_MODULE_INDICATOR([fseeko])
 gl_FUNC_FSTAT
@@ -620,6 +637,7 @@ gl_STDIO_MODULE_INDICATOR([ftell])
 gl_FUNC_FTELLO
 if test $HAVE_FTELLO = 0 || test $REPLACE_FTELLO = 1; then
   AC_LIBOBJ([ftello])
+  gl_PREREQ_FTELLO
 fi
 gl_STDIO_MODULE_INDICATOR([ftello])
 gl_FUNC
@@ -712,6 +730,8 @@ if test $HAVE_IOCTL = 0 || test $REPLACE_IOCTL = 1; then
   AC_LIBOBJ([ioctl])
 fi
 gl_SYS_IOCTL_MODULE_INDICATOR([ioctl])
+gl_LANGINFO_H
+AC_REQUIRE([gl_LARGEFILE])
 AC_REQUIRE([gl_HEADER_SYS_SOCKET])
 if test "$ac_cv_header_winsock2_h" = yes; then
   AC_LIBOBJ([listen])
@@ -720,6 +740,13 @@ gl_SYS_SOCKET_MODULE_INDICATOR([listen])
 gl_LOCALCHARSET
 LOCALCHARSET_TESTS_ENVIRONMENT="CHARSETALIASDIR=\"\$(abs_top_builddir)/$gl_source_base\""
 AC_SUBST([LOCALCHARSET_TESTS_ENVIRONMENT])
+gl_LOCALE_H
+gl_FUNC_LOCALECONV
+if test $REPLACE_LOCALECONV = 1; then
+  AC_LIBOBJ([localeconv])
+  gl_PREREQ_LOCALECONV
+fi
+gl_LOCALE_MODULE_INDICATOR([localeconv])
 gl_LOCK
 gl_FUNC_LSEEK
 if test $REPLACE_LSEEK = 1; then
@@ -734,6 +761,11 @@ fi
 gl_SYS_STAT_MODULE_INDICATOR([lstat])
 AC_CONFIG_COMMANDS_PRE([m4_ifdef([AH_HEADER],
   [AC_SUBST([CONFIG_INCLUDE], m4_defn([AH_HEADER]))])])
+gl_FUNC_MALLOC_GNU
+if test $REPLACE_MALLOC = 1; then
+  AC_LIBOBJ([malloc])
+fi
+gl_MODULE_INDICATOR([malloc-gnu])
 gl_FUNC_MALLOC_POSIX
 if test $REPLACE_MALLOC = 1; then
   AC_LIBOBJ([malloc])
@@ -759,6 +791,12 @@ if test $HAVE_MBSRTOWCS = 0 || test $REPLACE_MBSRTOWCS = 1; then
   gl_PREREQ_MBSRTOWCS
 fi
 gl_WCHAR_MODULE_INDICATOR([mbsrtowcs])
+gl_FUNC_MBTOWC
+if test $REPLACE_MBTOWC = 1; then
+  AC_LIBOBJ([mbtowc])
+  gl_PREREQ_MBTOWC
+fi
+gl_STDLIB_MODULE_INDICATOR([mbtowc])
 gl_FUNC_MEMCHR
 if test $HAVE_MEMCHR = 0 || test $REPLACE_MEMCHR = 1; then
   AC_LIBOBJ([memchr])
@@ -800,6 +838,11 @@ gl_MULTIARCH
 gl_HEADER_NETDB
 gl_HEADER_NETINET_IN
 AC_PROG_MKDIR_P
+gl_FUNC_NL_LANGINFO
+if test $HAVE_NL_LANGINFO = 0 || test $REPLACE_NL_LANGINFO = 1; then
+  AC_LIBOBJ([nl_langinfo])
+fi
+gl_LANGINFO_MODULE_INDICATOR([nl_langinfo])
 gl_NONBLOCKING_IO
 gl_FCNTL_MODULE_INDICATOR([nonblocking])
 dnl Define the C macro GNULIB_NONBLOCKING to 1.
@@ -892,6 +935,11 @@ if test "$ac_cv_header_winsock2_h" = yes; then
   AC_LIBOBJ([recv])
 fi
 gl_SYS_SOCKET_MODULE_INDICATOR([recv])
+gl_REGEX
+if test $ac_use_included_regex = yes; then
+  AC_LIBOBJ([regex])
+  gl_PREREQ_REGEX
+fi
 gl_SCHED_H
 gl_FUNC_SELECT
 if test $REPLACE_SELECT = 1; then
@@ -1118,6 +1166,12 @@ fi
 gl_SYS_WAIT_MODULE_INDICATOR([waitpid])
 AC_SUBST([WARN_CFLAGS])
 gl_WCHAR_H
+gl_FUNC_WCRTOMB
+if test $HAVE_WCRTOMB = 0 || test $REPLACE_WCRTOMB = 1; then
+  AC_LIBOBJ([wcrtomb])
+  gl_PREREQ_WCRTOMB
+fi
+gl_WCHAR_MODULE_INDICATOR([wcrtomb])
 gl_WCTYPE_H
 gl_XSIZE
   # End of code from modules
@@ -1166,12 +1220,6 @@ changequote([, ])dnl
   AC_SUBST([gltests_WITNESS])
   gl_module_indicator_condition=$gltests_WITNESS
   m4_pushdef([gl_MODULE_INDICATOR_CONDITION], [$gl_module_indicator_condition])
-gl_FUNC_BTOWC
-if test $HAVE_BTOWC = 0 || test $REPLACE_BTOWC = 1; then
-  AC_LIBOBJ([btowc])
-  gl_PREREQ_BTOWC
-fi
-gl_WCHAR_MODULE_INDICATOR([btowc])
 gt_LOCALE_FR
 gt_LOCALE_FR_UTF8
 gt_LOCALE_FR
@@ -1203,7 +1251,7 @@ gl_FUNC_UNGETC_WORKS
 gl_FUNC_UNGETC_WORKS
 gl_FUNC_UNGETC_WORKS
 gl_FUNC_FTRUNCATE
-if test $HAVE_FTRUNCATE = 0; then
+if test $HAVE_FTRUNCATE = 0 || test $REPLACE_FTRUNCATE = 1; then
   AC_LIBOBJ([ftruncate])
   gl_PREREQ_FTRUNCATE
 fi
@@ -1235,7 +1283,6 @@ AC_C_BIGENDIAN
 gl_INLINE
 gl_INTTYPES_H
 gl_INTTYPES_INCOMPLETE
-gl_LOCALE_H
 AC_CHECK_FUNCS_ONCE([newlocale])
 gl_LOCALENAME
 AC_CHECK_FUNCS_ONCE([newlocale])
@@ -1248,17 +1295,13 @@ gt_LOCALE_FR
 gt_LOCALE_FR_UTF8
 gt_LOCALE_JA
 gt_LOCALE_ZH_CN
-gl_FUNC_MBTOWC
-if test $REPLACE_MBTOWC = 1; then
-  AC_LIBOBJ([mbtowc])
-  gl_PREREQ_MBTOWC
-fi
-gl_STDLIB_MODULE_INDICATOR([mbtowc])
 dnl Check for prerequisites for memory fence checks.
 gl_FUNC_MMAP_ANON
 AC_CHECK_HEADERS_ONCE([sys/mman.h])
 AC_CHECK_FUNCS_ONCE([mprotect])
 gl_MGETGROUPS
+gt_LOCALE_FR
+gt_LOCALE_FR_UTF8
 AC_CHECK_DECLS_ONCE([alarm])
 AC_CHECK_FUNCS_ONCE([socketpair])
 AC_CHECK_HEADERS_ONCE([unistd.h sys/wait.h])
@@ -1406,12 +1449,6 @@ gl_STDLIB_MODULE_INDICATOR([unsetenv])
 abs_aux_dir=`cd "$ac_aux_dir"; pwd`
 AC_SUBST([abs_aux_dir])
 gl_WAIT_PROCESS
-gl_FUNC_WCRTOMB
-if test $HAVE_WCRTOMB = 0 || test $REPLACE_WCRTOMB = 1; then
-  AC_LIBOBJ([wcrtomb])
-  gl_PREREQ_WCRTOMB
-fi
-gl_WCHAR_MODULE_INDICATOR([wcrtomb])
 gt_LOCALE_FR
 gt_LOCALE_FR_UTF8
 gt_LOCALE_JA
@@ -1533,6 +1570,7 @@ AC_DEFUN([gl_FILE_LIST], [
   build-aux/snippet/_Noreturn.h
   build-aux/snippet/arg-nonnull.h
   build-aux/snippet/c++defs.h
+  build-aux/snippet/unused-parameter.h
   build-aux/snippet/warn-on-use.h
   build-aux/useless-if-before-free
   build-aux/vc-list-files
@@ -1552,6 +1590,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/binary-io.h
   lib/bind.c
   lib/bitrotate.h
+  lib/btowc.c
   lib/byteswap.in.h
   lib/c-ctype.c
   lib/c-ctype.h
@@ -1622,9 +1661,12 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/intprops.h
   lib/ioctl.c
   lib/itold.c
+  lib/langinfo.in.h
   lib/listen.c
   lib/localcharset.c
   lib/localcharset.h
+  lib/locale.in.h
+  lib/localeconv.c
   lib/lseek.c
   lib/lstat.c
   lib/malloc.c
@@ -1636,6 +1678,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/mbsrtowcs-impl.h
   lib/mbsrtowcs-state.c
   lib/mbsrtowcs.c
+  lib/mbtowc-impl.h
+  lib/mbtowc.c
   lib/md5.c
   lib/md5.h
   lib/memchr.c
@@ -1650,6 +1694,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/msvc-nothrow.h
   lib/netdb.in.h
   lib/netinet_in.in.h
+  lib/nl_langinfo.c
   lib/nonblocking.c
   lib/nonblocking.h
   lib/open.c
@@ -1681,6 +1726,12 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/recv.c
   lib/ref-add.sin
   lib/ref-del.sin
+  lib/regcomp.c
+  lib/regex.c
+  lib/regex.h
+  lib/regex_internal.c
+  lib/regex_internal.h
+  lib/regexec.c
   lib/sched.in.h
   lib/select.c
   lib/send.c
@@ -1755,6 +1806,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/w32sock.h
   lib/waitpid.c
   lib/wchar.in.h
+  lib/wcrtomb.c
   lib/wctype.in.h
   lib/xsize.h
   m4/00gnulib.m4
@@ -1828,6 +1880,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/inttypes.m4
   m4/inttypes_h.m4
   m4/ioctl.m4
+  m4/langinfo_h.m4
   m4/largefile.m4
   m4/lcmessage.m4
   m4/lib-ld.m4
@@ -1839,6 +1892,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/locale-tr.m4
   m4/locale-zh.m4
   m4/locale_h.m4
+  m4/localeconv.m4
   m4/localename.m4
   m4/lock.m4
   m4/longlong.m4
@@ -1866,6 +1920,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/multiarch.m4
   m4/netdb_h.m4
   m4/netinet_in_h.m4
+  m4/nl_langinfo.m4
   m4/nocrash.m4
   m4/nonblocking.m4
   m4/onceonly.m4
@@ -1895,6 +1950,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/read.m4
   m4/readlink.m4
   m4/realloc.m4
+  m4/regex.m4
   m4/sched_h.m4
   m4/select.m4
   m4/servent.m4
@@ -2075,13 +2131,16 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-intprops.c
   tests/test-inttypes.c
   tests/test-ioctl.c
+  tests/test-langinfo.c
   tests/test-listen.c
   tests/test-locale.c
+  tests/test-localeconv.c
   tests/test-localename.c
   tests/test-lseek.c
   tests/test-lseek.sh
   tests/test-lstat.c
   tests/test-lstat.h
+  tests/test-malloc-gnu.c
   tests/test-malloca.c
   tests/test-mbrtowc-w32-1.sh
   tests/test-mbrtowc-w32-2.sh
@@ -2105,6 +2164,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-memchr.c
   tests/test-netdb.c
   tests/test-netinet_in.c
+  tests/test-nl_langinfo.c
+  tests/test-nl_langinfo.sh
   tests/test-nonblocking-misc.h
   tests/test-nonblocking-pipe-child.c
   tests/test-nonblocking-pipe-main.c
@@ -2230,7 +2291,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-xalloc-die.c
   tests/test-xalloc-die.sh
   tests/zerosize-ptr.h
-  tests=lib/btowc.c
   tests=lib/dup.c
   tests=lib/error.c
   tests=lib/error.h
@@ -2250,11 +2310,8 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/glthread/thread.h
   tests=lib/grantpt.c
   tests=lib/inttypes.in.h
-  tests=lib/locale.in.h
   tests=lib/localename.c
   tests=lib/localename.h
-  tests=lib/mbtowc-impl.h
-  tests=lib/mbtowc.c
   tests=lib/mgetgroups.c
   tests=lib/mgetgroups.h
   tests=lib/progname.c
@@ -2288,7 +2345,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/w32sock.h
   tests=lib/wait-process.c
   tests=lib/wait-process.h
-  tests=lib/wcrtomb.c
   tests=lib/wctob.c
   tests=lib/wctomb-impl.h
   tests=lib/wctomb.c

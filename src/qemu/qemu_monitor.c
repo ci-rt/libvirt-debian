@@ -2696,7 +2696,7 @@ qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
     if (mon->json)
         ret = qemuMonitorJSONTransaction(mon, actions);
     else
-        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                         _("transaction requires JSON monitor"));
     return ret;
 }
@@ -2768,22 +2768,36 @@ int qemuMonitorScreendump(qemuMonitorPtr mon,
     return ret;
 }
 
+/* bandwidth is in MB/sec */
 int qemuMonitorBlockJob(qemuMonitorPtr mon,
                         const char *device,
                         const char *base,
                         unsigned long bandwidth,
                         virDomainBlockJobInfoPtr info,
-                        int mode)
+                        qemuMonitorBlockJobCmd mode,
+                        bool modern)
 {
     int ret = -1;
+    unsigned long long speed;
 
-    VIR_DEBUG("mon=%p, device=%s, base=%s, bandwidth=%lu, info=%p, mode=%o",
-              mon, device, NULLSTR(base), bandwidth, info, mode);
+    VIR_DEBUG("mon=%p, device=%s, base=%s, bandwidth=%luM, info=%p, mode=%o, "
+              "modern=%d", mon, device, NULLSTR(base), bandwidth, info, mode,
+              modern);
+
+    /* Convert bandwidth MiB to bytes */
+    if (bandwidth * 1ULL > ULLONG_MAX / 1024 / 1024) {
+        qemuReportError(VIR_ERR_OVERFLOW,
+                        _("bandwidth must be less than %llu"),
+                        ULLONG_MAX / 1024 / 1024);
+        return -1;
+    }
+    speed = bandwidth * 1024ULL * 1024ULL;
 
     if (mon->json)
-        ret = qemuMonitorJSONBlockJob(mon, device, base, bandwidth, info, mode);
+        ret = qemuMonitorJSONBlockJob(mon, device, base, speed, info, mode,
+                                      modern);
     else
-        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                         _("block jobs require JSON monitor"));
     return ret;
 }
@@ -2915,7 +2929,7 @@ int qemuMonitorSystemWakeup(qemuMonitorPtr mon)
     }
 
     if (!mon->json) {
-        qemuReportError(VIR_ERR_NO_SUPPORT, "%s",
+        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
                         _("JSON monitor is required"));
         return -1;
     }

@@ -3,7 +3,7 @@
   <uuid>c7a5fdbd-edaf-9455-926a-d65c16db1809</uuid>
   <memory unit='KiB'>219136</memory>
   <currentMemory unit='KiB'>219136</currentMemory>
-  <vcpu>1</vcpu>
+  <vcpu placement='static'>1</vcpu>
   <os>
     <type arch='i686' machine='pc'>hvm</type>
     <boot dev='hd'/>
@@ -22,7 +22,7 @@
     <controller type='usb' index='0'/>
     <controller type='ide' index='0'/>
     <input type='mouse' bus='ps2'/>
-    <graphics type='spice' port='5903' tlsPort='5904' autoport='no' listen='127.0.0.1'>
+    <graphics type='spice' port='5903' tlsPort='5904' autoport='no' listen='127.0.0.1' defaultMode='secure'>
       <listen type='address' address='127.0.0.1'/>
       <channel name='main' mode='secure'/>
       <channel name='inputs' mode='insecure'/>

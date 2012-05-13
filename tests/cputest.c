@@ -269,7 +269,7 @@ cpuTestGuestData(const void *arg)
         !(cpu = cpuTestLoadXML(data->arch, data->name)))
         goto cleanup;
 
-    cmpResult = cpuGuestData(host, cpu, &guestData);
+    cmpResult = cpuGuestData(host, cpu, &guestData, NULL);
     if (cmpResult == VIR_CPU_COMPARE_ERROR ||
         cmpResult == VIR_CPU_COMPARE_INCOMPATIBLE)
         goto cleanup;
@@ -512,7 +512,7 @@ mymain(void)
 #define DO_TEST(arch, api, name, host, cpu,                             \
                 models, nmodels, preferred, result)                     \
     do {                                                                \
-        struct data data = {                                            \
+        static struct data data = {                                     \
             arch, api, host, cpu, models,                               \
             models == NULL ? NULL : #models,                            \
             nmodels, preferred, result    \

@@ -1,6 +1,5 @@
-/* Convert multibyte character to wide character.
-   Copyright (C) 2011-2012 Free Software Foundation, Inc.
-   Written by Bruno Haible <bruno@clisp.org>, 2011.
+/* Test of malloc function.
+   Copyright (C) 2010-2012 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,8 +18,12 @@
 
 #include <stdlib.h>
 
-#include <errno.h>
-#include <string.h>
-#include <wchar.h>
+int
+main ()
+{
+  /* Check that malloc (0) is not a NULL pointer.  */
+  if (malloc (0) == NULL)
+    return 1;
 
-#include "mbtowc-impl.h"
+  return 0;
+}

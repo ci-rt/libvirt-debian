@@ -1,7 +1,7 @@
 /*
  * virnetserver.c: generic network RPC server
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -39,8 +39,9 @@
 #if HAVE_AVAHI
 # include "virnetservermdns.h"
 #endif
-#if HAVE_DBUS
-# include <dbus/dbus.h>
+
+#ifndef SA_SIGINFO
+# define SA_SIGINFO 0
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_RPC
@@ -86,10 +87,6 @@ struct _virNetServer {
 #if HAVE_AVAHI
     virNetServerMDNSPtr mdns;
     virNetServerMDNSGroupPtr mdnsGroup;
-#endif
-
-#if HAVE_DBUS
-    DBusConnection *sysbus;
 #endif
 
     size_t nservices;
@@ -277,8 +274,9 @@ error:
 }
 
 
-static void virNetServerFatalSignal(int sig, siginfo_t *siginfo ATTRIBUTE_UNUSED,
-                                    void *context ATTRIBUTE_UNUSED)
+static void
+virNetServerFatalSignal(int sig, siginfo_t *siginfo ATTRIBUTE_UNUSED,
+                        void *context ATTRIBUTE_UNUSED)
 {
     struct sigaction sig_action;
     int origerrno;
@@ -293,6 +291,7 @@ static void virNetServerFatalSignal(int sig, siginfo_t *siginfo ATTRIBUTE_UNUSED
 #ifdef SIGUSR2
     if (sig != SIGUSR2) {
 #endif
+        memset(&sig_action, 0, sizeof(sig_action));
         sig_action.sa_handler = SIG_DFL;
         sigaction(sig, &sig_action, NULL);
         raise(sig);
@@ -311,7 +310,6 @@ virNetServerPtr virNetServerNew(size_t min_workers,
                                 unsigned int keepaliveCount,
                                 bool keepaliveRequired,
                                 const char *mdnsGroupName,
-                                bool connectDBus ATTRIBUTE_UNUSED,
                                 virNetServerClientInitHook clientInitHook)
 {
     virNetServerPtr srv;
@@ -353,25 +351,6 @@ virNetServerPtr virNetServerNew(size_t min_workers,
     }
 #endif
 
-#if HAVE_DBUS
-    if (connectDBus) {
-        DBusError derr;
-
-        dbus_connection_set_change_sigpipe(FALSE);
-        dbus_threads_init_default();
-
-        dbus_error_init(&derr);
-        srv->sysbus = dbus_bus_get(DBUS_BUS_SYSTEM, &derr);
-        if (!(srv->sysbus)) {
-            VIR_ERROR(_("Failed to connect to system bus for PolicyKit auth: %s"),
-                      derr.message);
-            dbus_error_free(&derr);
-            goto error;
-        }
-        dbus_connection_set_exit_on_disconnect(srv->sysbus, FALSE);
-    }
-#endif
-
     if (virMutexInit(&srv->lock) < 0) {
         virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
                     _("cannot initialize mutex"));
@@ -390,6 +369,7 @@ virNetServerPtr virNetServerNew(size_t min_workers,
      * debugging purposes or testing
      */
     sig_action.sa_sigaction = virNetServerFatalSignal;
+    sig_action.sa_flags = SA_SIGINFO;
     sigaction(SIGFPE, &sig_action, NULL);
     sigaction(SIGSEGV, &sig_action, NULL);
     sigaction(SIGILL, &sig_action, NULL);
@@ -429,14 +409,6 @@ bool virNetServerIsPrivileged(virNetServerPtr srv)
 }
 
 
-#if HAVE_DBUS
-DBusConnection* virNetServerGetDBusConn(virNetServerPtr srv)
-{
-    return srv->sysbus;
-}
-#endif
-
-
 void virNetServerAutoShutdown(virNetServerPtr srv,
                               unsigned int timeout,
                               virNetServerAutoShutdownFunc func,
@@ -455,17 +427,24 @@ static sig_atomic_t sigErrors = 0;
 static int sigLastErrno = 0;
 static int sigWrite = -1;
 
-static void virNetServerSignalHandler(int sig, siginfo_t * siginfo,
-                                      void* context ATTRIBUTE_UNUSED)
+static void
+virNetServerSignalHandler(int sig, siginfo_t * siginfo,
+                          void* context ATTRIBUTE_UNUSED)
 {
     int origerrno;
     int r;
+    siginfo_t tmp;
+
+    if (SA_SIGINFO)
+        tmp = *siginfo;
+    else
+        memset(&tmp, 0, sizeof(tmp));
 
     /* set the sig num in the struct */
-    siginfo->si_signo = sig;
+    tmp.si_signo = sig;
 
     origerrno = errno;
-    r = safewrite(sigWrite, siginfo, sizeof(*siginfo));
+    r = safewrite(sigWrite, &tmp, sizeof(tmp));
     if (r == -1) {
         sigErrors++;
         sigLastErrno = errno;
@@ -568,9 +547,7 @@ int virNetServerAddSignalHandler(virNetServerPtr srv,
 
     memset(&sig_action, 0, sizeof(sig_action));
     sig_action.sa_sigaction = virNetServerSignalHandler;
-#ifdef SA_SIGINFO
     sig_action.sa_flags = SA_SIGINFO;
-#endif
     sigemptyset(&sig_action.sa_mask);
 
     sigaction(signum, &sig_action, &sigdata->oldaction);
@@ -826,11 +803,6 @@ void virNetServerFree(virNetServerPtr srv)
     VIR_FREE(srv->mdnsGroupName);
 #if HAVE_AVAHI
     virNetServerMDNSFree(srv->mdns);
-#endif
-
-#if HAVE_DBUS
-    if (srv->sysbus)
-        dbus_connection_unref(srv->sysbus);
 #endif
 
     virNetServerUnlock(srv);

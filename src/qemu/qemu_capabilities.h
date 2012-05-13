@@ -26,6 +26,7 @@
 
 # include "bitmap.h"
 # include "capabilities.h"
+# include "command.h"
 
 /* Internal flags to keep track of qemu command line capabilities */
 enum qemuCapsFlags {
@@ -124,6 +125,10 @@ enum qemuCapsFlags {
     QEMU_CAPS_SCSI_DISK_CHANNEL  = 87, /* Is scsi-disk.channel available? */
     QEMU_CAPS_SCSI_BLOCK         = 88, /* -device scsi-block */
     QEMU_CAPS_TRANSACTION        = 89, /* transaction monitor command */
+    QEMU_CAPS_BLOCKJOB_SYNC      = 90, /* RHEL 6.2 block_job_cancel */
+    QEMU_CAPS_BLOCKJOB_ASYNC     = 91, /* qemu 1.1 block-job-cancel */
+    QEMU_CAPS_SCSI_CD            = 92, /* -device scsi-cd */
+    QEMU_CAPS_IDE_CD             = 93, /* -device ide-cd */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 };
@@ -146,6 +151,7 @@ bool qemuCapsGet(virBitmapPtr caps,
 virCapsPtr qemuCapsInit(virCapsPtr old_caps);
 
 int qemuCapsProbeMachineTypes(const char *binary,
+                              virBitmapPtr qemuCaps,
                               virCapsGuestMachinePtr **machines,
                               int *nmachines);
 
@@ -170,6 +176,9 @@ int qemuCapsParseHelpStr(const char *qemu,
                          bool check_yajl);
 int qemuCapsParseDeviceStr(const char *str,
                            virBitmapPtr qemuCaps);
+
+virCommandPtr qemuCapsProbeCommand(const char *qemu,
+                                   virBitmapPtr qemuCaps);
 
 VIR_ENUM_DECL(qemuCaps);
 

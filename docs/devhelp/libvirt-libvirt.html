@@ -130,10 +130,12 @@ typedef <a href="libvirt-libvirt.html#virConnect">virConnect</a> * <a href="#vir
 typedef struct _virDomain <a href="#virDomain">virDomain</a>;
 typedef struct _virDomainBlockInfo <a href="#virDomainBlockInfo">virDomainBlockInfo</a>;
 typedef <a href="libvirt-libvirt.html#virDomainBlockInfo">virDomainBlockInfo</a> * <a href="#virDomainBlockInfoPtr">virDomainBlockInfoPtr</a>;
+typedef enum <a href="#virDomainBlockJobAbortFlags">virDomainBlockJobAbortFlags</a>;
 typedef unsigned long long <a href="#virDomainBlockJobCursor">virDomainBlockJobCursor</a>;
 typedef struct _virDomainBlockJobInfo <a href="#virDomainBlockJobInfo">virDomainBlockJobInfo</a>;
 typedef <a href="libvirt-libvirt.html#virDomainBlockJobInfo">virDomainBlockJobInfo</a> * <a href="#virDomainBlockJobInfoPtr">virDomainBlockJobInfoPtr</a>;
 typedef enum <a href="#virDomainBlockJobType">virDomainBlockJobType</a>;
+typedef enum <a href="#virDomainBlockRebaseFlags">virDomainBlockRebaseFlags</a>;
 typedef enum <a href="#virDomainBlockResizeFlags">virDomainBlockResizeFlags</a>;
 typedef <a href="libvirt-libvirt.html#virDomainBlockStatsStruct">virDomainBlockStatsStruct</a> * <a href="#virDomainBlockStatsPtr">virDomainBlockStatsPtr</a>;
 typedef struct _virDomainBlockStats <a href="#virDomainBlockStatsStruct">virDomainBlockStatsStruct</a>;
@@ -1011,7 +1013,8 @@ The content of this structure is not made public by the API.
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventBlockJobStatus">Enum </a>virConnectDomainEventBlockJobStatus</h3><pre class="programlisting">enum <a href="#virConnectDomainEventBlockJobStatus">virConnectDomainEventBlockJobStatus</a> {
     <a name="VIR_DOMAIN_BLOCK_JOB_COMPLETED">VIR_DOMAIN_BLOCK_JOB_COMPLETED</a> = 0
     <a name="VIR_DOMAIN_BLOCK_JOB_FAILED">VIR_DOMAIN_BLOCK_JOB_FAILED</a> = 1
-    <a name="VIR_DOMAIN_BLOCK_JOB_LAST">VIR_DOMAIN_BLOCK_JOB_LAST</a> = 2
+    <a name="VIR_DOMAIN_BLOCK_JOB_CANCELED">VIR_DOMAIN_BLOCK_JOB_CANCELED</a> = 2
+    <a name="VIR_DOMAIN_BLOCK_JOB_LAST">VIR_DOMAIN_BLOCK_JOB_LAST</a> = 3
 };
 </pre><p/>
 </div>
@@ -1052,6 +1055,13 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobAbortFlags">Enum </a>virDomainBlockJobAbortFlags</h3><pre class="programlisting">enum <a href="#virDomainBlockJobAbortFlags">virDomainBlockJobAbortFlags</a> {
+    <a name="VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC">VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC</a> = 1
+    <a name="VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT">VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT</a> = 2
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobCursor">Typedef </a>virDomainBlockJobCursor</h3><pre class="programlisting">unsigned long long virDomainBlockJobCursor;
 </pre><p/>
 </div>
@@ -1072,7 +1082,17 @@ The content of this structure is not made public by the API.
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobType">Enum </a>virDomainBlockJobType</h3><pre class="programlisting">enum <a href="#virDomainBlockJobType">virDomainBlockJobType</a> {
     <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN">VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN</a> = 0
     <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_PULL">VIR_DOMAIN_BLOCK_JOB_TYPE_PULL</a> = 1
-    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_LAST">VIR_DOMAIN_BLOCK_JOB_TYPE_LAST</a> = 2
+    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_COPY">VIR_DOMAIN_BLOCK_JOB_TYPE_COPY</a> = 2
+    <a name="VIR_DOMAIN_BLOCK_JOB_TYPE_LAST">VIR_DOMAIN_BLOCK_JOB_TYPE_LAST</a> = 3
+};
+</pre><p/>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainBlockRebaseFlags">Enum </a>virDomainBlockRebaseFlags</h3><pre class="programlisting">enum <a href="#virDomainBlockRebaseFlags">virDomainBlockRebaseFlags</a> {
+    <a name="VIR_DOMAIN_BLOCK_REBASE_SHALLOW">VIR_DOMAIN_BLOCK_REBASE_SHALLOW</a> = 1 /* Limit copy to top of source backing chain */
+    <a name="VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT">VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT</a> = 2 /* Reuse existing external file for a copy */
+    <a name="VIR_DOMAIN_BLOCK_REBASE_COPY_RAW">VIR_DOMAIN_BLOCK_REBASE_COPY_RAW</a> = 4 /* Make destination file raw */
+    <a name="VIR_DOMAIN_BLOCK_REBASE_COPY">VIR_DOMAIN_BLOCK_REBASE_COPY</a> = 8 /* Start a copy job */
 };
 </pre><p/>
 </div>
@@ -2603,7 +2623,11 @@ any keepalive messages.
 
 Note: client has to implement and run event loop to be able to use keepalive
 messages. Failure to do so may result in connections being closed
-unexpectedly.</p>
+unexpectedly.
+
+Note: This API function controls only keepalive messages sent by the client.
+If the server is configured to use keepalive you still need to run the event
+loop to respond to them, even if you disable keepalives by this function.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to a hypervisor connection</td></tr><tr><td><span class="term"><i><tt>interval</tt></i>:</span></td><td>number of seconds of inactivity before a keepalive message is sent</td></tr><tr><td><span class="term"><i><tt>count</tt></i>:</span></td><td>number of messages that can be sent in a row</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 on error, 0 on success, 1 when remote party doesn't support keepalive messages.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainAbortJob"/>virDomainAbortJob ()</h3><pre class="programlisting">int	virDomainAbortJob		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
@@ -2647,8 +2671,31 @@ block device (the &lt;source file='...'/&gt; sub-element, such as
 "/path/to/image"), or (since 0.9.5) the device target shorthand
 (the &lt;target dev='...'/&gt; sub-element, such as "xvda"). Valid names
 can be found by calling virDomainGetXMLDesc() and inspecting
-elements within //domain/devices/disk.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when successful.</td></tr></tbody></table></div></div>
+elements within //domain/devices/disk.
+
+If the current block job for @disk is VIR_DOMAIN_BLOCK_JOB_TYPE_PULL, then
+by default, this function performs a synchronous operation and the caller
+may assume that the operation has completed when 0 is returned. However,
+BlockJob operations may take a long time to cancel, and during this time
+further domain interactions may be unresponsive. To avoid this problem,
+pass <a href="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC">VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC</a> in the @flags argument to enable
+asynchronous behavior, returning as soon as possible. When the job has
+been canceled, a BlockJob event will be emitted, with status
+VIR_DOMAIN_BLOCK_JOB_CANCELED (even if the ABORT_ASYNC flag was not
+used); it is also possible to poll virDomainBlockJobInfo() to see if
+the job cancellation is still pending. This type of job can be restarted
+to pick up from where it left off.
+
+If the current block job for @disk is VIR_DOMAIN_BLOCK_JOB_TYPE_COPY, then
+the default is to abort the mirroring and revert to the source disk;
+adding @flags of <a href="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT">VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT</a> causes this call to
+fail with <a href="libvirt-virterror.html#VIR_ERR_BLOCK_COPY_ACTIVE">VIR_ERR_BLOCK_COPY_ACTIVE</a> if the copy is not fully populated,
+otherwise it will swap the disk over to the copy to end the mirroring. An
+event will be issued when the job is ended, and it is possible to use
+VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC to control whether this command waits
+for the completion of the job. Restarting this job requires starting
+over from the beginning of the first phase.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockJobAbortFlags">virDomainBlockJobAbortFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 when successful.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockJobSetSpeed"/>virDomainBlockJobSetSpeed ()</h3><pre class="programlisting">int	virDomainBlockJobSetSpeed	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
 </pre><p>Set the maximimum allowable bandwidth that a block job may consume. If
@@ -2712,23 +2759,63 @@ elements within //domain/devices/disk.
 The maximum bandwidth (in Mbps) that will be used to do the copy can be
 specified with the bandwidth parameter. If set to 0, libvirt will choose a
 suitable default. Some hypervisors do not support this feature and will
-return an error if bandwidth is not 0.
+return an error if bandwidth is not 0; in this case, it might still be
+possible for a later call to virDomainBlockJobSetSpeed() to succeed.
+The actual speed can be determined with virDomainGetBlockJobInfo().
 
 This is shorthand for virDomainBlockRebase() with a NULL base.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify copy bandwidth limit in Mbps</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockRebase"/>virDomainBlockRebase ()</h3><pre class="programlisting">int	virDomainBlockRebase		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 const char * base, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
 </pre><p>Populate a disk image with data from its backing image chain, and
-setting the backing image to @base. @base must be the absolute
+setting the backing image to @base, or alternatively copy an entire
+backing chain to a new file @base.
+
+When @flags is 0, this starts a pull, where @base must be the absolute
 path of one of the backing images further up the chain, or NULL to
 convert the disk image so that it has no backing image. Once all
 data from its backing image chain has been pulled, the disk no
 longer depends on those intermediate backing images. This function
 pulls data for the entire device in the background. Progress of
-the operation can be checked with virDomainGetBlockJobInfo() and
-the operation can be aborted with virDomainBlockJobAbort(). When
-finished, an asynchronous event is raised to indicate the final
-status.
+the operation can be checked with virDomainGetBlockJobInfo() with a
+job type of VIR_DOMAIN_BLOCK_JOB_TYPE_PULL, and the operation can be
+aborted with virDomainBlockJobAbort(). When finished, an asynchronous
+event is raised to indicate the final status, and the job no longer
+exists. If the job is aborted, a new one can be started later to
+resume from the same point.
+
+When @flags includes VIR_DOMAIN_BLOCK_REBASE_COPY, this starts a copy,
+where @base must be the name of a new file to copy the chain to. By
+default, the copy will pull the entire source chain into the destination
+file, but if @flags also contains VIR_DOMAIN_BLOCK_REBASE_SHALLOW, then
+only the top of the source chain will be copied (the source and
+destination have a common backing file). By default, @base will be
+created with the same file format as the source, but this can be altered
+by adding <a href="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_COPY_RAW">VIR_DOMAIN_BLOCK_REBASE_COPY_RAW</a> to force the copy to be raw
+(does not make sense with the shallow flag unless the source is also raw),
+or by using <a href="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT">VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT</a> to reuse an existing file
+with initial contents identical to the backing file of the source (this
+allows a management app to pre-create files with relative backing file
+names, rather than the default of absolute backing file names; as a
+security precaution, you should generally only use reuse_ext with the
+shallow flag and a non-raw destination file).
+
+A copy job has two parts; in the first phase, the @bandwidth parameter
+affects how fast the source is pulled into the destination, and the job
+can only be canceled by reverting to the source file; progress in this
+phase can be tracked via the virDomainBlockJobInfo() command, with a
+job type of VIR_DOMAIN_BLOCK_JOB_TYPE_COPY. The job transitions to the
+second phase when the job info states cur == end, and remains alive to
+mirror all further changes to both source and destination. The user
+must call virDomainBlockJobAbort() to end the mirroring while choosing
+whether to revert to source or pivot to the destination. An event is
+issued when the job ends, and in the future, an event may be added when
+the job transitions from pulling to mirroring. If the job is aborted,
+a new job will have to start over from the beginning of the first phase.
+
+Some hypervisors will restrict certain actions, such as virDomainSave()
+or virDomainDetachDevice(), while a copy job is active; they may
+also restrict a copy job to transient domains.
 
 The @disk parameter is either an unambiguous source name of the
 block device (the &lt;source file='...'/&gt; sub-element, such as
@@ -2740,10 +2827,13 @@ elements within //domain/devices/disk.
 The maximum bandwidth (in Mbps) that will be used to do the copy can be
 specified with the bandwidth parameter. If set to 0, libvirt will choose a
 suitable default. Some hypervisors do not support this feature and will
-return an error if bandwidth is not 0.
+return an error if bandwidth is not 0; in this case, it might still be
+possible for a later call to virDomainBlockJobSetSpeed() to succeed.
+The actual speed can be determined with virDomainGetBlockJobInfo().
 
-When @base is NULL, this is identical to virDomainBlockPull().</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>base</tt></i>:</span></td><td>path to backing file to keep, or NULL for no backing file</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify copy bandwidth limit in Mbps</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
+When @base is NULL and @flags is 0, this is identical to
+virDomainBlockPull().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>base</tt></i>:</span></td><td>path to backing file to keep, or NULL for no backing file</td></tr><tr><td><span class="term"><i><tt>bandwidth</tt></i>:</span></td><td>(optional) specify copy bandwidth limit in Mbps</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainBlockRebaseFlags">virDomainBlockRebaseFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 if the operation has started, -1 on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockResize"/>virDomainBlockResize ()</h3><pre class="programlisting">int	virDomainBlockResize		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long long size, <br/>					 unsigned int flags)<br/>
 </pre><p>Resize a block device of domain while the domain is running. If
@@ -2896,7 +2986,12 @@ block attempts at migration, save-to-file, or snapshots.</p>
 </pre><p>Define a domain, but does not start it.
 This definition is persistent, until explicitly undefined with
 virDomainUndefine(). A previous definition for this domain would be
-overriden if it already exists.</p>
+overriden if it already exists.
+
+Some hypervisors may prevent this operation if there is a current
+block copy operation on a transient domain with the same id as the
+domain being defined; in that case, use virDomainBlockJobAbort() to
+stop the block copy first.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>the XML description for the domain, preferably in UTF-8</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>NULL in case of error, a pointer to the domain otherwise</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainDestroy"/>virDomainDestroy ()</h3><pre class="programlisting">int	virDomainDestroy		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
@@ -2958,7 +3053,11 @@ specifies that the device shall be deallocated from the persisted domain
 configuration only. Note that the target hypervisor must return an
 error if unable to satisfy flags. E.g. the hypervisor driver will
 return failure if LIVE is specified but it only supports removing the
-persisted device allocation.</p>
+persisted device allocation.
+
+Some hypervisors may prevent this operation if there is a current
+block copy operation on the device being detached; in that case,
+use virDomainBlockJobAbort() to stop the block copy first.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>pointer to domain object</td></tr><tr><td><span class="term"><i><tt>xml</tt></i>:</span></td><td>pointer to XML description of one device</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainDeviceModifyFlags">virDomainDeviceModifyFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainFree"/>virDomainFree ()</h3><pre class="programlisting">int	virDomainFree			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
@@ -3959,7 +4058,11 @@ Specifying <a href="libvirt-libvirt.html#VIR_DOMAIN_SAVE_RUNNING">VIR_DOMAIN_SAV
 two flags are mutually exclusive.
 
 A save file can be inspected or modified slightly with
-virDomainSaveImageGetXMLDesc() and virDomainSaveImageDefineXML().</p>
+virDomainSaveImageGetXMLDesc() and virDomainSaveImageDefineXML().
+
+Some hypervisors may prevent this operation if there is a current
+block copy operation; in that case, use virDomainBlockJobAbort()
+to stop the block copy first.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>to</tt></i>:</span></td><td>path for the output file</td></tr><tr><td><span class="term"><i><tt>dxml</tt></i>:</span></td><td>(optional) XML config for adjusting guest xml used on restore</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainSaveRestoreFlags">virDomainSaveRestoreFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSaveImageDefineXML"/>virDomainSaveImageDefineXML ()</h3><pre class="programlisting">int	virDomainSaveImageDefineXML	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * file, <br/>					 const char * dxml, <br/>					 unsigned int flags)<br/>
@@ -4274,7 +4377,11 @@ contains VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC, then libvirt guarantees
 that this command will not alter any disks unless the entire set of
 changes can be done atomically, making failure recovery simpler (note
 that it is still possible to fail after disks have changed, but only
-in the much rarer cases of running out of memory or disk space).</p>
+in the much rarer cases of running out of memory or disk space).
+
+Some hypervisors may prevent this operation if there is a current
+block copy operation; in that case, use virDomainBlockJobAbort()
+to stop the block copy first.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>string containing an XML description of the domain</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainSnapshotCreateFlags">virDomainSnapshotCreateFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>an (opaque) <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> on success, NULL on failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotCurrent"/>virDomainSnapshotCurrent ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	virDomainSnapshotCurrent	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 unsigned int flags)<br/>

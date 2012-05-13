@@ -53,6 +53,11 @@
      JOB_MASK(QEMU_JOB_DESTROY) |       \
      JOB_MASK(QEMU_JOB_ABORT))
 
+/* Jobs which have to be tracked in domain state XML. */
+# define QEMU_DOMAIN_TRACK_JOBS         \
+    (JOB_MASK(QEMU_JOB_DESTROY) |       \
+     JOB_MASK(QEMU_JOB_ASYNC))
+
 /* Only 1 job is allowed at any time
  * A job includes *all* monitor commands, even those just querying
  * information, not merely actions */
@@ -91,9 +96,11 @@ VIR_ENUM_DECL(qemuDomainAsyncJob)
 struct qemuDomainJobObj {
     virCond cond;                       /* Use to coordinate jobs */
     enum qemuDomainJob active;          /* Currently running job */
+    int owner;                          /* Thread which set current job */
 
     virCond asyncCond;                  /* Use to coordinate with async jobs */
     enum qemuDomainAsyncJob asyncJob;   /* Currently active async job */
+    int asyncOwner;                     /* Thread which set current async job */
     int phase;                          /* Job phase (mainly for migrations) */
     unsigned long long mask;            /* Jobs allowed during async job */
     unsigned long long start;           /* When the async job started */
@@ -198,8 +205,10 @@ void qemuDomainObjSetAsyncJobMask(virDomainObjPtr obj,
                                   unsigned long long allowedJobs);
 void qemuDomainObjRestoreJob(virDomainObjPtr obj,
                              struct qemuDomainJobObj *job);
+void qemuDomainObjTransferJob(virDomainObjPtr obj);
 void qemuDomainObjDiscardAsyncJob(struct qemud_driver *driver,
                                   virDomainObjPtr obj);
+void qemuDomainObjReleaseAsyncJob(virDomainObjPtr obj);
 
 void qemuDomainObjEnterMonitor(struct qemud_driver *driver,
                                virDomainObjPtr obj)
@@ -240,17 +249,26 @@ void qemuDomainObjExitRemoteWithDriver(struct qemud_driver *driver,
                                        virDomainObjPtr obj)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
+int qemuDomainDefFormatBuf(struct qemud_driver *driver,
+                           virDomainDefPtr vm,
+                           unsigned int flags,
+                           bool compatible,
+                           virBuffer *buf);
+
 char *qemuDomainDefFormatXML(struct qemud_driver *driver,
                              virDomainDefPtr vm,
-                             unsigned int flags);
+                             unsigned int flags,
+                             bool compatible);
 
 char *qemuDomainFormatXML(struct qemud_driver *driver,
                           virDomainObjPtr vm,
-                          unsigned int flags);
+                          unsigned int flags,
+                          bool compatible);
 
 char *qemuDomainDefFormatLive(struct qemud_driver *driver,
                               virDomainDefPtr def,
-                              bool inactive);
+                              bool inactive,
+                              bool compatible);
 
 void qemuDomainObjTaint(struct qemud_driver *driver,
                         virDomainObjPtr obj,

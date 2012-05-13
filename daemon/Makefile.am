@@ -21,6 +21,7 @@ DAEMON_GENERATED =					\
 
 DAEMON_SOURCES =					\
 		libvirtd.c libvirtd.h			\
+		libvirtd-config.c libvirtd-config.h	\
 		remote.c remote.h			\
 		stream.c stream.h			\
 		../src/remote/remote_protocol.c		\
@@ -93,7 +94,7 @@ libvirtd_SOURCES = $(DAEMON_SOURCES)
 #-D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D_POSIX_C_SOURCE=199506L
 libvirtd_CFLAGS = \
 	$(LIBXML_CFLAGS) $(GNUTLS_CFLAGS) $(SASL_CFLAGS) \
-	$(XDR_CFLAGS) $(POLKIT_CFLAGS) \
+	$(XDR_CFLAGS) $(POLKIT_CFLAGS) $(DBUS_CFLAGS) \
 	$(WARN_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
 	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\"" \
@@ -107,6 +108,7 @@ libvirtd_LDADD =					\
 	$(LIBXML_LIBS)					\
 	$(GNUTLS_LIBS)					\
 	$(SASL_LIBS)					\
+	$(DBUS_LIBS)					\
 	$(POLKIT_LIBS)
 
 if WITH_DTRACE_PROBES
@@ -256,6 +258,7 @@ uninstall-sysconfig:
 	rm -f $(DESTDIR)$(sysconfdir)/sysconfig/libvirtd
 	rmdir $(DESTDIR)$(sysconfdir)/sysconfig || :
 
+if WITH_SYSCTL
 install-sysctl:
 	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/sysctl.d
 	$(INSTALL_DATA) $(srcdir)/libvirtd.sysctl \
@@ -264,6 +267,10 @@ install-sysctl:
 uninstall-sysctl:
 	rm -f $(DESTDIR)$(sysconfdir)/sysctl.d/libvirtd
 	rmdir $(DESTDIR)$(sysconfdir)/sysctl.d || :
+else
+install-sysctl:
+uninstall-sysctl:
+endif
 
 if LIBVIRT_INIT_SCRIPT_RED_HAT
 
