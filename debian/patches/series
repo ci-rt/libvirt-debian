@@ -6,8 +6,6 @@ debian/Debianize-libvirt-guests.patch
 debian/Don-t-require-gawk-for-a-simple-print-expression.patch
 patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 virsh-Initialize-library-before-calling-virResetLast.patch
-Disable-daemon-start-test.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
 Disable-failing-virnetsockettest.patch
 Don-t-fail-if-we-can-t-setup-avahi.patch
-virURIParse-don-t-forget-to-copy-the-user-part.patch
