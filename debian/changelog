@@ -1,3 +1,24 @@
+libvirt (0.9.11-2) unstable; urgency=low
+
+  * [70dcb2e] Make module-init-tools a linux-any dependency
+    (Closes: #667477)
+  * [ea112f4] Depend on dwarves for checks requiring pdwtags
+  * [5152b85] virURIParse: don't forget to copy the user part
+    (Closes: #667636)
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 09 Apr 2012 17:29:46 +0200
+
+libvirt (0.9.11-1) unstable; urgency=low
+
+  * Upload to unstable
+  * [34aa61b] New upstream version 0.9.11
+  * [649c570] Build-dependency on virtualbox-ose no longer needed.
+    Thanks to Jean-Baptiste Rouault (Closes: #663589)
+  * [8323080] We need gcrypt so build-depend on it although it's already being
+    pulled in by gnutls. Thanks to Serge Hallyn (Closes: #660018)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 03 Apr 2012 20:18:08 +0200
+
 libvirt (0.9.11~rc1-1) experimental; urgency=low
 
   * [b8ad28b] Build-dependency on virtualbox-ose no longer needed.
@@ -10,6 +31,12 @@ libvirt (0.9.11~rc1-1) experimental; urgency=low
   * [bece9d3] Install missing manpages
 
  -- Guido Günther <agx@sigxcpu.org>  Mon, 26 Mar 2012 21:35:21 +0200
+
+libvirt (0.9.10-2) unstable; urgency=low
+
+  * Upload to unstable
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 22 Feb 2012 13:42:23 +0100
 
 libvirt (0.9.10-1) experimental; urgency=low
 

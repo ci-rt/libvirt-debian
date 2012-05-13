@@ -718,7 +718,7 @@ static int remoteDispatchDomainBlockStats(
     if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
         goto cleanup;
 
-    if (virDomainBlockStats(dom, args->path, &tmp, sizeof tmp) < 0)
+    if (virDomainBlockStats(dom, args->path, &tmp, sizeof(tmp)) < 0)
         goto cleanup;
 
     ret->rd_req = tmp.rd_req;
@@ -2487,7 +2487,7 @@ static int remoteDispatchDomainInterfaceStats(
     if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
         goto cleanup;
 
-    if (virDomainInterfaceStats(dom, args->path, &tmp, sizeof tmp) < 0)
+    if (virDomainInterfaceStats(dom, args->path, &tmp, sizeof(tmp)) < 0)
         goto cleanup;
 
     ret->rx_bytes = tmp.rx_bytes;
@@ -9506,7 +9506,7 @@ static int remoteDispatchNodeGetInfo(
     if (virNodeGetInfo(priv->conn, &tmp) < 0)
         goto cleanup;
 
-    memcpy(ret->model, tmp.model, sizeof ret->model);
+    memcpy(ret->model, tmp.model, sizeof(ret->model));
     ret->memory = tmp.memory;
     ret->cpus = tmp.cpus;
     ret->mhz = tmp.mhz;

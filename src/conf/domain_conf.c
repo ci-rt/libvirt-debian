@@ -590,6 +590,10 @@ VIR_ENUM_IMPL(virDomainClockOffset, VIR_DOMAIN_CLOCK_OFFSET_LAST,
               "variable",
               "timezone");
 
+VIR_ENUM_IMPL(virDomainClockBasis, VIR_DOMAIN_CLOCK_BASIS_LAST,
+              "utc",
+              "localtime");
+
 VIR_ENUM_IMPL(virDomainTimerName, VIR_DOMAIN_TIMER_NAME_LAST,
               "platform",
               "pit",
@@ -1559,6 +1563,9 @@ void virDomainDefFree(virDomainDefPtr def)
     VIR_FREE(def->os.arch);
     VIR_FREE(def->os.machine);
     VIR_FREE(def->os.init);
+    for (i = 0 ; def->os.initargv && def->os.initargv[i] ; i++)
+        VIR_FREE(def->os.initargv[i]);
+    VIR_FREE(def->os.initargv);
     VIR_FREE(def->os.kernel);
     VIR_FREE(def->os.initrd);
     VIR_FREE(def->os.cmdline);
@@ -6413,12 +6420,12 @@ virSysinfoParseXML(const xmlNodePtr node,
     if (!xmlStrEqual(node->name, BAD_CAST "sysinfo")) {
         virDomainReportError(VIR_ERR_XML_ERROR, "%s",
                         _("XML does not contain expected 'sysinfo' element"));
-        return(NULL);
+        return NULL;
     }
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
-        return(NULL);
+        return NULL;
     }
 
     type = virXMLPropString(node, "type");
@@ -6462,7 +6469,7 @@ virSysinfoParseXML(const xmlNodePtr node,
 
 cleanup:
     VIR_FREE(type);
-    return(def);
+    return def;
 
 error:
     virSysinfoDefFree(def);
@@ -6548,7 +6555,7 @@ virDomainVideoAccelDefParseXML(const xmlNodePtr node) {
     }
 
     if ((support3d == NULL) && (support2d == NULL))
-        return(NULL);
+        return NULL;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -7766,10 +7773,21 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         goto error;
 
     if (def->mem.cur_balloon > def->mem.max_balloon) {
-        virDomainReportError(VIR_ERR_XML_ERROR,
-                             _("current memory '%lluk' exceeds maximum '%lluk'"),
-                             def->mem.cur_balloon, def->mem.max_balloon);
-        goto error;
+        /* Older libvirt could get into this situation due to
+         * rounding; if the discrepancy is less than 1MiB, we silently
+         * round down, otherwise we flag the issue.  */
+        if (VIR_DIV_UP(def->mem.cur_balloon, 1024) >
+            VIR_DIV_UP(def->mem.max_balloon, 1024)) {
+            virDomainReportError(VIR_ERR_XML_ERROR,
+                                 _("current memory '%lluk' exceeds "
+                                   "maximum '%lluk'"),
+                                 def->mem.cur_balloon, def->mem.max_balloon);
+            goto error;
+        } else {
+            VIR_DEBUG("Truncating current %lluk to maximum %lluk",
+                      def->mem.cur_balloon, def->mem.max_balloon);
+            def->mem.cur_balloon = def->mem.max_balloon;
+        }
     } else if (def->mem.cur_balloon == 0) {
         def->mem.cur_balloon = def->mem.max_balloon;
     }
@@ -8055,10 +8073,53 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_UTC;
     }
     switch (def->clock.offset) {
+    case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
+    case VIR_DOMAIN_CLOCK_OFFSET_UTC:
+        tmp = virXPathString("string(./clock/@adjustment)", ctxt);
+        if (tmp) {
+            if (STREQ(tmp, "reset")) {
+                def->clock.data.utc_reset = true;
+            } else {
+                char *conv = NULL;
+                unsigned long long val;
+                val = strtoll(tmp, &conv, 10);
+                if (conv == tmp || *conv != '\0') {
+                    virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                         _("unknown clock adjustment '%s'"), tmp);
+                    goto error;
+                }
+                switch (def->clock.offset) {
+                case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
+                    def->clock.data.variable.basis = VIR_DOMAIN_CLOCK_BASIS_LOCALTIME;
+                    break;
+                case VIR_DOMAIN_CLOCK_OFFSET_UTC:
+                    def->clock.data.variable.basis = VIR_DOMAIN_CLOCK_BASIS_UTC;
+                    break;
+                }
+                def->clock.offset = VIR_DOMAIN_CLOCK_OFFSET_VARIABLE;
+                def->clock.data.variable.adjustment = val;
+            }
+            VIR_FREE(tmp);
+        } else {
+            def->clock.data.utc_reset = false;
+        }
+        break;
+
     case VIR_DOMAIN_CLOCK_OFFSET_VARIABLE:
         if (virXPathLongLong("number(./clock/@adjustment)", ctxt,
-                             &def->clock.data.adjustment) < 0)
-            def->clock.data.adjustment = 0;
+                             &def->clock.data.variable.adjustment) < 0)
+            def->clock.data.variable.adjustment = 0;
+        tmp = virXPathString("string(./clock/@basis)", ctxt);
+        if (tmp) {
+            if ((def->clock.data.variable.basis = virDomainClockBasisTypeFromString(tmp)) < 0) {
+                virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                                     _("unknown clock basis '%s'"), tmp);
+                goto error;
+            }
+            VIR_FREE(tmp);
+        } else {
+            def->clock.data.variable.basis = VIR_DOMAIN_CLOCK_BASIS_UTC;
+        }
         break;
 
     case VIR_DOMAIN_CLOCK_OFFSET_TIMEZONE:
@@ -8188,6 +8249,25 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
             }
         }
         def->os.cmdline = virXPathString("string(./os/cmdline[1])", ctxt);
+
+        if ((n = virXPathNodeSet("./os/initarg", ctxt, &nodes)) < 0) {
+            goto error;
+        }
+
+        if (VIR_ALLOC_N(def->os.initargv, n+1) < 0)
+            goto no_memory;
+        for (i = 0 ; i < n ; i++) {
+            if (!nodes[i]->children ||
+                !nodes[i]->children->content) {
+                virDomainReportError(VIR_ERR_XML_ERROR, "%s",
+                                     _("No data supplied for <initarg> element"));
+                goto error;
+            }
+            if (!(def->os.initargv[i] = strdup((const char*)nodes[i]->children->content)))
+                goto no_memory;
+        }
+        def->os.initargv[n] = NULL;
+        VIR_FREE(nodes);
     }
 
     if (STREQ(def->os.type, "xen") ||
@@ -9568,10 +9648,10 @@ static bool virDomainChannelDefCheckABIStability(virDomainChrDefPtr src,
 
     switch (src->targetType) {
     case VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO:
-        if (STRNEQ(src->target.name, dst->target.name)) {
+        if (STRNEQ_NULLABLE(src->target.name, dst->target.name)) {
             virDomainReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                                  _("Target channel name %s does not match source %s"),
-                                 dst->target.name, src->target.name);
+                                 NULLSTR(dst->target.name), NULLSTR(src->target.name));
             goto cleanup;
         }
         break;
@@ -10155,16 +10235,16 @@ virDomainCpuNumberParse(const char **str, int maxcpu)
     const char *cur = *str;
 
     if (!c_isdigit(*cur))
-        return (-1);
+        return -1;
 
     while (c_isdigit(*cur)) {
         ret = ret * 10 + (*cur - '0');
         if (ret >= maxcpu)
-            return (-1);
+            return -1;
         cur++;
     }
     *str = cur;
-    return (ret);
+    return ret;
 }
 
 /**
@@ -10186,7 +10266,7 @@ virDomainCpuSetFormat(char *cpuset, int maxcpu)
     int first = 1;
 
     if ((cpuset == NULL) || (maxcpu <= 0) || (maxcpu > 100000))
-        return (NULL);
+        return NULL;
 
     cur = 0;
     start = -1;
@@ -10251,7 +10331,7 @@ virDomainCpuSetParse(const char *str, char sep,
 
     if ((str == NULL) || (cpuset == NULL) || (maxcpu <= 0) ||
         (maxcpu > 100000))
-        return (-1);
+        return -1;
 
     cur = str;
     virSkipSpaces(&cur);
@@ -10318,12 +10398,12 @@ virDomainCpuSetParse(const char *str, char sep,
         } else
             goto parse_error;
     }
-    return (ret);
+    return ret;
 
   parse_error:
     virDomainReportError(VIR_ERR_INTERNAL_ERROR,
                          "%s", _("topology cpuset syntax error"));
-    return (-1);
+    return -1;
 }
 
 
@@ -12171,6 +12251,7 @@ virDomainDefFormatInternal(virDomainDefPtr def,
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     const char *type = NULL;
     int n, allones = 1;
+    int i;
     bool blkio = false;
 
     virCheckFlags(DUMPXML_FLAGS |
@@ -12332,7 +12413,6 @@ virDomainDefFormatInternal(virDomainDefPtr def,
         virBufferAsprintf(buf, "    <quota>%lld</quota>\n",
                           def->cputune.quota);
     if (def->cputune.vcpupin) {
-        int i;
         for (i = 0; i < def->cputune.nvcpupin; i++) {
             virBufferAsprintf(buf, "    <vcpupin vcpu='%u' ",
                               def->cputune.vcpupin[i]->vcpuid);
@@ -12408,6 +12488,9 @@ virDomainDefFormatInternal(virDomainDefPtr def,
 
     virBufferEscapeString(buf, "    <init>%s</init>\n",
                           def->os.init);
+    for (i = 0 ; def->os.initargv && def->os.initargv[i] ; i++)
+        virBufferEscapeString(buf, "    <initarg>%s</initarg>\n",
+                              def->os.initargv[i]);
     virBufferEscapeString(buf, "    <loader>%s</loader>\n",
                           def->os.loader);
     virBufferEscapeString(buf, "    <kernel>%s</kernel>\n",
@@ -12462,7 +12545,6 @@ virDomainDefFormatInternal(virDomainDefPtr def,
     virBufferAddLit(buf, "  </os>\n");
 
     if (def->features) {
-        int i;
         virBufferAddLit(buf, "  <features>\n");
         for (i = 0 ; i < VIR_DOMAIN_FEATURE_LAST ; i++) {
             if (def->features & (1 << i)) {
@@ -12486,9 +12568,15 @@ virDomainDefFormatInternal(virDomainDefPtr def,
     virBufferAsprintf(buf, "  <clock offset='%s'",
                       virDomainClockOffsetTypeToString(def->clock.offset));
     switch (def->clock.offset) {
+    case VIR_DOMAIN_CLOCK_OFFSET_LOCALTIME:
+    case VIR_DOMAIN_CLOCK_OFFSET_UTC:
+        if (def->clock.data.utc_reset)
+            virBufferAddLit(buf, " adjustment='reset'");
+        break;
     case VIR_DOMAIN_CLOCK_OFFSET_VARIABLE:
-        virBufferAsprintf(buf, " adjustment='%lld'",
-                          def->clock.data.adjustment);
+        virBufferAsprintf(buf, " adjustment='%lld' basis='%s'",
+                          def->clock.data.variable.adjustment,
+                          virDomainClockBasisTypeToString(def->clock.data.variable.basis));
         break;
     case VIR_DOMAIN_CLOCK_OFFSET_TIMEZONE:
         virBufferEscapeString(buf, " timezone='%s'", def->clock.data.timezone);

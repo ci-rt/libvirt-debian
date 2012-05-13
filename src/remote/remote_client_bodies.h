@@ -23,7 +23,7 @@ remoteCPUBaseline(virConnectPtr conn, const char **xmlCPUs, unsigned int xmlCPUs
     args.xmlCPUs.xmlCPUs_len = xmlCPUslen;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_CPU_BASELINE,
              (xdrproc_t)xdr_remote_cpu_baseline_args, (char *)&args,
@@ -51,7 +51,7 @@ remoteCPUCompare(virConnectPtr conn, const char *xml, unsigned int flags)
     args.xml = (char *)xml;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_CPU_COMPARE,
              (xdrproc_t)xdr_remote_cpu_compare_args, (char *)&args,
@@ -289,7 +289,7 @@ remoteDomainBlockStats(virDomainPtr dom, const char *path, virDomainBlockStatsPt
     make_nonnull_domain(&args.dom, dom);
     args.path = (char *)path;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_BLOCK_STATS,
              (xdrproc_t)xdr_remote_domain_block_stats_args, (char *)&args,
@@ -348,7 +348,7 @@ remoteDomainCreateWithFlags(virDomainPtr dom, unsigned int flags)
     make_nonnull_domain(&args.dom, dom);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_CREATE_WITH_FLAGS,
              (xdrproc_t)xdr_remote_domain_create_with_flags_args, (char *)&args,
@@ -378,7 +378,7 @@ remoteDomainCreateXML(virConnectPtr conn, const char *xml_desc, unsigned int fla
     args.xml_desc = (char *)xml_desc;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_CREATE_XML,
              (xdrproc_t)xdr_remote_domain_create_xml_args, (char *)&args,
@@ -406,7 +406,7 @@ remoteDomainDefineXML(virConnectPtr conn, const char *xml)
 
     args.xml = (char *)xml;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_DEFINE_XML,
              (xdrproc_t)xdr_remote_domain_define_xml_args, (char *)&args,
@@ -535,7 +535,7 @@ remoteDomainGetAutostart(virDomainPtr dom, int *autostart)
 
     make_nonnull_domain(&args.dom, dom);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_AUTOSTART,
              (xdrproc_t)xdr_remote_domain_get_autostart_args, (char *)&args,
@@ -565,7 +565,7 @@ remoteDomainGetBlockInfo(virDomainPtr dom, const char *path, virDomainBlockInfoP
     args.path = (char *)path;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_BLOCK_INFO,
              (xdrproc_t)xdr_remote_domain_get_block_info_args, (char *)&args,
@@ -596,7 +596,7 @@ remoteDomainGetControlInfo(virDomainPtr dom, virDomainControlInfoPtr result, uns
     make_nonnull_domain(&args.dom, dom);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_CONTROL_INFO,
              (xdrproc_t)xdr_remote_domain_get_control_info_args, (char *)&args,
@@ -626,7 +626,7 @@ remoteDomainGetInfo(virDomainPtr dom, virDomainInfoPtr result)
 
     make_nonnull_domain(&args.dom, dom);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_INFO,
              (xdrproc_t)xdr_remote_domain_get_info_args, (char *)&args,
@@ -658,7 +658,7 @@ remoteDomainGetJobInfo(virDomainPtr dom, virDomainJobInfoPtr result)
 
     make_nonnull_domain(&args.dom, dom);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_JOB_INFO,
              (xdrproc_t)xdr_remote_domain_get_job_info_args, (char *)&args,
@@ -697,7 +697,7 @@ remoteDomainGetMaxMemory(virDomainPtr dom)
 
     make_nonnull_domain(&args.dom, dom);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_MAX_MEMORY,
              (xdrproc_t)xdr_remote_domain_get_max_memory_args, (char *)&args,
@@ -724,7 +724,7 @@ remoteDomainGetMaxVcpus(virDomainPtr dom)
 
     make_nonnull_domain(&args.dom, dom);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_MAX_VCPUS,
              (xdrproc_t)xdr_remote_domain_get_max_vcpus_args, (char *)&args,
@@ -754,7 +754,7 @@ remoteDomainGetMetadata(virDomainPtr dom, int type, const char *uri, unsigned in
     args.uri = uri ? (char **)&uri : NULL;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_METADATA,
              (xdrproc_t)xdr_remote_domain_get_metadata_args, (char *)&args,
@@ -781,7 +781,7 @@ remoteDomainGetOSType(virDomainPtr dom)
 
     make_nonnull_domain(&args.dom, dom);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_OS_TYPE,
              (xdrproc_t)xdr_remote_domain_get_os_type_args, (char *)&args,
@@ -809,7 +809,7 @@ remoteDomainGetSchedulerParameters(virDomainPtr dom, virTypedParameterPtr params
     make_nonnull_domain(&args.dom, dom);
     args.nparams = *nparams;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_SCHEDULER_PARAMETERS,
              (xdrproc_t)xdr_remote_domain_get_scheduler_parameters_args, (char *)&args,
@@ -848,7 +848,7 @@ remoteDomainGetSchedulerParametersFlags(virDomainPtr dom, virTypedParameterPtr p
     args.nparams = *nparams;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_SCHEDULER_PARAMETERS_FLAGS,
              (xdrproc_t)xdr_remote_domain_get_scheduler_parameters_flags_args, (char *)&args,
@@ -886,7 +886,7 @@ remoteDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
     make_nonnull_domain(&args.dom, dom);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_VCPUS_FLAGS,
              (xdrproc_t)xdr_remote_domain_get_vcpus_flags_args, (char *)&args,
@@ -914,7 +914,7 @@ remoteDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
     make_nonnull_domain(&args.dom, dom);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_XML_DESC,
              (xdrproc_t)xdr_remote_domain_get_xml_desc_args, (char *)&args,
@@ -942,7 +942,7 @@ remoteDomainHasCurrentSnapshot(virDomainPtr dom, unsigned int flags)
     make_nonnull_domain(&args.dom, dom);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_HAS_CURRENT_SNAPSHOT,
              (xdrproc_t)xdr_remote_domain_has_current_snapshot_args, (char *)&args,
@@ -970,7 +970,7 @@ remoteDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
     make_nonnull_domain(&args.dom, dom);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_HAS_MANAGED_SAVE_IMAGE,
              (xdrproc_t)xdr_remote_domain_has_managed_save_image_args, (char *)&args,
@@ -1023,7 +1023,7 @@ remoteDomainInterfaceStats(virDomainPtr dom, const char *path, virDomainInterfac
     make_nonnull_domain(&args.dom, dom);
     args.path = (char *)path;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_INTERFACE_STATS,
              (xdrproc_t)xdr_remote_domain_interface_stats_args, (char *)&args,
@@ -1058,7 +1058,7 @@ remoteDomainIsActive(virDomainPtr dom)
 
     make_nonnull_domain(&args.dom, dom);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_IS_ACTIVE,
              (xdrproc_t)xdr_remote_domain_is_active_args, (char *)&args,
@@ -1085,7 +1085,7 @@ remoteDomainIsPersistent(virDomainPtr dom)
 
     make_nonnull_domain(&args.dom, dom);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_IS_PERSISTENT,
              (xdrproc_t)xdr_remote_domain_is_persistent_args, (char *)&args,
@@ -1112,7 +1112,7 @@ remoteDomainIsUpdated(virDomainPtr dom)
 
     make_nonnull_domain(&args.dom, dom);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_IS_UPDATED,
              (xdrproc_t)xdr_remote_domain_is_updated_args, (char *)&args,
@@ -1139,7 +1139,7 @@ remoteDomainLookupByID(virConnectPtr conn, int id)
 
     args.id = id;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_LOOKUP_BY_ID,
              (xdrproc_t)xdr_remote_domain_lookup_by_id_args, (char *)&args,
@@ -1167,7 +1167,7 @@ remoteDomainLookupByName(virConnectPtr conn, const char *name)
 
     args.name = (char *)name;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_LOOKUP_BY_NAME,
              (xdrproc_t)xdr_remote_domain_lookup_by_name_args, (char *)&args,
@@ -1195,7 +1195,7 @@ remoteDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 
     memcpy(args.uuid, uuid, VIR_UUID_BUFLEN);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_LOOKUP_BY_UUID,
              (xdrproc_t)xdr_remote_domain_lookup_by_uuid_args, (char *)&args,
@@ -1285,7 +1285,7 @@ remoteDomainMigrateFinish(virConnectPtr conn, const char *dname, const char *coo
     args.uri = (char *)uri;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_MIGRATE_FINISH,
              (xdrproc_t)xdr_remote_domain_migrate_finish_args, (char *)&args,
@@ -1325,7 +1325,7 @@ remoteDomainMigrateFinish2(virConnectPtr conn, const char *dname, const char *co
     args.flags = flags;
     args.retcode = retcode;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_MIGRATE_FINISH2,
              (xdrproc_t)xdr_remote_domain_migrate_finish2_args, (char *)&args,
@@ -1354,7 +1354,7 @@ remoteDomainMigrateGetMaxSpeed(virDomainPtr dom, unsigned long *bandwidth, unsig
     make_nonnull_domain(&args.dom, dom);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_MIGRATE_GET_MAX_SPEED,
              (xdrproc_t)xdr_remote_domain_migrate_get_max_speed_args, (char *)&args,
@@ -1904,7 +1904,7 @@ remoteDomainSaveImageGetXMLDesc(virConnectPtr conn, const char *file, unsigned i
     args.file = (char *)file;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_SAVE_IMAGE_GET_XML_DESC,
              (xdrproc_t)xdr_remote_domain_save_image_get_xml_desc_args, (char *)&args,
@@ -1944,7 +1944,7 @@ remoteDomainScreenshot(virDomainPtr dom, virStreamPtr st, unsigned int screen, u
     args.screen = screen;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SCREENSHOT,
              (xdrproc_t)xdr_remote_domain_screenshot_args, (char *)&args,
@@ -2462,7 +2462,7 @@ remoteDomainSnapshotCreateXML(virDomainPtr dom, const char *xml_desc, unsigned i
     args.xml_desc = (char *)xml_desc;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_CREATE_XML,
              (xdrproc_t)xdr_remote_domain_snapshot_create_xml_args, (char *)&args,
@@ -2491,7 +2491,7 @@ remoteDomainSnapshotCurrent(virDomainPtr dom, unsigned int flags)
     make_nonnull_domain(&args.dom, dom);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_CURRENT,
              (xdrproc_t)xdr_remote_domain_snapshot_current_args, (char *)&args,
@@ -2545,7 +2545,7 @@ remoteDomainSnapshotGetParent(virDomainSnapshotPtr snap, unsigned int flags)
     make_nonnull_domain_snapshot(&args.snap, snap);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(snap->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_GET_PARENT,
              (xdrproc_t)xdr_remote_domain_snapshot_get_parent_args, (char *)&args,
@@ -2574,7 +2574,7 @@ remoteDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snap, unsigned int flags)
     make_nonnull_domain_snapshot(&args.snap, snap);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(snap->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_GET_XML_DESC,
              (xdrproc_t)xdr_remote_domain_snapshot_get_xml_desc_args, (char *)&args,
@@ -2611,7 +2611,7 @@ remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const na
     args.maxnames = maxnames;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(snap->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_CHILDREN_NAMES,
              (xdrproc_t)xdr_remote_domain_snapshot_list_children_names_args, (char *)&args,
@@ -2674,7 +2674,7 @@ remoteDomainSnapshotListNames(virDomainPtr dom, char **const names, int maxnames
     args.maxnames = maxnames;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_NAMES,
              (xdrproc_t)xdr_remote_domain_snapshot_list_names_args, (char *)&args,
@@ -2729,7 +2729,7 @@ remoteDomainSnapshotLookupByName(virDomainPtr dom, const char *name, unsigned in
     args.name = (char *)name;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_LOOKUP_BY_NAME,
              (xdrproc_t)xdr_remote_domain_snapshot_lookup_by_name_args, (char *)&args,
@@ -2758,7 +2758,7 @@ remoteDomainSnapshotNum(virDomainPtr dom, unsigned int flags)
     make_nonnull_domain(&args.dom, dom);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_NUM,
              (xdrproc_t)xdr_remote_domain_snapshot_num_args, (char *)&args,
@@ -2786,7 +2786,7 @@ remoteDomainSnapshotNumChildren(virDomainSnapshotPtr snap, unsigned int flags)
     make_nonnull_domain_snapshot(&args.snap, snap);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(snap->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_NUM_CHILDREN,
              (xdrproc_t)xdr_remote_domain_snapshot_num_children_args, (char *)&args,
@@ -2914,7 +2914,7 @@ remoteDomainXMLFromNative(virConnectPtr conn, const char *nativeFormat, const ch
     args.nativeConfig = (char *)nativeConfig;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_XML_FROM_NATIVE,
              (xdrproc_t)xdr_remote_domain_xml_from_native_args, (char *)&args,
@@ -2943,7 +2943,7 @@ remoteDomainXMLToNative(virConnectPtr conn, const char *nativeFormat, const char
     args.domainXml = (char *)domainXml;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_DOMAIN_XML_TO_NATIVE,
              (xdrproc_t)xdr_remote_domain_xml_to_native_args, (char *)&args,
@@ -2967,7 +2967,7 @@ remoteGetCapabilities(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_GET_CAPABILITIES,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -2991,7 +2991,7 @@ remoteGetHostname(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_GET_HOSTNAME,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -3015,7 +3015,7 @@ remoteGetLibVersion(virConnectPtr conn, unsigned long *lib_ver)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_GET_LIB_VERSION,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -3043,7 +3043,7 @@ remoteGetMaxVcpus(virConnectPtr conn, const char *type)
 
     args.type = type ? (char **)&type : NULL;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_GET_MAX_VCPUS,
              (xdrproc_t)xdr_remote_get_max_vcpus_args, (char *)&args,
@@ -3070,7 +3070,7 @@ remoteGetSysinfo(virConnectPtr conn, unsigned int flags)
 
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_GET_SYSINFO,
              (xdrproc_t)xdr_remote_get_sysinfo_args, (char *)&args,
@@ -3094,7 +3094,7 @@ remoteGetVersion(virConnectPtr conn, unsigned long *hv_ver)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_GET_VERSION,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -3220,7 +3220,7 @@ remoteInterfaceDefineXML(virConnectPtr conn, const char *xml, unsigned int flags
     args.xml = (char *)xml;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_INTERFACE_DEFINE_XML,
              (xdrproc_t)xdr_remote_interface_define_xml_args, (char *)&args,
@@ -3274,7 +3274,7 @@ remoteInterfaceGetXMLDesc(virInterfacePtr iface, unsigned int flags)
     make_nonnull_interface(&args.iface, iface);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(iface->conn, priv, 0, REMOTE_PROC_INTERFACE_GET_XML_DESC,
              (xdrproc_t)xdr_remote_interface_get_xml_desc_args, (char *)&args,
@@ -3301,7 +3301,7 @@ remoteInterfaceIsActive(virInterfacePtr iface)
 
     make_nonnull_interface(&args.iface, iface);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(iface->conn, priv, 0, REMOTE_PROC_INTERFACE_IS_ACTIVE,
              (xdrproc_t)xdr_remote_interface_is_active_args, (char *)&args,
@@ -3328,7 +3328,7 @@ remoteInterfaceLookupByMACString(virConnectPtr conn, const char *mac)
 
     args.mac = (char *)mac;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_INTERFACE_LOOKUP_BY_MAC_STRING,
              (xdrproc_t)xdr_remote_interface_lookup_by_mac_string_args, (char *)&args,
@@ -3356,7 +3356,7 @@ remoteInterfaceLookupByName(virConnectPtr conn, const char *name)
 
     args.name = (char *)name;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_INTERFACE_LOOKUP_BY_NAME,
              (xdrproc_t)xdr_remote_interface_lookup_by_name_args, (char *)&args,
@@ -3416,7 +3416,7 @@ remoteListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
 
     args.maxnames = maxnames;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_LIST_DEFINED_DOMAINS,
              (xdrproc_t)xdr_remote_list_defined_domains_args, (char *)&args,
@@ -3477,7 +3477,7 @@ remoteListDefinedInterfaces(virConnectPtr conn, char **const names, int maxnames
 
     args.maxnames = maxnames;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_LIST_DEFINED_INTERFACES,
              (xdrproc_t)xdr_remote_list_defined_interfaces_args, (char *)&args,
@@ -3538,7 +3538,7 @@ remoteListDefinedNetworks(virConnectPtr conn, char **const names, int maxnames)
 
     args.maxnames = maxnames;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_LIST_DEFINED_NETWORKS,
              (xdrproc_t)xdr_remote_list_defined_networks_args, (char *)&args,
@@ -3599,7 +3599,7 @@ remoteListDefinedStoragePools(virConnectPtr conn, char **const names, int maxnam
 
     args.maxnames = maxnames;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_LIST_DEFINED_STORAGE_POOLS,
              (xdrproc_t)xdr_remote_list_defined_storage_pools_args, (char *)&args,
@@ -3660,7 +3660,7 @@ remoteListInterfaces(virConnectPtr conn, char **const names, int maxnames)
 
     args.maxnames = maxnames;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_LIST_INTERFACES,
              (xdrproc_t)xdr_remote_list_interfaces_args, (char *)&args,
@@ -3721,7 +3721,7 @@ remoteListNetworks(virConnectPtr conn, char **const names, int maxnames)
 
     args.maxnames = maxnames;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_LIST_NETWORKS,
              (xdrproc_t)xdr_remote_list_networks_args, (char *)&args,
@@ -3782,7 +3782,7 @@ remoteListNWFilters(virConnectPtr conn, char **const names, int maxnames)
 
     args.maxnames = maxnames;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_LIST_NWFILTERS,
              (xdrproc_t)xdr_remote_list_nwfilters_args, (char *)&args,
@@ -3843,7 +3843,7 @@ remoteListSecrets(virConnectPtr conn, char **const uuids, int maxuuids)
 
     args.maxuuids = maxuuids;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_LIST_SECRETS,
              (xdrproc_t)xdr_remote_list_secrets_args, (char *)&args,
@@ -3904,7 +3904,7 @@ remoteListStoragePools(virConnectPtr conn, char **const names, int maxnames)
 
     args.maxnames = maxnames;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_LIST_STORAGE_POOLS,
              (xdrproc_t)xdr_remote_list_storage_pools_args, (char *)&args,
@@ -3981,7 +3981,7 @@ remoteNetworkCreateXML(virConnectPtr conn, const char *xml)
 
     args.xml = (char *)xml;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NETWORK_CREATE_XML,
              (xdrproc_t)xdr_remote_network_create_xml_args, (char *)&args,
@@ -4009,7 +4009,7 @@ remoteNetworkDefineXML(virConnectPtr conn, const char *xml)
 
     args.xml = (char *)xml;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NETWORK_DEFINE_XML,
              (xdrproc_t)xdr_remote_network_define_xml_args, (char *)&args,
@@ -4061,7 +4061,7 @@ remoteNetworkGetAutostart(virNetworkPtr net, int *autostart)
 
     make_nonnull_network(&args.net, net);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(net->conn, priv, 0, REMOTE_PROC_NETWORK_GET_AUTOSTART,
              (xdrproc_t)xdr_remote_network_get_autostart_args, (char *)&args,
@@ -4089,7 +4089,7 @@ remoteNetworkGetBridgeName(virNetworkPtr net)
 
     make_nonnull_network(&args.net, net);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(net->conn, priv, 0, REMOTE_PROC_NETWORK_GET_BRIDGE_NAME,
              (xdrproc_t)xdr_remote_network_get_bridge_name_args, (char *)&args,
@@ -4117,7 +4117,7 @@ remoteNetworkGetXMLDesc(virNetworkPtr net, unsigned int flags)
     make_nonnull_network(&args.net, net);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(net->conn, priv, 0, REMOTE_PROC_NETWORK_GET_XML_DESC,
              (xdrproc_t)xdr_remote_network_get_xml_desc_args, (char *)&args,
@@ -4144,7 +4144,7 @@ remoteNetworkIsActive(virNetworkPtr net)
 
     make_nonnull_network(&args.net, net);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(net->conn, priv, 0, REMOTE_PROC_NETWORK_IS_ACTIVE,
              (xdrproc_t)xdr_remote_network_is_active_args, (char *)&args,
@@ -4171,7 +4171,7 @@ remoteNetworkIsPersistent(virNetworkPtr net)
 
     make_nonnull_network(&args.net, net);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(net->conn, priv, 0, REMOTE_PROC_NETWORK_IS_PERSISTENT,
              (xdrproc_t)xdr_remote_network_is_persistent_args, (char *)&args,
@@ -4198,7 +4198,7 @@ remoteNetworkLookupByName(virConnectPtr conn, const char *name)
 
     args.name = (char *)name;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NETWORK_LOOKUP_BY_NAME,
              (xdrproc_t)xdr_remote_network_lookup_by_name_args, (char *)&args,
@@ -4226,7 +4226,7 @@ remoteNetworkLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 
     memcpy(args.uuid, uuid, VIR_UUID_BUFLEN);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NETWORK_LOOKUP_BY_UUID,
              (xdrproc_t)xdr_remote_network_lookup_by_uuid_args, (char *)&args,
@@ -4304,7 +4304,7 @@ remoteNodeDeviceCreateXML(virConnectPtr conn, const char *xml_desc, unsigned int
     args.xml_desc = (char *)xml_desc;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NODE_DEVICE_CREATE_XML,
              (xdrproc_t)xdr_remote_node_device_create_xml_args, (char *)&args,
@@ -4356,7 +4356,7 @@ remoteNodeDeviceGetParent(virNodeDevicePtr dev)
 
     args.name = dev->name;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_GET_PARENT,
              (xdrproc_t)xdr_remote_node_device_get_parent_args, (char *)&args,
@@ -4385,7 +4385,7 @@ remoteNodeDeviceGetXMLDesc(virNodeDevicePtr dev, unsigned int flags)
     args.name = dev->name;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_GET_XML_DESC,
              (xdrproc_t)xdr_remote_node_device_get_xml_desc_args, (char *)&args,
@@ -4421,7 +4421,7 @@ remoteNodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
     args.name = dev->name;
     args.maxnames = maxnames;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_LIST_CAPS,
              (xdrproc_t)xdr_remote_node_device_list_caps_args, (char *)&args,
@@ -4474,7 +4474,7 @@ remoteNodeDeviceLookupByName(virConnectPtr conn, const char *name)
 
     args.name = (char *)name;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NODE_DEVICE_LOOKUP_BY_NAME,
              (xdrproc_t)xdr_remote_node_device_lookup_by_name_args, (char *)&args,
@@ -4502,7 +4502,7 @@ remoteNodeDeviceNumOfCaps(virNodeDevicePtr dev)
 
     args.name = dev->name;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(dev->conn, priv, 0, REMOTE_PROC_NODE_DEVICE_NUM_OF_CAPS,
              (xdrproc_t)xdr_remote_node_device_num_of_caps_args, (char *)&args,
@@ -4526,7 +4526,7 @@ remoteNodeGetFreeMemory(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NODE_GET_FREE_MEMORY,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4550,7 +4550,7 @@ remoteNodeGetInfo(virConnectPtr conn, virNodeInfoPtr result)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NODE_GET_INFO,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4558,7 +4558,7 @@ remoteNodeGetInfo(virConnectPtr conn, virNodeInfoPtr result)
         goto done;
     }
 
-    memcpy(result->model, ret.model, sizeof result->model);
+    memcpy(result->model, ret.model, sizeof(result->model));
     HYPER_TO_ULONG(result->memory, ret.memory);
     result->cpus = ret.cpus;
     result->mhz = ret.mhz;
@@ -4595,7 +4595,7 @@ remoteNodeListDevices(virConnectPtr conn, const char *cap, char **const names, i
     args.maxnames = maxnames;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NODE_LIST_DEVICES,
              (xdrproc_t)xdr_remote_node_list_devices_args, (char *)&args,
@@ -4649,7 +4649,7 @@ remoteNodeNumOfDevices(virConnectPtr conn, const char *cap, unsigned int flags)
     args.cap = cap ? (char **)&cap : NULL;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NODE_NUM_OF_DEVICES,
              (xdrproc_t)xdr_remote_node_num_of_devices_args, (char *)&args,
@@ -4699,7 +4699,7 @@ remoteNumOfDefinedDomains(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NUM_OF_DEFINED_DOMAINS,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4723,7 +4723,7 @@ remoteNumOfDefinedInterfaces(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NUM_OF_DEFINED_INTERFACES,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4747,7 +4747,7 @@ remoteNumOfDefinedNetworks(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NUM_OF_DEFINED_NETWORKS,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4771,7 +4771,7 @@ remoteNumOfDefinedStoragePools(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NUM_OF_DEFINED_STORAGE_POOLS,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4795,7 +4795,7 @@ remoteNumOfDomains(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NUM_OF_DOMAINS,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4819,7 +4819,7 @@ remoteNumOfInterfaces(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NUM_OF_INTERFACES,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4843,7 +4843,7 @@ remoteNumOfNetworks(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NUM_OF_NETWORKS,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4867,7 +4867,7 @@ remoteNumOfNWFilters(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NUM_OF_NWFILTERS,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4891,7 +4891,7 @@ remoteNumOfSecrets(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NUM_OF_SECRETS,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4915,7 +4915,7 @@ remoteNumOfStoragePools(virConnectPtr conn)
 
     remoteDriverLock(priv);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NUM_OF_STORAGE_POOLS,
              (xdrproc_t)xdr_void, (char *)NULL,
@@ -4942,7 +4942,7 @@ remoteNWFilterDefineXML(virConnectPtr conn, const char *xml)
 
     args.xml = (char *)xml;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NWFILTER_DEFINE_XML,
              (xdrproc_t)xdr_remote_nwfilter_define_xml_args, (char *)&args,
@@ -4971,7 +4971,7 @@ remoteNWFilterGetXMLDesc(virNWFilterPtr nwfilter, unsigned int flags)
     make_nonnull_nwfilter(&args.nwfilter, nwfilter);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(nwfilter->conn, priv, 0, REMOTE_PROC_NWFILTER_GET_XML_DESC,
              (xdrproc_t)xdr_remote_nwfilter_get_xml_desc_args, (char *)&args,
@@ -4998,7 +4998,7 @@ remoteNWFilterLookupByName(virConnectPtr conn, const char *name)
 
     args.name = (char *)name;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NWFILTER_LOOKUP_BY_NAME,
              (xdrproc_t)xdr_remote_nwfilter_lookup_by_name_args, (char *)&args,
@@ -5026,7 +5026,7 @@ remoteNWFilterLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 
     memcpy(args.uuid, uuid, VIR_UUID_BUFLEN);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_NWFILTER_LOOKUP_BY_UUID,
              (xdrproc_t)xdr_remote_nwfilter_lookup_by_uuid_args, (char *)&args,
@@ -5079,7 +5079,7 @@ remoteSecretDefineXML(virConnectPtr conn, const char *xml, unsigned int flags)
     args.xml = (char *)xml;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_SECRET_DEFINE_XML,
              (xdrproc_t)xdr_remote_secret_define_xml_args, (char *)&args,
@@ -5108,7 +5108,7 @@ remoteSecretGetXMLDesc(virSecretPtr secret, unsigned int flags)
     make_nonnull_secret(&args.secret, secret);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(secret->conn, priv, 0, REMOTE_PROC_SECRET_GET_XML_DESC,
              (xdrproc_t)xdr_remote_secret_get_xml_desc_args, (char *)&args,
@@ -5136,7 +5136,7 @@ remoteSecretLookupByUsage(virConnectPtr conn, int usageType, const char *usageID
     args.usageType = usageType;
     args.usageID = (char *)usageID;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_SECRET_LOOKUP_BY_USAGE,
              (xdrproc_t)xdr_remote_secret_lookup_by_usage_args, (char *)&args,
@@ -5164,7 +5164,7 @@ remoteSecretLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 
     memcpy(args.uuid, uuid, VIR_UUID_BUFLEN);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_SECRET_LOOKUP_BY_UUID,
              (xdrproc_t)xdr_remote_secret_lookup_by_uuid_args, (char *)&args,
@@ -5301,7 +5301,7 @@ remoteStoragePoolCreateXML(virConnectPtr conn, const char *xml, unsigned int fla
     args.xml = (char *)xml;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_STORAGE_POOL_CREATE_XML,
              (xdrproc_t)xdr_remote_storage_pool_create_xml_args, (char *)&args,
@@ -5330,7 +5330,7 @@ remoteStoragePoolDefineXML(virConnectPtr conn, const char *xml, unsigned int fla
     args.xml = (char *)xml;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_STORAGE_POOL_DEFINE_XML,
              (xdrproc_t)xdr_remote_storage_pool_define_xml_args, (char *)&args,
@@ -5407,7 +5407,7 @@ remoteStoragePoolGetAutostart(virStoragePoolPtr pool, int *autostart)
 
     make_nonnull_storage_pool(&args.pool, pool);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(pool->conn, priv, 0, REMOTE_PROC_STORAGE_POOL_GET_AUTOSTART,
              (xdrproc_t)xdr_remote_storage_pool_get_autostart_args, (char *)&args,
@@ -5435,7 +5435,7 @@ remoteStoragePoolGetInfo(virStoragePoolPtr pool, virStoragePoolInfoPtr result)
 
     make_nonnull_storage_pool(&args.pool, pool);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(pool->conn, priv, 0, REMOTE_PROC_STORAGE_POOL_GET_INFO,
              (xdrproc_t)xdr_remote_storage_pool_get_info_args, (char *)&args,
@@ -5467,7 +5467,7 @@ remoteStoragePoolGetXMLDesc(virStoragePoolPtr pool, unsigned int flags)
     make_nonnull_storage_pool(&args.pool, pool);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(pool->conn, priv, 0, REMOTE_PROC_STORAGE_POOL_GET_XML_DESC,
              (xdrproc_t)xdr_remote_storage_pool_get_xml_desc_args, (char *)&args,
@@ -5494,7 +5494,7 @@ remoteStoragePoolIsActive(virStoragePoolPtr pool)
 
     make_nonnull_storage_pool(&args.pool, pool);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(pool->conn, priv, 0, REMOTE_PROC_STORAGE_POOL_IS_ACTIVE,
              (xdrproc_t)xdr_remote_storage_pool_is_active_args, (char *)&args,
@@ -5521,7 +5521,7 @@ remoteStoragePoolIsPersistent(virStoragePoolPtr pool)
 
     make_nonnull_storage_pool(&args.pool, pool);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(pool->conn, priv, 0, REMOTE_PROC_STORAGE_POOL_IS_PERSISTENT,
              (xdrproc_t)xdr_remote_storage_pool_is_persistent_args, (char *)&args,
@@ -5557,7 +5557,7 @@ remoteStoragePoolListVolumes(virStoragePoolPtr pool, char **const names, int max
     make_nonnull_storage_pool(&args.pool, pool);
     args.maxnames = maxnames;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(pool->conn, priv, 0, REMOTE_PROC_STORAGE_POOL_LIST_VOLUMES,
              (xdrproc_t)xdr_remote_storage_pool_list_volumes_args, (char *)&args,
@@ -5610,7 +5610,7 @@ remoteStoragePoolLookupByName(virConnectPtr conn, const char *name)
 
     args.name = (char *)name;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_NAME,
              (xdrproc_t)xdr_remote_storage_pool_lookup_by_name_args, (char *)&args,
@@ -5638,7 +5638,7 @@ remoteStoragePoolLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 
     memcpy(args.uuid, uuid, VIR_UUID_BUFLEN);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_UUID,
              (xdrproc_t)xdr_remote_storage_pool_lookup_by_uuid_args, (char *)&args,
@@ -5666,7 +5666,7 @@ remoteStoragePoolLookupByVolume(virStorageVolPtr vol)
 
     make_nonnull_storage_vol(&args.vol, vol);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(vol->conn, priv, 0, REMOTE_PROC_STORAGE_POOL_LOOKUP_BY_VOLUME,
              (xdrproc_t)xdr_remote_storage_pool_lookup_by_volume_args, (char *)&args,
@@ -5694,7 +5694,7 @@ remoteStoragePoolNumOfVolumes(virStoragePoolPtr pool)
 
     make_nonnull_storage_pool(&args.pool, pool);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(pool->conn, priv, 0, REMOTE_PROC_STORAGE_POOL_NUM_OF_VOLUMES,
              (xdrproc_t)xdr_remote_storage_pool_num_of_volumes_args, (char *)&args,
@@ -5797,7 +5797,7 @@ remoteStorageVolCreateXML(virStoragePoolPtr pool, const char *xml, unsigned int 
     args.xml = (char *)xml;
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(pool->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_CREATE_XML,
              (xdrproc_t)xdr_remote_storage_vol_create_xml_args, (char *)&args,
@@ -5828,7 +5828,7 @@ remoteStorageVolCreateXMLFrom(virStoragePoolPtr pool, const char *xml, virStorag
     make_nonnull_storage_vol(&args.clonevol, clonevol);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(pool->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_CREATE_XML_FROM,
              (xdrproc_t)xdr_remote_storage_vol_create_xml_from_args, (char *)&args,
@@ -5923,7 +5923,7 @@ remoteStorageVolGetInfo(virStorageVolPtr vol, virStorageVolInfoPtr result)
 
     make_nonnull_storage_vol(&args.vol, vol);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(vol->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_GET_INFO,
              (xdrproc_t)xdr_remote_storage_vol_get_info_args, (char *)&args,
@@ -5953,7 +5953,7 @@ remoteStorageVolGetPath(virStorageVolPtr vol)
 
     make_nonnull_storage_vol(&args.vol, vol);
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(vol->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_GET_PATH,
              (xdrproc_t)xdr_remote_storage_vol_get_path_args, (char *)&args,
@@ -5981,7 +5981,7 @@ remoteStorageVolGetXMLDesc(virStorageVolPtr vol, unsigned int flags)
     make_nonnull_storage_vol(&args.vol, vol);
     args.flags = flags;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(vol->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_GET_XML_DESC,
              (xdrproc_t)xdr_remote_storage_vol_get_xml_desc_args, (char *)&args,
@@ -6008,7 +6008,7 @@ remoteStorageVolLookupByKey(virConnectPtr conn, const char *key)
 
     args.key = (char *)key;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_KEY,
              (xdrproc_t)xdr_remote_storage_vol_lookup_by_key_args, (char *)&args,
@@ -6037,7 +6037,7 @@ remoteStorageVolLookupByName(virStoragePoolPtr pool, const char *name)
     make_nonnull_storage_pool(&args.pool, pool);
     args.name = (char *)name;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(pool->conn, priv, 0, REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_NAME,
              (xdrproc_t)xdr_remote_storage_vol_lookup_by_name_args, (char *)&args,
@@ -6065,7 +6065,7 @@ remoteStorageVolLookupByPath(virConnectPtr conn, const char *path)
 
     args.path = (char *)path;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_STORAGE_VOL_LOOKUP_BY_PATH,
              (xdrproc_t)xdr_remote_storage_vol_lookup_by_path_args, (char *)&args,
@@ -6217,7 +6217,7 @@ remoteSupportsFeature(virConnectPtr conn, int feature)
 
     args.feature = feature;
 
-    memset(&ret, 0, sizeof ret);
+    memset(&ret, 0, sizeof(ret));
 
     if (call(conn, priv, 0, REMOTE_PROC_SUPPORTS_FEATURE,
              (xdrproc_t)xdr_remote_supports_feature_args, (char *)&args,

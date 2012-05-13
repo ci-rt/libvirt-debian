@@ -1,3 +1,755 @@
+2012-04-03  Daniel Veillard  <veillard@redhat.com>
+
+	Revert "Refactor the libvirt RPM daemon pieces"
+	This reverts commit 06a0d57f5a90e408a6280dc2f9db0badeeeb78ee.
+
+2012-04-03  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Start nested job in qemuDomainCheckEjectableMedia
+	Originally, qemuDomainCheckEjectableMedia was entering monitor with qemu
+	driver lock. Commit 2067e31bf97667eab9f111b496f5e9a44e827c5b, which I
+	made to fix that, revealed another issue we had (but didn't notice it
+	since the driver was locked): we didn't set nested job when
+	qemuDomainCheckEjectableMedia is called during migration. Thus the
+	original fix I made was wrong.
+
+2012-04-02  Philipp Hahn  <hahn@univention.de>
+
+	Xen: Fix <clock> handling
+	XenD-3.1 introduced managed domains. HV-domains have rtc_timeoffset
+	(hgd24f37b31030 from 2007-04-03), which tracks the offset between the
+	hypervisors clock and the domains RTC, and is persisted by XenD.
+	In combination with localtime=1 this had a bug until XenD-3.4
+	(hg5d701be7c37b from 2009-04-01) (I'm not 100% sure how that bug
+	manifests, but at least for me in TZ=Europe/Berlin I see the previous
+	offset relative to utc being applied to localtime again, which manifests
+	in an extra hour being added)
+
+	XenD implements the following variants for clock/@offset:
+	- PV domains don't have a RTC → 'localtime' | 'utc'
+	- <3.1: no managed domains → 'localtime' | 'utc'
+	- ≥3.1: the offset is tracked for HV → 'variable'
+	        due to the localtime=1 bug → 'localtime' | 'utc'
+	- ≥3.4: the offset is tracked for HV → 'variable'
+
+	Current libvirtd still thinks XenD only implements <clock offset='utc'/>
+	and <clock offset='localtime'/>, which is wrong, since the semantic of
+	'utc' and 'localtime' specifies, that the offset will be reset on
+	domain-restart, while with 'variable' the offset is kept. (keeping the
+	offset over "virsh edit" is important, since otherwise the clock might
+	jump, which confuses certain guest OSs)
+
+	xendConfigVersion was last incremented to 4 by the xen-folks for
+	xen-3.1.0. I know of no way to reliably detect the version of XenD
+	(user space tools), which may be different from the version of the
+	hypervisor (kernel) version! Because of this only the change from
+	'utc'/'localtime' to 'variable' in XenD-3.1 is handled, not the buggy
+	behaviour of XenD-3.1 until XenD-3.4.
+
+	For backward compatibility with previous versions of libvirt Xen-HV
+	still accepts 'utc' and 'localtime', but they are returned as 'variable'
+	on the next read-back from Xend to libvirt, since this is what XenD
+	implements: The RTC is NOT reset back to the specified time on next
+	restart, but the previous offset is kept.
+	This behaviour can be turned off by adding the additional attribute
+	adjustment='reset', in which case libvirt will report an error instead
+	of doing the conversion. The attribute can also be used as a shortcut to
+	offset='variable' with basis='...'.
+
+	With these changes, it is also necessary to adjust the xen tests:
+
+	"localtime = 0" is always inserted, because otherwise on updates the
+	value is not changed within XenD.
+
+	adjustment='reset' is inserted for all cases, since they're all <
+	XEND_CONFIG_VERSION_3_1_0, only 3.1 introduced persistent
+	rtc_timeoffset.
+
+	Some statements change their order because code was moved around.
+
+2012-04-02  Philipp Hahn  <hahn@univention.de>
+
+	Support clock=variable relative to localtime
+	Since Xen 3.1 the clock=variable semantic is supported. In addition to
+	qemu/kvm Xen also knows about a variant where the offset is relative to
+	'localtime' instead of 'utc'.
+
+	Extends the libvirt structure with a flag 'basis' to specify, if the
+	offset is relative to 'localtime' or 'utc'.
+
+	Extends the libvirt structure with a flag 'reset' to force the reset
+	behaviour of 'localtime' and 'utc'; this is needed for backward
+	compatibility with previous versions of libvirt, since they report
+	incorrect XML.
+
+	Adapt the only user 'qemu' to the new name.
+	Extend the RelaxNG schema accordingly.
+	Document the new 'basis' attribute in the HTML documentation.
+	Adapt test for the new attribute.
+
+2012-04-02  Yuri Chornoivan  <yurchor@ukr.net>
+
+	Fix typos and spacing in messages.
+
+2012-04-02  Laine Stump  <laine@laine.org>
+
+	qemu: fix memory leak in virDomainGetVcpus
+	https://bugzilla.redhat.com/show_bug.cgi?id=808979
+
+	The leak is really in virProcessInfoGetAffinity, as shown in the
+	valgrind output given in the above bug report - it calls CPU_ALLOC(),
+	but then fails to call CPU_FREE().
+
+	This leak has existed in every version of libvirt since 0.7.5.
+
+2012-03-31  Eric Blake  <eblake@redhat.com>
+
+	conf: allow fuzz in XML with cur balloon > max
+	Commit 1b1402b introduced a regression.  Since older libvirt versions
+	would silently round memory up (until the previous patch), but populated
+	current memory based on querying the guest, it was possible to have
+	dumpxml show cur > max by the amount of the rounding.  For example, if
+	a user requested 1048570 KiB memory (just shy of 1GiB), the qemu
+	driver would actually run with 1048576 KiB, and libvirt 0.9.10 would
+	output a current that was 6KiB larger than the maximum.  Situations
+	where this could have an impact include, but are not limited to,
+	migration from old to new libvirt, managedsave in old libvirt and
+	start in new libvirt, snapshot creation in old libvirt and revert in
+	new libvirt - without this patch, the new libvirt would reject the
+	VM because of the rounding discrepancy.
+
+	Fix things by adding a fuzz factor, and silently clamp current down to
+	maximum in that case, rather than failing to reparse XML for an existing
+	VM.  From a practical standpoint, this has no user impact: 'virsh
+	dumpxml' will continue to query the running guest rather than rely on
+	the incoming xml, which will see the currect current value, and even if
+	clamping down occurs during parsing, it will be by at most the fuzz
+	factor of a megabyte alignment, and rounded back up when passed back to
+	the hypervisor.
+
+	Meanwhile, we continue to reject cur > max if the difference is beyond
+	the fuzz factor of nearest megabyte.  But this is not a real change in
+	behavior, since with 0.9.10, even though the parser allowed it, later
+	in the processing stream we would reject it at the qemu layer; so
+	rejecting it in the parser just moves error detection to a nicer place.
+
+	* src/conf/domain_conf.c (virDomainDefParseXML): Don't reject
+	existing XML.
+	Based on a report by Zhou Peng.
+
+2012-03-31  Eric Blake  <eblake@redhat.com>
+
+	qemu: reflect any memory rounding back to xml
+	If we round up a user's memory request, we should update the XML
+	to reflect the actual value in use by the VM, rather than giving
+	an artificially small value back to the user.
+
+	* src/qemu/qemu_command.c (qemuBuildNumaArgStr)
+	(qemuBuildCommandLine): Reflect rounding back to XML.
+
+2012-03-31  Eric Blake  <eblake@redhat.com>
+
+	python: improve conversion validation
+	Laszlo Ersek pointed out that in trying to convert a long to an
+	unsigned int, we used:
+
+	long long_val = ...;
+	if ((unsigned int)long_val == long_val)
+
+	According to C99 integer promotion rules, the if statement is
+	equivalent to:
+
+	(unsigned long)(unsigned int)long_val == (unsigned long)long_val
+
+	since you get an unsigned comparison if at least one side is
+	unsigned, using the largest rank of the two sides; but on 32-bit
+	platforms, where unsigned long and unsigned int are the same size,
+	this comparison is always true and ends up converting negative
+	long_val into posigive unsigned int values, rather than rejecting
+	the negative value as we had originally intended (python longs
+	are unbounded size, and we don't want to do silent modulo
+	arithmetic when converting to C code).
+
+	Fix this by using direct comparisons, rather than casting.
+
+	* python/typewrappers.c (libvirt_intUnwrap, libvirt_uintUnwrap)
+	(libvirt_ulongUnwrap, libvirt_ulonglongUnwrap): Fix conversion
+	checks.
+
+2012-03-31  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix client only RPM build & other misc RPM problems
+	* libvirt.spec.in: Remove obsolete --with-remote-pid-file arg.
+	  Add missing %{without_libxl} statement. Fix handling of docs
+	  in client only build. Put systemtap files in -client RPM
+	  instead of -daemon RPM
+	* examples/xml/nwfilter/Makefile.am: Don't install examples if
+	  nwfilter is disabled.
+
+2012-03-31  Daniel P. Berrange  <berrange@redhat.com>
+
+	Refactor the libvirt RPM daemon pieces
+	There are a number of flaws with our packaging of the libvirtd
+	daemon:
+
+	 - Installing 'libvirt' does not install 'qemu-kvm' or 'xen'
+	   etc which are required to actually run the hypervisor in
+	   question
+	 - Installing 'libvirt' pulls in the default configuration
+	   files which may not be wanted & cause problems if installed
+	   inside a guest
+	 - It is not possible to explicitly required all the peices
+	   required to manage a specific hypervisor
+
+	This change takes the 'libvirt' RPM and and changes it thus
+
+	 - libvirt: just a virtual package with dep on libvirt-daemon,
+	   libvirt-daemon-config-network & libvirt-daemon-config-nwfilter
+	 - libvirt-daemon: the libvirt daemon and related pieces
+	 - libvirt-daemon-config-network: the default network config
+	 - libvirt-daemon-config-nwfilter: the network filter configs
+	 - libvirt-docs: the website HTML
+
+	We then introduce some more virtual (empty) packages
+
+	 - libvirt-daemon-qemu: Deps on libvirt-daemon & 'qemu'
+	 - libvirt-daemon-kvm: Deps on libvirt-daemon & 'qemu-kvm'
+	 - libvirt-daemon-lxc: Deps on libvirt-daemon
+	 - libvirt-daemon-uml: Deps on libvirt-daemon
+	 - libvirt-daemon-xen: Deps on libvirt-daemon & 'xen'
+
+	 - libvirt-qemu: Deps on libvirt-daemon-qemu & libvirt-daemon-config-{network,nwfilter}
+	 - libvirt-kvm: Deps on libvirt-daemon-kvm & libvirt-daemon-config-{network,nwfilter}
+	 - libvirt-lxc: Deps on libvirt-daemon-lxc & libvirt-daemon-config-{network,nwfilter}
+	 - libvirt-uml: Deps on libvirt-daemon-uml & libvirt-daemon-config-{network,nwfilter}
+	 - libvirt-xen: Deps on libvirt-daemon-xen & libvirt-daemon-config-network
+
+	My intent in the future is to turn on the driver modules by
+	default, at which time 'libvirt-daemon' will cease to include
+	any specific drivers, instead we'll get libvirt-daemon-driver-XXXX
+	packages for each driver. The libvirt-daemon-XXX packages will
+	then pull in each driver that they require.
+
+	It is recommended that applications required a locally installed
+	libvirtd daemon, use either 'Requires: libvirt-daemon-XXXX' or
+	'Requires: libvirt-XXX' and *not* "Requires: libvirt-daemon"
+	or 'Requires: libvirt'
+
+	* libvirt.spec.in: Refactor RPMs
+	* docs/packaging.html.in, docs/sitemap.html.in: Document
+	  new RPM split rationale
+
+2012-03-31  Hendrik Schwartke  <hendrik@os-t.de>
+
+	qemu: support live change of the bridge used by a guest network device
+	This patch was created to resolve this upstream bug:
+
+	  https://bugzilla.redhat.com/show_bug.cgi?id=784767
+
+	and is at least a partial solution to this RHEL RFE:
+
+	  https://bugzilla.redhat.com/show_bug.cgi?id=805071
+
+	Previously the only attribute of a network device that could be
+	modified by virUpdateDeviceFlags() ("virsh update-device") was the
+	link state; attempts to change any other attribute would log an error
+	and fail.
+
+	This patch adds recognition of a change in bridge device name, and
+	supports reconnecting the guest's interface to the new device.
+	Standard audit logs for detaching and attaching a network device are
+	also generated. Although the current auditing function doesn't log the
+	bridge being attached to, this will later be changed in a separate
+	patch.
+
+2012-03-31  Eric Blake  <eblake@redhat.com>
+
+	build: fix build on cygwin
+	Regression introduced when we changed types in commit 3e2c3d8f6.
+
+	We've done this sort of cleanup before (see commit c685993d7).
+
+	* src/conf/storage_conf.c (virStoragePoolDefFormat)
+	(virStorageVolTargetDefFormat): Cast gid_t and uid_t.
+
+2012-03-31  Eric Blake  <eblake@redhat.com>
+
+	build: fix mingw ssize_t, syntax check
+	We are so close to a release that we don't want to pull in a
+	gnulib submodule update and risk regressions, since there has
+	been a lot of other gnulib churn upstream.  However, there are
+	a couple of gnulib issues that are worth fixing in isolation,
+	by applying local patches to gnulib.
+
+	There was an upstream gnulib bug in maint.mk that rendered most
+	of our syntax checks ineffective (and fixing it flushed out a
+	minor bug in our code):
+	https://lists.gnu.org/archive/html/bug-gnulib/2012-03/msg00194.html
+
+	There is still an upstream bug where gnulib uses the wrong type
+	for ssize_t on mingw; we need the fix now even though it has not
+	yet been accepted into gnulib:
+	https://lists.gnu.org/archive/html/bug-gnulib/2012-03/msg00188.html
+
+	* gnulib/local/top/maint.mk.diff: Pick up upstream gnulib
+	maint.mk.
+	* gnulib/local/m4/ssize_t.m4.diff: Work around gnulib bug.
+	* src/libvirt.c: Remove unused header.
+	* cfg.mk
+	(exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF): Exempt
+	gnulib local files.
+
+2012-03-31  Laine Stump  <laine@laine.org>
+
+	qemu: eliminate nested switch, simplify code
+	qemuBuildHostNetStr had a switch-within-a-switch where both were
+	looking at the same variable. This was apparently to take advantage of
+	code common to three different cases (while also taking care of some
+	code that was different). However, there were only 2 lines common to
+	all, one of those can be eliminated by merging it into the
+	virAsprintfs that are in each case. On top of that, all the extra
+	empty cases cause Coverity complaints (because they are unreachable),
+	but absence of the empty cases causes a compile error due to
+	"enumeration value not handled in switch".
+
+	The solution is to just make each toplevel case independent, folding
+	in the common code to each.
+
+2012-03-31  Laine Stump  <laine@laine.org>
+
+	Revert "Set default name for SPICE agent channel"
+	This patch reverts commit b0e2bb3. Its functionality has been replaced
+	by commit 3269ee6.
+
+2012-03-31  Laine Stump  <laine@laine.org>
+
+	qemu: set default name for SPICE agent channel when generating command
+	commit b0e2bb33 set a default value for the SPICE agent channel by
+	inserting it during parsing of the channel XML. That method of setting
+	a default is problematic because it makes a format/parse roundtrip
+	unclean, and experience with setting other values as a side effect of
+	parsing has led to headaches (e.g. automatically setting a MAC address
+	in the parser when one isn't specified in the input XML).
+
+	This patch does not revert commit b0e2bb33 (it will be reverted in a
+	separate patch) but adds the alternate implementation of simply
+	inserting the default value in the appropriate place on the qemu
+	commandline when no value is provided.
+
+2012-03-31  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemu_agent: Issue guest-sync prior to every command
+	If we issue guest command and GA is not running, the issuing thread
+	will block endlessly. We can check for GA presence by issuing
+	guest-sync with unique ID (timestamp). We don't want to issue real
+	command as even if GA is not running, once it is started, it process
+	all commands written to GA socket.
+
+2012-03-30  Michal Privoznik  <mprivozn@redhat.com>
+
+	virnetdevtap: Don't check for flags in virNetDevTapCreateFlags
+	With latest gnulib we are checking even the lowest level functions
+	whether they check flags. Moreover, we are shadowing the real error
+	on system without TUNSETIFF support.
+
+2012-03-30  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix typo in previous patch
+	* src/remote/remote_driver.c: s/sizeof(ret)2/sizeof(ret2)/
+
+2012-03-30  Daniel P. Berrange  <berrange@redhat.com>
+
+	Consistent style for usage of sizeof operator
+	The code is splattered with a mix of
+
+	  sizeof foo
+	  sizeof (foo)
+	  sizeof(foo)
+
+	Standardize on sizeof(foo) and add a syntax check rule to
+	enforce it
+
+2012-03-30  Daniel P. Berrange  <berrange@redhat.com>
+
+	Disable build of commandhelper & ssh on Win32
+	The commandhelper.c & ssh.c programs rely on various APIs not present
+	on Win32. Disable them, since the tests that uses these helpers are
+	already disabled
+
+	* tests/commandhelper.c, tests/ssh.c: Disable on WIN32
+
+2012-03-30  Daniel P. Berrange  <berrange@redhat.com>
+
+	Don't redefine the CPU comparison constants in CPU test
+	Defining an enum with names like "ERROR" causes  a world of
+	hurt on Win32 whose headers have such symbol names already
+
+	* tests/cputest.c: Remove redefinition of CPU constants
+
+2012-03-30  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix some format specifiers for size_t vs ssize_t
+	A handful of places used %zd for format specifiers even
+	though the args was size_t, not ssize_t.
+
+	* src/remote/remote_driver.c, src/util/xml.c: s/%zd/%zu/
+
+2012-03-30  Alex Jia  <ajia@redhat.com>
+
+	conf: Prevent crash of libvirtd without channel target name
+	* src/conf/domain_conf.c (virDomainChannelDefCheckABIStability): avoid
+	  crashing libvirtd due to derefing a NULL pointer.
+
+	For details, please see bug:
+	RHBZ: https://bugzilla.redhat.com/show_bug.cgi?id=808371
+
+2012-03-30  Wen Congyang  <wency@cn.fujitsu.com>
+
+	fix a deadlock when qemu cannot start
+	When qemu cannot start, we may call qemuProcessStop() twice.
+	We have check whether the vm is running at the beginning of
+	qemuProcessStop() to avoid libvirt deadlock. We call
+	qemuProcessStop() with driver and vm locked. It seems that
+	we can avoid libvirt deadlock. But unfortunately we may
+	unlock driver and vm in the function qemuProcessKill() while
+	vm->def->id is not -1. So qemuProcessStop() will be run twice,
+	and monitor will be freed unexpectedly. So we should set
+	vm->def->id to -1 at the beginning of qemuProcessStop().
+
+2012-03-30  Eric Blake  <eblake@redhat.com>
+
+	build: silence recent syntax check violations
+	An upstream gnulib bug[1] meant that some of our syntax checks
+	weren't being run.  Fix up our offenders before we upgrade to
+	a newer gnulib.
+
+	[1] https://lists.gnu.org/archive/html/bug-gnulib/2012-03/msg00194.html
+
+	* src/util/virnetdevtap.c (virNetDevTapCreate): Use flags.
+	* tests/lxcxml2xmltest.c (mymain): Strip useless ().
+
+2012-03-30  Eric Blake  <eblake@redhat.com>
+
+	build: avoid 'devname' for BSD
+	Commit 21b5daa1 was the last time we cleaned this up.
+
+	* tools/virt-host-validate-common.c (virHostValidateDevice):
+	Rename local variable.
+
+2012-03-29  Zhou Peng  <ailvpeng25@gmail.com>
+
+	private.syms: Add virNetDevMacVLanRestartWithVPortProfile
+	virNetDevMacVLanRestartWithVPortProfile is omitted in src/libvirt_private.syms,
+	which causes link err.
+
+2012-03-29  Christian Benvenuti  <benve@cisco.com>
+
+	qemu: Make migration fail when port profile association fails on the dst host
+	In the current V3 migration protocol, Libvirt does not
+	check the result of the function
+
+	  qemuMigrationVPAssociatePortProfiles
+
+	This means that it is possible for a migration to complete
+	successfully even when the VM loses network connectivity on
+	the destination host.
+
+	With this change libvirt aborts the migration
+	(during the "finish" step) when the above function fails, that
+	is to say when at least one of the port profile associations fails.
+
+	Signed-off by: Christian Benvenuti <benve@cisco.com>
+
+2012-03-29  Christophe Fergeau  <cfergeau@redhat.com>
+
+	Set default name for SPICE agent channel
+	libvirt documentation for channels with type 'spicevmc' says that the
+	'target' child node has:
+	"an optional attribute name controls how the guest will have access
+	 to the channel, and defaults to name='com.redhat.spice.0'."
+
+	However, this default value is never set in libvirt code base,
+	there's only a check in qemu_command.c to error out if the name
+	attribute doesn't have the expected value (if it's set).
+
+	This commit sets a default target name for spicevmc channels during
+	the domain configuration parsing so that the code agrees with the
+	documentation.
+
+2012-03-28  Alex Jia  <ajia@redhat.com>
+
+	virsh: plug memory leaks on failure path
+	Leaks are introduced in commit 1cf0e3d and fe383bb.
+
+	Fixing memory leaks, in addition, the patch also fixes a potential missing
+	return value issue in 'if (from)' statement, without the fixing, although
+	the programming met a error, the subsequent codes will be executed
+	continually.
+
+	* tools/virsh.c (cmdSnapshotList): fix memory leaks and missing return value.
+
+	* How to reproduce?
+
+	% virsh snapshot-list <domain> --parent --roots
+	% virsh snapshot-list <domain> --parent --tree
+	% virsh snapshot-list <domain> --roots --tree
+
+	actual result:
+	error: --parent and --roots are mutually exclusive
+	error: Failed to disconnect from the hypervisor, 1 leaked reference(s)
+
+	error: --parent and --tree are mutually exclusive
+	error: Failed to disconnect from the hypervisor, 1 leaked reference(s)
+
+	error: --roots and --tree are mutually exclusive
+	error: Failed to disconnect from the hypervisor, 1 leaked reference(s)
+
+	% virsh snapshot-create-as <domain> --name "hello"
+	% virsh snapshot-create-as <domain> --name "libvirt"
+	% virsh snapshot-list <domain> --roots --from "hello"
+
+	actual result:
+	error: --roots and --from are mutually exclusive
+	 Name                 Creation Time             State
+	------------------------------------------------------------
+	 libvirt              2012-03-28 13:46:51 +0800 running
+
+2012-03-28  Guannan Ren  <gren@redhat.com>
+
+	python: make python APIs use these helper functions
+	    *setPyVirTypedParameter
+	    *libvirt_virDomainGetCPUStats
+
+	python: Add new helper functions for python to C integral conversion
+	    int libvirt_intUnwrap(PyObject *obj, int *val);
+	    int libvirt_uintUnwrap(PyObject *obj, unsigned int *val);
+	    int libvirt_longUnwrap(PyObject *obj, long *val);
+	    int libvirt_ulongUnwrap(PyObject *obj, unsigned long *val);
+	    int libvirt_longlongUnwrap(PyObject *obj, long long *val);
+	    int libvirt_ulonglongUnwrap(PyObject *obj, unsigned long long *val);
+	    int libvirt_doubleUnwrap(PyObject *obj, double *val);
+	    int libvirt_boolUnwrap(PyObject *obj, bool *val);
+
+2012-03-28  Eric Blake  <eblake@redhat.com>
+
+	snapshot: fix virsh docs
+	Commit d42a2ff forgot to touch up virsh documentation, and commit
+	4e9953a mis-spelled the option name.
+
+	* tools/virsh.pod (snapshot-create, snapshot-create-as): Fix typo
+	and match recent change in flag meaning.
+
+2012-03-28  Daniel P. Berrange  <berrange@redhat.com>
+
+	Enable all warnings permanently & default to -Werror for GIT builds
+	Given that we auto-detect whether each -Wxxxx flag is supported by
+	GCC, and we are warning-free and use automake silent rules, there
+	is no compelling reason to allow compile warnings to be disabled.
+
+	Replace the --enable-compile-warnings flag with a simpler
+	--enable-werror flag, which defaults to 'yes' if building
+	from GIT, or 'no' if building from tar.gz
+
+	This helps ensure that everyone writing patches for libvirt will
+	take care to fix their warning problems before submitting for
+	review
+
+	* autobuild.sh: Force -Werror
+	* configure.ac: Update for LIBVIRT_COMPILE_WARNINGS macro change
+	* m4/virt-compile-warnings.m4: Permanently enable all warnings,
+	  auto-enable Werror for GIT builds
+
+2012-03-28  Daniel P. Berrange  <berrange@redhat.com>
+
+	Enable build of test suite programs by default for GIT checkouts
+	Add a new flag '--with-test-suite' to configure to control whether
+	the test suite binaries are built by default. ie built with a
+	plain 'make', as opposed to delayed until 'make check'
+
+	For builds from tar.gz tests will not be built by default. For
+	builds from GIT, tests with be on by default, to try and ensure
+	that patch developers don't accidentally break the test suites
+	without noticing.
+
+	* configure.ac: Add --with-test-suite
+	* tests/Makefile.am: Use noinst_PROGRAMS instead of check_PROGRAMS
+	  if building tests by default. Consolidate setting of TESTS and
+	  {noinst,check}_PROGRAMS to avoid duplication
+
+2012-03-27  Stef Walter  <stefw@gnome.org>
+
+	Change the default of mdns_adv to false
+	 * Don't advertise information on the network without consent of
+	   the user, either through manual configuration, or a user
+	   interface that drives this option.
+	 * Since libvirtd must be configured for network access anyway
+	   (for all but ssh), this setting was not useful "out of the box",
+	   so changing this default setting does not remove "out of the box"
+	   functionality.
+
+2012-03-27  Eric Blake  <eblake@redhat.com>
+
+	snapshot: don't pass NULL to QMP command creation
+	Commit d42a2ff caused a regression in creating a disk-only snapshot
+	of a qcow2 disk; by passing the wrong variable to the monitor call,
+	libvirt ended up creating JSON that looked like "format":null instead
+	of the intended "format":"qcow2".
+
+	To make it easier to diagnose this in the future, make JSON creation
+	error out if "s:arg" is paired with NULL (it is still possible to
+	use "n:arg" in the rare cases where qemu will accept a null).
+
+	* src/qemu/qemu_driver.c
+	(qemuDomainSnapshotCreateSingleDiskActive): Pass correct value.
+	* src/qemu/qemu_monitor_json.c (qemuMonitorJSONMakeCommandRaw):
+	Improve error message.
+
+2012-03-27  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add LXC XML files to schema test & fix problems this uncovers
+	* docs/schemas/domaincommon.rng: Add missing lxc & openvz
+	  console target types. Allow arch on LXC <os> type element
+	* tests/domainschematest: Include tests/lxcxml2xmldata/
+
+2012-03-27  Daniel P. Berrange  <berrange@redhat.com>
+
+	Add support for setting init argv for LXC
+	Pass argv to the init binary of LXC, using a new <initarg> element.
+
+	* docs/formatdomain.html.in: Document <os> usage for containers
+	* docs/schemas/domaincommon.rng: Add <initarg> element
+	* src/conf/domain_conf.c, src/conf/domain_conf.h: parsing and
+	  formatting of <initarg>
+	* src/lxc/lxc_container.c: Setup LXC argv
+	* tests/Makefile.am, tests/lxcxml2xmldata/lxc-systemd.xml,
+	  tests/lxcxml2xmltest.c, tests/testutilslxc.c,
+	  tests/testutilslxc.h: Test parsing/formatting of LXC related
+	  XML parts
+
+2012-03-27  Daniel P. Berrange  <berrange@redhat.com>
+
+	Detect location fo selinux mount point
+	The SELinux mount point moved from /selinux to /sys/fs/selinux
+	when systemd came along.
+
+	* configure.ac: Probe for SELinux mount point
+	* src/lxc/lxc_container.c: Use SELinux mount point determined
+	  by configure.ac
+
+2012-03-27  Daniel P. Berrange  <berrange@redhat.com>
+
+	Expand docs for timer tick policy
+
+2012-03-27  D. Herrendoerfer  <d.herrendoerfer@herrendoerfer.name>
+
+	qemu,util: on restart of libvirt restart vepa callbacks
+	When libvirtd is restarted, also restart the netlink event
+	message callbacks for existing VEPA connections and send
+	a message to lldpad for these existing links, so it learns
+	the new libvirtd pid.
+
+2012-03-27  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Avoid entering monitor with locked driver
+	This avoids possible deadlock of the qemu driver in case a domain is
+	begin migrated (in Begin phase) and unrelated connection to qemu driver
+	is closed at the right time.
+
+	I checked all callers of qemuDomainCheckEjectableMedia() and they are
+	calling this function with qemu driver locked.
+
+2012-03-27  Laine Stump  <laine@laine.org>
+
+	build: fix "missing initializer" error in qemu_process.c
+	Found when attempting to build on Fedora 17 alpha with:
+
+	   ./autogen.sh --system --enable-compile-warnings=error
+
+	(this same build command works without problem on Fedora 16). Since
+	the consumer of the qemuProcessReconnectData doesn't assume that the
+	other fields of the struct are initialized (although it uses them
+	internally), the simpler solution is to just switch to C99-style
+	struct initialization (which doesn't require specification of all
+	fields).
+
+2012-03-27  Laine Stump  <laine@laine.org>
+
+	build: fix "missing initializer" errors in virsh.c
+	Found when attempting to build on Fedora 17 alpha with:
+
+	   ./autogen.sh --system --enable-compile-warnings=error
+
+	(this same build command works without problem on Fedora 16). All
+	other struct initializers for this struct have the extra field filled
+	in (almost always to 0), so the two errant ones were fixed by adding
+	in the extra 0 field.
+
+2012-03-27  Laine Stump  <laine@laine.org>
+
+	build: avoid frame size error when building without -O2
+	libvirt always adds -Werror-frame-larger-than=4096 to the flags when
+	it builds. When building on Fedora 17, two functions with multiple
+	1024 buffers declared inside if {} blocks would generate frame size
+	errors; apparently the version of gcc on Fedora 16 will merge these
+	multiple buffers into a single buffer even when optimization is off,
+	but Fedora 17 won't.
+
+	The fix is to declare a single 1024 buffer at the top of the two
+	offending functions, and reuse the single buffer throughout the
+	functions.
+
+2012-03-27  Martin Kletzander  <mkletzan@redhat.com>
+
+	Added syntax-check rule for return with parentheses
+	After cleanup introduced with previous commit, there is a need for
+	syntax-check rule taking care of return(). Regexp used in 'prohibit'
+	parameter is taken from the cleanup commit and modified so it fits
+	'grep -E' format. Semicolon at the end is needed, otherwise the regexp
+	could match return with cast.
+
+	Exception is created for python source files because we don't have any
+	documentation restricting the use of return that matches this case.
+
+2012-03-27  Martin Kletzander  <mkletzan@redhat.com>
+
+	Cleanup for a return statement in source files
+	Return statements with parameter enclosed in parentheses were modified
+	and parentheses were removed. The whole change was scripted, here is how:
+
+	List of files was obtained using this command:
+	git grep -l -e '\<return\s*([^()]*\(([^()]*)[^()]*\)*)\s*;' |             \
+	grep -e '\.[ch]$' -e '\.py$'
+
+	Found files were modified with this command:
+	sed -i -e                                                                 \
+	's_^\(.*\<return\)\s*(\(\([^()]*([^()]*)[^()]*\)*\))\s*\(;.*$\)_\1 \2\4_' \
+	-e 's_^\(.*\<return\)\s*(\([^()]*\))\s*\(;.*$\)_\1 \2\3_'
+
+	Then checked for nonsense.
+
+	The whole command looks like this:
+	git grep -l -e '\<return\s*([^()]*\(([^()]*)[^()]*\)*)\s*;' |             \
+	grep -e '\.[ch]$' -e '\.py$' | xargs sed -i -e                            \
+	's_^\(.*\<return\)\s*(\(\([^()]*([^()]*)[^()]*\)*\))\s*\(;.*$\)_\1 \2\4_' \
+	-e 's_^\(.*\<return\)\s*(\([^()]*\))\s*\(;.*$\)_\1 \2\3_'
+
+2012-03-26  Eric Blake  <eblake@redhat.com>
+
+	Fix and test round-trip of query parameters
+	When qparams support was dropped in commit bc1ff160, we forgot
+	to add tests to ensure that viruri can do the same round trip
+	handling of a URI. This round trip was broken, due to use
+	of the old 'query' field of xmlUriPtr, instead of the new
+	'query_raw'
+
+	Also, we forgot to report an OOM error.
+
+	* tests/viruritest.c (mymain): Add tests based on just-deleted
+	qparamtest.
+	(testURIParse): Allow difference in input and expected output.
+	* src/util/viruri.c (virURIFormat): Add missing error. Use
+	  query_raw, instead of query for xmlUriPtr object.
+
 2012-03-24  Osier Yang  <jyang@redhat.com>
 
 	spec: Add missed dependancy for numad

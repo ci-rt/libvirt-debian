@@ -1853,6 +1853,9 @@
 /* Location or name of the scrub program (for wiping algorithms) */
 #undef SCRUB
 
+/* SELinux mount point */
+#undef SELINUX_MOUNT
+
 /* Location or name of the showmount program */
 #undef SHOWMOUNT
 
@@ -2272,7 +2275,7 @@
 /* type to use in place of socklen_t if not defined */
 #undef socklen_t
 
-/* Define as a signed type of the same size as size_t. */
+/* Define as a signed type of the same size and rank as size_t. */
 #undef ssize_t
 
 /* Define to `int' if <sys/types.h> doesn't define. */

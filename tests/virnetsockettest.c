@@ -54,7 +54,7 @@ checkProtocols(bool *hasIPv4, bool *hasIPv6,
     int i;
     int ret = -1;
 
-    memset(&hints, 0, sizeof hints);
+    memset(&hints, 0, sizeof(hints));
 
     *hasIPv4 = *hasIPv6 = false;
     *freePort = 0;
@@ -460,7 +460,7 @@ mymain(void)
 #ifdef HAVE_IFADDRS_H
     if (checkProtocols(&hasIPv4, &hasIPv6, &freePort) < 0) {
         fprintf(stderr, "Cannot identify IPv4/6 availability\n");
-        return (EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     if (hasIPv4) {
@@ -602,7 +602,7 @@ mymain(void)
 
 #endif
 
-    return (ret==0 ? EXIT_SUCCESS : EXIT_FAILURE);
+    return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 VIRT_TEST_MAIN(mymain)
