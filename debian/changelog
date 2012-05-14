@@ -1,3 +1,14 @@
+libvirt (0.9.12~rc2-1) experimental; urgency=low
+
+  * [721a2d8] New upstream version 0.9.12~rc2
+  * [a469ff6] Update symbols
+  * [a483028] Daemon tests changed so update the patches
+  * [fbd9c12] Drop virURIParse-don-t-forget-to-copy-the-user-part applied
+    upstream
+  * [00931ed] Update gbp.conf for experimental
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 14 May 2012 08:43:49 +0200
+
 libvirt (0.9.11-2) unstable; urgency=low
 
   * [70dcb2e] Make module-init-tools a linux-any dependency
