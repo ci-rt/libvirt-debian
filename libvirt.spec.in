@@ -273,7 +273,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 0rc2%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -282,7 +282,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
 %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -1464,6 +1464,11 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %endif
 
 %changelog
+* Mon May 14 2012 Daniel Veillard <veillard@redhat.com> - 0.9.12-1
+- qemu: allow snapshotting of sheepdog and rbd disks
+- blockjob: add new APIs
+- a lot of bug fixes, improvements and portability work
+
 * Tue Apr  3 2012 Daniel Veillard <veillard@redhat.com> - 0.9.11-1
 - Add support for the suspend event
 - Add support for event tray moved of removable disks

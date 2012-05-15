@@ -1593,8 +1593,8 @@ python_generated_files = \
 		$(srcdir)/libvirt-qemu-api.xml \
 		$(srcdir)/libvirt-qemu-refs.xml
 
-APIBUILD = "$(srcdir)/apibuild.py"
-APIBUILD_STAMP = "$(APIBUILD).stamp"
+APIBUILD = $(srcdir)/apibuild.py
+APIBUILD_STAMP = $(APIBUILD).stamp
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 

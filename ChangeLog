@@ -1,3 +1,142 @@
+2012-05-14  Daniel Veillard  <veillard@redhat.com>
+
+	Release of libvirt-0.9.12
+	* configure.ac docs/news.html.in libvirt.spec.in: updates for the release
+	* po/*.po: pushed new sources and synchronized new languages translations
+
+2012-05-13  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Fix memory leaks in error paths related to transferred ownership
+	Appending an item to a list transfers ownership of that item to the
+	list owner. But an error can occur in between item allocation and
+	appending it to the list. In this case the item has to be freed
+	explicitly. This was not done in some special cases resulting in
+	possible memory leaks.
+
+	Reported by Coverity.
+
+2012-05-11  Peter Krempa  <pkrempa@redhat.com>
+
+	qemu: Don't skip detection of virtual cpu's on non KVM targets
+	This patch lifts the limit of calling thread detection code only on KVM
+	guests. With upstream qemu the thread mappings are reported also on
+	non-KVM machines.
+
+	QEMU adopted the thread_id information from the kvm branch.
+
+	To remain compatible with older upstream versions of qemu the check is
+	attempted but the failure to detect threads (or even run the monitor
+	command - on older versions without SMP support) is treated non-fatal
+	and the code reports one vCPU with pid of the hypervisor (in same
+	fashion this was done on non-KVM guests).
+
+2012-05-11  Peter Krempa  <pkrempa@redhat.com>
+
+	qemu: Re-detect virtual cpu threads after cpu hot (un)plug.
+	After a cpu hotplug the qemu driver did not refresh information about
+	virtual processors used by qemu and their corresponding threads. This
+	patch forces a re-detection as is done on start of QEMU.
+
+	This ensures that correct information is reported by the
+	virDomainGetVcpus API and "virsh vcpuinfo".
+
+	A failure to obtain the thread<->vcpu mapping is treated non-fatal and
+	the mapping is not updated in a case of failure as not all versions of
+	QEMU report this in the info cpus command.
+
+2012-05-11  Peter Krempa  <pkrempa@redhat.com>
+
+	qemu: Refactor qemuDomainSetVcpusFlags
+	This patch changes a switch statement into ifs when handling live vs.
+	configuration modifications getting rid of redundant code in case when
+	both live and persistent configuration gets changed.
+
+2012-05-11  Eric Blake  <eblake@redhat.com>
+
+	build: fix stamp file name
+	Ever since commit c964b6a, make was trying to find the timestamp
+	of '""./apibuild.py".stamp"', but only touching 'apibuild.py.stamp',
+	and thus always rebuilding.  Reported by Daniel P. Berrange.
+
+	* docs/Makefile.am (APIBUILD, APIBUILD_STAMP): Omit bogus quotes.
+
+2012-05-11  Guannan Ren  <gren@redhat.com>
+
+	usb: fix crash when failing to attach a second usb device
+	when failing to attach another usb device to a domain for some reason
+	which has one use device attached before, the libvirtd crashed.
+	The crash is caused by null-pointer dereference error in invoking
+	usbDeviceListSteal passed in NULL value usb variable.
+	commit 05abd1507d66aabb6cad12eeafeb4c4d1911c585 introduces the bug.
+
+2012-05-11  Eric Blake  <eblake@redhat.com>
+
+	docs: mention migration issue of which credentials are used
+	Based on a report by Seth Vidal.  Just because _you_ can use virsh
+	to connect to both source and destinations does not mean that libvirtd
+	on the source (aka _root_) can likewise connect to the destination;
+	this matters when setting up a peer-to-peer migration instead of a
+	native one.
+
+	* docs/migration.html.in: Mention that in peer-to-peer, the owner
+	of the source libvirtd (usually root) must be able to connect to
+	the destination.
+
+2012-05-10  Osier Yang  <jyang@redhat.com>
+
+	build: Fix the typo in configure.ac
+	s/nuamd/numad/,
+
+2012-05-10  Alex Jia  <ajia@redhat.com>
+
+	conf: Fix memory leaks in virStoragePoolDefParseSource
+	Detected by valgrind. Leaks are introduced in commit 122fa379.
+
+	src/conf/storage_conf.c: fix memory leaks.
+
+	How to reproduce?
+	$ make && make -C tests check TESTS=storagepoolxml2xmltest
+	$ cd tests && valgrind -v --leak-check=full ./storagepoolxml2xmltest
+
+	actual result:
+	==28571== LEAK SUMMARY:
+	==28571==    definitely lost: 40 bytes in 5 blocks
+	==28571==    indirectly lost: 0 bytes in 0 blocks
+	==28571==      possibly lost: 0 bytes in 0 blocks
+	==28571==    still reachable: 1,054 bytes in 21 blocks
+	==28571==         suppressed: 0 bytes in 0 blocks
+
+2012-05-10  Eric Blake  <eblake@redhat.com>
+
+	qemu: fix build when !HAVE_NUMACTL
+	Commit 97010eb1f forgot to change the other side of an #ifdef.
+
+	* src/qemu/qemu_process.c (qemuProcessInitNumaMemoryPolicy): Add
+	argument.
+
+2012-05-10  Jim Fehlig  <jfehlig@suse.com>
+
+	Report error when parsing character device target type
+	No useful error was being reported when an invalid character device
+	target type is specified in the domainXML. E.g.
+
+	    ...
+	    <console type="pty">
+	      <source path="/dev/pts/2"/>
+	      <target type="kvm" port="0"/>
+	    </console>
+	    ...
+
+	resulted in
+
+	error: Failed to define domain from x.xml
+	error: An error occurred, but the cause is unknown
+
+	With this small patch, the error is more helpful
+
+	error: Failed to define domain from x.xml
+	error: XML error: unknown target type 'kvm' specified for character device
+
 2012-05-09  Jiri Denemark  <jdenemar@redhat.com>
 
 	netlink: Fix build with libnl-3
