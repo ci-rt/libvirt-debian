@@ -1,3 +1,9 @@
+libvirt (0.9.12-1) experimental; urgency=low
+
+  * [75e280b] New upstream version 0.9.12
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 15 May 2012 14:31:26 +0200
+
 libvirt (0.9.12~rc2-1) experimental; urgency=low
 
   * [721a2d8] New upstream version 0.9.12~rc2
