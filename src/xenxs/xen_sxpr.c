@@ -1999,20 +1999,22 @@ xenFormatSxprNet(virConnectPtr conn,
         if (def->model != NULL)
             virBufferEscapeSexpr(buf, "(model '%s')", def->model);
     }
-    else if (def->model == NULL) {
-        /*
-         * apparently (type ioemu) breaks paravirt drivers on HVM so skip
-         * this from XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU
-         */
-        if (xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU)
-            virBufferAddLit(buf, "(type ioemu)");
-    }
-    else if (STREQ(def->model, "netfront")) {
-        virBufferAddLit(buf, "(type netfront)");
-    }
     else {
-        virBufferEscapeSexpr(buf, "(model '%s')", def->model);
-        virBufferAddLit(buf, "(type ioemu)");
+        if (def->model != NULL && STREQ(def->model, "netfront")) {
+            virBufferAddLit(buf, "(type netfront)");
+        }
+        else {
+            if (def->model != NULL) {
+                virBufferEscapeSexpr(buf, "(model '%s')", def->model);
+            }
+            /*
+             * apparently (type ioemu) breaks paravirt drivers on HVM so skip
+             * this from XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU
+             */
+            if (xendConfigVersion <= XEND_CONFIG_MAX_VERS_NET_TYPE_IOEMU) {
+                virBufferAddLit(buf, "(type ioemu)");
+            }
+        }
     }
 
     if (!isAttach)
@@ -2464,9 +2466,8 @@ xenFormatSxpr(virConnectPtr conn,
             }
         }
 
-        /* PV graphics for xen <= 3.0.4, or HVM graphics for xen <= 3.1.0 */
-        if ((!hvm && xendConfigVersion < XEND_CONFIG_MIN_VERS_PVFB_NEWCONF) ||
-            (hvm && xendConfigVersion < XEND_CONFIG_VERSION_3_1_0)) {
+        /* PV graphics for xen <= 3.0.4, or HVM graphics */
+        if (hvm || (xendConfigVersion < XEND_CONFIG_MIN_VERS_PVFB_NEWCONF)) {
             if ((def->ngraphics == 1) &&
                 xenFormatSxprGraphicsOld(def->graphics[0],
                                          &buf, xendConfigVersion) < 0)
@@ -2578,10 +2579,8 @@ xenFormatSxpr(virConnectPtr conn,
     if (xenFormatSxprAllPCI(def, &buf) < 0)
         goto error;
 
-    /* New style PV graphics config xen >= 3.0.4,
-     * or HVM graphics config xen >= 3.0.5 */
-    if ((xendConfigVersion >= XEND_CONFIG_MIN_VERS_PVFB_NEWCONF && !hvm) ||
-        (xendConfigVersion >= XEND_CONFIG_VERSION_3_1_0 && hvm)) {
+    /* New style PV graphics config xen >= 3.0.4 */
+    if (!hvm && (xendConfigVersion >= XEND_CONFIG_MIN_VERS_PVFB_NEWCONF)) {
         if ((def->ngraphics == 1) &&
             xenFormatSxprGraphicsNew(def->graphics[0], &buf) < 0)
             goto error;

@@ -1497,7 +1497,6 @@ qemuProcessFindCharDevicePTYs(virDomainObjPtr vm,
             if ((ret = virDomainChrSourceDefCopy(&chr->source,
                                                  &((vm->def->serials[0])->source))) != 0)
                 return ret;
-            chr->source.type = VIR_DOMAIN_CHR_TYPE_PTY;
         } else {
             if (chr->source.type == VIR_DOMAIN_CHR_TYPE_PTY &&
                 chr->targetType == VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_VIRTIO) {
@@ -1796,6 +1795,7 @@ static int
 qemuProcessInitCpuAffinity(struct qemud_driver *driver,
                            virDomainObjPtr vm)
 {
+    int ret = -1;
     int i, hostcpus, maxcpu = QEMUD_CPUMASK_LEN;
     virNodeInfo nodeinfo;
     unsigned char *cpumap;
@@ -1819,37 +1819,45 @@ qemuProcessInitCpuAffinity(struct qemud_driver *driver,
     }
 
     if (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) {
-        char *tmp_cpumask = NULL;
         char *nodeset = NULL;
+        char *nodemask = NULL;
 
         nodeset = qemuGetNumadAdvice(vm->def);
         if (!nodeset)
-            return -1;
+            goto cleanup;
 
-        if (VIR_ALLOC_N(tmp_cpumask, VIR_DOMAIN_CPUMASK_LEN) < 0) {
+        if (VIR_ALLOC_N(nodemask, VIR_DOMAIN_CPUMASK_LEN) < 0) {
             virReportOOMError();
-            return -1;
-        }
-
-        if (virDomainCpuSetParse(nodeset, 0, tmp_cpumask,
-                                 VIR_DOMAIN_CPUMASK_LEN) < 0) {
-            VIR_FREE(tmp_cpumask);
             VIR_FREE(nodeset);
-            return -1;
+            goto cleanup;
         }
 
-        for (i = 0; i < maxcpu && i < VIR_DOMAIN_CPUMASK_LEN; i++) {
-            if (tmp_cpumask[i])
-                VIR_USE_CPU(cpumap, i);
-        }
-
-        VIR_FREE(vm->def->cpumask);
-        vm->def->cpumask = tmp_cpumask;
-        if (virDomainSaveStatus(driver->caps, driver->stateDir, vm) < 0) {
-            VIR_WARN("Unable to save status on vm %s after state change",
-                     vm->def->name);
+        if (virDomainCpuSetParse(nodeset, 0, nodemask,
+                                 VIR_DOMAIN_CPUMASK_LEN) < 0) {
+            VIR_FREE(nodemask);
+            VIR_FREE(nodeset);
+            goto cleanup;
         }
         VIR_FREE(nodeset);
+
+        /* numad returns the NUMA node list, convert it to cpumap */
+        int prev_total_ncpus = 0;
+        for (i = 0; i < driver->caps->host.nnumaCell; i++) {
+            int j;
+            int cur_ncpus = driver->caps->host.numaCell[i]->ncpus;
+            if (nodemask[i]) {
+                for (j = prev_total_ncpus;
+                     j < cur_ncpus + prev_total_ncpus &&
+                     j < maxcpu &&
+                     j < VIR_DOMAIN_CPUMASK_LEN;
+                     j++) {
+                    VIR_USE_CPU(cpumap, j);
+                }
+            }
+            prev_total_ncpus += cur_ncpus;
+        }
+
+        VIR_FREE(nodemask);
     } else {
         if (vm->def->cpumask) {
             /* XXX why don't we keep 'cpumask' in the libvirt cpumap
@@ -1872,13 +1880,14 @@ qemuProcessInitCpuAffinity(struct qemud_driver *driver,
      * running at this point
      */
     if (virProcessInfoSetAffinity(0, /* Self */
-                                  cpumap, cpumaplen, maxcpu) < 0) {
-        VIR_FREE(cpumap);
-        return -1;
-    }
-    VIR_FREE(cpumap);
+                                  cpumap, cpumaplen, maxcpu) < 0)
+        goto cleanup;
 
-    return 0;
+    ret = 0;
+
+cleanup:
+    VIR_FREE(cpumap);
+    return ret;
 }
 
 /* set link states to down on interfaces at qemu start */
@@ -3056,6 +3065,9 @@ qemuProcessReconnect(void *opaque)
     if (qemuUpdateActivePciHostdevs(driver, obj->def) < 0) {
         goto error;
     }
+
+    if (qemuUpdateActiveUsbHostdevs(driver, obj->def) < 0)
+        goto error;
 
     if (qemuProcessUpdateState(driver, obj) < 0)
         goto error;

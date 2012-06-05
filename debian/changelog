@@ -1,3 +1,12 @@
+libvirt (0.9.11.3-1) unstable; urgency=low
+
+  * [f254551] New upstream version 0.9.11.3
+  * [5362229] Drop virURIParse-don-t-forget-to-copy-the-user-part.patch.
+    Fixed upstream.
+  * [36ed9f0] Update symbols file
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 30 Apr 2012 09:44:51 +0200
+
 libvirt (0.9.11-2) unstable; urgency=low
 
   * [70dcb2e] Make module-init-tools a linux-any dependency
