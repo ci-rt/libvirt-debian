@@ -1,3 +1,18 @@
+libvirt (0.9.11.3-1~bpo60+1) unstable; urgency=low
+
+  * Changes over wheezy:
+  * [82758c4] Use dh_pycentral on Squeeze since there's no dh_python2 yet.
+  * [e9ebaaf] Use XS-Python-Version instead of X-Python-Version since we still
+    use dh_pycentral
+  * [c754689] Disable the testsuite for backport builds
+  * [69fd64c] Don't fail if we can't setup avahi
+  * [31a43dd] Disable macvtap on Squeeze since it's kernel are too old
+    to compile it.
+  * [befaa18] Disable werror since Squeeze's libnl throws warnings
+  * [8a2008d] Disable netcf not available in Squeeze
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 05 Jun 2012 15:26:52 +0200
+
 libvirt (0.9.11.3-1) unstable; urgency=low
 
   * [f254551] New upstream version 0.9.11.3
