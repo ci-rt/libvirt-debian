@@ -33,6 +33,7 @@ Build-Depends: cdbs (>= 0.4.90~),
  libnuma-dev [amd64 i386 ia64 mips mipsel powerpc],
  radvd [linux-any],
  libnetcf-dev [linux-any],
+ libsanlock-dev [linux-any],
 # For "make check"
  dwarves,
  libxml2-utils,
@@ -135,4 +136,16 @@ Description: libvirt Python bindings
  supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
  .
  This package contains Python bindings for the libvirt library
+
+Package: libvirt-sanlock
+Architecture: linux-any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libvirt0 (= ${binary:Version}), augeas-tools
+Priority: extra
+Description: library for interfacing with different virtualization systems
+ Libvirt is a C toolkit to interact with the virtualization capabilities
+ of recent versions of Linux (and other OSes). The library aims at providing
+ a long term stable C API for different virtualization mechanisms. It currently
+ supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
+ .
+ This package contains the sanlock plugin.
 

@@ -28,6 +28,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_QEMU           = --with-qemu
   WITH_OPENVZ         = --with-openvz
   WITH_NETCF          = --with-netcf
+  WITH_SANLOCK        = --with-sanlock
   ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 i386 ia64 mips mipsel powerpc))
       WITH_NUMA       = --with-numactl
   else
