@@ -6,6 +6,7 @@
 SHELL = $(PREFERABLY_POSIX_SHELL)
 
 INCLUDES = \
+	-I$(top_builddir) -I$(top_srcdir) \
 	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib \
 	-I$(top_builddir)/include -I$(top_srcdir)/include \
 	-I$(top_builddir)/src -I$(top_srcdir)/src \
@@ -170,7 +171,6 @@ if WITH_LIBVIRTD
 test_scripts +=				\
 	test_conf.sh			\
 	cpuset				\
-	daemon-conf			\
 	define-dev-segfault		\
 	int-overflow			\
 	libvirtd-fail			\
@@ -185,12 +185,13 @@ test_scripts +=				\
 	virsh-schedinfo			\
 	virsh-synopsis
 
-test_programs += eventtest
+test_programs += 			\
+	eventtest			\
+	libvirtdconftest
 else
 EXTRA_DIST += 				\
 	test_conf.sh			\
 	cpuset				\
-	daemon-conf			\
 	define-dev-segfault		\
 	int-overflow			\
 	libvirtd-fail			\
@@ -445,9 +446,20 @@ commandhelper_SOURCES = \
 commandhelper_CFLAGS = -Dabs_builddir="\"`pwd`\"" $(AM_CFLAGS)
 commandhelper_LDADD = $(LDADDS)
 
+if WITH_LIBVIRTD
+libvirtdconftest_SOURCES = \
+	libvirtdconftest.c testutils.h testutils.c \
+	../daemon/libvirtd-config.c
+libvirtdconftest_CFLAGS = $(AM_CFLAGS)
+libvirtdconftest_LDADD = $(LDADDS)
+else
+EXTRA_DIST += libvirtdconftest.c
+endif
+
 virnetmessagetest_SOURCES = \
 	virnetmessagetest.c testutils.h testutils.c
-virnetmessagetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virnetmessagetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" \
+		$(XDR_CFLAGS) $(AM_CFLAGS)
 virnetmessagetest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
 
 virnetsockettest_SOURCES = \
@@ -518,7 +530,7 @@ libshunload_la_LDFLAGS = -module -avoid-version -rpath /evil/libtool/hack/to/for
 
 shunloadtest_SOURCES = \
 	shunloadtest.c
-shunloadtest_LDADD = -lpthread
+shunloadtest_LDADD = $(LIB_PTHREAD)
 shunloadtest_DEPENDENCIES = libshunload.la
 
 if WITH_CIL

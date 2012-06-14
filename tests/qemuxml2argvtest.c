@@ -50,8 +50,10 @@ fakeSecretLookupByUsage(virConnectPtr conn,
     ret->magic = VIR_SECRET_MAGIC;
     ret->refs = 1;
     ret->usageID = strdup(usageID);
-    if (!ret->usageID)
+    if (!ret->usageID) {
+        VIR_FREE(ret);
         return NULL;
+    }
     ret->conn = conn;
     conn->refs++;
     return ret;
@@ -463,6 +465,9 @@ mymain(void)
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-scsi-device-auto", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("disk-scsi-disk-split", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_SCSI_CD);
     DO_TEST("disk-scsi-vscsi", false,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("disk-scsi-virtio-scsi", false,
@@ -538,6 +543,12 @@ mymain(void)
             QEMU_CAPS_VGA, QEMU_CAPS_VGA_QXL,
             QEMU_CAPS_DEVICE, QEMU_CAPS_SPICE,
             QEMU_CAPS_DEVICE_QXL_VGA);
+    DO_TEST("graphics-spice-usb-redir", false,
+            QEMU_CAPS_VGA, QEMU_CAPS_SPICE,
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_ICH9_USB_EHCI1, QEMU_CAPS_USB_REDIR,
+            QEMU_CAPS_CHARDEV_SPICEVMC);
 
     DO_TEST("input-usbmouse", false, NONE);
     DO_TEST("input-usbtablet", false, NONE);
@@ -727,6 +738,11 @@ mymain(void)
     DO_TEST("blkiotune-device", false, QEMU_CAPS_NAME);
     DO_TEST("cputune", false, QEMU_CAPS_NAME);
     DO_TEST("numatune-memory", false, NONE);
+    DO_TEST("numad", false, NONE);
+    DO_TEST("numad-auto-vcpu-static-numatune", false, NONE);
+    DO_TEST("numad-auto-memory-vcpu-cpuset", false, NONE);
+    DO_TEST("numad-auto-memory-vcpu-no-cpuset-and-placement", false, NONE);
+    DO_TEST("numad-static-memory-auto-vcpu", false, NONE);
     DO_TEST("blkdeviotune", false, QEMU_CAPS_NAME, QEMU_CAPS_DEVICE,
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_IOTUNE);
 
@@ -755,6 +771,9 @@ mymain(void)
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
     DO_TEST("pseries-vio-address-clash", true, QEMU_CAPS_DRIVE,
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("disk-ide-drive-split", false,
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_IDE_CD);
 
     VIR_FREE(driver.stateDir);
     virCapabilitiesFree(driver.caps);

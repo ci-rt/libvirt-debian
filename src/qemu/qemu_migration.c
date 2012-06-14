@@ -390,7 +390,8 @@ static void qemuMigrationCookieGraphicsXMLFormat(virBufferPtr buf,
 
 
 static int
-qemuMigrationCookieXMLFormat(virBufferPtr buf,
+qemuMigrationCookieXMLFormat(struct qemud_driver *driver,
+                             virBufferPtr buf,
                              qemuMigrationCookiePtr mig)
 {
     char uuidstr[VIR_UUID_STRING_BUFLEN];
@@ -428,10 +429,12 @@ qemuMigrationCookieXMLFormat(virBufferPtr buf,
     if ((mig->flags & QEMU_MIGRATION_COOKIE_PERSISTENT) &&
         mig->persistent) {
         virBufferAdjustIndent(buf, 2);
-        if (virDomainDefFormatInternal(mig->persistent,
-                                       VIR_DOMAIN_XML_INACTIVE |
-                                       VIR_DOMAIN_XML_SECURE,
-                                       buf) < 0)
+        if (qemuDomainDefFormatBuf(driver,
+                                   mig->persistent,
+                                   VIR_DOMAIN_XML_INACTIVE |
+                                   VIR_DOMAIN_XML_SECURE,
+                                   true,
+                                   buf) < 0)
             return -1;
         virBufferAdjustIndent(buf, -2);
     }
@@ -441,11 +444,12 @@ qemuMigrationCookieXMLFormat(virBufferPtr buf,
 }
 
 
-static char *qemuMigrationCookieXMLFormatStr(qemuMigrationCookiePtr mig)
+static char *qemuMigrationCookieXMLFormatStr(struct qemud_driver *driver,
+                                             qemuMigrationCookiePtr mig)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
-    if (qemuMigrationCookieXMLFormat(&buf, mig) < 0) {
+    if (qemuMigrationCookieXMLFormat(driver, &buf, mig) < 0) {
         virBufferFreeAndReset(&buf);
         return NULL;
     }
@@ -717,7 +721,7 @@ qemuMigrationBakeCookie(qemuMigrationCookiePtr mig,
         qemuMigrationCookieAddPersistent(mig, dom) < 0)
         return -1;
 
-    if (!(*cookieout = qemuMigrationCookieXMLFormatStr(mig)))
+    if (!(*cookieout = qemuMigrationCookieXMLFormatStr(driver, mig)))
         return -1;
 
     *cookieoutlen = strlen(*cookieout) + 1;
@@ -1155,9 +1159,9 @@ char *qemuMigrationBegin(struct qemud_driver *driver,
         if (!virDomainDefCheckABIStability(vm->def, def))
             goto cleanup;
 
-        rv = qemuDomainDefFormatLive(driver, def, false);
+        rv = qemuDomainDefFormatLive(driver, def, false, true);
     } else {
-        rv = qemuDomainDefFormatLive(driver, vm->def, false);
+        rv = qemuDomainDefFormatLive(driver, vm->def, false, true);
     }
 
 cleanup:
@@ -1235,7 +1239,8 @@ qemuMigrationPrepareAny(struct qemud_driver *driver,
         char *xml;
         int hookret;
 
-        if (!(xml = virDomainDefFormat(def, VIR_DOMAIN_XML_SECURE)))
+        if (!(xml = qemuDomainDefFormatXML(driver, def,
+                                           VIR_DOMAIN_XML_SECURE, false)))
             goto cleanup;
 
         hookret = virHookCall(VIR_HOOK_DRIVER_QEMU, def->name,
@@ -1305,9 +1310,10 @@ qemuMigrationPrepareAny(struct qemud_driver *driver,
     /* Start the QEMU daemon, with the same command-line arguments plus
      * -incoming $migrateFrom
      */
-    if (qemuProcessStart(dconn, driver, vm, migrateFrom, false, true,
-                         true, dataFD[0], NULL, NULL,
-                         VIR_NETDEV_VPORT_PROFILE_OP_MIGRATE_IN_START) < 0) {
+    if (qemuProcessStart(dconn, driver, vm, migrateFrom, dataFD[0], NULL, NULL,
+                         VIR_NETDEV_VPORT_PROFILE_OP_MIGRATE_IN_START,
+                         VIR_QEMU_PROCESS_START_PAUSED |
+                         VIR_QEMU_PROCESS_START_AUTODESROY) < 0) {
         virDomainAuditStart(vm, "migrated", false);
         /* Note that we don't set an error here because qemuProcessStart
          * should have already done that.
@@ -2182,7 +2188,8 @@ static int doPeer2PeerMigrate2(struct qemud_driver *driver,
      */
     if (!(dom_xml = qemuDomainFormatXML(driver, vm,
                                         VIR_DOMAIN_XML_SECURE |
-                                        VIR_DOMAIN_XML_UPDATE_CPU)))
+                                        VIR_DOMAIN_XML_UPDATE_CPU,
+                                        true)))
         return -1;
 
     if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_PAUSED)
@@ -3361,6 +3368,7 @@ qemuMigrationJobStartPhase(struct qemud_driver *driver,
 int
 qemuMigrationJobContinue(virDomainObjPtr vm)
 {
+    qemuDomainObjReleaseAsyncJob(vm);
     return virDomainObjUnref(vm);
 }
 

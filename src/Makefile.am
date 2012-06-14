@@ -88,6 +88,7 @@ UTIL_SOURCES =							\
 		util/virtypedparam.c util/virtypedparam.h	\
 		util/xml.c util/xml.h				\
 		util/virterror.c util/virterror_internal.h	\
+		util/virdbus.c util/virdbus.h			\
 		util/virhash.c util/virhash.h			\
 		util/virhashcode.c util/virhashcode.h           \
 		util/virkeycode.c util/virkeycode.h		\
@@ -574,10 +575,11 @@ libvirt_la_BUILT_LIBADD = libvirt_util.la
 libvirt_util_la_SOURCES =					\
 		$(UTIL_SOURCES)
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
-		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS)
+		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS) \
+		$(DBUS_CFLAGS)
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
-		$(RT_LIBS)
+		$(RT_LIBS) $(DBUS_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -807,12 +809,14 @@ endif
 libvirt_driver_qemu_la_CFLAGS = $(NUMACTL_CFLAGS) \
                                 $(GNUTLS_CFLAGS) \
                                 $(LIBXML_CFLAGS) \
+                                $(LIBNL_CFLAGS) \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
 libvirt_driver_qemu_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_qemu_la_LIBADD = $(NUMACTL_LIBS) \
 				$(CAPNG_LIBS) \
                                 $(GNUTLS_LIBS) \
-                                $(LIBXML_LIBS)
+                                $(LIBXML_LIBS) \
+				$(LIBNL_LIBS)
 if WITH_DRIVER_MODULES
 libvirt_driver_qemu_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_qemu_la_LDFLAGS += -module -avoid-version
@@ -838,8 +842,9 @@ noinst_LTLIBRARIES += libvirt_driver_lxc.la
 #libvirt_la_BUILT_LIBADD += libvirt_driver_lxc.la
 endif
 libvirt_driver_lxc_la_CFLAGS = \
+		$(LIBNL_CFLAGS) \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
-libvirt_driver_lxc_la_LIBADD = $(CAPNG_LIBS)
+libvirt_driver_lxc_la_LIBADD = $(CAPNG_LIBS) $(LIBNL_LIBS)
 if WITH_SECDRIVER_SELINUX
 libvirt_driver_lxc_la_LIBADD += $(SELINUX_LIBS)
 endif
@@ -939,9 +944,10 @@ noinst_LTLIBRARIES += libvirt_driver_network.la
 #libvirt_la_BUILT_LIBADD += libvirt_driver_network.la
 endif
 libvirt_driver_network_la_CFLAGS = \
+		$(LIBNL_CFLAGS) \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
 if WITH_DRIVER_MODULES
-libvirt_driver_network_la_LIBADD = ../gnulib/lib/libgnu.la
+libvirt_driver_network_la_LIBADD = ../gnulib/lib/libgnu.la $(LIBNL_LIBS)
 libvirt_driver_network_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 endif
 libvirt_driver_network_la_SOURCES = $(NETWORK_DRIVER_SOURCES)
@@ -1084,9 +1090,9 @@ libvirt_la_BUILT_LIBADD += libvirt_driver_nwfilter.la
 noinst_LTLIBRARIES += libvirt_driver_nwfilter.la
 endif
 libvirt_driver_nwfilter_la_CFLAGS = $(LIBPCAP_CFLAGS) \
-		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+		-I$(top_srcdir)/src/conf $(LIBNL_CFLAGS) $(AM_CFLAGS)
 libvirt_driver_nwfilter_la_LDFLAGS = $(LD_AMFLAGS)
-libvirt_driver_nwfilter_la_LIBADD = $(LIBPCAP_LIBS)
+libvirt_driver_nwfilter_la_LIBADD = $(LIBPCAP_LIBS) $(LIBNL_LIBS)
 if WITH_DRIVER_MODULES
 libvirt_driver_nwfilter_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_nwfilter_la_LDFLAGS += -module -avoid-version
@@ -1196,10 +1202,6 @@ endif
 
 if WITH_LINUX
 USED_SYM_FILES += libvirt_linux.syms
-endif
-
-if HAVE_DBUS
-USED_SYM_FILES += libvirt_dbus.syms
 endif
 
 if WITH_LIBVIRTD
@@ -1524,7 +1526,7 @@ libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(AM_LDFLAGS)
 libvirt_lxc_LDADD = $(CAPNG_LIBS) $(YAJL_LIBS) \
 		$(LIBXML_LIBS) $(NUMACTL_LIBS) $(THREAD_LIBS) \
 		$(LIBNL_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
-		$(RT_LIBS) \
+		$(RT_LIBS) $(DBUS_LIBS) \
 		../gnulib/lib/libgnu.la
 if WITH_DTRACE_PROBES
 libvirt_lxc_LDADD += probes.o
@@ -1541,6 +1543,8 @@ libvirt_lxc_CFLAGS =				\
 		$(CAPNG_CFLAGS)			\
 		$(YAJL_CFLAGS)			\
 		$(AUDIT_CFLAGS)			\
+		$(DBUS_CFLAGS)			\
+		$(LIBNL_CFLAGS)			\
 		-I$(top_srcdir)/src/conf	\
 		$(AM_CFLAGS)
 if HAVE_LIBBLKID

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2010-2012 IBM Corporation
  *
  * This library is free software; you can redistribute it and/or
@@ -60,6 +60,16 @@ struct virNetlinkEventHandle {
     int deleted;
 };
 
+# ifdef HAVE_LIBNL1
+#  define virNetlinkAlloc nl_handle_alloc
+#  define virNetlinkFree nl_handle_destroy
+typedef struct nl_handle virNetlinkHandle;
+# else
+#  define virNetlinkAlloc nl_socket_alloc
+#  define virNetlinkFree nl_socket_free
+typedef struct nl_sock virNetlinkHandle;
+# endif
+
 typedef struct _virNetlinkEventSrvPrivate virNetlinkEventSrvPrivate;
 typedef virNetlinkEventSrvPrivate *virNetlinkEventSrvPrivatePtr;
 struct _virNetlinkEventSrvPrivate {
@@ -67,7 +77,7 @@ struct _virNetlinkEventSrvPrivate {
     virMutex lock;
     int eventwatch;
     int netlinkfd;
-    struct nl_handle *netlinknh;
+    virNetlinkHandle *netlinknh;
     /*Events*/
     int handled;
     size_t handlesCount;
@@ -88,8 +98,61 @@ static int nextWatch = 1;
 # define NETLINK_EVENT_ALLOC_EXTENT 10
 
 static virNetlinkEventSrvPrivatePtr server = NULL;
+static virNetlinkHandle *placeholder_nlhandle = NULL;
 
 /* Function definitions */
+
+/**
+ * virNetlinkStartup:
+ *
+ * Perform any initialization that needs to take place before the
+ * program starts up worker threads. This is currently used to assure
+ * that an nl_handle is allocated prior to any attempts to bind a
+ * netlink socket. For a discussion of why this is necessary, please
+ * see the following email message:
+ *
+ *   https://www.redhat.com/archives/libvir-list/2012-May/msg00202.html
+ *
+ * The short version is that, without this placeholder allocation of
+ * an nl_handle that is never used, it is possible for nl_connect() in
+ * one thread to collide with a direct bind() of a netlink socket in
+ * another thread, leading to failure of the operation (which could
+ * lead to failure of libvirtd to start). Since getaddrinfo() (used by
+ * libvirtd in virSocketAddrParse, which is called quite frequently
+ * during startup) directly calls bind() on a netlink socket, this is
+ * actually a very common occurrence (15-20% failure rate on some
+ * hardware).
+ *
+ * Returns 0 on success, -1 on failure.
+ */
+int
+virNetlinkStartup(void)
+{
+    if (placeholder_nlhandle)
+        return 0;
+    placeholder_nlhandle = virNetlinkAlloc();
+    if (!placeholder_nlhandle) {
+        virReportSystemError(errno, "%s",
+                             _("cannot allocate placeholder nlhandle for netlink"));
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ * virNetlinkShutdown:
+ *
+ * Undo any initialization done by virNetlinkStartup. This currently
+ * destroys the placeholder nl_handle.
+ */
+void
+virNetlinkShutdown(void)
+{
+    if (placeholder_nlhandle) {
+        virNetlinkFree(placeholder_nlhandle);
+        placeholder_nlhandle = NULL;
+    }
+}
 
 /**
  * virNetlinkCommand:
@@ -105,12 +168,12 @@ static virNetlinkEventSrvPrivatePtr server = NULL;
  */
 int virNetlinkCommand(struct nl_msg *nl_msg,
                       unsigned char **respbuf, unsigned int *respbuflen,
-                      int nl_pid)
+                      uint32_t src_pid, uint32_t dst_pid)
 {
     int rc = 0;
     struct sockaddr_nl nladdr = {
             .nl_family = AF_NETLINK,
-            .nl_pid    = nl_pid,
+            .nl_pid    = dst_pid,
             .nl_groups = 0,
     };
     ssize_t nbytes;
@@ -121,7 +184,7 @@ int virNetlinkCommand(struct nl_msg *nl_msg,
     int fd;
     int n;
     struct nlmsghdr *nlmsg = nlmsg_hdr(nl_msg);
-    struct nl_handle *nlhandle = nl_handle_alloc();
+    virNetlinkHandle *nlhandle = virNetlinkAlloc();
 
     if (!nlhandle) {
         virReportSystemError(errno,
@@ -138,7 +201,7 @@ int virNetlinkCommand(struct nl_msg *nl_msg,
 
     nlmsg_set_dst(nl_msg, &nladdr);
 
-    nlmsg->nlmsg_pid = getpid();
+    nlmsg->nlmsg_pid = src_pid ? src_pid : getpid();
 
     nbytes = nl_send_auto_complete(nlhandle, nl_msg);
     if (nbytes < 0) {
@@ -178,7 +241,7 @@ error:
         *respbuflen = 0;
     }
 
-    nl_handle_destroy(nlhandle);
+    virNetlinkFree(nlhandle);
     return rc;
 }
 
@@ -285,7 +348,7 @@ virNetlinkEventServiceStop(void)
 
     virNetlinkEventServerLock(srv);
     nl_close(srv->netlinknh);
-    nl_handle_destroy(srv->netlinknh);
+    virNetlinkFree(srv->netlinknh);
     virEventRemoveHandle(srv->eventwatch);
 
     /* free any remaining clients on the list */
@@ -316,6 +379,24 @@ virNetlinkEventServiceIsRunning(void)
 }
 
 /**
+ * virNetlinkEventServiceLocalPid:
+ *
+ * Returns the nl_pid value that was used to bind() the netlink socket
+ * used by the netlink event service, or -1 on error (netlink
+ * guarantees that this value will always be > 0).
+ */
+int virNetlinkEventServiceLocalPid(void)
+{
+    if (!(server && server->netlinknh)) {
+        netlinkError(VIR_ERR_INTERNAL_ERROR, "%s",
+                     _("netlink event service not running"));
+        return -1;
+    }
+    return (int)nl_socket_get_local_port(server->netlinknh);
+}
+
+
+/**
  * virNetlinkEventServiceStart:
  *
  * start a monitor to receive netlink messages for libvirtd.
@@ -337,16 +418,18 @@ virNetlinkEventServiceStart(void)
 
     if (VIR_ALLOC(srv) < 0) {
         virReportOOMError();
-        goto error;
+        return -1;
     }
 
-    if (virMutexInit(&srv->lock) < 0)
-        goto error;
+    if (virMutexInit(&srv->lock) < 0) {
+        VIR_FREE(srv);
+        return -1;
+    }
 
     virNetlinkEventServerLock(srv);
 
     /* Allocate a new socket and get fd */
-    srv->netlinknh = nl_handle_alloc();
+    srv->netlinknh = virNetlinkAlloc();
 
     if (!srv->netlinknh) {
         virReportSystemError(errno,
@@ -392,7 +475,7 @@ virNetlinkEventServiceStart(void)
 error_server:
     if (ret < 0) {
         nl_close(srv->netlinknh);
-        nl_handle_destroy(srv->netlinknh);
+        virNetlinkFree(srv->netlinknh);
     }
 error_locked:
     virNetlinkEventServerUnlock(srv);
@@ -400,7 +483,6 @@ error_locked:
         virMutexDestroy(&srv->lock);
         VIR_FREE(srv);
     }
-error:
     return ret;
 }
 
@@ -535,10 +617,23 @@ static const char *unsupported = N_("libnl was not available at build time");
 static const char *unsupported = N_("not supported on non-linux platforms");
 # endif
 
+int
+virNetlinkStartup(void)
+{
+    return 0;
+}
+
+void
+virNetlinkShutdown(void)
+{
+    return;
+}
+
 int virNetlinkCommand(struct nl_msg *nl_msg ATTRIBUTE_UNUSED,
-           unsigned char **respbuf ATTRIBUTE_UNUSED,
-           unsigned int *respbuflen ATTRIBUTE_UNUSED,
-           int nl_pid ATTRIBUTE_UNUSED)
+                      unsigned char **respbuf ATTRIBUTE_UNUSED,
+                      unsigned int *respbuflen ATTRIBUTE_UNUSED,
+                      uint32_t src_pid ATTRIBUTE_UNUSED,
+                      uint32_t dst_pid ATTRIBUTE_UNUSED)
 {
     netlinkError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
     return -1;
@@ -550,7 +645,7 @@ int virNetlinkCommand(struct nl_msg *nl_msg ATTRIBUTE_UNUSED,
  */
 int virNetlinkEventServiceStop(void)
 {
-    netlinkError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
+    VIR_DEBUG("%s", _(unsupported));
     return 0;
 }
 
@@ -560,7 +655,7 @@ int virNetlinkEventServiceStop(void)
  */
 int virNetlinkEventServiceStart(void)
 {
-    netlinkError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
+    VIR_DEBUG("%s", _(unsupported));
     return 0;
 }
 

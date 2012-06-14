@@ -184,6 +184,9 @@ static const char *virErrorDomainName(virErrorDomain domain) {
         case VIR_FROM_AUTH:
             dom = "Auth ";
             break;
+        case VIR_FROM_DBUS:
+            dom = "DBus ";
+            break;
     }
     return dom;
 }
@@ -1249,6 +1252,12 @@ virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("numerical overflow");
             else
                 errmsg = _("numerical overflow: %s");
+            break;
+        case VIR_ERR_BLOCK_COPY_ACTIVE:
+            if (!info)
+                errmsg = _("block copy still active");
+            else
+                errmsg = _("block copy still active: %s");
             break;
     }
     return errmsg;

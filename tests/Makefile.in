@@ -55,7 +55,6 @@ host_triplet = @host@
 @WITH_LIBVIRTD_TRUE@am__append_12 = \
 @WITH_LIBVIRTD_TRUE@	test_conf.sh			\
 @WITH_LIBVIRTD_TRUE@	cpuset				\
-@WITH_LIBVIRTD_TRUE@	daemon-conf			\
 @WITH_LIBVIRTD_TRUE@	define-dev-segfault		\
 @WITH_LIBVIRTD_TRUE@	int-overflow			\
 @WITH_LIBVIRTD_TRUE@	libvirtd-fail			\
@@ -70,11 +69,13 @@ host_triplet = @host@
 @WITH_LIBVIRTD_TRUE@	virsh-schedinfo			\
 @WITH_LIBVIRTD_TRUE@	virsh-synopsis
 
-@WITH_LIBVIRTD_TRUE@am__append_13 = eventtest
+@WITH_LIBVIRTD_TRUE@am__append_13 = \
+@WITH_LIBVIRTD_TRUE@	eventtest			\
+@WITH_LIBVIRTD_TRUE@	libvirtdconftest
+
 @WITH_LIBVIRTD_FALSE@am__append_14 = \
 @WITH_LIBVIRTD_FALSE@	test_conf.sh			\
 @WITH_LIBVIRTD_FALSE@	cpuset				\
-@WITH_LIBVIRTD_FALSE@	daemon-conf			\
 @WITH_LIBVIRTD_FALSE@	define-dev-segfault		\
 @WITH_LIBVIRTD_FALSE@	int-overflow			\
 @WITH_LIBVIRTD_FALSE@	libvirtd-fail			\
@@ -108,10 +109,11 @@ TESTS = $(am__EXEEXT_11) $(test_scripts)
 @WITH_ESX_FALSE@am__append_22 = esxutilstest.c
 @WITH_VMX_FALSE@am__append_23 = vmx2xmltest.c xml2vmxtest.c
 @WITH_NETWORK_FALSE@am__append_24 = networkxml2argvtest.c
-@HAVE_LIBTASN1_TRUE@am__append_25 = pkix_asn1_tab.c
-@HAVE_LIBTASN1_TRUE@am__append_26 = -ltasn1
-@HAVE_LIBTASN1_FALSE@am__append_27 = pkix_asn1_tab.c
-@WITH_CIL_FALSE@am__append_28 = object-locking.ml
+@WITH_LIBVIRTD_FALSE@am__append_25 = libvirtdconftest.c
+@HAVE_LIBTASN1_TRUE@am__append_26 = pkix_asn1_tab.c
+@HAVE_LIBTASN1_TRUE@am__append_27 = -ltasn1
+@HAVE_LIBTASN1_FALSE@am__append_28 = pkix_asn1_tab.c
+@WITH_CIL_FALSE@am__append_29 = object-locking.ml
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -339,7 +341,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-mkinstalldirs = $(install_sh) -d
+mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -375,7 +377,8 @@ libshunload_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @WITH_CIL_TRUE@am__EXEEXT_7 = object-locking$(EXEEXT)
 @HAVE_YAJL_TRUE@am__EXEEXT_8 = jsontest$(EXEEXT)
 @WITH_NETWORK_TRUE@am__EXEEXT_9 = networkxml2argvtest$(EXEEXT)
-@WITH_LIBVIRTD_TRUE@am__EXEEXT_10 = eventtest$(EXEEXT)
+@WITH_LIBVIRTD_TRUE@am__EXEEXT_10 = eventtest$(EXEEXT) \
+@WITH_LIBVIRTD_TRUE@	libvirtdconftest$(EXEEXT)
 am__EXEEXT_11 = virshtest$(EXEEXT) sockettest$(EXEEXT) \
 	nodeinfotest$(EXEEXT) virbuftest$(EXEEXT) commandtest$(EXEEXT) \
 	seclabeltest$(EXEEXT) virhashtest$(EXEEXT) \
@@ -447,6 +450,18 @@ interfacexml2xmltest_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am_jsontest_OBJECTS = jsontest.$(OBJEXT) testutils.$(OBJEXT)
 jsontest_OBJECTS = $(am_jsontest_OBJECTS)
 jsontest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am__libvirtdconftest_SOURCES_DIST = libvirtdconftest.c testutils.h \
+	testutils.c ../daemon/libvirtd-config.c
+@WITH_LIBVIRTD_TRUE@am_libvirtdconftest_OBJECTS = libvirtdconftest-libvirtdconftest.$(OBJEXT) \
+@WITH_LIBVIRTD_TRUE@	libvirtdconftest-testutils.$(OBJEXT) \
+@WITH_LIBVIRTD_TRUE@	libvirtdconftest-libvirtd-config.$(OBJEXT)
+libvirtdconftest_OBJECTS = $(am_libvirtdconftest_OBJECTS)
+@WITH_LIBVIRTD_TRUE@libvirtdconftest_DEPENDENCIES =  \
+@WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_2)
+libvirtdconftest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(libvirtdconftest_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
+	-o $@
 am__lxcxml2xmltest_SOURCES_DIST = lxcxml2xmltest.c testutilslxc.c \
 	testutilslxc.h testutils.c testutils.h
 @WITH_LXC_TRUE@am_lxcxml2xmltest_OBJECTS = lxcxml2xmltest.$(OBJEXT) \
@@ -719,17 +734,18 @@ SOURCES = $(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
 	$(commandtest_SOURCES) $(conftest_SOURCES) $(cputest_SOURCES) \
 	$(domainsnapshotxml2xmltest_SOURCES) $(esxutilstest_SOURCES) \
 	$(eventtest_SOURCES) $(interfacexml2xmltest_SOURCES) \
-	$(jsontest_SOURCES) $(lxcxml2xmltest_SOURCES) \
-	$(networkxml2argvtest_SOURCES) $(networkxml2xmltest_SOURCES) \
-	$(nodedevxml2xmltest_SOURCES) $(nodeinfotest_SOURCES) \
-	$(nwfilterxml2xmltest_SOURCES) $(object_locking_SOURCES) \
-	$(openvzutilstest_SOURCES) $(qemuargv2xmltest_SOURCES) \
-	$(qemuhelptest_SOURCES) $(qemumonitortest_SOURCES) \
-	$(qemuxml2argvtest_SOURCES) $(qemuxml2xmltest_SOURCES) \
-	$(qemuxmlnstest_SOURCES) $(reconnect_SOURCES) \
-	$(seclabeltest_SOURCES) $(sexpr2xmltest_SOURCES) \
-	$(shunloadtest_SOURCES) $(sockettest_SOURCES) $(ssh_SOURCES) \
-	$(statstest_SOURCES) $(storagepoolxml2xmltest_SOURCES) \
+	$(jsontest_SOURCES) $(libvirtdconftest_SOURCES) \
+	$(lxcxml2xmltest_SOURCES) $(networkxml2argvtest_SOURCES) \
+	$(networkxml2xmltest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
+	$(nodeinfotest_SOURCES) $(nwfilterxml2xmltest_SOURCES) \
+	$(object_locking_SOURCES) $(openvzutilstest_SOURCES) \
+	$(qemuargv2xmltest_SOURCES) $(qemuhelptest_SOURCES) \
+	$(qemumonitortest_SOURCES) $(qemuxml2argvtest_SOURCES) \
+	$(qemuxml2xmltest_SOURCES) $(qemuxmlnstest_SOURCES) \
+	$(reconnect_SOURCES) $(seclabeltest_SOURCES) \
+	$(sexpr2xmltest_SOURCES) $(shunloadtest_SOURCES) \
+	$(sockettest_SOURCES) $(ssh_SOURCES) $(statstest_SOURCES) \
+	$(storagepoolxml2xmltest_SOURCES) \
 	$(storagevolxml2xmltest_SOURCES) $(utiltest_SOURCES) \
 	$(virauthconfigtest_SOURCES) $(virbuftest_SOURCES) \
 	$(virhashtest_SOURCES) $(virkeyfiletest_SOURCES) \
@@ -744,6 +760,7 @@ DIST_SOURCES = $(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
 	$(am__domainsnapshotxml2xmltest_SOURCES_DIST) \
 	$(am__esxutilstest_SOURCES_DIST) $(am__eventtest_SOURCES_DIST) \
 	$(interfacexml2xmltest_SOURCES) $(jsontest_SOURCES) \
+	$(am__libvirtdconftest_SOURCES_DIST) \
 	$(am__lxcxml2xmltest_SOURCES_DIST) \
 	$(am__networkxml2argvtest_SOURCES_DIST) \
 	$(networkxml2xmltest_SOURCES) $(nodedevxml2xmltest_SOURCES) \
@@ -822,6 +839,8 @@ CYGPATH_W = @CYGPATH_W@
 CYGWIN_EXTRA_LDFLAGS = @CYGWIN_EXTRA_LDFLAGS@
 CYGWIN_EXTRA_LIBADD = @CYGWIN_EXTRA_LIBADD@
 CYGWIN_EXTRA_PYTHON_LIBADD = @CYGWIN_EXTRA_PYTHON_LIBADD@
+DBUS_CFLAGS = @DBUS_CFLAGS@
+DBUS_LIBS = @DBUS_LIBS@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DEVMAPPER_CFLAGS = @DEVMAPPER_CFLAGS@
@@ -1444,6 +1463,8 @@ LIBINTL = @LIBINTL@
 LIBMULTITHREAD = @LIBMULTITHREAD@
 LIBNL_CFLAGS = @LIBNL_CFLAGS@
 LIBNL_LIBS = @LIBNL_LIBS@
+LIBNL_ROUTE3_CFLAGS = @LIBNL_ROUTE3_CFLAGS@
+LIBNL_ROUTE3_LIBS = @LIBNL_ROUTE3_LIBS@
 LIBOBJS = @LIBOBJS@
 LIBPARTED_CFLAGS = @LIBPARTED_CFLAGS@
 LIBPARTED_LIBS = @LIBPARTED_LIBS@
@@ -1916,7 +1937,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-INCLUDES = -I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib \
+INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
+	-I$(top_builddir)/gnulib/lib -I$(top_srcdir)/gnulib/lib \
 	-I$(top_builddir)/include -I$(top_srcdir)/include \
 	-I$(top_builddir)/src -I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/util -I$(top_srcdir)/src/conf \
@@ -1963,8 +1985,8 @@ EXTRA_DIST = capabilityschemadata capabilityschematest commanddata \
 	$(am__append_14) $(am__append_16) $(test_scripts) \
 	$(am__append_17) $(am__append_19) $(am__append_20) \
 	$(am__append_21) openvzutilstest.conf $(am__append_22) \
-	$(am__append_23) $(am__append_24) $(am__append_27) \
-	$(am__append_28)
+	$(am__append_23) $(am__append_24) $(am__append_25) \
+	$(am__append_28) $(am__append_29)
 test_helpers = commandhelper ssh conftest
 test_programs = virshtest sockettest nodeinfotest virbuftest \
 	commandtest seclabeltest virhashtest virnetmessagetest \
@@ -2158,10 +2180,18 @@ commandhelper_SOURCES = \
 
 commandhelper_CFLAGS = -Dabs_builddir="\"`pwd`\"" $(AM_CFLAGS)
 commandhelper_LDADD = $(LDADDS)
+@WITH_LIBVIRTD_TRUE@libvirtdconftest_SOURCES = \
+@WITH_LIBVIRTD_TRUE@	libvirtdconftest.c testutils.h testutils.c \
+@WITH_LIBVIRTD_TRUE@	../daemon/libvirtd-config.c
+
+@WITH_LIBVIRTD_TRUE@libvirtdconftest_CFLAGS = $(AM_CFLAGS)
+@WITH_LIBVIRTD_TRUE@libvirtdconftest_LDADD = $(LDADDS)
 virnetmessagetest_SOURCES = \
 	virnetmessagetest.c testutils.h testutils.c
 
-virnetmessagetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virnetmessagetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" \
+		$(XDR_CFLAGS) $(AM_CFLAGS)
+
 virnetmessagetest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
 virnetsockettest_SOURCES = \
 	virnetsockettest.c testutils.h testutils.c
@@ -2169,10 +2199,10 @@ virnetsockettest_SOURCES = \
 virnetsockettest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virnetsockettest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS)
 virnettlscontexttest_SOURCES = virnettlscontexttest.c testutils.h \
-	testutils.c $(am__append_25)
+	testutils.c $(am__append_26)
 virnettlscontexttest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virnettlscontexttest_LDADD = ../src/libvirt-net-rpc.la $(LDADDS) \
-	$(am__append_26)
+	$(am__append_27)
 virtimetest_SOURCES = \
 	virtimetest.c testutils.h testutils.c
 
@@ -2223,7 +2253,7 @@ libshunload_la_LDFLAGS = -module -avoid-version -rpath /evil/libtool/hack/to/for
 shunloadtest_SOURCES = \
 	shunloadtest.c
 
-shunloadtest_LDADD = -lpthread
+shunloadtest_LDADD = $(LIB_PTHREAD)
 shunloadtest_DEPENDENCIES = libshunload.la
 @WITH_CIL_TRUE@CILOPTFLAGS = 
 @WITH_CIL_TRUE@CILOPTINCS = 
@@ -2330,6 +2360,9 @@ interfacexml2xmltest$(EXEEXT): $(interfacexml2xmltest_OBJECTS) $(interfacexml2xm
 jsontest$(EXEEXT): $(jsontest_OBJECTS) $(jsontest_DEPENDENCIES) 
 	@rm -f jsontest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(jsontest_OBJECTS) $(jsontest_LDADD) $(LIBS)
+libvirtdconftest$(EXEEXT): $(libvirtdconftest_OBJECTS) $(libvirtdconftest_DEPENDENCIES) 
+	@rm -f libvirtdconftest$(EXEEXT)
+	$(AM_V_CCLD)$(libvirtdconftest_LINK) $(libvirtdconftest_OBJECTS) $(libvirtdconftest_LDADD) $(LIBS)
 lxcxml2xmltest$(EXEEXT): $(lxcxml2xmltest_OBJECTS) $(lxcxml2xmltest_DEPENDENCIES) 
 	@rm -f lxcxml2xmltest$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(lxcxml2xmltest_OBJECTS) $(lxcxml2xmltest_LDADD) $(LIBS)
@@ -2464,6 +2497,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eventtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interfacexml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jsontest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtdconftest-libvirtd-config.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtdconftest-libvirtdconftest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirtdconftest-testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxcxml2xmltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/networkxml2argvtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/networkxml2xmltest.Po@am__quote@
@@ -2587,6 +2623,54 @@ commandtest-testutils.obj: testutils.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testutils.c' object='commandtest-testutils.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(commandtest_CFLAGS) $(CFLAGS) -c -o commandtest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+
+libvirtdconftest-libvirtdconftest.o: libvirtdconftest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -MT libvirtdconftest-libvirtdconftest.o -MD -MP -MF $(DEPDIR)/libvirtdconftest-libvirtdconftest.Tpo -c -o libvirtdconftest-libvirtdconftest.o `test -f 'libvirtdconftest.c' || echo '$(srcdir)/'`libvirtdconftest.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtdconftest-libvirtdconftest.Tpo $(DEPDIR)/libvirtdconftest-libvirtdconftest.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libvirtdconftest.c' object='libvirtdconftest-libvirtdconftest.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -c -o libvirtdconftest-libvirtdconftest.o `test -f 'libvirtdconftest.c' || echo '$(srcdir)/'`libvirtdconftest.c
+
+libvirtdconftest-libvirtdconftest.obj: libvirtdconftest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -MT libvirtdconftest-libvirtdconftest.obj -MD -MP -MF $(DEPDIR)/libvirtdconftest-libvirtdconftest.Tpo -c -o libvirtdconftest-libvirtdconftest.obj `if test -f 'libvirtdconftest.c'; then $(CYGPATH_W) 'libvirtdconftest.c'; else $(CYGPATH_W) '$(srcdir)/libvirtdconftest.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtdconftest-libvirtdconftest.Tpo $(DEPDIR)/libvirtdconftest-libvirtdconftest.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='libvirtdconftest.c' object='libvirtdconftest-libvirtdconftest.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -c -o libvirtdconftest-libvirtdconftest.obj `if test -f 'libvirtdconftest.c'; then $(CYGPATH_W) 'libvirtdconftest.c'; else $(CYGPATH_W) '$(srcdir)/libvirtdconftest.c'; fi`
+
+libvirtdconftest-testutils.o: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -MT libvirtdconftest-testutils.o -MD -MP -MF $(DEPDIR)/libvirtdconftest-testutils.Tpo -c -o libvirtdconftest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtdconftest-testutils.Tpo $(DEPDIR)/libvirtdconftest-testutils.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testutils.c' object='libvirtdconftest-testutils.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -c -o libvirtdconftest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+
+libvirtdconftest-testutils.obj: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -MT libvirtdconftest-testutils.obj -MD -MP -MF $(DEPDIR)/libvirtdconftest-testutils.Tpo -c -o libvirtdconftest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtdconftest-testutils.Tpo $(DEPDIR)/libvirtdconftest-testutils.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testutils.c' object='libvirtdconftest-testutils.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -c -o libvirtdconftest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+
+libvirtdconftest-libvirtd-config.o: ../daemon/libvirtd-config.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -MT libvirtdconftest-libvirtd-config.o -MD -MP -MF $(DEPDIR)/libvirtdconftest-libvirtd-config.Tpo -c -o libvirtdconftest-libvirtd-config.o `test -f '../daemon/libvirtd-config.c' || echo '$(srcdir)/'`../daemon/libvirtd-config.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtdconftest-libvirtd-config.Tpo $(DEPDIR)/libvirtdconftest-libvirtd-config.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../daemon/libvirtd-config.c' object='libvirtdconftest-libvirtd-config.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -c -o libvirtdconftest-libvirtd-config.o `test -f '../daemon/libvirtd-config.c' || echo '$(srcdir)/'`../daemon/libvirtd-config.c
+
+libvirtdconftest-libvirtd-config.obj: ../daemon/libvirtd-config.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -MT libvirtdconftest-libvirtd-config.obj -MD -MP -MF $(DEPDIR)/libvirtdconftest-libvirtd-config.Tpo -c -o libvirtdconftest-libvirtd-config.obj `if test -f '../daemon/libvirtd-config.c'; then $(CYGPATH_W) '../daemon/libvirtd-config.c'; else $(CYGPATH_W) '$(srcdir)/../daemon/libvirtd-config.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirtdconftest-libvirtd-config.Tpo $(DEPDIR)/libvirtdconftest-libvirtd-config.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../daemon/libvirtd-config.c' object='libvirtdconftest-libvirtd-config.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirtdconftest_CFLAGS) $(CFLAGS) -c -o libvirtdconftest-libvirtd-config.obj `if test -f '../daemon/libvirtd-config.c'; then $(CYGPATH_W) '../daemon/libvirtd-config.c'; else $(CYGPATH_W) '$(srcdir)/../daemon/libvirtd-config.c'; fi`
 
 virauthconfigtest-virauthconfigtest.o: virauthconfigtest.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virauthconfigtest_CFLAGS) $(CFLAGS) -MT virauthconfigtest-virauthconfigtest.o -MD -MP -MF $(DEPDIR)/virauthconfigtest-virauthconfigtest.Tpo -c -o virauthconfigtest-virauthconfigtest.o `test -f 'virauthconfigtest.c' || echo '$(srcdir)/'`virauthconfigtest.c

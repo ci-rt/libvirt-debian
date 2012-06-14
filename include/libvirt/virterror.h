@@ -87,6 +87,7 @@ typedef enum {
     VIR_FROM_CAPABILITIES = 44, /* Error from capabilities */
     VIR_FROM_URI = 45,          /* Error from URI handling */
     VIR_FROM_AUTH = 46,         /* Error from auth handling */
+    VIR_FROM_DBUS = 47,         /* Error from DBus */
 } virErrorDomain;
 
 
@@ -249,6 +250,7 @@ typedef enum {
     VIR_ERR_NO_DOMAIN_METADATA = 80,    /* The metadata is not present */
     VIR_ERR_MIGRATE_UNSAFE = 81,        /* Migration is not safe */
     VIR_ERR_OVERFLOW = 82,              /* integer overflow */
+    VIR_ERR_BLOCK_COPY_ACTIVE = 83,     /* action prevented by block copy job */
 } virErrorNumber;
 
 /**

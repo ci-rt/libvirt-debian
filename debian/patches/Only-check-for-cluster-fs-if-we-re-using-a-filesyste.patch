@@ -1,0 +1,43 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Wed, 6 Jun 2012 20:36:31 +0200
+Subject: Only check for cluster fs if we're using a filesystem
+
+otherwise migration fails for e.g. network filesystems like sheepdog
+with:
+
+   error: Invalid relative path 'virt-name': Invalid argument
+
+while we should fail with:
+
+    Migration may lead to data corruption if disks use cache != none
+
+References:
+
+    http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=676328
+    https://www.redhat.com/archives/libvirt-users/2012-May/msg00088.html
+---
+ src/qemu/qemu_migration.c |   11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/src/qemu/qemu_migration.c b/src/qemu/qemu_migration.c
+index 6f42823..a20f05c 100644
+--- a/src/qemu/qemu_migration.c
++++ b/src/qemu/qemu_migration.c
+@@ -840,10 +840,13 @@ qemuMigrationIsSafe(virDomainDefPtr def)
+             !disk->readonly &&
+             disk->cachemode != VIR_DOMAIN_DISK_CACHE_DISABLE) {
+             int cfs;
+-            if ((cfs = virStorageFileIsClusterFS(disk->src)) == 1)
+-                continue;
+-            else if (cfs < 0)
+-                return false;
++
++            if (disk->type == VIR_DOMAIN_DISK_TYPE_FILE) {
++                if ((cfs = virStorageFileIsClusterFS(disk->src)) == 1)
++                    continue;
++                else if (cfs < 0)
++                    return false;
++            }
+ 
+             qemuReportError(VIR_ERR_MIGRATE_UNSAFE, "%s",
+                             _("Migration may lead to data corruption if disks"

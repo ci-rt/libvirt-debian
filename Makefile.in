@@ -38,10 +38,12 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(srcdir)/libvirt.pc.in $(srcdir)/libvirt.spec.in \
 	$(srcdir)/mingw32-libvirt.spec.in $(top_srcdir)/configure \
-	ABOUT-NLS AUTHORS COPYING.LIB ChangeLog INSTALL NEWS TODO \
-	build-aux/compile build-aux/config.guess \
+	ABOUT-NLS AUTHORS COPYING COPYING.LIB ChangeLog INSTALL NEWS \
+	TODO build-aux/compile build-aux/config.guess \
 	build-aux/config.rpath build-aux/config.sub build-aux/depcomp \
-	build-aux/install-sh build-aux/ltmain.sh build-aux/missing
+	build-aux/install-sh build-aux/ltmain.sh build-aux/mdate-sh \
+	build-aux/missing build-aux/mkinstalldirs \
+	build-aux/texinfo.tex
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
@@ -269,7 +271,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
-mkinstalldirs = $(install_sh) -d
+mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = libvirt.pc libvirt.spec mingw32-libvirt.spec
 CONFIG_CLEAN_VPATH_FILES =
@@ -400,6 +402,8 @@ CYGPATH_W = @CYGPATH_W@
 CYGWIN_EXTRA_LDFLAGS = @CYGWIN_EXTRA_LDFLAGS@
 CYGWIN_EXTRA_LIBADD = @CYGWIN_EXTRA_LIBADD@
 CYGWIN_EXTRA_PYTHON_LIBADD = @CYGWIN_EXTRA_PYTHON_LIBADD@
+DBUS_CFLAGS = @DBUS_CFLAGS@
+DBUS_LIBS = @DBUS_LIBS@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DEVMAPPER_CFLAGS = @DEVMAPPER_CFLAGS@
@@ -1022,6 +1026,8 @@ LIBINTL = @LIBINTL@
 LIBMULTITHREAD = @LIBMULTITHREAD@
 LIBNL_CFLAGS = @LIBNL_CFLAGS@
 LIBNL_LIBS = @LIBNL_LIBS@
+LIBNL_ROUTE3_CFLAGS = @LIBNL_ROUTE3_CFLAGS@
+LIBNL_ROUTE3_LIBS = @LIBNL_ROUTE3_LIBS@
 LIBOBJS = @LIBOBJS@
 LIBPARTED_CFLAGS = @LIBPARTED_CFLAGS@
 LIBPARTED_LIBS = @LIBPARTED_LIBS@

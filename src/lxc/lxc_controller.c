@@ -957,7 +957,7 @@ static void lxcEpollIO(int watch, int fd, int events, void *opaque)
         int ret;
         ret = epoll_wait(console->epollFd, &event, 1, 0);
         if (ret < 0) {
-            if (ret == EINTR)
+            if (errno == EINTR)
                 continue;
             virReportSystemError(errno, "%s",
                                  _("Unable to wait on epoll"));
@@ -1101,7 +1101,7 @@ static int lxcControllerMain(int serverFd,
                              size_t nFds,
                              pid_t container)
 {
-    struct lxcConsole *consoles;
+    struct lxcConsole *consoles = NULL;
     struct lxcMonitor monitor = {
         .serverFd = serverFd,
         .clientFd = clientFd,
@@ -1668,6 +1668,9 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    /* Initialize logging */
+    virLogSetFromEnv();
+
     while (1) {
         int c;
 
@@ -1781,8 +1784,14 @@ int main(int argc, char *argv[])
 
     if ((def = virDomainDefParseFile(caps, configFile,
                                      1 << VIR_DOMAIN_VIRT_LXC,
-                                     VIR_DOMAIN_XML_INACTIVE)) == NULL)
+                                     0)) == NULL)
         goto cleanup;
+
+    VIR_DEBUG("Security model %s type %s label %s imagelabel %s",
+              NULLSTR(def->seclabel.model),
+              virDomainSeclabelTypeToString(def->seclabel.type),
+              NULLSTR(def->seclabel.label),
+              NULLSTR(def->seclabel.imagelabel));
 
     if (def->nnets != nveths) {
         fprintf(stderr, "%s: expecting %d veths, but got %d\n",
@@ -1827,9 +1836,6 @@ int main(int argc, char *argv[])
             goto cleanup;
         }
     }
-
-    /* Initialize logging */
-    virLogSetFromEnv();
 
     /* Accept initial client which is the libvirtd daemon */
     if ((client = accept(monitor, NULL, 0)) < 0) {

@@ -572,7 +572,7 @@
 /* whether CPUID instruction is supported */
 #undef HAVE_CPUID
 
-/* use DBus for PolicyKit */
+/* enable communication with DBus */
 #undef HAVE_DBUS
 
 /* Define to 1 if you have the `dbus_watch_get_unix_fd' function. */
@@ -974,6 +974,12 @@
 /* whether the netlink library is available */
 #undef HAVE_LIBNL
 
+/* whether the netlink v1 library is available */
+#undef HAVE_LIBNL1
+
+/* Use libnl-3.0 */
+#undef HAVE_LIBNL3
+
 /* Define to 1 if you have the `numa' library (-lnuma). */
 #undef HAVE_LIBNUMA
 
@@ -1100,7 +1106,7 @@
 /* Define to 1 if you have the 'nl_langinfo' function. */
 #undef HAVE_NL_LANGINFO
 
-/* whether numactl is available for topology info */
+/* whether numactl-devel is available */
 #undef HAVE_NUMACTL
 
 /* whether numad is available */

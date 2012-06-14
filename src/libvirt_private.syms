@@ -400,6 +400,8 @@ virDomainNostateReasonTypeFromString;
 virDomainNostateReasonTypeToString;
 virDomainNumatuneMemModeTypeFromString;
 virDomainNumatuneMemModeTypeToString;
+virDomainNumatuneMemPlacementModeTypeFromString;
+virDomainNumatuneMemPlacementModeTypeToString;
 virDomainObjAssignDef;
 virDomainObjCopyPersistentDef;
 virDomainObjGetPersistentDef;
@@ -578,6 +580,7 @@ virHashForEach;
 virHashFree;
 virHashGetItems;
 virHashLookup;
+virHashRemoveAll;
 virHashRemoveEntry;
 virHashRemoveSet;
 virHashSearch;
@@ -670,14 +673,17 @@ virJSONValueObjectAppendNumberUlong;
 virJSONValueObjectAppendString;
 virJSONValueObjectGet;
 virJSONValueObjectGetBoolean;
+virJSONValueObjectGetKey;
 virJSONValueObjectGetNumberDouble;
 virJSONValueObjectGetNumberInt;
 virJSONValueObjectGetNumberLong;
 virJSONValueObjectGetNumberUint;
 virJSONValueObjectGetNumberUlong;
 virJSONValueObjectGetString;
+virJSONValueObjectGetValue;
 virJSONValueObjectHasKey;
 virJSONValueObjectIsNull;
+virJSONValueObjectKeysNumber;
 virJSONValueToString;
 
 
@@ -1084,6 +1090,8 @@ usbDeviceListNew;
 usbDeviceListSteal;
 usbDeviceSetUsedBy;
 usbFindDevice;
+usbFindDeviceByBus;
+usbFindDeviceByVendor;
 usbFreeDevice;
 usbGetDevice;
 
@@ -1194,6 +1202,10 @@ virConsoleFree;
 virConsoleOpen;
 
 
+# virdbus.h
+virDBusGetSystemBus;
+
+
 # virfile.h
 virFileClose;
 virFileDirectFdFlag;
@@ -1204,6 +1216,7 @@ virFileFclose;
 virFileFdopen;
 virFileRewrite;
 virFileTouch;
+virFileUpdatePerm;
 
 
 # virkeycode.h
@@ -1322,8 +1335,11 @@ virNetlinkCommand;
 virNetlinkEventAddClient;
 virNetlinkEventRemoveClient;
 virNetlinkEventServiceIsRunning;
+virNetlinkEventServiceLocalPid;
 virNetlinkEventServiceStop;
 virNetlinkEventServiceStart;
+virNetlinkShutdown;
+virNetlinkStartup;
 
 
 # virnetmessage.h
@@ -1447,6 +1463,7 @@ virRandomInitialize;
 virSocketAddrBroadcast;
 virSocketAddrBroadcastByPrefix;
 virSocketAddrCheckNetmask;
+virSocketAddrEqual;
 virSocketAddrFormat;
 virSocketAddrFormatFull;
 virSocketAddrGetPort;
@@ -1458,6 +1475,7 @@ virSocketAddrParse;
 virSocketAddrParseIPv4;
 virSocketAddrParseIPv6;
 virSocketAddrPrefixToNetmask;
+virSocketAddrSetIPv4Addr;
 virSocketAddrSetPort;
 
 

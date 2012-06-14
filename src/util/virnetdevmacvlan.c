@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2010-2012 IBM Corporation
  *
  * This library is free software; you can redistribute it and/or
@@ -154,7 +154,7 @@ virNetDevMacVLanCreate(const char *ifname,
 
     nla_nest_end(nl_msg, linkinfo);
 
-    if (virNetlinkCommand(nl_msg, &recvbuf, &recvbuflen, 0) < 0) {
+    if (virNetlinkCommand(nl_msg, &recvbuf, &recvbuflen, 0, 0) < 0) {
         goto cleanup;
     }
 
@@ -242,7 +242,7 @@ int virNetDevMacVLanDelete(const char *ifname)
     if (nla_put(nl_msg, IFLA_IFNAME, strlen(ifname)+1, ifname) < 0)
         goto buffer_too_small;
 
-    if (virNetlinkCommand(nl_msg, &recvbuf, &recvbuflen, 0) < 0) {
+    if (virNetlinkCommand(nl_msg, &recvbuf, &recvbuflen, 0, 0) < 0) {
         goto cleanup;
     }
 
@@ -435,10 +435,10 @@ static const uint32_t modeMap[VIR_NETDEV_MACVLAN_MODE_LAST] = {
 struct virNetlinkCallbackData {
     char *cr_ifname;
     virNetDevVPortProfilePtr virtPortProfile;
-    unsigned char *macaddress;
+    unsigned char macaddress[VIR_MAC_BUFLEN];
     char *linkdev;
     int vf;
-    unsigned char *vmuuid;
+    unsigned char vmuuid[VIR_UUID_BUFLEN];
     enum virNetDevVPortProfileOp vmOp;
     unsigned int linkState;
 };
@@ -728,9 +728,7 @@ virNetlinkCallbackDataFree(virNetlinkCallbackDataPtr calld)
     if (calld) {
         VIR_FREE(calld->cr_ifname);
         VIR_FREE(calld->virtPortProfile);
-        VIR_FREE(calld->macaddress);
         VIR_FREE(calld->linkdev);
-        VIR_FREE(calld->vmuuid);
     }
     VIR_FREE(calld);
 }
@@ -772,14 +770,10 @@ virNetDevMacVLanVPortProfileRegisterCallback(const char *ifname,
         if (VIR_ALLOC(calld->virtPortProfile) < 0)
             goto memory_error;
         memcpy(calld->virtPortProfile, virtPortProfile, sizeof(*virtPortProfile));
-        if (VIR_ALLOC_N(calld->macaddress, VIR_MAC_BUFLEN) < 0)
-            goto memory_error;
-        memcpy(calld->macaddress, macaddress, VIR_MAC_BUFLEN);
+        memcpy(calld->macaddress, macaddress, sizeof(calld->macaddress));
         if ((calld->linkdev = strdup(linkdev)) == NULL)
             goto  memory_error;
-        if (VIR_ALLOC_N(calld->vmuuid, VIR_UUID_BUFLEN) < 0)
-            goto memory_error;
-        memcpy(calld->vmuuid, vmuuid, VIR_UUID_BUFLEN);
+        memcpy(calld->vmuuid, vmuuid, sizeof(calld->vmuuid));
 
         calld->vmOp = vmOp;
 

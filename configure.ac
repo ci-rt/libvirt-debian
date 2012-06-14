@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.11.3], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.12], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -74,6 +74,7 @@ LIBPCAP_REQUIRED="1.0.0"
 LIBNL_REQUIRED="1.1"
 LIBSSH2_REQUIRED="1.0"
 LIBBLKID_REQUIRED="2.17"
+DBUS_REQUIRED="1.0.0"
 
 dnl Checks for C compiler.
 AC_PROG_CC
@@ -1099,6 +1100,36 @@ AC_SUBST([SANLOCK_CFLAGS])
 AC_SUBST([SANLOCK_LIBS])
 
 
+dnl DBus library
+DBUS_CFLAGS=
+DBUS_LIBS=
+AC_ARG_WITH([dbus],
+  AC_HELP_STRING([--with-dbus], [enable communication with DBus @<:@default=check@:>@]),
+  [],
+  [with_dbus=check])
+if test "$with_dbus" = "yes" || test "$with_dbus" = "check" ; then
+  PKG_CHECK_MODULES(DBUS, dbus-1 >= $DBUS_REQUIRED,
+    [with_dbus=yes], [
+     if test "$with_dbus" = "check" ; then
+       with_dbus=no
+     else
+       AC_MSG_ERROR([You must install DBus >= $DBUS_REQUIRED to compile libvirt])
+     fi])
+fi
+
+if test "$with_dbus" = "yes" ; then
+  AC_DEFINE_UNQUOTED([HAVE_DBUS], 1, [enable communication with DBus])
+
+  save_LIBS="$LIBS"
+  save_CFLAGS="$CFLAGS"
+  LIBS="$LIBS $DBUS_LIBS"
+  CFLAGS="$CFLAGS $DBUS_CFLAGS"
+  AC_CHECK_FUNCS([dbus_watch_get_unix_fd])
+  LIBS="$save_LIBS"
+  CFLAGS="$save_CFLAGS"
+fi
+
+
 dnl PolicyKit library
 POLKIT_CFLAGS=
 POLKIT_LIBS=
@@ -1109,7 +1140,6 @@ AC_ARG_WITH([polkit],
   [with_polkit=check])
 
 with_polkit0=no
-with_dbus=no
 with_polkit1=no
 if test "x$with_polkit" = "xyes" || test "x$with_polkit" = "xcheck"; then
   dnl Check for new polkit first - just a binary
@@ -1138,8 +1168,6 @@ if test "x$with_polkit" = "xyes" || test "x$with_polkit" = "xcheck"; then
         [use PolicyKit for UNIX socket access checks])
       AC_DEFINE_UNQUOTED([HAVE_POLKIT0], 1,
         [use PolicyKit for UNIX socket access checks])
-      AC_DEFINE_UNQUOTED([HAVE_DBUS], 1,
-        [use DBus for PolicyKit])
 
       old_CFLAGS=$CFLAGS
       old_LIBS=$LIBS
@@ -1154,13 +1182,11 @@ if test "x$with_polkit" = "xyes" || test "x$with_polkit" = "xcheck"; then
         AC_DEFINE_UNQUOTED([POLKIT_AUTH],["$POLKIT_AUTH"],[Location of polkit-auth program])
       fi
       with_polkit0="yes"
-      with_dbus="yes"
     fi
   fi
 fi
 AM_CONDITIONAL([HAVE_POLKIT], [test "x$with_polkit" = "xyes"])
 AM_CONDITIONAL([HAVE_POLKIT0], [test "x$with_polkit0" = "xyes"])
-AM_CONDITIONAL([HAVE_DBUS], [test "x$with_dbus" = "xyes"])
 AM_CONDITIONAL([HAVE_POLKIT1], [test "x$with_polkit1" = "xyes"])
 AC_SUBST([POLKIT_CFLAGS])
 AC_SUBST([POLKIT_LIBS])
@@ -1479,13 +1505,6 @@ if test "$with_qemu" = "yes" && test "$with_numactl" != "no"; then
   CFLAGS="$old_cflags"
   LIBS="$old_libs"
 fi
-if test "$with_numactl" = "yes"; then
-  NUMACTL_LIBS="-lnuma"
-  AC_DEFINE_UNQUOTED([HAVE_NUMACTL], 1, [whether numactl is available for topology info])
-fi
-AM_CONDITIONAL([HAVE_NUMACTL], [test "$with_numactl" != "no"])
-AC_SUBST([NUMACTL_CFLAGS])
-AC_SUBST([NUMACTL_LIBS])
 
 dnl numad
 AC_ARG_WITH([numad],
@@ -1494,22 +1513,45 @@ AC_ARG_WITH([numad],
   [with_numad=check])
 
 if test "$with_numad" != "no" ; then
+  old_cflags="$CFLAGS"
+  old_libs="$LIBS"
+  fail=0
+
   AC_PATH_PROG([NUMAD], [numad], [], [/bin:/usr/bin])
-  if test -z "$NUMAD" ; then
-    if test "$with_numad" = "check"; then
+
+  if test "$with_numad" = "check"; then
+    AC_CHECK_HEADER([numa.h], [], [fail=1])
+    AC_CHECK_LIB([numa], [numa_available], [], [fail=1])
+    if test -z "$NUMAD" || test $fail = 1; then
       with_numad="no"
     else
-      AC_MSG_ERROR([You must install the 'numad' to manage CPU placement dynamically])
+      with_numad="yes"
     fi
   else
-    with_numad="yes"
+    test -z  "$NUMAD" &&
+      AC_MSG_ERROR([You must install numad package to manage CPU and memory placement dynamically])
+
+    AC_CHECK_HEADER([numa.h], [], [fail=1])
+    AC_CHECK_LIB([numa], [numa_available], [], [fail=1])
+    test $fail = 1 &&
+      AC_MSG_ERROR([You must install the numactl development package in order to compile and run libvirt])
   fi
-  if test "$with_numad" = "yes"; then
-    AC_DEFINE_UNQUOTED([HAVE_NUMAD], 1, [whether numad is available])
-    AC_DEFINE_UNQUOTED([NUMAD],["$NUMAD"], [Location or name of the numad program])
-  fi
+
+  CFLAGS="$old_cflags"
+  LIBS="$old_libs"
+fi
+if test "$with_numad" = "yes"; then
+  AC_DEFINE_UNQUOTED([HAVE_NUMAD], 1, [whether numad is available])
+  AC_DEFINE_UNQUOTED([NUMAD],["$NUMAD"], [Location or name of the numad program])
+fi
+if test "$with_numactl" = "yes" || test "$with_numad" = "yes"; then
+  NUMACTL_LIBS="-lnuma"
+  AC_DEFINE_UNQUOTED([HAVE_NUMACTL], 1, [whether numactl-devel is available])
 fi
 AM_CONDITIONAL([HAVE_NUMAD], [test "$with_numad" != "no"])
+AM_CONDITIONAL([HAVE_NUMACTL], [test "$with_numad" != "no" || test "$with_numactl" != "no"])
+AC_SUBST([NUMACTL_CFLAGS])
+AC_SUBST([NUMACTL_LIBS])
 
 dnl pcap lib
 LIBPCAP_CONFIG="pcap-config"
@@ -2413,7 +2455,6 @@ if test "x$with_hal" = "xyes" || test "x$with_hal" = "xcheck"; then
     CFLAGS="$CFLAGS $HAL_CFLAGS"
     LIBS="$LIBS $HAL_LIBS"
     AC_CHECK_FUNCS([libhal_get_all_devices],,[with_hal=no])
-    AC_CHECK_FUNCS([dbus_watch_get_unix_fd])
     CFLAGS="$old_CFLAGS"
     LIBS="$old_LIBS"
   fi
@@ -2601,18 +2642,31 @@ AM_CONDITIONAL([WITH_VIRTUALPORT], [test "$with_virtualport" = "yes"])
 
 dnl netlink library
 
+LIBNL_ROUTE3_CFLAGS=""
+LIBNL_ROUTE3_LIBS=""
 LIBNL_CFLAGS=""
 LIBNL_LIBS=""
 have_libnl=no
 
 if test "$with_linux" = "yes"; then
-    PKG_CHECK_MODULES([LIBNL], [libnl-1 >= $LIBNL_REQUIRED], [
+    PKG_CHECK_MODULES([LIBNL], [libnl-3.0], [
         have_libnl=yes
-        AC_DEFINE_UNQUOTED([HAVE_LIBNL], 1, [whether the netlink library is available])
-    ], [
-        if test "$with_macvtap" = "yes"; then
-            AC_MSG_ERROR([libnl-devel >= $LIBNL_REQUIRED is required for macvtap support])
-        fi
+        AC_DEFINE([HAVE_LIBNL3], [1], [Use libnl-3.0])
+        AC_DEFINE([HAVE_LIBNL], [1], [whether the netlink library is available])
+        PKG_CHECK_MODULES([LIBNL_ROUTE3], [libnl-route-3.0])
+        LIBNL_CFLAGS="$LIBNL_CFLAGS $LIBNL_ROUTE3_CFLAGS"
+        LIBNL_LIBS="$LIBNL_LIBS $LIBNL_ROUTE3_LIBS"
+    ], [PKG_CHECK_MODULES([LIBNL], [libnl-1 >= $LIBNL_REQUIRED], [
+            have_libnl=yes
+            AC_DEFINE_UNQUOTED([HAVE_LIBNL], [1],
+             [whether the netlink library is available])
+            AC_DEFINE_UNQUOTED([HAVE_LIBNL1], [1],
+             [whether the netlink v1 library is available])
+        ], [
+            if test "$with_macvtap" = "yes"; then
+                AC_MSG_ERROR([libnl-devel >= $LIBNL_REQUIRED is required for macvtap support])
+            fi
+        ])
     ])
 fi
 AM_CONDITIONAL([HAVE_LIBNL], [test "$have_libnl" = "yes"])

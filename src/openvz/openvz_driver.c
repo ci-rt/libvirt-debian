@@ -54,15 +54,19 @@
 #include "nodeinfo.h"
 #include "memory.h"
 #include "virfile.h"
+#include "virtypedparam.h"
 #include "logging.h"
 #include "command.h"
 #include "viruri.h"
+#include "stats_linux.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
 #define OPENVZ_MAX_ARG 28
 #define CMDBUF_LEN 1488
 #define CMDOP_LEN 288
+
+#define OPENVZ_NB_MEM_PARAM 3
 
 static int openvzGetProcessInfo(unsigned long long *cpuTime, int vpsid);
 static int openvzGetMaxVCPUs(virConnectPtr conn, const char *type);
@@ -96,68 +100,31 @@ static void cmdExecFree(const char *cmdExec[])
 /* generate arguments to create OpenVZ container
    return -1 - error
            0 - OK
+   Caller has to free the cmd
 */
-static int
-openvzDomainDefineCmd(const char *args[],
-                      int maxarg, virDomainDefPtr vmdef)
+static virCommandPtr
+openvzDomainDefineCmd(virDomainDefPtr vmdef)
 {
-    int narg;
-
-    for (narg = 0; narg < maxarg; narg++)
-        args[narg] = NULL;
+    virCommandPtr cmd = virCommandNewArgList(VZCTL,
+                                             "--quiet",
+                                             "create",
+                                             NULL);
 
     if (vmdef == NULL) {
         openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
                     _("Container is not defined"));
-        return -1;
+        virCommandFree(cmd);
+        return NULL;
     }
 
-#define ADD_ARG(thisarg)                                                \
-    do {                                                                \
-        if (narg >= maxarg)                                             \
-                 goto no_memory;                                        \
-        args[narg++] = thisarg;                                         \
-    } while (0)
-
-#define ADD_ARG_LIT(thisarg)                                            \
-    do {                                                                \
-        if (narg >= maxarg)                                             \
-                 goto no_memory;                                        \
-        if ((args[narg++] = strdup(thisarg)) == NULL)                   \
-            goto no_memory;                                             \
-    } while (0)
-
-    narg = 0;
-    ADD_ARG_LIT(VZCTL);
-    ADD_ARG_LIT("--quiet");
-    ADD_ARG_LIT("create");
-
-    ADD_ARG_LIT(vmdef->name);
-    ADD_ARG_LIT("--name");
-    ADD_ARG_LIT(vmdef->name);
+    virCommandAddArgList(cmd, vmdef->name, "--name", vmdef->name, NULL);
 
     if (vmdef->nfss == 1 &&
         vmdef->fss[0]->type == VIR_DOMAIN_FS_TYPE_TEMPLATE) {
-        ADD_ARG_LIT("--ostemplate");
-        ADD_ARG_LIT(vmdef->fss[0]->src);
+        virCommandAddArgList(cmd, "--ostemplate", vmdef->fss[0]->src, NULL);
     }
-#if 0
-    if ((vmdef->profile && *(vmdef->profile))) {
-        ADD_ARG_LIT("--config");
-        ADD_ARG_LIT(vmdef->profile);
-    }
-#endif
 
-    ADD_ARG(NULL);
-    return 0;
-
-no_memory:
-    openvzError(VIR_ERR_INTERNAL_ERROR,
-                _("Could not put argument to %s"), VZCTL);
-    return -1;
-
-#undef ADD_ARG
-#undef ADD_ARG_LIT
+    return cmd;
 }
 
 
@@ -166,8 +133,7 @@ static int openvzSetInitialConfig(virDomainDefPtr vmdef)
     int ret = -1;
     int vpsid;
     char * confdir = NULL;
-    const char *prog[OPENVZ_MAX_ARG];
-    prog[0] = NULL;
+    virCommandPtr cmd = NULL;
 
     if (vmdef->nfss > 1) {
         openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -206,24 +172,18 @@ static int openvzSetInitialConfig(virDomainDefPtr vmdef)
                         _("Could not set the source dir for the filesystem"));
             goto cleanup;
         }
-    }
-    else
-    {
-        if (openvzDomainDefineCmd(prog, OPENVZ_MAX_ARG, vmdef) < 0) {
-            VIR_ERROR(_("Error creating command for container"));
+    } else {
+        cmd = openvzDomainDefineCmd(vmdef);
+        if (virCommandRun(cmd, NULL) < 0)
             goto cleanup;
-        }
-
-        if (virRun(prog, NULL) < 0) {
-            goto cleanup;
-        }
     }
 
     ret = 0;
 
 cleanup:
   VIR_FREE(confdir);
-  cmdExecFree(prog);
+  virCommandFree(cmd);
+
   return ret;
 }
 
@@ -1630,6 +1590,223 @@ cleanup:
     return -1;
 }
 
+
+static int
+openvzDomainGetBarrierLimit(virDomainPtr domain,
+                            const char *param,
+                            unsigned long long *barrier,
+                            unsigned long long *limit)
+{
+    int status, ret = -1;
+    char *endp, *output = NULL;
+    const char *tmp;
+    virCommandPtr cmd = virCommandNewArgList(VZLIST, "--no-header", NULL);
+
+    virCommandSetOutputBuffer(cmd, &output);
+    virCommandAddArgFormat(cmd, "-o%s.b,%s.l", param, param);
+    virCommandAddArg(cmd, domain->name);
+    if (virCommandRun(cmd, &status)) {
+        openvzError(VIR_ERR_OPERATION_FAILED,
+                    _("Failed to get %s for %s: %d"), param, domain->name,
+                    status);
+        goto cleanup;
+    }
+
+    tmp = output;
+    virSkipSpaces(&tmp);
+    if (virStrToLong_ull(tmp, &endp, 10, barrier) < 0) {
+        openvzError(VIR_ERR_INTERNAL_ERROR,
+                    _("Can't parse limit from "VZLIST" output '%s'"), output);
+        goto cleanup;
+    }
+    tmp = endp;
+    virSkipSpaces(&tmp);
+    if (virStrToLong_ull(tmp, &endp, 10, limit) < 0) {
+        openvzError(VIR_ERR_INTERNAL_ERROR,
+                    _("Can't parse barrier from "VZLIST" output '%s'"), output);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    VIR_FREE(output);
+    virCommandFree(cmd);
+    return ret;
+}
+
+
+static int
+openvzDomainSetBarrierLimit(virDomainPtr domain,
+                            const  char *param,
+                            unsigned long long barrier,
+                            unsigned long long limit)
+{
+    int status, ret = -1;
+    virCommandPtr cmd = virCommandNewArgList(VZCTL, "--quiet", "set", NULL);
+
+    /* LONG_MAX indicates unlimited so reject larger values */
+    if (barrier > LONG_MAX || limit > LONG_MAX) {
+        openvzError(VIR_ERR_OPERATION_FAILED,
+                    _("Failed to set %s for %s: value too large"), param,
+                    domain->name);
+        goto cleanup;
+    }
+
+    virCommandAddArg(cmd, domain->name);
+    virCommandAddArgFormat(cmd, "--%s", param);
+    virCommandAddArgFormat(cmd, "%llu:%llu", barrier, limit);
+    virCommandAddArg(cmd, "--save");
+    if (virCommandRun(cmd, &status)) {
+        openvzError(VIR_ERR_OPERATION_FAILED,
+                    _("Failed to set %s for %s: %d"), param, domain->name,
+                    status);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    virCommandFree(cmd);
+    return ret;
+}
+
+
+static int
+openvzDomainGetMemoryParameters(virDomainPtr domain,
+                                virTypedParameterPtr params,
+                                int *nparams,
+                                unsigned int flags)
+{
+    int i, result = -1;
+    const char *name;
+    long kb_per_pages;
+    unsigned long long barrier, limit, val;
+
+    virCheckFlags(0, -1);
+
+    kb_per_pages = sysconf(_SC_PAGESIZE);
+    if (kb_per_pages > 0) {
+        kb_per_pages /= 1024;
+    } else {
+        openvzError(VIR_ERR_INTERNAL_ERROR,
+                    _("Can't determine page size"));
+        goto cleanup;
+    }
+
+    if (*nparams == 0) {
+        *nparams = OPENVZ_NB_MEM_PARAM;
+        return 0;
+    }
+
+    for (i = 0; i <= *nparams; i++) {
+        virMemoryParameterPtr param = &params[i];
+
+        switch (i) {
+        case 0:
+            name = "privvmpages";
+            if (openvzDomainGetBarrierLimit(domain, name, &barrier, &limit) < 0)
+                goto cleanup;
+
+            val = (limit == LONG_MAX) ? 0ull : limit * kb_per_pages;
+            if (virTypedParameterAssign(param, VIR_DOMAIN_MEMORY_HARD_LIMIT,
+                                        VIR_TYPED_PARAM_ULLONG, val) < 0)
+                goto cleanup;
+            break;
+
+        case 1:
+            name = "privvmpages";
+            if (openvzDomainGetBarrierLimit(domain, name, &barrier, &limit) < 0)
+                goto cleanup;
+
+            val = (barrier == LONG_MAX) ? 0ull : barrier * kb_per_pages;
+            if (virTypedParameterAssign(param, VIR_DOMAIN_MEMORY_SOFT_LIMIT,
+                                        VIR_TYPED_PARAM_ULLONG, val) < 0)
+                goto cleanup;
+            break;
+
+        case 2:
+            name = "vmguarpages";
+            if (openvzDomainGetBarrierLimit(domain, name, &barrier, &limit) < 0)
+                goto cleanup;
+
+            val = (barrier == LONG_MAX) ? 0ull : barrier * kb_per_pages;
+            if (virTypedParameterAssign(param, VIR_DOMAIN_MEMORY_MIN_GUARANTEE,
+                                        VIR_TYPED_PARAM_ULLONG, val) < 0)
+                goto cleanup;
+            break;
+        }
+    }
+
+    if (*nparams > OPENVZ_NB_MEM_PARAM)
+        *nparams = OPENVZ_NB_MEM_PARAM;
+    result = 0;
+
+cleanup:
+    return result;
+}
+
+
+static int
+openvzDomainSetMemoryParameters(virDomainPtr domain,
+                                virTypedParameterPtr params,
+                                int nparams,
+                                unsigned int flags)
+{
+    int i, result = -1;
+    long kb_per_pages;
+
+    kb_per_pages = sysconf(_SC_PAGESIZE);
+    if (kb_per_pages > 0) {
+        kb_per_pages /= 1024;
+    } else {
+        openvzError(VIR_ERR_INTERNAL_ERROR,
+                    _("Can't determine page size"));
+        goto cleanup;
+    }
+
+    virCheckFlags(0, -1);
+    if (virTypedParameterArrayValidate(params, nparams,
+                                       VIR_DOMAIN_MEMORY_HARD_LIMIT,
+                                       VIR_TYPED_PARAM_ULLONG,
+                                       VIR_DOMAIN_MEMORY_SOFT_LIMIT,
+                                       VIR_TYPED_PARAM_ULLONG,
+                                       VIR_DOMAIN_MEMORY_MIN_GUARANTEE,
+                                       VIR_TYPED_PARAM_ULLONG,
+                                       NULL) < 0)
+        return -1;
+
+    for (i = 0; i < nparams; i++) {
+        virTypedParameterPtr param = &params[i];
+        unsigned long long barrier, limit;
+
+        if (STREQ(param->field, VIR_DOMAIN_MEMORY_HARD_LIMIT)) {
+            if (openvzDomainGetBarrierLimit(domain, "privvmpages",
+                                            &barrier, &limit) < 0)
+                goto cleanup;
+            limit = params[i].value.ul / kb_per_pages;
+            if (openvzDomainSetBarrierLimit(domain, "privvmpages",
+                                            barrier, limit) < 0)
+                goto cleanup;
+        } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_SOFT_LIMIT)) {
+            if (openvzDomainGetBarrierLimit(domain, "privvmpages",
+                                            &barrier, &limit) < 0)
+                goto cleanup;
+            barrier = params[i].value.ul / kb_per_pages;
+            if (openvzDomainSetBarrierLimit(domain, "privvmpages",
+                                            barrier, limit) < 0)
+                goto cleanup;
+        } else if (STREQ(param->field, VIR_DOMAIN_MEMORY_MIN_GUARANTEE)) {
+            barrier = params[i].value.ul / kb_per_pages;
+            if (openvzDomainSetBarrierLimit(domain, "vmguarpages",
+                                            barrier, LONG_MAX) < 0)
+                goto cleanup;
+        }
+    }
+    result = 0;
+cleanup:
+    return result;
+}
+
+
 static int
 openvzGetVEStatus(virDomainObjPtr vm, int *status, int *reason)
 {
@@ -1672,6 +1849,56 @@ cleanup:
     return ret;
 }
 
+static int
+openvzDomainInterfaceStats (virDomainPtr dom,
+                            const char *path,
+                            struct _virDomainInterfaceStats *stats)
+{
+    struct openvz_driver *driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    int i;
+    int ret = -1;
+
+    openvzDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    openvzDriverUnlock(driver);
+
+    if (!vm) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+        virUUIDFormat(dom->uuid, uuidstr);
+        openvzError(VIR_ERR_NO_DOMAIN,
+                    _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+
+    if (!virDomainObjIsActive(vm)) {
+        openvzError(VIR_ERR_OPERATION_INVALID,
+                    "%s", _("domain is not running"));
+        goto cleanup;
+    }
+
+    /* Check the path is one of the domain's network interfaces. */
+    for (i = 0 ; i < vm->def->nnets ; i++) {
+        if (vm->def->nets[i]->ifname &&
+            STREQ (vm->def->nets[i]->ifname, path)) {
+            ret = 0;
+            break;
+        }
+    }
+
+    if (ret == 0)
+        ret = linuxDomainInterfaceStats(path, stats);
+    else
+        openvzError(VIR_ERR_INVALID_ARG,
+                    _("invalid path, '%s' is not a known interface"), path);
+
+cleanup:
+    if (vm)
+        virDomainObjUnlock(vm);
+    return ret;
+}
+
+
 static virDriver openvzDriver = {
     .no = VIR_DRV_OPENVZ,
     .name = "OPENVZ",
@@ -1682,6 +1909,10 @@ static virDriver openvzDriver = {
     .getHostname = virGetHostname, /* 0.9.12 */
     .getMaxVcpus = openvzGetMaxVCPUs, /* 0.4.6 */
     .nodeGetInfo = nodeGetInfo, /* 0.3.2 */
+    .nodeGetCPUStats = nodeGetCPUStats, /* 0.9.12 */
+    .nodeGetMemoryStats = nodeGetMemoryStats, /* 0.9.12 */
+    .nodeGetCellsFreeMemory = nodeGetCellsFreeMemory, /* 0.9.12 */
+    .nodeGetFreeMemory = nodeGetFreeMemory, /* 0.9.12 */
     .getCapabilities = openvzGetCapabilities, /* 0.4.6 */
     .listDomains = openvzListDomains, /* 0.3.1 */
     .numOfDomains = openvzNumDomains, /* 0.3.1 */
@@ -1697,6 +1928,8 @@ static virDriver openvzDriver = {
     .domainDestroy = openvzDomainShutdown, /* 0.3.1 */
     .domainDestroyFlags = openvzDomainShutdownFlags, /* 0.9.4 */
     .domainGetOSType = openvzGetOSType, /* 0.3.1 */
+    .domainGetMemoryParameters = openvzDomainGetMemoryParameters, /* 0.9.12 */
+    .domainSetMemoryParameters = openvzDomainSetMemoryParameters, /* 0.9.12 */
     .domainGetInfo = openvzDomainGetInfo, /* 0.3.1 */
     .domainGetState = openvzDomainGetState, /* 0.9.2 */
     .domainSetVcpus = openvzDomainSetVcpus, /* 0.4.6 */
@@ -1713,6 +1946,7 @@ static virDriver openvzDriver = {
     .domainUndefineFlags = openvzDomainUndefineFlags, /* 0.9.4 */
     .domainGetAutostart = openvzDomainGetAutostart, /* 0.4.6 */
     .domainSetAutostart = openvzDomainSetAutostart, /* 0.4.6 */
+    .domainInterfaceStats = openvzDomainInterfaceStats, /* 0.9.12 */
     .isEncrypted = openvzIsEncrypted, /* 0.7.3 */
     .isSecure = openvzIsSecure, /* 0.7.3 */
     .domainIsActive = openvzDomainIsActive, /* 0.7.3 */

@@ -13,8 +13,14 @@
         <span>Details of new features and bugs fixed in each release</span>
         <ul>
           <li>
+            <a href="http://wiki.libvirt.org/page/Maintenance_Releases">Maintenance Releases</a>
+            <span>Details about libvirt maintenance releases</span>
+          </li>
+        </ul>
+        <ul>
+          <li>
             <a href="http://libvirt.org/git/?p=libvirt.git;a=log">Git log</a>
-            <span>Latest commit messages from the source repository </span>
+            <span>Latest commit messages from the source repository</span>
           </li>
         </ul>
       </li>
@@ -331,6 +337,10 @@
           <li>
             <a href="todo.html">Todo list</a>
             <span>Main feature request list</span>
+          </li>
+          <li>
+            <a href="pending.html">Pending patches</a>
+            <span>Pending patches awaiting reviews and integration</span>
           </li>
         </ul>
       </li>

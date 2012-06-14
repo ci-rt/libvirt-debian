@@ -111,12 +111,20 @@
     <function name="VIR_DOMAIN_BLOCKED" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCKED"/>
     <function name="VIR_DOMAIN_BLOCKED_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCKED_LAST"/>
     <function name="VIR_DOMAIN_BLOCKED_UNKNOWN" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCKED_UNKNOWN"/>
+    <function name="VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC"/>
+    <function name="VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT"/>
+    <function name="VIR_DOMAIN_BLOCK_JOB_CANCELED" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_CANCELED"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_COMPLETED" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_COMPLETED"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_FAILED" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_FAILED"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_LAST"/>
+    <function name="VIR_DOMAIN_BLOCK_JOB_TYPE_COPY" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_COPY"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_TYPE_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_LAST"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_TYPE_PULL" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_PULL"/>
     <function name="VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN"/>
+    <function name="VIR_DOMAIN_BLOCK_REBASE_COPY" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_COPY"/>
+    <function name="VIR_DOMAIN_BLOCK_REBASE_COPY_RAW" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_COPY_RAW"/>
+    <function name="VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT"/>
+    <function name="VIR_DOMAIN_BLOCK_REBASE_SHALLOW" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_REBASE_SHALLOW"/>
     <function name="VIR_DOMAIN_BLOCK_RESIZE_BYTES" link="libvirt-libvirt.html#VIR_DOMAIN_BLOCK_RESIZE_BYTES"/>
     <function name="VIR_DOMAIN_CONSOLE_FORCE" link="libvirt-libvirt.html#VIR_DOMAIN_CONSOLE_FORCE"/>
     <function name="VIR_DOMAIN_CONSOLE_SAFE" link="libvirt-libvirt.html#VIR_DOMAIN_CONSOLE_SAFE"/>
@@ -349,6 +357,7 @@
     <function name="VIR_ERR_ARGUMENT_UNSUPPORTED" link="libvirt-virterror.html#VIR_ERR_ARGUMENT_UNSUPPORTED"/>
     <function name="VIR_ERR_AUTH_CANCELLED" link="libvirt-virterror.html#VIR_ERR_AUTH_CANCELLED"/>
     <function name="VIR_ERR_AUTH_FAILED" link="libvirt-virterror.html#VIR_ERR_AUTH_FAILED"/>
+    <function name="VIR_ERR_BLOCK_COPY_ACTIVE" link="libvirt-virterror.html#VIR_ERR_BLOCK_COPY_ACTIVE"/>
     <function name="VIR_ERR_BUILD_FIREWALL" link="libvirt-virterror.html#VIR_ERR_BUILD_FIREWALL"/>
     <function name="VIR_ERR_CALL_FAILED" link="libvirt-virterror.html#VIR_ERR_CALL_FAILED"/>
     <function name="VIR_ERR_CONFIG_UNSUPPORTED" link="libvirt-virterror.html#VIR_ERR_CONFIG_UNSUPPORTED"/>
@@ -435,6 +444,7 @@
     <function name="VIR_FROM_CAPABILITIES" link="libvirt-virterror.html#VIR_FROM_CAPABILITIES"/>
     <function name="VIR_FROM_CONF" link="libvirt-virterror.html#VIR_FROM_CONF"/>
     <function name="VIR_FROM_CPU" link="libvirt-virterror.html#VIR_FROM_CPU"/>
+    <function name="VIR_FROM_DBUS" link="libvirt-virterror.html#VIR_FROM_DBUS"/>
     <function name="VIR_FROM_DOM" link="libvirt-virterror.html#VIR_FROM_DOM"/>
     <function name="VIR_FROM_DOMAIN" link="libvirt-virterror.html#VIR_FROM_DOMAIN"/>
     <function name="VIR_FROM_DOMAIN_SNAPSHOT" link="libvirt-virterror.html#VIR_FROM_DOMAIN_SNAPSHOT"/>
@@ -579,9 +589,11 @@
     <function name="virConnectFlags" link="libvirt-libvirt.html#virConnectFlags"/>
     <function name="virConnectPtr" link="libvirt-libvirt.html#virConnectPtr"/>
     <function name="virDomainBlockInfoPtr" link="libvirt-libvirt.html#virDomainBlockInfoPtr"/>
+    <function name="virDomainBlockJobAbortFlags" link="libvirt-libvirt.html#virDomainBlockJobAbortFlags"/>
     <function name="virDomainBlockJobCursor" link="libvirt-libvirt.html#virDomainBlockJobCursor"/>
     <function name="virDomainBlockJobInfoPtr" link="libvirt-libvirt.html#virDomainBlockJobInfoPtr"/>
     <function name="virDomainBlockJobType" link="libvirt-libvirt.html#virDomainBlockJobType"/>
+    <function name="virDomainBlockRebaseFlags" link="libvirt-libvirt.html#virDomainBlockRebaseFlags"/>
     <function name="virDomainBlockResizeFlags" link="libvirt-libvirt.html#virDomainBlockResizeFlags"/>
     <function name="virDomainBlockStatsPtr" link="libvirt-libvirt.html#virDomainBlockStatsPtr"/>
     <function name="virDomainBlockedReason" link="libvirt-libvirt.html#virDomainBlockedReason"/>
