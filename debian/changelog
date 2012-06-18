@@ -1,4 +1,4 @@
-libvirt (0.9.11.3-1~bpo60+1) unstable; urgency=low
+libvirt (0.9.11.3-1~bpo60+1) squeeze-backports; urgency=low
 
   * Changes over wheezy:
   * [82758c4] Use dh_pycentral on Squeeze since there's no dh_python2 yet.
