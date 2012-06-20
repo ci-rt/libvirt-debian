@@ -11,3 +11,4 @@ Disable-failing-virnetsockettest.patch
 Don-t-fail-if-we-can-t-setup-avahi.patch
 Only-check-for-cluster-fs-if-we-re-using-a-filesyste.patch
 Reduce-udevadm-settle-timeout-to-10-seconds.patch
+Include-stdint.h-for-uint32_t.patch

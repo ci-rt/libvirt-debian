@@ -1,0 +1,26 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Wed, 20 Jun 2012 08:23:37 +0200
+Subject: Include stdint.h for uint32_t
+
+to fix the build on kFreeBSD
+
+Referendes: https://buildd.debian.org/status/fetch.php?pkg=libvirt&arch=kfreebsd-amd64&ver=0.9.12-2&stamp=1339698841
+---
+ src/util/virnetlink.h |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/util/virnetlink.h b/src/util/virnetlink.h
+index bafe8ca..acd88b7 100644
+--- a/src/util/virnetlink.h
++++ b/src/util/virnetlink.h
+@@ -21,8 +21,10 @@
+ # define __VIR_NETLINK_H__
+ 
+ # include "config.h"
++# include <stdint.h>
+ # include "internal.h"
+ 
++
+ # if defined(__linux__) && defined(HAVE_LIBNL)
+ 
+ #  include <netlink/msg.h>
