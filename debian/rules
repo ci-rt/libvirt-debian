@@ -29,6 +29,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_OPENVZ         = --with-openvz
   WITH_NETCF          = --with-netcf
   WITH_SANLOCK        = --with-sanlock
+  WITH_INIT_SCRIPT    =	--with-init-script=systemd
   ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 i386 ia64 mips mipsel powerpc))
       WITH_NUMA       = --with-numactl
   else
@@ -52,6 +53,7 @@ else
   WITH_LXC            = --without-lxc
   WITH_NUMA           = --without-numactl
   WITH_NETCF          = --without-netcf
+  WITH_INIT_SCRIPT    =	--with-init-script=none
 endif
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
@@ -70,7 +72,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	$(WITH_STORAGE_LVM)	 \
 	$(WITH_STORAGE_ISCSI)	 \
 	$(WITH_STORAGE_DISK)	 \
-	--with-init-script=none  \
+	$(WITH_INIT_SCRIPT)      \
 	$(WITH_NUMA)             \
 	--without-selinux        \
 	--without-esx		 \
@@ -99,6 +101,8 @@ binary-install/libvirt-bin::
 	cp $(CURDIR)/tools/libvirt-guests.init.sh $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
 	cp $(CURDIR)/tools/libvirt-guests.sysconf $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
 	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
+	-mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
+	    debian/libvirt-bin/lib/systemd/system/libvirt-bin.service
 	rm debian/libvirt-bin/usr/lib/libvirt/connection-driver/*.la
 
 	for l in $(LOGROTATE); do \
@@ -110,7 +114,6 @@ binary-install/libvirt-bin::
 build/libvirt-bin::
 	# Add empty dir so dh_install doesn't fail on kFreebsd until we have Polkit support
 	mkdir -p debian/tmp/usr/share/polkit-1
-
 
 binary-install/libvirt-doc::
 	find $(EXAMPLES_DIR) -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \;
