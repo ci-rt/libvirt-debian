@@ -1,3 +1,18 @@
+libvirt (0.9.13~rc1-1) experimental; urgency=low
+
+  * [9deae39] New upstream version 0.9.13~rc1
+  * [487acd7] Drop Include-stdint.h-for-uint32_t.patch fixed upstream
+  * [ab7be10] Drop Only-check-for-cluster-fs-if-we-re-using-a-filesyste.patch
+    applied upstream
+  * [385bac4] Rebase remaining patches
+  * [cb0d1f7] Update symbol versions
+  * [c2bd465] Remove *.la files generated for dynamically loaded modules
+  * [e4714b7] Add sanlock support.
+    Thanks to David Weber (Closes: #676345)
+  * [5f715ed] Install systemd init scripts on Linux
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 26 Jun 2012 15:29:27 +0200
+
 libvirt (0.9.12-3) unstable; urgency=low
 
   * [6b610b6] Include stdint.h for uint32_t to fix the build on kFreeBSD
