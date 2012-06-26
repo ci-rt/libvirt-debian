@@ -98,6 +98,7 @@ binary-install/libvirt-bin::
 	cp $(CURDIR)/tools/libvirt-guests.init.sh $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
 	cp $(CURDIR)/tools/libvirt-guests.sysconf $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
 	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
+	rm debian/libvirt-bin/usr/lib/libvirt/connection-driver/*.la
 
 	for l in $(LOGROTATE); do \
 		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
