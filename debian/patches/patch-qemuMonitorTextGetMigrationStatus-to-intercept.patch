@@ -39,13 +39,13 @@ This patch triggers for 'info migration' in reply to 'info migrate' command
 to savely detect that the command 'info migrate' is not implemented.
 ---
  src/qemu/qemu_monitor_text.c |   10 +++++++++-
- 1 files changed, 9 insertions(+), 1 deletions(-)
+ 1 file changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/src/qemu/qemu_monitor_text.c b/src/qemu/qemu_monitor_text.c
-index 30a0416..631899b 100644
+index edb5dfd..65c7d8d 100644
 --- a/src/qemu/qemu_monitor_text.c
 +++ b/src/qemu/qemu_monitor_text.c
-@@ -1654,7 +1654,15 @@ int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
+@@ -1658,7 +1658,15 @@ int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
              }
              *total += disk_total * 1024;
          }
