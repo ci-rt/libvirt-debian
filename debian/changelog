@@ -1,3 +1,20 @@
+libvirt (0.9.12-3) unstable; urgency=low
+
+  * [6b610b6] Include stdint.h for uint32_t to fix the build on kFreeBSD
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 20 Jun 2012 08:24:38 +0200
+
+libvirt (0.9.12-2) unstable; urgency=medium
+
+  * Upload to unstable to fix CVE-2012-2693. Bumping urgency to medium.
+    (Closes: #677496)
+  * [9515e28] Only check for cluster fs if we're using a filesystem
+    (Closes: #676328)
+  * [202939f] Reduce udevadm settle timeout to 10 seconds
+    (Closes: #663931)
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 14 Jun 2012 19:37:42 +0200
+
 libvirt (0.9.12-1) experimental; urgency=low
 
   * [75e280b] New upstream version 0.9.12
@@ -14,6 +31,15 @@ libvirt (0.9.12~rc2-1) experimental; urgency=low
   * [00931ed] Update gbp.conf for experimental
 
  -- Guido Günther <agx@sigxcpu.org>  Mon, 14 May 2012 08:43:49 +0200
+
+libvirt (0.9.11.3-1) unstable; urgency=low
+
+  * [f254551] New upstream version 0.9.11.3
+  * [5362229] Drop virURIParse-don-t-forget-to-copy-the-user-part.patch.
+    Fixed upstream.
+  * [36ed9f0] Update symbols file
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 30 Apr 2012 09:44:51 +0200
 
 libvirt (0.9.11-2) unstable; urgency=low
 
