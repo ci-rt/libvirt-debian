@@ -83,7 +83,6 @@ struct _virCommand {
     char **errbuf;
 
     int infd;
-    int inpipe;
     int outfd;
     int errfd;
     int *outfdptr;
@@ -493,6 +492,10 @@ virExecWithHook(const char *const*argv,
     }
 
     if (pid) { /* parent */
+        if (forkRet < 0) {
+            goto cleanup;
+        }
+
         VIR_FORCE_CLOSE(null);
         if (outfd && *outfd == -1) {
             VIR_FORCE_CLOSE(pipeout[1]);
@@ -501,10 +504,6 @@ virExecWithHook(const char *const*argv,
         if (errfd && *errfd == -1) {
             VIR_FORCE_CLOSE(pipeerr[1]);
             *errfd = pipeerr[0];
-        }
-
-        if (forkRet < 0) {
-            goto cleanup;
         }
 
         *retpid = pid;
@@ -530,7 +529,7 @@ virExecWithHook(const char *const*argv,
             continue;
         if (!keepfd || !virCommandFDIsSet(i, keepfd, keepfd_size)) {
             tmpfd = i;
-            VIR_FORCE_CLOSE(tmpfd);
+            VIR_MASS_CLOSE(tmpfd);
         } else if (virSetInherit(i, true) < 0) {
             virReportSystemError(errno, _("failed to preserve fd %d"), i);
             goto fork_error;
@@ -788,7 +787,6 @@ virCommandNewArgs(const char *const*args)
     cmd->handshakeNotify[1] = -1;
 
     cmd->infd = cmd->outfd = cmd->errfd = -1;
-    cmd->inpipe = -1;
     cmd->pid = -1;
 
     virCommandAddArgSet(cmd, args);
@@ -1676,7 +1674,7 @@ virCommandTranslateStatus(int status)
  * Manage input and output to the child process.
  */
 static int
-virCommandProcessIO(virCommandPtr cmd)
+virCommandProcessIO(virCommandPtr cmd, int *inpipe)
 {
     int infd = -1, outfd = -1, errfd = -1;
     size_t inlen = 0, outlen = 0, errlen = 0;
@@ -1687,7 +1685,7 @@ virCommandProcessIO(virCommandPtr cmd)
      * via pipe */
     if (cmd->inbuf) {
         inlen = strlen(cmd->inbuf);
-        infd = cmd->inpipe;
+        infd = *inpipe;
     }
 
     /* With out/err buffer, the outfd/errfd have been filled with an
@@ -1740,7 +1738,7 @@ virCommandProcessIO(virCommandPtr cmd)
             break;
 
         if (poll(fds, nfds, -1) < 0) {
-            if ((errno == EAGAIN) || (errno == EINTR))
+            if (errno == EAGAIN || errno == EINTR)
                 continue;
             virReportSystemError(errno, "%s",
                                  _("unable to poll on child"));
@@ -1799,8 +1797,13 @@ virCommandProcessIO(virCommandPtr cmd)
                 done = write(infd, cmd->inbuf + inoff,
                              inlen - inoff);
                 if (done < 0) {
-                    if (errno != EINTR &&
-                        errno != EAGAIN) {
+                    if (errno == EPIPE) {
+                        VIR_DEBUG("child closed stdin early, ignoring EPIPE "
+                                  "on fd %d", infd);
+                        if (VIR_CLOSE(*inpipe) < 0)
+                            VIR_DEBUG("ignoring failed close on fd %d", infd);
+                        infd = -1;
+                    } else if (errno != EINTR && errno != EAGAIN) {
                         virReportSystemError(errno, "%s",
                                              _("unable to write to child input"));
                         goto cleanup;
@@ -1808,10 +1811,9 @@ virCommandProcessIO(virCommandPtr cmd)
                 } else {
                     inoff += done;
                     if (inoff == inlen) {
-                        int tmpfd ATTRIBUTE_UNUSED;
-                        tmpfd = infd;
-                        if (VIR_CLOSE(infd) < 0)
-                            VIR_DEBUG("ignoring failed close on fd %d", tmpfd);
+                        if (VIR_CLOSE(*inpipe) < 0)
+                            VIR_DEBUG("ignoring failed close on fd %d", infd);
+                        infd = -1;
                     }
                 }
             }
@@ -1888,6 +1890,7 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
     bool string_io;
     bool async_io = false;
     char *str;
+    int tmpfd;
 
     if (!cmd ||cmd->has_error == ENOMEM) {
         virReportOOMError();
@@ -1938,7 +1941,6 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
             return -1;
         }
         cmd->infd = infd[0];
-        cmd->inpipe = infd[1];
     }
 
     /* If caller requested the same string for stdout and stderr, then
@@ -1969,7 +1971,7 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
     cmd->flags |= VIR_EXEC_RUN_SYNC;
     if (virCommandRunAsync(cmd, NULL) < 0) {
         if (cmd->inbuf) {
-            int tmpfd = infd[0];
+            tmpfd = infd[0];
             if (VIR_CLOSE(infd[0]) < 0)
                 VIR_DEBUG("ignoring failed close on fd %d", tmpfd);
             tmpfd = infd[1];
@@ -1980,8 +1982,11 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
         return -1;
     }
 
+    tmpfd = infd[0];
+    if (VIR_CLOSE(infd[0]) < 0)
+        VIR_DEBUG("ignoring failed close on fd %d", tmpfd);
     if (string_io)
-        ret = virCommandProcessIO(cmd);
+        ret = virCommandProcessIO(cmd, &infd[1]);
 
     if (virCommandWait(cmd, exitstatus) < 0)
         ret = -1;
@@ -1998,15 +2003,11 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
     /* Reset any capturing, in case caller runs
      * this identical command again */
     if (cmd->inbuf) {
-        int tmpfd = infd[0];
-        if (VIR_CLOSE(infd[0]) < 0)
-            VIR_DEBUG("ignoring failed close on fd %d", tmpfd);
         tmpfd = infd[1];
         if (VIR_CLOSE(infd[1]) < 0)
             VIR_DEBUG("ignoring failed close on fd %d", tmpfd);
     }
     if (cmd->outbuf == &outbuf) {
-        int tmpfd ATTRIBUTE_UNUSED;
         tmpfd = cmd->outfd;
         if (VIR_CLOSE(cmd->outfd) < 0)
             VIR_DEBUG("ignoring failed close on fd %d", tmpfd);
@@ -2015,7 +2016,6 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
         VIR_FREE(outbuf);
     }
     if (cmd->errbuf == &errbuf) {
-        int tmpfd ATTRIBUTE_UNUSED;
         tmpfd = cmd->errfd;
         if (VIR_CLOSE(cmd->errfd) < 0)
             VIR_DEBUG("ignoring failed close on fd %d", tmpfd);
@@ -2053,9 +2053,11 @@ virCommandHook(void *data)
     if (cmd->handshake) {
         char c = res < 0 ? '0' : '1';
         int rv;
-        VIR_DEBUG("Notifying parent for handshake start on %d", cmd->handshakeWait[1]);
+        VIR_DEBUG("Notifying parent for handshake start on %d",
+                  cmd->handshakeWait[1]);
         if (safewrite(cmd->handshakeWait[1], &c, sizeof(c)) != sizeof(c)) {
-            virReportSystemError(errno, "%s", _("Unable to notify parent process"));
+            virReportSystemError(errno, "%s",
+                                 _("Unable to notify parent process"));
             return -1;
         }
 
@@ -2068,22 +2070,29 @@ virCommandHook(void *data)
                 _("Unknown failure during hook execution");
             size_t len = strlen(msg) + 1;
             if (safewrite(cmd->handshakeWait[1], msg, len) != len) {
-                virReportSystemError(errno, "%s", _("Unable to send error to parent process"));
+                virReportSystemError(errno, "%s",
+                                     _("Unable to send error to parent"));
                 return -1;
             }
             return -1;
         }
 
-        VIR_DEBUG("Waiting on parent for handshake complete on %d", cmd->handshakeNotify[0]);
-        if ((rv = saferead(cmd->handshakeNotify[0], &c, sizeof(c))) != sizeof(c)) {
+        VIR_DEBUG("Waiting on parent for handshake complete on %d",
+                  cmd->handshakeNotify[0]);
+        if ((rv = saferead(cmd->handshakeNotify[0], &c,
+                           sizeof(c))) != sizeof(c)) {
             if (rv < 0)
-                virReportSystemError(errno, "%s", _("Unable to wait on parent process"));
+                virReportSystemError(errno, "%s",
+                                     _("Unable to wait on parent process"));
             else
-                virReportSystemError(EIO, "%s", _("libvirtd quit during handshake"));
+                virReportSystemError(EIO, "%s",
+                                     _("libvirtd quit during handshake"));
             return -1;
         }
         if (c != '1') {
-            virReportSystemError(EINVAL, _("Unexpected confirm code '%c' from parent process"), c);
+            virReportSystemError(EINVAL,
+                                 _("Unexpected confirm code '%c' from parent"),
+                                 c);
             return -1;
         }
         VIR_FORCE_CLOSE(cmd->handshakeWait[1]);
@@ -2443,8 +2452,10 @@ void virCommandRequireHandshake(virCommandPtr cmd)
         return;
     }
 
-    VIR_DEBUG("Transfer handshake wait=%d notify=%d",
-              cmd->handshakeWait[1], cmd->handshakeNotify[0]);
+    VIR_DEBUG("Transfer handshake wait=%d notify=%d, "
+              "keep handshake wait=%d notify=%d",
+              cmd->handshakeWait[1], cmd->handshakeNotify[0],
+              cmd->handshakeWait[0], cmd->handshakeNotify[1]);
     virCommandTransferFD(cmd, cmd->handshakeWait[1]);
     virCommandTransferFD(cmd, cmd->handshakeNotify[0]);
     cmd->handshake = true;
@@ -2480,9 +2491,11 @@ int virCommandHandshakeWait(virCommandPtr cmd)
     VIR_DEBUG("Wait for handshake on %d", cmd->handshakeWait[0]);
     if ((rv = saferead(cmd->handshakeWait[0], &c, sizeof(c))) != sizeof(c)) {
         if (rv < 0)
-            virReportSystemError(errno, "%s", _("Unable to wait for child process"));
+            virReportSystemError(errno, "%s",
+                                 _("Unable to wait for child process"));
         else
-            virReportSystemError(EIO, "%s", _("Child process quit during startup handshake"));
+            virReportSystemError(EIO, "%s",
+                                 _("Child quit during startup handshake"));
         VIR_FORCE_CLOSE(cmd->handshakeWait[0]);
         return -1;
     }
@@ -2494,10 +2507,16 @@ int virCommandHandshakeWait(virCommandPtr cmd)
             VIR_FORCE_CLOSE(cmd->handshakeWait[0]);
             return -1;
         }
+        /* Close the handshakeNotify fd before trying to read anything
+         * further on the handshakeWait pipe; so that a child waiting
+         * on our acknowledgment will die rather than deadlock.  */
+        VIR_FORCE_CLOSE(cmd->handshakeNotify[1]);
+
         if ((len = saferead(cmd->handshakeWait[0], msg, 1024)) < 0) {
             VIR_FORCE_CLOSE(cmd->handshakeWait[0]);
             VIR_FREE(msg);
-            virReportSystemError(errno, "%s", _("No error message from child failure"));
+            virReportSystemError(errno, "%s",
+                                 _("No error message from child failure"));
             return -1;
         }
         VIR_FORCE_CLOSE(cmd->handshakeWait[0]);
@@ -2536,7 +2555,7 @@ int virCommandHandshakeNotify(virCommandPtr cmd)
         return -1;
     }
 
-    VIR_DEBUG("Notify handshake on %d", cmd->handshakeWait[0]);
+    VIR_DEBUG("Notify handshake on %d", cmd->handshakeNotify[1]);
     if (safewrite(cmd->handshakeNotify[1], &c, sizeof(c)) != sizeof(c)) {
         virReportSystemError(errno, "%s", _("Unable to notify child process"));
         VIR_FORCE_CLOSE(cmd->handshakeNotify[1]);

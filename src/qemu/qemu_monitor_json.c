@@ -43,6 +43,10 @@
 #include "json.h"
 #include "ignore-value.h"
 
+#ifdef WITH_DTRACE_PROBES
+# include "libvirt_qemu_probes.h"
+#endif
+
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
 
@@ -987,6 +991,8 @@ qemuMonitorJSONCheckCommands(qemuMonitorPtr mon,
             qemuCapsSet(qemuCaps, QEMU_CAPS_BLOCKJOB_SYNC);
         else if (STREQ(name, "block-job-cancel"))
             qemuCapsSet(qemuCaps, QEMU_CAPS_BLOCKJOB_ASYNC);
+        else if (STREQ(name, "dump-guest-memory"))
+            qemuCapsSet(qemuCaps, QEMU_CAPS_DUMP_GUEST_MEMORY);
     }
 
     ret = 0;
@@ -2461,6 +2467,40 @@ int qemuMonitorJSONMigrateCancel(qemuMonitorPtr mon)
     return ret;
 }
 
+int qemuMonitorJSONDump(qemuMonitorPtr mon,
+                        unsigned int flags,
+                        const char *protocol,
+                        unsigned long long begin,
+                        unsigned long long length)
+{
+    int ret;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+
+    if (flags & QEMU_MONITOR_DUMP_HAVE_FILTER)
+        cmd = qemuMonitorJSONMakeCommand("dump-guest-memory",
+                                         "b:paging", flags & QEMU_MONITOR_DUMP_PAGING ? 1 : 0,
+                                         "s:protocol", protocol,
+                                         "U:begin", begin,
+                                         "U:length", length,
+                                         NULL);
+    else
+        cmd = qemuMonitorJSONMakeCommand("dump-guest-memory",
+                                         "b:paging", flags & QEMU_MONITOR_DUMP_PAGING ? 1 : 0,
+                                         "s:protocol", protocol,
+                                         NULL);
+    if (!cmd)
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0)
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
 
 int qemuMonitorJSONGraphicsRelocate(qemuMonitorPtr mon,
                                     int type,

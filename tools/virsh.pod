@@ -306,9 +306,15 @@ The XML also show the NUMA topology information if available.
 
 Inject NMI to the guest.
 
-=item B<list> [I<--inactive> | I<--all>] [I<--managed-save>] [I<--title>]
-              { [I<--table>] | I<--name> | I<--uuid> } [I<--persistent>]
-              [I<--transient>]
+=item B<list> [I<--inactive> | I<--all>]
+              [I<--managed-save>] [I<--title>]
+              { [I<--table>] | I<--name> | I<--uuid> }
+              [I<--persistent>] [I<--transient>]
+              [I<--with-managed-save>] [I<--without-managed-save>]
+              [I<--autostart>] [I<--no-autostart>]
+              [I<--with-snapshot>] [I<--without-snapshot>]
+              [I<--state-running>] [I<--state-paused>]
+              [I<--state-shutoff>] [I<--state-other>]
 
 Prints information about existing domains.  If no options are
 specified it prints out information about running domains.
@@ -316,13 +322,10 @@ specified it prints out information about running domains.
 An example format for the list is as follows:
 
 B<virsh> list
- Id Name                 State
-
-----------------------------------
-
-  0 Domain-0             running
-  2 fedora               paused
-
+  Id    Name                           State
+ ----------------------------------------------------
+  0     Domain-0                       running
+  2     fedora                         paused
 
 Name is the name of the domain.  ID the domain numeric id.
 State is the run state (see below).
@@ -380,23 +383,62 @@ into s3 state.
 
 =back
 
-If I<--managed-save> is specified, then domains that have managed save
-state (only possible if they are in the B<shut off> state, so you need to
-specify I<--inactive> or I<--all> to actually list them) will instead
-show as B<saved> in the listing. This flag is usable only with the
-default I<--table> output.
+Normally only active domains are listed. To list inactive domains specify
+I<--inactive> or I<--all> to list both active and inactive domains.
+
+To filter the list of domains present on the hypervisor you may specify one or
+more of filtering flags supported by the B<list> command.  These flags are
+grouped by function. Specifying one or more flags from a group enables the
+filter group. Supported filtering flags and groups:
+
+=over 4
+
+=item B<Persistence>
+
+Flag I<--persistent> is used to include persistent domains in the returned
+list. To include transient domains specify I<--transient>.
+
+=item B<Existence of managed save image>
+
+To list domains having a managed save image specify flag
+I<--with-managed-save>. For domains that don't have a managed save image
+specify I<--without-managed-save>.
+
+=item B<Domain state>
+
+The following filter flags select a domain by its state:
+I<--state-running> for running domains, I<--state-paused>  for paused domains,
+I<--state-shutoff> for turned off domains and I<--state-other> for all
+other states as a fallback.
+
+=item B<Autostarting domains>
+
+To list autostarting domains use the flag I<--autostart>. To list domains with
+this feature disabled use I<--no-autostart>.
+
+=item B<Snapshot existence>
+
+Domains that have snapshot images can be listed using flag I<--with-snapshot>,
+domains without a snapshot I<--without-snapshot>.
+
+=back
+
+When talking to older servers, this command is forced to use a series of API
+calls with an inherent race, where a domain might not be listed or might appear
+more than once if it changed state between calls while the list was being
+collected.  Newer servers do not have this problem.
+
+If I<--managed-save> is specified, then domains that have managed save state
+(only possible if they are in the B<shut off> state, so you need to specify
+I<--inactive> or I<--all> to actually list them) will instead show as B<saved>
+in the listing. This flag is usable only with the default I<--table> output.
+Note that this flag does not filter the list of domains.
 
 If I<--name> is specified, domain names are printed instead of the table
 formatted one per line. If I<--uuid> is specified domain's UUID's are printed
 instead of names. Flag I<--table> specifies that the legacy table-formatted
 output should be used. This is the default. All of these are mutually
 exclusive.
-
-Flag I<--persistent> specifies that persistent domains should be printed.
-Similarly I<--transient> enables output of transient domains. These flags
-may be combined. Default behavior is as though both were specified. (Note that
-if any of these flags is specified, the check for the persistence state is done
-and may fail. If none of these flags is specified, the check is skipped.)
 
 If I<--title> is specified, then the short domain description (title) is
 printed in an extra column. This flag is usable only with the default
@@ -405,10 +447,10 @@ I<--table> output.
 Example:
 
 B<virsh> list --title
- Id Name                 State      Title
- -----------------------------------------------
-  0 Domain-0             running    Mailserver 1
-  2 fedora               paused
+  Id    Name                           State      Title
+ --------------------------------------------------------------------------
+  0     Domain-0                       running    Mailserver 1
+  2     fedora                         paused
 
 =item B<freecell> [{ [I<--cellno>] B<cellno> | I<--all> }]
 
@@ -497,8 +539,9 @@ Define a domain from an XML <file>. The domain definition is registered
 but not started.  If domain is already running, the changes will take
 effect on the next boot.
 
-=item B<desc> [[I<--live>] [I<--config>] | [I<--current>]] [I<--title>]
-              [I<--edit>] [I<--new-desc> New description or title message]
+=item B<desc> I<domain-id> [[I<--live>] [I<--config>] |
+              [I<--current>]] [I<--title>] [I<--edit>] [I<--new-desc>
+              New description or title message]
 
 Show or modify description and title of a domain. These values are user
 fields that allow to store arbitrary textual data to allow easy
@@ -516,7 +559,7 @@ description or title should be opened and the contents saved back afterwards.
 
 Flag I<--title> selects operation on the title field instead of description.
 
-If neither of I<--edit> and I<--new_desc> are specified the note or description
+If neither of I<--edit> and I<--new-desc> are specified the note or description
 is displayed instead of being modified.
 
 =item B<destroy> I<domain-id> [I<--graceful>]
@@ -827,7 +870,7 @@ the I<format> argument must be B<qemu-argv>. For Xen hypervisor, the
 I<format> argument may be B<xen-xm> or B<xen-sxpr>.
 
 =item B<dump> I<domain-id> I<corefilepath> [I<--bypass-cache>]
-{ [I<--live>] | [I<--crash>] | [I<--reset>] } [I<--verbose>]
+{ [I<--live>] | [I<--crash>] | [I<--reset>] } [I<--verbose>] [I<--memory-only>]
 
 Dumps the core of a domain to a file for analysis.
 If I<--live> is specified, the domain continues to run until the core
@@ -838,6 +881,9 @@ If I<--reset> is specified, the domain is reset after successful dump.
 Note, these three switches are mutually exclusive.
 If I<--bypass-cache> is specified, the save will avoid the file system
 cache, although this may slow down the operation.
+If I<--memory-only> is specified, the file is elf file, and will only
+include domain's memory and cpu common register value. It is very
+useful if the domain uses host devices directly.
 
 The progress may be monitored using B<domjobinfo> virsh command and canceled
 with B<domjobabort> command (sent by another virsh instance). Another option
@@ -1583,10 +1629,11 @@ needed if the device does not use managed mode.
 [I<--multifunction>]
 
 Attach a new disk device to the domain.
-I<source> and I<target> are paths for the files and devices.
-I<driver> can be I<file>, I<tap> or I<phy> for the Xen hypervisor depending on
-the kind of access; or I<qemu> for the QEMU emulator.
-I<type> can indicate I<cdrom> or I<floppy> as alternative to the disk default,
+I<source> is path for the files and devices. I<target> controls the bus or
+device under which the disk is exposed to the guest OS. It indicates the
+"logical" device name.  I<driver> can be I<file>, I<tap> or I<phy> for the Xen
+hypervisor depending on the kind of access; or I<qemu> for the QEMU emulator.
+I<type> can indicate I<lun>, I<cdrom> or I<floppy> as alternative to the disk default,
 although this use only replaces the media within the existing virtual cdrom or
 floppy device; consider using B<update-device> for this usage instead.
 I<mode> can specify the two specific mode I<readonly> or I<shareable>.
@@ -1611,7 +1658,8 @@ Attach a new network interface to the domain.
 I<type> can be either I<network> to indicate a physical network device or
 I<bridge> to indicate a bridge to a device.
 I<source> indicates the source device.
-I<target> allows to indicate the target device in the guest.
+I<target> allows to indicate the target device in the guest. Names starting
+with 'vnet' are considered as auto-generated an hence blanked out.
 I<mac> allows to specify the MAC address of the network interface.
 I<script> allows to specify a path to a script handling a bridge instead of
 the default one.
@@ -1823,7 +1871,7 @@ Edit the XML configuration file for a network.
 
 This is equivalent to:
 
- virsh net-dumpxml network > network.xml
+ virsh net-dumpxml --inactive network > network.xml
  vi network.xml (or make changes with your other text editor)
  virsh net-define network.xml
 
@@ -2158,11 +2206,12 @@ I<capacity> is the size of the volume to be created, as a scaled integer
 I<--allocation> I<size> is the initial size to be allocated in the volume,
 also as a scaled integer defaulting to bytes.
 I<--format> I<string> is used in file based storage pools to specify the volume
-file format to use; raw, bochs, qcow, qcow2, vmdk.
+file format to use; raw, bochs, qcow, qcow2, vmdk, qed.
 I<--backing-vol> I<vol-name-or-key-or-path> is the source backing
 volume to be used if taking a snapshot of an existing volume.
 I<--backing-vol-format> I<string> is the format of the snapshot backing volume;
-raw, bochs, qcow, qcow2, vmdk, host_device.
+raw, bochs, qcow, qcow2, qed, vmdk, host_device. These are, however, meant for
+file based storage pools.
 
 =item B<vol-clone> [I<--pool> I<pool-or-uuid>] I<vol-name-or-key-or-path>
 I<name>
@@ -2504,9 +2553,14 @@ a snapshot name must be done with care, since the contents of some
 snapshots, such as internal snapshots within a single qcow2 file, are
 accessible only from the original name.
 
+=item B<snapshot-info> I<domain> {I<snapshot> | I<--current>}
+
+Output basic information about a named <snapshot>, or the current snapshot
+with I<--current>.
+
 =item B<snapshot-list> I<domain> [{I<--parent> | I<--roots> | I<--tree>}]
 [{[I<--from>] B<snapshot> | I<--current>} [I<--descendants>]]
-[I<--metadata>] [I<--leaves>]
+[I<--metadata>] [I<--no-metadata>] [I<--leaves>] [I<--no-leaves>]
 
 List all of the available snapshots for the given domain, defaulting
 to show columns for the snapshot name, creation time, and domain state.
@@ -2526,13 +2580,19 @@ use of I<--descendants> is implied.  This option is not compatible
 with I<--roots>.
 
 If I<--leaves> is specified, the list will be filtered to just
-snapshots that have no children.  This option is not compatible
-with I<--tree>.
+snapshots that have no children.  Likewise, if I<--no-leaves> is
+specified, the list will be filtered to just snapshots with
+children.  (Note that omitting both options does no filtering,
+while providing both options will either produce the same list
+or error out depending on whether the server recognizes the flags).
+These options are not compatible with I<--tree>.
 
 If I<--metadata> is specified, the list will be filtered to just
 snapshots that involve libvirt metadata, and thus would prevent
 B<undefine> of a persistent domain, or be lost on B<destroy> of
-a transient domain.
+a transient domain.  Likewise, if I<--no-metadata> is specified,
+the list will be filtered to just snapshots that exist without
+the need for libvirt metadata.
 
 =item B<snapshot-dumpxml> I<domain> I<snapshot> [I<--security-info>]
 

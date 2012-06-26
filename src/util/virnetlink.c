@@ -130,6 +130,7 @@ virNetlinkStartup(void)
 {
     if (placeholder_nlhandle)
         return 0;
+    VIR_DEBUG("Running global netlink initialization");
     placeholder_nlhandle = virNetlinkAlloc();
     if (!placeholder_nlhandle) {
         virReportSystemError(errno, "%s",
@@ -667,6 +668,12 @@ bool virNetlinkEventServiceIsRunning(void)
 {
     netlinkError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
     return 0;
+}
+
+int virNetlinkEventServiceLocalPid(void)
+{
+    netlinkError(VIR_ERR_INTERNAL_ERROR, "%s", _(unsupported));
+    return -1;
 }
 
 /**

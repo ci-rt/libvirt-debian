@@ -927,6 +927,7 @@ typedef enum {
     VIR_DUMP_LIVE         = (1 << 1), /* live dump */
     VIR_DUMP_BYPASS_CACHE = (1 << 2), /* avoid file system cache pollution */
     VIR_DUMP_RESET        = (1 << 3), /* reset domain after dump finishes */
+    VIR_DUMP_MEMORY_ONLY  = (1 << 4), /* use dump-guest-memory */
 } virDomainCoreDumpFlags;
 
 /* Domain migration flags. */
@@ -1115,7 +1116,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 9012
+#define LIBVIR_VERSION_NUMBER 9013
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -1339,7 +1340,8 @@ int                     virDomainGetState       (virDomainPtr domain,
 
 /**
  * VIR_DOMAIN_CPU_STATS_CPUTIME:
- * cpu usage in nanoseconds, as a ullong
+ * cpu usage (sum of both vcpu and hypervisor usage) in nanoseconds,
+ * as a ullong
  */
 #define VIR_DOMAIN_CPU_STATS_CPUTIME "cpu_time"
 
@@ -1354,6 +1356,13 @@ int                     virDomainGetState       (virDomainPtr domain,
  * cpu time charged to system instructions in nanoseconds, as a ullong
  */
 #define VIR_DOMAIN_CPU_STATS_SYSTEMTIME "system_time"
+
+/**
+ * VIR_DOMAIN_CPU_STATS_VCPUTIME:
+ * vcpu usage in nanoseconds (cpu_time excluding hypervisor time),
+ * as a ullong
+ */
+#define VIR_DOMAIN_CPU_STATS_VCPUTIME "vcpu_time"
 
 int virDomainGetCPUStats(virDomainPtr domain,
                          virTypedParameterPtr params,
@@ -1751,8 +1760,40 @@ int                     virDomainUndefineFlags   (virDomainPtr domain,
                                                   unsigned int flags);
 int                     virConnectNumOfDefinedDomains  (virConnectPtr conn);
 int                     virConnectListDefinedDomains (virConnectPtr conn,
-                                                 char **const names,
-                                                 int maxnames);
+                                                      char **const names,
+                                                      int maxnames);
+/**
+ * virConnectListAllDomainsFlags:
+ *
+ * Flags used to tune which domains are listed by virConnectListAllDomains().
+ * Note that these flags come in groups; if all bits from a group are 0,
+ * then that group is not used to filter results.
+ */
+typedef enum {
+    VIR_CONNECT_LIST_DOMAINS_ACTIVE         = 1 << 0,
+    VIR_CONNECT_LIST_DOMAINS_INACTIVE       = 1 << 1,
+
+    VIR_CONNECT_LIST_DOMAINS_PERSISTENT     = 1 << 2,
+    VIR_CONNECT_LIST_DOMAINS_TRANSIENT      = 1 << 3,
+
+    VIR_CONNECT_LIST_DOMAINS_RUNNING        = 1 << 4,
+    VIR_CONNECT_LIST_DOMAINS_PAUSED         = 1 << 5,
+    VIR_CONNECT_LIST_DOMAINS_SHUTOFF        = 1 << 6,
+    VIR_CONNECT_LIST_DOMAINS_OTHER          = 1 << 7,
+
+    VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE    = 1 << 8,
+    VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE = 1 << 9,
+
+    VIR_CONNECT_LIST_DOMAINS_AUTOSTART      = 1 << 10,
+    VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART   = 1 << 11,
+
+    VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT   = 1 << 12,
+    VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT    = 1 << 13,
+} virConnectListAllDomainsFlags;
+
+int                     virConnectListAllDomains (virConnectPtr conn,
+                                                  virDomainPtr **domains,
+                                                  unsigned int flags);
 int                     virDomainCreate         (virDomainPtr domain);
 int                     virDomainCreateWithFlags (virDomainPtr domain,
                                                  unsigned int flags);
@@ -2353,6 +2394,7 @@ typedef enum {
   VIR_STORAGE_VOL_FILE = 0,     /* Regular file based volumes */
   VIR_STORAGE_VOL_BLOCK = 1,    /* Block based volumes */
   VIR_STORAGE_VOL_DIR = 2,      /* Directory-passthrough based volume */
+  VIR_STORAGE_VOL_NETWORK = 3,  /* Network volumes like RBD (RADOS Block Device) */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_STORAGE_VOL_LAST
@@ -3343,10 +3385,17 @@ virDomainSnapshotPtr virDomainSnapshotCreateXML(virDomainPtr domain,
 char *virDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
                                   unsigned int flags);
 
-/* Flags valid for virDomainSnapshotNum(),
+/**
+ * virDomainSnapshotListFlags:
+ *
+ * Flags valid for virDomainSnapshotNum(),
  * virDomainSnapshotListNames(), virDomainSnapshotNumChildren(), and
- * virDomainSnapshotListChildrenNames().  Note that the interpretation
- * of flag (1<<0) depends on which function it is passed to.  */
+ * virDomainSnapshotListChildrenNames(), virDomainListAllSnapshots(),
+ * and virDomainSnapshotListAllChildren().  Note that the interpretation
+ * of flag (1<<0) depends on which function it is passed to; but serves
+ * to toggle the per-call default of whether the listing is shallow or
+ * recursive.  Remaining bits come in groups; if all bits from a group are
+ * 0, then that group is not used to filter results.  */
 typedef enum {
     VIR_DOMAIN_SNAPSHOT_LIST_ROOTS       = (1 << 0), /* Filter by snapshots
                                                         with no parents, when
@@ -3354,10 +3403,18 @@ typedef enum {
     VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS = (1 << 0), /* List all descendants,
                                                         not just children, when
                                                         listing a snapshot */
-    VIR_DOMAIN_SNAPSHOT_LIST_METADATA    = (1 << 1), /* Filter by snapshots
-                                                        which have metadata */
+
+    /* For historical reasons, groups do not use contiguous bits.  */
+
     VIR_DOMAIN_SNAPSHOT_LIST_LEAVES      = (1 << 2), /* Filter by snapshots
                                                         with no children */
+    VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES   = (1 << 3), /* Filter by snapshots
+                                                        that have children */
+
+    VIR_DOMAIN_SNAPSHOT_LIST_METADATA    = (1 << 1), /* Filter by snapshots
+                                                        which have metadata */
+    VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA = (1 << 4), /* Filter by snapshots
+                                                        with no metadata */
 } virDomainSnapshotListFlags;
 
 /* Return the number of snapshots for this domain */
@@ -3367,6 +3424,11 @@ int virDomainSnapshotNum(virDomainPtr domain, unsigned int flags);
 int virDomainSnapshotListNames(virDomainPtr domain, char **names, int nameslen,
                                unsigned int flags);
 
+/* Get all snapshot objects for this domain */
+int virDomainListAllSnapshots(virDomainPtr domain,
+                              virDomainSnapshotPtr **snaps,
+                              unsigned int flags);
+
 /* Return the number of child snapshots for this snapshot */
 int virDomainSnapshotNumChildren(virDomainSnapshotPtr snapshot,
                                  unsigned int flags);
@@ -3375,6 +3437,11 @@ int virDomainSnapshotNumChildren(virDomainSnapshotPtr snapshot,
 int virDomainSnapshotListChildrenNames(virDomainSnapshotPtr snapshot,
                                        char **names, int nameslen,
                                        unsigned int flags);
+
+/* Get all snapshot object children for this snapshot */
+int virDomainSnapshotListAllChildren(virDomainSnapshotPtr snapshot,
+                                     virDomainSnapshotPtr **snaps,
+                                     unsigned int flags);
 
 /* Get a handle to a named snapshot */
 virDomainSnapshotPtr virDomainSnapshotLookupByName(virDomainPtr domain,
@@ -3391,6 +3458,15 @@ virDomainSnapshotPtr virDomainSnapshotCurrent(virDomainPtr domain,
 /* Get a handle to the parent snapshot, if one exists */
 virDomainSnapshotPtr virDomainSnapshotGetParent(virDomainSnapshotPtr snapshot,
                                                 unsigned int flags);
+
+/* Determine if a snapshot is the current snapshot of its domain.  */
+int virDomainSnapshotIsCurrent(virDomainSnapshotPtr snapshot,
+                               unsigned int flags);
+
+/* Determine if a snapshot has associated libvirt metadata that would
+ * prevent the deletion of its domain.  */
+int virDomainSnapshotHasMetadata(virDomainSnapshotPtr snapshot,
+                                 unsigned int flags);
 
 typedef enum {
     VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING = 1 << 0, /* Run after revert */
@@ -3415,6 +3491,7 @@ typedef enum {
 int virDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
                             unsigned int flags);
 
+int virDomainSnapshotRef(virDomainSnapshotPtr snapshot);
 int virDomainSnapshotFree(virDomainSnapshotPtr snapshot);
 
 /*

@@ -1,7 +1,7 @@
 /*
  * lock_driver_sanlock.c: A lock driver for Sanlock
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -54,6 +54,14 @@
 
 
 #define VIR_LOCK_MANAGER_SANLOCK_AUTO_DISK_LOCKSPACE "__LIBVIRT__DISKS__"
+
+/*
+ * temporary fix for the case where the sanlock devel package is
+ * too old to provide that define, and probably the functionality too
+ */
+#ifndef SANLK_RES_SHARED
+#define SANLK_RES_SHARED    0x4
+#endif
 
 typedef struct _virLockManagerSanlockDriver virLockManagerSanlockDriver;
 typedef virLockManagerSanlockDriver *virLockManagerSanlockDriverPtr;
@@ -423,7 +431,8 @@ static int virLockManagerSanlockDiskLeaseName(const char *path,
 static int virLockManagerSanlockAddLease(virLockManagerPtr lock,
                                          const char *name,
                                          size_t nparams,
-                                         virLockManagerParamPtr params)
+                                         virLockManagerParamPtr params,
+                                         bool shared)
 {
     virLockManagerSanlockPrivatePtr priv = lock->privateData;
     int ret = -1;
@@ -435,6 +444,7 @@ static int virLockManagerSanlockAddLease(virLockManagerPtr lock,
         goto cleanup;
     }
 
+    res->flags = shared ? SANLK_RES_SHARED : 0;
     res->num_disks = 1;
     if (!virStrcpy(res->name, name, SANLK_NAME_LEN)) {
         virLockError(VIR_ERR_INTERNAL_ERROR,
@@ -480,7 +490,8 @@ cleanup:
 static int virLockManagerSanlockAddDisk(virLockManagerPtr lock,
                                         const char *name,
                                         size_t nparams,
-                                        virLockManagerParamPtr params ATTRIBUTE_UNUSED)
+                                        virLockManagerParamPtr params ATTRIBUTE_UNUSED,
+                                        bool shared)
 {
     virLockManagerSanlockPrivatePtr priv = lock->privateData;
     int ret = -1;
@@ -498,6 +509,7 @@ static int virLockManagerSanlockAddDisk(virLockManagerPtr lock,
         goto cleanup;
     }
 
+    res->flags = shared ? SANLK_RES_SHARED : 0;
     res->num_disks = 1;
     if (virLockManagerSanlockDiskLeaseName(name, res->name, SANLK_NAME_LEN) < 0)
         goto cleanup;
@@ -625,21 +637,15 @@ static int virLockManagerSanlockAddResource(virLockManagerPtr lock,
         return -1;
     }
 
-    if (flags & VIR_LOCK_MANAGER_RESOURCE_READONLY) {
-        virLockError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                     _("Readonly leases are not supported"));
-        return -1;
-    }
-    if (flags & VIR_LOCK_MANAGER_RESOURCE_SHARED) {
-        virLockError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                     _("Shareable leases are not supported"));
-        return -1;
-    }
+    /* Treat R/O resources as a no-op lock request */
+    if (flags & VIR_LOCK_MANAGER_RESOURCE_READONLY)
+        return 0;
 
     switch (type) {
     case VIR_LOCK_MANAGER_RESOURCE_TYPE_DISK:
         if (driver->autoDiskLease) {
-            if (virLockManagerSanlockAddDisk(lock, name, nparams, params) < 0)
+            if (virLockManagerSanlockAddDisk(lock, name, nparams, params,
+                                             !!(flags & VIR_LOCK_MANAGER_RESOURCE_SHARED)) < 0)
                 return -1;
 
             if (virLockManagerSanlockCreateLease(priv->res_args[priv->res_count-1]) < 0)
@@ -653,7 +659,8 @@ static int virLockManagerSanlockAddResource(virLockManagerPtr lock,
         break;
 
     case VIR_LOCK_MANAGER_RESOURCE_TYPE_LEASE:
-        if (virLockManagerSanlockAddLease(lock, name, nparams, params) < 0)
+        if (virLockManagerSanlockAddLease(lock, name, nparams, params,
+                                          !!(flags & VIR_LOCK_MANAGER_RESOURCE_SHARED)) < 0)
             return -1;
         break;
 

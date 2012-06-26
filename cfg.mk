@@ -383,11 +383,6 @@ sc_prohibit_sprintf:
 	halt='use snprintf, not s'printf				\
 	  $(_sc_search_regexp)
 
-sc_prohibit_strncpy:
-	@prohibit='strncpy *\('						\
-	halt='use virStrncpy, not strncpy'				\
-	  $(_sc_search_regexp)
-
 sc_prohibit_readlink:
 	@prohibit='readlink *\('					\
 	halt='use virFileResolveLink, not readlink'			\
@@ -406,6 +401,11 @@ sc_prohibit_gettext_noop:
 sc_prohibit_VIR_ERR_NO_MEMORY:
 	@prohibit='\<V''IR_ERR_NO_MEMORY\>'				\
 	halt='use virReportOOMError, not V'IR_ERR_NO_MEMORY		\
+	  $(_sc_search_regexp)
+
+sc_prohibit_PATH_MAX:
+	@prohibit='\<P''ATH_MAX\>'				\
+	halt='dynamically allocate paths, do not use P'ATH_MAX	\
 	  $(_sc_search_regexp)
 
 # Use a subshell for each function, to give the optimal warning message.
@@ -780,7 +780,7 @@ exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^tests/qemuhelpdata/|\.(gif|ico|png|diff)$$)
+  (^tests/(qemuhelp|nodeinfo)data/|\.(gif|ico|png|diff)$$)
 
 _src2=src/(util/command|libvirt|lxc/lxc_controller)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
@@ -800,15 +800,15 @@ exclude_file_name_regexp--sc_prohibit_nonreentrant = \
 exclude_file_name_regexp--sc_prohibit_raw_allocation = \
   ^(src/util/memory\.[ch]|examples/.*)$$
 
-exclude_file_name_regexp--sc_prohibit_readlink = ^src/util/util\.c$$
+exclude_file_name_regexp--sc_prohibit_readlink = \
+  ^src/(util/util|lxc/lxc_container)\.c$$
 
 exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/util\.c$$
 
 exclude_file_name_regexp--sc_prohibit_sprintf = \
   ^(docs/hacking\.html\.in)|(examples/systemtap/.*stp)|(src/dtrace2systemtap\.pl)|(src/rpc/gensystemtap\.pl)$$
 
-exclude_file_name_regexp--sc_prohibit_strncpy = \
-  ^(src/util/util|tools/virsh)\.c$$
+exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/util\.c$$
 
 exclude_file_name_regexp--sc_prohibit_strtol = \
   ^src/(util/sexpr|(vbox|xen|xenxs)/.*)\.c$$
@@ -819,11 +819,12 @@ exclude_file_name_regexp--sc_prohibit_xmlURI = ^src/util/viruri\.c$$
 
 exclude_file_name_regexp--sc_prohibit_return_as_function = \.py$$
 
-exclude_file_name_regexp--sc_require_config_h = ^examples/
+exclude_file_name_regexp--sc_require_config_h = ^(examples/|tools/virsh-edit.c$$)
 
-exclude_file_name_regexp--sc_require_config_h_first = ^examples/
+exclude_file_name_regexp--sc_require_config_h_first = ^(examples/|tools/virsh-edit.c$$)
 
-exclude_file_name_regexp--sc_trailing_blank = \.(fig|gif|ico|png)$$
+exclude_file_name_regexp--sc_trailing_blank = \
+  (/qemuhelpdata/|\.(fig|gif|ico|png)$$)
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = \
   ^(docs/apibuild.py|tests/virt-aa-helper-test)$$

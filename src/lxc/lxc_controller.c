@@ -43,6 +43,7 @@
 #include <dirent.h>
 #include <grp.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #if HAVE_CAPNG
 # include <cap-ng.h>
@@ -51,9 +52,6 @@
 #if HAVE_NUMACTL
 # define NUMA_VERSION1_COMPATIBILITY 1
 # include <numa.h>
-#endif
-#if HAVE_SELINUX
-# include <selinux/selinux.h>
 #endif
 
 #include "virterror_internal.h"
@@ -71,6 +69,7 @@
 #include "command.h"
 #include "processinfo.h"
 #include "nodeinfo.h"
+#include "virrandom.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -1385,6 +1384,7 @@ lxcControllerRun(virDomainDefPtr def,
     size_t nloopDevs = 0;
     int *loopDevs = NULL;
     size_t i;
+    char *mount_options = NULL;
 
     if (VIR_ALLOC_N(containerTtyFDs, nttyFDs) < 0) {
         virReportOOMError();
@@ -1436,11 +1436,7 @@ lxcControllerRun(virDomainDefPtr def,
      * marked as shared
      */
     if (root) {
-#if HAVE_SELINUX
-        security_context_t con;
-#else
-        bool con = false;
-#endif
+        mount_options = virSecurityManagerGetMountOptions(securityDriver, def);
         char *opts;
         VIR_DEBUG("Setting up private /dev/pts");
 
@@ -1476,21 +1472,10 @@ lxcControllerRun(virDomainDefPtr def,
             goto cleanup;
         }
 
-#if HAVE_SELINUX
-        if (getfilecon(root->src, &con) < 0 &&
-            errno != ENOTSUP) {
-            virReportSystemError(errno,
-                                 _("Failed to query file context on %s"),
-                                 root->src);
-            goto cleanup;
-        }
-#endif
         /* XXX should we support gid=X for X!=5 for distros which use
          * a different gid for tty?  */
-        if (virAsprintf(&opts, "newinstance,ptmxmode=0666,mode=0620,gid=5%s%s%s",
-                        con ? ",context=\"" : "",
-                        con ? (const char *)con : "",
-                        con ? "\"" : "") < 0) {
+        if (virAsprintf(&opts, "newinstance,ptmxmode=0666,mode=0620,gid=5%s",
+                        (mount_options ? mount_options : "")) < 0) {
             virReportOOMError();
             goto cleanup;
         }
@@ -1607,6 +1592,7 @@ lxcControllerRun(virDomainDefPtr def,
     monitor = client = -1;
 
 cleanup:
+    VIR_FREE(mount_options);
     VIR_FREE(devptmx);
     VIR_FREE(devpts);
     VIR_FORCE_CLOSE(control[0]);
@@ -1663,7 +1649,8 @@ int main(int argc, char *argv[])
 
     if (setlocale(LC_ALL, "") == NULL ||
         bindtextdomain(PACKAGE, LOCALEDIR) == NULL ||
-        textdomain(PACKAGE) == NULL) {
+        textdomain(PACKAGE) == NULL ||
+        virRandomInitialize(time(NULL) ^ getpid())) {
         fprintf(stderr, _("%s: initialization failed\n"), argv[0]);
         exit(EXIT_FAILURE);
     }
@@ -1723,7 +1710,9 @@ int main(int argc, char *argv[])
             break;
 
         case 'S':
-            if (!(securityDriver = virSecurityManagerNew(optarg, false, false, false))) {
+            if (!(securityDriver = virSecurityManagerNew(optarg,
+                                                         LXC_DRIVER_NAME,
+                                                         false, false, false))) {
                 fprintf(stderr, "Cannot create security manager '%s'",
                         optarg);
                 goto cleanup;
@@ -1750,7 +1739,9 @@ int main(int argc, char *argv[])
     }
 
     if (securityDriver == NULL) {
-        if (!(securityDriver = virSecurityManagerNew("none", false, false, false))) {
+        if (!(securityDriver = virSecurityManagerNew("none",
+                                                     LXC_DRIVER_NAME,
+                                                     false, false, false))) {
             fprintf(stderr, "%s: cannot initialize nop security manager", argv[0]);
             goto cleanup;
         }

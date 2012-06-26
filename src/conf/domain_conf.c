@@ -52,6 +52,7 @@
 #include "secret_conf.h"
 #include "netdev_vport_profile_conf.h"
 #include "netdev_bandwidth_conf.h"
+#include "virdomainlist.h"
 
 #define VIR_FROM_THIS VIR_FROM_DOMAIN
 
@@ -256,13 +257,16 @@ VIR_ENUM_IMPL(virDomainControllerModelUSB, VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
               "ich9-uhci2",
               "ich9-uhci3",
               "vt82c686b-uhci",
-              "pci-ohci")
+              "pci-ohci",
+              "nec-xhci")
 
 VIR_ENUM_IMPL(virDomainFS, VIR_DOMAIN_FS_TYPE_LAST,
               "mount",
               "block",
               "file",
-              "template")
+              "template",
+              "ram",
+              "bind")
 
 VIR_ENUM_IMPL(virDomainFSDriverType, VIR_DOMAIN_FS_DRIVER_TYPE_LAST,
               "default",
@@ -307,6 +311,7 @@ VIR_ENUM_IMPL(virDomainNetInterfaceLinkState, VIR_DOMAIN_NET_INTERFACE_LINK_STAT
 
 VIR_ENUM_IMPL(virDomainChrChannelTarget,
               VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_LAST,
+              "none",
               "guestfwd",
               "virtio")
 
@@ -353,6 +358,10 @@ VIR_ENUM_IMPL(virDomainSmartcard, VIR_DOMAIN_SMARTCARD_TYPE_LAST,
               "host",
               "host-certificates",
               "passthrough")
+
+VIR_ENUM_IMPL(virDomainSoundCodec, VIR_DOMAIN_SOUND_CODEC_TYPE_LAST,
+              "duplex",
+              "micro")
 
 VIR_ENUM_IMPL(virDomainSoundModel, VIR_DOMAIN_SOUND_MODEL_LAST,
               "sb16",
@@ -1304,12 +1313,25 @@ void virDomainSmartcardDefFree(virDomainSmartcardDefPtr def)
     VIR_FREE(def);
 }
 
+void virDomainSoundCodecDefFree(virDomainSoundCodecDefPtr def)
+{
+    if (!def)
+        return;
+
+    VIR_FREE(def);
+}
+
 void virDomainSoundDefFree(virDomainSoundDefPtr def)
 {
     if (!def)
         return;
 
     virDomainDeviceInfoClear(&def->info);
+
+    int i;
+    for (i = 0 ; i < def->ncodecs ; i++)
+        virDomainSoundCodecDefFree(def->codecs[i]);
+    VIR_FREE(def->codecs);
 
     VIR_FREE(def);
 }
@@ -1904,14 +1926,21 @@ int virDomainDevicePCIAddressIsValid(virDomainDevicePCIAddressPtr addr)
 }
 
 
-static int
+static bool
 virDomainDeviceInfoIsSet(virDomainDeviceInfoPtr info, unsigned int flags)
 {
     if (info->type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
-        return 1;
+        return true;
     if (info->alias && !(flags & VIR_DOMAIN_XML_INACTIVE))
-        return 1;
-    return 0;
+        return true;
+    if (info->mastertype != VIR_DOMAIN_CONTROLLER_MASTER_NONE)
+        return true;
+    if ((info->rombar != VIR_DOMAIN_PCI_ROMBAR_DEFAULT) ||
+        info->romfile)
+        return true;
+    if (info->bootIndex)
+        return true;
+    return false;
 }
 
 void virDomainDeviceInfoClear(virDomainDeviceInfoPtr info)
@@ -4066,6 +4095,28 @@ virDomainControllerDefParseXML(xmlNodePtr node,
         VIR_FREE(vectors);
         break;
     }
+    case VIR_DOMAIN_CONTROLLER_TYPE_USB: {
+        /* If the XML has a uhci1, uhci2, uhci3 controller and no
+         * master port was given, we should set a sensible one */
+        int masterPort = -1;
+        switch (def->model) {
+        case VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI1:
+            masterPort = 0;
+            break;
+        case VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI2:
+            masterPort = 2;
+            break;
+        case VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI3:
+            masterPort = 4;
+            break;
+        }
+        if (masterPort != -1 &&
+            def->info.mastertype == VIR_DOMAIN_CONTROLLER_MASTER_NONE) {
+            def->info.mastertype = VIR_DOMAIN_CONTROLLER_MASTER_USB;
+            def->info.master.usb.startport = masterPort;
+        }
+        break;
+    }
 
     default:
         break;
@@ -4092,20 +4143,82 @@ cleanup:
     goto cleanup;
 }
 
+
+/* Parse a value located at XPATH within CTXT, and store the
+ * result into val.  If REQUIRED, then the value must exist;
+ * otherwise, the value is optional.  The value is in bytes.
+ * Return 0 on success, -1 on failure after issuing error. */
+static int
+virDomainParseScaledValue(const char *xpath,
+                          xmlXPathContextPtr ctxt,
+                          unsigned long long *val,
+                          unsigned long long scale,
+                          unsigned long long max,
+                          bool required)
+{
+    char *xpath_full = NULL;
+    char *unit = NULL;
+    int ret = -1;
+    unsigned long long bytes;
+
+    *val = 0;
+    if (virAsprintf(&xpath_full, "string(%s)", xpath) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    ret = virXPathULongLong(xpath_full, ctxt, &bytes);
+    if (ret < 0) {
+        if (ret == -2)
+            virDomainReportError(VIR_ERR_XML_ERROR,
+                                 _("could not parse element %s"),
+                                 xpath);
+        else if (required)
+            virDomainReportError(VIR_ERR_XML_ERROR,
+                                 _("missing element %s"),
+                                 xpath);
+        else
+            ret = 0;
+        goto cleanup;
+    }
+    VIR_FREE(xpath_full);
+
+    if (virAsprintf(&xpath_full, "string(%s/@unit)", xpath) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    unit = virXPathString(xpath_full, ctxt);
+
+    if (virScaleInteger(&bytes, unit, scale, max) < 0)
+        goto cleanup;
+
+    *val = bytes;
+    ret = 0;
+cleanup:
+    VIR_FREE(xpath_full);
+    VIR_FREE(unit);
+    return ret;
+}
+
+
 /* Parse the XML definition for a disk
  * @param node XML nodeset to parse for disk definition
  */
 static virDomainFSDefPtr
 virDomainFSDefParseXML(xmlNodePtr node,
+                       xmlXPathContextPtr ctxt,
                        unsigned int flags) {
     virDomainFSDefPtr def;
-    xmlNodePtr cur;
+    xmlNodePtr cur, save_node = ctxt->node;
     char *type = NULL;
     char *fsdriver = NULL;
     char *source = NULL;
     char *target = NULL;
     char *accessmode = NULL;
     char *wrpolicy = NULL;
+    char *usage = NULL;
+    char *unit = NULL;
+
+    ctxt->node = node;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
@@ -4134,13 +4247,26 @@ virDomainFSDefParseXML(xmlNodePtr node,
         def->accessmode = VIR_DOMAIN_FS_ACCESSMODE_PASSTHROUGH;
     }
 
+    if (virDomainParseScaledValue("./space_hard_limit[1]", ctxt,
+                                  &def->space_hard_limit, 1,
+                                  ULONG_LONG_MAX,
+                                  false) < 0)
+        goto error;
+
+    if (virDomainParseScaledValue("./space_soft_limit[1]", ctxt,
+                                  &def->space_soft_limit, 1,
+                                  ULONG_LONG_MAX,
+                                  false) < 0)
+        goto error;
+
     cur = node->children;
     while (cur != NULL) {
         if (cur->type == XML_ELEMENT_NODE) {
             if (!source &&
                 xmlStrEqual(cur->name, BAD_CAST "source")) {
 
-                if (def->type == VIR_DOMAIN_FS_TYPE_MOUNT)
+                if (def->type == VIR_DOMAIN_FS_TYPE_MOUNT ||
+                    def->type == VIR_DOMAIN_FS_TYPE_BIND)
                     source = virXMLPropString(cur, "dir");
                 else if (def->type == VIR_DOMAIN_FS_TYPE_FILE)
                     source = virXMLPropString(cur, "file");
@@ -4148,6 +4274,10 @@ virDomainFSDefParseXML(xmlNodePtr node,
                     source = virXMLPropString(cur, "dev");
                 else if (def->type == VIR_DOMAIN_FS_TYPE_TEMPLATE)
                     source = virXMLPropString(cur, "name");
+                else if (def->type == VIR_DOMAIN_FS_TYPE_RAM) {
+                    usage = virXMLPropString(cur, "usage");
+                    unit = virXMLPropString(cur, "unit");
+                }
             } else if (!target &&
                        xmlStrEqual(cur->name, BAD_CAST "target")) {
                 target = virXMLPropString(cur, "dir");
@@ -4179,7 +4309,8 @@ virDomainFSDefParseXML(xmlNodePtr node,
         def->wrpolicy = VIR_DOMAIN_FS_WRPOLICY_DEFAULT;
     }
 
-    if (source == NULL) {
+    if (source == NULL &&
+        def->type != VIR_DOMAIN_FS_TYPE_RAM) {
         virDomainReportError(VIR_ERR_NO_SOURCE,
                              target ? "%s" : NULL, target);
         goto error;
@@ -4191,6 +4322,24 @@ virDomainFSDefParseXML(xmlNodePtr node,
         goto error;
     }
 
+    if (def->type == VIR_DOMAIN_FS_TYPE_RAM) {
+        if (!usage) {
+            virDomainReportError(VIR_ERR_XML_ERROR, "%s",
+                                 _("missing 'usage' attribute for RAM filesystem"));
+            goto error;
+        }
+        if (virStrToLong_ull(usage, NULL, 10, &def->usage) < 0) {
+            virDomainReportError(VIR_ERR_XML_ERROR,
+                                 _("cannot parse usage '%s' for RAM filesystem"),
+                                 usage);
+            goto error;
+        }
+        if (unit &&
+            virScaleInteger(&def->usage, unit,
+                            1024, ULONG_LONG_MAX) < 0)
+            goto error;
+    }
+
     def->src = source;
     source = NULL;
     def->dst = target;
@@ -4200,12 +4349,15 @@ virDomainFSDefParseXML(xmlNodePtr node,
         goto error;
 
 cleanup:
+    ctxt->node = save_node;
     VIR_FREE(type);
     VIR_FREE(fsdriver);
     VIR_FREE(target);
     VIR_FREE(source);
     VIR_FREE(accessmode);
     VIR_FREE(wrpolicy);
+    VIR_FREE(usage);
+    VIR_FREE(unit);
 
     return def;
 
@@ -6345,17 +6497,51 @@ error:
 }
 
 
-static virDomainSoundDefPtr
-virDomainSoundDefParseXML(const xmlNodePtr node,
-                          unsigned int flags)
+static virDomainSoundCodecDefPtr
+virDomainSoundCodecDefParseXML(const xmlNodePtr node)
 {
-    char *model;
-    virDomainSoundDefPtr def;
+    char *type;
+    virDomainSoundCodecDefPtr def;
 
     if (VIR_ALLOC(def) < 0) {
         virReportOOMError();
         return NULL;
     }
+
+    type = virXMLPropString(node, "type");
+    if ((def->type = virDomainSoundCodecTypeFromString(type)) < 0) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                             _("unknown codec type '%s'"), type);
+        goto error;
+    }
+
+cleanup:
+    VIR_FREE(type);
+
+    return def;
+
+error:
+    virDomainSoundCodecDefFree(def);
+    def = NULL;
+    goto cleanup;
+}
+
+
+static virDomainSoundDefPtr
+virDomainSoundDefParseXML(const xmlNodePtr node,
+                          xmlXPathContextPtr ctxt,
+                          unsigned int flags)
+{
+    char *model;
+    virDomainSoundDefPtr def;
+    xmlNodePtr save = ctxt->node;
+
+    if (VIR_ALLOC(def) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    ctxt->node = node;
 
     model = virXMLPropString(node, "model");
     if ((def->model = virDomainSoundModelTypeFromString(model)) < 0) {
@@ -6364,12 +6550,43 @@ virDomainSoundDefParseXML(const xmlNodePtr node,
         goto error;
     }
 
+    if (def->model == VIR_DOMAIN_SOUND_MODEL_ICH6) {
+        int ncodecs;
+        xmlNodePtr *codecNodes = NULL;
+
+        /* parse the <codec> subelements for sound models that support it */
+        ncodecs = virXPathNodeSet("./codec", ctxt, &codecNodes);
+        if (ncodecs < 0)
+            goto error;
+
+        if (ncodecs > 0) {
+            int ii;
+
+            if (VIR_ALLOC_N(def->codecs, ncodecs) < 0) {
+                virReportOOMError();
+                VIR_FREE(codecNodes);
+                goto error;
+            }
+
+            for (ii = 0; ii < ncodecs; ii++) {
+                virDomainSoundCodecDefPtr codec = virDomainSoundCodecDefParseXML(codecNodes[ii]);
+                if (codec == NULL)
+                    goto error;
+
+                codec->cad = def->ncodecs; /* that will do for now */
+                def->codecs[def->ncodecs++] = codec;
+            }
+            VIR_FREE(codecNodes);
+        }
+    }
+
     if (virDomainDeviceInfoParseXML(node, NULL, &def->info, flags) < 0)
         goto error;
 
 cleanup:
     VIR_FREE(model);
 
+    ctxt->node = save;
     return def;
 
 error:
@@ -6908,7 +7125,7 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "filesystem")) {
         dev->type = VIR_DOMAIN_DEVICE_FS;
-        if (!(dev->data.fs = virDomainFSDefParseXML(node, flags)))
+        if (!(dev->data.fs = virDomainFSDefParseXML(node, ctxt, flags)))
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "interface")) {
         dev->type = VIR_DOMAIN_DEVICE_NET;
@@ -6922,7 +7139,7 @@ virDomainDeviceDefPtr virDomainDeviceDefParse(virCapsPtr caps,
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "sound")) {
         dev->type = VIR_DOMAIN_DEVICE_SOUND;
-        if (!(dev->data.sound = virDomainSoundDefParseXML(node, flags)))
+        if (!(dev->data.sound = virDomainSoundDefParseXML(node, ctxt, flags)))
             goto error;
     } else if (xmlStrEqual(node->name, BAD_CAST "watchdog")) {
         dev->type = VIR_DOMAIN_DEVICE_WATCHDOG;
@@ -7657,53 +7874,24 @@ static int
 virDomainParseMemory(const char *xpath, xmlXPathContextPtr ctxt,
                      unsigned long long *mem, bool required)
 {
-    char *xpath_full = NULL;
-    char *unit = NULL;
     int ret = -1;
-    unsigned long long bytes;
-    unsigned long long max;
+    unsigned long long bytes, max;
 
-    *mem = 0;
-    if (virAsprintf(&xpath_full, "string(%s)", xpath) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-    ret = virXPathULongLong(xpath_full, ctxt, &bytes);
-    if (ret < 0) {
-        if (ret == -2)
-            virDomainReportError(VIR_ERR_XML_ERROR,
-                                 _("could not parse memory element %s"),
-                                 xpath);
-        else if (required)
-            virDomainReportError(VIR_ERR_XML_ERROR,
-                                 _("missing memory element %s"),
-                                 xpath);
-        else
-            ret = 0;
-        goto cleanup;
-    }
-    VIR_FREE(xpath_full);
-
-    if (virAsprintf(&xpath_full, "string(%s/@unit)", xpath) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-    unit = virXPathString(xpath_full, ctxt);
     /* On 32-bit machines, our bound is 0xffffffff * KiB. On 64-bit
      * machines, our bound is off_t (2^63).  */
     if (sizeof(unsigned long) < sizeof(long long))
         max = 1024ull * ULONG_MAX;
     else
         max = LLONG_MAX;
-    if (virScaleInteger(&bytes, unit, 1024, max) < 0)
+
+    ret = virDomainParseScaledValue(xpath, ctxt, &bytes, 1024, max, required);
+    if (ret < 0)
         goto cleanup;
 
     /* Yes, we really do use kibibytes for our internal sizing.  */
     *mem = VIR_DIV_UP(bytes, 1024);
     ret = 0;
 cleanup:
-    VIR_FREE(xpath_full);
-    VIR_FREE(unit);
     return ret;
 }
 
@@ -8482,7 +8670,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
     if (n && VIR_ALLOC_N(def->fss, n) < 0)
         goto no_memory;
     for (i = 0 ; i < n ; i++) {
-        virDomainFSDefPtr fs = virDomainFSDefParseXML(nodes[i],
+        virDomainFSDefPtr fs = virDomainFSDefParseXML(nodes[i], ctxt,
                                                       flags);
         if (!fs)
             goto error;
@@ -8789,6 +8977,7 @@ static virDomainDefPtr virDomainDefParseXML(virCapsPtr caps,
         goto no_memory;
     for (i = 0 ; i < n ; i++) {
         virDomainSoundDefPtr sound = virDomainSoundDefParseXML(nodes[i],
+                                                               ctxt,
                                                                flags);
         if (!sound)
             goto error;
@@ -11109,6 +11298,22 @@ virDomainControllerDefFormat(virBufferPtr buf,
     return 0;
 }
 
+
+int
+virDomainFSIndexByName(virDomainDefPtr def, const char *name)
+{
+    virDomainFSDefPtr fs;
+    int i;
+
+    for (i = 0; i < def->nfss; i++) {
+        fs = def->fss[i];
+        if (STREQ(fs->dst, name))
+            return i;
+    }
+    return -1;
+}
+
+
 static int
 virDomainFSDefFormat(virBufferPtr buf,
                      virDomainFSDefPtr def,
@@ -11147,27 +11352,32 @@ virDomainFSDefFormat(virBufferPtr buf,
         virBufferAddLit(buf, "/>\n");
     }
 
-    if (def->src) {
-        switch (def->type) {
-        case VIR_DOMAIN_FS_TYPE_MOUNT:
-            virBufferEscapeString(buf, "      <source dir='%s'/>\n",
-                                  def->src);
-            break;
+    switch (def->type) {
+    case VIR_DOMAIN_FS_TYPE_MOUNT:
+    case VIR_DOMAIN_FS_TYPE_BIND:
+        virBufferEscapeString(buf, "      <source dir='%s'/>\n",
+                              def->src);
+        break;
 
-        case VIR_DOMAIN_FS_TYPE_BLOCK:
-            virBufferEscapeString(buf, "      <source dev='%s'/>\n",
-                                  def->src);
-            break;
+    case VIR_DOMAIN_FS_TYPE_BLOCK:
+        virBufferEscapeString(buf, "      <source dev='%s'/>\n",
+                              def->src);
+        break;
 
-        case VIR_DOMAIN_FS_TYPE_FILE:
-            virBufferEscapeString(buf, "      <source file='%s'/>\n",
-                                  def->src);
-            break;
+    case VIR_DOMAIN_FS_TYPE_FILE:
+        virBufferEscapeString(buf, "      <source file='%s'/>\n",
+                              def->src);
+        break;
 
-        case VIR_DOMAIN_FS_TYPE_TEMPLATE:
-            virBufferEscapeString(buf, "      <source name='%s'/>\n",
-                                  def->src);
-        }
+    case VIR_DOMAIN_FS_TYPE_TEMPLATE:
+        virBufferEscapeString(buf, "      <source name='%s'/>\n",
+                              def->src);
+        break;
+
+    case VIR_DOMAIN_FS_TYPE_RAM:
+        virBufferAsprintf(buf, "      <source usage='%lld' units='KiB'/>\n",
+                          def->usage / 1024);
+        break;
     }
 
     virBufferEscapeString(buf, "      <target dir='%s'/>\n",
@@ -11179,6 +11389,14 @@ virDomainFSDefFormat(virBufferPtr buf,
     if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
         return -1;
 
+
+    if (def->space_hard_limit)
+        virBufferAsprintf(buf, "      <space_hard_limit unit='bytes'>"
+                          "%llu</space_hard_limit>\n", def->space_hard_limit);
+    if (def->space_soft_limit) {
+        virBufferAsprintf(buf, "      <space_soft_limit unit='bytes'>"
+                          "%llu</space_soft_limit>\n", def->space_soft_limit);
+    }
     virBufferAddLit(buf, "    </filesystem>\n");
 
     return 0;
@@ -11754,11 +11972,30 @@ virDomainSmartcardDefFormat(virBufferPtr buf,
 }
 
 static int
+virDomainSoundCodecDefFormat(virBufferPtr buf,
+                             virDomainSoundCodecDefPtr def)
+{
+    const char *type = virDomainSoundCodecTypeToString(def->type);
+
+    if (!type) {
+        virDomainReportError(VIR_ERR_INTERNAL_ERROR,
+                             _("unexpected codec type %d"), def->type);
+        return -1;
+    }
+
+    virBufferAsprintf(buf, "      <codec type='%s'/>\n",  type);
+
+    return 0;
+}
+
+static int
 virDomainSoundDefFormat(virBufferPtr buf,
                         virDomainSoundDefPtr def,
                         unsigned int flags)
 {
     const char *model = virDomainSoundModelTypeToString(def->model);
+    bool children = false;
+    int i;
 
     if (!model) {
         virDomainReportError(VIR_ERR_INTERNAL_ERROR,
@@ -11768,10 +12005,24 @@ virDomainSoundDefFormat(virBufferPtr buf,
 
     virBufferAsprintf(buf, "    <sound model='%s'",  model);
 
+    for (i = 0; i < def->ncodecs; i++) {
+        if (!children) {
+            virBufferAddLit(buf, ">\n");
+            children = true;
+        }
+        virDomainSoundCodecDefFormat(buf, def->codecs[i]);
+    }
+
     if (virDomainDeviceInfoIsSet(&def->info, flags)) {
-        virBufferAddLit(buf, ">\n");
+        if (!children) {
+            virBufferAddLit(buf, ">\n");
+            children = true;
+        }
         if (virDomainDeviceInfoFormat(buf, &def->info, flags) < 0)
             return -1;
+    }
+
+    if (children) {
         virBufferAddLit(buf, "    </sound>\n");
     } else {
         virBufferAddLit(buf, "/>\n");
@@ -14043,11 +14294,11 @@ virDomainSnapshotObjListDeinit(virDomainSnapshotObjListPtr snapshots)
 }
 
 struct virDomainSnapshotNameData {
-    int oom;
-    int numnames;
-    int maxnames;
     char **const names;
+    int maxnames;
     unsigned int flags;
+    int count;
+    bool error;
 };
 
 static void virDomainSnapshotObjListCopyNames(void *payload,
@@ -14057,150 +14308,101 @@ static void virDomainSnapshotObjListCopyNames(void *payload,
     virDomainSnapshotObjPtr obj = payload;
     struct virDomainSnapshotNameData *data = opaque;
 
-    if (data->oom)
+    if (data->error)
         return;
-    /* LIST_ROOTS/LIST_DESCENDANTS was handled by caller,
-     * LIST_METADATA is a no-op if we get this far.  */
+    /* Caller already sanitized flags.  Filtering on DESCENDANTS was
+     * done by choice of iteration in the caller.  */
     if ((data->flags & VIR_DOMAIN_SNAPSHOT_LIST_LEAVES) && obj->nchildren)
         return;
-
-    if (data->numnames < data->maxnames) {
-        if (!(data->names[data->numnames] = strdup(obj->def->name)))
-            data->oom = 1;
-        else
-            data->numnames++;
-    }
-}
-
-int virDomainSnapshotObjListGetNames(virDomainSnapshotObjListPtr snapshots,
-                                     char **const names, int maxnames,
-                                     unsigned int flags)
-{
-    struct virDomainSnapshotNameData data = { 0, 0, maxnames, names, 0 };
-    int i;
-
-    data.flags = flags & ~VIR_DOMAIN_SNAPSHOT_LIST_ROOTS;
-
-    if (!(flags & VIR_DOMAIN_SNAPSHOT_LIST_ROOTS)) {
-        virHashForEach(snapshots->objs, virDomainSnapshotObjListCopyNames,
-                       &data);
-    } else {
-        virDomainSnapshotObjPtr root = snapshots->first_root;
-        while (root) {
-            virDomainSnapshotObjListCopyNames(root, root->def->name, &data);
-            root = root->sibling;
-        }
-    }
-    if (data.oom) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    return data.numnames;
-
-cleanup:
-    for (i = 0; i < data.numnames; i++)
-        VIR_FREE(data.names[i]);
-    return -1;
-}
-
-int virDomainSnapshotObjListGetNamesFrom(virDomainSnapshotObjPtr snapshot,
-                                         char **const names, int maxnames,
-                                         unsigned int flags)
-{
-    struct virDomainSnapshotNameData data = { 0, 0, maxnames, names, 0 };
-    int i;
-
-    data.flags = flags & ~VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS;
-
-    if (flags & VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS)
-        virDomainSnapshotForEachDescendant(snapshot,
-                                           virDomainSnapshotObjListCopyNames,
-                                           &data);
-    else
-        virDomainSnapshotForEachChild(snapshot,
-                                      virDomainSnapshotObjListCopyNames, &data);
-
-    if (data.oom) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    return data.numnames;
-
-cleanup:
-    for (i = 0; i < data.numnames; i++)
-        VIR_FREE(data.names[i]);
-    return -1;
-}
-
-struct virDomainSnapshotNumData {
-    int count;
-    unsigned int flags;
-};
-
-static void virDomainSnapshotObjListCount(void *payload,
-                                          const void *name ATTRIBUTE_UNUSED,
-                                          void *opaque)
-{
-    virDomainSnapshotObjPtr obj = payload;
-    struct virDomainSnapshotNumData *data = opaque;
-
-    /* LIST_ROOTS/LIST_DESCENDANTS was handled by caller,
-     * LIST_METADATA is a no-op if we get this far.  */
-    if ((data->flags & VIR_DOMAIN_SNAPSHOT_LIST_LEAVES) && obj->nchildren)
+    if ((data->flags & VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES) && !obj->nchildren)
         return;
+
+    if (data->names && data->count < data->maxnames &&
+        !(data->names[data->count] = strdup(obj->def->name))) {
+        data->error = true;
+        virReportOOMError();
+        return;
+    }
     data->count++;
 }
 
-int virDomainSnapshotObjListNum(virDomainSnapshotObjListPtr snapshots,
-                                unsigned int flags)
+int
+virDomainSnapshotObjListGetNames(virDomainSnapshotObjListPtr snapshots,
+                                 virDomainSnapshotObjPtr from,
+                                 char **const names, int maxnames,
+                                 unsigned int flags)
 {
-    struct virDomainSnapshotNumData data = { 0, 0 };
+    struct virDomainSnapshotNameData data = { names, maxnames, flags, 0,
+                                              false };
+    int i;
 
-    data.flags = flags & ~VIR_DOMAIN_SNAPSHOT_LIST_ROOTS;
+    if (!from) {
+        /* LIST_ROOTS and LIST_DESCENDANTS have the same bit value,
+         * but opposite semantics.  Toggle here to get the correct
+         * traversal on the metaroot.  */
+        flags ^= VIR_DOMAIN_SNAPSHOT_LIST_ROOTS;
+        from = &snapshots->metaroot;
+    }
 
-    if (!(flags & VIR_DOMAIN_SNAPSHOT_LIST_ROOTS)) {
-        virHashForEach(snapshots->objs, virDomainSnapshotObjListCount, &data);
-    } else if (data.flags) {
-        virDomainSnapshotObjPtr root = snapshots->first_root;
-        while (root) {
-            virDomainSnapshotObjListCount(root, root->def->name, &data);
-            root = root->sibling;
-        }
+    /* We handle LIST_ROOT/LIST_DESCENDANTS directly, mask that bit
+     * out to determine when we must use the filter callback.  */
+    data.flags &= ~VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS;
+
+    /* If this common code is being used, we assume that all snapshots
+     * have metadata, and thus can handle METADATA up front as an
+     * all-or-none filter.  XXX This might not always be true, if we
+     * add the ability to track qcow2 internal snapshots without the
+     * use of metadata.  */
+    if ((data.flags & VIR_DOMAIN_SNAPSHOT_FILTERS_METADATA) ==
+        VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA)
+        return 0;
+    data.flags &= ~VIR_DOMAIN_SNAPSHOT_FILTERS_METADATA;
+
+    /* For ease of coding the visitor, it is easier to zero the LEAVES
+     * group if both bits are set.  */
+    if ((data.flags & VIR_DOMAIN_SNAPSHOT_FILTERS_LEAVES) ==
+        VIR_DOMAIN_SNAPSHOT_FILTERS_LEAVES)
+        data.flags &= ~VIR_DOMAIN_SNAPSHOT_FILTERS_LEAVES;
+
+    if (flags & VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS) {
+        if (from->def)
+            virDomainSnapshotForEachDescendant(from,
+                                               virDomainSnapshotObjListCopyNames,
+                                               &data);
+        else if (names || data.flags)
+            virHashForEach(snapshots->objs, virDomainSnapshotObjListCopyNames,
+                           &data);
+        else
+            data.count = virHashSize(snapshots->objs);
+    } else if (names || data.flags) {
+        virDomainSnapshotForEachChild(from,
+                                      virDomainSnapshotObjListCopyNames, &data);
     } else {
-        data.count = snapshots->nroots;
+        data.count = from->nchildren;
+    }
+
+    if (data.error) {
+        for (i = 0; i < data.count; i++)
+            VIR_FREE(names[i]);
+        return -1;
     }
 
     return data.count;
 }
 
 int
-virDomainSnapshotObjListNumFrom(virDomainSnapshotObjPtr snapshot,
-                                unsigned int flags)
+virDomainSnapshotObjListNum(virDomainSnapshotObjListPtr snapshots,
+                            virDomainSnapshotObjPtr from,
+                            unsigned int flags)
 {
-    struct virDomainSnapshotNumData data = { 0, 0 };
-
-    data.flags = flags & ~VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS;
-
-    if (flags & VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS)
-        virDomainSnapshotForEachDescendant(snapshot,
-                                           virDomainSnapshotObjListCount,
-                                           &data);
-    else if (data.flags)
-        virDomainSnapshotForEachChild(snapshot,
-                                      virDomainSnapshotObjListCount, &data);
-    else
-        data.count = snapshot->nchildren;
-
-    return data.count;
+    return virDomainSnapshotObjListGetNames(snapshots, from, NULL, 0, flags);
 }
 
 virDomainSnapshotObjPtr
 virDomainSnapshotFindByName(const virDomainSnapshotObjListPtr snapshots,
                             const char *name)
 {
-    return virHashLookup(snapshots->objs, name);
+    return name ? virHashLookup(snapshots->objs, name) : &snapshots->metaroot;
 }
 
 void virDomainSnapshotObjListRemove(virDomainSnapshotObjListPtr snapshots,
@@ -14286,34 +14488,27 @@ virDomainSnapshotSetRelations(void *payload,
     struct snapshot_set_relation *curr = data;
     virDomainSnapshotObjPtr tmp;
 
-    if (obj->def->parent) {
-        obj->parent = virDomainSnapshotFindByName(curr->snapshots,
-                                                  obj->def->parent);
-        if (!obj->parent) {
-            curr->err = -1;
-            VIR_WARN("snapshot %s lacks parent", obj->def->name);
-        } else {
-            tmp = obj->parent;
-            while (tmp) {
-                if (tmp == obj) {
-                    curr->err = -1;
-                    obj->parent = NULL;
-                    VIR_WARN("snapshot %s in circular chain", obj->def->name);
-                    break;
-                }
-                tmp = tmp->parent;
-            }
-            if (!tmp) {
-                obj->parent->nchildren++;
-                obj->sibling = obj->parent->first_child;
-                obj->parent->first_child = obj;
-            }
-        }
+    obj->parent = virDomainSnapshotFindByName(curr->snapshots,
+                                              obj->def->parent);
+    if (!obj->parent) {
+        curr->err = -1;
+        obj->parent = &curr->snapshots->metaroot;
+        VIR_WARN("snapshot %s lacks parent", obj->def->name);
     } else {
-        curr->snapshots->nroots++;
-        obj->sibling = curr->snapshots->first_root;
-        curr->snapshots->first_root = obj;
+        tmp = obj->parent;
+        while (tmp && tmp->def) {
+            if (tmp == obj) {
+                curr->err = -1;
+                obj->parent = &curr->snapshots->metaroot;
+                VIR_WARN("snapshot %s in circular chain", obj->def->name);
+                break;
+            }
+            tmp = tmp->parent;
+        }
     }
+    obj->parent->nchildren++;
+    obj->sibling = obj->parent->first_child;
+    obj->parent->first_child = obj;
 }
 
 /* Populate parent link and child count of all snapshots, with all
@@ -14333,28 +14528,13 @@ virDomainSnapshotUpdateRelations(virDomainSnapshotObjListPtr snapshots)
  * of a parent, it is faster to just 0 the count rather than calling
  * this function on each child.  */
 void
-virDomainSnapshotDropParent(virDomainSnapshotObjListPtr snapshots,
-                            virDomainSnapshotObjPtr snapshot)
+virDomainSnapshotDropParent(virDomainSnapshotObjPtr snapshot)
 {
     virDomainSnapshotObjPtr prev = NULL;
     virDomainSnapshotObjPtr curr = NULL;
-    size_t *count;
-    virDomainSnapshotObjPtr *first;
 
-    if (snapshot->parent) {
-        count = &snapshot->parent->nchildren;
-        first = &snapshot->parent->first_child;
-    } else {
-        count = &snapshots->nroots;
-        first = &snapshots->first_root;
-    }
-
-    if (!*count || !*first) {
-        VIR_WARN("inconsistent snapshot relations");
-        return;
-    }
-    (*count)--;
-    curr = *first;
+    snapshot->parent->nchildren--;
+    curr = snapshot->parent->first_child;
     while (curr != snapshot) {
         if (!curr) {
             VIR_WARN("inconsistent snapshot relations");
@@ -14366,7 +14546,7 @@ virDomainSnapshotDropParent(virDomainSnapshotObjListPtr snapshots,
     if (prev)
         prev->sibling = snapshot->sibling;
     else
-        *first = snapshot->sibling;
+        snapshot->parent->first_child = snapshot->sibling;
     snapshot->parent = NULL;
     snapshot->sibling = NULL;
 }

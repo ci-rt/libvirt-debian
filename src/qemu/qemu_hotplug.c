@@ -1173,8 +1173,10 @@ int qemuDomainAttachHostDevice(struct qemud_driver *driver,
             goto cleanup;
         }
 
-        if (qemuPrepareHostdevUSBDevices(driver, vm->def->name, list) < 0)
+        if (qemuPrepareHostdevUSBDevices(driver, vm->def->name, list) < 0) {
+            usb = NULL;
             goto cleanup;
+        }
 
         usbDeviceListSteal(list, usb);
     }
@@ -1537,7 +1539,7 @@ qemuDomainChangeGraphics(struct qemud_driver *driver,
                             _("cannot change listen address setting on spice graphics"));
             return -1;
         }
-        if (STRNEQ_NULLABLE(oldListenNetwork,newListenNetwork)) {
+        if (STRNEQ_NULLABLE(oldListenNetwork, newListenNetwork)) {
             qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("cannot change listen network setting on spice graphics"));
             return -1;
@@ -1549,11 +1551,16 @@ qemuDomainChangeGraphics(struct qemud_driver *driver,
             return -1;
         }
 
-        /* If a password lifetime was, or is set, then we must always run,
-         * even if new password matches old password */
+        /* We must reset the password if it has changed but also if:
+         * - password lifetime is or was set
+         * - the requested action has changed
+         * - the action is "disconnect"
+         */
         if (olddev->data.spice.auth.expires ||
             dev->data.spice.auth.expires ||
             olddev->data.spice.auth.connected != dev->data.spice.auth.connected ||
+            dev->data.spice.auth.connected ==
+            VIR_DOMAIN_GRAPHICS_AUTH_CONNECTED_DISCONNECT ||
             STRNEQ_NULLABLE(olddev->data.spice.auth.passwd,
                             dev->data.spice.auth.passwd)) {
             VIR_DEBUG("Updating password on SPICE server %p %p",
@@ -2002,13 +2009,16 @@ qemuDomainDetachHostPciDevice(struct qemud_driver *driver,
                        subsys->u.pci.slot,   subsys->u.pci.function);
     if (pci) {
         activePci = pciDeviceListSteal(driver->activePciHostdevs, pci);
-        if (pciResetDevice(activePci, driver->activePciHostdevs,
-                           driver->inactivePciHostdevs) == 0)
+        if (activePci &&
+            pciResetDevice(activePci, driver->activePciHostdevs,
+                           driver->inactivePciHostdevs) == 0) {
             qemuReattachPciDevice(activePci, driver);
-        else
+        } else {
+            /* reset of the device failed, treat it as if it was returned */
+            pciFreeDevice(activePci);
             ret = -1;
+        }
         pciFreeDevice(pci);
-        pciFreeDevice(activePci);
     } else {
         ret = -1;
     }

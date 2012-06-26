@@ -85,6 +85,7 @@ int virFileIsLink(const char *linkpath)
 
 char *virFindFileInPath(const char *file);
 
+bool virFileIsDir (const char *file) ATTRIBUTE_NONNULL(1);
 bool virFileExists(const char *file) ATTRIBUTE_NONNULL(1);
 bool virFileIsExecutable(const char *file) ATTRIBUTE_NONNULL(1);
 
@@ -119,8 +120,32 @@ char *virFileBuildPath(const char *dir,
                        const char *name,
                        const char *ext) ATTRIBUTE_RETURN_CHECK;
 
+
+# ifdef WIN32
+/* On Win32, the canonical directory separator is the backslash, and
+ * the search path separator is the semicolon. Note that also the
+ * (forward) slash works as directory separator.
+ */
+#  define VIR_FILE_DIR_SEPARATOR '\\'
+#  define VIR_FILE_DIR_SEPARATOR_S "\\"
+#  define VIR_FILE_IS_DIR_SEPARATOR(c) ((c) == VIR_FILE_DIR_SEPARATOR || (c) == '/')
+#  define VIR_FILE_PATH_SEPARATOR ';'
+#  define VIR_FILE_PATH_SEPARATOR_S ";"
+
+# else  /* !WIN32 */
+
+#  define VIR_FILE_DIR_SEPARATOR '/'
+#  define VIR_FILE_DIR_SEPARATOR_S "/"
+#  define VIR_FILE_IS_DIR_SEPARATOR(c) ((c) == VIR_FILE_DIR_SEPARATOR)
+#  define VIR_FILE_PATH_SEPARATOR ':'
+#  define VIR_FILE_PATH_SEPARATOR_S ":"
+
+# endif /* !WIN32 */
+
+bool virFileIsAbsPath(const char *path);
 int virFileAbsPath(const char *path,
                    char **abspath) ATTRIBUTE_RETURN_CHECK;
+const char *virFileSkipRoot(const char *path);
 
 int virFileOpenTty(int *ttymaster,
                    char **ttyName,
@@ -227,7 +252,10 @@ char *virGetHostname(virConnectPtr conn);
 
 int virKillProcess(pid_t pid, int sig);
 
-char *virGetUserDirectory(uid_t uid);
+char *virGetUserDirectory(void);
+char *virGetUserConfigDirectory(void);
+char *virGetUserCacheDirectory(void);
+char *virGetUserRuntimeDirectory(void);
 char *virGetUserName(uid_t uid);
 char *virGetGroupName(gid_t gid);
 int virGetUserID(const char *name,

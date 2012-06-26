@@ -956,18 +956,22 @@ init_word_char (re_dfa_t *dfa)
   int ch = 0;
   if (BE (dfa->map_notascii == 0, 1))
     {
+      bitset_word_t bits0 = 0x00000000;
+      bitset_word_t bits1 = 0x03ff0000;
+      bitset_word_t bits2 = 0x87fffffe;
+      bitset_word_t bits3 = 0x07fffffe;
       if (BITSET_WORD_BITS == 64)
 	{
-	  dfa->word_char[0] = UINT64_C (0x03ff000000000000);
-	  dfa->word_char[1] = UINT64_C (0x07fffffe87fffffe);
+	  dfa->word_char[0] = bits1 << 31 << 1 | bits0;
+	  dfa->word_char[1] = bits3 << 31 << 1 | bits2;
 	  i = 2;
 	}
       else if (BITSET_WORD_BITS == 32)
 	{
-	  dfa->word_char[0] = UINT32_C (0x00000000);
-	  dfa->word_char[1] = UINT32_C (0x03ff0000);
-	  dfa->word_char[2] = UINT32_C (0x87fffffe);
-	  dfa->word_char[3] = UINT32_C (0x07fffffe);
+	  dfa->word_char[0] = bits0;
+	  dfa->word_char[1] = bits1;
+	  dfa->word_char[2] = bits2;
+	  dfa->word_char[3] = bits3;
 	  i = 4;
 	}
       else
@@ -2617,7 +2621,10 @@ parse_dup_op (bin_tree_t *elem, re_string_t *regexp, re_dfa_t *dfa,
     old_tree = NULL;
 
   if (elem->token.type == SUBEXP)
-    postorder (elem, mark_opt_subexp, (void *) (long) elem->token.opr.idx);
+    {
+      uintptr_t subidx = elem->token.opr.idx;
+      postorder (elem, mark_opt_subexp, (void *) subidx);
+    }
 
   tree = create_tree (dfa, elem, NULL,
 		      (end == REG_MISSING ? OP_DUP_ASTERISK : OP_ALT));
@@ -3852,7 +3859,7 @@ create_token_tree (re_dfa_t *dfa, bin_tree_t *left, bin_tree_t *right,
 static reg_errcode_t
 mark_opt_subexp (void *extra, bin_tree_t *node)
 {
-  Idx idx = (Idx) (long) extra;
+  Idx idx = (uintptr_t) extra;
   if (node->token.type == SUBEXP && node->token.opr.idx == idx)
     node->token.opt_subexp = 1;
 

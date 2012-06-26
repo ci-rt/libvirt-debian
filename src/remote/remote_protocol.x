@@ -65,7 +65,7 @@
  * This is an arbitrary limit designed to stop the decoder from trying
  * to allocate unbounded amounts of memory when fed with a bad message.
  */
-const REMOTE_STRING_MAX = 65536;
+const REMOTE_STRING_MAX = 1048576;
 
 /* A long string, which may NOT be NULL. */
 typedef string remote_nonnull_string<REMOTE_STRING_MAX>;
@@ -79,7 +79,7 @@ typedef remote_nonnull_string *remote_string;
 const REMOTE_DOMAIN_ID_LIST_MAX = 16384;
 
 /* Upper limit on lists of domain names. */
-const REMOTE_DOMAIN_NAME_LIST_MAX = 1024;
+const REMOTE_DOMAIN_NAME_LIST_MAX = 16384;
 
 /* Upper limit on cpumap (bytes) passed to virDomainPinVcpu. */
 const REMOTE_CPUMAP_MAX = 256;
@@ -94,25 +94,25 @@ const REMOTE_CPUMAPS_MAX = 16384;
 const REMOTE_MIGRATE_COOKIE_MAX = 16384;
 
 /* Upper limit on lists of network names. */
-const REMOTE_NETWORK_NAME_LIST_MAX = 256;
+const REMOTE_NETWORK_NAME_LIST_MAX = 16384;
 
 /* Upper limit on lists of interface names. */
-const REMOTE_INTERFACE_NAME_LIST_MAX = 256;
+const REMOTE_INTERFACE_NAME_LIST_MAX = 16384;
 
 /* Upper limit on lists of defined interface names. */
-const REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX = 256;
+const REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX = 16384;
 
 /* Upper limit on lists of storage pool names. */
-const REMOTE_STORAGE_POOL_NAME_LIST_MAX = 256;
+const REMOTE_STORAGE_POOL_NAME_LIST_MAX = 4096;
 
 /* Upper limit on lists of storage vol names. */
-const REMOTE_STORAGE_VOL_NAME_LIST_MAX = 1024;
+const REMOTE_STORAGE_VOL_NAME_LIST_MAX = 16384;
 
 /* Upper limit on lists of node device names. */
 const REMOTE_NODE_DEVICE_NAME_LIST_MAX = 16384;
 
 /* Upper limit on lists of node device capabilities. */
-const REMOTE_NODE_DEVICE_CAPS_LIST_MAX = 16384;
+const REMOTE_NODE_DEVICE_CAPS_LIST_MAX = 65536;
 
 /* Upper limit on lists of network filter names. */
 const REMOTE_NWFILTER_NAME_LIST_MAX = 1024;
@@ -160,13 +160,13 @@ const REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX = 1024;
  * Note applications need to be aware of this limit and issue multiple
  * requests for large amounts of data.
  */
-const REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX = 65536;
+const REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX = 1048576;
 
 /* Maximum length of a memory peek buffer message.
  * Note applications need to be aware of this limit and issue multiple
  * requests for large amounts of data.
  */
-const REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX = 65536;
+const REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX = 1048576;
 
 /*
  * Maximum length of a security model field.
@@ -2249,6 +2249,17 @@ struct remote_domain_snapshot_list_names_ret {
     remote_nonnull_string names<REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX>; /* insert@1 */
 };
 
+struct remote_domain_list_all_snapshots_args {
+    remote_nonnull_domain dom;
+    int need_results;
+    unsigned int flags;
+};
+
+struct remote_domain_list_all_snapshots_ret {
+    remote_nonnull_domain_snapshot snapshots<>;
+    int ret;
+};
+
 struct remote_domain_snapshot_num_children_args {
     remote_nonnull_domain_snapshot snap;
     unsigned int flags;
@@ -2266,6 +2277,17 @@ struct remote_domain_snapshot_list_children_names_args {
 
 struct remote_domain_snapshot_list_children_names_ret {
     remote_nonnull_string names<REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX>; /* insert@1 */
+};
+
+struct remote_domain_snapshot_list_all_children_args {
+    remote_nonnull_domain_snapshot snapshot;
+    int need_results;
+    unsigned int flags;
+};
+
+struct remote_domain_snapshot_list_all_children_ret {
+    remote_nonnull_domain_snapshot snapshots<>;
+    int ret;
 };
 
 struct remote_domain_snapshot_lookup_by_name_args {
@@ -2303,6 +2325,24 @@ struct remote_domain_snapshot_current_args {
 
 struct remote_domain_snapshot_current_ret {
     remote_nonnull_domain_snapshot snap;
+};
+
+struct remote_domain_snapshot_is_current_args {
+    remote_nonnull_domain_snapshot snap;
+    unsigned int flags;
+};
+
+struct remote_domain_snapshot_is_current_ret {
+    int current;
+};
+
+struct remote_domain_snapshot_has_metadata_args {
+    remote_nonnull_domain_snapshot snap;
+    unsigned int flags;
+};
+
+struct remote_domain_snapshot_has_metadata_ret {
+    int metadata;
 };
 
 struct remote_domain_revert_to_snapshot_args {
@@ -2461,6 +2501,16 @@ struct remote_domain_get_disk_errors_args {
 struct remote_domain_get_disk_errors_ret {
     remote_domain_disk_error errors<REMOTE_DOMAIN_DISK_ERRORS_MAX>;
     int nerrors;
+};
+
+struct remote_connect_list_all_domains_args {
+    int need_results;
+    unsigned int flags;
+};
+
+struct remote_connect_list_all_domains_ret {
+    remote_nonnull_domain domains<>;
+    unsigned int ret;
 };
 
 
@@ -2782,7 +2832,13 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_PM_WAKEUP = 267, /* autogen autogen */
     REMOTE_PROC_DOMAIN_EVENT_TRAY_CHANGE = 268, /* autogen autogen */
     REMOTE_PROC_DOMAIN_EVENT_PMWAKEUP = 269, /* autogen autogen */
-    REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND = 270 /* autogen autogen */
+    REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND = 270, /* autogen autogen */
+
+    REMOTE_PROC_DOMAIN_SNAPSHOT_IS_CURRENT = 271, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_HAS_METADATA = 272, /* autogen autogen */
+    REMOTE_PROC_CONNECT_LIST_ALL_DOMAINS = 273, /* skipgen skipgen priority:high */
+    REMOTE_PROC_DOMAIN_LIST_ALL_SNAPSHOTS = 274, /* skipgen skipgen priority:high */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_ALL_CHILDREN = 275 /* skipgen skipgen priority:high */
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

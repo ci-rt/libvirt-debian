@@ -109,6 +109,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/intmax_t.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes.m4 \
 	$(top_srcdir)/gnulib/m4/ioctl.m4 \
+	$(top_srcdir)/gnulib/m4/isatty.m4 \
 	$(top_srcdir)/gnulib/m4/langinfo_h.m4 \
 	$(top_srcdir)/gnulib/m4/largefile.m4 \
 	$(top_srcdir)/gnulib/m4/localcharset.m4 \
@@ -145,6 +146,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/nl_langinfo.m4 \
 	$(top_srcdir)/gnulib/m4/nocrash.m4 \
 	$(top_srcdir)/gnulib/m4/nonblocking.m4 \
+	$(top_srcdir)/gnulib/m4/off_t.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly.m4 \
 	$(top_srcdir)/gnulib/m4/open.m4 \
 	$(top_srcdir)/gnulib/m4/passfd.m4 \
@@ -267,7 +269,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -1035,6 +1037,7 @@ LIBPCAP_CFLAGS = @LIBPCAP_CFLAGS@
 LIBPCAP_LIBS = @LIBPCAP_LIBS@
 LIBPTH = @LIBPTH@
 LIBPTH_PREFIX = @LIBPTH_PREFIX@
+LIBRBD_LIBS = @LIBRBD_LIBS@
 LIBS = @LIBS@
 LIBSOCKET = @LIBSOCKET@
 LIBSSH2_CFLAGS = @LIBSSH2_CFLAGS@
@@ -1193,6 +1196,7 @@ PARTED = @PARTED@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PCIACCESS_CFLAGS = @PCIACCESS_CFLAGS@
 PCIACCESS_LIBS = @PCIACCESS_LIBS@
+PERL = @PERL@
 PKCHECK_PATH = @PKCHECK_PATH@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
@@ -1220,6 +1224,7 @@ PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_PLATFORM = @PYTHON_PLATFORM@
 PYTHON_PREFIX = @PYTHON_PREFIX@
 PYTHON_VERSION = @PYTHON_VERSION@
+QEMU = @QEMU@
 RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
@@ -1518,7 +1523,7 @@ ICON_FILES = \
 
 EXTRA_DIST = $(ICON_FILES) virt-xml-validate.in virt-pki-validate.in \
 	virt-sanlock-cleanup.in virt-sanlock-cleanup.8 virsh.pod \
-	libvirt-guests.sysconf libvirt-guests.init.sh \
+	libvirt-guests.sysconf virsh-edit.c libvirt-guests.init.sh \
 	libvirt-guests.service.in
 DISTCLEANFILES = $(am__append_1) $(BUILT_SOURCES)
 bin_SCRIPTS = virt-xml-validate virt-pki-validate
@@ -1566,8 +1571,7 @@ virsh_CFLAGS = \
 		$(LIBXML_CFLAGS)				\
 		$(READLINE_CFLAGS)
 
-BUILT_SOURCES = virsh-net-edit.c virsh-pool-edit.c $(am__append_3) \
-	$(am__append_4)
+BUILT_SOURCES = $(am__append_3) $(am__append_4)
 SYSTEMD_UNIT_DIR = /lib/systemd/system
 CLEANFILES = $(bin_SCRIPTS) *.gcov .libs/*.gcda .libs/*.gcno *.gcno \
 	*.gcda *.i *.s
@@ -2183,40 +2187,6 @@ virt-sanlock-cleanup: virt-sanlock-cleanup.in Makefile
 
 virt-sanlock-cleanup.8: virt-sanlock-cleanup.in
 	$(AM_V_GEN)$(POD2MAN) $< $(srcdir)/$@
-
-virsh-net-edit.c: virsh.c Makefile.am
-	$(AM_V_GEN)rm -f $@-tmp && \
-	echo '/* Automatically generated from: $^ */' > $@-tmp && \
-	echo 'static bool' >> $@-tmp && \
-	awk '/^cmdEdit/, /^}/' $< \
-	  | sed -e 's/domain/network/g' \
-	      -e 's/Domain/Network/g' \
-	      -e 's/cmdEdit/cmdNetworkEdit/g' \
-	      -e 's/dom/network/g' \
-	      -e 's/int flags.*/int flags = 0;/g' \
-	>> $@-tmp && \
-	chmod a-w $@-tmp && \
-	rm -f $@ && \
-	mv $@-tmp $@
-
-virsh-pool-edit.c: virsh.c Makefile.am
-	$(AM_V_GEN)rm -f $@-tmp && \
-	echo '/* Automatically generated from: $^ */' > $@-tmp && \
-	echo 'static bool' >> $@-tmp && \
-	awk '/^cmdEdit/, /^}/' $< \
-	  | sed -e 's/domain/pool/g' \
-	      -e 's/vshCommandOptDomain/vshCommandOptPool/g' \
-	      -e 's/Domain %s/Pool %s/g' \
-	      -e 's/(ctl, cmd, NULL);/(ctl, cmd, "pool", NULL);/' \
-	      -e 's/Domain/StoragePool/g' \
-	      -e 's/cmdEdit/cmdPoolEdit/g' \
-	      -e 's/\(virStoragePoolDefineXML.*\));/\1, 0);/' \
-	      -e 's/dom/pool/g' \
-	      -e 's/int flags.*/int flags = 0;/g' \
-	>> $@-tmp && \
-	chmod a-w $@-tmp && \
-	rm -f $@ && \
-	mv $@-tmp $@
 
 # Before you edit virsh_win_icon.rc, please note the following
 # limitations of the resource file format:

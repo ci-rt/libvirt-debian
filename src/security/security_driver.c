@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Red Hat, Inc.
+ * Copyright (C) 2008-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -8,6 +8,7 @@
  *
  * Authors:
  *     James Morris <jmorris@namei.org>
+ *     Dan Walsh <dwalsh@redhat.com>
  *
  */
 #include <config.h>
@@ -37,7 +38,8 @@ static virSecurityDriverPtr security_drivers[] = {
     &virSecurityDriverNop, /* Must always be last, since it will always probe */
 };
 
-virSecurityDriverPtr virSecurityDriverLookup(const char *name)
+virSecurityDriverPtr virSecurityDriverLookup(const char *name,
+                                             const char *virtDriver)
 {
     virSecurityDriverPtr drv = NULL;
     int i;
@@ -51,7 +53,7 @@ virSecurityDriverPtr virSecurityDriverLookup(const char *name)
             STRNEQ(tmp->name, name))
             continue;
 
-        switch (tmp->probe()) {
+        switch (tmp->probe(virtDriver)) {
         case SECURITY_DRIVER_ENABLE:
             VIR_DEBUG("Probed name=%s", tmp->name);
             drv = tmp;

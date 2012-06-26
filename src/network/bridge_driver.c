@@ -260,7 +260,6 @@ networkAutostartConfigs(struct network_driver *driver) {
  */
 static int
 networkStartup(int privileged) {
-    uid_t uid = geteuid();
     char *base = NULL;
 
     if (VIR_ALLOC(driverState) < 0)
@@ -280,18 +279,20 @@ networkStartup(int privileged) {
         if ((base = strdup (SYSCONFDIR "/libvirt")) == NULL)
             goto out_of_memory;
     } else {
-        char *userdir = virGetUserDirectory(uid);
+        char *userdir = virGetUserCacheDirectory();
 
         if (!userdir)
             goto error;
 
         if (virAsprintf(&driverState->logDir,
-                        "%s/.libvirt/qemu/log", userdir) == -1) {
+                        "%s/qemu/log", userdir) == -1) {
             VIR_FREE(userdir);
             goto out_of_memory;
         }
+        VIR_FREE(userdir);
 
-        if (virAsprintf(&base, "%s/.libvirt", userdir) == -1) {
+        userdir = virGetUserConfigDirectory();
+        if (virAsprintf(&base, "%s", userdir) == -1) {
             VIR_FREE(userdir);
             goto out_of_memory;
         }
@@ -2532,6 +2533,7 @@ static char *networkGetXMLDesc(virNetworkPtr net,
 {
     struct network_driver *driver = net->conn->networkPrivateData;
     virNetworkObjPtr network;
+    virNetworkDefPtr def;
     char *ret = NULL;
 
     virCheckFlags(VIR_NETWORK_XML_INACTIVE, NULL);
@@ -2546,7 +2548,12 @@ static char *networkGetXMLDesc(virNetworkPtr net,
         goto cleanup;
     }
 
-    ret = virNetworkDefFormat(network->def, flags);
+    if ((flags & VIR_NETWORK_XML_INACTIVE) && network->newDef)
+        def = network->newDef;
+    else
+        def = network->def;
+
+    ret = virNetworkDefFormat(def, flags);
 
 cleanup:
     if (network)

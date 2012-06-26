@@ -49,7 +49,7 @@ void virSecurityStackSetSecondary(virSecurityManagerPtr mgr,
 }
 
 static virSecurityDriverStatus
-virSecurityStackProbe(void)
+virSecurityStackProbe(const char *virtDriver ATTRIBUTE_UNUSED)
 {
     return SECURITY_DRIVER_ENABLE;
 }
@@ -403,41 +403,47 @@ virSecurityStackSetImageFDLabel(virSecurityManagerPtr mgr,
     return rc;
 }
 
+static char *virSecurityStackGetMountOptions(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                             virDomainDefPtr vm ATTRIBUTE_UNUSED) {
+    return NULL;
+}
 
 virSecurityDriver virSecurityDriverStack = {
-    sizeof(virSecurityStackData),
-    "stack",
-    virSecurityStackProbe,
-    virSecurityStackOpen,
-    virSecurityStackClose,
+    .privateDataLen                     = sizeof(virSecurityStackData),
+    .name                               = "stack",
+    .probe                              = virSecurityStackProbe,
+    .open                               = virSecurityStackOpen,
+    .close                              = virSecurityStackClose,
 
-    virSecurityStackGetModel,
-    virSecurityStackGetDOI,
+    .getModel                           = virSecurityStackGetModel,
+    .getDOI                             = virSecurityStackGetDOI,
 
-    virSecurityStackVerify,
+    .domainSecurityVerify               = virSecurityStackVerify,
 
-    virSecurityStackSetSecurityImageLabel,
-    virSecurityStackRestoreSecurityImageLabel,
+    .domainSetSecurityImageLabel        = virSecurityStackSetSecurityImageLabel,
+    .domainRestoreSecurityImageLabel    = virSecurityStackRestoreSecurityImageLabel,
 
-    virSecurityStackSetDaemonSocketLabel,
-    virSecurityStackSetSocketLabel,
-    virSecurityStackClearSocketLabel,
+    .domainSetSecurityDaemonSocketLabel = virSecurityStackSetDaemonSocketLabel,
+    .domainSetSecuritySocketLabel       = virSecurityStackSetSocketLabel,
+    .domainClearSecuritySocketLabel     = virSecurityStackClearSocketLabel,
 
-    virSecurityStackGenLabel,
-    virSecurityStackReserveLabel,
-    virSecurityStackReleaseLabel,
+    .domainGenSecurityLabel             = virSecurityStackGenLabel,
+    .domainReserveSecurityLabel         = virSecurityStackReserveLabel,
+    .domainReleaseSecurityLabel         = virSecurityStackReleaseLabel,
 
-    virSecurityStackGetProcessLabel,
-    virSecurityStackSetProcessLabel,
+    .domainGetSecurityProcessLabel      = virSecurityStackGetProcessLabel,
+    .domainSetSecurityProcessLabel      = virSecurityStackSetProcessLabel,
 
-    virSecurityStackSetSecurityAllLabel,
-    virSecurityStackRestoreSecurityAllLabel,
+    .domainSetSecurityAllLabel          = virSecurityStackSetSecurityAllLabel,
+    .domainRestoreSecurityAllLabel      = virSecurityStackRestoreSecurityAllLabel,
 
-    virSecurityStackSetSecurityHostdevLabel,
-    virSecurityStackRestoreSecurityHostdevLabel,
+    .domainSetSecurityHostdevLabel      = virSecurityStackSetSecurityHostdevLabel,
+    .domainRestoreSecurityHostdevLabel  = virSecurityStackRestoreSecurityHostdevLabel,
 
-    virSecurityStackSetSavedStateLabel,
-    virSecurityStackRestoreSavedStateLabel,
+    .domainSetSavedStateLabel           = virSecurityStackSetSavedStateLabel,
+    .domainRestoreSavedStateLabel       = virSecurityStackRestoreSavedStateLabel,
 
-    virSecurityStackSetImageFDLabel,
+    .domainSetSecurityImageFDLabel      = virSecurityStackSetImageFDLabel,
+
+    .domainGetSecurityMountOptions      = virSecurityStackGetMountOptions,
 };

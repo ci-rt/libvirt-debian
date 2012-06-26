@@ -70,6 +70,7 @@
 #define <a href="#VIR_DOMAIN_CPU_STATS_CPUTIME">VIR_DOMAIN_CPU_STATS_CPUTIME</a>;
 #define <a href="#VIR_DOMAIN_CPU_STATS_SYSTEMTIME">VIR_DOMAIN_CPU_STATS_SYSTEMTIME</a>;
 #define <a href="#VIR_DOMAIN_CPU_STATS_USERTIME">VIR_DOMAIN_CPU_STATS_USERTIME</a>;
+#define <a href="#VIR_DOMAIN_CPU_STATS_VCPUTIME">VIR_DOMAIN_CPU_STATS_VCPUTIME</a>;
 #define <a href="#VIR_DOMAIN_EVENT_CALLBACK">VIR_DOMAIN_EVENT_CALLBACK</a>;
 #define <a href="#VIR_DOMAIN_MEMORY_FIELD_LENGTH">VIR_DOMAIN_MEMORY_FIELD_LENGTH</a>;
 #define <a href="#VIR_DOMAIN_MEMORY_HARD_LIMIT">VIR_DOMAIN_MEMORY_HARD_LIMIT</a>;
@@ -126,6 +127,7 @@ typedef enum <a href="#virConnectCredentialType">virConnectCredentialType</a>;
 typedef enum <a href="#virConnectDomainEventBlockJobStatus">virConnectDomainEventBlockJobStatus</a>;
 typedef enum <a href="#virConnectDomainEventDiskChangeReason">virConnectDomainEventDiskChangeReason</a>;
 typedef enum <a href="#virConnectFlags">virConnectFlags</a>;
+typedef enum <a href="#virConnectListAllDomainsFlags">virConnectListAllDomainsFlags</a>;
 typedef <a href="libvirt-libvirt.html#virConnect">virConnect</a> * <a href="#virConnectPtr">virConnectPtr</a>;
 typedef struct _virDomain <a href="#virDomain">virDomain</a>;
 typedef struct _virDomainBlockInfo <a href="#virDomainBlockInfo">virDomainBlockInfo</a>;
@@ -303,6 +305,7 @@ int	<a href="#virConnectGetVersion">virConnectGetVersion</a>		(<a href="libvirt-
 int	<a href="#virConnectIsAlive">virConnectIsAlive</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectIsEncrypted">virConnectIsEncrypted</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
 int	<a href="#virConnectIsSecure">virConnectIsSecure</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
+int	<a href="#virConnectListAllDomains">virConnectListAllDomains</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> ** domains, <br/>					 unsigned int flags);
 int	<a href="#virConnectListDefinedDomains">virConnectListDefinedDomains</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
 int	<a href="#virConnectListDefinedInterfaces">virConnectListDefinedInterfaces</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
 int	<a href="#virConnectListDefinedNetworks">virConnectListDefinedNetworks</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames);
@@ -388,6 +391,7 @@ int	<a href="#virDomainInterfaceStats">virDomainInterfaceStats</a>		(<a href="li
 int	<a href="#virDomainIsActive">virDomainIsActive</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom);
 int	<a href="#virDomainIsPersistent">virDomainIsPersistent</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom);
 int	<a href="#virDomainIsUpdated">virDomainIsUpdated</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom);
+int	<a href="#virDomainListAllSnapshots">virDomainListAllSnapshots</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> ** snaps, <br/>					 unsigned int flags);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainLookupByID">virDomainLookupByID</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int id);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainLookupByName">virDomainLookupByName</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const char * name);
 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	<a href="#virDomainLookupByUUID">virDomainLookupByUUID</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 const unsigned char * uuid);
@@ -447,11 +451,15 @@ int	<a href="#virDomainSnapshotFree">virDomainSnapshotFree</a>		(<a href="libvir
 const char *	<a href="#virDomainSnapshotGetName">virDomainSnapshotGetName</a>	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot);
 <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	<a href="#virDomainSnapshotGetParent">virDomainSnapshotGetParent</a>	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>							 unsigned int flags);
 char *	<a href="#virDomainSnapshotGetXMLDesc">virDomainSnapshotGetXMLDesc</a>	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags);
+int	<a href="#virDomainSnapshotHasMetadata">virDomainSnapshotHasMetadata</a>	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags);
+int	<a href="#virDomainSnapshotIsCurrent">virDomainSnapshotIsCurrent</a>	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags);
+int	<a href="#virDomainSnapshotListAllChildren">virDomainSnapshotListAllChildren</a>	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>						 <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> ** snaps, <br/>						 unsigned int flags);
 int	<a href="#virDomainSnapshotListChildrenNames">virDomainSnapshotListChildrenNames</a>	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>						 char ** names, <br/>						 int nameslen, <br/>						 unsigned int flags);
 int	<a href="#virDomainSnapshotListNames">virDomainSnapshotListNames</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 char ** names, <br/>					 int nameslen, <br/>					 unsigned int flags);
 <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	<a href="#virDomainSnapshotLookupByName">virDomainSnapshotLookupByName</a>	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * name, <br/>							 unsigned int flags);
 int	<a href="#virDomainSnapshotNum">virDomainSnapshotNum</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags);
 int	<a href="#virDomainSnapshotNumChildren">virDomainSnapshotNumChildren</a>	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags);
+int	<a href="#virDomainSnapshotRef">virDomainSnapshotRef</a>		(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot);
 int	<a href="#virDomainSuspend">virDomainSuspend</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainUndefine">virDomainUndefine</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain);
 int	<a href="#virDomainUndefineFlags">virDomainUndefineFlags</a>		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags);
@@ -745,7 +753,7 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_CPU_STATS_CPUTIME">Macro </a>VIR_DOMAIN_CPU_STATS_CPUTIME</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_CPU_STATS_CPUTIME">VIR_DOMAIN_CPU_STATS_CPUTIME</a>;
-</pre><p>cpu usage in nanoseconds, as a ullong</p>
+</pre><p>cpu usage (sum of both vcpu and hypervisor usage) in nanoseconds, as a ullong</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_CPU_STATS_SYSTEMTIME">Macro </a>VIR_DOMAIN_CPU_STATS_SYSTEMTIME</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_CPU_STATS_SYSTEMTIME">VIR_DOMAIN_CPU_STATS_SYSTEMTIME</a>;
@@ -754,6 +762,10 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_CPU_STATS_USERTIME">Macro </a>VIR_DOMAIN_CPU_STATS_USERTIME</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_CPU_STATS_USERTIME">VIR_DOMAIN_CPU_STATS_USERTIME</a>;
 </pre><p>cpu time charged to user instructions in nanoseconds, as a ullong</p>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_CPU_STATS_VCPUTIME">Macro </a>VIR_DOMAIN_CPU_STATS_VCPUTIME</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_CPU_STATS_VCPUTIME">VIR_DOMAIN_CPU_STATS_VCPUTIME</a>;
+</pre><p>vcpu usage in nanoseconds (cpu_time excluding hypervisor time), as a ullong</p>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_EVENT_CALLBACK">Macro </a>VIR_DOMAIN_EVENT_CALLBACK</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_EVENT_CALLBACK">VIR_DOMAIN_EVENT_CALLBACK</a>;
@@ -1033,6 +1045,25 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListAllDomainsFlags">Enum </a>virConnectListAllDomainsFlags</h3><pre class="programlisting">enum <a href="#virConnectListAllDomainsFlags">virConnectListAllDomainsFlags</a> {
+    <a name="VIR_CONNECT_LIST_DOMAINS_ACTIVE">VIR_CONNECT_LIST_DOMAINS_ACTIVE</a> = 1
+    <a name="VIR_CONNECT_LIST_DOMAINS_INACTIVE">VIR_CONNECT_LIST_DOMAINS_INACTIVE</a> = 2
+    <a name="VIR_CONNECT_LIST_DOMAINS_PERSISTENT">VIR_CONNECT_LIST_DOMAINS_PERSISTENT</a> = 4
+    <a name="VIR_CONNECT_LIST_DOMAINS_TRANSIENT">VIR_CONNECT_LIST_DOMAINS_TRANSIENT</a> = 8
+    <a name="VIR_CONNECT_LIST_DOMAINS_RUNNING">VIR_CONNECT_LIST_DOMAINS_RUNNING</a> = 16
+    <a name="VIR_CONNECT_LIST_DOMAINS_PAUSED">VIR_CONNECT_LIST_DOMAINS_PAUSED</a> = 32
+    <a name="VIR_CONNECT_LIST_DOMAINS_SHUTOFF">VIR_CONNECT_LIST_DOMAINS_SHUTOFF</a> = 64
+    <a name="VIR_CONNECT_LIST_DOMAINS_OTHER">VIR_CONNECT_LIST_DOMAINS_OTHER</a> = 128
+    <a name="VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE">VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE</a> = 256
+    <a name="VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE">VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE</a> = 512
+    <a name="VIR_CONNECT_LIST_DOMAINS_AUTOSTART">VIR_CONNECT_LIST_DOMAINS_AUTOSTART</a> = 1024
+    <a name="VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART">VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART</a> = 2048
+    <a name="VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT">VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT</a> = 4096
+    <a name="VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT">VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT</a> = 8192
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectPtr">Typedef </a>virConnectPtr</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virConnect">virConnect</a> * virConnectPtr;
 </pre><p>a <a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> is pointer to a <a href="libvirt-libvirt.html#virConnect">virConnect</a> private structure, this is the type used to reference a connection to the Hypervisor in the API.</p>
 </div>
@@ -1158,6 +1189,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_DUMP_LIVE">VIR_DUMP_LIVE</a> = 2 /* live dump */
     <a name="VIR_DUMP_BYPASS_CACHE">VIR_DUMP_BYPASS_CACHE</a> = 4 /* avoid file system cache pollution */
     <a name="VIR_DUMP_RESET">VIR_DUMP_RESET</a> = 8 /* reset domain after dump finishes */
+    <a name="VIR_DUMP_MEMORY_ONLY">VIR_DUMP_MEMORY_ONLY</a> = 16 /* use dump-guest-memory */
 };
 </pre><p/>
 </div>
@@ -1670,10 +1702,12 @@ The content of this structure is not made public by the API.
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotListFlags">Enum </a>virDomainSnapshotListFlags</h3><pre class="programlisting">enum <a href="#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a> {
-    <a name="VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS">VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS</a> = 1 /* List all descendants, not just children, when listing a snapshot */
+    <a name="VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS">VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS</a> = 1 /* List all descendants, not just children, when listing a snapshot For historical reasons, groups do not use contiguous bits. */
     <a name="VIR_DOMAIN_SNAPSHOT_LIST_ROOTS">VIR_DOMAIN_SNAPSHOT_LIST_ROOTS</a> = 1 /* Filter by snapshots with no parents, when listing a domain */
     <a name="VIR_DOMAIN_SNAPSHOT_LIST_METADATA">VIR_DOMAIN_SNAPSHOT_LIST_METADATA</a> = 2 /* Filter by snapshots which have metadata */
     <a name="VIR_DOMAIN_SNAPSHOT_LIST_LEAVES">VIR_DOMAIN_SNAPSHOT_LIST_LEAVES</a> = 4 /* Filter by snapshots with no children */
+    <a name="VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES">VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES</a> = 8 /* Filter by snapshots that have children */
+    <a name="VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA">VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA</a> = 16 /* Filter by snapshots with no metadata */
 };
 </pre><p/>
 </div>
@@ -2042,7 +2076,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_STORAGE_VOL_FILE">VIR_STORAGE_VOL_FILE</a> = 0 /* Regular file based volumes */
     <a name="VIR_STORAGE_VOL_BLOCK">VIR_STORAGE_VOL_BLOCK</a> = 1 /* Block based volumes */
     <a name="VIR_STORAGE_VOL_DIR">VIR_STORAGE_VOL_DIR</a> = 2 /* Directory-passthrough based volume */
-    <a name="VIR_STORAGE_VOL_LAST">VIR_STORAGE_VOL_LAST</a> = 3
+    <a name="VIR_STORAGE_VOL_NETWORK">VIR_STORAGE_VOL_NETWORK</a> = 3 /* Network volumes like RBD (RADOS Block Device) */
+    <a name="VIR_STORAGE_VOL_LAST">VIR_STORAGE_VOL_LAST</a> = 4
 };
 </pre><p/>
 </div>
@@ -2489,10 +2524,54 @@ encrypted, or running over a channel which is not exposed
 to eavesdropping (eg a UNIX domain socket, or pipe)</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the connection object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if secure, 0 if secure, -1 on error</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectListAllDomains"/>virConnectListAllDomains ()</h3><pre class="programlisting">int	virConnectListAllDomains	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> ** domains, <br/>					 unsigned int flags)<br/>
+</pre><p>Collect a possibly-filtered list of all domains, and return an allocated
+array of information for each. This API solves the race inherent in
+virConnectListDomains() and virConnectListDefinedDomains().
+
+Normally, all domains are returned; however, @flags can be used to
+filter the results for a smaller list of targeted domains. The valid
+flags are divided into groups, where each group contains bits that
+describe mutually exclusive attributes of a domain, and where all bits
+within a group describe all possible domains. Some hypervisors might
+reject explicit bits from a group where the hypervisor cannot make a
+distinction (for example, not all hypervisors can tell whether domains
+have snapshots). For a group supported by a given hypervisor, the
+behavior when no bits of a group are set is identical to the behavior
+when all bits in that group are set. When setting bits from more than
+one group, it is possible to select an impossible combination (such
+as an inactive transient domain), in that case a hypervisor may return
+either 0 or an error.
+
+The first group of @flags is <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_ACTIVE">VIR_CONNECT_LIST_DOMAINS_ACTIVE</a> (online
+domains) and <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_INACTIVE">VIR_CONNECT_LIST_DOMAINS_INACTIVE</a> (offline domains).
+
+The next group of @flags is <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_PERSISTENT">VIR_CONNECT_LIST_DOMAINS_PERSISTENT</a> (defined
+domains) and <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_TRANSIENT">VIR_CONNECT_LIST_DOMAINS_TRANSIENT</a> (running but not defined).
+
+The next group of @flags covers various domain states:
+VIR_CONNECT_LIST_DOMAINS_RUNNING, VIR_CONNECT_LIST_DOMAINS_PAUSED,
+VIR_CONNECT_LIST_DOMAINS_SHUTOFF, and a catch-all for all other states
+(such as crashed, this catch-all covers the possibility of adding new
+states).
+
+The remaining groups cover boolean attributes commonly asked about
+domains; they include <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE">VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE</a> and
+VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE, for filtering based on whether
+a managed save image exists; <a href="libvirt-libvirt.html#VIR_CONNECT_LIST_DOMAINS_AUTOSTART">VIR_CONNECT_LIST_DOMAINS_AUTOSTART</a> and
+VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART, for filtering based on autostart;
+VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT and
+VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT, for filtering based on whether
+a domain has snapshots.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>Pointer to the hypervisor connection.</td></tr><tr><td><span class="term"><i><tt>domains</tt></i>:</span></td><td>Pointer to a variable to store the array containing domain objects or NULL if the list is not required (just returns number of guests).</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virConnectListAllDomainsFlags">virConnectListAllDomainsFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domains found or -1 and sets domains to NULL in case of error. On success, the array stored into @doms is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainFree() on each array element, then calling free() on @doms. Example of usage: <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> *domains; <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom; int i; int ret; unsigned int flags = VIR_CONNECT_LIST_RUNNING | VIR_CONNECT_LIST_PERSISTENT; ret = virConnectListAllDomains(conn, &amp;domains, flags); if (ret &lt; 0) error(); for (i = 0; i &lt; ret; i++) { do_something_with_domain(domains[i]); //here or in a separate loop if needed virDomainFree(domains[i]); } free(domains);</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectListDefinedDomains"/>virConnectListDefinedDomains ()</h3><pre class="programlisting">int	virConnectListDefinedDomains	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
 </pre><p>list the defined but inactive domains, stores the pointers to the names
-in @names</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>pointer to an array to store the names</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of the array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of names provided in the array or -1 in case of error</td></tr></tbody></table></div></div>
+in @names
+
+For active domains, see virConnectListDomains(). For more control over
+the results, see virConnectListAllDomains().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>pointer to an array to store the names</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of the array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of names provided in the array or -1 in case of error. Note that this command is inherently racy; a domain can be defined between a call to virConnectNumOfDefinedDomains() and this call; you are only guaranteed that all currently defined domains were listed if the return is less than @maxids. The client must call free() on each returned name.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectListDefinedInterfaces"/>virConnectListDefinedInterfaces ()</h3><pre class="programlisting">int	virConnectListDefinedInterfaces	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
 </pre><p>Collect the list of defined (inactive) physical host interfaces,
@@ -2510,8 +2589,11 @@ remaining names will be silently ignored.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to hypervisor connection</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array of char * to fill with pool names (allocated by caller)</td></tr><tr><td><span class="term"><i><tt>maxnames</tt></i>:</span></td><td>size of the names array</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectListDomains"/>virConnectListDomains ()</h3><pre class="programlisting">int	virConnectListDomains		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int * ids, <br/>					 int maxids)<br/>
-</pre><p>Collect the list of active domains, and store their IDs in array @ids</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>ids</tt></i>:</span></td><td>array to collect the list of IDs of active domains</td></tr><tr><td><span class="term"><i><tt>maxids</tt></i>:</span></td><td>size of @ids</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domains found or -1 in case of error</td></tr></tbody></table></div></div>
+</pre><p>Collect the list of active domains, and store their IDs in array @ids
+
+For inactive domains, see virConnectListDefinedDomains(). For more
+control over the results, see virConnectListAllDomains().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>ids</tt></i>:</span></td><td>array to collect the list of IDs of active domains</td></tr><tr><td><span class="term"><i><tt>maxids</tt></i>:</span></td><td>size of @ids</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domains found or -1 in case of error. Note that this command is inherently racy; a domain can be started between a call to virConnectNumOfDomains() and this call; you are only guaranteed that all currently active domains were listed if the return is less than @maxids.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectListInterfaces"/>virConnectListInterfaces ()</h3><pre class="programlisting">int	virConnectListInterfaces	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 char ** const names, <br/>					 int maxnames)<br/>
 </pre><p>Collect the list of active physical host interfaces,
@@ -2738,7 +2820,8 @@ call would succeed.
 
 NB. The remote driver imposes a 64K byte limit on 'size'.
 For your program to be able to work reliably over a remote
-connection you should split large requests to &lt;= 65536 bytes.</p>
+connection you should split large requests to &lt;= 65536 bytes.
+However, with 0.9.13 this RPC limit has been raised to 1M byte.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>disk</tt></i>:</span></td><td>path to the block device, or device shorthand</td></tr><tr><td><span class="term"><i><tt>offset</tt></i>:</span></td><td>offset within block device</td></tr><tr><td><span class="term"><i><tt>size</tt></i>:</span></td><td>size to read</td></tr><tr><td><span class="term"><i><tt>buffer</tt></i>:</span></td><td>return buffer (must be at least size bytes)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of failure. really 64 bits</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainBlockPull"/>virDomainBlockPull ()</h3><pre class="programlisting">int	virDomainBlockPull		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 const char * disk, <br/>					 unsigned long bandwidth, <br/>					 unsigned int flags)<br/>
@@ -3477,6 +3560,34 @@ which means it will still exist after shutting down</p>
 </pre><p>Determine if the domain has been updated.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if updated, 0 if not, -1 on error</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainListAllSnapshots"/>virDomainListAllSnapshots ()</h3><pre class="programlisting">int	virDomainListAllSnapshots	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> ** snaps, <br/>					 unsigned int flags)<br/>
+</pre><p>Collect the list of domain snapshots for the given domain, and allocate
+an array to store those objects. This API solves the race inherent in
+virDomainSnapshotListNames().
+
+By default, this command covers all snapshots; it is also possible to
+limit things to just snapshots with no parents, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_ROOTS. Additional filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots. Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction. For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set. When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
+
+The first group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_LEAVES">VIR_DOMAIN_SNAPSHOT_LIST_LEAVES</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
+
+The next group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_METADATA">VIR_DOMAIN_SNAPSHOT_LIST_METADATA</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>snaps</tt></i>:</span></td><td>pointer to variable to store the array containing snapshot objects, or NULL if the list is not required (just returns number of snapshots)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 and sets @snaps to NULL in case of error. On success, the array stored into @snaps is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainSnapshotFree() on each array element, then calling free() on @snaps.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainLookupByID"/>virDomainLookupByID ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a>	virDomainLookupByID	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int id)<br/>
 </pre><p>Try to find a domain based on the hypervisor ID number
 Note that this won't work for inactive domains which have an ID of -1,
@@ -3543,7 +3654,8 @@ coherently.
 
 NB. The remote driver imposes a 64K byte limit on 'size'.
 For your program to be able to work reliably over a remote
-connection you should split large requests to &lt;= 65536 bytes.</p>
+connection you should split large requests to &lt;= 65536 bytes.
+However, with 0.9.13 this RPC limit has been raised to 1M byte.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>pointer to the domain object</td></tr><tr><td><span class="term"><i><tt>start</tt></i>:</span></td><td>start of memory to peek</td></tr><tr><td><span class="term"><i><tt>size</tt></i>:</span></td><td>size of memory to peek</td></tr><tr><td><span class="term"><i><tt>buffer</tt></i>:</span></td><td>return buffer (must be at least size bytes)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainMemoryFlags">virDomainMemoryFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success or -1 in case of failure. really 64 bits</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainMemoryStats"/>virDomainMemoryStats ()</h3><pre class="programlisting">int	virDomainMemoryStats		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 <a href="libvirt-libvirt.html#virDomainMemoryStatPtr">virDomainMemoryStatPtr</a> stats, <br/>					 unsigned int nr_stats, <br/>					 unsigned int flags)<br/>
@@ -4436,41 +4548,109 @@ connections. For this API, @flags should not contain either
 VIR_DOMAIN_XML_INACTIVE or VIR_DOMAIN_XML_UPDATE_CPU.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of subset of <a href="libvirt-libvirt.html#virDomainXMLFlags">virDomainXMLFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a 0 terminated UTF-8 encoded XML instance, or NULL in case of error. the caller must free() the returned value.</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotHasMetadata"/>virDomainSnapshotHasMetadata ()</h3><pre class="programlisting">int	virDomainSnapshotHasMetadata	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags)<br/>
+</pre><p>Determine if the given snapshot is associated with libvirt metadata
+that would prevent the deletion of the domain.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a snapshot object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if the snapshot has metadata, 0 if the snapshot exists without help from libvirt, or -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotIsCurrent"/>virDomainSnapshotIsCurrent ()</h3><pre class="programlisting">int	virDomainSnapshotIsCurrent	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags)<br/>
+</pre><p>Determine if the given snapshot is the domain's current snapshot. See
+also virDomainHasCurrentSnapshot().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a snapshot object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>1 if current, 0 if not current, or -1 on error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotListAllChildren"/>virDomainSnapshotListAllChildren ()</h3><pre class="programlisting">int	virDomainSnapshotListAllChildren	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>						 <a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> ** snaps, <br/>						 unsigned int flags)<br/>
+</pre><p>Collect the list of domain snapshots that are children of the given
+snapshot, and allocate an array to store those objects. This API solves
+the race inherent in virDomainSnapshotListChildrenNames().
+
+By default, this command covers only direct children; it is also possible
+to expand things to cover all descendants, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS. Also, some filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots. Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction. For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set. When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
+
+The first group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_LEAVES">VIR_DOMAIN_SNAPSHOT_LIST_LEAVES</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
+
+The next group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_METADATA">VIR_DOMAIN_SNAPSHOT_LIST_METADATA</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>snaps</tt></i>:</span></td><td>pointer to variable to store the array containing snapshot objects, or NULL if the list is not required (just returns number of snapshots)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 and sets @snaps to NULL in case of error. On success, the array stored into @snaps is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainSnapshotFree() on each array element, then calling free() on @snaps.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotListChildrenNames"/>virDomainSnapshotListChildrenNames ()</h3><pre class="programlisting">int	virDomainSnapshotListChildrenNames	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>						 char ** names, <br/>						 int nameslen, <br/>						 unsigned int flags)<br/>
 </pre><p>Collect the list of domain snapshots that are children of the given
-snapshot, and store their names in @names. Caller is responsible for
-freeing each member of the array. The value to use for @nameslen can
-be determined by virDomainSnapshotNumChildren() with the same @flags.
+snapshot, and store their names in @names. The value to use for
+@nameslen can be determined by virDomainSnapshotNumChildren() with
+the same @flags.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS, then the result
-includes all descendants, otherwise it is limited to direct children.
+By default, this command covers only direct children; it is also possible
+to expand things to cover all descendants, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS. Also, some filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots. Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction. For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set. When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
-filtered to the number of snapshots that have no children.
+The first group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_LEAVES">VIR_DOMAIN_SNAPSHOT_LIST_LEAVES</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
-the number of snapshots that also include metadata that would prevent
-the removal of the last reference to a domain; this value will either
-be 0 or the same value as if the flag were not given.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of snapshots</td></tr><tr><td><span class="term"><i><tt>nameslen</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 in case of error.</td></tr></tbody></table></div></div>
+The next group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_METADATA">VIR_DOMAIN_SNAPSHOT_LIST_METADATA</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of snapshots</td></tr><tr><td><span class="term"><i><tt>nameslen</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 in case of error. Note that this command is inherently racy: another connection can define a new snapshot between a call to virDomainSnapshotNumChildren() and this call. You are only guaranteed that all currently defined snapshots were listed if the return is less than @nameslen. Likewise, you should be prepared for virDomainSnapshotLookupByName() to fail when converting a name from this call into a snapshot object, if another connection deletes the snapshot in the meantime. For more control over the results, see virDomainSnapshotListAllChildren(). Returns the number of domain snapshots found or -1 in case of error. The caller is responsible for freeing each member of the array.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotListNames"/>virDomainSnapshotListNames ()</h3><pre class="programlisting">int	virDomainSnapshotListNames	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 char ** names, <br/>					 int nameslen, <br/>					 unsigned int flags)<br/>
 </pre><p>Collect the list of domain snapshots for the given domain, and store
-their names in @names. Caller is responsible for freeing each member
-of the array. The value to use for @nameslen can be determined by
-virDomainSnapshotNum() with the same @flags.
+their names in @names. The value to use for @nameslen can be determined
+by virDomainSnapshotNum() with the same @flags.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
-filtered to the number of snapshots that have no parents. Likewise,
-if @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
-filtered to the number of snapshots that have no children. Both flags
-can be used together to find unrelated snapshots.
+By default, this command covers all snapshots; it is also possible to
+limit things to just snapshots with no parents, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_ROOTS. Additional filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots. Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction. For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set. When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
-the number of snapshots that also include metadata that would prevent
-the removal of the last reference to a domain; this value will either
-be 0 or the same value as if the flag were not given.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of snapshots</td></tr><tr><td><span class="term"><i><tt>nameslen</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 in case of error.</td></tr></tbody></table></div></div>
+The first group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_LEAVES">VIR_DOMAIN_SNAPSHOT_LIST_LEAVES</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
+
+The next group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_METADATA">VIR_DOMAIN_SNAPSHOT_LIST_METADATA</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.
+
+Note that this command is inherently racy: another connection can
+define a new snapshot between a call to virDomainSnapshotNum() and
+this call. You are only guaranteed that all currently defined
+snapshots were listed if the return is less than @nameslen. Likewise,
+you should be prepared for virDomainSnapshotLookupByName() to fail when
+converting a name from this call into a snapshot object, if another
+connection deletes the snapshot in the meantime. For more control over
+the results, see virDomainListAllSnapshots().</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>names</tt></i>:</span></td><td>array to collect the list of names of snapshots</td></tr><tr><td><span class="term"><i><tt>nameslen</tt></i>:</span></td><td>size of @names</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 in case of error. The caller is responsible for freeing each member of the array.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotLookupByName"/>virDomainSnapshotLookupByName ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a>	virDomainSnapshotLookupByName	(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>							 const char * name, <br/>							 unsigned int flags)<br/>
 </pre><p>Try to lookup a domain snapshot based on its name.</p>
@@ -4479,32 +4659,67 @@ be 0 or the same value as if the flag were not given.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotNum"/>virDomainSnapshotNum ()</h3><pre class="programlisting">int	virDomainSnapshotNum		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain, <br/>					 unsigned int flags)<br/>
 </pre><p>Provides the number of domain snapshots for this domain.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
-filtered to the number of snapshots that have no parents. Likewise,
-if @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
-filtered to the number of snapshots that have no children. Both flags
-can be used together to find unrelated snapshots.
+By default, this command covers all snapshots; it is also possible to
+limit things to just snapshots with no parents, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_ROOTS. Additional filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots. Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction. For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set. When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
-the number of snapshots that also include metadata that would prevent
-the removal of the last reference to a domain; this value will either
-be 0 or the same value as if the flag were not given.</p>
+The first group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_LEAVES">VIR_DOMAIN_SNAPSHOT_LIST_LEAVES</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
+
+The next group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_METADATA">VIR_DOMAIN_SNAPSHOT_LIST_METADATA</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 in case of error.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotNumChildren"/>virDomainSnapshotNumChildren ()</h3><pre class="programlisting">int	virDomainSnapshotNumChildren	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags)<br/>
 </pre><p>Provides the number of child snapshots for this domain snapshot.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS, then the result
-includes all descendants, otherwise it is limited to direct children.
+By default, this command covers only direct children; it is also possible
+to expand things to cover all descendants, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS. Also, some filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots. Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction. For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set. When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
-filtered to the number of snapshots that have no children.
+The first group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_LEAVES">VIR_DOMAIN_SNAPSHOT_LIST_LEAVES</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
-the number of snapshots that also include metadata that would prevent
-the removal of the last reference to a domain; this value will either
-be 0 or the same value as if the flag were not given.</p>
+The next group of @flags is <a href="libvirt-libvirt.html#VIR_DOMAIN_SNAPSHOT_LIST_METADATA">VIR_DOMAIN_SNAPSHOT_LIST_METADATA</a> and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>a domain snapshot object</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of supported <a href="libvirt-libvirt.html#virDomainSnapshotListFlags">virDomainSnapshotListFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the number of domain snapshots found or -1 in case of error.</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainSnapshotRef"/>virDomainSnapshotRef ()</h3><pre class="programlisting">int	virDomainSnapshotRef		(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot)<br/>
+</pre><p>Increment the reference count on the snapshot. For each
+additional call to this method, there shall be a corresponding
+call to <a href="libvirt-libvirt.html#virDomainSnapshotFree">virDomainSnapshotFree</a> to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection and domain remain open until all threads have finished
+using the snapshot. ie, each new thread using a snapshot would
+increment the reference count.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>snapshot</tt></i>:</span></td><td>the snapshot to hold a reference on</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainSuspend"/>virDomainSuspend ()</h3><pre class="programlisting">int	virDomainSuspend		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Suspends an active domain, the process is frozen without further access

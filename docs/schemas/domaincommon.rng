@@ -222,12 +222,14 @@
             <ref name="absFilePath"/>
           </element>
         </optional>
-        <choice>
+        <optional>
           <ref name="osbootkernel"/>
+        </optional>
+        <optional>
           <zeroOrMore>
             <ref name="osbootdev"/>
           </zeroOrMore>
-        </choice>
+        </optional>
         <optional>
           <element name="bootmenu">
             <attribute name="enable">
@@ -1199,6 +1201,7 @@
             <value>ich9-uhci3</value>
             <value>vt82c686b-uhci</value>
             <value>pci-ohci</value>
+            <value>nec-xhci</value>
           </choice>
         </attribute>
       </optional>
@@ -1275,6 +1278,21 @@
           </interleave>
         </group>
         <group>
+          <optional>
+            <attribute name="type">
+              <value>bind</value>
+            </attribute>
+          </optional>
+          <interleave>
+            <element name="source">
+              <attribute name="dir">
+                <ref name="absFilePath"/>
+              </attribute>
+              <empty/>
+            </element>
+          </interleave>
+        </group>
+        <group>
           <attribute name="type">
             <value>template</value>
           </attribute>
@@ -1283,6 +1301,24 @@
               <attribute name="name">
                 <ref name="genericName"/>
               </attribute>
+              <empty/>
+            </element>
+          </interleave>
+        </group>
+        <group>
+          <attribute name="type">
+            <value>ram</value>
+          </attribute>
+          <interleave>
+            <element name="source">
+              <attribute name="usage">
+                <ref name="unsignedLong"/>
+              </attribute>
+              <optional>
+                <attribute name='unit'>
+                  <ref name='unit'/>
+                </attribute>
+              </optional>
               <empty/>
             </element>
           </interleave>
@@ -1314,6 +1350,18 @@
         </optional>
         <optional>
           <ref name="address"/>
+        </optional>
+      </interleave>
+      <interleave>
+        <optional>
+          <element name="space_hard_limit">
+            <ref name='scaledInteger'/>
+          </element>
+        </optional>
+        <optional>
+          <element name="space_soft_limit">
+            <ref name='scaledInteger'/>
+          </element>
         </optional>
       </interleave>
     </element>
@@ -2250,6 +2298,16 @@
       </choice>
     </element>
   </define>
+  <define name="codec">
+    <element name="codec">
+      <attribute name="type">
+        <choice>
+          <value>duplex</value>
+          <value>micro</value>
+        </choice>
+      </attribute>
+    </element>
+  </define>
   <define name="sound">
     <element name="sound">
       <attribute name="model">
@@ -2261,12 +2319,19 @@
           <value>ich6</value>
         </choice>
       </attribute>
-      <optional>
-        <ref name="alias"/>
-      </optional>
-      <optional>
-        <ref name="address"/>
-      </optional>
+      <interleave>
+        <optional>
+          <ref name="alias"/>
+        </optional>
+        <optional>
+          <ref name="address"/>
+        </optional>
+        <zeroOrMore>
+          <choice>
+            <ref name="codec"/>
+          </choice>
+        </zeroOrMore>
+      </interleave>
     </element>
   </define>
   <define name="watchdog">

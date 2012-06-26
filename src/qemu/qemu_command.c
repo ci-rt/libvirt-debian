@@ -89,6 +89,12 @@ VIR_ENUM_IMPL(qemuVideo, VIR_DOMAIN_VIDEO_TYPE_LAST,
               "", /* don't support vbox */
               "qxl");
 
+VIR_ENUM_DECL(qemuSoundCodec)
+
+VIR_ENUM_IMPL(qemuSoundCodec, VIR_DOMAIN_SOUND_CODEC_TYPE_LAST,
+              "hda-duplex",
+              "hda-micro");
+
 VIR_ENUM_DECL(qemuControllerModelUSB)
 
 VIR_ENUM_IMPL(qemuControllerModelUSB, VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
@@ -100,7 +106,8 @@ VIR_ENUM_IMPL(qemuControllerModelUSB, VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST,
               "ich9-usb-uhci2",
               "ich9-usb-uhci3",
               "vt82c686b-usb-uhci",
-              "pci-ohci");
+              "pci-ohci",
+              "nec-usb-xhci");
 
 VIR_ENUM_DECL(qemuDomainFSDriver)
 VIR_ENUM_IMPL(qemuDomainFSDriver, VIR_DOMAIN_FS_DRIVER_TYPE_LAST,
@@ -542,6 +549,11 @@ qemuAssignDeviceNetAlias(virDomainDefPtr def, virDomainNetDefPtr net, int idx)
         idx = 0;
         for (i = 0 ; i < def->nnets ; i++) {
             int thisidx;
+
+            if (def->nets[i]->type == VIR_DOMAIN_NET_TYPE_HOSTDEV) {
+                /* type='hostdev' interfaces have a hostdev%d alias */
+               continue;
+            }
             if ((thisidx = qemuDomainDeviceAliasIndex(&def->nets[i]->info, "net")) < 0) {
                 qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                 _("Unable to determine device index for network device"));
@@ -779,10 +791,14 @@ qemuAssignSpaprVIOAddress(virDomainDefPtr def, virDomainDeviceInfoPtr info,
 int qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def)
 {
     int i, rc;
+    int model;
 
     /* Default values match QEMU. See spapr_(llan|vscsi|vty).c */
 
     for (i = 0 ; i < def->nnets; i++) {
+        if (def->nets[i]->model &&
+            STREQ(def->nets[i]->model, "spapr-vlan"))
+            def->nets[i]->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO;
         rc = qemuAssignSpaprVIOAddress(def, &def->nets[i]->info,
                                        0x1000ul);
         if (rc)
@@ -790,6 +806,13 @@ int qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def)
     }
 
     for (i = 0 ; i < def->ncontrollers; i++) {
+        model = def->controllers[i]->model;
+        if (model == -1 &&
+            def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI)
+            model = qemuDefaultScsiControllerModel(def);
+        if (model == VIR_DOMAIN_CONTROLLER_MODEL_SCSI_IBMVSCSI &&
+            def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI)
+            def->controllers[i]->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO;
         rc = qemuAssignSpaprVIOAddress(def, &def->controllers[i]->info,
                                        0x2000ul);
         if (rc)
@@ -797,6 +820,11 @@ int qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def)
     }
 
     for (i = 0 ; i < def->nserials; i++) {
+        if (def->serials[i]->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
+            def->serials[i]->source.type == VIR_DOMAIN_CHR_TYPE_PTY &&
+            STREQ(def->os.arch, "ppc64") &&
+            STREQ(def->os.machine, "pseries"))
+            def->serials[i]->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO;
         rc = qemuAssignSpaprVIOAddress(def, &def->serials[i]->info,
                                        0x30000000ul);
         if (rc)
@@ -1168,8 +1196,7 @@ void qemuDomainPCIAddressSetFree(qemuDomainPCIAddressSetPtr addrs)
 }
 
 
-int qemuDomainPCIAddressSetNextAddr(qemuDomainPCIAddressSetPtr addrs,
-                                    virDomainDeviceInfoPtr dev)
+static int qemuDomainPCIAddressGetNextSlot(qemuDomainPCIAddressSetPtr addrs)
 {
     int i;
     int iteration;
@@ -1196,26 +1223,48 @@ int qemuDomainPCIAddressSetNextAddr(qemuDomainPCIAddressSetPtr addrs,
             continue;
         }
 
-        VIR_DEBUG("Allocating PCI addr %s", addr);
+        VIR_DEBUG("Found free PCI addr %s", addr);
         VIR_FREE(addr);
 
-        if (qemuDomainPCIAddressReserveSlot(addrs, i) < 0)
-            return -1;
-
-        dev->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
-        dev->addr.pci = maybe.addr.pci;
-
-        addrs->nextslot = i + 1;
-        if (QEMU_PCI_ADDRESS_LAST_SLOT < addrs->nextslot)
-            addrs->nextslot = 0;
-
-        return 0;
+        return i;
     }
 
     qemuReportError(VIR_ERR_INTERNAL_ERROR,
                     "%s", _("No more available PCI addresses"));
     return -1;
 }
+
+int qemuDomainPCIAddressSetNextAddr(qemuDomainPCIAddressSetPtr addrs,
+                                    virDomainDeviceInfoPtr dev)
+{
+    int slot = qemuDomainPCIAddressGetNextSlot(addrs);
+
+    if (slot < 0)
+        return -1;
+
+    if (qemuDomainPCIAddressReserveSlot(addrs, slot) < 0)
+        return -1;
+
+    dev->type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
+    dev->addr.pci.bus = 0;
+    dev->addr.pci.domain = 0;
+    dev->addr.pci.slot = slot;
+    dev->addr.pci.function = 0;
+
+    addrs->nextslot = slot + 1;
+    if (QEMU_PCI_ADDRESS_LAST_SLOT < addrs->nextslot)
+        addrs->nextslot = 0;
+
+    return 0;
+}
+
+
+#define IS_USB2_CONTROLLER(ctrl) \
+    (((ctrl)->type == VIR_DOMAIN_CONTROLLER_TYPE_USB) && \
+     ((ctrl)->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_EHCI1 || \
+      (ctrl)->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI1 || \
+      (ctrl)->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI2 || \
+      (ctrl)->model == VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI3))
 
 /*
  * This assigns static PCI slots to all configured devices.
@@ -1252,7 +1301,7 @@ int qemuDomainPCIAddressSetNextAddr(qemuDomainPCIAddressSetPtr addrs,
 int
 qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
 {
-    int i;
+    size_t i, j;
     bool reservedIDE = false;
     bool reservedUSB = false;
     int function;
@@ -1396,7 +1445,7 @@ qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
             goto error;
     }
 
-    /* Disk controllers (SCSI only for now) */
+    /* Device controllers (SCSI, USB, but not IDE, FDC or CCID) */
     for (i = 0; i < def->ncontrollers ; i++) {
         /* FDC lives behind the ISA bridge; CCID is a usb device */
         if (def->controllers[i]->type == VIR_DOMAIN_CONTROLLER_TYPE_FDC ||
@@ -1413,8 +1462,58 @@ qemuAssignDevicePCISlots(virDomainDefPtr def, qemuDomainPCIAddressSetPtr addrs)
             continue;
         if (def->controllers[i]->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_NONE)
             continue;
-        if (qemuDomainPCIAddressSetNextAddr(addrs, &def->controllers[i]->info) < 0)
-            goto error;
+
+        /* USB2 needs special handling to put all companions in the same slot */
+        if (IS_USB2_CONTROLLER(def->controllers[i])) {
+            virDomainDevicePCIAddress addr = { 0, 0, 0, 0, false };
+            for (j = 0 ; j < i ; j++) {
+                if (IS_USB2_CONTROLLER(def->controllers[j]) &&
+                    def->controllers[j]->idx == def->controllers[i]->idx) {
+                    addr = def->controllers[j]->info.addr.pci;
+                    break;
+                }
+            }
+
+            switch (def->controllers[i]->model) {
+            case VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_EHCI1:
+                addr.function = 7;
+                break;
+            case VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI1:
+                addr.function = 0;
+                addr.multi = VIR_DOMAIN_DEVICE_ADDRESS_PCI_MULTI_ON;
+                break;
+            case VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI2:
+                addr.function = 1;
+                break;
+            case VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI3:
+                addr.function = 2;
+                break;
+            }
+
+            if (addr.slot == 0) {
+                /* This is the first part of the controller, so need
+                 * to find a free slot & then reserve a function */
+                int slot = qemuDomainPCIAddressGetNextSlot(addrs);
+                if (slot < 0)
+                    goto error;
+
+                addr.slot = slot;
+                addrs->nextslot = addr.slot + 1;
+                if (QEMU_PCI_ADDRESS_LAST_SLOT < addrs->nextslot)
+                    addrs->nextslot = 0;
+            }
+            /* Finally we can reserve the slot+function */
+            if (qemuDomainPCIAddressReserveFunction(addrs,
+                                                    addr.slot,
+                                                    addr.function) < 0)
+                goto error;
+
+            def->controllers[i]->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
+            def->controllers[i]->info.addr.pci = addr;
+        } else {
+            if (qemuDomainPCIAddressSetNextAddr(addrs, &def->controllers[i]->info) < 0)
+                goto error;
+        }
     }
 
     /* Disks (VirtIO only for now) */
@@ -2500,6 +2599,8 @@ qemuControllerModelUSBToCaps(int model)
         return QEMU_CAPS_VT82C686B_USB_UHCI;
     case VIR_DOMAIN_CONTROLLER_MODEL_USB_PCI_OHCI:
         return QEMU_CAPS_PCI_OHCI;
+    case VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI:
+        return QEMU_CAPS_NEC_USB_XHCI;
     default:
         return -1;
     }
@@ -2507,7 +2608,8 @@ qemuControllerModelUSBToCaps(int model)
 
 
 static int
-qemuBuildUSBControllerDevStr(virDomainControllerDefPtr def,
+qemuBuildUSBControllerDevStr(virDomainDefPtr domainDef,
+                             virDomainControllerDefPtr def,
                              virBitmapPtr qemuCaps,
                              virBuffer *buf)
 {
@@ -2516,8 +2618,12 @@ qemuBuildUSBControllerDevStr(virDomainControllerDefPtr def,
 
     model = def->model;
 
-    if (model == -1)
-        model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI;
+    if (model == -1) {
+        if (STREQ(domainDef->os.arch, "ppc64"))
+            model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PCI_OHCI;
+        else
+            model = VIR_DOMAIN_CONTROLLER_MODEL_USB_PIIX3_UHCI;
+    }
 
     smodel = qemuControllerModelUSBTypeToString(model);
     caps = qemuControllerModelUSBToCaps(model);
@@ -2603,7 +2709,7 @@ qemuBuildControllerDevStr(virDomainDefPtr domainDef,
         break;
 
     case VIR_DOMAIN_CONTROLLER_TYPE_USB:
-        if (qemuBuildUSBControllerDevStr(def, qemuCaps, &buf) == -1)
+        if (qemuBuildUSBControllerDevStr(domainDef, def, qemuCaps, &buf) == -1)
             goto error;
 
         if (nusbcontroller)
@@ -2958,20 +3064,42 @@ error:
     return NULL;
 }
 
+
+static int
+qemuSoundCodecTypeToCaps(int type)
+{
+    switch (type) {
+    case VIR_DOMAIN_SOUND_CODEC_TYPE_DUPLEX:
+        return QEMU_CAPS_HDA_DUPLEX;
+    case VIR_DOMAIN_SOUND_CODEC_TYPE_MICRO:
+        return QEMU_CAPS_HDA_MICRO;
+    default:
+        return -1;
+    }
+}
+
+
 static char *
 qemuBuildSoundCodecStr(virDomainSoundDefPtr sound,
-                       const char *codec)
+                       virDomainSoundCodecDefPtr codec,
+                       virBitmapPtr qemuCaps)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
-    int cad = 0;
+    const char *stype;
+    int type, caps;
 
-    virBufferAsprintf(&buf, "%s,id=%s-codec%d,bus=%s.0,cad=%d",
-                      codec, sound->info.alias, cad, sound->info.alias, cad);
+    type = codec->type;
+    stype = qemuSoundCodecTypeToString(type);
+    caps = qemuSoundCodecTypeToCaps(type);
 
-    if (virBufferError(&buf)) {
-        virReportOOMError();
+    if (caps == -1 || !qemuCapsGet(qemuCaps, caps)) {
+        qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                        _("%s not supported in this QEMU binary"), stype);
         goto error;
     }
+
+    virBufferAsprintf(&buf, "%s,id=%s-codec%d,bus=%s.0,cad=%d",
+                      stype, sound->info.alias, codec->cad, sound->info.alias, codec->cad);
 
     return virBufferContentAndReset(&buf);
 
@@ -3252,8 +3380,9 @@ qemuBuildChrChardevStr(virDomainChrSourceDefPtr dev, const char *alias,
         break;
 
     case VIR_DOMAIN_CHR_TYPE_DEV:
-        virBufferAsprintf(&buf, "tty,id=char%s,path=%s", alias,
-                          dev->data.file.path);
+        virBufferAsprintf(&buf, "%s,id=char%s,path=%s",
+                          STRPREFIX(alias, "parallel") ? "parport" : "tty",
+                          alias, dev->data.file.path);
         break;
 
     case VIR_DOMAIN_CHR_TYPE_FILE:
@@ -4071,9 +4200,21 @@ qemuBuildCommandLine(virConnectPtr conn,
         break;
     }
 
-    cmd = virCommandNewArgList(emulator, "-S", NULL);
+    cmd = virCommandNew(emulator);
 
     virCommandAddEnvPassCommon(cmd);
+
+    if (qemuCapsGet(qemuCaps, QEMU_CAPS_NAME)) {
+        virCommandAddArg(cmd, "-name");
+        if (driver->setProcessName &&
+            qemuCapsGet(qemuCaps, QEMU_CAPS_NAME_PROCESS)) {
+            virCommandAddArgFormat(cmd, "%s,process=qemu:%s",
+                                   def->name, def->name);
+        } else {
+            virCommandAddArg(cmd, def->name);
+        }
+    }
+    virCommandAddArg(cmd, "-S"); /* freeze CPU */
 
     /* This should *never* be NULL, since we always provide
      * a machine in the capabilities data for QEMU. So this
@@ -4148,16 +4289,6 @@ qemuBuildCommandLine(virConnectPtr conn,
         if (qemuBuildNumaArgStr(def, cmd) < 0)
             goto error;
 
-    if (qemuCapsGet(qemuCaps, QEMU_CAPS_NAME)) {
-        virCommandAddArg(cmd, "-name");
-        if (driver->setProcessName &&
-            qemuCapsGet(qemuCaps, QEMU_CAPS_NAME_PROCESS)) {
-            virCommandAddArgFormat(cmd, "%s,process=qemu:%s",
-                                   def->name, def->name);
-        } else {
-            virCommandAddArg(cmd, def->name);
-        }
-    }
     if (qemuCapsGet(qemuCaps, QEMU_CAPS_UUID))
         virCommandAddArgList(cmd, "-uuid", uuid, NULL);
     if (def->virtType == VIR_DOMAIN_VIRT_XEN ||
@@ -4237,11 +4368,12 @@ qemuBuildCommandLine(virConnectPtr conn,
         virCommandAddArg(cmd, "-nographic");
 
     if (qemuCapsGet(qemuCaps, QEMU_CAPS_DEVICE)) {
-        if (qemuCapsGet(qemuCaps, QEMU_CAPS_NODEFCONFIG))
-            virCommandAddArg(cmd,
-                             "-nodefconfig"); /* Disable global config files */
-        virCommandAddArg(cmd,
-                         "-nodefaults");  /* Disable default guest devices */
+        /* Disable global config files and default devices */
+        if (qemuCapsGet(qemuCaps, QEMU_CAPS_NO_USER_CONFIG))
+            virCommandAddArg(cmd, "-no-user-config");
+        else if (qemuCapsGet(qemuCaps, QEMU_CAPS_NODEFCONFIG))
+            virCommandAddArg(cmd, "-nodefconfig");
+        virCommandAddArg(cmd, "-nodefaults");
     }
 
     /* Serial graphics adapter */
@@ -5734,20 +5866,30 @@ qemuBuildCommandLine(virConnectPtr conn,
 
                     if (sound->model == VIR_DOMAIN_SOUND_MODEL_ICH6) {
                         char *codecstr = NULL;
-                        if (!qemuCapsGet(qemuCaps, QEMU_CAPS_HDA_DUPLEX)) {
-                            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                                    _("this QEMU binary lacks hda support"));
-                            goto error;
-                        }
+                        int ii;
 
-                        virCommandAddArg(cmd, "-device");
-                        if (!(codecstr = qemuBuildSoundCodecStr(sound,
-                                                            "hda-duplex"))) {
-                            goto error;
-                        }
+                        for (ii = 0 ; ii < sound->ncodecs ; ii++) {
+                            virCommandAddArg(cmd, "-device");
+                            if (!(codecstr = qemuBuildSoundCodecStr(sound, sound->codecs[ii], qemuCaps))) {
+                                goto error;
 
-                        virCommandAddArg(cmd, codecstr);
-                        VIR_FREE(codecstr);
+                            }
+                            virCommandAddArg(cmd, codecstr);
+                            VIR_FREE(codecstr);
+                        }
+                        if (ii == 0) {
+                            virDomainSoundCodecDef codec = {
+                                VIR_DOMAIN_SOUND_CODEC_TYPE_DUPLEX,
+                                0
+                            };
+                            virCommandAddArg(cmd, "-device");
+                            if (!(codecstr = qemuBuildSoundCodecStr(sound, &codec, qemuCaps))) {
+                                goto error;
+
+                            }
+                            virCommandAddArg(cmd, codecstr);
+                            VIR_FREE(codecstr);
+                        }
                     }
 
                     VIR_FREE(str);
@@ -6056,10 +6198,14 @@ qemuBuildChrDeviceStr(virDomainChrDefPtr serial,
     virBuffer cmd = VIR_BUFFER_INITIALIZER;
 
     if (STREQ(os_arch, "ppc64") && STREQ(machine, "pseries")) {
-        virBufferAsprintf(&cmd, "spapr-vty,chardev=char%s",
-                          serial->info.alias);
-        if (qemuBuildDeviceAddressStr(&cmd, &serial->info, qemuCaps) < 0)
-            goto error;
+        if (serial->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
+            serial->source.type == VIR_DOMAIN_CHR_TYPE_PTY &&
+            serial->info.type == VIR_DOMAIN_DEVICE_ADDRESS_TYPE_SPAPRVIO) {
+            virBufferAsprintf(&cmd, "spapr-vty,chardev=char%s",
+                              serial->info.alias);
+            if (qemuBuildDeviceAddressStr(&cmd, &serial->info, qemuCaps) < 0)
+                goto error;
+        }
     } else
         virBufferAsprintf(&cmd, "isa-serial,chardev=char%s,id=%s",
                           serial->info.alias, serial->info.alias);

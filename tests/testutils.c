@@ -35,6 +35,7 @@
 #include "logging.h"
 #include "command.h"
 #include "virrandom.h"
+#include "dirname.h"
 
 #if TEST_OOM_TRACE
 # include <execinfo.h>
@@ -43,6 +44,8 @@
 #ifdef HAVE_PATHS_H
 # include <paths.h>
 #endif
+
+#define VIR_FROM_THIS VIR_FROM_NONE
 
 #define GETTIMEOFDAY(T) gettimeofday(T, NULL)
 #define DIFF_MSEC(T, U)                                 \
@@ -469,10 +472,12 @@ virtTestLogOutput(const char *category ATTRIBUTE_UNUSED,
                   const char *funcname ATTRIBUTE_UNUSED,
                   long long lineno ATTRIBUTE_UNUSED,
                   const char *timestamp,
+                  unsigned int flags,
                   const char *str,
                   void *data)
 {
     struct virtTestLogData *log = data;
+    virCheckFlags(VIR_LOG_STACK_TRACE, -1);
     virBufferAsprintf(&log->buf, "%s: %s", timestamp, str);
     return strlen(timestamp) + 2 + strlen(str);
 }
@@ -572,9 +577,9 @@ int virtTestMain(int argc,
     if (!abs_srcdir)
         exit(EXIT_AM_HARDFAIL);
 
-    progname = argv[0];
-    if (STRPREFIX(progname, "./"))
-        progname += 2;
+    progname = last_component(argv[0]);
+    if (STRPREFIX(progname, "lt-"))
+        progname += 3;
     if (argc > 1) {
         fprintf(stderr, "Usage: %s\n", argv[0]);
         fputs("effective environment variables:\n"

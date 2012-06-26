@@ -4243,10 +4243,28 @@ esxDomainIsActive(virDomainPtr domain)
 
 
 static int
-esxDomainIsPersistent(virDomainPtr domain ATTRIBUTE_UNUSED)
+esxDomainIsPersistent(virDomainPtr domain)
 {
-    /* ESX has no concept of transient domains, so all of them are persistent */
-    return 1;
+    /* ESX has no concept of transient domains, so all of them are
+     * persistent.  However, we do want to check for existence. */
+    int result = -1;
+    esxPrivate *priv = domain->conn->privateData;
+    esxVI_ObjectContent *virtualMachine = NULL;
+
+    if (esxVI_EnsureSession(priv->primary) < 0)
+        return -1;
+
+    if (esxVI_LookupVirtualMachineByUuid(priv->primary, domain->uuid,
+                                         NULL, &virtualMachine,
+                                         esxVI_Occurrence_RequiredItem) < 0)
+        goto cleanup;
+
+    result = 1;
+
+cleanup:
+    esxVI_ObjectContent_Free(&virtualMachine);
+
+    return result;
 }
 
 
@@ -4254,7 +4272,26 @@ esxDomainIsPersistent(virDomainPtr domain ATTRIBUTE_UNUSED)
 static int
 esxDomainIsUpdated(virDomainPtr domain ATTRIBUTE_UNUSED)
 {
-    return 0;
+    /* ESX domains never have a persistent state that differs from
+     * current state.  However, we do want to check for existence.  */
+    int result = -1;
+    esxPrivate *priv = domain->conn->privateData;
+    esxVI_ObjectContent *virtualMachine = NULL;
+
+    if (esxVI_EnsureSession(priv->primary) < 0)
+        return -1;
+
+    if (esxVI_LookupVirtualMachineByUuid(priv->primary, domain->uuid,
+                                         NULL, &virtualMachine,
+                                         esxVI_Occurrence_RequiredItem) < 0)
+        goto cleanup;
+
+    result = 0;
+
+cleanup:
+    esxVI_ObjectContent_Free(&virtualMachine);
+
+    return result;
 }
 
 
@@ -4707,6 +4744,75 @@ esxDomainSnapshotCurrent(virDomainPtr domain, unsigned int flags)
 }
 
 
+static int
+esxDomainSnapshotIsCurrent(virDomainSnapshotPtr snapshot, unsigned int flags)
+{
+    esxPrivate *priv = snapshot->domain->conn->privateData;
+    esxVI_VirtualMachineSnapshotTree *currentSnapshotTree = NULL;
+    esxVI_VirtualMachineSnapshotTree *rootSnapshotList = NULL;
+    esxVI_VirtualMachineSnapshotTree *snapshotTree = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (esxVI_EnsureSession(priv->primary) < 0) {
+        return -1;
+    }
+
+    /* Check that snapshot exists.  */
+    if (esxVI_LookupRootSnapshotTreeList(priv->primary, snapshot->domain->uuid,
+                                         &rootSnapshotList) < 0 ||
+        esxVI_GetSnapshotTreeByName(rootSnapshotList, snapshot->name,
+                                    &snapshotTree, NULL,
+                                    esxVI_Occurrence_RequiredItem) < 0) {
+        goto cleanup;
+    }
+
+    if (esxVI_LookupCurrentSnapshotTree(priv->primary, snapshot->domain->uuid,
+                                        &currentSnapshotTree,
+                                        esxVI_Occurrence_RequiredItem) < 0) {
+        goto cleanup;
+    }
+
+    ret = STREQ(snapshot->name, currentSnapshotTree->name);
+
+cleanup:
+    esxVI_VirtualMachineSnapshotTree_Free(&currentSnapshotTree);
+    esxVI_VirtualMachineSnapshotTree_Free(&rootSnapshotList);
+    return ret;
+}
+
+
+static int
+esxDomainSnapshotHasMetadata(virDomainSnapshotPtr snapshot, unsigned int flags)
+{
+    esxPrivate *priv = snapshot->domain->conn->privateData;
+    esxVI_VirtualMachineSnapshotTree *rootSnapshotList = NULL;
+    esxVI_VirtualMachineSnapshotTree *snapshotTree = NULL;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    if (esxVI_EnsureSession(priv->primary) < 0) {
+        return -1;
+    }
+
+    /* Check that snapshot exists.  If so, there is no metadata.  */
+    if (esxVI_LookupRootSnapshotTreeList(priv->primary, snapshot->domain->uuid,
+                                         &rootSnapshotList) < 0 ||
+        esxVI_GetSnapshotTreeByName(rootSnapshotList, snapshot->name,
+                                    &snapshotTree, NULL,
+                                    esxVI_Occurrence_RequiredItem) < 0) {
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    esxVI_VirtualMachineSnapshotTree_Free(&rootSnapshotList);
+    return ret;
+}
+
 
 static int
 esxDomainRevertToSnapshot(virDomainSnapshotPtr snapshot, unsigned int flags)
@@ -5021,6 +5127,8 @@ static virDriver esxDriver = {
     .domainSnapshotGetParent = esxDomainSnapshotGetParent, /* 0.9.7 */
     .domainSnapshotCurrent = esxDomainSnapshotCurrent, /* 0.8.0 */
     .domainRevertToSnapshot = esxDomainRevertToSnapshot, /* 0.8.0 */
+    .domainSnapshotIsCurrent = esxDomainSnapshotIsCurrent, /* 0.9.13 */
+    .domainSnapshotHasMetadata = esxDomainSnapshotHasMetadata, /* 0.9.13 */
     .domainSnapshotDelete = esxDomainSnapshotDelete, /* 0.8.0 */
     .isAlive = esxIsAlive, /* 0.9.8 */
 };

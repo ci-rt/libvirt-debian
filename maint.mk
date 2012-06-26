@@ -332,6 +332,14 @@ sc_prohibit_strcmp:
 	halt='$(ME): replace strcmp calls above with STREQ/STRNEQ'	\
 	  $(_sc_search_regexp)
 
+# Really.  You don't want to use this function.
+# It may fail to NUL-terminate the destination,
+# and always NUL-pads out to the specified length.
+sc_prohibit_strncpy:
+	@prohibit='\<strncpy *\('					\
+	halt='do not use strncpy, period'				\
+	  $(_sc_search_regexp)
+
 # Pass EXIT_*, not number, to usage, exit, and error (when exiting)
 # Convert all uses automatically, via these two commands:
 # git grep -l '\<exit *(1)' \
@@ -1051,7 +1059,7 @@ sc_makefile_at_at_check:
 	  && { echo '$(ME): use $$(...), not @...@' 1>&2; exit 1; } || :
 
 news-check: NEWS
-	if sed -n $(news-check-lines-spec)p $(srcdir)/NEWS		\
+	if sed -n $(news-check-lines-spec)p $<				\
 	    | grep -E $(news-check-regexp) >/dev/null; then		\
 	  :;								\
 	else								\
@@ -1234,7 +1242,7 @@ bootstrap-tools ?= autoconf,automake,gnulib
 gpg_key_ID ?= \
   $$(git cat-file tag v$(VERSION) \
      | gpgv --status-fd 1 --keyring /dev/null - - 2>/dev/null \
-     | sed -n '/^\[GNUPG:\] ERRSIG /{s///;s/ .*//p;q}')
+     | awk '/^\[GNUPG:\] ERRSIG / {print $$3; exit}')
 
 translation_project_ ?= coordinator@translationproject.org
 
@@ -1260,6 +1268,7 @@ announcement: NEWS ChangeLog $(rel-files)
 	    --prev=$(PREV_VERSION)					\
 	    --curr=$(VERSION)						\
 	    --gpg-key-id=$(gpg_key_ID)					\
+	    --srcdir=$(srcdir)						\
 	    --news=$(srcdir)/NEWS					\
 	    --bootstrap-tools=$(bootstrap-tools)			\
 	    $$(case ,$(bootstrap-tools), in (*,gnulib,*)		\
@@ -1359,7 +1368,7 @@ release-prep:
 	fi
 	echo $(VERSION) > $(prev_version_file)
 	$(MAKE) update-NEWS-hash
-	perl -pi -e '$$. == 3 and print "$(gl_noteworthy_news_)\n\n\n"' NEWS
+	perl -pi -e '$$. == 3 and print "$(gl_noteworthy_news_)\n\n\n"' $(srcdir)/NEWS
 	$(emit-commit-log) > .ci-msg
 	$(VC) commit -F .ci-msg -a
 	rm .ci-msg
@@ -1414,7 +1423,7 @@ refresh-po:
 	wget --no-verbose --directory-prefix $(PODIR) --no-directories --recursive --level 1 --accept .po --accept .po.1 $(POURL) && \
 	echo 'en@boldquot' > $(PODIR)/LINGUAS && \
 	echo 'en@quot' >> $(PODIR)/LINGUAS && \
-	ls $(PODIR)/*.po | sed 's/\.po//' | sed 's,$(PODIR)/,,' | sort >> $(PODIR)/LINGUAS
+	ls $(PODIR)/*.po | sed 's/\.po//;s,$(PODIR)/,,' | sort >> $(PODIR)/LINGUAS
 
  # Running indent once is not idempotent, but running it twice is.
 INDENT_SOURCES ?= $(C_SOURCES)

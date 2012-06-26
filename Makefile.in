@@ -37,13 +37,11 @@ subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(srcdir)/libvirt.pc.in $(srcdir)/libvirt.spec.in \
-	$(srcdir)/mingw32-libvirt.spec.in $(top_srcdir)/configure \
+	$(srcdir)/mingw-libvirt.spec.in $(top_srcdir)/configure \
 	ABOUT-NLS AUTHORS COPYING COPYING.LIB ChangeLog INSTALL NEWS \
 	TODO build-aux/compile build-aux/config.guess \
 	build-aux/config.rpath build-aux/config.sub build-aux/depcomp \
-	build-aux/install-sh build-aux/ltmain.sh build-aux/mdate-sh \
-	build-aux/missing build-aux/mkinstalldirs \
-	build-aux/texinfo.tex
+	build-aux/install-sh build-aux/ltmain.sh build-aux/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/alloca.m4 \
@@ -111,6 +109,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/intmax_t.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes.m4 \
 	$(top_srcdir)/gnulib/m4/ioctl.m4 \
+	$(top_srcdir)/gnulib/m4/isatty.m4 \
 	$(top_srcdir)/gnulib/m4/langinfo_h.m4 \
 	$(top_srcdir)/gnulib/m4/largefile.m4 \
 	$(top_srcdir)/gnulib/m4/localcharset.m4 \
@@ -147,6 +146,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/nl_langinfo.m4 \
 	$(top_srcdir)/gnulib/m4/nocrash.m4 \
 	$(top_srcdir)/gnulib/m4/nonblocking.m4 \
+	$(top_srcdir)/gnulib/m4/off_t.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly.m4 \
 	$(top_srcdir)/gnulib/m4/open.m4 \
 	$(top_srcdir)/gnulib/m4/passfd.m4 \
@@ -271,9 +271,9 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
-mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = libvirt.pc libvirt.spec mingw32-libvirt.spec
+CONFIG_CLEAN_FILES = libvirt.pc libvirt.spec mingw-libvirt.spec
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
@@ -1035,6 +1035,7 @@ LIBPCAP_CFLAGS = @LIBPCAP_CFLAGS@
 LIBPCAP_LIBS = @LIBPCAP_LIBS@
 LIBPTH = @LIBPTH@
 LIBPTH_PREFIX = @LIBPTH_PREFIX@
+LIBRBD_LIBS = @LIBRBD_LIBS@
 LIBS = @LIBS@
 LIBSOCKET = @LIBSOCKET@
 LIBSSH2_CFLAGS = @LIBSSH2_CFLAGS@
@@ -1193,6 +1194,7 @@ PARTED = @PARTED@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PCIACCESS_CFLAGS = @PCIACCESS_CFLAGS@
 PCIACCESS_LIBS = @PCIACCESS_LIBS@
+PERL = @PERL@
 PKCHECK_PATH = @PKCHECK_PATH@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
@@ -1220,6 +1222,7 @@ PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_PLATFORM = @PYTHON_PLATFORM@
 PYTHON_PREFIX = @PYTHON_PREFIX@
 PYTHON_VERSION = @PYTHON_VERSION@
+QEMU = @QEMU@
 RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
@@ -1515,7 +1518,7 @@ XML_EXAMPLES = \
 EXTRA_DIST = \
   ChangeLog-old \
   libvirt.spec libvirt.spec.in \
-  mingw32-libvirt.spec.in \
+  mingw-libvirt.spec.in \
   libvirt.pc.in \
   autobuild.sh \
   Makefile.nonreentrant \
@@ -1590,7 +1593,7 @@ libvirt.pc: $(top_builddir)/config.status $(srcdir)/libvirt.pc.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 libvirt.spec: $(top_builddir)/config.status $(srcdir)/libvirt.spec.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
-mingw32-libvirt.spec: $(top_builddir)/config.status $(srcdir)/mingw32-libvirt.spec.in
+mingw-libvirt.spec: $(top_builddir)/config.status $(srcdir)/mingw-libvirt.spec.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 
 mostlyclean-libtool:

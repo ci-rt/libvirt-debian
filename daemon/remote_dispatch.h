@@ -128,6 +128,28 @@ static int remoteDispatchCloseHelper(
 
 
 
+static int remoteDispatchConnectListAllDomains(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_all_domains_args *args,
+    remote_connect_list_all_domains_ret *ret);
+static int remoteDispatchConnectListAllDomainsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListAllDomains(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectListAllDomains body has to be implemented manually */
+
+
+
 static int remoteDispatchCPUBaseline(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -2675,6 +2697,28 @@ cleanup:
         virDomainFree(dom);
     return rv;
 }
+
+
+
+static int remoteDispatchDomainListAllSnapshots(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_list_all_snapshots_args *args,
+    remote_domain_list_all_snapshots_ret *ret);
+static int remoteDispatchDomainListAllSnapshotsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainListAllSnapshots(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainListAllSnapshots body has to be implemented manually */
 
 
 
@@ -5791,6 +5835,152 @@ cleanup:
         virDomainFree(dom);
     return rv;
 }
+
+
+
+static int remoteDispatchDomainSnapshotHasMetadata(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_has_metadata_args *args,
+    remote_domain_snapshot_has_metadata_ret *ret);
+static int remoteDispatchDomainSnapshotHasMetadataHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotHasMetadata(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainSnapshotHasMetadata(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_has_metadata_args *args,
+    remote_domain_snapshot_has_metadata_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainSnapshotPtr snapshot = NULL;
+    int metadata;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->snap.dom)))
+        goto cleanup;
+
+    if (!(snapshot = get_nonnull_domain_snapshot(dom, args->snap)))
+        goto cleanup;
+
+    if ((metadata = virDomainSnapshotHasMetadata(snapshot, args->flags)) < 0)
+        goto cleanup;
+
+    ret->metadata = metadata;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (snapshot)
+        virDomainSnapshotFree(snapshot);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSnapshotIsCurrent(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_is_current_args *args,
+    remote_domain_snapshot_is_current_ret *ret);
+static int remoteDispatchDomainSnapshotIsCurrentHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotIsCurrent(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainSnapshotIsCurrent(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_is_current_args *args,
+    remote_domain_snapshot_is_current_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainSnapshotPtr snapshot = NULL;
+    int current;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->snap.dom)))
+        goto cleanup;
+
+    if (!(snapshot = get_nonnull_domain_snapshot(dom, args->snap)))
+        goto cleanup;
+
+    if ((current = virDomainSnapshotIsCurrent(snapshot, args->flags)) < 0)
+        goto cleanup;
+
+    ret->current = current;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (snapshot)
+        virDomainSnapshotFree(snapshot);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSnapshotListAllChildren(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_list_all_children_args *args,
+    remote_domain_snapshot_list_all_children_ret *ret);
+static int remoteDispatchDomainSnapshotListAllChildrenHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotListAllChildren(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainSnapshotListAllChildren body has to be implemented manually */
 
 
 
@@ -15138,6 +15328,51 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    true,
    0
+},
+{ /* Method DomainSnapshotIsCurrent => 271 */
+   remoteDispatchDomainSnapshotIsCurrentHelper,
+   sizeof(remote_domain_snapshot_is_current_args),
+   (xdrproc_t)xdr_remote_domain_snapshot_is_current_args,
+   sizeof(remote_domain_snapshot_is_current_ret),
+   (xdrproc_t)xdr_remote_domain_snapshot_is_current_ret,
+   true,
+   0
+},
+{ /* Method DomainSnapshotHasMetadata => 272 */
+   remoteDispatchDomainSnapshotHasMetadataHelper,
+   sizeof(remote_domain_snapshot_has_metadata_args),
+   (xdrproc_t)xdr_remote_domain_snapshot_has_metadata_args,
+   sizeof(remote_domain_snapshot_has_metadata_ret),
+   (xdrproc_t)xdr_remote_domain_snapshot_has_metadata_ret,
+   true,
+   0
+},
+{ /* Method ConnectListAllDomains => 273 */
+   remoteDispatchConnectListAllDomainsHelper,
+   sizeof(remote_connect_list_all_domains_args),
+   (xdrproc_t)xdr_remote_connect_list_all_domains_args,
+   sizeof(remote_connect_list_all_domains_ret),
+   (xdrproc_t)xdr_remote_connect_list_all_domains_ret,
+   true,
+   1
+},
+{ /* Method DomainListAllSnapshots => 274 */
+   remoteDispatchDomainListAllSnapshotsHelper,
+   sizeof(remote_domain_list_all_snapshots_args),
+   (xdrproc_t)xdr_remote_domain_list_all_snapshots_args,
+   sizeof(remote_domain_list_all_snapshots_ret),
+   (xdrproc_t)xdr_remote_domain_list_all_snapshots_ret,
+   true,
+   1
+},
+{ /* Method DomainSnapshotListAllChildren => 275 */
+   remoteDispatchDomainSnapshotListAllChildrenHelper,
+   sizeof(remote_domain_snapshot_list_all_children_args),
+   (xdrproc_t)xdr_remote_domain_snapshot_list_all_children_args,
+   sizeof(remote_domain_snapshot_list_all_children_ret),
+   (xdrproc_t)xdr_remote_domain_snapshot_list_all_children_ret,
+   true,
+   1
 },
 };
 size_t remoteNProcs = ARRAY_CARDINALITY(remoteProcs);

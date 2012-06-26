@@ -2590,6 +2590,62 @@ done:
 }
 
 static int
+remoteDomainSnapshotHasMetadata(virDomainSnapshotPtr snap, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = snap->domain->conn->privateData;
+    remote_domain_snapshot_has_metadata_args args;
+    remote_domain_snapshot_has_metadata_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain_snapshot(&args.snap, snap);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(snap->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_HAS_METADATA,
+             (xdrproc_t)xdr_remote_domain_snapshot_has_metadata_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_snapshot_has_metadata_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.metadata;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSnapshotIsCurrent(virDomainSnapshotPtr snap, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = snap->domain->conn->privateData;
+    remote_domain_snapshot_is_current_args args;
+    remote_domain_snapshot_is_current_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain_snapshot(&args.snap, snap);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(snap->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_IS_CURRENT,
+             (xdrproc_t)xdr_remote_domain_snapshot_is_current_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_snapshot_is_current_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.current;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const names, int maxnames, unsigned int flags)
 {
     int rv = -1;

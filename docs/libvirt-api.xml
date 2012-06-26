@@ -37,6 +37,7 @@
      <exports symbol='VIR_DOMAIN_CPU_STATS_CPUTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_CPU_STATS_SYSTEMTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_CPU_STATS_USERTIME' type='macro'/>
+     <exports symbol='VIR_DOMAIN_CPU_STATS_VCPUTIME' type='macro'/>
      <exports symbol='VIR_DOMAIN_EVENT_CALLBACK' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_FIELD_LENGTH' type='macro'/>
      <exports symbol='VIR_DOMAIN_MEMORY_HARD_LIMIT' type='macro'/>
@@ -80,6 +81,20 @@
      <exports symbol='_virBlkioParameter' type='macro'/>
      <exports symbol='_virMemoryParameter' type='macro'/>
      <exports symbol='_virSchedParameter' type='macro'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_ACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_AUTOSTART' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_INACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_OTHER' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_PAUSED' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_PERSISTENT' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_RUNNING' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_SHUTOFF' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_DOMAINS_TRANSIENT' type='enum'/>
      <exports symbol='VIR_CONNECT_NO_ALIASES' type='enum'/>
      <exports symbol='VIR_CONNECT_RO' type='enum'/>
      <exports symbol='VIR_CPU_COMPARE_ERROR' type='enum'/>
@@ -331,6 +346,8 @@
      <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_LEAVES' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_METADATA' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES' type='enum'/>
+     <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_LIST_ROOTS' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_REVERT_FORCE' type='enum'/>
      <exports symbol='VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED' type='enum'/>
@@ -351,6 +368,7 @@
      <exports symbol='VIR_DUMP_BYPASS_CACHE' type='enum'/>
      <exports symbol='VIR_DUMP_CRASH' type='enum'/>
      <exports symbol='VIR_DUMP_LIVE' type='enum'/>
+     <exports symbol='VIR_DUMP_MEMORY_ONLY' type='enum'/>
      <exports symbol='VIR_DUMP_RESET' type='enum'/>
      <exports symbol='VIR_EVENT_HANDLE_ERROR' type='enum'/>
      <exports symbol='VIR_EVENT_HANDLE_HANGUP' type='enum'/>
@@ -410,6 +428,7 @@
      <exports symbol='VIR_STORAGE_VOL_DIR' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_FILE' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_LAST' type='enum'/>
+     <exports symbol='VIR_STORAGE_VOL_NETWORK' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_ALLOCATE' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_DELTA' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_RESIZE_SHRINK' type='enum'/>
@@ -454,6 +473,7 @@
      <exports symbol='virConnectDomainEventBlockJobStatus' type='typedef'/>
      <exports symbol='virConnectDomainEventDiskChangeReason' type='typedef'/>
      <exports symbol='virConnectFlags' type='typedef'/>
+     <exports symbol='virConnectListAllDomainsFlags' type='typedef'/>
      <exports symbol='virConnectPtr' type='typedef'/>
      <exports symbol='virDomain' type='typedef'/>
      <exports symbol='virDomainBlockInfo' type='typedef'/>
@@ -655,6 +675,7 @@
      <exports symbol='virConnectIsAlive' type='function'/>
      <exports symbol='virConnectIsEncrypted' type='function'/>
      <exports symbol='virConnectIsSecure' type='function'/>
+     <exports symbol='virConnectListAllDomains' type='function'/>
      <exports symbol='virConnectListDefinedDomains' type='function'/>
      <exports symbol='virConnectListDefinedInterfaces' type='function'/>
      <exports symbol='virConnectListDefinedNetworks' type='function'/>
@@ -740,6 +761,7 @@
      <exports symbol='virDomainIsActive' type='function'/>
      <exports symbol='virDomainIsPersistent' type='function'/>
      <exports symbol='virDomainIsUpdated' type='function'/>
+     <exports symbol='virDomainListAllSnapshots' type='function'/>
      <exports symbol='virDomainLookupByID' type='function'/>
      <exports symbol='virDomainLookupByName' type='function'/>
      <exports symbol='virDomainLookupByUUID' type='function'/>
@@ -799,11 +821,15 @@
      <exports symbol='virDomainSnapshotGetName' type='function'/>
      <exports symbol='virDomainSnapshotGetParent' type='function'/>
      <exports symbol='virDomainSnapshotGetXMLDesc' type='function'/>
+     <exports symbol='virDomainSnapshotHasMetadata' type='function'/>
+     <exports symbol='virDomainSnapshotIsCurrent' type='function'/>
+     <exports symbol='virDomainSnapshotListAllChildren' type='function'/>
      <exports symbol='virDomainSnapshotListChildrenNames' type='function'/>
      <exports symbol='virDomainSnapshotListNames' type='function'/>
      <exports symbol='virDomainSnapshotLookupByName' type='function'/>
      <exports symbol='virDomainSnapshotNum' type='function'/>
      <exports symbol='virDomainSnapshotNumChildren' type='function'/>
+     <exports symbol='virDomainSnapshotRef' type='function'/>
      <exports symbol='virDomainSuspend' type='function'/>
      <exports symbol='virDomainUndefine' type='function'/>
      <exports symbol='virDomainUndefineFlags' type='function'/>
@@ -985,6 +1011,7 @@
      <exports symbol='VIR_ERR_CALL_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_CONFIG_UNSUPPORTED' type='enum'/>
      <exports symbol='VIR_ERR_CONF_SYNTAX' type='enum'/>
+     <exports symbol='VIR_ERR_DOMAIN_LAST' type='enum'/>
      <exports symbol='VIR_ERR_DOM_EXIST' type='enum'/>
      <exports symbol='VIR_ERR_DRIVER_FULL' type='enum'/>
      <exports symbol='VIR_ERR_ERROR' type='enum'/>
@@ -1231,13 +1258,16 @@
       <info><![CDATA[Macro represents the total time spend on cache writes in nano-seconds of the block device, as an llong.]]></info>
     </macro>
     <macro name='VIR_DOMAIN_CPU_STATS_CPUTIME' file='libvirt'>
-      <info><![CDATA[cpu usage in nanoseconds, as a ullong]]></info>
+      <info><![CDATA[cpu usage (sum of both vcpu and hypervisor usage) in nanoseconds, as a ullong]]></info>
     </macro>
     <macro name='VIR_DOMAIN_CPU_STATS_SYSTEMTIME' file='libvirt'>
       <info><![CDATA[cpu time charged to system instructions in nanoseconds, as a ullong]]></info>
     </macro>
     <macro name='VIR_DOMAIN_CPU_STATS_USERTIME' file='libvirt'>
       <info><![CDATA[cpu time charged to user instructions in nanoseconds, as a ullong]]></info>
+    </macro>
+    <macro name='VIR_DOMAIN_CPU_STATS_VCPUTIME' file='libvirt'>
+      <info><![CDATA[vcpu usage in nanoseconds (cpu_time excluding hypervisor time), as a ullong]]></info>
     </macro>
     <macro name='VIR_DOMAIN_EVENT_CALLBACK' file='libvirt'>
       <info><![CDATA[Used to cast the event specific callback into the generic one for use for virDomainEventRegister]]></info>
@@ -1373,6 +1403,20 @@
     </macro>
     <macro name='_virSchedParameter' file='libvirt'>
     </macro>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_ACTIVE' file='libvirt' value='1' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_AUTOSTART' file='libvirt' value='1024' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT' file='libvirt' value='4096' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_INACTIVE' file='libvirt' value='2' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE' file='libvirt' value='256' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART' file='libvirt' value='2048' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE' file='libvirt' value='512' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT' file='libvirt' value='8192' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_OTHER' file='libvirt' value='128' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_PAUSED' file='libvirt' value='32' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_PERSISTENT' file='libvirt' value='4' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_RUNNING' file='libvirt' value='16' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_SHUTOFF' file='libvirt' value='64' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_DOMAINS_TRANSIENT' file='libvirt' value='8' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_NO_ALIASES' file='libvirt' value='2' type='virConnectFlags' info='Don&apos;t try to resolve URI aliases'/>
     <enum name='VIR_CONNECT_RO' file='libvirt' value='1' type='virConnectFlags' info='A readonly connection'/>
     <enum name='VIR_CPU_COMPARE_ERROR' file='libvirt' value='-1' type='virCPUCompareResult'/>
@@ -1657,11 +1701,15 @@ external files'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_DELETE_METADATA_ONLY' file='libvirt' value='2' type='virDomainSnapshotDeleteFlags' info='Delete just metadata'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS' file='libvirt' value='1' type='virDomainSnapshotListFlags' info='List all descendants,
 not just children, when
-listing a snapshot'/>
+listing a snapshot For historical reasons, groups do not use contiguous bits.'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_LIST_LEAVES' file='libvirt' value='4' type='virDomainSnapshotListFlags' info='Filter by snapshots
 with no children'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_LIST_METADATA' file='libvirt' value='2' type='virDomainSnapshotListFlags' info='Filter by snapshots
 which have metadata'/>
+    <enum name='VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES' file='libvirt' value='8' type='virDomainSnapshotListFlags' info='Filter by snapshots
+that have children'/>
+    <enum name='VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA' file='libvirt' value='16' type='virDomainSnapshotListFlags' info='Filter by snapshots
+with no metadata'/>
     <enum name='VIR_DOMAIN_SNAPSHOT_LIST_ROOTS' file='libvirt' value='1' type='virDomainSnapshotListFlags' info='Filter by snapshots
 with no parents, when
 listing a domain'/>
@@ -1687,6 +1735,7 @@ snapshot metadata Future undefine control flags should come here.'/>
     <enum name='VIR_DUMP_BYPASS_CACHE' file='libvirt' value='4' type='virDomainCoreDumpFlags' info='avoid file system cache pollution'/>
     <enum name='VIR_DUMP_CRASH' file='libvirt' value='1' type='virDomainCoreDumpFlags' info='crash after dump'/>
     <enum name='VIR_DUMP_LIVE' file='libvirt' value='2' type='virDomainCoreDumpFlags' info='live dump'/>
+    <enum name='VIR_DUMP_MEMORY_ONLY' file='libvirt' value='16' type='virDomainCoreDumpFlags' info='use dump-guest-memory'/>
     <enum name='VIR_DUMP_RESET' file='libvirt' value='8' type='virDomainCoreDumpFlags' info='reset domain after dump finishes'/>
     <enum name='VIR_ERR_ARGUMENT_UNSUPPORTED' file='virterror' value='74' type='virErrorNumber' info='valid API use but unsupported by
 the given driver'/>
@@ -1700,6 +1749,7 @@ the given driver'/>
 construct'/>
     <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a
 conf file'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='48' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -1896,7 +1946,8 @@ VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
     <enum name='VIR_STORAGE_VOL_DELETE_ZEROED' file='libvirt' value='1' type='virStorageVolDeleteFlags' info='Clear all data to zeros (slow)'/>
     <enum name='VIR_STORAGE_VOL_DIR' file='libvirt' value='2' type='virStorageVolType' info='Directory-passthrough based volume'/>
     <enum name='VIR_STORAGE_VOL_FILE' file='libvirt' value='0' type='virStorageVolType' info='Regular file based volumes'/>
-    <enum name='VIR_STORAGE_VOL_LAST' file='libvirt' value='3' type='virStorageVolType'/>
+    <enum name='VIR_STORAGE_VOL_LAST' file='libvirt' value='4' type='virStorageVolType'/>
+    <enum name='VIR_STORAGE_VOL_NETWORK' file='libvirt' value='3' type='virStorageVolType' info='Network volumes like RBD (RADOS Block Device)'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_ALLOCATE' file='libvirt' value='1' type='virStorageVolResizeFlags' info='force allocation of new size'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_DELTA' file='libvirt' value='2' type='virStorageVolResizeFlags' info='size is relative to current'/>
     <enum name='VIR_STORAGE_VOL_RESIZE_SHRINK' file='libvirt' value='4' type='virStorageVolResizeFlags' info='allow decrease in capacity'/>
@@ -1983,6 +2034,7 @@ Cryptography&quot; (1996)'/>
     <typedef name='virConnectDomainEventBlockJobStatus' file='libvirt' type='enum'/>
     <typedef name='virConnectDomainEventDiskChangeReason' file='libvirt' type='enum'/>
     <typedef name='virConnectFlags' file='libvirt' type='enum'/>
+    <typedef name='virConnectListAllDomainsFlags' file='libvirt' type='enum'/>
     <typedef name='virConnectPtr' file='libvirt' type='virConnect *'>
       <info><![CDATA[a virConnectPtr is pointer to a virConnect private structure, this is the type used to reference a connection to the Hypervisor in the API.]]></info>
     </typedef>
@@ -2763,10 +2815,57 @@ to eavesdropping (eg a UNIX domain socket, or pipe)]]></info>
       <return type='int' info='1 if secure, 0 if secure, -1 on error'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the connection object'/>
     </function>
+    <function name='virConnectListAllDomains' file='libvirt' module='libvirt'>
+      <info><![CDATA[Collect a possibly-filtered list of all domains, and return an allocated
+array of information for each.  This API solves the race inherent in
+virConnectListDomains() and virConnectListDefinedDomains().
+
+Normally, all domains are returned; however, @flags can be used to
+filter the results for a smaller list of targeted domains.  The valid
+flags are divided into groups, where each group contains bits that
+describe mutually exclusive attributes of a domain, and where all bits
+within a group describe all possible domains.  Some hypervisors might
+reject explicit bits from a group where the hypervisor cannot make a
+distinction (for example, not all hypervisors can tell whether domains
+have snapshots).  For a group supported by a given hypervisor, the
+behavior when no bits of a group are set is identical to the behavior
+when all bits in that group are set.  When setting bits from more than
+one group, it is possible to select an impossible combination (such
+as an inactive transient domain), in that case a hypervisor may return
+either 0 or an error.
+
+The first group of @flags is VIR_CONNECT_LIST_DOMAINS_ACTIVE (online
+domains) and VIR_CONNECT_LIST_DOMAINS_INACTIVE (offline domains).
+
+The next group of @flags is VIR_CONNECT_LIST_DOMAINS_PERSISTENT (defined
+domains) and VIR_CONNECT_LIST_DOMAINS_TRANSIENT (running but not defined).
+
+The next group of @flags covers various domain states:
+VIR_CONNECT_LIST_DOMAINS_RUNNING, VIR_CONNECT_LIST_DOMAINS_PAUSED,
+VIR_CONNECT_LIST_DOMAINS_SHUTOFF, and a catch-all for all other states
+(such as crashed, this catch-all covers the possibility of adding new
+states).
+
+The remaining groups cover boolean attributes commonly asked about
+domains; they include VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE and
+VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE, for filtering based on whether
+a managed save image exists; VIR_CONNECT_LIST_DOMAINS_AUTOSTART and
+VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART, for filtering based on autostart;
+VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT and
+VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT, for filtering based on whether
+a domain has snapshots.]]></info>
+      <return type='int' info='the number of domains found or -1 and sets domains to NULL in case of error.  On success, the array stored into @doms is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier. The caller is responsible for calling virDomainFree() on each array element, then calling free() on @doms.  Example of usage: virDomainPtr *domains; virDomainPtr dom; int i; int ret; unsigned int flags = VIR_CONNECT_LIST_RUNNING | VIR_CONNECT_LIST_PERSISTENT;  ret = virConnectListAllDomains(conn, &amp;domains, flags); if (ret &lt; 0) error();  for (i = 0; i &lt; ret; i++) { do_something_with_domain(domains[i]);  //here or in a separate loop if needed virDomainFree(domains[i]); }  free(domains);'/>
+      <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
+      <arg name='domains' type='virDomainPtr **' info='Pointer to a variable to store the array containing domain objects or NULL if the list is not required (just returns number of guests).'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectListAllDomainsFlags'/>
+    </function>
     <function name='virConnectListDefinedDomains' file='libvirt' module='libvirt'>
       <info><![CDATA[list the defined but inactive domains, stores the pointers to the names
-in @names]]></info>
-      <return type='int' info='the number of names provided in the array or -1 in case of error'/>
+in @names
+
+For active domains, see virConnectListDomains().  For more control over
+the results, see virConnectListAllDomains().]]></info>
+      <return type='int' info='the number of names provided in the array or -1 in case of error. Note that this command is inherently racy; a domain can be defined between a call to virConnectNumOfDefinedDomains() and this call; you are only guaranteed that all currently defined domains were listed if the return is less than @maxids.  The client must call free() on each returned name.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='names' type='char ** const' info='pointer to an array to store the names'/>
       <arg name='maxnames' type='int' info='size of the array'/>
@@ -2796,8 +2895,11 @@ remaining names will be silently ignored.]]></info>
       <arg name='maxnames' type='int' info='size of the names array'/>
     </function>
     <function name='virConnectListDomains' file='libvirt' module='libvirt'>
-      <info><![CDATA[Collect the list of active domains, and store their IDs in array @ids]]></info>
-      <return type='int' info='the number of domains found or -1 in case of error'/>
+      <info><![CDATA[Collect the list of active domains, and store their IDs in array @ids
+
+For inactive domains, see virConnectListDefinedDomains().  For more
+control over the results, see virConnectListAllDomains().]]></info>
+      <return type='int' info='the number of domains found or -1 in case of error.  Note that this command is inherently racy; a domain can be started between a call to virConnectNumOfDomains() and this call; you are only guaranteed that all currently active domains were listed if the return is less than @maxids.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='ids' type='int *' info='array to collect the list of IDs of active domains'/>
       <arg name='maxids' type='int' info='size of @ids'/>
@@ -3089,7 +3191,8 @@ call would succeed.
 
 NB. The remote driver imposes a 64K byte limit on 'size'.
 For your program to be able to work reliably over a remote
-connection you should split large requests to <= 65536 bytes.]]></info>
+connection you should split large requests to <= 65536 bytes.
+However, with 0.9.13 this RPC limit has been raised to 1M byte.]]></info>
       <return type='int' info='0 in case of success or -1 in case of failure. really 64 bits'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
       <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
@@ -3984,6 +4087,37 @@ which means it will still exist after shutting down]]></info>
       <return type='int' info='1 if updated, 0 if not, -1 on error'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
     </function>
+    <function name='virDomainListAllSnapshots' file='libvirt' module='libvirt'>
+      <info><![CDATA[Collect the list of domain snapshots for the given domain, and allocate
+an array to store those objects.  This API solves the race inherent in
+virDomainSnapshotListNames().
+
+By default, this command covers all snapshots; it is also possible to
+limit things to just snapshots with no parents, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots.  Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction.  For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set.  When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
+
+The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.]]></info>
+      <return type='int' info='the number of domain snapshots found or -1 and sets @snaps to NULL in case of error.  On success, the array stored into @snaps is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virDomainSnapshotFree() on each array element, then calling free() on @snaps.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='snaps' type='virDomainSnapshotPtr **' info='pointer to variable to store the array containing snapshot objects, or NULL if the list is not required (just returns number of snapshots)'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotListFlags'/>
+    </function>
     <function name='virDomainLookupByID' file='libvirt' module='libvirt'>
       <info><![CDATA[Try to find a domain based on the hypervisor ID number
 Note that this won't work for inactive domains which have an ID of -1,
@@ -4062,7 +4196,8 @@ coherently.
 
 NB. The remote driver imposes a 64K byte limit on 'size'.
 For your program to be able to work reliably over a remote
-connection you should split large requests to <= 65536 bytes.]]></info>
+connection you should split large requests to <= 65536 bytes.
+However, with 0.9.13 this RPC limit has been raised to 1M byte.]]></info>
       <return type='int' info='0 in case of success or -1 in case of failure. really 64 bits'/>
       <arg name='dom' type='virDomainPtr' info='pointer to the domain object'/>
       <arg name='start' type='unsigned long long' info='start of memory to peek'/>
@@ -5125,23 +5260,79 @@ VIR_DOMAIN_XML_INACTIVE or VIR_DOMAIN_XML_UPDATE_CPU.]]></info>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a domain snapshot object'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of subset of virDomainXMLFlags'/>
     </function>
+    <function name='virDomainSnapshotHasMetadata' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the given snapshot is associated with libvirt metadata
+that would prevent the deletion of the domain.]]></info>
+      <return type='int' info='1 if the snapshot has metadata, 0 if the snapshot exists without help from libvirt, or -1 on error.'/>
+      <arg name='snapshot' type='virDomainSnapshotPtr' info='a snapshot object'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainSnapshotIsCurrent' file='libvirt' module='libvirt'>
+      <info><![CDATA[Determine if the given snapshot is the domain's current snapshot.  See
+also virDomainHasCurrentSnapshot().]]></info>
+      <return type='int' info='1 if current, 0 if not current, or -1 on error.'/>
+      <arg name='snapshot' type='virDomainSnapshotPtr' info='a snapshot object'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virDomainSnapshotListAllChildren' file='libvirt' module='libvirt'>
+      <info><![CDATA[Collect the list of domain snapshots that are children of the given
+snapshot, and allocate an array to store those objects.  This API solves
+the race inherent in virDomainSnapshotListChildrenNames().
+
+By default, this command covers only direct children; it is also possible
+to expand things to cover all descendants, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS.  Also, some filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots.  Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction.  For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set.  When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
+
+The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.]]></info>
+      <return type='int' info='the number of domain snapshots found or -1 and sets @snaps to NULL in case of error.  On success, the array stored into @snaps is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virDomainSnapshotFree() on each array element, then calling free() on @snaps.'/>
+      <arg name='snapshot' type='virDomainSnapshotPtr' info='a domain snapshot object'/>
+      <arg name='snaps' type='virDomainSnapshotPtr **' info='pointer to variable to store the array containing snapshot objects, or NULL if the list is not required (just returns number of snapshots)'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotListFlags'/>
+    </function>
     <function name='virDomainSnapshotListChildrenNames' file='libvirt' module='libvirt'>
       <info><![CDATA[Collect the list of domain snapshots that are children of the given
-snapshot, and store their names in @names.  Caller is responsible for
-freeing each member of the array.  The value to use for @nameslen can
-be determined by virDomainSnapshotNumChildren() with the same @flags.
+snapshot, and store their names in @names.  The value to use for
+@nameslen can be determined by virDomainSnapshotNumChildren() with
+the same @flags.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS, then the result
-includes all descendants, otherwise it is limited to direct children.
+By default, this command covers only direct children; it is also possible
+to expand things to cover all descendants, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS.  Also, some filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots.  Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction.  For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set.  When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
-filtered to the number of snapshots that have no children.
+The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
-the number of snapshots that also include metadata that would prevent
-the removal of the last reference to a domain; this value will either
-be 0 or the same value as if the flag were not given.]]></info>
-      <return type='int' info='the number of domain snapshots found or -1 in case of error.'/>
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.]]></info>
+      <return type='int' info='the number of domain snapshots found or -1 in case of error. Note that this command is inherently racy: another connection can define a new snapshot between a call to virDomainSnapshotNumChildren() and this call.  You are only guaranteed that all currently defined snapshots were listed if the return is less than @nameslen.  Likewise, you should be prepared for virDomainSnapshotLookupByName() to fail when converting a name from this call into a snapshot object, if another connection deletes the snapshot in the meantime.  For more control over the results, see virDomainSnapshotListAllChildren().  Returns the number of domain snapshots found or -1 in case of error. The caller is responsible for freeing each member of the array.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a domain snapshot object'/>
       <arg name='names' type='char **' info='array to collect the list of names of snapshots'/>
       <arg name='nameslen' type='int' info='size of @names'/>
@@ -5149,21 +5340,40 @@ be 0 or the same value as if the flag were not given.]]></info>
     </function>
     <function name='virDomainSnapshotListNames' file='libvirt' module='libvirt'>
       <info><![CDATA[Collect the list of domain snapshots for the given domain, and store
-their names in @names.  Caller is responsible for freeing each member
-of the array.  The value to use for @nameslen can be determined by
-virDomainSnapshotNum() with the same @flags.
+their names in @names.  The value to use for @nameslen can be determined
+by virDomainSnapshotNum() with the same @flags.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
-filtered to the number of snapshots that have no parents.  Likewise,
-if @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
-filtered to the number of snapshots that have no children.  Both flags
-can be used together to find unrelated snapshots.
+By default, this command covers all snapshots; it is also possible to
+limit things to just snapshots with no parents, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots.  Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction.  For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set.  When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
-the number of snapshots that also include metadata that would prevent
-the removal of the last reference to a domain; this value will either
-be 0 or the same value as if the flag were not given.]]></info>
-      <return type='int' info='the number of domain snapshots found or -1 in case of error.'/>
+The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.
+
+Note that this command is inherently racy: another connection can
+define a new snapshot between a call to virDomainSnapshotNum() and
+this call.  You are only guaranteed that all currently defined
+snapshots were listed if the return is less than @nameslen.  Likewise,
+you should be prepared for virDomainSnapshotLookupByName() to fail when
+converting a name from this call into a snapshot object, if another
+connection deletes the snapshot in the meantime.  For more control over
+the results, see virDomainListAllSnapshots().]]></info>
+      <return type='int' info='the number of domain snapshots found or -1 in case of error. The caller is responsible for freeing each member of the array.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='names' type='char **' info='array to collect the list of names of snapshots'/>
       <arg name='nameslen' type='int' info='size of @names'/>
@@ -5179,16 +5389,27 @@ be 0 or the same value as if the flag were not given.]]></info>
     <function name='virDomainSnapshotNum' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides the number of domain snapshots for this domain.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
-filtered to the number of snapshots that have no parents.  Likewise,
-if @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
-filtered to the number of snapshots that have no children.  Both flags
-can be used together to find unrelated snapshots.
+By default, this command covers all snapshots; it is also possible to
+limit things to just snapshots with no parents, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots.  Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction.  For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set.  When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
-the number of snapshots that also include metadata that would prevent
-the removal of the last reference to a domain; this value will either
-be 0 or the same value as if the flag were not given.]]></info>
+The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
+
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.]]></info>
       <return type='int' info='the number of domain snapshots found or -1 in case of error.'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotListFlags'/>
@@ -5196,19 +5417,44 @@ be 0 or the same value as if the flag were not given.]]></info>
     <function name='virDomainSnapshotNumChildren' file='libvirt' module='libvirt'>
       <info><![CDATA[Provides the number of child snapshots for this domain snapshot.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS, then the result
-includes all descendants, otherwise it is limited to direct children.
+By default, this command covers only direct children; it is also possible
+to expand things to cover all descendants, when @flags includes
+VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS.  Also, some filters are provided in
+groups, where each group contains bits that describe mutually exclusive
+attributes of a snapshot, and where all bits within a group describe
+all possible snapshots.  Some hypervisors might reject explicit bits
+from a group where the hypervisor cannot make a distinction.  For a
+group supported by a given hypervisor, the behavior when no bits of a
+group are set is identical to the behavior when all bits in that group
+are set.  When setting bits from more than one group, it is possible to
+select an impossible combination, in that case a hypervisor may return
+either 0 or an error.
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
-filtered to the number of snapshots that have no children.
+The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+have no further children (a leaf snapshot).
 
-If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
-the number of snapshots that also include metadata that would prevent
-the removal of the last reference to a domain; this value will either
-be 0 or the same value as if the flag were not given.]]></info>
+The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+whether they have metadata that would prevent the removal of the last
+reference to a domain.]]></info>
       <return type='int' info='the number of domain snapshots found or -1 in case of error.'/>
       <arg name='snapshot' type='virDomainSnapshotPtr' info='a domain snapshot object'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of supported virDomainSnapshotListFlags'/>
+    </function>
+    <function name='virDomainSnapshotRef' file='libvirt' module='libvirt'>
+      <info><![CDATA[Increment the reference count on the snapshot. For each
+additional call to this method, there shall be a corresponding
+call to virDomainSnapshotFree to release the reference count, once
+the caller no longer needs the reference to this object.
+
+This method is typically useful for applications where multiple
+threads are using a connection, and it is required that the
+connection and domain remain open until all threads have finished
+using the snapshot. ie, each new thread using a snapshot would
+increment the reference count.]]></info>
+      <return type='int' info='0 in case of success and -1 in case of failure.'/>
+      <arg name='snapshot' type='virDomainSnapshotPtr' info='the snapshot to hold a reference on'/>
     </function>
     <function name='virDomainSuspend' file='libvirt' module='libvirt'>
       <info><![CDATA[Suspends an active domain, the process is frozen without further access

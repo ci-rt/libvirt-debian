@@ -77,7 +77,7 @@
 # ifdef WITH_NETCF
 #  include "interface/netcf_driver.h"
 # endif
-# ifdef WITH_STORAGE_DIR
+# ifdef WITH_STORAGE
 #  include "storage/storage_driver.h"
 # endif
 # ifdef WITH_NODE_DEVICES
@@ -239,17 +239,25 @@ daemonPidFilePath(bool privileged,
         if (!(*pidfile = strdup(LOCALSTATEDIR "/run/libvirtd.pid")))
             goto no_memory;
     } else {
-        char *userdir = NULL;
+        char *rundir = NULL;
+        mode_t old_umask;
 
-        if (!(userdir = virGetUserDirectory(geteuid())))
+        if (!(rundir = virGetUserRuntimeDirectory()))
             goto error;
 
-        if (virAsprintf(pidfile, "%s/.libvirt/libvirtd.pid", userdir) < 0) {
-            VIR_FREE(userdir);
+        old_umask = umask(077);
+        if (virFileMakePath(rundir) < 0) {
+            umask(old_umask);
+            goto error;
+        }
+        umask(old_umask);
+
+        if (virAsprintf(pidfile, "%s/libvirtd.pid", rundir) < 0) {
+            VIR_FREE(rundir);
             goto no_memory;
         }
 
-        VIR_FREE(userdir);
+        VIR_FREE(rundir);
     }
 
     return 0;
@@ -279,17 +287,25 @@ daemonUnixSocketPaths(struct daemonConfig *config,
             if (!(*rosockfile = strdup(LOCALSTATEDIR "/run/libvirt/libvirt-sock-ro")))
                 goto no_memory;
         } else {
-            char *userdir = NULL;
+            char *rundir = NULL;
+            mode_t old_umask;
 
-            if (!(userdir = virGetUserDirectory(geteuid())))
+            if (!(rundir = virGetUserRuntimeDirectory()))
                 goto error;
 
-            if (virAsprintf(sockfile, "@%s/.libvirt/libvirt-sock", userdir) < 0) {
-                VIR_FREE(userdir);
+            old_umask = umask(077);
+            if (virFileMakePath(rundir) < 0) {
+                umask(old_umask);
+                goto error;
+            }
+            umask(old_umask);
+
+            if (virAsprintf(sockfile, "%s/libvirt-sock", rundir) < 0) {
+                VIR_FREE(rundir);
                 goto no_memory;
             }
 
-            VIR_FREE(userdir);
+            VIR_FREE(rundir);
         }
     }
     return 0;
@@ -347,14 +363,39 @@ static void daemonInitialize(void)
      * If they try to open a connection for a module that
      * is not loaded they'll get a suitable error at that point
      */
+# ifdef WITH_NETWORK
     virDriverLoadModule("network");
+# endif
+# ifdef WITH_STORAGE
     virDriverLoadModule("storage");
+# endif
+# ifdef WITH_NODE_DEVICES
     virDriverLoadModule("nodedev");
+# endif
+# ifdef WITH_SECRETS
     virDriverLoadModule("secret");
-    virDriverLoadModule("qemu");
-    virDriverLoadModule("lxc");
-    virDriverLoadModule("uml");
+# endif
+# ifdef WITH_NWFILTER
     virDriverLoadModule("nwfilter");
+# endif
+# ifdef WITH_INTERFACE
+    virDriverLoadModule("interface");
+# endif
+# ifdef WITH_QEMU
+    virDriverLoadModule("qemu");
+# endif
+# ifdef WITH_LXC
+    virDriverLoadModule("lxc");
+# endif
+# ifdef WITH_UML
+    virDriverLoadModule("uml");
+# endif
+# ifdef WITH_XEN
+    virDriverLoadModule("xen");
+# endif
+# ifdef WITH_LIBXL
+    virDriverLoadModule("libxl");
+# endif
 #else
 # ifdef WITH_NETWORK
     networkRegister();
@@ -362,10 +403,10 @@ static void daemonInitialize(void)
 # ifdef WITH_NETCF
     interfaceRegister();
 # endif
-# ifdef WITH_STORAGE_DIR
+# ifdef WITH_STORAGE
     storageRegister();
 # endif
-# if defined(WITH_NODE_DEVICES)
+# ifdef WITH_NODE_DEVICES
     nodedevRegister();
 # endif
 # ifdef WITH_SECRETS
@@ -420,6 +461,7 @@ static int daemonSetupNetworking(virNetServerPtr srv,
         goto error;
     }
 
+    VIR_DEBUG("Registering unix socket %s", sock_path);
     if (!(svc = virNetServerServiceNewUNIX(sock_path,
                                            unix_sock_rw_mask,
                                            unix_sock_gid,
@@ -428,15 +470,17 @@ static int daemonSetupNetworking(virNetServerPtr srv,
                                            config->max_client_requests,
                                            NULL)))
         goto error;
-    if (sock_path_ro &&
-        !(svcRO = virNetServerServiceNewUNIX(sock_path_ro,
-                                             unix_sock_ro_mask,
-                                             unix_sock_gid,
-                                             config->auth_unix_ro,
-                                             true,
-                                             config->max_client_requests,
-                                             NULL)))
-        goto error;
+    if (sock_path_ro) {
+        VIR_DEBUG("Registering unix socket %s", sock_path_ro);
+        if (!(svcRO = virNetServerServiceNewUNIX(sock_path_ro,
+                                                 unix_sock_ro_mask,
+                                                 unix_sock_gid,
+                                                 config->auth_unix_ro,
+                                                 true,
+                                                 config->max_client_requests,
+                                                 NULL)))
+            goto error;
+    }
 
     if (virNetServerAddService(srv, svc,
                                config->mdns_adv && !ipsock ?
@@ -450,6 +494,8 @@ static int daemonSetupNetworking(virNetServerPtr srv,
 
     if (ipsock) {
         if (config->listen_tcp) {
+            VIR_DEBUG("Registering TCP socket %s:%s",
+                      config->listen_addr, config->tcp_port);
             if (!(svcTCP = virNetServerServiceNewTCP(config->listen_addr,
                                                      config->tcp_port,
                                                      config->auth_tcp,
@@ -486,6 +532,8 @@ static int daemonSetupNetworking(virNetServerPtr srv,
                     goto error;
             }
 
+            VIR_DEBUG("Registering TLS socket %s:%s",
+                      config->listen_addr, config->tls_port);
             if (!(svcTLS =
                   virNetServerServiceNewTCP(config->listen_addr,
                                             config->tls_port,
@@ -593,16 +641,25 @@ daemonSetupLogging(struct daemonConfig *config,
                                 LOCALSTATEDIR) == -1)
                     goto no_memory;
             } else {
-                char *userdir = virGetUserDirectory(geteuid());
-                if (!userdir)
+                char *logdir = virGetUserCacheDirectory();
+                mode_t old_umask;
+
+                if (!logdir)
                     goto error;
 
-                if (virAsprintf(&tmp, "%d:file:%s/.libvirt/libvirtd.log",
-                                virLogGetDefaultPriority(), userdir) == -1) {
-                    VIR_FREE(userdir);
+                old_umask = umask(077);
+                if (virFileMakePath(logdir) < 0) {
+                    umask(old_umask);
+                    goto error;
+                }
+                umask(old_umask);
+
+                if (virAsprintf(&tmp, "%d:file:%s/libvirtd.log",
+                                virLogGetDefaultPriority(), logdir) == -1) {
+                    VIR_FREE(logdir);
                     goto no_memory;
                 }
-                VIR_FREE(userdir);
+                VIR_FREE(logdir);
             }
         } else {
             if (virAsprintf(&tmp, "%d:stderr", virLogGetDefaultPriority()) < 0)
@@ -722,6 +779,82 @@ static int daemonStateInit(virNetServerPtr srv)
     return 0;
 }
 
+static int migrateProfile(void)
+{
+    char *old_base = NULL;
+    char *updated = NULL;
+    char *home = NULL;
+    char *xdg_dir = NULL;
+    char *config_dir = NULL;
+    const char *config_home;
+    int ret = -1;
+    mode_t old_umask;
+
+    VIR_DEBUG("Checking if user profile needs migrating");
+
+    if (!(home = virGetUserDirectory()))
+        goto cleanup;
+
+    if (virAsprintf(&old_base, "%s/.libvirt", home) < 0) {
+        goto cleanup;
+    }
+
+    /* if the new directory is there or the old one is not: do nothing */
+    if (!(config_dir = virGetUserConfigDirectory()))
+        goto cleanup;
+
+    if (!virFileIsDir(old_base) || virFileExists(config_dir)) {
+        VIR_DEBUG("No old profile in '%s' / "
+                  "new profile directory already present '%s'",
+                  old_base, config_dir);
+        ret = 0;
+        goto cleanup;
+    }
+
+    /* test if we already attempted to migrate first */
+    if (virAsprintf(&updated, "%s/DEPRECATED-DIRECTORY", old_base) < 0) {
+        goto cleanup;
+    }
+    if (virFileExists(updated)) {
+        goto cleanup;
+    }
+
+    config_home = getenv("XDG_CONFIG_HOME");
+    if (config_home && config_home[0] != '\0') {
+        xdg_dir = strdup(config_home);
+    } else {
+        if (virAsprintf(&xdg_dir, "%s/.config", home) < 0) {
+            goto cleanup;
+        }
+    }
+
+    old_umask = umask(077);
+    if (virFileMakePath(xdg_dir) < 0) {
+        umask(old_umask);
+        goto cleanup;
+    }
+    umask(old_umask);
+
+    if (rename(old_base, config_dir) < 0) {
+        int fd = creat(updated, 0600);
+        VIR_FORCE_CLOSE(fd);
+        VIR_ERROR(_("Unable to migrate %s to %s"), old_base, config_dir);
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Profile migrated from %s to %s", old_base, config_dir);
+    ret = 0;
+
+ cleanup:
+    VIR_FREE(home);
+    VIR_FREE(old_base);
+    VIR_FREE(xdg_dir);
+    VIR_FREE(config_dir);
+    VIR_FREE(updated);
+
+    return ret;
+}
+
 /* Print command-line usage. */
 static void
 daemonUsage(const char *argv0, bool privileged)
@@ -775,10 +908,10 @@ libvirt management daemon:\n"), argv0);
   Default paths:\n\
 \n\
     Configuration file (unless overridden by -f):\n\
-      $HOME/.libvirt/libvirtd.conf\n\
+      $XDG_CONFIG_HOME/libvirt/libvirtd.conf\n\
 \n\
     Sockets:\n\
-      $HOME/.libvirt/libvirt-sock (in UNIX abstract namespace)\n\
+      $XDG_RUNTIME_HOME/libvirt/libvirt-sock (in UNIX abstract namespace)\n\
 \n\
     TLS:\n\
       CA certificate:     $HOME/.pki/libvirt/cacert.pem\n\
@@ -786,7 +919,7 @@ libvirt management daemon:\n"), argv0);
       Server private key: $HOME/.pki/libvirt/serverkey.pem\n\
 \n\
     PID file:\n\
-      $HOME/.libvirt/libvirtd.pid\n\
+      $XDG_RUNTIME_HOME/libvirt/libvirtd.pid\n\
 \n"));
     }
 }
@@ -837,6 +970,12 @@ int main(int argc, char **argv) {
 
     /* initialize early logging */
     virLogSetFromEnv();
+
+#ifdef WITH_DRIVER_MODULES
+    if (strstr(argv[0], "lt-libvirtd") &&
+        (access("./.git", R_OK) >= 0 || access("../.git", R_OK) >= 0))
+        virDriverModuleInitialize("./src/.libs");
+#endif
 
     while (1) {
         int optidx = 0;
@@ -904,6 +1043,12 @@ int main(int argc, char **argv) {
         }
     }
 
+    if (optind != argc) {
+        fprintf(stderr, "%s: unexpected, non-option, command line arguments\n",
+                argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
     if (!(config = daemonConfigNew(privileged))) {
         VIR_ERROR(_("Can't create initial configuration"));
         exit(EXIT_FAILURE);
@@ -931,6 +1076,12 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+    if (!privileged &&
+        migrateProfile() < 0) {
+        VIR_ERROR(_("Exiting due to failure to migrate profile"));
+        exit(EXIT_FAILURE);
+    }
+
     if (config->host_uuid &&
         virSetHostUUIDStr(config->host_uuid) < 0) {
         VIR_ERROR(_("invalid host UUID: %s"), config->host_uuid);
@@ -948,6 +1099,7 @@ int main(int argc, char **argv) {
         VIR_ERROR(_("Can't determine pid file path."));
         exit(EXIT_FAILURE);
     }
+    VIR_DEBUG("Decided on pid file path '%s'", NULLSTR(pid_file));
 
     if (daemonUnixSocketPaths(config,
                               privileged,
@@ -956,6 +1108,8 @@ int main(int argc, char **argv) {
         VIR_ERROR(_("Can't determine socket paths"));
         exit(EXIT_FAILURE);
     }
+    VIR_DEBUG("Decided on socket paths '%s' and '%s'",
+              sock_file, NULLSTR(sock_file_ro));
 
     if (godaemon) {
         char ebuf[1024];
@@ -977,21 +1131,23 @@ int main(int argc, char **argv) {
     if (privileged) {
         run_dir = strdup(LOCALSTATEDIR "/run/libvirt");
     } else {
-        char *user_dir = virGetUserDirectory(geteuid());
+        run_dir = virGetUserRuntimeDirectory();
 
-        if (!user_dir) {
+        if (!run_dir) {
             VIR_ERROR(_("Can't determine user directory"));
             goto cleanup;
         }
-        ignore_value(virAsprintf(&run_dir, "%s/.libvirt/", user_dir));
-        VIR_FREE(user_dir);
     }
     if (!run_dir) {
         virReportOOMError();
         goto cleanup;
     }
 
-    old_umask = umask(022);
+    if (privileged)
+        old_umask = umask(022);
+    else
+        old_umask = umask(077);
+    VIR_DEBUG("Ensuring run dir '%s' exists", run_dir);
     if (virFileMakePath(run_dir) < 0) {
         char ebuf[1024];
         VIR_ERROR(_("unable to create rundir %s: %s"), run_dir,
@@ -1028,6 +1184,7 @@ int main(int argc, char **argv) {
     /* Beyond this point, nothing should rely on using
      * getuid/geteuid() == 0, for privilege level checks.
      */
+    VIR_DEBUG("Dropping privileges (if required)");
     if (daemonSetupPrivs() < 0) {
         ret = VIR_DAEMON_ERR_PRIVS;
         goto cleanup;
@@ -1064,11 +1221,13 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
 
-    if (timeout != -1)
+    if (timeout != -1) {
+        VIR_DEBUG("Registering shutdown timeout %d", timeout);
         virNetServerAutoShutdown(srv,
                                  timeout,
                                  daemonShutdownCheck,
                                  NULL);
+    }
 
     if ((daemonSetupSignals(srv)) < 0) {
         ret = VIR_DAEMON_ERR_SIGNAL;
@@ -1076,11 +1235,13 @@ int main(int argc, char **argv) {
     }
 
     if (config->audit_level) {
+        VIR_DEBUG("Attempting to configure auditing subsystem");
         if (virAuditOpen() < 0) {
             if (config->audit_level > 1) {
                 ret = VIR_DAEMON_ERR_AUDIT;
                 goto cleanup;
             }
+            VIR_DEBUG("Proceeding without auditing");
         }
     }
     virAuditLog(config->audit_logging);

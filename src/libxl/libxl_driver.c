@@ -45,6 +45,7 @@
 #include "xen_xm.h"
 #include "virtypedparam.h"
 #include "viruri.h"
+#include "virdomainlist.h"
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
 
@@ -58,6 +59,11 @@
 
 /* Number of Xen scheduler parameters */
 #define XEN_SCHED_CREDIT_NPARAM   2
+
+static void libxlDomainManagedSaveLoad(void *payload,
+                                       const void *n ATTRIBUTE_UNUSED,
+                                       void *opaque);
+
 
 static libxlDriverPrivatePtr libxl_driver = NULL;
 
@@ -647,6 +653,7 @@ libxlVmStart(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
                 VIR_WARN("Failed to remove the managed state %s",
                          managed_save_path);
             }
+            vm->hasManagedSave = false;
         }
         VIR_FREE(managed_save_path);
     }
@@ -983,6 +990,9 @@ libxlStartup(int privileged) {
     virHashForEach(libxl_driver->domains.objs, libxlAutostartDomain,
                    libxl_driver);
 
+    virHashForEach(libxl_driver->domains.objs, libxlDomainManagedSaveLoad,
+                   libxl_driver);
+
     libxlDriverUnlock(libxl_driver);
 
     return 0;
@@ -1079,12 +1089,6 @@ libxlOpen(virConnectPtr conn,
 static int
 libxlClose(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
-    libxlDriverPrivatePtr driver = conn->privateData;
-
-    libxlDriverLock(driver);
-    virDomainEventStateDeregisterConn(conn,
-                                      driver->domainEventState);
-    libxlDriverUnlock(driver);
     conn->privateData = NULL;
     return 0;
 }
@@ -1874,6 +1878,8 @@ libxlDoDomainSave(libxlDriverPrivatePtr driver, virDomainObjPtr vm,
         goto cleanup;
     }
 
+    vm->hasManagedSave = true;
+
     if (!vm->persistent) {
         virDomainRemoveInactive(&driver->domains, vm);
         vm = NULL;
@@ -2130,13 +2136,33 @@ cleanup:
     return ret;
 }
 
+static void
+libxlDomainManagedSaveLoad(void *payload,
+                           const void *n ATTRIBUTE_UNUSED,
+                           void *opaque)
+{
+    virDomainObjPtr vm = payload;
+    libxlDriverPrivatePtr driver = opaque;
+    char *name;
+
+    virDomainObjLock(vm);
+
+    if (!(name = libxlDomainManagedSavePath(driver, vm)))
+        goto cleanup;
+
+    vm->hasManagedSave = virFileExists(name);
+
+cleanup:
+    virDomainObjUnlock(vm);
+    VIR_FREE(name);
+}
+
 static int
 libxlDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
 {
     libxlDriverPrivatePtr driver = dom->conn->privateData;
     virDomainObjPtr vm = NULL;
     int ret = -1;
-    char *name = NULL;
 
     virCheckFlags(0, -1);
 
@@ -2150,14 +2176,9 @@ libxlDomainHasManagedSaveImage(virDomainPtr dom, unsigned int flags)
         goto cleanup;
     }
 
-    name = libxlDomainManagedSavePath(driver, vm);
-    if (name == NULL)
-        goto cleanup;
-
-    ret = virFileExists(name);
+    ret = vm->hasManagedSave;
 
 cleanup:
-    VIR_FREE(name);
     if (vm)
         virDomainObjUnlock(vm);
     libxlDriverUnlock(driver);
@@ -2189,6 +2210,7 @@ libxlDomainManagedSaveRemove(virDomainPtr dom, unsigned int flags)
         goto cleanup;
 
     ret = unlink(name);
+    vm->hasManagedSave = false;
 
 cleanup:
     VIR_FREE(name);
@@ -3837,6 +3859,24 @@ libxlIsAlive(virConnectPtr conn ATTRIBUTE_UNUSED)
     return 1;
 }
 
+static int
+libxlListAllDomains(virConnectPtr conn,
+                    virDomainPtr **domains,
+                    unsigned int flags)
+{
+    libxlDriverPrivatePtr driver = conn->privateData;
+    int ret = -1;
+
+    virCheckFlags(VIR_CONNECT_LIST_FILTERS_ALL, -1);
+
+    libxlDriverLock(driver);
+    ret = virDomainList(conn, driver->domains.objs, domains, flags);
+    libxlDriverUnlock(driver);
+
+    return ret;
+}
+
+
 
 static virDriver libxlDriver = {
     .no = VIR_DRV_LIBXL,
@@ -3851,6 +3891,7 @@ static virDriver libxlDriver = {
     .getCapabilities = libxlGetCapabilities, /* 0.9.0 */
     .listDomains = libxlListDomains, /* 0.9.0 */
     .numOfDomains = libxlNumDomains, /* 0.9.0 */
+    .listAllDomains = libxlListAllDomains, /* 0.9.13 */
     .domainCreateXML = libxlDomainCreateXML, /* 0.9.0 */
     .domainLookupByID = libxlDomainLookupByID, /* 0.9.0 */
     .domainLookupByUUID = libxlDomainLookupByUUID, /* 0.9.0 */

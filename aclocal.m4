@@ -266,29 +266,6 @@ AC_PREREQ([2.50])dnl
 am_aux_dir=`cd $ac_aux_dir && pwd`
 ])
 
-
-# Copyright (C) 1996, 1997, 1999, 2000, 2001, 2002, 2003, 2005
-# Free Software Foundation, Inc.
-#
-# This file is free software; the Free Software Foundation
-# gives unlimited permission to copy and/or distribute it,
-# with or without modifications, as long as this notice is preserved.
-
-# serial 4
-
-# This was merged into AC_PROG_CC in Autoconf.
-
-AU_DEFUN([AM_PROG_CC_STDC],
-[AC_PROG_CC
-AC_DIAGNOSE([obsolete], [$0:
-	your code should no longer depend upon `am_cv_prog_cc_stdc', but upon
-	`ac_cv_prog_cc_stdc'.  Remove this warning and the assignment when
-	you adjust the code.  You can also remove the above call to
-	AC_PROG_CC if you already called it elsewhere.])
-am_cv_prog_cc_stdc=$ac_cv_prog_cc_stdc
-])
-AU_DEFUN([fp_PROG_CC_STDC])
-
 # AM_CONDITIONAL                                            -*- Autoconf -*-
 
 # Copyright (C) 1997, 2000, 2001, 2003, 2004, 2005, 2006, 2008
@@ -1521,6 +1498,7 @@ m4_include([gnulib/m4/inline.m4])
 m4_include([gnulib/m4/intmax_t.m4])
 m4_include([gnulib/m4/inttypes.m4])
 m4_include([gnulib/m4/ioctl.m4])
+m4_include([gnulib/m4/isatty.m4])
 m4_include([gnulib/m4/langinfo_h.m4])
 m4_include([gnulib/m4/largefile.m4])
 m4_include([gnulib/m4/localcharset.m4])
@@ -1557,6 +1535,7 @@ m4_include([gnulib/m4/netinet_in_h.m4])
 m4_include([gnulib/m4/nl_langinfo.m4])
 m4_include([gnulib/m4/nocrash.m4])
 m4_include([gnulib/m4/nonblocking.m4])
+m4_include([gnulib/m4/off_t.m4])
 m4_include([gnulib/m4/onceonly.m4])
 m4_include([gnulib/m4/open.m4])
 m4_include([gnulib/m4/passfd.m4])
