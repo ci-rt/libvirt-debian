@@ -996,6 +996,60 @@ no_memory:
 }
 
 static int
+remoteDispatchConnectListAllDomains(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                    virNetServerClientPtr client,
+                                    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                                    virNetMessageErrorPtr rerr,
+                                    remote_connect_list_all_domains_args *args,
+                                    remote_connect_list_all_domains_ret *ret)
+{
+    virDomainPtr *doms = NULL;
+    int ndomains = 0;
+    int i;
+    int rv = -1;
+    struct daemonClientPrivate *priv = virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((ndomains = virConnectListAllDomains(priv->conn,
+                                             args->need_results ? &doms : NULL,
+                                             args->flags)) < 0)
+        goto cleanup;
+
+    if (doms && ndomains) {
+        if (VIR_ALLOC_N(ret->domains.domains_val, ndomains) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        ret->domains.domains_len = ndomains;
+
+        for (i = 0; i < ndomains; i++)
+            make_nonnull_domain(ret->domains.domains_val + i, doms[i]);
+    } else {
+        ret->domains.domains_len = 0;
+        ret->domains.domains_val = NULL;
+    }
+
+    ret->ret = ndomains;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (doms) {
+        for (i = 0; i < ndomains; i++)
+            virDomainFree(doms[i]);
+        VIR_FREE(doms);
+    }
+    return rv;
+}
+
+static int
 remoteDispatchDomainGetSchedulerParametersFlags(virNetServerPtr server ATTRIBUTE_UNUSED,
                                                 virNetServerClientPtr client ATTRIBUTE_UNUSED,
                                                 virNetMessagePtr msg ATTRIBUTE_UNUSED,
@@ -2653,7 +2707,7 @@ authdeny:
 }
 #elif HAVE_POLKIT0
 static int
-remoteDispatchAuthPolkit(virNetServerPtr server,
+remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
                          virNetServerClientPtr client,
                          virNetMessagePtr msg ATTRIBUTE_UNUSED,
                          virNetMessageErrorPtr rerr,
@@ -3740,6 +3794,132 @@ cleanup:
             VIR_FREE(errors[i].disk);
     }
     VIR_FREE(errors);
+    return rv;
+}
+
+static int
+remoteDispatchDomainListAllSnapshots(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                     virNetServerClientPtr client,
+                                     virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                                     virNetMessageErrorPtr rerr,
+                                     remote_domain_list_all_snapshots_args *args,
+                                     remote_domain_list_all_snapshots_ret *ret)
+{
+    virDomainSnapshotPtr *snaps = NULL;
+    int nsnaps = 0;
+    int i;
+    int rv = -1;
+    struct daemonClientPrivate *priv = virNetServerClientGetPrivateData(client);
+    virDomainPtr dom = NULL;
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((nsnaps = virDomainListAllSnapshots(dom,
+                                            args->need_results ? &snaps : NULL,
+                                            args->flags)) < 0)
+        goto cleanup;
+
+    if (snaps && nsnaps) {
+        if (VIR_ALLOC_N(ret->snapshots.snapshots_val, nsnaps) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        ret->snapshots.snapshots_len = nsnaps;
+
+        for (i = 0; i < nsnaps; i++)
+            make_nonnull_domain_snapshot(ret->snapshots.snapshots_val + i,
+                                         snaps[i]);
+    } else {
+        ret->snapshots.snapshots_len = 0;
+        ret->snapshots.snapshots_val = NULL;
+    }
+
+    ret->ret = nsnaps;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    if (snaps) {
+        for (i = 0; i < nsnaps; i++)
+            virDomainSnapshotFree(snaps[i]);
+        VIR_FREE(snaps);
+    }
+    return rv;
+}
+
+static int
+remoteDispatchDomainSnapshotListAllChildren(virNetServerPtr server ATTRIBUTE_UNUSED,
+                                            virNetServerClientPtr client,
+                                            virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                                            virNetMessageErrorPtr rerr,
+                                            remote_domain_snapshot_list_all_children_args *args,
+                                            remote_domain_snapshot_list_all_children_ret *ret)
+{
+    virDomainSnapshotPtr *snaps = NULL;
+    int nsnaps = 0;
+    int i;
+    int rv = -1;
+    struct daemonClientPrivate *priv = virNetServerClientGetPrivateData(client);
+    virDomainPtr dom = NULL;
+    virDomainSnapshotPtr snapshot = NULL;
+
+    if (!priv->conn) {
+        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->snapshot.dom)))
+        goto cleanup;
+
+    if (!(snapshot = get_nonnull_domain_snapshot(dom, args->snapshot)))
+        goto cleanup;
+
+    if ((nsnaps = virDomainSnapshotListAllChildren(snapshot,
+                                                   args->need_results ? &snaps : NULL,
+                                                   args->flags)) < 0)
+        goto cleanup;
+
+    if (snaps && nsnaps) {
+        if (VIR_ALLOC_N(ret->snapshots.snapshots_val, nsnaps) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        ret->snapshots.snapshots_len = nsnaps;
+
+        for (i = 0; i < nsnaps; i++)
+            make_nonnull_domain_snapshot(ret->snapshots.snapshots_val + i,
+                                         snaps[i]);
+    } else {
+        ret->snapshots.snapshots_len = 0;
+        ret->snapshots.snapshots_val = NULL;
+    }
+
+    ret->ret = nsnaps;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (snapshot)
+        virDomainSnapshotFree(snapshot);
+    if (dom)
+        virDomainFree(dom);
+    if (snaps) {
+        for (i = 0; i < nsnaps; i++)
+            virDomainSnapshotFree(snaps[i]);
+        VIR_FREE(snaps);
+    }
     return rv;
 }
 

@@ -89,16 +89,16 @@ TESTS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-ignore-value$(EXEEXT) test-inet_ntop$(EXEEXT) \
 	test-inet_pton$(EXEEXT) test-intprops$(EXEEXT) \
 	test-inttypes$(EXEEXT) test-ioctl$(EXEEXT) \
-	test-langinfo$(EXEEXT) test-listen$(EXEEXT) \
-	test-locale$(EXEEXT) test-localeconv$(EXEEXT) \
-	test-localename$(EXEEXT) test-lseek.sh test-lstat$(EXEEXT) \
-	test-malloc-gnu$(EXEEXT) test-malloca$(EXEEXT) \
-	test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh \
-	test-mbrtowc4.sh test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
-	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
-	test-mbrtowc-w32-5.sh test-mbsinit.sh test-mbsrtowcs1.sh \
-	test-mbsrtowcs2.sh test-mbsrtowcs3.sh test-mbsrtowcs4.sh \
-	test-memchr$(EXEEXT) test-netdb$(EXEEXT) \
+	test-isatty$(EXEEXT) test-langinfo$(EXEEXT) \
+	test-listen$(EXEEXT) test-locale$(EXEEXT) \
+	test-localeconv$(EXEEXT) test-localename$(EXEEXT) \
+	test-lseek.sh test-lstat$(EXEEXT) test-malloc-gnu$(EXEEXT) \
+	test-malloca$(EXEEXT) test-mbrtowc1.sh test-mbrtowc2.sh \
+	test-mbrtowc3.sh test-mbrtowc4.sh test-mbrtowc-w32-1.sh \
+	test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
+	test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbsinit.sh \
+	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
+	test-mbsrtowcs4.sh test-memchr$(EXEEXT) test-netdb$(EXEEXT) \
 	test-netinet_in$(EXEEXT) test-nl_langinfo.sh \
 	test-nonblocking-pipe.sh test-nonblocking-socket.sh \
 	test-nonblocking$(EXEEXT) test-open$(EXEEXT) \
@@ -177,16 +177,16 @@ check_PROGRAMS = test-accept$(EXEEXT) test-alloca-opt$(EXEEXT) \
 	test-grantpt$(EXEEXT) test-ignore-value$(EXEEXT) \
 	test-inet_ntop$(EXEEXT) test-inet_pton$(EXEEXT) \
 	test-intprops$(EXEEXT) test-inttypes$(EXEEXT) \
-	test-ioctl$(EXEEXT) test-langinfo$(EXEEXT) \
-	test-listen$(EXEEXT) test-locale$(EXEEXT) \
-	test-localeconv$(EXEEXT) test-localename$(EXEEXT) \
-	test-lseek$(EXEEXT) test-lstat$(EXEEXT) \
-	test-malloc-gnu$(EXEEXT) test-malloca$(EXEEXT) \
-	test-mbrtowc$(EXEEXT) test-mbrtowc-w32$(EXEEXT) \
-	test-mbsinit$(EXEEXT) test-mbsrtowcs$(EXEEXT) \
-	test-memchr$(EXEEXT) test-netdb$(EXEEXT) \
-	test-netinet_in$(EXEEXT) test-nl_langinfo$(EXEEXT) \
-	test-nonblocking-pipe-main$(EXEEXT) \
+	test-ioctl$(EXEEXT) test-isatty$(EXEEXT) \
+	test-langinfo$(EXEEXT) test-listen$(EXEEXT) \
+	test-locale$(EXEEXT) test-localeconv$(EXEEXT) \
+	test-localename$(EXEEXT) test-lseek$(EXEEXT) \
+	test-lstat$(EXEEXT) test-malloc-gnu$(EXEEXT) \
+	test-malloca$(EXEEXT) test-mbrtowc$(EXEEXT) \
+	test-mbrtowc-w32$(EXEEXT) test-mbsinit$(EXEEXT) \
+	test-mbsrtowcs$(EXEEXT) test-memchr$(EXEEXT) \
+	test-netdb$(EXEEXT) test-netinet_in$(EXEEXT) \
+	test-nl_langinfo$(EXEEXT) test-nonblocking-pipe-main$(EXEEXT) \
 	test-nonblocking-pipe-child$(EXEEXT) \
 	test-nonblocking-socket-main$(EXEEXT) \
 	test-nonblocking-socket-child$(EXEEXT) \
@@ -309,6 +309,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/intmax_t.m4 \
 	$(top_srcdir)/gnulib/m4/inttypes.m4 \
 	$(top_srcdir)/gnulib/m4/ioctl.m4 \
+	$(top_srcdir)/gnulib/m4/isatty.m4 \
 	$(top_srcdir)/gnulib/m4/langinfo_h.m4 \
 	$(top_srcdir)/gnulib/m4/largefile.m4 \
 	$(top_srcdir)/gnulib/m4/localcharset.m4 \
@@ -345,6 +346,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/gnulib/m4/nl_langinfo.m4 \
 	$(top_srcdir)/gnulib/m4/nocrash.m4 \
 	$(top_srcdir)/gnulib/m4/nonblocking.m4 \
+	$(top_srcdir)/gnulib/m4/off_t.m4 \
 	$(top_srcdir)/gnulib/m4/onceonly.m4 \
 	$(top_srcdir)/gnulib/m4/open.m4 \
 	$(top_srcdir)/gnulib/m4/passfd.m4 \
@@ -467,7 +469,7 @@ am__aclocal_m4_deps = $(top_srcdir)/gnulib/m4/00gnulib.m4 \
 	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-mkinstalldirs = $(SHELL) $(top_srcdir)/build-aux/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -827,6 +829,11 @@ test_ioctl_SOURCES = test-ioctl.c
 test_ioctl_OBJECTS = test-ioctl.$(OBJEXT)
 test_ioctl_LDADD = $(LDADD)
 test_ioctl_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
+	libtests.a $(am__DEPENDENCIES_1)
+test_isatty_SOURCES = test-isatty.c
+test_isatty_OBJECTS = test-isatty.$(OBJEXT)
+test_isatty_LDADD = $(LDADD)
+test_isatty_DEPENDENCIES = libtests.a ../../gnulib/lib/libgnu.la \
 	libtests.a $(am__DEPENDENCIES_1)
 test_langinfo_SOURCES = test-langinfo.c
 test_langinfo_OBJECTS = test-langinfo.$(OBJEXT)
@@ -1394,8 +1401,8 @@ SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-getline.c test-getpeername.c test-getsockname.c \
 	test-getsockopt.c test-gettimeofday.c test-grantpt.c \
 	test-ignore-value.c test-inet_ntop.c test-inet_pton.c \
-	test-intprops.c test-inttypes.c test-ioctl.c test-langinfo.c \
-	test-listen.c test-locale.c test-localeconv.c \
+	test-intprops.c test-inttypes.c test-ioctl.c test-isatty.c \
+	test-langinfo.c test-listen.c test-locale.c test-localeconv.c \
 	test-localename.c test-lseek.c test-lstat.c test-malloc-gnu.c \
 	test-malloca.c test-mbrtowc.c test-mbrtowc-w32.c \
 	test-mbsinit.c test-mbsrtowcs.c test-md5.c test-memchr.c \
@@ -1451,8 +1458,8 @@ DIST_SOURCES = $(libtests_a_SOURCES) $(EXTRA_libtests_a_SOURCES) \
 	test-getline.c test-getpeername.c test-getsockname.c \
 	test-getsockopt.c test-gettimeofday.c test-grantpt.c \
 	test-ignore-value.c test-inet_ntop.c test-inet_pton.c \
-	test-intprops.c test-inttypes.c test-ioctl.c test-langinfo.c \
-	test-listen.c test-locale.c test-localeconv.c \
+	test-intprops.c test-inttypes.c test-ioctl.c test-isatty.c \
+	test-langinfo.c test-listen.c test-locale.c test-localeconv.c \
 	test-localename.c test-lseek.c test-lstat.c test-malloc-gnu.c \
 	test-malloca.c test-mbrtowc.c test-mbrtowc-w32.c \
 	test-mbsinit.c test-mbsrtowcs.c test-md5.c test-memchr.c \
@@ -2210,6 +2217,7 @@ LIBPCAP_CFLAGS = @LIBPCAP_CFLAGS@
 LIBPCAP_LIBS = @LIBPCAP_LIBS@
 LIBPTH = @LIBPTH@
 LIBPTH_PREFIX = @LIBPTH_PREFIX@
+LIBRBD_LIBS = @LIBRBD_LIBS@
 LIBS = @LIBS@
 LIBSOCKET = @LIBSOCKET@
 LIBSSH2_CFLAGS = @LIBSSH2_CFLAGS@
@@ -2368,6 +2376,7 @@ PARTED = @PARTED@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PCIACCESS_CFLAGS = @PCIACCESS_CFLAGS@
 PCIACCESS_LIBS = @PCIACCESS_LIBS@
+PERL = @PERL@
 PKCHECK_PATH = @PKCHECK_PATH@
 PKG_CONFIG = @PKG_CONFIG@
 PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
@@ -2395,6 +2404,7 @@ PYTHON_INCLUDES = @PYTHON_INCLUDES@
 PYTHON_PLATFORM = @PYTHON_PLATFORM@
 PYTHON_PREFIX = @PYTHON_PREFIX@
 PYTHON_VERSION = @PYTHON_VERSION@
+QEMU = @QEMU@
 RADVD = @RADVD@
 RANLIB = @RANLIB@
 READLINE_CFLAGS = @READLINE_CFLAGS@
@@ -2739,21 +2749,22 @@ EXTRA_DIST = test-accept.c signature.h macros.h test-alloca-opt.c \
 	test-inet_ntop.c signature.h macros.h test-inet_pton.c \
 	signature.h macros.h test-intprops.c macros.h inttypes.in.h \
 	test-inttypes.c test-ioctl.c signature.h macros.h \
-	test-langinfo.c test-listen.c signature.h macros.h \
-	test-locale.c test-localeconv.c signature.h macros.h \
-	localename.h test-localename.c macros.h test-lseek.c \
-	test-lseek.sh signature.h macros.h test-lstat.h test-lstat.c \
-	signature.h macros.h test-malloc-gnu.c test-malloca.c \
-	test-mbrtowc1.sh test-mbrtowc2.sh test-mbrtowc3.sh \
-	test-mbrtowc4.sh test-mbrtowc.c test-mbrtowc-w32-1.sh \
-	test-mbrtowc-w32-2.sh test-mbrtowc-w32-3.sh \
-	test-mbrtowc-w32-4.sh test-mbrtowc-w32-5.sh test-mbrtowc-w32.c \
-	signature.h macros.h test-mbsinit.sh test-mbsinit.c \
-	signature.h macros.h test-mbsrtowcs1.sh test-mbsrtowcs2.sh \
-	test-mbsrtowcs3.sh test-mbsrtowcs4.sh test-mbsrtowcs.c \
-	signature.h macros.h test-memchr.c zerosize-ptr.h signature.h \
-	macros.h mgetgroups.h test-netdb.c test-netinet_in.c \
-	test-nl_langinfo.sh test-nl_langinfo.c signature.h macros.h \
+	test-isatty.c signature.h macros.h test-langinfo.c \
+	test-listen.c signature.h macros.h test-locale.c \
+	test-localeconv.c signature.h macros.h localename.h \
+	test-localename.c macros.h test-lseek.c test-lseek.sh \
+	signature.h macros.h test-lstat.h test-lstat.c signature.h \
+	macros.h test-malloc-gnu.c test-malloca.c test-mbrtowc1.sh \
+	test-mbrtowc2.sh test-mbrtowc3.sh test-mbrtowc4.sh \
+	test-mbrtowc.c test-mbrtowc-w32-1.sh test-mbrtowc-w32-2.sh \
+	test-mbrtowc-w32-3.sh test-mbrtowc-w32-4.sh \
+	test-mbrtowc-w32-5.sh test-mbrtowc-w32.c signature.h macros.h \
+	test-mbsinit.sh test-mbsinit.c signature.h macros.h \
+	test-mbsrtowcs1.sh test-mbsrtowcs2.sh test-mbsrtowcs3.sh \
+	test-mbsrtowcs4.sh test-mbsrtowcs.c signature.h macros.h \
+	test-memchr.c zerosize-ptr.h signature.h macros.h mgetgroups.h \
+	test-netdb.c test-netinet_in.c test-nl_langinfo.sh \
+	test-nl_langinfo.c signature.h macros.h \
 	test-nonblocking-pipe.sh test-nonblocking-pipe-main.c \
 	test-nonblocking-pipe-child.c test-nonblocking-pipe.h \
 	test-nonblocking-writer.h test-nonblocking-reader.h \
@@ -3210,6 +3221,9 @@ test-inttypes$(EXEEXT): $(test_inttypes_OBJECTS) $(test_inttypes_DEPENDENCIES)
 test-ioctl$(EXEEXT): $(test_ioctl_OBJECTS) $(test_ioctl_DEPENDENCIES) 
 	@rm -f test-ioctl$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_ioctl_OBJECTS) $(test_ioctl_LDADD) $(LIBS)
+test-isatty$(EXEEXT): $(test_isatty_OBJECTS) $(test_isatty_DEPENDENCIES) 
+	@rm -f test-isatty$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_isatty_OBJECTS) $(test_isatty_LDADD) $(LIBS)
 test-langinfo$(EXEEXT): $(test_langinfo_OBJECTS) $(test_langinfo_DEPENDENCIES) 
 	@rm -f test-langinfo$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_langinfo_OBJECTS) $(test_langinfo_LDADD) $(LIBS)
@@ -3655,6 +3669,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-intprops.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-inttypes.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-ioctl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-isatty.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-langinfo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-listen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-locale.Po@am__quote@

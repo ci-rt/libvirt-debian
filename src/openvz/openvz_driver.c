@@ -48,6 +48,7 @@
 #include "virterror_internal.h"
 #include "datatypes.h"
 #include "openvz_driver.h"
+#include "openvz_util.h"
 #include "buf.h"
 #include "util.h"
 #include "openvz_conf.h"
@@ -59,6 +60,7 @@
 #include "command.h"
 #include "viruri.h"
 #include "stats_linux.h"
+#include "virdomainlist.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
@@ -182,6 +184,50 @@ static int openvzSetInitialConfig(virDomainDefPtr vmdef)
 
 cleanup:
   VIR_FREE(confdir);
+  virCommandFree(cmd);
+
+  return ret;
+}
+
+
+static int
+openvzSetDiskQuota(virDomainDefPtr vmdef,
+                   virDomainFSDefPtr fss,
+                   bool persist)
+{
+    int ret = -1;
+    unsigned long long sl, hl;
+    virCommandPtr cmd = virCommandNewArgList(VZCTL,
+                                             "--quiet",
+                                             "set",
+                                             vmdef->name,
+                                             NULL);
+    if (persist)
+        virCommandAddArg(cmd, "--save");
+
+    if (fss->type == VIR_DOMAIN_FS_TYPE_TEMPLATE) {
+        if (fss->space_hard_limit) {
+            hl = VIR_DIV_UP(fss->space_hard_limit, 1024);
+            virCommandAddArg(cmd, "--diskspace");
+
+            if (fss->space_soft_limit) {
+                sl = VIR_DIV_UP(fss->space_soft_limit, 1024);
+                virCommandAddArgFormat(cmd, "%lld:%lld", sl, hl);
+            } else {
+                virCommandAddArgFormat(cmd, "%lld", hl);
+            }
+        } else if (fss->space_soft_limit) {
+            openvzError(VIR_ERR_INVALID_ARG, "%s",
+                        _("Can't set soft limit without hard limit"));
+            goto cleanup;
+        }
+
+        if (virCommandRun(cmd, NULL) < 0)
+            goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
   virCommandFree(cmd);
 
   return ret;
@@ -894,7 +940,13 @@ openvzDomainDefineXML(virConnectPtr conn, const char *xml)
         goto cleanup;
     }
 
-    /* TODO: set quota */
+    if (vm->def->nfss == 1) {
+        if (openvzSetDiskQuota(vm->def, vm->def->fss[0], true) < 0) {
+            openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("Could not set disk quota"));
+            goto cleanup;
+        }
+    }
 
     if (openvzSetDefinedUUID(strtoI(vm->def->name), vm->def->uuid) < 0) {
         openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
@@ -974,6 +1026,14 @@ openvzDomainCreateXML(virConnectPtr conn, const char *xml,
     if (openvzSetInitialConfig(vm->def) < 0) {
         VIR_ERROR(_("Error creating initial configuration"));
         goto cleanup;
+    }
+
+    if (vm->def->nfss == 1) {
+        if (openvzSetDiskQuota(vm->def, vm->def->fss[0], true) < 0) {
+            openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("Could not set disk quota"));
+            goto cleanup;
+        }
     }
 
     if (openvzSetDefinedUUID(strtoI(vm->def->name), vm->def->uuid) < 0) {
@@ -1683,14 +1743,9 @@ openvzDomainGetMemoryParameters(virDomainPtr domain,
 
     virCheckFlags(0, -1);
 
-    kb_per_pages = sysconf(_SC_PAGESIZE);
-    if (kb_per_pages > 0) {
-        kb_per_pages /= 1024;
-    } else {
-        openvzError(VIR_ERR_INTERNAL_ERROR,
-                    _("Can't determine page size"));
+    kb_per_pages = openvzKBPerPages();
+    if (kb_per_pages < 0)
         goto cleanup;
-    }
 
     if (*nparams == 0) {
         *nparams = OPENVZ_NB_MEM_PARAM;
@@ -1754,14 +1809,9 @@ openvzDomainSetMemoryParameters(virDomainPtr domain,
     int i, result = -1;
     long kb_per_pages;
 
-    kb_per_pages = sysconf(_SC_PAGESIZE);
-    if (kb_per_pages > 0) {
-        kb_per_pages /= 1024;
-    } else {
-        openvzError(VIR_ERR_INTERNAL_ERROR,
-                    _("Can't determine page size"));
+    kb_per_pages = openvzKBPerPages();
+    if (kb_per_pages < 0)
         goto cleanup;
-    }
 
     virCheckFlags(0, -1);
     if (virTypedParameterArrayValidate(params, nparams,
@@ -1899,6 +1949,128 @@ cleanup:
 }
 
 
+static int
+openvzUpdateDevice(virDomainDefPtr vmdef,
+                   virDomainDeviceDefPtr dev,
+                   bool persist)
+{
+    virDomainFSDefPtr fs, cur;
+    int pos;
+
+    if (dev->type == VIR_DOMAIN_DEVICE_FS) {
+        fs = dev->data.fs;
+        pos = virDomainFSIndexByName(vmdef, fs->dst);
+
+        if (pos < 0) {
+            openvzError(VIR_ERR_INVALID_ARG,
+                        _("target %s doesn't exist."), fs->dst);
+            return -1;
+        }
+        cur = vmdef->fss[pos];
+
+        /* We only allow updating the quota */
+        if (!STREQ(cur->src, fs->src)
+            || cur->type != fs->type
+            || cur->accessmode != fs->accessmode
+            || cur->wrpolicy != fs->wrpolicy
+            || cur->readonly != fs->readonly) {
+            openvzError(VIR_ERR_CONFIG_UNSUPPORTED,
+                        _("Can only modify disk quota"));
+            return -1;
+        }
+
+        if (openvzSetDiskQuota(vmdef, fs, persist) < 0) {
+            return -1;
+        }
+        cur->space_hard_limit = fs->space_hard_limit;
+        cur->space_soft_limit = fs->space_soft_limit;
+    } else {
+        openvzError(VIR_ERR_CONFIG_UNSUPPORTED,
+                    _("Can't modify device type '%s'"),
+                    virDomainDeviceTypeToString(dev->type));
+        return -1;
+    }
+
+    return 0;
+}
+
+
+static int
+openvzDomainUpdateDeviceFlags(virDomainPtr dom, const char *xml,
+                             unsigned int flags)
+{
+    int ret = -1;
+    int veid;
+    struct  openvz_driver *driver = dom->conn->privateData;
+    virDomainDeviceDefPtr dev = NULL;
+    virDomainObjPtr vm = NULL;
+    virDomainDefPtr vmdef = NULL;
+    bool persist = false;
+
+    virCheckFlags(VIR_DOMAIN_DEVICE_MODIFY_LIVE |
+                  VIR_DOMAIN_DEVICE_MODIFY_CONFIG, -1);
+
+    openvzDriverLock(driver);
+    vm = virDomainFindByUUID(&driver->domains, dom->uuid);
+    vmdef = vm->def;
+
+    if (!vm) {
+        openvzError(VIR_ERR_NO_DOMAIN, "%s",
+                    _("no domain with matching uuid"));
+        goto cleanup;
+    }
+
+    if (virStrToLong_i(vmdef->name, NULL, 10, &veid) < 0) {
+        openvzError(VIR_ERR_INTERNAL_ERROR, "%s",
+                    _("Could not convert domain name to VEID"));
+        goto cleanup;
+    }
+
+    if (virDomainLiveConfigHelperMethod(driver->caps,
+                                        vm,
+                                        &flags,
+                                        &vmdef) < 0)
+        goto cleanup;
+
+    dev = virDomainDeviceDefParse(driver->caps, vmdef, xml,
+                                  VIR_DOMAIN_XML_INACTIVE);
+    if (!dev)
+        goto cleanup;
+
+    if (flags & VIR_DOMAIN_AFFECT_CONFIG)
+        persist = true;
+
+    if (openvzUpdateDevice(vmdef, dev, persist) < 0)
+        goto cleanup;
+
+    ret = 0;
+
+cleanup:
+    openvzDriverUnlock(driver);
+    virDomainDeviceDefFree(dev);
+    if (vm)
+        virDomainObjUnlock(vm);
+    return ret;
+}
+
+static int
+openvzListAllDomains(virConnectPtr conn,
+                     virDomainPtr **domains,
+                     unsigned int flags)
+{
+    struct openvz_driver *driver = conn->privateData;
+    int ret = -1;
+
+    virCheckFlags(VIR_CONNECT_LIST_FILTERS_ALL, -1);
+
+    openvzDriverLock(driver);
+    ret = virDomainList(conn, driver->domains.objs, domains, flags);
+    openvzDriverUnlock(driver);
+
+    return ret;
+}
+
+
 static virDriver openvzDriver = {
     .no = VIR_DRV_OPENVZ,
     .name = "OPENVZ",
@@ -1916,6 +2088,7 @@ static virDriver openvzDriver = {
     .getCapabilities = openvzGetCapabilities, /* 0.4.6 */
     .listDomains = openvzListDomains, /* 0.3.1 */
     .numOfDomains = openvzNumDomains, /* 0.3.1 */
+    .listAllDomains = openvzListAllDomains, /* 0.9.13 */
     .domainCreateXML = openvzDomainCreateXML, /* 0.3.3 */
     .domainLookupByID = openvzDomainLookupByID, /* 0.3.1 */
     .domainLookupByUUID = openvzDomainLookupByUUID, /* 0.3.1 */
@@ -1953,6 +2126,7 @@ static virDriver openvzDriver = {
     .domainIsPersistent = openvzDomainIsPersistent, /* 0.7.3 */
     .domainIsUpdated = openvzDomainIsUpdated, /* 0.8.6 */
     .isAlive = openvzIsAlive, /* 0.9.8 */
+    .domainUpdateDeviceFlags = openvzDomainUpdateDeviceFlags, /* 0.9.13 */
 };
 
 int openvzRegister(void) {

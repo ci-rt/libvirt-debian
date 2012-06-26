@@ -1622,7 +1622,9 @@
         </dd>
         <dt><code>type='file'</code></dt>
         <dd>
-        Currently unused.
+        A host file will be treated as an image and mounted in
+        the guest. The filesystem format will be autodetected.
+        Only used by LXC driver.
         </dd>
         <dt><code>type='block'</code></dt>
         <dd>
@@ -1630,6 +1632,18 @@
         format will be autodetected. Only used by LXC driver
         <span class="since">(since 0.9.5)</span>.
         </dd>
+        <dt><code>type='ram'</code></dt>
+        <dd>
+          An in-memory filesystem, using memory from the host OS.
+          The source element has a single attribute <code>usage</code>
+          which gives the memory usage limit in kibibytes. Only used
+          by LXC driver.
+          <span class="since"> (since 0.9.13)</span></dd>
+        <dt><code>type='bind'></code></dt>
+        <dd>
+          A directory inside the guest will be bound to another
+          directory inside the guest. Only used by LXC driver
+          <span class="since"> (since 0.9.13)</span></dd>
         </dl>
 
       The filesystem block has an optional attribute <code>accessmode</code>
@@ -1669,7 +1683,8 @@
         The resource on the host that is being accessed in the guest. The
         <code>name</code> attribute must be used with
         <code>type='template'</code>, and the <code>dir</code> attribute must
-        be used with <code>type='mount'</code>
+        be used with <code>type='mount'</code>. The <code>usage</code> attribute
+        is used with <code>type='ram'</code> to set the memory limit in KB.
       </dd>
 
       <dt><code>target</code></dt>
@@ -1685,6 +1700,20 @@
         Enables exporting filesytem as a readonly mount for guest, by
         default read-write access is given (currently only works for
         QEMU/KVM driver).
+      </dd>
+
+      <dt><code>space_hard_limit</code></dt>
+      <dd>
+        Maximum space available to this guest's filesystem.
+        <span class="since">Since 0.9.13</span>
+      </dd>
+
+      <dt><code>space_soft_limit</code></dt>
+      <dd>
+        Maximum space available to this guest's filesystem. The container is
+        permitted to exceed its soft limits for a grace period of time. Afterwards the
+        hard limit is enforced.
+        <span class="since">Since 0.9.13</span>
       </dd>
     </dl>
 
@@ -1806,8 +1835,8 @@
       A "usb" controller has an optional attribute <code>model</code>,
       which is one of "piix3-uhci", "piix4-uhci", "ehci",
       "ich9-ehci1", "ich9-uhci1", "ich9-uhci2", "ich9-uhci3",
-      "vt82c686b-uhci" or "pci-ohci".  The PowerPC64 "spapr-vio"
-      addresses do not have an associated controller.
+      "vt82c686b-uhci", "pci-ohci" or "nec-xhci".  The PowerPC64
+      "spapr-vio" addresses do not have an associated controller.
     </p>
 
     <p>
@@ -2350,7 +2379,6 @@
 <pre>
   ...
   &lt;devices&gt;
-    &lt;interface type='direct'/&gt;
     ...
     &lt;interface type='direct'&gt;
       &lt;source dev='eth0' mode='vepa'/&gt;
@@ -2399,7 +2427,6 @@
 <pre>
   ...
   &lt;devices&gt;
-    &lt;interface type='direct'/&gt;
     ...
     &lt;interface type='direct'&gt;
       &lt;source dev='eth0.2' mode='vepa'/&gt;
@@ -2427,7 +2454,6 @@
   <pre>
   ...
   &lt;devices&gt;
-    &lt;interface type='direct'/&gt;
     ...
     &lt;interface type='direct'&gt;
       &lt;source dev='eth0' mode='private'/&gt;
@@ -2447,8 +2473,8 @@
       is directly assigned to the guest using generic device
       passthrough, after first optionally setting the device's MAC
       address to the configured value, and associating the device with
-      an 802.1Qgh capable switch using an optionally specified
-      %lt;virtualport%gt; element (see the examples of virtualport
+      an 802.1Qbh capable switch using an optionally specified
+      &lt;virtualport&gt; element (see the examples of virtualport
       given above for type='direct' network devices). Note that - due
       to limitations in standard single-port PCI ethernet card driver
       design - only SR-IOV (Single Root I/O Virtualization) virtual
@@ -3098,7 +3124,7 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;devices&gt;
     &lt;video&gt;
       &lt;model type='vga' vram='8192' heads='1'&gt;
-        &lt;acceleration accel3d='yes' accel3d='yes'/&gt;
+        &lt;acceleration accel3d='yes' accel2d='yes'/&gt;
       &lt;/model&gt;
     &lt;/video&gt;
   &lt;/devices&gt;
@@ -3615,6 +3641,25 @@ qemu-kvm -net nic,model=? /dev/null
          'ac97' only since 0.6.0, 'ich6' only since 0.8.8</span>)
       </dd>
     </dl>
+
+    <p>
+      <span class="since">Since 0.9.13</span>, a sound element
+      with <code>ich6</code> model can have optional
+      sub-elements <code>&lt;codec&gt;</code> to attach various audio
+      codecs to the audio device. If not specified, a default codec
+      will be attached to allow playback and recording. Valid values
+      are 'duplex' (advertise a line-in and a line-out) and 'micro'
+      (advertise a speaker and a microphone).
+    </p>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;sound model='ich6'&gt;
+      &lt;codec type='micro'/&gt;
+    &lt;sound/&gt;
+  &lt;/devices&gt;
+  ...</pre>
 
     <p>
       Each <code>sound</code> element has an optional

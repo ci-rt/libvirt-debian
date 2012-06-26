@@ -61,6 +61,7 @@
 #include "virtime.h"
 #include "virtypedparam.h"
 #include "viruri.h"
+#include "virdomainlist.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -178,8 +179,6 @@ static int lxcClose(virConnectPtr conn)
     lxc_driver_t *driver = conn->privateData;
 
     lxcDriverLock(driver);
-    virDomainEventStateDeregisterConn(conn,
-                                      driver->domainEventState);
     lxcProcessAutoDestroyRun(driver, conn);
     lxcDriverUnlock(driver);
 
@@ -592,7 +591,7 @@ static int lxcDomainGetInfo(virDomainPtr dom,
     }
 
     info->maxMem = vm->def->mem.max_balloon;
-    info->nrVirtCpu = 1;
+    info->nrVirtCpu = vm->def->vcpus;
     ret = 0;
 
 cleanup:
@@ -1154,6 +1153,17 @@ static void lxcVmCleanup(lxc_driver_t *driver,
         virCgroupFree(&cgroup);
     }
 
+    /* now that we know it's stopped call the hook if present */
+    if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
+        char *xml = virDomainDefFormat(vm->def, 0);
+
+        /* we can't stop the operation even if the script raised an error */
+        virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
+                    VIR_HOOK_LXC_OP_RELEASE, VIR_HOOK_SUBOP_END,
+                    NULL, xml, NULL);
+        VIR_FREE(xml);
+    }
+
     if (vm->newDef) {
         virDomainDefFree(vm->def);
         vm->def = vm->newDef;
@@ -1627,23 +1637,6 @@ lxcBuildControllerCmd(lxc_driver_t *driver,
         virCommandAddArgList(cmd, "--veth", veths[i], NULL);
     }
 
-    /* now that we know it is about to start call the hook if present */
-    if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
-        char *xml = virDomainDefFormat(vm->def, 0);
-        int hookret;
-
-        hookret = virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
-                              VIR_HOOK_LXC_OP_START, VIR_HOOK_SUBOP_BEGIN,
-                              NULL, xml, NULL);
-        VIR_FREE(xml);
-
-        /*
-         * If the script raised an error abort the launch
-         */
-        if (hookret < 0)
-            goto cleanup;
-    }
-
     virCommandPreserveFD(cmd, handshakefd);
 
     return cmd;
@@ -1805,6 +1798,23 @@ static int lxcVmStart(virConnectPtr conn,
     if (virDomainObjSetDefTransient(driver->caps, vm, true) < 0)
         goto cleanup;
 
+    /* Run an early hook to set-up missing devices */
+    if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
+        char *xml = virDomainDefFormat(vm->def, 0);
+        int hookret;
+
+        hookret = virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
+                              VIR_HOOK_LXC_OP_PREPARE, VIR_HOOK_SUBOP_BEGIN,
+                              NULL, xml, NULL);
+        VIR_FREE(xml);
+
+        /*
+         * If the script raised an error abort the launch
+         */
+        if (hookret < 0)
+            goto cleanup;
+    }
+
     /* Here we open all the PTYs we need on the host OS side.
      * The LXC controller will open the guest OS side PTYs
      * and forward I/O between them.
@@ -1889,6 +1899,23 @@ static int lxcVmStart(virConnectPtr conn,
     virCommandSetOutputFD(cmd, &logfd);
     virCommandSetErrorFD(cmd, &logfd);
 
+    /* now that we know it is about to start call the hook if present */
+    if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
+        char *xml = virDomainDefFormat(vm->def, 0);
+        int hookret;
+
+        hookret = virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
+                              VIR_HOOK_LXC_OP_START, VIR_HOOK_SUBOP_BEGIN,
+                              NULL, xml, NULL);
+        VIR_FREE(xml);
+
+        /*
+         * If the script raised an error abort the launch
+         */
+        if (hookret < 0)
+            goto cleanup;
+    }
+
     /* Log timestamp */
     if ((timestamp = virTimeStringNow()) == NULL) {
         virReportOOMError();
@@ -1966,6 +1993,23 @@ static int lxcVmStart(virConnectPtr conn,
      * harmless) inconsistency we should fix one day */
     if (virDomainSaveStatus(driver->caps, driver->stateDir, vm) < 0)
         goto error;
+
+    /* finally we can call the 'started' hook script if any */
+    if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
+        char *xml = virDomainDefFormat(vm->def, 0);
+        int hookret;
+
+        hookret = virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
+                              VIR_HOOK_LXC_OP_STARTED, VIR_HOOK_SUBOP_BEGIN,
+                              NULL, xml, NULL);
+        VIR_FREE(xml);
+
+        /*
+         * If the script raised an error abort the launch
+         */
+        if (hookret < 0)
+            goto error;
+    }
 
     rc = 0;
 
@@ -2514,6 +2558,21 @@ lxcReconnectVM(void *payload, const void *name ATTRIBUTE_UNUSED, void *opaque)
         if (virSecurityManagerReserveLabel(driver->securityManager,
                                            vm->def, vm->pid) < 0)
             goto error;
+
+        /* now that we know it's reconnected call the hook if present */
+        if (virHookPresent(VIR_HOOK_DRIVER_LXC)) {
+            char *xml = virDomainDefFormat(vm->def, 0);
+            int hookret;
+
+            /* we can't stop the operation even if the script raised an error */
+            hookret = virHookCall(VIR_HOOK_DRIVER_LXC, vm->def->name,
+                                  VIR_HOOK_LXC_OP_RECONNECT, VIR_HOOK_SUBOP_BEGIN,
+                                  NULL, xml, NULL);
+            VIR_FREE(xml);
+            if (hookret < 0)
+                goto error;
+        }
+
     } else {
         vm->def->id = -1;
         VIR_FORCE_CLOSE(priv->monitor);
@@ -2533,7 +2592,9 @@ error:
 static int
 lxcSecurityInit(lxc_driver_t *driver)
 {
+    VIR_INFO("lxcSecurityInit %s", driver->securityDriverName);
     virSecurityManagerPtr mgr = virSecurityManagerNew(driver->securityDriverName,
+                                                      LXC_DRIVER_NAME,
                                                       false,
                                                       driver->securityDefaultConfined,
                                                       driver->securityRequireConfined);
@@ -3821,6 +3882,23 @@ cleanup:
 }
 
 static int
+lxcListAllDomains(virConnectPtr conn,
+                  virDomainPtr **domains,
+                  unsigned int flags)
+{
+    lxc_driver_t *driver = conn->privateData;
+    int ret = -1;
+
+    virCheckFlags(VIR_CONNECT_LIST_FILTERS_ALL, -1);
+
+    lxcDriverLock(driver);
+    ret = virDomainList(conn, driver->domains.objs, domains, flags);
+    lxcDriverUnlock(driver);
+
+    return ret;
+}
+
+static int
 lxcVMFilterRebuild(virConnectPtr conn ATTRIBUTE_UNUSED,
                    virHashIterator iter, void *data)
 {
@@ -3851,7 +3929,7 @@ static virNWFilterCallbackDriver lxcCallbackDriver = {
 /* Function Tables */
 static virDriver lxcDriver = {
     .no = VIR_DRV_LXC,
-    .name = "LXC",
+    .name = LXC_DRIVER_NAME,
     .open = lxcOpen, /* 0.4.2 */
     .close = lxcClose, /* 0.4.2 */
     .version = lxcVersion, /* 0.4.6 */
@@ -3860,6 +3938,7 @@ static virDriver lxcDriver = {
     .getCapabilities = lxcGetCapabilities, /* 0.6.5 */
     .listDomains = lxcListDomains, /* 0.4.2 */
     .numOfDomains = lxcNumDomains, /* 0.4.2 */
+    .listAllDomains = lxcListAllDomains, /* 0.9.13 */
     .domainCreateXML = lxcDomainCreateAndStart, /* 0.4.4 */
     .domainLookupByID = lxcDomainLookupByID, /* 0.4.2 */
     .domainLookupByUUID = lxcDomainLookupByUUID, /* 0.4.2 */
@@ -3915,7 +3994,7 @@ static virDriver lxcDriver = {
 };
 
 static virStateDriver lxcStateDriver = {
-    .name = "LXC",
+    .name = LXC_DRIVER_NAME,
     .initialize = lxcStartup,
     .cleanup = lxcShutdown,
     .active = lxcActive,

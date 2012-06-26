@@ -32,6 +32,8 @@
 #include "virterror_internal.h"
 #include "nwfilter_gentech_driver.h"
 #include "nwfilter_ebiptables_driver.h"
+#include "nwfilter_dhcpsnoop.h"
+#include "nwfilter_ipaddrmap.h"
 #include "nwfilter_learnipaddr.h"
 #include "virnetdev.h"
 #include "datatypes.h"
@@ -39,8 +41,10 @@
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
 
-#define NWFILTER_STD_VAR_MAC "MAC"
-#define NWFILTER_STD_VAR_IP  "IP"
+#define NWFILTER_STD_VAR_MAC NWFILTER_VARNAME_MAC
+#define NWFILTER_STD_VAR_IP  NWFILTER_VARNAME_IP
+
+#define NWFILTER_DFLT_LEARN  "any"
 
 static int _virNWFilterTeardownFilter(const char *ifname);
 
@@ -53,6 +57,7 @@ static virNWFilterTechDriverPtr filter_tech_drivers[] = {
 
 void virNWFilterTechDriversInit(bool privileged) {
     int i = 0;
+    VIR_DEBUG("Initializing NWFilter technology drivers");
     while (filter_tech_drivers[i]) {
         if (!(filter_tech_drivers[i]->flags & TECHDRV_FLAG_INITIALIZED))
             filter_tech_drivers[i]->init(privileged);
@@ -662,6 +667,9 @@ virNWFilterInstantiate(const unsigned char *vmuuid ATTRIBUTE_UNUSED,
     void **ptrs = NULL;
     int instantiate = 1;
     char *buf;
+    virNWFilterVarValuePtr lv;
+    const char *learning;
+    bool reportIP = false;
 
     virNWFilterHashTablePtr missing_vars = virNWFilterHashTableCreate(0);
     if (!missing_vars) {
@@ -678,22 +686,47 @@ virNWFilterInstantiate(const unsigned char *vmuuid ATTRIBUTE_UNUSED,
     if (rc < 0)
         goto err_exit;
 
+    lv = virHashLookup(vars->hashTable, NWFILTER_VARNAME_CTRL_IP_LEARNING);
+    if (lv)
+        learning = virNWFilterVarValueGetNthValue(lv, 0);
+    else
+        learning = NULL;
+
+    if (learning == NULL)
+        learning = NWFILTER_DFLT_LEARN;
+
     if (virHashSize(missing_vars->hashTable) == 1) {
         if (virHashLookup(missing_vars->hashTable,
                           NWFILTER_STD_VAR_IP) != NULL) {
-            if (virNWFilterLookupLearnReq(ifindex) == NULL) {
-                rc = virNWFilterLearnIPAddress(techdriver,
-                                               ifname,
-                                               ifindex,
-                                               linkdev,
-                                               nettype, macaddr,
-                                               filter->name,
-                                               vars, driver,
-                                               DETECT_DHCP|DETECT_STATIC);
+            if (STRCASEEQ(learning, "none")) {        /* no learning */
+                reportIP = true;
+                goto err_unresolvable_vars;
             }
-            goto err_exit;
-        }
-        goto err_unresolvable_vars;
+            if (STRCASEEQ(learning, "dhcp")) {
+                rc = virNWFilterDHCPSnoopReq(techdriver, ifname, linkdev,
+                                             nettype, vmuuid, macaddr,
+                                             filter->name, vars, driver);
+                goto err_exit;
+            } else if (STRCASEEQ(learning, "any")) {
+                if (virNWFilterLookupLearnReq(ifindex) == NULL) {
+                    rc = virNWFilterLearnIPAddress(techdriver,
+                                                   ifname,
+                                                   ifindex,
+                                                   linkdev,
+                                                   nettype, macaddr,
+                                                   filter->name,
+                                                   vars, driver,
+                                                   DETECT_DHCP|DETECT_STATIC);
+                }
+                goto err_exit;
+            } else {
+                rc = -1;
+                virNWFilterReportError(VIR_ERR_PARSE_FAILED, _("filter '%s' "
+                                       "learning value '%s' invalid."),
+                                       filter->name, learning);
+            }
+        } else
+             goto err_unresolvable_vars;
     } else if (virHashSize(missing_vars->hashTable) > 1) {
         goto err_unresolvable_vars;
     } else if (!forceWithPendingReq &&
@@ -761,7 +794,7 @@ err_exit:
 
 err_unresolvable_vars:
 
-    buf = virNWFilterPrintVars(missing_vars->hashTable, ", ", false, false);
+    buf = virNWFilterPrintVars(missing_vars->hashTable, ", ", false, reportIP);
     if (buf) {
         virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
                    _("Cannot instantiate filter due to unresolvable "
@@ -839,7 +872,7 @@ __virNWFilterInstantiateFilter(const unsigned char *vmuuid,
         goto err_exit;
     }
 
-    ipaddr = virNWFilterGetIpAddrForIfname(ifname);
+    ipaddr = virNWFilterIPAddrMapGetIPAddr(ifname);
 
     vars1 = virNWFilterCreateVarHashmap(str_macaddr, ipaddr);
     if (!vars1) {
@@ -1092,6 +1125,8 @@ _virNWFilterTeardownFilter(const char *ifname)
         return -1;
     }
 
+    virNWFilterDHCPSnoopEnd(ifname);
+
     virNWFilterTerminateLearnReq(ifname);
 
     if (virNWFilterLockIface(ifname) < 0)
@@ -1099,7 +1134,7 @@ _virNWFilterTeardownFilter(const char *ifname)
 
     techdriver->allTeardown(ifname);
 
-    virNWFilterDelIpAddrForIfname(ifname, NULL);
+    virNWFilterIPAddrMapDelIPAddr(ifname, NULL);
 
     virNWFilterUnlockIface(ifname);
 

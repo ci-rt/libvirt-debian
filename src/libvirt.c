@@ -45,37 +45,32 @@
 #include "virrandom.h"
 #include "viruri.h"
 
-#ifndef WITH_DRIVER_MODULES
-# ifdef WITH_TEST
-#  include "test/test_driver.h"
-# endif
-# ifdef WITH_XEN
-#  include "xen/xen_driver.h"
-# endif
-# ifdef WITH_REMOTE
-#  include "remote/remote_driver.h"
-# endif
-# ifdef WITH_OPENVZ
-#  include "openvz/openvz_driver.h"
-# endif
-# ifdef WITH_VMWARE
-#  include "vmware/vmware_driver.h"
-# endif
-# ifdef WITH_PHYP
-#  include "phyp/phyp_driver.h"
-# endif
-# ifdef WITH_VBOX
-#  include "vbox/vbox_driver.h"
-# endif
-# ifdef WITH_ESX
-#  include "esx/esx_driver.h"
-# endif
-# ifdef WITH_HYPERV
-#  include "hyperv/hyperv_driver.h"
-# endif
-# ifdef WITH_XENAPI
-#  include "xenapi/xenapi_driver.h"
-# endif
+#ifdef WITH_TEST
+# include "test/test_driver.h"
+#endif
+#ifdef WITH_REMOTE
+# include "remote/remote_driver.h"
+#endif
+#ifdef WITH_OPENVZ
+# include "openvz/openvz_driver.h"
+#endif
+#ifdef WITH_VMWARE
+# include "vmware/vmware_driver.h"
+#endif
+#ifdef WITH_PHYP
+# include "phyp/phyp_driver.h"
+#endif
+#ifdef WITH_VBOX
+# include "vbox/vbox_driver.h"
+#endif
+#ifdef WITH_ESX
+# include "esx/esx_driver.h"
+#endif
+#ifdef WITH_HYPERV
+# include "hyperv/hyperv_driver.h"
+#endif
+#ifdef WITH_XENAPI
+# include "xenapi/xenapi_driver.h"
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -424,70 +419,32 @@ virInitialize(void)
      * Note that the order is important: the first ones have a higher
      * priority when calling virConnectOpen.
      */
-#ifdef WITH_DRIVER_MODULES
-    /* We don't care if any of these fail, because the whole point
-     * is to allow users to only install modules they want to use.
-     * If they try to open a connection for a module that
-     * is not loaded they'll get a suitable error at that point
-     */
-# ifdef WITH_TEST
-    virDriverLoadModule("test");
-# endif
-# ifdef WITH_XEN
-    virDriverLoadModule("xen");
-# endif
-# ifdef WITH_OPENVZ
-    virDriverLoadModule("openvz");
-# endif
-# ifdef WITH_VMWARE
-    virDriverLoadModule("vmware");
-# endif
-# ifdef WITH_VBOX
-    virDriverLoadModule("vbox");
-# endif
-# ifdef WITH_ESX
-    virDriverLoadModule("esx");
-# endif
-# ifdef WITH_HYPERV
-    virDriverLoadModule("hyperv");
-# endif
-# ifdef WITH_XENAPI
-    virDriverLoadModule("xenapi");
-# endif
-# ifdef WITH_REMOTE
-    virDriverLoadModule("remote");
-# endif
-#else
-# ifdef WITH_TEST
+#ifdef WITH_TEST
     if (testRegister() == -1) return -1;
-# endif
-# ifdef WITH_XEN
-    if (xenRegister () == -1) return -1;
-# endif
-# ifdef WITH_OPENVZ
+#endif
+#ifdef WITH_OPENVZ
     if (openvzRegister() == -1) return -1;
-# endif
-# ifdef WITH_VMWARE
+#endif
+#ifdef WITH_VMWARE
     if (vmwareRegister() == -1) return -1;
-# endif
-# ifdef WITH_PHYP
+#endif
+#ifdef WITH_PHYP
     if (phypRegister() == -1) return -1;
-# endif
-# ifdef WITH_VBOX
+#endif
+#ifdef WITH_VBOX
     if (vboxRegister() == -1) return -1;
-# endif
-# ifdef WITH_ESX
+#endif
+#ifdef WITH_ESX
     if (esxRegister() == -1) return -1;
-# endif
-# ifdef WITH_HYPERV
+#endif
+#ifdef WITH_HYPERV
     if (hypervRegister() == -1) return -1;
-# endif
-# ifdef WITH_XENAPI
+#endif
+#ifdef WITH_XENAPI
     if (xenapiRegister() == -1) return -1;
-# endif
-# ifdef WITH_REMOTE
+#endif
+#ifdef WITH_REMOTE
     if (remoteRegister () == -1) return -1;
-# endif
 #endif
 
     return 0;
@@ -576,10 +533,7 @@ virRegisterNetworkDriver(virNetworkDriverPtr driver)
     if (virInitialize() < 0)
       return -1;
 
-    if (driver == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return -1;
-    }
+    virCheckNonNullArgReturn(driver, -1);
 
     if (virNetworkDriverTabCount >= MAX_DRIVERS) {
         virLibConnError(VIR_ERR_INTERNAL_ERROR,
@@ -609,10 +563,7 @@ virRegisterInterfaceDriver(virInterfaceDriverPtr driver)
     if (virInitialize() < 0)
       return -1;
 
-    if (driver == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return -1;
-    }
+    virCheckNonNullArgReturn(driver, -1);
 
     if (virInterfaceDriverTabCount >= MAX_DRIVERS) {
         virLibConnError(VIR_ERR_INTERNAL_ERROR,
@@ -642,10 +593,7 @@ virRegisterStorageDriver(virStorageDriverPtr driver)
     if (virInitialize() < 0)
       return -1;
 
-    if (driver == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return -1;
-    }
+    virCheckNonNullArgReturn(driver, -1);
 
     if (virStorageDriverTabCount >= MAX_DRIVERS) {
         virLibConnError(VIR_ERR_INTERNAL_ERROR,
@@ -675,10 +623,7 @@ virRegisterDeviceMonitor(virDeviceMonitorPtr driver)
     if (virInitialize() < 0)
       return -1;
 
-    if (driver == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return -1;
-    }
+    virCheckNonNullArgReturn(driver, -1);
 
     if (virDeviceMonitorTabCount >= MAX_DRIVERS) {
         virLibConnError(VIR_ERR_INTERNAL_ERROR,
@@ -708,10 +653,7 @@ virRegisterSecretDriver(virSecretDriverPtr driver)
     if (virInitialize() < 0)
       return -1;
 
-    if (driver == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return -1;
-    }
+    virCheckNonNullArgReturn(driver, -1);
 
     if (virSecretDriverTabCount >= MAX_DRIVERS) {
         virLibConnError(VIR_ERR_INTERNAL_ERROR,
@@ -741,10 +683,7 @@ virRegisterNWFilterDriver(virNWFilterDriverPtr driver)
     if (virInitialize() < 0)
       return -1;
 
-    if (driver == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return -1;
-    }
+    virCheckNonNullArgReturn(driver, -1);
 
     if (virNWFilterDriverTabCount >= MAX_DRIVERS) {
         virLibConnError(VIR_ERR_INTERNAL_ERROR,
@@ -777,21 +716,12 @@ virRegisterDriver(virDriverPtr driver)
     if (virInitialize() < 0)
         return -1;
 
-    if (driver == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return -1;
-    }
+    virCheckNonNullArgReturn(driver, -1);
 
     if (virDriverTabCount >= MAX_DRIVERS) {
         virLibConnError(VIR_ERR_INTERNAL_ERROR,
                         _("Too many drivers, cannot register %s"),
                         driver->name);
-        return -1;
-    }
-
-    if (driver->no < 0) {
-        virLibConnError(VIR_ERR_INVALID_ARG,
-                        _("Tried to register an internal Xen driver"));
         return -1;
     }
 
@@ -817,10 +747,7 @@ virRegisterStateDriver(virStateDriverPtr driver)
     if (virInitialize() < 0)
       return -1;
 
-    if (driver == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        return -1;
-    }
+    virCheckNonNullArgReturn(driver, -1);
 
     if (virStateDriverTabCount >= MAX_DRIVERS) {
         virLibConnError(VIR_ERR_INTERNAL_ERROR,
@@ -842,20 +769,23 @@ virRegisterStateDriver(virStateDriverPtr driver)
  * Returns 0 if all succeed, -1 upon any failure.
  */
 int virStateInitialize(int privileged) {
-    int i, ret = 0;
+    int i;
 
     if (virInitialize() < 0)
         return -1;
 
     for (i = 0 ; i < virStateDriverTabCount ; i++) {
-        if (virStateDriverTab[i]->initialize &&
-            virStateDriverTab[i]->initialize(privileged) < 0) {
-            VIR_ERROR(_("Initialization of %s state driver failed"),
+        if (virStateDriverTab[i]->initialize) {
+            VIR_DEBUG("Running global init for %s state driver",
                       virStateDriverTab[i]->name);
-            ret = -1;
+            if (virStateDriverTab[i]->initialize(privileged) < 0) {
+                VIR_ERROR(_("Initialization of %s state driver failed"),
+                          virStateDriverTab[i]->name);
+                return -1;
+            }
         }
     }
-    return ret;
+    return 0;
 }
 
 /**
@@ -969,11 +899,11 @@ virConnectGetConfigFilePath(void)
                         SYSCONFDIR) < 0)
             goto no_memory;
     } else {
-        char *userdir = virGetUserDirectory(geteuid());
+        char *userdir = virGetUserConfigDirectory();
         if (!userdir)
             goto error;
 
-        if (virAsprintf(&path, "%s/.libvirt/libvirt.conf",
+        if (virAsprintf(&path, "%s/libvirt.conf",
                         userdir) < 0) {
             VIR_FREE(userdir);
             goto no_memory;
@@ -1215,7 +1145,7 @@ do_open (const char *name,
              STRCASEEQ(ret->uri->scheme, "xenapi") ||
 #endif
              false)) {
-            virReportErrorHelper(VIR_FROM_NONE, VIR_ERR_INVALID_ARG,
+            virReportErrorHelper(VIR_FROM_NONE, VIR_ERR_CONFIG_UNSUPPORTED,
                                  __FILE__, __FUNCTION__, __LINE__,
                                  _("libvirt was built without the '%s' driver"),
                                  ret->uri->scheme);
@@ -1631,10 +1561,7 @@ virConnectGetVersion(virConnectPtr conn, unsigned long *hvVer)
         return -1;
     }
 
-    if (hvVer == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(hvVer, error);
 
     if (conn->driver->version) {
         int ret = conn->driver->version (conn, hvVer);
@@ -1675,10 +1602,7 @@ virConnectGetLibVersion(virConnectPtr conn, unsigned long *libVer)
         return -1;
     }
 
-    if (libVer == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(libVer, error);
 
     if (conn->driver->libvirtVersion) {
         ret = conn->driver->libvirtVersion(conn, libVer);
@@ -1859,7 +1783,14 @@ error:
  *
  * Collect the list of active domains, and store their IDs in array @ids
  *
- * Returns the number of domains found or -1 in case of error
+ * For inactive domains, see virConnectListDefinedDomains().  For more
+ * control over the results, see virConnectListAllDomains().
+ *
+ * Returns the number of domains found or -1 in case of error.  Note that
+ * this command is inherently racy; a domain can be started between a
+ * call to virConnectNumOfDomains() and this call; you are only guaranteed
+ * that all currently active domains were listed if the return is less
+ * than @maxids.
  */
 int
 virConnectListDomains(virConnectPtr conn, int *ids, int maxids)
@@ -1874,10 +1805,8 @@ virConnectListDomains(virConnectPtr conn, int *ids, int maxids)
         return -1;
     }
 
-    if ((ids == NULL) || (maxids < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(ids, error);
+    virCheckNonNegativeArgGoto(maxids, error);
 
     if (conn->driver->listDomains) {
         int ret = conn->driver->listDomains (conn, ids, maxids);
@@ -1994,10 +1923,7 @@ virDomainCreateXML(virConnectPtr conn, const char *xmlDesc,
         virDispatchError(NULL);
         return NULL;
     }
-    if (xmlDesc == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xmlDesc, error);
     if (conn->flags & VIR_CONNECT_RO) {
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
@@ -2060,10 +1986,7 @@ virDomainLookupByID(virConnectPtr conn, int id)
         virDispatchError(NULL);
         return NULL;
     }
-    if (id < 0) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNegativeArgGoto(id, error);
 
     if (conn->driver->domainLookupByID) {
         virDomainPtr ret;
@@ -2102,10 +2025,7 @@ virDomainLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
         virDispatchError(NULL);
         return NULL;
     }
-    if (uuid == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuid, error);
 
     if (conn->driver->domainLookupByUUID) {
         virDomainPtr ret;
@@ -2145,13 +2065,12 @@ virDomainLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
         virDispatchError(NULL);
         return NULL;
     }
-    if (uuidstr == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuidstr, error);
 
     if (virUUIDParse(uuidstr, uuid) < 0) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(uuidstr,
+                            _("uuidstr in %s must be a valid UUID"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -2184,10 +2103,7 @@ virDomainLookupByName(virConnectPtr conn, const char *name)
         virDispatchError(NULL);
         return NULL;
     }
-    if (name == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(name, error);
 
     if (conn->driver->domainLookupByName) {
         virDomainPtr dom;
@@ -2379,7 +2295,7 @@ int
 virDomainRef(virDomainPtr domain)
 {
     if ((!VIR_IS_CONNECTED_DOMAIN(domain))) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virLibConnError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
         virDispatchError(NULL);
         return -1;
     }
@@ -2631,10 +2547,7 @@ virDomainSave(virDomainPtr domain, const char *to)
         goto error;
     }
     conn = domain->conn;
-    if (to == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(to, error);
 
     if (conn->driver->domainSave) {
         int ret;
@@ -2723,14 +2636,11 @@ virDomainSaveFlags(virDomainPtr domain, const char *to,
         goto error;
     }
     conn = domain->conn;
-    if (to == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(to, error);
 
     if ((flags & VIR_DOMAIN_SAVE_RUNNING) && (flags & VIR_DOMAIN_SAVE_PAUSED)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("running and paused flags are mutually exclusive"));
+        virReportInvalidArg(flags, "%s",
+                            _("running and paused flags are mutually exclusive"));
         goto error;
     }
 
@@ -2788,10 +2698,7 @@ virDomainRestore(virConnectPtr conn, const char *from)
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (from == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(from, error);
 
     if (conn->driver->domainRestore) {
         int ret;
@@ -2867,14 +2774,11 @@ virDomainRestoreFlags(virConnectPtr conn, const char *from, const char *dxml,
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (from == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(from, error);
 
     if ((flags & VIR_DOMAIN_SAVE_RUNNING) && (flags & VIR_DOMAIN_SAVE_PAUSED)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("running and paused flags are mutually exclusive"));
+        virReportInvalidArg(flags, "%s",
+                            _("running and paused flags are mutually exclusive"));
         goto error;
     }
 
@@ -2938,10 +2842,7 @@ virDomainSaveImageGetXMLDesc(virConnectPtr conn, const char *file,
         virDispatchError(NULL);
         return NULL;
     }
-    if (file == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(file, error);
 
     if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
         virLibConnError(VIR_ERR_OPERATION_DENIED,
@@ -3021,14 +2922,12 @@ virDomainSaveImageDefineXML(virConnectPtr conn, const char *file,
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (!file || !dxml) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(file, error);
+    virCheckNonNullArgGoto(dxml, error);
 
     if ((flags & VIR_DOMAIN_SAVE_RUNNING) && (flags & VIR_DOMAIN_SAVE_PAUSED)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("running and paused flags are mutually exclusive"));
+        virReportInvalidArg(flags, "%s",
+                            _("running and paused flags are mutually exclusive"));
         goto error;
     }
 
@@ -3104,26 +3003,23 @@ virDomainCoreDump(virDomainPtr domain, const char *to, unsigned int flags)
         goto error;
     }
     conn = domain->conn;
-    if (to == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(to, error);
 
     if ((flags & VIR_DUMP_CRASH) && (flags & VIR_DUMP_LIVE)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("crash and live flags are mutually exclusive"));
+        virReportInvalidArg(flags, "%s",
+                            _("crash and live flags are mutually exclusive"));
         goto error;
     }
 
     if ((flags & VIR_DUMP_CRASH) && (flags & VIR_DUMP_RESET)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
+        virReportInvalidArg(flags, "%s",
                          _("crash and reset flags are mutually exclusive"));
         goto error;
     }
 
     if ((flags & VIR_DUMP_LIVE) && (flags & VIR_DUMP_RESET)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("live and reset flags are mutually exclusive"));
+        virReportInvalidArg(flags, "%s",
+                            _("live and reset flags are mutually exclusive"));
         goto error;
     }
 
@@ -3318,7 +3214,8 @@ virDomainShutdownFlags(virDomainPtr domain, unsigned int flags)
     /* At most one of these two flags should be set.  */
     if ((flags & VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN) &&
         (flags & VIR_DOMAIN_SHUTDOWN_GUEST_AGENT)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(flags, "%s",
+                            _("flags for acpi power button and guest agent are mutually exclusive"));
         goto error;
     }
 
@@ -3379,7 +3276,8 @@ virDomainReboot(virDomainPtr domain, unsigned int flags)
     /* At most one of these two flags should be set.  */
     if ((flags & VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN) &&
         (flags & VIR_DOMAIN_SHUTDOWN_GUEST_AGENT)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(flags, "%s",
+                            _("flags for acpi power button and guest agent are mutually exclusive"));
         goto error;
     }
 
@@ -3495,11 +3393,7 @@ virDomainGetUUID(virDomainPtr domain, unsigned char *uuid)
         virDispatchError(NULL);
         return -1;
     }
-    if (uuid == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        virDispatchError(domain->conn);
-        return -1;
-    }
+    virCheckNonNullArgReturn(uuid, -1);
 
     memcpy(uuid, &domain->uuid[0], VIR_UUID_BUFLEN);
 
@@ -3530,10 +3424,7 @@ virDomainGetUUIDString(virDomainPtr domain, char *buf)
         virDispatchError(NULL);
         return -1;
     }
-    if (buf == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(buf, error);
 
     if (virDomainGetUUID(domain, &uuid[0]))
         goto error;
@@ -3692,10 +3583,8 @@ virDomainSetMaxMemory(virDomainPtr domain, unsigned long memory)
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (!memory) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonZeroArgGoto(memory, error);
+
     conn = domain->conn;
 
     if (conn->driver->domainSetMaxMemory) {
@@ -3746,10 +3635,7 @@ virDomainSetMemory(virDomainPtr domain, unsigned long memory)
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (!memory) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonZeroArgGoto(memory, error);
 
     conn = domain->conn;
 
@@ -3814,11 +3700,7 @@ virDomainSetMemoryFlags(virDomainPtr domain, unsigned long memory,
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-
-    if (!memory) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonZeroArgGoto(memory, error);
 
     conn = domain->conn;
 
@@ -3853,27 +3735,24 @@ virTypedParameterValidateSet(virDomainPtr domain,
     for (i = 0; i < nparams; i++) {
         if (strnlen(params[i].field, VIR_TYPED_PARAM_FIELD_LENGTH) ==
             VIR_TYPED_PARAM_FIELD_LENGTH) {
-            virLibDomainError(VIR_ERR_INVALID_ARG,
-                              _("string parameter name '%.*s' too long"),
-                              VIR_TYPED_PARAM_FIELD_LENGTH,
-                              params[i].field);
-            virDispatchError(NULL);
+            virReportInvalidArg(params,
+                                _("string parameter name '%.*s' too long"),
+                                VIR_TYPED_PARAM_FIELD_LENGTH,
+                                params[i].field);
             return -1;
         }
         if (params[i].type == VIR_TYPED_PARAM_STRING) {
             if (string_okay) {
                 if (!params[i].value.s) {
-                    virLibDomainError(VIR_ERR_INVALID_ARG,
-                                      _("NULL string parameter '%s'"),
-                                      params[i].field);
-                    virDispatchError(NULL);
+                    virReportInvalidArg(params,
+                                        _("NULL string parameter '%s'"),
+                                        params[i].field);
                     return -1;
                 }
             } else {
-                virLibDomainError(VIR_ERR_INVALID_ARG,
-                                  _("string parameter '%s' unsupported"),
-                                  params[i].field);
-                virDispatchError(NULL);
+                virReportInvalidArg(params,
+                                    _("string parameter '%s' unsupported"),
+                                    params[i].field);
                 return -1;
             }
         }
@@ -3915,12 +3794,11 @@ virDomainSetMemoryParameters(virDomainPtr domain,
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if ((nparams <= 0) || (params == NULL)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(params, error);
+    virCheckPositiveArgGoto(nparams, error);
+
     if (virTypedParameterValidateSet(domain, params, nparams) < 0)
-        return -1;
+        goto error;
 
     conn = domain->conn;
 
@@ -3991,11 +3869,11 @@ virDomainGetMemoryParameters(virDomainPtr domain,
         virDispatchError(NULL);
         return -1;
     }
-    if ((nparams == NULL) || (*nparams < 0) ||
-        (params == NULL && *nparams != 0)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckNonNegativeArgGoto(*nparams, error);
+    if (*nparams != 0)
+        virCheckNonNullArgGoto(params, error);
+
     if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                  VIR_DRV_FEATURE_TYPED_PARAM_STRING))
         flags |= VIR_TYPED_PARAM_STRING_OKAY;
@@ -4003,7 +3881,9 @@ virDomainGetMemoryParameters(virDomainPtr domain,
     /* At most one of these two flags should be set.  */
     if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
         (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(flags,
+                            _("flags 'affect live' and 'affect config' in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
     conn = domain->conn;
@@ -4056,12 +3936,10 @@ virDomainSetNumaParameters(virDomainPtr domain,
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if ((nparams <= 0) || (params == NULL)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(params, error);
+    virCheckPositiveArgGoto(nparams, error);
     if (virTypedParameterValidateSet(domain, params, nparams) < 0)
-        return -1;
+        goto error;
 
     conn = domain->conn;
 
@@ -4125,11 +4003,11 @@ virDomainGetNumaParameters(virDomainPtr domain,
         virDispatchError(NULL);
         return -1;
     }
-    if ((nparams == NULL) || (*nparams < 0) ||
-        (params == NULL && *nparams != 0)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckNonNegativeArgGoto(*nparams, error);
+    if (*nparams != 0)
+        virCheckNonNullArgGoto(params, error);
+
     if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                  VIR_DRV_FEATURE_TYPED_PARAM_STRING))
         flags |= VIR_TYPED_PARAM_STRING_OKAY;
@@ -4185,12 +4063,11 @@ virDomainSetBlkioParameters(virDomainPtr domain,
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if ((nparams <= 0) || (params == NULL)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(params, error);
+    virCheckNonNegativeArgGoto(nparams, error);
+
     if (virTypedParameterValidateSet(domain, params, nparams) < 0)
-        return -1;
+        goto error;
 
     conn = domain->conn;
 
@@ -4252,11 +4129,11 @@ virDomainGetBlkioParameters(virDomainPtr domain,
         virDispatchError(NULL);
         return -1;
     }
-    if ((nparams == NULL) || (*nparams < 0) ||
-        (params == NULL && *nparams != 0)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckNonNegativeArgGoto(*nparams, error);
+    if (*nparams != 0)
+        virCheckNonNullArgGoto(params, error);
+
     if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                  VIR_DRV_FEATURE_TYPED_PARAM_STRING))
         flags |= VIR_TYPED_PARAM_STRING_OKAY;
@@ -4264,7 +4141,9 @@ virDomainGetBlkioParameters(virDomainPtr domain,
     /* At most one of these two flags should be set.  */
     if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
         (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(flags,
+                            _("flags 'affect live' and 'affect config' in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
     conn = domain->conn;
@@ -4308,10 +4187,7 @@ virDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info)
         virDispatchError(NULL);
         return -1;
     }
-    if (info == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(info, error);
 
     memset(info, 0, sizeof(virDomainInfo));
 
@@ -4363,10 +4239,7 @@ virDomainGetState(virDomainPtr domain,
         virDispatchError(NULL);
         return -1;
     }
-    if (!state) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(state, error);
 
     conn = domain->conn;
     if (conn->driver->domainGetState) {
@@ -4411,10 +4284,7 @@ virDomainGetControlInfo(virDomainPtr domain,
         return -1;
     }
 
-    if (!info) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(info, error);
 
     conn = domain->conn;
     if (conn->driver->domainGetControlInfo) {
@@ -4521,10 +4391,8 @@ char *virConnectDomainXMLFromNative(virConnectPtr conn,
         return NULL;
     }
 
-    if (nativeFormat == NULL || nativeConfig == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(nativeFormat, error);
+    virCheckNonNullArgGoto(nativeConfig, error);
 
     if (conn->driver->domainXMLFromNative) {
         char *ret;
@@ -4578,10 +4446,8 @@ char *virConnectDomainXMLToNative(virConnectPtr conn,
         goto error;
     }
 
-    if (nativeFormat == NULL || domainXml == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(nativeFormat, error);
+    virCheckNonNullArgGoto(domainXml, error);
 
     if (conn->driver->domainXMLToNative) {
         char *ret;
@@ -5061,8 +4927,18 @@ virDomainMigratePeer2Peer (virDomainPtr domain,
         return -1;
     }
 
-    if (!tempuri->server || STRPREFIX(tempuri->server, "localhost")) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+    if (!tempuri->server) {
+        virReportInvalidArg(dconnuri,
+                            _("unable to parse server from dconnuri in %s"),
+                            __FUNCTION__);
+        virDispatchError(domain->conn);
+        virURIFree(tempuri);
+        return -1;
+    }
+    if (STRPREFIX(tempuri->server, "localhost")) {
+        virReportInvalidArg(dconnuri,
+                            _("unable to parse server from dconnuri in %s"),
+                            __FUNCTION__);
         virDispatchError(domain->conn);
         virURIFree(tempuri);
         return -1;
@@ -5663,10 +5539,7 @@ virDomainMigrateToURI (virDomainPtr domain,
         goto error;
     }
 
-    if (duri == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(duri, error);
 
     if (flags & VIR_MIGRATE_PEER2PEER) {
         if (VIR_DRV_SUPPORTS_FEATURE (domain->conn->driver, domain->conn,
@@ -6111,7 +5984,9 @@ virDomainMigratePrepareTunnel(virConnectPtr conn,
     }
 
     if (conn != st->conn) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(conn,
+                            _("conn in %s must match stream connection"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -6277,7 +6152,9 @@ virDomainMigratePrepareTunnel3(virConnectPtr conn,
     }
 
     if (conn != st->conn) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(conn,
+                            _("conn in %s must match stream connection"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -6484,10 +6361,7 @@ virNodeGetInfo(virConnectPtr conn, virNodeInfoPtr info)
         virDispatchError(NULL);
         return -1;
     }
-    if (info == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(info, error);
 
     if (conn->driver->nodeGetInfo) {
         int ret;
@@ -6613,9 +6487,12 @@ int virNodeGetCPUStats (virConnectPtr conn,
         return -1;
     }
 
-    if ((nparams == NULL) || (*nparams < 0) ||
-        ((cpuNum < 0) && (cpuNum != VIR_NODE_CPU_STATS_ALL_CPUS))) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckNonNegativeArgGoto(*nparams, error);
+    if (((cpuNum < 0) && (cpuNum != VIR_NODE_CPU_STATS_ALL_CPUS))) {
+        virReportInvalidArg(cpuNum,
+                            _("cpuNum in %s only accepts %d as a negative value"),
+                            __FUNCTION__, VIR_NODE_CPU_STATS_ALL_CPUS);
         goto error;
     }
 
@@ -6699,9 +6576,12 @@ int virNodeGetMemoryStats (virConnectPtr conn,
         return -1;
     }
 
-    if ((nparams == NULL) || (*nparams < 0) ||
-        ((cellNum < 0) && (cellNum != VIR_NODE_MEMORY_STATS_ALL_CELLS))) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckNonNegativeArgGoto(*nparams, error);
+    if (((cellNum < 0) && (cellNum != VIR_NODE_MEMORY_STATS_ALL_CELLS))) {
+        virReportInvalidArg(cpuNum,
+                            _("cellNum in %s only accepts %d as a negative value"),
+                            __FUNCTION__, VIR_NODE_MEMORY_STATS_ALL_CELLS);
         goto error;
     }
 
@@ -6895,10 +6775,9 @@ virDomainGetSchedulerParameters(virDomainPtr domain,
         return -1;
     }
 
-    if (params == NULL || nparams == NULL || *nparams <= 0) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(params, error);
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckPositiveArgGoto(*nparams, error);
 
     conn = domain->conn;
 
@@ -6966,10 +6845,9 @@ virDomainGetSchedulerParametersFlags(virDomainPtr domain,
         return -1;
     }
 
-    if (params == NULL || nparams == NULL || *nparams <= 0) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(params, error);
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckPositiveArgGoto(*nparams, error);
 
     if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                  VIR_DRV_FEATURE_TYPED_PARAM_STRING))
@@ -6978,7 +6856,9 @@ virDomainGetSchedulerParametersFlags(virDomainPtr domain,
     /* At most one of these two flags should be set.  */
     if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
         (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(flags,
+                            _("flags 'affect live' and 'affect config' in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
     conn = domain->conn;
@@ -7034,12 +6914,11 @@ virDomainSetSchedulerParameters(virDomainPtr domain,
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (params == NULL || nparams < 0) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(params, error);
+    virCheckNonNegativeArgGoto(nparams, error);
+
     if (virTypedParameterValidateSet(domain, params, nparams) < 0)
-        return -1;
+        goto error;
 
     conn = domain->conn;
 
@@ -7099,12 +6978,11 @@ virDomainSetSchedulerParametersFlags(virDomainPtr domain,
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (params == NULL || nparams < 0) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(params, error);
+    virCheckNonNegativeArgGoto(nparams, error);
+
     if (virTypedParameterValidateSet(domain, params, nparams) < 0)
-        return -1;
+        goto error;
 
     conn = domain->conn;
 
@@ -7169,8 +7047,12 @@ virDomainBlockStats(virDomainPtr dom, const char *disk,
         virDispatchError(NULL);
         return -1;
     }
-    if (!disk || !stats || size > sizeof(stats2)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+    virCheckNonNullArgGoto(disk, error);
+    virCheckNonNullArgGoto(stats, error);
+    if (size > sizeof(stats2)) {
+        virReportInvalidArg(size,
+                            _("size in %s must not exceed %zu"),
+                            __FUNCTION__, sizeof(stats2));
         goto error;
     }
     conn = dom->conn;
@@ -7245,11 +7127,12 @@ int virDomainBlockStatsFlags(virDomainPtr dom,
         virDispatchError(NULL);
         return -1;
     }
-    if (!disk || (nparams == NULL) || (*nparams < 0) ||
-        (params == NULL && *nparams != 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(disk, error);
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckNonNegativeArgGoto(*nparams, error);
+    if (*nparams != 0)
+        virCheckNonNullArgGoto(params, error);
+
     if (VIR_DRV_SUPPORTS_FEATURE(dom->conn->driver, dom->conn,
                                  VIR_DRV_FEATURE_TYPED_PARAM_STRING))
         flags |= VIR_TYPED_PARAM_STRING_OKAY;
@@ -7309,10 +7192,15 @@ virDomainInterfaceStats (virDomainPtr dom, const char *path,
         virDispatchError(NULL);
         return -1;
     }
-    if (!path || !stats || size > sizeof(stats2)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+    virCheckNonNullArgGoto(path, error);
+    virCheckNonNullArgGoto(stats, error);
+    if (size > sizeof(stats2)) {
+        virReportInvalidArg(size,
+                            _("size in %s must not exceed %zu"),
+                            __FUNCTION__, sizeof(stats2));
         goto error;
     }
+
     conn = dom->conn;
 
     if (conn->driver->domainInterfaceStats) {
@@ -7371,12 +7259,11 @@ virDomainSetInterfaceParameters(virDomainPtr domain,
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if ((nparams <= 0) || (params == NULL)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(params, error);
+    virCheckPositiveArgGoto(nparams, error);
+
     if (virTypedParameterValidateSet(domain, params, nparams) < 0)
-        return -1;
+        goto error;
 
     conn = domain->conn;
 
@@ -7442,11 +7329,11 @@ virDomainGetInterfaceParameters(virDomainPtr domain,
         virDispatchError(NULL);
         return -1;
     }
-    if ((nparams == NULL) || (*nparams < 0) ||
-        (params == NULL && *nparams != 0)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckNonNegativeArgGoto(*nparams, error);
+    if (*nparams != 0)
+        virCheckNonNullArgGoto(params, error);
+
     if (VIR_DRV_SUPPORTS_FEATURE(domain->conn->driver, domain->conn,
                                  VIR_DRV_FEATURE_TYPED_PARAM_STRING))
         flags |= VIR_TYPED_PARAM_STRING_OKAY;
@@ -7578,6 +7465,7 @@ error:
  * NB. The remote driver imposes a 64K byte limit on 'size'.
  * For your program to be able to work reliably over a remote
  * connection you should split large requests to <= 65536 bytes.
+ * However, with 0.9.13 this RPC limit has been raised to 1M byte.
  *
  * Returns: 0 in case of success or -1 in case of failure.
  */
@@ -7608,18 +7496,11 @@ virDomainBlockPeek (virDomainPtr dom,
         goto error;
     }
 
-    if (!disk) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("disk is NULL"));
-        goto error;
-    }
+    virCheckNonNullArgGoto(disk, error);
 
     /* Allow size == 0 as an access test. */
-    if (size > 0 && !buffer) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                           _("buffer is NULL"));
-        goto error;
-    }
+    if (size > 0)
+        virCheckNonNullArgGoto(buffer, error);
 
     if (conn->driver->domainBlockPeek) {
         int ret;
@@ -7689,11 +7570,7 @@ virDomainBlockResize (virDomainPtr dom,
         goto error;
     }
 
-    if (!disk) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                           _("disk is NULL"));
-        goto error;
-    }
+    virCheckNonNullArgGoto(disk, error);
 
     if (conn->driver->domainBlockResize) {
         int ret;
@@ -7738,6 +7615,7 @@ error:
  * NB. The remote driver imposes a 64K byte limit on 'size'.
  * For your program to be able to work reliably over a remote
  * connection you should split large requests to <= 65536 bytes.
+ * However, with 0.9.13 this RPC limit has been raised to 1M byte.
  *
  * Returns: 0 in case of success or -1 in case of failure.
  */
@@ -7792,17 +7670,15 @@ virDomainMemoryPeek (virDomainPtr dom,
 
     /* Exactly one of these two flags must be set.  */
     if (!(flags & VIR_MEMORY_VIRTUAL) == !(flags & VIR_MEMORY_PHYSICAL)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                     _("flags parameter must include VIR_MEMORY_VIRTUAL or VIR_MEMORY_PHYSICAL"));
+        virReportInvalidArg(flags,
+                            _("flags in %s must include VIR_MEMORY_VIRTUAL or VIR_MEMORY_PHYSICAL"),
+                            __FUNCTION__);
         goto error;
     }
 
     /* Allow size == 0 as an access test. */
-    if (size > 0 && !buffer) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                           _("buffer is NULL but size is non-zero"));
-        goto error;
-    }
+    if (size > 0)
+        virCheckNonNullArgGoto(buffer, error);
 
     if (conn->driver->domainMemoryPeek) {
         int ret;
@@ -7854,10 +7730,8 @@ virDomainGetBlockInfo(virDomainPtr domain, const char *disk,
         virDispatchError(NULL);
         return -1;
     }
-    if (disk == NULL || info == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(disk, error);
+    virCheckNonNullArgGoto(info, error);
 
     memset(info, 0, sizeof(virDomainBlockInfo));
 
@@ -7917,10 +7791,7 @@ virDomainDefineXML(virConnectPtr conn, const char *xml) {
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (xml == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xml, error);
 
     if (conn->driver->domainDefineXML) {
         virDomainPtr ret;
@@ -8092,7 +7963,14 @@ error:
  * list the defined but inactive domains, stores the pointers to the names
  * in @names
  *
- * Returns the number of names provided in the array or -1 in case of error
+ * For active domains, see virConnectListDomains().  For more control over
+ * the results, see virConnectListAllDomains().
+ *
+ * Returns the number of names provided in the array or -1 in case of error.
+ * Note that this command is inherently racy; a domain can be defined between
+ * a call to virConnectNumOfDefinedDomains() and this call; you are only
+ * guaranteed that all currently defined domains were listed if the return
+ * is less than @maxids.  The client must call free() on each returned name.
  */
 int
 virConnectListDefinedDomains(virConnectPtr conn, char **const names,
@@ -8107,14 +7985,118 @@ virConnectListDefinedDomains(virConnectPtr conn, char **const names,
         return -1;
     }
 
-    if ((names == NULL) || (maxnames < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(maxnames, error);
 
     if (conn->driver->listDefinedDomains) {
         int ret;
         ret = conn->driver->listDefinedDomains (conn, names, maxnames);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virConnectListAllDomains:
+ * @conn: Pointer to the hypervisor connection.
+ * @domains: Pointer to a variable to store the array containing domain objects
+ *           or NULL if the list is not required (just returns number of guests).
+ * @flags: bitwise-OR of virConnectListAllDomainsFlags
+ *
+ * Collect a possibly-filtered list of all domains, and return an allocated
+ * array of information for each.  This API solves the race inherent in
+ * virConnectListDomains() and virConnectListDefinedDomains().
+ *
+ * Normally, all domains are returned; however, @flags can be used to
+ * filter the results for a smaller list of targeted domains.  The valid
+ * flags are divided into groups, where each group contains bits that
+ * describe mutually exclusive attributes of a domain, and where all bits
+ * within a group describe all possible domains.  Some hypervisors might
+ * reject explicit bits from a group where the hypervisor cannot make a
+ * distinction (for example, not all hypervisors can tell whether domains
+ * have snapshots).  For a group supported by a given hypervisor, the
+ * behavior when no bits of a group are set is identical to the behavior
+ * when all bits in that group are set.  When setting bits from more than
+ * one group, it is possible to select an impossible combination (such
+ * as an inactive transient domain), in that case a hypervisor may return
+ * either 0 or an error.
+ *
+ * The first group of @flags is VIR_CONNECT_LIST_DOMAINS_ACTIVE (online
+ * domains) and VIR_CONNECT_LIST_DOMAINS_INACTIVE (offline domains).
+ *
+ * The next group of @flags is VIR_CONNECT_LIST_DOMAINS_PERSISTENT (defined
+ * domains) and VIR_CONNECT_LIST_DOMAINS_TRANSIENT (running but not defined).
+ *
+ * The next group of @flags covers various domain states:
+ * VIR_CONNECT_LIST_DOMAINS_RUNNING, VIR_CONNECT_LIST_DOMAINS_PAUSED,
+ * VIR_CONNECT_LIST_DOMAINS_SHUTOFF, and a catch-all for all other states
+ * (such as crashed, this catch-all covers the possibility of adding new
+ * states).
+ *
+ * The remaining groups cover boolean attributes commonly asked about
+ * domains; they include VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE and
+ * VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE, for filtering based on whether
+ * a managed save image exists; VIR_CONNECT_LIST_DOMAINS_AUTOSTART and
+ * VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART, for filtering based on autostart;
+ * VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT and
+ * VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT, for filtering based on whether
+ * a domain has snapshots.
+ *
+ * Returns the number of domains found or -1 and sets domains to NULL in case
+ * of error.  On success, the array stored into @doms is guaranteed to have an
+ * extra allocated element set to NULL but not included in the return count, to
+ * make iteration easier. The caller is responsible for calling virDomainFree()
+ * on each array element, then calling free() on @doms.
+ *
+ * Example of usage:
+ * virDomainPtr *domains;
+ * virDomainPtr dom;
+ * int i;
+ * int ret;
+ * unsigned int flags = VIR_CONNECT_LIST_RUNNING |
+ *                      VIR_CONNECT_LIST_PERSISTENT;
+ *
+ * ret = virConnectListAllDomains(conn, &domains, flags);
+ * if (ret < 0)
+ *     error();
+ *
+ * for (i = 0; i < ret; i++) {
+ *      do_something_with_domain(domains[i]);
+ *
+ *      //here or in a separate loop if needed
+ *      virDomainFree(domains[i]);
+ * }
+ *
+ * free(domains);
+ */
+int
+virConnectListAllDomains(virConnectPtr conn,
+                         virDomainPtr **domains,
+                         unsigned int flags)
+{
+    VIR_DEBUG("conn=%p, domains=%p, flags=%x", conn, domains, flags);
+
+    virResetLastError();
+
+    if (domains)
+        *domains = NULL;
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (conn->driver->listAllDomains) {
+        int ret;
+        ret = conn->driver->listAllDomains(conn, domains, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -8265,10 +8247,7 @@ virDomainGetAutostart(virDomainPtr domain,
         virDispatchError(NULL);
         return -1;
     }
-    if (!autostart) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(autostart, error);
 
     conn = domain->conn;
 
@@ -8478,10 +8457,8 @@ virDomainSetVcpus(virDomainPtr domain, unsigned int nvcpus)
         goto error;
     }
 
-    if (nvcpus < 1) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonZeroArgGoto(nvcpus, error);
+
     conn = domain->conn;
 
     if (conn->driver->domainSetVcpus) {
@@ -8550,11 +8527,8 @@ virDomainSetVcpusFlags(virDomainPtr domain, unsigned int nvcpus,
         goto error;
     }
 
-    /* Perform some argument validation common to all implementations.  */
-    if (nvcpus < 1) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonZeroArgGoto(nvcpus, error);
+
     if ((unsigned short) nvcpus != nvcpus) {
         virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %u"), nvcpus);
         goto error;
@@ -8619,7 +8593,9 @@ virDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
     /* At most one of these two flags should be set.  */
     if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
         (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(flags,
+                            _("flags 'affect live' and 'affect config' in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
     conn = domain->conn;
@@ -8681,9 +8657,12 @@ virDomainPinVcpu(virDomainPtr domain, unsigned int vcpu,
         goto error;
     }
 
-    if ((vcpu > 32000) || (cpumap == NULL) || (maplen < 1)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-       goto error;
+    virCheckNonNullArgGoto(cpumap, error);
+    virCheckPositiveArgGoto(maplen, error);
+
+    if ((unsigned short) vcpu != vcpu) {
+        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %u"), vcpu);
+        goto error;
     }
 
     conn = domain->conn;
@@ -8758,8 +8737,11 @@ virDomainPinVcpuFlags(virDomainPtr domain, unsigned int vcpu,
         goto error;
     }
 
-    if ((vcpu > 32000) || (cpumap == NULL) || (maplen < 1)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+    virCheckNonNullArgGoto(cpumap, error);
+    virCheckPositiveArgGoto(maplen, error);
+
+    if ((unsigned short) vcpu != vcpu) {
+        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %u"), vcpu);
         goto error;
     }
 
@@ -8822,10 +8804,10 @@ virDomainGetVcpuPinInfo(virDomainPtr domain, int ncpumaps,
         return -1;
     }
 
-    if (ncpumaps < 1 || !cpumaps || maplen <= 0) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(cpumaps, error);
+    virCheckPositiveArgGoto(ncpumaps, error);
+    virCheckPositiveArgGoto(maplen, error);
+
     if (INT_MULTIPLY_OVERFLOW(ncpumaps, maplen)) {
         virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %d * %d"),
                           ncpumaps, maplen);
@@ -8835,7 +8817,9 @@ virDomainGetVcpuPinInfo(virDomainPtr domain, int ncpumaps,
     /* At most one of these two flags should be set.  */
     if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
         (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(flags,
+                            _("flags 'affect live' and 'affect config' in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
     conn = domain->conn;
@@ -8898,17 +8882,16 @@ virDomainGetVcpus(virDomainPtr domain, virVcpuInfoPtr info, int maxinfo,
         virDispatchError(NULL);
         return -1;
     }
-    if ((info == NULL) || (maxinfo < 1)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(info, error);
+    virCheckPositiveArgGoto(maxinfo, error);
 
     /* Ensure that domainGetVcpus (aka remoteDomainGetVcpus) does not
        try to memcpy anything into a NULL pointer.  */
-    if (!cpumaps ? maplen != 0 : maplen <= 0) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    if (cpumaps)
+        virCheckPositiveArgGoto(maplen, error);
+    else
+        virCheckZeroArgGoto(maplen, error);
+
     if (cpumaps && INT_MULTIPLY_OVERFLOW(maxinfo, maplen)) {
         virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %d * %d"),
                           maxinfo, maplen);
@@ -9001,10 +8984,7 @@ virDomainGetSecurityLabel(virDomainPtr domain, virSecurityLabelPtr seclabel)
         return -1;
     }
 
-    if (seclabel == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(seclabel, error);
 
     conn = domain->conn;
 
@@ -9083,22 +9063,19 @@ virDomainSetMetadata(virDomainPtr domain,
     switch (type) {
     case VIR_DOMAIN_METADATA_TITLE:
         if (metadata && strchr(metadata, '\n')) {
-                virLibDomainError(VIR_ERR_INVALID_ARG, "%s",
-                                  _("Domain title can't contain newlines"));
-                goto error;
+            virReportInvalidArg(metadata,
+                                _("metadata title in %s can't contain newlines"),
+                                __FUNCTION__);
+            goto error;
         }
         /* fallthrough */
     case VIR_DOMAIN_METADATA_DESCRIPTION:
-        if (uri || key) {
-            virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-            goto error;
-        }
+        virCheckNullArgGoto(uri, error);
+        virCheckNullArgGoto(key, error);
         break;
     case VIR_DOMAIN_METADATA_ELEMENT:
-        if (!uri || !key) {
-            virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-            goto error;
-        }
+        virCheckNonNullArgGoto(uri, error);
+        virCheckNonNullArgGoto(key, error);
         break;
     default:
         /* For future expansion */
@@ -9162,23 +9139,19 @@ virDomainGetMetadata(virDomainPtr domain,
 
     if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
         (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(flags,
+                            _("flags 'affect live' and 'affect config' in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
 
     switch (type) {
     case VIR_DOMAIN_METADATA_TITLE:
     case VIR_DOMAIN_METADATA_DESCRIPTION:
-        if (uri) {
-            virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-            goto error;
-        }
+        virCheckNullArgGoto(uri, error);
         break;
     case VIR_DOMAIN_METADATA_ELEMENT:
-        if (!uri) {
-            virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-            goto error;
-        }
+        virCheckNonNullArgGoto(uri, error);
         break;
     default:
         /* For future expansion */
@@ -9223,10 +9196,7 @@ virNodeGetSecurityModel(virConnectPtr conn, virSecurityModelPtr secmodel)
         return -1;
     }
 
-    if (secmodel == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(secmodel, error);
 
     if (conn->driver->nodeGetSecurityModel) {
         int ret;
@@ -9272,10 +9242,7 @@ virDomainAttachDevice(virDomainPtr domain, const char *xml)
         return -1;
     }
 
-    if (xml == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xml, error);
 
     if (domain->conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
@@ -9338,10 +9305,7 @@ virDomainAttachDeviceFlags(virDomainPtr domain,
         return -1;
     }
 
-    if (xml == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xml, error);
 
     if (domain->conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
@@ -9389,10 +9353,7 @@ virDomainDetachDevice(virDomainPtr domain, const char *xml)
         return -1;
     }
 
-    if (xml == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xml, error);
 
     if (domain->conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
@@ -9455,10 +9416,7 @@ virDomainDetachDeviceFlags(virDomainPtr domain,
         return -1;
     }
 
-    if (xml == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xml, error);
 
     if (domain->conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
@@ -9521,10 +9479,7 @@ virDomainUpdateDeviceFlags(virDomainPtr domain,
         return -1;
     }
 
-    if (xml == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xml, error);
 
     if (domain->conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
@@ -9580,10 +9535,9 @@ virNodeGetCellsFreeMemory(virConnectPtr conn, unsigned long long *freeMems,
         return -1;
     }
 
-    if ((freeMems == NULL) || (maxCells <= 0) || (startCell < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(freeMems, error);
+    virCheckPositiveArgGoto(maxCells, error);
+    virCheckNonNegativeArgGoto(startCell, error);
 
     if (conn->driver->nodeGetCellsFreeMemory) {
         int ret;
@@ -9688,10 +9642,8 @@ virConnectListNetworks(virConnectPtr conn, char **const names, int maxnames)
         return -1;
     }
 
-    if ((names == NULL) || (maxnames < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(maxnames, error);
 
     if (conn->networkDriver && conn->networkDriver->listNetworks) {
         int ret;
@@ -9768,10 +9720,8 @@ virConnectListDefinedNetworks(virConnectPtr conn, char **const names,
         return -1;
     }
 
-    if ((names == NULL) || (maxnames < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(maxnames, error);
 
     if (conn->networkDriver && conn->networkDriver->listDefinedNetworks) {
         int ret;
@@ -9811,10 +9761,7 @@ virNetworkLookupByName(virConnectPtr conn, const char *name)
         virDispatchError(NULL);
         return NULL;
     }
-    if (name == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto  error;
-    }
+    virCheckNonNullArgGoto(name, error);
 
     if (conn->networkDriver && conn->networkDriver->networkLookupByName) {
         virNetworkPtr ret;
@@ -9853,10 +9800,8 @@ virNetworkLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
         virDispatchError(NULL);
         return NULL;
     }
-    if (uuid == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+
+    virCheckNonNullArgGoto(uuid, error);
 
     if (conn->networkDriver && conn->networkDriver->networkLookupByUUID){
         virNetworkPtr ret;
@@ -9896,13 +9841,13 @@ virNetworkLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
         virDispatchError(NULL);
         return NULL;
     }
-    if (uuidstr == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+
+    virCheckNonNullArgGoto(uuidstr, error);
 
     if (virUUIDParse(uuidstr, uuid) < 0) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(uuidstr,
+                            _("uuidstr in %s must be a valid UUID"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -9935,10 +9880,8 @@ virNetworkCreateXML(virConnectPtr conn, const char *xmlDesc)
         virDispatchError(NULL);
         return NULL;
     }
-    if (xmlDesc == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xmlDesc, error);
+
     if (conn->flags & VIR_CONNECT_RO) {
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
@@ -9984,10 +9927,7 @@ virNetworkDefineXML(virConnectPtr conn, const char *xml)
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (xml == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xml, error);
 
     if (conn->networkDriver && conn->networkDriver->networkDefineXML) {
         virNetworkPtr ret;
@@ -10239,10 +10179,7 @@ virNetworkGetUUID(virNetworkPtr network, unsigned char *uuid)
         virDispatchError(NULL);
         return -1;
     }
-    if (uuid == NULL) {
-        virLibNetworkError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuid, error);
 
     memcpy(uuid, &network->uuid[0], VIR_UUID_BUFLEN);
 
@@ -10276,10 +10213,7 @@ virNetworkGetUUIDString(virNetworkPtr network, char *buf)
         virDispatchError(NULL);
         return -1;
     }
-    if (buf == NULL) {
-        virLibNetworkError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(buf, error);
 
     if (virNetworkGetUUID(network, &uuid[0]))
         goto error;
@@ -10405,10 +10339,7 @@ virNetworkGetAutostart(virNetworkPtr network,
         virDispatchError(NULL);
         return -1;
     }
-    if (!autostart) {
-        virLibNetworkError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(autostart, error);
 
     conn = network->conn;
 
@@ -10563,10 +10494,8 @@ virConnectListInterfaces(virConnectPtr conn, char **const names, int maxnames)
         return -1;
     }
 
-    if ((names == NULL) || (maxnames < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(maxnames, error);
 
     if (conn->interfaceDriver && conn->interfaceDriver->listInterfaces) {
         int ret;
@@ -10645,10 +10574,8 @@ virConnectListDefinedInterfaces(virConnectPtr conn,
         return -1;
     }
 
-    if ((names == NULL) || (maxnames < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(maxnames, error);
 
     if (conn->interfaceDriver && conn->interfaceDriver->listDefinedInterfaces) {
         int ret;
@@ -10687,10 +10614,7 @@ virInterfaceLookupByName(virConnectPtr conn, const char *name)
         virDispatchError(NULL);
         return NULL;
     }
-    if (name == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto  error;
-    }
+    virCheckNonNullArgGoto(name, error);
 
     if (conn->interfaceDriver && conn->interfaceDriver->interfaceLookupByName) {
         virInterfacePtr ret;
@@ -10729,10 +10653,7 @@ virInterfaceLookupByMACString(virConnectPtr conn, const char *macstr)
         virDispatchError(NULL);
         return NULL;
     }
-    if (macstr == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto  error;
-    }
+    virCheckNonNullArgGoto(macstr, error);
 
     if (conn->interfaceDriver && conn->interfaceDriver->interfaceLookupByMACString) {
         virInterfacePtr ret;
@@ -10884,10 +10805,7 @@ virInterfaceDefineXML(virConnectPtr conn, const char *xml, unsigned int flags)
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (xml == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xml, error);
 
     if (conn->interfaceDriver && conn->interfaceDriver->interfaceDefineXML) {
         virInterfacePtr ret;
@@ -11355,10 +11273,8 @@ virConnectListStoragePools(virConnectPtr conn,
         return -1;
     }
 
-    if ((names == NULL) || (maxnames < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(maxnames, error);
 
     if (conn->storageDriver && conn->storageDriver->listPools) {
         int ret;
@@ -11440,10 +11356,8 @@ virConnectListDefinedStoragePools(virConnectPtr conn,
         return -1;
     }
 
-    if ((names == NULL) || (maxnames < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(maxnames, error);
 
     if (conn->storageDriver && conn->storageDriver->listDefinedPools) {
         int ret;
@@ -11498,10 +11412,7 @@ virConnectFindStoragePoolSources(virConnectPtr conn,
         virDispatchError(NULL);
         return NULL;
     }
-    if (type == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(type, error);
 
     if (conn->flags & VIR_CONNECT_RO) {
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
@@ -11546,10 +11457,7 @@ virStoragePoolLookupByName(virConnectPtr conn,
         virDispatchError(NULL);
         return NULL;
     }
-    if (name == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(name, error);
 
     if (conn->storageDriver && conn->storageDriver->poolLookupByName) {
         virStoragePoolPtr ret;
@@ -11589,10 +11497,7 @@ virStoragePoolLookupByUUID(virConnectPtr conn,
         virDispatchError(NULL);
         return NULL;
     }
-    if (uuid == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuid, error);
 
     if (conn->storageDriver && conn->storageDriver->poolLookupByUUID) {
         virStoragePoolPtr ret;
@@ -11633,13 +11538,12 @@ virStoragePoolLookupByUUIDString(virConnectPtr conn,
         virDispatchError(NULL);
         return NULL;
     }
-    if (uuidstr == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuidstr, error);
 
     if (virUUIDParse(uuidstr, uuid) < 0) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(uuidstr,
+                            _("uuidstr in %s must be a valid UUID"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -11713,10 +11617,8 @@ virStoragePoolCreateXML(virConnectPtr conn,
         virDispatchError(NULL);
         return NULL;
     }
-    if (xmlDesc == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xmlDesc, error);
+
     if (conn->flags & VIR_CONNECT_RO) {
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
@@ -11766,10 +11668,7 @@ virStoragePoolDefineXML(virConnectPtr conn,
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (xml == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xml, error);
 
     if (conn->storageDriver && conn->storageDriver->poolDefineXML) {
         virStoragePoolPtr ret;
@@ -12068,7 +11967,7 @@ int
 virStoragePoolRef(virStoragePoolPtr pool)
 {
     if ((!VIR_IS_CONNECTED_STORAGE_POOL(pool))) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virLibConnError(VIR_ERR_INVALID_STORAGE_POOL, __FUNCTION__);
         virDispatchError(NULL);
         return -1;
     }
@@ -12173,10 +12072,7 @@ virStoragePoolGetUUID(virStoragePoolPtr pool,
         virDispatchError(NULL);
         return -1;
     }
-    if (uuid == NULL) {
-        virLibStoragePoolError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuid, error);
 
     memcpy(uuid, &pool->uuid[0], VIR_UUID_BUFLEN);
 
@@ -12210,10 +12106,7 @@ virStoragePoolGetUUIDString(virStoragePoolPtr pool,
         virDispatchError(NULL);
         return -1;
     }
-    if (buf == NULL) {
-        virLibStoragePoolError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(buf, error);
 
     if (virStoragePoolGetUUID(pool, &uuid[0]))
         goto error;
@@ -12251,10 +12144,7 @@ virStoragePoolGetInfo(virStoragePoolPtr pool,
         virDispatchError(NULL);
         return -1;
     }
-    if (info == NULL) {
-        virLibStoragePoolError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(info, error);
 
     memset(info, 0, sizeof(virStoragePoolInfo));
 
@@ -12344,10 +12234,7 @@ virStoragePoolGetAutostart(virStoragePoolPtr pool,
         virDispatchError(NULL);
         return -1;
     }
-    if (!autostart) {
-        virLibStoragePoolError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(autostart, error);
 
     conn = pool->conn;
 
@@ -12477,10 +12364,8 @@ virStoragePoolListVolumes(virStoragePoolPtr pool,
         return -1;
     }
 
-    if ((names == NULL) || (maxnames < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(maxnames, error);
 
     if (pool->conn->storageDriver && pool->conn->storageDriver->poolListVolumes) {
         int ret;
@@ -12551,10 +12436,8 @@ virStorageVolLookupByName(virStoragePoolPtr pool,
         virDispatchError(NULL);
         return NULL;
     }
-    if (name == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+
+    virCheckNonNullArgGoto(name, error);
 
     if (pool->conn->storageDriver && pool->conn->storageDriver->volLookupByName) {
         virStorageVolPtr ret;
@@ -12596,10 +12479,8 @@ virStorageVolLookupByKey(virConnectPtr conn,
         virDispatchError(NULL);
         return NULL;
     }
-    if (key == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+
+    virCheckNonNullArgGoto(key, error);
 
     if (conn->storageDriver && conn->storageDriver->volLookupByKey) {
         virStorageVolPtr ret;
@@ -12639,10 +12520,7 @@ virStorageVolLookupByPath(virConnectPtr conn,
         virDispatchError(NULL);
         return NULL;
     }
-    if (path == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(path, error);
 
     if (conn->storageDriver && conn->storageDriver->volLookupByPath) {
         virStorageVolPtr ret;
@@ -12738,10 +12616,7 @@ virStorageVolCreateXML(virStoragePoolPtr pool,
         return NULL;
     }
 
-    if (xmldesc == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xmldesc, error);
 
     if (pool->conn->flags & VIR_CONNECT_RO) {
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
@@ -12799,10 +12674,7 @@ virStorageVolCreateXMLFrom(virStoragePoolPtr pool,
         goto error;
     }
 
-    if (xmldesc == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xmldesc, error);
 
     if (pool->conn->flags & VIR_CONNECT_RO ||
         clonevol->conn->flags & VIR_CONNECT_RO) {
@@ -13160,7 +13032,7 @@ int
 virStorageVolRef(virStorageVolPtr vol)
 {
     if ((!VIR_IS_CONNECTED_STORAGE_VOL(vol))) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virLibConnError(VIR_ERR_INVALID_STORAGE_VOL, __FUNCTION__);
         virDispatchError(NULL);
         return -1;
     }
@@ -13195,10 +13067,7 @@ virStorageVolGetInfo(virStorageVolPtr vol,
         virDispatchError(NULL);
         return -1;
     }
-    if (info == NULL) {
-        virLibStorageVolError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(info, error);
 
     memset(info, 0, sizeof(virStorageVolInfo));
 
@@ -13366,7 +13235,9 @@ virStorageVolResize(virStorageVolPtr vol,
     /* Zero capacity is only valid with either delta or shrink.  */
     if (capacity == 0 && !((flags & VIR_STORAGE_VOL_RESIZE_DELTA) ||
                            (flags & VIR_STORAGE_VOL_RESIZE_SHRINK))) {
-        virLibStorageVolError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(capacity,
+                            _("capacity in %s cannot be zero without 'delta' or 'shrink' flags set"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -13458,10 +13329,8 @@ virNodeListDevices(virConnectPtr conn,
         virDispatchError(NULL);
         return -1;
     }
-    if ((names == NULL) || (maxnames < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(maxnames, error);
 
     if (conn->deviceMonitor && conn->deviceMonitor->listDevices) {
         int ret;
@@ -13500,10 +13369,7 @@ virNodeDevicePtr virNodeDeviceLookupByName(virConnectPtr conn, const char *name)
         return NULL;
     }
 
-    if (name == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(name, error);
 
     if (conn->deviceMonitor && conn->deviceMonitor->deviceLookupByName) {
         virNodeDevicePtr ret;
@@ -13673,10 +13539,8 @@ int virNodeDeviceListCaps(virNodeDevicePtr dev,
         return -1;
     }
 
-    if (names == NULL || maxnames < 0) {
-        virLibNodeDeviceError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(maxnames, error);
 
     if (dev->conn->deviceMonitor && dev->conn->deviceMonitor->deviceListCaps) {
         int ret;
@@ -13743,7 +13607,7 @@ int
 virNodeDeviceRef(virNodeDevicePtr dev)
 {
     if ((!VIR_IS_CONNECTED_NODE_DEVICE(dev))) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virLibConnError(VIR_ERR_INVALID_NODE_DEVICE, __FUNCTION__);
         virDispatchError(NULL);
         return -1;
     }
@@ -13936,10 +13800,7 @@ virNodeDeviceCreateXML(virConnectPtr conn,
         goto error;
     }
 
-    if (xmlDesc == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xmlDesc, error);
 
     if (conn->deviceMonitor &&
         conn->deviceMonitor->deviceCreateXML) {
@@ -14043,10 +13904,7 @@ virConnectDomainEventRegister(virConnectPtr conn,
         virDispatchError(NULL);
         return -1;
     }
-    if (cb == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(cb, error);
 
     if ((conn->driver) && (conn->driver->domainEventRegister)) {
         int ret;
@@ -14089,10 +13947,8 @@ virConnectDomainEventDeregister(virConnectPtr conn,
         virDispatchError(NULL);
         return -1;
     }
-    if (cb == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(cb, error);
+
     if ((conn->driver) && (conn->driver->domainEventDeregister)) {
         int ret;
         ret = conn->driver->domainEventDeregister (conn, cb);
@@ -14194,10 +14050,8 @@ virConnectListSecrets(virConnectPtr conn, char **uuids, int maxuuids)
         virDispatchError(NULL);
         return -1;
     }
-    if (uuids == NULL || maxuuids < 0) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuids, error);
+    virCheckNonNegativeArgGoto(maxuuids, error);
 
     if (conn->secretDriver != NULL && conn->secretDriver->listSecrets != NULL) {
         int ret;
@@ -14238,10 +14092,7 @@ virSecretLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
         virDispatchError(NULL);
         return NULL;
     }
-    if (uuid == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuid, error);
 
     if (conn->secretDriver &&
         conn->secretDriver->lookupByUUID) {
@@ -14283,13 +14134,12 @@ virSecretLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
         virDispatchError(NULL);
         return NULL;
     }
-    if (uuidstr == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuidstr, error);
 
     if (virUUIDParse(uuidstr, uuid) < 0) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(uuidstr,
+                            _("uuidstr in %s must be a valid UUID"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -14328,10 +14178,7 @@ virSecretLookupByUsage(virConnectPtr conn,
         virDispatchError(NULL);
         return NULL;
     }
-    if (usageID == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(usageID, error);
 
     if (conn->secretDriver &&
         conn->secretDriver->lookupByUsage) {
@@ -14381,10 +14228,7 @@ virSecretDefineXML(virConnectPtr conn, const char *xml, unsigned int flags)
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (xml == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xml, error);
 
     if (conn->secretDriver != NULL && conn->secretDriver->defineXML != NULL) {
         virSecretPtr ret;
@@ -14424,15 +14268,15 @@ virSecretGetUUID(virSecretPtr secret, unsigned char *uuid)
         virDispatchError(NULL);
         return -1;
     }
-    if (uuid == NULL) {
-        virLibSecretError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        virDispatchError(secret->conn);
-        return -1;
-    }
+    virCheckNonNullArgGoto(uuid, error);
 
     memcpy(uuid, &secret->uuid[0], VIR_UUID_BUFLEN);
 
     return 0;
+
+error:
+    virDispatchError(secret->conn);
+    return -1;
 }
 
 /**
@@ -14458,10 +14302,7 @@ virSecretGetUUIDString(virSecretPtr secret, char *buf)
         virDispatchError(NULL);
         return -1;
     }
-    if (buf == NULL) {
-        virLibSecretError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(buf, error);
 
     if (virSecretGetUUID(secret, &uuid[0]))
         goto error;
@@ -14608,10 +14449,7 @@ virSecretSetValue(virSecretPtr secret, const unsigned char *value,
         virLibSecretError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (value == NULL) {
-        virLibSecretError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(value, error);
 
     if (conn->secretDriver != NULL && conn->secretDriver->setValue != NULL) {
         int ret;
@@ -14659,10 +14497,7 @@ virSecretGetValue(virSecretPtr secret, size_t *value_size, unsigned int flags)
         virLibSecretError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
     }
-    if (value_size == NULL) {
-        virLibSecretError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(value_size, error);
 
     if (conn->secretDriver != NULL && conn->secretDriver->getValue != NULL) {
         unsigned char *ret;
@@ -14844,7 +14679,7 @@ int
 virStreamRef(virStreamPtr stream)
 {
     if ((!VIR_IS_CONNECTED_STREAM(stream))) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virLibConnError(VIR_ERR_INVALID_STREAM, __FUNCTION__);
         virDispatchError(NULL);
         return -1;
     }
@@ -14934,10 +14769,7 @@ int virStreamSend(virStreamPtr stream,
         return -1;
     }
 
-    if (data == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(data, error);
 
     if (stream->driver &&
         stream->driver->streamSend) {
@@ -15034,10 +14866,7 @@ int virStreamRecv(virStreamPtr stream,
         return -1;
     }
 
-    if (data == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(data, error);
 
     if (stream->driver &&
         stream->driver->streamRecv) {
@@ -15115,10 +14944,7 @@ int virStreamSendAll(virStreamPtr stream,
         return -1;
     }
 
-    if (handler == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto cleanup;
-    }
+    virCheckNonNullArgGoto(handler, cleanup);
 
     if (stream->flags & VIR_STREAM_NONBLOCK) {
         virLibConnError(VIR_ERR_OPERATION_INVALID,
@@ -15217,10 +15043,7 @@ int virStreamRecvAll(virStreamPtr stream,
         return -1;
     }
 
-    if (handler == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto cleanup;
-    }
+    virCheckNonNullArgGoto(handler, cleanup);
 
     if (stream->flags & VIR_STREAM_NONBLOCK) {
         virLibConnError(VIR_ERR_OPERATION_INVALID,
@@ -15811,10 +15634,8 @@ virConnectListNWFilters(virConnectPtr conn, char **const names, int maxnames)
         return -1;
     }
 
-    if ((names == NULL) || (maxnames < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(maxnames, error);
 
     if (conn->nwfilterDriver && conn->nwfilterDriver->listNWFilters) {
         int ret;
@@ -15854,10 +15675,7 @@ virNWFilterLookupByName(virConnectPtr conn, const char *name)
         virDispatchError(NULL);
         return NULL;
     }
-    if (name == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto  error;
-    }
+    virCheckNonNullArgGoto(name, error);
 
     if (conn->nwfilterDriver && conn->nwfilterDriver->nwfilterLookupByName) {
         virNWFilterPtr ret;
@@ -15896,10 +15714,7 @@ virNWFilterLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
         virDispatchError(NULL);
         return NULL;
     }
-    if (uuid == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuid, error);
 
     if (conn->nwfilterDriver && conn->nwfilterDriver->nwfilterLookupByUUID){
         virNWFilterPtr ret;
@@ -15939,13 +15754,12 @@ virNWFilterLookupByUUIDString(virConnectPtr conn, const char *uuidstr)
         virDispatchError(NULL);
         return NULL;
     }
-    if (uuidstr == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuidstr, error);
 
     if (virUUIDParse(uuidstr, uuid) < 0) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(uuidstr,
+                            _("uuidstr in %s must be a valid UUID"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -16029,10 +15843,7 @@ virNWFilterGetUUID(virNWFilterPtr nwfilter, unsigned char *uuid)
         virDispatchError(NULL);
         return -1;
     }
-    if (uuid == NULL) {
-        virLibNWFilterError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(uuid, error);
 
     memcpy(uuid, &nwfilter->uuid[0], VIR_UUID_BUFLEN);
 
@@ -16066,10 +15877,7 @@ virNWFilterGetUUIDString(virNWFilterPtr nwfilter, char *buf)
         virDispatchError(NULL);
         return -1;
     }
-    if (buf == NULL) {
-        virLibNWFilterError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(buf, error);
 
     if (virNWFilterGetUUID(nwfilter, &uuid[0]))
         goto error;
@@ -16105,10 +15913,8 @@ virNWFilterDefineXML(virConnectPtr conn, const char *xmlDesc)
         virDispatchError(NULL);
         return NULL;
     }
-    if (xmlDesc == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xmlDesc, error);
+
     if (conn->flags & VIR_CONNECT_RO) {
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         goto error;
@@ -16240,7 +16046,7 @@ int
 virNWFilterRef(virNWFilterPtr nwfilter)
 {
     if ((!VIR_IS_CONNECTED_NWFILTER(nwfilter))) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virLibConnError(VIR_ERR_INVALID_NWFILTER, __FUNCTION__);
         virDispatchError(NULL);
         return -1;
     }
@@ -16381,10 +16187,7 @@ virConnectCompareCPU(virConnectPtr conn,
         virDispatchError(NULL);
         return VIR_CPU_COMPARE_ERROR;
     }
-    if (xmlDesc == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xmlDesc, error);
 
     if (conn->driver->cpuCompare) {
         int ret;
@@ -16438,10 +16241,7 @@ virConnectBaselineCPU(virConnectPtr conn,
         virDispatchError(NULL);
         return NULL;
     }
-    if (xmlCPUs == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xmlCPUs, error);
 
     if (conn->driver->cpuBaseline) {
         char *cpu;
@@ -16484,10 +16284,7 @@ virDomainGetJobInfo(virDomainPtr domain, virDomainJobInfoPtr info)
         virDispatchError(NULL);
         return -1;
     }
-    if (info == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(info, error);
 
     memset(info, 0, sizeof(virDomainJobInfo));
 
@@ -16680,10 +16477,7 @@ virDomainMigrateGetMaxSpeed(virDomainPtr domain,
 
     conn = domain->conn;
 
-    if (!bandwidth) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(bandwidth, error);
 
     if (conn->flags & VIR_CONNECT_RO) {
         virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
@@ -16759,8 +16553,12 @@ virConnectDomainEventRegisterAny(virConnectPtr conn,
         virDispatchError(conn);
         return -1;
     }
-    if (eventID < 0 || eventID >= VIR_DOMAIN_EVENT_ID_LAST || cb == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+    virCheckNonNullArgGoto(cb, error);
+    virCheckNonNegativeArgGoto(eventID, error);
+    if (eventID >= VIR_DOMAIN_EVENT_ID_LAST) {
+        virReportInvalidArg(eventID,
+                            _("eventID in %s must be less than %d"),
+                            __FUNCTION__, VIR_DOMAIN_EVENT_ID_LAST);
         goto error;
     }
 
@@ -16801,10 +16599,8 @@ virConnectDomainEventDeregisterAny(virConnectPtr conn,
         virDispatchError(NULL);
         return -1;
     }
-    if (callbackID < 0) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNegativeArgGoto(callbackID, error);
+
     if ((conn->driver) && (conn->driver->domainEventDeregisterAny)) {
         int ret;
         ret = conn->driver->domainEventDeregisterAny(conn, callbackID);
@@ -16869,8 +16665,9 @@ int virDomainManagedSave(virDomainPtr dom, unsigned int flags)
     }
 
     if ((flags & VIR_DOMAIN_SAVE_RUNNING) && (flags & VIR_DOMAIN_SAVE_PAUSED)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("running and paused flags are mutually exclusive"));
+        virReportInvalidArg(flags,
+                            _("running and paused flags in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -17162,10 +16959,7 @@ virDomainSnapshotCreateXML(virDomainPtr domain,
 
     conn = domain->conn;
 
-    if (xmlDesc == NULL) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(xmlDesc, error);
 
     if (conn->flags & VIR_CONNECT_RO) {
         virLibConnError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
@@ -17174,20 +16968,23 @@ virDomainSnapshotCreateXML(virDomainPtr domain,
 
     if ((flags & VIR_DOMAIN_SNAPSHOT_CREATE_CURRENT) &&
         !(flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("use of current flag requires redefine flag"));
+        virReportInvalidArg(flags,
+                            _("use of 'current' flag in %s requires 'redefine' flag"),
+                            __FUNCTION__);
         goto error;
     }
     if ((flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE) &&
         (flags & VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                   _("redefine and no metadata flags are mutually exclusive"));
+        virReportInvalidArg(flags,
+                            _("'redefine' and 'no metadata' flags in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
     if ((flags & VIR_DOMAIN_SNAPSHOT_CREATE_REDEFINE) &&
         (flags & VIR_DOMAIN_SNAPSHOT_CREATE_HALT)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                   _("redefine and halt flags are mutually exclusive"));
+        virReportInvalidArg(flags,
+                            _("'redefine' and 'halt' flags in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -17265,16 +17062,27 @@ error:
  *
  * Provides the number of domain snapshots for this domain.
  *
- * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
- * filtered to the number of snapshots that have no parents.  Likewise,
- * if @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
- * filtered to the number of snapshots that have no children.  Both flags
- * can be used together to find unrelated snapshots.
+ * By default, this command covers all snapshots; it is also possible to
+ * limit things to just snapshots with no parents, when @flags includes
+ * VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are provided in
+ * groups, where each group contains bits that describe mutually exclusive
+ * attributes of a snapshot, and where all bits within a group describe
+ * all possible snapshots.  Some hypervisors might reject explicit bits
+ * from a group where the hypervisor cannot make a distinction.  For a
+ * group supported by a given hypervisor, the behavior when no bits of a
+ * group are set is identical to the behavior when all bits in that group
+ * are set.  When setting bits from more than one group, it is possible to
+ * select an impossible combination, in that case a hypervisor may return
+ * either 0 or an error.
  *
- * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
- * the number of snapshots that also include metadata that would prevent
- * the removal of the last reference to a domain; this value will either
- * be 0 or the same value as if the flag were not given.
+ * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+ * have no further children (a leaf snapshot).
+ *
+ * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+ * whether they have metadata that would prevent the removal of the last
+ * reference to a domain.
  *
  * Returns the number of domain snapshots found or -1 in case of error.
  */
@@ -17315,22 +17123,42 @@ error:
  * @flags: bitwise-OR of supported virDomainSnapshotListFlags
  *
  * Collect the list of domain snapshots for the given domain, and store
- * their names in @names.  Caller is responsible for freeing each member
- * of the array.  The value to use for @nameslen can be determined by
- * virDomainSnapshotNum() with the same @flags.
+ * their names in @names.  The value to use for @nameslen can be determined
+ * by virDomainSnapshotNum() with the same @flags.
  *
- * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_ROOTS, then the result is
- * filtered to the number of snapshots that have no parents.  Likewise,
- * if @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
- * filtered to the number of snapshots that have no children.  Both flags
- * can be used together to find unrelated snapshots.
+ * By default, this command covers all snapshots; it is also possible to
+ * limit things to just snapshots with no parents, when @flags includes
+ * VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are provided in
+ * groups, where each group contains bits that describe mutually exclusive
+ * attributes of a snapshot, and where all bits within a group describe
+ * all possible snapshots.  Some hypervisors might reject explicit bits
+ * from a group where the hypervisor cannot make a distinction.  For a
+ * group supported by a given hypervisor, the behavior when no bits of a
+ * group are set is identical to the behavior when all bits in that group
+ * are set.  When setting bits from more than one group, it is possible to
+ * select an impossible combination, in that case a hypervisor may return
+ * either 0 or an error.
  *
- * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
- * the number of snapshots that also include metadata that would prevent
- * the removal of the last reference to a domain; this value will either
- * be 0 or the same value as if the flag were not given.
+ * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+ * have no further children (a leaf snapshot).
+ *
+ * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+ * whether they have metadata that would prevent the removal of the last
+ * reference to a domain.
+ *
+ * Note that this command is inherently racy: another connection can
+ * define a new snapshot between a call to virDomainSnapshotNum() and
+ * this call.  You are only guaranteed that all currently defined
+ * snapshots were listed if the return is less than @nameslen.  Likewise,
+ * you should be prepared for virDomainSnapshotLookupByName() to fail when
+ * converting a name from this call into a snapshot object, if another
+ * connection deletes the snapshot in the meantime.  For more control over
+ * the results, see virDomainListAllSnapshots().
  *
  * Returns the number of domain snapshots found or -1 in case of error.
+ * The caller is responsible for freeing each member of the array.
  */
 int
 virDomainSnapshotListNames(virDomainPtr domain, char **names, int nameslen,
@@ -17351,14 +17179,87 @@ virDomainSnapshotListNames(virDomainPtr domain, char **names, int nameslen,
 
     conn = domain->conn;
 
-    if ((names == NULL) || (nameslen < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(nameslen, error);
 
     if (conn->driver->domainSnapshotListNames) {
         int ret = conn->driver->domainSnapshotListNames(domain, names,
                                                         nameslen, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainListAllSnapshots:
+ * @domain: a domain object
+ * @snaps: pointer to variable to store the array containing snapshot objects,
+ *         or NULL if the list is not required (just returns number of
+ *         snapshots)
+ * @flags: bitwise-OR of supported virDomainSnapshotListFlags
+ *
+ * Collect the list of domain snapshots for the given domain, and allocate
+ * an array to store those objects.  This API solves the race inherent in
+ * virDomainSnapshotListNames().
+ *
+ * By default, this command covers all snapshots; it is also possible to
+ * limit things to just snapshots with no parents, when @flags includes
+ * VIR_DOMAIN_SNAPSHOT_LIST_ROOTS.  Additional filters are provided in
+ * groups, where each group contains bits that describe mutually exclusive
+ * attributes of a snapshot, and where all bits within a group describe
+ * all possible snapshots.  Some hypervisors might reject explicit bits
+ * from a group where the hypervisor cannot make a distinction.  For a
+ * group supported by a given hypervisor, the behavior when no bits of a
+ * group are set is identical to the behavior when all bits in that group
+ * are set.  When setting bits from more than one group, it is possible to
+ * select an impossible combination, in that case a hypervisor may return
+ * either 0 or an error.
+ *
+ * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+ * have no further children (a leaf snapshot).
+ *
+ * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+ * whether they have metadata that would prevent the removal of the last
+ * reference to a domain.
+ *
+ * Returns the number of domain snapshots found or -1 and sets @snaps to
+ * NULL in case of error.  On success, the array stored into @snaps is
+ * guaranteed to have an extra allocated element set to NULL but not included
+ * in the return count, to make iteration easier.  The caller is responsible
+ * for calling virDomainSnapshotFree() on each array element, then calling
+ * free() on @snaps.
+ */
+int
+virDomainListAllSnapshots(virDomainPtr domain, virDomainSnapshotPtr **snaps,
+                          unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "snaps=%p, flags=%x", snaps, flags);
+
+    virResetLastError();
+
+    if (snaps)
+        *snaps = NULL;
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = domain->conn;
+
+    if (conn->driver->domainListAllSnapshots) {
+        int ret = conn->driver->domainListAllSnapshots(domain, snaps, flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -17377,16 +17278,27 @@ error:
  *
  * Provides the number of child snapshots for this domain snapshot.
  *
- * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS, then the result
- * includes all descendants, otherwise it is limited to direct children.
+ * By default, this command covers only direct children; it is also possible
+ * to expand things to cover all descendants, when @flags includes
+ * VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS.  Also, some filters are provided in
+ * groups, where each group contains bits that describe mutually exclusive
+ * attributes of a snapshot, and where all bits within a group describe
+ * all possible snapshots.  Some hypervisors might reject explicit bits
+ * from a group where the hypervisor cannot make a distinction.  For a
+ * group supported by a given hypervisor, the behavior when no bits of a
+ * group are set is identical to the behavior when all bits in that group
+ * are set.  When setting bits from more than one group, it is possible to
+ * select an impossible combination, in that case a hypervisor may return
+ * either 0 or an error.
  *
- * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
- * filtered to the number of snapshots that have no children.
+ * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+ * have no further children (a leaf snapshot).
  *
- * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
- * the number of snapshots that also include metadata that would prevent
- * the removal of the last reference to a domain; this value will either
- * be 0 or the same value as if the flag were not given.
+ * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+ * whether they have metadata that would prevent the removal of the last
+ * reference to a domain.
  *
  * Returns the number of domain snapshots found or -1 in case of error.
  */
@@ -17428,22 +17340,44 @@ error:
  * @flags: bitwise-OR of supported virDomainSnapshotListFlags
  *
  * Collect the list of domain snapshots that are children of the given
- * snapshot, and store their names in @names.  Caller is responsible for
- * freeing each member of the array.  The value to use for @nameslen can
- * be determined by virDomainSnapshotNumChildren() with the same @flags.
+ * snapshot, and store their names in @names.  The value to use for
+ * @nameslen can be determined by virDomainSnapshotNumChildren() with
+ * the same @flags.
  *
- * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS, then the result
- * includes all descendants, otherwise it is limited to direct children.
+ * By default, this command covers only direct children; it is also possible
+ * to expand things to cover all descendants, when @flags includes
+ * VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS.  Also, some filters are provided in
+ * groups, where each group contains bits that describe mutually exclusive
+ * attributes of a snapshot, and where all bits within a group describe
+ * all possible snapshots.  Some hypervisors might reject explicit bits
+ * from a group where the hypervisor cannot make a distinction.  For a
+ * group supported by a given hypervisor, the behavior when no bits of a
+ * group are set is identical to the behavior when all bits in that group
+ * are set.  When setting bits from more than one group, it is possible to
+ * select an impossible combination, in that case a hypervisor may return
+ * either 0 or an error.
  *
- * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_LEAVES, then the result is
- * filtered to the number of snapshots that have no children.
+ * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+ * have no further children (a leaf snapshot).
  *
- * If @flags includes VIR_DOMAIN_SNAPSHOT_LIST_METADATA, then the result is
- * the number of snapshots that also include metadata that would prevent
- * the removal of the last reference to a domain; this value will either
- * be 0 or the same value as if the flag were not given.
+ * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+ * whether they have metadata that would prevent the removal of the last
+ * reference to a domain.
  *
  * Returns the number of domain snapshots found or -1 in case of error.
+ * Note that this command is inherently racy: another connection can
+ * define a new snapshot between a call to virDomainSnapshotNumChildren()
+ * and this call.  You are only guaranteed that all currently defined
+ * snapshots were listed if the return is less than @nameslen.  Likewise,
+ * you should be prepared for virDomainSnapshotLookupByName() to fail when
+ * converting a name from this call into a snapshot object, if another
+ * connection deletes the snapshot in the meantime.  For more control over
+ * the results, see virDomainSnapshotListAllChildren().
+ *
+ * Returns the number of domain snapshots found or -1 in case of error.
+ * The caller is responsible for freeing each member of the array.
  */
 int
 virDomainSnapshotListChildrenNames(virDomainSnapshotPtr snapshot,
@@ -17466,16 +17400,92 @@ virDomainSnapshotListChildrenNames(virDomainSnapshotPtr snapshot,
 
     conn = snapshot->domain->conn;
 
-    if ((names == NULL) || (nameslen < 0)) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(names, error);
+    virCheckNonNegativeArgGoto(nameslen, error);
 
     if (conn->driver->domainSnapshotListChildrenNames) {
         int ret = conn->driver->domainSnapshotListChildrenNames(snapshot,
                                                                 names,
                                                                 nameslen,
                                                                 flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotListAllChildren:
+ * @snapshot: a domain snapshot object
+ * @snaps: pointer to variable to store the array containing snapshot objects,
+ *         or NULL if the list is not required (just returns number of
+ *         snapshots)
+ * @flags: bitwise-OR of supported virDomainSnapshotListFlags
+ *
+ * Collect the list of domain snapshots that are children of the given
+ * snapshot, and allocate an array to store those objects.  This API solves
+ * the race inherent in virDomainSnapshotListChildrenNames().
+ *
+ * By default, this command covers only direct children; it is also possible
+ * to expand things to cover all descendants, when @flags includes
+ * VIR_DOMAIN_SNAPSHOT_LIST_DESCENDANTS.  Also, some filters are provided in
+ * groups, where each group contains bits that describe mutually exclusive
+ * attributes of a snapshot, and where all bits within a group describe
+ * all possible snapshots.  Some hypervisors might reject explicit bits
+ * from a group where the hypervisor cannot make a distinction.  For a
+ * group supported by a given hypervisor, the behavior when no bits of a
+ * group are set is identical to the behavior when all bits in that group
+ * are set.  When setting bits from more than one group, it is possible to
+ * select an impossible combination, in that case a hypervisor may return
+ * either 0 or an error.
+ *
+ * The first group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_LEAVES and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES, to filter based on snapshots that
+ * have no further children (a leaf snapshot).
+ *
+ * The next group of @flags is VIR_DOMAIN_SNAPSHOT_LIST_METADATA and
+ * VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA, for filtering snapshots based on
+ * whether they have metadata that would prevent the removal of the last
+ * reference to a domain.
+ *
+ * Returns the number of domain snapshots found or -1 and sets @snaps to
+ * NULL in case of error.  On success, the array stored into @snaps is
+ * guaranteed to have an extra allocated element set to NULL but not included
+ * in the return count, to make iteration easier.  The caller is responsible
+ * for calling virDomainSnapshotFree() on each array element, then calling
+ * free() on @snaps.
+ */
+int
+virDomainSnapshotListAllChildren(virDomainSnapshotPtr snapshot,
+                                 virDomainSnapshotPtr **snaps,
+                                 unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("snapshot=%p, snaps=%p, flags=%x", snapshot, snaps, flags);
+
+    virResetLastError();
+
+    if (snaps)
+        *snaps = NULL;
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = snapshot->domain->conn;
+
+    if (conn->driver->domainSnapshotListAllChildren) {
+        int ret = conn->driver->domainSnapshotListAllChildren(snapshot, snaps,
+                                                              flags);
         if (ret < 0)
             goto error;
         return ret;
@@ -17518,10 +17528,7 @@ virDomainSnapshotLookupByName(virDomainPtr domain,
 
     conn = domain->conn;
 
-    if (name == NULL) {
-        virLibConnError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(name, error);
 
     if (conn->driver->domainSnapshotLookupByName) {
         virDomainSnapshotPtr dom;
@@ -17664,6 +17671,91 @@ error:
 }
 
 /**
+ * virDomainSnapshotIsCurrent:
+ * @snapshot: a snapshot object
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Determine if the given snapshot is the domain's current snapshot.  See
+ * also virDomainHasCurrentSnapshot().
+ *
+ * Returns 1 if current, 0 if not current, or -1 on error.
+ */
+int virDomainSnapshotIsCurrent(virDomainSnapshotPtr snapshot,
+                               unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("snapshot=%p, flags=%x", snapshot, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = snapshot->domain->conn;
+
+    if (conn->driver->domainSnapshotIsCurrent) {
+        int ret;
+        ret = conn->driver->domainSnapshotIsCurrent(snapshot, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
+ * virDomainSnapshotHasMetadata:
+ * @snapshot: a snapshot object
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Determine if the given snapshot is associated with libvirt metadata
+ * that would prevent the deletion of the domain.
+ *
+ * Returns 1 if the snapshot has metadata, 0 if the snapshot exists without
+ * help from libvirt, or -1 on error.
+ */
+int virDomainSnapshotHasMetadata(virDomainSnapshotPtr snapshot,
+                                 unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DEBUG("snapshot=%p, flags=%x", snapshot, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_DOMAIN_SNAPSHOT(snapshot)) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    conn = snapshot->domain->conn;
+
+    if (conn->driver->domainSnapshotHasMetadata) {
+        int ret;
+        ret = conn->driver->domainSnapshotHasMetadata(snapshot, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+error:
+    virDispatchError(conn);
+    return -1;
+}
+
+/**
  * virDomainRevertToSnapshot:
  * @snapshot: a domain snapshot object
  * @flags: bitwise-OR of virDomainSnapshotRevertFlags
@@ -17731,8 +17823,9 @@ virDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
 
     if ((flags & VIR_DOMAIN_SNAPSHOT_REVERT_RUNNING) &&
         (flags & VIR_DOMAIN_SNAPSHOT_REVERT_PAUSED)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("running and paused flags are mutually exclusive"));
+        virReportInvalidArg(flags,
+                            _("running and paused flags in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -17798,9 +17891,10 @@ virDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
 
     if ((flags & VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN) &&
         (flags & VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN_ONLY)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("children and children_only flags are "
-                            "mutually exclusive"));
+        virReportInvalidArg(flags,
+                            _("children and children_only flags in %s are "
+                              "mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -17815,6 +17909,39 @@ virDomainSnapshotDelete(virDomainSnapshotPtr snapshot,
 error:
     virDispatchError(conn);
     return -1;
+}
+
+/**
+ * virDomainSnapshotRef:
+ * @snapshot: the snapshot to hold a reference on
+ *
+ * Increment the reference count on the snapshot. For each
+ * additional call to this method, there shall be a corresponding
+ * call to virDomainSnapshotFree to release the reference count, once
+ * the caller no longer needs the reference to this object.
+ *
+ * This method is typically useful for applications where multiple
+ * threads are using a connection, and it is required that the
+ * connection and domain remain open until all threads have finished
+ * using the snapshot. ie, each new thread using a snapshot would
+ * increment the reference count.
+ *
+ * Returns 0 in case of success and -1 in case of failure.
+ */
+int
+virDomainSnapshotRef(virDomainSnapshotPtr snapshot)
+{
+    if ((!VIR_IS_DOMAIN_SNAPSHOT(snapshot))) {
+        virLibDomainSnapshotError(VIR_ERR_INVALID_DOMAIN_SNAPSHOT,
+                                  __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+    virMutexLock(&snapshot->domain->conn->lock);
+    VIR_DEBUG("snapshot=%p, refs=%d", snapshot, snapshot->refs);
+    snapshot->refs++;
+    virMutexUnlock(&snapshot->domain->conn->lock);
+    return 0;
 }
 
 /**
@@ -17976,11 +18103,7 @@ int virDomainBlockJobAbort(virDomainPtr dom, const char *disk,
         goto error;
     }
 
-    if (!disk) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("disk is NULL"));
-        goto error;
-    }
+    virCheckNonNullArgGoto(disk, error);
 
     if (conn->driver->domainBlockJobAbort) {
         int ret;
@@ -18032,17 +18155,8 @@ int virDomainGetBlockJobInfo(virDomainPtr dom, const char *disk,
     }
     conn = dom->conn;
 
-    if (!disk) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("disk is NULL"));
-        goto error;
-    }
-
-    if (!info) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                           _("info is NULL"));
-        goto error;
-    }
+    virCheckNonNullArgGoto(disk, error);
+    virCheckNonNullArgGoto(info, error);
 
     if (conn->driver->domainGetBlockJobInfo) {
         int ret;
@@ -18100,11 +18214,7 @@ int virDomainBlockJobSetSpeed(virDomainPtr dom, const char *disk,
         goto error;
     }
 
-    if (!disk) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("disk is NULL"));
-        goto error;
-    }
+    virCheckNonNullArgGoto(disk, error);
 
     if (conn->driver->domainBlockJobSetSpeed) {
         int ret;
@@ -18175,11 +18285,7 @@ int virDomainBlockPull(virDomainPtr dom, const char *disk,
         goto error;
     }
 
-    if (!disk) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("disk is NULL"));
-        goto error;
-    }
+    virCheckNonNullArgGoto(disk, error);
 
     if (conn->driver->domainBlockPull) {
         int ret;
@@ -18297,23 +18403,16 @@ int virDomainBlockRebase(virDomainPtr dom, const char *disk,
         goto error;
     }
 
-    if (!disk) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("disk is NULL"));
-        goto error;
-    }
+    virCheckNonNullArgGoto(disk, error);
 
     if (flags & VIR_DOMAIN_BLOCK_REBASE_COPY) {
-        if (!base) {
-            virLibDomainError(VIR_ERR_INVALID_ARG,
-                              _("base is required when starting a copy"));
-            goto error;
-        }
+        virCheckNonNullArgGoto(base, error);
     } else if (flags & (VIR_DOMAIN_BLOCK_REBASE_SHALLOW |
                         VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT |
                         VIR_DOMAIN_BLOCK_REBASE_COPY_RAW)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("use of flags requires a copy job"));
+        virReportInvalidArg(flags,
+                            _("use of flags in %s requires a copy job"),
+                            __FUNCTION__);
         goto error;
     }
 
@@ -18375,10 +18474,7 @@ int virDomainOpenGraphics(virDomainPtr dom,
         return -1;
     }
 
-    if (fd < 0) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNegativeArgGoto(fd, error);
 
     if (fstat(fd, &sb) < 0) {
         virReportSystemError(errno,
@@ -18387,8 +18483,9 @@ int virDomainOpenGraphics(virDomainPtr dom,
     }
 
     if (!S_ISSOCK(sb.st_mode)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG,
-                          _("File descriptor %d must be a socket"), fd);
+        virReportInvalidArg(fd,
+                          _("fd %d in %s must be a socket"),
+                            fd, __FUNCTION__);
         goto error;
     }
 
@@ -18555,13 +18652,12 @@ int virDomainSetBlockIoTune(virDomainPtr dom,
         goto error;
     }
 
-    if (!disk || (nparams <= 0) || (params == NULL)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
-    }
+    virCheckNonNullArgGoto(disk, error);
+    virCheckPositiveArgGoto(nparams, error);
+    virCheckNonNullArgGoto(params, error);
 
     if (virTypedParameterValidateSet(dom, params, nparams) < 0)
-        return -1;
+        goto error;
 
     conn = dom->conn;
 
@@ -18632,10 +18728,11 @@ int virDomainGetBlockIoTune(virDomainPtr dom,
         return -1;
     }
 
-    if (nparams == NULL || *nparams < 0 ||
-        ((params == NULL || disk == NULL) && *nparams != 0)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
+    virCheckNonNullArgGoto(nparams, error);
+    virCheckNonNegativeArgGoto(*nparams, error);
+    if (*nparams != 0) {
+        virCheckNonNullArgGoto(params, error);
+        virCheckNonNullArgGoto(disk, error);
     }
 
     if (VIR_DRV_SUPPORTS_FEATURE(dom->conn->driver, dom->conn,
@@ -18645,7 +18742,9 @@ int virDomainGetBlockIoTune(virDomainPtr dom,
     /* At most one of these two flags should be set.  */
     if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
         (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportInvalidArg(flags,
+                            _("flags 'affect live' and 'affect config' in %s are mutually exclusive"),
+                            __FUNCTION__);
         goto error;
     }
     conn = dom->conn;
@@ -18767,13 +18866,23 @@ int virDomainGetCPUStats(virDomainPtr domain,
      * ncpus must be non-zero unless params == NULL
      * nparams * ncpus must not overflow (RPC may restrict it even more)
      */
-    if (start_cpu < -1 ||
-        (start_cpu == -1 && ncpus != 1) ||
-        ((params == NULL) != (nparams == 0)) ||
-        (ncpus == 0 && params != NULL)) {
-        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
-        goto error;
+    if (start_cpu == -1) {
+        if (ncpus != 1) {
+            virReportInvalidArg(start_cpu,
+                                _("ncpus in %s must be 1 when start_cpu is -1"),
+                                __FUNCTION__);
+            goto error;
+        }
+    } else {
+        virCheckNonNegativeArgGoto(start_cpu, error);
     }
+    if (nparams)
+        virCheckNonNullArgGoto(params, error);
+    else
+        virCheckNullArgGoto(params, error);
+    if (ncpus == 0)
+        virCheckNullArgGoto(params, error);
+
     if (nparams && ncpus > UINT_MAX / nparams) {
         virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: %u * %u"),
                           nparams, ncpus);

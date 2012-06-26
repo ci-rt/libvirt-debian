@@ -37,6 +37,10 @@
 #include "logging.h"
 #include "virfile.h"
 
+#ifdef WITH_DTRACE_PROBES
+# include "libvirt_qemu_probes.h"
+#endif
+
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
 #define DEBUG_IO 0
@@ -157,20 +161,15 @@ char *qemuMonitorUnescapeArg(const char *in)
 {
     int i, j;
     char *out;
-    int len = strlen(in) + 1;
+    int len = strlen(in);
     char next;
 
-    if (VIR_ALLOC_N(out, len) < 0)
+    if (VIR_ALLOC_N(out, len + 1) < 0)
         return NULL;
 
     for (i = j = 0; i < len; ++i) {
         next = in[i];
         if (in[i] == '\\') {
-            if (len < i + 1) {
-                /* trailing backslash shouldn't be possible */
-                VIR_FREE(out);
-                return NULL;
-            }
             ++i;
             switch(in[i]) {
             case 'r':
@@ -184,7 +183,7 @@ char *qemuMonitorUnescapeArg(const char *in)
                 next = in[i];
                 break;
             default:
-                /* invalid input */
+                /* invalid input (including trailing '\' at end of in) */
                 VIR_FREE(out);
                 return NULL;
             }
@@ -2018,6 +2017,43 @@ int qemuMonitorMigrateCancel(qemuMonitorPtr mon)
     return ret;
 }
 
+int qemuMonitorDumpToFd(qemuMonitorPtr mon,
+                        unsigned int flags,
+                        int fd,
+                        unsigned long long begin,
+                        unsigned long long length)
+{
+    int ret;
+    VIR_DEBUG("mon=%p fd=%d flags=%x begin=%llx length=%llx",
+              mon, fd, flags, begin, length);
+
+    if (!mon) {
+        qemuReportError(VIR_ERR_INVALID_ARG, "%s",
+                        _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        /* We don't have qemuMonitorTextDump(), so we should check mon->json
+         * here.
+         */
+        qemuReportError(VIR_ERR_NO_SUPPORT, "%s",
+                        _("dump-guest-memory is not supported in text mode"));
+        return -1;
+    }
+
+    if (qemuMonitorSendFileHandle(mon, "dump", fd) < 0)
+        return -1;
+
+    ret = qemuMonitorJSONDump(mon, flags, "fd:dump", begin, length);
+
+    if (ret < 0) {
+        if (qemuMonitorCloseFileHandle(mon, "dump") < 0)
+            VIR_WARN("failed to close dumping handle");
+    }
+
+    return ret;
+}
 
 int qemuMonitorGraphicsRelocate(qemuMonitorPtr mon,
                                 int type,
@@ -2785,13 +2821,14 @@ int qemuMonitorBlockJob(qemuMonitorPtr mon,
               modern);
 
     /* Convert bandwidth MiB to bytes */
-    if (bandwidth * 1ULL > ULLONG_MAX / 1024 / 1024) {
+    speed = bandwidth;
+    if (speed > ULLONG_MAX / 1024 / 1024) {
         qemuReportError(VIR_ERR_OVERFLOW,
                         _("bandwidth must be less than %llu"),
                         ULLONG_MAX / 1024 / 1024);
         return -1;
     }
-    speed = bandwidth * 1024ULL * 1024ULL;
+    speed <<= 20;
 
     if (mon->json)
         ret = qemuMonitorJSONBlockJob(mon, device, base, speed, info, mode,

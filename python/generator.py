@@ -453,6 +453,9 @@ skip_function = (
     'virConnectDomainEventDeregisterAny', # overridden in virConnect.py
     'virSaveLastError', # We have our own python error wrapper
     'virFreeError', # Only needed if we use virSaveLastError
+    'virConnectListAllDomains', #overridden in virConnect.py
+    'virDomainListAllSnapshots', # overridden in virDomain.py
+    'virDomainSnapshotListAllChildren', # overridden in virDomainSnapshot.py
 
     'virStreamRecvAll', # Pure python libvirt-override-virStream.py
     'virStreamSendAll', # Pure python libvirt-override-virStream.py

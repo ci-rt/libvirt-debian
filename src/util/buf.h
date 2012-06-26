@@ -37,6 +37,7 @@ struct _virBuffer {
 };
 # endif
 
+const char *virBufferCurrentContent(virBufferPtr buf);
 char *virBufferContentAndReset(virBufferPtr buf);
 void virBufferFreeAndReset(virBufferPtr buf);
 int virBufferError(const virBufferPtr buf);
@@ -63,5 +64,7 @@ void virBufferURIEncodeString(virBufferPtr buf, const char *str);
 
 void virBufferAdjustIndent(virBufferPtr buf, int indent);
 int virBufferGetIndent(const virBufferPtr buf, bool dynamic);
+
+int virBufferTrim(virBufferPtr buf, const char *trim, int len);
 
 #endif /* __VIR_BUFFER_H__ */

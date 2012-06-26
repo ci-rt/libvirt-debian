@@ -807,7 +807,8 @@ qemuMigrationIsAllowed(struct qemud_driver *driver, virDomainObjPtr vm,
                             "%s", _("domain is marked for auto destroy"));
             return false;
         }
-        if ((nsnapshots = virDomainSnapshotObjListNum(&vm->snapshots, 0))) {
+        if ((nsnapshots = virDomainSnapshotObjListNum(&vm->snapshots, NULL,
+                                                      0))) {
             qemuReportError(VIR_ERR_OPERATION_INVALID,
                             _("cannot migrate domain with %d snapshots"),
                             nsnapshots);
@@ -840,10 +841,13 @@ qemuMigrationIsSafe(virDomainDefPtr def)
             !disk->readonly &&
             disk->cachemode != VIR_DOMAIN_DISK_CACHE_DISABLE) {
             int cfs;
-            if ((cfs = virStorageFileIsClusterFS(disk->src)) == 1)
-                continue;
-            else if (cfs < 0)
-                return false;
+
+            if (disk->type == VIR_DOMAIN_DISK_TYPE_FILE) {
+                if ((cfs = virStorageFileIsClusterFS(disk->src)) == 1)
+                    continue;
+                else if (cfs < 0)
+                    return false;
+            }
 
             qemuReportError(VIR_ERR_MIGRATE_UNSAFE, "%s",
                             _("Migration may lead to data corruption if disks"
@@ -1326,7 +1330,7 @@ qemuMigrationPrepareAny(struct qemud_driver *driver,
             virReportSystemError(errno, "%s",
                                  _("cannot pass pipe for tunnelled migration"));
             virDomainAuditStart(vm, "migrated", false);
-            qemuProcessStop(driver, vm, 0, VIR_DOMAIN_SHUTOFF_FAILED);
+            qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED, 0);
             goto endjob;
         }
         dataFD[1] = -1; /* 'st' owns the FD now & will close it */
@@ -1910,8 +1914,10 @@ qemuMigrationRun(struct qemud_driver *driver,
         break;
 
     case MIGRATION_DEST_FD:
-        if (spec->fwdType != MIGRATION_FWD_DIRECT)
+        if (spec->fwdType != MIGRATION_FWD_DIRECT) {
             fd = spec->dest.fd.local;
+            spec->dest.fd.local = -1;
+        }
         ret = qemuMonitorMigrateToFd(priv->mon, migrate_flags,
                                      spec->dest.fd.qemu);
         VIR_FORCE_CLOSE(spec->dest.fd.qemu);
@@ -2642,7 +2648,8 @@ qemuMigrationPerformJob(struct qemud_driver *driver,
      * confirm step.
      */
     if (!v3proto) {
-        qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_MIGRATED);
+        qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_MIGRATED,
+                        VIR_QEMU_PROCESS_STOP_MIGRATED);
         virDomainAuditStop(vm, "migrated");
         event = virDomainEventNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_STOPPED,
@@ -2939,7 +2946,8 @@ qemuMigrationFinish(struct qemud_driver *driver,
         }
 
         if (qemuMigrationVPAssociatePortProfiles(vm->def) < 0) {
-            qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_FAILED);
+            qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED,
+                            VIR_QEMU_PROCESS_STOP_MIGRATED);
             virDomainAuditStop(vm, "failed");
             event = virDomainEventNewFromObj(vm,
                                              VIR_DOMAIN_EVENT_STOPPED,
@@ -2972,7 +2980,8 @@ qemuMigrationFinish(struct qemud_driver *driver,
                  * to restart during confirm() step, so we kill it off now.
                  */
                 if (v3proto) {
-                    qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_FAILED);
+                    qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED,
+                                    VIR_QEMU_PROCESS_STOP_MIGRATED);
                     virDomainAuditStop(vm, "failed");
                     if (newVM)
                         vm->persistent = 0;
@@ -3018,7 +3027,8 @@ qemuMigrationFinish(struct qemud_driver *driver,
                  * things up
                  */
                 if (v3proto) {
-                    qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_FAILED);
+                    qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED,
+                                    VIR_QEMU_PROCESS_STOP_MIGRATED);
                     virDomainAuditStop(vm, "failed");
                     event = virDomainEventNewFromObj(vm,
                                                      VIR_DOMAIN_EVENT_STOPPED,
@@ -3049,7 +3059,8 @@ qemuMigrationFinish(struct qemud_driver *driver,
         /* Guest is successfully running, so cancel previous auto destroy */
         qemuProcessAutoDestroyRemove(driver, vm);
     } else {
-        qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_FAILED);
+        qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED,
+                        VIR_QEMU_PROCESS_STOP_MIGRATED);
         virDomainAuditStop(vm, "failed");
         event = virDomainEventNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_STOPPED,
@@ -3113,7 +3124,8 @@ int qemuMigrationConfirm(struct qemud_driver *driver,
      * domain object, but if no, resume CPUs
      */
     if (retcode == 0) {
-        qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_MIGRATED);
+        qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_MIGRATED,
+                        VIR_QEMU_PROCESS_STOP_MIGRATED);
         virDomainAuditStop(vm, "migrated");
 
         event = virDomainEventNewFromObj(vm,

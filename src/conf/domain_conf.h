@@ -65,6 +65,9 @@ typedef virDomainNetDef *virDomainNetDefPtr;
 typedef struct _virDomainInputDef virDomainInputDef;
 typedef virDomainInputDef *virDomainInputDefPtr;
 
+typedef struct _virDomainSoundCodecDef virDomainSoundCodecDef;
+typedef virDomainSoundCodecDef *virDomainSoundCodecDefPtr;
+
 typedef struct _virDomainSoundDef virDomainSoundDef;
 typedef virDomainSoundDef *virDomainSoundDefPtr;
 
@@ -253,6 +256,10 @@ struct _virDomainDeviceUSBMaster {
 typedef struct _virDomainDeviceInfo virDomainDeviceInfo;
 typedef virDomainDeviceInfo *virDomainDeviceInfoPtr;
 struct _virDomainDeviceInfo {
+    /* If adding to this struct, ensure that
+     * virDomainDeviceInfoIsSet() is updated
+     * to consider the new fields
+     */
     char *alias;
     int type;
     union {
@@ -624,6 +631,7 @@ enum virDomainControllerModelUSB {
     VIR_DOMAIN_CONTROLLER_MODEL_USB_ICH9_UHCI3,
     VIR_DOMAIN_CONTROLLER_MODEL_USB_VT82C686B_UHCI,
     VIR_DOMAIN_CONTROLLER_MODEL_USB_PCI_OHCI,
+    VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI,
 
     VIR_DOMAIN_CONTROLLER_MODEL_USB_LAST
 };
@@ -649,10 +657,12 @@ struct _virDomainControllerDef {
 
 /* Two types of disk backends */
 enum virDomainFSType {
-    VIR_DOMAIN_FS_TYPE_MOUNT,   /* Better named 'bind' */
-    VIR_DOMAIN_FS_TYPE_BLOCK,
-    VIR_DOMAIN_FS_TYPE_FILE,
-    VIR_DOMAIN_FS_TYPE_TEMPLATE,
+    VIR_DOMAIN_FS_TYPE_MOUNT, /* Mounts (binds) a host dir on a guest dir */
+    VIR_DOMAIN_FS_TYPE_BLOCK, /* Mounts a host block dev on a guest dir */
+    VIR_DOMAIN_FS_TYPE_FILE,  /* Loopback mounts a host file on a guest dir */
+    VIR_DOMAIN_FS_TYPE_TEMPLATE, /* Expands a OS template to a guest dir */
+    VIR_DOMAIN_FS_TYPE_RAM,   /* Mount a RAM filesystem on a guest dir */
+    VIR_DOMAIN_FS_TYPE_BIND,  /* Binds a guest dir to another guest dir */
 
     VIR_DOMAIN_FS_TYPE_LAST
 };
@@ -683,15 +693,21 @@ enum virDomainFSWrpolicy {
     VIR_DOMAIN_FS_WRPOLICY_LAST
 };
 
+/* Allow 2 MB ram usage */
+# define VIR_DOMAIN_FS_RAM_DEFAULT_USAGE (1024 * 2)
+
 struct _virDomainFSDef {
     int type;
     int fsdriver;
     int accessmode;
     int wrpolicy; /* enum virDomainFSWrpolicy */
+    unsigned long long usage;
     char *src;
     char *dst;
     unsigned int readonly : 1;
     virDomainDeviceInfo info;
+    unsigned long long space_hard_limit; /* in bytes */
+    unsigned long long space_soft_limit; /* in bytes */
 };
 
 
@@ -846,7 +862,8 @@ enum virDomainChrDeviceType {
 };
 
 enum virDomainChrChannelTargetType {
-    VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD = 0,
+    VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_NONE = 0,
+    VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_GUESTFWD,
     VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_VIRTIO,
 
     VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_LAST,
@@ -992,6 +1009,13 @@ struct _virDomainInputDef {
     virDomainDeviceInfo info;
 };
 
+enum virDomainSoundCodecType {
+    VIR_DOMAIN_SOUND_CODEC_TYPE_DUPLEX,
+    VIR_DOMAIN_SOUND_CODEC_TYPE_MICRO,
+
+    VIR_DOMAIN_SOUND_CODEC_TYPE_LAST
+};
+
 enum virDomainSoundModel {
     VIR_DOMAIN_SOUND_MODEL_SB16,
     VIR_DOMAIN_SOUND_MODEL_ES1370,
@@ -1002,9 +1026,17 @@ enum virDomainSoundModel {
     VIR_DOMAIN_SOUND_MODEL_LAST
 };
 
+struct _virDomainSoundCodecDef {
+    int type;
+    int cad;
+};
+
 struct _virDomainSoundDef {
     int model;
     virDomainDeviceInfo info;
+
+    int ncodecs;
+    virDomainSoundCodecDefPtr *codecs;
 };
 
 enum virDomainWatchdogModel {
@@ -1702,9 +1734,11 @@ struct _virDomainSnapshotDef {
 typedef struct _virDomainSnapshotObj virDomainSnapshotObj;
 typedef virDomainSnapshotObj *virDomainSnapshotObjPtr;
 struct _virDomainSnapshotObj {
-    virDomainSnapshotDefPtr def;
+    virDomainSnapshotDefPtr def; /* non-NULL except for metaroot */
 
-    virDomainSnapshotObjPtr parent; /* NULL if root */
+    virDomainSnapshotObjPtr parent; /* non-NULL except for metaroot, before
+                                       virDomainSnapshotUpdateRelations, or
+                                       after virDomainSnapshotDropParent */
     virDomainSnapshotObjPtr sibling; /* NULL if last child of parent */
     size_t nchildren;
     virDomainSnapshotObjPtr first_child; /* NULL if no children */
@@ -1717,8 +1751,7 @@ struct _virDomainSnapshotObjList {
      * for O(1), lockless lookup-by-name */
     virHashTable *objs;
 
-    size_t nroots;
-    virDomainSnapshotObjPtr first_root;
+    virDomainSnapshotObj metaroot; /* Special parent of all root snapshots */
 };
 
 typedef enum {
@@ -1744,15 +1777,12 @@ virDomainSnapshotObjPtr virDomainSnapshotAssignDef(virDomainSnapshotObjListPtr s
 
 int virDomainSnapshotObjListInit(virDomainSnapshotObjListPtr objs);
 int virDomainSnapshotObjListGetNames(virDomainSnapshotObjListPtr snapshots,
+                                     virDomainSnapshotObjPtr from,
                                      char **const names, int maxnames,
                                      unsigned int flags);
 int virDomainSnapshotObjListNum(virDomainSnapshotObjListPtr snapshots,
+                                virDomainSnapshotObjPtr from,
                                 unsigned int flags);
-int virDomainSnapshotObjListGetNamesFrom(virDomainSnapshotObjPtr snapshot,
-                                         char **const names, int maxnames,
-                                         unsigned int flags);
-int virDomainSnapshotObjListNumFrom(virDomainSnapshotObjPtr snapshot,
-                                    unsigned int flags);
 virDomainSnapshotObjPtr virDomainSnapshotFindByName(const virDomainSnapshotObjListPtr snapshots,
                                                     const char *name);
 void virDomainSnapshotObjListRemove(virDomainSnapshotObjListPtr snapshots,
@@ -1764,8 +1794,7 @@ int virDomainSnapshotForEachDescendant(virDomainSnapshotObjPtr snapshot,
                                        virHashIterator iter,
                                        void *data);
 int virDomainSnapshotUpdateRelations(virDomainSnapshotObjListPtr snapshots);
-void virDomainSnapshotDropParent(virDomainSnapshotObjListPtr snapshots,
-                                 virDomainSnapshotObjPtr snapshot);
+void virDomainSnapshotDropParent(virDomainSnapshotObjPtr snapshot);
 
 /* Guest VM runtime state */
 typedef struct _virDomainStateReason virDomainStateReason;
@@ -1792,6 +1821,8 @@ struct _virDomainObj {
 
     virDomainSnapshotObjList snapshots;
     virDomainSnapshotObjPtr current_snapshot;
+
+    bool hasManagedSave;
 
     void *privateData;
     void (*privateDataFreeFunc)(void *);
@@ -1844,6 +1875,7 @@ void virDomainChrDefFree(virDomainChrDefPtr def);
 void virDomainChrSourceDefFree(virDomainChrSourceDefPtr def);
 int virDomainChrSourceDefCopy(virDomainChrSourceDefPtr src,
                               virDomainChrSourceDefPtr dest);
+void virDomainSoundCodecDefFree(virDomainSoundCodecDefPtr def);
 void virDomainSoundDefFree(virDomainSoundDefPtr def);
 void virDomainMemballoonDefFree(virDomainMemballoonDefPtr def);
 void virDomainWatchdogDefFree(virDomainWatchdogDefPtr def);
@@ -2060,6 +2092,7 @@ int virDiskNameToBusDeviceIndex(virDomainDiskDefPtr disk,
                                 int *devIdx);
 
 virDomainFSDefPtr virDomainGetRootFilesystem(virDomainDefPtr def);
+int virDomainFSIndexByName(virDomainDefPtr def, const char *name);
 int virDomainVideoDefaultType(virDomainDefPtr def);
 int virDomainVideoDefaultRAM(virDomainDefPtr def, int type);
 
@@ -2160,6 +2193,7 @@ VIR_ENUM_DECL(virDomainSmartcard)
 VIR_ENUM_DECL(virDomainChr)
 VIR_ENUM_DECL(virDomainChrTcpProtocol)
 VIR_ENUM_DECL(virDomainChrSpicevmc)
+VIR_ENUM_DECL(virDomainSoundCodec)
 VIR_ENUM_DECL(virDomainSoundModel)
 VIR_ENUM_DECL(virDomainMemballoonModel)
 VIR_ENUM_DECL(virDomainSmbiosMode)

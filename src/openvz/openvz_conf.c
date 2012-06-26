@@ -45,6 +45,7 @@
 
 #include "virterror_internal.h"
 #include "openvz_conf.h"
+#include "openvz_util.h"
 #include "uuid.h"
 #include "buf.h"
 #include "memory.h"
@@ -194,7 +195,7 @@ virCapsPtr openvzCapsInit(void)
     if ((guest = virCapabilitiesAddGuest(caps,
                                          "exe",
                                          utsname.machine,
-                                         sizeof(int) == 4 ? 32 : 8,
+                                         sizeof(void*) == 4 ? 32 : 64,
                                          NULL,
                                          NULL,
                                          0,
@@ -406,6 +407,8 @@ openvzReadFSConf(virDomainDefPtr def,
     virDomainFSDefPtr fs = NULL;
     char *veid_str = NULL;
     char *temp = NULL;
+    const char *param;
+    unsigned long long barrier, limit;
 
     ret = openvzReadVPSConfigParam(veid, "OSTEMPLATE", &temp);
     if (ret < 0) {
@@ -443,6 +446,28 @@ openvzReadFSConf(virDomainDefPtr def,
 
     fs->dst = strdup("/");
 
+    param = "DISKSPACE";
+    ret = openvzReadVPSConfigParam(veid, param, &temp);
+    if (ret > 0) {
+        if (openvzParseBarrierLimit(temp, &barrier, &limit)) {
+            openvzError(VIR_ERR_INTERNAL_ERROR,
+                        _("Could not read '%s' from config for container %d"),
+                        param, veid);
+            goto error;
+        } else {
+            /* Ensure that we can multiply by 1024 without overflowing. */
+            if (barrier > ULONG_LONG_MAX / 1024 ||
+                limit > ULONG_LONG_MAX / 1024 ) {
+                virReportSystemError(VIR_ERR_OVERFLOW,
+                                     _("%s"),
+                                     "Unable to parse quota");
+                goto error;
+            }
+            fs->space_soft_limit = barrier * 1024; /* unit is bytes */
+            fs->space_hard_limit = limit * 1024;   /* unit is bytes */
+        }
+    }
+
     if (fs->src == NULL || fs->dst == NULL)
         goto no_memory;
 
@@ -470,16 +495,11 @@ openvzReadMemConf(virDomainDefPtr def, int veid)
     char *temp = NULL;
     unsigned long long barrier, limit;
     const char *param;
-    unsigned long kb_per_pages;
+    long kb_per_pages;
 
-    kb_per_pages = sysconf(_SC_PAGESIZE);
-    if (kb_per_pages > 0) {
-        kb_per_pages /= 1024;
-    } else {
-        openvzError(VIR_ERR_INTERNAL_ERROR,
-                    _("Can't determine page size"));
+    kb_per_pages = openvzKBPerPages();
+    if (kb_per_pages < 0)
         goto error;
-    }
 
     /* Memory allocation guarantee */
     param = "VMGUARPAGES";

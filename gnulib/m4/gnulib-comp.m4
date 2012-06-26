@@ -196,6 +196,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module inttypes-tests:
   # Code from module ioctl:
   # Code from module ioctl-tests:
+  # Code from module isatty:
+  # Code from module isatty-tests:
   # Code from module langinfo:
   # Code from module langinfo-tests:
   # Code from module largefile:
@@ -501,6 +503,7 @@ gl_FUNC_ALLOCA
 gl_HEADER_ARPA_INET
 AC_PROG_MKDIR_P
 gl_FUNC_BASE64
+AC_REQUIRE([AC_C_INLINE])
 AC_REQUIRE([gl_HEADER_SYS_SOCKET])
 if test "$ac_cv_header_winsock2_h" = yes; then
   AC_LIBOBJ([bind])
@@ -730,6 +733,12 @@ if test $HAVE_IOCTL = 0 || test $REPLACE_IOCTL = 1; then
   AC_LIBOBJ([ioctl])
 fi
 gl_SYS_IOCTL_MODULE_INDICATOR([ioctl])
+gl_FUNC_ISATTY
+if test $REPLACE_ISATTY = 1; then
+  AC_LIBOBJ([isatty])
+  gl_PREREQ_ISATTY
+fi
+gl_UNISTD_MODULE_INDICATOR([isatty])
 gl_LANGINFO_H
 AC_REQUIRE([gl_LARGEFILE])
 AC_REQUIRE([gl_HEADER_SYS_SOCKET])
@@ -1164,7 +1173,6 @@ if test $HAVE_WAITPID = 0; then
   AC_LIBOBJ([waitpid])
 fi
 gl_SYS_WAIT_MODULE_INDICATOR([waitpid])
-AC_SUBST([WARN_CFLAGS])
 gl_WCHAR_H
 gl_FUNC_WCRTOMB
 if test $HAVE_WCRTOMB = 0 || test $REPLACE_WCRTOMB = 1; then
@@ -1660,6 +1668,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/inet_pton.c
   lib/intprops.h
   lib/ioctl.c
+  lib/isatty.c
   lib/itold.c
   lib/langinfo.in.h
   lib/listen.c
@@ -1880,6 +1889,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/inttypes.m4
   m4/inttypes_h.m4
   m4/ioctl.m4
+  m4/isatty.m4
   m4/langinfo_h.m4
   m4/largefile.m4
   m4/lcmessage.m4
@@ -1923,6 +1933,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/nl_langinfo.m4
   m4/nocrash.m4
   m4/nonblocking.m4
+  m4/off_t.m4
   m4/onceonly.m4
   m4/open.m4
   m4/passfd.m4
@@ -2131,6 +2142,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-intprops.c
   tests/test-inttypes.c
   tests/test-ioctl.c
+  tests/test-isatty.c
   tests/test-langinfo.c
   tests/test-listen.c
   tests/test-locale.c

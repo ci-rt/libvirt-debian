@@ -45,7 +45,7 @@ EXTRA_DIST =						\
 	libvirtd.qemu.logrotate.in                      \
 	libvirtd.lxc.logrotate.in                       \
 	libvirtd.uml.logrotate.in                       \
-	test_libvirtd.aug                               \
+	test_libvirtd.aug.in                             \
 	THREADS.txt					\
 	libvirtd.pod.in					\
 	libvirtd.8.in					\
@@ -58,12 +58,12 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 
 $(srcdir)/remote_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(REMOTE_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/../src/rpc/gendispatch.pl -b remote \
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl -b remote \
 	  $(REMOTE_PROTOCOL) > $@
 
 $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(QEMU_PROTOCOL)
-	$(AM_V_GEN)perl -w $(srcdir)/../src/rpc/gendispatch.pl -b qemu \
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl -b qemu \
 	  $(QEMU_PROTOCOL) > $@
 
 if WITH_LIBVIRTD
@@ -80,6 +80,8 @@ augeas_DATA = libvirtd.aug
 
 augeastestsdir = $(datadir)/augeas/lenses/tests
 augeastests_DATA = test_libvirtd.aug
+
+CLEANFILES += test_libvirtd.aug
 
 libvirtd.8: $(srcdir)/libvirtd.8.in
 	sed \
@@ -112,7 +114,7 @@ libvirtd_LDADD =					\
 	$(POLKIT_LIBS)
 
 if WITH_DTRACE_PROBES
-libvirtd_LDADD += ../src/probes.o
+libvirtd_LDADD += ../src/libvirt_probes.lo
 endif
 
 libvirtd_LDADD += \
@@ -121,6 +123,9 @@ libvirtd_LDADD += \
 if ! WITH_DRIVER_MODULES
 if WITH_QEMU
     libvirtd_LDADD += ../src/libvirt_driver_qemu.la
+if WITH_DTRACE_PROBES
+    libvirtd_LDADD += ../src/libvirt_qemu_probes.lo
+endif
 endif
 
 if WITH_LXC
@@ -135,7 +140,7 @@ if WITH_UML
     libvirtd_LDADD += ../src/libvirt_driver_uml.la
 endif
 
-if WITH_STORAGE_DIR
+if WITH_STORAGE
     libvirtd_LDADD += ../src/libvirt_driver_storage.la
 endif
 
@@ -344,9 +349,16 @@ libvirtd.service: libvirtd.service.in $(top_builddir)/config.status
 	    mv $@-t $@
 
 
-check-local:
+check-local: check-augeas
+
+AUG_GENTEST = $(PERL) $(top_srcdir)/build-aux/augeas-gentest.pl
+
+test_libvirtd.aug: test_libvirtd.aug.in $(srcdir)/libvirtd.conf
+	$(AM_V_GEN)$(AUG_GENTEST) $(srcdir)/libvirtd.conf $< $@
+
+check-augeas: test_libvirtd.aug
 	$(AM_V_GEN)if test -x '$(AUGPARSE)'; then \
-	  '$(AUGPARSE)' -I $(srcdir) $(srcdir)/test_libvirtd.aug; \
+	  '$(AUGPARSE)' -I $(srcdir) test_libvirtd.aug; \
 	fi
 
 

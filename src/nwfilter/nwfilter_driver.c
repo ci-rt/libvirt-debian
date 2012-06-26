@@ -39,6 +39,8 @@
 #include "nwfilter_gentech_driver.h"
 #include "configmake.h"
 
+#include "nwfilter_ipaddrmap.h"
+#include "nwfilter_dhcpsnoop.h"
 #include "nwfilter_learnipaddr.h"
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
@@ -66,8 +68,12 @@ static int
 nwfilterDriverStartup(int privileged) {
     char *base = NULL;
 
-    if (virNWFilterLearnInit() < 0)
+    if (virNWFilterIPAddrMapInit() < 0)
         return -1;
+    if (virNWFilterLearnInit() < 0)
+        goto err_exit_ipaddrmapshutdown;
+    if (virNWFilterDHCPSnoopInit() < 0)
+        goto err_exit_learnshutdown;
 
     virNWFilterTechDriversInit(privileged);
 
@@ -86,17 +92,9 @@ nwfilterDriverStartup(int privileged) {
         if ((base = strdup (SYSCONFDIR "/libvirt")) == NULL)
             goto out_of_memory;
     } else {
-        uid_t uid = geteuid();
-        char *userdir = virGetUserDirectory(uid);
-
-        if (!userdir)
+        base = virGetUserConfigDirectory();
+        if (!base)
             goto error;
-
-        if (virAsprintf(&base, "%s/.libvirt", userdir) == -1) {
-            VIR_FREE(userdir);
-            goto out_of_memory;
-        }
-        VIR_FREE(userdir);
     }
 
     if (virAsprintf(&driverState->configDir,
@@ -127,7 +125,11 @@ alloc_err_exit:
 
 conf_init_err:
     virNWFilterTechDriversShutdown();
+    virNWFilterDHCPSnoopShutdown();
+err_exit_learnshutdown:
     virNWFilterLearnShutdown();
+err_exit_ipaddrmapshutdown:
+    virNWFilterIPAddrMapShutdown();
 
     return -1;
 }
@@ -149,6 +151,7 @@ nwfilterDriverReload(void) {
     conn = virConnectOpen("qemu:///system");
 
     if (conn) {
+        virNWFilterDHCPSnoopEnd(NULL);
         /* shut down all threads -- they will be restarted if necessary */
         virNWFilterLearnThreadsTerminate(true);
 
@@ -203,7 +206,9 @@ nwfilterDriverShutdown(void) {
 
     virNWFilterConfLayerShutdown();
     virNWFilterTechDriversShutdown();
+    virNWFilterDHCPSnoopShutdown();
     virNWFilterLearnShutdown();
+    virNWFilterIPAddrMapShutdown();
 
     nwfilterDriverLock(driverState);
 

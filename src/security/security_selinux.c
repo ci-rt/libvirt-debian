@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 Red Hat, Inc.
+ * Copyright (C) 2008-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -33,12 +33,30 @@
 #include "storage_file.h"
 #include "virfile.h"
 #include "virrandom.h"
+#include "util.h"
+#include "conf.h"
 
 #define VIR_FROM_THIS VIR_FROM_SECURITY
 
-static char default_domain_context[1024];
-static char default_content_context[1024];
-static char default_image_context[1024];
+#define MAX_CONTEXT 1024
+
+typedef struct _virSecuritySELinuxData virSecuritySELinuxData;
+typedef virSecuritySELinuxData *virSecuritySELinuxDataPtr;
+
+typedef struct _virSecuritySELinuxCallbackData virSecuritySELinuxCallbackData;
+typedef virSecuritySELinuxCallbackData *virSecuritySELinuxCallbackDataPtr;
+
+struct _virSecuritySELinuxData {
+    char *domain_context;
+    char *file_context;
+    char *content_context;
+};
+
+struct _virSecuritySELinuxCallbackData {
+    virSecurityManagerPtr manager;
+    virSecurityLabelDefPtr secdef;
+};
+
 #define SECURITY_SELINUX_VOID_DOI       "0"
 #define SECURITY_SELINUX_NAME "selinux"
 
@@ -108,61 +126,142 @@ err:
     return newcontext;
 }
 
+
+#ifdef HAVE_SELINUX_LXC_CONTEXTS_PATH
 static int
-SELinuxInitialize(void)
+SELinuxLXCInitialize(virSecurityManagerPtr mgr)
 {
-    char *ptr = NULL;
-    int fd = 0;
+    virConfValuePtr scon = NULL;
+    virConfValuePtr tcon = NULL;
+    virConfValuePtr dcon = NULL;
+    virConfPtr selinux_conf;
+    virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(mgr);
 
-    fd = open(selinux_virtual_domain_context_path(), O_RDONLY);
-    if (fd < 0) {
+    selinux_conf = virConfReadFile(selinux_lxc_contexts_path(), 0);
+    if (!selinux_conf) {
         virReportSystemError(errno,
-                             _("cannot open SELinux virtual domain context file '%s'"),
+                             _("cannot open SELinux lxc contexts file '%s'"),
+                             selinux_lxc_contexts_path());
+        return -1;
+    }
+
+    scon = virConfGetValue(selinux_conf, "process");
+    if (! scon || scon->type != VIR_CONF_STRING || (! scon->str)) {
+        virReportSystemError(errno,
+                             _("cannot read 'process' value from selinux lxc contexts file '%s'"),
+                             selinux_lxc_contexts_path());
+        goto error;
+    }
+
+    tcon = virConfGetValue(selinux_conf, "file");
+    if (! tcon || tcon->type != VIR_CONF_STRING || (! tcon->str)) {
+        virReportSystemError(errno,
+                             _("cannot read 'file' value from selinux lxc contexts file '%s'"),
+                             selinux_lxc_contexts_path());
+        goto error;
+    }
+
+    dcon = virConfGetValue(selinux_conf, "content");
+    if (! dcon || dcon->type != VIR_CONF_STRING || (! dcon->str)) {
+        virReportSystemError(errno,
+                             _("cannot read 'file' value from selinux lxc contexts file '%s'"),
+                             selinux_lxc_contexts_path());
+        goto error;
+    }
+
+    data->domain_context = strdup(scon->str);
+    data->file_context = strdup(tcon->str);
+    data->content_context = strdup(dcon->str);
+    if (!data->domain_context ||
+        !data->file_context ||
+        !data->content_context) {
+        virReportSystemError(errno,
+                             _("cannot allocate memory for LXC SELinux contexts '%s'"),
+                             selinux_lxc_contexts_path());
+        goto error;
+    }
+    virConfFree(selinux_conf);
+    return 0;
+
+error:
+    virConfFree(selinux_conf);
+    VIR_FREE(data->domain_context);
+    VIR_FREE(data->file_context);
+    VIR_FREE(data->content_context);
+    return -1;
+}
+#else
+static int
+SELinuxLXCInitialize(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS, "%s",
+                         _("libselinux does not support LXC contexts path"));
+    return -1;
+}
+#endif
+
+
+static int
+SELinuxQEMUInitialize(virSecurityManagerPtr mgr)
+{
+    char *ptr;
+    virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(mgr);
+
+    if (virFileReadAll(selinux_virtual_domain_context_path(), MAX_CONTEXT, &(data->domain_context)) < 0) {
+        virReportSystemError(errno,
+                             _("cannot read SELinux virtual domain context file '%s'"),
                              selinux_virtual_domain_context_path());
-        return -1;
+        goto error;
     }
 
-    if (saferead(fd, default_domain_context, sizeof(default_domain_context)) < 0) {
-        virReportSystemError(errno,
-                             _("cannot read SELinux virtual domain context file %s"),
-                             selinux_virtual_domain_context_path());
-        VIR_FORCE_CLOSE(fd);
-        return -1;
-    }
-    VIR_FORCE_CLOSE(fd);
+    ptr = strchrnul(data->domain_context, '\n');
+    if (ptr)
+        *ptr = '\0';
 
-    ptr = strchrnul(default_domain_context, '\n');
-    *ptr = '\0';
-
-    if ((fd = open(selinux_virtual_image_context_path(), O_RDONLY)) < 0) {
-        virReportSystemError(errno,
-                             _("cannot open SELinux virtual image context file %s"),
-                             selinux_virtual_image_context_path());
-        return -1;
-    }
-
-    if (saferead(fd, default_image_context, sizeof(default_image_context)) < 0) {
+    if (virFileReadAll(selinux_virtual_image_context_path(), 2*MAX_CONTEXT, &(data->file_context)) < 0) {
         virReportSystemError(errno,
                              _("cannot read SELinux virtual image context file %s"),
                              selinux_virtual_image_context_path());
-        VIR_FORCE_CLOSE(fd);
-        return -1;
+        goto error;
     }
-    VIR_FORCE_CLOSE(fd);
 
-    ptr = strchrnul(default_image_context, '\n');
-    if (*ptr == '\n') {
+    ptr = strchrnul(data->file_context, '\n');
+    if (ptr && *ptr == '\n') {
         *ptr = '\0';
-        strcpy(default_content_context, ptr+1);
-        ptr = strchrnul(default_content_context, '\n');
-        if (*ptr == '\n')
+        data->content_context = strdup(ptr+1);
+        if (!data->content_context) {
+            virReportOOMError();
+            goto error;
+        }
+        ptr = strchrnul(data->content_context, '\n');
+        if (ptr && *ptr == '\n')
             *ptr = '\0';
     }
+
     return 0;
+
+error:
+    VIR_FREE(data->domain_context);
+    VIR_FREE(data->file_context);
+    VIR_FREE(data->content_context);
+    return -1;
 }
 
+
 static int
-SELinuxGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+SELinuxInitialize(virSecurityManagerPtr mgr)
+{
+    VIR_DEBUG("SELinuxInitialize %s", virSecurityManagerGetDriver(mgr));
+    if (STREQ(virSecurityManagerGetDriver(mgr),  "LXC")) {
+        return SELinuxLXCInitialize(mgr);
+    } else {
+        return SELinuxQEMUInitialize(mgr);
+    }
+}
+
+
+static int
+SELinuxGenSecurityLabel(virSecurityManagerPtr mgr,
                         virDomainDefPtr def)
 {
     int rc = -1;
@@ -172,7 +271,9 @@ SELinuxGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     int c2 = 0;
     context_t ctx = NULL;
     const char *range;
+    virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(mgr);
 
+    VIR_DEBUG("SELinuxGenSecurityLabel %s", virSecurityManagerGetDriver(mgr));
     if ((def->seclabel.type == VIR_DOMAIN_SECLABEL_DYNAMIC) &&
         !def->seclabel.baselabel &&
         def->seclabel.model) {
@@ -201,6 +302,8 @@ SELinuxGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
                                def->seclabel.model);
         return rc;
     }
+
+    VIR_DEBUG("SELinuxGenSecurityLabel %d", def->seclabel.type);
 
     switch (def->seclabel.type) {
     case VIR_DOMAIN_SECLABEL_STATIC:
@@ -245,7 +348,7 @@ SELinuxGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
         def->seclabel.label =
             SELinuxGenNewContext(def->seclabel.baselabel ?
                                  def->seclabel.baselabel :
-                                 default_domain_context, mcs);
+                                 data->domain_context, mcs);
         if (! def->seclabel.label)  {
             virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("cannot generate selinux context for %s"), mcs);
@@ -265,7 +368,7 @@ SELinuxGenSecurityLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     }
 
     if (!def->seclabel.norelabel) {
-        def->seclabel.imagelabel = SELinuxGenNewContext(default_image_context, mcs);
+        def->seclabel.imagelabel = SELinuxGenNewContext(data->file_context, mcs);
         if (!def->seclabel.imagelabel)  {
             virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
                                    _("cannot generate selinux context for %s"), mcs);
@@ -344,22 +447,42 @@ err:
 }
 
 
-
 static int
-SELinuxSecurityDriverProbe(void)
+SELinuxSecurityDriverProbe(const char *virtDriver)
 {
-    return is_selinux_enabled() ? SECURITY_DRIVER_ENABLE : SECURITY_DRIVER_DISABLE;
+    if (!is_selinux_enabled())
+        return SECURITY_DRIVER_DISABLE;
+
+    if (virtDriver && STREQ(virtDriver, "LXC")) {
+#if HAVE_SELINUX_LXC_CONTEXTS_PATH
+        if (!virFileExists(selinux_lxc_contexts_path()))
+#endif
+            return SECURITY_DRIVER_DISABLE;
+    }
+
+    return SECURITY_DRIVER_ENABLE;
 }
 
-static int
-SELinuxSecurityDriverOpen(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
-{
-    return SELinuxInitialize();
-}
 
 static int
-SELinuxSecurityDriverClose(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED)
+SELinuxSecurityDriverOpen(virSecurityManagerPtr mgr)
 {
+    return SELinuxInitialize(mgr);
+}
+
+
+static int
+SELinuxSecurityDriverClose(virSecurityManagerPtr mgr)
+{
+    virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(mgr);
+
+    if (!data)
+        return 0;
+
+    VIR_FREE(data->domain_context);
+    VIR_FREE(data->file_context);
+    VIR_FREE(data->content_context);
+
     return 0;
 }
 
@@ -405,6 +528,7 @@ SELinuxGetSecurityProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     strcpy(sec->label, (char *) ctx);
     freecon(ctx);
 
+    VIR_DEBUG("SELinuxGetSecurityProcessLabel %s", sec->label);
     sec->enforcing = security_getenforce();
     if (sec->enforcing == -1) {
         virReportSystemError(errno, "%s",
@@ -639,8 +763,10 @@ SELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
                             size_t depth,
                             void *opaque)
 {
-    const virSecurityLabelDefPtr secdef = opaque;
+    virSecuritySELinuxCallbackDataPtr cbdata = opaque;
+    const virSecurityLabelDefPtr secdef = cbdata->secdef;
     int ret;
+    virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(cbdata->manager);
 
     if (disk->seclabel && disk->seclabel->norelabel)
         return 0;
@@ -649,17 +775,18 @@ SELinuxSetSecurityFileLabel(virDomainDiskDefPtr disk,
         disk->seclabel->label) {
         ret = SELinuxSetFilecon(path, disk->seclabel->label);
     } else if (depth == 0) {
+
         if (disk->shared) {
-            ret = SELinuxSetFileconOptional(path, default_image_context);
+            ret = SELinuxSetFileconOptional(path, data->file_context);
         } else if (disk->readonly) {
-            ret = SELinuxSetFileconOptional(path, default_content_context);
+            ret = SELinuxSetFileconOptional(path, data->content_context);
         } else if (secdef->imagelabel) {
             ret = SELinuxSetFileconOptional(path, secdef->imagelabel);
         } else {
             ret = 0;
         }
     } else {
-        ret = SELinuxSetFileconOptional(path, default_content_context);
+        ret = SELinuxSetFileconOptional(path, data->content_context);
     }
     if (ret == 1 && !disk->seclabel) {
         /* If we failed to set a label, but virt_use_nfs let us
@@ -680,10 +807,13 @@ SELinuxSetSecurityImageLabel(virSecurityManagerPtr mgr,
                              virDomainDiskDefPtr disk)
 
 {
-    const virSecurityLabelDefPtr secdef = &def->seclabel;
+    virSecuritySELinuxCallbackData cbdata;
+    cbdata.secdef = &def->seclabel;
+    cbdata.manager = mgr;
+
     bool allowDiskFormatProbing = virSecurityManagerGetAllowDiskFormatProbing(mgr);
 
-    if (secdef->norelabel)
+    if (cbdata.secdef->norelabel)
         return 0;
 
     if (disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK)
@@ -700,7 +830,7 @@ SELinuxSetSecurityImageLabel(virSecurityManagerPtr mgr,
                                        true,
                                        -1, -1, /* current process uid:gid */
                                        SELinuxSetSecurityFileLabel,
-                                       secdef);
+                                       &cbdata);
 }
 
 
@@ -1119,6 +1249,7 @@ SELinuxSetSecurityProcessLabel(virSecurityManagerPtr mgr,
 {
     /* TODO: verify DOI */
     const virSecurityLabelDefPtr secdef = &def->seclabel;
+    VIR_DEBUG("SELinuxSetSecurityProcessLabel %s", secdef->label);
 
     if (def->seclabel.label == NULL)
         return 0;
@@ -1300,9 +1431,11 @@ SELinuxSetSecurityChardevCallback(virDomainDefPtr def,
 static int
 SELinuxSetSecuritySmartcardCallback(virDomainDefPtr def,
                                     virDomainSmartcardDefPtr dev,
-                                    void *opaque ATTRIBUTE_UNUSED)
+                                    void *opaque)
 {
     const char *database;
+    virSecurityManagerPtr mgr = opaque;
+    virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(mgr);
 
     switch (dev->type) {
     case VIR_DOMAIN_SMARTCARD_TYPE_HOST:
@@ -1312,7 +1445,7 @@ SELinuxSetSecuritySmartcardCallback(virDomainDefPtr def,
         database = dev->data.cert.database;
         if (!database)
             database = VIR_DOMAIN_SMARTCARD_DEFAULT_DATABASE;
-        return SELinuxSetFilecon(database, default_content_context);
+        return SELinuxSetFilecon(database, data->content_context);
 
     case VIR_DOMAIN_SMARTCARD_TYPE_PASSTHROUGH:
         return SELinuxSetSecurityChardevLabel(def, &dev->data.passthru);
@@ -1333,6 +1466,7 @@ SELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
                            virDomainDefPtr def,
                            const char *stdin_path)
 {
+    virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(mgr);
     const virSecurityLabelDefPtr secdef = &def->seclabel;
     int i;
 
@@ -1368,19 +1502,19 @@ SELinuxSetSecurityAllLabel(virSecurityManagerPtr mgr,
     if (virDomainSmartcardDefForeach(def,
                                      true,
                                      SELinuxSetSecuritySmartcardCallback,
-                                     NULL) < 0)
+                                     mgr) < 0)
         return -1;
 
     if (def->os.kernel &&
-        SELinuxSetFilecon(def->os.kernel, default_content_context) < 0)
+        SELinuxSetFilecon(def->os.kernel, data->content_context) < 0)
         return -1;
 
     if (def->os.initrd &&
-        SELinuxSetFilecon(def->os.initrd, default_content_context) < 0)
+        SELinuxSetFilecon(def->os.initrd, data->content_context) < 0)
         return -1;
 
     if (stdin_path) {
-        if (SELinuxSetFilecon(stdin_path, default_content_context) < 0 &&
+        if (SELinuxSetFilecon(stdin_path, data->content_context) < 0 &&
             virStorageFileIsSharedFSType(stdin_path,
                                          VIR_STORAGE_FILE_SHFS_NFS) != 1)
             return -1;
@@ -1402,40 +1536,96 @@ SELinuxSetImageFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     return SELinuxFSetFilecon(fd, secdef->imagelabel);
 }
 
+static char *genImageLabel(virSecurityManagerPtr mgr,
+                           virDomainDefPtr def) {
+    const virSecurityLabelDefPtr secdef = &def->seclabel;
+    virSecuritySELinuxDataPtr data = virSecurityManagerGetPrivateData(mgr);
+    const char *range;
+    context_t ctx = NULL;
+    char *label = NULL;
+    const char *mcs = NULL;
+
+    if (secdef->label) {
+        ctx = context_new(secdef->label);
+        if (!ctx) {
+            virReportOOMError();
+            goto cleanup;
+        }
+        range = context_range_get(ctx);
+        if (range) {
+            mcs = strdup(range);
+            if (!mcs) {
+                virReportOOMError();
+                goto cleanup;
+            }
+            label = SELinuxGenNewContext(data->file_context, mcs);
+            if (!label) {
+                virReportOOMError();
+                goto cleanup;
+            }
+        }
+    }
+
+cleanup:
+        context_free(ctx);
+        VIR_FREE(mcs);
+        return label;
+}
+
+static char *SELinuxGetSecurityMountOptions(virSecurityManagerPtr mgr,
+                                            virDomainDefPtr def) {
+    char *opts = NULL;
+    const virSecurityLabelDefPtr secdef = &def->seclabel;
+
+    if (! secdef->imagelabel)
+        secdef->imagelabel = genImageLabel(mgr,def);
+
+    if (secdef->imagelabel) {
+        virAsprintf(&opts,
+                    ",context=\"%s\"",
+                    (const char*) secdef->imagelabel);
+    }
+
+    VIR_DEBUG("SELinuxGetSecurityMountOptions imageLabel %s", secdef->imagelabel);
+    return opts;
+}
+
 virSecurityDriver virSecurityDriverSELinux = {
-    0,
-    SECURITY_SELINUX_NAME,
-    SELinuxSecurityDriverProbe,
-    SELinuxSecurityDriverOpen,
-    SELinuxSecurityDriverClose,
+    .privateDataLen                     = sizeof(virSecuritySELinuxData),
+    .name                               = SECURITY_SELINUX_NAME,
+    .probe                              = SELinuxSecurityDriverProbe,
+    .open                               = SELinuxSecurityDriverOpen,
+    .close                              = SELinuxSecurityDriverClose,
 
-    SELinuxSecurityGetModel,
-    SELinuxSecurityGetDOI,
+    .getModel                           = SELinuxSecurityGetModel,
+    .getDOI                             = SELinuxSecurityGetDOI,
 
-    SELinuxSecurityVerify,
+    .domainSecurityVerify               = SELinuxSecurityVerify,
 
-    SELinuxSetSecurityImageLabel,
-    SELinuxRestoreSecurityImageLabel,
+    .domainSetSecurityImageLabel        = SELinuxSetSecurityImageLabel,
+    .domainRestoreSecurityImageLabel    = SELinuxRestoreSecurityImageLabel,
 
-    SELinuxSetSecurityDaemonSocketLabel,
-    SELinuxSetSecuritySocketLabel,
-    SELinuxClearSecuritySocketLabel,
+    .domainSetSecurityDaemonSocketLabel = SELinuxSetSecurityDaemonSocketLabel,
+    .domainSetSecuritySocketLabel       = SELinuxSetSecuritySocketLabel,
+    .domainClearSecuritySocketLabel     = SELinuxClearSecuritySocketLabel,
 
-    SELinuxGenSecurityLabel,
-    SELinuxReserveSecurityLabel,
-    SELinuxReleaseSecurityLabel,
+    .domainGenSecurityLabel             = SELinuxGenSecurityLabel,
+    .domainReserveSecurityLabel         = SELinuxReserveSecurityLabel,
+    .domainReleaseSecurityLabel         = SELinuxReleaseSecurityLabel,
 
-    SELinuxGetSecurityProcessLabel,
-    SELinuxSetSecurityProcessLabel,
+    .domainGetSecurityProcessLabel      = SELinuxGetSecurityProcessLabel,
+    .domainSetSecurityProcessLabel      = SELinuxSetSecurityProcessLabel,
 
-    SELinuxSetSecurityAllLabel,
-    SELinuxRestoreSecurityAllLabel,
+    .domainSetSecurityAllLabel          = SELinuxSetSecurityAllLabel,
+    .domainRestoreSecurityAllLabel      = SELinuxRestoreSecurityAllLabel,
 
-    SELinuxSetSecurityHostdevLabel,
-    SELinuxRestoreSecurityHostdevLabel,
+    .domainSetSecurityHostdevLabel      = SELinuxSetSecurityHostdevLabel,
+    .domainRestoreSecurityHostdevLabel  = SELinuxRestoreSecurityHostdevLabel,
 
-    SELinuxSetSavedStateLabel,
-    SELinuxRestoreSavedStateLabel,
+    .domainSetSavedStateLabel           = SELinuxSetSavedStateLabel,
+    .domainRestoreSavedStateLabel       = SELinuxRestoreSavedStateLabel,
 
-    SELinuxSetImageFDLabel,
+    .domainSetSecurityImageFDLabel      = SELinuxSetImageFDLabel,
+
+    .domainGetSecurityMountOptions      = SELinuxGetSecurityMountOptions,
 };

@@ -58,10 +58,9 @@
 
 #ifdef __linux__
 # define CPUINFO_PATH "/proc/cpuinfo"
-# define CPU_SYS_PATH "/sys/devices/system/cpu"
+# define SYSFS_SYSTEM_PATH "/sys/devices/system"
 # define PROCSTAT_PATH "/proc/stat"
 # define MEMINFO_PATH "/proc/meminfo"
-# define NODE_SYS_PATH "/sys/devices/system/node"
 
 # define LINUX_NB_CPU_STATS 4
 # define LINUX_NB_MEMORY_STATS_ALL 4
@@ -69,7 +68,7 @@
 
 /* NB, this is not static as we need to call it from the testsuite */
 int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
-                             const char *sysfs_cpudir,
+                             const char *sysfs_dir,
                              virNodeInfoPtr nodeinfo);
 
 static int linuxNodeGetCPUStats(FILE *procstat,
@@ -81,14 +80,14 @@ static int linuxNodeGetMemoryStats(FILE *meminfo,
                                    virNodeMemoryStatsPtr params,
                                    int *nparams);
 
-static char sysfs_path[1024];
 /* Return the positive decimal contents of the given
- * (*sysfs_path)/cpu%u/FILE, or -1 on error.  If MISSING_OK and the
+ * DIR/cpu%u/FILE, or -1 on error.  If MISSING_OK and the
  * file could not be found, return 1 instead of an error; this is
  * because some machines cannot hot-unplug cpu0, or because
  * hot-unplugging is disabled.  */
 static int
-get_cpu_value(unsigned int cpu, const char *file, bool missing_ok)
+virNodeGetCpuValue(const char *dir, unsigned int cpu, const char *file,
+                   bool missing_ok)
 {
     char *path;
     FILE *pathfp;
@@ -96,7 +95,7 @@ get_cpu_value(unsigned int cpu, const char *file, bool missing_ok)
     char value_str[INT_BUFSIZE_BOUND(value)];
     char *tmp;
 
-    if (virAsprintf(&path, "%s/cpu%u/%s", sysfs_path, cpu, file) < 0) {
+    if (virAsprintf(&path, "%s/cpu%u/%s", dir, cpu, file) < 0) {
         virReportOOMError();
         return -1;
     }
@@ -128,15 +127,8 @@ cleanup:
     return value;
 }
 
-/* Check if CPU is online via sysfs_path/cpu%u/online.  Return 1 if online,
-   0 if offline, and -1 on error.  */
-static int
-cpu_online(unsigned int cpu)
-{
-    return get_cpu_value(cpu, "online", true);
-}
-
-static unsigned long count_thread_siblings(unsigned int cpu)
+static unsigned long
+virNodeCountThreadSiblings(const char *dir, unsigned int cpu)
 {
     unsigned long ret = 0;
     char *path;
@@ -145,7 +137,7 @@ static unsigned long count_thread_siblings(unsigned int cpu)
     int i;
 
     if (virAsprintf(&path, "%s/cpu%u/topology/thread_siblings",
-                    sysfs_path, cpu) < 0) {
+                    dir, cpu) < 0) {
         virReportOOMError();
         return 0;
     }
@@ -180,9 +172,11 @@ cleanup:
     return ret;
 }
 
-static int parse_socket(unsigned int cpu)
+static int
+virNodeParseSocket(const char *dir, unsigned int cpu)
 {
-    int ret = get_cpu_value(cpu, "topology/physical_package_id", false);
+    int ret = virNodeGetCpuValue(dir, cpu, "topology/physical_package_id",
+                                 false);
 # if defined(__powerpc__) || \
     defined(__powerpc64__) || \
     defined(__s390__) || \
@@ -194,13 +188,43 @@ static int parse_socket(unsigned int cpu)
     return ret;
 }
 
-static int parse_core(unsigned int cpu)
+static int
+virNodeParseNode(const char *sysfs_dir)
 {
-    return get_cpu_value(cpu, "topology/core_id", false);
+    char *file = NULL;
+    char *possible = NULL;
+    char *tmp;
+    int ret = -1;
+
+    if (virAsprintf(&file, "%s/node/possible", sysfs_dir) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    /* Assume that a missing node/possible file implies no NUMA
+     * support, and hence all cpus belong to the same node.  */
+    if (!virFileExists(file)) {
+        ret = 1;
+        goto cleanup;
+    }
+    if (virFileReadAll(file, 1024, &possible) < 0)
+        goto cleanup;
+    if (virStrToLong_i(possible, &tmp, 10, &ret) < 0 ||
+        (*tmp == '-' && virStrToLong_i(tmp+1, &tmp, 10, &ret) < 0) ||
+        *tmp != '\n') {
+        nodeReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("failed to parse possible nodes '%s'"), possible);
+        goto cleanup;
+    }
+    ret++;
+
+cleanup:
+    VIR_FREE(file);
+    VIR_FREE(possible);
+    return ret;
 }
 
 int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
-                             const char *sysfs_cpudir,
+                             const char *sysfs_dir,
                              virNodeInfoPtr nodeinfo)
 {
     char line[1024];
@@ -211,25 +235,16 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
     cpu_set_t core_mask;
     cpu_set_t socket_mask;
     int online;
+    int ret = -1;
+    char *sysfs_cpudir = NULL;
+    unsigned int cpu_cores = 0;
 
     nodeinfo->cpus = 0;
     nodeinfo->mhz = 0;
     nodeinfo->cores = 0;
 
-    nodeinfo->nodes = 1;
-# if HAVE_NUMACTL
-    if (numa_available() >= 0)
-        nodeinfo->nodes = numa_max_node() + 1;
-# endif
-
-    if (!virStrcpyStatic(sysfs_path, sysfs_cpudir)) {
-        virReportSystemError(errno, _("cannot copy %s"), sysfs_cpudir);
-        return -1;
-    }
-    /* NB: It is impossible to fill our nodes, since cpuinfo
-     * has no knowledge of NUMA nodes */
-
-    /* NOTE: hyperthreads are ignored here; they are parsed out of /sys */
+    /* Start with parsing /proc/cpuinfo; although it tends to have
+     * fewer details.  Hyperthreads are ignored at this stage.  */
     while (fgets(line, sizeof(line), cpuinfo) != NULL) {
 # if defined(__x86_64__) || \
     defined(__amd64__)  || \
@@ -238,33 +253,58 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
         if (STRPREFIX(buf, "cpu MHz")) {
             char *p;
             unsigned int ui;
+
             buf += 9;
             while (*buf && c_isspace(*buf))
                 buf++;
+
             if (*buf != ':' || !buf[1]) {
                 nodeReportError(VIR_ERR_INTERNAL_ERROR,
-                                "%s", _("parsing cpuinfo cpu MHz"));
-                return -1;
+                                "%s", _("parsing cpu MHz from cpuinfo"));
+                goto cleanup;
             }
+
             if (virStrToLong_ui(buf+1, &p, 10, &ui) == 0
                 /* Accept trailing fractional part.  */
                 && (*p == '\0' || *p == '.' || c_isspace(*p)))
                 nodeinfo->mhz = ui;
         }
+
+        if (STRPREFIX(buf, "cpu cores")) {
+            char *p;
+            unsigned int ui;
+
+            buf += 9;
+            while (*buf && c_isspace(*buf))
+                buf++;
+
+            if (*buf != ':' || !buf[1]) {
+                nodeReportError(VIR_ERR_INTERNAL_ERROR,
+                                "%s", _("parsing cpu cores from cpuinfo"));
+                return -1;
+            }
+
+            if (virStrToLong_ui(buf+1, &p, 10, &ui) == 0
+                && (*p == '\0' || c_isspace(*p)))
+                cpu_cores = ui;
+         }
 # elif defined(__powerpc__) || \
       defined(__powerpc64__)
         char *buf = line;
         if (STRPREFIX(buf, "clock")) {
             char *p;
             unsigned int ui;
+
             buf += 5;
             while (*buf && c_isspace(*buf))
                 buf++;
+
             if (*buf != ':' || !buf[1]) {
                 nodeReportError(VIR_ERR_INTERNAL_ERROR,
-                                "%s", _("parsing cpuinfo cpu MHz"));
-                return -1;
+                                "%s", _("parsing cpu MHz from cpuinfo"));
+                goto cleanup;
             }
+
             if (virStrToLong_ui(buf+1, &p, 10, &ui) == 0
                 /* Accept trailing fractional part.  */
                 && (*p == '\0' || *p == '.' || c_isspace(*p)))
@@ -280,13 +320,17 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
 # endif
     }
 
-    /* OK, we've parsed clock speed out of /proc/cpuinfo. Get the core, socket
-     * thread and topology information from /sys
+    /* OK, we've parsed clock speed out of /proc/cpuinfo. Get the
+     * core, node, socket, thread and topology information from /sys
      */
+    if (virAsprintf(&sysfs_cpudir, "%s/cpu", sysfs_dir) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
     cpudir = opendir(sysfs_cpudir);
     if (cpudir == NULL) {
         virReportSystemError(errno, _("cannot opendir %s"), sysfs_cpudir);
-        return -1;
+        goto cleanup;
     }
 
     CPU_ZERO(&core_mask);
@@ -296,62 +340,78 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
         if (sscanf(cpudirent->d_name, "cpu%u", &cpu) != 1)
             continue;
 
-        online = cpu_online(cpu);
+        online = virNodeGetCpuValue(sysfs_cpudir, cpu, "online", true);
         if (online < 0) {
             closedir(cpudir);
-            return -1;
+            goto cleanup;
         }
         if (!online)
             continue;
         nodeinfo->cpus++;
 
         /* Parse core */
-        core = parse_core(cpu);
+        core = virNodeGetCpuValue(sysfs_cpudir, cpu, "topology/core_id", false);
         if (!CPU_ISSET(core, &core_mask)) {
             CPU_SET(core, &core_mask);
             nodeinfo->cores++;
         }
 
         /* Parse socket */
-        sock = parse_socket(cpu);
+        sock = virNodeParseSocket(sysfs_cpudir, cpu);
         if (!CPU_ISSET(sock, &socket_mask)) {
             CPU_SET(sock, &socket_mask);
             nodeinfo->sockets++;
         }
 
-        cur_threads = count_thread_siblings(cpu);
+        cur_threads = virNodeCountThreadSiblings(sysfs_cpudir, cpu);
         if (cur_threads == 0) {
             closedir(cpudir);
-            return -1;
+            goto cleanup;
         }
         if (cur_threads > nodeinfo->threads)
             nodeinfo->threads = cur_threads;
     }
     if (errno) {
         virReportSystemError(errno,
-                             _("problem reading %s"), sysfs_path);
+                             _("problem reading %s"), sysfs_cpudir);
         closedir(cpudir);
-        return -1;
+        goto cleanup;
+    }
+    if (closedir(cpudir) < 0) {
+        virReportSystemError(errno,
+                             _("problem closing %s"), sysfs_cpudir);
+        goto cleanup;
     }
 
-    closedir(cpudir);
+    if ((nodeinfo->nodes = virNodeParseNode(sysfs_dir)) <= 0)
+        goto cleanup;
 
-    /* there should always be at least one cpu, socket and one thread */
+    /* There should always be at least one cpu, socket, node, and thread. */
     if (nodeinfo->cpus == 0) {
         nodeReportError(VIR_ERR_INTERNAL_ERROR,
                         "%s", _("no CPUs found"));
-        return -1;
+        goto cleanup;
     }
     if (nodeinfo->sockets == 0) {
         nodeReportError(VIR_ERR_INTERNAL_ERROR,
                         "%s", _("no sockets found"));
-        return -1;
+        goto cleanup;
     }
     if (nodeinfo->threads == 0) {
         nodeReportError(VIR_ERR_INTERNAL_ERROR,
                         "%s", _("no threads found"));
-        return -1;
+        goto cleanup;
     }
+
+    /* Platform like AMD Magny Cours has two NUMA nodes each package, and
+     * the two nodes share the same core ID set, it results in the cores
+     * number calculated from sysfs is not the actual cores number. Use
+     * "cpu cores" in /proc/cpuinfo as the cores number instead in this case.
+     * More details about the problem:
+     * https://www.redhat.com/archives/libvir-list/2012-May/msg00607.html
+     */
+    if (cpu_cores && (cpu_cores > nodeinfo->cores))
+        nodeinfo->cores = cpu_cores;
 
     /* nodeinfo->sockets is supposed to be a number of sockets per NUMA node,
      * however if NUMA nodes are not composed of whole sockets, we just lie
@@ -363,7 +423,11 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
     else
         nodeinfo->nodes = 1;
 
-    return 0;
+    ret = 0;
+
+cleanup:
+    VIR_FREE(sysfs_cpudir);
+    return ret;
 }
 
 # define TICK_TO_NSEC (1000ull * 1000ull * 1000ull / sysconf(_SC_CLK_TCK))
@@ -387,8 +451,9 @@ int linuxNodeGetCPUStats(FILE *procstat,
     }
 
     if ((*nparams) != LINUX_NB_CPU_STATS) {
-        nodeReportError(VIR_ERR_INVALID_ARG,
-                        "%s", _("Invalid parameter count"));
+        virReportInvalidArg(*nparams,
+                            _("nparams in %s must be equal to %d"),
+                            __FUNCTION__, LINUX_NB_CPU_STATS);
         goto cleanup;
     }
 
@@ -462,7 +527,9 @@ int linuxNodeGetCPUStats(FILE *procstat,
         }
     }
 
-    nodeReportError(VIR_ERR_INVALID_ARG, "%s", _("Invalid cpu number"));
+    virReportInvalidArg(cpuNum,
+                        _("Invalid cpuNum in %s"),
+                        __FUNCTION__);
 
 cleanup:
     return ret;
@@ -505,8 +572,9 @@ int linuxNodeGetMemoryStats(FILE *meminfo,
     }
 
     if ((*nparams) != nr_param) {
-        nodeReportError(VIR_ERR_INVALID_ARG,
-                        "%s", _("Invalid stats count"));
+        virReportInvalidArg(nparams,
+                            _("nparams in %s must be %d"),
+                            __FUNCTION__, nr_param);
         goto cleanup;
     }
 
@@ -627,7 +695,6 @@ int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo) {
 #ifdef __linux__
     {
     int ret = -1;
-    char *sysfs_cpuinfo = NULL;
     FILE *cpuinfo = fopen(CPUINFO_PATH, "r");
     if (!cpuinfo) {
         virReportSystemError(errno,
@@ -635,12 +702,7 @@ int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo) {
         return -1;
     }
 
-    if (virAsprintf(&sysfs_cpuinfo, CPU_SYS_PATH) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    ret = linuxNodeInfoCPUPopulate(cpuinfo, sysfs_cpuinfo, nodeinfo);
+    ret = linuxNodeInfoCPUPopulate(cpuinfo, SYSFS_SYSTEM_PATH, nodeinfo);
     if (ret < 0)
         goto cleanup;
 
@@ -649,7 +711,6 @@ int nodeGetInfo(virConnectPtr conn ATTRIBUTE_UNUSED, virNodeInfoPtr nodeinfo) {
 
 cleanup:
     VIR_FORCE_FCLOSE(cpuinfo);
-    VIR_FREE(sysfs_cpuinfo);
     return ret;
     }
 #else
@@ -722,14 +783,15 @@ int nodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
 
 # if HAVE_NUMACTL
             if (cellNum > numa_max_node()) {
-                nodeReportError(VIR_ERR_INVALID_ARG, "%s",
-                                _("Invalid cell number"));
+                virReportInvalidArg(cellNum,
+                                    _("cellNum in %s must be less than or equal to %d"),
+                                    __FUNCTION__, numa_max_node());
                 return -1;
             }
 # endif
 
-            if (virAsprintf(&meminfo_path, "%s/node%d/meminfo",
-                            NODE_SYS_PATH, cellNum) < 0) {
+            if (virAsprintf(&meminfo_path, "%s/node/node%d/meminfo",
+                            SYSFS_SYSTEM_PATH, cellNum) < 0) {
                 virReportOOMError();
                 return -1;
             }
@@ -764,7 +826,7 @@ nodeGetCPUmap(virConnectPtr conn ATTRIBUTE_UNUSED,
     char *path;
     char *cpumap;
 
-    if (virAsprintf(&path, CPU_SYS_PATH "/%s", mapname) < 0) {
+    if (virAsprintf(&path, SYSFS_SYSTEM_PATH "/cpu/%s", mapname) < 0) {
         virReportOOMError();
         return NULL;
     }

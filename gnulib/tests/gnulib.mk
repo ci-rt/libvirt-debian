@@ -752,6 +752,14 @@ EXTRA_DIST += test-ioctl.c signature.h macros.h
 
 ## end   gnulib module ioctl-tests
 
+## begin gnulib module isatty-tests
+
+TESTS += test-isatty
+check_PROGRAMS += test-isatty
+EXTRA_DIST += test-isatty.c signature.h macros.h
+
+## end   gnulib module isatty-tests
+
 ## begin gnulib module langinfo-tests
 
 TESTS += test-langinfo

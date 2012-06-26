@@ -161,6 +161,12 @@ VIR_ENUM_IMPL(qemuCaps, QEMU_CAPS_LAST,
               "block-job-async",
               "scsi-cd",
               "ide-cd",
+              "no-user-config",
+
+              "hda-micro", /* 95 */
+              "dump-guest-memory",
+              "nec-usb-xhci",
+
     );
 
 struct qemu_feature_flags {
@@ -1082,6 +1088,8 @@ qemuCapsComputeCmdFlags(const char *help,
     }
     if (strstr(help, "-nodefconfig"))
         qemuCapsSet(flags, QEMU_CAPS_NODEFCONFIG);
+    if (strstr(help, "-no-user-config"))
+        qemuCapsSet(flags, QEMU_CAPS_NO_USER_CONFIG);
     /* The trailing ' ' is important to avoid a bogus match */
     if (strstr(help, "-rtc "))
         qemuCapsSet(flags, QEMU_CAPS_RTC);
@@ -1200,7 +1208,8 @@ qemuCapsComputeCmdFlags(const char *help,
      * forgot to include YAJL libraries when building their own
      * libvirt but is targetting a newer qemu, we are better off
      * telling them to recompile (the spec file includes the
-     * dependency, so distros won't hit this).  */
+     * dependency, so distros won't hit this).  This check is
+     * also in configure.ac (see $with_yajl).  */
     if (version >= 15000 ||
         (version >= 12000 && strstr(help, "libvirt"))) {
         if (check_yajl) {
@@ -1394,6 +1403,8 @@ qemuCapsParseDeviceStr(const char *str, virBitmapPtr flags)
     /* Which devices exist. */
     if (strstr(str, "name \"hda-duplex\""))
         qemuCapsSet(flags, QEMU_CAPS_HDA_DUPLEX);
+    if (strstr(str, "name \"hda-micro\""))
+        qemuCapsSet(flags, QEMU_CAPS_HDA_MICRO);
     if (strstr(str, "name \"ccid-card-emulated\""))
         qemuCapsSet(flags, QEMU_CAPS_CCID_EMULATED);
     if (strstr(str, "name \"ccid-card-passthru\""))
@@ -1411,6 +1422,8 @@ qemuCapsParseDeviceStr(const char *str, virBitmapPtr flags)
         qemuCapsSet(flags, QEMU_CAPS_VT82C686B_USB_UHCI);
     if (strstr(str, "name \"pci-ohci\""))
         qemuCapsSet(flags, QEMU_CAPS_PCI_OHCI);
+    if (strstr(str, "name \"nec-usb-xhci\""))
+        qemuCapsSet(flags, QEMU_CAPS_NEC_USB_XHCI);
     if (strstr(str, "name \"usb-redir\""))
         qemuCapsSet(flags, QEMU_CAPS_USB_REDIR);
     if (strstr(str, "name \"usb-hub\""))
@@ -1634,7 +1647,9 @@ qemuCapsProbeCommand(const char *qemu,
     virCommandPtr cmd = virCommandNew(qemu);
 
     if (qemuCaps) {
-        if (qemuCapsGet(qemuCaps, QEMU_CAPS_NODEFCONFIG))
+        if (qemuCapsGet(qemuCaps, QEMU_CAPS_NO_USER_CONFIG))
+            virCommandAddArg(cmd, "-no-user-config");
+        else if (qemuCapsGet(qemuCaps, QEMU_CAPS_NODEFCONFIG))
             virCommandAddArg(cmd, "-nodefconfig");
     }
 

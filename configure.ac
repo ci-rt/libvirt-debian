@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.12], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.9.13], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -80,7 +80,6 @@ dnl Checks for C compiler.
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_CPP
-AM_PROG_CC_STDC
 
 gl_EARLY
 gl_INIT
@@ -158,7 +157,7 @@ dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
   sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h \
-  net/if.h])
+  net/if.h execinfo.h])
 
 AC_MSG_CHECKING([for struct ifreq in net/if.h])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
@@ -555,12 +554,6 @@ AC_DEFINE_UNQUOTED([VBOX_XPCOMC_DIR], ["$vbox_xpcomc_dir"],
                    [Location of directory containing VirtualBox XPCOMC library])
 
 if test "x$with_vbox" = "xyes"; then
-    case "$host" in
-      *-*-mingw* | *-*-msvc*) MSCOM_LIBS="-lole32 -loleaut32" ;;
-      *) MSCOM_LIBS= ;;
-    esac
-    AC_SUBST([MSCOM_LIBS])
-
     AC_DEFINE_UNQUOTED([WITH_VBOX], 1, [whether VirtualBox driver is enabled])
 fi
 AM_CONDITIONAL([WITH_VBOX], [test "$with_vbox" = "yes"])
@@ -998,6 +991,24 @@ AC_ARG_WITH([yajl],
   [],
   [with_yajl=check])
 
+if test "$with_qemu:$with_yajl" = yes:check; then
+  dnl Some versions of qemu require the use of yajl; try to detect them
+  dnl here, although we do not require qemu to exist in order to compile.
+  dnl This check mirrors src/qemu/qemu_capabilities.c
+  AC_PATH_PROGS([QEMU], [qemu-kvm qemu kvm qemu-system-x86_64],
+                [], [$PATH:/usr/bin:/usr/libexec])
+  if test -x "$QEMU"; then
+    if `$QEMU -help | grep libvirt` >/dev/null; then
+      with_yajl=yes
+    else
+      [qemu_version_sed='s/.*ersion \([0-9.,]*\).*/\1/']
+      qemu_version=`$QEMU -version | sed "$qemu_version_sed"`
+      AS_VERSION_COMPARE([$qemu_version], [0.15],
+                         [], [with_yajl=yes], [with_yajl=yes])
+    fi
+  fi
+fi
+
 YAJL_CFLAGS=
 YAJL_LIBS=
 with_yajl2=no
@@ -1128,6 +1139,7 @@ if test "$with_dbus" = "yes" ; then
   LIBS="$save_LIBS"
   CFLAGS="$save_CFLAGS"
 fi
+AM_CONDITIONAL([HAVE_DBUS], [test "$have_dbus" = "yes"])
 
 
 dnl PolicyKit library
@@ -1360,6 +1372,7 @@ else
   fail=0
   AC_CHECK_FUNC([selinux_virtual_domain_context_path], [], [fail=1])
   AC_CHECK_FUNC([selinux_virtual_image_context_path], [], [fail=1])
+  AC_CHECK_FUNCS([selinux_lxc_contexts_path])
   CFLAGS="$old_cflags"
   LIBS="$old_libs"
 
@@ -1810,6 +1823,8 @@ AC_ARG_WITH([storage-mpath],
   AC_HELP_STRING([--with-storage-mpath], [with mpath backend for the storage driver @<:@default=check@:>@]),[],[with_storage_mpath=check])
 AC_ARG_WITH([storage-disk],
   AC_HELP_STRING([--with-storage-disk], [with GPartd Disk backend for the storage driver @<:@default=check@:>@]),[],[with_storage_disk=check])
+AC_ARG_WITH([storage-rbd],
+  AC_HELP_STRING([--with-storage-rbd], [with RADOS Block Device backend for the storage driver @<:@default=check@:>@]),[],[with_storage_rbd=check])
 
 if test "$with_libvirtd" = "no"; then
   with_storage_dir=no
@@ -1819,6 +1834,7 @@ if test "$with_libvirtd" = "no"; then
   with_storage_scsi=no
   with_storage_mpath=no
   with_storage_disk=no
+  with_storage_rbd=no
 fi
 if test "$with_storage_dir" = "yes" ; then
   AC_DEFINE_UNQUOTED([WITH_STORAGE_DIR], 1, [whether directory backend for storage driver is enabled])
@@ -1977,6 +1993,22 @@ if test "$with_storage_mpath" = "check"; then
 fi
 AM_CONDITIONAL([WITH_STORAGE_MPATH], [test "$with_storage_mpath" = "yes"])
 
+LIBRBD_LIBS=
+if test "$with_storage_rbd" = "yes" || test "$with_storage_rbd" = "check"; then
+    AC_CHECK_HEADER([rbd/librbd.h], [LIBRBD_FOUND=yes; break;])
+
+    if test "$LIBRBD_FOUND" = "yes"; then
+        with_storage_rbd=yes
+        LIBRBD_LIBS="-lrbd -lrados -lcrypto"
+        AC_DEFINE_UNQUOTED([WITH_STORAGE_RBD], [1],
+         [whether RBD backend for storage driver is enabled])
+    else
+        with_storage_rbd=no
+    fi
+fi
+AM_CONDITIONAL([WITH_STORAGE_RBD], [test "$with_storage_rbd" = "yes"])
+AC_SUBST([LIBRBD_LIBS])
+
 LIBPARTED_CFLAGS=
 LIBPARTED_LIBS=
 if test "$with_storage_disk" = "yes" ||
@@ -2061,6 +2093,19 @@ if test "$with_storage_mpath" = "yes" ||
 fi
 AC_SUBST([DEVMAPPER_CFLAGS])
 AC_SUBST([DEVMAPPER_LIBS])
+
+with_storage=no
+for backend in dir fs lvm iscsi scsi mpath rbd disk; do
+    if eval test \$with_storage_$backend = yes; then
+        with_storage=yes
+        break
+    fi
+done
+if test $with_storage = yes; then
+    AC_DEFINE([WITH_STORAGE], [1],
+      [Define to 1 if at least one storage backend is in use])
+fi
+AM_CONDITIONAL([WITH_STORAGE], [test "$with_storage" = "yes"])
 
 dnl
 dnl check for libcurl (ESX/XenAPI)
@@ -2229,6 +2274,9 @@ AM_CONDITIONAL([WITH_PYTHON], [test "$with_python" = "yes"])
 AC_SUBST([PYTHON_VERSION])
 AC_SUBST([PYTHON_INCLUDES])
 
+dnl Allow perl overrides
+AC_PATH_PROG([PERL], [perl])
+
 AC_ARG_ENABLE([with-test-suite],
               AC_HELP_STRING([--with-test-suite], [build test suite by default @<:@default=check@:>@]),
               [case "${withval}" in
@@ -2344,16 +2392,23 @@ MINGW_EXTRA_LDFLAGS=
 WIN32_EXTRA_CFLAGS=
 LIBVIRT_SYMBOL_FILE=libvirt.syms
 LIBVIRT_QEMU_SYMBOL_FILE='$(srcdir)/libvirt_qemu.syms'
+MSCOM_LIBS=
 case "$host" in
   *-*-cygwin*)
     CYGWIN_EXTRA_LDFLAGS="-no-undefined"
     CYGWIN_EXTRA_LIBADD="${INTLLIBS}"
+    MSCOM_LIBS="-lole32 -loleaut32"
+
     if test "x$PYTHON_VERSION" != "x"; then
       CYGWIN_EXTRA_PYTHON_LIBADD="-L/usr/lib/python${PYTHON_VERSION}/config -lpython${PYTHON_VERSION}"
     fi
     ;;
   *-*-mingw*)
     MINGW_EXTRA_LDFLAGS="-no-undefined"
+    MSCOM_LIBS="-lole32 -loleaut32"
+    ;;
+  *-*-msvc*)
+    MSCOM_LIBS="-lole32 -loleaut32"
     ;;
 esac
 case "$host" in
@@ -2386,6 +2441,7 @@ AC_SUBST([WIN32_EXTRA_CFLAGS])
 AC_SUBST([LIBVIRT_SYMBOL_FILE])
 AC_SUBST([LIBVIRT_QEMU_SYMBOL_FILE])
 AC_SUBST([VERSION_SCRIPT_FLAGS])
+AC_SUBST([MSCOM_LIBS])
 
 
 dnl Look for windres to build a Windows icon resource.
@@ -2399,16 +2455,30 @@ AM_CONDITIONAL([WITH_WIN_ICON], [test "$WINDRES" != ""])
 
 dnl Driver-Modules library
 AC_ARG_WITH([driver-modules],
-  AC_HELP_STRING([--with-driver-modules], [build drivers as loadable modules @<:@default=no@:>@]),
+  AC_HELP_STRING([--with-driver-modules],
+  [build drivers as loadable modules @<:@default=check@:>@]),
   [],
-  [with_driver_modules=no])
+  [with_driver_modules=check])
+
+if test "$with_libvirtd" = "no" ; then
+  with_driver_modules=no
+fi
 
 DRIVER_MODULE_CFLAGS=
 DRIVER_MODULE_LIBS=
-if test "$with_driver_modules" = "yes"; then
+if test "$with_driver_modules" = "yes" || test "$with_driver_modules" = "check"; then
   if test "$dlfcn_found" != "yes" || test "$dlopen_found" != "yes"; then
-    AC_MSG_ERROR([You must have dlfcn.h / dlopen() support to build driver modules])
+    if test "$with_driver_modules" = "yes" ; then
+      AC_MSG_ERROR([You must have dlfcn.h / dlopen() support to build driver modules])
+    else
+      with_driver_modules=no
+    fi
+  else
+    with_driver_modules=yes
   fi
+fi
+
+if test "$with_driver_modules" = "yes" ; then
   DRIVER_MODULE_CFLAGS="-export-dynamic"
   case $ac_cv_search_dlopen in
     no*) DRIVER_MODULE_LIBS= ;;
@@ -2700,7 +2770,7 @@ AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
 	  docs/schemas/Makefile \
 	  gnulib/lib/Makefile \
 	  gnulib/tests/Makefile \
-          libvirt.pc libvirt.spec mingw32-libvirt.spec \
+          libvirt.pc libvirt.spec mingw-libvirt.spec \
           po/Makefile.in \
 	  include/libvirt/Makefile include/libvirt/libvirt.h \
 	  python/Makefile python/tests/Makefile \
@@ -2753,6 +2823,7 @@ AC_MSG_NOTICE([   iSCSI: $with_storage_iscsi])
 AC_MSG_NOTICE([    SCSI: $with_storage_scsi])
 AC_MSG_NOTICE([   mpath: $with_storage_mpath])
 AC_MSG_NOTICE([    Disk: $with_storage_disk])
+AC_MSG_NOTICE([     RBD: $with_storage_rbd])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Security Drivers])
 AC_MSG_NOTICE([])

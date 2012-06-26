@@ -64,6 +64,7 @@
 #include "virnetdevtap.h"
 #include "virnodesuspend.h"
 #include "viruri.h"
+#include "virdomainlist.h"
 
 #define VIR_FROM_THIS VIR_FROM_UML
 
@@ -392,7 +393,6 @@ cleanup:
 static int
 umlStartup(int privileged)
 {
-    uid_t uid = geteuid();
     char *base = NULL;
     char *userdir = NULL;
 
@@ -418,7 +418,7 @@ umlStartup(int privileged)
     if (!uml_driver->domainEventState)
         goto error;
 
-    userdir = virGetUserDirectory(uid);
+    userdir = virGetUserDirectory();
     if (!userdir)
         goto error;
 
@@ -434,12 +434,12 @@ umlStartup(int privileged)
                         "%s/run/libvirt/uml-guest", LOCALSTATEDIR) == -1)
             goto out_of_memory;
     } else {
+        base = virGetUserConfigDirectory();
+        if (!base)
+            goto error;
 
         if (virAsprintf(&uml_driver->logDir,
-                        "%s/.libvirt/uml/log", userdir) == -1)
-            goto out_of_memory;
-
-        if (virAsprintf(&base, "%s/.libvirt", userdir) == -1)
+                        "%s/uml/log", base) == -1)
             goto out_of_memory;
 
         if (virAsprintf(&uml_driver->monitorDir,
@@ -447,7 +447,7 @@ umlStartup(int privileged)
             goto out_of_memory;
     }
 
-    /* Configuration paths are either ~/.libvirt/uml/... (session) or
+    /* Configuration paths are either $XDG_CONFIG_HOME/libvirt/uml/... (session) or
      * /etc/libvirt/uml/... (system).
      */
     if (virAsprintf(&uml_driver->configDir, "%s/uml", base) == -1)
@@ -1188,8 +1188,6 @@ static int umlClose(virConnectPtr conn) {
     struct uml_driver *driver = conn->privateData;
 
     umlDriverLock(driver);
-    virDomainEventStateDeregisterConn(conn,
-                                      driver->domainEventState);
     umlProcessAutoDestroyRun(driver, conn);
     umlDriverUnlock(driver);
 
@@ -2522,6 +2520,22 @@ static void umlDomainEventQueue(struct uml_driver *driver,
     virDomainEventStateQueue(driver->domainEventState, event);
 }
 
+static int umlListAllDomains(virConnectPtr conn,
+                             virDomainPtr **domains,
+                             unsigned int flags)
+{
+    struct uml_driver *driver = conn->privateData;
+    int ret = -1;
+
+    virCheckFlags(VIR_CONNECT_LIST_FILTERS_ALL, -1);
+
+    umlDriverLock(driver);
+    ret = virDomainList(conn, driver->domains.objs, domains, flags);
+    umlDriverUnlock(driver);
+
+    return ret;
+}
+
 
 
 static virDriver umlDriver = {
@@ -2536,6 +2550,7 @@ static virDriver umlDriver = {
     .getCapabilities = umlGetCapabilities, /* 0.5.0 */
     .listDomains = umlListDomains, /* 0.5.0 */
     .numOfDomains = umlNumDomains, /* 0.5.0 */
+    .listAllDomains = umlListAllDomains, /* 0.9.13 */
     .domainCreateXML = umlDomainCreate, /* 0.5.0 */
     .domainLookupByID = umlDomainLookupByID, /* 0.5.0 */
     .domainLookupByUUID = umlDomainLookupByUUID, /* 0.5.0 */

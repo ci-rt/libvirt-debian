@@ -38,9 +38,11 @@ struct _virSecurityManager {
     bool allowDiskFormatProbing;
     bool defaultConfined;
     bool requireConfined;
+    const char *virtDriver;
 };
 
 static virSecurityManagerPtr virSecurityManagerNewDriver(virSecurityDriverPtr drv,
+                                                         const char *virtDriver,
                                                          bool allowDiskFormatProbing,
                                                          bool defaultConfined,
                                                          bool requireConfined)
@@ -56,6 +58,7 @@ static virSecurityManagerPtr virSecurityManagerNewDriver(virSecurityDriverPtr dr
     mgr->allowDiskFormatProbing = allowDiskFormatProbing;
     mgr->defaultConfined = defaultConfined;
     mgr->requireConfined = requireConfined;
+    mgr->virtDriver = virtDriver;
 
     if (drv->open(mgr) < 0) {
         virSecurityManagerFree(mgr);
@@ -70,6 +73,7 @@ virSecurityManagerPtr virSecurityManagerNewStack(virSecurityManagerPtr primary,
 {
     virSecurityManagerPtr mgr =
         virSecurityManagerNewDriver(&virSecurityDriverStack,
+                                    virSecurityManagerGetDriver(primary),
                                     virSecurityManagerGetAllowDiskFormatProbing(primary),
                                     virSecurityManagerGetDefaultConfined(primary),
                                     virSecurityManagerGetRequireConfined(primary));
@@ -83,7 +87,8 @@ virSecurityManagerPtr virSecurityManagerNewStack(virSecurityManagerPtr primary,
     return mgr;
 }
 
-virSecurityManagerPtr virSecurityManagerNewDAC(uid_t user,
+virSecurityManagerPtr virSecurityManagerNewDAC(const char *virtDriver,
+                                               uid_t user,
                                                gid_t group,
                                                bool allowDiskFormatProbing,
                                                bool defaultConfined,
@@ -92,6 +97,7 @@ virSecurityManagerPtr virSecurityManagerNewDAC(uid_t user,
 {
     virSecurityManagerPtr mgr =
         virSecurityManagerNewDriver(&virSecurityDriverDAC,
+                                    virtDriver,
                                     allowDiskFormatProbing,
                                     defaultConfined,
                                     requireConfined);
@@ -107,11 +113,12 @@ virSecurityManagerPtr virSecurityManagerNewDAC(uid_t user,
 }
 
 virSecurityManagerPtr virSecurityManagerNew(const char *name,
+                                            const char *virtDriver,
                                             bool allowDiskFormatProbing,
                                             bool defaultConfined,
                                             bool requireConfined)
 {
-    virSecurityDriverPtr drv = virSecurityDriverLookup(name);
+    virSecurityDriverPtr drv = virSecurityDriverLookup(name, virtDriver);
     if (!drv)
         return NULL;
 
@@ -136,11 +143,11 @@ virSecurityManagerPtr virSecurityManagerNew(const char *name,
     }
 
     return virSecurityManagerNewDriver(drv,
+                                       virtDriver,
                                        allowDiskFormatProbing,
                                        defaultConfined,
                                        requireConfined);
 }
-
 
 void *virSecurityManagerGetPrivateData(virSecurityManagerPtr mgr)
 {
@@ -159,6 +166,12 @@ void virSecurityManagerFree(virSecurityManagerPtr mgr)
         mgr->drv->close(mgr);
 
     VIR_FREE(mgr);
+}
+
+const char *
+virSecurityManagerGetDriver(virSecurityManagerPtr mgr)
+{
+    return mgr->virtDriver;
 }
 
 const char *
@@ -408,4 +421,17 @@ int virSecurityManagerSetImageFDLabel(virSecurityManagerPtr mgr,
 
     virSecurityReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
+}
+
+char *virSecurityManagerGetMountOptions(virSecurityManagerPtr mgr,
+                                        virDomainDefPtr vm)
+{
+    if (mgr->drv->domainGetSecurityMountOptions)
+        return mgr->drv->domainGetSecurityMountOptions(mgr, vm);
+
+    /*
+      I don't think this is an error, these should be optional
+      virSecurityReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    */
+    return NULL;
 }
