@@ -1,3 +1,12 @@
+libvirt (0.9.13~rc1-2) experimental; urgency=low
+
+  * [628a05a] Add empty systemd dir on kFreeBSD to make dh_install pass
+  * [e5b4fbf] Remove -d from libvirtd_opts
+    so we can use the same options in the systemd unit file without having
+    to fork there too.
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 28 Jun 2012 11:30:29 +0200
+
 libvirt (0.9.13~rc1-1) experimental; urgency=low
 
   * [9deae39] New upstream version 0.9.13~rc1
