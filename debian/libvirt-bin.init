@@ -98,7 +98,7 @@ case "$1" in
         	fi
 		rm -f /var/run/libvirtd.pid
 		start-stop-daemon --start --quiet --pidfile $PIDFILE \
-			--exec $DAEMON -- $libvirtd_opts
+			--exec $DAEMON -- -d $libvirtd_opts
 		if running; then
 			log_end_msg 0
 		else
