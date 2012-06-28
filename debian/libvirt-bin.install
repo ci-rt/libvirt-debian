@@ -8,4 +8,4 @@ usr/lib/libvirt/connection-driver
 usr/share/augeas/*
 usr/share/libvirt/*
 usr/share/man/man8/*
-lib/systemd/system/*
+lib/systemd/system

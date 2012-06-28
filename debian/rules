@@ -112,8 +112,11 @@ binary-install/libvirt-bin::
 	done
 
 build/libvirt-bin::
-	# Add empty dir so dh_install doesn't fail on kFreebsd until we have Polkit support
-	mkdir -p debian/tmp/usr/share/polkit-1
+	# Add empty dirs so dh_install doesn't fail on kFreebsd until we have
+	# Polkit/Systemd support
+	mkdir -p debian/tmp/usr/share/polkit-1 \
+	         debian/tmp/lib/systemd/system
+
 
 binary-install/libvirt-doc::
 	find $(EXAMPLES_DIR) -name "*.o" -type f -delete -o -name .libs -type d -exec rm -rf {} \;
