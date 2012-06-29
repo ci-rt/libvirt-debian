@@ -1,3 +1,10 @@
+libvirt (0.9.13~rc2-1) experimental; urgency=low
+
+  * [505f873] New upstream version 0.9.13~rc2
+  * [bd1c1e0] Rebase patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 29 Jun 2012 11:23:54 +0200
+
 libvirt (0.9.13~rc1-2) experimental; urgency=low
 
   * [628a05a] Add empty systemd dir on kFreeBSD to make dh_install pass
