@@ -560,6 +560,7 @@
     <reference name='VIR_STORAGE_VOL_WIPE_ALG_RANDOM' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_WIPE_ALG_RANDOM'/>
     <reference name='VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER'/>
     <reference name='VIR_STORAGE_VOL_WIPE_ALG_ZERO' href='html/libvirt-libvirt.html#VIR_STORAGE_VOL_WIPE_ALG_ZERO'/>
+    <reference name='VIR_STORAGE_XML_INACTIVE' href='html/libvirt-libvirt.html#VIR_STORAGE_XML_INACTIVE'/>
     <reference name='VIR_STREAM_EVENT_ERROR' href='html/libvirt-libvirt.html#VIR_STREAM_EVENT_ERROR'/>
     <reference name='VIR_STREAM_EVENT_HANGUP' href='html/libvirt-libvirt.html#VIR_STREAM_EVENT_HANGUP'/>
     <reference name='VIR_STREAM_EVENT_READABLE' href='html/libvirt-libvirt.html#VIR_STREAM_EVENT_READABLE'/>
@@ -1123,6 +1124,7 @@
     <reference name='virStorageVolWipe' href='html/libvirt-libvirt.html#virStorageVolWipe'/>
     <reference name='virStorageVolWipeAlgorithm' href='html/libvirt-libvirt.html#virStorageVolWipeAlgorithm'/>
     <reference name='virStorageVolWipePattern' href='html/libvirt-libvirt.html#virStorageVolWipePattern'/>
+    <reference name='virStorageXMLFlags' href='html/libvirt-libvirt.html#virStorageXMLFlags'/>
     <reference name='virStream' href='html/libvirt-libvirt.html#virStream'/>
     <reference name='virStreamAbort' href='html/libvirt-libvirt.html#virStreamAbort'/>
     <reference name='virStreamEventAddCallback' href='html/libvirt-libvirt.html#virStreamEventAddCallback'/>
@@ -1713,6 +1715,7 @@
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_RANDOM'/>
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER'/>
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_ZERO'/>
+      <ref name='VIR_STORAGE_XML_INACTIVE'/>
       <ref name='VIR_STREAM_EVENT_ERROR'/>
       <ref name='VIR_STREAM_EVENT_HANGUP'/>
       <ref name='VIR_STREAM_EVENT_READABLE'/>
@@ -2280,6 +2283,7 @@
       <ref name='virStorageVolWipe'/>
       <ref name='virStorageVolWipeAlgorithm'/>
       <ref name='virStorageVolWipePattern'/>
+      <ref name='virStorageXMLFlags'/>
       <ref name='virStream'/>
       <ref name='virStreamAbort'/>
       <ref name='virStreamEventAddCallback'/>
@@ -3643,6 +3647,7 @@
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_RANDOM'/>
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER'/>
       <ref name='VIR_STORAGE_VOL_WIPE_ALG_ZERO'/>
+      <ref name='VIR_STORAGE_XML_INACTIVE'/>
       <ref name='VIR_STREAM_EVENT_ERROR'/>
       <ref name='VIR_STREAM_EVENT_HANGUP'/>
       <ref name='VIR_STREAM_EVENT_READABLE'/>
@@ -4181,6 +4186,7 @@
       <ref name='virStorageVolWipe'/>
       <ref name='virStorageVolWipeAlgorithm'/>
       <ref name='virStorageVolWipePattern'/>
+      <ref name='virStorageXMLFlags'/>
       <ref name='virStream'/>
       <ref name='virStreamAbort'/>
       <ref name='virStreamEventAddCallback'/>
@@ -15753,9 +15759,6 @@
         <word name='virDomainDefineXML'>
           <ref name='virDomainCreateXML'/>
         </word>
-        <word name='virDomainDestory'>
-          <ref name='virDomainDestroy'/>
-        </word>
         <word name='virDomainDestroy'>
           <ref name='virDomainDestroy'/>
           <ref name='virDomainDestroyFlags'/>
@@ -16106,7 +16109,6 @@
           <ref name='virDomainGetXMLDesc'/>
           <ref name='virDomainSaveImageGetXMLDesc'/>
           <ref name='virDomainSnapshotGetXMLDesc'/>
-          <ref name='virStoragePoolGetXMLDesc'/>
         </word>
         <word name='virError'>
           <ref name='virResetError'/>
@@ -16320,6 +16322,9 @@
         </word>
         <word name='virStorageVolWipeAlgorithm'>
           <ref name='virStorageVolWipePattern'/>
+        </word>
+        <word name='virStorageXMLFlags'>
+          <ref name='virStoragePoolGetXMLDesc'/>
         </word>
         <word name='virStreamAbort'>
           <ref name='virStreamFree'/>

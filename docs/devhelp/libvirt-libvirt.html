@@ -260,6 +260,7 @@ typedef <a href="libvirt-libvirt.html#virStorageVol">virStorageVol</a> * <a href
 typedef enum <a href="#virStorageVolResizeFlags">virStorageVolResizeFlags</a>;
 typedef enum <a href="#virStorageVolType">virStorageVolType</a>;
 typedef enum <a href="#virStorageVolWipeAlgorithm">virStorageVolWipeAlgorithm</a>;
+typedef enum <a href="#virStorageXMLFlags">virStorageXMLFlags</a>;
 typedef struct _virStream <a href="#virStream">virStream</a>;
 typedef enum <a href="#virStreamEventType">virStreamEventType</a>;
 typedef enum <a href="#virStreamFlags">virStreamFlags</a>;
@@ -2097,6 +2098,12 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageXMLFlags">Enum </a>virStorageXMLFlags</h3><pre class="programlisting">enum <a href="#virStorageXMLFlags">virStorageXMLFlags</a> {
+    <a name="VIR_STORAGE_XML_INACTIVE">VIR_STORAGE_XML_INACTIVE</a> = 1 /* dump inactive pool/volume information */
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStream">Structure </a>virStream</h3><pre class="programlisting">struct _virStream {
 The content of this structure is not made public by the API.
 } virStream;
@@ -3081,11 +3088,11 @@ stop the block copy first.</p>
 </pre><p>Destroy the domain object. The running instance is shutdown if not down
 already and all resources used by it are given back to the hypervisor. This
 does not free the associated <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> object.
-This function may require privileged access
+This function may require privileged access.
 
 virDomainDestroy first requests that a guest terminate
 (e.g. SIGTERM), then waits for it to comply. After a reasonable
-timeout, if the guest still exists, virDomainDestory will
+timeout, if the guest still exists, <a href="libvirt-libvirt.html#virDomainDestroy">virDomainDestroy</a> will
 forcefully terminate the guest (e.g. SIGKILL) if necessary (which
 may produce undesirable results, for example unflushed disk cache
 in the guest). To avoid this possibility, it's recommended to
@@ -5566,7 +5573,7 @@ such as free space / usage summary</p>
 </pre><p>Fetch an XML document describing all aspects of the
 storage pool. This is suitable for later feeding back
 into the <a href="libvirt-libvirt.html#virStoragePoolCreateXML">virStoragePoolCreateXML</a> method.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virDomainXMLFlags">virDomainXMLFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a XML document, or NULL on error</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>bitwise-OR of <a href="libvirt-libvirt.html#virStorageXMLFlags">virStorageXMLFlags</a></td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>a XML document, or NULL on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStoragePoolIsActive"/>virStoragePoolIsActive ()</h3><pre class="programlisting">int	virStoragePoolIsActive		(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool)<br/>
 </pre><p>Determine if the storage pool is currently running</p>

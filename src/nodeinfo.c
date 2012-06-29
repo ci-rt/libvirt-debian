@@ -315,6 +315,11 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
              * and parsed in next iteration, because it is not in expected
              * format and thus lead to error. */
         }
+# elif defined(__s390__) || \
+      defined(__s390x__)
+        /* s390x has no realistic value for CPU speed,
+         * assign a value of zero to signify this */
+        nodeinfo->mhz = 0;
 # else
 #  warning Parser for /proc/cpuinfo needs to be adapted for your architecture
 # endif
@@ -350,7 +355,13 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
         nodeinfo->cpus++;
 
         /* Parse core */
+# if defined(__s390__) || \
+    defined(__s390x__)
+    /* logical cpu is equivalent to a core on s390 */
+        core = cpu;
+# else
         core = virNodeGetCpuValue(sysfs_cpudir, cpu, "topology/core_id", false);
+# endif
         if (!CPU_ISSET(core, &core_mask)) {
             CPU_SET(core, &core_mask);
             nodeinfo->cores++;

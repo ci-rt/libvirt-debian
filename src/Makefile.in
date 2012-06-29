@@ -581,8 +581,8 @@ libvirt_conf_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(LDFLAGS) -o $@
 libvirt_cpu_la_LIBADD =
 am__objects_18 = libvirt_cpu_la-cpu.lo libvirt_cpu_la-cpu_generic.lo \
-	libvirt_cpu_la-cpu_x86.lo libvirt_cpu_la-cpu_map.lo \
-	libvirt_cpu_la-cpu_powerpc.lo
+	libvirt_cpu_la-cpu_x86.lo libvirt_cpu_la-cpu_s390.lo \
+	libvirt_cpu_la-cpu_map.lo libvirt_cpu_la-cpu_powerpc.lo
 am_libvirt_cpu_la_OBJECTS = $(am__objects_18)
 libvirt_cpu_la_OBJECTS = $(am_libvirt_cpu_la_OBJECTS)
 libvirt_cpu_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
@@ -3255,6 +3255,7 @@ CPU_SOURCES = \
 		cpu/cpu.h cpu/cpu.c				\
 		cpu/cpu_generic.h cpu/cpu_generic.c		\
 		cpu/cpu_x86.h cpu/cpu_x86.c cpu/cpu_x86_data.h	\
+		cpu/cpu_s390.h cpu/cpu_s390.c			\
 		cpu/cpu_map.h cpu/cpu_map.c cpu/cpu_powerpc.h	\
 		cpu/cpu_powerpc.c
 
@@ -4007,6 +4008,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_cpu_la-cpu_generic.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_cpu_la-cpu_map.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_cpu_la-cpu_powerpc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_cpu_la-cpu_s390.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_cpu_la-cpu_x86.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_esx_la-esx_device_monitor.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libvirt_driver_esx_la-esx_driver.Plo@am__quote@
@@ -4593,6 +4595,14 @@ libvirt_cpu_la-cpu_x86.lo: cpu/cpu_x86.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cpu/cpu_x86.c' object='libvirt_cpu_la-cpu_x86.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -c -o libvirt_cpu_la-cpu_x86.lo `test -f 'cpu/cpu_x86.c' || echo '$(srcdir)/'`cpu/cpu_x86.c
+
+libvirt_cpu_la-cpu_s390.lo: cpu/cpu_s390.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -MT libvirt_cpu_la-cpu_s390.lo -MD -MP -MF $(DEPDIR)/libvirt_cpu_la-cpu_s390.Tpo -c -o libvirt_cpu_la-cpu_s390.lo `test -f 'cpu/cpu_s390.c' || echo '$(srcdir)/'`cpu/cpu_s390.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libvirt_cpu_la-cpu_s390.Tpo $(DEPDIR)/libvirt_cpu_la-cpu_s390.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cpu/cpu_s390.c' object='libvirt_cpu_la-cpu_s390.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -c -o libvirt_cpu_la-cpu_s390.lo `test -f 'cpu/cpu_s390.c' || echo '$(srcdir)/'`cpu/cpu_s390.c
 
 libvirt_cpu_la-cpu_map.lo: cpu/cpu_map.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libvirt_cpu_la_CFLAGS) $(CFLAGS) -MT libvirt_cpu_la-cpu_map.lo -MD -MP -MF $(DEPDIR)/libvirt_cpu_la-cpu_map.Tpo -c -o libvirt_cpu_la-cpu_map.lo `test -f 'cpu/cpu_map.c' || echo '$(srcdir)/'`cpu/cpu_map.c

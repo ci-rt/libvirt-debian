@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2012-06-25" "libvirt-0.9.12" "Virtualization Support"
+.TH VIRSH 1 "2012-06-28" "libvirt-0.9.13" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -854,6 +854,11 @@ also \fBdomblklist\fR for listing these names).
 (blocks of 1024 bytes) if there is no suffix.  You must use a suffix of
 \&\*(L"B\*(R" to get bytes (note that for historical reasons, this differs from
 \&\fBvol-resize\fR which defaults to bytes without a suffix).
+.IP "\fBdomdisplay\fR \fIdomain-id\fR [\fI\-\-include\-password\fR]" 4
+.IX Item "domdisplay domain-id [--include-password]"
+Output a \s-1URI\s0 which can be used to connect to the graphical display of the
+domain via \s-1VNC\s0, \s-1SPICE\s0 or \s-1RDP\s0. If \fI\-\-include\-password\fR is specified, the
+\&\s-1SPICE\s0 channel password will be included in the \s-1URI\s0.
 .IP "\fBdominfo\fR \fIdomain-id\fR" 4
 .IX Item "dominfo domain-id"
 Returns basic information about the domain.
@@ -1980,9 +1985,11 @@ the pool is not changed, and can be later recovered with
 Destroy the resources used by a given \fIpool\fR object. This operation
 is non-recoverable.  The \fIpool\fR object will still exist after this
 command, ready for the creation of new storage volumes.
-.IP "\fBpool-dumpxml\fR \fIpool-or-uuid\fR" 4
-.IX Item "pool-dumpxml pool-or-uuid"
+.IP "\fBpool-dumpxml\fR [\fI\-\-inactive\fR] \fIpool-or-uuid\fR" 4
+.IX Item "pool-dumpxml [--inactive] pool-or-uuid"
 Returns the \s-1XML\s0 information about the \fIpool\fR object.
+\&\fI\-\-inactive\fR tells virsh to dump pool configuration that will be used
+on next start of the pool as opposed to the current pool configuration.
 .IP "\fBpool-edit\fR \fIpool-or-uuid\fR" 4
 .IX Item "pool-edit pool-or-uuid"
 Edit the \s-1XML\s0 configuration file for a storage pool.
