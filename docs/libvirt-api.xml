@@ -442,6 +442,7 @@
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_RANDOM' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER' type='enum'/>
      <exports symbol='VIR_STORAGE_VOL_WIPE_ALG_ZERO' type='enum'/>
+     <exports symbol='VIR_STORAGE_XML_INACTIVE' type='enum'/>
      <exports symbol='VIR_STREAM_EVENT_ERROR' type='enum'/>
      <exports symbol='VIR_STREAM_EVENT_HANGUP' type='enum'/>
      <exports symbol='VIR_STREAM_EVENT_READABLE' type='enum'/>
@@ -606,6 +607,7 @@
      <exports symbol='virStorageVolResizeFlags' type='typedef'/>
      <exports symbol='virStorageVolType' type='typedef'/>
      <exports symbol='virStorageVolWipeAlgorithm' type='typedef'/>
+     <exports symbol='virStorageXMLFlags' type='typedef'/>
      <exports symbol='virStream' type='typedef'/>
      <exports symbol='virStreamEventType' type='typedef'/>
      <exports symbol='virStreamFlags' type='typedef'/>
@@ -1969,6 +1971,7 @@ NAP-14.1-C (XVI-8)'/>
 Bruce Schneier in &quot;Applied
 Cryptography&quot; (1996)'/>
     <enum name='VIR_STORAGE_VOL_WIPE_ALG_ZERO' file='libvirt' value='0' type='virStorageVolWipeAlgorithm' info='1-pass, all zeroes'/>
+    <enum name='VIR_STORAGE_XML_INACTIVE' file='libvirt' value='1' type='virStorageXMLFlags' info='dump inactive pool/volume information'/>
     <enum name='VIR_STREAM_EVENT_ERROR' file='libvirt' value='4' type='virStreamEventType'/>
     <enum name='VIR_STREAM_EVENT_HANGUP' file='libvirt' value='8' type='virStreamEventType'/>
     <enum name='VIR_STREAM_EVENT_READABLE' file='libvirt' value='1' type='virStreamEventType'/>
@@ -2360,6 +2363,7 @@ total number of CPU sockets otherwise'/>
     <typedef name='virStorageVolResizeFlags' file='libvirt' type='enum'/>
     <typedef name='virStorageVolType' file='libvirt' type='enum'/>
     <typedef name='virStorageVolWipeAlgorithm' file='libvirt' type='enum'/>
+    <typedef name='virStorageXMLFlags' file='libvirt' type='enum'/>
     <struct name='virStream' file='libvirt' type='struct _virStream'/>
     <typedef name='virStreamEventType' file='libvirt' type='enum'/>
     <typedef name='virStreamFlags' file='libvirt' type='enum'/>
@@ -3494,11 +3498,11 @@ stop the block copy first.]]></info>
       <info><![CDATA[Destroy the domain object. The running instance is shutdown if not down
 already and all resources used by it are given back to the hypervisor. This
 does not free the associated virDomainPtr object.
-This function may require privileged access
+This function may require privileged access.
 
 virDomainDestroy first requests that a guest terminate
 (e.g. SIGTERM), then waits for it to comply. After a reasonable
-timeout, if the guest still exists, virDomainDestory will
+timeout, if the guest still exists, virDomainDestroy will
 forcefully terminate the guest (e.g. SIGKILL) if necessary (which
 may produce undesirable results, for example unflushed disk cache
 in the guest). To avoid this possibility, it's recommended to
@@ -6640,7 +6644,7 @@ storage pool. This is suitable for later feeding back
 into the virStoragePoolCreateXML method.]]></info>
       <return type='char *' info='a XML document, or NULL on error'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to storage pool'/>
-      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainXMLFlags'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virStorageXMLFlags'/>
     </function>
     <function name='virStoragePoolIsActive' file='libvirt' module='libvirt'>
       <info><![CDATA[Determine if the storage pool is currently running]]></info>

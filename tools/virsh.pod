@@ -820,6 +820,12 @@ I<size> is a scaled integer (see B<NOTES> above) which defaults to KiB
 "B" to get bytes (note that for historical reasons, this differs from
 B<vol-resize> which defaults to bytes without a suffix).
 
+=item B<domdisplay> I<domain-id> [I<--include-password>]
+
+Output a URI which can be used to connect to the graphical display of the
+domain via VNC, SPICE or RDP. If I<--include-password> is specified, the
+SPICE channel password will be included in the URI.
+
 =item B<dominfo> I<domain-id>
 
 Returns basic information about the domain.
@@ -2112,9 +2118,11 @@ Destroy the resources used by a given I<pool> object. This operation
 is non-recoverable.  The I<pool> object will still exist after this
 command, ready for the creation of new storage volumes.
 
-=item B<pool-dumpxml> I<pool-or-uuid>
+=item B<pool-dumpxml> [I<--inactive>] I<pool-or-uuid>
 
 Returns the XML information about the I<pool> object.
+I<--inactive> tells virsh to dump pool configuration that will be used
+on next start of the pool as opposed to the current pool configuration.
 
 =item B<pool-edit> I<pool-or-uuid>
 

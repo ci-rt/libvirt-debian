@@ -2828,8 +2828,8 @@ Optional Packages:
                           [default=auto]
   --with-init-script[=STYLE]
                           Style of init script to install: redhat, systemd,
-                          systemd+redhat, upstart, auto, none [default=auto]
-  --with-sysctl[=yes/no]  Whether to install sysctl configs [default=auto]
+                          systemd+redhat, upstart, check, none [default=check]
+  --with-sysctl[=yes/no]  Whether to install sysctl configs [default=check]
   --with-rhel5-api=[ARG]  build for the RHEL-5 API [default=no]
   --with-libxml=[PFX]     libxml2 location
   --with-sasl             use cyrus SASL for authentication [default=check]

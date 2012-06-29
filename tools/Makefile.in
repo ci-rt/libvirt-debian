@@ -2253,7 +2253,7 @@ libvirt-guests.init: libvirt-guests.init.sh $(top_builddir)/config.status
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@install-systemd: libvirt-guests.service install-initscript install-sysconfig
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	$(MKDIR_P) $(DESTDIR)$(SYSTEMD_UNIT_DIR)
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	$(INSTALL_SCRIPT) libvirt-guests.service \
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	$(INSTALL_DATA) libvirt-guests.service \
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@	  $(DESTDIR)$(SYSTEMD_UNIT_DIR)/libvirt-guests.service
 
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@uninstall-systemd: uninstall-initscript uninstall-sysconfig

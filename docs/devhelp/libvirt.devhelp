@@ -574,6 +574,7 @@
     <function name="VIR_STORAGE_VOL_WIPE_ALG_RANDOM" link="libvirt-libvirt.html#VIR_STORAGE_VOL_WIPE_ALG_RANDOM"/>
     <function name="VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER" link="libvirt-libvirt.html#VIR_STORAGE_VOL_WIPE_ALG_SCHNEIER"/>
     <function name="VIR_STORAGE_VOL_WIPE_ALG_ZERO" link="libvirt-libvirt.html#VIR_STORAGE_VOL_WIPE_ALG_ZERO"/>
+    <function name="VIR_STORAGE_XML_INACTIVE" link="libvirt-libvirt.html#VIR_STORAGE_XML_INACTIVE"/>
     <function name="VIR_STREAM_EVENT_ERROR" link="libvirt-libvirt.html#VIR_STREAM_EVENT_ERROR"/>
     <function name="VIR_STREAM_EVENT_HANGUP" link="libvirt-libvirt.html#VIR_STREAM_EVENT_HANGUP"/>
     <function name="VIR_STREAM_EVENT_READABLE" link="libvirt-libvirt.html#VIR_STREAM_EVENT_READABLE"/>
@@ -714,6 +715,7 @@
     <function name="virStorageVolResizeFlags" link="libvirt-libvirt.html#virStorageVolResizeFlags"/>
     <function name="virStorageVolType" link="libvirt-libvirt.html#virStorageVolType"/>
     <function name="virStorageVolWipeAlgorithm" link="libvirt-libvirt.html#virStorageVolWipeAlgorithm"/>
+    <function name="virStorageXMLFlags" link="libvirt-libvirt.html#virStorageXMLFlags"/>
     <function name="virStreamEventType" link="libvirt-libvirt.html#virStreamEventType"/>
     <function name="virStreamFlags" link="libvirt-libvirt.html#virStreamFlags"/>
     <function name="virStreamPtr" link="libvirt-libvirt.html#virStreamPtr"/>
