@@ -1,7 +1,4 @@
-usr/bin/*
 usr/sbin/*
-etc/libvirt/*
-etc/sasl2/*
 usr/lib/libvirt/libvirt*
 usr/lib/libvirt/connection-driver
 usr/share/augeas/*

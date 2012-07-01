@@ -1,5 +1,5 @@
 #!/bin/sh
-# postinst script for libvirt-bin
+# postinst script for libvirt-daemon-system
 #
 # see: dh_installdeb(1)
 
@@ -99,7 +99,7 @@ case "$1" in
 	# When renaming the .service file, systemd might become confused, we
 	# need to ensure that the libvirtd daemon is fully stopped before
 	# trying to restart it again. (Bug: #730604)
-	if dpkg --compare-versions "$2" le-nl "1.2.4"; then
+	if dpkg --compare-versions "$2" le "1.2.6-1~"; then
 	    if [ -d /run/systemd/system ]; then
 	        start-stop-daemon --stop --quiet --pidfile /var/run/libvirtd.pid \
 		    --oknodo --exec /usr/sbin/libvirtd --retry 1

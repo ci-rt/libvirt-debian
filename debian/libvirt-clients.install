@@ -1,0 +1,4 @@
+usr/bin/*
+usr/share/man/man1/*
+etc/libvirt/libvirt.conf
+etc/libvirt/virt-login-shell.conf

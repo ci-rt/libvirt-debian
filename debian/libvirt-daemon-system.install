@@ -1,0 +1,7 @@
+etc/libvirt/libvirtd.conf
+etc/libvirt/lxc.conf
+etc/libvirt/qemu.conf
+etc/libvirt/qemu-lockd.conf
+etc/libvirt/qemu-sanlock.conf
+etc/libvirt/virtlockd.conf
+etc/sasl2/*
