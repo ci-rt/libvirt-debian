@@ -1,3 +1,149 @@
+2012-07-02  Daniel Veillard  <veillard@redhat.com>
+
+	Release of libvirt-0.9.13
+	* configure.ac docs/news.html.in libvirt.spec.in: new version and
+	  documentation update
+	* po/*.po*: updated and regenerated localizations
+
+2012-06-30  Doug Goldstein  <cardoe@cardoe.com>
+
+	virsh: Cleanup virsh -V output
+	Fixed up virsh -V output by removing invalid WITH_PROXY & WITH_ONE
+	checks, adding several missing checks, and fixing the DTrace check.
+
+2012-06-30  Eric Blake  <eblake@redhat.com>
+
+	build: use correct limit for unsigned long long
+	Reported by Jason Helfman as a build-breaker on FreeBSD.
+
+	* src/conf/domain_conf.c (virDomainFSDefParseXML): Use POSIX
+	spelling.
+	* src/openvz/openvz_conf.c (openvzReadFSConf): Likewise.
+
+2012-06-30  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	nwfilter: Fix memory leak
+	Below patch fixes this coverity report:
+
+	/libvirt/src/conf/nwfilter_conf.c:382:
+	leaked_storage: Variable "varAccess" going out of scope leaks the storage it points to.
+
+2012-06-29  Daniel P. Berrange  <berrange@redhat.com>
+
+	Remove sub-mounts under /dev when starting an LXC container
+	Since we are mounting a new /dev in the container, we must
+	remove any sub-mounts like /dev/shm, /dev/mqueue, etc,
+	otherwise they'll be recorded in /proc/mounts, but not be
+	accessible to applications.
+
+2012-06-29  Eiichi Tsukata  <eiichi.tsukata.xh@hitachi.com>
+
+	Fix vm's outbound traffic control problem
+	Hello,
+
+	This is a patch to fix vm's outbound traffic control problem.
+
+	Currently, vm's outbound traffic control by libvirt doesn't go well.
+	This problem was previously discussed at libvir-list ML, however
+	it seems that there isn't still any answer to the problem.
+	http://www.redhat.com/archives/libvir-list/2011-August/msg00333.html
+
+	I measured Guest(with virtio-net) to Host TCP throughput with the
+	command "netperf -H".
+	Here are the outbound QoS parameters and the results.
+
+	outbound average rate[kilobytes/s] : Guest to Host throughput[Mbit/s]
+	======================================================================
+	1024  (8Mbit/s)                    : 4.56
+	2048  (16Mbit/s)                   : 3.29
+	4096  (32Mbit/s)                   : 3.35
+	8192  (64Mbit/s)                   : 3.95
+	16384 (128Mbit/s)                  : 4.08
+	32768 (256Mbit/s)                  : 3.94
+	65536 (512Mbit/s)                  : 3.23
+
+	The outbound traffic goes down unreasonably and is even not controled.
+
+	The cause of this problem is too large mtu value in "tc filter" command run by
+	libvirt. The command uses burst value to set mtu and the burst is equal to
+	average rate value if it's not set. This value is too large. For example
+	if the average rate is set to 1024 kilobytes/s, the mtu value is set to 1024
+	kilobytes. That's too large compared to the size of network packets.
+	Here libvirt applies tc ingress filter to Host's vnet(tun) device.
+	Tc ingress filter is implemented with TBF(Token Buckets Filter) algorithm. TBF
+	uses mtu value to calculate the amount of token consumed by each packet. With too
+	large mtu value, the token consumption rate is set too large. This leads to
+	token starvation and deterioration of TCP throughput.
+
+	Then, should we use the default mtu value 2 kilobytes?
+	The anser is No, because Guest with virtio-net device uses 65536 bytes
+	as mtu to transmit packets to Host, and the tc filter with the default mtu
+	value 2k drops packets whose size is larger than 2k. So, the most packets
+	is droped and again leads to deterioration of TCP throughput.
+
+	The appropriate mtu value is 65536 bytes which is equal to the maximum value
+	of network interface device defined in <linux/netdevice.h>. The value is
+	not so large that it causes token starvation and not so small that it
+	drops most packets.
+	Therefore this patch set the mtu value to 64kb(== 65535 bytes).
+
+	Again, here are the outbound QoS parameters and the TCP throughput with
+	the libvirt patched.
+
+	outbound average rate[kilobytes/s] : Guest to Host throughput[Mbit/s]
+	======================================================================
+	1024  (8Mbit/s)                    : 8.22
+	2048  (16Mbit/s)                   : 16.42
+	4096  (32Mbit/s)                   : 32.93
+	8192  (64Mbit/s)                   : 66.85
+	16384 (128Mbit/s)                  : 133.88
+	32768 (256Mbit/s)                  : 271.01
+	65536 (512Mbit/s)                  : 547.32
+
+	The outbound traffic conforms to the given limit.
+
+	Thank you,
+
+2012-06-29  Peter Krempa  <pkrempa@redhat.com>
+
+	network_conf: Don't free uninitialized pointers while parsing DNS SRV
+	If the user specified invalid protocol type in a network's SRV record
+	the error path ended up in freeing uninitialized pointers causing a
+	daemon crash.
+
+	*network_conf.c: virNetworkDNSSrvDefParseXML(): initialize local
+	                                                variables
+
+2012-06-28  Peter Krempa  <pkrempa@redhat.com>
+
+	conf: Don't shadow error from virGetDomain()
+	virGetDomain() does a good job of reporting errors itself. This patch
+	removes shadowing of that error in virDomainListPopulate().
+
+	maint: include ignore-value in internal.h
+	The ignore_value macro is used across libvirt. This patch includes it in
+	the internal header and cleans all other includes.
+
+2012-06-28  Peter Krempa  <pkrempa@redhat.com>
+
+	vbox: Add support for virConnectListAllDomains()
+	VirtualBox doesn't use the common virDomainObj implementation so this
+	patch adds a separate implementation using the VirtualBox API.
+
+	This driver implementation supports all currently defined flags. As
+	VirtualBox does not support transient guests, managed save images and
+	autostarting we assume all guests are persistent, don't have a managed
+	save image and are not autostarted. Filtering for existence of those
+	properities results in empty list.
+
+2012-06-28  Osier Yang  <jyang@redhat.com>
+
+	storage: Error out if the target is already mounted for netfs pool
+	mnt_fsname can not be the same, as we check the duplicate pool
+	sources earlier before, means it can't be the same pool, moreover,
+	a pool can't be started if it's already active anyway. So no reason
+	to act as success.
+
 2012-06-28  Marc-André Lureau  <marcandre.lureau@gmail.com>
 
 	configure: show correct default argument in help
