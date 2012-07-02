@@ -53,7 +53,6 @@
 #include "nodeinfo.h"
 #include "virfile.h"
 #include "command.h"
-#include "ignore-value.h"
 
 #define VIR_FROM_THIS VIR_FROM_OPENVZ
 
@@ -456,8 +455,8 @@ openvzReadFSConf(virDomainDefPtr def,
             goto error;
         } else {
             /* Ensure that we can multiply by 1024 without overflowing. */
-            if (barrier > ULONG_LONG_MAX / 1024 ||
-                limit > ULONG_LONG_MAX / 1024 ) {
+            if (barrier > ULLONG_MAX / 1024 ||
+                limit > ULLONG_MAX / 1024 ) {
                 virReportSystemError(VIR_ERR_OVERFLOW,
                                      _("%s"),
                                      "Unable to parse quota");

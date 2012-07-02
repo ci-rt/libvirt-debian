@@ -301,7 +301,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 0.9.13
-Release: 0rc2%{?dist}%{?extra_release}
+Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -310,7 +310,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
 %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -1788,6 +1788,18 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %endif
 
 %changelog
+* Mon Jul  2 2012 Daniel Veillard <veillard@redhat.com> - 0.9.13-1
+- S390: support for s390(x)
+- snapshot: implement new APIs for esx and vbox
+- snapshot: new query APIs and many improvements
+- virsh: Allow users to reedit rejected XML
+- nwfilter: add DHCP snooping
+- Enable driver modules in libvirt RPM
+- Default to enable driver modules for libvirtd
+- storage backend: Add RBD (RADOS Block Device) support
+- sVirt support for LXC domains inprovement
+- a lot of bug fixes, improvements and portability work
+
 * Mon May 14 2012 Daniel Veillard <veillard@redhat.com> - 0.9.12-1
 - qemu: allow snapshotting of sheepdog and rbd disks
 - blockjob: add new APIs
