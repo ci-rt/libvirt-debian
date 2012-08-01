@@ -5,10 +5,10 @@ Subject: Disable failing virnetsockettest
 until we debugged the interaction with pbuilder
 ---
  tests/virnetsockettest.c |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+ 1 file changed, 2 insertions(+)
 
 diff --git a/tests/virnetsockettest.c b/tests/virnetsockettest.c
-index 44d6f65..bcfcbd3 100644
+index 204113e..f025f52 100644
 --- a/tests/virnetsockettest.c
 +++ b/tests/virnetsockettest.c
 @@ -491,10 +491,12 @@ mymain(void)

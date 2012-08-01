@@ -7,7 +7,7 @@ since it fails on at least sparc and mips from time to time.
 Issue reported upstresm.
 ---
  gnulib/tests/test-nonblocking-pipe.sh |    4 ++++
- 1 files changed, 4 insertions(+), 0 deletions(-)
+ 1 file changed, 4 insertions(+)
 
 diff --git a/gnulib/tests/test-nonblocking-pipe.sh b/gnulib/tests/test-nonblocking-pipe.sh
 index dd692be..9690791 100755

@@ -4,13 +4,13 @@ Subject: Don't fail if we can't setup avahi
 
 ---
  src/rpc/virnetserver.c |    5 ++---
- 1 files changed, 2 insertions(+), 3 deletions(-)
+ 1 file changed, 2 insertions(+), 3 deletions(-)
 
 diff --git a/src/rpc/virnetserver.c b/src/rpc/virnetserver.c
-index f761e6b..ab6d112 100644
+index ae19e84..33dc807 100644
 --- a/src/rpc/virnetserver.c
 +++ b/src/rpc/virnetserver.c
-@@ -695,9 +695,8 @@ void virNetServerRun(virNetServerPtr srv)
+@@ -672,9 +672,8 @@ void virNetServerRun(virNetServerPtr srv)
      virNetServerLock(srv);
  
  #if HAVE_AVAHI

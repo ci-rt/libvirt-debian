@@ -4,13 +4,13 @@ Subject: remove-RHism.diff
 
 ---
  tools/virsh.pod |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/tools/virsh.pod b/tools/virsh.pod
-index c7d5bbd..747832a 100644
+index ef71717..19dde93 100644
 --- a/tools/virsh.pod
 +++ b/tools/virsh.pod
-@@ -103,7 +103,7 @@ telnet's B<^]> is used.
+@@ -104,7 +104,7 @@ alphabetic character, @, [, ], \, ^, _.
  
  Most B<virsh> operations rely upon the libvirt library being able to
  connect to an already running libvirtd service.  This can usually be

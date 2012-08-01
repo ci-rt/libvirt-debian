@@ -23,13 +23,13 @@ Otherwise this results in crashes like:
  #11 main (argc=5, argv=0xbf9c2cd4) at virsh.c:12751
 ---
  tools/virsh.c |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+ 1 file changed, 3 insertions(+)
 
 diff --git a/tools/virsh.c b/tools/virsh.c
-index ee6db4c..b3dc21c 100644
+index dd9292a..d798328 100644
 --- a/tools/virsh.c
 +++ b/tools/virsh.c
-@@ -19276,6 +19276,9 @@ vshInit(vshControl *ctl)
+@@ -19560,6 +19560,9 @@ vshInit(vshControl *ctl)
      /* set up the signals handlers to catch disconnections */
      vshSetupSignals();
  

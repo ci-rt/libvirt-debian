@@ -6,15 +6,16 @@ Closes: #636712
 Thanks: Luca Capello
 
 
+
 ---
  src/nwfilter/nwfilter_ebiptables_driver.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/nwfilter/nwfilter_ebiptables_driver.c b/src/nwfilter/nwfilter_ebiptables_driver.c
-index 0db9f19..09538a2 100644
+index 28f48bd..ee71bb5 100644
 --- a/src/nwfilter/nwfilter_ebiptables_driver.c
 +++ b/src/nwfilter/nwfilter_ebiptables_driver.c
-@@ -4044,7 +4044,7 @@ ebiptablesDriverInit(bool privileged)
+@@ -4062,7 +4062,7 @@ ebiptablesDriverInit(bool privileged)
      if (virMutexInit(&execCLIMutex) < 0)
          return -EINVAL;
  

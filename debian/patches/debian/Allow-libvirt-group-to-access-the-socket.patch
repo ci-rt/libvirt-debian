@@ -1,6 +1,3 @@
-Message-Id: <b3b5bf1ad7c56d826426b7f7974117ef5b2590e4.1336929172.git.agx@sigxcpu.org>
-In-Reply-To: <3212167ef5921de92659b7f6bf21d29fad1e4aa6.1336929172.git.agx@sigxcpu.org>
-References: <3212167ef5921de92659b7f6bf21d29fad1e4aa6.1336929172.git.agx@sigxcpu.org>
 From: Guido Guenther <agx@sigxcpu.org>
 Date: Thu, 26 Jun 2008 20:01:38 +0200
 Subject: Allow libvirt group to access the socket
