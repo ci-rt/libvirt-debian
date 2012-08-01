@@ -11,3 +11,4 @@ Disable-failing-virnetsockettest.patch
 Don-t-fail-if-we-can-t-setup-avahi.patch
 Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Debianize-systemd-service-files.patch
+security/CVE-2012-3445.patch
