@@ -1,3 +1,11 @@
+libvirt (0.9.13-1) experimental; urgency=low
+
+  * [6cf501c] New upstream version 0.9.13
+  * [8ff7077] Fix CVE-2012-3445 with upstream commit
+    6039a2cb49c8af4c68460d2faf365a7e1c686c7b. (Closes: #683483)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 01 Aug 2012 13:14:30 +0200
+
 libvirt (0.9.13~rc2-1) experimental; urgency=low
 
   * [505f873] New upstream version 0.9.13~rc2
