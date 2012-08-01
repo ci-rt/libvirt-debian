@@ -1,3 +1,10 @@
+libvirt (0.9.12-4) unstable; urgency=low
+
+  * [80ac2a6] Fix CVE-2012-3445 with upstream commit
+    6039a2cb49c8af4c68460d2faf365a7e1c686c7b (Closes: #683483)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 01 Aug 2012 21:12:13 +0200
+
 libvirt (0.9.12-3) unstable; urgency=low
 
   * [6b610b6] Include stdint.h for uint32_t to fix the build on kFreeBSD
