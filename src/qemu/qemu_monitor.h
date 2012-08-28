@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -32,6 +32,7 @@
 # include "bitmap.h"
 # include "virhash.h"
 # include "json.h"
+# include "device_conf.h"
 
 typedef struct _qemuMonitor qemuMonitor;
 typedef qemuMonitor *qemuMonitorPtr;
@@ -133,6 +134,9 @@ struct _qemuMonitorCallbacks {
                           virDomainObjPtr vm);
     int (*domainPMSuspend)(qemuMonitorPtr mon,
                            virDomainObjPtr vm);
+    int (*domainBalloonChange)(qemuMonitorPtr mon,
+                               virDomainObjPtr vm,
+                               unsigned long long actual);
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -152,9 +156,6 @@ int qemuMonitorCheckHMP(qemuMonitorPtr mon, const char *cmd);
 
 void qemuMonitorLock(qemuMonitorPtr mon);
 void qemuMonitorUnlock(qemuMonitorPtr mon);
-
-int qemuMonitorRef(qemuMonitorPtr mon);
-int qemuMonitorUnref(qemuMonitorPtr mon) ATTRIBUTE_RETURN_CHECK;
 
 int qemuMonitorSetLink(qemuMonitorPtr mon,
                        const char *name,
@@ -208,6 +209,8 @@ int qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
                             const char *diskAlias,
                             int type,
                             int status);
+int qemuMonitorEmitBalloonChange(qemuMonitorPtr mon,
+                                 unsigned long long actual);
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
@@ -413,8 +416,8 @@ int qemuMonitorAddUSBDeviceMatch(qemuMonitorPtr mon,
 
 
 int qemuMonitorAddPCIHostDevice(qemuMonitorPtr mon,
-                                virDomainDevicePCIAddress *hostAddr,
-                                virDomainDevicePCIAddress *guestAddr);
+                                virDevicePCIAddress *hostAddr,
+                                virDevicePCIAddress *guestAddr);
 
 /* XXX disk driver type eg,  qcow/etc.
  * XXX cache mode
@@ -422,17 +425,17 @@ int qemuMonitorAddPCIHostDevice(qemuMonitorPtr mon,
 int qemuMonitorAddPCIDisk(qemuMonitorPtr mon,
                           const char *path,
                           const char *bus,
-                          virDomainDevicePCIAddress *guestAddr);
+                          virDevicePCIAddress *guestAddr);
 
 /* XXX do we really want to hardcode 'nicstr' as the
  * sendable item here
  */
 int qemuMonitorAddPCINetwork(qemuMonitorPtr mon,
                              const char *nicstr,
-                             virDomainDevicePCIAddress *guestAddr);
+                             virDevicePCIAddress *guestAddr);
 
 int qemuMonitorRemovePCIDevice(qemuMonitorPtr mon,
-                               virDomainDevicePCIAddress *guestAddr);
+                               virDevicePCIAddress *guestAddr);
 
 
 int qemuMonitorSendFileHandle(qemuMonitorPtr mon,
@@ -471,11 +474,11 @@ int qemuMonitorGetPtyPaths(qemuMonitorPtr mon,
 
 int qemuMonitorAttachPCIDiskController(qemuMonitorPtr mon,
                                        const char *bus,
-                                       virDomainDevicePCIAddress *guestAddr);
+                                       virDevicePCIAddress *guestAddr);
 
 int qemuMonitorAttachDrive(qemuMonitorPtr mon,
                            const char *drivestr,
-                           virDomainDevicePCIAddress *controllerAddr,
+                           virDevicePCIAddress *controllerAddr,
                            virDomainDeviceDriveAddress *driveAddr);
 
 
@@ -483,7 +486,7 @@ typedef struct _qemuMonitorPCIAddress qemuMonitorPCIAddress;
 struct _qemuMonitorPCIAddress {
     unsigned int vendor;
     unsigned int product;
-    virDomainDevicePCIAddress addr;
+    virDevicePCIAddress addr;
 };
 
 int qemuMonitorGetAllPCIAddresses(qemuMonitorPtr mon,

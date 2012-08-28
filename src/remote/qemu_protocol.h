@@ -39,12 +39,26 @@ struct qemu_domain_attach_ret {
         remote_nonnull_domain dom;
 };
 typedef struct qemu_domain_attach_ret qemu_domain_attach_ret;
+
+struct qemu_domain_agent_command_args {
+        remote_nonnull_domain dom;
+        remote_nonnull_string cmd;
+        int timeout;
+        u_int flags;
+};
+typedef struct qemu_domain_agent_command_args qemu_domain_agent_command_args;
+
+struct qemu_domain_agent_command_ret {
+        remote_string result;
+};
+typedef struct qemu_domain_agent_command_ret qemu_domain_agent_command_ret;
 #define QEMU_PROGRAM 0x20008087
 #define QEMU_PROTOCOL_VERSION 1
 
 enum qemu_procedure {
         QEMU_PROC_MONITOR_COMMAND = 1,
         QEMU_PROC_DOMAIN_ATTACH = 2,
+        QEMU_PROC_DOMAIN_AGENT_COMMAND = 3,
 };
 typedef enum qemu_procedure qemu_procedure;
 
@@ -55,6 +69,8 @@ extern  bool_t xdr_qemu_monitor_command_args (XDR *, qemu_monitor_command_args*)
 extern  bool_t xdr_qemu_monitor_command_ret (XDR *, qemu_monitor_command_ret*);
 extern  bool_t xdr_qemu_domain_attach_args (XDR *, qemu_domain_attach_args*);
 extern  bool_t xdr_qemu_domain_attach_ret (XDR *, qemu_domain_attach_ret*);
+extern  bool_t xdr_qemu_domain_agent_command_args (XDR *, qemu_domain_agent_command_args*);
+extern  bool_t xdr_qemu_domain_agent_command_ret (XDR *, qemu_domain_agent_command_ret*);
 extern  bool_t xdr_qemu_procedure (XDR *, qemu_procedure*);
 
 #else /* K&R C */
@@ -62,6 +78,8 @@ extern bool_t xdr_qemu_monitor_command_args ();
 extern bool_t xdr_qemu_monitor_command_ret ();
 extern bool_t xdr_qemu_domain_attach_args ();
 extern bool_t xdr_qemu_domain_attach_ret ();
+extern bool_t xdr_qemu_domain_agent_command_args ();
+extern bool_t xdr_qemu_domain_agent_command_ret ();
 extern bool_t xdr_qemu_procedure ();
 
 #endif /* K&R C */

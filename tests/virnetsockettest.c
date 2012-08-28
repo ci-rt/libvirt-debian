@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -90,11 +90,13 @@ checkProtocols(bool *hasIPv4, bool *hasIPv6,
         if ((s4 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
             goto cleanup;
 
-        if ((s6 = socket(AF_INET6, SOCK_STREAM, 0)) < 0)
-            goto cleanup;
+        if (*hasIPv6) {
+            if ((s6 = socket(AF_INET6, SOCK_STREAM, 0)) < 0)
+                goto cleanup;
 
-        if (setsockopt(s6, IPPROTO_IPV6, IPV6_V6ONLY, &only, sizeof(only)) < 0)
-            goto cleanup;
+            if (setsockopt(s6, IPPROTO_IPV6, IPV6_V6ONLY, &only, sizeof(only)) < 0)
+                goto cleanup;
+        }
 
         memset(&in4, 0, sizeof(in4));
         memset(&in6, 0, sizeof(in6));
@@ -114,13 +116,16 @@ checkProtocols(bool *hasIPv4, bool *hasIPv6,
             }
             goto cleanup;
         }
-        if (bind(s6, (struct sockaddr *)&in6, sizeof(in6)) < 0) {
-            if (errno == EADDRINUSE) {
-                VIR_FORCE_CLOSE(s4);
-                VIR_FORCE_CLOSE(s6);
-                continue;
+
+        if (*hasIPv6) {
+            if (bind(s6, (struct sockaddr *)&in6, sizeof(in6)) < 0) {
+                if (errno == EADDRINUSE) {
+                    VIR_FORCE_CLOSE(s4);
+                    VIR_FORCE_CLOSE(s6);
+                    continue;
+                }
+                goto cleanup;
             }
-            goto cleanup;
         }
 
         *freePort = BASE_PORT + i;
@@ -167,7 +172,7 @@ static int testSocketTCPAccept(const void *opaque)
     if (virNetSocketNewConnectTCP(data->cnode, portstr, &csock) < 0)
         goto cleanup;
 
-    virNetSocketFree(csock);
+    virObjectUnref(csock);
 
     for (i = 0 ; i < nlsock ; i++) {
         if (virNetSocketAccept(lsock[i], &ssock) != -1 && ssock) {
@@ -178,16 +183,16 @@ static int testSocketTCPAccept(const void *opaque)
                 goto cleanup;
             }
         }
-        virNetSocketFree(ssock);
+        virObjectUnref(ssock);
         ssock = NULL;
     }
 
     ret = 0;
 
 cleanup:
-    virNetSocketFree(ssock);
+    virObjectUnref(ssock);
     for (i = 0 ; i < nlsock ; i++)
-        virNetSocketFree(lsock[i]);
+        virObjectUnref(lsock[i]);
     VIR_FREE(lsock);
     return ret;
 }
@@ -223,7 +228,7 @@ static int testSocketUNIXAccept(const void *data ATTRIBUTE_UNUSED)
     if (virNetSocketNewConnectUNIX(path, false, NULL, &csock) < 0)
         goto cleanup;
 
-    virNetSocketFree(csock);
+    virObjectUnref(csock);
 
     if (virNetSocketAccept(lsock, &ssock) != -1) {
         char c = 'a';
@@ -237,8 +242,8 @@ static int testSocketUNIXAccept(const void *data ATTRIBUTE_UNUSED)
 
 cleanup:
     VIR_FREE(path);
-    virNetSocketFree(lsock);
-    virNetSocketFree(ssock);
+    virObjectUnref(lsock);
+    virObjectUnref(ssock);
     if (tmpdir)
         rmdir(tmpdir);
     return ret;
@@ -315,9 +320,9 @@ static int testSocketUNIXAddrs(const void *data ATTRIBUTE_UNUSED)
 
 cleanup:
     VIR_FREE(path);
-    virNetSocketFree(lsock);
-    virNetSocketFree(ssock);
-    virNetSocketFree(csock);
+    virObjectUnref(lsock);
+    virObjectUnref(ssock);
+    virObjectUnref(csock);
     if (tmpdir)
         rmdir(tmpdir);
     return ret;
@@ -347,7 +352,7 @@ static int testSocketCommandNormal(const void *data ATTRIBUTE_UNUSED)
     ret = 0;
 
 cleanup:
-    virNetSocketFree(csock);
+    virObjectUnref(csock);
     return ret;
 }
 
@@ -370,7 +375,7 @@ static int testSocketCommandFail(const void *data ATTRIBUTE_UNUSED)
     ret = 0;
 
 cleanup:
-    virNetSocketFree(csock);
+    virObjectUnref(csock);
     return ret;
 }
 
@@ -439,7 +444,7 @@ static int testSocketSSH(const void *opaque)
     ret = 0;
 
 cleanup:
-    virNetSocketFree(csock);
+    virObjectUnref(csock);
     return ret;
 }
 

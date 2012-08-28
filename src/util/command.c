@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,10 +43,6 @@
 #include "buf.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-
-#define virCommandError(code, ...)                                      \
-    virReportErrorHelper(VIR_FROM_NONE, code, __FILE__,                 \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /* Flags for virExecWithHook */
 enum {
@@ -173,8 +169,8 @@ static int virClearCapabilities(void)
     capng_clear(CAPNG_SELECT_BOTH);
 
     if ((ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR,
-                        _("cannot clear process capabilities %d"), ret);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot clear process capabilities %d"), ret);
         return -1;
     }
 
@@ -200,8 +196,8 @@ static int virSetCapabilities(unsigned long long capabilities)
     }
 
     if ((ret = capng_apply(CAPNG_SELECT_BOTH)) < 0) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR,
-                        _("cannot apply process capabilities %d"), ret);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot apply process capabilities %d"), ret);
         return -1;
     }
 
@@ -551,17 +547,13 @@ virExecWithHook(const char *const*argv,
         goto fork_error;
     }
 
-    if (infd != STDIN_FILENO && infd != null)
+    if (infd != STDIN_FILENO && infd != null && infd != childerr &&
+        infd != childout)
         VIR_FORCE_CLOSE(infd);
-    if (childout > STDERR_FILENO && childout != null) {
-        tmpfd = childout;   /* preserve childout value */
-        VIR_FORCE_CLOSE(tmpfd);
-    }
-    if (childerr > STDERR_FILENO &&
-        childerr != childout &&
-        childerr != null) {
+    if (childout > STDERR_FILENO && childout != null && childout != childerr)
+        VIR_FORCE_CLOSE(childout);
+    if (childerr > STDERR_FILENO && childerr != null)
         VIR_FORCE_CLOSE(childerr);
-    }
     VIR_FORCE_CLOSE(null);
 
     /* Initialize full logging for a while */
@@ -661,8 +653,8 @@ virExecWithHook(const char *const*argv,
     if (binary != argv[0])
         VIR_FREE(binary);
 
-    /* NB we don't virCommandError() on any failures here
-       because the code which jumped hre already raised
+    /* NB we don't virReportError() on any failures here
+       because the code which jumped here already raised
        an error condition which we must not overwrite */
     VIR_FORCE_CLOSE(pipeerr[0]);
     VIR_FORCE_CLOSE(pipeerr[1]);
@@ -707,8 +699,8 @@ virRun(const char *const *argv ATTRIBUTE_UNUSED,
     if (status)
         *status = ENOTSUP;
     else
-        virCommandError(VIR_ERR_INTERNAL_ERROR,
-                        "%s", _("virRun is not implemented for WIN32"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("virRun is not implemented for WIN32"));
     return -1;
 }
 
@@ -731,8 +723,8 @@ virExecWithHook(const char *const*argv ATTRIBUTE_UNUSED,
      * top of _spawn() or CreateProcess(), but we can't implement
      * everything, since mingw completely lacks fork(), so we cannot
      * run hook code in the child.  */
-    virCommandError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("virExec is not implemented for WIN32"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virExec is not implemented for WIN32"));
     return -1;
 }
 
@@ -816,6 +808,28 @@ virCommandNewArgList(const char *binary, ...)
     while ((arg = va_arg(list, const char *)) != NULL)
         virCommandAddArg(cmd, arg);
     va_end(list);
+    return cmd;
+}
+
+/**
+ * virCommandNewVAList:
+ * @binary: program to run
+ * @va_list: additional arguments
+ *
+ * Create a new command with a NULL terminated
+ * variable argument list.  @binary is handled as in virCommandNew.
+ */
+virCommandPtr
+virCommandNewVAList(const char *binary, va_list list)
+{
+    virCommandPtr cmd = virCommandNew(binary);
+    const char *arg;
+
+    if (!cmd || cmd->has_error)
+        return cmd;
+
+    while ((arg = va_arg(list, const char *)) != NULL)
+        virCommandAddArg(cmd, arg);
     return cmd;
 }
 
@@ -1619,8 +1633,8 @@ virCommandToString(virCommandPtr cmd)
         return NULL;
     }
     if (cmd->has_error) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("invalid use of command API"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("invalid use of command API"));
         return NULL;
     }
 
@@ -1847,8 +1861,8 @@ int virCommandExec(virCommandPtr cmd)
         return -1;
     }
     if (cmd->has_error) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("invalid use of command API"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("invalid use of command API"));
         return -1;
     }
 
@@ -1896,8 +1910,8 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
         return -1;
     }
     if (cmd->has_error) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("invalid use of command API"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("invalid use of command API"));
         return -1;
     }
 
@@ -1918,14 +1932,14 @@ virCommandRun(virCommandPtr cmd, int *exitstatus)
         async_io = true;
     if (async_io) {
         if (!(cmd->flags & VIR_EXEC_DAEMON) || string_io) {
-            virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("cannot mix caller fds with blocking execution"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot mix caller fds with blocking execution"));
             return -1;
         }
     } else {
         if ((cmd->flags & VIR_EXEC_DAEMON) && string_io) {
-            virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("cannot mix string I/O with daemon"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot mix string I/O with daemon"));
             return -1;
         }
     }
@@ -2137,8 +2151,8 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
         return -1;
     }
     if (cmd->has_error) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("invalid use of command API"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("invalid use of command API"));
         return -1;
     }
 
@@ -2149,32 +2163,32 @@ virCommandRunAsync(virCommandPtr cmd, pid_t *pid)
     if ((cmd->inbuf && cmd->infd == -1) ||
         (cmd->outbuf && cmd->outfdptr != &cmd->outfd) ||
         (cmd->errbuf && cmd->errfdptr != &cmd->errfd)) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("cannot mix string I/O with asynchronous command"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot mix string I/O with asynchronous command"));
         return -1;
     }
 
     if (cmd->pid != -1) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR,
-                        _("command is already running as pid %lld"),
-                        (long long) cmd->pid);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("command is already running as pid %lld"),
+                       (long long) cmd->pid);
         return -1;
     }
 
     if (!synchronous && (cmd->flags & VIR_EXEC_DAEMON)) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("daemonized command cannot use virCommandRunAsync"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("daemonized command cannot use virCommandRunAsync"));
         return -1;
     }
     if (cmd->pwd && (cmd->flags & VIR_EXEC_DAEMON)) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR,
-                        _("daemonized command cannot set working directory %s"),
-                        cmd->pwd);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("daemonized command cannot set working directory %s"),
+                       cmd->pwd);
         return -1;
     }
     if (cmd->pidfile && !(cmd->flags & VIR_EXEC_DAEMON)) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("creation of pid file requires daemonized command"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("creation of pid file requires daemonized command"));
         return -1;
     }
 
@@ -2250,9 +2264,9 @@ virPidWait(pid_t pid, int *exitstatus)
     if (exitstatus == NULL) {
         if (status != 0) {
             char *st = virCommandTranslateStatus(status);
-            virCommandError(VIR_ERR_INTERNAL_ERROR,
-                            _("Child process (%lld) status unexpected: %s"),
-                            (long long) pid, NULLSTR(st));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Child process (%lld) unexpected %s"),
+                           (long long) pid, NULLSTR(st));
             VIR_FREE(st);
             return -1;
         }
@@ -2285,14 +2299,14 @@ virCommandWait(virCommandPtr cmd, int *exitstatus)
         return -1;
     }
     if (cmd->has_error) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("invalid use of command API"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("invalid use of command API"));
         return -1;
     }
 
     if (cmd->pid == -1) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("command is not yet running"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("command is not yet running"));
         return -1;
     }
 
@@ -2309,9 +2323,13 @@ virCommandWait(virCommandPtr cmd, int *exitstatus)
         if (status) {
             char *str = virCommandToString(cmd);
             char *st = virCommandTranslateStatus(status);
-            virCommandError(VIR_ERR_INTERNAL_ERROR,
-                            _("Child process (%s) status unexpected: %s"),
-                            str ? str : cmd->args[0], NULLSTR(st));
+            bool haveErrMsg = cmd->errbuf && *cmd->errbuf && (*cmd->errbuf)[0];
+
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Child process (%s) unexpected %s%s%s"),
+                           str ? str : cmd->args[0], NULLSTR(st),
+                           haveErrMsg ? ": " : "",
+                           haveErrMsg ? *cmd->errbuf : "");
             VIR_FREE(str);
             VIR_FREE(st);
             return -1;
@@ -2476,14 +2494,14 @@ int virCommandHandshakeWait(virCommandPtr cmd)
         return -1;
     }
     if (cmd->has_error || !cmd->handshake) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("invalid use of command API"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("invalid use of command API"));
         return -1;
     }
 
     if (cmd->handshakeWait[0] == -1) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Handshake is already complete"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Handshake is already complete"));
         return -1;
     }
 
@@ -2520,7 +2538,7 @@ int virCommandHandshakeWait(virCommandPtr cmd)
         }
         VIR_FORCE_CLOSE(cmd->handshakeWait[0]);
         msg[len-1] = '\0';
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s", msg);
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", msg);
         VIR_FREE(msg);
         return -1;
     }
@@ -2543,14 +2561,14 @@ int virCommandHandshakeNotify(virCommandPtr cmd)
         return -1;
     }
     if (cmd->has_error || !cmd->handshake) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("invalid use of command API"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("invalid use of command API"));
         return -1;
     }
 
     if (cmd->handshakeNotify[1] == -1) {
-        virCommandError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Handshake is already complete"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Handshake is already complete"));
         return -1;
     }
 

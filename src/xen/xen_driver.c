@@ -3,7 +3,19 @@
  *
  * Copyright (C) 2007-2012 Red Hat, Inc.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Richard W.M. Jones <rjones@redhat.com>
  */
@@ -79,10 +91,6 @@ static struct xenUnifiedDriver const * const drivers[XEN_UNIFIED_NR_DRIVERS] = {
 #if defined WITH_LIBVIRTD || defined __sun
 static int inside_daemon;
 #endif
-
-#define xenUnifiedError(code, ...)                                         \
-        virReportErrorHelper(VIR_FROM_XEN, code, __FILE__,                 \
-                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /**
  * xenNumaInit:
@@ -284,9 +292,9 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
             if (conn->uri->path &&
                 STRNEQ(conn->uri->path, "") &&
                 STRNEQ(conn->uri->path, "/")) {
-                xenUnifiedError(VIR_ERR_INTERNAL_ERROR,
-                                _("unexpected Xen URI path '%s', try xen:///"),
-                                conn->uri->path);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("unexpected Xen URI path '%s', try xen:///"),
+                               conn->uri->path);
                 return VIR_DRV_OPEN_ERROR;
             }
 
@@ -316,8 +324,8 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
         return VIR_DRV_OPEN_ERROR;
     }
     if (virMutexInit(&priv->lock) < 0) {
-        xenUnifiedError(VIR_ERR_INTERNAL_ERROR,
-                        "%s", _("cannot initialize mutex"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("cannot initialize mutex"));
         VIR_FREE(priv);
         return VIR_DRV_OPEN_ERROR;
     }
@@ -340,6 +348,8 @@ xenUnifiedOpen (virConnectPtr conn, virConnectAuthPtr auth, unsigned int flags)
         if (xenHypervisorOpen(conn, auth, flags) == VIR_DRV_OPEN_SUCCESS) {
             VIR_DEBUG("Activated hypervisor sub-driver");
             priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET] = 1;
+        } else {
+            goto fail;
         }
     }
 
@@ -515,14 +525,14 @@ xenUnifiedGetMaxVcpus (virConnectPtr conn, const char *type)
     GET_PRIVATE(conn);
 
     if (type && STRCASENEQ (type, "Xen")) {
-        xenUnifiedError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
     if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET])
         return xenHypervisorGetMaxVcpus (conn, type);
     else {
-        xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
         return -1;
     }
 }
@@ -646,7 +656,7 @@ xenUnifiedDomainLookupByID (virConnectPtr conn, int id)
     }
 
     /* Not found. */
-    xenUnifiedError(VIR_ERR_NO_DOMAIN, __FUNCTION__);
+    virReportError(VIR_ERR_NO_DOMAIN, __FUNCTION__);
     return NULL;
 }
 
@@ -684,7 +694,7 @@ xenUnifiedDomainLookupByUUID (virConnectPtr conn,
     }
 
     /* Not found. */
-    xenUnifiedError(VIR_ERR_NO_DOMAIN, __FUNCTION__);
+    virReportError(VIR_ERR_NO_DOMAIN, __FUNCTION__);
     return NULL;
 }
 
@@ -722,7 +732,7 @@ xenUnifiedDomainLookupByName (virConnectPtr conn,
     }
 
     /* Not found. */
-    xenUnifiedError(VIR_ERR_NO_DOMAIN, __FUNCTION__);
+    virReportError(VIR_ERR_NO_DOMAIN, __FUNCTION__);
     return NULL;
 }
 
@@ -1051,8 +1061,8 @@ xenUnifiedDomainSaveFlags(virDomainPtr dom, const char *to, const char *dxml,
 
     virCheckFlags(0, -1);
     if (dxml) {
-        xenUnifiedError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                        _("xml modification unsupported"));
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                       _("xml modification unsupported"));
         return -1;
     }
 
@@ -1075,8 +1085,8 @@ xenUnifiedDomainRestoreFlags(virConnectPtr conn, const char *from,
 
     virCheckFlags(0, -1);
     if (dxml) {
-        xenUnifiedError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
-                        _("xml modification unsupported"));
+        virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                       _("xml modification unsupported"));
         return -1;
     }
 
@@ -1117,13 +1127,13 @@ xenUnifiedDomainSetVcpusFlags (virDomainPtr dom, unsigned int nvcpus,
     if ((flags & (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_CONFIG)) == 0 ||
         (flags & (VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_LIVE)) ==
          (VIR_DOMAIN_VCPU_MAXIMUM | VIR_DOMAIN_VCPU_LIVE)) {
-        xenUnifiedError(VIR_ERR_INVALID_ARG,
-                        _("invalid flag combination: (0x%x)"), flags);
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("invalid flag combination: (0x%x)"), flags);
         return -1;
     }
     if (!nvcpus || (unsigned short) nvcpus != nvcpus) {
-        xenUnifiedError(VIR_ERR_INVALID_ARG,
-                        _("argument out of range: %d"), nvcpus);
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("argument out of range: %d"), nvcpus);
         return -1;
     }
 
@@ -1143,7 +1153,7 @@ xenUnifiedDomainSetVcpusFlags (virDomainPtr dom, unsigned int nvcpus,
     if (flags == VIR_DOMAIN_VCPU_LIVE)
         return xenHypervisorSetVcpus(dom, nvcpus);
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1220,7 +1230,7 @@ xenUnifiedDomainGetVcpusFlags (virDomainPtr dom, unsigned int flags)
     if (flags == (VIR_DOMAIN_VCPU_CONFIG | VIR_DOMAIN_VCPU_MAXIMUM))
         return xenHypervisorGetVcpuMax(dom);
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1251,7 +1261,7 @@ xenUnifiedDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
         }
     }
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return NULL;
 }
 
@@ -1274,8 +1284,8 @@ xenUnifiedDomainXMLFromNative(virConnectPtr conn,
 
     if (STRNEQ(format, XEN_CONFIG_FORMAT_XM) &&
         STRNEQ(format, XEN_CONFIG_FORMAT_SEXPR)) {
-        xenUnifiedError(VIR_ERR_INVALID_ARG,
-                        _("unsupported config type %s"), format);
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unsupported config type %s"), format);
         return NULL;
     }
 
@@ -1323,8 +1333,8 @@ xenUnifiedDomainXMLToNative(virConnectPtr conn,
 
     if (STRNEQ(format, XEN_CONFIG_FORMAT_XM) &&
         STRNEQ(format, XEN_CONFIG_FORMAT_SEXPR)) {
-        xenUnifiedError(VIR_ERR_INVALID_ARG,
-                        _("unsupported config type %s"), format);
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("unsupported config type %s"), format);
         goto cleanup;
     }
 
@@ -1378,7 +1388,7 @@ xenUnifiedDomainMigratePrepare (virConnectPtr dconn,
                                               uri_in, uri_out,
                                               flags, dname, resource);
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1399,7 +1409,7 @@ xenUnifiedDomainMigratePerform (virDomainPtr dom,
         return xenDaemonDomainMigratePerform (dom, cookie, cookielen, uri,
                                               flags, dname, resource);
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1425,15 +1435,15 @@ xenUnifiedDomainMigrateFinish (virConnectPtr dconn,
     if (flags & VIR_MIGRATE_PERSIST_DEST) {
         domain_xml = xenDaemonDomainGetXMLDesc(dom, 0, NULL);
         if (! domain_xml) {
-            xenUnifiedError(VIR_ERR_MIGRATE_PERSIST_FAILED,
-                            "%s", _("failed to get XML representation of migrated domain"));
+            virReportError(VIR_ERR_MIGRATE_PERSIST_FAILED,
+                           "%s", _("failed to get XML representation of migrated domain"));
             goto failure;
         }
 
         dom_new = xenDaemonDomainDefineXML (dconn, domain_xml);
         if (! dom_new) {
-            xenUnifiedError(VIR_ERR_MIGRATE_PERSIST_FAILED,
-                            "%s", _("failed to define domain on destination host"));
+            virReportError(VIR_ERR_MIGRATE_PERSIST_FAILED,
+                           "%s", _("failed to define domain on destination host"));
             goto failure;
         }
 
@@ -1647,7 +1657,7 @@ xenUnifiedDomainGetAutostart (virDomainPtr dom, int *autostart)
             return xenDaemonDomainGetAutostart(dom, autostart);
     }
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1664,7 +1674,7 @@ xenUnifiedDomainSetAutostart (virDomainPtr dom, int autostart)
             return xenDaemonDomainSetAutostart(dom, autostart);
     }
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1756,7 +1766,7 @@ xenUnifiedDomainBlockStats (virDomainPtr dom, const char *path,
     if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET])
         return xenHypervisorDomainBlockStats (dom, path, stats);
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1769,7 +1779,7 @@ xenUnifiedDomainInterfaceStats (virDomainPtr dom, const char *path,
     if (priv->opened[XEN_UNIFIED_HYPERVISOR_OFFSET])
         return xenHypervisorDomainInterfaceStats (dom, path, stats);
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1794,7 +1804,7 @@ xenUnifiedDomainBlockPeek (virDomainPtr dom, const char *path,
             return 0;
     }
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1808,7 +1818,7 @@ xenUnifiedNodeGetCellsFreeMemory (virConnectPtr conn, unsigned long long *freeMe
         return xenHypervisorNodeGetCellsFreeMemory (conn, freeMems,
                                                     startCell, maxCells);
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return -1;
 }
 
@@ -1827,7 +1837,7 @@ xenUnifiedNodeGetFreeMemory (virConnectPtr conn)
         return freeMem;
     }
 
-    xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+    virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
     return 0;
 }
 
@@ -1844,7 +1854,7 @@ xenUnifiedDomainEventRegister(virConnectPtr conn,
     xenUnifiedLock(priv);
 
     if (priv->xsWatch == -1) {
-        xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
         xenUnifiedUnlock(priv);
         return -1;
     }
@@ -1866,7 +1876,7 @@ xenUnifiedDomainEventDeregister(virConnectPtr conn,
     xenUnifiedLock(priv);
 
     if (priv->xsWatch == -1) {
-        xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
         xenUnifiedUnlock(priv);
         return -1;
     }
@@ -1894,7 +1904,7 @@ xenUnifiedDomainEventRegisterAny(virConnectPtr conn,
     xenUnifiedLock(priv);
 
     if (priv->xsWatch == -1) {
-        xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
         xenUnifiedUnlock(priv);
         return -1;
     }
@@ -1917,7 +1927,7 @@ xenUnifiedDomainEventDeregisterAny(virConnectPtr conn,
     xenUnifiedLock(priv);
 
     if (priv->xsWatch == -1) {
-        xenUnifiedError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+        virReportError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
         xenUnifiedUnlock(priv);
         return -1;
     }
@@ -1965,8 +1975,8 @@ xenUnifiedNodeDeviceGetPciInfo (virNodeDevicePtr dev,
     }
 
     if (!cap) {
-        xenUnifiedError(VIR_ERR_INVALID_ARG,
-                        _("device %s is not a PCI device"), dev->name);
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("device %s is not a PCI device"), dev->name);
         goto out;
     }
 
@@ -2075,9 +2085,9 @@ xenUnifiedNodeDeviceReAttach (virNodeDevicePtr dev)
 
     /* Check if device is assigned to an active guest */
     if ((domid = xenUnifiedNodeDeviceAssignedDomainId(dev)) >= 0) {
-        xenUnifiedError(VIR_ERR_INTERNAL_ERROR,
-                        _("Device %s has been assigned to guest %d"),
-                        dev->name, domid);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Device %s has been assigned to guest %d"),
+                       dev->name, domid);
         goto out;
     }
 
@@ -2127,15 +2137,15 @@ xenUnifiedDomainOpenConsole(virDomainPtr dom,
     virCheckFlags(0, -1);
 
     if (dom->id == -1) {
-        xenUnifiedError(VIR_ERR_OPERATION_INVALID,
-                        "%s", _("domain is not running"));
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
         goto cleanup;
     }
 
     if (dev_name) {
         /* XXX support device aliases in future */
-        xenUnifiedError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                        _("Named device aliases are not supported"));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Named device aliases are not supported"));
         goto cleanup;
     }
 
@@ -2149,14 +2159,14 @@ xenUnifiedDomainOpenConsole(virDomainPtr dom,
         chr = def->serials[0];
 
     if (!chr) {
-        xenUnifiedError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("cannot find default console device"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot find default console device"));
         goto cleanup;
     }
 
     if (chr->source.type != VIR_DOMAIN_CHR_TYPE_PTY) {
-        xenUnifiedError(VIR_ERR_INTERNAL_ERROR,
-                        _("character device %s is not using a PTY"), dev_name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("character device %s is not using a PTY"), dev_name);
         goto cleanup;
     }
 
@@ -2271,9 +2281,6 @@ static virDriver xenUnifiedDriver = {
 int
 xenRegister (void)
 {
-    /* Ignore failures here. */
-    (void) xenHypervisorInit (NULL);
-
 #ifdef WITH_LIBVIRTD
     if (virRegisterStateDriver (&state_driver) == -1) return -1;
 #endif

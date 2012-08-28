@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -113,5 +113,54 @@ int virThreadLocalSet(virThreadLocalPtr l, void*) ATTRIBUTE_RETURN_CHECK;
 # else
 #  error "Either pthreads or Win32 threads are required"
 # endif
+
+
+/**
+ * VIR_ONCE_GLOBAL_INIT:
+ * classname: base classname
+ *
+ * This macro simplifies the setup of a one-time only
+ * global file initializer.
+ *
+ * Assuming a class called "virMyObject", and a method
+ * implemented like:
+ *
+ *  int virMyObjectOnceInit(void) {
+ *      ...do init tasks...
+ *  }
+ *
+ * Then invoking the macro:
+ *
+ *  VIR_ONCE_GLOBAL_INIT(virMyObject)
+ *
+ * Will create a method
+ *
+ *  int virMyObjectInitialize(void);
+ *
+ * Which will ensure that 'virMyObjectOnceInit' is
+ * guaranteed to be invoked exactly once.
+ */
+# define VIR_ONCE_GLOBAL_INIT(classname)                                \
+    static virOnceControl classname ## OnceControl = VIR_ONCE_CONTROL_INITIALIZER; \
+    static virErrorPtr classname ## OnceError = NULL;                   \
+                                                                        \
+    static void classname ## Once(void)                                 \
+    {                                                                   \
+        if (classname ## OnceInit() < 0)                                \
+            classname ## OnceError = virSaveLastError();                \
+    }                                                                   \
+                                                                        \
+    static int classname ## Initialize(void)                            \
+    {                                                                   \
+        if (virOnce(&classname ## OnceControl, classname ## Once) < 0)  \
+            return -1;                                                  \
+                                                                        \
+        if (classname ## OnceError) {                                   \
+            virSetError(classname ## OnceError);                        \
+            return -1;                                                  \
+        }                                                               \
+                                                                        \
+        return 0;                                                       \
+    }
 
 #endif

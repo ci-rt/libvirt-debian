@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Stacked security driver
  */
@@ -25,9 +25,22 @@
 
 extern virSecurityDriver virSecurityDriverStack;
 
+
+int
+virSecurityStackAddPrimary(virSecurityManagerPtr mgr,
+                           virSecurityManagerPtr primary);
+int
+virSecurityStackAddNested(virSecurityManagerPtr mgr,
+                          virSecurityManagerPtr nested);
+virSecurityManagerPtr
+virSecurityStackGetPrimary(virSecurityManagerPtr mgr);
+
 void virSecurityStackSetPrimary(virSecurityManagerPtr mgr,
                                 virSecurityManagerPtr primary);
 void virSecurityStackSetSecondary(virSecurityManagerPtr mgr,
                                   virSecurityManagerPtr secondary);
+
+virSecurityManagerPtr*
+virSecurityStackGetNested(virSecurityManagerPtr mgr);
 
 #endif /* __VIR_SECURITY_DAC */

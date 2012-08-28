@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #ifndef __VIR_NET_CLIENT_SASL_CONTEXT_H__
@@ -24,6 +24,7 @@
 # include <sasl/sasl.h>
 
 # include "internal.h"
+# include "virobject.h"
 
 typedef struct _virNetSASLContext virNetSASLContext;
 typedef virNetSASLContext *virNetSASLContextPtr;
@@ -43,9 +44,6 @@ virNetSASLContextPtr virNetSASLContextNewServer(const char *const*usernameWhitel
 int virNetSASLContextCheckIdentity(virNetSASLContextPtr ctxt,
                                    const char *identity);
 
-void virNetSASLContextRef(virNetSASLContextPtr sasl);
-void virNetSASLContextFree(virNetSASLContextPtr sasl);
-
 virNetSASLSessionPtr virNetSASLSessionNewClient(virNetSASLContextPtr ctxt,
                                                 const char *service,
                                                 const char *hostname,
@@ -58,8 +56,6 @@ virNetSASLSessionPtr virNetSASLSessionNewServer(virNetSASLContextPtr ctxt,
                                                 const char *remoteAddr);
 
 char *virNetSASLSessionListMechanisms(virNetSASLSessionPtr sasl);
-
-void virNetSASLSessionRef(virNetSASLSessionPtr sasl);
 
 int virNetSASLSessionExtKeySize(virNetSASLSessionPtr sasl,
                                 int ssf);
@@ -113,7 +109,5 @@ ssize_t virNetSASLSessionDecode(virNetSASLSessionPtr sasl,
                                 size_t inputLen,
                                 const char **output,
                                 size_t *outputlen);
-
-void virNetSASLSessionFree(virNetSASLSessionPtr sasl);
 
 #endif /* __VIR_NET_CLIENT_SASL_CONTEXT_H__ */

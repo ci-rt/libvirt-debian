@@ -425,10 +425,13 @@ skip_impl = (
     'virDomainGetInterfaceParameters',
     'virDomainGetCPUStats',
     'virDomainGetDiskErrors',
+    'virConnectUnregisterCloseCallback',
+    'virConnectRegisterCloseCallback',
 )
 
 qemu_skip_impl = (
     'virDomainQemuMonitorCommand',
+    'virDomainQemuAgentCommand',
 )
 
 
@@ -446,6 +449,7 @@ skip_function = (
     'virConnectOpenAuth', # Python C code is manually written
     'virDefaultErrorFunc', # Python virErrorFuncHandler impl calls this from C
     'virDomainGetSecurityLabel', # Needs investigation...
+    'virDomainGetSecurityLabelList', # Needs investigation...
     'virNodeGetSecurityModel', # Needs investigation...
     'virConnectDomainEventRegister',   # overridden in virConnect.py
     'virConnectDomainEventDeregister', # overridden in virConnect.py

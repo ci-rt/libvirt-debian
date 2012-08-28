@@ -63,15 +63,51 @@
     </optional>
   </define>
 
+  <define name='timestamps'>
+    <optional>
+      <element name='timestamps'>
+        <interleave>
+          <optional>
+            <element name='atime'>
+              <ref name='timestamp'/>
+            </element>
+          </optional>
+          <optional>
+            <element name='btime'>
+              <ref name='timestamp'/>
+            </element>
+          </optional>
+          <optional>
+            <element name='ctime'>
+              <ref name='timestamp'/>
+            </element>
+          </optional>
+          <optional>
+            <element name='mtime'>
+              <ref name='timestamp'/>
+            </element>
+          </optional>
+        </interleave>
+      </element>
+    </optional>
+  </define>
+
+  <define name='timestamp'>
+    <data type='string'>
+      <param name="pattern">[0-9]+(\.[0-9]{0,9})?</param>
+    </data>
+  </define>
+
   <define name='target'>
     <element name='target'>
       <optional>
         <element name='path'>
-          <ref name='absFilePath'/>
+          <data type='anyURI'/>
         </element>
       </optional>
       <ref name='format'/>
       <ref name='permissions'/>
+      <ref name='timestamps'/>
       <optional>
         <ref name='encryption'/>
       </optional>
@@ -144,6 +180,7 @@
 
   <define name='formatfile'>
     <choice>
+      <value>unknown</value>
       <value>raw</value>
       <value>dir</value>
       <value>bochs</value>

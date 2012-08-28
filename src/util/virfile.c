@@ -1,7 +1,7 @@
 /*
  * virfile.c: safer file handling
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2010 IBM Corporation
  * Copyright (C) 2010 Stefan Berger
  * Copyright (C) 2010 Eric Blake
@@ -17,8 +17,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +30,12 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
+
+#ifdef __linux__
+# include <linux/loop.h>
+# include <sys/ioctl.h>
+#endif
 
 #include "command.h"
 #include "configmake.h"
@@ -38,10 +44,6 @@
 #include "logging.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-#define virFileError(code, ...)                                   \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,           \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
-
 
 int virFileClose(int *fdptr, virFileCloseFlags flags)
 {
@@ -172,8 +174,8 @@ virFileWrapperFdNew(int *fd, const char *name, unsigned int flags)
     int mode = -1;
 
     if (!flags) {
-        virFileError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("invalid use with no flags"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("invalid use with no flags"));
         return NULL;
     }
 
@@ -185,8 +187,8 @@ virFileWrapperFdNew(int *fd, const char *name, unsigned int flags)
      */
 
     if ((flags & VIR_FILE_WRAPPER_BYPASS_CACHE) && !O_DIRECT) {
-        virFileError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("O_DIRECT unsupported on this platform"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("O_DIRECT unsupported on this platform"));
         return NULL;
     }
 
@@ -198,20 +200,20 @@ virFileWrapperFdNew(int *fd, const char *name, unsigned int flags)
     mode = fcntl(*fd, F_GETFL);
 
     if (mode < 0) {
-        virFileError(VIR_ERR_INTERNAL_ERROR, _("invalid fd %d for %s"),
-                     *fd, name);
+        virReportError(VIR_ERR_INTERNAL_ERROR, _("invalid fd %d for %s"),
+                       *fd, name);
         goto error;
     } else if ((mode & O_ACCMODE) == O_WRONLY) {
         output = true;
     } else if ((mode & O_ACCMODE) != O_RDONLY) {
-        virFileError(VIR_ERR_INTERNAL_ERROR, _("unexpected mode %x for %s"),
-                     mode & O_ACCMODE, name);
+        virReportError(VIR_ERR_INTERNAL_ERROR, _("unexpected mode %x for %s"),
+                       mode & O_ACCMODE, name);
         goto error;
     }
 
     if (pipe2(pipefd, O_CLOEXEC) < 0) {
-        virFileError(VIR_ERR_INTERNAL_ERROR,
-                     _("unable to create pipe for %s"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unable to create pipe for %s"), name);
         goto error;
     }
 
@@ -231,7 +233,7 @@ virFileWrapperFdNew(int *fd, const char *name, unsigned int flags)
         goto error;
 
     if (VIR_CLOSE(pipefd[!output]) < 0) {
-        virFileError(VIR_ERR_INTERNAL_ERROR, "%s", _("unable to close pipe"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("unable to close pipe"));
         goto error;
     }
 
@@ -251,7 +253,7 @@ virFileWrapperFdNew(int *fd ATTRIBUTE_UNUSED,
                     const char *name ATTRIBUTE_UNUSED,
                     unsigned int fdflags ATTRIBUTE_UNUSED)
 {
-    virFileError(VIR_ERR_INTERNAL_ERROR, "%s",
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                  _("virFileWrapperFd unsupported on this platform"));
     return NULL;
 }
@@ -468,7 +470,7 @@ int virFileUpdatePerm(const char *path,
     mode_t mode;
 
     if (mode_remove & ~MODE_BITS || mode_add & ~MODE_BITS) {
-        virFileError(VIR_ERR_INVALID_ARG, "%s", _("invalid mode"));
+        virReportError(VIR_ERR_INVALID_ARG, "%s", _("invalid mode"));
         return -1;
     }
 
@@ -493,3 +495,136 @@ int virFileUpdatePerm(const char *path,
 
     return 0;
 }
+
+
+#if defined(__linux__) && HAVE_DECL_LO_FLAGS_AUTOCLEAR
+static int virFileLoopDeviceOpen(char **dev_name)
+{
+    int fd = -1;
+    DIR *dh = NULL;
+    struct dirent *de;
+    char *looppath;
+    struct loop_info64 lo;
+
+    VIR_DEBUG("Looking for loop devices in /dev");
+
+    if (!(dh = opendir("/dev"))) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to read /dev"));
+        goto cleanup;
+    }
+
+    while ((de = readdir(dh)) != NULL) {
+        if (!STRPREFIX(de->d_name, "loop"))
+            continue;
+
+        if (virAsprintf(&looppath, "/dev/%s", de->d_name) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        VIR_DEBUG("Checking up on device %s", looppath);
+        if ((fd = open(looppath, O_RDWR)) < 0) {
+            virReportSystemError(errno,
+                                 _("Unable to open %s"), looppath);
+            goto cleanup;
+        }
+
+        if (ioctl(fd, LOOP_GET_STATUS64, &lo) < 0) {
+            /* Got a free device, return the fd */
+            if (errno == ENXIO)
+                goto cleanup;
+
+            VIR_FORCE_CLOSE(fd);
+            virReportSystemError(errno,
+                                 _("Unable to get loop status on %s"),
+                                 looppath);
+            goto cleanup;
+        }
+
+        /* Oh well, try the next device */
+        VIR_FORCE_CLOSE(fd);
+        VIR_FREE(looppath);
+    }
+
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("Unable to find a free loop device in /dev"));
+
+cleanup:
+    if (fd != -1) {
+        VIR_DEBUG("Got free loop device %s %d", looppath, fd);
+        *dev_name = looppath;
+    } else {
+        VIR_DEBUG("No free loop devices available");
+        VIR_FREE(looppath);
+    }
+    if (dh)
+        closedir(dh);
+    return fd;
+}
+
+
+int virFileLoopDeviceAssociate(const char *file,
+                               char **dev)
+{
+    int lofd = -1;
+    int fsfd = -1;
+    struct loop_info64 lo;
+    char *loname = NULL;
+    int ret = -1;
+
+    if ((lofd = virFileLoopDeviceOpen(&loname)) < 0)
+        return -1;
+
+    memset(&lo, 0, sizeof(lo));
+    lo.lo_flags = LO_FLAGS_AUTOCLEAR;
+
+    if ((fsfd = open(file, O_RDWR)) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to open %s"), file);
+        goto cleanup;
+    }
+
+    if (ioctl(lofd, LOOP_SET_FD, fsfd) < 0) {
+        virReportSystemError(errno,
+                             _("Unable to attach %s to loop device"),
+                             file);
+        goto cleanup;
+    }
+
+    if (ioctl(lofd, LOOP_SET_STATUS64, &lo) < 0) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to mark loop device as autoclear"));
+
+        if (ioctl(lofd, LOOP_CLR_FD, 0) < 0)
+            VIR_WARN("Unable to detach %s from loop device", file);
+        goto cleanup;
+    }
+
+    VIR_DEBUG("Attached loop device  %s %d to %s", file, lofd, loname);
+    *dev = loname;
+    loname = NULL;
+
+    ret = 0;
+
+cleanup:
+    VIR_FREE(loname);
+    VIR_FORCE_CLOSE(fsfd);
+    if (ret == -1)
+        VIR_FORCE_CLOSE(lofd);
+    return lofd;
+}
+
+#else /* __linux__ */
+
+int virFileLoopDeviceAssociate(const char *file,
+                               char **dev ATTRIBUTE_UNUSED)
+{
+    virReportSystemError(ENOSYS,
+                         _("Unable to associate file %s with loop device"),
+                         file);
+    *dev = NULL;
+    return -1;
+}
+
+#endif /* __linux__ */

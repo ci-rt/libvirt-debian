@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Dave Allan <dallan@redhat.com>
  */
@@ -228,9 +228,9 @@ virStorageBackendCreateVols(virStoragePoolObjPtr pool,
             }
 
             if (virStorageBackendGetMinorNumber(names->name, &minor) < 0) {
-                virStorageReportError(VIR_ERR_INTERNAL_ERROR,
-                                      _("Failed to get %s minor number"),
-                                      names->name);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Failed to get %s minor number"),
+                               names->name);
                 goto out;
             }
 

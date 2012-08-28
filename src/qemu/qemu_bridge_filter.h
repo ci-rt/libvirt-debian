@@ -13,8 +13,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Gerhard Stenzel <gerhard.stenzel@de.ibm.com>
@@ -26,10 +26,10 @@
 
 int networkAllowMacOnPort(struct qemud_driver *driver,
                           const char * ifname,
-                          const unsigned char * mac);
+                          const virMacAddrPtr mac);
 int networkDisallowMacOnPort(struct qemud_driver *driver,
                              const char * ifname,
-                             const unsigned char * mac);
+                             const virMacAddrPtr mac);
 int networkDisableAllFrames(struct qemud_driver *driver);
 int networkAddEbtablesRules(struct qemud_driver *driver);
 

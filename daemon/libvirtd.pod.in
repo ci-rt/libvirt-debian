@@ -54,7 +54,10 @@ Use this name for the PID file, overriding the default value.
 
 =item B<-t, --timeout> I<SECONDS>
 
-Exit after timeout period (in seconds) expires.
+Exit after timeout period (in seconds) elapse with no client connections
+or registered resources.  Be aware that resources such as autostart
+networks will result in never reaching the timeout, even when there are
+no client connections.
 
 =item B<-v, --verbose>
 
@@ -72,38 +75,71 @@ On receipt of B<SIGHUP> libvirtd will reload its configuration.
 
 =head1 FILES
 
+=head2 When run as B<root>.
+
 =over
 
-=item F<@sysconfdir@/libvirtd.conf>
+=item F<SYSCONFDIR/libvirtd.conf>
 
 The default configuration file used by libvirtd, unless overridden on the
 command line using the B<-f>|B<--config> option.
 
-=item F<@localstatedir@/run/libvirt/libvirt-sock>
+=item F<LOCALSTATEDIR/run/libvirt/libvirt-sock>
 
-=item F<@localstatedir@/run/libvirt/libvirt-sock-ro>
+=item F<LOCALSTATEDIR/run/libvirt/libvirt-sock-ro>
 
-The sockets libvirtd will use when B<run as root>.
+The sockets libvirtd will use.
 
-=item F<$XDG_RUNTIME_DIR/libvirt/libvirt-sock>
-
-The socket libvirtd will use when run as a B<non-root> user.
-
-=item F<@sysconfdir@/pki/CA/cacert.pem>
+=item F<SYSCONFDIR/pki/CA/cacert.pem>
 
 The TLS B<Certificate Authority> certificate libvirtd will use.
 
-=item F<@sysconfdir@/pki/libvirt/servercert.pem>
+=item F<SYSCONFDIR/pki/libvirt/servercert.pem>
 
 The TLS B<Server> certificate libvirtd will use.
 
-=item F<@sysconfdir@/pki/libvirt/private/serverkey.pem>
+=item F<SYSCONFDIR/pki/libvirt/private/serverkey.pem>
 
 The TLS B<Server> private key libvirtd will use.
 
-=item F<@remote_pid_file@>
+=item F<LOCALSTATEDIR/run/libvirtd.pid>
 
 The PID file to use, unless overridden by the B<-p>|B<--pid-file> option.
+
+=back
+
+=head2 When run as B<non-root>.
+
+=over
+
+=item F<$XDG_CONFIG_HOME/libvirtd.conf>
+
+The default configuration file used by libvirtd, unless overridden on the
+command line using the B<-f>|B<--config> option.
+
+=item F<$XDG_RUNTIME_DIR/libvirt/libvirt-sock>
+
+The socket libvirtd will use.
+
+=item F<$HOME/.pki/libvirt/cacert.pem>
+
+The TLS B<Certificate Authority> certificate libvirtd will use.
+
+=item F<$HOME/.pki/libvirt/servercert.pem>
+
+The TLS B<Server> certificate libvirtd will use.
+
+=item F<$HOME/.pki/libvirt/serverkey.pem>
+
+The TLS B<Server> private key libvirtd will use.
+
+=item F<$XDG_RUNTIME_DIR/libvirt/libvirtd.pid>
+
+The PID file to use, unless overridden by the B<-p>|B<--pid-file> option.
+
+=item If $XDG_CONFIG_HOME is not set in your environment, libvirtd will use F<$HOME/.config>
+
+=item If $XDG_RUNTIME_DIR is not set in your environment, libvirtd will use F<$HOME/.cache>
 
 =back
 
@@ -118,8 +154,8 @@ To retrieve the version of libvirtd:
 To start libvirtd, instructing it to daemonize and create a PID file:
 
  # libvirtd -d
- # ls -la @remote_pid_file@
- -rw-r--r-- 1 root root 6 Jul  9 02:40 @remote_pid_file@
+ # ls -la LOCALSTATEDIR/run/libvirtd.pid
+ -rw-r--r-- 1 root root 6 Jul  9 02:40 LOCALSTATEDIR/run/libvirtd.pid
  #
 
 =head1 BUGS
@@ -150,7 +186,7 @@ Please refer to the AUTHORS file distributed with libvirt.
 
 =head1 COPYRIGHT
 
-Copyright (C) 2006-2010 Red Hat, Inc., and the authors listed in the
+Copyright (C) 2006-2012 Red Hat, Inc., and the authors listed in the
 libvirt AUTHORS file.
 
 =head1 LICENSE

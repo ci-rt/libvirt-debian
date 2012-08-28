@@ -15,8 +15,14 @@
 
     <p>
       The root element required for all virtual networks is
-      named <code>network</code> and has no attributes.
-      The network XML format is available <span class="since">since 0.3.0</span>
+      named <code>network</code> and has no configurable attributes
+      (although <span class="since">since 0.10.0</span> there is one
+      optional read-only attribute - when examining the live
+      configuration of a network, the
+      attribute <code>connections</code>, if present, specifies the
+      number of guest interfaces currently connected via this
+      network).  The network XML format is
+      available <span class="since">since 0.3.0</span>
     </p>
 
     <h3><a name="elementsMetadata">General metadata</a></h3>
@@ -147,10 +153,17 @@
             This network describes either 1) an existing host bridge
             that was configured outside of libvirt (if
             a <code>&lt;bridge name='xyz'/&gt;</code> element has been
-            specified), or 2) an interface or group of interfaces to
-            be used for a "direct" connection via macvtap using
-            macvtap's "bridge" mode (if the forward element has one or
-            more <code>&lt;interface&gt;</code> subelements)
+            specified, <span class="since">Since 0.9.4</span>), 2) an
+            existing Open vSwitch bridge that was configured outside of
+            libvirt (if both a <code>&lt;bridge name='xyz'/&gt;</code>
+            element <b>and</b> a <code>&lt;virtualport
+            type='openvswitch'/&gt;</code> have been
+            specified <span class="since">Since 0.10.0</span>) 3) an
+            interface or group of interfaces to be used for a "direct"
+            connection via macvtap using macvtap's "bridge" mode (if
+            the forward element has one or
+            more <code>&lt;interface&gt;</code>
+            subelements, <span class="since">Since 0.9.4</span>)
             (see <a href="formatdomain.html#elementsNICSDirect">Direct
             attachment to physical interface</a> for descriptions of
             the various macvtap modes). libvirt doesn't attempt to
@@ -210,6 +223,42 @@
             (usually either a domain start, or a hotplug interface
             attach to a domain).<span class="since">Since 0.9.4</span>
           </dd>
+          <dt><code>hostdev</code></dt>
+          <dd>
+            This network facilitates PCI Passthrough of a network
+            device.  A network device is chosen from the interface
+            pool and directly assigned to the guest using generic
+            device passthrough, after first optionally setting the
+            device's MAC address and vlan tag to the configured value,
+            and optionally associating the device with an 802.1Qbh
+            capable switch using a <code>&lt;virtualport&gt;</code>
+            element.  Note that - due to limitations in standard
+            single-port PCI ethernet card driver design - only SR-IOV
+            (Single Root I/O Virtualization) virtual function (VF)
+            devices can be assigned in this manner; to assign a
+            standard single-port PCI or PCIe ethernet card to a guest,
+            use the traditional <code>&lt; hostdev&gt;</code> device
+            definition. <span class="since"> Since 0.10.0</span>
+
+            <p>Note that this "intelligent passthrough" of network
+            devices is very similar to the functionality of a
+            standard <code>&lt; hostdev&gt;</code> device, the
+            difference being that this method allows specifying a MAC
+            address, vlan tag, and <code>&lt;virtualport &gt;</code>
+            for the passed-through device. If these capabilities are
+            not required, if you have a standard single-port PCI,
+            PCIe, or USB network card that doesn't support SR-IOV (and
+            hence would anyway lose the configured MAC address during
+            reset after being assigned to the guest domain), or if you
+            are using a version of libvirt older than 0.10.0, you
+            should use a standard
+            <code>&lt;hostdev&gt;</code> device definition in the
+            domain's configuration to assign the device to the guest
+            instead of defining an <code>&lt;interface
+            type='network'&gt;</code> pointing to a network
+            with <code>&lt;forward mode='hostdev'/&gt;</code>.
+            </p>
+          </dd>
         </dl>
         As mentioned above, a <code>&lt;forward&gt;</code> element can
         have multiple <code>&lt;interface&gt;</code> subelements, each
@@ -226,12 +275,22 @@
   &lt;/forward&gt;
 ...
         </pre>
-        Additionally, <span class="since">since 0.9.10</span>, libvirt
-        allows a shorthand for specifying all virtual interfaces
-        associated with a single physical function, by using
-        the <code>&lt;pf&gt;</code> subelement to call out the
-        corresponding physical interface associated with multiple
-        virtual interfaces:
+        <p>
+          <span class="since">since 0.10.0</span>,
+          <code>&lt;interface&gt;</code> also has an optional read-only
+          attribute - when examining the live configuration of a
+          network, the attribute <code>connections</code>, if present,
+          specifies the number of guest interfaces currently connected
+          via this physical interface.
+        </p>
+        <p>
+          Additionally, <span class="since">since 0.9.10</span>, libvirt
+          allows a shorthand for specifying all virtual interfaces
+          associated with a single physical function, by using
+          the <code>&lt;pf&gt;</code> subelement to call out the
+          corresponding physical interface associated with multiple
+          virtual interfaces:
+        </p>
         <pre>
 ...
   &lt;forward mode='passthrough'&gt;
@@ -249,6 +308,39 @@
         particular, 'passthrough' mode, and 'private' mode when using
         802.1Qbh), libvirt will choose an unused physical interface
         or, if it can't find an unused interface, fail the operation.</p>
+
+        <p>
+          <span class="since">since 0.10.0</span> When using forward
+          mode 'hostdev', the interface pool is specified with a list
+          of <code>&lt;address&gt;</code> elements, each of which has
+          <code>&lt; type&gt;</code> (must always be <code>'pci'</code>,
+          <code>&lt;domain&gt;</code>, <code>&lt;bus&gt;</code>,
+          <code>&lt;slot&gt;</code>, and <code>&lt;function&gt;</code>
+          attributes.
+        </p>
+        <pre>
+...
+  &lt;forward mode='hostdev' managed='yes'&gt;
+    &lt;address type='pci' domain='0' bus='4' slot='0' function='1'/&gt;
+    &lt;address type='pci' domain='0' bus='4' slot='0' function='2'/&gt;
+    &lt;address type='pci' domain='0' bus='4' slot='0' function='3'/&gt;
+  &lt;/forward&gt;
+...
+        </pre>
+
+        Alternatively the interface pool can also be defined using a
+        single physical function  <code>&lt;pf&gt;</code> subelement to
+        call out the  corresponding physical interface associated with
+        multiple virtual interfaces (similar to passthrough mode):
+
+        <pre>
+...
+  &lt;forward mode='hostdev' managed='yes'&gt;
+    &lt;pf dev='eth0'/&gt;
+  &lt;/forward&gt;
+...
+        </pre>
+
       </dd>
     </dl>
     <h5><a name="elementQoS">Quality of service</a></h5>
@@ -282,6 +374,56 @@
         <code>portgroup</code> element.
         <span class="since">Since 0.9.4</span>
       </p>
+
+    <h5><a name="elementVlanTag">Setting VLAN tag (on supported network types only)</a></h5>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='bridge'&gt;
+      <b>&lt;vlan trunk='yes'&gt;</b>
+        <b>&lt;tag id='42'/&gt;</b>
+        <b>&lt;tag id='47'/&gt;</b>
+      <b>&lt;/vlan&gt;</b>
+      &lt;source bridge='ovsbr0'/&gt;
+      &lt;virtualport type='openvswitch'&gt;
+        &lt;parameters interfaceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
+      &lt;/virtualport&gt;
+    &lt;/interface&gt;
+  &lt;devices&gt;
+  ...</pre>
+
+    <p>
+      If (and only if) the network type supports vlan tagging
+      transparent to the guest, an optional <code>&lt;vlan&gt;</code>
+      element can specify one or more vlan tags to apply to the
+      traffic of all guests using this
+      network <span class="since">Since 0.10.0</span>. (openvswitch
+      and type='hostdev' SR-IOV networks do support transparent vlan
+      tagging of guest traffic; everything else, including standard
+      linux bridges and libvirt's own virtual networks, <b>do not</b>
+      support it. 802.1Qbh (vn-link) and 802.1Qbg (VEPA) switches
+      provide their own way (outside of libvirt) to tag guest traffic
+      onto specific vlans.) As expected, the <code>tag</code>
+      attribute specifies which vlan tag to use. If a network has more
+      than one <code>&lt;vlan&gt;</code> element defined, it is
+      assumed that the user wants to do VLAN trunking using all the
+      specified tags. In the case that vlan trunking with a single tag
+      is desired, the optional attribute <code>trunk='yes'</code> can
+      be added to the vlan element.
+    </p>
+    <p>
+      <code>&lt;vlan&gt;</code> elements can also be specified in
+      a <code>&lt;portgroup&gt;</code> element, as well as directly in
+      a domain's <code>&lt;interface&gt;</code> element. In the case
+      that a vlan tag is specified in multiple locations, the setting
+      in <code>&lt;interface&gt;</code> takes precedence, followed by
+      the setting in the <code>&lt;portgroup&gt;</code> selected by
+      the interface config. The <code>&lt;vlan&gt;</code>
+      in <code>&lt;network&gt;</code> will be selected only if none is
+      given in <code>&lt;portgroup&gt;</code>
+      or <code>&lt;interface&gt;</code>.
+    </p>
 
     <h5><a name="elementsPortgroup">Portgroups</a></h5>
 
@@ -337,9 +479,15 @@
       default portgroup will be used. If no portgroup is given in the
       interface definition, and there is no default portgroup, then
       none will be used. Any <code>&lt;bandwidth&gt;</code>
-      or <code>&lt;virtualport&gt;</code> specified directly in the
-      domain XML will take precedence over any setting in the chosen
-      portgroup.
+
+      specified directly in the domain XML will take precedence over
+      any setting in the chosen portgroup. if
+      a <code>&lt;virtualport&gt;</code> is specified in the portgroup
+      (and/or directly in the network definition), the multiple
+      virtualports will be merged, and any parameter that is specified
+      in more than one virtualport, and is not identical, will be
+      considered an error, and will prevent the interface from
+      starting.
     </p>
 
     <h3><a name="elementsAddress">Addressing</a></h3>

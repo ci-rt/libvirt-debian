@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -133,6 +133,11 @@ enum qemuCapsFlags {
     QEMU_CAPS_HDA_MICRO          = 95, /* -device hda-micro */
     QEMU_CAPS_DUMP_GUEST_MEMORY  = 96, /* dump-guest-memory command */
     QEMU_CAPS_NEC_USB_XHCI       = 97, /* -device nec-usb-xhci */
+    QEMU_CAPS_VIRTIO_S390        = 98, /* -device virtio-*-s390 */
+    QEMU_CAPS_BALLOON_EVENT      = 99, /* Async event for balloon changes */
+    QEMU_CAPS_NETDEV_BRIDGE      = 100, /* bridge helper support */
+    QEMU_CAPS_SCSI_LSI           = 101, /* -device lsi */
+    QEMU_CAPS_VIRTIO_SCSI_PCI    = 102, /* -device virtio-scsi-pci */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 };
@@ -167,7 +172,9 @@ int qemuCapsProbeCPUModels(const char *qemu,
 
 int qemuCapsExtractVersion(virCapsPtr caps,
                            unsigned int *version);
-int qemuCapsExtractVersionInfo(const char *qemu, const char *arch,
+int qemuCapsExtractVersionInfo(const char *qemu,
+                               const char *arch,
+                               bool check_yajl,
                                unsigned int *version,
                                virBitmapPtr *qemuCaps);
 

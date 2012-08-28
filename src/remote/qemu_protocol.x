@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library; if not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Chris Lalancette <clalance@redhat.com>
  */
@@ -47,6 +47,17 @@ struct qemu_domain_attach_ret {
     remote_nonnull_domain dom;
 };
 
+struct qemu_domain_agent_command_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string cmd;
+    int timeout;
+    unsigned int flags;
+};
+
+struct qemu_domain_agent_command_ret {
+    remote_string result;
+};
+
 /* Define the program number, protocol version and procedure numbers here. */
 const QEMU_PROGRAM = 0x20008087;
 const QEMU_PROTOCOL_VERSION = 1;
@@ -61,5 +72,6 @@ enum qemu_procedure {
      * are some exceptions to this rule, e.g. domainDestroy. Other APIs MAY
      * be marked as high priority. If in doubt, it's safe to choose low. */
     QEMU_PROC_MONITOR_COMMAND = 1, /* skipgen skipgen priority:low */
-    QEMU_PROC_DOMAIN_ATTACH = 2 /* autogen autogen priority:low */
+    QEMU_PROC_DOMAIN_ATTACH = 2, /* autogen autogen priority:low */
+    QEMU_PROC_DOMAIN_AGENT_COMMAND = 3 /* autogen autogen priority:low */
 };

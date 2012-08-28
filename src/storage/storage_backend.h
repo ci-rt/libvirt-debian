@@ -1,7 +1,7 @@
 /*
  * storage_backend.h: internal storage driver backend contract
  *
- * Copyright (C) 2007-2010 Red Hat, Inc.
+ * Copyright (C) 2007-2010, 2012 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -24,9 +24,9 @@
 #ifndef __VIR_STORAGE_BACKEND_H__
 # define __VIR_STORAGE_BACKEND_H__
 
-# include <stdint.h>
 # include "internal.h"
 # include "storage_conf.h"
+# include "command.h"
 
 typedef char * (*virStorageBackendFindPoolSources)(virConnectPtr conn, const char *srcSpec, unsigned int flags);
 typedef int (*virStorageBackendCheckPool)(virConnectPtr conn, virStoragePoolObjPtr pool, bool *active);
@@ -141,7 +141,7 @@ typedef int (*virStorageBackendListVolNulFunc)(virStoragePoolObjPtr pool,
                                                void *data);
 
 int virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
-                                  const char *const*prog,
+                                  virCommandPtr cmd,
                                   int nregex,
                                   const char **regex,
                                   int *nvars,
@@ -149,7 +149,7 @@ int virStorageBackendRunProgRegex(virStoragePoolObjPtr pool,
                                   void *data, const char *cmd_to_ignore);
 
 int virStorageBackendRunProgNul(virStoragePoolObjPtr pool,
-                                const char **prog,
+                                virCommandPtr cmd,
                                 size_t n_columns,
                                 virStorageBackendListVolNulFunc func,
                                 void *data);

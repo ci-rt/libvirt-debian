@@ -55,9 +55,9 @@
         <optional>
           <ref name="devices"/>
         </optional>
-        <optional>
+        <zeroOrMore>
           <ref name="seclabel"/>
-        </optional>
+        </zeroOrMore>
         <optional>
           <ref name='qemucmdline'/>
         </optional>
@@ -148,18 +148,32 @@
       <!-- A per-device seclabel override is more limited, either
            relabel=no or a <label> must be present.  -->
       <choice>
-        <attribute name='relabel'>
-          <value>no</value>
-        </attribute>
         <group>
+          <optional>
+            <attribute name='model'>
+              <text/>
+            </attribute>
+          </optional>
+          <attribute name='relabel'>
+            <value>no</value>
+          </attribute>
+        </group>
+        <group>
+          <optional>
+            <attribute name='model'>
+              <text/>
+            </attribute>
+          </optional>
           <optional>
             <attribute name='relabel'>
               <value>yes</value>
             </attribute>
           </optional>
-          <element name='label'>
-            <text/>
-          </element>
+          <zeroOrMore>
+            <element name='label'>
+              <text/>
+            </element>
+          </zeroOrMore>
         </group>
       </choice>
     </element>
@@ -179,6 +193,7 @@
         <value>hyperv</value>
         <value>vbox</value>
         <value>phyp</value>
+        <value>parallels</value>
       </choice>
     </attribute>
   </define>
@@ -283,6 +298,7 @@
           <ref name="hvmsparc"/>
           <ref name="hvmppc"/>
           <ref name="hvmppc64"/>
+          <ref name="hvms390"/>
         </choice>
       </optional>
       <value>hvm</value>
@@ -364,6 +380,25 @@
         <attribute name="machine">
           <choice>
             <value>pseries</value>
+          </choice>
+        </attribute>
+      </optional>
+    </group>
+  </define>
+  <define name="hvms390">
+    <group>
+      <optional>
+        <attribute name="arch">
+          <choice>
+            <value>s390</value>
+            <value>s390x</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="machine">
+          <choice>
+            <value>s390-virtio</value>
           </choice>
         </attribute>
       </optional>
@@ -546,6 +581,16 @@
               <ref name="cpuquota"/>
             </element>
           </optional>
+          <optional>
+            <element name="emulator_period">
+              <ref name="cpuperiod"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="emulator_quota">
+              <ref name="cpuquota"/>
+            </element>
+          </optional>
           <zeroOrMore>
             <element name="vcpupin">
               <attribute name="vcpu">
@@ -556,6 +601,13 @@
               </attribute>
             </element>
           </zeroOrMore>
+          <optional>
+            <element name="emulatorpin">
+              <attribute name="cpuset">
+                <ref name="cpuset"/>
+              </attribute>
+            </element>
+          </optional>
         </element>
       </optional>
 
@@ -831,6 +883,9 @@
       <optional>
         <ref name="address"/>
       </optional>
+      <optional>
+        <ref name="geometry"/>
+      </optional>
     </interleave>
   </define>
   <define name="snapshot">
@@ -1033,6 +1088,28 @@
       </optional>
     </element>
   </define>
+  <define name="geometry">
+    <element name="geometry">
+      <attribute name="cyls">
+        <data type="integer"/>
+      </attribute>
+      <attribute name="heads">
+        <data type="integer"/>
+      </attribute>
+      <attribute name="secs">
+        <data type="integer"/>
+      </attribute>
+      <optional>
+        <attribute name="trans">
+          <choice>
+            <value>auto</value>
+            <value>none</value>
+            <value>lba</value>
+          </choice>
+        </attribute>
+      </optional>
+    </element>
+  </define>
   <!--
       Disk may use a special driver for access.
     -->
@@ -1202,6 +1279,7 @@
             <value>vt82c686b-uhci</value>
             <value>pci-ohci</value>
             <value>nec-xhci</value>
+            <value>none</value>
           </choice>
         </attribute>
       </optional>
@@ -1387,6 +1465,9 @@
                 </attribute>
                 <empty/>
               </element>
+            </optional>
+            <optional>
+              <ref name="virtualPortProfile"/>
             </optional>
             <ref name="interface-options"/>
           </interleave>
@@ -1687,6 +1768,9 @@
       </optional>
       <optional>
         <ref name="bandwidth"/>
+      </optional>
+      <optional>
+        <ref name="vlan"/>
       </optional>
     </interleave>
   </define>
@@ -2624,30 +2708,6 @@
       </attribute>
     </optional>
   </define>
-  <define name="pciaddress">
-    <optional>
-      <attribute name="domain">
-        <ref name="pciDomain"/>
-      </attribute>
-    </optional>
-    <attribute name="bus">
-      <ref name="pciBus"/>
-    </attribute>
-    <attribute name="slot">
-      <ref name="pciSlot"/>
-    </attribute>
-    <attribute name="function">
-      <ref name="pciFunc"/>
-    </attribute>
-    <optional>
-      <attribute name="multifunction">
-        <choice>
-          <value>on</value>
-          <value>off</value>
-        </choice>
-      </attribute>
-    </optional>
-  </define>
   <define name="driveaddress">
     <optional>
       <attribute name="controller">
@@ -2852,6 +2912,13 @@
             <value>allow</value>
             <value>forbid</value>
           </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="vendor_id">
+          <data type="string">
+            <param name='pattern'>[^,]{12}</param>
+          </data>
         </attribute>
       </optional>
       <choice>
@@ -3339,26 +3406,6 @@
   <define name="usbPort">
     <data type="string">
       <param name="pattern">((0x)?[0-9a-fA-F]{1,3}\.){0,3}(0x)?[0-9a-fA-F]{1,3}</param>
-    </data>
-  </define>
-  <define name="pciDomain">
-    <data type="string">
-      <param name="pattern">(0x)?[0-9a-fA-F]{1,4}</param>
-    </data>
-  </define>
-  <define name="pciBus">
-    <data type="string">
-      <param name="pattern">(0x)?[0-9a-fA-F]{1,2}</param>
-    </data>
-  </define>
-  <define name="pciSlot">
-    <data type="string">
-      <param name="pattern">(0x)?[0-1]?[0-9a-fA-F]</param>
-    </data>
-  </define>
-  <define name="pciFunc">
-    <data type="string">
-      <param name="pattern">(0x)?[0-7]</param>
     </data>
   </define>
   <define name="driveController">

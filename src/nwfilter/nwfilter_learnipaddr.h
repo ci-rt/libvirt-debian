@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Stefan Berger <stefanb@us.ibm.com>
  */
@@ -40,7 +40,7 @@ struct _virNWFilterIPAddrLearnReq {
     int ifindex;
     char linkdev[IF_NAMESIZE];
     enum virDomainNetType nettype;
-    unsigned char macaddr[VIR_MAC_BUFLEN];
+    virMacAddr macaddr;
     char *filtername;
     virNWFilterHashTablePtr filterparams;
     virNWFilterDriverStatePtr driver;
@@ -56,7 +56,7 @@ int virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
                               int ifindex,
                               const char *linkdev,
                               enum virDomainNetType nettype,
-                              const unsigned char *macaddr,
+                              const virMacAddrPtr macaddr,
                               const char *filtername,
                               virNWFilterHashTablePtr filterparams,
                               virNWFilterDriverStatePtr driver,

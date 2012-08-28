@@ -79,12 +79,13 @@ UTIL_SOURCES =							\
 		util/threadpool.c util/threadpool.h		\
 		util/uuid.c util/uuid.h				\
 		util/util.c util/util.h				\
-		util/viratomic.h				\
+		util/viratomic.h util/viratomic.c		\
 		util/viraudit.c util/viraudit.h			\
 		util/virauth.c util/virauth.h			\
 		util/virauthconfig.c util/virauthconfig.h	\
 		util/virfile.c util/virfile.h			\
 		util/virnodesuspend.c util/virnodesuspend.h	\
+		util/virobject.c util/virobject.h		\
 		util/virpidfile.c util/virpidfile.h		\
 		util/virtypedparam.c util/virtypedparam.h	\
 		util/xml.c util/xml.h				\
@@ -103,6 +104,7 @@ UTIL_SOURCES =							\
 		util/virnetdevopenvswitch.h util/virnetdevopenvswitch.c \
 		util/virnetdevtap.h util/virnetdevtap.c		\
 		util/virnetdevveth.h util/virnetdevveth.c \
+		util/virnetdevvlan.h util/virnetdevvlan.c \
 		util/virnetdevvportprofile.h util/virnetdevvportprofile.c \
 		util/virnetlink.c util/virnetlink.h		\
 		util/virrandom.h util/virrandom.c		\
@@ -123,16 +125,17 @@ EXTRA_DIST += util/threads-pthread.c util/threads-win32.c
 
 # Internal generic driver infrastructure
 NODE_INFO_SOURCES = nodeinfo.h nodeinfo.c
-DRIVER_SOURCES =						\
-		driver.c driver.h				\
-		internal.h					\
-		datatypes.c datatypes.h				\
-		fdstream.c fdstream.h                 \
-		$(NODE_INFO_SOURCES)				\
-		libvirt.c libvirt_internal.h			\
-		locking/lock_manager.c locking/lock_manager.h   \
-		locking/lock_driver.h 				\
-		locking/lock_driver_nop.h locking/lock_driver_nop.c \
+DATATYPES_SOURCES = datatypes.h datatypes.c
+DRIVER_SOURCES =							\
+		driver.c driver.h					\
+		internal.h						\
+		$(DATATYPES_SOURCES)					\
+		fdstream.c fdstream.h					\
+		$(NODE_INFO_SOURCES)					\
+		libvirt.c libvirt_internal.h				\
+		locking/lock_manager.c locking/lock_manager.h		\
+		locking/lock_driver.h					\
+		locking/lock_driver_nop.h locking/lock_driver_nop.c	\
 		locking/domain_lock.h locking/domain_lock.c
 
 LOCK_DRIVER_SANLOCK_SOURCES = \
@@ -141,7 +144,8 @@ LOCK_DRIVER_SANLOCK_SOURCES = \
 
 NETDEV_CONF_SOURCES =						\
 		conf/netdev_bandwidth_conf.h conf/netdev_bandwidth_conf.c \
-		conf/netdev_vport_profile_conf.h conf/netdev_vport_profile_conf.c
+		conf/netdev_vport_profile_conf.h conf/netdev_vport_profile_conf.c \
+		conf/netdev_vlan_conf.h conf/netdev_vlan_conf.c
 
 # XML configuration format handling sources
 # Domain driver generic impl APIs
@@ -149,7 +153,8 @@ DOMAIN_CONF_SOURCES =						\
 		conf/capabilities.c conf/capabilities.h		\
 		conf/domain_conf.c conf/domain_conf.h		\
 		conf/domain_audit.c conf/domain_audit.h		\
-		conf/domain_nwfilter.c conf/domain_nwfilter.h
+		conf/domain_nwfilter.c conf/domain_nwfilter.h	\
+		conf/snapshot_conf.c conf/snapshot_conf.h
 
 DOMAIN_EVENT_SOURCES =						\
 		conf/domain_event.c conf/domain_event.h
@@ -195,9 +200,9 @@ CPU_CONF_SOURCES =						\
 CONSOLE_CONF_SOURCES =						\
 		conf/virconsole.c conf/virconsole.h
 
-# Domain listing helpers
-DOMAIN_LIST_SOURCES =						\
-		conf/virdomainlist.c conf/virdomainlist.h
+# Device Helper APIs
+DEVICE_CONF_SOURCES =                                           \
+		conf/device_conf.c conf/device_conf.h
 
 CONF_SOURCES =							\
 		$(NETDEV_CONF_SOURCES)				\
@@ -212,7 +217,7 @@ CONF_SOURCES =							\
 		$(SECRET_CONF_SOURCES)				\
 		$(CPU_CONF_SOURCES)				\
 		$(CONSOLE_CONF_SOURCES)				\
-		$(DOMAIN_LIST_SOURCES)
+		$(DEVICE_CONF_SOURCES)
 
 # The remote RPC driver, covering domains, storage, networks, etc
 REMOTE_DRIVER_GENERATED = \
@@ -230,12 +235,12 @@ REMOTE_DRIVER_PROTOCOL = $(REMOTE_PROTOCOL) $(QEMU_PROTOCOL)
 $(srcdir)/remote/remote_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
 		$(REMOTE_PROTOCOL)
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
-	  -k remote $(REMOTE_PROTOCOL) > $@
+	  -k remote REMOTE $(REMOTE_PROTOCOL) > $@
 
 $(srcdir)/remote/qemu_client_bodies.h: $(srcdir)/rpc/gendispatch.pl \
 		$(QEMU_PROTOCOL)
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
-	  -k qemu $(QEMU_PROTOCOL) > $@
+	  -k qemu QEMU $(QEMU_PROTOCOL) > $@
 
 REMOTE_DRIVER_SOURCES =						\
 		gnutls_1_0_compat.h				\
@@ -306,6 +311,12 @@ PDWTAGS = \
 	  echo 'WARNING: install the dwarves package to get pdwtags' >&2; \
 	fi
 
+# .libs/libvirt.so is built by libtool as a side-effect of the Makefile
+# rule for libvirt.la
+check-symfile: libvirt.syms libvirt.la
+	$(AM_V_GEN)$(PERL) $(srcdir)/check-symfile.pl libvirt.syms \
+	  .libs/libvirt.so
+
 PROTOCOL_STRUCTS = \
 	$(srcdir)/remote_protocol-structs \
 	$(srcdir)/qemu_protocol-structs \
@@ -327,8 +338,8 @@ else !WITH_REMOTE
 # re-generated when configured --without-remote.
 check-protocol:
 endif
-EXTRA_DIST += $(PROTOCOL_STRUCTS)
-check-local: check-protocol
+EXTRA_DIST += $(PROTOCOL_STRUCTS) check-symfile.pl
+check-local: check-protocol check-symfile
 .PHONY: check-protocol $(PROTOCOL_STRUCTS:structs=struct)
 
 # Mock driver, covering domains, storage, networks, etc
@@ -347,17 +358,65 @@ if WITH_XEN_INOTIFY
 XEN_DRIVER_SOURCES += xen/xen_inotify.c xen/xen_inotify.h
 endif
 
+LXC_PROTOCOL_GENERATED = \
+	$(srcdir)/lxc/lxc_protocol.h \
+	$(srcdir)/lxc/lxc_protocol.c \
+	$(NULL)
+
+LXC_MONITOR_GENERATED = \
+	$(srcdir)/lxc/lxc_monitor_dispatch.h \
+	$(NULL)
+
+LXC_CONTROLLER_GENERATED = \
+	$(srcdir)/lxc/lxc_controller_dispatch.h \
+	$(NULL)
+
+LXC_GENERATED = \
+	$(LXC_PROTOCOL_GENERATED) \
+	$(LXC_MONITOR_GENERATED) \
+	$(LXC_CONTROLLER_GENERATED) \
+	$(NULL)
+
+LXC_PROTOCOL = $(srcdir)/lxc/lxc_protocol.x
+
+$(srcdir)/lxc/lxc_monitor_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
+		$(LXC_PROTOCOL)
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
+	  -k virLXCProtocol VIR_LXC_PROTOCOL $(LXC_PROTOCOL) > $@
+
+$(srcdir)/lxc/lxc_controller_dispatch.h: $(srcdir)/rpc/gendispatch.pl \
+		$(REMOTE_PROTOCOL)
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gendispatch.pl \
+	  -b virLXCProtocol VIR_LXC_PROTOCOL $(LXC_PROTOCOL) > $@
+
+EXTRA_DIST += \
+	$(LXC_PROTOCOL) \
+	$(LXC_GENERATED) \
+	$(NULL)
+
+BUILT_SOURCES += $(LXC_GENERATED)
+
 LXC_DRIVER_SOURCES =						\
+		$(LXC_PROTOCOL_GENERATED)			\
+		$(LXC_MONITOR_GENERATED)			\
 		lxc/lxc_conf.c lxc/lxc_conf.h			\
 		lxc/lxc_container.c lxc/lxc_container.h		\
+		lxc/lxc_cgroup.c lxc/lxc_cgroup.h		\
+		lxc/lxc_domain.c lxc/lxc_domain.h		\
+		lxc/lxc_monitor.c lxc/lxc_monitor.h		\
+		lxc/lxc_process.c lxc/lxc_process.h		\
 		lxc/lxc_driver.c lxc/lxc_driver.h
 
 LXC_CONTROLLER_SOURCES =					\
+		$(LXC_PROTOCOL_GENERATED)			\
+		$(LXC_CONTROLLER_GENERATED)			\
 		lxc/lxc_conf.c lxc/lxc_conf.h			\
 		lxc/lxc_container.c lxc/lxc_container.h		\
+		lxc/lxc_cgroup.c lxc/lxc_cgroup.h		\
 		lxc/lxc_controller.c
 
 SECURITY_DRIVER_APPARMOR_HELPER_SOURCES =			\
+		$(DATATYPES_SOURCES)				\
 		security/virt-aa-helper.c
 
 PHYP_DRIVER_SOURCES =						\
@@ -387,29 +446,29 @@ VBOX_DRIVER_EXTRA_DIST =					\
 		vbox/vbox_MSCOMGlue.c vbox/vbox_MSCOMGlue.h	\
 		vbox/vbox_XPCOMCGlue.c vbox/vbox_XPCOMCGlue.h
 
-QEMU_DRIVER_SOURCES =						\
-		qemu/qemu_agent.c qemu/qemu_agent.h             \
-		qemu/qemu_capabilities.c qemu/qemu_capabilities.h\
-		qemu/qemu_command.c qemu/qemu_command.h		\
-		qemu/qemu_domain.c qemu/qemu_domain.h		\
-		qemu/qemu_cgroup.c qemu/qemu_cgroup.h		\
-		qemu/qemu_hostdev.c qemu/qemu_hostdev.h		\
-		qemu/qemu_hotplug.c qemu/qemu_hotplug.h		\
-		qemu/qemu_conf.c qemu/qemu_conf.h		\
-		qemu/qemu_process.c qemu/qemu_process.h		\
-		qemu/qemu_migration.c qemu/qemu_migration.h	\
-		qemu/qemu_monitor.c qemu/qemu_monitor.h		\
-		qemu/qemu_monitor_text.c			\
-		qemu/qemu_monitor_text.h			\
-		qemu/qemu_monitor_json.c			\
-		qemu/qemu_monitor_json.h			\
-		qemu/qemu_driver.c qemu/qemu_driver.h		\
-		qemu/qemu_bridge_filter.c			\
+QEMU_DRIVER_SOURCES =							\
+		qemu/qemu_agent.c qemu/qemu_agent.h			\
+		qemu/qemu_capabilities.c qemu/qemu_capabilities.h	\
+		qemu/qemu_command.c qemu/qemu_command.h			\
+		qemu/qemu_domain.c qemu/qemu_domain.h			\
+		qemu/qemu_cgroup.c qemu/qemu_cgroup.h			\
+		qemu/qemu_hostdev.c qemu/qemu_hostdev.h			\
+		qemu/qemu_hotplug.c qemu/qemu_hotplug.h			\
+		qemu/qemu_conf.c qemu/qemu_conf.h			\
+		qemu/qemu_process.c qemu/qemu_process.h			\
+		qemu/qemu_migration.c qemu/qemu_migration.h		\
+		qemu/qemu_monitor.c qemu/qemu_monitor.h			\
+		qemu/qemu_monitor_text.c				\
+		qemu/qemu_monitor_text.h				\
+		qemu/qemu_monitor_json.c				\
+		qemu/qemu_monitor_json.h				\
+		qemu/qemu_driver.c qemu/qemu_driver.h			\
+		qemu/qemu_bridge_filter.c				\
 		qemu/qemu_bridge_filter.h
 
-XENAPI_DRIVER_SOURCES =								\
+XENAPI_DRIVER_SOURCES =						\
 		xenapi/xenapi_driver.c xenapi/xenapi_driver.h	\
-		xenapi/xenapi_driver_private.h					\
+		xenapi/xenapi_driver_private.h			\
 		xenapi/xenapi_utils.c xenapi/xenapi_utils.h
 
 LIBXL_DRIVER_SOURCES =						\
@@ -420,18 +479,18 @@ UML_DRIVER_SOURCES =						\
 		uml/uml_conf.c uml/uml_conf.h			\
 		uml/uml_driver.c uml/uml_driver.h
 
-ESX_DRIVER_SOURCES =						\
-		esx/esx_private.h						\
-		esx/esx_driver.c esx/esx_driver.h		\
-		esx/esx_interface_driver.c esx/esx_interface_driver.h		\
-		esx/esx_network_driver.c esx/esx_network_driver.h		\
-		esx/esx_storage_driver.c esx/esx_storage_driver.h		\
-		esx/esx_device_monitor.c esx/esx_device_monitor.h		\
+ESX_DRIVER_SOURCES =							\
+		esx/esx_private.h					\
+		esx/esx_driver.c esx/esx_driver.h			\
+		esx/esx_interface_driver.c esx/esx_interface_driver.h	\
+		esx/esx_network_driver.c esx/esx_network_driver.h	\
+		esx/esx_storage_driver.c esx/esx_storage_driver.h	\
+		esx/esx_device_monitor.c esx/esx_device_monitor.h	\
 		esx/esx_secret_driver.c esx/esx_secret_driver.h		\
-		esx/esx_nwfilter_driver.c esx/esx_nwfilter_driver.h		\
-		esx/esx_util.c esx/esx_util.h			\
-		esx/esx_vi.c esx/esx_vi.h			\
-		esx/esx_vi_methods.c esx/esx_vi_methods.h	\
+		esx/esx_nwfilter_driver.c esx/esx_nwfilter_driver.h	\
+		esx/esx_util.c esx/esx_util.h				\
+		esx/esx_vi.c esx/esx_vi.h				\
+		esx/esx_vi_methods.c esx/esx_vi_methods.h		\
 		esx/esx_vi_types.c esx/esx_vi_types.h
 
 ESX_DRIVER_GENERATED =							\
@@ -447,13 +506,13 @@ ESX_DRIVER_GENERATED =							\
 		esx/esx_vi.generated.c					\
 		esx/esx_vi.generated.h
 
-ESX_DRIVER_EXTRA_DIST =						\
+ESX_DRIVER_EXTRA_DIST =							\
 		esx/README						\
 		esx/esx_vi_generator.input				\
 		esx/esx_vi_generator.py					\
 		$(ESX_DRIVER_GENERATED)
 
-HYPERV_DRIVER_SOURCES =								\
+HYPERV_DRIVER_SOURCES =									\
 		hyperv/hyperv_private.h							\
 		hyperv/hyperv_driver.c hyperv/hyperv_driver.h				\
 		hyperv/hyperv_interface_driver.c hyperv/hyperv_interface_driver.h	\
@@ -479,6 +538,13 @@ HYPERV_DRIVER_EXTRA_DIST =							\
 		hyperv/hyperv_wmi_generator.py					\
 		$(HYPERV_DRIVER_GENERATED)
 
+PARALLELS_DRIVER_SOURCES =					\
+		parallels/parallels_driver.h			\
+		parallels/parallels_driver.c			\
+		parallels/parallels_utils.c			\
+		parallels/parallels_utils.h			\
+		parallels/parallels_storage.c
+
 NETWORK_DRIVER_SOURCES =					\
 		network/bridge_driver.h network/bridge_driver.c
 
@@ -489,15 +555,15 @@ SECRET_DRIVER_SOURCES =						\
 		secret/secret_driver.h secret/secret_driver.c
 
 # Storage backend specific impls
-STORAGE_DRIVER_SOURCES =					\
-		storage/storage_driver.h storage/storage_driver.c		\
+STORAGE_DRIVER_SOURCES =						\
+		storage/storage_driver.h storage/storage_driver.c	\
 		storage/storage_backend.h storage/storage_backend.c
 
 STORAGE_DRIVER_FS_SOURCES =					\
 		storage/storage_backend_fs.h storage/storage_backend_fs.c
 
 STORAGE_DRIVER_LVM_SOURCES =					\
-		storage/storage_backend_logical.h			\
+		storage/storage_backend_logical.h		\
 		storage/storage_backend_logical.c
 
 STORAGE_DRIVER_ISCSI_SOURCES =					\
@@ -515,6 +581,9 @@ STORAGE_DRIVER_DISK_SOURCES =					\
 STORAGE_DRIVER_RBD_SOURCES =					\
 		storage/storage_backend_rbd.h storage/storage_backend_rbd.c
 
+STORAGE_DRIVER_SHEEPDOG_SOURCES =				\
+		storage/storage_backend_sheepdog.h storage/storage_backend_sheepdog.c
+
 STORAGE_HELPER_DISK_SOURCES =					\
 		storage/parthelper.c
 
@@ -522,7 +591,7 @@ UTIL_IO_HELPER_SOURCES =					\
 		util/iohelper.c
 
 # Network filters
-NWFILTER_DRIVER_SOURCES =					\
+NWFILTER_DRIVER_SOURCES =						\
 		nwfilter/nwfilter_driver.h nwfilter/nwfilter_driver.c	\
 		nwfilter/nwfilter_gentech_driver.c			\
 		nwfilter/nwfilter_gentech_driver.h			\
@@ -535,11 +604,11 @@ NWFILTER_DRIVER_SOURCES =					\
 
 
 # Security framework and drivers for various models
-SECURITY_DRIVER_SOURCES =					\
-		security/security_driver.h security/security_driver.c \
-		security/security_nop.h security/security_nop.c \
-		security/security_stack.h security/security_stack.c \
-		security/security_dac.h security/security_dac.c \
+SECURITY_DRIVER_SOURCES =						\
+		security/security_driver.h security/security_driver.c	\
+		security/security_nop.h security/security_nop.c		\
+		security/security_stack.h security/security_stack.c	\
+		security/security_dac.h security/security_dac.c		\
 		security/security_manager.h security/security_manager.c
 
 SECURITY_DRIVER_SELINUX_SOURCES =				\
@@ -550,8 +619,8 @@ SECURITY_DRIVER_APPARMOR_SOURCES =				\
 
 
 NODE_DEVICE_DRIVER_SOURCES =					\
-		node_device/node_device_driver.c \
-		node_device/node_device_driver.h \
+		node_device/node_device_driver.c		\
+		node_device/node_device_driver.h		\
 		node_device/node_device_linux_sysfs.c
 
 NODE_DEVICE_DRIVER_HAL_SOURCES =				\
@@ -567,6 +636,7 @@ CPU_SOURCES =							\
 		cpu/cpu_generic.h cpu/cpu_generic.c		\
 		cpu/cpu_x86.h cpu/cpu_x86.c cpu/cpu_x86_data.h	\
 		cpu/cpu_s390.h cpu/cpu_s390.c			\
+		cpu/cpu_arm.h cpu/cpu_arm.c			\
 		cpu/cpu_map.h cpu/cpu_map.c cpu/cpu_powerpc.h	\
 		cpu/cpu_powerpc.c
 
@@ -595,10 +665,10 @@ libvirt_util_la_SOURCES =					\
 		$(UTIL_SOURCES)
 libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
 		$(AM_CFLAGS) $(AUDIT_CFLAGS) $(DEVMAPPER_CFLAGS) \
-		$(DBUS_CFLAGS)
+		$(DBUS_CFLAGS) $(LDEXP_LIBM)
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
-		$(RT_LIBS) $(DBUS_LIBS) $(MSCOM_LIBS)
+		$(RT_LIBS) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -783,14 +853,12 @@ endif
 
 libvirt_driver_qemu_impl_la_CFLAGS = $(NUMACTL_CFLAGS) \
                                 $(GNUTLS_CFLAGS) \
-                                $(LIBXML_CFLAGS) \
                                 $(LIBNL_CFLAGS) \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
 libvirt_driver_qemu_impl_la_LDFLAGS = $(AM_LDFLAGS)
 libvirt_driver_qemu_impl_la_LIBADD = $(NUMACTL_LIBS) \
 				$(CAPNG_LIBS) \
                                 $(GNUTLS_LIBS) \
-                                $(LIBXML_LIBS) \
 				$(LIBNL_LIBS)
 libvirt_driver_qemu_impl_la_SOURCES = $(QEMU_DRIVER_SOURCES)
 
@@ -868,9 +936,19 @@ endif
 
 BUILT_SOURCES += $(ESX_DRIVER_GENERATED)
 
-$(ESX_DRIVER_GENERATED): $(srcdir)/esx/esx_vi_generator.input \
+ESX_GENERATED_STAMP = .esx_vi_generator.stamp
+
+EXTRA_DIST += $(ESX_GENERATED_STAMP)
+
+$(ESX_DRIVER_GENERATED): $(ESX_GENERATED_STAMP)
+
+$(ESX_GENERATED_STAMP): $(srcdir)/esx/esx_vi_generator.input \
                          $(srcdir)/esx/esx_vi_generator.py
-	$(AM_V_GEN)srcdir=$(srcdir) $(PYTHON) $(srcdir)/esx/esx_vi_generator.py
+	$(AM_V_GEN)srcdir=$(srcdir) $(PYTHON) $(srcdir)/esx/esx_vi_generator.py \
+	  && touch $@
+
+MAINTAINERCLEANFILES += $(ESX_DRIVER_GENERATED) $(ESX_GENERATED_STAMP)
+
 
 if WITH_ESX
 noinst_LTLIBRARIES += libvirt_driver_esx.la
@@ -886,9 +964,18 @@ endif
 
 BUILT_SOURCES += $(HYPERV_DRIVER_GENERATED)
 
-$(HYPERV_DRIVER_GENERATED): $(srcdir)/hyperv/hyperv_wmi_generator.input \
+HYPERV_GENERATED_STAMP = .hyperv_wmi_generator.stamp
+
+EXTRA_DIST += $(HYPERV_GENERATED_STAMP)
+
+$(HYPERV_DRIVER_GENERATED): $(HYPERV_GENERATED_STAMP)
+
+$(HYPERV_GENERATED_STAMP): $(srcdir)/hyperv/hyperv_wmi_generator.input \
                             $(srcdir)/hyperv/hyperv_wmi_generator.py
-	$(AM_V_GEN)srcdir=$(srcdir) $(PYTHON) $(srcdir)/hyperv/hyperv_wmi_generator.py
+	$(AM_V_GEN)srcdir=$(srcdir) $(PYTHON) $(srcdir)/hyperv/hyperv_wmi_generator.py \
+	  && touch $@
+
+MAINTAINERCLEANFILES += $(HYPERV_DRIVER_GENERATED) $(HYPERV_GENERATED_STAMP)
 
 if WITH_HYPERV
 noinst_LTLIBRARIES += libvirt_driver_hyperv.la
@@ -900,13 +987,21 @@ libvirt_driver_hyperv_la_LIBADD = $(OPENWSMAN_LIBS)
 libvirt_driver_hyperv_la_SOURCES = $(HYPERV_DRIVER_SOURCES)
 endif
 
+if WITH_PARALLELS
+noinst_LTLIBRARIES += libvirt_driver_parallels.la
+libvirt_la_BUILT_LIBADD += libvirt_driver_parallels.la
+libvirt_driver_parallels_la_CFLAGS = \
+		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+libvirt_driver_parallels_la_SOURCES = $(PARALLELS_DRIVER_SOURCES)
+endif
+
 if WITH_NETWORK
 noinst_LTLIBRARIES += libvirt_driver_network_impl.la
 libvirt_driver_network_la_SOURCES =
 libvirt_driver_network_la_LIBADD = libvirt_driver_network_impl.la
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_network.la
-libvirt_driver_network_la_LIBADD += ../gnulib/lib/libgnu.la $(LIBNL_LIBS)
+libvirt_driver_network_la_LIBADD += ../gnulib/lib/libgnu.la $(LIBNL_LIBS) $(DBUS_LIBS)
 libvirt_driver_network_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS)
 else
 noinst_LTLIBRARIES += libvirt_driver_network.la
@@ -915,13 +1010,11 @@ noinst_LTLIBRARIES += libvirt_driver_network.la
 endif
 
 libvirt_driver_network_impl_la_CFLAGS = \
-		$(LIBNL_CFLAGS) \
-		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+		$(LIBNL_CFLAGS) $(DBUS_CFLAGS) \
+		-I$(top_srcdir)/src/conf $(AM_CFLAGS) $(DBUS_CFLAGS)
 libvirt_driver_network_impl_la_SOURCES = $(NETWORK_DRIVER_SOURCES)
 endif
 EXTRA_DIST += network/default.xml
-
-
 
 
 if WITH_NETCF
@@ -961,62 +1054,67 @@ libvirt_driver_secret_la_SOURCES = $(SECRET_DRIVER_SOURCES)
 endif
 
 # Needed to keep automake quiet about conditionals
-libvirt_driver_storage_la_SOURCES =
-libvirt_driver_storage_la_CFLAGS = \
+libvirt_driver_storage_impl_la_SOURCES =
+libvirt_driver_storage_impl_la_CFLAGS = \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
-libvirt_driver_storage_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_storage_la_LIBADD =
+libvirt_driver_storage_impl_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_driver_storage_impl_la_LIBADD =
 if WITH_SECDRIVER_SELINUX
-libvirt_driver_storage_la_LIBADD += $(SELINUX_LIBS)
+libvirt_driver_storage_impl_la_LIBADD += $(SELINUX_LIBS)
 endif
 if WITH_SECDRIVER_APPARMOR
-libvirt_driver_storage_la_LIBADD += $(APPARMOR_LIBS)
+libvirt_driver_storage_impl_la_LIBADD += $(APPARMOR_LIBS)
 endif
 if HAVE_LIBBLKID
-libvirt_driver_storage_la_CFLAGS += $(BLKID_CFLAGS)
-libvirt_driver_storage_la_LIBADD += $(BLKID_LIBS)
+libvirt_driver_storage_impl_la_CFLAGS += $(BLKID_CFLAGS)
+libvirt_driver_storage_impl_la_LIBADD += $(BLKID_LIBS)
 endif
 if WITH_STORAGE
+noinst_LTLIBRARIES += libvirt_driver_storage_impl.la
+libvirt_driver_storage_la_SOURCES =
+libvirt_driver_storage_la_LIBADD = libvirt_driver_storage_impl.la
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_storage.la
+libvirt_driver_storage_la_LIBADD += ../gnulib/lib/libgnu.la
+libvirt_driver_storage_la_LDFLAGS = -module -avoid-version
 else
 noinst_LTLIBRARIES += libvirt_driver_storage.la
 # Stateful, so linked to daemon instead
 #libvirt_la_BUILT_LIBADD += libvirt_driver_storage.la
 endif
-if WITH_DRIVER_MODULES
-libvirt_driver_storage_la_LIBADD += ../gnulib/lib/libgnu.la
-libvirt_driver_storage_la_LDFLAGS += -module -avoid-version
-endif
-libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_SOURCES)
-libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_FS_SOURCES)
+libvirt_driver_storage_impl_la_SOURCES += $(STORAGE_DRIVER_SOURCES)
+libvirt_driver_storage_impl_la_SOURCES += $(STORAGE_DRIVER_FS_SOURCES)
 endif
 
 if WITH_STORAGE_LVM
-libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_LVM_SOURCES)
+libvirt_driver_storage_impl_la_SOURCES += $(STORAGE_DRIVER_LVM_SOURCES)
 endif
 
 if WITH_STORAGE_ISCSI
-libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_ISCSI_SOURCES)
+libvirt_driver_storage_impl_la_SOURCES += $(STORAGE_DRIVER_ISCSI_SOURCES)
 endif
 
 if WITH_STORAGE_SCSI
-libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_SCSI_SOURCES)
+libvirt_driver_storage_impl_la_SOURCES += $(STORAGE_DRIVER_SCSI_SOURCES)
 endif
 
 if WITH_STORAGE_MPATH
-libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_MPATH_SOURCES)
-libvirt_driver_storage_la_CFLAGS += $(DEVMAPPER_CFLAGS)
-libvirt_driver_storage_la_LIBADD += $(DEVMAPPER_LIBS)
+libvirt_driver_storage_impl_la_SOURCES += $(STORAGE_DRIVER_MPATH_SOURCES)
+libvirt_driver_storage_impl_la_CFLAGS += $(DEVMAPPER_CFLAGS)
+libvirt_driver_storage_impl_la_LIBADD += $(DEVMAPPER_LIBS)
 endif
 
 if WITH_STORAGE_DISK
-libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_DISK_SOURCES)
+libvirt_driver_storage_impl_la_SOURCES += $(STORAGE_DRIVER_DISK_SOURCES)
 endif
 
 if WITH_STORAGE_RBD
-libvirt_driver_storage_la_SOURCES += $(STORAGE_DRIVER_RBD_SOURCES)
-libvirt_driver_storage_la_LIBADD += $(LIBRBD_LIBS)
+libvirt_driver_storage_impl_la_SOURCES += $(STORAGE_DRIVER_RBD_SOURCES)
+libvirt_driver_storage_impl_la_LIBADD += $(LIBRBD_LIBS)
+endif
+
+if WITH_STORAGE_SHEEPDOG
+libvirt_driver_storage_impl_la_SOURCES += $(STORAGE_DRIVER_SHEEPDOG_SOURCES)
 endif
 
 if WITH_NODE_DEVICES
@@ -1057,13 +1155,14 @@ if WITH_NWFILTER
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_nwfilter.la
 else
-libvirt_la_BUILT_LIBADD += libvirt_driver_nwfilter.la
 noinst_LTLIBRARIES += libvirt_driver_nwfilter.la
+# Stateful, so linked to daemon instead
+#libvirt_la_BUILT_LIBADD += libvirt_driver_nwfilter.la
 endif
 libvirt_driver_nwfilter_la_CFLAGS = $(LIBPCAP_CFLAGS) \
-		-I$(top_srcdir)/src/conf $(LIBNL_CFLAGS) $(AM_CFLAGS)
+		-I$(top_srcdir)/src/conf $(LIBNL_CFLAGS) $(AM_CFLAGS) $(DBUS_CFLAGS)
 libvirt_driver_nwfilter_la_LDFLAGS = $(LD_AMFLAGS)
-libvirt_driver_nwfilter_la_LIBADD = $(LIBPCAP_LIBS) $(LIBNL_LIBS)
+libvirt_driver_nwfilter_la_LIBADD = $(LIBPCAP_LIBS) $(LIBNL_LIBS) $(DBUS_LIBS)
 if WITH_DRIVER_MODULES
 libvirt_driver_nwfilter_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_nwfilter_la_LDFLAGS += -module -avoid-version
@@ -1072,22 +1171,22 @@ libvirt_driver_nwfilter_la_SOURCES = $(NWFILTER_DRIVER_SOURCES)
 endif
 
 
-libvirt_driver_security_la_SOURCES = $(SECURITY_DRIVER_SOURCES)
-noinst_LTLIBRARIES += libvirt_driver_security.la
-libvirt_la_BUILT_LIBADD += libvirt_driver_security.la
-libvirt_driver_security_la_CFLAGS = \
+libvirt_security_manager_la_SOURCES = $(SECURITY_DRIVER_SOURCES)
+noinst_LTLIBRARIES += libvirt_security_manager.la
+libvirt_la_BUILT_LIBADD += libvirt_security_manager.la
+libvirt_security_manager_la_CFLAGS = \
 		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
-libvirt_driver_security_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_security_la_LIBADD =
+libvirt_security_manager_la_LDFLAGS = $(AM_LDFLAGS)
+libvirt_security_manager_la_LIBADD =
 if WITH_SECDRIVER_SELINUX
-libvirt_driver_security_la_SOURCES += $(SECURITY_DRIVER_SELINUX_SOURCES)
-libvirt_driver_security_la_CFLAGS += $(SELINUX_CFLAGS)
-libvirt_driver_security_la_LIBADD += $(SELINUX_LIBS)
+libvirt_security_manager_la_SOURCES += $(SECURITY_DRIVER_SELINUX_SOURCES)
+libvirt_security_manager_la_CFLAGS += $(SELINUX_CFLAGS)
+libvirt_security_manager_la_LIBADD += $(SELINUX_LIBS)
 endif
 if WITH_SECDRIVER_APPARMOR
-libvirt_driver_security_la_SOURCES += $(SECURITY_DRIVER_APPARMOR_SOURCES)
-libvirt_driver_security_la_CFLAGS += $(APPARMOR_CFLAGS)
-libvirt_driver_security_la_LIBADD += $(APPARMOR_LIBS)
+libvirt_security_manager_la_SOURCES += $(SECURITY_DRIVER_APPARMOR_SOURCES)
+libvirt_security_manager_la_CFLAGS += $(APPARMOR_CFLAGS)
+libvirt_security_manager_la_LIBADD += $(APPARMOR_LIBS)
 endif
 
 # Add all conditional sources just in case...
@@ -1102,11 +1201,12 @@ EXTRA_DIST +=							\
 		$(PHYP_DRIVER_SOURCES)				\
 		$(VBOX_DRIVER_SOURCES)				\
 		$(XENAPI_DRIVER_SOURCES)			\
-		$(LIBXL_DRIVER_SOURCES)			\
+		$(LIBXL_DRIVER_SOURCES)				\
 		$(ESX_DRIVER_SOURCES)				\
 		$(ESX_DRIVER_EXTRA_DIST)			\
 		$(HYPERV_DRIVER_SOURCES)			\
 		$(HYPERV_DRIVER_EXTRA_DIST)			\
+		$(PARALLELS_DRIVER_SOURCES)			\
 		$(NETWORK_DRIVER_SOURCES)			\
 		$(INTERFACE_DRIVER_SOURCES)			\
 		$(STORAGE_DRIVER_SOURCES)			\
@@ -1117,6 +1217,7 @@ EXTRA_DIST +=							\
 		$(STORAGE_DRIVER_MPATH_SOURCES)			\
 		$(STORAGE_DRIVER_DISK_SOURCES)			\
 		$(STORAGE_DRIVER_RBD_SOURCES)			\
+		$(STORAGE_DRIVER_SHEEPDOG_SOURCES)		\
 		$(NODE_DEVICE_DRIVER_SOURCES)			\
 		$(NODE_DEVICE_DRIVER_HAL_SOURCES)		\
 		$(NODE_DEVICE_DRIVER_UDEV_SOURCES)		\
@@ -1211,10 +1312,6 @@ if WITH_LIBVIRTD
 USED_SYM_FILES += libvirt_daemon.syms
 endif
 
-if WITH_NWFILTER
-USED_SYM_FILES += libvirt_nwfilter.syms
-endif
-
 if WITH_OPENVZ
 USED_SYM_FILES += libvirt_openvz.syms
 endif
@@ -1227,28 +1324,32 @@ if WITH_XENXS
 USED_SYM_FILES += libvirt_xenxs.syms
 endif
 
-if WITH_NETWORK
-USED_SYM_FILES += libvirt_network.syms
-endif
-
 if HAVE_SASL
 USED_SYM_FILES += libvirt_sasl.syms
+endif
+
+if HAVE_LIBSSH2
+USED_SYM_FILES += libvirt_libssh2.syms
+endif
+
+if WITH_ATOMIC_OPS_PTHREAD
+USED_SYM_FILES += libvirt_atomic.syms
 endif
 
 EXTRA_DIST += \
   libvirt_public.syms		\
   libvirt_private.syms		\
+  libvirt_atomic.syms		\
   libvirt_driver_modules.syms	\
   libvirt_daemon.syms		\
   libvirt_linux.syms		\
   libvirt_esx.syms		\
-  libvirt_network.syms		\
-  libvirt_nwfilter.syms		\
   libvirt_openvz.syms		\
   libvirt_qemu.syms		\
   libvirt_sasl.syms		\
   libvirt_vmx.syms		\
-  libvirt_xenxs.syms
+  libvirt_xenxs.syms	\
+  libvirt_libssh2.syms
 
 GENERATED_SYM_FILES = libvirt.syms libvirt.def libvirt_qemu.def
 
@@ -1290,7 +1391,7 @@ libvirt_la_LDFLAGS = $(VERSION_SCRIPT_FLAGS)$(LIBVIRT_SYMBOL_FILE) \
 		    $(LIBVIRT_NODELETE) $(AM_LDFLAGS) \
 		    $(CYGWIN_EXTRA_LDFLAGS) $(MINGW_EXTRA_LDFLAGS)
 libvirt_la_BUILT_LIBADD += ../gnulib/lib/libgnu.la
-libvirt_la_LIBADD += $(LIBXML_LIBS) \
+libvirt_la_LIBADD += \
 		    $(DRIVER_MODULE_LIBS) \
 		    $(CYGWIN_EXTRA_LIBADD)
 libvirt_la_CFLAGS = -DIN_LIBVIRT $(AM_CFLAGS)
@@ -1308,6 +1409,9 @@ nodist_libvirt_la_SOURCES = libvirt_probes.h
 if WITH_REMOTE
 nodist_libvirt_driver_remote_la_SOURCES = libvirt_probes.h
 endif WITH_REMOTE
+if WITH_DRIVER_MODULES
+DTRACE2SYSTEMTAP_FLAGS = --with-modules
+endif
 
 BUILT_SOURCES += libvirt_probes.h libvirt_probes.stp libvirt_functions.stp
 
@@ -1344,9 +1448,9 @@ RPC_PROBE_FILES = $(srcdir)/rpc/virnetprotocol.x \
 libvirt_functions.stp: $(RPC_PROBE_FILES) $(srcdir)/rpc/gensystemtap.pl
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/rpc/gensystemtap.pl $(RPC_PROBE_FILES) > $@
 
-%_probes.stp: %_probes.d $(srcdir)/dtrace2systemtap.pl
+%_probes.stp: %_probes.d $(srcdir)/dtrace2systemtap.pl $(top_builddir)/config.status
 	$(AM_V_GEN)$(PERL) -w $(srcdir)/dtrace2systemtap.pl \
-	  $(bindir) $(sbindir) $(libdir) $< > $@
+	  $(DTRACE2SYSTEMTAP_FLAGS) $(bindir) $(sbindir) $(libdir) $< > $@
 
 CLEANFILES += libvirt_probes.h libvirt_probes.o libvirt_probes.lo \
               libvirt_qemu_probes.h libvirt_qemu_probes.o \
@@ -1371,7 +1475,7 @@ lockdriverdir = $(libdir)/libvirt/lock-driver
 lockdriver_LTLIBRARIES = sanlock.la
 
 sanlock_la_SOURCES = $(LOCK_DRIVER_SANLOCK_SOURCES)
-sanlock_la_CFLAGS = $(AM_CLFAGS)
+sanlock_la_CFLAGS = $(AM_CFLAGS)
 sanlock_la_LDFLAGS = -module -avoid-version
 sanlock_la_LIBADD = -lsanlock_client \
 		../gnulib/lib/libgnu.la
@@ -1424,6 +1528,13 @@ libvirt_net_rpc_la_SOURCES = \
 	rpc/virnettlscontext.h rpc/virnettlscontext.c \
 	rpc/virkeepaliveprotocol.h rpc/virkeepaliveprotocol.c \
 	rpc/virkeepalive.h rpc/virkeepalive.c
+if HAVE_LIBSSH2
+libvirt_net_rpc_la_SOURCES += \
+	rpc/virnetsshsession.h rpc/virnetsshsession.c
+else
+EXTRA_DIST += \
+	rpc/virnetsshsession.h rpc/virnetsshsession.c
+endif
 if HAVE_SASL
 libvirt_net_rpc_la_SOURCES += \
 	rpc/virnetsaslcontext.h rpc/virnetsaslcontext.c
@@ -1434,11 +1545,13 @@ endif
 libvirt_net_rpc_la_CFLAGS = \
 			$(GNUTLS_CFLAGS) \
 			$(SASL_CFLAGS) \
+			$(LIBSSH2_CFLAGS) \
 			$(XDR_CFLAGS) \
 			$(AM_CFLAGS)
 libvirt_net_rpc_la_LDFLAGS = \
 			$(GNUTLS_LIBS) \
 			$(SASL_LIBS) \
+			$(LIBSSH2_LIBS)\
 			$(AM_LDFLAGS) \
 			$(CYGWIN_EXTRA_LDFLAGS) \
 			$(MINGW_EXTRA_LDFLAGS)
@@ -1449,14 +1562,8 @@ libvirt_net_rpc_server_la_SOURCES = \
 	rpc/virnetserverprogram.h rpc/virnetserverprogram.c \
 	rpc/virnetserverservice.h rpc/virnetserverservice.c \
 	rpc/virnetserverclient.h rpc/virnetserverclient.c \
+	rpc/virnetservermdns.h rpc/virnetservermdns.c \
 	rpc/virnetserver.h rpc/virnetserver.c
-if HAVE_AVAHI
-libvirt_net_rpc_server_la_SOURCES += \
-	rpc/virnetservermdns.h rpc/virnetservermdns.c
-else
-EXTRA_DIST += \
-	rpc/virnetservermdns.h rpc/virnetservermdns.c
-endif
 libvirt_net_rpc_server_la_CFLAGS = \
 			$(AVAHI_CFLAGS) \
 			$(XDR_CFLAGS) \
@@ -1521,26 +1628,16 @@ libexec_PROGRAMS += libvirt_lxc
 
 libvirt_lxc_SOURCES =						\
 		$(LXC_CONTROLLER_SOURCES)			\
-		$(UTIL_SOURCES)					\
 		$(NODE_INFO_SOURCES)				\
-		$(ENCRYPTION_CONF_SOURCES)			\
-		$(NETDEV_CONF_SOURCES)				\
-		$(DOMAIN_CONF_SOURCES)				\
-		$(SECRET_CONF_SOURCES)				\
-		$(CPU_CONF_SOURCES)				\
-		$(SECURITY_DRIVER_SOURCES)			\
-		$(NWFILTER_PARAM_CONF_SOURCES)
-if WITH_SECDRIVER_SELINUX
-libvirt_lxc_SOURCES += $(SECURITY_DRIVER_SELINUX_SOURCES)
-endif
-if WITH_SECDRIVER_APPARMOR
-libvirt_lxc_SOURCES += $(SECURITY_DRIVER_APPARMOR_SOURCES)
-endif
+		$(DATATYPES_SOURCES)
 libvirt_lxc_LDFLAGS = $(WARN_CFLAGS) $(AM_LDFLAGS)
-libvirt_lxc_LDADD = $(CAPNG_LIBS) $(YAJL_LIBS) \
-		$(LIBXML_LIBS) $(NUMACTL_LIBS) $(THREAD_LIBS) \
-		$(LIBNL_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
-		$(RT_LIBS) $(DBUS_LIBS) \
+libvirt_lxc_LDADD =			\
+		$(NUMACTL_LIBS) \
+		libvirt-net-rpc-server.la \
+		libvirt-net-rpc.la \
+		libvirt_security_manager.la \
+		libvirt_conf.la \
+		libvirt_util.la \
 		../gnulib/lib/libgnu.la
 if WITH_DTRACE_PROBES
 libvirt_lxc_LDADD += libvirt_probes.lo
@@ -1552,15 +1649,9 @@ if WITH_SECDRIVER_APPARMOR
 libvirt_lxc_LDADD += $(APPARMOR_LIBS)
 endif
 libvirt_lxc_CFLAGS =				\
-		$(LIBPARTED_CFLAGS)		\
-		$(NUMACTL_CFLAGS)		\
-		$(CAPNG_CFLAGS)			\
-		$(YAJL_CFLAGS)			\
-		$(AUDIT_CFLAGS)			\
-		$(DBUS_CFLAGS)			\
-		$(LIBNL_CFLAGS)			\
 		-I$(top_srcdir)/src/conf	\
-		$(AM_CFLAGS)
+		$(AM_CFLAGS)                    \
+		$(LIBNL_CFLAGS)
 if HAVE_LIBBLKID
 libvirt_lxc_CFLAGS += $(BLKID_CFLAGS)
 libvirt_lxc_LDADD += $(BLKID_LIBS)
@@ -1583,7 +1674,6 @@ virt_aa_helper_SOURCES = $(SECURITY_DRIVER_APPARMOR_HELPER_SOURCES)
 
 virt_aa_helper_LDFLAGS = $(WARN_LDFLAGS) $(AM_LDFLAGS)
 virt_aa_helper_LDADD =						\
-		$(LIBXML_LIBS)					\
 		libvirt_conf.la					\
 		libvirt_util.la					\
 		../gnulib/lib/libgnu.la
@@ -1683,4 +1773,4 @@ endif
 
 CLEANFILES += *.gcov .libs/*.gcda .libs/*.gcno *.gcno *.gcda *.i *.s
 DISTCLEANFILES += $(GENERATED_SYM_FILES)
-MAINTAINERCLEANFILES += $(REMOTE_DRIVER_GENERATED) $(VIR_NET_RPC_GENERATED) $(ESX_DRIVER_GENERATED)
+MAINTAINERCLEANFILES += $(REMOTE_DRIVER_GENERATED) $(VIR_NET_RPC_GENERATED)

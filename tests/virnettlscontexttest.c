@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -496,7 +496,7 @@ static int testTLSContextInit(const void *opaque)
     ret = 0;
 
 cleanup:
-    virNetTLSContextFree(ctxt);
+    virObjectUnref(ctxt);
     gnutls_x509_crt_deinit(data->careq.crt);
     gnutls_x509_crt_deinit(data->certreq.crt);
     data->careq.crt = data->certreq.crt = NULL;
@@ -710,10 +710,10 @@ static int testTLSSessionInit(const void *opaque)
     ret = 0;
 
 cleanup:
-    virNetTLSContextFree(serverCtxt);
-    virNetTLSContextFree(clientCtxt);
-    virNetTLSSessionFree(serverSess);
-    virNetTLSSessionFree(clientSess);
+    virObjectUnref(serverCtxt);
+    virObjectUnref(clientCtxt);
+    virObjectUnref(serverSess);
+    virObjectUnref(clientSess);
     gnutls_x509_crt_deinit(data->careq.crt);
     if (data->othercareq.filename)
         gnutls_x509_crt_deinit(data->othercareq.crt);

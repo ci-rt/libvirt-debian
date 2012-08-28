@@ -3,7 +3,19 @@
  *
  * Copyright (C) 2005, 2008-2012 Red Hat, Inc.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Karel Zak <kzak@redhat.com>
  */
@@ -56,6 +68,22 @@ int virtTestMain(int argc,
 # define VIRT_TEST_MAIN(func)                   \
     int main(int argc, char **argv) {           \
         return virtTestMain(argc, argv, func);  \
+    }
+
+# define VIRT_TEST_MAIN_PRELOAD(func, lib)                              \
+    int main(int argc, char **argv) {                                   \
+        const char *preload = getenv("LD_PRELOAD");                     \
+        if (preload == NULL || strstr(preload, lib) == NULL) {          \
+            char *newenv;                                               \
+            if (virAsprintf(&newenv, "%s%s%s", preload ? preload : "",  \
+                            preload ? ":" : "", lib) < 0) {             \
+                perror("virAsprintf");                                  \
+                exit(EXIT_FAILURE);                                     \
+            }                                                           \
+            setenv("LD_PRELOAD", newenv, 1);                            \
+            execv(argv[0], argv);                                       \
+        }                                                               \
+        return virtTestMain(argc, argv, func);                          \
     }
 
 #endif /* __VIT_TEST_UTILS_H__ */

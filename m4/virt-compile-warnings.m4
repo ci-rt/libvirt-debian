@@ -55,6 +55,26 @@ AC_DEFUN([LIBVIRT_COMPILE_WARNINGS],[
     dontwarn="$dontwarn -Wunsafe-loop-optimizations"
     # Things like virAsprintf mean we can't use this
     dontwarn="$dontwarn -Wformat-nonliteral"
+    # Gnulib's stat-time.h violates this
+    dontwarn="$dontwarn -Waggregate-return"
+
+    # Gnulib uses '#pragma GCC diagnostic push' to silence some
+    # warnings, but older gcc doesn't support this.
+    AC_CACHE_CHECK([whether pragma GCC diagnostic push works],
+      [lv_cv_gcc_pragma_push_works], [
+      save_CFLAGS=$CFLAGS
+      CFLAGS='-Wunknown-pragmas -Werror'
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic pop
+      ]])],
+      [lv_cv_gcc_pragma_push_works=yes],
+      [lv_cv_gcc_pragma_push_works=no])
+      CFLAGS=$save_CFLAGS])
+    if test $lv_cv_gcc_pragma_push_works = no; then
+      dontwarn="$dontwarn -Wmissing-prototypes"
+      dontwarn="$dontwarn -Wmissing-declarations"
+    fi
 
     # We might fundamentally need some of these disabled forever, but
     # ideally we'd turn many of them on

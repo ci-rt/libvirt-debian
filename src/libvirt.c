@@ -4,7 +4,19 @@
  *
  * Copyright (C) 2005-2006, 2008-2012 Red Hat, Inc.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Daniel Veillard <veillard@redhat.com>
  */
@@ -41,7 +53,6 @@
 #include "conf.h"
 #include "rpc/virnettlscontext.h"
 #include "command.h"
-#include "virnodesuspend.h"
 #include "virrandom.h"
 #include "viruri.h"
 
@@ -71,6 +82,9 @@
 #endif
 #ifdef WITH_XENAPI
 # include "xenapi/xenapi_driver.h"
+#endif
+#ifdef WITH_PARALLELS
+# include "parallels/parallels_driver.h"
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
@@ -394,9 +408,7 @@ virInitialize(void)
     initialized = 1;
 
     if (virThreadInitialize() < 0 ||
-        virErrorInitialize() < 0 ||
-        virRandomInitialize(time(NULL) ^ getpid()) ||
-        virNodeSuspendInit() < 0)
+        virErrorInitialize() < 0)
         return -1;
 
     gcry_control(GCRYCTL_SET_THREAD_CBS, &virTLSThreadImpl);
@@ -442,6 +454,9 @@ virInitialize(void)
 #endif
 #ifdef WITH_XENAPI
     if (xenapiRegister() == -1) return -1;
+#endif
+#ifdef WITH_PARALLELS
+    if (parallelsRegister() == -1) return -1;
 #endif
 #ifdef WITH_REMOTE
     if (remoteRegister () == -1) return -1;
@@ -1144,6 +1159,9 @@ do_open (const char *name,
 #ifndef WITH_XENAPI
              STRCASEEQ(ret->uri->scheme, "xenapi") ||
 #endif
+#ifndef WITH_PARALLELS
+             STRCASEEQ(ret->uri->scheme, "parallels") ||
+#endif
              false)) {
             virReportErrorHelper(VIR_FROM_NONE, VIR_ERR_CONFIG_UNSUPPORTED,
                                  __FILE__, __FUNCTION__, __LINE__,
@@ -1275,7 +1293,7 @@ do_open (const char *name,
 
 failed:
     virConfFree(conf);
-    virUnrefConnect(ret);
+    virObjectUnref(ret);
 
     return NULL;
 }
@@ -1410,14 +1428,16 @@ error:
  * matching virConnectClose, and all other references will be released
  * after the corresponding operation completes.
  *
- * Returns the number of remaining references on success
- * (positive implies that some other call still has a reference open,
- * 0 implies that no references remain and the connection is closed),
- * or -1 on failure.  It is possible for the last virConnectClose to
- * return a positive value if some other object still has a temporary
- * reference to the connection, but the application should not try to
- * further use a connection after the virConnectClose that matches the
- * initial open.
+ * Returns a positive number if at least 1 reference remains on
+ * success. The returned value should not be assumed to be the total
+ * reference count. A return of 0 implies no references remain and
+ * the connection is closed and memory has been freed. A return of -1
+ * implies a failure.
+ *
+ * It is possible for the last virConnectClose to return a positive
+ * value if some other object still has a temporary reference to the
+ * connection, but the application should not try to further use a
+ * connection after the virConnectClose that matches the initial open.
  */
 int
 virConnectClose(virConnectPtr conn)
@@ -1432,10 +1452,9 @@ virConnectClose(virConnectPtr conn)
         goto error;
     }
 
-    ret = virUnrefConnect(conn);
-    if (ret < 0)
-        goto error;
-    return ret;
+    if (!virObjectUnref(conn))
+        return 0;
+    return 1;
 
 error:
     virDispatchError(NULL);
@@ -1467,10 +1486,8 @@ virConnectRef(virConnectPtr conn)
         virDispatchError(NULL);
         return -1;
     }
-    virMutexLock(&conn->lock);
-    VIR_DEBUG("conn=%p refs=%d", conn, conn->refs);
-    conn->refs++;
-    virMutexUnlock(&conn->lock);
+    VIR_DEBUG("conn=%p refs=%d", conn, conn->object.refs);
+    virObjectRef(conn);
     return 0;
 }
 
@@ -2267,10 +2284,7 @@ virDomainFree(virDomainPtr domain)
         virDispatchError(NULL);
         return -1;
     }
-    if (virUnrefDomain(domain) < 0) {
-        virDispatchError(NULL);
-        return -1;
-    }
+    virObjectUnref(domain);
     return 0;
 }
 
@@ -2299,10 +2313,9 @@ virDomainRef(virDomainPtr domain)
         virDispatchError(NULL);
         return -1;
     }
-    virMutexLock(&domain->conn->lock);
-    VIR_DOMAIN_DEBUG(domain, "refs=%d", domain->refs);
-    domain->refs++;
-    virMutexUnlock(&domain->conn->lock);
+
+    VIR_DOMAIN_DEBUG(domain, "refs=%d", domain->object.refs);
+    virObjectRef(domain);
     return 0;
 }
 
@@ -2316,6 +2329,8 @@ virDomainRef(virDomainPtr domain)
  * hypervisor level will stay allocated. Use virDomainResume() to reactivate
  * the domain.
  * This function may require privileged access.
+ * Moreover, suspend may not be supported if domain is in some
+ * special state like VIR_DOMAIN_PMSUSPENDED.
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -2362,6 +2377,8 @@ error:
  * Resume a suspended domain, the process is restarted from the state where
  * it was frozen by calling virDomainSuspend().
  * This function may require privileged access
+ * Moreover, resume may not be supported if domain is in some
+ * special state like VIR_DOMAIN_PMSUSPENDED.
  *
  * Returns 0 in case of success and -1 in case of failure.
  */
@@ -2555,7 +2572,7 @@ virDomainSave(virDomainPtr domain, const char *to)
 
         /* We must absolutize the file path as the save is done out of process */
         if (virFileAbsPath(to, &absolute_to) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR,
+            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("could not build absolute output file path"));
             goto error;
         }
@@ -2650,7 +2667,7 @@ virDomainSaveFlags(virDomainPtr domain, const char *to,
 
         /* We must absolutize the file path as the save is done out of process */
         if (virFileAbsPath(to, &absolute_to) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR,
+            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("could not build absolute output file path"));
             goto error;
         }
@@ -2706,7 +2723,7 @@ virDomainRestore(virConnectPtr conn, const char *from)
 
         /* We must absolutize the file path as the restore is done out of process */
         if (virFileAbsPath(from, &absolute_from) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR,
+            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("could not build absolute input file path"));
             goto error;
         }
@@ -2788,7 +2805,7 @@ virDomainRestoreFlags(virConnectPtr conn, const char *from, const char *dxml,
 
         /* We must absolutize the file path as the restore is done out of process */
         if (virFileAbsPath(from, &absolute_from) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR,
+            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("could not build absolute input file path"));
             goto error;
         }
@@ -2845,7 +2862,7 @@ virDomainSaveImageGetXMLDesc(virConnectPtr conn, const char *file,
     virCheckNonNullArgGoto(file, error);
 
     if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
-        virLibConnError(VIR_ERR_OPERATION_DENIED,
+        virLibConnError(VIR_ERR_OPERATION_DENIED, "%s",
                         _("virDomainSaveImageGetXMLDesc with secure flag"));
         goto error;
     }
@@ -2856,7 +2873,7 @@ virDomainSaveImageGetXMLDesc(virConnectPtr conn, const char *file,
 
         /* We must absolutize the file path as the read is done out of process */
         if (virFileAbsPath(file, &absolute_file) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR,
+            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("could not build absolute input file path"));
             goto error;
         }
@@ -2937,7 +2954,7 @@ virDomainSaveImageDefineXML(virConnectPtr conn, const char *file,
 
         /* We must absolutize the file path as the read is done out of process */
         if (virFileAbsPath(file, &absolute_file) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR,
+            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("could not build absolute input file path"));
             goto error;
         }
@@ -3029,7 +3046,7 @@ virDomainCoreDump(virDomainPtr domain, const char *to, unsigned int flags)
 
         /* We must absolutize the file path as the save is done out of process */
         if (virFileAbsPath(to, &absolute_to) < 0) {
-            virLibConnError(VIR_ERR_INTERNAL_ERROR,
+            virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
                             _("could not build absolute core file path"));
             goto error;
         }
@@ -4341,7 +4358,7 @@ virDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     conn = domain->conn;
 
     if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
-        virLibConnError(VIR_ERR_OPERATION_DENIED,
+        virLibConnError(VIR_ERR_OPERATION_DENIED, "%s",
                         _("virDomainGetXMLDesc with secure flag"));
         goto error;
     }
@@ -4523,7 +4540,7 @@ virDomainMigrateVersion1 (virDomainPtr domain,
         goto done;
 
     if (uri == NULL && uri_out == NULL) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR,
+        virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
                          _("domainMigratePrepare did not set uri"));
         goto done;
     }
@@ -4635,7 +4652,7 @@ virDomainMigrateVersion2 (virDomainPtr domain,
         goto done;
 
     if (uri == NULL && uri_out == NULL) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR,
+        virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
                          _("domainMigratePrepare2 did not set uri"));
         virDispatchError(domain->conn);
         cancelled = 1;
@@ -4781,7 +4798,7 @@ virDomainMigrateVersion3(virDomainPtr domain,
     }
 
     if (uri == NULL && uri_out == NULL) {
-        virLibConnError(VIR_ERR_INTERNAL_ERROR,
+        virLibConnError(VIR_ERR_INTERNAL_ERROR, "%s",
                         _("domainMigratePrepare3 did not set uri"));
         virDispatchError(domain->conn);
         goto finish;
@@ -5198,7 +5215,7 @@ virDomainMigrate (virDomainPtr domain,
         }
         flags &= ~VIR_MIGRATE_CHANGE_PROTECTION;
         if (flags & VIR_MIGRATE_TUNNELLED) {
-            virLibConnError(VIR_ERR_OPERATION_INVALID,
+            virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
                             _("cannot perform tunnelled migration without using peer2peer flag"));
             goto error;
         }
@@ -5400,7 +5417,7 @@ virDomainMigrate2(virDomainPtr domain,
         }
         flags &= ~VIR_MIGRATE_CHANGE_PROTECTION;
         if (flags & VIR_MIGRATE_TUNNELLED) {
-            virLibConnError(VIR_ERR_OPERATION_INVALID,
+            virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
                             _("cannot perform tunnelled migration without using peer2peer flag"));
             goto error;
         }
@@ -5562,7 +5579,9 @@ virDomainMigrateToURI (virDomainPtr domain,
                 goto error;
         } else {
             /* Cannot do a migration with only the perform step */
-            virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+            virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
+                            _("direct migration is not supported by the"
+                              " connection driver"));
             goto error;
         }
     }
@@ -5696,7 +5715,9 @@ virDomainMigrateToURI2(virDomainPtr domain,
                 goto error;
         } else {
             /* Cannot do a migration with only the perform step */
-            virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+            virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
+                            _("direct migration is not supported by the"
+                              " connection driver"));
             goto error;
         }
     }
@@ -8841,6 +8862,153 @@ error:
 }
 
 /**
+ * virDomainPinEmulator:
+ * @domain: pointer to domain object, or NULL for Domain0
+ * @cpumap: pointer to a bit map of real CPUs (in 8-bit bytes) (IN)
+ *      Each bit set to 1 means that corresponding CPU is usable.
+ *      Bytes are stored in little-endian order: CPU0-7, 8-15...
+ *      In each byte, lowest CPU number is least significant bit.
+ * @maplen: number of bytes in cpumap, from 1 up to size of CPU map in
+ *      underlying virtualization system (Xen...).
+ *      If maplen < size, missing bytes are set to zero.
+ *      If maplen > size, failure code is returned.
+ * @flags: bitwise-OR of virDomainModificationImpact
+ *
+ * Dynamically change the real CPUs which can be allocated to all emulator
+ * threads. This function may require privileged access to the hypervisor.
+ *
+ * @flags may include VIR_DOMAIN_AFFECT_LIVE or VIR_DOMAIN_AFFECT_CONFIG.
+ * Both flags may be set.
+ * If VIR_DOMAIN_AFFECT_LIVE is set, the change affects a running domain
+ * and may fail if domain is not alive.
+ * If VIR_DOMAIN_AFFECT_CONFIG is set, the change affects persistent state,
+ * and will fail for transient domains. If neither flag is specified (that is,
+ * @flags is VIR_DOMAIN_AFFECT_CURRENT), then an inactive domain modifies
+ * persistent setup, while an active domain is hypervisor-dependent on whether
+ * just live or both live and persistent state is changed.
+ * Not all hypervisors can support all flag combinations.
+ *
+ * See also virDomainGetEmulatorPinInfo for querying this information.
+ *
+ * Returns 0 in case of success, -1 in case of failure.
+ *
+ */
+int
+virDomainPinEmulator(virDomainPtr domain, unsigned char *cpumap,
+                     int maplen, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "cpumap=%p, maplen=%d, flags=%x",
+                     cpumap, maplen, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (domain->conn->flags & VIR_CONNECT_RO) {
+        virLibDomainError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        goto error;
+    }
+
+    if ((cpumap == NULL) || (maplen < 1)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    conn = domain->conn;
+
+    if (conn->driver->domainPinEmulator) {
+        int ret;
+        ret = conn->driver->domainPinEmulator (domain, cpumap, maplen, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
+ * virDomainGetEmulatorPinInfo:
+ * @domain: pointer to domain object, or NULL for Domain0
+ * @cpumap: pointer to a bit map of real CPUs for all emulator threads of
+ *     this domain (in 8-bit bytes) (OUT)
+ *     There is only one cpumap for all emulator threads.
+ *     Must not be NULL.
+ * @maplen: the number of bytes in one cpumap, from 1 up to size of CPU map.
+ *     Must be positive.
+ * @flags: bitwise-OR of virDomainModificationImpact
+ *     Must not be VIR_DOMAIN_AFFECT_LIVE and
+ *     VIR_DOMAIN_AFFECT_CONFIG concurrently.
+ *
+ * Query the CPU affinity setting of all emulator threads of domain, store
+ * it in cpumap.
+ *
+ * Returns 1 in case of success,
+ * 0 in case of no emulator threads are pined to pcpus,
+ * -1 in case of failure.
+ */
+int
+virDomainGetEmulatorPinInfo(virDomainPtr domain, unsigned char *cpumap,
+                            int maplen, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "cpumap=%p, maplen=%d, flags=%x",
+                     cpumap, maplen, flags);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (!cpumap || maplen <= 0) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    if (INT_MULTIPLY_OVERFLOW(1, maplen)) {
+        virLibDomainError(VIR_ERR_OVERFLOW, _("input too large: 1 * %d"),
+                          maplen);
+        goto error;
+    }
+
+    /* At most one of these two flags should be set.  */
+    if ((flags & VIR_DOMAIN_AFFECT_LIVE) &&
+        (flags & VIR_DOMAIN_AFFECT_CONFIG)) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+    conn = domain->conn;
+
+    if (conn->driver->domainGetEmulatorPinInfo) {
+        int ret;
+        ret = conn->driver->domainGetEmulatorPinInfo(domain, cpumap,
+                                                     maplen, flags);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
+
+/**
  * virDomainGetVcpus:
  * @domain: pointer to domain object, or NULL for Domain0
  * @info: pointer to an array of virVcpuInfo structures (OUT)
@@ -9003,6 +9171,53 @@ error:
     return -1;
 }
 
+/**
+ * virDomainGetSecurityLabelList:
+ * @domain: a domain object
+ * @seclabels: will be auto-allocated and filled with domains' security labels.
+ * Caller must free memory on return.
+ *
+ * Extract the security labels of an active domain. The 'label' field
+ * in the @seclabels argument will be initialized to the empty
+ * string if the domain is not running under a security model.
+ *
+ * Returns number of elemnets in @seclabels on success, -1 in case of failure.
+ */
+int
+virDomainGetSecurityLabelList(virDomainPtr domain,
+                              virSecurityLabelPtr* seclabels)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain, "seclabels=%p", seclabels);
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    if (seclabels == NULL) {
+        virLibDomainError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        goto error;
+    }
+
+    conn = domain->conn;
+
+    if (conn->driver->domainGetSecurityLabelList) {
+        int ret;
+        ret = conn->driver->domainGetSecurityLabelList(domain, seclabels);
+        if (ret < 0)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return -1;
+}
 /**
  * virDomainSetMetadata:
  * @domain: a domain object
@@ -10095,10 +10310,7 @@ virNetworkFree(virNetworkPtr network)
         virDispatchError(NULL);
         return -1;
     }
-    if (virUnrefNetwork(network) < 0) {
-        virDispatchError(NULL);
-        return -1;
-    }
+    virObjectUnref(network);
     return 0;
 }
 
@@ -10127,10 +10339,8 @@ virNetworkRef(virNetworkPtr network)
         virDispatchError(NULL);
         return -1;
     }
-    virMutexLock(&network->conn->lock);
-    VIR_DEBUG("network=%p refs=%d", network, network->refs);
-    network->refs++;
-    virMutexUnlock(&network->conn->lock);
+    VIR_DEBUG("network=%p refs=%d", network, network->object.refs);
+    virObjectRef(network);
     return 0;
 }
 
@@ -11000,10 +11210,8 @@ virInterfaceRef(virInterfacePtr iface)
         virDispatchError(NULL);
         return -1;
     }
-    virMutexLock(&iface->conn->lock);
-    VIR_DEBUG("iface=%p refs=%d", iface, iface->refs);
-    iface->refs++;
-    virMutexUnlock(&iface->conn->lock);
+    VIR_DEBUG("iface=%p refs=%d", iface, iface->object.refs);
+    virObjectRef(iface);
     return 0;
 }
 
@@ -11028,10 +11236,7 @@ virInterfaceFree(virInterfacePtr iface)
         virDispatchError(NULL);
         return -1;
     }
-    if (virUnrefInterface(iface) < 0) {
-        virDispatchError(NULL);
-        return -1;
-    }
+    virObjectUnref(iface);
     return 0;
 }
 
@@ -11937,10 +12142,7 @@ virStoragePoolFree(virStoragePoolPtr pool)
         virDispatchError(NULL);
         return -1;
     }
-    if (virUnrefStoragePool(pool) < 0) {
-        virDispatchError(NULL);
-        return -1;
-    }
+    virObjectUnref(pool);
     return 0;
 
 }
@@ -11971,10 +12173,8 @@ virStoragePoolRef(virStoragePoolPtr pool)
         virDispatchError(NULL);
         return -1;
     }
-    virMutexLock(&pool->conn->lock);
-    VIR_DEBUG("pool=%p refs=%d", pool, pool->refs);
-    pool->refs++;
-    virMutexUnlock(&pool->conn->lock);
+    VIR_DEBUG("pool=%p refs=%d", pool, pool->object.refs);
+    virObjectRef(pool);
     return 0;
 }
 
@@ -13003,10 +13203,7 @@ virStorageVolFree(virStorageVolPtr vol)
         virDispatchError(NULL);
         return -1;
     }
-    if (virUnrefStorageVol(vol) < 0) {
-        virDispatchError(NULL);
-        return -1;
-    }
+    virObjectUnref(vol);
     return 0;
 }
 
@@ -13036,10 +13233,8 @@ virStorageVolRef(virStorageVolPtr vol)
         virDispatchError(NULL);
         return -1;
     }
-    virMutexLock(&vol->conn->lock);
-    VIR_DEBUG("vol=%p refs=%d", vol, vol->refs);
-    vol->refs++;
-    virMutexUnlock(&vol->conn->lock);
+    VIR_DEBUG("vol=%p refs=%d", vol, vol->object.refs);
+    virObjectRef(vol);
     return 0;
 }
 
@@ -13578,10 +13773,7 @@ int virNodeDeviceFree(virNodeDevicePtr dev)
         virDispatchError(NULL);
         return -1;
     }
-    if (virUnrefNodeDevice(dev) < 0) {
-        virDispatchError(NULL);
-        return -1;
-    }
+    virObjectUnref(dev);
     return 0;
 }
 
@@ -13611,10 +13803,8 @@ virNodeDeviceRef(virNodeDevicePtr dev)
         virDispatchError(NULL);
         return -1;
     }
-    virMutexLock(&dev->conn->lock);
-    VIR_DEBUG("dev=%p refs=%d", dev, dev->refs);
-    dev->refs++;
-    virMutexUnlock(&dev->conn->lock);
+    VIR_DEBUG("dev=%p refs=%d", dev, dev->object.refs);
+    virObjectRef(dev);
     return 0;
 }
 
@@ -14584,10 +14774,8 @@ virSecretRef(virSecretPtr secret)
         virDispatchError(NULL);
         return -1;
     }
-    virMutexLock(&secret->conn->lock);
-    VIR_DEBUG("secret=%p refs=%d", secret, secret->refs);
-    secret->refs++;
-    virMutexUnlock(&secret->conn->lock);
+    VIR_DEBUG("secret=%p refs=%d", secret, secret->object.refs);
+    virObjectRef(secret);
     return 0;
 }
 
@@ -14611,10 +14799,7 @@ virSecretFree(virSecretPtr secret)
         virDispatchError(NULL);
         return -1;
     }
-    if (virUnrefSecret(secret) < 0) {
-        virDispatchError(NULL);
-        return -1;
-    }
+    virObjectUnref(secret);
     return 0;
 }
 
@@ -14683,10 +14868,8 @@ virStreamRef(virStreamPtr stream)
         virDispatchError(NULL);
         return -1;
     }
-    virMutexLock(&stream->conn->lock);
-    VIR_DEBUG("stream=%p refs=%d", stream, stream->refs);
-    stream->refs++;
-    virMutexUnlock(&stream->conn->lock);
+    VIR_DEBUG("stream=%p refs=%d", stream, stream->object.refs);
+    virObjectRef(stream);
     return 0;
 }
 
@@ -14947,7 +15130,7 @@ int virStreamSendAll(virStreamPtr stream,
     virCheckNonNullArgGoto(handler, cleanup);
 
     if (stream->flags & VIR_STREAM_NONBLOCK) {
-        virLibConnError(VIR_ERR_OPERATION_INVALID,
+        virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
                         _("data sources cannot be used for non-blocking streams"));
         goto cleanup;
     }
@@ -15046,7 +15229,7 @@ int virStreamRecvAll(virStreamPtr stream,
     virCheckNonNullArgGoto(handler, cleanup);
 
     if (stream->flags & VIR_STREAM_NONBLOCK) {
-        virLibConnError(VIR_ERR_OPERATION_INVALID,
+        virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
                         _("data sinks cannot be used for non-blocking streams"));
         goto cleanup;
     }
@@ -15327,10 +15510,7 @@ int virStreamFree(virStreamPtr stream)
 
     /* XXX Enforce shutdown before free'ing resources ? */
 
-    if (virUnrefStream(stream) < 0) {
-        virDispatchError(NULL);
-        return -1;
-    }
+    virObjectUnref(stream);
     return 0;
 }
 
@@ -15791,10 +15971,8 @@ virNWFilterFree(virNWFilterPtr nwfilter)
         virDispatchError(NULL);
         return -1;
     }
-    if (virUnrefNWFilter(nwfilter) < 0) {
-        virDispatchError(NULL);
-        return -1;
-    }
+
+    virObjectUnref(nwfilter);
     return 0;
 }
 
@@ -16050,10 +16228,8 @@ virNWFilterRef(virNWFilterPtr nwfilter)
         virDispatchError(NULL);
         return -1;
     }
-    virMutexLock(&nwfilter->conn->lock);
-    VIR_DEBUG("nwfilter=%p refs=%d", nwfilter, nwfilter->refs);
-    nwfilter->refs++;
-    virMutexUnlock(&nwfilter->conn->lock);
+    VIR_DEBUG("nwfilter=%p refs=%d", nwfilter, nwfilter->object.refs);
+    virObjectRef(nwfilter);
     return 0;
 }
 
@@ -17036,7 +17212,7 @@ virDomainSnapshotGetXMLDesc(virDomainSnapshotPtr snapshot,
     conn = snapshot->domain->conn;
 
     if ((conn->flags & VIR_CONNECT_RO) && (flags & VIR_DOMAIN_XML_SECURE)) {
-        virLibConnError(VIR_ERR_OPERATION_DENIED,
+        virLibConnError(VIR_ERR_OPERATION_DENIED, "%s",
                         _("virDomainSnapshotGetXMLDesc with secure flag"));
         goto error;
     }
@@ -17937,10 +18113,8 @@ virDomainSnapshotRef(virDomainSnapshotPtr snapshot)
         virDispatchError(NULL);
         return -1;
     }
-    virMutexLock(&snapshot->domain->conn->lock);
-    VIR_DEBUG("snapshot=%p, refs=%d", snapshot, snapshot->refs);
-    snapshot->refs++;
-    virMutexUnlock(&snapshot->domain->conn->lock);
+    VIR_DEBUG("snapshot=%p, refs=%d", snapshot, snapshot->object.refs);
+    virObjectRef(snapshot);
     return 0;
 }
 
@@ -17966,10 +18140,7 @@ virDomainSnapshotFree(virDomainSnapshotPtr snapshot)
         virDispatchError(NULL);
         return -1;
     }
-    if (virUnrefDomainSnapshot(snapshot) < 0) {
-        virDispatchError(NULL);
-        return -1;
-    }
+    virObjectUnref(snapshot);
     return 0;
 }
 
@@ -18177,7 +18348,7 @@ error:
  * virDomainBlockJobSetSpeed:
  * @dom: pointer to domain object
  * @disk: path to the block device, or device shorthand
- * @bandwidth: specify bandwidth limit in Mbps
+ * @bandwidth: specify bandwidth limit in MiB/s
  * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Set the maximimum allowable bandwidth that a block job may consume.  If
@@ -18235,7 +18406,7 @@ error:
  * virDomainBlockPull:
  * @dom: pointer to domain object
  * @disk: path to the block device, or device shorthand
- * @bandwidth: (optional) specify copy bandwidth limit in Mbps
+ * @bandwidth: (optional) specify copy bandwidth limit in MiB/s
  * @flags: extra flags; not used yet, so callers should always pass 0
  *
  * Populate a disk image with data from its backing image.  Once all data from
@@ -18252,7 +18423,7 @@ error:
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
- * The maximum bandwidth (in Mbps) that will be used to do the copy can be
+ * The maximum bandwidth (in MiB/s) that will be used to do the copy can be
  * specified with the bandwidth parameter.  If set to 0, libvirt will choose a
  * suitable default.  Some hypervisors do not support this feature and will
  * return an error if bandwidth is not 0; in this case, it might still be
@@ -18308,7 +18479,7 @@ error:
  * @dom: pointer to domain object
  * @disk: path to the block device, or device shorthand
  * @base: path to backing file to keep, or NULL for no backing file
- * @bandwidth: (optional) specify copy bandwidth limit in Mbps
+ * @bandwidth: (optional) specify copy bandwidth limit in MiB/s
  * @flags: bitwise-OR of virDomainBlockRebaseFlags
  *
  * Populate a disk image with data from its backing image chain, and
@@ -18368,7 +18539,7 @@ error:
  * can be found by calling virDomainGetXMLDesc() and inspecting
  * elements within //domain/devices/disk.
  *
- * The maximum bandwidth (in Mbps) that will be used to do the copy can be
+ * The maximum bandwidth (in MiB/s) that will be used to do the copy can be
  * specified with the bandwidth parameter.  If set to 0, libvirt will choose a
  * suitable default.  Some hypervisors do not support this feature and will
  * return an error if bandwidth is not 0; in this case, it might still be
@@ -18607,6 +18778,121 @@ error:
     return -1;
 }
 
+
+/**
+ * virConnectRegisterCloseCallback:
+ * @conn: pointer to connection object
+ * @cb: callback to invoke upon close
+ * @opaque: user data to pass to @cb
+ * @freecb: callback to free @opaque
+ *
+ * Registers a callback to be invoked when the connection
+ * is closed. This callback is invoked when there is any
+ * condition that causes the socket connection to the
+ * hypervisor to be closed.
+ *
+ * This function is only applicable to hypervisor drivers
+ * which maintain a persistent open connection. Drivers
+ * which open a new connection for every operation will
+ * not invoke this.
+ *
+ * The @freecb must not invoke any other libvirt public
+ * APIs, since it is not called from a re-entrant safe
+ * context.
+ *
+ * Returns 0 on success, -1 on error
+ */
+int virConnectRegisterCloseCallback(virConnectPtr conn,
+                                    virConnectCloseFunc cb,
+                                    void *opaque,
+                                    virFreeCallback freecb)
+{
+    VIR_DEBUG("conn=%p", conn);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    virMutexLock(&conn->lock);
+
+    virCheckNonNullArgGoto(cb, error);
+
+    if (conn->closeCallback) {
+        virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
+                        _("A close callback is already registered"));
+        goto error;
+    }
+
+    conn->closeCallback = cb;
+    conn->closeOpaque = opaque;
+    conn->closeFreeCallback = freecb;
+
+    virMutexUnlock(&conn->lock);
+
+    return 0;
+
+error:
+    virMutexUnlock(&conn->lock);
+    virDispatchError(NULL);
+    return -1;
+}
+
+/**
+ * virConnectUnregisterCloseCallback:
+ * @conn: pointer to connection object
+ * @cb: pointer to the current registered callback
+ *
+ * Unregisters the callback previously set with the
+ * virConnectRegisterCloseCallback method. The callback
+ * will no longer receive notifications when the connection
+ * closes. If a virFreeCallback was provided at time of
+ * registration, it will be invoked
+ *
+ * Returns 0 on success, -1 on error
+ */
+int virConnectUnregisterCloseCallback(virConnectPtr conn,
+                                      virConnectCloseFunc cb)
+{
+    VIR_DEBUG("conn=%p", conn);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECT(conn)) {
+        virLibConnError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virDispatchError(NULL);
+        return -1;
+    }
+
+    virMutexLock(&conn->lock);
+
+    virCheckNonNullArgGoto(cb, error);
+
+    if (conn->closeCallback != cb) {
+        virLibConnError(VIR_ERR_OPERATION_INVALID, "%s",
+                        _("A different callback was requested"));
+        goto error;
+    }
+
+    conn->closeCallback = NULL;
+    conn->closeUnregisterCount++;
+    if (!conn->closeDispatch && conn->closeFreeCallback)
+        conn->closeFreeCallback(conn->closeOpaque);
+    conn->closeFreeCallback = NULL;
+    conn->closeOpaque = NULL;
+
+    virMutexUnlock(&conn->lock);
+
+    return 0;
+
+error:
+    virMutexUnlock(&conn->lock);
+    virDispatchError(NULL);
+    return -1;
+}
 
 /**
  * virDomainSetBlockIoTune:
@@ -18972,4 +19258,49 @@ virDomainGetDiskErrors(virDomainPtr dom,
 error:
     virDispatchError(dom->conn);
     return -1;
+}
+
+/**
+ * virDomainGetHostname:
+ * @domain: a domain object
+ * @flags: extra flags; not used yet, so callers should always pass 0
+ *
+ * Get the hostname for that domain.
+ *
+ * Dependent on hypervisor used, this may require a guest agent to be
+ * available.
+ *
+ * Returns the hostname which must be freed by the caller, or
+ * NULL if there was an error.
+ */
+char *
+virDomainGetHostname(virDomainPtr domain, unsigned int flags)
+{
+    virConnectPtr conn;
+
+    VIR_DOMAIN_DEBUG(domain);
+
+    virResetLastError();
+
+    if (!VIR_IS_CONNECTED_DOMAIN(domain)) {
+        virLibDomainError(VIR_ERR_INVALID_DOMAIN, __FUNCTION__);
+        virDispatchError(NULL);
+        return NULL;
+    }
+
+    conn = domain->conn;
+
+    if (conn->driver->domainGetHostname) {
+        char *ret;
+        ret = conn->driver->domainGetHostname (domain, flags);
+        if (!ret)
+            goto error;
+        return ret;
+    }
+
+    virLibConnError(VIR_ERR_NO_SUPPORT, __FUNCTION__);
+
+error:
+    virDispatchError(domain->conn);
+    return NULL;
 }

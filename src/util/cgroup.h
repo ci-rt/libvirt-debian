@@ -4,7 +4,19 @@
  * Copyright (C) 2011-2012 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *  Dan Smith <danms@us.ibm.com>
@@ -47,12 +59,24 @@ int virCgroupForVcpu(virCgroupPtr driver,
                      virCgroupPtr *group,
                      int create);
 
+int virCgroupForEmulator(virCgroupPtr driver,
+                         virCgroupPtr *group,
+                         int create);
+
 int virCgroupPathOfController(virCgroupPtr group,
                               int controller,
                               const char *key,
                               char **path);
 
 int virCgroupAddTask(virCgroupPtr group, pid_t pid);
+
+int virCgroupAddTaskController(virCgroupPtr group,
+                               pid_t pid,
+                               int controller);
+
+int virCgroupMoveTask(virCgroupPtr src_group,
+                      virCgroupPtr dest_group,
+                      int controller);
 
 int virCgroupSetBlkioWeight(virCgroupPtr group, unsigned int weight);
 int virCgroupGetBlkioWeight(virCgroupPtr group, unsigned int *weight);
@@ -126,6 +150,9 @@ int virCgroupGetFreezerState(virCgroupPtr group, char **state);
 
 int virCgroupSetCpusetMems(virCgroupPtr group, const char *mems);
 int virCgroupGetCpusetMems(virCgroupPtr group, char **mems);
+
+int virCgroupSetCpusetCpus(virCgroupPtr group, const char *cpus);
+int virCgroupGetCpusetCpus(virCgroupPtr group, char **cpus);
 
 int virCgroupRemove(virCgroupPtr group);
 

@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library; if not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Richard Jones <rjones@redhat.com>
  */
@@ -167,6 +167,11 @@ const REMOTE_DOMAIN_BLOCK_PEEK_BUFFER_MAX = 1048576;
  * requests for large amounts of data.
  */
 const REMOTE_DOMAIN_MEMORY_PEEK_BUFFER_MAX = 1048576;
+
+/*
+ * Maximum length of a security label list.
+ */
+const REMOTE_SECURITY_LABEL_LIST_MAX=64;
 
 /*
  * Maximum length of a security model field.
@@ -1054,6 +1059,23 @@ struct remote_domain_get_vcpu_pin_info_ret {
     int num;
 };
 
+struct remote_domain_pin_emulator_args {
+    remote_nonnull_domain dom;
+    opaque cpumap<REMOTE_CPUMAP_MAX>; /* (unsigned char *) */
+    unsigned int flags;
+};
+
+struct remote_domain_get_emulator_pin_info_args {
+    remote_nonnull_domain dom;
+    int maplen;
+    unsigned int flags;
+};
+
+struct remote_domain_get_emulator_pin_info_ret {
+    opaque cpumaps<REMOTE_CPUMAPS_MAX>;
+    int ret;
+};
+
 struct remote_domain_get_vcpus_args {
     remote_nonnull_domain dom;
     int maxinfo;
@@ -1080,6 +1102,15 @@ struct remote_domain_get_security_label_args {
 struct remote_domain_get_security_label_ret {
     char label<REMOTE_SECURITY_LABEL_MAX>;
     int enforcing;
+};
+
+struct remote_domain_get_security_label_list_args {
+    remote_nonnull_domain dom;
+};
+
+struct remote_domain_get_security_label_list_ret {
+    remote_domain_get_security_label_ret labels<REMOTE_SECURITY_LABEL_LIST_MAX>;
+    int ret;
 };
 
 struct remote_node_get_security_model_ret {
@@ -1219,6 +1250,15 @@ struct remote_domain_get_cpu_stats_args {
 struct remote_domain_get_cpu_stats_ret {
     remote_typed_param params<REMOTE_DOMAIN_GET_CPU_STATS_MAX>;
     int nparams;
+};
+
+struct remote_domain_get_hostname_args {
+    remote_nonnull_domain dom;
+    unsigned int flags;
+};
+
+struct remote_domain_get_hostname_ret {
+    remote_nonnull_string hostname;
 };
 
 /* Network calls: */
@@ -2192,6 +2232,11 @@ struct remote_domain_event_pmsuspend_msg {
     remote_nonnull_domain dom;
 };
 
+struct remote_domain_event_balloon_change_msg {
+    remote_nonnull_domain dom;
+    unsigned hyper actual;
+};
+
 struct remote_domain_managed_save_args {
     remote_nonnull_domain dom;
     unsigned int flags;
@@ -2838,7 +2883,12 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_SNAPSHOT_HAS_METADATA = 272, /* autogen autogen */
     REMOTE_PROC_CONNECT_LIST_ALL_DOMAINS = 273, /* skipgen skipgen priority:high */
     REMOTE_PROC_DOMAIN_LIST_ALL_SNAPSHOTS = 274, /* skipgen skipgen priority:high */
-    REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_ALL_CHILDREN = 275 /* skipgen skipgen priority:high */
+    REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_ALL_CHILDREN = 275, /* skipgen skipgen priority:high */
+    REMOTE_PROC_DOMAIN_EVENT_BALLOON_CHANGE = 276, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_GET_HOSTNAME = 277, /* autogen autogen */
+    REMOTE_PROC_DOMAIN_GET_SECURITY_LABEL_LIST = 278, /* skipgen skipgen priority:high */
+    REMOTE_PROC_DOMAIN_PIN_EMULATOR = 279, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_GET_EMULATOR_PIN_INFO = 280 /* skipgen skipgen */
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

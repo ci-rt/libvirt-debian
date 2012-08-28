@@ -89,9 +89,14 @@ test_programs = virshtest sockettest \
 	nodeinfotest virbuftest \
 	commandtest seclabeltest \
 	virhashtest virnetmessagetest virnetsockettest \
+	viratomictest \
 	utiltest virnettlscontexttest shunloadtest \
 	virtimetest viruritest virkeyfiletest \
 	virauthconfigtest
+
+if WITH_SECDRIVER_SELINUX
+test_programs += securityselinuxtest
+endif
 
 if WITH_DRIVER_MODULES
 test_programs += virdrivermoduletest
@@ -139,6 +144,10 @@ test_programs += networkxml2xmltest
 
 if WITH_NETWORK
 test_programs += networkxml2argvtest
+endif
+
+if WITH_STORAGE_SHEEPDOG
+test_programs += storagebackendsheepdogtest
 endif
 
 test_programs += nwfilterxml2xmltest
@@ -239,6 +248,7 @@ TESTS_ENVIRONMENT =				\
   PATH="$(path_add)$(PATH_SEPARATOR)$$PATH"	\
   SHELL="$(SHELL)"				\
   LIBVIRT_DRIVER_DIR="$(abs_top_builddir)/src/.libs" \
+  LIBVIRT_AUTOSTART=0				\
   LC_ALL=C					\
   $(VG)
 
@@ -398,6 +408,16 @@ else
 EXTRA_DIST += networkxml2argvtest.c
 endif
 
+if WITH_STORAGE_SHEEPDOG
+storagebackendsheepdogtest_SOURCES = \
+	storagebackendsheepdogtest.c \
+	testutils.c testutils.h
+storagebackendsheepdogtest_LDADD = \
+	../src/libvirt_driver_storage_impl.la $(LDADDS)
+else
+EXTRA_DIST += storagebackendsheepdogtest.c
+endif
+
 nwfilterxml2xmltest_SOURCES = \
 	nwfilterxml2xmltest.c \
 	testutils.c testutils.h
@@ -508,6 +528,28 @@ seclabeltest_SOURCES = \
 	seclabeltest.c
 seclabeltest_LDADD = $(LDADDS)
 
+if WITH_SECDRIVER_SELINUX
+if WITH_TESTS
+noinst_LTLIBRARIES += libsecurityselinuxhelper.la
+else
+check_LTLIBRARIES += libsecurityselinuxhelper.la
+endif
+
+libsecurityselinuxhelper_la_SOURCES = \
+	securityselinuxhelper.c
+libsecurityselinuxhelper_la_CFLAGS = $(AM_CFLAGS)
+libsecurityselinuxhelper_la_LDFLAGS = -module -avoid-version \
+        -rpath /evil/libtool/hack/to/force/shared/lib/creation
+
+securityselinuxtest_SOURCES = \
+	securityselinuxtest.c testutils.h testutils.c
+securityselinuxtest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+securityselinuxtest_LDADD = $(LDADDS)
+securityselinuxtest_DEPENDENCIES = libsecurityselinuxhelper.la
+else
+EXTRA_DIST += securityselinuxtest.c securityselinuxhelper.c
+endif
+
 virbuftest_SOURCES = \
 	virbuftest.c testutils.h testutils.c
 virbuftest_LDADD = $(LDADDS)
@@ -515,6 +557,10 @@ virbuftest_LDADD = $(LDADDS)
 virhashtest_SOURCES = \
 	virhashtest.c virhashdata.h testutils.h testutils.c
 virhashtest_LDADD = $(LDADDS)
+
+viratomictest_SOURCES = \
+	viratomictest.c testutils.h testutils.c
+viratomictest_LDADD = $(LDADDS)
 
 jsontest_SOURCES = \
 	jsontest.c testutils.h testutils.c

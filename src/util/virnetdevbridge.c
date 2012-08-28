@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2011 Red Hat, Inc.
+ * Copyright (C) 2007-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Mark McLoughlin <markmc@redhat.com>
@@ -378,7 +378,7 @@ int virNetDevBridgeRemovePort(const char *brname,
 /**
  * virNetDevBridgeSetSTPDelay:
  * @brname: the bridge name
- * @delay: delay in seconds
+ * @delay: delay in milliseconds
  *
  * Set the bridge forward delay
  *

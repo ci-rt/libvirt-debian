@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2010 Red Hat, Inc.
+ * Copyright (C) 2007-2012 Red Hat, Inc.
  * Copyright (C) 2009 IBM Corp.
  *
  * This library is free software; you can redistribute it and/or
@@ -13,8 +13,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * based on iptables.c
  * Authors:
@@ -45,6 +45,38 @@
 #include "memory.h"
 #include "virterror_internal.h"
 #include "logging.h"
+#include "threads.h"
+
+#if HAVE_FIREWALLD
+static char *firewall_cmd_path = NULL;
+
+static int
+virEbTablesOnceInit(void)
+{
+    firewall_cmd_path = virFindFileInPath("firewall-cmd");
+    if (!firewall_cmd_path) {
+        VIR_INFO("firewall-cmd not found on system. "
+                 "firewalld support disabled for ebtables.");
+    } else {
+        virCommandPtr cmd = virCommandNew(firewall_cmd_path);
+        int status;
+
+        virCommandAddArgList(cmd, "--state", NULL);
+        if (virCommandRun(cmd, &status) < 0 || status != 0) {
+            VIR_INFO("firewall-cmd found but disabled for ebtables");
+            VIR_FREE(firewall_cmd_path);
+            firewall_cmd_path = NULL;
+        } else {
+            VIR_INFO("using firewalld for ebtables commands");
+        }
+        virCommandFree(cmd);
+    }
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(virEbTables)
+
+#endif
 
 struct _ebtablesContext
 {
@@ -181,6 +213,12 @@ ebtablesAddRemoveRule(ebtRules *rules, int action, const char *arg, ...)
         2 + /*   --insert bar  */
         1;  /*   arg           */
 
+#if HAVE_FIREWALLD
+    virEbTablesInitialize();
+    if (firewall_cmd_path)
+        n += 3; /* --direct --passthrough eb */
+#endif
+
     va_start(args, arg);
     while (va_arg(args, const char *))
         n++;
@@ -192,6 +230,18 @@ ebtablesAddRemoveRule(ebtRules *rules, int action, const char *arg, ...)
 
     n = 0;
 
+#if HAVE_FIREWALLD
+    if (firewall_cmd_path) {
+        if (!(argv[n++] = strdup(firewall_cmd_path)))
+            goto error;
+        if (!(argv[n++] = strdup("--direct")))
+            goto error;
+        if (!(argv[n++] = strdup("--passthrough")))
+            goto error;
+        if (!(argv[n++] = strdup("eb")))
+            goto error;
+    } else
+#endif
     if (!(argv[n++] = strdup(EBTABLES_PATH)))
         goto error;
 
@@ -392,15 +442,15 @@ ebtablesForwardAllowIn(ebtablesContext *ctx,
 int
 ebtablesAddForwardAllowIn(ebtablesContext *ctx,
                           const char *iface,
-                          const unsigned char *mac)
+                          const virMacAddrPtr mac)
 {
     char *macaddr;
 
     if (virAsprintf(&macaddr,
                     "%02x:%02x:%02x:%02x:%02x:%02x",
-                    mac[0], mac[1],
-                    mac[2], mac[3],
-                    mac[4], mac[5]) < 0) {
+                    mac->addr[0], mac->addr[1],
+                    mac->addr[2], mac->addr[3],
+                    mac->addr[4], mac->addr[5]) < 0) {
         return -1;
     }
     return ebtablesForwardAllowIn(ctx, iface, macaddr, ADD);
@@ -421,15 +471,15 @@ ebtablesAddForwardAllowIn(ebtablesContext *ctx,
 int
 ebtablesRemoveForwardAllowIn(ebtablesContext *ctx,
                              const char *iface,
-                             const unsigned char *mac)
+                             const virMacAddrPtr mac)
 {
     char *macaddr;
 
     if (virAsprintf(&macaddr,
                     "%02x:%02x:%02x:%02x:%02x:%02x",
-                    mac[0], mac[1],
-                    mac[2], mac[3],
-                    mac[4], mac[5]) < 0) {
+                    mac->addr[0], mac->addr[1],
+                    mac->addr[2], mac->addr[3],
+                    mac->addr[4], mac->addr[5]) < 0) {
        return -1;
     }
     return ebtablesForwardAllowIn(ctx, iface, macaddr, REMOVE);

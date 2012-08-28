@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2011 Red Hat, Inc.
+ * Copyright (C) 2007-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Mark McLoughlin <markmc@redhat.com>
@@ -43,11 +43,40 @@
 #include "memory.h"
 #include "virterror_internal.h"
 #include "logging.h"
+#include "threads.h"
+
+#if HAVE_FIREWALLD
+static char *firewall_cmd_path = NULL;
+
+static int
+virIpTablesOnceInit(void)
+{
+    firewall_cmd_path = virFindFileInPath("firewall-cmd");
+    if (!firewall_cmd_path) {
+        VIR_INFO("firewall-cmd not found on system. "
+                 "firewalld support disabled for iptables.");
+    } else {
+        virCommandPtr cmd = virCommandNew(firewall_cmd_path);
+        int status;
+
+        virCommandAddArgList(cmd, "--state", NULL);
+        if (virCommandRun(cmd, &status) < 0 || status != 0) {
+            VIR_INFO("firewall-cmd found but disabled for iptables");
+            VIR_FREE(firewall_cmd_path);
+            firewall_cmd_path = NULL;
+        } else {
+            VIR_INFO("using firewalld for iptables commands");
+        }
+        virCommandFree(cmd);
+    }
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(virIpTables)
+
+#endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-#define iptablesError(code, ...)                                        \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,                 \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 enum {
     ADD = 0,
@@ -104,11 +133,22 @@ iptablesAddRemoveRule(iptRules *rules, int family, int action,
 {
     va_list args;
     int ret;
-    virCommandPtr cmd;
+    virCommandPtr cmd = NULL;
     const char *s;
 
-    cmd = virCommandNew((family == AF_INET6)
+#if HAVE_FIREWALLD
+    virIpTablesInitialize();
+    if (firewall_cmd_path) {
+        cmd = virCommandNew(firewall_cmd_path);
+        virCommandAddArgList(cmd, "--direct", "--passthrough",
+                             (family == AF_INET6) ? "ipv6" : "ipv4", NULL);
+    }
+#endif
+
+    if (cmd == NULL) {
+        cmd = virCommandNew((family == AF_INET6)
                         ? IP6TABLES_PATH : IPTABLES_PATH);
+    }
 
     virCommandAddArgList(cmd, "--table", rules->table,
                          action == ADD ? "--insert" : "--delete",
@@ -293,14 +333,14 @@ static char *iptablesFormatNetwork(virSocketAddr *netaddr,
 
     if (!(VIR_SOCKET_ADDR_IS_FAMILY(netaddr, AF_INET) ||
           VIR_SOCKET_ADDR_IS_FAMILY(netaddr, AF_INET6))) {
-        iptablesError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                      _("Only IPv4 or IPv6 addresses can be used with iptables"));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Only IPv4 or IPv6 addresses can be used with iptables"));
         return NULL;
     }
 
     if (virSocketAddrMaskByPrefix(netaddr, prefix, &network) < 0) {
-        iptablesError(VIR_ERR_INTERNAL_ERROR, "%s",
-                      _("Failure to mask address"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Failure to mask address"));
         return NULL;
     }
 
@@ -763,9 +803,9 @@ iptablesForwardMasquerade(iptablesContext *ctx,
 
     if (!VIR_SOCKET_ADDR_IS_FAMILY(netaddr, AF_INET)) {
         /* Higher level code *should* guaranteee it's impossible to get here. */
-        iptablesError(VIR_ERR_INTERNAL_ERROR,
-                      _("Attempted to NAT '%s'. NAT is only supported for IPv4."),
-                      networkstr);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Attempted to NAT '%s'. NAT is only supported for IPv4."),
+                       networkstr);
         VIR_FREE(networkstr);
         return -1;
     }

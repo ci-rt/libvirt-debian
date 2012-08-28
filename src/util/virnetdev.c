@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Mark McLoughlin <markmc@redhat.com>
@@ -29,6 +29,7 @@
 #include "command.h"
 #include "memory.h"
 #include "pci.h"
+#include "logging.h"
 
 #include <sys/ioctl.h>
 #ifdef HAVE_NET_IF_H
@@ -44,9 +45,6 @@
 #endif
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-#define virNetDevError(code, ...)                                      \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,                \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #if defined(HAVE_STRUCT_IFREQ)
 static int virNetDevSetupControlFull(const char *ifname,
@@ -137,7 +135,7 @@ int virNetDevExists(const char *ifname)
 /**
  * virNetDevSetMAC:
  * @ifname: interface name to set MTU for
- * @macaddr: MAC address (VIR_MAC_BUFLEN in size)
+ * @macaddr: MAC address
  *
  * This function sets the @macaddr for a given interface @ifname. This
  * gets rid of the kernel's automatically assigned random MAC.
@@ -145,7 +143,7 @@ int virNetDevExists(const char *ifname)
  * Returns 0 in case of success or -1 on failure
  */
 int virNetDevSetMAC(const char *ifname,
-                    const unsigned char *macaddr)
+                    const virMacAddrPtr macaddr)
 {
     int fd = -1;
     int ret = -1;
@@ -162,7 +160,7 @@ int virNetDevSetMAC(const char *ifname,
         goto cleanup;
     }
 
-    memcpy(ifr.ifr_hwaddr.sa_data, macaddr, VIR_MAC_BUFLEN);
+    virMacAddrGetRaw(macaddr, (unsigned char *)ifr.ifr_hwaddr.sa_data);
 
     if (ioctl(fd, SIOCSIFHWADDR, &ifr) < 0) {
         virReportSystemError(errno,
@@ -179,7 +177,7 @@ cleanup:
 }
 #else
 int virNetDevSetMAC(const char *ifname,
-                    const unsigned char *macaddr ATTRIBUTE_UNUSED)
+                    const virMacAddrPtr macaddr ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS,
                          _("Cannot set interface MAC on '%s'"),
@@ -193,14 +191,14 @@ int virNetDevSetMAC(const char *ifname,
 /**
  * virNetDevGetMAC:
  * @ifname: interface name to set MTU for
- * @macaddr: MAC address (VIR_MAC_BUFLEN in size)
+ * @macaddr: MAC address
  *
  * This function gets the @macaddr for a given interface @ifname.
  *
  * Returns 0 in case of success or -1 on failure
  */
 int virNetDevGetMAC(const char *ifname,
-                    unsigned char *macaddr)
+                    virMacAddrPtr macaddr)
 {
     int fd = -1;
     int ret = -1;
@@ -216,7 +214,7 @@ int virNetDevGetMAC(const char *ifname,
         goto cleanup;
     }
 
-    memcpy(macaddr, ifr.ifr_hwaddr.sa_data, VIR_MAC_BUFLEN);
+    virMacAddrSetRaw(macaddr, (unsigned char *)ifr.ifr_hwaddr.sa_data);
 
     ret = 0;
 
@@ -226,7 +224,7 @@ cleanup:
 }
 #else
 int virNetDevGetMAC(const char *ifname,
-                    unsigned char *macaddr ATTRIBUTE_UNUSED)
+                    virMacAddrPtr macaddr ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS,
                          _("Cannot get interface MAC on '%s'"),
@@ -248,14 +246,14 @@ int virNetDevGetMAC(const char *ifname,
  */
 int
 virNetDevReplaceMacAddress(const char *linkdev,
-                           const unsigned char *macaddress,
+                           const virMacAddrPtr macaddress,
                            const char *stateDir)
 {
-    unsigned char oldmac[6];
+    virMacAddr oldmac;
     char *path = NULL;
     char macstr[VIR_MAC_STRING_BUFLEN];
 
-    if (virNetDevGetMAC(linkdev, oldmac) < 0)
+    if (virNetDevGetMAC(linkdev, &oldmac) < 0)
         return -1;
 
 
@@ -265,7 +263,7 @@ virNetDevReplaceMacAddress(const char *linkdev,
         virReportOOMError();
         return -1;
     }
-    virMacAddrFormat(oldmac, macstr);
+    virMacAddrFormat(&oldmac, macstr);
     if (virFileWriteStr(path, macstr, O_CREAT|O_TRUNC|O_WRONLY) < 0) {
         virReportSystemError(errno, _("Unable to preserve mac for %s"),
                              linkdev);
@@ -294,7 +292,7 @@ virNetDevRestoreMacAddress(const char *linkdev,
     char *oldmacname = NULL;
     char *macstr = NULL;
     char *path = NULL;
-    unsigned char oldmac[6];
+    virMacAddr oldmac;
 
     if (virAsprintf(&path, "%s/%s",
                     stateDir,
@@ -306,8 +304,8 @@ virNetDevRestoreMacAddress(const char *linkdev,
     if (virFileReadAll(path, VIR_MAC_STRING_BUFLEN, &macstr) < 0)
         return -1;
 
-    if (virMacAddrParse(macstr, &oldmac[0]) != 0) {
-        virNetDevError(VIR_ERR_INTERNAL_ERROR,
+    if (virMacAddrParse(macstr, &oldmac) != 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Cannot parse MAC address from '%s'"),
                        oldmacname);
         VIR_FREE(macstr);
@@ -315,7 +313,7 @@ virNetDevRestoreMacAddress(const char *linkdev,
     }
 
     /*reset mac and remove file-ignore results*/
-    rc = virNetDevSetMAC(linkdev, oldmac);
+    rc = virNetDevSetMAC(linkdev, &oldmac);
     ignore_value(unlink(path));
     VIR_FREE(macstr);
 
@@ -876,7 +874,7 @@ int virNetDevGetIPv4Address(const char *ifname ATTRIBUTE_UNUSED,
  */
 #if defined(HAVE_STRUCT_IFREQ)
 int virNetDevValidateConfig(const char *ifname,
-                            const unsigned char *macaddr, int ifindex)
+                            const virMacAddrPtr macaddr, int ifindex)
 {
     int fd = -1;
     int ret = -1;
@@ -906,7 +904,8 @@ int virNetDevValidateConfig(const char *ifname,
             goto cleanup;
         }
 
-        if (memcmp(&ifr.ifr_hwaddr.sa_data, macaddr, VIR_MAC_BUFLEN) != 0) {
+        if (virMacAddrCmpRaw(macaddr,
+                             (unsigned char *)ifr.ifr_hwaddr.sa_data) != 0) {
             ret = 0;
             goto cleanup;
         }
@@ -929,7 +928,7 @@ int virNetDevValidateConfig(const char *ifname,
 }
 #else /* ! HAVE_STRUCT_IFREQ */
 int virNetDevValidateConfig(const char *ifname ATTRIBUTE_UNUSED,
-                            const unsigned char *macaddr ATTRIBUTE_UNUSED,
+                            const virMacAddrPtr macaddr ATTRIBUTE_UNUSED,
                             int ifindex ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
@@ -983,18 +982,18 @@ virNetDevSysfsDeviceFile(char **pf_sysfs_device_link, const char *ifname,
 int
 virNetDevGetVirtualFunctions(const char *pfname,
                              char ***vfname,
+                             struct pci_config_address ***virt_fns,
                              unsigned int *n_vfname)
 {
     int ret = -1, i;
     char *pf_sysfs_device_link = NULL;
     char *pci_sysfs_device_link = NULL;
-    struct pci_config_address **virt_fns;
     char *pciConfigAddr;
 
     if (virNetDevSysfsFile(&pf_sysfs_device_link, pfname, "device") < 0)
         return ret;
 
-    if (pciGetVirtualFunctions(pf_sysfs_device_link, &virt_fns,
+    if (pciGetVirtualFunctions(pf_sysfs_device_link, virt_fns,
                                n_vfname) < 0)
         goto cleanup;
 
@@ -1005,10 +1004,10 @@ virNetDevGetVirtualFunctions(const char *pfname,
 
     for (i = 0; i < *n_vfname; i++)
     {
-        if (pciGetDeviceAddrString(virt_fns[i]->domain,
-                                   virt_fns[i]->bus,
-                                   virt_fns[i]->slot,
-                                   virt_fns[i]->function,
+        if (pciGetDeviceAddrString((*virt_fns)[i]->domain,
+                                   (*virt_fns)[i]->bus,
+                                   (*virt_fns)[i]->slot,
+                                   (*virt_fns)[i]->function,
                                    &pciConfigAddr) < 0) {
             virReportSystemError(ENOSYS, "%s",
                                  _("Failed to get PCI Config Address String"));
@@ -1021,20 +1020,17 @@ virNetDevGetVirtualFunctions(const char *pfname,
         }
 
         if (pciDeviceNetName(pci_sysfs_device_link, &((*vfname)[i])) < 0) {
-            virReportSystemError(ENOSYS, "%s",
-                                 _("Failed to get interface name of the VF"));
-            goto cleanup;
+            VIR_INFO("VF does not have an interface name");
         }
     }
 
     ret = 0;
 
 cleanup:
-    if (ret < 0)
+    if (ret < 0) {
         VIR_FREE(*vfname);
-    for (i = 0; i < *n_vfname; i++)
-        VIR_FREE(virt_fns[i]);
-    VIR_FREE(virt_fns);
+        VIR_FREE(*virt_fns);
+    }
     VIR_FREE(pf_sysfs_device_link);
     VIR_FREE(pci_sysfs_device_link);
     VIR_FREE(pciConfigAddr);
@@ -1171,6 +1167,7 @@ cleanup:
 int
 virNetDevGetVirtualFunctions(const char *pfname ATTRIBUTE_UNUSED,
                              char ***vfname ATTRIBUTE_UNUSED,
+                             struct pci_config_address ***virt_fns ATTRIBUTE_UNUSED,
                              unsigned int *n_vfname ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
@@ -1280,7 +1277,8 @@ virNetDevLinkDump(const char *ifname, int ifindex,
             goto buffer_too_small;
     }
 
-    if (virNetlinkCommand(nl_msg, recvbuf, &recvbuflen, src_pid, dst_pid) < 0)
+    if (virNetlinkCommand(nl_msg, recvbuf, &recvbuflen,
+                          src_pid, dst_pid, NETLINK_ROUTE, 0) < 0)
         goto cleanup;
 
     if (recvbuflen < NLMSG_LENGTH(0) || *recvbuf == NULL)
@@ -1321,19 +1319,19 @@ cleanup:
     return rc;
 
 malformed_resp:
-    virNetDevError(VIR_ERR_INTERNAL_ERROR, "%s",
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("malformed netlink response message"));
     goto cleanup;
 
 buffer_too_small:
-    virNetDevError(VIR_ERR_INTERNAL_ERROR, "%s",
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("allocated netlink buffer is too small"));
     goto cleanup;
 }
 
 static int
 virNetDevSetVfConfig(const char *ifname, int ifindex, int vf,
-                     bool nltarget_kernel, const unsigned char *macaddr,
+                     bool nltarget_kernel, const virMacAddrPtr macaddr,
                      int vlanid, uint32_t (*getPidFunc)(void))
 {
     int rc = -1;
@@ -1378,7 +1376,7 @@ virNetDevSetVfConfig(const char *ifname, int ifindex, int vf,
              .mac = { 0, },
         };
 
-        memcpy(ifla_vf_mac.mac, macaddr, VIR_MAC_BUFLEN);
+        virMacAddrGetRaw(macaddr, ifla_vf_mac.mac);
 
         if (nla_put(nl_msg, IFLA_VF_MAC, sizeof(ifla_vf_mac),
                     &ifla_vf_mac) < 0)
@@ -1408,7 +1406,8 @@ virNetDevSetVfConfig(const char *ifname, int ifindex, int vf,
         }
     }
 
-    if (virNetlinkCommand(nl_msg, &recvbuf, &recvbuflen, 0, pid) < 0)
+    if (virNetlinkCommand(nl_msg, &recvbuf, &recvbuflen, 0, pid,
+                          NETLINK_ROUTE, 0) < 0)
         goto cleanup;
 
     if (recvbuflen < NLMSG_LENGTH(0) || recvbuf == NULL)
@@ -1445,18 +1444,18 @@ cleanup:
     return rc;
 
 malformed_resp:
-    virNetDevError(VIR_ERR_INTERNAL_ERROR, "%s",
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("malformed netlink response message"));
     goto cleanup;
 
 buffer_too_small:
-    virNetDevError(VIR_ERR_INTERNAL_ERROR, "%s",
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                    _("allocated netlink buffer is too small"));
     goto cleanup;
 }
 
 static int
-virNetDevParseVfConfig(struct nlattr **tb, int32_t vf, unsigned char *mac,
+virNetDevParseVfConfig(struct nlattr **tb, int32_t vf, virMacAddrPtr mac,
                        int *vlanid)
 {
     const char *msg = NULL;
@@ -1483,7 +1482,7 @@ virNetDevParseVfConfig(struct nlattr **tb, int32_t vf, unsigned char *mac,
             if (tb[IFLA_VF_MAC]) {
                 vf_mac = RTA_DATA(tb_vf[IFLA_VF_MAC]);
                 if (vf_mac && vf_mac->vf == vf)  {
-                    memcpy(mac, vf_mac->mac, VIR_MAC_BUFLEN);
+                    virMacAddrSetRaw(mac, vf_mac->mac);
                     found = 1;
                 }
             }
@@ -1504,13 +1503,13 @@ virNetDevParseVfConfig(struct nlattr **tb, int32_t vf, unsigned char *mac,
 
 cleanup:
     if (msg)
-        virNetDevError(VIR_ERR_INTERNAL_ERROR, "%s", msg);
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", msg);
 
     return rc;
 }
 
 static int
-virNetDevGetVfConfig(const char *ifname, int vf, unsigned char *mac,
+virNetDevGetVfConfig(const char *ifname, int vf, virMacAddrPtr mac,
                      int *vlanid)
 {
     int rc = -1;
@@ -1531,37 +1530,45 @@ virNetDevGetVfConfig(const char *ifname, int vf, unsigned char *mac,
 
 static int
 virNetDevReplaceVfConfig(const char *pflinkdev, int vf,
-                         const unsigned char *macaddress,
+                         const virMacAddrPtr macaddress,
                          int vlanid,
                          const char *stateDir)
 {
-    unsigned char oldmac[6];
+    int ret = -1;
+    virMacAddr oldmac;
     int oldvlanid = -1;
     char *path = NULL;
     char macstr[VIR_MAC_STRING_BUFLEN];
+    char *fileData = NULL;
     int ifindex = -1;
 
-    if (virNetDevGetVfConfig(pflinkdev, vf, oldmac, &oldvlanid) < 0)
-        return -1;
+    if (virNetDevGetVfConfig(pflinkdev, vf, &oldmac, &oldvlanid) < 0)
+        goto cleanup;
 
     if (virAsprintf(&path, "%s/%s_vf%d",
                     stateDir, pflinkdev, vf) < 0) {
         virReportOOMError();
-        return -1;
+        goto cleanup;
     }
 
-    virMacAddrFormat(oldmac, macstr);
-    if (virFileWriteStr(path, macstr, O_CREAT|O_TRUNC|O_WRONLY) < 0) {
-        virReportSystemError(errno, _("Unable to preserve mac for pf = %s,"
-                             " vf = %d"), pflinkdev, vf);
-        VIR_FREE(path);
-        return -1;
+    if (virAsprintf(&fileData, "%s\n%d\n",
+                    virMacAddrFormat(&oldmac, macstr), oldvlanid) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    if (virFileWriteStr(path, fileData, O_CREAT|O_TRUNC|O_WRONLY) < 0) {
+        virReportSystemError(errno, _("Unable to preserve mac/vlan tag "
+                                      "for pf = %s, vf = %d"), pflinkdev, vf);
+        goto cleanup;
     }
 
-    VIR_FREE(path);
-
-    return virNetDevSetVfConfig(pflinkdev, ifindex, vf, true,
+    ret = virNetDevSetVfConfig(pflinkdev, ifindex, vf, true,
                                 macaddress, vlanid, NULL);
+
+cleanup:
+    VIR_FREE(path);
+    VIR_FREE(fileData);
+    return ret;
 }
 
 static int
@@ -1569,9 +1576,10 @@ virNetDevRestoreVfConfig(const char *pflinkdev, int vf,
                          const char *stateDir)
 {
     int rc = -1;
-    char *macstr = NULL;
     char *path = NULL;
-    unsigned char oldmac[6];
+    char *fileData = NULL;
+    char *vlan = NULL;
+    virMacAddr oldmac;
     int vlanid = -1;
     int ifindex = -1;
 
@@ -1581,25 +1589,40 @@ virNetDevRestoreVfConfig(const char *pflinkdev, int vf,
         return rc;
     }
 
-    if (virFileReadAll(path, VIR_MAC_STRING_BUFLEN, &macstr) < 0) {
+    if (virFileReadAll(path, 128, &fileData) < 0) {
         goto cleanup;
     }
 
-    if (virMacAddrParse(macstr, &oldmac[0]) != 0) {
-        virNetDevError(VIR_ERR_INTERNAL_ERROR,
+    if ((vlan = strchr(fileData, '\n'))) {
+        char *endptr;
+
+        *vlan++ = 0; /* NULL terminate the mac address */
+        if (*vlan) {
+            if ((virStrToLong_i(vlan, &endptr, 10, &vlanid) < 0) ||
+                (endptr && *endptr != '\n' && *endptr != 0)) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Cannot parse vlan tag from '%s'"),
+                               vlan);
+                goto cleanup;
+            }
+        }
+    }
+
+    if (virMacAddrParse(fileData, &oldmac) != 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Cannot parse MAC address from '%s'"),
-                       macstr);
+                       fileData);
         goto cleanup;
     }
 
     /*reset mac and remove file-ignore results*/
     rc = virNetDevSetVfConfig(pflinkdev, ifindex, vf, true,
-                              oldmac, vlanid, NULL);
+                              &oldmac, vlanid, NULL);
     ignore_value(unlink(path));
 
 cleanup:
     VIR_FREE(path);
-    VIR_FREE(macstr);
+    VIR_FREE(fileData);
 
     return rc;
 }
@@ -1617,7 +1640,7 @@ cleanup:
  */
 int
 virNetDevReplaceNetConfig(char *linkdev, int vf,
-                          const unsigned char *macaddress, int vlanid,
+                          const virMacAddrPtr macaddress, int vlanid,
                           char *stateDir)
 {
     if (vf == -1)
@@ -1663,7 +1686,7 @@ virNetDevLinkDump(const char *ifname ATTRIBUTE_UNUSED,
 int
 virNetDevReplaceNetConfig(char *linkdev ATTRIBUTE_UNUSED,
                           int vf ATTRIBUTE_UNUSED,
-                          const unsigned char *macaddress ATTRIBUTE_UNUSED,
+                          const virMacAddrPtr macaddress ATTRIBUTE_UNUSED,
                           int vlanid ATTRIBUTE_UNUSED,
                           char *stateDir ATTRIBUTE_UNUSED)
 {

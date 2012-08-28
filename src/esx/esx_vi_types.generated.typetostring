@@ -111,14 +111,68 @@
           case esxVI_Type_HostFileSystemVolume:
             return "HostFileSystemVolume";
 
+          case esxVI_Type_HostIpConfig:
+            return "HostIpConfig";
+
           case esxVI_Type_HostMountInfo:
             return "HostMountInfo";
 
           case esxVI_Type_HostNasVolume:
             return "HostNasVolume";
 
+          case esxVI_Type_HostNetOffloadCapabilities:
+            return "HostNetOffloadCapabilities";
+
+          case esxVI_Type_HostNetworkPolicy:
+            return "HostNetworkPolicy";
+
+          case esxVI_Type_HostNetworkSecurityPolicy:
+            return "HostNetworkSecurityPolicy";
+
+          case esxVI_Type_HostNetworkTrafficShapingPolicy:
+            return "HostNetworkTrafficShapingPolicy";
+
+          case esxVI_Type_HostNicFailureCriteria:
+            return "HostNicFailureCriteria";
+
+          case esxVI_Type_HostNicOrderPolicy:
+            return "HostNicOrderPolicy";
+
+          case esxVI_Type_HostNicTeamingPolicy:
+            return "HostNicTeamingPolicy";
+
+          case esxVI_Type_HostPortGroup:
+            return "HostPortGroup";
+
+          case esxVI_Type_HostPortGroupPort:
+            return "HostPortGroupPort";
+
+          case esxVI_Type_HostPortGroupSpec:
+            return "HostPortGroupSpec";
+
           case esxVI_Type_HostScsiDiskPartition:
             return "HostScsiDiskPartition";
+
+          case esxVI_Type_HostVirtualSwitch:
+            return "HostVirtualSwitch";
+
+          case esxVI_Type_HostVirtualSwitchAutoBridge:
+            return "HostVirtualSwitchAutoBridge";
+
+          case esxVI_Type_HostVirtualSwitchBeaconConfig:
+            return "HostVirtualSwitchBeaconConfig";
+
+          case esxVI_Type_HostVirtualSwitchBondBridge:
+            return "HostVirtualSwitchBondBridge";
+
+          case esxVI_Type_HostVirtualSwitchBridge:
+            return "HostVirtualSwitchBridge";
+
+          case esxVI_Type_HostVirtualSwitchSimpleBridge:
+            return "HostVirtualSwitchSimpleBridge";
+
+          case esxVI_Type_HostVirtualSwitchSpec:
+            return "HostVirtualSwitchSpec";
 
           case esxVI_Type_HostVmfsVolume:
             return "HostVmfsVolume";
@@ -173,6 +227,15 @@
 
           case esxVI_Type_PerfSampleInfo:
             return "PerfSampleInfo";
+
+          case esxVI_Type_PhysicalNic:
+            return "PhysicalNic";
+
+          case esxVI_Type_PhysicalNicLinkInfo:
+            return "PhysicalNicLinkInfo";
+
+          case esxVI_Type_PhysicalNicSpec:
+            return "PhysicalNicSpec";
 
           case esxVI_Type_PropertyChange:
             return "PropertyChange";

@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -181,8 +181,13 @@ virCapabilitiesFree(virCapsPtr caps) {
     VIR_FREE(caps->host.migrateTrans);
 
     VIR_FREE(caps->host.arch);
-    VIR_FREE(caps->host.secModel.model);
-    VIR_FREE(caps->host.secModel.doi);
+
+    for (i = 0; i < caps->host.nsecModels; i++) {
+        VIR_FREE(caps->host.secModels[i].model);
+        VIR_FREE(caps->host.secModels[i].doi);
+    }
+    VIR_FREE(caps->host.secModels);
+
     virCPUDefFree(caps->host.cpu);
 
     VIR_FREE(caps);
@@ -767,10 +772,12 @@ virCapabilitiesFormatXML(virCapsPtr caps)
         virBufferAddLit(&xml, "    </topology>\n");
     }
 
-    if (caps->host.secModel.model) {
+    for (i = 0; i < caps->host.nsecModels; i++) {
         virBufferAddLit(&xml, "    <secmodel>\n");
-        virBufferAsprintf(&xml, "      <model>%s</model>\n", caps->host.secModel.model);
-        virBufferAsprintf(&xml, "      <doi>%s</doi>\n", caps->host.secModel.doi);
+        virBufferAsprintf(&xml, "      <model>%s</model>\n",
+                          caps->host.secModels[i].model);
+        virBufferAsprintf(&xml, "      <doi>%s</doi>\n",
+                          caps->host.secModels[i].doi);
         virBufferAddLit(&xml, "    </secmodel>\n");
     }
 
@@ -859,14 +866,14 @@ virCapabilitiesFormatXML(virCapsPtr caps)
 
 extern void
 virCapabilitiesSetMacPrefix(virCapsPtr caps,
-                            unsigned char *prefix)
+                            const unsigned char prefix[VIR_MAC_PREFIX_BUFLEN])
 {
     memcpy(caps->macPrefix, prefix, sizeof(caps->macPrefix));
 }
 
 extern void
 virCapabilitiesGenerateMac(virCapsPtr caps,
-                           unsigned char *mac)
+                           virMacAddrPtr mac)
 {
     virMacAddrGenerate(caps->macPrefix, mac);
 }

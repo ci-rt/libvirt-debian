@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -35,7 +35,9 @@
 # include "virsocketaddr.h"
 # include "virnetdevbandwidth.h"
 # include "virnetdevvportprofile.h"
+# include "virnetdevvlan.h"
 # include "virmacaddr.h"
+# include "device_conf.h"
 
 enum virNetworkForwardType {
     VIR_NETWORK_FORWARD_NONE   = 0,
@@ -45,8 +47,18 @@ enum virNetworkForwardType {
     VIR_NETWORK_FORWARD_PRIVATE,
     VIR_NETWORK_FORWARD_VEPA,
     VIR_NETWORK_FORWARD_PASSTHROUGH,
+    VIR_NETWORK_FORWARD_HOSTDEV,
 
     VIR_NETWORK_FORWARD_LAST,
+};
+
+enum virNetworkForwardHostdevDeviceType {
+    VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NONE = 0,
+    VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_PCI,
+    VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV,
+    /* USB Device to be added here when supported */
+
+    VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_LAST,
 };
 
 typedef struct _virNetworkDHCPRangeDef virNetworkDHCPRangeDef;
@@ -131,8 +143,20 @@ struct _virNetworkIpDef {
 typedef struct _virNetworkForwardIfDef virNetworkForwardIfDef;
 typedef virNetworkForwardIfDef *virNetworkForwardIfDefPtr;
 struct _virNetworkForwardIfDef {
+    int type;
+    union {
+        virDevicePCIAddress pci; /*PCI Address of device */
+        /* when USB devices are supported a new variable to be added here */
+        char *dev;      /* name of device */
+    }device;
+    int connections; /* how many guest interfaces are connected to this device? */
+};
+
+typedef struct _virNetworkForwardPfDef virNetworkForwardPfDef;
+typedef virNetworkForwardPfDef *virNetworkForwardPfDefPtr;
+struct _virNetworkForwardPfDef {
     char *dev;      /* name of device */
-    int usageCount; /* how many guest interfaces are bound to this device? */
+    int connections; /* how many guest interfaces are connected to this device? */
 };
 
 typedef struct _virPortGroupDef virPortGroupDef;
@@ -142,28 +166,32 @@ struct _virPortGroupDef {
     bool isDefault;
     virNetDevVPortProfilePtr virtPortProfile;
     virNetDevBandwidthPtr bandwidth;
+    virNetDevVlan vlan;
 };
 
 typedef struct _virNetworkDef virNetworkDef;
 typedef virNetworkDef *virNetworkDefPtr;
 struct _virNetworkDef {
     unsigned char uuid[VIR_UUID_BUFLEN];
+    bool uuid_specified;
     char *name;
+    int   connections; /* # of guest interfaces connected to this network */
 
     char *bridge;       /* Name of bridge device */
     char *domain;
     unsigned long delay;   /* Bridge forward delay (ms) */
     unsigned int stp :1; /* Spanning tree protocol */
-    unsigned char mac[VIR_MAC_BUFLEN]; /* mac address of bridge device */
+    virMacAddr mac; /* mac address of bridge device */
     bool mac_specified;
 
     int forwardType;    /* One of virNetworkForwardType constants */
+    int managed;        /* managed attribute for hostdev mode */
 
     /* If there are multiple forward devices (i.e. a pool of
      * interfaces), they will be listed here.
      */
     size_t nForwardPfs;
-    virNetworkForwardIfDefPtr forwardPfs;
+    virNetworkForwardPfDefPtr forwardPfs;
 
     size_t nForwardIfs;
     virNetworkForwardIfDefPtr forwardIfs;
@@ -177,6 +205,7 @@ struct _virNetworkDef {
     size_t nPortGroups;
     virPortGroupDefPtr portGroups;
     virNetDevBandwidthPtr bandwidth;
+    virNetDevVlan vlan;
 };
 
 typedef struct _virNetworkObj virNetworkObj;
@@ -232,8 +261,9 @@ char *virNetworkDefFormat(const virNetworkDefPtr def, unsigned int flags);
 static inline const char *
 virNetworkDefForwardIf(const virNetworkDefPtr def, size_t n)
 {
-    return ((def->forwardIfs && (def->nForwardIfs > n))
-            ? def->forwardIfs[n].dev : NULL);
+    return ((def->forwardIfs && (def->nForwardIfs > n) &&
+             def->forwardIfs[n].type == VIR_NETWORK_FORWARD_HOSTDEV_DEVICE_NETDEV)
+            ? def->forwardIfs[n].device.dev : NULL);
 }
 
 virPortGroupDefPtr virPortGroupFindByName(virNetworkDefPtr net,
@@ -288,5 +318,7 @@ int virNetworkObjIsDuplicate(virNetworkObjListPtr doms,
 
 void virNetworkObjLock(virNetworkObjPtr obj);
 void virNetworkObjUnlock(virNetworkObjPtr obj);
+
+VIR_ENUM_DECL(virNetworkForward)
 
 #endif /* __NETWORK_CONF_H__ */

@@ -8,6 +8,9 @@ EnvironmentFile=-/etc/sysconfig/libvirt-guests
 # out the code
 ExecStart=/etc/init.d/libvirt-guests start
 ExecStop=/etc/init.d/libvirt-guests stop
+Type=oneshot
+RemainAfterExit=yes
+StandardOutput=journal+console
 
 [Install]
 WantedBy=multi-user.target

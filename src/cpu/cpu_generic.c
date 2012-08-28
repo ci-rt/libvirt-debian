@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *      Jiri Denemark <jdenemar@redhat.com>
@@ -131,9 +131,9 @@ genericBaseline(virCPUDefPtr *cpus,
             }
         }
         if (!found) {
-            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
-                    _("CPU model '%s' is not support by hypervisor"),
-                    cpus[0]->model);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("CPU model '%s' is not support by hypervisor"),
+                           cpus[0]->model);
             goto error;
         }
     }
@@ -154,16 +154,16 @@ genericBaseline(virCPUDefPtr *cpus,
         virHashTablePtr hash;
 
         if (STRNEQ(cpu->arch, cpus[i]->arch)) {
-            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
-                    _("CPUs have incompatible architectures: '%s' != '%s'"),
-                    cpu->arch, cpus[i]->arch);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("CPUs have incompatible architectures: '%s' != '%s'"),
+                           cpu->arch, cpus[i]->arch);
             goto error;
         }
 
         if (STRNEQ(cpu->model, cpus[i]->model)) {
-            virCPUReportError(VIR_ERR_INTERNAL_ERROR,
-                    _("CPU models don't match: '%s' != '%s'"),
-                    cpu->model, cpus[i]->model);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("CPU models don't match: '%s' != '%s'"),
+                           cpu->model, cpus[i]->model);
             goto error;
         }
 

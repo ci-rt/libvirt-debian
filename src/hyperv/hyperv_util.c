@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +42,7 @@ hypervParseUri(hypervParsedUri **parsedUri, virURIPtr uri)
     int i;
 
     if (parsedUri == NULL || *parsedUri != NULL) {
-        HYPERV_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
@@ -66,10 +66,10 @@ hypervParseUri(hypervParsedUri **parsedUri, virURIPtr uri)
 
             if (STRNEQ((*parsedUri)->transport, "http") &&
                 STRNEQ((*parsedUri)->transport, "https")) {
-                HYPERV_ERROR(VIR_ERR_INVALID_ARG,
-                             _("Query parameter 'transport' has unexpected value "
-                               "'%s' (should be http|https)"),
-                             (*parsedUri)->transport);
+                virReportError(VIR_ERR_INVALID_ARG,
+                               _("Query parameter 'transport' has unexpected value "
+                                 "'%s' (should be http|https)"),
+                               (*parsedUri)->transport);
                 goto cleanup;
             }
         } else {

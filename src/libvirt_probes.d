@@ -16,20 +16,23 @@ provider libvirt {
 	probe event_poll_run(int nfds, int timeout);
 
 
+        # file: src/util/virobject.c
+        # prefix: object
+        probe object_new(void *obj, const char *klassname);
+        probe object_ref(void *obj);
+        probe object_unref(void *obj);
+        probe object_dispose(void *obj);
+
 	# file: src/rpc/virnetsocket.c
 	# prefix: rpc
-	probe rpc_socket_new(void *sock, int refs, int fd, int errfd, pid_t pid, const char *localAddr, const char *remoteAddr);
+	probe rpc_socket_new(void *sock, int fd, int errfd, pid_t pid, const char *localAddr, const char *remoteAddr);
 	probe rpc_socket_send_fd(void *sock, int fd);
 	probe rpc_socket_recv_fd(void *sock, int fd);
-	probe rpc_socket_ref(void *sock, int refs);
-	probe rpc_socket_free(void *sock, int refs);
 
 
 	# file: src/rpc/virnetserverclient.c
 	# prefix: rpc
-	probe rpc_server_client_new(void *client, int refs, void *sock);
-	probe rpc_server_client_ref(void *client, int refs);
-	probe rpc_server_client_free(void *client, int refs);
+	probe rpc_server_client_new(void *client, void *sock);
 
 	probe rpc_server_client_msg_tx_queue(void *client, int len, int prog, int vers, int proc, int type, int status, int serial);
 	probe rpc_server_client_msg_rx(void *client, int len, int prog, int vers, int proc, int type, int status, int serial);
@@ -37,9 +40,7 @@ provider libvirt {
 
 	# file: src/rpc/virnetclient.c
 	# prefix: rpc
-	probe rpc_client_new(void *client, int refs, void *sock);
-	probe rpc_client_ref(void *client, int refs);
-	probe rpc_client_free(void *client, int refs);
+	probe rpc_client_new(void *client, void *sock);
 
 	probe rpc_client_msg_tx_queue(void *client, int len, int prog, int vers, int proc, int type, int status, int serial);
 	probe rpc_client_msg_rx(void *client, int len, int prog, int vers, int proc, int type, int status, int serial);
@@ -54,19 +55,15 @@ provider libvirt {
 
 	# file: src/rpc/virnettlscontext.c
 	# prefix: rpc
-	probe rpc_tls_context_new(void *ctxt, int refs, const char *cacert, const char *cacrl,
+	probe rpc_tls_context_new(void *ctxt, const char *cacert, const char *cacrl,
 				  const char *cert, const char *key, int sanityCheckCert, int requireValidCert, int isServer);
-	probe rpc_tls_context_ref(void *ctxt, int refs);
-	probe rpc_tls_context_free(void *ctxt, int refs);
 
 	probe rpc_tls_context_session_allow(void *ctxt, void *sess, const char *dname);
 	probe rpc_tls_context_session_deny(void *ctxt, void *sess, const char *dname);
 	probe rpc_tls_context_session_fail(void *ctxt, void *sess);
 
 
-	probe rpc_tls_session_new(void *sess, void *ctxt, int refs, const char *hostname, int isServer);
-	probe rpc_tls_session_ref(void *sess, int refs);
-	probe rpc_tls_session_free(void *sess, int refs);
+	probe rpc_tls_session_new(void *sess, void *ctxt, const char *hostname, int isServer);
 
 	probe rpc_tls_session_handshake_pass(void *sess);
 	probe rpc_tls_session_handshake_fail(void *sess);
@@ -74,9 +71,7 @@ provider libvirt {
 
 	# file: src/rpc/virkeepalive.c
 	# prefix: rpc
-	probe rpc_keepalive_new(void *ka, void *client, int refs);
-	probe rpc_keepalive_ref(void *ka, void *client, int refs);
-	probe rpc_keepalive_free(void *ka, void *client, int refs);
+	probe rpc_keepalive_new(void *ka, void *client);
 	probe rpc_keepalive_start(void *ka, void *client, int interval, int count);
 	probe rpc_keepalive_stop(void *ka, void *client);
 	probe rpc_keepalive_send(void *ka, void *client, int prog, int vers, int proc);

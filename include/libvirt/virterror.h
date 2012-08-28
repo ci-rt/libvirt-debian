@@ -1,12 +1,24 @@
 /*
- * virterror.h:
+ * virterror.h: Error handling interfaces for the libvirt library
  * Summary: error handling interfaces for the libvirt library
  * Description: Provides the interfaces of the libvirt library to handle
  *              errors raised while using the library.
  *
- * Copy:  Copyright (C) 2006, 2010-2012 Red Hat, Inc.
+ * Copyright (C) 2006, 2010-2012 Red Hat, Inc.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel Veillard <veillard@redhat.com>
  */
@@ -97,6 +109,10 @@ typedef enum {
     VIR_FROM_URI = 45,          /* Error from URI handling */
     VIR_FROM_AUTH = 46,         /* Error from auth handling */
     VIR_FROM_DBUS = 47,         /* Error from DBus */
+    VIR_FROM_PARALLELS = 48,    /* Error from Parallels */
+    VIR_FROM_DEVICE = 49,       /* Error from Device */
+
+    VIR_FROM_SSH = 50,       /* Error from libssh2 connection transport */
 
 # ifdef VIR_ENUM_SENTINELS
     VIR_ERR_DOMAIN_LAST
@@ -264,6 +280,9 @@ typedef enum {
     VIR_ERR_MIGRATE_UNSAFE = 81,        /* Migration is not safe */
     VIR_ERR_OVERFLOW = 82,              /* integer overflow */
     VIR_ERR_BLOCK_COPY_ACTIVE = 83,     /* action prevented by block copy job */
+    VIR_ERR_OPERATION_UNSUPPORTED = 84, /* The requested operation is not
+                                           supported */
+    VIR_ERR_SSH = 85,                   /* error in ssh transport driver */
 } virErrorNumber;
 
 /**

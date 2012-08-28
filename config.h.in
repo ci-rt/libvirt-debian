@@ -37,6 +37,9 @@
 /* Define to 1 if chown mishandles trailing slash. */
 #undef CHOWN_TRAILING_SLASH_BUG
 
+/* Location of collie program */
+#undef COLLIE
+
 /* Define to one of '_getb67', 'GETB67', 'getb67' for Cray-2 and Cray-YMP
    systems. This function is required for 'alloca.c' support on those systems.
    */
@@ -51,6 +54,12 @@
 
 /* Define as the word index where to find the exponent of 'double'. */
 #undef DBL_EXPBIT0_WORD
+
+/* Define as the bit index in the word where to find the sign of 'double'. */
+#undef DBL_SIGNBIT_BIT
+
+/* Define as the word index where to find the sign of 'double'. */
+#undef DBL_SIGNBIT_WORD
 
 /* Location or name of the dmsetup program */
 #undef DMSETUP
@@ -73,6 +82,19 @@
 
 /* Define this to 1 if F_DUPFD behavior does not match POSIX */
 #undef FCNTL_DUPFD_BUGGY
+
+/* Define as the bit index in the word where to find bit 0 of the exponent of
+   'float'. */
+#undef FLT_EXPBIT0_BIT
+
+/* Define as the word index where to find the exponent of 'float'. */
+#undef FLT_EXPBIT0_WORD
+
+/* Define as the bit index in the word where to find the sign of 'float'. */
+#undef FLT_SIGNBIT_BIT
+
+/* Define as the word index where to find the sign of 'float'. */
+#undef FLT_SIGNBIT_WORD
 
 /* Enable compile-time and run-time bounds-checking, and some warnings,
         without upsetting newer glibc. */
@@ -433,6 +455,9 @@
 /* Define to 1 when the gnulib module sigaction should be tested. */
 #undef GNULIB_TEST_SIGACTION
 
+/* Define to 1 when the gnulib module signbit should be tested. */
+#undef GNULIB_TEST_SIGNBIT
+
 /* Define to 1 when the gnulib module sigprocmask should be tested. */
 #undef GNULIB_TEST_SIGPROCMASK
 
@@ -587,6 +612,18 @@
 /* Define to 1 if you have the `confstr' function. */
 #undef HAVE_CONFSTR
 
+/* Define if the copysignf function is declared in <math.h> and available in
+   libc. */
+#undef HAVE_COPYSIGNF_IN_LIBC
+
+/* Define if the copysignl function is declared in <math.h> and available in
+   libc. */
+#undef HAVE_COPYSIGNL_IN_LIBC
+
+/* Define if the copysign function is declared in <math.h> and available in
+   libc. */
+#undef HAVE_COPYSIGN_IN_LIBC
+
 /* whether CPUID instruction is supported */
 #undef HAVE_CPUID
 
@@ -603,6 +640,18 @@
 /* Define to 1 if you have the declaration of `alarm', and to 0 if you don't.
    */
 #undef HAVE_DECL_ALARM
+
+/* Define to 1 if you have the declaration of `copysign', and to 0 if you
+   don't. */
+#undef HAVE_DECL_COPYSIGN
+
+/* Define to 1 if you have the declaration of `copysignf', and to 0 if you
+   don't. */
+#undef HAVE_DECL_COPYSIGNF
+
+/* Define to 1 if you have the declaration of `copysignl', and to 0 if you
+   don't. */
+#undef HAVE_DECL_COPYSIGNL
 
 /* Define to 1 if you have the declaration of `fdatasync', and to 0 if you
    don't. */
@@ -687,6 +736,10 @@
 /* Define to 1 if you have the declaration of `localtime_r', and to 0 if you
    don't. */
 #undef HAVE_DECL_LOCALTIME_R
+
+/* Define to 1 if you have the declaration of `LO_FLAGS_AUTOCLEAR', and to 0
+   if you don't. */
+#undef HAVE_DECL_LO_FLAGS_AUTOCLEAR
 
 /* Define to 1 if you have the declaration of `MACVLAN_MODE_PASSTHRU', and to
    0 if you don't. */
@@ -814,6 +867,9 @@
 
 /* Define to 1 if you have the 'ffs' function. */
 #undef HAVE_FFS
+
+/* whether firewalld support is enabled */
+#undef HAVE_FIREWALLD
 
 /* Define to 1 if you have the `flockfile' function. */
 #undef HAVE_FLOCKFILE
@@ -944,6 +1000,15 @@
 /* Define to 1 if you have the 'isblank' function. */
 #undef HAVE_ISBLANK
 
+/* Define if the isnan(double) function is available in libc. */
+#undef HAVE_ISNAND_IN_LIBC
+
+/* Define if the isnan(float) function is available in libc. */
+#undef HAVE_ISNANF_IN_LIBC
+
+/* Define if the isnan(long double) function is available in libc. */
+#undef HAVE_ISNANL_IN_LIBC
+
 /* Define to 1 if you have the 'iswcntrl' function. */
 #undef HAVE_ISWCNTRL
 
@@ -1016,6 +1081,9 @@
 /* Define to 1 if you have the `selinux' library (-lselinux). */
 #undef HAVE_LIBSELINUX
 
+/* whether libssh2 transport is enabled */
+#undef HAVE_LIBSSH2
+
 /* Define to 1 if you have the <libtasn1.h> header file. */
 #undef HAVE_LIBTASN1_H
 
@@ -1065,6 +1133,9 @@
 /* Define to 1 if mmap()'s MAP_ANONYMOUS flag is available after including
    config.h and <sys/mman.h>. */
 #undef HAVE_MAP_ANONYMOUS
+
+/* Define to 1 if you have the <math.h> header file. */
+#undef HAVE_MATH_H
 
 /* Define to 1 if you have the `mbrtowc' function. */
 #undef HAVE_MBRTOWC
@@ -1272,6 +1343,9 @@
 
 /* Define to 1 if you have the `revoke' function. */
 #undef HAVE_REVOKE
+
+/* Define to 1 if 'long double' and 'double' have the same representation. */
+#undef HAVE_SAME_LONG_DOUBLE_AS_DOUBLE
 
 /* whether Sanlock plugin for lock management is available */
 #undef HAVE_SANLOCK
@@ -1758,8 +1832,25 @@
 /* path to ip binary */
 #undef IP_PATH
 
+/* Define to 1 if isatty() may fail without setting errno. */
+#undef ISATTY_FAILS_WITHOUT_SETTING_ERRNO
+
 /* Location of iscsiadm program */
 #undef ISCSIADM
+
+/* Define as the bit index in the word where to find bit 0 of the exponent of
+   'long double'. */
+#undef LDBL_EXPBIT0_BIT
+
+/* Define as the word index where to find the exponent of 'long double'. */
+#undef LDBL_EXPBIT0_WORD
+
+/* Define as the bit index in the word where to find the sign of 'long
+   double'. */
+#undef LDBL_SIGNBIT_BIT
+
+/* Define as the word index where to find the sign of 'long double'. */
+#undef LDBL_SIGNBIT_WORD
 
 /* Define to 1 if lseek does not detect pipes. */
 #undef LSEEK_PIPE_BROKEN
@@ -2042,6 +2133,15 @@
 /* Location of vgscan program */
 #undef VGSCAN
 
+/* Use GCC atomic ops */
+#undef VIR_ATOMIC_OPS_GCC
+
+/* Use pthread atomic ops emulation */
+#undef VIR_ATOMIC_OPS_PTHREAD
+
+/* Use Win32 atomic ops */
+#undef VIR_ATOMIC_OPS_WIN32
+
 /* path to directory containing UUCP pty lock files */
 #undef VIR_PTY_LOCK_FILE_PATH
 
@@ -2106,6 +2206,9 @@
 /* whether OpenVZ driver is enabled */
 #undef WITH_OPENVZ
 
+/* whether Parallels driver is enabled */
+#undef WITH_PARALLELS
+
 /* whether IBM HMC / IVM driver is enabled */
 #undef WITH_PHYP
 
@@ -2153,6 +2256,9 @@
 
 /* whether SCSI backend for storage driver is enabled */
 #undef WITH_STORAGE_SCSI
+
+/* whether Sheepdog backend for storage driver is enabled */
+#undef WITH_STORAGE_SHEEPDOG
 
 /* whether Test driver is enabled */
 #undef WITH_TEST
@@ -2259,7 +2365,7 @@
 #ifndef _ALL_SOURCE
 # undef _ALL_SOURCE
 #endif
-/* Enable general extensions on MacOS X.  */
+/* Enable general extensions on Mac OS X.  */
 #ifndef _DARWIN_C_SOURCE
 # undef _DARWIN_C_SOURCE
 #endif
@@ -2284,6 +2390,42 @@
 /* Define as a replacement for the ISO C99 __func__ variable. */
 #undef __func__
 
+/* Hack to avoid symbol clash */
+#undef base64_encode
+
+/* Hack to avoid symbol clash */
+#undef base64_encode_alloc
+
+/* _GL_INLINE is a portable alternative to ISO C99 plain 'inline'.
+   _GL_EXTERN_INLINE is a portable alternative to 'extern inline'.
+   _GL_INLINE_HEADER_BEGIN contains useful stuff to put
+     in an include file, before uses of _GL_INLINE.
+     It suppresses GCC's bogus "no previous prototype for 'FOO'" diagnostic,
+     when FOO is an inline function in the header; see
+     <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113>.
+   _GL_INLINE_HEADER_END contains useful stuff to put
+     in the same include file, after uses of _GL_INLINE.  */
+#if __GNUC__ ? __GNUC_STDC_INLINE__ : 199901L <= __STDC_VERSION__
+# define _GL_INLINE inline
+# define _GL_EXTERN_INLINE extern inline
+# if (__GNUC__ == 4 && 6 <= __GNUC_MINOR__) || 4 < __GNUC__
+#  define _GL_INLINE_HEADER_BEGIN \
+     _Pragma ("GCC diagnostic push") \
+     _Pragma ("GCC diagnostic ignored \"-Wmissing-prototypes\"") \
+     _Pragma ("GCC diagnostic ignored \"-Wmissing-declarations\"")
+#  define _GL_INLINE_HEADER_END \
+     _Pragma ("GCC diagnostic pop")
+# endif
+#else
+# define _GL_INLINE static inline
+# define _GL_EXTERN_INLINE static inline
+#endif
+
+#ifndef _GL_INLINE_HEADER_BEGIN
+# define _GL_INLINE_HEADER_BEGIN
+# define _GL_INLINE_HEADER_END
+#endif
+
 /* Define to a replacement function name for fnmatch(). */
 #undef fnmatch
 
@@ -2305,10 +2447,13 @@
 /* Define to long or long long if <stdint.h> and <inttypes.h> don't define. */
 #undef intmax_t
 
+/* Hack to avoid symbol clash */
+#undef isbase64
+
 /* Work around a bug in Apple GCC 4.0.1 build 5465: In C99 mode, it supports
    the ISO C 99 semantics of 'extern inline' (unlike the GNU C semantics of
    earlier versions), but does not display it by setting __GNUC_STDC_INLINE__.
-   __APPLE__ && __MACH__ test for MacOS X.
+   __APPLE__ && __MACH__ test for Mac OS X.
    __APPLE_CC__ tests for the Apple compiler and its version.
    __STDC_VERSION__ tests for the C99 mode.  */
 #if defined __APPLE__ && defined __MACH__ && __APPLE_CC__ >= 5465 && !defined __cplusplus && __STDC_VERSION__ >= 199901L && !defined __GNUC_STDC_INLINE__

@@ -17,8 +17,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Stefan Berger <stefanb@us.ibm.com>
  */
@@ -148,17 +148,17 @@ virNWFilterLockIface(const char *ifname) {
         }
 
         if (virMutexInitRecursive(&ifaceLock->lock) < 0) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("mutex initialization failed"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("mutex initialization failed"));
             VIR_FREE(ifaceLock);
             goto err_exit;
         }
 
         if (virStrcpyStatic(ifaceLock->ifname, ifname) == NULL) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("interface name %s does not fit into "
-                                     "buffer "),
-                                   ifaceLock->ifname);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("interface name %s does not fit into "
+                             "buffer "),
+                           ifaceLock->ifname);
             VIR_FREE(ifaceLock);
             goto err_exit;
         }
@@ -404,12 +404,12 @@ learnIPAddressThread(void *arg)
         goto done;
     }
 
-    virMacAddrFormat(req->macaddr, macaddr);
+    virMacAddrFormat(&req->macaddr, macaddr);
 
     switch (req->howDetect) {
     case DETECT_DHCP:
         if (techdriver->applyDHCPOnlyRules(req->ifname,
-                                           req->macaddr,
+                                           &req->macaddr,
                                            NULL, false) < 0) {
             req->status = EINVAL;
             goto done;
@@ -420,7 +420,7 @@ learnIPAddressThread(void *arg)
         break;
     default:
         if (techdriver->applyBasicRules(req->ifname,
-                                        req->macaddr) < 0) {
+                                        &req->macaddr) < 0) {
             req->status = EINVAL;
             goto done;
         }
@@ -493,9 +493,7 @@ learnIPAddressThread(void *arg)
                 continue;
             }
 
-            if (memcmp(ether_hdr->ether_shost,
-                       req->macaddr,
-                       VIR_MAC_BUFLEN) == 0) {
+            if (virMacAddrCmpRaw(&req->macaddr, ether_hdr->ether_shost) == 0) {
                 /* packets from the VM */
 
                 if (etherType == ETHERTYPE_IP &&
@@ -530,9 +528,8 @@ learnIPAddressThread(void *arg)
                     break;
                     }
                 }
-            } else if (memcmp(ether_hdr->ether_dhost,
-                              req->macaddr,
-                              VIR_MAC_BUFLEN) == 0) {
+            } else if (virMacAddrCmpRaw(&req->macaddr,
+                                        ether_hdr->ether_dhost) == 0) {
                 /* packets to the VM */
                 if (etherType == ETHERTYPE_IP &&
                     (header.len >= ethHdrSize +
@@ -554,9 +551,9 @@ learnIPAddressThread(void *arg)
                             struct dhcp *dhcp = (struct dhcp *)
                                         ((char *)udphdr + sizeof(udphdr));
                             if (dhcp->op == 2 /* BOOTREPLY */ &&
-                                !memcmp(&dhcp->chaddr[0],
-                                        req->macaddr,
-                                        6)) {
+                                virMacAddrCmpRaw(
+                                        &req->macaddr,
+                                        &dhcp->chaddr[0]) == 0) {
                                 dhcp_opts_len = header.len -
                                     (ethHdrSize + iphdr->ihl * 4 +
                                      sizeof(struct udphdr) +
@@ -602,7 +599,7 @@ learnIPAddressThread(void *arg)
                                                    req->ifindex,
                                                    req->linkdev,
                                                    req->nettype,
-                                                   req->macaddr,
+                                                   &req->macaddr,
                                                    req->filtername,
                                                    req->filterparams,
                                                    req->driver);
@@ -662,7 +659,7 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
                           int ifindex,
                           const char *linkdev,
                           enum virDomainNetType nettype,
-                          const unsigned char *macaddr,
+                          const virMacAddrPtr macaddr,
                           const char *filtername,
                           virNWFilterHashTablePtr filterparams,
                           virNWFilterDriverStatePtr driver,
@@ -675,10 +672,10 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
         return -1;
 
     if ( !techdriver->canApplyBasicRules()) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("IP parameter must be provided since "
-                                 "snooping the IP address does not work "
-                                 "possibly due to missing tools"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("IP parameter must be provided since "
+                         "snooping the IP address does not work "
+                         "possibly due to missing tools"));
         return -1;
     }
 
@@ -703,24 +700,24 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver,
     }
 
     if (virStrcpyStatic(req->ifname, ifname) == NULL) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Destination buffer for ifname ('%s') "
-                               "not large enough"), ifname);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Destination buffer for ifname ('%s') "
+                         "not large enough"), ifname);
         goto err_free_ht;
     }
 
     if (linkdev) {
         if (virStrcpyStatic(req->linkdev, linkdev) == NULL) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Destination buffer for linkdev ('%s') "
-                                   "not large enough"), linkdev);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Destination buffer for linkdev ('%s') "
+                             "not large enough"), linkdev);
             goto err_free_ht;
         }
     }
 
     req->ifindex = ifindex;
     req->nettype = nettype;
-    memcpy(req->macaddr, macaddr, sizeof(req->macaddr));
+    virMacAddrSet(&req->macaddr, macaddr);
     req->driver = driver;
     req->filterparams = ht;
     ht = NULL;
@@ -758,15 +755,15 @@ virNWFilterLearnIPAddress(virNWFilterTechDriverPtr techdriver ATTRIBUTE_UNUSED,
                           int ifindex ATTRIBUTE_UNUSED,
                           const char *linkdev ATTRIBUTE_UNUSED,
                           enum virDomainNetType nettype ATTRIBUTE_UNUSED,
-                          const unsigned char *macaddr ATTRIBUTE_UNUSED,
+                          const virMacAddrPtr macaddr ATTRIBUTE_UNUSED,
                           const char *filtername ATTRIBUTE_UNUSED,
                           virNWFilterHashTablePtr filterparams ATTRIBUTE_UNUSED,
                           virNWFilterDriverStatePtr driver ATTRIBUTE_UNUSED,
                           enum howDetect howDetect ATTRIBUTE_UNUSED) {
-    virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("IP parameter must be given since libvirt "
-                             "was not compiled with IP address learning "
-                             "support"));
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("IP parameter must be given since libvirt "
+                     "was not compiled with IP address learning "
+                     "support"));
     return -1;
 }
 #endif /* HAVE_LIBPCAP */

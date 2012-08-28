@@ -1,7 +1,7 @@
 /*
  * event.c: event loop for monitoring file handles
  *
- * Copyright (C) 2007, 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2007, 2010-2012 Red Hat, Inc.
  * Copyright (C) 2007 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -43,10 +43,6 @@
 #define EVENT_DEBUG(fmt, ...) VIR_DEBUG(fmt, __VA_ARGS__)
 
 #define VIR_FROM_THIS VIR_FROM_EVENT
-
-#define virEventError(code, ...)                                    \
-    virReportErrorHelper(VIR_FROM_EVENT, code, __FILE__,            \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 static int virEventPollInterruptLocked(void);
 
@@ -619,7 +615,7 @@ int virEventPollRunOnce(void) {
     ret = poll(fds, nfds, timeout);
     if (ret < 0) {
         EVENT_DEBUG("Poll got error event %d", errno);
-        if (errno == EINTR) {
+        if (errno == EINTR || errno == EAGAIN) {
             goto retry;
         }
         virReportSystemError(errno, "%s",
@@ -680,9 +676,9 @@ int virEventPollInit(void)
     if (virEventPollAddHandle(eventLoop.wakeupfd[0],
                               VIR_EVENT_HANDLE_READABLE,
                               virEventPollHandleWakeup, NULL, NULL) < 0) {
-        virEventError(VIR_ERR_INTERNAL_ERROR,
-                      _("Unable to add handle %d to event loop"),
-                      eventLoop.wakeupfd[0]);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to add handle %d to event loop"),
+                       eventLoop.wakeupfd[0]);
         VIR_FORCE_CLOSE(eventLoop.wakeupfd[0]);
         VIR_FORCE_CLOSE(eventLoop.wakeupfd[1]);
         return -1;

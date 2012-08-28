@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -147,20 +147,20 @@ int qemuMonitorTextAddUSBDeviceMatch(qemuMonitorPtr mon,
 
 
 int qemuMonitorTextAddPCIHostDevice(qemuMonitorPtr mon,
-                                    virDomainDevicePCIAddress *hostAddr,
-                                    virDomainDevicePCIAddress *guestAddr);
+                                    virDevicePCIAddress *hostAddr,
+                                    virDevicePCIAddress *guestAddr);
 
 int qemuMonitorTextAddPCIDisk(qemuMonitorPtr mon,
                               const char *path,
                               const char *bus,
-                              virDomainDevicePCIAddress *guestAddr);
+                              virDevicePCIAddress *guestAddr);
 
 int qemuMonitorTextAddPCINetwork(qemuMonitorPtr mon,
                                  const char *nicstr,
-                                 virDomainDevicePCIAddress *guestAddr);
+                                 virDevicePCIAddress *guestAddr);
 
 int qemuMonitorTextRemovePCIDevice(qemuMonitorPtr mon,
-                                   virDomainDevicePCIAddress *guestAddr);
+                                   virDevicePCIAddress *guestAddr);
 
 int qemuMonitorTextSendFileHandle(qemuMonitorPtr mon,
                                   const char *fdname,
@@ -187,11 +187,11 @@ int qemuMonitorTextGetPtyPaths(qemuMonitorPtr mon,
 
 int qemuMonitorTextAttachPCIDiskController(qemuMonitorPtr mon,
                                            const char *bus,
-                                           virDomainDevicePCIAddress *guestAddr);
+                                           virDevicePCIAddress *guestAddr);
 
 int qemuMonitorTextAttachDrive(qemuMonitorPtr mon,
                                const char *drivestr,
-                               virDomainDevicePCIAddress *controllerAddr,
+                               virDevicePCIAddress *controllerAddr,
                                virDomainDeviceDriveAddress *driveAddr);
 
 int qemuMonitorTextGetAllPCIAddresses(qemuMonitorPtr mon,

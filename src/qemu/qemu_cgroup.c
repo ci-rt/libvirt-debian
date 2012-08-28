@@ -1,7 +1,7 @@
 /*
  * qemu_cgroup.c: QEMU cgroup management
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -310,8 +310,8 @@ int qemuSetupCgroup(struct qemud_driver *driver,
                 goto cleanup;
             }
         } else {
-            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                            _("Block I/O tuning is not available on this host"));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Block I/O tuning is not available on this host"));
             goto cleanup;
         }
     }
@@ -333,48 +333,60 @@ int qemuSetupCgroup(struct qemud_driver *driver,
                 }
             }
         } else {
-            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                            _("Block I/O tuning is not available on this host"));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("Block I/O tuning is not available on this host"));
             goto cleanup;
         }
     }
 
-    if (vm->def->mem.hard_limit != 0 ||
-        vm->def->mem.soft_limit != 0 ||
-        vm->def->mem.swap_hard_limit != 0) {
-        if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_MEMORY)) {
-            if (vm->def->mem.hard_limit != 0) {
-                rc = virCgroupSetMemoryHardLimit(cgroup, vm->def->mem.hard_limit);
-                if (rc != 0) {
-                    virReportSystemError(-rc,
-                                         _("Unable to set memory hard limit for domain %s"),
-                                         vm->def->name);
-                    goto cleanup;
-                }
-            }
-            if (vm->def->mem.soft_limit != 0) {
-                rc = virCgroupSetMemorySoftLimit(cgroup, vm->def->mem.soft_limit);
-                if (rc != 0) {
-                    virReportSystemError(-rc,
-                                         _("Unable to set memory soft limit for domain %s"),
-                                         vm->def->name);
-                    goto cleanup;
-                }
-            }
+    if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_MEMORY)) {
+        unsigned long long hard_limit = vm->def->mem.hard_limit;
 
-            if (vm->def->mem.swap_hard_limit != 0) {
-                rc = virCgroupSetMemSwapHardLimit(cgroup, vm->def->mem.swap_hard_limit);
-                if (rc != 0) {
-                    virReportSystemError(-rc,
-                                         _("Unable to set swap hard limit for domain %s"),
-                                         vm->def->name);
-                    goto cleanup;
-                }
-            }
-        } else {
-            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                            _("Memory cgroup is not available on this host"));
+        if (!hard_limit) {
+            /* If there is no hard_limit set, set a reasonable
+             * one to avoid system trashing caused by exploited qemu.
+             * As 'reasonable limit' has been chosen:
+             *     (1 + k) * (domain memory + total video memory) + F
+             * where k = 0.02 and F = 200MB. */
+            hard_limit = vm->def->mem.max_balloon;
+            for (i = 0; i < vm->def->nvideos; i++)
+                hard_limit += vm->def->videos[i]->vram;
+            hard_limit = hard_limit * 1.02 + 204800;
         }
+
+        rc = virCgroupSetMemoryHardLimit(cgroup, hard_limit);
+        if (rc != 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to set memory hard limit for domain %s"),
+                                 vm->def->name);
+            goto cleanup;
+        }
+        if (vm->def->mem.soft_limit != 0) {
+            rc = virCgroupSetMemorySoftLimit(cgroup, vm->def->mem.soft_limit);
+            if (rc != 0) {
+                virReportSystemError(-rc,
+                                     _("Unable to set memory soft limit for domain %s"),
+                                     vm->def->name);
+                goto cleanup;
+            }
+        }
+
+        if (vm->def->mem.swap_hard_limit != 0) {
+            rc = virCgroupSetMemSwapHardLimit(cgroup, vm->def->mem.swap_hard_limit);
+            if (rc != 0) {
+                virReportSystemError(-rc,
+                                     _("Unable to set swap hard limit for domain %s"),
+                                     vm->def->name);
+                goto cleanup;
+            }
+        }
+    } else if (vm->def->mem.hard_limit != 0 ||
+               vm->def->mem.soft_limit != 0 ||
+               vm->def->mem.swap_hard_limit != 0) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Memory cgroup is not available on this host"));
+    } else {
+        VIR_WARN("Could not autoset a RSS limit for domain %s", vm->def->name);
     }
 
     if (vm->def->cputune.shares != 0) {
@@ -387,8 +399,8 @@ int qemuSetupCgroup(struct qemud_driver *driver,
                 goto cleanup;
             }
         } else {
-            qemuReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                            _("CPU tuning is not available on this host"));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("CPU tuning is not available on this host"));
         }
     }
 
@@ -405,8 +417,8 @@ int qemuSetupCgroup(struct qemud_driver *driver,
             mask = virDomainCpuSetFormat(vm->def->numatune.memory.nodemask,
                                          VIR_DOMAIN_CPUMASK_LEN);
         if (!mask) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("failed to convert memory nodemask"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("failed to convert memory nodemask"));
             goto cleanup;
         }
 
@@ -472,12 +484,55 @@ cleanup:
     if (period) {
         rc = virCgroupSetCpuCfsPeriod(cgroup, old_period);
         if (rc < 0)
-            virReportSystemError(-rc,
-                                 _("%s"),
-                                 "Unable to rollback cpu bandwidth period");
+            virReportSystemError(-rc, "%s",
+                                 _("Unable to rollback cpu bandwidth period"));
     }
 
     return -1;
+}
+
+int qemuSetupCgroupVcpuPin(virCgroupPtr cgroup,
+                           virDomainVcpuPinDefPtr *vcpupin,
+                           int nvcpupin,
+                           int vcpuid)
+{
+    int i;
+
+    for (i = 0; i < nvcpupin; i++) {
+        if (vcpuid == vcpupin[i]->vcpuid) {
+            return qemuSetupCgroupEmulatorPin(cgroup, vcpupin[i]);
+        }
+    }
+
+    return -1;
+}
+
+int qemuSetupCgroupEmulatorPin(virCgroupPtr cgroup,
+                               virDomainVcpuPinDefPtr vcpupin)
+{
+    int rc = 0;
+    char *new_cpus = NULL;
+
+    new_cpus = virDomainCpuSetFormat(vcpupin->cpumask,
+                                     VIR_DOMAIN_CPUMASK_LEN);
+    if (!new_cpus) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("failed to convert cpu mask"));
+        rc = -1;
+        goto cleanup;
+    }
+
+    rc = virCgroupSetCpusetCpus(cgroup, new_cpus);
+    if (rc < 0) {
+        virReportSystemError(-rc,
+                             "%s",
+                             _("Unable to set cpuset.cpus"));
+        goto cleanup;
+    }
+
+cleanup:
+    VIR_FREE(new_cpus);
+    return rc;
 }
 
 int qemuSetupCgroupForVcpu(struct qemud_driver *driver, virDomainObjPtr vm)
@@ -485,14 +540,20 @@ int qemuSetupCgroupForVcpu(struct qemud_driver *driver, virDomainObjPtr vm)
     virCgroupPtr cgroup = NULL;
     virCgroupPtr cgroup_vcpu = NULL;
     qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainDefPtr def = vm->def;
     int rc;
     unsigned int i;
     unsigned long long period = vm->def->cputune.period;
     long long quota = vm->def->cputune.quota;
-    long long vm_quota = 0;
 
     if (driver->cgroup == NULL)
         return 0; /* Not supported, so claim success */
+
+    if (!qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPU)) {
+        virReportError(VIR_ERR_SYSTEM_ERROR, "%s",
+                       _("cgroup cpu is not active"));
+        return -1;
+    }
 
     rc = virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0);
     if (rc != 0) {
@@ -502,32 +563,13 @@ int qemuSetupCgroupForVcpu(struct qemud_driver *driver, virDomainObjPtr vm)
         goto cleanup;
     }
 
-    /* Set cpu bandwidth for the vm */
-    if (period || quota) {
-        if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPU)) {
-            /* Ensure that we can multiply by vcpus without overflowing. */
-            if (quota > LLONG_MAX / vm->def->vcpus) {
-                virReportSystemError(EINVAL,
-                                     _("%s"),
-                                     "Unable to set cpu bandwidth quota");
-                goto cleanup;
-            }
-
-            if (quota > 0)
-                vm_quota = quota * vm->def->vcpus;
-            else
-                vm_quota = quota;
-            if (qemuSetupCgroupVcpuBW(cgroup, period, vm_quota) < 0)
-                goto cleanup;
-        }
-    }
-
     if (priv->nvcpupids == 0 || priv->vcpupids[0] == vm->pid) {
-        /* If we does not know VCPU<->PID mapping or all vcpu runs in the same
+        /* If we don't know VCPU<->PID mapping or all vcpu runs in the same
          * thread, we cannot control each vcpu.
          */
-        virCgroupFree(&cgroup);
-        return 0;
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                        _("Unable to get vcpus' pids."));
+        goto cleanup;
     }
 
     for (i = 0; i < priv->nvcpupids; i++) {
@@ -550,21 +592,31 @@ int qemuSetupCgroupForVcpu(struct qemud_driver *driver, virDomainObjPtr vm)
         }
 
         if (period || quota) {
-            if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPU)) {
-                if (qemuSetupCgroupVcpuBW(cgroup_vcpu, period, quota) < 0)
-                    goto cleanup;
-            }
+            if (qemuSetupCgroupVcpuBW(cgroup_vcpu, period, quota) < 0)
+                goto cleanup;
         }
+
+        /* Set vcpupin in cgroup if vcpupin xml is provided */
+        if (def->cputune.nvcpupin &&
+            qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPUSET) &&
+            qemuSetupCgroupVcpuPin(cgroup_vcpu,
+                                   def->cputune.vcpupin,
+                                   def->cputune.nvcpupin,
+                                   i) < 0)
+            goto cleanup;
 
         virCgroupFree(&cgroup_vcpu);
     }
 
-    virCgroupFree(&cgroup_vcpu);
     virCgroupFree(&cgroup);
     return 0;
 
 cleanup:
-    virCgroupFree(&cgroup_vcpu);
+    if (cgroup_vcpu) {
+        virCgroupRemove(cgroup_vcpu);
+        virCgroupFree(&cgroup_vcpu);
+    }
+
     if (cgroup) {
         virCgroupRemove(cgroup);
         virCgroupFree(&cgroup);
@@ -573,6 +625,79 @@ cleanup:
     return -1;
 }
 
+int qemuSetupCgroupForEmulator(struct qemud_driver *driver,
+                               virDomainObjPtr vm)
+{
+    virCgroupPtr cgroup = NULL;
+    virCgroupPtr cgroup_emulator = NULL;
+    virDomainDefPtr def = vm->def;
+    unsigned long long period = vm->def->cputune.emulator_period;
+    long long quota = vm->def->cputune.emulator_quota;
+    int rc, i;
+
+    if (driver->cgroup == NULL)
+        return 0; /* Not supported, so claim success */
+
+    rc = virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0);
+    if (rc != 0) {
+        virReportSystemError(-rc,
+                             _("Unable to find cgroup for %s"),
+                             vm->def->name);
+        goto cleanup;
+    }
+
+    rc = virCgroupForEmulator(cgroup, &cgroup_emulator, 1);
+    if (rc < 0) {
+        virReportSystemError(-rc,
+                             _("Unable to create emulator cgroup for %s"),
+                             vm->def->name);
+        goto cleanup;
+    }
+
+    for (i = 0; i < VIR_CGROUP_CONTROLLER_LAST; i++) {
+        if (!qemuCgroupControllerActive(driver, i)) {
+            VIR_WARN("cgroup %d is not active", i);
+            continue;
+        }
+        rc = virCgroupMoveTask(cgroup, cgroup_emulator, i);
+        if (rc < 0) {
+            virReportSystemError(-rc,
+                                 _("Unable to move tasks from domain cgroup to "
+                                   "emulator cgroup in controller %d for %s"),
+                                 i, vm->def->name);
+            goto cleanup;
+        }
+    }
+
+    if (def->cputune.emulatorpin &&
+        qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPUSET) &&
+        qemuSetupCgroupEmulatorPin(cgroup_emulator, def->cputune.emulatorpin) < 0)
+        goto cleanup;
+
+    if (period || quota) {
+        if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_CPU)) {
+            if (qemuSetupCgroupVcpuBW(cgroup_emulator, period, quota) < 0)
+                goto cleanup;
+        }
+    }
+
+    virCgroupFree(&cgroup_emulator);
+    virCgroupFree(&cgroup);
+    return 0;
+
+cleanup:
+    if (cgroup_emulator) {
+        virCgroupRemove(cgroup_emulator);
+        virCgroupFree(&cgroup_emulator);
+    }
+
+    if (cgroup) {
+        virCgroupRemove(cgroup);
+        virCgroupFree(&cgroup);
+    }
+
+    return rc;
+}
 
 int qemuRemoveCgroup(struct qemud_driver *driver,
                      virDomainObjPtr vm,
@@ -587,9 +712,9 @@ int qemuRemoveCgroup(struct qemud_driver *driver,
     rc = virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0);
     if (rc != 0) {
         if (!quiet)
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Unable to find cgroup for %s"),
-                            vm->def->name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unable to find cgroup for %s"),
+                           vm->def->name);
         return rc;
     }
 

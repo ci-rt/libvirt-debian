@@ -104,7 +104,10 @@ mymain(void)
     DO_TEST("host-bridge-net");
     DO_TEST("vepa-net");
     DO_TEST("bandwidth-network");
+    DO_TEST("openvswitch-net");
     DO_TEST_FULL("passthrough-pf", VIR_NETWORK_XML_INACTIVE);
+    DO_TEST("hostdev");
+    DO_TEST_FULL("hostdev-pf", VIR_NETWORK_XML_INACTIVE);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

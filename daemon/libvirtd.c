@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -55,6 +55,7 @@
 #include "hooks.h"
 #include "uuid.h"
 #include "viraudit.h"
+#include "locking/lock_manager.h"
 
 #ifdef WITH_DRIVER_MODULES
 # include "driver.h"
@@ -378,7 +379,7 @@ static void daemonInitialize(void)
 # ifdef WITH_NWFILTER
     virDriverLoadModule("nwfilter");
 # endif
-# ifdef WITH_INTERFACE
+# ifdef WITH_NETCF
     virDriverLoadModule("interface");
 # endif
 # ifdef WITH_QEMU
@@ -541,7 +542,7 @@ static int daemonSetupNetworking(virNetServerPtr srv,
                                             false,
                                             config->max_client_requests,
                                             ctxt))) {
-                virNetTLSContextFree(ctxt);
+                virObjectUnref(ctxt);
                 goto error;
             }
             if (virNetServerAddService(srv, svcTLS,
@@ -549,7 +550,7 @@ static int daemonSetupNetworking(virNetServerPtr srv,
                                        !config->listen_tcp ? "_libvirt._tcp" : NULL) < 0)
                 goto error;
 
-            virNetTLSContextFree(ctxt);
+            virObjectUnref(ctxt);
         }
     }
 
@@ -568,10 +569,10 @@ static int daemonSetupNetworking(virNetServerPtr srv,
     return 0;
 
 error:
-    virNetServerServiceFree(svcTLS);
-    virNetServerServiceFree(svcTCP);
-    virNetServerServiceFree(svc);
-    virNetServerServiceFree(svcRO);
+    virObjectUnref(svcTLS);
+    virObjectUnref(svcTCP);
+    virObjectUnref(svc);
+    virObjectUnref(svcRO);
     return -1;
 }
 
@@ -759,21 +760,21 @@ static void daemonRunStateInit(void *opaque)
         VIR_ERROR(_("Driver state initialization failed"));
         /* Ensure the main event loop quits */
         kill(getpid(), SIGTERM);
-        virNetServerFree(srv);
+        virObjectUnref(srv);
         return;
     }
 
     /* Only now accept clients from network */
     virNetServerUpdateServices(srv, true);
-    virNetServerFree(srv);
+    virObjectUnref(srv);
 }
 
 static int daemonStateInit(virNetServerPtr srv)
 {
     virThread thr;
-    virNetServerRef(srv);
+    virObjectRef(srv);
     if (virThreadCreate(&thr, false, daemonRunStateInit, srv) < 0) {
-        virNetServerFree(srv);
+        virObjectUnref(srv);
         return -1;
     }
     return 0;
@@ -911,7 +912,7 @@ libvirt management daemon:\n"), argv0);
       $XDG_CONFIG_HOME/libvirt/libvirtd.conf\n\
 \n\
     Sockets:\n\
-      $XDG_RUNTIME_HOME/libvirt/libvirt-sock (in UNIX abstract namespace)\n\
+      $XDG_RUNTIME_DIR/libvirt/libvirt-sock (in UNIX abstract namespace)\n\
 \n\
     TLS:\n\
       CA certificate:     $HOME/.pki/libvirt/cacert.pem\n\
@@ -919,7 +920,7 @@ libvirt management daemon:\n"), argv0);
       Server private key: $HOME/.pki/libvirt/serverkey.pem\n\
 \n\
     PID file:\n\
-      $XDG_RUNTIME_HOME/libvirt/libvirtd.pid\n\
+      $XDG_RUNTIME_DIR/libvirt/libvirtd.pid\n\
 \n"));
     }
 }
@@ -971,11 +972,31 @@ int main(int argc, char **argv) {
     /* initialize early logging */
     virLogSetFromEnv();
 
+    if (strstr(argv[0], "lt-libvirtd") ||
+        strstr(argv[0], "/daemon/.libs/libvirtd")) {
+        char *tmp = strrchr(argv[0], '/');
+        if (!tmp) {
+            fprintf(stderr, _("%s: cannot identify driver directory\n"), argv[0]);
+            exit(EXIT_FAILURE);
+        }
+        *tmp = '\0';
+        char *driverdir;
+        if (virAsprintf(&driverdir, "%s/../../src/.libs", argv[0]) < 0) {
+            fprintf(stderr, _("%s: initialization failed\n"), argv[0]);
+            exit(EXIT_FAILURE);
+        }
+        if (access(driverdir, R_OK) < 0) {
+            fprintf(stderr, _("%s: expected driver directory '%s' is missing\n"),
+                    argv[0], driverdir);
+            exit(EXIT_FAILURE);
+        }
+        virLockManagerSetPluginDir(driverdir);
 #ifdef WITH_DRIVER_MODULES
-    if (strstr(argv[0], "lt-libvirtd") &&
-        (access("./.git", R_OK) >= 0 || access("../.git", R_OK) >= 0))
-        virDriverModuleInitialize("./src/.libs");
+        virDriverModuleInitialize(driverdir);
 #endif
+        *tmp = '/';
+        /* Must not free 'driverdir' - it is still used */
+    }
 
     while (1) {
         int optidx = 0;
@@ -1176,7 +1197,9 @@ int main(int argc, char **argv) {
                                 config->keepalive_count,
                                 !!config->keepalive_required,
                                 config->mdns_adv ? config->mdns_name : NULL,
-                                remoteClientInitHook))) {
+                                remoteClientInitHook,
+                                remoteClientFreeFunc,
+                                NULL))) {
         ret = VIR_DAEMON_ERR_INIT;
         goto cleanup;
     }
@@ -1289,8 +1312,14 @@ int main(int argc, char **argv) {
         goto cleanup;
     }
 
-    /* Register the netlink event service */
-    if (virNetlinkEventServiceStart() < 0) {
+    /* Register the netlink event service for NETLINK_ROUTE */
+    if (virNetlinkEventServiceStart(NETLINK_ROUTE, 0) < 0) {
+        ret = VIR_DAEMON_ERR_NETWORK;
+        goto cleanup;
+    }
+
+    /* Register the netlink event service for NETLINK_KOBJECT_UEVENT */
+    if (virNetlinkEventServiceStart(NETLINK_KOBJECT_UEVENT, 1) < 0) {
         ret = VIR_DAEMON_ERR_NETWORK;
         goto cleanup;
     }
@@ -1304,11 +1333,11 @@ int main(int argc, char **argv) {
                 0, "shutdown", NULL, NULL);
 
 cleanup:
-    virNetlinkEventServiceStop();
-    virNetServerProgramFree(remoteProgram);
-    virNetServerProgramFree(qemuProgram);
+    virNetlinkEventServiceStopAll();
+    virObjectUnref(remoteProgram);
+    virObjectUnref(qemuProgram);
     virNetServerClose(srv);
-    virNetServerFree(srv);
+    virObjectUnref(srv);
     virNetlinkShutdown();
     if (statuswrite != -1) {
         if (ret != 0) {
@@ -1330,7 +1359,6 @@ cleanup:
     VIR_FREE(run_dir);
 
     daemonConfigFree(config);
-    virLogShutdown();
 
     return ret;
 }
