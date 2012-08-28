@@ -5,10 +5,8 @@ debian/fix-Debian-specific-path-to-hvm-loader.patch
 debian/Debianize-libvirt-guests.patch
 debian/Don-t-require-gawk-for-a-simple-print-expression.patch
 patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
-virsh-Initialize-library-before-calling-virResetLast.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
 Disable-failing-virnetsockettest.patch
 Don-t-fail-if-we-can-t-setup-avahi.patch
 Reduce-udevadm-settle-timeout-to-10-seconds.patch
 debian/Debianize-systemd-service-files.patch
-security/CVE-2012-3445.patch

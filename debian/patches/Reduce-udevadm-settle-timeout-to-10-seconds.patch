@@ -10,10 +10,10 @@ Closes: #663931
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/util/util.c b/src/util/util.c
-index f886ea7..36eabc9 100644
+index 9068e0f..7ed7bf1 100644
 --- a/src/util/util.c
 +++ b/src/util/util.c
-@@ -2901,7 +2901,7 @@ virFileFindMountPoint(const char *type ATTRIBUTE_UNUSED)
+@@ -2973,7 +2973,7 @@ virFileFindMountPoint(const char *type ATTRIBUTE_UNUSED)
  void virFileWaitForDevices(void)
  {
  # ifdef UDEVADM

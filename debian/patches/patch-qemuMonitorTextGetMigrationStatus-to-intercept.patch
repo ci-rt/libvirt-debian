@@ -42,7 +42,7 @@ to savely detect that the command 'info migrate' is not implemented.
  1 file changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/src/qemu/qemu_monitor_text.c b/src/qemu/qemu_monitor_text.c
-index edb5dfd..65c7d8d 100644
+index a575e30..407187b 100644
 --- a/src/qemu/qemu_monitor_text.c
 +++ b/src/qemu/qemu_monitor_text.c
 @@ -1658,7 +1658,15 @@ int qemuMonitorTextGetMigrationStatus(qemuMonitorPtr mon,
@@ -54,7 +54,7 @@ index edb5dfd..65c7d8d 100644
 +        /* 'info migrate' returned help for info commands and the help page
 +         * advertises 'info migration' command. Therefore we have an old
 +         * command implementation installed and this must be kvm 72 on debian */
-+        qemuReportError(VIR_ERR_INTERNAL_ERROR,
++        virReportError(VIR_ERR_INTERNAL_ERROR,
 +                        _("command 'info migrate' is not implemented in kvm,"
 +                          " please update to qemu-kvm"));
 +        goto cleanup;

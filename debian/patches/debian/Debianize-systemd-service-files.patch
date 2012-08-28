@@ -8,11 +8,11 @@ Subject: Debianize systemd service files
  2 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/daemon/libvirtd.service.in b/daemon/libvirtd.service.in
-index 33724ee..9b2c443 100644
+index b7afadf..32e40b4 100644
 --- a/daemon/libvirtd.service.in
 +++ b/daemon/libvirtd.service.in
-@@ -8,8 +8,8 @@ Description=Virtualization daemon
- Before=libvirt-guests.service
+@@ -9,8 +9,8 @@ Before=libvirt-guests.service
+ After=network.target
  
  [Service]
 -EnvironmentFile=-/etc/sysconfig/libvirtd
@@ -23,7 +23,7 @@ index 33724ee..9b2c443 100644
  KillMode=process
  # Override the maximum number of opened files
 diff --git a/tools/libvirt-guests.service.in b/tools/libvirt-guests.service.in
-index bc63e91..ea1902a 100644
+index 0f0c41c..b9d8a91 100644
 --- a/tools/libvirt-guests.service.in
 +++ b/tools/libvirt-guests.service.in
 @@ -3,7 +3,7 @@ Description=Suspend Active Libvirt Guests

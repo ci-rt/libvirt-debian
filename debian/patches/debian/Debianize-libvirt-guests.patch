@@ -6,13 +6,14 @@ Origin: vendor
 
 
 
+
 ---
  tools/libvirt-guests.init.sh |   41 +++++++++++++----------------------------
  tools/libvirt-guests.sysconf |    4 ++--
  2 files changed, 15 insertions(+), 30 deletions(-)
 
 diff --git a/tools/libvirt-guests.init.sh b/tools/libvirt-guests.init.sh
-index d5d42d6..51bb0d6 100644
+index 99ef331..1285df7 100644
 --- a/tools/libvirt-guests.init.sh
 +++ b/tools/libvirt-guests.init.sh
 @@ -4,8 +4,8 @@
@@ -80,7 +81,7 @@ index d5d42d6..51bb0d6 100644
  
  RETVAL=0
  
-@@ -503,8 +489,7 @@ gueststatus() {
+@@ -538,8 +524,7 @@ gueststatus() {
  
  # rh_status
  # Display current status: whether saved state exists, and whether start

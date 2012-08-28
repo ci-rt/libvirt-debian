@@ -6,16 +6,17 @@ to not interfere with existing network configurations
 
 
 
+
 ---
  src/Makefile.am |    3 ---
  src/Makefile.in |    3 ---
  2 files changed, 6 deletions(-)
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index 2309984..a197759 100644
+index 95e1bea..52c22a5 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
-@@ -1639,9 +1639,6 @@ if WITH_NETWORK
+@@ -1729,9 +1729,6 @@ if WITH_NETWORK
  	    cp $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t \
  	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
  	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }
@@ -26,10 +27,10 @@ index 2309984..a197759 100644
  
  uninstall-local::
 diff --git a/src/Makefile.in b/src/Makefile.in
-index 9f48cf6..1f21b0b 100644
+index 2e2f6eb..1aee11f 100644
 --- a/src/Makefile.in
 +++ b/src/Makefile.in
-@@ -7694,9 +7694,6 @@ install-data-local:
+@@ -6751,9 +6751,6 @@ install-data-local:
  @WITH_NETWORK_TRUE@	    cp $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t \
  @WITH_NETWORK_TRUE@	      $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml && \
  @WITH_NETWORK_TRUE@	    rm $(DESTDIR)$(sysconfdir)/libvirt/qemu/networks/default.xml.t; }

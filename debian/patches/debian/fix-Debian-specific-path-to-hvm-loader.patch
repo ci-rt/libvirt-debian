@@ -6,6 +6,7 @@ Closes: #517059
 
 
 
+
 ---
  src/xen/xen_hypervisor.c               |    2 +-
  tests/xencapsdata/xen-i686-pae-hvm.xml |    2 +-
@@ -15,10 +16,10 @@ Closes: #517059
  5 files changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
-index b4ec579..5160d53 100644
+index 86e0514..2e081b6 100644
 --- a/src/xen/xen_hypervisor.c
 +++ b/src/xen/xen_hypervisor.c
-@@ -2359,7 +2359,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
+@@ -2350,7 +2350,7 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
                                                "/usr/lib64/xen/bin/qemu-dm" :
                                                "/usr/lib/xen/bin/qemu-dm"),
                                               (guest_archs[i].hvm ?
