@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Mark McLoughlin <markmc@redhat.com>
@@ -182,9 +182,10 @@ virUUIDParse(const char *uuidstr, unsigned char *uuid) {
  *
  * Converts the raw UUID into printable format, with embedded '-'
  *
- * Returns 0 in case of success and -1 in case of error.
+ * Returns a pointer to the resulting character string.
  */
-void virUUIDFormat(const unsigned char *uuid, char *uuidstr)
+const char *
+virUUIDFormat(const unsigned char *uuid, char *uuidstr)
 {
     snprintf(uuidstr, VIR_UUID_STRING_BUFLEN,
              "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
@@ -193,6 +194,7 @@ void virUUIDFormat(const unsigned char *uuid, char *uuidstr)
              uuid[8], uuid[9], uuid[10], uuid[11],
              uuid[12], uuid[13], uuid[14], uuid[15]);
     uuidstr[VIR_UUID_STRING_BUFLEN-1] = '\0';
+    return uuidstr;
 }
 
 

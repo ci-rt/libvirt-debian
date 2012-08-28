@@ -95,17 +95,8 @@ static int testCompareXMLToArgvFiles(const char *xml,
     if (qemudCanonicalizeMachine(&driver, vmdef) < 0)
         goto fail;
 
-    if (qemuCapsGet(extraFlags, QEMU_CAPS_DEVICE)) {
-        qemuDomainPCIAddressSetPtr pciaddrs;
-        if (!(pciaddrs = qemuDomainPCIAddressSetCreate(vmdef)))
-            goto fail;
-
-        if (qemuAssignDevicePCISlots(vmdef, pciaddrs) < 0)
-            goto fail;
-
-        qemuDomainPCIAddressSetFree(pciaddrs);
-    }
-
+    if (qemuCapsGet(extraFlags, QEMU_CAPS_DEVICE))
+        qemuDomainAssignAddresses(vmdef, extraFlags, NULL);
 
     log = virtTestLogContentAndReset();
     VIR_FREE(log);
@@ -166,7 +157,7 @@ static int testCompareXMLToArgvFiles(const char *xml,
     VIR_FREE(actualargv);
     virCommandFree(cmd);
     virDomainDefFree(vmdef);
-    virUnrefConnect(conn);
+    virObjectUnref(conn);
     return ret;
 }
 

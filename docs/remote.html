@@ -256,8 +256,12 @@ Remote libvirt supports a range of transports:
  remote machine by means outside the scope of libvirt. </dd><dt> tcp </dt><dd> Unencrypted TCP/IP socket.  Not recommended for production
  use, this is normally disabled, but an administrator can enable
  it for testing or use over a trusted network.
- The standard port is 16509.
- </dd></dl>
+ The standard port is 16509. </dd><dt> libssh2 </dt><dd> Transport over the SSH protocol using
+      <a href="http://libssh2.org/" title="libssh2 homepage">libssh2</a> instead
+of the OpenSSH binary. This transport uses the libvirt authentication callback for
+all ssh authentication calls and therefore supports keyboard-interactive authentication
+even with graphical management applications. As with the classic ssh transport
+netcat is required on the remote side.</dd></dl>
         <p>
 The default transport, if no other is specified, is <code>tls</code>.
 </p>
@@ -295,7 +299,9 @@ supplied explicitly in this case).
 Connect to a libvirtd daemon offering unencrypted TCP/IP connections
 on localhost port 5000 and use the test driver with default
 settings.
-</li></ul>
+</li><li><code>qemu+libssh2://user@host/system?known_hosts=/home/user/.ssh/known_hosts</code><br /> —
+Connect to a remote host using a ssh connection with the libssh2 driver
+and use a different known_hosts file.</li></ul>
         <h4>
       <a name="Remote_URI_parameters" id="Remote_URI_parameters">Extra parameters</a>
     </h4>
@@ -324,13 +330,13 @@ Note that parameter values must be
   The PATH is searched for the command.
 </td></tr><tr><td colspan="2"></td><td> Example: <code>command=/opt/openssh/bin/ssh</code> </td></tr><tr><td>
           <code>socket</code>
-        </td><td> unix, ssh </td><td>
+        </td><td> unix, ssh, libssh2 </td><td>
   The path to the Unix domain socket, which overrides the
   compiled-in default.  For ssh transport, this is passed to
   the remote netcat command (see next).
 </td></tr><tr><td colspan="2"></td><td> Example: <code>socket=/opt/libvirt/run/libvirt/libvirt-sock</code> </td></tr><tr><td>
           <code>netcat</code>
-        </td><td> ssh </td><td>
+        </td><td> ssh, libssh2 </td><td>
   The name of the netcat command on the remote machine.
   The default is <code>nc</code>.  For ssh transport, libvirt
   constructs an ssh command which looks like:
@@ -345,7 +351,7 @@ Note that parameter values must be
 
 </td></tr><tr><td colspan="2"></td><td> Example: <code>netcat=/opt/netcat/bin/nc</code> </td></tr><tr><td>
           <code>keyfile</code>
-        </td><td> ssh </td><td>
+        </td><td> ssh, libssh2 </td><td>
   The name of the private key file to use to authentication to the remote
   machine.  If this option is not used the default keys are used.
         </td></tr><tr><td colspan="2"></td><td> Example: <code>keyfile=/root/.ssh/example_key</code> </td></tr><tr><td>
@@ -373,7 +379,22 @@ Note that parameter values must be
           Specifies x509 certificates path for the client. If any of
           the CA certificate, client certificate, or client key is
           missing, the connection will fail with a fatal error.
-        </td></tr><tr><td colspan="2"></td><td> Example: <code>pkipath=/tmp/pki/client</code> </td></tr></table>
+        </td></tr><tr><td colspan="2"></td><td> Example: <code>pkipath=/tmp/pki/client</code> </td></tr><tr><td>
+          <code>known_hosts</code>
+        </td><td> libssh2 </td><td>
+  Path to the known_hosts file to verify the host key agains. LibSSH2
+  supports OpenSSH-style known_hosts files, although it does not support
+  all key types, so using files created by the OpenSSH binary may result
+  into truncating the known_hosts file. It's recommended to use the default
+  known_hosts file is located in libvirt's client local configuration
+  directory e.g.: ~/.config/libvirt/known_hosts. Note: Use absolute paths.
+</td></tr><tr><td colspan="2"></td><td> Example: <code>known_hosts=/root/.ssh/known_hosts</code> </td></tr><tr><td>
+          <code>sshauth</code>
+        </td><td> libssh2 </td><td>
+  A comma separated list of authentication methods to use. Default (is
+  "agent,privkey,keyboard-interactive". The order of the methods is perserved.
+  Some methods may require additional parameters.
+</td></tr><tr><td colspan="2"></td><td> Example: <code>sshauth=privkey,agent</code> </td></tr></table>
         <h3>
       <a name="Remote_certificates" id="Remote_certificates">Generating TLS certificates</a>
     </h3>

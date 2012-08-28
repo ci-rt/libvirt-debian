@@ -1,9 +1,9 @@
 /*
  * nwfilter_ebiptables_driver.c: driver for ebtables/iptables on tap devices
  *
- * Copyright (C) 2011 Red Hat, Inc.
- * Copyright (C) 2010 IBM Corp.
- * Copyright (C) 2010 Stefan Berger
+ * Copyright (C) 2011-2012 Red Hat, Inc.
+ * Copyright (C) 2010-2012 IBM Corp.
+ * Copyright (C) 2010-2012 Stefan Berger
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Stefan Berger <stefanb@us.ibm.com>
  */
@@ -36,6 +36,7 @@
 #include "virterror_internal.h"
 #include "domain_conf.h"
 #include "nwfilter_conf.h"
+#include "nwfilter_driver.h"
 #include "nwfilter_gentech_driver.h"
 #include "nwfilter_ebiptables_driver.h"
 #include "virfile.h"
@@ -45,7 +46,6 @@
 
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
-
 
 #define EBTABLES_CHAIN_INCOMING "PREROUTING"
 #define EBTABLES_CHAIN_OUTGOING "POSTROUTING"
@@ -126,12 +126,18 @@ static const char ebiptables_script_func_rm_chains[] =
     "}\n";
 
 static const char ebiptables_script_func_rename_chains[] =
+    "rename_chain()\n"
+    "{\n"
+    "  $EBT -t nat -F $2\n"
+    "  $EBT -t nat -X $2\n"
+    "  $EBT -t nat -E $1 $2\n"
+    "}\n"
     "rename_chains()\n"
     "{\n"
     "  for tmp in $*; do\n"
     "    case $tmp in\n"
-    "      %c*) $EBT -t nat -E $tmp %c${tmp#?} ;;\n"
-    "      %c*) $EBT -t nat -E $tmp %c${tmp#?} ;;\n"
+    "      %c*) rename_chain $tmp %c${tmp#?} ;;\n"
+    "      %c*) rename_chain $tmp %c${tmp#?} ;;\n"
     "    esac\n"
     "  done\n"
     "}\n";
@@ -146,11 +152,11 @@ static const char ebiptables_script_set_ifs[] =
 #define NWFILTER_FUNC_SET_IFS ebiptables_script_set_ifs
 
 #define NWFILTER_SET_EBTABLES_SHELLVAR(BUFPTR) \
-    virBufferAsprintf(BUFPTR, "EBT=%s\n", ebtables_cmd_path);
+    virBufferAsprintf(BUFPTR, "EBT=\"%s\"\n", ebtables_cmd_path);
 #define NWFILTER_SET_IPTABLES_SHELLVAR(BUFPTR) \
-    virBufferAsprintf(BUFPTR, "IPT=%s\n", iptables_cmd_path);
+    virBufferAsprintf(BUFPTR, "IPT=\"%s\"\n", iptables_cmd_path);
 #define NWFILTER_SET_IP6TABLES_SHELLVAR(BUFPTR) \
-    virBufferAsprintf(BUFPTR, "IPT=%s\n", ip6tables_cmd_path);
+    virBufferAsprintf(BUFPTR, "IPT=\"%s\"\n", ip6tables_cmd_path);
 
 #define VIRT_IN_CHAIN      "libvirt-in"
 #define VIRT_OUT_CHAIN     "libvirt-out"
@@ -240,9 +246,9 @@ printVar(virNWFilterVarCombIterPtr vars,
             const char *varName;
 
             varName = virNWFilterVarAccessGetVarName(item->varAccess);
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("Buffer too small to print variable "
-                                   "'%s' into"), varName);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Buffer too small to print variable "
+                             "'%s' into"), varName);
             return -1;
         }
 
@@ -276,8 +282,8 @@ _printDataType(virNWFilterVarCombIterPtr vars,
         if (!data)
             return -1;
         if (snprintf(buf, bufsize, "%s", data) >= bufsize) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("buffer too small for IP address"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("buffer too small for IP address"));
             VIR_FREE(data);
             return -1;
         }
@@ -290,8 +296,8 @@ _printDataType(virNWFilterVarCombIterPtr vars,
             return -1;
 
         if (snprintf(buf, bufsize, "%s", data) >= bufsize) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("buffer too small for IPv6 address"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("buffer too small for IPv6 address"));
             VIR_FREE(data);
             return -1;
         }
@@ -301,20 +307,20 @@ _printDataType(virNWFilterVarCombIterPtr vars,
     case DATATYPE_MACADDR:
     case DATATYPE_MACMASK:
         if (bufsize < VIR_MAC_STRING_BUFLEN) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("Buffer too small for MAC address"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Buffer too small for MAC address"));
             return -1;
         }
 
-        virMacAddrFormat(item->u.macaddr.addr, buf);
+        virMacAddrFormat(&item->u.macaddr, buf);
     break;
 
     case DATATYPE_IPV6MASK:
     case DATATYPE_IPMASK:
         if (snprintf(buf, bufsize, "%d",
                      item->u.u8) >= bufsize) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("Buffer too small for uint8 type"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Buffer too small for uint8 type"));
             return -1;
         }
     break;
@@ -323,8 +329,8 @@ _printDataType(virNWFilterVarCombIterPtr vars,
     case DATATYPE_UINT32_HEX:
         if (snprintf(buf, bufsize, asHex ? "0x%x" : "%u",
                      item->u.u32) >= bufsize) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("Buffer too small for uint32 type"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Buffer too small for uint32 type"));
             return -1;
         }
     break;
@@ -333,8 +339,8 @@ _printDataType(virNWFilterVarCombIterPtr vars,
     case DATATYPE_UINT16_HEX:
         if (snprintf(buf, bufsize, asHex ? "0x%x" : "%d",
                      item->u.u16) >= bufsize) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("Buffer too small for uint16 type"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Buffer too small for uint16 type"));
             return -1;
         }
     break;
@@ -343,16 +349,16 @@ _printDataType(virNWFilterVarCombIterPtr vars,
     case DATATYPE_UINT8_HEX:
         if (snprintf(buf, bufsize, asHex ? "0x%x" : "%d",
                      item->u.u8) >= bufsize) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("Buffer too small for uint8 type"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Buffer too small for uint8 type"));
             return -1;
         }
     break;
 
     case DATATYPE_IPSETNAME:
         if (virStrcpy(buf, item->u.ipset.setname, bufsize) == NULL) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("Buffer to small for ipset name"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Buffer to small for ipset name"));
             return -1;
         }
     break;
@@ -383,8 +389,8 @@ _printDataType(virNWFilterVarCombIterPtr vars,
         flags = virBufferContentAndReset(&vb);
 
         if (virStrcpy(buf, flags, bufsize) == NULL) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                   _("Buffer too small for IPSETFLAGS type"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Buffer too small for IPSETFLAGS type"));
             VIR_FREE(flags);
             return -1;
         }
@@ -392,8 +398,8 @@ _printDataType(virNWFilterVarCombIterPtr vars,
     break;
 
     default:
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Unhandled datatype %x"), item->datatype);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unhandled datatype %x"), item->datatype);
         return -1;
     break;
     }
@@ -1295,10 +1301,10 @@ _iptablesCreateRuleInstance(int directionIn,
     bool hasICMPType = false;
 
     if (!iptables_cmd) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("cannot create rule since %s tool is "
-                                 "missing."),
-                               isIPv6 ? "ip6tables" : "iptables");
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot create rule since %s tool is "
+                         "missing."),
+                       isIPv6 ? "ip6tables" : "iptables");
         goto err_exit;
     }
 
@@ -2013,9 +2019,9 @@ ebtablesCreateRuleInstance(char chainPrefix,
     const char *target;
 
     if (!ebtables_cmd_path) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("cannot create rule since ebtables tool is "
-                                 "missing."));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot create rule since ebtables tool is "
+                         "missing."));
         goto err_exit;
     }
 
@@ -2114,11 +2120,11 @@ ebtablesCreateRuleInstance(char chainPrefix,
            since this clashes with -d below... */
         if (reverse &&
             HAS_ENTRY_ITEM(&rule->p.stpHdrFilter.ethHdr.dataSrcMACAddr)) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                                   _("STP filtering in %s direction with "
-                                   "source MAC address set is not supported"),
-                                   virNWFilterRuleDirectionTypeToString(
-                                       VIR_NWFILTER_RULE_DIRECTION_INOUT));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("STP filtering in %s direction with "
+                             "source MAC address set is not supported"),
+                           virNWFilterRuleDirectionTypeToString(
+                               VIR_NWFILTER_RULE_DIRECTION_INOUT));
             return -1;
         }
 
@@ -2681,8 +2687,8 @@ ebiptablesCreateRuleInstance(enum virDomainNetType nettype ATTRIBUTE_UNUSED,
     break;
 
     case VIR_NWFILTER_RULE_PROTOCOL_LAST:
-        virNWFilterReportError(VIR_ERR_OPERATION_FAILED,
-                               "%s", _("illegal protocol type"));
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       "%s", _("illegal protocol type"));
         rc = -1;
     break;
     }
@@ -3189,7 +3195,7 @@ ebiptablesCanApplyBasicRules(void) {
  */
 static int
 ebtablesApplyBasicRules(const char *ifname,
-                        const unsigned char *macaddr)
+                        const virMacAddrPtr macaddr)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char chain[MAX_CHAINNAME_LENGTH];
@@ -3197,9 +3203,9 @@ ebtablesApplyBasicRules(const char *ifname,
     char macaddr_str[VIR_MAC_STRING_BUFLEN];
 
     if (!ebtables_cmd_path) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("cannot create rules since ebtables tool is "
-                                 "missing."));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot create rules since ebtables tool is "
+                         "missing."));
         return -1;
     }
 
@@ -3255,9 +3261,9 @@ ebtablesApplyBasicRules(const char *ifname,
 tear_down_tmpebchains:
     ebtablesCleanAll(ifname);
 
-    virNWFilterReportError(VIR_ERR_BUILD_FIREWALL,
-                           "%s",
-                           _("Some rules could not be created."));
+    virReportError(VIR_ERR_BUILD_FIREWALL,
+                   "%s",
+                   _("Some rules could not be created."));
 
     return -1;
 }
@@ -3282,7 +3288,7 @@ tear_down_tmpebchains:
  */
 static int
 ebtablesApplyDHCPOnlyRules(const char *ifname,
-                           const unsigned char *macaddr,
+                           const virMacAddrPtr macaddr,
                            virNWFilterVarValuePtr dhcpsrvrs,
                            bool leaveTemporary)
 {
@@ -3294,9 +3300,9 @@ ebtablesApplyDHCPOnlyRules(const char *ifname,
     unsigned int num_dhcpsrvrs;
 
     if (!ebtables_cmd_path) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("cannot create rules since ebtables tool is "
-                                 "missing."));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot create rules since ebtables tool is "
+                         "missing."));
         return -1;
     }
 
@@ -3398,9 +3404,9 @@ ebtablesApplyDHCPOnlyRules(const char *ifname,
 tear_down_tmpebchains:
     ebtablesCleanAll(ifname);
 
-    virNWFilterReportError(VIR_ERR_BUILD_FIREWALL,
-                           "%s",
-                           _("Some rules could not be created."));
+    virReportError(VIR_ERR_BUILD_FIREWALL,
+                   "%s",
+                   _("Some rules could not be created."));
 
     return -1;
 }
@@ -3423,9 +3429,9 @@ ebtablesApplyDropAllRules(const char *ifname)
          chain_out[MAX_CHAINNAME_LENGTH];
 
     if (!ebtables_cmd_path) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                               _("cannot create rules since ebtables tool is "
-                                 "missing."));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot create rules since ebtables tool is "
+                         "missing."));
         return -1;
     }
 
@@ -3468,9 +3474,9 @@ ebtablesApplyDropAllRules(const char *ifname)
 tear_down_tmpebchains:
     ebtablesCleanAll(ifname);
 
-    virNWFilterReportError(VIR_ERR_BUILD_FIREWALL,
-                           "%s",
-                           _("Some rules could not be created."));
+    virReportError(VIR_ERR_BUILD_FIREWALL,
+                   "%s",
+                   _("Some rules could not be created."));
 
     return -1;
 }
@@ -3901,12 +3907,12 @@ tear_down_tmpebchains:
 
     ebiptablesExecCLI(&buf, &cli_status, NULL);
 
-    virNWFilterReportError(VIR_ERR_BUILD_FIREWALL,
-                           _("Some rules could not be created for "
-                             "interface %s%s%s"),
-                           ifname,
-                           errmsg ? ": " : "",
-                           errmsg ? errmsg : "");
+    virReportError(VIR_ERR_BUILD_FIREWALL,
+                   _("Some rules could not be created for "
+                     "interface %s%s%s"),
+                   ifname,
+                   errmsg ? ": " : "",
+                   errmsg ? errmsg : "");
 
 exit_free_sets:
     virHashFree(chains_in_set);
@@ -4040,9 +4046,9 @@ ebiptablesRemoveRules(const char *ifname ATTRIBUTE_UNUSED,
         goto err_exit;
 
     if (cli_status) {
-        virNWFilterReportError(VIR_ERR_BUILD_FIREWALL,
-                               "%s",
-                               _("error while executing CLI commands"));
+        virReportError(VIR_ERR_BUILD_FIREWALL,
+                       "%s",
+                       _("error while executing CLI commands"));
         rc = -1;
     }
 
@@ -4122,23 +4128,101 @@ virNWFilterTechDriver ebiptables_driver = {
     .removeBasicRules    = ebtablesRemoveBasicRules,
 };
 
+/*
+ * ebiptablesDriverInitWithFirewallD
+ *
+ * Try to use firewall-cmd by testing it once; if it works, have ebtables
+ * and ip6tables commands use firewall-cmd.
+ */
+static int
+ebiptablesDriverInitWithFirewallD(void)
+{
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *firewall_cmd_path;
+    char *output = NULL;
+    int status;
+    int ret = -1;
+
+    if (!virNWFilterDriverIsWatchingFirewallD())
+        return -1;
+
+    firewall_cmd_path = virFindFileInPath("firewall-cmd");
+
+    if (firewall_cmd_path) {
+        virBufferAsprintf(&buf, "FWC=%s\n", firewall_cmd_path);
+        virBufferAsprintf(&buf,
+                          CMD_DEF("$FWC --state") CMD_SEPARATOR
+                          CMD_EXEC
+                          "%s",
+                          CMD_STOPONERR(1));
+
+        if (ebiptablesExecCLI(&buf, &status, &output) < 0 ||
+            status != 0) {
+            VIR_INFO("firewalld support disabled for nwfilter");
+        } else {
+            VIR_INFO("firewalld support enabled for nwfilter");
+
+            ignore_value(virAsprintf(&ebtables_cmd_path,
+                                     "%s --direct --passthrough eb",
+                                     firewall_cmd_path));
+            ignore_value(virAsprintf(&iptables_cmd_path,
+                                     "%s --direct --passthrough ipv4",
+                                     firewall_cmd_path));
+            ignore_value(virAsprintf(&ip6tables_cmd_path,
+                                     "%s --direct --passthrough ipv6",
+                                     firewall_cmd_path));
+
+            if (!ebtables_cmd_path || !iptables_cmd_path ||
+                !ip6tables_cmd_path) {
+                virReportOOMError();
+                VIR_FREE(ebtables_cmd_path);
+                VIR_FREE(iptables_cmd_path);
+                VIR_FREE(ip6tables_cmd_path);
+                ret = -1;
+                goto err_exit;
+            }
+            ret = 0;
+        }
+    }
+
+err_exit:
+    VIR_FREE(firewall_cmd_path);
+    VIR_FREE(output);
+
+    return ret;
+}
 
 static int
-ebiptablesDriverInit(bool privileged)
+ebiptablesDriverInitCLITools(void)
+{
+    ebtables_cmd_path = virFindFileInPath("ebtables");
+    if (!ebtables_cmd_path)
+        VIR_WARN("Could not find 'ebtables' executable");
+
+    iptables_cmd_path = virFindFileInPath("iptables");
+    if (!iptables_cmd_path)
+        VIR_WARN("Could not find 'iptables' executable");
+
+    ip6tables_cmd_path = virFindFileInPath("ip6tables");
+    if (!ip6tables_cmd_path)
+        VIR_WARN("Could not find 'ip6tables' executable");
+
+    return 0;
+}
+
+/*
+ * ebiptablesDriverTestCLITools
+ *
+ * Test the CLI tools. If one is found not to be working, free the buffer
+ * holding its path as a sign that the tool cannot be used.
+ */
+static int
+ebiptablesDriverTestCLITools(void)
 {
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     char *errmsg = NULL;
+    int ret = 0;
 
-    if (!privileged)
-        return 0;
-
-    if (virMutexInit(&execCLIMutex) < 0)
-        return -EINVAL;
-
-    gawk_cmd_path = virFindFileInPath("gawk");
-    grep_cmd_path = virFindFileInPath("grep");
-
-    ebtables_cmd_path = virFindFileInPath("ebtables");
     if (ebtables_cmd_path) {
         NWFILTER_SET_EBTABLES_SHELLVAR(&buf);
         /* basic probing */
@@ -4152,12 +4236,10 @@ ebiptablesDriverInit(bool privileged)
             VIR_FREE(ebtables_cmd_path);
             VIR_ERROR(_("Testing of ebtables command failed: %s"),
                       errmsg);
+            ret = -1;
         }
-    } else {
-        VIR_WARN("Could not find 'ebtables' executable");
     }
 
-    iptables_cmd_path = virFindFileInPath("iptables");
     if (iptables_cmd_path) {
         NWFILTER_SET_IPTABLES_SHELLVAR(&buf);
 
@@ -4171,12 +4253,10 @@ ebiptablesDriverInit(bool privileged)
             VIR_FREE(iptables_cmd_path);
             VIR_ERROR(_("Testing of iptables command failed: %s"),
                       errmsg);
+            ret = -1;
         }
-    } else {
-        VIR_WARN("Could not find 'iptables' executable");
     }
 
-    ip6tables_cmd_path = virFindFileInPath("ip6tables");
     if (ip6tables_cmd_path) {
         NWFILTER_SET_IP6TABLES_SHELLVAR(&buf);
 
@@ -4190,10 +4270,37 @@ ebiptablesDriverInit(bool privileged)
             VIR_FREE(ip6tables_cmd_path);
             VIR_ERROR(_("Testing of ip6tables command failed: %s"),
                       errmsg);
+            ret = -1;
         }
-    } else {
-        VIR_WARN("Could not find 'ip6tables' executable");
     }
+
+    VIR_FREE(errmsg);
+
+    return ret;
+}
+
+static int
+ebiptablesDriverInit(bool privileged)
+{
+    if (!privileged)
+        return 0;
+
+    if (virMutexInit(&execCLIMutex) < 0)
+        return -EINVAL;
+
+    gawk_cmd_path = virFindFileInPath("gawk");
+    grep_cmd_path = virFindFileInPath("grep");
+
+    /*
+     * check whether we can run with firewalld's tools --
+     * if not, we just fall back to eb/iptables command
+     * line tools.
+     */
+    if (ebiptablesDriverInitWithFirewallD() < 0)
+        ebiptablesDriverInitCLITools();
+
+    /* make sure tools are available and work */
+    ebiptablesDriverTestCLITools();
 
     /* ip(6)tables support needs gawk & grep, ebtables doesn't */
     if ((iptables_cmd_path != NULL || ip6tables_cmd_path != NULL) &&
@@ -4203,8 +4310,6 @@ ebiptablesDriverInit(bool privileged)
         VIR_FREE(iptables_cmd_path);
         VIR_FREE(ip6tables_cmd_path);
     }
-
-    VIR_FREE(errmsg);
 
     if (!ebtables_cmd_path && !iptables_cmd_path && !ip6tables_cmd_path) {
         VIR_ERROR(_("firewall tools were not found or cannot be used"));

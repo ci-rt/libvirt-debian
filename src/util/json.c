@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,9 +43,6 @@
 
 /* XXX fixme */
 #define VIR_FROM_THIS VIR_FROM_NONE
-#define virJSONError(code, ...)                                         \
-    virReportErrorHelper(VIR_FROM_NONE, code, __FILE__,                 \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
 typedef struct _virJSONParserState virJSONParserState;
@@ -204,7 +201,7 @@ virJSONValuePtr virJSONValueNewNumberDouble(double data)
 {
     virJSONValuePtr val = NULL;
     char *str;
-    if (virAsprintf(&str, "%lf", data) < 0)
+    if (virDoubleToStr(&str, data) < 0)
         return NULL;
     val = virJSONValueNewNumber(str);
     VIR_FREE(str);
@@ -956,8 +953,8 @@ virJSONValuePtr virJSONValueFromString(const char *jsonstring)
     hand = yajl_alloc(&parserCallbacks, &cfg, NULL, &parser);
 # endif
     if (!hand) {
-        virJSONError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Unable to create JSON parser"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to create JSON parser"));
         goto cleanup;
     }
 
@@ -968,9 +965,9 @@ virJSONValuePtr virJSONValueFromString(const char *jsonstring)
                                                (const unsigned char*)jsonstring,
                                                strlen(jsonstring));
 
-        virJSONError(VIR_ERR_INTERNAL_ERROR,
-                     _("cannot parse json %s: %s"),
-                     jsonstring, (const char*) errstr);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot parse json %s: %s"),
+                       jsonstring, (const char*) errstr);
         VIR_FREE(errstr);
         virJSONValueFree(parser.head);
         goto cleanup;
@@ -1057,14 +1054,15 @@ static int virJSONValueToStringOne(virJSONValuePtr object,
     return 0;
 }
 
-char *virJSONValueToString(virJSONValuePtr object)
+char *virJSONValueToString(virJSONValuePtr object,
+                           bool pretty)
 {
     yajl_gen g;
     const unsigned char *str;
     char *ret = NULL;
     yajl_size_t len;
 # ifndef HAVE_YAJL2
-    yajl_gen_config conf = { 0, " " }; /* Turns off pretty printing since QEMU can't cope */
+    yajl_gen_config conf = { pretty ? 1 : 0, pretty ? "    " : " "};
 # endif
 
     VIR_DEBUG("object=%p", object);
@@ -1072,16 +1070,16 @@ char *virJSONValueToString(virJSONValuePtr object)
 # ifdef HAVE_YAJL2
     g = yajl_gen_alloc(NULL);
     if (g) {
-        yajl_gen_config(g, yajl_gen_beautify, 0);
-        yajl_gen_config(g, yajl_gen_indent_string, " ");
+        yajl_gen_config(g, yajl_gen_beautify, pretty ? 1 : 0);
+        yajl_gen_config(g, yajl_gen_indent_string, pretty ? "    " : " ");
         yajl_gen_config(g, yajl_gen_validate_utf8, 1);
     }
 # else
     g = yajl_gen_alloc(&conf, NULL);
 # endif
     if (!g) {
-        virJSONError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Unable to create JSON formatter"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to create JSON formatter"));
         goto cleanup;
     }
 
@@ -1110,14 +1108,15 @@ cleanup:
 #else
 virJSONValuePtr virJSONValueFromString(const char *jsonstring ATTRIBUTE_UNUSED)
 {
-    virJSONError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("No JSON parser implementation is available"));
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("No JSON parser implementation is available"));
     return NULL;
 }
-char *virJSONValueToString(virJSONValuePtr object ATTRIBUTE_UNUSED)
+char *virJSONValueToString(virJSONValuePtr object ATTRIBUTE_UNUSED,
+                           bool pretty ATTRIBUTE_UNUSED)
 {
-    virJSONError(VIR_ERR_INTERNAL_ERROR, "%s",
-                 _("No JSON parser implementation is available"));
+    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                   _("No JSON parser implementation is available"));
     return NULL;
 }
 #endif

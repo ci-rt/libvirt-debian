@@ -6,6 +6,7 @@
 #include <string.h>
 #include <errno.h>
 #include "security/security_driver.h"
+#include "virrandom.h"
 
 int
 main (int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
@@ -13,10 +14,13 @@ main (int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
     virSecurityManagerPtr mgr;
     const char *doi, *model;
 
+    if (virThreadInitialize() < 0)
+        exit(EXIT_FAILURE);
+
     mgr = virSecurityManagerNew(NULL, "QEMU", false, true, false);
     if (mgr == NULL) {
         fprintf (stderr, "Failed to start security driver");
-        exit (-1);
+        exit(EXIT_FAILURE);
     }
 
     model = virSecurityManagerGetModel(mgr);
@@ -24,7 +28,7 @@ main (int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
     {
         fprintf (stderr, "Failed to copy secModel model: %s",
                  strerror (errno));
-        exit (-1);
+        exit(EXIT_FAILURE);
     }
 
     doi = virSecurityManagerGetDOI(mgr);
@@ -32,7 +36,7 @@ main (int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED)
     {
         fprintf (stderr, "Failed to copy secModel DOI: %s",
                  strerror (errno));
-        exit (-1);
+        exit(EXIT_FAILURE);
     }
 
     virSecurityManagerFree(mgr);

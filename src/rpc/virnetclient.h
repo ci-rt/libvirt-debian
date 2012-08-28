@@ -1,7 +1,7 @@
 /*
  * virnetclient.h: generic network RPC client
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -30,6 +30,7 @@
 # endif
 # include "virnetclientprogram.h"
 # include "virnetclientstream.h"
+# include "virobject.h"
 
 
 virNetClientPtr virNetClientNewUNIX(const char *path,
@@ -49,9 +50,30 @@ virNetClientPtr virNetClientNewSSH(const char *nodename,
                                    const char *keyfile,
                                    const char *path);
 
+virNetClientPtr virNetClientNewLibSSH2(const char *host,
+                                       const char *port,
+                                       const char *username,
+                                       const char *privkeyPath,
+                                       const char *knownHostsPath,
+                                       const char *knownHostsVerify,
+                                       const char *authMethods,
+                                       const char *netcatPath,
+                                       const char *socketPath,
+                                       virConnectAuthPtr authPtr);
+
 virNetClientPtr virNetClientNewExternal(const char **cmdargv);
 
-void virNetClientRef(virNetClientPtr client);
+int virNetClientRegisterAsyncIO(virNetClientPtr client);
+int virNetClientRegisterKeepAlive(virNetClientPtr client);
+
+typedef void (*virNetClientCloseFunc)(virNetClientPtr client,
+                                      int reason,
+                                      void *opaque);
+
+void virNetClientSetCloseCallback(virNetClientPtr client,
+                                  virNetClientCloseFunc cb,
+                                  void *opaque,
+                                  virFreeCallback ff);
 
 int virNetClientGetFD(virNetClientPtr client);
 int virNetClientDupFD(virNetClientPtr client, bool cloexec);
@@ -96,7 +118,6 @@ const char *virNetClientRemoteAddrString(virNetClientPtr client);
 
 int virNetClientGetTLSKeySize(virNetClientPtr client);
 
-void virNetClientFree(virNetClientPtr client);
 void virNetClientClose(virNetClientPtr client);
 
 bool virNetClientKeepAliveIsSupported(virNetClientPtr client);

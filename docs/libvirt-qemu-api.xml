@@ -3,19 +3,46 @@
   <files>
     <file name='libvirt-qemu'>
      <summary>qemu specific interfaces</summary>
-     <description>Provides the interfaces of the libvirt library to handle qemu specific methods </description>
+     <description>Provides the interfaces of the libvirt library to handle qemu specific methods  Copyright (C) 2010, 2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library;  If not, see</description>
      <author>Chris Lalancette &lt;clalance@redhat.com&gt; </author>
+     <exports symbol='VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK' type='enum'/>
+     <exports symbol='VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT' type='enum'/>
+     <exports symbol='VIR_DOMAIN_QEMU_AGENT_COMMAND_MIN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT' type='enum'/>
      <exports symbol='VIR_DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT' type='enum'/>
      <exports symbol='VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP' type='enum'/>
+     <exports symbol='virDomainQemuAgentCommandTimeoutValues' type='typedef'/>
      <exports symbol='virDomainQemuMonitorCommandFlags' type='typedef'/>
+     <exports symbol='virDomainQemuAgentCommand' type='function'/>
      <exports symbol='virDomainQemuAttach' type='function'/>
      <exports symbol='virDomainQemuMonitorCommand' type='function'/>
     </file>
   </files>
   <symbols>
+    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK' file='libvirt-qemu' value='-2' type='virDomainQemuAgentCommandTimeoutValues'/>
+    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT' file='libvirt-qemu' value='-1' type='virDomainQemuAgentCommandTimeoutValues'/>
+    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_MIN' file='libvirt-qemu' value='-2' type='virDomainQemuAgentCommandTimeoutValues'/>
+    <enum name='VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT' file='libvirt-qemu' value='0' type='virDomainQemuAgentCommandTimeoutValues'/>
     <enum name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT' file='libvirt-qemu' value='0' type='virDomainQemuMonitorCommandFlags'/>
     <enum name='VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP' file='libvirt-qemu' value='1' type='virDomainQemuMonitorCommandFlags' info='cmd is in HMP'/>
+    <typedef name='virDomainQemuAgentCommandTimeoutValues' file='libvirt-qemu' type='enum'/>
     <typedef name='virDomainQemuMonitorCommandFlags' file='libvirt-qemu' type='enum'/>
+    <function name='virDomainQemuAgentCommand' file='libvirt-qemu' module='libvirt-qemu'>
+      <info><![CDATA[Execute an arbitrary Guest Agent command.
+
+Issue @cmd to the guest agent running in @domain.
+@timeout must be -2, -1, 0 or positive.
+VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK(-2): meaning to block forever waiting for
+a result.
+VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT(-1): use default timeout value.
+VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT(0): does not wait.
+positive value: wait for @timeout seconds]]></info>
+      <return type='char *' info='strings if success, NULL in failure.'/>
+      <arg name='domain' type='virDomainPtr' info='a domain object'/>
+      <arg name='cmd' type='const char *' info='the guest agent command string'/>
+      <arg name='timeout' type='int' info='timeout seconds'/>
+      <arg name='flags' type='unsigned int' info='execution flags'/>
+    </function>
     <function name='virDomainQemuAttach' file='libvirt-qemu' module='libvirt-qemu'>
       <info><![CDATA[This API is QEMU specific, so it will only work with hypervisor
 connections to the QEMU driver.

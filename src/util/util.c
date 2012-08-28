@@ -17,8 +17,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  * File created Jul 18, 2007 - Shuveb Hussain <shuveb@binarykarma.com>
@@ -44,6 +44,7 @@
 #include <signal.h>
 #include <termios.h>
 #include <pty.h>
+#include <locale.h>
 
 #if HAVE_LIBDEVMAPPER_H
 # include <libdevmapper.h>
@@ -95,10 +96,6 @@ verify(sizeof(gid_t) <= sizeof(unsigned int) &&
        sizeof(uid_t) <= sizeof(unsigned int));
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-
-#define virUtilError(code, ...)                                            \
-        virReportErrorHelper(VIR_FROM_NONE, code, __FILE__,                \
-                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /* Like read(), but restarts after EINTR */
 ssize_t
@@ -333,8 +330,8 @@ virPipeReadUntilEOF(int outfd, int errfd,
                 if (fds[i].revents & POLLHUP)
                     continue;
 
-                virUtilError(VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("Unknown poll response."));
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               "%s", _("Unknown poll response."));
                 goto error;
             }
 
@@ -1126,6 +1123,12 @@ int virDirCreate(const char *path, mode_t mode,
     int waitret;
     int status, ret = 0;
 
+    /* allow using -1 to mean "current value" */
+    if (uid == (uid_t) -1)
+        uid = getuid();
+    if (gid == (gid_t) -1)
+        gid = getgid();
+
     if ((!(flags & VIR_DIR_CREATE_AS_UID))
         || (getuid() != 0)
         || ((uid == 0) && (gid == 0))
@@ -1229,8 +1232,8 @@ int virFileOpenAs(const char *path ATTRIBUTE_UNUSED,
                   gid_t gid ATTRIBUTE_UNUSED,
                   unsigned int flags_unused ATTRIBUTE_UNUSED)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virFileOpenAs is not implemented for WIN32"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virFileOpenAs is not implemented for WIN32"));
 
     return -ENOSYS;
 }
@@ -1241,14 +1244,14 @@ int virDirCreate(const char *path ATTRIBUTE_UNUSED,
                  gid_t gid ATTRIBUTE_UNUSED,
                  unsigned int flags_unused ATTRIBUTE_UNUSED)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virDirCreate is not implemented for WIN32"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virDirCreate is not implemented for WIN32"));
 
     return -ENOSYS;
 }
 #endif /* WIN32 */
 
-static int virFileMakePathHelper(char *path)
+static int virFileMakePathHelper(char *path, mode_t mode)
 {
     struct stat st;
     char *p;
@@ -1272,13 +1275,13 @@ static int virFileMakePathHelper(char *path)
     if (p != path) {
         *p = '\0';
 
-        if (virFileMakePathHelper(path) < 0)
+        if (virFileMakePathHelper(path, mode) < 0)
             return -1;
 
         *p = '/';
     }
 
-    if (mkdir(path, 0777) < 0 && errno != EEXIST)
+    if (mkdir(path, mode) < 0 && errno != EEXIST)
         return -1;
 
     return 0;
@@ -1292,13 +1295,20 @@ static int virFileMakePathHelper(char *path)
  */
 int virFileMakePath(const char *path)
 {
+    return virFileMakePathWithMode(path, 0777);
+}
+
+int
+virFileMakePathWithMode(const char *path,
+                        mode_t mode)
+{
     int ret = -1;
     char *tmp;
 
     if ((tmp = strdup(path)) == NULL)
         goto cleanup;
 
-    ret = virFileMakePathHelper(tmp);
+    ret = virFileMakePathHelper(tmp, mode);
 
 cleanup:
     VIR_FREE(tmp);
@@ -1736,8 +1746,8 @@ virScaleInteger(unsigned long long *value, const char *suffix,
 {
     if (!suffix || !*suffix) {
         if (!scale) {
-            virUtilError(VIR_ERR_INTERNAL_ERROR,
-                         _("invalid scale %llu"), scale);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("invalid scale %llu"), scale);
             return -1;
         }
         suffix = "";
@@ -1752,7 +1762,7 @@ virScaleInteger(unsigned long long *value, const char *suffix,
         } else if (c_tolower(suffix[1]) == 'b' && !suffix[2]) {
             base = 1000;
         } else {
-            virUtilError(VIR_ERR_INVALID_ARG,
+            virReportError(VIR_ERR_INVALID_ARG,
                          _("unknown suffix '%s'"), suffix);
             return -1;
         }
@@ -1777,15 +1787,15 @@ virScaleInteger(unsigned long long *value, const char *suffix,
             scale *= base;
             break;
         default:
-            virUtilError(VIR_ERR_INVALID_ARG,
-                         _("unknown suffix '%s'"), suffix);
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("unknown suffix '%s'"), suffix);
             return -1;
         }
     }
 
     if (*value && *value >= (limit / scale)) {
-        virUtilError(VIR_ERR_OVERFLOW, _("value too large: %llu%s"),
-                     *value, suffix);
+        virReportError(VIR_ERR_OVERFLOW, _("value too large: %llu%s"),
+                       *value, suffix);
         return -1;
     }
     *value *= scale;
@@ -2051,6 +2061,68 @@ int virEnumFromString(const char *const*types,
     return -1;
 }
 
+/* In case thread-safe locales are available */
+#if HAVE_NEWLOCALE
+
+static locale_t virLocale;
+
+static int
+virLocaleOnceInit(void)
+{
+    virLocale = newlocale(LC_ALL_MASK, "C", (locale_t)0);
+    if (!virLocale)
+        return -1;
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(virLocale)
+#endif
+
+/**
+ * virDoubleToStr
+ *
+ * converts double to string with C locale (thread-safe).
+ *
+ * Returns -1 on error, size of the string otherwise.
+ */
+int
+virDoubleToStr(char **strp, double number)
+{
+    int ret = -1;
+
+#if HAVE_NEWLOCALE
+
+    locale_t old_loc;
+
+    if (virLocaleInitialize() < 0)
+        goto error;
+
+    old_loc = uselocale(virLocale);
+    ret = virAsprintf(strp, "%lf", number);
+    uselocale(old_loc);
+
+#else
+
+    char *radix, *tmp;
+    struct lconv *lc;
+
+    if ((ret = virAsprintf(strp, "%lf", number) < 0))
+        goto error;
+
+    lc = localeconv();
+    radix = lc->decimal_point;
+    tmp = strstr(*strp, radix);
+    if (tmp) {
+        *tmp = '.';
+        if (strlen(radix) > 1)
+            memmove(tmp + 1, tmp + strlen(radix), strlen(*strp) - (tmp - *strp));
+    }
+
+#endif /* HAVE_NEWLOCALE */
+ error:
+    return ret;
+}
+
 const char *virEnumToString(const char *const*types,
                             unsigned int ntypes,
                             int type)
@@ -2107,8 +2179,8 @@ char *virIndexToDiskName(int idx, const char *prefix)
     int i, k, offset;
 
     if (idx < 0) {
-        virUtilError(VIR_ERR_INTERNAL_ERROR,
-                     _("Disk index %d is negative"), idx);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Disk index %d is negative"), idx);
         return NULL;
     }
 
@@ -2724,8 +2796,8 @@ virGetUserDirectory(void)
         return NULL;
 
     if (!ret) {
-        virUtilError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Unable to determine home directory"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to determine home directory"));
         return NULL;
     }
 
@@ -2740,8 +2812,8 @@ virGetUserConfigDirectory(void)
         return NULL;
 
     if (!ret) {
-        virUtilError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Unable to determine config directory"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to determine config directory"));
         return NULL;
     }
     return ret;
@@ -2755,8 +2827,8 @@ virGetUserCacheDirectory(void)
         return NULL;
 
     if (!ret) {
-        virUtilError(VIR_ERR_INTERNAL_ERROR, "%s",
-                     _("Unable to determine config directory"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to determine config directory"));
         return NULL;
     }
     return ret;
@@ -2771,8 +2843,8 @@ virGetUserRuntimeDirectory(void)
 char *
 virGetUserDirectory(void)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virGetUserDirectory is not available"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virGetUserDirectory is not available"));
 
     return NULL;
 }
@@ -2780,8 +2852,8 @@ virGetUserDirectory(void)
 char *
 virGetUserConfigDirectory(void)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virGetUserConfigDirectory is not available"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virGetUserConfigDirectory is not available"));
 
     return NULL;
 }
@@ -2789,8 +2861,8 @@ virGetUserConfigDirectory(void)
 char *
 virGetUserCacheDirectory(void)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virGetUserCacheDirectory is not available"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virGetUserCacheDirectory is not available"));
 
     return NULL;
 }
@@ -2798,8 +2870,8 @@ virGetUserCacheDirectory(void)
 char *
 virGetUserRuntimeDirectory(void)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virGetUserRuntimeDirectory is not available"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virGetUserRuntimeDirectory is not available"));
 
     return NULL;
 }
@@ -2808,8 +2880,8 @@ virGetUserRuntimeDirectory(void)
 char *
 virGetUserName(uid_t uid ATTRIBUTE_UNUSED)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virGetUserName is not available"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virGetUserName is not available"));
 
     return NULL;
 }
@@ -2817,8 +2889,8 @@ virGetUserName(uid_t uid ATTRIBUTE_UNUSED)
 int virGetUserID(const char *name ATTRIBUTE_UNUSED,
                  uid_t *uid ATTRIBUTE_UNUSED)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virGetUserID is not available"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virGetUserID is not available"));
 
     return 0;
 }
@@ -2827,8 +2899,8 @@ int virGetUserID(const char *name ATTRIBUTE_UNUSED,
 int virGetGroupID(const char *name ATTRIBUTE_UNUSED,
                   gid_t *gid ATTRIBUTE_UNUSED)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virGetGroupID is not available"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virGetGroupID is not available"));
 
     return 0;
 }
@@ -2837,16 +2909,16 @@ int
 virSetUIDGID(uid_t uid ATTRIBUTE_UNUSED,
              gid_t gid ATTRIBUTE_UNUSED)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virSetUIDGID is not available"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virSetUIDGID is not available"));
     return -1;
 }
 
 char *
 virGetGroupName(gid_t gid ATTRIBUTE_UNUSED)
 {
-    virUtilError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("virGetGroupName is not available"));
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   "%s", _("virGetGroupName is not available"));
 
     return NULL;
 }

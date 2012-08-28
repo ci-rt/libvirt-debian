@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -45,6 +45,18 @@ struct _virStoragePerms {
 };
 
 /* Storage volumes */
+
+typedef struct _virStorageTimestamps virStorageTimestamps;
+typedef virStorageTimestamps *virStorageTimestampsPtr;
+struct _virStorageTimestamps {
+    struct timespec atime;
+    /* if btime.tv_nsec == -1 then
+     * birth time is unknown
+     */
+    struct timespec btime;
+    struct timespec ctime;
+    struct timespec mtime;
+};
 
 
 /*
@@ -77,6 +89,7 @@ struct _virStorageVolTarget {
     char *path;
     int format;
     virStoragePerms perms;
+    virStorageTimestampsPtr timestamps;
     int type; /* only used by disk backend for partition type */
     /* Currently used only in virStorageVolDef.target, not in .backingstore. */
     virStorageEncryptionPtr encryption;
@@ -121,6 +134,7 @@ enum virStoragePoolType {
     VIR_STORAGE_POOL_SCSI,     /* SCSI HBA */
     VIR_STORAGE_POOL_MPATH,    /* Multipath devices */
     VIR_STORAGE_POOL_RBD,      /* RADOS Block Device */
+    VIR_STORAGE_POOL_SHEEPDOG, /* Sheepdog device */
 
     VIR_STORAGE_POOL_LAST,
 };
@@ -335,10 +349,6 @@ struct _virStoragePoolSourceList {
 static inline int virStoragePoolObjIsActive(virStoragePoolObjPtr pool) {
     return pool->active;
 }
-
-# define virStorageReportError(code, ...)                                \
-    virReportErrorHelper(VIR_FROM_STORAGE, code, __FILE__,               \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 int virStoragePoolLoadAllConfigs(virStoragePoolObjListPtr pools,
                                  const char *configDir,

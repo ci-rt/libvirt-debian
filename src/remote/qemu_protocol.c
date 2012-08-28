@@ -52,6 +52,30 @@ xdr_qemu_domain_attach_ret (XDR *xdrs, qemu_domain_attach_ret *objp)
 }
 
 bool_t
+xdr_qemu_domain_agent_command_args (XDR *xdrs, qemu_domain_agent_command_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->cmd))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->timeout))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_qemu_domain_agent_command_ret (XDR *xdrs, qemu_domain_agent_command_ret *objp)
+{
+
+         if (!xdr_remote_string (xdrs, &objp->result))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_qemu_procedure (XDR *xdrs, qemu_procedure *objp)
 {
 

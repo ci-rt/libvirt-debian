@@ -31,6 +31,7 @@ typedef enum {
     VIR_DRV_VMWARE = 13,
     VIR_DRV_LIBXL = 14,
     VIR_DRV_HYPERV = 15,
+    VIR_DRV_PARALLELS = 16,
 } virDrvNo;
 
 
@@ -142,6 +143,11 @@ typedef int
                                          unsigned int flags);
 typedef char *
         (*virDrvDomainGetOSType)        (virDomainPtr domain);
+
+typedef char *
+        (*virDrvDomainGetHostname)      (virDomainPtr domain,
+                                         unsigned int flags);
+
 typedef unsigned long long
         (*virDrvDomainGetMaxMemory)     (virDomainPtr domain);
 typedef int
@@ -300,6 +306,16 @@ typedef int
                                          unsigned char *cpumaps,
                                          int maplen,
                                          unsigned int flags);
+ typedef int
+        (*virDrvDomainPinEmulator)     (virDomainPtr domain,
+                                        unsigned char *cpumap,
+                                        int maplen,
+                                        unsigned int flags);
+typedef int
+        (*virDrvDomainGetEmulatorPinInfo)   (virDomainPtr domain,
+                                             unsigned char *cpumaps,
+                                             int maplen,
+                                             unsigned int flags);
 
 typedef int
         (*virDrvDomainGetVcpus)         (virDomainPtr domain,
@@ -313,6 +329,9 @@ typedef int
 typedef int
         (*virDrvDomainGetSecurityLabel) (virDomainPtr domain,
                                          virSecurityLabelPtr seclabel);
+typedef int
+        (*virDrvDomainGetSecurityLabelList) (virDomainPtr domain,
+                                         virSecurityLabelPtr* seclabels);
 typedef int
         (*virDrvNodeGetSecurityModel)   (virConnectPtr conn,
                                          virSecurityModelPtr secmodel);
@@ -682,6 +701,9 @@ typedef int
 typedef int
     (*virDrvDomainQemuMonitorCommand)(virDomainPtr domain, const char *cmd,
                                       char **result, unsigned int flags);
+typedef char *
+    (*virDrvDomainQemuAgentCommand)(virDomainPtr domain, const char *cmd,
+                                    int timeout, unsigned int flags);
 
 /* Choice of unsigned int rather than pid_t is intentional.  */
 typedef virDomainPtr
@@ -904,6 +926,7 @@ struct _virDriver {
     virDrvDomainDestroy                 domainDestroy;
     virDrvDomainDestroyFlags            domainDestroyFlags;
     virDrvDomainGetOSType               domainGetOSType;
+    virDrvDomainGetHostname             domainGetHostname;
     virDrvDomainGetMaxMemory            domainGetMaxMemory;
     virDrvDomainSetMaxMemory            domainSetMaxMemory;
     virDrvDomainSetMemory               domainSetMemory;
@@ -931,9 +954,12 @@ struct _virDriver {
     virDrvDomainPinVcpu                 domainPinVcpu;
     virDrvDomainPinVcpuFlags            domainPinVcpuFlags;
     virDrvDomainGetVcpuPinInfo          domainGetVcpuPinInfo;
+    virDrvDomainPinEmulator             domainPinEmulator;
+    virDrvDomainGetEmulatorPinInfo      domainGetEmulatorPinInfo;
     virDrvDomainGetVcpus                domainGetVcpus;
     virDrvDomainGetMaxVcpus             domainGetMaxVcpus;
     virDrvDomainGetSecurityLabel        domainGetSecurityLabel;
+    virDrvDomainGetSecurityLabelList     domainGetSecurityLabelList;
     virDrvNodeGetSecurityModel          nodeGetSecurityModel;
     virDrvDomainGetXMLDesc              domainGetXMLDesc;
     virDrvConnectDomainXMLFromNative    domainXMLFromNative;
@@ -1017,6 +1043,7 @@ struct _virDriver {
     virDrvDomainSnapshotDelete          domainSnapshotDelete;
     virDrvDomainQemuMonitorCommand      qemuDomainMonitorCommand;
     virDrvDomainQemuAttach              qemuDomainAttach;
+    virDrvDomainQemuAgentCommand        qemuDomainArbitraryAgentCommand;
     virDrvDomainOpenConsole             domainOpenConsole;
     virDrvDomainOpenGraphics            domainOpenGraphics;
     virDrvDomainInjectNMI               domainInjectNMI;

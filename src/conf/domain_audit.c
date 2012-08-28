@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -160,9 +160,9 @@ virDomainAuditNet(virDomainObjPtr vm,
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (oldDef)
-        virMacAddrFormat(oldDef->mac, oldMacstr);
+        virMacAddrFormat(&oldDef->mac, oldMacstr);
     if (newDef)
-        virMacAddrFormat(newDef->mac, newMacstr);
+        virMacAddrFormat(&newDef->mac, newMacstr);
     if (!(vmname = virAuditEncode("vm", vm->def->name))) {
         VIR_WARN("OOM while encoding audit message");
         return;
@@ -206,7 +206,7 @@ virDomainAuditNetDevice(virDomainDefPtr vmDef, virDomainNetDefPtr netDef,
     const char *virt;
 
     virUUIDFormat(vmDef->uuid, uuidstr);
-    virMacAddrFormat(netDef->mac, macstr);
+    virMacAddrFormat(&netDef->mac, macstr);
     rdev = virDomainAuditGetRdev(device);
 
     if (!(vmname = virAuditEncode("vm", vmDef->name)) ||
@@ -618,6 +618,7 @@ virDomainAuditSecurityLabel(virDomainObjPtr vm, bool success)
     char uuidstr[VIR_UUID_STRING_BUFLEN];
     char *vmname;
     const char *virt;
+    int i;
 
     virUUIDFormat(vm->def->uuid, uuidstr);
     if (!(vmname = virAuditEncode("vm", vm->def->name))) {
@@ -630,11 +631,14 @@ virDomainAuditSecurityLabel(virDomainObjPtr vm, bool success)
         virt = "?";
     }
 
-    VIR_AUDIT(VIR_AUDIT_RECORD_MACHINE_ID, success,
-              "virt=%s %s uuid=%s vm-ctx=%s img-ctx=%s",
-              virt, vmname, uuidstr,
-              VIR_AUDIT_STR(vm->def->seclabel.label),
-              VIR_AUDIT_STR(vm->def->seclabel.imagelabel));
+    for (i = 0; i < vm->def->nseclabels; i++) {
+        VIR_AUDIT(VIR_AUDIT_RECORD_MACHINE_ID, success,
+                  "virt=%s %s uuid=%s vm-ctx=%s img-ctx=%s model=%s",
+                  virt, vmname, uuidstr,
+                  VIR_AUDIT_STR(vm->def->seclabels[i]->label),
+                  VIR_AUDIT_STR(vm->def->seclabels[i]->imagelabel),
+                  VIR_AUDIT_STR(vm->def->seclabels[i]->model));
+    }
 
     VIR_FREE(vmname);
 }

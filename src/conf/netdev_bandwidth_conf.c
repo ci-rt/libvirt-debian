@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Michal Privoznik <mprivozn@redhat.com>
@@ -28,10 +28,6 @@
 #include "memory.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-#define virNetDevError(code, ...)                                   \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,             \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
-
 
 static int
 virNetDevBandwidthParseRate(xmlNodePtr node, virNetDevBandwidthRatePtr rate)
@@ -42,7 +38,7 @@ virNetDevBandwidthParseRate(xmlNodePtr node, virNetDevBandwidthRatePtr rate)
     char *burst = NULL;
 
     if (!node || !rate) {
-        virNetDevError(VIR_ERR_INVALID_ARG, "%s",
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
                        _("invalid argument supplied"));
         return -1;
     }
@@ -53,26 +49,26 @@ virNetDevBandwidthParseRate(xmlNodePtr node, virNetDevBandwidthRatePtr rate)
 
     if (average) {
         if (virStrToLong_ull(average, NULL, 10, &rate->average) < 0) {
-            virNetDevError(VIR_ERR_CONFIG_UNSUPPORTED,
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                            _("could not convert %s"),
                            average);
             goto cleanup;
         }
     } else {
-        virNetDevError(VIR_ERR_XML_DETAIL, "%s",
+        virReportError(VIR_ERR_XML_DETAIL, "%s",
                        _("Missing mandatory average attribute"));
         goto cleanup;
     }
 
     if (peak && virStrToLong_ull(peak, NULL, 10, &rate->peak) < 0) {
-        virNetDevError(VIR_ERR_CONFIG_UNSUPPORTED,
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("could not convert %s"),
                        peak);
         goto cleanup;
     }
 
     if (burst && virStrToLong_ull(burst, NULL, 10, &rate->burst) < 0) {
-        virNetDevError(VIR_ERR_CONFIG_UNSUPPORTED,
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
                        _("could not convert %s"),
                        burst);
         goto cleanup;
@@ -109,7 +105,7 @@ virNetDevBandwidthParse(xmlNodePtr node)
     }
 
     if (!node || !xmlStrEqual(node->name, BAD_CAST "bandwidth")) {
-        virNetDevError(VIR_ERR_INVALID_ARG, "%s",
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
                        _("invalid argument supplied"));
         goto error;
     }
@@ -118,7 +114,7 @@ virNetDevBandwidthParse(xmlNodePtr node)
         if (cur->type == XML_ELEMENT_NODE) {
             if (xmlStrEqual(cur->name, BAD_CAST "inbound")) {
                 if (in) {
-                    virNetDevError(VIR_ERR_XML_DETAIL, "%s",
+                    virReportError(VIR_ERR_XML_DETAIL, "%s",
                                    _("Only one child <inbound> "
                                      "element allowed"));
                     goto error;
@@ -126,7 +122,7 @@ virNetDevBandwidthParse(xmlNodePtr node)
                 in = cur;
             } else if (xmlStrEqual(cur->name, BAD_CAST "outbound")) {
                 if (out) {
-                    virNetDevError(VIR_ERR_XML_DETAIL, "%s",
+                    virReportError(VIR_ERR_XML_DETAIL, "%s",
                                    _("Only one child <outbound> "
                                      "element allowed"));
                     goto error;

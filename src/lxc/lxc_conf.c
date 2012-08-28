@@ -18,8 +18,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +49,7 @@ static int lxcDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
 
 
 /* Functions */
-virCapsPtr lxcCapsInit(lxc_driver_t *driver)
+virCapsPtr lxcCapsInit(virLXCDriverPtr driver)
 {
     struct utsname utsname;
     virCapsPtr caps;
@@ -77,8 +77,8 @@ virCapsPtr lxcCapsInit(lxc_driver_t *driver)
         VIR_WARN("Failed to get host power management capabilities");
 
     if (virGetHostUUID(caps->host.host_uuid)) {
-        lxcError(VIR_ERR_INTERNAL_ERROR,
-                 "%s", _("cannot get the host uuid"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("cannot get the host uuid"));
         goto error;
     }
 
@@ -134,9 +134,13 @@ virCapsPtr lxcCapsInit(lxc_driver_t *driver)
         doi = virSecurityManagerGetDOI(driver->securityManager);
         model = virSecurityManagerGetModel(driver->securityManager);
         if (STRNEQ(model, "none")) {
-            if (!(caps->host.secModel.model = strdup(model)))
+            /* Allocate just the primary security driver for LXC. */
+            if (VIR_ALLOC(caps->host.secModels) < 0)
                 goto no_memory;
-            if (!(caps->host.secModel.doi = strdup(doi)))
+            caps->host.nsecModels = 1;
+            if (!(caps->host.secModels[0].model = strdup(model)))
+                goto no_memory;
+            if (!(caps->host.secModels[0].doi = strdup(doi)))
                 goto no_memory;
         }
 
@@ -156,7 +160,7 @@ error:
     return NULL;
 }
 
-int lxcLoadDriverConfig(lxc_driver_t *driver)
+int lxcLoadDriverConfig(virLXCDriverPtr driver)
 {
     char *filename;
     virConfPtr conf;
@@ -187,9 +191,9 @@ int lxcLoadDriverConfig(lxc_driver_t *driver)
         goto done;
 
 #define CHECK_TYPE(name,typ) if (p && p->type != (typ)) {               \
-        lxcError(VIR_ERR_INTERNAL_ERROR,                                \
-                 "%s: %s: expected type " #typ,                         \
-                 filename, (name));                                     \
+        virReportError(VIR_ERR_INTERNAL_ERROR,                          \
+                       "%s: %s: expected type " #typ,                   \
+                       filename, (name));                               \
         virConfFree(conf);                                              \
         return -1;                                                      \
     }

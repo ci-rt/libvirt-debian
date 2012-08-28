@@ -544,4 +544,14 @@ LIBVIRT_0.9.13 {
         virDomainSnapshotRef;
 } LIBVIRT_0.9.11;
 
+LIBVIRT_0.10.0 {
+    global:
+        virDomainGetHostname;
+        virConnectRegisterCloseCallback;
+        virConnectUnregisterCloseCallback;
+        virDomainGetSecurityLabelList;
+        virDomainPinEmulator;
+        virDomainGetEmulatorPinInfo;
+} LIBVIRT_0.9.13;
+
 # .... define new API here using predicted next version number ....

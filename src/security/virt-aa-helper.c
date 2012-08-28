@@ -2,10 +2,22 @@
 /*
  * virt-aa-helper: wrapper program used by AppArmor security driver.
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2009-2011 Canonical Ltd.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author:
  *   Jamie Strandboge <jamie@canonical.com>
@@ -762,14 +774,14 @@ vah_add_file(virBufferPtr buf, const char *path, const char *perms)
      */
     if (STRNEQLEN(path, "/", 1)) {
         vah_warning(path);
-        vah_warning(_("  skipped non-absolute path"));
+        vah_warning(_("skipped non-absolute path"));
         return 0;
     }
 
     if (virFileExists(path)) {
         if ((tmp = realpath(path, NULL)) == NULL) {
             vah_error(NULL, 0, path);
-            vah_error(NULL, 0, _("  could not find realpath for disk"));
+            vah_error(NULL, 0, _("could not find realpath for disk"));
             return rc;
         }
     } else
@@ -783,7 +795,7 @@ vah_add_file(virBufferPtr buf, const char *path, const char *perms)
     if (rc != 0) {
         if (rc > 0) {
             vah_error(NULL, 0, path);
-            vah_error(NULL, 0, _("  skipped restricted file"));
+            vah_error(NULL, 0, _("skipped restricted file"));
         }
         goto clean;
     }
@@ -1186,9 +1198,6 @@ main(int argc, char **argv)
         progname++;
 
     memset(ctl, 0, sizeof(vahControl));
-
-    if (virRandomInitialize(time(NULL) ^ getpid()) < 0)
-        vah_error(ctl, 1, _("could not initialize random generator"));
 
     if (vahParseArgv(ctl, argc, argv) != 0)
         vah_error(ctl, 1, _("could not parse arguments"));

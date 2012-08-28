@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -90,6 +90,8 @@ int virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
                     int device, int busType, int controllerOrBus, int unit,
                     virDomainDiskDefPtr *def);
 
+int virVMXParseFileSystem(virConfPtr conf, int number, virDomainFSDefPtr *def);
+
 int virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def);
 
 int virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
@@ -119,6 +121,9 @@ int virVMXFormatCDROM(virVMXContext *ctx, virDomainDiskDefPtr def,
 
 int virVMXFormatFloppy(virVMXContext *ctx, virDomainDiskDefPtr def,
                        virBufferPtr buffer, bool floppy_present[2]);
+
+int virVMXFormatFileSystem(virDomainFSDefPtr def, int number,
+                           virBufferPtr buffer);
 
 int virVMXFormatEthernet(virDomainNetDefPtr def, int controller,
                          virBufferPtr buffer);

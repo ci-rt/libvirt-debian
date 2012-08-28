@@ -18,8 +18,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -63,10 +63,6 @@
 #include "phyp_driver.h"
 
 #define VIR_FROM_THIS VIR_FROM_PHYP
-
-#define PHYP_ERROR(code, ...)                                                 \
-    virReportErrorHelper(VIR_FROM_PHYP, code, __FILE__, __FUNCTION__,         \
-                         __LINE__, __VA_ARGS__)
 
 /*
  * URI: phyp://user@[hmc|ivm]/managed_system
@@ -1002,16 +998,16 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
         }
     } else {
         if (auth == NULL || auth->cb == NULL) {
-            PHYP_ERROR(VIR_ERR_AUTH_FAILED,
-                       "%s", _("No authentication callback provided."));
+            virReportError(VIR_ERR_AUTH_FAILED,
+                           "%s", _("No authentication callback provided."));
             goto err;
         }
 
         username = virAuthGetUsername(conn, auth, "ssh", NULL, conn->uri->server);
 
         if (username == NULL) {
-            PHYP_ERROR(VIR_ERR_AUTH_FAILED, "%s",
-                       _("Username request failed"));
+            virReportError(VIR_ERR_AUTH_FAILED, "%s",
+                           _("Username request failed"));
             goto err;
         }
     }
@@ -1023,8 +1019,8 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
 
     ret = getaddrinfo(hostname, "22", &hints, &ai);
     if (ret != 0) {
-        PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
-                   _("Error while getting %s address info"), hostname);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Error while getting %s address info"), hostname);
         goto err;
     }
 
@@ -1040,8 +1036,8 @@ openSSHSession(virConnectPtr conn, virConnectAuthPtr auth,
         cur = cur->ai_next;
     }
 
-    PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
-               _("Failed to connect to %s"), hostname);
+    virReportError(VIR_ERR_INTERNAL_ERROR,
+                   _("Failed to connect to %s"), hostname);
     freeaddrinfo(ai);
     goto err;
 
@@ -1060,8 +1056,8 @@ connected:
     while ((rc = libssh2_session_startup(session, sock)) ==
            LIBSSH2_ERROR_EAGAIN) ;
     if (rc) {
-        PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
-                   "%s", _("Failure establishing SSH session."));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Failure establishing SSH session."));
         goto disconnect;
     }
 
@@ -1083,16 +1079,16 @@ keyboard_interactive:
         || rc == LIBSSH2_ERROR_PUBLICKEY_UNRECOGNIZED
         || rc == LIBSSH2_ERROR_PUBLICKEY_UNVERIFIED) {
         if (auth == NULL || auth->cb == NULL) {
-            PHYP_ERROR(VIR_ERR_AUTH_FAILED,
-                       "%s", _("No authentication callback provided."));
+            virReportError(VIR_ERR_AUTH_FAILED,
+                           "%s", _("No authentication callback provided."));
             goto disconnect;
         }
 
         password = virAuthGetPassword(conn, auth, "ssh", username, conn->uri->server);
 
         if (password == NULL) {
-            PHYP_ERROR(VIR_ERR_AUTH_FAILED, "%s",
-                       _("Password request failed"));
+            virReportError(VIR_ERR_AUTH_FAILED, "%s",
+                           _("Password request failed"));
             goto disconnect;
         }
 
@@ -1102,8 +1098,8 @@ keyboard_interactive:
                LIBSSH2_ERROR_EAGAIN) ;
 
         if (rc) {
-            PHYP_ERROR(VIR_ERR_AUTH_FAILED,
-                       "%s", _("Authentication failed"));
+            virReportError(VIR_ERR_AUTH_FAILED,
+                           "%s", _("Authentication failed"));
             goto disconnect;
         } else
             goto exit;
@@ -1157,8 +1153,8 @@ phypOpen(virConnectPtr conn,
         return VIR_DRV_OPEN_DECLINED;
 
     if (conn->uri->server == NULL) {
-        PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
-                   "%s", _("Missing server name in phyp:// URI"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Missing server name in phyp:// URI"));
         return VIR_DRV_OPEN_ERROR;
     }
 
@@ -1198,16 +1194,16 @@ phypOpen(virConnectPtr conn,
             *char_ptr = '\0';
 
         if (contains_specialcharacters(conn->uri->path)) {
-            PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
-                       "%s",
-                       _("Error parsing 'path'. Invalid characters."));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s",
+                           _("Error parsing 'path'. Invalid characters."));
             goto failure;
         }
     }
 
     if ((session = openSSHSession(conn, auth, &internal_socket)) == NULL) {
-        PHYP_ERROR(VIR_ERR_INTERNAL_ERROR,
-                   "%s", _("Error while opening SSH session."));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Error while opening SSH session."));
         goto failure;
     }
 
@@ -1445,7 +1441,7 @@ phypDomainGetVcpusFlags(virDomainPtr dom, unsigned int flags)
     char *managed_system = phyp_driver->managed_system;
 
     if (flags != (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_MAXIMUM)) {
-        PHYP_ERROR(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
+        virReportError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
         return -1;
     }
 
@@ -2089,7 +2085,7 @@ phypStorageVolCreateXML(virStoragePoolPtr pool,
     /* checking if this name already exists on this system */
     if ((dup_vol = phypVolumeLookupByName(pool, voldef->name)) != NULL) {
         VIR_ERROR(_("StoragePool name already exists."));
-        virUnrefStorageVol(dup_vol);
+        virObjectUnref(dup_vol);
         goto err;
     }
 
@@ -2125,8 +2121,7 @@ err:
     VIR_FREE(key);
     virStorageVolDefFree(voldef);
     virStoragePoolDefFree(spdef);
-    if (vol)
-        virUnrefStorageVol(vol);
+    virObjectUnref(vol);
     return NULL;
 }
 
@@ -2325,8 +2320,7 @@ phypVolumeGetXMLDesc(virStorageVolPtr vol, unsigned int flags)
     VIR_FREE(voldef.key);
 
 cleanup:
-    if (sp)
-        virUnrefStoragePool(sp);
+    virObjectUnref(sp);
     return xml;
 }
 
@@ -2722,14 +2716,14 @@ phypStoragePoolCreateXML(virConnectPtr conn,
     /* checking if this name already exists on this system */
     if ((dup_sp = phypStoragePoolLookupByName(conn, def->name)) != NULL) {
         VIR_WARN("StoragePool name already exists.");
-        virUnrefStoragePool(dup_sp);
+        virObjectUnref(dup_sp);
         goto err;
     }
 
     /* checking if ID or UUID already exists on this system */
     if ((dup_sp = phypGetStoragePoolLookUpByUUID(conn, def->uuid)) != NULL) {
         VIR_WARN("StoragePool uuid already exists.");
-        virUnrefStoragePool(dup_sp);
+        virObjectUnref(dup_sp);
         goto err;
     }
 
@@ -2743,8 +2737,7 @@ phypStoragePoolCreateXML(virConnectPtr conn,
 
 err:
     virStoragePoolDefFree(def);
-    if (sp)
-        virUnrefStoragePool(sp);
+    virObjectUnref(sp);
     return NULL;
 }
 
@@ -3585,29 +3578,29 @@ phypBuildLpar(virConnectPtr conn, virDomainDefPtr def)
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     if (!def->mem.cur_balloon) {
-        PHYP_ERROR(VIR_ERR_XML_ERROR, "%s",
-                _("Field <memory> on the domain XML file is missing or has "
-                  "invalid value."));
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Field <memory> on the domain XML file is missing or has "
+                         "invalid value."));
         goto cleanup;
     }
 
     if (!def->mem.max_balloon) {
-        PHYP_ERROR(VIR_ERR_XML_ERROR, "%s",
-                _("Field <currentMemory> on the domain XML file is missing or "
-                  "has invalid value."));
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Field <currentMemory> on the domain XML file is missing or "
+                         "has invalid value."));
         goto cleanup;
     }
 
     if (def->ndisks < 1) {
-        PHYP_ERROR(VIR_ERR_XML_ERROR, "%s",
-                   _("Domain XML must contain at least one <disk> element."));
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Domain XML must contain at least one <disk> element."));
         goto cleanup;
     }
 
     if (!def->disks[0]->src) {
-        PHYP_ERROR(VIR_ERR_XML_ERROR, "%s",
-                   _("Field <src> under <disk> on the domain XML file is "
-                     "missing."));
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("Field <src> under <disk> on the domain XML file is "
+                         "missing."));
         goto cleanup;
     }
 
@@ -3689,8 +3682,7 @@ phypDomainCreateAndStart(virConnectPtr conn,
 
 err:
     virDomainDefFree(def);
-    if (dom)
-        virUnrefDomain(dom);
+    virObjectUnref(dom);
     return NULL;
 }
 
@@ -3723,7 +3715,7 @@ phypDomainSetVcpusFlags(virDomainPtr dom, unsigned int nvcpus,
     virBuffer buf = VIR_BUFFER_INITIALIZER;
 
     if (flags != VIR_DOMAIN_VCPU_LIVE) {
-        PHYP_ERROR(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
+        virReportError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"), flags);
         return -1;
     }
 

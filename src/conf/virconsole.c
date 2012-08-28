@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Peter Krempa <pkrempa@redhat.com>
  */
@@ -39,9 +39,6 @@
 #include "virfile.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-#define virConsoleError(code, ...)                                      \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,                  \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /* structure holding information about consoles
  * open in a given domain */
@@ -127,10 +124,10 @@ static int virConsoleLockFileCreate(const char *pty)
     /* check if a log file and process holding the lock still exists */
     if (virPidFileReadPathIfAlive(path, &pid, NULL) == 0 && pid >= 0) {
         /* the process exists, the lockfile is valid */
-        virConsoleError(VIR_ERR_OPERATION_FAILED,
-                        _("Requested console pty '%s' is locked by "
-                          "lock file '%s' held by process %lld"),
-                        pty, path, (long long) pid);
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("Requested console pty '%s' is locked by "
+                         "lock file '%s' held by process %lld"),
+                       pty, path, (long long) pid);
         goto cleanup;
     } else {
         /* clean up the stale/corrupted/nonexistent lockfile */
@@ -290,6 +287,18 @@ error:
 }
 
 /**
+ * Helper to clear stream callbacks when freeing the hash
+ */
+static void virConsoleFreeClearCallbacks(void *payload,
+                                         const void *name ATTRIBUTE_UNUSED,
+                                         void *data ATTRIBUTE_UNUSED)
+{
+    virStreamPtr st = payload;
+
+    virFDStreamSetInternalCloseCb(st, NULL, NULL, NULL);
+}
+
+/**
  * Free structures for handling open console streams.
  *
  * @cons Pointer to the private structure.
@@ -300,6 +309,7 @@ void virConsoleFree(virConsolesPtr cons)
         return;
 
     virMutexLock(&cons->lock);
+    virHashForEach(cons->hash, virConsoleFreeClearCallbacks, NULL);
     virHashFree(cons->hash);
     virMutexUnlock(&cons->lock);
     virMutexDestroy(&cons->lock);
@@ -384,15 +394,11 @@ int virConsoleOpen(virConsolesPtr cons,
     if (virFDStreamOpenFile(st, pty, 0, 0, O_RDWR) < 0)
         goto error;
 
-    savedStream = st;
-    st = NULL;
-
     /* add cleanup callback */
-    virFDStreamSetInternalCloseCb(savedStream,
+    virFDStreamSetInternalCloseCb(st,
                                   virConsoleFDStreamCloseCb,
                                   cbdata,
                                   virConsoleFDStreamCloseCbFree);
-    cbdata = NULL;
 
     virMutexUnlock(&cons->lock);
     return 0;

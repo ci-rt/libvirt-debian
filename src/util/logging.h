@@ -1,7 +1,7 @@
 /*
  * logging.h: internal logging and debugging
  *
- * Copyright (C) 2006-2008, 2011 Red Hat, Inc.
+ * Copyright (C) 2006-2008, 2011-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,8 +34,18 @@
 #  define VIR_DEBUG_INT(category, f, l, ...)                            \
     virLogMessage(category, VIR_LOG_DEBUG, f, l, 0, __VA_ARGS__)
 # else
+/**
+ * virLogEatParams:
+ *
+ * Do nothing but eat parameters.
+ */
+static inline void virLogEatParams(const char *unused, ...)
+{
+    /* Silence gcc */
+    unused = unused;
+}
 #  define VIR_DEBUG_INT(category, f, l, ...)    \
-    do { } while (0)
+    virLogEatParams(category, f, l, __VA_ARGS__)
 # endif /* !ENABLE_DEBUG */
 
 # define VIR_INFO_INT(category, f, l, ...)                              \
@@ -125,9 +135,7 @@ extern int virLogDefineOutput(virLogOutputFunc f, virLogCloseFunc c, void *data,
 
 extern void virLogLock(void);
 extern void virLogUnlock(void);
-extern int virLogStartup(void);
 extern int virLogReset(void);
-extern void virLogShutdown(void);
 extern int virLogParseDefaultPriority(const char *priority);
 extern int virLogParseFilters(const char *filters);
 extern int virLogParseOutputs(const char *output);

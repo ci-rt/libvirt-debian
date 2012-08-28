@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -26,6 +26,7 @@
 
 # include "virnetsocket.h"
 # include "virnetmessage.h"
+# include "virobject.h"
 
 typedef struct _virNetServerClient virNetServerClient;
 typedef virNetServerClient *virNetServerClientPtr;
@@ -38,11 +39,17 @@ typedef int (*virNetServerClientFilterFunc)(virNetServerClientPtr client,
                                             virNetMessagePtr msg,
                                             void *opaque);
 
+typedef void *(*virNetServerClientPrivNew)(virNetServerClientPtr client,
+                                           void *opaque);
+
 virNetServerClientPtr virNetServerClientNew(virNetSocketPtr sock,
                                             int auth,
                                             bool readonly,
                                             size_t nrequests_max,
-                                            virNetTLSContextPtr tls);
+                                            virNetTLSContextPtr tls,
+                                            virNetServerClientPrivNew privNew,
+                                            virFreeCallback privFree,
+                                            void *privOpaque);
 
 int virNetServerClientAddFilter(virNetServerClientPtr client,
                                 virNetServerClientFilterFunc func,
@@ -73,13 +80,6 @@ const char *virNetServerClientGetIdentity(virNetServerClientPtr client);
 int virNetServerClientGetUNIXIdentity(virNetServerClientPtr client,
                                       uid_t *uid, gid_t *gid, pid_t *pid);
 
-void virNetServerClientRef(virNetServerClientPtr client);
-
-typedef void (*virNetServerClientFreeFunc)(void *data);
-
-void virNetServerClientSetPrivateData(virNetServerClientPtr client,
-                                      void *opaque,
-                                      virNetServerClientFreeFunc ff);
 void *virNetServerClientGetPrivateData(virNetServerClientPtr client);
 
 typedef void (*virNetServerClientCloseFunc)(virNetServerClientPtr client);
@@ -113,8 +113,6 @@ int virNetServerClientSendMessage(virNetServerClientPtr client,
                                   virNetMessagePtr msg);
 
 bool virNetServerClientNeedAuth(virNetServerClientPtr client);
-
-void virNetServerClientFree(virNetServerClientPtr client);
 
 
 #endif /* __VIR_NET_SERVER_CLIENT_H__ */

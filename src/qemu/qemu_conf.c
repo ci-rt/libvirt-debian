@@ -1,7 +1,7 @@
 /*
  * qemu_conf.c: QEMU configuration management
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -38,6 +38,7 @@
 
 #include "virterror_internal.h"
 #include "qemu_conf.h"
+#include "qemu_command.h"
 #include "qemu_capabilities.h"
 #include "qemu_bridge_filter.h"
 #include "uuid.h"
@@ -89,6 +90,10 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
         virReportOOMError();
         return -1;
     }
+
+    driver->remotePortMin = QEMU_REMOTE_PORT_MIN;
+    driver->remotePortMax = QEMU_REMOTE_PORT_MAX;
+
     if (!(driver->vncTLSx509certdir = strdup(SYSCONFDIR "/pki/libvirt-vnc"))) {
         virReportOOMError();
         return -1;
@@ -140,9 +145,9 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
 
 
 #define CHECK_TYPE(name,typ) if (p && p->type != (typ)) {               \
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,                         \
-                        "%s: %s: expected type " #typ,                  \
-                        filename, (name));                              \
+        virReportError(VIR_ERR_INTERNAL_ERROR,                          \
+                       "%s: %s: expected type " #typ,                   \
+                       filename, (name));                               \
         virConfFree(conf);                                              \
         return -1;                                                      \
     }
@@ -193,12 +198,44 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
     }
 
     p = virConfGetValue (conf, "security_driver");
-    CHECK_TYPE ("security_driver", VIR_CONF_STRING);
-    if (p && p->str) {
-        if (!(driver->securityDriverName = strdup(p->str))) {
+    if (p && p->type == VIR_CONF_LIST) {
+        size_t len;
+        virConfValuePtr pp;
+
+        /* Calc lenght and check items */
+        for (len = 0, pp = p->list; pp; len++, pp = pp->next) {
+            if (pp->type != VIR_CONF_STRING) {
+                VIR_ERROR(_("security_driver be a list of strings"));
+                virConfFree(conf);
+                return -1;
+            }
+        }
+
+        if (VIR_ALLOC_N(driver->securityDriverNames, len + 1) < 0) {
             virReportOOMError();
             virConfFree(conf);
             return -1;
+        }
+
+        for (i = 0, pp = p->list; pp; i++, pp = pp->next) {
+            driver->securityDriverNames[i] = strdup(pp->str);
+            if (driver->securityDriverNames == NULL) {
+                virReportOOMError();
+                virConfFree(conf);
+                return -1;
+            }
+        }
+        driver->securityDriverNames[len] = NULL;
+    } else {
+        CHECK_TYPE ("security_driver", VIR_CONF_STRING);
+        if (p && p->str) {
+            if (VIR_ALLOC_N(driver->securityDriverNames, 2) < 0 ||
+                !(driver->securityDriverNames[0] = strdup(p->str))) {
+                virReportOOMError();
+                virConfFree(conf);
+                return -1;
+            }
+            driver->securityDriverNames[1] = NULL;
         }
     }
 
@@ -261,6 +298,47 @@ int qemudLoadDriverConfig(struct qemud_driver *driver,
             virConfFree(conf);
             return -1;
         }
+    }
+
+    p = virConfGetValue (conf, "remote_display_port_min");
+    CHECK_TYPE ("remote_display_port_min", VIR_CONF_LONG);
+    if (p) {
+        if (p->l < QEMU_REMOTE_PORT_MIN) {
+            /* if the port is too low, we can't get the display name
+             * to tell to vnc (usually subtract 5900, e.g. localhost:1
+             * for port 5901) */
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("%s: remote_display_port_min: port must be greater than or equal to %d"),
+                            filename, QEMU_REMOTE_PORT_MIN);
+            virConfFree(conf);
+            return -1;
+        }
+        driver->remotePortMin = p->l;
+    }
+
+    p = virConfGetValue (conf, "remote_display_port_max");
+    CHECK_TYPE ("remote_display_port_max", VIR_CONF_LONG);
+    if (p) {
+        if (p->l > QEMU_REMOTE_PORT_MAX ||
+            p->l < driver->remotePortMin) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                            _("%s: remote_display_port_max: port must be between the minimal port and %d"),
+                            filename, QEMU_REMOTE_PORT_MAX);
+            virConfFree(conf);
+            return -1;
+        }
+        /* increasing the value by 1 makes all the loops going through
+        the bitmap (i = remotePortMin; i < remotePortMax; i++), work as
+        expected. */
+        driver->remotePortMax = p->l + 1;
+    }
+
+    if (driver->remotePortMin > driver->remotePortMax) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                        _("%s: remote_display_port_min: min port must not be greater than max port"),
+                        filename);
+        virConfFree(conf);
+        return -1;
     }
 
     p = virConfGetValue (conf, "user");
@@ -535,16 +613,16 @@ qemuDriverCloseCallbackSet(struct qemud_driver *driver,
     closeDef = virHashLookup(driver->closeCallbacks, uuidstr);
     if (closeDef) {
         if (closeDef->conn != conn) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Close callback for domain %s already registered"
-                              " with another connection %p"),
-                            vm->def->name, closeDef->conn);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Close callback for domain %s already registered"
+                             " with another connection %p"),
+                           vm->def->name, closeDef->conn);
             return -1;
         }
         if (closeDef->cb && closeDef->cb != cb) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Another close callback is already defined for"
-                              " domain %s"), vm->def->name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Another close callback is already defined for"
+                             " domain %s"), vm->def->name);
             return -1;
         }
 
@@ -582,9 +660,9 @@ qemuDriverCloseCallbackUnset(struct qemud_driver *driver,
         return -1;
 
     if (closeDef->cb && closeDef->cb != cb) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("Trying to remove mismatching close callback for"
-                          " domain %s"), vm->def->name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Trying to remove mismatching close callback for"
+                         " domain %s"), vm->def->name);
         return -1;
     }
 

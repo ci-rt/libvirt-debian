@@ -718,6 +718,26 @@ struct remote_domain_get_vcpu_pin_info_ret {
         } cpumaps;
         int                        num;
 };
+struct remote_domain_pin_emulator_args {
+        remote_nonnull_domain      dom;
+        struct {
+                u_int              cpumap_len;
+                char *             cpumap_val;
+        } cpumap;
+        u_int                      flags;
+};
+struct remote_domain_get_emulator_pin_info_args {
+        remote_nonnull_domain      dom;
+        int                        maplen;
+        u_int                      flags;
+};
+struct remote_domain_get_emulator_pin_info_ret {
+        struct {
+                u_int              cpumaps_len;
+                char *             cpumaps_val;
+        } cpumaps;
+        int                        ret;
+};
 struct remote_domain_get_vcpus_args {
         remote_nonnull_domain      dom;
         int                        maxinfo;
@@ -748,6 +768,16 @@ struct remote_domain_get_security_label_ret {
                 char *             label_val;
         } label;
         int                        enforcing;
+};
+struct remote_domain_get_security_label_list_args {
+        remote_nonnull_domain      dom;
+};
+struct remote_domain_get_security_label_list_ret {
+        struct {
+                u_int              labels_len;
+                remote_domain_get_security_label_ret * labels_val;
+        } labels;
+        int                        ret;
 };
 struct remote_node_get_security_model_ret {
         struct {
@@ -880,6 +910,13 @@ struct remote_domain_get_cpu_stats_ret {
                 remote_typed_param * params_val;
         } params;
         int                        nparams;
+};
+struct remote_domain_get_hostname_args {
+        remote_nonnull_domain      dom;
+        u_int                      flags;
+};
+struct remote_domain_get_hostname_ret {
+        remote_nonnull_string      hostname;
 };
 struct remote_num_of_networks_ret {
         int                        num;
@@ -1661,6 +1698,10 @@ struct remote_domain_event_pmwakeup_msg {
 struct remote_domain_event_pmsuspend_msg {
         remote_nonnull_domain      dom;
 };
+struct remote_domain_event_balloon_change_msg {
+        remote_nonnull_domain      dom;
+        uint64_t                   actual;
+};
 struct remote_domain_managed_save_args {
         remote_nonnull_domain      dom;
         u_int                      flags;
@@ -2246,4 +2287,9 @@ enum remote_procedure {
         REMOTE_PROC_CONNECT_LIST_ALL_DOMAINS = 273,
         REMOTE_PROC_DOMAIN_LIST_ALL_SNAPSHOTS = 274,
         REMOTE_PROC_DOMAIN_SNAPSHOT_LIST_ALL_CHILDREN = 275,
+        REMOTE_PROC_DOMAIN_EVENT_BALLOON_CHANGE = 276,
+        REMOTE_PROC_DOMAIN_GET_HOSTNAME = 277,
+        REMOTE_PROC_DOMAIN_GET_SECURITY_LABEL_LIST = 278,
+        REMOTE_PROC_DOMAIN_PIN_EMULATOR = 279,
+        REMOTE_PROC_DOMAIN_GET_EMULATOR_PIN_INFO = 280,
 };

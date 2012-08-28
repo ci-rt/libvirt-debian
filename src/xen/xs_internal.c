@@ -3,7 +3,19 @@
  *
  * Copyright (C) 2006, 2009-2012 Red Hat, Inc.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Daniel Veillard <veillard@redhat.com>
  */
@@ -50,10 +62,6 @@ struct xenUnifiedDriver xenStoreDriver = {
     .xenDomainSetMemory = xenStoreDomainSetMemory,
     .xenDomainGetInfo = xenStoreGetDomainInfo,
 };
-
-#define virXenStoreError(code, ...)                                  \
-        virReportErrorHelper(VIR_FROM_XENSTORE, code, __FILE__,      \
-                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /************************************************************************
  *									*
@@ -254,8 +262,8 @@ xenStoreOpen(virConnectPtr conn,
          * remote) mechanism.
          */
         if (xenHavePrivilege()) {
-            virXenStoreError(VIR_ERR_NO_XEN,
-                             "%s", _("failed to connect to Xen Store"));
+            virReportError(VIR_ERR_NO_XEN,
+                           "%s", _("failed to connect to Xen Store"));
         }
         return -1;
     }
@@ -278,8 +286,8 @@ xenStoreOpen(virConnectPtr conn,
     if ( xenStoreAddWatch(conn, "@releaseDomain",
                      "releaseDomain", xenStoreDomainReleased, priv) < 0 )
     {
-        virXenStoreError(VIR_ERR_INTERNAL_ERROR,
-                         "%s", _("adding watch @releaseDomain"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("adding watch @releaseDomain"));
         return -1;
     }
 
@@ -287,8 +295,8 @@ xenStoreOpen(virConnectPtr conn,
     if( xenStoreAddWatch(conn, "@introduceDomain",
                      "introduceDomain", xenStoreDomainIntroduced, priv) < 0 )
     {
-        virXenStoreError(VIR_ERR_INTERNAL_ERROR,
-                         "%s", _("adding watch @introduceDomain"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("adding watch @introduceDomain"));
         return -1;
     }
 
@@ -317,7 +325,7 @@ xenStoreClose(virConnectPtr conn)
     xenUnifiedPrivatePtr priv;
 
     if (conn == NULL) {
-        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
@@ -371,7 +379,7 @@ xenStoreGetDomainInfo(virDomainPtr domain, virDomainInfoPtr info)
         return -1;
 
     if ((domain == NULL) || (domain->conn == NULL) || (info == NULL)) {
-        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
@@ -472,7 +480,7 @@ xenStoreDomainSetMemory(virDomainPtr domain, unsigned long memory)
 
     if ((domain == NULL) || (domain->conn == NULL) ||
         (memory < 1024 * MIN_XEN_GUEST_SIZE)) {
-        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
     if (domain->id == -1)
@@ -536,13 +544,13 @@ xenStoreNumOfDomains(virConnectPtr conn)
     xenUnifiedPrivatePtr priv;
 
     if (conn == NULL) {
-        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
     priv = (xenUnifiedPrivatePtr) conn->privateData;
     if (priv->xshandle == NULL) {
-        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
@@ -624,7 +632,7 @@ xenStoreListDomains(virConnectPtr conn, int *ids, int maxids)
     int ret;
 
     if ((conn == NULL) || (ids == NULL)) {
-        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
@@ -659,7 +667,7 @@ xenStoreLookupByName(virConnectPtr conn, const char *name)
     xenUnifiedPrivatePtr priv;
 
     if ((conn == NULL) || (name == NULL)) {
-        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return NULL;
     }
 
@@ -723,7 +731,7 @@ xenStoreDomainShutdown(virDomainPtr domain)
     xenUnifiedPrivatePtr priv;
 
     if ((domain == NULL) || (domain->conn == NULL)) {
-        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
     if (domain->id == -1 || domain->id == 0)
@@ -759,7 +767,7 @@ xenStoreDomainReboot(virDomainPtr domain, unsigned int flags)
     virCheckFlags(0, -1);
 
     if ((domain == NULL) || (domain->conn == NULL)) {
-        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
     if (domain->id == -1 || domain->id == 0)
@@ -789,7 +797,7 @@ xenStoreDomainGetOSType(virDomainPtr domain) {
     char *vm, *str = NULL;
 
     if ((domain == NULL) || (domain->conn == NULL)) {
-        virXenStoreError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return NULL;
     }
 
@@ -1107,8 +1115,11 @@ int xenStoreDomainGetUUID(virConnectPtr conn,
     snprintf(prop, 199, "/local/domain/%d/vm", id);
     prop[199] = 0;
     /* This will return something like
-     * /vm/00000000-0000-0000-0000-000000000000 */
+     * /vm/00000000-0000-0000-0000-000000000000[-*] */
     uuidstr = xs_read(priv->xshandle, 0, prop, &len);
+    /* Strip optional version suffix when VM was renamed */
+    if (len > 40) /* strlen('/vm/') + VIR_UUID_STRING_BUFLEN - sizeof('\0') */
+        uuidstr[40] = '\0';
 
     /* remove "/vm/" */
     ret = virUUIDParse(uuidstr + 4, uuid);
@@ -1156,8 +1167,8 @@ int xenStoreAddWatch(virConnectPtr conn,
     for (n=0; n < list->count; n++) {
         if( STREQ(list->watches[n]->path, path) &&
             STREQ(list->watches[n]->token, token)) {
-            virXenStoreError(VIR_ERR_INTERNAL_ERROR,
-                             "%s", _("watch already tracked"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("watch already tracked"));
             return -1;
         }
     }

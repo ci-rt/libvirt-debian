@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Dan Wendlandt <dan@nicira.com>
@@ -27,13 +27,15 @@
 # include "internal.h"
 # include "util.h"
 # include "virnetdevvportprofile.h"
+# include "virnetdevvlan.h"
 
 
 int virNetDevOpenvswitchAddPort(const char *brname,
                                 const char *ifname,
-                                const unsigned char *macaddr,
+                                const virMacAddrPtr macaddr,
                                 const unsigned char *vmuuid,
-                                virNetDevVPortProfilePtr ovsport)
+                                virNetDevVPortProfilePtr ovsport,
+                                virNetDevVlanPtr virtVlan)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3)
     ATTRIBUTE_RETURN_CHECK;
 

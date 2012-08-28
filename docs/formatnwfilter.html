@@ -761,7 +761,7 @@
      </li></ul>
         <p>
      The above example indicates that the traffic of type <code>ip</code>
-     will be asscociated with the chain 'ipv4' and the rule will have
+     will be associated with the chain 'ipv4' and the rule will have
      priority 500. If for example another filter is referenced whose
      traffic of type <code>ip</code> is also associated with the chain
      'ipv4' then that filter's rules will be ordered relative to the priority
@@ -786,7 +786,7 @@
      show what attributes are valid and what type of data they are
      expecting. The following datatypes are available:
     </p>
-        <ul><li>UINT8 : 8 bit integer; range 0-255</li><li>UINT16: 16 bit integer; range 0-65535</li><li>MAC_ADDR: MAC adrress in dotted decimal format, i.e., 00:11:22:33:44:55</li><li>MAC_MASK: MAC address mask in MAC address format, i.e., FF:FF:FF:FC:00:00</li><li>IP_ADDR: IP address in dotted decimal format, i.e., 10.1.2.3</li><li>IP_MASK: IP address mask in either dotted decimal format (255.255.248.0) or CIDR mask (0-32)</li><li>IPV6_ADDR: IPv6 address in numbers format, i.e., FFFF::1</li><li>IPV6_MASK: IPv6 mask in numbers format (FFFF:FFFF:FC00::) or CIDR mask (0-128)</li><li>STRING: A string</li><li>BOOLEAN: 'true', 'yes', '1' or 'false', 'no', '0'</li><li>IPSETFLAGS: The source and destination flags of the ipset described
+        <ul><li>UINT8 : 8 bit integer; range 0-255</li><li>UINT16: 16 bit integer; range 0-65535</li><li>MAC_ADDR: MAC address in dotted decimal format, i.e., 00:11:22:33:44:55</li><li>MAC_MASK: MAC address mask in MAC address format, i.e., FF:FF:FF:FC:00:00</li><li>IP_ADDR: IP address in dotted decimal format, i.e., 10.1.2.3</li><li>IP_MASK: IP address mask in either dotted decimal format (255.255.248.0) or CIDR mask (0-32)</li><li>IPV6_ADDR: IPv6 address in numbers format, i.e., FFFF::1</li><li>IPV6_MASK: IPv6 mask in numbers format (FFFF:FFFF:FC00::) or CIDR mask (0-128)</li><li>STRING: A string</li><li>BOOLEAN: 'true', 'yes', '1' or 'false', 'no', '0'</li><li>IPSETFLAGS: The source and destination flags of the ipset described
          by up to 6 'src' or 'dst' elements selecting features from either
          the source or destination part of the packet header; example:
          src,src,dst. The number of 'selectors' to provide here depends
@@ -856,7 +856,7 @@
       Note: Rules of this type should go either into the <code>root</code> or
       <code>stp</code> chain.
     </p>
-        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>type</td><td>UINT8</td><td>Bridge Protcol Data Unit (BPDU) type</td></tr><tr><td>flags</td><td>UINT8</td><td>BPDU flag</td></tr><tr><td>root-priority</td><td>UINT16</td><td>Root priority (range start)</td></tr><tr><td>root-priority-hi</td><td>UINT16</td><td>Root priority range end</td></tr><tr><td>root-address</td><td>MAC_ADDRESS</td><td>Root MAC address</td></tr><tr><td>root-address-mask</td><td>MAC_MASK</td><td>Root MAC address mask</td></tr><tr><td>root-cost</td><td>UINT32</td><td>Root path cost (range start)</td></tr><tr><td>root-cost-hi</td><td>UINT32</td><td>Root path cost range end</td></tr><tr><td>sender-priority</td><td>UINT16</td><td>Sender priority (range start)</td></tr><tr><td>sender-priority-hi</td><td>UINT16</td><td>Sender priority range end</td></tr><tr><td>sender-address</td><td>MAC_ADDRESS</td><td>BPDU sender MAC address</td></tr><tr><td>sender-address-mask</td><td>MAC_MASK</td><td>BPDU sender MAC address mask</td></tr><tr><td>port</td><td>UINT16</td><td>Port identifier (range start)</td></tr><tr><td>port_hi</td><td>UINT16</td><td>Port identifier range end</td></tr><tr><td>msg-age</td><td>UINT16</td><td>Message age timer (range start)</td></tr><tr><td>msg-age-hi</td><td>UINT16</td><td>Message age timer range end</td></tr><tr><td>max-age</td><td>UINT16</td><td>Maximum age timer (range start)</td></tr><tr><td>max-age-hi</td><td>UINT16</td><td>Maximum age timer range end</td></tr><tr><td>hello-time</td><td>UINT16</td><td>Hello time timer (range start)</td></tr><tr><td>hello-time-hi</td><td>UINT16</td><td>Hello time timer range end</td></tr><tr><td>forward-delay</td><td>UINT16</td><td>Forward delay (range start)</td></tr><tr><td>forward-delay-hi</td><td>UINT16</td><td>Forward delay range end</td></tr><tr><td>comment</td><td>STRING</td><td>text with max. 256 characters</td></tr></table>
+        <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>type</td><td>UINT8</td><td>Bridge Protocol Data Unit (BPDU) type</td></tr><tr><td>flags</td><td>UINT8</td><td>BPDU flag</td></tr><tr><td>root-priority</td><td>UINT16</td><td>Root priority (range start)</td></tr><tr><td>root-priority-hi</td><td>UINT16</td><td>Root priority range end</td></tr><tr><td>root-address</td><td>MAC_ADDRESS</td><td>Root MAC address</td></tr><tr><td>root-address-mask</td><td>MAC_MASK</td><td>Root MAC address mask</td></tr><tr><td>root-cost</td><td>UINT32</td><td>Root path cost (range start)</td></tr><tr><td>root-cost-hi</td><td>UINT32</td><td>Root path cost range end</td></tr><tr><td>sender-priority</td><td>UINT16</td><td>Sender priority (range start)</td></tr><tr><td>sender-priority-hi</td><td>UINT16</td><td>Sender priority range end</td></tr><tr><td>sender-address</td><td>MAC_ADDRESS</td><td>BPDU sender MAC address</td></tr><tr><td>sender-address-mask</td><td>MAC_MASK</td><td>BPDU sender MAC address mask</td></tr><tr><td>port</td><td>UINT16</td><td>Port identifier (range start)</td></tr><tr><td>port_hi</td><td>UINT16</td><td>Port identifier range end</td></tr><tr><td>msg-age</td><td>UINT16</td><td>Message age timer (range start)</td></tr><tr><td>msg-age-hi</td><td>UINT16</td><td>Message age timer range end</td></tr><tr><td>max-age</td><td>UINT16</td><td>Maximum age timer (range start)</td></tr><tr><td>max-age-hi</td><td>UINT16</td><td>Maximum age timer range end</td></tr><tr><td>hello-time</td><td>UINT16</td><td>Hello time timer (range start)</td></tr><tr><td>hello-time-hi</td><td>UINT16</td><td>Hello time timer range end</td></tr><tr><td>forward-delay</td><td>UINT16</td><td>Forward delay (range start)</td></tr><tr><td>forward-delay-hi</td><td>UINT16</td><td>Forward delay range end</td></tr><tr><td>comment</td><td>STRING</td><td>text with max. 256 characters</td></tr></table>
         <h5>
           <a name="nwfelemsRulesProtoARP" id="nwfelemsRulesProtoARP">ARP/RARP</a>
         </h5>
@@ -1085,7 +1085,7 @@
       unresponsive due to its traffic being dropped.
       Therefore, the limit of connections should be rather high so that
       fluctuations in new TCP connections don't cause odd
-      traffic behavior in relaton to idle connections.
+      traffic behavior in relation to idle connections.
     </p>
         <h2>
           <a name="nwfcli" id="nwfcli">Command line tools</a>
@@ -1185,7 +1185,7 @@
     tree that instantiates iptables or ip6tables rules, a rule to let
     the UDP packet pass will also be necessary to be provided for those
     filtering layers. This can be
-    achieved with a rule containing an approriate <code>udp</code> or
+    achieved with a rule containing an appropriate <code>udp</code> or
     <code>udp-ipv6</code> traffic filtering node.
     </p>
         <h3>
@@ -1375,7 +1375,7 @@
 </pre>
         <p>
      Before trying out a filter using the <code>RELATED</code> state,
-     you have to make sure that the approriate connection tracking module
+     you have to make sure that the appropriate connection tracking module
      has been loaded into the host's kernel. Depending on the version of the
      kernel, you must run either one of the following two commands before
      the ftp connection with the VM is established.

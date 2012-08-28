@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -262,6 +262,29 @@ def->disks[0]...
 
 
 ################################################################################
+## filesystems #################################################################
+
+                                        isolation.tools.hgfs.disable = "false"  # defaults to "true"
+
+def->nfss = 1                     <=>   sharedFolder.maxNum = "1"               # must match the number of shared folders
+
+                                        sharedFolder[0..n] -> <filesystem>
+
+def->fss[0]...                    <=>   sharedFolder0.present = "true"          # defaults to "false"
+                                        sharedFolder0.enabled = "true"          # defaults to "false"
+                                        sharedFolder0.expiration = "never"      # defaults to "never"
+                                        sharedFolder0.readAccess = "true"       # defaults to "false"
+->type = _FS_TYPE_MOUNT
+->fsdriver
+->accessmode
+->wrpolicy
+->src = <value>                   <=>   sharedFolder0.hostPath = "<value>"      # defaults to ?
+->dst = <value>                   <=>   sharedFolder0.guestName = "<value>"
+->readonly = <readonly>           <=>   sharedFolder0.writeAccess = "<value>"   # "true" -> <readonly> = 0, "false" -> <readonly> = 1
+
+
+
+################################################################################
 ## nets ########################################################################
 
                                         ethernet[0..3] -> <controller>
@@ -471,10 +494,6 @@ def->parallels[0]...
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
-#define VMX_ERROR(code, ...)                                                  \
-    virReportErrorHelper(VIR_FROM_NONE, code, __FILE__, __FUNCTION__,         \
-                         __LINE__, __VA_ARGS__)
-
 #define VMX_BUILD_NAME_EXTRA(_suffix, _extra)                                 \
     snprintf(_suffix##_name, sizeof(_suffix##_name), "%s."_extra, prefix);
 
@@ -586,8 +605,8 @@ virVMXConvertToUTF8(const char *encoding, const char *string)
     handler = xmlFindCharEncodingHandler(encoding);
 
     if (handler == NULL) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("libxml2 doesn't handle %s encoding"), encoding);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("libxml2 doesn't handle %s encoding"), encoding);
         return NULL;
     }
 
@@ -595,8 +614,8 @@ virVMXConvertToUTF8(const char *encoding, const char *string)
     utf8 = xmlBufferCreate();
 
     if (xmlCharEncInFunc(handler, utf8, input) < 0) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Could not convert from %s to UTF-8 encoding"), encoding);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not convert from %s to UTF-8 encoding"), encoding);
         goto cleanup;
     }
 
@@ -627,14 +646,14 @@ virVMXGetConfigString(virConfPtr conf, const char *name, char **string,
             return 0;
         }
 
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Missing essential config entry '%s'"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Missing essential config entry '%s'"), name);
         return -1;
     }
 
     if (value->type != VIR_CONF_STRING) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Config entry '%s' must be a string"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Config entry '%s' must be a string"), name);
         return -1;
     }
 
@@ -643,8 +662,8 @@ virVMXGetConfigString(virConfPtr conf, const char *name, char **string,
             return 0;
         }
 
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Missing essential config entry '%s'"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Missing essential config entry '%s'"), name);
         return -1;
     }
 
@@ -672,15 +691,15 @@ virVMXGetConfigUUID(virConfPtr conf, const char *name, unsigned char *uuid,
         if (optional) {
             return 0;
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Missing essential config entry '%s'"), name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Missing essential config entry '%s'"), name);
             return -1;
         }
     }
 
     if (value->type != VIR_CONF_STRING) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Config entry '%s' must be a string"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Config entry '%s' must be a string"), name);
         return -1;
     }
 
@@ -688,15 +707,15 @@ virVMXGetConfigUUID(virConfPtr conf, const char *name, unsigned char *uuid,
         if (optional) {
             return 0;
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Missing essential config entry '%s'"), name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Missing essential config entry '%s'"), name);
             return -1;
         }
     }
 
     if (virUUIDParse(value->str, uuid) < 0) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Could not parse UUID from string '%s'"), value->str);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not parse UUID from string '%s'"), value->str);
         return -1;
     }
 
@@ -718,8 +737,8 @@ virVMXGetConfigLong(virConfPtr conf, const char *name, long long *number,
         if (optional) {
             return 0;
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Missing essential config entry '%s'"), name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Missing essential config entry '%s'"), name);
             return -1;
         }
     }
@@ -729,8 +748,8 @@ virVMXGetConfigLong(virConfPtr conf, const char *name, long long *number,
             if (optional) {
                 return 0;
             } else {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Missing essential config entry '%s'"), name);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Missing essential config entry '%s'"), name);
                 return -1;
             }
         }
@@ -738,14 +757,14 @@ virVMXGetConfigLong(virConfPtr conf, const char *name, long long *number,
         if (STRCASEEQ(value->str, "unlimited")) {
             *number = -1;
         } else if (virStrToLong_ll(value->str, NULL, 10, number) < 0) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Config entry '%s' must represent an integer value"),
-                      name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Config entry '%s' must represent an integer value"),
+                           name);
             return -1;
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Config entry '%s' must be a string"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Config entry '%s' must be a string"), name);
         return -1;
     }
 
@@ -767,8 +786,8 @@ virVMXGetConfigBoolean(virConfPtr conf, const char *name, bool *boolean_,
         if (optional) {
             return 0;
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Missing essential config entry '%s'"), name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Missing essential config entry '%s'"), name);
             return -1;
         }
     }
@@ -778,8 +797,8 @@ virVMXGetConfigBoolean(virConfPtr conf, const char *name, bool *boolean_,
             if (optional) {
                 return 0;
             } else {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Missing essential config entry '%s'"), name);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Missing essential config entry '%s'"), name);
                 return -1;
             }
         }
@@ -789,14 +808,14 @@ virVMXGetConfigBoolean(virConfPtr conf, const char *name, bool *boolean_,
         } else if (STRCASEEQ(value->str, "false")) {
             *boolean_ = 0;
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Config entry '%s' must represent a boolean value "
-                        "(true|false)"), name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Config entry '%s' must represent a boolean value "
+                             "(true|false)"), name);
             return -1;
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Config entry '%s' must be a string"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Config entry '%s' must be a string"), name);
         return -1;
     }
 
@@ -811,24 +830,24 @@ virVMXSCSIDiskNameToControllerAndUnit(const char *name, int *controller, int *un
     int idx;
 
     if (! STRPREFIX(name, "sd")) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("Expecting domain XML attribute 'dev' of entry "
-                    "'devices/disk/target' to start with 'sd'"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Expecting domain XML attribute 'dev' of entry "
+                         "'devices/disk/target' to start with 'sd'"));
         return -1;
     }
 
     idx = virDiskNameToIndex(name);
 
     if (idx < 0) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Could not parse valid disk index from '%s'"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not parse valid disk index from '%s'"), name);
         return -1;
     }
 
     /* Each of the 4 SCSI controllers has 1 bus with 15 units each for devices */
     if (idx >= (4 * 15)) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("SCSI disk index (parsed from '%s') is too large"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("SCSI disk index (parsed from '%s') is too large"), name);
         return -1;
     }
 
@@ -851,24 +870,24 @@ virVMXIDEDiskNameToBusAndUnit(const char *name, int *bus, int *unit)
     int idx;
 
     if (! STRPREFIX(name, "hd")) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("Expecting domain XML attribute 'dev' of entry "
-                    "'devices/disk/target' to start with 'hd'"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Expecting domain XML attribute 'dev' of entry "
+                         "'devices/disk/target' to start with 'hd'"));
         return -1;
     }
 
     idx = virDiskNameToIndex(name);
 
     if (idx < 0) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Could not parse valid disk index from '%s'"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not parse valid disk index from '%s'"), name);
         return -1;
     }
 
     /* The IDE controller has 2 buses with 2 units each for devices */
     if (idx >= (2 * 2)) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("IDE disk index (parsed from '%s') is too large"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("IDE disk index (parsed from '%s') is too large"), name);
         return -1;
     }
 
@@ -886,24 +905,24 @@ virVMXFloppyDiskNameToUnit(const char *name, int *unit)
     int idx;
 
     if (! STRPREFIX(name, "fd")) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("Expecting domain XML attribute 'dev' of entry "
-                    "'devices/disk/target' to start with 'fd'"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Expecting domain XML attribute 'dev' of entry "
+                         "'devices/disk/target' to start with 'fd'"));
         return -1;
     }
 
     idx = virDiskNameToIndex(name);
 
     if (idx < 0) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Could not parse valid disk index from '%s'"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not parse valid disk index from '%s'"), name);
         return -1;
     }
 
     /* The FDC controller has 1 bus with 2 units for devices */
     if (idx >= 2) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Floppy disk index (parsed from '%s') is too large"), name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Floppy disk index (parsed from '%s') is too large"), name);
         return -1;
     }
 
@@ -923,9 +942,9 @@ virVMXVerifyDiskAddress(virCapsPtr caps, virDomainDiskDefPtr disk)
     memset(&def, 0, sizeof(def));
 
     if (disk->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_DRIVE) {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("Unsupported disk address type '%s'"),
-                  virDomainDeviceAddressTypeToString(disk->info.type));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unsupported disk address type '%s'"),
+                       virDomainDeviceAddressTypeToString(disk->info.type));
         return -1;
     }
 
@@ -935,88 +954,88 @@ virVMXVerifyDiskAddress(virCapsPtr caps, virDomainDiskDefPtr disk)
     def.bus = disk->bus;
 
     if (virDomainDiskDefAssignAddress(caps, &def) < 0) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("Could not verify disk address"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Could not verify disk address"));
         return -1;
     }
 
     if (def.info.addr.drive.controller != drive->controller ||
         def.info.addr.drive.bus != drive->bus ||
         def.info.addr.drive.unit != drive->unit) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Disk address %d:%d:%d doesn't match target device '%s'"),
-                  drive->controller, drive->bus, drive->unit, disk->dst);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Disk address %d:%d:%d doesn't match target device '%s'"),
+                       drive->controller, drive->bus, drive->unit, disk->dst);
         return -1;
     }
 
     /* drive->{controller|bus|unit} is unsigned, no >= 0 checks are necessary */
     if (disk->bus == VIR_DOMAIN_DISK_BUS_SCSI) {
         if (drive->controller > 3) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("SCSI controller index %d out of [0..3] range"),
-                      drive->controller);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("SCSI controller index %d out of [0..3] range"),
+                           drive->controller);
             return -1;
         }
 
         if (drive->bus != 0) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("SCSI bus index %d out of [0] range"),
-                      drive->bus);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("SCSI bus index %d out of [0] range"),
+                           drive->bus);
             return -1;
         }
 
         if (drive->unit > 15 || drive->unit == 7) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("SCSI unit index %d out of [0..6,8..15] range"),
-                      drive->unit);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("SCSI unit index %d out of [0..6,8..15] range"),
+                           drive->unit);
             return -1;
         }
     } else if (disk->bus == VIR_DOMAIN_DISK_BUS_IDE) {
         if (drive->controller != 0) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("IDE controller index %d out of [0] range"),
-                      drive->controller);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("IDE controller index %d out of [0] range"),
+                           drive->controller);
             return -1;
         }
 
         if (drive->bus > 1) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("IDE bus index %d out of [0..1] range"),
-                      drive->bus);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("IDE bus index %d out of [0..1] range"),
+                           drive->bus);
             return -1;
         }
 
         if (drive->unit > 1) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("IDE unit index %d out of [0..1] range"),
-                      drive->unit);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("IDE unit index %d out of [0..1] range"),
+                           drive->unit);
             return -1;
         }
     } else if (disk->bus == VIR_DOMAIN_DISK_BUS_FDC) {
         if (drive->controller != 0) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("FDC controller index %d out of [0] range"),
-                      drive->controller);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("FDC controller index %d out of [0] range"),
+                           drive->controller);
             return -1;
         }
 
         if (drive->bus != 0) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("FDC bus index %d out of [0] range"),
-                      drive->bus);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("FDC bus index %d out of [0] range"),
+                           drive->bus);
             return -1;
         }
 
         if (drive->unit > 1) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("FDC unit index %d out of [0..1] range"),
-                      drive->unit);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("FDC unit index %d out of [0..1] range"),
+                           drive->unit);
             return -1;
         }
     } else {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("Unsupported bus type '%s'"),
-                  virDomainDiskBusTypeToString(disk->bus));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unsupported bus type '%s'"),
+                       virDomainDiskBusTypeToString(disk->bus));
         return -1;
     }
 
@@ -1046,8 +1065,8 @@ virVMXHandleLegacySCSIDiskDriverName(virDomainDefPtr def,
     model = virDomainControllerModelSCSITypeFromString(disk->driverName);
 
     if (model < 0) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Unknown driver name '%s'"), disk->driverName);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unknown driver name '%s'"), disk->driverName);
         return -1;
     }
 
@@ -1059,20 +1078,20 @@ virVMXHandleLegacySCSIDiskDriverName(virDomainDefPtr def,
     }
 
     if (controller == NULL) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Missing SCSI controller for index %d"),
-                  disk->info.addr.drive.controller);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Missing SCSI controller for index %d"),
+                       disk->info.addr.drive.controller);
         return -1;
     }
 
     if (controller->model == -1) {
         controller->model = model;
     } else if (controller->model != model) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Inconsistent SCSI controller model ('%s' is not '%s') "
-                    "for SCSI controller index %d"), disk->driverName,
-                  virDomainControllerModelSCSITypeToString(controller->model),
-                  controller->idx);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Inconsistent SCSI controller model ('%s' is not '%s') "
+                         "for SCSI controller index %d"), disk->driverName,
+                       virDomainControllerModelSCSITypeToString(controller->model),
+                       controller->idx);
         return -1;
     }
 
@@ -1148,10 +1167,10 @@ virVMXGatherSCSIControllers(virVMXContext *ctx, virDomainDefPtr def,
              * have inconsistent SCSI controller models */
             for (k = 0; k < count; ++k) {
                 if (autodetectedModels[k] != autodetectedModels[0]) {
-                    VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                              _("Disks on SCSI controller %d have inconsistent "
-                                "controller models, cannot autodetect model"),
-                              controller->idx);
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Disks on SCSI controller %d have inconsistent "
+                                     "controller models, cannot autodetect model"),
+                                   controller->idx);
                     goto cleanup;
                 }
             }
@@ -1164,11 +1183,11 @@ virVMXGatherSCSIControllers(virVMXContext *ctx, virDomainDefPtr def,
             controller->model != VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC &&
             controller->model != VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1068 &&
             controller->model != VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VMPVSCSI) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting domain XML attribute 'model' of entry "
-                        "'controller' to be 'buslogic' or 'lsilogic' or "
-                        "'lsisas1068' or 'vmpvscsi' but found '%s'"),
-                      virDomainControllerModelSCSITypeToString(controller->model));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expecting domain XML attribute 'model' of entry "
+                             "'controller' to be 'buslogic' or 'lsilogic' or "
+                             "'lsisas1068' or 'vmpvscsi' but found '%s'"),
+                           virDomainControllerModelSCSITypeToString(controller->model));
             goto cleanup;
         }
 
@@ -1214,10 +1233,12 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
     bool present;
     int scsi_virtualDev[4] = { -1, -1, -1, -1 };
     int unit;
+    bool hgfs_disabled = true;
+    long long sharedFolder_maxNum = 0;
 
     if (ctx->parseFileName == NULL) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("virVMXContext has no parseFileName function set"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("virVMXContext has no parseFileName function set"));
         return NULL;
     }
 
@@ -1269,9 +1290,9 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
     }
 
     if (config_version != 8) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting VMX entry 'config.version' to be 8 but found "
-                    "%lld"), config_version);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Expecting VMX entry 'config.version' to be 8 but found "
+                         "%lld"), config_version);
         goto cleanup;
     }
 
@@ -1283,10 +1304,10 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
 
     if (virtualHW_version != 4 && virtualHW_version != 7 &&
         virtualHW_version != 8) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting VMX entry 'virtualHW.version' to be 4, 7 or 8 "
-                    "but found %lld"),
-                  virtualHW_version);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Expecting VMX entry 'virtualHW.version' to be 4, 7 or 8 "
+                         "but found %lld"),
+                       virtualHW_version);
         goto cleanup;
     }
 
@@ -1304,8 +1325,8 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
     if (def->name != NULL) {
         if (virVMXUnescapeHexPercent(def->name) < 0 ||
             virVMXUnescapeHexPipe(def->name) < 0) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                      _("VMX entry 'name' contains invalid escape sequence"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("VMX entry 'name' contains invalid escape sequence"));
             goto cleanup;
         }
     }
@@ -1318,9 +1339,9 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
 
     if (def->description != NULL) {
         if (virVMXUnescapeHexPipe(def->description) < 0) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                      _("VMX entry 'annotation' contains invalid escape "
-                        "sequence"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("VMX entry 'annotation' contains invalid escape "
+                             "sequence"));
             goto cleanup;
         }
     }
@@ -1331,9 +1352,9 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
     }
 
     if (memsize <= 0 || memsize % 4 != 0) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting VMX entry 'memsize' to be an unsigned "
-                    "integer (multiple of 4) but found %lld"), memsize);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Expecting VMX entry 'memsize' to be an unsigned "
+                         "integer (multiple of 4) but found %lld"), memsize);
         goto cleanup;
     }
 
@@ -1377,9 +1398,9 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
     }
 
     if (numvcpus <= 0 || (numvcpus % 2 != 0 && numvcpus != 1)) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting VMX entry 'numvcpus' to be an unsigned "
-                    "integer (1 or a multiple of 2) but found %lld"), numvcpus);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Expecting VMX entry 'numvcpus' to be an unsigned "
+                         "integer (1 or a multiple of 2) but found %lld"), numvcpus);
         goto cleanup;
     }
 
@@ -1409,17 +1430,17 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
             number = virParseNumber(&current);
 
             if (number < 0) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Expecting VMX entry 'sched.cpu.affinity' to be "
-                            "a comma separated list of unsigned integers but "
-                            "found '%s'"), sched_cpu_affinity);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Expecting VMX entry 'sched.cpu.affinity' to be "
+                                 "a comma separated list of unsigned integers but "
+                                 "found '%s'"), sched_cpu_affinity);
                 goto cleanup;
             }
 
             if (number >= VIR_DOMAIN_CPUMASK_LEN) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("VMX entry 'sched.cpu.affinity' contains a %d, "
-                            "this value is too large"), number);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("VMX entry 'sched.cpu.affinity' contains a %d, "
+                                 "this value is too large"), number);
                 goto cleanup;
             }
 
@@ -1437,10 +1458,10 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
             } else if (*current == '\0') {
                 break;
             } else {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Expecting VMX entry 'sched.cpu.affinity' to be "
-                            "a comma separated list of unsigned integers but "
-                            "found '%s'"), sched_cpu_affinity);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Expecting VMX entry 'sched.cpu.affinity' to be "
+                                 "a comma separated list of unsigned integers but "
+                                 "found '%s'"), sched_cpu_affinity);
                 goto cleanup;
             }
 
@@ -1448,10 +1469,10 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
         }
 
         if (count < numvcpus) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting VMX entry 'sched.cpu.affinity' to contain "
-                        "at least as many values as 'numvcpus' (%lld) but "
-                        "found only %d value(s)"), numvcpus, count);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expecting VMX entry 'sched.cpu.affinity' to contain "
+                             "at least as many values as 'numvcpus' (%lld) but "
+                             "found only %d value(s)"), numvcpus, count);
             goto cleanup;
         }
     }
@@ -1472,10 +1493,10 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
             def->cputune.shares = def->vcpus * 2000;
         } else if (virStrToLong_ul(sched_cpu_shares, NULL, 10,
                                    &def->cputune.shares) < 0) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting VMX entry 'sched.cpu.shares' to be an "
-                        "unsigned integer or 'low', 'normal' or 'high' but "
-                        "found '%s'"), sched_cpu_shares);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expecting VMX entry 'sched.cpu.shares' to be an "
+                             "unsigned integer or 'low', 'normal' or 'high' but "
+                             "found '%s'"), sched_cpu_shares);
             goto cleanup;
         }
     }
@@ -1633,7 +1654,7 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
 
     /* def:controllers */
     if (virDomainDefAddImplicitControllers(def) < 0) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Could not add controllers"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Could not add controllers"));
         goto cleanup;
     }
 
@@ -1641,9 +1662,9 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
         if (def->controllers[controller]->type == VIR_DOMAIN_CONTROLLER_TYPE_SCSI) {
             if (def->controllers[controller]->idx < 0 ||
                 def->controllers[controller]->idx > 3) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("SCSI controller index %d out of [0..3] range"),
-                          def->controllers[controller]->idx);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("SCSI controller index %d out of [0..3] range"),
+                               def->controllers[controller]->idx);
                 goto cleanup;
             }
 
@@ -1653,7 +1674,39 @@ virVMXParseConfig(virVMXContext *ctx, virCapsPtr caps, const char *vmx)
     }
 
     /* def:fss */
-    /* FIXME */
+    if (virVMXGetConfigBoolean(conf, "isolation.tools.hgfs.disable",
+                               &hgfs_disabled, true, true) < 0) {
+        goto cleanup;
+    }
+
+    if (!hgfs_disabled) {
+        if (virVMXGetConfigLong(conf, "sharedFolder.maxNum", &sharedFolder_maxNum,
+                                0, true) < 0) {
+            goto cleanup;
+        }
+
+        if (sharedFolder_maxNum > 0) {
+            int number;
+
+            if (VIR_ALLOC_N(def->fss, sharedFolder_maxNum) < 0) {
+                virReportOOMError();
+                goto cleanup;
+            }
+
+            def->nfss = 0;
+
+            for (number = 0; number < sharedFolder_maxNum; ++number) {
+                if (virVMXParseFileSystem(conf, number,
+                                          &def->fss[def->nfss]) < 0) {
+                    goto cleanup;
+                }
+
+                if (def->fss[def->nfss] != NULL) {
+                    ++def->nfss;
+                }
+            }
+        }
+    }
 
     /* def:nets */
     if (VIR_ALLOC_N(def->nets, 4) < 0) {
@@ -1762,7 +1815,7 @@ virVMXParseVNC(virConfPtr conf, virDomainGraphicsDefPtr *def)
     char *listenAddr = NULL;
 
     if (def == NULL || *def != NULL) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
@@ -1837,14 +1890,14 @@ virVMXParseSCSIController(virConfPtr conf, int controller, bool *present,
     char *tmp;
 
     if (virtualDev == NULL || *virtualDev != -1) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
     if (controller < 0 || controller > 3) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("SCSI controller index %d out of [0..3] range"),
-                  controller);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("SCSI controller index %d out of [0..3] range"),
+                       controller);
         return -1;
     }
 
@@ -1880,10 +1933,10 @@ virVMXParseSCSIController(virConfPtr conf, int controller, bool *present,
              *virtualDev != VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSILOGIC &&
              *virtualDev != VIR_DOMAIN_CONTROLLER_MODEL_SCSI_LSISAS1068 &&
              *virtualDev != VIR_DOMAIN_CONTROLLER_MODEL_SCSI_VMPVSCSI)) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting VMX entry '%s' to be 'buslogic' or 'lsilogic' "
-                        "or 'lsisas1068' or 'pvscsi' but found '%s'"),
-                       virtualDev_name, virtualDev_string);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expecting VMX entry '%s' to be 'buslogic' or 'lsilogic' "
+                             "or 'lsisas1068' or 'pvscsi' but found '%s'"),
+                           virtualDev_name, virtualDev_string);
             goto cleanup;
         }
     }
@@ -1945,7 +1998,7 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
     bool writeThrough = false;
 
     if (def == NULL || *def != NULL) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
@@ -1962,16 +2015,16 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
         device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
         if (busType == VIR_DOMAIN_DISK_BUS_SCSI) {
             if (controllerOrBus < 0 || controllerOrBus > 3) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("SCSI controller index %d out of [0..3] range"),
-                          controllerOrBus);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("SCSI controller index %d out of [0..3] range"),
+                               controllerOrBus);
                 goto cleanup;
             }
 
             if (unit < 0 || unit > 15 || unit == 7) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("SCSI unit index %d out of [0..6,8..15] range"),
-                          unit);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("SCSI unit index %d out of [0..6,8..15] range"),
+                               unit);
                 goto cleanup;
             }
 
@@ -1989,15 +2042,15 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
             }
         } else if (busType == VIR_DOMAIN_DISK_BUS_IDE) {
             if (controllerOrBus < 0 || controllerOrBus > 1) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("IDE bus index %d out of [0..1] range"),
-                          controllerOrBus);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("IDE bus index %d out of [0..1] range"),
+                               controllerOrBus);
                 goto cleanup;
             }
 
             if (unit < 0 || unit > 1) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("IDE unit index %d out of [0..1] range"), unit);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("IDE unit index %d out of [0..1] range"), unit);
                 goto cleanup;
             }
 
@@ -2012,25 +2065,25 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
                 goto cleanup;
             }
         } else {
-            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                      _("Unsupported bus type '%s' for device type '%s'"),
-                      virDomainDiskBusTypeToString(busType),
-                      virDomainDiskDeviceTypeToString(device));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unsupported bus type '%s' for device type '%s'"),
+                           virDomainDiskBusTypeToString(busType),
+                           virDomainDiskDeviceTypeToString(device));
             goto cleanup;
         }
     } else if (device == VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
         if (busType == VIR_DOMAIN_DISK_BUS_FDC) {
             if (controllerOrBus != 0) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("FDC controller index %d out of [0] range"),
-                          controllerOrBus);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("FDC controller index %d out of [0] range"),
+                               controllerOrBus);
                 goto cleanup;
             }
 
             if (unit < 0 || unit > 1) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("FDC unit index %d out of [0..1] range"),
-                          unit);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("FDC unit index %d out of [0..1] range"),
+                               unit);
                 goto cleanup;
             }
 
@@ -2045,16 +2098,16 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
                 goto cleanup;
             }
         } else {
-            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                      _("Unsupported bus type '%s' for device type '%s'"),
-                      virDomainDiskBusTypeToString(busType),
-                      virDomainDiskDeviceTypeToString(device));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unsupported bus type '%s' for device type '%s'"),
+                           virDomainDiskBusTypeToString(busType),
+                           virDomainDiskDeviceTypeToString(device));
             goto cleanup;
         }
     } else {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("Unsupported device type '%s'"),
-                  virDomainDiskDeviceTypeToString(device));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unsupported device type '%s'"),
+                       virDomainDiskDeviceTypeToString(device));
         goto cleanup;
     }
 
@@ -2124,18 +2177,18 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
                 if (busType == VIR_DOMAIN_DISK_BUS_SCSI &&
                     STRCASENEQ(deviceType, "scsi-hardDisk") &&
                     STRCASENEQ(deviceType, "disk")) {
-                    VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                              _("Expecting VMX entry '%s' to be 'scsi-hardDisk' "
-                                "or 'disk' but found '%s'"), deviceType_name,
-                              deviceType);
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Expecting VMX entry '%s' to be 'scsi-hardDisk' "
+                                     "or 'disk' but found '%s'"), deviceType_name,
+                                   deviceType);
                     goto cleanup;
                 } else if (busType == VIR_DOMAIN_DISK_BUS_IDE &&
                            STRCASENEQ(deviceType, "ata-hardDisk") &&
                            STRCASENEQ(deviceType, "disk")) {
-                    VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                              _("Expecting VMX entry '%s' to be 'ata-hardDisk' "
-                                "or 'disk' but found '%s'"), deviceType_name,
-                              deviceType);
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Expecting VMX entry '%s' to be 'ata-hardDisk' "
+                                     "or 'disk' but found '%s'"), deviceType_name,
+                                   deviceType);
                     goto cleanup;
                 }
             }
@@ -2158,18 +2211,18 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
              */
             goto ignore;
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Invalid or not yet handled value '%s' for VMX entry "
-                        "'%s'"), fileName, fileName_name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Invalid or not yet handled value '%s' for VMX entry "
+                             "'%s'"), fileName, fileName_name);
             goto cleanup;
         }
     } else if (device == VIR_DOMAIN_DISK_DEVICE_CDROM) {
         if (virFileHasSuffix(fileName, ".iso")) {
             if (deviceType != NULL) {
                 if (STRCASENEQ(deviceType, "cdrom-image")) {
-                    VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                              _("Expecting VMX entry '%s' to be 'cdrom-image' "
-                                "but found '%s'"), deviceType_name, deviceType);
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Expecting VMX entry '%s' to be 'cdrom-image' "
+                                     "but found '%s'"), deviceType_name, deviceType);
                     goto cleanup;
                 }
             }
@@ -2194,18 +2247,18 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
 
             fileName = NULL;
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Invalid or not yet handled value '%s' for VMX entry "
-                        "'%s'"), fileName, fileName_name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Invalid or not yet handled value '%s' for VMX entry "
+                             "'%s'"), fileName, fileName_name);
             goto cleanup;
         }
     } else if (device == VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
         if (virFileHasSuffix(fileName, ".flp")) {
             if (fileType != NULL) {
                 if (STRCASENEQ(fileType, "file")) {
-                    VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                              _("Expecting VMX entry '%s' to be 'file' but "
-                                "found '%s'"), fileType_name, fileType);
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   _("Expecting VMX entry '%s' to be 'file' but "
+                                     "found '%s'"), fileType_name, fileType);
                     goto cleanup;
                 }
             }
@@ -2222,20 +2275,20 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
 
             fileName = NULL;
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Invalid or not yet handled value '%s' for VMX entry "
-                        "'%s'"), fileName, fileName_name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Invalid or not yet handled value '%s' for VMX entry "
+                             "'%s'"), fileName, fileName_name);
             goto cleanup;
         }
     } else {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, _("Unsupported device type '%s'"),
-                  virDomainDiskDeviceTypeToString(device));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Unsupported device type '%s'"),
+                       virDomainDiskDeviceTypeToString(device));
         goto cleanup;
     }
 
     if (virDomainDiskDefAssignAddress(caps, *def) < 0) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Could not assign address to disk '%s'"), (*def)->src);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not assign address to disk '%s'"), (*def)->src);
         goto cleanup;
     }
 
@@ -2256,6 +2309,108 @@ virVMXParseDisk(virVMXContext *ctx, virCapsPtr caps, virConfPtr conf,
 
   ignore:
     virDomainDiskDefFree(*def);
+    *def = NULL;
+
+    result = 0;
+
+    goto cleanup;
+}
+
+
+
+int virVMXParseFileSystem(virConfPtr conf, int number, virDomainFSDefPtr *def)
+{
+    int result = -1;
+    char prefix[48] = "";
+
+    char present_name[48] = "";
+    bool present = false;
+
+    char enabled_name[48] = "";
+    bool enabled = false;
+
+    char hostPath_name[48] = "";
+    char *hostPath = NULL;
+
+    char guestName_name[48] = "";
+    char *guestName = NULL;
+
+    char writeAccess_name[48] = "";
+    bool writeAccess = false;
+
+    if (def == NULL || *def != NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
+    if (VIR_ALLOC(*def) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    (*def)->type = VIR_DOMAIN_FS_TYPE_MOUNT;
+
+    snprintf(prefix, sizeof(prefix), "sharedFolder%d", number);
+
+    VMX_BUILD_NAME(present);
+    VMX_BUILD_NAME(enabled);
+    VMX_BUILD_NAME(hostPath);
+    VMX_BUILD_NAME(guestName);
+    VMX_BUILD_NAME(writeAccess);
+
+    /* vmx:present */
+    if (virVMXGetConfigBoolean(conf, present_name, &present, false, true) < 0) {
+        goto cleanup;
+    }
+
+    /* vmx:enabled */
+    if (virVMXGetConfigBoolean(conf, enabled_name, &enabled, false, true) < 0) {
+        goto cleanup;
+    }
+
+    if (!(present && enabled)) {
+        goto ignore;
+    }
+
+    /* vmx:hostPath */
+    if (virVMXGetConfigString(conf, hostPath_name, &hostPath, false) < 0) {
+        goto cleanup;
+    }
+
+    (*def)->src = hostPath;
+    hostPath = NULL;
+
+    /* vmx:guestName */
+    if (virVMXGetConfigString(conf, guestName_name, &guestName, false) < 0) {
+        goto cleanup;
+    }
+
+    (*def)->dst = guestName;
+    guestName = NULL;
+
+    /* vmx:writeAccess */
+    if (virVMXGetConfigBoolean(conf, writeAccess_name, &writeAccess, false,
+                               true) < 0) {
+        goto cleanup;
+    }
+
+    (*def)->readonly = !writeAccess;
+
+    result = 0;
+
+  cleanup:
+    if (result < 0) {
+        virDomainFSDefFree(*def);
+        *def = NULL;
+    }
+
+    VIR_FREE(hostPath);
+    VIR_FREE(guestName);
+
+    return result;
+
+  ignore:
+    virDomainFSDefFree(*def);
     *def = NULL;
 
     result = 0;
@@ -2302,14 +2457,14 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
     char *networkName = NULL;
 
     if (def == NULL || *def != NULL) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
     if (controller < 0 || controller > 3) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Ethernet controller index %d out of [0..3] range"),
-                  controller);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Ethernet controller index %d out of [0..3] range"),
+                       controller);
         return -1;
     }
 
@@ -2365,27 +2520,27 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
     if (addressType == NULL || STRCASEEQ(addressType, "generated") ||
         STRCASEEQ(addressType, "vpx")) {
         if (generatedAddress != NULL) {
-            if (virMacAddrParse(generatedAddress, (*def)->mac) < 0) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Expecting VMX entry '%s' to be MAC address but "
-                            "found '%s'"), generatedAddress_name,
-                          generatedAddress);
+            if (virMacAddrParse(generatedAddress, &(*def)->mac) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Expecting VMX entry '%s' to be MAC address but "
+                                 "found '%s'"), generatedAddress_name,
+                               generatedAddress);
                 goto cleanup;
             }
         }
     } else if (STRCASEEQ(addressType, "static")) {
         if (address != NULL) {
-            if (virMacAddrParse(address, (*def)->mac) < 0) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Expecting VMX entry '%s' to be MAC address but "
-                            "found '%s'"), address_name, address);
+            if (virMacAddrParse(address, &(*def)->mac) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Expecting VMX entry '%s' to be MAC address but "
+                                 "found '%s'"), address_name, address);
                 goto cleanup;
             }
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting VMX entry '%s' to be 'generated' or 'static' or "
-                    "'vpx' but found '%s'"), addressType_name, addressType);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Expecting VMX entry '%s' to be 'generated' or 'static' or "
+                         "'vpx' but found '%s'"), addressType_name, addressType);
         goto cleanup;
     }
 
@@ -2400,10 +2555,10 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
             STRCASENEQ(virtualDev, "vmxnet") &&
             STRCASENEQ(virtualDev, "vmxnet3") &&
             STRCASENEQ(virtualDev, "e1000")) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting VMX entry '%s' to be 'vlance' or 'vmxnet' or "
-                        "'vmxnet3' or 'e1000' but found '%s'"), virtualDev_name,
-                      virtualDev);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expecting VMX entry '%s' to be 'vlance' or 'vmxnet' or "
+                             "'vmxnet3' or 'e1000' but found '%s'"), virtualDev_name,
+                           virtualDev);
             goto cleanup;
         }
 
@@ -2452,9 +2607,9 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
         networkName = NULL;
     } else if (STRCASEEQ(connectionType, "hostonly")) {
         /* FIXME */
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("No yet handled value '%s' for VMX entry '%s'"),
-                  connectionType, connectionType_name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("No yet handled value '%s' for VMX entry '%s'"),
+                       connectionType, connectionType_name);
         goto cleanup;
     } else if (STRCASEEQ(connectionType, "nat")) {
         (*def)->type = VIR_DOMAIN_NET_TYPE_USER;
@@ -2471,9 +2626,9 @@ virVMXParseEthernet(virConfPtr conf, int controller, virDomainNetDefPtr *def)
         networkName = NULL;
         vnet = NULL;
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Invalid value '%s' for VMX entry '%s'"), connectionType,
-                  connectionType_name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid value '%s' for VMX entry '%s'"), connectionType,
+                       connectionType_name);
         goto cleanup;
     }
 
@@ -2531,13 +2686,13 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
     virURIPtr parsedUri = NULL;
 
     if (def == NULL || *def != NULL) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
     if (port < 0 || port > 3) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Serial port index %d out of [0..3] range"), port);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Serial port index %d out of [0..3] range"), port);
         return -1;
     }
 
@@ -2622,9 +2777,9 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
             goto cleanup;
 
         if (parsedUri->port == 0) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("VMX entry '%s' doesn't contain a port part"),
-                      fileName_name);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("VMX entry '%s' doesn't contain a port part"),
+                           fileName_name);
             goto cleanup;
         }
 
@@ -2659,9 +2814,9 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
                    STRCASEEQ(parsedUri->scheme, "tcp6+ssl")) {
             (*def)->source.data.tcp.protocol = VIR_DOMAIN_CHR_TCP_PROTOCOL_TLS;
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("VMX entry '%s' contains unsupported scheme '%s'"),
-                      fileName_name, parsedUri->scheme);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("VMX entry '%s' contains unsupported scheme '%s'"),
+                           fileName_name, parsedUri->scheme);
             goto cleanup;
         }
 
@@ -2670,15 +2825,15 @@ virVMXParseSerial(virVMXContext *ctx, virConfPtr conf, int port,
         } else if (STRCASEEQ(network_endPoint, "client")) {
             (*def)->source.data.tcp.listen = false;
         } else {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting VMX entry '%s' to be 'server' or 'client' "
-                        "but found '%s'"), network_endPoint_name, network_endPoint);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expecting VMX entry '%s' to be 'server' or 'client' "
+                             "but found '%s'"), network_endPoint_name, network_endPoint);
             goto cleanup;
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting VMX entry '%s' to be 'device', 'file' or 'pipe' "
-                    "or 'network' but found '%s'"), fileType_name, fileType);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Expecting VMX entry '%s' to be 'device', 'file' or 'pipe' "
+                         "or 'network' but found '%s'"), fileType_name, fileType);
         goto cleanup;
     }
 
@@ -2728,13 +2883,13 @@ virVMXParseParallel(virVMXContext *ctx, virConfPtr conf, int port,
     char *fileName = NULL;
 
     if (def == NULL || *def != NULL) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
     if (port < 0 || port > 2) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Parallel port index %d out of [0..2] range"), port);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Parallel port index %d out of [0..2] range"), port);
         return -1;
     }
 
@@ -2795,9 +2950,9 @@ virVMXParseParallel(virVMXContext *ctx, virConfPtr conf, int port,
             goto cleanup;
         }
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting VMX entry '%s' to be 'device' or 'file' but "
-                    "found '%s'"), fileType_name, fileType);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Expecting VMX entry '%s' to be 'device' or 'file' but "
+                         "found '%s'"), fileType_name, fileType);
         goto cleanup;
     }
 
@@ -2832,7 +2987,7 @@ virVMXParseSVGA(virConfPtr conf, virDomainVideoDefPtr *def)
     long long svga_vramSize = 0;
 
     if (def == NULL || *def != NULL) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
@@ -2886,18 +3041,18 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
     bool floppy_present[2] = { false, false };
 
     if (ctx->formatFileName == NULL) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                  _("virVMXContext has no formatFileName function set"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("virVMXContext has no formatFileName function set"));
         return NULL;
     }
 
     memset(zero, 0, VIR_UUID_BUFLEN);
 
     if (def->virtType != VIR_DOMAIN_VIRT_VMWARE) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting virt type to be '%s' but found '%s'"),
-                  virDomainVirtTypeToString(VIR_DOMAIN_VIRT_VMWARE),
-                  virDomainVirtTypeToString(def->virtType));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Expecting virt type to be '%s' but found '%s'"),
+                       virDomainVirtTypeToString(VIR_DOMAIN_VIRT_VMWARE),
+                       virDomainVirtTypeToString(def->virtType));
         return NULL;
     }
 
@@ -2917,9 +3072,9 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
     } else if (STRCASEEQ(def->os.arch, "x86_64")) {
         virBufferAddLit(&buffer, "guestOS = \"other-64\"\n");
     } else {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting domain XML attribute 'arch' of entry 'os/type' "
-                    "to be 'i686' or 'x86_64' but found '%s'"), def->os.arch);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Expecting domain XML attribute 'arch' of entry 'os/type' "
+                         "to be 'i686' or 'x86_64' but found '%s'"), def->os.arch);
         goto cleanup;
     }
 
@@ -2930,9 +3085,9 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
     } else if (def->os.smbios_mode == VIR_DOMAIN_SMBIOS_HOST) {
         virBufferAddLit(&buffer, "smbios.reflecthost = \"true\"\n");
     } else {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("Unsupported SMBIOS mode '%s'"),
-                  virDomainSmbiosModeTypeToString(def->os.smbios_mode));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unsupported SMBIOS mode '%s'"),
+                       virDomainSmbiosModeTypeToString(def->os.smbios_mode));
         goto cleanup;
     }
 
@@ -2994,16 +3149,16 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
 
     /* def:maxvcpus -> vmx:numvcpus */
     if (def->vcpus != def->maxvcpus) {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                  _("No support for domain XML entry 'vcpu' attribute "
-                    "'current'"));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("No support for domain XML entry 'vcpu' attribute "
+                         "'current'"));
         goto cleanup;
     }
     if (def->maxvcpus <= 0 || (def->maxvcpus % 2 != 0 && def->maxvcpus != 1)) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Expecting domain XML entry 'vcpu' to be an unsigned "
-                    "integer (1 or a multiple of 2) but found %d"),
-                  def->maxvcpus);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Expecting domain XML entry 'vcpu' to be an unsigned "
+                         "integer (1 or a multiple of 2) but found %d"),
+                       def->maxvcpus);
         goto cleanup;
     }
 
@@ -3022,10 +3177,10 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
         }
 
         if (sched_cpu_affinity_length < def->maxvcpus) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting domain XML attribute 'cpuset' of entry "
-                        "'vcpu' to contain at least %d CPU(s)"),
-                      def->maxvcpus);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expecting domain XML attribute 'cpuset' of entry "
+                             "'vcpu' to contain at least %d CPU(s)"),
+                           def->maxvcpus);
             goto cleanup;
         }
 
@@ -3070,9 +3225,9 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
             break;
 
           default:
-            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                      _("Unsupported graphics type '%s'"),
-                      virDomainGraphicsTypeToString(def->graphics[i]->type));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unsupported graphics type '%s'"),
+                           virDomainGraphicsTypeToString(def->graphics[i]->type));
             goto cleanup;
         }
     }
@@ -3127,9 +3282,9 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
             break;
 
           default:
-            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                      _("Unsupported disk device type '%s'"),
-                      virDomainDiskDeviceTypeToString(def->disks[i]->device));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unsupported disk device type '%s'"),
+                           virDomainDiskDeviceTypeToString(def->disks[i]->device));
             goto cleanup;
         }
     }
@@ -3142,7 +3297,16 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
     }
 
     /* def:fss */
-    /* FIXME */
+    if (def->nfss > 0) {
+        virBufferAddLit(&buffer, "isolation.tools.hgfs.disable = \"false\"\n");
+        virBufferAsprintf(&buffer, "sharedFolder.maxNum = \"%d\"\n", def->nfss);
+    }
+
+    for (i = 0; i < def->nfss; ++i) {
+        if (virVMXFormatFileSystem(def->fss[i], i, &buffer) < 0) {
+            goto cleanup;
+        }
+    }
 
     /* def:nets */
     for (i = 0; i < def->nnets; ++i) {
@@ -3160,8 +3324,8 @@ virVMXFormatConfig(virVMXContext *ctx, virCapsPtr caps, virDomainDefPtr def,
     /* def:videos */
     if (def->nvideos > 0) {
         if (def->nvideos > 1) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s",
-                      _("No support for multiple video devices"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("No support for multiple video devices"));
             goto cleanup;
         }
 
@@ -3215,7 +3379,7 @@ virVMXFormatVNC(virDomainGraphicsDefPtr def, virBufferPtr buffer)
     const char *listenAddr;
 
     if (def->type != VIR_DOMAIN_GRAPHICS_TYPE_VNC) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
@@ -3265,7 +3429,7 @@ virVMXFormatHardDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
     char *fileName = NULL;
 
     if (def->device != VIR_DOMAIN_DISK_DEVICE_DISK) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
@@ -3288,17 +3452,17 @@ virVMXFormatHardDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
             return -1;
         }
     } else {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("Unsupported bus type '%s' for harddisk"),
-                  virDomainDiskBusTypeToString(def->bus));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unsupported bus type '%s' for harddisk"),
+                       virDomainDiskBusTypeToString(def->bus));
         return -1;
     }
 
     if (def->type != VIR_DOMAIN_DISK_TYPE_FILE) {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("%s harddisk '%s' has unsupported type '%s', expecting '%s'"),
-                  busName, def->dst, virDomainDiskTypeToString(def->type),
-                  virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_FILE));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("%s harddisk '%s' has unsupported type '%s', expecting '%s'"),
+                       busName, def->dst, virDomainDiskTypeToString(def->type),
+                       virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_FILE));
         return -1;
     }
 
@@ -3309,9 +3473,9 @@ virVMXFormatHardDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
 
     if (def->src != NULL) {
         if (! virFileHasSuffix(def->src, ".vmdk")) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Image file for %s harddisk '%s' has unsupported suffix, "
-                        "expecting '.vmdk'"), busName, def->dst);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Image file for %s harddisk '%s' has unsupported suffix, "
+                             "expecting '.vmdk'"), busName, def->dst);
             return -1;
         }
 
@@ -3332,10 +3496,10 @@ virVMXFormatHardDisk(virVMXContext *ctx, virDomainDiskDefPtr def,
             virBufferAsprintf(buffer, "%s%d:%d.writeThrough = \"true\"\n",
                               entryPrefix, controllerOrBus, unit);
         } else if (def->cachemode != VIR_DOMAIN_DISK_CACHE_DEFAULT) {
-            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                      _("%s harddisk '%s' has unsupported cache mode '%s'"),
-                      busName, def->dst,
-                      virDomainDiskCacheTypeToString(def->cachemode));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("%s harddisk '%s' has unsupported cache mode '%s'"),
+                           busName, def->dst,
+                           virDomainDiskCacheTypeToString(def->cachemode));
             return -1;
         }
     }
@@ -3355,7 +3519,7 @@ virVMXFormatCDROM(virVMXContext *ctx, virDomainDiskDefPtr def,
     char *fileName = NULL;
 
     if (def->device != VIR_DOMAIN_DISK_DEVICE_CDROM) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
@@ -3376,9 +3540,9 @@ virVMXFormatCDROM(virVMXContext *ctx, virDomainDiskDefPtr def,
             return -1;
         }
     } else {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("Unsupported bus type '%s' for cdrom"),
-                  virDomainDiskBusTypeToString(def->bus));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unsupported bus type '%s' for cdrom"),
+                       virDomainDiskBusTypeToString(def->bus));
         return -1;
     }
 
@@ -3391,9 +3555,9 @@ virVMXFormatCDROM(virVMXContext *ctx, virDomainDiskDefPtr def,
 
         if (def->src != NULL) {
             if (! virFileHasSuffix(def->src, ".iso")) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Image file for %s cdrom '%s' has unsupported "
-                            "suffix, expecting '.iso'"), busName, def->dst);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Image file for %s cdrom '%s' has unsupported "
+                                 "suffix, expecting '.iso'"), busName, def->dst);
                 return -1;
             }
 
@@ -3417,12 +3581,12 @@ virVMXFormatCDROM(virVMXContext *ctx, virDomainDiskDefPtr def,
                               entryPrefix, controllerOrBus, unit, def->src);
         }
     } else {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("%s cdrom '%s' has unsupported type '%s', expecting '%s' "
-                    "or '%s'"), busName, def->dst,
-                  virDomainDiskTypeToString(def->type),
-                  virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_FILE),
-                  virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_BLOCK));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("%s cdrom '%s' has unsupported type '%s', expecting '%s' "
+                         "or '%s'"), busName, def->dst,
+                       virDomainDiskTypeToString(def->type),
+                       virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_FILE),
+                       virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_BLOCK));
         return -1;
     }
 
@@ -3439,7 +3603,7 @@ virVMXFormatFloppy(virVMXContext *ctx, virDomainDiskDefPtr def,
     char *fileName = NULL;
 
     if (def->device != VIR_DOMAIN_DISK_DEVICE_FLOPPY) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
         return -1;
     }
 
@@ -3456,9 +3620,9 @@ virVMXFormatFloppy(virVMXContext *ctx, virDomainDiskDefPtr def,
 
         if (def->src != NULL) {
             if (! virFileHasSuffix(def->src, ".flp")) {
-                VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                          _("Image file for floppy '%s' has unsupported "
-                            "suffix, expecting '.flp'"), def->dst);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Image file for floppy '%s' has unsupported "
+                                 "suffix, expecting '.flp'"), def->dst);
                 return -1;
             }
 
@@ -3481,14 +3645,39 @@ virVMXFormatFloppy(virVMXContext *ctx, virDomainDiskDefPtr def,
                               unit, def->src);
         }
     } else {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("Floppy '%s' has unsupported type '%s', expecting '%s' "
-                    "or '%s'"), def->dst,
-                  virDomainDiskTypeToString(def->type),
-                  virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_FILE),
-                  virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_BLOCK));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Floppy '%s' has unsupported type '%s', expecting '%s' "
+                         "or '%s'"), def->dst,
+                       virDomainDiskTypeToString(def->type),
+                       virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_FILE),
+                       virDomainDiskTypeToString(VIR_DOMAIN_DISK_TYPE_BLOCK));
         return -1;
     }
+
+    return 0;
+}
+
+
+
+int
+virVMXFormatFileSystem(virDomainFSDefPtr def, int number, virBufferPtr buffer)
+{
+    if (def->type != VIR_DOMAIN_FS_TYPE_MOUNT) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Only '%s' filesystem type is supported"),
+                       virDomainFSTypeToString(VIR_DOMAIN_FS_TYPE_MOUNT));
+        return -1;
+    }
+
+    virBufferAsprintf(buffer, "sharedFolder%d.present = \"true\"\n", number);
+    virBufferAsprintf(buffer, "sharedFolder%d.enabled = \"true\"\n", number);
+    virBufferAsprintf(buffer, "sharedFolder%d.readAccess = \"true\"\n", number);
+    virBufferAsprintf(buffer, "sharedFolder%d.writeAccess = \"%s\"\n", number,
+                      def->readonly ? "false" : "true");
+    virBufferAsprintf(buffer, "sharedFolder%d.hostPath = \"%s\"\n", number,
+                      def->src);
+    virBufferAsprintf(buffer, "sharedFolder%d.guestName = \"%s\"\n", number,
+                      def->dst);
 
     return 0;
 }
@@ -3503,9 +3692,9 @@ virVMXFormatEthernet(virDomainNetDefPtr def, int controller,
     unsigned int prefix, suffix;
 
     if (controller < 0 || controller > 3) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Ethernet controller index %d out of [0..3] range"),
-                  controller);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Ethernet controller index %d out of [0..3] range"),
+                       controller);
         return -1;
     }
 
@@ -3518,10 +3707,10 @@ virVMXFormatEthernet(virDomainNetDefPtr def, int controller,
             STRCASENEQ(def->model, "vmxnet2") &&
             STRCASENEQ(def->model, "vmxnet3") &&
             STRCASENEQ(def->model, "e1000")) {
-            VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                      _("Expecting domain XML entry 'devices/interface/model' "
-                        "to be 'vlance' or 'vmxnet' or 'vmxnet2' or 'vmxnet3' "
-                        "or 'e1000' but found '%s'"), def->model);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Expecting domain XML entry 'devices/interface/model' "
+                             "to be 'vlance' or 'vmxnet' or 'vmxnet2' or 'vmxnet3' "
+                             "or 'e1000' but found '%s'"), def->model);
             return -1;
         }
 
@@ -3561,16 +3750,16 @@ virVMXFormatEthernet(virDomainNetDefPtr def, int controller,
         break;
 
       default:
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, _("Unsupported net type '%s'"),
-                  virDomainNetTypeToString(def->type));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, _("Unsupported net type '%s'"),
+                       virDomainNetTypeToString(def->type));
         return -1;
     }
 
     /* def:mac -> vmx:addressType, vmx:(generated)Address, vmx:checkMACAddress */
-    virMacAddrFormat(def->mac, mac_string);
+    virMacAddrFormat(&def->mac, mac_string);
 
-    prefix = (def->mac[0] << 16) | (def->mac[1] << 8) | def->mac[2];
-    suffix = (def->mac[3] << 16) | (def->mac[4] << 8) | def->mac[5];
+    prefix = (def->mac.addr[0] << 16) | (def->mac.addr[1] << 8) | def->mac.addr[2];
+    suffix = (def->mac.addr[3] << 16) | (def->mac.addr[4] << 8) | def->mac.addr[5];
 
     if (prefix == 0x000c29) {
         virBufferAsprintf(buffer, "ethernet%d.addressType = \"generated\"\n",
@@ -3611,9 +3800,9 @@ virVMXFormatSerial(virVMXContext *ctx, virDomainChrDefPtr def,
     const char *protocol;
 
     if (def->target.port < 0 || def->target.port > 3) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Serial port index %d out of [0..3] range"),
-                  def->target.port);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Serial port index %d out of [0..3] range"),
+                       def->target.port);
         return -1;
     }
 
@@ -3676,10 +3865,10 @@ virVMXFormatSerial(virVMXContext *ctx, virDomainChrDefPtr def,
             break;
 
           default:
-            VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                      _("Unsupported character device TCP protocol '%s'"),
-                      virDomainChrTcpProtocolTypeToString(
-                          def->source.data.tcp.protocol));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Unsupported character device TCP protocol '%s'"),
+                           virDomainChrTcpProtocolTypeToString(
+                               def->source.data.tcp.protocol));
             return -1;
         }
 
@@ -3694,9 +3883,9 @@ virVMXFormatSerial(virVMXContext *ctx, virDomainChrDefPtr def,
         break;
 
       default:
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("Unsupported character device type '%s'"),
-                  virDomainChrTypeToString(def->source.type));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unsupported character device type '%s'"),
+                       virDomainChrTypeToString(def->source.type));
         return -1;
     }
 
@@ -3717,9 +3906,9 @@ virVMXFormatParallel(virVMXContext *ctx, virDomainChrDefPtr def,
     char *fileName = NULL;
 
     if (def->target.port < 0 || def->target.port > 2) {
-        VMX_ERROR(VIR_ERR_INTERNAL_ERROR,
-                  _("Parallel port index %d out of [0..2] range"),
-                  def->target.port);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Parallel port index %d out of [0..2] range"),
+                       def->target.port);
         return -1;
     }
 
@@ -3752,9 +3941,9 @@ virVMXFormatParallel(virVMXContext *ctx, virDomainChrDefPtr def,
         break;
 
       default:
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("Unsupported character device type '%s'"),
-                  virDomainChrTypeToString(def->source.type));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unsupported character device type '%s'"),
+                       virDomainChrTypeToString(def->source.type));
         return -1;
     }
 
@@ -3769,9 +3958,9 @@ virVMXFormatSVGA(virDomainVideoDefPtr def, virBufferPtr buffer)
     unsigned long long vram;
 
     if (def->type != VIR_DOMAIN_VIDEO_TYPE_VMVGA) {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED,
-                  _("Unsupported video device type '%s'"),
-                  virDomainVideoTypeToString(def->type));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Unsupported video device type '%s'"),
+                       virDomainVideoTypeToString(def->type));
         return -1;
     }
 
@@ -3782,8 +3971,8 @@ virVMXFormatSVGA(virDomainVideoDefPtr def, virBufferPtr buffer)
     vram = VIR_DIV_UP(def->vram, 64) * 64;
 
     if (def->heads > 1) {
-        VMX_ERROR(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                  _("Multi-head video devices are unsupported"));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Multi-head video devices are unsupported"));
         return -1;
     }
 

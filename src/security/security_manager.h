@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -23,10 +23,7 @@
 #ifndef VIR_SECURITY_MANAGER_H__
 # define VIR_SECURITY_MANAGER_H__
 
-# define virSecurityReportError(code, ...)                          \
-    virReportErrorHelper(VIR_FROM_SECURITY, code, __FILE__,         \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
-
+# include "domain_conf.h"
 
 typedef struct _virSecurityManager virSecurityManager;
 typedef virSecurityManager *virSecurityManagerPtr;
@@ -37,8 +34,9 @@ virSecurityManagerPtr virSecurityManagerNew(const char *name,
                                             bool defaultConfined,
                                             bool requireConfined);
 
-virSecurityManagerPtr virSecurityManagerNewStack(virSecurityManagerPtr primary,
-                                                 virSecurityManagerPtr secondary);
+virSecurityManagerPtr virSecurityManagerNewStack(virSecurityManagerPtr primary);
+int virSecurityManagerStackAddNested(virSecurityManagerPtr stack,
+                                     virSecurityManagerPtr nested);
 
 virSecurityManagerPtr virSecurityManagerNewDAC(const char *virtDriver,
                                                uid_t user,
@@ -109,4 +107,7 @@ int virSecurityManagerSetImageFDLabel(virSecurityManagerPtr mgr,
                                       int fd);
 char *virSecurityManagerGetMountOptions(virSecurityManagerPtr mgr,
                                               virDomainDefPtr vm);
+virSecurityManagerPtr*
+virSecurityManagerGetNested(virSecurityManagerPtr mgr);
+
 #endif /* VIR_SECURITY_MANAGER_H__ */

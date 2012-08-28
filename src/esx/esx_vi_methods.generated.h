@@ -2,6 +2,17 @@
 
 
 
+int esxVI_AddPortGroup
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       esxVI_HostPortGroupSpec *portgrp);                  /* required */
+
+int esxVI_AddVirtualSwitch
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       const char *vswitchName,                            /* required */
+       esxVI_HostVirtualSwitchSpec *spec);                 /* optional */
+
 int esxVI_AnswerVM
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this,                /* required */
@@ -157,11 +168,21 @@ int esxVI_RegisterVM_Task
        esxVI_ManagedObjectReference *host,                 /* optional */
        esxVI_ManagedObjectReference **output);             /* required */
 
+int esxVI_RemovePortGroup
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       const char *pgName);                                /* required */
+
 int esxVI_RemoveSnapshot_Task
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this,                /* required */
        esxVI_Boolean removeChildren,                       /* required */
        esxVI_ManagedObjectReference **output);             /* required */
+
+int esxVI_RemoveVirtualSwitch
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       const char *vswitchName);                           /* required */
 
 int esxVI_RetrieveProperties
       (esxVI_Context *ctx,

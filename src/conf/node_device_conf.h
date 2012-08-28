@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: David F. Lively <dlively@virtualiron.com>
  */
@@ -212,9 +212,6 @@ struct _virDeviceMonitorState {
     void *privateData;			/* driver-specific private data */
 };
 
-# define virNodeDeviceReportError(code, ...)                             \
-    virReportErrorHelper(VIR_FROM_NODEDEV, code, __FILE__,               \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 int virNodeDeviceHasCap(const virNodeDeviceObjPtr dev, const char *cap);
 

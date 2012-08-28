@@ -3,7 +3,19 @@
  *
  * Copyright (C) 2005, 2007-2012 Red Hat, Inc.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Daniel Veillard <veillard@redhat.com>
  */
@@ -30,10 +42,6 @@
 #define virGenericReportError(from, code, ...)                          \
         virReportErrorHelper(from, code, __FILE__,                      \
                              __FUNCTION__, __LINE__, __VA_ARGS__)
-
-#define virXMLError(code, ...)                                          \
-        virGenericReportError(VIR_FROM_XML, code, __VA_ARGS__)
-
 
 /* Internal data to be passed to SAX parser and used by error handler. */
 struct virParserData {
@@ -66,8 +74,8 @@ virXPathString(const char *xpath,
     char *ret;
 
     if ((ctxt == NULL) || (xpath == NULL)) {
-        virXMLError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Invalid parameter to virXPathString()"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Invalid parameter to virXPathString()"));
         return NULL;
     }
     relnode = ctxt->node;
@@ -106,9 +114,9 @@ virXPathStringLimit(const char *xpath,
     char *tmp = virXPathString(xpath, ctxt);
 
     if (tmp != NULL && strlen(tmp) >= maxlen) {
-        virXMLError(VIR_ERR_INTERNAL_ERROR,
-                    _("\'%s\' value longer than %zu bytes"),
-                    xpath, maxlen);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("\'%s\' value longer than %zu bytes"),
+                       xpath, maxlen);
         VIR_FREE(tmp);
         return NULL;
     }
@@ -136,8 +144,8 @@ virXPathNumber(const char *xpath,
     xmlNodePtr relnode;
 
     if ((ctxt == NULL) || (xpath == NULL) || (value == NULL)) {
-        virXMLError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Invalid parameter to virXPathNumber()"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Invalid parameter to virXPathNumber()"));
         return -1;
     }
     relnode = ctxt->node;
@@ -165,8 +173,8 @@ virXPathLongBase(const char *xpath,
     int ret = 0;
 
     if ((ctxt == NULL) || (xpath == NULL) || (value == NULL)) {
-        virXMLError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Invalid parameter to virXPathLong()"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Invalid parameter to virXPathLong()"));
         return -1;
     }
     relnode = ctxt->node;
@@ -271,8 +279,8 @@ virXPathULongBase(const char *xpath,
     int ret = 0;
 
     if ((ctxt == NULL) || (xpath == NULL) || (value == NULL)) {
-        virXMLError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Invalid parameter to virXPathULong()"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Invalid parameter to virXPathULong()"));
         return -1;
     }
     relnode = ctxt->node;
@@ -388,8 +396,8 @@ virXPathULongLong(const char *xpath,
     int ret = 0;
 
     if ((ctxt == NULL) || (xpath == NULL) || (value == NULL)) {
-        virXMLError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Invalid parameter to virXPathULong()"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Invalid parameter to virXPathULong()"));
         return -1;
     }
     relnode = ctxt->node;
@@ -435,8 +443,8 @@ virXPathLongLong(const char *xpath,
     int ret = 0;
 
     if ((ctxt == NULL) || (xpath == NULL) || (value == NULL)) {
-        virXMLError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Invalid parameter to virXPathLongLong()"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Invalid parameter to virXPathLongLong()"));
         return -1;
     }
     relnode = ctxt->node;
@@ -485,8 +493,8 @@ virXPathBoolean(const char *xpath,
     int ret;
 
     if ((ctxt == NULL) || (xpath == NULL)) {
-        virXMLError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Invalid parameter to virXPathBoolean()"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Invalid parameter to virXPathBoolean()"));
         return -1;
     }
     relnode = ctxt->node;
@@ -522,8 +530,8 @@ virXPathNode(const char *xpath,
     xmlNodePtr ret;
 
     if ((ctxt == NULL) || (xpath == NULL)) {
-        virXMLError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Invalid parameter to virXPathNode()"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Invalid parameter to virXPathNode()"));
         return NULL;
     }
     relnode = ctxt->node;
@@ -562,8 +570,8 @@ virXPathNodeSet(const char *xpath,
     int ret;
 
     if ((ctxt == NULL) || (xpath == NULL)) {
-        virXMLError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("Invalid parameter to virXPathNodeSet()"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Invalid parameter to virXPathNodeSet()"));
         return -1;
     }
 
@@ -577,8 +585,8 @@ virXPathNodeSet(const char *xpath,
         return 0;
 
     if (obj->type != XPATH_NODESET) {
-        virXMLError(VIR_ERR_INTERNAL_ERROR,
-                    _("Incorrect xpath '%s'"), xpath);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Incorrect xpath '%s'"), xpath);
         xmlXPathFreeObject(obj);
         return -1;
     }

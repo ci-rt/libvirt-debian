@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -27,6 +27,7 @@
 # include "virsocketaddr.h"
 # include "command.h"
 # include "virnettlscontext.h"
+# include "virobject.h"
 # ifdef HAVE_SASL
 #  include "virnetsaslcontext.h"
 # endif
@@ -51,6 +52,9 @@ int virNetSocketNewListenUNIX(const char *path,
                               gid_t grp,
                               virNetSocketPtr *addr);
 
+int virNetSocketNewListenFD(int fd,
+                            virNetSocketPtr *addr);
+
 int virNetSocketNewConnectTCP(const char *nodename,
                               const char *service,
                               virNetSocketPtr *addr);
@@ -73,6 +77,18 @@ int virNetSocketNewConnectSSH(const char *nodename,
                               const char *keyfile,
                               const char *path,
                               virNetSocketPtr *addr);
+
+int virNetSocketNewConnectLibSSH2(const char *host,
+                                  const char *port,
+                                  const char *username,
+                                  const char *password,
+                                  const char *privkey,
+                                  const char *knownHosts,
+                                  const char *knownHostsVerify,
+                                  const char *authMethods,
+                                  const char *command,
+                                  virConnectAuthPtr auth,
+                                  virNetSocketPtr *retsock);
 
 int virNetSocketNewConnectExternal(const char **cmdargv,
                                    virNetSocketPtr *addr);
@@ -102,14 +118,13 @@ int virNetSocketRecvFD(virNetSocketPtr sock, int *fd);
 
 void virNetSocketSetTLSSession(virNetSocketPtr sock,
                                virNetTLSSessionPtr sess);
+
 # ifdef HAVE_SASL
 void virNetSocketSetSASLSession(virNetSocketPtr sock,
                                 virNetSASLSessionPtr sess);
 # endif
 bool virNetSocketHasCachedData(virNetSocketPtr sock);
 bool virNetSocketHasPendingData(virNetSocketPtr sock);
-void virNetSocketRef(virNetSocketPtr sock);
-void virNetSocketFree(virNetSocketPtr sock);
 
 const char *virNetSocketLocalAddrString(virNetSocketPtr sock);
 const char *virNetSocketRemoteAddrString(virNetSocketPtr sock);

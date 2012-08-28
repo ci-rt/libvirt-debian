@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,10 +26,14 @@
 #include "internal.h"
 
 #include "virterror_internal.h"
+#include "command.h"
+#include "datatypes.h"
+#include "memory.h"
 
 #include "openvz_conf.h"
 #include "openvz_util.h"
 
+#define VIR_FROM_THIS VIR_FROM_OPENVZ
 
 long
 openvzKBPerPages(void)
@@ -41,11 +45,40 @@ openvzKBPerPages(void)
         if (kb_per_pages > 0) {
             kb_per_pages /= 1024;
         } else {
-            openvzError(VIR_ERR_INTERNAL_ERROR,
-                        _("Can't determine page size"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Can't determine page size"));
             kb_per_pages = 0;
             return -1;
         }
     }
     return kb_per_pages;
+}
+
+char*
+openvzVEGetStringParam(virDomainPtr domain, const char* param)
+{
+    int len;
+    char *output = NULL;
+
+    virCommandPtr cmd = virCommandNewArgList(VZLIST,
+                                             "-o",
+                                             param,
+                                             domain->name,
+                                             "-H" , NULL);
+
+    virCommandSetOutputBuffer(cmd, &output);
+    if (virCommandRun(cmd, NULL) < 0) {
+        VIR_FREE(output);
+        /* virCommandRun sets the virError */
+        goto cleanup;
+    }
+
+    /* delete trailing newline */
+    len = strlen(output);
+    if (len && output[len - 1] == '\n')
+        output[len - 1] = '\0';
+
+cleanup:
+    virCommandFree(cmd);
+    return output;
 }

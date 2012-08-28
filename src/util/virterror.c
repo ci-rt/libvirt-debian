@@ -1,9 +1,21 @@
 /*
  * virterror.c: implements error handling and reporting code for libvirt
  *
- * Copy:  Copyright (C) 2006, 2008-2012 Red Hat, Inc.
+ * Copyright (C) 2006, 2008-2012 Red Hat, Inc.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel Veillard <veillard@redhat.com>
  */
@@ -99,7 +111,11 @@ VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
 
               "URI Utils", /* 45 */
               "Authentication Utils",
-              "DBus Utils"
+              "DBus Utils",
+              "Parallels Cloud Server",
+              "Device Config",
+
+              "SSH transport layer" /* 50 */
     )
 
 
@@ -1172,6 +1188,17 @@ virErrorMsg(virErrorNumber error, const char *info)
             else
                 errmsg = _("block copy still active: %s");
             break;
+        case VIR_ERR_OPERATION_UNSUPPORTED:
+            if (!info)
+                errmsg = _("Operation not supported");
+            else
+                errmsg = _("Operation not supported: %s");
+            break;
+        case VIR_ERR_SSH:
+            if (info == NULL)
+                errmsg = _("SSH transport error");
+            else
+                errmsg = _("SSH transport error: %s");
     }
     return errmsg;
 }
@@ -1289,7 +1316,7 @@ void virReportSystemErrorFull(int domcode,
 
     virRaiseErrorFull(filename, funcname, linenr,
                       domcode, VIR_ERR_SYSTEM_ERROR, VIR_ERR_ERROR,
-                      msg, msgDetail, NULL, -1, -1, msg, msgDetail);
+                      msg, msgDetail, NULL, theerrno, -1, msg, msgDetail);
     errno = save_errno;
 }
 

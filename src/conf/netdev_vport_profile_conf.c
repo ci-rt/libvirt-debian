@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2011 Red Hat, Inc.
+ * Copyright (C) 2009-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Stefan Berger <stefanb@us.ibm.com>
@@ -27,9 +27,6 @@
 #include "memory.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-#define virNetDevError(code, ...)                                       \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,                 \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
 VIR_ENUM_IMPL(virNetDevVPort, VIR_NETDEV_VPORT_PROFILE_LAST,
@@ -40,7 +37,7 @@ VIR_ENUM_IMPL(virNetDevVPort, VIR_NETDEV_VPORT_PROFILE_LAST,
 
 
 virNetDevVPortProfilePtr
-virNetDevVPortProfileParse(xmlNodePtr node)
+virNetDevVPortProfileParse(xmlNodePtr node, unsigned int flags)
 {
     char *virtPortType;
     char *virtPortManagerID = NULL;
@@ -57,22 +54,22 @@ virNetDevVPortProfileParse(xmlNodePtr node)
         return NULL;
     }
 
-    virtPortType = virXMLPropString(node, "type");
-    if (!virtPortType) {
-        virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                       _("missing virtualportprofile type"));
+    if ((virtPortType = virXMLPropString(node, "type")) &&
+        (virtPort->virtPortType = virNetDevVPortTypeFromString(virtPortType)) <= 0) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       _("unknown virtualport type %s"), virtPortType);
         goto error;
     }
 
-    if ((virtPort->virtPortType = virNetDevVPortTypeFromString(virtPortType)) <= 0) {
-        virNetDevError(VIR_ERR_XML_ERROR,
-                       _("unknown virtualportprofile type %s"), virtPortType);
+    if ((virtPort->virtPortType == VIR_NETDEV_VPORT_PROFILE_NONE) &&
+        (flags & VIR_VPORT_XML_REQUIRE_TYPE)) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("missing required virtualport type"));
         goto error;
     }
 
     while (cur != NULL) {
         if (xmlStrEqual(cur->name, BAD_CAST "parameters")) {
-
             virtPortManagerID = virXMLPropString(cur, "managerid");
             virtPortTypeID = virXMLPropString(cur, "typeid");
             virtPortTypeIDVersion = virXMLPropString(cur, "typeidversion");
@@ -81,131 +78,118 @@ virNetDevVPortProfileParse(xmlNodePtr node)
             virtPortInterfaceID = virXMLPropString(cur, "interfaceid");
             break;
         }
-
         cur = cur->next;
     }
 
-    switch (virtPort->virtPortType) {
-    case VIR_NETDEV_VPORT_PROFILE_8021QBG:
-        if (virtPortManagerID     != NULL && virtPortTypeID     != NULL &&
-            virtPortTypeIDVersion != NULL) {
-            unsigned int val;
+    if (virtPortManagerID) {
+        unsigned int val;
 
-            if (virStrToLong_ui(virtPortManagerID, NULL, 0, &val)) {
-                virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                                     _("cannot parse value of managerid parameter"));
-                goto error;
-            }
-
-            if (val > 0xff) {
-                virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                                     _("value of managerid out of range"));
-                goto error;
-            }
-
-            virtPort->u.virtPort8021Qbg.managerID = (uint8_t)val;
-
-            if (virStrToLong_ui(virtPortTypeID, NULL, 0, &val)) {
-                virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                                     _("cannot parse value of typeid parameter"));
-                goto error;
-            }
-
-            if (val > 0xffffff) {
-                virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                                     _("value for typeid out of range"));
-                goto error;
-            }
-
-            virtPort->u.virtPort8021Qbg.typeID = (uint32_t)val;
-
-            if (virStrToLong_ui(virtPortTypeIDVersion, NULL, 0, &val)) {
-                virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                                     _("cannot parse value of typeidversion parameter"));
-                goto error;
-            }
-
-            if (val > 0xff) {
-                virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                                     _("value of typeidversion out of range"));
-                goto error;
-            }
-
-            virtPort->u.virtPort8021Qbg.typeIDVersion = (uint8_t)val;
-
-            if (virtPortInstanceID != NULL) {
-                if (virUUIDParse(virtPortInstanceID,
-                                 virtPort->u.virtPort8021Qbg.instanceID)) {
-                    virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                                         _("cannot parse instanceid parameter as a uuid"));
-                    goto error;
-                }
-            } else {
-                if (virUUIDGenerate(virtPort->u.virtPort8021Qbg.instanceID)) {
-                    virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                                         _("cannot generate a random uuid for instanceid"));
-                    goto error;
-                }
-            }
-
-            virtPort->virtPortType = VIR_NETDEV_VPORT_PROFILE_8021QBG;
-
-        } else {
-                    virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                                         _("a parameter is missing for 802.1Qbg description"));
+        if (virStrToLong_ui(virtPortManagerID, NULL, 0, &val)) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("cannot parse value of managerid parameter"));
             goto error;
         }
-        break;
-
-    case VIR_NETDEV_VPORT_PROFILE_8021QBH:
-        if (virtPortProfileID != NULL) {
-            if (virStrcpyStatic(virtPort->u.virtPort8021Qbh.profileID,
-                                virtPortProfileID) != NULL) {
-                virtPort->virtPortType = VIR_NETDEV_VPORT_PROFILE_8021QBH;
-            } else {
-                virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                                     _("profileid parameter too long"));
-                goto error;
-            }
-        } else {
-            virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                                 _("profileid parameter is missing for 802.1Qbh description"));
+        if (val > 0xff) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("value of managerid out of range"));
             goto error;
         }
-        break;
-    case VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH:
-        if (virtPortInterfaceID != NULL) {
-            if (virUUIDParse(virtPortInterfaceID,
-                             virtPort->u.openvswitch.interfaceID)) {
-                virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                               _("cannot parse interfaceid parameter as a uuid"));
+        virtPort->managerID = (uint8_t)val;
+        virtPort->managerID_specified = true;
+    }
+
+    if (virtPortTypeID) {
+        unsigned int val;
+
+        if (virStrToLong_ui(virtPortTypeID, NULL, 0, &val)) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("cannot parse value of typeid parameter"));
+            goto error;
+        }
+        if (val > 0xffffff) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("value for typeid out of range"));
+            goto error;
+        }
+        virtPort->typeID = (uint32_t)val;
+        virtPort->typeID_specified = true;
+    }
+
+    if (virtPortTypeIDVersion) {
+        unsigned int val;
+
+        if (virStrToLong_ui(virtPortTypeIDVersion, NULL, 0, &val)) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("cannot parse value of typeidversion parameter"));
+            goto error;
+        }
+        if (val > 0xff) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("value of typeidversion out of range"));
+            goto error;
+        }
+        virtPort->typeIDVersion = (uint8_t)val;
+        virtPort->typeIDVersion_specified = true;
+    }
+
+    if (virtPortInstanceID) {
+        if (virUUIDParse(virtPortInstanceID, virtPort->instanceID) < 0) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("cannot parse instanceid parameter as a uuid"));
+            goto error;
+        }
+        virtPort->instanceID_specified = true;
+    }
+
+    if (virtPortProfileID &&
+        !virStrcpyStatic(virtPort->profileID, virtPortProfileID)) {
+        virReportError(VIR_ERR_XML_ERROR, "%s",
+                       _("profileid parameter too long"));
+        goto error;
+    }
+
+    if (virtPortInterfaceID) {
+        if (virUUIDParse(virtPortInterfaceID, virtPort->interfaceID) < 0) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("cannot parse interfaceid parameter as a uuid"));
+            goto error;
+        }
+        virtPort->interfaceID_specified = true;
+    }
+
+    /* generate default instanceID/interfaceID if appropriate */
+    if (flags & VIR_VPORT_XML_GENERATE_MISSING_DEFAULTS) {
+        if (!virtPort->instanceID_specified &&
+            (virtPort->virtPortType == VIR_NETDEV_VPORT_PROFILE_8021QBG ||
+             virtPort->virtPortType == VIR_NETDEV_VPORT_PROFILE_NONE)) {
+            if (virUUIDGenerate(virtPort->instanceID) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("cannot generate a random uuid for instanceid"));
                 goto error;
             }
-        } else {
-            if (virUUIDGenerate(virtPort->u.openvswitch.interfaceID)) {
-                virNetDevError(VIR_ERR_XML_ERROR, "%s",
+            virtPort->instanceID_specified = true;
+        }
+        if (!virtPort->interfaceID_specified &&
+            (virtPort->virtPortType == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH ||
+             virtPort->virtPortType == VIR_NETDEV_VPORT_PROFILE_NONE)) {
+            if (virUUIDGenerate(virtPort->interfaceID) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("cannot generate a random uuid for interfaceid"));
                 goto error;
             }
+            virtPort->interfaceID_specified = true;
         }
-        /* profileid is not mandatory for Open vSwitch */
-        if (virtPortProfileID != NULL) {
-            if (virStrcpyStatic(virtPort->u.openvswitch.profileID,
-                                virtPortProfileID) == NULL) {
-                virNetDevError(VIR_ERR_XML_ERROR, "%s",
-                               _("profileid parameter too long"));
-                goto error;
-            }
-        } else {
-            virtPort->u.openvswitch.profileID[0] = '\0';
-        }
-        break;
+    }
 
-    default:
-        virNetDevError(VIR_ERR_XML_ERROR,
-                       _("unexpected virtualport type %d"), virtPort->virtPortType);
+    /* check for required/unsupported attributes */
+
+    if ((flags & VIR_VPORT_XML_REQUIRE_ALL_ATTRIBUTES) &&
+        (virNetDevVPortProfileCheckComplete(virtPort, false) < 0)) {
         goto error;
     }
+
+    if (virNetDevVPortProfileCheckNoExtras(virtPort) < 0)
+        goto error;
 
 cleanup:
     VIR_FREE(virtPortManagerID);
@@ -227,53 +211,76 @@ int
 virNetDevVPortProfileFormat(virNetDevVPortProfilePtr virtPort,
                             virBufferPtr buf)
 {
-    char uuidstr[VIR_UUID_STRING_BUFLEN];
+    enum virNetDevVPortProfile type;
+    bool noParameters;
 
-    if (!virtPort || virtPort->virtPortType == VIR_NETDEV_VPORT_PROFILE_NONE)
+    if (!virtPort)
         return 0;
 
-    virBufferAsprintf(buf, "<virtualport type='%s'>\n",
-                      virNetDevVPortTypeToString(virtPort->virtPortType));
+    noParameters = !(virtPort->managerID_specified ||
+                     virtPort->typeID_specified ||
+                     virtPort->typeIDVersion_specified ||
+                     virtPort->instanceID_specified ||
+                     virtPort->profileID[0] ||
+                     virtPort->interfaceID_specified);
 
-    switch (virtPort->virtPortType) {
-    case VIR_NETDEV_VPORT_PROFILE_8021QBG:
-        virUUIDFormat(virtPort->u.virtPort8021Qbg.instanceID,
-                      uuidstr);
-        virBufferAsprintf(buf,
-                          "  <parameters managerid='%d' typeid='%d' "
-                          "typeidversion='%d' instanceid='%s'/>\n",
-                          virtPort->u.virtPort8021Qbg.managerID,
-                          virtPort->u.virtPort8021Qbg.typeID,
-                          virtPort->u.virtPort8021Qbg.typeIDVersion,
-                          uuidstr);
-        break;
-
-    case VIR_NETDEV_VPORT_PROFILE_8021QBH:
-        virBufferAsprintf(buf,
-                          "  <parameters profileid='%s'/>\n",
-                          virtPort->u.virtPort8021Qbh.profileID);
-        break;
-
-    case VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH:
-        virUUIDFormat(virtPort->u.openvswitch.interfaceID,
-                      uuidstr);
-        if (virtPort->u.openvswitch.profileID[0] == '\0') {
-            virBufferAsprintf(buf, "  <parameters interfaceid='%s'/>\n",
-                              uuidstr);
+    type = virtPort->virtPortType;
+    if (type == VIR_NETDEV_VPORT_PROFILE_NONE) {
+        if (noParameters)
+            return 0;
+        virBufferAddLit(buf, "<virtualport>\n");
+    } else {
+        if (noParameters) {
+            virBufferAsprintf(buf, "<virtualport type='%s'/>\n",
+                              virNetDevVPortTypeToString(type));
+            return 0;
         } else {
-            virBufferAsprintf(buf, "  <parameters interfaceid='%s' "
-                              "profileid='%s'/>\n", uuidstr,
-                              virtPort->u.openvswitch.profileID);
+            virBufferAsprintf(buf, "<virtualport type='%s'>\n",
+                              virNetDevVPortTypeToString(type));
         }
+    }
+    virBufferAddLit(buf, "  <parameters");
 
-        break;
+    if (virtPort->managerID_specified &&
+        (type == VIR_NETDEV_VPORT_PROFILE_8021QBG ||
+         type == VIR_NETDEV_VPORT_PROFILE_NONE)) {
+        virBufferAsprintf(buf, " managerid='%d'", virtPort->managerID);
+    }
+    if (virtPort->typeID_specified &&
+        (type == VIR_NETDEV_VPORT_PROFILE_8021QBG ||
+         type == VIR_NETDEV_VPORT_PROFILE_NONE)) {
+        virBufferAsprintf(buf, " typeid='%d'", virtPort->typeID);
+    }
+    if (virtPort->typeIDVersion_specified &&
+        (type == VIR_NETDEV_VPORT_PROFILE_8021QBG ||
+         type == VIR_NETDEV_VPORT_PROFILE_NONE)) {
+        virBufferAsprintf(buf, " typeidversion='%d'",
+                          virtPort->typeIDVersion);
+    }
+    if (virtPort->instanceID_specified &&
+        (type == VIR_NETDEV_VPORT_PROFILE_8021QBG ||
+         type == VIR_NETDEV_VPORT_PROFILE_NONE)) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
 
-    default:
-        virNetDevError(VIR_ERR_XML_ERROR,
-                       _("unexpected virtualport type %d"), virtPort->virtPortType);
-        return -1;
+        virUUIDFormat(virtPort->instanceID, uuidstr);
+        virBufferAsprintf(buf, " instanceid='%s'", uuidstr);
+    }
+    if (virtPort->interfaceID_specified &&
+        (type == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH ||
+         type == VIR_NETDEV_VPORT_PROFILE_NONE)) {
+        char uuidstr[VIR_UUID_STRING_BUFLEN];
+
+        virUUIDFormat(virtPort->interfaceID, uuidstr);
+        virBufferAsprintf(buf, " interfaceid='%s'", uuidstr);
+    }
+    if (virtPort->profileID[0] &&
+        (type == VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH ||
+         type == VIR_NETDEV_VPORT_PROFILE_8021QBH ||
+         type == VIR_NETDEV_VPORT_PROFILE_NONE)) {
+        virBufferAsprintf(buf, " profileid='%s'", virtPort->profileID);
     }
 
+    virBufferAddLit(buf, "/>\n");
     virBufferAddLit(buf, "</virtualport>\n");
     return 0;
 }

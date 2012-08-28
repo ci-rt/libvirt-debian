@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -124,7 +124,7 @@ static virLockManagerPtr virDomainLockManagerNew(virLockManagerPluginPtr plugin,
 
     memcpy(params[0].value.uuid, dom->def->uuid, VIR_UUID_BUFLEN);
 
-    if (!(lock = virLockManagerNew(plugin,
+    if (!(lock = virLockManagerNew(virLockManagerPluginGetDriver(plugin),
                                    VIR_LOCK_MANAGER_OBJECT_TYPE_DOMAIN,
                                    ARRAY_CARDINALITY(params),
                                    params,
@@ -160,6 +160,9 @@ int virDomainLockProcessStart(virLockManagerPluginPtr plugin,
     int ret;
     int flags = VIR_LOCK_MANAGER_ACQUIRE_RESTRICT;
 
+    VIR_DEBUG("plugin=%p dom=%p paused=%d fd=%p",
+              plugin, dom, paused, fd);
+
     if (!(lock = virDomainLockManagerNew(plugin, dom, true)))
         return -1;
 
@@ -180,6 +183,9 @@ int virDomainLockProcessPause(virLockManagerPluginPtr plugin,
     virLockManagerPtr lock;
     int ret;
 
+    VIR_DEBUG("plugin=%p dom=%p state=%p",
+              plugin, dom, state);
+
     if (!(lock = virDomainLockManagerNew(plugin, dom, true)))
         return -1;
 
@@ -195,6 +201,9 @@ int virDomainLockProcessResume(virLockManagerPluginPtr plugin,
 {
     virLockManagerPtr lock;
     int ret;
+
+    VIR_DEBUG("plugin=%p dom=%p state=%s",
+              plugin, dom, NULLSTR(state));
 
     if (!(lock = virDomainLockManagerNew(plugin, dom, true)))
         return -1;
@@ -212,6 +221,9 @@ int virDomainLockProcessInquire(virLockManagerPluginPtr plugin,
     virLockManagerPtr lock;
     int ret;
 
+    VIR_DEBUG("plugin=%p dom=%p state=%p",
+              plugin, dom, state);
+
     if (!(lock = virDomainLockManagerNew(plugin, dom, true)))
         return -1;
 
@@ -228,6 +240,9 @@ int virDomainLockDiskAttach(virLockManagerPluginPtr plugin,
 {
     virLockManagerPtr lock;
     int ret = -1;
+
+    VIR_DEBUG("plugin=%p dom=%p disk=%p",
+              plugin, dom, disk);
 
     if (!(lock = virDomainLockManagerNew(plugin, dom, false)))
         return -1;
@@ -252,6 +267,9 @@ int virDomainLockDiskDetach(virLockManagerPluginPtr plugin,
 {
     virLockManagerPtr lock;
     int ret = -1;
+
+    VIR_DEBUG("plugin=%p dom=%p disk=%p",
+              plugin, dom, disk);
 
     if (!(lock = virDomainLockManagerNew(plugin, dom, false)))
         return -1;
@@ -278,6 +296,9 @@ int virDomainLockLeaseAttach(virLockManagerPluginPtr plugin,
     virLockManagerPtr lock;
     int ret = -1;
 
+    VIR_DEBUG("plugin=%p dom=%p lease=%p",
+              plugin, dom, lease);
+
     if (!(lock = virDomainLockManagerNew(plugin, dom, false)))
         return -1;
 
@@ -301,6 +322,9 @@ int virDomainLockLeaseDetach(virLockManagerPluginPtr plugin,
 {
     virLockManagerPtr lock;
     int ret = -1;
+
+    VIR_DEBUG("plugin=%p dom=%p lease=%p",
+              plugin, dom, lease);
 
     if (!(lock = virDomainLockManagerNew(plugin, dom, false)))
         return -1;

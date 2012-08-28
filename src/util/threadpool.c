@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Hu Tao <hutao@cn.fujitsu.com>
@@ -66,6 +66,7 @@ struct _virThreadPool {
     virCond quit_cond;
 
     size_t maxWorkers;
+    size_t minWorkers;
     size_t freeWorkers;
     size_t nWorkers;
     virThreadPtr workers;
@@ -188,7 +189,9 @@ virThreadPoolPtr virThreadPoolNew(size_t minWorkers,
     if (VIR_ALLOC_N(pool->workers, minWorkers) < 0)
         goto error;
 
+    pool->minWorkers = minWorkers;
     pool->maxWorkers = maxWorkers;
+
     for (i = 0; i < minWorkers; i++) {
         if (VIR_ALLOC(data) < 0) {
             virReportOOMError();
@@ -275,6 +278,22 @@ void virThreadPoolFree(virThreadPoolPtr pool)
         ignore_value(virCondDestroy(&pool->prioCond));
     }
     VIR_FREE(pool);
+}
+
+
+size_t virThreadPoolGetMinWorkers(virThreadPoolPtr pool)
+{
+    return pool->minWorkers;
+}
+
+size_t virThreadPoolGetMaxWorkers(virThreadPoolPtr pool)
+{
+    return pool->maxWorkers;
+}
+
+size_t virThreadPoolGetPriorityWorkers(virThreadPoolPtr pool)
+{
+    return pool->nPrioWorkers;
 }
 
 /*

@@ -99,6 +99,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module exitfail:
   # Code from module extensions:
   AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
+  # Code from module extern-inline:
   # Code from module fatal-signal:
   # Code from module fclose:
   # Code from module fclose-tests:
@@ -198,10 +199,18 @@ AC_DEFUN([gl_EARLY],
   # Code from module ioctl-tests:
   # Code from module isatty:
   # Code from module isatty-tests:
+  # Code from module isnand-nolibm:
+  # Code from module isnand-nolibm-tests:
+  # Code from module isnanf-nolibm:
+  # Code from module isnanf-nolibm-tests:
+  # Code from module isnanl-nolibm:
+  # Code from module isnanl-nolibm-tests:
   # Code from module langinfo:
   # Code from module langinfo-tests:
   # Code from module largefile:
   AC_REQUIRE([AC_SYS_LARGEFILE])
+  # Code from module ldexp:
+  # Code from module ldexp-tests:
   # Code from module listen:
   # Code from module listen-tests:
   # Code from module localcharset:
@@ -223,6 +232,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module malloca:
   # Code from module malloca-tests:
   # Code from module manywarnings:
+  # Code from module math:
+  # Code from module math-tests:
   # Code from module mbrtowc:
   # Code from module mbrtowc-tests:
   # Code from module mbsinit:
@@ -334,6 +345,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module sigaction-tests:
   # Code from module signal-h:
   # Code from module signal-h-tests:
+  # Code from module signbit:
+  # Code from module signbit-tests:
   # Code from module sigpipe:
   # Code from module sigpipe-tests:
   # Code from module sigprocmask:
@@ -563,6 +576,7 @@ gl_UNISTD_MODULE_INDICATOR([dup2])
 gl_ENVIRON
 gl_UNISTD_MODULE_INDICATOR([environ])
 gl_HEADER_ERRNO_H
+AC_REQUIRE([gl_EXTERN_INLINE])
 gl_FUNC_FCLOSE
 if test $REPLACE_FCLOSE = 1; then
   AC_LIBOBJ([fclose])
@@ -741,6 +755,7 @@ fi
 gl_UNISTD_MODULE_INDICATOR([isatty])
 gl_LANGINFO_H
 AC_REQUIRE([gl_LARGEFILE])
+gl_FUNC_LDEXP
 AC_REQUIRE([gl_HEADER_SYS_SOCKET])
 if test "$ac_cv_header_winsock2_h" = yes; then
   AC_LIBOBJ([listen])
@@ -1025,6 +1040,8 @@ if test $REPLACE_STAT = 1; then
   gl_PREREQ_STAT
 fi
 gl_SYS_STAT_MODULE_INDICATOR([stat])
+gl_STAT_TIME
+gl_STAT_BIRTHTIME
 gl_STDALIGN_H
 gl_STDARG_H
 AM_STDBOOL_H
@@ -1291,9 +1308,29 @@ AC_C_BIGENDIAN
 gl_INLINE
 gl_INTTYPES_H
 gl_INTTYPES_INCOMPLETE
+gl_FUNC_ISNAND_NO_LIBM
+if test $gl_func_isnand_no_libm != yes; then
+  AC_LIBOBJ([isnand])
+  gl_PREREQ_ISNAND
+fi
+gl_DOUBLE_EXPONENT_LOCATION
+gl_FUNC_ISNANF_NO_LIBM
+if test $gl_func_isnanf_no_libm != yes; then
+  AC_LIBOBJ([isnanf])
+  gl_PREREQ_ISNANF
+fi
+gl_FLOAT_EXPONENT_LOCATION
+gl_FUNC_ISNANL_NO_LIBM
+if test $gl_func_isnanl_no_libm != yes; then
+  AC_LIBOBJ([isnanl])
+  gl_PREREQ_ISNANL
+fi
+gl_LONG_DOUBLE_EXPONENT_LOCATION
+AC_REQUIRE([gl_LONG_DOUBLE_VS_DOUBLE])
 AC_CHECK_FUNCS_ONCE([newlocale])
 gl_LOCALENAME
 AC_CHECK_FUNCS_ONCE([newlocale])
+gl_MATH_H
 gt_LOCALE_FR
 gt_LOCALE_FR_UTF8
 gt_LOCALE_JA
@@ -1425,10 +1462,18 @@ gt_LOCALE_FR
 gt_LOCALE_FR_UTF8
 gt_LOCALE_JA
 gt_LOCALE_ZH_CN
+gl_SIGNBIT
+if test $REPLACE_SIGNBIT = 1; then
+  AC_LIBOBJ([signbitf])
+  AC_LIBOBJ([signbitd])
+  AC_LIBOBJ([signbitl])
+fi
+gl_MATH_MODULE_INDICATOR([signbit])
+AC_REQUIRE([gl_FLOAT_EXPONENT_LOCATION])
+AC_REQUIRE([gl_DOUBLE_EXPONENT_LOCATION])
+AC_REQUIRE([gl_LONG_DOUBLE_EXPONENT_LOCATION])
 AC_CHECK_DECLS_ONCE([alarm])
 gl_SPAWN_H
-gl_STAT_TIME
-gl_STAT_BIRTHTIME
 gt_TYPE_WCHAR_T
 gt_TYPE_WINT_T
 dnl Check for prerequisites for memory fence checks.
@@ -1755,6 +1800,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/socket.c
   lib/sockets.c
   lib/sockets.h
+  lib/stat-time.c
+  lib/stat-time.h
   lib/stat.c
   lib/stdalign.in.h
   lib/stdarg.in.h
@@ -1841,7 +1888,10 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/errno_h.m4
   m4/error.m4
   m4/exponentd.m4
+  m4/exponentf.m4
+  m4/exponentl.m4
   m4/extensions.m4
+  m4/extern-inline.m4
   m4/fatal-signal.m4
   m4/fclose.m4
   m4/fcntl-o.m4
@@ -1890,9 +1940,13 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/inttypes_h.m4
   m4/ioctl.m4
   m4/isatty.m4
+  m4/isnand.m4
+  m4/isnanf.m4
+  m4/isnanl.m4
   m4/langinfo_h.m4
   m4/largefile.m4
   m4/lcmessage.m4
+  m4/ldexp.m4
   m4/lib-ld.m4
   m4/lib-link.m4
   m4/lib-prefix.m4
@@ -1971,6 +2025,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/sigaction.m4
   m4/signal_h.m4
   m4/signalblocking.m4
+  m4/signbit.m4
   m4/sigpipe.m4
   m4/size_max.m4
   m4/sleep.m4
@@ -2045,9 +2100,13 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/write.m4
   m4/xalloc.m4
   m4/xsize.m4
+  tests/infinity.h
   tests/init.sh
   tests/macros.h
+  tests/minus-zero.h
+  tests/nan.h
   tests/nap.h
+  tests/randomd.c
   tests/signature.h
   tests/socket-client.h
   tests/socket-server.h
@@ -2143,7 +2202,15 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-inttypes.c
   tests/test-ioctl.c
   tests/test-isatty.c
+  tests/test-isnand-nolibm.c
+  tests/test-isnand.h
+  tests/test-isnanf-nolibm.c
+  tests/test-isnanf.h
+  tests/test-isnanl-nolibm.c
+  tests/test-isnanl.h
   tests/test-langinfo.c
+  tests/test-ldexp.c
+  tests/test-ldexp.h
   tests/test-listen.c
   tests/test-locale.c
   tests/test-localeconv.c
@@ -2154,6 +2221,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-lstat.h
   tests/test-malloc-gnu.c
   tests/test-malloca.c
+  tests/test-math.c
   tests/test-mbrtowc-w32-1.sh
   tests/test-mbrtowc-w32-2.sh
   tests/test-mbrtowc-w32-3.sh
@@ -2238,6 +2306,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests/test-setsockopt.c
   tests/test-sigaction.c
   tests/test-signal-h.c
+  tests/test-signbit.c
   tests/test-sigpipe.c
   tests/test-sigpipe.sh
   tests/test-sigprocmask.c
@@ -2311,6 +2380,7 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/fatal-signal.c
   tests=lib/fatal-signal.h
   tests=lib/fdopen.c
+  tests=lib/float+.h
   tests=lib/fpucw.h
   tests=lib/ftruncate.c
   tests=lib/getgroups.c
@@ -2322,8 +2392,16 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/glthread/thread.h
   tests=lib/grantpt.c
   tests=lib/inttypes.in.h
+  tests=lib/isnan.c
+  tests=lib/isnand-nolibm.h
+  tests=lib/isnand.c
+  tests=lib/isnanf-nolibm.h
+  tests=lib/isnanf.c
+  tests=lib/isnanl-nolibm.h
+  tests=lib/isnanl.c
   tests=lib/localename.c
   tests=lib/localename.h
+  tests=lib/math.in.h
   tests=lib/mgetgroups.c
   tests=lib/mgetgroups.h
   tests=lib/progname.c
@@ -2337,6 +2415,9 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/same-inode.h
   tests=lib/setenv.c
   tests=lib/setlocale.c
+  tests=lib/signbitd.c
+  tests=lib/signbitf.c
+  tests=lib/signbitl.c
   tests=lib/spawn.in.h
   tests=lib/spawn_faction_addclose.c
   tests=lib/spawn_faction_adddup2.c
@@ -2350,7 +2431,6 @@ AC_DEFUN([gl_FILE_LIST], [
   tests=lib/spawnattr_setsigmask.c
   tests=lib/spawni.c
   tests=lib/spawnp.c
-  tests=lib/stat-time.h
   tests=lib/symlink.c
   tests=lib/unlockpt.c
   tests=lib/unsetenv.c

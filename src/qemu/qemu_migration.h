@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,12 +66,12 @@ void qemuMigrationJobStartPhase(struct qemud_driver *driver,
                                 virDomainObjPtr vm,
                                 enum qemuMigrationJobPhase phase)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
-int qemuMigrationJobContinue(virDomainObjPtr obj)
+bool qemuMigrationJobContinue(virDomainObjPtr obj)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
 bool qemuMigrationJobIsActive(virDomainObjPtr vm,
                               enum qemuDomainAsyncJob job)
     ATTRIBUTE_NONNULL(1);
-int qemuMigrationJobFinish(struct qemud_driver *driver, virDomainObjPtr obj)
+bool qemuMigrationJobFinish(struct qemud_driver *driver, virDomainObjPtr obj)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_RETURN_CHECK;
 
 int qemuMigrationSetOffline(struct qemud_driver *driver,

@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *      Jiri Denemark <jdenemar@redhat.com>
@@ -27,6 +27,8 @@
 # include "util.h"
 # include "buf.h"
 # include "xml.h"
+
+# define VIR_CPU_VENDOR_ID_LENGTH 12
 
 enum virCPUType {
     VIR_CPU_TYPE_HOST,
@@ -103,6 +105,7 @@ struct _virCPUDef {
     int match;          /* enum virCPUMatch */
     char *arch;
     char *model;
+    char *vendor_id;    /* vendor id returned by CPUID in the guest */
     int fallback;       /* enum virCPUFallback */
     char *vendor;
     unsigned int sockets;

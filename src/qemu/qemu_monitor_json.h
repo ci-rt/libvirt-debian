@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -45,6 +45,8 @@ int qemuMonitorJSONSetCapabilities(qemuMonitorPtr mon);
 int qemuMonitorJSONCheckCommands(qemuMonitorPtr mon,
                                  virBitmapPtr qemuCaps,
                                  int *json_hmp);
+int qemuMonitorJSONCheckEvents(qemuMonitorPtr mon,
+                               virBitmapPtr qemuCaps);
 
 int qemuMonitorJSONStartCPUs(qemuMonitorPtr mon,
                              virConnectPtr conn);
@@ -161,20 +163,20 @@ int qemuMonitorJSONAddUSBDeviceMatch(qemuMonitorPtr mon,
 
 
 int qemuMonitorJSONAddPCIHostDevice(qemuMonitorPtr mon,
-                                    virDomainDevicePCIAddress *hostAddr,
-                                    virDomainDevicePCIAddress *guestAddr);
+                                    virDevicePCIAddress *hostAddr,
+                                    virDevicePCIAddress *guestAddr);
 
 int qemuMonitorJSONAddPCIDisk(qemuMonitorPtr mon,
                               const char *path,
                               const char *bus,
-                              virDomainDevicePCIAddress *guestAddr);
+                              virDevicePCIAddress *guestAddr);
 
 int qemuMonitorJSONAddPCINetwork(qemuMonitorPtr mon,
                                  const char *nicstr,
-                                 virDomainDevicePCIAddress *guestAddr);
+                                 virDevicePCIAddress *guestAddr);
 
 int qemuMonitorJSONRemovePCIDevice(qemuMonitorPtr mon,
-                                   virDomainDevicePCIAddress *guestAddr);
+                                   virDevicePCIAddress *guestAddr);
 
 int qemuMonitorJSONSendFileHandle(qemuMonitorPtr mon,
                                   const char *fdname,
@@ -201,11 +203,11 @@ int qemuMonitorJSONGetPtyPaths(qemuMonitorPtr mon,
 
 int qemuMonitorJSONAttachPCIDiskController(qemuMonitorPtr mon,
                                            const char *bus,
-                                           virDomainDevicePCIAddress *guestAddr);
+                                           virDevicePCIAddress *guestAddr);
 
 int qemuMonitorJSONAttachDrive(qemuMonitorPtr mon,
                                const char *drivestr,
-                               virDomainDevicePCIAddress *controllerAddr,
+                               virDevicePCIAddress *controllerAddr,
                                virDomainDeviceDriveAddress *driveAddr);
 
 int qemuMonitorJSONGetAllPCIAddresses(qemuMonitorPtr mon,

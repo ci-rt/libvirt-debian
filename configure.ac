@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.9.13], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.10.0], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -23,16 +23,55 @@ AM_SILENT_RULES([yes])
 
 AC_CANONICAL_HOST
 
+# First extract pieces from the version number string
 LIBVIRT_MAJOR_VERSION=`echo $VERSION | awk -F. '{print $1}'`
 LIBVIRT_MINOR_VERSION=`echo $VERSION | awk -F. '{print $2}'`
 LIBVIRT_MICRO_VERSION=`echo $VERSION | awk -F. '{print $3}'`
 LIBVIRT_VERSION=$LIBVIRT_MAJOR_VERSION.$LIBVIRT_MINOR_VERSION.$LIBVIRT_MICRO_VERSION$LIBVIRT_MICRO_VERSION_SUFFIX
-LIBVIRT_VERSION_INFO=`expr $LIBVIRT_MAJOR_VERSION + $LIBVIRT_MINOR_VERSION`:$LIBVIRT_MICRO_VERSION:$LIBVIRT_MINOR_VERSION
 LIBVIRT_VERSION_NUMBER=`expr $LIBVIRT_MAJOR_VERSION \* 1000000 + $LIBVIRT_MINOR_VERSION \* 1000 + $LIBVIRT_MICRO_VERSION`
+
+# In libtool terminology we need to figure out:
+#
+# CURRENT
+#     The most recent interface number that this library implements.
+#
+# REVISION
+#     The implementation number of the CURRENT interface.
+#
+# AGE
+#     The difference between the newest and oldest interfaces that this
+#     library implements.
+#
+# In other words, the library implements all the interface numbers
+# in the range from number `CURRENT - AGE' to `CURRENT'.
+#
+# Libtool assigns the soname version from `CURRENT - AGE', and we
+# don't want that to ever change in libvirt. ie it must always be
+# zero, to produce libvirt.so.0.
+#
+# We would, however, like the libvirt version number reflected
+# in the so version'd symlinks, and this is based on AGE.REVISION
+# eg  libvirt.so.0.AGE.REVISION
+#
+# Assuming we do ever want to break soname version, this can
+# toggled. But seriously, don't ever touch this.
+LIBVIRT_SONUM=0
+
+# The following examples show what libtool will do
+#
+# Input: 0.9.14 ->   libvirt.so.0.9.14
+# Input: 1.0.0  ->   libvirt.so.0.1000.0
+# Input: 2.5.8  ->   libvirt.so.0.2005.8
+#
+AGE=`expr $LIBVIRT_MAJOR_VERSION '*' 1000 + $LIBVIRT_MINOR_VERSION`
+REVISION=$LIBVIRT_MICRO_VERSION
+CURRENT=`expr $LIBVIRT_SONUM + $AGE`
+LIBVIRT_VERSION_INFO=$CURRENT:$REVISION:$AGE
 
 AC_SUBST([LIBVIRT_MAJOR_VERSION])
 AC_SUBST([LIBVIRT_MINOR_VERSION])
 AC_SUBST([LIBVIRT_MICRO_VERSION])
+AC_SUBST([LIBVIRT_SONUM])
 AC_SUBST([LIBVIRT_VERSION])
 AC_SUBST([LIBVIRT_VERSION_INFO])
 AC_SUBST([LIBVIRT_VERSION_NUMBER])
@@ -73,6 +112,7 @@ OPENWSMAN_REQUIRED="2.2.3"
 LIBPCAP_REQUIRED="1.0.0"
 LIBNL_REQUIRED="1.1"
 LIBSSH2_REQUIRED="1.0"
+LIBSSH2_TRANSPORT_REQUIRED="1.3"
 LIBBLKID_REQUIRED="2.17"
 DBUS_REQUIRED="1.0.0"
 
@@ -132,8 +172,8 @@ AC_CHECK_SIZEOF([long])
 dnl Availability of various common functions (non-fatal if missing),
 dnl and various less common threadsafe functions
 AC_CHECK_FUNCS_ONCE([cfmakeraw geteuid getgid getgrnam_r getmntent_r \
-  getpwuid_r getuid initgroups kill mmap posix_fallocate posix_memalign \
-  regexec sched_getaffinity])
+  getpwuid_r getuid initgroups kill mmap newlocale posix_fallocate \
+  posix_memalign regexec sched_getaffinity])
 
 dnl Availability of pthread functions (if missing, win32 threading is
 dnl assumed).  Because of $LIB_PTHREAD, we cannot use AC_CHECK_FUNCS_ONCE.
@@ -158,6 +198,63 @@ AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
   sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h \
   net/if.h execinfo.h])
+
+dnl We need to decide at configure time if libvirt will use real atomic
+dnl operations ("lock free") or emulated ones with a mutex.
+
+dnl Note that the atomic ops are only available with GCC on x86 when
+dnl using -march=i486 or higher.  If we detect that the atomic ops are
+dnl not available but would be available given the right flags, we want
+dnl to abort and advise the user to fix their CFLAGS.  It's better to do
+dnl that then to silently fall back on emulated atomic ops just because
+dnl the user had the wrong build environment.
+
+atomic_ops=
+
+AC_MSG_CHECKING([for atomic ops implementation])
+
+AC_TRY_COMPILE([], [__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4;],[
+  atomic_ops=gcc
+],[])
+
+if test "$atomic_ops" = "" ; then
+  SAVE_CFLAGS="${CFLAGS}"
+  CFLAGS="-march=i486"
+  AC_TRY_COMPILE([],
+                 [__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4;],
+                 [AC_MSG_ERROR([Libvirt must be built with -march=i486 or later.])],
+                 [])
+  CFLAGS="${SAVE_CFLAGS}"
+
+  case "$host" in
+    *-*-mingw* | *-*-msvc* )
+      atomic_ops=win32
+      ;;
+    *)
+      if test "$ac_cv_header_pthread_h" = "yes" ; then
+        atomic_ops=pthread
+      else
+        AC_MSG_ERROR([Libvirt must be built with GCC or have pthread.h on non-Win32 platforms])
+      fi
+      ;;
+  esac
+fi
+
+case "$atomic_ops" in
+   gcc)
+     AC_DEFINE([VIR_ATOMIC_OPS_GCC],[1],[Use GCC atomic ops])
+     ;;
+   win32)
+     AC_DEFINE([VIR_ATOMIC_OPS_WIN32],[1],[Use Win32 atomic ops])
+     ;;
+   pthread)
+     AC_DEFINE([VIR_ATOMIC_OPS_PTHREAD],[1],[Use pthread atomic ops emulation])
+     ;;
+esac
+AM_CONDITIONAL([WITH_ATOMIC_OPS_PTHREAD],[test "$atomic_ops" = "pthread"])
+AC_MSG_RESULT([$atomic_ops])
+
+
 
 AC_MSG_CHECKING([for struct ifreq in net/if.h])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
@@ -330,6 +427,8 @@ AC_ARG_WITH([esx],
   AC_HELP_STRING([--with-esx], [add ESX support @<:@default=check@:>@]),[],[with_esx=check])
 AC_ARG_WITH([hyperv],
   AC_HELP_STRING([--with-hyperv], [add Hyper-V support @<:@default=check@:>@]),[],[with_hyperv=check])
+AC_ARG_WITH([parallels],
+  AC_HELP_STRING([--with-parallels], [add Parallels Cloud Server support @<:@default=check@:>@]),[],[with_parallels=check])
 AC_ARG_WITH([test],
   AC_HELP_STRING([--with-test], [add test driver support @<:@default=yes@:>@]),[],[with_test=yes])
 AC_ARG_WITH([remote],
@@ -342,6 +441,8 @@ AC_ARG_WITH([console-lock-files],
                   (use auto for default paths on some platforms)
                   @<:@default=auto@:>@]),
   [],[with_console_lock_files=auto])
+AC_ARG_WITH([libssh2_transport],
+  AC_HELP_STRING([--with-libssh2_transport], [libssh2 location @<:@default=check@:>@]),[],[with_libssh2_transport=check])
 
 dnl
 dnl in case someone want to build static binaries
@@ -773,6 +874,9 @@ if test "$with_lxc" = "yes" || test "$with_lxc" = "check"; then
         unshare (!(LO_FLAGS_AUTOCLEAR + EPOLL_CLOEXEC));
     ], [
         with_lxc=yes
+       AC_DEFINE([HAVE_DECL_LO_FLAGS_AUTOCLEAR], [1],
+         [Define to 1 if you have the declaration of `LO_FLAGS_AUTOCLEAR',
+         and to 0 if you don't.])
     ], [
         if test "$with_lxc" = "check"; then
             with_lxc=no
@@ -786,6 +890,26 @@ if test "$with_lxc" = "yes" ; then
     AC_DEFINE_UNQUOTED([WITH_LXC], 1, [whether LXC driver is enabled])
 fi
 AM_CONDITIONAL([WITH_LXC], [test "$with_lxc" = "yes"])
+
+dnl
+dnl Checks for the Parallels driver
+dnl
+
+if test "$with_parallels" = "check"; then
+    with_parallels=$with_linux
+    if test ! $host_cpu = 'x86_64'; then
+        with_parallels=no
+    fi
+fi
+
+if test "$with_parallels" = "yes" && test "$with_linux" = "no"; then
+    AC_MSG_ERROR([The Parallels driver can be enabled on Linux only.])
+fi
+
+if test "$with_parallels" = "yes"; then
+    AC_DEFINE_UNQUOTED([WITH_PARALLELS], 1, [whether Parallels driver is enabled])
+fi
+AM_CONDITIONAL([WITH_PARALLELS], [test "$with_parallels" = "yes"])
 
 dnl
 dnl check for shell that understands <> redirection without truncation,
@@ -1003,8 +1127,11 @@ if test "$with_qemu:$with_yajl" = yes:check; then
     else
       [qemu_version_sed='s/.*ersion \([0-9.,]*\).*/\1/']
       qemu_version=`$QEMU -version | sed "$qemu_version_sed"`
-      AS_VERSION_COMPARE([$qemu_version], [0.15],
-                         [], [with_yajl=yes], [with_yajl=yes])
+      case $qemu_version in
+        [[1-9]].* | 0.15.* ) with_yajl=yes ;;
+        0.* | '' ) ;;
+        *) AC_MSG_ERROR([Unexpected qemu version string]) ;;
+      esac
     fi
   fi
 fi
@@ -1203,6 +1330,22 @@ AM_CONDITIONAL([HAVE_POLKIT1], [test "x$with_polkit1" = "xyes"])
 AC_SUBST([POLKIT_CFLAGS])
 AC_SUBST([POLKIT_LIBS])
 
+dnl firewalld
+AC_ARG_WITH([firewalld],
+  AC_HELP_STRING([--with-firewalld], [enable firewalld support @<:@default=check@:>@]),
+  [],
+  [with_firewalld=check])
+if test "x$with_firewalld" = "xcheck" ; then
+   with_firewalld=$with_dbus
+fi
+if test "x$with_firewalld" == "xyes" ; then
+  if test "x$with_dbus" != "xyes" ; then
+     AC_MSG_ERROR([You must have dbus enabled for firewalld support])
+  fi
+  AC_DEFINE_UNQUOTED([HAVE_FIREWALLD], [1], [whether firewalld support is enabled])
+fi
+AM_CONDITIONAL([HAVE_FIREWALLD], [test "x$with_firewalld" != "xno"])
+
 dnl Avahi library
 AC_ARG_WITH([avahi],
   AC_HELP_STRING([--with-avahi], [use avahi to advertise remote daemon @<:@default=check@:>@]),
@@ -1226,7 +1369,6 @@ if test "x$with_avahi" = "xyes" || test "x$with_avahi" = "xcheck"; then
       [whether Avahi is used to broadcast server presense])
   fi
 fi
-AM_CONDITIONAL([HAVE_AVAHI], [test "x$with_avahi" = "xyes"])
 AC_SUBST([AVAHI_CFLAGS])
 AC_SUBST([AVAHI_LIBS])
 
@@ -1628,21 +1770,45 @@ AM_CONDITIONAL([WITH_UML], [test "$with_uml" = "yes"])
 
 
 dnl
-dnl check for libssh2 (PHYP)
+dnl check for libssh2 (PHYP and libssh2 transport)
 dnl
 
 LIBSSH2_CFLAGS=""
 LIBSSH2_LIBS=""
 
-if test "$with_phyp" = "yes" || test "$with_phyp" = "check"; then
+if test "$with_phyp" = "yes" || test "$with_phyp" = "check" ||
+   test "$with_libssh2_transport" = "yes"  || test "$with_libssh2_transport" = "check"; then
     PKG_CHECK_MODULES([LIBSSH2], [libssh2 >= $LIBSSH2_REQUIRED], [
-        with_phyp=yes
+        if test "$with_phyp" = "check"; then
+            with_phyp=yes
+        fi
+        if $PKG_CONFIG "libssh2 >= $LIBSSH2_TRANSPORT_REQUIRED"; then
+            if test "$with_libssh2_transport" = "check"; then
+                with_libssh2_transport=yes
+            fi
+        else
+            if test "$with_libssh2_transport" = "check"; then
+                with_libssh2_transport=no
+                AC_MSG_NOTICE([libssh2 >= $LIBSSH2_TRANSPORT_REQUIRED is required for libssh2 transport])
+            fi
+            if test "$with_libssh2_transport" = "yes"; then
+                AC_MSG_ERROR([libssh2 >= $LIBSSH2_TRANSPORT_REQUIRED is required for libssh2 transport])
+            fi
+        fi
     ], [
         if test "$with_phyp" = "check"; then
             with_phyp=no
             AC_MSG_NOTICE([libssh2 is required for Phyp driver, disabling it])
-        else
+        fi
+        if test "$with_phyp" = "yes"; then
             AC_MSG_ERROR([libssh2 >= $LIBSSH2_REQUIRED is required for Phyp driver])
+        fi
+        if test "$with_libssh2_transport" = "check"; then
+            with_libssh2_transport=no
+            AC_MSG_NOTICE([libssh2 >= $LIBSSH2_TRANSPORT_REQUIRED is required for libssh2 transport])
+        fi
+        if test "$with_libssh2_transport" = "yes"; then
+            AC_MSG_ERROR([libssh2 >= $LIBSSH2_TRANSPORT_REQUIRED is required for libssh2 transport])
         fi
     ])
 fi
@@ -1650,7 +1816,12 @@ fi
 if test "$with_phyp" = "yes"; then
     AC_DEFINE_UNQUOTED([WITH_PHYP], 1, [whether IBM HMC / IVM driver is enabled])
 fi
+if test "$with_libssh2_transport" = "yes"; then
+    AC_DEFINE_UNQUOTED([HAVE_LIBSSH2], 1, [whether libssh2 transport is enabled])
+fi
+
 AM_CONDITIONAL([WITH_PHYP],[test "$with_phyp" = "yes"])
+AM_CONDITIONAL([HAVE_LIBSSH2], [test "$with_libssh2_transport" = "yes"])
 
 AC_SUBST([LIBSSH2_CFLAGS])
 AC_SUBST([LIBSSH2_LIBS])
@@ -1825,6 +1996,8 @@ AC_ARG_WITH([storage-disk],
   AC_HELP_STRING([--with-storage-disk], [with GPartd Disk backend for the storage driver @<:@default=check@:>@]),[],[with_storage_disk=check])
 AC_ARG_WITH([storage-rbd],
   AC_HELP_STRING([--with-storage-rbd], [with RADOS Block Device backend for the storage driver @<:@default=check@:>@]),[],[with_storage_rbd=check])
+AC_ARG_WITH([storage-sheepdog],
+  AC_HELP_STRING([--with-storage-sheepdog], [with Sheepdog backend for the storage driver @<:@default=check@:>@]),[],[with_storage_sheepdog=check])
 
 if test "$with_libvirtd" = "no"; then
   with_storage_dir=no
@@ -1835,6 +2008,7 @@ if test "$with_libvirtd" = "no"; then
   with_storage_mpath=no
   with_storage_disk=no
   with_storage_rbd=no
+  with_storage_sheepdog=no
 fi
 if test "$with_storage_dir" = "yes" ; then
   AC_DEFINE_UNQUOTED([WITH_STORAGE_DIR], 1, [whether directory backend for storage driver is enabled])
@@ -1999,7 +2173,7 @@ if test "$with_storage_rbd" = "yes" || test "$with_storage_rbd" = "check"; then
 
     if test "$LIBRBD_FOUND" = "yes"; then
         with_storage_rbd=yes
-        LIBRBD_LIBS="-lrbd -lrados -lcrypto"
+        LIBRBD_LIBS="-lrbd -lrados"
         AC_DEFINE_UNQUOTED([WITH_STORAGE_RBD], [1],
          [whether RBD backend for storage driver is enabled])
     else
@@ -2008,6 +2182,34 @@ if test "$with_storage_rbd" = "yes" || test "$with_storage_rbd" = "check"; then
 fi
 AM_CONDITIONAL([WITH_STORAGE_RBD], [test "$with_storage_rbd" = "yes"])
 AC_SUBST([LIBRBD_LIBS])
+
+if test "$with_storage_sheepdog" = "yes" ||
+   test "$with_storage_sheepdog" = "check"; then
+  AC_PATH_PROG([COLLIE], [collie], [], [$PATH:/sbin:/usr/sbin])
+
+  if test "$with_storage_sheepdog" = "yes"; then
+    if test -z "$COLLIE"; then
+      AC_MSG_ERROR([We need collie for Sheepdog storage driver])
+    fi
+  else
+    if test -z "$COLLIE"; then
+      with_storage_sheepdog=no
+    fi
+
+    if test "$with_storage_sheepdog" = "check"; then
+      with_storage_sheepdog=yes
+    fi
+  fi
+
+  if test "$with_storage_sheepdog" = "yes"; then
+    AC_DEFINE_UNQUOTED([WITH_STORAGE_SHEEPDOG], 1,
+      [whether Sheepdog backend for storage driver is enabled])
+    AC_DEFINE_UNQUOTED([COLLIE],["$COLLIE"],[Location of collie program])
+  fi
+fi
+AM_CONDITIONAL([WITH_STORAGE_SHEEPDOG],
+  [test "$with_storage_sheepdog" = "yes"])
+
 
 LIBPARTED_CFLAGS=
 LIBPARTED_LIBS=
@@ -2766,6 +2968,11 @@ test "x$lv_cv_static_analysis" = xyes && t=1
 AC_DEFINE_UNQUOTED([STATIC_ANALYSIS], [$t],
   [Define to 1 when performing static analysis.])
 
+# Some GNULIB base64 symbols clash with a kerberos library
+AC_DEFINE_UNQUOTED([isbase64],[libvirt_gl_isbase64],[Hack to avoid symbol clash])
+AC_DEFINE_UNQUOTED([base64_encode],[libvirt_gl_base64_encode],[Hack to avoid symbol clash])
+AC_DEFINE_UNQUOTED([base64_encode_alloc],[libvirt_gl_base64_encode_alloc],[Hack to avoid symbol clash])
+
 AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
 	  docs/schemas/Makefile \
 	  gnulib/lib/Makefile \
@@ -2793,25 +3000,26 @@ AC_MSG_NOTICE([=====================])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Drivers])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([     Xen: $with_xen])
-AC_MSG_NOTICE([    QEMU: $with_qemu])
-AC_MSG_NOTICE([     UML: $with_uml])
-AC_MSG_NOTICE([  OpenVZ: $with_openvz])
-AC_MSG_NOTICE([  VMware: $with_vmware])
-AC_MSG_NOTICE([    VBox: $with_vbox])
-AC_MSG_NOTICE([  XenAPI: $with_xenapi])
-AC_MSG_NOTICE([xenlight: $with_libxl])
-AC_MSG_NOTICE([     LXC: $with_lxc])
-AC_MSG_NOTICE([    PHYP: $with_phyp])
-AC_MSG_NOTICE([     ESX: $with_esx])
-AC_MSG_NOTICE([ Hyper-V: $with_hyperv])
-AC_MSG_NOTICE([    Test: $with_test])
-AC_MSG_NOTICE([  Remote: $with_remote])
-AC_MSG_NOTICE([ Network: $with_network])
-AC_MSG_NOTICE([Libvirtd: $with_libvirtd])
-AC_MSG_NOTICE([   netcf: $with_netcf])
-AC_MSG_NOTICE([ macvtap: $with_macvtap])
-AC_MSG_NOTICE([virtport: $with_virtualport])
+AC_MSG_NOTICE([      Xen: $with_xen])
+AC_MSG_NOTICE([     QEMU: $with_qemu])
+AC_MSG_NOTICE([      UML: $with_uml])
+AC_MSG_NOTICE([   OpenVZ: $with_openvz])
+AC_MSG_NOTICE([   VMware: $with_vmware])
+AC_MSG_NOTICE([     VBox: $with_vbox])
+AC_MSG_NOTICE([   XenAPI: $with_xenapi])
+AC_MSG_NOTICE([ xenlight: $with_libxl])
+AC_MSG_NOTICE([      LXC: $with_lxc])
+AC_MSG_NOTICE([     PHYP: $with_phyp])
+AC_MSG_NOTICE([      ESX: $with_esx])
+AC_MSG_NOTICE([  Hyper-V: $with_hyperv])
+AC_MSG_NOTICE([Parallels: $with_parallels])
+AC_MSG_NOTICE([     Test: $with_test])
+AC_MSG_NOTICE([   Remote: $with_remote])
+AC_MSG_NOTICE([  Network: $with_network])
+AC_MSG_NOTICE([ Libvirtd: $with_libvirtd])
+AC_MSG_NOTICE([    netcf: $with_netcf])
+AC_MSG_NOTICE([  macvtap: $with_macvtap])
+AC_MSG_NOTICE([ virtport: $with_virtualport])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Storage Drivers])
 AC_MSG_NOTICE([])
@@ -2824,6 +3032,7 @@ AC_MSG_NOTICE([    SCSI: $with_storage_scsi])
 AC_MSG_NOTICE([   mpath: $with_storage_mpath])
 AC_MSG_NOTICE([    Disk: $with_storage_disk])
 AC_MSG_NOTICE([     RBD: $with_storage_rbd])
+AC_MSG_NOTICE([Sheepdog: $with_storage_sheepdog])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Security Drivers])
 AC_MSG_NOTICE([])
@@ -2873,6 +3082,7 @@ AC_MSG_NOTICE([ sanlock: $SANLOCK_CFLAGS $SANLOCK_LIBS])
 else
 AC_MSG_NOTICE([ sanlock: no])
 fi
+AC_MSG_NOTICE([firewalld: $with_firewalld])
 if test "$with_avahi" = "yes" ; then
 AC_MSG_NOTICE([   avahi: $AVAHI_CFLAGS $AVAHI_LIBS])
 else
@@ -2962,6 +3172,12 @@ AC_MSG_NOTICE([     xdr: $XDR_CFLAGS])
 else
 AC_MSG_NOTICE([     xdr: no])
 fi
+if test "$with_storage_rbd" = "yes" ; then
+AC_MSG_NOTICE([     rbd: $LIBRBD_LIBS])
+else
+AC_MSG_NOTICE([     rbd: no])
+fi
+
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Test suite])
 AC_MSG_NOTICE([])

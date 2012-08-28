@@ -4,7 +4,19 @@
  * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright IBM Corp. 2008
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library;  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *  Dan Smith <danms@us.ibm.com>
@@ -12,7 +24,6 @@
 #include <config.h>
 
 #include <stdio.h>
-#include <stdint.h>
 #if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
 # include <mntent.h>
 #endif
@@ -532,7 +543,8 @@ static int virCgroupMakeGroup(virCgroupPtr parent, virCgroupPtr group,
         /* We need to control cpu bandwidth for each vcpu now */
         if ((flags & VIR_CGROUP_VCPU) &&
             (i != VIR_CGROUP_CONTROLLER_CPU &&
-             i != VIR_CGROUP_CONTROLLER_CPUACCT)) {
+             i != VIR_CGROUP_CONTROLLER_CPUACCT &&
+             i != VIR_CGROUP_CONTROLLER_CPUSET)) {
             /* treat it as unmounted and we can use virCgroupAddTask */
             VIR_FREE(group->controllers[i].mountPoint);
             continue;
@@ -791,6 +803,115 @@ int virCgroupAddTask(virCgroupPtr group, pid_t pid)
     return rc;
 }
 
+/**
+ * virCgroupAddTaskController:
+ *
+ * @group: The cgroup to add a task to
+ * @pid: The pid of the task to add
+ * @controller: The cgroup controller to be operated on
+ *
+ * Returns: 0 on success or -errno on failure
+ */
+int virCgroupAddTaskController(virCgroupPtr group, pid_t pid, int controller)
+{
+    if (controller < 0 || controller > VIR_CGROUP_CONTROLLER_LAST)
+        return -EINVAL;
+
+    if (!group->controllers[controller].mountPoint)
+        return -EINVAL;
+
+    return virCgroupSetValueU64(group, controller, "tasks",
+                                (unsigned long long)pid);
+}
+
+
+static int virCgroupAddTaskStrController(virCgroupPtr group,
+                                        const char *pidstr,
+                                        int controller)
+{
+    char *str = NULL, *cur = NULL, *next = NULL;
+    unsigned long long p = 0;
+    int rc = 0;
+    char *endp;
+
+    if (virAsprintf(&str, "%s", pidstr) < 0)
+        return -1;
+
+    cur = str;
+    while (*cur != '\0') {
+        rc = virStrToLong_ull(cur, &endp, 10, &p);
+        if (rc != 0)
+            goto cleanup;
+
+        rc = virCgroupAddTaskController(group, p, controller);
+        if (rc != 0)
+            goto cleanup;
+
+        next = strchr(cur, '\n');
+        if (next) {
+            cur = next + 1;
+            *next = '\0';
+        } else {
+            break;
+        }
+    }
+
+cleanup:
+    VIR_FREE(str);
+    return rc;
+}
+
+/**
+ * virCgroupMoveTask:
+ *
+ * @src_group: The source cgroup where all tasks are removed from
+ * @dest_group: The destination where all tasks are added to
+ * @controller: The cgroup controller to be operated on
+ *
+ * Returns: 0 on success or -errno on failure
+ */
+int virCgroupMoveTask(virCgroupPtr src_group, virCgroupPtr dest_group,
+                      int controller)
+{
+    int rc = 0, err = 0;
+    char *content = NULL;
+
+    if (controller < VIR_CGROUP_CONTROLLER_CPU ||
+        controller > VIR_CGROUP_CONTROLLER_BLKIO)
+        return -EINVAL;
+
+    if (!src_group->controllers[controller].mountPoint ||
+        !dest_group->controllers[controller].mountPoint) {
+        VIR_WARN("no vm cgroup in controller %d", controller);
+        return 0;
+    }
+
+    rc = virCgroupGetValueStr(src_group, controller, "tasks", &content);
+    if (rc != 0)
+        return rc;
+
+    rc = virCgroupAddTaskStrController(dest_group, content, controller);
+    if (rc != 0)
+        goto cleanup;
+
+    VIR_FREE(content);
+
+    return 0;
+
+cleanup:
+    /*
+     * We don't need to recover dest_cgroup because cgroup will make sure
+     * that one task only resides in one cgroup of the same controller.
+     */
+    err = virCgroupAddTaskStrController(src_group, content, controller);
+    if (err != 0)
+        VIR_ERROR(_("Cannot recover cgroup %s from %s"),
+                  src_group->controllers[controller].mountPoint,
+                  dest_group->controllers[controller].mountPoint);
+    VIR_FREE(content);
+
+    return rc;
+}
 
 /**
  * virCgroupForDriver:
@@ -945,6 +1066,48 @@ int virCgroupForVcpu(virCgroupPtr driver ATTRIBUTE_UNUSED,
 }
 #endif
 
+/**
+ * virCgroupForEmulator:
+ *
+ * @driver: group for the domain
+ * @group: Pointer to returned virCgroupPtr
+ *
+ * Returns: 0 on success or -errno on failure
+ */
+#if defined HAVE_MNTENT_H && defined HAVE_GETMNTENT_R
+int virCgroupForEmulator(virCgroupPtr driver,
+                          virCgroupPtr *group,
+                          int create)
+{
+    int rc;
+    char *path;
+
+    if (driver == NULL)
+        return -EINVAL;
+
+    if (virAsprintf(&path, "%s/emulator", driver->path) < 0)
+        return -ENOMEM;
+
+    rc = virCgroupNew(path, group);
+    VIR_FREE(path);
+
+    if (rc == 0) {
+        rc = virCgroupMakeGroup(driver, *group, create, VIR_CGROUP_VCPU);
+        if (rc != 0)
+            virCgroupFree(group);
+    }
+
+    return rc;
+}
+#else
+int virCgroupForEmulator(virCgroupPtr driver ATTRIBUTE_UNUSED,
+                          virCgroupPtr *group ATTRIBUTE_UNUSED,
+                          int create ATTRIBUTE_UNUSED)
+{
+    return -ENXIO;
+}
+
+#endif
 /**
  * virCgroupSetBlkioWeight:
  *
@@ -1237,6 +1400,38 @@ int virCgroupGetCpusetMems(virCgroupPtr group, char **mems)
                                 VIR_CGROUP_CONTROLLER_CPUSET,
                                 "cpuset.mems",
                                 mems);
+}
+
+/**
+ * virCgroupSetCpusetCpus:
+ *
+ * @group: The cgroup to set cpuset.cpus for
+ * @cpus: the cpus to set
+ *
+ * Retuens: 0 on success
+ */
+int virCgroupSetCpusetCpus(virCgroupPtr group, const char *cpus)
+{
+    return virCgroupSetValueStr(group,
+                                VIR_CGROUP_CONTROLLER_CPUSET,
+                                "cpuset.cpus",
+                                cpus);
+}
+
+/**
+ * virCgroupGetCpusetCpus:
+ *
+ * @group: The cgroup to get cpuset.cpus for
+ * @cpus: the cpus to get
+ *
+ * Retuens: 0 on success
+ */
+int virCgroupGetCpusetCpus(virCgroupPtr group, char **cpus)
+{
+    return virCgroupGetValueStr(group,
+                                VIR_CGROUP_CONTROLLER_CPUSET,
+                                "cpuset.cpus",
+                                cpus);
 }
 
 /**

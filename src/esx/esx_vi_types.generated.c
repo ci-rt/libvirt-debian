@@ -1558,6 +1558,44 @@ ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(HostFileSystemVolume,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostIpConfig
+ */
+
+/* esxVI_HostIpConfig_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostIpConfig)
+
+/* esxVI_HostIpConfig_Free */
+ESX_VI__TEMPLATE__FREE(HostIpConfig,
+{
+    VIR_FREE(item->ipAddress);
+    VIR_FREE(item->subnetMask);
+})
+
+/* esxVI_HostIpConfig_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostIpConfig,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(dhcp)
+})
+
+/* esxVI_HostIpConfig_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostIpConfig,
+{
+    (*dest)->dhcp = src->dhcp;
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, ipAddress)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, subnetMask)
+})
+
+/* esxVI_HostIpConfig_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostIpConfig,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, dhcp)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, ipAddress)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, subnetMask)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Object: HostMountInfo
  */
 
@@ -1647,6 +1685,489 @@ ESX_VI__TEMPLATE__DESERIALIZE(HostNasVolume,
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostNetOffloadCapabilities
+ */
+
+/* esxVI_HostNetOffloadCapabilities_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostNetOffloadCapabilities)
+
+/* esxVI_HostNetOffloadCapabilities_Free */
+ESX_VI__TEMPLATE__FREE(HostNetOffloadCapabilities,
+{
+    /* no properties to be freed */
+})
+
+/* esxVI_HostNetOffloadCapabilities_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostNetOffloadCapabilities,
+{
+    /* no required properties */
+})
+
+/* esxVI_HostNetOffloadCapabilities_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostNetOffloadCapabilities,
+{
+    (*dest)->csumOffload = src->csumOffload;
+    (*dest)->tcpSegmentation = src->tcpSegmentation;
+    (*dest)->zeroCopyXmit = src->zeroCopyXmit;
+})
+
+/* esxVI_HostNetOffloadCapabilities_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostNetOffloadCapabilities,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, csumOffload)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, tcpSegmentation)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, zeroCopyXmit)
+})
+
+/* esxVI_HostNetOffloadCapabilities_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostNetOffloadCapabilities,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, csumOffload)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, tcpSegmentation)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, zeroCopyXmit)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostNetworkPolicy
+ */
+
+/* esxVI_HostNetworkPolicy_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostNetworkPolicy)
+
+/* esxVI_HostNetworkPolicy_Free */
+ESX_VI__TEMPLATE__FREE(HostNetworkPolicy,
+{
+    esxVI_HostNetworkSecurityPolicy_Free(&item->security);
+    esxVI_HostNicTeamingPolicy_Free(&item->nicTeaming);
+    esxVI_HostNetOffloadCapabilities_Free(&item->offloadPolicy);
+    esxVI_HostNetworkTrafficShapingPolicy_Free(&item->shapingPolicy);
+})
+
+/* esxVI_HostNetworkPolicy_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostNetworkPolicy,
+{
+    /* no required properties */
+})
+
+/* esxVI_HostNetworkPolicy_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostNetworkPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostNetworkSecurityPolicy, security)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostNicTeamingPolicy, nicTeaming)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostNetOffloadCapabilities, offloadPolicy)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostNetworkTrafficShapingPolicy, shapingPolicy)
+})
+
+/* esxVI_HostNetworkPolicy_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostNetworkPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostNetworkSecurityPolicy, security)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostNicTeamingPolicy, nicTeaming)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostNetOffloadCapabilities, offloadPolicy)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostNetworkTrafficShapingPolicy, shapingPolicy)
+})
+
+/* esxVI_HostNetworkPolicy_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostNetworkPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostNetworkSecurityPolicy, security)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostNicTeamingPolicy, nicTeaming)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostNetOffloadCapabilities, offloadPolicy)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostNetworkTrafficShapingPolicy, shapingPolicy)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostNetworkSecurityPolicy
+ */
+
+/* esxVI_HostNetworkSecurityPolicy_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostNetworkSecurityPolicy)
+
+/* esxVI_HostNetworkSecurityPolicy_Free */
+ESX_VI__TEMPLATE__FREE(HostNetworkSecurityPolicy,
+{
+    /* no properties to be freed */
+})
+
+/* esxVI_HostNetworkSecurityPolicy_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostNetworkSecurityPolicy,
+{
+    /* no required properties */
+})
+
+/* esxVI_HostNetworkSecurityPolicy_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostNetworkSecurityPolicy,
+{
+    (*dest)->allowPromiscuous = src->allowPromiscuous;
+    (*dest)->macChanges = src->macChanges;
+    (*dest)->forgedTransmits = src->forgedTransmits;
+})
+
+/* esxVI_HostNetworkSecurityPolicy_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostNetworkSecurityPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, allowPromiscuous)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, macChanges)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, forgedTransmits)
+})
+
+/* esxVI_HostNetworkSecurityPolicy_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostNetworkSecurityPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, allowPromiscuous)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, macChanges)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, forgedTransmits)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostNetworkTrafficShapingPolicy
+ */
+
+/* esxVI_HostNetworkTrafficShapingPolicy_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostNetworkTrafficShapingPolicy)
+
+/* esxVI_HostNetworkTrafficShapingPolicy_Free */
+ESX_VI__TEMPLATE__FREE(HostNetworkTrafficShapingPolicy,
+{
+    esxVI_Long_Free(&item->averageBandwidth);
+    esxVI_Long_Free(&item->peakBandwidth);
+    esxVI_Long_Free(&item->burstSize);
+})
+
+/* esxVI_HostNetworkTrafficShapingPolicy_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostNetworkTrafficShapingPolicy,
+{
+    /* no required properties */
+})
+
+/* esxVI_HostNetworkTrafficShapingPolicy_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostNetworkTrafficShapingPolicy,
+{
+    (*dest)->enabled = src->enabled;
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Long, averageBandwidth)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Long, peakBandwidth)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Long, burstSize)
+})
+
+/* esxVI_HostNetworkTrafficShapingPolicy_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostNetworkTrafficShapingPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, enabled)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, averageBandwidth)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, peakBandwidth)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Long, burstSize)
+})
+
+/* esxVI_HostNetworkTrafficShapingPolicy_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostNetworkTrafficShapingPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, enabled)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, averageBandwidth)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, peakBandwidth)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Long, burstSize)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostNicFailureCriteria
+ */
+
+/* esxVI_HostNicFailureCriteria_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostNicFailureCriteria)
+
+/* esxVI_HostNicFailureCriteria_Free */
+ESX_VI__TEMPLATE__FREE(HostNicFailureCriteria,
+{
+    VIR_FREE(item->checkSpeed);
+    esxVI_Int_Free(&item->speed);
+    esxVI_Int_Free(&item->percentage);
+})
+
+/* esxVI_HostNicFailureCriteria_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostNicFailureCriteria,
+{
+    /* no required properties */
+})
+
+/* esxVI_HostNicFailureCriteria_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostNicFailureCriteria,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, checkSpeed)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Int, speed)
+    (*dest)->checkDuplex = src->checkDuplex;
+    (*dest)->fullDuplex = src->fullDuplex;
+    (*dest)->checkErrorPercent = src->checkErrorPercent;
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Int, percentage)
+    (*dest)->checkBeacon = src->checkBeacon;
+})
+
+/* esxVI_HostNicFailureCriteria_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostNicFailureCriteria,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, checkSpeed)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, speed)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, checkDuplex)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, fullDuplex)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, checkErrorPercent)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, percentage)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, checkBeacon)
+})
+
+/* esxVI_HostNicFailureCriteria_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostNicFailureCriteria,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, checkSpeed)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, speed)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, checkDuplex)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, fullDuplex)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, checkErrorPercent)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, percentage)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, checkBeacon)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostNicOrderPolicy
+ */
+
+/* esxVI_HostNicOrderPolicy_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostNicOrderPolicy)
+
+/* esxVI_HostNicOrderPolicy_Free */
+ESX_VI__TEMPLATE__FREE(HostNicOrderPolicy,
+{
+    esxVI_String_Free(&item->activeNic);
+    esxVI_String_Free(&item->standbyNic);
+})
+
+/* esxVI_HostNicOrderPolicy_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostNicOrderPolicy,
+{
+    /* no required properties */
+})
+
+/* esxVI_HostNicOrderPolicy_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostNicOrderPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_LIST(String, activeNic)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_LIST(String, standbyNic)
+})
+
+/* esxVI_HostNicOrderPolicy_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostNicOrderPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(String, activeNic)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(String, standbyNic)
+})
+
+/* esxVI_HostNicOrderPolicy_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostNicOrderPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(String, activeNic)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(String, standbyNic)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostNicTeamingPolicy
+ */
+
+/* esxVI_HostNicTeamingPolicy_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostNicTeamingPolicy)
+
+/* esxVI_HostNicTeamingPolicy_Free */
+ESX_VI__TEMPLATE__FREE(HostNicTeamingPolicy,
+{
+    VIR_FREE(item->policy);
+    esxVI_HostNicFailureCriteria_Free(&item->failureCriteria);
+    esxVI_HostNicOrderPolicy_Free(&item->nicOrder);
+})
+
+/* esxVI_HostNicTeamingPolicy_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostNicTeamingPolicy,
+{
+    /* no required properties */
+})
+
+/* esxVI_HostNicTeamingPolicy_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostNicTeamingPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, policy)
+    (*dest)->reversePolicy = src->reversePolicy;
+    (*dest)->notifySwitches = src->notifySwitches;
+    (*dest)->rollingOrder = src->rollingOrder;
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostNicFailureCriteria, failureCriteria)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostNicOrderPolicy, nicOrder)
+})
+
+/* esxVI_HostNicTeamingPolicy_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostNicTeamingPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, policy)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, reversePolicy)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, notifySwitches)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Boolean, rollingOrder)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostNicFailureCriteria, failureCriteria)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostNicOrderPolicy, nicOrder)
+})
+
+/* esxVI_HostNicTeamingPolicy_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostNicTeamingPolicy,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, policy)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, reversePolicy)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, notifySwitches)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, rollingOrder)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostNicFailureCriteria, failureCriteria)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostNicOrderPolicy, nicOrder)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostPortGroup
+ */
+
+/* esxVI_HostPortGroup_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostPortGroup)
+
+/* esxVI_HostPortGroup_Free */
+ESX_VI__TEMPLATE__FREE(HostPortGroup,
+{
+    esxVI_HostPortGroup_Free(&item->_next);
+
+    VIR_FREE(item->key);
+    esxVI_HostPortGroupPort_Free(&item->port);
+    VIR_FREE(item->vswitch);
+    esxVI_HostNetworkPolicy_Free(&item->computedPolicy);
+    esxVI_HostPortGroupSpec_Free(&item->spec);
+})
+
+/* esxVI_HostPortGroup_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostPortGroup,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(computedPolicy)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(spec)
+})
+
+/* esxVI_HostPortGroup_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(HostPortGroup)
+
+/* esxVI_HostPortGroup_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostPortGroup)
+
+/* esxVI_HostPortGroup_CastListFromAnyType */
+ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(HostPortGroup)
+
+/* esxVI_HostPortGroup_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostPortGroup,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, key)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(HostPortGroupPort, port)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, vswitch)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostNetworkPolicy, computedPolicy)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostPortGroupSpec, spec)
+})
+
+/* esxVI_HostPortGroup_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostPortGroup)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostPortGroupPort
+ */
+
+/* esxVI_HostPortGroupPort_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostPortGroupPort)
+
+/* esxVI_HostPortGroupPort_Free */
+ESX_VI__TEMPLATE__FREE(HostPortGroupPort,
+{
+    esxVI_HostPortGroupPort_Free(&item->_next);
+
+    VIR_FREE(item->key);
+    esxVI_String_Free(&item->mac);
+    VIR_FREE(item->type);
+})
+
+/* esxVI_HostPortGroupPort_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostPortGroupPort,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(type)
+})
+
+/* esxVI_HostPortGroupPort_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(HostPortGroupPort)
+
+/* esxVI_HostPortGroupPort_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostPortGroupPort,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, key)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(String, mac)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, type)
+})
+
+/* esxVI_HostPortGroupPort_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostPortGroupPort)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostPortGroupSpec
+ */
+
+/* esxVI_HostPortGroupSpec_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostPortGroupSpec)
+
+/* esxVI_HostPortGroupSpec_Free */
+ESX_VI__TEMPLATE__FREE(HostPortGroupSpec,
+{
+    VIR_FREE(item->name);
+    esxVI_Int_Free(&item->vlanId);
+    VIR_FREE(item->vswitchName);
+    esxVI_HostNetworkPolicy_Free(&item->policy);
+})
+
+/* esxVI_HostPortGroupSpec_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostPortGroupSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(name)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(vlanId)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(vswitchName)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(policy)
+})
+
+/* esxVI_HostPortGroupSpec_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostPortGroupSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, vlanId)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, vswitchName)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostNetworkPolicy, policy)
+})
+
+/* esxVI_HostPortGroupSpec_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostPortGroupSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, vlanId)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, vswitchName)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostNetworkPolicy, policy)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * VI Object: HostScsiDiskPartition
  */
 
@@ -1681,6 +2202,441 @@ ESX_VI__TEMPLATE__DESERIALIZE(HostScsiDiskPartition,
 
 /* esxVI_HostScsiDiskPartition_DeserializeList */
 ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostScsiDiskPartition)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostVirtualSwitch
+ */
+
+/* esxVI_HostVirtualSwitch_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostVirtualSwitch)
+
+/* esxVI_HostVirtualSwitch_Free */
+ESX_VI__TEMPLATE__FREE(HostVirtualSwitch,
+{
+    esxVI_HostVirtualSwitch_Free(&item->_next);
+
+    VIR_FREE(item->name);
+    VIR_FREE(item->key);
+    esxVI_Int_Free(&item->numPorts);
+    esxVI_Int_Free(&item->numPortsAvailable);
+    esxVI_Int_Free(&item->mtu);
+    esxVI_String_Free(&item->portgroup);
+    esxVI_String_Free(&item->pnic);
+    esxVI_HostVirtualSwitchSpec_Free(&item->spec);
+})
+
+/* esxVI_HostVirtualSwitch_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostVirtualSwitch,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(name)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(key)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(numPorts)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(numPortsAvailable)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(spec)
+})
+
+/* esxVI_HostVirtualSwitch_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(HostVirtualSwitch)
+
+/* esxVI_HostVirtualSwitch_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostVirtualSwitch,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, key)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Int, numPorts)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Int, numPortsAvailable)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Int, mtu)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_LIST(String, portgroup)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_LIST(String, pnic)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostVirtualSwitchSpec, spec)
+})
+
+/* esxVI_HostVirtualSwitch_DeepCopyList */
+ESX_VI__TEMPLATE__LIST__DEEP_COPY(HostVirtualSwitch)
+
+/* esxVI_HostVirtualSwitch_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(HostVirtualSwitch)
+
+/* esxVI_HostVirtualSwitch_CastListFromAnyType */
+ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(HostVirtualSwitch)
+
+/* esxVI_HostVirtualSwitch_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostVirtualSwitch,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, name)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, key)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, numPorts)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, numPortsAvailable)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, mtu)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(String, portgroup)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(String, pnic)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostVirtualSwitchSpec, spec)
+})
+
+/* esxVI_HostVirtualSwitch_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(HostVirtualSwitch)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostVirtualSwitchAutoBridge
+ *            extends HostVirtualSwitchBridge
+ */
+
+/* esxVI_HostVirtualSwitchAutoBridge_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostVirtualSwitchAutoBridge)
+
+/* esxVI_HostVirtualSwitchAutoBridge_Free */
+ESX_VI__TEMPLATE__FREE(HostVirtualSwitchAutoBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchAutoBridge */
+    esxVI_String_Free(&item->excludedNicDevice);
+})
+
+/* esxVI_HostVirtualSwitchAutoBridge_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostVirtualSwitchAutoBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchAutoBridge */
+    /* no required properties */
+})
+
+/* esxVI_HostVirtualSwitchAutoBridge_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(HostVirtualSwitchAutoBridge,
+{
+})
+
+/* esxVI_HostVirtualSwitchAutoBridge_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostVirtualSwitchAutoBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchAutoBridge */
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_LIST(String, excludedNicDevice)
+})
+
+/* esxVI_HostVirtualSwitchAutoBridge_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostVirtualSwitchAutoBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchAutoBridge */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(String, excludedNicDevice)
+})
+
+/* esxVI_HostVirtualSwitchAutoBridge_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostVirtualSwitchAutoBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchAutoBridge */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(String, excludedNicDevice)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostVirtualSwitchBeaconConfig
+ */
+
+/* esxVI_HostVirtualSwitchBeaconConfig_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostVirtualSwitchBeaconConfig)
+
+/* esxVI_HostVirtualSwitchBeaconConfig_Free */
+ESX_VI__TEMPLATE__FREE(HostVirtualSwitchBeaconConfig,
+{
+    esxVI_Int_Free(&item->interval);
+})
+
+/* esxVI_HostVirtualSwitchBeaconConfig_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostVirtualSwitchBeaconConfig,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(interval)
+})
+
+/* esxVI_HostVirtualSwitchBeaconConfig_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostVirtualSwitchBeaconConfig,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Int, interval)
+})
+
+/* esxVI_HostVirtualSwitchBeaconConfig_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostVirtualSwitchBeaconConfig,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, interval)
+})
+
+/* esxVI_HostVirtualSwitchBeaconConfig_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostVirtualSwitchBeaconConfig,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, interval)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostVirtualSwitchBondBridge
+ *            extends HostVirtualSwitchBridge
+ */
+
+/* esxVI_HostVirtualSwitchBondBridge_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostVirtualSwitchBondBridge)
+
+/* esxVI_HostVirtualSwitchBondBridge_Free */
+ESX_VI__TEMPLATE__FREE(HostVirtualSwitchBondBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchBondBridge */
+    esxVI_String_Free(&item->nicDevice);
+    esxVI_HostVirtualSwitchBeaconConfig_Free(&item->beacon);
+})
+
+/* esxVI_HostVirtualSwitchBondBridge_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostVirtualSwitchBondBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchBondBridge */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(nicDevice)
+})
+
+/* esxVI_HostVirtualSwitchBondBridge_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(HostVirtualSwitchBondBridge,
+{
+})
+
+/* esxVI_HostVirtualSwitchBondBridge_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostVirtualSwitchBondBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchBondBridge */
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_LIST(String, nicDevice)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostVirtualSwitchBeaconConfig, beacon)
+})
+
+/* esxVI_HostVirtualSwitchBondBridge_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostVirtualSwitchBondBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchBondBridge */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_LIST(String, nicDevice)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostVirtualSwitchBeaconConfig, beacon)
+})
+
+/* esxVI_HostVirtualSwitchBondBridge_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostVirtualSwitchBondBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchBondBridge */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(String, nicDevice)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostVirtualSwitchBeaconConfig, beacon)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostVirtualSwitchBridge
+ *            extended by HostVirtualSwitchAutoBridge
+ *                        HostVirtualSwitchBondBridge
+ *                        HostVirtualSwitchSimpleBridge
+ */
+
+/* esxVI_HostVirtualSwitchBridge_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostVirtualSwitchBridge)
+
+/* esxVI_HostVirtualSwitchBridge_Free */
+ESX_VI__TEMPLATE__DYNAMIC_FREE(HostVirtualSwitchBridge,
+{
+    ESX_VI__TEMPLATE__DISPATCH__FREE(HostVirtualSwitchAutoBridge)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(HostVirtualSwitchBondBridge)
+    ESX_VI__TEMPLATE__DISPATCH__FREE(HostVirtualSwitchSimpleBridge)
+},
+{
+    /* no properties */
+})
+
+/* esxVI_HostVirtualSwitchBridge_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostVirtualSwitchBridge,
+{
+    /* no properties */
+})
+
+/* esxVI_HostVirtualSwitchBridge_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(HostVirtualSwitchBridge,
+{
+    /* HostVirtualSwitchBridge */
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(HostVirtualSwitchAutoBridge)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(HostVirtualSwitchBondBridge)
+    ESX_VI__TEMPLATE__DYNAMIC_CAST__ACCEPT(HostVirtualSwitchSimpleBridge)
+})
+
+/* esxVI_HostVirtualSwitchBridge_DeepCopy */
+ESX_VI__TEMPLATE__DYNAMIC_DEEP_COPY(HostVirtualSwitchBridge,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DEEP_COPY(HostVirtualSwitchAutoBridge)
+    ESX_VI__TEMPLATE__DISPATCH__DEEP_COPY(HostVirtualSwitchBondBridge)
+    ESX_VI__TEMPLATE__DISPATCH__DEEP_COPY(HostVirtualSwitchSimpleBridge)
+},
+{
+    /* no properties */
+})
+
+/* esxVI_HostVirtualSwitchBridge_Serialize */
+ESX_VI__TEMPLATE__DYNAMIC_SERIALIZE(HostVirtualSwitchBridge,
+{
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(HostVirtualSwitchAutoBridge)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(HostVirtualSwitchBondBridge)
+    ESX_VI__TEMPLATE__DISPATCH__SERIALIZE(HostVirtualSwitchSimpleBridge)
+},
+{
+    /* no properties */
+})
+
+/* esxVI_HostVirtualSwitchBridge_Deserialize */
+ESX_VI__TEMPLATE__DYNAMIC_DESERIALIZE(HostVirtualSwitchBridge,
+{
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(HostVirtualSwitchAutoBridge)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(HostVirtualSwitchBondBridge)
+    ESX_VI__TEMPLATE__DISPATCH__DESERIALIZE(HostVirtualSwitchSimpleBridge)
+},
+{
+    /* no properties */
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostVirtualSwitchSimpleBridge
+ *            extends HostVirtualSwitchBridge
+ */
+
+/* esxVI_HostVirtualSwitchSimpleBridge_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostVirtualSwitchSimpleBridge)
+
+/* esxVI_HostVirtualSwitchSimpleBridge_Free */
+ESX_VI__TEMPLATE__FREE(HostVirtualSwitchSimpleBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchSimpleBridge */
+    VIR_FREE(item->nicDevice);
+})
+
+/* esxVI_HostVirtualSwitchSimpleBridge_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostVirtualSwitchSimpleBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchSimpleBridge */
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(nicDevice)
+})
+
+/* esxVI_HostVirtualSwitchSimpleBridge_DynamicCast */
+ESX_VI__TEMPLATE__DYNAMIC_CAST(HostVirtualSwitchSimpleBridge,
+{
+})
+
+/* esxVI_HostVirtualSwitchSimpleBridge_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostVirtualSwitchSimpleBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchSimpleBridge */
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, nicDevice)
+})
+
+/* esxVI_HostVirtualSwitchSimpleBridge_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostVirtualSwitchSimpleBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchSimpleBridge */
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE_VALUE(String, nicDevice)
+})
+
+/* esxVI_HostVirtualSwitchSimpleBridge_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostVirtualSwitchSimpleBridge,
+{
+    /* HostVirtualSwitchBridge */
+    /* no properties */
+
+    /* HostVirtualSwitchSimpleBridge */
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, nicDevice)
+})
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: HostVirtualSwitchSpec
+ */
+
+/* esxVI_HostVirtualSwitchSpec_Alloc */
+ESX_VI__TEMPLATE__ALLOC(HostVirtualSwitchSpec)
+
+/* esxVI_HostVirtualSwitchSpec_Free */
+ESX_VI__TEMPLATE__FREE(HostVirtualSwitchSpec,
+{
+    esxVI_Int_Free(&item->numPorts);
+    esxVI_HostVirtualSwitchBridge_Free(&item->bridge);
+    esxVI_HostNetworkPolicy_Free(&item->policy);
+    esxVI_Int_Free(&item->mtu);
+})
+
+/* esxVI_HostVirtualSwitchSpec_Validate */
+ESX_VI__TEMPLATE__VALIDATE(HostVirtualSwitchSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(numPorts)
+})
+
+/* esxVI_HostVirtualSwitchSpec_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(HostVirtualSwitchSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Int, numPorts)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostVirtualSwitchBridge, bridge)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostNetworkPolicy, policy)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Int, mtu)
+})
+
+/* esxVI_HostVirtualSwitchSpec_Serialize */
+ESX_VI__TEMPLATE__SERIALIZE(HostVirtualSwitchSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, numPorts)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostVirtualSwitchBridge, bridge)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(HostNetworkPolicy, policy)
+    ESX_VI__TEMPLATE__PROPERTY__SERIALIZE(Int, mtu)
+})
+
+/* esxVI_HostVirtualSwitchSpec_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(HostVirtualSwitchSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, numPorts)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostVirtualSwitchBridge, bridge)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostNetworkPolicy, policy)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, mtu)
+})
 
 
 
@@ -2565,6 +3521,166 @@ ESX_VI__TEMPLATE__DESERIALIZE(PerfSampleInfo,
 
 /* esxVI_PerfSampleInfo_DeserializeList */
 ESX_VI__TEMPLATE__LIST__DESERIALIZE(PerfSampleInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: PhysicalNic
+ */
+
+/* esxVI_PhysicalNic_Alloc */
+ESX_VI__TEMPLATE__ALLOC(PhysicalNic)
+
+/* esxVI_PhysicalNic_Free */
+ESX_VI__TEMPLATE__FREE(PhysicalNic,
+{
+    esxVI_PhysicalNic_Free(&item->_next);
+
+    VIR_FREE(item->key);
+    VIR_FREE(item->device);
+    VIR_FREE(item->pci);
+    VIR_FREE(item->driver);
+    esxVI_PhysicalNicLinkInfo_Free(&item->linkSpeed);
+    esxVI_PhysicalNicLinkInfo_Free(&item->validLinkSpecification);
+    esxVI_PhysicalNicSpec_Free(&item->spec);
+    VIR_FREE(item->mac);
+})
+
+/* esxVI_PhysicalNic_Validate */
+ESX_VI__TEMPLATE__VALIDATE(PhysicalNic,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(device)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(pci)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(spec)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(wakeOnLanSupported)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(mac)
+})
+
+/* esxVI_PhysicalNic_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(PhysicalNic)
+
+/* esxVI_PhysicalNic_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(PhysicalNic,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, key)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, device)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, pci)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, driver)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(PhysicalNicLinkInfo, linkSpeed)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_LIST(PhysicalNicLinkInfo, validLinkSpecification)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(PhysicalNicSpec, spec)
+    (*dest)->wakeOnLanSupported = src->wakeOnLanSupported;
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY_VALUE(String, mac)
+})
+
+/* esxVI_PhysicalNic_DeepCopyList */
+ESX_VI__TEMPLATE__LIST__DEEP_COPY(PhysicalNic)
+
+/* esxVI_PhysicalNic_CastFromAnyType */
+ESX_VI__TEMPLATE__CAST_FROM_ANY_TYPE(PhysicalNic)
+
+/* esxVI_PhysicalNic_CastListFromAnyType */
+ESX_VI__TEMPLATE__LIST__CAST_FROM_ANY_TYPE(PhysicalNic)
+
+/* esxVI_PhysicalNic_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(PhysicalNic,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, key)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, device)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, pci)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, driver)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(PhysicalNicLinkInfo, linkSpeed)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_LIST(PhysicalNicLinkInfo, validLinkSpecification)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(PhysicalNicSpec, spec)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, wakeOnLanSupported)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE_VALUE(String, mac)
+})
+
+/* esxVI_PhysicalNic_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(PhysicalNic)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: PhysicalNicLinkInfo
+ */
+
+/* esxVI_PhysicalNicLinkInfo_Alloc */
+ESX_VI__TEMPLATE__ALLOC(PhysicalNicLinkInfo)
+
+/* esxVI_PhysicalNicLinkInfo_Free */
+ESX_VI__TEMPLATE__FREE(PhysicalNicLinkInfo,
+{
+    esxVI_PhysicalNicLinkInfo_Free(&item->_next);
+
+    esxVI_Int_Free(&item->speedMb);
+})
+
+/* esxVI_PhysicalNicLinkInfo_Validate */
+ESX_VI__TEMPLATE__VALIDATE(PhysicalNicLinkInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(speedMb)
+    ESX_VI__TEMPLATE__PROPERTY__REQUIRE(duplex)
+})
+
+/* esxVI_PhysicalNicLinkInfo_AppendToList */
+ESX_VI__TEMPLATE__LIST__APPEND(PhysicalNicLinkInfo)
+
+/* esxVI_PhysicalNicLinkInfo_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(PhysicalNicLinkInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(Int, speedMb)
+    (*dest)->duplex = src->duplex;
+})
+
+/* esxVI_PhysicalNicLinkInfo_DeepCopyList */
+ESX_VI__TEMPLATE__LIST__DEEP_COPY(PhysicalNicLinkInfo)
+
+/* esxVI_PhysicalNicLinkInfo_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(PhysicalNicLinkInfo,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Int, speedMb)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(Boolean, duplex)
+})
+
+/* esxVI_PhysicalNicLinkInfo_DeserializeList */
+ESX_VI__TEMPLATE__LIST__DESERIALIZE(PhysicalNicLinkInfo)
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * VI Object: PhysicalNicSpec
+ */
+
+/* esxVI_PhysicalNicSpec_Alloc */
+ESX_VI__TEMPLATE__ALLOC(PhysicalNicSpec)
+
+/* esxVI_PhysicalNicSpec_Free */
+ESX_VI__TEMPLATE__FREE(PhysicalNicSpec,
+{
+    esxVI_HostIpConfig_Free(&item->ip);
+    esxVI_PhysicalNicLinkInfo_Free(&item->linkSpeed);
+})
+
+/* esxVI_PhysicalNicSpec_Validate */
+ESX_VI__TEMPLATE__VALIDATE(PhysicalNicSpec,
+{
+    /* no required properties */
+})
+
+/* esxVI_PhysicalNicSpec_DeepCopy */
+ESX_VI__TEMPLATE__DEEP_COPY(PhysicalNicSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(HostIpConfig, ip)
+    ESX_VI__TEMPLATE__PROPERTY__DEEP_COPY(PhysicalNicLinkInfo, linkSpeed)
+})
+
+/* esxVI_PhysicalNicSpec_Deserialize */
+ESX_VI__TEMPLATE__DESERIALIZE(PhysicalNicSpec,
+{
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(HostIpConfig, ip)
+    ESX_VI__TEMPLATE__PROPERTY__DESERIALIZE(PhysicalNicLinkInfo, linkSpeed)
+})
 
 
 

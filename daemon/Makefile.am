@@ -58,12 +58,12 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 
 $(srcdir)/remote_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(REMOTE_PROTOCOL)
-	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl -b remote \
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl -b remote REMOTE \
 	  $(REMOTE_PROTOCOL) > $@
 
 $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 		$(QEMU_PROTOCOL)
-	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl -b qemu \
+	$(AM_V_GEN)$(PERL) -w $(srcdir)/../src/rpc/gendispatch.pl -b qemu QEMU \
 	  $(QEMU_PROTOCOL) > $@
 
 if WITH_LIBVIRTD
@@ -85,9 +85,8 @@ CLEANFILES += test_libvirtd.aug
 
 libvirtd.8: $(srcdir)/libvirtd.8.in
 	sed \
-	    -e 's![@]sysconfdir[@]!$(sysconfdir)!g' \
-	    -e 's![@]localstatedir[@]!$(localstatedir)!g' \
-	    -e 's![@]remote_pid_file[@]!$(REMOTE_PID_FILE)!g' \
+	    -e 's!SYSCONFDIR!$(sysconfdir)!g' \
+	    -e 's!LOCALSTATEDIR!$(localstatedir)!g' \
 	    < $< > $@-t
 	mv $@-t $@
 
@@ -96,11 +95,10 @@ libvirtd_SOURCES = $(DAEMON_SOURCES)
 #-D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D_POSIX_C_SOURCE=199506L
 libvirtd_CFLAGS = \
 	$(LIBXML_CFLAGS) $(GNUTLS_CFLAGS) $(SASL_CFLAGS) \
-	$(XDR_CFLAGS) $(POLKIT_CFLAGS) $(DBUS_CFLAGS) \
+	$(XDR_CFLAGS) $(POLKIT_CFLAGS) $(DBUS_CFLAGS) $(LIBNL_CFLAGS) \
 	$(WARN_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
-	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\"" \
-	-DREMOTE_PID_FILE="\"$(REMOTE_PID_FILE)\""
+	-DQEMUD_PID_FILE="\"$(QEMUD_PID_FILE)\""
 
 libvirtd_LDFLAGS =					\
 	$(WARN_CFLAGS)					\
@@ -111,7 +109,8 @@ libvirtd_LDADD =					\
 	$(GNUTLS_LIBS)					\
 	$(SASL_LIBS)					\
 	$(DBUS_LIBS)					\
-	$(POLKIT_LIBS)
+	$(POLKIT_LIBS)					\
+	$(LIBNL_LIBS)
 
 if WITH_DTRACE_PROBES
 libvirtd_LDADD += ../src/libvirt_probes.lo
@@ -375,7 +374,7 @@ POD2MAN = pod2man -c "Virtualization Support" \
 			-r "$(PACKAGE)-$(VERSION)" -s 8
 
 $(srcdir)/libvirtd.8.in: libvirtd.pod.in
-	$(AM_V_GEN)$(POD2MAN) $< $@
+	$(AM_V_GEN)$(POD2MAN) --name LIBVIRTD $< $@
 
 # This is needed for clients too, so can't wrap in
 # the WITH_LIBVIRTD conditional
