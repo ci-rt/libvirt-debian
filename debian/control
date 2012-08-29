@@ -34,6 +34,8 @@ Build-Depends: cdbs (>= 0.4.90~),
  radvd [linux-any],
  libnetcf-dev [linux-any],
  libsanlock-dev [linux-any],
+# for --with-storage-sheepdog
+ sheepdog,
 # For "make check"
  dwarves,
  libxml2-utils,

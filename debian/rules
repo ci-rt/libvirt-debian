@@ -20,6 +20,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_STORAGE_LVM    = --with-storage-lvm
   WITH_STORAGE_ISCSI  = --with-storage-iscsi
   WITH_STORAGE_DISK   =	--with-storage-disk
+  WITH_STORAGE_SHEEPDOG = --with-storage-sheepdog
   WITH_UDEV           = --with-udev --without-hal
   WITH_CAPNG          = --with-capng
   WITH_POLKIT         = --with-polkit
@@ -44,6 +45,7 @@ else
   WITH_STORAGE_LVM    = --without-storage-lvm
   WITH_STORAGE_ISCSI  = --without-storage-iscsi
   WITH_STORAGE_DISK   =	--without-storage-disk
+  WITH_STORAGE_SHEEPDOG = --without-storage-sheepdog
   WITH_UDEV           = --without-udev --with-hal
   WITH_CAPNG          = --without-capng
   WITH_POLKIT         = --without-polkit
