@@ -1,3 +1,193 @@
+2012-08-29  Daniel Veillard  <veillard@redhat.com>
+
+	Release of libvirt-0.10.0
+	* configure.ac docs/news.html.in libvirt.spec.in: updates for the release
+	* po/*.po*: update localizations for zh_CN, uk, ja, pt_BR, as, sp, mr, zh_TW
+
+2012-08-29  Peter Krempa  <pkrempa@redhat.com>
+
+	nwfilter: Don't try to acquire DBus context when DBus is disabled
+	To silence error if DBus support is not compiled in.
+
+2012-08-29  Guido Günther  <agx@sigxcpu.org>
+
+	Don't require gawk for a simple print expression
+	Fedora uses gawk as awk so there's no change and in behavior while
+	Debian/Ubuntu use mawk by default.
+
+	This was reported by Luca Capello in
+	http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=636712
+
+2012-08-29  Alex Jia  <ajia@redhat.com>
+
+	util: Prevent libvirtd crash from virNetDevOpenvswitchAddPort()
+	* src/util/virnetdevopenvswitch.c (virNetDevOpenvswitchAddPort): avoid libvirtd
+	crash due to derefing a NULL virtVlan->tag.
+
+	RHBZ: https://bugzilla.redhat.com/show_bug.cgi?id=852383
+
+2012-08-29  Osier Yang  <jyang@redhat.com>
+
+	qemu: Set placement when setting numa parameters
+	To keep the internal data structure consistent.
+
+2012-08-29  Daniel Veillard  <veillard@redhat.com>
+
+	Portability fixes for non-linux or old linux platforms
+	The commits d57567940153147f4d43875fb92c3030b3178b03 and
+	080bf330e3749d94ebe094f8deca0e3e67d3f2fe made use directly of
+	macro defined in recent linux netlink version. Make those
+	part conditional on the definition
+
+	* daemon/libvirtd.c: do not use NETLINK_ROUTE and NETLINK_KOBJECT_UEVENT
+	  without some check first
+
+2012-08-29  Peter Krempa  <pkrempa@redhat.com>
+
+	security_dac: Don't return uninitialised uid and gid for image labels
+	As in the previous commit, images are also chowned to uninitialised
+	uid and gid if the label is not present.
+
+2012-08-29  Peter Krempa  <pkrempa@redhat.com>
+
+	security_dac: Don't return uninitialised value when parsing seclabels
+	When starting a machine the DAC security driver tries to set the UID and
+	GID of the newly spawned process. This worked as desired if the desired
+	label was set. When the label was missing a logical bug in
+	virSecurityDACGenLabel() caused that uninitialised values were used as
+	uid and gid for the new process.
+
+	With this patch, default values (from qemu driver configuration)
+	are used if the label is not found.
+
+2012-08-29  Peter Krempa  <pkrempa@redhat.com>
+
+	security_dac: Avoid segfault when no label is requested
+	When no DAC "label" was requested for a domain the DAC manager tried to
+	strdup a NULL string causing a segfault.
+
+2012-08-29  Peter Krempa  <pkrempa@redhat.com>
+
+	util: Fix error message when getpwuid_r fails to find the user
+	getpwuid_r returns success but sets the return structure to NULL when it
+	fails to deliver data about the requested uid. In our helper code this
+	created following strange error messages:
+
+	" ... cannot getpwuid_r(1234): Success"
+
+	This patch creates a more helpful message:
+	" ... getpwuid_r failed to retrieve data for uid '1234'"
+
+2012-08-28  Osier Yang  <jyang@redhat.com>
+
+	conf: Fix the problem which cause libvirtd to crash
+	* src/conf/domain_conf.c: Use STREQ_NULLABLE instead of STREQ,
+	as def->seclables[i]->model could be NULL.
+
+2012-08-28  Michal Privoznik  <mprivozn@redhat.com>
+
+	build: define 'inline' iff HAVE_LIBNL1
+	Previous commit 0b4b53bb80 defined 'inline' to prevent broken build on
+	systems with libnl1 headers. However, it broke build on systems with
+	libnl3 headers. Therefore we must make that fix conditional.
+
+2012-08-28  Martin Kletzander  <mkletzan@redhat.com>
+
+	docs: CPU allocation and pinning clarification
+	There was a request for clarifying this part of the
+	documentation. This also fixes a case used with CPU.
+
+2012-08-28  Eric Blake  <eblake@redhat.com>
+
+	build: work with older libnl1 headers
+	Ubuntu 10.04 shipped with out-of-the-box libnl1 headers, which
+	assumed the old gcc semantics of 'extern inline' as a C89 extension:
+	the function will _always_ be inline if it is used, and that
+	it may be declared extern inline in headers without a definition,
+	as long as the definition occurs before any use.  But when C99
+	added 'extern inline' as a mandatory feature of the language, with
+	slightly different semantics than gcc (the function MUST have
+	external linkage, and the inline definition MUST be present
+	alongside any declaration, where the compiler can then choose
+	which of the two versions to use), this rendered the use of
+	'inline' in libnl's header obsolete.  Most distros already solved
+	this by removing 'inline' (the resulting 'extern' is correct,
+	regardless of gcc semantics), and libnl-3 does not have the
+	problem (where it has switched to 'static inline' instead, again
+	with the definition present, and again, our hack will result in
+	plain 'static' with no ill effects).  But for the case of building
+	out of the box, we hack around the broken Ubuntu header.
+
+	* src/util/virnetlink.h: Work around libnl issue.
+
+2012-08-28  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemu: Fix define logic
+	With current flow in qemudDomainDefine we might lose data
+	when updating an existing domain. We parse given XML and
+	overwrite the configuration.  Then we try to save the new
+	config. However, this step may fail and we don't perform any
+	roll back.  In fact, we remove the domain from the list of
+	domains held up by qemu driver. This is okay as long as the
+	domain was brand new one.
+
+	qemu_agent: Switch to virReportSystemError() on system error
+	Currently, if a syscall in qemu_agent.c fails we report an internal
+	error even though we should be reporting a system error.
+
+	Introduce new VIR_ERR_AGENT_UNRESPONSIVE error code
+	Currently, when guest agent is configured but not responsive
+	(e.g. due to appropriate service not running in the guest)
+	we return VIR_ERR_INTERNAL_ERROR. Both are wrong. Therefore
+	we need to introduce new error code to reflect this case.
+
+2012-08-27  Ján Tomko  <jtomko@redhat.com>
+
+	conf: prevent NULL pointer access in virSecurityLabelDefsParseXML
+	When checking for seclabels without security models, def->nseclabels is
+	already set to n. In the case of an error def->seclabels is freed but
+	nseclabels is left untouched. This leads to a segmentation fault when
+	def is freed in virDomainDefParseXML.
+
+2012-08-27  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemu: Switch to unified func name
+	With the latest patches libvirt supports qemu agent monitor
+	passthrough. However, function in qemu driver is called
+	qemuDrvDomainAgentCommand. s/Drv// as used in all other names.
+
+2012-08-27  Guannan Ren  <gren@redhat.com>
+
+	rpc: fix segmentation fault caused by null client-sock
+	The client-sock could have been set to NULL by eventloop thread
+	after async event fired.
+
+2012-08-27  Martin Kletzander  <mkletzan@redhat.com>
+
+	qemu: fix regression with spice tls port allocation
+	In my quest for reusing variables I failed to edit one variable when
+	fixing details between two patch versions. That results in a failure
+	to start qemu with autoport and spice tls, because qemu is trying to
+	bind two sockets to the same port.
+
+2012-08-27  Martin Kletzander  <mkletzan@redhat.com>
+
+	qemu: fix regression with pinning
+	Commit 4b03d59167f4a4c6ec57def315a61d977466e75b changed the pinning
+	behavior in a way that makes some machines non-startable.
+
+	The comment mentioning that we cannot control each vcpu when there is
+	not VCPU<-> PID mapping available is true, however, this isn't
+	necessarily an error, because this can be caused by old QEMU without
+	support for "query-cpus" command as well as a software emulated
+	machines that don't create more than one process.
+
+2012-08-27  Alex Jia  <ajia@redhat.com>
+
+	virsh: fix missing return value
+	Although virsh command raises a correct error information, the command status
+	returns 0(true), this patch is used for fixing this issue.
+
 2012-08-27  Laine Stump  <laine@laine.org>
 
 	specfile: require libnl3 for Fedora >= 18 and RHEL >= 7

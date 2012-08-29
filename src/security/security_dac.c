@@ -101,7 +101,7 @@ int virSecurityDACParseIds(virDomainDefPtr def, uid_t *uidPtr, gid_t *gidPtr)
         return -1;
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
-    if (seclabel == NULL) {
+    if (seclabel == NULL || seclabel->label == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("security label for DAC not found in domain %s"),
                        def->name);
@@ -152,7 +152,7 @@ int virSecurityDACParseImageIds(virDomainDefPtr def,
         return -1;
 
     seclabel = virDomainDefGetSecurityLabelDef(def, SECURITY_DAC_NAME);
-    if (seclabel == NULL) {
+    if (seclabel == NULL || seclabel->imagelabel == NULL) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("security label for DAC not found in domain %s"),
                        def->name);
@@ -890,6 +890,7 @@ virSecurityDACGenLabel(virSecurityManagerPtr mgr,
         break;
     case VIR_DOMAIN_SECLABEL_NONE:
         /* no op */
+        return 0;
         break;
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -899,7 +900,7 @@ virSecurityDACGenLabel(virSecurityManagerPtr mgr,
     }
 
     if (!seclabel->norelabel) {
-        if (seclabel->imagelabel == NULL) {
+        if (seclabel->imagelabel == NULL && seclabel->label != NULL) {
             seclabel->imagelabel = strdup(seclabel->label);
             if (seclabel->imagelabel == NULL) {
                 virReportError(VIR_ERR_INTERNAL_ERROR,

@@ -4206,7 +4206,9 @@ flags are mutually exclusive.</p>
         <div class="refsect2" lang="en"><h3><a name="virDomainResume"/>virDomainResume ()</h3><pre class="programlisting">int	virDomainResume			(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>
 </pre><p>Resume a suspended domain, the process is restarted from the state where
 it was frozen by calling virDomainSuspend().
-This function may require privileged access</p>
+This function may require privileged access
+Moreover, resume may not be supported if domain is in some
+special state like VIR_DOMAIN_PMSUSPENDED.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainRevertToSnapshot"/>virDomainRevertToSnapshot ()</h3><pre class="programlisting">int	virDomainRevertToSnapshot	(<a href="libvirt-libvirt.html#virDomainSnapshotPtr">virDomainSnapshotPtr</a> snapshot, <br/>					 unsigned int flags)<br/>
@@ -4839,7 +4841,9 @@ increment the reference count.</p>
 to CPU resources and I/O but the memory used by the domain at the
 hypervisor level will stay allocated. Use virDomainResume() to reactivate
 the domain.
-This function may require privileged access.</p>
+This function may require privileged access.
+Moreover, suspend may not be supported if domain is in some
+special state like VIR_DOMAIN_PMSUSPENDED.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>domain</tt></i>:</span></td><td>a domain object</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success and -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainUndefine"/>virDomainUndefine ()</h3><pre class="programlisting">int	virDomainUndefine		(<a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> domain)<br/>

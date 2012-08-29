@@ -3179,6 +3179,7 @@ error:
         virSecurityLabelDefFree(def->seclabels[i - 1]);
     }
     VIR_FREE(def->seclabels);
+    def->nseclabels = 0;
     VIR_FREE(list);
     return -1;
 }
@@ -14994,7 +14995,7 @@ virDomainDiskDefGetSecurityLabelDef(virDomainDiskDefPtr def, const char *model)
         return NULL;
 
     for (i = 0; i < def->nseclabels; i++) {
-        if (STREQ(def->seclabels[i]->model, model))
+        if (STREQ_NULLABLE(def->seclabels[i]->model, model))
             return def->seclabels[i];
     }
     return NULL;
