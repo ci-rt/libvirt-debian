@@ -1734,8 +1734,9 @@ static int qemuDomainShutdownFlags(virDomainPtr dom, unsigned int flags) {
 
     if (useAgent) {
         if (priv->agentError) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("QEMU guest agent is not available due to an error"));
+            virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
+                           _("QEMU guest agent is not "
+                             "available due to an error"));
             goto cleanup;
         }
         if (!priv->agent) {
@@ -1815,8 +1816,9 @@ qemuDomainReboot(virDomainPtr dom, unsigned int flags)
 
     if (useAgent) {
         if (priv->agentError) {
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                           _("QEMU guest agent is not available due to an error"));
+            virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
+                           _("QEMU guest agent is not "
+                             "available due to an error"));
             goto cleanup;
         }
         if (!priv->agent) {
@@ -5538,6 +5540,7 @@ out:
 static virDomainPtr qemudDomainDefine(virConnectPtr conn, const char *xml) {
     struct qemud_driver *driver = conn->privateData;
     virDomainDefPtr def;
+    virDomainDefPtr def_backup = NULL;
     virDomainObjPtr vm = NULL;
     virDomainPtr dom = NULL;
     virDomainEventPtr event = NULL;
@@ -5561,20 +5564,48 @@ static virDomainPtr qemudDomainDefine(virConnectPtr conn, const char *xml) {
     if (qemuDomainAssignAddresses(def, NULL, NULL) < 0)
         goto cleanup;
 
-    if (!(vm = virDomainAssignDef(driver->caps,
-                                  &driver->domains,
-                                  def, false))) {
-        goto cleanup;
+    /* We need to differentiate two cases:
+     * a) updating an existing domain - must preserve previous definition
+     *                                  so we can roll back if something fails
+     * b) defining a brand new domain - virDomainAssignDef is just sufficient
+     */
+    if ((vm = virDomainFindByUUID(&driver->domains, def->uuid))) {
+        if (virDomainObjIsActive(vm)) {
+            def_backup = vm->newDef;
+            vm->newDef = def;
+        } else {
+            def_backup = vm->def;
+            vm->def = def;
+        }
+    } else {
+        if (!(vm = virDomainAssignDef(driver->caps,
+                                      &driver->domains,
+                                      def, false))) {
+            goto cleanup;
+        }
     }
     def = NULL;
     vm->persistent = 1;
 
     if (virDomainSaveConfig(driver->configDir,
                             vm->newDef ? vm->newDef : vm->def) < 0) {
-        VIR_INFO("Defining domain '%s'", vm->def->name);
-        qemuDomainRemoveInactive(driver, vm);
-        vm = NULL;
+        if (def_backup) {
+            /* There is backup so this VM was defined before.
+             * Just restore the backup. */
+            VIR_INFO("Restoring domain '%s' definition", vm->def->name);
+            if (virDomainObjIsActive(vm))
+                vm->newDef = def_backup;
+            else
+                vm->def = def_backup;
+        } else {
+            /* Brand new domain. Remove it */
+            VIR_INFO("Deleting domain '%s'", vm->def->name);
+            qemuDomainRemoveInactive(driver, vm);
+            vm = NULL;
+        }
         goto cleanup;
+    } else {
+        virDomainDefFree(def_backup);
     }
 
     event = virDomainEventNewFromObj(vm,
@@ -7554,6 +7585,8 @@ qemuDomainSetNumaParameters(virDomainPtr dom,
                 }
 
                 vm->def->numatune.memory.nodemask = nodeset;
+                vm->def->numatune.memory.placement_mode =
+                    VIR_DOMAIN_NUMATUNE_MEM_PLACEMENT_MODE_STATIC;
             }
 
             if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
@@ -7570,11 +7603,16 @@ qemuDomainSetNumaParameters(virDomainPtr dom,
                 }
 
                 persistentDef->numatune.memory.nodemask = nodeset;
+                persistentDef->numatune.memory.placement_mode =
+                    VIR_DOMAIN_NUMATUNE_MEM_PLACEMENT_MODE_STATIC;
             }
         }
     }
 
     if (flags & VIR_DOMAIN_AFFECT_CONFIG) {
+        if (!persistentDef->numatune.memory.placement_mode)
+            persistentDef->numatune.memory.placement_mode =
+                VIR_DOMAIN_NUMATUNE_MEM_PLACEMENT_MODE_AUTO;
         if (virDomainSaveConfig(driver->configDir, persistentDef) < 0)
             ret = -1;
     }
@@ -10391,7 +10429,7 @@ qemuDomainSnapshotFSFreeze(struct qemud_driver *driver,
     int freezed;
 
     if (priv->agentError) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+        virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
                        _("QEMU guest agent is not "
                          "available due to an error"));
         return -1;
@@ -10419,7 +10457,7 @@ qemuDomainSnapshotFSThaw(struct qemud_driver *driver,
 
     if (priv->agentError) {
         if (report)
-            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+            virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
                            _("QEMU guest agent is not "
                              "available due to an error"));
         return -1;
@@ -13708,8 +13746,9 @@ qemuDomainPMSuspendForDuration(virDomainPtr dom,
     }
 
     if (priv->agentError) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("QEMU guest agent is not available due to an error"));
+        virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
+                       _("QEMU guest agent is not "
+                         "available due to an error"));
         goto cleanup;
     }
 
@@ -13815,7 +13854,7 @@ qemuListAllDomains(virConnectPtr conn,
 }
 
 static char *
-qemuDrvDomainAgentCommand(virDomainPtr domain,
+qemuDomainAgentCommand(virDomainPtr domain,
                        const char *cmd,
                        int timeout,
                        unsigned int flags)
@@ -13849,8 +13888,9 @@ qemuDrvDomainAgentCommand(virDomainPtr domain,
     }
 
     if (priv->agentError) {
-        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                       _("QEMU guest agent is not available due to an error"));
+        virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
+                       _("QEMU guest agent is not "
+                         "available due to an error"));
         goto cleanup;
     }
 
@@ -14028,7 +14068,7 @@ static virDriver qemuDriver = {
     .domainSnapshotDelete = qemuDomainSnapshotDelete, /* 0.8.0 */
     .qemuDomainMonitorCommand = qemuDomainMonitorCommand, /* 0.8.3 */
     .qemuDomainAttach = qemuDomainAttach, /* 0.9.4 */
-    .qemuDomainArbitraryAgentCommand = qemuDrvDomainAgentCommand, /* 0.10.0 */
+    .qemuDomainArbitraryAgentCommand = qemuDomainAgentCommand, /* 0.10.0 */
     .domainOpenConsole = qemuDomainOpenConsole, /* 0.8.6 */
     .domainOpenGraphics = qemuDomainOpenGraphics, /* 0.9.7 */
     .domainInjectNMI = qemuDomainInjectNMI, /* 0.9.2 */

@@ -350,6 +350,7 @@
     <reference name='VIR_DUMP_LIVE' href='html/libvirt-libvirt.html#VIR_DUMP_LIVE'/>
     <reference name='VIR_DUMP_MEMORY_ONLY' href='html/libvirt-libvirt.html#VIR_DUMP_MEMORY_ONLY'/>
     <reference name='VIR_DUMP_RESET' href='html/libvirt-libvirt.html#VIR_DUMP_RESET'/>
+    <reference name='VIR_ERR_AGENT_UNRESPONSIVE' href='html/libvirt-virterror.html#VIR_ERR_AGENT_UNRESPONSIVE'/>
     <reference name='VIR_ERR_ARGUMENT_UNSUPPORTED' href='html/libvirt-virterror.html#VIR_ERR_ARGUMENT_UNSUPPORTED'/>
     <reference name='VIR_ERR_AUTH_CANCELLED' href='html/libvirt-virterror.html#VIR_ERR_AUTH_CANCELLED'/>
     <reference name='VIR_ERR_AUTH_FAILED' href='html/libvirt-virterror.html#VIR_ERR_AUTH_FAILED'/>
@@ -1527,6 +1528,7 @@
       <ref name='VIR_DUMP_LIVE'/>
       <ref name='VIR_DUMP_MEMORY_ONLY'/>
       <ref name='VIR_DUMP_RESET'/>
+      <ref name='VIR_ERR_AGENT_UNRESPONSIVE'/>
       <ref name='VIR_ERR_ARGUMENT_UNSUPPORTED'/>
       <ref name='VIR_ERR_AUTH_CANCELLED'/>
       <ref name='VIR_ERR_AUTH_FAILED'/>
@@ -4302,6 +4304,7 @@
       <ref name='virVcpuState'/>
     </file>
     <file name='virterror'>
+      <ref name='VIR_ERR_AGENT_UNRESPONSIVE'/>
       <ref name='VIR_ERR_ARGUMENT_UNSUPPORTED'/>
       <ref name='VIR_ERR_AUTH_CANCELLED'/>
       <ref name='VIR_ERR_AUTH_FAILED'/>

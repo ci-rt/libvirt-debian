@@ -380,6 +380,7 @@
     <function name="VIR_DUMP_LIVE" link="libvirt-libvirt.html#VIR_DUMP_LIVE"/>
     <function name="VIR_DUMP_MEMORY_ONLY" link="libvirt-libvirt.html#VIR_DUMP_MEMORY_ONLY"/>
     <function name="VIR_DUMP_RESET" link="libvirt-libvirt.html#VIR_DUMP_RESET"/>
+    <function name="VIR_ERR_AGENT_UNRESPONSIVE" link="libvirt-virterror.html#VIR_ERR_AGENT_UNRESPONSIVE"/>
     <function name="VIR_ERR_ARGUMENT_UNSUPPORTED" link="libvirt-virterror.html#VIR_ERR_ARGUMENT_UNSUPPORTED"/>
     <function name="VIR_ERR_AUTH_CANCELLED" link="libvirt-virterror.html#VIR_ERR_AUTH_CANCELLED"/>
     <function name="VIR_ERR_AUTH_FAILED" link="libvirt-virterror.html#VIR_ERR_AUTH_FAILED"/>
