@@ -3,7 +3,6 @@ debian/Don-t-enable-default-network-on-boot.patch
 debian/Allow-libvirt-group-to-access-the-socket.patch
 debian/fix-Debian-specific-path-to-hvm-loader.patch
 debian/Debianize-libvirt-guests.patch
-debian/Don-t-require-gawk-for-a-simple-print-expression.patch
 patch-qemuMonitorTextGetMigrationStatus-to-intercept.patch
 Disable-gnulib-s-test-nonplocking-pipe.sh.patch
 Disable-failing-virnetsockettest.patch
