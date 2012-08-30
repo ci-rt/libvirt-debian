@@ -1,3 +1,16 @@
+libvirt (0.10.0-1) experimental; urgency=low
+
+  * [b3ae724] New upstream version 0.10.0
+  * [19618d9] Update symbols file
+  * Dropped patches, fixed upstream:
+        * security/CVE-2012-3445.patch
+        * virsh-Initialize-library-before-calling-virResetLast.patch 
+        * Don-t-require-gawk-for-a-simple-print-expression.patch
+  * [2a5d5b7] Revert "security: Add DAC to security_drivers" to allow guest
+    start. Thanks to Peter Krempa and Marcelo Cerri for tracking this down.
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 30 Aug 2012 09:27:43 +0200
+
 libvirt (0.9.13-1) experimental; urgency=low
 
   * [6cf501c] New upstream version 0.9.13
