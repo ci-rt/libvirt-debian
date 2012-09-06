@@ -1,3 +1,13 @@
+libvirt (0.10.1-1) experimental; urgency=low
+
+  * [aa3d87e] New upstream version 0.10.1
+  * [39ae471] Drop Revert-security-Add-DAC-to-security_drivers.patch: fixed
+    upstream.
+  * [b531061] Update symbol file
+  * [8d4f9dc] Enable sheepdog support
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 06 Sep 2012 13:06:02 +0200
+
 libvirt (0.10.0-1) experimental; urgency=low
 
   * [b3ae724] New upstream version 0.10.0
