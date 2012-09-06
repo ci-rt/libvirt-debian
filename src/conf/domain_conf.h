@@ -295,6 +295,7 @@ struct _virSecurityLabelDef {
     char *baselabel;    /* base name of label string */
     int type;           /* virDomainSeclabelType */
     bool norelabel;
+    bool implicit;      /* true if seclabel is auto-added */
 };
 
 
@@ -1885,7 +1886,7 @@ int virDomainCpuSetParse(const char *str,
 char *virDomainCpuSetFormat(char *cpuset,
                             int maxcpu);
 
-int virDomainVcpuPinAdd(virDomainVcpuPinDefPtr *vcpupin_list,
+int virDomainVcpuPinAdd(virDomainVcpuPinDefPtr **vcpupin_list,
                         int *nvcpupin,
                         unsigned char *cpumap,
                         int maplen,

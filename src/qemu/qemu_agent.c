@@ -832,19 +832,22 @@ void qemuAgentClose(qemuAgentPtr mon)
     virObjectUnref(mon);
 }
 
-#define QEMU_AGENT_WAIT_TIME (1000ull * 5)
+#define QEMU_AGENT_WAIT_TIME 5
 
 /**
  * qemuAgentSend:
  * @mon: Monitor
  * @msg: Message
- * @timeout: use timeout?
- * @seconds: timeout seconds. if VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT and
- *           @timeout is true, use default value.
+ * @seconds: number of seconds to wait for the result, it can be either
+ *           -2, -1, 0 or positive.
  *
- * Send @msg to agent @mon.
- * Wait max QEMU_AGENT_WAIT_TIME for agent
- * to reply.
+ * Send @msg to agent @mon. If @seconds is equal to
+ * VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK(-2), this function will block forever
+ * waiting for the result. The value of
+ * VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT(-1) means use default timeout value
+ * and VIR_DOMAIN_QEMU_AGENT_COMMAND_NOWAIT(0) makes this this function return
+ * immediately without waiting. Any positive value means the number of seconds
+ * to wait for the result.
  *
  * Returns: 0 on success,
  *          -2 on timeout,
@@ -852,11 +855,10 @@ void qemuAgentClose(qemuAgentPtr mon)
  */
 static int qemuAgentSend(qemuAgentPtr mon,
                          qemuAgentMessagePtr msg,
-                         bool timeout,
                          int seconds)
 {
     int ret = -1;
-    unsigned long long now, then = 0;
+    unsigned long long then = 0;
 
     /* Check whether qemu quit unexpectedly */
     if (mon->lastError.code != VIR_ERR_OK) {
@@ -866,21 +868,21 @@ static int qemuAgentSend(qemuAgentPtr mon,
         return -1;
     }
 
-    if (timeout) {
+    if (seconds > VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) {
+        unsigned long long now;
         if (virTimeMillisNow(&now) < 0)
             return -1;
-        if (!(seconds >= 0 || seconds == VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT))
-            return -1;
-        then = now + (seconds == VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT ?
-                      QEMU_AGENT_WAIT_TIME : seconds * 1000ull);
+        if (seconds == VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT)
+            seconds = QEMU_AGENT_WAIT_TIME;
+        then = now + seconds * 1000ull;
     }
 
     mon->msg = msg;
     qemuAgentUpdateWatch(mon);
 
     while (!mon->msg->finished) {
-        if ((timeout && virCondWaitUntil(&mon->notify, &mon->lock, then) < 0) ||
-            (!timeout && virCondWait(&mon->notify, &mon->lock) < 0)) {
+        if ((then && virCondWaitUntil(&mon->notify, &mon->lock, then) < 0) ||
+            (!then && virCondWait(&mon->notify, &mon->lock) < 0)) {
             if (errno == ETIMEDOUT) {
                 virReportError(VIR_ERR_AGENT_UNRESPONSIVE, "%s",
                                _("Guest agent not available for now"));
@@ -945,7 +947,7 @@ qemuAgentGuestSync(qemuAgentPtr mon)
 
     VIR_DEBUG("Sending guest-sync command with ID: %llu", id);
 
-    send_ret = qemuAgentSend(mon, &sync_msg, true,
+    send_ret = qemuAgentSend(mon, &sync_msg,
                              VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT);
 
     VIR_DEBUG("qemuAgentSend returned: %d", send_ret);
@@ -1015,7 +1017,7 @@ qemuAgentCommand(qemuAgentPtr mon,
 
     VIR_DEBUG("Send command '%s' for write, seconds = %d", cmdstr, seconds);
 
-    ret = qemuAgentSend(mon, &msg, seconds < -1 ? false : true, seconds);
+    ret = qemuAgentSend(mon, &msg, seconds);
 
     VIR_DEBUG("Receive command reply ret=%d rxObject=%p",
               ret, msg.rxObject);
@@ -1294,7 +1296,7 @@ int qemuAgentShutdown(qemuAgentPtr mon,
 
     mon->await_event = QEMU_AGENT_EVENT_SHUTDOWN;
     ret = qemuAgentCommand(mon, cmd, &reply,
-                           VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT);
+                           VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK);
 
     if (reply && ret == 0)
         ret = qemuAgentCheckError(cmd, reply);
@@ -1327,7 +1329,7 @@ int qemuAgentFSFreeze(qemuAgentPtr mon)
         return -1;
 
     if (qemuAgentCommand(mon, cmd, &reply,
-                         VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT) < 0 ||
+                         VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0 ||
         qemuAgentCheckError(cmd, reply) < 0)
         goto cleanup;
 
@@ -1365,7 +1367,7 @@ int qemuAgentFSThaw(qemuAgentPtr mon)
         return -1;
 
     if (qemuAgentCommand(mon, cmd, &reply,
-                         VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT) < 0 ||
+                         VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK) < 0 ||
         qemuAgentCheckError(cmd, reply) < 0)
         goto cleanup;
 
@@ -1403,7 +1405,7 @@ qemuAgentSuspend(qemuAgentPtr mon,
 
     mon->await_event = QEMU_AGENT_EVENT_SUSPEND;
     ret = qemuAgentCommand(mon, cmd, &reply,
-                           VIR_DOMAIN_QEMU_AGENT_COMMAND_DEFAULT);
+                           VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK);
 
     if (reply && ret == 0)
         ret = qemuAgentCheckError(cmd, reply);

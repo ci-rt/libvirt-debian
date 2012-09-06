@@ -1,3 +1,319 @@
+2012-08-31  Marcelo Cerri  <mhcerri@linux.vnet.ibm.com>
+
+	conf: Avoid formatting auto-generated DAC labels
+	To avoid backward compatibility issues, this patch suppresses
+	auto-generated DAC labels from XML. This change affects commands such as
+	dumpxml and save.
+
+2012-08-31  Marcelo Cerri  <mhcerri@linux.vnet.ibm.com>
+
+	conf: Fix parsing of seclabels without model
+	With this patch libvirt tries to assign a model to a single seclabel
+	when model is missing. Libvirt will look up at host's capabilities and
+	assign the first model to seclabel.
+
+	This patch fixes:
+
+	1. The problem with existing guests that have a seclabel defined in its XML.
+	2. A XML parse error when a guest is restored.
+
+2012-08-31  Viktor Mihajlovski  <mihajlov@linux.vnet.ibm.com>
+
+	virsh: fixed incorrect timing report
+	When executing virsh -t <command> the reported timing was off
+	by 3 orders of magnitude if the command took more than one
+	second.
+
+2012-08-31  Jiri Denemark  <jdenemar@redhat.com>
+
+	virsh: Document subdriver option of attach-disk
+
+	qemu: Don't ignore CPU tuning config if required cgroups are missing
+	When domain XML contains any of the elements for setting up CPU
+	scheduling parameters (period, quota, emulator_period, or
+	emulator_quota) we need cpu cgroup to enforce the configuration.
+	However, the existing code would just ignore silently such settings if
+	either cgroups were not available at all cpu cgroup was not available.
+	Moreover, APIs for manipulating CPU scheduler parameters were already
+	failing if cpu cgroup was not available. This patch makes cpu cgroup
+	mandatory for all domains that use CPU scheduling elements in their XML.
+
+2012-08-31  Guannan Ren  <gren@redhat.com>
+
+	doc: update option force to subcommand change-media
+	BZ: https://bugzilla.redhat.com/show_bug.cgi?id=837761
+
+	cgroup: fix libvirtd crash caused by messed memory
+	The variable max_id is initialized again in the step of
+	getting cpu mapping variable map2. But in the next for loop
+	we still expect original value of max_id, the bug will
+	crash libvirtd when using on NUMA machine with big number
+	of cpus.
+
+	cgroup: fix a typo on extracting data from vcpu cgroup
+
+2012-08-31  Guannan Ren  <gren@redhat.com>
+
+	cgroup: read more data from cgroup cpuacct.usage_percpu
+	On NUMA machine, the length of string got from file
+	cpuacct.usage_percpu is quite large, so expand the
+	limit of 1024 bytes.
+
+	errors like:
+	Failed to read file \
+	'/cgroup/cpuacct/libvirt/qemu/rhel6q/cpuacct.usage_percpu': \
+	Value too large for defined data type
+
+2012-08-31  Jiri Denemark  <jdenemar@redhat.com>
+
+	docs: Fix typo in CPU tuning
+
+2012-08-31  Peter Krempa  <pkrempa@redhat.com>
+
+	doc: Fix emulator pinning example in formatdomain.html
+	Add correct closing tags.
+
+2012-08-31  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	nwfilter: adapt IP learning for broadcasted DHCP replies
+	Adapt the IP learning code to also accept broadcasted DHCP replies
+
+2012-08-31  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	nwfilter: accept broadcasted DHCP replies in DHCP snooping code
+	Some DHCP servers send their DHCP replies to the broadcast MAC address
+	rather than to the MAC address of the VM. The existing DHCP snooping
+	code assumes that the reply always goes to the MAC address of the VM
+	thus filtering the traffic of some DHCP servers' replies.
+
+	The below patch adapts the code to
+
+	1) filter DHCP replies by comparing the MAC address in the reply against
+	   the MAC address of the VM (held in the snoop request)
+
+	2) adapts the pcap filter for traffic towards the VM to accept DHCP replies
+	   sent to any MAC address; for further filtering we rely on 1)
+
+	3) creates initial rules that are active while waiting for DHCP replies;
+	   these rules now accept DHCP replies to the VM's MAC address or to the
+	   MAC broadcast address
+
+2012-08-31  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	Implement virMacAddrIsBroadcastRaw
+	Add function for testing for Ethernet broadcast address
+
+2012-08-31  Kyle Mestery  <kmestery@cisco.com>
+
+	Fix adding ports to OVS bridges without VLAN tags
+	The introduction of the new VLAN code, along with the fix
+	from 5e465df6be8bcb00f0b4bff831e91f4042fae272, caused the
+	addition of OVS ports to fail with the following message:
+
+	ovs-vsctl: 00002|vsctl|ERR|: missing column name
+
+	This fix takes into account the VLAN arguments are optional,
+	and correctly sets up the command line to run the "ovs-vsctl"
+	command to add ports to the OVS bridge.
+
+	CC: Eric Blake <eblake@redhat.com>
+
+2012-08-31  Jim Fehlig  <jfehlig@suse.com>
+
+	Fix xen driver following changes to make it stateful
+	Recent work to improve support for loadable driver modules introduced
+	a regression in the xen driver.  The legacy xen driver is now a
+	stateful, libvirtd driver but was not being registered when building
+	without driver modules.
+
+	A slight behavior change was also noted in the xen drivers when
+	built as driver modules.  Previously, explicitly specifying a
+	connection URI was not necessary, but now
+
+	Compiled against library: libvirt 0.10.0
+	Using library: libvirt 0.10.0
+	Using API: QEMU 0.10.0
+	error: failed to get the hypervisor version
+	error: internal error Cannot find suitable emulator for x86_64
+
+	The xen drivers need to be registered before the qemu driver since
+	the qemu driver will return success with a null connection URI.
+	This ordering is safe since the xen drivers will decline when not
+	running the xen kernel.
+
+2012-08-31  Nishank Trivedi  <nistrive@cisco.com>
+
+	Fix issue of PF brought down if VF is 8021.Qbh and pci passthrough
+	If a 8021.Qbh network device supports SRIOV and its VF is being used
+	in pci passthrough mode, when the guest is shutdown or destroyed, the
+	PF inteface is also brought down. qemuDomainHostdevNetConfigRestore()
+	finds out the PF for provided hostdev (which is VF) and passes it to
+	virNetDevPortProfileDisassociate() as linkdev. Later, linkdev gets passed
+	to virNetDevSetOnline() where the interface is brought down by clearing
+	IFF_UP flag.
+
+	Bringing down a PF, when only VF is being brought down is not expected
+	behavior. This patch adds a check so that virNetDevSetOnline() is called
+	only for PF and not if device is a VF.
+
+2012-08-31  Stefan Berger  <stefanb@linux.vnet.ibm.com>
+
+	nwfilter: loop generated too many rules
+	The loop processing the trusted DHCP server generated one too
+	many rules and added one final rules that accepted responses
+	from all DHCP servers. Below patch fixes this.
+
+2012-08-30  Peter Krempa  <pkrempa@redhat.com>
+
+	security: Re-apply commit ce53382ba28179d3a504b29b4f888b6e130d53f0
+	Recent changes in the security driver discarded changes that fixed
+	labeling un-confined guests.
+
+	vcpupin: Fix returning of arrays from virDomainVcpuPinAdd
+	virDomainVcpuPinAdd does a realloc on vcpupin_list if the new vcpu pin
+	definition doesn't fit into the array. The list is an array of pointers
+	but the function definition didn't support returning the changed pointer
+	to the caller if it was realloced. This caused segfaults if realloc
+	would change the base pointer.
+
+2012-08-30  Peter Krempa  <pkrempa@redhat.com>
+
+	qemu: Fix possible infinite loop and segfault on error path.
+	virDomainVcpuPinDefCopy when the control flow reaches out of memory
+	cleanup code, the flow would end in a infinite loop as the loop variable
+	wasn't decremented.
+
+	Also a dereference of NULL pointers was possible if allocation of the
+	Vcpu pinning definiton structure failed.
+
+2012-08-30  Peter Krempa  <pkrempa@redhat.com>
+
+	qemu: Clean up security driver initialisation and config file
+	Commit d0c0e79ac646462aaa815f81ad324a0d3ef12954 left behind some dead
+	code (hasDAC can't be efectively set to true, because
+	virSecurityManagerNew fails to load the "dac" driver).
+
+	This patch also enhances the condition for adding the default
+	auto-detected security manager if the manager array is allocated but
+	empty.
+
+	Also the configuration file for qemu driver still contains reference to
+	the DAC driver that can't be enabled manualy.
+
+2012-08-30  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Revert to blocking behavior of qemuAgentCommand
+	Before commit 05447e3af44ec153314ff97cd611330d9b4b5730, qemuAgentCommand
+	blocked until it got a reply or appropriate event. When new parameter
+	was added to qemuAgentCommand in the above commit, all existing callers
+	of it were updated in a wrong way changing them from blocking to
+	5-seconds timeout.
+
+	qemu: Remove redundant parameter from qemuAgentSend
+	The @timeout parameter of qemuAgentSend is both redundant and confusing.
+	This patch should not result in any functional changes.
+
+2012-08-30  Laine Stump  <laine@laine.org>
+
+	network: get vlan info for Open vSwitch interfaces from proper source
+	This bug was revealed by the crash described in
+
+	  https://bugzilla.redhat.com/show_bug.cgi?id=852383
+
+	The vlan info pointer sent to virNetDevOpenvswitchAddPort should never
+	be non-NULL unless there is at least one tag. The factthat such a vlan
+	info pointer was receveid pointed out that a caller was passing the
+	wrong pointer. Instead of sending &net->vlan, the result of
+	virDomainNetGetActualVlan(net) should be sent - that function will
+	look for vlan info in net->data.network.actual->vlan, and in cany case
+	return NULL instead of a pointer if the vlan info it finds has no
+	tags.
+
+	Aside from causing the crash, sending a hardcoded &net->vlan has the
+	effect of ignoring vlan info from a <network> or <portgroup> config.
+
+2012-08-30  Daniel Veillard  <veillard@redhat.com>
+
+	Small cleanup on previous patch
+	As pointed by Eric Blake
+
+2012-08-30  Kyle Mestery  <kmestery@cisco.com>
+
+	Fix a crash when using Open vSwitch virtual ports
+	Fixup buffer usage when handling VLANs. Also fix the logic
+	used to determine if the virNetDevVlanPtr is valid or not.
+	Fixes crashes in the latest code when using Open vSwitch
+	virtualports.
+
+2012-08-30  Osier Yang  <jyang@redhat.com>
+
+	qemu: Sort the numa params only when it affects the live config
+	As the next boot doesn't have to worry about the previous numa
+	params setting (there is no).
+
+2012-08-30  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix configuration of QEMU security drivers
+	If no 'security_driver' config option was set, then the code
+	just loaded the 'dac' security driver. This is a regression
+	on previous behaviour, where we would probe for a possible
+	security driver. ie default to SELinux if available.
+
+	This changes things so that it 'security_driver' is not set,
+	we once again do probing. For simplicity we also always
+	create the stack driver, even if there is only one driver
+	active.
+
+	The desired semantics are:
+
+	 - security_driver not set
+	     -> probe for selinux/apparmour/nop
+	     -> auto-add DAC driver
+	 - security_driver set to a string
+	     -> add that one driver
+	     -> auto-add DAC driver
+	 - security_driver set to a list
+	     -> add all drivers in list
+	     -> auto-add DAC driver
+
+	It is not allowed, or possible to specify 'dac' in the
+	security_driver config param, since that is always
+	enabled.
+
+2012-08-29  Peter Krempa  <pkrempa@redhat.com>
+
+	qemu: Refactor initialisation of security drivers.
+	The security driver loading code in qemu has a flaw that causes it to
+	register the DAC security driver twice. This causes problems (machines
+	unable to start) as the two DAC drivers clash together.
+
+	This patch refactors the code to allow loading the DAC driver even if
+	its specified in configuration (it can't be registered as a common
+	security driver), and does not add the driver twice.
+
+2012-08-29  Peter Krempa  <pkrempa@redhat.com>
+
+	Revert "security: Add DAC to security_drivers"
+	This reverts commit 9f9b7b85c9b422e8f4e813f3920bf8f433246a4a.
+
+	The DAC security driver needs special handling and extra parameters and
+	can't just be added to regular security drivers.
+
+2012-08-29  Jiri Denemark  <jdenemar@redhat.com>
+
+	qemu: Fix starting domains with no cpu cgroup
+	If cgroups are enabled in general but cpu cgroup is disabled in
+	qemu.conf or not mounted at all, libvirt would refuse to start any
+	domain even though scheduler parameters are not set in domain XML.
+
+	This patch makes cpu cgroup mandatory only for domains that actually
+	want to use it.
+
+2012-08-29  Alex Jia  <ajia@redhat.com>
+
+	security: remove dead code from virSecurityDACGenLabel
+	* src/security/security_dac.c: remove useless dead code.
+
 2012-08-29  Daniel Veillard  <veillard@redhat.com>
 
 	Release of libvirt-0.10.0

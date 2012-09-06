@@ -314,7 +314,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.10.0
+Version: 0.10.1
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -1863,6 +1863,9 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %endif
 
 %changelog
+* Fri Aug 31 2012 Daniel Veillard <veillard@redhat.com> - 0.10.1-1
+- bugfixes and a brown paper bag
+
 * Wed Aug 29 2012 Daniel Veillard <veillard@redhat.com> - 0.10.0-1
 - agent: add qemuAgentArbitraryCommand() for general qemu agent command
 - Introduce virDomainPinEmulator and virDomainGetEmulatorPinInfo functions

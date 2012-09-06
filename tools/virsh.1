@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2012-08-23" "libvirt-0.10.0" "Virtualization Support"
+.TH VIRSH 1 "2012-08-31" "libvirt-0.10.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1613,9 +1613,15 @@ Attach a new disk device to the domain.
 device under which the disk is exposed to the guest \s-1OS\s0. It indicates the
 \&\*(L"logical\*(R" device name.  \fIdriver\fR can be \fIfile\fR, \fItap\fR or \fIphy\fR for the Xen
 hypervisor depending on the kind of access; or \fIqemu\fR for the \s-1QEMU\s0 emulator.
-\&\fItype\fR can indicate \fIlun\fR, \fIcdrom\fR or \fIfloppy\fR as alternative to the disk default,
-although this use only replaces the media within the existing virtual cdrom or
-floppy device; consider using \fBupdate-device\fR for this usage instead.
+Further details to the driver can be passed using \fIsubdriver\fR. For Xen
+\&\fIsubdriver\fR can be \fIaio\fR, while for \s-1QEMU\s0 subdriver should match the format
+of the disk source, such as \fIraw\fR or \fIqcow2\fR.  Hypervisor default will be
+used if \fIsubdriver\fR is not specified.  However, the default may not be
+correct, esp. for \s-1QEMU\s0 as for security reasons it is configured not to detect
+disk formats.  \fItype\fR can indicate \fIlun\fR, \fIcdrom\fR or \fIfloppy\fR as
+alternative to the disk default, although this use only replaces the media
+within the existing virtual cdrom or floppy device; consider using
+\&\fBupdate-device\fR for this usage instead.
 \&\fImode\fR can specify the two specific mode \fIreadonly\fR or \fIshareable\fR.
 \&\fI\-\-config\fR indicates the changes will affect the next boot of the domain,
 for compatibility purposes, \fI\-\-persistent\fR is alias of \fI\-\-config\fR.
@@ -2694,6 +2700,6 @@ Unterminated I<...> sequence
 .IP "Around line 729:" 4
 .IX Item "Around line 729:"
 Unterminated I<...> sequence
-.IP "Around line 2801:" 4
-.IX Item "Around line 2801:"
+.IP "Around line 2807:" 4
+.IX Item "Around line 2807:"
 \&'=item' outside of any '=over'

@@ -249,94 +249,66 @@ static int
 qemuSecurityInit(struct qemud_driver *driver)
 {
     char **names;
-    char *primary;
-    virSecurityManagerPtr mgr, nested, stack = NULL;
+    virSecurityManagerPtr mgr = NULL;
+    virSecurityManagerPtr stack = NULL;
 
-    if (driver->securityDriverNames == NULL)
-        primary = NULL;
-    else
-        primary = driver->securityDriverNames[0];
-
-    /* Create primary driver */
-    mgr = virSecurityManagerNew(primary,
-                                QEMU_DRIVER_NAME,
-                                driver->allowDiskFormatProbing,
-                                driver->securityDefaultConfined,
-                                driver->securityRequireConfined);
-    if (!mgr)
-        goto error;
-
-    /* If a DAC driver is required or additional drivers are provived, a stack
-     * driver should be create to group them all */
-    if (driver->privileged ||
-        (driver->securityDriverNames && driver->securityDriverNames[1])) {
-        stack = virSecurityManagerNewStack(mgr);
-        if (!stack)
-            goto error;
-        mgr = stack;
-    }
-
-    /* Loop through additional driver names and add a secudary driver to each
-     * one */
-    if (driver->securityDriverNames) {
-        names = driver->securityDriverNames + 1;
+    if (driver->securityDriverNames &&
+        driver->securityDriverNames[0]) {
+        names = driver->securityDriverNames;
         while (names && *names) {
-            if (STREQ("dac", *names)) {
-                /* A DAC driver has specific parameters */
-                nested = virSecurityManagerNewDAC(QEMU_DRIVER_NAME,
-                                                  driver->user,
-                                                  driver->group,
-                                                  driver->allowDiskFormatProbing,
-                                                  driver->securityDefaultConfined,
-                                                  driver->securityRequireConfined,
-                                                  driver->dynamicOwnership);
+            if (!(mgr = virSecurityManagerNew(*names,
+                                              QEMU_DRIVER_NAME,
+                                              driver->allowDiskFormatProbing,
+                                              driver->securityDefaultConfined,
+                                              driver->securityRequireConfined)))
+                goto error;
+            if (!stack) {
+                if (!(stack = virSecurityManagerNewStack(mgr)))
+                    goto error;
             } else {
-                nested = virSecurityManagerNew(*names,
-                                               QEMU_DRIVER_NAME,
-                                               driver->allowDiskFormatProbing,
-                                               driver->securityDefaultConfined,
-                                               driver->securityRequireConfined);
+                if (virSecurityManagerStackAddNested(stack, mgr) < 0)
+                    goto error;
             }
-            if (nested == NULL)
-                goto error;
-            if (virSecurityManagerStackAddNested(stack, nested))
-                goto error;
+            mgr = NULL;
             names++;
         }
+    } else {
+        if (!(mgr = virSecurityManagerNew(NULL,
+                                          QEMU_DRIVER_NAME,
+                                          driver->allowDiskFormatProbing,
+                                          driver->securityDefaultConfined,
+                                          driver->securityRequireConfined)))
+            goto error;
+        if (!(stack = virSecurityManagerNewStack(mgr)))
+            goto error;
+        mgr = NULL;
     }
 
     if (driver->privileged) {
-        /* When a DAC driver is required, check if there is already one in the
-         * additional drivers */
-        names = driver->securityDriverNames;
-        while (names && *names) {
-            if (STREQ("dac", *names)) {
-               break;
-            }
-            names++;
-        }
-        /* If there is no DAC driver, create a new one and add it to the stack
-         * manager */
-        if (names == NULL || *names == NULL) {
-            nested = virSecurityManagerNewDAC(QEMU_DRIVER_NAME,
-                                              driver->user,
-                                              driver->group,
-                                              driver->allowDiskFormatProbing,
-                                              driver->securityDefaultConfined,
-                                              driver->securityRequireConfined,
-                                              driver->dynamicOwnership);
-            if (nested == NULL)
+        if (!(mgr = virSecurityManagerNewDAC(QEMU_DRIVER_NAME,
+                                             driver->user,
+                                             driver->group,
+                                             driver->allowDiskFormatProbing,
+                                             driver->securityDefaultConfined,
+                                             driver->securityRequireConfined,
+                                             driver->dynamicOwnership)))
+            goto error;
+        if (!stack) {
+            if (!(stack = virSecurityManagerNewStack(mgr)))
                 goto error;
-            if (virSecurityManagerStackAddNested(stack, nested))
+        } else {
+            if (virSecurityManagerStackAddNested(stack, mgr) < 0)
                 goto error;
         }
+        mgr = NULL;
     }
 
-    driver->securityManager = mgr;
+    driver->securityManager = stack;
     return 0;
 
 error:
     VIR_ERROR(_("Failed to initialize security drivers"));
+    virSecurityManagerFree(stack);
     virSecurityManagerFree(mgr);
     return -1;
 }
@@ -3810,7 +3782,7 @@ qemudDomainPinVcpuFlags(virDomainPtr dom,
             newVcpuPinNum = 0;
         }
 
-        if (virDomainVcpuPinAdd(newVcpuPin, &newVcpuPinNum, cpumap, maplen, vcpu) < 0) {
+        if (virDomainVcpuPinAdd(&newVcpuPin, &newVcpuPinNum, cpumap, maplen, vcpu) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("failed to update vcpupin"));
             virDomainVcpuPinDefFree(newVcpuPin, newVcpuPinNum);
@@ -3877,7 +3849,7 @@ qemudDomainPinVcpuFlags(virDomainPtr dom,
                 }
                 persistentDef->cputune.nvcpupin = 0;
             }
-            if (virDomainVcpuPinAdd(persistentDef->cputune.vcpupin,
+            if (virDomainVcpuPinAdd(&persistentDef->cputune.vcpupin,
                                     &persistentDef->cputune.nvcpupin,
                                     cpumap,
                                     maplen,
@@ -4070,7 +4042,7 @@ qemudDomainPinEmulator(virDomainPtr dom,
                 newVcpuPinNum = 0;
             }
 
-            if (virDomainVcpuPinAdd(newVcpuPin, &newVcpuPinNum, cpumap, maplen, -1) < 0) {
+            if (virDomainVcpuPinAdd(&newVcpuPin, &newVcpuPinNum, cpumap, maplen, -1) < 0) {
                 virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                                _("failed to update vcpupin"));
                 virDomainVcpuPinDefFree(newVcpuPin, newVcpuPinNum);
@@ -7204,32 +7176,34 @@ qemuDomainSetMemoryParameters(virDomainPtr dom,
         goto cleanup;
     }
 
-    /* Get current swap hard limit */
-    rc = virCgroupGetMemSwapHardLimit(group, &val);
-    if (rc != 0) {
-        virReportSystemError(-rc, "%s",
-                             _("unable to get swap hard limit"));
-        goto cleanup;
-    }
+    if (flags & VIR_DOMAIN_AFFECT_LIVE) {
+        /* Get current swap hard limit */
+        rc = virCgroupGetMemSwapHardLimit(group, &val);
+        if (rc != 0) {
+            virReportSystemError(-rc, "%s",
+                                 _("unable to get swap hard limit"));
+            goto cleanup;
+        }
 
-    /* Swap hard_limit and swap_hard_limit to ensure the setting
-     * could succeed if both of them are provided.
-     */
-    if (swap_hard_limit && hard_limit) {
-        virTypedParameter param;
+        /* Swap hard_limit and swap_hard_limit to ensure the setting
+         * could succeed if both of them are provided.
+         */
+        if (swap_hard_limit && hard_limit) {
+            virTypedParameter param;
 
-        if (swap_hard_limit->value.ul > val) {
-             if (hard_limit_index < swap_hard_limit_index) {
-                 param = params[hard_limit_index];
-                 params[hard_limit_index] = params[swap_hard_limit_index];
-                 params[swap_hard_limit_index] = param;
-             }
-        } else {
-             if (hard_limit_index > swap_hard_limit_index) {
-                 param = params[hard_limit_index];
-                 params[hard_limit_index] = params[swap_hard_limit_index];
-                 params[swap_hard_limit_index] = param;
-             }
+            if (swap_hard_limit->value.ul > val) {
+                if (hard_limit_index < swap_hard_limit_index) {
+                    param = params[hard_limit_index];
+                    params[hard_limit_index] = params[swap_hard_limit_index];
+                    params[swap_hard_limit_index] = param;
+                }
+            } else {
+                if (hard_limit_index > swap_hard_limit_index) {
+                    param = params[hard_limit_index];
+                    params[hard_limit_index] = params[swap_hard_limit_index];
+                    params[swap_hard_limit_index] = param;
+                }
+            }
         }
     }
 
@@ -13486,7 +13460,7 @@ getSumVcpuPercpuStats(virCgroupPtr group,
             goto cleanup;
         }
 
-        if (virCgroupGetCpuacctPercpuUsage(group, &buf) < 0)
+        if (virCgroupGetCpuacctPercpuUsage(group_vcpu, &buf) < 0)
             goto cleanup;
 
         pos = buf;
@@ -13522,7 +13496,7 @@ qemuDomainGetPercpuStats(virDomainPtr domain,
     char *map = NULL;
     char *map2 = NULL;
     int rv = -1;
-    int i, max_id;
+    int i, id, max_id;
     char *pos;
     char *buf = NULL;
     unsigned long long *sum_cpu_time = NULL;
@@ -13563,10 +13537,13 @@ qemuDomainGetPercpuStats(virDomainPtr domain,
     /* return percpu cputime in index 0 */
     param_idx = 0;
 
-    if (max_id - start_cpu > ncpus - 1)
-        max_id = start_cpu + ncpus - 1;
+    /* number of cpus to compute */
+    id = max_id;
 
-    for (i = 0; i <= max_id; i++) {
+    if (max_id - start_cpu > ncpus - 1)
+        id = start_cpu + ncpus - 1;
+
+    for (i = 0; i <= id; i++) {
         if (!map[i]) {
             cpu_time = 0;
         } else if (virStrToLong_ull(pos, &pos, 10, &cpu_time) < 0) {
@@ -13606,7 +13583,7 @@ qemuDomainGetPercpuStats(virDomainPtr domain,
     }
 
     sum_cpu_pos = sum_cpu_time;
-    for (i = 0; i <= max_id; i++) {
+    for (i = 0; i <= id; i++) {
         if (!map[i])
             cpu_time = 0;
         else
