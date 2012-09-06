@@ -49,6 +49,12 @@ static virSecurityManagerPtr virSecurityManagerNewDriver(virSecurityDriverPtr dr
 {
     virSecurityManagerPtr mgr;
 
+    VIR_DEBUG("drv=%p (%s) virtDriver=%s allowDiskFormatProbing=%d "
+              "defaultConfined=%d requireConfined=%d",
+              drv, drv->name, virtDriver,
+              allowDiskFormatProbing, defaultConfined,
+              requireConfined);
+
     if (VIR_ALLOC_VAR(mgr, char, drv->privateDataLen) < 0) {
         virReportOOMError();
         return NULL;
@@ -80,7 +86,7 @@ virSecurityManagerPtr virSecurityManagerNewStack(virSecurityManagerPtr primary)
     if (!mgr)
         return NULL;
 
-    virSecurityStackAddPrimary(mgr, primary);
+    virSecurityStackAddNested(mgr, primary);
 
     return mgr;
 }
@@ -334,10 +340,12 @@ int virSecurityManagerGenLabel(virSecurityManagerPtr mgr,
         }
 
         if (seclabel->type == VIR_DOMAIN_SECLABEL_DEFAULT) {
-            if (sec_managers[i]->defaultConfined)
+            if (sec_managers[i]->defaultConfined) {
                 seclabel->type = VIR_DOMAIN_SECLABEL_DYNAMIC;
-            else
+            } else {
                 seclabel->type = VIR_DOMAIN_SECLABEL_NONE;
+                seclabel->norelabel = true;
+            }
         }
 
         if ((seclabel->type == VIR_DOMAIN_SECLABEL_NONE) &&

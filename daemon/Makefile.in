@@ -40,18 +40,19 @@ host_triplet = @host@
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_3 = ../src/libvirt_driver_qemu.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_DTRACE_PROBES_TRUE@@WITH_LIBVIRTD_TRUE@@WITH_QEMU_TRUE@am__append_4 = ../src/libvirt_qemu_probes.lo
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LXC_TRUE@am__append_5 = ../src/libvirt_driver_lxc.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LIBXL_TRUE@am__append_6 = ../src/libvirt_driver_libxl.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_UML_TRUE@am__append_7 = ../src/libvirt_driver_uml.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_TRUE@am__append_8 = ../src/libvirt_driver_storage.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_9 = ../src/libvirt_driver_network.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETCF_TRUE@am__append_10 = ../src/libvirt_driver_interface.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_11 = ../src/libvirt_driver_nodedev.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_SECRETS_TRUE@am__append_12 = ../src/libvirt_driver_secret.la
-@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_13 = ../src/libvirt_driver_nwfilter.la
-@WITH_LIBVIRTD_TRUE@am__append_14 = $(LOGROTATE_CONFS)
-@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_15 = libvirtd.init
-@WITH_LIBVIRTD_TRUE@am__append_16 = libvirtd.service.in
-@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_17 = libvirtd.service
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_XEN_TRUE@am__append_6 = ../src/libvirt_driver_xen.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_LIBXL_TRUE@am__append_7 = ../src/libvirt_driver_libxl.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_UML_TRUE@am__append_8 = ../src/libvirt_driver_uml.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_STORAGE_TRUE@am__append_9 = ../src/libvirt_driver_storage.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETWORK_TRUE@am__append_10 = ../src/libvirt_driver_network.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NETCF_TRUE@am__append_11 = ../src/libvirt_driver_interface.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_12 = ../src/libvirt_driver_nodedev.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_SECRETS_TRUE@am__append_13 = ../src/libvirt_driver_secret.la
+@WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_14 = ../src/libvirt_driver_nwfilter.la
+@WITH_LIBVIRTD_TRUE@am__append_15 = $(LOGROTATE_CONFS)
+@LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_16 = libvirtd.init
+@WITH_LIBVIRTD_TRUE@am__append_17 = libvirtd.service.in
+@LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_18 = libvirtd.service
 subdir = daemon
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -322,7 +323,8 @@ am__DEPENDENCIES_1 =
 @WITH_LIBVIRTD_TRUE@	$(am__append_8) $(am__append_9) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_10) $(am__append_11) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_12) $(am__append_13) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt.la ../gnulib/lib/libgnu.la \
+@WITH_LIBVIRTD_TRUE@	$(am__append_14) ../src/libvirt.la \
+@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la \
 @WITH_LIBVIRTD_TRUE@	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -1831,8 +1833,8 @@ EXTRA_DIST = remote_dispatch.h qemu_dispatch.h libvirtd.conf \
 	libvirtd.qemu.logrotate.in libvirtd.lxc.logrotate.in \
 	libvirtd.uml.logrotate.in test_libvirtd.aug.in THREADS.txt \
 	libvirtd.pod.in libvirtd.8.in $(DAEMON_SOURCES) \
-	$(am__append_16)
-BUILT_SOURCES = $(am__append_14) $(am__append_15) $(am__append_17)
+	$(am__append_17)
+BUILT_SOURCES = $(am__append_15) $(am__append_16) $(am__append_18)
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
 QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@man8_MANS = libvirtd.8
@@ -1868,8 +1870,8 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@	$(am__append_8) $(am__append_9) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_10) $(am__append_11) \
 @WITH_LIBVIRTD_TRUE@	$(am__append_12) $(am__append_13) \
-@WITH_LIBVIRTD_TRUE@	../src/libvirt.la ../gnulib/lib/libgnu.la \
-@WITH_LIBVIRTD_TRUE@	$(LIBSOCKET)
+@WITH_LIBVIRTD_TRUE@	$(am__append_14) ../src/libvirt.la \
+@WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(LIBSOCKET)
 @HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/polkit-1/actions
 @HAVE_POLKIT0_TRUE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/PolicyKit/policy
 @HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyfile = libvirtd.policy-1
