@@ -65,7 +65,8 @@ Recommends: netcat-openbsd,
  ebtables,
  dmidecode,
  iproute,
- parted
+ parted,
+ pm-utils
 Suggests: policykit-1, radvd
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
