@@ -1,3 +1,12 @@
+libvirt (0.9.12-5) unstable; urgency=high
+
+  * Setting urgency to high since it's a security only fix
+  * [c0f4995] New patch security-Fix-libvirtd-crash-possibility.patch.
+    Fix libvirtd crash possibility (CVE-2012-4423)
+    Thanks to Martin Kletzander (Closes: #687598)
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 14 Sep 2012 22:35:08 +0200
+
 libvirt (0.9.12-4) unstable; urgency=low
 
   * [80ac2a6] Fix CVE-2012-3445 with upstream commit
