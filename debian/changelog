@@ -1,3 +1,12 @@
+libvirt (0.10.1-2) experimental; urgency=low
+
+  * [cd7e695] Recommend pm-utils used for host power management.
+  * [2f928f7] Add missing "-d" to libvirt-bin's restart option otherwise
+    daemon restarts will just hang. Thanks to Laurent Bigonville.
+    (Closes: #688146)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 19 Sep 2012 22:32:34 +0200
+
 libvirt (0.10.1-1) experimental; urgency=low
 
   * [aa3d87e] New upstream version 0.10.1
