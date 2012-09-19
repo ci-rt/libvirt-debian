@@ -133,7 +133,7 @@ case "$1" in
 			/var/run/$NAME.pid --exec $DAEMON
 		[ -n "$DODTIME" ] && sleep $DODTIME
 		start-stop-daemon --start --quiet --pidfile \
-			/var/run/$NAME.pid --exec $DAEMON -- $libvirtd_opts
+			/var/run/$NAME.pid --exec $DAEMON -- -d $libvirtd_opts
 		if running; then
 			log_end_msg 0
 		else
