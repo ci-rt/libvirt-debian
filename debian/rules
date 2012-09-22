@@ -31,6 +31,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_NETCF          = --with-netcf
   WITH_SANLOCK        = --with-sanlock
   WITH_INIT_SCRIPT    =	--with-init-script=systemd
+  WITH_AUDIT          = --with-audit
   ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 i386 ia64 mips mipsel powerpc))
       WITH_NUMA       = --with-numactl
   else
@@ -56,6 +57,7 @@ else
   WITH_NUMA           = --without-numactl
   WITH_NETCF          = --without-netcf
   WITH_INIT_SCRIPT    =	--with-init-script=none
+  WITH_AUDIT          = --without-audit
 endif
 
 DEB_BUILDDIR := $(CURDIR)/debian/build

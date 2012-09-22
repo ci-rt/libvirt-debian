@@ -34,6 +34,7 @@ Build-Depends: cdbs (>= 0.4.90~),
  radvd [linux-any],
  libnetcf-dev [linux-any],
  libsanlock-dev [linux-any],
+ libaudit-dev [linux-any],
 # for --with-storage-sheepdog
  sheepdog,
 # For "make check"
@@ -67,7 +68,7 @@ Recommends: netcat-openbsd,
  iproute,
  parted,
  pm-utils
-Suggests: policykit-1, radvd
+Suggests: policykit-1, radvd, auditd
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
