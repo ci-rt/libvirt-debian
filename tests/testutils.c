@@ -14,7 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Karel Zak <kzak@redhat.com>
@@ -478,7 +478,7 @@ struct virtTestLogData {
 
 static struct virtTestLogData testLog = { VIR_BUFFER_INITIALIZER };
 
-static int
+static void
 virtTestLogOutput(const char *category ATTRIBUTE_UNUSED,
                   int priority ATTRIBUTE_UNUSED,
                   const char *funcname ATTRIBUTE_UNUSED,
@@ -489,9 +489,8 @@ virtTestLogOutput(const char *category ATTRIBUTE_UNUSED,
                   void *data)
 {
     struct virtTestLogData *log = data;
-    virCheckFlags(VIR_LOG_STACK_TRACE, -1);
+    virCheckFlags(VIR_LOG_STACK_TRACE,);
     virBufferAsprintf(&log->buf, "%s: %s", timestamp, str);
-    return strlen(timestamp) + 2 + strlen(str);
 }
 
 static void

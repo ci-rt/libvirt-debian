@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: David F. Lively <dlively@virtualiron.com>
@@ -770,6 +770,7 @@ static virDeviceMonitor halDeviceMonitor = {
     .close = halNodeDrvClose, /* 0.5.0 */
     .numOfDevices = nodeNumOfDevices, /* 0.5.0 */
     .listDevices = nodeListDevices, /* 0.5.0 */
+    .listAllNodeDevices = nodeListAllNodeDevices, /* 0.10.2 */
     .deviceLookupByName = nodeDeviceLookupByName, /* 0.5.0 */
     .deviceGetXMLDesc = nodeDeviceGetXMLDesc, /* 0.5.0 */
     .deviceGetParent = nodeDeviceGetParent, /* 0.5.0 */

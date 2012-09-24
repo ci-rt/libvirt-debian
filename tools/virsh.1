@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2012-08-31" "libvirt-0.10.0" "Virtualization Support"
+.TH VIRSH 1 "2012-09-21" "libvirt-0.10.1" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -393,6 +393,13 @@ Suspend-to-RAM, Suspend-to-Disk or Hybrid-Suspend and sets up a
 Real-Time-Clock interrupt to fire (to wake up the node) after a time delay
 specified by the 'duration' parameter. The duration time should be
 at least 60 seconds.
+.IP "\fBnode-memory-tune\fR [\fIshm-pages-to-scan\fR] [\fIshm-sleep-millisecs\fR]" 4
+.IX Item "node-memory-tune [shm-pages-to-scan] [shm-sleep-millisecs]"
+Allows you to display or set the node memory parameters.
+\&\fIshm-pages-to-scan\fR can be used to set the number of pages to scan
+before the shared memory service goes to sleep; \fIshm-sleep-millisecs\fR
+can be used to set the number of millisecs the shared memory service should
+sleep before next scan.
 .IP "\fBcapabilities\fR" 4
 .IX Item "capabilities"
 Print an \s-1XML\s0 document describing the capabilities of the hypervisor
@@ -468,10 +475,11 @@ into s3 state.
 Normally only active domains are listed. To list inactive domains specify
 \&\fI\-\-inactive\fR or \fI\-\-all\fR to list both active and inactive domains.
 .Sp
-To filter the list of domains present on the hypervisor you may specify one or
-more of filtering flags supported by the \fBlist\fR command.  These flags are
-grouped by function. Specifying one or more flags from a group enables the
-filter group. Supported filtering flags and groups:
+To further filter the list of domains you may specify one or more of filtering
+flags supported by the \fBlist\fR command. These flags are grouped by function.
+Specifying one or more flags from a group enables the filter group. Note that
+some combinations of flags may yield no results. Supported filtering flags and
+groups:
 .IP "\fBPersistence\fR" 4
 .IX Item "Persistence"
 Flag \fI\-\-persistent\fR is used to include persistent domains in the returned
@@ -731,6 +739,33 @@ virtual interfaces that will be used on the next boot, rather than those
 currently in use by a running domain. Other contexts that require a \s-1MAC\s0
 address of virtual interface (such as \fIdetach-interface\fR or
 \&\fIdomif-setlink\fR) will accept the \s-1MAC\s0 address printed by this command.
+.IP "\fBblockcommit\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] {[\fIbase\fR] | [\fI\-\-shallow\fR]} [\fItop\fR] [\fI\-\-delete\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [\fI\-\-timeout\fR \fBseconds\fR]]" 4
+.IX Item "blockcommit domain path [bandwidth] {[base] | [--shallow]} [top] [--delete] [--wait [--verbose] [--timeout seconds]]"
+Reduce the length of a backing image chain, by committing changes at the
+top of the chain (snapshot or delta files) into backing images.  By
+default, this command attempts to flatten the entire chain.  If \fIbase\fR
+and/or \fItop\fR are specified as files within the backing chain, then the
+operation is constrained to committing just that portion of the chain;
+\&\fI\-\-shallow\fR can be used instead of \fIbase\fR to specify the immediate
+backing file of the resulting top image to be committed.  The files
+being committed are rendered invalid, possibly as soon as the operation
+starts; using the \fI\-\-delete\fR flag will remove these files at the successful
+completion of the commit operation.
+.Sp
+By default, this command returns as soon as possible, and data for
+the entire disk is committed in the background; the progress of the
+operation can be checked with \fBblockjob\fR.  However, if \fI\-\-wait\fR is
+specified, then this command will block until the operation completes,
+or cancel the operation if the optional \fItimeout\fR in seconds elapses
+or \s-1SIGINT\s0 is sent (usually with \f(CW\*(C`Ctrl\-C\*(C'\fR).  Using \fI\-\-verbose\fR along
+with \fI\-\-wait\fR will produce periodic status updates.
+.Sp
+\&\fIpath\fR specifies fully-qualified path of the disk; it corresponds
+to a unique target name (<target dev='name'/>) or source file (<source
+file='name'/>) for one of the disk devices attached to \fIdomain\fR (see
+also \fBdomblklist\fR for listing these names).
+\&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s, although for
+qemu, it may be non-zero only for an online domain.
 .IP "\fBblockcopy\fR \fIdomain\fR \fIpath\fR \fIdest\fR [\fIbandwidth\fR] [\fI\-\-shallow\fR] [\fI\-\-reuse\-external\fR] [\fI\-\-raw\fR] [\fI\-\-wait\fR [\fI\-\-verbose] [{\fI\-\-pivot\fI | \fI\-\-finish\fI}] [\fI\-\-timeout\fI \f(BIseconds\fI] [\fI\-\-async\fI]]\fR" 4
 .IX Item "blockcopy domain path dest [bandwidth] [--shallow] [--reuse-external] [--raw] [--wait [--verbose] [{--pivot | --finish}] [--timeout seconds] [--async]]"
 Copy a disk backing image chain to \fIdest\fR. By default, this command
@@ -1484,9 +1519,10 @@ Note that this command requires a guest agent configured and running in the
 domain's guest \s-1OS\s0.
 .IP "\fBdompmwakeup\fR \fIdomain\fR" 4
 .IX Item "dompmwakeup domain"
-Wakeup a domain suspended by dompmsuspend command. Injects a wakeup
-into the guest that previously used dompmsuspend, rather than waiting
-for the previously requested duration (if any) to elapse.
+Wakeup a domain from pmsuspended state (either suspended by dompmsuspend or
+from the guest itself). Injects a wakeup into the guest that is in pmsuspended
+state, rather than waiting for the previously requested duration (if any) to
+elapse. This operation doesn't not necessarily fail if the domain is running.
 .IP "\fBttyconsole\fR \fIdomain\fR" 4
 .IX Item "ttyconsole domain"
 Output the device used for the \s-1TTY\s0 console of the domain. If the information
@@ -1774,11 +1810,14 @@ libvirt (such as whether device reset is supported).
 .IP "\fBnodedev-list\fR \fIcap\fR \fI\-\-tree\fR" 4
 .IX Item "nodedev-list cap --tree"
 List all of the devices available on the node that are known by libvirt.
-If \fIcap\fR is used, the list is filtered to show only the nodes that
-include the given capability.  If \fI\-\-tree\fR is used, the output is
-formatted in a tree representing parents of each node.
-.IP "\fBnodedev-reattach\fR \fInodedev\fR" 4
-.IX Item "nodedev-reattach nodedev"
+\&\fIcap\fR is used to filter the list by capability types, the types must be
+separated by comma, e.g. \-\-cap pci,scsi, valid capability types include
+\&'system', 'pci', 'usb_device', 'usb', 'net', 'scsi_host', 'scsi_target',
+\&'scsi', 'storage'. If \fI\-\-tree\fR is used, the output is formatted in a tree
+representing parents of each node. \fIcap\fR and \fI\-\-tree\fR are mutually
+exclusive.
+=item \fBnodedev-reattach\fR \fInodedev\fR
+.Sp
 Declare that \fInodedev\fR is no longer in use by any guests, and that
 the host can resume normal use of the device.  This is done
 automatically for devices in managed mode, but must be done explicitly
@@ -1838,11 +1877,19 @@ variables, and defaults to \f(CW\*(C`vi\*(C'\fR.
 .IP "\fBnet-info\fR \fInetwork\fR" 4
 .IX Item "net-info network"
 Returns basic information about the \fInetwork\fR object.
-.IP "\fBnet-list\fR [\fI\-\-inactive\fR | \fI\-\-all\fR]" 4
-.IX Item "net-list [--inactive | --all]"
+.IP "\fBnet-list\fR [\fI\-\-inactive\fR | \fI\-\-all\fR] [\fI\-\-persistent\fR] [<\-\-transient>] [\fI\-\-autostart\fR] [<\-\-no\-autostart>]" 4
+.IX Item "net-list [--inactive | --all] [--persistent] [<--transient>] [--autostart] [<--no-autostart>]"
 Returns the list of active networks, if \fI\-\-all\fR is specified this will also
 include defined but inactive networks, if \fI\-\-inactive\fR is specified only the
-inactive ones will be listed.
+inactive ones will be listed. You may also want to filter the returned networks
+by \fI\-\-persistent\fR to list the persitent ones, \fI\-\-transient\fR to list the
+transient ones, \fI\-\-autostart\fR to list the ones with autostart enabled, and
+\&\fI\-\-no\-autostart\fR to list the ones with autostart disabled.
+.Sp
+\&\s-1NOTE:\s0 When talking to older servers, this command is forced to use a series of
+\&\s-1API\s0 calls with an inherent race, where a pool might not be listed or might appear
+more than once if it changed state between calls while the list was being
+collected.  Newer servers do not have this problem.
 .IP "\fBnet-name\fR \fInetwork-UUID\fR" 4
 .IX Item "net-name network-UUID"
 Convert a network \s-1UUID\s0 to network name.
@@ -1855,6 +1902,43 @@ Undefine the configuration for an inactive network.
 .IP "\fBnet-uuid\fR \fInetwork-name\fR" 4
 .IX Item "net-uuid network-name"
 Convert a network name to network \s-1UUID\s0.
+.IP "\fBnet-update\fR \fInetwork\fR \fIcommand\fR \fIsection\fR \fIxml\fR [\fI\-\-parent\-index\fR \fIindex\fR] [[\fI\-\-live\fR] [\fI\-\-config\fR] | [\fI\-\-current\fR]]" 4
+.IX Item "net-update network command section xml [--parent-index index] [[--live] [--config] | [--current]]"
+Update the given section of an existing network definition, with the
+changes optionally taking effect immediately, without needing to
+destroy and re-start the network.
+.Sp
+\&\fIcommand\fR is one of \*(L"add-first\*(R", \*(L"add-last\*(R", \*(L"add\*(R" (a synonym for
+add-last), \*(L"delete\*(R", or \*(L"modify\*(R".
+.Sp
+\&\fIsection\fR is one of "\*(L"bridge\*(R", \*(L"domain\*(R", \*(L"ip\*(R", \*(L"ip-dhcp-host\*(R",
+\&\*(L"ip-dhcp-range\*(R", \*(L"forward\*(R", \*(L"forward-interface\*(R", \*(L"forward-pf\*(R",
+\&\*(L"portgroup\*(R", \*(L"dns-host\*(R", \*(L"dns-txt\*(R", or \*(L"dns-srv\*(R", each section being
+named by a concatenation of the xml element hierarchy leading to the
+element being changed. For example, \*(L"ip-dhcp-host\*(R" will change a
+<host> element that is contained inside a <dhcp> element inside an
+<ip> element of the network.
+.Sp
+\&\fIxml\fR is either the text of a complete xml element of the type being
+changed (e.g. \*(L"<host mac=\*(R"00:11:22:33:44:55' ip='1.2.3.4'/>\*(L", or the
+name of a file that contains a complete xml element. Disambiguation is
+done by looking at the first character of the provided text \- if the
+first character is \*(R"<\*(L", it is xml text, if the first character is not
+\&\*(R"<", it is the name of a file that contains the xml text to be used.
+.Sp
+The \fI\-\-parent\-index\fR option is used to specify which of several
+parent elements the requested element is in (0\-based). For example, a
+dhcp <host> element could be in any one of multiple <ip> elements in
+the network; if a parent-index isn't provided, the \*(L"most appropriate\*(R"
+<ip> element will be selected (usually the only one that already has a
+<dhcp> element), but if \fI\-\-parent\-index\fR is given, that particular
+instance of <ip> will get the modification.
+.Sp
+If \fI\-\-live\fR is specified, affect a running guest.
+If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
+If \fI\-\-current\fR is specified, affect the current guest state.
+Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given, but \fI\-\-current\fR is
+exclusive. Not specifying any flag is the same as specifying \fI\-\-current\fR.
 .SH "INTERFACE COMMANDS"
 .IX Header "INTERFACE COMMANDS"
 The following commands manipulate host interfaces.  Often, these host
@@ -2047,13 +2131,29 @@ variables, and defaults to \f(CW\*(C`vi\*(C'\fR.
 .IP "\fBpool-info\fR \fIpool-or-uuid\fR" 4
 .IX Item "pool-info pool-or-uuid"
 Returns basic information about the \fIpool\fR object.
-.IP "\fBpool-list\fR [\fI\-\-inactive\fR | \fI\-\-all\fR] [\fI\-\-details\fR]" 4
-.IX Item "pool-list [--inactive | --all] [--details]"
-List pool objects known to libvirt.  By default, only pools in use by
-active domains are listed; \fI\-\-inactive\fR lists just the inactive
-pools, and \fI\-\-all\fR lists all pools. The \fI\-\-details\fR option instructs
-virsh to additionally display pool persistence and capacity related
-information where available.
+.IP "\fBpool-list\fR [\fI\-\-inactive\fR] [\fI\-\-all\fR] [\fI\-\-persistent\fR] [\fI\-\-transient\fR] [\fI\-\-autostart\fR] [\fI\-\-no\-autostart\fR] [[\fI\-\-details\fR] [<type>]" 4
+.IX Item "pool-list [--inactive] [--all] [--persistent] [--transient] [--autostart] [--no-autostart] [[--details] [<type>]"
+List pool objects known to libvirt.  By default, only active pools
+are listed; \fI\-\-inactive\fR lists just the inactive pools, and \fI\-\-all\fR
+lists all pools.
+.Sp
+In addition, there are several sets of filtering flags. \fI\-\-persistent\fR is to
+list the persistent pools, \fI\-\-transient\fR is to list the transient pools.
+\&\fI\-\-autostart\fR lists the autostarting pools, \fI\-\-no\-autostart\fR lists the pools
+with autostarting disabled.
+.Sp
+You may also want to list pools with specified types using \fItype\fR, the
+pool types must be separated by comma, e.g. \-\-type dir,disk. The valid pool
+types include 'dir', 'fs', 'netfs', 'logical', 'disk', 'iscsi', 'scsi',
+\&'mpath', 'rbd', and 'sheepdog'.
+.Sp
+The \fI\-\-details\fR option instructs virsh to additionally
+display pool persistence and capacity related information where available.
+.Sp
+\&\s-1NOTE:\s0 When talking to older servers, this command is forced to use a series of
+\&\s-1API\s0 calls with an inherent race, where a pool might not be listed or might appear
+more than once if it changed state between calls while the list was being
+collected.  Newer servers do not have this problem.
 .IP "\fBpool-name\fR \fIuuid\fR" 4
 .IX Item "pool-name uuid"
 Convert the \fIuuid\fR to a pool name.
@@ -2257,9 +2357,12 @@ encoded using Base64.
 .IX Item "secret-undefine secret"
 Delete a \fIsecret\fR (specified by its \s-1UUID\s0), including the associated value, if
 any.
-.IP "\fBsecret-list\fR" 4
-.IX Item "secret-list"
-Output a list of UUIDs of known secrets to stdout.
+.IP "\fBsecret-list\fR [\fI\-\-ephemeral\fR] [\fI\-\-no\-ephemeral\fR] [\fI\-\-private\fR] [\fI\-\-no\-private\fR]" 4
+.IX Item "secret-list [--ephemeral] [--no-ephemeral] [--private] [--no-private]"
+Returns the list of secrets. You may also want to filter the returned secrets
+by \fI\-\-ephemeral\fR to list the ephemeral ones, \fI\-\-no\-ephemeral\fR to list the
+non-ephemeral ones, \fI\-\-private\fR to list the private ones, and
+\&\fI\-\-no\-private\fR to list the non-private ones.
 .SH "SNAPSHOT COMMMANDS"
 .IX Header "SNAPSHOT COMMMANDS"
 The following commands manipulate domain snapshots.  Snapshots take the
@@ -2694,12 +2797,12 @@ is \s-1NO\s0 warranty; not even for \s-1MERCHANTABILITY\s0 or \s-1FITNESS\s0 \s-
 .SH "POD ERRORS"
 .IX Header "POD ERRORS"
 Hey! \fBThe above document had some coding errors, which are explained below:\fR
-.IP "Around line 688:" 4
-.IX Item "Around line 688:"
+.IP "Around line 727:" 4
+.IX Item "Around line 727:"
 Unterminated I<...> sequence
-.IP "Around line 729:" 4
-.IX Item "Around line 729:"
+.IP "Around line 768:" 4
+.IX Item "Around line 768:"
 Unterminated I<...> sequence
-.IP "Around line 2807:" 4
-.IX Item "Around line 2807:"
+.IP "Around line 2921:" 4
+.IX Item "Around line 2921:"
 \&'=item' outside of any '=over'

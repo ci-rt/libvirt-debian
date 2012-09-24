@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel Veillard <veillard@redhat.com>
@@ -2062,11 +2062,14 @@ int virDomainUpdateDeviceFlags(virDomainPtr domain,
  * virDomainBlockRebase without flags), job ends on completion
  * VIR_DOMAIN_BLOCK_JOB_TYPE_COPY: Block Copy (virDomainBlockRebase with
  * flags), job exists as long as mirroring is active
+ * VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT: Block Commit (virDomainBlockCommit),
+ * job ends on completion
  */
 typedef enum {
     VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN = 0,
     VIR_DOMAIN_BLOCK_JOB_TYPE_PULL = 1,
     VIR_DOMAIN_BLOCK_JOB_TYPE_COPY = 2,
+    VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT = 3,
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_BLOCK_JOB_TYPE_LAST
@@ -2130,6 +2133,23 @@ typedef enum {
 int           virDomainBlockRebase(virDomainPtr dom, const char *disk,
                                    const char *base, unsigned long bandwidth,
                                    unsigned int flags);
+
+/**
+ * virDomainBlockCommitFlags:
+ *
+ * Flags available for virDomainBlockCommit().
+ */
+typedef enum {
+    VIR_DOMAIN_BLOCK_COMMIT_SHALLOW = 1 << 0, /* NULL base means next backing
+                                                 file, not whole chain */
+    VIR_DOMAIN_BLOCK_COMMIT_DELETE  = 1 << 1, /* Delete any files that are now
+                                                 invalid after their contents
+                                                 have been committed */
+} virDomainBlockCommitFlags;
+
+int virDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base,
+                         const char *top, unsigned long bandwidth,
+                         unsigned int flags);
 
 
 /* Block I/O throttling support */
@@ -2279,6 +2299,26 @@ int                     virConnectNumOfDefinedNetworks  (virConnectPtr conn);
 int                     virConnectListDefinedNetworks   (virConnectPtr conn,
                                                          char **const names,
                                                          int maxnames);
+/*
+ * virConnectListAllNetworks:
+ *
+ * Flags used to filter the returned networks. Flags in each group
+ * are exclusive attributes of a network.
+ */
+typedef enum {
+    VIR_CONNECT_LIST_NETWORKS_INACTIVE      = 1 << 0,
+    VIR_CONNECT_LIST_NETWORKS_ACTIVE        = 1 << 1,
+
+    VIR_CONNECT_LIST_NETWORKS_PERSISTENT    = 1 << 2,
+    VIR_CONNECT_LIST_NETWORKS_TRANSIENT     = 1 << 3,
+
+    VIR_CONNECT_LIST_NETWORKS_AUTOSTART     = 1 << 4,
+    VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART  = 1 << 5,
+} virConnectListAllNetworksFlags;
+
+int                     virConnectListAllNetworks       (virConnectPtr conn,
+                                                         virNetworkPtr **nets,
+                                                         unsigned int flags);
 
 /*
  * Lookup network by name or uuid
@@ -2306,6 +2346,72 @@ virNetworkPtr           virNetworkDefineXML     (virConnectPtr conn,
  * Delete persistent network
  */
 int                     virNetworkUndefine      (virNetworkPtr network);
+
+/**
+ * virNetworkUpdateCommand:
+ *
+ * describes which type of update to perform on a <network>
+ * definition.
+ *
+ */
+typedef enum {
+    VIR_NETWORK_UPDATE_COMMAND_NONE      = 0, /* (invalid) */
+    VIR_NETWORK_UPDATE_COMMAND_MODIFY    = 1, /* modify an existing element */
+    VIR_NETWORK_UPDATE_COMMAND_DELETE    = 2, /* delete an existing element */
+    VIR_NETWORK_UPDATE_COMMAND_ADD_LAST  = 3, /* add an element at end of list */
+    VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST = 4, /* add an element at start of list */
+#ifdef VIR_ENUM_SENTINELS
+    VIR_NETWORK_UPDATE_COMMAND_LAST
+#endif
+} virNetworkUpdateCommand;
+
+/**
+ * virNetworkUpdateSection:
+ *
+ * describes which section of a <network> definition the provided
+ * xml should be applied to.
+ *
+ */
+typedef enum {
+    VIR_NETWORK_SECTION_NONE              =  0, /* (invalid) */
+    VIR_NETWORK_SECTION_BRIDGE            =  1, /* <bridge> */
+    VIR_NETWORK_SECTION_DOMAIN            =  2, /* <domain> */
+    VIR_NETWORK_SECTION_IP                =  3, /* <ip> */
+    VIR_NETWORK_SECTION_IP_DHCP_HOST      =  4, /* <ip>/<dhcp>/<host> */
+    VIR_NETWORK_SECTION_IP_DHCP_RANGE     =  5, /* <ip>/<dhcp>/<range> */
+    VIR_NETWORK_SECTION_FORWARD           =  6, /* <forward> */
+    VIR_NETWORK_SECTION_FORWARD_INTERFACE =  7, /* <forward>/<interface> */
+    VIR_NETWORK_SECTION_FORWARD_PF        =  8, /* <forward>/<pf> */
+    VIR_NETWORK_SECTION_PORTGROUP         =  9, /* <portgroup> */
+    VIR_NETWORK_SECTION_DNS_HOST          = 10, /* <dns>/<host> */
+    VIR_NETWORK_SECTION_DNS_TXT           = 11, /* <dns>/<txt> */
+    VIR_NETWORK_SECTION_DNS_SRV           = 12, /* <dns>/<srv> */
+#ifdef VIR_ENUM_SENTINELS
+    VIR_NETWORK_SECTION_LAST
+#endif
+} virNetworkUpdateSection;
+
+/**
+ * virNetworkUpdateFlags:
+ *
+ * Flags to control options for virNetworkUpdate()
+ */
+typedef enum {
+    VIR_NETWORK_UPDATE_AFFECT_CURRENT = 0,      /* affect live if network is active,
+                                                   config if it's not active */
+    VIR_NETWORK_UPDATE_AFFECT_LIVE    = 1 << 0, /* affect live state of network only */
+    VIR_NETWORK_UPDATE_AFFECT_CONFIG  = 1 << 1, /* affect persistent config only */
+    } virNetworkUpdateFlags;
+
+/*
+ * Update an existing network definition
+ */
+int                     virNetworkUpdate(virNetworkPtr network,
+                                         unsigned int command, /* virNetworkUpdateCommand */
+                                         unsigned int section, /* virNetworkUpdateSection */
+                                         int parentIndex,
+                                         const char *xml,
+                                         unsigned int flags);
 
 /*
  * Activate persistent network
@@ -2366,6 +2472,19 @@ int                     virConnectNumOfDefinedInterfaces (virConnectPtr conn);
 int                     virConnectListDefinedInterfaces  (virConnectPtr conn,
                                                           char **const names,
                                                           int maxnames);
+/*
+ * virConnectListAllInterfaces:
+ *
+ * Flags used to filter the returned interfaces.
+ */
+typedef enum {
+    VIR_CONNECT_LIST_INTERFACES_INACTIVE      = 1 << 0,
+    VIR_CONNECT_LIST_INTERFACES_ACTIVE        = 1 << 1,
+} virConnectListAllInterfacesFlags;
+
+int                     virConnectListAllInterfaces (virConnectPtr conn,
+                                                     virInterfacePtr **ifaces,
+                                                     unsigned int flags);
 
 virInterfacePtr         virInterfaceLookupByName  (virConnectPtr conn,
                                                    const char *name);
@@ -2554,6 +2673,39 @@ int                     virConnectListDefinedStoragePools(virConnectPtr conn,
                                                           int maxnames);
 
 /*
+ * virConnectListAllStoragePoolsFlags:
+ *
+ * Flags used to tune pools returned by virConnectListAllStoragePools().
+ * Note that these flags come in groups; if all bits from a group are 0,
+ * then that group is not used to filter results.
+ */
+typedef enum {
+    VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE      = 1 << 0,
+    VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE        = 1 << 1,
+
+    VIR_CONNECT_LIST_STORAGE_POOLS_PERSISTENT    = 1 << 2,
+    VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT     = 1 << 3,
+
+    VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART     = 1 << 4,
+    VIR_CONNECT_LIST_STORAGE_POOLS_NO_AUTOSTART  = 1 << 5,
+
+    /* List pools by type */
+    VIR_CONNECT_LIST_STORAGE_POOLS_DIR           = 1 << 6,
+    VIR_CONNECT_LIST_STORAGE_POOLS_FS            = 1 << 7,
+    VIR_CONNECT_LIST_STORAGE_POOLS_NETFS         = 1 << 8,
+    VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL       = 1 << 9,
+    VIR_CONNECT_LIST_STORAGE_POOLS_DISK          = 1 << 10,
+    VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI         = 1 << 11,
+    VIR_CONNECT_LIST_STORAGE_POOLS_SCSI          = 1 << 12,
+    VIR_CONNECT_LIST_STORAGE_POOLS_MPATH         = 1 << 13,
+    VIR_CONNECT_LIST_STORAGE_POOLS_RBD           = 1 << 14,
+    VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG      = 1 << 15,
+} virConnectListAllStoragePoolsFlags;
+
+int                     virConnectListAllStoragePools(virConnectPtr conn,
+                                                      virStoragePoolPtr **pools,
+                                                      unsigned int flags);
+/*
  * Query a host for storage pools of a particular type
  */
 char *                  virConnectFindStoragePoolSources(virConnectPtr conn,
@@ -2621,6 +2773,9 @@ int                     virStoragePoolNumOfVolumes      (virStoragePoolPtr pool)
 int                     virStoragePoolListVolumes       (virStoragePoolPtr pool,
                                                          char **const names,
                                                          int maxnames);
+int                     virStoragePoolListAllVolumes    (virStoragePoolPtr pool,
+                                                         virStorageVolPtr **vols,
+                                                         unsigned int flags);
 
 virConnectPtr           virStorageVolGetConnect         (virStorageVolPtr vol);
 
@@ -2765,6 +2920,28 @@ int                     virNodeListDevices      (virConnectPtr conn,
                                                  char **const names,
                                                  int maxnames,
                                                  unsigned int flags);
+/*
+ * virConnectListAllNodeDevices:
+ *
+ * Flags used to filter the returned node devices. Flags in each group
+ * are exclusive. Currently only one group to filter the devices by cap
+ * type.
+ */
+typedef enum {
+    VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM        = 1 << 0, /* System capability */
+    VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV       = 1 << 1, /* PCI device */
+    VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV       = 1 << 2, /* USB device */
+    VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE = 1 << 3, /* USB interface */
+    VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET           = 1 << 4, /* Network device */
+    VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST     = 1 << 5, /* SCSI Host Bus Adapter */
+    VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET   = 1 << 6, /* SCSI Target */
+    VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI          = 1 << 7, /* SCSI device */
+    VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE       = 1 << 8, /* Storage device */
+} virConnectListAllNodeDeviceFlags;
+
+int                     virConnectListAllNodeDevices (virConnectPtr conn,
+                                                      virNodeDevicePtr **devices,
+                                                      unsigned int flags);
 
 virNodeDevicePtr        virNodeDeviceLookupByName (virConnectPtr conn,
                                                    const char *name);
@@ -2812,6 +2989,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_RESUMED = 4,
     VIR_DOMAIN_EVENT_STOPPED = 5,
     VIR_DOMAIN_EVENT_SHUTDOWN = 6,
+    VIR_DOMAIN_EVENT_PMSUSPENDED = 7,
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_LAST
@@ -2927,6 +3105,19 @@ typedef enum {
     VIR_DOMAIN_EVENT_SHUTDOWN_LAST
 #endif
 } virDomainEventShutdownDetailType;
+
+/**
+ * virDomainEventPMSuspendedDetailType:
+ *
+ * Details about the 'pmsuspended' lifecycle event
+ */
+typedef enum {
+    VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY = 0, /* Guest was PM suspended to memory */
+
+#ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_EVENT_PMSUSPENDED_LAST
+#endif
+} virDomainEventPMSuspendedDetailType;
 
 /**
  * virConnectDomainEventCallback:
@@ -3144,6 +3335,27 @@ int                     virConnectNumOfSecrets  (virConnectPtr conn);
 int                     virConnectListSecrets   (virConnectPtr conn,
                                                  char **uuids,
                                                  int maxuuids);
+
+/*
+ * virConnectListAllSecrets:
+ *
+ * Flags used to filter the returned secrets. Flags in each group
+ * are exclusive attributes of a secret.
+ */
+typedef enum {
+    VIR_CONNECT_LIST_SECRETS_EPHEMERAL    = 1 << 0, /* kept in memory, never
+                                                      stored persistently */
+    VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL = 1 << 1,
+
+    VIR_CONNECT_LIST_SECRETS_PRIVATE      = 1 << 2, /* not revealed to any caller
+                                                      of libvirt, nor to any other
+                                                      node */
+    VIR_CONNECT_LIST_SECRETS_NO_PRIVATE   = 1 << 3,
+} virConnectListAllSecretsFlags;
+
+int                     virConnectListAllSecrets(virConnectPtr conn,
+                                                 virSecretPtr **secrets,
+                                                 unsigned int flags);
 virSecretPtr            virSecretLookupByUUID(virConnectPtr conn,
                                               const unsigned char *uuid);
 virSecretPtr            virSecretLookupByUUIDString(virConnectPtr conn,
@@ -4021,7 +4233,9 @@ int                     virConnectNumOfNWFilters (virConnectPtr conn);
 int                     virConnectListNWFilters  (virConnectPtr conn,
                                                   char **const names,
                                                   int maxnames);
-
+int                     virConnectListAllNWFilters(virConnectPtr conn,
+                                                   virNWFilterPtr **filters,
+                                                   unsigned int flags);
 /*
  * Lookup nwfilter by name or uuid
  */
@@ -4221,6 +4435,69 @@ typedef struct _virTypedParameter virMemoryParameter;
  * preferred alias since 0.9.2.
  */
 typedef virMemoryParameter *virMemoryParameterPtr;
+
+/*
+ * VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN:
+ *
+ * Macro for typed parameter that represents how many present pages
+ * to scan before the shared memory service goes to sleep.
+ */
+# define VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN      "shm_pages_to_scan"
+
+/*
+ * VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS:
+ *
+ * Macro for typed parameter that represents how many milliseconds
+ * the shared memory service should sleep before next scan.
+ */
+# define VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS    "shm_sleep_millisecs"
+
+/*
+ * VIR_NODE_MEMORY_SHARED_PAGES_SHARED:
+ *
+ * Macro for typed parameter that represents how many the shared
+ * mmeory pages are being used.
+ */
+# define VIR_NODE_MEMORY_SHARED_PAGES_SHARED       "shm_pages_shared"
+
+/*
+ * VIR_NODE_MEMORY_SHARED_PAGES_SHARING:
+ *
+ * Macro for typed parameter that represents how many sites are
+ * sharing the pages i.e. how much saved.
+ */
+# define VIR_NODE_MEMORY_SHARED_PAGES_SHARING      "shm_pages_sharing"
+
+/* VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED:
+ *
+ * Macro for typed parameter that represents how many pages unique
+ * but repeatedly checked for merging.
+ */
+# define VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED     "shm_pages_unshared"
+
+/* VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE:
+ *
+ * Macro for typed parameter that represents how many pages changing
+ * too fast to be placed in a tree.
+ */
+# define VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE     "shm_pages_volatile"
+
+/* VIR_NODE_MEMORY_SHARED_FULL_SCAN:
+ *
+ * Macro for typed parameter that represents how many times all
+ * mergeable areas have been scanned.
+ */
+# define VIR_NODE_MEMORY_SHARED_FULL_SCANS         "shm_full_scans"
+
+int virNodeGetMemoryParameters(virConnectPtr conn,
+                               virTypedParameterPtr params,
+                               int *nparams,
+                               unsigned int flags);
+
+int virNodeSetMemoryParameters(virConnectPtr conn,
+                               virTypedParameterPtr params,
+                               int nparams,
+                               unsigned int flags);
 
 #ifdef __cplusplus
 }

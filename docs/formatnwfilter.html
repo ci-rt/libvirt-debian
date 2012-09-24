@@ -326,7 +326,8 @@
       10.0.0.1 and enforce that the traffic from this interface will
       always be using 10.0.0.1 as the source IP address, which is
       one of the purposes of this particular filter.
-      <br /><br /></p>
+      <br /><br />
+    </p>
         <h3>
           <a name="nwfconceptschains" id="nwfconceptschains">Filtering chains</a>
         </h3>
@@ -400,7 +401,8 @@
       any other rules will not be evaluated, i.e., an IPv4 rule will not
       be evaluated in the ARP chain since no IPv4 protocol packets will
       traverse the ARP chain.
-      <br /><br /></p>
+      <br /><br />
+    </p>
         <h3>
           <a name="nwfconceptschainpriorities" id="nwfconceptschainpriorities">Filtering chain priorities</a>
         </h3>
@@ -414,7 +416,8 @@
         <p>
       A chain with a lower priority value is accessed before one with a
       higher value.
-      <br /><br /><span class="since">Since 0.9.8</span> the above listed chains
+      <br /><br />
+      <span class="since">Since 0.9.8</span> the above listed chains
       can be assigned custom priorities by writing a value in the
       range [-1000, 1000] into the priority (XML) attribute in the filter
       node. The above example filter shows the default priority of -500
@@ -428,7 +431,8 @@
       Two variables names have so far been reserved for usage by the
       network traffic filtering subsystem: <code>MAC</code> and
       <code>IP</code>.
-      <br /><br /><code>MAC</code> is the MAC address of the
+      <br /><br />
+      <code>MAC</code> is the MAC address of the
       network interface. A filtering rule that references this variable
       will automatically be instantiated with the MAC address of the
       interface. This works without the user having to explicitly provide
@@ -463,7 +467,8 @@
       interface from attaching when hotplugging is used. The types
       that are expected for each XML attribute are shown
       below.
-      <br /><br /><span class="since">Since 0.9.8</span> variables can contain lists of
+      <br /><br />
+      <span class="since">Since 0.9.8</span> variables can contain lists of
       elements, e.g., the variable <code>IP</code> can contain multiple IP
       addresses that are valid on a particular interface. The notation for
       providing multiple elements for the IP variable is:
@@ -816,7 +821,8 @@
      the protocol property attribute1 does not match value1 AND
      the protocol property attribute2 does not match value2 AND
      the protocol property attribute3 matches value3.
-     <br /><br /></p>
+     <br /><br />
+    </p>
         <h5>
           <a name="nwfelemsRulesProtoMAC" id="nwfelemsRulesProtoMAC">MAC (Ethernet)</a>
         </h5>
@@ -871,7 +877,8 @@
       Valid strings for the <code>Opcode</code> field are:
        Request, Reply, Request_Reverse, Reply_Reverse, DRARP_Request,
        DRARP_Reply, DRARP_Error, InARP_Request, ARP_NAK
-      <br /><br /></p>
+      <br /><br />
+    </p>
         <h5>
           <a name="nwfelemsRulesProtoIP" id="nwfelemsRulesProtoIP">IPv4</a>
         </h5>
@@ -885,7 +892,8 @@
         <p>
       Valid strings for <code>protocol</code> are:
          tcp, udp, udplite, esp, ah, icmp, igmp, sctp
-      <br /><br /></p>
+      <br /><br />
+    </p>
         <h5>
           <a name="nwfelemsRulesProtoIPv6" id="nwfelemsRulesProtoIPv6">IPv6</a>
         </h5>
@@ -899,7 +907,8 @@
         <p>
       Valid strings for <code>protocol</code> are:
          tcp, udp, udplite, esp, ah, icmpv6, sctp
-      <br /><br /></p>
+      <br /><br />
+    </p>
         <h5>
           <a name="nwfelemsRulesProtoTCP-ipv4" id="nwfelemsRulesProtoTCP-ipv4">TCP/UDP/SCTP</a>
         </h5>
@@ -911,7 +920,8 @@
     </p>
         <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcipaddr</td><td>IP_ADDR</td><td>Source IP address</td></tr><tr><td>srcipmask</td><td>IP_MASK</td><td>Mask applied to source IP address</td></tr><tr><td>dstipaddr</td><td>IP_ADDR</td><td>Destination IP address</td></tr><tr><td>dstipmask</td><td>IP_MASK</td><td>Mask applied to destination IP address</td></tr><tr><td>srcipfrom</td><td>IP_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IP_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IP_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IP_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>srcportstart</td><td>UINT16</td><td>Start of range of valid source ports</td></tr><tr><td>srcportend</td><td>UINT16</td><td>End of range of valid source ports</td></tr><tr><td>dstportstart</td><td>UINT16</td><td>Start of range of valid destination ports</td></tr><tr><td>dstportend</td><td>UINT16</td><td>End of range of valid destination ports</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>flags <span class="since">(Since 0.9.1)</span></td><td>STRING</td><td>TCP-only: format of mask/flags with mask and flags each being a comma separated list of SYN,ACK,URG,PSH,FIN,RST or NONE or ALL</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
-      <br /><br /></p>
+      <br /><br />
+    </p>
         <h5>
           <a name="nwfelemsRulesProtoICMP" id="nwfelemsRulesProtoICMP">ICMP</a>
         </h5>
@@ -923,7 +933,8 @@
     </p>
         <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>dstmacaddr</td><td>MAC_ADDR</td><td>MAC address of destination</td></tr><tr><td>dstmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of destination</td></tr><tr><td>srcipaddr</td><td>IP_ADDR</td><td>Source IP address</td></tr><tr><td>srcipmask</td><td>IP_MASK</td><td>Mask applied to source IP address</td></tr><tr><td>dstipaddr</td><td>IP_ADDR</td><td>Destination IP address</td></tr><tr><td>dstipmask</td><td>IP_MASK</td><td>Mask applied to destination IP address</td></tr><tr><td>srcipfrom</td><td>IP_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IP_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IP_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IP_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>type</td><td>UINT16</td><td>ICMP type</td></tr><tr><td>code</td><td>UINT16</td><td>ICMP code</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
-      <br /><br /></p>
+      <br /><br />
+    </p>
         <h5>
           <a name="nwfelemsRulesProtoMisc" id="nwfelemsRulesProtoMisc">IGMP, ESP, AH, UDPLITE, 'ALL'</a>
         </h5>
@@ -935,7 +946,8 @@
     </p>
         <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of sender</td></tr><tr><td>dstmacaddr</td><td>MAC_ADDR</td><td>MAC address of destination</td></tr><tr><td>dstmacmask</td><td>MAC_MASK</td><td>Mask applied to MAC address of destination</td></tr><tr><td>srcipaddr</td><td>IP_ADDR</td><td>Source IP address</td></tr><tr><td>srcipmask</td><td>IP_MASK</td><td>Mask applied to source IP address</td></tr><tr><td>dstipaddr</td><td>IP_ADDR</td><td>Destination IP address</td></tr><tr><td>dstipmask</td><td>IP_MASK</td><td>Mask applied to destination IP address</td></tr><tr><td>srcipfrom</td><td>IP_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IP_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IP_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IP_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
-      <br /><br /></p>
+      <br /><br />
+    </p>
         <h5>
           <a name="nwfelemsRulesProtoTCP-ipv6" id="nwfelemsRulesProtoTCP-ipv6">TCP/UDP/SCTP over IPV6</a>
         </h5>
@@ -947,7 +959,8 @@
     </p>
         <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcipaddr</td><td>IPV6_ADDR</td><td>Source IP address</td></tr><tr><td>srcipmask</td><td>IPV6_MASK</td><td>Mask applied to source IP address</td></tr><tr><td>dstipaddr</td><td>IPV6_ADDR</td><td>Destination IP address</td></tr><tr><td>dstipmask</td><td>IPV6_MASK</td><td>Mask applied to destination IP address</td></tr><tr><td>srcipfrom</td><td>IPV6_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IPV6_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IPV6_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IPV6_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>srcportstart</td><td>UINT16</td><td>Start of range of valid source ports</td></tr><tr><td>srcportend</td><td>UINT16</td><td>End of range of valid source ports</td></tr><tr><td>dstportstart</td><td>UINT16</td><td>Start of range of valid destination ports</td></tr><tr><td>dstportend</td><td>UINT16</td><td>End of range of valid destination ports</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>flags <span class="since">(Since 0.9.1)</span></td><td>STRING</td><td>TCP-only: format of mask/flags with mask and flags each being a comma separated list of SYN,ACK,URG,PSH,FIN,RST or NONE or ALL</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
-      <br /><br /></p>
+      <br /><br />
+    </p>
         <h5>
           <a name="nwfelemsRulesProtoICMPv6" id="nwfelemsRulesProtoICMPv6">ICMPv6</a>
         </h5>
@@ -959,7 +972,8 @@
     </p>
         <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcipaddr</td><td>IPV6_ADDR</td><td>Source IPv6 address</td></tr><tr><td>srcipmask</td><td>IPV6_MASK</td><td>Mask applied to source IPv6 address</td></tr><tr><td>dstipaddr</td><td>IPV6_ADDR</td><td>Destination IPv6 address</td></tr><tr><td>dstipmask</td><td>IPV6_MASK</td><td>Mask applied to destination IPv6 address</td></tr><tr><td>srcipfrom</td><td>IPV6_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IPV6_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IPV6_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IPV6_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>type</td><td>UINT16</td><td>ICMPv6 type</td></tr><tr><td>code</td><td>UINT16</td><td>ICMPv6 code</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
-      <br /><br /></p>
+      <br /><br />
+    </p>
         <h5>
           <a name="nwfelemsRulesProtoMiscv6" id="nwfelemsRulesProtoMiscv6">IGMP, ESP, AH, UDPLITE, 'ALL' over IPv6</a>
         </h5>
@@ -971,7 +985,8 @@
     </p>
         <table class="top_table"><tr><th> Attribute </th><th> Datatype </th><th> Semantics </th></tr><tr><td>srcmacaddr</td><td>MAC_ADDR</td><td>MAC address of sender</td></tr><tr><td>srcipaddr</td><td>IPV6_ADDR</td><td>Source IPv6 address</td></tr><tr><td>srcipmask</td><td>IPV6_MASK</td><td>Mask applied to source IPv6 address</td></tr><tr><td>dstipaddr</td><td>IPV6_ADDR</td><td>Destination IPv6 address</td></tr><tr><td>dstipmask</td><td>IPV6_MASK</td><td>Mask applied to destination IPv6 address</td></tr><tr><td>srcipfrom</td><td>IPV6_ADDR</td><td>Start of range of source IP address</td></tr><tr><td>srcipto</td><td>IPV6_ADDR</td><td>End of range of source IP address</td></tr><tr><td>dstipfrom</td><td>IPV6_ADDR</td><td>Start of range of destination IP address</td></tr><tr><td>dstipto</td><td>IPV6_ADDR</td><td>End of range of destination IP address</td></tr><tr><td>comment <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>text with max. 256 characters</td></tr><tr><td>state <span class="since">(Since 0.8.5)</span></td><td>STRING</td><td>comma separated list of NEW,ESTABLISHED,RELATED,INVALID or NONE</td></tr><tr><td>ipset <span class="since">(Since 0.9.13)</span></td><td>STRING</td><td>The name of an IPSet managed outside of libvirt</td></tr><tr><td>ipsetflags <span class="since">(Since 0.9.13)</span></td><td>IPSETFLAGS</td><td>flags for the IPSet; requires ipset attribute</td></tr></table>
         <p>
-      <br /><br /></p>
+      <br /><br />
+    </p>
         <h3>
           <a name="nwfelemsRulesAdv" id="nwfelemsRulesAdv">Advanced Filter Configuration Topics</a>
         </h3>
@@ -1168,7 +1183,8 @@
     placed into filters specifying this chain. This type of branching
     into user-defined tables is only supported with filtering on the ebtables
     layer.
-    <br /><span class="since">Since 0.9.8</span> multiple chains for the same
+    <br />
+    <span class="since">Since 0.9.8</span> multiple chains for the same
     protocol can be created. For this the name of the chain must have
     a prefix of one of the previously enumerated protocols. To create an
     additional chain for handling of ARP traffic, a chain with name

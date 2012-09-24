@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: David F. Lively <dlively@virtualiron.com>
@@ -183,6 +183,21 @@ nodeListDevices(virConnectPtr conn,
     return -1;
 }
 
+int
+nodeListAllNodeDevices(virConnectPtr conn,
+                       virNodeDevicePtr **devices,
+                       unsigned int flags)
+{
+    virDeviceMonitorStatePtr driver = conn->devMonPrivateData;
+    int ret = -1;
+
+    virCheckFlags(VIR_CONNECT_LIST_NODE_DEVICES_FILTERS_CAP, -1);
+
+    nodeDeviceLock(driver);
+    ret = virNodeDeviceList(conn, driver->devs, devices, flags);
+    nodeDeviceUnlock(driver);
+    return ret;
+}
 
 virNodeDevicePtr
 nodeDeviceLookupByName(virConnectPtr conn, const char *name)

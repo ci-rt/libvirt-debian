@@ -14,7 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Red Hat Author: Miloslav Trmač <mitr@redhat.com>
@@ -46,5 +46,17 @@ void virSecretDefFree(virSecretDefPtr def);
 virSecretDefPtr virSecretDefParseString(const char *xml);
 virSecretDefPtr virSecretDefParseFile(const char *filename);
 char *virSecretDefFormat(const virSecretDefPtr def);
+
+# define VIR_CONNECT_LIST_SECRETS_FILTERS_EPHEMERAL       \
+                (VIR_CONNECT_LIST_SECRETS_EPHEMERAL     | \
+                 VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL)
+
+# define VIR_CONNECT_LIST_SECRETS_FILTERS_PRIVATE       \
+                (VIR_CONNECT_LIST_SECRETS_PRIVATE     | \
+                 VIR_CONNECT_LIST_SECRETS_NO_PRIVATE)
+
+# define VIR_CONNECT_LIST_SECRETS_FILTERS_ALL                  \
+                (VIR_CONNECT_LIST_SECRETS_FILTERS_EPHEMERAL  | \
+                 VIR_CONNECT_LIST_SECRETS_FILTERS_PRIVATE)
 
 #endif

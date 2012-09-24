@@ -126,6 +126,8 @@ mymain(void)
     setenv("PATH", "/bin", 1);
 
     DO_TEST("minimal");
+    DO_TEST("machine-core-on");
+    DO_TEST("machine-core-off");
     DO_TEST("boot-cdrom");
     DO_TEST("boot-network");
     DO_TEST("boot-floppy");
@@ -133,11 +135,21 @@ mymain(void)
     DO_TEST("boot-menu-disable");
     DO_TEST("boot-order");
     DO_TEST("bootloader");
+
+    DO_TEST("reboot-timeout-enabled");
+    DO_TEST("reboot-timeout-disabled");
+
     DO_TEST("clock-utc");
     DO_TEST("clock-localtime");
     DO_TEST("cpu-kvmclock");
     DO_TEST("cpu-host-kvmclock");
     DO_TEST("kvmclock");
+
+    DO_TEST("cpu-eoi-disabled");
+    DO_TEST("cpu-eoi-enabled");
+    DO_TEST("eoi-disabled");
+    DO_TEST("eoi-enabled");
+
     DO_TEST("hugepages");
     DO_TEST("disk-aio");
     DO_TEST("disk-cdrom");
@@ -170,6 +182,9 @@ mymain(void)
     DO_TEST("input-usbtablet");
     DO_TEST("input-xen");
     DO_TEST("misc-acpi");
+    DO_TEST("misc-disable-s3");
+    DO_TEST("misc-disable-suspends");
+    DO_TEST("misc-enable-s4");
     DO_TEST("misc-no-reboot");
     DO_TEST("net-user");
     DO_TEST("net-virtio");

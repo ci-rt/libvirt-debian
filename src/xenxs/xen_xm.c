@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -369,16 +369,8 @@ xenParseXM(virConfPtr conf, int xendConfigVersion,
 
     if (xenXMConfigGetString(conf, "cpus", &str, NULL) < 0)
         goto cleanup;
-    if (str) {
-        def->cpumasklen = 4096;
-        if (VIR_ALLOC_N(def->cpumask, def->cpumasklen) < 0)
-            goto no_memory;
-
-        if (virDomainCpuSetParse(str, 0,
-                                 def->cpumask, def->cpumasklen) < 0)
+    if (str && (virBitmapParse(str, 0, &def->cpumask, 4096) < 0))
             goto cleanup;
-    }
-
 
     if (xenXMConfigGetString(conf, "on_poweroff", &str, "destroy") < 0)
         goto cleanup;
@@ -1549,9 +1541,9 @@ virConfPtr xenFormatXM(virConnectPtr conn,
         goto no_memory;
 
     if ((def->cpumask != NULL) &&
-        ((cpus = virDomainCpuSetFormat(def->cpumask,
-                                       def->cpumasklen)) == NULL))
+        ((cpus = virBitmapFormat(def->cpumask)) == NULL)) {
         goto cleanup;
+    }
 
     if (cpus &&
         xenXMConfigSetString(conf, "cpus", cpus) < 0)

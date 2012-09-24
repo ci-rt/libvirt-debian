@@ -293,6 +293,14 @@ Real-Time-Clock interrupt to fire (to wake up the node) after a time delay
 specified by the 'duration' parameter. The duration time should be
 at least 60 seconds.
 
+=item B<node-memory-tune> [I<shm-pages-to-scan>] [I<shm-sleep-millisecs>]
+
+Allows you to display or set the node memory parameters.
+I<shm-pages-to-scan> can be used to set the number of pages to scan
+before the shared memory service goes to sleep; I<shm-sleep-millisecs>
+can be used to set the number of millisecs the shared memory service should
+sleep before next scan.
+
 =item B<capabilities>
 
 Print an XML document describing the capabilities of the hypervisor
@@ -387,10 +395,11 @@ into s3 state.
 Normally only active domains are listed. To list inactive domains specify
 I<--inactive> or I<--all> to list both active and inactive domains.
 
-To filter the list of domains present on the hypervisor you may specify one or
-more of filtering flags supported by the B<list> command.  These flags are
-grouped by function. Specifying one or more flags from a group enables the
-filter group. Supported filtering flags and groups:
+To further filter the list of domains you may specify one or more of filtering
+flags supported by the B<list> command. These flags are grouped by function.
+Specifying one or more flags from a group enables the filter group. Note that
+some combinations of flags may yield no results. Supported filtering flags and
+groups:
 
 =over 4
 
@@ -684,6 +693,36 @@ virtual interfaces that will be used on the next boot, rather than those
 currently in use by a running domain. Other contexts that require a MAC
 address of virtual interface (such as I<detach-interface> or
 I<domif-setlink>) will accept the MAC address printed by this command.
+
+=item B<blockcommit> I<domain> I<path> [I<bandwidth>]
+{[I<base>] | [I<--shallow>]} [I<top>] [I<--delete>]
+[I<--wait> [I<--verbose>] [I<--timeout> B<seconds>]]
+
+Reduce the length of a backing image chain, by committing changes at the
+top of the chain (snapshot or delta files) into backing images.  By
+default, this command attempts to flatten the entire chain.  If I<base>
+and/or I<top> are specified as files within the backing chain, then the
+operation is constrained to committing just that portion of the chain;
+I<--shallow> can be used instead of I<base> to specify the immediate
+backing file of the resulting top image to be committed.  The files
+being committed are rendered invalid, possibly as soon as the operation
+starts; using the I<--delete> flag will remove these files at the successful
+completion of the commit operation.
+
+By default, this command returns as soon as possible, and data for
+the entire disk is committed in the background; the progress of the
+operation can be checked with B<blockjob>.  However, if I<--wait> is
+specified, then this command will block until the operation completes,
+or cancel the operation if the optional I<timeout> in seconds elapses
+or SIGINT is sent (usually with C<Ctrl-C>).  Using I<--verbose> along
+with I<--wait> will produce periodic status updates.
+
+I<path> specifies fully-qualified path of the disk; it corresponds
+to a unique target name (<target dev='name'/>) or source file (<source
+file='name'/>) for one of the disk devices attached to I<domain> (see
+also B<domblklist> for listing these names).
+I<bandwidth> specifies copying bandwidth limit in MiB/s, although for
+qemu, it may be non-zero only for an online domain.
 
 =item B<blockcopy> I<domain> I<path> I<dest> [I<bandwidth>] [I<--shallow>]
 [I<--reuse-external>] [I<--raw>] [I<--wait> [I<--verbose]
@@ -1523,9 +1562,10 @@ domain's guest OS.
 
 =item B<dompmwakeup> I<domain>
 
-Wakeup a domain suspended by dompmsuspend command. Injects a wakeup
-into the guest that previously used dompmsuspend, rather than waiting
-for the previously requested duration (if any) to elapse.
+Wakeup a domain from pmsuspended state (either suspended by dompmsuspend or
+from the guest itself). Injects a wakeup into the guest that is in pmsuspended
+state, rather than waiting for the previously requested duration (if any) to
+elapse. This operation doesn't not necessarily fail if the domain is running.
 
 =item B<ttyconsole> I<domain>
 
@@ -1855,10 +1895,12 @@ libvirt (such as whether device reset is supported).
 =item B<nodedev-list> I<cap> I<--tree>
 
 List all of the devices available on the node that are known by libvirt.
-If I<cap> is used, the list is filtered to show only the nodes that
-include the given capability.  If I<--tree> is used, the output is
-formatted in a tree representing parents of each node.
-
+I<cap> is used to filter the list by capability types, the types must be
+separated by comma, e.g. --cap pci,scsi, valid capability types include
+'system', 'pci', 'usb_device', 'usb', 'net', 'scsi_host', 'scsi_target',
+'scsi', 'storage'. If I<--tree> is used, the output is formatted in a tree
+representing parents of each node. I<cap> and I<--tree> are mutually
+exclusive.
 =item B<nodedev-reattach> I<nodedev>
 
 Declare that I<nodedev> is no longer in use by any guests, and that
@@ -1933,10 +1975,20 @@ variables, and defaults to C<vi>.
 Returns basic information about the I<network> object.
 
 =item B<net-list> [I<--inactive> | I<--all>]
+                  [I<--persistent>] [<--transient>]
+                  [I<--autostart>] [<--no-autostart>]
 
 Returns the list of active networks, if I<--all> is specified this will also
 include defined but inactive networks, if I<--inactive> is specified only the
-inactive ones will be listed.
+inactive ones will be listed. You may also want to filter the returned networks
+by I<--persistent> to list the persitent ones, I<--transient> to list the
+transient ones, I<--autostart> to list the ones with autostart enabled, and
+I<--no-autostart> to list the ones with autostart disabled.
+
+NOTE: When talking to older servers, this command is forced to use a series of
+API calls with an inherent race, where a pool might not be listed or might appear
+more than once if it changed state between calls while the list was being
+collected.  Newer servers do not have this problem.
 
 =item B<net-name> I<network-UUID>
 
@@ -1953,6 +2005,45 @@ Undefine the configuration for an inactive network.
 =item B<net-uuid> I<network-name>
 
 Convert a network name to network UUID.
+
+=item B<net-update> I<network> I<command> I<section> I<xml>
+ [I<--parent-index> I<index>] [[I<--live>] [I<--config>] | [I<--current>]]
+
+Update the given section of an existing network definition, with the
+changes optionally taking effect immediately, without needing to
+destroy and re-start the network.
+
+I<command> is one of "add-first", "add-last", "add" (a synonym for
+add-last), "delete", or "modify".
+
+I<section> is one of ""bridge", "domain", "ip", "ip-dhcp-host",
+"ip-dhcp-range", "forward", "forward-interface", "forward-pf",
+"portgroup", "dns-host", "dns-txt", or "dns-srv", each section being
+named by a concatenation of the xml element hierarchy leading to the
+element being changed. For example, "ip-dhcp-host" will change a
+<host> element that is contained inside a <dhcp> element inside an
+<ip> element of the network.
+
+I<xml> is either the text of a complete xml element of the type being
+changed (e.g. "<host mac="00:11:22:33:44:55' ip='1.2.3.4'/>", or the
+name of a file that contains a complete xml element. Disambiguation is
+done by looking at the first character of the provided text - if the
+first character is "<", it is xml text, if the first character is not
+"<", it is the name of a file that contains the xml text to be used.
+
+The I<--parent-index> option is used to specify which of several
+parent elements the requested element is in (0-based). For example, a
+dhcp <host> element could be in any one of multiple <ip> elements in
+the network; if a parent-index isn't provided, the "most appropriate"
+<ip> element will be selected (usually the only one that already has a
+<dhcp> element), but if I<--parent-index> is given, that particular
+instance of <ip> will get the modification.
+
+If I<--live> is specified, affect a running guest.
+If I<--config> is specified, affect the next boot of a persistent guest.
+If I<--current> is specified, affect the current guest state.
+Both I<--live> and I<--config> flags may be given, but I<--current> is
+exclusive. Not specifying any flag is the same as specifying I<--current>.
 
 =back
 
@@ -2185,13 +2276,32 @@ variables, and defaults to C<vi>.
 
 Returns basic information about the I<pool> object.
 
-=item B<pool-list> [I<--inactive> | I<--all>] [I<--details>]
+=item B<pool-list> [I<--inactive>] [I<--all>]
+                   [I<--persistent>] [I<--transient>]
+                   [I<--autostart>] [I<--no-autostart>]
+                   [[I<--details>] [<type>]
 
-List pool objects known to libvirt.  By default, only pools in use by
-active domains are listed; I<--inactive> lists just the inactive
-pools, and I<--all> lists all pools. The I<--details> option instructs
-virsh to additionally display pool persistence and capacity related
-information where available.
+List pool objects known to libvirt.  By default, only active pools
+are listed; I<--inactive> lists just the inactive pools, and I<--all>
+lists all pools.
+
+In addition, there are several sets of filtering flags. I<--persistent> is to
+list the persistent pools, I<--transient> is to list the transient pools.
+I<--autostart> lists the autostarting pools, I<--no-autostart> lists the pools
+with autostarting disabled.
+
+You may also want to list pools with specified types using I<type>, the
+pool types must be separated by comma, e.g. --type dir,disk. The valid pool
+types include 'dir', 'fs', 'netfs', 'logical', 'disk', 'iscsi', 'scsi',
+'mpath', 'rbd', and 'sheepdog'.
+
+The I<--details> option instructs virsh to additionally
+display pool persistence and capacity related information where available.
+
+NOTE: When talking to older servers, this command is forced to use a series of
+API calls with an inherent race, where a pool might not be listed or might appear
+more than once if it changed state between calls while the list was being
+collected.  Newer servers do not have this problem.
 
 =item B<pool-name> I<uuid>
 
@@ -2437,9 +2547,13 @@ encoded using Base64.
 Delete a I<secret> (specified by its UUID), including the associated value, if
 any.
 
-=item B<secret-list>
+=item B<secret-list> [I<--ephemeral>] [I<--no-ephemeral>]
+                     [I<--private>] [I<--no-private>]
 
-Output a list of UUIDs of known secrets to stdout.
+Returns the list of secrets. You may also want to filter the returned secrets
+by I<--ephemeral> to list the ephemeral ones, I<--no-ephemeral> to list the
+non-ephemeral ones, I<--private> to list the private ones, and
+I<--no-private> to list the non-private ones.
 
 =back
 

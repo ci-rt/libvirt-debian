@@ -14,7 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  *  Daniel Veillard <veillard@redhat.com>
@@ -36,6 +36,7 @@
 #include "memory.h"
 #include "util.h"
 #include "xml.h"
+#include "conf/node_device_conf.h"
 
 /*
  * "nodedev-create" command
@@ -62,9 +63,6 @@ cmdNodeDeviceCreate(vshControl *ctl, const vshCmd *cmd)
     const char *from = NULL;
     bool ret = true;
     char *buffer;
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     if (vshCommandOptString(cmd, "file", &from) <= 0)
         return false;
@@ -111,10 +109,6 @@ cmdNodeDeviceDestroy(vshControl *ctl, const vshCmd *cmd)
     bool ret = true;
     const char *name = NULL;
 
-    if (!vshConnectionUsability(ctl, ctl->conn)) {
-        return false;
-    }
-
     if (vshCommandOptString(cmd, "name", &name) <= 0)
         return false;
 
@@ -145,6 +139,187 @@ vshNodeListLookup(int devid, bool parent, void *opaque)
     return arrays->names[devid];
 }
 
+static int
+vshNodeDeviceSorter(const void *a, const void *b)
+{
+    virNodeDevicePtr *na = (virNodeDevicePtr *) a;
+    virNodeDevicePtr *nb = (virNodeDevicePtr *) b;
+
+    if (*na && !*nb)
+        return -1;
+
+    if (!*na)
+        return *nb != NULL;
+
+    return vshStrcasecmp(virNodeDeviceGetName(*na),
+                         virNodeDeviceGetName(*nb));
+}
+
+struct vshNodeDeviceList {
+    virNodeDevicePtr *devices;
+    size_t ndevices;
+};
+typedef struct vshNodeDeviceList *vshNodeDeviceListPtr;
+
+static void
+vshNodeDeviceListFree(vshNodeDeviceListPtr list)
+{
+    int i;
+
+    if (list && list->ndevices) {
+        for (i = 0; i < list->ndevices; i++) {
+            if (list->devices[i])
+                virNodeDeviceFree(list->devices[i]);
+        }
+        VIR_FREE(list->devices);
+    }
+    VIR_FREE(list);
+}
+
+static vshNodeDeviceListPtr
+vshNodeDeviceListCollect(vshControl *ctl,
+                         char **capnames,
+                         int ncapnames,
+                         unsigned int flags)
+{
+    vshNodeDeviceListPtr list = vshMalloc(ctl, sizeof(*list));
+    int i;
+    int ret;
+    virNodeDevicePtr device;
+    bool success = false;
+    size_t deleted = 0;
+    int ndevices = 0;
+    char **names = NULL;
+
+    /* try the list with flags support (0.10.2 and later) */
+    if ((ret = virConnectListAllNodeDevices(ctl->conn,
+                                            &list->devices,
+                                            flags)) >= 0) {
+        list->ndevices = ret;
+        goto finished;
+    }
+
+    /* check if the command is actually supported */
+    if (last_error && last_error->code == VIR_ERR_NO_SUPPORT)
+        goto fallback;
+
+    /* there was an error during the call */
+    vshError(ctl, "%s", _("Failed to list node devices"));
+    goto cleanup;
+
+
+fallback:
+    /* fall back to old method (0.10.1 and older) */
+    vshResetLibvirtError();
+
+    ndevices = virNodeNumOfDevices(ctl->conn, NULL, 0);
+    if (ndevices < 0) {
+        vshError(ctl, "%s", _("Failed to count node devices"));
+        goto cleanup;
+    }
+
+    if (ndevices == 0)
+        return list;
+
+    names = vshMalloc(ctl, sizeof(char *) * ndevices);
+
+    ndevices = virNodeListDevices(ctl->conn, NULL, names, ndevices, 0);
+    if (ndevices < 0) {
+        vshError(ctl, "%s", _("Failed to list node devices"));
+        goto cleanup;
+    }
+
+    list->devices = vshMalloc(ctl, sizeof(virNodeDevicePtr) * (ndevices));
+    list->ndevices = 0;
+
+    /* get the node devices */
+    for (i = 0; i < ndevices ; i++) {
+        if (!(device = virNodeDeviceLookupByName(ctl->conn, names[i])))
+            continue;
+        list->devices[list->ndevices++] = device;
+    }
+
+    /* truncate domains that weren't found */
+    deleted = ndevices - list->ndevices;
+
+    if (!capnames)
+        goto finished;
+
+    /* filter the list if the list was acquired by fallback means */
+    for (i = 0; i < list->ndevices; i++) {
+        char **caps = NULL;
+        int ncaps = 0;
+        bool match = false;
+
+        device = list->devices[i];
+
+        if ((ncaps = virNodeDeviceNumOfCaps(device)) < 0) {
+            vshError(ctl, "%s", _("Failed to get capability numbers "
+                                  "of the device"));
+            goto cleanup;
+        }
+
+        caps = vshMalloc(ctl, sizeof(char *) * ncaps);
+
+        if ((ncaps = virNodeDeviceListCaps(device, caps, ncaps)) < 0) {
+            vshError(ctl, "%s", _("Failed to get capability names of the device"));
+            VIR_FREE(caps);
+            goto cleanup;
+        }
+
+        /* Check if the device's capability matches with provied
+         * capabilities.
+         */
+        int j, k;
+        for (j = 0; j < ncaps; j++) {
+            for (k = 0; k < ncapnames; k++) {
+                if (STREQ(caps[j], capnames[k])) {
+                    match = true;
+                    break;
+                }
+            }
+        }
+
+        VIR_FREE(caps);
+
+        if (!match)
+            goto remove_entry;
+
+        /* the device matched all filters, it may stay */
+        continue;
+
+remove_entry:
+        /* the device has to be removed as it failed one of the filters */
+        virNodeDeviceFree(list->devices[i]);
+        list->devices[i] = NULL;
+        deleted++;
+    }
+
+finished:
+    /* sort the list */
+    if (list->devices && list->ndevices)
+        qsort(list->devices, list->ndevices,
+              sizeof(*list->devices), vshNodeDeviceSorter);
+
+    /* truncate the list if filter simulation deleted entries */
+    if (deleted)
+        VIR_SHRINK_N(list->devices, list->ndevices, deleted);
+
+    success = true;
+
+cleanup:
+    for (i = 0; i < ndevices; i++)
+        VIR_FREE(names[i]);
+    VIR_FREE(names);
+
+    if (!success) {
+        vshNodeDeviceListFree(list);
+        list = NULL;
+    }
+
+    return list;
+}
+
 /*
  * "nodedev-list" command
  */
@@ -156,74 +331,120 @@ static const vshCmdInfo info_node_list_devices[] = {
 
 static const vshCmdOptDef opts_node_list_devices[] = {
     {"tree", VSH_OT_BOOL, 0, N_("list devices in a tree")},
-    {"cap", VSH_OT_STRING, VSH_OFLAG_NONE, N_("capability name")},
+    {"cap", VSH_OT_STRING, VSH_OFLAG_NONE, N_("capability names, separated by comma")},
     {NULL, 0, 0, NULL}
 };
 
 static bool
 cmdNodeListDevices(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 {
-    const char *cap = NULL;
-    char **devices;
-    int num_devices, i;
+    const char *cap_str = NULL;
+    int i;
     bool tree = vshCommandOptBool(cmd, "tree");
     bool ret = true;
+    unsigned int flags = 0;
+    char **caps = NULL;
+    int ncaps = 0;
+    vshNodeDeviceListPtr list = NULL;
+    int cap_type = -1;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
+    ignore_value(vshCommandOptString(cmd, "cap", &cap_str));
 
-    if (vshCommandOptString(cmd, "cap", &cap) <= 0)
-        cap = NULL;
-
-    num_devices = virNodeNumOfDevices(ctl->conn, cap, 0);
-    if (num_devices < 0) {
-        vshError(ctl, "%s", _("Failed to count node devices"));
-        return false;
-    } else if (num_devices == 0) {
-        return true;
+    if (cap_str) {
+        if (tree) {
+            vshError(ctl, "%s", _("Options --tree and --cap are incompatible"));
+            return false;
+        }
+        ncaps = vshStringToArray(cap_str, &caps);
     }
 
-    devices = vshMalloc(ctl, sizeof(char *) * num_devices);
-    num_devices =
-        virNodeListDevices(ctl->conn, cap, devices, num_devices, 0);
-    if (num_devices < 0) {
-        vshError(ctl, "%s", _("Failed to list node devices"));
-        VIR_FREE(devices);
-        return false;
+    for (i = 0; i < ncaps; i++) {
+        if ((cap_type = virNodeDevCapTypeFromString(caps[i])) < 0) {
+            vshError(ctl, "%s", _("Invalid capability type"));
+            VIR_FREE(caps);
+            return false;
+        }
+
+        switch(cap_type) {
+        case VIR_NODE_DEV_CAP_SYSTEM:
+            flags |= VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM;
+            break;
+        case VIR_NODE_DEV_CAP_PCI_DEV:
+            flags |= VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV;
+            break;
+        case VIR_NODE_DEV_CAP_USB_DEV:
+            flags |= VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV;
+            break;
+        case VIR_NODE_DEV_CAP_USB_INTERFACE:
+            flags |= VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE;
+            break;
+        case VIR_NODE_DEV_CAP_NET:
+            flags |= VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET;
+            break;
+        case VIR_NODE_DEV_CAP_SCSI_HOST:
+            flags |= VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST;
+            break;
+        case VIR_NODE_DEV_CAP_SCSI_TARGET:
+            flags |= VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET;
+            break;
+        case VIR_NODE_DEV_CAP_SCSI:
+            flags |= VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI;
+            break;
+        case VIR_NODE_DEV_CAP_STORAGE:
+            flags |= VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE;
+            break;
+        default:
+            break;
+        }
     }
-    qsort(&devices[0], num_devices, sizeof(char*), vshNameSorter);
+
+    if (!(list = vshNodeDeviceListCollect(ctl, caps, ncaps, flags))) {
+        ret = false;
+        goto cleanup;
+    }
+
     if (tree) {
-        char **parents = vshMalloc(ctl, sizeof(char *) * num_devices);
-        struct vshNodeList arrays = { devices, parents };
+        char **parents = vshMalloc(ctl, sizeof(char *) * list->ndevices);
+        char **names = vshMalloc(ctl, sizeof(char *) * list->ndevices);
+        struct vshNodeList arrays = { names, parents };
 
-        for (i = 0; i < num_devices; i++) {
-            virNodeDevicePtr dev = virNodeDeviceLookupByName(ctl->conn, devices[i]);
-            if (dev && STRNEQ(devices[i], "computer")) {
+        for (i = 0; i < list->ndevices; i++)
+            names[i] = vshStrdup(ctl, virNodeDeviceGetName(list->devices[i]));
+
+        for (i = 0; i < list->ndevices; i++) {
+            virNodeDevicePtr dev = list->devices[i];
+            if (STRNEQ(names[i], "computer")) {
                 const char *parent = virNodeDeviceGetParent(dev);
                 parents[i] = parent ? vshStrdup(ctl, parent) : NULL;
             } else {
                 parents[i] = NULL;
             }
-            virNodeDeviceFree(dev);
         }
-        for (i = 0 ; i < num_devices ; i++) {
+
+        for (i = 0 ; i < list->ndevices; i++) {
             if (parents[i] == NULL &&
-                vshTreePrint(ctl, vshNodeListLookup, &arrays, num_devices,
-                             i) < 0)
+                vshTreePrint(ctl, vshNodeListLookup, &arrays,
+                             list->ndevices, i) < 0)
                 ret = false;
         }
-        for (i = 0 ; i < num_devices ; i++) {
-            VIR_FREE(devices[i]);
+
+        for (i = 0 ; i < list->ndevices; i++)
             VIR_FREE(parents[i]);
-        }
         VIR_FREE(parents);
+        for (i = 0; i < list->ndevices; i++)
+            VIR_FREE(names[i]);
+        VIR_FREE(names);
     } else {
-        for (i = 0; i < num_devices; i++) {
-            vshPrint(ctl, "%s\n", devices[i]);
-            VIR_FREE(devices[i]);
-        }
+        for (i = 0; i < list->ndevices; i++)
+            vshPrint(ctl, "%s\n", virNodeDeviceGetName(list->devices[i]));
     }
-    VIR_FREE(devices);
+
+cleanup:
+    if (caps) {
+        VIR_FREE(*caps);
+        VIR_FREE(caps);
+    }
+    vshNodeDeviceListFree(list);
     return ret;
 }
 
@@ -249,8 +470,6 @@ cmdNodeDeviceDumpXML(vshControl *ctl, const vshCmd *cmd)
     virNodeDevicePtr device;
     char *xml;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
     if (vshCommandOptString(cmd, "device", &name) <= 0)
         return false;
     if (!(device = virNodeDeviceLookupByName(ctl->conn, name))) {
@@ -292,8 +511,6 @@ cmdNodeDeviceDetach(vshControl *ctl, const vshCmd *cmd)
     virNodeDevicePtr device;
     bool ret = true;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
     if (vshCommandOptString(cmd, "device", &name) <= 0)
         return false;
     if (!(device = virNodeDeviceLookupByName(ctl->conn, name))) {
@@ -335,8 +552,6 @@ cmdNodeDeviceReAttach(vshControl *ctl, const vshCmd *cmd)
     virNodeDevicePtr device;
     bool ret = true;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
     if (vshCommandOptString(cmd, "device", &name) <= 0)
         return false;
     if (!(device = virNodeDeviceLookupByName(ctl->conn, name))) {
@@ -376,8 +591,6 @@ cmdNodeDeviceReset(vshControl *ctl, const vshCmd *cmd)
     virNodeDevicePtr device;
     bool ret = true;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
     if (vshCommandOptString(cmd, "device", &name) <= 0)
         return false;
     if (!(device = virNodeDeviceLookupByName(ctl->conn, name))) {

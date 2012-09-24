@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  */
@@ -122,6 +122,15 @@ parallelsBuildCapabilities(void)
                                 0x42, 0x1C, 0x00});
 
     if ((guest = virCapabilitiesAddGuest(caps, "hvm", PARALLELS_DEFAULT_ARCH,
+                                         64, "parallels",
+                                         NULL, 0, NULL)) == NULL)
+        goto no_memory;
+
+    if (virCapabilitiesAddGuestDomain(guest,
+                                      "parallels", NULL, NULL, 0, NULL) == NULL)
+        goto no_memory;
+
+    if ((guest = virCapabilitiesAddGuest(caps, "exe", PARALLELS_DEFAULT_ARCH,
                                          64, "parallels",
                                          NULL, 0, NULL)) == NULL)
         goto no_memory;
@@ -459,12 +468,29 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
         goto cleanup;
     }
 
-    if (virJSONValueObjectGetNumberUint(jobj3, "cpus", &x) < 0) {
+    if (virJSONValueObjectGetNumberUint(jobj3, "cpus", &x) == 0) {
+        def->vcpus = x;
+        def->maxvcpus = x;
+    } else if ((tmp = virJSONValueObjectGetString(jobj3, "cpus"))) {
+        if (STREQ(tmp, "unlimited")) {
+            virNodeInfo nodeinfo;
+
+            if (nodeGetInfo(NULL, &nodeinfo) < 0) {
+                virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                               _("Can't get node info"));
+                goto cleanup;
+            }
+
+            def->vcpus = nodeinfo.cpus;
+            def->maxvcpus = def->vcpus;
+        } else {
+            parallelsParseError();
+            goto cleanup;
+        }
+    } else {
         parallelsParseError();
         goto cleanup;
     }
-    def->vcpus = x;
-    def->maxvcpus = x;
 
     if (!(jobj3 = virJSONValueObjectGet(jobj2, "memory"))) {
         parallelsParseError();
@@ -490,8 +516,20 @@ parallelsLoadDomain(parallelsConnPtr privconn, virJSONValuePtr jobj)
     def->mem.max_balloon <<= 10;
     def->mem.cur_balloon = def->mem.max_balloon;
 
-    if (!(def->os.type = strdup("hvm")))
-        goto no_memory;
+    if (!(tmp = virJSONValueObjectGetString(jobj, "Type"))) {
+        parallelsParseError();
+        goto cleanup;
+    }
+
+    if (STREQ(tmp, "CT")) {
+        if (!(def->os.type = strdup("exe")))
+            goto no_memory;
+        if (!(def->os.init = strdup("/sbin/init")))
+            goto no_memory;
+    } else if (STREQ(tmp, "VM")) {
+        if (!(def->os.type = strdup("hvm")))
+            goto no_memory;
+    }
 
     if (!(def->os.arch = strdup(PARALLELS_DEFAULT_ARCH)))
         goto no_memory;
@@ -577,7 +615,7 @@ parallelsLoadDomains(parallelsConnPtr privconn, const char *domain_name)
     int ret = -1;
 
     jobj = parallelsParseOutput(PRLCTL, "list", "-j", "-a", "-i", "-H",
-                                "--vmtype", "vm", domain_name, NULL);
+                                "--vmtype", "all", domain_name, NULL);
     if (!jobj) {
         parallelsParseError();
         goto cleanup;
@@ -1185,7 +1223,7 @@ parallelsApplyGraphicsParams(virDomainGraphicsDefPtr *oldgraphics, int nold,
     new = newgraphics[0];
 
     if (old->data.vnc.port != new->data.vnc.port &&
-        (old->data.vnc.port != 0 && new->data.vnc.port != -1)) {
+        (old->data.vnc.port != 0 && new->data.vnc.port != 0)) {
 
         goto error;
     } else if (old->data.vnc.autoport != new->data.vnc.autoport ||
@@ -1407,8 +1445,7 @@ parallelsApplyChanges(virDomainObjPtr dom, virDomainDefPtr new)
         return -1;
     }
 
-    if (old->cpumasklen != new->cpumasklen ||
-        (memcmp(old->cpumask, new->cpumask, old->cpumasklen))) {
+    if (!virBitmapEqual(old->cpumask, new->cpumask)) {
 
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("changing cpu mask is not supported "
@@ -1428,7 +1465,7 @@ parallelsApplyChanges(virDomainObjPtr dom, virDomainDefPtr new)
 
     if (old->numatune.memory.mode != new->numatune.memory.mode ||
         old->numatune.memory.placement_mode != new->numatune.memory.placement_mode ||
-        !STREQ_NULLABLE(old->numatune.memory.nodemask, new->numatune.memory.nodemask)) {
+        !virBitmapEqual(old->numatune.memory.nodemask, new->numatune.memory.nodemask)) {
 
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                         _("numa parameters are not supported "
@@ -1446,24 +1483,46 @@ parallelsApplyChanges(virDomainObjPtr dom, virDomainDefPtr new)
         return -1;
     }
 
-    /* we fill only type and arch fields in parallelsLoadDomain, so
-     * we can check that all other paramenters are null */
+    /* we fill only type and arch fields in parallelsLoadDomain for
+     * hvm type and also init for containers, so we can check that all
+     * other paramenters are null and boot devices config is default */
+
     if (!STREQ_NULLABLE(old->os.type, new->os.type) ||
         !STREQ_NULLABLE(old->os.arch, new->os.arch) ||
-        new->os.machine != NULL || new->os.nBootDevs != 1 ||
-        new->os.bootDevs[0] != VIR_DOMAIN_BOOT_DISK ||
-        new->os.bootmenu != 0 || new->os.init != NULL ||
-        new->os.initargv != NULL || new->os.kernel != NULL ||
-        new->os.initrd != NULL || new->os.cmdline != NULL ||
-        new->os.root != NULL || new->os.loader != NULL ||
-        new->os.bootloader != NULL || new->os.bootloaderArgs != NULL ||
-        new->os.smbios_mode != 0 || new->os.bios.useserial != 0) {
+        new->os.machine != NULL || new->os.bootmenu != 0 ||
+        new->os.kernel != NULL || new->os.initrd != NULL ||
+        new->os.cmdline != NULL || new->os.root != NULL ||
+        new->os.loader != NULL || new->os.bootloader != NULL ||
+        new->os.bootloaderArgs != NULL || new->os.smbios_mode != 0 ||
+        new->os.bios.useserial != 0) {
 
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
                        _("changing OS parameters is not supported "
                          "by parallels driver"));
         return -1;
     }
+    if (STREQ(new->os.type, "hvm")) {
+        if (new->os.nBootDevs != 1 ||
+            new->os.bootDevs[0] != VIR_DOMAIN_BOOT_DISK ||
+            new->os.init != NULL || new->os.initargv != NULL) {
+
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("changing OS parameters is not supported "
+                             "by parallels driver"));
+            return -1;
+        }
+    } else {
+        if (new->os.nBootDevs != 0 ||
+            !STREQ_NULLABLE(old->os.init, new->os.init) ||
+            (new->os.initargv != NULL && new->os.initargv[0] != NULL)) {
+
+            virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
+                           _("changing OS parameters is not supported "
+                             "by parallels driver"));
+            return -1;
+        }
+    }
+
 
     if (!STREQ_NULLABLE(old->emulator, new->emulator)) {
         virReportError(VIR_ERR_ARGUMENT_UNSUPPORTED, "%s",
@@ -1603,6 +1662,36 @@ parallelsCreateVm(virConnectPtr conn, virDomainDefPtr def)
     return -1;
 }
 
+static int
+parallelsCreateCt(virConnectPtr conn ATTRIBUTE_UNUSED, virDomainDefPtr def)
+{
+    char uuidstr[VIR_UUID_STRING_BUFLEN];
+
+    virUUIDFormat(def->uuid, uuidstr);
+
+    if (def->nfss != 1 ||
+        def->fss[0]->type != VIR_DOMAIN_FS_TYPE_TEMPLATE) {
+
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("There must be only 1 template FS for "
+                         "container creation"));
+        goto error;
+    }
+
+    if (parallelsCmdRun(PRLCTL, "create", def->name, "--vmtype", "ct",
+                        "--uuid", uuidstr,
+                        "--ostemplate", def->fss[0]->src, NULL) < 0)
+        goto error;
+
+    if (parallelsCmdRun(PRLCTL, "set", def->name, "--vnc-mode", "auto", NULL) < 0)
+        goto error;
+
+    return 0;
+
+error:
+    return -1;
+}
+
 static virDomainPtr
 parallelsDomainDefineXML(virConnectPtr conn, const char *xml)
 {
@@ -1643,8 +1732,17 @@ parallelsDomainDefineXML(virConnectPtr conn, const char *xml)
 
         def = NULL;
     } else {
-        if (parallelsCreateVm(conn, def))
+        if (STREQ(def->os.type, "hvm")) {
+            if (parallelsCreateVm(conn, def))
+                goto cleanup;
+        } else if (STREQ(def->os.type, "exe")) {
+            if (parallelsCreateCt(conn, def))
+                goto cleanup;
+        } else {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("Unsupported OS type: %s"), def->os.type);
             goto cleanup;
+        }
         if (parallelsLoadDomains(privconn, def->name))
             goto cleanup;
         dom = virDomainFindByName(&privconn->domains, def->name);

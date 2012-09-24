@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -827,12 +827,7 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
     xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
-    virBuffer mapbuf = VIR_BUFFER_INITIALIZER;
-    char *mapstr = NULL, *mapsave = NULL;
-    int i, j, n, comma = 0;
     int ret = -1;
-    char *cpuset = NULL;
-    int maxcpu = XEN_MAX_PHYSICAL_CPU;
 
     if (domain == NULL || domain->conn == NULL || domain->name == NULL
         || cpumap == NULL || maplen < 1 || maplen > (int)sizeof(cpumap_t)) {
@@ -863,48 +858,16 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
         goto cleanup;
     }
 
-    /* from bit map, build character string of mapped CPU numbers */
-    for (i = 0; i < maplen; i++)
-        for (j = 0; j < 8; j++)
-            if ((cpumap[i] & (1 << j))) {
-                n = i*8 + j;
-
-                if (comma)
-                    virBufferAddLit (&mapbuf, ",");
-                comma = 1;
-
-                virBufferAsprintf (&mapbuf, "%d", n);
-            }
-
-    if (virBufferError(&mapbuf)) {
-        virBufferFreeAndReset(&mapbuf);
-        virReportOOMError();
+    virBitmapFree(entry->def->cpumask);
+    entry->def->cpumask = virBitmapNewData(cpumap, maplen);
+    if (!entry->def->cpumask)
         goto cleanup;
-    }
-
-    mapstr = virBufferContentAndReset(&mapbuf);
-    mapsave = mapstr;
-
-    if (VIR_ALLOC_N(cpuset, maxcpu) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-    if (virDomainCpuSetParse(mapstr, 0, cpuset, maxcpu) < 0)
-        goto cleanup;
-
-    VIR_FREE(entry->def->cpumask);
-    entry->def->cpumask = cpuset;
-    entry->def->cpumasklen = maxcpu;
-    cpuset = NULL;
-
     if (xenXMConfigSaveFile(domain->conn, entry->filename, entry->def) < 0)
         goto cleanup;
 
     ret = 0;
 
  cleanup:
-    VIR_FREE(mapsave);
-    VIR_FREE(cpuset);
     xenUnifiedUnlock(priv);
     return ret;
 }

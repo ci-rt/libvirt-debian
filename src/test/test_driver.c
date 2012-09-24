@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Daniel Berrange <berrange@redhat.com>
@@ -383,6 +383,7 @@ testDomainUpdateVCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
     virVcpuInfoPtr info = &privdata->vcpu_infos[vcpu];
     unsigned char *cpumap = VIR_GET_CPUMAP(privdata->cpumaps, maplen, vcpu);
     int j;
+    bool cpu;
 
     memset(info, 0, sizeof(virVcpuInfo));
     memset(cpumap, 0, maplen);
@@ -394,7 +395,9 @@ testDomainUpdateVCPU(virConnectPtr conn ATTRIBUTE_UNUSED,
 
     if (dom->def->cpumask) {
         for (j = 0; j < maxcpu && j < VIR_DOMAIN_CPUMASK_LEN; ++j) {
-            if (dom->def->cpumask[j]) {
+            if (virBitmapGetBit(dom->def->cpumask, j, &cpu) < 0)
+                return -1;
+            if (cpu) {
                 VIR_USE_CPU(cpumap, j);
                 info->cpu = j;
             }
@@ -576,7 +579,7 @@ static int testOpenDefault(virConnectPtr conn) {
 
     if (!(netdef = virNetworkDefParseString(defaultNetworkXML)))
         goto error;
-    if (!(netobj = virNetworkAssignDef(&privconn->networks, netdef))) {
+    if (!(netobj = virNetworkAssignDef(&privconn->networks, netdef, false))) {
         virNetworkDefFree(netdef);
         goto error;
     }
@@ -945,8 +948,7 @@ static int testOpenFromFile(virConnectPtr conn,
             if ((def = virNetworkDefParseNode(xml, networks[i])) == NULL)
                 goto error;
         }
-        if (!(net = virNetworkAssignDef(&privconn->networks,
-                                        def))) {
+        if (!(net = virNetworkAssignDef(&privconn->networks, def, false))) {
             virNetworkDefFree(def);
             goto error;
         }
@@ -3039,6 +3041,22 @@ no_memory:
     return -1;
 }
 
+static int
+testNetworkListAllNetworks(virConnectPtr conn,
+                           virNetworkPtr **nets,
+                           unsigned int flags)
+{
+    testConnPtr privconn = conn->privateData;
+    int ret = -1;
+
+    virCheckFlags(VIR_CONNECT_LIST_NETWORKS_FILTERS_ALL, -1);
+
+    testDriverLock(privconn);
+    ret = virNetworkList(conn, privconn->networks, nets, flags);
+    testDriverUnlock(privconn);
+
+    return ret;
+}
 
 static int testNetworkIsActive(virNetworkPtr net)
 {
@@ -3093,7 +3111,7 @@ static virNetworkPtr testNetworkCreate(virConnectPtr conn, const char *xml) {
     if ((def = virNetworkDefParseString(xml)) == NULL)
         goto cleanup;
 
-    if ((net = virNetworkAssignDef(&privconn->networks, def)) == NULL)
+    if (!(net = virNetworkAssignDef(&privconn->networks, def, false)))
         goto cleanup;
     def = NULL;
     net->active = 1;
@@ -3108,7 +3126,9 @@ cleanup:
     return ret;
 }
 
-static virNetworkPtr testNetworkDefine(virConnectPtr conn, const char *xml) {
+static
+virNetworkPtr testNetworkDefine(virConnectPtr conn, const char *xml)
+{
     testConnPtr privconn = conn->privateData;
     virNetworkDefPtr def;
     virNetworkObjPtr net = NULL;
@@ -3118,7 +3138,7 @@ static virNetworkPtr testNetworkDefine(virConnectPtr conn, const char *xml) {
     if ((def = virNetworkDefParseString(xml)) == NULL)
         goto cleanup;
 
-    if ((net = virNetworkAssignDef(&privconn->networks, def)) == NULL)
+    if (!(net = virNetworkAssignDef(&privconn->networks, def, false)))
         goto cleanup;
     def = NULL;
     net->persistent = 1;
@@ -3161,6 +3181,54 @@ static int testNetworkUndefine(virNetworkPtr network) {
 cleanup:
     if (privnet)
         virNetworkObjUnlock(privnet);
+    testDriverUnlock(privconn);
+    return ret;
+}
+
+static int
+testNetworkUpdate(virNetworkPtr net,
+                  unsigned int command,
+                  unsigned int section,
+                  int parentIndex,
+                  const char *xml,
+                  unsigned int flags)
+{
+    testConnPtr privconn = net->conn->privateData;
+    virNetworkObjPtr network = NULL;
+    int isActive, ret = -1;
+
+    virCheckFlags(VIR_NETWORK_UPDATE_AFFECT_LIVE |
+                  VIR_NETWORK_UPDATE_AFFECT_CONFIG,
+                  -1);
+
+    testDriverLock(privconn);
+
+    network = virNetworkFindByUUID(&privconn->networks, net->uuid);
+    if (!network) {
+        virReportError(VIR_ERR_NO_NETWORK,
+                       "%s", _("no network with matching uuid"));
+        goto cleanup;
+    }
+
+    /* VIR_NETWORK_UPDATE_AFFECT_CURRENT means "change LIVE if network
+     * is active, else change CONFIG
+    */
+    isActive = virNetworkObjIsActive(network);
+    if ((flags & (VIR_NETWORK_UPDATE_AFFECT_LIVE
+                   | VIR_NETWORK_UPDATE_AFFECT_CONFIG)) ==
+        VIR_NETWORK_UPDATE_AFFECT_CURRENT) {
+        if (isActive)
+            flags |= VIR_NETWORK_UPDATE_AFFECT_LIVE;
+        else
+            flags |= VIR_NETWORK_UPDATE_AFFECT_CONFIG;
+    }
+
+    /* update the network config in memory/on disk */
+    if (virNetworkObjUpdate(network, command, section, parentIndex, xml, flags) < 0)
+       goto cleanup;
+
+    ret = 0;
+cleanup:
     testDriverUnlock(privconn);
     return ret;
 }
@@ -3944,6 +4012,22 @@ no_memory:
     return -1;
 }
 
+static int
+testStorageListAllPools(virConnectPtr conn,
+                        virStoragePoolPtr **pools,
+                        unsigned int flags)
+{
+    testConnPtr privconn = conn->privateData;
+    int ret = -1;
+
+    virCheckFlags(VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_ALL, -1);
+
+    testDriverLock(privconn);
+    ret = virStoragePoolList(conn, privconn->pools, pools, flags);
+    testDriverUnlock(privconn);
+
+    return ret;
+}
 
 static int testStoragePoolIsActive(virStoragePoolPtr pool)
 {
@@ -4539,6 +4623,72 @@ testStoragePoolListVolumes(virStoragePoolPtr pool,
     return -1;
 }
 
+static int
+testStoragePoolListAllVolumes(virStoragePoolPtr obj,
+                              virStorageVolPtr **vols,
+                              unsigned int flags) {
+    testConnPtr privconn = obj->conn->privateData;
+    virStoragePoolObjPtr pool;
+    int i;
+    virStorageVolPtr *tmp_vols = NULL;
+    virStorageVolPtr vol = NULL;
+    int nvols = 0;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    testDriverLock(privconn);
+    pool = virStoragePoolObjFindByUUID(&privconn->pools, obj->uuid);
+    testDriverUnlock(privconn);
+
+    if (!pool) {
+        virReportError(VIR_ERR_NO_STORAGE_POOL, "%s",
+                       _("no storage pool with matching uuid"));
+        goto cleanup;
+    }
+
+    if (!virStoragePoolObjIsActive(pool)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("storage pool is not active"));
+        goto cleanup;
+    }
+
+     /* Just returns the volumes count */
+    if (!vols) {
+        ret = pool->volumes.count;
+        goto cleanup;
+    }
+
+    if (VIR_ALLOC_N(tmp_vols, pool->volumes.count + 1) < 0) {
+         virReportOOMError();
+         goto cleanup;
+    }
+
+    for (i = 0 ; i < pool->volumes.count; i++) {
+        if (!(vol = virGetStorageVol(obj->conn, pool->def->name,
+                                     pool->volumes.objs[i]->name,
+                                     pool->volumes.objs[i]->key)))
+            goto cleanup;
+        tmp_vols[nvols++] = vol;
+    }
+
+    *vols = tmp_vols;
+    tmp_vols = NULL;
+    ret = nvols;
+
+ cleanup:
+    if (tmp_vols) {
+        for (i = 0; i < nvols; i++) {
+            if (tmp_vols[i])
+                virStorageVolFree(tmp_vols[i]);
+        }
+    }
+
+    if (pool)
+        virStoragePoolObjUnlock(pool);
+
+    return ret;
+}
 
 static virStorageVolPtr
 testStorageVolumeLookupByName(virStoragePoolPtr pool,
@@ -5616,11 +5766,13 @@ static virNetworkDriver testNetworkDriver = {
     .listNetworks = testListNetworks, /* 0.3.2 */
     .numOfDefinedNetworks = testNumDefinedNetworks, /* 0.3.2 */
     .listDefinedNetworks = testListDefinedNetworks, /* 0.3.2 */
+    .listAllNetworks = testNetworkListAllNetworks, /* 0.10.2 */
     .networkLookupByUUID = testLookupNetworkByUUID, /* 0.3.2 */
     .networkLookupByName = testLookupNetworkByName, /* 0.3.2 */
     .networkCreateXML = testNetworkCreate, /* 0.3.2 */
     .networkDefineXML = testNetworkDefine, /* 0.3.2 */
     .networkUndefine = testNetworkUndefine, /* 0.3.2 */
+    .networkUpdate = testNetworkUpdate, /* 0.10.2 */
     .networkCreate = testNetworkStart, /* 0.3.2 */
     .networkDestroy = testNetworkDestroy, /* 0.3.2 */
     .networkGetXMLDesc = testNetworkGetXMLDesc, /* 0.3.2 */
@@ -5662,6 +5814,7 @@ static virStorageDriver testStorageDriver = {
     .listPools = testStorageListPools, /* 0.5.0 */
     .numOfDefinedPools = testStorageNumDefinedPools, /* 0.5.0 */
     .listDefinedPools = testStorageListDefinedPools, /* 0.5.0 */
+    .listAllPools = testStorageListAllPools, /* 0.10.2 */
     .findPoolSources = testStorageFindPoolSources, /* 0.5.0 */
     .poolLookupByName = testStoragePoolLookupByName, /* 0.5.0 */
     .poolLookupByUUID = testStoragePoolLookupByUUID, /* 0.5.0 */
@@ -5680,6 +5833,7 @@ static virStorageDriver testStorageDriver = {
     .poolSetAutostart = testStoragePoolSetAutostart, /* 0.5.0 */
     .poolNumOfVolumes = testStoragePoolNumVolumes, /* 0.5.0 */
     .poolListVolumes = testStoragePoolListVolumes, /* 0.5.0 */
+    .poolListAllVolumes = testStoragePoolListAllVolumes, /* 0.10.2 */
 
     .volLookupByName = testStorageVolumeLookupByName, /* 0.5.0 */
     .volLookupByKey = testStorageVolumeLookupByKey, /* 0.5.0 */

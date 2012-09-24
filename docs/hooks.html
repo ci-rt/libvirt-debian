@@ -243,8 +243,11 @@
         <h5>
           <a name="daemon" id="daemon">/etc/libvirt/hooks/daemon</a>
         </h5>
-        <ul><li>When the libvirt daemon is started, this script is called as:<br /><pre>/etc/libvirt/hooks/daemon - start - start</pre></li><li>When the libvirt daemon is shut down, this script is called as:<br /><pre>/etc/libvirt/hooks/daemon - shutdown - shutdown</pre></li><li>When the libvirt daemon receives the SIGHUP signal, it reloads its
-          configuration and triggers the hook script as:<br /><pre>/etc/libvirt/hooks/daemon - reload begin SIGHUP</pre></li></ul>
+        <ul><li>When the libvirt daemon is started, this script is called as:<br />
+          <pre>/etc/libvirt/hooks/daemon - start - start</pre></li><li>When the libvirt daemon is shut down, this script is called as:<br />
+          <pre>/etc/libvirt/hooks/daemon - shutdown - shutdown</pre></li><li>When the libvirt daemon receives the SIGHUP signal, it reloads its
+          configuration and triggers the hook script as:<br />
+          <pre>/etc/libvirt/hooks/daemon - reload begin SIGHUP</pre></li></ul>
         <p>Please note that when the libvirt daemon is restarted, the <i>daemon</i>
        hook script is called once with the "shutdown" operation, and then once
        with the "start" operation.  There is no specific operation to indicate
@@ -257,19 +260,24 @@
         is not started.  The first location, <span class="since">since
         0.9.0</span>, is before libvirt performs any resource
         labeling, and the hook can allocate resources not managed by
-        libvirt such as DRBD or missing bridges.  This is called as:<br /><pre>/etc/libvirt/hooks/qemu guest_name prepare begin -</pre>
+        libvirt such as DRBD or missing bridges.  This is called as:<br />
+        <pre>/etc/libvirt/hooks/qemu guest_name prepare begin -</pre>
         The second location, available <span class="since">Since
         0.8.0</span>, occurs after libvirt has finished labeling
-        all resources, but has not yet started the guest, called as:<br /><pre>/etc/libvirt/hooks/qemu guest_name start begin -</pre>
+        all resources, but has not yet started the guest, called as:<br />
+        <pre>/etc/libvirt/hooks/qemu guest_name start begin -</pre>
         The third location, <span class="since">0.9.13</span>,
-        occurs after the QEMU process has successfully started up:<br /><pre>/etc/libvirt/hooks/qemu guest_name started begin -</pre>
+        occurs after the QEMU process has successfully started up:<br />
+        <pre>/etc/libvirt/hooks/qemu guest_name started begin -</pre>
       </li><li>When a QEMU guest is stopped, the qemu hook script is called
         in two locations, to match the startup.
         First, <span class="since">since 0.8.0</span>, the hook is
-        called before libvirt restores any labels:<br /><pre>/etc/libvirt/hooks/qemu guest_name stopped end -</pre>
+        called before libvirt restores any labels:<br />
+        <pre>/etc/libvirt/hooks/qemu guest_name stopped end -</pre>
         Then, after libvirt has released all resources, the hook is
         called again, <span class="since">since 0.9.0</span>, to allow
-        any additional resource cleanup:<br /><pre>/etc/libvirt/hooks/qemu guest_name release end -</pre></li><li><span class="since">Since 0.9.11</span>, the qemu hook script
+        any additional resource cleanup:<br />
+        <pre>/etc/libvirt/hooks/qemu guest_name release end -</pre></li><li><span class="since">Since 0.9.11</span>, the qemu hook script
         is also called at the beginning of incoming migration. It is called
         as: <pre>/etc/libvirt/hooks/qemu guest_name migrate begin -</pre>
         with domain XML sent to standard input of the script. In this case,
@@ -296,19 +304,24 @@
         is not started.  The first location, <span class="since">since
         0.9.13</span>, is before libvirt performs any resource
         labeling, and the hook can allocate resources not managed by
-        libvirt such as DRBD or missing bridges.  This is called as:<br /><pre>/etc/libvirt/hooks/lxc guest_name prepare begin -</pre>
+        libvirt such as DRBD or missing bridges.  This is called as:<br />
+        <pre>/etc/libvirt/hooks/lxc guest_name prepare begin -</pre>
         The second location, available <span class="since">Since
         0.8.0</span>, occurs after libvirt has finished labeling
-        all resources, but has not yet started the guest, called as:<br /><pre>/etc/libvirt/hooks/lxc guest_name start begin -</pre>
+        all resources, but has not yet started the guest, called as:<br />
+        <pre>/etc/libvirt/hooks/lxc guest_name start begin -</pre>
         The third location, <span class="since">0.9.13</span>,
-        occurs after the LXC process has successfully started up:<br /><pre>/etc/libvirt/hooks/lxc guest_name started begin -</pre>
+        occurs after the LXC process has successfully started up:<br />
+        <pre>/etc/libvirt/hooks/lxc guest_name started begin -</pre>
       </li><li>When a LXC guest is stopped, the lxc hook script is called
         in two locations, to match the startup.
         First, <span class="since">since 0.8.0</span>, the hook is
-        called before libvirt restores any labels:<br /><pre>/etc/libvirt/hooks/lxc guest_name stopped end -</pre>
+        called before libvirt restores any labels:<br />
+        <pre>/etc/libvirt/hooks/lxc guest_name stopped end -</pre>
         Then, after libvirt has released all resources, the hook is
         called again, <span class="since">since 0.9.0</span>, to allow
-        any additional resource cleanup:<br /><pre>/etc/libvirt/hooks/lxc guest_name release end -</pre></li><li><span class="since">Since 0.9.13</span>, the lxc hook script
+        any additional resource cleanup:<br />
+        <pre>/etc/libvirt/hooks/lxc guest_name release end -</pre></li><li><span class="since">Since 0.9.13</span>, the lxc hook script
         is also called when the libvirtd daemon restarts and reconnects
         to previously running LXC processes. If the script fails, the
         existing LXC process will be killed off. It is called as:

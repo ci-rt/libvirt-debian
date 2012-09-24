@@ -2267,6 +2267,25 @@ xdr_remote_domain_block_rebase_args (XDR *xdrs, remote_domain_block_rebase_args 
 }
 
 bool_t
+xdr_remote_domain_block_commit_args (XDR *xdrs, remote_domain_block_commit_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->disk))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->base))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->top))
+                 return FALSE;
+         if (!xdr_uint64_t (xdrs, &objp->bandwidth))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_set_block_io_tune_args (XDR *xdrs, remote_domain_set_block_io_tune_args *objp)
 {
         char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
@@ -2540,6 +2559,73 @@ xdr_remote_network_undefine_args (XDR *xdrs, remote_network_undefine_args *objp)
 {
 
          if (!xdr_remote_nonnull_network (xdrs, &objp->net))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_network_update_args (XDR *xdrs, remote_network_update_args *objp)
+{
+        register int32_t *buf;
+
+
+        if (xdrs->x_op == XDR_ENCODE) {
+                 if (!xdr_remote_nonnull_network (xdrs, &objp->net))
+                         return FALSE;
+                buf = (int32_t*)XDR_INLINE (xdrs, 3 * BYTES_PER_XDR_UNIT);
+                if (buf == NULL) {
+                         if (!xdr_u_int (xdrs, &objp->command))
+                                 return FALSE;
+                         if (!xdr_u_int (xdrs, &objp->section))
+                                 return FALSE;
+                         if (!xdr_int (xdrs, &objp->parentIndex))
+                                 return FALSE;
+
+                } else {
+                (void)IXDR_PUT_U_INT32(buf, objp->command);
+                (void)IXDR_PUT_U_INT32(buf, objp->section);
+                (void)IXDR_PUT_INT32(buf, objp->parentIndex);
+                }
+                 if (!xdr_remote_nonnull_string (xdrs, &objp->xml))
+                         return FALSE;
+                 if (!xdr_u_int (xdrs, &objp->flags))
+                         return FALSE;
+                return TRUE;
+        } else if (xdrs->x_op == XDR_DECODE) {
+                 if (!xdr_remote_nonnull_network (xdrs, &objp->net))
+                         return FALSE;
+                buf = (int32_t*)XDR_INLINE (xdrs, 3 * BYTES_PER_XDR_UNIT);
+                if (buf == NULL) {
+                         if (!xdr_u_int (xdrs, &objp->command))
+                                 return FALSE;
+                         if (!xdr_u_int (xdrs, &objp->section))
+                                 return FALSE;
+                         if (!xdr_int (xdrs, &objp->parentIndex))
+                                 return FALSE;
+
+                } else {
+                objp->command = IXDR_GET_U_LONG(buf);
+                objp->section = IXDR_GET_U_LONG(buf);
+                objp->parentIndex = IXDR_GET_INT32(buf);
+                }
+                 if (!xdr_remote_nonnull_string (xdrs, &objp->xml))
+                         return FALSE;
+                 if (!xdr_u_int (xdrs, &objp->flags))
+                         return FALSE;
+         return TRUE;
+        }
+
+         if (!xdr_remote_nonnull_network (xdrs, &objp->net))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->command))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->section))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->parentIndex))
+                 return FALSE;
+         if (!xdr_remote_nonnull_string (xdrs, &objp->xml))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
         return TRUE;
 }
@@ -5226,6 +5312,213 @@ xdr_remote_connect_list_all_domains_ret (XDR *xdrs, remote_connect_list_all_doma
                 sizeof (remote_nonnull_domain), (xdrproc_t) xdr_remote_nonnull_domain))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_storage_pools_args (XDR *xdrs, remote_connect_list_all_storage_pools_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_storage_pools_ret (XDR *xdrs, remote_connect_list_all_storage_pools_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->pools.pools_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->pools.pools_len, ~0,
+                sizeof (remote_nonnull_storage_pool), (xdrproc_t) xdr_remote_nonnull_storage_pool))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_storage_pool_list_all_volumes_args (XDR *xdrs, remote_storage_pool_list_all_volumes_args *objp)
+{
+
+         if (!xdr_remote_nonnull_storage_pool (xdrs, &objp->pool))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_storage_pool_list_all_volumes_ret (XDR *xdrs, remote_storage_pool_list_all_volumes_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->vols.vols_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->vols.vols_len, ~0,
+                sizeof (remote_nonnull_storage_vol), (xdrproc_t) xdr_remote_nonnull_storage_vol))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_networks_args (XDR *xdrs, remote_connect_list_all_networks_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_networks_ret (XDR *xdrs, remote_connect_list_all_networks_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->nets.nets_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->nets.nets_len, ~0,
+                sizeof (remote_nonnull_network), (xdrproc_t) xdr_remote_nonnull_network))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_interfaces_args (XDR *xdrs, remote_connect_list_all_interfaces_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_interfaces_ret (XDR *xdrs, remote_connect_list_all_interfaces_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->ifaces.ifaces_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->ifaces.ifaces_len, ~0,
+                sizeof (remote_nonnull_interface), (xdrproc_t) xdr_remote_nonnull_interface))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_node_devices_args (XDR *xdrs, remote_connect_list_all_node_devices_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_node_devices_ret (XDR *xdrs, remote_connect_list_all_node_devices_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->devices.devices_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->devices.devices_len, ~0,
+                sizeof (remote_nonnull_node_device), (xdrproc_t) xdr_remote_nonnull_node_device))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_nwfilters_args (XDR *xdrs, remote_connect_list_all_nwfilters_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_nwfilters_ret (XDR *xdrs, remote_connect_list_all_nwfilters_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->filters.filters_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->filters.filters_len, ~0,
+                sizeof (remote_nonnull_nwfilter), (xdrproc_t) xdr_remote_nonnull_nwfilter))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_secrets_args (XDR *xdrs, remote_connect_list_all_secrets_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_connect_list_all_secrets_ret (XDR *xdrs, remote_connect_list_all_secrets_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->secrets.secrets_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->secrets.secrets_len, ~0,
+                sizeof (remote_nonnull_secret), (xdrproc_t) xdr_remote_nonnull_secret))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_set_memory_parameters_args (XDR *xdrs, remote_node_set_memory_parameters_args *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_NODE_MEMORY_PARAMETERS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_get_memory_parameters_args (XDR *xdrs, remote_node_get_memory_parameters_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->nparams))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_get_memory_parameters_ret (XDR *xdrs, remote_node_get_memory_parameters_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->params.params_val;
+
+         if (!xdr_array (xdrs, objp_cpp0, (u_int *) &objp->params.params_len, REMOTE_NODE_MEMORY_PARAMETERS_MAX,
+                sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->nparams))
                  return FALSE;
         return TRUE;
 }

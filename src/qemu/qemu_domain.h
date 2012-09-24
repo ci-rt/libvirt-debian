@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -30,7 +30,7 @@
 # include "qemu_monitor.h"
 # include "qemu_agent.h"
 # include "qemu_conf.h"
-# include "bitmap.h"
+# include "qemu_capabilities.h"
 # include "virconsole.h"
 
 # define QEMU_EXPECTED_VIRT_TYPES      \
@@ -139,7 +139,7 @@ struct _qemuDomainObjPrivate {
     qemuDomainPCIAddressSetPtr pciaddrs;
     int persistentAddrs;
 
-    virBitmapPtr qemuCaps;
+    qemuCapsPtr caps;
     char *lockState;
 
     bool fakeReboot;

@@ -12,7 +12,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Authors:
@@ -605,10 +605,9 @@ pciTrySecondaryBusReset(pciDevice *dev,
     uint16_t ctl;
     int ret = -1;
 
-    /* For now, we just refuse to do a secondary bus reset
-     * if there are other devices/functions behind the bus.
-     * In future, we could allow it so long as those devices
-     * are not in use by the host or other guests.
+    /* Refuse to do a secondary bus reset if there are other
+     * devices/functions behind the bus are used by the host
+     * or other guests.
      */
     if ((conflict = pciBusContainsActiveDevices(dev, inactiveDevs))) {
         virReportError(VIR_ERR_INTERNAL_ERROR,

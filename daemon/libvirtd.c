@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -78,8 +78,8 @@
 # ifdef WITH_NETWORK
 #  include "network/bridge_driver.h"
 # endif
-# ifdef WITH_NETCF
-#  include "interface/netcf_driver.h"
+# ifdef WITH_INTERFACE
+#  include "interface/interface_driver.h"
 # endif
 # ifdef WITH_STORAGE
 #  include "storage/storage_driver.h"
@@ -382,7 +382,7 @@ static void daemonInitialize(void)
 # ifdef WITH_NWFILTER
     virDriverLoadModule("nwfilter");
 # endif
-# ifdef WITH_NETCF
+# ifdef WITH_INTERFACE
     virDriverLoadModule("interface");
 # endif
 # ifdef WITH_XEN
@@ -404,7 +404,7 @@ static void daemonInitialize(void)
 # ifdef WITH_NETWORK
     networkRegister();
 # endif
-# ifdef WITH_NETCF
+# ifdef WITH_INTERFACE
     interfaceRegister();
 # endif
 # ifdef WITH_STORAGE

@@ -14,7 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Jim Fehlig <jfehlig@novell.com>
@@ -34,12 +34,18 @@ typedef virBitmap *virBitmapPtr;
 /*
  * Allocate a bitmap capable of containing @size bits.
  */
-virBitmapPtr virBitmapAlloc(size_t size) ATTRIBUTE_RETURN_CHECK;
+virBitmapPtr virBitmapNew(size_t size) ATTRIBUTE_RETURN_CHECK;
 
 /*
  * Free previously allocated bitmap
  */
 void virBitmapFree(virBitmapPtr bitmap);
+
+/*
+ * Copy all bits from @src to @dst. The bitmap sizes
+ * must be the same
+ */
+int virBitmapCopy(virBitmapPtr dst, virBitmapPtr src);
 
 /*
  * Set bit position @b in @bitmap
@@ -61,5 +67,39 @@ int virBitmapGetBit(virBitmapPtr bitmap, size_t b, bool *result)
 
 char *virBitmapString(virBitmapPtr bitmap)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_RETURN_CHECK;
+
+char *virBitmapFormat(virBitmapPtr bitmap)
+    ATTRIBUTE_NONNULL(1);
+
+int virBitmapParse(const char *str,
+                   char sep,
+                   virBitmapPtr *bitmap,
+                   size_t bitmapSize)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(3);
+
+virBitmapPtr virBitmapNewCopy(virBitmapPtr src) ATTRIBUTE_NONNULL(1);
+
+virBitmapPtr virBitmapNewData(void *data, int len) ATTRIBUTE_NONNULL(1);
+
+int virBitmapToData(virBitmapPtr bitmap, unsigned char **data, int *dataLen)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+bool virBitmapEqual(virBitmapPtr b1, virBitmapPtr b2)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+size_t virBitmapSize(virBitmapPtr bitmap)
+    ATTRIBUTE_NONNULL(1);
+
+void virBitmapSetAll(virBitmapPtr bitmap)
+    ATTRIBUTE_NONNULL(1);
+
+void virBitmapClearAll(virBitmapPtr bitmap)
+    ATTRIBUTE_NONNULL(1);
+
+bool virBitmapIsAllSet(virBitmapPtr bitmap)
+    ATTRIBUTE_NONNULL(1);
+
+int virBitmapNextSetBit(virBitmapPtr bitmap, int pos)
+    ATTRIBUTE_NONNULL(1);
 
 #endif

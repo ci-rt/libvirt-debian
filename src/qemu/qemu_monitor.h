@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -27,6 +27,7 @@
 
 # include "internal.h"
 
+# include "qemu_capabilities.h"
 # include "domain_conf.h"
 # include "qemu_conf.h"
 # include "bitmap.h"
@@ -145,14 +146,18 @@ char *qemuMonitorUnescapeArg(const char *in);
 qemuMonitorPtr qemuMonitorOpen(virDomainObjPtr vm,
                                virDomainChrSourceDefPtr config,
                                int json,
-                               qemuMonitorCallbacksPtr cb);
+                               qemuMonitorCallbacksPtr cb)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(4);
+qemuMonitorPtr qemuMonitorOpenFD(virDomainObjPtr vm,
+                                 int sockfd,
+                                 int json,
+                                 qemuMonitorCallbacksPtr cb)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(4);
 
 void qemuMonitorClose(qemuMonitorPtr mon);
 
 int qemuMonitorSetCapabilities(qemuMonitorPtr mon,
-                               virBitmapPtr qemuCaps);
-
-int qemuMonitorCheckHMP(qemuMonitorPtr mon, const char *cmd);
+                               qemuCapsPtr caps);
 
 void qemuMonitorLock(qemuMonitorPtr mon);
 void qemuMonitorUnlock(qemuMonitorPtr mon);
@@ -382,17 +387,8 @@ int qemuMonitorMigrateToUnix(qemuMonitorPtr mon,
 
 int qemuMonitorMigrateCancel(qemuMonitorPtr mon);
 
-typedef enum {
-  QEMU_MONITOR_DUMP_HAVE_FILTER  = 1 << 0,
-  QEMU_MONITOR_DUMP_PAGING       = 1 << 1,
-  QEMU_MONITOR_DUMP_FLAGS_LAST
-} QEMU_MONITOR_DUMP;
-
 int qemuMonitorDumpToFd(qemuMonitorPtr mon,
-                        unsigned int flags,
-                        int fd,
-                        unsigned long long begin,
-                        unsigned long long length);
+                        int fd);
 
 int qemuMonitorGraphicsRelocate(qemuMonitorPtr mon,
                                 int type,

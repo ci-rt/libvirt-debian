@@ -361,6 +361,14 @@ EXTRA_DIST += test-ffs.c macros.h signature.h
 
 ## end   gnulib module ffs-tests
 
+## begin gnulib module ffsl-tests
+
+TESTS += test-ffsl
+check_PROGRAMS += test-ffsl
+EXTRA_DIST += test-ffsl.c macros.h signature.h
+
+## end   gnulib module ffsl-tests
+
 ## begin gnulib module fgetc-tests
 
 TESTS += test-fgetc
@@ -1255,6 +1263,14 @@ libtests_a_SOURCES += mgetgroups.c
 EXTRA_DIST += mgetgroups.h
 
 ## end   gnulib module mgetgroups
+
+## begin gnulib module net_if-tests
+
+TESTS += test-net_if
+check_PROGRAMS += test-net_if
+EXTRA_DIST += test-net_if.c signature.h
+
+## end   gnulib module net_if-tests
 
 ## begin gnulib module netdb-tests
 

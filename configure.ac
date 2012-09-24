@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.10.1], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [0.10.2], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -183,21 +183,10 @@ LIBS="$LIBS $LIB_PTHREAD $LIBMULTITHREAD"
 AC_CHECK_FUNCS([pthread_mutexattr_init])
 LIBS=$old_libs
 
-old_LIBS=$LIBS
-RT_LIBS=
-LIBS="$LIBS $LIB_PTHREAD -lrt"
-AC_CHECK_FUNC([clock_gettime],[
-     AC_DEFINE([HAVE_CLOCK_GETTIME],[],[Defined if clock_gettime() exists in librt.so])
-     RT_LIBS=-lrt
-])
-LIBS=$old_libs
-AC_SUBST(RT_LIBS)
-
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
-  sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h \
-  net/if.h execinfo.h])
+  sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h])
 
 dnl We need to decide at configure time if libvirt will use real atomic
 dnl operations ("lock free") or emulated ones with a mutex.
@@ -255,20 +244,12 @@ AM_CONDITIONAL([WITH_ATOMIC_OPS_PTHREAD],[test "$atomic_ops" = "pthread"])
 AC_MSG_RESULT([$atomic_ops])
 
 
-
-AC_MSG_CHECKING([for struct ifreq in net/if.h])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
-   [[
-     #include <net/if.h>
-   ]],
-   [[
-     struct ifreq ifr;
-   ]])],[
-     AC_DEFINE([HAVE_STRUCT_IFREQ],[],[Defined if struct ifreq existsin net/if.h])
-     AC_MSG_RESULT([yes])
-   ],[
-     AC_MSG_RESULT([yes])
-   ])
+AC_CHECK_TYPE([struct ifreq],
+  [AC_DEFINE([HAVE_STRUCT_IFREQ],[1],
+    [Defined if struct ifreq exists in net/if.h])],
+  [], [[#include <sys/socket.h>
+        #include <net/if.h>
+  ]])
 
 dnl Our only use of libtasn1.h is in the testsuite, and can be skipped
 dnl if the header is not present.  Assume -ltasn1 is present if the
@@ -2806,6 +2787,36 @@ if test "$with_nwfilter" = "yes" ; then
 fi
 AM_CONDITIONAL([WITH_NWFILTER], [test "$with_nwfilter" = "yes"])
 
+dnl check if the interface driver should be compiled
+AC_ARG_WITH([interface],
+  AC_HELP_STRING([--with-interface],
+    [with host interface driver @<:@default=check@:>@]), [],
+    [with_interface=check])
+
+dnl Don't compile the interface driver without libvirtd
+if test "$with_libvirtd" = "no" ; then
+  with_interface=no
+fi
+
+dnl The interface driver depends on the netcf library
+if test "$with_interface:$with_netcf" = "check:yes" ; then
+  with_interface=yes
+fi
+
+if test "$with_interface:$with_netcf" = "check:no" ; then
+  with_interface=no
+fi
+
+if test "$with_interface:$with_netcf" = "yes:no" ; then
+  AC_MSG_ERROR([Requested the Interface driver without netcf support])
+fi
+
+if test "$with_interface" = "yes" ; then
+  AC_DEFINE_UNQUOTED([WITH_INTERFACE], [1],
+    [whether the interface driver is enabled])
+fi
+AM_CONDITIONAL([WITH_INTERFACE], [test "$with_interface" = "yes"])
+
 dnl libblkid is used by several storage drivers; therefore we probe
 dnl for it unconditionally.
 AC_ARG_WITH([libblkid],
@@ -2921,14 +2932,32 @@ LIBNL_LIBS=""
 have_libnl=no
 
 if test "$with_linux" = "yes"; then
-    PKG_CHECK_MODULES([LIBNL], [libnl-3.0], [
-        have_libnl=yes
-        AC_DEFINE([HAVE_LIBNL3], [1], [Use libnl-3.0])
-        AC_DEFINE([HAVE_LIBNL], [1], [whether the netlink library is available])
-        PKG_CHECK_MODULES([LIBNL_ROUTE3], [libnl-route-3.0])
-        LIBNL_CFLAGS="$LIBNL_CFLAGS $LIBNL_ROUTE3_CFLAGS"
-        LIBNL_LIBS="$LIBNL_LIBS $LIBNL_ROUTE3_LIBS"
-    ], [PKG_CHECK_MODULES([LIBNL], [libnl-1 >= $LIBNL_REQUIRED], [
+    # When linking with netcf, we must ensure that we pick the same version
+    # of libnl that netcf picked.  Prefer libnl-3 unless we can prove
+    # netcf linked against libnl-1, or unless the user set LIBNL_CFLAGS.
+    # (Setting LIBNL_CFLAGS is already used by PKG_CHECK_MODULES to
+    # override any probing, so if it set, you know which libnl is in use.)
+    libnl_ldd=
+    for dir in /usr/lib64 /usr/lib /usr/lib/*-linux-gnu*; do
+        if test -f $dir/libnetcf.so; then
+            libnl_ldd=`(ldd $dir/libnetcf.so) 2>&1`
+            break
+        fi
+    done
+    case $libnl_ldd:${LIBNL_CFLAGS+set} in
+        *libnl.so.1*:) ;;
+        *)
+        PKG_CHECK_MODULES([LIBNL], [libnl-3.0], [
+            have_libnl=yes
+            AC_DEFINE([HAVE_LIBNL3], [1], [Use libnl-3.0])
+            AC_DEFINE([HAVE_LIBNL], [1], [whether the netlink library is available])
+            PKG_CHECK_MODULES([LIBNL_ROUTE3], [libnl-route-3.0])
+            LIBNL_CFLAGS="$LIBNL_CFLAGS $LIBNL_ROUTE3_CFLAGS"
+            LIBNL_LIBS="$LIBNL_LIBS $LIBNL_ROUTE3_LIBS"
+        ], [:]) ;;
+    esac
+    if test "$have_libnl" = no; then
+        PKG_CHECK_MODULES([LIBNL], [libnl-1 >= $LIBNL_REQUIRED], [
             have_libnl=yes
             AC_DEFINE_UNQUOTED([HAVE_LIBNL], [1],
              [whether the netlink library is available])
@@ -2939,7 +2968,7 @@ if test "$with_linux" = "yes"; then
                 AC_MSG_ERROR([libnl-devel >= $LIBNL_REQUIRED is required for macvtap support])
             fi
         ])
-    ])
+    fi
 fi
 AM_CONDITIONAL([HAVE_LIBNL], [test "$have_libnl" = "yes"])
 
@@ -2973,6 +3002,8 @@ AC_DEFINE_UNQUOTED([isbase64],[libvirt_gl_isbase64],[Hack to avoid symbol clash]
 AC_DEFINE_UNQUOTED([base64_encode],[libvirt_gl_base64_encode],[Hack to avoid symbol clash])
 AC_DEFINE_UNQUOTED([base64_encode_alloc],[libvirt_gl_base64_encode_alloc],[Hack to avoid symbol clash])
 
+AC_CONFIG_FILES([run],
+                [chmod +x,-w run])
 AC_OUTPUT(Makefile src/Makefile include/Makefile docs/Makefile \
 	  docs/schemas/Makefile \
 	  gnulib/lib/Makefile \
@@ -3017,7 +3048,7 @@ AC_MSG_NOTICE([     Test: $with_test])
 AC_MSG_NOTICE([   Remote: $with_remote])
 AC_MSG_NOTICE([  Network: $with_network])
 AC_MSG_NOTICE([ Libvirtd: $with_libvirtd])
-AC_MSG_NOTICE([    netcf: $with_netcf])
+AC_MSG_NOTICE([Interface: $with_interface])
 AC_MSG_NOTICE([  macvtap: $with_macvtap])
 AC_MSG_NOTICE([ virtport: $with_virtualport])
 AC_MSG_NOTICE([])

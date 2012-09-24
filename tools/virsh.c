@@ -14,7 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Daniel Veillard <veillard@redhat.com>
@@ -166,6 +166,52 @@ vshPrettyCapacity(unsigned long long val, const char **unit)
     }
 }
 
+/*
+ * Convert the strings separated by ',' into array. The caller
+ * must free the returned array after use.
+ *
+ * Returns the length of the filled array on success, or -1
+ * on error.
+ */
+int
+vshStringToArray(const char *str,
+                 char ***array)
+{
+    char *str_copied = vshStrdup(NULL, str);
+    char *str_tok = NULL;
+    unsigned int nstr_tokens = 0;
+    char **arr = NULL;
+
+    /* tokenize the string from user and save it's parts into an array */
+    if (str_copied) {
+        nstr_tokens = 1;
+
+        /* count the delimiters */
+        str_tok = str_copied;
+        while (*str_tok) {
+            if (*str_tok == ',')
+                nstr_tokens++;
+            str_tok++;
+        }
+
+        if (VIR_ALLOC_N(arr, nstr_tokens) < 0) {
+            virReportOOMError();
+            VIR_FREE(str_copied);
+            return -1;
+        }
+
+        /* tokenize the input string */
+        nstr_tokens = 0;
+        str_tok = str_copied;
+        do {
+            arr[nstr_tokens] = strsep(&str_tok, ",");
+            nstr_tokens++;
+        } while (str_tok);
+    }
+
+    *array = arr;
+    return nstr_tokens;
+}
 
 virErrorPtr last_error;
 
@@ -511,6 +557,7 @@ vshEditWriteToTempFile(vshControl *ctl, const char *doc)
     char *ret;
     const char *tmpdir;
     int fd;
+    char ebuf[1024];
 
     tmpdir = getenv ("TMPDIR");
     if (!tmpdir) tmpdir = "/tmp";
@@ -521,14 +568,14 @@ vshEditWriteToTempFile(vshControl *ctl, const char *doc)
     fd = mkstemps(ret, 4);
     if (fd == -1) {
         vshError(ctl, _("mkstemps: failed to create temporary file: %s"),
-                 strerror(errno));
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
         VIR_FREE(ret);
         return NULL;
     }
 
     if (safewrite(fd, doc, strlen(doc)) == -1) {
         vshError(ctl, _("write: %s: failed to write to temporary file: %s"),
-                 ret, strerror(errno));
+                 ret, virStrerror(errno, ebuf, sizeof(ebuf)));
         VIR_FORCE_CLOSE(fd);
         unlink(ret);
         VIR_FREE(ret);
@@ -536,7 +583,7 @@ vshEditWriteToTempFile(vshControl *ctl, const char *doc)
     }
     if (VIR_CLOSE(fd) < 0) {
         vshError(ctl, _("close: %s: failed to write or close temporary file: %s"),
-                 ret, strerror(errno));
+                 ret, virStrerror(errno, ebuf, sizeof(ebuf)));
         unlink(ret);
         VIR_FREE(ret);
         return NULL;
@@ -606,11 +653,12 @@ char *
 vshEditReadBackFile(vshControl *ctl, const char *filename)
 {
     char *ret;
+    char ebuf[1024];
 
     if (virFileReadAll(filename, VSH_MAX_XML_FILE, &ret) == -1) {
         vshError(ctl,
                  _("%s: failed to read temporary file: %s"),
-                 filename, strerror(errno));
+                 filename, virStrerror(errno, ebuf, sizeof(ebuf)));
         return NULL;
     }
     return ret;
@@ -637,6 +685,7 @@ cmdCd(vshControl *ctl, const vshCmd *cmd)
     const char *dir = NULL;
     char *dir_malloced = NULL;
     bool ret = true;
+    char ebuf[1024];
 
     if (!ctl->imode) {
         vshError(ctl, "%s", _("cd: command valid only in interactive mode"));
@@ -650,7 +699,8 @@ cmdCd(vshControl *ctl, const vshCmd *cmd)
         dir = "/";
 
     if (chdir(dir) == -1) {
-        vshError(ctl, _("cd: %s: %s"), strerror(errno), dir);
+        vshError(ctl, _("cd: %s: %s"),
+                 virStrerror(errno, ebuf, sizeof(ebuf)), dir);
         ret = false;
     }
 
@@ -672,11 +722,12 @@ cmdPwd(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 {
     char *cwd;
     bool ret = true;
+    char ebuf[1024];
 
     cwd = getcwd(NULL, 0);
     if (!cwd) {
         vshError(ctl, _("pwd: cannot get current directory: %s"),
-                 strerror(errno));
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
         ret = false;
     } else {
         vshPrint(ctl, _("%s\n"), cwd);
@@ -1465,6 +1516,23 @@ vshCmdHasOption(vshControl *ctl, const vshCmd *cmd, const char *optname)
     return found;
 }
 
+static bool
+vshConnectionUsability(vshControl *ctl, virConnectPtr conn)
+{
+    if (!conn ||
+        virConnectIsAlive(conn) == 0) {
+        vshError(ctl, "%s", _("no valid connection"));
+        return false;
+    }
+
+    /* The connection is considered dead only if
+     * virConnectIsAlive() successfuly says so.
+     */
+    vshResetLibvirtError();
+
+    return true;
+}
+
 /*
  * Executes command(s) and returns return code from last command
  */
@@ -1481,13 +1549,19 @@ vshCommandRun(vshControl *ctl, const vshCmd *cmd)
             !(cmd->def->flags & VSH_CMD_FLAG_NOCONNECT))
             vshReconnect(ctl);
 
-        if (enable_timing)
-            GETTIMEOFDAY(&before);
+        if ((cmd->def->flags & VSH_CMD_FLAG_NOCONNECT) ||
+            vshConnectionUsability(ctl, ctl->conn)) {
+            if (enable_timing)
+                GETTIMEOFDAY(&before);
 
-        ret = cmd->def->handler(ctl, cmd);
+            ret = cmd->def->handler(ctl, cmd);
 
-        if (enable_timing)
-            GETTIMEOFDAY(&after);
+            if (enable_timing)
+                GETTIMEOFDAY(&after);
+        } else {
+            /* connection is not usable, return error */
+            ret = false;
+        }
 
         /* try to automatically catch disconnections */
         if (!ret &&
@@ -1945,19 +2019,6 @@ vshFindTypedParamByName(const char *name, virTypedParameterPtr list, int count)
     return NULL;
 }
 
-bool
-vshConnectionUsability(vshControl *ctl, virConnectPtr conn)
-{
-    /* TODO: use something like virConnectionState() to
-     *       check usability of the connection
-     */
-    if (!conn) {
-        vshError(ctl, "%s", _("no valid connection"));
-        return false;
-    }
-    return true;
-}
-
 void
 vshDebug(vshControl *ctl, int level, const char *format, ...)
 {
@@ -2177,8 +2238,8 @@ vshOutputLogFile(vshControl *ctl, int log_level, const char *msg_format,
     char *str;
     size_t len;
     const char *lvl = "";
-    struct timeval stTimeval;
-    struct tm *stTm;
+    time_t stTime;
+    struct tm stTm;
 
     if (ctl->log_fd == -1)
         return;
@@ -2188,15 +2249,15 @@ vshOutputLogFile(vshControl *ctl, int log_level, const char *msg_format,
      *
      * [YYYY.MM.DD HH:MM:SS SIGNATURE PID] LOG_LEVEL message
     */
-    gettimeofday(&stTimeval, NULL);
-    stTm = localtime(&stTimeval.tv_sec);
+    time(&stTime);
+    localtime_r(&stTime, &stTm);
     virBufferAsprintf(&buf, "[%d.%02d.%02d %02d:%02d:%02d %s %d] ",
-                      (1900 + stTm->tm_year),
-                      (1 + stTm->tm_mon),
-                      stTm->tm_mday,
-                      stTm->tm_hour,
-                      stTm->tm_min,
-                      stTm->tm_sec,
+                      (1900 + stTm.tm_year),
+                      (1 + stTm.tm_mon),
+                      stTm.tm_mday,
+                      stTm.tm_hour,
+                      stTm.tm_min,
+                      stTm.tm_sec,
                       SIGN_NAME,
                       (int) getpid());
     switch (log_level) {
@@ -2254,10 +2315,13 @@ error:
 void
 vshCloseLogFile(vshControl *ctl)
 {
+    char ebuf[1024];
+
     /* log file close */
     if (VIR_CLOSE(ctl->log_fd) < 0) {
         vshError(ctl, _("%s: failed to write log file: %s"),
-                 ctl->logfile ? ctl->logfile : "?", strerror (errno));
+                 ctl->logfile ? ctl->logfile : "?",
+                 virStrerror(errno, ebuf, sizeof(ebuf)));
     }
 
     if (ctl->logfile) {
@@ -2590,7 +2654,7 @@ vshShowVersion(vshControl *ctl ATTRIBUTE_UNUSED)
     vshPrint(ctl, "%s", _("Compiled with support for:\n"));
     vshPrint(ctl, "%s", _(" Hypervisors:"));
 #ifdef WITH_QEMU
-    vshPrint(ctl, " QEmu/KVM");
+    vshPrint(ctl, " QEMU/KVM");
 #endif
 #ifdef WITH_LXC
     vshPrint(ctl, " LXC");
@@ -2634,17 +2698,17 @@ vshShowVersion(vshControl *ctl ATTRIBUTE_UNUSED)
 #ifdef WITH_REMOTE
     vshPrint(ctl, " Remote");
 #endif
-#ifdef WITH_LIBVIRTD
-    vshPrint(ctl, " Daemon");
-#endif
 #ifdef WITH_NETWORK
     vshPrint(ctl, " Network");
 #endif
 #ifdef WITH_BRIDGE
     vshPrint(ctl, " Bridging");
 #endif
-#ifdef WITH_NETCF
+#if defined(WITH_INTERFACE)
     vshPrint(ctl, " Interface");
+# if defined(WITH_NETCF)
+    vshPrint(ctl, " netcf");
+# endif
 #endif
 #ifdef WITH_NWFILTER
     vshPrint(ctl, " Nwfilter");
@@ -2685,6 +2749,9 @@ vshShowVersion(vshControl *ctl ATTRIBUTE_UNUSED)
     vshPrint(ctl, "\n");
 
     vshPrint(ctl, "%s", _(" Miscellaneous:"));
+#ifdef WITH_LIBVIRTD
+    vshPrint(ctl, " Daemon");
+#endif
 #ifdef WITH_NODE_DEVICES
     vshPrint(ctl, " Nodedev");
 #endif

@@ -312,10 +312,14 @@ PDWTAGS = \
 	fi
 
 # .libs/libvirt.so is built by libtool as a side-effect of the Makefile
-# rule for libvirt.la
+# rule for libvirt.la.  However, checking symbols relies on Linux ELF layout
+if WITH_LINUX
 check-symfile: libvirt.syms libvirt.la
 	$(AM_V_GEN)$(PERL) $(srcdir)/check-symfile.pl libvirt.syms \
 	  .libs/libvirt.so
+else
+check-symfile:
+endif
 
 PROTOCOL_STRUCTS = \
 	$(srcdir)/remote_protocol-structs \
@@ -548,8 +552,17 @@ PARALLELS_DRIVER_SOURCES =					\
 NETWORK_DRIVER_SOURCES =					\
 		network/bridge_driver.h network/bridge_driver.c
 
-INTERFACE_DRIVER_SOURCES =					\
-		interface/netcf_driver.h interface/netcf_driver.c
+INTERFACE_DRIVER_SOURCES =
+
+if WITH_INTERFACE
+INTERFACE_DRIVER_SOURCES +=					\
+		interface/interface_driver.h
+endif
+
+if WITH_NETCF
+INTERFACE_DRIVER_SOURCES +=					\
+		interface/interface_backend_netcf.c
+endif
 
 SECRET_DRIVER_SOURCES =						\
 		secret/secret_driver.h secret/secret_driver.c
@@ -668,7 +681,7 @@ libvirt_util_la_CFLAGS = $(CAPNG_CFLAGS) $(YAJL_CFLAGS) $(LIBNL_CFLAGS) \
 		$(DBUS_CFLAGS) $(LDEXP_LIBM)
 libvirt_util_la_LIBADD = $(CAPNG_LIBS) $(YAJL_LIBS) $(LIBNL_LIBS) \
 		$(THREAD_LIBS) $(AUDIT_LIBS) $(DEVMAPPER_LIBS) \
-		$(RT_LIBS) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS)
+		$(LIB_CLOCK_GETTIME) $(DBUS_LIBS) $(MSCOM_LIBS) $(LIBXML_LIBS)
 
 
 noinst_LTLIBRARIES += libvirt_conf.la
@@ -1017,7 +1030,7 @@ endif
 EXTRA_DIST += network/default.xml
 
 
-if WITH_NETCF
+if WITH_INTERFACE
 if WITH_DRIVER_MODULES
 mod_LTLIBRARIES += libvirt_driver_interface.la
 else
@@ -1025,10 +1038,13 @@ noinst_LTLIBRARIES += libvirt_driver_interface.la
 # Stateful, so linked to daemon instead
 #libvirt_la_BUILT_LIBADD += libvirt_driver_interface.la
 endif
-libvirt_driver_interface_la_CFLAGS = $(NETCF_CFLAGS) \
-		-I$(top_srcdir)/src/conf $(AM_CFLAGS)
+libvirt_driver_interface_la_CFLAGS = -I$(top_srcdir)/src/conf $(AM_CFLAGS)
 libvirt_driver_interface_la_LDFLAGS = $(AM_LDFLAGS)
-libvirt_driver_interface_la_LIBADD = $(NETCF_LIBS)
+libvirt_driver_interface_la_LIBADD =
+if WITH_NETCF
+libvirt_driver_interface_la_CFLAGS += $(NETCF_CFLAGS)
+libvirt_driver_interface_la_LIBADD += $(NETCF_LIBS)
+endif
 if WITH_DRIVER_MODULES
 libvirt_driver_interface_la_LIBADD += ../gnulib/lib/libgnu.la
 libvirt_driver_interface_la_LDFLAGS += -module -avoid-version

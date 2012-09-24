@@ -112,7 +112,7 @@
             </div>
           </li><li>
             <div>
-              <a title="Frequently asked questions" class="inactive" href="../http://wiki.libvirt.org/page/FAQ">FAQ</a>
+              <a title="Frequently asked questions" class="inactive" href="http://wiki.libvirt.org/page/FAQ">FAQ</a>
             </div>
           </li><li>
             <div>
@@ -300,7 +300,8 @@
         <p>
         This can be one of the following enumeration values
         </p>
-        <ol><li>call: invocation of a method call</li><li>reply: completion of a method call</li><li>event: an asynchronous event</li><li>stream: control info or data from a stream</li></ol></dd><dt><code>serial</code></dt><dd>
+        <ol><li>call: invocation of a method call</li><li>reply: completion of a method call</li><li>event: an asynchronous event</li><li>stream: control info or data from a stream</li></ol>
+      </dd><dt><code>serial</code></dt><dd>
         This is an number that starts from 1 and increases
         each time a method call packet is sent. A reply or
         stream packet will have a serial number matching the
@@ -315,7 +316,8 @@
             streams it indicates confirmation of the end of file on the stream.</li><li>error: for replies this indicates that the method call failed
             and error information is being returned. For streams this indicates
             that not all data was sent and the stream has aborted</li><li>continue: for streams this indicates that further data packets
-            will be following</li></ol></dd></dl>
+            will be following</li></ol>
+    </dd></dl>
         <h3>
           <a href="protocolpayload">Packet payload</a>
         </h3>

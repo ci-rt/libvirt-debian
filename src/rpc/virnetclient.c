@@ -14,7 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -1205,7 +1205,10 @@ virNetClientIOHandleOutput(virNetClientPtr client)
         thecall = thecall->next;
 
     if (!thecall)
-        return -1; /* Shouldn't happen, but you never know... */
+        return 0; /* This can happen if another thread raced with us and
+                   * completed the call between the time this thread woke
+                   * up from poll()ing and the time we locked the client
+                   */
 
     while (thecall) {
         ssize_t ret = virNetClientIOWriteMessage(client, thecall);

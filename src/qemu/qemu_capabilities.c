@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -172,8 +172,55 @@ VIR_ENUM_IMPL(qemuCaps, QEMU_CAPS_LAST,
               "bridge", /* 100 */
               "lsi",
               "virtio-scsi-pci",
+              "blockio",
+              "disable-s3",
 
+              "disable-s4", /* 105 */
+              "usb-redir.filter",
+              "ide-drive.wwn",
+              "scsi-disk.wwn",
+              "seccomp-sandbox",
+
+              "reboot-timeout", /* 110 */
+              "dump-guest-core",
     );
+
+struct _qemuCaps {
+    virObject object;
+
+    char *binary;
+    time_t mtime;
+
+    virBitmapPtr flags;
+
+    unsigned int version;
+    unsigned int kvmVersion;
+
+    char *arch;
+
+    size_t ncpuDefinitions;
+    char **cpuDefinitions;
+
+    size_t nmachineTypes;
+    char **machineTypes;
+    char **machineAliases;
+};
+
+
+static virClassPtr qemuCapsClass;
+static void qemuCapsDispose(void *obj);
+
+static int qemuCapsOnceInit(void)
+{
+    if (!(qemuCapsClass = virClassNew("qemuCaps",
+                                      sizeof(qemuCaps),
+                                      qemuCapsDispose)))
+        return -1;
+
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(qemuCaps)
 
 struct qemu_feature_flags {
     const char *name;
@@ -228,13 +275,33 @@ static const struct qemu_arch_info const arch_info_xen[] = {
 };
 
 
+static virCommandPtr
+qemuCapsProbeCommand(const char *qemu,
+                     qemuCapsPtr caps)
+{
+    virCommandPtr cmd = virCommandNew(qemu);
+
+    if (caps) {
+        if (qemuCapsGet(caps, QEMU_CAPS_NO_USER_CONFIG))
+            virCommandAddArg(cmd, "-no-user-config");
+        else if (qemuCapsGet(caps, QEMU_CAPS_NODEFCONFIG))
+            virCommandAddArg(cmd, "-nodefconfig");
+    }
+
+    virCommandAddEnvPassCommon(cmd);
+    virCommandClearCaps(cmd);
+
+    return cmd;
+}
+
+
 /* Format is:
  * <machine> <desc> [(default)|(alias of <canonical>)]
  */
 static int
 qemuCapsParseMachineTypesStr(const char *output,
                              virCapsGuestMachinePtr **machines,
-                             int *nmachines)
+                             size_t *nmachines)
 {
     const char *p = output;
     const char *next;
@@ -301,9 +368,9 @@ qemuCapsParseMachineTypesStr(const char *output,
 
 int
 qemuCapsProbeMachineTypes(const char *binary,
-                          virBitmapPtr qemuCaps,
+                          qemuCapsPtr caps,
                           virCapsGuestMachinePtr **machines,
-                          int *nmachines)
+                          size_t *nmachines)
 {
     char *output;
     int ret = -1;
@@ -319,7 +386,7 @@ qemuCapsProbeMachineTypes(const char *binary,
         return -1;
     }
 
-    cmd = qemuCapsProbeCommand(binary, qemuCaps);
+    cmd = qemuCapsProbeCommand(binary, caps);
     virCommandAddArgList(cmd, "-M", "?", NULL);
     virCommandSetOutputBuffer(cmd, &output);
 
@@ -344,7 +411,7 @@ qemuCapsGetOldMachinesFromInfo(virCapsGuestDomainInfoPtr info,
                                const char *emulator,
                                time_t emulator_mtime,
                                virCapsGuestMachinePtr **machines,
-                               int *nmachines)
+                               size_t *nmachines)
 {
     virCapsGuestMachinePtr *list;
     int i;
@@ -399,7 +466,7 @@ qemuCapsGetOldMachines(const char *ostype,
                        time_t emulator_mtime,
                        virCapsPtr old_caps,
                        virCapsGuestMachinePtr **machines,
-                       int *nmachines)
+                       size_t *nmachines)
 {
     int i;
 
@@ -433,8 +500,8 @@ qemuCapsGetOldMachines(const char *ostype,
 
 typedef int
 (*qemuCapsParseCPUModels)(const char *output,
-                       unsigned int *retcount,
-                       const char ***retcpus);
+                          size_t *retcount,
+                          const char ***retcpus);
 
 /* Format:
  *      <arch> <model>
@@ -443,7 +510,7 @@ typedef int
  */
 static int
 qemuCapsParseX86Models(const char *output,
-                       unsigned int *retcount,
+                       size_t *retcount,
                        const char ***retcpus)
 {
     const char *p = output;
@@ -519,7 +586,7 @@ error:
  */
 static int
 qemuCapsParsePPCModels(const char *output,
-                       unsigned int *retcount,
+                       size_t *retcount,
                        const char ***retcpus)
 {
     const char *p = output;
@@ -587,9 +654,9 @@ cleanup:
 
 int
 qemuCapsProbeCPUModels(const char *qemu,
-                       virBitmapPtr qemuCaps,
+                       qemuCapsPtr caps,
                        const char *arch,
-                       unsigned int *count,
+                       size_t *count,
                        const char ***cpus)
 {
     char *output = NULL;
@@ -611,7 +678,7 @@ qemuCapsProbeCPUModels(const char *qemu,
         return 0;
     }
 
-    cmd = qemuCapsProbeCommand(qemu, qemuCaps);
+    cmd = qemuCapsProbeCommand(qemu, caps);
     virCommandAddArgList(cmd, "-cpu", "?", NULL);
     virCommandSetOutputBuffer(cmd, &output);
 
@@ -646,11 +713,11 @@ qemuCapsInitGuest(virCapsPtr caps,
     char *binary = NULL;
     time_t binary_mtime;
     virCapsGuestMachinePtr *machines = NULL;
-    int nmachines = 0;
+    size_t nmachines = 0;
     struct stat st;
-    unsigned int ncpus;
-    virBitmapPtr qemuCaps = NULL;
-    virBitmapPtr kvmCaps = NULL;
+    size_t ncpus;
+    qemuCapsPtr qemubinCaps = NULL;
+    qemuCapsPtr kvmbinCaps = NULL;
     int ret = -1;
 
     /* Check for existance of base emulator, or alternate base
@@ -666,7 +733,7 @@ qemuCapsInitGuest(virCapsPtr caps,
     /* Ignore binary if extracting version info fails */
     if (binary &&
         qemuCapsExtractVersionInfo(binary, info->arch,
-                                   false, NULL, &qemuCaps) < 0)
+                                   false, NULL, &qemubinCaps) < 0)
         VIR_FREE(binary);
 
     /* qemu-kvm/kvm binaries can only be used if
@@ -689,16 +756,16 @@ qemuCapsInitGuest(virCapsPtr caps,
 
             if (qemuCapsExtractVersionInfo(kvmbin, info->arch,
                                            false, NULL,
-                                           &kvmCaps) < 0) {
+                                           &kvmbinCaps) < 0) {
                 VIR_FREE(kvmbin);
                 continue;
             }
 
             if (!binary) {
                 binary = kvmbin;
-                qemuCaps = kvmCaps;
+                qemubinCaps = kvmbinCaps;
                 kvmbin = NULL;
-                kvmCaps = NULL;
+                kvmbinCaps = NULL;
             }
             break;
         }
@@ -708,13 +775,13 @@ qemuCapsInitGuest(virCapsPtr caps,
         return 0;
 
     if (access("/dev/kvm", F_OK) == 0 &&
-        (qemuCapsGet(qemuCaps, QEMU_CAPS_KVM) ||
-         qemuCapsGet(qemuCaps, QEMU_CAPS_ENABLE_KVM) ||
+        (qemuCapsGet(qemubinCaps, QEMU_CAPS_KVM) ||
+         qemuCapsGet(qemubinCaps, QEMU_CAPS_ENABLE_KVM) ||
          kvmbin))
         haskvm = 1;
 
     if (access("/dev/kqemu", F_OK) == 0 &&
-        qemuCapsGet(qemuCaps, QEMU_CAPS_KQEMU))
+        qemuCapsGet(qemubinCaps, QEMU_CAPS_KQEMU))
         haskqemu = 1;
 
     if (stat(binary, &st) == 0) {
@@ -754,7 +821,7 @@ qemuCapsInitGuest(virCapsPtr caps,
                                             info->wordsize, binary, binary_mtime,
                                             old_caps, &machines, &nmachines);
         if (probe &&
-            qemuCapsProbeMachineTypes(binary, qemuCaps,
+            qemuCapsProbeMachineTypes(binary, qemubinCaps,
                                       &machines, &nmachines) < 0)
             goto error;
     }
@@ -782,7 +849,7 @@ qemuCapsInitGuest(virCapsPtr caps,
         !virCapabilitiesAddGuestFeature(guest, "cpuselection", 1, 0))
         goto error;
 
-    if (qemuCapsGet(qemuCaps, QEMU_CAPS_BOOTINDEX) &&
+    if (qemuCapsGet(qemubinCaps, QEMU_CAPS_BOOTINDEX) &&
         !virCapabilitiesAddGuestFeature(guest, "deviceboot", 1, 0))
         goto error;
 
@@ -825,7 +892,7 @@ qemuCapsInitGuest(virCapsPtr caps,
                                                     binary_mtime, old_caps,
                                                     &machines, &nmachines);
                 if (probe &&
-                    qemuCapsProbeMachineTypes(kvmbin, qemuCaps,
+                    qemuCapsProbeMachineTypes(kvmbin, kvmbinCaps,
                                               &machines, &nmachines) < 0)
                     goto error;
             }
@@ -869,8 +936,8 @@ qemuCapsInitGuest(virCapsPtr caps,
 cleanup:
     VIR_FREE(binary);
     VIR_FREE(kvmbin);
-    qemuCapsFree(qemuCaps);
-    qemuCapsFree(kvmCaps);
+    virObjectUnref(qemubinCaps);
+    virObjectUnref(kvmbinCaps);
 
     return ret;
 
@@ -1020,122 +1087,126 @@ qemuCapsComputeCmdFlags(const char *help,
                         unsigned int version,
                         unsigned int is_kvm,
                         unsigned int kvm_version,
-                        virBitmapPtr flags,
+                        qemuCapsPtr caps,
                         bool check_yajl ATTRIBUTE_UNUSED)
 {
     const char *p;
     const char *fsdev, *netdev;
 
     if (strstr(help, "-no-kqemu"))
-        qemuCapsSet(flags, QEMU_CAPS_KQEMU);
+        qemuCapsSet(caps, QEMU_CAPS_KQEMU);
     if (strstr(help, "-enable-kqemu"))
-        qemuCapsSet(flags, QEMU_CAPS_ENABLE_KQEMU);
+        qemuCapsSet(caps, QEMU_CAPS_ENABLE_KQEMU);
     if (strstr(help, "-no-kvm"))
-        qemuCapsSet(flags, QEMU_CAPS_KVM);
+        qemuCapsSet(caps, QEMU_CAPS_KVM);
     if (strstr(help, "-enable-kvm"))
-        qemuCapsSet(flags, QEMU_CAPS_ENABLE_KVM);
+        qemuCapsSet(caps, QEMU_CAPS_ENABLE_KVM);
     if (strstr(help, "-no-reboot"))
-        qemuCapsSet(flags, QEMU_CAPS_NO_REBOOT);
+        qemuCapsSet(caps, QEMU_CAPS_NO_REBOOT);
     if (strstr(help, "-name")) {
-        qemuCapsSet(flags, QEMU_CAPS_NAME);
+        qemuCapsSet(caps, QEMU_CAPS_NAME);
         if (strstr(help, ",process="))
-            qemuCapsSet(flags, QEMU_CAPS_NAME_PROCESS);
+            qemuCapsSet(caps, QEMU_CAPS_NAME_PROCESS);
     }
     if (strstr(help, "-uuid"))
-        qemuCapsSet(flags, QEMU_CAPS_UUID);
+        qemuCapsSet(caps, QEMU_CAPS_UUID);
     if (strstr(help, "-xen-domid"))
-        qemuCapsSet(flags, QEMU_CAPS_XEN_DOMID);
+        qemuCapsSet(caps, QEMU_CAPS_XEN_DOMID);
     else if (strstr(help, "-domid"))
-        qemuCapsSet(flags, QEMU_CAPS_DOMID);
+        qemuCapsSet(caps, QEMU_CAPS_DOMID);
     if (strstr(help, "-drive")) {
         const char *cache = strstr(help, "cache=");
 
-        qemuCapsSet(flags, QEMU_CAPS_DRIVE);
+        qemuCapsSet(caps, QEMU_CAPS_DRIVE);
         if (cache && (p = strchr(cache, ']'))) {
             if (memmem(cache, p - cache, "on|off", sizeof("on|off") - 1) == NULL)
-                qemuCapsSet(flags, QEMU_CAPS_DRIVE_CACHE_V2);
+                qemuCapsSet(caps, QEMU_CAPS_DRIVE_CACHE_V2);
             if (memmem(cache, p - cache, "directsync", sizeof("directsync") - 1))
-                qemuCapsSet(flags, QEMU_CAPS_DRIVE_CACHE_DIRECTSYNC);
+                qemuCapsSet(caps, QEMU_CAPS_DRIVE_CACHE_DIRECTSYNC);
             if (memmem(cache, p - cache, "unsafe", sizeof("unsafe") - 1))
-                qemuCapsSet(flags, QEMU_CAPS_DRIVE_CACHE_UNSAFE);
+                qemuCapsSet(caps, QEMU_CAPS_DRIVE_CACHE_UNSAFE);
         }
         if (strstr(help, "format="))
-            qemuCapsSet(flags, QEMU_CAPS_DRIVE_FORMAT);
+            qemuCapsSet(caps, QEMU_CAPS_DRIVE_FORMAT);
         if (strstr(help, "readonly="))
-            qemuCapsSet(flags, QEMU_CAPS_DRIVE_READONLY);
+            qemuCapsSet(caps, QEMU_CAPS_DRIVE_READONLY);
         if (strstr(help, "aio=threads|native"))
-            qemuCapsSet(flags, QEMU_CAPS_DRIVE_AIO);
+            qemuCapsSet(caps, QEMU_CAPS_DRIVE_AIO);
         if (strstr(help, "copy-on-read=on|off"))
-            qemuCapsSet(flags, QEMU_CAPS_DRIVE_COPY_ON_READ);
+            qemuCapsSet(caps, QEMU_CAPS_DRIVE_COPY_ON_READ);
         if (strstr(help, "bps="))
-            qemuCapsSet(flags, QEMU_CAPS_DRIVE_IOTUNE);
+            qemuCapsSet(caps, QEMU_CAPS_DRIVE_IOTUNE);
     }
     if ((p = strstr(help, "-vga")) && !strstr(help, "-std-vga")) {
         const char *nl = strstr(p, "\n");
 
-        qemuCapsSet(flags, QEMU_CAPS_VGA);
+        qemuCapsSet(caps, QEMU_CAPS_VGA);
 
         if (strstr(p, "|qxl"))
-            qemuCapsSet(flags, QEMU_CAPS_VGA_QXL);
+            qemuCapsSet(caps, QEMU_CAPS_VGA_QXL);
         if ((p = strstr(p, "|none")) && p < nl)
-            qemuCapsSet(flags, QEMU_CAPS_VGA_NONE);
+            qemuCapsSet(caps, QEMU_CAPS_VGA_NONE);
     }
     if (strstr(help, "-spice"))
-        qemuCapsSet(flags, QEMU_CAPS_SPICE);
+        qemuCapsSet(caps, QEMU_CAPS_SPICE);
     if (strstr(help, "boot=on"))
-        qemuCapsSet(flags, QEMU_CAPS_DRIVE_BOOT);
+        qemuCapsSet(caps, QEMU_CAPS_DRIVE_BOOT);
     if (strstr(help, "serial=s"))
-        qemuCapsSet(flags, QEMU_CAPS_DRIVE_SERIAL);
+        qemuCapsSet(caps, QEMU_CAPS_DRIVE_SERIAL);
     if (strstr(help, "-pcidevice"))
-        qemuCapsSet(flags, QEMU_CAPS_PCIDEVICE);
+        qemuCapsSet(caps, QEMU_CAPS_PCIDEVICE);
     if (strstr(help, "-mem-path"))
-        qemuCapsSet(flags, QEMU_CAPS_MEM_PATH);
+        qemuCapsSet(caps, QEMU_CAPS_MEM_PATH);
     if (strstr(help, "-chardev")) {
-        qemuCapsSet(flags, QEMU_CAPS_CHARDEV);
+        qemuCapsSet(caps, QEMU_CAPS_CHARDEV);
         if (strstr(help, "-chardev spicevmc"))
-            qemuCapsSet(flags, QEMU_CAPS_CHARDEV_SPICEVMC);
+            qemuCapsSet(caps, QEMU_CAPS_CHARDEV_SPICEVMC);
     }
     if (strstr(help, "-balloon"))
-        qemuCapsSet(flags, QEMU_CAPS_BALLOON);
+        qemuCapsSet(caps, QEMU_CAPS_BALLOON);
     if (strstr(help, "-device")) {
-        qemuCapsSet(flags, QEMU_CAPS_DEVICE);
+        qemuCapsSet(caps, QEMU_CAPS_DEVICE);
         /*
          * When -device was introduced, qemu already supported drive's
          * readonly option but didn't advertise that.
          */
-        qemuCapsSet(flags, QEMU_CAPS_DRIVE_READONLY);
+        qemuCapsSet(caps, QEMU_CAPS_DRIVE_READONLY);
     }
     if (strstr(help, "-nodefconfig"))
-        qemuCapsSet(flags, QEMU_CAPS_NODEFCONFIG);
+        qemuCapsSet(caps, QEMU_CAPS_NODEFCONFIG);
     if (strstr(help, "-no-user-config"))
-        qemuCapsSet(flags, QEMU_CAPS_NO_USER_CONFIG);
+        qemuCapsSet(caps, QEMU_CAPS_NO_USER_CONFIG);
     /* The trailing ' ' is important to avoid a bogus match */
     if (strstr(help, "-rtc "))
-        qemuCapsSet(flags, QEMU_CAPS_RTC);
+        qemuCapsSet(caps, QEMU_CAPS_RTC);
     /* to wit */
     if (strstr(help, "-rtc-td-hack"))
-        qemuCapsSet(flags, QEMU_CAPS_RTC_TD_HACK);
+        qemuCapsSet(caps, QEMU_CAPS_RTC_TD_HACK);
     if (strstr(help, "-no-hpet"))
-        qemuCapsSet(flags, QEMU_CAPS_NO_HPET);
+        qemuCapsSet(caps, QEMU_CAPS_NO_HPET);
     if (strstr(help, "-no-acpi"))
-        qemuCapsSet(flags, QEMU_CAPS_NO_ACPI);
+        qemuCapsSet(caps, QEMU_CAPS_NO_ACPI);
     if (strstr(help, "-no-kvm-pit-reinjection"))
-        qemuCapsSet(flags, QEMU_CAPS_NO_KVM_PIT);
+        qemuCapsSet(caps, QEMU_CAPS_NO_KVM_PIT);
     if (strstr(help, "-tdf"))
-        qemuCapsSet(flags, QEMU_CAPS_TDF);
+        qemuCapsSet(caps, QEMU_CAPS_TDF);
     if (strstr(help, "-enable-nesting"))
-        qemuCapsSet(flags, QEMU_CAPS_NESTING);
+        qemuCapsSet(caps, QEMU_CAPS_NESTING);
     if (strstr(help, ",menu=on"))
-        qemuCapsSet(flags, QEMU_CAPS_BOOT_MENU);
+        qemuCapsSet(caps, QEMU_CAPS_BOOT_MENU);
+    if (strstr(help, ",reboot-timeout=rb_time"))
+        qemuCapsSet(caps, QEMU_CAPS_REBOOT_TIMEOUT);
     if ((fsdev = strstr(help, "-fsdev"))) {
-        qemuCapsSet(flags, QEMU_CAPS_FSDEV);
+        qemuCapsSet(caps, QEMU_CAPS_FSDEV);
         if (strstr(fsdev, "readonly"))
-            qemuCapsSet(flags, QEMU_CAPS_FSDEV_READONLY);
+            qemuCapsSet(caps, QEMU_CAPS_FSDEV_READONLY);
         if (strstr(fsdev, "writeout"))
-            qemuCapsSet(flags, QEMU_CAPS_FSDEV_WRITEOUT);
+            qemuCapsSet(caps, QEMU_CAPS_FSDEV_WRITEOUT);
     }
     if (strstr(help, "-smbios type"))
-        qemuCapsSet(flags, QEMU_CAPS_SMBIOS_TYPE);
+        qemuCapsSet(caps, QEMU_CAPS_SMBIOS_TYPE);
+    if (strstr(help, "-sandbox"))
+        qemuCapsSet(caps, QEMU_CAPS_SECCOMP_SANDBOX);
 
     if ((netdev = strstr(help, "-netdev"))) {
         /* Disable -netdev on 0.12 since although it exists,
@@ -1144,26 +1215,26 @@ qemuCapsComputeCmdFlags(const char *help,
          * But see below about RHEL build. */
         if (version >= 13000) {
             if (strstr(netdev, "bridge"))
-                qemuCapsSet(flags, QEMU_CAPS_NETDEV_BRIDGE);
-           qemuCapsSet(flags, QEMU_CAPS_NETDEV);
+                qemuCapsSet(caps, QEMU_CAPS_NETDEV_BRIDGE);
+           qemuCapsSet(caps, QEMU_CAPS_NETDEV);
         }
     }
 
     if (strstr(help, "-sdl"))
-        qemuCapsSet(flags, QEMU_CAPS_SDL);
+        qemuCapsSet(caps, QEMU_CAPS_SDL);
     if (strstr(help, "cores=") &&
         strstr(help, "threads=") &&
         strstr(help, "sockets="))
-        qemuCapsSet(flags, QEMU_CAPS_SMP_TOPOLOGY);
+        qemuCapsSet(caps, QEMU_CAPS_SMP_TOPOLOGY);
 
     if (version >= 9000)
-        qemuCapsSet(flags, QEMU_CAPS_VNC_COLON);
+        qemuCapsSet(caps, QEMU_CAPS_VNC_COLON);
 
     if (is_kvm && (version >= 10000 || kvm_version >= 74))
-        qemuCapsSet(flags, QEMU_CAPS_VNET_HDR);
+        qemuCapsSet(caps, QEMU_CAPS_VNET_HDR);
 
     if (strstr(help, ",vhost=")) {
-        qemuCapsSet(flags, QEMU_CAPS_VHOST_NET);
+        qemuCapsSet(caps, QEMU_CAPS_VHOST_NET);
     }
 
     /* Do not use -no-shutdown if qemu doesn't support it or SIGTERM handling
@@ -1171,7 +1242,10 @@ qemuCapsComputeCmdFlags(const char *help,
      * 0.14.* and 0.15.0)
      */
     if (strstr(help, "-no-shutdown") && (version < 14000 || version > 15000))
-        qemuCapsSet(flags, QEMU_CAPS_NO_SHUTDOWN);
+        qemuCapsSet(caps, QEMU_CAPS_NO_SHUTDOWN);
+
+    if (strstr(help, "dump-guest-core=on|off"))
+        qemuCapsSet(caps, QEMU_CAPS_DUMP_GUEST_CORE);
 
     /*
      * Handling of -incoming arg with varying features
@@ -1186,25 +1260,25 @@ qemuCapsComputeCmdFlags(const char *help,
      * while waiting for data, so pretend it doesn't exist
      */
     if (version >= 10000) {
-        qemuCapsSet(flags, QEMU_CAPS_MIGRATE_QEMU_TCP);
-        qemuCapsSet(flags, QEMU_CAPS_MIGRATE_QEMU_EXEC);
+        qemuCapsSet(caps, QEMU_CAPS_MIGRATE_QEMU_TCP);
+        qemuCapsSet(caps, QEMU_CAPS_MIGRATE_QEMU_EXEC);
         if (version >= 12000) {
-            qemuCapsSet(flags, QEMU_CAPS_MIGRATE_QEMU_UNIX);
-            qemuCapsSet(flags, QEMU_CAPS_MIGRATE_QEMU_FD);
+            qemuCapsSet(caps, QEMU_CAPS_MIGRATE_QEMU_UNIX);
+            qemuCapsSet(caps, QEMU_CAPS_MIGRATE_QEMU_FD);
         }
     } else if (kvm_version >= 79) {
-        qemuCapsSet(flags, QEMU_CAPS_MIGRATE_QEMU_TCP);
+        qemuCapsSet(caps, QEMU_CAPS_MIGRATE_QEMU_TCP);
         if (kvm_version >= 80)
-            qemuCapsSet(flags, QEMU_CAPS_MIGRATE_QEMU_EXEC);
+            qemuCapsSet(caps, QEMU_CAPS_MIGRATE_QEMU_EXEC);
     } else if (kvm_version > 0) {
-        qemuCapsSet(flags, QEMU_CAPS_MIGRATE_KVM_STDIO);
+        qemuCapsSet(caps, QEMU_CAPS_MIGRATE_KVM_STDIO);
     }
 
     if (version >= 10000)
-        qemuCapsSet(flags, QEMU_CAPS_0_10);
+        qemuCapsSet(caps, QEMU_CAPS_0_10);
 
     if (version >= 11000)
-        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_BLK_SG_IO);
+        qemuCapsSet(caps, QEMU_CAPS_VIRTIO_BLK_SG_IO);
 
     /* While JSON mode was available in 0.12.0, it was too
      * incomplete to contemplate using. The 0.13.0 release
@@ -1217,11 +1291,11 @@ qemuCapsComputeCmdFlags(const char *help,
      */
 #if HAVE_YAJL
     if (version >= 13000) {
-        qemuCapsSet(flags, QEMU_CAPS_MONITOR_JSON);
+        qemuCapsSet(caps, QEMU_CAPS_MONITOR_JSON);
     } else if (version >= 12000 &&
                strstr(help, "libvirt")) {
-        qemuCapsSet(flags, QEMU_CAPS_MONITOR_JSON);
-        qemuCapsSet(flags, QEMU_CAPS_NETDEV);
+        qemuCapsSet(caps, QEMU_CAPS_MONITOR_JSON);
+        qemuCapsSet(caps, QEMU_CAPS_NETDEV);
     }
 #else
     /* Starting with qemu 0.15 and newer, upstream qemu no longer
@@ -1240,12 +1314,12 @@ qemuCapsComputeCmdFlags(const char *help,
                              "compiled with yajl"));
             return -1;
         }
-        qemuCapsSet(flags, QEMU_CAPS_NETDEV);
+        qemuCapsSet(caps, QEMU_CAPS_NETDEV);
     }
 #endif
 
     if (version >= 13000)
-        qemuCapsSet(flags, QEMU_CAPS_PCI_MULTIFUNCTION);
+        qemuCapsSet(caps, QEMU_CAPS_PCI_MULTIFUNCTION);
 
     /* Although very new versions of qemu advertise the presence of
      * the rombar option in the output of "qemu -device pci-assign,?",
@@ -1258,10 +1332,10 @@ qemuCapsComputeCmdFlags(const char *help,
      * log and refuse to start, so it would be immediately obvious).
      */
     if (version >= 12000)
-        qemuCapsSet(flags, QEMU_CAPS_PCI_ROMBAR);
+        qemuCapsSet(caps, QEMU_CAPS_PCI_ROMBAR);
 
     if (version >= 11000)
-        qemuCapsSet(flags, QEMU_CAPS_CPU_HOST);
+        qemuCapsSet(caps, QEMU_CAPS_CPU_HOST);
     return 0;
 }
 
@@ -1291,7 +1365,7 @@ qemuCapsComputeCmdFlags(const char *help,
 
 int qemuCapsParseHelpStr(const char *qemu,
                          const char *help,
-                         virBitmapPtr flags,
+                         qemuCapsPtr caps,
                          unsigned int *version,
                          unsigned int *is_kvm,
                          unsigned int *kvm_version,
@@ -1352,10 +1426,10 @@ int qemuCapsParseHelpStr(const char *qemu,
     *version = (major * 1000 * 1000) + (minor * 1000) + micro;
 
     if (qemuCapsComputeCmdFlags(help, *version, *is_kvm, *kvm_version,
-                                flags, check_yajl) < 0)
+                                caps, check_yajl) < 0)
         goto cleanup;
 
-    strflags = virBitmapString(flags);
+    strflags = virBitmapString(caps->flags);
     VIR_DEBUG("Version %u.%u.%u, cooked version %u, flags %s",
               major, minor, micro, *version, NULLSTR(strflags));
     VIR_FREE(strflags);
@@ -1382,7 +1456,7 @@ cleanup:
 
 static int
 qemuCapsExtractDeviceStr(const char *qemu,
-                         virBitmapPtr flags)
+                         qemuCapsPtr caps)
 {
     char *output = NULL;
     virCommandPtr cmd;
@@ -1396,13 +1470,16 @@ qemuCapsExtractDeviceStr(const char *qemu,
      * understand '-device name,?', and always exits with status 1 for
      * the simpler '-device ?', so this function is really only useful
      * if -help includes "device driver,?".  */
-    cmd = qemuCapsProbeCommand(qemu, flags);
+    cmd = qemuCapsProbeCommand(qemu, caps);
     virCommandAddArgList(cmd,
                          "-device", "?",
                          "-device", "pci-assign,?",
                          "-device", "virtio-blk-pci,?",
                          "-device", "virtio-net-pci,?",
                          "-device", "scsi-disk,?",
+                         "-device", "PIIX4_PM,?",
+                         "-device", "usb-redir,?",
+                         "-device", "ide-drive,?",
                          NULL);
     /* qemu -help goes to stdout, but qemu -device ? goes to stderr.  */
     virCommandSetErrorBuffer(cmd, &output);
@@ -1410,7 +1487,7 @@ qemuCapsExtractDeviceStr(const char *qemu,
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
-    ret = qemuCapsParseDeviceStr(output, flags);
+    ret = qemuCapsParseDeviceStr(output, caps);
 
 cleanup:
     VIR_FREE(output);
@@ -1420,85 +1497,106 @@ cleanup:
 
 
 int
-qemuCapsParseDeviceStr(const char *str, virBitmapPtr flags)
+qemuCapsParseDeviceStr(const char *str, qemuCapsPtr caps)
 {
     /* Which devices exist. */
     if (strstr(str, "name \"hda-duplex\""))
-        qemuCapsSet(flags, QEMU_CAPS_HDA_DUPLEX);
+        qemuCapsSet(caps, QEMU_CAPS_HDA_DUPLEX);
     if (strstr(str, "name \"hda-micro\""))
-        qemuCapsSet(flags, QEMU_CAPS_HDA_MICRO);
+        qemuCapsSet(caps, QEMU_CAPS_HDA_MICRO);
     if (strstr(str, "name \"ccid-card-emulated\""))
-        qemuCapsSet(flags, QEMU_CAPS_CCID_EMULATED);
+        qemuCapsSet(caps, QEMU_CAPS_CCID_EMULATED);
     if (strstr(str, "name \"ccid-card-passthru\""))
-        qemuCapsSet(flags, QEMU_CAPS_CCID_PASSTHRU);
+        qemuCapsSet(caps, QEMU_CAPS_CCID_PASSTHRU);
 
     if (strstr(str, "name \"piix3-usb-uhci\""))
-        qemuCapsSet(flags, QEMU_CAPS_PIIX3_USB_UHCI);
+        qemuCapsSet(caps, QEMU_CAPS_PIIX3_USB_UHCI);
     if (strstr(str, "name \"piix4-usb-uhci\""))
-        qemuCapsSet(flags, QEMU_CAPS_PIIX4_USB_UHCI);
+        qemuCapsSet(caps, QEMU_CAPS_PIIX4_USB_UHCI);
     if (strstr(str, "name \"usb-ehci\""))
-        qemuCapsSet(flags, QEMU_CAPS_USB_EHCI);
+        qemuCapsSet(caps, QEMU_CAPS_USB_EHCI);
     if (strstr(str, "name \"ich9-usb-ehci1\""))
-        qemuCapsSet(flags, QEMU_CAPS_ICH9_USB_EHCI1);
+        qemuCapsSet(caps, QEMU_CAPS_ICH9_USB_EHCI1);
     if (strstr(str, "name \"vt82c686b-usb-uhci\""))
-        qemuCapsSet(flags, QEMU_CAPS_VT82C686B_USB_UHCI);
+        qemuCapsSet(caps, QEMU_CAPS_VT82C686B_USB_UHCI);
     if (strstr(str, "name \"pci-ohci\""))
-        qemuCapsSet(flags, QEMU_CAPS_PCI_OHCI);
+        qemuCapsSet(caps, QEMU_CAPS_PCI_OHCI);
     if (strstr(str, "name \"nec-usb-xhci\""))
-        qemuCapsSet(flags, QEMU_CAPS_NEC_USB_XHCI);
+        qemuCapsSet(caps, QEMU_CAPS_NEC_USB_XHCI);
     if (strstr(str, "name \"usb-redir\""))
-        qemuCapsSet(flags, QEMU_CAPS_USB_REDIR);
+        qemuCapsSet(caps, QEMU_CAPS_USB_REDIR);
+    if (strstr(str, "usb-redir.filter"))
+        qemuCapsSet(caps, QEMU_CAPS_USB_REDIR_FILTER);
     if (strstr(str, "name \"usb-hub\""))
-        qemuCapsSet(flags, QEMU_CAPS_USB_HUB);
+        qemuCapsSet(caps, QEMU_CAPS_USB_HUB);
     if (strstr(str, "name \"ich9-ahci\""))
-        qemuCapsSet(flags, QEMU_CAPS_ICH9_AHCI);
+        qemuCapsSet(caps, QEMU_CAPS_ICH9_AHCI);
     if (strstr(str, "name \"virtio-blk-s390\"") ||
         strstr(str, "name \"virtio-net-s390\"") ||
         strstr(str, "name \"virtio-serial-s390\""))
-        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_S390);
+        qemuCapsSet(caps, QEMU_CAPS_VIRTIO_S390);
 
     if (strstr(str, "name \"lsi53c895a\""))
-        qemuCapsSet(flags, QEMU_CAPS_SCSI_LSI);
+        qemuCapsSet(caps, QEMU_CAPS_SCSI_LSI);
     if (strstr(str, "name \"virtio-scsi-pci\""))
-        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_SCSI_PCI);
+        qemuCapsSet(caps, QEMU_CAPS_VIRTIO_SCSI_PCI);
 
     /* Prefer -chardev spicevmc (detected earlier) over -device spicevmc */
-    if (!qemuCapsGet(flags, QEMU_CAPS_CHARDEV_SPICEVMC) &&
+    if (!qemuCapsGet(caps, QEMU_CAPS_CHARDEV_SPICEVMC) &&
         strstr(str, "name \"spicevmc\""))
-        qemuCapsSet(flags, QEMU_CAPS_DEVICE_SPICEVMC);
+        qemuCapsSet(caps, QEMU_CAPS_DEVICE_SPICEVMC);
 
     /* Features of given devices. */
     if (strstr(str, "pci-assign.configfd"))
-        qemuCapsSet(flags, QEMU_CAPS_PCI_CONFIGFD);
+        qemuCapsSet(caps, QEMU_CAPS_PCI_CONFIGFD);
     if (strstr(str, "virtio-blk-pci.multifunction"))
-        qemuCapsSet(flags, QEMU_CAPS_PCI_MULTIFUNCTION);
+        qemuCapsSet(caps, QEMU_CAPS_PCI_MULTIFUNCTION);
     if (strstr(str, "virtio-blk-pci.bootindex")) {
-        qemuCapsSet(flags, QEMU_CAPS_BOOTINDEX);
+        qemuCapsSet(caps, QEMU_CAPS_BOOTINDEX);
         if (strstr(str, "pci-assign.bootindex"))
-            qemuCapsSet(flags, QEMU_CAPS_PCI_BOOTINDEX);
+            qemuCapsSet(caps, QEMU_CAPS_PCI_BOOTINDEX);
     }
     if (strstr(str, "virtio-net-pci.tx="))
-        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_TX_ALG);
+        qemuCapsSet(caps, QEMU_CAPS_VIRTIO_TX_ALG);
     if (strstr(str, "name \"qxl-vga\""))
-        qemuCapsSet(flags, QEMU_CAPS_DEVICE_QXL_VGA);
+        qemuCapsSet(caps, QEMU_CAPS_DEVICE_QXL_VGA);
     if (strstr(str, "virtio-blk-pci.ioeventfd"))
-        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_IOEVENTFD);
+        qemuCapsSet(caps, QEMU_CAPS_VIRTIO_IOEVENTFD);
     if (strstr(str, "name \"sga\""))
-        qemuCapsSet(flags, QEMU_CAPS_SGA);
+        qemuCapsSet(caps, QEMU_CAPS_SGA);
     if (strstr(str, "virtio-blk-pci.event_idx"))
-        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_BLK_EVENT_IDX);
+        qemuCapsSet(caps, QEMU_CAPS_VIRTIO_BLK_EVENT_IDX);
     if (strstr(str, "virtio-net-pci.event_idx"))
-        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_NET_EVENT_IDX);
+        qemuCapsSet(caps, QEMU_CAPS_VIRTIO_NET_EVENT_IDX);
     if (strstr(str, "virtio-blk-pci.scsi"))
-        qemuCapsSet(flags, QEMU_CAPS_VIRTIO_BLK_SCSI);
+        qemuCapsSet(caps, QEMU_CAPS_VIRTIO_BLK_SCSI);
     if (strstr(str, "scsi-disk.channel"))
-        qemuCapsSet(flags, QEMU_CAPS_SCSI_DISK_CHANNEL);
+        qemuCapsSet(caps, QEMU_CAPS_SCSI_DISK_CHANNEL);
+    if (strstr(str, "scsi-disk.wwn"))
+        qemuCapsSet(caps, QEMU_CAPS_SCSI_DISK_WWN);
     if (strstr(str, "scsi-block"))
-        qemuCapsSet(flags, QEMU_CAPS_SCSI_BLOCK);
+        qemuCapsSet(caps, QEMU_CAPS_SCSI_BLOCK);
     if (strstr(str, "scsi-cd"))
-        qemuCapsSet(flags, QEMU_CAPS_SCSI_CD);
+        qemuCapsSet(caps, QEMU_CAPS_SCSI_CD);
     if (strstr(str, "ide-cd"))
-        qemuCapsSet(flags, QEMU_CAPS_IDE_CD);
+        qemuCapsSet(caps, QEMU_CAPS_IDE_CD);
+    if (strstr(str, "ide-drive.wwn"))
+        qemuCapsSet(caps, QEMU_CAPS_IDE_DRIVE_WWN);
+
+    /*
+     * the iolimit detection is not really straight forward:
+     * in qemu this is a capability of the block layer, if
+     * present any of -device scsi-disk, virtio-blk-*, ...
+     * will offer to specify logical and physical block size
+     * and other properties...
+     */
+    if (strstr(str, ".logical_block_size") &&
+        strstr(str, ".physical_block_size"))
+        qemuCapsSet(caps, QEMU_CAPS_BLOCKIO);
+    if (strstr(str, "PIIX4_PM.disable_s3="))
+        qemuCapsSet(caps, QEMU_CAPS_DISABLE_S3);
+    if (strstr(str, "PIIX4_PM.disable_s4="))
+        qemuCapsSet(caps, QEMU_CAPS_DISABLE_S4);
 
     return 0;
 }
@@ -1507,16 +1605,16 @@ int qemuCapsExtractVersionInfo(const char *qemu,
                                const char *arch,
                                bool check_yajl,
                                unsigned int *retversion,
-                               virBitmapPtr *retflags)
+                               qemuCapsPtr *retcaps)
 {
     int ret = -1;
     unsigned int version, is_kvm, kvm_version;
-    virBitmapPtr flags = NULL;
+    qemuCapsPtr caps = NULL;
     char *help = NULL;
     virCommandPtr cmd;
 
-    if (retflags)
-        *retflags = NULL;
+    if (retcaps)
+        *retcaps = NULL;
     if (retversion)
         *retversion = 0;
 
@@ -1536,8 +1634,8 @@ int qemuCapsExtractVersionInfo(const char *qemu,
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
-    if (!(flags = qemuCapsNew()) ||
-        qemuCapsParseHelpStr(qemu, help, flags,
+    if (!(caps = qemuCapsNew()) ||
+        qemuCapsParseHelpStr(qemu, help, caps,
                              &version, &is_kvm, &kvm_version,
                              check_yajl) == -1)
         goto cleanup;
@@ -1545,26 +1643,26 @@ int qemuCapsExtractVersionInfo(const char *qemu,
     /* Currently only x86_64 and i686 support PCI-multibus. */
     if (STREQLEN(arch, "x86_64", 6) ||
         STREQLEN(arch, "i686", 4)) {
-        qemuCapsSet(flags, QEMU_CAPS_PCI_MULTIBUS);
+        qemuCapsSet(caps, QEMU_CAPS_PCI_MULTIBUS);
     }
 
     /* S390 and probably other archs do not support no-acpi -
        maybe the qemu option parsing should be re-thought. */
     if (STRPREFIX(arch, "s390"))
-        qemuCapsClear(flags, QEMU_CAPS_NO_ACPI);
+        qemuCapsClear(caps, QEMU_CAPS_NO_ACPI);
 
-    /* qemuCapsExtractDeviceStr will only set additional flags if qemu
+    /* qemuCapsExtractDeviceStr will only set additional caps if qemu
      * understands the 0.13.0+ notion of "-device driver,".  */
-    if (qemuCapsGet(flags, QEMU_CAPS_DEVICE) &&
+    if (qemuCapsGet(caps, QEMU_CAPS_DEVICE) &&
         strstr(help, "-device driver,?") &&
-        qemuCapsExtractDeviceStr(qemu, flags) < 0)
+        qemuCapsExtractDeviceStr(qemu, caps) < 0)
         goto cleanup;
 
     if (retversion)
         *retversion = version;
-    if (retflags) {
-        *retflags = flags;
-        flags = NULL;
+    if (retcaps) {
+        *retcaps = caps;
+        caps = NULL;
     }
 
     ret = 0;
@@ -1572,7 +1670,7 @@ int qemuCapsExtractVersionInfo(const char *qemu,
 cleanup:
     VIR_FREE(help);
     virCommandFree(cmd);
-    qemuCapsFree(flags);
+    virObjectUnref(caps);
 
     return ret;
 }
@@ -1626,75 +1724,327 @@ int qemuCapsExtractVersion(virCapsPtr caps,
 }
 
 
-virBitmapPtr
+
+
+qemuCapsPtr
 qemuCapsNew(void)
 {
-    virBitmapPtr caps;
+    qemuCapsPtr caps;
 
-    if (!(caps = virBitmapAlloc(QEMU_CAPS_LAST)))
-        virReportOOMError();
+    if (qemuCapsInitialize() < 0)
+        return NULL;
+
+    if (!(caps = virObjectNew(qemuCapsClass)))
+        return NULL;
+
+    if (!(caps->flags = virBitmapNew(QEMU_CAPS_LAST)))
+        goto no_memory;
 
     return caps;
+
+no_memory:
+    virReportOOMError();
+    virObjectUnref(caps);
+    return NULL;
 }
 
 
+qemuCapsPtr qemuCapsNewCopy(qemuCapsPtr caps)
+{
+    qemuCapsPtr ret = qemuCapsNew();
+    size_t i;
+
+    if (!ret)
+        return NULL;
+
+    virBitmapCopy(ret->flags, caps->flags);
+
+    ret->version = caps->version;
+    ret->kvmVersion = caps->kvmVersion;
+
+    if (caps->arch &&
+        !(ret->arch = strdup(caps->arch)))
+        goto no_memory;
+
+    if (VIR_ALLOC_N(ret->cpuDefinitions, caps->ncpuDefinitions) < 0)
+        goto no_memory;
+    ret->ncpuDefinitions = caps->ncpuDefinitions;
+    for (i = 0 ; i < caps->ncpuDefinitions ; i++) {
+        if (!(ret->cpuDefinitions[i] = strdup(caps->cpuDefinitions[i])))
+            goto no_memory;
+    }
+
+    if (VIR_ALLOC_N(ret->machineTypes, caps->nmachineTypes) < 0)
+        goto no_memory;
+    if (VIR_ALLOC_N(ret->machineAliases, caps->nmachineTypes) < 0)
+        goto no_memory;
+    ret->nmachineTypes = caps->nmachineTypes;
+    for (i = 0 ; i < caps->nmachineTypes ; i++) {
+        if (!(ret->machineTypes[i] = strdup(caps->machineTypes[i])))
+            goto no_memory;
+        if (caps->machineAliases[i] &&
+            !(ret->machineAliases[i] = strdup(caps->machineAliases[i])))
+            goto no_memory;
+    }
+
+    return ret;
+
+no_memory:
+    virReportOOMError();
+    virObjectUnref(ret);
+    return NULL;
+}
+
+
+void qemuCapsDispose(void *obj)
+{
+    qemuCapsPtr caps = obj;
+    size_t i;
+
+    VIR_FREE(caps->arch);
+
+    for (i = 0 ; i < caps->nmachineTypes ; i++) {
+        VIR_FREE(caps->machineTypes[i]);
+        VIR_FREE(caps->machineAliases[i]);
+    }
+    VIR_FREE(caps->machineTypes);
+    VIR_FREE(caps->machineAliases);
+
+    for (i = 0 ; i < caps->ncpuDefinitions ; i++) {
+        VIR_FREE(caps->cpuDefinitions[i]);
+    }
+    VIR_FREE(caps->cpuDefinitions);
+
+    virBitmapFree(caps->flags);
+
+    VIR_FREE(caps->binary);
+}
+
 void
-qemuCapsSet(virBitmapPtr caps,
+qemuCapsSet(qemuCapsPtr caps,
             enum qemuCapsFlags flag)
 {
-    ignore_value(virBitmapSetBit(caps, flag));
+    ignore_value(virBitmapSetBit(caps->flags, flag));
 }
 
 
 void
-qemuCapsSetList(virBitmapPtr caps, ...)
+qemuCapsSetList(qemuCapsPtr caps, ...)
 {
     va_list list;
     int flag;
 
     va_start(list, caps);
     while ((flag = va_arg(list, int)) < QEMU_CAPS_LAST)
-        ignore_value(virBitmapSetBit(caps, flag));
+        ignore_value(virBitmapSetBit(caps->flags, flag));
     va_end(list);
 }
 
 
 void
-qemuCapsClear(virBitmapPtr caps,
+qemuCapsClear(qemuCapsPtr caps,
               enum qemuCapsFlags flag)
 {
-    ignore_value(virBitmapClearBit(caps, flag));
+    ignore_value(virBitmapClearBit(caps->flags, flag));
+}
+
+
+char *qemuCapsFlagsString(qemuCapsPtr caps)
+{
+    return virBitmapString(caps->flags);
 }
 
 
 bool
-qemuCapsGet(virBitmapPtr caps,
+qemuCapsGet(qemuCapsPtr caps,
             enum qemuCapsFlags flag)
 {
     bool b;
 
-    if (!caps || virBitmapGetBit(caps, flag, &b) < 0)
+    if (!caps || virBitmapGetBit(caps->flags, flag, &b) < 0)
         return false;
     else
         return b;
 }
 
 
-virCommandPtr
-qemuCapsProbeCommand(const char *qemu,
-                     virBitmapPtr qemuCaps)
+const char *qemuCapsGetArch(qemuCapsPtr caps)
 {
-    virCommandPtr cmd = virCommandNew(qemu);
+    return caps->arch;
+}
 
-    if (qemuCaps) {
-        if (qemuCapsGet(qemuCaps, QEMU_CAPS_NO_USER_CONFIG))
-            virCommandAddArg(cmd, "-no-user-config");
-        else if (qemuCapsGet(qemuCaps, QEMU_CAPS_NODEFCONFIG))
-            virCommandAddArg(cmd, "-nodefconfig");
+
+unsigned int qemuCapsGetVersion(qemuCapsPtr caps)
+{
+    return caps->version;
+}
+
+
+unsigned int qemuCapsGetKVMVersion(qemuCapsPtr caps)
+{
+    return caps->kvmVersion;
+}
+
+
+size_t qemuCapsGetCPUDefinitions(qemuCapsPtr caps,
+                                 char ***names)
+{
+    *names = caps->cpuDefinitions;
+    return caps->ncpuDefinitions;
+}
+
+
+size_t qemuCapsGetMachineTypes(qemuCapsPtr caps,
+                               char ***names)
+{
+    *names = caps->machineTypes;
+    return caps->nmachineTypes;
+}
+
+
+const char *qemuCapsGetCanonicalMachine(qemuCapsPtr caps,
+                                        const char *name)
+
+{
+    size_t i;
+
+    for (i = 0 ; i < caps->nmachineTypes ; i++) {
+        if (!caps->machineAliases[i])
+            continue;
+        if (STREQ(caps->machineAliases[i], name))
+            return caps->machineTypes[i];
     }
 
-    virCommandAddEnvPassCommon(cmd);
-    virCommandClearCaps(cmd);
+    return name;
+}
 
-    return cmd;
+
+#define QEMU_SYSTEM_PREFIX "qemu-system-"
+
+qemuCapsPtr qemuCapsNewForBinary(const char *binary)
+{
+    qemuCapsPtr caps = qemuCapsNew();
+    const char *tmp;
+    struct utsname ut;
+    unsigned int is_kvm;
+    char *help = NULL;
+    virCommandPtr cmd = NULL;
+    virCapsGuestMachinePtr *machines = NULL;
+    size_t nmachines;
+    size_t i;
+    struct stat sb;
+
+    if (!(caps->binary = strdup(binary)))
+        goto no_memory;
+
+    tmp = strstr(binary, QEMU_SYSTEM_PREFIX);
+    if (tmp) {
+        tmp += strlen(QEMU_SYSTEM_PREFIX);
+    } else {
+        uname_normalize(&ut);
+        tmp = ut.machine;
+    }
+    if (!(caps->arch = strdup(tmp)))
+        goto no_memory;
+
+    /* We would also want to check faccessat if we cared about ACLs,
+     * but we don't.  */
+    if (stat(binary, &sb) < 0) {
+        virReportSystemError(errno, _("Cannot check QEMU binary %s"),
+                             binary);
+        goto error;
+    }
+    caps->mtime = sb.st_mtime;
+
+    /* Make sure the binary we are about to try exec'ing exists.
+     * Technically we could catch the exec() failure, but that's
+     * in a sub-process so it's hard to feed back a useful error.
+     */
+    if (!virFileIsExecutable(binary)) {
+        goto error;
+    }
+
+    cmd = qemuCapsProbeCommand(binary, NULL);
+    virCommandAddArgList(cmd, "-help", NULL);
+    virCommandSetOutputBuffer(cmd, &help);
+
+    if (virCommandRun(cmd, NULL) < 0)
+        goto error;
+
+    if (qemuCapsParseHelpStr(binary, help, caps,
+                             &caps->version,
+                             &is_kvm,
+                             &caps->kvmVersion,
+                             false) < 0)
+        goto error;
+
+    /* Currently only x86_64 and i686 support PCI-multibus. */
+    if (STREQLEN(caps->arch, "x86_64", 6) ||
+        STREQLEN(caps->arch, "i686", 4)) {
+        qemuCapsSet(caps, QEMU_CAPS_PCI_MULTIBUS);
+    }
+
+    /* S390 and probably other archs do not support no-acpi -
+       maybe the qemu option parsing should be re-thought. */
+    if (STRPREFIX(caps->arch, "s390"))
+        qemuCapsClear(caps, QEMU_CAPS_NO_ACPI);
+
+    /* qemuCapsExtractDeviceStr will only set additional caps if qemu
+     * understands the 0.13.0+ notion of "-device driver,".  */
+    if (qemuCapsGet(caps, QEMU_CAPS_DEVICE) &&
+        strstr(help, "-device driver,?") &&
+        qemuCapsExtractDeviceStr(binary, caps) < 0)
+        goto error;
+
+    if (qemuCapsProbeCPUModels(binary, caps, caps->arch,
+                               &caps->ncpuDefinitions,
+                               (const char ***)&caps->cpuDefinitions) < 0)
+        goto error;
+
+    if (qemuCapsProbeMachineTypes(binary, caps,
+                                  &machines, &nmachines) < 0)
+        goto error;
+
+    if (VIR_ALLOC_N(caps->machineTypes, nmachines) < 0)
+        goto no_memory;
+    if (VIR_ALLOC_N(caps->machineAliases, nmachines) < 0)
+        goto no_memory;
+    caps->nmachineTypes = nmachines;
+
+    for (i = 0 ; i < caps->nmachineTypes ; i++) {
+        if (machines[i]->canonical) {
+            caps->machineTypes[i] = machines[i]->canonical;
+            caps->machineAliases[i] = machines[i]->name;
+        } else {
+            caps->machineTypes[i] = machines[i]->name;
+        }
+    }
+    VIR_FREE(machines);
+
+cleanup:
+    VIR_FREE(help);
+    virCommandFree(cmd);
+    return caps;
+
+no_memory:
+    virReportOOMError();
+error:
+    virCapabilitiesFreeMachines(machines, nmachines);
+    virObjectUnref(caps);
+    caps = NULL;
+    goto cleanup;
+}
+
+
+bool qemuCapsIsValid(qemuCapsPtr caps)
+{
+    struct stat sb;
+
+    if (!caps->binary)
+        return true;
+
+    if (stat(caps->binary, &sb) < 0)
+        return false;
+
+    return sb.st_mtime == caps->mtime;
 }

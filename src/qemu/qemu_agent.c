@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -1294,7 +1294,10 @@ int qemuAgentShutdown(qemuAgentPtr mon,
     if (!cmd)
         return -1;
 
-    mon->await_event = QEMU_AGENT_EVENT_SHUTDOWN;
+    if (mode == QEMU_AGENT_SHUTDOWN_REBOOT)
+        mon->await_event = QEMU_AGENT_EVENT_RESET;
+    else
+        mon->await_event = QEMU_AGENT_EVENT_SHUTDOWN;
     ret = qemuAgentCommand(mon, cmd, &reply,
                            VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK);
 

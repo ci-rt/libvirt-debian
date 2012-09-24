@@ -227,6 +227,9 @@
 /* Define to 1 when the gnulib module fflush should be tested. */
 #undef GNULIB_TEST_FFLUSH
 
+/* Define to 1 when the gnulib module ffsl should be tested. */
+#undef GNULIB_TEST_FFSL
+
 /* Define to 1 when the gnulib module fpurge should be tested. */
 #undef GNULIB_TEST_FPURGE
 
@@ -606,8 +609,11 @@
 /* Define to 1 if you have the `chsize' function. */
 #undef HAVE_CHSIZE
 
-/* Defined if clock_gettime() exists in librt.so */
+/* Define to 1 if you have the `clock_gettime' function. */
 #undef HAVE_CLOCK_GETTIME
+
+/* Define to 1 if you have the `clock_settime' function. */
+#undef HAVE_CLOCK_SETTIME
 
 /* Define to 1 if you have the `confstr' function. */
 #undef HAVE_CONFSTR
@@ -867,6 +873,9 @@
 
 /* Define to 1 if you have the 'ffs' function. */
 #undef HAVE_FFS
+
+/* Define to 1 if you have the 'ffsl' function. */
+#undef HAVE_FFSL
 
 /* whether firewalld support is enabled */
 #undef HAVE_FIREWALLD
@@ -1500,7 +1509,7 @@
 /* Define to 1 if the system has the type `struct addrinfo'. */
 #undef HAVE_STRUCT_ADDRINFO
 
-/* Defined if struct ifreq existsin net/if.h */
+/* Defined if struct ifreq exists in net/if.h */
 #undef HAVE_STRUCT_IFREQ
 
 /* Define to 1 if `decimal_point' is a member of `struct lconv'. */
@@ -2178,6 +2187,9 @@
 /* whether Hyper-V driver is enabled */
 #undef WITH_HYPERV
 
+/* whether the interface driver is enabled */
+#undef WITH_INTERFACE
+
 /* whether libvirtd daemon is enabled */
 #undef WITH_LIBVIRTD
 
@@ -2408,20 +2420,34 @@
 #if __GNUC__ ? __GNUC_STDC_INLINE__ : 199901L <= __STDC_VERSION__
 # define _GL_INLINE inline
 # define _GL_EXTERN_INLINE extern inline
-# if (__GNUC__ == 4 && 6 <= __GNUC_MINOR__) || 4 < __GNUC__
-#  define _GL_INLINE_HEADER_BEGIN \
-     _Pragma ("GCC diagnostic push") \
-     _Pragma ("GCC diagnostic ignored \"-Wmissing-prototypes\"") \
-     _Pragma ("GCC diagnostic ignored \"-Wmissing-declarations\"")
-#  define _GL_INLINE_HEADER_END \
-     _Pragma ("GCC diagnostic pop")
+#elif 2 < __GNUC__ + (7 <= __GNUC_MINOR__)
+# if __GNUC_GNU_INLINE__
+   /* __gnu_inline__ suppresses a GCC 4.2 diagnostic.  */
+#  define _GL_INLINE extern inline __attribute__ ((__gnu_inline__))
+# else
+#  define _GL_INLINE extern inline
 # endif
+# define _GL_EXTERN_INLINE extern
 #else
 # define _GL_INLINE static inline
 # define _GL_EXTERN_INLINE static inline
 #endif
 
-#ifndef _GL_INLINE_HEADER_BEGIN
+#if 4 < __GNUC__ + (6 <= __GNUC_MINOR__)
+# if __GNUC_STDC_INLINE__
+#  define _GL_INLINE_HEADER_CONST_PRAGMA
+# else
+#  define _GL_INLINE_HEADER_CONST_PRAGMA \
+     _Pragma ("GCC diagnostic ignored \"-Wsuggest-attribute=const\"")
+# endif
+# define _GL_INLINE_HEADER_BEGIN \
+    _Pragma ("GCC diagnostic push") \
+    _Pragma ("GCC diagnostic ignored \"-Wmissing-prototypes\"") \
+    _Pragma ("GCC diagnostic ignored \"-Wmissing-declarations\"") \
+    _GL_INLINE_HEADER_CONST_PRAGMA
+# define _GL_INLINE_HEADER_END \
+    _Pragma ("GCC diagnostic pop")
+#else
 # define _GL_INLINE_HEADER_BEGIN
 # define _GL_INLINE_HEADER_END
 #endif

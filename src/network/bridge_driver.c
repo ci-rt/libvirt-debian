@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -117,6 +117,7 @@ static int networkShutdownNetworkExternal(struct network_driver *driver,
                                         virNetworkObjPtr network);
 
 static void networkReloadIptablesRules(struct network_driver *driver);
+static void networkRefreshDaemons(struct network_driver *driver);
 
 static struct network_driver *driverState = NULL;
 
@@ -344,6 +345,7 @@ networkStartup(int privileged) {
 
     networkFindActiveConfigs(driverState);
     networkReloadIptablesRules(driverState);
+    networkRefreshDaemons(driverState);
     networkAutostartConfigs(driverState);
 
     networkDriverUnlock(driverState);
@@ -404,6 +406,7 @@ networkReload(void) {
                              driverState->networkConfigDir,
                              driverState->networkAutostartDir);
     networkReloadIptablesRules(driverState);
+    networkRefreshDaemons(driverState);
     networkAutostartConfigs(driverState);
     networkDriverUnlock(driverState);
     return 0;
@@ -467,6 +470,65 @@ networkShutdown(void) {
     return 0;
 }
 
+
+/* networkKillDaemon:
+ *
+ * kill the specified pid/name, and wait a bit to make sure it's dead.
+ */
+static int
+networkKillDaemon(pid_t pid, const char *daemonName, const char *networkName)
+{
+    int ii, ret = -1;
+    const char *signame = "TERM";
+
+    /* send SIGTERM, then wait up to 3 seconds for the process to
+     * disappear, send SIGKILL, then wait for up to another 2
+     * seconds. If that fails, log a warning and continue, hoping
+     * for the best.
+     */
+    for (ii = 0; ii < 25; ii++) {
+        int signum = 0;
+        if (ii == 0)
+            signum = SIGTERM;
+        else if (ii == 15) {
+            signum = SIGKILL;
+            signame = "KILL";
+        }
+        if (kill(pid, signum) < 0) {
+            if (errno == ESRCH) {
+                ret = 0;
+            } else {
+                char ebuf[1024];
+                VIR_WARN("Failed to terminate %s process %d "
+                         "for network '%s' with SIG%s: %s",
+                         daemonName, pid, networkName, signame,
+                         virStrerror(errno, ebuf, sizeof(ebuf)));
+            }
+            goto cleanup;
+        }
+        /* NB: since networks have no reference count like
+         * domains, there is no safe way to unlock the network
+         * object temporarily, and so we can't follow the
+         * procedure used by the qemu driver of 1) unlock driver
+         * 2) sleep, 3) add ref to object 4) unlock object, 5)
+         * re-lock driver, 6) re-lock object. We may need to add
+         * that functionality eventually, but for now this
+         * function is rarely used and, at worst, leaving the
+         * network driver locked during this loop of sleeps will
+         * have the effect of holding up any other thread trying
+         * to make modifications to a network for up to 5 seconds;
+         * since modifications to networks are much less common
+         * than modifications to domains, this seems a reasonable
+         * tradeoff in exchange for less code disruption.
+         */
+        usleep(20 * 1000);
+    }
+    VIR_WARN("Timed out waiting after SIG%s to %s process %d "
+             "(network '%s')",
+             signame, daemonName, pid, networkName);
+cleanup:
+    return ret;
+}
 
 static int
 networkBuildDnsmasqHostsfile(dnsmasqContext *dctx,
@@ -543,7 +605,7 @@ networkBuildDnsmasqArgv(virNetworkObjPtr network,
     /* need to specify local even if no domain specified */
     virCommandAddArgFormat(cmd, "--local=/%s/",
                            network->def->domain ? network->def->domain : "");
-    virCommandAddArgList(cmd, "--domain-needed", "--filterwin2k", NULL);
+    virCommandAddArg(cmd, "--domain-needed");
 
     if (pidfile)
         virCommandAddArgPair(cmd, "--pid-file", pidfile);
@@ -777,6 +839,12 @@ networkStartDhcpDaemon(virNetworkObjPtr network)
     int ret = -1;
     dnsmasqContext *dctx = NULL;
 
+    if (!virNetworkDefGetIpByIndex(network->def, AF_UNSPEC, 0)) {
+        /* no IPv6 addresses, so we don't need to run radvd */
+        ret = 0;
+        goto cleanup;
+    }
+
     if (virFileMakePath(NETWORK_PID_DIR) < 0) {
         virReportSystemError(errno,
                              _("cannot create directory %s"),
@@ -840,19 +908,199 @@ cleanup:
     return ret;
 }
 
+/* networkRefreshDhcpDaemon:
+ *  Update dnsmasq config files, then send a SIGHUP so that it rereads
+ *  them.
+ *
+ *  Returns 0 on success, -1 on failure.
+ */
+static int
+networkRefreshDhcpDaemon(virNetworkObjPtr network)
+{
+    int ret = -1, ii;
+    virNetworkIpDefPtr ipdef;
+    dnsmasqContext *dctx = NULL;
+
+    /* if there's no running dnsmasq, just start it */
+    if (network->dnsmasqPid <= 0 || (kill(network->dnsmasqPid, 0) < 0))
+        return networkStartDhcpDaemon(network);
+
+    /* Look for first IPv4 address that has dhcp defined. */
+    /* We support dhcp config on 1 IPv4 interface only. */
+    for (ii = 0;
+         (ipdef = virNetworkDefGetIpByIndex(network->def, AF_INET, ii));
+         ii++) {
+        if (ipdef->nranges || ipdef->nhosts)
+            break;
+    }
+    /* If no IPv4 addresses had dhcp info, pick the first (if there were any). */
+    if (!ipdef)
+        ipdef = virNetworkDefGetIpByIndex(network->def, AF_INET, 0);
+
+    if (!ipdef) {
+        /* no <ip> elements, so nothing to do */
+        return 0;
+    }
+
+    if (!(dctx = dnsmasqContextNew(network->def->name, DNSMASQ_STATE_DIR)))
+        goto cleanup;
+
+    if (networkBuildDnsmasqHostsfile(dctx, ipdef, network->def->dns) < 0)
+       goto cleanup;
+
+    if ((ret = dnsmasqSave(dctx)) < 0)
+        goto cleanup;
+
+    ret = kill(network->dnsmasqPid, SIGHUP);
+cleanup:
+    dnsmasqContextFree(dctx);
+    return ret;
+}
+
+/* networkRestartDhcpDaemon:
+ *
+ * kill and restart dnsmasq, in order to update any config that is on
+ * the dnsmasq commandline (and any placed in separate config files).
+ *
+ *  Returns 0 on success, -1 on failure.
+ */
+static int
+networkRestartDhcpDaemon(virNetworkObjPtr network)
+{
+    /* if there is a running dnsmasq, kill it */
+    if (network->dnsmasqPid > 0) {
+        networkKillDaemon(network->dnsmasqPid, "dnsmasq",
+                          network->def->name);
+        network->dnsmasqPid = -1;
+    }
+    /* now start dnsmasq if it should be started */
+    return networkStartDhcpDaemon(network);
+}
+
+static int
+networkRadvdConfContents(virNetworkObjPtr network, char **configstr)
+{
+    virBuffer configbuf = VIR_BUFFER_INITIALIZER;;
+    int ret = -1, ii;
+    virNetworkIpDefPtr ipdef;
+    bool v6present = false;
+
+    *configstr = NULL;
+
+    /* create radvd config file appropriate for this network */
+    virBufferAsprintf(&configbuf, "interface %s\n"
+                      "{\n"
+                      "  AdvSendAdvert on;\n"
+                      "  AdvManagedFlag off;\n"
+                      "  AdvOtherConfigFlag off;\n"
+                      "\n",
+                      network->def->bridge);
+
+    /* add a section for each IPv6 address in the config */
+    for (ii = 0;
+         (ipdef = virNetworkDefGetIpByIndex(network->def, AF_INET6, ii));
+         ii++) {
+        int prefix;
+        char *netaddr;
+
+        v6present = true;
+        prefix = virNetworkIpDefPrefix(ipdef);
+        if (prefix < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("bridge '%s' has an invalid prefix"),
+                           network->def->bridge);
+            goto cleanup;
+        }
+        if (!(netaddr = virSocketAddrFormat(&ipdef->address)))
+            goto cleanup;
+        virBufferAsprintf(&configbuf,
+                          "  prefix %s/%d\n"
+                          "  {\n"
+                          "    AdvOnLink on;\n"
+                          "    AdvAutonomous on;\n"
+                          "    AdvRouterAddr off;\n"
+                          "  };\n",
+                          netaddr, prefix);
+        VIR_FREE(netaddr);
+    }
+
+    /* only create the string if we found at least one IPv6 address */
+    if (v6present) {
+        virBufferAddLit(&configbuf, "};\n");
+
+        if (virBufferError(&configbuf)) {
+            virReportOOMError();
+            goto cleanup;
+        }
+        if (!(*configstr = virBufferContentAndReset(&configbuf))) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+    ret = 0;
+cleanup:
+    virBufferFreeAndReset(&configbuf);
+    return ret;
+}
+
+/* write file and return it's name (which must be freed by caller) */
+static int
+networkRadvdConfWrite(virNetworkObjPtr network, char **configFile)
+{
+    int ret = -1;
+    char *configStr = NULL;
+    char *myConfigFile = NULL;
+
+    if (!configFile)
+        configFile = &myConfigFile;
+
+    *configFile = NULL;
+
+    if (networkRadvdConfContents(network, &configStr) < 0)
+        goto cleanup;
+
+    if (!configStr) {
+        ret = 0;
+        goto cleanup;
+    }
+
+    /* construct the filename */
+    if (!(*configFile = networkRadvdConfigFileName(network->def->name))) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    /* write the file */
+    if (virFileWriteStr(*configFile, configStr, 0600) < 0) {
+        virReportSystemError(errno,
+                             _("couldn't write radvd config file '%s'"),
+                             *configFile);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
+    VIR_FREE(configStr);
+    VIR_FREE(myConfigFile);
+    return ret;
+}
+
 static int
 networkStartRadvd(virNetworkObjPtr network)
 {
     char *pidfile = NULL;
     char *radvdpidbase = NULL;
-    virBuffer configbuf = VIR_BUFFER_INITIALIZER;;
-    char *configstr = NULL;
     char *configfile = NULL;
     virCommandPtr cmd = NULL;
-    int ret = -1, ii;
-    virNetworkIpDefPtr ipdef;
+    int ret = -1;
 
     network->radvdPid = -1;
+
+    if (!virNetworkDefGetIpByIndex(network->def, AF_INET6, 0)) {
+        /* no IPv6 addresses, so we don't need to run radvd */
+        ret = 0;
+        goto cleanup;
+    }
 
     if (!virFileIsExecutable(RADVD)) {
         virReportSystemError(errno,
@@ -885,63 +1133,8 @@ networkStartRadvd(virNetworkObjPtr network)
         goto cleanup;
     }
 
-    /* create radvd config file appropriate for this network */
-    virBufferAsprintf(&configbuf, "interface %s\n"
-                      "{\n"
-                      "  AdvSendAdvert on;\n"
-                      "  AdvManagedFlag off;\n"
-                      "  AdvOtherConfigFlag off;\n"
-                      "\n",
-                      network->def->bridge);
-    for (ii = 0;
-         (ipdef = virNetworkDefGetIpByIndex(network->def, AF_INET6, ii));
-         ii++) {
-        int prefix;
-        char *netaddr;
-
-        prefix = virNetworkIpDefPrefix(ipdef);
-        if (prefix < 0) {
-            virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("bridge '%s' has an invalid prefix"),
-                           network->def->bridge);
-            goto cleanup;
-        }
-        if (!(netaddr = virSocketAddrFormat(&ipdef->address)))
-            goto cleanup;
-        virBufferAsprintf(&configbuf,
-                          "  prefix %s/%d\n"
-                          "  {\n"
-                          "    AdvOnLink on;\n"
-                          "    AdvAutonomous on;\n"
-                          "    AdvRouterAddr off;\n"
-                          "  };\n",
-                          netaddr, prefix);
-        VIR_FREE(netaddr);
-    }
-
-    virBufferAddLit(&configbuf, "};\n");
-
-    if (virBufferError(&configbuf)) {
-        virReportOOMError();
+    if (networkRadvdConfWrite(network, &configfile) < 0)
         goto cleanup;
-    }
-    if (!(configstr = virBufferContentAndReset(&configbuf))) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    /* construct the filename */
-    if (!(configfile = networkRadvdConfigFileName(network->def->name))) {
-        virReportOOMError();
-        goto cleanup;
-    }
-    /* write the file */
-    if (virFileWriteStr(configfile, configstr, 0600) < 0) {
-        virReportSystemError(errno,
-                             _("couldn't write radvd config file '%s'"),
-                             configfile);
-        goto cleanup;
-    }
 
     /* prevent radvd from daemonizing itself with "--debug 1", and use
      * a dummy pidfile name - virCommand will create the pidfile we
@@ -963,19 +1156,92 @@ networkStartRadvd(virNetworkObjPtr network)
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
-    if (virPidFileRead(NETWORK_PID_DIR, radvdpidbase,
-                       &network->radvdPid) < 0)
+    if (virPidFileRead(NETWORK_PID_DIR, radvdpidbase, &network->radvdPid) < 0)
         goto cleanup;
 
     ret = 0;
 cleanup:
     virCommandFree(cmd);
     VIR_FREE(configfile);
-    VIR_FREE(configstr);
-    virBufferFreeAndReset(&configbuf);
     VIR_FREE(radvdpidbase);
     VIR_FREE(pidfile);
     return ret;
+}
+
+static int
+networkRefreshRadvd(virNetworkObjPtr network)
+{
+    /* if there's no running radvd, just start it */
+    if (network->radvdPid <= 0 || (kill(network->radvdPid, 0) < 0))
+        return networkStartRadvd(network);
+
+    if (!virNetworkDefGetIpByIndex(network->def, AF_INET6, 0)) {
+        /* no IPv6 addresses, so we don't need to run radvd */
+        return 0;
+    }
+
+    if (networkRadvdConfWrite(network, NULL) < 0)
+        return -1;
+
+    return kill(network->radvdPid, SIGHUP);
+}
+
+#if 0
+/* currently unused, so it causes a build error unless we #if it out */
+static int
+networkRestartRadvd(virNetworkObjPtr network)
+{
+    char *radvdpidbase;
+
+    /* if there is a running radvd, kill it */
+    if (network->radvdPid > 0) {
+        /* essentially ignore errors from the following two functions,
+         * since there's really no better recovery to be done than to
+         * just push ahead (and that may be exactly what's needed).
+         */
+        if ((networkKillDaemon(network->dnsmasqPid, "radvd",
+                               network->def->name) >= 0) &&
+            ((radvdpidbase = networkRadvdPidfileBasename(network->def->name))
+             != NULL)) {
+            virPidFileDelete(NETWORK_PID_DIR, radvdpidbase);
+            VIR_FREE(radvdpidbase);
+        }
+        network->radvdPid = -1;
+    }
+    /* now start radvd if it should be started */
+    return networkStartRadvd(network);
+}
+#endif /* #if 0 */
+
+/* SIGHUP/restart any dnsmasq or radvd daemons.
+ * This should be called when libvirtd is restarted.
+ */
+static void
+networkRefreshDaemons(struct network_driver *driver)
+{
+    unsigned int i;
+
+    VIR_INFO("Refreshing network daemons");
+
+    for (i = 0 ; i < driver->networks.count ; i++) {
+        virNetworkObjPtr network = driver->networks.objs[i];
+
+        virNetworkObjLock(network);
+        if (virNetworkObjIsActive(network) &&
+            ((network->def->forwardType == VIR_NETWORK_FORWARD_NONE) ||
+             (network->def->forwardType == VIR_NETWORK_FORWARD_NAT) ||
+             (network->def->forwardType == VIR_NETWORK_FORWARD_ROUTE))) {
+            /* Only the three L3 network types that are configured by
+             * libvirt will have a dnsmasq or radvd daemon associated
+             * with them.  Here we send a SIGHUP to an existing
+             * dnsmasq and/or radvd, or restart them if they've
+             * disappeared.
+             */
+            networkRefreshDhcpDaemon(network);
+            networkRefreshRadvd(network);
+        }
+        virNetworkObjUnlock(network);
+    }
 }
 
 static int
@@ -1895,7 +2161,7 @@ networkStartNetworkVirtual(struct network_driver *driver,
     return 0;
 
  err5:
-    ignore_value(virNetDevBandwidthClear(network->def->bridge));
+    virNetDevBandwidthClear(network->def->bridge);
 
  err4:
     if (!save_err)
@@ -1940,7 +2206,7 @@ networkStartNetworkVirtual(struct network_driver *driver,
 static int networkShutdownNetworkVirtual(struct network_driver *driver,
                                         virNetworkObjPtr network)
 {
-    ignore_value(virNetDevBandwidthClear(network->def->bridge));
+    virNetDevBandwidthClear(network->def->bridge);
 
     if (network->radvdPid > 0) {
         char *radvdpidbase;
@@ -2023,6 +2289,9 @@ networkStartNetwork(struct network_driver *driver,
         return -1;
     }
 
+    if (virNetworkObjSetDefTransient(network, true) < 0)
+        return -1;
+
     switch (network->def->forwardType) {
 
     case VIR_NETWORK_FORWARD_NONE:
@@ -2046,7 +2315,7 @@ networkStartNetwork(struct network_driver *driver,
     /* Persist the live configuration now that anything autogenerated
      * is setup.
      */
-    if ((ret = virNetworkSaveConfig(NETWORK_STATE_DIR, network->def)) < 0) {
+    if ((ret = virNetworkSaveStatus(NETWORK_STATE_DIR, network)) < 0) {
         goto error;
     }
 
@@ -2263,6 +2532,22 @@ static int networkListDefinedNetworks(virConnectPtr conn, char **const names, in
     return -1;
 }
 
+static int
+networkListAllNetworks(virConnectPtr conn,
+                       virNetworkPtr **nets,
+                       unsigned int flags)
+{
+    struct network_driver *driver = conn->networkPrivateData;
+    int ret = -1;
+
+    virCheckFlags(VIR_CONNECT_LIST_NETWORKS_FILTERS_ALL, -1);
+
+    networkDriverLock(driver);
+    ret = virNetworkList(conn, driver->networks, nets, flags);
+    networkDriverUnlock(driver);
+
+    return ret;
+}
 
 static int networkIsActive(virNetworkPtr net)
 {
@@ -2373,8 +2658,10 @@ static virNetworkPtr networkCreate(virConnectPtr conn, const char *xml) {
     if (networkValidate(def) < 0)
        goto cleanup;
 
-    if (!(network = virNetworkAssignDef(&driver->networks,
-                                        def)))
+    /* NB: "live" is false because this transient network hasn't yet
+     * been started
+     */
+    if (!(network = virNetworkAssignDef(&driver->networks, def, false)))
         goto cleanup;
     def = NULL;
 
@@ -2449,8 +2736,7 @@ static virNetworkPtr networkDefine(virConnectPtr conn, const char *xml) {
     if (networkValidate(def) < 0)
        goto cleanup;
 
-    if (!(network = virNetworkAssignDef(&driver->networks,
-                                        def)))
+    if (!(network = virNetworkAssignDef(&driver->networks, def, false)))
         goto cleanup;
     freeDef = false;
 
@@ -2565,6 +2851,118 @@ static int networkUndefine(virNetworkPtr net) {
     network = NULL;
     ret = 0;
 
+cleanup:
+    if (network)
+        virNetworkObjUnlock(network);
+    networkDriverUnlock(driver);
+    return ret;
+}
+
+static int
+networkUpdate(virNetworkPtr net,
+              unsigned int command,
+              unsigned int section,
+              int parentIndex,
+              const char *xml,
+              unsigned int flags)
+{
+    struct network_driver *driver = net->conn->networkPrivateData;
+    virNetworkObjPtr network = NULL;
+    int isActive, ret = -1;
+
+    virCheckFlags(VIR_NETWORK_UPDATE_AFFECT_LIVE |
+                  VIR_NETWORK_UPDATE_AFFECT_CONFIG,
+                  -1);
+
+    networkDriverLock(driver);
+
+    network = virNetworkFindByUUID(&driver->networks, net->uuid);
+    if (!network) {
+        virReportError(VIR_ERR_NO_NETWORK,
+                       "%s", _("no network with matching uuid"));
+        goto cleanup;
+    }
+
+    /* VIR_NETWORK_UPDATE_AFFECT_CURRENT means "change LIVE if network
+     * is active, else change CONFIG
+    */
+    isActive = virNetworkObjIsActive(network);
+    if ((flags & (VIR_NETWORK_UPDATE_AFFECT_LIVE
+                   | VIR_NETWORK_UPDATE_AFFECT_CONFIG)) ==
+        VIR_NETWORK_UPDATE_AFFECT_CURRENT) {
+        if (isActive)
+            flags |= VIR_NETWORK_UPDATE_AFFECT_LIVE;
+        else
+            flags |= VIR_NETWORK_UPDATE_AFFECT_CONFIG;
+    }
+
+    /* update the network config in memory/on disk */
+    if (virNetworkObjUpdate(network, command, section, parentIndex, xml, flags) < 0)
+        goto cleanup;
+
+    if (flags & VIR_NETWORK_UPDATE_AFFECT_CONFIG) {
+        /* save updated persistent config to disk */
+        if (virNetworkSaveConfig(driver->networkConfigDir,
+                                 virNetworkObjGetPersistentDef(network)) < 0) {
+            goto cleanup;
+        }
+    }
+
+    if (isActive && (flags & VIR_NETWORK_UPDATE_AFFECT_LIVE)) {
+        /* rewrite dnsmasq host files, restart dnsmasq, update iptables
+         * rules, etc, according to which section was modified. Note that
+         * some sections require multiple actions, so a single switch
+         * statement is inadequate.
+         */
+        if (section == VIR_NETWORK_SECTION_BRIDGE ||
+            section == VIR_NETWORK_SECTION_DOMAIN ||
+            section == VIR_NETWORK_SECTION_IP ||
+            section == VIR_NETWORK_SECTION_IP_DHCP_RANGE) {
+            /* these sections all change things on the dnsmasq commandline,
+             * so we need to kill and restart dnsmasq.
+             */
+            if (networkRestartDhcpDaemon(network) < 0)
+                goto cleanup;
+
+        } else if (section == VIR_NETWORK_SECTION_IP_DHCP_HOST ||
+                   section == VIR_NETWORK_SECTION_DNS_HOST ||
+                   section == VIR_NETWORK_SECTION_DNS_TXT ||
+                   section == VIR_NETWORK_SECTION_DNS_SRV) {
+            /* these sections only change things in config files, so we
+             * can just update the config files and send SIGHUP to
+             * dnsmasq.
+             */
+            if (networkRefreshDhcpDaemon(network) < 0)
+                goto cleanup;
+
+        }
+
+        if (section == VIR_NETWORK_SECTION_IP) {
+            /* only a change in IP addresses will affect radvd, and all of radvd's
+             * config is stored in the conf file which will be re-read with a SIGHUP.
+             */
+            if (networkRefreshRadvd(network) < 0)
+                goto cleanup;
+        }
+
+        if ((section == VIR_NETWORK_SECTION_IP ||
+             section == VIR_NETWORK_SECTION_FORWARD ||
+             section == VIR_NETWORK_SECTION_FORWARD_INTERFACE) &&
+           (network->def->forwardType == VIR_NETWORK_FORWARD_NONE ||
+            network->def->forwardType == VIR_NETWORK_FORWARD_NAT ||
+            network->def->forwardType == VIR_NETWORK_FORWARD_ROUTE)) {
+            /* these could affect the iptables rules */
+            networkRemoveIptablesRules(driver, network);
+            if (networkAddIptablesRules(driver, network) < 0)
+                goto cleanup;
+
+        }
+
+        /* save current network state to disk */
+        if ((ret = virNetworkSaveStatus(NETWORK_STATE_DIR, network)) < 0)
+            goto cleanup;
+    }
+    ret = 0;
 cleanup:
     if (network)
         virNetworkObjUnlock(network);
@@ -2793,11 +3191,13 @@ static virNetworkDriver networkDriver = {
     .listNetworks = networkListNetworks, /* 0.2.0 */
     .numOfDefinedNetworks = networkNumDefinedNetworks, /* 0.2.0 */
     .listDefinedNetworks = networkListDefinedNetworks, /* 0.2.0 */
+    .listAllNetworks = networkListAllNetworks, /* 0.10.2 */
     .networkLookupByUUID = networkLookupByUUID, /* 0.2.0 */
     .networkLookupByName = networkLookupByName, /* 0.2.0 */
     .networkCreateXML = networkCreate, /* 0.2.0 */
     .networkDefineXML = networkDefine, /* 0.2.0 */
     .networkUndefine = networkUndefine, /* 0.2.0 */
+    .networkUpdate = networkUpdate, /* 0.10.2 */
     .networkCreate = networkStart, /* 0.2.0 */
     .networkDestroy = networkDestroy, /* 0.2.0 */
     .networkGetXMLDesc = networkGetXMLDesc, /* 0.2.0 */

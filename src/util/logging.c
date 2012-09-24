@@ -14,7 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  */
@@ -31,11 +31,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
+#include <execinfo.h>
 #if HAVE_SYSLOG_H
 # include <syslog.h>
-#endif
-#ifdef HAVE_EXECINFO_H
-# include <execinfo.h>
 #endif
 
 #include "virterror_internal.h"
@@ -100,12 +98,12 @@ static virLogPriority virLogDefaultPriority = VIR_LOG_DEFAULT;
 
 static int virLogResetFilters(void);
 static int virLogResetOutputs(void);
-static int virLogOutputToFd(const char *category, int priority,
-                            const char *funcname, long long linenr,
-                            const char *timestamp,
-                            unsigned int flags,
-                            const char *str,
-                            void *data);
+static void virLogOutputToFd(const char *category, int priority,
+                             const char *funcname, long long linenr,
+                             const char *timestamp,
+                             unsigned int flags,
+                             const char *str,
+                             void *data);
 
 /*
  * Logs accesses must be serialized though a mutex
@@ -792,51 +790,46 @@ cleanup:
 
 static void virLogStackTraceToFd(int fd)
 {
-#ifdef HAVE_EXECINFO_H
     void *array[100];
     int size;
-
-# define STRIP_DEPTH 3
-
-    size = backtrace(array, ARRAY_CARDINALITY(array));
-    backtrace_symbols_fd(array +  STRIP_DEPTH, size - STRIP_DEPTH, fd);
-    ignore_value(safewrite(fd, "\n", 1));
-#else
     static bool doneWarning = false;
     const char *msg = "Stack trace not available on this platform\n";
-    if (!doneWarning) {
+
+#define STRIP_DEPTH 3
+    size = backtrace(array, ARRAY_CARDINALITY(array));
+    if (size) {
+        backtrace_symbols_fd(array +  STRIP_DEPTH, size - STRIP_DEPTH, fd);
+        ignore_value(safewrite(fd, "\n", 1));
+    } else if (!doneWarning) {
         ignore_value(safewrite(fd, msg, strlen(msg)));
         doneWarning = true;
     }
-#endif
+#undef STRIP_DEPTH
 }
 
-static int virLogOutputToFd(const char *category ATTRIBUTE_UNUSED,
-                            int priority ATTRIBUTE_UNUSED,
-                            const char *funcname ATTRIBUTE_UNUSED,
-                            long long linenr ATTRIBUTE_UNUSED,
-                            const char *timestamp,
-                            unsigned int flags,
-                            const char *str,
-                            void *data)
+static void virLogOutputToFd(const char *category ATTRIBUTE_UNUSED,
+                             int priority ATTRIBUTE_UNUSED,
+                             const char *funcname ATTRIBUTE_UNUSED,
+                             long long linenr ATTRIBUTE_UNUSED,
+                             const char *timestamp,
+                             unsigned int flags,
+                             const char *str,
+                             void *data)
 {
     int fd = (intptr_t) data;
-    int ret;
     char *msg;
 
     if (fd < 0)
-        return -1;
+        return;
 
     if (virAsprintf(&msg, "%s: %s", timestamp, str) < 0)
-        return -1;
+        return;
 
-    ret = safewrite(fd, msg, strlen(msg));
+    ignore_value(safewrite(fd, msg, strlen(msg)));
     VIR_FREE(msg);
 
     if (flags & VIR_LOG_STACK_TRACE)
         virLogStackTraceToFd(fd);
-
-    return ret;
 }
 
 static void virLogCloseFd(void *data)
@@ -869,18 +862,18 @@ static int virLogAddOutputToFile(int priority, const char *file) {
 }
 
 #if HAVE_SYSLOG_H
-static int virLogOutputToSyslog(const char *category ATTRIBUTE_UNUSED,
-                                int priority,
-                                const char *funcname ATTRIBUTE_UNUSED,
-                                long long linenr ATTRIBUTE_UNUSED,
-                                const char *timestamp ATTRIBUTE_UNUSED,
-                                unsigned int flags,
-                                const char *str,
-                                void *data ATTRIBUTE_UNUSED)
+static void virLogOutputToSyslog(const char *category ATTRIBUTE_UNUSED,
+                                 int priority,
+                                 const char *funcname ATTRIBUTE_UNUSED,
+                                 long long linenr ATTRIBUTE_UNUSED,
+                                 const char *timestamp ATTRIBUTE_UNUSED,
+                                 unsigned int flags,
+                                 const char *str,
+                                 void *data ATTRIBUTE_UNUSED)
 {
     int prio;
 
-    virCheckFlags(VIR_LOG_STACK_TRACE, -1);
+    virCheckFlags(VIR_LOG_STACK_TRACE,);
 
     switch (priority) {
         case VIR_LOG_DEBUG:
@@ -899,7 +892,6 @@ static int virLogOutputToSyslog(const char *category ATTRIBUTE_UNUSED,
             prio = LOG_ERR;
     }
     syslog(prio, "%s", str);
-    return strlen(str);
 }
 
 static char *current_ident = NULL;

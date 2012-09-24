@@ -14,7 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  *  Daniel Veillard <veillard@redhat.com>
@@ -37,6 +37,7 @@
 #include "util.h"
 #include "virsh-domain.h"
 #include "xml.h"
+#include "virtypedparam.h"
 
 /*
  * "capabilities" command
@@ -51,9 +52,6 @@ static bool
 cmdCapabilities(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 {
     char *caps;
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     if ((caps = virConnectGetCapabilities(ctl->conn)) == NULL) {
         vshError(ctl, "%s", _("failed to get capabilities"));
@@ -148,10 +146,6 @@ cmdFreecell(vshControl *ctl, const vshCmd *cmd)
     char *cap_xml = NULL;
     xmlDocPtr xml = NULL;
     xmlXPathContextPtr ctxt = NULL;
-
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     if ( (cell_given = vshCommandOptInt(cmd, "cellno", &cell)) < 0) {
         vshError(ctl, "%s", _("cell number has to be a number"));
@@ -259,9 +253,6 @@ cmdNodeinfo(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 {
     virNodeInfo info;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
-
     if (virNodeGetInfo(ctl->conn, &info) < 0) {
         vshError(ctl, "%s", _("failed to get node information"));
         return false;
@@ -312,9 +303,6 @@ cmdNodeCpuStats(vshControl *ctl, const vshCmd *cmd)
     } cpu_stats[2];
     double user_time, sys_time, idle_time, iowait_time, total_time;
     double usage;
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     if (vshCommandOptInt(cmd, "cpu", &cpuNum) < 0) {
         vshError(ctl, "%s", _("Invalid value of cpuNum"));
@@ -429,9 +417,6 @@ cmdNodeMemStats(vshControl *ctl, const vshCmd *cmd)
     virNodeMemoryStatsPtr params = NULL;
     bool ret = false;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
-
     if (vshCommandOptInt(cmd, "cell", &cellNum) < 0) {
         vshError(ctl, "%s", _("Invalid value of cellNum"));
         return false;
@@ -492,9 +477,6 @@ cmdNodeSuspend(vshControl *ctl, const vshCmd *cmd)
     unsigned int suspendTarget;
     long long duration;
     unsigned int flags = 0;
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     if (vshCommandOptString(cmd, "target", &target) < 0) {
         vshError(ctl, _("Invalid target argument"));
@@ -563,9 +545,6 @@ cmdQemuMonitorCommand(vshControl *ctl, const vshCmd *cmd)
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     bool pad = false;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        goto cleanup;
-
     dom = vshCommandOptDomain(ctl, cmd, NULL);
     if (dom == NULL)
         goto cleanup;
@@ -623,9 +602,6 @@ cmdQemuAttach(vshControl *ctl, const vshCmd *cmd)
     unsigned int flags = 0;
     unsigned int pid_value; /* API uses unsigned int, not pid_t */
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        goto cleanup;
-
     if (vshCommandOptUInt(cmd, "pid", &pid_value) <= 0) {
         vshError(ctl, "%s", _("missing pid value"));
         goto cleanup;
@@ -678,9 +654,6 @@ cmdQemuAgentCommand(vshControl *ctl, const vshCmd *cmd)
     const vshCmdOpt *opt = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     bool pad = false;
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        goto cleanup;
 
     dom = vshCommandOptDomain(ctl, cmd, NULL);
     if (dom == NULL)
@@ -752,9 +725,6 @@ cmdSysinfo(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 {
     char *sysinfo;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
-
     sysinfo = virConnectGetSysinfo(ctl->conn, 0);
     if (sysinfo == NULL) {
         vshError(ctl, "%s", _("failed to get sysinfo"));
@@ -781,9 +751,6 @@ cmdHostname(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 {
     char *hostname;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
-
     hostname = virConnectGetHostname(ctl->conn);
     if (hostname == NULL) {
         vshError(ctl, "%s", _("failed to get hostname"));
@@ -809,9 +776,6 @@ static bool
 cmdURI(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 {
     char *uri;
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     uri = virConnectGetURI(ctl->conn);
     if (uri == NULL) {
@@ -852,9 +816,6 @@ cmdVersion(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     unsigned int major;
     unsigned int minor;
     unsigned int rel;
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     hvType = virConnectGetType(ctl->conn);
     if (hvType == NULL) {
@@ -924,12 +885,127 @@ cmdVersion(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     return true;
 }
 
+static const vshCmdInfo info_node_memory_tune[] = {
+    {"help", N_("Get or set node memory parameters")},
+    {"desc", N_("Get or set node memory parameters"
+                "    To get the memory parameters, use following command: \n\n"
+                "    virsh # node-memory-tune")},
+    {NULL, NULL}
+};
+
+static const vshCmdOptDef opts_node_memory_tune[] = {
+    {"shm-pages-to-scan", VSH_OT_INT, VSH_OFLAG_NONE,
+      N_("number of pages to scan before the shared memory service "
+         "goes to sleep")},
+    {"shm-sleep-millisecs", VSH_OT_INT, VSH_OFLAG_NONE,
+      N_("number of millisecs the shared memory service should "
+         "sleep before next scan")},
+    {NULL, 0, 0, NULL}
+};
+
+static bool
+cmdNodeMemoryTune(vshControl *ctl, const vshCmd *cmd)
+{
+    virTypedParameterPtr params = NULL;
+    int nparams = 0;
+    unsigned int flags = 0;
+    unsigned int shm_pages_to_scan = 0;
+    unsigned int shm_sleep_millisecs = 0;
+    bool ret = false;
+    int i = 0;
+
+    if (vshCommandOptUInt(cmd, "shm-pages-to-scan",
+                          &shm_pages_to_scan) < 0) {
+        vshError(ctl, "%s", _("invalid shm-pages-to-scan number"));
+        return false;
+    }
+
+    if (vshCommandOptUInt(cmd, "shm-sleep-millisecs",
+                          &shm_sleep_millisecs) < 0) {
+        vshError(ctl, "%s", _("invalid shm-sleep-millisecs number"));
+        return false;
+    }
+
+    if (shm_pages_to_scan)
+        nparams++;
+
+    if (shm_sleep_millisecs)
+        nparams++;
+
+    if (nparams == 0) {
+        /* Get the number of memory parameters */
+        if (virNodeGetMemoryParameters(ctl->conn, NULL, &nparams, flags) != 0) {
+            vshError(ctl, "%s",
+                     _("Unable to get number of memory parameters"));
+            goto cleanup;
+        }
+
+        if (nparams == 0) {
+            ret = true;
+            goto cleanup;
+        }
+
+        /* Now go get all the memory parameters */
+        params = vshCalloc(ctl, nparams, sizeof(*params));
+        if (virNodeGetMemoryParameters(ctl->conn, params, &nparams, flags) != 0) {
+            vshError(ctl, "%s", _("Unable to get memory parameters"));
+            goto cleanup;
+        }
+
+        /* XXX: Need to sort the returned params once new parameter
+         * fields not of shared memory are added.
+         */
+        vshPrint(ctl, _("Shared memory:\n"));
+        for (i = 0; i < nparams; i++) {
+            char *str = vshGetTypedParamValue(ctl, &params[i]);
+            vshPrint(ctl, "\t%-15s %s\n", params[i].field, str);
+            VIR_FREE(str);
+        }
+
+        ret = true;
+    } else {
+        /* Set the memory parameters */
+        params = vshCalloc(ctl, nparams, sizeof(*params));
+
+        if (i < nparams && shm_pages_to_scan) {
+            if (virTypedParameterAssign(&params[i++],
+                                        VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN,
+                                        VIR_TYPED_PARAM_UINT,
+                                        shm_pages_to_scan) < 0)
+                goto error;
+        }
+
+        if (i < nparams && shm_sleep_millisecs) {
+            if (virTypedParameterAssign(&params[i++],
+                                        VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS,
+                                        VIR_TYPED_PARAM_UINT,
+                                        shm_sleep_millisecs) < 0)
+                goto error;
+        }
+
+        if (virNodeSetMemoryParameters(ctl->conn, params, nparams, flags) != 0)
+            goto error;
+        else
+            ret = true;
+    }
+
+cleanup:
+    VIR_FREE(params);
+    return ret;
+
+error:
+    vshError(ctl, "%s", _("Unable to change memory parameters"));
+    goto cleanup;
+}
+
 const vshCmdDef hostAndHypervisorCmds[] = {
     {"capabilities", cmdCapabilities, NULL, info_capabilities, 0},
     {"connect", cmdConnect, opts_connect, info_connect,
      VSH_CMD_FLAG_NOCONNECT},
     {"freecell", cmdFreecell, opts_freecell, info_freecell, 0},
     {"hostname", cmdHostname, NULL, info_hostname, 0},
+    {"node-memory-tune", cmdNodeMemoryTune,
+     opts_node_memory_tune, info_node_memory_tune, 0},
     {"nodecpustats", cmdNodeCpuStats, opts_node_cpustats, info_nodecpustats, 0},
     {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo, 0},
     {"nodememstats", cmdNodeMemStats, opts_node_memstats, info_nodememstats, 0},

@@ -196,32 +196,39 @@
                 sub-elements for <code>vendor</code>, <code>version</code>,
                 <code>serial</code>, and <code>uuid</code>.</dd><dt><code>firmware</code></dt><dd>Describes the firmware of the system, including
                 sub-elements for <code>vendor</code>, <code>version</code>,
-                and <code>release_date</code>.</dd></dl></dd><dt><code>pci</code></dt><dd>Describes a device on the host's PCI bus.  Sub-elements
+                and <code>release_date</code>.</dd></dl>
+          </dd><dt><code>pci</code></dt><dd>Describes a device on the host's PCI bus.  Sub-elements
             include:
             <dl><dt><code>domain</code></dt><dd>Which domain the device belongs to.</dd><dt><code>bus</code></dt><dd>Which bus within the domain.</dd><dt><code>slot</code></dt><dd>Which slot within the bus.</dd><dt><code>function</code></dt><dd>Which function within the slot.</dd><dt><code>product</code></dt><dd>Product details from the device ROM, including an
                 attribute <code>id</code> with the hexadecimal product
                 id, and an optional text description of that id.</dd><dt><code>vendor</code></dt><dd>Vendor details from the device ROM, including an
                 attribute <code>id</code> with the hexadecimal vendor
-                id, and an optional text name of that vendor.</dd></dl></dd><dt><code>usb_device</code></dt><dd>Describes a device on the host's USB bus, based on its
+                id, and an optional text name of that vendor.</dd></dl>
+          </dd><dt><code>usb_device</code></dt><dd>Describes a device on the host's USB bus, based on its
             location within the bus.  Sub-elements include:
             <dl><dt><code>bus</code></dt><dd>Which bus the device belongs to.</dd><dt><code>device</code></dt><dd>Which device within the bus.</dd><dt><code>product</code></dt><dd>Product details from the device ROM, including an
                 attribute <code>id</code> with the hexadecimal product
                 id, and an optional text description of that id.</dd><dt><code>vendor</code></dt><dd>Vendor details from the device ROM, including an
                 attribute <code>id</code> with the hexadecimal vendor
-                id, and an optional text name of that vendor.</dd></dl></dd><dt><code>usb</code></dt><dd>Describes a USB device, based on its advertised driver
+                id, and an optional text name of that vendor.</dd></dl>
+          </dd><dt><code>usb</code></dt><dd>Describes a USB device, based on its advertised driver
             interface.  Sub-elements include:
-            <dl><dt><code>number</code></dt><dd>The device number.</dd><dt><code>number</code></dt><dd>The device class.</dd><dt><code>number</code></dt><dd>The device subclass.</dd><dt><code>number</code></dt><dd>The device protocol.</dd><dt><code>description</code></dt><dd>If present, a description of the device.</dd></dl></dd><dt><code>net</code></dt><dd>Describes a device capable for use as a network
+            <dl><dt><code>number</code></dt><dd>The device number.</dd><dt><code>number</code></dt><dd>The device class.</dd><dt><code>number</code></dt><dd>The device subclass.</dd><dt><code>number</code></dt><dd>The device protocol.</dd><dt><code>description</code></dt><dd>If present, a description of the device.</dd></dl>
+          </dd><dt><code>net</code></dt><dd>Describes a device capable for use as a network
             interface.  Sub-elements include:
             <dl><dt><code>interface</code></dt><dd>The interface name tied to this device.</dd><dt><code>address</code></dt><dd>If present, the MAC address of the device.</dd><dt><code>capability</code></dt><dd>A network protocol exposed by the device, where the
                 attribute <code>type</code> can be "80203" for IEEE
                 802.3, or "80211" for various flavors of IEEE 802.11.
-              </dd></dl></dd><dt><code>scsi_host</code></dt><dd>Describes a SCSI host device.  Sub-elements include:
+              </dd></dl>
+          </dd><dt><code>scsi_host</code></dt><dd>Describes a SCSI host device.  Sub-elements include:
             <dl><dt><code>host</code></dt><dd>The SCSI host number.</dd><dt><code>capability</code></dt><dd>Current capabilities include "vports_ops" (indicates
                 vport operations are supported) and "fc_host", the later
                 implies following sub-elements: <code>wwnn</code>,
                 <code>wwpn</code>, <code>fabric_wwn</code>.
-              </dd></dl></dd><dt><code>scsi</code></dt><dd>Describes a SCSI device.  Sub-elements include:
-            <dl><dt><code>host</code></dt><dd>The SCSI host containing the device.</dd><dt><code>bus</code></dt><dd>The bus within the host.</dd><dt><code>target</code></dt><dd>The target within the bus.</dd><dt><code>lun</code></dt><dd>The lun within the target.</dd><dt><code>type</code></dt><dd>The type of SCSI device.</dd></dl></dd><dt><code>storage</code></dt><dd>Describes a device usable for storage.  Sub-elements
+              </dd></dl>
+          </dd><dt><code>scsi</code></dt><dd>Describes a SCSI device.  Sub-elements include:
+            <dl><dt><code>host</code></dt><dd>The SCSI host containing the device.</dd><dt><code>bus</code></dt><dd>The bus within the host.</dd><dt><code>target</code></dt><dd>The target within the bus.</dd><dt><code>lun</code></dt><dd>The lun within the target.</dd><dt><code>type</code></dt><dd>The type of SCSI device.</dd></dl>
+          </dd><dt><code>storage</code></dt><dd>Describes a device usable for storage.  Sub-elements
             include:
             <dl><dt><code>block</code></dt><dd>A block device file name that accesses the storage
                 present on the device.</dd><dt><code>bus</code></dt><dd>If present, the name of the bus the device is found
@@ -236,7 +243,9 @@
                 latter implying the following
                 sub-elements: <code>media_available</code> (0 or
                 1), <code>media_size</code>,
-                and <code>media_label</code>.</dd></dl></dd></dl></dd></dl>
+                and <code>media_label</code>.</dd></dl>
+          </dd></dl>
+      </dd></dl>
         <h2>
           <a name="nodeExample" id="nodeExample">Examples</a>
         </h2>

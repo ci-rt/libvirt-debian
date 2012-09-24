@@ -14,7 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  *  Daniel Veillard <veillard@redhat.com>
@@ -306,9 +306,6 @@ cmdDomMemStat(vshControl *ctl, const vshCmd *cmd)
     struct _virDomainMemoryStat stats[VIR_DOMAIN_MEMORY_STAT_NR];
     unsigned int nr_stats, i;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
-
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
 
@@ -364,9 +361,6 @@ cmdDomblkinfo(vshControl *ctl, const vshCmd *cmd)
     virDomainPtr dom;
     bool ret = true;
     const char *device = NULL;
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -425,9 +419,6 @@ cmdDomblklist(vshControl *ctl, const vshCmd *cmd)
         flags |= VIR_DOMAIN_XML_INACTIVE;
 
     details = vshCommandOptBool(cmd, "details");
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -530,9 +521,6 @@ cmdDomiflist(vshControl *ctl, const vshCmd *cmd)
     if (vshCommandOptBool(cmd, "inactive"))
         flags |= VIR_DOMAIN_XML_INACTIVE;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
-
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
@@ -631,9 +619,6 @@ cmdDomIfGetLink(vshControl *ctl, const vshCmd *cmd)
     xmlXPathContextPtr ctxt = NULL;
     xmlNodePtr cur = NULL;
     xmlXPathObjectPtr obj = NULL;
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -747,9 +732,6 @@ cmdDomControl(vshControl *ctl, const vshCmd *cmd)
     bool ret = true;
     virDomainControlInfo info;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
-
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
@@ -842,9 +824,6 @@ cmdDomblkstat(vshControl *ctl, const vshCmd *cmd)
     int i = 0;
     bool ret = false;
     bool human = vshCommandOptBool(cmd, "human"); /* human readable output */
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
@@ -968,9 +947,6 @@ cmdDomIfstat(vshControl *ctl, const vshCmd *cmd)
     const char *name = NULL, *device = NULL;
     struct _virDomainInterfaceStats stats;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
-
     if (!(dom = vshCommandOptDomain(ctl, cmd, &name)))
         return false;
 
@@ -1037,9 +1013,6 @@ cmdDomBlkError(vshControl *ctl, const vshCmd *cmd)
     int count;
     bool ret = false;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
-
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
@@ -1100,9 +1073,6 @@ cmdDominfo(vshControl *ctl, const vshCmd *cmd)
     unsigned int id;
     char *str, uuid[VIR_UUID_STRING_BUFLEN];
     int has_managed_save = 0;
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
@@ -1233,9 +1203,6 @@ cmdDomstate(vshControl *ctl, const vshCmd *cmd)
     bool showReason = vshCommandOptBool(cmd, "reason");
     int state, reason;
 
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
-
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
 
@@ -1323,7 +1290,6 @@ vshDomainListFree(vshDomainListPtr domlist)
     VIR_FREE(domlist);
 }
 
-#define MATCH(FLAG) (flags & (FLAG))
 static vshDomainListPtr
 vshDomainListCollect(vshControl *ctl, unsigned int flags)
 {
@@ -1379,8 +1345,8 @@ fallback:
     vshResetLibvirtError();
 
     /* list active domains, if necessary */
-    if (!MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_ACTIVE) ||
-        MATCH(VIR_CONNECT_LIST_DOMAINS_ACTIVE)) {
+    if (!VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_ACTIVE) ||
+        VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_ACTIVE)) {
         if ((nids = virConnectNumOfDomains(ctl->conn)) < 0) {
             vshError(ctl, "%s", _("Failed to list active domains"));
             goto cleanup;
@@ -1396,8 +1362,8 @@ fallback:
         }
     }
 
-    if (!MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_ACTIVE) ||
-        MATCH(VIR_CONNECT_LIST_DOMAINS_INACTIVE)) {
+    if (!VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_ACTIVE) ||
+        VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_INACTIVE)) {
         if ((nnames = virConnectNumOfDefinedDomains(ctl->conn)) < 0) {
             vshError(ctl, "%s", _("Failed to list inactive domains"));
             goto cleanup;
@@ -1440,31 +1406,31 @@ filter:
         dom = list->domains[i];
 
         /* persistence filter */
-        if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_PERSISTENT)) {
+        if (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_PERSISTENT)) {
             if ((persistent = virDomainIsPersistent(dom)) < 0) {
                 vshError(ctl, "%s", _("Failed to get domain persistence info"));
                 goto cleanup;
             }
 
-            if (!((MATCH(VIR_CONNECT_LIST_DOMAINS_PERSISTENT) && persistent) ||
-                  (MATCH(VIR_CONNECT_LIST_DOMAINS_TRANSIENT) && !persistent)))
+            if (!((VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_PERSISTENT) && persistent) ||
+                  (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_TRANSIENT) && !persistent)))
                 goto remove_entry;
         }
 
         /* domain state filter */
-        if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_STATE)) {
+        if (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_STATE)) {
             if (virDomainGetState(dom, &state, NULL, 0) < 0) {
                 vshError(ctl, "%s", _("Failed to get domain state"));
                 goto cleanup;
             }
 
-            if (!((MATCH(VIR_CONNECT_LIST_DOMAINS_RUNNING) &&
+            if (!((VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_RUNNING) &&
                    state == VIR_DOMAIN_RUNNING) ||
-                  (MATCH(VIR_CONNECT_LIST_DOMAINS_PAUSED) &&
+                  (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_PAUSED) &&
                    state == VIR_DOMAIN_PAUSED) ||
-                  (MATCH(VIR_CONNECT_LIST_DOMAINS_SHUTOFF) &&
+                  (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_SHUTOFF) &&
                    state == VIR_DOMAIN_SHUTOFF) ||
-                  (MATCH(VIR_CONNECT_LIST_DOMAINS_OTHER) &&
+                  (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_OTHER) &&
                    (state != VIR_DOMAIN_RUNNING &&
                     state != VIR_DOMAIN_PAUSED &&
                     state != VIR_DOMAIN_SHUTOFF))))
@@ -1472,38 +1438,38 @@ filter:
         }
 
         /* autostart filter */
-        if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_AUTOSTART)) {
+        if (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_AUTOSTART)) {
             if (virDomainGetAutostart(dom, &autostart) < 0) {
                 vshError(ctl, "%s", _("Failed to get domain autostart state"));
                 goto cleanup;
             }
 
-            if (!((MATCH(VIR_CONNECT_LIST_DOMAINS_AUTOSTART) && autostart) ||
-                  (MATCH(VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART) && !autostart)))
+            if (!((VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_AUTOSTART) && autostart) ||
+                  (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_NO_AUTOSTART) && !autostart)))
                 goto remove_entry;
         }
 
         /* managed save filter */
-        if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_MANAGEDSAVE)) {
+        if (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_MANAGEDSAVE)) {
             if ((mansave = virDomainHasManagedSaveImage(dom, 0)) < 0) {
                 vshError(ctl, "%s",
                          _("Failed to check for managed save image"));
                 goto cleanup;
             }
 
-            if (!((MATCH(VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE) && mansave) ||
-                  (MATCH(VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE) && !mansave)))
+            if (!((VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_MANAGEDSAVE) && mansave) ||
+                  (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE) && !mansave)))
                 goto remove_entry;
         }
 
         /* snapshot filter */
-        if (MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_SNAPSHOT)) {
+        if (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_FILTERS_SNAPSHOT)) {
             if ((nsnap = virDomainSnapshotNum(dom, 0)) < 0) {
                 vshError(ctl, "%s", _("Failed to get snapshot count"));
                 goto cleanup;
             }
-            if (!((MATCH(VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT) && nsnap > 0) ||
-                  (MATCH(VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT) && nsnap == 0)))
+            if (!((VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_HAS_SNAPSHOT) && nsnap > 0) ||
+                  (VSH_MATCH(VIR_CONNECT_LIST_DOMAINS_NO_SNAPSHOT) && nsnap == 0)))
                 goto remove_entry;
         }
 
@@ -1542,7 +1508,6 @@ cleanup:
     VIR_FREE(ids);
     return list;
 }
-#undef MATCH
 
 static const vshCmdOptDef opts_list[] = {
     {"inactive", VSH_OT_BOOL, 0, N_("list inactive domains")},
@@ -1629,9 +1594,6 @@ cmdList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
 
     if (!optUUID && !optName)
         optTable = true;
-
-    if (!vshConnectionUsability(ctl, ctl->conn))
-        return false;
 
     if (!(list = vshDomainListCollect(ctl, flags)))
         goto cleanup;

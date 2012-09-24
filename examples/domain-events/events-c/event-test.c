@@ -90,6 +90,9 @@ const char *eventToString(int event) {
         case VIR_DOMAIN_EVENT_SHUTDOWN:
             ret = "Shutdown";
             break;
+        case VIR_DOMAIN_EVENT_PMSUSPENDED:
+            ret = "PMSuspended";
+            break;
     }
     return ret;
 }
@@ -190,6 +193,13 @@ static const char *eventDetailToString(int event, int detail) {
             switch ((virDomainEventShutdownDetailType) detail) {
             case VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED:
                 ret = "Finished";
+                break;
+            }
+            break;
+        case VIR_DOMAIN_EVENT_PMSUSPENDED:
+            switch ((virDomainEventPMSuspendedDetailType) detail) {
+            case VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY:
+                ret = "Memory";
                 break;
             }
             break;
@@ -377,7 +387,7 @@ static int myDomainEventPMWakeupCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
                                          int reason ATTRIBUTE_UNUSED,
                                          void *opaque ATTRIBUTE_UNUSED)
 {
-    printf("%s EVENT: Domain %s(%d) system pmwakeup",
+    printf("%s EVENT: Domain %s(%d) system pmwakeup\n",
            __func__, virDomainGetName(dom), virDomainGetID(dom));
     return 0;
 }
@@ -387,7 +397,7 @@ static int myDomainEventPMSuspendCallback(virConnectPtr conn ATTRIBUTE_UNUSED,
                                           int reason ATTRIBUTE_UNUSED,
                                           void *opaque ATTRIBUTE_UNUSED)
 {
-    printf("%s EVENT: Domain %s(%d) system pmsuspend",
+    printf("%s EVENT: Domain %s(%d) system pmsuspend\n",
            __func__, virDomainGetName(dom), virDomainGetID(dom));
     return 0;
 }
