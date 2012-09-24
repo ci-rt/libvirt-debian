@@ -142,6 +142,35 @@ done:
 }
 
 static int
+remoteDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base, const char *top, unsigned long bandwidth, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_block_commit_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.disk = (char *)disk;
+    args.base = base ? (char **)&base : NULL;
+    args.top = top ? (char **)&top : NULL;
+    args.bandwidth = bandwidth;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_BLOCK_COMMIT,
+             (xdrproc_t)xdr_remote_domain_block_commit_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainBlockJobAbort(virDomainPtr dom, const char *path, unsigned int flags)
 {
     int rv = -1;
@@ -4375,6 +4404,35 @@ done:
     return rv;
 }
 
+static int
+remoteNetworkUpdate(virNetworkPtr net, unsigned int command, unsigned int section, int parentIndex, const char *xml, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = net->conn->networkPrivateData;
+    remote_network_update_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_network(&args.net, net);
+    args.command = command;
+    args.section = section;
+    args.parentIndex = parentIndex;
+    args.xml = (char *)xml;
+    args.flags = flags;
+
+    if (call(net->conn, priv, 0, REMOTE_PROC_NETWORK_UPDATE,
+             (xdrproc_t)xdr_remote_network_update_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static virNodeDevicePtr
 remoteNodeDeviceCreateXML(virConnectPtr conn, const char *xml_desc, unsigned int flags)
 {
@@ -4744,6 +4802,36 @@ remoteNodeNumOfDevices(virConnectPtr conn, const char *cap, unsigned int flags)
     rv = ret.num;
 
 done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteNodeSetMemoryParameters(virConnectPtr conn, virTypedParameterPtr params, int nparams, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = conn->devMonPrivateData;
+    remote_node_set_memory_parameters_args args;
+
+    remoteDriverLock(priv);
+
+    args.flags = flags;
+
+    if (remoteSerializeTypedParameters(params, nparams, &args.params.params_val, &args.params.params_len) < 0) {
+        xdr_free((xdrproc_t)xdr_remote_node_set_memory_parameters_args, (char *)&args);
+        goto done;
+    }
+
+    if (call(conn, priv, 0, REMOTE_PROC_NODE_SET_MEMORY_PARAMETERS,
+             (xdrproc_t)xdr_remote_node_set_memory_parameters_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 }

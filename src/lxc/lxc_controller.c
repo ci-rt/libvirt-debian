@@ -18,7 +18,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -418,20 +418,19 @@ static int virLXCControllerSetupNUMAPolicy(virLXCControllerPtr ctrl)
 
     /* Convert nodemask to NUMA bitmask. */
     nodemask_zero(&mask);
-    for (i = 0; i < VIR_DOMAIN_CPUMASK_LEN; i++) {
-        if (ctrl->def->numatune.memory.nodemask[i]) {
-            if (i > NUMA_NUM_NODES) {
-                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                               _("Host cannot support NUMA node %d"), i);
-                return -1;
-            }
-            if (i > maxnode && !warned) {
-                VIR_WARN("nodeset is out of range, there is only %d NUMA "
-                         "nodes on host", maxnode);
-                warned = true;
-            }
-            nodemask_set(&mask, i);
+    i = -1;
+    while ((i = virBitmapNextSetBit(ctrl->def->numatune.memory.nodemask, i)) >= 0) {
+        if (i > NUMA_NUM_NODES) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("Host cannot support NUMA node %d"), i);
+            return -1;
         }
+        if (i > maxnode && !warned) {
+            VIR_WARN("nodeset is out of range, there is only %d NUMA "
+                     "nodes on host", maxnode);
+            warned = true;
+        }
+        nodemask_set(&mask, i);
     }
 
     mode = ctrl->def->numatune.memory.mode;
@@ -491,10 +490,9 @@ static int virLXCControllerSetupNUMAPolicy(virLXCControllerPtr ctrl)
  */
 static int virLXCControllerSetupCpuAffinity(virLXCControllerPtr ctrl)
 {
-    int i, hostcpus, maxcpu = CPU_SETSIZE;
+    int hostcpus, maxcpu = CPU_SETSIZE;
     virNodeInfo nodeinfo;
-    unsigned char *cpumap;
-    int cpumaplen;
+    virBitmapPtr cpumap, cpumapToSet;
 
     VIR_DEBUG("Setting CPU affinity");
 
@@ -507,37 +505,31 @@ static int virLXCControllerSetupCpuAffinity(virLXCControllerPtr ctrl)
     if (maxcpu > hostcpus)
         maxcpu = hostcpus;
 
-    cpumaplen = VIR_CPU_MAPLEN(maxcpu);
-    if (VIR_ALLOC_N(cpumap, cpumaplen) < 0) {
-        virReportOOMError();
+    cpumap = virBitmapNew(maxcpu);
+    if (!cpumap)
         return -1;
-    }
+
+    cpumapToSet = cpumap;
 
     if (ctrl->def->cpumask) {
-        /* XXX why don't we keep 'cpumask' in the libvirt cpumap
-         * format to start with ?!?! */
-        for (i = 0 ; i < maxcpu && i < ctrl->def->cpumasklen ; i++)
-            if (ctrl->def->cpumask[i])
-                VIR_USE_CPU(cpumap, i);
+        cpumapToSet = ctrl->def->cpumask;
     } else {
         /* You may think this is redundant, but we can't assume libvirtd
          * itself is running on all pCPUs, so we need to explicitly set
          * the spawned LXC instance to all pCPUs if no map is given in
          * its config file */
-        for (i = 0 ; i < maxcpu ; i++)
-            VIR_USE_CPU(cpumap, i);
+        virBitmapSetAll(cpumap);
     }
 
-    /* We are pressuming we are running between fork/exec of LXC
+    /* We are presuming we are running between fork/exec of LXC
      * so use '0' to indicate our own process ID. No threads are
      * running at this point
      */
-    if (virProcessInfoSetAffinity(0, /* Self */
-                                  cpumap, cpumaplen, maxcpu) < 0) {
-        VIR_FREE(cpumap);
+    if (virProcessInfoSetAffinity(0 /* Self */, cpumapToSet) < 0) {
+        virBitmapFree(cpumap);
         return -1;
     }
-    VIR_FREE(cpumap);
+    virBitmapFree(cpumap);
 
     return 0;
 }

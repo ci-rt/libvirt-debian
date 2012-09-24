@@ -17,7 +17,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -3052,3 +3052,20 @@ bool virIsDevMapperDevice(const char *dev_name ATTRIBUTE_UNUSED)
     return false;
 }
 #endif
+
+bool
+virValidateWWN(const char *wwn) {
+    int i;
+
+    for (i = 0; wwn[i]; i++)
+        if (!c_isxdigit(wwn[i]))
+            break;
+
+    if (i != 16 || wwn[i]) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Malformed wwn: %s"));
+        return false;
+    }
+
+    return true;
+}

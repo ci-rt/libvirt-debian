@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -517,5 +517,40 @@ enum virStoragePartedFsType {
     VIR_STORAGE_PARTED_FS_TYPE_LAST,
 };
 VIR_ENUM_DECL(virStoragePartedFsType)
+
+# define VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_ACTIVE   \
+                (VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE)
+
+# define VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_PERSISTENT   \
+                (VIR_CONNECT_LIST_STORAGE_POOLS_PERSISTENT | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT)
+
+# define VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_AUTOSTART    \
+                (VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART |  \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_NO_AUTOSTART)
+
+# define VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_POOL_TYPE  \
+                (VIR_CONNECT_LIST_STORAGE_POOLS_DIR      | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_FS       | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_NETFS    | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL  | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_DISK     | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI    | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_SCSI     | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_MPATH    | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_RBD      | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG)
+
+# define VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_ALL                  \
+                (VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_ACTIVE     | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_PERSISTENT | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_AUTOSTART  | \
+                 VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_POOL_TYPE)
+
+int virStoragePoolList(virConnectPtr conn,
+                       virStoragePoolObjList poolobjs,
+                       virStoragePoolPtr **pools,
+                       unsigned int flags);
 
 #endif /* __VIR_STORAGE_CONF_H__ */

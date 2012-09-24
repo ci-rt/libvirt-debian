@@ -14,7 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  */
@@ -94,15 +94,13 @@ typedef enum {
  * @data: extra output logging data
  *
  * Callback function used to output messages
- *
- * Returns the number of bytes written or -1 in case of error
  */
-typedef int (*virLogOutputFunc) (const char *category, int priority,
-                                 const char *funcname, long long linenr,
-                                 const char *timestamp,
-                                 unsigned int flags,
-                                 const char *str,
-                                 void *data);
+typedef void (*virLogOutputFunc) (const char *category, int priority,
+                                  const char *funcname, long long linenr,
+                                  const char *timestamp,
+                                  unsigned int flags,
+                                  const char *str,
+                                  void *data);
 
 /**
  * virLogCloseFunc:

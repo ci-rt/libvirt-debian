@@ -353,18 +353,18 @@ snp_ = strncmp *\(.+\)
 sc_prohibit_strncmp:
 	@prohibit='! *strncmp *\(|\<$(snp_) *[!=]=|[!=]= *$(snp_)'	\
 	exclude=':# *define STR(N?EQLEN|PREFIX)\('			\
-	halt='$(ME): use STREQLEN or STRPREFIX instead of str''ncmp'	\
+	halt='use STREQLEN or STRPREFIX instead of str''ncmp'		\
 	  $(_sc_search_regexp)
 
 # strtol and friends are too easy to misuse
 sc_prohibit_strtol:
 	@prohibit='\bstrto(u?ll?|[ui]max) *\('				\
 	exclude='exempt from syntax-check'				\
-	halt='$(ME): use virStrToLong_*, not strtol variants'		\
+	halt='use virStrToLong_*, not strtol variants'			\
 	  $(_sc_search_regexp)
 	@prohibit='\bstrto[df] *\('					\
 	exclude='exempt from syntax-check'				\
-	halt='$(ME): use virStrToDouble, not strtod variants'		\
+	halt='use virStrToDouble, not strtod variants'			\
 	  $(_sc_search_regexp)
 
 # Use virAsprintf rather than as'printf since *strp is undefined on error.
@@ -550,7 +550,7 @@ func_re := ($(func_or))
 sc_libvirt_unmarked_diagnostics:
 	@prohibit='\<$(func_re) *\([^"]*"[^"]*[a-z]{3}'			\
 	exclude='_\('							\
-	halt='$(ME): found unmarked diagnostic(s)'			\
+	halt='found unmarked diagnostic(s)'				\
 	  $(_sc_search_regexp)
 	@{ grep     -nE '\<$(func_re) *\(.*;$$' $$($(VC_LIST_EXCEPT));   \
 	   grep -A1 -nE '\<$(func_re) *\(.*,$$' $$($(VC_LIST_EXCEPT)); } \
@@ -596,6 +596,15 @@ sc_prohibit_useless_translation:
 	in_vc_files='^(tests|examples)/'				\
 	halt='no translations in tests or examples'			\
 	  $(_sc_search_regexp)
+
+# When splitting a diagnostic across lines, ensure that there is a space
+# or \n on one side of the split.
+sc_require_whitespace_in_translation:
+	@grep -n -A1 '"$$' $$($(VC_LIST_EXCEPT))   			\
+	   | sed -ne ':l; /"$$/ {N;b l;}; s/"\n[^"]*"/""/g; s/\\n/ /g'	\
+		-e '/_(.*[^\ ]""[^\ ]/p' | grep . &&			\
+	  { echo '$(ME): missing whitespace at line split' 1>&2;	\
+	    exit 1; } || :
 
 # Enforce recommended preprocessor indentation style.
 sc_preprocessor_indentation:
@@ -746,7 +755,7 @@ exclude_file_name_regexp--sc_copyright_address = \
 exclude_file_name_regexp--sc_flags_usage = ^(docs/|src/util/virnetdevtap\.c$$)
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
-  ^src/rpc/gendispatch\.pl$$
+  ^(src/rpc/gendispatch\.pl$$|tests/)
 
 exclude_file_name_regexp--sc_po_check = ^(docs/|src/rpc/gendispatch\.pl$$)
 
@@ -780,7 +789,7 @@ exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
   ^src/rpc/gendispatch\.pl$$
 
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
-  ^((po|tests)/|docs/.*py$$|tools/(virsh|console)\.c$$)
+  ^((po|tests)/|docs/.*py|run.in$$)
 
 exclude_file_name_regexp--sc_prohibit_raw_allocation = \
   ^(src/util/memory\.[ch]|examples/.*)$$

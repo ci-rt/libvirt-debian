@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -46,7 +46,17 @@ int nodeGetCellsFreeMemory(virConnectPtr conn,
                            int maxCells);
 unsigned long long nodeGetFreeMemory(virConnectPtr conn);
 
-char *nodeGetCPUmap(virConnectPtr conn,
-                    int *max_id,
-                    const char *mapname);
+virBitmapPtr nodeGetCPUmap(virConnectPtr conn,
+                           int *max_id,
+                           const char *mapname);
+
+int nodeGetMemoryParameters(virConnectPtr conn,
+                            virTypedParameterPtr params,
+                            int *nparams,
+                            unsigned int flags);
+
+int nodeSetMemoryParameters(virConnectPtr conn,
+                            virTypedParameterPtr params,
+                            int nparams,
+                            unsigned int flags);
 #endif /* __VIR_NODEINFO_H__*/

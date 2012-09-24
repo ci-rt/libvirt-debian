@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -1882,4 +1882,120 @@ void virStoragePoolObjLock(virStoragePoolObjPtr obj)
 void virStoragePoolObjUnlock(virStoragePoolObjPtr obj)
 {
     virMutexUnlock(&obj->lock);
+}
+
+#define MATCH(FLAG) (flags & (FLAG))
+static bool
+virStoragePoolMatch(virStoragePoolObjPtr poolobj,
+                    unsigned int flags)
+{
+    /* filter by active state */
+    if (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_ACTIVE) &&
+        !((MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE) &&
+           virStoragePoolObjIsActive(poolobj)) ||
+          (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE) &&
+           !virStoragePoolObjIsActive(poolobj))))
+        return false;
+
+    /* filter by persistence */
+    if (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_PERSISTENT) &&
+        !((MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_PERSISTENT) &&
+           poolobj->configFile) ||
+          (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT) &&
+           !poolobj->configFile)))
+        return false;
+
+    /* filter by autostart option */
+    if (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_AUTOSTART) &&
+        !((MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART) &&
+           poolobj->autostart) ||
+          (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_NO_AUTOSTART) &&
+           !poolobj->autostart)))
+        return false;
+
+    /* filter by pool type */
+    if (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_FILTERS_POOL_TYPE)) {
+        if (!((MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_DIR) &&
+               (poolobj->def->type == VIR_STORAGE_POOL_DIR))     ||
+              (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_FS) &&
+               (poolobj->def->type == VIR_STORAGE_POOL_FS))      ||
+              (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_NETFS) &&
+               (poolobj->def->type == VIR_STORAGE_POOL_NETFS))   ||
+              (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL) &&
+               (poolobj->def->type == VIR_STORAGE_POOL_LOGICAL)) ||
+              (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_DISK) &&
+               (poolobj->def->type == VIR_STORAGE_POOL_DISK))    ||
+              (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI) &&
+               (poolobj->def->type == VIR_STORAGE_POOL_ISCSI))   ||
+              (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_SCSI) &&
+               (poolobj->def->type == VIR_STORAGE_POOL_SCSI))    ||
+              (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_MPATH) &&
+               (poolobj->def->type == VIR_STORAGE_POOL_MPATH))   ||
+              (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_RBD) &&
+               (poolobj->def->type == VIR_STORAGE_POOL_RBD))     ||
+              (MATCH(VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG) &&
+               (poolobj->def->type == VIR_STORAGE_POOL_SHEEPDOG))))
+            return false;
+    }
+
+    return true;
+}
+#undef MATCH
+
+int
+virStoragePoolList(virConnectPtr conn,
+                   virStoragePoolObjList poolobjs,
+                   virStoragePoolPtr **pools,
+                   unsigned int flags)
+{
+    virStoragePoolPtr *tmp_pools = NULL;
+    virStoragePoolPtr pool = NULL;
+    int npools = 0;
+    int ret = -1;
+    int i;
+
+    if (pools) {
+        if (VIR_ALLOC_N(tmp_pools, poolobjs.count + 1) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+    for (i = 0; i < poolobjs.count; i++) {
+        virStoragePoolObjPtr poolobj = poolobjs.objs[i];
+        virStoragePoolObjLock(poolobj);
+        if (virStoragePoolMatch(poolobj, flags)) {
+            if (pools) {
+                if (!(pool = virGetStoragePool(conn,
+                                               poolobj->def->name,
+                                               poolobj->def->uuid))) {
+                    virStoragePoolObjUnlock(poolobj);
+                    goto cleanup;
+                }
+                tmp_pools[npools] = pool;
+            }
+            npools++;
+        }
+        virStoragePoolObjUnlock(poolobj);
+    }
+
+    if (tmp_pools) {
+        /* trim the array to the final size */
+        ignore_value(VIR_REALLOC_N(tmp_pools, npools + 1));
+        *pools = tmp_pools;
+        tmp_pools = NULL;
+    }
+
+    ret = npools;
+
+cleanup:
+    if (tmp_pools) {
+        for (i = 0; i < npools; i++) {
+            if (tmp_pools[i])
+                virStoragePoolFree(tmp_pools[i]);
+        }
+    }
+
+    VIR_FREE(tmp_pools);
+    return ret;
 }

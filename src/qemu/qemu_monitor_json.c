@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -685,8 +685,9 @@ static void qemuMonitorJSONHandleGraphics(qemuMonitorPtr mon, virJSONValuePtr da
 
     authScheme = virJSONValueObjectGetString(server, "auth");
     if (!authScheme) {
-        VIR_WARN("missing auth scheme in graphics event");
-        return;
+        /* not all events are required to contain auth scheme */
+        VIR_DEBUG("missing auth scheme in graphics event");
+        authScheme = "";
     }
 
     localFamily = virJSONValueObjectGetString(server, "family");
@@ -908,6 +909,13 @@ qemuMonitorJSONHumanCommandWithFd(qemuMonitorPtr mon,
     if (!cmd || qemuMonitorJSONCommandWithFd(mon, cmd, scm_fd, &reply) < 0)
         goto cleanup;
 
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED,
+                       _("Human monitor command is not available to run %s"),
+                       cmd_str);
+        goto cleanup;
+    }
+
     if (qemuMonitorJSONCheckError(cmd, reply))
         goto cleanup;
 
@@ -966,8 +974,7 @@ qemuMonitorJSONSetCapabilities(qemuMonitorPtr mon)
  */
 int
 qemuMonitorJSONCheckCommands(qemuMonitorPtr mon,
-                             virBitmapPtr qemuCaps,
-                             int *json_hmp)
+                             qemuCapsPtr caps)
 {
     int ret = -1;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("query-commands", NULL);
@@ -995,18 +1002,16 @@ qemuMonitorJSONCheckCommands(qemuMonitorPtr mon,
             !(name = virJSONValueObjectGetString(entry, "name")))
             goto cleanup;
 
-        if (STREQ(name, "human-monitor-command"))
-            *json_hmp = 1;
-        else if (STREQ(name, "system_wakeup"))
-            qemuCapsSet(qemuCaps, QEMU_CAPS_WAKEUP);
+        if (STREQ(name, "system_wakeup"))
+            qemuCapsSet(caps, QEMU_CAPS_WAKEUP);
         else if (STREQ(name, "transaction"))
-            qemuCapsSet(qemuCaps, QEMU_CAPS_TRANSACTION);
+            qemuCapsSet(caps, QEMU_CAPS_TRANSACTION);
         else if (STREQ(name, "block_job_cancel"))
-            qemuCapsSet(qemuCaps, QEMU_CAPS_BLOCKJOB_SYNC);
+            qemuCapsSet(caps, QEMU_CAPS_BLOCKJOB_SYNC);
         else if (STREQ(name, "block-job-cancel"))
-            qemuCapsSet(qemuCaps, QEMU_CAPS_BLOCKJOB_ASYNC);
+            qemuCapsSet(caps, QEMU_CAPS_BLOCKJOB_ASYNC);
         else if (STREQ(name, "dump-guest-memory"))
-            qemuCapsSet(qemuCaps, QEMU_CAPS_DUMP_GUEST_MEMORY);
+            qemuCapsSet(caps, QEMU_CAPS_DUMP_GUEST_MEMORY);
     }
 
     ret = 0;
@@ -1020,7 +1025,7 @@ cleanup:
 
 int
 qemuMonitorJSONCheckEvents(qemuMonitorPtr mon,
-                           virBitmapPtr qemuCaps)
+                           qemuCapsPtr caps)
 {
     int ret = -1;
     virJSONValuePtr cmd = qemuMonitorJSONMakeCommand("query-events", NULL);
@@ -1056,7 +1061,7 @@ qemuMonitorJSONCheckEvents(qemuMonitorPtr mon,
             goto cleanup;
 
         if (STREQ(name, "BALLOON_CHANGE"))
-            qemuCapsSet(qemuCaps, QEMU_CAPS_BALLOON_EVENT);
+            qemuCapsSet(caps, QEMU_CAPS_BALLOON_EVENT);
     }
 
     ret = 0;
@@ -2182,8 +2187,7 @@ int qemuMonitorJSONSetCPU(qemuMonitorPtr mon,
     if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
         goto cleanup;
 
-    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
-        qemuMonitorCheckHMP(mon, "cpu_set")) {
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
         VIR_DEBUG("cpu_set command not found, trying HMP");
         ret = qemuMonitorTextSetCPU(mon, cpu, online);
         goto cleanup;
@@ -2531,28 +2535,18 @@ int qemuMonitorJSONMigrateCancel(qemuMonitorPtr mon)
     return ret;
 }
 
-int qemuMonitorJSONDump(qemuMonitorPtr mon,
-                        unsigned int flags,
-                        const char *protocol,
-                        unsigned long long begin,
-                        unsigned long long length)
+int
+qemuMonitorJSONDump(qemuMonitorPtr mon,
+                    const char *protocol)
 {
     int ret;
     virJSONValuePtr cmd = NULL;
     virJSONValuePtr reply = NULL;
 
-    if (flags & QEMU_MONITOR_DUMP_HAVE_FILTER)
-        cmd = qemuMonitorJSONMakeCommand("dump-guest-memory",
-                                         "b:paging", flags & QEMU_MONITOR_DUMP_PAGING ? 1 : 0,
-                                         "s:protocol", protocol,
-                                         "U:begin", begin,
-                                         "U:length", length,
-                                         NULL);
-    else
-        cmd = qemuMonitorJSONMakeCommand("dump-guest-memory",
-                                         "b:paging", flags & QEMU_MONITOR_DUMP_PAGING ? 1 : 0,
-                                         "s:protocol", protocol,
-                                         NULL);
+    cmd = qemuMonitorJSONMakeCommand("dump-guest-memory",
+                                     "b:paging", false,
+                                     "s:protocol", protocol,
+                                     NULL);
     if (!cmd)
         return -1;
 
@@ -3077,8 +3071,7 @@ int qemuMonitorJSONAddDrive(qemuMonitorPtr mon,
     if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply) < 0))
         goto cleanup;
 
-    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
-        qemuMonitorCheckHMP(mon, "drive_add")) {
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
         VIR_DEBUG("drive_add command not found, trying HMP");
         ret = qemuMonitorTextAddDrive(mon, drivestr);
         goto cleanup;
@@ -3111,13 +3104,16 @@ int qemuMonitorJSONDriveDel(qemuMonitorPtr mon,
         goto cleanup;
 
     if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
-        if (qemuMonitorCheckHMP(mon, "drive_del")) {
-            VIR_DEBUG("drive_del command not found, trying HMP");
-            ret = qemuMonitorTextDriveDel(mon, drivestr);
-        } else {
-            VIR_ERROR(_("deleting disk is not supported.  "
-                        "This may leak data if disk is reassigned"));
-            ret = 1;
+        VIR_DEBUG("drive_del command not found, trying HMP");
+        if ((ret = qemuMonitorTextDriveDel(mon, drivestr)) < 0) {
+            virErrorPtr err = virGetLastError();
+            if (err && err->code == VIR_ERR_OPERATION_UNSUPPORTED) {
+                VIR_ERROR("%s",
+                          _("deleting disk is not supported.  "
+                            "This may leak data if disk is reassigned"));
+                ret = 1;
+                virResetLastError();;
+            }
         }
     } else if (qemuMonitorJSONHasError(reply, "DeviceNotFound")) {
         /* NB: device not found errors mean the drive was
@@ -3180,8 +3176,7 @@ int qemuMonitorJSONCreateSnapshot(qemuMonitorPtr mon, const char *name)
     if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
         goto cleanup;
 
-    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
-        qemuMonitorCheckHMP(mon, "savevm")) {
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
         VIR_DEBUG("savevm command not found, trying HMP");
         ret = qemuMonitorTextCreateSnapshot(mon, name);
         goto cleanup;
@@ -3210,8 +3205,7 @@ int qemuMonitorJSONLoadSnapshot(qemuMonitorPtr mon, const char *name)
     if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
         goto cleanup;
 
-    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
-        qemuMonitorCheckHMP(mon, "loadvm")) {
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
         VIR_DEBUG("loadvm command not found, trying HMP");
         ret = qemuMonitorTextLoadSnapshot(mon, name);
         goto cleanup;
@@ -3240,8 +3234,7 @@ int qemuMonitorJSONDeleteSnapshot(qemuMonitorPtr mon, const char *name)
     if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
         goto cleanup;
 
-    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
-        qemuMonitorCheckHMP(mon, "delvm")) {
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
         VIR_DEBUG("delvm command not found, trying HMP");
         ret = qemuMonitorTextDeleteSnapshot(mon, name);
         goto cleanup;
@@ -3286,8 +3279,7 @@ qemuMonitorJSONDiskSnapshot(qemuMonitorPtr mon, virJSONValuePtr actions,
         if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
             goto cleanup;
 
-        if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
-            qemuMonitorCheckHMP(mon, "snapshot_blkdev")) {
+        if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
             VIR_DEBUG("blockdev-snapshot-sync command not found, trying HMP");
             ret = qemuMonitorTextDiskSnapshot(mon, device, file);
             goto cleanup;
@@ -3340,12 +3332,6 @@ int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
     int ret = -1;
 
     if (hmp) {
-        if (!qemuMonitorCheckHMP(mon, NULL)) {
-            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                           _("HMP passthrough is not supported by qemu"
-                             " process; only QMP commands can be used"));
-            return -1;
-        }
         return qemuMonitorJSONHumanCommandWithFd(mon, cmd_str, -1, reply_str);
     } else {
         if (!(cmd = virJSONValueFromString(cmd_str)))
@@ -3380,8 +3366,7 @@ int qemuMonitorJSONInjectNMI(qemuMonitorPtr mon)
     if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
         goto cleanup;
 
-    if (qemuMonitorJSONHasError(reply, "CommandNotFound") &&
-        qemuMonitorCheckHMP(mon, "inject-nmi")) {
+    if (qemuMonitorJSONHasError(reply, "CommandNotFound")) {
         VIR_DEBUG("inject-nmi command not found, trying HMP");
         ret = qemuMonitorTextInjectNMI(mon);
     } else {
@@ -3403,10 +3388,7 @@ int qemuMonitorJSONSendKey(qemuMonitorPtr mon,
      * FIXME: qmp sendkey has not been implemented yet,
      * and qmp API of it cannot be anticipated, so we use hmp temporary.
      */
-    if (qemuMonitorCheckHMP(mon, "sendkey")) {
-        return qemuMonitorTextSendKey(mon, holdtime, keycodes, nkeycodes);
-    } else
-        return -1;
+    return qemuMonitorTextSendKey(mon, holdtime, keycodes, nkeycodes);
 }
 
 int qemuMonitorJSONScreendump(qemuMonitorPtr mon,

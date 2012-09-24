@@ -1,4 +1,4 @@
-# generated automatically by aclocal 1.11.3 -*- Autoconf -*-
+# generated automatically by aclocal 1.11.6 -*- Autoconf -*-
 
 # Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
 # 2005, 2006, 2007, 2008, 2009, 2010, 2011 Free Software Foundation,
@@ -196,7 +196,7 @@ AC_DEFUN([AM_AUTOMAKE_VERSION],
 [am__api_version='1.11'
 dnl Some users find AM_AUTOMAKE_VERSION and mistake it for a way to
 dnl require some minimum version.  Point them to the right macro.
-m4_if([$1], [1.11.3], [],
+m4_if([$1], [1.11.6], [],
       [AC_FATAL([Do not call $0, use AM_INIT_AUTOMAKE([$1]).])])dnl
 ])
 
@@ -212,7 +212,7 @@ m4_define([_AM_AUTOCONF_VERSION], [])
 # Call AM_AUTOMAKE_VERSION and AM_AUTOMAKE_VERSION so they can be traced.
 # This function is AC_REQUIREd by AM_INIT_AUTOMAKE.
 AC_DEFUN([AM_SET_CURRENT_AUTOMAKE_VERSION],
-[AM_AUTOMAKE_VERSION([1.11.3])dnl
+[AM_AUTOMAKE_VERSION([1.11.6])dnl
 m4_ifndef([AC_AUTOCONF_VERSION],
   [m4_copy([m4_PACKAGE_VERSION], [AC_AUTOCONF_VERSION])])dnl
 _AM_AUTOCONF_VERSION(m4_defn([AC_AUTOCONF_VERSION]))])
@@ -1491,6 +1491,7 @@ m4_include([gnulib/m4/byteswap.m4])
 m4_include([gnulib/m4/calloc.m4])
 m4_include([gnulib/m4/canonicalize.m4])
 m4_include([gnulib/m4/chown.m4])
+m4_include([gnulib/m4/clock_time.m4])
 m4_include([gnulib/m4/close.m4])
 m4_include([gnulib/m4/configmake.m4])
 m4_include([gnulib/m4/count-one-bits.m4])
@@ -1502,6 +1503,7 @@ m4_include([gnulib/m4/eealloc.m4])
 m4_include([gnulib/m4/environ.m4])
 m4_include([gnulib/m4/errno_h.m4])
 m4_include([gnulib/m4/error.m4])
+m4_include([gnulib/m4/execinfo.m4])
 m4_include([gnulib/m4/exponentd.m4])
 m4_include([gnulib/m4/exponentf.m4])
 m4_include([gnulib/m4/exponentl.m4])
@@ -1516,6 +1518,7 @@ m4_include([gnulib/m4/fdatasync.m4])
 m4_include([gnulib/m4/fdopen.m4])
 m4_include([gnulib/m4/fflush.m4])
 m4_include([gnulib/m4/ffs.m4])
+m4_include([gnulib/m4/ffsl.m4])
 m4_include([gnulib/m4/float_h.m4])
 m4_include([gnulib/m4/fnmatch.m4])
 m4_include([gnulib/m4/fpieee.m4])
@@ -1588,6 +1591,7 @@ m4_include([gnulib/m4/mode_t.m4])
 m4_include([gnulib/m4/msvc-inval.m4])
 m4_include([gnulib/m4/msvc-nothrow.m4])
 m4_include([gnulib/m4/multiarch.m4])
+m4_include([gnulib/m4/net_if_h.m4])
 m4_include([gnulib/m4/netdb_h.m4])
 m4_include([gnulib/m4/netinet_in_h.m4])
 m4_include([gnulib/m4/nl_langinfo.m4])

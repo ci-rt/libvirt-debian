@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -78,7 +78,7 @@ struct _qemuMonitor {
     int nextSerial;
 
     unsigned json: 1;
-    unsigned json_hmp: 1;
+    unsigned wait_greeting: 1;
 };
 
 static virClassPtr qemuMonitorClass;
@@ -365,6 +365,9 @@ qemuMonitorIOProcess(qemuMonitorPtr mon)
     if (len < 0)
         return -1;
 
+    if (len && mon->wait_greeting)
+        mon->wait_greeting = 0;
+
     if (len < mon->bufferOffset) {
         memmove(mon->buffer, mon->buffer + len, mon->bufferOffset - len);
         mon->bufferOffset -= len;
@@ -538,7 +541,8 @@ static void qemuMonitorUpdateWatch(qemuMonitorPtr mon)
     if (mon->lastError.code == VIR_ERR_OK) {
         events |= VIR_EVENT_HANDLE_READABLE;
 
-        if (mon->msg && mon->msg->txOffset < mon->msg->txLength)
+        if ((mon->msg && mon->msg->txOffset < mon->msg->txLength) &&
+            !mon->wait_greeting)
             events |= VIR_EVENT_HANDLE_WRITABLE;
     }
 
@@ -675,17 +679,23 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque) {
 }
 
 
-qemuMonitorPtr
-qemuMonitorOpen(virDomainObjPtr vm,
-                virDomainChrSourceDefPtr config,
-                int json,
-                qemuMonitorCallbacksPtr cb)
+static qemuMonitorPtr
+qemuMonitorOpenInternal(virDomainObjPtr vm,
+                        int fd,
+                        bool hasSendFD,
+                        int json,
+                        qemuMonitorCallbacksPtr cb)
 {
     qemuMonitorPtr mon;
 
-    if (!cb || !cb->eofNotify) {
+    if (!cb->eofNotify) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("EOF notify callback must be supplied"));
+        return NULL;
+    }
+    if (!cb->errorNotify) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Error notify callback must be supplied"));
         return NULL;
     }
 
@@ -708,30 +718,14 @@ qemuMonitorOpen(virDomainObjPtr vm,
         VIR_FREE(mon);
         return NULL;
     }
-    mon->fd = -1;
+    mon->fd = fd;
+    mon->hasSendFD = hasSendFD;
     mon->vm = vm;
     mon->json = json;
+    if (json)
+        mon->wait_greeting = 1;
     mon->cb = cb;
     qemuMonitorLock(mon);
-
-    switch (config->type) {
-    case VIR_DOMAIN_CHR_TYPE_UNIX:
-        mon->hasSendFD = 1;
-        mon->fd = qemuMonitorOpenUnix(config->data.nix.path, vm->pid);
-        break;
-
-    case VIR_DOMAIN_CHR_TYPE_PTY:
-        mon->fd = qemuMonitorOpenPty(config->data.file.path);
-        break;
-
-    default:
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unable to handle monitor type: %s"),
-                       virDomainChrTypeToString(config->type));
-        goto cleanup;
-    }
-
-    if (mon->fd == -1) goto cleanup;
 
     if (virSetCloseExec(mon->fd) < 0) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -773,8 +767,56 @@ cleanup:
      */
     mon->cb = NULL;
     qemuMonitorUnlock(mon);
+    /* The caller owns 'fd' on failure */
+    mon->fd = -1;
+    if (mon->watch)
+        virEventRemoveHandle(mon->watch);
     qemuMonitorClose(mon);
     return NULL;
+}
+
+qemuMonitorPtr
+qemuMonitorOpen(virDomainObjPtr vm,
+                virDomainChrSourceDefPtr config,
+                int json,
+                qemuMonitorCallbacksPtr cb)
+{
+    int fd;
+    bool hasSendFD = false;
+    qemuMonitorPtr ret;
+
+    switch (config->type) {
+    case VIR_DOMAIN_CHR_TYPE_UNIX:
+        hasSendFD = true;
+        if ((fd = qemuMonitorOpenUnix(config->data.nix.path, vm->pid)) < 0)
+            return NULL;
+        break;
+
+    case VIR_DOMAIN_CHR_TYPE_PTY:
+        if ((fd = qemuMonitorOpenPty(config->data.file.path)) < 0)
+            return NULL;
+        break;
+
+    default:
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unable to handle monitor type: %s"),
+                       virDomainChrTypeToString(config->type));
+        return NULL;
+    }
+
+    ret = qemuMonitorOpenInternal(vm, fd, hasSendFD, json, cb);
+    if (!ret)
+        VIR_FORCE_CLOSE(fd);
+    return ret;
+}
+
+
+qemuMonitorPtr qemuMonitorOpenFD(virDomainObjPtr vm,
+                                 int sockfd,
+                                 int json,
+                                 qemuMonitorCallbacksPtr cb)
+{
+    return qemuMonitorOpenInternal(vm, sockfd, true, json, cb);
 }
 
 
@@ -1085,10 +1127,9 @@ int qemuMonitorEmitBalloonChange(qemuMonitorPtr mon,
 
 
 int qemuMonitorSetCapabilities(qemuMonitorPtr mon,
-                               virBitmapPtr qemuCaps)
+                               qemuCapsPtr caps)
 {
     int ret;
-    int json_hmp;
     VIR_DEBUG("mon=%p", mon);
 
     if (!mon) {
@@ -1102,12 +1143,11 @@ int qemuMonitorSetCapabilities(qemuMonitorPtr mon,
         if (ret < 0)
             goto cleanup;
 
-        ret = qemuMonitorJSONCheckCommands(mon, qemuCaps, &json_hmp);
+        ret = qemuMonitorJSONCheckCommands(mon, caps);
         if (ret < 0)
             goto cleanup;
-        mon->json_hmp = json_hmp > 0;
 
-        ret = qemuMonitorJSONCheckEvents(mon, qemuCaps);
+        ret = qemuMonitorJSONCheckEvents(mon, caps);
         if (ret < 0)
             goto cleanup;
     } else {
@@ -1116,21 +1156,6 @@ int qemuMonitorSetCapabilities(qemuMonitorPtr mon,
 
 cleanup:
     return ret;
-}
-
-
-int
-qemuMonitorCheckHMP(qemuMonitorPtr mon, const char *cmd)
-{
-    if (!mon->json || mon->json_hmp)
-        return 1;
-
-    if (cmd) {
-        VIR_DEBUG("HMP passthrough not supported by qemu process;"
-                  " not trying HMP for command %s", cmd);
-    }
-
-    return 0;
 }
 
 
@@ -2020,15 +2045,11 @@ int qemuMonitorMigrateCancel(qemuMonitorPtr mon)
     return ret;
 }
 
-int qemuMonitorDumpToFd(qemuMonitorPtr mon,
-                        unsigned int flags,
-                        int fd,
-                        unsigned long long begin,
-                        unsigned long long length)
+int
+qemuMonitorDumpToFd(qemuMonitorPtr mon, int fd)
 {
     int ret;
-    VIR_DEBUG("mon=%p fd=%d flags=%x begin=%llx length=%llx",
-              mon, fd, flags, begin, length);
+    VIR_DEBUG("mon=%p fd=%d", mon, fd);
 
     if (!mon) {
         virReportError(VIR_ERR_INVALID_ARG, "%s",
@@ -2048,7 +2069,7 @@ int qemuMonitorDumpToFd(qemuMonitorPtr mon,
     if (qemuMonitorSendFileHandle(mon, "dump", fd) < 0)
         return -1;
 
-    ret = qemuMonitorJSONDump(mon, flags, "fd:dump", begin, length);
+    ret = qemuMonitorJSONDump(mon, "fd:dump");
 
     if (ret < 0) {
         if (qemuMonitorCloseFileHandle(mon, "dump") < 0)

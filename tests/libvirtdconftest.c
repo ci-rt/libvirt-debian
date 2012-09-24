@@ -12,7 +12,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -119,6 +119,13 @@ testCorrupt(const void *opaque)
         ret = -1;
         goto cleanup;
     }
+
+#if !HAVE_SASL
+    if (strstr(err->message, "unsupported auth sasl")) {
+        VIR_DEBUG("sasl unsupported, skipping this config");
+        goto cleanup;
+    }
+#endif
 
     switch (type) {
     case VIR_CONF_LONG:

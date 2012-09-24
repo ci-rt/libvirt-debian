@@ -58,10 +58,6 @@
 #  define HOST_NAME_MAX 256
 # endif
 
-# ifndef IF_NAMESIZE
-#  define IF_NAMESIZE 16
-# endif
-
 # ifndef INET_ADDRSTRLEN
 #  define INET_ADDRSTRLEN 16
 # endif
@@ -151,9 +147,11 @@
  */
 #  ifndef ATTRIBUTE_FMT_PRINTF
 #   if __GNUC_PREREQ (4, 4)
-#    define ATTRIBUTE_FMT_PRINTF(fmtpos,argpos) __attribute__((__format__ (gnu_printf, fmtpos,argpos)))
+#    define ATTRIBUTE_FMT_PRINTF(fmtpos,argpos) \
+    __attribute__((__format__ (__gnu_printf__, fmtpos, argpos)))
 #   else
-#    define ATTRIBUTE_FMT_PRINTF(fmtpos,argpos) __attribute__((__format__ (printf, fmtpos,argpos)))
+#    define ATTRIBUTE_FMT_PRINTF(fmtpos,argpos) \
+    __attribute__((__format__ (__printf__, fmtpos, argpos)))
 #   endif
 #  endif
 

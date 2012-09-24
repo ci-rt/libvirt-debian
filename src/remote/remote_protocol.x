@@ -16,7 +16,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Richard Jones <rjones@redhat.com>
@@ -228,6 +228,11 @@ const REMOTE_DOMAIN_GET_CPU_STATS_MAX = 2048;
  * Upper limit on number of disks with errors
  */
 const REMOTE_DOMAIN_DISK_ERRORS_MAX = 256;
+
+/*
+ * Upper limit on number of memory parameters
+ */
+const REMOTE_NODE_MEMORY_PARAMETERS_MAX = 64;
 
 /* UUID.  VIR_UUID_BUFLEN definition comes from libvirt.h */
 typedef opaque remote_uuid[VIR_UUID_BUFLEN];
@@ -1219,6 +1224,14 @@ struct remote_domain_block_rebase_args {
     unsigned hyper bandwidth;
     unsigned int flags;
 };
+struct remote_domain_block_commit_args {
+    remote_nonnull_domain dom;
+    remote_nonnull_string disk;
+    remote_string base;
+    remote_string top;
+    unsigned hyper bandwidth;
+    unsigned int flags;
+};
 
 struct remote_domain_set_block_io_tune_args {
     remote_nonnull_domain dom;
@@ -1321,6 +1334,15 @@ struct remote_network_define_xml_ret {
 
 struct remote_network_undefine_args {
     remote_nonnull_network net;
+};
+
+struct remote_network_update_args {
+    remote_nonnull_network net;
+    unsigned int command;
+    unsigned int section;
+    int parentIndex;
+    remote_nonnull_string xml;
+    unsigned int flags;
 };
 
 struct remote_network_create_args {
@@ -2558,6 +2580,91 @@ struct remote_connect_list_all_domains_ret {
     unsigned int ret;
 };
 
+struct remote_connect_list_all_storage_pools_args {
+    int need_results;
+    unsigned int flags;
+};
+
+struct remote_connect_list_all_storage_pools_ret {
+    remote_nonnull_storage_pool pools<>;
+    unsigned int ret;
+};
+
+struct remote_storage_pool_list_all_volumes_args {
+    remote_nonnull_storage_pool pool;
+    int need_results;
+    unsigned int flags;
+};
+
+struct remote_storage_pool_list_all_volumes_ret {
+    remote_nonnull_storage_vol vols<>;
+    unsigned int ret;
+};
+
+struct remote_connect_list_all_networks_args {
+    int need_results;
+    unsigned int flags;
+};
+
+struct remote_connect_list_all_networks_ret {
+    remote_nonnull_network nets<>;
+    unsigned int ret;
+};
+
+struct remote_connect_list_all_interfaces_args {
+    int need_results;
+    unsigned int flags;
+};
+
+struct remote_connect_list_all_interfaces_ret {
+    remote_nonnull_interface ifaces<>;
+    unsigned int ret;
+};
+
+struct remote_connect_list_all_node_devices_args {
+    int need_results;
+    unsigned int flags;
+};
+
+struct remote_connect_list_all_node_devices_ret {
+    remote_nonnull_node_device devices<>;
+    unsigned int ret;
+};
+
+struct remote_connect_list_all_nwfilters_args {
+    int need_results;
+    unsigned int flags;
+};
+
+struct remote_connect_list_all_nwfilters_ret {
+    remote_nonnull_nwfilter filters<>;
+    unsigned int ret;
+};
+
+struct remote_connect_list_all_secrets_args {
+    int need_results;
+    unsigned int flags;
+};
+
+struct remote_connect_list_all_secrets_ret {
+    remote_nonnull_secret secrets<>;
+    unsigned int ret;
+};
+
+struct remote_node_set_memory_parameters_args {
+    remote_typed_param params<REMOTE_NODE_MEMORY_PARAMETERS_MAX>;
+    unsigned int flags;
+};
+
+struct remote_node_get_memory_parameters_args {
+    int nparams;
+    unsigned int flags;
+};
+
+struct remote_node_get_memory_parameters_ret {
+    remote_typed_param params<REMOTE_NODE_MEMORY_PARAMETERS_MAX>;
+    int nparams;
+};
 
 /*----- Protocol. -----*/
 
@@ -2888,7 +2995,20 @@ enum remote_procedure {
     REMOTE_PROC_DOMAIN_GET_HOSTNAME = 277, /* autogen autogen */
     REMOTE_PROC_DOMAIN_GET_SECURITY_LABEL_LIST = 278, /* skipgen skipgen priority:high */
     REMOTE_PROC_DOMAIN_PIN_EMULATOR = 279, /* skipgen skipgen */
-    REMOTE_PROC_DOMAIN_GET_EMULATOR_PIN_INFO = 280 /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_GET_EMULATOR_PIN_INFO = 280, /* skipgen skipgen */
+
+    REMOTE_PROC_CONNECT_LIST_ALL_STORAGE_POOLS = 281, /* skipgen skipgen priority:high */
+    REMOTE_PROC_STORAGE_POOL_LIST_ALL_VOLUMES = 282, /* skipgen skipgen priority:high */
+    REMOTE_PROC_CONNECT_LIST_ALL_NETWORKS = 283, /* skipgen skipgen priority:high */
+    REMOTE_PROC_CONNECT_LIST_ALL_INTERFACES = 284, /* skipgen skipgen priority:high */
+    REMOTE_PROC_CONNECT_LIST_ALL_NODE_DEVICES = 285, /* skipgen skipgen priority:high */
+    REMOTE_PROC_CONNECT_LIST_ALL_NWFILTERS = 286, /* skipgen skipgen priority:high */
+    REMOTE_PROC_CONNECT_LIST_ALL_SECRETS = 287, /* skipgen skipgen priority:high */
+    REMOTE_PROC_NODE_SET_MEMORY_PARAMETERS = 288, /* autogen autogen */
+    REMOTE_PROC_NODE_GET_MEMORY_PARAMETERS = 289, /* skipgen skipgen */
+    REMOTE_PROC_DOMAIN_BLOCK_COMMIT = 290, /* autogen autogen */
+
+    REMOTE_PROC_NETWORK_UPDATE = 291 /* autogen autogen priority:high */
 
     /*
      * Notice how the entries are grouped in sets of 10 ?

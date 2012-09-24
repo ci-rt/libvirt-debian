@@ -3,7 +3,7 @@
   <files>
     <file name='libvirt'>
      <summary>core interfaces for the libvirt library</summary>
-     <description>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library;  If not, see</description>
+     <description>Provides the interfaces of the libvirt library to handle virtualized domains  Copyright (C) 2005-2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see</description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='LIBVIR_VERSION_NUMBER' type='macro'/>
      <exports symbol='VIR_COPY_CPUMAP' type='macro'/>
@@ -102,6 +102,43 @@
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_RUNNING' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_SHUTOFF' type='enum'/>
      <exports symbol='VIR_CONNECT_LIST_DOMAINS_TRANSIENT' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_INTERFACES_ACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_INTERFACES_INACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NETWORKS_ACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NETWORKS_AUTOSTART' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NETWORKS_INACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NETWORKS_PERSISTENT' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NETWORKS_TRANSIENT' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_SECRETS_EPHEMERAL' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_SECRETS_NO_PRIVATE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_SECRETS_PRIVATE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_DIR' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_DISK' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_FS' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_MPATH' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_NETFS' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_NO_AUTOSTART' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_PERSISTENT' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_RBD' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_SCSI' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG' type='enum'/>
+     <exports symbol='VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT' type='enum'/>
      <exports symbol='VIR_CONNECT_NO_ALIASES' type='enum'/>
      <exports symbol='VIR_CONNECT_RO' type='enum'/>
      <exports symbol='VIR_CPU_COMPARE_ERROR' type='enum'/>
@@ -131,12 +168,15 @@
      <exports symbol='VIR_DOMAIN_BLOCKED' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCKED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCKED_UNKNOWN' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_COMMIT_DELETE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_COMMIT_SHALLOW' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_CANCELED' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_COMPLETED' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_FAILED' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_PULL' type='enum'/>
@@ -200,6 +240,9 @@
      <exports symbol='VIR_DOMAIN_EVENT_IO_ERROR_PAUSE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_IO_ERROR_REPORT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_PMSUSPENDED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_PMSUSPENDED_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED_LAST' type='enum'/>
@@ -406,6 +449,29 @@
      <exports symbol='VIR_MIGRATE_TUNNELLED' type='enum'/>
      <exports symbol='VIR_MIGRATE_UNDEFINE_SOURCE' type='enum'/>
      <exports symbol='VIR_MIGRATE_UNSAFE' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_BRIDGE' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_DNS_HOST' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_DNS_SRV' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_DNS_TXT' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_DOMAIN' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_FORWARD' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_FORWARD_INTERFACE' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_FORWARD_PF' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_IP' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_IP_DHCP_HOST' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_IP_DHCP_RANGE' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_LAST' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_NONE' type='enum'/>
+     <exports symbol='VIR_NETWORK_SECTION_PORTGROUP' type='enum'/>
+     <exports symbol='VIR_NETWORK_UPDATE_AFFECT_CONFIG' type='enum'/>
+     <exports symbol='VIR_NETWORK_UPDATE_AFFECT_CURRENT' type='enum'/>
+     <exports symbol='VIR_NETWORK_UPDATE_AFFECT_LIVE' type='enum'/>
+     <exports symbol='VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST' type='enum'/>
+     <exports symbol='VIR_NETWORK_UPDATE_COMMAND_ADD_LAST' type='enum'/>
+     <exports symbol='VIR_NETWORK_UPDATE_COMMAND_DELETE' type='enum'/>
+     <exports symbol='VIR_NETWORK_UPDATE_COMMAND_LAST' type='enum'/>
+     <exports symbol='VIR_NETWORK_UPDATE_COMMAND_MODIFY' type='enum'/>
+     <exports symbol='VIR_NETWORK_UPDATE_COMMAND_NONE' type='enum'/>
      <exports symbol='VIR_NETWORK_XML_INACTIVE' type='enum'/>
      <exports symbol='VIR_NODE_CPU_STATS_ALL_CPUS' type='enum'/>
      <exports symbol='VIR_NODE_MEMORY_STATS_ALL_CELLS' type='enum'/>
@@ -484,8 +550,14 @@
      <exports symbol='virConnectDomainEventDiskChangeReason' type='typedef'/>
      <exports symbol='virConnectFlags' type='typedef'/>
      <exports symbol='virConnectListAllDomainsFlags' type='typedef'/>
+     <exports symbol='virConnectListAllInterfacesFlags' type='typedef'/>
+     <exports symbol='virConnectListAllNetworksFlags' type='typedef'/>
+     <exports symbol='virConnectListAllNodeDeviceFlags' type='typedef'/>
+     <exports symbol='virConnectListAllSecretsFlags' type='typedef'/>
+     <exports symbol='virConnectListAllStoragePoolsFlags' type='typedef'/>
      <exports symbol='virConnectPtr' type='typedef'/>
      <exports symbol='virDomain' type='typedef'/>
+     <exports symbol='virDomainBlockCommitFlags' type='typedef'/>
      <exports symbol='virDomainBlockInfo' type='typedef'/>
      <exports symbol='virDomainBlockInfoPtr' type='typedef'/>
      <exports symbol='virDomainBlockJobAbortFlags' type='typedef'/>
@@ -521,6 +593,7 @@
      <exports symbol='virDomainEventGraphicsSubjectPtr' type='typedef'/>
      <exports symbol='virDomainEventID' type='typedef'/>
      <exports symbol='virDomainEventIOErrorAction' type='typedef'/>
+     <exports symbol='virDomainEventPMSuspendedDetailType' type='typedef'/>
      <exports symbol='virDomainEventResumedDetailType' type='typedef'/>
      <exports symbol='virDomainEventShutdownDetailType' type='typedef'/>
      <exports symbol='virDomainEventStartedDetailType' type='typedef'/>
@@ -579,6 +652,9 @@
      <exports symbol='virNWFilterPtr' type='typedef'/>
      <exports symbol='virNetwork' type='typedef'/>
      <exports symbol='virNetworkPtr' type='typedef'/>
+     <exports symbol='virNetworkUpdateCommand' type='typedef'/>
+     <exports symbol='virNetworkUpdateFlags' type='typedef'/>
+     <exports symbol='virNetworkUpdateSection' type='typedef'/>
      <exports symbol='virNetworkXMLFlags' type='typedef'/>
      <exports symbol='virNodeCPUStats' type='typedef'/>
      <exports symbol='virNodeCPUStatsPtr' type='typedef'/>
@@ -689,6 +765,12 @@
      <exports symbol='virConnectIsEncrypted' type='function'/>
      <exports symbol='virConnectIsSecure' type='function'/>
      <exports symbol='virConnectListAllDomains' type='function'/>
+     <exports symbol='virConnectListAllInterfaces' type='function'/>
+     <exports symbol='virConnectListAllNWFilters' type='function'/>
+     <exports symbol='virConnectListAllNetworks' type='function'/>
+     <exports symbol='virConnectListAllNodeDevices' type='function'/>
+     <exports symbol='virConnectListAllSecrets' type='function'/>
+     <exports symbol='virConnectListAllStoragePools' type='function'/>
      <exports symbol='virConnectListDefinedDomains' type='function'/>
      <exports symbol='virConnectListDefinedInterfaces' type='function'/>
      <exports symbol='virConnectListDefinedNetworks' type='function'/>
@@ -719,6 +801,7 @@
      <exports symbol='virDomainAbortJob' type='function'/>
      <exports symbol='virDomainAttachDevice' type='function'/>
      <exports symbol='virDomainAttachDeviceFlags' type='function'/>
+     <exports symbol='virDomainBlockCommit' type='function'/>
      <exports symbol='virDomainBlockJobAbort' type='function'/>
      <exports symbol='virDomainBlockJobSetSpeed' type='function'/>
      <exports symbol='virDomainBlockPeek' type='function'/>
@@ -920,6 +1003,7 @@
      <exports symbol='virNetworkRef' type='function'/>
      <exports symbol='virNetworkSetAutostart' type='function'/>
      <exports symbol='virNetworkUndefine' type='function'/>
+     <exports symbol='virNetworkUpdate' type='function'/>
      <exports symbol='virNodeDeviceCreateXML' type='function'/>
      <exports symbol='virNodeDeviceDestroy' type='function'/>
      <exports symbol='virNodeDeviceDettach' type='function'/>
@@ -937,10 +1021,12 @@
      <exports symbol='virNodeGetCellsFreeMemory' type='function'/>
      <exports symbol='virNodeGetFreeMemory' type='function'/>
      <exports symbol='virNodeGetInfo' type='function'/>
+     <exports symbol='virNodeGetMemoryParameters' type='function'/>
      <exports symbol='virNodeGetMemoryStats' type='function'/>
      <exports symbol='virNodeGetSecurityModel' type='function'/>
      <exports symbol='virNodeListDevices' type='function'/>
      <exports symbol='virNodeNumOfDevices' type='function'/>
+     <exports symbol='virNodeSetMemoryParameters' type='function'/>
      <exports symbol='virNodeSuspendForDuration' type='function'/>
      <exports symbol='virSecretDefineXML' type='function'/>
      <exports symbol='virSecretFree' type='function'/>
@@ -973,6 +1059,7 @@
      <exports symbol='virStoragePoolGetXMLDesc' type='function'/>
      <exports symbol='virStoragePoolIsActive' type='function'/>
      <exports symbol='virStoragePoolIsPersistent' type='function'/>
+     <exports symbol='virStoragePoolListAllVolumes' type='function'/>
      <exports symbol='virStoragePoolListVolumes' type='function'/>
      <exports symbol='virStoragePoolLookupByName' type='function'/>
      <exports symbol='virStoragePoolLookupByUUID' type='function'/>
@@ -1020,7 +1107,7 @@
     </file>
     <file name='virterror'>
      <summary>error handling interfaces for the libvirt library</summary>
-     <description>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library;  If not, see</description>
+     <description>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see</description>
      <author>Daniel Veillard &lt;veillard@redhat.com&gt; </author>
      <exports symbol='VIR_ERR_AGENT_UNRESPONSIVE' type='enum'/>
      <exports symbol='VIR_ERR_ARGUMENT_UNSUPPORTED' type='enum'/>
@@ -1453,6 +1540,46 @@
     <enum name='VIR_CONNECT_LIST_DOMAINS_RUNNING' file='libvirt' value='16' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_SHUTOFF' file='libvirt' value='64' type='virConnectListAllDomainsFlags'/>
     <enum name='VIR_CONNECT_LIST_DOMAINS_TRANSIENT' file='libvirt' value='8' type='virConnectListAllDomainsFlags'/>
+    <enum name='VIR_CONNECT_LIST_INTERFACES_ACTIVE' file='libvirt' value='2' type='virConnectListAllInterfacesFlags'/>
+    <enum name='VIR_CONNECT_LIST_INTERFACES_INACTIVE' file='libvirt' value='1' type='virConnectListAllInterfacesFlags'/>
+    <enum name='VIR_CONNECT_LIST_NETWORKS_ACTIVE' file='libvirt' value='2' type='virConnectListAllNetworksFlags'/>
+    <enum name='VIR_CONNECT_LIST_NETWORKS_AUTOSTART' file='libvirt' value='16' type='virConnectListAllNetworksFlags'/>
+    <enum name='VIR_CONNECT_LIST_NETWORKS_INACTIVE' file='libvirt' value='1' type='virConnectListAllNetworksFlags'/>
+    <enum name='VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART' file='libvirt' value='32' type='virConnectListAllNetworksFlags'/>
+    <enum name='VIR_CONNECT_LIST_NETWORKS_PERSISTENT' file='libvirt' value='4' type='virConnectListAllNetworksFlags'/>
+    <enum name='VIR_CONNECT_LIST_NETWORKS_TRANSIENT' file='libvirt' value='8' type='virConnectListAllNetworksFlags'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET' file='libvirt' value='16' type='virConnectListAllNodeDeviceFlags' info='Network device'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV' file='libvirt' value='2' type='virConnectListAllNodeDeviceFlags' info='PCI device'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI' file='libvirt' value='128' type='virConnectListAllNodeDeviceFlags' info='SCSI device'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST' file='libvirt' value='32' type='virConnectListAllNodeDeviceFlags' info='SCSI Host Bus Adapter'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET' file='libvirt' value='64' type='virConnectListAllNodeDeviceFlags' info='SCSI Target'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE' file='libvirt' value='256' type='virConnectListAllNodeDeviceFlags' info='Storage device'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM' file='libvirt' value='1' type='virConnectListAllNodeDeviceFlags' info='System capability'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV' file='libvirt' value='4' type='virConnectListAllNodeDeviceFlags' info='USB device'/>
+    <enum name='VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE' file='libvirt' value='8' type='virConnectListAllNodeDeviceFlags' info='USB interface'/>
+    <enum name='VIR_CONNECT_LIST_SECRETS_EPHEMERAL' file='libvirt' value='1' type='virConnectListAllSecretsFlags' info='kept in memory, never
+stored persistently'/>
+    <enum name='VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL' file='libvirt' value='2' type='virConnectListAllSecretsFlags'/>
+    <enum name='VIR_CONNECT_LIST_SECRETS_NO_PRIVATE' file='libvirt' value='8' type='virConnectListAllSecretsFlags'/>
+    <enum name='VIR_CONNECT_LIST_SECRETS_PRIVATE' file='libvirt' value='4' type='virConnectListAllSecretsFlags' info='not revealed to any caller
+of libvirt, nor to any other
+node'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE' file='libvirt' value='2' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART' file='libvirt' value='16' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_DIR' file='libvirt' value='64' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_DISK' file='libvirt' value='1024' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_FS' file='libvirt' value='128' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE' file='libvirt' value='1' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI' file='libvirt' value='2048' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL' file='libvirt' value='512' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_MPATH' file='libvirt' value='8192' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_NETFS' file='libvirt' value='256' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_NO_AUTOSTART' file='libvirt' value='32' type='virConnectListAllStoragePoolsFlags' info='List pools by type'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_PERSISTENT' file='libvirt' value='4' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_RBD' file='libvirt' value='16384' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_SCSI' file='libvirt' value='4096' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG' file='libvirt' value='32768' type='virConnectListAllStoragePoolsFlags'/>
+    <enum name='VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT' file='libvirt' value='8' type='virConnectListAllStoragePoolsFlags'/>
     <enum name='VIR_CONNECT_NO_ALIASES' file='libvirt' value='2' type='virConnectFlags' info='Don&apos;t try to resolve URI aliases'/>
     <enum name='VIR_CONNECT_RO' file='libvirt' value='1' type='virConnectFlags' info='A readonly connection'/>
     <enum name='VIR_CPU_COMPARE_ERROR' file='libvirt' value='-1' type='virCPUCompareResult'/>
@@ -1482,14 +1609,20 @@
     <enum name='VIR_DOMAIN_BLOCKED' file='libvirt' value='2' type='virDomainState' info='the domain is blocked on resource'/>
     <enum name='VIR_DOMAIN_BLOCKED_LAST' file='libvirt' value='1' type='virDomainBlockedReason'/>
     <enum name='VIR_DOMAIN_BLOCKED_UNKNOWN' file='libvirt' value='0' type='virDomainBlockedReason' info='the reason is unknown'/>
+    <enum name='VIR_DOMAIN_BLOCK_COMMIT_DELETE' file='libvirt' value='2' type='virDomainBlockCommitFlags' info='Delete any files that are now
+invalid after their contents
+have been committed'/>
+    <enum name='VIR_DOMAIN_BLOCK_COMMIT_SHALLOW' file='libvirt' value='1' type='virDomainBlockCommitFlags' info='NULL base means next backing
+file, not whole chain'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC' file='libvirt' value='1' type='virDomainBlockJobAbortFlags'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT' file='libvirt' value='2' type='virDomainBlockJobAbortFlags'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_CANCELED' file='libvirt' value='2' type='virConnectDomainEventBlockJobStatus'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_COMPLETED' file='libvirt' value='0' type='virConnectDomainEventBlockJobStatus'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_FAILED' file='libvirt' value='1' type='virConnectDomainEventBlockJobStatus'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_LAST' file='libvirt' value='3' type='virConnectDomainEventBlockJobStatus'/>
+    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT' file='libvirt' value='3' type='virDomainBlockJobType'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY' file='libvirt' value='2' type='virDomainBlockJobType'/>
-    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST' file='libvirt' value='3' type='virDomainBlockJobType'/>
+    <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST' file='libvirt' value='4' type='virDomainBlockJobType'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_PULL' file='libvirt' value='1' type='virDomainBlockJobType'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN' file='libvirt' value='0' type='virDomainBlockJobType'/>
     <enum name='VIR_DOMAIN_BLOCK_REBASE_COPY' file='libvirt' value='8' type='virDomainBlockRebaseFlags' info='Start a copy job'/>
@@ -1560,7 +1693,10 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_NONE' file='libvirt' value='0' type='virDomainEventIOErrorAction' info='No action, IO error ignored'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_PAUSE' file='libvirt' value='1' type='virDomainEventIOErrorAction' info='Guest CPUs are pausde'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_REPORT' file='libvirt' value='2' type='virDomainEventIOErrorAction' info='IO error reported to guest OS'/>
-    <enum name='VIR_DOMAIN_EVENT_LAST' file='libvirt' value='7' type='virDomainEventType'/>
+    <enum name='VIR_DOMAIN_EVENT_LAST' file='libvirt' value='8' type='virDomainEventType'/>
+    <enum name='VIR_DOMAIN_EVENT_PMSUSPENDED' file='libvirt' value='7' type='virDomainEventType'/>
+    <enum name='VIR_DOMAIN_EVENT_PMSUSPENDED_LAST' file='libvirt' value='1' type='virDomainEventPMSuspendedDetailType'/>
+    <enum name='VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY' file='libvirt' value='0' type='virDomainEventPMSuspendedDetailType' info='Guest was PM suspended to memory'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED' file='libvirt' value='4' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT' file='libvirt' value='2' type='virDomainEventResumedDetailType' info='Resumed from snapshot'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_LAST' file='libvirt' value='3' type='virDomainEventResumedDetailType'/>
@@ -1960,6 +2096,30 @@ VIR_MIGRATE_TUNNELLED should be VIR_MIGRATE_TUNNELED'/>
     <enum name='VIR_MIGRATE_TUNNELLED' file='libvirt' value='4' type='virDomainMigrateFlags' info='tunnel migration data over libvirtd connection'/>
     <enum name='VIR_MIGRATE_UNDEFINE_SOURCE' file='libvirt' value='16' type='virDomainMigrateFlags' info='undefine the VM on the source'/>
     <enum name='VIR_MIGRATE_UNSAFE' file='libvirt' value='512' type='virDomainMigrateFlags' info='force migration even if it is considered unsafe'/>
+    <enum name='VIR_NETWORK_SECTION_BRIDGE' file='libvirt' value='1' type='virNetworkUpdateSection' info='&lt;bridge&gt;'/>
+    <enum name='VIR_NETWORK_SECTION_DNS_HOST' file='libvirt' value='10' type='virNetworkUpdateSection' info='&lt;dns&gt;/&lt;host&gt;'/>
+    <enum name='VIR_NETWORK_SECTION_DNS_SRV' file='libvirt' value='12' type='virNetworkUpdateSection' info='&lt;dns&gt;/&lt;srv&gt;'/>
+    <enum name='VIR_NETWORK_SECTION_DNS_TXT' file='libvirt' value='11' type='virNetworkUpdateSection' info='&lt;dns&gt;/&lt;txt&gt;'/>
+    <enum name='VIR_NETWORK_SECTION_DOMAIN' file='libvirt' value='2' type='virNetworkUpdateSection' info='&lt;domain&gt;'/>
+    <enum name='VIR_NETWORK_SECTION_FORWARD' file='libvirt' value='6' type='virNetworkUpdateSection' info='&lt;forward&gt;'/>
+    <enum name='VIR_NETWORK_SECTION_FORWARD_INTERFACE' file='libvirt' value='7' type='virNetworkUpdateSection' info='&lt;forward&gt;/&lt;interface&gt;'/>
+    <enum name='VIR_NETWORK_SECTION_FORWARD_PF' file='libvirt' value='8' type='virNetworkUpdateSection' info='&lt;forward&gt;/&lt;pf&gt;'/>
+    <enum name='VIR_NETWORK_SECTION_IP' file='libvirt' value='3' type='virNetworkUpdateSection' info='&lt;ip&gt;'/>
+    <enum name='VIR_NETWORK_SECTION_IP_DHCP_HOST' file='libvirt' value='4' type='virNetworkUpdateSection' info='&lt;ip&gt;/&lt;dhcp&gt;/&lt;host&gt;'/>
+    <enum name='VIR_NETWORK_SECTION_IP_DHCP_RANGE' file='libvirt' value='5' type='virNetworkUpdateSection' info='&lt;ip&gt;/&lt;dhcp&gt;/&lt;range&gt;'/>
+    <enum name='VIR_NETWORK_SECTION_LAST' file='libvirt' value='13' type='virNetworkUpdateSection'/>
+    <enum name='VIR_NETWORK_SECTION_NONE' file='libvirt' value='0' type='virNetworkUpdateSection' info='(invalid)'/>
+    <enum name='VIR_NETWORK_SECTION_PORTGROUP' file='libvirt' value='9' type='virNetworkUpdateSection' info='&lt;portgroup&gt;'/>
+    <enum name='VIR_NETWORK_UPDATE_AFFECT_CONFIG' file='libvirt' value='2' type='virNetworkUpdateFlags' info='affect persistent config only'/>
+    <enum name='VIR_NETWORK_UPDATE_AFFECT_CURRENT' file='libvirt' value='0' type='virNetworkUpdateFlags' info='affect live if network is active,
+config if it&apos;s not active'/>
+    <enum name='VIR_NETWORK_UPDATE_AFFECT_LIVE' file='libvirt' value='1' type='virNetworkUpdateFlags' info='affect live state of network only'/>
+    <enum name='VIR_NETWORK_UPDATE_COMMAND_ADD_FIRST' file='libvirt' value='4' type='virNetworkUpdateCommand' info='add an element at start of list'/>
+    <enum name='VIR_NETWORK_UPDATE_COMMAND_ADD_LAST' file='libvirt' value='3' type='virNetworkUpdateCommand' info='add an element at end of list'/>
+    <enum name='VIR_NETWORK_UPDATE_COMMAND_DELETE' file='libvirt' value='2' type='virNetworkUpdateCommand' info='delete an existing element'/>
+    <enum name='VIR_NETWORK_UPDATE_COMMAND_LAST' file='libvirt' value='5' type='virNetworkUpdateCommand'/>
+    <enum name='VIR_NETWORK_UPDATE_COMMAND_MODIFY' file='libvirt' value='1' type='virNetworkUpdateCommand' info='modify an existing element'/>
+    <enum name='VIR_NETWORK_UPDATE_COMMAND_NONE' file='libvirt' value='0' type='virNetworkUpdateCommand' info='(invalid)'/>
     <enum name='VIR_NETWORK_XML_INACTIVE' file='libvirt' value='1' type='virNetworkXMLFlags' info='dump inactive network information'/>
     <enum name='VIR_NODE_CPU_STATS_ALL_CPUS' file='libvirt' value='-1' type='virNodeGetCPUStatsAllCPUs'/>
     <enum name='VIR_NODE_MEMORY_STATS_ALL_CELLS' file='libvirt' value='-1' type='virNodeGetMemoryStatsAllCells'/>
@@ -2082,10 +2242,16 @@ Cryptography&quot; (1996)'/>
     <typedef name='virConnectDomainEventDiskChangeReason' file='libvirt' type='enum'/>
     <typedef name='virConnectFlags' file='libvirt' type='enum'/>
     <typedef name='virConnectListAllDomainsFlags' file='libvirt' type='enum'/>
+    <typedef name='virConnectListAllInterfacesFlags' file='libvirt' type='enum'/>
+    <typedef name='virConnectListAllNetworksFlags' file='libvirt' type='enum'/>
+    <typedef name='virConnectListAllNodeDeviceFlags' file='libvirt' type='enum'/>
+    <typedef name='virConnectListAllSecretsFlags' file='libvirt' type='enum'/>
+    <typedef name='virConnectListAllStoragePoolsFlags' file='libvirt' type='enum'/>
     <typedef name='virConnectPtr' file='libvirt' type='virConnect *'>
       <info><![CDATA[a virConnectPtr is pointer to a virConnect private structure, this is the type used to reference a connection to the Hypervisor in the API.]]></info>
     </typedef>
     <struct name='virDomain' file='libvirt' type='struct _virDomain'/>
+    <typedef name='virDomainBlockCommitFlags' file='libvirt' type='enum'/>
     <struct name='virDomainBlockInfo' file='libvirt' type='struct _virDomainBlockInfo'>
       <field name='capacity' type='unsigned long long' info='logical size in bytes of the block device backing image'/>
       <field name='allocation' type='unsigned long long' info='highest allocated extent in bytes of the block device backing image'/>
@@ -2162,6 +2328,7 @@ and ERROR states)'/>
     <typedef name='virDomainEventGraphicsSubjectPtr' file='libvirt' type='virDomainEventGraphicsSubject *'/>
     <typedef name='virDomainEventID' file='libvirt' type='enum'/>
     <typedef name='virDomainEventIOErrorAction' file='libvirt' type='enum'/>
+    <typedef name='virDomainEventPMSuspendedDetailType' file='libvirt' type='enum'/>
     <typedef name='virDomainEventResumedDetailType' file='libvirt' type='enum'/>
     <typedef name='virDomainEventShutdownDetailType' file='libvirt' type='enum'/>
     <typedef name='virDomainEventStartedDetailType' file='libvirt' type='enum'/>
@@ -2311,6 +2478,9 @@ see note above'/>
     <typedef name='virNetworkPtr' file='libvirt' type='virNetwork *'>
       <info><![CDATA[a virNetworkPtr is pointer to a virNetwork private structure, this is the type used to reference a virtual network in the API.]]></info>
     </typedef>
+    <typedef name='virNetworkUpdateCommand' file='libvirt' type='enum'/>
+    <typedef name='virNetworkUpdateFlags' file='libvirt' type='enum'/>
+    <typedef name='virNetworkUpdateSection' file='libvirt' type='enum'/>
     <typedef name='virNetworkXMLFlags' file='libvirt' type='enum'/>
     <struct name='virNodeCPUStats' file='libvirt' type='struct _virNodeCPUStats'>
       <field name='field' type='char field[VIR_NODE_CPU_STATS_FIELD_LENGTH]' info=''/>
@@ -2923,6 +3093,148 @@ a domain has snapshots.]]></info>
       <arg name='domains' type='virDomainPtr **' info='Pointer to a variable to store the array containing domain objects or NULL if the list is not required (just returns number of guests).'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectListAllDomainsFlags'/>
     </function>
+    <function name='virConnectListAllInterfaces' file='libvirt' module='libvirt'>
+      <info><![CDATA[Collect the list of interfaces, and allocate an array to store those
+objects. This API solves the race inherent between virConnectListInterfaces
+and virConnectListDefinedInterfaces.
+
+Normally, all interfaces are returned; however, @flags can be used to
+filter the results for a smaller list of targeted interfaces.  The valid
+flags are divided into groups, where each group contains bits that
+describe mutually exclusive attributes of a interface, and where all bits
+within a group describe all possible interfaces.
+
+The only group of @flags is VIR_CONNECT_LIST_INTERFACES_ACTIVE (up) and
+VIR_CONNECT_LIST_INTERFACES_INACTIVE (down) to filter the interfaces by state.]]></info>
+      <return type='int' info='the number of interfaces found or -1 and sets @ifaces to  NULL in case of error.  On success, the array stored into @ifaces is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virStorageInterfaceFree() on each array element, then calling free() on @ifaces.'/>
+      <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
+      <arg name='ifaces' type='virInterfacePtr **' info='Pointer to a variable to store the array containing the interface objects or NULL if the list is not required (just returns number of interfaces).'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectListAllInterfacesFlags.'/>
+    </function>
+    <function name='virConnectListAllNWFilters' file='libvirt' module='libvirt'>
+      <info><![CDATA[Collect the list of network filters, and allocate an array to store those
+objects.]]></info>
+      <return type='int' info='the number of network filters found or -1 and sets @filters to  NULL in case of error.  On success, the array stored into @filters is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virNWFilterFree() on each array element, then calling free() on @filters.'/>
+      <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
+      <arg name='filters' type='virNWFilterPtr **' info='Pointer to a variable to store the array containing the network filter objects or NULL if the list is not required (just returns number of network filters).'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virConnectListAllNetworks' file='libvirt' module='libvirt'>
+      <info><![CDATA[Collect the list of networks, and allocate an array to store those
+objects. This API solves the race inherent between virConnectListNetworks
+and virConnectListDefinedNetworks.
+
+Normally, all networks are returned; however, @flags can be used to
+filter the results for a smaller list of targeted networks.  The valid
+flags are divided into groups, where each group contains bits that
+describe mutually exclusive attributes of a network, and where all bits
+within a group describe all possible networks.
+
+The first group of @flags is VIR_CONNECT_LIST_NETWORKS_ACTIVE (up) and
+VIR_CONNECT_LIST_NETWORKS_INACTIVE (down) to filter the networks by state.
+
+The second group of @flags is VIR_CONNECT_LIST_NETWORKS_PERSISTENT (defined)
+and VIR_CONNECT_LIST_NETWORKS_TRANSIENT (running but not defined), to filter
+the networks by whether they have persistent config or not.
+
+The third group of @flags is VIR_CONNECT_LIST_NETWORKS_AUTOSTART
+and VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART, to filter the networks by
+whether they are marked as autostart or not.]]></info>
+      <return type='int' info='the number of networks found or -1 and sets @nets to  NULL in case of error.  On success, the array stored into @nets is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virNetworkFree() on each array element, then calling free() on @nets.'/>
+      <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
+      <arg name='nets' type='virNetworkPtr **' info='Pointer to a variable to store the array containing the network objects or NULL if the list is not required (just returns number of networks).'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectListAllNetworksFlags.'/>
+    </function>
+    <function name='virConnectListAllNodeDevices' file='libvirt' module='libvirt'>
+      <info><![CDATA[Collect the list of node devices, and allocate an array to store those
+objects.
+
+Normally, all node devices are returned; however, @flags can be used to
+filter the results for a smaller list of targeted node devices.  The valid
+flags are divided into groups, where each group contains bits that
+describe mutually exclusive attributes of a node device, and where all bits
+within a group describe all possible node devices.
+
+Only one group of the @flags is provided to filter the node devices by
+capability type, flags include:
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI
+  VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE]]></info>
+      <return type='int' info='the number of node devices found or -1 and sets @devices to NULL in case of error.  On success, the array stored into @devices is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virNodeDeviceFree() on each array element, then calling free() on @devices.'/>
+      <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
+      <arg name='devices' type='virNodeDevicePtr **' info='Pointer to a variable to store the array containing the node device objects or NULL if the list is not required (just returns number of node devices).'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectListAllNodeDevices.'/>
+    </function>
+    <function name='virConnectListAllSecrets' file='libvirt' module='libvirt'>
+      <info><![CDATA[Collect the list of secrets, and allocate an array to store those
+objects.
+
+Normally, all secrets are returned; however, @flags can be used to
+filter the results for a smaller list of targeted secrets. The valid
+flags are divided into groups, where each group contains bits that
+describe mutually exclusive attributes of a secret, and where all bits
+within a group describe all possible secrets.
+
+The first group of @flags is used to filter secrets by its storage
+location. Flag VIR_CONNECT_LIST_SECRETS_EPHEMERAL selects secrets that
+are kept only in memory. Flag VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL
+selects secrets that are kept in persistent storage.
+
+The second group of @flags is used to filter secrets by privacy. Flag
+VIR_CONNECT_LIST_SECRETS_PRIVATE seclets secrets that are never revealed
+to any caller of libvirt nor to any other node. Flag
+VIR_CONNECT_LIST_SECRETS_NO_PRIVATE selects non-private secrets.]]></info>
+      <return type='int' info='the number of secrets found or -1 and sets @secrets to NULL in case of error.  On success, the array stored into @secrets is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virSecretFree() on each array element, then calling free() on @secrets.'/>
+      <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
+      <arg name='secrets' type='virSecretPtr **' info='Pointer to a variable to store the array containing the secret objects or NULL if the list is not required (just returns the number of secrets).'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virConnectListAllStoragePools' file='libvirt' module='libvirt'>
+      <info><![CDATA[Collect the list of storage pools, and allocate an array to store those
+objects. This API solves the race inherent between
+virConnectListStoragePools and virConnectListDefinedStoragePools.
+
+Normally, all storage pools are returned; however, @flags can be used to
+filter the results for a smaller list of targeted pools.  The valid
+flags are divided into groups, where each group contains bits that
+describe mutually exclusive attributes of a pool, and where all bits
+within a group describe all possible pools.
+
+The first group of @flags is VIR_CONNECT_LIST_STORAGE_POOLS_ACTIVE (online)
+and VIR_CONNECT_LIST_STORAGE_POOLS_INACTIVE (offline) to filter the pools
+by state.
+
+The second group of @flags is VIR_CONNECT_LIST_STORAGE_POOLS_PERSITENT
+(defined) and VIR_CONNECT_LIST_STORAGE_POOLS_TRANSIENT (running but not
+defined), to filter the pools by whether they have persistent config or not.
+
+The third group of @flags is VIR_CONNECT_LIST_STORAGE_POOLS_AUTOSTART
+and VIR_CONNECT_LIST_STORAGE_POOLS_NO_AUTOSTART, to filter the pools by
+whether they are marked as autostart or not.
+
+The last group of @flags is provided to filter the pools by the types,
+the flags include:
+VIR_CONNECT_LIST_STORAGE_POOLS_DIR
+VIR_CONNECT_LIST_STORAGE_POOLS_FS
+VIR_CONNECT_LIST_STORAGE_POOLS_NETFS
+VIR_CONNECT_LIST_STORAGE_POOLS_LOGICAL
+VIR_CONNECT_LIST_STORAGE_POOLS_DISK
+VIR_CONNECT_LIST_STORAGE_POOLS_ISCSI
+VIR_CONNECT_LIST_STORAGE_POOLS_SCSI
+VIR_CONNECT_LIST_STORAGE_POOLS_MPATH
+VIR_CONNECT_LIST_STORAGE_POOLS_RBD
+VIR_CONNECT_LIST_STORAGE_POOLS_SHEEPDOG]]></info>
+      <return type='int' info='the number of storage pools found or -1 and sets @pools to NULL in case of error.  On success, the array stored into @pools is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virStoragePoolFree() on each array element, then calling free() on @pools.'/>
+      <arg name='conn' type='virConnectPtr' info='Pointer to the hypervisor connection.'/>
+      <arg name='pools' type='virStoragePoolPtr **' info='Pointer to a variable to store the array containing storage pool objects or NULL if the list is not required (just returns number of pools).'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virConnectListAllStoragePoolsFlags.'/>
+    </function>
     <function name='virConnectListDefinedDomains' file='libvirt' module='libvirt'>
       <info><![CDATA[list the defined but inactive domains, stores the pointers to the names
 in @names
@@ -2936,24 +3248,30 @@ the results, see virConnectListAllDomains().]]></info>
     </function>
     <function name='virConnectListDefinedInterfaces' file='libvirt' module='libvirt'>
       <info><![CDATA[Collect the list of defined (inactive) physical host interfaces,
-and store their names in @names.]]></info>
-      <return type='int' info='the number of interfaces found or -1 in case of error'/>
+and store their names in @names.
+
+For more control over the results, see virConnectListAllInterfaces().]]></info>
+      <return type='int' info='the number of names provided in the array or -1 in case of error. Note that this command is inherently racy; a interface can be defined between a call to virConnectNumOfDefinedInterfaces() and this call; you are only guaranteed that all currently defined interfaces were listed if the return is less than @maxnames.  The client must call free() on each returned name.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='names' type='char ** const' info='array to collect the list of names of interfaces'/>
       <arg name='maxnames' type='int' info='size of @names'/>
     </function>
     <function name='virConnectListDefinedNetworks' file='libvirt' module='libvirt'>
-      <info><![CDATA[list the inactive networks, stores the pointers to the names in @names]]></info>
-      <return type='int' info='the number of names provided in the array or -1 in case of error'/>
+      <info><![CDATA[list the inactive networks, stores the pointers to the names in @names
+
+For more control over the results, see virConnectListAllNetworks().]]></info>
+      <return type='int' info='the number of names provided in the array or -1 in case of error. Note that this command is inherently racy; a network can be defined between a call to virConnectNumOfDefinedNetworks() and this call; you are only guaranteed that all currently defined networks were listed if the return is less than @maxnames.  The client must call free() on each returned name.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='names' type='char ** const' info='pointer to an array to store the names'/>
       <arg name='maxnames' type='int' info='size of the array'/>
     </function>
     <function name='virConnectListDefinedStoragePools' file='libvirt' module='libvirt'>
-      <info><![CDATA[Provides the list of names of inactive storage pools
-upto maxnames. If there are more than maxnames, the
-remaining names will be silently ignored.]]></info>
-      <return type='int' info='0 on success, -1 on error'/>
+      <info><![CDATA[Provides the list of names of inactive storage pools up to maxnames.
+If there are more than maxnames, the remaining names will be silently
+ignored.
+
+For more control over the results, see virConnectListAllStoragePools().]]></info>
+      <return type='int' info='the number of names provided in the array or -1 in case of error. Note that this command is inherently racy; a pool can be defined between a call to virConnectNumOfDefinedStoragePools() and this call; you are only guaranteed that all currently defined pools were listed if the return is less than @maxnames.  The client must call free() on each returned name.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
       <arg name='names' type='char ** const' info='array of char * to fill with pool names (allocated by caller)'/>
       <arg name='maxnames' type='int' info='size of the names array'/>
@@ -2970,8 +3288,10 @@ control over the results, see virConnectListAllDomains().]]></info>
     </function>
     <function name='virConnectListInterfaces' file='libvirt' module='libvirt'>
       <info><![CDATA[Collect the list of active physical host interfaces,
-and store their names in @names]]></info>
-      <return type='int' info='the number of interfaces found or -1 in case of error'/>
+and store their names in @names
+
+For more control over the results, see virConnectListAllInterfaces().]]></info>
+      <return type='int' info='the number of interfaces found or -1 in case of error.  Note that this command is inherently racy; a interface can be started between a call to virConnectNumOfInterfaces() and this call; you are only guaranteed that all currently active interfaces were listed if the return is less than @maxnames.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='names' type='char ** const' info='array to collect the list of names of interfaces'/>
       <arg name='maxnames' type='int' info='size of @names'/>
@@ -2984,8 +3304,10 @@ and store their names in @names]]></info>
       <arg name='maxnames' type='int' info='size of @names'/>
     </function>
     <function name='virConnectListNetworks' file='libvirt' module='libvirt'>
-      <info><![CDATA[Collect the list of active networks, and store their names in @names]]></info>
-      <return type='int' info='the number of networks found or -1 in case of error'/>
+      <info><![CDATA[Collect the list of active networks, and store their names in @names
+
+For more control over the results, see virConnectListAllNetworks().]]></info>
+      <return type='int' info='the number of networks found or -1 in case of error.  Note that this command is inherently racy; a network can be started between a call to virConnectNumOfNetworks() and this call; you are only guaranteed that all currently active networks were listed if the return is less than @maxnames.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='names' type='char ** const' info='array to collect the list of names of active networks'/>
       <arg name='maxnames' type='int' info='size of @names'/>
@@ -2998,10 +3320,12 @@ and store their names in @names]]></info>
       <arg name='maxuuids' type='int' info='size of the array.'/>
     </function>
     <function name='virConnectListStoragePools' file='libvirt' module='libvirt'>
-      <info><![CDATA[Provides the list of names of active storage pools
-upto maxnames. If there are more than maxnames, the
-remaining names will be silently ignored.]]></info>
-      <return type='int' info='0 on success, -1 on error'/>
+      <info><![CDATA[Provides the list of names of active storage pools up to maxnames.
+If there are more than maxnames, the remaining names will be silently
+ignored.
+
+For more control over the results, see virConnectListAllStoragePools().]]></info>
+      <return type='int' info='the number of pools found or -1 in case of error.  Note that this command is inherently racy; a pool can be started between a call to virConnectNumOfStoragePools() and this call; you are only guaranteed that all currently active pools were listed if the return is less than @maxnames.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to hypervisor connection'/>
       <arg name='names' type='char ** const' info='array of char * to fill with pool names (allocated by caller)'/>
       <arg name='maxnames' type='int' info='size of the names array'/>
@@ -3203,6 +3527,67 @@ recommended to use the virDomainUpdateDeviceFlag method instead.]]></info>
       <arg name='xml' type='const char *' info='pointer to XML description of one device'/>
       <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainDeviceModifyFlags'/>
     </function>
+    <function name='virDomainBlockCommit' file='libvirt' module='libvirt'>
+      <info><![CDATA[Commit changes that were made to temporary top-level files within a disk
+image backing file chain into a lower-level base file.  In other words,
+take all the difference between @base and @top, and update @base to contain
+that difference; after the commit, any portion of the chain that previously
+depended on @top will now depend on @base, and all files after @base up
+to and including @top will now be invalidated.  A typical use of this
+command is to reduce the length of a backing file chain after taking an
+external disk snapshot.  To move data in the opposite direction, see
+virDomainBlockPull().
+
+This command starts a long-running commit block job, whose status may
+be tracked by virDomainBlockJobInfo() with a job type of
+VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT, and the operation can be aborted with
+virDomainBlockJobAbort().  When finished, an asynchronous event is
+raised to indicate the final status, and the job no longer exists.  If
+the job is aborted, it is up to the hypervisor whether starting a new
+job will resume from the same point, or start over.
+
+Be aware that this command may invalidate files even if it is aborted;
+the user is cautioned against relying on the contents of invalidated
+intermediate files such as @top without manually rebasing those files
+to use a backing file of a read-only copy of @base prior to the point
+where the commit operation was started (although such a rebase cannot
+be safely done until the commit has successfully completed).  However,
+the domain itself will not have any issues; the active layer remains
+valid throughout the entire commit operation.  As a convenience,
+if @flags contains VIR_DOMAIN_BLOCK_COMMIT_DELETE, this command will
+unlink all files that were invalidated, after the commit successfully
+completes.
+
+By default, if @base is NULL, the commit target will be the bottom of
+the backing chain; if @flags contains VIR_DOMAIN_BLOCK_COMMIT_SHALLOW,
+then the immediate backing file of @top will be used instead.  If @top
+is NULL, the active image at the top of the chain will be used.  Some
+hypervisors place restrictions on how much can be committed, and might
+fail if @base is not the immediate backing file of @top, or if @top is
+the active layer in use by a running domain, or if @top is not the
+top-most file; restrictions may differ for online vs. offline domains.
+
+The @disk parameter is either an unambiguous source name of the
+block device (the <source file='...'/> sub-element, such as
+"/path/to/image"), or the device target shorthand (the
+<target dev='...'/> sub-element, such as "xvda").  Valid names
+can be found by calling virDomainGetXMLDesc() and inspecting
+elements within //domain/devices/disk.
+
+The maximum bandwidth (in MiB/s) that will be used to do the commit can be
+specified with the bandwidth parameter.  If set to 0, libvirt will choose a
+suitable default.  Some hypervisors do not support this feature and will
+return an error if bandwidth is not 0; in this case, it might still be
+possible for a later call to virDomainBlockJobSetSpeed() to succeed.
+The actual speed can be determined with virDomainGetBlockJobInfo().]]></info>
+      <return type='int' info='0 if the operation has started, -1 on failure.'/>
+      <arg name='dom' type='virDomainPtr' info='pointer to domain object'/>
+      <arg name='disk' type='const char *' info='path to the block device, or device shorthand'/>
+      <arg name='base' type='const char *' info='path to backing file to merge into, or NULL for default'/>
+      <arg name='top' type='const char *' info='path to file within backing chain that contains data to be merged, or NULL to merge all possible data'/>
+      <arg name='bandwidth' type='unsigned long' info='(optional) specify commit bandwidth limit in MiB/s'/>
+      <arg name='flags' type='unsigned int' info='bitwise-OR of virDomainBlockCommitFlags'/>
+    </function>
     <function name='virDomainBlockJobAbort' file='libvirt' module='libvirt'>
       <info><![CDATA[Cancel the active block job on the given disk.
 
@@ -3301,7 +3686,8 @@ its backing image has been pulled, the disk no longer depends on a backing
 image.  This function pulls data for the entire device in the background.
 Progress of the operation can be checked with virDomainGetBlockJobInfo() and
 the operation can be aborted with virDomainBlockJobAbort().  When finished,
-an asynchronous event is raised to indicate the final status.
+an asynchronous event is raised to indicate the final status.  To move
+data in the opposite direction, see virDomainBlockCommit().
 
 The @disk parameter is either an unambiguous source name of the
 block device (the <source file='...'/> sub-element, such as
@@ -6269,6 +6655,17 @@ when the host machine boots.]]></info>
       <return type='int' info='0 in case of success, -1 in case of error'/>
       <arg name='network' type='virNetworkPtr' info='pointer to a defined network'/>
     </function>
+    <function name='virNetworkUpdate' file='libvirt' module='libvirt'>
+      <info><![CDATA[Update the definition of an existing network, either its live
+running state, its persistent configuration, or both.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of error virNetworkUpdateCommand virNetworkUpdateSection'/>
+      <arg name='network' type='virNetworkPtr' info='pointer to a defined network'/>
+      <arg name='command' type='unsigned int' info='what action to perform (add/delete/modify) (see virNetworkUpdateCommand for descriptions)'/>
+      <arg name='section' type='unsigned int' info='which section of the network to update (see virNetworkUpdateSection for descriptions)'/>
+      <arg name='parentIndex' type='int' info='which parent element, if there are multiple parents of the same type (e.g. which &lt;ip&gt; element when modifying a &lt;dhcp&gt;/&lt;host&gt; element), or &quot;-1&quot; for &quot;don&apos;t care&quot; or &quot;automatically find appropriate one&quot;.'/>
+      <arg name='xml' type='const char *' info='the XML description for the network, preferably in UTF-8'/>
+      <arg name='flags' type='unsigned int' info='bitwise OR of virNetworkUpdateFlags.'/>
+    </function>
     <function name='virNodeDeviceCreateXML' file='libvirt' module='libvirt'>
       <info><![CDATA[Create a new device on the VM host machine, for example, virtual
 HBAs created using vport_create.]]></info>
@@ -6455,6 +6852,24 @@ function the returned value is in bytes. Divide by 1024 as necessary.]]></info>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='info' type='virNodeInfoPtr' info='pointer to a virNodeInfo structure allocated by the user'/>
     </function>
+    <function name='virNodeGetMemoryParameters' file='libvirt' module='libvirt'>
+      <info><![CDATA[Get all node memory parameters.  On input, @nparams gives the size
+of the @params array; on output, @nparams gives how many slots were
+filled with parameter information, which might be less but will
+not exceed the input value.
+
+As a special case, calling with @params as NULL and @nparams as 0 on
+input will cause @nparams on output to contain the number of parameters
+supported by the hypervisor. The caller should then allocate @params
+array, i.e. (sizeof(@virTypedParameter) * @nparams) bytes and call the API
+again.  See virDomainGetMemoryParameters() for an equivalent usage
+example.]]></info>
+      <return type='int' info='0 in case of success, and -1 in case of failure.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='params' type='virTypedParameterPtr' info='pointer to memory parameter object (return value, allocated by the caller)'/>
+      <arg name='nparams' type='int *' info='pointer to number of memory parameters; input and output'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
     <function name='virNodeGetMemoryStats' file='libvirt' module='libvirt'>
       <info><![CDATA[This function provides memory stats of the node.
 If you want to get total cpu statistics of the node, you must specify
@@ -6511,6 +6926,8 @@ string if the driver has not activated a security model.]]></info>
     <function name='virNodeListDevices' file='libvirt' module='libvirt'>
       <info><![CDATA[Collect the list of node devices, and store their names in @names
 
+For more control over the results, see virConnectListAllNodeDevices().
+
 If the optional 'cap'  argument is non-NULL, then the count
 will be restricted to devices with the specified capability]]></info>
       <return type='int' info='the number of node devices found or -1 in case of error'/>
@@ -6528,6 +6945,15 @@ will be restricted to devices with the specified capability]]></info>
       <return type='int' info='the number of node devices or -1 in case of error'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
       <arg name='cap' type='const char *' info='capability name'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
+    <function name='virNodeSetMemoryParameters' file='libvirt' module='libvirt'>
+      <info><![CDATA[Change all or a subset of the node memory tunables.
+This function may require privileged access to the hypervisor.]]></info>
+      <return type='int' info='0 in case of success, -1 in case of failure.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='params' type='virTypedParameterPtr' info='pointer to scheduler parameter objects'/>
+      <arg name='nparams' type='int' info='number of scheduler parameter objects (this value can be the same or less than the returned value nparams of virDomainGetSchedulerType)'/>
       <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
     </function>
     <function name='virNodeSuspendForDuration' file='libvirt' module='libvirt'>
@@ -6806,9 +7232,19 @@ which means it will still exist after shutting down]]></info>
       <return type='int' info='1 if persistent, 0 if transient, -1 on error'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to the storage pool object'/>
     </function>
+    <function name='virStoragePoolListAllVolumes' file='libvirt' module='libvirt'>
+      <info><![CDATA[Collect the list of storage volumes, and allocate an array to store those
+objects.]]></info>
+      <return type='int' info='the number of storage volumes found or -1 and sets @vols to NULL in case of error.  On success, the array stored into @vols is guaranteed to have an extra allocated element set to NULL but not included in the return count, to make iteration easier.  The caller is responsible for calling virStorageVolFree() on each array element, then calling free() on @vols.'/>
+      <arg name='pool' type='virStoragePoolPtr' info='Pointer to storage pool'/>
+      <arg name='vols' type='virStorageVolPtr **' info='Pointer to a variable to store the array containing storage volume objects or NULL if the list is not required (just returns number of volumes).'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
     <function name='virStoragePoolListVolumes' file='libvirt' module='libvirt'>
       <info><![CDATA[Fetch list of storage volume names, limiting to
-at most maxnames.]]></info>
+at most maxnames.
+
+To list the volume objects directly, see virStoragePoolListAllVolumes().]]></info>
       <return type='int' info='the number of names fetched, or -1 on error'/>
       <arg name='pool' type='virStoragePoolPtr' info='pointer to storage pool'/>
       <arg name='names' type='char ** const' info='array in which to storage volume names'/>

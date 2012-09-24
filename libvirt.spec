@@ -70,6 +70,7 @@
 %define with_parallels     0%{!?_without_parallels:1}
 
 # Then the secondary host drivers, which run inside libvirtd
+%define with_interface        0%{!?_without_interface:%{server_drivers}}
 %define with_network          0%{!?_without_network:%{server_drivers}}
 %define with_storage_fs       0%{!?_without_storage_fs:%{server_drivers}}
 %define with_storage_lvm      0%{!?_without_storage_lvm:%{server_drivers}}
@@ -207,6 +208,11 @@
 %define with_hal       0%{!?_without_hal:%{server_drivers}}
 %endif
 
+# interface requires netcf
+%if ! 0%{?with_netcf}
+%define with_interface     0
+%endif
+
 # Enable yajl library for JSON mode with QEMU
 %if 0%{?fedora} >= 13 || 0%{?rhel} >= 6
 %define with_yajl     0%{!?_without_yajl:%{server_drivers}}
@@ -226,6 +232,7 @@
 # Disable some drivers when building without libvirt daemon.
 # The logic is the same as in configure.ac
 %if ! %{with_libvirtd}
+%define with_interface 0
 %define with_network 0
 %define with_qemu 0
 %define with_lxc 0
@@ -281,12 +288,6 @@
 %define with_nodedev 0
 %endif
 
-%if %{with_netcf}
-%define with_interface 1
-%else
-%define with_interface 0
-%endif
-
 %if %{with_storage_fs} || %{with_storage_mpath} || %{with_storage_iscsi} || %{with_storage_lvm} || %{with_storage_disk}
 %define with_storage 1
 %else
@@ -314,7 +315,7 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.10.1
+Version: 0.10.2
 Release: 1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
@@ -589,6 +590,9 @@ Requires: iptables-ipv6
 %if %{with_nwfilter}
 Requires: ebtables
 %endif
+%if %{with_netcf} && (0%{?fedora} >= 18 || 0%{?rhel} >= 7)
+Requires: netcf-libs >= 0.2.2
+%endif
 # needed for device enumeration
 %if %{with_hal}
 Requires: hal
@@ -648,10 +652,6 @@ Requires: device-mapper
 %if %{with_storage_mpath}
 # For multipath support
 Requires: device-mapper
-%endif
-%if %{with_storage_rbd}
-# For RBD support
-Requires: ceph
 %endif
 %if %{with_storage_sheepdog}
 # For Sheepdog support
@@ -1114,6 +1114,10 @@ of recent versions of Linux (and other OSes).
 %define _with_rhel5_api --with-rhel5-api
 %endif
 
+%if ! %{with_interface}
+%define _without_interface --without-interface
+%endif
+
 %if ! %{with_network}
 %define _without_network --without-network
 %endif
@@ -1213,9 +1217,7 @@ of recent versions of Linux (and other OSes).
 %define with_packager_version --with-packager-version="%{release}"
 
 %if %{with_systemd}
-# We use 'systemd+redhat', so if someone installs upstart or
-# legacy init scripts, they can still start libvirtd, etc
-%define init_scripts --with-init_script=systemd+redhat
+%define init_scripts --with-init_script=systemd
 %else
 %define init_scripts --with-init_script=redhat
 %endif
@@ -1223,6 +1225,15 @@ of recent versions of Linux (and other OSes).
 %if 0%{?enable_autotools}
 autoreconf -if
 %endif
+
+%if %{with_selinux}
+%if 0%{?fedora} >= 17 || 0%{?rhel} >= 7
+%define with_selinux_mount --with-selinux-mount="/sys/fs/selinux"
+%else
+%define with_selinux_mount --with-selinux-mount="/selinux"
+%endif
+%endif
+
 %configure %{?_without_xen} \
            %{?_without_qemu} \
            %{?_without_openvz} \
@@ -1241,6 +1252,7 @@ autoreconf -if
            %{?_without_hyperv} \
            %{?_without_vmware} \
            %{?_without_parallels} \
+           %{?_without_interface} \
            %{?_without_network} \
            %{?_with_rhel5_api} \
            %{?_without_storage_fs} \
@@ -1255,6 +1267,7 @@ autoreconf -if
            %{?_without_capng} \
            %{?_without_netcf} \
            %{?_without_selinux} \
+           %{?_with_selinux_mount} \
            %{?_without_hal} \
            %{?_without_udev} \
            %{?_without_yajl} \
@@ -1342,6 +1355,8 @@ rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.uml
 
 mv $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version} \
    $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-docs-%{version}
+
+sed -i -e "s|$RPM_BUILD_ROOT||g" $RPM_BUILD_ROOT%{_sysconfdir}/rc.d/init.d/libvirt-guests
 
 %clean
 rm -fr %{buildroot}
@@ -1552,9 +1567,10 @@ fi
 
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
 
-%{_sysconfdir}/rc.d/init.d/libvirtd
 %if %{with_systemd}
 %{_unitdir}/libvirtd.service
+%else
+%{_sysconfdir}/rc.d/init.d/libvirtd
 %endif
 %doc daemon/libvirtd.upstart
 %config(noreplace) %{_sysconfdir}/sysconfig/libvirtd
@@ -1863,6 +1879,24 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %endif
 
 %changelog
+* Mon Sep 24 2012 Daniel Veillard <veillard@redhat.com> - 0.10.2-1
+- network: define new API virNetworkUpdate
+- add support for QEmu sandbox support
+- blockjob: add virDomainBlockCommit
+- New APIs to get/set Node memory parameters
+- new API virConnectListAllSecrets
+- new API virConnectListAllNWFilters
+- new API virConnectListAllNodeDevices
+- parallels: add support of containers to the driver
+- new API virConnectListAllInterfaces
+- new API virConnectListAllNetworks
+- new API virStoragePoolListAllVolumes
+- Add PMSUSPENDED life cycle event
+- new API virStorageListAllStoragePools
+- Add per-guest S3/S4 state configuration
+- qemu: Support for Block Device IO Limits
+- a lot of bug fixes, improvements and portability work
+
 * Fri Aug 31 2012 Daniel Veillard <veillard@redhat.com> - 0.10.1-1
 - bugfixes and a brown paper bag
 

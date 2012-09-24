@@ -436,18 +436,20 @@ def eventToString(event):
                      "Suspended",
                      "Resumed",
                      "Stopped",
-                     "Shutdown" );
+                     "Shutdown",
+                     "PMSuspended" );
     return eventStrings[event];
 
 def detailToString(event, detail):
     eventStrings = (
         ( "Added", "Updated" ),
-        ( "Removed" ),
+        ( "Removed", ),
         ( "Booted", "Migrated", "Restored", "Snapshot", "Wakeup" ),
         ( "Paused", "Migrated", "IOError", "Watchdog", "Restored", "Snapshot" ),
         ( "Unpaused", "Migrated", "Snapshot" ),
         ( "Shutdown", "Destroyed", "Crashed", "Migrated", "Saved", "Failed", "Snapshot"),
-        ( "Finished" )
+        ( "Finished", ),
+        ( "Memory", )
         )
     return eventStrings[event][detail]
 

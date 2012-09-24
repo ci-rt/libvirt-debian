@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -247,7 +247,18 @@ void virNetworkObjFree(virNetworkObjPtr net);
 void virNetworkObjListFree(virNetworkObjListPtr vms);
 
 virNetworkObjPtr virNetworkAssignDef(virNetworkObjListPtr nets,
-                                     const virNetworkDefPtr def);
+                                     const virNetworkDefPtr def,
+                                     bool live);
+int virNetworkObjAssignDef(virNetworkObjPtr network,
+                           const virNetworkDefPtr def,
+                           bool live);
+int virNetworkObjSetDefTransient(virNetworkObjPtr network, bool live);
+virNetworkDefPtr virNetworkObjGetPersistentDef(virNetworkObjPtr network);
+int virNetworkObjReplacePersistentDef(virNetworkObjPtr network,
+                                      virNetworkDefPtr def);
+virNetworkDefPtr virNetworkDefCopy(virNetworkDefPtr def, unsigned int flags);
+int virNetworkConfigChangeSetup(virNetworkObjPtr dom, unsigned int flags);
+
 void virNetworkRemoveInactive(virNetworkObjListPtr nets,
                               const virNetworkObjPtr net);
 
@@ -283,6 +294,9 @@ int virNetworkSaveXML(const char *configDir,
 int virNetworkSaveConfig(const char *configDir,
                          virNetworkDefPtr def);
 
+int virNetworkSaveStatus(const char *statusDir,
+                         virNetworkObjPtr net) ATTRIBUTE_RETURN_CHECK;
+
 virNetworkObjPtr virNetworkLoadConfig(virNetworkObjListPtr nets,
                                       const char *configDir,
                                       const char *autostartDir,
@@ -312,6 +326,14 @@ int virNetworkSetBridgeName(const virNetworkObjListPtr nets,
 
 void virNetworkSetBridgeMacAddr(virNetworkDefPtr def);
 
+int
+virNetworkObjUpdate(virNetworkObjPtr obj,
+                    unsigned int command, /* virNetworkUpdateCommand */
+                    unsigned int section, /* virNetworkUpdateSection */
+                    int parentIndex,
+                    const char *xml,
+                    unsigned int flags);  /* virNetworkUpdateFlags */
+
 int virNetworkObjIsDuplicate(virNetworkObjListPtr doms,
                              virNetworkDefPtr def,
                              unsigned int check_active);
@@ -320,5 +342,27 @@ void virNetworkObjLock(virNetworkObjPtr obj);
 void virNetworkObjUnlock(virNetworkObjPtr obj);
 
 VIR_ENUM_DECL(virNetworkForward)
+
+# define VIR_CONNECT_LIST_NETWORKS_FILTERS_ACTIVE   \
+                (VIR_CONNECT_LIST_NETWORKS_ACTIVE | \
+                 VIR_CONNECT_LIST_NETWORKS_INACTIVE)
+
+# define VIR_CONNECT_LIST_NETWORKS_FILTERS_PERSISTENT   \
+                (VIR_CONNECT_LIST_NETWORKS_PERSISTENT | \
+                 VIR_CONNECT_LIST_NETWORKS_TRANSIENT)
+
+# define VIR_CONNECT_LIST_NETWORKS_FILTERS_AUTOSTART    \
+                (VIR_CONNECT_LIST_NETWORKS_AUTOSTART |  \
+                 VIR_CONNECT_LIST_NETWORKS_NO_AUTOSTART)
+
+# define VIR_CONNECT_LIST_NETWORKS_FILTERS_ALL                  \
+                (VIR_CONNECT_LIST_NETWORKS_FILTERS_ACTIVE     | \
+                 VIR_CONNECT_LIST_NETWORKS_FILTERS_PERSISTENT | \
+                 VIR_CONNECT_LIST_NETWORKS_FILTERS_AUTOSTART)
+
+int virNetworkList(virConnectPtr conn,
+                   virNetworkObjList netobjs,
+                   virNetworkPtr **nets,
+                   unsigned int flags);
 
 #endif /* __NETWORK_CONF_H__ */

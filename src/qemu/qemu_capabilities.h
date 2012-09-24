@@ -15,7 +15,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
@@ -24,7 +24,7 @@
 #ifndef __QEMU_CAPABILITIES_H__
 # define __QEMU_CAPABILITIES_H__
 
-# include "bitmap.h"
+# include "virobject.h"
 # include "capabilities.h"
 # include "command.h"
 
@@ -138,36 +138,62 @@ enum qemuCapsFlags {
     QEMU_CAPS_NETDEV_BRIDGE      = 100, /* bridge helper support */
     QEMU_CAPS_SCSI_LSI           = 101, /* -device lsi */
     QEMU_CAPS_VIRTIO_SCSI_PCI    = 102, /* -device virtio-scsi-pci */
+    QEMU_CAPS_BLOCKIO            = 103, /* -device ...logical_block_size & co */
+    QEMU_CAPS_DISABLE_S3         = 104, /* S3 BIOS Advertisement on/off */
+    QEMU_CAPS_DISABLE_S4         = 105, /* S4 BIOS Advertisement on/off */
+    QEMU_CAPS_USB_REDIR_FILTER   = 106, /* usb-redir.filter */
+    QEMU_CAPS_IDE_DRIVE_WWN      = 107, /* Is ide-drive.wwn available? */
+    QEMU_CAPS_SCSI_DISK_WWN      = 108, /* Is scsi-disk.wwn available? */
+    QEMU_CAPS_SECCOMP_SANDBOX    = 109, /* -sandbox */
+    QEMU_CAPS_REBOOT_TIMEOUT     = 110, /* -boot reboot-timeout */
+    QEMU_CAPS_DUMP_GUEST_CORE    = 111, /* dump-guest-core-parameter */
 
     QEMU_CAPS_LAST,                   /* this must always be the last item */
 };
 
-virBitmapPtr qemuCapsNew(void);
+typedef struct _qemuCaps qemuCaps;
+typedef qemuCaps *qemuCapsPtr;
 
-# define qemuCapsFree(caps)  virBitmapFree(caps)
+qemuCapsPtr qemuCapsNew(void);
+qemuCapsPtr qemuCapsNewCopy(qemuCapsPtr caps);
+qemuCapsPtr qemuCapsNewForBinary(const char *binary);
 
-void qemuCapsSet(virBitmapPtr caps,
+void qemuCapsSet(qemuCapsPtr caps,
                  enum qemuCapsFlags flag) ATTRIBUTE_NONNULL(1);
 
-void qemuCapsSetList(virBitmapPtr caps, ...) ATTRIBUTE_NONNULL(1);
+void qemuCapsSetList(qemuCapsPtr caps, ...) ATTRIBUTE_NONNULL(1);
 
-void qemuCapsClear(virBitmapPtr caps,
+void qemuCapsClear(qemuCapsPtr caps,
                    enum qemuCapsFlags flag) ATTRIBUTE_NONNULL(1);
 
-bool qemuCapsGet(virBitmapPtr caps,
+bool qemuCapsGet(qemuCapsPtr caps,
                  enum qemuCapsFlags flag);
+
+char *qemuCapsFlagsString(qemuCapsPtr caps);
+
+const char *qemuCapsGetArch(qemuCapsPtr caps);
+unsigned int qemuCapsGetVersion(qemuCapsPtr caps);
+unsigned int qemuCapsGetKVMVersion(qemuCapsPtr caps);
+size_t qemuCapsGetCPUDefinitions(qemuCapsPtr caps,
+                                 char ***names);
+size_t qemuCapsGetMachineTypes(qemuCapsPtr caps,
+                               char ***names);
+const char *qemuCapsGetCanonicalMachine(qemuCapsPtr caps,
+                                        const char *name);
+
+bool qemuCapsIsValid(qemuCapsPtr caps);
 
 virCapsPtr qemuCapsInit(virCapsPtr old_caps);
 
 int qemuCapsProbeMachineTypes(const char *binary,
-                              virBitmapPtr qemuCaps,
+                              qemuCapsPtr caps,
                               virCapsGuestMachinePtr **machines,
-                              int *nmachines);
+                              size_t *nmachines);
 
 int qemuCapsProbeCPUModels(const char *qemu,
-                           virBitmapPtr qemuCaps,
+                           qemuCapsPtr caps,
                            const char *arch,
-                           unsigned int *count,
+                           size_t *count,
                            const char ***cpus);
 
 int qemuCapsExtractVersion(virCapsPtr caps,
@@ -176,20 +202,17 @@ int qemuCapsExtractVersionInfo(const char *qemu,
                                const char *arch,
                                bool check_yajl,
                                unsigned int *version,
-                               virBitmapPtr *qemuCaps);
+                               qemuCapsPtr *retcaps);
 
 int qemuCapsParseHelpStr(const char *qemu,
                          const char *str,
-                         virBitmapPtr qemuCaps,
+                         qemuCapsPtr caps,
                          unsigned int *version,
                          unsigned int *is_kvm,
                          unsigned int *kvm_version,
                          bool check_yajl);
 int qemuCapsParseDeviceStr(const char *str,
-                           virBitmapPtr qemuCaps);
-
-virCommandPtr qemuCapsProbeCommand(const char *qemu,
-                                   virBitmapPtr qemuCaps);
+                           qemuCapsPtr caps);
 
 VIR_ENUM_DECL(qemuCaps);
 

@@ -92,7 +92,8 @@ test_programs = virshtest sockettest \
 	viratomictest \
 	utiltest virnettlscontexttest shunloadtest \
 	virtimetest viruritest virkeyfiletest \
-	virauthconfigtest
+	virauthconfigtest \
+	virbitmaptest
 
 if WITH_SECDRIVER_SELINUX
 test_programs += securityselinuxtest
@@ -113,7 +114,7 @@ endif
 if WITH_QEMU
 test_programs += qemuxml2argvtest qemuxml2xmltest qemuxmlnstest \
 	qemuargv2xmltest qemuhelptest domainsnapshotxml2xmltest \
-	qemumonitortest
+	qemumonitortest qemumonitorjsontest
 endif
 
 if WITH_LXC
@@ -182,12 +183,13 @@ test_scripts +=				\
 	read-bufsiz			\
 	read-non-seekable		\
 	start				\
-	undefine			\
 	vcpupin				\
 	virsh-all			\
 	virsh-optparse			\
 	virsh-schedinfo			\
-	virsh-synopsis
+	virsh-synopsis			\
+	virsh-undefine			\
+	$(NULL)
 
 test_programs += 			\
 	eventtest			\
@@ -203,12 +205,13 @@ EXTRA_DIST += 				\
 	read-bufsiz			\
 	read-non-seekable		\
 	start				\
-	undefine			\
 	vcpupin				\
 	virsh-all			\
 	virsh-optparse			\
 	virsh-schedinfo			\
-	virsh-synopsis
+	virsh-synopsis			\
+	virsh-undefine			\
+	$(NULL)
 endif
 
 if WITH_SECDRIVER_APPARMOR
@@ -219,12 +222,17 @@ endif
 
 EXTRA_DIST += $(test_scripts)
 
+test_libraries = libshunload.la
+if WITH_QEMU
+test_libraries += libqemumonitortestutils.la
+endif
+
 if WITH_TESTS
 noinst_PROGRAMS = $(test_programs) $(test_helpers)
-noinst_LTLIBRARIES = libshunload.la
+noinst_LTLIBRARIES = $(test_libraries)
 else
 check_PROGRAMS = $(test_programs) $(test_helpers)
-check_LTLIBRARIES = libshunload.la
+check_LTLIBRARIES = $(test_libraries)
 endif
 
 TESTS = $(test_programs) \
@@ -298,7 +306,17 @@ EXTRA_DIST += xml2sexprtest.c sexpr2xmltest.c xmconfigtest.c \
 	testutilsxen.c testutilsxen.h
 endif
 
+QEMUMONITORTESTUTILS_SOURCES = \
+	qemumonitortestutils.c \
+	qemumonitortestutils.h \
+	$(NULL)
+
 if WITH_QEMU
+
+libqemumonitortestutils_la_SOURCES = $(QEMUMONITORTESTUTILS_SOURCES)
+libqemumonitortestutils_la_CFLAGS = \
+	-Dabs_builddir="\"`pwd`\"" $(AM_CFLAGS)
+
 
 qemu_LDADDS = ../src/libvirt_driver_qemu_impl.la
 if WITH_NETWORK
@@ -335,6 +353,14 @@ qemuhelptest_LDADD = $(qemu_LDADDS)
 qemumonitortest_SOURCES = qemumonitortest.c testutils.c testutils.h
 qemumonitortest_LDADD = $(qemu_LDADDS)
 
+qemumonitorjsontest_SOURCES = \
+	qemumonitorjsontest.c \
+	testutils.c testutils.h \
+	testutilsqemu.c testutilsqemu.h \
+	$(NULL)
+qemumonitorjsontest_LDADD = $(qemu_LDADDS) libqemumonitortestutils.la
+qemumonitorjsontest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\""  $(AM_CFLAGS)
+
 domainsnapshotxml2xmltest_SOURCES = \
 	domainsnapshotxml2xmltest.c testutilsqemu.c testutilsqemu.h \
 	testutils.c testutils.h
@@ -342,7 +368,9 @@ domainsnapshotxml2xmltest_LDADD = $(qemu_LDADDS)
 else
 EXTRA_DIST += qemuxml2argvtest.c qemuxml2xmltest.c qemuargv2xmltest.c \
 	qemuxmlnstest.c qemuhelptest.c domainsnapshotxml2xmltest.c \
-	qemumonitortest.c testutilsqemu.c testutilsqemu.h
+	qemumonitortest.c testutilsqemu.c testutilsqemu.h \
+	qemumonitorjsontest.c \
+	$(QEMUMONITORTESTUTILS_SOURCES)
 endif
 
 if WITH_LXC
@@ -561,6 +589,10 @@ virhashtest_LDADD = $(LDADDS)
 viratomictest_SOURCES = \
 	viratomictest.c testutils.h testutils.c
 viratomictest_LDADD = $(LDADDS)
+
+virbitmaptest_SOURCES = \
+	virbitmaptest.c testutils.h testutils.c
+virbitmaptest_LDADD = $(LDADDS)
 
 jsontest_SOURCES = \
 	jsontest.c testutils.h testutils.c

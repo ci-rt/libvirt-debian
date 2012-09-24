@@ -14,7 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -59,5 +59,7 @@ char *virURIFormat(virURIPtr uri)
 char *virURIFormatParams(virURIPtr uri);
 
 void virURIFree(virURIPtr uri);
+
+# define VIR_URI_SERVER(uri) ((uri) && (uri)->server ? (uri)->server : "localhost")
 
 #endif /* __VIR_URI_H__ */

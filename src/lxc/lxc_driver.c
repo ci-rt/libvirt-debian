@@ -18,7 +18,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -2748,6 +2748,8 @@ static virDriver lxcDriver = {
     .domainOpenConsole = lxcDomainOpenConsole, /* 0.8.6 */
     .isAlive = lxcIsAlive, /* 0.9.8 */
     .nodeSuspendForDuration = nodeSuspendForDuration, /* 0.9.8 */
+    .nodeGetMemoryParameters = nodeGetMemoryParameters, /* 0.10.2 */
+    .nodeSetMemoryParameters = nodeSetMemoryParameters, /* 0.10.2 */
 };
 
 static virStateDriver lxcStateDriver = {

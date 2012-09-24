@@ -206,3 +206,75 @@
             retlist.append(virDomain(self, _obj=domptr))
 
         return retlist
+
+    def listAllStoragePools(self, flags):
+        """Returns a list of storage pool objects"""
+        ret = libvirtmod.virConnectListAllStoragePools(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllStoragePools() failed", conn=self)
+
+        retlist = list()
+        for poolptr in ret:
+            retlist.append(virStoragePool(self, _obj=poolptr))
+
+        return retlist
+
+    def listAllNetworks(self, flags):
+        """Returns a list of network objects"""
+        ret = libvirtmod.virConnectListAllNetworks(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllNetworks() failed", conn=self)
+
+        retlist = list()
+        for netptr in ret:
+            retlist.append(virNetwork(self, _obj=netptr))
+
+        return retlist
+
+    def listAllInterfaces(self, flags):
+        """Returns a list of interface objects"""
+        ret = libvirtmod.virConnectListAllInterfaces(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllInterfaces() failed", conn=self)
+
+        retlist = list()
+        for ifaceptr in ret:
+            retlist.append(virInterface(self, _obj=ifaceptr))
+
+        return retlist
+
+    def listAllDevices(self, flags):
+        """Returns a list of host node device objects"""
+        ret = libvirtmod.virConnectListAllNodeDevices(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllNodeDevices() failed", conn=self)
+
+        retlist = list()
+        for devptr in ret:
+            retlist.append(virNodeDevice(self, _obj=devptr))
+
+        return retlist
+
+    def listAllNWFilters(self, flags):
+        """Returns a list of network filter objects"""
+        ret = libvirtmod.virConnectListAllNWFilters(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllNWFilters() failed", conn=self)
+
+        retlist = list()
+        for filter_ptr in ret:
+            retlist.append(virNWFilter(self, _obj=filter_ptr))
+
+        return retlist
+
+    def listAllSecrets(self, flags):
+        """Returns a list of secret objects"""
+        ret = libvirtmod.virConnectListAllSecrets(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllSecrets() failed", conn=self)
+
+        retlist = list()
+        for secret_ptr in ret:
+            retlist.append(virSecret(self, _obj=secret_ptr))
+
+        return retlist

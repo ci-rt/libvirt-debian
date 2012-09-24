@@ -12,7 +12,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library;  If not, see
+ * License along with this library.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
  * Authors:
@@ -105,7 +105,7 @@ int virNetDevOpenvswitchAddPort(const char *brname, const char *ifname,
 
     cmd = virCommandNew(OVSVSCTL);
 
-    virCommandAddArgList(cmd, "--", "--may-exist", "add-port",
+    virCommandAddArgList(cmd, "--timeout=5", "--", "--may-exist", "add-port",
                         brname, ifname, NULL);
 
     if (virBufferUse(&buf) != 0)
@@ -166,7 +166,7 @@ int virNetDevOpenvswitchRemovePort(const char *brname ATTRIBUTE_UNUSED, const ch
     virCommandPtr cmd = NULL;
 
     cmd = virCommandNew(OVSVSCTL);
-    virCommandAddArgList(cmd, "--", "--if-exists", "del-port", ifname, NULL);
+    virCommandAddArgList(cmd, "--timeout=5", "--", "--if-exists", "del-port", ifname, NULL);
 
     if (virCommandRun(cmd, NULL) < 0) {
         virReportSystemError(VIR_ERR_INTERNAL_ERROR,
