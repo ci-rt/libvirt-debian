@@ -1,3 +1,12 @@
+libvirt (0.10.2-1) experimental; urgency=low
+
+  * [40e1704] Enable auditing on linux-any.
+    Thanks to Laurent Bigonville for testing. (Closes: 688177)
+  * [8d56723] New upstream version 0.10.2
+  * [312d8e6] Update symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 27 Sep 2012 16:25:26 +0200
+
 libvirt (0.10.1-2) experimental; urgency=low
 
   * [cd7e695] Recommend pm-utils used for host power management.
