@@ -36,7 +36,7 @@ Build-Depends: cdbs (>= 0.4.90~),
  libsanlock-dev [linux-any],
  libaudit-dev [linux-any],
 # for --with-storage-sheepdog
- sheepdog,
+ sheepdog [linux-any],
 # For "make check"
  dwarves,
  libxml2-utils,
