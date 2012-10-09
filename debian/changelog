@@ -1,3 +1,11 @@
+libvirt (0.10.2-3) experimental; urgency=low
+
+  * [ce15a08] Build against libnl-3 on Linux systems (Closes: #688167)
+  * [19ec20b] Depend on a libnetcf1 that's build against libnl3 to avoid
+    pulling in libnl1 symbols.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 09 Oct 2012 20:30:51 +0200
+
 libvirt (0.10.2-2) experimental; urgency=low
 
   * [20830ab] Mark sheepdog as linux-any since it's not available on kFreeBSD
