@@ -1,3 +1,11 @@
+libvirt (0.10.2-4) experimental; urgency=low
+
+  * [cb74dfd] Properly parse (unsigned) long long in the python bindings to
+    fix those on platforms where sizeof(long) != sizeof(long long).
+    This fixes virt-install's '--location='.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 13 Oct 2012 10:31:21 +0200
+
 libvirt (0.10.2-3) experimental; urgency=low
 
   * [ce15a08] Build against libnl-3 on Linux systems (Closes: #688167)
