@@ -9,3 +9,4 @@ usr/share/augeas/*
 usr/share/libvirt/*
 usr/share/man/man8/*
 lib/systemd/system
+usr/share/systemtap
