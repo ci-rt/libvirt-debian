@@ -12,3 +12,4 @@ debian/Debianize-systemd-service-files.patch
 Allow-xen-toolstack-to-find-it-s-binaries.patch
 Properly-parse-unsigned-long-long.patch
 storage-lvm-lvcreate-fails-with-allocation-0-don-t-d.patch
+storage-lvm-Don-t-overwrite-lvcreate-errors.patch
