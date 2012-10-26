@@ -162,9 +162,6 @@ int qemuOpenVhostNet(virDomainDefPtr def,
                      qemuCapsPtr caps,
                      int *vhostfd);
 
-int qemudCanonicalizeMachine(struct qemud_driver *driver,
-                             virDomainDefPtr def);
-
 /*
  * NB: def->name can be NULL upon return and the caller
  * *must* decide how to fill in a name in this case
@@ -188,7 +185,8 @@ virDomainDefPtr qemuParseCommandLinePid(virCapsPtr caps,
 
 int qemuDomainAssignAddresses(virDomainDefPtr def,
                               qemuCapsPtr caps,
-                              virDomainObjPtr);
+                              virDomainObjPtr obj)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 int qemuDomainAssignSpaprVIOAddresses(virDomainDefPtr def,
                                       qemuCapsPtr caps);
 

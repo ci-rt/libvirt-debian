@@ -522,7 +522,6 @@ AC_SUBST([LTALLOCA])
   gl_HEADER_ARPA_INET
   AC_PROG_MKDIR_P
   gl_FUNC_BASE64
-  AC_REQUIRE([AC_C_INLINE])
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
   if test "$ac_cv_header_winsock2_h" = yes; then
     AC_LIBOBJ([bind])
@@ -1427,7 +1426,7 @@ changequote([, ])dnl
   AC_CHECK_DECLS([program_invocation_name], [], [], [#include <errno.h>])
   AC_CHECK_DECLS([program_invocation_short_name], [], [], [#include <errno.h>])
   gl_FUNC_PTSNAME
-  if test $HAVE_PTSNAME = 0; then
+  if test $HAVE_PTSNAME = 0 || test $REPLACE_PTSNAME = 1; then
     AC_LIBOBJ([ptsname])
     gl_PREREQ_PTSNAME
   fi
@@ -1654,6 +1653,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/base64.c
   lib/base64.h
   lib/basename-lgpl.c
+  lib/binary-io.c
   lib/binary-io.h
   lib/bind.c
   lib/bitrotate.h
@@ -1883,6 +1883,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/wchar.in.h
   lib/wcrtomb.c
   lib/wctype.in.h
+  lib/xsize.c
   lib/xsize.h
   m4/00gnulib.m4
   m4/alloca.m4

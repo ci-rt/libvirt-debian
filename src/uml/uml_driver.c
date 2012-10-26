@@ -63,6 +63,7 @@
 #include "configmake.h"
 #include "virnetdevtap.h"
 #include "virnodesuspend.h"
+#include "virprocess.h"
 #include "viruri.h"
 
 #define VIR_FROM_THIS VIR_FROM_UML
@@ -257,7 +258,7 @@ requery:
         }
     } else if (!res || STRPREFIX(res, "pts")) {
         /* It can take a while to startup, so retry for
-           upto 5 seconds */
+           up to 5 seconds */
         /* XXX should do this in a better non-blocking
            way somehow ...perhaps register a timer */
         if (retries++ < 50) {
@@ -1128,7 +1129,7 @@ static void umlShutdownVMDaemon(struct uml_driver *driver,
     if (!virDomainObjIsActive(vm))
         return;
 
-    virKillProcess(vm->pid, SIGTERM);
+    virProcessKill(vm->pid, SIGTERM);
 
     VIR_FORCE_CLOSE(priv->monitor);
 

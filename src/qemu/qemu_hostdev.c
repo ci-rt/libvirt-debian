@@ -641,9 +641,96 @@ error:
     return -1;
 }
 
+int
+qemuFindHostdevUSBDevice(virDomainHostdevDefPtr hostdev,
+                         bool mandatory,
+                         usbDevice **usb)
+{
+    unsigned vendor = hostdev->source.subsys.u.usb.vendor;
+    unsigned product = hostdev->source.subsys.u.usb.product;
+    unsigned bus = hostdev->source.subsys.u.usb.bus;
+    unsigned device = hostdev->source.subsys.u.usb.device;
+    bool autoAddress = hostdev->source.subsys.u.usb.autoAddress;
+    int rc;
+
+    *usb = NULL;
+
+    if (vendor && bus) {
+        rc = usbFindDevice(vendor, product, bus, device,
+                           autoAddress ? false : mandatory,
+                           usb);
+        if (rc < 0) {
+            return -1;
+        } else if (!autoAddress) {
+            goto out;
+        } else {
+            VIR_INFO("USB device %x:%x could not be found at previous"
+                     " address (bus:%u device:%u)",
+                     vendor, product, bus, device);
+        }
+    }
+
+    /* When vendor is specified, its USB address is either unspecified or the
+     * device could not be found at the USB device where it had been
+     * automatically found before.
+     */
+    if (vendor) {
+        usbDeviceList *devs;
+
+        rc = usbFindDeviceByVendor(vendor, product, mandatory, &devs);
+        if (rc < 0)
+            return -1;
+
+        if (rc == 1) {
+            *usb = usbDeviceListGet(devs, 0);
+            usbDeviceListSteal(devs, *usb);
+        }
+        usbDeviceListFree(devs);
+
+        if (rc == 0) {
+            goto out;
+        } else if (rc > 1) {
+            if (autoAddress) {
+                virReportError(VIR_ERR_OPERATION_FAILED,
+                               _("Multiple USB devices for %x:%x were found,"
+                                 " but none of them is at bus:%u device:%u"),
+                               vendor, product, bus, device);
+            } else {
+                virReportError(VIR_ERR_OPERATION_FAILED,
+                               _("Multiple USB devices for %x:%x, "
+                                 "use <address> to specify one"),
+                               vendor, product);
+            }
+            return -1;
+        }
+
+        hostdev->source.subsys.u.usb.bus = usbDeviceGetBus(*usb);
+        hostdev->source.subsys.u.usb.device = usbDeviceGetDevno(*usb);
+        hostdev->source.subsys.u.usb.autoAddress = true;
+
+        if (autoAddress) {
+            VIR_INFO("USB device %x:%x found at bus:%u device:%u (moved"
+                     " from bus:%u device:%u)",
+                     vendor, product,
+                     hostdev->source.subsys.u.usb.bus,
+                     hostdev->source.subsys.u.usb.device,
+                     bus, device);
+        }
+    } else if (!vendor && bus) {
+        if (usbFindDeviceByBus(bus, device, mandatory, usb) < 0)
+            return -1;
+    }
+
+out:
+    if (!*usb)
+        hostdev->missing = 1;
+    return 0;
+}
+
 static int
 qemuPrepareHostUSBDevices(struct qemud_driver *driver,
-                          virDomainDefPtr def)
+                          virDomainDefPtr def,
+                          bool coldBoot)
 {
     int i, ret = -1;
     usbDeviceList *list;
@@ -663,48 +750,23 @@ qemuPrepareHostUSBDevices(struct qemud_driver *driver,
      */
     for (i = 0 ; i < nhostdevs ; i++) {
         virDomainHostdevDefPtr hostdev = hostdevs[i];
-        usbDevice *usb = NULL;
+        bool required = true;
+        usbDevice *usb;
 
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
             continue;
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)
             continue;
 
-        unsigned vendor = hostdev->source.subsys.u.usb.vendor;
-        unsigned product = hostdev->source.subsys.u.usb.product;
-        unsigned bus = hostdev->source.subsys.u.usb.bus;
-        unsigned device = hostdev->source.subsys.u.usb.device;
+        if (hostdev->startupPolicy == VIR_DOMAIN_STARTUP_POLICY_OPTIONAL ||
+            (hostdev->startupPolicy == VIR_DOMAIN_STARTUP_POLICY_REQUISITE &&
+             !coldBoot))
+            required = false;
 
-        if (vendor && bus) {
-            usb = usbFindDevice(vendor, product, bus, device);
-
-        } else if (vendor && !bus) {
-            usbDeviceList *devs = usbFindDeviceByVendor(vendor, product);
-            if (!devs)
-                goto cleanup;
-
-            if (usbDeviceListCount(devs) > 1) {
-                virReportError(VIR_ERR_OPERATION_FAILED,
-                               _("multiple USB devices for %x:%x, "
-                                 "use <address> to specify one"), vendor, product);
-                usbDeviceListFree(devs);
-                goto cleanup;
-            }
-            usb = usbDeviceListGet(devs, 0);
-            usbDeviceListSteal(devs, usb);
-            usbDeviceListFree(devs);
-
-            hostdev->source.subsys.u.usb.bus = usbDeviceGetBus(usb);
-            hostdev->source.subsys.u.usb.device = usbDeviceGetDevno(usb);
-
-        } else if (!vendor && bus) {
-            usb = usbFindDeviceByBus(bus, device);
-        }
-
-        if (!usb)
+        if (qemuFindHostdevUSBDevice(hostdev, required, &usb) < 0)
             goto cleanup;
 
-        if (usbDeviceListAdd(list, usb) < 0) {
+        if (usb && usbDeviceListAdd(list, usb) < 0) {
             usbFreeDevice(usb);
             goto cleanup;
         }
@@ -734,7 +796,8 @@ cleanup:
 }
 
 int qemuPrepareHostDevices(struct qemud_driver *driver,
-                           virDomainDefPtr def)
+                           virDomainDefPtr def,
+                           bool coldBoot)
 {
     if (!def->nhostdevs)
         return 0;
@@ -742,7 +805,7 @@ int qemuPrepareHostDevices(struct qemud_driver *driver,
     if (qemuPrepareHostPCIDevices(driver, def) < 0)
         return -1;
 
-    if (qemuPrepareHostUSBDevices(driver, def) < 0)
+    if (qemuPrepareHostUSBDevices(driver, def, coldBoot) < 0)
         return -1;
 
     return 0;
@@ -868,6 +931,8 @@ qemuDomainReAttachHostUsbDevices(struct qemud_driver *driver,
         if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS)
             continue;
         if (hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB)
+            continue;
+        if (hostdev->missing)
             continue;
 
         usb = usbGetDevice(hostdev->source.subsys.u.usb.bus,

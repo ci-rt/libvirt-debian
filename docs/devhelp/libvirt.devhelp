@@ -11,6 +11,7 @@
     <function name="VIR_COPY_CPUMAP" link="libvirt-libvirt.html#VIR_COPY_CPUMAP"/>
     <function name="VIR_CPU_MAPLEN" link="libvirt-libvirt.html#VIR_CPU_MAPLEN"/>
     <function name="VIR_CPU_USABLE" link="libvirt-libvirt.html#VIR_CPU_USABLE"/>
+    <function name="VIR_CPU_USED" link="libvirt-libvirt.html#VIR_CPU_USED"/>
     <function name="VIR_DOMAIN_BANDWIDTH_IN_AVERAGE" link="libvirt-libvirt.html#VIR_DOMAIN_BANDWIDTH_IN_AVERAGE"/>
     <function name="VIR_DOMAIN_BANDWIDTH_IN_BURST" link="libvirt-libvirt.html#VIR_DOMAIN_BANDWIDTH_IN_BURST"/>
     <function name="VIR_DOMAIN_BANDWIDTH_IN_PEAK" link="libvirt-libvirt.html#VIR_DOMAIN_BANDWIDTH_IN_PEAK"/>
@@ -232,6 +233,7 @@
     <function name="VIR_DOMAIN_EVENT_ID_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_LAST"/>
     <function name="VIR_DOMAIN_EVENT_ID_LIFECYCLE" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_LIFECYCLE"/>
     <function name="VIR_DOMAIN_EVENT_ID_PMSUSPEND" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_PMSUSPEND"/>
+    <function name="VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK"/>
     <function name="VIR_DOMAIN_EVENT_ID_PMWAKEUP" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_PMWAKEUP"/>
     <function name="VIR_DOMAIN_EVENT_ID_REBOOT" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_REBOOT"/>
     <function name="VIR_DOMAIN_EVENT_ID_RTC_CHANGE" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_RTC_CHANGE"/>
@@ -243,6 +245,7 @@
     <function name="VIR_DOMAIN_EVENT_IO_ERROR_REPORT" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_IO_ERROR_REPORT"/>
     <function name="VIR_DOMAIN_EVENT_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_LAST"/>
     <function name="VIR_DOMAIN_EVENT_PMSUSPENDED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_PMSUSPENDED"/>
+    <function name="VIR_DOMAIN_EVENT_PMSUSPENDED_DISK" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_PMSUSPENDED_DISK"/>
     <function name="VIR_DOMAIN_EVENT_PMSUSPENDED_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_PMSUSPENDED_LAST"/>
     <function name="VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY"/>
     <function name="VIR_DOMAIN_EVENT_RESUMED" link="libvirt-libvirt.html#VIR_DOMAIN_EVENT_RESUMED"/>
@@ -343,6 +346,8 @@
     <function name="VIR_DOMAIN_PAUSED_USER" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_USER"/>
     <function name="VIR_DOMAIN_PAUSED_WATCHDOG" link="libvirt-libvirt.html#VIR_DOMAIN_PAUSED_WATCHDOG"/>
     <function name="VIR_DOMAIN_PMSUSPENDED" link="libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED"/>
+    <function name="VIR_DOMAIN_PMSUSPENDED_DISK_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED_DISK_LAST"/>
+    <function name="VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN" link="libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN"/>
     <function name="VIR_DOMAIN_PMSUSPENDED_LAST" link="libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED_LAST"/>
     <function name="VIR_DOMAIN_PMSUSPENDED_UNKNOWN" link="libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED_UNKNOWN"/>
     <function name="VIR_DOMAIN_REBOOT_ACPI_POWER_BTN" link="libvirt-libvirt.html#VIR_DOMAIN_REBOOT_ACPI_POWER_BTN"/>
@@ -416,6 +421,7 @@
     <function name="VIR_DOMAIN_VCPU_LIVE" link="libvirt-libvirt.html#VIR_DOMAIN_VCPU_LIVE"/>
     <function name="VIR_DOMAIN_VCPU_MAXIMUM" link="libvirt-libvirt.html#VIR_DOMAIN_VCPU_MAXIMUM"/>
     <function name="VIR_DOMAIN_XML_INACTIVE" link="libvirt-libvirt.html#VIR_DOMAIN_XML_INACTIVE"/>
+    <function name="VIR_DOMAIN_XML_MIGRATABLE" link="libvirt-libvirt.html#VIR_DOMAIN_XML_MIGRATABLE"/>
     <function name="VIR_DOMAIN_XML_SECURE" link="libvirt-libvirt.html#VIR_DOMAIN_XML_SECURE"/>
     <function name="VIR_DOMAIN_XML_UPDATE_CPU" link="libvirt-libvirt.html#VIR_DOMAIN_XML_UPDATE_CPU"/>
     <function name="VIR_DUMP_BYPASS_CACHE" link="libvirt-libvirt.html#VIR_DUMP_BYPASS_CACHE"/>
@@ -495,6 +501,7 @@
     <function name="VIR_ERR_PARSE_FAILED" link="libvirt-virterror.html#VIR_ERR_PARSE_FAILED"/>
     <function name="VIR_ERR_POST_FAILED" link="libvirt-virterror.html#VIR_ERR_POST_FAILED"/>
     <function name="VIR_ERR_READ_FAILED" link="libvirt-virterror.html#VIR_ERR_READ_FAILED"/>
+    <function name="VIR_ERR_RESOURCE_BUSY" link="libvirt-virterror.html#VIR_ERR_RESOURCE_BUSY"/>
     <function name="VIR_ERR_RPC" link="libvirt-virterror.html#VIR_ERR_RPC"/>
     <function name="VIR_ERR_SEXPR_SERIAL" link="libvirt-virterror.html#VIR_ERR_SEXPR_SERIAL"/>
     <function name="VIR_ERR_SNAPSHOT_REVERT_RISKY" link="libvirt-virterror.html#VIR_ERR_SNAPSHOT_REVERT_RISKY"/>
@@ -529,6 +536,7 @@
     <function name="VIR_FROM_INTERFACE" link="libvirt-virterror.html#VIR_FROM_INTERFACE"/>
     <function name="VIR_FROM_LIBXL" link="libvirt-virterror.html#VIR_FROM_LIBXL"/>
     <function name="VIR_FROM_LOCKING" link="libvirt-virterror.html#VIR_FROM_LOCKING"/>
+    <function name="VIR_FROM_LOCKSPACE" link="libvirt-virterror.html#VIR_FROM_LOCKSPACE"/>
     <function name="VIR_FROM_LXC" link="libvirt-virterror.html#VIR_FROM_LXC"/>
     <function name="VIR_FROM_NET" link="libvirt-virterror.html#VIR_FROM_NET"/>
     <function name="VIR_FROM_NETWORK" link="libvirt-virterror.html#VIR_FROM_NETWORK"/>
@@ -748,6 +756,7 @@
     <function name="virDomainNostateReason" link="libvirt-libvirt.html#virDomainNostateReason"/>
     <function name="virDomainNumatuneMemMode" link="libvirt-libvirt.html#virDomainNumatuneMemMode"/>
     <function name="virDomainOpenGraphicsFlags" link="libvirt-libvirt.html#virDomainOpenGraphicsFlags"/>
+    <function name="virDomainPMSuspendedDiskReason" link="libvirt-libvirt.html#virDomainPMSuspendedDiskReason"/>
     <function name="virDomainPMSuspendedReason" link="libvirt-libvirt.html#virDomainPMSuspendedReason"/>
     <function name="virDomainPausedReason" link="libvirt-libvirt.html#virDomainPausedReason"/>
     <function name="virDomainPtr" link="libvirt-libvirt.html#virDomainPtr"/>
@@ -864,6 +873,7 @@
     <function name="virConnectDomainEventIOErrorCallback" link="libvirt-libvirt.html#virConnectDomainEventIOErrorCallback"/>
     <function name="virConnectDomainEventIOErrorReasonCallback" link="libvirt-libvirt.html#virConnectDomainEventIOErrorReasonCallback"/>
     <function name="virConnectDomainEventPMSuspendCallback" link="libvirt-libvirt.html#virConnectDomainEventPMSuspendCallback"/>
+    <function name="virConnectDomainEventPMSuspendDiskCallback" link="libvirt-libvirt.html#virConnectDomainEventPMSuspendDiskCallback"/>
     <function name="virConnectDomainEventPMWakeupCallback" link="libvirt-libvirt.html#virConnectDomainEventPMWakeupCallback"/>
     <function name="virConnectDomainEventRTCChangeCallback" link="libvirt-libvirt.html#virConnectDomainEventRTCChangeCallback"/>
     <function name="virConnectDomainEventTrayChangeCallback" link="libvirt-libvirt.html#virConnectDomainEventTrayChangeCallback"/>
@@ -1155,6 +1165,7 @@
     <function name="virNodeDeviceReAttach ()" link="libvirt-libvirt.html#virNodeDeviceReAttach"/>
     <function name="virNodeDeviceRef ()" link="libvirt-libvirt.html#virNodeDeviceRef"/>
     <function name="virNodeDeviceReset ()" link="libvirt-libvirt.html#virNodeDeviceReset"/>
+    <function name="virNodeGetCPUMap ()" link="libvirt-libvirt.html#virNodeGetCPUMap"/>
     <function name="virNodeGetCPUStats ()" link="libvirt-libvirt.html#virNodeGetCPUStats"/>
     <function name="virNodeGetCellsFreeMemory ()" link="libvirt-libvirt.html#virNodeGetCellsFreeMemory"/>
     <function name="virNodeGetFreeMemory ()" link="libvirt-libvirt.html#virNodeGetFreeMemory"/>

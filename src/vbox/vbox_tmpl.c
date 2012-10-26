@@ -3786,7 +3786,7 @@ vboxSetBootDeviceOrder(virDomainDefPtr def, vboxGlobalData *data,
     VIR_DEBUG("def->os.type             %s", def->os.type);
     VIR_DEBUG("def->os.arch             %s", def->os.arch);
     VIR_DEBUG("def->os.machine          %s", def->os.machine);
-    VIR_DEBUG("def->os.nBootDevs        %d", def->os.nBootDevs);
+    VIR_DEBUG("def->os.nBootDevs        %zu", def->os.nBootDevs);
     VIR_DEBUG("def->os.bootDevs[0]      %d", def->os.bootDevs[0]);
     VIR_DEBUG("def->os.bootDevs[1]      %d", def->os.bootDevs[1]);
     VIR_DEBUG("def->os.bootDevs[2]      %d", def->os.bootDevs[2]);
@@ -3846,7 +3846,8 @@ vboxAttachDrives(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         VIR_DEBUG("disk(%d) src:        %s", i, def->disks[i]->src);
         VIR_DEBUG("disk(%d) dst:        %s", i, def->disks[i]->dst);
         VIR_DEBUG("disk(%d) driverName: %s", i, def->disks[i]->driverName);
-        VIR_DEBUG("disk(%d) driverType: %s", i, def->disks[i]->driverType);
+        VIR_DEBUG("disk(%d) driverType: %s", i,
+                  virStorageFileFormatTypeToString(def->disks[i]->format));
         VIR_DEBUG("disk(%d) cachemode:  %d", i, def->disks[i]->cachemode);
         VIR_DEBUG("disk(%d) readonly:   %s", i, (def->disks[i]->readonly
                                              ? "True" : "False"));
@@ -4125,7 +4126,8 @@ vboxAttachDrives(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         VIR_DEBUG("disk(%d) src:        %s", i, def->disks[i]->src);
         VIR_DEBUG("disk(%d) dst:        %s", i, def->disks[i]->dst);
         VIR_DEBUG("disk(%d) driverName: %s", i, def->disks[i]->driverName);
-        VIR_DEBUG("disk(%d) driverType: %s", i, def->disks[i]->driverType);
+        VIR_DEBUG("disk(%d) driverType: %s", i,
+                  virStorageFileFormatTypeToString(def->disks[i]->format));
         VIR_DEBUG("disk(%d) cachemode:  %d", i, def->disks[i]->cachemode);
         VIR_DEBUG("disk(%d) readonly:   %s", i, (def->disks[i]->readonly
                                              ? "True" : "False"));
@@ -4376,7 +4378,7 @@ vboxAttachNetwork(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         systemProperties = NULL;
     }
 
-    VIR_DEBUG("Number of Network Cards to be connected: %d", def->nnets);
+    VIR_DEBUG("Number of Network Cards to be connected: %zu", def->nnets);
     VIR_DEBUG("Number of Network Cards available: %d", networkAdapterCount);
 
     for (i = 0; (i < def->nnets) && (i < networkAdapterCount); i++) {
@@ -4538,7 +4540,7 @@ vboxAttachSerial(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         systemProperties = NULL;
     }
 
-    VIR_DEBUG("Number of Serial Ports to be connected: %d", def->nserials);
+    VIR_DEBUG("Number of Serial Ports to be connected: %zu", def->nserials);
     VIR_DEBUG("Number of Serial Ports available: %d", serialPortCount);
     for (i = 0; (i < def->nserials) && (i < serialPortCount); i++) {
         ISerialPort *serialPort = NULL;
@@ -4617,7 +4619,7 @@ vboxAttachParallel(virDomainDefPtr def, vboxGlobalData *data, IMachine *machine)
         systemProperties = NULL;
     }
 
-    VIR_DEBUG("Number of Parallel Ports to be connected: %d", def->nparallels);
+    VIR_DEBUG("Number of Parallel Ports to be connected: %zu", def->nparallels);
     VIR_DEBUG("Number of Parallel Ports available: %d", parallelPortCount);
     for (i = 0; (i < def->nparallels) && (i < parallelPortCount); i++) {
         IParallelPort *parallelPort = NULL;
@@ -7049,7 +7051,7 @@ vboxCallbackOnMachineRegistered(IVirtualBoxCallback *pThis ATTRIBUTE_UNUSED,
             virDomainEventPtr ev;
 
             /* CURRENT LIMITATION: we never get the VIR_DOMAIN_EVENT_UNDEFINED
-             * event becuase the when the machine is de-registered the call
+             * event because the when the machine is de-registered the call
              * to vboxDomainLookupByUUID fails and thus we don't get any
              * dom pointer which is necessary (null dom pointer doesn't work)
              * to show the VIR_DOMAIN_EVENT_UNDEFINED event
@@ -8747,7 +8749,7 @@ static int vboxStorageVolDelete(virStorageVolPtr vol,
              * is no 128bit width simple item type for a SafeArray to fit a
              * GUID in. The largest simple type it 64bit width and VirtualBox
              * uses two of this 64bit items to represents one GUID. Therefore,
-             * we devide the size of the SafeArray by two, to compensate for
+             * we divide the size of the SafeArray by two, to compensate for
              * this workaround in VirtualBox */
             machineIds.count /= 2;
 #endif /* VBOX_API_VERSION >= 2002 */

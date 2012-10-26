@@ -98,7 +98,7 @@
 
 /* Enable compile-time and run-time bounds-checking, and some warnings,
         without upsetting newer glibc. */
-     #if defined __OPTIMIZE__ && __OPTIMIZE__
+     #if !defined _FORTIFY_SOURCE && defined __OPTIMIZE__ && __OPTIMIZE__
      # define _FORTIFY_SOURCE 2
      #endif
     
@@ -568,7 +568,7 @@
 /* whether libaudit is available */
 #undef HAVE_AUDIT
 
-/* whether Avahi is used to broadcast server presense */
+/* whether Avahi is used to broadcast server presence */
 #undef HAVE_AVAHI
 
 /* Define to 1 if you have the <bp-sym.h> header file. */
@@ -726,6 +726,10 @@
 /* Define to 1 if you have the declaration of `getpass', and to 0 if you
    don't. */
 #undef HAVE_DECL_GETPASS
+
+/* Define to 1 if you have the declaration of `htole64', and to 0 if you
+   don't. */
+#undef HAVE_DECL_HTOLE64
 
 /* Define to 1 if you have the declaration of `inet_ntop', and to 0 if you
    don't. */
@@ -1048,6 +1052,9 @@
 /* Define to 1 if you have the `cap-ng' library (-lcap-ng). */
 #undef HAVE_LIBCAP_NG
 
+/* whether libcurl is available */
+#undef HAVE_LIBCURL
+
 /* Define to 1 if you have the `devmapper' library (-ldevmapper). */
 #undef HAVE_LIBDEVMAPPER
 
@@ -1358,6 +1365,9 @@
 
 /* whether Sanlock plugin for lock management is available */
 #undef HAVE_SANLOCK
+
+/* whether Sanlock supports sanlock_killpath */
+#undef HAVE_SANLOCK_KILLPATH
 
 /* whether Cyrus SASL is available for authentication */
 #undef HAVE_SASL
@@ -1767,6 +1777,9 @@
 
 /* Define to 1 if you have the `xdr_u_int64_t' function. */
 #undef HAVE_XDR_U_INT64_T
+
+/* Define to 1 if you have the <xenstore.h> header file. */
+#undef HAVE_XENSTORE_H
 
 /* Define to 1 if you have the <xen/dom0_ops.h> header file. */
 #undef HAVE_XEN_DOM0_OPS_H
@@ -2417,7 +2430,9 @@
      <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113>.
    _GL_INLINE_HEADER_END contains useful stuff to put
      in the same include file, after uses of _GL_INLINE.  */
-#if __GNUC__ ? __GNUC_STDC_INLINE__ : 199901L <= __STDC_VERSION__
+#if (__GNUC__ \
+     ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \
+     : 199901L <= __STDC_VERSION__)
 # define _GL_INLINE inline
 # define _GL_EXTERN_INLINE extern inline
 #elif 2 < __GNUC__ + (7 <= __GNUC_MINOR__)
@@ -2434,7 +2449,7 @@
 #endif
 
 #if 4 < __GNUC__ + (6 <= __GNUC_MINOR__)
-# if __GNUC_STDC_INLINE__
+# if defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__
 #  define _GL_INLINE_HEADER_CONST_PRAGMA
 # else
 #  define _GL_INLINE_HEADER_CONST_PRAGMA \

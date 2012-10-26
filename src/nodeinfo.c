@@ -412,6 +412,27 @@ int linuxNodeInfoCPUPopulate(FILE *cpuinfo,
              * and parsed in next iteration, because it is not in expected
              * format and thus lead to error. */
         }
+# elif defined(__arm__)
+        char *buf = line;
+        if (STRPREFIX(buf, "BogoMIPS")) {
+            char *p;
+            unsigned int ui;
+
+            buf += 8;
+            while (*buf && c_isspace(*buf))
+                buf++;
+
+            if (*buf != ':' || !buf[1]) {
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               "%s", _("parsing cpu MHz from cpuinfo"));
+                goto cleanup;
+            }
+
+            if (virStrToLong_ui(buf+1, &p, 10, &ui) == 0
+                /* Accept trailing fractional part.  */
+                && (*p == '\0' || *p == '.' || c_isspace(*p)))
+                nodeinfo->mhz = ui;
+        }
 # elif defined(__s390__) || \
       defined(__s390x__)
         /* s390x has no realistic value for CPU speed,
@@ -984,6 +1005,8 @@ nodeSetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
                                        VIR_TYPED_PARAM_UINT,
                                        VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS,
                                        VIR_TYPED_PARAM_UINT,
+                                       VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES,
+                                       VIR_TYPED_PARAM_UINT,
                                        NULL) < 0)
         return -1;
 
@@ -1000,6 +1023,13 @@ nodeSetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
         } else if (STREQ(param->field,
                          VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS)) {
             ret = nodeSetMemoryParameterValue("sleep_millisecs", param);
+
+            /* Out of memory */
+            if (ret == -2)
+                return -1;
+        } else if (STREQ(param->field,
+                         VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES)) {
+            ret = nodeSetMemoryParameterValue("merge_across_nodes", param);
 
             /* Out of memory */
             if (ret == -2)
@@ -1039,8 +1069,9 @@ nodeGetMemoryParameterValue(const char *field,
     if ((tmp = strchr(buf, '\n')))
         *tmp = '\0';
 
-    if (STREQ(field, "pages_to_scan") ||
-        STREQ(field, "sleep_millisecs"))
+    if (STREQ(field, "pages_to_scan")   ||
+        STREQ(field, "sleep_millisecs") ||
+        STREQ(field, "merge_across_nodes"))
         rc = virStrToLong_ui(buf, NULL, 10, (unsigned int *)value);
     else if (STREQ(field, "pages_shared")    ||
              STREQ(field, "pages_sharing")   ||
@@ -1063,7 +1094,7 @@ cleanup:
 }
 #endif
 
-#define NODE_MEMORY_PARAMETERS_NUM 7
+#define NODE_MEMORY_PARAMETERS_NUM 8
 int
 nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
                         virTypedParameterPtr params ATTRIBUTE_UNUSED,
@@ -1075,6 +1106,7 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
 #ifdef __linux__
     unsigned int pages_to_scan;
     unsigned int sleep_millisecs;
+    unsigned int merge_across_nodes;
     unsigned long long pages_shared;
     unsigned long long pages_sharing;
     unsigned long long pages_unshared;
@@ -1164,6 +1196,17 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
 
             if (virTypedParameterAssign(param, VIR_NODE_MEMORY_SHARED_FULL_SCANS,
                                         VIR_TYPED_PARAM_ULLONG, full_scans) < 0)
+                return -1;
+
+            break;
+
+        case 7:
+            if (nodeGetMemoryParameterValue("merge_across_nodes",
+                                            &merge_across_nodes) < 0)
+                return -1;
+
+            if (virTypedParameterAssign(param, VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES,
+                                        VIR_TYPED_PARAM_UINT, merge_across_nodes) < 0)
                 return -1;
 
             break;

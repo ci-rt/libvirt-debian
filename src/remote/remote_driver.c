@@ -253,6 +253,10 @@ static void
 remoteDomainBuildEventBalloonChange(virNetClientProgramPtr prog,
                                     virNetClientPtr client,
                                     void *evdata, void *opaque);
+static void
+remoteDomainBuildEventPMSuspendDisk(virNetClientProgramPtr prog,
+                                  virNetClientPtr client,
+                                  void *evdata, void *opaque);
 
 static virNetClientProgramEvent remoteDomainEvents[] = {
     { REMOTE_PROC_DOMAIN_EVENT_RTC_CHANGE,
@@ -311,6 +315,10 @@ static virNetClientProgramEvent remoteDomainEvents[] = {
       remoteDomainBuildEventBalloonChange,
       sizeof(remote_domain_event_balloon_change_msg),
       (xdrproc_t)xdr_remote_domain_event_balloon_change_msg },
+    { REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND_DISK,
+      remoteDomainBuildEventPMSuspendDisk,
+      sizeof(remote_domain_event_pmsuspend_disk_msg),
+      (xdrproc_t)xdr_remote_domain_event_pmsuspend_disk_msg },
 };
 
 enum virDrvOpenRemoteFlags {
@@ -4575,6 +4583,29 @@ remoteDomainBuildEventBalloonChange(virNetClientProgramPtr prog ATTRIBUTE_UNUSED
 }
 
 
+static void
+remoteDomainBuildEventPMSuspendDisk(virNetClientProgramPtr prog ATTRIBUTE_UNUSED,
+                                    virNetClientPtr client ATTRIBUTE_UNUSED,
+                                    void *evdata, void *opaque)
+{
+    virConnectPtr conn = opaque;
+    struct private_data *priv = conn->privateData;
+    remote_domain_event_pmsuspend_disk_msg *msg = evdata;
+    virDomainPtr dom;
+    virDomainEventPtr event = NULL;
+
+    dom = get_nonnull_domain(conn, msg->dom);
+    if (!dom)
+        return;
+
+    event = virDomainEventPMSuspendDiskNewFromDom(dom);
+
+    virDomainFree(dom);
+
+    remoteDomainEventQueue(priv, event);
+}
+
+
 static virDrvOpenStatus ATTRIBUTE_NONNULL (1)
 remoteSecretOpen(virConnectPtr conn, virConnectAuthPtr auth,
                  unsigned int flags)
@@ -5749,6 +5780,53 @@ done:
     return rv;
 }
 
+static int
+remoteNodeGetCPUMap(virConnectPtr conn,
+                    unsigned char **cpumap,
+                    unsigned int *online,
+                    unsigned int flags)
+{
+    int rv = -1;
+    remote_node_get_cpu_map_args args;
+    remote_node_get_cpu_map_ret ret;
+    struct private_data *priv = conn->privateData;
+
+    remoteDriverLock(priv);
+
+    args.need_results = !!cpumap;
+    args.flags = flags;
+
+    memset (&ret, 0, sizeof(ret));
+    if (call(conn, priv, 0, REMOTE_PROC_NODE_GET_CPU_MAP,
+             (xdrproc_t) xdr_remote_node_get_cpu_map_args,
+             (char *) &args,
+             (xdrproc_t) xdr_remote_node_get_cpu_map_ret,
+             (char *) &ret) == -1)
+        goto done;
+
+    if (ret.ret < 0)
+        goto cleanup;
+
+    if (cpumap) {
+        if (VIR_ALLOC_N(*cpumap, ret.cpumap.cpumap_len) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+        memcpy(*cpumap, ret.cpumap.cpumap_val, ret.cpumap.cpumap_len);
+    }
+
+    if (online)
+        *online = ret.online;
+
+    rv = ret.ret;
+
+cleanup:
+    xdr_free((xdrproc_t) xdr_remote_node_get_cpu_map_ret, (char *) &ret);
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static void
 remoteDomainEventQueue(struct private_data *priv, virDomainEventPtr event)
 {
@@ -6063,6 +6141,7 @@ static virDriver remote_driver = {
     .domainGetHostname = remoteDomainGetHostname, /* 0.10.0 */
     .nodeSetMemoryParameters = remoteNodeSetMemoryParameters, /* 0.10.2 */
     .nodeGetMemoryParameters = remoteNodeGetMemoryParameters, /* 0.10.2 */
+    .nodeGetCPUMap = remoteNodeGetCPUMap, /* 1.0.0 */
 };
 
 static virNetworkDriver network_driver = {

@@ -87,6 +87,7 @@ UTIL_SOURCES =							\
 		util/virnodesuspend.c util/virnodesuspend.h	\
 		util/virobject.c util/virobject.h		\
 		util/virpidfile.c util/virpidfile.h		\
+		util/virprocess.c util/virprocess.h		\
 		util/virtypedparam.c util/virtypedparam.h	\
 		util/xml.c util/xml.h				\
 		util/virterror.c util/virterror_internal.h	\
@@ -96,6 +97,7 @@ UTIL_SOURCES =							\
 		util/virkeycode.c util/virkeycode.h		\
 		util/virkeyfile.c util/virkeyfile.h		\
 		util/virkeymaps.h				\
+		util/virlockspace.c util/virlockspace.h		\
 		util/virmacaddr.h util/virmacaddr.c		\
 		util/virnetdev.h util/virnetdev.c		\
 		util/virnetdevbandwidth.h util/virnetdevbandwidth.c \
@@ -141,6 +143,8 @@ DRIVER_SOURCES =							\
 LOCK_DRIVER_SANLOCK_SOURCES = \
 		locking/lock_driver_sanlock.c
 
+LOCK_DRIVER_SANLOCK_HELPER_SOURCES = \
+		locking/sanlock_helper.c
 
 NETDEV_CONF_SOURCES =						\
 		conf/netdev_bandwidth_conf.h conf/netdev_bandwidth_conf.c \
@@ -556,12 +560,17 @@ INTERFACE_DRIVER_SOURCES =
 
 if WITH_INTERFACE
 INTERFACE_DRIVER_SOURCES +=					\
-		interface/interface_driver.h
-endif
+		interface/interface_driver.h        \
+		interface/interface_driver.c
 
 if WITH_NETCF
 INTERFACE_DRIVER_SOURCES +=					\
 		interface/interface_backend_netcf.c
+endif
+if HAVE_UDEV
+INTERFACE_DRIVER_SOURCES +=					\
+		interface/interface_backend_udev.c
+endif
 endif
 
 SECRET_DRIVER_SOURCES =						\
@@ -651,7 +660,7 @@ CPU_SOURCES =							\
 		cpu/cpu_s390.h cpu/cpu_s390.c			\
 		cpu/cpu_arm.h cpu/cpu_arm.c			\
 		cpu/cpu_map.h cpu/cpu_map.c cpu/cpu_powerpc.h	\
-		cpu/cpu_powerpc.c
+		cpu/cpu_powerpc.c cpu/cpu_ppc_data.h
 
 VMX_SOURCES =							\
 		vmx/vmx.c vmx/vmx.h
@@ -1044,6 +1053,11 @@ libvirt_driver_interface_la_LIBADD =
 if WITH_NETCF
 libvirt_driver_interface_la_CFLAGS += $(NETCF_CFLAGS)
 libvirt_driver_interface_la_LIBADD += $(NETCF_LIBS)
+else
+if HAVE_UDEV
+libvirt_driver_interface_la_CFLAGS += $(UDEV_CFLAGS)
+libvirt_driver_interface_la_LIBADD += $(UDEV_LIBS)
+endif
 endif
 if WITH_DRIVER_MODULES
 libvirt_driver_interface_la_LIBADD += ../gnulib/lib/libgnu.la
@@ -1491,7 +1505,7 @@ lockdriverdir = $(libdir)/libvirt/lock-driver
 lockdriver_LTLIBRARIES = sanlock.la
 
 sanlock_la_SOURCES = $(LOCK_DRIVER_SANLOCK_SOURCES)
-sanlock_la_CFLAGS = $(AM_CFLAGS)
+sanlock_la_CFLAGS = -I$(top_srcdir)/src/conf $(AM_CFLAGS)
 sanlock_la_LDFLAGS = -module -avoid-version
 sanlock_la_LIBADD = -lsanlock_client \
 		../gnulib/lib/libgnu.la
@@ -1637,6 +1651,15 @@ endif
 endif
 EXTRA_DIST += $(STORAGE_HELPER_DISK_SOURCES)
 
+
+if HAVE_SANLOCK
+libexec_PROGRAMS += libvirt_sanlock_helper
+
+libvirt_sanlock_helper_SOURCES = $(LOCK_DRIVER_SANLOCK_HELPER_SOURCES)
+libvirt_sanlock_helper_CFLAGS = -I$(top_srcdir)/src/conf $(AM_CFLAGS)
+libvirt_sanlock_helper_LDFLAGS = $(WARN_LDFLAGS) $(AM_LDFLAGS)
+libvirt_sanlock_helper_LDADD = libvirt.la
+endif
 
 if WITH_LXC
 if WITH_LIBVIRTD

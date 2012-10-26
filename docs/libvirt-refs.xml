@@ -68,6 +68,7 @@
     <reference name='VIR_CPU_COMPARE_SUPERSET' href='html/libvirt-libvirt.html#VIR_CPU_COMPARE_SUPERSET'/>
     <reference name='VIR_CPU_MAPLEN' href='html/libvirt-libvirt.html#VIR_CPU_MAPLEN'/>
     <reference name='VIR_CPU_USABLE' href='html/libvirt-libvirt.html#VIR_CPU_USABLE'/>
+    <reference name='VIR_CPU_USED' href='html/libvirt-libvirt.html#VIR_CPU_USED'/>
     <reference name='VIR_CRED_AUTHNAME' href='html/libvirt-libvirt.html#VIR_CRED_AUTHNAME'/>
     <reference name='VIR_CRED_CNONCE' href='html/libvirt-libvirt.html#VIR_CRED_CNONCE'/>
     <reference name='VIR_CRED_ECHOPROMPT' href='html/libvirt-libvirt.html#VIR_CRED_ECHOPROMPT'/>
@@ -182,6 +183,7 @@
     <reference name='VIR_DOMAIN_EVENT_ID_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_LAST'/>
     <reference name='VIR_DOMAIN_EVENT_ID_LIFECYCLE' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_LIFECYCLE'/>
     <reference name='VIR_DOMAIN_EVENT_ID_PMSUSPEND' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_PMSUSPEND'/>
+    <reference name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK'/>
     <reference name='VIR_DOMAIN_EVENT_ID_PMWAKEUP' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_PMWAKEUP'/>
     <reference name='VIR_DOMAIN_EVENT_ID_REBOOT' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_REBOOT'/>
     <reference name='VIR_DOMAIN_EVENT_ID_RTC_CHANGE' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_ID_RTC_CHANGE'/>
@@ -193,6 +195,7 @@
     <reference name='VIR_DOMAIN_EVENT_IO_ERROR_REPORT' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_IO_ERROR_REPORT'/>
     <reference name='VIR_DOMAIN_EVENT_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_LAST'/>
     <reference name='VIR_DOMAIN_EVENT_PMSUSPENDED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_PMSUSPENDED'/>
+    <reference name='VIR_DOMAIN_EVENT_PMSUSPENDED_DISK' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_PMSUSPENDED_DISK'/>
     <reference name='VIR_DOMAIN_EVENT_PMSUSPENDED_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_PMSUSPENDED_LAST'/>
     <reference name='VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY'/>
     <reference name='VIR_DOMAIN_EVENT_RESUMED' href='html/libvirt-libvirt.html#VIR_DOMAIN_EVENT_RESUMED'/>
@@ -301,6 +304,8 @@
     <reference name='VIR_DOMAIN_PAUSED_USER' href='html/libvirt-libvirt.html#VIR_DOMAIN_PAUSED_USER'/>
     <reference name='VIR_DOMAIN_PAUSED_WATCHDOG' href='html/libvirt-libvirt.html#VIR_DOMAIN_PAUSED_WATCHDOG'/>
     <reference name='VIR_DOMAIN_PMSUSPENDED' href='html/libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED'/>
+    <reference name='VIR_DOMAIN_PMSUSPENDED_DISK_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED_DISK_LAST'/>
+    <reference name='VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN' href='html/libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN'/>
     <reference name='VIR_DOMAIN_PMSUSPENDED_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED_LAST'/>
     <reference name='VIR_DOMAIN_PMSUSPENDED_UNKNOWN' href='html/libvirt-libvirt.html#VIR_DOMAIN_PMSUSPENDED_UNKNOWN'/>
     <reference name='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN' href='html/libvirt-libvirt.html#VIR_DOMAIN_REBOOT_ACPI_POWER_BTN'/>
@@ -386,6 +391,7 @@
     <reference name='VIR_DOMAIN_VCPU_LIVE' href='html/libvirt-libvirt.html#VIR_DOMAIN_VCPU_LIVE'/>
     <reference name='VIR_DOMAIN_VCPU_MAXIMUM' href='html/libvirt-libvirt.html#VIR_DOMAIN_VCPU_MAXIMUM'/>
     <reference name='VIR_DOMAIN_XML_INACTIVE' href='html/libvirt-libvirt.html#VIR_DOMAIN_XML_INACTIVE'/>
+    <reference name='VIR_DOMAIN_XML_MIGRATABLE' href='html/libvirt-libvirt.html#VIR_DOMAIN_XML_MIGRATABLE'/>
     <reference name='VIR_DOMAIN_XML_SECURE' href='html/libvirt-libvirt.html#VIR_DOMAIN_XML_SECURE'/>
     <reference name='VIR_DOMAIN_XML_UPDATE_CPU' href='html/libvirt-libvirt.html#VIR_DOMAIN_XML_UPDATE_CPU'/>
     <reference name='VIR_DUMP_BYPASS_CACHE' href='html/libvirt-libvirt.html#VIR_DUMP_BYPASS_CACHE'/>
@@ -465,6 +471,7 @@
     <reference name='VIR_ERR_PARSE_FAILED' href='html/libvirt-virterror.html#VIR_ERR_PARSE_FAILED'/>
     <reference name='VIR_ERR_POST_FAILED' href='html/libvirt-virterror.html#VIR_ERR_POST_FAILED'/>
     <reference name='VIR_ERR_READ_FAILED' href='html/libvirt-virterror.html#VIR_ERR_READ_FAILED'/>
+    <reference name='VIR_ERR_RESOURCE_BUSY' href='html/libvirt-virterror.html#VIR_ERR_RESOURCE_BUSY'/>
     <reference name='VIR_ERR_RPC' href='html/libvirt-virterror.html#VIR_ERR_RPC'/>
     <reference name='VIR_ERR_SEXPR_SERIAL' href='html/libvirt-virterror.html#VIR_ERR_SEXPR_SERIAL'/>
     <reference name='VIR_ERR_SNAPSHOT_REVERT_RISKY' href='html/libvirt-virterror.html#VIR_ERR_SNAPSHOT_REVERT_RISKY'/>
@@ -499,6 +506,7 @@
     <reference name='VIR_FROM_INTERFACE' href='html/libvirt-virterror.html#VIR_FROM_INTERFACE'/>
     <reference name='VIR_FROM_LIBXL' href='html/libvirt-virterror.html#VIR_FROM_LIBXL'/>
     <reference name='VIR_FROM_LOCKING' href='html/libvirt-virterror.html#VIR_FROM_LOCKING'/>
+    <reference name='VIR_FROM_LOCKSPACE' href='html/libvirt-virterror.html#VIR_FROM_LOCKSPACE'/>
     <reference name='VIR_FROM_LXC' href='html/libvirt-virterror.html#VIR_FROM_LXC'/>
     <reference name='VIR_FROM_NET' href='html/libvirt-virterror.html#VIR_FROM_NET'/>
     <reference name='VIR_FROM_NETWORK' href='html/libvirt-virterror.html#VIR_FROM_NETWORK'/>
@@ -731,6 +739,7 @@
     <reference name='virConnectDomainEventIOErrorCallback' href='html/libvirt-libvirt.html#virConnectDomainEventIOErrorCallback'/>
     <reference name='virConnectDomainEventIOErrorReasonCallback' href='html/libvirt-libvirt.html#virConnectDomainEventIOErrorReasonCallback'/>
     <reference name='virConnectDomainEventPMSuspendCallback' href='html/libvirt-libvirt.html#virConnectDomainEventPMSuspendCallback'/>
+    <reference name='virConnectDomainEventPMSuspendDiskCallback' href='html/libvirt-libvirt.html#virConnectDomainEventPMSuspendDiskCallback'/>
     <reference name='virConnectDomainEventPMWakeupCallback' href='html/libvirt-libvirt.html#virConnectDomainEventPMWakeupCallback'/>
     <reference name='virConnectDomainEventRTCChangeCallback' href='html/libvirt-libvirt.html#virConnectDomainEventRTCChangeCallback'/>
     <reference name='virConnectDomainEventRegister' href='html/libvirt-libvirt.html#virConnectDomainEventRegister'/>
@@ -943,6 +952,7 @@
     <reference name='virDomainOpenGraphics' href='html/libvirt-libvirt.html#virDomainOpenGraphics'/>
     <reference name='virDomainOpenGraphicsFlags' href='html/libvirt-libvirt.html#virDomainOpenGraphicsFlags'/>
     <reference name='virDomainPMSuspendForDuration' href='html/libvirt-libvirt.html#virDomainPMSuspendForDuration'/>
+    <reference name='virDomainPMSuspendedDiskReason' href='html/libvirt-libvirt.html#virDomainPMSuspendedDiskReason'/>
     <reference name='virDomainPMSuspendedReason' href='html/libvirt-libvirt.html#virDomainPMSuspendedReason'/>
     <reference name='virDomainPMWakeup' href='html/libvirt-libvirt.html#virDomainPMWakeup'/>
     <reference name='virDomainPausedReason' href='html/libvirt-libvirt.html#virDomainPausedReason'/>
@@ -1126,6 +1136,7 @@
     <reference name='virNodeDeviceReAttach' href='html/libvirt-libvirt.html#virNodeDeviceReAttach'/>
     <reference name='virNodeDeviceRef' href='html/libvirt-libvirt.html#virNodeDeviceRef'/>
     <reference name='virNodeDeviceReset' href='html/libvirt-libvirt.html#virNodeDeviceReset'/>
+    <reference name='virNodeGetCPUMap' href='html/libvirt-libvirt.html#virNodeGetCPUMap'/>
     <reference name='virNodeGetCPUStats' href='html/libvirt-libvirt.html#virNodeGetCPUStats'/>
     <reference name='virNodeGetCPUStatsAllCPUs' href='html/libvirt-libvirt.html#virNodeGetCPUStatsAllCPUs'/>
     <reference name='virNodeGetCellsFreeMemory' href='html/libvirt-libvirt.html#virNodeGetCellsFreeMemory'/>
@@ -1333,6 +1344,7 @@
       <ref name='VIR_CPU_COMPARE_SUPERSET'/>
       <ref name='VIR_CPU_MAPLEN'/>
       <ref name='VIR_CPU_USABLE'/>
+      <ref name='VIR_CPU_USED'/>
       <ref name='VIR_CRED_AUTHNAME'/>
       <ref name='VIR_CRED_CNONCE'/>
       <ref name='VIR_CRED_ECHOPROMPT'/>
@@ -1447,6 +1459,7 @@
       <ref name='VIR_DOMAIN_EVENT_ID_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_ID_LIFECYCLE'/>
       <ref name='VIR_DOMAIN_EVENT_ID_PMSUSPEND'/>
+      <ref name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK'/>
       <ref name='VIR_DOMAIN_EVENT_ID_PMWAKEUP'/>
       <ref name='VIR_DOMAIN_EVENT_ID_REBOOT'/>
       <ref name='VIR_DOMAIN_EVENT_ID_RTC_CHANGE'/>
@@ -1458,6 +1471,7 @@
       <ref name='VIR_DOMAIN_EVENT_IO_ERROR_REPORT'/>
       <ref name='VIR_DOMAIN_EVENT_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_PMSUSPENDED'/>
+      <ref name='VIR_DOMAIN_EVENT_PMSUSPENDED_DISK'/>
       <ref name='VIR_DOMAIN_EVENT_PMSUSPENDED_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY'/>
       <ref name='VIR_DOMAIN_EVENT_RESUMED'/>
@@ -1566,6 +1580,8 @@
       <ref name='VIR_DOMAIN_PAUSED_USER'/>
       <ref name='VIR_DOMAIN_PAUSED_WATCHDOG'/>
       <ref name='VIR_DOMAIN_PMSUSPENDED'/>
+      <ref name='VIR_DOMAIN_PMSUSPENDED_DISK_LAST'/>
+      <ref name='VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN'/>
       <ref name='VIR_DOMAIN_PMSUSPENDED_LAST'/>
       <ref name='VIR_DOMAIN_PMSUSPENDED_UNKNOWN'/>
       <ref name='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN'/>
@@ -1651,6 +1667,7 @@
       <ref name='VIR_DOMAIN_VCPU_LIVE'/>
       <ref name='VIR_DOMAIN_VCPU_MAXIMUM'/>
       <ref name='VIR_DOMAIN_XML_INACTIVE'/>
+      <ref name='VIR_DOMAIN_XML_MIGRATABLE'/>
       <ref name='VIR_DOMAIN_XML_SECURE'/>
       <ref name='VIR_DOMAIN_XML_UPDATE_CPU'/>
       <ref name='VIR_DUMP_BYPASS_CACHE'/>
@@ -1730,6 +1747,7 @@
       <ref name='VIR_ERR_PARSE_FAILED'/>
       <ref name='VIR_ERR_POST_FAILED'/>
       <ref name='VIR_ERR_READ_FAILED'/>
+      <ref name='VIR_ERR_RESOURCE_BUSY'/>
       <ref name='VIR_ERR_RPC'/>
       <ref name='VIR_ERR_SEXPR_SERIAL'/>
       <ref name='VIR_ERR_SNAPSHOT_REVERT_RISKY'/>
@@ -1764,6 +1782,7 @@
       <ref name='VIR_FROM_INTERFACE'/>
       <ref name='VIR_FROM_LIBXL'/>
       <ref name='VIR_FROM_LOCKING'/>
+      <ref name='VIR_FROM_LOCKSPACE'/>
       <ref name='VIR_FROM_LXC'/>
       <ref name='VIR_FROM_NET'/>
       <ref name='VIR_FROM_NETWORK'/>
@@ -2000,6 +2019,7 @@
       <ref name='virConnectDomainEventIOErrorCallback'/>
       <ref name='virConnectDomainEventIOErrorReasonCallback'/>
       <ref name='virConnectDomainEventPMSuspendCallback'/>
+      <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
       <ref name='virConnectDomainEventPMWakeupCallback'/>
       <ref name='virConnectDomainEventRTCChangeCallback'/>
       <ref name='virConnectDomainEventRegister'/>
@@ -2212,6 +2232,7 @@
       <ref name='virDomainOpenGraphics'/>
       <ref name='virDomainOpenGraphicsFlags'/>
       <ref name='virDomainPMSuspendForDuration'/>
+      <ref name='virDomainPMSuspendedDiskReason'/>
       <ref name='virDomainPMSuspendedReason'/>
       <ref name='virDomainPMWakeup'/>
       <ref name='virDomainPausedReason'/>
@@ -2395,6 +2416,7 @@
       <ref name='virNodeDeviceReAttach'/>
       <ref name='virNodeDeviceRef'/>
       <ref name='virNodeDeviceReset'/>
+      <ref name='virNodeGetCPUMap'/>
       <ref name='virNodeGetCPUStats'/>
       <ref name='virNodeGetCPUStatsAllCPUs'/>
       <ref name='virNodeGetCellsFreeMemory'/>
@@ -2706,6 +2728,9 @@
       <ref name='virSecretGetUUID'/>
       <ref name='virStoragePoolGetUUID'/>
     </type>
+    <type name='unsigned char **'>
+      <ref name='virNodeGetCPUMap'/>
+    </type>
     <type name='unsigned int'>
       <ref name='virConnectAuthCallbackPtr'/>
       <ref name='virConnectBaselineCPU'/>
@@ -2821,6 +2846,7 @@
       <ref name='virNetworkUpdate'/>
       <ref name='virNodeDeviceCreateXML'/>
       <ref name='virNodeDeviceGetXMLDesc'/>
+      <ref name='virNodeGetCPUMap'/>
       <ref name='virNodeGetCPUStats'/>
       <ref name='virNodeGetMemoryParameters'/>
       <ref name='virNodeGetMemoryStats'/>
@@ -2853,6 +2879,7 @@
     </type>
     <type name='unsigned int *'>
       <ref name='virDomainSendKey'/>
+      <ref name='virNodeGetCPUMap'/>
     </type>
     <type name='unsigned long'>
       <ref name='virDomainBlockCommit'/>
@@ -2926,6 +2953,7 @@
       <ref name='virConnectDomainEventIOErrorCallback'/>
       <ref name='virConnectDomainEventIOErrorReasonCallback'/>
       <ref name='virConnectDomainEventPMSuspendCallback'/>
+      <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
       <ref name='virConnectDomainEventPMWakeupCallback'/>
       <ref name='virConnectDomainEventRTCChangeCallback'/>
       <ref name='virConnectDomainEventRegister'/>
@@ -3007,6 +3035,7 @@
       <ref name='virNetworkLookupByUUIDString'/>
       <ref name='virNodeDeviceCreateXML'/>
       <ref name='virNodeDeviceLookupByName'/>
+      <ref name='virNodeGetCPUMap'/>
       <ref name='virNodeGetCPUStats'/>
       <ref name='virNodeGetCellsFreeMemory'/>
       <ref name='virNodeGetFreeMemory'/>
@@ -3074,6 +3103,7 @@
       <ref name='virConnectDomainEventIOErrorCallback'/>
       <ref name='virConnectDomainEventIOErrorReasonCallback'/>
       <ref name='virConnectDomainEventPMSuspendCallback'/>
+      <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
       <ref name='virConnectDomainEventPMWakeupCallback'/>
       <ref name='virConnectDomainEventRTCChangeCallback'/>
       <ref name='virConnectDomainEventRegisterAny'/>
@@ -3483,6 +3513,7 @@
       <ref name='virConnectDomainEventIOErrorCallback'/>
       <ref name='virConnectDomainEventIOErrorReasonCallback'/>
       <ref name='virConnectDomainEventPMSuspendCallback'/>
+      <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
       <ref name='virConnectDomainEventPMWakeupCallback'/>
       <ref name='virConnectDomainEventRTCChangeCallback'/>
       <ref name='virConnectDomainEventRegister'/>
@@ -3578,6 +3609,7 @@
       <ref name='VIR_CPU_COMPARE_SUPERSET'/>
       <ref name='VIR_CPU_MAPLEN'/>
       <ref name='VIR_CPU_USABLE'/>
+      <ref name='VIR_CPU_USED'/>
       <ref name='VIR_CRED_AUTHNAME'/>
       <ref name='VIR_CRED_CNONCE'/>
       <ref name='VIR_CRED_ECHOPROMPT'/>
@@ -3692,6 +3724,7 @@
       <ref name='VIR_DOMAIN_EVENT_ID_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_ID_LIFECYCLE'/>
       <ref name='VIR_DOMAIN_EVENT_ID_PMSUSPEND'/>
+      <ref name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK'/>
       <ref name='VIR_DOMAIN_EVENT_ID_PMWAKEUP'/>
       <ref name='VIR_DOMAIN_EVENT_ID_REBOOT'/>
       <ref name='VIR_DOMAIN_EVENT_ID_RTC_CHANGE'/>
@@ -3703,6 +3736,7 @@
       <ref name='VIR_DOMAIN_EVENT_IO_ERROR_REPORT'/>
       <ref name='VIR_DOMAIN_EVENT_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_PMSUSPENDED'/>
+      <ref name='VIR_DOMAIN_EVENT_PMSUSPENDED_DISK'/>
       <ref name='VIR_DOMAIN_EVENT_PMSUSPENDED_LAST'/>
       <ref name='VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY'/>
       <ref name='VIR_DOMAIN_EVENT_RESUMED'/>
@@ -3811,6 +3845,8 @@
       <ref name='VIR_DOMAIN_PAUSED_USER'/>
       <ref name='VIR_DOMAIN_PAUSED_WATCHDOG'/>
       <ref name='VIR_DOMAIN_PMSUSPENDED'/>
+      <ref name='VIR_DOMAIN_PMSUSPENDED_DISK_LAST'/>
+      <ref name='VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN'/>
       <ref name='VIR_DOMAIN_PMSUSPENDED_LAST'/>
       <ref name='VIR_DOMAIN_PMSUSPENDED_UNKNOWN'/>
       <ref name='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN'/>
@@ -3896,6 +3932,7 @@
       <ref name='VIR_DOMAIN_VCPU_LIVE'/>
       <ref name='VIR_DOMAIN_VCPU_MAXIMUM'/>
       <ref name='VIR_DOMAIN_XML_INACTIVE'/>
+      <ref name='VIR_DOMAIN_XML_MIGRATABLE'/>
       <ref name='VIR_DOMAIN_XML_SECURE'/>
       <ref name='VIR_DOMAIN_XML_UPDATE_CPU'/>
       <ref name='VIR_DUMP_BYPASS_CACHE'/>
@@ -4094,6 +4131,7 @@
       <ref name='virConnectDomainEventIOErrorCallback'/>
       <ref name='virConnectDomainEventIOErrorReasonCallback'/>
       <ref name='virConnectDomainEventPMSuspendCallback'/>
+      <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
       <ref name='virConnectDomainEventPMWakeupCallback'/>
       <ref name='virConnectDomainEventRTCChangeCallback'/>
       <ref name='virConnectDomainEventRegister'/>
@@ -4304,6 +4342,7 @@
       <ref name='virDomainOpenGraphics'/>
       <ref name='virDomainOpenGraphicsFlags'/>
       <ref name='virDomainPMSuspendForDuration'/>
+      <ref name='virDomainPMSuspendedDiskReason'/>
       <ref name='virDomainPMSuspendedReason'/>
       <ref name='virDomainPMWakeup'/>
       <ref name='virDomainPausedReason'/>
@@ -4479,6 +4518,7 @@
       <ref name='virNodeDeviceReAttach'/>
       <ref name='virNodeDeviceRef'/>
       <ref name='virNodeDeviceReset'/>
+      <ref name='virNodeGetCPUMap'/>
       <ref name='virNodeGetCPUStats'/>
       <ref name='virNodeGetCPUStatsAllCPUs'/>
       <ref name='virNodeGetCellsFreeMemory'/>
@@ -4684,6 +4724,7 @@
       <ref name='VIR_ERR_PARSE_FAILED'/>
       <ref name='VIR_ERR_POST_FAILED'/>
       <ref name='VIR_ERR_READ_FAILED'/>
+      <ref name='VIR_ERR_RESOURCE_BUSY'/>
       <ref name='VIR_ERR_RPC'/>
       <ref name='VIR_ERR_SEXPR_SERIAL'/>
       <ref name='VIR_ERR_SNAPSHOT_REVERT_RISKY'/>
@@ -4714,6 +4755,7 @@
       <ref name='VIR_FROM_INTERFACE'/>
       <ref name='VIR_FROM_LIBXL'/>
       <ref name='VIR_FROM_LOCKING'/>
+      <ref name='VIR_FROM_LOCKSPACE'/>
       <ref name='VIR_FROM_LXC'/>
       <ref name='VIR_FROM_NET'/>
       <ref name='VIR_FROM_NETWORK'/>
@@ -4909,6 +4951,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
       </letter>
       <letter name='C'>
@@ -4921,6 +4964,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='Callback'>
           <ref name='_virConnectAuth'/>
@@ -4932,7 +4976,6 @@
         </word>
         <word name='Calling'>
           <ref name='virDomainDestroyFlags'/>
-          <ref name='virInitialize'/>
         </word>
         <word name='Cancel'>
           <ref name='virDomainBlockJobAbort'/>
@@ -4993,6 +5036,9 @@
         </word>
         <word name='Consult'>
           <ref name='virStorageVolGetPath'/>
+        </word>
+        <word name='Contains'>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='Copy'>
           <ref name='virConnCopyLastError'/>
@@ -5415,6 +5461,7 @@
           <ref name='VIR_NODE_MEMORY_STATS_CACHED'/>
           <ref name='VIR_NODE_MEMORY_STATS_FREE'/>
           <ref name='virDomainMemoryPeek'/>
+          <ref name='virNodeSetMemoryParameters'/>
         </word>
         <word name='List'>
           <ref name='_virConnectAuth'/>
@@ -5555,38 +5602,6 @@
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virStorageVolCreateXML'/>
         </word>
-        <word name='Note'>
-          <ref name='VIR_SECURITY_LABEL_BUFLEN'/>
-          <ref name='virConnectListDefinedDomains'/>
-          <ref name='virConnectListDefinedInterfaces'/>
-          <ref name='virConnectListDefinedNetworks'/>
-          <ref name='virConnectListDefinedStoragePools'/>
-          <ref name='virConnectListDomains'/>
-          <ref name='virConnectListInterfaces'/>
-          <ref name='virConnectListNetworks'/>
-          <ref name='virConnectListStoragePools'/>
-          <ref name='virDomainAttachDeviceFlags'/>
-          <ref name='virDomainBlockPeek'/>
-          <ref name='virDomainBlockResize'/>
-          <ref name='virDomainBlockStatsFlags'/>
-          <ref name='virDomainCoreDump'/>
-          <ref name='virDomainDetachDeviceFlags'/>
-          <ref name='virDomainGetInfo'/>
-          <ref name='virDomainGetVcpusFlags'/>
-          <ref name='virDomainHasManagedSaveImage'/>
-          <ref name='virDomainLookupByID'/>
-          <ref name='virDomainMigrate'/>
-          <ref name='virDomainMigrate2'/>
-          <ref name='virDomainReboot'/>
-          <ref name='virDomainReset'/>
-          <ref name='virDomainSetVcpus'/>
-          <ref name='virDomainSetVcpusFlags'/>
-          <ref name='virDomainShutdown'/>
-          <ref name='virDomainShutdownFlags'/>
-          <ref name='virDomainSnapshotListChildrenNames'/>
-          <ref name='virDomainSnapshotListNames'/>
-          <ref name='virDomainUpdateDeviceFlags'/>
-        </word>
         <word name='Note:'>
           <ref name='virConnectSetKeepAlive'/>
           <ref name='virNodeGetFreeMemory'/>
@@ -5607,6 +5622,7 @@
           <ref name='virDomainGetVcpuPinInfo'/>
           <ref name='virDomainGetVcpus'/>
           <ref name='virGetVersion'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='O_RDONLY'>
           <ref name='virStreamSend'/>
@@ -5980,6 +5996,7 @@
           <ref name='virConnGetLastError'/>
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainRevertToSnapshot'/>
+          <ref name='virInitialize'/>
         </word>
         <word name='Size'>
           <ref name='virSecretSetValue'/>
@@ -6139,10 +6156,6 @@
           <ref name='virConnectOpen'/>
           <ref name='virConnectOpenAuth'/>
           <ref name='virConnectOpenReadOnly'/>
-        </word>
-        <word name='USE_CPU'>
-          <ref name='VIR_UNUSE_CPU'/>
-          <ref name='VIR_USE_CPU'/>
         </word>
         <word name='UTC'>
           <ref name='virConnectDomainEventRTCChangeCallback'/>
@@ -6473,6 +6486,9 @@
         <word name='VIR_DOMAIN_EVENT_ID_IO_ERROR'>
           <ref name='virConnectDomainEventIOErrorCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
+        </word>
+        <word name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK'>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
         </word>
         <word name='VIR_DOMAIN_EVENT_ID_PMSuspend'>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
@@ -7371,7 +7387,6 @@
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainRef'/>
           <ref name='virDomainSnapshotRef'/>
-          <ref name='virInitialize'/>
           <ref name='virInterfaceRef'/>
           <ref name='virNWFilterRef'/>
           <ref name='virNetworkRef'/>
@@ -7590,6 +7605,7 @@
           <ref name='virDomainShutdown'/>
           <ref name='virDomainShutdownFlags'/>
           <ref name='virDomainSnapshotDelete'/>
+          <ref name='virInitialize'/>
           <ref name='virInterfaceDefineXML'/>
           <ref name='virInterfaceUndefine'/>
           <ref name='virNetworkGetAutostart'/>
@@ -7624,7 +7640,6 @@
           <ref name='virDomainBlockJobAbort'/>
           <ref name='virDomainDestroy'/>
           <ref name='virDomainSnapshotCreateXML'/>
-          <ref name='virInitialize'/>
         </word>
         <word name='avoiding'>
           <ref name='virDomainMigrate'/>
@@ -7782,9 +7797,6 @@
           <ref name='virDomainReboot'/>
           <ref name='virDomainShutdownFlags'/>
         </word>
-        <word name='better'>
-          <ref name='virInitialize'/>
-        </word>
         <word name='bi-directional'>
           <ref name='virDomainOpenConsole'/>
         </word>
@@ -7801,6 +7813,7 @@
           <ref name='virStorageVolGetConnect'/>
         </word>
         <word name='bit'>
+          <ref name='VIR_CPU_USED'/>
           <ref name='VIR_UNUSE_CPU'/>
           <ref name='VIR_USE_CPU'/>
           <ref name='cpumap'/>
@@ -7810,6 +7823,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='bits:'>
           <ref name='virInterfaceGetXMLDesc'/>
@@ -7971,6 +7985,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
       </letter>
     </chunk>
@@ -8013,6 +8028,7 @@
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainGetDiskErrors'/>
           <ref name='virDomainInterfaceStats'/>
+          <ref name='virInitialize'/>
         </word>
         <word name='cancel'>
           <ref name='virDomainBlockJobAbort'/>
@@ -8106,6 +8122,7 @@
           <ref name='virDomainOpenConsole'/>
           <ref name='virDomainUndefineFlags'/>
           <ref name='virNodeGetMemoryParameters'/>
+          <ref name='virNodeSetMemoryParameters'/>
           <ref name='virStorageVolResize'/>
         </word>
         <word name='caused'>
@@ -8163,6 +8180,7 @@
           <ref name='virEventUpdateHandleFunc'/>
           <ref name='virInterfaceDefineXML'/>
           <ref name='virInterfaceUndefine'/>
+          <ref name='virNodeSetMemoryParameters'/>
           <ref name='virStoragePoolFree'/>
         </word>
         <word name='changed'>
@@ -8525,6 +8543,9 @@
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
         </word>
+        <word name='conflicts'>
+          <ref name='virNodeSetMemoryParameters'/>
+        </word>
         <word name='confusing'>
           <ref name='virDomainOpenConsole'/>
         </word>
@@ -8532,6 +8553,7 @@
           <ref name='VIR_COPY_CPUMAP'/>
           <ref name='VIR_CPU_MAPLEN'/>
           <ref name='VIR_CPU_USABLE'/>
+          <ref name='VIR_CPU_USED'/>
           <ref name='VIR_GET_CPUMAP'/>
           <ref name='VIR_UNUSE_CPU'/>
           <ref name='VIR_USE_CPU'/>
@@ -8784,8 +8806,10 @@
           <ref name='virDomainBlockRebase'/>
           <ref name='virSaveLastError'/>
         </word>
-        <word name='copy'>
+        <word name='copies'>
           <ref name='VIR_COPY_CPUMAP'/>
+        </word>
+        <word name='copy'>
           <ref name='virConnCopyLastError'/>
           <ref name='virCopyLastError'/>
           <ref name='virDomainBlockCommit'/>
@@ -8821,6 +8845,7 @@
           <ref name='virNWFilterRef'/>
           <ref name='virNetworkRef'/>
           <ref name='virNodeDeviceRef'/>
+          <ref name='virNodeGetCPUMap'/>
           <ref name='virSecretRef'/>
           <ref name='virStoragePoolRef'/>
           <ref name='virStorageVolRef'/>
@@ -8830,6 +8855,7 @@
           <ref name='virConnectGetMaxVcpus'/>
         </word>
         <word name='could'>
+          <ref name='virNodeSetMemoryParameters'/>
           <ref name='virSetErrorFunc'/>
           <ref name='virStoragePoolCreate'/>
           <ref name='virStoragePoolDelete'/>
@@ -8894,6 +8920,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='cpumaps'>
           <ref name='VIR_COPY_CPUMAP'/>
@@ -8973,6 +9000,7 @@
         <word name='currently'>
           <ref name='_virDomainControlInfo'/>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
           <ref name='virConnectDomainEventPMWakeupCallback'/>
           <ref name='virConnectListDefinedDomains'/>
           <ref name='virConnectListDefinedInterfaces'/>
@@ -9292,6 +9320,7 @@
         </word>
         <word name='did'>
           <ref name='virDomainOpenConsole'/>
+          <ref name='virInitialize'/>
         </word>
         <word name='differ'>
           <ref name='virDomainBlockCommit'/>
@@ -9830,6 +9859,7 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainMigrateToURI2'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virInitialize'/>
           <ref name='virStorageVolResize'/>
         </word>
         <word name='events'>
@@ -10038,7 +10068,6 @@
           <ref name='virEventRegisterImpl'/>
         </word>
         <word name='extract'>
-          <ref name='VIR_COPY_CPUMAP'/>
           <ref name='virDomainSaveImageGetXMLDesc'/>
         </word>
         <word name='extracted'>
@@ -10047,6 +10076,9 @@
         </word>
         <word name='extraction'>
           <ref name='virInterfaceGetXMLDesc'/>
+        </word>
+        <word name='extracts'>
+          <ref name='VIR_COPY_CPUMAP'/>
         </word>
       </letter>
     </chunk>
@@ -10416,9 +10448,6 @@
         </word>
         <word name='functions'>
           <ref name='virNetworkGetXMLDesc'/>
-        </word>
-        <word name='funtion'>
-          <ref name='virConnectDomainEventDeregister'/>
         </word>
         <word name='further'>
           <ref name='virConnectClose'/>
@@ -11108,6 +11137,9 @@
           <ref name='virConnectClose'/>
           <ref name='virDomainBlockRebase'/>
         </word>
+        <word name='initialization'>
+          <ref name='virInitialize'/>
+        </word>
         <word name='initialized'>
           <ref name='virDomainGetSecurityLabel'/>
           <ref name='virDomainGetSecurityLabelList'/>
@@ -11117,7 +11149,6 @@
           <ref name='virSecretDefineXML'/>
         </word>
         <word name='initializing'>
-          <ref name='virInitialize'/>
           <ref name='virStoragePoolRefresh'/>
         </word>
         <word name='initiate'>
@@ -11275,6 +11306,7 @@
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
           <ref name='virEventRegisterDefaultImpl'/>
+          <ref name='virInitialize'/>
           <ref name='virStreamEventAddCallback'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamRecvAll'/>
@@ -11290,6 +11322,7 @@
           <ref name='virEventRemoveHandleFunc'/>
           <ref name='virEventRemoveTimeoutFunc'/>
           <ref name='virFreeCallback'/>
+          <ref name='virInitialize'/>
           <ref name='virStreamEventCallback'/>
           <ref name='virStreamSinkFunc'/>
           <ref name='virStreamSourceFunc'/>
@@ -11455,6 +11488,9 @@
           <ref name='virDomainGetState'/>
           <ref name='virInterfaceChangeBegin'/>
         </word>
+        <word name='ksmtuned'>
+          <ref name='virNodeSetMemoryParameters'/>
+        </word>
       </letter>
       <letter name='l'>
         <word name='label'>
@@ -11561,6 +11597,7 @@
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virDomainSetVcpusFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='leave'>
           <ref name='virDomainCoreDump'/>
@@ -11749,6 +11786,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='live'>
           <ref name='virDomainGetMetadata'/>
@@ -11908,6 +11946,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
       </letter>
     </chunk>
@@ -11931,6 +11970,7 @@
           <ref name='VIR_COPY_CPUMAP'/>
           <ref name='VIR_CPU_MAPLEN'/>
           <ref name='VIR_CPU_USABLE'/>
+          <ref name='VIR_CPU_USED'/>
           <ref name='VIR_GET_CPUMAP'/>
           <ref name='VIR_NODEINFO_MAXCPUS'/>
           <ref name='VIR_UNUSE_CPU'/>
@@ -12007,6 +12047,8 @@
         </word>
         <word name='mandatory'>
           <ref name='virDomainMigrateToURI'/>
+        </word>
+        <word name='manner'>
           <ref name='virInitialize'/>
         </word>
         <word name='manually'>
@@ -12041,6 +12083,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='maplen'>
           <ref name='cpumap'/>
@@ -12103,6 +12146,7 @@
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virNetworkIsPersistent'/>
+          <ref name='virNodeGetCPUMap'/>
           <ref name='virNodeGetCPUStats'/>
           <ref name='virNodeGetMemoryStats'/>
           <ref name='virStoragePoolIsPersistent'/>
@@ -12477,6 +12521,7 @@
           <ref name='virDomainMigrateToURI'/>
           <ref name='virDomainScreenshot'/>
           <ref name='virDomainSnapshotCreateXML'/>
+          <ref name='virInitialize'/>
           <ref name='virNodeGetFreeMemory'/>
           <ref name='virStorageVolDownload'/>
           <ref name='virStorageVolUpload'/>
@@ -12495,6 +12540,7 @@
           <ref name='virDomainSnapshotGetName'/>
           <ref name='virEventRegisterDefaultImpl'/>
           <ref name='virEventRegisterImpl'/>
+          <ref name='virInitialize'/>
           <ref name='virInterfaceGetMACString'/>
           <ref name='virInterfaceGetName'/>
           <ref name='virNWFilterGetName'/>
@@ -12517,6 +12563,7 @@
           <ref name='virNWFilterRef'/>
           <ref name='virNetworkRef'/>
           <ref name='virNodeDeviceRef'/>
+          <ref name='virNodeGetCPUMap'/>
           <ref name='virSecretRef'/>
           <ref name='virStoragePoolRef'/>
           <ref name='virStorageVolRef'/>
@@ -12571,9 +12618,6 @@
         <word name='nodeset'>
           <ref name='VIR_DOMAIN_NUMA_NODESET'/>
         </word>
-        <word name='non'>
-          <ref name='VIR_CPU_USABLE'/>
-        </word>
         <word name='non-NULL'>
           <ref name='virConnectDomainEventDiskChangeCallback'/>
           <ref name='virConnectDomainEventRegisterAny'/>
@@ -12609,6 +12653,8 @@
           <ref name='virStoragePoolDelete'/>
         </word>
         <word name='non-zero'>
+          <ref name='VIR_CPU_USABLE'/>
+          <ref name='VIR_CPU_USED'/>
           <ref name='virDomainPMSuspendForDuration'/>
           <ref name='virStorageVolUpload'/>
         </word>
@@ -12725,6 +12771,7 @@
           <ref name='virConnectDomainEventIOErrorCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
           <ref name='virConnectDomainEventPMWakeupCallback'/>
           <ref name='virConnectDomainEventRTCChangeCallback'/>
           <ref name='virConnectDomainEventTrayChangeCallback'/>
@@ -12745,6 +12792,7 @@
           <ref name='virConnectDomainEventCallback'/>
           <ref name='virConnectDomainEventDiskChangeCallback'/>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
           <ref name='virConnectDomainEventPMWakeupCallback'/>
           <ref name='virConnectDomainEventTrayChangeCallback'/>
           <ref name='virGetVersion'/>
@@ -12805,6 +12853,7 @@
           <ref name='virConnectListAllDomains'/>
           <ref name='virConnectListAllStoragePools'/>
           <ref name='virDomainBlockCommit'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='oo_req'>
           <ref name='VIR_DOMAIN_BLOCK_STATS_ERRS'/>
@@ -12897,6 +12946,7 @@
           <ref name='virDomainMigrateToURI2'/>
           <ref name='virDomainRestoreFlags'/>
           <ref name='virDomainSaveFlags'/>
+          <ref name='virNodeGetCPUMap'/>
           <ref name='virNodeListDevices'/>
           <ref name='virNodeNumOfDevices'/>
           <ref name='virStreamSinkFunc'/>
@@ -12920,6 +12970,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='org'>
           <ref name='virConnectOpen'/>
@@ -12991,6 +13042,9 @@
         <word name='outgoing'>
           <ref name='virStreamSend'/>
         </word>
+        <word name='outside'>
+          <ref name='virNodeSetMemoryParameters'/>
+        </word>
         <word name='over'>
           <ref name='virConnectIsAlive'/>
           <ref name='virConnectIsSecure'/>
@@ -13055,6 +13109,7 @@
         </word>
         <word name='parallel'>
           <ref name='virDomainOpenConsole'/>
+          <ref name='virNodeSetMemoryParameters'/>
         </word>
         <word name='params'>
           <ref name='virDomainGetCPUStats'/>
@@ -13117,6 +13172,7 @@
         </word>
         <word name='passes'>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
           <ref name='virConnectDomainEventPMWakeupCallback'/>
         </word>
         <word name='passing'>
@@ -13195,6 +13251,7 @@
         </word>
         <word name='performed'>
           <ref name='virConnectOpenAuth'/>
+          <ref name='virInitialize'/>
           <ref name='virNetworkGetXMLDesc'/>
         </word>
         <word name='performs'>
@@ -13372,9 +13429,6 @@
         <word name='possibly-filtered'>
           <ref name='virConnectListAllDomains'/>
         </word>
-        <word name='potential'>
-          <ref name='virInitialize'/>
-        </word>
         <word name='potentially'>
           <ref name='virDomainOpenConsole'/>
         </word>
@@ -13429,6 +13483,7 @@
           <ref name='virDomainSetMetadata'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virDomainUndefineFlags'/>
+          <ref name='virNodeGetCPUMap'/>
           <ref name='virStorageVolResize'/>
         </word>
         <word name='pressure'>
@@ -13581,6 +13636,7 @@
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainMemoryPeek'/>
+          <ref name='virNodeSetMemoryParameters'/>
         </word>
         <word name='progress'>
           <ref name='_virDomainBlockJobInfo'/>
@@ -13750,7 +13806,6 @@
           <ref name='virConnectListAllStoragePools'/>
           <ref name='virDomainListAllSnapshots'/>
           <ref name='virDomainSnapshotListAllChildren'/>
-          <ref name='virInitialize'/>
         </word>
         <word name='racy'>
           <ref name='virConnectListDefinedDomains'/>
@@ -13882,6 +13937,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='really'>
           <ref name='virDomainBlockPeek'/>
@@ -13890,6 +13946,7 @@
         <word name='reason'>
           <ref name='virConnectDomainEventDiskChangeCallback'/>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
           <ref name='virConnectDomainEventPMWakeupCallback'/>
           <ref name='virDomainGetState'/>
         </word>
@@ -13931,6 +13988,7 @@
           <ref name='virDomainAttachDevice'/>
           <ref name='virDomainAttachDeviceFlags'/>
           <ref name='virDomainDestroy'/>
+          <ref name='virNodeSetMemoryParameters'/>
         </word>
         <word name='reconfiguring'>
           <ref name='virDomainUpdateDeviceFlags'/>
@@ -14011,6 +14069,7 @@
           <ref name='virConnectDomainEventIOErrorCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
           <ref name='virConnectDomainEventPMWakeupCallback'/>
           <ref name='virConnectDomainEventRTCChangeCallback'/>
           <ref name='virConnectDomainEventRegisterAny'/>
@@ -14050,6 +14109,7 @@
           <ref name='virDomainGetCPUStats'/>
         </word>
         <word name='related'>
+          <ref name='VIR_CPU_USED'/>
           <ref name='VIR_UNUSE_CPU'/>
           <ref name='VIR_USE_CPU'/>
           <ref name='virDomainGetCPUStats'/>
@@ -14076,6 +14136,7 @@
           <ref name='virEventRemoveHandleFunc'/>
           <ref name='virEventRemoveTimeoutFunc'/>
           <ref name='virGetVersion'/>
+          <ref name='virInitialize'/>
           <ref name='virInterfaceRef'/>
           <ref name='virNWFilterRef'/>
           <ref name='virNetworkRef'/>
@@ -14093,6 +14154,7 @@
           <ref name='virConnectDomainEventRegisterAny'/>
           <ref name='virDomainCreateWithFlags'/>
           <ref name='virDomainCreateXML'/>
+          <ref name='virNodeGetCPUMap'/>
           <ref name='virStreamNew'/>
         </word>
         <word name='releasing'>
@@ -14309,12 +14371,14 @@
           <ref name='virDomainSetMemoryFlags'/>
         </word>
         <word name='reset'>
-          <ref name='VIR_UNUSE_CPU'/>
           <ref name='virConnSetErrorFunc'/>
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainReset'/>
           <ref name='virNodeDeviceReset'/>
           <ref name='virSetErrorFunc'/>
+        </word>
+        <word name='resets'>
+          <ref name='VIR_UNUSE_CPU'/>
         </word>
         <word name='resetting'>
           <ref name='virNodeDeviceDettach'/>
@@ -14535,7 +14599,6 @@
         </word>
         <word name='routine'>
           <ref name='virDefaultErrorFunc'/>
-          <ref name='virInitialize'/>
         </word>
         <word name='row'>
           <ref name='virConnectSetKeepAlive'/>
@@ -14566,6 +14629,7 @@
           <ref name='virEventRemoveHandleFunc'/>
           <ref name='virEventRemoveTimeoutFunc'/>
           <ref name='virFreeCallback'/>
+          <ref name='virInitialize'/>
         </word>
         <word name='safely'>
           <ref name='virConnResetLastError'/>
@@ -14793,6 +14857,7 @@
           <ref name='virDomainMemoryStats'/>
         </word>
         <word name='sets'>
+          <ref name='VIR_USE_CPU'/>
           <ref name='virConnectListAllDomains'/>
           <ref name='virConnectListAllInterfaces'/>
           <ref name='virConnectListAllNWFilters'/>
@@ -14923,6 +14988,7 @@
           <ref name='virConnectDomainEventIOErrorCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
           <ref name='virConnectDomainEventPMWakeupCallback'/>
           <ref name='virConnectDomainEventRTCChangeCallback'/>
           <ref name='virConnectDomainEventRegisterAny'/>
@@ -14933,6 +14999,7 @@
           <ref name='virDomainPinEmulator'/>
           <ref name='virDomainPinVcpu'/>
           <ref name='virDomainPinVcpuFlags'/>
+          <ref name='virNodeGetCPUMap'/>
         </word>
         <word name='silently'>
           <ref name='virConnectListDefinedStoragePools'/>
@@ -14977,6 +15044,7 @@
           <ref name='virDomainRevertToSnapshot'/>
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virFreeCallback'/>
+          <ref name='virInitialize'/>
         </word>
         <word name='single'>
           <ref name='VIR_CPU_MAPLEN'/>
@@ -15118,9 +15186,6 @@
         <word name='sparse'>
           <ref name='virStorageVolResize'/>
         </word>
-        <word name='specfic'>
-          <ref name='virConnectDomainEventCallback'/>
-        </word>
         <word name='special'>
           <ref name='virDomainBlockStatsFlags'/>
           <ref name='virDomainGetBlkioParameters'/>
@@ -15256,7 +15321,6 @@
           <ref name='virDomainBlockRebase'/>
         </word>
         <word name='startup'>
-          <ref name='virInitialize'/>
           <ref name='virStorageVolGetPath'/>
         </word>
         <word name='stat'>
@@ -15364,6 +15428,7 @@
           <ref name='virDomainPinVcpuFlags'/>
           <ref name='virDomainSaveImageDefineXML'/>
           <ref name='virDomainSnapshotListAllChildren'/>
+          <ref name='virNodeGetCPUMap'/>
           <ref name='virStoragePoolListAllVolumes'/>
         </word>
         <word name='stores'>
@@ -15479,6 +15544,7 @@
           <ref name='virDomainSave'/>
           <ref name='virDomainSaveFlags'/>
           <ref name='virNodeDeviceCreateXML'/>
+          <ref name='virNodeGetCPUMap'/>
           <ref name='virStreamSend'/>
         </word>
         <word name='successfully'>
@@ -15558,6 +15624,7 @@
           <ref name='virNodeSuspendForDuration'/>
         </word>
         <word name='suspended'>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
           <ref name='virDomainCoreDump'/>
           <ref name='virDomainMigrate'/>
           <ref name='virDomainMigrate2'/>
@@ -15731,6 +15798,7 @@
           <ref name='virDomainSnapshotNum'/>
           <ref name='virDomainSnapshotNumChildren'/>
           <ref name='virEventAddHandleFunc'/>
+          <ref name='virNodeSetMemoryParameters'/>
           <ref name='virSecretGetUsageType'/>
         </word>
         <word name='things'>
@@ -15776,6 +15844,7 @@
           <ref name='virDomainSnapshotRef'/>
           <ref name='virEventRunDefaultImpl'/>
           <ref name='virGetLastError'/>
+          <ref name='virInitialize'/>
           <ref name='virInterfaceRef'/>
           <ref name='virNWFilterRef'/>
           <ref name='virNetworkRef'/>
@@ -15917,10 +15986,8 @@
           <ref name='virStreamAbort'/>
           <ref name='virStreamFree'/>
         </word>
-        <word name='transfered'>
-          <ref name='virDomainScreenshot'/>
-        </word>
         <word name='transferred'>
+          <ref name='virDomainScreenshot'/>
           <ref name='virStorageVolDownload'/>
           <ref name='virStorageVolUpload'/>
         </word>
@@ -15993,6 +16060,9 @@
           <ref name='virDomainSetBlockIoTune'/>
           <ref name='virDomainSetMemoryParameters'/>
           <ref name='virDomainSetNumaParameters'/>
+          <ref name='virNodeSetMemoryParameters'/>
+        </word>
+        <word name='tuning'>
           <ref name='virNodeSetMemoryParameters'/>
         </word>
         <word name='turn'>
@@ -16132,6 +16202,7 @@
         <word name='under'>
           <ref name='virDomainGetSecurityLabel'/>
           <ref name='virDomainGetSecurityLabelList'/>
+          <ref name='virNodeSetMemoryParameters'/>
         </word>
         <word name='underlying'>
           <ref name='virDomainBlockResize'/>
@@ -16197,7 +16268,6 @@
           <ref name='virDomainSnapshotCreateXML'/>
           <ref name='virDomainSnapshotGetXMLDesc'/>
           <ref name='virGetVersion'/>
-          <ref name='virInitialize'/>
         </word>
         <word name='unlimited'>
           <ref name='VIR_DOMAIN_MEMORY_PARAM_UNLIMITED'/>
@@ -16266,6 +16336,7 @@
         </word>
         <word name='unused'>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
           <ref name='virConnectDomainEventPMWakeupCallback'/>
           <ref name='virDomainGetCPUStats'/>
         </word>
@@ -16323,9 +16394,6 @@
         </word>
         <word name='upper'>
           <ref name='VIR_DOMAIN_MEMORY_SOFT_LIMIT'/>
-        </word>
-        <word name='upto'>
-          <ref name='virStreamSourceFunc'/>
         </word>
         <word name='uri'>
           <ref name='virConnectOpen'/>
@@ -16562,6 +16630,7 @@
           <ref name='virConnectDomainEventIOErrorCallback'/>
           <ref name='virConnectDomainEventIOErrorReasonCallback'/>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
           <ref name='virConnectDomainEventPMWakeupCallback'/>
           <ref name='virConnectDomainEventRTCChangeCallback'/>
           <ref name='virConnectDomainEventRegister'/>
@@ -17286,6 +17355,10 @@
         <word name='virNodeDeviceReattach'>
           <ref name='virNodeDeviceDettach'/>
         </word>
+        <word name='virNodeGetCPUMap'>
+          <ref name='VIR_CPU_USED'/>
+          <ref name='virNodeGetCPUMap'/>
+        </word>
         <word name='virNodeGetCPUStats'>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virNodeGetCPUStats'/>
@@ -17629,6 +17702,7 @@
           <ref name='virDomainSetVcpusFlags'/>
           <ref name='virDomainSnapshotDelete'/>
           <ref name='virEventRunDefaultImpl'/>
+          <ref name='virNodeSetMemoryParameters'/>
           <ref name='virStreamRecv'/>
           <ref name='virStreamSend'/>
         </word>
@@ -17642,6 +17716,7 @@
         <word name='why'>
           <ref name='virConnectDomainEventDiskChangeCallback'/>
           <ref name='virConnectDomainEventPMSuspendCallback'/>
+          <ref name='virConnectDomainEventPMSuspendDiskCallback'/>
           <ref name='virConnectDomainEventPMWakeupCallback'/>
           <ref name='virConnectDomainEventTrayChangeCallback'/>
         </word>
@@ -17687,35 +17762,6 @@
         <word name='works'>
           <ref name='virDomainManagedSave'/>
           <ref name='virInterfaceChangeBegin'/>
-        </word>
-        <word name='would'>
-          <ref name='virConnectFindStoragePoolSources'/>
-          <ref name='virConnectRef'/>
-          <ref name='virDomainBlockPeek'/>
-          <ref name='virDomainDefineXML'/>
-          <ref name='virDomainGetCPUStats'/>
-          <ref name='virDomainListAllSnapshots'/>
-          <ref name='virDomainMemoryPeek'/>
-          <ref name='virDomainMigrate2'/>
-          <ref name='virDomainMigrateToURI2'/>
-          <ref name='virDomainRef'/>
-          <ref name='virDomainRevertToSnapshot'/>
-          <ref name='virDomainSnapshotHasMetadata'/>
-          <ref name='virDomainSnapshotListAllChildren'/>
-          <ref name='virDomainSnapshotListChildrenNames'/>
-          <ref name='virDomainSnapshotListNames'/>
-          <ref name='virDomainSnapshotNum'/>
-          <ref name='virDomainSnapshotNumChildren'/>
-          <ref name='virDomainSnapshotRef'/>
-          <ref name='virEventRegisterImpl'/>
-          <ref name='virInterfaceRef'/>
-          <ref name='virNWFilterRef'/>
-          <ref name='virNetworkRef'/>
-          <ref name='virNodeDeviceRef'/>
-          <ref name='virSecretRef'/>
-          <ref name='virStoragePoolRef'/>
-          <ref name='virStorageVolRef'/>
-          <ref name='virStorageVolResize'/>
         </word>
         <word name='writable'>
           <ref name='virStreamEventAddCallback'/>
@@ -17794,12 +17840,10 @@
           <ref name='virDomainBlockPeek'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virDomainMemoryPeek'/>
-          <ref name='virInitialize'/>
         </word>
       </letter>
       <letter name='z'>
         <word name='zero'>
-          <ref name='VIR_CPU_USABLE'/>
           <ref name='virConnectGetType'/>
           <ref name='virDomainDestroyFlags'/>
           <ref name='virDomainGetVcpus'/>

@@ -9,6 +9,7 @@
      <exports symbol='VIR_COPY_CPUMAP' type='macro'/>
      <exports symbol='VIR_CPU_MAPLEN' type='macro'/>
      <exports symbol='VIR_CPU_USABLE' type='macro'/>
+     <exports symbol='VIR_CPU_USED' type='macro'/>
      <exports symbol='VIR_DOMAIN_BANDWIDTH_IN_AVERAGE' type='macro'/>
      <exports symbol='VIR_DOMAIN_BANDWIDTH_IN_BURST' type='macro'/>
      <exports symbol='VIR_DOMAIN_BANDWIDTH_IN_PEAK' type='macro'/>
@@ -230,6 +231,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_ID_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_LIFECYCLE' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_PMSUSPEND' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_PMWAKEUP' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_REBOOT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_ID_RTC_CHANGE' type='enum'/>
@@ -241,6 +243,7 @@
      <exports symbol='VIR_DOMAIN_EVENT_IO_ERROR_REPORT' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_PMSUSPENDED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_EVENT_PMSUSPENDED_DISK' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_PMSUSPENDED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY' type='enum'/>
      <exports symbol='VIR_DOMAIN_EVENT_RESUMED' type='enum'/>
@@ -341,6 +344,8 @@
      <exports symbol='VIR_DOMAIN_PAUSED_USER' type='enum'/>
      <exports symbol='VIR_DOMAIN_PAUSED_WATCHDOG' type='enum'/>
      <exports symbol='VIR_DOMAIN_PMSUSPENDED' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PMSUSPENDED_DISK_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_PMSUSPENDED_LAST' type='enum'/>
      <exports symbol='VIR_DOMAIN_PMSUSPENDED_UNKNOWN' type='enum'/>
      <exports symbol='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN' type='enum'/>
@@ -414,6 +419,7 @@
      <exports symbol='VIR_DOMAIN_VCPU_LIVE' type='enum'/>
      <exports symbol='VIR_DOMAIN_VCPU_MAXIMUM' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_INACTIVE' type='enum'/>
+     <exports symbol='VIR_DOMAIN_XML_MIGRATABLE' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_SECURE' type='enum'/>
      <exports symbol='VIR_DOMAIN_XML_UPDATE_CPU' type='enum'/>
      <exports symbol='VIR_DUMP_BYPASS_CACHE' type='enum'/>
@@ -621,6 +627,7 @@
      <exports symbol='virDomainNostateReason' type='typedef'/>
      <exports symbol='virDomainNumatuneMemMode' type='typedef'/>
      <exports symbol='virDomainOpenGraphicsFlags' type='typedef'/>
+     <exports symbol='virDomainPMSuspendedDiskReason' type='typedef'/>
      <exports symbol='virDomainPMSuspendedReason' type='typedef'/>
      <exports symbol='virDomainPausedReason' type='typedef'/>
      <exports symbol='virDomainPtr' type='typedef'/>
@@ -744,6 +751,7 @@
      <exports symbol='virConnectDomainEventIOErrorCallback' type='function'/>
      <exports symbol='virConnectDomainEventIOErrorReasonCallback' type='function'/>
      <exports symbol='virConnectDomainEventPMSuspendCallback' type='function'/>
+     <exports symbol='virConnectDomainEventPMSuspendDiskCallback' type='function'/>
      <exports symbol='virConnectDomainEventPMWakeupCallback' type='function'/>
      <exports symbol='virConnectDomainEventRTCChangeCallback' type='function'/>
      <exports symbol='virConnectDomainEventRegister' type='function'/>
@@ -1017,6 +1025,7 @@
      <exports symbol='virNodeDeviceReAttach' type='function'/>
      <exports symbol='virNodeDeviceRef' type='function'/>
      <exports symbol='virNodeDeviceReset' type='function'/>
+     <exports symbol='virNodeGetCPUMap' type='function'/>
      <exports symbol='virNodeGetCPUStats' type='function'/>
      <exports symbol='virNodeGetCellsFreeMemory' type='function'/>
      <exports symbol='virNodeGetFreeMemory' type='function'/>
@@ -1181,6 +1190,7 @@
      <exports symbol='VIR_ERR_PARSE_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_POST_FAILED' type='enum'/>
      <exports symbol='VIR_ERR_READ_FAILED' type='enum'/>
+     <exports symbol='VIR_ERR_RESOURCE_BUSY' type='enum'/>
      <exports symbol='VIR_ERR_RPC' type='enum'/>
      <exports symbol='VIR_ERR_SEXPR_SERIAL' type='enum'/>
      <exports symbol='VIR_ERR_SNAPSHOT_REVERT_RISKY' type='enum'/>
@@ -1211,6 +1221,7 @@
      <exports symbol='VIR_FROM_INTERFACE' type='enum'/>
      <exports symbol='VIR_FROM_LIBXL' type='enum'/>
      <exports symbol='VIR_FROM_LOCKING' type='enum'/>
+     <exports symbol='VIR_FROM_LOCKSPACE' type='enum'/>
      <exports symbol='VIR_FROM_LXC' type='enum'/>
      <exports symbol='VIR_FROM_NET' type='enum'/>
      <exports symbol='VIR_FROM_NETWORK' type='enum'/>
@@ -1277,7 +1288,7 @@
       <info><![CDATA[Macro providing the version of the library as version * 1,000,000 + minor * 1000 + micro]]></info>
     </macro>
     <macro name='VIR_COPY_CPUMAP' file='libvirt'>
-      <info><![CDATA[This macro is to be used in conjunction with virDomainGetVcpus() and virDomainPinVcpu() APIs. VIR_COPY_CPUMAP macro extract the cpumap of the specified vcpu from cpumaps array and copy it into cpumap to be used later by virDomainPinVcpu() API.]]></info>
+      <info><![CDATA[This macro is to be used in conjunction with virDomainGetVcpus() and virDomainPinVcpu() APIs. VIR_COPY_CPUMAP macro extracts the cpumap of the specified vcpu from cpumaps array and copies it into cpumap to be used later by virDomainPinVcpu() API.]]></info>
       <arg name='cpumaps' info='pointer to an array of cpumap (in 8-bit bytes) (IN)'/>
       <arg name='maplen' info='the length (in bytes) of one cpumap'/>
       <arg name='vcpu' info='the virtual CPU number'/>
@@ -1288,10 +1299,15 @@
       <arg name='cpu' info='number of physical CPUs'/>
     </macro>
     <macro name='VIR_CPU_USABLE' file='libvirt'>
-      <info><![CDATA[This macro is to be used in conjunction with virDomainGetVcpus() API. VIR_CPU_USABLE macro returns a non zero value (true) if the cpu is usable by the vcpu, and 0 otherwise.]]></info>
+      <info><![CDATA[This macro is to be used in conjunction with virDomainGetVcpus() API. VIR_CPU_USABLE macro returns a non-zero value (true) if the cpu is usable by the vcpu, and 0 otherwise.]]></info>
       <arg name='cpumaps' info='pointer to an array of cpumap (in 8-bit bytes) (IN)'/>
       <arg name='maplen' info='the length (in bytes) of one cpumap'/>
       <arg name='vcpu' info='the virtual CPU number'/>
+      <arg name='cpu' info='the physical CPU number'/>
+    </macro>
+    <macro name='VIR_CPU_USED' file='libvirt'>
+      <info><![CDATA[This macro can be used in conjunction with virNodeGetCPUMap() API. It returns non-zero if the bit of the related CPU is set.]]></info>
+      <arg name='cpumap' info='pointer to a bit map of real CPUs (in 8-bit bytes) (IN)'/>
       <arg name='cpu' info='the physical CPU number'/>
     </macro>
     <macro name='VIR_DOMAIN_BANDWIDTH_IN_AVERAGE' file='libvirt'>
@@ -1500,12 +1516,12 @@
       <info><![CDATA[Macro providing the field length of virTypedParameter name]]></info>
     </macro>
     <macro name='VIR_UNUSE_CPU' file='libvirt'>
-      <info><![CDATA[This macro is to be used in conjunction with virDomainPinVcpu() API. USE_CPU macro reset the bit (CPU not usable) of the related cpu in cpumap.]]></info>
+      <info><![CDATA[This macro is to be used in conjunction with virDomainPinVcpu() API. It resets the bit (CPU not usable) of the related cpu in cpumap.]]></info>
       <arg name='cpumap' info='pointer to a bit map of real CPUs (in 8-bit bytes) (IN/OUT)'/>
       <arg name='cpu' info='the physical CPU number'/>
     </macro>
     <macro name='VIR_USE_CPU' file='libvirt'>
-      <info><![CDATA[This macro is to be used in conjunction with virDomainPinVcpu() API. USE_CPU macro set the bit (CPU usable) of the related cpu in cpumap.]]></info>
+      <info><![CDATA[This macro is to be used in conjunction with virDomainPinVcpu() API. It sets the bit (CPU usable) of the related cpu in cpumap.]]></info>
       <arg name='cpumap' info='pointer to a bit map of real CPUs (in 8-bit bytes) (IN/OUT)'/>
       <arg name='cpu' info='the physical CPU number'/>
     </macro>
@@ -1672,18 +1688,19 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_DISCONNECT' file='libvirt' value='2' type='virDomainEventGraphicsPhase' info='Final socket disconnection'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_INITIALIZE' file='libvirt' value='1' type='virDomainEventGraphicsPhase' info='Authentication &amp; setup completed'/>
     <enum name='VIR_DOMAIN_EVENT_GRAPHICS_LAST' file='libvirt' value='3' type='virDomainEventGraphicsPhase'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE' file='libvirt' value='13' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
- added to the libvirt API. It reflects the last event ID supported
- by this version of the libvirt API.'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE' file='libvirt' value='13' type='virDomainEventID' info='virConnectDomainEventBalloonChangeCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_BLOCK_JOB' file='libvirt' value='8' type='virDomainEventID' info='virConnectDomainEventBlockJobCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_CONTROL_ERROR' file='libvirt' value='7' type='virDomainEventID' info='virConnectDomainEventGenericCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_DISK_CHANGE' file='libvirt' value='9' type='virDomainEventID' info='virConnectDomainEventDiskChangeCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_GRAPHICS' file='libvirt' value='5' type='virDomainEventID' info='virConnectDomainEventGraphicsCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR' file='libvirt' value='4' type='virDomainEventID' info='virConnectDomainEventIOErrorCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_IO_ERROR_REASON' file='libvirt' value='6' type='virDomainEventID' info='virConnectDomainEventIOErrorReasonCallback'/>
-    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt' value='14' type='virDomainEventID'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_LAST' file='libvirt' value='15' type='virDomainEventID'/>
     <enum name='VIR_DOMAIN_EVENT_ID_LIFECYCLE' file='libvirt' value='0' type='virDomainEventID' info='virConnectDomainEventCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_PMSUSPEND' file='libvirt' value='12' type='virDomainEventID' info='virConnectDomainEventPMSuspendCallback'/>
+    <enum name='VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK' file='libvirt' value='14' type='virDomainEventID' info='NB: this enum value will increase over time as new events are
+ added to the libvirt API. It reflects the last event ID supported
+ by this version of the libvirt API.'/>
     <enum name='VIR_DOMAIN_EVENT_ID_PMWAKEUP' file='libvirt' value='11' type='virDomainEventID' info='virConnectDomainEventPMWakeupCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_REBOOT' file='libvirt' value='1' type='virDomainEventID' info='virConnectDomainEventGenericCallback'/>
     <enum name='VIR_DOMAIN_EVENT_ID_RTC_CHANGE' file='libvirt' value='2' type='virDomainEventID' info='virConnectDomainEventRTCChangeCallback'/>
@@ -1695,7 +1712,8 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_EVENT_IO_ERROR_REPORT' file='libvirt' value='2' type='virDomainEventIOErrorAction' info='IO error reported to guest OS'/>
     <enum name='VIR_DOMAIN_EVENT_LAST' file='libvirt' value='8' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_PMSUSPENDED' file='libvirt' value='7' type='virDomainEventType'/>
-    <enum name='VIR_DOMAIN_EVENT_PMSUSPENDED_LAST' file='libvirt' value='1' type='virDomainEventPMSuspendedDetailType'/>
+    <enum name='VIR_DOMAIN_EVENT_PMSUSPENDED_DISK' file='libvirt' value='1' type='virDomainEventPMSuspendedDetailType' info='Guest was PM suspended to disk'/>
+    <enum name='VIR_DOMAIN_EVENT_PMSUSPENDED_LAST' file='libvirt' value='2' type='virDomainEventPMSuspendedDetailType'/>
     <enum name='VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY' file='libvirt' value='0' type='virDomainEventPMSuspendedDetailType' info='Guest was PM suspended to memory'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED' file='libvirt' value='4' type='virDomainEventType'/>
     <enum name='VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT' file='libvirt' value='2' type='virDomainEventResumedDetailType' info='Resumed from snapshot'/>
@@ -1807,6 +1825,8 @@ limited set of commands may be allowed'/>
     <enum name='VIR_DOMAIN_PMSUSPENDED' file='libvirt' value='7' type='virDomainState' info='NB: this enum value will increase over time as new events are
  added to the libvirt API. It reflects the last state supported
  by this version of the libvirt API.'/>
+    <enum name='VIR_DOMAIN_PMSUSPENDED_DISK_LAST' file='libvirt' value='1' type='virDomainPMSuspendedDiskReason'/>
+    <enum name='VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN' file='libvirt' value='0' type='virDomainPMSuspendedDiskReason'/>
     <enum name='VIR_DOMAIN_PMSUSPENDED_LAST' file='libvirt' value='1' type='virDomainPMSuspendedReason'/>
     <enum name='VIR_DOMAIN_PMSUSPENDED_UNKNOWN' file='libvirt' value='0' type='virDomainPMSuspendedReason'/>
     <enum name='VIR_DOMAIN_REBOOT_ACPI_POWER_BTN' file='libvirt' value='1' type='virDomainRebootFlagValues' info='Send ACPI event'/>
@@ -1903,6 +1923,7 @@ snapshot metadata Future undefine control flags should come here.'/>
     <enum name='VIR_DOMAIN_VCPU_LIVE' file='libvirt' value='VIR_DOMAIN_AFFECT_LIVE' type='virDomainVcpuFlags'/>
     <enum name='VIR_DOMAIN_VCPU_MAXIMUM' file='libvirt' value='4' type='virDomainVcpuFlags' info='Max rather than current count'/>
     <enum name='VIR_DOMAIN_XML_INACTIVE' file='libvirt' value='2' type='virDomainXMLFlags' info='dump inactive domain information'/>
+    <enum name='VIR_DOMAIN_XML_MIGRATABLE' file='libvirt' value='8' type='virDomainXMLFlags' info='dump XML suitable for migration'/>
     <enum name='VIR_DOMAIN_XML_SECURE' file='libvirt' value='1' type='virDomainXMLFlags' info='dump security sensitive information too'/>
     <enum name='VIR_DOMAIN_XML_UPDATE_CPU' file='libvirt' value='4' type='virDomainXMLFlags' info='update guest CPU requirements according to host CPU'/>
     <enum name='VIR_DUMP_BYPASS_CACHE' file='libvirt' value='4' type='virDomainCoreDumpFlags' info='avoid file system cache pollution'/>
@@ -1924,7 +1945,7 @@ the given driver'/>
 construct'/>
     <enum name='VIR_ERR_CONF_SYNTAX' file='virterror' value='33' type='virErrorNumber' info='failed to parse the syntax of a
 conf file'/>
-    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='51' type='virErrorDomain'/>
+    <enum name='VIR_ERR_DOMAIN_LAST' file='virterror' value='52' type='virErrorDomain'/>
     <enum name='VIR_ERR_DOM_EXIST' file='virterror' value='28' type='virErrorNumber' info='the domain already exist'/>
     <enum name='VIR_ERR_DRIVER_FULL' file='virterror' value='25' type='virErrorNumber' info='too many drivers registered'/>
     <enum name='VIR_ERR_ERROR' file='virterror' value='2' type='virErrorLevel' info='An error'/>
@@ -1995,6 +2016,7 @@ supported'/>
     <enum name='VIR_ERR_PARSE_FAILED' file='virterror' value='32' type='virErrorNumber' info='failed to parse a conf file'/>
     <enum name='VIR_ERR_POST_FAILED' file='virterror' value='11' type='virErrorNumber' info='a HTTP POST command to failed'/>
     <enum name='VIR_ERR_READ_FAILED' file='virterror' value='31' type='virErrorNumber' info='failed to read a conf file'/>
+    <enum name='VIR_ERR_RESOURCE_BUSY' file='virterror' value='87' type='virErrorNumber' info='resource is already in use'/>
     <enum name='VIR_ERR_RPC' file='virterror' value='39' type='virErrorNumber' info='some sort of RPC error'/>
     <enum name='VIR_ERR_SEXPR_SERIAL' file='virterror' value='13' type='virErrorNumber' info='failure to serialize an S-Expr'/>
     <enum name='VIR_ERR_SNAPSHOT_REVERT_RISKY' file='virterror' value='77' type='virErrorNumber' info='force was not requested for a
@@ -2031,6 +2053,7 @@ formed or broken'/>
     <enum name='VIR_FROM_INTERFACE' file='virterror' value='26' type='virErrorDomain' info='Error when operating on an interface'/>
     <enum name='VIR_FROM_LIBXL' file='virterror' value='41' type='virErrorDomain' info='Error from libxenlight driver'/>
     <enum name='VIR_FROM_LOCKING' file='virterror' value='42' type='virErrorDomain' info='Error from lock manager'/>
+    <enum name='VIR_FROM_LOCKSPACE' file='virterror' value='51' type='virErrorDomain' info='Error from lockspace'/>
     <enum name='VIR_FROM_LXC' file='virterror' value='17' type='virErrorDomain' info='Error from Linux Container driver'/>
     <enum name='VIR_FROM_NET' file='virterror' value='11' type='virErrorDomain' info='Error when operating on a network'/>
     <enum name='VIR_FROM_NETWORK' file='virterror' value='19' type='virErrorDomain' info='Error from network config'/>
@@ -2400,6 +2423,7 @@ and ERROR states)'/>
     <typedef name='virDomainNostateReason' file='libvirt' type='enum'/>
     <typedef name='virDomainNumatuneMemMode' file='libvirt' type='enum'/>
     <typedef name='virDomainOpenGraphicsFlags' file='libvirt' type='enum'/>
+    <typedef name='virDomainPMSuspendedDiskReason' file='libvirt' type='enum'/>
     <typedef name='virDomainPMSuspendedReason' file='libvirt' type='enum'/>
     <typedef name='virDomainPausedReason' file='libvirt' type='enum'/>
     <typedef name='virDomainPtr' file='libvirt' type='virDomain *'>
@@ -2745,13 +2769,13 @@ VIR_DOMAIN_EVENT_ID_BLOCK_JOB with virConnectDomainEventRegisterAny()]]></info>
       <return type='int' info=''/>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <arg name='dom' type='virDomainPtr' info='The domain on which the event occurred'/>
-      <arg name='event' type='int' info='The specfic virDomainEventType which occurred'/>
+      <arg name='event' type='int' info='The specific virDomainEventType which occurred'/>
       <arg name='detail' type='int' info='event specific detail information'/>
       <arg name='opaque' type='void *' info='opaque user data'/>
     </functype>
     <function name='virConnectDomainEventDeregister' file='libvirt' module='libvirt'>
       <info><![CDATA[Removes a callback previously registered with the virConnectDomainEventRegister
-funtion.
+function.
 
 Use of this method is no longer recommended. Instead applications
 should try virConnectDomainEventUnregisterAny which has a more flexible
@@ -2833,6 +2857,17 @@ VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()]]></info>
 
 The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_PMSuspend with virConnectDomainEventRegisterAny()]]></info>
+      <return type='void'/>
+      <arg name='conn' type='virConnectPtr' info='connection object'/>
+      <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
+      <arg name='reason' type='int' info='reason why the callback was called, unused currently, always passes 0'/>
+      <arg name='opaque' type='void *' info='application specified data'/>
+    </functype>
+    <functype name='virConnectDomainEventPMSuspendDiskCallback' file='libvirt' module='libvirt'>
+      <info><![CDATA[This callback occurs when the guest is suspended to disk.
+
+The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK with virConnectDomainEventRegisterAny()]]></info>
       <return type='void'/>
       <arg name='conn' type='virConnectPtr' info='connection object'/>
       <arg name='dom' type='virDomainPtr' info='domain on which the event occurred'/>
@@ -5379,7 +5414,7 @@ displays per domain. These can be distinguished by @screen argument.
 
 This call sets up a stream; subsequent use of stream API is necessary
 to transfer actual data, determine how much data is successfully
-transfered, and detect any errors.
+transferred, and detect any errors.
 
 The screen ID is the sequential number of screen. In case of multiple
 graphics cards, heads are enumerated before devices, e.g. having
@@ -6259,12 +6294,15 @@ connection use the virConnectGetLibVersion instead.]]></info>
       <arg name='typeVer' type='unsigned long *' info='pass NULL; for historical purposes duplicates @libVer if non-NULL'/>
     </function>
     <function name='virInitialize' file='libvirt' module='libvirt'>
-      <info><![CDATA[Initialize the library. It's better to call this routine at startup
-in multithreaded applications to avoid potential race when initializing
-the library.
+      <info><![CDATA[Initialize the library.
 
-Calling virInitialize is mandatory, unless your first API call is one of
-virConnectOpen*.]]></info>
+This method is invoked automatically by any of the virConnectOpen API
+calls. Since release 1.0.0, there is no need to call this method even
+in a multithreaded application, since initialization is performed in
+a thread safe manner.
+
+The only time it would be necessary to call virInitialize is if the
+application did not invoke virConnectOpen as its first API call.]]></info>
       <return type='int' info='0 in case of success, -1 in case of error'/>
     </function>
     <function name='virInterfaceChangeBegin' file='libvirt' module='libvirt'>
@@ -6777,6 +6815,14 @@ this function may fail.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='dev' type='virNodeDevicePtr' info='pointer to the node device'/>
     </function>
+    <function name='virNodeGetCPUMap' file='libvirt' module='libvirt'>
+      <info><![CDATA[Get CPU map of host node CPUs.]]></info>
+      <return type='int' info='number of CPUs present on the host node, or -1 if there was an error.'/>
+      <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
+      <arg name='cpumap' type='unsigned char **' info='optional pointer to a bit map of real CPUs on the host node (in 8-bit bytes) (OUT) In case of success each bit set to 1 means that corresponding CPU is online. Bytes are stored in little-endian order: CPU0-7, 8-15... In each byte, lowest CPU number is least significant bit. The bit map is allocated by virNodeGetCPUMap and needs to be released using free() by the caller.'/>
+      <arg name='online' type='unsigned int *' info='optional number of online CPUs in cpumap (OUT) Contains the number of online CPUs if the call was successful.'/>
+      <arg name='flags' type='unsigned int' info='extra flags; not used yet, so callers should always pass 0'/>
+    </function>
     <function name='virNodeGetCPUStats' file='libvirt' module='libvirt'>
       <info><![CDATA[This function provides individual cpu statistics of the node.
 If you want to get total cpu statistics of the node, you must specify
@@ -6949,6 +6995,12 @@ will be restricted to devices with the specified capability]]></info>
     </function>
     <function name='virNodeSetMemoryParameters' file='libvirt' module='libvirt'>
       <info><![CDATA[Change all or a subset of the node memory tunables.
+
+Note that it's not recommended to use this function while the
+outside tuning program is running (such as ksmtuned under Linux),
+as they could change the tunables in parallel, which could cause
+conflicts.
+
 This function may require privileged access to the hypervisor.]]></info>
       <return type='int' info='0 in case of success, -1 in case of failure.'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
@@ -7783,7 +7835,7 @@ obtain the data that is to be sent.
 
 The callback will be invoked multiple times,
 fetching data in small chunks. The application
-should fill the 'data' array with upto 'nbytes'
+should fill the 'data' array with up to 'nbytes'
 of data and then return the number actual number
 of bytes. The callback will continue to be
 invoked until it indicates the end of the source

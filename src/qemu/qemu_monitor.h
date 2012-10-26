@@ -27,9 +27,7 @@
 
 # include "internal.h"
 
-# include "qemu_capabilities.h"
 # include "domain_conf.h"
-# include "qemu_conf.h"
 # include "bitmap.h"
 # include "virhash.h"
 # include "json.h"
@@ -138,6 +136,8 @@ struct _qemuMonitorCallbacks {
     int (*domainBalloonChange)(qemuMonitorPtr mon,
                                virDomainObjPtr vm,
                                unsigned long long actual);
+    int (*domainPMSuspendDisk)(qemuMonitorPtr mon,
+                               virDomainObjPtr vm);
 };
 
 char *qemuMonitorEscapeArg(const char *in);
@@ -156,8 +156,7 @@ qemuMonitorPtr qemuMonitorOpenFD(virDomainObjPtr vm,
 
 void qemuMonitorClose(qemuMonitorPtr mon);
 
-int qemuMonitorSetCapabilities(qemuMonitorPtr mon,
-                               qemuCapsPtr caps);
+int qemuMonitorSetCapabilities(qemuMonitorPtr mon);
 
 void qemuMonitorLock(qemuMonitorPtr mon);
 void qemuMonitorUnlock(qemuMonitorPtr mon);
@@ -216,6 +215,7 @@ int qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
                             int status);
 int qemuMonitorEmitBalloonChange(qemuMonitorPtr mon,
                                  unsigned long long actual);
+int qemuMonitorEmitPMSuspendDisk(qemuMonitorPtr mon);
 
 int qemuMonitorStartCPUs(qemuMonitorPtr mon,
                          virConnectPtr conn);
@@ -343,6 +343,8 @@ int qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
                                   unsigned long long *transferred,
                                   unsigned long long *remaining,
                                   unsigned long long *total);
+int qemuMonitorGetSpiceMigrationStatus(qemuMonitorPtr mon,
+                                       bool *spice_migrated);
 
 typedef enum {
   QEMU_MONITOR_MIGRATE_BACKGROUND	= 1 << 0,
@@ -522,6 +524,13 @@ int qemuMonitorDiskSnapshot(qemuMonitorPtr mon,
 int qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
 
+int qemuMonitorBlockCommit(qemuMonitorPtr mon,
+                           const char *device,
+                           const char *top,
+                           const char *base,
+                           unsigned long bandwidth)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
 int qemuMonitorArbitraryCommand(qemuMonitorPtr mon,
                                 const char *cmd,
                                 char **reply,
@@ -568,6 +577,43 @@ int qemuMonitorGetBlockIoThrottle(qemuMonitorPtr mon,
                                   virDomainBlockIoTuneInfoPtr reply);
 
 int qemuMonitorSystemWakeup(qemuMonitorPtr mon);
+
+int qemuMonitorGetVersion(qemuMonitorPtr mon,
+                          int *major,
+                          int *minor,
+                          int *micro,
+                          char **package)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
+
+
+typedef struct _qemuMonitorMachineInfo qemuMonitorMachineInfo;
+typedef qemuMonitorMachineInfo *qemuMonitorMachineInfoPtr;
+
+struct _qemuMonitorMachineInfo {
+    char *name;
+    bool isDefault;
+    char *alias;
+};
+
+int qemuMonitorGetMachines(qemuMonitorPtr mon,
+                           qemuMonitorMachineInfoPtr **machines);
+
+void qemuMonitorMachineInfoFree(qemuMonitorMachineInfoPtr machine);
+
+int qemuMonitorGetCPUDefinitions(qemuMonitorPtr mon,
+                                 char ***cpus);
+
+int qemuMonitorGetCommands(qemuMonitorPtr mon,
+                           char ***commands);
+int qemuMonitorGetEvents(qemuMonitorPtr mon,
+                         char ***events);
+
+int qemuMonitorGetObjectTypes(qemuMonitorPtr mon,
+                              char ***types);
+int qemuMonitorGetObjectProps(qemuMonitorPtr mon,
+                              const char *type,
+                              char ***props);
+char *qemuMonitorGetTargetArch(qemuMonitorPtr mon);
 
 /**
  * When running two dd process and using <> redirection, we need a

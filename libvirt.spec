@@ -108,6 +108,7 @@
 %define with_systemd       0%{!?_without_systemd:0}
 %define with_numad         0%{!?_without_numad:0}
 %define with_firewalld     0%{!?_without_firewalld:0}
+%define with_libssh2_transport 0%{!?_without_libssh2_transport:0}
 
 # Non-server/HV driver defaults which are always enabled
 %define with_python        0%{!?_without_python:1}
@@ -229,6 +230,11 @@
 %endif
 %endif
 
+# Enable libssh2 transport for new enough distros
+%if 0%{?fedora} >= 17 || 0%{?rhel} >= 6
+%define with_libssh2_transport 0%{!?_without_libssh2_transport:1}
+%endif
+
 # Disable some drivers when building without libvirt daemon.
 # The logic is the same as in configure.ac
 %if ! %{with_libvirtd}
@@ -315,8 +321,8 @@
 
 Summary: Library providing a simple virtualization API
 Name: libvirt
-Version: 0.10.2
-Release: 1%{?dist}%{?extra_release}
+Version: 1.0.0
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -325,7 +331,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
 %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -404,7 +410,13 @@ BuildRequires: libpciaccess-devel >= 0.10.9
 BuildRequires: yajl-devel
 %endif
 %if %{with_sanlock}
+# make sure libvirt is built with new enough sanlock on
+# distros that have it; required for on_lockfailure
+%if 0%{?fedora} >= 17 || 0%{?rhel} >= 6
+BuildRequires: sanlock-devel >= 2.4
+%else
 BuildRequires: sanlock-devel >= 1.8
+%endif
 %endif
 %if %{with_libpcap}
 BuildRequires: libpcap-devel
@@ -491,8 +503,12 @@ BuildRequires: numactl-devel
 %if %{with_capng}
 BuildRequires: libcap-ng-devel >= 0.5.0
 %endif
-%if %{with_phyp}
+%if %{with_phyp} || %{with_libssh2_transport}
+%if %{with_libssh2_transport}
+BuildRequires: libssh2-devel >= 1.3.0
+%else
 BuildRequires: libssh2-devel
+%endif
 %endif
 
 %if %{with_netcf}
@@ -614,7 +630,7 @@ Requires: PolicyKit >= 0.6
 %if %{with_storage_fs}
 Requires: nfs-utils
 # For mkfs
-Requires: util-linux-ng
+Requires: util-linux
 # For pool-build probing for existing pools
 BuildRequires: libblkid-devel >= 2.17
 # For glusterfs
@@ -992,6 +1008,9 @@ Requires: cyrus-sasl
 # work correctly & doesn't have onerous dependencies
 Requires: cyrus-sasl-md5
 %endif
+%if %{with_libssh2_transport}
+Requires: libssh2 >= 1.3.0
+%endif
 
 %description client
 Shared libraries and client binaries needed to access to the
@@ -1011,10 +1030,15 @@ Include header files & development libraries for the libvirt C library.
 %package lock-sanlock
 Summary: Sanlock lock manager plugin for QEMU driver
 Group: Development/Libraries
+%if 0%{?fedora} >= 17 || 0%{?rhel} >= 6
+Requires: sanlock >= 2.4
+%else
 Requires: sanlock >= 1.8
+%endif
 #for virt-sanlock-cleanup require augeas
 Requires: augeas
 Requires: %{name}-daemon = %{version}-%{release}
+Requires: %{name}-client = %{version}-%{release}
 
 %description lock-sanlock
 Includes the Sanlock lock manager plugin for the QEMU
@@ -1357,6 +1381,15 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version} \
    $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-docs-%{version}
 
 sed -i -e "s|$RPM_BUILD_ROOT||g" $RPM_BUILD_ROOT%{_sysconfdir}/rc.d/init.d/libvirt-guests
+
+%if %{with_dtrace}
+%ifarch %{power64} s390x x86_64 ia64 alpha sparc64
+mv $RPM_BUILD_ROOT%{_datadir}/systemtap/tapset/libvirt_probes.stp \
+   $RPM_BUILD_ROOT%{_datadir}/systemtap/tapset/libvirt_probes-64.stp
+mv $RPM_BUILD_ROOT%{_datadir}/systemtap/tapset/libvirt_qemu_probes.stp \
+   $RPM_BUILD_ROOT%{_datadir}/systemtap/tapset/libvirt_qemu_probes-64.stp
+%endif
+%endif
 
 %clean
 rm -fr %{buildroot}
@@ -1788,6 +1821,7 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/sanlock
 %{_sbindir}/virt-sanlock-cleanup
 %{_mandir}/man8/virt-sanlock-cleanup.8*
+%attr(0755, root, root) %{_libexecdir}/libvirt_sanlock_helper
 %endif
 
 %files client -f %{name}.lang
@@ -1806,8 +1840,8 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %{_libdir}/lib*.so.*
 
 %if %{with_dtrace}
-%{_datadir}/systemtap/tapset/libvirt_probes.stp
-%{_datadir}/systemtap/tapset/libvirt_qemu_probes.stp
+%{_datadir}/systemtap/tapset/libvirt_probes*.stp
+%{_datadir}/systemtap/tapset/libvirt_qemu_probes*.stp
 %{_datadir}/systemtap/tapset/libvirt_functions.stp
 %endif
 

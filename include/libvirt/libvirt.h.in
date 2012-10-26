@@ -225,6 +225,14 @@ typedef enum {
 #endif
 } virDomainPMSuspendedReason;
 
+typedef enum {
+    VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN = 0,
+
+#ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_PMSUSPENDED_DISK_LAST
+#endif
+} virDomainPMSuspendedDiskReason;
+
 /**
  * virDomainControlState:
  *
@@ -424,6 +432,94 @@ typedef struct _virSecurityModel {
  */
 typedef virSecurityModel *virSecurityModelPtr;
 
+/* Common data types shared among interfaces with name/type/value lists.  */
+
+/**
+ * virTypedParameterType:
+ *
+ * Express the type of a virTypedParameter
+ */
+typedef enum {
+    VIR_TYPED_PARAM_INT     = 1, /* integer case */
+    VIR_TYPED_PARAM_UINT    = 2, /* unsigned integer case */
+    VIR_TYPED_PARAM_LLONG   = 3, /* long long case */
+    VIR_TYPED_PARAM_ULLONG  = 4, /* unsigned long long case */
+    VIR_TYPED_PARAM_DOUBLE  = 5, /* double case */
+    VIR_TYPED_PARAM_BOOLEAN = 6, /* boolean(character) case */
+    VIR_TYPED_PARAM_STRING  = 7, /* string case */
+
+#ifdef VIR_ENUM_SENTINELS
+    VIR_TYPED_PARAM_LAST
+#endif
+} virTypedParameterType;
+
+/**
+ * virTypedParameterFlags:
+ *
+ * Flags related to libvirt APIs that use virTypedParameter.
+ *
+ * These enums should not conflict with those of virDomainModificationImpact.
+ */
+typedef enum {
+    /* 1 << 0 is reserved for virDomainModificationImpact */
+    /* 1 << 1 is reserved for virDomainModificationImpact */
+
+    /* Older servers lacked the ability to handle string typed
+     * parameters.  Attempts to set a string parameter with an older
+     * server will fail at the client, but attempts to retrieve
+     * parameters must not return strings from a new server to an
+     * older client, so this flag exists to identify newer clients to
+     * newer servers.  This flag is automatically set when needed, so
+     * the user does not have to worry about it; however, manually
+     * setting the flag can be used to reject servers that cannot
+     * return typed strings, even if no strings would be returned.
+     */
+    VIR_TYPED_PARAM_STRING_OKAY = 1 << 2,
+
+} virTypedParameterFlags;
+
+/**
+ * VIR_TYPED_PARAM_FIELD_LENGTH:
+ *
+ * Macro providing the field length of virTypedParameter name
+ */
+#define VIR_TYPED_PARAM_FIELD_LENGTH 80
+
+/**
+ * virTypedParameter:
+ *
+ * A named parameter, including a type and value.
+ *
+ * The types virSchedParameter, virBlkioParameter, and
+ * virMemoryParameter are aliases of this type, for use when
+ * targetting libvirt earlier than 0.9.2.
+ */
+typedef struct _virTypedParameter virTypedParameter;
+
+struct _virTypedParameter {
+    char field[VIR_TYPED_PARAM_FIELD_LENGTH];  /* parameter name */
+    int type;   /* parameter type, virTypedParameterType */
+    union {
+        int i;                      /* type is INT */
+        unsigned int ui;            /* type is UINT */
+        long long int l;            /* type is LLONG */
+        unsigned long long int ul;  /* type is ULLONG */
+        double d;                   /* type is DOUBLE */
+        char b;                     /* type is BOOLEAN */
+        char *s;                    /* type is STRING, may not be NULL */
+    } value; /* parameter value */
+};
+
+/**
+ * virTypedParameterPtr:
+ *
+ * a pointer to a virTypedParameter structure.
+ */
+typedef virTypedParameter *virTypedParameterPtr;
+
+
+/* data types related to virNodePtr */
+
 /**
  * virNodeInfoPtr:
  *
@@ -579,90 +675,88 @@ struct _virNodeMemoryStats {
     unsigned long long value;
 };
 
-/* Common data types shared among interfaces with name/type/value lists.  */
-
-/**
- * virTypedParameterType:
+/*
+ * VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN:
  *
- * Express the type of a virTypedParameter
+ * Macro for typed parameter that represents how many present pages
+ * to scan before the shared memory service goes to sleep.
  */
-typedef enum {
-    VIR_TYPED_PARAM_INT     = 1, /* integer case */
-    VIR_TYPED_PARAM_UINT    = 2, /* unsigned integer case */
-    VIR_TYPED_PARAM_LLONG   = 3, /* long long case */
-    VIR_TYPED_PARAM_ULLONG  = 4, /* unsigned long long case */
-    VIR_TYPED_PARAM_DOUBLE  = 5, /* double case */
-    VIR_TYPED_PARAM_BOOLEAN = 6, /* boolean(character) case */
-    VIR_TYPED_PARAM_STRING  = 7, /* string case */
+# define VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN      "shm_pages_to_scan"
 
-#ifdef VIR_ENUM_SENTINELS
-    VIR_TYPED_PARAM_LAST
-#endif
-} virTypedParameterType;
-
-/**
- * virTypedParameterFlags:
+/*
+ * VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS:
  *
- * Flags related to libvirt APIs that use virTypedParameter.
- *
- * These enums should not conflict with those of virDomainModificationImpact.
+ * Macro for typed parameter that represents how many milliseconds
+ * the shared memory service should sleep before next scan.
  */
-typedef enum {
-    /* 1 << 0 is reserved for virDomainModificationImpact */
-    /* 1 << 1 is reserved for virDomainModificationImpact */
+# define VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS    "shm_sleep_millisecs"
 
-    /* Older servers lacked the ability to handle string typed
-     * parameters.  Attempts to set a string parameter with an older
-     * server will fail at the client, but attempts to retrieve
-     * parameters must not return strings from a new server to an
-     * older client, so this flag exists to identify newer clients to
-     * newer servers.  This flag is automatically set when needed, so
-     * the user does not have to worry about it; however, manually
-     * setting the flag can be used to reject servers that cannot
-     * return typed strings, even if no strings would be returned.
-     */
-    VIR_TYPED_PARAM_STRING_OKAY = 1 << 2,
-
-} virTypedParameterFlags;
-
-/**
- * VIR_TYPED_PARAM_FIELD_LENGTH:
+/*
+ * VIR_NODE_MEMORY_SHARED_PAGES_SHARED:
  *
- * Macro providing the field length of virTypedParameter name
+ * Macro for typed parameter that represents how many the shared
+ * memory pages are being used.
  */
-#define VIR_TYPED_PARAM_FIELD_LENGTH 80
+# define VIR_NODE_MEMORY_SHARED_PAGES_SHARED       "shm_pages_shared"
 
-/**
- * virTypedParameter:
+/*
+ * VIR_NODE_MEMORY_SHARED_PAGES_SHARING:
  *
- * A named parameter, including a type and value.
- *
- * The types virSchedParameter, virBlkioParameter, and
- * virMemoryParameter are aliases of this type, for use when
- * targetting libvirt earlier than 0.9.2.
+ * Macro for typed parameter that represents how many sites are
+ * sharing the pages i.e. how much saved.
  */
-typedef struct _virTypedParameter virTypedParameter;
+# define VIR_NODE_MEMORY_SHARED_PAGES_SHARING      "shm_pages_sharing"
 
-struct _virTypedParameter {
-    char field[VIR_TYPED_PARAM_FIELD_LENGTH];  /* parameter name */
-    int type;   /* parameter type, virTypedParameterType */
-    union {
-        int i;                      /* type is INT */
-        unsigned int ui;            /* type is UINT */
-        long long int l;            /* type is LLONG */
-        unsigned long long int ul;  /* type is ULLONG */
-        double d;                   /* type is DOUBLE */
-        char b;                     /* type is BOOLEAN */
-        char *s;                    /* type is STRING, may not be NULL */
-    } value; /* parameter value */
-};
-
-/**
- * virTypedParameterPtr:
+/* VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED:
  *
- * a pointer to a virTypedParameter structure.
+ * Macro for typed parameter that represents how many pages unique
+ * but repeatedly checked for merging.
  */
-typedef virTypedParameter *virTypedParameterPtr;
+# define VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED     "shm_pages_unshared"
+
+/* VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE:
+ *
+ * Macro for typed parameter that represents how many pages changing
+ * too fast to be placed in a tree.
+ */
+# define VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE     "shm_pages_volatile"
+
+/* VIR_NODE_MEMORY_SHARED_FULL_SCAN:
+ *
+ * Macro for typed parameter that represents how many times all
+ * mergeable areas have been scanned.
+ */
+# define VIR_NODE_MEMORY_SHARED_FULL_SCANS         "shm_full_scans"
+
+/* VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES:
+ *
+ * Macro for typed parameter that represents whether pages from
+ * different NUMA nodes can be merged. The parameter has type int,
+ * when its value is 0, only pages which physically reside in the
+ * memory area of same NUMA node are merged; When its value is 1,
+ * pages from all nodes can be merged. Other values are reserved
+ * for future use.
+ */
+# define VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES "shm_merge_across_nodes"
+
+
+int virNodeGetMemoryParameters(virConnectPtr conn,
+                               virTypedParameterPtr params,
+                               int *nparams,
+                               unsigned int flags);
+
+int virNodeSetMemoryParameters(virConnectPtr conn,
+                               virTypedParameterPtr params,
+                               int nparams,
+                               unsigned int flags);
+
+/*
+ *  node CPU map
+ */
+int virNodeGetCPUMap(virConnectPtr conn,
+                     unsigned char **cpumap,
+                     unsigned int *online,
+                     unsigned int flags);
 
 
 /* Management of scheduler parameters */
@@ -1651,6 +1745,7 @@ typedef enum {
     VIR_DOMAIN_XML_SECURE       = (1 << 0), /* dump security sensitive information too */
     VIR_DOMAIN_XML_INACTIVE     = (1 << 1), /* dump inactive domain information */
     VIR_DOMAIN_XML_UPDATE_CPU   = (1 << 2), /* update guest CPU requirements according to host CPU */
+    VIR_DOMAIN_XML_MIGRATABLE   = (1 << 3), /* dump XML suitable for migration */
 } virDomainXMLFlags;
 
 char *                  virDomainGetXMLDesc     (virDomainPtr domain,
@@ -1950,10 +2045,10 @@ int                     virDomainGetEmulatorPinInfo (virDomainPtr domain,
  * @cpu: the physical CPU number
  *
  * This macro is to be used in conjunction with virDomainPinVcpu() API.
- * USE_CPU macro set the bit (CPU usable) of the related cpu in cpumap.
+ * It sets the bit (CPU usable) of the related cpu in cpumap.
  */
 
-#define VIR_USE_CPU(cpumap,cpu) (cpumap[(cpu)/8] |= (1<<((cpu)%8)))
+#define VIR_USE_CPU(cpumap, cpu) ((cpumap)[(cpu) / 8] |= (1 << ((cpu) % 8)))
 
 /**
  * VIR_UNUSE_CPU:
@@ -1961,10 +2056,21 @@ int                     virDomainGetEmulatorPinInfo (virDomainPtr domain,
  * @cpu: the physical CPU number
  *
  * This macro is to be used in conjunction with virDomainPinVcpu() API.
- * USE_CPU macro reset the bit (CPU not usable) of the related cpu in cpumap.
+ * It resets the bit (CPU not usable) of the related cpu in cpumap.
  */
 
-#define VIR_UNUSE_CPU(cpumap,cpu)       (cpumap[(cpu)/8] &= ~(1<<((cpu)%8)))
+#define VIR_UNUSE_CPU(cpumap, cpu) ((cpumap)[(cpu) / 8] &= ~(1 << ((cpu) % 8)))
+
+/**
+ * VIR_CPU_USED:
+ * @cpumap: pointer to a bit map of real CPUs (in 8-bit bytes) (IN)
+ * @cpu: the physical CPU number
+ *
+ * This macro can be used in conjunction with virNodeGetCPUMap() API.
+ * It returns non-zero if the bit of the related CPU is set.
+ */
+
+#define VIR_CPU_USED(cpumap, cpu) ((cpumap)[(cpu) / 8] & (1 << ((cpu) % 8)))
 
 /**
  * VIR_CPU_MAPLEN:
@@ -1975,7 +2081,7 @@ int                     virDomainGetEmulatorPinInfo (virDomainPtr domain,
  * CPU map between a single virtual & all physical CPUs of a domain.
  */
 
-#define VIR_CPU_MAPLEN(cpu)      (((cpu)+7)/8)
+#define VIR_CPU_MAPLEN(cpu) (((cpu) + 7) / 8)
 
 
 int                     virDomainGetVcpus       (virDomainPtr domain,
@@ -1992,12 +2098,12 @@ int                     virDomainGetVcpus       (virDomainPtr domain,
  * @cpu: the physical CPU number
  *
  * This macro is to be used in conjunction with virDomainGetVcpus() API.
- * VIR_CPU_USABLE macro returns a non zero value (true) if the cpu
+ * VIR_CPU_USABLE macro returns a non-zero value (true) if the cpu
  * is usable by the vcpu, and 0 otherwise.
  */
 
-#define VIR_CPU_USABLE(cpumaps,maplen,vcpu,cpu) \
-        (cpumaps[((vcpu)*(maplen))+((cpu)/8)] & (1<<((cpu)%8)))
+#define VIR_CPU_USABLE(cpumaps, maplen, vcpu, cpu) \
+    VIR_CPU_USED(VIR_GET_CPUMAP(cpumaps, maplen, vcpu), cpu)
 
 /**
  * VIR_COPY_CPUMAP:
@@ -2009,12 +2115,12 @@ int                     virDomainGetVcpus       (virDomainPtr domain,
  *      (ie: malloc(maplen))
  *
  * This macro is to be used in conjunction with virDomainGetVcpus() and
- * virDomainPinVcpu() APIs. VIR_COPY_CPUMAP macro extract the cpumap of
- * the specified vcpu from cpumaps array and copy it into cpumap to be used
+ * virDomainPinVcpu() APIs. VIR_COPY_CPUMAP macro extracts the cpumap of
+ * the specified vcpu from cpumaps array and copies it into cpumap to be used
  * later by virDomainPinVcpu() API.
  */
-#define VIR_COPY_CPUMAP(cpumaps,maplen,vcpu,cpumap) \
-        memcpy(cpumap, &(cpumaps[(vcpu)*(maplen)]), (maplen))
+#define VIR_COPY_CPUMAP(cpumaps, maplen, vcpu, cpumap) \
+    memcpy(cpumap, VIR_GET_CPUMAP(cpumaps, maplen, vcpu), maplen)
 
 
 /**
@@ -2027,7 +2133,7 @@ int                     virDomainGetVcpus       (virDomainPtr domain,
  * virDomainPinVcpu() APIs. VIR_GET_CPUMAP macro returns a pointer to the
  * cpumap of the specified vcpu from cpumaps array.
  */
-#define VIR_GET_CPUMAP(cpumaps,maplen,vcpu)     &(cpumaps[(vcpu)*(maplen)])
+#define VIR_GET_CPUMAP(cpumaps, maplen, vcpu) (&((cpumaps)[(vcpu) * (maplen)]))
 
 
 typedef enum {
@@ -3113,6 +3219,7 @@ typedef enum {
  */
 typedef enum {
     VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY = 0, /* Guest was PM suspended to memory */
+    VIR_DOMAIN_EVENT_PMSUSPENDED_DISK = 1, /* Guest was PM suspended to disk */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_PMSUSPENDED_LAST
@@ -3123,7 +3230,7 @@ typedef enum {
  * virConnectDomainEventCallback:
  * @conn: virConnect connection
  * @dom: The domain on which the event occurred
- * @event: The specfic virDomainEventType which occurred
+ * @event: The specific virDomainEventType which occurred
  * @detail: event specific detail information
  * @opaque: opaque user data
  *
@@ -3416,7 +3523,7 @@ int virStreamRecv(virStreamPtr st,
  *
  * The callback will be invoked multiple times,
  * fetching data in small chunks. The application
- * should fill the 'data' array with upto 'nbytes'
+ * should fill the 'data' array with up to 'nbytes'
  * of data and then return the number actual number
  * of bytes. The callback will continue to be
  * invoked until it indicates the end of the source
@@ -3848,7 +3955,7 @@ typedef void (*virConnectDomainEventWatchdogCallback)(virConnectPtr conn,
 /**
  * virDomainEventIOErrorAction:
  *
- * The action that is to be taken due to an IO error occuring
+ * The action that is to be taken due to an IO error occurring
  */
 typedef enum {
     VIR_DOMAIN_EVENT_IO_ERROR_NONE = 0,  /* No action, IO error ignored */
@@ -4163,6 +4270,25 @@ typedef void (*virConnectDomainEventBalloonChangeCallback)(virConnectPtr conn,
                                                            void *opaque);
 
 /**
+ * virConnectDomainEventPMSuspendDiskCallback:
+ * @conn: connection object
+ * @dom: domain on which the event occurred
+ * @reason: reason why the callback was called, unused currently,
+ *          always passes 0
+ * @opaque: application specified data
+ *
+ * This callback occurs when the guest is suspended to disk.
+ *
+ * The callback signature to use when registering for an event of type
+ * VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK with virConnectDomainEventRegisterAny()
+ */
+typedef void (*virConnectDomainEventPMSuspendDiskCallback)(virConnectPtr conn,
+                                                           virDomainPtr dom,
+                                                           int reason,
+                                                           void *opaque);
+
+
+/**
  * VIR_DOMAIN_EVENT_CALLBACK:
  *
  * Used to cast the event specific callback into the generic one
@@ -4186,6 +4312,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_ID_PMWAKEUP = 11,       /* virConnectDomainEventPMWakeupCallback */
     VIR_DOMAIN_EVENT_ID_PMSUSPEND = 12,      /* virConnectDomainEventPMSuspendCallback */
     VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE = 13, /* virConnectDomainEventBalloonChangeCallback */
+    VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK = 14, /* virConnectDomainEventPMSuspendDiskCallback */
 
 #ifdef VIR_ENUM_SENTINELS
     /*
@@ -4436,68 +4563,8 @@ typedef struct _virTypedParameter virMemoryParameter;
  */
 typedef virMemoryParameter *virMemoryParameterPtr;
 
-/*
- * VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN:
- *
- * Macro for typed parameter that represents how many present pages
- * to scan before the shared memory service goes to sleep.
- */
-# define VIR_NODE_MEMORY_SHARED_PAGES_TO_SCAN      "shm_pages_to_scan"
-
-/*
- * VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS:
- *
- * Macro for typed parameter that represents how many milliseconds
- * the shared memory service should sleep before next scan.
- */
-# define VIR_NODE_MEMORY_SHARED_SLEEP_MILLISECS    "shm_sleep_millisecs"
-
-/*
- * VIR_NODE_MEMORY_SHARED_PAGES_SHARED:
- *
- * Macro for typed parameter that represents how many the shared
- * mmeory pages are being used.
- */
-# define VIR_NODE_MEMORY_SHARED_PAGES_SHARED       "shm_pages_shared"
-
-/*
- * VIR_NODE_MEMORY_SHARED_PAGES_SHARING:
- *
- * Macro for typed parameter that represents how many sites are
- * sharing the pages i.e. how much saved.
- */
-# define VIR_NODE_MEMORY_SHARED_PAGES_SHARING      "shm_pages_sharing"
-
-/* VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED:
- *
- * Macro for typed parameter that represents how many pages unique
- * but repeatedly checked for merging.
- */
-# define VIR_NODE_MEMORY_SHARED_PAGES_UNSHARED     "shm_pages_unshared"
-
-/* VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE:
- *
- * Macro for typed parameter that represents how many pages changing
- * too fast to be placed in a tree.
- */
-# define VIR_NODE_MEMORY_SHARED_PAGES_VOLATILE     "shm_pages_volatile"
-
-/* VIR_NODE_MEMORY_SHARED_FULL_SCAN:
- *
- * Macro for typed parameter that represents how many times all
- * mergeable areas have been scanned.
- */
-# define VIR_NODE_MEMORY_SHARED_FULL_SCANS         "shm_full_scans"
-
-int virNodeGetMemoryParameters(virConnectPtr conn,
-                               virTypedParameterPtr params,
-                               int *nparams,
-                               unsigned int flags);
-
-int virNodeSetMemoryParameters(virConnectPtr conn,
-                               virTypedParameterPtr params,
-                               int nparams,
-                               unsigned int flags);
+/* Add new interfaces to the appropriate sections earlier in this
+ * file; the end of the file is reserved for deprecated names.  */
 
 #ifdef __cplusplus
 }

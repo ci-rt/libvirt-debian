@@ -1,7 +1,7 @@
 /*
  * storage_file.c: file utility functions for FS storage backend
  *
- * Copyright (C) 2007-2009 Red Hat, Inc.
+ * Copyright (C) 2007-2009, 2012 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -29,7 +29,8 @@
 enum virStorageFileFormat {
     VIR_STORAGE_FILE_AUTO_SAFE = -2,
     VIR_STORAGE_FILE_AUTO = -1,
-    VIR_STORAGE_FILE_RAW = 0,
+    VIR_STORAGE_FILE_NONE = 0,
+    VIR_STORAGE_FILE_RAW,
     VIR_STORAGE_FILE_DIR,
     VIR_STORAGE_FILE_BOCHS,
     VIR_STORAGE_FILE_CLOOP,
@@ -41,36 +42,50 @@ enum virStorageFileFormat {
     VIR_STORAGE_FILE_QED,
     VIR_STORAGE_FILE_VMDK,
     VIR_STORAGE_FILE_VPC,
+    VIR_STORAGE_FILE_FAT,
+    VIR_STORAGE_FILE_VHD,
+
     VIR_STORAGE_FILE_LAST,
 };
 
 VIR_ENUM_DECL(virStorageFileFormat);
 
-typedef struct _virStorageFileMetadata {
-    char *backingStore;
-    int backingStoreFormat;
+typedef struct _virStorageFileMetadata virStorageFileMetadata;
+typedef virStorageFileMetadata *virStorageFileMetadataPtr;
+struct _virStorageFileMetadata {
+    char *backingStore; /* Canonical name (absolute file, or protocol) */
+    char *backingStoreRaw; /* If file, original name, possibly relative */
+    int backingStoreFormat; /* enum virStorageFileFormat */
     bool backingStoreIsFile;
+    virStorageFileMetadataPtr backingMeta;
     unsigned long long capacity;
     bool encrypted;
-} virStorageFileMetadata;
+};
 
 # ifndef DEV_BSIZE
 #  define DEV_BSIZE 512
 # endif
 
-int virStorageFileProbeFormat(const char *path);
+int virStorageFileProbeFormat(const char *path, uid_t uid, gid_t gid);
 int virStorageFileProbeFormatFromFD(const char *path,
                                     int fd);
 
-int virStorageFileGetMetadata(const char *path,
-                              int format,
-                              virStorageFileMetadata *meta);
-int virStorageFileGetMetadataFromFD(const char *path,
-                                    int fd,
-                                    int format,
-                                    virStorageFileMetadata *meta);
+virStorageFileMetadataPtr virStorageFileGetMetadata(const char *path,
+                                                    int format,
+                                                    uid_t uid, gid_t gid,
+                                                    bool allow_probe);
+virStorageFileMetadataPtr virStorageFileGetMetadataFromFD(const char *path,
+                                                          int fd,
+                                                          int format);
 
-void virStorageFileFreeMetadata(virStorageFileMetadata *meta);
+const char *virStorageFileChainLookup(virStorageFileMetadataPtr chain,
+                                      const char *start,
+                                      const char *name,
+                                      virStorageFileMetadataPtr *meta,
+                                      const char **parent)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2);
+
+void virStorageFileFreeMetadata(virStorageFileMetadataPtr meta);
 
 int virStorageFileResize(const char *path, unsigned long long capacity);
 

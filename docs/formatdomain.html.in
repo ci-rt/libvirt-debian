@@ -357,8 +357,18 @@
         the maximum supported by the hypervisor.  <span class="since">Since
         0.4.4</span>, this element can contain an optional
         <code>cpuset</code> attribute, which is a comma-separated
-        list of physical CPU numbers that virtual CPUs can be pinned
-        to.  Each element in that list is either a single CPU number,
+        list of physical CPU numbers that domain process and virtual CPUs
+        can be pinned to by default. (NB: The pinning policy of domain
+        process and virtual CPUs can be specified separately by
+        <code>cputune</code>. If attribute <code>emulatorpin</code>
+        of <code>cputune</code> is specified, <code>cpuset</code>
+        specified by <code>vcpu</code> here will be ingored; Similarly,
+        For virtual CPUs which has <code>vcpupin</code> specified,
+        <code>cpuset</code> specified by <code>cpuset</code> here
+        will be ignored; For virtual CPUs which doesn't have
+        <code>vcpupin</code> specified, it will be pinned to the physical
+        CPUs specified by <code>cpuset</code> here).
+        Each element in that list is either a single CPU number,
         a range of CPU numbers, or a caret followed by a CPU number to
         be excluded from a previous range.  <span class="since">Since
         0.8.5</span>, the optional attribute <code>current</code> can
@@ -374,8 +384,7 @@
         if it's specified. If both <code>cpuset</code> and <code>placement</code>
         are not specified, or if <code>placement</code> is "static", but no
         <code>cpuset</code> is specified, the domain process will be pinned to
-        all the available physical CPUs. These settings are superseded
-        by <a href="#elementsCPUTuning">CPU tuning</a>.
+        all the available physical CPUs.
       </dd>
     </dl>
 
@@ -411,23 +420,26 @@
       <dt><code>vcpupin</code></dt>
       <dd>
         The optional <code>vcpupin</code> element specifies which of host's
-        physical CPUs the domain VCPU will be pinned to. This setting supersedes
-        previous VCPU placement specified in <a href="#elementsCPUAllocation">CPU
-        Allocation</a> using <code>vcpu</code> element. If this is omitted,
-        each VCPU is pinned to all the physical CPUs by default. It contains two
-        required attributes, the attribute <code>vcpu</code> specifies vcpu id,
-        and the attribute <code>cpuset</code> is same as
-        attribute <code>cpuset</code>
-        of element <code>vcpu</code>. (NB: Only qemu driver support)
+        physical CPUs the domain VCPU will be pinned to. If this is omitted,
+        and attribute <code>cpuset</code> of element <code>vcpu</code> is
+        not specified, the vCPU is pinned to all the physical CPUs by default.
+        It contains two required attributes, the attribute <code>vcpu</code>
+        specifies vcpu id, and the attribute <code>cpuset</code> is same as
+        attribute <code>cpuset</code> of element <code>vcpu</code>.
+        (NB: Only qemu driver support)
         <span class="since">Since 0.9.0</span>
        </dd>
        <dt><code>emulatorpin</code></dt>
        <dd>
          The optional <code>emulatorpin</code> element specifies which of host
          physical CPUs the "emulator", a subset of a domain not including vcpu,
-         will be pinned to. If this is ommitted, "emulator" is pinned to all
-         the physical CPUs by default. It contains one required attribute
-         <code>cpuset</code> specifying which physical CPUs to pin to.
+         will be pinned to. If this is omitted, and attribute
+         <code>cpuset</code> of element <code>vcpu</code> is not specified,
+         "emulator" is pinned to all the physical CPUs by default. It contains
+         one required attribute <code>cpuset</code> specifying which physical
+         CPUs to pin to. NB, <code>emulatorpin</code> is not allowed if
+         attribute <code>placement</code> of element <code>vcpu</code> is
+         "auto".
        </dd>
       <dt><code>shares</code></dt>
       <dd>
@@ -907,15 +919,11 @@
       This guest NUMA specification is currently available only for QEMU/KVM.
     </p>
 
-    <h3><a name="elementsLifecycle">Lifecycle control</a></h3>
+    <h3><a name="elementsEvents">Events configuration</a></h3>
 
     <p>
       It is sometimes necessary to override the default actions taken
-      when a guest OS triggers a lifecycle operation. The following
-      collections of elements allow the actions to be specified. A
-      common use case is to force a reboot to be treated as a poweroff
-      when doing the initial OS installation. This allows the VM to be
-      re-configured for the first post-install bootup.
+      on various events.
     </p>
 
 <pre>
@@ -923,8 +931,16 @@
   &lt;on_poweroff&gt;destroy&lt;/on_poweroff&gt;
   &lt;on_reboot&gt;restart&lt;/on_reboot&gt;
   &lt;on_crash&gt;restart&lt;/on_crash&gt;
+  &lt;on_lockfailure&gt;poweroff&lt;/on_lockfailure&gt;
   ...</pre>
 
+    <p>
+      The following collections of elements allow the actions to be
+      specified when a guest OS triggers a lifecycle operation. A
+      common use case is to force a reboot to be treated as a poweroff
+      when doing the initial OS installation. This allows the VM to be
+      re-configured for the first post-install bootup.
+    </p>
     <dl>
       <dt><code>on_poweroff</code></dt>
       <dd>The content of this element specifies the action to take when
@@ -971,6 +987,27 @@
         domain will be restarted with the same configuration</dd>
     </dl>
 
+    <p>
+      The <code>on_lockfailure</code> element (<span class="since">since
+      1.0.0</span>) may be used to configure what action should be
+      taken when a lock manager loses resource locks. The following
+      actions are recognized by libvirt, although not all of them need
+      to be supported by individual lock managers. When no action is
+      specified, each lock manager will take its default action.
+    </p>
+    <dl>
+      <dt><code>poweroff</code></dt>
+      <dd>The domain will be forcefully powered off.</dd>
+      <dt><code>restart</code></dt>
+      <dd>The domain will be powered off and started up again to
+        reacquire its locks.</dd>
+      <dt><code>pause</code></dt>
+      <dd>The domain will be paused so that it can be manually resumed
+        when lock issues are solved.</dd>
+      <dt><code>ignore</code></dt>
+      <dd>Keep the domain running as if nothing happened.</dd>
+    </dl>
+
     <h3><a name="elementsPowerManagement">Power Management</a></h3>
 
     <p>
@@ -983,7 +1020,7 @@
   ...
   &lt;pm&gt;
     &lt;suspend-to-disk enabled='no'/&gt;
-    &lt;suspend-to-ram enabled='yes'/&gt;
+    &lt;suspend-to-mem enabled='yes'/&gt;
   &lt;/pm&gt;
   ...</pre>
 
@@ -1010,6 +1047,10 @@
     &lt;apic/&gt;
     &lt;hap/&gt;
     &lt;privnet/&gt;
+    &lt;hyperv&gt;
+      &lt;relaxed state='on'&gt;
+    &lt;/hyperv&gt;
+
   &lt;/features&gt;
   ...</pre>
 
@@ -1049,6 +1090,23 @@
         automatically set if any interface devices are defined.
         This feature is only relevant for container based
         virtualization drivers, such as LXC.
+      </dd>
+      <dt><code>hyperv</code></dt>
+      <dd>Enable various features improving behavior of guests
+        running Microsoft Windows.
+      <table class="top_table">
+        <tr>
+          <th>Feature</th>
+          <th>Description</th>
+          <th>Value</th>
+        </tr>
+        <tr>
+          <td>relaxed</td>
+          <td>Relax contstraints on timers</td>
+          <td> on, off</td>
+        </tr>
+      </table>
+      <span class="since">Since 1.0.0 (QEMU only)</span>
       </dd>
     </dl>
 
@@ -2056,7 +2114,7 @@
   ...
   &lt;devices&gt;
     &lt;hostdev mode='subsystem' type='usb'&gt;
-      &lt;source&gt;
+      &lt;source startupPolicy='optional'&gt;
         &lt;vendor id='0x1234'/&gt;
         &lt;product id='0xbeef'/&gt;
       &lt;/source&gt;
@@ -2100,9 +2158,29 @@
       <dd>The source element describes the device as seen from the host.
       The USB device can either be addressed by vendor / product id using the
       <code>vendor</code> and <code>product</code> elements or by the device's
-      address on the hosts using the <code>address</code> element.
-      PCI devices on the other hand can only be described by their
-      <code>address</code></dd>
+      address on the hosts using the <code>address</code> element. PCI devices
+      on the other hand can only be described by their <code>address</code>.
+
+      <span class="since">Since 1.0.0</span>, the <code>source</code> element
+      of USB devices may contain <code>startupPolicy</code> attribute which can
+      be used to define policy what to do if the specified host USB device is
+      not found. The attribute accepts the following values:
+        <table class="top_table">
+          <tr>
+            <td> mandatory </td>
+            <td> fail if missing for any reason (the default) </td>
+          </tr>
+          <tr>
+            <td> requisite </td>
+            <td> fail if missing on boot up,
+                 drop if missing on migrate/restore/revert </td>
+          </tr>
+          <tr>
+            <td> optional </td>
+            <td> drop if missing at any start attempt </td>
+          </tr>
+        </table>
+      </dd>
       <dt><code>vendor</code>, <code>product</code></dt>
       <dd>The <code>vendor</code> and <code>product</code> elements each have an
       <code>id</code> attribute that specifies the USB vendor and product id.
@@ -4126,12 +4204,22 @@ qemu-kvm -net nic,model=? /dev/null
       <dt><code>label</code></dt>
       <dd>If static labelling is used, this must specify the full
         security label to assign to the virtual domain. The format
-        of the content depends on the security driver in use
+        of the content depends on the security driver in use:
+        <ul>
+          <li>SELinux: a SELinux context.</li>
+          <li>AppArmor: an AppArmor profile.</li>
+          <li>
+            DAC: owner and group separated by colon. They can be
+            defined both as user/group names or uid/gid. The driver will first
+            try to parse these values as names, but a leading plus sign can
+            used to force the driver to parse them as uid or gid.
+          </li>
+        </ul>
       </dd>
       <dt><code>baselabel</code></dt>
       <dd>If dynamic labelling is used, this can optionally be
         used to specify the base security label. The format
-        of the content depends on the security driver in use
+        of the content depends on the security driver in use.
       </dd>
       <dt><code>imagelabel</code></dt>
       <dd>This is an output only element, which shows the

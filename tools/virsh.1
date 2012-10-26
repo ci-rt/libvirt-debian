@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2012-09-21" "libvirt-0.10.1" "Virtualization Support"
+.TH VIRSH 1 "2012-10-24" "libvirt-0.10.2" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -156,12 +156,16 @@ The basic structure of most virsh usage is:
 \&  virsh [OPTION]... <command> <domain> [ARG]...
 .Ve
 .PP
-Where \fIcommand\fR is one of the commands listed below, \fIdomain\fR is the numeric
-domain id, or the domain name, or the domain \s-1UUID\s0 and \fI\s-1ARGS\s0\fR are command
-specific options.  There are a few exceptions to this rule in the cases where
-the command in question acts on all domains, the entire machine, or directly
-on the xen hypervisor.  Those exceptions will be clear for each of those
-commands.
+Where \fIcommand\fR is one of the commands listed below; \fIdomain\fR is the
+numeric domain id, or the domain name, or the domain \s-1UUID\s0; and \fI\s-1ARGS\s0\fR
+are command specific options.  There are a few exceptions to this rule
+in the cases where the command in question acts on all domains, the
+entire machine, or directly on the xen hypervisor.  Those exceptions
+will be clear for each of those commands.  Note: it is permissible to
+give numeric names to domains, however, doing so will result in a
+domain that can only be identified by domain id. In other words, if a
+numeric value is supplied it will be interpreted as a domain id, not
+as a name.
 .PP
 The \fBvirsh\fR program can be used either to run one \fI\s-1COMMAND\s0\fR by giving the
 command and its arguments on the shell command line, or a \fI\s-1COMMAND_STRING\s0\fR
@@ -240,7 +244,7 @@ Several \fBvirsh\fR commands take an optionally scaled integer; if no
 scale is provided, then the default is listed in the command (for
 historical reasons, some commands default to bytes, while other
 commands default to kibibytes).  The following case-insensitive
-suffixes can be used to select a specfic scale:
+suffixes can be used to select a specific scale:
   b, byte  byte      1
   \s-1KB\s0       kilobyte  1,000
   k, KiB   kibibyte  1,024
@@ -376,6 +380,10 @@ Returns basic information about the node, like number and type of \s-1CPU\s0,
 and size of the physical memory. The output corresponds to virNodeInfo
 structure. Specifically, the \*(L"\s-1CPU\s0 socket(s)\*(R" field means number of \s-1CPU\s0
 sockets per \s-1NUMA\s0 cell.
+.IP "\fBnodecpumap\fR" 4
+.IX Item "nodecpumap"
+Displays the node's total number of CPUs, the number of online CPUs
+and the list of online CPUs.
 .IP "\fBnodecpustats\fR [\fIcpu\fR] [\fI\-\-percent\fR]" 4
 .IX Item "nodecpustats [cpu] [--percent]"
 Returns cpu stats of the node.
@@ -399,7 +407,10 @@ Allows you to display or set the node memory parameters.
 \&\fIshm-pages-to-scan\fR can be used to set the number of pages to scan
 before the shared memory service goes to sleep; \fIshm-sleep-millisecs\fR
 can be used to set the number of millisecs the shared memory service should
-sleep before next scan.
+sleep before next scan; \fIshm-merge-across-nodes\fR specifies if pages from
+different numa nodes can be merged. When set to 0, only pages which physically
+reside in the memory area of same \s-1NUMA\s0 node can be merged. When set to 1,
+pages from all nodes can be merged. Default to 1.
 .IP "\fBcapabilities\fR" 4
 .IX Item "capabilities"
 Print an \s-1XML\s0 document describing the capabilities of the hypervisor
@@ -661,7 +672,7 @@ Availability of these fields depends on hypervisor. Unsupported fields are
 missing from the output. Other fields may appear if communicating with a newer
 version of libvirtd.
 .Sp
-\&\fBExplanation of fields\fR (fields appear in the folowing order):
+\&\fBExplanation of fields\fR (fields appear in the following order):
   rd_req            \- count of read operations
   rd_bytes          \- count of read bytes
   wr_req            \- count of write operations
@@ -959,15 +970,18 @@ is to send \s-1SIGINT\s0 (usually with \f(CW\*(C`Ctrl\-C\*(C'\fR) to the virsh p
 .Sp
 \&\s-1NOTE:\s0 Some hypervisors may require the user to manually ensure proper
 permissions on file and path specified by argument \fIcorefilepath\fR.
-.IP "\fBdumpxml\fR \fIdomain\fR [\fI\-\-inactive\fR] [\fI\-\-security\-info\fR] [\fI\-\-update\-cpu\fR]" 4
-.IX Item "dumpxml domain [--inactive] [--security-info] [--update-cpu]"
+.IP "\fBdumpxml\fR \fIdomain\fR [\fI\-\-inactive\fR] [\fI\-\-security\-info\fR] [\fI\-\-update\-cpu\fR] [\fI\-\-migratable\fR]" 4
+.IX Item "dumpxml domain [--inactive] [--security-info] [--update-cpu] [--migratable]"
 Output the domain information as an \s-1XML\s0 dump to stdout, this format can be used
 by the \fBcreate\fR command. Additional options affecting the \s-1XML\s0 dump may be
 used. \fI\-\-inactive\fR tells virsh to dump domain configuration that will be used
 on next start of the domain as opposed to the current domain configuration.
 Using \fI\-\-security\-info\fR will also include security sensitive information
 in the \s-1XML\s0 dump. \fI\-\-update\-cpu\fR updates domain \s-1CPU\s0 requirements according to
-host \s-1CPU\s0.
+host \s-1CPU\s0. With \fI\-\-migratable\fR one can request an \s-1XML\s0 that is suitable for
+migrations, i.e., compatible with older libvirt releases and possibly amended
+with internal run-time options. This option may automatically enable other
+options (\fI\-\-update\-cpu\fR, \fI\-\-security\-info\fR, ...) as necessary.
 .IP "\fBedit\fR \fIdomain\fR" 4
 .IX Item "edit domain"
 Edit the \s-1XML\s0 configuration file for a domain, which will affect the
@@ -1274,6 +1288,10 @@ the corresponding codeset.  If \fI\-\-holdtime\fR is given, each keystroke
 will be held for that many milliseconds.  The default codeset is
 \&\fBlinux\fR, but use of the \fI\-\-codeset\fR option allows other codesets to
 be chosen.
+.Sp
+If multiple keycodes are specified, they are all sent simultaneously
+to the guest, and they may be received in random order. If you need
+distinct keypresses, you must use multiple send-key invocations.
 .RS 4
 .IP "\fBlinux\fR" 4
 .IX Item "linux"
@@ -1328,12 +1346,18 @@ bit of the first byte. No symbolic names are provided.
 .RS 4
 .Sp
 \&\fBExamples\fR
-  # send three strokes 'k', 'e', 'y', using xt codeset
+  # send three strokes 'k', 'e', 'y', using xt codeset. these
+  # are all pressed simultaneously and may be received by the guest
+  # in random order
   virsh send-key dom \-\-codeset xt 37 18 21
-  # send one stroke 'right\-ctrl+C'
-  virsh send-key dom \s-1KEY_RIGHTCTRL\s0 \s-1KEY_C\s0
-  # send a tab, held for 1 second
-  virsh send-key \-\-holdtime 1000 0xf
+.Sp
+.Vb 2
+\&  # send one stroke \*(Aqright\-ctrl+C\*(Aq
+\&  virsh send\-key dom KEY_RIGHTCTRL KEY_C
+\&
+\&  # send a tab, held for 1 second
+\&  virsh send\-key \-\-holdtime 1000 0xf
+.Ve
 .RE
 .IP "\fBsetmem\fR \fIdomain\fR \fBsize\fR [[\fI\-\-config\fR] [\fI\-\-live\fR] | [\fI\-\-current\fR]]" 4
 .IX Item "setmem domain size [[--config] [--live] | [--current]]"
@@ -2233,7 +2257,7 @@ is in.
 \&\fIvol-name-or-key-or-path\fR is the name or key or path of the volume to wipe.
 \&\fI\-\-offset\fR is the position in the storage volume at which to start writing
 the data. \fI\-\-length\fR is an upper bound of the amount of data to be uploaded.
-An error will occurr if the \fIlocal-file\fR is greater than the specified length.
+An error will occur if the \fIlocal-file\fR is greater than the specified length.
 .IP "\fBvol-download\fR [\fI\-\-pool\fR \fIpool-or-uuid\fR] [\fI\-\-offset\fR \fIbytes\fR] [\fI\-\-length\fR \fIbytes\fR] \fIvol-name-or-key-or-path\fR \fIlocal-file\fR" 4
 .IX Item "vol-download [--pool pool-or-uuid] [--offset bytes] [--length bytes] vol-name-or-key-or-path local-file"
 Download the contents of \fIlocal-file\fR from a storage volume.
@@ -2444,7 +2468,7 @@ this flag is in use, the command can also take additional \fIdiskspec\fR
 arguments to add <disk> elements to the xml.  Each <diskspec> is in the
 form \fBdisk[,snapshot=type][,driver=type][,file=name]\fR.  To include a
 literal comma in \fBdisk\fR or in \fBfile=name\fR, escape it with a second
-comma.  A literal \fI\-\-diskspec\fR must preceed each \fBdiskspec\fR unless
+comma.  A literal \fI\-\-diskspec\fR must precede each \fBdiskspec\fR unless
 all three of \fIdomain\fR, \fIname\fR, and \fIdescription\fR are also present.
 For example, a diskspec of \*(L"vda,snapshot=external,file=/path/to,,new\*(R"
 results in the following \s-1XML:\s0
@@ -2678,15 +2702,16 @@ attaching to an externally launched \s-1QEMU\s0 process. There may be
 issues with the guest \s-1ABI\s0 changing upon migration, and hotunplug
 may not work.
 .RE
-.IP "\fBqemu-monitor-command\fR \fIdomain\fR [\fI\-\-hmp\fR] \fIcommand\fR..." 4
-.IX Item "qemu-monitor-command domain [--hmp] command..."
+.IP "\fBqemu-monitor-command\fR \fIdomain\fR { [\fI\-\-hmp\fR] | [\fI\-\-pretty\fR] } \fIcommand\fR..." 4
+.IX Item "qemu-monitor-command domain { [--hmp] | [--pretty] } command..."
 Send an arbitrary monitor command \fIcommand\fR to domain \fIdomain\fR through the
 qemu monitor.  The results of the command will be printed on stdout.  If
 \&\fI\-\-hmp\fR is passed, the command is considered to be a human monitor command
 and libvirt will automatically convert it into \s-1QMP\s0 if needed.  In that case
-the result will also be converted back from \s-1QMP\s0.  If more than one argument
-is provided for \fIcommand\fR, they are concatenated with a space in between
-before passing the single command to the monitor.
+the result will also be converted back from \s-1QMP\s0.  If \fI\-\-pretty\fR is given,
+and the monitor uses \s-1QMP\s0, then the output will be pretty-printed.  If more
+than one argument is provided for \fIcommand\fR, they are concatenated with a
+space in between before passing the single command to the monitor.
 .IP "\fBqemu-agent-command\fR \fIdomain\fR [\fI\-\-timeout\fR \fIseconds\fR | \fI\-\-async\fR | \fI\-\-block\fR] \fIcommand\fR..." 4
 .IX Item "qemu-agent-command domain [--timeout seconds | --async | --block] command..."
 Send an arbitrary guest agent command \fIcommand\fR to domain \fIdomain\fR through
@@ -2797,12 +2822,12 @@ is \s-1NO\s0 warranty; not even for \s-1MERCHANTABILITY\s0 or \s-1FITNESS\s0 \s-
 .SH "POD ERRORS"
 .IX Header "POD ERRORS"
 Hey! \fBThe above document had some coding errors, which are explained below:\fR
-.IP "Around line 727:" 4
-.IX Item "Around line 727:"
+.IP "Around line 739:" 4
+.IX Item "Around line 739:"
 Unterminated I<...> sequence
-.IP "Around line 768:" 4
-.IX Item "Around line 768:"
+.IP "Around line 780:" 4
+.IX Item "Around line 780:"
 Unterminated I<...> sequence
-.IP "Around line 2921:" 4
-.IX Item "Around line 2921:"
+.IP "Around line 2946:" 4
+.IX Item "Around line 2946:"
 \&'=item' outside of any '=over'

@@ -68,12 +68,7 @@ virStorageBackendProbeTarget(virStorageVolTargetPtr target,
 {
     int fd = -1;
     int ret = -1;
-    virStorageFileMetadata *meta;
-
-    if (VIR_ALLOC(meta) < 0) {
-        virReportOOMError();
-        return ret;
-    }
+    virStorageFileMetadata *meta = NULL;
 
     *backingStore = NULL;
     *backingStoreFormat = VIR_STORAGE_FILE_AUTO;
@@ -96,9 +91,8 @@ virStorageBackendProbeTarget(virStorageVolTargetPtr target,
         goto error;
     }
 
-    if (virStorageFileGetMetadataFromFD(target->path, fd,
-                                        target->format,
-                                        meta) < 0) {
+    if (!(meta = virStorageFileGetMetadataFromFD(target->path, fd,
+                                                 target->format))) {
         ret = -1;
         goto error;
     }
@@ -108,8 +102,9 @@ virStorageBackendProbeTarget(virStorageVolTargetPtr target,
     if (meta->backingStore) {
         *backingStore = meta->backingStore;
         meta->backingStore = NULL;
-        if (meta->backingStoreFormat == VIR_STORAGE_FILE_AUTO) {
-            if ((ret = virStorageFileProbeFormat(*backingStore)) < 0) {
+        if (meta->backingStoreFormat == VIR_STORAGE_FILE_AUTO &&
+            meta->backingStoreIsFile) {
+            if ((ret = virStorageFileProbeFormat(*backingStore, -1, -1)) < 0) {
                 /* If the backing file is currently unavailable, only log an error,
                  * but continue. Returning -1 here would disable the whole storage
                  * pool, making it unavailable for even maintenance. */

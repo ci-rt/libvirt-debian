@@ -77,7 +77,7 @@ realloc:
     }
     CPU_FREE(mask);
 # else
-    /* Legacy method uses a fixed size cpu mask, only allows upto 1024 cpus */
+    /* Legacy method uses a fixed size cpu mask, only allows up to 1024 cpus */
     cpu_set_t mask;
 
     CPU_ZERO(&mask);
@@ -149,7 +149,7 @@ realloc:
             ignore_value(virBitmapSetBit(*map, i));
     CPU_FREE(mask);
 # else
-    /* Legacy method uses a fixed size cpu mask, only allows upto 1024 cpus */
+    /* Legacy method uses a fixed size cpu mask, only allows up to 1024 cpus */
     cpu_set_t mask;
 
     CPU_ZERO(&mask);
@@ -161,7 +161,7 @@ realloc:
 
     for (i = 0 ; i < maxcpu ; i++)
         if (CPU_ISSET(i, &mask))
-            VIR_USE_CPU(map, i);
+            ignore_value(virBitmapSetBit(*map, i));
 # endif
 
     return 0;

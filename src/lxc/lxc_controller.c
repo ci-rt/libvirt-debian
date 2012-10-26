@@ -70,6 +70,7 @@
 #include "processinfo.h"
 #include "nodeinfo.h"
 #include "virrandom.h"
+#include "virprocess.h"
 #include "rpc/virnetserver.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
@@ -214,7 +215,7 @@ static void virLXCControllerStopInit(virLXCControllerPtr ctrl)
         return;
 
     virLXCControllerCloseLoopDevices(ctrl, true);
-    virPidAbort(ctrl->initpid);
+    virProcessAbort(ctrl->initpid);
     ctrl->initpid = 0;
 }
 
@@ -318,7 +319,7 @@ static int virLXCControllerValidateNICs(virLXCControllerPtr ctrl)
 {
     if (ctrl->def->nnets != ctrl->nveths) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("expecting %d veths, but got %zu"),
+                       _("expecting %zu veths, but got %zu"),
                        ctrl->def->nnets, ctrl->nveths);
         return -1;
     }
@@ -331,7 +332,7 @@ static int virLXCControllerValidateConsoles(virLXCControllerPtr ctrl)
 {
     if (ctrl->def->nconsoles != ctrl->nconsoles) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("expecting %d consoles, but got %zu tty file handlers"),
+                       _("expecting %zu consoles, but got %zu tty file handlers"),
                        ctrl->def->nconsoles, ctrl->nconsoles);
         return -1;
     }
@@ -608,6 +609,7 @@ static int virLXCControllerSetupServer(virLXCControllerPtr ctrl)
                                          -1, 0, false,
                                          NULL,
                                          virLXCControllerClientPrivateNew,
+                                         NULL,
                                          virLXCControllerClientPrivateFree,
                                          ctrl)))
         goto error;

@@ -1,3 +1,4 @@
+
 /*
  * qemu_migration.c: QEMU migration handling
  *
@@ -70,6 +71,7 @@ enum qemuMigrationCookieFlags {
     QEMU_MIGRATION_COOKIE_FLAG_GRAPHICS,
     QEMU_MIGRATION_COOKIE_FLAG_LOCKSTATE,
     QEMU_MIGRATION_COOKIE_FLAG_PERSISTENT,
+    QEMU_MIGRATION_COOKIE_FLAG_NETWORK,
 
     QEMU_MIGRATION_COOKIE_FLAG_LAST
 };
@@ -77,12 +79,13 @@ enum qemuMigrationCookieFlags {
 VIR_ENUM_DECL(qemuMigrationCookieFlag);
 VIR_ENUM_IMPL(qemuMigrationCookieFlag,
               QEMU_MIGRATION_COOKIE_FLAG_LAST,
-              "graphics", "lockstate", "persistent");
+              "graphics", "lockstate", "persistent", "network");
 
 enum qemuMigrationCookieFeatures {
     QEMU_MIGRATION_COOKIE_GRAPHICS  = (1 << QEMU_MIGRATION_COOKIE_FLAG_GRAPHICS),
     QEMU_MIGRATION_COOKIE_LOCKSTATE = (1 << QEMU_MIGRATION_COOKIE_FLAG_LOCKSTATE),
     QEMU_MIGRATION_COOKIE_PERSISTENT = (1 << QEMU_MIGRATION_COOKIE_FLAG_PERSISTENT),
+    QEMU_MIGRATION_COOKIE_NETWORK = (1 << QEMU_MIGRATION_COOKIE_FLAG_NETWORK),
 };
 
 typedef struct _qemuMigrationCookieGraphics qemuMigrationCookieGraphics;
@@ -93,6 +96,27 @@ struct _qemuMigrationCookieGraphics {
     int tlsPort;
     char *listen;
     char *tlsSubject;
+};
+
+typedef struct _qemuMigrationCookieNetData qemuMigrationCookieNetData;
+typedef qemuMigrationCookieNetData *qemuMigrationCookieNetDataPtr;
+struct _qemuMigrationCookieNetData {
+    int vporttype; /* enum virNetDevVPortProfile */
+
+    /*
+     * Array of pointers to saved data. Each VIF will have it's own
+     * data to transfer.
+     */
+    char *portdata;
+};
+
+typedef struct _qemuMigrationCookieNetwork qemuMigrationCookieNetwork;
+typedef qemuMigrationCookieNetwork *qemuMigrationCookieNetworkPtr;
+struct _qemuMigrationCookieNetwork {
+    /* How many virtual NICs are we saving data for? */
+    int nnets;
+
+    qemuMigrationCookieNetDataPtr net;
 };
 
 typedef struct _qemuMigrationCookie qemuMigrationCookie;
@@ -120,6 +144,9 @@ struct _qemuMigrationCookie {
 
     /* If (flags & QEMU_MIGRATION_COOKIE_PERSISTENT) */
     virDomainDefPtr persistent;
+
+    /* If (flags & QEMU_MIGRATION_COOKIE_NETWORK) */
+    qemuMigrationCookieNetworkPtr network;
 };
 
 static void qemuMigrationCookieGraphicsFree(qemuMigrationCookieGraphicsPtr grap)
@@ -132,6 +159,23 @@ static void qemuMigrationCookieGraphicsFree(qemuMigrationCookieGraphicsPtr grap)
 }
 
 
+static void
+qemuMigrationCookieNetworkFree(qemuMigrationCookieNetworkPtr network)
+{
+    int i;
+
+    if (!network)
+        return;
+
+    if (network->net) {
+        for (i = 0; i < network->nnets; i++)
+            VIR_FREE(network->net[i].portdata);
+    }
+    VIR_FREE(network->net);
+    VIR_FREE(network);
+}
+
+
 static void qemuMigrationCookieFree(qemuMigrationCookiePtr mig)
 {
     if (!mig)
@@ -139,6 +183,9 @@ static void qemuMigrationCookieFree(qemuMigrationCookiePtr mig)
 
     if (mig->flags & QEMU_MIGRATION_COOKIE_GRAPHICS)
         qemuMigrationCookieGraphicsFree(mig->graphics);
+
+    if (mig->flags & QEMU_MIGRATION_COOKIE_NETWORK)
+        qemuMigrationCookieNetworkFree(mig->network);
 
     VIR_FREE(mig->localHostname);
     VIR_FREE(mig->remoteHostname);
@@ -256,6 +303,59 @@ error:
 }
 
 
+static qemuMigrationCookieNetworkPtr
+qemuMigrationCookieNetworkAlloc(struct qemud_driver *driver ATTRIBUTE_UNUSED,
+                                virDomainDefPtr def)
+{
+    qemuMigrationCookieNetworkPtr mig;
+    int i;
+
+    if (VIR_ALLOC(mig) < 0)
+        goto no_memory;
+
+    mig->nnets = def->nnets;
+
+    if (VIR_ALLOC_N(mig->net, def->nnets) <0)
+        goto no_memory;
+
+    for (i = 0; i < def->nnets; i++) {
+        virDomainNetDefPtr netptr;
+        virNetDevVPortProfilePtr vport;
+
+        netptr = def->nets[i];
+        vport = virDomainNetGetActualVirtPortProfile(netptr);
+
+        if (vport) {
+            mig->net[i].vporttype = vport->virtPortType;
+
+            switch (vport->virtPortType) {
+            case VIR_NETDEV_VPORT_PROFILE_NONE:
+            case VIR_NETDEV_VPORT_PROFILE_8021QBG:
+            case VIR_NETDEV_VPORT_PROFILE_8021QBH:
+               break;
+            case VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH:
+                if (virNetDevOpenvswitchGetMigrateData(&mig->net[i].portdata,
+                                                       netptr->ifname) != 0) {
+                        virReportSystemError(VIR_ERR_INTERNAL_ERROR,
+                                             _("Unable to run command to get OVS port data for "
+                                             "interface %s"), netptr->ifname);
+                        goto error;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    return mig;
+
+no_memory:
+    virReportOOMError();
+error:
+    qemuMigrationCookieNetworkFree(mig);
+    return NULL;
+}
+
 static qemuMigrationCookiePtr
 qemuMigrationCookieNew(virDomainObjPtr dom)
 {
@@ -370,6 +470,27 @@ qemuMigrationCookieAddPersistent(qemuMigrationCookiePtr mig,
 }
 
 
+static int
+qemuMigrationCookieAddNetwork(qemuMigrationCookiePtr mig,
+                              struct qemud_driver *driver,
+                              virDomainObjPtr dom)
+{
+    if (mig->flags & QEMU_MIGRATION_COOKIE_NETWORK) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Network migration data already present"));
+        return -1;
+    }
+
+    if (dom->def->nnets > 0) {
+        mig->network = qemuMigrationCookieNetworkAlloc(driver, dom->def);
+        if (!mig->network)
+            return -1;
+        mig->flags |= QEMU_MIGRATION_COOKIE_NETWORK;
+    }
+
+    return 0;
+}
+
 
 static void qemuMigrationCookieGraphicsXMLFormat(virBufferPtr buf,
                                                  qemuMigrationCookieGraphicsPtr grap)
@@ -386,6 +507,37 @@ static void qemuMigrationCookieGraphicsXMLFormat(virBufferPtr buf,
     } else {
         virBufferAddLit(buf, "/>\n");
     }
+}
+
+
+static void
+qemuMigrationCookieNetworkXMLFormat(virBufferPtr buf,
+                                    qemuMigrationCookieNetworkPtr optr)
+{
+    int i;
+    bool empty = true;
+
+    for (i = 0; i < optr->nnets; i++) {
+        /* If optr->net[i].vporttype is not set, there is nothing to transfer */
+        if (optr->net[i].vporttype != VIR_NETDEV_VPORT_PROFILE_NONE) {
+            if (empty) {
+                virBufferAsprintf(buf, "  <network>\n");
+                empty = false;
+            }
+            virBufferAsprintf(buf, "    <interface index='%d' vporttype='%s'",
+                              i, virNetDevVPortTypeToString(optr->net[i].vporttype));
+            if (optr->net[i].portdata) {
+                virBufferAddLit(buf, ">\n");
+                virBufferEscapeString(buf, "      <portdata>%s</portdata>\n",
+                                      optr->net[i].portdata);
+                virBufferAddLit(buf, "    </interface>\n");
+            } else {
+                virBufferAddLit(buf, "/>\n");
+            }
+        }
+    }
+    if (!empty)
+        virBufferAddLit(buf, "  </network>\n");
 }
 
 
@@ -432,12 +584,15 @@ qemuMigrationCookieXMLFormat(struct qemud_driver *driver,
         if (qemuDomainDefFormatBuf(driver,
                                    mig->persistent,
                                    VIR_DOMAIN_XML_INACTIVE |
-                                   VIR_DOMAIN_XML_SECURE,
-                                   true,
+                                   VIR_DOMAIN_XML_SECURE |
+                                   VIR_DOMAIN_XML_MIGRATABLE,
                                    buf) < 0)
             return -1;
         virBufferAdjustIndent(buf, -2);
     }
+
+    if ((mig->flags & QEMU_MIGRATION_COOKIE_NETWORK) && mig->network)
+        qemuMigrationCookieNetworkXMLFormat(buf, mig->network);
 
     virBufferAddLit(buf, "</qemu-migration>\n");
     return 0;
@@ -516,6 +671,58 @@ error:
 }
 
 
+static qemuMigrationCookieNetworkPtr
+qemuMigrationCookieNetworkXMLParse(xmlXPathContextPtr ctxt)
+{
+    qemuMigrationCookieNetworkPtr optr;
+    int i;
+    int n;
+    xmlNodePtr *interfaces = NULL;
+    char *vporttype;
+    xmlNodePtr save_ctxt = ctxt->node;
+
+    if (VIR_ALLOC(optr) < 0)
+        goto no_memory;
+
+    if ((n = virXPathNodeSet("./network/interface", ctxt, &interfaces)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("missing interface information"));
+        goto error;
+    }
+
+    optr->nnets = n;
+    if (VIR_ALLOC_N(optr->net, optr->nnets) <0)
+        goto no_memory;
+
+    for (i = 0; i < n; i++) {
+        /* portdata is optional, and may not exist */
+        ctxt->node = interfaces[i];
+        optr->net[i].portdata = virXPathString("string(./portdata[1])", ctxt);
+
+        if (!(vporttype = virXMLPropString(interfaces[i], "vporttype"))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("missing vporttype attribute in migration data"));
+            goto error;
+        }
+        optr->net[i].vporttype = virNetDevVPortTypeFromString(vporttype);
+    }
+
+    VIR_FREE(interfaces);
+
+cleanup:
+    ctxt->node = save_ctxt;
+    return optr;
+
+no_memory:
+    virReportOOMError();
+error:
+    VIR_FREE(interfaces);
+    qemuMigrationCookieNetworkFree(optr);
+    optr = NULL;
+    goto cleanup;
+}
+
+
 static int
 qemuMigrationCookieXMLParse(qemuMigrationCookiePtr mig,
                             struct qemud_driver *driver,
@@ -576,22 +783,23 @@ qemuMigrationCookieXMLParse(qemuMigrationCookiePtr mig,
     }
 
     if (!(tmp = virXPathString("string(./hostuuid[1])", ctxt))) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("missing hostuuid element in migration data"));
-        goto error;
+        VIR_WARN("Missing hostuuid element in migration data; cannot "
+                 "detect migration to the same host");
+    } else {
+        if (virUUIDParse(tmp, mig->remoteHostuuid) < 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("malformed hostuuid element in migration data"));
+            goto error;
+        }
+        if (memcmp(mig->remoteHostuuid, mig->localHostuuid,
+                   VIR_UUID_BUFLEN) == 0) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Attempt to migrate guest to the same host %s"),
+                           tmp);
+            goto error;
+        }
+        VIR_FREE(tmp);
     }
-    if (virUUIDParse(tmp, mig->remoteHostuuid) < 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("malformed hostuuid element in migration data"));
-        goto error;
-    }
-    if (memcmp(mig->remoteHostuuid, mig->localHostuuid, VIR_UUID_BUFLEN) == 0) {
-        virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Attempt to migrate guest to the same host %s"),
-                       tmp);
-        goto error;
-    }
-    VIR_FREE(tmp);
 
     /* Check to ensure all mandatory features from XML are also
      * present in 'flags' */
@@ -662,6 +870,11 @@ qemuMigrationCookieXMLParse(qemuMigrationCookiePtr mig,
         VIR_FREE(nodes);
     }
 
+    if ((flags & QEMU_MIGRATION_COOKIE_NETWORK) &&
+        virXPathBoolean("count(./network) > 0", ctxt) &&
+        (!(mig->network = qemuMigrationCookieNetworkXMLParse(ctxt))))
+        goto error;
+
     return 0;
 
 error:
@@ -720,6 +933,11 @@ qemuMigrationBakeCookie(qemuMigrationCookiePtr mig,
     if (flags & QEMU_MIGRATION_COOKIE_PERSISTENT &&
         qemuMigrationCookieAddPersistent(mig, dom) < 0)
         return -1;
+
+    if (flags & QEMU_MIGRATION_COOKIE_NETWORK &&
+        qemuMigrationCookieAddNetwork(mig, driver, dom) < 0) {
+        return -1;
+    }
 
     if (!(*cookieout = qemuMigrationCookieXMLFormatStr(driver, mig)))
         return -1;
@@ -800,6 +1018,8 @@ qemuMigrationIsAllowed(struct qemud_driver *driver, virDomainObjPtr vm,
                        virDomainDefPtr def)
 {
     int nsnapshots;
+    bool forbid;
+    int i;
 
     if (vm) {
         if (qemuProcessAutoDestroyActive(driver, vm)) {
@@ -817,9 +1037,23 @@ qemuMigrationIsAllowed(struct qemud_driver *driver, virDomainObjPtr vm,
 
         def = vm->def;
     }
-    if (def->nhostdevs > 0) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       "%s", _("Domain with assigned host devices cannot be migrated"));
+
+    /* Migration with USB host devices is allowed, all other devices are
+     * forbidden.
+     */
+    forbid = false;
+    for (i = 0; i < def->nhostdevs; i++) {
+        virDomainHostdevDefPtr hostdev = def->hostdevs[i];
+        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
+            hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB) {
+            forbid = true;
+            break;
+        }
+    }
+    if (forbid) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("Domain with assigned non-USB host devices "
+                         "cannot be migrated"));
         return false;
     }
 
@@ -896,9 +1130,18 @@ qemuMigrationUpdateJobStatus(struct qemud_driver *driver,
     qemuDomainObjPrivatePtr priv = vm->privateData;
     int ret;
     int status;
+    bool wait_for_spice = false;
+    bool spice_migrated = false;
     unsigned long long memProcessed;
     unsigned long long memRemaining;
     unsigned long long memTotal;
+
+    /* If guest uses SPICE and supports seamles_migration we have to hold up
+     * migration finish until SPICE server transfers its data */
+    if (vm->def->ngraphics == 1 &&
+        vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE &&
+        qemuCapsGet(priv->caps, QEMU_CAPS_SEAMLESS_MIGRATION))
+        wait_for_spice = true;
 
     ret = qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob);
     if (ret < 0) {
@@ -910,6 +1153,13 @@ qemuMigrationUpdateJobStatus(struct qemud_driver *driver,
                                         &memProcessed,
                                         &memRemaining,
                                         &memTotal);
+
+    /* If qemu says migrated, check spice */
+    if (wait_for_spice && (ret == 0) &&
+        (status == QEMU_MONITOR_MIGRATION_STATUS_COMPLETED))
+        ret = qemuMonitorGetSpiceMigrationStatus(priv->mon,
+                                                 &spice_migrated);
+
     qemuDomainObjExitMonitorWithDriver(driver, vm);
 
     if (ret < 0 || virTimeMillisNow(&priv->job.info.timeElapsed) < 0) {
@@ -939,7 +1189,8 @@ qemuMigrationUpdateJobStatus(struct qemud_driver *driver,
         break;
 
     case QEMU_MONITOR_MIGRATION_STATUS_COMPLETED:
-        priv->job.info.type = VIR_DOMAIN_JOB_COMPLETED;
+        if ((wait_for_spice && spice_migrated) || (!wait_for_spice))
+            priv->job.info.type = VIR_DOMAIN_JOB_COMPLETED;
         ret = 0;
         break;
 
@@ -1046,6 +1297,43 @@ qemuDomainMigrateGraphicsRelocate(struct qemud_driver *driver,
         qemuDomainObjExitMonitorWithDriver(driver, vm);
     }
 
+    return ret;
+}
+
+
+static int
+qemuDomainMigrateOPDRelocate(struct qemud_driver *driver ATTRIBUTE_UNUSED,
+                             virDomainObjPtr vm,
+                             qemuMigrationCookiePtr cookie)
+{
+    virDomainNetDefPtr netptr;
+    int ret = -1;
+    int i;
+
+    for (i = 0; i < cookie->network->nnets; i++) {
+        netptr = vm->def->nets[i];
+
+        switch (cookie->network->net[i].vporttype) {
+        case VIR_NETDEV_VPORT_PROFILE_NONE:
+        case VIR_NETDEV_VPORT_PROFILE_8021QBG:
+        case VIR_NETDEV_VPORT_PROFILE_8021QBH:
+           break;
+        case VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH:
+            if (virNetDevOpenvswitchSetMigrateData(cookie->network->net[i].portdata,
+                                                   netptr->ifname) != 0) {
+                virReportSystemError(VIR_ERR_INTERNAL_ERROR,
+                                     _("Unable to run command to set OVS port data for "
+                                     "interface %s"), netptr->ifname);
+                goto cleanup;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    ret = 0;
+cleanup:
     return ret;
 }
 
@@ -1247,7 +1535,8 @@ qemuMigrationPrepareAny(struct qemud_driver *driver,
         int hookret;
 
         if (!(xml = qemuDomainDefFormatXML(driver, def,
-                                           VIR_DOMAIN_XML_SECURE, false)))
+                                           VIR_DOMAIN_XML_SECURE |
+                                           VIR_DOMAIN_XML_MIGRATABLE)))
             goto cleanup;
 
         hookret = virHookCall(VIR_HOOK_DRIVER_QEMU, def->name,
@@ -1994,8 +2283,10 @@ cleanup:
 
     if (ret == 0 &&
         qemuMigrationBakeCookie(mig, driver, vm, cookieout, cookieoutlen,
-                                QEMU_MIGRATION_COOKIE_PERSISTENT ) < 0)
+                                QEMU_MIGRATION_COOKIE_PERSISTENT |
+                                QEMU_MIGRATION_COOKIE_NETWORK) < 0) {
         VIR_WARN("Unable to encode migration cookie");
+    }
 
     qemuMigrationCookieFree(mig);
 
@@ -2196,9 +2487,8 @@ static int doPeer2PeerMigrate2(struct qemud_driver *driver,
      * and pass it to Prepare2.
      */
     if (!(dom_xml = qemuDomainFormatXML(driver, vm,
-                                        VIR_DOMAIN_XML_SECURE |
-                                        VIR_DOMAIN_XML_UPDATE_CPU,
-                                        true)))
+                                        QEMU_DOMAIN_FORMAT_LIVE_FLAGS |
+                                        VIR_DOMAIN_XML_MIGRATABLE)))
         return -1;
 
     if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_PAUSED)
@@ -2624,10 +2914,10 @@ qemuMigrationPerformJob(struct qemud_driver *driver,
     }
 
     if (!qemuMigrationIsAllowed(driver, vm, NULL))
-        goto cleanup;
+        goto endjob;
 
     if (!(flags & VIR_MIGRATE_UNSAFE) && !qemuMigrationIsSafe(vm->def))
-        goto cleanup;
+        goto endjob;
 
     resume = virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING;
 
@@ -2929,6 +3219,7 @@ qemuMigrationFinish(struct qemud_driver *driver,
 
     qemuDomainCleanupRemove(vm, qemuMigrationPrepareCleanup);
 
+    cookie_flags = QEMU_MIGRATION_COOKIE_NETWORK;
     if (flags & VIR_MIGRATE_PERSIST_DEST)
         cookie_flags |= QEMU_MIGRATION_COOKIE_PERSISTENT;
 
@@ -2955,6 +3246,10 @@ qemuMigrationFinish(struct qemud_driver *driver,
                                              VIR_DOMAIN_EVENT_STOPPED_FAILED);
             goto endjob;
         }
+
+        if (mig->network)
+            if (qemuDomainMigrateOPDRelocate(driver, vm, mig) < 0)
+                VIR_WARN("unable to provide network data for relocation");
 
         if (flags & VIR_MIGRATE_PERSIST_DEST) {
             virDomainDefPtr vmdef;

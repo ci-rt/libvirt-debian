@@ -699,6 +699,7 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
 {
     int fdret, fd = -1;
     virCommandPtr cmd = NULL;
+    virErrorPtr err;
 
     if (vol->target.encryption != NULL) {
         virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
@@ -724,7 +725,8 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
                                NULL);
     virCommandAddArg(cmd, "-L");
     if (vol->capacity != vol->allocation) {
-        virCommandAddArgFormat(cmd, "%lluK", VIR_DIV_UP(vol->allocation, 1024));
+        virCommandAddArgFormat(cmd, "%lluK",
+                VIR_DIV_UP(vol->allocation ? vol->allocation : 1, 1024));
         virCommandAddArg(cmd, "--virtualsize");
     }
     virCommandAddArgFormat(cmd, "%lluK", VIR_DIV_UP(vol->capacity, 1024));
@@ -775,9 +777,11 @@ virStorageBackendLogicalCreateVol(virConnectPtr conn,
     return 0;
 
  cleanup:
+    err = virSaveLastError();
     VIR_FORCE_CLOSE(fd);
     virStorageBackendLogicalDeleteVol(conn, pool, vol, 0);
     virCommandFree(cmd);
+    virSetError(err);
     return -1;
 }
 

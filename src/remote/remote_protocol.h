@@ -2578,6 +2578,11 @@ struct remote_domain_event_balloon_change_msg {
 };
 typedef struct remote_domain_event_balloon_change_msg remote_domain_event_balloon_change_msg;
 
+struct remote_domain_event_pmsuspend_disk_msg {
+        remote_nonnull_domain dom;
+};
+typedef struct remote_domain_event_pmsuspend_disk_msg remote_domain_event_pmsuspend_disk_msg;
+
 struct remote_domain_managed_save_args {
         remote_nonnull_domain dom;
         u_int flags;
@@ -3136,6 +3141,22 @@ struct remote_node_get_memory_parameters_ret {
         int nparams;
 };
 typedef struct remote_node_get_memory_parameters_ret remote_node_get_memory_parameters_ret;
+
+struct remote_node_get_cpu_map_args {
+        int need_results;
+        u_int flags;
+};
+typedef struct remote_node_get_cpu_map_args remote_node_get_cpu_map_args;
+
+struct remote_node_get_cpu_map_ret {
+        struct {
+                u_int cpumap_len;
+                char *cpumap_val;
+        } cpumap;
+        u_int online;
+        int ret;
+};
+typedef struct remote_node_get_cpu_map_ret remote_node_get_cpu_map_ret;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -3431,6 +3452,8 @@ enum remote_procedure {
         REMOTE_PROC_NODE_GET_MEMORY_PARAMETERS = 289,
         REMOTE_PROC_DOMAIN_BLOCK_COMMIT = 290,
         REMOTE_PROC_NETWORK_UPDATE = 291,
+        REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND_DISK = 292,
+        REMOTE_PROC_NODE_GET_CPU_MAP = 293,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -3833,6 +3856,7 @@ extern  bool_t xdr_remote_domain_event_tray_change_msg (XDR *, remote_domain_eve
 extern  bool_t xdr_remote_domain_event_pmwakeup_msg (XDR *, remote_domain_event_pmwakeup_msg*);
 extern  bool_t xdr_remote_domain_event_pmsuspend_msg (XDR *, remote_domain_event_pmsuspend_msg*);
 extern  bool_t xdr_remote_domain_event_balloon_change_msg (XDR *, remote_domain_event_balloon_change_msg*);
+extern  bool_t xdr_remote_domain_event_pmsuspend_disk_msg (XDR *, remote_domain_event_pmsuspend_disk_msg*);
 extern  bool_t xdr_remote_domain_managed_save_args (XDR *, remote_domain_managed_save_args*);
 extern  bool_t xdr_remote_domain_has_managed_save_image_args (XDR *, remote_domain_has_managed_save_image_args*);
 extern  bool_t xdr_remote_domain_has_managed_save_image_ret (XDR *, remote_domain_has_managed_save_image_ret*);
@@ -3910,6 +3934,8 @@ extern  bool_t xdr_remote_connect_list_all_secrets_ret (XDR *, remote_connect_li
 extern  bool_t xdr_remote_node_set_memory_parameters_args (XDR *, remote_node_set_memory_parameters_args*);
 extern  bool_t xdr_remote_node_get_memory_parameters_args (XDR *, remote_node_get_memory_parameters_args*);
 extern  bool_t xdr_remote_node_get_memory_parameters_ret (XDR *, remote_node_get_memory_parameters_ret*);
+extern  bool_t xdr_remote_node_get_cpu_map_args (XDR *, remote_node_get_cpu_map_args*);
+extern  bool_t xdr_remote_node_get_cpu_map_ret (XDR *, remote_node_get_cpu_map_ret*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -4309,6 +4335,7 @@ extern bool_t xdr_remote_domain_event_tray_change_msg ();
 extern bool_t xdr_remote_domain_event_pmwakeup_msg ();
 extern bool_t xdr_remote_domain_event_pmsuspend_msg ();
 extern bool_t xdr_remote_domain_event_balloon_change_msg ();
+extern bool_t xdr_remote_domain_event_pmsuspend_disk_msg ();
 extern bool_t xdr_remote_domain_managed_save_args ();
 extern bool_t xdr_remote_domain_has_managed_save_image_args ();
 extern bool_t xdr_remote_domain_has_managed_save_image_ret ();
@@ -4386,6 +4413,8 @@ extern bool_t xdr_remote_connect_list_all_secrets_ret ();
 extern bool_t xdr_remote_node_set_memory_parameters_args ();
 extern bool_t xdr_remote_node_get_memory_parameters_args ();
 extern bool_t xdr_remote_node_get_memory_parameters_ret ();
+extern bool_t xdr_remote_node_get_cpu_map_args ();
+extern bool_t xdr_remote_node_get_cpu_map_ret ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

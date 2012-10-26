@@ -126,7 +126,7 @@ class virEventLoopPure:
         self.poll.register(self.pipetrick[0], select.POLLIN)
 
 
-    # Calculate when the next timeout is due to occurr, returning
+    # Calculate when the next timeout is due to occur, returning
     # the absolute timestamp for the next timeout, or 0 if there is
     # no timeout due
     def next_timeout(self):
@@ -169,7 +169,7 @@ class virEventLoopPure:
     #
     # Due to the coarse granularity of schedular timeslices, if
     # we ask for a sleep of 500ms in order to satisfy a timer, we
-    # may return upto 1 schedular timeslice early. So even though
+    # may return up to 1 schedular timeslice early. So even though
     # our sleep timeout was reached, the registered timer may not
     # technically be at its expiry point. This leads to us going
     # back around the loop with a crazy 5ms sleep. So when checking
@@ -449,7 +449,7 @@ def detailToString(event, detail):
         ( "Unpaused", "Migrated", "Snapshot" ),
         ( "Shutdown", "Destroyed", "Crashed", "Migrated", "Saved", "Failed", "Snapshot"),
         ( "Finished", ),
-        ( "Memory", )
+        ( "Memory", "Disk" )
         )
     return eventStrings[event][detail]
 
@@ -492,6 +492,9 @@ def myDomainEventPMSuspendCallback(conn, dom, reason, opaque):
             dom.name(), dom.ID())
 def myDomainEventBalloonChangeCallback(conn, dom, utcoffset, actual):
     print "myDomainEventBalloonChangeCallback: Domain %s(%s) %d" % (dom.name(), dom.ID(), actual)
+def myDomainEventPMSuspendDiskCallback(conn, dom, reason, opaque):
+    print "myDomainEventPMSuspendDiskCallback: Domain %s(%s) system pmsuspend_disk" % (
+            dom.name(), dom.ID())
 def usage(out=sys.stderr):
     print >>out, "usage: "+os.path.basename(sys.argv[0])+" [-hdl] [uri]"
     print >>out, "   uri will default to qemu:///system"
@@ -554,6 +557,7 @@ def main():
     vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_PMWAKEUP, myDomainEventPMWakeupCallback, None)
     vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_PMSUSPEND, myDomainEventPMSuspendCallback, None)
     vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE, myDomainEventBalloonChangeCallback, None)
+    vc.domainEventRegisterAny(None, libvirt.VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK, myDomainEventPMSuspendDiskCallback, None)
 
     vc.setKeepAlive(5, 3)
 

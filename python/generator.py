@@ -259,8 +259,8 @@ py_types = {
     'double':  ('d', None, "double", "double"),
     'unsigned int':  ('i', None, "int", "int"),
     'unsigned long':  ('l', None, "long", "long"),
-    'long long':  ('l', None, "longlong", "long long"),
-    'unsigned long long':  ('l', None, "longlong", "long long"),
+    'long long':  ('L', None, "longlong", "long long"),
+    'unsigned long long':  ('L', None, "longlong", "long long"),
     'unsigned char *':  ('z', None, "charPtr", "char *"),
     'char *':  ('z', None, "charPtr", "char *"),
     'const char *':  ('z', None, "constcharPtr", "const char *"),
@@ -429,6 +429,7 @@ skip_impl = (
     'virConnectRegisterCloseCallback',
     'virNodeGetMemoryParameters',
     'virNodeSetMemoryParameters',
+    'virNodeGetCPUMap',
 )
 
 qemu_skip_impl = (

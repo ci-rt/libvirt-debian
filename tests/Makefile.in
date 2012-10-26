@@ -463,11 +463,12 @@ am__EXEEXT_14 = virshtest$(EXEEXT) sockettest$(EXEEXT) \
 	virnettlscontexttest$(EXEEXT) shunloadtest$(EXEEXT) \
 	virtimetest$(EXEEXT) viruritest$(EXEEXT) \
 	virkeyfiletest$(EXEEXT) virauthconfigtest$(EXEEXT) \
-	virbitmaptest$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2) \
-	$(am__EXEEXT_3) $(am__EXEEXT_4) $(am__EXEEXT_5) \
-	$(am__EXEEXT_6) $(am__EXEEXT_7) $(am__EXEEXT_8) \
-	$(am__EXEEXT_9) $(am__EXEEXT_10) networkxml2xmltest$(EXEEXT) \
-	$(am__EXEEXT_11) $(am__EXEEXT_12) nwfilterxml2xmltest$(EXEEXT) \
+	virbitmaptest$(EXEEXT) virlockspacetest$(EXEEXT) \
+	$(am__EXEEXT_1) $(am__EXEEXT_2) $(am__EXEEXT_3) \
+	$(am__EXEEXT_4) $(am__EXEEXT_5) $(am__EXEEXT_6) \
+	$(am__EXEEXT_7) $(am__EXEEXT_8) $(am__EXEEXT_9) \
+	$(am__EXEEXT_10) networkxml2xmltest$(EXEEXT) $(am__EXEEXT_11) \
+	$(am__EXEEXT_12) nwfilterxml2xmltest$(EXEEXT) \
 	storagevolxml2xmltest$(EXEEXT) storagepoolxml2xmltest$(EXEEXT) \
 	nodedevxml2xmltest$(EXEEXT) interfacexml2xmltest$(EXEEXT) \
 	cputest$(EXEEXT) $(am__EXEEXT_13)
@@ -730,6 +731,15 @@ virkeyfiletest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(virkeyfiletest_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o \
 	$@
+am_virlockspacetest_OBJECTS =  \
+	virlockspacetest-virlockspacetest.$(OBJEXT) \
+	virlockspacetest-testutils.$(OBJEXT)
+virlockspacetest_OBJECTS = $(am_virlockspacetest_OBJECTS)
+virlockspacetest_DEPENDENCIES = $(am__DEPENDENCIES_2)
+virlockspacetest_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(virlockspacetest_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
+	-o $@
 am_virnetmessagetest_OBJECTS =  \
 	virnetmessagetest-virnetmessagetest.$(OBJEXT) \
 	virnetmessagetest-testutils.$(OBJEXT)
@@ -855,12 +865,13 @@ SOURCES = $(libqemumonitortestutils_la_SOURCES) \
 	$(viratomictest_SOURCES) $(virauthconfigtest_SOURCES) \
 	$(virbitmaptest_SOURCES) $(virbuftest_SOURCES) \
 	$(virdrivermoduletest_SOURCES) $(virhashtest_SOURCES) \
-	$(virkeyfiletest_SOURCES) $(virnetmessagetest_SOURCES) \
-	$(virnetsockettest_SOURCES) $(virnettlscontexttest_SOURCES) \
-	$(virshtest_SOURCES) $(virtimetest_SOURCES) \
-	$(viruritest_SOURCES) $(vmx2xmltest_SOURCES) \
-	$(xencapstest_SOURCES) $(xmconfigtest_SOURCES) \
-	$(xml2sexprtest_SOURCES) $(xml2vmxtest_SOURCES)
+	$(virkeyfiletest_SOURCES) $(virlockspacetest_SOURCES) \
+	$(virnetmessagetest_SOURCES) $(virnetsockettest_SOURCES) \
+	$(virnettlscontexttest_SOURCES) $(virshtest_SOURCES) \
+	$(virtimetest_SOURCES) $(viruritest_SOURCES) \
+	$(vmx2xmltest_SOURCES) $(xencapstest_SOURCES) \
+	$(xmconfigtest_SOURCES) $(xml2sexprtest_SOURCES) \
+	$(xml2vmxtest_SOURCES)
 DIST_SOURCES = $(am__libqemumonitortestutils_la_SOURCES_DIST) \
 	$(am__libsecurityselinuxhelper_la_SOURCES_DIST) \
 	$(libshunload_la_SOURCES) $(commandhelper_SOURCES) \
@@ -893,8 +904,8 @@ DIST_SOURCES = $(am__libqemumonitortestutils_la_SOURCES_DIST) \
 	$(viratomictest_SOURCES) $(virauthconfigtest_SOURCES) \
 	$(virbitmaptest_SOURCES) $(virbuftest_SOURCES) \
 	$(am__virdrivermoduletest_SOURCES_DIST) $(virhashtest_SOURCES) \
-	$(virkeyfiletest_SOURCES) $(virnetmessagetest_SOURCES) \
-	$(virnetsockettest_SOURCES) \
+	$(virkeyfiletest_SOURCES) $(virlockspacetest_SOURCES) \
+	$(virnetmessagetest_SOURCES) $(virnetsockettest_SOURCES) \
 	$(am__virnettlscontexttest_SOURCES_DIST) $(virshtest_SOURCES) \
 	$(virtimetest_SOURCES) $(viruritest_SOURCES) \
 	$(am__vmx2xmltest_SOURCES_DIST) \
@@ -2129,6 +2140,7 @@ REPLACE_PREAD = @REPLACE_PREAD@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PSELECT = @REPLACE_PSELECT@
 REPLACE_PTHREAD_SIGMASK = @REPLACE_PTHREAD_SIGMASK@
+REPLACE_PTSNAME = @REPLACE_PTSNAME@
 REPLACE_PTSNAME_R = @REPLACE_PTSNAME_R@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
@@ -2381,12 +2393,12 @@ test_programs = virshtest sockettest nodeinfotest virbuftest \
 	commandtest seclabeltest virhashtest virnetmessagetest \
 	virnetsockettest viratomictest utiltest virnettlscontexttest \
 	shunloadtest virtimetest viruritest virkeyfiletest \
-	virauthconfigtest virbitmaptest $(am__append_3) \
-	$(am__append_4) $(am__append_5) $(am__append_6) \
-	$(am__append_7) $(am__append_8) $(am__append_9) \
-	$(am__append_10) $(am__append_11) $(am__append_12) \
-	networkxml2xmltest $(am__append_13) $(am__append_14) \
-	nwfilterxml2xmltest storagevolxml2xmltest \
+	virauthconfigtest virbitmaptest virlockspacetest $(NULL) \
+	$(am__append_3) $(am__append_4) $(am__append_5) \
+	$(am__append_6) $(am__append_7) $(am__append_8) \
+	$(am__append_9) $(am__append_10) $(am__append_11) \
+	$(am__append_12) networkxml2xmltest $(am__append_13) \
+	$(am__append_14) nwfilterxml2xmltest storagevolxml2xmltest \
 	storagepoolxml2xmltest nodedevxml2xmltest interfacexml2xmltest \
 	cputest $(am__append_16)
 
@@ -2630,6 +2642,11 @@ virtimetest_SOURCES = \
 
 virtimetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virtimetest_LDADD = $(LDADDS)
+virlockspacetest_SOURCES = \
+	virlockspacetest.c testutils.h testutils.c
+
+virlockspacetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virlockspacetest_LDADD = $(LDADDS)
 viruritest_SOURCES = \
 	viruritest.c testutils.h testutils.c
 
@@ -2917,6 +2934,9 @@ virhashtest$(EXEEXT): $(virhashtest_OBJECTS) $(virhashtest_DEPENDENCIES) $(EXTRA
 virkeyfiletest$(EXEEXT): $(virkeyfiletest_OBJECTS) $(virkeyfiletest_DEPENDENCIES) $(EXTRA_virkeyfiletest_DEPENDENCIES) 
 	@rm -f virkeyfiletest$(EXEEXT)
 	$(AM_V_CCLD)$(virkeyfiletest_LINK) $(virkeyfiletest_OBJECTS) $(virkeyfiletest_LDADD) $(LIBS)
+virlockspacetest$(EXEEXT): $(virlockspacetest_OBJECTS) $(virlockspacetest_DEPENDENCIES) $(EXTRA_virlockspacetest_DEPENDENCIES) 
+	@rm -f virlockspacetest$(EXEEXT)
+	$(AM_V_CCLD)$(virlockspacetest_LINK) $(virlockspacetest_OBJECTS) $(virlockspacetest_LDADD) $(LIBS)
 virnetmessagetest$(EXEEXT): $(virnetmessagetest_OBJECTS) $(virnetmessagetest_DEPENDENCIES) $(EXTRA_virnetmessagetest_DEPENDENCIES) 
 	@rm -f virnetmessagetest$(EXEEXT)
 	$(AM_V_CCLD)$(virnetmessagetest_LINK) $(virnetmessagetest_OBJECTS) $(virnetmessagetest_LDADD) $(LIBS)
@@ -3016,6 +3036,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virhashtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virkeyfiletest-testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virkeyfiletest-virkeyfiletest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virlockspacetest-testutils.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virlockspacetest-virlockspacetest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnetmessagetest-testutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnetmessagetest-virnetmessagetest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/virnetsockettest-testutils.Po@am__quote@
@@ -3306,6 +3328,34 @@ virkeyfiletest-testutils.obj: testutils.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='testutils.c' object='virkeyfiletest-testutils.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virkeyfiletest_CFLAGS) $(CFLAGS) -c -o virkeyfiletest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+
+virlockspacetest-virlockspacetest.o: virlockspacetest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virlockspacetest_CFLAGS) $(CFLAGS) -MT virlockspacetest-virlockspacetest.o -MD -MP -MF $(DEPDIR)/virlockspacetest-virlockspacetest.Tpo -c -o virlockspacetest-virlockspacetest.o `test -f 'virlockspacetest.c' || echo '$(srcdir)/'`virlockspacetest.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virlockspacetest-virlockspacetest.Tpo $(DEPDIR)/virlockspacetest-virlockspacetest.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virlockspacetest.c' object='virlockspacetest-virlockspacetest.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virlockspacetest_CFLAGS) $(CFLAGS) -c -o virlockspacetest-virlockspacetest.o `test -f 'virlockspacetest.c' || echo '$(srcdir)/'`virlockspacetest.c
+
+virlockspacetest-virlockspacetest.obj: virlockspacetest.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virlockspacetest_CFLAGS) $(CFLAGS) -MT virlockspacetest-virlockspacetest.obj -MD -MP -MF $(DEPDIR)/virlockspacetest-virlockspacetest.Tpo -c -o virlockspacetest-virlockspacetest.obj `if test -f 'virlockspacetest.c'; then $(CYGPATH_W) 'virlockspacetest.c'; else $(CYGPATH_W) '$(srcdir)/virlockspacetest.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virlockspacetest-virlockspacetest.Tpo $(DEPDIR)/virlockspacetest-virlockspacetest.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='virlockspacetest.c' object='virlockspacetest-virlockspacetest.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virlockspacetest_CFLAGS) $(CFLAGS) -c -o virlockspacetest-virlockspacetest.obj `if test -f 'virlockspacetest.c'; then $(CYGPATH_W) 'virlockspacetest.c'; else $(CYGPATH_W) '$(srcdir)/virlockspacetest.c'; fi`
+
+virlockspacetest-testutils.o: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virlockspacetest_CFLAGS) $(CFLAGS) -MT virlockspacetest-testutils.o -MD -MP -MF $(DEPDIR)/virlockspacetest-testutils.Tpo -c -o virlockspacetest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virlockspacetest-testutils.Tpo $(DEPDIR)/virlockspacetest-testutils.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='testutils.c' object='virlockspacetest-testutils.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virlockspacetest_CFLAGS) $(CFLAGS) -c -o virlockspacetest-testutils.o `test -f 'testutils.c' || echo '$(srcdir)/'`testutils.c
+
+virlockspacetest-testutils.obj: testutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virlockspacetest_CFLAGS) $(CFLAGS) -MT virlockspacetest-testutils.obj -MD -MP -MF $(DEPDIR)/virlockspacetest-testutils.Tpo -c -o virlockspacetest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/virlockspacetest-testutils.Tpo $(DEPDIR)/virlockspacetest-testutils.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='testutils.c' object='virlockspacetest-testutils.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virlockspacetest_CFLAGS) $(CFLAGS) -c -o virlockspacetest-testutils.obj `if test -f 'testutils.c'; then $(CYGPATH_W) 'testutils.c'; else $(CYGPATH_W) '$(srcdir)/testutils.c'; fi`
 
 virnetmessagetest-virnetmessagetest.o: virnetmessagetest.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(virnetmessagetest_CFLAGS) $(CFLAGS) -MT virnetmessagetest-virnetmessagetest.o -MD -MP -MF $(DEPDIR)/virnetmessagetest-virnetmessagetest.Tpo -c -o virnetmessagetest-virnetmessagetest.o `test -f 'virnetmessagetest.c' || echo '$(srcdir)/'`virnetmessagetest.c

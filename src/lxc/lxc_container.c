@@ -63,6 +63,7 @@
 #include "virfile.h"
 #include "command.h"
 #include "virnetdev.h"
+#include "virprocess.h"
 
 #define VIR_FROM_THIS VIR_FROM_LXC
 
@@ -163,7 +164,7 @@ int lxcContainerHasReboot(void)
         virReportSystemError(errno, "%s",
                              _("Unable to clone to check reboot support"));
         return -1;
-    } else if (virPidWait(cpid, &status) < 0) {
+    } else if (virProcessWait(cpid, &status) < 0) {
         return -1;
     }
 
@@ -1191,6 +1192,8 @@ static int lxcContainerGetSubtree(const char *prefix,
     char **mounts = NULL;
     size_t nmounts = 0;
 
+    VIR_DEBUG("prefix=%s", prefix);
+
     *mountsret = NULL;
     *nmountsret = 0;
 
@@ -1528,7 +1531,8 @@ static int lxcContainerSetupPivotRoot(virDomainDefPtr vmDef,
     /* Some versions of Linux kernel don't let you overmount
      * the selinux filesystem, so make sure we kill it first
      */
-    if (lxcContainerUnmountSubtree(SELINUX_MOUNT, false) < 0)
+    if (STREQ(root->src, "/") &&
+        lxcContainerUnmountSubtree(SELINUX_MOUNT, false) < 0)
         goto cleanup;
 #endif
 
@@ -1998,7 +2002,7 @@ int lxcContainerAvailable(int features)
         VIR_DEBUG("clone call returned %s, container support is not enabled",
                   virStrerror(errno, ebuf, sizeof(ebuf)));
         return -1;
-    } else if (virPidWait(cpid, NULL) < 0) {
+    } else if (virProcessWait(cpid, NULL) < 0) {
         return -1;
     }
 

@@ -169,6 +169,8 @@ virLXCProcessReboot(virLXCDriverPtr driver,
     int ret = -1;
     virDomainDefPtr savedDef;
 
+    VIR_DEBUG("Faking reboot");
+
     if (conn) {
         virConnectRef(conn);
         autodestroy = true;
@@ -238,9 +240,7 @@ static void virLXCProcessCleanup(virLXCDriverPtr driver,
 
     if (priv->monitor) {
         virLXCMonitorClose(priv->monitor);
-        virLXCMonitorLock(priv->monitor);
-        if (virLXCMonitorUnref(priv->monitor) > 0)
-            virLXCMonitorUnlock(priv->monitor);
+        virObjectUnref(priv->monitor);
         priv->monitor = NULL;
     }
 
@@ -556,27 +556,15 @@ cleanup:
 }
 
 
-static void virLXCProcessMonitorDestroy(virLXCMonitorPtr mon,
-                                        virDomainObjPtr vm)
-{
-    virLXCDomainObjPrivatePtr priv;
-
-    virDomainObjLock(vm);
-    priv = vm->privateData;
-    if (priv->monitor == mon)
-        priv->monitor = NULL;
-    if (virObjectUnref(vm))
-        virDomainObjUnlock(vm);
-}
-
-
 extern virLXCDriverPtr lxc_driver;
-static void virLXCProcessMonitorEOFNotify(virLXCMonitorPtr mon ATTRIBUTE_UNUSED,
+static void virLXCProcessMonitorEOFNotify(virLXCMonitorPtr mon,
                                           virDomainObjPtr vm)
 {
     virLXCDriverPtr driver = lxc_driver;
     virDomainEventPtr event = NULL;
     virLXCDomainObjPrivatePtr priv;
+
+    VIR_DEBUG("mon=%p vm=%p", mon, vm);
 
     lxcDriverLock(driver);
     virDomainObjLock(vm);
@@ -651,7 +639,6 @@ static void virLXCProcessMonitorExitNotify(virLXCMonitorPtr mon ATTRIBUTE_UNUSED
 
 static virLXCMonitorCallbacks monitorCallbacks = {
     .eofNotify = virLXCProcessMonitorEOFNotify,
-    .destroy = virLXCProcessMonitorDestroy,
     .exitNotify = virLXCProcessMonitorExitNotify,
 };
 
@@ -675,8 +662,7 @@ static virLXCMonitorPtr virLXCProcessConnectMonitor(virLXCDriverPtr driver,
 
     if (virSecurityManagerClearSocketLabel(driver->securityManager, vm->def) < 0) {
         if (monitor) {
-            virLXCMonitorLock(monitor);
-            virLXCMonitorUnref(monitor);
+            virObjectUnref(monitor);
             monitor = NULL;
         }
         goto cleanup;
@@ -1198,9 +1184,7 @@ cleanup:
     }
     if (rc != 0) {
         if (priv->monitor) {
-            virLXCMonitorLock(priv->monitor);
-            if (virLXCMonitorUnref(priv->monitor) > 0)
-                virLXCMonitorUnlock(priv->monitor);
+            virObjectUnref(priv->monitor);
             priv->monitor = NULL;
         }
         virDomainConfVMNWFilterTeardown(vm);

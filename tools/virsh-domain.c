@@ -1308,7 +1308,7 @@ cmdBlockCommit(vshControl *ctl, const vshCmd *cmd)
     int timeout = 0;
     struct sigaction sig_action;
     struct sigaction old_sig_action;
-    sigset_t sigmask;
+    sigset_t sigmask, oldsigmask;
     struct timeval start;
     struct timeval curr;
     const char *path = NULL;
@@ -1361,7 +1361,11 @@ cmdBlockCommit(vshControl *ctl, const vshCmd *cmd)
 
     while (blocking) {
         virDomainBlockJobInfo info;
-        int result = virDomainGetBlockJobInfo(dom, path, &info, 0);
+        int result;
+
+        pthread_sigmask(SIG_BLOCK, &sigmask, &oldsigmask);
+        result = virDomainGetBlockJobInfo(dom, path, &info, 0);
+        pthread_sigmask(SIG_SETMASK, &oldsigmask, NULL);
 
         if (result < 0) {
             vshError(ctl, _("failed to query job for disk %s"), path);
@@ -1450,7 +1454,7 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
     int timeout = 0;
     struct sigaction sig_action;
     struct sigaction old_sig_action;
-    sigset_t sigmask;
+    sigset_t sigmask, oldsigmask;
     struct timeval start;
     struct timeval curr;
     const char *path = NULL;
@@ -1464,13 +1468,13 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
         }
         if (vshCommandOptInt(cmd, "timeout", &timeout) > 0) {
             if (timeout < 1) {
-                vshError(ctl, "%s", _("migrate: Invalid timeout"));
+                vshError(ctl, "%s", _("invalid timeout"));
                 return false;
             }
 
             /* Ensure that we can multiply by 1000 without overflowing. */
             if (timeout > INT_MAX / 1000) {
-                vshError(ctl, "%s", _("migrate: Timeout is too big"));
+                vshError(ctl, "%s", _("timeout is too big"));
                 return false;
             }
             timeout *= 1000;
@@ -1507,7 +1511,11 @@ cmdBlockCopy(vshControl *ctl, const vshCmd *cmd)
 
     while (blocking) {
         virDomainBlockJobInfo info;
-        int result = virDomainGetBlockJobInfo(dom, path, &info, 0);
+        int result;
+
+        pthread_sigmask(SIG_BLOCK, &sigmask, &oldsigmask);
+        result = virDomainGetBlockJobInfo(dom, path, &info, 0);
+        pthread_sigmask(SIG_SETMASK, &oldsigmask, NULL);
 
         if (result <= 0) {
             vshError(ctl, _("failed to query job for disk %s"), path);
@@ -1674,7 +1682,7 @@ cmdBlockPull(vshControl *ctl, const vshCmd *cmd)
     int timeout = 0;
     struct sigaction sig_action;
     struct sigaction old_sig_action;
-    sigset_t sigmask;
+    sigset_t sigmask, oldsigmask;
     struct timeval start;
     struct timeval curr;
     const char *path = NULL;
@@ -1727,7 +1735,11 @@ cmdBlockPull(vshControl *ctl, const vshCmd *cmd)
 
     while (blocking) {
         virDomainBlockJobInfo info;
-        int result = virDomainGetBlockJobInfo(dom, path, &info, 0);
+        int result;
+
+        pthread_sigmask(SIG_BLOCK, &sigmask, &oldsigmask);
+        result = virDomainGetBlockJobInfo(dom, path, &info, 0);
+        pthread_sigmask(SIG_SETMASK, &oldsigmask, NULL);
 
         if (result < 0) {
             vshError(ctl, _("failed to query job for disk %s"), path);
@@ -6399,6 +6411,7 @@ static const vshCmdOptDef opts_dumpxml[] = {
     {"inactive", VSH_OT_BOOL, 0, N_("show inactive defined XML")},
     {"security-info", VSH_OT_BOOL, 0, N_("include security sensitive information in XML dump")},
     {"update-cpu", VSH_OT_BOOL, 0, N_("update guest CPU according to host CPU")},
+    {"migratable", VSH_OT_BOOL, 0, N_("provide XML suitable for migrations")},
     {NULL, 0, 0, NULL}
 };
 
@@ -6412,6 +6425,7 @@ cmdDumpXML(vshControl *ctl, const vshCmd *cmd)
     bool inactive = vshCommandOptBool(cmd, "inactive");
     bool secure = vshCommandOptBool(cmd, "security-info");
     bool update = vshCommandOptBool(cmd, "update-cpu");
+    bool migratable = vshCommandOptBool(cmd, "migratable");
 
     if (inactive)
         flags |= VIR_DOMAIN_XML_INACTIVE;
@@ -6419,6 +6433,8 @@ cmdDumpXML(vshControl *ctl, const vshCmd *cmd)
         flags |= VIR_DOMAIN_XML_SECURE;
     if (update)
         flags |= VIR_DOMAIN_XML_UPDATE_CPU;
+    if (migratable)
+        flags |= VIR_DOMAIN_XML_MIGRATABLE;
 
     if (!(dom = vshCommandOptDomain(ctl, cmd, NULL)))
         return false;
