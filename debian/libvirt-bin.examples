@@ -1,4 +1,3 @@
 daemon/libvirtd.conf
-daemon/libvirtd.policy-0
-daemon/libvirtd.policy-1
+debian/build/daemon/libvirtd.policy
 daemon/libvirtd.sasl
