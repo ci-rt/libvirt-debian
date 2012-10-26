@@ -1227,7 +1227,7 @@ virStorageBackendUpdateVolTargetInfoFD(virStorageVolTargetPtr target,
 
 #if HAVE_SELINUX
     /* XXX: make this a security driver call */
-    if (fgetfilecon(fd, &filecon) == -1) {
+    if (fgetfilecon_raw(fd, &filecon) == -1) {
         if (errno != ENODATA && errno != ENOTSUP) {
             virReportSystemError(errno,
                                  _("cannot get file context of '%s'"),
@@ -1338,15 +1338,20 @@ virStorageBackendDetectBlockVolFormatFD(virStorageVolTargetPtr target,
  *
  * Typically target.path is one of the /dev/disk/by-XXX dirs
  * with stable paths.
+ *
+ * If 'loop' is true, we use a timeout loop to give dynamic paths
+ * a change to appear.
  */
 char *
 virStorageBackendStablePath(virStoragePoolObjPtr pool,
-                            const char *devpath)
+                            const char *devpath,
+                            bool loop)
 {
     DIR *dh;
     struct dirent *dent;
     char *stablepath;
     int opentries = 0;
+    int retry = 0;
 
     /* Short circuit if pool has no target, or if its /dev */
     if (pool->def->target.path == NULL ||
@@ -1355,7 +1360,7 @@ virStorageBackendStablePath(virStoragePoolObjPtr pool,
         goto ret_strdup;
 
     /* Skip whole thing for a pool which isn't in /dev
-     * so we don't mess will filesystem/dir based pools
+     * so we don't mess filesystem/dir based pools
      */
     if (!STRPREFIX(pool->def->target.path, "/dev"))
         goto ret_strdup;
@@ -1371,7 +1376,7 @@ virStorageBackendStablePath(virStoragePoolObjPtr pool,
  reopen:
     if ((dh = opendir(pool->def->target.path)) == NULL) {
         opentries++;
-        if (errno == ENOENT && opentries < 50) {
+        if (loop && errno == ENOENT && opentries < 50) {
             usleep(100 * 1000);
             goto reopen;
         }
@@ -1384,8 +1389,12 @@ virStorageBackendStablePath(virStoragePoolObjPtr pool,
     /* The pool is pointing somewhere like /dev/disk/by-path
      * or /dev/disk/by-id, so we need to check all symlinks in
      * the target directory and figure out which one points
-     * to this device node
+     * to this device node.
+     *
+     * And it might need some time till the stable path shows
+     * up, so add timeout to retry here.
      */
+ retry:
     while ((dent = readdir(dh)) != NULL) {
         if (dent->d_name[0] == '.')
             continue;
@@ -1404,6 +1413,11 @@ virStorageBackendStablePath(virStoragePoolObjPtr pool,
         }
 
         VIR_FREE(stablepath);
+    }
+
+    if (loop && ++retry < 100) {
+        usleep(100 * 1000);
+        goto retry;
     }
 
     closedir(dh);

@@ -9954,6 +9954,28 @@ cleanup:
 
 
 
+static int remoteDispatchNodeGetCPUMap(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_node_get_cpu_map_args *args,
+    remote_node_get_cpu_map_ret *ret);
+static int remoteDispatchNodeGetCPUMapHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeGetCPUMap(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchNodeGetCPUMap body has to be implemented manually */
+
+
+
 static int remoteDispatchNodeGetCPUStats(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -15982,6 +16004,24 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    true,
    1
+},
+{ /* Async event DomainEventPMsuspendDisk => 292 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method NodeGetCPUMap => 293 */
+   remoteDispatchNodeGetCPUMapHelper,
+   sizeof(remote_node_get_cpu_map_args),
+   (xdrproc_t)xdr_remote_node_get_cpu_map_args,
+   sizeof(remote_node_get_cpu_map_ret),
+   (xdrproc_t)xdr_remote_node_get_cpu_map_ret,
+   true,
+   0
 },
 };
 size_t remoteNProcs = ARRAY_CARDINALITY(remoteProcs);

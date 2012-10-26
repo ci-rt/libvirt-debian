@@ -150,7 +150,7 @@
     <h2><a name="usagePatterns">Lock usage patterns</a></h2>
 
     <p>
-      The following psuedo code illustrates the common
+      The following pseudo code illustrates the common
       patterns of operations invoked on the lock
       manager plugin callbacks.
     </p>
@@ -182,6 +182,10 @@
         { .type = VIR_LOCK_MANAGER_PARAM_TYPE_UINT,
           .key = "pid",
           .value = { .i = dom->pid },
+        },
+        { .type = VIR_LOCK_MANAGER_PARAM_TYPE_CSTRING,
+          .key = "uri",
+          .value = { .cstr = driver->uri },
         },
       };
       mgr = virLockManagerNew(lockPlugin,
@@ -224,6 +228,10 @@
         { .type = VIR_LOCK_MANAGER_PARAM_TYPE_UINT,
           .key = "pid",
           .value = { .i = dom->pid },
+        },
+        { .type = VIR_LOCK_MANAGER_PARAM_TYPE_CSTRING,
+          .key = "uri",
+          .value = { .cstr = driver->uri },
         },
       };
       mgr = virLockManagerNew(lockPlugin,

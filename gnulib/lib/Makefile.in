@@ -321,13 +321,13 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 am__DEPENDENCIES_1 =
-am_libgnu_la_OBJECTS = allocator.lo areadlink.lo base64.lo c-ctype.lo \
-	c-strcasecmp.lo c-strncasecmp.lo c-strcasestr.lo \
-	careadlinkat.lo cloexec.lo md5.lo dirname-lgpl.lo \
-	basename-lgpl.lo stripslash.lo fd-hook.lo freading.lo \
-	localcharset.lo lock.lo malloca.lo nonblocking.lo passfd.lo \
-	physmem.lo pipe2.lo sockets.lo stat-time.lo strnlen1.lo \
-	tempname.lo threadlib.lo
+am_libgnu_la_OBJECTS = allocator.lo areadlink.lo base64.lo \
+	binary-io.lo c-ctype.lo c-strcasecmp.lo c-strncasecmp.lo \
+	c-strcasestr.lo careadlinkat.lo cloexec.lo md5.lo \
+	dirname-lgpl.lo basename-lgpl.lo stripslash.lo fd-hook.lo \
+	freading.lo localcharset.lo lock.lo malloca.lo nonblocking.lo \
+	passfd.lo physmem.lo pipe2.lo sockets.lo stat-time.lo \
+	strnlen1.lo tempname.lo threadlib.lo xsize.lo
 libgnu_la_OBJECTS = $(am_libgnu_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -1578,6 +1578,7 @@ REPLACE_PREAD = @REPLACE_PREAD@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PSELECT = @REPLACE_PSELECT@
 REPLACE_PTHREAD_SIGMASK = @REPLACE_PTHREAD_SIGMASK@
+REPLACE_PTSNAME = @REPLACE_PTSNAME@
 REPLACE_PTSNAME_R = @REPLACE_PTSNAME_R@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
@@ -1900,14 +1901,14 @@ MOSTLYCLEANFILES = core *.stackdump alloca.h alloca.h-t arpa/inet.h \
 SUFFIXES = .sed .sin
 noinst_LTLIBRARIES = libgnu.la
 libgnu_la_SOURCES = allocator.c areadlink.c base64.h base64.c \
-	binary-io.h bitrotate.h c-ctype.h c-ctype.c c-strcase.h \
-	c-strcasecmp.c c-strncasecmp.c c-strcasestr.h c-strcasestr.c \
-	careadlinkat.c cloexec.c md5.c dirname-lgpl.c basename-lgpl.c \
-	stripslash.c fd-hook.c freading.c gettext.h localcharset.h \
-	localcharset.c glthread/lock.h glthread/lock.c malloca.c \
-	nonblocking.c passfd.c physmem.c pipe2.c size_max.h sockets.h \
-	sockets.c stat-time.c strnlen1.h strnlen1.c tempname.c \
-	glthread/threadlib.c xsize.h
+	binary-io.h binary-io.c bitrotate.h c-ctype.h c-ctype.c \
+	c-strcase.h c-strcasecmp.c c-strncasecmp.c c-strcasestr.h \
+	c-strcasestr.c careadlinkat.c cloexec.c md5.c dirname-lgpl.c \
+	basename-lgpl.c stripslash.c fd-hook.c freading.c gettext.h \
+	localcharset.h localcharset.c glthread/lock.h glthread/lock.c \
+	malloca.c nonblocking.c passfd.c physmem.c pipe2.c size_max.h \
+	sockets.h sockets.c stat-time.c strnlen1.h strnlen1.c \
+	tempname.c glthread/threadlib.c xsize.h xsize.c
 libgnu_la_LIBADD = $(gl_LTLIBOBJS) @LTALLOCA@
 libgnu_la_DEPENDENCIES = $(gl_LTLIBOBJS) @LTALLOCA@
 EXTRA_libgnu_la_SOURCES = accept.c alloca.c bind.c btowc.c calloc.c \
@@ -2015,6 +2016,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/asprintf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/base64.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/basename-lgpl.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/binary-io.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bind.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btowc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/c-ctype.Plo@am__quote@
@@ -2150,6 +2152,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vsnprintf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/waitpid.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wcrtomb.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xsize.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -3187,6 +3190,7 @@ stdlib.h: stdlib.in.h $(top_builddir)/config.status $(CXXDEFS_H) \
 	      -e 's|@''REPLACE_MALLOC''@|$(REPLACE_MALLOC)|g' \
 	      -e 's|@''REPLACE_MBTOWC''@|$(REPLACE_MBTOWC)|g' \
 	      -e 's|@''REPLACE_MKSTEMP''@|$(REPLACE_MKSTEMP)|g' \
+	      -e 's|@''REPLACE_PTSNAME''@|$(REPLACE_PTSNAME)|g' \
 	      -e 's|@''REPLACE_PTSNAME_R''@|$(REPLACE_PTSNAME_R)|g' \
 	      -e 's|@''REPLACE_PUTENV''@|$(REPLACE_PUTENV)|g' \
 	      -e 's|@''REPLACE_RANDOM_R''@|$(REPLACE_RANDOM_R)|g' \

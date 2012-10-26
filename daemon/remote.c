@@ -46,6 +46,7 @@
 #include "virfile.h"
 #include "virtypedparam.h"
 #include "virdbus.h"
+#include "virprocess.h"
 #include "remote_protocol.h"
 #include "qemu_protocol.h"
 
@@ -607,6 +608,30 @@ remoteRelayDomainEventBalloonChange(virConnectPtr conn ATTRIBUTE_UNUSED,
 }
 
 
+static int remoteRelayDomainEventPMSuspendDisk(virConnectPtr conn ATTRIBUTE_UNUSED,
+                                               virDomainPtr dom,
+                                               int reason ATTRIBUTE_UNUSED,
+                                               void *opaque) {
+    virNetServerClientPtr client = opaque;
+    remote_domain_event_pmsuspend_disk_msg data;
+
+    if (!client)
+        return -1;
+
+    VIR_DEBUG("Relaying domain %s %d system pmsuspend-disk", dom->name, dom->id);
+
+    /* build return data */
+    memset(&data, 0, sizeof(data));
+    make_nonnull_domain(&data.dom, dom);
+
+    remoteDispatchDomainEventSend(client, remoteProgram,
+                                  REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND_DISK,
+                                  (xdrproc_t)xdr_remote_domain_event_pmsuspend_disk_msg, &data);
+
+    return 0;
+}
+
+
 static virConnectDomainEventGenericCallback domainEventCallbacks[] = {
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventLifecycle),
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventReboot),
@@ -622,6 +647,7 @@ static virConnectDomainEventGenericCallback domainEventCallbacks[] = {
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventPMWakeup),
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventPMSuspend),
     VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventBalloonChange),
+    VIR_DOMAIN_EVENT_CALLBACK(remoteRelayDomainEventPMSuspendDisk),
 };
 
 verify(ARRAY_CARDINALITY(domainEventCallbacks) == VIR_DOMAIN_EVENT_ID_LAST);
@@ -2832,7 +2858,7 @@ remoteDispatchAuthPolkit(virNetServerPtr server ATTRIBUTE_UNUSED,
 
     authdismissed = (pkout && strstr(pkout, "dismissed=true"));
     if (status != 0) {
-        char *tmp = virCommandTranslateStatus(status);
+        char *tmp = virProcessTranslateStatus(status);
         VIR_ERROR(_("Policy kit denied action %s from pid %lld, uid %d: %s"),
                   action, (long long) callerPid, callerUid, NULLSTR(tmp));
         VIR_FREE(tmp);
@@ -4540,6 +4566,53 @@ cleanup:
         virNetMessageSaveError(rerr);
     virTypedParameterArrayClear(params, nparams);
     VIR_FREE(params);
+    return rv;
+}
+
+static int
+remoteDispatchNodeGetCPUMap(virNetServerPtr server ATTRIBUTE_UNUSED,
+                            virNetServerClientPtr client ATTRIBUTE_UNUSED,
+                            virNetMessagePtr msg ATTRIBUTE_UNUSED,
+                            virNetMessageErrorPtr rerr,
+                            remote_node_get_cpu_map_args *args,
+                            remote_node_get_cpu_map_ret *ret)
+{
+    unsigned char *cpumap = NULL;
+    unsigned int online;
+    unsigned int flags;
+    int cpunum;
+    int rv = -1;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    flags = args->flags;
+
+    cpunum = virNodeGetCPUMap(priv->conn, args->need_results ? &cpumap : NULL,
+                              &online, flags);
+    if (cpunum < 0)
+        goto cleanup;
+
+    /* 'serialize' return cpumap */
+    if (args->need_results) {
+        ret->cpumap.cpumap_len = VIR_CPU_MAPLEN(cpunum);
+        ret->cpumap.cpumap_val = (char *) cpumap;
+        cpumap = NULL;
+    }
+
+    ret->online = online;
+    ret->ret = cpunum;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    VIR_FREE(cpumap);
     return rv;
 }
 

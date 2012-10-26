@@ -115,7 +115,8 @@ VIR_ENUM_IMPL(virErrorDomain, VIR_ERR_DOMAIN_LAST,
               "Parallels Cloud Server",
               "Device Config",
 
-              "SSH transport layer" /* 50 */
+              "SSH transport layer", /* 50 */
+              "Lock Space",
     )
 
 
@@ -671,14 +672,13 @@ virRaiseErrorFull(const char *filename ATTRIBUTE_UNUSED,
 
     /*
      * Hook up the error or warning to the logging facility
-     * XXXX should we include filename as 'category' instead of domain name ?
      */
     priority = virErrorLevelPriority(level);
     if (virErrorLogPriorityFilter)
         priority = virErrorLogPriorityFilter(to, priority);
-    virLogMessage(filename, priority,
-                  funcname, linenr,
-                  virErrorLogPriorityFilter ? 0 : 1,
+    virLogMessage(virErrorLogPriorityFilter ? VIR_LOG_FROM_FILE : VIR_LOG_FROM_ERROR,
+                  priority,
+                  filename, linenr, funcname,
                   "%s", str);
 
     errno = save_errno;
@@ -1205,6 +1205,12 @@ virErrorMsg(virErrorNumber error, const char *info)
                 errmsg = _("Guest agent is not responding");
             else
                 errmsg = _("Guest agent is not responding: %s");
+            break;
+        case VIR_ERR_RESOURCE_BUSY:
+            if (info == NULL)
+                errmsg = _("resource busy");
+            else
+                errmsg = _("resource busy %s");
             break;
     }
     return errmsg;

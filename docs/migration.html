@@ -155,41 +155,41 @@
       <div id="content">
         <h1>Guest migration</h1>
         <ul><li>
-            <a href="#">Network data transports</a>
+            <a href="#transport">Network data transports</a>
             <ul><li>
-                <a href="#">Hypervisor native transport</a>
+                <a href="#transportnative">Hypervisor native transport</a>
               </li><li>
-                <a href="#">libvirt tunnelled transport</a>
+                <a href="#transporttunnel">libvirt tunnelled transport</a>
               </li></ul>
           </li><li>
-            <a href="#">Communication control paths/flows</a>
+            <a href="#flow">Communication control paths/flows</a>
             <ul><li>
-                <a href="#">Managed direct migration</a>
+                <a href="#flowmanageddirect">Managed direct migration</a>
               </li><li>
-                <a href="#">Managed peer to peer migration</a>
+                <a href="#flowpeer2peer">Managed peer to peer migration</a>
               </li><li>
-                <a href="#">Unmanaged direct migration</a>
+                <a href="#flowunmanageddirect">Unmanaged direct migration</a>
               </li></ul>
           </li><li>
-            <a href="#">Data security</a>
+            <a href="#security">Data security</a>
           </li><li>
-            <a href="#">Migration URIs</a>
+            <a href="#uris">Migration URIs</a>
           </li><li>
-            <a href="#">Configuration file handling</a>
+            <a href="#config">Configuration file handling</a>
           </li><li>
-            <a href="#">Migration scenarios</a>
+            <a href="#scenarios">Migration scenarios</a>
             <ul><li>
-                <a href="#">Native migration, client to two libvirtd servers</a>
+                <a href="#scenarionativedirect">Native migration, client to two libvirtd servers</a>
               </li><li>
-                <a href="#">Native migration, client to and peer2peer between, two libvirtd servers</a>
+                <a href="#scenarionativepeer2peer">Native migration, client to and peer2peer between, two libvirtd servers</a>
               </li><li>
-                <a href="#">Tunnelled migration, client and peer2peer between two libvirtd servers</a>
+                <a href="#scenariotunnelpeer2peer1">Tunnelled migration, client and peer2peer between two libvirtd servers</a>
               </li><li>
-                <a href="#">Native migration, client to one libvirtd server</a>
+                <a href="#nativedirectunmanaged">Native migration, client to one libvirtd server</a>
               </li><li>
-                <a href="#">Native migration, peer2peer between two libvirtd servers</a>
+                <a href="#nativepeer2peer">Native migration, peer2peer between two libvirtd servers</a>
               </li><li>
-                <a href="#">Tunnelled migration, peer2peer between two libvirtd servers</a>
+                <a href="#scenariotunnelpeer2peer2">Tunnelled migration, peer2peer between two libvirtd servers</a>
               </li></ul>
           </li></ul>
         <p>
@@ -199,7 +199,7 @@
       libvirt implements several options for migration.
     </p>
         <h2>
-          <a id="transport">Network data transports</a>
+          <a name="transport" id="transport">Network data transports</a>
         </h2>
         <p>
       There are two options for the data transport used during migration, either
@@ -207,7 +207,7 @@
       over a libvirtd connection.
     </p>
         <h3>
-          <a id="transportnative">Hypervisor native transport</a>
+          <a name="transportnative" id="transportnative">Hypervisor native transport</a>
         </h3>
         <p>
       <em>Native</em> data transports may or may not support encryption, depending
@@ -221,7 +221,7 @@
       <img class="diagram" src="migration-native.png" alt="Migration native path" />
     </p>
         <h3>
-          <a id="transporttunnel">libvirt tunnelled transport</a>
+          <a name="transporttunnel" id="transporttunnel">libvirt tunnelled transport</a>
         </h3>
         <p>
       <em>Tunnelled</em> data transports will always be capable of strong encryption
@@ -239,7 +239,7 @@
       <img class="diagram" src="migration-tunnel.png" alt="Migration tunnel path" />
     </p>
         <h2>
-          <a id="flow">Communication control paths/flows</a>
+          <a name="flow" id="flow">Communication control paths/flows</a>
         </h2>
         <p>
       Migration of virtual machines requires close co-ordination of the two
@@ -247,7 +247,7 @@
       which may be on the source, the destination, or a third host.
     </p>
         <h3>
-          <a id="flowmanageddirect">Managed direct migration</a>
+          <a name="flowmanageddirect" id="flowmanageddirect">Managed direct migration</a>
         </h3>
         <p>
       With <em>managed direct</em> migration, the libvirt client process
@@ -265,7 +265,7 @@
       <img class="diagram" src="migration-managed-direct.png" alt="Migration direct, managed" />
     </p>
         <h3>
-          <a id="flowpeer2peer">Managed peer to peer migration</a>
+          <a name="flowpeer2peer" id="flowpeer2peer">Managed peer to peer migration</a>
         </h3>
         <p>
       With <em>peer to peer</em> migration, the libvirt client process only
@@ -285,7 +285,7 @@
       <img class="diagram" src="migration-managed-p2p.png" alt="Migration peer-to-peer" />
     </p>
         <h3>
-          <a id="flowunmanageddirect">Unmanaged direct migration</a>
+          <a name="flowunmanageddirect" id="flowunmanageddirect">Unmanaged direct migration</a>
         </h3>
         <p>
       With <em>unmanaged direct</em> migration, neither the libvirt client
@@ -299,7 +299,7 @@
       <img class="diagram" src="migration-unmanaged-direct.png" alt="Migration direct, unmanaged" />
     </p>
         <h2>
-          <a id="security">Data security</a>
+          <a name="security" id="security">Data security</a>
         </h2>
         <p>
       Since the migration data stream includes a complete copy of the guest
@@ -317,7 +317,7 @@
       facility should be used.
     </p>
         <h2>
-          <a id="uris">Migration URIs</a>
+          <a name="uris" id="uris">Migration URIs</a>
         </h2>
         <p>
       Initiating a guest migration requires the client application to
@@ -361,7 +361,7 @@
         to choose a specific port number outside the default range in order
         to comply with local firewall policies</li></ol>
         <h2>
-          <a id="config">Configuration file handling</a>
+          <a name="config" id="config">Configuration file handling</a>
         </h2>
         <p>
       There are two types of virtual machine known to libvirt. A <em>transient</em>
@@ -408,10 +408,10 @@
     </p>
         <table class="data"><thead><tr class="head"><th colspan="3">Before migration</th><th colspan="2">Flags</th><th colspan="3">After migration</th></tr><tr class="subhead"><th>Guest type</th><th>Source config</th><th>Dest config</th><th>--undefine-source</th><th>--persist</th><th>Guest type</th><th>Source config</th><th>Dest config</th></tr></thead><tbody><!-- src:N, dst:N --><tr><td>Transient</td><td class="n">N</td><td class="n">N</td><td class="n">N</td><td class="n">N</td><td>Transient</td><td class="n">N</td><td class="n">N</td></tr><tr><td>Transient</td><td class="n">N</td><td class="n">N</td><td class="y">Y</td><td class="n">N</td><td>Transient</td><td class="n">N</td><td class="n">N</td></tr><tr><td>Transient</td><td class="n">N</td><td class="n">N</td><td class="n">N</td><td class="y">Y</td><td>Persistent</td><td class="n">N</td><td class="y">Y</td></tr><tr><td>Transient</td><td class="n">N</td><td class="n">N</td><td class="y">Y</td><td class="y">Y</td><td>Persistent</td><td class="n">N</td><td class="y">Y</td></tr><!-- src:N, dst:Y --><tr><td>Transient</td><td class="n">N</td><td class="y">Y</td><td class="n">N</td><td class="n">N</td><td>Transient</td><td class="n">N</td><td class="n">N</td></tr><tr><td>Transient</td><td class="n">N</td><td class="y">Y</td><td class="y">Y</td><td class="n">N</td><td>Transient</td><td class="n">N</td><td class="n">N</td></tr><tr><td>Transient</td><td class="n">N</td><td class="y">Y</td><td class="n">N</td><td class="y">Y</td><td>Persistent</td><td class="n">N</td><td class="y">Y</td></tr><tr><td>Transient</td><td class="n">N</td><td class="y">Y</td><td class="y">Y</td><td class="y">Y</td><td>Persistent</td><td class="n">N</td><td class="y">Y</td></tr><!-- src:Y dst:N --><tr><td>Persistent</td><td class="y">Y</td><td class="n">N</td><td class="n">N</td><td class="n">N</td><td>Transient</td><td class="y">Y</td><td class="n">N</td></tr><tr><td>Persistent</td><td class="y">Y</td><td class="n">N</td><td class="y">Y</td><td class="n">N</td><td>Transient</td><td class="n">N</td><td class="n">N</td></tr><tr><td>Persistent</td><td class="y">Y</td><td class="n">N</td><td class="n">N</td><td class="y">Y</td><td>Persistent</td><td class="y">Y</td><td class="y">Y</td></tr><tr><td>Persistent</td><td class="y">Y</td><td class="n">N</td><td class="y">Y</td><td class="y">Y</td><td>Persistent</td><td class="n">N</td><td class="y">Y</td></tr><!-- src:Y dst:Y --><tr><td>Persistent</td><td class="y">Y</td><td class="y">Y</td><td class="n">N</td><td class="n">N</td><td>Persistent</td><td class="y">Y</td><td class="y">Y</td></tr><tr><td>Persistent</td><td class="y">Y</td><td class="y">Y</td><td class="y">Y</td><td class="n">N</td><td>Persistent</td><td class="n">N</td><td class="y">Y</td></tr><tr><td>Persistent</td><td class="y">Y</td><td class="y">Y</td><td class="n">N</td><td class="y">Y</td><td>Persistent</td><td class="y">Y</td><td class="y">Y</td></tr><tr><td>Persistent</td><td class="y">Y</td><td class="y">Y</td><td class="y">Y</td><td class="y">Y</td><td>Persistent</td><td class="n">N</td><td class="y">Y</td></tr></tbody></table>
         <h2>
-          <a id="scenarios">Migration scenarios</a>
+          <a name="scenarios" id="scenarios">Migration scenarios</a>
         </h2>
         <h3>
-          <a id="scenarionativedirect">Native migration, client to two libvirtd servers</a>
+          <a name="scenarionativedirect" id="scenarionativedirect">Native migration, client to two libvirtd servers</a>
         </h3>
         <p>
       At an API level this requires use of virDomainMigrate, without the
@@ -439,7 +439,7 @@
       Supported by Xen, QEMU, VMWare and VirtualBox drivers
     </p>
         <h3>
-          <a id="scenarionativepeer2peer">Native migration, client to and peer2peer between, two libvirtd servers</a>
+          <a name="scenarionativepeer2peer" id="scenarionativepeer2peer">Native migration, client to and peer2peer between, two libvirtd servers</a>
         </h3>
         <p>
       virDomainMigrate, with the VIR_MIGRATE_PEER2PEER flag set,
@@ -461,7 +461,7 @@
       Supported by QEMU driver
     </p>
         <h3>
-          <a id="scenariotunnelpeer2peer1">Tunnelled migration, client and peer2peer between two libvirtd servers</a>
+          <a name="scenariotunnelpeer2peer1" id="scenariotunnelpeer2peer1">Tunnelled migration, client and peer2peer between two libvirtd servers</a>
         </h3>
         <p>
       virDomainMigrate, with the VIR_MIGRATE_PEER2PEER &amp; VIR_MIGRATE_TUNNELLED
@@ -482,7 +482,7 @@
       Supported by QEMU driver
     </p>
         <h3>
-          <a id="nativedirectunmanaged">Native migration, client to one libvirtd server</a>
+          <a name="nativedirectunmanaged" id="nativedirectunmanaged">Native migration, client to one libvirtd server</a>
         </h3>
         <p>
       virDomainMigrateToURI, without the VIR_MIGRATE_PEER2PEER flag set,
@@ -504,7 +504,7 @@
       Supported by Xen driver
     </p>
         <h3>
-          <a id="nativepeer2peer">Native migration, peer2peer between two libvirtd servers</a>
+          <a name="nativepeer2peer" id="nativepeer2peer">Native migration, peer2peer between two libvirtd servers</a>
         </h3>
         <p>
       virDomainMigrateToURI, with the VIR_MIGRATE_PEER2PEER flag set,
@@ -539,7 +539,7 @@
       Supported by the QEMU driver
     </p>
         <h3>
-          <a id="scenariotunnelpeer2peer2">Tunnelled migration, peer2peer between two libvirtd servers</a>
+          <a name="scenariotunnelpeer2peer2" id="scenariotunnelpeer2peer2">Tunnelled migration, peer2peer between two libvirtd servers</a>
         </h3>
         <p>
       virDomainMigrateToURI, with the VIR_MIGRATE_PEER2PEER &amp; VIR_MIGRATE_TUNNELLED

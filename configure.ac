@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [0.10.2], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.0.0], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -187,6 +187,8 @@ dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([pwd.h paths.h regex.h sys/un.h \
   sys/poll.h syslog.h mntent.h net/ethernet.h linux/magic.h \
   sys/un.h sys/syscall.h netinet/tcp.h ifaddrs.h libtasn1.h])
+dnl Check whether endian provides handy macros.
+AC_CHECK_DECLS([htole64], [], [], [[#include <endian.h>]])
 
 dnl We need to decide at configure time if libvirt will use real atomic
 dnl operations ("lock free") or emulated ones with a mutex.
@@ -768,6 +770,8 @@ if test "$with_xen" != "no" ; then
 fi
 
 if test "$with_xen" != "no" ; then
+    dnl In Xen 4.2, xs.h is deprecated in favor of xenstore.h.
+    AC_CHECK_HEADERS([xenstore.h])
     AC_CHECK_HEADERS([xen/xen.h xen/version.h xen/dom0_ops.h],,[
        if test "$with_xen" = "yes"; then
            fail=1
@@ -1212,6 +1216,13 @@ if test "x$with_sanlock" != "xno"; then
   if test "x$with_sanlock" = "xyes" ; then
     AC_DEFINE_UNQUOTED([HAVE_SANLOCK], 1,
       [whether Sanlock plugin for lock management is available])
+
+    AC_CHECK_LIB([sanlock_client], [sanlock_killpath],
+                 [sanlock_killpath=yes], [sanlock_killpath=no])
+    if test "x$sanlock_killpath" = "xyes" ; then
+      AC_DEFINE_UNQUOTED([HAVE_SANLOCK_KILLPATH], 1,
+        [whether Sanlock supports sanlock_killpath])
+    fi
   fi
 fi
 AM_CONDITIONAL([HAVE_SANLOCK], [test "x$with_sanlock" = "xyes"])
@@ -1247,7 +1258,7 @@ if test "$with_dbus" = "yes" ; then
   LIBS="$save_LIBS"
   CFLAGS="$save_CFLAGS"
 fi
-AM_CONDITIONAL([HAVE_DBUS], [test "$have_dbus" = "yes"])
+AM_CONDITIONAL([HAVE_DBUS], [test "$with_dbus" = "yes"])
 
 
 dnl PolicyKit library
@@ -1347,7 +1358,7 @@ if test "x$with_avahi" = "xyes" || test "x$with_avahi" = "xcheck"; then
   ])
   if test "x$with_avahi" = "xyes" ; then
     AC_DEFINE_UNQUOTED([HAVE_AVAHI], 1,
-      [whether Avahi is used to broadcast server presense])
+      [whether Avahi is used to broadcast server presence])
   fi
 fi
 AC_SUBST([AVAHI_CFLAGS])
@@ -1436,14 +1447,14 @@ if test "$with_selinux" != "no"; then
   old_libs="$LIBS"
   if test "$with_selinux" = "check"; then
     AC_CHECK_HEADER([selinux/selinux.h],[],[with_selinux=no])
-    AC_CHECK_LIB([selinux], [fgetfilecon],[],[with_selinux=no])
+    AC_CHECK_LIB([selinux], [fgetfilecon_raw],[],[with_selinux=no])
     if test "$with_selinux" != "no"; then
       with_selinux="yes"
     fi
   else
     fail=0
     AC_CHECK_HEADER([selinux/selinux.h],[],[fail=1])
-    AC_CHECK_LIB([selinux], [fgetfilecon],[],[fail=1])
+    AC_CHECK_LIB([selinux], [fgetfilecon_raw],[],[fail=1])
     test $fail = 1 &&
       AC_MSG_ERROR([You must install the libselinux development package in order to compile libvirt with basic SELinux support])
   fi
@@ -1453,9 +1464,8 @@ fi
 if test "$with_selinux" = "yes"; then
   AC_MSG_CHECKING([SELinux mount point])
   if test "$with_selinux_mount" = "check" || test -z "$with_selinux_mount"; then
-    if test -d /sys/fs/selinux ; then
-      SELINUX_MOUNT=/sys/fs/selinux
-    else
+    SELINUX_MOUNT=/sys/fs/selinux
+    if ! test -d ${SELINUX_MOUNT} && test -d /selinux ; then
       SELINUX_MOUNT=/selinux
     fi
   else
@@ -1483,10 +1493,11 @@ AC_ARG_WITH([secdriver-selinux],
 if test "$with_selinux" != "yes" ; then
   if test "$with_secdriver_selinux" = "check" ; then
     with_secdriver_selinux=no
-  elif test "$with_secdriver_selinux" = "yes"; then
+  fi
+  if test "$with_secdriver_selinux" != "no"; then
         AC_MSG_ERROR([You must install the libselinux development package and enable SELinux with the --with-selinux=yes in order to compile libvirt --with-secdriver-selinux=yes])
   fi
-else
+elif test "$with_secdriver_selinux" != "no"; then
   old_cflags="$CFLAGS"
   old_libs="$LIBS"
   CFLAGS="$CFLAGS $SELINUX_CFLAGS"
@@ -1561,10 +1572,11 @@ AC_ARG_WITH([secdriver-apparmor],
 if test "$with_apparmor" != "yes" ; then
   if test "$with_secdriver_apparmor" = "check" ; then
     with_secdriver_apparmor=no
-  else
+  fi
+  if test "$with_secdriver_apparmor" != "no" ; then
     AC_MSG_ERROR([You must install the AppArmor development package in order to compile libvirt])
   fi
-else
+elif test "with_secdriver_apparmor" != "no" ; then
   old_cflags="$CFLAGS"
   old_libs="$LIBS"
   CFLAGS="$CFLAGS $APPARMOR_CFLAGS"
@@ -2296,9 +2308,12 @@ dnl
 
 LIBCURL_CFLAGS=""
 LIBCURL_LIBS=""
+have_curl=no
 
 if test "$with_esx" = "yes" || test "$with_esx" = "check" || test "$with_xenapi" = "yes" || test "$with_xenapi" = "check"; then
     PKG_CHECK_MODULES(LIBCURL, libcurl >= $LIBCURL_REQUIRED, [
+        have_curl=yes
+
         if test "$with_esx" = "check"; then
             with_esx=yes
         fi
@@ -2322,6 +2337,11 @@ if test "$with_esx" = "yes" || test "$with_esx" = "check" || test "$with_xenapi"
         fi
     ])
 fi
+
+if test "$have_curl" = "yes" ; then
+    AC_DEFINE_UNQUOTED([HAVE_LIBCURL], 1, [whether libcurl is available])
+fi
+AM_CONDITIONAL([HAVE_LIBCURL], [test "$have_curl" = "yes"])
 
 
 if test "$with_esx" = "yes" ; then
@@ -2798,18 +2818,12 @@ if test "$with_libvirtd" = "no" ; then
   with_interface=no
 fi
 
-dnl The interface driver depends on the netcf library
-if test "$with_interface:$with_netcf" = "check:yes" ; then
-  with_interface=yes
-fi
-
-if test "$with_interface:$with_netcf" = "check:no" ; then
-  with_interface=no
-fi
-
-if test "$with_interface:$with_netcf" = "yes:no" ; then
-  AC_MSG_ERROR([Requested the Interface driver without netcf support])
-fi
+dnl The interface driver depends on the netcf library or udev library
+case $with_interface:$with_netcf:$with_udev in
+    check:*yes*) with_interface=yes ;;
+    check:no:no) with_interface=no ;;
+    yes:no:no) AC_MSG_ERROR([Requested the Interface driver without netcf or udev support]) ;;
+esac
 
 if test "$with_interface" = "yes" ; then
   AC_DEFINE_UNQUOTED([WITH_INTERFACE], [1],
@@ -2925,10 +2939,6 @@ AM_CONDITIONAL([WITH_VIRTUALPORT], [test "$with_virtualport" = "yes"])
 
 dnl netlink library
 
-LIBNL_ROUTE3_CFLAGS=""
-LIBNL_ROUTE3_LIBS=""
-LIBNL_CFLAGS=""
-LIBNL_LIBS=""
 have_libnl=no
 
 if test "$with_linux" = "yes"; then
@@ -3082,7 +3092,7 @@ AC_MSG_NOTICE([Libraries])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([  libxml: $LIBXML_CFLAGS $LIBXML_LIBS])
 AC_MSG_NOTICE([  dlopen: $DLOPEN_LIBS])
-if test "$with_esx" = "yes" ; then
+if test "$have_curl" = "yes" ; then
 AC_MSG_NOTICE([ libcurl: $LIBCURL_CFLAGS $LIBCURL_LIBS])
 else
 AC_MSG_NOTICE([ libcurl: no])

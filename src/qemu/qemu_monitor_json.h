@@ -42,11 +42,6 @@ int qemuMonitorJSONHumanCommandWithFd(qemuMonitorPtr mon,
 
 int qemuMonitorJSONSetCapabilities(qemuMonitorPtr mon);
 
-int qemuMonitorJSONCheckCommands(qemuMonitorPtr mon,
-                                 qemuCapsPtr caps);
-int qemuMonitorJSONCheckEvents(qemuMonitorPtr mon,
-                               qemuCapsPtr caps);
-
 int qemuMonitorJSONStartCPUs(qemuMonitorPtr mon,
                              virConnectPtr conn);
 int qemuMonitorJSONStopCPUs(qemuMonitorPtr mon);
@@ -134,6 +129,9 @@ int qemuMonitorJSONGetMigrationStatus(qemuMonitorPtr mon,
 int qemuMonitorJSONMigrate(qemuMonitorPtr mon,
                            unsigned int flags,
                            const char *uri);
+int qemuMonitorJSONGetSpiceMigrationStatus(qemuMonitorPtr mon,
+                                           bool *spice_migrated);
+
 
 int qemuMonitorJSONMigrateCancel(qemuMonitorPtr mon);
 
@@ -237,6 +235,13 @@ int qemuMonitorJSONDiskSnapshot(qemuMonitorPtr mon,
                                 bool reuse);
 int qemuMonitorJSONTransaction(qemuMonitorPtr mon, virJSONValuePtr actions);
 
+int qemuMonitorJSONBlockCommit(qemuMonitorPtr mon,
+                               const char *device,
+                               const char *top,
+                               const char *base,
+                               unsigned long long bandwidth)
+    ATTRIBUTE_NONNULL(1) ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+
 int qemuMonitorJSONArbitraryCommand(qemuMonitorPtr mon,
                                     const char *cmd_str,
                                     char **reply_str,
@@ -279,5 +284,36 @@ int qemuMonitorJSONGetBlockIoThrottle(qemuMonitorPtr mon,
                                       virDomainBlockIoTuneInfoPtr reply);
 
 int qemuMonitorJSONSystemWakeup(qemuMonitorPtr mon);
+
+int qemuMonitorJSONGetVersion(qemuMonitorPtr mon,
+                              int *major,
+                              int *minor,
+                              int *micro,
+                              char **package)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4);
+
+int qemuMonitorJSONGetMachines(qemuMonitorPtr mon,
+                               qemuMonitorMachineInfoPtr **machines)
+    ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONGetCPUDefinitions(qemuMonitorPtr mon,
+                                     char ***cpus)
+    ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONGetCommands(qemuMonitorPtr mon,
+                               char ***commands)
+    ATTRIBUTE_NONNULL(2);
+int qemuMonitorJSONGetEvents(qemuMonitorPtr mon,
+                             char ***events)
+    ATTRIBUTE_NONNULL(2);
+
+int qemuMonitorJSONGetObjectTypes(qemuMonitorPtr mon,
+                                  char ***types)
+    ATTRIBUTE_NONNULL(2);
+int qemuMonitorJSONGetObjectProps(qemuMonitorPtr mon,
+                                  const char *type,
+                                  char ***props)
+    ATTRIBUTE_NONNULL(2) ATTRIBUTE_NONNULL(3);
+char *qemuMonitorJSONGetTargetArch(qemuMonitorPtr mon);
 
 #endif /* QEMU_MONITOR_JSON_H */

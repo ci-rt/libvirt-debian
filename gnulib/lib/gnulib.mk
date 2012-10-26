@@ -156,7 +156,7 @@ libgnu_la_SOURCES += base64.h base64.c
 
 ## begin gnulib module binary-io
 
-libgnu_la_SOURCES += binary-io.h
+libgnu_la_SOURCES += binary-io.h binary-io.c
 
 ## end   gnulib module binary-io
 
@@ -2177,6 +2177,7 @@ stdlib.h: stdlib.in.h $(top_builddir)/config.status $(CXXDEFS_H) \
 	      -e 's|@''REPLACE_MALLOC''@|$(REPLACE_MALLOC)|g' \
 	      -e 's|@''REPLACE_MBTOWC''@|$(REPLACE_MBTOWC)|g' \
 	      -e 's|@''REPLACE_MKSTEMP''@|$(REPLACE_MKSTEMP)|g' \
+	      -e 's|@''REPLACE_PTSNAME''@|$(REPLACE_PTSNAME)|g' \
 	      -e 's|@''REPLACE_PTSNAME_R''@|$(REPLACE_PTSNAME_R)|g' \
 	      -e 's|@''REPLACE_PUTENV''@|$(REPLACE_PUTENV)|g' \
 	      -e 's|@''REPLACE_RANDOM_R''@|$(REPLACE_RANDOM_R)|g' \
@@ -3282,7 +3283,7 @@ EXTRA_DIST += wctype.in.h
 
 ## begin gnulib module xsize
 
-libgnu_la_SOURCES += xsize.h
+libgnu_la_SOURCES += xsize.h xsize.c
 
 ## end   gnulib module xsize
 

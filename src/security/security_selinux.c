@@ -111,7 +111,7 @@ virSecuritySELinuxMCSFind(virSecurityManagerPtr mgr)
     char *sens, *cat, *tmp;
     int catMin, catMax, catRange;
 
-    if (getcon(&ourSecContext) < 0) {
+    if (getcon_raw(&ourSecContext) < 0) {
         virReportSystemError(errno, "%s",
                              _("Unable to get current process SELinux context"));
         goto cleanup;
@@ -237,6 +237,46 @@ cleanup:
     return mcs;
 }
 
+static char *
+virSecuritySELinuxContextAddRange(security_context_t src,
+                                  security_context_t dst)
+{
+    char *str = NULL;
+    char *ret = NULL;
+    context_t srccon = NULL;
+    context_t dstcon = NULL;
+
+    if (!src || !dst)
+        return ret;
+
+    if (!(srccon = context_new(src)) || !(dstcon = context_new(dst))) {
+        virReportSystemError(errno, "%s",
+                             _("unable to allocate security context"));
+        goto cleanup;
+    }
+
+    if (context_range_set(dstcon, context_range_get(srccon)) == -1) {
+        virReportSystemError(errno,
+                             _("unable to set security context range '%s'"), dst);
+        goto cleanup;
+    }
+
+    if (!(str = context_str(dstcon))) {
+        virReportSystemError(errno, "%s",
+                             _("Unable to format SELinux context"));
+        goto cleanup;
+    }
+
+    if (!(ret = strdup(str))) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+cleanup:
+    if (srccon) context_free(srccon);
+    if (dstcon) context_free(dstcon);
+    return ret;
+}
 
 static char *
 virSecuritySELinuxGenNewContext(const char *basecontext,
@@ -252,7 +292,7 @@ virSecuritySELinuxGenNewContext(const char *basecontext,
     VIR_DEBUG("basecontext=%s mcs=%s isObjectContext=%d",
               basecontext, mcs, isObjectContext);
 
-    if (getcon(&ourSecContext) < 0) {
+    if (getcon_raw(&ourSecContext) < 0) {
         virReportSystemError(errno, "%s",
                              _("Unable to get current process SELinux context"));
         goto cleanup;
@@ -612,7 +652,7 @@ virSecuritySELinuxReserveSecurityLabel(virSecurityManagerPtr mgr,
     if (seclabel->type == VIR_DOMAIN_SECLABEL_STATIC)
         return 0;
 
-    if (getpidcon(pid, &pctx) == -1) {
+    if (getpidcon_raw(pid, &pctx) == -1) {
         virReportSystemError(errno,
                              _("unable to get PID %d security context"), pid);
         return -1;
@@ -713,7 +753,7 @@ virSecuritySELinuxGetSecurityProcessLabel(virSecurityManagerPtr mgr ATTRIBUTE_UN
 {
     security_context_t ctx;
 
-    if (getpidcon(pid, &ctx) == -1) {
+    if (getpidcon_raw(pid, &ctx) == -1) {
         virReportSystemError(errno,
                              _("unable to get PID %d security context"),
                              pid);
@@ -753,10 +793,10 @@ virSecuritySELinuxSetFileconHelper(const char *path, char *tcon, bool optional)
 
     VIR_INFO("Setting SELinux context on '%s' to '%s'", path, tcon);
 
-    if (setfilecon(path, tcon) < 0) {
+    if (setfilecon_raw(path, tcon) < 0) {
         int setfilecon_errno = errno;
 
-        if (getfilecon(path, &econ) >= 0) {
+        if (getfilecon_raw(path, &econ) >= 0) {
             if (STREQ(tcon, econ)) {
                 freecon(econ);
                 /* It's alright, there's nothing to change anyway. */
@@ -818,10 +858,10 @@ virSecuritySELinuxFSetFilecon(int fd, char *tcon)
 
     VIR_INFO("Setting SELinux context on fd %d to '%s'", fd, tcon);
 
-    if (fsetfilecon(fd, tcon) < 0) {
+    if (fsetfilecon_raw(fd, tcon) < 0) {
         int fsetfilecon_errno = errno;
 
-        if (fgetfilecon(fd, &econ) >= 0) {
+        if (fgetfilecon_raw(fd, &econ) >= 0) {
             if (STREQ(tcon, econ)) {
                 freecon(econ);
                 /* It's alright, there's nothing to change anyway. */
@@ -861,7 +901,7 @@ getContext(const char *newpath, mode_t mode, security_context_t *fcon)
     if (handle == NULL)
         return -1;
 
-    ret = selabel_lookup(handle, fcon, newpath, mode);
+    ret = selabel_lookup_raw(handle, fcon, newpath, mode);
     selabel_close(handle);
     return ret;
 #else
@@ -896,7 +936,11 @@ virSecuritySELinuxRestoreSecurityFileLabel(const char *path)
     }
 
     if (getContext(newpath, buf.st_mode, &fcon) < 0) {
+        /* Any user created path likely does not have a default label,
+         * which makes this an expected non error
+         */
         VIR_WARN("cannot lookup default selinux label for %s", newpath);
+        rc = 0;
     } else {
         rc = virSecuritySELinuxSetFilecon(newpath, fcon);
     }
@@ -1022,12 +1066,9 @@ virSecuritySELinuxSetSecurityImageLabel(virSecurityManagerPtr mgr,
                                         virDomainDiskDefPtr disk)
 
 {
-    bool allowDiskFormatProbing;
     virSecuritySELinuxCallbackData cbdata;
     cbdata.manager = mgr;
     cbdata.secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
-
-    allowDiskFormatProbing = virSecurityManagerGetAllowDiskFormatProbing(mgr);
 
     if (cbdata.secdef == NULL)
         return -1;
@@ -1038,16 +1079,8 @@ virSecuritySELinuxSetSecurityImageLabel(virSecurityManagerPtr mgr,
     if (disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK)
         return 0;
 
-    /* XXX On one hand, it would be nice to have the driver's uid:gid
-     * here so we could retry opens with it. On the other hand, it
-     * probably doesn't matter because in practice that's only useful
-     * for files on root-squashed NFS shares, and NFS doesn't properly
-     * support selinux anyway.
-     */
     return virDomainDiskDefForeachPath(disk,
-                                       allowDiskFormatProbing,
                                        true,
-                                       -1, -1, /* current process uid:gid */
                                        virSecuritySELinuxSetSecurityFileLabel,
                                        &cbdata);
 }
@@ -1101,9 +1134,13 @@ virSecuritySELinuxSetSecurityHostdevLabel(virSecurityManagerPtr mgr ATTRIBUTE_UN
 
     switch (dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
-        usbDevice *usb = usbGetDevice(dev->source.subsys.u.usb.bus,
-                                      dev->source.subsys.u.usb.device);
+        usbDevice *usb;
 
+        if (dev->missing)
+            return 0;
+
+        usb = usbGetDevice(dev->source.subsys.u.usb.bus,
+                           dev->source.subsys.u.usb.device);
         if (!usb)
             goto done;
 
@@ -1174,9 +1211,13 @@ virSecuritySELinuxRestoreSecurityHostdevLabel(virSecurityManagerPtr mgr ATTRIBUT
 
     switch (dev->source.subsys.type) {
     case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB: {
-        usbDevice *usb = usbGetDevice(dev->source.subsys.u.usb.bus,
-                                      dev->source.subsys.u.usb.device);
+        usbDevice *usb;
 
+        if (dev->missing)
+            return 0;
+
+        usb = usbGetDevice(dev->source.subsys.u.usb.bus,
+                           dev->source.subsys.u.usb.device);
         if (!usb)
             goto done;
 
@@ -1569,7 +1610,7 @@ virSecuritySELinuxSetSecurityProcessLabel(virSecurityManagerPtr mgr,
             return -1;
     }
 
-    if (setexeccon(secdef->label) == -1) {
+    if (setexeccon_raw(secdef->label) == -1) {
         virReportSystemError(errno,
                              _("unable to set security context '%s'"),
                              secdef->label);
@@ -1586,9 +1627,8 @@ virSecuritySELinuxSetSecurityDaemonSocketLabel(virSecurityManagerPtr mgr,
 {
     /* TODO: verify DOI */
     virSecurityLabelDefPtr secdef;
-    context_t execcon = NULL;
-    context_t proccon = NULL;
     security_context_t scon = NULL;
+    char *str = NULL;
     int rc = -1;
 
     secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
@@ -1607,40 +1647,20 @@ virSecuritySELinuxSetSecurityDaemonSocketLabel(virSecurityManagerPtr mgr,
         goto done;
     }
 
-    if ( !(execcon = context_new(secdef->label)) ) {
-        virReportSystemError(errno,
-                             _("unable to allocate socket security context '%s'"),
-                             secdef->label);
-        goto done;
-    }
-
-    if (getcon(&scon) == -1) {
+    if (getcon_raw(&scon) == -1) {
         virReportSystemError(errno,
                              _("unable to get current process context '%s'"),
                              secdef->label);
         goto done;
     }
 
-    if ( !(proccon = context_new(scon)) ) {
-        virReportSystemError(errno,
-                             _("unable to set socket security context '%s'"),
-                             secdef->label);
+    if (!(str = virSecuritySELinuxContextAddRange(secdef->label, scon)))
         goto done;
-    }
 
-    if (context_range_set(proccon, context_range_get(execcon)) == -1) {
+    VIR_DEBUG("Setting VM %s socket context %s", def->name, str);
+    if (setsockcreatecon_raw(str) == -1) {
         virReportSystemError(errno,
-                             _("unable to set socket security context range '%s'"),
-                             secdef->label);
-        goto done;
-    }
-
-    VIR_DEBUG("Setting VM %s socket context %s",
-              def->name, context_str(proccon));
-    if (setsockcreatecon(context_str(proccon)) == -1) {
-        virReportSystemError(errno,
-                             _("unable to set socket security context '%s'"),
-                             context_str(proccon));
+                             _("unable to set socket security context '%s'"), str);
         goto done;
     }
 
@@ -1649,9 +1669,8 @@ done:
 
     if (security_getenforce() != 1)
         rc = 0;
-    if (execcon) context_free(execcon);
-    if (proccon) context_free(proccon);
     freecon(scon);
+    VIR_FREE(str);
     return rc;
 }
 
@@ -1680,7 +1699,7 @@ virSecuritySELinuxSetSecuritySocketLabel(virSecurityManagerPtr mgr,
 
     VIR_DEBUG("Setting VM %s socket context %s",
               vm->name, secdef->label);
-    if (setsockcreatecon(secdef->label) == -1) {
+    if (setsockcreatecon_raw(secdef->label) == -1) {
         virReportSystemError(errno,
                              _("unable to set socket security context '%s'"),
                              secdef->label);
@@ -1720,7 +1739,7 @@ virSecuritySELinuxClearSecuritySocketLabel(virSecurityManagerPtr mgr,
             return -1;
     }
 
-    if (setsockcreatecon(NULL) == -1) {
+    if (setsockcreatecon_raw(NULL) == -1) {
         virReportSystemError(errno,
                              _("unable to clear socket security context '%s'"),
                              secdef->label);
@@ -1861,6 +1880,53 @@ virSecuritySELinuxSetImageFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
     return virSecuritySELinuxFSetFilecon(fd, secdef->imagelabel);
 }
 
+static int
+virSecuritySELinuxSetTapFDLabel(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                virDomainDefPtr def,
+                                int fd)
+{
+    struct stat buf;
+    security_context_t fcon = NULL;
+    virSecurityLabelDefPtr secdef;
+    char *str = NULL;
+    int rc = -1;
+
+    secdef = virDomainDefGetSecurityLabelDef(def, SECURITY_SELINUX_NAME);
+    if (secdef == NULL)
+        return rc;
+
+    if (secdef->label == NULL)
+        return 0;
+
+    if (fstat(fd, &buf) < 0) {
+        virReportSystemError(errno, _("cannot stat tap fd %d"), fd);
+        goto cleanup;
+    }
+
+    if ((buf.st_mode & S_IFMT) != S_IFCHR) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("tap fd %d is not character device"), fd);
+        goto cleanup;
+    }
+
+    if (getContext("/dev/tap.*", buf.st_mode, &fcon) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot lookup default selinux label for tap fd %d"), fd);
+        goto cleanup;
+    }
+
+    if (!(str = virSecuritySELinuxContextAddRange(secdef->label, fcon))) {
+        goto cleanup;
+    } else {
+        rc = virSecuritySELinuxFSetFilecon(fd, str);
+    }
+
+cleanup:
+    freecon(fcon);
+    VIR_FREE(str);
+    return rc;
+}
+
 static char *
 virSecuritySELinuxGenImageLabel(virSecurityManagerPtr mgr,
                                 virDomainDefPtr def)
@@ -1961,6 +2027,7 @@ virSecurityDriver virSecurityDriverSELinux = {
     .domainRestoreSavedStateLabel       = virSecuritySELinuxRestoreSavedStateLabel,
 
     .domainSetSecurityImageFDLabel      = virSecuritySELinuxSetImageFDLabel,
+    .domainSetSecurityTapFDLabel        = virSecuritySELinuxSetTapFDLabel,
 
     .domainGetSecurityMountOptions      = virSecuritySELinuxGetSecurityMountOptions,
 };

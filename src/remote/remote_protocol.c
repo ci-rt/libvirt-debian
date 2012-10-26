@@ -4593,6 +4593,15 @@ xdr_remote_domain_event_balloon_change_msg (XDR *xdrs, remote_domain_event_ballo
 }
 
 bool_t
+xdr_remote_domain_event_pmsuspend_disk_msg (XDR *xdrs, remote_domain_event_pmsuspend_disk_msg *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_managed_save_args (XDR *xdrs, remote_domain_managed_save_args *objp)
 {
 
@@ -5519,6 +5528,31 @@ xdr_remote_node_get_memory_parameters_ret (XDR *xdrs, remote_node_get_memory_par
                 sizeof (remote_typed_param), (xdrproc_t) xdr_remote_typed_param))
                  return FALSE;
          if (!xdr_int (xdrs, &objp->nparams))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_get_cpu_map_args (XDR *xdrs, remote_node_get_cpu_map_args *objp)
+{
+
+         if (!xdr_int (xdrs, &objp->need_results))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_node_get_cpu_map_ret (XDR *xdrs, remote_node_get_cpu_map_ret *objp)
+{
+        char **objp_cpp0 = (char **) (void *) &objp->cpumap.cpumap_val;
+
+         if (!xdr_bytes (xdrs, objp_cpp0, (u_int *) &objp->cpumap.cpumap_len, REMOTE_CPUMAP_MAX))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->online))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->ret))
                  return FALSE;
         return TRUE;
 }

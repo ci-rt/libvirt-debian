@@ -42,6 +42,7 @@
 #define <a href="#VIR_COPY_CPUMAP">VIR_COPY_CPUMAP</a>(cpumaps, maplen, vcpu, cpumap);
 #define <a href="#VIR_CPU_MAPLEN">VIR_CPU_MAPLEN</a>(cpu);
 #define <a href="#VIR_CPU_USABLE">VIR_CPU_USABLE</a>(cpumaps, maplen, vcpu, cpu);
+#define <a href="#VIR_CPU_USED">VIR_CPU_USED</a>(cpumap, cpu);
 #define <a href="#VIR_DOMAIN_BANDWIDTH_IN_AVERAGE">VIR_DOMAIN_BANDWIDTH_IN_AVERAGE</a>;
 #define <a href="#VIR_DOMAIN_BANDWIDTH_IN_BURST">VIR_DOMAIN_BANDWIDTH_IN_BURST</a>;
 #define <a href="#VIR_DOMAIN_BANDWIDTH_IN_PEAK">VIR_DOMAIN_BANDWIDTH_IN_PEAK</a>;
@@ -202,6 +203,7 @@ typedef enum <a href="#virDomainModificationImpact">virDomainModificationImpact<
 typedef enum <a href="#virDomainNostateReason">virDomainNostateReason</a>;
 typedef enum <a href="#virDomainNumatuneMemMode">virDomainNumatuneMemMode</a>;
 typedef enum <a href="#virDomainOpenGraphicsFlags">virDomainOpenGraphicsFlags</a>;
+typedef enum <a href="#virDomainPMSuspendedDiskReason">virDomainPMSuspendedDiskReason</a>;
 typedef enum <a href="#virDomainPMSuspendedReason">virDomainPMSuspendedReason</a>;
 typedef enum <a href="#virDomainPausedReason">virDomainPausedReason</a>;
 typedef <a href="libvirt-libvirt.html#virDomain">virDomain</a> * <a href="#virDomainPtr">virDomainPtr</a>;
@@ -301,6 +303,7 @@ typedef void <a href="#virConnectDomainEventGraphicsCallback">virConnectDomainEv
 typedef void <a href="#virConnectDomainEventIOErrorCallback">virConnectDomainEventIOErrorCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * srcPath, <br/>						 const char * devAlias, <br/>						 int action, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventIOErrorReasonCallback">virConnectDomainEventIOErrorReasonCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 const char * srcPath, <br/>							 const char * devAlias, <br/>							 int action, <br/>							 const char * reason, <br/>							 void * opaque);
 typedef void <a href="#virConnectDomainEventPMSuspendCallback">virConnectDomainEventPMSuspendCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int reason, <br/>						 void * opaque);
+typedef void <a href="#virConnectDomainEventPMSuspendDiskCallback">virConnectDomainEventPMSuspendDiskCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 int reason, <br/>							 void * opaque);
 typedef void <a href="#virConnectDomainEventPMWakeupCallback">virConnectDomainEventPMWakeupCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int reason, <br/>						 void * opaque);
 typedef void <a href="#virConnectDomainEventRTCChangeCallback">virConnectDomainEventRTCChangeCallback</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 long long utcoffset, <br/>						 void * opaque);
 int	<a href="#virConnectDomainEventRegister">virConnectDomainEventRegister</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a> cb, <br/>					 void * opaque, <br/>					 <a href="libvirt-libvirt.html#virFreeCallback">virFreeCallback</a> freecb);
@@ -574,6 +577,7 @@ int	<a href="#virNodeDeviceNumOfCaps">virNodeDeviceNumOfCaps</a>		(<a href="libv
 int	<a href="#virNodeDeviceReAttach">virNodeDeviceReAttach</a>		(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev);
 int	<a href="#virNodeDeviceRef">virNodeDeviceRef</a>		(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev);
 int	<a href="#virNodeDeviceReset">virNodeDeviceReset</a>		(<a href="libvirt-libvirt.html#virNodeDevicePtr">virNodeDevicePtr</a> dev);
+int	<a href="#virNodeGetCPUMap">virNodeGetCPUMap</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned char ** cpumap, <br/>					 unsigned int * online, <br/>					 unsigned int flags);
 int	<a href="#virNodeGetCPUStats">virNodeGetCPUStats</a>		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int cpuNum, <br/>					 <a href="libvirt-libvirt.html#virNodeCPUStatsPtr">virNodeCPUStatsPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags);
 int	<a href="#virNodeGetCellsFreeMemory">virNodeGetCellsFreeMemory</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned long long * freeMems, <br/>					 int startCell, <br/>					 int maxCells);
 unsigned long long	<a href="#virNodeGetFreeMemory">virNodeGetFreeMemory</a>	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn);
@@ -674,7 +678,7 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_COPY_CPUMAP">Macro </a>VIR_COPY_CPUMAP</h3><pre class="programlisting">#define <a href="#VIR_COPY_CPUMAP">VIR_COPY_CPUMAP</a>(cpumaps, maplen, vcpu, cpumap);
-</pre><p>This macro is to be used in conjunction with virDomainGetVcpus() and virDomainPinVcpu() APIs. <a href="libvirt-libvirt.html#VIR_COPY_CPUMAP">VIR_COPY_CPUMAP</a> macro extract the cpumap of the specified vcpu from cpumaps array and copy it into cpumap to be used later by virDomainPinVcpu() API.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cpumaps</tt></i>:</span></td><td>pointer to an array of cpumap (in 8-bit bytes) (IN)</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>the length (in bytes) of one cpumap</td></tr><tr><td><span class="term"><i><tt>vcpu</tt></i>:</span></td><td>the virtual CPU number</td></tr><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>pointer to a cpumap (in 8-bit bytes) (OUT) This cpumap must be previously allocated by the caller (ie: malloc(maplen))</td></tr></tbody></table></div>
+</pre><p>This macro is to be used in conjunction with virDomainGetVcpus() and virDomainPinVcpu() APIs. <a href="libvirt-libvirt.html#VIR_COPY_CPUMAP">VIR_COPY_CPUMAP</a> macro extracts the cpumap of the specified vcpu from cpumaps array and copies it into cpumap to be used later by virDomainPinVcpu() API.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cpumaps</tt></i>:</span></td><td>pointer to an array of cpumap (in 8-bit bytes) (IN)</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>the length (in bytes) of one cpumap</td></tr><tr><td><span class="term"><i><tt>vcpu</tt></i>:</span></td><td>the virtual CPU number</td></tr><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>pointer to a cpumap (in 8-bit bytes) (OUT) This cpumap must be previously allocated by the caller (ie: malloc(maplen))</td></tr></tbody></table></div>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_CPU_MAPLEN">Macro </a>VIR_CPU_MAPLEN</h3><pre class="programlisting">#define <a href="#VIR_CPU_MAPLEN">VIR_CPU_MAPLEN</a>(cpu);
@@ -682,7 +686,11 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_CPU_USABLE">Macro </a>VIR_CPU_USABLE</h3><pre class="programlisting">#define <a href="#VIR_CPU_USABLE">VIR_CPU_USABLE</a>(cpumaps, maplen, vcpu, cpu);
-</pre><p>This macro is to be used in conjunction with virDomainGetVcpus() API. <a href="libvirt-libvirt.html#VIR_CPU_USABLE">VIR_CPU_USABLE</a> macro returns a non zero value (true) if the cpu is usable by the vcpu, and 0 otherwise.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cpumaps</tt></i>:</span></td><td>pointer to an array of cpumap (in 8-bit bytes) (IN)</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>the length (in bytes) of one cpumap</td></tr><tr><td><span class="term"><i><tt>vcpu</tt></i>:</span></td><td>the virtual CPU number</td></tr><tr><td><span class="term"><i><tt>cpu</tt></i>:</span></td><td>the physical CPU number</td></tr></tbody></table></div>
+</pre><p>This macro is to be used in conjunction with virDomainGetVcpus() API. <a href="libvirt-libvirt.html#VIR_CPU_USABLE">VIR_CPU_USABLE</a> macro returns a non-zero value (true) if the cpu is usable by the vcpu, and 0 otherwise.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cpumaps</tt></i>:</span></td><td>pointer to an array of cpumap (in 8-bit bytes) (IN)</td></tr><tr><td><span class="term"><i><tt>maplen</tt></i>:</span></td><td>the length (in bytes) of one cpumap</td></tr><tr><td><span class="term"><i><tt>vcpu</tt></i>:</span></td><td>the virtual CPU number</td></tr><tr><td><span class="term"><i><tt>cpu</tt></i>:</span></td><td>the physical CPU number</td></tr></tbody></table></div>
+</div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="VIR_CPU_USED">Macro </a>VIR_CPU_USED</h3><pre class="programlisting">#define <a href="#VIR_CPU_USED">VIR_CPU_USED</a>(cpumap, cpu);
+</pre><p>This macro can be used in conjunction with virNodeGetCPUMap() API. It returns non-zero if the bit of the related CPU is set.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>pointer to a bit map of real CPUs (in 8-bit bytes) (IN)</td></tr><tr><td><span class="term"><i><tt>cpu</tt></i>:</span></td><td>the physical CPU number</td></tr></tbody></table></div>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_DOMAIN_BANDWIDTH_IN_AVERAGE">Macro </a>VIR_DOMAIN_BANDWIDTH_IN_AVERAGE</h3><pre class="programlisting">#define <a href="#VIR_DOMAIN_BANDWIDTH_IN_AVERAGE">VIR_DOMAIN_BANDWIDTH_IN_AVERAGE</a>;
@@ -954,11 +962,11 @@ typedef int <a href="#virStreamSourceFunc">virStreamSourceFunc</a>		(<a href="li
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_UNUSE_CPU">Macro </a>VIR_UNUSE_CPU</h3><pre class="programlisting">#define <a href="#VIR_UNUSE_CPU">VIR_UNUSE_CPU</a>(cpumap, cpu);
-</pre><p>This macro is to be used in conjunction with virDomainPinVcpu() API. USE_CPU macro reset the bit (CPU not usable) of the related cpu in cpumap.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>pointer to a bit map of real CPUs (in 8-bit bytes) (IN/OUT)</td></tr><tr><td><span class="term"><i><tt>cpu</tt></i>:</span></td><td>the physical CPU number</td></tr></tbody></table></div>
+</pre><p>This macro is to be used in conjunction with virDomainPinVcpu() API. It resets the bit (CPU not usable) of the related cpu in cpumap.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>pointer to a bit map of real CPUs (in 8-bit bytes) (IN/OUT)</td></tr><tr><td><span class="term"><i><tt>cpu</tt></i>:</span></td><td>the physical CPU number</td></tr></tbody></table></div>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_USE_CPU">Macro </a>VIR_USE_CPU</h3><pre class="programlisting">#define <a href="#VIR_USE_CPU">VIR_USE_CPU</a>(cpumap, cpu);
-</pre><p>This macro is to be used in conjunction with virDomainPinVcpu() API. USE_CPU macro set the bit (CPU usable) of the related cpu in cpumap.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>pointer to a bit map of real CPUs (in 8-bit bytes) (IN/OUT)</td></tr><tr><td><span class="term"><i><tt>cpu</tt></i>:</span></td><td>the physical CPU number</td></tr></tbody></table></div>
+</pre><p>This macro is to be used in conjunction with virDomainPinVcpu() API. It sets the bit (CPU usable) of the related cpu in cpumap.</p><div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>pointer to a bit map of real CPUs (in 8-bit bytes) (IN/OUT)</td></tr><tr><td><span class="term"><i><tt>cpu</tt></i>:</span></td><td>the physical CPU number</td></tr></tbody></table></div>
 </div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="VIR_UUID_BUFLEN">Macro </a>VIR_UUID_BUFLEN</h3><pre class="programlisting">#define <a href="#VIR_UUID_BUFLEN">VIR_UUID_BUFLEN</a>;
@@ -1442,8 +1450,9 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_EVENT_ID_TRAY_CHANGE">VIR_DOMAIN_EVENT_ID_TRAY_CHANGE</a> = 10 /* virConnectDomainEventTrayChangeCallback */
     <a name="VIR_DOMAIN_EVENT_ID_PMWAKEUP">VIR_DOMAIN_EVENT_ID_PMWAKEUP</a> = 11 /* virConnectDomainEventPMWakeupCallback */
     <a name="VIR_DOMAIN_EVENT_ID_PMSUSPEND">VIR_DOMAIN_EVENT_ID_PMSUSPEND</a> = 12 /* virConnectDomainEventPMSuspendCallback */
-    <a name="VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE">VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE</a> = 13 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last event ID supported  by this version of the libvirt API. */
-    <a name="VIR_DOMAIN_EVENT_ID_LAST">VIR_DOMAIN_EVENT_ID_LAST</a> = 14
+    <a name="VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE">VIR_DOMAIN_EVENT_ID_BALLOON_CHANGE</a> = 13 /* virConnectDomainEventBalloonChangeCallback */
+    <a name="VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK">VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK</a> = 14 /* NB: this enum value will increase over time as new events are  added to the libvirt API. It reflects the last event ID supported  by this version of the libvirt API. */
+    <a name="VIR_DOMAIN_EVENT_ID_LAST">VIR_DOMAIN_EVENT_ID_LAST</a> = 15
 };
 </pre><p/>
 </div>
@@ -1459,7 +1468,8 @@ The content of this structure is not made public by the API.
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainEventPMSuspendedDetailType">Enum </a>virDomainEventPMSuspendedDetailType</h3><pre class="programlisting">enum <a href="#virDomainEventPMSuspendedDetailType">virDomainEventPMSuspendedDetailType</a> {
     <a name="VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY">VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY</a> = 0 /* Guest was PM suspended to memory */
-    <a name="VIR_DOMAIN_EVENT_PMSUSPENDED_LAST">VIR_DOMAIN_EVENT_PMSUSPENDED_LAST</a> = 1
+    <a name="VIR_DOMAIN_EVENT_PMSUSPENDED_DISK">VIR_DOMAIN_EVENT_PMSUSPENDED_DISK</a> = 1 /* Guest was PM suspended to disk */
+    <a name="VIR_DOMAIN_EVENT_PMSUSPENDED_LAST">VIR_DOMAIN_EVENT_PMSUSPENDED_LAST</a> = 2
 };
 </pre><p/>
 </div>
@@ -1717,6 +1727,13 @@ The content of this structure is not made public by the API.
 </pre><p/>
 </div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virDomainPMSuspendedDiskReason">Enum </a>virDomainPMSuspendedDiskReason</h3><pre class="programlisting">enum <a href="#virDomainPMSuspendedDiskReason">virDomainPMSuspendedDiskReason</a> {
+    <a name="VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN">VIR_DOMAIN_PMSUSPENDED_DISK_UNKNOWN</a> = 0
+    <a name="VIR_DOMAIN_PMSUSPENDED_DISK_LAST">VIR_DOMAIN_PMSUSPENDED_DISK_LAST</a> = 1
+};
+</pre><p/>
+</div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virDomainPMSuspendedReason">Enum </a>virDomainPMSuspendedReason</h3><pre class="programlisting">enum <a href="#virDomainPMSuspendedReason">virDomainPMSuspendedReason</a> {
     <a name="VIR_DOMAIN_PMSUSPENDED_UNKNOWN">VIR_DOMAIN_PMSUSPENDED_UNKNOWN</a> = 0
     <a name="VIR_DOMAIN_PMSUSPENDED_LAST">VIR_DOMAIN_PMSUSPENDED_LAST</a> = 1
@@ -1888,6 +1905,7 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_XML_SECURE">VIR_DOMAIN_XML_SECURE</a> = 1 /* dump security sensitive information too */
     <a name="VIR_DOMAIN_XML_INACTIVE">VIR_DOMAIN_XML_INACTIVE</a> = 2 /* dump inactive domain information */
     <a name="VIR_DOMAIN_XML_UPDATE_CPU">VIR_DOMAIN_XML_UPDATE_CPU</a> = 4 /* update guest CPU requirements according to host CPU */
+    <a name="VIR_DOMAIN_XML_MIGRATABLE">VIR_DOMAIN_XML_MIGRATABLE</a> = 8 /* dump XML suitable for migration */
 };
 </pre><p/>
 </div>
@@ -2372,7 +2390,7 @@ VIR_DOMAIN_EVENT_ID_BLOCK_JOB with virConnectDomainEventRegisterAny()</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventCallback"/>Function type virConnectDomainEventCallback</h3><pre class="programlisting">int	virConnectDomainEventCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>					 int event, <br/>					 int detail, <br/>					 void * opaque)<br/>
 </pre><p>A callback function to be registered, and called when a domain event occurs</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>The domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>event</tt></i>:</span></td><td>The specfic <a href="libvirt-libvirt.html#virDomainEventType">virDomainEventType</a> which occurred</td></tr><tr><td><span class="term"><i><tt>detail</tt></i>:</span></td><td>event specific detail information</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque user data</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td/></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td><a href="libvirt-libvirt.html#virConnect">virConnect</a> connection</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>The domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>event</tt></i>:</span></td><td>The specific <a href="libvirt-libvirt.html#virDomainEventType">virDomainEventType</a> which occurred</td></tr><tr><td><span class="term"><i><tt>detail</tt></i>:</span></td><td>event specific detail information</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>opaque user data</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td/></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventDiskChangeCallback"/>Function type virConnectDomainEventDiskChangeCallback</h3><pre class="programlisting">void	virConnectDomainEventDiskChangeCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 const char * oldSrcPath, <br/>						 const char * newSrcPath, <br/>						 const char * devAlias, <br/>						 int reason, <br/>						 void * opaque)<br/>
 </pre><p>This callback occurs when disk gets changed. However,
@@ -2409,6 +2427,13 @@ VIR_DOMAIN_EVENT_ID_IO_ERROR with virConnectDomainEventRegisterAny()</p>
 
 The callback signature to use when registering for an event of type
 VIR_DOMAIN_EVENT_ID_PMSuspend with virConnectDomainEventRegisterAny()</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td>reason why the callback was called, unused currently, always passes 0</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
+        <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventPMSuspendDiskCallback"/>Function type virConnectDomainEventPMSuspendDiskCallback</h3><pre class="programlisting">void	virConnectDomainEventPMSuspendDiskCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>							 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>							 int reason, <br/>							 void * opaque)<br/>
+</pre><p>This callback occurs when the guest is suspended to disk.
+
+The callback signature to use when registering for an event of type
+VIR_DOMAIN_EVENT_ID_PMSUSPEND_DISK with virConnectDomainEventRegisterAny()</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>connection object</td></tr><tr><td><span class="term"><i><tt>dom</tt></i>:</span></td><td>domain on which the event occurred</td></tr><tr><td><span class="term"><i><tt>reason</tt></i>:</span></td><td>reason why the callback was called, unused currently, always passes 0</td></tr><tr><td><span class="term"><i><tt>opaque</tt></i>:</span></td><td>application specified data</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventPMWakeupCallback"/>Function type virConnectDomainEventPMWakeupCallback</h3><pre class="programlisting">void	virConnectDomainEventPMWakeupCallback	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>						 <a href="libvirt-libvirt.html#virDomainPtr">virDomainPtr</a> dom, <br/>						 int reason, <br/>						 void * opaque)<br/>
@@ -2532,7 +2557,7 @@ obtain the data that is to be sent.
 
 The callback will be invoked multiple times,
 fetching data in small chunks. The application
-should fill the 'data' array with upto 'nbytes'
+should fill the 'data' array with up to 'nbytes'
 of data and then return the number actual number
 of bytes. The callback will continue to be
 invoked until it indicates the end of the source
@@ -2570,7 +2595,7 @@ after the corresponding operation completes.</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virConnectDomainEventDeregister"/>virConnectDomainEventDeregister ()</h3><pre class="programlisting">int	virConnectDomainEventDeregister	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a> cb)<br/>
 </pre><p>Removes a callback previously registered with the virConnectDomainEventRegister
-funtion.
+function.
 
 Use of this method is no longer recommended. Instead applications
 should try virConnectDomainEventUnregisterAny which has a more flexible
@@ -4658,7 +4683,7 @@ displays per domain. These can be distinguished by @screen argument.
 
 This call sets up a stream; subsequent use of stream API is necessary
 to transfer actual data, determine how much data is successfully
-transfered, and detect any errors.
+transferred, and detect any errors.
 
 The screen ID is the sequential number of screen. In case of multiple
 graphics cards, heads are enumerated before devices, e.g. having
@@ -5297,12 +5322,15 @@ connection use the <a href="libvirt-libvirt.html#virConnectGetLibVersion">virCon
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>libVer</tt></i>:</span></td><td>return value for the library version (OUT)</td></tr><tr><td><span class="term"><i><tt>type</tt></i>:</span></td><td>ignored; pass NULL</td></tr><tr><td><span class="term"><i><tt>typeVer</tt></i>:</span></td><td>pass NULL; for historical purposes duplicates @libVer if non-NULL</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>-1 in case of failure, 0 otherwise, and values for @libVer and @typeVer have the format major * 1,000,000 + minor * 1,000 + release.</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInitialize"/>virInitialize ()</h3><pre class="programlisting">int	virInitialize			(void)<br/>
-</pre><p>Initialize the library. It's better to call this routine at startup
-in multithreaded applications to avoid potential race when initializing
-the library.
+</pre><p>Initialize the library.
 
-Calling <a href="libvirt-libvirt.html#virInitialize">virInitialize</a> is mandatory, unless your first API call is one of
-virConnectOpen*.</p>
+This method is invoked automatically by any of the <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> API
+calls. Since release 1.0.0, there is no need to call this method even
+in a multithreaded application, since initialization is performed in
+a thread safe manner.
+
+The only time it would be necessary to call <a href="libvirt-libvirt.html#virInitialize">virInitialize</a> is if the
+application did not invoke <a href="libvirt-libvirt.html#virConnectOpen">virConnectOpen</a> as its first API call.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virInterfaceChangeBegin"/>virInterfaceChangeBegin ()</h3><pre class="programlisting">int	virInterfaceChangeBegin		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned int flags)<br/>
@@ -5716,6 +5744,10 @@ If the reset will affect other devices which are currently in use,
 this function may fail.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>dev</tt></i>:</span></td><td>pointer to the node device</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>
+        <div class="refsect2" lang="en"><h3><a name="virNodeGetCPUMap"/>virNodeGetCPUMap ()</h3><pre class="programlisting">int	virNodeGetCPUMap		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 unsigned char ** cpumap, <br/>					 unsigned int * online, <br/>					 unsigned int flags)<br/>
+</pre><p>Get CPU map of host node CPUs.</p>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>cpumap</tt></i>:</span></td><td>optional pointer to a bit map of real CPUs on the host node (in 8-bit bytes) (OUT) In case of success each bit set to 1 means that corresponding CPU is online. Bytes are stored in little-endian order: CPU0-7, 8-15... In each byte, lowest CPU number is least significant bit. The bit map is allocated by <a href="libvirt-libvirt.html#virNodeGetCPUMap">virNodeGetCPUMap</a> and needs to be released using free() by the caller.</td></tr><tr><td><span class="term"><i><tt>online</tt></i>:</span></td><td>optional number of online CPUs in cpumap (OUT) Contains the number of online CPUs if the call was successful.</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>number of CPUs present on the host node, or -1 if there was an error.</td></tr></tbody></table></div></div>
+        <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeGetCPUStats"/>virNodeGetCPUStats ()</h3><pre class="programlisting">int	virNodeGetCPUStats		(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 int cpuNum, <br/>					 <a href="libvirt-libvirt.html#virNodeCPUStatsPtr">virNodeCPUStatsPtr</a> params, <br/>					 int * nparams, <br/>					 unsigned int flags)<br/>
 </pre><p>This function provides individual cpu statistics of the node.
 If you want to get total cpu statistics of the node, you must specify
@@ -5857,6 +5889,12 @@ will be restricted to devices with the specified capability</p>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virNodeSetMemoryParameters"/>virNodeSetMemoryParameters ()</h3><pre class="programlisting">int	virNodeSetMemoryParameters	(<a href="libvirt-libvirt.html#virConnectPtr">virConnectPtr</a> conn, <br/>					 <a href="libvirt-libvirt.html#virTypedParameterPtr">virTypedParameterPtr</a> params, <br/>					 int nparams, <br/>					 unsigned int flags)<br/>
 </pre><p>Change all or a subset of the node memory tunables.
+
+Note that it's not recommended to use this function while the
+outside tuning program is running (such as ksmtuned under Linux),
+as they could change the tunables in parallel, which could cause
+conflicts.
+
 This function may require privileged access to the hypervisor.</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>conn</tt></i>:</span></td><td>pointer to the hypervisor connection</td></tr><tr><td><span class="term"><i><tt>params</tt></i>:</span></td><td>pointer to scheduler parameter objects</td></tr><tr><td><span class="term"><i><tt>nparams</tt></i>:</span></td><td>number of scheduler parameter objects (this value can be the same or less than the returned value nparams of virDomainGetSchedulerType)</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 in case of success, -1 in case of failure.</td></tr></tbody></table></div></div>
         <hr/>

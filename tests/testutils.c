@@ -48,6 +48,7 @@
 #include "command.h"
 #include "virrandom.h"
 #include "dirname.h"
+#include "virprocess.h"
 
 #if TEST_OOM_TRACE
 # include <execinfo.h>
@@ -329,7 +330,7 @@ virtTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen)
         VIR_FORCE_CLOSE(pipefd[1]);
         len = virFileReadLimFD(pipefd[0], maxlen, buf);
         VIR_FORCE_CLOSE(pipefd[0]);
-        if (virPidWait(pid, NULL) < 0)
+        if (virProcessWait(pid, NULL) < 0)
             return -1;
 
         return len;
@@ -479,12 +480,14 @@ struct virtTestLogData {
 static struct virtTestLogData testLog = { VIR_BUFFER_INITIALIZER };
 
 static void
-virtTestLogOutput(const char *category ATTRIBUTE_UNUSED,
-                  int priority ATTRIBUTE_UNUSED,
+virtTestLogOutput(virLogSource source ATTRIBUTE_UNUSED,
+                  virLogPriority priority ATTRIBUTE_UNUSED,
+                  const char *filename ATTRIBUTE_UNUSED,
+                  int lineno ATTRIBUTE_UNUSED,
                   const char *funcname ATTRIBUTE_UNUSED,
-                  long long lineno ATTRIBUTE_UNUSED,
                   const char *timestamp,
                   unsigned int flags,
+                  const char *rawstr ATTRIBUTE_UNUSED,
                   const char *str,
                   void *data)
 {
@@ -608,7 +611,7 @@ int virtTestMain(int argc,
     virLogSetFromEnv();
     if (!getenv("LIBVIRT_DEBUG") && !virLogGetNbOutputs()) {
         if (virLogDefineOutput(virtTestLogOutput, virtTestLogClose, &testLog,
-                               0, 0, NULL, 0) < 0)
+                               VIR_LOG_DEBUG, VIR_LOG_TO_STDERR, NULL, 0) < 0)
             return 1;
     }
 
@@ -699,7 +702,7 @@ int virtTestMain(int argc,
             } else {
                 int i, status;
                 for (i = 0 ; i < mp ; i++) {
-                    if (virPidWait(workers[i], NULL) < 0)
+                    if (virProcessWait(workers[i], NULL) < 0)
                         ret = EXIT_FAILURE;
                 }
                 VIR_FREE(workers);

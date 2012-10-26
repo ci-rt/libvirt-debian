@@ -31,11 +31,11 @@
 #include "qemu_monitor.h"
 #include "qemu_monitor_text.h"
 #include "qemu_monitor_json.h"
-#include "qemu_conf.h"
 #include "virterror_internal.h"
 #include "memory.h"
 #include "logging.h"
 #include "virfile.h"
+#include "virprocess.h"
 #include "virobject.h"
 
 #ifdef WITH_DTRACE_PROBES
@@ -283,7 +283,7 @@ qemuMonitorOpenUnix(const char *monitor, pid_t cpid)
             break;
 
         if ((errno == ENOENT || errno == ECONNREFUSED) &&
-            virKillProcess(cpid, 0) == 0) {
+            cpid && virProcessKill(cpid, 0) == 0) {
             /* ENOENT       : Socket may not have shown up yet
              * ECONNREFUSED : Leftover socket hasn't been removed yet */
             continue;
@@ -538,6 +538,9 @@ static void qemuMonitorUpdateWatch(qemuMonitorPtr mon)
         VIR_EVENT_HANDLE_HANGUP |
         VIR_EVENT_HANDLE_ERROR;
 
+    if (!mon->watch)
+        return;
+
     if (mon->lastError.code == VIR_ERR_OK) {
         events |= VIR_EVENT_HANDLE_READABLE;
 
@@ -563,6 +566,11 @@ qemuMonitorIO(int watch, int fd, int events, void *opaque) {
 #if DEBUG_IO
     VIR_DEBUG("Monitor %p I/O on watch %d fd %d events %d", mon, watch, fd, events);
 #endif
+    if (mon->fd == -1 || mon->watch == 0) {
+        qemuMonitorUnlock(mon);
+        virObjectUnref(mon);
+        return;
+    }
 
     if (mon->fd != fd || mon->watch != watch) {
         if (events & (VIR_EVENT_HANDLE_HANGUP | VIR_EVENT_HANDLE_ERROR))
@@ -788,7 +796,7 @@ qemuMonitorOpen(virDomainObjPtr vm,
     switch (config->type) {
     case VIR_DOMAIN_CHR_TYPE_UNIX:
         hasSendFD = true;
-        if ((fd = qemuMonitorOpenUnix(config->data.nix.path, vm->pid)) < 0)
+        if ((fd = qemuMonitorOpenUnix(config->data.nix.path, vm ? vm->pid : 0)) < 0)
             return NULL;
         break;
 
@@ -830,8 +838,10 @@ void qemuMonitorClose(qemuMonitorPtr mon)
           "mon=%p refs=%d", mon, mon->object.refs);
 
     if (mon->fd >= 0) {
-        if (mon->watch)
+        if (mon->watch) {
             virEventRemoveHandle(mon->watch);
+            mon->watch = 0;
+        }
         VIR_FORCE_CLOSE(mon->fd);
     }
 
@@ -1101,6 +1111,16 @@ int qemuMonitorEmitPMSuspend(qemuMonitorPtr mon)
     return ret;
 }
 
+int qemuMonitorEmitPMSuspendDisk(qemuMonitorPtr mon)
+{
+    int ret = -1;
+    VIR_DEBUG("mon=%p", mon);
+
+    QEMU_MONITOR_CALLBACK(mon, ret, domainPMSuspendDisk, mon->vm);
+
+    return ret;
+}
+
 int qemuMonitorEmitBlockJob(qemuMonitorPtr mon,
                             const char *diskAlias,
                             int type,
@@ -1126,8 +1146,7 @@ int qemuMonitorEmitBalloonChange(qemuMonitorPtr mon,
 }
 
 
-int qemuMonitorSetCapabilities(qemuMonitorPtr mon,
-                               qemuCapsPtr caps)
+int qemuMonitorSetCapabilities(qemuMonitorPtr mon)
 {
     int ret;
     VIR_DEBUG("mon=%p", mon);
@@ -1140,14 +1159,6 @@ int qemuMonitorSetCapabilities(qemuMonitorPtr mon,
 
     if (mon->json) {
         ret = qemuMonitorJSONSetCapabilities(mon);
-        if (ret < 0)
-            goto cleanup;
-
-        ret = qemuMonitorJSONCheckCommands(mon, caps);
-        if (ret < 0)
-            goto cleanup;
-
-        ret = qemuMonitorJSONCheckEvents(mon, caps);
         if (ret < 0)
             goto cleanup;
     } else {
@@ -1823,6 +1834,30 @@ int qemuMonitorGetMigrationStatus(qemuMonitorPtr mon,
                                                 transferred,
                                                 remaining,
                                                 total);
+    return ret;
+}
+
+
+int qemuMonitorGetSpiceMigrationStatus(qemuMonitorPtr mon,
+                                       bool *spice_migrated)
+{
+    int ret;
+    VIR_DEBUG("mon=%p", mon);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (mon->json) {
+        ret = qemuMonitorJSONGetSpiceMigrationStatus(mon, spice_migrated);
+    } else {
+        virReportError(VIR_ERR_OPERATION_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
     return ret;
 }
 
@@ -2761,6 +2796,36 @@ qemuMonitorTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
     return ret;
 }
 
+/* Start a block-commit block job.  bandwidth is in MB/sec.  */
+int
+qemuMonitorBlockCommit(qemuMonitorPtr mon, const char *device,
+                       const char *top, const char *base,
+                       unsigned long bandwidth)
+{
+    int ret = -1;
+    unsigned long long speed;
+
+    VIR_DEBUG("mon=%p, device=%s, top=%s, base=%s, bandwidth=%ld",
+              mon, device, NULLSTR(top), NULLSTR(base), bandwidth);
+
+    /* Convert bandwidth MiB to bytes */
+    speed = bandwidth;
+    if (speed > ULLONG_MAX / 1024 / 1024) {
+        virReportError(VIR_ERR_OVERFLOW,
+                       _("bandwidth must be less than %llu"),
+                       ULLONG_MAX / 1024 / 1024);
+        return -1;
+    }
+    speed <<= 20;
+
+    if (mon->json)
+        ret = qemuMonitorJSONBlockCommit(mon, device, top, base, speed);
+    else
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("block-commit requires JSON monitor"));
+    return ret;
+}
+
 int qemuMonitorArbitraryCommand(qemuMonitorPtr mon,
                                 const char *cmd,
                                 char **reply,
@@ -2996,4 +3061,189 @@ int qemuMonitorSystemWakeup(qemuMonitorPtr mon)
     }
 
     return qemuMonitorJSONSystemWakeup(mon);
+}
+
+int qemuMonitorGetVersion(qemuMonitorPtr mon,
+                          int *major,
+                          int *minor,
+                          int *micro,
+                          char **package)
+{
+    VIR_DEBUG("mon=%p major=%p minor=%p micro=%p package=%p",
+              mon, major, minor, micro, package);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONGetVersion(mon, major, minor, micro, package);
+}
+
+int qemuMonitorGetMachines(qemuMonitorPtr mon,
+                           qemuMonitorMachineInfoPtr **machines)
+{
+    VIR_DEBUG("mon=%p machines=%p",
+              mon, machines);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONGetMachines(mon, machines);
+}
+
+void qemuMonitorMachineInfoFree(qemuMonitorMachineInfoPtr machine)
+{
+    if (!machine)
+        return;
+    VIR_FREE(machine->name);
+    VIR_FREE(machine->alias);
+    VIR_FREE(machine);
+}
+
+int qemuMonitorGetCPUDefinitions(qemuMonitorPtr mon,
+                                 char ***cpus)
+{
+    VIR_DEBUG("mon=%p cpus=%p",
+              mon, cpus);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONGetCPUDefinitions(mon, cpus);
+}
+
+
+int qemuMonitorGetCommands(qemuMonitorPtr mon,
+                           char ***commands)
+{
+    VIR_DEBUG("mon=%p commands=%p",
+              mon, commands);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONGetCommands(mon, commands);
+}
+
+
+int qemuMonitorGetEvents(qemuMonitorPtr mon,
+                         char ***events)
+{
+    VIR_DEBUG("mon=%p events=%p",
+              mon, events);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONGetEvents(mon, events);
+}
+
+
+int qemuMonitorGetObjectTypes(qemuMonitorPtr mon,
+                              char ***types)
+{
+    VIR_DEBUG("mon=%p types=%p",
+              mon, types);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONGetObjectTypes(mon, types);
+}
+
+
+int qemuMonitorGetObjectProps(qemuMonitorPtr mon,
+                              const char *type,
+                              char ***props)
+{
+    VIR_DEBUG("mon=%p type=%s props=%p",
+              mon, type, props);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return -1;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return -1;
+    }
+
+    return qemuMonitorJSONGetObjectProps(mon, type, props);
+}
+
+
+char *qemuMonitorGetTargetArch(qemuMonitorPtr mon)
+{
+    VIR_DEBUG("mon=%p",
+              mon);
+
+    if (!mon) {
+        virReportError(VIR_ERR_INVALID_ARG, "%s",
+                       _("monitor must not be NULL"));
+        return NULL;
+    }
+
+    if (!mon->json) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("JSON monitor is required"));
+        return NULL;
+    }
+
+    return qemuMonitorJSONGetTargetArch(mon);
 }

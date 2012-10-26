@@ -1,7 +1,7 @@
 /*
  * storage_file.c: file utility functions for FS storage backend
  *
- * Copyright (C) 2007-2011 Red Hat, Inc.
+ * Copyright (C) 2007-2012 Red Hat, Inc.
  * Copyright (C) 2007-2008 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #ifdef __linux__
 # if HAVE_LINUX_MAGIC_H
 #  include <linux/magic.h>
@@ -40,14 +41,17 @@
 #include "logging.h"
 #include "virfile.h"
 #include "c-ctype.h"
+#include "virhash.h"
 
 #define VIR_FROM_THIS VIR_FROM_STORAGE
 
 VIR_ENUM_IMPL(virStorageFileFormat,
               VIR_STORAGE_FILE_LAST,
+              "none",
               "raw", "dir", "bochs",
               "cloop", "cow", "dmg", "iso",
-              "qcow", "qcow2", "qed", "vmdk", "vpc")
+              "qcow", "qcow2", "qed", "vmdk", "vpc",
+              "fat", "vhd")
 
 enum lv_endian {
     LV_LITTLE_ENDIAN = 1, /* 1234 */
@@ -123,8 +127,12 @@ qedGetBackingStore(char **, int *, const unsigned char *, size_t);
 
 
 static struct FileTypeInfo const fileTypeInfo[] = {
-    [VIR_STORAGE_FILE_RAW] = { NULL, NULL, LV_LITTLE_ENDIAN, -1, 0, 0, 0, 0, 0, NULL },
-    [VIR_STORAGE_FILE_DIR] = { NULL, NULL, LV_LITTLE_ENDIAN, -1, 0, 0, 0, 0, 0, NULL },
+    [VIR_STORAGE_FILE_NONE] = { NULL, NULL, LV_LITTLE_ENDIAN,
+                                -1, 0, 0, 0, 0, 0, NULL },
+    [VIR_STORAGE_FILE_RAW] = { NULL, NULL, LV_LITTLE_ENDIAN,
+                               -1, 0, 0, 0, 0, 0, NULL },
+    [VIR_STORAGE_FILE_DIR] = { NULL, NULL, LV_LITTLE_ENDIAN,
+                               -1, 0, 0, 0, 0, 0, NULL },
     [VIR_STORAGE_FILE_BOCHS] = {
         /*"Bochs Virtual HD Image", */ /* Untested */ NULL,
         NULL,
@@ -180,6 +188,11 @@ static struct FileTypeInfo const fileTypeInfo[] = {
         LV_BIG_ENDIAN, 12, 0x10000,
         8 + 4 + 4 + 8 + 4 + 4 + 2 + 2 + 4, 8, 1, -1, NULL
     },
+    /* Not direct file formats, but used for various drivers */
+    [VIR_STORAGE_FILE_FAT] = { NULL, NULL, LV_LITTLE_ENDIAN,
+                               -1, 0, 0, 0, 0, 0, NULL },
+    [VIR_STORAGE_FILE_VHD] = { NULL, NULL, LV_LITTLE_ENDIAN,
+                               -1, 0, 0, 0, 0, 0, NULL },
 };
 verify(ARRAY_CARDINALITY(fileTypeInfo) == VIR_STORAGE_FILE_LAST);
 
@@ -195,8 +208,10 @@ cowGetBackingStore(char **res,
 
     if (buf_size < 4+4+ COW_FILENAME_MAXLEN)
         return BACKING_STORE_INVALID;
-    if (buf[4+4] == '\0') /* cow_header_v2.backing_file[0] */
+    if (buf[4+4] == '\0') { /* cow_header_v2.backing_file[0] */
+        *format = VIR_STORAGE_FILE_NONE;
         return BACKING_STORE_OK;
+    }
 
     *res = strndup ((const char*)buf + 4+4, COW_FILENAME_MAXLEN);
     if (*res == NULL) {
@@ -256,7 +271,8 @@ qcow2GetBackingStoreFormat(int *format,
                 break;
             *format = virStorageFileFormatTypeFromString(
                 ((const char *)buf)+offset);
-            break;
+            if (*format <= VIR_STORAGE_FILE_NONE)
+                return -1;
         }
 
         offset += len;
@@ -298,8 +314,11 @@ qcowXGetBackingStore(char **res,
             | (buf[QCOWX_HDR_BACKING_FILE_SIZE+1] << 16)
             | (buf[QCOWX_HDR_BACKING_FILE_SIZE+2] << 8)
             | buf[QCOWX_HDR_BACKING_FILE_SIZE+3]); /* QCowHeader.backing_file_size */
-    if (size == 0)
+    if (size == 0) {
+        if (format)
+            *format = VIR_STORAGE_FILE_NONE;
         return BACKING_STORE_OK;
+    }
     if (offset + size > buf_size || offset + size < offset)
         return BACKING_STORE_INVALID;
     if (size + 1 == 0)
@@ -335,8 +354,10 @@ qcowXGetBackingStore(char **res,
      * between the end of the header (QCOW2_HDR_TOTAL_SIZE)
      * and the start of the backingStoreName (offset)
      */
-    if (isQCow2 && format)
-        qcow2GetBackingStoreFormat(format, buf, buf_size, QCOW2_HDR_TOTAL_SIZE, offset);
+    if (isQCow2 && format &&
+        qcow2GetBackingStoreFormat(format, buf, buf_size, QCOW2_HDR_TOTAL_SIZE,
+                                   offset) < 0)
+        return BACKING_STORE_INVALID;
 
     return BACKING_STORE_OK;
 }
@@ -348,10 +369,15 @@ qcow1GetBackingStore(char **res,
                      const unsigned char *buf,
                      size_t buf_size)
 {
+    int ret;
+
     /* QCow1 doesn't have the extensions capability
      * used to store backing format */
     *format = VIR_STORAGE_FILE_AUTO;
-    return qcowXGetBackingStore(res, NULL, buf, buf_size, false);
+    ret = qcowXGetBackingStore(res, NULL, buf, buf_size, false);
+    if (ret == 0 && *buf == '\0')
+        *format = VIR_STORAGE_FILE_NONE;
+    return ret;
 }
 
 static int
@@ -401,6 +427,7 @@ vmdk4GetBackingStore(char **res,
     desc[len] = '\0';
     start = strstr(desc, prefix);
     if (start == NULL) {
+        *format = VIR_STORAGE_FILE_NONE;
         ret = BACKING_STORE_OK;
         goto cleanup;
     }
@@ -411,6 +438,7 @@ vmdk4GetBackingStore(char **res,
         goto cleanup;
     }
     if (end == start) {
+        *format = VIR_STORAGE_FILE_NONE;
         ret = BACKING_STORE_OK;
         goto cleanup;
     }
@@ -464,8 +492,10 @@ qedGetBackingStore(char **res,
     if (buf_size < QED_HDR_FEATURES_OFFSET+8)
         return BACKING_STORE_INVALID;
     flags = qedGetHeaderULL(buf + QED_HDR_FEATURES_OFFSET);
-    if (!(flags & QED_F_BACKING_FILE))
+    if (!(flags & QED_F_BACKING_FILE)) {
+        *format = VIR_STORAGE_FILE_NONE;
         return BACKING_STORE_OK;
+    }
 
     /* Parse the backing file */
     if (buf_size < QED_HDR_BACKING_FILE_OFFSET+8)
@@ -485,12 +515,10 @@ qedGetBackingStore(char **res,
     memcpy(*res, buf + offset, size);
     (*res)[size] = '\0';
 
-    if (format) {
-        if (flags & QED_F_BACKING_FORMAT_NO_PROBE)
-            *format = virStorageFileFormatTypeFromString("raw");
-        else
-            *format = VIR_STORAGE_FILE_AUTO_SAFE;
-    }
+    if (flags & QED_F_BACKING_FORMAT_NO_PROBE)
+        *format = VIR_STORAGE_FILE_RAW;
+    else
+        *format = VIR_STORAGE_FILE_AUTO_SAFE;
 
     return BACKING_STORE_OK;
 }
@@ -503,18 +531,22 @@ static char *
 absolutePathFromBaseFile(const char *base_file, const char *path)
 {
     char *res;
+    char *tmp;
     size_t d_len = dir_len (base_file);
 
     /* If path is already absolute, or if dirname(base_file) is ".",
        just return a copy of path.  */
     if (*path == '/' || d_len == 0)
-        return strdup(path);
+        return canonicalize_file_name(path);
 
     /* Ensure that the following cast-to-int is valid.  */
     if (d_len > INT_MAX)
         return NULL;
 
-    ignore_value(virAsprintf(&res, "%.*s/%s", (int) d_len, base_file, path));
+    if (virAsprintf(&tmp, "%.*s/%s", (int) d_len, base_file, path) < 0)
+        return NULL;
+    res = canonicalize_file_name(tmp);
+    VIR_FREE(tmp);
     return res;
 }
 
@@ -564,7 +596,7 @@ virStorageFileMatchesVersion(int format,
 
     /* Validate version number info */
     if (fileTypeInfo[format].versionOffset == -1)
-        return true;
+        return false;
 
     if ((fileTypeInfo[format].versionOffset + 4) > buflen)
         return false;
@@ -607,7 +639,9 @@ virStorageFileGetMetadataFromBuf(int format,
     /* XXX we should consider moving virStorageBackendUpdateVolInfo
      * code into this method, for non-magic files
      */
-    if (!fileTypeInfo[format].magic) {
+    if (format <= VIR_STORAGE_FILE_NONE ||
+        format >= VIR_STORAGE_FILE_LAST ||
+        !fileTypeInfo[format].magic) {
         return 0;
     }
 
@@ -668,21 +702,27 @@ virStorageFileGetMetadataFromBuf(int format,
 
         meta->backingStoreIsFile = false;
         if (backing != NULL) {
-            if (virBackingStoreIsFile(backing)) {
-                meta->backingStoreIsFile = true;
-                meta->backingStore = absolutePathFromBaseFile(path, backing);
-            } else {
-                meta->backingStore = strdup(backing);
-            }
-            VIR_FREE(backing);
+            meta->backingStore = strdup(backing);
             if (meta->backingStore == NULL) {
                 virReportOOMError();
+                VIR_FREE(backing);
                 return -1;
             }
+            if (virBackingStoreIsFile(backing)) {
+                meta->backingStoreIsFile = true;
+                meta->backingStoreRaw = meta->backingStore;
+                meta->backingStore = absolutePathFromBaseFile(path, backing);
+                if (meta->backingStore == NULL) {
+                    virReportOOMError();
+                    VIR_FREE(backing);
+                    return -1;
+                }
+            }
+            VIR_FREE(backing);
             meta->backingStoreFormat = backingFormat;
         } else {
             meta->backingStore = NULL;
-            meta->backingStoreFormat = VIR_STORAGE_FILE_AUTO;
+            meta->backingStoreFormat = VIR_STORAGE_FILE_NONE;
         }
     }
 
@@ -790,11 +830,11 @@ cleanup:
  * Best option: Don't use this function
  */
 int
-virStorageFileProbeFormat(const char *path)
+virStorageFileProbeFormat(const char *path, uid_t uid, gid_t gid)
 {
     int fd, ret;
 
-    if ((fd = open(path, O_RDONLY)) < 0) {
+    if ((fd = virFileOpenAs(path, O_RDONLY, 0, uid, gid, 0)) < 0) {
         virReportSystemError(errno, _("cannot open file '%s'"), path);
         return -1;
     }
@@ -811,7 +851,7 @@ virStorageFileProbeFormat(const char *path)
  *
  * Extract metadata about the storage volume with the specified
  * image format. If image format is VIR_STORAGE_FILE_AUTO, it
- * will probe to automatically identify the format.
+ * will probe to automatically identify the format.  Does not recurse.
  *
  * Callers are advised never to use VIR_STORAGE_FILE_AUTO as a
  * format, since a malicious guest can turn a raw file into any
@@ -822,41 +862,43 @@ virStorageFileProbeFormat(const char *path)
  * backing store. Callers are advised against probing for the
  * backing store format in this case.
  *
- * Caller MUST free @meta after use via virStorageFileFreeMetadata.
+ * Caller MUST free the result after use via virStorageFileFreeMetadata.
  */
-int
+virStorageFileMetadataPtr
 virStorageFileGetMetadataFromFD(const char *path,
                                 int fd,
-                                int format,
-                                virStorageFileMetadata *meta)
+                                int format)
 {
+    virStorageFileMetadata *meta = NULL;
     unsigned char *head = NULL;
     ssize_t len = STORAGE_MAX_HEAD;
-    int ret = -1;
+    virStorageFileMetadata *ret = NULL;
     struct stat sb;
 
-    memset(meta, 0, sizeof(*meta));
+    if (VIR_ALLOC(meta) < 0) {
+        virReportOOMError();
+        return NULL;
+    }
 
     if (fstat(fd, &sb) < 0) {
         virReportSystemError(errno,
                              _("cannot stat file '%s'"),
                              path);
-        return -1;
+        goto cleanup;
     }
 
-    /* No header to probe for directories */
-    if (S_ISDIR(sb.st_mode)) {
-        return 0;
-    }
+    /* No header to probe for directories, but also no backing file */
+    if (S_ISDIR(sb.st_mode))
+        return meta;
 
     if (lseek(fd, 0, SEEK_SET) == (off_t)-1) {
         virReportSystemError(errno, _("cannot seek to start of '%s'"), path);
-        return -1;
+        goto cleanup;
     }
 
     if (VIR_ALLOC_N(head, len) < 0) {
         virReportOOMError();
-        return -1;
+        goto cleanup;
     }
 
     if ((len = read(fd, head, len)) < 0) {
@@ -867,17 +909,65 @@ virStorageFileGetMetadataFromFD(const char *path,
     if (format == VIR_STORAGE_FILE_AUTO)
         format = virStorageFileProbeFormatFromBuf(path, head, len);
 
-    if (format < 0 ||
+    if (format <= VIR_STORAGE_FILE_NONE ||
         format >= VIR_STORAGE_FILE_LAST) {
         virReportSystemError(EINVAL, _("unknown storage file format %d"),
                              format);
         goto cleanup;
     }
 
-    ret = virStorageFileGetMetadataFromBuf(format, path, head, len, meta);
+    if (virStorageFileGetMetadataFromBuf(format, path, head, len, meta) < 0)
+        goto cleanup;
+    ret = meta;
+    meta = NULL;
 
 cleanup:
+    virStorageFileFreeMetadata(meta);
     VIR_FREE(head);
+    return ret;
+}
+
+/* Recursive workhorse for virStorageFileGetMetadata.  */
+static virStorageFileMetadataPtr
+virStorageFileGetMetadataRecurse(const char *path, int format,
+                                 uid_t uid, gid_t gid,
+                                 bool allow_probe, virHashTablePtr cycle)
+{
+    int fd;
+    virStorageFileMetadataPtr ret = NULL;
+
+    if (virHashLookup(cycle, path)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("backing store for %s is self-referential"),
+                       path);
+        return NULL;
+    }
+    if (virHashAddEntry(cycle, path, (void *)1) < 0)
+        return NULL;
+
+    if ((fd = virFileOpenAs(path, O_RDONLY, 0, uid, gid, 0)) < 0) {
+        virReportSystemError(-fd, _("cannot open file '%s'"), path);
+        return NULL;
+    }
+
+    ret = virStorageFileGetMetadataFromFD(path, fd, format);
+
+    if (VIR_CLOSE(fd) < 0)
+        VIR_WARN("could not close file %s", path);
+
+    if (ret && ret->backingStoreIsFile) {
+        if (ret->backingStoreFormat == VIR_STORAGE_FILE_AUTO && !allow_probe)
+            ret->backingStoreFormat = VIR_STORAGE_FILE_RAW;
+        else if (ret->backingStoreFormat == VIR_STORAGE_FILE_AUTO_SAFE)
+            ret->backingStoreFormat = VIR_STORAGE_FILE_AUTO;
+        format = ret->backingStoreFormat;
+        ret->backingMeta = virStorageFileGetMetadataRecurse(ret->backingStore,
+                                                            format,
+                                                            uid, gid,
+                                                            allow_probe,
+                                                            cycle);
+    }
+
     return ret;
 }
 
@@ -886,7 +976,11 @@ cleanup:
  *
  * Extract metadata about the storage volume with the specified
  * image format. If image format is VIR_STORAGE_FILE_AUTO, it
- * will probe to automatically identify the format.
+ * will probe to automatically identify the format.  Recurses through
+ * the entire chain.
+ *
+ * Open files using UID and GID (or pass -1 for the current user/group).
+ * Treat any backing files without explicit type as raw, unless ALLOW_PROBE.
  *
  * Callers are advised never to use VIR_STORAGE_FILE_AUTO as a
  * format, since a malicious guest can turn a raw file into any
@@ -894,27 +988,27 @@ cleanup:
  *
  * If the returned meta.backingStoreFormat is VIR_STORAGE_FILE_AUTO
  * it indicates the image didn't specify an explicit format for its
- * backing store. Callers are advised against probing for the
- * backing store format in this case.
+ * backing store. Callers are advised against using ALLOW_PROBE, as
+ * it would probe the backing store format in this case.
  *
- * Caller MUST free @meta after use via virStorageFileFreeMetadata.
+ * Caller MUST free result after use via virStorageFileFreeMetadata.
  */
-int
-virStorageFileGetMetadata(const char *path,
-                          int format,
-                          virStorageFileMetadata *meta)
+virStorageFileMetadataPtr
+virStorageFileGetMetadata(const char *path, int format,
+                          uid_t uid, gid_t gid,
+                          bool allow_probe)
 {
-    int fd, ret;
+    virHashTablePtr cycle = virHashCreate(5, NULL);
+    virStorageFileMetadataPtr ret;
 
-    if ((fd = open(path, O_RDONLY)) < 0) {
-        virReportSystemError(errno, _("cannot open file '%s'"), path);
-        return -1;
-    }
+    if (!cycle)
+        return NULL;
 
-    ret = virStorageFileGetMetadataFromFD(path, fd, format, meta);
-
-    VIR_FORCE_CLOSE(fd);
-
+    if (format <= VIR_STORAGE_FILE_NONE)
+        format = allow_probe ? VIR_STORAGE_FILE_AUTO : VIR_STORAGE_FILE_RAW;
+    ret = virStorageFileGetMetadataRecurse(path, format, uid, gid,
+                                           allow_probe, cycle);
+    virHashFree(cycle);
     return ret;
 }
 
@@ -929,7 +1023,9 @@ virStorageFileFreeMetadata(virStorageFileMetadata *meta)
     if (!meta)
         return;
 
+    virStorageFileFreeMetadata(meta->backingMeta);
     VIR_FREE(meta->backingStore);
+    VIR_FREE(meta->backingStoreRaw);
     VIR_FREE(meta);
 }
 
@@ -1166,3 +1262,67 @@ const char *virStorageFileGetSCSIKey(const char *path)
     return NULL;
 }
 #endif
+
+/* Given a CHAIN that starts at the named file START, return a string
+ * pointing to either START or within CHAIN that gives the preferred
+ * name for the backing file NAME within that chain.  Pass NULL for
+ * NAME to find the base of the chain.  If META is not NULL, set *META
+ * to the point in the chain that describes NAME (or to NULL if the
+ * backing element is not a file).  If PARENT is not NULL, set *PARENT
+ * to the preferred name of the parent (or to NULL if NAME matches
+ * START).  Since the results point within CHAIN, they must not be
+ * independently freed.  */
+const char *
+virStorageFileChainLookup(virStorageFileMetadataPtr chain, const char *start,
+                          const char *name, virStorageFileMetadataPtr *meta,
+                          const char **parent)
+{
+    virStorageFileMetadataPtr owner;
+    const char *tmp;
+
+    if (!parent)
+        parent = &tmp;
+
+    *parent = NULL;
+    if (name ? STREQ(start, name) || virFileLinkPointsTo(start, name) :
+        !chain->backingStore) {
+        if (meta)
+            *meta = chain;
+        return start;
+    }
+
+    owner = chain;
+    *parent = start;
+    while (owner) {
+        if (!owner->backingStore)
+            goto error;
+        if (!name) {
+            if (!owner->backingMeta ||
+                !owner->backingMeta->backingStore)
+                break;
+        } else if (STREQ_NULLABLE(name, owner->backingStoreRaw) ||
+                   STREQ(name, owner->backingStore)) {
+            break;
+        } else if (owner->backingStoreIsFile) {
+            char *absName = absolutePathFromBaseFile(*parent, name);
+            if (absName && STREQ(absName, owner->backingStore)) {
+                VIR_FREE(absName);
+                break;
+            }
+            VIR_FREE(absName);
+        }
+        *parent = owner->backingStore;
+        owner = owner->backingMeta;
+    }
+    if (!owner)
+        goto error;
+    if (meta)
+        *meta = owner->backingMeta;
+    return owner->backingStore;
+
+error:
+    *parent = NULL;
+    if (meta)
+        *meta = NULL;
+    return NULL;
+}

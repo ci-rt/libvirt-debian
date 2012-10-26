@@ -36,6 +36,7 @@
 #include "virterror_internal.h"
 #include "virfile.h"
 #include "virpidfile.h"
+#include "virprocess.h"
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
@@ -196,7 +197,7 @@ static int daemonForkIntoBackground(const char *argv0)
             VIR_FORCE_CLOSE(statuspipe[1]);
 
             /* We wait to make sure the first child forked successfully */
-            if (virPidWait(pid, NULL) < 0)
+            if (virProcessWait(pid, NULL) < 0)
                 goto error;
 
             /* If we get here, then the grandchild was spawned, so we
@@ -635,7 +636,21 @@ daemonSetupLogging(struct daemonConfig *config,
         virLogParseOutputs(config->log_outputs);
 
     /*
-     * If no defined outputs, then direct to libvirtd.log when running
+     * If no defined outputs, then first try to direct it
+     * to the systemd journal (if it exists)....
+     */
+    if (virLogGetNbOutputs() == 0) {
+        char *tmp;
+        if (access("/run/systemd/journal/socket", W_OK) >= 0) {
+            if (virAsprintf(&tmp, "%d:journald", virLogGetDefaultPriority()) < 0)
+                goto no_memory;
+            virLogParseOutputs(tmp);
+            VIR_FREE(tmp);
+        }
+    }
+
+    /*
+     * otherwise direct to libvirtd.log when running
      * as daemon. Otherwise the default output is stderr.
      */
     if (virLogGetNbOutputs() == 0) {
@@ -975,9 +990,6 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    /* initialize early logging */
-    virLogSetFromEnv();
-
     if (strstr(argv[0], "lt-libvirtd") ||
         strstr(argv[0], "/daemon/.libs/libvirtd")) {
         char *tmp = strrchr(argv[0], '/');
@@ -1204,6 +1216,7 @@ int main(int argc, char **argv) {
                                 !!config->keepalive_required,
                                 config->mdns_adv ? config->mdns_name : NULL,
                                 remoteClientInitHook,
+                                NULL,
                                 remoteClientFreeFunc,
                                 NULL))) {
         ret = VIR_DAEMON_ERR_INIT;

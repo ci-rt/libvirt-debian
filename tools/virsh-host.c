@@ -38,6 +38,7 @@
 #include "virsh-domain.h"
 #include "xml.h"
 #include "virtypedparam.h"
+#include "json.h"
 
 /*
  * "capabilities" command
@@ -267,6 +268,45 @@ cmdNodeinfo(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
     vshPrint(ctl, "%-20s %lu KiB\n", _("Memory size:"), info.memory);
 
     return true;
+}
+
+/*
+ * "nodecpumap" command
+ */
+static const vshCmdInfo info_node_cpumap[] = {
+    {"help", N_("node cpu map")},
+    {"desc", N_("Displays the node's total number of CPUs, the number of"
+                " online CPUs and the list of online CPUs.")},
+    {NULL, NULL}
+};
+
+static bool
+cmdNodeCpuMap(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
+{
+    int cpu, cpunum;
+    unsigned char *cpumap = NULL;
+    unsigned int online;
+    bool ret = false;
+
+    cpunum = virNodeGetCPUMap(ctl->conn, &cpumap, &online, 0);
+    if (cpunum < 0) {
+        vshError(ctl, "%s", _("Unable to get cpu map"));
+        goto cleanup;
+    }
+
+    vshPrint(ctl, "%-15s %d\n", _("CPUs present:"), cpunum);
+    vshPrint(ctl, "%-15s %d\n", _("CPUs online:"), online);
+
+    vshPrint(ctl, "%-15s ", _("CPU map:"));
+    for (cpu = 0; cpu < cpunum; cpu++)
+        vshPrint(ctl, "%c", VIR_CPU_USED(cpumap, cpu) ? 'y' : '-');
+    vshPrint(ctl, "\n");
+
+    ret = true;
+
+  cleanup:
+    VIR_FREE(cpumap);
+    return ret;
 }
 
 /*
@@ -529,6 +569,8 @@ static const vshCmdInfo info_qemu_monitor_command[] = {
 static const vshCmdOptDef opts_qemu_monitor_command[] = {
     {"domain", VSH_OT_DATA, VSH_OFLAG_REQ, N_("domain name, id or uuid")},
     {"hmp", VSH_OT_BOOL, 0, N_("command is in human monitor protocol")},
+    {"pretty", VSH_OT_BOOL, 0,
+     N_("pretty-print any qemu monitor protocol output")},
     {"cmd", VSH_OT_ARGV, VSH_OFLAG_REQ, N_("command")},
     {NULL, 0, 0, NULL}
 };
@@ -544,6 +586,7 @@ cmdQemuMonitorCommand(vshControl *ctl, const vshCmd *cmd)
     const vshCmdOpt *opt = NULL;
     virBuffer buf = VIR_BUFFER_INITIALIZER;
     bool pad = false;
+    virJSONValuePtr pretty = NULL;
 
     dom = vshCommandOptDomain(ctl, cmd, NULL);
     if (dom == NULL)
@@ -561,12 +604,27 @@ cmdQemuMonitorCommand(vshControl *ctl, const vshCmd *cmd)
     }
     monitor_cmd = virBufferContentAndReset(&buf);
 
-    if (vshCommandOptBool(cmd, "hmp"))
+    if (vshCommandOptBool(cmd, "hmp")) {
+        if (vshCommandOptBool(cmd, "pretty")) {
+            vshError(ctl, _("--hmp and --pretty are not compatible"));
+            goto cleanup;
+        }
         flags |= VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP;
+    }
 
     if (virDomainQemuMonitorCommand(dom, monitor_cmd, &result, flags) < 0)
         goto cleanup;
 
+    if (vshCommandOptBool(cmd, "pretty")) {
+        char *tmp;
+        pretty = virJSONValueFromString(result);
+        if (pretty && (tmp = virJSONValueToString(pretty, true))) {
+            VIR_FREE(result);
+            result = tmp;
+        } else {
+            vshResetLibvirtError();
+        }
+    }
     vshPrint(ctl, "%s\n", result);
 
     ret = true;
@@ -574,6 +632,7 @@ cmdQemuMonitorCommand(vshControl *ctl, const vshCmd *cmd)
 cleanup:
     VIR_FREE(result);
     VIR_FREE(monitor_cmd);
+    virJSONValueFree(pretty);
     if (dom)
         virDomainFree(dom);
 
@@ -900,6 +959,8 @@ static const vshCmdOptDef opts_node_memory_tune[] = {
     {"shm-sleep-millisecs", VSH_OT_INT, VSH_OFLAG_NONE,
       N_("number of millisecs the shared memory service should "
          "sleep before next scan")},
+    {"shm-merge-across-nodes", VSH_OT_INT, VSH_OFLAG_NONE,
+      N_("Specifies if pages from different numa nodes can be merged")},
     {NULL, 0, 0, NULL}
 };
 
@@ -911,6 +972,7 @@ cmdNodeMemoryTune(vshControl *ctl, const vshCmd *cmd)
     unsigned int flags = 0;
     unsigned int shm_pages_to_scan = 0;
     unsigned int shm_sleep_millisecs = 0;
+    unsigned int shm_merge_across_nodes = 0;
     bool ret = false;
     int i = 0;
 
@@ -926,10 +988,19 @@ cmdNodeMemoryTune(vshControl *ctl, const vshCmd *cmd)
         return false;
     }
 
+    if (vshCommandOptUInt(cmd, "shm-merge-across-nodes",
+                          &shm_merge_across_nodes) < 0) {
+        vshError(ctl, "%s", _("invalid shm-merge-across-nodes number"));
+        return false;
+    }
+
     if (shm_pages_to_scan)
         nparams++;
 
     if (shm_sleep_millisecs)
+        nparams++;
+
+    if (shm_merge_across_nodes)
         nparams++;
 
     if (nparams == 0) {
@@ -983,6 +1054,14 @@ cmdNodeMemoryTune(vshControl *ctl, const vshCmd *cmd)
                 goto error;
         }
 
+        if (i < nparams && shm_merge_across_nodes) {
+            if (virTypedParameterAssign(&params[i++],
+                                        VIR_NODE_MEMORY_SHARED_MERGE_ACROSS_NODES,
+                                        VIR_TYPED_PARAM_UINT,
+                                        shm_merge_across_nodes) < 0)
+                goto error;
+        }
+
         if (virNodeSetMemoryParameters(ctl->conn, params, nparams, flags) != 0)
             goto error;
         else
@@ -1006,6 +1085,7 @@ const vshCmdDef hostAndHypervisorCmds[] = {
     {"hostname", cmdHostname, NULL, info_hostname, 0},
     {"node-memory-tune", cmdNodeMemoryTune,
      opts_node_memory_tune, info_node_memory_tune, 0},
+    {"nodecpumap", cmdNodeCpuMap, NULL, info_node_cpumap, 0},
     {"nodecpustats", cmdNodeCpuStats, opts_node_cpustats, info_nodecpustats, 0},
     {"nodeinfo", cmdNodeinfo, NULL, info_nodeinfo, 0},
     {"nodememstats", cmdNodeMemStats, opts_node_memstats, info_nodememstats, 0},

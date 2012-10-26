@@ -133,7 +133,8 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_FROM_PARALLELS">VIR_FROM_PARALLELS</a> = 48 /* Error from Parallels */
     <a name="VIR_FROM_DEVICE">VIR_FROM_DEVICE</a> = 49 /* Error from Device */
     <a name="VIR_FROM_SSH">VIR_FROM_SSH</a> = 50 /* Error from libssh2 connection transport */
-    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 51
+    <a name="VIR_FROM_LOCKSPACE">VIR_FROM_LOCKSPACE</a> = 51 /* Error from lockspace */
+    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 52
 };
 </pre><p/>
 </div>
@@ -234,6 +235,7 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_OPERATION_UNSUPPORTED">VIR_ERR_OPERATION_UNSUPPORTED</a> = 84 /* The requested operation is not supported */
     <a name="VIR_ERR_SSH">VIR_ERR_SSH</a> = 85 /* error in ssh transport driver */
     <a name="VIR_ERR_AGENT_UNRESPONSIVE">VIR_ERR_AGENT_UNRESPONSIVE</a> = 86 /* guest agent is unresponsive, not running or not usable */
+    <a name="VIR_ERR_RESOURCE_BUSY">VIR_ERR_RESOURCE_BUSY</a> = 87 /* resource is already in use */
 };
 </pre><p/>
 </div>

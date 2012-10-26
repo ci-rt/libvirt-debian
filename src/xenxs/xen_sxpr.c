@@ -36,6 +36,7 @@
 #include "count-one-bits.h"
 #include "xenxs_private.h"
 #include "xen_sxpr.h"
+#include "storage_file.h"
 
 /* Get a domain id from a S-expression string */
 int xenGetDomIdFromSxprString(const char *sexpr, int xendConfigVersion)
@@ -427,6 +428,8 @@ xenParseSxprDisks(virDomainDefPtr def,
 
                 if (STREQ (disk->driverName, "tap") ||
                     STREQ (disk->driverName, "tap2")) {
+                    char *driverType = NULL;
+
                     offset = strchr(src, ':');
                     if (!offset) {
                         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -434,13 +437,17 @@ xenParseSxprDisks(virDomainDefPtr def,
                         goto error;
                     }
 
-                    if (VIR_ALLOC_N(disk->driverType, (offset-src)+1)< 0)
+                    if (!(driverType = strndup(src, offset - src)))
                         goto no_memory;
-                    if (virStrncpy(disk->driverType, src, offset-src,
-                                   (offset-src)+1) == NULL) {
+                    if (STREQ(driverType, "aio"))
+                        disk->format = VIR_STORAGE_FILE_RAW;
+                    else
+                        disk->format =
+                            virStorageFileFormatTypeFromString(driverType);
+                    VIR_FREE(driverType);
+                    if (disk->format <= 0) {
                         virReportError(VIR_ERR_INTERNAL_ERROR,
-                                       _("Driver type %s too big for destination"),
-                                       src);
+                                       _("Unknown driver type %s"), src);
                         goto error;
                     }
 
@@ -811,7 +818,7 @@ xenParseSxprGraphicsOld(virDomainDefPtr def,
         /* For Xen >= 3.0.3, don't generate a fixed port mapping
          * because it will almost certainly be wrong ! Just leave
          * it as -1 which lets caller see that the VNC server isn't
-         * present yet. Subsquent dumps of the XML will eventually
+         * present yet. Subsequent dumps of the XML will eventually
          * find the port in XenStore once VNC server has started
          */
         if (port == -1 && xendConfigVersion < XEND_CONFIG_VERSION_3_0_3)
@@ -1831,9 +1838,14 @@ xenFormatSxprDisk(virDomainDiskDefPtr def,
         if (def->driverName) {
             if (STREQ(def->driverName, "tap") ||
                 STREQ(def->driverName, "tap2")) {
+                const char *type;
+
+                if (!def->format || def->format == VIR_STORAGE_FILE_RAW)
+                    type = "aio";
+                else
+                    type = virStorageFileFormatTypeToString(def->format);
                 virBufferEscapeSexpr(buf, "(uname '%s:", def->driverName);
-                virBufferEscapeSexpr(buf, "%s:",
-                                     def->driverType ? def->driverType : "aio");
+                virBufferEscapeSexpr(buf, "%s:", type);
                 virBufferEscapeSexpr(buf, "%s')", def->src);
             } else {
                 virBufferEscapeSexpr(buf, "(uname '%s:", def->driverName);

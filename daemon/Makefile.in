@@ -66,7 +66,7 @@ host_triplet = @host@
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NODE_DEVICES_TRUE@am__append_12 = ../src/libvirt_driver_nodedev.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_SECRETS_TRUE@am__append_13 = ../src/libvirt_driver_secret.la
 @WITH_DRIVER_MODULES_FALSE@@WITH_LIBVIRTD_TRUE@@WITH_NWFILTER_TRUE@am__append_14 = ../src/libvirt_driver_nwfilter.la
-@WITH_LIBVIRTD_TRUE@am__append_15 = $(LOGROTATE_CONFS)
+@WITH_LIBVIRTD_TRUE@am__append_15 = libvirtd.policy $(LOGROTATE_CONFS)
 @LIBVIRT_INIT_SCRIPT_RED_HAT_TRUE@@WITH_LIBVIRTD_TRUE@am__append_16 = libvirtd.init
 @WITH_LIBVIRTD_TRUE@am__append_17 = libvirtd.service.in
 @LIBVIRT_INIT_SCRIPT_SYSTEMD_TRUE@@WITH_LIBVIRTD_TRUE@am__append_18 = libvirtd.service
@@ -1626,6 +1626,7 @@ REPLACE_PREAD = @REPLACE_PREAD@
 REPLACE_PRINTF = @REPLACE_PRINTF@
 REPLACE_PSELECT = @REPLACE_PSELECT@
 REPLACE_PTHREAD_SIGMASK = @REPLACE_PTHREAD_SIGMASK@
+REPLACE_PTSNAME = @REPLACE_PTSNAME@
 REPLACE_PTSNAME_R = @REPLACE_PTSNAME_R@
 REPLACE_PUTENV = @REPLACE_PUTENV@
 REPLACE_PWRITE = @REPLACE_PWRITE@
@@ -1858,13 +1859,12 @@ DAEMON_SOURCES = \
 
 DISTCLEANFILES = 
 EXTRA_DIST = remote_dispatch.h qemu_dispatch.h libvirtd.conf \
-	libvirtd.init.in libvirtd.upstart libvirtd.policy-0 \
-	libvirtd.policy-1 libvirtd.sasl libvirtd.sysconf \
-	libvirtd.sysctl libvirtd.aug libvirtd.logrotate.in \
-	libvirtd.qemu.logrotate.in libvirtd.lxc.logrotate.in \
-	libvirtd.uml.logrotate.in test_libvirtd.aug.in THREADS.txt \
-	libvirtd.pod.in libvirtd.8.in $(DAEMON_SOURCES) \
-	$(am__append_17)
+	libvirtd.init.in libvirtd.upstart libvirtd.policy.in \
+	libvirtd.sasl libvirtd.sysconf libvirtd.sysctl libvirtd.aug \
+	libvirtd.logrotate.in libvirtd.qemu.logrotate.in \
+	libvirtd.lxc.logrotate.in libvirtd.uml.logrotate.in \
+	test_libvirtd.aug.in THREADS.txt libvirtd.pod.in libvirtd.8.in \
+	$(DAEMON_SOURCES) $(am__append_17)
 BUILT_SOURCES = $(am__append_15) $(am__append_16) $(am__append_18)
 REMOTE_PROTOCOL = $(top_srcdir)/src/remote/remote_protocol.x
 QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
@@ -1905,8 +1905,8 @@ QEMU_PROTOCOL = $(top_srcdir)/src/remote/qemu_protocol.x
 @WITH_LIBVIRTD_TRUE@	../gnulib/lib/libgnu.la $(LIBSOCKET)
 @HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/polkit-1/actions
 @HAVE_POLKIT0_TRUE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policydir = $(datadir)/PolicyKit/policy
-@HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyfile = libvirtd.policy-1
-@HAVE_POLKIT0_TRUE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyfile = libvirtd.policy-0
+@HAVE_POLKIT0_FALSE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyauth = auth_admin_keep
+@HAVE_POLKIT0_TRUE@@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@policyauth = auth_admin_keep_session
 @WITH_LIBVIRTD_TRUE@LOGROTATE_CONFS = libvirtd.qemu.logrotate libvirtd.lxc.logrotate \
 @WITH_LIBVIRTD_TRUE@		  libvirtd.uml.logrotate libvirtd.logrotate
 
@@ -2477,10 +2477,16 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 	  $(QEMU_PROTOCOL) > $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.8: $(srcdir)/libvirtd.8.in
-@WITH_LIBVIRTD_TRUE@	sed \
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed \
 @WITH_LIBVIRTD_TRUE@	    -e 's!SYSCONFDIR!$(sysconfdir)!g' \
 @WITH_LIBVIRTD_TRUE@	    -e 's!LOCALSTATEDIR!$(localstatedir)!g' \
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
+@WITH_LIBVIRTD_TRUE@	mv $@-t $@
+
+@WITH_LIBVIRTD_TRUE@libvirtd.policy: libvirtd.policy.in $(top_builddir)/config.status
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN) sed \
+@WITH_LIBVIRTD_TRUE@	    -e 's![@]authaction[@]!$(policyauth)!g' \
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@install-data-local: install-init-redhat install-init-systemd install-init-upstart \
@@ -2499,7 +2505,7 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@install-data-polkit::
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	$(MKDIR_P) $(DESTDIR)$(policydir)
-@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) $(srcdir)/$(policyfile) $(DESTDIR)$(policydir)/org.libvirt.unix.policy
+@HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	$(INSTALL_DATA) libvirtd.policy $(DESTDIR)$(policydir)/org.libvirt.unix.policy
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@uninstall-data-polkit::
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	rm -f $(DESTDIR)$(policydir)/org.libvirt.unix.policy
 @HAVE_POLKIT_TRUE@@WITH_LIBVIRTD_TRUE@	rmdir $(DESTDIR)$(policydir) || :
@@ -2510,15 +2516,15 @@ $(srcdir)/qemu_dispatch.h: $(srcdir)/../src/rpc/gendispatch.pl \
 @WITH_LIBVIRTD_TRUE@remote.h: $(DAEMON_GENERATED)
 
 @WITH_LIBVIRTD_TRUE@libvirtd.logrotate: libvirtd.logrotate.in
-@WITH_LIBVIRTD_TRUE@	sed							\
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
 @WITH_LIBVIRTD_TRUE@	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.qemu.logrotate: libvirtd.qemu.logrotate.in
-@WITH_LIBVIRTD_TRUE@	sed							\
+@WITH_LIBVIRTD_TRUE@	$(AM_V_GEN)sed						\
 @WITH_LIBVIRTD_TRUE@	    -e 's![@]localstatedir[@]!$(localstatedir)!g'	\
-@WITH_LIBVIRTD_TRUE@	    < $< > $@-t
+@WITH_LIBVIRTD_TRUE@	    < $< > $@-t && \
 @WITH_LIBVIRTD_TRUE@	mv $@-t $@
 
 @WITH_LIBVIRTD_TRUE@libvirtd.lxc.logrotate: libvirtd.lxc.logrotate.in

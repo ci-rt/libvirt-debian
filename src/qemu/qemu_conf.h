@@ -43,6 +43,7 @@
 # include "command.h"
 # include "threadpool.h"
 # include "locking/lock_manager.h"
+# include "qemu_capabilities.h"
 
 # define QEMUD_CPUMASK_LEN CPU_SETSIZE
 
@@ -56,6 +57,7 @@ struct qemud_driver {
     virThreadPoolPtr workerPool;
 
     int privileged;
+    const char *uri;
 
     uid_t user;
     gid_t group;
@@ -115,6 +117,7 @@ struct qemud_driver {
     int max_queued;
 
     virCapsPtr caps;
+    qemuCapsCachePtr capsCache;
 
     virDomainEventStatePtr domainEventState;
 

@@ -26,4 +26,7 @@
 
 int interfaceRegister(void);
 
+int netcfIfaceRegister(void);
+int udevIfaceRegister(void);
+
 #endif /* __VIR_INTERFACE__DRIVER_H */

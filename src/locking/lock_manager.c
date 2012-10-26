@@ -99,6 +99,9 @@ static void virLockManagerLogParams(size_t nparams,
         case VIR_LOCK_MANAGER_PARAM_TYPE_STRING:
             VIR_DEBUG("  key=%s type=string value=%s", params[i].key, params[i].value.str);
             break;
+        case VIR_LOCK_MANAGER_PARAM_TYPE_CSTRING:
+            VIR_DEBUG("  key=%s type=cstring value=%s", params[i].key, params[i].value.cstr);
+            break;
         case VIR_LOCK_MANAGER_PARAM_TYPE_UUID:
             virUUIDFormat(params[i].value.uuid, uuidstr);
             VIR_DEBUG("  key=%s type=uuid value=%s", params[i].key, uuidstr);
@@ -344,17 +347,18 @@ int virLockManagerAddResource(virLockManagerPtr lock,
 int virLockManagerAcquire(virLockManagerPtr lock,
                           const char *state,
                           unsigned int flags,
+                          virDomainLockFailureAction action,
                           int *fd)
 {
-    VIR_DEBUG("lock=%p state='%s' flags=%x fd=%p",
-              lock, NULLSTR(state), flags, fd);
+    VIR_DEBUG("lock=%p state='%s' flags=%x action=%d fd=%p",
+              lock, NULLSTR(state), flags, action, fd);
 
     CHECK_MANAGER(drvAcquire, -1);
 
     if (fd)
         *fd = -1;
 
-    return lock->driver->drvAcquire(lock, state, flags, fd);
+    return lock->driver->drvAcquire(lock, state, flags, action, fd);
 }
 
 
