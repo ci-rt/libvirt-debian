@@ -39,10 +39,10 @@ index 8c928bc..b1930ba 100644
    </define>
  
 diff --git a/src/xen/xen_hypervisor.c b/src/xen/xen_hypervisor.c
-index 86f64f1..85ebcda 100644
+index 81fbf99..606e528 100644
 --- a/src/xen/xen_hypervisor.c
 +++ b/src/xen/xen_hypervisor.c
-@@ -2347,10 +2347,10 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
+@@ -2359,10 +2359,10 @@ xenHypervisorBuildCapabilities(virConnectPtr conn,
                                               guest_archs[i].model,
                                               guest_archs[i].bits,
                                               (STREQ(hostmachine, "x86_64") ?
