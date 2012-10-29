@@ -122,7 +122,8 @@ build/libvirt-bin::
 	# Add empty dirs so dh_install doesn't fail on kFreebsd until we have
 	# Polkit/Systemd support
 	mkdir -p debian/tmp/usr/share/polkit-1 \
-	         debian/tmp/lib/systemd/system
+	         debian/tmp/lib/systemd/system \
+	         debian/tmp/usr/share/systemtap
 
 
 binary-install/libvirt-doc::
