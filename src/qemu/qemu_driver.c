@@ -2784,6 +2784,11 @@ qemuDomainSaveInternal(struct qemud_driver *driver, virDomainPtr dom,
                        "%s", _("domain is marked for auto destroy"));
         goto cleanup;
     }
+    if (virDomainHasDiskMirror(vm)) {
+        virReportError(VIR_ERR_BLOCK_COPY_ACTIVE, "%s",
+                       _("domain has active block copy job"));
+        goto cleanup;
+    }
 
     memset(&header, 0, sizeof(header));
     memcpy(header.magic, QEMUD_SAVE_PARTIAL, sizeof(header.magic));
@@ -4204,6 +4209,13 @@ qemudDomainPinEmulator(virDomainPtr dom,
         goto cleanup;
     }
 
+    if (vm->def->placement_mode == VIR_DOMAIN_CPU_PLACEMENT_MODE_AUTO) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("Changing affinity for emulator thread dynamically "
+                         "is not allowed when CPU placement is 'auto'"));
+        goto cleanup;
+    }
+
     if (virDomainLiveConfigHelperMethod(driver->caps, vm, &flags,
                                         &persistentDef) < 0)
         goto cleanup;
@@ -5363,6 +5375,8 @@ static char *qemuDomainXMLToNative(virConnectPtr conn,
     for (i = 0 ; i < def->nnets ; i++) {
         virDomainNetDefPtr net = def->nets[i];
         int bootIndex = net->info.bootIndex;
+        char *model = net->model;
+
         if (net->type == VIR_DOMAIN_NET_TYPE_NETWORK) {
             int actualType = virDomainNetGetActualType(net);
             const char *brname;
@@ -5419,8 +5433,10 @@ static char *qemuDomainXMLToNative(virConnectPtr conn,
             net->data.ethernet.dev = brname;
             net->data.ethernet.ipaddr = ipaddr;
         }
+
         VIR_FREE(net->virtPortProfile);
         net->info.bootIndex = bootIndex;
+        net->model = model;
     }
 
     monitor_json = qemuCapsGet(caps, QEMU_CAPS_MONITOR_JSON);
@@ -5654,6 +5670,12 @@ static virDomainPtr qemudDomainDefine(virConnectPtr conn, const char *xml) {
         }
     }
     def = NULL;
+    if (virDomainHasDiskMirror(vm)) {
+        virReportError(VIR_ERR_BLOCK_COPY_ACTIVE, "%s",
+                       _("domain has active block copy job"));
+        virDomainObjAssignDef(vm, NULL, false);
+        goto cleanup;
+    }
     vm->persistent = 1;
 
     if (virDomainSaveConfig(driver->configDir,
@@ -6151,14 +6173,6 @@ qemuDomainAttachDeviceConfig(qemuCapsPtr caps,
 
     case VIR_DOMAIN_DEVICE_NET:
         net = dev->data.net;
-        if (virDomainNetIndexByMac(vmdef, &net->mac) >= 0) {
-            char macbuf[VIR_MAC_STRING_BUFLEN];
-
-            virMacAddrFormat(&net->mac, macbuf);
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("mac %s already exists"), macbuf);
-            return -1;
-        }
         if (virDomainNetInsert(vmdef, net)) {
             virReportOOMError();
             return -1;
@@ -6230,11 +6244,12 @@ qemuDomainDetachDeviceConfig(virDomainDefPtr vmdef,
                              virDomainDeviceDefPtr dev)
 {
     virDomainDiskDefPtr disk, det_disk;
-    virDomainNetDefPtr net, det_net;
+    virDomainNetDefPtr net;
     virDomainHostdevDefPtr hostdev, det_hostdev;
     virDomainLeaseDefPtr lease, det_lease;
     virDomainControllerDefPtr cont, det_cont;
     int idx;
+    char mac[VIR_MAC_STRING_BUFLEN];
 
     switch (dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
@@ -6249,15 +6264,19 @@ qemuDomainDetachDeviceConfig(virDomainDefPtr vmdef,
 
     case VIR_DOMAIN_DEVICE_NET:
         net = dev->data.net;
-        if (!(det_net = virDomainNetRemoveByMac(vmdef, &net->mac))) {
-            char macbuf[VIR_MAC_STRING_BUFLEN];
-
-            virMacAddrFormat(&net->mac, macbuf);
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("no nic of mac %s"), macbuf);
+        idx = virDomainNetFindIdx(vmdef, net);
+        if (idx == -2) {
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("multiple devices matching mac address %s found"),
+                           virMacAddrFormat(&net->mac, mac));
+            return -1;
+        } else if (idx < 0) {
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("no matching network device was found"));
             return -1;
         }
-        virDomainNetDefFree(det_net);
+        /* this is guaranteed to succeed */
+        virDomainNetDefFree(virDomainNetRemove(vmdef, idx));
         break;
 
     case VIR_DOMAIN_DEVICE_HOSTDEV: {
@@ -6312,6 +6331,8 @@ qemuDomainUpdateDeviceConfig(qemuCapsPtr caps,
     virDomainDiskDefPtr orig, disk;
     virDomainNetDefPtr net;
     int pos;
+    char mac[VIR_MAC_STRING_BUFLEN];
+
 
     switch (dev->type) {
     case VIR_DOMAIN_DEVICE_DISK:
@@ -6349,12 +6370,18 @@ qemuDomainUpdateDeviceConfig(qemuCapsPtr caps,
 
     case VIR_DOMAIN_DEVICE_NET:
         net = dev->data.net;
-        if ((pos = virDomainNetIndexByMac(vmdef, &net->mac)) < 0) {
-            char macbuf[VIR_MAC_STRING_BUFLEN];
-
-            virMacAddrFormat(&net->mac, macbuf);
-            virReportError(VIR_ERR_INVALID_ARG,
-                           _("mac %s doesn't exist"), macbuf);
+        pos = virDomainNetFindIdx(vmdef, net);
+        if (pos == -2) {
+            virMacAddrFormat(&net->mac, mac);
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("couldn't find matching device "
+                             "with mac address %s"), mac);
+            return -1;
+        } else if (pos < 0) {
+            virMacAddrFormat(&net->mac, mac);
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("couldn't find matching device "
+                             "with mac address %s"), mac);
             return -1;
         }
 
@@ -11201,6 +11228,12 @@ qemuDomainSnapshotCreateXML(virDomainPtr domain,
                        "%s", _("domain is marked for auto destroy"));
         goto cleanup;
     }
+    if (virDomainHasDiskMirror(vm)) {
+        virReportError(VIR_ERR_BLOCK_COPY_ACTIVE, "%s",
+                       _("domain has active block copy job"));
+        goto cleanup;
+    }
+
     if (!vm->persistent && (flags & VIR_DOMAIN_SNAPSHOT_CREATE_HALT)) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("cannot halt after transient domain snapshot"));
@@ -11788,6 +11821,11 @@ static int qemuDomainRevertToSnapshot(virDomainSnapshotPtr snapshot,
     if (!vm) {
         virReportError(VIR_ERR_NO_DOMAIN,
                        _("no domain with matching uuid '%s'"), uuidstr);
+        goto cleanup;
+    }
+    if (virDomainHasDiskMirror(vm)) {
+        virReportError(VIR_ERR_BLOCK_COPY_ACTIVE, "%s",
+                       _("domain has active block copy job"));
         goto cleanup;
     }
 
@@ -12514,6 +12552,158 @@ cleanup:
     return ret;
 }
 
+/* Called while holding the VM job lock, to implement a block job
+ * abort with pivot; this updates the VM definition as appropriate, on
+ * either success or failure.  */
+static int
+qemuDomainBlockPivot(virConnectPtr conn,
+                     struct qemud_driver *driver, virDomainObjPtr vm,
+                     const char *device, virDomainDiskDefPtr disk)
+{
+    int ret = -1;
+    qemuDomainObjPrivatePtr priv = vm->privateData;
+    virDomainBlockJobInfo info;
+    const char *format = virStorageFileFormatTypeToString(disk->mirrorFormat);
+    bool resume = false;
+    virCgroupPtr cgroup = NULL;
+    char *oldsrc = NULL;
+    int oldformat;
+    virStorageFileMetadataPtr oldchain = NULL;
+
+    /* Probe the status, if needed.  */
+    if (!disk->mirroring) {
+        qemuDomainObjEnterMonitorWithDriver(driver, vm);
+        ret = qemuMonitorBlockJob(priv->mon, device, NULL, 0, &info,
+                                  BLOCK_JOB_INFO, true);
+        qemuDomainObjExitMonitorWithDriver(driver, vm);
+        if (ret < 0)
+            goto cleanup;
+        if (!virDomainObjIsActive(vm)) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("domain is not running"));
+            goto cleanup;
+        }
+        if (ret == 1 && info.cur == info.end &&
+            info.type == VIR_DOMAIN_BLOCK_JOB_TYPE_COPY)
+            disk->mirroring = true;
+    }
+
+    if (!disk->mirroring) {
+        virReportError(VIR_ERR_BLOCK_COPY_ACTIVE,
+                       _("disk '%s' not ready for pivot yet"),
+                       disk->dst);
+        goto cleanup;
+    }
+
+    /* If we are using the older 'drive-reopen', we want to make sure
+     * that management apps can tell whether the command succeeded,
+     * even if libvirtd is restarted at the wrong time.  To accomplish
+     * that, we pause the guest before drive-reopen, and resume it
+     * only when we know the outcome; if libvirtd restarts, then
+     * management will see the guest still paused, and know that no
+     * guest I/O has caused the source and mirror to diverge.  XXX
+     * With the newer 'block-job-complete', we need to use a
+     * persistent bitmap to make things safe; so for now, we just
+     * blindly pause the guest.  */
+    if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING) {
+        if (qemuProcessStopCPUs(driver, vm, VIR_DOMAIN_PAUSED_SAVE,
+                                QEMU_ASYNC_JOB_NONE) < 0)
+            goto cleanup;
+
+        resume = true;
+        if (!virDomainObjIsActive(vm)) {
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("guest unexpectedly quit"));
+            goto cleanup;
+        }
+    }
+
+    /* We previously labeled only the top-level image; but if the
+     * image includes a relative backing file, the pivot may result in
+     * qemu needing to open the entire backing chain, so we need to
+     * label the entire chain.  This action is safe even if the
+     * backing chain has already been labeled; but only necessary when
+     * we know for sure that there is a backing chain.  */
+    if (disk->mirrorFormat && disk->mirrorFormat != VIR_STORAGE_FILE_RAW &&
+        qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES) &&
+        virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to find cgroup for %s"),
+                       vm->def->name);
+        goto cleanup;
+    }
+    oldsrc = disk->src;
+    oldformat = disk->format;
+    oldchain = disk->backingChain;
+    disk->src = disk->mirror;
+    disk->format = disk->mirrorFormat;
+    disk->backingChain = NULL;
+    if (qemuDomainDetermineDiskChain(driver, disk, false) < 0) {
+        disk->src = oldsrc;
+        disk->format = oldformat;
+        disk->backingChain = oldchain;
+        goto cleanup;
+    }
+    if (disk->mirrorFormat && disk->mirrorFormat != VIR_STORAGE_FILE_RAW &&
+        (virDomainLockDiskAttach(driver->lockManager, driver->uri,
+                                 vm, disk) < 0 ||
+         (cgroup && qemuSetupDiskCgroup(vm, cgroup, disk) < 0) ||
+         virSecurityManagerSetImageLabel(driver->securityManager, vm->def,
+                                         disk) < 0)) {
+        disk->src = oldsrc;
+        disk->format = oldformat;
+        disk->backingChain = oldchain;
+        goto cleanup;
+    }
+
+    /* Attempt the pivot.  */
+    qemuDomainObjEnterMonitorWithDriver(driver, vm);
+    ret = qemuMonitorDrivePivot(priv->mon, device, disk->mirror, format);
+    qemuDomainObjExitMonitorWithDriver(driver, vm);
+
+    if (ret == 0) {
+        /* XXX We want to revoke security labels and disk lease, as
+         * well as audit that revocation, before dropping the original
+         * source.  But it gets tricky if both source and mirror share
+         * common backing files (we want to only revoke the non-shared
+         * portion of the chain, and is made more difficult by the
+         * fact that we aren't tracking the full chain ourselves; so
+         * for now, we leak the access to the original.  */
+        VIR_FREE(oldsrc);
+        virStorageFileFreeMetadata(oldchain);
+        disk->mirror = NULL;
+    } else {
+        /* On failure, qemu abandons the mirror, and reverts back to
+         * the source disk (RHEL 6.3 has a bug where the revert could
+         * cause catastrophic failure in qemu, but we don't need to
+         * worry about it here as it is not an upstream qemu problem.  */
+        /* XXX should we be parsing the exact qemu error, or calling
+         * 'query-block', to see what state we really got left in
+         * before killing the mirroring job?  And just as on the
+         * success case, there's security labeling to worry about.  */
+        disk->src = oldsrc;
+        disk->format = oldformat;
+        virStorageFileFreeMetadata(disk->backingChain);
+        disk->backingChain = oldchain;
+        VIR_FREE(disk->mirror);
+    }
+    disk->mirrorFormat = VIR_STORAGE_FILE_NONE;
+    disk->mirroring = false;
+
+cleanup:
+    if (cgroup)
+        virCgroupFree(&cgroup);
+    if (resume && virDomainObjIsActive(vm) &&
+        qemuProcessStartCPUs(driver, vm, conn,
+                             VIR_DOMAIN_RUNNING_UNPAUSED,
+                             QEMU_ASYNC_JOB_NONE) < 0 &&
+        virGetLastError() == NULL) {
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("resuming after drive-reopen failed"));
+    }
+    return ret;
+}
+
 static int
 qemuDomainBlockJobImpl(virDomainPtr dom, const char *path, const char *base,
                        unsigned long bandwidth, virDomainBlockJobInfoPtr info,
@@ -12568,12 +12758,33 @@ qemuDomainBlockJobImpl(virDomainPtr dom, const char *path, const char *base,
         goto cleanup;
     disk = vm->def->disks[idx];
 
+    if (mode == BLOCK_JOB_PULL && disk->mirror) {
+        virReportError(VIR_ERR_BLOCK_COPY_ACTIVE,
+                       _("disk '%s' already in active block copy job"),
+                       disk->dst);
+        goto cleanup;
+    }
+    if (mode == BLOCK_JOB_ABORT &&
+        (flags & VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT) &&
+        !(async && disk->mirror)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("pivot of disk '%s' requires an active copy job"),
+                       disk->dst);
+        goto cleanup;
+    }
+
     if (qemuDomainObjBeginJobWithDriver(driver, vm, QEMU_JOB_MODIFY) < 0)
         goto cleanup;
 
     if (!virDomainObjIsActive(vm)) {
         virReportError(VIR_ERR_OPERATION_INVALID, "%s",
                        _("domain is not running"));
+        goto endjob;
+    }
+
+    if (disk->mirror && mode == BLOCK_JOB_ABORT &&
+        (flags & VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT)) {
+        ret = qemuDomainBlockPivot(dom->conn, driver, vm, device, disk);
         goto endjob;
     }
 
@@ -12586,6 +12797,21 @@ qemuDomainBlockJobImpl(virDomainPtr dom, const char *path, const char *base,
     qemuDomainObjExitMonitorWithDriver(driver, vm);
     if (ret < 0)
         goto endjob;
+
+    /* Snoop block copy operations, so future cancel operations can
+     * avoid checking if pivot is safe.  */
+    if (mode == BLOCK_JOB_INFO && ret == 1 && disk->mirror &&
+        info->cur == info->end && info->type == VIR_DOMAIN_BLOCK_JOB_TYPE_COPY)
+        disk->mirroring = true;
+
+    /* A successful block job cancelation stops any mirroring.  */
+    if (mode == BLOCK_JOB_ABORT && disk->mirror) {
+        /* XXX We should also revoke security labels and disk lease on
+         * the mirror, and audit that fact, before dropping things.  */
+        VIR_FREE(disk->mirror);
+        disk->mirrorFormat = VIR_STORAGE_FILE_NONE;
+        disk->mirroring = false;
+    }
 
     /* With synchronous block cancel, we must synthesize an event, and
      * we silently ignore the ABORT_ASYNC flag.  With asynchronous
@@ -12651,7 +12877,8 @@ cleanup:
 static int
 qemuDomainBlockJobAbort(virDomainPtr dom, const char *path, unsigned int flags)
 {
-    virCheckFlags(VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC, -1);
+    virCheckFlags(VIR_DOMAIN_BLOCK_JOB_ABORT_ASYNC |
+                  VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT, -1);
     return qemuDomainBlockJobImpl(dom, path, NULL, 0, NULL, BLOCK_JOB_ABORT,
                                   flags);
 }
@@ -12675,10 +12902,205 @@ qemuDomainBlockJobSetSpeed(virDomainPtr dom, const char *path,
 }
 
 static int
+qemuDomainBlockCopy(virDomainPtr dom, const char *path,
+                    const char *dest, const char *format,
+                    unsigned long bandwidth, unsigned int flags)
+{
+    struct qemud_driver *driver = dom->conn->privateData;
+    virDomainObjPtr vm;
+    qemuDomainObjPrivatePtr priv;
+    char *device = NULL;
+    virDomainDiskDefPtr disk;
+    int ret = -1;
+    int idx;
+    struct stat st;
+    bool need_unlink = false;
+    char *mirror = NULL;
+    virCgroupPtr cgroup = NULL;
+
+    /* Preliminaries: find the disk we are editing, sanity checks */
+    virCheckFlags(VIR_DOMAIN_BLOCK_REBASE_SHALLOW |
+                  VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT, -1);
+
+    if (!(vm = qemuDomObjFromDomain(dom)))
+        goto cleanup;
+    priv = vm->privateData;
+
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("domain is not running"));
+        goto cleanup;
+    }
+    if (qemuCgroupControllerActive(driver, VIR_CGROUP_CONTROLLER_DEVICES) &&
+        virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Unable to find cgroup for %s"),
+                       vm->def->name);
+        goto cleanup;
+    }
+
+    device = qemuDiskPathToAlias(vm, path, &idx);
+    if (!device) {
+        goto cleanup;
+    }
+    disk = vm->def->disks[idx];
+    if (disk->mirror) {
+        virReportError(VIR_ERR_BLOCK_COPY_ACTIVE,
+                       _("disk '%s' already in active block copy job"),
+                       disk->dst);
+        goto cleanup;
+    }
+
+    if (!(qemuCapsGet(priv->caps, QEMU_CAPS_DRIVE_MIRROR) &&
+          qemuCapsGet(priv->caps, QEMU_CAPS_BLOCKJOB_ASYNC))) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("block copy is not supported with this QEMU binary"));
+        goto cleanup;
+    }
+    if (vm->persistent) {
+        /* XXX if qemu ever lets us start a new domain with mirroring
+         * already active, we can relax this; but for now, the risk of
+         * 'managedsave' due to libvirt-guests means we can't risk
+         * this on persistent domains.  */
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("domain is not transient"));
+        goto cleanup;
+    }
+
+    if (qemuDomainObjBeginJob(driver, vm, QEMU_JOB_MODIFY) < 0)
+        goto cleanup;
+
+    if (!virDomainObjIsActive(vm)) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("domain is not running"));
+        goto endjob;
+    }
+    if (qemuDomainDetermineDiskChain(driver, disk, false) < 0)
+        goto endjob;
+
+    if ((flags & VIR_DOMAIN_BLOCK_REBASE_SHALLOW) &&
+        STREQ_NULLABLE(format, "raw") &&
+        disk->backingChain->backingStore) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("disk '%s' has backing file, so raw shallow copy "
+                         "is not possible"),
+                       disk->dst);
+        goto endjob;
+    }
+
+    /* Prepare the destination file.  */
+    if (stat(dest, &st) < 0) {
+        if (errno != ENOENT) {
+            virReportSystemError(errno, _("unable to stat for disk %s: %s"),
+                                 disk->dst, dest);
+            goto endjob;
+        } else if (flags & VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT) {
+            virReportSystemError(errno,
+                                 _("missing destination file for disk %s: %s"),
+                                 disk->dst, dest);
+            goto endjob;
+        }
+    } else if (!S_ISBLK(st.st_mode) && st.st_size &&
+               !(flags & VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT)) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("external destination file for disk %s already "
+                         "exists and is not a block device: %s"),
+                       disk->dst, dest);
+        goto endjob;
+    }
+
+    if (!(flags & VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT)) {
+        int fd = qemuOpenFile(driver, dest, O_WRONLY | O_TRUNC | O_CREAT,
+                              &need_unlink, NULL);
+        if (fd < 0)
+            goto endjob;
+        VIR_FORCE_CLOSE(fd);
+        if (!format)
+            disk->mirrorFormat = disk->format;
+    } else if (format) {
+        disk->mirrorFormat = virStorageFileFormatTypeFromString(format);
+        if (disk->mirrorFormat <= 0) {
+            virReportError(VIR_ERR_INVALID_ARG, _("unrecognized format '%s'"),
+                           format);
+            goto endjob;
+        }
+    } else {
+        /* If the user passed the REUSE_EXT flag, then either they
+         * also passed the RAW flag (and format is non-NULL), or it is
+         * safe for us to probe the format from the file that we will
+         * be using.  */
+        disk->mirrorFormat = virStorageFileProbeFormat(dest, driver->user,
+                                                       driver->group);
+    }
+    if (!format && disk->mirrorFormat > 0)
+        format = virStorageFileFormatTypeToString(disk->mirrorFormat);
+    if (!(disk->mirror = strdup(dest))) {
+        virReportOOMError();
+        goto endjob;
+    }
+
+    if (qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk, dest,
+                                          VIR_DISK_CHAIN_READ_WRITE) < 0) {
+        qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk, dest,
+                                          VIR_DISK_CHAIN_NO_ACCESS);
+        goto endjob;
+    }
+
+    /* Actually start the mirroring */
+    qemuDomainObjEnterMonitor(driver, vm);
+    ret = qemuMonitorDriveMirror(priv->mon, device, dest, format, bandwidth,
+                                 flags);
+    virDomainAuditDisk(vm, NULL, dest, "mirror", ret >= 0);
+    qemuDomainObjExitMonitor(driver, vm);
+    if (ret < 0) {
+        qemuDomainPrepareDiskChainElement(driver, vm, cgroup, disk, dest,
+                                          VIR_DISK_CHAIN_NO_ACCESS);
+        goto endjob;
+    }
+
+    /* Update vm in place to match changes.  */
+    need_unlink = false;
+    disk->mirror = mirror;
+    mirror = NULL;
+
+endjob:
+    if (need_unlink && unlink(dest))
+        VIR_WARN("unable to unlink just-created %s", dest);
+    if (ret < 0)
+        disk->mirrorFormat = VIR_STORAGE_FILE_NONE;
+    VIR_FREE(mirror);
+    if (qemuDomainObjEndJob(driver, vm) == 0) {
+        vm = NULL;
+        goto cleanup;
+    }
+
+cleanup:
+    if (cgroup)
+        virCgroupFree(&cgroup);
+    VIR_FREE(device);
+    if (vm)
+        virDomainObjUnlock(vm);
+    return ret;
+}
+
+static int
 qemuDomainBlockRebase(virDomainPtr dom, const char *path, const char *base,
                       unsigned long bandwidth, unsigned int flags)
 {
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_DOMAIN_BLOCK_REBASE_SHALLOW |
+                  VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT |
+                  VIR_DOMAIN_BLOCK_REBASE_COPY |
+                  VIR_DOMAIN_BLOCK_REBASE_COPY_RAW, -1);
+
+    if (flags & VIR_DOMAIN_BLOCK_REBASE_COPY) {
+        const char *format = NULL;
+        if (flags & VIR_DOMAIN_BLOCK_REBASE_COPY_RAW)
+            format = "raw";
+        flags &= ~(VIR_DOMAIN_BLOCK_REBASE_COPY |
+                   VIR_DOMAIN_BLOCK_REBASE_COPY_RAW);
+        return qemuDomainBlockCopy(dom, path, base, format, bandwidth, flags);
+    }
+
     return qemuDomainBlockJobImpl(dom, path, base, bandwidth, NULL,
                                   BLOCK_JOB_PULL, flags);
 }
@@ -12687,7 +13109,9 @@ static int
 qemuDomainBlockPull(virDomainPtr dom, const char *path, unsigned long bandwidth,
                     unsigned int flags)
 {
-    return qemuDomainBlockRebase(dom, path, NULL, bandwidth, flags);
+    virCheckFlags(0, -1);
+    return qemuDomainBlockJobImpl(dom, path, NULL, bandwidth, NULL,
+                                  BLOCK_JOB_PULL, flags);
 }
 
 
@@ -13581,16 +14005,13 @@ cleanup:
 }
 
 static int
-qemuDomainGetPercpuStats(virDomainPtr domain,
-                         virDomainObjPtr vm,
+qemuDomainGetPercpuStats(virDomainObjPtr vm,
                          virCgroupPtr group,
                          virTypedParameterPtr params,
                          unsigned int nparams,
                          int start_cpu,
                          unsigned int ncpus)
 {
-    virBitmapPtr map = NULL;
-    virBitmapPtr map2 = NULL;
     int rv = -1;
     int i, id, max_id;
     char *pos;
@@ -13602,19 +14023,18 @@ qemuDomainGetPercpuStats(virDomainPtr domain,
     virTypedParameterPtr ent;
     int param_idx;
     unsigned long long cpu_time;
-    bool result;
 
     /* return the number of supported params */
     if (nparams == 0 && ncpus != 0)
         return QEMU_NB_PER_CPU_STAT_PARAM;
 
-    /* To parse account file, we need "present" cpu map.  */
-    map = nodeGetCPUmap(domain->conn, &max_id, "present");
-    if (!map)
+    /* To parse account file, we need to know how many cpus are present.  */
+    max_id = nodeGetCPUCount();
+    if (max_id < 0)
         return rv;
 
     if (ncpus == 0) { /* returns max cpu ID */
-        rv = max_id + 1;
+        rv = max_id;
         goto cleanup;
     }
 
@@ -13641,11 +14061,7 @@ qemuDomainGetPercpuStats(virDomainPtr domain,
         id = start_cpu + ncpus - 1;
 
     for (i = 0; i <= id; i++) {
-        if (virBitmapGetBit(map, i, &result) < 0)
-            goto cleanup;
-        if (!result) {
-            cpu_time = 0;
-        } else if (virStrToLong_ull(pos, &pos, 10, &cpu_time) < 0) {
+        if (virStrToLong_ull(pos, &pos, 10, &cpu_time) < 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                            _("cpuacct parse error"));
             goto cleanup;
@@ -13673,22 +14089,9 @@ qemuDomainGetPercpuStats(virDomainPtr domain,
     if (getSumVcpuPercpuStats(group, priv->nvcpupids, sum_cpu_time, n) < 0)
         goto cleanup;
 
-    /* Check that the mapping of online cpus didn't change mid-parse.  */
-    map2 = nodeGetCPUmap(domain->conn, &max_id, "present");
-    if (!map2 || !virBitmapEqual(map, map2)) {
-        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
-                       _("the set of online cpus changed while reading"));
-        goto cleanup;
-    }
-
     sum_cpu_pos = sum_cpu_time;
     for (i = 0; i <= id; i++) {
-        if (virBitmapGetBit(map, i, &result) < 0)
-            goto cleanup;
-        if (!result)
-            cpu_time = 0;
-        else
-            cpu_time = *(sum_cpu_pos++);
+        cpu_time = *(sum_cpu_pos++);
         if (i < start_cpu)
             continue;
         if (virTypedParameterAssign(&params[(i - start_cpu) * nparams +
@@ -13703,8 +14106,6 @@ qemuDomainGetPercpuStats(virDomainPtr domain,
 cleanup:
     VIR_FREE(sum_cpu_time);
     VIR_FREE(buf);
-    virBitmapFree(map);
-    virBitmapFree(map2);
     return rv;
 }
 
@@ -13756,7 +14157,7 @@ qemuDomainGetCPUStats(virDomainPtr domain,
     if (start_cpu == -1)
         ret = qemuDomainGetTotalcpuStats(group, params, nparams);
     else
-        ret = qemuDomainGetPercpuStats(domain, vm, group, params, nparams,
+        ret = qemuDomainGetPercpuStats(vm, group, params, nparams,
                                        start_cpu, ncpus);
 cleanup:
     virCgroupFree(&group);
@@ -14196,6 +14597,7 @@ static virDriver qemuDriver = {
     .domainGetCPUStats = qemuDomainGetCPUStats, /* 0.9.11 */
     .nodeGetMemoryParameters = nodeGetMemoryParameters, /* 0.10.2 */
     .nodeSetMemoryParameters = nodeSetMemoryParameters, /* 0.10.2 */
+    .nodeGetCPUMap = nodeGetCPUMap, /* 1.0.0 */
 };
 
 

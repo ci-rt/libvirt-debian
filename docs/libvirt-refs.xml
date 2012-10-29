@@ -114,6 +114,7 @@
     <reference name='VIR_DOMAIN_BLOCK_JOB_COMPLETED' href='html/libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_COMPLETED'/>
     <reference name='VIR_DOMAIN_BLOCK_JOB_FAILED' href='html/libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_FAILED'/>
     <reference name='VIR_DOMAIN_BLOCK_JOB_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_LAST'/>
+    <reference name='VIR_DOMAIN_BLOCK_JOB_READY' href='html/libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_READY'/>
     <reference name='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT' href='html/libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT'/>
     <reference name='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY' href='html/libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_COPY'/>
     <reference name='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST' href='html/libvirt-libvirt.html#VIR_DOMAIN_BLOCK_JOB_TYPE_LAST'/>
@@ -1390,6 +1391,7 @@
       <ref name='VIR_DOMAIN_BLOCK_JOB_COMPLETED'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_FAILED'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_LAST'/>
+      <ref name='VIR_DOMAIN_BLOCK_JOB_READY'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST'/>
@@ -3655,6 +3657,7 @@
       <ref name='VIR_DOMAIN_BLOCK_JOB_COMPLETED'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_FAILED'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_LAST'/>
+      <ref name='VIR_DOMAIN_BLOCK_JOB_READY'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY'/>
       <ref name='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST'/>
@@ -7109,7 +7112,6 @@
         </word>
         <word name='added'>
           <ref name='virDomainAttachDeviceFlags'/>
-          <ref name='virDomainBlockRebase'/>
           <ref name='virDomainUpdateDeviceFlags'/>
           <ref name='virSecretGetUsageType'/>
         </word>
@@ -9160,6 +9162,9 @@
         <word name='depended'>
           <ref name='virDomainBlockCommit'/>
         </word>
+        <word name='depending'>
+          <ref name='virDomainBlockRebase'/>
+        </word>
         <word name='depends'>
           <ref name='virDomainBlockPull'/>
           <ref name='virDomainBlockRebase'/>
@@ -10463,7 +10468,6 @@
           <ref name='virStreamFinish'/>
         </word>
         <word name='future'>
-          <ref name='virDomainBlockRebase'/>
           <ref name='virDomainGetCPUStats'/>
           <ref name='virSecretGetUsageType'/>
           <ref name='virStorageVolWipe'/>

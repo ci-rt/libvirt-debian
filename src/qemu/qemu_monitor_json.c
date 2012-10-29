@@ -69,6 +69,7 @@ static void qemuMonitorJSONHandlePMWakeup(qemuMonitorPtr mon, virJSONValuePtr da
 static void qemuMonitorJSONHandlePMSuspend(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleBlockJobCompleted(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleBlockJobCanceled(qemuMonitorPtr mon, virJSONValuePtr data);
+static void qemuMonitorJSONHandleBlockJobReady(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandleBalloonChange(qemuMonitorPtr mon, virJSONValuePtr data);
 static void qemuMonitorJSONHandlePMSuspendDisk(qemuMonitorPtr mon, virJSONValuePtr data);
 
@@ -82,6 +83,7 @@ static qemuEventHandler eventHandlers[] = {
     { "BLOCK_IO_ERROR", qemuMonitorJSONHandleIOError, },
     { "BLOCK_JOB_CANCELLED", qemuMonitorJSONHandleBlockJobCanceled, },
     { "BLOCK_JOB_COMPLETED", qemuMonitorJSONHandleBlockJobCompleted, },
+    { "BLOCK_JOB_READY", qemuMonitorJSONHandleBlockJobReady, },
     { "DEVICE_TRAY_MOVED", qemuMonitorJSONHandleTrayChange, },
     { "POWERDOWN", qemuMonitorJSONHandlePowerdown, },
     { "RESET", qemuMonitorJSONHandleReset, },
@@ -807,6 +809,8 @@ qemuMonitorJSONHandleBlockJobImpl(qemuMonitorPtr mon,
         type = VIR_DOMAIN_BLOCK_JOB_TYPE_PULL;
     else if (STREQ(type_str, "commit"))
         type = VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT;
+    else if (STREQ(type_str, "mirror"))
+        type = VIR_DOMAIN_BLOCK_JOB_TYPE_COPY;
 
     switch ((virConnectDomainEventBlockJobStatus) event) {
     case VIR_DOMAIN_BLOCK_JOB_COMPLETED:
@@ -815,11 +819,12 @@ qemuMonitorJSONHandleBlockJobImpl(qemuMonitorPtr mon,
             event = VIR_DOMAIN_BLOCK_JOB_FAILED;
         break;
     case VIR_DOMAIN_BLOCK_JOB_CANCELED:
+    case VIR_DOMAIN_BLOCK_JOB_READY:
         break;
     case VIR_DOMAIN_BLOCK_JOB_FAILED:
     case VIR_DOMAIN_BLOCK_JOB_LAST:
-            VIR_DEBUG("should not get here");
-            break;
+        VIR_DEBUG("should not get here");
+        break;
     }
 
 out:
@@ -880,6 +885,14 @@ qemuMonitorJSONHandleBlockJobCanceled(qemuMonitorPtr mon,
 {
     qemuMonitorJSONHandleBlockJobImpl(mon, data,
                                       VIR_DOMAIN_BLOCK_JOB_CANCELED);
+}
+
+static void
+qemuMonitorJSONHandleBlockJobReady(qemuMonitorPtr mon,
+                                   virJSONValuePtr data)
+{
+    qemuMonitorJSONHandleBlockJobImpl(mon, data,
+                                      VIR_DOMAIN_BLOCK_JOB_READY);
 }
 
 static void
@@ -3249,6 +3262,41 @@ cleanup:
     return ret;
 }
 
+/* speed is in bytes/sec */
+int
+qemuMonitorJSONDriveMirror(qemuMonitorPtr mon,
+                           const char *device, const char *file,
+                           const char *format, unsigned long long speed,
+                           unsigned int flags)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+    bool shallow = (flags & VIR_DOMAIN_BLOCK_REBASE_SHALLOW) != 0;
+    bool reuse = (flags & VIR_DOMAIN_BLOCK_REBASE_REUSE_EXT) != 0;
+
+    cmd = qemuMonitorJSONMakeCommand("drive-mirror",
+                                     "s:device", device,
+                                     "s:target", file,
+                                     "U:speed", speed,
+                                     "s:sync", shallow ? "top" : "full",
+                                     "s:mode",
+                                     reuse ? "existing" : "absolute-paths",
+                                     format ? "s:format" : NULL, format,
+                                     NULL);
+    if (!cmd)
+        return -1;
+
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
+    ret = qemuMonitorJSONCheckError(cmd, reply);
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
 int
 qemuMonitorJSONTransaction(qemuMonitorPtr mon, virJSONValuePtr actions)
 {
@@ -3292,6 +3340,31 @@ qemuMonitorJSONBlockCommit(qemuMonitorPtr mon, const char *device,
                                      "U:speed", speed,
                                      "s:top", top,
                                      base ? "s:base" : NULL, base,
+                                     NULL);
+    if (!cmd)
+        return -1;
+
+    if ((ret = qemuMonitorJSONCommand(mon, cmd, &reply)) < 0)
+        goto cleanup;
+    ret = qemuMonitorJSONCheckError(cmd, reply);
+
+cleanup:
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int
+qemuMonitorJSONDrivePivot(qemuMonitorPtr mon, const char *device,
+                          const char *file ATTRIBUTE_UNUSED,
+                          const char *format ATTRIBUTE_UNUSED)
+{
+    int ret;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    cmd = qemuMonitorJSONMakeCommand("block-job-complete",
+                                     "s:device", device,
                                      NULL);
     if (!cmd)
         return -1;
@@ -3425,6 +3498,8 @@ static int qemuMonitorJSONGetBlockJobInfoOne(virJSONValuePtr entry,
         info->type = VIR_DOMAIN_BLOCK_JOB_TYPE_PULL;
     else if (STREQ(type, "commit"))
         info->type = VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT;
+    else if (STREQ(type, "mirror"))
+        info->type = VIR_DOMAIN_BLOCK_JOB_TYPE_COPY;
     else
         info->type = VIR_DOMAIN_BLOCK_JOB_TYPE_UNKNOWN;
 
