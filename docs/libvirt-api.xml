@@ -177,6 +177,7 @@
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_COMPLETED' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_FAILED' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_LAST' type='enum'/>
+     <exports symbol='VIR_DOMAIN_BLOCK_JOB_READY' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY' type='enum'/>
      <exports symbol='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST' type='enum'/>
@@ -1635,7 +1636,8 @@ file, not whole chain'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_CANCELED' file='libvirt' value='2' type='virConnectDomainEventBlockJobStatus'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_COMPLETED' file='libvirt' value='0' type='virConnectDomainEventBlockJobStatus'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_FAILED' file='libvirt' value='1' type='virConnectDomainEventBlockJobStatus'/>
-    <enum name='VIR_DOMAIN_BLOCK_JOB_LAST' file='libvirt' value='3' type='virConnectDomainEventBlockJobStatus'/>
+    <enum name='VIR_DOMAIN_BLOCK_JOB_LAST' file='libvirt' value='4' type='virConnectDomainEventBlockJobStatus'/>
+    <enum name='VIR_DOMAIN_BLOCK_JOB_READY' file='libvirt' value='3' type='virConnectDomainEventBlockJobStatus'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT' file='libvirt' value='3' type='virDomainBlockJobType'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_COPY' file='libvirt' value='2' type='virDomainBlockJobType'/>
     <enum name='VIR_DOMAIN_BLOCK_JOB_TYPE_LAST' file='libvirt' value='4' type='virDomainBlockJobType'/>
@@ -3788,9 +3790,10 @@ second phase when the job info states cur == end, and remains alive to
 mirror all further changes to both source and destination.  The user
 must call virDomainBlockJobAbort() to end the mirroring while choosing
 whether to revert to source or pivot to the destination.  An event is
-issued when the job ends, and in the future, an event may be added when
-the job transitions from pulling to mirroring.  If the job is aborted,
-a new job will have to start over from the beginning of the first phase.
+issued when the job ends, and depending on the hypervisor, an event may
+also be issued when the job transitions from pulling to mirroring.  If
+the job is aborted, a new job will have to start over from the beginning
+of the first phase.
 
 Some hypervisors will restrict certain actions, such as virDomainSave()
 or virDomainDetachDevice(), while a copy job is active; they may

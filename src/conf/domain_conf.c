@@ -7980,6 +7980,18 @@ virDomainDiskRemoveByName(virDomainDefPtr def, const char *name)
     return virDomainDiskRemove(def, i);
 }
 
+/* Return true if VM has at least one disk involved in a current block
+ * copy job (that is, with a <mirror> element in the disk xml).  */
+bool
+virDomainHasDiskMirror(virDomainObjPtr vm)
+{
+    int i;
+    for (i = 0; i < vm->def->ndisks; i++)
+        if (vm->def->disks[i]->mirror)
+            return true;
+    return false;
+}
+
 int virDomainNetInsert(virDomainDefPtr def, virDomainNetDefPtr net)
 {
     if (VIR_REALLOC_N(def->nets, def->nnets + 1) < 0)
@@ -7993,14 +8005,49 @@ int virDomainNetInsert(virDomainDefPtr def, virDomainNetDefPtr net)
     return 0;
 }
 
-int virDomainNetIndexByMac(virDomainDefPtr def, const virMacAddrPtr mac)
+/* virDomainNetFindIdx: search according to mac address and guest side
+ *                      PCI address (if specified)
+ *
+ * Return: index of match if unique match found
+ *         -1 if not found
+ *         -2 if multiple matches
+ */
+int
+virDomainNetFindIdx(virDomainDefPtr def, virDomainNetDefPtr net)
 {
-    int i;
+    int ii, matchidx = -1;
+    bool PCIAddrSpecified = virDomainDeviceAddressIsValid(&net->info,
+                                                          VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI);
 
-    for (i = 0; i < def->nnets; i++)
-        if (!virMacAddrCmp(&def->nets[i]->mac, mac))
-            return i;
-    return -1;
+    for (ii = 0 ; ii < def->nnets ; ii++) {
+        if (virMacAddrCmp(&def->nets[ii]->mac, &net->mac))
+            continue;
+
+        if ((matchidx >= 0) && !PCIAddrSpecified) {
+            /* there were multiple matches on mac address, and no
+             * qualifying guest-side PCI address was given, so we must
+             * fail (NB: a USB address isn't adequate, since it may
+             * specify only vendor and product ID, and there may be
+             * multiples of those.
+             */
+            matchidx = -2; /* indicates "multiple matches" to caller */
+            break;
+        }
+        if (PCIAddrSpecified) {
+            if (virDevicePCIAddressEqual(&def->nets[ii]->info.addr.pci,
+                                         &net->info.addr.pci)) {
+                /* exit early if the pci address was specified and
+                 * it matches, as this guarantees no duplicates.
+                 */
+                matchidx = ii;
+                break;
+            }
+        } else {
+            /* no PCI address given, so there may be multiple matches */
+            matchidx = ii;
+        }
+    }
+    return matchidx;
 }
 
 virDomainNetDefPtr
@@ -8037,17 +8084,6 @@ virDomainNetRemove(virDomainDefPtr def, size_t i)
     }
     return net;
 }
-
-virDomainNetDefPtr
-virDomainNetRemoveByMac(virDomainDefPtr def, const virMacAddrPtr mac)
-{
-    int i = virDomainNetIndexByMac(def, mac);
-
-    if (i < 0)
-        return NULL;
-    return virDomainNetRemove(def, i);
-}
-
 
 int virDomainControllerInsert(virDomainDefPtr def,
                               virDomainControllerDefPtr controller)

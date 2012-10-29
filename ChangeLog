@@ -1,3 +1,714 @@
+2012-10-28  Cole Robinson  <crobinso@redhat.com>
+
+	qemu: Fix domxml-to-native network model conversion
+	https://bugzilla.redhat.com/show_bug.cgi?id=636832
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	build: typo fix for qemu cpu affinity
+	Introduced in commit 0039a32f.
+
+	* src/qemu/qemu_process.c (qemuPrepareCpumap): s/covert/convert/
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	blockjob: relabel entire existing chain
+	When using block copy to pivot over to a new chain, the backing files
+	for the new chain might still need labeling (particularly if the user
+	passes --reuse-ext with a relative backing file name).  Relabeling a
+	file that is already labeled won't hurt, so this just labels the entire
+	chain at the point of the pivot.  Doing the relabel of the chain uses
+	the fact that we already safely probed the file type of an external
+	file at the start of the block copy.
+
+	* src/qemu/qemu_driver.c (qemuDomainBlockPivot): Relabel chain before
+	asking qemu to pivot.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	blockjob: allow mirroring under SELinux and cgroup
+	Use the recent addition of qemuDomainPrepareDiskChainElement to
+	obtain locking manager lease, permit a block device through cgroups,
+	and set the SELinux label; then audit the fact that we hand a new
+	file over to qemu.  Alas, releasing the lease and label at the end
+	of the mirroring is a trickier prospect (we would have to trace the
+	backing chain of both source and destination, and be sure not to
+	revoke rights to any part of the chain that is shared), so for now,
+	virDomainBlockJobAbort still leaves things with additional access
+	granted (as block-pull and block-commit have the same problem of
+	not clamping access after completion, a future cleanup would cover
+	all three commands).
+
+	* src/qemu/qemu_driver.c (qemuDomainBlockCopy): Set up labeling.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	blockjob: allow for existing files in block-copy
+	Support the REUSE_EXT flag, in part by copying sanity checks from
+	snapshot code.  This code introduces a case of probing an external
+	file for its type; such an action would be a security risk if the
+	existing file is supposed to be raw but the contents resemble some
+	other format; however, since the virDomainBlockRebase API has a
+	flag to force treating the file as raw rather than probe, we can
+	assume that probing is safe in all other instances.  Besides, if
+	we don't probe or force raw, then qemu will.
+
+	* src/qemu/qemu_driver.c (qemuDomainBlockRebase): Allow REUSE_EXT
+	flag.
+	(qemuDomainBlockCopy): Wire up flag, and add some sanity checks.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	blockjob: implement block copy for qemu
+	Minimal patch to wire up all the pieces in the previous patches
+	to actually enable a block copy job.  By minimal, I mean that
+	qemu creates the file (that is, no REUSE_EXT flag support yet),
+	SELinux must be disabled, a lock manager is not informed, and the
+	audit logs aren't updated.  But those will be added as
+	improvements in future patches.
+
+	This patch is designed so that if we ever add a future API
+	virDomainBlockCopy with more bells and whistles (such as letting
+	the user specify a destination image format different than the
+	source), where virDomainBlockRebase is a wrapper around the
+	simpler portions of the new functionality, then the new API can
+	just reuse the new qemuDomainBlockCopy function and already
+	support _SHALLOW and _REUSE_EXT flags.  Also note that libvirt.c
+	already filtered the new flags if _COPY is not present, so that
+	we are not impacting the case of BlockRebase being a wrapper
+	around BlockPull.
+
+	* src/qemu/qemu_driver.c (qemuDomainBlockCopy): New function.
+	(qemuDomainBlockRebase): Call it when appropriate.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	blockjob: make block pivot safer
+	Since libvirt drops locks between issuing a monitor command and
+	getting a response, it is possible for libvirtd to be restarted
+	before getting a response on a block-job-complete command; worse, it
+	is also possible for the guest to shut itself down during the window
+	while libvirtd is down, ending the qemu process.  A management app
+	needs to know if the pivot happened (and the destination file
+	contains guest contents not in the source) or failed (and the source
+	file contains guest contents not in the destination), but since
+	the job is finished, 'query-block-jobs' no longer tracks the
+	status of the job, and if the qemu process itself has disappeared,
+	even 'query-block' cannot be checked to ask qemu its current state.
+
+	At the time of this patch, the design for persistent bitmap has not
+	been clarified, so a followup patch will be needed once qemu
+	actually figures out how to expose it, and we figure out how to use
+	it.  In the meantime, we have a solution that avoids the worst of
+	the problem.  [This problem was first analyzed with the RHEL 6.3
+	__com.redhat_drive-reopen command; which partly explains why
+	upstream qemu 1.3 ditched the drive-reopen idea and went with
+	block-job-complete plus persistent bitmap instead.]
+
+	If we surround 'drive-reopen' with a pause/resume pair, then we can
+	guarantee that the guest cannot modify either source or destination
+	files in the window of libvirtd uncertainty, and the management app
+	is guaranteed that either libvirt knows the outcome and reported it
+	correctly; or that on libvirtd restart, the guest will still be
+	paused and that the qemu process cannot have disappeared due to
+	guest shutdown; and use that as a clue that the management app must
+	implement recovery protocol, with both source and destination files
+	still being in sync and with 'query-block' still being an option as
+	part of that recovery.  My testing shows that the pause window will
+	typically be only a fraction of a second.
+
+	* src/qemu/qemu_driver.c (qemuDomainBlockPivot): Pause around
+	drive-reopen.
+	(qemuDomainBlockJobImpl): Update caller.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	blockjob: support pivot operation on cancel
+	This is the bare minimum to end a copy job (of course, until a
+	later patch adds the ability to start a copy job, this patch
+	doesn't do much in isolation; I've just split the patches to
+	ease the review).
+
+	This patch intentionally avoids SELinux, lock manager, and audit
+	actions.  Also, if libvirtd restarts at the exact moment that a
+	'block-job-complete' is in flight, the proposed proper way to
+	detect the outcome of that would be with a persistent bitmap and
+	some additional query commands when libvirtd restarts.  This
+	patch is enough to test the common case of success when used
+	correctly, while saving the subtleties of proper cleanup for
+	worst-case errors for later.
+
+	When a mirror job is started, cancelling the job safely reverts back
+	to the source disk, regardless of whether the destination is in
+	phase 1 (streaming, in which case the destination is worthless) or
+	phase 2 (mirroring, in which case the destination is synced up to
+	the source at the time of the cancel).  Our existing code does just
+	fine in either phase, other than some bookkeeping cleanup; this
+	implements live block copy.
+
+	Ideas for future enhancements via new flags:
+
+	Depending on when persistent bitmap support is added, it may be
+	worth adding a VIR_DOMAIN_REBASE_COPY_ATOMIC flag that fails up
+	front if we detect an older qemu with risky pivot operation.
+
+	Interesting side note: while snapshot-create --disk-only creates a
+	copy of the disk at a point in time by moving the domain on to a
+	new file (the copy is the file now in the just-extended backing
+	chain), blockjob --abort of a copy job creates a copy of the disk
+	while keeping the domain on the original file.  There may be
+	potential improvements to the snapshot code to exploit block copy
+	over multiple disks all at one point in time.  And, if
+	'block-job-cancel' were made part of 'transaction', you could
+	copy multiple disks at the same point in time without pausing
+	the domain.  This also implies we may want to add a --quiesce flag
+	to virDomainBlockJobAbort, so that when breaking a mirror (whether
+	by cancel or pivot), the side of the mirror that we are abandoning
+	is at least in a stable state with regards to guest I/O.
+
+	* src/qemu/qemu_driver.c (qemuDomainBlockJobAbort): Accept new flag.
+	(qemuDomainBlockPivot): New helper function.
+	(qemuDomainBlockJobImpl): Implement it.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	blockjob: return appropriate event and info
+	Handle the new type of block copy event and info.  Of course,
+	this patch does nothing until a later patch actually allows the
+	creation/abort of a block copy job.
+
+	* include/libvirt/libvirt.h.in (VIR_DOMAIN_BLOCK_JOB_READY): New
+	block job status.
+	* src/libvirt.c (virDomainBlockRebase): Document the event.
+	* src/qemu/qemu_monitor_json.c (eventHandlers): New event.
+	(qemuMonitorJSONHandleBlockJobReady): New function.
+	(qemuMonitorJSONGetBlockJobInfoOne): Translate new job type.
+	(qemuMonitorJSONHandleBlockJobImpl): Handle new event and job type.
+	* src/qemu/qemu_process.c (qemuProcessHandleBlockJob): Recognize
+	the event to minimize snooping.
+	* src/qemu/qemu_driver.c (qemuDomainBlockJobImpl): Snoop a successful
+	info query to save effort on a pivot request.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	blockjob: react to active block copy
+	For now, disk migration via block copy job is not implemented in
+	libvirt.  But when we do implement it, we have to deal with the
+	fact that qemu does not yet provide an easy way to re-start a qemu
+	process with mirroring still intact.  Paolo has proposed an idea
+	for a persistent dirty bitmap that might make this possible, but
+	until that design is complete, it's hard to say what changes
+	libvirt would need.  Even something like 'virDomainSave' becomes
+	hairy, if you realize the implications that 'virDomainRestore'
+	would be stuck with recreating the same mirror layout.
+
+	But if we step back and look at the bigger picture, we realize that
+	the initial client of live storage migration via disk mirroring is
+	oVirt, which always uses transient domains, and that if a transient
+	domain is destroyed while a mirror exists, oVirt can easily restart
+	the storage migration by creating a new domain that visits just the
+	source storage, with no loss in data.
+
+	We can make life a lot easier by being cowards for now, forbidding
+	certain operations on a domain.  This patch guarantees that we
+	never get in a state where we would have to restart a domain with
+	a mirroring block copy, by preventing saves, snapshots, migration,
+	hot unplug of a disk in use, and conversion to a persistent domain
+	(thankfully, it is still relatively easy to 'virsh undefine' a
+	running domain to temporarily make it transient, run tests on
+	'virsh blockcopy', then 'virsh define' to restore the persistence).
+	Later, if the qemu design is enhanced, we can relax our code.
+
+	The change to qemudDomainDefine looks a bit odd for undoing an
+	assignment, rather than probing up front to avoid the assignment,
+	but this is because of how virDomainAssignDef combines both a
+	lookup and assignment into a single function call.
+
+	* src/conf/domain_conf.h (virDomainHasDiskMirror): New prototype.
+	* src/conf/domain_conf.c (virDomainHasDiskMirror): New function.
+	* src/libvirt_private.syms (domain_conf.h): Export it.
+	* src/qemu/qemu_driver.c (qemuDomainSaveInternal)
+	(qemuDomainSnapshotCreateXML, qemuDomainRevertToSnapshot)
+	(qemuDomainBlockJobImpl, qemudDomainDefine): Prevent dangerous
+	actions while block copy is already in action.
+	* src/qemu/qemu_hotplug.c (qemuDomainDetachDiskDevice): Likewise.
+	* src/qemu/qemu_migration.c (qemuMigrationIsAllowed): Likewise.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	blockjob: add qemu capabilities related to block jobs
+	Upstream qemu 1.3 is adding two new monitor commands, 'drive-mirror'
+	and 'block-job-complete'[1], which can drive live block copy and
+	storage migration.  [Additionally, RHEL 6.3 had backported an earlier
+	version of most of the same functionality, but under the names
+	'__com.redhat_drive-mirror' and '__com.redhat_drive-reopen' and with
+	slightly different JSON arguments, and has been using patches similar
+	to these upstream patches for several months now.]
+
+	The libvirt API virDomainBlockRebase as already committed for 0.9.12
+	is flexible enough to expose the basics of block copy, but some
+	additional features in the 'drive-mirror' qemu command, such as
+	setting error policy, setting granularity, or using a persistent
+	bitmap, may later require a new libvirt API virDomainBlockCopy.  I
+	will wait to add that API until we know more about what qemu 1.3
+	will finally provide.
+
+	This patch caters only to the upstream qemu 1.3 interface, although
+	I have proven that the changes for RHEL 6.3 can be isolated to
+	just qemu_monitor_json.c, and the rest of this series will
+	gracefully handle either interface once the JSON differences are
+	papered over in a downstream patch.
+
+	For consistency with other block job commands, libvirt must handle
+	the bandwidth argument as MiB/sec from the user, even though qemu
+	exposes the speed argument as bytes/sec; then again, qemu rounds
+	up to cluster size internally, so using MiB hides the worst effects
+	of that rounding if you pass small numbers.
+
+	[1]https://lists.gnu.org/archive/html/qemu-devel/2012-10/msg04123.html
+
+	* src/qemu/qemu_capabilities.h (QEMU_CAPS_DRIVE_MIRROR)
+	(QEMU_CAPS_DRIVE_REOPEN): New bits.
+	* src/qemu/qemu_capabilities.c (qemuCaps): Name them.
+	* src/qemu/qemu_monitor_json.c (qemuMonitorJSONCheckCommands): Set
+	them.
+	(qemuMonitorJSONDriveMirror, qemuMonitorDrivePivot): New functions.
+	* src/qemu/qemu_monitor_json.h (qemuMonitorJSONDriveMirror)
+	(qemuMonitorDrivePivot): Declare them.
+	* src/qemu/qemu_monitor.c (qemuMonitorDriveMirror)
+	(qemuMonitorDrivePivot): New passthroughs.
+	* src/qemu/qemu_monitor.h (qemuMonitorDriveMirror)
+	(qemuMonitorDrivePivot): Declare them.
+
+2012-10-27  Laine Stump  <laine@laine.org>
+
+	qemu: fix attach/detach of netdevs with matching mac addrs
+	This resolves:
+
+	   https://bugzilla.redhat.com/show_bug.cgi?id=862515
+
+	which describes inconsistencies in dealing with duplicate mac
+	addresses on network devices in a domain.
+
+	(at any rate, it resolves *almost* everything, and prints out an
+	informative error message for the one problem that isn't solved, but
+	has a workaround.)
+
+	A synopsis of the problems:
+
+	1) you can't do a persistent attach-interface of a device with a mac
+	address that matches an existing device.
+
+	2) you *can* do a live attach-interface of such a device.
+
+	3) you *can* directly edit a domain and put in two devices with
+	matching mac addresses.
+
+	4) When running virsh detach-device (live or config), only MAC address
+	is checked when matching the device to remove, so the first device
+	with the desired mac address will be removed. This isn't always the
+	one that's wanted.
+
+	5) when running virsh detach-interface (live or config), the only two
+	items that can be specified to match against are mac address and model
+	type (virtio, etc) - if multiple netdevs match both of those
+	attributes, it again just finds the first one added and assumes that
+	is the only match.
+
+	Since it is completely valid to have multiple network devices with the
+	same MAC address (although it can cause problems in many cases, there
+	*are* valid use cases), what is needed is:
+
+	1) remove the restriction that prohibits doing a persistent add of a
+	netdev with a duplicate mac address.
+
+	2) enhance the backend of virDomainDetachDeviceFlags to check for
+	something that *is* guaranteed unique (but still work with just mac
+	address, as long as it yields only a single results.
+
+	This patch does three things:
+
+	1) removes the check for duplicate mac address during a persistent
+	netdev attach.
+
+	2) unifies the searching for both live and config detach of netdevices
+	in the subordinate functions of qemuDomainModifyDeviceFlags() to use the
+	new function virDomainNetFindIdx (which matches mac address and PCI
+	address if available, checking for duplicates if only mac address was
+	specified). This function returns -2 if multiple matches are found,
+	allowing the callers to print out an appropriate message.
+
+	Steps 1 & 2 are enough to fully fix the problem when using virsh
+	attach-device and detach-device (which require an XML description of
+	the device rather than a bunch of commandline args)
+
+	3) modifies the virsh detach-interface command to check for multiple
+	matches of mac address and show an error message suggesting use of the
+	detach-device command in cases where there are multiple matching mac
+	addresses.
+
+	Later we should decide how we want to input a PCI address on the virsh
+	commandline, and enhance detach-interface to take a --address option,
+	eliminating the need to use detach-device
+
+	* src/conf/domain_conf.c
+	* src/conf/domain_conf.h
+	* src/libvirt_private.syms
+	  * added new virDomainNetFindIdx function
+	  * removed now unused virDomainNetIndexByMac and
+	    virDomainNetRemoveByMac
+
+	* src/qemu/qemu_driver.c
+	  * remove check for duplicate max from qemuDomainAttachDeviceConfig
+	  * use virDomainNetFindIdx/virDomainNetRemove instead
+	    of virDomainNetRemoveByMac in qemuDomainDetachDeviceConfig
+	  * use virDomainNetFindIdx instead of virDomainIndexByMac
+	    in qemuDomainUpdateDeviceConfig
+
+	* src/qemu/qemu_hotplug.c
+	  * use virDomainNetFindIdx instead of a homespun loop in
+	    qemuDomainDetachNetDevice.
+
+	* tools/virsh-domain.c: modified detach-interface command as described
+	    above
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	cpustat: fix regression when cpus are offline
+	It turns out that the cpuacct results properly account for offline
+	cpus, and always returns results for every possible cpu, not just
+	the online ones.  So there is no need to check the map of online
+	cpus in the first place, merely only a need to know the maximum
+	possible cpu.  Meanwhile, virNodeGetCPUBitmap had a subtle change
+	from returning the maximum id to instead returning the width of
+	the bitmap (one larger than the maximum id) in commit 2f4c5338,
+	which made this code encounter some off-by-one logic leading to
+	bad error messages when a cpu was offline:
+
+	$ virsh cpu-stats dom
+	error: Failed to virDomainGetCPUStats()
+
+	error: An error occurred, but the cause is unknown
+
+	Cleaning this up unraveled a chain of other unused variables.
+
+	* src/qemu/qemu_driver.c (qemuDomainGetPercpuStats): Drop
+	pointless check for cpumap changes, and use correct number of
+	cpus.  Simplify signature.
+	(qemuDomainGetCPUStats): Adjust caller.
+	* src/nodeinfo.h (nodeGetCPUCount): New prototype.
+	(nodeGetCPUBitmap): Drop unused parameter.
+	* src/nodeinfo.c (nodeGetCPUBitmap): Likewise.
+	(nodeGetCPUMap): Adjust caller.
+	(nodeGetCPUCount): New function.
+	* src/libvirt_private.syms (nodeinfo.h): Export it.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	build: fix syntax-check tab violation
+	* tools/Makefile.am: Fix tab damage in previous patch.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	build: check for pod errors
+	Patch 61299a1c fixed a long-standing pod error in the man page.
+	But we should be preventing these up front.
+	See also https://bugzilla.redhat.com/show_bug.cgi?id=870273
+
+	* tools/Makefile.am (virt-xml-validate.1, virt-pki-validate.1)
+	(virt-host-validate.1, virt-sanlock-cleanup.8, virsh.1): Reject
+	pod conversion errors.
+	* daemon/Makefile.am ($(srcdir)/libvirtd.8.in): Likewise.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	build: silence compiler warning about signedness
+	Commit 246143b fixed a warning on older gcc, but caused a warning
+	on newer gcc.
+
+	../../src/rpc/virnetserverservice.c: In function 'virNetServerServiceNewPostExecRestart':
+	../../src/rpc/virnetserverservice.c:277:41: error: pointer targets in passing argument 3 of 'virJSONValueObjectGetNumberUint' differ in signedness [-Werror=pointer-sign]
+
+	* src/rpc/virnetserverservice.c: Use correct types.
+
+2012-10-27  Eric Blake  <eblake@redhat.com>
+
+	build: fix type-punning bug
+	With older gcc and 64-bit size_t, the compiler issues a real warning:
+	rpc/virnetserverservice.c:277: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+
+	Introduced in commit 0cc79255.  Depending on machine endianness,
+	this warning represents a real bug that could mis-interpret the
+	value by a factor of 2^32.  I don't know why I couldn't get newer
+	gcc to report the same warning message.
+
+	* src/rpc/virnetserverservice.c
+	(virNetServerServiceNewPostExecRestart): Use temporary instead.
+
+2012-10-27  Laine Stump  <laine@laine.org>
+
+	parallels: fix build for some older compilers
+	Found this when building on RHEL5:
+
+	parallels/parallels_storage.c: In function 'parallelsStorageOpen':
+	parallels/parallels_storage.c:180: error: 'for' loop initial declaration used outside C99 mode
+
+	(and similar error in parallels_driver.c). This was in spite of
+	configuring with "-Wno-error".
+
+2012-10-26  Philipp Hahn  <hahn@univention.de>
+
+	documentation: HTML tag fix
+	Replace '%' by '&' for correct escaping of '>' in Domain specification.
+
+2012-10-26  Peter Krempa  <pkrempa@redhat.com>
+
+	maint: Sort .gitignore
+	Sorting of the .gitignore file was broken after the last addition. After
+	a clean build the scripts re-sort it making the working tree dirty.
+
+2012-10-26  Jiri Denemark  <jdenemar@redhat.com>
+
+	virsh: Fix POD syntax
+	The first two hunks fix "Unterminated I<...> sequence" error and the
+	last one fixes "’=item’ outside of any ’=over’" error.
+
+	virsh: Remove --flags from nodesuspend
+	We always expose individual bits from flags as separate options rather
+	than exposing a raw flags options. Since virNodeSuspendForDuration does
+	not currently support any flags, the only way of using this --flags
+	options that would not fail is "--flags 0", which is equivalent to
+	omitting the option. Thus it is highly unlikely anyone would actually be
+	using it and removing it should be safe.
+
+2012-10-26  Eric Blake  <eblake@redhat.com>
+
+	snapshot: improve snapshot-list error message
+	https://bugzilla.redhat.com/show_bug.cgi?id=869100 mentioned some
+	confusion about 'virsh snapshot-list' errors.  Clean up a
+	misleading error message, and add some documentation.
+
+	* tools/virsh-snapshot.c (cmdSnapshotList): Mention --current
+	rather than --from when appropriate.
+	* tools/virsh.pod (snapshot-list): Mention that the named starting
+	point is NOT part of the list except under --tree.
+
+2012-10-26  Eric Blake  <eblake@redhat.com>
+
+	maint: ignore unsaved emacs files
+	I did a 'git add .', then realized that it ended up trying to
+	add the emacs lock file for a corresponding file that I had not
+	yet saved all my edits; thankfully I noticed it in time.  Since
+	we already exclude other temporary files, this makes the most
+	sense for preventing such a mistake from actually hitting upstream.
+
+	* .gitignore: Add .#* to the exclude list.
+
+2012-10-26  Cole Robinson  <crobinso@redhat.com>
+
+	daemon: Fix LIBVIRT_DEBUG=1 default output
+	This commit changes the behavior of LIBVIRT_DEBUG=1 libvirtd:
+
+	$ git show 7022b09111d4322d21396a70d58320a9ad773962
+	commit 7022b09111d4322d21396a70d58320a9ad773962
+	Author: Daniel P. Berrange <berrange@redhat.com>
+	Date:   Thu Sep 27 13:13:09 2012 +0100
+
+	    Automatically enable systemd journal logging
+
+	    Probe to see if the systemd journal is accessible, and if
+	    so enable logging to the journal by default, rather than
+	    stderr (current default under systemd).
+
+	Previously  'LIBVIRT_DEBUG=1 /usr/sbin/libvirtd' would show all debug
+	output to stderr, now it send debug output to the journal.
+
+	Only use the journal by default if running in daemon mode, or
+	if stdin is _not_ a tty. This should make libvirtd launched from
+	systemd use the journal, but preserve the old behavior in most
+	situations.
+
+2012-10-26  Laine Stump  <laine@laine.org>
+
+	network: fix networkValidate check for default portgroup and vlan
+	This was found during testing of the fix for:
+
+	   https://bugzilla.redhat.com/show_bug.cgi?id=868483
+
+	networkValidate was supposed to check for the existence of multiple
+	portgroups and report an error if this was encountered. It did, but
+	there were two problems:
+
+	1) even though it logged an error, it still returned success, allowing
+	the operation to continue.
+
+	2) It could exit the portgroup checking loop early (or possibly not
+	even do it once) if a vlan tag was supplied in the base network config
+	or one of the portgroups.
+
+	This patch fixes networkValidate to return failure in addition to
+	logging the error, and also changes it to not exit the portgroup
+	checking loop early. The logic was a bit off in the checking for vlan
+	anyway, and it's intertwined with fixing the early loop exit, so I
+	fixed that as well. Now it correctly checks for combinations where a
+	<virtualport> is specified in the base network def and <vlan> is given
+	in a portgroup, as well as the opposite (<vlan> in base network def
+	and <virtualport> in portgroup), and ignores the case of a disallowed
+	vlan when using *no* portgroup if there is a default portgroup (since
+	in that case there is no way to not use any portgroup).
+
+2012-10-26  Eric Blake  <eblake@redhat.com>
+
+	maint: consistent whitespace after 'if'
+	Noticed during the review of the previous patch.
+
+	* python/libvirt-override.c: Use space between 'if ('.
+
+2012-10-26  Viktor Mihajlovski  <mihajlov@linux.vnet.ibm.com>
+
+	virNodeGetCPUMap: Add python binding
+	Added a method getCPUMap to virConnect.
+	It can be used as follows:
+
+	import libvirt
+	import sys
+	import os
+
+	conn = libvirt.openReadOnly(None)
+	if conn == None:
+	    print 'Failed to open connection to the hypervisor'
+	    sys.exit(1)
+
+	try:
+	    (cpus, cpumap, online) = conn.getCPUMap(0)
+	except:
+	    print 'Failed to extract the node cpu map information'
+	    sys.exit(1)
+
+	print 'CPUs total %d, online %d' % (cpus, online)
+	print 'CPU map %s' % str(cpumap)
+
+	del conn
+	print "OK"
+
+	sys.exit(0)
+
+2012-10-26  Viktor Mihajlovski  <mihajlov@linux.vnet.ibm.com>
+
+	virNodeGetCPUMap: Implement driver support
+	Driver support added for:
+	- test: pretending 8 host CPUS, 3 being online
+	- qemu, lxc, openvz, uml: using nodeGetCPUMap
+
+	virNodeGetCPUMap: Implement support function in nodeinfo
+	Added an implemention of virNodeGetCPUMap to nodeinfo.c,
+	(nodeGetCPUMap) which can be used by all drivers for a Linux
+	hypervisor host.
+
+2012-10-26  Eric Blake  <eblake@redhat.com>
+
+	nodeinfo: improve probing node cpu bitmap
+	Callers should not need to know what the name of the file to
+	be read in the Linux-specific version of nodeGetCPUmap;
+	furthermore, qemu cares about online cpus, not present cpus,
+	when determining which cpus to skip.
+
+	While at it, I fixed the fact that we were computing the maximum
+	online cpu id by doing a slow iteration, when what we really want
+	to know is the max available cpu.
+
+	* src/nodeinfo.h (nodeGetCPUmap): Rename...
+	(nodeGetCPUBitmap): ...and simplify signature.
+	* src/nodeinfo.c (linuxParseCPUmax): New function.
+	(linuxParseCPUmap): Simplify and alter signature.
+	(nodeGetCPUBitmap): Change implementation.
+	* src/libvirt_private.syms (nodeinfo.h): Reflect rename.
+	* src/qemu/qemu_driver.c (qemuDomainGetPercpuStats): Update
+	caller.
+
+2012-10-26  Eric Blake  <eblake@redhat.com>
+
+	bitmap: add virBitmapCountBits
+	Sometimes it's handy to know how many bits are set.
+
+	* src/util/bitmap.h (virBitmapCountBits): New prototype.
+	(virBitmapNextSetBit): Use correct type.
+	* src/util/bitmap.c (virBitmapNextSetBit): Likewise.
+	(virBitmapSetAll): Maintain invariant of clear tail bits.
+	(virBitmapCountBits): New function.
+	* src/libvirt_private.syms (bitmap.h): Export it.
+	* tests/virbitmaptest.c (test2): Test it.
+
+2012-10-25  Jiri Denemark  <jdenemar@redhat.com>
+
+	Fix build with apparmor
+	Recent storage patches changed signature of virStorageFileGetMetadata
+	and replaced chain with backingChain in virDomainDiskDef.
+
+2012-10-25  Matthias Bolte  <matthias.bolte@googlemail.com>
+
+	esx: Update version checks for vSphere 5.1
+	Also remove warnings for upcoming versions. There hadn't been any
+	compatibility problems with new ESX version over the whole lifetime
+	of the ESX driver, so I don't expect any in the future.
+
+	Update documentation to mention vSphere 5.x support.
+
+2012-10-24  Peter Krempa  <pkrempa@redhat.com>
+
+	cpu: Add recently added cpu feature flags.
+	Qemu has added some new feature flags. This patch adds them to libvirt.
+
+	The new features are for the cpuid function 0x7 that takes an argument
+	in the ecx register. Currently only 0x0 is used as the argument so I was
+	lazy and I just clear the registers to 0 before calling cpuid. In future
+	when there maybe will be some other possible arguments, we will need to
+	improve the cpu detection code to take this into account.
+
+2012-10-24  Osier Yang  <jyang@redhat.com>
+
+	qemu: Prohibit chaning affinity of domain process if placement is 'auto'
+	On one hand, numad probably will manage the affinity of domain process
+	dynamically in future. On the other hand, even numad won't manage it,
+	it still could confusion. Let's make things simpler enough to avoid
+	the lair for now.
+
+2012-10-24  Osier Yang  <jyang@redhat.com>
+
+	qemu: Keep the affinity when creating cgroup for emulator thread
+	When the cpu placement model is "auto", it sets the affinity for
+	domain process with the advisory nodeset from numad, however,
+	creating cgroup for the domain process (called emulator thread
+	in some contexts) later overrides that with pinning it to all
+	available pCPUs.
+
+	How to reproduce:
+
+	  * Configure the domain with "auto" placement for <vcpu>, e.g.
+	    <vcpu placement='auto'>4</vcpu>
+	  * % virsh start dom
+	  * % cat /proc/$dompid/status
+
+	Though the emulator cgroup cause conflicts, but we can't simply
+	prohibit creating it, as other tunables are still useful, such
+	as "emulator_period", which is used by API
+	virDomainSetSchedulerParameter. So this patch doesn't prohibit
+	creating the emulator cgroup, but inherit the nodeset from numad,
+	and reset the affinity for domain process.
+
+	* src/qemu/qemu_cgroup.h: Modify definition of qemuSetupCgroupForEmulator
+	                          to accept the passed nodenet
+	* src/qemu/qemu_cgroup.c: Set the affinity with the passed nodeset
+
+2012-10-24  Osier Yang  <jyang@redhat.com>
+
+	qemu: Add helper to prepare cpumap for affinity setting
+	Abstract the codes to prepare cpumap into a helper a function,
+	which can be used later.
+
+	* src/qemu/qemu_process.h: Declare qemuPrepareCpumap
+	* src/qemu/qemu_process.c: Implement qemuPrepareCpumap, and use it.
+
 2012-10-24  Viktor Mihajlovski  <mihajlov@linux.vnet.ibm.com>
 
 	virNodeGetCPUMap: Implement virsh support.

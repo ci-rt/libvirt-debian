@@ -755,34 +755,55 @@ cleanup:
     return ret;
 }
 
+
+/* Determine the maximum cpu id from a Linux sysfs cpu/present file. */
+static int
+linuxParseCPUmax(const char *path)
+{
+    char *str = NULL;
+    char *tmp;
+    int ret = -1;
+
+    if (virFileReadAll(path, 5 * VIR_DOMAIN_CPUMASK_LEN, &str) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    tmp = str;
+    do {
+        if (virStrToLong_i(tmp, &tmp, 10, &ret) < 0 ||
+            !strchr(",-\n", *tmp)) {
+            virReportError(VIR_ERR_NO_SUPPORT,
+                           _("failed to parse %s"), path);
+            ret = -1;
+            goto cleanup;
+        }
+    } while (*tmp++ != '\n');
+    ret++;
+
+cleanup:
+    VIR_FREE(str);
+    return ret;
+}
+
 /*
- * Linux maintains cpu bit map. For example, if cpuid=5's flag is not set
- * and max cpu is 7. The map file shows 0-4,6-7. This function parses
- * it and returns cpumap.
+ * Linux maintains cpu bit map under cpu/online. For example, if
+ * cpuid=5's flag is not set and max cpu is 7, the map file shows
+ * 0-4,6-7. This function parses it and returns cpumap.
  */
 static virBitmapPtr
-linuxParseCPUmap(int *max_cpuid, const char *path)
+linuxParseCPUmap(int max_cpuid, const char *path)
 {
     virBitmapPtr map = NULL;
     char *str = NULL;
-    int max_id = 0, i;
 
     if (virFileReadAll(path, 5 * VIR_DOMAIN_CPUMASK_LEN, &str) < 0) {
         virReportOOMError();
         goto error;
     }
 
-    if (virBitmapParse(str, 0, &map,
-                       VIR_DOMAIN_CPUMASK_LEN) < 0) {
+    if (virBitmapParse(str, 0, &map, max_cpuid) < 0)
         goto error;
-    }
-
-    i = -1;
-    while ((i = virBitmapNextSetBit(map, i)) >= 0) {
-        max_id = i;
-    }
-
-    *max_cpuid = max_id;
 
     VIR_FREE(str);
     return map;
@@ -928,22 +949,40 @@ int nodeGetMemoryStats(virConnectPtr conn ATTRIBUTE_UNUSED,
 #endif
 }
 
-virBitmapPtr
-nodeGetCPUmap(virConnectPtr conn ATTRIBUTE_UNUSED,
-              int *max_id ATTRIBUTE_UNUSED,
-              const char *mapname ATTRIBUTE_UNUSED)
+int
+nodeGetCPUCount(void)
 {
 #ifdef __linux__
-    char *path;
+    /* XXX should we also work on older kernels, like RHEL5, that lack
+     * cpu/present and cpu/online files?  Those kernels also lack cpu
+     * hotplugging, so it would be a matter of finding the largest
+     * cpu/cpuNN directory, and returning NN + 1 */
+    return linuxParseCPUmax(SYSFS_SYSTEM_PATH "/cpu/present");
+#else
+    virReportError(VIR_ERR_NO_SUPPORT, "%s",
+                   _("host cpu counting not implemented on this platform"));
+    return -1;
+#endif
+}
+
+virBitmapPtr
+nodeGetCPUBitmap(int *max_id ATTRIBUTE_UNUSED)
+{
+#ifdef __linux__
     virBitmapPtr cpumap;
+    int present;
 
-    if (virAsprintf(&path, SYSFS_SYSTEM_PATH "/cpu/%s", mapname) < 0) {
-        virReportOOMError();
+    present = linuxParseCPUmax(SYSFS_SYSTEM_PATH "/cpu/present");
+    /* XXX should we also work on older kernels, like RHEL5, that lack
+     * cpu/present and cpu/online files?  Those kernels also lack cpu
+     * hotplugging, so it would be a matter of finding the largest
+     * cpu/cpuNN directory, and creating a map that size with all bits
+     * set.  */
+    if (present < 0)
         return NULL;
-    }
-
-    cpumap = linuxParseCPUmap(max_id, path);
-    VIR_FREE(path);
+    cpumap = linuxParseCPUmap(present, SYSFS_SYSTEM_PATH "/cpu/online");
+    if (max_id && cpumap)
+        *max_id = present;
     return cpumap;
 #else
     virReportError(VIR_ERR_NO_SUPPORT, "%s",
@@ -1223,6 +1262,35 @@ nodeGetMemoryParameters(virConnectPtr conn ATTRIBUTE_UNUSED,
                      " on this platform"));
     return -1;
 #endif
+}
+
+int
+nodeGetCPUMap(virConnectPtr conn ATTRIBUTE_UNUSED,
+              unsigned char **cpumap,
+              unsigned int *online,
+              unsigned int flags)
+{
+    virBitmapPtr cpus = NULL;
+    int maxpresent;
+    int ret = -1;
+    int dummy;
+
+    virCheckFlags(0, -1);
+
+    if (!(cpus = nodeGetCPUBitmap(&maxpresent)))
+        goto cleanup;
+
+    if (cpumap && virBitmapToData(cpus, cpumap, &dummy) < 0)
+        goto cleanup;
+    if (online)
+        *online = virBitmapCountBits(cpus);
+
+    ret = maxpresent;
+cleanup:
+    if (ret < 0 && cpumap)
+        VIR_FREE(*cpumap);
+    virBitmapFree(cpus);
+    return ret;
 }
 
 #if HAVE_NUMACTL

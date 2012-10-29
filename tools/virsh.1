@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2012-10-24" "libvirt-0.10.2" "Virtualization Support"
+.TH VIRSH 1 "2012-10-29" "libvirt-1.0.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -394,8 +394,8 @@ statistics during 1 second.
 .IX Item "nodememstats [cell]"
 Returns memory stats of the node.
 If \fIcell\fR is specified, this will prints specified cell statistics only.
-.IP "\fBnodesuspend\fR [\fItarget\fR] [\fIduration\fR] [\fIflags\fR]" 4
-.IX Item "nodesuspend [target] [duration] [flags]"
+.IP "\fBnodesuspend\fR [\fItarget\fR] [\fIduration\fR]" 4
+.IX Item "nodesuspend [target] [duration]"
 Puts the node (host machine) into a system-wide sleep state such as
 Suspend-to-RAM, Suspend-to-Disk or Hybrid-Suspend and sets up a
 Real-Time-Clock interrupt to fire (to wake up the node) after a time delay
@@ -777,7 +777,7 @@ file='name'/>) for one of the disk devices attached to \fIdomain\fR (see
 also \fBdomblklist\fR for listing these names).
 \&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s, although for
 qemu, it may be non-zero only for an online domain.
-.IP "\fBblockcopy\fR \fIdomain\fR \fIpath\fR \fIdest\fR [\fIbandwidth\fR] [\fI\-\-shallow\fR] [\fI\-\-reuse\-external\fR] [\fI\-\-raw\fR] [\fI\-\-wait\fR [\fI\-\-verbose] [{\fI\-\-pivot\fI | \fI\-\-finish\fI}] [\fI\-\-timeout\fI \f(BIseconds\fI] [\fI\-\-async\fI]]\fR" 4
+.IP "\fBblockcopy\fR \fIdomain\fR \fIpath\fR \fIdest\fR [\fIbandwidth\fR] [\fI\-\-shallow\fR] [\fI\-\-reuse\-external\fR] [\fI\-\-raw\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [{\fI\-\-pivot\fR | \fI\-\-finish\fR}] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-async\fR]]" 4
 .IX Item "blockcopy domain path dest [bandwidth] [--shallow] [--reuse-external] [--raw] [--wait [--verbose] [{--pivot | --finish}] [--timeout seconds] [--async]]"
 Copy a disk backing image chain to \fIdest\fR. By default, this command
 flattens the entire chain; but if \fI\-\-shallow\fR is specified, the copy
@@ -815,7 +815,7 @@ is done cleaning up.
 .Sp
 \&\fIpath\fR specifies fully-qualified path of the disk.
 \&\fIbandwidth\fR specifies copying bandwidth limit in MiB/s.
-.IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-async]]\fR" 4
+.IP "\fBblockpull\fR \fIdomain\fR \fIpath\fR [\fIbandwidth\fR] [\fIbase\fR] [\fI\-\-wait\fR [\fI\-\-verbose\fR] [\fI\-\-timeout\fR \fBseconds\fR] [\fI\-\-async\fR]]" 4
 .IX Item "blockpull domain path [bandwidth] [base] [--wait [--verbose] [--timeout seconds] [--async]]"
 Populate a disk from its backing image chain. By default, this command
 flattens the entire chain; but if \fIbase\fR is specified, containing the
@@ -2556,7 +2556,9 @@ start at the current snapshot.  When used in isolation or with
 \&\fI\-\-parent\fR, the list is limited to direct children unless
 \&\fI\-\-descendants\fR is also present.  When used with \fI\-\-tree\fR, the
 use of \fI\-\-descendants\fR is implied.  This option is not compatible
-with \fI\-\-roots\fR.
+with \fI\-\-roots\fR.  Note that the starting point of \fI\-\-from\fR or
+\&\fI\-\-current\fR is not included in the list unless the \fI\-\-tree\fR
+option is also present.
 .Sp
 If \fI\-\-leaves\fR is specified, the list will be filtered to just
 snapshots that have no children.  Likewise, if \fI\-\-no\-leaves\fR is
@@ -2819,15 +2821,3 @@ is \s-1NO\s0 warranty; not even for \s-1MERCHANTABILITY\s0 or \s-1FITNESS\s0 \s-
 .IX Header "SEE ALSO"
 \&\fIvirt\-install\fR\|(1), \fIvirt\-xml\-validate\fR\|(1), \fIvirt\-top\fR\|(1), \fIvirt\-df\fR\|(1),
 <http://www.libvirt.org/>
-.SH "POD ERRORS"
-.IX Header "POD ERRORS"
-Hey! \fBThe above document had some coding errors, which are explained below:\fR
-.IP "Around line 739:" 4
-.IX Item "Around line 739:"
-Unterminated I<...> sequence
-.IP "Around line 780:" 4
-.IX Item "Around line 780:"
-Unterminated I<...> sequence
-.IP "Around line 2946:" 4
-.IX Item "Around line 2946:"
-\&'=item' outside of any '=over'
