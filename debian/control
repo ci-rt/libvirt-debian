@@ -36,7 +36,7 @@ Build-Depends: cdbs (>= 0.4.90~),
  libnetcf-dev (>= 0.2.2) [linux-any],
  libsanlock-dev [linux-any],
  libaudit-dev [linux-any],
- systemtap-sdt-dev [linux-any],
+ systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
 # for --with-storage-sheepdog
  sheepdog [linux-any],
 # For "make check"
