@@ -1,0 +1,57 @@
+From: =?UTF-8?q?Guido=20G=C3=BCnther?= <agx@sigxcpu.org>
+Date: Mon, 29 Oct 2012 09:28:15 +0100
+Subject: Create temporary dir for socket
+
+to avoid ENAMETOOLONG:
+
+https://buildd.debian.org/status/fetch.php?pkg=libvirt&arch=amd64&ver=1.0.0~rc1-1&stamp=1351453521
+---
+ tests/qemumonitortestutils.c |   22 ++++++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/tests/qemumonitortestutils.c b/tests/qemumonitortestutils.c
+index 7133c99..4e5c879 100644
+--- a/tests/qemumonitortestutils.c
++++ b/tests/qemumonitortestutils.c
+@@ -424,9 +424,23 @@ static qemuMonitorCallbacks qemuCallbacks = {
+ qemuMonitorTestPtr qemuMonitorTestNew(bool json, virCapsPtr caps)
+ {
+     qemuMonitorTestPtr test;
+-    const char *path = abs_builddir "/qemumonitorjsontest.sock";
+     virDomainChrSourceDef src;
+ 
++    char *tmpdir = NULL, *path = NULL;
++    char template[] = "/tmp/libvirt_XXXXXX";
++
++    tmpdir = mkdtemp(template);
++    if (tmpdir == NULL) {
++        virReportSystemError(errno, "%s",
++                             _("Failed to create temporary directory"));
++        goto error;
++    }
++
++    if (virAsprintf(&path, "%s/qemumonitorjsontest.sock", tmpdir) < 0) {
++        virReportOOMError();
++        goto error;
++    }
++
+     memset(&src, 0, sizeof(src));
+     src.type = VIR_DOMAIN_CHR_TYPE_UNIX;
+     src.data.nix.path = (char *)path;
+@@ -494,11 +508,15 @@ qemuMonitorTestPtr qemuMonitorTestNew(bool json, virCapsPtr caps)
+     test->running = true;
+     virMutexUnlock(&test->lock);
+ 
++cleanup:
++    if (tmpdir)
++        rmdir(tmpdir);
++    VIR_FREE(path);
+     return test;
+ 
+ error:
+     qemuMonitorTestFree(test);
+-    return NULL;
++    goto cleanup;
+ }
+ 
+ qemuMonitorPtr qemuMonitorTestGetMonitor(qemuMonitorTestPtr test)
