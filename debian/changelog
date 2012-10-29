@@ -1,3 +1,11 @@
+libvirt (1.0.0~rc2-1) experimental; urgency=low
+
+  * [2b79e3d] New upstream version 1.0.0~rc2
+  * [79d2200] Add empty systemtap dir so dh_install doesn't fail on kFreeBSD
+  * [e68850a] Create temporary dir for socket to avoid ENAMETOOLONG
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 29 Oct 2012 10:55:22 +0100
+
 libvirt (1.0.0~rc1-1) experimental; urgency=low
 
   * [51182d6] New upstream version 1.0.0~rc1
