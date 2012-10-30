@@ -32,7 +32,11 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_SANLOCK        = --with-sanlock
   WITH_INIT_SCRIPT    =	--with-init-script=systemd
   WITH_AUDIT          = --with-audit
-  WITH_DTRACE         = --with-dtrace
+  ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 armel armhf i386 ia64 powerpc s390))
+      WITH_DTRACE     = --with-dtrace
+  else
+      WITH_DTRACE     = --without-dtrace
+  endif
   ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 i386 ia64 mips mipsel powerpc))
       WITH_NUMA       = --with-numactl
   else
