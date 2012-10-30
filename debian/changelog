@@ -1,3 +1,10 @@
+libvirt (1.0.0~rc2-2) experimental; urgency=low
+
+  * [a2dd93d] Adjust systemtap build-dependency to architectures that actually
+    have it.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 30 Oct 2012 07:21:19 +0100
+
 libvirt (1.0.0~rc2-1) experimental; urgency=low
 
   * [2b79e3d] New upstream version 1.0.0~rc2
