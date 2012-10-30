@@ -1,3 +1,10 @@
+libvirt (1.0.0~rc2-3) experimental; urgency=low
+
+  * [55ec399] Don't try to configure systemtap support on architectures
+    lacking support for it.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 30 Oct 2012 13:28:50 +0100
+
 libvirt (1.0.0~rc2-2) experimental; urgency=low
 
   * [a2dd93d] Adjust systemtap build-dependency to architectures that actually
