@@ -2624,6 +2624,9 @@ qemuBuildDriveDevStr(virDomainDefPtr def,
         break;
     case VIR_DOMAIN_DISK_BUS_USB:
         virBufferAddLit(&opt, "usb-storage");
+
+        if (qemuBuildDeviceAddressStr(&opt, &disk->info, caps) < 0)
+            goto error;
         break;
     default:
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -5080,6 +5083,20 @@ qemuBuildCommandLine(virConnectPtr conn,
         }
     }
 
+    if (usbcontroller == 0)
+        virCommandAddArg(cmd, "-usb");
+
+    for (i = 0 ; i < def->nhubs ; i++) {
+        virDomainHubDefPtr hub = def->hubs[i];
+        char *optstr;
+
+        virCommandAddArg(cmd, "-device");
+        if (!(optstr = qemuBuildHubDevStr(hub, caps)))
+            goto error;
+        virCommandAddArg(cmd, optstr);
+        VIR_FREE(optstr);
+    }
+
     /* If QEMU supports -drive param instead of old -hda, -hdb, -cdrom .. */
     if (qemuCapsGet(caps, QEMU_CAPS_DRIVE)) {
         int bootCD = 0, bootFloppy = 0, bootDisk = 0;
@@ -5812,20 +5829,6 @@ qemuBuildCommandLine(virConnectPtr conn,
                            NULLSTR(virDomainChrConsoleTargetTypeToString(console->targetType)));
             goto error;
         }
-    }
-
-    if (usbcontroller == 0)
-        virCommandAddArg(cmd, "-usb");
-
-    for (i = 0 ; i < def->nhubs ; i++) {
-        virDomainHubDefPtr hub = def->hubs[i];
-        char *optstr;
-
-        virCommandAddArg(cmd, "-device");
-        if (!(optstr = qemuBuildHubDevStr(hub, caps)))
-            goto error;
-        virCommandAddArg(cmd, optstr);
-        VIR_FREE(optstr);
     }
 
     for (i = 0 ; i < def->ninputs ; i++) {

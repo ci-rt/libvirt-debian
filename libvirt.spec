@@ -322,7 +322,7 @@
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: 1.0.0
-Release: 0rc2%{?dist}%{?extra_release}
+Release: 0rc3%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -331,7 +331,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
 %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc2.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc3.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -1567,6 +1567,13 @@ fi
 /sbin/chkconfig --del libvirt-guests >/dev/null 2>&1 || :
 /bin/systemctl try-restart libvirt-guests.service >/dev/null 2>&1 || :
 %endif
+
+%post lock-sanlock
+if getent group sanlock > /dev/null ; then
+    chmod 0770 %{_localstatedir}/lib/libvirt/sanlock
+    chown root:sanlock %{_localstatedir}/lib/libvirt/sanlock
+fi
+
 
 %files
 %defattr(-, root, root)
