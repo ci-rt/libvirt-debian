@@ -1,3 +1,10 @@
+libvirt (1.0.0~rc3-1) experimental; urgency=low
+
+  * [d3d06ad] New upstream version 1.0.0~rc3
+  * [610ff5d] Drop Create-temporary-dir-for-socket.patch, applied upstream.
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 01 Nov 2012 21:59:41 +0100
+
 libvirt (1.0.0~rc2-3) experimental; urgency=low
 
   * [55ec399] Don't try to configure systemtap support on architectures
