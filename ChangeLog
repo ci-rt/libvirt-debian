@@ -1,3 +1,187 @@
+2012-10-31  Gene Czarcinski  <gene@czarc.net>
+
+	bugfix: ip6tables rule removal
+	Three FORWARD chain rules are added and two INPUT chain rules
+	are added when a network is started but only the FORWARD chain
+	rules are removed when the network is destroyed.
+
+2012-10-31  Eric Blake  <eblake@redhat.com>
+
+	maint: log xml during volume creation
+	I noticed this while answering a list question about Java bindings
+	of volume creation.  All other functions that take xml logged xmlDesc.
+
+	* src/libvirt.c (virStorageVolCreateXML)
+	(virStorageVolCreateXMLFrom): Use consistent spelling of xmlDesc,
+	and log the argument.
+
+2012-10-31  Guido Günther  <agx@sigxcpu.org>
+
+	Create temporary dir for socket
+	to avoid ENAMETOOLONG:
+
+	https://buildd.debian.org/status/fetch.php?pkg=libvirt&arch=amd64&ver=1.0.0~rc1-1&stamp=1351453521
+
+2012-10-31  Laine Stump  <laine@laine.org>
+
+	util: do a better job of matching up pids with their binaries
+	This patch resolves: https://bugzilla.redhat.com/show_bug.cgi?id=871201
+
+	If libvirt is restarted after updating the dnsmasq or radvd packages,
+	a subsequent "virsh net-destroy" will fail to kill the dnsmasq/radvd
+	process.
+
+	The problem is that when libvirtd restarts, it re-reads the dnsmasq
+	and radvd pidfiles, then does a sanity check on each pid it finds,
+	including checking that the symbolic link in /proc/$pid/exe actually
+	points to the same file as the path used by libvirt to execute the
+	binary in the first place. If this fails, libvirt assumes that the
+	process is no longer alive.
+
+	But if the original binary has been replaced, the link in /proc is set
+	to "$binarypath (deleted)" (it literally has the string " (deleted)"
+	appended to the link text stored in the filesystem), so even if a new
+	binary exists in the same location, attempts to resolve the link will
+	fail.
+
+	In the end, not only is the old dnsmasq/radvd not terminated when the
+	network is stopped, but a new dnsmasq can't be started when the
+	network is later restarted (because the original process is still
+	listening on the ports that the new process wants).
+
+	The solution is, when the initial "use stat to check for identical
+	inodes" check for identity between /proc/$pid/exe and $binpath fails,
+	to check /proc/$pid/exe for a link ending with " (deleted)" and if so,
+	truncate that part of the link and compare what's left with the
+	original binarypath.
+
+	A twist to this problem is that on systems with "merged" /sbin and
+	/usr/sbin (i.e. /sbin is really just a symlink to /usr/sbin; Fedora
+	17+ is an example of this), libvirt may have started the process using
+	one path, but /proc/$pid/exe lists a different path (indeed, on F17
+	this is the case - libvirtd uses /sbin/dnsmasq, but /proc/$pid/exe
+	shows "/usr/sbin/dnsmasq"). The further bit of code to resolve this is
+	to call virFileResolveAllLinks() on both the original binarypath and
+	on the truncated link we read from /proc/$pid/exe, and compare the
+	results.
+
+	The resulting code still succeeds in all the same cases it did before,
+	but also succeeds if the binary was deleted or replaced after it was
+	started.
+
+2012-10-30  Peter Krempa  <pkrempa@redhat.com>
+
+	cpu: Fix definition of flag smap
+	A mild case of dyslexia caused that commit
+	012f9b19ef3812884e207dc431571502de4cebce specifies wrong mask for the
+	smap cpu feature flag. This patch fixes that mistake.
+
+	nodeinfotest: Delete NUL bytes from test data
+	The test data contained extra \0 bytes after newlines probably due to a
+	kernel off-by-one bug.
+
+2012-10-30  Michal Privoznik  <mprivozn@redhat.com>
+
+	sanlock: Introduce 'user' and 'group' conf variables
+	through which user set under what permissions does sanlock
+	daemon run so libvirt will set the same permissions for
+	files exposed to it.
+
+2012-10-30  Vladislav Bogdanov  <bubble@hoster-ok.com>
+
+	qemu: pass -usb and usb hubs earlier, so USB disks with static address are handled properly
+
+	qemu: Do not ignore address for USB disks
+
+2012-10-30  Martin Kletzander  <mkletzan@redhat.com>
+
+	esx: Fix connection to ESX 5.1
+	After separating 5.x and 5.1 versions of ESX, we forgot to add 5.1
+	into the list of allowed connections, so connections to 5.1 fail since
+	v1.0.0-rc1-5-g1e7cd39
+
+2012-10-30  Eric Blake  <eblake@redhat.com>
+
+	build: place attributes in correct location
+	Ever since commit eefb881, ATTRIBUTE_NONNULL has normally been a
+	no-op under gcc (since it tends to cause more bugs than it cures
+	given gcc's current lame implementation of the attribute).  However,
+	the macro is still useful to Coverity and other static-analysis
+	tools, but only if we use it correctly.  Coverity follows gcc's lead
+	in accepting function declarations with attributes at the end, but
+	function bodies must attach attributes to the return type.  That is,
+	these are valid:
+
+	void foo(void *arg) ATTRIBUTE_NONNULL(1);
+	void ATTRIBUTE_NONNULL(1) foo(void *arg);
+	void ATTRIBUTE_NONNULL(1) foo(void *arg) {}
+
+	but this is not:
+
+	void foo(void *arg) ATTRIBUTE_NONNULL(1) {}
+
+	even though you don't get a compile failure until you do static
+	analysis.  Bug introduced in commit 80533ca, with these symptoms:
+
+	nodeinfo.c:206: error: expected ',' or ';' before '{' token
+	cc1: warning: unrecognized command line option "-Wno-suggest-attribute=const"
+	cc1: warning: unrecognized command line option "-Wno-suggest-attribute=pure"
+	make[3]: *** [libvirt_driver_la-nodeinfo.lo] Error 1
+
+	* src/nodeinfo.c (virNodeParseNode): Fix syntax error when
+	non-null attribute is in use.
+
+2012-10-30  Eric Blake  <eblake@redhat.com>
+
+	build: fix linking with systemtap probes
+	Commit 34e8f63a3 altered virfile.o to drag in additional symbols,
+	which in turn led to pulling in other .o files and eventually causing
+	a link failure when systemtap probes are enabled, such as:
+
+	./.libs/libvirt_util.a(libvirt_util_la-event_poll.o): In function `virEventPollRunOnce':
+	/home/dummy/libvirt/src/util/event_poll.c:614: undefined reference to `libvirt_event_poll_run_semaphore'
+	./.libs/libvirt_util.a(libvirt_util_la-event_poll.o):(.note.stapsdt+0x24): undefined reference to `libvirt_event_poll_add_handle_semaphore'
+
+	Even though libvirt_iohelper and libvirt_parthelper don't directly
+	use the portion of virfile.o that drags in probing, it was easier
+	to satisfy the linker and get the build back up, than to figure out
+	whether it is even possible or worth trying to disentangle the mess.
+
+	* src/Makefile.am (libvirt_iohelper_LDADD)
+	(libvirt_parthelper_LDADD): Use libvirt_probes.lo when needed.
+
+2012-10-30  Michal Privoznik  <mprivozn@redhat.com>
+
+	qemu: Report errors from iohelper
+	Currently, we use iohelper when saving/restoring a domain.
+	However, if there's some kind of error (like I/O) it is not
+	propagated to libvirt. Since it is not qemu who is doing
+	the actual write() it will not get error. The iohelper does.
+	Therefore we should check for iohelper errors as it makes
+	libvirt more user friendly.
+
+2012-10-29  Peter Krempa  <pkrempa@redhat.com>
+
+	util: Re-format literal strings in virXMLEmitWarning
+	And drop a stray space at the end of the first line of the warning.
+
+2012-10-29  Ján Tomko  <jtomko@redhat.com>
+
+	xml: print uuids in the warning
+	In the XML warning, we print a virsh command line that can be used to
+	edit that XML. This patch prints UUIDs if the entity name contains
+	special characters (like shell metacharacters, or "--" that would break
+	parsing of the XML comment). If the entity doesn't have a UUID, just
+	print the virsh command that can be used to edit it.
+
+2012-10-29  Jiri Denemark  <jdenemar@redhat.com>
+
+	Revert "qemu: Do not require hostuuid in migration cookie"
+	This reverts commit 8d75e47edefdd77b86df1ee9af3cd5001d456f73.
+
+	Libvirt was never released with support for migration cookies without
+	hostuuid.
+
 2012-10-28  Cole Robinson  <crobinso@redhat.com>
 
 	qemu: Fix domxml-to-native network model conversion

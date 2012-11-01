@@ -631,8 +631,8 @@ int	<a href="#virStoragePoolRef">virStoragePoolRef</a>		(<a href="libvirt-libvir
 int	<a href="#virStoragePoolRefresh">virStoragePoolRefresh</a>		(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 unsigned int flags);
 int	<a href="#virStoragePoolSetAutostart">virStoragePoolSetAutostart</a>	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>					 int autostart);
 int	<a href="#virStoragePoolUndefine">virStoragePoolUndefine</a>		(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool);
-<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolCreateXML">virStorageVolCreateXML</a>	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>						 const char * xmldesc, <br/>						 unsigned int flags);
-<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolCreateXMLFrom">virStorageVolCreateXMLFrom</a>	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * xmldesc, <br/>							 <a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> clonevol, <br/>							 unsigned int flags);
+<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolCreateXML">virStorageVolCreateXML</a>	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>						 const char * xmlDesc, <br/>						 unsigned int flags);
+<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	<a href="#virStorageVolCreateXMLFrom">virStorageVolCreateXMLFrom</a>	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * xmlDesc, <br/>							 <a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> clonevol, <br/>							 unsigned int flags);
 int	<a href="#virStorageVolDelete">virStorageVolDelete</a>		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags);
 int	<a href="#virStorageVolDownload">virStorageVolDownload</a>		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 <a href="libvirt-libvirt.html#virStreamPtr">virStreamPtr</a> stream, <br/>					 unsigned long long offset, <br/>					 unsigned long long length, <br/>					 unsigned int flags);
 int	<a href="#virStorageVolFree">virStorageVolFree</a>		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol);
@@ -1085,7 +1085,8 @@ The content of this structure is not made public by the API.
     <a name="VIR_DOMAIN_BLOCK_JOB_COMPLETED">VIR_DOMAIN_BLOCK_JOB_COMPLETED</a> = 0
     <a name="VIR_DOMAIN_BLOCK_JOB_FAILED">VIR_DOMAIN_BLOCK_JOB_FAILED</a> = 1
     <a name="VIR_DOMAIN_BLOCK_JOB_CANCELED">VIR_DOMAIN_BLOCK_JOB_CANCELED</a> = 2
-    <a name="VIR_DOMAIN_BLOCK_JOB_LAST">VIR_DOMAIN_BLOCK_JOB_LAST</a> = 3
+    <a name="VIR_DOMAIN_BLOCK_JOB_READY">VIR_DOMAIN_BLOCK_JOB_READY</a> = 3
+    <a name="VIR_DOMAIN_BLOCK_JOB_LAST">VIR_DOMAIN_BLOCK_JOB_LAST</a> = 4
 };
 </pre><p/>
 </div>
@@ -3323,9 +3324,10 @@ second phase when the job info states cur == end, and remains alive to
 mirror all further changes to both source and destination. The user
 must call virDomainBlockJobAbort() to end the mirroring while choosing
 whether to revert to source or pivot to the destination. An event is
-issued when the job ends, and in the future, an event may be added when
-the job transitions from pulling to mirroring. If the job is aborted,
-a new job will have to start over from the beginning of the first phase.
+issued when the job ends, and depending on the hypervisor, an event may
+also be issued when the job transitions from pulling to mirroring. If
+the job is aborted, a new job will have to start over from the beginning
+of the first phase.
 
 Some hypervisors will restrict certain actions, such as virDomainSave()
 or virDomainDetachDevice(), while a copy job is active; they may
@@ -6146,18 +6148,18 @@ new devices at the OS layer</p>
 </pre><p>Undefine an inactive storage pool</p>
 <div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>0 on success, -1 on failure</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virStorageVolCreateXML"/>virStorageVolCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolCreateXML	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>						 const char * xmldesc, <br/>						 unsigned int flags)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolCreateXML"/>virStorageVolCreateXML ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolCreateXML	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>						 const char * xmlDesc, <br/>						 unsigned int flags)<br/>
 </pre><p>Create a storage volume within a pool based
 on an XML description. Not all pools support
 creation of volumes</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>xmldesc</tt></i>:</span></td><td>description of volume to create</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the storage volume, or NULL on error</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to storage pool</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>description of volume to create</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the storage volume, or NULL on error</td></tr></tbody></table></div></div>
         <hr/>
-        <div class="refsect2" lang="en"><h3><a name="virStorageVolCreateXMLFrom"/>virStorageVolCreateXMLFrom ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolCreateXMLFrom	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * xmldesc, <br/>							 <a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> clonevol, <br/>							 unsigned int flags)<br/>
+        <div class="refsect2" lang="en"><h3><a name="virStorageVolCreateXMLFrom"/>virStorageVolCreateXMLFrom ()</h3><pre class="programlisting"><a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a>	virStorageVolCreateXMLFrom	(<a href="libvirt-libvirt.html#virStoragePoolPtr">virStoragePoolPtr</a> pool, <br/>							 const char * xmlDesc, <br/>							 <a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> clonevol, <br/>							 unsigned int flags)<br/>
 </pre><p>Create a storage volume in the parent pool, using the
 'clonevol' volume as input. Information for the new
 volume (name, perms) are passed via a typical volume
 XML description.</p>
-<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to parent pool for the new volume</td></tr><tr><td><span class="term"><i><tt>xmldesc</tt></i>:</span></td><td>description of volume to create</td></tr><tr><td><span class="term"><i><tt>clonevol</tt></i>:</span></td><td>storage volume to use as input</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the storage volume, or NULL on error</td></tr></tbody></table></div></div>
+<div class="variablelist"><table border="0"><col align="left"/><tbody><tr><td><span class="term"><i><tt>pool</tt></i>:</span></td><td>pointer to parent pool for the new volume</td></tr><tr><td><span class="term"><i><tt>xmlDesc</tt></i>:</span></td><td>description of volume to create</td></tr><tr><td><span class="term"><i><tt>clonevol</tt></i>:</span></td><td>storage volume to use as input</td></tr><tr><td><span class="term"><i><tt>flags</tt></i>:</span></td><td>extra flags; not used yet, so callers should always pass 0</td></tr><tr><td><span class="term"><i><tt>Returns</tt></i>:</span></td><td>the storage volume, or NULL on error</td></tr></tbody></table></div></div>
         <hr/>
         <div class="refsect2" lang="en"><h3><a name="virStorageVolDelete"/>virStorageVolDelete ()</h3><pre class="programlisting">int	virStorageVolDelete		(<a href="libvirt-libvirt.html#virStorageVolPtr">virStorageVolPtr</a> vol, <br/>					 unsigned int flags)<br/>
 </pre><p>Delete the storage volume from the pool</p>

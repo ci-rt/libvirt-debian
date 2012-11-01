@@ -1335,6 +1335,7 @@ virDomainListSnapshots;
 virFileLoopDeviceAssociate;
 virFileClose;
 virFileDirectFdFlag;
+virFileWrapperFdCatchError;
 virFileWrapperFdClose;
 virFileWrapperFdFree;
 virFileWrapperFdNew;
@@ -1819,6 +1820,7 @@ virURIParse;
 # xml.h
 virXMLChildElementCount;
 virXMLParseHelper;
+virXMLPickShellSafeComment;
 virXMLPropString;
 virXMLSaveFile;
 virXPathBoolean;
