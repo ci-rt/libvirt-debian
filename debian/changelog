@@ -1,3 +1,9 @@
+libvirt (1.0.0-1) experimental; urgency=low
+
+  * [f5c8dae] New upstream version 1.0.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 06 Nov 2012 20:59:48 +0100
+
 libvirt (1.0.0~rc3-1) experimental; urgency=low
 
   * [d3d06ad] New upstream version 1.0.0~rc3
