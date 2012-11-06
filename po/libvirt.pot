@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt 1.0.0\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2012-10-31 15:47+0800\n"
+"POT-Creation-Date: 2012-11-02 11:58+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -127,7 +127,7 @@ msgid ""
 "      $XDG_CONFIG_HOME/libvirt/libvirtd.conf\n"
 "\n"
 "    Sockets:\n"
-"      $XDG_RUNTIME_DIR/libvirt/libvirt-sock (in UNIX abstract namespace)\n"
+"      $XDG_RUNTIME_DIR/libvirt/libvirt-sock\n"
 "\n"
 "    TLS:\n"
 "      CA certificate:     $HOME/.pki/libvirt/cacert.pem\n"
@@ -142,7 +142,7 @@ msgstr ""
 #: daemon/libvirtd.c:992 daemon/libvirtd.c:1006
 #: src/locking/sanlock_helper.c:76 src/lxc/lxc_controller.c:1489
 #: src/security/virt-aa-helper.c:1185 src/storage/parthelper.c:75
-#: src/util/iohelper.c:228 src/util/iohelper.c:234
+#: src/util/iohelper.c:234 src/util/iohelper.c:240
 #, c-format
 msgid "%s: initialization failed\n"
 msgstr ""
@@ -6105,7 +6105,7 @@ msgstr ""
 msgid "cannot read from stream"
 msgstr ""
 
-#: src/fdstream.c:490 src/qemu/qemu_capabilities.c:2440
+#: src/fdstream.c:490 src/qemu/qemu_capabilities.c:2476
 #: src/rpc/virnetsocket.c:165 src/util/event_poll.c:666
 #: src/util/virnodesuspend.c:66
 msgid "Unable to initialize mutex"
@@ -7422,39 +7422,39 @@ msgstr ""
 msgid "Failed to make root readonly"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1725
+#: src/lxc/lxc_container.c:1726
 #, c-format
 msgid "Failed to remove capabilities: %d"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1731
+#: src/lxc/lxc_container.c:1732
 #, c-format
 msgid "Failed to apply capabilities: %d"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1773
+#: src/lxc/lxc_container.c:1774
 msgid "lxcChild() passed invalid vm definition"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1809
+#: src/lxc/lxc_container.c:1810
 #, c-format
 msgid "Failed to open tty %s"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1821
+#: src/lxc/lxc_container.c:1822
 #, c-format
 msgid "cannot find init path '%s' relative to container root"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1829
+#: src/lxc/lxc_container.c:1830
 msgid "Failed to read the container continue message"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1848
+#: src/lxc/lxc_container.c:1849
 msgid "failed to send continue signal to controller"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1964
+#: src/lxc/lxc_container.c:1965
 msgid "Failed to run clone container"
 msgstr ""
 
@@ -7759,7 +7759,7 @@ msgstr ""
 #: src/qemu/qemu_driver.c:3187 src/qemu/qemu_driver.c:3350
 #: src/qemu/qemu_driver.c:3825 src/qemu/qemu_driver.c:3937
 #: src/qemu/qemu_driver.c:4121 src/qemu/qemu_driver.c:4211
-#: src/qemu/qemu_driver.c:4370 src/qemu/qemu_driver.c:4441
+#: src/qemu/qemu_driver.c:4369 src/qemu/qemu_driver.c:4441
 #: src/qemu/qemu_driver.c:4542 src/qemu/qemu_driver.c:4583
 #: src/qemu/qemu_driver.c:4641 src/qemu/qemu_driver.c:5251
 #: src/qemu/qemu_driver.c:5589 src/qemu/qemu_driver.c:5747
@@ -9202,7 +9202,7 @@ msgstr ""
 msgid "node CPU stats not implemented on this platform"
 msgstr ""
 
-#: src/nodeinfo.c:910 src/nodeinfo.c:1385 src/nodeinfo.c:1423
+#: src/nodeinfo.c:910 src/nodeinfo.c:1388 src/nodeinfo.c:1426
 msgid "NUMA not supported on this host"
 msgstr ""
 
@@ -9236,21 +9236,21 @@ msgstr ""
 msgid "node get memory parameters not implemented on this platform"
 msgstr ""
 
-#: src/nodeinfo.c:1391
+#: src/nodeinfo.c:1394
 #, c-format
 msgid "start cell %d out of range (0-%d)"
 msgstr ""
 
-#: src/nodeinfo.c:1403
+#: src/nodeinfo.c:1406
 #, c-format
 msgid "Failed to query NUMA free memory for node: %d"
 msgstr ""
 
-#: src/nodeinfo.c:1431
+#: src/nodeinfo.c:1434
 msgid "Failed to query NUMA free memory"
 msgstr ""
 
-#: src/nodeinfo.c:1452 src/nodeinfo.c:1459
+#: src/nodeinfo.c:1455 src/nodeinfo.c:1462
 msgid "NUMA memory information not available on this platform"
 msgstr ""
 
@@ -10612,17 +10612,17 @@ msgstr ""
 msgid "Cannot find suitable emulator for %s"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2348
+#: src/qemu/qemu_capabilities.c:2384
 #, c-format
 msgid "Failed to kill process %lld: %s"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2373
+#: src/qemu/qemu_capabilities.c:2409
 #, c-format
 msgid "Cannot check QEMU binary %s"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2384
+#: src/qemu/qemu_capabilities.c:2420
 #, c-format
 msgid "QEMU binary %s is not executable"
 msgstr ""
@@ -12218,7 +12218,7 @@ msgstr ""
 #: src/qemu/qemu_driver.c:3489 src/qemu/qemu_driver.c:9235
 #: src/vbox/vbox_tmpl.c:9161
 #, c-format
-msgid "mkstemp(\"%s\") failed"
+msgid "mkostemp(\"%s\") failed"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:3510 src/vbox/vbox_tmpl.c:9215
@@ -12612,7 +12612,7 @@ msgstr ""
 
 #: src/qemu/qemu_driver.c:9360 src/storage/storage_backend.c:1022
 #: src/storage/storage_backend.c:1050 src/storage/storage_backend.c:1170
-#: src/util/storage_file.c:786 src/util/storage_file.c:885
+#: src/util/storage_file.c:799 src/util/storage_file.c:898
 #, c-format
 msgid "cannot stat file '%s'"
 msgstr ""
@@ -13730,8 +13730,8 @@ msgstr ""
 #: src/qemu/qemu_monitor.c:3105 src/qemu/qemu_monitor.c:3129
 #: src/qemu/qemu_monitor.c:3150 src/qemu/qemu_monitor.c:3180
 #: src/qemu/qemu_monitor.c:3202 src/qemu/qemu_monitor.c:3224
-#: src/qemu/qemu_monitor.c:3246 src/qemu/qemu_monitor.c:3269
-#: src/qemu/qemu_monitor.c:3290
+#: src/qemu/qemu_monitor.c:3247 src/qemu/qemu_monitor.c:3269
+#: src/qemu/qemu_monitor.c:3292 src/qemu/qemu_monitor.c:3313
 msgid "monitor must not be NULL"
 msgstr ""
 
@@ -13761,8 +13761,9 @@ msgstr ""
 #: src/qemu/qemu_monitor.c:1857 src/qemu/qemu_monitor.c:3111
 #: src/qemu/qemu_monitor.c:3135 src/qemu/qemu_monitor.c:3156
 #: src/qemu/qemu_monitor.c:3186 src/qemu/qemu_monitor.c:3208
-#: src/qemu/qemu_monitor.c:3230 src/qemu/qemu_monitor.c:3252
-#: src/qemu/qemu_monitor.c:3275 src/qemu/qemu_monitor.c:3296
+#: src/qemu/qemu_monitor.c:3230 src/qemu/qemu_monitor.c:3253
+#: src/qemu/qemu_monitor.c:3275 src/qemu/qemu_monitor.c:3298
+#: src/qemu/qemu_monitor.c:3319
 msgid "JSON monitor is required"
 msgstr ""
 
@@ -14105,8 +14106,8 @@ msgstr ""
 msgid "only modern block pull supports speed: %llu"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3641 src/qemu/qemu_monitor_json.c:3805
-#: src/qemu/qemu_monitor_json.c:3838
+#: src/qemu/qemu_monitor_json.c:3641 src/qemu/qemu_monitor_json.c:3802
+#: src/qemu/qemu_monitor_json.c:3835
 #, c-format
 msgid "No active operation on device: %s"
 msgstr ""
@@ -14116,20 +14117,20 @@ msgstr ""
 msgid "Device %s in use"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3648 src/qemu/qemu_monitor_json.c:3808
-#: src/qemu/qemu_monitor_json.c:3841
+#: src/qemu/qemu_monitor_json.c:3648 src/qemu/qemu_monitor_json.c:3805
+#: src/qemu/qemu_monitor_json.c:3838
 #, c-format
 msgid "Operation is not supported for device: %s"
 msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:3652 src/qemu/qemu_monitor_text.c:3172
-#: src/qemu/qemu_monitor_text.c:3274
+#: src/qemu/qemu_monitor_text.c:3271
 #, c-format
 msgid "Command '%s' is not found"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3655 src/qemu/qemu_monitor_json.c:3811
-#: src/qemu/qemu_monitor_json.c:3844
+#: src/qemu/qemu_monitor_json.c:3655 src/qemu/qemu_monitor_json.c:3808
+#: src/qemu/qemu_monitor_json.c:3841
 msgid "Unexpected error"
 msgstr ""
 
@@ -14146,124 +14147,132 @@ msgstr ""
 msgid "block_io_throttle device entry was not in expected format"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3752
+#: src/qemu/qemu_monitor_json.c:3749
 msgid "block_io_throttle inserted entry was not in expected format"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3769
+#: src/qemu/qemu_monitor_json.c:3766
 #, c-format
 msgid "cannot find throttling info for device '%s'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3908
+#: src/qemu/qemu_monitor_json.c:3905
 msgid "query-version reply was missing 'return' data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3914
+#: src/qemu/qemu_monitor_json.c:3911
 msgid "query-version reply was missing 'qemu' data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3920
+#: src/qemu/qemu_monitor_json.c:3917
 msgid "query-version reply was missing 'major' version"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3925
+#: src/qemu/qemu_monitor_json.c:3922
 msgid "query-version reply was missing 'minor' version"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3930
+#: src/qemu/qemu_monitor_json.c:3927
 msgid "query-version reply was missing 'micro' version"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3938
+#: src/qemu/qemu_monitor_json.c:3935
 msgid "query-version reply was missing 'package' version"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3984
+#: src/qemu/qemu_monitor_json.c:3981
 msgid "query-machines reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3990
+#: src/qemu/qemu_monitor_json.c:3987
 msgid "query-machines reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4013
+#: src/qemu/qemu_monitor_json.c:4010
 msgid "query-machines reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4025
+#: src/qemu/qemu_monitor_json.c:4022
 msgid "query-machines reply has malformed 'is-default' data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4032
+#: src/qemu/qemu_monitor_json.c:4029
 msgid "query-machines reply has malformed 'alias' data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4097
+#: src/qemu/qemu_monitor_json.c:4094
 msgid "query-cpu-definitions reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4103
+#: src/qemu/qemu_monitor_json.c:4100
 msgid "query-cpu-definitions reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4118
+#: src/qemu/qemu_monitor_json.c:4115
 msgid "query-cpu-definitions reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4171
+#: src/qemu/qemu_monitor_json.c:4168
 msgid "query-commands reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4177
+#: src/qemu/qemu_monitor_json.c:4174
 msgid "query-commands reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4192
+#: src/qemu/qemu_monitor_json.c:4189
 msgid "query-commands reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4250
+#: src/qemu/qemu_monitor_json.c:4247
 msgid "query-events reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4256
+#: src/qemu/qemu_monitor_json.c:4253
 msgid "query-events reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4271
+#: src/qemu/qemu_monitor_json.c:4268
 msgid "query-events reply data was missing 'name'"
 msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:4324
+msgid "query-kvm reply was missing return data"
+msgstr ""
+
+#: src/qemu/qemu_monitor_json.c:4331
+msgid "query-kvm replied unexpected data"
+msgstr ""
+
+#: src/qemu/qemu_monitor_json.c:4372
 msgid "qom-list-types reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4330
+#: src/qemu/qemu_monitor_json.c:4378
 msgid "qom-list-types reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4345
+#: src/qemu/qemu_monitor_json.c:4393
 msgid "qom-list-types reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4406
+#: src/qemu/qemu_monitor_json.c:4454
 msgid "device-list-properties reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4412
+#: src/qemu/qemu_monitor_json.c:4460
 msgid "device-list-properties reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4427
+#: src/qemu/qemu_monitor_json.c:4475
 msgid "device-list-properties reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4475
+#: src/qemu/qemu_monitor_json.c:4523
 msgid "query-target reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4481
+#: src/qemu/qemu_monitor_json.c:4529
 msgid "query-target reply was missing arch data"
 msgstr ""
 
@@ -14492,7 +14501,7 @@ msgstr ""
 msgid "failed to send key '%s'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_text.c:3255
+#: src/qemu/qemu_monitor_text.c:3252
 #, c-format
 msgid "No info for device '%s'"
 msgstr ""
@@ -16187,7 +16196,7 @@ msgstr ""
 
 #: src/secret/secret_driver.c:176
 #, c-format
-msgid "mkstemp('%s') failed"
+msgid "mkostemp('%s') failed"
 msgstr ""
 
 #: src/secret/secret_driver.c:180
@@ -18540,59 +18549,64 @@ msgstr ""
 msgid "Unable to truncate %s"
 msgstr ""
 
-#: src/util/iohelper.c:187
+#: src/util/iohelper.c:184
+#, c-format
+msgid "unable to fsync %s"
+msgstr ""
+
+#: src/util/iohelper.c:193
 #, c-format
 msgid "Unable to close %s"
 msgstr ""
 
-#: src/util/iohelper.c:201
+#: src/util/iohelper.c:207
 #, c-format
 msgid "%s: try --help for more details"
 msgstr ""
 
-#: src/util/iohelper.c:203
+#: src/util/iohelper.c:209
 #, c-format
 msgid ""
 "Usage: %s FILENAME OFLAGS MODE OFFSET LENGTH DELETE\n"
 "   or: %s FILENAME LENGTH FD\n"
 msgstr ""
 
-#: src/util/iohelper.c:245
+#: src/util/iohelper.c:251
 #, c-format
 msgid "%s: malformed file flags %s"
 msgstr ""
 
-#: src/util/iohelper.c:250
+#: src/util/iohelper.c:256
 #, c-format
 msgid "%s: malformed file mode %s"
 msgstr ""
 
-#: src/util/iohelper.c:255
+#: src/util/iohelper.c:261
 #, c-format
 msgid "%s: malformed file offset %s"
 msgstr ""
 
-#: src/util/iohelper.c:260
+#: src/util/iohelper.c:266
 #, c-format
 msgid "%s: malformed delete flag %s"
 msgstr ""
 
-#: src/util/iohelper.c:268
+#: src/util/iohelper.c:274
 #, c-format
 msgid "%s: malformed fd %s"
 msgstr ""
 
-#: src/util/iohelper.c:282
+#: src/util/iohelper.c:288
 #, c-format
 msgid "%s: unable to determine access mode of fd %d"
 msgstr ""
 
-#: src/util/iohelper.c:291
+#: src/util/iohelper.c:297
 #, c-format
 msgid "%s: malformed file length %s"
 msgstr ""
 
-#: src/util/iohelper.c:309
+#: src/util/iohelper.c:315
 #, c-format
 msgid "%s: unknown failure with %s\n"
 msgstr ""
@@ -18801,67 +18815,77 @@ msgstr ""
 msgid "/proc/net/dev: Interface not found"
 msgstr ""
 
-#: src/util/storage_file.c:802
+#: src/util/storage_file.c:542 src/util/storage_file.c:560
+#, c-format
+msgid "Can't canonicalize path '%s'"
+msgstr ""
+
+#: src/util/storage_file.c:550
+#, c-format
+msgid "Directory name too long: '%s'"
+msgstr ""
+
+#: src/util/storage_file.c:815
 #, c-format
 msgid "cannot set to start of '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:807 src/util/storage_file.c:905
+#: src/util/storage_file.c:820 src/util/storage_file.c:918
 #, c-format
 msgid "cannot read header '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:838 src/util/storage_file.c:949
+#: src/util/storage_file.c:851 src/util/storage_file.c:962
 #, c-format
 msgid "cannot open file '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:895
+#: src/util/storage_file.c:908
 #, c-format
 msgid "cannot seek to start of '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:914
+#: src/util/storage_file.c:927
 #, c-format
 msgid "unknown storage file format %d"
 msgstr ""
 
-#: src/util/storage_file.c:941
+#: src/util/storage_file.c:954
 #, c-format
 msgid "backing store for %s is self-referential"
 msgstr ""
 
-#: src/util/storage_file.c:1044
+#: src/util/storage_file.c:1057
 #, c-format
 msgid "Unable to open '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:1049
+#: src/util/storage_file.c:1062
 #, c-format
 msgid "Failed to truncate file '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:1054
+#: src/util/storage_file.c:1067
 #, c-format
 msgid "Unable to save '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:1105
+#: src/util/storage_file.c:1118
 #, c-format
 msgid "Invalid relative path '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:1123
+#: src/util/storage_file.c:1136
 #, c-format
 msgid "cannot determine filesystem for '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:1223
+#: src/util/storage_file.c:1236
 #, c-format
 msgid "Unable to get LVM key for %s"
 msgstr ""
 
-#: src/util/storage_file.c:1261
+#: src/util/storage_file.c:1274
 #, c-format
 msgid "Unable to get SCSI key for %s"
 msgstr ""
@@ -19979,7 +20003,7 @@ msgstr ""
 
 #: src/util/virprocess.c:286
 #, c-format
-msgid "Failed to terminate process %d with SIG%s"
+msgid "Failed to terminate process %lld with SIG%s"
 msgstr ""
 
 #: src/util/virrandom.c:159
@@ -23148,7 +23172,7 @@ msgstr ""
 
 #: tools/virsh.c:570
 #, c-format
-msgid "mkstemps: failed to create temporary file: %s"
+msgid "mkostemps: failed to create temporary file: %s"
 msgstr ""
 
 #: tools/virsh.c:577
@@ -24306,7 +24330,7 @@ msgstr ""
 #: tools/virsh-domain.c:5979 tools/virsh-domain.c:6067
 #: tools/virsh-domain.c:6264 tools/virsh-domain.c:7555
 #: tools/virsh-domain.c:7616 tools/virsh-domain.c:7684
-#: tools/virsh-domain.c:8044 tools/virsh-network.c:758
+#: tools/virsh-domain.c:8044
 msgid "affect next boot"
 msgstr ""
 
@@ -24556,7 +24580,6 @@ msgstr ""
 #: tools/virsh-domain.c:4858 tools/virsh-domain.c:5042
 #: tools/virsh-domain.c:5901 tools/virsh-domain.c:5980
 #: tools/virsh-domain.c:6068 tools/virsh-domain.c:6265
-#: tools/virsh-network.c:759
 msgid "affect running domain"
 msgstr ""
 
@@ -24565,7 +24588,6 @@ msgstr ""
 #: tools/virsh-domain.c:4859 tools/virsh-domain.c:5043
 #: tools/virsh-domain.c:5902 tools/virsh-domain.c:5981
 #: tools/virsh-domain.c:6069 tools/virsh-domain.c:6266
-#: tools/virsh-network.c:760
 msgid "affect current domain"
 msgstr ""
 
@@ -28025,6 +28047,18 @@ msgstr ""
 
 #: tools/virsh-network.c:757
 msgid "which parent object to search through"
+msgstr ""
+
+#: tools/virsh-network.c:758
+msgid "affect next network startup"
+msgstr ""
+
+#: tools/virsh-network.c:759
+msgid "affect running network"
+msgstr ""
+
+#: tools/virsh-network.c:760
+msgid "affect current state of network"
 msgstr ""
 
 #: tools/virsh-network.c:795

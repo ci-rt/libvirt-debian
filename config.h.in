@@ -148,8 +148,12 @@
 #undef GNULIB_MALLOC_GNU
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
-   whether the gnulib module mkstemps shall be considered present. */
-#undef GNULIB_MKSTEMPS
+   whether the gnulib module mkostemp shall be considered present. */
+#undef GNULIB_MKOSTEMP
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module mkostemps shall be considered present. */
+#undef GNULIB_MKOSTEMPS
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module nonblocking shall be considered present. */
@@ -329,11 +333,11 @@
 /* Define to 1 when the gnulib module memchr should be tested. */
 #undef GNULIB_TEST_MEMCHR
 
-/* Define to 1 when the gnulib module mkstemp should be tested. */
-#undef GNULIB_TEST_MKSTEMP
+/* Define to 1 when the gnulib module mkostemp should be tested. */
+#undef GNULIB_TEST_MKOSTEMP
 
-/* Define to 1 when the gnulib module mkstemps should be tested. */
-#undef GNULIB_TEST_MKSTEMPS
+/* Define to 1 when the gnulib module mkostemps should be tested. */
+#undef GNULIB_TEST_MKOSTEMPS
 
 /* Define to 1 when the gnulib module mktime should be tested. */
 #undef GNULIB_TEST_MKTIME
@@ -1171,11 +1175,11 @@
 /* Define to 1 if you have the 'mempcpy' function. */
 #undef HAVE_MEMPCPY
 
-/* Define to 1 if you have the 'mkstemp' function. */
-#undef HAVE_MKSTEMP
+/* Define to 1 if you have the 'mkostemp' function. */
+#undef HAVE_MKOSTEMP
 
-/* Define to 1 if you have the 'mkstemps' function. */
-#undef HAVE_MKSTEMPS
+/* Define to 1 if you have the 'mkostemps' function. */
+#undef HAVE_MKOSTEMPS
 
 /* Define to 1 if you have the 'mmap' function. */
 #undef HAVE_MMAP

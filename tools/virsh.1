@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "VIRSH 1"
-.TH VIRSH 1 "2012-10-29" "libvirt-1.0.0" "Virtualization Support"
+.TH VIRSH 1 "2012-11-02" "libvirt-1.0.0" "Virtualization Support"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -1958,9 +1958,9 @@ the network; if a parent-index isn't provided, the \*(L"most appropriate\*(R"
 <dhcp> element), but if \fI\-\-parent\-index\fR is given, that particular
 instance of <ip> will get the modification.
 .Sp
-If \fI\-\-live\fR is specified, affect a running guest.
-If \fI\-\-config\fR is specified, affect the next boot of a persistent guest.
-If \fI\-\-current\fR is specified, affect the current guest state.
+If \fI\-\-live\fR is specified, affect a running network.
+If \fI\-\-config\fR is specified, affect the next startup of a persistent network.
+If \fI\-\-current\fR is specified, affect the current network state.
 Both \fI\-\-live\fR and \fI\-\-config\fR flags may be given, but \fI\-\-current\fR is
 exclusive. Not specifying any flag is the same as specifying \fI\-\-current\fR.
 .SH "INTERFACE COMMANDS"

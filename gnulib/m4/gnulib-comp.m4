@@ -248,8 +248,8 @@ AC_DEFUN([gl_EARLY],
   # Code from module memchr:
   # Code from module memchr-tests:
   # Code from module mgetgroups:
-  # Code from module mkstemp:
-  # Code from module mkstemps:
+  # Code from module mkostemp:
+  # Code from module mkostemps:
   # Code from module mktempd:
   # Code from module mktime:
   # Code from module mktime-internal:
@@ -838,18 +838,19 @@ AC_SUBST([LTALLOCA])
     gl_PREREQ_MEMCHR
   fi
   gl_STRING_MODULE_INDICATOR([memchr])
-  gl_FUNC_MKSTEMP
-  if test $HAVE_MKSTEMP = 0 || test $REPLACE_MKSTEMP = 1; then
-    AC_LIBOBJ([mkstemp])
-    gl_PREREQ_MKSTEMP
+  gl_FUNC_MKOSTEMP
+  if test $HAVE_MKOSTEMP = 0; then
+    AC_LIBOBJ([mkostemp])
+    gl_PREREQ_MKOSTEMP
   fi
-  gl_STDLIB_MODULE_INDICATOR([mkstemp])
-  gl_FUNC_MKSTEMPS
-  if test $HAVE_MKSTEMPS = 0; then
-    AC_LIBOBJ([mkstemps])
+  gl_MODULE_INDICATOR([mkostemp])
+  gl_STDLIB_MODULE_INDICATOR([mkostemp])
+  gl_FUNC_MKOSTEMPS
+  if test $HAVE_MKOSTEMPS = 0; then
+    AC_LIBOBJ([mkostemps])
   fi
-  gl_MODULE_INDICATOR([mkstemps])
-  gl_STDLIB_MODULE_INDICATOR([mkstemps])
+  gl_MODULE_INDICATOR([mkostemps])
+  gl_STDLIB_MODULE_INDICATOR([mkostemps])
   gl_FUNC_MKTIME
   if test $REPLACE_MKTIME = 1; then
     AC_LIBOBJ([mktime])
@@ -1756,8 +1757,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/md5.h
   lib/memchr.c
   lib/memchr.valgrind
-  lib/mkstemp.c
-  lib/mkstemps.c
+  lib/mkostemp.c
+  lib/mkostemps.c
   lib/mktime-internal.h
   lib/mktime.c
   lib/msvc-inval.c
@@ -1997,8 +1998,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/md5.m4
   m4/memchr.m4
   m4/mgetgroups.m4
-  m4/mkstemp.m4
-  m4/mkstemps.m4
+  m4/mkostemp.m4
+  m4/mkostemps.m4
   m4/mktime.m4
   m4/mmap-anon.m4
   m4/mode_t.m4

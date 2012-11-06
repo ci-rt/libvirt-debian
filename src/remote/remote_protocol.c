@@ -5536,7 +5536,9 @@ bool_t
 xdr_remote_node_get_cpu_map_args (XDR *xdrs, remote_node_get_cpu_map_args *objp)
 {
 
-         if (!xdr_int (xdrs, &objp->need_results))
+         if (!xdr_int (xdrs, &objp->need_map))
+                 return FALSE;
+         if (!xdr_int (xdrs, &objp->need_online))
                  return FALSE;
          if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;

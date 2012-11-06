@@ -3143,7 +3143,8 @@ struct remote_node_get_memory_parameters_ret {
 typedef struct remote_node_get_memory_parameters_ret remote_node_get_memory_parameters_ret;
 
 struct remote_node_get_cpu_map_args {
-        int need_results;
+        int need_map;
+        int need_online;
         u_int flags;
 };
 typedef struct remote_node_get_cpu_map_args remote_node_get_cpu_map_args;
