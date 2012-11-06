@@ -1,3 +1,184 @@
+2012-11-02  Eric Blake  <eblake@redhat.com>
+
+	cpumap: optimize for clients that don't need online count
+	It turns out that calling virNodeGetCPUMap(conn, NULL, NULL, 0)
+	is both useful, and with Viktor's patches, common enough to
+	optimize.  Since this interface hasn't been released yet, we
+	can change the RPC call.
+
+	A bit more background on the optimization - learning the cpu count
+	is a single file read (/sys/devices/system/cpu/possible), but
+	learning the number of online cpus can possibly trigger a file
+	read per cpu, depending on the age of the kernel, and all wasted
+	if the caller passed NULL for both arguments.
+
+	* src/nodeinfo.c (nodeGetCPUMap): Avoid bitmap when not needed.
+	* src/remote/remote_protocol.x (remote_node_get_cpu_map_args):
+	Supply two separate flags for needed arguments.
+	* src/remote/remote_driver.c (remoteNodeGetCPUMap): Update
+	caller.
+	* daemon/remote.c (remoteDispatchNodeGetCPUMap): Likewise.
+	* src/remote_protocol-structs: Regenerate.
+
+2012-11-02  Doug Goldstein  <cardoe@cardoe.com>
+
+	qemu: QMP capabilities support starts with 1.2
+	Per the code comment in qemuCapsInitQMPBasic() and commit 43e23c7, we
+	should only use QMP for capabilities probing starting with 1.2 and
+	newer.  The old code had dead logic that probed on 1.0 and newer.
+
+2012-11-02  Dan Walsh  <dwalsh@redhat.com>
+
+	Linux Containers are not allowed to create device nodes.
+	This needs to be done before the container starts. Turning
+	off the mknod capability is noticed by systemd, which will
+	no longer attempt to create device nodes.
+
+	This eliminates SELinux AVC messages and ugly failure messages in the journal.
+
+2012-11-02  Stefan Hajnoczi  <stefanha@redhat.com>
+
+	qemu: Fix name comparison in qemuMonitorJSONBlockIoThrottleInfo()
+	The string comparison logic was inverted and matched the first drive
+	that does *not* have the name we search for.
+
+2012-11-02  Stefan Hajnoczi  <stefanha@redhat.com>
+
+	qemu: Keep QEMU host drive prefix in BlkIoTune
+	The QEMU -drive id= begins with libvirt's QEMU host drive prefix
+	("drive-"), which is stripped off in several places two convert between
+	host ("-drive") and guest ("-device") device names.
+
+	In the case of BlkIoTune it is unnecessary to strip the QEMU host drive
+	prefix because we operate on "info block"/"query-block" output that uses
+	host drive names.
+
+	Stripping the prefix incorrectly caused string comparisons to fail since
+	we were comparing the guest device name against the host device name.
+
+2012-11-01  Michal Privoznik  <mprivozn@redhat.com>
+
+	net-update docs: s/domain/network/
+	A leftover from copy paste.
+
+	iohelper: fdatasync() at the end
+	Currently, when we are doing (managed) save, we insert the
+	iohelper between the qemu and OS. The pipe is created, the
+	writing end is passed to qemu and the reading end to the
+	iohelper. It reads data and write them into given file. However,
+	with write() being asynchronous data may still be in OS
+	caches and hence in some (corner) cases, all migration data
+	may have been read and written (not physically though). So
+	qemu will report success, as well as iohelper. However, with
+	some non local filesystems, where ENOSPACE is polled every X
+	time units, we may get into situation where all operations
+	succeeded but data hasn't reached the disk. And in fact will
+	never do. Therefore we ought sync caches to make sure data
+	has reached the block device on remote host.
+
+2012-11-01  Richard W.M. Jones  <rjones@redhat.com>
+
+	daemon: Make the default PolicyKit policy auth_admin_keep.
+
+2012-11-01  Peter Krempa  <pkrempa@redhat.com>
+
+	conf: Fix private symbols exported by files in conf
+	Some of the functions were moved to other files but the private symbol
+	file wasn't tweaked to reflect that.
+
+2012-11-01  Daniel P. Berrange  <berrange@redhat.com>
+
+	Fix arch detection for qemu-system-i386 with QMP
+	QEMU uses 'i386' for its 32-bit x86 architecture, but libvirt
+	wants that to be 'i686', so we must fix it up
+
+	Don't assume pid_t is the same size as an int
+	virPidFileReadPathIfAlive passed in an 'int *' where a 'pid_t *'
+	was expected, which breaks on Mingw64 targets. Also a few places
+	were using '%d' for formatting pid_t, change them to '%lld' and
+	force a cast to the longer type as done elsewhere in the same
+	file.
+
+2012-11-01  Viktor Mihajlovski  <mihajlov@linux.vnet.ibm.com>
+
+	build: Fix RPM build for non-x86 platforms
+	Make the post install script for the lock-sanlock package optional
+	to prevent break on non-x86 platforms.
+
+2012-11-01  Eric Blake  <eblake@redhat.com>
+
+	docs: libvirtd no longer uses abstract namespace
+	Commit 905be03d2 quit using the abstract namespace, but didn't
+	update the --help text to match.
+
+	* daemon/libvirtd.c (daemonUsage): Correct socket listing.
+
+2012-11-01  Eric Blake  <eblake@redhat.com>
+
+	build: prefer mkostemp for multi-thread safety
+	https://bugzilla.redhat.com/show_bug.cgi?id=871756
+
+	Commit cd1e8d1 assumed that systems new enough to have journald
+	also have mkostemp; but this is not true for uclibc.
+
+	For that matter, use of mkstemp[s] is unsafe in a multi-threaded
+	program.  We should prefer mkostemp[s] in the first place.
+
+	* bootstrap.conf (gnulib_modules): Add mkostemp, mkostemps; drop
+	mkstemp and mkstemps.
+	* cfg.mk (sc_prohibit_mkstemp): New syntax check.
+	* tools/virsh.c (vshEditWriteToTempFile): Adjust caller.
+	* src/qemu/qemu_driver.c (qemuDomainScreenshot)
+	(qemudDomainMemoryPeek): Likewise.
+	* src/secret/secret_driver.c (replaceFile): Likewise.
+	* src/vbox/vbox_tmpl.c (vboxDomainScreenshot): Likewise.
+
+2012-10-31  Michal Privoznik  <mprivozn@redhat.com>
+
+	gitignore: Ignore 'tags'
+
+2012-10-31  Martin Kletzander  <mkletzan@redhat.com>
+
+	qemu: Fix EmulatorPinInfo without emulatorpin
+	https://bugzilla.redhat.com/show_bug.cgi?id=871312
+
+	Recent fixes made almost all the right steps to make emulator pinned
+	to the cpuset of the whole domain in case <emulatorpin> isn't
+	specified, but qemudDomainGetEmulatorPinInfo still reports all the
+	CPUs even when cpuset is specified.  This patch fixes that.
+
+2012-10-31  Peter Krempa  <pkrempa@redhat.com>
+
+	util: Improve error reporting from absolutePathFromBaseFile helper
+	There are multiple reasons canonicalize_file_name() used in
+	absolutePathFromBaseFile helper can fail. This patch enhances error
+	reporting from that helper.
+
+2012-10-31  Martin Kletzander  <mkletzan@redhat.com>
+
+	Make non-KVM machines work with QMP probing
+	When there is no 'qemu-kvm' binary and the emulator used for a machine
+	is, for example, 'qemu-system-x86_64' that, by default, runs without
+	kvm enabled, libvirt still supplies '-no-kvm' option to this process,
+	even though it does not recognize such option (making the start of a
+	domain fail in that case).
+
+	This patch fixes building a command-line for QEMU machines without KVM
+	acceleration and is based on following assumptions:
+
+	 - QEMU_CAPS_KVM flag means that QEMU is running KVM accelerated
+	   machines by default (without explicitly requesting that using a
+	   command-line option).  It is the closest to the truth according to
+	   the code with the only exception being the comment next to the
+	   flag, so it's fixed in this patch as well.
+
+	 - QEMU_CAPS_ENABLE_KVM flag means that QEMU is, by default, running
+	   without KVM acceleration and in case we need KVM acceleration it
+	   needs to be explicitly instructed to do so.  This is partially
+	   true for the past (this option essentially means that QEMU
+	   recognizes the '-enable-kvm' option, even though it's almost the
+	   same).
+
 2012-10-31  Gene Czarcinski  <gene@czarc.net>
 
 	bugfix: ip6tables rule removal

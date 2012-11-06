@@ -13,9 +13,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libvirt\n"
 "Report-Msgid-Bugs-To: libvir-list@redhat.com\n"
-"POT-Creation-Date: 2012-10-31 15:47+0800\n"
-"PO-Revision-Date: 2012-09-24 03:54+0000\n"
-"Last-Translator: hpeters <hpeters@redhat.com>\n"
+"POT-Creation-Date: 2012-11-02 11:58+0800\n"
+"PO-Revision-Date: 2012-10-31 08:19+0000\n"
+"Last-Translator: Daniel <veillard@redhat.com>\n"
 "Language-Team: German (http://www.transifex.com/projects/p/libvirt/language/"
 "de/)\n"
 "Language: de\n"
@@ -138,7 +138,7 @@ msgid ""
 "      $XDG_CONFIG_HOME/libvirt/libvirtd.conf\n"
 "\n"
 "    Sockets:\n"
-"      $XDG_RUNTIME_DIR/libvirt/libvirt-sock (in UNIX abstract namespace)\n"
+"      $XDG_RUNTIME_DIR/libvirt/libvirt-sock\n"
 "\n"
 "    TLS:\n"
 "      CA certificate:     $HOME/.pki/libvirt/cacert.pem\n"
@@ -153,7 +153,7 @@ msgstr ""
 #: daemon/libvirtd.c:992 daemon/libvirtd.c:1006
 #: src/locking/sanlock_helper.c:76 src/lxc/lxc_controller.c:1489
 #: src/security/virt-aa-helper.c:1185 src/storage/parthelper.c:75
-#: src/util/iohelper.c:228 src/util/iohelper.c:234
+#: src/util/iohelper.c:234 src/util/iohelper.c:240
 #, c-format
 msgid "%s: initialization failed\n"
 msgstr "%s: Initialisierung fehlgeschlagen\n"
@@ -400,7 +400,7 @@ msgstr "nparams zu lang"
 #: daemon/remote.c:938 src/remote/remote_driver.c:1532
 #, c-format
 msgid "Parameter %s too big for destination"
-msgstr ""
+msgstr "Parameter %s zu groß für Ziel"
 
 #: daemon/remote.c:1180
 msgid "maxStats > REMOTE_DOMAIN_MEMORY_STATS_MAX"
@@ -1085,9 +1085,9 @@ msgid "Unknown device address type"
 msgstr "Unbekannter Geräteadresstyp"
 
 #: src/conf/domain_conf.c:2739
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown startup policy '%s'"
-msgstr "Unbekannte Festplatten-Fehlerrichtlinie »%s«"
+msgstr ""
 
 #: src/conf/domain_conf.c:2769
 #, c-format
@@ -1439,14 +1439,14 @@ msgid "Setting disk %s is allowed only for cdrom or floppy"
 msgstr ""
 
 #: src/conf/domain_conf.c:4192
-#, fuzzy, c-format
+#, c-format
 msgid "unknown driver format value '%s'"
-msgstr "Unbekannter Datenträger-Formattyp %s"
+msgstr ""
 
 #: src/conf/domain_conf.c:4210
-#, fuzzy, c-format
+#, c-format
 msgid "unknown mirror format value '%s'"
-msgstr "Unbekannter Pool-Formattyp %s"
+msgstr ""
 
 #: src/conf/domain_conf.c:4307
 #, c-format
@@ -1608,9 +1608,8 @@ msgstr ""
 "Kein <source> »dev«-Attribut mit <interface type='direct'/> spezifiziert"
 
 #: src/conf/domain_conf.c:5082
-#, fuzzy
 msgid "Unknown mode has been specified"
-msgstr "Unbekannter Modus wurde spezifiziert"
+msgstr ""
 
 #: src/conf/domain_conf.c:5143
 msgid "Model name contains invalid characters"
@@ -2101,9 +2100,9 @@ msgid "Missing allow attribute for USB redirection filter"
 msgstr ""
 
 #: src/conf/domain_conf.c:7615
-#, fuzzy, c-format
+#, c-format
 msgid "unknown %s action: %s"
-msgstr "Unbekannte Lebenszyklusaktion %s"
+msgstr ""
 
 #: src/conf/domain_conf.c:7635
 #, c-format
@@ -2204,9 +2203,9 @@ msgid "Domain title can't contain newlines"
 msgstr ""
 
 #: src/conf/domain_conf.c:8714
-#, fuzzy, c-format
+#, c-format
 msgid "Bad value '%s'"
-msgstr "Ungültiger Wert für %s"
+msgstr ""
 
 #: src/conf/domain_conf.c:8727
 #, c-format
@@ -2313,9 +2312,9 @@ msgid "unsupported HyperV Enlightenment feature: %s"
 msgstr ""
 
 #: src/conf/domain_conf.c:9154
-#, fuzzy, c-format
+#, c-format
 msgid "missing 'state' attribute for HyperV Enlightenment feature '%s'"
-msgstr "Fehlender »start«-Parameter in DHCP-Bereich für Netzwerk »%s«"
+msgstr ""
 
 #: src/conf/domain_conf.c:9162
 #, c-format
@@ -2869,9 +2868,9 @@ msgid "Target domain memory balloon count %d does not match source %d"
 msgstr ""
 
 #: src/conf/domain_conf.c:11710
-#, fuzzy, c-format
+#, c-format
 msgid "unexpected %s action: %d"
-msgstr "Unerwarteter Festplattentyp %d"
+msgstr ""
 
 #: src/conf/domain_conf.c:11871
 #, c-format
@@ -3112,9 +3111,9 @@ msgid "domain '%s' already exists with uuid %s"
 msgstr "Domain »%s« existiert bereits mit UUIDK %s"
 
 #: src/conf/domain_conf.c:14904
-#, fuzzy, c-format
+#, c-format
 msgid "unable to visit backing chain file %s"
-msgstr "Schreiben der Konfigurationsdatei schlug fehl: %s"
+msgstr ""
 
 #: src/conf/domain_conf.c:14984
 #, c-format
@@ -3738,18 +3737,17 @@ msgid ""
 msgstr ""
 
 #: src/conf/network_conf.c:2601
-#, fuzzy, c-format
+#, c-format
 msgid "couldn't locate a matching dhcp range entry in network '%s'"
-msgstr "Fehlender »start«-Parameter in DHCP-Bereich für Netzwerk »%s«"
+msgstr ""
 
 #: src/conf/network_conf.c:2652
 msgid "forward interface entries cannot be modified, only added or deleted"
 msgstr ""
 
 #: src/conf/network_conf.c:2661
-#, fuzzy
 msgid "missing dev attribute in <interface> element"
-msgstr "Fehlendes Namenelement für Datenträger"
+msgstr ""
 
 #: src/conf/network_conf.c:2678
 #, c-format
@@ -4346,9 +4344,9 @@ msgid "missing name from disk snapshot element"
 msgstr ""
 
 #: src/conf/snapshot_conf.c:142
-#, fuzzy, c-format
+#, c-format
 msgid "unknown disk snapshot driver '%s'"
-msgstr "Unbekannter Festplatten-E/A-Modus »%s«"
+msgstr ""
 
 #: src/conf/snapshot_conf.c:186 tools/virsh-snapshot.c:639
 #: tools/virsh-snapshot.c:1290
@@ -6069,9 +6067,9 @@ msgid "%s object has invalid dynamic type"
 msgstr ""
 
 #: src/esx/esx_vi_types.c:215 src/esx/esx_vi_types.c:230
-#, fuzzy, c-format
+#, c-format
 msgid "Call to %s for unexpected type '%s', expected '%s'"
-msgstr "Datenspeicher hat unerwarteten Typ »%s«"
+msgstr ""
 
 #: src/esx/esx_vi_types.c:355
 #, c-format
@@ -6191,7 +6189,7 @@ msgstr ""
 msgid "cannot read from stream"
 msgstr ""
 
-#: src/fdstream.c:490 src/qemu/qemu_capabilities.c:2440
+#: src/fdstream.c:490 src/qemu/qemu_capabilities.c:2476
 #: src/rpc/virnetsocket.c:165 src/util/event_poll.c:666
 #: src/util/virnodesuspend.c:66
 msgid "Unable to initialize mutex"
@@ -6554,30 +6552,28 @@ msgid "failed to rollback transaction: %s%s%s"
 msgstr ""
 
 #: src/interface/interface_backend_netcf.c:811
-#, fuzzy
 msgid "failed to register netcf interface driver"
-msgstr "Auflisten von Schnittstellen fehlgeschlagen"
+msgstr ""
 
 #: src/interface/interface_backend_udev.c:116
-#, fuzzy
 msgid "failed to create udev context"
-msgstr "Erzeugen eines Socket fehlgeschlagen"
+msgstr ""
 
 #: src/interface/interface_backend_udev.c:161
-#, fuzzy, c-format
+#, c-format
 msgid "failed to get number of %s interfaces on host"
-msgstr "Abrufen der Anzahl inaktiver Pools fehlgeschlagen "
+msgstr ""
 
 #: src/interface/interface_backend_udev.c:203
 #: src/interface/interface_backend_udev.c:311
-#, fuzzy, c-format
+#, c-format
 msgid "failed to get list of %s interfaces on host"
-msgstr "Auflisten von Schnittstellen fehlgeschlagen"
+msgstr ""
 
 #: src/interface/interface_backend_udev.c:451
-#, fuzzy, c-format
+#, c-format
 msgid "failed to lookup interface with MAC address '%s'"
-msgstr "Keine Schnittstelle gefunden, deren MAC-Adresse %s ist"
+msgstr ""
 
 #: src/interface/interface_backend_udev.c:476
 #, c-format
@@ -6585,29 +6581,28 @@ msgid "the MAC address '%s' matches multiple interfaces"
 msgstr ""
 
 #: src/interface/interface_backend_udev.c:586
-#, fuzzy, c-format
+#, c-format
 msgid "Could not parse MTU value '%s'"
-msgstr "VPS ID %s konnte nicht geparst werden"
+msgstr ""
 
 #: src/interface/interface_backend_udev.c:613
-#, fuzzy, c-format
+#, c-format
 msgid "failed to find the VID for the VLAN device '%s'"
-msgstr "Hinzufügen von Slot für PCI-Gerät »%s« zu %s fehlgeschlagen"
+msgstr ""
 
 #: src/interface/interface_backend_udev.c:648
-#, fuzzy, c-format
+#, c-format
 msgid "Could not parse STP state '%s'"
-msgstr "VPS ID %s konnte nicht geparst werden"
+msgstr ""
 
 #: src/interface/interface_backend_udev.c:670
-#, fuzzy, c-format
+#, c-format
 msgid "Could not get members of bridge '%s'"
-msgstr "Versionsnummer von »%s« konnte nicht verarbeitet werden"
+msgstr ""
 
 #: src/interface/interface_backend_udev.c:792
-#, fuzzy
 msgid "failed to register udev interface driver"
-msgstr "Auflisten von Schnittstellen fehlgeschlagen"
+msgstr ""
 
 #: src/internal.h:233
 #, c-format
@@ -6955,9 +6950,9 @@ msgid "Unable to initialize lockspace %s"
 msgstr ""
 
 #: src/locking/lock_driver_sanlock.c:314
-#, fuzzy, c-format
+#, c-format
 msgid "cannot chmod '%s' to 0660"
-msgstr "E/A-Modus »%s« kann nicht verarbeitet werden"
+msgstr ""
 
 #: src/locking/lock_driver_sanlock.c:329
 #, c-format
@@ -7040,9 +7035,9 @@ msgid "Too many resources %d for object"
 msgstr ""
 
 #: src/locking/lock_driver_sanlock.c:779
-#, fuzzy, c-format
+#, c-format
 msgid "Failure action %s is not supported by sanlock"
-msgstr "Erstellung von %s-Datenträgern wird nicht unterstützt"
+msgstr ""
 
 #: src/locking/lock_driver_sanlock.c:809
 #, c-format
@@ -7055,14 +7050,13 @@ msgid "Sanlock helper arguments are longer than %d: '%s'"
 msgstr ""
 
 #: src/locking/lock_driver_sanlock.c:824
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to register lock failure action: error %d"
-msgstr "Erstellen der PolicyKit-Aktion %s fehlgeschlagen"
+msgstr ""
 
 #: src/locking/lock_driver_sanlock.c:828
-#, fuzzy
 msgid "Failed to register lock failure action"
-msgstr "Erstellen der PolicyKit-Aktion %s fehlgeschlagen"
+msgstr ""
 
 #: src/locking/lock_driver_sanlock.c:848
 msgid "sanlock is too old to support lock failure action"
@@ -7159,14 +7153,14 @@ msgid "%s uri uuid action\n"
 msgstr ""
 
 #: src/locking/sanlock_helper.c:32
-#, fuzzy, c-format
+#, c-format
 msgid "invalid failure action: '%s'\n"
-msgstr "Ungültiger Domain-Status »%s«"
+msgstr ""
 
 #: src/locking/sanlock_helper.c:125
-#, fuzzy, c-format
+#, c-format
 msgid "unsupported failure action: '%s'\n"
-msgstr "Nicht unterstütztes Zeichengerät »%s«"
+msgstr ""
 
 #: src/lxc/lxc_cgroup.c:41 src/qemu/qemu_cgroup.c:396
 #, c-format
@@ -7312,14 +7306,14 @@ msgid "Failed to mkdir %s"
 msgstr "Anlegen des Verzeichnisses %s fehlgeschlagen"
 
 #: src/lxc/lxc_container.c:560
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to mount %s on %s type %s flags=%x opts=%s"
-msgstr "Einhängen von leerem tmpfs unter %s fehlgeschlagen"
+msgstr ""
 
 #: src/lxc/lxc_container.c:584
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to mount %s on %s type %s (%s)"
-msgstr "Einhängen von devpts in %s fehlgeschlagen"
+msgstr ""
 
 #: src/lxc/lxc_container.c:611
 msgid "Cannot create /dev/pts"
@@ -7513,39 +7507,39 @@ msgstr ""
 msgid "Failed to make root readonly"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1725
+#: src/lxc/lxc_container.c:1726
 #, c-format
 msgid "Failed to remove capabilities: %d"
 msgstr "Löschen der Fähigkeiten gescheitert: %d"
 
-#: src/lxc/lxc_container.c:1731
+#: src/lxc/lxc_container.c:1732
 #, c-format
 msgid "Failed to apply capabilities: %d"
 msgstr "Anwenden der Fähigkeiten gescheitert: %d"
 
-#: src/lxc/lxc_container.c:1773
+#: src/lxc/lxc_container.c:1774
 msgid "lxcChild() passed invalid vm definition"
 msgstr "lxcChild() übergab ungültige VM-Definition"
 
-#: src/lxc/lxc_container.c:1809
+#: src/lxc/lxc_container.c:1810
 #, c-format
 msgid "Failed to open tty %s"
 msgstr "Öffnen des TTY %s fehlgeschlagen"
 
-#: src/lxc/lxc_container.c:1821
+#: src/lxc/lxc_container.c:1822
 #, c-format
 msgid "cannot find init path '%s' relative to container root"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1829
+#: src/lxc/lxc_container.c:1830
 msgid "Failed to read the container continue message"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1848
+#: src/lxc/lxc_container.c:1849
 msgid "failed to send continue signal to controller"
 msgstr ""
 
-#: src/lxc/lxc_container.c:1964
+#: src/lxc/lxc_container.c:1965
 msgid "Failed to run clone container"
 msgstr "Ausführen des Klon-Containers fehlgeschlagen"
 
@@ -7852,7 +7846,7 @@ msgstr ""
 #: src/qemu/qemu_driver.c:3187 src/qemu/qemu_driver.c:3350
 #: src/qemu/qemu_driver.c:3825 src/qemu/qemu_driver.c:3937
 #: src/qemu/qemu_driver.c:4121 src/qemu/qemu_driver.c:4211
-#: src/qemu/qemu_driver.c:4370 src/qemu/qemu_driver.c:4441
+#: src/qemu/qemu_driver.c:4369 src/qemu/qemu_driver.c:4441
 #: src/qemu/qemu_driver.c:4542 src/qemu/qemu_driver.c:4583
 #: src/qemu/qemu_driver.c:4641 src/qemu/qemu_driver.c:5251
 #: src/qemu/qemu_driver.c:5589 src/qemu/qemu_driver.c:5747
@@ -7885,7 +7879,7 @@ msgstr "Keine Domain mit übereinstimmender UUID »%s«"
 #: src/qemu/qemu_driver.c:4589 src/qemu/qemu_driver.c:4647
 #, c-format
 msgid "unknown virt type in domain definition '%d'"
-msgstr ""
+msgstr "Unbekannter Virtualisierungstyp in Domaindefinition »%d«"
 
 #: src/lxc/lxc_driver.c:1161 src/qemu/qemu_driver.c:4612
 #: src/qemu/qemu_driver.c:4682
@@ -8340,7 +8334,7 @@ msgstr ""
 #: src/libxl/libxl_driver.c:1698 src/qemu/qemu_driver.c:2204
 #: src/uml/uml_driver.c:1737
 msgid "cannot set memory higher than max memory"
-msgstr ""
+msgstr "Speicher kann nicht höher als maximaler Speicher festgelegt werden"
 
 #: src/libxl/libxl_driver.c:1707
 #, c-format
@@ -8421,7 +8415,7 @@ msgstr ""
 #: src/libxl/libxl_driver.c:2279 src/qemu/qemu_driver.c:3855
 #: src/xen/xend_internal.c:2224 src/xen/xm_internal.c:727
 msgid "could not determine max vcpus for the domain"
-msgstr ""
+msgstr "Maximale vcpus für die Domain konnten nicht ermittelt werden"
 
 #: src/libxl/libxl_driver.c:2289 src/qemu/qemu_driver.c:3865
 #: src/xen/xend_internal.c:2229 src/xen/xm_internal.c:736
@@ -8429,6 +8423,8 @@ msgstr ""
 msgid ""
 "requested vcpus is greater than max allowable vcpus for the domain: %d > %d"
 msgstr ""
+"Angefragte vcpus liegen über den maximal zulässigen vcpus für die Domain: %d "
+"> %d"
 
 #: src/libxl/libxl_driver.c:2327 src/libxl/libxl_driver.c:2336
 #, c-format
@@ -8457,7 +8453,7 @@ msgstr ""
 #: src/xen/xen_driver.c:1291 src/xen/xen_driver.c:1340
 #, c-format
 msgid "unsupported config type %s"
-msgstr ""
+msgstr "Nicht unterstützter Konfigurationstyp %s"
 
 #: src/libxl/libxl_driver.c:2600 src/libxl/libxl_driver.c:2643
 msgid "cannot get version information from libxenlight"
@@ -8484,12 +8480,12 @@ msgstr ""
 #: src/libxl/libxl_driver.c:2890 src/qemu/qemu_hotplug.c:73
 #, c-format
 msgid "No device with bus '%s' and target '%s'"
-msgstr ""
+msgstr "Kein Gerät mit Bus »%s« und Ziel »%s«"
 
 #: src/libxl/libxl_driver.c:2897 src/qemu/qemu_hotplug.c:88
 #, c-format
 msgid "Removable media not supported for %s device"
-msgstr ""
+msgstr "Wechseldatenträger nicht unterstützt für %s-Gerät"
 
 #: src/libxl/libxl_driver.c:2907
 #, c-format
@@ -8501,7 +8497,7 @@ msgstr ""
 #: src/uml/uml_driver.c:2014
 #, c-format
 msgid "target %s already exists"
-msgstr ""
+msgstr "Ziel %s existiert bereits"
 
 #: src/libxl/libxl_driver.c:2948 src/qemu/qemu_hotplug.c:594
 #: src/uml/uml_driver.c:2021
@@ -8528,7 +8524,7 @@ msgstr ""
 #: src/qemu/qemu_hotplug.c:2039 src/uml/uml_driver.c:2145
 #, c-format
 msgid "disk %s not found"
-msgstr ""
+msgstr "Laufwerk %s nicht gefunden"
 
 #: src/libxl/libxl_driver.c:3017
 #, c-format
@@ -8665,7 +8661,7 @@ msgstr ""
 
 #: src/libxl/libxl_conf.c:707
 msgid "Unable to find an unused VNC port"
-msgstr ""
+msgstr "Unbenutzer VNC-Port kann nicht gefunden werden"
 
 #: src/libxl/libxl_conf.c:789 src/xenxs/xen_sxpr.c:1693
 msgid "unexpected chr device type"
@@ -9322,7 +9318,7 @@ msgstr "Knoteninformation nicht auf dieser Plattform implementiert"
 msgid "node CPU stats not implemented on this platform"
 msgstr ""
 
-#: src/nodeinfo.c:910 src/nodeinfo.c:1385 src/nodeinfo.c:1423
+#: src/nodeinfo.c:910 src/nodeinfo.c:1388 src/nodeinfo.c:1426
 msgid "NUMA not supported on this host"
 msgstr "NUMA wird auf diesem Rechner nicht unterstützt"
 
@@ -9336,9 +9332,8 @@ msgid "node memory stats not implemented on this platform"
 msgstr ""
 
 #: src/nodeinfo.c:963
-#, fuzzy
 msgid "host cpu counting not implemented on this platform"
-msgstr "Knoteninformation nicht auf dieser Plattform implementiert"
+msgstr ""
 
 #: src/nodeinfo.c:989
 msgid "node cpumap not implemented on this platform"
@@ -9357,21 +9352,21 @@ msgstr ""
 msgid "node get memory parameters not implemented on this platform"
 msgstr ""
 
-#: src/nodeinfo.c:1391
+#: src/nodeinfo.c:1394
 #, c-format
 msgid "start cell %d out of range (0-%d)"
 msgstr "Zelle %d aus Bereich (0-%d) wird gestartet"
 
-#: src/nodeinfo.c:1403
+#: src/nodeinfo.c:1406
 #, c-format
 msgid "Failed to query NUMA free memory for node: %d"
 msgstr ""
 
-#: src/nodeinfo.c:1431
+#: src/nodeinfo.c:1434
 msgid "Failed to query NUMA free memory"
 msgstr "NUMA freier Speicher konnte nicht abgerufen werden"
 
-#: src/nodeinfo.c:1452 src/nodeinfo.c:1459
+#: src/nodeinfo.c:1455 src/nodeinfo.c:1462
 msgid "NUMA memory information not available on this platform"
 msgstr "NUMA Speicherinformationen auf dieser Plattform nicht verfügbar"
 
@@ -9483,7 +9478,7 @@ msgstr ""
 #: src/vbox/vbox_tmpl.c:9209
 #, c-format
 msgid "unable to close %s"
-msgstr ""
+msgstr "%s kann nicht geschlossen werden"
 
 #: src/nwfilter/nwfilter_dhcpsnoop.c:1923
 #, c-format
@@ -10029,7 +10024,7 @@ msgstr ""
 #: src/test/test_driver.c:2862
 #, c-format
 msgid "invalid path, '%s' is not a known interface"
-msgstr ""
+msgstr "Ungültiger Pfad, »%s« ist keine bekannte Schnittstelle"
 
 #: src/openvz/openvz_driver.c:2020
 msgid "Can only modify disk quota"
@@ -10061,7 +10056,7 @@ msgstr ""
 #: src/qemu/qemu_driver.c:9703 src/qemu/qemu_driver.c:9971
 #, c-format
 msgid "no domain with matching name '%s'"
-msgstr ""
+msgstr "Keine Domain mit passendem Namen »%s«"
 
 #: src/parallels/parallels_driver.c:1117
 #, c-format
@@ -10235,7 +10230,7 @@ msgstr ""
 #: src/parallels/parallels_storage.c:92 src/storage/storage_backend_fs.c:823
 #, c-format
 msgid "cannot open path '%s'"
-msgstr ""
+msgstr "Pfad »%s« kann nicht geöffnet werden"
 
 #: src/parallels/parallels_storage.c:177
 msgid "Failed to load pool configs"
@@ -10262,7 +10257,7 @@ msgstr ""
 #: src/test/test_driver.c:4377
 #, c-format
 msgid "storage pool '%s' is already active"
-msgstr ""
+msgstr "Speicherpool »%s« ist bereits aktiv"
 
 #: src/parallels/parallels_storage.c:558 src/parallels/parallels_storage.c:595
 #: src/parallels/parallels_storage.c:742 src/parallels/parallels_storage.c:777
@@ -10289,7 +10284,7 @@ msgstr ""
 #: src/test/test_driver.c:5181
 #, c-format
 msgid "storage pool '%s' is not active"
-msgstr ""
+msgstr "Speicherpool »%s« ist nicht aktiv"
 
 #: src/parallels/parallels_storage.c:711 src/storage/storage_driver.c:1043
 #: src/test/test_driver.c:4534
@@ -10312,17 +10307,17 @@ msgstr "Pool hat keine Konfigurationsdatei"
 #: src/test/test_driver.c:5174
 #, c-format
 msgid "no storage vol with matching name '%s'"
-msgstr ""
+msgstr "Kein Speicherdatenträger mit übereinstimmendem Namen »%s«"
 
 #: src/parallels/parallels_storage.c:871 src/test/test_driver.c:4765
 #, c-format
 msgid "no storage vol with matching key '%s'"
-msgstr ""
+msgstr "Kein Speicherdatenträger mit übereinstimmendem Schlüssel »%s«"
 
 #: src/parallels/parallels_storage.c:902 src/test/test_driver.c:4799
 #, c-format
 msgid "no storage vol with matching path '%s'"
-msgstr ""
+msgstr "Kein Speicherdatenträger mit übereinstimmendem Pfad »%s«"
 
 #: src/parallels/parallels_storage.c:939
 #: src/parallels/parallels_storage.c:1070 src/test/test_driver.c:4838
@@ -10335,7 +10330,7 @@ msgstr "Speicher-Volumen bereits vorhanden"
 #: src/test/test_driver.c:4938
 #, c-format
 msgid "Not enough free space in pool for volume '%s'"
-msgstr ""
+msgstr "Nicht genügend freier Platz in Pool für Datenträger »%s«"
 
 #: src/parallels/parallels_storage.c:978
 msgid "Can't create file with volume description"
@@ -10556,7 +10551,7 @@ msgstr ""
 
 #: src/qemu/qemu_agent.c:190 src/qemu/qemu_monitor.c:267
 msgid "failed to create socket"
-msgstr ""
+msgstr "Socket-Erstellung fehlgeschlagen"
 
 #: src/qemu/qemu_agent.c:196 src/qemu/qemu_monitor.c:745
 msgid "Unable to put monitor into non-blocking mode"
@@ -10686,22 +10681,22 @@ msgstr ""
 #: src/qemu/qemu_monitor_json.c:345 src/qemu/qemu_monitor_json.c:363
 #, c-format
 msgid "unable to execute QEMU command '%s'"
-msgstr ""
+msgstr "QEMU-Befehl »%s« kann nicht ausgeführt werden"
 
 #: src/qemu/qemu_agent.c:1137 src/qemu/qemu_monitor_json.c:349
 #, c-format
 msgid "unable to execute QEMU command '%s': %s"
-msgstr ""
+msgstr "QEMU-befehl »%s« kann nicht ausgeführt werden: %s"
 
 #: src/qemu/qemu_agent.c:1183 src/qemu/qemu_monitor_json.c:423
 #, c-format
 msgid "argument key '%s' is too short, missing type prefix"
-msgstr ""
+msgstr "Parameterschlüssel »%s« ist zu kurz, fehlendes Typpräfix"
 
 #: src/qemu/qemu_agent.c:1237 src/qemu/qemu_monitor_json.c:486
 #, c-format
 msgid "unsupported data type '%c' for arg '%s'"
-msgstr ""
+msgstr "Nicht unterstützter Datentyp »%c« für Parameter »%s«"
 
 #: src/qemu/qemu_agent.c:1342 src/qemu/qemu_agent.c:1380
 msgid "malformed return value"
@@ -10749,20 +10744,20 @@ msgstr ""
 msgid "Cannot find suitable emulator for %s"
 msgstr "Geeigneter Emulator für %s konnte nicht gefunden werden"
 
-#: src/qemu/qemu_capabilities.c:2348
-#, fuzzy, c-format
+#: src/qemu/qemu_capabilities.c:2384
+#, c-format
 msgid "Failed to kill process %lld: %s"
-msgstr "Definieren des Pools %s fehlgeschlagen"
+msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2373
+#: src/qemu/qemu_capabilities.c:2409
 #, c-format
 msgid "Cannot check QEMU binary %s"
 msgstr ""
 
-#: src/qemu/qemu_capabilities.c:2384
-#, fuzzy, c-format
+#: src/qemu/qemu_capabilities.c:2420
+#, c-format
 msgid "QEMU binary %s is not executable"
-msgstr "Die QEMU-Binärdatei %s unterstützt nicht kqemu"
+msgstr ""
 
 #: src/qemu/qemu_cgroup.c:82
 #, c-format
@@ -11288,9 +11283,8 @@ msgid "usb-hub not supported by QEMU binary"
 msgstr ""
 
 #: src/qemu/qemu_command.c:3604
-#, fuzzy
 msgid "This QEMU doesn't not support missing USB devices"
-msgstr "Dieser QEMU unterstützt keine QXL-Grafikadapter"
+msgstr ""
 
 #: src/qemu/qemu_command.c:3710
 msgid "spicevmc not supported in this QEMU binary"
@@ -11358,9 +11352,8 @@ msgid "CPU mode '%s' is only supported with kvm"
 msgstr ""
 
 #: src/qemu/qemu_command.c:4321
-#, fuzzy
 msgid "dump-guest-core is not available  with this QEMU binary"
-msgstr "vhost-net wird mit dieser QEMU-Binärdatei nicht unterstützt"
+msgstr ""
 
 #: src/qemu/qemu_command.c:4366
 msgid ""
@@ -11459,9 +11452,8 @@ msgid "hypervisor lacks deviceboot feature"
 msgstr ""
 
 #: src/qemu/qemu_command.c:4979
-#, fuzzy
 msgid "reboot timeout is not supported by this QEMU binary"
-msgstr "vhost-net wird mit dieser QEMU-Binärdatei nicht unterstützt"
+msgstr ""
 
 #: src/qemu/qemu_command.c:5020 src/qemu/qemu_driver.c:5840
 #, c-format
@@ -11532,9 +11524,8 @@ msgid "only 1 graphics device is supported"
 msgstr "Nur 1 Grafikgerät wird unterstützt"
 
 #: src/qemu/qemu_command.c:5865
-#, fuzzy
 msgid "vnc graphics are not supported with this QEMU"
-msgstr "SPICE-Grafiken werden nicht unterstützt mit diesem QEMU"
+msgstr ""
 
 #: src/qemu/qemu_command.c:5900 src/qemu/qemu_command.c:6051
 msgid "network-based listen not possible, network driver not present"
@@ -11803,9 +11794,9 @@ msgid "conflicting occurrences of kvmclock feature"
 msgstr ""
 
 #: src/qemu/qemu_command.c:7841
-#, fuzzy, c-format
+#, c-format
 msgid "unsupported HyperV Enlightenment feature '%s'"
-msgstr "Nicht unterstützter Monitortyp »%s«"
+msgstr ""
 
 #: src/qemu/qemu_command.c:7886
 #, c-format
@@ -11851,9 +11842,8 @@ msgid "cannot parse UUID '%s'"
 msgstr ""
 
 #: src/qemu/qemu_command.c:8369
-#, fuzzy
 msgid "cannot parse reboot-timeout value"
-msgstr "Produkt %s kann nicht verarbeitet werden"
+msgstr ""
 
 #: src/qemu/qemu_command.c:8615
 #, c-format
@@ -12061,9 +12051,9 @@ msgid "failed to set close-on-exec flag on %s"
 msgstr ""
 
 #: src/qemu/qemu_domain.c:1475
-#, fuzzy, c-format
+#, c-format
 msgid "failed to truncate %s"
-msgstr "Erstellen von %s fehlgeschlagen"
+msgstr ""
 
 #: src/qemu/qemu_domain.c:1559
 #, c-format
@@ -12073,17 +12063,17 @@ msgstr ""
 #: src/qemu/qemu_domain.c:1586 src/storage/storage_backend.c:787
 #: src/storage/storage_backend_fs.c:1222
 msgid "unable to find kvm-img or qemu-img"
-msgstr ""
+msgstr "kvm-img oder qemu-img kann nicht gefunden werden"
 
 #: src/qemu/qemu_domain.c:1614
 #, c-format
 msgid "cannot create snapshot directory '%s'"
-msgstr ""
+msgstr "Snapshot-Verzeichnis »%s« kann nicht erstellt werden"
 
 #: src/qemu/qemu_domain.c:1676
 #, c-format
 msgid "Disk device '%s' does not support snapshotting"
-msgstr ""
+msgstr "Laufwerkgerät »%s« unterstützt keine Snapshot-Erstellung"
 
 #: src/qemu/qemu_domain.c:1899 src/qemu/qemu_domain.c:1907
 #, c-format
@@ -12094,7 +12084,7 @@ msgstr ""
 #: src/qemu/qemu_driver.c:12206
 #, c-format
 msgid "no domain snapshot with matching name '%s'"
-msgstr ""
+msgstr "Kein Domain-Snapshot mit passendem Namen »%s«"
 
 #: src/qemu/qemu_driver.c:266
 #, c-format
@@ -12177,23 +12167,23 @@ msgstr ""
 #: src/qemu/qemu_driver.c:1080
 #, c-format
 msgid "no QEMU URI path given, try %s"
-msgstr ""
+msgstr "Kein QEMU-URI-Pfad angegeben, versuchen Sie %s"
 
 #: src/qemu/qemu_driver.c:1091
 #, c-format
 msgid "unexpected QEMU URI path '%s', try qemu:///system"
-msgstr ""
+msgstr "Unerwarteter QEMU-URI-Pfad »%s«, versuchen Sie qemu:///system"
 
 #: src/qemu/qemu_driver.c:1098
 #, c-format
 msgid "unexpected QEMU URI path '%s', try qemu:///session"
-msgstr ""
+msgstr "Unerwarteter QEMU-URI-Pfad »%s«, versuchen Sie qemu:///session"
 
 #: src/qemu/qemu_driver.c:1170 src/util/iohelper.c:58 src/util/virfile.c:628
 #: src/util/virfile.c:683
 #, c-format
 msgid "Unable to open %s"
-msgstr ""
+msgstr "%s kann nicht geöffnet werden"
 
 #: src/qemu/qemu_driver.c:1338 src/uml/uml_driver.c:1554
 #: src/uml/uml_driver.c:1595 src/vbox/vbox_tmpl.c:1226
@@ -12262,12 +12252,12 @@ msgstr ""
 #: src/qemu/qemu_driver.c:2624 src/qemu/qemu_driver.c:5163
 #, c-format
 msgid "failed to write xml to '%s'"
-msgstr ""
+msgstr "Schreiben von XML nach »%s« ist fehlgeschlagen"
 
 #: src/qemu/qemu_driver.c:2683
 #, c-format
 msgid "unable to open %s"
-msgstr ""
+msgstr "%s kann nicht geöffnet werden"
 
 #: src/qemu/qemu_driver.c:2698 src/qemu/qemu_driver.c:2722
 #, c-format
@@ -12303,11 +12293,11 @@ msgstr ""
 #: src/qemu/qemu_migration.c:3240 src/qemu/qemu_process.c:555
 #: src/qemu/qemu_process.c:568
 msgid "guest unexpectedly quit"
-msgstr ""
+msgstr "Gast wurde unerwartet beendet"
 
 #: src/qemu/qemu_driver.c:2849
 msgid "failed to get domain xml"
-msgstr ""
+msgstr "Abrufen der Domain-XML ist fehlgeschlagen"
 
 #: src/qemu/qemu_driver.c:2879 src/qemu/qemu_driver.c:3252
 #: src/qemu/qemu_driver.c:4762
@@ -12362,9 +12352,9 @@ msgstr ""
 
 #: src/qemu/qemu_driver.c:3489 src/qemu/qemu_driver.c:9235
 #: src/vbox/vbox_tmpl.c:9161
-#, c-format
-msgid "mkstemp(\"%s\") failed"
-msgstr ""
+#, fuzzy, c-format
+msgid "mkostemp(\"%s\") failed"
+msgstr "mkstemp(\"%s\") fehlgeschlagen"
 
 #: src/qemu/qemu_driver.c:3510 src/vbox/vbox_tmpl.c:9215
 msgid "unable to open stream"
@@ -12396,19 +12386,19 @@ msgid "failed to set cpu affinity for vcpu %d"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:3754
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to access vcpu cgroup for %s(vcpu: %d)"
-msgstr "cgroup für %s konnte nicht ermittelt werden"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:3790
 msgid "cannot change vcpu count of this domain"
-msgstr ""
+msgstr "vcpu-Anzahl dieser Domain kann nicht geändert werden"
 
 #: src/qemu/qemu_driver.c:3813 src/test/test_driver.c:2182
 #: src/xen/xen_driver.c:1139
 #, c-format
 msgid "argument out of range: %d"
-msgstr ""
+msgstr "Parameter liegt ausserhalb des gültigen Bereichs: %d"
 
 #: src/qemu/qemu_driver.c:3842
 msgid "cannot adjust maximum on running domain"
@@ -12417,12 +12407,12 @@ msgstr ""
 #: src/qemu/qemu_driver.c:3949
 #, c-format
 msgid "vcpu number out of range %d > %d"
-msgstr ""
+msgstr "vcpu-Anzahl liegt ausserhalb des gültigen Bereichs %d > %d"
 
 #: src/qemu/qemu_driver.c:3968 src/qemu/qemu_driver.c:4299
 #: src/qemu/qemu_process.c:2038
 msgid "cpu affinity is not supported"
-msgstr ""
+msgstr "CPU-Affinität wird nicht unterstützt"
 
 #: src/qemu/qemu_driver.c:3989 src/qemu/qemu_driver.c:4250
 msgid "failed to update vcpupin"
@@ -12476,7 +12466,7 @@ msgstr ""
 
 #: src/qemu/qemu_driver.c:4508
 msgid "cpu affinity is not available"
-msgstr ""
+msgstr "CPU-Affinität ist nicht verfügbar"
 
 #: src/qemu/qemu_driver.c:4779 src/qemu/qemu_driver.c:4799
 #, c-format
@@ -12526,7 +12516,7 @@ msgstr ""
 
 #: src/qemu/qemu_driver.c:5598
 msgid "domain is already running"
-msgstr ""
+msgstr "Domain läuft bereits"
 
 #: src/qemu/qemu_driver.c:5761
 #, c-format
@@ -12574,14 +12564,13 @@ msgid "Target already exists"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:6273 src/qemu/qemu_hotplug.c:2469
-#, fuzzy, c-format
+#, c-format
 msgid "multiple devices matching mac address %s found"
-msgstr "Mehrere Schnittstellen mit übereinstimmender MAC-Adresse"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:6278
-#, fuzzy
 msgid "no matching network device was found"
-msgstr "Name des Netzwerkgeräts zu lang"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:6289 src/qemu/qemu_driver.c:6313
 msgid "device not present in domain configuration"
@@ -12593,9 +12582,9 @@ msgid "Lease %s in lockspace %s does not exist"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:6380 src/qemu/qemu_driver.c:6386
-#, fuzzy, c-format
+#, c-format
 msgid "couldn't find matching device with mac address %s"
-msgstr "Domain namens »%s« konnte nicht gefunden werden"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:6460
 msgid "cannot do live update a device on inactive domain"
@@ -12693,7 +12682,7 @@ msgstr "ungültiger Pfad: %s"
 #: src/qemu/qemu_hotplug.c:81
 #, c-format
 msgid "missing disk device alias name for %s"
-msgstr ""
+msgstr "Fehlender Laufwerks-Aliasname für %s"
 
 #: src/qemu/qemu_driver.c:8758
 msgid "interface stats not implemented on this platform"
@@ -12751,7 +12740,7 @@ msgstr ""
 #: src/qemu/qemu_driver.c:9334
 #, c-format
 msgid "failed to open path '%s'"
-msgstr ""
+msgstr "Öffnen des Pfads »%s« fehlgeschlagen"
 
 #: src/qemu/qemu_driver.c:9348
 #, c-format
@@ -12760,7 +12749,7 @@ msgstr ""
 
 #: src/qemu/qemu_driver.c:9360 src/storage/storage_backend.c:1022
 #: src/storage/storage_backend.c:1050 src/storage/storage_backend.c:1170
-#: src/util/storage_file.c:786 src/util/storage_file.c:885
+#: src/util/storage_file.c:799 src/util/storage_file.c:898
 #, c-format
 msgid "cannot stat file '%s'"
 msgstr ""
@@ -12773,7 +12762,7 @@ msgstr ""
 #: src/qemu/qemu_driver.c:9536 src/qemu/qemu_driver.c:9608
 #: src/qemu/qemu_driver.c:9848 src/qemu/qemu_driver.c:9883
 msgid "no domain XML passed"
-msgstr ""
+msgstr "Keine Domain-XML übergeben"
 
 #: src/qemu/qemu_driver.c:9541 src/qemu/qemu_driver.c:9888
 msgid "PrepareTunnel called but no TUNNELLED flag set"
@@ -12800,7 +12789,7 @@ msgstr ""
 #: src/qemu/qemu_driver.c:10077 src/xen/xen_driver.c:1982
 #, c-format
 msgid "device %s is not a PCI device"
-msgstr ""
+msgstr "Gerät %s ist kein PCI-Gerät"
 
 #: src/qemu/qemu_driver.c:10141
 #, c-format
@@ -12826,12 +12815,12 @@ msgstr ""
 
 #: src/qemu/qemu_driver.c:10379
 msgid "domain is not being migrated"
-msgstr ""
+msgstr "Domain wird nicht migriert"
 
 #: src/qemu/qemu_driver.c:10569
 #, c-format
 msgid "Disk '%s' does not support snapshotting"
-msgstr ""
+msgstr "Laufwerk »%s« unterstützt keine Snapshot-Erstellung"
 
 #: src/qemu/qemu_driver.c:10715 src/qemu/qemu_driver.c:11147
 msgid "resuming after snapshot failed"
@@ -12864,9 +12853,9 @@ msgid "unable to stat for disk %s: %s"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:10794
-#, fuzzy, c-format
+#, c-format
 msgid "missing existing file for disk %s: %s"
-msgstr "Fehlender Name für Festplattenquelle"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:10800
 #, c-format
@@ -12932,7 +12921,7 @@ msgstr ""
 
 #: src/qemu/qemu_driver.c:11686
 msgid "the domain does not have a current snapshot"
-msgstr ""
+msgstr "Die Domain hat keinen aktuellen Snapshot"
 
 #: src/qemu/qemu_driver.c:11849
 msgid ""
@@ -12975,7 +12964,7 @@ msgstr ""
 #: src/qemu/qemu_driver.c:12494
 #, c-format
 msgid "cannot find character device %s"
-msgstr ""
+msgstr "Zeichengerät %s kann nicht gefunden werden"
 
 #: src/qemu/qemu_driver.c:12514
 msgid "Active console session exists for this domain"
@@ -13018,14 +13007,12 @@ msgid "pivot of disk '%s' requires an active copy job"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:12960
-#, fuzzy
 msgid "block copy is not supported with this QEMU binary"
-msgstr "SATA wird mit dieser QEMU-Binärdatei nicht unterstützt"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:12969
-#, fuzzy
 msgid "domain is not transient"
-msgstr "Domain läuft nicht"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:12988
 #, c-format
@@ -13033,9 +13020,9 @@ msgid "disk '%s' has backing file, so raw shallow copy is not possible"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:13002
-#, fuzzy, c-format
+#, c-format
 msgid "missing destination file for disk %s: %s"
-msgstr "Fehlender Name für Festplattenquelle"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:13009
 #, c-format
@@ -13045,14 +13032,13 @@ msgid ""
 msgstr ""
 
 #: src/qemu/qemu_driver.c:13026
-#, fuzzy, c-format
+#, c-format
 msgid "unrecognized format '%s'"
-msgstr "Unbekannter Befehl: »%s«"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:13156
-#, fuzzy
 msgid "online commit not supported with this QEMU binary"
-msgstr "vhost-net wird mit dieser QEMU-Binärdatei nicht unterstützt"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:13167
 #, c-format
@@ -13060,9 +13046,9 @@ msgid "disk %s has no source file to be committed"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:13182
-#, fuzzy, c-format
+#, c-format
 msgid "could not find top '%s' in chain for '%s'"
-msgstr "Domain mit UUID »%s« konnte nicht gefunden werden"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:13188
 #, c-format
@@ -13070,9 +13056,9 @@ msgid "top '%s' in chain for '%s' has no backing file"
 msgstr ""
 
 #: src/qemu/qemu_driver.c:13197
-#, fuzzy, c-format
+#, c-format
 msgid "could not find base '%s' below '%s' in chain for '%s'"
-msgstr "Ungültiger DHCP-Bereich »%s« bis »%s« in Netzwerk »%s«"
+msgstr ""
 
 #: src/qemu/qemu_driver.c:13208
 #, c-format
@@ -13251,7 +13237,7 @@ msgstr ""
 #: src/qemu/qemu_hotplug.c:330
 #, c-format
 msgid "target %s:%d already exists"
-msgstr ""
+msgstr "Ziel %s:%d existiert bereits"
 
 #: src/qemu/qemu_hotplug.c:346
 msgid "USB controller hotplug unsupported in this QEMU binary"
@@ -13260,7 +13246,7 @@ msgstr ""
 #: src/qemu/qemu_hotplug.c:470
 #, c-format
 msgid "unexpected disk address type %s"
-msgstr ""
+msgstr "Unerwarteter Laufwerksadresstyp %s"
 
 #: src/qemu/qemu_hotplug.c:498
 #, c-format
@@ -13269,7 +13255,7 @@ msgstr ""
 
 #: src/qemu/qemu_hotplug.c:705
 msgid "installed qemu version does not support host_net_add"
-msgstr ""
+msgstr "Installierte QEMU-Version unterstützt nicht host_net_add"
 
 #: src/qemu/qemu_hotplug.c:756
 msgid "Unable to attach network devices without vlan"
@@ -13298,14 +13284,13 @@ msgid "hostdev subsys type '%s' not supported"
 msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1237
-#, fuzzy
 msgid "interface is missing bridge name"
-msgstr "Schnittstelle hat keinen Namen"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1252
-#, fuzzy, c-format
+#, c-format
 msgid "Couldn't find network '%s'"
-msgstr "Filter »%s« konnte nicht gefunden werden"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1302
 #, c-format
@@ -13326,9 +13311,9 @@ msgid "cannot find existing network device to modify"
 msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1390
-#, fuzzy, c-format
+#, c-format
 msgid "cannot change config of '%s' network type"
-msgstr "Konfigurationsverzeichnis »%s« kann nicht erstellt werden "
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1413
 #, c-format
@@ -13349,36 +13334,33 @@ msgid "cannot modify network device script attribute"
 msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1460
-#, fuzzy
 msgid "cannot modify network device tap name"
-msgstr "Name des Netzwerkgeräts zu lang"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1478
 msgid "cannot modify network device guest PCI address"
 msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1489
-#, fuzzy
 msgid "cannot modify network device alias"
-msgstr "Name des Netzwerkgeräts zu lang"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1494
 msgid "cannot modify network device rom bar setting"
 msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1499
-#, fuzzy
 msgid "cannot modify network rom file"
-msgstr "Netzwerk aus einer XML-Datei erstellen"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1504
 msgid "cannot modify network device boot index setting"
 msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1529
-#, fuzzy, c-format
+#, c-format
 msgid "cannot change network interface type to '%s'"
-msgstr "Keine Netzwerkschnittstelle angegeben für »%s«"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:1587 src/qemu/qemu_hotplug.c:1658
 #, c-format
@@ -13449,7 +13431,7 @@ msgstr ""
 #: src/qemu/qemu_hotplug.c:2177
 #, c-format
 msgid "disk controller %s:%d not found"
-msgstr ""
+msgstr "Laufwerk-Controller %s:%d nicht gefunden"
 
 #: src/qemu/qemu_hotplug.c:2201
 msgid "device cannot be detached: device is busy"
@@ -13476,12 +13458,12 @@ msgstr ""
 #: src/qemu/qemu_hotplug.c:2421
 #, c-format
 msgid "host pci device %.4x:%.2x:%.2x.%.1x not found"
-msgstr ""
+msgstr "Host-PCI-Gerät %.4x:%.2x:%.2x.%.1x nicht gefunden"
 
 #: src/qemu/qemu_hotplug.c:2428
 #, c-format
 msgid "host usb device %03d.%03d not found"
-msgstr ""
+msgstr "Host-USB-Gerät %03d.%03d nicht gefunden"
 
 #: src/qemu/qemu_hotplug.c:2432
 #, c-format
@@ -13489,9 +13471,9 @@ msgid "host usb device vendor=0x%.4x product=0x%.4x not found"
 msgstr ""
 
 #: src/qemu/qemu_hotplug.c:2475
-#, fuzzy, c-format
+#, c-format
 msgid "network device %s not found"
-msgstr "Netzwerk »%s« nicht gefunden"
+msgstr ""
 
 #: src/qemu/qemu_hotplug.c:2497
 #, c-format
@@ -13513,7 +13495,7 @@ msgstr ""
 
 #: src/qemu/qemu_hotplug.c:2644
 msgid "Expiry of passwords is not supported"
-msgstr ""
+msgstr "Passwortablauf wird nicht unterstützt"
 
 #: src/qemu/qemu_migration.c:215
 #, c-format
@@ -13577,14 +13559,12 @@ msgid "missing listen attribute in migration data"
 msgstr ""
 
 #: src/qemu/qemu_migration.c:689
-#, fuzzy
 msgid "missing interface information"
-msgstr "fehlende Kernelinformationen"
+msgstr ""
 
 #: src/qemu/qemu_migration.c:704
-#, fuzzy
 msgid "missing vporttype attribute in migration data"
-msgstr "Fehlendes Domain-Typattribut"
+msgstr ""
 
 #: src/qemu/qemu_migration.c:746
 msgid "missing name element in migration data"
@@ -13614,9 +13594,8 @@ msgid "Attempt to migrate guest to the same host %s"
 msgstr ""
 
 #: src/qemu/qemu_migration.c:787
-#, fuzzy
 msgid "missing hostuuid element in migration data"
-msgstr "Fehlendes Domain-Typattribut"
+msgstr ""
 
 #: src/qemu/qemu_migration.c:792
 msgid "malformed hostuuid element in migration data"
@@ -13669,9 +13648,8 @@ msgid "cannot migrate domain with %d snapshots"
 msgstr ""
 
 #: src/qemu/qemu_migration.c:1038
-#, fuzzy
 msgid "cannot migrate domain with active block job"
-msgstr "Domain auf anderen Host migrieren"
+msgstr ""
 
 #: src/qemu/qemu_migration.c:1059
 msgid "Domain with assigned non-USB host devices cannot be migrated"
@@ -13683,15 +13661,15 @@ msgstr ""
 
 #: src/qemu/qemu_migration.c:1180
 msgid "is not active"
-msgstr ""
+msgstr "ist nicht aktiv"
 
 #: src/qemu/qemu_migration.c:1204
 msgid "unexpectedly failed"
-msgstr ""
+msgstr "unerwartet fehlgeschlagen"
 
 #: src/qemu/qemu_migration.c:1210
 msgid "canceled by client"
-msgstr ""
+msgstr "abgebrochen durch Client"
 
 #: src/qemu/qemu_migration.c:1228 src/qemu/qemu_migration.c:2241
 msgid "migration job"
@@ -13741,7 +13719,7 @@ msgstr ""
 
 #: src/qemu/qemu_migration.c:1823
 msgid "URI ended with incorrect ':port'"
-msgstr ""
+msgstr "URI endete mit falschem »:port«"
 
 #: src/qemu/qemu_migration.c:1929
 msgid "poll failed in migration tunnel"
@@ -13753,7 +13731,7 @@ msgstr ""
 
 #: src/qemu/qemu_migration.c:1969
 msgid "tunnelled migration failed to read from qemu"
-msgstr ""
+msgstr "Getunnelte Migration konnte nicht von QEMU lesen"
 
 #: src/qemu/qemu_migration.c:2013
 msgid "Unable to make pipe"
@@ -13778,7 +13756,7 @@ msgstr ""
 
 #: src/qemu/qemu_migration.c:2401
 msgid "Source qemu is too old to support tunnelled migration"
-msgstr ""
+msgstr "Quell-QEMU ist zu alt, um getunnelte Migration zu unterstützen"
 
 #: src/qemu/qemu_migration.c:2825
 #, c-format
@@ -13838,7 +13816,7 @@ msgstr ""
 #: src/qemu/qemu_monitor.c:345
 #, c-format
 msgid "Process %d %p %p [[[[%s]]][[[%s]]]"
-msgstr ""
+msgstr "Prozess %d %p %p [[[[%s]]][[[%s]]]"
 
 #: src/qemu/qemu_monitor.c:443
 msgid "Monitor does not support sending of file descriptors"
@@ -13889,8 +13867,8 @@ msgstr ""
 #: src/qemu/qemu_monitor.c:3105 src/qemu/qemu_monitor.c:3129
 #: src/qemu/qemu_monitor.c:3150 src/qemu/qemu_monitor.c:3180
 #: src/qemu/qemu_monitor.c:3202 src/qemu/qemu_monitor.c:3224
-#: src/qemu/qemu_monitor.c:3246 src/qemu/qemu_monitor.c:3269
-#: src/qemu/qemu_monitor.c:3290
+#: src/qemu/qemu_monitor.c:3247 src/qemu/qemu_monitor.c:3269
+#: src/qemu/qemu_monitor.c:3292 src/qemu/qemu_monitor.c:3313
 msgid "monitor must not be NULL"
 msgstr ""
 
@@ -13915,13 +13893,14 @@ msgstr ""
 #: src/qemu/qemu_monitor.c:1575
 #, c-format
 msgid "unsupported protocol type %s"
-msgstr ""
+msgstr "Nicht unterstützter Protokolltyp %s"
 
 #: src/qemu/qemu_monitor.c:1857 src/qemu/qemu_monitor.c:3111
 #: src/qemu/qemu_monitor.c:3135 src/qemu/qemu_monitor.c:3156
 #: src/qemu/qemu_monitor.c:3186 src/qemu/qemu_monitor.c:3208
-#: src/qemu/qemu_monitor.c:3230 src/qemu/qemu_monitor.c:3252
-#: src/qemu/qemu_monitor.c:3275 src/qemu/qemu_monitor.c:3296
+#: src/qemu/qemu_monitor.c:3230 src/qemu/qemu_monitor.c:3253
+#: src/qemu/qemu_monitor.c:3275 src/qemu/qemu_monitor.c:3298
+#: src/qemu/qemu_monitor.c:3319
 msgid "JSON monitor is required"
 msgstr ""
 
@@ -14006,15 +13985,15 @@ msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:1184
 msgid "cpu reply was missing return data"
-msgstr ""
+msgstr "CPU-Antwort fehlten die Rückgabedaten"
 
 #: src/qemu/qemu_monitor_json.c:1190
 msgid "cpu information was not an array"
-msgstr ""
+msgstr "CPU-Informationen waren kein Array"
 
 #: src/qemu/qemu_monitor_json.c:1196
 msgid "cpu information was empty"
-msgstr ""
+msgstr "CPU-Informationen waren leer"
 
 #: src/qemu/qemu_monitor_json.c:1211 src/qemu/qemu_monitor_json.c:2815
 msgid "character device information was missing array element"
@@ -14022,12 +14001,12 @@ msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:1217
 msgid "cpu information was missing cpu number"
-msgstr ""
+msgstr "CPU-Informationen fehlte die CPU-Nummer"
 
 #: src/qemu/qemu_monitor_json.c:1230
 #, c-format
 msgid "unexpected cpu index %d expecting %d"
-msgstr ""
+msgstr "Unerwarteter CPU-Index %d, erwartet wird %d"
 
 #: src/qemu/qemu_monitor_json.c:1299
 msgid "info kvm reply was missing return data"
@@ -14109,12 +14088,12 @@ msgstr ""
 #: src/qemu/qemu_monitor_json.c:1912
 #, c-format
 msgid "cannot read %s statistic"
-msgstr ""
+msgstr "%s Statistiken können nicht gelesen werden"
 
 #: src/qemu/qemu_monitor_json.c:1752 src/qemu/qemu_monitor_json.c:1920
 #, c-format
 msgid "cannot find statistics for device '%s'"
-msgstr ""
+msgstr "Statistiken für Gerät »%s« können nicht gefunden werden"
 
 #: src/qemu/qemu_monitor_json.c:1899
 msgid "blockstats parent entry was not in expected format"
@@ -14132,7 +14111,7 @@ msgstr ""
 #: src/qemu/qemu_monitor_text.c:1509
 #, c-format
 msgid "unexpected migration status in %s"
-msgstr ""
+msgstr "Unerwarteter Migrationsstatus in %s"
 
 #: src/qemu/qemu_monitor_json.c:2320
 msgid "migration was active, but no RAM info was set"
@@ -14264,8 +14243,8 @@ msgstr ""
 msgid "only modern block pull supports speed: %llu"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3641 src/qemu/qemu_monitor_json.c:3805
-#: src/qemu/qemu_monitor_json.c:3838
+#: src/qemu/qemu_monitor_json.c:3641 src/qemu/qemu_monitor_json.c:3802
+#: src/qemu/qemu_monitor_json.c:3835
 #, c-format
 msgid "No active operation on device: %s"
 msgstr ""
@@ -14275,20 +14254,20 @@ msgstr ""
 msgid "Device %s in use"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3648 src/qemu/qemu_monitor_json.c:3808
-#: src/qemu/qemu_monitor_json.c:3841
+#: src/qemu/qemu_monitor_json.c:3648 src/qemu/qemu_monitor_json.c:3805
+#: src/qemu/qemu_monitor_json.c:3838
 #, c-format
 msgid "Operation is not supported for device: %s"
 msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:3652 src/qemu/qemu_monitor_text.c:3172
-#: src/qemu/qemu_monitor_text.c:3274
+#: src/qemu/qemu_monitor_text.c:3271
 #, c-format
 msgid "Command '%s' is not found"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3655 src/qemu/qemu_monitor_json.c:3811
-#: src/qemu/qemu_monitor_json.c:3844
+#: src/qemu/qemu_monitor_json.c:3655 src/qemu/qemu_monitor_json.c:3808
+#: src/qemu/qemu_monitor_json.c:3841
 msgid "Unexpected error"
 msgstr ""
 
@@ -14305,124 +14284,133 @@ msgstr ""
 msgid "block_io_throttle device entry was not in expected format"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3752
+#: src/qemu/qemu_monitor_json.c:3749
 msgid "block_io_throttle inserted entry was not in expected format"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3769
+#: src/qemu/qemu_monitor_json.c:3766
 #, c-format
 msgid "cannot find throttling info for device '%s'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3908
+#: src/qemu/qemu_monitor_json.c:3905
 msgid "query-version reply was missing 'return' data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3914
+#: src/qemu/qemu_monitor_json.c:3911
 msgid "query-version reply was missing 'qemu' data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3920
+#: src/qemu/qemu_monitor_json.c:3917
 msgid "query-version reply was missing 'major' version"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3925
+#: src/qemu/qemu_monitor_json.c:3922
 msgid "query-version reply was missing 'minor' version"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3930
+#: src/qemu/qemu_monitor_json.c:3927
 msgid "query-version reply was missing 'micro' version"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3938
+#: src/qemu/qemu_monitor_json.c:3935
 msgid "query-version reply was missing 'package' version"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3984
+#: src/qemu/qemu_monitor_json.c:3981
 msgid "query-machines reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:3990
+#: src/qemu/qemu_monitor_json.c:3987
 msgid "query-machines reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4013
+#: src/qemu/qemu_monitor_json.c:4010
 msgid "query-machines reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4025
+#: src/qemu/qemu_monitor_json.c:4022
 msgid "query-machines reply has malformed 'is-default' data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4032
+#: src/qemu/qemu_monitor_json.c:4029
 msgid "query-machines reply has malformed 'alias' data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4097
+#: src/qemu/qemu_monitor_json.c:4094
 msgid "query-cpu-definitions reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4103
+#: src/qemu/qemu_monitor_json.c:4100
 msgid "query-cpu-definitions reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4118
+#: src/qemu/qemu_monitor_json.c:4115
 msgid "query-cpu-definitions reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4171
+#: src/qemu/qemu_monitor_json.c:4168
 msgid "query-commands reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4177
+#: src/qemu/qemu_monitor_json.c:4174
 msgid "query-commands reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4192
+#: src/qemu/qemu_monitor_json.c:4189
 msgid "query-commands reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4250
+#: src/qemu/qemu_monitor_json.c:4247
 msgid "query-events reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4256
+#: src/qemu/qemu_monitor_json.c:4253
 msgid "query-events reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4271
+#: src/qemu/qemu_monitor_json.c:4268
 msgid "query-events reply data was missing 'name'"
 msgstr ""
 
 #: src/qemu/qemu_monitor_json.c:4324
+#, fuzzy
+msgid "query-kvm reply was missing return data"
+msgstr "CPU-Antwort fehlten die Rückgabedaten"
+
+#: src/qemu/qemu_monitor_json.c:4331
+msgid "query-kvm replied unexpected data"
+msgstr ""
+
+#: src/qemu/qemu_monitor_json.c:4372
 msgid "qom-list-types reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4330
+#: src/qemu/qemu_monitor_json.c:4378
 msgid "qom-list-types reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4345
+#: src/qemu/qemu_monitor_json.c:4393
 msgid "qom-list-types reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4406
+#: src/qemu/qemu_monitor_json.c:4454
 msgid "device-list-properties reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4412
+#: src/qemu/qemu_monitor_json.c:4460
 msgid "device-list-properties reply data was not an array"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4427
+#: src/qemu/qemu_monitor_json.c:4475
 msgid "device-list-properties reply data was missing 'name'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4475
+#: src/qemu/qemu_monitor_json.c:4523
 msgid "query-target reply was missing return data"
 msgstr ""
 
-#: src/qemu/qemu_monitor_json.c:4481
+#: src/qemu/qemu_monitor_json.c:4529
 msgid "query-target reply was missing arch data"
 msgstr ""
 
@@ -14464,7 +14452,7 @@ msgstr "»info blockstats« nicht unterstützt von diesem qemu"
 #: src/qemu/qemu_monitor_text.c:989
 #, c-format
 msgid "no stats found for device %s"
-msgstr ""
+msgstr "Keine Statistiken gefunden für Gerät %s"
 
 #: src/qemu/qemu_monitor_text.c:1066
 msgid "unable to query block extent with this QEMU"
@@ -14472,7 +14460,7 @@ msgstr ""
 
 #: src/qemu/qemu_monitor_text.c:1140
 msgid "setting VNC password failed"
-msgstr ""
+msgstr "Einstellen des VNC-Passworts fehlgeschlagen"
 
 #: src/qemu/qemu_monitor_text.c:1306
 #, c-format
@@ -14517,31 +14505,31 @@ msgstr ""
 #: src/qemu/qemu_monitor_text.c:1648
 #, c-format
 msgid "migration to '%s' failed: %s"
-msgstr ""
+msgstr "Migration nach »%s« fehlgeschlagen: %s"
 
 #: src/qemu/qemu_monitor_text.c:1655
 #, c-format
 msgid "migration to '%s' not supported by this qemu: %s"
-msgstr ""
+msgstr "Migration nach »%s« wird nicht unterstützt von diesem QEMU: %s"
 
 #: src/qemu/qemu_monitor_text.c:1736
 #, c-format
 msgid "unable to add USB disk %s: %s"
-msgstr ""
+msgstr "USB-Laufwerk kann nicht hinzugefügt werden %s: %s"
 
 #: src/qemu/qemu_monitor_text.c:1769
 msgid "adding usb device failed"
-msgstr ""
+msgstr "Hinzufügen von USB-Gerät fehlgeschlagen"
 
 #: src/qemu/qemu_monitor_text.c:1911 src/qemu/qemu_monitor_text.c:1992
 #, c-format
 msgid "parsing pci_add reply failed: %s"
-msgstr ""
+msgstr "Verarbeiten von pci_add reply fehlgeschlagen: %s"
 
 #: src/qemu/qemu_monitor_text.c:1960
 #, c-format
 msgid "adding %s disk failed %s: %s"
-msgstr ""
+msgstr "Hinzufügen von %s-Laufwerk fehlgeschlagen %s: %s"
 
 #: src/qemu/qemu_monitor_text.c:2046
 #, c-format
@@ -14571,7 +14559,7 @@ msgstr ""
 #: src/qemu/qemu_monitor_text.c:2356
 #, c-format
 msgid "adding %s disk controller failed: %s"
-msgstr ""
+msgstr "Hinzufügen von %s-Laufwerkscontroller fehlgeschlagen: %s"
 
 #: src/qemu/qemu_monitor_text.c:2445 src/qemu/qemu_monitor_text.c:2710
 msgid "drive hotplug is not supported"
@@ -14580,12 +14568,12 @@ msgstr ""
 #: src/qemu/qemu_monitor_text.c:2457
 #, c-format
 msgid "adding %s disk failed: %s"
-msgstr ""
+msgstr "Hinzufügen von %s-Laufwerk fehlgeschlagen: %s"
 
 #: src/qemu/qemu_monitor_text.c:2512
 #, c-format
 msgid "cannot parse value for %s"
-msgstr ""
+msgstr "Wert für %s kann nicht verarbeitet werden"
 
 #: src/qemu/qemu_monitor_text.c:2623
 #, c-format
@@ -14595,7 +14583,7 @@ msgstr ""
 #: src/qemu/qemu_monitor_text.c:2670
 #, c-format
 msgid "adding %s device failed: %s"
-msgstr ""
+msgstr "Hinzufügen von %s-Gerät fehlgeschlagen: %s"
 
 #: src/qemu/qemu_monitor_text.c:2716
 msgid "open disk image file failed"
@@ -14609,33 +14597,33 @@ msgstr ""
 #: src/qemu/qemu_monitor_text.c:2766
 #, c-format
 msgid "deleting %s drive failed: %s"
-msgstr ""
+msgstr "Löschen von %s-Gerät fehlgeschlagen: %s"
 
 #: src/qemu/qemu_monitor_text.c:2805
 msgid "setting disk password is not supported"
-msgstr ""
+msgstr "Einstellen eines Laufwerkpassworts wird nicht unterstützt"
 
 #: src/qemu/qemu_monitor_text.c:2809
 msgid "the disk password is incorrect"
-msgstr ""
+msgstr "Das Laufwerkpasswort ist falsch"
 
 #: src/qemu/qemu_monitor_text.c:2840 src/qemu/qemu_monitor_text.c:2982
 #, c-format
 msgid "Failed to take snapshot: %s"
-msgstr ""
+msgstr "Erstellen von Snapshot fehlgeschlagen: %s"
 
 #: src/qemu/qemu_monitor_text.c:2845
 msgid "this domain does not have a device to take snapshots"
-msgstr ""
+msgstr "Diese Domain hat kein Gerät zum Erstellen von Snapshots"
 
 #: src/qemu/qemu_monitor_text.c:2885
 msgid "this domain does not have a device to load snapshots"
-msgstr ""
+msgstr "Diese Domain hat kein Gerät zum Laden von Snapshots"
 
 #: src/qemu/qemu_monitor_text.c:2890
 #, c-format
 msgid "the snapshot '%s' does not exist, and was not loaded"
-msgstr ""
+msgstr "Der Snapshot »%s« existiert nicht und wurde nicht geladen"
 
 #: src/qemu/qemu_monitor_text.c:2939
 msgid "this domain does not have a device to delete snapshots"
@@ -14651,7 +14639,7 @@ msgstr ""
 msgid "failed to send key '%s'"
 msgstr ""
 
-#: src/qemu/qemu_monitor_text.c:3255
+#: src/qemu/qemu_monitor_text.c:3252
 #, c-format
 msgid "No info for device '%s'"
 msgstr ""
@@ -14760,9 +14748,8 @@ msgid "numad is not available on this host"
 msgstr ""
 
 #: src/qemu/qemu_process.c:1929
-#, fuzzy
 msgid "Failed to convert nodeset to cpuset"
-msgstr "Verbindung zu %s fehlgeschlagen"
+msgstr ""
 
 #: src/qemu/qemu_process.c:2005
 msgid "Setting of link state is not supported by this qemu"
@@ -14776,32 +14763,32 @@ msgstr ""
 #: src/qemu/qemu_process.c:2402
 #, c-format
 msgid "cannot find PCI address for VirtIO disk %s"
-msgstr ""
+msgstr "PCI-Adresse für VirtIO-Laufwerk %s kann nicht gefunden werden"
 
 #: src/qemu/qemu_process.c:2416
 #, c-format
 msgid "cannot find PCI address for %s NIC"
-msgstr ""
+msgstr "PCI-Adresse für %s Netzwerkkarte kann nicht gefunden werden"
 
 #: src/qemu/qemu_process.c:2430
 #, c-format
 msgid "cannot find PCI address for controller %s"
-msgstr ""
+msgstr "PCI-Adresse für Controller %s kann nicht gefunden werden"
 
 #: src/qemu/qemu_process.c:2444
 #, c-format
 msgid "cannot find PCI address for video adapter %s"
-msgstr ""
+msgstr "PCI-Adresse für Video-Adapter %s kann nicht gefunden werden"
 
 #: src/qemu/qemu_process.c:2458
 #, c-format
 msgid "cannot find PCI address for sound adapter %s"
-msgstr ""
+msgstr "PCI-Adresse für Sound-Adapter %s kann nicht gefunden werden"
 
 #: src/qemu/qemu_process.c:2471
 #, c-format
 msgid "cannot find PCI address for watchdog %s"
-msgstr ""
+msgstr "PCI-Adresse für Watchdog %s kann nicht gefunden werden"
 
 #: src/qemu/qemu_process.c:2483
 #, c-format
@@ -14848,7 +14835,7 @@ msgstr ""
 #: src/uml/uml_driver.c:1030
 #, c-format
 msgid "cannot create log directory %s"
-msgstr ""
+msgstr "Protokollverzeichnis %s kann nicht erstellt werden"
 
 #: src/qemu/qemu_process.c:3561
 msgid ""
@@ -14859,7 +14846,7 @@ msgstr ""
 
 #: src/qemu/qemu_process.c:3626
 msgid "Failed to build pidfile path."
-msgstr ""
+msgstr "Erstellung des pidfile-Pfads ist fehlgeschlagen."
 
 #: src/qemu/qemu_process.c:3633
 #, c-format
@@ -14976,7 +14963,7 @@ msgstr ""
 #: src/remote/remote_driver.c:1287
 #, c-format
 msgid "too many NUMA cells: %d > %d"
-msgstr ""
+msgstr "Zu viele NUMA-Zellen: %d > %d"
 
 #: src/remote/remote_driver.c:1326 src/remote/remote_driver.c:1340
 #, c-format
@@ -14998,7 +14985,7 @@ msgstr ""
 #: src/remote/remote_driver.c:1842 src/remote/remote_driver.c:2012
 #, c-format
 msgid "vCPU count exceeds maximum: %d > %d"
-msgstr ""
+msgstr "vCPU-Anzahl übersteigt Maximum: %d > %d"
 
 #: src/remote/remote_driver.c:1850 src/remote/remote_driver.c:1954
 #: src/remote/remote_driver.c:2019
@@ -15039,16 +15026,16 @@ msgstr ""
 
 #: src/remote/remote_driver.c:2304
 msgid "caller ignores cookie or cookielen"
-msgstr ""
+msgstr "Aufrufer ignoriert Cookie oder Cookielen"
 
 #: src/remote/remote_driver.c:2313 src/remote/remote_driver.c:5132
 msgid "caller ignores uri_out"
-msgstr ""
+msgstr "Aufrufer ignoriert uri_out"
 
 #: src/remote/remote_driver.c:2417
 #, c-format
 msgid "too many memory stats requested: %d > %d"
-msgstr ""
+msgstr "Zu viele Speicherstatistiken angefordert: %d > %d"
 
 #: src/remote/remote_driver.c:2461
 #, c-format
@@ -15086,7 +15073,7 @@ msgstr "Unkannter Authentifikationstyps %s"
 #: src/remote/remote_driver.c:3464
 #, c-format
 msgid "requested authentication type %s rejected"
-msgstr ""
+msgstr "Angeforderter Authentifizierungstyp %s abgelehnt"
 
 #: src/remote/remote_driver.c:3503
 #, c-format
@@ -15108,7 +15095,7 @@ msgstr ""
 #: src/remote/remote_driver.c:3908
 #, c-format
 msgid "SASL mechanism %s not supported by server"
-msgstr ""
+msgstr "SASL-Mechanismus %s wird nicht vom Server unterstützt"
 
 #: src/remote/remote_driver.c:3938
 #, c-format
@@ -15358,7 +15345,7 @@ msgstr ""
 #: src/rpc/virnetsaslcontext.c:85 src/rpc/virnetsaslcontext.c:114
 #, c-format
 msgid "failed to initialize SASL library: %d (%s)"
-msgstr ""
+msgstr "Initialisierung der SASL-Bibliothek fehlgeschlagen: %d (%s)"
 
 #: src/rpc/virnetsaslcontext.c:95 src/rpc/virnetsaslcontext.c:124
 #: src/rpc/virnetsaslcontext.c:201 src/rpc/virnetsaslcontext.c:243
@@ -15383,7 +15370,7 @@ msgstr ""
 #: src/rpc/virnetsaslcontext.c:218 src/rpc/virnetsaslcontext.c:261
 #, c-format
 msgid "Failed to create SASL client context: %d (%s)"
-msgstr ""
+msgstr "Erstellung des SASL-Clientkontexts fehlgeschlagen: %d (%s)"
 
 #: src/rpc/virnetsaslcontext.c:283
 #, c-format
@@ -15423,7 +15410,7 @@ msgstr "SASL-Mechanismen konnten nicht aufgelistet werden %d (%s)"
 #: src/rpc/virnetsaslcontext.c:613
 #, c-format
 msgid "Failed to start SASL negotiation: %d (%s)"
-msgstr ""
+msgstr "Starten der SASL-Verhandlung fehlgeschlagen: %d (%s)"
 
 #: src/rpc/virnetsaslcontext.c:522
 #, c-format
@@ -15527,7 +15514,7 @@ msgstr ""
 
 #: src/rpc/virnetsocket.c:614 src/rpc/virnetsocket.c:620
 msgid "unable to create socket pair"
-msgstr ""
+msgstr "Socket-Paar kann nicht erstellt werden"
 
 #: src/rpc/virnetsocket.c:658
 msgid "Tunnelling sockets not supported on this platform"
@@ -15568,9 +15555,8 @@ msgid "Missing isClient data in JSON document"
 msgstr ""
 
 #: src/rpc/virnetsocket.c:920
-#, fuzzy
 msgid "Unable to get peer socket name"
-msgstr "VIOS-Profilname konnte nicht abgerufen werden."
+msgstr ""
 
 #: src/rpc/virnetsocket.c:944
 msgid "Unable to save socket state when SASL session is active"
@@ -15719,11 +15705,8 @@ msgid "Cannot set min_workers data in JSON document"
 msgstr ""
 
 #: src/rpc/virnetserver.c:617
-#, fuzzy
 msgid "Cannot set max_workers data in JSON document"
 msgstr ""
-"Maximaler Speicher kann nicht geringer festgesetzt werden als derzeitiger "
-"Speicher"
 
 #: src/rpc/virnetserver.c:623
 msgid "Cannot set priority_workers data in JSON document"
@@ -16113,7 +16096,7 @@ msgstr ""
 
 #: src/rpc/virnettlscontext.c:135
 msgid "cannot get current time"
-msgstr ""
+msgstr "Aktuelle Zeit kann nicht abgerufen werden"
 
 #: src/rpc/virnettlscontext.c:142
 #, c-format
@@ -16232,23 +16215,23 @@ msgstr ""
 
 #: src/rpc/virnettlscontext.c:474 src/rpc/virnettlscontext.c:973
 msgid "Invalid certificate"
-msgstr ""
+msgstr "Ungültiges Zertifikat"
 
 #: src/rpc/virnettlscontext.c:477 src/rpc/virnettlscontext.c:976
 msgid "The certificate is not trusted."
-msgstr ""
+msgstr "Das Zertifikat ist nicht vertrauenswürdig."
 
 #: src/rpc/virnettlscontext.c:480 src/rpc/virnettlscontext.c:979
 msgid "The certificate hasn't got a known issuer."
-msgstr ""
+msgstr "Das Zertifikat hat keine bekannte Ausgabestelle."
 
 #: src/rpc/virnettlscontext.c:483 src/rpc/virnettlscontext.c:982
 msgid "The certificate has been revoked."
-msgstr ""
+msgstr "Das Zertifikat wurde widerrufen"
 
 #: src/rpc/virnettlscontext.c:487 src/rpc/virnettlscontext.c:986
 msgid "The certificate uses an insecure algorithm"
-msgstr ""
+msgstr "Das Zertifikat nutzt einen unsicheren Algorithmus"
 
 #: src/rpc/virnettlscontext.c:491
 #, c-format
@@ -16352,37 +16335,37 @@ msgstr ""
 
 #: src/rpc/virnettlscontext.c:1370
 msgid "invalid cipher size for TLS session"
-msgstr ""
+msgstr "Ungültige Schlüsselgröße für TLS-Sitzung"
 
 #: src/secret/secret_driver.c:176
-#, c-format
-msgid "mkstemp('%s') failed"
-msgstr ""
+#, fuzzy, c-format
+msgid "mkostemp('%s') failed"
+msgstr "mkstemp(»%s«) fehlgeschlagen"
 
 #: src/secret/secret_driver.c:180
 #, c-format
 msgid "fchmod('%s') failed"
-msgstr ""
+msgstr "fchmod(»%s«) fehlgeschlagen"
 
 #: src/secret/secret_driver.c:186
 #, c-format
 msgid "error writing to '%s'"
-msgstr ""
+msgstr "Fehler beim Schreiben auf »%s«"
 
 #: src/secret/secret_driver.c:191
 #, c-format
 msgid "error closing '%s'"
-msgstr ""
+msgstr "Fehler beim Schliessen von »%s«"
 
 #: src/secret/secret_driver.c:197
 #, c-format
 msgid "rename(%s, %s) failed"
-msgstr ""
+msgstr "rename(%s, %s) fehlgeschlagen"
 
 #: src/secret/secret_driver.c:247
 #, c-format
 msgid "cannot create '%s'"
-msgstr ""
+msgstr "»%s« kann nicht erstellt werden"
 
 #: src/secret/secret_driver.c:354
 #, c-format
@@ -16392,7 +16375,7 @@ msgstr ""
 #: src/secret/secret_driver.c:381 src/secret/secret_driver.c:488
 #, c-format
 msgid "cannot open '%s'"
-msgstr ""
+msgstr "»%s« kann nicht geöffnet werden"
 
 #: src/secret/secret_driver.c:385 src/util/virfile.c:577
 #, c-format
@@ -16402,17 +16385,17 @@ msgstr ""
 #: src/secret/secret_driver.c:390
 #, c-format
 msgid "'%s' file does not fit in memory"
-msgstr ""
+msgstr "»%s«-Datei passt nicht in den Speicher"
 
 #: src/secret/secret_driver.c:399
 #, c-format
 msgid "cannot read '%s'"
-msgstr ""
+msgstr "»%s« kann nicht gelesen werden"
 
 #: src/secret/secret_driver.c:406
 #, c-format
 msgid "invalid base64 in '%s'"
-msgstr ""
+msgstr "Ungültiges base64 in »%s«"
 
 #: src/secret/secret_driver.c:504
 #, c-format
@@ -16470,22 +16453,22 @@ msgstr ""
 #: src/security/security_apparmor.c:144
 #, c-format
 msgid "Failed to read '%s'"
-msgstr ""
+msgstr "Lesen von »%s« fehlgeschlagen"
 
 #: src/security/security_apparmor.c:252
 msgid "could not find libvirtd"
-msgstr ""
+msgstr "libvirtd konnte nicht gefunden werden"
 
 #: src/security/security_apparmor.c:293 src/security/security_apparmor.c:322
 #: src/security/security_apparmor.c:344 src/security/security_apparmor.c:697
 #, c-format
 msgid "cannot update AppArmor profile '%s'"
-msgstr ""
+msgstr "AppArmor-Profil »%s« kann nicht aktualisiert werden"
 
 #: src/security/security_apparmor.c:373
 #, c-format
 msgid "template '%s' does not exist"
-msgstr ""
+msgstr "Vorlage »%s« existiert nicht"
 
 #: src/security/security_apparmor.c:434
 msgid "Cannot set a base label with AppArmour"
@@ -16502,16 +16485,16 @@ msgstr ""
 
 #: src/security/security_apparmor.c:529
 msgid "error copying profile name"
-msgstr ""
+msgstr "Fehler beim Kopieren von Profilname"
 
 #: src/security/security_apparmor.c:535
 msgid "error calling profile_status()"
-msgstr ""
+msgstr "Fehler beim Aufrufen von profile_status()"
 
 #: src/security/security_apparmor.c:581
 #, c-format
 msgid "could not remove profile for '%s'"
-msgstr ""
+msgstr "Profil für »%s« konnte nicht entfernt werden"
 
 #: src/security/security_apparmor.c:607 src/security/security_selinux.c:1571
 #: src/security/security_selinux.c:1605 src/security/security_selinux.c:1643
@@ -16524,12 +16507,12 @@ msgstr ""
 
 #: src/security/security_apparmor.c:617
 msgid "error calling aa_change_profile()"
-msgstr ""
+msgstr "Fehler beim Aufruf von aa_change_profile()"
 
 #: src/security/security_apparmor.c:685
 #, c-format
 msgid "'%s' does not exist"
-msgstr ""
+msgstr "»%s« existiert nicht"
 
 #: src/security/security_apparmor.c:725
 #, c-format
@@ -16546,18 +16529,18 @@ msgid "Failed to determine default DAC seclabel for an unknown object"
 msgstr ""
 
 #: src/security/security_dac.c:163
-#, fuzzy, c-format
+#, c-format
 msgid "DAC seclabel couldn't be determined for domain '%s'"
-msgstr "Snapshot-Liste für Domain »%s« konnte nicht abgerufen werden"
+msgstr ""
 
 #: src/security/security_dac.c:214
 msgid "Failed to determine default DAC imagelabel for an unknown object"
 msgstr ""
 
 #: src/security/security_dac.c:224
-#, fuzzy, c-format
+#, c-format
 msgid "DAC imagelabel couldn't be determined for domain '%s'"
-msgstr "Snapshot-Liste für Domain »%s« konnte nicht abgerufen werden"
+msgstr ""
 
 #: src/security/security_dac.c:299
 #, c-format
@@ -16646,14 +16629,13 @@ msgid "Category range c%d-c%d too small"
 msgstr ""
 
 #: src/security/security_selinux.c:254
-#, fuzzy
 msgid "unable to allocate security context"
-msgstr "Zuweisen von Speicher für Pfad fehlgeschlagen"
+msgstr ""
 
 #: src/security/security_selinux.c:260
-#, fuzzy, c-format
+#, c-format
 msgid "unable to set security context range '%s'"
-msgstr "Speichergrenze für Domain %s kann nicht festgesetzt werden"
+msgstr ""
 
 #: src/security/security_selinux.c:266 src/security/security_selinux.c:340
 msgid "Unable to format SELinux context"
@@ -16721,12 +16703,12 @@ msgstr ""
 #: src/security/security_selinux.c:577 src/security/security_selinux.c:599
 #, c-format
 msgid "cannot generate selinux context for %s"
-msgstr ""
+msgstr "SELinux-Kontext für %s kann nicht generiert werden"
 
 #: src/security/security_selinux.c:657 src/security/security_selinux.c:758
 #, c-format
 msgid "unable to get PID %d security context"
-msgstr ""
+msgstr "Sicherheitskontext für PID %d konnte nicht abgerufen werden"
 
 #: src/security/security_selinux.c:675
 #, c-format
@@ -16740,12 +16722,12 @@ msgstr ""
 
 #: src/security/security_selinux.c:779
 msgid "error calling security_getenforce()"
-msgstr ""
+msgstr "Fehler beim Aufruf von security_getenforce()"
 
 #: src/security/security_selinux.c:816
 #, c-format
 msgid "unable to set security context '%s' on '%s'"
-msgstr ""
+msgstr "Sicherheitskontext »%s« auf »%s« konnte nicht gesetzt werden"
 
 #: src/security/security_selinux.c:825
 #, c-format
@@ -16762,7 +16744,7 @@ msgstr ""
 #: src/security/security_selinux.c:1431 src/security/security_selinux.c:1791
 #, c-format
 msgid "unknown smartcard type %d"
-msgstr ""
+msgstr "Unbekannter Smartcard-Typ %d"
 
 #: src/security/security_selinux.c:1581
 #, c-format
@@ -16772,12 +16754,12 @@ msgstr ""
 #: src/security/security_selinux.c:1615
 #, c-format
 msgid "unable to set security context '%s'"
-msgstr ""
+msgstr "Sicherheitskontext »%s« konnte nicht gesetzt werden"
 
 #: src/security/security_selinux.c:1652
 #, c-format
 msgid "unable to get current process context '%s'"
-msgstr ""
+msgstr "Aktueller Prozesskontext »%s« kann nicht abgerufen werden"
 
 #: src/security/security_selinux.c:1663 src/security/security_selinux.c:1704
 #, c-format
@@ -16790,9 +16772,9 @@ msgid "unable to clear socket security context '%s'"
 msgstr ""
 
 #: src/security/security_selinux.c:1902
-#, fuzzy, c-format
+#, c-format
 msgid "cannot stat tap fd %d"
-msgstr "kann fd nicht lesen"
+msgstr ""
 
 #: src/security/security_selinux.c:1908
 #, c-format
@@ -16822,6 +16804,20 @@ msgid ""
 "    -u | --uuid <uuid>             uuid (profile name)\n"
 "\n"
 msgstr ""
+"\n"
+"%s [Optionen] [< def.xml]\n"
+"\n"
+"  Optionen:\n"
+"    -a | --add                     Profil laden\n"
+"    -c | --create                  Profile aus Vorlage erstellen\n"
+"    -D | --delete                  Profile entladen und löschen\n"
+"    -f | --add-file <file>         Datei zu Profil hinzufügen\n"
+"    -F | --append-file <file>      Datei an Profil anhängen\n"
+"    -r | --replace                 Profil neu laden\n"
+"    -R | --remove                  Profil entladen\n"
+"    -h | --help                    Diese Hilfe\n"
+"    -u | --uuid <uuid>             UUID (Profilname)\n"
+"\n"
 
 #: src/security/virt-aa-helper.c:116
 msgid ""
@@ -16831,12 +16827,12 @@ msgstr ""
 #: src/security/virt-aa-helper.c:124
 #, c-format
 msgid "%s: error: %s%c"
-msgstr ""
+msgstr "%s: Fehler: %s%c"
 
 #: src/security/virt-aa-helper.c:136
 #, c-format
 msgid "%s: warning: %s%c"
-msgstr ""
+msgstr "%s: Warnung: %s%c"
 
 #: src/security/virt-aa-helper.c:142
 #, c-format
@@ -16844,6 +16840,8 @@ msgid ""
 "%s:\n"
 "%s%c"
 msgstr ""
+"%s:\n"
+"%s%c"
 
 #: src/security/virt-aa-helper.c:159
 msgid "could not find replacement string"
@@ -16855,7 +16853,7 @@ msgstr ""
 
 #: src/security/virt-aa-helper.c:176 src/security/virt-aa-helper.c:184
 msgid "not enough space in target buffer"
-msgstr ""
+msgstr "Kein ausreichender Platz in Zielpuffer"
 
 #: src/security/virt-aa-helper.c:192
 msgid "error replacing string"
@@ -16867,32 +16865,32 @@ msgstr ""
 
 #: src/security/virt-aa-helper.c:222
 msgid "profile name exceeds maximum length"
-msgstr ""
+msgstr "Profilname übersteigt maximale Länge"
 
 #: src/security/virt-aa-helper.c:227
 msgid "profile does not exist"
-msgstr ""
+msgstr "Profil existiert nicht"
 
 #: src/security/virt-aa-helper.c:236
 msgid "failed to run apparmor_parser"
-msgstr ""
+msgstr "Ausführen von apparmor_parser fehlgeschlagen"
 
 #: src/security/virt-aa-helper.c:240
 msgid "unable to unload already unloaded profile"
-msgstr ""
+msgstr "Bereits entladenes Profil kann nicht entladen werden"
 
 #: src/security/virt-aa-helper.c:242
 msgid "apparmor_parser exited with error"
-msgstr ""
+msgstr "apparmor_parser beendete mit Fehler"
 
 #: src/security/virt-aa-helper.c:279 src/security/virt-aa-helper.c:284
 #: src/security/virt-aa-helper.c:395
 msgid "could not allocate memory for profile"
-msgstr ""
+msgstr "Speicher für Profil konnte nicht zugewiesen werden"
 
 #: src/security/virt-aa-helper.c:291 src/security/virt-aa-helper.c:390
 msgid "invalid length for new profile"
-msgstr ""
+msgstr "Ungültige Länge für neues Profil"
 
 #: src/security/virt-aa-helper.c:303
 msgid "failed to create include file"
@@ -16900,27 +16898,27 @@ msgstr ""
 
 #: src/security/virt-aa-helper.c:309 src/security/virt-aa-helper.c:415
 msgid "failed to write to profile"
-msgstr ""
+msgstr "Schreiben in Profil fehlgeschlagen"
 
 #: src/security/virt-aa-helper.c:314 src/security/virt-aa-helper.c:420
 msgid "failed to close or write to profile"
-msgstr ""
+msgstr "Schreiben in Profil oder Schliessen des Profils fehlgeschlagen"
 
 #: src/security/virt-aa-helper.c:345 src/security/virt-aa-helper.c:1229
 msgid "profile exists"
-msgstr ""
+msgstr "Profil existiert"
 
 #: src/security/virt-aa-helper.c:350
 msgid "template name exceeds maximum length"
-msgstr ""
+msgstr "Vorlagenname übersteigt die maximale Länge"
 
 #: src/security/virt-aa-helper.c:355
 msgid "template does not exist"
-msgstr ""
+msgstr "Vorlage existiert nicht"
 
 #: src/security/virt-aa-helper.c:360
 msgid "failed to read AppArmor template"
-msgstr ""
+msgstr "Lesen von AppArmor-Vorlage fehlgeschlagen"
 
 #: src/security/virt-aa-helper.c:365 src/security/virt-aa-helper.c:370
 msgid "no replacement string in template"
@@ -16928,35 +16926,35 @@ msgstr ""
 
 #: src/security/virt-aa-helper.c:376
 msgid "could not allocate memory for profile name"
-msgstr ""
+msgstr "Speicher für Profilname konnte nicht zugewiesen werden"
 
 #: src/security/virt-aa-helper.c:382
 msgid "could not allocate memory for profile files"
-msgstr ""
+msgstr "Speicher für Profildateien konnte nicht zugewiesen werden"
 
 #: src/security/virt-aa-helper.c:409
 msgid "failed to create profile"
-msgstr ""
+msgstr "Profil konnte nicht erstellt werden"
 
 #: src/security/virt-aa-helper.c:560
 msgid "bad pathname"
-msgstr ""
+msgstr "Fehlerhafter Pfadname"
 
 #: src/security/virt-aa-helper.c:575
 msgid "path does not exist, skipping file type checks"
-msgstr ""
+msgstr "Pfad existiert nicht, Dateityp-Prüfung wird übersprungen"
 
 #: src/security/virt-aa-helper.c:615
 msgid "Invalid context"
-msgstr ""
+msgstr "Ungültiger Kontext"
 
 #: src/security/virt-aa-helper.c:621
 msgid "Could not find <name>"
-msgstr ""
+msgstr "<name> konnte nicht gefunden werden"
 
 #: src/security/virt-aa-helper.c:628
 msgid "Could not find <uuid>"
-msgstr ""
+msgstr "<uuid> konnte nicht gefunden werden"
 
 #: src/security/virt-aa-helper.c:660
 msgid "unexpected root element, expecting <domain>"
@@ -16972,19 +16970,19 @@ msgstr ""
 #: src/security/virt-aa-helper.c:1211 src/security/virt-aa-helper.c:1215
 #: src/security/virt-aa-helper.c:1275
 msgid "could not allocate memory"
-msgstr ""
+msgstr "Speicher konnte nicht zugewiesen werden"
 
 #: src/security/virt-aa-helper.c:741
 msgid "could not parse XML"
-msgstr ""
+msgstr "XML konnte nicht verarbeitet werden"
 
 #: src/security/virt-aa-helper.c:746
 msgid "could not find name in XML"
-msgstr ""
+msgstr "Name konnte nicht in XML gefunden werden"
 
 #: src/security/virt-aa-helper.c:751
 msgid "bad name"
-msgstr ""
+msgstr "Fehlerhafter Name"
 
 #: src/security/virt-aa-helper.c:777
 msgid "skipped non-absolute path"
@@ -17000,27 +16998,27 @@ msgstr ""
 
 #: src/security/virt-aa-helper.c:917
 msgid "given uuid does not match XML uuid"
-msgstr ""
+msgstr "Angegebene UUID stimmt nicht mit XML-UUID überein"
 
 #: src/security/virt-aa-helper.c:1057
 msgid "failed to allocate file buffer"
-msgstr ""
+msgstr "Dateipuffer konnte nicht zugewiesen werden"
 
 #: src/security/virt-aa-helper.c:1106
 msgid "could not allocate memory for disk"
-msgstr ""
+msgstr "Speicher für Laufwerk konnte nicht zugewiesen werden"
 
 #: src/security/virt-aa-helper.c:1121 src/security/virt-aa-helper.c:1141
 msgid "invalid UUID"
-msgstr ""
+msgstr "Ungültige UUID"
 
 #: src/security/virt-aa-helper.c:1124
 msgid "error copying UUID"
-msgstr ""
+msgstr "Fehler beim Kopieren der UUID"
 
 #: src/security/virt-aa-helper.c:1133
 msgid "unsupported option"
-msgstr ""
+msgstr "Nicht unterstützte Option"
 
 #: src/security/virt-aa-helper.c:1138
 msgid "bad command"
@@ -17028,40 +17026,40 @@ msgstr ""
 
 #: src/security/virt-aa-helper.c:1151
 msgid "could not read xml file"
-msgstr ""
+msgstr "XML-Datei konnte nicht gelesen werden"
 
 #: src/security/virt-aa-helper.c:1155
 msgid "could not get VM definition"
-msgstr ""
+msgstr "VM-Definition konnte nicht abgerufen werden"
 
 #: src/security/virt-aa-helper.c:1160
 msgid "invalid VM definition"
-msgstr ""
+msgstr "Ungültige VM-Definition"
 
 #: src/security/virt-aa-helper.c:1192
 msgid "could not set PATH"
-msgstr ""
+msgstr "PATH konnte nicht eingestellt werden"
 
 #: src/security/virt-aa-helper.c:1196
 msgid "could not set IFS"
-msgstr ""
+msgstr "IFS konnte nicht eingestellt werden"
 
 #: src/security/virt-aa-helper.c:1207
 msgid "could not parse arguments"
-msgstr ""
+msgstr "Parameter konnten nicht verarbeitet werden"
 
 #: src/security/virt-aa-helper.c:1254
 msgid "failed to allocate buffer"
-msgstr ""
+msgstr "Puffer konnte nicht zugewiesen werden"
 
 #: src/security/virt-aa-helper.c:1285
 msgid "could not create profile"
-msgstr ""
+msgstr "Profil konnte nicht erstellt werden"
 
 #: src/storage/parthelper.c:82
 #, c-format
 msgid "syntax: %s DEVICE [-g]\n"
-msgstr ""
+msgstr "Syntax: %s GERÄT [-g]\n"
 
 #: src/storage/parthelper.c:103
 #, c-format
@@ -17076,12 +17074,12 @@ msgstr ""
 #: src/storage/storage_backend.c:151
 #, c-format
 msgid "could not open input path '%s'"
-msgstr ""
+msgstr "Eingabepfad »%s« kann nicht geöffnet werden"
 
 #: src/storage/storage_backend.c:187
 #, c-format
 msgid "failed reading from file '%s'"
-msgstr ""
+msgstr "Lesen aus Datei »%s« fehlgeschlagen"
 
 #: src/storage/storage_backend.c:204 src/storage/storage_backend.c:324
 #, c-format
@@ -17091,7 +17089,7 @@ msgstr ""
 #: src/storage/storage_backend.c:211
 #, c-format
 msgid "failed writing to file '%s'"
-msgstr ""
+msgstr "Schreiben in Datei »%s« fehlgeschlagen"
 
 #: src/storage/storage_backend.c:221 src/storage/storage_backend.c:371
 #, c-format
@@ -17102,14 +17100,14 @@ msgstr ""
 #: src/storage/storage_backend_logical.c:763
 #, c-format
 msgid "cannot close file '%s'"
-msgstr ""
+msgstr "Schliessen der Datei »%s« fehlgeschlagen"
 
 #: src/storage/storage_backend.c:263 src/storage/storage_backend.c:411
 #: src/storage/storage_backend_fs.c:768 src/storage/storage_backend_fs.c:785
 #: src/storage/storage_backend_fs.c:1040
 #, c-format
 msgid "cannot create path '%s'"
-msgstr ""
+msgstr "Pfad »%s« kann nicht erstellt werden"
 
 #: src/storage/storage_backend.c:278 src/util/util.c:798 src/util/util.c:1101
 #: src/util/util.c:1197
@@ -17132,11 +17130,11 @@ msgstr ""
 #: src/storage/storage_backend_logical.c:706
 #: src/storage/storage_backend_rbd.c:434
 msgid "storage pool does not support encrypted volumes"
-msgstr ""
+msgstr "Speicherpool unterstützt keine verschlüsselten Datenträger"
 
 #: src/storage/storage_backend.c:446
 msgid "too many conflicts when generating an uuid"
-msgstr ""
+msgstr "Zu viele Konflikte beim Generieren einer UUID"
 
 #: src/storage/storage_backend.c:476
 msgid "secrets already defined"
@@ -17160,7 +17158,7 @@ msgstr ""
 #: src/storage/storage_backend.c:692 src/storage/storage_backend.c:698
 #, c-format
 msgid "unknown storage vol type %d"
-msgstr ""
+msgstr "Unbekannter Speicherdatenträgertyp %d"
 
 #: src/storage/storage_backend.c:715
 msgid "a different backing store cannot be specified."
@@ -17184,7 +17182,7 @@ msgstr ""
 #: src/storage/storage_backend.c:761
 #, c-format
 msgid "unsupported volume encryption format %d"
-msgstr ""
+msgstr "Unbekanntes Datenträgerverschlüsselungsformat %d"
 
 #: src/storage/storage_backend.c:767
 msgid "too many secrets for qcow encryption"
@@ -17197,7 +17195,7 @@ msgstr ""
 #: src/storage/storage_backend.c:887
 #, c-format
 msgid "unsupported storage vol type %d"
-msgstr ""
+msgstr "Nicht unterstützter Speicherdatenträgertyp %d"
 
 #: src/storage/storage_backend.c:893
 msgid "copy-on-write image not supported with qcow-create"
@@ -17219,12 +17217,12 @@ msgstr ""
 #: src/storage/storage_backend.c:1043
 #, c-format
 msgid "cannot open volume '%s'"
-msgstr ""
+msgstr "Datenträger »%s« kann nicht geöffnet werden"
 
 #: src/storage/storage_backend.c:1079
 #, c-format
 msgid "unexpected storage mode for '%s'"
-msgstr ""
+msgstr "Unerwarteter Speichermodus für »%s«"
 
 #: src/storage/storage_backend.c:1203
 #, c-format
@@ -17234,7 +17232,7 @@ msgstr ""
 #: src/storage/storage_backend.c:1233
 #, c-format
 msgid "cannot get file context of '%s'"
-msgstr ""
+msgstr "Dateikontext von »%s« kann nicht abgerufen werden"
 
 #: src/storage/storage_backend.c:1303
 #, c-format
@@ -17249,7 +17247,7 @@ msgstr ""
 #: src/storage/storage_backend.c:1384
 #, c-format
 msgid "cannot read dir '%s'"
-msgstr ""
+msgstr "Verzeichnis »%s« kann nicht gelesen werden"
 
 #: src/storage/storage_backend.c:1477
 #: src/storage/storage_backend_logical.c:212
@@ -17272,7 +17270,7 @@ msgstr ""
 #: src/storage/storage_backend.c:1679 src/storage/storage_backend.c:1692
 #, c-format
 msgid "%s not implemented on Win32"
-msgstr ""
+msgstr "%s nicht implementiert auf Win32"
 
 #: src/storage/storage_backend_disk.c:110
 msgid "cannot parse device start location"
@@ -17301,19 +17299,20 @@ msgstr ""
 
 #: src/storage/storage_backend_disk.c:472
 msgid "Invalid partition type"
-msgstr ""
+msgstr "Ungültiger Partitionstyp"
 
 #: src/storage/storage_backend_disk.c:481
 msgid "extended partition already exists"
-msgstr ""
+msgstr "Erweiterte Partition existiert bereits"
 
 #: src/storage/storage_backend_disk.c:516
 msgid "no extended partition found and no primary partition available"
 msgstr ""
+"Keine erweiterte Partition gefunden und keine primäre Partition verfügbar"
 
 #: src/storage/storage_backend_disk.c:522
 msgid "unknown partition type"
-msgstr ""
+msgstr "Unbekannter Partitionstyp"
 
 #: src/storage/storage_backend_disk.c:606
 msgid "no large enough free extent"
@@ -17332,7 +17331,7 @@ msgstr ""
 #: src/storage/storage_backend_disk.c:747
 #, c-format
 msgid "cannot parse partition number from target '%s'"
-msgstr ""
+msgstr "Partitionsnummer von Ziel »%s« kann nicht verarbeitet werden"
 
 #: src/storage/storage_backend_fs.c:112
 #, c-format
@@ -17342,12 +17341,12 @@ msgstr ""
 #: src/storage/storage_backend_fs.c:190
 #, c-format
 msgid "invalid netfs path (no /): %s"
-msgstr ""
+msgstr "Ungültiger netfs-Pfad (kein /): %s"
 
 #: src/storage/storage_backend_fs.c:196
 #, c-format
 msgid "invalid netfs path (ends in /): %s"
-msgstr ""
+msgstr "Ungültiger netfs-Pfad (endet mit /): %s"
 
 #: src/storage/storage_backend_fs.c:258 src/test/test_driver.c:4147
 msgid "hostname must be specified for netfs sources"
@@ -17440,7 +17439,7 @@ msgstr ""
 #: src/storage/storage_backend_fs.c:758
 #, c-format
 msgid "path '%s' is not absolute"
-msgstr ""
+msgstr "Pfad »%s« ist nicht absolut"
 
 #: src/storage/storage_backend_fs.c:890
 #, c-format
@@ -17450,7 +17449,7 @@ msgstr ""
 #: src/storage/storage_backend_fs.c:976
 #, c-format
 msgid "failed to remove pool '%s'"
-msgstr ""
+msgstr "Entfernen des Pools »%s« fehlgeschlagen"
 
 #: src/storage/storage_backend_fs.c:1030
 msgid "cannot copy from volume to a directory volume"
@@ -17513,7 +17512,7 @@ msgstr ""
 #: src/storage/storage_backend_iscsi.c:227
 #, c-format
 msgid "Unexpected line > %d characters when parsing output of '%s'"
-msgstr ""
+msgstr "Unerwartete Zeile > %d Zeichen beim Verarbeiten der Ausgabe von »%s«"
 
 #: src/storage/storage_backend_iscsi.c:245
 #, c-format
@@ -17524,16 +17523,21 @@ msgstr ""
 #, c-format
 msgid "Failed to run command '%s' to create new iscsi interface"
 msgstr ""
+"Ausführen des Befehls »%s« zur Erstellung einer neuen ISCSI-Schnittstelle "
+"ist fehlgeschlagen"
 
 #: src/storage/storage_backend_iscsi.c:326
 #, c-format
 msgid "Failed to run command '%s' to update iscsi interface with IQN '%s'"
 msgstr ""
+"Ausführen des Befehls »%s« zur Aktualisierung einer iSCSI-Schnittstelle mit "
+"IQN »%s« ist fehlgeschlagen"
 
 #: src/storage/storage_backend_iscsi.c:421
 #, c-format
 msgid "Failed to get host number for iSCSI session with path '%s'"
 msgstr ""
+"Abrufen der Host-Nummer für iSCSI-Sitzung mit Pfad »%s« ist fehlgeschlagen"
 
 #: src/storage/storage_backend_iscsi.c:429
 #, c-format
@@ -17575,7 +17579,7 @@ msgstr ""
 #: src/storage/storage_backend_logical.c:525
 #, c-format
 msgid "cannot open device '%s'"
-msgstr ""
+msgstr "Gerät »%s« kann nicht geöffnet werden"
 
 #: src/storage/storage_backend_logical.c:531
 #, c-format
@@ -17590,27 +17594,27 @@ msgstr ""
 #: src/storage/storage_backend_logical.c:545
 #, c-format
 msgid "cannot close device '%s'"
-msgstr ""
+msgstr "Gerät »%s« kann nicht geschlossen werden"
 
 #: src/storage/storage_backend_logical.c:749
 #, c-format
 msgid "cannot set file owner '%s'"
-msgstr ""
+msgstr "Dateibesitzer kann nicht auf »%s« festgelegt werden"
 
 #: src/storage/storage_backend_logical.c:756
 #, c-format
 msgid "cannot set file mode '%s'"
-msgstr ""
+msgstr "Dateimodus »%s« kann nicht eingestellt werden"
 
 #: src/storage/storage_backend_logical.c:772
 #, c-format
 msgid "cannot find newly created volume '%s'"
-msgstr ""
+msgstr "Neu erstellter Datenträger »%s« kann nicht gefunden werden"
 
 #: src/storage/storage_backend_mpath.c:232
 #, c-format
 msgid "Failed to get %s minor number"
-msgstr ""
+msgstr "Abrufen der %s Minor-Nummer fehlgeschlagen"
 
 #: src/storage/storage_backend_rbd.c:69
 msgid "failed to initialize RADOS"
@@ -17709,7 +17713,7 @@ msgstr ""
 #: src/storage/storage_backend_scsi.c:271
 #, c-format
 msgid "Failed to update volume for '%s'"
-msgstr ""
+msgstr "Aktualisieren von Datenträger für »%s« ist fehlgeschlagen"
 
 #: src/storage/storage_backend_scsi.c:323
 #: src/storage/storage_backend_scsi.c:412
@@ -17720,7 +17724,7 @@ msgstr ""
 #: src/storage/storage_backend_scsi.c:370
 #, c-format
 msgid "Failed to parse block name %s"
-msgstr ""
+msgstr "Verarbeiten von Blockname %s ist fehlgeschlagen"
 
 #: src/storage/storage_backend_scsi.c:458
 #, c-format
@@ -17760,12 +17764,12 @@ msgstr ""
 #: src/storage/storage_driver.c:88 src/storage/storage_driver.c:101
 #: src/storage/storage_driver.c:115
 msgid "no error message found"
-msgstr ""
+msgstr "Keine Fehlermeldung gefunden"
 
 #: src/storage/storage_driver.c:99 src/storage/storage_driver.c:113
 #, c-format
 msgid "Failed to autostart storage pool '%s': %s"
-msgstr ""
+msgstr "Autostart von Speicherpool »%s« fehlgeschlagen: %s"
 
 #: src/storage/storage_driver.c:272 src/storage/storage_driver.c:624
 #: src/storage/storage_driver.c:683 src/storage/storage_driver.c:730
@@ -17776,9 +17780,9 @@ msgstr ""
 #: src/storage/storage_driver.c:1130 src/storage/storage_driver.c:1180
 #: src/storage/storage_driver.c:1242 src/storage/storage_driver.c:1376
 #: src/storage/storage_driver.c:1505
-#, fuzzy, c-format
+#, c-format
 msgid "no storage pool with matching uuid %s"
-msgstr "kein Pool mit passender UUID"
+msgstr ""
 
 #: src/storage/storage_driver.c:297 src/storage/storage_driver.c:1511
 #: src/storage/storage_driver.c:1665 src/storage/storage_driver.c:1728
@@ -17787,7 +17791,7 @@ msgstr "kein Pool mit passender UUID"
 #: src/storage/storage_driver.c:2291 src/storage/storage_driver.c:2339
 #, c-format
 msgid "no storage pool with matching name '%s'"
-msgstr ""
+msgstr "Kein Speicherpool mit übereinstimmendem Namen »%s«"
 
 #: src/storage/storage_driver.c:456 src/test/test_driver.c:4158
 #, c-format
@@ -17807,35 +17811,37 @@ msgstr ""
 
 #: src/storage/storage_driver.c:851
 msgid "pool does not support pool deletion"
-msgstr ""
+msgstr "Pool unterstützt keine Pool-Löschung"
 
 #: src/storage/storage_driver.c:1296
-#, fuzzy, c-format
+#, c-format
 msgid "no storage vol with matching key %s"
-msgstr "Kein Netzwerk mit übereinstimmendem Namen »%s«"
+msgstr ""
 
 #: src/storage/storage_driver.c:1348
-#, fuzzy, c-format
+#, c-format
 msgid "no storage vol with matching path %s"
-msgstr "Kein SpeichNo storage volume with key or path »%s«"
+msgstr ""
 
 #: src/storage/storage_driver.c:1395
-#, fuzzy, c-format
+#, c-format
 msgid "storage vol '%s' already exists"
-msgstr "Speicher-Volumen bereits vorhanden"
+msgstr ""
 
 #: src/storage/storage_driver.c:1407
 msgid "storage pool does not support volume creation"
-msgstr ""
+msgstr "Speicherpool unterstützt keine Datenträgererstellung"
 
 #: src/storage/storage_driver.c:1546
 #, c-format
 msgid "storage volume name '%s' already in use."
-msgstr ""
+msgstr "Speicherdatenträger-Name »%s« wird bereits verwendet."
 
 #: src/storage/storage_driver.c:1562
 msgid "storage pool does not support volume creation from an existing volume"
 msgstr ""
+"Speicherpool unterstützt nicht die Datenträgererstellung von einem "
+"vorhandenen Datenträger"
 
 #: src/storage/storage_driver.c:1568 src/storage/storage_driver.c:1687
 #: src/storage/storage_driver.c:1750 src/storage/storage_driver.c:1817
@@ -17875,6 +17881,7 @@ msgstr ""
 #, c-format
 msgid "Failed to write %zu bytes to storage volume with path '%s'"
 msgstr ""
+"Schreiben von %zu Bytes nach Speicherdatenträger mit Pfad »%s« fehlgeschlagen"
 
 #: src/storage/storage_driver.c:1950
 #, c-format
@@ -17912,7 +17919,7 @@ msgstr ""
 
 #: src/test/test_driver.c:699
 msgid "resolving volume filename"
-msgstr ""
+msgstr "Datenträger-Dateiname wird aufgelöst"
 
 #: src/test/test_driver.c:792
 msgid "Root element is not 'node'"
@@ -17945,7 +17952,7 @@ msgstr ""
 #: src/test/test_driver.c:865 src/xenxs/xen_xm.c:711
 #, c-format
 msgid "Model %s too big for destination"
-msgstr ""
+msgstr "Modell %s zu gross für Ziel"
 
 #: src/test/test_driver.c:877
 msgid "invalid node memory value"
@@ -17961,15 +17968,15 @@ msgstr "Netzwerk-Dateinamen auflösen"
 
 #: src/test/test_driver.c:974
 msgid "resolving interface filename"
-msgstr ""
+msgstr "Schnittstellenname wird aufgelöst"
 
 #: src/test/test_driver.c:1011
 msgid "resolving pool filename"
-msgstr ""
+msgstr "Pool-Dateiname wird aufgelöst"
 
 #: src/test/test_driver.c:1063
 msgid "resolving device filename"
-msgstr ""
+msgstr "Gerätedateiname wird aufgelöst"
 
 #: src/test/test_driver.c:1134
 msgid "testOpen: supply a path or use test:///default"
@@ -17978,12 +17985,12 @@ msgstr "testOpen: Pfad angeben oder test:///default verwenden"
 #: src/test/test_driver.c:1488
 #, c-format
 msgid "domain '%s' not paused"
-msgstr ""
+msgstr "Domain »%s« nicht pausiert"
 
 #: src/test/test_driver.c:1531 src/test/test_driver.c:1575
 #, c-format
 msgid "domain '%s' not running"
-msgstr ""
+msgstr "Domain »%s« läuft nicht"
 
 #: src/test/test_driver.c:1696 src/test/test_driver.c:2288
 #: src/test/test_driver.c:2813 src/test/test_driver.c:2868
@@ -18023,16 +18030,16 @@ msgstr ""
 #: src/test/test_driver.c:1899
 #, c-format
 msgid "failed to read metadata length in '%s'"
-msgstr ""
+msgstr "Lesen der Metadatenlänge in »%s« fehlgeschlagen"
 
 #: src/test/test_driver.c:1905
 msgid "length of metadata out of range"
-msgstr ""
+msgstr "Länge der Metadaten ausserhalb des gültigen Bereichs"
 
 #: src/test/test_driver.c:1914
 #, c-format
 msgid "incomplete metdata in '%s'"
-msgstr ""
+msgstr "Unvollständige Metadaten in »%s«"
 
 #: src/test/test_driver.c:1985
 #, c-format
@@ -18060,30 +18067,30 @@ msgstr ""
 
 #: src/test/test_driver.c:2280
 msgid "cannot list vcpus for an inactive domain"
-msgstr ""
+msgstr "vCPUs für inaktive Domain können nicht aufgelistet werden"
 
 #: src/test/test_driver.c:2372
 msgid "requested vcpu is higher than allocated vcpus"
-msgstr ""
+msgstr "Angeforderte vCPUs übersteigen zugewiesene vCPUs"
 
 #: src/test/test_driver.c:2513
 msgid "Range exceeds available cells"
-msgstr ""
+msgstr "Bereich übersteigt verfügbare Zellen"
 
 #: src/test/test_driver.c:2549
 #, c-format
 msgid "Domain '%s' is already running"
-msgstr ""
+msgstr "Domain »%s« läuft bereits"
 
 #: src/test/test_driver.c:3172
 #, c-format
 msgid "Network '%s' is still running"
-msgstr ""
+msgstr "Netzwerk »%s« läuft noch immer"
 
 #: src/test/test_driver.c:3253
 #, c-format
 msgid "Network '%s' is already running"
-msgstr ""
+msgstr "Netzwerk »%s« läuft bereits"
 
 #: src/test/test_driver.c:3608
 msgid "there is another transaction running."
@@ -18103,7 +18110,7 @@ msgstr "Speicher-Pool bereits vorhanden"
 
 #: src/test/test_driver.c:4646
 msgid "no storage pool with matching uuid"
-msgstr ""
+msgstr "Kein Speicherpool mit übereinstimmender UUID"
 
 #: src/test/test_driver.c:4652
 msgid "storage pool is not active"
@@ -18115,11 +18122,11 @@ msgstr ""
 
 #: src/uml/uml_conf.c:198
 msgid "TCP server networking type not supported"
-msgstr ""
+msgstr "TCP-Server-Netzwerktyp nicht unterstützt"
 
 #: src/uml/uml_conf.c:203
 msgid "TCP client networking type not supported"
-msgstr ""
+msgstr "TCP-Client-Netzwerktyp nicht unterstützt"
 
 #: src/uml/uml_conf.c:218
 #, c-format
@@ -18128,11 +18135,11 @@ msgstr "Netzwerk »%s« nicht gefunden"
 
 #: src/uml/uml_conf.c:249
 msgid "internal networking type not supported"
-msgstr ""
+msgstr "Interner Netzwerktyp nicht unterstützt"
 
 #: src/uml/uml_conf.c:254
 msgid "direct networking type not supported"
-msgstr ""
+msgstr "Direkter Netzwerktyp nicht unterstützt"
 
 #: src/uml/uml_conf.c:259
 msgid "hostdev networking type not supported"
@@ -18177,11 +18184,11 @@ msgstr ""
 #: src/uml/uml_driver.c:823
 #, c-format
 msgid "Unix path %s too long for destination"
-msgstr ""
+msgstr "Unix-Pfad %s zu lang für Ziel"
 
 #: src/uml/uml_driver.c:853
 msgid "cannot open socket"
-msgstr ""
+msgstr "Socket kann nicht geöffnet werden"
 
 #: src/uml/uml_driver.c:863
 msgid "cannot bind socket"
@@ -18190,36 +18197,36 @@ msgstr ""
 #: src/uml/uml_driver.c:917
 #, c-format
 msgid "cannot send too long command %s (%d bytes)"
-msgstr ""
+msgstr "Zu langer Befehl %s (%d Bytes) kann nicht gesendet werden"
 
 #: src/uml/uml_driver.c:923
 #, c-format
 msgid "Command %s too long for destination"
-msgstr ""
+msgstr "Befehl %s zu lang für Ziel"
 
 #: src/uml/uml_driver.c:930
 #, c-format
 msgid "cannot send command %s"
-msgstr ""
+msgstr "Befehl %s kann nicht gesendet werden"
 
 #: src/uml/uml_driver.c:943
 #, c-format
 msgid "cannot read reply %s"
-msgstr ""
+msgstr "Antwort %s kann nicht gelesen werden"
 
 #: src/uml/uml_driver.c:949
 #, c-format
 msgid "incomplete reply %s"
-msgstr ""
+msgstr "Unvollständige Antwort %s"
 
 #: src/uml/uml_driver.c:1014
 msgid "no kernel specified"
-msgstr ""
+msgstr "Kein Kernel angegeben"
 
 #: src/uml/uml_driver.c:1023
 #, c-format
 msgid "Cannot find UML kernel %s"
-msgstr ""
+msgstr "UML-Kernel %s kann nicht gefunden werden"
 
 #: src/uml/uml_driver.c:1053
 msgid "Unable to set VM logfile close-on-exec flag"
@@ -18228,12 +18235,12 @@ msgstr ""
 #: src/uml/uml_driver.c:1189
 #, c-format
 msgid "unexpected UML URI path '%s', try uml:///system"
-msgstr ""
+msgstr "Unerwarteter UML-URI-Pfad »%s«, versuchen Sie uml:///system"
 
 #: src/uml/uml_driver.c:1196
 #, c-format
 msgid "unexpected UML URI path '%s', try uml:///session"
-msgstr ""
+msgstr "Unerwarteter UML-URI-Pfad »%s«, versuchen Sie uml:///session"
 
 #: src/uml/uml_driver.c:1205
 msgid "uml state driver is not active"
@@ -18242,7 +18249,7 @@ msgstr ""
 #: src/uml/uml_driver.c:1455
 #, c-format
 msgid "cannot parse version %s"
-msgstr ""
+msgstr "Version %s kann nicht verarbeitet werden"
 
 #: src/uml/uml_driver.c:1561
 msgid "shutdown operation failed"
@@ -18254,7 +18261,7 @@ msgstr ""
 
 #: src/uml/uml_driver.c:1731
 msgid "cannot set memory of an active domain"
-msgstr ""
+msgstr "Speicher einer aktiven Domain kann nicht festgelegt werden"
 
 #: src/uml/uml_driver.c:2074
 msgid "cannot attach device on inactive domain"
@@ -18273,15 +18280,15 @@ msgstr ""
 #: src/uml/uml_driver.c:2385 tools/virsh-volume.c:555
 #, c-format
 msgid "cannot read %s"
-msgstr ""
+msgstr "%s kann nicht gelesen werden"
 
 #: src/util/cgroup.c:125
 msgid "Unable to open /proc/mounts"
-msgstr ""
+msgstr "/proc/mounts kann nicht geöffnet werden"
 
 #: src/util/cgroup.c:182
 msgid "Unable to open /proc/self/cgroup"
-msgstr ""
+msgstr "/proc/self/cgroup kann nicht geöffnet werden"
 
 #: src/util/cgroup.c:241
 #, c-format
@@ -18321,7 +18328,7 @@ msgstr ""
 #: src/util/cgroup.c:698
 #, c-format
 msgid "Unable to open %s (%d)"
-msgstr ""
+msgstr "%s kann nicht geöffnet werden (%d)"
 
 #: src/util/cgroup.c:709
 #, c-format
@@ -18331,7 +18338,7 @@ msgstr ""
 #: src/util/cgroup.c:730
 #, c-format
 msgid "Unable to remove %s (%d)"
-msgstr ""
+msgstr "%s kann nicht entfernt werden (%d)"
 
 #: src/util/cgroup.c:908
 #, c-format
@@ -18409,16 +18416,16 @@ msgstr ""
 
 #: src/util/command.c:612
 msgid "Could not disable SIGPIPE"
-msgstr ""
+msgstr "SIGPIPE konnte nicht deaktiviert werden"
 
 #: src/util/command.c:623
 msgid "Could not re-enable SIGPIPE"
-msgstr ""
+msgstr "SIGPIPE konnte nicht wieder aktiviert werden"
 
 #: src/util/command.c:643
 #, c-format
 msgid "cannot execute binary %s"
-msgstr ""
+msgstr "Binärdatei %s kann nicht ausgeführt werden"
 
 #: src/util/command.c:704
 msgid "virRun is not implemented for WIN32"
@@ -18432,7 +18439,7 @@ msgstr ""
 #: src/util/command.c:1918 src/util/command.c:2159 src/util/command.c:2258
 #: src/util/command.c:2385 src/util/command.c:2452
 msgid "invalid use of command API"
-msgstr ""
+msgstr "Unzulässige Verwendung der Befehls-API"
 
 #: src/util/command.c:1761
 msgid "unable to poll on child"
@@ -18520,7 +18527,7 @@ msgstr ""
 
 #: src/util/command.c:2264
 msgid "command is not yet running"
-msgstr ""
+msgstr "Befehl läuft noch nicht"
 
 #: src/util/command.c:2284
 #, c-format
@@ -18626,12 +18633,12 @@ msgstr ""
 #: src/util/hooks.c:105
 #, c-format
 msgid "Invalid hook name for #%d"
-msgstr ""
+msgstr "Ungültiger Hook-Name für #%d"
 
 #: src/util/hooks.c:112 src/util/hooks.c:264
 #, c-format
 msgid "Failed to build path for %s hook"
-msgstr ""
+msgstr "Erstellen von Pfad für %s-Hook fehlgeschlagen"
 
 #: src/util/hooks.c:251
 #, c-format
@@ -18641,22 +18648,22 @@ msgstr ""
 #: src/util/hostusb.c:88
 #, c-format
 msgid "Could not parse usb file %s"
-msgstr ""
+msgstr "USB-Datei %s konnte nicht verarbeitet werden"
 
 #: src/util/hostusb.c:119
 #, c-format
 msgid "Could not open directory %s"
-msgstr ""
+msgstr "Verzeichnis %s konnte nicht geöffnet werden"
 
 #: src/util/hostusb.c:144
 #, c-format
 msgid "Failed to parse dir name '%s'"
-msgstr ""
+msgstr "Verarbeiten von Verzeichnisname »%s« fehlgeschlagen "
 
 #: src/util/hostusb.c:213
 #, c-format
 msgid "Did not find USB device %x:%x"
-msgstr ""
+msgstr "USB-Gerät %x:%x konnte nicht gefunden werden"
 
 #: src/util/hostusb.c:249
 #, c-format
@@ -18710,66 +18717,71 @@ msgstr ""
 msgid "Unable to truncate %s"
 msgstr ""
 
-#: src/util/iohelper.c:187
+#: src/util/iohelper.c:184
+#, fuzzy, c-format
+msgid "unable to fsync %s"
+msgstr "%s kann nicht geöffnet werden"
+
+#: src/util/iohelper.c:193
 #, c-format
 msgid "Unable to close %s"
 msgstr ""
 
-#: src/util/iohelper.c:201
+#: src/util/iohelper.c:207
 #, c-format
 msgid "%s: try --help for more details"
 msgstr ""
 
-#: src/util/iohelper.c:203
+#: src/util/iohelper.c:209
 #, c-format
 msgid ""
 "Usage: %s FILENAME OFLAGS MODE OFFSET LENGTH DELETE\n"
 "   or: %s FILENAME LENGTH FD\n"
 msgstr ""
 
-#: src/util/iohelper.c:245
+#: src/util/iohelper.c:251
 #, c-format
 msgid "%s: malformed file flags %s"
 msgstr ""
 
-#: src/util/iohelper.c:250
+#: src/util/iohelper.c:256
 #, c-format
 msgid "%s: malformed file mode %s"
 msgstr ""
 
-#: src/util/iohelper.c:255
+#: src/util/iohelper.c:261
 #, c-format
 msgid "%s: malformed file offset %s"
 msgstr ""
 
-#: src/util/iohelper.c:260
+#: src/util/iohelper.c:266
 #, c-format
 msgid "%s: malformed delete flag %s"
 msgstr ""
 
-#: src/util/iohelper.c:268
+#: src/util/iohelper.c:274
 #, c-format
 msgid "%s: malformed fd %s"
 msgstr ""
 
-#: src/util/iohelper.c:282
+#: src/util/iohelper.c:288
 #, c-format
 msgid "%s: unable to determine access mode of fd %d"
 msgstr ""
 
-#: src/util/iohelper.c:291
+#: src/util/iohelper.c:297
 #, c-format
 msgid "%s: malformed file length %s"
 msgstr ""
 
-#: src/util/iohelper.c:309
+#: src/util/iohelper.c:315
 #, c-format
 msgid "%s: unknown failure with %s\n"
 msgstr ""
 
 #: src/util/iptables.c:337
 msgid "Only IPv4 or IPv6 addresses can be used with iptables"
-msgstr ""
+msgstr "Nur IPv4- oder IPv6-Adressesn können mit iptables verwendet werden"
 
 #: src/util/iptables.c:343
 msgid "Failure to mask address"
@@ -18898,7 +18910,7 @@ msgstr ""
 #: src/util/pci.c:1367
 #, c-format
 msgid "Device %s not found: could not access %s"
-msgstr ""
+msgstr "Gerät %s nicht gefunden: Zugriff auf %s nicht möglich"
 
 #: src/util/pci.c:1377
 #, c-format
@@ -18947,16 +18959,16 @@ msgstr ""
 #: src/util/processinfo.c:75 src/util/processinfo.c:93
 #, c-format
 msgid "cannot set CPU affinity on process %d"
-msgstr ""
+msgstr "CPU-Affinität auf Prozess %d kann nicht festgelegt werden"
 
 #: src/util/processinfo.c:137 src/util/processinfo.c:158
 #, c-format
 msgid "cannot get CPU affinity of process %d"
-msgstr ""
+msgstr "CPU-Affinität für Prozess %d kann nicht abgerufen werden"
 
 #: src/util/processinfo.c:176 src/util/processinfo.c:185
 msgid "Process CPU affinity is not supported on this platform"
-msgstr ""
+msgstr "Prozess-CPU-Affinität wird auf dieser Plattform nicht unterstützt"
 
 #: src/util/sexpr.c:242
 #, c-format
@@ -18965,73 +18977,83 @@ msgstr ""
 
 #: src/util/stats_linux.c:62
 msgid "Could not open /proc/net/dev"
-msgstr ""
+msgstr "/proc/net/dev konnte nicht geöffnet werden"
 
 #: src/util/stats_linux.c:118 src/xen/xen_hypervisor.c:1519
 msgid "/proc/net/dev: Interface not found"
 msgstr ""
 
-#: src/util/storage_file.c:802
+#: src/util/storage_file.c:542 src/util/storage_file.c:560
+#, fuzzy, c-format
+msgid "Can't canonicalize path '%s'"
+msgstr "Pfad »%s« kann nicht erstellt werden"
+
+#: src/util/storage_file.c:550
+#, c-format
+msgid "Directory name too long: '%s'"
+msgstr ""
+
+#: src/util/storage_file.c:815
 #, c-format
 msgid "cannot set to start of '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:807 src/util/storage_file.c:905
+#: src/util/storage_file.c:820 src/util/storage_file.c:918
 #, c-format
 msgid "cannot read header '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:838 src/util/storage_file.c:949
+#: src/util/storage_file.c:851 src/util/storage_file.c:962
 #, c-format
 msgid "cannot open file '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:895
+#: src/util/storage_file.c:908
 #, c-format
 msgid "cannot seek to start of '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:914
+#: src/util/storage_file.c:927
 #, c-format
 msgid "unknown storage file format %d"
-msgstr ""
+msgstr "Unbekanntes Speicherdateiformat %d"
 
-#: src/util/storage_file.c:941
+#: src/util/storage_file.c:954
 #, c-format
 msgid "backing store for %s is self-referential"
 msgstr ""
 
-#: src/util/storage_file.c:1044
+#: src/util/storage_file.c:1057
 #, c-format
 msgid "Unable to open '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:1049
+#: src/util/storage_file.c:1062
 #, c-format
 msgid "Failed to truncate file '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:1054
+#: src/util/storage_file.c:1067
 #, c-format
 msgid "Unable to save '%s'"
 msgstr ""
 
-#: src/util/storage_file.c:1105
+#: src/util/storage_file.c:1118
 #, c-format
 msgid "Invalid relative path '%s'"
-msgstr ""
+msgstr "Ungültiger relativer Pfad »%s«"
 
-#: src/util/storage_file.c:1123
+#: src/util/storage_file.c:1136
 #, c-format
 msgid "cannot determine filesystem for '%s'"
-msgstr ""
+msgstr "Dateisystem für »%s« kann nicht bestimmt werden"
 
-#: src/util/storage_file.c:1223
+#: src/util/storage_file.c:1236
 #, c-format
 msgid "Unable to get LVM key for %s"
 msgstr ""
 
-#: src/util/storage_file.c:1261
+#: src/util/storage_file.c:1274
 #, c-format
 msgid "Unable to get SCSI key for %s"
 msgstr ""
@@ -19048,7 +19070,7 @@ msgstr ""
 #: src/util/sysinfo.c:762
 #, c-format
 msgid "Failed to find path for %s binary"
-msgstr ""
+msgstr "Pfad für %s-Binärdatei konnte nicht gefunden werden"
 
 #: src/util/sysinfo.c:972
 #, c-format
@@ -19162,7 +19184,7 @@ msgstr ""
 #: src/util/util.c:2220
 #, c-format
 msgid "Disk index %d is negative"
-msgstr ""
+msgstr "Laufwerksindex %d ist negativ"
 
 #: src/util/util.c:2276
 msgid "failed to determine host name"
@@ -19179,24 +19201,24 @@ msgid "Failed to find group record for gid '%u'"
 msgstr ""
 
 #: src/util/util.c:2535
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to get user record for name '%s'"
-msgstr "Erstellung von Gerät für »%s« fehlgeschlagen"
+msgstr ""
 
 #: src/util/util.c:2576
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to parse user '%s'"
-msgstr "Verarbeiten des Modus »%s« fehlgeschlagen"
+msgstr ""
 
 #: src/util/util.c:2617
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to get group record for name '%s'"
-msgstr "Einhängen von Cgroup unter »%s« fehlgeschlagen"
+msgstr ""
 
 #: src/util/util.c:2658
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to parse group '%s'"
-msgstr "Verarbeiten des Modus »%s« fehlgeschlagen"
+msgstr ""
 
 #: src/util/util.c:2682
 #, c-format
@@ -19233,7 +19255,7 @@ msgstr ""
 
 #: src/util/util.c:2902
 msgid "virGetUserDirectory is not available"
-msgstr ""
+msgstr "virGetUserDirectory ist nicht verfügbar"
 
 #: src/util/util.c:2911
 msgid "virGetUserConfigDirectory is not available"
@@ -19249,19 +19271,19 @@ msgstr ""
 
 #: src/util/util.c:2939
 msgid "virGetUserName is not available"
-msgstr ""
+msgstr "virGetUserName ist nicht verfügbar"
 
 #: src/util/util.c:2948
 msgid "virGetUserID is not available"
-msgstr ""
+msgstr "virGetUserID ist nicht verfügbar"
 
 #: src/util/util.c:2958
 msgid "virGetGroupID is not available"
-msgstr ""
+msgstr "virGetGroupID ist nicht verfügbar"
 
 #: src/util/util.c:2968
 msgid "virSetUIDGID is not available"
-msgstr ""
+msgstr "virSetUIDGID ist nicht verfügbar"
 
 #: src/util/util.c:2976
 msgid "virGetGroupName is not available"
@@ -19279,17 +19301,17 @@ msgstr ""
 #: src/util/virauth.c:173
 #, c-format
 msgid "Enter username for %s [%s]"
-msgstr ""
+msgstr "Benutzernamen eingeben für %s [%s]"
 
 #: src/util/virauth.c:178
 #, c-format
 msgid "Enter username for %s"
-msgstr ""
+msgstr "Benutzernamen eingeben für %s"
 
 #: src/util/virauth.c:228
 #, c-format
 msgid "Enter %s's password for %s"
-msgstr ""
+msgstr "%ss Passwort für %s eingeben"
 
 #: src/util/virauthconfig.c:141
 #, c-format
@@ -19315,9 +19337,8 @@ msgid "DBus support not compiled into this binary"
 msgstr ""
 
 #: src/util/virfile.c:169
-#, fuzzy
 msgid "unable to read iohelper's stderr"
-msgstr "rundir %s kann nicht erzeugt werden: %s"
+msgstr ""
 
 #: src/util/virfile.c:226
 msgid "invalid use with no flags"
@@ -19425,9 +19446,9 @@ msgid "%s:%zu: %s '%s'"
 msgstr ""
 
 #: src/util/virlockspace.c:145
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to open/create resource %s"
-msgstr "Datenträger kann nicht erstellt werden: %s"
+msgstr ""
 
 #: src/util/virlockspace.c:152 src/util/virlockspace.c:206
 #: src/util/virpidfile.c:393
@@ -19448,19 +19469,18 @@ msgid "Lockspace resource '%s' is locked"
 msgstr ""
 
 #: src/util/virlockspace.c:171 src/util/virlockspace.c:218
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to acquire lock on '%s'"
-msgstr "LPAR konnte nicht erstellt werden. Grund: »%s«"
+msgstr ""
 
 #: src/util/virlockspace.c:199
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to open resource %s"
-msgstr "cgroup für %s konnte nicht ermittelt werden"
+msgstr ""
 
 #: src/util/virlockspace.c:259 src/util/virlockspace.c:315
-#, fuzzy
 msgid "Unable to initialize lockspace mutex"
-msgstr "Zertifikat kann nicht initialisiert werden"
+msgstr ""
 
 #: src/util/virlockspace.c:276
 #, c-format
@@ -19476,19 +19496,16 @@ msgid "Malformed resources value in JSON document"
 msgstr ""
 
 #: src/util/virlockspace.c:360
-#, fuzzy
 msgid "Missing resource name in JSON document"
-msgstr "Fehlendes Namenelement für Datenträger"
+msgstr ""
 
 #: src/util/virlockspace.c:372
-#, fuzzy
 msgid "Missing resource path in JSON document"
-msgstr "Quellen-Pfad fehlt"
+msgstr ""
 
 #: src/util/virlockspace.c:383
-#, fuzzy
 msgid "Missing resource fd in JSON document"
-msgstr "Quellen-Gerät fehlt"
+msgstr ""
 
 #: src/util/virlockspace.c:389
 msgid "Cannot enable close-on-exec flag"
@@ -19499,33 +19516,29 @@ msgid "Missing resource lockHeld in JSON document"
 msgstr ""
 
 #: src/util/virlockspace.c:401
-#, fuzzy
 msgid "Missing resource flags in JSON document"
-msgstr "fehlende Quellinformationen für das Gerät"
+msgstr ""
 
 #: src/util/virlockspace.c:408
 msgid "Missing resource owners in JSON document"
 msgstr ""
 
 #: src/util/virlockspace.c:415
-#, fuzzy
 msgid "Malformed owners value in JSON document"
-msgstr "Fehlerhaftes »owner«-Element"
+msgstr ""
 
 #: src/util/virlockspace.c:433
-#, fuzzy
 msgid "Malformed owner value in JSON document"
-msgstr "Fehlerhaftes »owner«-Element"
+msgstr ""
 
 #: src/util/virlockspace.c:499
-#, fuzzy
 msgid "Cannot disable close-on-exec flag"
-msgstr "%s kann nicht deaktiviert werden"
+msgstr ""
 
 #: src/util/virlockspace.c:612
-#, fuzzy, c-format
+#, c-format
 msgid "Unable to delete lockspace resource %s"
-msgstr "cgroup für %s konnte nicht erstellt werden"
+msgstr ""
 
 #: src/util/virlockspace.c:692
 #, c-format
@@ -19619,7 +19632,7 @@ msgstr ""
 #: src/util/virnetdev.c:646 src/util/virnetdev.c:692
 #, c-format
 msgid "invalid interface name %s"
-msgstr ""
+msgstr "Ungültiger Schnittstellenname %s"
 
 #: src/util/virnetdev.c:653
 #, c-format
@@ -19956,15 +19969,15 @@ msgstr ""
 #: src/util/virnetdevvportprofile.c:468
 #, c-format
 msgid "Error opening file %s"
-msgstr ""
+msgstr "Fehler beim Öffnen der Datei %s"
 
 #: src/util/virnetdevvportprofile.c:503
 msgid "error parsing IFLA_PORT_SELF part"
-msgstr ""
+msgstr "Fehler beim Verarbeiten des IFLA_PORT_SELF-Abschnitts"
 
 #: src/util/virnetdevvportprofile.c:508
 msgid "IFLA_PORT_SELF is missing"
-msgstr ""
+msgstr "IFLA_PORT_SELF fehlt"
 
 #: src/util/virnetdevvportprofile.c:521
 msgid "error while iterating over IFLA_VF_PORTS part"
@@ -20158,7 +20171,7 @@ msgstr ""
 
 #: src/util/virprocess.c:286
 #, fuzzy, c-format
-msgid "Failed to terminate process %d with SIG%s"
+msgid "Failed to terminate process %lld with SIG%s"
 msgstr "Abruf der Schnittstellenstatistiken %s %s gescheitert"
 
 #: src/util/virrandom.c:159
@@ -20171,22 +20184,22 @@ msgstr ""
 
 #: src/util/virsocketaddr.c:92 src/util/virsocketaddr.c:230
 msgid "Missing address"
-msgstr ""
+msgstr "Fehlende Adresse"
 
 #: src/util/virsocketaddr.c:101
 #, c-format
 msgid "Cannot parse socket address '%s': %s"
-msgstr ""
+msgstr "Socket-Adresse »%s« kann nicht verarbeitet werden: %s"
 
 #: src/util/virsocketaddr.c:108
 #, c-format
 msgid "No socket addresses found for '%s'"
-msgstr ""
+msgstr "Keine Socket-Adresse gefunden für »%s«"
 
 #: src/util/virsocketaddr.c:254
 #, c-format
 msgid "Cannot convert socket address to string: %s"
-msgstr ""
+msgstr "Socket-Adresse kann nicht in String umgewandelt werden: %s"
 
 #: src/util/virterror.c:163
 msgid "An error occurred, but the cause is unknown"
@@ -20219,21 +20232,21 @@ msgstr "zu wenig Arbeitsspeicher"
 
 #: src/util/virterror.c:716
 msgid "this function is not supported by the connection driver"
-msgstr ""
+msgstr "Diese Funktion wird vom Verbindungstreiber nicht unterstützt"
 
 #: src/util/virterror.c:718
 #, c-format
 msgid "this function is not supported by the connection driver: %s"
-msgstr ""
+msgstr "Diese Funktion wird vom Verbindungstreiber nicht unterstützt: %s"
 
 #: src/util/virterror.c:722
 msgid "no connection driver available"
-msgstr ""
+msgstr "Kein Verbindungstreiber verfügbar"
 
 #: src/util/virterror.c:724
 #, c-format
 msgid "no connection driver available for %s"
-msgstr ""
+msgstr "Kein Verbindungstreiber verfügbar für %s"
 
 #: src/util/virterror.c:728
 msgid "invalid connection pointer in"
@@ -20588,12 +20601,12 @@ msgstr "SPeicher-Pool nicht gefunden: %s"
 
 #: src/util/virterror.c:977
 msgid "Storage volume not found"
-msgstr ""
+msgstr "Speicherdatenträger nicht gefunden"
 
 #: src/util/virterror.c:979
 #, c-format
 msgid "Storage volume not found: %s"
-msgstr ""
+msgstr "Speicherdatenträger nicht gefunden: %s"
 
 #: src/util/virterror.c:983
 msgid "Storage pool probe failed"
@@ -20633,21 +20646,21 @@ msgstr ""
 
 #: src/util/virterror.c:1007
 msgid "Failed to find a storage driver"
-msgstr ""
+msgstr "Speichertreiber konnte nicht gefunden werden"
 
 #: src/util/virterror.c:1009
 #, c-format
 msgid "Failed to find a storage driver: %s"
-msgstr ""
+msgstr "Speichertreiber konnte nicht gefunden werden: %s"
 
 #: src/util/virterror.c:1013
 msgid "Failed to find a node driver"
-msgstr ""
+msgstr "Knotentreiber konnte nicht gefunden werden"
 
 #: src/util/virterror.c:1015
 #, c-format
 msgid "Failed to find a node driver: %s"
-msgstr ""
+msgstr "Knotentreiber konnte nicht gefunden werden: %s"
 
 #: src/util/virterror.c:1019
 msgid "invalid node device pointer"
@@ -20660,48 +20673,48 @@ msgstr ""
 
 #: src/util/virterror.c:1025
 msgid "Node device not found"
-msgstr ""
+msgstr "Knotengerät nicht gefunden"
 
 #: src/util/virterror.c:1027
 #, c-format
 msgid "Node device not found: %s"
-msgstr ""
+msgstr "Knotengerät nicht gefunden: %s"
 
 #: src/util/virterror.c:1031
 msgid "Security model not found"
-msgstr ""
+msgstr "Sicherheitsmodell nicht gefunden"
 
 #: src/util/virterror.c:1033
 #, c-format
 msgid "Security model not found: %s"
-msgstr ""
+msgstr "Sicherheitsmodell nicht gefunden: %s"
 
 #: src/util/virterror.c:1037
 msgid "Requested operation is not valid"
-msgstr ""
+msgstr "Angeforderte Operation ist nicht zulässig"
 
 #: src/util/virterror.c:1039
 #, c-format
 msgid "Requested operation is not valid: %s"
-msgstr ""
+msgstr "Angeforderte Operation ist nicht zulässig: %s"
 
 #: src/util/virterror.c:1043
 msgid "Failed to find the interface"
-msgstr ""
+msgstr "Schnittstelle konnte nicht gefunden werden"
 
 #: src/util/virterror.c:1045
 #, c-format
 msgid "Failed to find the interface: %s"
-msgstr ""
+msgstr "Schnittstelle konnte nicht gefunden werden: %s"
 
 #: src/util/virterror.c:1049
 msgid "Interface not found"
-msgstr ""
+msgstr "Schnittstelle nicht gefunden"
 
 #: src/util/virterror.c:1051
 #, c-format
 msgid "Interface not found: %s"
-msgstr ""
+msgstr "Schnittstelle nicht gefunden: %s"
 
 #: src/util/virterror.c:1055
 msgid "invalid interface pointer in"
@@ -20714,12 +20727,12 @@ msgstr ""
 
 #: src/util/virterror.c:1061
 msgid "multiple matching interfaces found"
-msgstr ""
+msgstr "Mehrere übereinstimmende Schnittstellen gefunden"
 
 #: src/util/virterror.c:1063
 #, c-format
 msgid "multiple matching interfaces found: %s"
-msgstr ""
+msgstr "Mehrere übereinstimmende Schnittstellen gefunden: %s"
 
 #: src/util/virterror.c:1067
 msgid "Failed to find a secret storage driver"
@@ -21155,33 +21168,33 @@ msgstr ""
 
 #: src/vbox/vbox_driver.c:160 src/vbox/vbox_tmpl.c:994
 msgid "no VirtualBox driver path specified (try vbox:///session)"
-msgstr ""
+msgstr "Kein VirtualBox-Treiberpfad angegeben (versuchen Sie vbox:///session)"
 
 #: src/vbox/vbox_driver.c:167 src/vbox/vbox_tmpl.c:1001
 #, c-format
 msgid "unknown driver path '%s' specified (try vbox:///session)"
-msgstr ""
+msgstr "Unbekannter Treiberpfad »%s« angegeben (versuchen Sie vbox:///session)"
 
 #: src/vbox/vbox_driver.c:174 src/vbox/vbox_tmpl.c:1008
 #, c-format
 msgid "unknown driver path '%s' specified (try vbox:///system)"
-msgstr ""
+msgstr "Unbekannter Treiberpfad »%s« angegeben (versuchen Sie vbox:///system)"
 
 #: src/vbox/vbox_driver.c:180
 msgid "unable to initialize VirtualBox driver API"
-msgstr ""
+msgstr "VirtualBox-Treiber-API konnte nicht initialisiert werden"
 
 #: src/vbox/vbox_tmpl.c:901
 msgid "nsIEventQueue object is null"
-msgstr ""
+msgstr "nsIEventQueue-Objekt ist Null"
 
 #: src/vbox/vbox_tmpl.c:910
 msgid "IVirtualBox object is null"
-msgstr ""
+msgstr "IVirtualBox-Objekt ist Null"
 
 #: src/vbox/vbox_tmpl.c:916
 msgid "ISession object is null"
-msgstr ""
+msgstr "ISession-Objekt ist Null"
 
 #: src/vbox/vbox_tmpl.c:949
 msgid "Could not extract VirtualBox version"
@@ -21190,19 +21203,19 @@ msgstr ""
 #: src/vbox/vbox_tmpl.c:1125
 #, c-format
 msgid "Could not get list of Domains, rc=%08x"
-msgstr ""
+msgstr "Liste mit Domains konnte nicht abgerufen werden, rc=%08x"
 
 #: src/vbox/vbox_tmpl.c:1162
 #, c-format
 msgid "Could not get number of Domains, rc=%08x"
-msgstr ""
+msgstr "Anzahl der Domains konnte nicht abgerufen werden, rc=%08x"
 
 #: src/vbox/vbox_tmpl.c:1234 src/vbox/vbox_tmpl.c:1294
 #: src/vbox/vbox_tmpl.c:1364 src/vbox/vbox_tmpl.c:1438
 #: src/vbox/vbox_tmpl.c:1899 src/vbox/vbox_tmpl.c:3725
 #, c-format
 msgid "Could not get list of machines, rc=%08x"
-msgstr ""
+msgstr "Liste der Maschinen konnte nicht abgerufen werden, rc=%08x"
 
 #: src/vbox/vbox_tmpl.c:1503 src/vbox/vbox_tmpl.c:1528
 #: src/vbox/vbox_tmpl.c:2010 src/vbox/vbox_tmpl.c:5944
@@ -21217,31 +21230,31 @@ msgstr ""
 
 #: src/vbox/vbox_tmpl.c:1574
 msgid "error while suspending the domain"
-msgstr ""
+msgstr "Fehler beim Anhalten der Domain"
 
 #: src/vbox/vbox_tmpl.c:1580
 msgid "machine not in running state to suspend it"
-msgstr ""
+msgstr "Maschine läuft nicht, kann nicht angehalten werden"
 
 #: src/vbox/vbox_tmpl.c:1626
 msgid "error while resuming the domain"
-msgstr ""
+msgstr "Fehler beim Fortsetzen der Domain"
 
 #: src/vbox/vbox_tmpl.c:1632
 msgid "machine not paused, so can't resume it"
-msgstr ""
+msgstr "Maschine nicht angehalten, kann nicht fortgesetzt werden"
 
 #: src/vbox/vbox_tmpl.c:1672
 msgid "machine paused, so can't power it down"
-msgstr ""
+msgstr "Maschine pausiert, kann nicht heruntergefahren werden"
 
 #: src/vbox/vbox_tmpl.c:1676 src/vbox/vbox_tmpl.c:1781
 msgid "machine already powered down"
-msgstr ""
+msgstr "Maschine bereits heruntergefahren"
 
 #: src/vbox/vbox_tmpl.c:1739
 msgid "machine not running, so can't reboot it"
-msgstr ""
+msgstr "Maschine läuft nicht, kann nicht neu gestartet werden"
 
 #: src/vbox/vbox_tmpl.c:1857
 msgid "memory size can't be changed unless domain is powered down"
@@ -21285,7 +21298,7 @@ msgstr ""
 
 #: src/vbox/vbox_tmpl.c:3718
 msgid "Error while reading the domain name"
-msgstr ""
+msgstr "Fehler beim Lesen des Domainnamens"
 
 #: src/vbox/vbox_tmpl.c:3755
 msgid "machine is not in poweroff|saved|aborted state, so couldn't start it"
@@ -21370,12 +21383,12 @@ msgstr ""
 #: src/vbox/vbox_tmpl.c:5124 src/vbox/vbox_tmpl.c:5135
 #: src/vbox/vbox_tmpl.c:5143
 msgid "Enabled"
-msgstr ""
+msgstr "Aktiviert"
 
 #: src/vbox/vbox_tmpl.c:5124 src/vbox/vbox_tmpl.c:5135
 #: src/vbox/vbox_tmpl.c:5143
 msgid "Disabled"
-msgstr ""
+msgstr "Deaktiviert"
 
 #: src/vbox/vbox_tmpl.c:5133
 #, c-format
@@ -21390,7 +21403,7 @@ msgstr ""
 #: src/vbox/vbox_tmpl.c:5351
 #, c-format
 msgid "could not delete the domain, rc=%08x"
-msgstr ""
+msgstr "Domain konnte nicht gelöscht werden, rc=%08x"
 
 #: src/vbox/vbox_tmpl.c:5551
 #, c-format
@@ -21512,53 +21525,55 @@ msgstr ""
 #: src/vbox/vbox_tmpl.c:6659
 #, c-format
 msgid "could not restore snapshot for domain %s"
-msgstr ""
+msgstr "Snapshot für Domain %s konnte nicht wiederhergestellt werden"
 
 #: src/vbox/vbox_tmpl.c:6614
 msgid "could not get domain UUID"
-msgstr ""
+msgstr "Domain-UUID konnte nicht abgerufen werden"
 
 #: src/vbox/vbox_tmpl.c:6628
 #, c-format
 msgid "domain %s is already running"
-msgstr ""
+msgstr "Domain %s läuft bereits"
 
 #: src/vbox/vbox_tmpl.c:6646
 msgid "cannot restore domain snapshot for running domain"
 msgstr ""
+"Domain-Snapshot kann für laufende Domain nicht wiederhergestellt werden "
 
 #: src/vbox/vbox_tmpl.c:6728
 msgid "cannot revert snapshot of running domain"
-msgstr ""
+msgstr "Snapshot der laufenden Domain kann nicht zurückgesetzt werden"
 
 #: src/vbox/vbox_tmpl.c:6779
 msgid "cannot delete domain snapshot for running domain"
-msgstr ""
+msgstr "Domain-Snapshot kann für laufende Domain nicht gelöscht werden"
 
 #: src/vbox/vbox_tmpl.c:6782 src/vbox/vbox_tmpl.c:6791
 msgid "could not delete snapshot"
-msgstr ""
+msgstr "Snapshot konnte nicht gelöscht werden"
 
 #: src/vbox/vbox_tmpl.c:6877
 msgid "cannot delete snapshots of running domain"
-msgstr ""
+msgstr "Snapshots der laufenden Domain können nicht gelöscht werden"
 
 #: src/vbox/vbox_tmpl.c:8355
 #, c-format
 msgid "could not get number of volumes in the pool: %s, rc=%08x"
 msgstr ""
+"Anzahl der Datenträger im Pool konnte nicht abgerufen werden: %s, rc=%08x"
 
 #: src/vbox/vbox_tmpl.c:8407
 #, c-format
 msgid "could not get the volume list in the pool: %s, rc=%08x"
-msgstr ""
+msgstr "Datenträgerlist im Pool konnte nicht abgerufen werden: %s, rc=%08x"
 
 #: src/vbox/vbox_tmpl.c:8489 src/vbox/vbox_tmpl.c:8720
 #: src/vbox/vbox_tmpl.c:8889 src/vbox/vbox_tmpl.c:8959
 #: src/vbox/vbox_tmpl.c:9066
 #, c-format
 msgid "Could not parse UUID from '%s'"
-msgstr ""
+msgstr "UUID von »%s« konnte nicht verarbeitet werden"
 
 #: src/vbox/vbox_tmpl.c:9141
 msgid "unable to get monitor count"
@@ -21594,21 +21609,21 @@ msgstr ""
 #: src/vmware/vmware_conf.c:254
 #, c-format
 msgid "failed to parse %s version"
-msgstr ""
+msgstr "Verarbeiten von %s-Version fehlgeschlagen "
 
 #: src/vmware/vmware_conf.c:260
 msgid "version parsing error"
-msgstr ""
+msgstr "Fehler bei Verarbeitung von Version"
 
 #: src/vmware/vmware_conf.c:305
 #, c-format
 msgid "path '%s' doesn't reference a file"
-msgstr ""
+msgstr "Pfad »%s« referenziert keine Datei"
 
 #: src/vmware/vmware_conf.c:421
 #, c-format
 msgid "file %s does not exist"
-msgstr ""
+msgstr "Datei %s existiert nicht"
 
 #: src/vmware/vmware_conf.c:433
 #, c-format
@@ -21633,11 +21648,13 @@ msgid ""
 "unexpected VMware URI path '%s', try vmwareplayer:///session or vmwarews:///"
 "session"
 msgstr ""
+"Unerwarteter VMware URI-Pfad »%s«, versuchen Sie vmwareplayer:///session "
+"oder vmwarews:///session"
 
 #: src/vmware/vmware_driver.c:114
 #, c-format
 msgid "%s utility is missing"
-msgstr ""
+msgstr "%s-Hilfsprogramm fehlt"
 
 #: src/vmware/vmware_driver.c:337 src/vmware/vmware_driver.c:608
 #, c-format
@@ -22391,7 +22408,7 @@ msgstr ""
 #: src/xen/xend_internal.c:676
 #, c-format
 msgid "unable to resolve hostname '%s': %s"
-msgstr ""
+msgstr "Hostname »%s« kann nicht aufgelöst werden: %s"
 
 #: src/xen/xend_internal.c:713
 #, c-format
@@ -22453,7 +22470,7 @@ msgstr ""
 
 #: src/xen/xend_internal.c:2362 src/xen/xm_internal.c:791
 msgid "domain not active"
-msgstr ""
+msgstr "Domain ist nicht aktiv"
 
 #: src/xen/xend_internal.c:2659 src/xen/xend_internal.c:2827
 #: src/xen/xend_internal.c:2940
@@ -22839,9 +22856,9 @@ msgid "cannot parse vbd filename, missing driver type"
 msgstr "vbd Dateiname kann nicht analysiert werden, fehlender Treibertyp"
 
 #: src/xenxs/xen_sxpr.c:450 src/xenxs/xen_xm.c:573
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown driver type %s"
-msgstr "Unknown device type %d"
+msgstr ""
 
 #: src/xenxs/xen_sxpr.c:612 src/xenxs/xen_xm.c:751
 #, c-format
@@ -23328,9 +23345,9 @@ msgid "Failed to complete tree listing"
 msgstr ""
 
 #: tools/virsh.c:570
-#, c-format
-msgid "mkstemps: failed to create temporary file: %s"
-msgstr ""
+#, fuzzy, c-format
+msgid "mkostemps: failed to create temporary file: %s"
+msgstr "Erstellung der Protokolldatei %s fehlgeschlagen"
 
 #: tools/virsh.c:577
 #, c-format
@@ -24506,7 +24523,7 @@ msgstr "XML-Datei"
 #: tools/virsh-domain.c:5979 tools/virsh-domain.c:6067
 #: tools/virsh-domain.c:6264 tools/virsh-domain.c:7555
 #: tools/virsh-domain.c:7616 tools/virsh-domain.c:7684
-#: tools/virsh-domain.c:8044 tools/virsh-network.c:758
+#: tools/virsh-domain.c:8044
 msgid "affect next boot"
 msgstr ""
 
@@ -24758,7 +24775,6 @@ msgstr ""
 #: tools/virsh-domain.c:4858 tools/virsh-domain.c:5042
 #: tools/virsh-domain.c:5901 tools/virsh-domain.c:5980
 #: tools/virsh-domain.c:6068 tools/virsh-domain.c:6265
-#: tools/virsh-network.c:759
 msgid "affect running domain"
 msgstr ""
 
@@ -24767,7 +24783,6 @@ msgstr ""
 #: tools/virsh-domain.c:4859 tools/virsh-domain.c:5043
 #: tools/virsh-domain.c:5902 tools/virsh-domain.c:5981
 #: tools/virsh-domain.c:6069 tools/virsh-domain.c:6266
-#: tools/virsh-network.c:760
 msgid "affect current domain"
 msgstr ""
 
@@ -26933,9 +26948,9 @@ msgid ""
 msgstr ""
 
 #: tools/virsh-domain.c:7771
-#, fuzzy, c-format
+#, c-format
 msgid "No interface with MAC address %s was found"
-msgstr "Keine Schnittstelle gefunden, deren MAC-Adresse %s ist"
+msgstr ""
 
 #: tools/virsh-domain.c:7799
 msgid "Failed to detach interface"
@@ -27217,9 +27232,8 @@ msgid ""
 msgstr ""
 
 #: tools/virsh-host.c:293
-#, fuzzy
 msgid "Unable to get cpu map"
-msgstr "VIOS-Name konnte nicht abgerufen werden"
+msgstr ""
 
 #: tools/virsh-host.c:297
 msgid "CPUs present:"
@@ -27230,9 +27244,8 @@ msgid "CPUs online:"
 msgstr ""
 
 #: tools/virsh-host.c:300
-#, fuzzy
 msgid "CPU map:"
-msgstr "CPU-Zeit:"
+msgstr ""
 
 #: tools/virsh-host.c:316
 msgid "Prints cpu stats of the node."
@@ -27349,9 +27362,8 @@ msgid "Failed to collect command"
 msgstr ""
 
 #: tools/virsh-host.c:601
-#, fuzzy
 msgid "--hmp and --pretty are not compatible"
-msgstr "Optionen --tree und --cap sind inkompatibel"
+msgstr ""
 
 #: tools/virsh-host.c:638 tools/virsh-host.c:639
 msgid "QEMU Attach"
@@ -28242,35 +28254,47 @@ msgstr ""
 msgid "which parent object to search through"
 msgstr ""
 
-#: tools/virsh-network.c:795
+#: tools/virsh-network.c:758
 #, fuzzy
+msgid "affect next network startup"
+msgstr "Abruf des Netzwerks »%s« fehlgeschlagen"
+
+#: tools/virsh-network.c:759
+#, fuzzy
+msgid "affect running network"
+msgstr "Netzwerk %s konnte nicht undefiniert werden"
+
+#: tools/virsh-network.c:760
+#, fuzzy
+msgid "affect current state of network"
+msgstr "Gibt eine Liste der Netzwerke wieder."
+
+#: tools/virsh-network.c:795
 msgid "missing or malformed command argument"
-msgstr "missing value for %s argument"
+msgstr ""
 
 #: tools/virsh-network.c:805
-#, fuzzy, c-format
+#, c-format
 msgid "unrecognized command name '%s'"
-msgstr "Unbekannter Befehl: »%s«"
+msgstr ""
 
 #: tools/virsh-network.c:811
-#, fuzzy
 msgid "missing or malformed section argument"
-msgstr "missing value for %s argument"
+msgstr ""
 
 #: tools/virsh-network.c:816
-#, fuzzy, c-format
+#, c-format
 msgid "unrecognized section name '%s'"
-msgstr "Nicht erkannte Familie »%s« in Definition von Netzwerk »%s«"
+msgstr ""
 
 #: tools/virsh-network.c:821
-#, fuzzy
 msgid "malformed parent-index argument"
-msgstr "Fehlerhaftes uuid-Element"
+msgstr ""
 
 #: tools/virsh-network.c:865
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to update network %s"
-msgstr "Netzwerk %s konnte nicht gestartet werden"
+msgstr ""
 
 #: tools/virsh-network.c:872
 msgid "persistent config and live state"
@@ -28281,14 +28305,13 @@ msgid "persistent config"
 msgstr ""
 
 #: tools/virsh-network.c:876 tools/virsh-network.c:878
-#, fuzzy
 msgid "live state"
-msgstr "Kein Status"
+msgstr ""
 
 #: tools/virsh-network.c:883
-#, fuzzy, c-format
+#, c-format
 msgid "Updated network %s %s"
-msgstr "Fehler beim Erstellen des Netzwerks von %s"
+msgstr ""
 
 #: tools/virsh-network.c:897
 msgid "convert a network name to network UUID"
@@ -30098,38 +30121,3 @@ msgstr ""
 #, c-format
 msgid "%s: unsupported hypervisor name %s\n"
 msgstr ""
-
-#~ msgid "unexpected lifecycle type %d"
-#~ msgstr "Unerwarteter Lebenszyklus-Typ %d"
-
-#~ msgid "unknown disk format '%s' for %s"
-#~ msgstr "Unbekanntes Festplattenformat »%s« für %s"
-
-#~ msgid "unable to open disk path %s"
-#~ msgstr "Festplattenpfad %s konnte nicht geöffnet werden"
-
-#~ msgid "could not close file %s"
-#~ msgstr "Datei %s konnte nicht geschlossen werden"
-
-#~ msgid "Couldn't retrieve snapshot list for domain '%s'"
-#~ msgstr "Snapshot-Liste für Domain »%s« konnte nicht abgerufen werden"
-
-#, fuzzy
-#~ msgid "failed to parse DAC seclabel '%s' for domain '%s'"
-#~ msgstr "Löschen von PCI-Gerät »%s« aus %s fehlgeschlagen"
-
-#, fuzzy
-#~ msgid "failed to parse DAC imagelabel '%s' for domain '%s'"
-#~ msgstr "Abruf der Domain »%s« fehlgeschlagen"
-
-#~ msgid "pool is still active"
-#~ msgstr "Pool ist immer noch aktiv"
-
-#~ msgid "pool already active"
-#~ msgstr "Pool ist bereits aktiv"
-
-#~ msgid "storage pool is already active"
-#~ msgstr "Speicher-Pool ist bereits aktiv"
-
-#~ msgid "storage pool is still active"
-#~ msgstr "Speicher-Pool ist immer noch aktiv"

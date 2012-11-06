@@ -3739,10 +3739,7 @@ qemuMonitorJSONBlockIoThrottleInfo(virJSONValuePtr result,
             goto cleanup;
         }
 
-       if(STRPREFIX(current_dev, QEMU_DRIVE_HOST_PREFIX))
-            current_dev += strlen(QEMU_DRIVE_HOST_PREFIX);
-
-        if (STREQ(current_dev, device))
+        if (STRNEQ(current_dev, device))
             continue;
 
         found = true;
@@ -4287,6 +4284,57 @@ cleanup:
             VIR_FREE(eventlist[i]);
         VIR_FREE(eventlist);
     }
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+
+int qemuMonitorJSONGetKVMState(qemuMonitorPtr mon,
+                               bool *enabled,
+                               bool *present)
+{
+    int ret;
+    virJSONValuePtr cmd = NULL;
+    virJSONValuePtr reply = NULL;
+    virJSONValuePtr data = NULL;
+
+    /* Safe defaults */
+    *enabled = *present = false;
+
+    if (!(cmd = qemuMonitorJSONMakeCommand("query-kvm", NULL)))
+        return -1;
+
+    ret = qemuMonitorJSONCommand(mon, cmd, &reply);
+
+    if (ret == 0) {
+        if (qemuMonitorJSONHasError(reply, "CommandNotFound"))
+            goto cleanup;
+
+        ret = qemuMonitorJSONCheckError(cmd, reply);
+    }
+
+    if (ret < 0)
+        goto cleanup;
+
+    ret = -1;
+
+    if (!(data = virJSONValueObjectGet(reply, "return"))) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-kvm reply was missing return data"));
+        goto cleanup;
+    }
+
+    if (virJSONValueObjectGetBoolean(data, "enabled", enabled) < 0 ||
+        virJSONValueObjectGetBoolean(data, "present", present) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("query-kvm replied unexpected data"));
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
     virJSONValueFree(cmd);
     virJSONValueFree(reply);
     return ret;

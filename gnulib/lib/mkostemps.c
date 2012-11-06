@@ -22,11 +22,13 @@
 #include <stdlib.h>
 
 #if !_LIBC
+# include <errno.h>
 # include "tempname.h"
 # define __gen_tempname gen_tempname
 # ifndef __GT_FILE
 #  define __GT_FILE GT_FILE
 # endif
+# define __set_errno(x) errno = x;
 #endif
 
 #include <stdio.h>
@@ -35,16 +37,18 @@
 # define __GT_FILE 0
 #endif
 
-/* Generate a unique temporary file name from XTEMPLATE.
-   The last six characters of XTEMPLATE must be "XXXXXX";
-   they are replaced with a string that makes the file name unique.
-   Then open the file and return a fd.
-
-   If you are creating temporary files which will later be removed,
-   consider using the clean-temp module, which avoids several pitfalls
-   of using mkstemp directly. */
+/* Generate a unique temporary file name from XTEMPLATE.  The last six
+   characters before a suffix of length SUFFIXLEN of XTEMPLATE must be
+   "XXXXXX"; they are replaced with a string that makes the filename
+   unique.  Then open the file and return a fd. */
 int
-mkstemp (char *xtemplate)
+mkostemps (char *xtemplate, int suffixlen, int flags)
 {
-  return __gen_tempname (xtemplate, 0, 0, __GT_FILE);
+  if (suffixlen < 0)
+    {
+      __set_errno (EINVAL);
+      return -1;
+    }
+
+  return __gen_tempname (xtemplate, suffixlen, flags, __GT_FILE);
 }

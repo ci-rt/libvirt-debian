@@ -2030,6 +2030,33 @@ qemuCapsProbeQMPCPUDefinitions(qemuCapsPtr caps,
 }
 
 
+static int
+qemuCapsProbeQMPKVMState(qemuCapsPtr caps,
+                         qemuMonitorPtr mon)
+{
+    bool enabled = false;
+    bool present = false;
+
+    if (!qemuCapsGet(caps, QEMU_CAPS_KVM))
+        return 0;
+
+    if (qemuMonitorGetKVMState(mon, &enabled, &present) < 0)
+        return -1;
+
+    /* The QEMU_CAPS_KVM flag was initially set according to the QEMU
+     * reporting the recognition of 'query-kvm' QMP command, but the
+     * flag means whether the KVM is enabled by default and should be
+     * disabled in case we want SW emulated machine, so let's fix that
+     * if it's true. */
+    if (!enabled) {
+        qemuCapsClear(caps, QEMU_CAPS_KVM);
+        qemuCapsSet(caps, QEMU_CAPS_ENABLE_KVM);
+    }
+
+    return 0;
+}
+
+
 int qemuCapsProbeQMP(qemuCapsPtr caps,
                      qemuMonitorPtr mon)
 {
@@ -2160,7 +2187,6 @@ qemuCapsInitQMPBasic(qemuCapsPtr caps)
     qemuCapsSet(caps, QEMU_CAPS_DRIVE_SERIAL);
     qemuCapsSet(caps, QEMU_CAPS_MIGRATE_QEMU_UNIX);
     qemuCapsSet(caps, QEMU_CAPS_CHARDEV);
-    qemuCapsSet(caps, QEMU_CAPS_ENABLE_KVM);
     qemuCapsSet(caps, QEMU_CAPS_MONITOR_JSON);
     qemuCapsSet(caps, QEMU_CAPS_BALLOON);
     qemuCapsSet(caps, QEMU_CAPS_DEVICE);
@@ -2288,7 +2314,7 @@ qemuCapsInitQMP(qemuCapsPtr caps,
     VIR_DEBUG("Got version %d.%d.%d (%s)",
               major, minor, micro, NULLSTR(package));
 
-    if (!(major >= 1 || (major == 1 && minor >= 1))) {
+    if (major < 1 || (major == 1 && minor < 2)) {
         VIR_DEBUG("Not new enough for QMP capabilities detection");
         ret = 0;
         goto cleanup;
@@ -2300,6 +2326,14 @@ qemuCapsInitQMP(qemuCapsPtr caps,
 
     if (!(caps->arch = qemuMonitorGetTargetArch(mon)))
         goto cleanup;
+
+    /* Map i386, i486, i586 to i686.  */
+    if (caps->arch[0] == 'i' &&
+        caps->arch[1] != '\0' &&
+        caps->arch[2] == '8' &&
+        caps->arch[3] == '6' &&
+        caps->arch[4] == '\0')
+        caps->arch[1] = '6';
 
     /* Currently only x86_64 and i686 support PCI-multibus. */
     if (STREQLEN(caps->arch, "x86_64", 6) ||
@@ -2321,6 +2355,8 @@ qemuCapsInitQMP(qemuCapsPtr caps,
     if (qemuCapsProbeQMPMachineTypes(caps, mon) < 0)
         goto cleanup;
     if (qemuCapsProbeQMPCPUDefinitions(caps, mon) < 0)
+        goto cleanup;
+    if (qemuCapsProbeQMPKVMState(caps, mon) < 0)
         goto cleanup;
 
     ret = 0;
