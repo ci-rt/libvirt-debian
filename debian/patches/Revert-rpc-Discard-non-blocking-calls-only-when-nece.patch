@@ -1,0 +1,67 @@
+From: Jiri Denemark <jdenemar@redhat.com>
+Date: Mon, 21 May 2012 16:02:05 +0200
+Subject: Revert "rpc: Discard non-blocking calls only when necessary"
+
+This reverts commit b1e374a7ac56927cfe62435179bf0bba1e08b372, which was
+rather bad since I failed to consider all sides of the issue. The main
+things I didn't consider properly are:
+
+- a thread which sends a non-blocking call waits for the thread with
+  the buck to process the call
+- the code doesn't expect non-blocking calls to remain in the queue
+  unless they were already partially sent
+
+Thus, the reverted patch actually breaks more than what it fixes and
+clients (which may even be libvirtd during p2p migrations) will likely
+end up in a deadlock.
+---
+ src/rpc/virnetclient.c |   21 ++++++++++++---------
+ 1 file changed, 12 insertions(+), 9 deletions(-)
+
+diff --git a/src/rpc/virnetclient.c b/src/rpc/virnetclient.c
+index 3a60db6..d88288d 100644
+--- a/src/rpc/virnetclient.c
++++ b/src/rpc/virnetclient.c
+@@ -1265,13 +1265,6 @@ static void virNetClientIOEventLoopPassTheBuck(virNetClientPtr client, virNetCli
+     }
+     client->haveTheBuck = false;
+ 
+-    /* Remove non-blocking calls from the dispatch list since there is no
+-     * call with a thread in the list which could take care of them.
+-     */
+-    virNetClientCallRemovePredicate(&client->waitDispatch,
+-                                    virNetClientIOEventLoopRemoveNonBlocking,
+-                                    thiscall);
+-
+     VIR_DEBUG("No thread to pass the buck to");
+     if (client->wantClose) {
+         virNetClientCloseLocked(client);
+@@ -1315,9 +1308,12 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
+         if (virNetSocketHasCachedData(client->sock) || client->wantClose)
+             timeout = 0;
+ 
+-        /* If we are non-blocking, we don't want to sleep in poll()
++        /* If there are any non-blocking calls in the queue,
++         * then we don't want to sleep in poll()
+          */
+-        if (thiscall->nonBlock)
++        if (virNetClientCallMatchPredicate(client->waitDispatch,
++                                           virNetClientIOEventLoopWantNonBlock,
++                                           NULL))
+             timeout = 0;
+ 
+         fds[0].events = fds[0].revents = 0;
+@@ -1422,6 +1418,13 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
+                                         virNetClientIOEventLoopRemoveDone,
+                                         thiscall);
+ 
++        /* Iterate through waiting calls and if any are
++         * non-blocking, remove them from the dispatch list...
++         */
++        virNetClientCallRemovePredicate(&client->waitDispatch,
++                                        virNetClientIOEventLoopRemoveNonBlocking,
++                                        thiscall);
++
+         /* Now see if *we* are done */
+         if (thiscall->mode == VIR_NET_CLIENT_MODE_COMPLETE) {
+             virNetClientCallRemove(&client->waitDispatch, thiscall);
