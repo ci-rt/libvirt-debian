@@ -1,3 +1,4 @@
+
 /*
  * qemu_migration.c: QEMU migration handling
  *
@@ -14,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -70,6 +71,7 @@ enum qemuMigrationCookieFlags {
     QEMU_MIGRATION_COOKIE_FLAG_GRAPHICS,
     QEMU_MIGRATION_COOKIE_FLAG_LOCKSTATE,
     QEMU_MIGRATION_COOKIE_FLAG_PERSISTENT,
+    QEMU_MIGRATION_COOKIE_FLAG_NETWORK,
 
     QEMU_MIGRATION_COOKIE_FLAG_LAST
 };
@@ -77,12 +79,13 @@ enum qemuMigrationCookieFlags {
 VIR_ENUM_DECL(qemuMigrationCookieFlag);
 VIR_ENUM_IMPL(qemuMigrationCookieFlag,
               QEMU_MIGRATION_COOKIE_FLAG_LAST,
-              "graphics", "lockstate", "persistent");
+              "graphics", "lockstate", "persistent", "network");
 
 enum qemuMigrationCookieFeatures {
     QEMU_MIGRATION_COOKIE_GRAPHICS  = (1 << QEMU_MIGRATION_COOKIE_FLAG_GRAPHICS),
     QEMU_MIGRATION_COOKIE_LOCKSTATE = (1 << QEMU_MIGRATION_COOKIE_FLAG_LOCKSTATE),
     QEMU_MIGRATION_COOKIE_PERSISTENT = (1 << QEMU_MIGRATION_COOKIE_FLAG_PERSISTENT),
+    QEMU_MIGRATION_COOKIE_NETWORK = (1 << QEMU_MIGRATION_COOKIE_FLAG_NETWORK),
 };
 
 typedef struct _qemuMigrationCookieGraphics qemuMigrationCookieGraphics;
@@ -93,6 +96,27 @@ struct _qemuMigrationCookieGraphics {
     int tlsPort;
     char *listen;
     char *tlsSubject;
+};
+
+typedef struct _qemuMigrationCookieNetData qemuMigrationCookieNetData;
+typedef qemuMigrationCookieNetData *qemuMigrationCookieNetDataPtr;
+struct _qemuMigrationCookieNetData {
+    int vporttype; /* enum virNetDevVPortProfile */
+
+    /*
+     * Array of pointers to saved data. Each VIF will have it's own
+     * data to transfer.
+     */
+    char *portdata;
+};
+
+typedef struct _qemuMigrationCookieNetwork qemuMigrationCookieNetwork;
+typedef qemuMigrationCookieNetwork *qemuMigrationCookieNetworkPtr;
+struct _qemuMigrationCookieNetwork {
+    /* How many virtual NICs are we saving data for? */
+    int nnets;
+
+    qemuMigrationCookieNetDataPtr net;
 };
 
 typedef struct _qemuMigrationCookie qemuMigrationCookie;
@@ -120,6 +144,9 @@ struct _qemuMigrationCookie {
 
     /* If (flags & QEMU_MIGRATION_COOKIE_PERSISTENT) */
     virDomainDefPtr persistent;
+
+    /* If (flags & QEMU_MIGRATION_COOKIE_NETWORK) */
+    qemuMigrationCookieNetworkPtr network;
 };
 
 static void qemuMigrationCookieGraphicsFree(qemuMigrationCookieGraphicsPtr grap)
@@ -132,6 +159,23 @@ static void qemuMigrationCookieGraphicsFree(qemuMigrationCookieGraphicsPtr grap)
 }
 
 
+static void
+qemuMigrationCookieNetworkFree(qemuMigrationCookieNetworkPtr network)
+{
+    int i;
+
+    if (!network)
+        return;
+
+    if (network->net) {
+        for (i = 0; i < network->nnets; i++)
+            VIR_FREE(network->net[i].portdata);
+    }
+    VIR_FREE(network->net);
+    VIR_FREE(network);
+}
+
+
 static void qemuMigrationCookieFree(qemuMigrationCookiePtr mig)
 {
     if (!mig)
@@ -139,6 +183,9 @@ static void qemuMigrationCookieFree(qemuMigrationCookiePtr mig)
 
     if (mig->flags & QEMU_MIGRATION_COOKIE_GRAPHICS)
         qemuMigrationCookieGraphicsFree(mig->graphics);
+
+    if (mig->flags & QEMU_MIGRATION_COOKIE_NETWORK)
+        qemuMigrationCookieNetworkFree(mig->network);
 
     VIR_FREE(mig->localHostname);
     VIR_FREE(mig->remoteHostname);
@@ -164,16 +211,16 @@ qemuDomainExtractTLSSubject(const char *certdir)
         goto no_memory;
 
     if (virFileReadAll(certfile, 8192, &pemdata) < 0) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("unable to read server cert %s"), certfile);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unable to read server cert %s"), certfile);
         goto error;
     }
 
     ret = gnutls_x509_crt_init(&cert);
     if (ret < 0) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("cannot initialize cert object: %s"),
-                        gnutls_strerror(ret));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot initialize cert object: %s"),
+                       gnutls_strerror(ret));
         goto error;
     }
 
@@ -182,9 +229,9 @@ qemuDomainExtractTLSSubject(const char *certdir)
 
     ret = gnutls_x509_crt_import(cert, &pemdatum, GNUTLS_X509_FMT_PEM);
     if (ret < 0) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("cannot load cert data from %s: %s"),
-                        certfile, gnutls_strerror(ret));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("cannot load cert data from %s: %s"),
+                       certfile, gnutls_strerror(ret));
         goto error;
     }
 
@@ -256,6 +303,59 @@ error:
 }
 
 
+static qemuMigrationCookieNetworkPtr
+qemuMigrationCookieNetworkAlloc(struct qemud_driver *driver ATTRIBUTE_UNUSED,
+                                virDomainDefPtr def)
+{
+    qemuMigrationCookieNetworkPtr mig;
+    int i;
+
+    if (VIR_ALLOC(mig) < 0)
+        goto no_memory;
+
+    mig->nnets = def->nnets;
+
+    if (VIR_ALLOC_N(mig->net, def->nnets) <0)
+        goto no_memory;
+
+    for (i = 0; i < def->nnets; i++) {
+        virDomainNetDefPtr netptr;
+        virNetDevVPortProfilePtr vport;
+
+        netptr = def->nets[i];
+        vport = virDomainNetGetActualVirtPortProfile(netptr);
+
+        if (vport) {
+            mig->net[i].vporttype = vport->virtPortType;
+
+            switch (vport->virtPortType) {
+            case VIR_NETDEV_VPORT_PROFILE_NONE:
+            case VIR_NETDEV_VPORT_PROFILE_8021QBG:
+            case VIR_NETDEV_VPORT_PROFILE_8021QBH:
+               break;
+            case VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH:
+                if (virNetDevOpenvswitchGetMigrateData(&mig->net[i].portdata,
+                                                       netptr->ifname) != 0) {
+                        virReportSystemError(VIR_ERR_INTERNAL_ERROR,
+                                             _("Unable to run command to get OVS port data for "
+                                             "interface %s"), netptr->ifname);
+                        goto error;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    return mig;
+
+no_memory:
+    virReportOOMError();
+error:
+    qemuMigrationCookieNetworkFree(mig);
+    return NULL;
+}
+
 static qemuMigrationCookiePtr
 qemuMigrationCookieNew(virDomainObjPtr dom)
 {
@@ -277,8 +377,8 @@ qemuMigrationCookieNew(virDomainObjPtr dom)
     if (!(mig->localHostname = virGetHostname(NULL)))
         goto error;
     if (virGetHostUUID(mig->localHostuuid) < 0) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Unable to obtain host UUID"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to obtain host UUID"));
         goto error;
     }
 
@@ -298,8 +398,8 @@ qemuMigrationCookieAddGraphics(qemuMigrationCookiePtr mig,
                                virDomainObjPtr dom)
 {
     if (mig->flags & QEMU_MIGRATION_COOKIE_GRAPHICS) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Migration graphics data already present"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Migration graphics data already present"));
         return -1;
     }
 
@@ -324,8 +424,8 @@ qemuMigrationCookieAddLockstate(qemuMigrationCookiePtr mig,
     qemuDomainObjPrivatePtr priv = dom->privateData;
 
     if (mig->flags & QEMU_MIGRATION_COOKIE_LOCKSTATE) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Migration lockstate data already present"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Migration lockstate data already present"));
         return -1;
     }
 
@@ -355,8 +455,8 @@ qemuMigrationCookieAddPersistent(qemuMigrationCookiePtr mig,
                                  virDomainObjPtr dom)
 {
     if (mig->flags & QEMU_MIGRATION_COOKIE_PERSISTENT) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Migration persistent data already present"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Migration persistent data already present"));
         return -1;
     }
 
@@ -369,6 +469,27 @@ qemuMigrationCookieAddPersistent(qemuMigrationCookiePtr mig,
     return 0;
 }
 
+
+static int
+qemuMigrationCookieAddNetwork(qemuMigrationCookiePtr mig,
+                              struct qemud_driver *driver,
+                              virDomainObjPtr dom)
+{
+    if (mig->flags & QEMU_MIGRATION_COOKIE_NETWORK) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Network migration data already present"));
+        return -1;
+    }
+
+    if (dom->def->nnets > 0) {
+        mig->network = qemuMigrationCookieNetworkAlloc(driver, dom->def);
+        if (!mig->network)
+            return -1;
+        mig->flags |= QEMU_MIGRATION_COOKIE_NETWORK;
+    }
+
+    return 0;
+}
 
 
 static void qemuMigrationCookieGraphicsXMLFormat(virBufferPtr buf,
@@ -386,6 +507,37 @@ static void qemuMigrationCookieGraphicsXMLFormat(virBufferPtr buf,
     } else {
         virBufferAddLit(buf, "/>\n");
     }
+}
+
+
+static void
+qemuMigrationCookieNetworkXMLFormat(virBufferPtr buf,
+                                    qemuMigrationCookieNetworkPtr optr)
+{
+    int i;
+    bool empty = true;
+
+    for (i = 0; i < optr->nnets; i++) {
+        /* If optr->net[i].vporttype is not set, there is nothing to transfer */
+        if (optr->net[i].vporttype != VIR_NETDEV_VPORT_PROFILE_NONE) {
+            if (empty) {
+                virBufferAsprintf(buf, "  <network>\n");
+                empty = false;
+            }
+            virBufferAsprintf(buf, "    <interface index='%d' vporttype='%s'",
+                              i, virNetDevVPortTypeToString(optr->net[i].vporttype));
+            if (optr->net[i].portdata) {
+                virBufferAddLit(buf, ">\n");
+                virBufferEscapeString(buf, "      <portdata>%s</portdata>\n",
+                                      optr->net[i].portdata);
+                virBufferAddLit(buf, "    </interface>\n");
+            } else {
+                virBufferAddLit(buf, "/>\n");
+            }
+        }
+    }
+    if (!empty)
+        virBufferAddLit(buf, "  </network>\n");
 }
 
 
@@ -432,12 +584,15 @@ qemuMigrationCookieXMLFormat(struct qemud_driver *driver,
         if (qemuDomainDefFormatBuf(driver,
                                    mig->persistent,
                                    VIR_DOMAIN_XML_INACTIVE |
-                                   VIR_DOMAIN_XML_SECURE,
-                                   true,
+                                   VIR_DOMAIN_XML_SECURE |
+                                   VIR_DOMAIN_XML_MIGRATABLE,
                                    buf) < 0)
             return -1;
         virBufferAdjustIndent(buf, -2);
     }
+
+    if ((mig->flags & QEMU_MIGRATION_COOKIE_NETWORK) && mig->network)
+        qemuMigrationCookieNetworkXMLFormat(buf, mig->network);
 
     virBufferAddLit(buf, "</qemu-migration>\n");
     return 0;
@@ -474,32 +629,32 @@ qemuMigrationCookieGraphicsXMLParse(xmlXPathContextPtr ctxt)
         goto no_memory;
 
     if (!(tmp = virXPathString("string(./graphics/@type)", ctxt))) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        "%s", _("missing type attribute in migration data"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("missing type attribute in migration data"));
         goto error;
     }
     if ((grap->type = virDomainGraphicsTypeFromString(tmp)) < 0) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("unknown graphics type %s"), tmp);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unknown graphics type %s"), tmp);
         VIR_FREE(tmp);
         goto error;
     }
     VIR_FREE(tmp);
     if (virXPathInt("string(./graphics/@port)", ctxt, &grap->port) < 0) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        "%s", _("missing port attribute in migration data"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("missing port attribute in migration data"));
         goto error;
     }
     if (grap->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE) {
         if (virXPathInt("string(./graphics/@tlsPort)", ctxt, &grap->tlsPort) < 0) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            "%s", _("missing tlsPort attribute in migration data"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("missing tlsPort attribute in migration data"));
             goto error;
         }
     }
     if (!(grap->listen = virXPathString("string(./graphics/@listen)", ctxt))) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        "%s", _("missing listen attribute in migration data"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("missing listen attribute in migration data"));
         goto error;
     }
     /* Optional */
@@ -513,6 +668,58 @@ no_memory:
 error:
     qemuMigrationCookieGraphicsFree(grap);
     return NULL;
+}
+
+
+static qemuMigrationCookieNetworkPtr
+qemuMigrationCookieNetworkXMLParse(xmlXPathContextPtr ctxt)
+{
+    qemuMigrationCookieNetworkPtr optr;
+    int i;
+    int n;
+    xmlNodePtr *interfaces = NULL;
+    char *vporttype;
+    xmlNodePtr save_ctxt = ctxt->node;
+
+    if (VIR_ALLOC(optr) < 0)
+        goto no_memory;
+
+    if ((n = virXPathNodeSet("./network/interface", ctxt, &interfaces)) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("missing interface information"));
+        goto error;
+    }
+
+    optr->nnets = n;
+    if (VIR_ALLOC_N(optr->net, optr->nnets) <0)
+        goto no_memory;
+
+    for (i = 0; i < n; i++) {
+        /* portdata is optional, and may not exist */
+        ctxt->node = interfaces[i];
+        optr->net[i].portdata = virXPathString("string(./portdata[1])", ctxt);
+
+        if (!(vporttype = virXMLPropString(interfaces[i], "vporttype"))) {
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("missing vporttype attribute in migration data"));
+            goto error;
+        }
+        optr->net[i].vporttype = virNetDevVPortTypeFromString(vporttype);
+    }
+
+    VIR_FREE(interfaces);
+
+cleanup:
+    ctxt->node = save_ctxt;
+    return optr;
+
+no_memory:
+    virReportOOMError();
+error:
+    VIR_FREE(interfaces);
+    qemuMigrationCookieNetworkFree(optr);
+    optr = NULL;
+    goto cleanup;
 }
 
 
@@ -535,14 +742,14 @@ qemuMigrationCookieXMLParse(qemuMigrationCookiePtr mig,
 
     /* Extract domain name */
     if (!(tmp = virXPathString("string(./name[1])", ctxt))) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        "%s", _("missing name element in migration data"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("missing name element in migration data"));
         goto error;
     }
     if (STRNEQ(tmp, mig->name)) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("Incoming cookie data had unexpected name %s vs %s"),
-                        tmp, mig->name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Incoming cookie data had unexpected name %s vs %s"),
+                       tmp, mig->name);
         goto error;
     }
     VIR_FREE(tmp);
@@ -550,45 +757,45 @@ qemuMigrationCookieXMLParse(qemuMigrationCookiePtr mig,
     /* Extract domain uuid */
     tmp = virXPathString("string(./uuid[1])", ctxt);
     if (!tmp) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        "%s", _("missing uuid element in migration data"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("missing uuid element in migration data"));
         goto error;
     }
     virUUIDFormat(mig->uuid, uuidstr);
     if (STRNEQ(tmp, uuidstr)) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("Incoming cookie data had unexpected UUID %s vs %s"),
-                        tmp, uuidstr);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Incoming cookie data had unexpected UUID %s vs %s"),
+                       tmp, uuidstr);
     }
     VIR_FREE(tmp);
 
     /* Check & forbid "localhost" migration */
     if (!(mig->remoteHostname = virXPathString("string(./hostname[1])", ctxt))) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        "%s", _("missing hostname element in migration data"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("missing hostname element in migration data"));
         goto error;
     }
     if (STREQ(mig->remoteHostname, mig->localHostname)) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("Attempt to migrate guest to the same host %s"),
-                        mig->remoteHostname);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Attempt to migrate guest to the same host %s"),
+                       mig->remoteHostname);
         goto error;
     }
 
     if (!(tmp = virXPathString("string(./hostuuid[1])", ctxt))) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        "%s", _("missing hostuuid element in migration data"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("missing hostuuid element in migration data"));
         goto error;
     }
     if (virUUIDParse(tmp, mig->remoteHostuuid) < 0) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        "%s", _("malformed hostuuid element in migration data"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("malformed hostuuid element in migration data"));
         goto error;
     }
     if (memcmp(mig->remoteHostuuid, mig->localHostuuid, VIR_UUID_BUFLEN) == 0) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("Attempt to migrate guest to the same host %s"),
-                        tmp);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Attempt to migrate guest to the same host %s"),
+                       tmp);
         goto error;
     }
     VIR_FREE(tmp);
@@ -602,23 +809,23 @@ qemuMigrationCookieXMLParse(qemuMigrationCookiePtr mig,
         int val;
         char *str = virXMLPropString(nodes[i], "name");
         if (!str) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            "%s", _("missing feature name"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("missing feature name"));
             goto error;
         }
 
         if ((val = qemuMigrationCookieFlagTypeFromString(str)) < 0) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Unknown migration cookie feature %s"),
-                            str);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unknown migration cookie feature %s"),
+                           str);
             VIR_FREE(str);
             goto error;
         }
 
         if ((flags & (1 << val)) == 0) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Unsupported migration cookie feature %s"),
-                            str);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Unsupported migration cookie feature %s"),
+                           str);
             VIR_FREE(str);
         }
         VIR_FREE(str);
@@ -634,8 +841,8 @@ qemuMigrationCookieXMLParse(qemuMigrationCookiePtr mig,
         virXPathBoolean("count(./lockstate) > 0", ctxt)) {
         mig->lockDriver = virXPathString("string(./lockstate[1]/@driver)", ctxt);
         if (!mig->lockDriver) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("Missing lock driver name in migration cookie"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("Missing lock driver name in migration cookie"));
             goto error;
         }
         mig->lockState = virXPathString("string(./lockstate[1]/leases[1])", ctxt);
@@ -646,10 +853,10 @@ qemuMigrationCookieXMLParse(qemuMigrationCookiePtr mig,
     if ((flags & QEMU_MIGRATION_COOKIE_PERSISTENT) &&
         virXPathBoolean("count(./domain) > 0", ctxt)) {
         if ((n = virXPathNodeSet("./domain", ctxt, &nodes)) > 1) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Too many domain elements in "
-                              "migration cookie: %d"),
-                            n);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Too many domain elements in "
+                             "migration cookie: %d"),
+                           n);
             goto error;
         }
         mig->persistent = virDomainDefParseNode(driver->caps, doc, nodes[0],
@@ -661,6 +868,11 @@ qemuMigrationCookieXMLParse(qemuMigrationCookiePtr mig,
         }
         VIR_FREE(nodes);
     }
+
+    if ((flags & QEMU_MIGRATION_COOKIE_NETWORK) &&
+        virXPathBoolean("count(./network) > 0", ctxt) &&
+        (!(mig->network = qemuMigrationCookieNetworkXMLParse(ctxt))))
+        goto error;
 
     return 0;
 
@@ -721,6 +933,11 @@ qemuMigrationBakeCookie(qemuMigrationCookiePtr mig,
         qemuMigrationCookieAddPersistent(mig, dom) < 0)
         return -1;
 
+    if (flags & QEMU_MIGRATION_COOKIE_NETWORK &&
+        qemuMigrationCookieAddNetwork(mig, driver, dom) < 0) {
+        return -1;
+    }
+
     if (!(*cookieout = qemuMigrationCookieXMLFormatStr(driver, mig)))
         return -1;
 
@@ -744,8 +961,8 @@ qemuMigrationEatCookie(struct qemud_driver *driver,
     /* Parse & validate incoming cookie (if any) */
     if (cookiein && cookieinlen &&
         cookiein[cookieinlen-1] != '\0') {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("Migration cookie was not NULL terminated"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Migration cookie was not NULL terminated"));
         goto error;
     }
 
@@ -764,17 +981,17 @@ qemuMigrationEatCookie(struct qemud_driver *driver,
     if (mig->flags & QEMU_MIGRATION_COOKIE_LOCKSTATE) {
         if (!mig->lockDriver) {
             if (virLockManagerPluginUsesState(driver->lockManager)) {
-                qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                                _("Missing %s lock state for migration cookie"),
-                                virLockManagerPluginGetName(driver->lockManager));
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Missing %s lock state for migration cookie"),
+                               virLockManagerPluginGetName(driver->lockManager));
                 goto error;
             }
         } else if (STRNEQ(mig->lockDriver,
                           virLockManagerPluginGetName(driver->lockManager))) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Source host lock driver %s different from target %s"),
-                            mig->lockDriver,
-                            virLockManagerPluginGetName(driver->lockManager));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Source host lock driver %s different from target %s"),
+                           mig->lockDriver,
+                           virLockManagerPluginGetName(driver->lockManager));
             goto error;
         }
     }
@@ -800,25 +1017,47 @@ qemuMigrationIsAllowed(struct qemud_driver *driver, virDomainObjPtr vm,
                        virDomainDefPtr def)
 {
     int nsnapshots;
+    bool forbid;
+    int i;
 
     if (vm) {
         if (qemuProcessAutoDestroyActive(driver, vm)) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID,
-                            "%s", _("domain is marked for auto destroy"));
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           "%s", _("domain is marked for auto destroy"));
             return false;
         }
-        if ((nsnapshots = virDomainSnapshotObjListNum(&vm->snapshots, 0))) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID,
-                            _("cannot migrate domain with %d snapshots"),
-                            nsnapshots);
+        if ((nsnapshots = virDomainSnapshotObjListNum(vm->snapshots, NULL,
+                                                      0))) {
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           _("cannot migrate domain with %d snapshots"),
+                           nsnapshots);
+            return false;
+        }
+        if (virDomainHasDiskMirror(vm)) {
+            virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                           _("cannot migrate domain with active block job"));
             return false;
         }
 
         def = vm->def;
     }
-    if (def->nhostdevs > 0) {
-        qemuReportError(VIR_ERR_OPERATION_INVALID,
-            "%s", _("Domain with assigned host devices cannot be migrated"));
+
+    /* Migration with USB host devices is allowed, all other devices are
+     * forbidden.
+     */
+    forbid = false;
+    for (i = 0; i < def->nhostdevs; i++) {
+        virDomainHostdevDefPtr hostdev = def->hostdevs[i];
+        if (hostdev->mode != VIR_DOMAIN_HOSTDEV_MODE_SUBSYS ||
+            hostdev->source.subsys.type != VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_USB) {
+            forbid = true;
+            break;
+        }
+    }
+    if (forbid) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("Domain with assigned non-USB host devices "
+                         "cannot be migrated"));
         return false;
     }
 
@@ -840,14 +1079,20 @@ qemuMigrationIsSafe(virDomainDefPtr def)
             !disk->readonly &&
             disk->cachemode != VIR_DOMAIN_DISK_CACHE_DISABLE) {
             int cfs;
-            if ((cfs = virStorageFileIsClusterFS(disk->src)) == 1)
-                continue;
-            else if (cfs < 0)
-                return false;
 
-            qemuReportError(VIR_ERR_MIGRATE_UNSAFE, "%s",
-                            _("Migration may lead to data corruption if disks"
-                              " use cache != none"));
+            if (disk->type == VIR_DOMAIN_DISK_TYPE_FILE) {
+                if ((cfs = virStorageFileIsClusterFS(disk->src)) == 1)
+                    continue;
+                else if (cfs < 0)
+                    return false;
+            } else if (disk->type == VIR_DOMAIN_DISK_TYPE_NETWORK &&
+                       disk->protocol == VIR_DOMAIN_DISK_PROTOCOL_RBD) {
+                continue;
+            }
+
+            virReportError(VIR_ERR_MIGRATE_UNSAFE, "%s",
+                           _("Migration may lead to data corruption if disks"
+                             " use cache != none"));
             return false;
         }
     }
@@ -889,9 +1134,18 @@ qemuMigrationUpdateJobStatus(struct qemud_driver *driver,
     qemuDomainObjPrivatePtr priv = vm->privateData;
     int ret;
     int status;
+    bool wait_for_spice = false;
+    bool spice_migrated = false;
     unsigned long long memProcessed;
     unsigned long long memRemaining;
     unsigned long long memTotal;
+
+    /* If guest uses SPICE and supports seamles_migration we have to hold up
+     * migration finish until SPICE server transfers its data */
+    if (vm->def->ngraphics == 1 &&
+        vm->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SPICE &&
+        qemuCapsGet(priv->caps, QEMU_CAPS_SEAMLESS_MIGRATION))
+        wait_for_spice = true;
 
     ret = qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob);
     if (ret < 0) {
@@ -903,6 +1157,13 @@ qemuMigrationUpdateJobStatus(struct qemud_driver *driver,
                                         &memProcessed,
                                         &memRemaining,
                                         &memTotal);
+
+    /* If qemu says migrated, check spice */
+    if (wait_for_spice && (ret == 0) &&
+        (status == QEMU_MONITOR_MIGRATION_STATUS_COMPLETED))
+        ret = qemuMonitorGetSpiceMigrationStatus(priv->mon,
+                                                 &spice_migrated);
+
     qemuDomainObjExitMonitorWithDriver(driver, vm);
 
     if (ret < 0 || virTimeMillisNow(&priv->job.info.timeElapsed) < 0) {
@@ -915,8 +1176,8 @@ qemuMigrationUpdateJobStatus(struct qemud_driver *driver,
     switch (status) {
     case QEMU_MONITOR_MIGRATION_STATUS_INACTIVE:
         priv->job.info.type = VIR_DOMAIN_JOB_NONE;
-        qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("%s: %s"), job, _("is not active"));
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("%s: %s"), job, _("is not active"));
         break;
 
     case QEMU_MONITOR_MIGRATION_STATUS_ACTIVE:
@@ -932,20 +1193,21 @@ qemuMigrationUpdateJobStatus(struct qemud_driver *driver,
         break;
 
     case QEMU_MONITOR_MIGRATION_STATUS_COMPLETED:
-        priv->job.info.type = VIR_DOMAIN_JOB_COMPLETED;
+        if ((wait_for_spice && spice_migrated) || (!wait_for_spice))
+            priv->job.info.type = VIR_DOMAIN_JOB_COMPLETED;
         ret = 0;
         break;
 
     case QEMU_MONITOR_MIGRATION_STATUS_ERROR:
         priv->job.info.type = VIR_DOMAIN_JOB_FAILED;
-        qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("%s: %s"), job, _("unexpectedly failed"));
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("%s: %s"), job, _("unexpectedly failed"));
         break;
 
     case QEMU_MONITOR_MIGRATION_STATUS_CANCELLED:
         priv->job.info.type = VIR_DOMAIN_JOB_CANCELLED;
-        qemuReportError(VIR_ERR_OPERATION_ABORTED,
-                        _("%s: %s"), job, _("canceled by client"));
+        virReportError(VIR_ERR_OPERATION_ABORTED,
+                       _("%s: %s"), job, _("canceled by client"));
         break;
     }
 
@@ -985,8 +1247,8 @@ qemuMigrationWaitForCompletion(struct qemud_driver *driver, virDomainObjPtr vm,
             goto cleanup;
 
         if (dconn && virConnectIsAlive(dconn) <= 0) {
-            qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                            _("Lost connection to destination host"));
+            virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                           _("Lost connection to destination host"));
             goto cleanup;
         }
 
@@ -1039,6 +1301,43 @@ qemuDomainMigrateGraphicsRelocate(struct qemud_driver *driver,
         qemuDomainObjExitMonitorWithDriver(driver, vm);
     }
 
+    return ret;
+}
+
+
+static int
+qemuDomainMigrateOPDRelocate(struct qemud_driver *driver ATTRIBUTE_UNUSED,
+                             virDomainObjPtr vm,
+                             qemuMigrationCookiePtr cookie)
+{
+    virDomainNetDefPtr netptr;
+    int ret = -1;
+    int i;
+
+    for (i = 0; i < cookie->network->nnets; i++) {
+        netptr = vm->def->nets[i];
+
+        switch (cookie->network->net[i].vporttype) {
+        case VIR_NETDEV_VPORT_PROFILE_NONE:
+        case VIR_NETDEV_VPORT_PROFILE_8021QBG:
+        case VIR_NETDEV_VPORT_PROFILE_8021QBH:
+           break;
+        case VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH:
+            if (virNetDevOpenvswitchSetMigrateData(cookie->network->net[i].portdata,
+                                                   netptr->ifname) != 0) {
+                virReportSystemError(VIR_ERR_INTERNAL_ERROR,
+                                     _("Unable to run command to set OVS port data for "
+                                     "interface %s"), netptr->ifname);
+                goto cleanup;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    ret = 0;
+cleanup:
     return ret;
 }
 
@@ -1151,8 +1450,8 @@ char *qemuMigrationBegin(struct qemud_driver *driver,
             goto cleanup;
 
         if (STRNEQ(def->name, vm->def->name)) {
-            qemuReportError(VIR_ERR_INVALID_ARG, "%s",
-                            _("target domain name doesn't match source name"));
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("target domain name doesn't match source name"));
             goto cleanup;
         }
 
@@ -1240,7 +1539,8 @@ qemuMigrationPrepareAny(struct qemud_driver *driver,
         int hookret;
 
         if (!(xml = qemuDomainDefFormatXML(driver, def,
-                                           VIR_DOMAIN_XML_SECURE, false)))
+                                           VIR_DOMAIN_XML_SECURE |
+                                           VIR_DOMAIN_XML_MIGRATABLE)))
             goto cleanup;
 
         hookret = virHookCall(VIR_HOOK_DRIVER_QEMU, def->name,
@@ -1326,7 +1626,7 @@ qemuMigrationPrepareAny(struct qemud_driver *driver,
             virReportSystemError(errno, "%s",
                                  _("cannot pass pipe for tunnelled migration"));
             virDomainAuditStart(vm, "migrated", false);
-            qemuProcessStop(driver, vm, 0, VIR_DOMAIN_SHUTOFF_FAILED);
+            qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED, 0);
             goto endjob;
         }
         dataFD[1] = -1; /* 'st' owns the FD now & will close it */
@@ -1362,10 +1662,10 @@ qemuMigrationPrepareAny(struct qemud_driver *driver,
      * This prevents any other APIs being invoked while incoming
      * migration is taking place.
      */
-    if (qemuMigrationJobContinue(vm) == 0) {
+    if (!qemuMigrationJobContinue(vm)) {
         vm = NULL;
-        qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        "%s", _("domain disappeared"));
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       "%s", _("domain disappeared"));
         goto cleanup;
     }
 
@@ -1389,7 +1689,7 @@ cleanup:
     return ret;
 
 endjob:
-    if (qemuMigrationJobFinish(driver, vm) == 0) {
+    if (!qemuMigrationJobFinish(driver, vm)) {
         vm = NULL;
     }
     goto cleanup;
@@ -1473,9 +1773,9 @@ qemuMigrationPrepareDirect(struct qemud_driver *driver,
             goto cleanup;
 
         if (STRPREFIX(hostname, "localhost")) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("hostname on destination resolved to localhost,"
-                              " but migration requires an FQDN"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("hostname on destination resolved to localhost,"
+                             " but migration requires an FQDN"));
             goto cleanup;
         }
 
@@ -1495,9 +1795,9 @@ qemuMigrationPrepareDirect(struct qemud_driver *driver,
          * characters in hostname part don't matter.
          */
         if (!STRPREFIX (uri_in, "tcp:")) {
-            qemuReportError(VIR_ERR_INVALID_ARG, "%s",
-                            _("only tcp URIs are supported for KVM/QEMU"
-                              " migrations"));
+            virReportError(VIR_ERR_INVALID_ARG, "%s",
+                           _("only tcp URIs are supported for KVM/QEMU"
+                             " migrations"));
             goto cleanup;
         }
 
@@ -1519,8 +1819,8 @@ qemuMigrationPrepareDirect(struct qemud_driver *driver,
             p++; /* definitely has a ':' in it, see above */
             this_port = virParseNumber (&p);
             if (this_port == -1 || p-uri_in != strlen (uri_in)) {
-                qemuReportError(VIR_ERR_INVALID_ARG,
-                                "%s", _("URI ended with incorrect ':port'"));
+                virReportError(VIR_ERR_INVALID_ARG,
+                               "%s", _("URI ended with incorrect ':port'"));
                 goto cleanup;
             }
         }
@@ -1798,7 +2098,7 @@ qemuMigrationConnect(struct qemud_driver *driver,
         goto cleanup;
     if (virNetSocketNewConnectTCP(host, port, &sock) == 0) {
         spec->dest.fd.qemu = virNetSocketDupFD(sock, true);
-        virNetSocketFree(sock);
+        virObjectUnref(sock);
     }
     if (virSecurityManagerClearSocketLabel(driver->securityManager, vm->def) < 0 ||
         spec->dest.fd.qemu == -1)
@@ -1843,10 +2143,10 @@ qemuMigrationRun(struct qemud_driver *driver,
 
     if (virLockManagerPluginUsesState(driver->lockManager) &&
         !cookieout) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("Migration with lock driver %s requires"
-                          " cookie support"),
-                        virLockManagerPluginGetName(driver->lockManager));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Migration with lock driver %s requires"
+                         " cookie support"),
+                       virLockManagerPluginGetName(driver->lockManager));
         return -1;
     }
 
@@ -1898,7 +2198,7 @@ qemuMigrationRun(struct qemud_driver *driver,
         break;
 
     case MIGRATION_DEST_UNIX:
-        if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATE_QEMU_UNIX)) {
+        if (qemuCapsGet(priv->caps, QEMU_CAPS_MIGRATE_QEMU_UNIX)) {
             ret = qemuMonitorMigrateToUnix(priv->mon, migrate_flags,
                                            spec->dest.unix_socket.file);
         } else {
@@ -1910,8 +2210,10 @@ qemuMigrationRun(struct qemud_driver *driver,
         break;
 
     case MIGRATION_DEST_FD:
-        if (spec->fwdType != MIGRATION_FWD_DIRECT)
+        if (spec->fwdType != MIGRATION_FWD_DIRECT) {
             fd = spec->dest.fd.local;
+            spec->dest.fd.local = -1;
+        }
         ret = qemuMonitorMigrateToFd(priv->mon, migrate_flags,
                                      spec->dest.fd.qemu);
         VIR_FORCE_CLOSE(spec->dest.fd.qemu);
@@ -1923,8 +2225,8 @@ qemuMigrationRun(struct qemud_driver *driver,
     ret = -1;
 
     if (!virDomainObjIsActive(vm)) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("guest unexpectedly quit"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("guest unexpectedly quit"));
         goto cleanup;
     }
 
@@ -1985,8 +2287,10 @@ cleanup:
 
     if (ret == 0 &&
         qemuMigrationBakeCookie(mig, driver, vm, cookieout, cookieoutlen,
-                                QEMU_MIGRATION_COOKIE_PERSISTENT ) < 0)
+                                QEMU_MIGRATION_COOKIE_PERSISTENT |
+                                QEMU_MIGRATION_COOKIE_NETWORK) < 0) {
         VIR_WARN("Unable to encode migration cookie");
+    }
 
     qemuMigrationCookieFree(mig);
 
@@ -2049,7 +2353,7 @@ static int doNativeMigrate(struct qemud_driver *driver,
     if (!uribits)
         return -1;
 
-    if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATE_QEMU_FD))
+    if (qemuCapsGet(priv->caps, QEMU_CAPS_MIGRATE_QEMU_FD))
         spec.destType = MIGRATION_DEST_CONNECT_HOST;
     else
         spec.destType = MIGRATION_DEST_HOST;
@@ -2090,18 +2394,18 @@ static int doTunnelMigrate(struct qemud_driver *driver,
               driver, vm, st, NULLSTR(cookiein), cookieinlen,
               cookieout, cookieoutlen, flags, resource);
 
-    if (!qemuCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATE_QEMU_FD) &&
-        !qemuCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATE_QEMU_UNIX) &&
-        !qemuCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATE_QEMU_EXEC)) {
-        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                        _("Source qemu is too old to support tunnelled migration"));
+    if (!qemuCapsGet(priv->caps, QEMU_CAPS_MIGRATE_QEMU_FD) &&
+        !qemuCapsGet(priv->caps, QEMU_CAPS_MIGRATE_QEMU_UNIX) &&
+        !qemuCapsGet(priv->caps, QEMU_CAPS_MIGRATE_QEMU_EXEC)) {
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("Source qemu is too old to support tunnelled migration"));
         return -1;
     }
 
     spec.fwdType = MIGRATION_FWD_STREAM;
     spec.fwd.stream = st;
 
-    if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATE_QEMU_FD)) {
+    if (qemuCapsGet(priv->caps, QEMU_CAPS_MIGRATE_QEMU_FD)) {
         int fds[2];
 
         spec.destType = MIGRATION_DEST_FD;
@@ -2148,7 +2452,7 @@ cleanup:
         VIR_FORCE_CLOSE(spec.dest.fd.qemu);
         VIR_FORCE_CLOSE(spec.dest.fd.local);
     } else {
-        virNetSocketFree(sock);
+        virObjectUnref(sock);
         VIR_FREE(spec.dest.unix_socket.file);
     }
 
@@ -2187,9 +2491,8 @@ static int doPeer2PeerMigrate2(struct qemud_driver *driver,
      * and pass it to Prepare2.
      */
     if (!(dom_xml = qemuDomainFormatXML(driver, vm,
-                                        VIR_DOMAIN_XML_SECURE |
-                                        VIR_DOMAIN_XML_UPDATE_CPU,
-                                        true)))
+                                        QEMU_DOMAIN_FORMAT_LIVE_FLAGS |
+                                        VIR_DOMAIN_XML_MIGRATABLE)))
         return -1;
 
     if (virDomainObjGetState(vm, NULL) == VIR_DOMAIN_PAUSED)
@@ -2224,15 +2527,15 @@ static int doPeer2PeerMigrate2(struct qemud_driver *driver,
      * in qemuDomainObjEnterRemoteWithDriver, so check again
      */
     if (!virDomainObjIsActive(vm)) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("guest unexpectedly quit"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("guest unexpectedly quit"));
         goto cleanup;
     }
 
     if (!(flags & VIR_MIGRATE_TUNNELLED) &&
         (uri_out == NULL)) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("domainMigratePrepare2 did not set uri"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("domainMigratePrepare2 did not set uri"));
         cancelled = 1;
         goto finish;
     }
@@ -2276,14 +2579,13 @@ finish:
 
 cleanup:
     if (ddomain) {
-        virUnrefDomain(ddomain);
+        virObjectUnref(ddomain);
         ret = 0;
     } else {
         ret = -1;
     }
 
-    if (st)
-        virUnrefStream(st);
+    virObjectUnref(st);
 
     if (orig_err) {
         virSetError(orig_err);
@@ -2369,8 +2671,8 @@ static int doPeer2PeerMigrate3(struct qemud_driver *driver,
 
     if (!(flags & VIR_MIGRATE_TUNNELLED) &&
         (uri_out == NULL)) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                        _("domainMigratePrepare3 did not set uri"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("domainMigratePrepare3 did not set uri"));
         cancelled = 1;
         goto finish;
     }
@@ -2451,7 +2753,7 @@ finish:
      * If cancelled, then src VM will be restarted, else
      * it will be killed
      */
-    VIR_DEBUG("Confirm3 %p ret=%d vm=%p", sconn, ret, vm);
+    VIR_DEBUG("Confirm3 %p cancelled=%d vm=%p", sconn, cancelled, vm);
     VIR_FREE(cookiein);
     cookiein = cookieout;
     cookieinlen = cookieoutlen;
@@ -2470,14 +2772,13 @@ finish:
 
  cleanup:
     if (ddomain) {
-        virUnrefDomain(ddomain);
+        virObjectUnref(ddomain);
         ret = 0;
     } else {
         ret = -1;
     }
 
-    if (st)
-        virUnrefStream(st);
+    virObjectUnref(st);
 
     if (orig_err) {
         virSetError(orig_err);
@@ -2520,8 +2821,8 @@ static int doPeer2PeerMigrate(struct qemud_driver *driver,
     dconn = virConnectOpen(dconnuri);
     qemuDomainObjExitRemoteWithDriver(driver, vm);
     if (dconn == NULL) {
-        qemuReportError(VIR_ERR_OPERATION_FAILED,
-                        _("Failed to connect to remote libvirt URI %s"), dconnuri);
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("Failed to connect to remote libvirt URI %s"), dconnuri);
         return -1;
     }
 
@@ -2541,15 +2842,15 @@ static int doPeer2PeerMigrate(struct qemud_driver *driver,
     qemuDomainObjExitRemoteWithDriver(driver, vm);
 
     if (!p2p) {
-        qemuReportError(VIR_ERR_OPERATION_FAILED, "%s",
-                        _("Destination libvirt does not support peer-to-peer migration protocol"));
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s",
+                       _("Destination libvirt does not support peer-to-peer migration protocol"));
         goto cleanup;
     }
 
     /* domain may have been stopped while we were talking to remote daemon */
     if (!virDomainObjIsActive(vm)) {
-        qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("guest unexpectedly quit"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("guest unexpectedly quit"));
         goto cleanup;
     }
 
@@ -2611,16 +2912,16 @@ qemuMigrationPerformJob(struct qemud_driver *driver,
         goto cleanup;
 
     if (!virDomainObjIsActive(vm)) {
-        qemuReportError(VIR_ERR_OPERATION_INVALID,
-                        "%s", _("domain is not running"));
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s", _("domain is not running"));
         goto endjob;
     }
 
     if (!qemuMigrationIsAllowed(driver, vm, NULL))
-        goto cleanup;
+        goto endjob;
 
     if (!(flags & VIR_MIGRATE_UNSAFE) && !qemuMigrationIsSafe(vm->def))
-        goto cleanup;
+        goto endjob;
 
     resume = virDomainObjGetState(vm, NULL) == VIR_DOMAIN_RUNNING;
 
@@ -2642,7 +2943,8 @@ qemuMigrationPerformJob(struct qemud_driver *driver,
      * confirm step.
      */
     if (!v3proto) {
-        qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_MIGRATED);
+        qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_MIGRATED,
+                        VIR_QEMU_PROCESS_STOP_MIGRATED);
         virDomainAuditStop(vm, "migrated");
         event = virDomainEventNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_STOPPED,
@@ -2672,7 +2974,7 @@ endjob:
                                          VIR_DOMAIN_EVENT_RESUMED_MIGRATED);
     }
 
-    if (qemuMigrationJobFinish(driver, vm) == 0) {
+    if (!qemuMigrationJobFinish(driver, vm)) {
         vm = NULL;
     } else if (!virDomainObjIsActive(vm) &&
                (!vm->persistent ||
@@ -2714,7 +3016,7 @@ qemuMigrationPerformPhase(struct qemud_driver *driver,
     virDomainEventPtr event = NULL;
     int ret = -1;
     bool resume;
-    int refs;
+    bool hasrefs;
 
     /* If we didn't start the job in the begin phase, start it now. */
     if (!(flags & VIR_MIGRATE_CHANGE_PROTECTION)) {
@@ -2762,10 +3064,10 @@ qemuMigrationPerformPhase(struct qemud_driver *driver,
 
 endjob:
     if (ret < 0)
-        refs = qemuMigrationJobFinish(driver, vm);
+        hasrefs = qemuMigrationJobFinish(driver, vm);
     else
-        refs = qemuMigrationJobContinue(vm);
-    if (refs == 0) {
+        hasrefs = qemuMigrationJobContinue(vm);
+    if (!hasrefs) {
         vm = NULL;
     } else if (!virDomainObjIsActive(vm) && !vm->persistent) {
         qemuDomainRemoveInactive(driver, vm);
@@ -2806,8 +3108,8 @@ qemuMigrationPerform(struct qemud_driver *driver,
 
     if ((flags & (VIR_MIGRATE_TUNNELLED | VIR_MIGRATE_PEER2PEER))) {
         if (cookieinlen) {
-            qemuReportError(VIR_ERR_OPERATION_INVALID,
-                            "%s", _("received unexpected cookie with P2P migration"));
+            virReportError(VIR_ERR_OPERATION_INVALID,
+                           "%s", _("received unexpected cookie with P2P migration"));
             return -1;
         }
 
@@ -2817,8 +3119,8 @@ qemuMigrationPerform(struct qemud_driver *driver,
                                        v3proto);
     } else {
         if (dconnuri) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                            "%s", _("Unexpected dconnuri parameter with non-peer2peer migration"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("Unexpected dconnuri parameter with non-peer2peer migration"));
             return -1;
         }
 
@@ -2847,20 +3149,20 @@ qemuMigrationVPAssociatePortProfiles(virDomainDefPtr def) {
         if (virDomainNetGetActualType(net) == VIR_DOMAIN_NET_TYPE_DIRECT) {
             if (virNetDevVPortProfileAssociate(net->ifname,
                                                virDomainNetGetActualVirtPortProfile(net),
-                                               net->mac,
+                                               &net->mac,
                                                virDomainNetGetActualDirectDev(net),
                                                -1,
                                                def->uuid,
                                                VIR_NETDEV_VPORT_PROFILE_OP_MIGRATE_IN_FINISH,
                                                false) < 0) {
-                qemuReportError(VIR_ERR_OPERATION_FAILED,
-                                _("Port profile Associate failed for %s"),
-                                net->ifname);
+                virReportError(VIR_ERR_OPERATION_FAILED,
+                               _("Port profile Associate failed for %s"),
+                               net->ifname);
                 goto err_exit;
             }
             VIR_DEBUG("Port profile Associate succeeded for %s", net->ifname);
 
-            if (virNetDevMacVLanVPortProfileRegisterCallback(net->ifname, net->mac,
+            if (virNetDevMacVLanVPortProfileRegisterCallback(net->ifname, &net->mac,
                                                              virDomainNetGetActualDirectDev(net), def->uuid,
                                                              virDomainNetGetActualVirtPortProfile(net),
                                                              VIR_NETDEV_VPORT_PROFILE_OP_CREATE))
@@ -2877,7 +3179,7 @@ err_exit:
         if (virDomainNetGetActualType(net) == VIR_DOMAIN_NET_TYPE_DIRECT) {
             ignore_value(virNetDevVPortProfileDisassociate(net->ifname,
                                                            virDomainNetGetActualVirtPortProfile(net),
-                                                           net->mac,
+                                                           &net->mac,
                                                            virDomainNetGetActualDirectDev(net),
                                                            -1,
                                                            VIR_NETDEV_VPORT_PROFILE_OP_MIGRATE_IN_FINISH));
@@ -2921,6 +3223,7 @@ qemuMigrationFinish(struct qemud_driver *driver,
 
     qemuDomainCleanupRemove(vm, qemuMigrationPrepareCleanup);
 
+    cookie_flags = QEMU_MIGRATION_COOKIE_NETWORK;
     if (flags & VIR_MIGRATE_PERSIST_DEST)
         cookie_flags |= QEMU_MIGRATION_COOKIE_PERSISTENT;
 
@@ -2933,19 +3236,24 @@ qemuMigrationFinish(struct qemud_driver *driver,
      */
     if (retcode == 0) {
         if (!virDomainObjIsActive(vm)) {
-            qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                            _("guest unexpectedly quit"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("guest unexpectedly quit"));
             goto endjob;
         }
 
         if (qemuMigrationVPAssociatePortProfiles(vm->def) < 0) {
-            qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_FAILED);
+            qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED,
+                            VIR_QEMU_PROCESS_STOP_MIGRATED);
             virDomainAuditStop(vm, "failed");
             event = virDomainEventNewFromObj(vm,
                                              VIR_DOMAIN_EVENT_STOPPED,
                                              VIR_DOMAIN_EVENT_STOPPED_FAILED);
             goto endjob;
         }
+
+        if (mig->network)
+            if (qemuDomainMigrateOPDRelocate(driver, vm, mig) < 0)
+                VIR_WARN("unable to provide network data for relocation");
 
         if (flags & VIR_MIGRATE_PERSIST_DEST) {
             virDomainDefPtr vmdef;
@@ -2972,14 +3280,15 @@ qemuMigrationFinish(struct qemud_driver *driver,
                  * to restart during confirm() step, so we kill it off now.
                  */
                 if (v3proto) {
-                    qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_FAILED);
+                    qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED,
+                                    VIR_QEMU_PROCESS_STOP_MIGRATED);
                     virDomainAuditStop(vm, "failed");
                     if (newVM)
                         vm->persistent = 0;
                 }
                 if (!vmdef)
-                    qemuReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                    _("can't get vmdef"));
+                    virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                                   _("can't get vmdef"));
                 goto endjob;
             }
 
@@ -3002,8 +3311,8 @@ qemuMigrationFinish(struct qemud_driver *driver,
                                      VIR_DOMAIN_RUNNING_MIGRATED,
                                      QEMU_ASYNC_JOB_MIGRATION_IN) < 0) {
                 if (virGetLastError() == NULL)
-                    qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                                    "%s", _("resume operation failed"));
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   "%s", _("resume operation failed"));
                 /* Need to save the current error, in case shutting
                  * down the process overwrites it
                  */
@@ -3018,7 +3327,8 @@ qemuMigrationFinish(struct qemud_driver *driver,
                  * things up
                  */
                 if (v3proto) {
-                    qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_FAILED);
+                    qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED,
+                                    VIR_QEMU_PROCESS_STOP_MIGRATED);
                     virDomainAuditStop(vm, "failed");
                     event = virDomainEventNewFromObj(vm,
                                                      VIR_DOMAIN_EVENT_STOPPED,
@@ -3049,7 +3359,8 @@ qemuMigrationFinish(struct qemud_driver *driver,
         /* Guest is successfully running, so cancel previous auto destroy */
         qemuProcessAutoDestroyRemove(driver, vm);
     } else {
-        qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_FAILED);
+        qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_FAILED,
+                        VIR_QEMU_PROCESS_STOP_MIGRATED);
         virDomainAuditStop(vm, "failed");
         event = virDomainEventNewFromObj(vm,
                                          VIR_DOMAIN_EVENT_STOPPED,
@@ -3113,7 +3424,8 @@ int qemuMigrationConfirm(struct qemud_driver *driver,
      * domain object, but if no, resume CPUs
      */
     if (retcode == 0) {
-        qemuProcessStop(driver, vm, 1, VIR_DOMAIN_SHUTOFF_MIGRATED);
+        qemuProcessStop(driver, vm, VIR_DOMAIN_SHUTOFF_MIGRATED,
+                        VIR_QEMU_PROCESS_STOP_MIGRATED);
         virDomainAuditStop(vm, "migrated");
 
         event = virDomainEventNewFromObj(vm,
@@ -3129,8 +3441,8 @@ int qemuMigrationConfirm(struct qemud_driver *driver,
                                  VIR_DOMAIN_RUNNING_MIGRATED,
                                  QEMU_ASYNC_JOB_MIGRATION_OUT) < 0) {
             if (virGetLastError() == NULL)
-                qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                                "%s", _("resume operation failed"));
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               "%s", _("resume operation failed"));
             goto cleanup;
         }
 
@@ -3174,12 +3486,12 @@ qemuMigrationToFile(struct qemud_driver *driver, virDomainObjPtr vm,
      * Failure to change migration speed is not fatal. */
     if (qemuDomainObjEnterMonitorAsync(driver, vm, asyncJob) == 0) {
         qemuMonitorSetMigrationSpeed(priv->mon,
-                                     QEMU_DOMAIN_FILE_MIG_BANDWIDTH_MAX);
-        priv->migMaxBandwidth = QEMU_DOMAIN_FILE_MIG_BANDWIDTH_MAX;
+                                     QEMU_DOMAIN_MIG_BANDWIDTH_MAX);
+        priv->migMaxBandwidth = QEMU_DOMAIN_MIG_BANDWIDTH_MAX;
         qemuDomainObjExitMonitorWithDriver(driver, vm);
     }
 
-    if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATE_QEMU_FD) &&
+    if (qemuCapsGet(priv->caps, QEMU_CAPS_MIGRATE_QEMU_FD) &&
         (!compressor || pipe(pipeFD) == 0)) {
         /* All right! We can use fd migration, which means that qemu
          * doesn't have to open() the file, so while we still have to
@@ -3199,9 +3511,9 @@ qemuMigrationToFile(struct qemud_driver *driver, virDomainObjPtr vm,
                                        VIR_CGROUP_CONTROLLER_DEVICES)) {
             if (virCgroupForDomain(driver->cgroup, vm->def->name,
                                    &cgroup, 0) != 0) {
-                qemuReportError(VIR_ERR_INTERNAL_ERROR,
-                                _("Unable to find cgroup for %s"),
-                                vm->def->name);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("Unable to find cgroup for %s"),
+                               vm->def->name);
                 goto cleanup;
             }
             rc = virCgroupAllowDevicePath(cgroup, path,
@@ -3230,7 +3542,7 @@ qemuMigrationToFile(struct qemud_driver *driver, virDomainObjPtr vm,
     if (!compressor) {
         const char *args[] = { "cat", NULL };
 
-        if (qemuCapsGet(priv->qemuCaps, QEMU_CAPS_MIGRATE_QEMU_FD) &&
+        if (qemuCapsGet(priv->caps, QEMU_CAPS_MIGRATE_QEMU_FD) &&
             priv->monConfig->type == VIR_DOMAIN_CHR_TYPE_UNIX) {
             rc = qemuMonitorMigrateToFd(priv->mon,
                                         QEMU_MONITOR_MIGRATE_BACKGROUND,
@@ -3361,15 +3673,15 @@ qemuMigrationJobStartPhase(struct qemud_driver *driver,
                            virDomainObjPtr vm,
                            enum qemuMigrationJobPhase phase)
 {
-    virDomainObjRef(vm);
+    virObjectRef(vm);
     qemuMigrationJobSetPhase(driver, vm, phase);
 }
 
-int
+bool
 qemuMigrationJobContinue(virDomainObjPtr vm)
 {
     qemuDomainObjReleaseAsyncJob(vm);
-    return virDomainObjUnref(vm);
+    return virObjectUnref(vm);
 }
 
 bool
@@ -3386,13 +3698,13 @@ qemuMigrationJobIsActive(virDomainObjPtr vm,
         else
             msg = _("domain '%s' is not being migrated");
 
-        qemuReportError(VIR_ERR_OPERATION_INVALID, msg, vm->def->name);
+        virReportError(VIR_ERR_OPERATION_INVALID, msg, vm->def->name);
         return false;
     }
     return true;
 }
 
-int
+bool
 qemuMigrationJobFinish(struct qemud_driver *driver, virDomainObjPtr vm)
 {
     return qemuDomainObjEndAsyncJob(driver, vm);

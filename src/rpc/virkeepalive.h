@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Jiri Denemark <jdenemar@redhat.com>
  */
@@ -24,6 +24,7 @@
 # define __VIR_KEEPALIVE_H__
 
 # include "virnetmessage.h"
+# include "virobject.h"
 
 typedef int (*virKeepAliveSendFunc)(void *client, virNetMessagePtr msg);
 typedef void (*virKeepAliveDeadFunc)(void *client);
@@ -42,16 +43,16 @@ virKeepAlivePtr virKeepAliveNew(int interval,
                                 ATTRIBUTE_NONNULL(3) ATTRIBUTE_NONNULL(4)
                                 ATTRIBUTE_NONNULL(5) ATTRIBUTE_NONNULL(6);
 
-void virKeepAliveRef(virKeepAlivePtr ka);
-void virKeepAliveFree(virKeepAlivePtr ka);
-
 int virKeepAliveStart(virKeepAlivePtr ka,
                       int interval,
                       unsigned int count);
 void virKeepAliveStop(virKeepAlivePtr ka);
-void virKeepAliveStopSending(virKeepAlivePtr ka);
 
+int virKeepAliveTimeout(virKeepAlivePtr ka);
+bool virKeepAliveTrigger(virKeepAlivePtr ka,
+                         virNetMessagePtr *msg);
 bool virKeepAliveCheckMessage(virKeepAlivePtr ka,
-                              virNetMessagePtr msg);
+                              virNetMessagePtr msg,
+                              virNetMessagePtr *response);
 
 #endif /* __VIR_KEEPALIVE_H__ */

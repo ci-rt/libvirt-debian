@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Daniel P. Berrange <berrange@redhat.com>
@@ -31,16 +31,22 @@ typedef struct _usbDeviceList usbDeviceList;
 usbDevice *usbGetDevice(unsigned int bus,
                         unsigned int devno);
 
-usbDevice *usbFindDeviceByBus(unsigned int bus,
-                              unsigned int devno);
+int usbFindDeviceByBus(unsigned int bus,
+                       unsigned int devno,
+                       bool mandatory,
+                       usbDevice **usb);
 
-usbDeviceList *usbFindDeviceByVendor(unsigned int vendor,
-                                     unsigned int product);
+int usbFindDeviceByVendor(unsigned int vendor,
+                          unsigned int product,
+                          bool mandatory,
+                          usbDeviceList **devices);
 
-usbDevice *usbFindDevice(unsigned int vendor,
-                         unsigned int product,
-                         unsigned int bus,
-                         unsigned int devno);
+int usbFindDevice(unsigned int vendor,
+                  unsigned int product,
+                  unsigned int bus,
+                  unsigned int devno,
+                  bool mandatory,
+                  usbDevice **usb);
 
 void       usbFreeDevice (usbDevice *dev);
 void       usbDeviceSetUsedBy(usbDevice *dev, const char *name);

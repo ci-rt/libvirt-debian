@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Jim Fehlig <jfehlig@novell.com>
@@ -41,6 +41,7 @@
 #include "capabilities.h"
 #include "libxl_driver.h"
 #include "libxl_conf.h"
+#include "storage_file.h"
 
 
 #define VIR_FROM_THIS VIR_FROM_LIBXL
@@ -372,8 +373,8 @@ libxlMakeDomCreateInfo(virDomainDefPtr def, libxl_domain_create_info *c_info)
 
     virUUIDFormat(def->uuid, uuidstr);
     if (libxl_uuid_from_string(&c_info->uuid, uuidstr) ) {
-        libxlError(VIR_ERR_INTERNAL_ERROR,
-                 _("libxenlight failed to parse UUID '%s'"), uuidstr);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("libxenlight failed to parse UUID '%s'"), uuidstr);
         goto error;
     }
 
@@ -397,9 +398,9 @@ libxlMakeDomBuildInfo(virDomainDefPtr def, libxl_domain_config *d_config)
      * only 32 can be represented.
      */
     if (def->maxvcpus > 32 || def->vcpus > 32) {
-        libxlError(VIR_ERR_INTERNAL_ERROR,
-                   _("This version of libxenlight only supports 32 "
-                     "vcpus per domain"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("This version of libxenlight only supports 32 "
+                         "vcpus per domain"));
         return -1;
     }
 
@@ -505,25 +506,30 @@ libxlMakeDisk(virDomainDefPtr def, virDomainDiskDefPtr l_disk,
     if (l_disk->driverName) {
         if (STREQ(l_disk->driverName, "tap") ||
             STREQ(l_disk->driverName, "tap2")) {
-            if (l_disk->driverType) {
-                if (STREQ(l_disk->driverType, "qcow")) {
-                    x_disk->format = DISK_FORMAT_QCOW;
-                    x_disk->backend = DISK_BACKEND_QDISK;
-                } else if (STREQ(l_disk->driverType, "qcow2")) {
-                    x_disk->format = DISK_FORMAT_QCOW2;
-                    x_disk->backend = DISK_BACKEND_QDISK;
-                } else if (STREQ(l_disk->driverType, "vhd")) {
-                    x_disk->format = DISK_FORMAT_VHD;
-                    x_disk->backend = DISK_BACKEND_TAP;
-                } else if (STREQ(l_disk->driverType, "aio") ||
-                            STREQ(l_disk->driverType, "raw")) {
-                    x_disk->format = DISK_FORMAT_RAW;
-                    x_disk->backend = DISK_BACKEND_TAP;
-                }
-            } else {
+            switch (l_disk->format) {
+            case VIR_STORAGE_FILE_QCOW:
+                x_disk->format = DISK_FORMAT_QCOW;
+                x_disk->backend = DISK_BACKEND_QDISK;
+                break;
+            case VIR_STORAGE_FILE_QCOW2:
+                x_disk->format = DISK_FORMAT_QCOW2;
+                x_disk->backend = DISK_BACKEND_QDISK;
+                break;
+            case VIR_STORAGE_FILE_VHD:
+                x_disk->format = DISK_FORMAT_VHD;
+                x_disk->backend = DISK_BACKEND_TAP;
+                break;
+            case VIR_STORAGE_FILE_NONE:
                 /* No subtype specified, default to raw/tap */
-                    x_disk->format = DISK_FORMAT_RAW;
-                    x_disk->backend = DISK_BACKEND_TAP;
+            case VIR_STORAGE_FILE_RAW:
+                x_disk->format = DISK_FORMAT_RAW;
+                x_disk->backend = DISK_BACKEND_TAP;
+                break;
+            default:
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("libxenlight does not support disk driver %s"),
+                               virStorageFileFormatTypeToString(l_disk->format));
+                return -1;
             }
         } else if (STREQ(l_disk->driverName, "file")) {
             x_disk->format = DISK_FORMAT_RAW;
@@ -532,9 +538,9 @@ libxlMakeDisk(virDomainDefPtr def, virDomainDiskDefPtr l_disk,
             x_disk->format = DISK_FORMAT_RAW;
             x_disk->backend = DISK_BACKEND_PHY;
         } else {
-            libxlError(VIR_ERR_INTERNAL_ERROR,
-                        _("libxenlight does not support disk driver %s"),
-                        l_disk->driverName);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("libxenlight does not support disk driver %s"),
+                           l_disk->driverName);
             return -1;
         }
     } else {
@@ -548,8 +554,8 @@ libxlMakeDisk(virDomainDefPtr def, virDomainDiskDefPtr l_disk,
     x_disk->readwrite = !l_disk->readonly;
     x_disk->is_cdrom = l_disk->device == VIR_DOMAIN_DISK_DEVICE_CDROM ? 1 : 0;
     if (l_disk->transient) {
-        libxlError(VIR_ERR_INTERNAL_ERROR, "%s",
-                   _("libxenlight does not support transient disks"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("libxenlight does not support transient disks"));
         return -1;
     }
 
@@ -596,7 +602,7 @@ libxlMakeNic(virDomainDefPtr def, virDomainNetDefPtr l_nic,
     //x_nics[i].mtu = 1492;
 
     x_nic->domid = def->id;
-    memcpy(x_nic->mac, l_nic->mac, sizeof(libxl_mac));
+    virMacAddrGetRaw(&l_nic->mac, x_nic->mac);
 
     if (l_nic->model && !STREQ(l_nic->model, "netfront")) {
         if ((x_nic->model = strdup(l_nic->model)) == NULL) {
@@ -626,9 +632,9 @@ libxlMakeNic(virDomainDefPtr def, virDomainNetDefPtr l_nic,
         }
     } else {
         if (l_nic->script) {
-            libxlError(VIR_ERR_CONFIG_UNSUPPORTED,
-                       _("scripts are not supported on interfaces of type %s"),
-                       virDomainNetTypeToString(l_nic->type));
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                           _("scripts are not supported on interfaces of type %s"),
+                           virDomainNetTypeToString(l_nic->type));
             return -1;
         }
     }
@@ -697,8 +703,8 @@ libxlMakeVfb(libxlDriverPrivatePtr driver, virDomainDefPtr def,
             if (l_vfb->data.vnc.autoport) {
                 port = libxlNextFreeVncPort(driver, LIBXL_VNC_PORT_MIN);
                 if (port < 0) {
-                    libxlError(VIR_ERR_INTERNAL_ERROR,
-                                "%s", _("Unable to find an unused VNC port"));
+                    virReportError(VIR_ERR_INTERNAL_ERROR,
+                                   "%s", _("Unable to find an unused VNC port"));
                     return -1;
                 }
                 l_vfb->data.vnc.port = port;
@@ -779,8 +785,8 @@ libxlMakeChrdevStr(virDomainChrDefPtr def, char **buf)
     const char *type = virDomainChrTypeToString(def->source.type);
 
     if (!type) {
-        libxlError(VIR_ERR_INTERNAL_ERROR,
-                   "%s", _("unexpected chr device type"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("unexpected chr device type"));
         return -1;
     }
 
@@ -917,14 +923,14 @@ libxlMakeCapabilities(libxl_ctx *ctx)
     regcomp (&xen_cap_rec, xen_cap_re, REG_EXTENDED);
 
     if (libxl_get_physinfo(ctx, &phy_info) != 0) {
-        libxlError(VIR_ERR_INTERNAL_ERROR,
-                   _("Failed to get node physical info from libxenlight"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Failed to get node physical info from libxenlight"));
         return NULL;
     }
 
     if ((ver_info = libxl_get_version_info(ctx)) == NULL) {
-        libxlError(VIR_ERR_INTERNAL_ERROR,
-                   _("Failed to get version info from libxenlight"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Failed to get version info from libxenlight"));
         return NULL;
     }
 

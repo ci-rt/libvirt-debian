@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +33,12 @@ int virTypedParameterArrayValidate(virTypedParameterPtr params, int nparams,
 
 int virTypedParameterAssign(virTypedParameterPtr param, const char *name,
                             int type, /* TYPE arg */ ...)
+    ATTRIBUTE_RETURN_CHECK;
+
+int virTypedParameterAssignFromStr(virTypedParameterPtr param,
+                                   const char *name,
+                                   int type,
+                                   const char *val)
     ATTRIBUTE_RETURN_CHECK;
 
 #endif /* __VIR_TYPED_PARAM_H */

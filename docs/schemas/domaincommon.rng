@@ -51,13 +51,16 @@
         <ref name="clock"/>
         <ref name="resources"/>
         <ref name="features"/>
-        <ref name="termination"/>
+        <ref name="events"/>
+        <optional>
+          <ref name="pm"/>
+        </optional>
         <optional>
           <ref name="devices"/>
         </optional>
-        <optional>
+        <zeroOrMore>
           <ref name="seclabel"/>
-        </optional>
+        </zeroOrMore>
         <optional>
           <ref name='qemucmdline'/>
         </optional>
@@ -148,18 +151,32 @@
       <!-- A per-device seclabel override is more limited, either
            relabel=no or a <label> must be present.  -->
       <choice>
-        <attribute name='relabel'>
-          <value>no</value>
-        </attribute>
         <group>
+          <optional>
+            <attribute name='model'>
+              <text/>
+            </attribute>
+          </optional>
+          <attribute name='relabel'>
+            <value>no</value>
+          </attribute>
+        </group>
+        <group>
+          <optional>
+            <attribute name='model'>
+              <text/>
+            </attribute>
+          </optional>
           <optional>
             <attribute name='relabel'>
               <value>yes</value>
             </attribute>
           </optional>
-          <element name='label'>
-            <text/>
-          </element>
+          <zeroOrMore>
+            <element name='label'>
+              <text/>
+            </element>
+          </zeroOrMore>
         </group>
       </choice>
     </element>
@@ -179,6 +196,7 @@
         <value>hyperv</value>
         <value>vbox</value>
         <value>phyp</value>
+        <value>parallels</value>
       </choice>
     </attribute>
   </define>
@@ -222,12 +240,14 @@
             <ref name="absFilePath"/>
           </element>
         </optional>
-        <choice>
+        <optional>
           <ref name="osbootkernel"/>
+        </optional>
+        <optional>
           <zeroOrMore>
             <ref name="osbootdev"/>
           </zeroOrMore>
-        </choice>
+        </optional>
         <optional>
           <element name="bootmenu">
             <attribute name="enable">
@@ -281,6 +301,7 @@
           <ref name="hvmsparc"/>
           <ref name="hvmppc"/>
           <ref name="hvmppc64"/>
+          <ref name="hvms390"/>
         </choice>
       </optional>
       <value>hvm</value>
@@ -367,6 +388,25 @@
       </optional>
     </group>
   </define>
+  <define name="hvms390">
+    <group>
+      <optional>
+        <attribute name="arch">
+          <choice>
+            <value>s390</value>
+            <value>s390x</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="machine">
+          <choice>
+            <value>s390-virtio</value>
+          </choice>
+        </attribute>
+      </optional>
+    </group>
+  </define>
   <define name="osexe">
     <element name="os">
       <element name="type">
@@ -430,6 +470,14 @@
     <interleave>
       <element name="memory">
         <ref name='scaledInteger'/>
+        <optional>
+          <attribute name="dumpCore">
+            <choice>
+              <value>on</value>
+              <value>off</value>
+            </choice>
+          </attribute>
+        </optional>
       </element>
       <optional>
         <element name="currentMemory">
@@ -544,6 +592,16 @@
               <ref name="cpuquota"/>
             </element>
           </optional>
+          <optional>
+            <element name="emulator_period">
+              <ref name="cpuperiod"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="emulator_quota">
+              <ref name="cpuquota"/>
+            </element>
+          </optional>
           <zeroOrMore>
             <element name="vcpupin">
               <attribute name="vcpu">
@@ -554,6 +612,13 @@
               </attribute>
             </element>
           </zeroOrMore>
+          <optional>
+            <element name="emulatorpin">
+              <attribute name="cpuset">
+                <ref name="cpuset"/>
+              </attribute>
+            </element>
+          </optional>
         </element>
       </optional>
 
@@ -829,6 +894,17 @@
       <optional>
         <ref name="address"/>
       </optional>
+      <optional>
+        <ref name="geometry"/>
+      </optional>
+      <optional>
+        <ref name="diskBlockIo"/>
+      </optional>
+      <optional>
+        <element name="wwn">
+          <ref name="wwn"/>
+        </element>
+      </optional>
     </interleave>
   </define>
   <define name="snapshot">
@@ -1031,6 +1107,42 @@
       </optional>
     </element>
   </define>
+  <define name="geometry">
+    <element name="geometry">
+      <attribute name="cyls">
+        <data type="integer"/>
+      </attribute>
+      <attribute name="heads">
+        <data type="integer"/>
+      </attribute>
+      <attribute name="secs">
+        <data type="integer"/>
+      </attribute>
+      <optional>
+        <attribute name="trans">
+          <choice>
+            <value>auto</value>
+            <value>none</value>
+            <value>lba</value>
+          </choice>
+        </attribute>
+      </optional>
+    </element>
+  </define>
+  <define name="diskBlockIo">
+    <element name="blockio">
+      <optional>
+        <attribute name="logical_block_size">
+          <data type="integer"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="physical_block_size">
+          <data type="integer"/>
+        </attribute>
+      </optional>
+    </element>
+  </define>
   <!--
       Disk may use a special driver for access.
     -->
@@ -1076,10 +1188,31 @@
       <ref name="genericName"/>
     </attribute>
     <optional>
-      <attribute name="type">
-        <ref name="genericName"/>
+      <attribute name='type'>
+        <choice>
+          <ref name='diskFormat'/>
+          <value>aio</value> <!-- back-compat for 'raw' -->
+        </choice>
       </attribute>
     </optional>
+  </define>
+  <define name='diskFormat'>
+    <choice>
+      <value>raw</value>
+      <value>dir</value>
+      <value>bochs</value>
+      <value>cloop</value>
+      <value>cow</value>
+      <value>dmg</value>
+      <value>iso</value>
+      <value>qcow</value>
+      <value>qcow2</value>
+      <value>qed</value>
+      <value>vmdk</value>
+      <value>vpc</value>
+      <value>fat</value>
+      <value>vhd</value>
+    </choice>
   </define>
   <define name="driverCache">
     <attribute name="cache">
@@ -1199,6 +1332,8 @@
             <value>ich9-uhci3</value>
             <value>vt82c686b-uhci</value>
             <value>pci-ohci</value>
+            <value>nec-xhci</value>
+            <value>none</value>
           </choice>
         </attribute>
       </optional>
@@ -1275,6 +1410,21 @@
           </interleave>
         </group>
         <group>
+          <optional>
+            <attribute name="type">
+              <value>bind</value>
+            </attribute>
+          </optional>
+          <interleave>
+            <element name="source">
+              <attribute name="dir">
+                <ref name="absFilePath"/>
+              </attribute>
+              <empty/>
+            </element>
+          </interleave>
+        </group>
+        <group>
           <attribute name="type">
             <value>template</value>
           </attribute>
@@ -1283,6 +1433,24 @@
               <attribute name="name">
                 <ref name="genericName"/>
               </attribute>
+              <empty/>
+            </element>
+          </interleave>
+        </group>
+        <group>
+          <attribute name="type">
+            <value>ram</value>
+          </attribute>
+          <interleave>
+            <element name="source">
+              <attribute name="usage">
+                <ref name="unsignedLong"/>
+              </attribute>
+              <optional>
+                <attribute name='unit'>
+                  <ref name='unit'/>
+                </attribute>
+              </optional>
               <empty/>
             </element>
           </interleave>
@@ -1316,6 +1484,18 @@
           <ref name="address"/>
         </optional>
       </interleave>
+      <interleave>
+        <optional>
+          <element name="space_hard_limit">
+            <ref name='scaledInteger'/>
+          </element>
+        </optional>
+        <optional>
+          <element name="space_soft_limit">
+            <ref name='scaledInteger'/>
+          </element>
+        </optional>
+      </interleave>
     </element>
   </define>
   <!--
@@ -1339,6 +1519,9 @@
                 </attribute>
                 <empty/>
               </element>
+            </optional>
+            <optional>
+              <ref name="virtualPortProfile"/>
             </optional>
             <ref name="interface-options"/>
           </interleave>
@@ -1492,6 +1675,14 @@
           </optional>
           <interleave>
             <element name="source">
+              <optional>
+                <attribute name="missing">
+                  <choice>
+                    <value>yes</value>
+                    <value>no</value>
+                  </choice>
+                </attribute>
+              </optional>
               <choice>
                 <group>
                   <ref name="usbproduct"/>
@@ -1639,6 +1830,9 @@
       </optional>
       <optional>
         <ref name="bandwidth"/>
+      </optional>
+      <optional>
+        <ref name="vlan"/>
       </optional>
     </interleave>
   </define>
@@ -2061,10 +2255,10 @@
     </element>
   </define>
   <!--
-      When a domain terminates multiple policies can be applied depending
-      on how it ended:
+      When a certain event happens, multiple policies can be applied
+      depends on what happened:
     -->
-  <define name="termination">
+  <define name="events">
     <interleave>
       <optional>
         <element name="on_reboot">
@@ -2079,6 +2273,11 @@
       <optional>
         <element name="on_crash">
           <ref name="crashOptions"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="on_lockfailure">
+          <ref name="lockfailureOptions"/>
         </element>
       </optional>
     </interleave>
@@ -2121,6 +2320,57 @@
       <value>coredump-destroy</value>
       <value>coredump-restart</value>
     </choice>
+  </define>
+  <!--
+      Options when resource locks are lost:
+      poweroff: power off the domain
+      restart: power off the domain and start it up again to reacquire the
+               locks
+      pause: pause the execution of the domain so that it can be manually
+             resumed when lock issues are solved
+      ignore: keep the domain running
+  -->
+  <define name="lockfailureOptions">
+    <choice>
+      <value>poweroff</value>
+      <value>restart</value>
+      <value>pause</value>
+      <value>ignore</value>
+    </choice>
+  </define>
+  <!--
+      Control ACPI sleep states (dis)allowed for the domain
+      For each of the states the following rules apply:
+      on: the state will be forcefully enabled
+      off: the state will be forcefully disabled
+      not specified: hypervisor will be left to decide its defaults
+  -->
+  <define name="pm">
+    <element name="pm">
+      <interleave>
+        <optional>
+          <element name="suspend-to-mem">
+            <ref name="suspendChoices"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="suspend-to-disk">
+            <ref name="suspendChoices"/>
+          </element>
+        </optional>
+      </interleave>
+      <empty/>
+    </element>
+  </define>
+  <define name="suspendChoices">
+    <optional>
+      <attribute name="enabled">
+        <choice>
+          <value>yes</value>
+          <value>no</value>
+        </choice>
+      </attribute>
+    </optional>
   </define>
   <!--
       Specific setup for a qemu emulated character device.  Note: this
@@ -2189,6 +2439,49 @@
     </choice>
   </define>
 
+  <define name="usbdevfilter">
+    <element name="usbdev">
+      <attribute name="allow">
+        <choice>
+          <value>yes</value>
+          <value>no</value>
+        </choice>
+      </attribute>
+      <optional>
+        <attribute name="class">
+          <choice>
+            <ref name="usbClass"/>
+            <ref name="usbIdDefault"/>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="vendor">
+          <choice>
+            <ref name="usbId"/>
+            <ref name="usbIdDefault"/>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="product">
+          <choice>
+            <ref name="usbId"/>
+            <ref name="usbIdDefault"/>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="version">
+          <choice>
+            <ref name="usbVersion"/>
+            <ref name="usbIdDefault"/>
+          </choice>
+        </attribute>
+      </optional>
+    </element>
+  </define>
+
   <define name="qemucdevSrcType">
     <attribute name="type">
       <ref name="qemucdevSrcTypeChoice"/>
@@ -2211,6 +2504,9 @@
         </optional>
         <optional>
           <attribute name="wiremode"/>
+        </optional>
+        <optional>
+          <ref name='devSeclabel'/>
         </optional>
       </element>
     </zeroOrMore>
@@ -2250,6 +2546,16 @@
       </choice>
     </element>
   </define>
+  <define name="codec">
+    <element name="codec">
+      <attribute name="type">
+        <choice>
+          <value>duplex</value>
+          <value>micro</value>
+        </choice>
+      </attribute>
+    </element>
+  </define>
   <define name="sound">
     <element name="sound">
       <attribute name="model">
@@ -2261,12 +2567,19 @@
           <value>ich6</value>
         </choice>
       </attribute>
-      <optional>
-        <ref name="alias"/>
-      </optional>
-      <optional>
-        <ref name="address"/>
-      </optional>
+      <interleave>
+        <optional>
+          <ref name="alias"/>
+        </optional>
+        <optional>
+          <ref name="address"/>
+        </optional>
+        <zeroOrMore>
+          <choice>
+            <ref name="codec"/>
+          </choice>
+        </zeroOrMore>
+      </interleave>
     </element>
   </define>
   <define name="watchdog">
@@ -2468,6 +2781,13 @@
       </optional>
     </element>
   </define>
+  <define name="redirfilter">
+    <element name="redirfilter">
+      <zeroOrMore>
+        <ref name="usbdevfilter"/>
+      </zeroOrMore>
+    </element>
+  </define>
   <define name="hostdev">
     <element name="hostdev">
       <optional>
@@ -2494,6 +2814,9 @@
       </optional>
       <group>
         <element name="source">
+          <optional>
+            <ref name="startupPolicy"/>
+          </optional>
           <choice>
             <group>
               <ref name="usbproduct"/>
@@ -2556,30 +2879,6 @@
     <optional>
       <attribute name="reg">
         <ref name="spaprvioReg"/>
-      </attribute>
-    </optional>
-  </define>
-  <define name="pciaddress">
-    <optional>
-      <attribute name="domain">
-        <ref name="pciDomain"/>
-      </attribute>
-    </optional>
-    <attribute name="bus">
-      <ref name="pciBus"/>
-    </attribute>
-    <attribute name="slot">
-      <ref name="pciSlot"/>
-    </attribute>
-    <attribute name="function">
-      <ref name="pciFunc"/>
-    </attribute>
-    <optional>
-      <attribute name="multifunction">
-        <choice>
-          <value>on</value>
-          <value>off</value>
-        </choice>
       </attribute>
     </optional>
   </define>
@@ -2655,6 +2954,7 @@
             <ref name="smartcard"/>
             <ref name="hub"/>
             <ref name="redirdev"/>
+            <ref name="redirfilter"/>
           </choice>
         </zeroOrMore>
         <optional>
@@ -2667,7 +2967,8 @@
     </element>
   </define>
   <!--
-      A set of optional features: PAE, APIC, ACPI, and HAP support
+      A set of optional features: PAE, APIC, ACPI,
+      HyperV Enlightenment and HAP support
     -->
   <define name="features">
     <optional>
@@ -2680,7 +2981,14 @@
           </optional>
           <optional>
             <element name="apic">
-              <empty/>
+              <optional>
+                <attribute name="eoi">
+                  <choice>
+                    <value>on</value>
+                    <value>off</value>
+                  </choice>
+                </attribute>
+              </optional>
             </element>
           </optional>
           <optional>
@@ -2692,6 +3000,9 @@
             <element name="hap">
               <empty/>
             </element>
+          </optional>
+          <optional>
+            <ref name="hyperv"/>
           </optional>
           <optional>
             <element name="viridian">
@@ -2787,6 +3098,13 @@
             <value>allow</value>
             <value>forbid</value>
           </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="vendor_id">
+          <data type="string">
+            <param name='pattern'>[^,]{12}</param>
+          </data>
         </attribute>
       </optional>
       <choice>
@@ -2941,12 +3259,19 @@
 
   <define name="bios">
     <element name="bios">
-      <attribute name="useserial">
-        <choice>
-          <value>yes</value>
-          <value>no</value>
-        </choice>
-      </attribute>
+      <optional>
+        <attribute name="useserial">
+          <choice>
+            <value>yes</value>
+            <value>no</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="rebootTimeout">
+          <ref name="rebootTimeoutDelay"/>
+        </attribute>
+      </optional>
     </element>
   </define>
 
@@ -3052,7 +3377,7 @@
       </attribute>
       <optional>
         <attribute name='format'>
-          <ref name="genericName"/>
+          <ref name='diskFormat'/>
         </attribute>
       </optional>
       <optional>
@@ -3132,6 +3457,28 @@
         </choice>
       </interleave>
     </element>
+  </define>
+
+  <!-- Optional HyperV Enlightenment features -->
+  <define name="hyperv">
+    <element name="hyperv">
+      <interleave>
+        <optional>
+          <element name="relaxed">
+            <ref name="hypervtristate"/>
+          </element>
+        </optional>
+      </interleave>
+    </element>
+  </define>
+
+  <define name="hypervtristate">
+    <attribute name="state">
+      <choice>
+        <value>on</value>
+        <value>off</value>
+      </choice>
+    </attribute>
   </define>
 
   <!--
@@ -3220,6 +3567,11 @@
       <param name='minInclusive'>-1</param>
     </data>
   </define>
+  <define name="rebootTimeoutDelay">
+    <data type="short">
+      <param name="minInclusive">-1</param>
+    </data>
+  </define>
   <define name="PortNumber">
     <data type="short">
       <param name="minInclusive">-1</param>
@@ -3261,9 +3613,19 @@
       <param name="pattern">(([0-2]?[0-9]?[0-9]\.){3}[0-2]?[0-9]?[0-9])|(([0-9a-fA-F]+|:)+[0-9a-fA-F]+)|([a-zA-Z0-9_\.\+\-]*)</param>
     </data>
   </define>
+  <define name="usbIdDefault">
+    <data type="string">
+      <param name="pattern">-1</param>
+    </data>
+  </define>
   <define name="usbId">
     <data type="string">
       <param name="pattern">(0x)?[0-9a-fA-F]{1,4}</param>
+    </data>
+  </define>
+  <define name="usbVersion">
+    <data type="string">
+      <param name="pattern">[0-9]{1,2}.[0-9]{1,2}</param>
     </data>
   </define>
   <define name="usbAddr">
@@ -3271,29 +3633,14 @@
       <param name="pattern">(0x)?[0-9a-fA-F]{1,3}</param>
     </data>
   </define>
-  <define name="usbPort">
-    <data type="string">
-      <param name="pattern">((0x)?[0-9a-fA-F]{1,3}\.){0,3}(0x)?[0-9a-fA-F]{1,3}</param>
-    </data>
-  </define>
-  <define name="pciDomain">
-    <data type="string">
-      <param name="pattern">(0x)?[0-9a-fA-F]{1,4}</param>
-    </data>
-  </define>
-  <define name="pciBus">
+  <define name="usbClass">
     <data type="string">
       <param name="pattern">(0x)?[0-9a-fA-F]{1,2}</param>
     </data>
   </define>
-  <define name="pciSlot">
+  <define name="usbPort">
     <data type="string">
-      <param name="pattern">(0x)?[0-1]?[0-9a-fA-F]</param>
-    </data>
-  </define>
-  <define name="pciFunc">
-    <data type="string">
-      <param name="pattern">(0x)?[0-7]</param>
+      <param name="pattern">((0x)?[0-9a-fA-F]{1,3}\.){0,3}(0x)?[0-9a-fA-F]{1,3}</param>
     </data>
   </define>
   <define name="driveController">

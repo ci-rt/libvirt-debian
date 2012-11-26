@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Richard Jones <rjones@redhat.com>
  */
@@ -37,7 +37,7 @@ unsigned long remoteVersion(void);
 # define LIBVIRTD_TCP_PORT "16509"
 # define LIBVIRTD_PRIV_UNIX_SOCKET LOCALSTATEDIR "/run/libvirt/libvirt-sock"
 # define LIBVIRTD_PRIV_UNIX_SOCKET_RO LOCALSTATEDIR "/run/libvirt/libvirt-sock-ro"
-# define LIBVIRTD_USER_UNIX_SOCKET "/.libvirt/libvirt-sock"
+# define LIBVIRTD_USER_UNIX_SOCKET "libvirt-sock"
 # define LIBVIRTD_CONFIGURATION_FILE SYSCONFDIR "/libvirtd.conf"
 
 /* Defaults for PKI directory. */

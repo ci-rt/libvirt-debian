@@ -1,7 +1,7 @@
 /*
  * qemu_domain.h: QEMU domain private state
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  * Copyright (C) 2006 Daniel P. Berrange
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -26,10 +26,11 @@
 
 # include "threads.h"
 # include "domain_conf.h"
+# include "snapshot_conf.h"
 # include "qemu_monitor.h"
 # include "qemu_agent.h"
 # include "qemu_conf.h"
-# include "bitmap.h"
+# include "qemu_capabilities.h"
 # include "virconsole.h"
 
 # define QEMU_EXPECTED_VIRT_TYPES      \
@@ -38,13 +39,16 @@
      (1 << VIR_DOMAIN_VIRT_KVM) |      \
      (1 << VIR_DOMAIN_VIRT_XEN))
 
-# define QEMU_DOMAIN_DEFAULT_MIG_BANDWIDTH_MAX 32
+# define QEMU_DOMAIN_FORMAT_LIVE_FLAGS      \
+    (VIR_DOMAIN_XML_SECURE |                \
+     VIR_DOMAIN_XML_UPDATE_CPU)
+
 # if ULONG_MAX == 4294967295
 /* Qemu has a 64-bit limit, but we are limited by our historical choice of
  * representing bandwidth in a long instead of a 64-bit int.  */
-#  define QEMU_DOMAIN_FILE_MIG_BANDWIDTH_MAX    ULONG_MAX
+#  define QEMU_DOMAIN_MIG_BANDWIDTH_MAX ULONG_MAX
 # else
-#  define QEMU_DOMAIN_FILE_MIG_BANDWIDTH_MAX    (INT64_MAX / (1024 * 1024))
+#  define QEMU_DOMAIN_MIG_BANDWIDTH_MAX (INT64_MAX / (1024 * 1024))
 # endif
 
 # define JOB_MASK(job)                  (1 << (job - 1))
@@ -104,6 +108,7 @@ struct qemuDomainJobObj {
     int phase;                          /* Job phase (mainly for migrations) */
     unsigned long long mask;            /* Jobs allowed during async job */
     unsigned long long start;           /* When the async job started */
+    bool dump_memory_only;              /* use dump-guest-memory to do dump */
     virDomainJobInfo info;              /* Async job progress data */
 };
 
@@ -138,7 +143,7 @@ struct _qemuDomainObjPrivate {
     qemuDomainPCIAddressSetPtr pciaddrs;
     int persistentAddrs;
 
-    virBitmapPtr qemuCaps;
+    qemuCapsPtr caps;
     char *lockState;
 
     bool fakeReboot;
@@ -192,11 +197,11 @@ int qemuDomainObjBeginAsyncJobWithDriver(struct qemud_driver *driver,
                                          enum qemuDomainAsyncJob asyncJob)
     ATTRIBUTE_RETURN_CHECK;
 
-int qemuDomainObjEndJob(struct qemud_driver *driver,
-                        virDomainObjPtr obj)
+bool qemuDomainObjEndJob(struct qemud_driver *driver,
+                         virDomainObjPtr obj)
     ATTRIBUTE_RETURN_CHECK;
-int qemuDomainObjEndAsyncJob(struct qemud_driver *driver,
-                             virDomainObjPtr obj)
+bool qemuDomainObjEndAsyncJob(struct qemud_driver *driver,
+                              virDomainObjPtr obj)
     ATTRIBUTE_RETURN_CHECK;
 void qemuDomainObjSetJobPhase(struct qemud_driver *driver,
                               virDomainObjPtr obj,
@@ -252,18 +257,15 @@ void qemuDomainObjExitRemoteWithDriver(struct qemud_driver *driver,
 int qemuDomainDefFormatBuf(struct qemud_driver *driver,
                            virDomainDefPtr vm,
                            unsigned int flags,
-                           bool compatible,
                            virBuffer *buf);
 
 char *qemuDomainDefFormatXML(struct qemud_driver *driver,
                              virDomainDefPtr vm,
-                             unsigned int flags,
-                             bool compatible);
+                             unsigned int flags);
 
 char *qemuDomainFormatXML(struct qemud_driver *driver,
                           virDomainObjPtr vm,
-                          unsigned int flags,
-                          bool compatible);
+                          unsigned int flags);
 
 char *qemuDomainDefFormatLive(struct qemud_driver *driver,
                               virDomainDefPtr def,
@@ -341,6 +343,9 @@ bool qemuDomainJobAllowed(qemuDomainObjPrivatePtr priv,
 int qemuDomainCheckDiskPresence(struct qemud_driver *driver,
                                 virDomainObjPtr vm,
                                 bool start_with_state);
+int qemuDomainDetermineDiskChain(struct qemud_driver *driver,
+                                 virDomainDiskDefPtr disk,
+                                 bool force);
 
 int qemuDomainCleanupAdd(virDomainObjPtr vm,
                          qemuDomainCleanupCallback cb);

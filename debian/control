@@ -27,12 +27,18 @@ Build-Depends: cdbs (>= 0.4.90~),
  module-init-tools [linux-any],
  policykit-1,
  libcap-ng-dev [linux-any],
- libnl-dev [linux-any],
+ libnl-3-dev [linux-any],
+ libnl-route-3-dev [linux-any],
  libyajl-dev,
  libpcap0.8-dev,
  libnuma-dev [amd64 i386 ia64 mips mipsel powerpc],
  radvd [linux-any],
- libnetcf-dev [linux-any],
+ libnetcf-dev (>= 0.2.2) [linux-any],
+ libsanlock-dev [linux-any],
+ libaudit-dev [linux-any],
+ systemtap-sdt-dev [amd64 armel armhf i386 ia64 powerpc s390],
+# for --with-storage-sheepdog
+ sheepdog [linux-any],
 # For "make check"
  dwarves,
  libxml2-utils,
@@ -49,7 +55,8 @@ X-Python-Version: >= 2.6
 
 Package: libvirt-bin
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Version}), logrotate, gettext-base
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, libvirt0 (= ${binary:Version}), logrotate, gettext-base,
+ libnetcf1 (>= 0.2.2-1)
 Enhances: qemu, qemu-kvm, xen
 Section: admin
 Recommends: netcat-openbsd,
@@ -62,8 +69,9 @@ Recommends: netcat-openbsd,
  ebtables,
  dmidecode,
  iproute,
- parted
-Suggests: policykit-1, radvd
+ parted,
+ pm-utils
+Suggests: policykit-1, radvd, auditd, systemtap
 Description: programs for the libvirt library
  Libvirt is a C toolkit to interact with the virtualization capabilities
  of recent versions of Linux (and other OSes). The library aims at providing
@@ -135,4 +143,16 @@ Description: libvirt Python bindings
  supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
  .
  This package contains Python bindings for the libvirt library
+
+Package: libvirt-sanlock
+Architecture: linux-any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libvirt0 (= ${binary:Version}), augeas-tools
+Priority: extra
+Description: library for interfacing with different virtualization systems
+ Libvirt is a C toolkit to interact with the virtualization capabilities
+ of recent versions of Linux (and other OSes). The library aims at providing
+ a long term stable C API for different virtualization mechanisms. It currently
+ supports QEMU, KVM, XEN, OpenVZ, LXC, and VirtualBox.
+ .
+ This package contains the sanlock plugin.
 

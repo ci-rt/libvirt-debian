@@ -147,9 +147,9 @@
           </li><li>
             <a href="#curly_braces">Curly braces</a>
           </li><li>
-            <a href="#">Preprocessor</a>
+            <a href="#preprocessor">Preprocessor</a>
           </li><li>
-            <a href="#">C types</a>
+            <a href="#types">C types</a>
           </li><li>
             <a href="#memalloc">Low level memory management</a>
           </li><li>
@@ -184,13 +184,60 @@
 <pre>
   git diff &gt; libvirt-myfeature.patch
 </pre>
-      </li><li>Split large changes into a series of smaller patches, self-contained
-        if possible, with an explanation of each patch and an explanation of how
-        the sequence of patches fits together.</li><li>Make sure your patches apply against libvirt GIT.  Developers
-        only follow GIT and don't care much about released versions.</li><li><p>Run the automated tests on your code before submitting any changes.
-          In particular, configure with compile warnings set to -Werror:</p>
+        <p>However, the usual workflow of libvirt developer is:</p>
 <pre>
-  ./configure --enable-compile-warnings=error
+  git checkout master
+  git pull
+  git checkout -t origin -b workbranch
+  Hack, committing any changes along the way
+</pre>
+        <p>Then, when you want to post your patches:</p>
+<pre>
+  git pull --rebase
+  (fix any conflicts)
+  git send-email --cover-letter --no-chain-reply-to --annotate \
+                 --to=libvir-list@redhat.com master
+</pre>
+        <p>(Note that the "git send-email" subcommand may not be in
+        the main git package and using it may require installion of a
+        separate package, for example the "git-email" package in
+        Fedora.)  For a single patch you can omit
+        <code>--cover-letter</code>, but a series of two or more
+        patches needs a cover letter. If you get tired of typing
+        <code>--to=libvir-list@redhat.com</code> designation you can
+        set it in git config:</p>
+<pre>
+  git config sendemail.to libvir-list@redhat.com
+</pre>
+        <p>Please follow this as close as you can, especially the rebase and
+        git send-email part, as it makes life easier for other developers to
+        review your patch set. One should avoid sending patches as attachments,
+        but rather send them in email body along with commit message. If a
+        developer is sending another version of the patch (e.g. to address
+        review comments), he is advised to note differences to previous
+        versions after the <code>---</code> line in the patch so that it helps
+        reviewers but doesn't become part of git history. Moreover, such patch
+        needs to be prefixed correctly with
+        <code>--subject-prefix=PATCHv2</code> appended to <code>git
+            send-email</code> (substitute <code>v2</code> with the correct
+        version if needed though).</p>
+      </li><li><p>Split large changes into a series of smaller patches,
+        self-contained if possible, with an explanation of each patch
+        and an explanation of how the sequence of patches fits
+        together. Moreover, please keep in mind that it's required to
+        be able to compile cleanly (<b>including</b> <code>make
+        check</code> and <code>make syntax-check</code>) after each
+        patch.  A feature does not have to work until the end of a
+        series, but intermediate patches must compile and not cause
+        test-suite failures (this is to preserve the usefulness
+        of <code>git bisect</code>, among other things).</p>
+      </li><li>Make sure your patches apply against libvirt GIT.  Developers
+        only follow GIT and don't care much about released versions.</li><li><p>Run the automated tests on your code before submitting any changes.
+          In particular, configure with compile warnings set to
+          -Werror.  This is done automatically for a git checkout; from a
+          tarball, use:</p>
+<pre>
+  ./configure --enable-werror
 </pre>
         <p>
           and run the tests:
@@ -442,7 +489,7 @@
   }
 </pre>
         <h2>
-          <a href="types">Preprocessor</a>
+          <a name="preprocessor" id="preprocessor">Preprocessor</a>
         </h2>
         <p>
       For variadic macros, stick with C99 syntax:
@@ -459,7 +506,7 @@
   #endif
 </pre>
         <h2>
-          <a href="types">C types</a>
+          <a name="types" id="types">C types</a>
         </h2>
         <p>
       Use the right type.
@@ -484,7 +531,8 @@
             type, which <b>is</b> fixed-size.</li><li>Don't compare a bool variable against the literal, <code>true</code>,
             since a value with a logical non-false value need not be <code>1</code>.
             I.e., don't write <code>if (seen == true) ...</code>.  Rather,
-            write <code>if (seen)...</code>.</li></ul></li></ul>
+            write <code>if (seen)...</code>.</li></ul>
+      </li></ul>
         <p>
       Of course, take all of the above with a grain of salt.  If you're about
       to use some system interface that requires a type like <code>size_t</code>,
@@ -607,8 +655,8 @@
         <p>
       Usage of the <code>fdopen()</code>, <code>close()</code>, <code>fclose()</code>
       APIs is deprecated in libvirt code base to help avoiding double-closing of files
-      or file descriptors, which is particulary dangerous in a multi-threaded
-      applications. Instead of these APIs, use the macros from virfile.h
+      or file descriptors, which is particularly dangerous in a multi-threaded
+      application. Instead of these APIs, use the macros from virfile.h
     </p>
         <ul><li><p>Open a file from a file descriptor:</p>
 

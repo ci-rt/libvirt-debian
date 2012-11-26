@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: David F. Lively <dlively@virtualiron.com>
  */
@@ -212,9 +212,6 @@ struct _virDeviceMonitorState {
     void *privateData;			/* driver-specific private data */
 };
 
-# define virNodeDeviceReportError(code, ...)                             \
-    virReportErrorHelper(VIR_FROM_NODEDEV, code, __FILE__,               \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 int virNodeDeviceHasCap(const virNodeDeviceObjPtr dev, const char *cap);
 
@@ -263,5 +260,21 @@ void virNodeDevCapsDefFree(virNodeDevCapsDefPtr caps);
 
 void virNodeDeviceObjLock(virNodeDeviceObjPtr obj);
 void virNodeDeviceObjUnlock(virNodeDeviceObjPtr obj);
+
+# define VIR_CONNECT_LIST_NODE_DEVICES_FILTERS_CAP \
+                (VIR_CONNECT_LIST_NODE_DEVICES_CAP_SYSTEM        | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV       | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_DEV       | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_USB_INTERFACE | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_NET           | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_HOST     | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI_TARGET   | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_SCSI          | \
+                 VIR_CONNECT_LIST_NODE_DEVICES_CAP_STORAGE)
+
+int virNodeDeviceList(virConnectPtr conn,
+                      virNodeDeviceObjList devobjs,
+                      virNodeDevicePtr **devices,
+                      unsigned int flags);
 
 #endif /* __VIR_NODE_DEVICE_CONF_H__ */

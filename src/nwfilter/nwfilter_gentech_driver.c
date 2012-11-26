@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Stefan Berger <stefanb@us.ibm.com>
  */
@@ -32,6 +32,8 @@
 #include "virterror_internal.h"
 #include "nwfilter_gentech_driver.h"
 #include "nwfilter_ebiptables_driver.h"
+#include "nwfilter_dhcpsnoop.h"
+#include "nwfilter_ipaddrmap.h"
 #include "nwfilter_learnipaddr.h"
 #include "virnetdev.h"
 #include "datatypes.h"
@@ -39,8 +41,10 @@
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
 
-#define NWFILTER_STD_VAR_MAC "MAC"
-#define NWFILTER_STD_VAR_IP  "IP"
+#define NWFILTER_STD_VAR_MAC NWFILTER_VARNAME_MAC
+#define NWFILTER_STD_VAR_IP  NWFILTER_VARNAME_IP
+
+#define NWFILTER_DFLT_LEARN  "any"
 
 static int _virNWFilterTeardownFilter(const char *ifname);
 
@@ -53,6 +57,7 @@ static virNWFilterTechDriverPtr filter_tech_drivers[] = {
 
 void virNWFilterTechDriversInit(bool privileged) {
     int i = 0;
+    VIR_DEBUG("Initializing NWFilter technology drivers");
     while (filter_tech_drivers[i]) {
         if (!(filter_tech_drivers[i]->flags & TECHDRV_FLAG_INITIALIZED))
             filter_tech_drivers[i]->init(privileged);
@@ -156,8 +161,8 @@ virNWFilterVarHashmapAddStdValues(virNWFilterHashTablePtr table,
         if (virHashAddEntry(table->hashTable,
                             NWFILTER_STD_VAR_MAC,
                             val) < 0) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                                   "%s", _("Could not add variable 'MAC' to hashmap"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("Could not add variable 'MAC' to hashmap"));
             return -1;
         }
     }
@@ -170,8 +175,8 @@ virNWFilterVarHashmapAddStdValues(virNWFilterHashTablePtr table,
         if (virHashAddEntry(table->hashTable,
                             NWFILTER_STD_VAR_IP,
                             val) < 0) {
-            virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                                   "%s", _("Could not add variable 'IP' to hashmap"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("Could not add variable 'IP' to hashmap"));
             return -1;
         }
     }
@@ -422,9 +427,9 @@ _virNWFilterInstantiateRec(virNWFilterTechDriverPtr techdriver,
             if (obj) {
 
                 if (obj->wantRemoved) {
-                    virNWFilterReportError(VIR_ERR_NO_NWFILTER,
-                                           _("Filter '%s' is in use."),
-                                           inc->filterref);
+                    virReportError(VIR_ERR_NO_NWFILTER,
+                                   _("Filter '%s' is in use."),
+                                   inc->filterref);
                     rc = -1;
                     virNWFilterObjUnlock(obj);
                     break;
@@ -470,9 +475,9 @@ _virNWFilterInstantiateRec(virNWFilterTechDriverPtr techdriver,
                 if (rc < 0)
                     break;
             } else {
-                virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                                       _("referenced filter '%s' is missing"),
-                                       inc->filterref);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("referenced filter '%s' is missing"),
+                               inc->filterref);
                 rc = -1;
                 break;
             }
@@ -534,9 +539,9 @@ virNWFilterDetermineMissingVarsRec(virNWFilterDefPtr filter,
             if (obj) {
 
                 if (obj->wantRemoved) {
-                    virNWFilterReportError(VIR_ERR_NO_NWFILTER,
-                                           _("Filter '%s' is in use."),
-                                           inc->filterref);
+                    virReportError(VIR_ERR_NO_NWFILTER,
+                                   _("Filter '%s' is in use."),
+                                   inc->filterref);
                     rc = -1;
                     virNWFilterObjUnlock(obj);
                     break;
@@ -577,9 +582,9 @@ virNWFilterDetermineMissingVarsRec(virNWFilterDefPtr filter,
                 if (rc < 0)
                     break;
             } else {
-                virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                                       _("referenced filter '%s' is missing"),
-                                       inc->filterref);
+                virReportError(VIR_ERR_INTERNAL_ERROR,
+                               _("referenced filter '%s' is missing"),
+                               inc->filterref);
                 rc = -1;
                 break;
             }
@@ -651,7 +656,7 @@ virNWFilterInstantiate(const unsigned char *vmuuid ATTRIBUTE_UNUSED,
                        virNWFilterHashTablePtr vars,
                        enum instCase useNewFilter, bool *foundNewFilter,
                        bool teardownOld,
-                       const unsigned char *macaddr,
+                       const virMacAddrPtr macaddr,
                        virNWFilterDriverStatePtr driver,
                        bool forceWithPendingReq)
 {
@@ -662,6 +667,9 @@ virNWFilterInstantiate(const unsigned char *vmuuid ATTRIBUTE_UNUSED,
     void **ptrs = NULL;
     int instantiate = 1;
     char *buf;
+    virNWFilterVarValuePtr lv;
+    const char *learning;
+    bool reportIP = false;
 
     virNWFilterHashTablePtr missing_vars = virNWFilterHashTableCreate(0);
     if (!missing_vars) {
@@ -678,22 +686,48 @@ virNWFilterInstantiate(const unsigned char *vmuuid ATTRIBUTE_UNUSED,
     if (rc < 0)
         goto err_exit;
 
+    lv = virHashLookup(vars->hashTable, NWFILTER_VARNAME_CTRL_IP_LEARNING);
+    if (lv)
+        learning = virNWFilterVarValueGetNthValue(lv, 0);
+    else
+        learning = NULL;
+
+    if (learning == NULL)
+        learning = NWFILTER_DFLT_LEARN;
+
     if (virHashSize(missing_vars->hashTable) == 1) {
         if (virHashLookup(missing_vars->hashTable,
                           NWFILTER_STD_VAR_IP) != NULL) {
-            if (virNWFilterLookupLearnReq(ifindex) == NULL) {
-                rc = virNWFilterLearnIPAddress(techdriver,
-                                               ifname,
-                                               ifindex,
-                                               linkdev,
-                                               nettype, macaddr,
-                                               filter->name,
-                                               vars, driver,
-                                               DETECT_DHCP|DETECT_STATIC);
+            if (STRCASEEQ(learning, "none")) {        /* no learning */
+                reportIP = true;
+                goto err_unresolvable_vars;
             }
-            goto err_exit;
-        }
-        goto err_unresolvable_vars;
+            if (STRCASEEQ(learning, "dhcp")) {
+                rc = virNWFilterDHCPSnoopReq(techdriver, ifname, linkdev,
+                                             nettype, vmuuid, macaddr,
+                                             filter->name, vars, driver);
+                goto err_exit;
+            } else if (STRCASEEQ(learning, "any")) {
+                if (virNWFilterLookupLearnReq(ifindex) == NULL) {
+                    rc = virNWFilterLearnIPAddress(techdriver,
+                                                   ifname,
+                                                   ifindex,
+                                                   linkdev,
+                                                   nettype, macaddr,
+                                                   filter->name,
+                                                   vars, driver,
+                                                   DETECT_DHCP|DETECT_STATIC);
+                }
+                goto err_exit;
+            } else {
+                rc = -1;
+                virReportError(VIR_ERR_PARSE_FAILED,
+                               _("filter '%s' "
+                                 "learning value '%s' invalid."),
+                               filter->name, learning);
+            }
+        } else
+             goto err_unresolvable_vars;
     } else if (virHashSize(missing_vars->hashTable) > 1) {
         goto err_unresolvable_vars;
     } else if (!forceWithPendingReq &&
@@ -761,11 +795,11 @@ err_exit:
 
 err_unresolvable_vars:
 
-    buf = virNWFilterPrintVars(missing_vars->hashTable, ", ", false, false);
+    buf = virNWFilterPrintVars(missing_vars->hashTable, ", ", false, reportIP);
     if (buf) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("Cannot instantiate filter due to unresolvable "
-                     "variables or unavailable list elements: %s"), buf);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Cannot instantiate filter due to unresolvable "
+                         "variables or unavailable list elements: %s"), buf);
         VIR_FREE(buf);
     }
 
@@ -784,7 +818,7 @@ __virNWFilterInstantiateFilter(const unsigned char *vmuuid,
                                int ifindex,
                                const char *linkdev,
                                enum virDomainNetType nettype,
-                               const unsigned char *macaddr,
+                               const virMacAddrPtr macaddr,
                                const char *filtername,
                                virNWFilterHashTablePtr filterparams,
                                enum instCase useNewFilter,
@@ -806,10 +840,10 @@ __virNWFilterInstantiateFilter(const unsigned char *vmuuid,
     techdriver = virNWFilterTechDriverForName(drvname);
 
     if (!techdriver) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Could not get access to ACL tech "
-                               "driver '%s'"),
-                               drvname);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not get access to ACL tech "
+                         "driver '%s'"),
+                       drvname);
         return -1;
     }
 
@@ -817,16 +851,16 @@ __virNWFilterInstantiateFilter(const unsigned char *vmuuid,
 
     obj = virNWFilterObjFindByName(&driver->nwfilters, filtername);
     if (!obj) {
-        virNWFilterReportError(VIR_ERR_NO_NWFILTER,
-                               _("Could not find filter '%s'"),
-                               filtername);
+        virReportError(VIR_ERR_NO_NWFILTER,
+                       _("Could not find filter '%s'"),
+                       filtername);
         return -1;
     }
 
     if (obj->wantRemoved) {
-        virNWFilterReportError(VIR_ERR_NO_NWFILTER,
-                               _("Filter '%s' is in use."),
-                               filtername);
+        virReportError(VIR_ERR_NO_NWFILTER,
+                       _("Filter '%s' is in use."),
+                       filtername);
         rc = -1;
         goto err_exit;
     }
@@ -839,7 +873,7 @@ __virNWFilterInstantiateFilter(const unsigned char *vmuuid,
         goto err_exit;
     }
 
-    ipaddr = virNWFilterGetIpAddrForIfname(ifname);
+    ipaddr = virNWFilterIPAddrMapGetIPAddr(ifname);
 
     vars1 = virNWFilterCreateVarHashmap(str_macaddr, ipaddr);
     if (!vars1) {
@@ -934,7 +968,7 @@ _virNWFilterInstantiateFilter(virConnectPtr conn,
                                         ifindex,
                                         linkdev,
                                         net->type,
-                                        net->mac,
+                                        &net->mac,
                                         net->filter,
                                         net->filterparams,
                                         useNewFilter,
@@ -955,7 +989,7 @@ virNWFilterInstantiateFilterLate(const unsigned char *vmuuid,
                                  int ifindex,
                                  const char *linkdev,
                                  enum virDomainNetType nettype,
-                                 const unsigned char *macaddr,
+                                 const virMacAddrPtr macaddr,
                                  const char *filtername,
                                  virNWFilterHashTablePtr filterparams,
                                  virNWFilterDriverStatePtr driver)
@@ -1034,10 +1068,10 @@ virNWFilterRollbackUpdateFilter(const virDomainNetDefPtr net)
 
     techdriver = virNWFilterTechDriverForName(drvname);
     if (!techdriver) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Could not get access to ACL tech "
-                               "driver '%s'"),
-                               drvname);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not get access to ACL tech "
+                         "driver '%s'"),
+                       drvname);
         return -1;
     }
 
@@ -1060,10 +1094,10 @@ virNWFilterTearOldFilter(virDomainNetDefPtr net)
 
     techdriver = virNWFilterTechDriverForName(drvname);
     if (!techdriver) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Could not get access to ACL tech "
-                               "driver '%s'"),
-                               drvname);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not get access to ACL tech "
+                         "driver '%s'"),
+                       drvname);
         return -1;
     }
 
@@ -1085,12 +1119,14 @@ _virNWFilterTeardownFilter(const char *ifname)
     techdriver = virNWFilterTechDriverForName(drvname);
 
     if (!techdriver) {
-        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Could not get access to ACL tech "
-                               "driver '%s'"),
-                               drvname);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Could not get access to ACL tech "
+                         "driver '%s'"),
+                       drvname);
         return -1;
     }
+
+    virNWFilterDHCPSnoopEnd(ifname);
 
     virNWFilterTerminateLearnReq(ifname);
 
@@ -1099,7 +1135,7 @@ _virNWFilterTeardownFilter(const char *ifname)
 
     techdriver->allTeardown(ifname);
 
-    virNWFilterDelIpAddrForIfname(ifname, NULL);
+    virNWFilterIPAddrMapDelIPAddr(ifname, NULL);
 
     virNWFilterUnlockIface(ifname);
 
@@ -1162,9 +1198,9 @@ virNWFilterDomainFWUpdateCB(void *payload,
                                                        vm->uuid,
                                                        net);
                     if (err)
-                        virNWFilterReportError(VIR_ERR_INTERNAL_ERROR,
-                            _("Failure while applying current filter on "
-                            "VM %s"), vm->name);
+                        virReportError(VIR_ERR_INTERNAL_ERROR,
+                                       _("Failure while applying current filter on "
+                                         "VM %s"), vm->name);
                     break;
                 }
                 if (cb->err)

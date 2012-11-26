@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -50,10 +50,17 @@ qemuAgentPtr qemuAgentOpen(virDomainObjPtr vm,
 void qemuAgentLock(qemuAgentPtr mon);
 void qemuAgentUnlock(qemuAgentPtr mon);
 
-int qemuAgentRef(qemuAgentPtr mon);
-int qemuAgentUnref(qemuAgentPtr mon) ATTRIBUTE_RETURN_CHECK;
-
 void qemuAgentClose(qemuAgentPtr mon);
+
+typedef enum {
+    QEMU_AGENT_EVENT_NONE = 0,
+    QEMU_AGENT_EVENT_SHUTDOWN,
+    QEMU_AGENT_EVENT_SUSPEND,
+    QEMU_AGENT_EVENT_RESET,
+} qemuAgentEvent;
+
+void qemuAgentNotifyEvent(qemuAgentPtr mon,
+                          qemuAgentEvent event);
 
 typedef enum {
     QEMU_AGENT_SHUTDOWN_POWERDOWN,
@@ -71,4 +78,9 @@ int qemuAgentFSThaw(qemuAgentPtr mon);
 
 int qemuAgentSuspend(qemuAgentPtr mon,
                      unsigned int target);
+
+int qemuAgentArbitraryCommand(qemuAgentPtr mon,
+                              const char *cmd,
+                              char **result,
+                              int timeout);
 #endif /* __QEMU_AGENT_H__ */

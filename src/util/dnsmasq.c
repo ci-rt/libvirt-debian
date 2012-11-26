@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007-2011 Red Hat, Inc.
+ * Copyright (C) 2007-2012 Red Hat, Inc.
  * Copyright (C) 2010 Satoru SATOH <satoru.satoh@gmail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -13,8 +13,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Based on iptables.c
  */
@@ -176,8 +176,9 @@ addnhostsWrite(const char *path,
     unsigned int i, ii;
     int rc = 0;
 
-    if (nhosts == 0)
-        return rc;
+    /* even if there are 0 hosts, create a 0 length file, to allow
+     * for runtime addition.
+     */
 
     if (virAsprintf(&tmp, "%s.new", path) < 0)
         return -ENOMEM;
@@ -364,8 +365,9 @@ hostsfileWrite(const char *path,
     unsigned int i;
     int rc = 0;
 
-    if (nhosts == 0)
-        return rc;
+    /* even if there are 0 hosts, create a 0 length file, to allow
+     * for runtime addition.
+     */
 
     if (virAsprintf(&tmp, "%s.new", path) < 0)
         return -ENOMEM;

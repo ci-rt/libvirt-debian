@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -21,7 +21,7 @@
 
 #include "security_nop.h"
 
-static virSecurityDriverStatus virSecurityDriverProbeNop(void)
+static virSecurityDriverStatus virSecurityDriverProbeNop(const char *virtDriver ATTRIBUTE_UNUSED)
 {
     return SECURITY_DRIVER_ENABLE;
 }
@@ -164,40 +164,48 @@ static int virSecurityDomainSetFDLabelNop(virSecurityManagerPtr mgr ATTRIBUTE_UN
     return 0;
 }
 
+static char *virSecurityDomainGetMountOptionsNop(virSecurityManagerPtr mgr ATTRIBUTE_UNUSED,
+                                                 virDomainDefPtr vm ATTRIBUTE_UNUSED) {
+    return NULL;
+}
+
 virSecurityDriver virSecurityDriverNop = {
-    0,
-    "none",
-    virSecurityDriverProbeNop,
-    virSecurityDriverOpenNop,
-    virSecurityDriverCloseNop,
+    .privateDataLen                     = 0,
+    .name                               = "none",
+    .probe                              = virSecurityDriverProbeNop,
+    .open                               = virSecurityDriverOpenNop,
+    .close                              = virSecurityDriverCloseNop,
 
-    virSecurityDriverGetModelNop,
-    virSecurityDriverGetDOINop,
+    .getModel                           = virSecurityDriverGetModelNop,
+    .getDOI                             = virSecurityDriverGetDOINop,
 
-    virSecurityDomainVerifyNop,
+    .domainSecurityVerify               = virSecurityDomainVerifyNop,
 
-    virSecurityDomainSetImageLabelNop,
-    virSecurityDomainRestoreImageLabelNop,
+    .domainSetSecurityImageLabel        = virSecurityDomainSetImageLabelNop,
+    .domainRestoreSecurityImageLabel    = virSecurityDomainRestoreImageLabelNop,
 
-    virSecurityDomainSetDaemonSocketLabelNop,
-    virSecurityDomainSetSocketLabelNop,
-    virSecurityDomainClearSocketLabelNop,
+    .domainSetSecurityDaemonSocketLabel = virSecurityDomainSetDaemonSocketLabelNop,
+    .domainSetSecuritySocketLabel       = virSecurityDomainSetSocketLabelNop,
+    .domainClearSecuritySocketLabel     = virSecurityDomainClearSocketLabelNop,
 
-    virSecurityDomainGenLabelNop,
-    virSecurityDomainReserveLabelNop,
-    virSecurityDomainReleaseLabelNop,
+    .domainGenSecurityLabel             = virSecurityDomainGenLabelNop,
+    .domainReserveSecurityLabel         = virSecurityDomainReserveLabelNop,
+    .domainReleaseSecurityLabel         = virSecurityDomainReleaseLabelNop,
 
-    virSecurityDomainGetProcessLabelNop,
-    virSecurityDomainSetProcessLabelNop,
+    .domainGetSecurityProcessLabel      = virSecurityDomainGetProcessLabelNop,
+    .domainSetSecurityProcessLabel      = virSecurityDomainSetProcessLabelNop,
 
-    virSecurityDomainSetAllLabelNop,
-    virSecurityDomainRestoreAllLabelNop,
+    .domainSetSecurityAllLabel          = virSecurityDomainSetAllLabelNop,
+    .domainRestoreSecurityAllLabel      = virSecurityDomainRestoreAllLabelNop,
 
-    virSecurityDomainSetHostdevLabelNop,
-    virSecurityDomainRestoreHostdevLabelNop,
+    .domainSetSecurityHostdevLabel      = virSecurityDomainSetHostdevLabelNop,
+    .domainRestoreSecurityHostdevLabel  = virSecurityDomainRestoreHostdevLabelNop,
 
-    virSecurityDomainSetSavedStateLabelNop,
-    virSecurityDomainRestoreSavedStateLabelNop,
+    .domainSetSavedStateLabel           = virSecurityDomainSetSavedStateLabelNop,
+    .domainRestoreSavedStateLabel       = virSecurityDomainRestoreSavedStateLabelNop,
 
-    virSecurityDomainSetFDLabelNop,
+    .domainSetSecurityImageFDLabel      = virSecurityDomainSetFDLabelNop,
+    .domainSetSecurityTapFDLabel        = virSecurityDomainSetFDLabelNop,
+
+    .domainGetSecurityMountOptions      = virSecurityDomainGetMountOptionsNop,
 };

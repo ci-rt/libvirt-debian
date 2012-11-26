@@ -13,9 +13,9 @@ remoteCPUBaseline(virConnectPtr conn, const char **xmlCPUs, unsigned int xmlCPUs
     remoteDriverLock(priv);
 
     if (xmlCPUslen > REMOTE_CPU_BASELINE_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("%s length greater than maximum: %d > %d"),
-                    "xmlCPUs", (int)xmlCPUslen, REMOTE_CPU_BASELINE_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "xmlCPUs", (int)xmlCPUslen, REMOTE_CPU_BASELINE_MAX);
         goto done;
     }
 
@@ -130,6 +130,35 @@ remoteDomainAttachDeviceFlags(virDomainPtr dom, const char *xml, unsigned int fl
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_ATTACH_DEVICE_FLAGS,
              (xdrproc_t)xdr_remote_domain_attach_device_flags_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainBlockCommit(virDomainPtr dom, const char *disk, const char *base, const char *top, unsigned long bandwidth, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_block_commit_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.disk = (char *)disk;
+    args.base = base ? (char **)&base : NULL;
+    args.top = top ? (char **)&top : NULL;
+    args.bandwidth = bandwidth;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_BLOCK_COMMIT,
+             (xdrproc_t)xdr_remote_domain_block_commit_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }
@@ -608,6 +637,34 @@ remoteDomainGetControlInfo(virDomainPtr dom, virDomainControlInfoPtr result, uns
     result->details = ret.details;
     result->stateTime = ret.stateTime;
     rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static char *
+remoteDomainGetHostname(virDomainPtr dom, unsigned int flags)
+{
+    char *rv = NULL;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_get_hostname_args args;
+    remote_domain_get_hostname_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_GET_HOSTNAME,
+             (xdrproc_t)xdr_remote_domain_get_hostname_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_get_hostname_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.hostname;
 
 done:
     remoteDriverUnlock(priv);
@@ -1273,9 +1330,9 @@ remoteDomainMigrateFinish(virConnectPtr conn, const char *dname, const char *coo
     remoteDriverLock(priv);
 
     if (cookielen > REMOTE_MIGRATE_COOKIE_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("%s length greater than maximum: %d > %d"),
-                    "cookie", (int)cookielen, REMOTE_MIGRATE_COOKIE_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "cookie", (int)cookielen, REMOTE_MIGRATE_COOKIE_MAX);
         goto done;
     }
 
@@ -1312,9 +1369,9 @@ remoteDomainMigrateFinish2(virConnectPtr conn, const char *dname, const char *co
     remoteDriverLock(priv);
 
     if (cookielen > REMOTE_MIGRATE_COOKIE_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("%s length greater than maximum: %d > %d"),
-                    "cookie", (int)cookielen, REMOTE_MIGRATE_COOKIE_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "cookie", (int)cookielen, REMOTE_MIGRATE_COOKIE_MAX);
         goto done;
     }
 
@@ -1380,9 +1437,9 @@ remoteDomainMigratePerform(virDomainPtr dom, const char *cookie, int cookielen, 
     remoteDriverLock(priv);
 
     if (cookielen > REMOTE_MIGRATE_COOKIE_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("%s length greater than maximum: %d > %d"),
-                    "cookie", (int)cookielen, REMOTE_MIGRATE_COOKIE_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "cookie", (int)cookielen, REMOTE_MIGRATE_COOKIE_MAX);
         goto done;
     }
 
@@ -1421,7 +1478,7 @@ remoteDomainMigratePrepareTunnel(virConnectPtr conn, virStreamPtr st, unsigned l
         goto done;
 
     if (virNetClientAddStream(priv->client, netst) < 0) {
-        virNetClientStreamFree(netst);
+        virObjectUnref(netst);
         goto done;
     }
     st->driver = &remoteStreamDrv;
@@ -1436,7 +1493,7 @@ remoteDomainMigratePrepareTunnel(virConnectPtr conn, virStreamPtr st, unsigned l
              (xdrproc_t)xdr_remote_domain_migrate_prepare_tunnel_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         virNetClientRemoveStream(priv->client, netst);
-        virNetClientStreamFree(netst);
+        virObjectUnref(netst);
         st->driver = NULL;
         st->privateData = NULL;
         goto done;
@@ -1515,7 +1572,7 @@ remoteDomainOpenConsole(virDomainPtr dom, const char *dev_name, virStreamPtr st,
         goto done;
 
     if (virNetClientAddStream(priv->client, netst) < 0) {
-        virNetClientStreamFree(netst);
+        virObjectUnref(netst);
         goto done;
     }
     st->driver = &remoteStreamDrv;
@@ -1529,7 +1586,7 @@ remoteDomainOpenConsole(virDomainPtr dom, const char *dev_name, virStreamPtr st,
              (xdrproc_t)xdr_remote_domain_open_console_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         virNetClientRemoveStream(priv->client, netst);
-        virNetClientStreamFree(netst);
+        virObjectUnref(netst);
         st->driver = NULL;
         st->privateData = NULL;
         goto done;
@@ -1552,9 +1609,9 @@ remoteDomainPinVcpu(virDomainPtr dom, unsigned int vcpu, unsigned char *cpumap, 
     remoteDriverLock(priv);
 
     if (cpumaplen > REMOTE_CPUMAP_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("%s length greater than maximum: %d > %d"),
-                    "cpumap", (int)cpumaplen, REMOTE_CPUMAP_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "cpumap", (int)cpumaplen, REMOTE_CPUMAP_MAX);
         goto done;
     }
 
@@ -1586,9 +1643,9 @@ remoteDomainPinVcpuFlags(virDomainPtr dom, unsigned int vcpu, unsigned char *cpu
     remoteDriverLock(priv);
 
     if (cpumaplen > REMOTE_CPUMAP_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("%s length greater than maximum: %d > %d"),
-                    "cpumap", (int)cpumaplen, REMOTE_CPUMAP_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "cpumap", (int)cpumaplen, REMOTE_CPUMAP_MAX);
         goto done;
     }
 
@@ -1934,7 +1991,7 @@ remoteDomainScreenshot(virDomainPtr dom, virStreamPtr st, unsigned int screen, u
         goto done;
 
     if (virNetClientAddStream(priv->client, netst) < 0) {
-        virNetClientStreamFree(netst);
+        virObjectUnref(netst);
         goto done;
     }
     st->driver = &remoteStreamDrv;
@@ -1950,7 +2007,7 @@ remoteDomainScreenshot(virDomainPtr dom, virStreamPtr st, unsigned int screen, u
              (xdrproc_t)xdr_remote_domain_screenshot_args, (char *)&args,
              (xdrproc_t)xdr_remote_domain_screenshot_ret, (char *)&ret) == -1) {
         virNetClientRemoveStream(priv->client, netst);
-        virNetClientStreamFree(netst);
+        virObjectUnref(netst);
         st->driver = NULL;
         st->privateData = NULL;
         goto done;
@@ -1974,9 +2031,9 @@ remoteDomainSendKey(virDomainPtr dom, unsigned int codeset, unsigned int holdtim
     remoteDriverLock(priv);
 
     if (keycodeslen > REMOTE_DOMAIN_SEND_KEY_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("%s length greater than maximum: %d > %d"),
-                    "keycodes", (int)keycodeslen, REMOTE_DOMAIN_SEND_KEY_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "keycodes", (int)keycodeslen, REMOTE_DOMAIN_SEND_KEY_MAX);
         goto done;
     }
 
@@ -2590,6 +2647,62 @@ done:
 }
 
 static int
+remoteDomainSnapshotHasMetadata(virDomainSnapshotPtr snap, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = snap->domain->conn->privateData;
+    remote_domain_snapshot_has_metadata_args args;
+    remote_domain_snapshot_has_metadata_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain_snapshot(&args.snap, snap);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(snap->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_HAS_METADATA,
+             (xdrproc_t)xdr_remote_domain_snapshot_has_metadata_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_snapshot_has_metadata_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.metadata;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSnapshotIsCurrent(virDomainSnapshotPtr snap, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = snap->domain->conn->privateData;
+    remote_domain_snapshot_is_current_args args;
+    remote_domain_snapshot_is_current_ret ret;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain_snapshot(&args.snap, snap);
+    args.flags = flags;
+
+    memset(&ret, 0, sizeof(ret));
+
+    if (call(snap->domain->conn, priv, 0, REMOTE_PROC_DOMAIN_SNAPSHOT_IS_CURRENT,
+             (xdrproc_t)xdr_remote_domain_snapshot_is_current_args, (char *)&args,
+             (xdrproc_t)xdr_remote_domain_snapshot_is_current_ret, (char *)&ret) == -1) {
+        goto done;
+    }
+
+    rv = ret.current;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const names, int maxnames, unsigned int flags)
 {
     int rv = -1;
@@ -2601,9 +2714,9 @@ remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const na
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX);
         goto done;
     }
 
@@ -2620,9 +2733,9 @@ remoteDomainSnapshotListChildrenNames(virDomainSnapshotPtr snap, char **const na
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -2664,9 +2777,9 @@ remoteDomainSnapshotListNames(virDomainPtr dom, char **const names, int maxnames
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX);
         goto done;
     }
 
@@ -2683,9 +2796,9 @@ remoteDomainSnapshotListNames(virDomainPtr dom, char **const names, int maxnames
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -3408,9 +3521,9 @@ remoteListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_DOMAIN_NAME_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_DOMAIN_NAME_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_DOMAIN_NAME_LIST_MAX);
         goto done;
     }
 
@@ -3425,9 +3538,9 @@ remoteListDefinedDomains(virConnectPtr conn, char **const names, int maxnames)
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -3469,9 +3582,9 @@ remoteListDefinedInterfaces(virConnectPtr conn, char **const names, int maxnames
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX);
         goto done;
     }
 
@@ -3486,9 +3599,9 @@ remoteListDefinedInterfaces(virConnectPtr conn, char **const names, int maxnames
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -3530,9 +3643,9 @@ remoteListDefinedNetworks(virConnectPtr conn, char **const names, int maxnames)
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_NETWORK_NAME_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_NETWORK_NAME_LIST_MAX);
         goto done;
     }
 
@@ -3547,9 +3660,9 @@ remoteListDefinedNetworks(virConnectPtr conn, char **const names, int maxnames)
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -3591,9 +3704,9 @@ remoteListDefinedStoragePools(virConnectPtr conn, char **const names, int maxnam
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_STORAGE_POOL_NAME_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_STORAGE_POOL_NAME_LIST_MAX);
         goto done;
     }
 
@@ -3608,9 +3721,9 @@ remoteListDefinedStoragePools(virConnectPtr conn, char **const names, int maxnam
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -3652,9 +3765,9 @@ remoteListInterfaces(virConnectPtr conn, char **const names, int maxnames)
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_INTERFACE_NAME_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_INTERFACE_NAME_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_INTERFACE_NAME_LIST_MAX);
         goto done;
     }
 
@@ -3669,9 +3782,9 @@ remoteListInterfaces(virConnectPtr conn, char **const names, int maxnames)
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -3713,9 +3826,9 @@ remoteListNetworks(virConnectPtr conn, char **const names, int maxnames)
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_NETWORK_NAME_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_NETWORK_NAME_LIST_MAX);
         goto done;
     }
 
@@ -3730,9 +3843,9 @@ remoteListNetworks(virConnectPtr conn, char **const names, int maxnames)
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -3774,9 +3887,9 @@ remoteListNWFilters(virConnectPtr conn, char **const names, int maxnames)
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_NWFILTER_NAME_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_NWFILTER_NAME_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_NWFILTER_NAME_LIST_MAX);
         goto done;
     }
 
@@ -3791,9 +3904,9 @@ remoteListNWFilters(virConnectPtr conn, char **const names, int maxnames)
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -3835,9 +3948,9 @@ remoteListSecrets(virConnectPtr conn, char **const uuids, int maxuuids)
     remoteDriverLock(priv);
 
     if (maxuuids > REMOTE_SECRET_UUID_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxuuids, REMOTE_SECRET_UUID_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxuuids, REMOTE_SECRET_UUID_LIST_MAX);
         goto done;
     }
 
@@ -3852,9 +3965,9 @@ remoteListSecrets(virConnectPtr conn, char **const uuids, int maxuuids)
     }
 
     if (ret.uuids.uuids_len > maxuuids) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.uuids.uuids_len, maxuuids);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.uuids.uuids_len, maxuuids);
         goto cleanup;
     }
 
@@ -3896,9 +4009,9 @@ remoteListStoragePools(virConnectPtr conn, char **const names, int maxnames)
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_STORAGE_POOL_NAME_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_STORAGE_POOL_NAME_LIST_MAX);
         goto done;
     }
 
@@ -3913,9 +4026,9 @@ remoteListStoragePools(virConnectPtr conn, char **const names, int maxnames)
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -4291,6 +4404,35 @@ done:
     return rv;
 }
 
+static int
+remoteNetworkUpdate(virNetworkPtr net, unsigned int command, unsigned int section, int parentIndex, const char *xml, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = net->conn->networkPrivateData;
+    remote_network_update_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_network(&args.net, net);
+    args.command = command;
+    args.section = section;
+    args.parentIndex = parentIndex;
+    args.xml = (char *)xml;
+    args.flags = flags;
+
+    if (call(net->conn, priv, 0, REMOTE_PROC_NETWORK_UPDATE,
+             (xdrproc_t)xdr_remote_network_update_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
 static virNodeDevicePtr
 remoteNodeDeviceCreateXML(virConnectPtr conn, const char *xml_desc, unsigned int flags)
 {
@@ -4412,9 +4554,9 @@ remoteNodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_NODE_DEVICE_CAPS_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_NODE_DEVICE_CAPS_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_NODE_DEVICE_CAPS_LIST_MAX);
         goto done;
     }
 
@@ -4430,9 +4572,9 @@ remoteNodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -4585,9 +4727,9 @@ remoteNodeListDevices(virConnectPtr conn, const char *cap, char **const names, i
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_NODE_DEVICE_NAME_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_NODE_DEVICE_NAME_LIST_MAX);
         goto done;
     }
 
@@ -4604,9 +4746,9 @@ remoteNodeListDevices(virConnectPtr conn, const char *cap, char **const names, i
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -4660,6 +4802,36 @@ remoteNodeNumOfDevices(virConnectPtr conn, const char *cap, unsigned int flags)
     rv = ret.num;
 
 done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteNodeSetMemoryParameters(virConnectPtr conn, virTypedParameterPtr params, int nparams, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = conn->devMonPrivateData;
+    remote_node_set_memory_parameters_args args;
+
+    remoteDriverLock(priv);
+
+    args.flags = flags;
+
+    if (remoteSerializeTypedParameters(params, nparams, &args.params.params_val, &args.params.params_len) < 0) {
+        xdr_free((xdrproc_t)xdr_remote_node_set_memory_parameters_args, (char *)&args);
+        goto done;
+    }
+
+    if (call(conn, priv, 0, REMOTE_PROC_NODE_SET_MEMORY_PARAMETERS,
+             (xdrproc_t)xdr_remote_node_set_memory_parameters_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteFreeTypedParameters(args.params.params_val, args.params.params_len);
     remoteDriverUnlock(priv);
     return rv;
 }
@@ -5190,9 +5362,9 @@ remoteSecretSetValue(virSecretPtr secret, const unsigned char *value, size_t val
     remoteDriverLock(priv);
 
     if (valuelen > REMOTE_SECRET_VALUE_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("%s length greater than maximum: %d > %d"),
-                    "value", (int)valuelen, REMOTE_SECRET_VALUE_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("%s length greater than maximum: %d > %d"),
+                       "value", (int)valuelen, REMOTE_SECRET_VALUE_MAX);
         goto done;
     }
 
@@ -5548,9 +5720,9 @@ remoteStoragePoolListVolumes(virStoragePoolPtr pool, char **const names, int max
     remoteDriverLock(priv);
 
     if (maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    maxnames, REMOTE_STORAGE_VOL_NAME_LIST_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       maxnames, REMOTE_STORAGE_VOL_NAME_LIST_MAX);
         goto done;
     }
 
@@ -5566,9 +5738,9 @@ remoteStoragePoolListVolumes(virStoragePoolPtr pool, char **const names, int max
     }
 
     if (ret.names.names_len > maxnames) {
-        remoteError(VIR_ERR_RPC,
-                    _("too many remote undefineds: %d > %d"),
-                    ret.names.names_len, maxnames);
+        virReportError(VIR_ERR_RPC,
+                       _("too many remote undefineds: %d > %d"),
+                       ret.names.names_len, maxnames);
         goto cleanup;
     }
 
@@ -5883,7 +6055,7 @@ remoteStorageVolDownload(virStorageVolPtr vol, virStreamPtr st, unsigned long lo
         goto done;
 
     if (virNetClientAddStream(priv->client, netst) < 0) {
-        virNetClientStreamFree(netst);
+        virObjectUnref(netst);
         goto done;
     }
     st->driver = &remoteStreamDrv;
@@ -5898,7 +6070,7 @@ remoteStorageVolDownload(virStorageVolPtr vol, virStreamPtr st, unsigned long lo
              (xdrproc_t)xdr_remote_storage_vol_download_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         virNetClientRemoveStream(priv->client, netst);
-        virNetClientStreamFree(netst);
+        virObjectUnref(netst);
         st->driver = NULL;
         st->privateData = NULL;
         goto done;
@@ -6121,7 +6293,7 @@ remoteStorageVolUpload(virStorageVolPtr vol, virStreamPtr st, unsigned long long
         goto done;
 
     if (virNetClientAddStream(priv->client, netst) < 0) {
-        virNetClientStreamFree(netst);
+        virObjectUnref(netst);
         goto done;
     }
     st->driver = &remoteStreamDrv;
@@ -6136,7 +6308,7 @@ remoteStorageVolUpload(virStorageVolPtr vol, virStreamPtr st, unsigned long long
              (xdrproc_t)xdr_remote_storage_vol_upload_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         virNetClientRemoveStream(priv->client, netst);
-        virNetClientStreamFree(netst);
+        virObjectUnref(netst);
         st->driver = NULL;
         st->privateData = NULL;
         goto done;

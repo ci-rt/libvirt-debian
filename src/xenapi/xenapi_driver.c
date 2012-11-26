@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Sharadha Prabhakar <sharadha.prabhakar@citrix.com>
  */
@@ -23,7 +23,6 @@
 #include <config.h>
 
 #include <limits.h>
-#include <stdint.h>
 #include <string.h>
 #include <curl/curl.h>
 #include <xen/api/xen_all.h>
@@ -40,13 +39,8 @@
 #include "xenapi_driver.h"
 #include "xenapi_driver_private.h"
 #include "xenapi_utils.h"
-#include "ignore-value.h"
 
 #define VIR_FROM_THIS VIR_FROM_XENAPI
-
-#define xenapiError(code, ...)                                    \
-        virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,       \
-                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
 static int xenapiDefaultConsoleType(const char *ostype)
@@ -177,7 +171,6 @@ xenapiOpen (virConnectPtr conn, virConnectAuthPtr auth,
     xmlInitParser();
     xmlKeepBlanksDefault(0);
     xen_init();
-    curl_global_init(CURL_GLOBAL_ALL);
 
     privP->session = xen_session_login_with_password(call_func, privP, username,
                                                      password, xen_api_latest_version);
@@ -1124,8 +1117,8 @@ xenapiDomainSetVcpusFlags (virDomainPtr dom, unsigned int nvcpus,
     xen_session *session = ((struct _xenapiPrivate *)(dom->conn->privateData))->session;
 
     if (flags != VIR_DOMAIN_VCPU_LIVE) {
-        xenapiError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"),
-                    flags);
+        virReportError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"),
+                       flags);
         return -1;
     }
 
@@ -1294,8 +1287,8 @@ xenapiDomainGetVcpusFlags (virDomainPtr dom, unsigned int flags)
     xen_session *session = ((struct _xenapiPrivate *)(dom->conn->privateData))->session;
 
     if (flags != (VIR_DOMAIN_VCPU_LIVE | VIR_DOMAIN_VCPU_MAXIMUM)) {
-        xenapiError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"),
-                    flags);
+        virReportError(VIR_ERR_INVALID_ARG, _("unsupported flags: (0x%x)"),
+                       flags);
         return -1;
     }
 
@@ -1513,7 +1506,8 @@ xenapiDomainGetXMLDesc(virDomainPtr dom, unsigned int flags)
             }
             xen_vif_get_record(session, &vif_rec, vif);
             if (vif_rec != NULL) {
-                if (virMacAddrParse((const char *)vif_rec->mac,defPtr->nets[i]->mac) < 0)
+                if (virMacAddrParse((const char *)vif_rec->mac,
+                                    &defPtr->nets[i]->mac) < 0)
                     xenapiSessionErrorHandler(dom->conn, VIR_ERR_INTERNAL_ERROR,
                                               _("Unable to parse given mac address"));
                 xen_vif_record_free(vif_rec);

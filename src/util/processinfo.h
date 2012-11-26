@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Daniel P. Berrange <berrange@redhat.com>
@@ -23,15 +23,12 @@
 # define __VIR_PROCESSINFO_H__
 
 # include "internal.h"
+# include "bitmap.h"
 
-int virProcessInfoSetAffinity(pid_t pid,
-                              const unsigned char *map,
-                              size_t maplen,
-                              int maxcpu);
+int virProcessInfoSetAffinity(pid_t pid, virBitmapPtr map);
 
 int virProcessInfoGetAffinity(pid_t pid,
-                              unsigned char *map,
-                              size_t maplen,
+                              virBitmapPtr *map,
                               int maxcpu);
 
 #endif /* __VIR_PROCESSINFO_H__ */

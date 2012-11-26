@@ -43,7 +43,7 @@
       <li>virNetworkPtr: represent one network either active or defined (i.e.
       existing as permanent config file and storage but not currently activated.
       The function <code class='docref'>virConnectListNetworks</code>
-      allows to list all the virtualization networks actived on this node.</li>
+      allows to list all the virtualization networks activated on this node.</li>
       <li>virStorageVolPtr: represent one storage volume, usually this is used
       as a block device available to one of the domains. The function
       <code class="docref">virStorageVolLookupByPath</code> allows to find
@@ -64,13 +64,13 @@
     <p> Most kind of object can also be named in various ways:</p>
     <ul>
       <li>by their <code>name</code>, an user friendly identifier but
-      whose unicity cannot be garanteed between two nodes.</li>
+      whose unicity cannot be guaranteed between two nodes.</li>
       <li>by their <code>ID</code>, which is a runtime unique identifier
       provided by the hypervisor for one given activation of the object,
       but it becomes invalid once the resource is deactivated.</li >
       <li>by their <code>UUID</code>, a 16 bytes unique identifier
       as defined in <a href="http://www.ietf.org/rfc/rfc4122.txt">RFC 4122</a>,
-      which is garanteed to be unique for long term usage and across a
+      which is guaranteed to be unique for long term usage and across a
       set of nodes.</li>
     </ul>
 

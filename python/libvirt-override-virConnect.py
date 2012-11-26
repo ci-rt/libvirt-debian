@@ -161,6 +161,24 @@
         cb(self, virDomain(self, _obj=dom), reason, opaque)
         return 0;
 
+    def _dispatchDomainEventBalloonChangeCallback(self, dom, actual, cbData):
+        """Dispatches events to python user domain balloon change event callbacks
+        """
+        cb = cbData["cb"]
+        opaque = cbData["opaque"]
+
+        cb(self, virDomain(self, _obj=dom), actual, opaque)
+        return 0
+
+    def _dispatchDomainEventPMSuspendDiskCallback(self, dom, reason, cbData):
+        """Dispatches event to python user domain pmsuspend-disk event callbacks
+        """
+        cb = cbData["cb"]
+        opaque = cbData["opaque"]
+
+        cb(self, virDomain(self, _obj=dom), reason, opaque)
+        return 0;
+
     def domainEventDeregisterAny(self, callbackID):
         """Removes a Domain Event Callback. De-registering for a
            domain callback will disable delivery of this event type """
@@ -185,3 +203,87 @@
             raise libvirtError ('virConnectDomainEventRegisterAny() failed', conn=self)
         self.domainEventCallbackID[ret] = opaque
         return ret
+
+    def listAllDomains(self, flags):
+        """List all domains and returns a list of domain objects"""
+        ret = libvirtmod.virConnectListAllDomains(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllDomains() failed", conn=self)
+
+        retlist = list()
+        for domptr in ret:
+            retlist.append(virDomain(self, _obj=domptr))
+
+        return retlist
+
+    def listAllStoragePools(self, flags):
+        """Returns a list of storage pool objects"""
+        ret = libvirtmod.virConnectListAllStoragePools(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllStoragePools() failed", conn=self)
+
+        retlist = list()
+        for poolptr in ret:
+            retlist.append(virStoragePool(self, _obj=poolptr))
+
+        return retlist
+
+    def listAllNetworks(self, flags):
+        """Returns a list of network objects"""
+        ret = libvirtmod.virConnectListAllNetworks(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllNetworks() failed", conn=self)
+
+        retlist = list()
+        for netptr in ret:
+            retlist.append(virNetwork(self, _obj=netptr))
+
+        return retlist
+
+    def listAllInterfaces(self, flags):
+        """Returns a list of interface objects"""
+        ret = libvirtmod.virConnectListAllInterfaces(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllInterfaces() failed", conn=self)
+
+        retlist = list()
+        for ifaceptr in ret:
+            retlist.append(virInterface(self, _obj=ifaceptr))
+
+        return retlist
+
+    def listAllDevices(self, flags):
+        """Returns a list of host node device objects"""
+        ret = libvirtmod.virConnectListAllNodeDevices(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllNodeDevices() failed", conn=self)
+
+        retlist = list()
+        for devptr in ret:
+            retlist.append(virNodeDevice(self, _obj=devptr))
+
+        return retlist
+
+    def listAllNWFilters(self, flags):
+        """Returns a list of network filter objects"""
+        ret = libvirtmod.virConnectListAllNWFilters(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllNWFilters() failed", conn=self)
+
+        retlist = list()
+        for filter_ptr in ret:
+            retlist.append(virNWFilter(self, _obj=filter_ptr))
+
+        return retlist
+
+    def listAllSecrets(self, flags):
+        """Returns a list of secret objects"""
+        ret = libvirtmod.virConnectListAllSecrets(self._o, flags)
+        if ret is None:
+            raise libvirtError("virConnectListAllSecrets() failed", conn=self)
+
+        retlist = list()
+        for secret_ptr in ret:
+            retlist.append(virSecret(self, _obj=secret_ptr))
+
+        return retlist

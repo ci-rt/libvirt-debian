@@ -1,7 +1,7 @@
 /*
  * virnetclient.c: generic network RPC client
  *
- * Copyright (C) 2006-2011 Red Hat, Inc.
+ * Copyright (C) 2006-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -38,9 +38,6 @@
 #include "virterror_internal.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
-#define virNetError(code, ...)                                    \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,           \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 typedef struct _virNetClientCall virNetClientCall;
 typedef virNetClientCall *virNetClientCallPtr;
@@ -58,7 +55,6 @@ struct _virNetClientCall {
     bool expectReply;
     bool nonBlock;
     bool haveThread;
-    bool sentSomeData;
 
     virCond cond;
 
@@ -67,11 +63,12 @@ struct _virNetClientCall {
 
 
 struct _virNetClient {
-    int refs;
+    virObject object;
 
     virMutex lock;
 
     virNetSocketPtr sock;
+    bool asyncIO;
 
     virNetTLSSessionPtr tls;
     char *hostname;
@@ -105,7 +102,35 @@ struct _virNetClient {
 
     virKeepAlivePtr keepalive;
     bool wantClose;
+    int closeReason;
+
+    virNetClientCloseFunc closeCb;
+    void *closeOpaque;
+    virFreeCallback closeFf;
 };
+
+
+static virClassPtr virNetClientClass;
+static void virNetClientDispose(void *obj);
+
+static int virNetClientOnceInit(void)
+{
+    if (!(virNetClientClass = virClassNew("virNetClient",
+                                          sizeof(virNetClient),
+                                          virNetClientDispose)))
+        return -1;
+
+    return 0;
+}
+
+VIR_ONCE_GLOBAL_INIT(virNetClient)
+
+static void virNetClientIOEventLoopPassTheBuck(virNetClientPtr client,
+                                               virNetClientCallPtr thiscall);
+static int virNetClientQueueNonBlocking(virNetClientPtr client,
+                                        virNetMessagePtr msg);
+static void virNetClientCloseInternal(virNetClientPtr client,
+                                      int reason);
 
 
 static void virNetClientLock(virNetClientPtr client)
@@ -117,6 +142,19 @@ static void virNetClientLock(virNetClientPtr client)
 static void virNetClientUnlock(virNetClientPtr client)
 {
     virMutexUnlock(&client->lock);
+}
+
+
+void virNetClientSetCloseCallback(virNetClientPtr client,
+                                  virNetClientCloseFunc cb,
+                                  void *opaque,
+                                  virFreeCallback ff)
+{
+    virNetClientLock(client);
+    client->closeCb = cb;
+    client->closeOpaque = opaque;
+    client->closeFf = ff;
+    virNetClientUnlock(client);
 }
 
 
@@ -215,13 +253,6 @@ static bool virNetClientCallMatchPredicate(virNetClientCallPtr head,
 }
 
 
-static void virNetClientEventFree(void *opaque)
-{
-    virNetClientPtr client = opaque;
-
-    virNetClientFree(client);
-}
-
 bool
 virNetClientKeepAliveIsSupported(virNetClientPtr client)
 {
@@ -252,14 +283,14 @@ void
 virNetClientKeepAliveStop(virNetClientPtr client)
 {
     virNetClientLock(client);
-    virKeepAliveStopSending(client->keepalive);
+    virKeepAliveStop(client->keepalive);
     virNetClientUnlock(client);
 }
 
 static void
 virNetClientKeepAliveDeadCB(void *opaque)
 {
-    virNetClientClose(opaque);
+    virNetClientCloseInternal(opaque, VIR_CONNECT_CLOSE_REASON_KEEPALIVE);
 }
 
 static int
@@ -279,7 +310,9 @@ static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
 {
     virNetClientPtr client = NULL;
     int wakeupFD[2] = { -1, -1 };
-    virKeepAlivePtr ka = NULL;
+
+    if (virNetClientInitialize() < 0)
+        return NULL;
 
     if (pipe2(wakeupFD, O_CLOEXEC) < 0) {
         virReportSystemError(errno, "%s",
@@ -287,13 +320,13 @@ static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
         goto error;
     }
 
-    if (VIR_ALLOC(client) < 0)
-        goto no_memory;
-
-    client->refs = 1;
-
-    if (virMutexInit(&client->lock) < 0)
+    if (!(client = virObjectNew(virNetClientClass)))
         goto error;
+
+    if (virMutexInit(&client->lock) < 0) {
+        VIR_FREE(client);
+        goto error;
+    }
 
     client->sock = sock;
     client->wakeupReadFD = wakeupFD[0];
@@ -304,32 +337,9 @@ static virNetClientPtr virNetClientNew(virNetSocketPtr sock,
         !(client->hostname = strdup(hostname)))
         goto no_memory;
 
-    /* Set up a callback to listen on the socket data */
-    client->refs++;
-    if (virNetSocketAddIOCallback(client->sock,
-                                  VIR_EVENT_HANDLE_READABLE,
-                                  virNetClientIncomingEvent,
-                                  client,
-                                  virNetClientEventFree) < 0) {
-        client->refs--;
-        VIR_DEBUG("Failed to add event watch, disabling events and support for"
-                  " keepalive messages");
-    } else {
-        /* Keepalive protocol consists of async messages so it can only be used
-         * if the client supports them */
-        if (!(ka = virKeepAliveNew(-1, 0, client,
-                                   virNetClientKeepAliveSendCB,
-                                   virNetClientKeepAliveDeadCB,
-                                   virNetClientEventFree)))
-            goto error;
-        /* keepalive object has a reference to client */
-        client->refs++;
-    }
-
-    client->keepalive = ka;
     PROBE(RPC_CLIENT_NEW,
-          "client=%p refs=%d sock=%p",
-          client, client->refs, client->sock);
+          "client=%p sock=%p",
+          client, client->sock);
     return client;
 
 no_memory:
@@ -337,11 +347,7 @@ no_memory:
 error:
     VIR_FORCE_CLOSE(wakeupFD[0]);
     VIR_FORCE_CLOSE(wakeupFD[1]);
-    if (ka) {
-        virKeepAliveStop(ka);
-        virKeepAliveFree(ka);
-    }
-    virNetClientFree(client);
+    virObjectUnref(client);
     return NULL;
 }
 
@@ -389,6 +395,125 @@ virNetClientPtr virNetClientNewSSH(const char *nodename,
     return virNetClientNew(sock, NULL);
 }
 
+#define DEFAULT_VALUE(VAR, VAL)             \
+    if (!VAR)                               \
+        VAR = VAL;
+virNetClientPtr virNetClientNewLibSSH2(const char *host,
+                                       const char *port,
+                                       const char *username,
+                                       const char *privkeyPath,
+                                       const char *knownHostsPath,
+                                       const char *knownHostsVerify,
+                                       const char *authMethods,
+                                       const char *netcatPath,
+                                       const char *socketPath,
+                                       virConnectAuthPtr authPtr)
+{
+    virNetSocketPtr sock = NULL;
+    virNetClientPtr ret = NULL;
+
+    virBuffer buf = VIR_BUFFER_INITIALIZER;
+    char *nc = NULL;
+    char *command = NULL;
+
+    char *homedir = virGetUserDirectory();
+    char *confdir = virGetUserConfigDirectory();
+    char *knownhosts = NULL;
+    char *privkey = NULL;
+
+    /* Use default paths for known hosts an public keys if not provided */
+    if (confdir) {
+        if (!knownHostsPath) {
+            if (virFileExists(confdir)) {
+                virBufferAsprintf(&buf, "%s/known_hosts", confdir);
+                if (!(knownhosts = virBufferContentAndReset(&buf)))
+                    goto no_memory;
+            }
+        } else {
+            if (!(knownhosts = strdup(knownHostsPath)))
+                goto no_memory;
+        }
+    }
+
+    if (homedir) {
+        if (!privkeyPath) {
+            /* RSA */
+            virBufferAsprintf(&buf, "%s/.ssh/id_rsa", homedir);
+            if (!(privkey = virBufferContentAndReset(&buf)))
+                goto no_memory;
+
+            if (!(virFileExists(privkey)))
+                VIR_FREE(privkey);
+            /* DSA */
+            if (!privkey) {
+                virBufferAsprintf(&buf, "%s/.ssh/id_dsa", homedir);
+                if (!(privkey = virBufferContentAndReset(&buf)))
+                    goto no_memory;
+
+                if (!(virFileExists(privkey)))
+                    VIR_FREE(privkey);
+            }
+        } else {
+            if (!(privkey = strdup(privkeyPath)))
+                goto no_memory;
+        }
+    }
+
+    if (!authMethods) {
+        if (privkey)
+            authMethods = "agent,privkey,keyboard-interactive";
+        else
+            authMethods = "agent,keyboard-interactive";
+    }
+
+    DEFAULT_VALUE(host, "localhost");
+    DEFAULT_VALUE(port, "22");
+    DEFAULT_VALUE(username, "root");
+    DEFAULT_VALUE(netcatPath, "nc");
+    DEFAULT_VALUE(knownHostsVerify, "normal");
+
+    virBufferEscapeShell(&buf, netcatPath);
+    if (!(nc = virBufferContentAndReset(&buf)))
+        goto no_memory;
+
+    virBufferAsprintf(&buf,
+         "sh -c "
+         "'if '%s' -q 2>&1 | grep \"requires an argument\" >/dev/null 2>&1; then "
+             "ARG=-q0;"
+         "else "
+             "ARG=;"
+         "fi;"
+         "'%s' $ARG -U %s'",
+         nc, nc, socketPath);
+
+    if (!(command = virBufferContentAndReset(&buf)))
+        goto no_memory;
+
+    if (virNetSocketNewConnectLibSSH2(host, port, username, NULL, privkey,
+                                      knownhosts, knownHostsVerify, authMethods,
+                                      command, authPtr, &sock) != 0)
+        goto cleanup;
+
+    if (!(ret = virNetClientNew(sock, NULL)))
+        goto cleanup;
+    sock = NULL;
+
+cleanup:
+    VIR_FREE(command);
+    VIR_FREE(privkey);
+    VIR_FREE(knownhosts);
+    VIR_FREE(homedir);
+    VIR_FREE(confdir);
+    VIR_FREE(nc);
+    virObjectUnref(sock);
+    return ret;
+
+no_memory:
+    virReportOOMError();
+    goto cleanup;
+}
+#undef DEFAULT_VALUE
+
 virNetClientPtr virNetClientNewExternal(const char **cmdargv)
 {
     virNetSocketPtr sock;
@@ -400,14 +525,55 @@ virNetClientPtr virNetClientNewExternal(const char **cmdargv)
 }
 
 
-void virNetClientRef(virNetClientPtr client)
+int virNetClientRegisterAsyncIO(virNetClientPtr client)
 {
-    virNetClientLock(client);
-    client->refs++;
-    PROBE(RPC_CLIENT_REF,
-          "client=%p refs=%d",
-          client, client->refs);
-    virNetClientUnlock(client);
+    if (client->asyncIO)
+        return 0;
+
+    /* Set up a callback to listen on the socket data */
+    virObjectRef(client);
+    if (virNetSocketAddIOCallback(client->sock,
+                                  VIR_EVENT_HANDLE_READABLE,
+                                  virNetClientIncomingEvent,
+                                  client,
+                                  virObjectFreeCallback) < 0) {
+        virObjectUnref(client);
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to register async IO callback"));
+        return -1;
+    }
+
+    client->asyncIO = true;
+    return 0;
+}
+
+
+int virNetClientRegisterKeepAlive(virNetClientPtr client)
+{
+    virKeepAlivePtr ka;
+
+    if (client->keepalive)
+        return 0;
+
+    if (!client->asyncIO) {
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("Unable to enable keepalives without async IO support"));
+        return -1;
+    }
+
+    /* Keepalive protocol consists of async messages so it can only be used
+     * if the client supports them */
+    if (!(ka = virKeepAliveNew(-1, 0, client,
+                               virNetClientKeepAliveSendCB,
+                               virNetClientKeepAliveDeadCB,
+                               virObjectFreeCallback)))
+        return -1;
+
+    /* keepalive object has a reference to client */
+    virObjectRef(client);
+
+    client->keepalive = ka;
+    return 0;
 }
 
 
@@ -441,25 +607,16 @@ bool virNetClientHasPassFD(virNetClientPtr client)
 }
 
 
-void virNetClientFree(virNetClientPtr client)
+void virNetClientDispose(void *obj)
 {
+    virNetClientPtr client = obj;
     int i;
 
-    if (!client)
-        return;
-
-    virNetClientLock(client);
-    PROBE(RPC_CLIENT_FREE,
-          "client=%p refs=%d",
-          client, client->refs);
-    client->refs--;
-    if (client->refs > 0) {
-        virNetClientUnlock(client);
-        return;
-    }
+    if (client->closeFf)
+        client->closeFf(client->closeOpaque);
 
     for (i = 0 ; i < client->nprograms ; i++)
-        virNetClientProgramFree(client->programs[i]);
+        virObjectUnref(client->programs[i]);
     VIR_FREE(client->programs);
 
     VIR_FORCE_CLOSE(client->wakeupSendFD);
@@ -469,15 +626,28 @@ void virNetClientFree(virNetClientPtr client)
 
     if (client->sock)
         virNetSocketRemoveIOCallback(client->sock);
-    virNetSocketFree(client->sock);
-    virNetTLSSessionFree(client->tls);
+    virObjectUnref(client->sock);
+    virObjectUnref(client->tls);
 #if HAVE_SASL
-    virNetSASLSessionFree(client->sasl);
+    virObjectUnref(client->sasl);
 #endif
+
+    virNetMessageClear(&client->msg);
+
     virNetClientUnlock(client);
     virMutexDestroy(&client->lock);
+}
 
-    VIR_FREE(client);
+
+static void
+virNetClientMarkClose(virNetClientPtr client,
+                      int reason)
+{
+    VIR_DEBUG("client=%p, reason=%d", client, reason);
+    if (client->sock)
+        virNetSocketRemoveIOCallback(client->sock);
+    client->wantClose = true;
+    client->closeReason = reason;
 }
 
 
@@ -486,61 +656,80 @@ virNetClientCloseLocked(virNetClientPtr client)
 {
     virKeepAlivePtr ka;
 
-    VIR_DEBUG("client=%p, sock=%p", client, client->sock);
+    VIR_DEBUG("client=%p, sock=%p, reason=%d", client, client->sock, client->closeReason);
 
     if (!client->sock)
         return;
 
-    virNetSocketRemoveIOCallback(client->sock);
-    virNetSocketFree(client->sock);
+    virObjectUnref(client->sock);
     client->sock = NULL;
-    virNetTLSSessionFree(client->tls);
+    virObjectUnref(client->tls);
     client->tls = NULL;
 #if HAVE_SASL
-    virNetSASLSessionFree(client->sasl);
+    virObjectUnref(client->sasl);
     client->sasl = NULL;
 #endif
     ka = client->keepalive;
     client->keepalive = NULL;
     client->wantClose = false;
 
-    if (ka) {
-        client->refs++;
+    if (ka || client->closeCb) {
+        virNetClientCloseFunc closeCb = client->closeCb;
+        void *closeOpaque = client->closeOpaque;
+        int closeReason = client->closeReason;
+        virObjectRef(client);
         virNetClientUnlock(client);
 
-        virKeepAliveStop(ka);
-        virKeepAliveFree(ka);
+        if (ka) {
+            virKeepAliveStop(ka);
+            virObjectUnref(ka);
+        }
+        if (closeCb)
+            closeCb(client, closeReason, closeOpaque);
 
         virNetClientLock(client);
-        client->refs--;
+        virObjectUnref(client);
     }
 }
 
-void virNetClientClose(virNetClientPtr client)
+static void virNetClientCloseInternal(virNetClientPtr client,
+                                      int reason)
 {
-    VIR_DEBUG("client=%p", client);
+    VIR_DEBUG("client=%p wantclose=%d", client, client ? client->wantClose : false);
 
     if (!client)
         return;
 
+    if (!client->sock ||
+        client->wantClose)
+        return;
+
     virNetClientLock(client);
 
-    /* If there is a thread polling for data on the socket, set wantClose flag
-     * and wake the thread up or just immediately close the socket when no-one
-     * is polling on it.
+    virNetClientMarkClose(client, reason);
+
+    /* If there is a thread polling for data on the socket, wake the thread up
+     * otherwise try to pass the buck to a possibly waiting thread. If no
+     * thread is waiting, virNetClientIOEventLoopPassTheBuck will clean the
+     * queue and close the client because we set client->wantClose.
      */
-    if (client->waitDispatch) {
+    if (client->haveTheBuck) {
         char ignore = 1;
         size_t len = sizeof(ignore);
 
-        client->wantClose = true;
         if (safewrite(client->wakeupSendFD, &ignore, len) != len)
             VIR_ERROR(_("failed to wake up polling thread"));
     } else {
-        virNetClientCloseLocked(client);
+        virNetClientIOEventLoopPassTheBuck(client, NULL);
     }
 
     virNetClientUnlock(client);
+}
+
+
+void virNetClientClose(virNetClientPtr client)
+{
+    virNetClientCloseInternal(client, VIR_CONNECT_CLOSE_REASON_CLIENT);
 }
 
 
@@ -549,8 +738,7 @@ void virNetClientSetSASLSession(virNetClientPtr client,
                                 virNetSASLSessionPtr sasl)
 {
     virNetClientLock(client);
-    client->sasl = sasl;
-    virNetSASLSessionRef(sasl);
+    client->sasl = virObjectRef(sasl);
     virNetSocketSetSASLSession(client->sock, client->sasl);
     virNetClientUnlock(client);
 }
@@ -608,7 +796,7 @@ int virNetClientSetTLSSession(virNetClientPtr client,
 
     repoll:
         ret = poll(fds, ARRAY_CARDINALITY(fds), -1);
-        if (ret < 0 && errno == EAGAIN)
+        if (ret < 0 && (errno == EAGAIN || errno == EINTR))
             goto repoll;
 
         ignore_value(pthread_sigmask(SIG_BLOCK, &oldmask, NULL));
@@ -632,7 +820,7 @@ int virNetClientSetTLSSession(virNetClientPtr client,
 
     repoll2:
     ret = poll(fds, ARRAY_CARDINALITY(fds), -1);
-    if (ret < 0 && errno == EAGAIN)
+    if (ret < 0 && (errno == EAGAIN || errno == EINTR))
         goto repoll2;
 
     ignore_value(pthread_sigmask(SIG_BLOCK, &oldmask, NULL));
@@ -644,9 +832,9 @@ int virNetClientSetTLSSession(virNetClientPtr client,
         goto error;
     }
     if (len != 1 || buf[0] != '\1') {
-        virNetError(VIR_ERR_RPC, "%s",
-                    _("server verification (of our certificate or IP "
-                      "address) failed"));
+        virReportError(VIR_ERR_RPC, "%s",
+                       _("server verification (of our certificate or IP "
+                         "address) failed"));
         goto error;
     }
 
@@ -654,7 +842,7 @@ int virNetClientSetTLSSession(virNetClientPtr client,
     return 0;
 
 error:
-    virNetTLSSessionFree(client->tls);
+    virObjectUnref(client->tls);
     client->tls = NULL;
     virNetClientUnlock(client);
     return -1;
@@ -697,8 +885,7 @@ int virNetClientAddProgram(virNetClientPtr client,
     if (VIR_EXPAND_N(client->programs, client->nprograms, 1) < 0)
         goto no_memory;
 
-    client->programs[client->nprograms-1] = prog;
-    virNetClientProgramRef(prog);
+    client->programs[client->nprograms-1] = virObjectRef(prog);
 
     virNetClientUnlock(client);
     return 0;
@@ -718,8 +905,7 @@ int virNetClientAddStream(virNetClientPtr client,
     if (VIR_EXPAND_N(client->streams, client->nstreams, 1) < 0)
         goto no_memory;
 
-    client->streams[client->nstreams-1] = st;
-    virNetClientStreamRef(st);
+    client->streams[client->nstreams-1] = virObjectRef(st);
 
     virNetClientUnlock(client);
     return 0;
@@ -753,7 +939,7 @@ void virNetClientRemoveStream(virNetClientPtr client,
         VIR_FREE(client->streams);
         client->nstreams = 0;
     }
-    virNetClientStreamFree(st);
+    virObjectUnref(st);
 
 cleanup:
     virNetClientUnlock(client);
@@ -795,13 +981,18 @@ virNetClientCallDispatchReply(virNetClientPtr client)
         thecall = thecall->next;
 
     if (!thecall) {
-        virNetError(VIR_ERR_RPC,
-                    _("no call waiting for reply with prog %d vers %d serial %d"),
-                    client->msg.header.prog, client->msg.header.vers, client->msg.header.serial);
+        virReportError(VIR_ERR_RPC,
+                       _("no call waiting for reply with prog %d vers %d serial %d"),
+                       client->msg.header.prog, client->msg.header.vers, client->msg.header.serial);
         return -1;
     }
 
-    memcpy(thecall->msg->buffer, client->msg.buffer, sizeof(client->msg.buffer));
+    if (VIR_REALLOC_N(thecall->msg->buffer, client->msg.bufferLength) < 0) {
+        virReportOOMError();
+        return -1;
+    }
+
+    memcpy(thecall->msg->buffer, client->msg.buffer, client->msg.bufferLength);
     memcpy(&thecall->msg->header, &client->msg.header, sizeof(client->msg.header));
     thecall->msg->bufferLength = client->msg.bufferLength;
     thecall->msg->bufferOffset = client->msg.bufferOffset;
@@ -927,14 +1118,22 @@ static int virNetClientCallDispatchStream(virNetClientPtr client)
 static int
 virNetClientCallDispatch(virNetClientPtr client)
 {
+    virNetMessagePtr response = NULL;
+
     PROBE(RPC_CLIENT_MSG_RX,
           "client=%p len=%zu prog=%u vers=%u proc=%u type=%u status=%u serial=%u",
           client, client->msg.bufferLength,
           client->msg.header.prog, client->msg.header.vers, client->msg.header.proc,
           client->msg.header.type, client->msg.header.status, client->msg.header.serial);
 
-    if (virKeepAliveCheckMessage(client->keepalive, &client->msg))
+    if (virKeepAliveCheckMessage(client->keepalive, &client->msg, &response)) {
+        if (response &&
+            virNetClientQueueNonBlocking(client, response) < 0) {
+            VIR_WARN("Could not queue keepalive response");
+            virNetMessageFree(response);
+        }
         return 0;
+    }
 
     switch (client->msg.header.type) {
     case VIR_NET_REPLY: /* Normal RPC replies */
@@ -948,10 +1147,10 @@ virNetClientCallDispatch(virNetClientPtr client)
         return virNetClientCallDispatchStream(client);
 
     default:
-        virNetError(VIR_ERR_RPC,
-                    _("got unexpected RPC call prog %d vers %d proc %d type %d"),
-                    client->msg.header.prog, client->msg.header.vers,
-                    client->msg.header.proc, client->msg.header.type);
+        virReportError(VIR_ERR_RPC,
+                       _("got unexpected RPC call prog %d vers %d proc %d type %d"),
+                       client->msg.header.prog, client->msg.header.vers,
+                       client->msg.header.proc, client->msg.header.type);
         return -1;
     }
 }
@@ -967,8 +1166,6 @@ virNetClientIOWriteMessage(virNetClientPtr client,
         ret = virNetSocketWrite(client->sock,
                                 thecall->msg->buffer + thecall->msg->bufferOffset,
                                 thecall->msg->bufferLength - thecall->msg->bufferOffset);
-        if (ret > 0 || virNetSocketHasPendingData(client->sock))
-            thecall->sentSomeData = true;
         if (ret <= 0)
             return ret;
 
@@ -987,6 +1184,7 @@ virNetClientIOWriteMessage(virNetClientPtr client,
         }
         thecall->msg->donefds = 0;
         thecall->msg->bufferOffset = thecall->msg->bufferLength = 0;
+        VIR_FREE(thecall->msg->buffer);
         if (thecall->expectReply)
             thecall->mode = VIR_NET_CLIENT_MODE_WAIT_RX;
         else
@@ -1007,7 +1205,10 @@ virNetClientIOHandleOutput(virNetClientPtr client)
         thecall = thecall->next;
 
     if (!thecall)
-        return -1; /* Shouldn't happen, but you never know... */
+        return 0; /* This can happen if another thread raced with us and
+                   * completed the call between the time this thread woke
+                   * up from poll()ing and the time we locked the client
+                   */
 
     while (thecall) {
         ssize_t ret = virNetClientIOWriteMessage(client, thecall);
@@ -1030,8 +1231,13 @@ virNetClientIOReadMessage(virNetClientPtr client)
     ssize_t ret;
 
     /* Start by reading length word */
-    if (client->msg.bufferLength == 0)
+    if (client->msg.bufferLength == 0) {
         client->msg.bufferLength = 4;
+        if (VIR_ALLOC_N(client->msg.buffer, client->msg.bufferLength) < 0) {
+            virReportOOMError();
+            return -ENOMEM;
+        }
+    }
 
     wantData = client->msg.bufferLength - client->msg.bufferOffset;
 
@@ -1108,6 +1314,7 @@ virNetClientIOHandleInput(virNetClientPtr client)
 
                 ret = virNetClientCallDispatch(client);
                 client->msg.bufferOffset = client->msg.bufferLength = 0;
+                VIR_FREE(client->msg.buffer);
                 /*
                  * We've completed one call, but we don't want to
                  * spin around the loop forever if there are many
@@ -1185,71 +1392,34 @@ static bool virNetClientIOEventLoopRemoveDone(virNetClientCallPtr call,
 }
 
 
-static bool virNetClientIOEventLoopRemoveNonBlocking(virNetClientCallPtr call,
-                                                     void *opaque)
+static void
+virNetClientIODetachNonBlocking(virNetClientCallPtr call)
+{
+    VIR_DEBUG("Keeping unfinished non-blocking call %p in the queue", call);
+    call->haveThread = false;
+}
+
+
+static bool
+virNetClientIOEventLoopRemoveAll(virNetClientCallPtr call,
+                                 void *opaque)
 {
     virNetClientCallPtr thiscall = opaque;
 
     if (call == thiscall)
         return false;
 
-    if (!call->nonBlock)
-        return false;
-
-    if (call->sentSomeData) {
-        /*
-         * If some data has been sent we must keep it in the list,
-         * but still wakeup any thread
-         */
-        if (call->haveThread) {
-            VIR_DEBUG("Waking up sleep %p", call);
-            virCondSignal(&call->cond);
-        } else {
-            VIR_DEBUG("Keeping unfinished call %p in the list", call);
-        }
-        return false;
-    } else {
-        /*
-         * If no data has been sent, we can remove it from the list.
-         * Wakup any thread, otherwise free the caller ourselves
-         */
-        if (call->haveThread) {
-            VIR_DEBUG("Waking up sleep %p", call);
-            virCondSignal(&call->cond);
-        } else {
-            VIR_DEBUG("Removing call %p", call);
-            if (call->expectReply)
-                VIR_WARN("Got a call expecting a reply but without a waiting thread");
-            ignore_value(virCondDestroy(&call->cond));
-            VIR_FREE(call->msg);
-            VIR_FREE(call);
-        }
-        return true;
-    }
+    VIR_DEBUG("Removing call %p", call);
+    ignore_value(virCondDestroy(&call->cond));
+    VIR_FREE(call->msg);
+    VIR_FREE(call);
+    return true;
 }
 
 
 static void
-virNetClientIOEventLoopRemoveAll(virNetClientPtr client,
-                                 virNetClientCallPtr thiscall)
-{
-    if (!client->waitDispatch)
-        return;
-
-    if (client->waitDispatch == thiscall) {
-        /* just pretend nothing was sent and the caller will free the call */
-        thiscall->sentSomeData = false;
-    } else {
-        virNetClientCallPtr call = client->waitDispatch;
-        virNetClientCallRemove(&client->waitDispatch, call);
-        ignore_value(virCondDestroy(&call->cond));
-        VIR_FREE(call->msg);
-        VIR_FREE(call);
-    }
-}
-
-
-static void virNetClientIOEventLoopPassTheBuck(virNetClientPtr client, virNetClientCallPtr thiscall)
+virNetClientIOEventLoopPassTheBuck(virNetClientPtr client,
+                                   virNetClientCallPtr thiscall)
 {
     VIR_DEBUG("Giving up the buck %p", thiscall);
     virNetClientCallPtr tmp = client->waitDispatch;
@@ -1265,33 +1435,23 @@ static void virNetClientIOEventLoopPassTheBuck(virNetClientPtr client, virNetCli
     }
     client->haveTheBuck = false;
 
-    /* Remove non-blocking calls from the dispatch list since there is no
-     * call with a thread in the list which could take care of them.
-     */
-    virNetClientCallRemovePredicate(&client->waitDispatch,
-                                    virNetClientIOEventLoopRemoveNonBlocking,
-                                    thiscall);
-
     VIR_DEBUG("No thread to pass the buck to");
     if (client->wantClose) {
         virNetClientCloseLocked(client);
-        virNetClientIOEventLoopRemoveAll(client, thiscall);
+        virNetClientCallRemovePredicate(&client->waitDispatch,
+                                        virNetClientIOEventLoopRemoveAll,
+                                        thiscall);
     }
 }
 
-
-static bool virNetClientIOEventLoopWantNonBlock(virNetClientCallPtr call, void *opaque ATTRIBUTE_UNUSED)
-{
-    return call->nonBlock;
-}
 
 /*
  * Process all calls pending dispatch/receive until we
  * get a reply to our own call. Then quit and pass the buck
  * to someone else.
  *
- * Returns 2 if fully sent, 1 if partially sent (only for nonBlock==true),
- * 0 if nothing sent (only for nonBlock==true) and -1 on error
+ * Returns 1 if the call was queued and will be completed later (only
+ * for nonBlock==true), 0 if the call was completed and -1 on error.
  */
 static int virNetClientIOEventLoop(virNetClientPtr client,
                                    virNetClientCallPtr thiscall)
@@ -1306,6 +1466,7 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
         char ignore;
         sigset_t oldmask, blockedsigs;
         int timeout = -1;
+        virNetMessagePtr msg = NULL;
 
         /* If we have existing SASL decoded data we don't want to sleep in
          * the poll(), just check if any other FDs are also ready.
@@ -1315,10 +1476,13 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
         if (virNetSocketHasCachedData(client->sock) || client->wantClose)
             timeout = 0;
 
-        /* If we are non-blocking, we don't want to sleep in poll()
-         */
+        /* If we are non-blocking, then we don't want to sleep in poll() */
         if (thiscall->nonBlock)
             timeout = 0;
+
+        /* Limit timeout so that we can send keepalive request in time */
+        if (timeout == -1)
+            timeout = virKeepAliveTimeout(client->keepalive);
 
         fds[0].events = fds[0].revents = 0;
         fds[1].events = fds[1].revents = 0;
@@ -1358,12 +1522,25 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
 
     repoll:
         ret = poll(fds, ARRAY_CARDINALITY(fds), timeout);
-        if (ret < 0 && errno == EAGAIN)
+        if (ret < 0 && (errno == EAGAIN || errno == EINTR))
             goto repoll;
 
         ignore_value(pthread_sigmask(SIG_SETMASK, &oldmask, NULL));
 
         virNetClientLock(client);
+
+        if (ret < 0) {
+            virReportSystemError(errno,
+                                 "%s", _("poll on socket failed"));
+            goto error;
+        }
+
+        if (virKeepAliveTrigger(client->keepalive, &msg)) {
+            virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_KEEPALIVE);
+        } else if (msg && virNetClientQueueNonBlocking(client, msg) < 0) {
+            VIR_WARN("Could not queue keepalive request");
+            virNetMessageFree(msg);
+        }
 
         /* If we have existing SASL decoded data, pretend
          * the socket became readable so we consume it
@@ -1382,41 +1559,27 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
             if (saferead(client->wakeupReadFD, &ignore, sizeof(ignore)) != sizeof(ignore)) {
                 virReportSystemError(errno, "%s",
                                      _("read on wakeup fd failed"));
+                virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_ERROR);
                 goto error;
             }
-
-            /* If we were woken up because a new non-blocking call was queued,
-             * we need to re-poll to check if we can send it.
-             */
-            if (virNetClientCallMatchPredicate(client->waitDispatch,
-                                               virNetClientIOEventLoopWantNonBlock,
-                                               NULL)) {
-                VIR_DEBUG("New non-blocking call arrived; repolling");
-                continue;
-            }
-        }
-
-        if (ret < 0) {
-            /* XXX what's this dubious errno check doing ? */
-            if (errno == EWOULDBLOCK)
-                continue;
-            virReportSystemError(errno,
-                                 "%s", _("poll on socket failed"));
-            goto error;
         }
 
         if (fds[0].revents & POLLOUT) {
-            if (virNetClientIOHandleOutput(client) < 0)
+            if (virNetClientIOHandleOutput(client) < 0) {
+                virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_ERROR);
                 goto error;
+            }
         }
 
         if (fds[0].revents & POLLIN) {
-            if (virNetClientIOHandleInput(client) < 0)
+            if (virNetClientIOHandleInput(client) < 0) {
+                virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_ERROR);
                 goto error;
+            }
         }
 
         /* Iterate through waiting calls and if any are
-         * complete, remove them from the dispatch list..
+         * complete, remove them from the dispatch list.
          */
         virNetClientCallRemovePredicate(&client->waitDispatch,
                                         virNetClientIOEventLoopRemoveDone,
@@ -1426,27 +1589,23 @@ static int virNetClientIOEventLoop(virNetClientPtr client,
         if (thiscall->mode == VIR_NET_CLIENT_MODE_COMPLETE) {
             virNetClientCallRemove(&client->waitDispatch, thiscall);
             virNetClientIOEventLoopPassTheBuck(client, thiscall);
-            return 2;
+            return 0;
         }
 
-        /* We're not done, but we're non-blocking */
+        /* We're not done, but we're non-blocking; keep the call queued */
         if (thiscall->nonBlock) {
+            virNetClientIODetachNonBlocking(thiscall);
             virNetClientIOEventLoopPassTheBuck(client, thiscall);
-            if (thiscall->sentSomeData) {
-                return 1;
-            } else {
-                virNetClientCallRemove(&client->waitDispatch, thiscall);
-                return 0;
-            }
+            return 1;
         }
 
         if (fds[0].revents & (POLLHUP | POLLERR)) {
-            virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("received hangup / error event on socket"));
+            virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_EOF);
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("received hangup / error event on socket"));
             goto error;
         }
     }
-
 
 error:
     virNetClientCallRemove(&client->waitDispatch, thiscall);
@@ -1455,12 +1614,33 @@ error:
 }
 
 
+static bool
+virNetClientIOUpdateEvents(virNetClientCallPtr call,
+                           void *opaque)
+{
+    int *events = opaque;
+
+    if (call->mode == VIR_NET_CLIENT_MODE_WAIT_TX)
+        *events |= VIR_EVENT_HANDLE_WRITABLE;
+
+    return false;
+}
+
+
 static void virNetClientIOUpdateCallback(virNetClientPtr client,
                                          bool enableCallback)
 {
     int events = 0;
-    if (enableCallback)
+
+    if (client->wantClose)
+        return;
+
+    if (enableCallback) {
         events |= VIR_EVENT_HANDLE_READABLE;
+        virNetClientCallMatchPredicate(client->waitDispatch,
+                                       virNetClientIOUpdateEvents,
+                                       &events);
+    }
 
     virNetSocketUpdateIOCallback(client->sock, events);
 }
@@ -1520,8 +1700,8 @@ static void virNetClientIOUpdateCallback(virNetClientPtr client,
  *
  * NB(7) Don't Panic!
  *
- * Returns 2 if fully sent, 1 if partially sent (only for nonBlock==true),
- * 0 if nothing sent (only for nonBlock==true) and -1 on error
+ * Returns 1 if the call was queued and will be completed later (only
+ * for nonBlock==true), 0 if the call was completed and -1 on error.
  */
 static int virNetClientIO(virNetClientPtr client,
                           virNetClientCallPtr thiscall)
@@ -1552,25 +1732,34 @@ static int virNetClientIO(virNetClientPtr client,
             return -1;
         }
 
-        VIR_DEBUG("Going to sleep %p %p", client->waitDispatch, thiscall);
+        /* If we are non-blocking, detach the thread and keep the call in the
+         * queue. */
+        if (thiscall->nonBlock) {
+            virNetClientIODetachNonBlocking(thiscall);
+            rv = 1;
+            goto cleanup;
+        }
+
+        VIR_DEBUG("Going to sleep head=%p call=%p",
+                  client->waitDispatch, thiscall);
         /* Go to sleep while other thread is working... */
         if (virCondWait(&thiscall->cond, &client->lock) < 0) {
             virNetClientCallRemove(&client->waitDispatch, thiscall);
-            virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
-                        _("failed to wait on condition"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("failed to wait on condition"));
             return -1;
         }
 
-        VIR_DEBUG("Wokeup from sleep %p %p", client->waitDispatch, thiscall);
+        VIR_DEBUG("Woken up from sleep head=%p call=%p",
+                  client->waitDispatch, thiscall);
         /* Three reasons we can be woken up
          *  1. Other thread has got our reply ready for us
          *  2. Other thread is all done, and it is our turn to
          *     be the dispatcher to finish waiting for
          *     our reply
-         *  3. I/O was expected to block
          */
         if (thiscall->mode == VIR_NET_CLIENT_MODE_COMPLETE) {
-            rv = 2;
+            rv = 0;
             /*
              * We avoided catching the buck and our reply is ready !
              * We've already had 'thiscall' removed from the list
@@ -1579,21 +1768,13 @@ static int virNetClientIO(virNetClientPtr client,
             goto cleanup;
         }
 
-        /* If we're non-blocking, get outta here */
-        if (thiscall->nonBlock) {
-            if (thiscall->sentSomeData)
-                rv = 1; /* In progress */
-            else
-                rv = 0; /* none at all */
-            goto cleanup;
-        }
-
         /* Grr, someone passed the buck onto us ... */
     } else {
         client->haveTheBuck = true;
     }
 
-    VIR_DEBUG("We have the buck %p %p", client->waitDispatch, thiscall);
+    VIR_DEBUG("We have the buck head=%p call=%p",
+              client->waitDispatch, thiscall);
 
     /*
      * The buck stops here!
@@ -1622,7 +1803,8 @@ static int virNetClientIO(virNetClientPtr client,
         rv = -1;
 
 cleanup:
-    VIR_DEBUG("All done with our call %p %p %d", client->waitDispatch, thiscall, rv);
+    VIR_DEBUG("All done with our call head=%p call=%p rv=%d",
+              client->waitDispatch, thiscall, rv);
     return rv;
 }
 
@@ -1635,6 +1817,8 @@ void virNetClientIncomingEvent(virNetSocketPtr sock,
 
     virNetClientLock(client);
 
+    VIR_DEBUG("client=%p wantclose=%d", client, client ? client->wantClose : false);
+
     if (!client->sock)
         goto done;
 
@@ -1644,26 +1828,117 @@ void virNetClientIncomingEvent(virNetSocketPtr sock,
 
     VIR_DEBUG("Event fired %p %d", sock, events);
 
+    if (events & VIR_EVENT_HANDLE_WRITABLE) {
+        if (virNetClientIOHandleOutput(client) < 0)
+            virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_ERROR);
+    }
+
+    if (events & VIR_EVENT_HANDLE_READABLE) {
+        if (virNetClientIOHandleInput(client) < 0)
+            virNetClientMarkClose(client, VIR_CONNECT_CLOSE_REASON_ERROR);
+    }
+
     if (events & (VIR_EVENT_HANDLE_HANGUP | VIR_EVENT_HANDLE_ERROR)) {
-        VIR_DEBUG("%s : VIR_EVENT_HANDLE_HANGUP or "
-                  "VIR_EVENT_HANDLE_ERROR encountered", __FUNCTION__);
-        virNetSocketRemoveIOCallback(sock);
+        VIR_DEBUG("VIR_EVENT_HANDLE_HANGUP or "
+                  "VIR_EVENT_HANDLE_ERROR encountered");
+        virNetClientMarkClose(client,
+                              (events & VIR_EVENT_HANDLE_HANGUP) ?
+                              VIR_CONNECT_CLOSE_REASON_EOF :
+                              VIR_CONNECT_CLOSE_REASON_ERROR);
         goto done;
     }
 
-    if (virNetClientIOHandleInput(client) < 0) {
-        VIR_WARN("Something went wrong during async message processing");
-        virNetSocketRemoveIOCallback(sock);
-    }
+    /* Remove completed calls or signal their threads. */
+    virNetClientCallRemovePredicate(&client->waitDispatch,
+                                    virNetClientIOEventLoopRemoveDone,
+                                    NULL);
+    virNetClientIOUpdateCallback(client, true);
 
 done:
+    if (client->wantClose)
+        virNetClientCloseLocked(client);
     virNetClientUnlock(client);
 }
 
 
+static virNetClientCallPtr
+virNetClientCallNew(virNetMessagePtr msg,
+                    bool expectReply,
+                    bool nonBlock)
+{
+    virNetClientCallPtr call = NULL;
+
+    if (expectReply &&
+        (msg->bufferLength != 0) &&
+        (msg->header.status == VIR_NET_CONTINUE)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Attempt to send an asynchronous message with"
+                         " a synchronous reply"));
+        goto error;
+    }
+
+    if (expectReply && nonBlock) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Attempt to send a non-blocking message with"
+                         " a synchronous reply"));
+        goto error;
+    }
+
+    if (VIR_ALLOC(call) < 0) {
+        virReportOOMError();
+        goto error;
+    }
+
+    if (virCondInit(&call->cond) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("cannot initialize condition variable"));
+        goto error;
+    }
+
+    msg->donefds = 0;
+    if (msg->bufferLength)
+        call->mode = VIR_NET_CLIENT_MODE_WAIT_TX;
+    else
+        call->mode = VIR_NET_CLIENT_MODE_WAIT_RX;
+    call->msg = msg;
+    call->expectReply = expectReply;
+    call->nonBlock = nonBlock;
+
+    VIR_DEBUG("New call %p: msg=%p, expectReply=%d, nonBlock=%d",
+              call, msg, expectReply, nonBlock);
+
+    return call;
+
+error:
+    VIR_FREE(call);
+    return NULL;
+}
+
+
+static int
+virNetClientQueueNonBlocking(virNetClientPtr client,
+                             virNetMessagePtr msg)
+{
+    virNetClientCallPtr call;
+
+    PROBE(RPC_CLIENT_MSG_TX_QUEUE,
+          "client=%p len=%zu prog=%u vers=%u proc=%u"
+          " type=%u status=%u serial=%u",
+          client, msg->bufferLength,
+          msg->header.prog, msg->header.vers, msg->header.proc,
+          msg->header.type, msg->header.status, msg->header.serial);
+
+    if (!(call = virNetClientCallNew(msg, false, true)))
+        return -1;
+
+    virNetClientCallQueue(&client->waitDispatch, call);
+    return 0;
+}
+
+
 /*
- * Returns 2 if fully sent, 1 if partially sent (only for nonBlock==true),
- * 0 if nothing sent (only for nonBlock==true) and -1 on error
+ * Returns 1 if the call was queued and will be completed later (only
+ * for nonBlock==true), 0 if the call was completed and -1 on error.
  */
 static int virNetClientSendInternal(virNetClientPtr client,
                                     virNetMessagePtr msg,
@@ -1679,59 +1954,27 @@ static int virNetClientSendInternal(virNetClientPtr client,
           msg->header.prog, msg->header.vers, msg->header.proc,
           msg->header.type, msg->header.status, msg->header.serial);
 
-    if (expectReply &&
-        (msg->bufferLength != 0) &&
-        (msg->header.status == VIR_NET_CONTINUE)) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("Attempt to send an asynchronous message with a synchronous reply"));
+    if (!client->sock || client->wantClose) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("client socket is closed"));
         return -1;
     }
 
-    if (expectReply && nonBlock) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("Attempt to send a non-blocking message with a synchronous reply"));
-        return -1;
-    }
-
-    if (VIR_ALLOC(call) < 0) {
+    if (!(call = virNetClientCallNew(msg, expectReply, nonBlock))) {
         virReportOOMError();
         return -1;
     }
 
-    if (!client->sock || client->wantClose) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("client socket is closed"));
-        goto cleanup;
-    }
-
-    if (virCondInit(&call->cond) < 0) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s",
-                    _("cannot initialize condition variable"));
-        goto cleanup;
-    }
-
-    msg->donefds = 0;
-    if (msg->bufferLength)
-        call->mode = VIR_NET_CLIENT_MODE_WAIT_TX;
-    else
-        call->mode = VIR_NET_CLIENT_MODE_WAIT_RX;
-    call->msg = msg;
-    call->expectReply = expectReply;
-    call->nonBlock = nonBlock;
     call->haveThread = true;
-
     ret = virNetClientIO(client, call);
 
-    /* If partially sent, then the call is still on the dispatch queue */
-    if (ret == 1) {
-        call->haveThread = false;
-    } else {
-        ignore_value(virCondDestroy(&call->cond));
-    }
+    /* If queued, the call will be finished and freed later by another thread;
+     * we're done. */
+    if (ret == 1)
+        return 1;
 
-cleanup:
-    if (ret != 1)
-        VIR_FREE(call);
+    ignore_value(virCondDestroy(&call->cond));
+    VIR_FREE(call);
     return ret;
 }
 
@@ -1789,7 +2032,8 @@ int virNetClientSendNoReply(virNetClientPtr client,
  * The caller is responsible for free'ing @msg, *except* if
  * this method returns 1.
  *
- * Returns 2 on full send, 1 on partial send, 0 on no send, -1 on error
+ * Returns 1 if the message was queued and will be completed later (only
+ * for nonBlock==true), 0 if the message was completed and -1 on error.
  */
 int virNetClientSendNonBlock(virNetClientPtr client,
                              virNetMessagePtr msg)

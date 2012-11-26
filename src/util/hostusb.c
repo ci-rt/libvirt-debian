@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Daniel P. Berrange <berrange@redhat.com>
@@ -44,10 +44,6 @@
 
 /* For virReportOOMError()  and virReportSystemError() */
 #define VIR_FROM_THIS VIR_FROM_NONE
-
-#define usbReportError(code, ...)                              \
-    virReportErrorHelper(VIR_FROM_NONE, code, __FILE__,        \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 struct _usbDevice {
     unsigned int      bus;
@@ -88,7 +84,7 @@ static int usbSysReadFile(const char *f_name, const char *d_name,
         goto cleanup;
 
     if (virStrToLong_ui(buf, &ignore, base, value) < 0) {
-        usbReportError(VIR_ERR_INTERNAL_ERROR,
+        virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Could not parse usb file %s"), filename);
         goto cleanup;
     }
@@ -144,7 +140,7 @@ usbDeviceSearch(unsigned int vendor,
             tmpstr += 3;
 
         if (virStrToLong_ui(tmpstr, &ignore, 10, &found_bus) < 0) {
-            usbReportError(VIR_ERR_INTERNAL_ERROR,
+            virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Failed to parse dir name '%s'"),
                            de->d_name);
             goto cleanup;
@@ -190,76 +186,117 @@ cleanup:
     return ret;
 }
 
-usbDeviceList *
-usbFindDeviceByVendor(unsigned int vendor, unsigned product)
+int
+usbFindDeviceByVendor(unsigned int vendor,
+                      unsigned product,
+                      bool mandatory,
+                      usbDeviceList **devices)
 {
-
     usbDeviceList *list;
+    int count;
+
     if (!(list = usbDeviceSearch(vendor, product, 0 , 0,
                                  USB_DEVICE_FIND_BY_VENDOR)))
-        return NULL;
+        return -1;
 
     if (list->count == 0) {
-        usbReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("Did not find USB device %x:%x"), vendor, product);
         usbDeviceListFree(list);
-        return NULL;
+        if (!mandatory) {
+            VIR_DEBUG("Did not find USB device %x:%x",
+                      vendor, product);
+            if (devices)
+                *devices = NULL;
+            return 0;
+        }
+
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Did not find USB device %x:%x"), vendor, product);
+        return -1;
     }
 
-    return list;
+    count = list->count;
+    if (devices)
+        *devices = list;
+    else
+        usbDeviceListFree(list);
+
+    return count;
 }
 
-usbDevice *
-usbFindDeviceByBus(unsigned int bus, unsigned devno)
+int
+usbFindDeviceByBus(unsigned int bus,
+                   unsigned devno,
+                   bool mandatory,
+                   usbDevice **usb)
 {
-    usbDevice *usb;
     usbDeviceList *list;
 
     if (!(list = usbDeviceSearch(0, 0, bus, devno,
                                  USB_DEVICE_FIND_BY_BUS)))
-        return NULL;
+        return -1;
 
     if (list->count == 0) {
-        usbReportError(VIR_ERR_INTERNAL_ERROR,
+        usbDeviceListFree(list);
+        if (!mandatory) {
+            VIR_DEBUG("Did not find USB device bus:%u device:%u",
+                      bus, devno);
+            if (usb)
+                *usb = NULL;
+            return 0;
+        }
+
+        virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Did not find USB device bus:%u device:%u"),
                        bus, devno);
-        usbDeviceListFree(list);
-        return NULL;
+        return -1;
     }
 
-    usb = usbDeviceListGet(list, 0);
-    usbDeviceListSteal(list, usb);
+    if (usb) {
+        *usb = usbDeviceListGet(list, 0);
+        usbDeviceListSteal(list, *usb);
+    }
     usbDeviceListFree(list);
 
-    return usb;
+    return 0;
 }
 
-usbDevice *
+int
 usbFindDevice(unsigned int vendor,
               unsigned int product,
               unsigned int bus,
-              unsigned int devno)
+              unsigned int devno,
+              bool mandatory,
+              usbDevice **usb)
 {
-    usbDevice *usb;
     usbDeviceList *list;
 
     unsigned int flags = USB_DEVICE_FIND_BY_VENDOR|USB_DEVICE_FIND_BY_BUS;
     if (!(list = usbDeviceSearch(vendor, product, bus, devno, flags)))
-        return NULL;
+        return -1;
 
     if (list->count == 0) {
-        usbReportError(VIR_ERR_INTERNAL_ERROR,
+        usbDeviceListFree(list);
+        if (!mandatory) {
+            VIR_DEBUG("Did not find USB device %x:%x bus:%u device:%u",
+                      vendor, product, bus, devno);
+            if (usb)
+                *usb = NULL;
+            return 0;
+        }
+
+        virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Did not find USB device %x:%x bus:%u device:%u"),
                        vendor, product, bus, devno);
-        usbDeviceListFree(list);
-        return NULL;
+        return -1;
     }
 
-    usb = usbDeviceListGet(list, 0);
-    usbDeviceListSteal(list, usb);
+    if (usb) {
+        *usb = usbDeviceListGet(list, 0);
+        usbDeviceListSteal(list, *usb);
+    }
     usbDeviceListFree(list);
 
-    return usb;
+    return 0;
 }
 
 usbDevice *
@@ -278,7 +315,7 @@ usbGetDevice(unsigned int bus,
 
     if (snprintf(dev->name, sizeof(dev->name), "%.3o:%.3o",
                  dev->bus, dev->dev) >= sizeof(dev->name)) {
-        usbReportError(VIR_ERR_INTERNAL_ERROR,
+        virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("dev->name buffer overflow: %.3o:%.3o"),
                        dev->bus, dev->dev);
         usbFreeDevice(dev);
@@ -294,7 +331,7 @@ usbGetDevice(unsigned int bus,
     /* XXX fixme. this should be product/vendor */
     if (snprintf(dev->id, sizeof(dev->id), "%d %d", dev->bus,
                  dev->dev) >= sizeof(dev->id)) {
-        usbReportError(VIR_ERR_INTERNAL_ERROR,
+        virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("dev->id buffer overflow: %d %d"),
                        dev->bus, dev->dev);
         usbFreeDevice(dev);
@@ -383,7 +420,7 @@ usbDeviceListAdd(usbDeviceList *list,
                  usbDevice *dev)
 {
     if (usbDeviceListFind(list, dev)) {
-        usbReportError(VIR_ERR_INTERNAL_ERROR,
+        virReportError(VIR_ERR_INTERNAL_ERROR,
                        _("Device %s is already in use"),
                        dev->name);
         return -1;

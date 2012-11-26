@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2011 Red Hat, Inc.
+ * Copyright (C) 2009-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Michal Privoznik <mprivozn@redhat.com>
@@ -26,7 +26,6 @@
 #include "command.h"
 #include "memory.h"
 #include "virterror_internal.h"
-#include "ignore-value.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
 
@@ -70,7 +69,7 @@ virNetDevBandwidthSet(const char *ifname,
         goto cleanup;
     }
 
-    ignore_value(virNetDevBandwidthClear(ifname));
+    virNetDevBandwidthClear(ifname);
 
     if (bandwidth->in) {
         if (virAsprintf(&average, "%llukbps", bandwidth->in->average) < 0)
@@ -136,7 +135,7 @@ virNetDevBandwidthSet(const char *ifname,
         virCommandAddArgList(cmd, "filter", "add", "dev", ifname, "parent",
                              "ffff:", "protocol", "ip", "u32", "match", "ip",
                              "src", "0.0.0.0/0", "police", "rate", average,
-                             "burst", burst, "mtu", burst, "drop", "flowid",
+                             "burst", burst, "mtu", "64kb", "drop", "flowid",
                              ":1", NULL);
 
         if (virCommandRun(cmd, NULL) < 0)
@@ -167,12 +166,13 @@ int
 virNetDevBandwidthClear(const char *ifname)
 {
     int ret = 0;
+    int dummy; /* for ignoring the exit status */
     virCommandPtr cmd = NULL;
 
     cmd = virCommandNew(TC);
     virCommandAddArgList(cmd, "qdisc", "del", "dev", ifname, "root", NULL);
 
-    if (virCommandRun(cmd, NULL) < 0)
+    if (virCommandRun(cmd, &dummy) < 0)
         ret = -1;
 
     virCommandFree(cmd);
@@ -180,8 +180,9 @@ virNetDevBandwidthClear(const char *ifname)
     cmd = virCommandNew(TC);
     virCommandAddArgList(cmd, "qdisc",  "del", "dev", ifname, "ingress", NULL);
 
-    if (virCommandRun(cmd, NULL) < 0)
+    if (virCommandRun(cmd, &dummy) < 0)
         ret = -1;
+
     virCommandFree(cmd);
 
     return ret;

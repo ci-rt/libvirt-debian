@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -31,9 +31,6 @@
 #include "util.h"
 
 #define VIR_FROM_THIS VIR_FROM_RPC
-#define virNetError(code, ...)                                    \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,           \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 virNetMessagePtr virNetMessageNew(bool tracked)
 {
@@ -61,6 +58,7 @@ void virNetMessageClear(virNetMessagePtr msg)
     for (i = 0 ; i < msg->nfds ; i++)
         VIR_FORCE_CLOSE(msg->fds[i]);
     VIR_FREE(msg->fds);
+    VIR_FREE(msg->buffer);
     memset(msg, 0, sizeof(*msg));
     msg->tracked = tracked;
 }
@@ -79,6 +77,7 @@ void virNetMessageFree(virNetMessagePtr msg)
 
     for (i = 0 ; i < msg->nfds ; i++)
         VIR_FORCE_CLOSE(msg->fds[i]);
+    VIR_FREE(msg->buffer);
     VIR_FREE(msg->fds);
     VIR_FREE(msg);
 }
@@ -119,15 +118,15 @@ int virNetMessageDecodeLength(virNetMessagePtr msg)
     xdrmem_create(&xdr, msg->buffer,
                   msg->bufferLength, XDR_DECODE);
     if (!xdr_u_int(&xdr, &len)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to decode message length"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to decode message length"));
         goto cleanup;
     }
     msg->bufferOffset = xdr_getpos(&xdr);
 
     if (len < VIR_NET_MESSAGE_LEN_MAX) {
-        virNetError(VIR_ERR_RPC,
-                    _("packet %d bytes received from server too small, want %d"),
-                    len, VIR_NET_MESSAGE_LEN_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("packet %d bytes received from server too small, want %d"),
+                       len, VIR_NET_MESSAGE_LEN_MAX);
         goto cleanup;
     }
 
@@ -135,15 +134,19 @@ int virNetMessageDecodeLength(virNetMessagePtr msg)
     len -= VIR_NET_MESSAGE_LEN_MAX;
 
     if (len > VIR_NET_MESSAGE_MAX) {
-        virNetError(VIR_ERR_RPC,
-                    _("packet %d bytes received from server too large, want %d"),
-                    len, VIR_NET_MESSAGE_MAX);
+        virReportError(VIR_ERR_RPC,
+                       _("packet %d bytes received from server too large, want %d"),
+                       len, VIR_NET_MESSAGE_MAX);
         goto cleanup;
     }
 
     /* Extend our declared buffer length and carry
        on reading the header + payload */
     msg->bufferLength += len;
+    if (VIR_REALLOC_N(msg->buffer, msg->bufferLength) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
 
     VIR_DEBUG("Got length, now need %zu total (%u more)",
               msg->bufferLength, len);
@@ -181,7 +184,7 @@ int virNetMessageDecodeHeader(virNetMessagePtr msg)
                   XDR_DECODE);
 
     if (!xdr_virNetMessageHeader(&xdr, &msg->header)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to decode message header"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to decode message header"));
         goto cleanup;
     }
 
@@ -212,7 +215,11 @@ int virNetMessageEncodeHeader(virNetMessagePtr msg)
     int ret = -1;
     unsigned int len = 0;
 
-    msg->bufferLength = sizeof(msg->buffer);
+    msg->bufferLength = VIR_NET_MESSAGE_MAX + VIR_NET_MESSAGE_LEN_MAX;
+    if (VIR_REALLOC_N(msg->buffer, msg->bufferLength) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
     msg->bufferOffset = 0;
 
     /* Format the header. */
@@ -223,12 +230,12 @@ int virNetMessageEncodeHeader(virNetMessagePtr msg)
 
     /* The real value is filled in shortly */
     if (!xdr_u_int(&xdr, &len)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to encode message length"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to encode message length"));
         goto cleanup;
     }
 
     if (!xdr_virNetMessageHeader(&xdr, &msg->header)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to encode message header"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to encode message header"));
         goto cleanup;
     }
 
@@ -239,7 +246,7 @@ int virNetMessageEncodeHeader(virNetMessagePtr msg)
      * if a payload is added
      */
     if (!xdr_u_int(&xdr, &len)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to re-encode message length"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to re-encode message length"));
         goto cleanup;
     }
 
@@ -263,14 +270,14 @@ int virNetMessageEncodeNumFDs(virNetMessagePtr msg)
                   msg->bufferLength - msg->bufferOffset, XDR_ENCODE);
 
     if (numFDs > VIR_NET_MESSAGE_NUM_FDS_MAX) {
-        virNetError(VIR_ERR_RPC,
+        virReportError(VIR_ERR_RPC,
                     _("Too many FDs to send %d, expected %d maximum"),
                     numFDs, VIR_NET_MESSAGE_NUM_FDS_MAX);
         goto cleanup;
     }
 
     if (!xdr_u_int(&xdr, &numFDs)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to encode number of FDs"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to encode number of FDs"));
         goto cleanup;
     }
     msg->bufferOffset += xdr_getpos(&xdr);
@@ -295,13 +302,13 @@ int virNetMessageDecodeNumFDs(virNetMessagePtr msg)
     xdrmem_create(&xdr, msg->buffer + msg->bufferOffset,
                   msg->bufferLength - msg->bufferOffset, XDR_DECODE);
     if (!xdr_u_int(&xdr, &numFDs)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to decode number of FDs"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to decode number of FDs"));
         goto cleanup;
     }
     msg->bufferOffset += xdr_getpos(&xdr);
 
     if (numFDs > VIR_NET_MESSAGE_NUM_FDS_MAX) {
-        virNetError(VIR_ERR_RPC,
+        virReportError(VIR_ERR_RPC,
                     _("Received too many FDs %d, expected %d maximum"),
                     numFDs, VIR_NET_MESSAGE_NUM_FDS_MAX);
         goto cleanup;
@@ -339,7 +346,7 @@ int virNetMessageEncodePayload(virNetMessagePtr msg,
                   msg->bufferLength - msg->bufferOffset, XDR_ENCODE);
 
     if (!(*filter)(&xdr, data)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to encode message payload"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to encode message payload"));
         goto error;
     }
 
@@ -352,7 +359,7 @@ int virNetMessageEncodePayload(virNetMessagePtr msg,
     xdrmem_create(&xdr, msg->buffer, VIR_NET_MESSAGE_HEADER_XDR_LEN, XDR_ENCODE);
     msglen = msg->bufferOffset;
     if (!xdr_u_int(&xdr, &msglen)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to encode message length"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to encode message length"));
         goto error;
     }
     xdr_destroy(&xdr);
@@ -380,7 +387,7 @@ int virNetMessageDecodePayload(virNetMessagePtr msg,
                   msg->bufferLength - msg->bufferOffset, XDR_DECODE);
 
     if (!(*filter)(&xdr, data)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to decode message payload"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to decode message payload"));
         goto error;
     }
 
@@ -403,7 +410,7 @@ int virNetMessageEncodePayloadRaw(virNetMessagePtr msg,
     unsigned int msglen;
 
     if ((msg->bufferLength - msg->bufferOffset) < len) {
-        virNetError(VIR_ERR_RPC,
+        virReportError(VIR_ERR_RPC,
                     _("Stream data too long to send (%zu bytes needed, %zu bytes available)"),
                     len, (msg->bufferLength - msg->bufferOffset));
         return -1;
@@ -417,7 +424,7 @@ int virNetMessageEncodePayloadRaw(virNetMessagePtr msg,
     xdrmem_create(&xdr, msg->buffer, VIR_NET_MESSAGE_HEADER_XDR_LEN, XDR_ENCODE);
     msglen = msg->bufferOffset;
     if (!xdr_u_int(&xdr, &msglen)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to encode message length"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to encode message length"));
         goto error;
     }
     xdr_destroy(&xdr);
@@ -442,7 +449,7 @@ int virNetMessageEncodePayloadEmpty(virNetMessagePtr msg)
     xdrmem_create(&xdr, msg->buffer, VIR_NET_MESSAGE_HEADER_XDR_LEN, XDR_ENCODE);
     msglen = msg->bufferOffset;
     if (!xdr_u_int(&xdr, &msglen)) {
-        virNetError(VIR_ERR_RPC, "%s", _("Unable to encode message length"));
+        virReportError(VIR_ERR_RPC, "%s", _("Unable to encode message length"));
         goto error;
     }
     xdr_destroy(&xdr);
@@ -498,8 +505,8 @@ int virNetMessageDupFD(virNetMessagePtr msg,
     int fd;
 
     if (slot >= msg->nfds) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    _("No FD available at slot %zu"), slot);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("No FD available at slot %zu"), slot);
         return -1;
     }
 

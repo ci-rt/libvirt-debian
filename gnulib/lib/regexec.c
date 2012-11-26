@@ -473,7 +473,7 @@ re_search_stub (struct re_pattern_buffer *bufp,
 
   rval = 0;
 
-  /* I hope we needn't fill ther regs with -1's when no match was found.  */
+  /* I hope we needn't fill their regs with -1's when no match was found.  */
   if (result != REG_NOERROR)
     rval = result == REG_NOMATCH ? -1 : -2;
   else if (regs != NULL)
@@ -735,7 +735,7 @@ re_search_internal (const regex_t *preg,
   mctx.input.tip_context = (eflags & REG_NOTBOL) ? CONTEXT_BEGBUF
 			   : CONTEXT_NEWLINE | CONTEXT_BEGBUF;
 
-  /* Check incrementally whether of not the input string match.  */
+  /* Check incrementally whether the input string matches.  */
   incr = (last_start < start) ? -1 : 1;
   left_lim = (last_start < start) ? last_start : start;
   right_lim = (last_start < start) ? start : last_start;

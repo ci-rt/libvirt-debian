@@ -1,7 +1,7 @@
 /*
  * hooks.c: implementation of the synchronous hooks support
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2010 Daniel Veillard
  *
  * This library is free software; you can redistribute it and/or
@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel Veillard <veillard@redhat.com>
  */
@@ -40,10 +40,6 @@
 #include "command.h"
 
 #define VIR_FROM_THIS VIR_FROM_HOOK
-
-#define virHookReportError(code, ...)                              \
-    virReportErrorHelper(VIR_FROM_HOOK, code, __FILE__,            \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #define LIBVIRT_HOOK_DIR SYSCONFDIR "/libvirt/hooks"
 
@@ -74,11 +70,18 @@ VIR_ENUM_IMPL(virHookQemuOp, VIR_HOOK_QEMU_OP_LAST,
               "stopped",
               "prepare",
               "release",
-              "migrate")
+              "migrate",
+              "started",
+              "reconnect",
+              "attach")
 
 VIR_ENUM_IMPL(virHookLxcOp, VIR_HOOK_LXC_OP_LAST,
               "start",
-              "stopped")
+              "stopped",
+              "prepare",
+              "release",
+              "started",
+              "reconnect")
 
 static int virHooksFound = -1;
 
@@ -98,16 +101,16 @@ virHookCheck(int no, const char *driver) {
     int ret;
 
     if (driver == NULL) {
-        virHookReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("Invalid hook name for #%d"), no);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid hook name for #%d"), no);
         return -1;
     }
 
     ret = virBuildPath(&path, LIBVIRT_HOOK_DIR, driver);
     if ((ret < 0) || (path == NULL)) {
-        virHookReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Failed to build path for %s hook"),
-                           driver);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to build path for %s hook"),
+                       driver);
         return -1;
     }
 
@@ -203,7 +206,6 @@ virHookCall(int driver,
             char **output)
 {
     int ret;
-    int exitstatus;
     char *path;
     virCommandPtr cmd;
     const char *drvstr;
@@ -245,9 +247,9 @@ virHookCall(int driver,
             break;
     }
     if (opstr == NULL) {
-        virHookReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Hook for %s, failed to find operation #%d"),
-                           drvstr, op);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Hook for %s, failed to find operation #%d"),
+                       drvstr, op);
         return 1;
     }
     subopstr = virHookSubopTypeToString(sub_op);
@@ -258,11 +260,14 @@ virHookCall(int driver,
 
     ret = virBuildPath(&path, LIBVIRT_HOOK_DIR, drvstr);
     if ((ret < 0) || (path == NULL)) {
-        virHookReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("Failed to build path for %s hook"),
-                           drvstr);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to build path for %s hook"),
+                       drvstr);
         return -1;
     }
+
+    VIR_DEBUG("Calling hook opstr=%s subopstr=%s extra=%s",
+              opstr, subopstr, extra);
 
     cmd = virCommandNewArgList(path, id, opstr, subopstr, extra, NULL);
 
@@ -273,12 +278,11 @@ virHookCall(int driver,
     if (output)
         virCommandSetOutputBuffer(cmd, output);
 
-    ret = virCommandRun(cmd, &exitstatus);
-    if (ret == 0 && exitstatus != 0) {
-        virHookReportError(VIR_ERR_HOOK_SCRIPT_FAILED,
-                           _("Hook script %s %s failed with error code %d"),
-                           path, drvstr, exitstatus);
-        ret = -1;
+    ret = virCommandRun(cmd, NULL);
+    if (ret < 0) {
+        /* Convert INTERNAL_ERROR into known error.  */
+        virErrorPtr err = virGetLastError();
+        virReportError(VIR_ERR_HOOK_SCRIPT_FAILED, "%s", err->message);
     }
 
     virCommandFree(cmd);

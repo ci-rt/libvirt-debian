@@ -111,14 +111,68 @@
            else if (STREQ(type, "HostFileSystemVolume")) {
                return esxVI_Type_HostFileSystemVolume;
            }
+           else if (STREQ(type, "HostIpConfig")) {
+               return esxVI_Type_HostIpConfig;
+           }
            else if (STREQ(type, "HostMountInfo")) {
                return esxVI_Type_HostMountInfo;
            }
            else if (STREQ(type, "HostNasVolume")) {
                return esxVI_Type_HostNasVolume;
            }
+           else if (STREQ(type, "HostNetOffloadCapabilities")) {
+               return esxVI_Type_HostNetOffloadCapabilities;
+           }
+           else if (STREQ(type, "HostNetworkPolicy")) {
+               return esxVI_Type_HostNetworkPolicy;
+           }
+           else if (STREQ(type, "HostNetworkSecurityPolicy")) {
+               return esxVI_Type_HostNetworkSecurityPolicy;
+           }
+           else if (STREQ(type, "HostNetworkTrafficShapingPolicy")) {
+               return esxVI_Type_HostNetworkTrafficShapingPolicy;
+           }
+           else if (STREQ(type, "HostNicFailureCriteria")) {
+               return esxVI_Type_HostNicFailureCriteria;
+           }
+           else if (STREQ(type, "HostNicOrderPolicy")) {
+               return esxVI_Type_HostNicOrderPolicy;
+           }
+           else if (STREQ(type, "HostNicTeamingPolicy")) {
+               return esxVI_Type_HostNicTeamingPolicy;
+           }
+           else if (STREQ(type, "HostPortGroup")) {
+               return esxVI_Type_HostPortGroup;
+           }
+           else if (STREQ(type, "HostPortGroupPort")) {
+               return esxVI_Type_HostPortGroupPort;
+           }
+           else if (STREQ(type, "HostPortGroupSpec")) {
+               return esxVI_Type_HostPortGroupSpec;
+           }
            else if (STREQ(type, "HostScsiDiskPartition")) {
                return esxVI_Type_HostScsiDiskPartition;
+           }
+           else if (STREQ(type, "HostVirtualSwitch")) {
+               return esxVI_Type_HostVirtualSwitch;
+           }
+           else if (STREQ(type, "HostVirtualSwitchAutoBridge")) {
+               return esxVI_Type_HostVirtualSwitchAutoBridge;
+           }
+           else if (STREQ(type, "HostVirtualSwitchBeaconConfig")) {
+               return esxVI_Type_HostVirtualSwitchBeaconConfig;
+           }
+           else if (STREQ(type, "HostVirtualSwitchBondBridge")) {
+               return esxVI_Type_HostVirtualSwitchBondBridge;
+           }
+           else if (STREQ(type, "HostVirtualSwitchBridge")) {
+               return esxVI_Type_HostVirtualSwitchBridge;
+           }
+           else if (STREQ(type, "HostVirtualSwitchSimpleBridge")) {
+               return esxVI_Type_HostVirtualSwitchSimpleBridge;
+           }
+           else if (STREQ(type, "HostVirtualSwitchSpec")) {
+               return esxVI_Type_HostVirtualSwitchSpec;
            }
            else if (STREQ(type, "HostVmfsVolume")) {
                return esxVI_Type_HostVmfsVolume;
@@ -173,6 +227,15 @@
            }
            else if (STREQ(type, "PerfSampleInfo")) {
                return esxVI_Type_PerfSampleInfo;
+           }
+           else if (STREQ(type, "PhysicalNic")) {
+               return esxVI_Type_PhysicalNic;
+           }
+           else if (STREQ(type, "PhysicalNicLinkInfo")) {
+               return esxVI_Type_PhysicalNicLinkInfo;
+           }
+           else if (STREQ(type, "PhysicalNicSpec")) {
+               return esxVI_Type_PhysicalNicSpec;
            }
            else if (STREQ(type, "PropertyChange")) {
                return esxVI_Type_PropertyChange;

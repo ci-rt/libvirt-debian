@@ -1,13 +1,23 @@
 /*
- * Copyright (C) 2008 Red Hat, Inc.
+ * Copyright (C) 2008-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
  *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
+ *
  * Authors:
  *     James Morris <jmorris@namei.org>
+ *     Dan Walsh <dwalsh@redhat.com>
  *
  */
 #include <config.h>
@@ -27,6 +37,8 @@
 
 #include "security_nop.h"
 
+#define VIR_FROM_THIS VIR_FROM_SECURITY
+
 static virSecurityDriverPtr security_drivers[] = {
 #ifdef WITH_SECDRIVER_SELINUX
     &virSecurityDriverSELinux,
@@ -37,7 +49,8 @@ static virSecurityDriverPtr security_drivers[] = {
     &virSecurityDriverNop, /* Must always be last, since it will always probe */
 };
 
-virSecurityDriverPtr virSecurityDriverLookup(const char *name)
+virSecurityDriverPtr virSecurityDriverLookup(const char *name,
+                                             const char *virtDriver)
 {
     virSecurityDriverPtr drv = NULL;
     int i;
@@ -51,7 +64,7 @@ virSecurityDriverPtr virSecurityDriverLookup(const char *name)
             STRNEQ(tmp->name, name))
             continue;
 
-        switch (tmp->probe()) {
+        switch (tmp->probe(virtDriver)) {
         case SECURITY_DRIVER_ENABLE:
             VIR_DEBUG("Probed name=%s", tmp->name);
             drv = tmp;
@@ -59,6 +72,12 @@ virSecurityDriverPtr virSecurityDriverLookup(const char *name)
 
         case SECURITY_DRIVER_DISABLE:
             VIR_DEBUG("Not enabled name=%s", tmp->name);
+            if (name && STREQ(tmp->name, name)) {
+                virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                               _("Security driver %s not enabled"),
+                               name);
+                return NULL;
+            }
             break;
 
         default:
@@ -67,9 +86,9 @@ virSecurityDriverPtr virSecurityDriverLookup(const char *name)
     }
 
     if (!drv) {
-        virSecurityReportError(VIR_ERR_INTERNAL_ERROR,
-                               _("Security driver %s not found"),
-                               NULLSTR(name));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Security driver %s not found"),
+                       NULLSTR(name));
         return NULL;
     }
 

@@ -534,4 +534,44 @@ LIBVIRT_0.9.11 {
         virDomainPMWakeup;
 } LIBVIRT_0.9.10;
 
+LIBVIRT_0.9.13 {
+    global:
+        virConnectListAllDomains;
+        virDomainListAllSnapshots;
+        virDomainSnapshotHasMetadata;
+        virDomainSnapshotIsCurrent;
+        virDomainSnapshotListAllChildren;
+        virDomainSnapshotRef;
+} LIBVIRT_0.9.11;
+
+LIBVIRT_0.10.0 {
+    global:
+        virDomainGetHostname;
+        virConnectRegisterCloseCallback;
+        virConnectUnregisterCloseCallback;
+        virDomainGetSecurityLabelList;
+        virDomainPinEmulator;
+        virDomainGetEmulatorPinInfo;
+} LIBVIRT_0.9.13;
+
+LIBVIRT_0.10.2 {
+    global:
+        virConnectListAllInterfaces;
+        virConnectListAllNetworks;
+        virConnectListAllNodeDevices;
+        virConnectListAllNWFilters;
+        virConnectListAllSecrets;
+        virConnectListAllStoragePools;
+        virDomainBlockCommit;
+        virNetworkUpdate;
+        virNodeGetMemoryParameters;
+        virNodeSetMemoryParameters;
+        virStoragePoolListAllVolumes;
+} LIBVIRT_0.10.0;
+
+LIBVIRT_1.0.0 {
+    global:
+        virNodeGetCPUMap;
+} LIBVIRT_0.10.2;
+
 # .... define new API here using predicted next version number ....

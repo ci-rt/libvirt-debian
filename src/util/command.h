@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,6 +44,9 @@ virCommandPtr virCommandNewArgs(const char *const*args) ATTRIBUTE_NONNULL(1);
 
 virCommandPtr virCommandNewArgList(const char *binary, ...)
     ATTRIBUTE_NONNULL(1) ATTRIBUTE_SENTINEL;
+
+virCommandPtr virCommandNewVAList(const char *binary, va_list list)
+    ATTRIBUTE_NONNULL(1);
 
 /* All error report from these setup APIs is
  * delayed until the Run/RunAsync methods
@@ -137,9 +140,6 @@ void virCommandWriteArgLog(virCommandPtr cmd,
 
 char *virCommandToString(virCommandPtr cmd) ATTRIBUTE_RETURN_CHECK;
 
-
-char *virCommandTranslateStatus(int exitstatus) ATTRIBUTE_RETURN_CHECK;
-
 int virCommandExec(virCommandPtr cmd) ATTRIBUTE_RETURN_CHECK;
 
 int virCommandRun(virCommandPtr cmd,
@@ -147,9 +147,6 @@ int virCommandRun(virCommandPtr cmd,
 
 int virCommandRunAsync(virCommandPtr cmd,
                        pid_t *pid) ATTRIBUTE_RETURN_CHECK;
-
-int virPidWait(pid_t pid,
-               int *exitstatus) ATTRIBUTE_RETURN_CHECK;
 
 int virCommandWait(virCommandPtr cmd,
                    int *exitstatus) ATTRIBUTE_RETURN_CHECK;
@@ -161,8 +158,6 @@ int virCommandHandshakeWait(virCommandPtr cmd)
 
 int virCommandHandshakeNotify(virCommandPtr cmd)
     ATTRIBUTE_RETURN_CHECK;
-
-void virPidAbort(pid_t pid);
 
 void virCommandAbort(virCommandPtr cmd);
 

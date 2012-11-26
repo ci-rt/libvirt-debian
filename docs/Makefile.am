@@ -71,9 +71,19 @@ gif = \
   architecture.gif \
   node.gif
 
-dot_html_in = $(notdir $(wildcard $(srcdir)/*.html.in)) todo.html.in hvsupport.html.in \
-      $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/internals/*.html.in))
+
+internals_html_in = \
+  $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/internals/*.html.in))
+internals_html = $(internals_html_in:%.html.in=%.html)
+
+dot_html_in = $(notdir $(wildcard $(srcdir)/*.html.in)) \
+  todo.html.in \
+  hvsupport.html.in
 dot_html = $(dot_html_in:%.html.in=%.html)
+
+dot_php_in = $(notdir $(wildcard $(srcdir)/*.php.in))
+dot_php_code_in = $(dot_php_in:%.php.in=%.php.code.in)
+dot_php = $(dot_php_in:%.php.in=%.php)
 
 patches = $(patsubst $(srcdir)/%,%,$(wildcard $(srcdir)/api_extension/*.patch))
 
@@ -107,21 +117,25 @@ EXTRA_DIST=					\
   $(dot_html) $(dot_html_in) $(gif) $(apihtml) $(apipng) \
   $(devhelphtml) $(devhelppng) $(devhelpcss) $(devhelpxsl) \
   $(xml) $(qemu_xml) $(fig) $(png) $(css) \
-  $(patches) \
+  $(patches) $(dot_php_in) $(dot_php_code_in) $(dot_php)\
+  $(internals_html_in) $(internals_html) \
   sitemap.html.in \
   todo.pl hvsupport.pl todo.cfg-example
 
 MAINTAINERCLEANFILES = \
   $(addprefix $(srcdir)/,$(dot_html)) \
   $(addprefix $(srcdir)/,$(apihtml)) \
-  $(addprefix $(srcdir)/,$(devhelphtml))
+  $(addprefix $(srcdir)/,$(devhelphtml)) \
+  $(addprefix $(srcdir)/,$(internals_html)) \
+  $(addprefix $(srcdir)/,$(dot_php))
 
 all-am: web
 
 api: $(srcdir)/libvirt-api.xml $(srcdir)/libvirt-refs.xml
 qemu_api: $(srcdir)/libvirt-qemu-api.xml $(srcdir)/libvirt-qemu-refs.xml
 
-web: $(dot_html) html/index.html devhelp/index.html
+web: $(dot_html) $(internals_html) html/index.html devhelp/index.html \
+  $(dot_php)
 
 todo.html.in: todo.pl
 	if [ -f  todo.cfg ]; then \
@@ -173,6 +187,19 @@ internals/%.html.tmp: internals/%.html.in subsite.xsl page.xsl sitemap.html.in
 	  || { rm $(srcdir)/$@ && exit 1; }; \
 	  else echo "missing XHTML1 DTD" ; fi ; fi
 
+%.php.tmp: %.php.in site.xsl page.xsl sitemap.html.in
+	@if [ -x $(XSLTPROC) ] ; then \
+	  echo "Generating $@"; \
+	  $(XSLTPROC) --stringparam pagename $(@:.tmp=) --nonet --html \
+	    $(top_srcdir)/docs/site.xsl $< > $@ \
+	    || { rm $@ && exit 1; }; fi
+
+%.php: %.php.tmp %.php.code.in
+	@if [ -x $(XSLTPROC) ] ; then \
+	  echo "Scripting $@"; \
+	    sed -e '/<a id="php_placeholder"><\/a>/r '"$(srcdir)/$@.code.in" \
+	    -e /php_placeholder/d < $@.tmp > $(srcdir)/$@ \
+	    || { rm $(srcdir)/$@ && exit 1; }; fi
 
 html/index.html: libvirt-api.xml newapi.xsl page.xsl sitemap.html.in
 	$(AM_V_GEN)if [ -x $(XSLTPROC) ] ; then \
@@ -202,11 +229,14 @@ python_generated_files = \
 
 APIBUILD=$(srcdir)/apibuild.py
 APIBUILD_STAMP=$(APIBUILD).stamp
+EXTRA_DIST += $(APIBUILD_STAMP)
 
 $(python_generated_files): $(APIBUILD_STAMP)
 
 $(APIBUILD_STAMP): $(srcdir)/apibuild.py \
-		$(srcdir)/../include/libvirt/*.h \
+		$(srcdir)/../include/libvirt/libvirt.h.in \
+		$(srcdir)/../include/libvirt/libvirt-qemu.h \
+		$(srcdir)/../include/libvirt/virterror.h \
 		$(srcdir)/../src/libvirt.c \
 		$(srcdir)/../src/libvirt-qemu.c \
 		$(srcdir)/../src/util/virterror.c
@@ -235,6 +265,9 @@ install-data-local:
 	  $(INSTALL) -m 0644 $(srcdir)/$$h $(DESTDIR)$(HTML_DIR)/html; done
 	for p in $(apipng); do \
 	  $(INSTALL) -m 0644 $(srcdir)/$$p $(DESTDIR)$(HTML_DIR)/html; done
+	$(mkinstalldirs) $(DESTDIR)$(HTML_DIR)/internals
+	for f in $(internals_html); do \
+	  $(INSTALL) -m 0644 $(srcdir)/$$f $(DESTDIR)$(HTML_DIR)/internals; done
 	$(mkinstalldirs) $(DESTDIR)$(DEVHELP_DIR)
 	for file in $(devhelphtml) $(devhelppng) $(devhelpcss); do \
 	    $(INSTALL) -m 0644 $(srcdir)/$${file} $(DESTDIR)$(DEVHELP_DIR) ; \

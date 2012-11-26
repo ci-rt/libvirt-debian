@@ -177,7 +177,8 @@
     exposed as first class objects, and connected to the hypervisor connection
     (and the node or cluster where it is available).</p>
         <p class="image">
-      <img alt="first class objects exposed by the API" src="libvirt-object-model.png" /></p>
+      <img alt="first class objects exposed by the API" src="libvirt-object-model.png" />
+    </p>
         <p> The figure above shows the five main objects exported by the API:</p>
         <ul><li>virConnectPtr: represent a connection to an hypervisor.</li><li>virDomainPtr: represent one domain either active or defined (i.e.
       existing as permanent config file and storage but not currently running
@@ -185,7 +186,7 @@
       allows to list all the IDs for the domains active on this hypervisor.</li><li>virNetworkPtr: represent one network either active or defined (i.e.
       existing as permanent config file and storage but not currently activated.
       The function <a href="html/libvirt-libvirt.html#virConnectListNetworks"><code>virConnectListNetworks</code></a>
-      allows to list all the virtualization networks actived on this node.</li><li>virStorageVolPtr: represent one storage volume, usually this is used
+      allows to list all the virtualization networks activated on this node.</li><li>virStorageVolPtr: represent one storage volume, usually this is used
       as a block device available to one of the domains. The function
       <a href="html/libvirt-libvirt.html#virStorageVolLookupByPath"><code>virStorageVolLookupByPath</code></a> allows to find
       the object based on its path on the node.</li><li>virStoragePoolPtr: represent a storage pool, i.e. a logical area
@@ -202,11 +203,11 @@
       thay can be activated dynamically in order to be used.</p>
         <p> Most kind of object can also be named in various ways:</p>
         <ul><li>by their <code>name</code>, an user friendly identifier but
-      whose unicity cannot be garanteed between two nodes.</li><li>by their <code>ID</code>, which is a runtime unique identifier
+      whose unicity cannot be guaranteed between two nodes.</li><li>by their <code>ID</code>, which is a runtime unique identifier
       provided by the hypervisor for one given activation of the object,
       but it becomes invalid once the resource is deactivated.</li><li>by their <code>UUID</code>, a 16 bytes unique identifier
       as defined in <a href="http://www.ietf.org/rfc/rfc4122.txt">RFC 4122</a>,
-      which is garanteed to be unique for long term usage and across a
+      which is guaranteed to be unique for long term usage and across a
       set of nodes.</li></ul>
         <h2>
           <a name="Functions" id="Functions">Functions and naming
@@ -244,13 +245,15 @@
         </h2>
         <p></p>
         <p class="image">
-      <img alt="The libvirt driver architecture" src="libvirt-driver-arch.png" /></p>
+      <img alt="The libvirt driver architecture" src="libvirt-driver-arch.png" />
+    </p>
         <h2>
           <a name="Remote" id="Remote">Daemon and remote access</a>
         </h2>
         <p></p>
         <p class="image">
-      <img alt="The libvirt daemon and remote architecture" src="libvirt-daemon-arch.png" /></p>
+      <img alt="The libvirt daemon and remote architecture" src="libvirt-daemon-arch.png" />
+    </p>
       </div>
     </div>
     <div id="footer">

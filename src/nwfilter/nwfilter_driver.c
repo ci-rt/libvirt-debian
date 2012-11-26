@@ -18,14 +18,17 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  *         Stefan Berger <stefanb@us.ibm.com>
  */
 
 #include <config.h>
+
+#include "virdbus.h"
+#include "logging.h"
 
 #include "internal.h"
 
@@ -39,13 +42,29 @@
 #include "nwfilter_gentech_driver.h"
 #include "configmake.h"
 
+#include "nwfilter_ipaddrmap.h"
+#include "nwfilter_dhcpsnoop.h"
 #include "nwfilter_learnipaddr.h"
 
 #define VIR_FROM_THIS VIR_FROM_NWFILTER
 
+#define DBUS_RULE_FWD_NAMEOWNERCHANGED \
+    "type='signal'" \
+    ",interface='"DBUS_INTERFACE_DBUS"'" \
+    ",member='NameOwnerChanged'" \
+    ",arg0='org.fedoraproject.FirewallD1'"
+
+#define DBUS_RULE_FWD_RELOADED \
+    "type='signal'" \
+    ",interface='org.fedoraproject.FirewallD1'" \
+    ",member='Reloaded'"
+
+
 static virNWFilterDriverStatePtr driverState;
 
 static int nwfilterDriverShutdown(void);
+
+static int nwfilterDriverReload(void);
 
 static void nwfilterDriverLock(virNWFilterDriverStatePtr driver)
 {
@@ -56,6 +75,89 @@ static void nwfilterDriverUnlock(virNWFilterDriverStatePtr driver)
     virMutexUnlock(&driver->lock);
 }
 
+#if HAVE_FIREWALLD
+
+static DBusHandlerResult
+nwfilterFirewalldDBusFilter(DBusConnection *connection ATTRIBUTE_UNUSED,
+                            DBusMessage *message,
+                            void *user_data ATTRIBUTE_UNUSED)
+{
+    if (dbus_message_is_signal(message, DBUS_INTERFACE_DBUS,
+                               "NameOwnerChanged") ||
+        dbus_message_is_signal(message, "org.fedoraproject.FirewallD1",
+                               "Reloaded")) {
+        VIR_DEBUG("Reload in nwfilter_driver because of firewalld.");
+        nwfilterDriverReload();
+    }
+
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+static void
+nwfilterDriverRemoveDBusMatches(void)
+{
+    DBusConnection *sysbus;
+
+    sysbus = virDBusGetSystemBus();
+    if (sysbus) {
+        dbus_bus_remove_match(sysbus,
+                              DBUS_RULE_FWD_NAMEOWNERCHANGED,
+                              NULL);
+        dbus_bus_remove_match(sysbus,
+                              DBUS_RULE_FWD_RELOADED,
+                              NULL);
+        dbus_connection_remove_filter(sysbus, nwfilterFirewalldDBusFilter, NULL);
+    }
+}
+
+/**
+ * virNWFilterDriverInstallDBusMatches
+ *
+ * Startup DBus matches for monitoring the state of firewalld
+ */
+static int
+nwfilterDriverInstallDBusMatches(DBusConnection *sysbus)
+{
+    int ret = 0;
+
+    if (!sysbus) {
+        ret = -1;
+    } else {
+        /* add matches for
+         * NameOwnerChanged on org.freedesktop.DBus for firewalld start/stop
+         * Reloaded on org.fedoraproject.FirewallD1 for firewalld reload
+         */
+        dbus_bus_add_match(sysbus,
+                           DBUS_RULE_FWD_NAMEOWNERCHANGED,
+                           NULL);
+        dbus_bus_add_match(sysbus,
+                           DBUS_RULE_FWD_RELOADED,
+                           NULL);
+        if (!dbus_connection_add_filter(sysbus, nwfilterFirewalldDBusFilter,
+                                        NULL, NULL)) {
+            VIR_WARN(("Adding a filter to the DBus connection failed"));
+            nwfilterDriverRemoveDBusMatches();
+            ret =  -1;
+        }
+    }
+
+    return ret;
+}
+
+#else /* HAVE_FIREWALLD */
+
+static void
+nwfilterDriverRemoveDBusMatches(void)
+{
+}
+
+static int
+nwfilterDriverInstallDBusMatches(DBusConnection *sysbus ATTRIBUTE_UNUSED)
+{
+    return 0;
+}
+
+#endif /* HAVE_FIREWALLD */
 
 /**
  * virNWFilterStartup:
@@ -63,40 +165,63 @@ static void nwfilterDriverUnlock(virNWFilterDriverStatePtr driver)
  * Initialization function for the QEmu daemon
  */
 static int
-nwfilterDriverStartup(int privileged) {
+nwfilterDriverStartup(int privileged)
+{
     char *base = NULL;
+    DBusConnection *sysbus = NULL;
 
-    if (virNWFilterLearnInit() < 0)
-        return -1;
-
-    virNWFilterTechDriversInit(privileged);
-
-    if (virNWFilterConfLayerInit(virNWFilterDomainFWUpdateCB) < 0)
-        goto conf_init_err;
+#if HAVE_DBUS
+    sysbus = virDBusGetSystemBus();
+#endif /* HAVE_DBUS */
 
     if (VIR_ALLOC(driverState) < 0)
         goto alloc_err_exit;
 
     if (virMutexInit(&driverState->lock) < 0)
-        goto alloc_err_exit;
+        goto err_free_driverstate;
+
+    driverState->watchingFirewallD = (sysbus != NULL);
+
+    if (!privileged)
+        return 0;
+
+    if (virNWFilterIPAddrMapInit() < 0)
+        goto err_free_driverstate;
+    if (virNWFilterLearnInit() < 0)
+        goto err_exit_ipaddrmapshutdown;
+    if (virNWFilterDHCPSnoopInit() < 0)
+        goto err_exit_learnshutdown;
+
+    virNWFilterTechDriversInit(privileged);
+
+    if (virNWFilterConfLayerInit(virNWFilterDomainFWUpdateCB) < 0)
+        goto err_techdrivers_shutdown;
 
     nwfilterDriverLock(driverState);
+
+    /*
+     * startup the DBus late so we don't get a reload signal while
+     * initializing
+     */
+    if (nwfilterDriverInstallDBusMatches(sysbus) < 0) {
+        VIR_ERROR(_("DBus matches could not be installed. Disabling nwfilter "
+                  "driver"));
+        /*
+         * unfortunately this is fatal since virNWFilterTechDriversInit
+         * may have caused the ebiptables driver to use the firewall tool
+         * but now that the watches don't work, we just disable the nwfilter
+         * driver
+         */
+        goto error;
+    }
 
     if (privileged) {
         if ((base = strdup (SYSCONFDIR "/libvirt")) == NULL)
             goto out_of_memory;
     } else {
-        uid_t uid = geteuid();
-        char *userdir = virGetUserDirectory(uid);
-
-        if (!userdir)
+        base = virGetUserConfigDirectory();
+        if (!base)
             goto error;
-
-        if (virAsprintf(&base, "%s/.libvirt", userdir) == -1) {
-            VIR_FREE(userdir);
-            goto out_of_memory;
-        }
-        VIR_FREE(userdir);
     }
 
     if (virAsprintf(&driverState->configDir,
@@ -123,11 +248,20 @@ error:
     nwfilterDriverShutdown();
 
 alloc_err_exit:
-    virNWFilterConfLayerShutdown();
+    return -1;
 
-conf_init_err:
+    nwfilterDriverUnlock(driverState);
+
+err_techdrivers_shutdown:
     virNWFilterTechDriversShutdown();
+    virNWFilterDHCPSnoopShutdown();
+err_exit_learnshutdown:
     virNWFilterLearnShutdown();
+err_exit_ipaddrmapshutdown:
+    virNWFilterIPAddrMapShutdown();
+
+err_free_driverstate:
+    VIR_FREE(driverState);
 
     return -1;
 }
@@ -149,6 +283,7 @@ nwfilterDriverReload(void) {
     conn = virConnectOpen("qemu:///system");
 
     if (conn) {
+        virNWFilterDHCPSnoopEnd(NULL);
         /* shut down all threads -- they will be restarted if necessary */
         virNWFilterLearnThreadsTerminate(true);
 
@@ -186,6 +321,29 @@ nwfilterDriverActive(void) {
 
     nwfilterDriverLock(driverState);
     ret = driverState->nwfilters.count ? 1 : 0;
+    ret |= driverState->watchingFirewallD;
+    nwfilterDriverUnlock(driverState);
+
+    return ret;
+}
+
+/**
+ * virNWFilterIsWatchingFirewallD:
+ *
+ * Checks if the nwfilter has the DBus watches for FirewallD installed.
+ *
+ * Returns true if it is watching firewalld, false otherwise
+ */
+bool
+virNWFilterDriverIsWatchingFirewallD(void)
+{
+    bool ret;
+
+    if (!driverState)
+        return false;
+
+    nwfilterDriverLock(driverState);
+    ret = driverState->watchingFirewallD;
     nwfilterDriverUnlock(driverState);
 
     return ret;
@@ -203,9 +361,13 @@ nwfilterDriverShutdown(void) {
 
     virNWFilterConfLayerShutdown();
     virNWFilterTechDriversShutdown();
+    virNWFilterDHCPSnoopShutdown();
     virNWFilterLearnShutdown();
+    virNWFilterIPAddrMapShutdown();
 
     nwfilterDriverLock(driverState);
+
+    nwfilterDriverRemoveDBusMatches();
 
     /* free inactive nwfilters */
     virNWFilterObjListFree(&driverState->nwfilters);
@@ -231,8 +393,8 @@ nwfilterLookupByUUID(virConnectPtr conn,
     nwfilterDriverUnlock(driver);
 
     if (!nwfilter) {
-        virNWFilterReportError(VIR_ERR_NO_NWFILTER,
-                               "%s", _("no nwfilter with matching uuid"));
+        virReportError(VIR_ERR_NO_NWFILTER,
+                       "%s", _("no nwfilter with matching uuid"));
         goto cleanup;
     }
 
@@ -257,8 +419,8 @@ nwfilterLookupByName(virConnectPtr conn,
     nwfilterDriverUnlock(driver);
 
     if (!nwfilter) {
-        virNWFilterReportError(VIR_ERR_NO_NWFILTER,
-                               _("no nwfilter with matching name '%s'"), name);
+        virReportError(VIR_ERR_NO_NWFILTER,
+                       _("no nwfilter with matching name '%s'"), name);
         goto cleanup;
     }
 
@@ -330,6 +492,61 @@ nwfilterListNWFilters(virConnectPtr conn,
 }
 
 
+static int
+nwfilterListAllNWFilters(virConnectPtr conn,
+                         virNWFilterPtr **filters,
+                         unsigned int flags) {
+    virNWFilterDriverStatePtr driver = conn->nwfilterPrivateData;
+    virNWFilterPtr *tmp_filters = NULL;
+    int nfilters = 0;
+    virNWFilterPtr filter = NULL;
+    virNWFilterObjPtr obj = NULL;
+    int i;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    nwfilterDriverLock(driver);
+
+    if (!filters) {
+        ret = driver->nwfilters.count;
+        goto cleanup;
+    }
+
+    if (VIR_ALLOC_N(tmp_filters, driver->nwfilters.count + 1) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    for (i = 0 ; i < driver->nwfilters.count; i++) {
+        obj = driver->nwfilters.objs[i];
+        virNWFilterObjLock(obj);
+        if (!(filter = virGetNWFilter(conn, obj->def->name,
+                                      obj->def->uuid))) {
+            virNWFilterObjUnlock(obj);
+            goto cleanup;
+        }
+        virNWFilterObjUnlock(obj);
+        tmp_filters[nfilters++] = filter;
+    }
+
+    *filters = tmp_filters;
+    tmp_filters = NULL;
+    ret = nfilters;
+
+ cleanup:
+    nwfilterDriverUnlock(driver);
+    if (tmp_filters) {
+        for (i = 0; i < nfilters; i ++) {
+            if (tmp_filters[i])
+                virNWFilterFree(tmp_filters[i]);
+        }
+    }
+    VIR_FREE(tmp_filters);
+
+    return ret;
+}
+
 static virNWFilterPtr
 nwfilterDefine(virConnectPtr conn,
                const char *xml)
@@ -381,15 +598,15 @@ nwfilterUndefine(virNWFilterPtr obj) {
 
     nwfilter = virNWFilterObjFindByUUID(&driver->nwfilters, obj->uuid);
     if (!nwfilter) {
-        virNWFilterReportError(VIR_ERR_NO_NWFILTER,
-                               "%s", _("no nwfilter with matching uuid"));
+        virReportError(VIR_ERR_NO_NWFILTER,
+                       "%s", _("no nwfilter with matching uuid"));
         goto cleanup;
     }
 
     if (virNWFilterTestUnassignDef(obj->conn, nwfilter) < 0) {
-        virNWFilterReportError(VIR_ERR_OPERATION_INVALID,
-                               "%s",
-                               _("nwfilter is in use"));
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       "%s",
+                       _("nwfilter is in use"));
         goto cleanup;
     }
 
@@ -429,8 +646,8 @@ nwfilterGetXMLDesc(virNWFilterPtr obj,
     nwfilterDriverUnlock(driver);
 
     if (!nwfilter) {
-        virNWFilterReportError(VIR_ERR_NO_NWFILTER,
-                               "%s", _("no nwfilter with matching uuid"));
+        virReportError(VIR_ERR_NO_NWFILTER,
+                       "%s", _("no nwfilter with matching uuid"));
         goto cleanup;
     }
 
@@ -465,6 +682,7 @@ static virNWFilterDriver nwfilterDriver = {
     .close = nwfilterClose, /* 0.8.0 */
     .numOfNWFilters = nwfilterNumNWFilters, /* 0.8.0 */
     .listNWFilters = nwfilterListNWFilters, /* 0.8.0 */
+    .listAllNWFilters = nwfilterListAllNWFilters, /* 0.10.2 */
     .nwfilterLookupByName = nwfilterLookupByName, /* 0.8.0 */
     .nwfilterLookupByUUID = nwfilterLookupByUUID, /* 0.8.0 */
     .defineXML = nwfilterDefine, /* 0.8.0 */

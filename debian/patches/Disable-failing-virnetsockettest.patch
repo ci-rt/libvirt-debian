@@ -8,10 +8,10 @@ until we debugged the interaction with pbuilder
  1 file changed, 2 insertions(+)
 
 diff --git a/tests/virnetsockettest.c b/tests/virnetsockettest.c
-index 204113e..f025f52 100644
+index e31f19a..c0fab45 100644
 --- a/tests/virnetsockettest.c
 +++ b/tests/virnetsockettest.c
-@@ -491,10 +491,12 @@ mymain(void)
+@@ -496,10 +496,12 @@ mymain(void)
      if (virtTestRun("Socket UNIX Addrs", 1, testSocketUNIXAddrs, NULL) < 0)
          ret = -1;
  

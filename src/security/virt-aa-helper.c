@@ -2,10 +2,22 @@
 /*
  * virt-aa-helper: wrapper program used by AppArmor security driver.
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2009-2011 Canonical Ltd.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author:
  *   Jamie Strandboge <jamie@canonical.com>
@@ -473,7 +485,7 @@ valid_name(const char *name)
      * used to subvert the profile */
     const char *bad = " /[]*";
 
-    if (strlen(name) == 0 || strlen(name) > PATH_MAX - 1)
+    if (strlen(name) == 0)
         return -1;
 
     if (strcspn(name, bad) != strlen(name))
@@ -544,7 +556,7 @@ valid_path(const char *path, const bool readonly)
         "/sys/devices/pci"	/* for hostdev pci devices */
     };
 
-    if (path == NULL || strlen(path) > PATH_MAX - 1) {
+    if (path == NULL) {
         vah_error(NULL, 0, _("bad pathname"));
         return -1;
     }
@@ -762,14 +774,14 @@ vah_add_file(virBufferPtr buf, const char *path, const char *perms)
      */
     if (STRNEQLEN(path, "/", 1)) {
         vah_warning(path);
-        vah_warning(_("  skipped non-absolute path"));
+        vah_warning(_("skipped non-absolute path"));
         return 0;
     }
 
     if (virFileExists(path)) {
         if ((tmp = realpath(path, NULL)) == NULL) {
             vah_error(NULL, 0, path);
-            vah_error(NULL, 0, _("  could not find realpath for disk"));
+            vah_error(NULL, 0, _("could not find realpath for disk"));
             return rc;
         }
     } else
@@ -783,7 +795,7 @@ vah_add_file(virBufferPtr buf, const char *path, const char *perms)
     if (rc != 0) {
         if (rc > 0) {
             vah_error(NULL, 0, path);
-            vah_error(NULL, 0, _("  skipped restricted file"));
+            vah_error(NULL, 0, _("skipped restricted file"));
         }
         goto clean;
     }
@@ -907,20 +919,24 @@ get_files(vahControl * ctl)
     }
 
     for (i = 0; i < ctl->def->ndisks; i++) {
+        virDomainDiskDefPtr disk = ctl->def->disks[i];
+
+        /* XXX - if we knew the qemu user:group here we could send it in
+         *        so that the open could be re-tried as that user:group.
+         */
+        if (!disk->backingChain) {
+            bool probe = ctl->allowDiskFormatProbing;
+            disk->backingChain = virStorageFileGetMetadata(disk->src,
+                                                           disk->format,
+                                                           -1, -1, probe);
+        }
+
         /* XXX passing ignoreOpenFailure = true to get back to the behavior
          * from before using virDomainDiskDefForeachPath. actually we should
          * be passing ignoreOpenFailure = false and handle open errors more
          * careful than just ignoring them.
-         * XXX2 - if we knew the qemu user:group here we could send it in
-         *        so that the open could be re-tried as that user:group.
          */
-        int ret = virDomainDiskDefForeachPath(ctl->def->disks[i],
-                                              ctl->allowDiskFormatProbing,
-                                              true,
-                                              -1, -1, /* current uid:gid */
-                                              add_file_path,
-                                              &buf);
-        if (ret != 0)
+        if (virDomainDiskDefForeachPath(disk, true, add_file_path, &buf) < 0)
             goto clean;
     }
 
@@ -1186,9 +1202,6 @@ main(int argc, char **argv)
         progname++;
 
     memset(ctl, 0, sizeof(vahControl));
-
-    if (virRandomInitialize(time(NULL) ^ getpid()) < 0)
-        vah_error(ctl, 1, _("could not initialize random generator"));
 
     if (vahParseArgv(ctl, argc, argv) != 0)
         vah_error(ctl, 1, _("could not parse arguments"));

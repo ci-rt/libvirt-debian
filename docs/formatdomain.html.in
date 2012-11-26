@@ -105,7 +105,7 @@
     &lt;boot dev='cdrom'/&gt;
     &lt;bootmenu enable='yes'/&gt;
     &lt;smbios mode='sysinfo'/&gt;
-    &lt;bios useserial='yes'/&gt;
+    &lt;bios useserial='yes' rebootTimeout='0'/&gt;
   &lt;/os&gt;
   ...</pre>
 
@@ -175,8 +175,13 @@
         Serial Graphics Adapter which allows users to see BIOS messages
         on a serial port. Therefore, one needs to have
         <a href="#elementCharSerial">serial port</a> defined.
-        <span class="since">Since 0.9.4</span>
-      </dd>
+        <span class="since">Since 0.9.4</span>.
+        <span class="since">Since 0.10.2 (QEMU only)</span> there is
+        another attribute, <code>rebootTimeout</code> that controls
+        whether and after how long the guest should start booting
+        again in case the boot fails (according to BIOS). The value is
+        in milliseconds with maximum of <code>65535</code> and special
+        value <code>-1</code> disables the reboot.
     </dl>
 
     <h4><a name="elementsOSBootloader">Host bootloader</a></h4>
@@ -352,8 +357,18 @@
         the maximum supported by the hypervisor.  <span class="since">Since
         0.4.4</span>, this element can contain an optional
         <code>cpuset</code> attribute, which is a comma-separated
-        list of physical CPU numbers that virtual CPUs can be pinned
-        to.  Each element in that list is either a single CPU number,
+        list of physical CPU numbers that domain process and virtual CPUs
+        can be pinned to by default. (NB: The pinning policy of domain
+        process and virtual CPUs can be specified separately by
+        <code>cputune</code>. If attribute <code>emulatorpin</code>
+        of <code>cputune</code> is specified, <code>cpuset</code>
+        specified by <code>vcpu</code> here will be ingored; Similarly,
+        For virtual CPUs which has <code>vcpupin</code> specified,
+        <code>cpuset</code> specified by <code>cpuset</code> here
+        will be ignored; For virtual CPUs which doesn't have
+        <code>vcpupin</code> specified, it will be pinned to the physical
+        CPUs specified by <code>cpuset</code> here).
+        Each element in that list is either a single CPU number,
         a range of CPU numbers, or a caret followed by a CPU number to
         be excluded from a previous range.  <span class="since">Since
         0.8.5</span>, the optional attribute <code>current</code> can
@@ -384,9 +399,12 @@
     &lt;vcpupin vcpu="1" cpuset="0,1"/&gt;
     &lt;vcpupin vcpu="2" cpuset="2,3"/&gt;
     &lt;vcpupin vcpu="3" cpuset="0,4"/&gt;
+    &lt;emulatorpin cpuset="1-3"/&gt;
     &lt;shares&gt;2048&lt;/shares&gt;
     &lt;period&gt;1000000&lt;/period&gt;
     &lt;quota&gt;-1&lt;/quota&gt;
+    &lt;emulator_period&gt;1000000&lt;/emulator_period&gt;
+    &lt;emulator_quota&gt;-1&lt;/emulator_quota&gt;
   &lt;/cputune&gt;
   ...
 &lt;/domain&gt;
@@ -401,14 +419,27 @@
       </dd>
       <dt><code>vcpupin</code></dt>
       <dd>
-        The optional <code>vcpupin</code> element specifies which of host
-        physical CPUS the domain VCPU will be pinned to. If this is omitted,
-        each VCPU is pinned to all the physical CPUS by default. It contains two
-        required attributes, the attribute <code>vcpu</code> specifies vcpu id,
-        and the attribute <code>cpuset</code> is same as
-        attribute <code>cpuset</code>
-        of element <code>vcpu</code>. (NB: Only qemu driver support)
+        The optional <code>vcpupin</code> element specifies which of host's
+        physical CPUs the domain VCPU will be pinned to. If this is omitted,
+        and attribute <code>cpuset</code> of element <code>vcpu</code> is
+        not specified, the vCPU is pinned to all the physical CPUs by default.
+        It contains two required attributes, the attribute <code>vcpu</code>
+        specifies vcpu id, and the attribute <code>cpuset</code> is same as
+        attribute <code>cpuset</code> of element <code>vcpu</code>.
+        (NB: Only qemu driver support)
         <span class="since">Since 0.9.0</span>
+       </dd>
+       <dt><code>emulatorpin</code></dt>
+       <dd>
+         The optional <code>emulatorpin</code> element specifies which of host
+         physical CPUs the "emulator", a subset of a domain not including vcpu,
+         will be pinned to. If this is omitted, and attribute
+         <code>cpuset</code> of element <code>vcpu</code> is not specified,
+         "emulator" is pinned to all the physical CPUs by default. It contains
+         one required attribute <code>cpuset</code> specifying which physical
+         CPUs to pin to. NB, <code>emulatorpin</code> is not allowed if
+         attribute <code>placement</code> of element <code>vcpu</code> is
+         "auto".
        </dd>
       <dt><code>shares</code></dt>
       <dd>
@@ -426,8 +457,9 @@
         interval(unit: microseconds). Within <code>period</code>, each vcpu of
         the domain will not be allowed to consume more than <code>quota</code>
         worth of runtime. The value should be in range [1000, 1000000]. A period
-        with value 0 means no value. (NB: Only qemu driver support)
-        <span class="since">Since 0.9.4</span>
+        with value 0 means no value.
+        <span class="since">Only QEMU driver support since 0.9.4, LXC since
+        0.9.10</span>
       </dd>
       <dt><code>quota</code></dt>
       <dd>
@@ -437,9 +469,32 @@
         means that it is not bandwidth controlled. The value should be in range
         [1000, 18446744073709551] or less than 0. A quota with value 0 means no
         value. You can use this feature to ensure that all vcpus run at the same
-        speed. (NB: Only qemu driver support)
-        <span class="since">Since 0.9.4</span>
+        speed.
+        <span class="since">Only QEMU driver support since 0.9.4, LXC since
+        0.9.10</span>
       </dd>
+
+      <dt><code>emulator_period</code></dt>
+      <dd>
+        The optional <code>emulator_period</code> element specifies the enforcement
+        interval(unit: microseconds). Within <code>emulator_period</code>, emulator
+        threads(those excluding vcpus) of the domain will not be allowed to consume
+        more than <code>emulator_quota</code> worth of runtime. The value should be
+        in range [1000, 1000000]. A period with value 0 means no value.
+        <span class="since">Only QEMU driver support since 0.10.0</span>
+      </dd>
+      <dt><code>emulator_quota</code></dt>
+      <dd>
+        The optional <code>emulator_quota</code> element specifies the maximum
+        allowed bandwidth(unit: microseconds) for domain's emulator threads(those
+        excluding vcpus). A domain with <code>emulator_quota</code> as any negative
+        value indicates that the domain has infinite bandwidth for emulator threads
+        (those excluding vcpus), which means that it is not bandwidth controlled.
+        The value should be in range [1000, 18446744073709551] or less than 0. A
+        quota with value 0 means no value.
+        <span class="since">Only QEMU driver support since 0.10.0</span>
+      </dd>
+
     </dl>
 
 
@@ -458,7 +513,7 @@
       <dt><code>memory</code></dt>
       <dd>The maximum allocation of memory for the guest at boot time.
         The units for this value are determined by the optional
-        atttribute <code>unit</code>, which defaults to "KiB"
+        attribute <code>unit</code>, which defaults to "KiB"
         (kibibytes, 2<sup>10</sup> or blocks of 1024 bytes).  Valid
         units are "b" or "bytes" for bytes, "KB" for kilobytes
         (10<sup>3</sup> or 1,000 bytes), "k" or "KiB" for kibibytes
@@ -472,9 +527,15 @@
         However, the value will be rounded up to the nearest kibibyte
         by libvirt, and may be further rounded to the granularity
         supported by the hypervisor.  Some hypervisors also enforce a
-        minimum, such as
-        4000KiB. <span class='since'><code>unit</code> since
-        0.9.11</span></dd>
+        minimum, such as 4000KiB.
+
+        In the case of crash, optional attribute <code>dumpCore</code>
+        can be used to control whether the guest memory should be
+        included in the generated coredump or not (values "on", "off").
+
+        <span class='since'><code>unit</code> since 0.9.11</span>,
+        <span class='since'><code>dumpCore</code> since 0.10.2
+        (QEMU only)</span></dd>
       <dt><code>currentMemory</code></dt>
       <dd>The actual allocation of memory for the guest. This value can
         be less than the maximum allocation, to allow for ballooning
@@ -779,7 +840,11 @@
         in which case an attempt to start a domain requesting an unsupported
         CPU model will fail. Supported values for <code>fallback</code>
         attribute are: <code>allow</code> (this is the default), and
-        <code>forbid</code>.</dd>
+        <code>forbid</code>. The optional <code>vendor_id</code> attribute
+        (<span class="since">Since 0.10.0</span>)  can be used to set the
+        vendor id seen by the guest. It must be exactly 12 characters long.
+        If not set the vendor id of the host is used. Typical possible
+        values are "AuthenticAMD" and "GenuineIntel".</dd>
 
       <dt><code>vendor</code></dt>
       <dd><span class="since">Since 0.8.3</span> the content of the
@@ -854,15 +919,11 @@
       This guest NUMA specification is currently available only for QEMU/KVM.
     </p>
 
-    <h3><a name="elementsLifecycle">Lifecycle control</a></h3>
+    <h3><a name="elementsEvents">Events configuration</a></h3>
 
     <p>
       It is sometimes necessary to override the default actions taken
-      when a guest OS triggers a lifecycle operation. The following
-      collections of elements allow the actions to be specified. A
-      common use case is to force a reboot to be treated as a poweroff
-      when doing the initial OS installation. This allows the VM to be
-      re-configured for the first post-install bootup.
+      on various events.
     </p>
 
 <pre>
@@ -870,8 +931,16 @@
   &lt;on_poweroff&gt;destroy&lt;/on_poweroff&gt;
   &lt;on_reboot&gt;restart&lt;/on_reboot&gt;
   &lt;on_crash&gt;restart&lt;/on_crash&gt;
+  &lt;on_lockfailure&gt;poweroff&lt;/on_lockfailure&gt;
   ...</pre>
 
+    <p>
+      The following collections of elements allow the actions to be
+      specified when a guest OS triggers a lifecycle operation. A
+      common use case is to force a reboot to be treated as a poweroff
+      when doing the initial OS installation. This allows the VM to be
+      re-configured for the first post-install bootup.
+    </p>
     <dl>
       <dt><code>on_poweroff</code></dt>
       <dd>The content of this element specifies the action to take when
@@ -918,6 +987,51 @@
         domain will be restarted with the same configuration</dd>
     </dl>
 
+    <p>
+      The <code>on_lockfailure</code> element (<span class="since">since
+      1.0.0</span>) may be used to configure what action should be
+      taken when a lock manager loses resource locks. The following
+      actions are recognized by libvirt, although not all of them need
+      to be supported by individual lock managers. When no action is
+      specified, each lock manager will take its default action.
+    </p>
+    <dl>
+      <dt><code>poweroff</code></dt>
+      <dd>The domain will be forcefully powered off.</dd>
+      <dt><code>restart</code></dt>
+      <dd>The domain will be powered off and started up again to
+        reacquire its locks.</dd>
+      <dt><code>pause</code></dt>
+      <dd>The domain will be paused so that it can be manually resumed
+        when lock issues are solved.</dd>
+      <dt><code>ignore</code></dt>
+      <dd>Keep the domain running as if nothing happened.</dd>
+    </dl>
+
+    <h3><a name="elementsPowerManagement">Power Management</a></h3>
+
+    <p>
+      <span class="since">Since 0.10.2</span> it is possible to
+      forcibly enable or disable BIOS advertisements to the guest
+      OS. (NB: Only qemu driver support)
+    </p>
+
+<pre>
+  ...
+  &lt;pm&gt;
+    &lt;suspend-to-disk enabled='no'/&gt;
+    &lt;suspend-to-mem enabled='yes'/&gt;
+  &lt;/pm&gt;
+  ...</pre>
+
+    <dl>
+      <dt><code>pm</code></dt>
+      <dd>These elements enable ('yes') or disable ('no') BIOS support
+        for S3 (suspend-to-disk) and S4 (suspend-to-mem) ACPI sleep
+        states. If nothing is specified, then the hypervisor will be
+        left with its default value.</dd>
+    </dl>
+
     <h3><a name="elementsFeatures">Hypervisor features</a></h3>
 
     <p>
@@ -933,6 +1047,10 @@
     &lt;apic/&gt;
     &lt;hap/&gt;
     &lt;privnet/&gt;
+    &lt;hyperv&gt;
+      &lt;relaxed state='on'&gt;
+    &lt;/hyperv&gt;
+
   &lt;/features&gt;
   ...</pre>
 
@@ -952,6 +1070,13 @@
       <dd>ACPI is useful for power management, for example, with
         KVM guests it is required for graceful shutdown to work.
       </dd>
+      <dt><code>apic</code></dt>
+      <dd>APIC allows the use of programmable IRQ
+      management. <span class="since">Since 0.10.2 (QEMU only)</span> there is
+      an optional attribute <code>eoi</code> with values <code>on</code>
+      and <code>off</code> which toggles the availability of EOI (End of
+      Interrupt) for the guest.
+      </dd>
       <dt><code>hap</code></dt>
       <dd>Enable use of Hardware Assisted Paging if available in
         the hardware.
@@ -966,6 +1091,23 @@
         This feature is only relevant for container based
         virtualization drivers, such as LXC.
       </dd>
+      <dt><code>hyperv</code></dt>
+      <dd>Enable various features improving behavior of guests
+        running Microsoft Windows.
+      <table class="top_table">
+        <tr>
+          <th>Feature</th>
+          <th>Description</th>
+          <th>Value</th>
+        </tr>
+        <tr>
+          <td>relaxed</td>
+          <td>Relax contstraints on timers</td>
+          <td> on, off</td>
+        </tr>
+      </table>
+      <span class="since">Since 1.0.0 (QEMU only)</span>
+      </dd>
     </dl>
 
     <h3><a name="elementsTime">Time keeping</a></h3>
@@ -979,11 +1121,11 @@
 
 <pre>
   ...
-  &lt;clock offset="localtime"&gt;
-    &lt;timer name="rtc" tickpolicy="catchup" track="guest"&gt;
-      &lt;catchup threshold=123 slew=120 limit=10000/&gt;
+  &lt;clock offset='localtime'&gt;
+    &lt;timer name='rtc' tickpolicy='catchup' track='guest'&gt;
+      &lt;catchup threshold='123' slew='120' limit='10000'/&gt;
     &lt;/timer&gt;
-    &lt;timer name="pit" tickpolicy="delay"/&gt;
+    &lt;timer name='pit' tickpolicy='delay'/&gt;
   &lt;/clock&gt;
   ...</pre>
 
@@ -1218,6 +1360,13 @@
       &lt;target dev='sda' bus='scsi'/&gt;
       &lt;address type='drive' controller='0' bus='0' target='3' unit='0'/&gt;
     &lt;/disk&gt;
+    &lt;disk type='block' device='disk'&gt;
+      &lt;driver name='qemu' type='raw'/&gt;
+      &lt;source dev='/dev/sda'/&gt;
+      &lt;geometry cyls='16383' heads='16' secs='63' trans='lba'/&gt;
+      &lt;blockio logical_block_size='512' physical_block_size='4096'/&gt;
+      &lt;target dev='hda' bus='ide'/&gt;
+    &lt;/disk&gt;
   &lt;/devices&gt;
   ...</pre>
 
@@ -1269,8 +1418,8 @@
         path to the file holding the disk. If the disk
         <code>type</code> is "block", then the <code>dev</code>
         attribute specifies the path to the host device to serve as
-        the disk. With both "file" and "block", an optional
-        sub-element <code>seclabel</code>, <a href="#seclabel">described
+        the disk. With both "file" and "block", one or more optional
+        sub-elements <code>seclabel</code>, <a href="#seclabel">described
         below</a> (and <span class="since">since 0.9.9</span>), can be
         used to override the domain security labeling policy for just
         that source file.  If the disk <code>type</code> is "dir", then the
@@ -1446,7 +1595,7 @@
             The optional <code>event_idx</code> attribute controls
             some aspects of device event processing. The value can be
             either 'on' or 'off' - if it is on, it will reduce the
-            number of interupts and exits for the guest. The default
+            number of interrupts and exits for the guest. The default
             is determined by QEMU; usually if the feature is
             supported, default is on. In case there is a situation
             where this behavior is suboptimal, this attribute provides
@@ -1457,7 +1606,7 @@
           </li>
           <li>
             The optional <code>copy_on_read</code> attribute controls
-            wether to copy read backing file into the image file. The
+            whether to copy read backing file into the image file. The
             value can be either "on" or "off".
             Copy-on-read avoids accessing the same backing file sectors
             repeatedly and is useful when the backing file is over a slow
@@ -1501,6 +1650,12 @@
           For example, it may look
           like <code>&lt;serial&gt;WD-WMAP9A966149&lt;/serial&gt;</code>.
           <span class="since">Since 0.7.1</span>
+      </dd>
+      <dt><code>wwn</code></dt>
+      <dd>If present, this element specifies the WWN (World Wide Name)
+        of a virtual hard disk or CD-ROM drive. It must be composed
+        of 16 hexadecimal digits.
+        <span class='since'>Since 0.10.1</span>
       </dd>
       <dt><code>host</code></dt>
       <dd>The <code>host</code> element has two attributes "name" and "port",
@@ -1565,6 +1720,42 @@
         associated with the Ceph secret
         object.  <span class="since">libvirt 0.9.7</span>
       </dd>
+      <dt><code>geometry</code></dt>
+      <dd>The optional <code>geometry</code> element provides the
+        ability to override geometry settings. This mostly useful for
+        S390 DASD-disks or older DOS-disks.  <span class="since">0.10.0</span>
+        <dl>
+          <dt><code>cyls</code></dt>
+          <dd>The <code>cyls</code> attribute is the
+            number of cylinders. </dd>
+          <dt><code>heads</code></dt>
+          <dd>The <code>heads</code> attribute is the
+            number of heads. </dd>
+          <dt><code>secs</code></dt>
+          <dd>The <code>secs</code> attribute is the
+            number of sectors per track. </dd>
+          <dt><code>trans</code></dt>
+          <dd>The optional <code>trans</code> attribute is the
+            BIOS-Translation-Modus (none, lba or auto)</dd>
+        </dl>
+      </dd>
+      <dt><code>blockio</code></dt>
+      <dd>If present, the <code>blockio</code> element allows
+        to override any of the block device properties listed below.
+        <span class="since">Since 0.10.2 (QEMU and KVM)</span>
+        <dl>
+          <dt><code>logical_block_size</code></dt>
+          <dd>The logical block size the disk will report to the guest
+            OS. For Linux this would be the value returned by the
+            BLKSSZGET ioctl and describes the smallest units for disk
+            I/O.
+          <dt><code>physical_block_size</code></dt>
+          <dd>The physical block size the disk will report to the guest
+            OS. For Linux this would be the value returned by the
+            BLKPBSZGET ioctl and describes the disk's hardware sector
+            size which can be relevant for the alignment of disk data.
+        </dl>
+      </dd>
     </dl>
 
     <h4><a name="elementsFilesystems">Filesystems</a></h4>
@@ -1622,7 +1813,9 @@
         </dd>
         <dt><code>type='file'</code></dt>
         <dd>
-        Currently unused.
+        A host file will be treated as an image and mounted in
+        the guest. The filesystem format will be autodetected.
+        Only used by LXC driver.
         </dd>
         <dt><code>type='block'</code></dt>
         <dd>
@@ -1630,6 +1823,18 @@
         format will be autodetected. Only used by LXC driver
         <span class="since">(since 0.9.5)</span>.
         </dd>
+        <dt><code>type='ram'</code></dt>
+        <dd>
+          An in-memory filesystem, using memory from the host OS.
+          The source element has a single attribute <code>usage</code>
+          which gives the memory usage limit in kibibytes. Only used
+          by LXC driver.
+          <span class="since"> (since 0.9.13)</span></dd>
+        <dt><code>type='bind'</code></dt>
+        <dd>
+          A directory inside the guest will be bound to another
+          directory inside the guest. Only used by LXC driver
+          <span class="since"> (since 0.9.13)</span></dd>
         </dl>
 
       The filesystem block has an optional attribute <code>accessmode</code>
@@ -1669,7 +1874,8 @@
         The resource on the host that is being accessed in the guest. The
         <code>name</code> attribute must be used with
         <code>type='template'</code>, and the <code>dir</code> attribute must
-        be used with <code>type='mount'</code>
+        be used with <code>type='mount'</code>. The <code>usage</code> attribute
+        is used with <code>type='ram'</code> to set the memory limit in KB.
       </dd>
 
       <dt><code>target</code></dt>
@@ -1685,6 +1891,20 @@
         Enables exporting filesytem as a readonly mount for guest, by
         default read-write access is given (currently only works for
         QEMU/KVM driver).
+      </dd>
+
+      <dt><code>space_hard_limit</code></dt>
+      <dd>
+        Maximum space available to this guest's filesystem.
+        <span class="since">Since 0.9.13</span>
+      </dd>
+
+      <dt><code>space_soft_limit</code></dt>
+      <dd>
+        Maximum space available to this guest's filesystem. The container is
+        permitted to exceed its soft limits for a grace period of time. Afterwards the
+        hard limit is enforced.
+        <span class="since">Since 0.9.13</span>
       </dd>
     </dl>
 
@@ -1806,8 +2026,10 @@
       A "usb" controller has an optional attribute <code>model</code>,
       which is one of "piix3-uhci", "piix4-uhci", "ehci",
       "ich9-ehci1", "ich9-uhci1", "ich9-uhci2", "ich9-uhci3",
-      "vt82c686b-uhci" or "pci-ohci".  The PowerPC64 "spapr-vio"
-      addresses do not have an associated controller.
+      "vt82c686b-uhci", "pci-ohci" or "nec-xhci". Additionally,
+      <span class="since">since 0.10.0</span>, if the USB bus needs to be
+      explicitly disabled for the guest, <code>model='none'</code> may be used.
+      The PowerPC64 "spapr-vio" addresses do not have an associated controller.
     </p>
 
     <p>
@@ -1892,7 +2114,7 @@
   ...
   &lt;devices&gt;
     &lt;hostdev mode='subsystem' type='usb'&gt;
-      &lt;source&gt;
+      &lt;source startupPolicy='optional'&gt;
         &lt;vendor id='0x1234'/&gt;
         &lt;product id='0xbeef'/&gt;
       &lt;/source&gt;
@@ -1936,9 +2158,29 @@
       <dd>The source element describes the device as seen from the host.
       The USB device can either be addressed by vendor / product id using the
       <code>vendor</code> and <code>product</code> elements or by the device's
-      address on the hosts using the <code>address</code> element.
-      PCI devices on the other hand can only be described by their
-      <code>address</code></dd>
+      address on the hosts using the <code>address</code> element. PCI devices
+      on the other hand can only be described by their <code>address</code>.
+
+      <span class="since">Since 1.0.0</span>, the <code>source</code> element
+      of USB devices may contain <code>startupPolicy</code> attribute which can
+      be used to define policy what to do if the specified host USB device is
+      not found. The attribute accepts the following values:
+        <table class="top_table">
+          <tr>
+            <td> mandatory </td>
+            <td> fail if missing for any reason (the default) </td>
+          </tr>
+          <tr>
+            <td> requisite </td>
+            <td> fail if missing on boot up,
+                 drop if missing on migrate/restore/revert </td>
+          </tr>
+          <tr>
+            <td> optional </td>
+            <td> drop if missing at any start attempt </td>
+          </tr>
+        </table>
+      </dd>
       <dt><code>vendor</code>, <code>product</code></dt>
       <dd>The <code>vendor</code> and <code>product</code> elements each have an
       <code>id</code> attribute that specifies the USB vendor and product id.
@@ -1996,6 +2238,10 @@
     &lt;redirdev bus='usb' type='tcp'&gt;
       &lt;source mode='connect' host='localhost' service='4000'/&gt;
     &lt;/redirdev&gt;
+    &lt;redirfilter&gt;
+      &lt;usbdev class='0x08' vendor='0x1234' product='0xbeef' version='2.00' allow='yes'/&gt;
+      &lt;usbdev allow='no'/&gt;
+    &lt;/redirfilter&gt;
   &lt;/devices&gt;
   ...</pre>
 
@@ -2012,21 +2258,27 @@
         tunnel; <code>type='tcp'</code>
         or <code>type='spicevmc'</code> (which uses the usbredir
         channel of a <a href="#elementsGraphics">SPICE graphics
-        device</a>) are typical.</dd>
-
+        device</a>) are typical.The redirdev element has an optional
+        sub-element<code>&lt;address&gt;</code> which can tie the
+        device to a particular controller. Further sub-elements,
+        such as <code>&lt;source&gt;</code>, may be required according
+        to the given type, although a <code>&lt;target&gt;</code> sub-element
+        is not required (since the consumer of the character device is
+        the hypervisor itself,rather than a device visible in the guest).
+      </dd>
+      <dt><code>redirfilter</code></dt>
+      <dd>The<code> redirfilter </code>element is used for creating the
+        filter rule to filter out certain devices from redirection.
+        It uses sub-element <code>&lt;usbdev&gt;</code>to define each filter rule.
+        <code>class</code>attribute is the USB Class code, for example,
+        0x08 represents mass storage devices. The USB device can be addressed by
+        vendor / product id using the<code>vendor</code> and <code>product</code> attributes.
+        <code>version</code> is the bcdDevice value of USB device, such as 1.00, 1.10 and 2.00.
+        These four attributes are optional and <code>-1</code> can be used to allow
+        any value for them. <code>allow</code>attribute is mandatory,
+        'yes' means allow, 'no' for deny.
+      </dd>
     </dl>
-    <p>
-      The redirdev element has an optional sub-element
-      <code>&lt;address&gt;</code> which can tie the device to a
-      particular controller.
-    </p>
-    <p>
-      Further sub-elements, such as <code>&lt;source&gt;</code>, may
-      be required according to the given type, although
-      a <code>&lt;target&gt;</code> sub-element is not required (since
-      the consumer of the character device is the hypervisor itself,
-      rather than a device visible in the guest).
-    </p>
 
     <h4><a name="elementsSmartcard">Smartcard devices</a></h4>
 
@@ -2195,11 +2447,40 @@
       the network; one network may have multiple portgroups defined,
       with each portgroup containing slightly different configuration
       information for different classes of network
-      connections. <span class="since">Since 0.9.4</span>). Also,
-      similar to <code>direct</code> network connections (described
-      below), a connection of type <code>network</code> may specify
-      a <code>virtportprofile</code> element, with configuration data
-      to be forwarded to a vepa or 802.1Qbh compliant switch.
+      connections. <span class="since">Since 0.9.4</span>.
+    </p>
+    <p>
+      Also, similar to <code>direct</code> network connections
+      (described below), a connection of type <code>network</code> may
+      specify a <code>virtualport</code> element, with configuration
+      data to be forwarded to a vepa (802.1Qbg) or 802.1Qbh compliant
+      switch (<span class="since">Since 0.8.2</span>), or to an
+      Open vSwitch virtual switch (<span class="since">Since
+      0.9.11</span>).
+    </p>
+    <p>
+      Since the actual type of switch may vary depending on the
+      configuration in the <code>&lt;network&gt;</code> on the host,
+      it is acceptable to omit the virtualport <code>type</code>
+      attribute, and specify attributes from multiple different
+      virtualport types (and also to leave out certain attributes); at
+      domain startup time, a complete <code>&lt;virtualport&gt;</code>
+      element will be constructed by merging together the type and
+      attributes found in the which will be filled in from the network
+      or portgroup <code>&lt;virtualport&gt;</code>)
+      (<span class="since">Since 0.10.0</span>). For example, in order
+      to work properly with both an 802.1Qbh switch and an Open vSwitch
+      switch, you may choose to specify no type, but both
+      an <code>instanceid</code> (in case the switch is 802.1Qbh) and
+      an <code>interfaceid</code> (in case the switch is Open vSwitch)
+      (you may also omit the other attributes, such as managerid,
+      typeid, or profileid, to be filled in from the
+      network's <code>&lt;virtualport&gt;</code>). If you want to
+      limit a guest to connecting only to certain types of switches,
+      you can specify the virtualport type, but still omit some/all of
+      the parameters - in this case if the host's network has a
+      different type of virtualport, connection of the interface will
+      fail.
     </p>
 
 <pre>
@@ -2213,8 +2494,8 @@
       &lt;source network='default' portgroup='engineering'/&gt;
       &lt;target dev='vnet7'/&gt;
       &lt;mac address="00:11:22:33:44:55"/&gt;
-      &lt;virtualport type='802.1Qbg'&gt;
-        &lt;parameters managerid='11' typeid='1193047' typeidversion='2' instanceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
+      &lt;virtualport&gt;
+        &lt;parameters instanceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
       &lt;/virtualport&gt;
 
     &lt;/interface&gt;
@@ -2226,7 +2507,7 @@
     <p>
       <strong><em>
       This is the recommended config for general guest connectivity on
-      hosts with static wired networking configs
+      hosts with static wired networking configs.
       </em></strong>
     </p>
 
@@ -2241,19 +2522,40 @@
       configuration is whatever is used on the LAN. This provides the guest VM
       full incoming &amp; outgoing net access just like a physical machine.
     </p>
-
+    <p>
+      On Linux systems, the bridge device is normally a standard Linux
+      host bridge. On hosts that support Open vSwitch, it is also
+      possible to connect to an open vSwitch bridge device by adding
+      a <code>&lt;virtualport type='openvswitch'/&gt;</code> to the
+      interface definition.  (<span class="since">Since
+      0.9.11</span>). The Open vSwitch type virtualport accepts two
+      parameters in its <code>&lt;parameters&gt;</code> element -
+      an <code>interfaceid</code> which is a standard uuid used to
+      uniquely identify this particular interface to Open vSwitch (if
+      you do no specify one, a random interfaceid will be generated
+      for you when you first define the interface), and an
+      optional <code>profileid</code> which is sent to Open vSwitch as
+      the interfaces "port-profile".
+    </p>
 <pre>
   ...
   &lt;devices&gt;
-    &lt;interface type='bridge'&gt;
-      &lt;source bridge='br0'/&gt;
-    &lt;/interface&gt;
     ...
     &lt;interface type='bridge'&gt;
       &lt;source bridge='br0'/&gt;
+    &lt;/interface&gt;
+    &lt;interface type='bridge'&gt;
+      &lt;source bridge='br1'/&gt;
       &lt;target dev='vnet7'/&gt;
       &lt;mac address="00:11:22:33:44:55"/&gt;
     &lt;/interface&gt;
+    &lt;interface type='bridge'&gt;
+      &lt;source bridge='ovsbr'/&gt;
+      &lt;virtualport type='openvswitch'/&gt;
+        &lt;parameters profileid='menial' interfaceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
+      &lt;/virtualport&gt;
+    &lt;/interface&gt;
+    ...
   &lt;/devices&gt;
   ...</pre>
 
@@ -2350,7 +2652,6 @@
 <pre>
   ...
   &lt;devices&gt;
-    &lt;interface type='direct'/&gt;
     ...
     &lt;interface type='direct'&gt;
       &lt;source dev='eth0' mode='vepa'/&gt;
@@ -2399,7 +2700,6 @@
 <pre>
   ...
   &lt;devices&gt;
-    &lt;interface type='direct'/&gt;
     ...
     &lt;interface type='direct'&gt;
       &lt;source dev='eth0.2' mode='vepa'/&gt;
@@ -2427,7 +2727,6 @@
   <pre>
   ...
   &lt;devices&gt;
-    &lt;interface type='direct'/&gt;
     ...
     &lt;interface type='direct'&gt;
       &lt;source dev='eth0' mode='private'/&gt;
@@ -2447,8 +2746,8 @@
       is directly assigned to the guest using generic device
       passthrough, after first optionally setting the device's MAC
       address to the configured value, and associating the device with
-      an 802.1Qgh capable switch using an optionally specified
-      %lt;virtualport%gt; element (see the examples of virtualport
+      an 802.1Qbh capable switch using an optionally specified
+      &lt;virtualport&gt; element (see the examples of virtualport
       given above for type='direct' network devices). Note that - due
       to limitations in standard single-port PCI ethernet card driver
       design - only SR-IOV (Single Root I/O Virtualization) virtual
@@ -2653,7 +2952,7 @@ qemu-kvm -net nic,model=? /dev/null
       <dd>
         The <code>event_idx</code> attribute controls some aspects of
         device event processing. The value can be either 'on' or 'off'
-        - if it is on, it will reduce the number of interupts and
+        - if it is on, it will reduce the number of interrupts and
         exits for the guest. The default is determined by QEMU;
         usually if the feature is supported, default is on. In case
         there is a situation where this behavior is suboptimal, this
@@ -2771,6 +3070,46 @@ qemu-kvm -net nic,model=? /dev/null
       numbers. The units for <code>average</code> and <code>peak</code> attributes
       are kilobytes per second, and for the <code>burst</code> just kilobytes.
       <span class="since">Since 0.9.4</span>
+    </p>
+
+    <h5><a name="elementVlanTag">Setting VLAN tag (on supported network types only)</a></h5>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;interface type='bridge'&gt;
+      <b>&lt;vlan&gt;</b>
+        <b>&lt;tag id='42'/&gt;</b>
+      <b>&lt;/vlan&gt;</b>
+      &lt;source bridge='ovsbr0'/&gt;
+      &lt;virtualport type='openvswitch'&gt;
+        &lt;parameters interfaceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/&gt;
+      &lt;/virtualport&gt;
+    &lt;/interface&gt;
+  &lt;devices&gt;
+  ...</pre>
+
+    <p>
+      If (and only if) the network connection used by the guest
+      supports vlan tagging transparent to the guest, an
+      optional <code>&lt;vlan&gt;</code> element can specify one or
+      more vlan tags to apply to the guest's network
+      traffic <span class="since">Since 0.10.0</span>. (openvswitch
+      and type='hostdev' SR-IOV interfaces do support transparent vlan
+      tagging of guest traffic; everything else, including standard
+      linux bridges and libvirt's own virtual networks, <b>do not</b>
+      support it. 802.1Qbh (vn-link) and 802.1Qbg (VEPA) switches
+      provide their own way (outside of libvirt) to tag guest traffic
+      onto specific vlans.) To allow for specification of multiple
+      tags (in the case of vlan trunking), a
+      subelement, <code>&lt;tag&gt;</code>, specifies which vlan tag
+      to use (for example: <code>&lt;tag id='42'/&gt;</code>. If an
+      interface has more than one <code>&lt;vlan&gt;</code> element
+      defined, it is assumed that the user wants to do VLAN trunking
+      using all the specified tags. In the case that vlan trunking
+      with a single tag is desired, the optional
+      attribute <code>trunk='yes'</code> can be added to the toplevel
+      vlan element.
     </p>
 
     <h5><a name="elementLink">Modifying virtual link state</a></h5>
@@ -3098,7 +3437,7 @@ qemu-kvm -net nic,model=? /dev/null
   &lt;devices&gt;
     &lt;video&gt;
       &lt;model type='vga' vram='8192' heads='1'&gt;
-        &lt;acceleration accel3d='yes' accel3d='yes'/&gt;
+        &lt;acceleration accel3d='yes' accel2d='yes'/&gt;
       &lt;/model&gt;
     &lt;/video&gt;
   &lt;/devices&gt;
@@ -3181,6 +3520,14 @@ qemu-kvm -net nic,model=? /dev/null
       The interface presented to the host is given in the <code>type</code>
       attribute of the top-level element. The host interface is
       configured by the <code>source</code> element.
+    </p>
+
+    <p>
+      The <code>source</code> element may contain an optional
+      <code>seclabel</code> to override the way that labelling
+      is done on the socket path.  If this element is not present,
+      the <a href="#seclabel">security label is inherited from
+        the per-domain setting</a>.
     </p>
 
     <p>
@@ -3617,6 +3964,25 @@ qemu-kvm -net nic,model=? /dev/null
     </dl>
 
     <p>
+      <span class="since">Since 0.9.13</span>, a sound element
+      with <code>ich6</code> model can have optional
+      sub-elements <code>&lt;codec&gt;</code> to attach various audio
+      codecs to the audio device. If not specified, a default codec
+      will be attached to allow playback and recording. Valid values
+      are 'duplex' (advertise a line-in and a line-out) and 'micro'
+      (advertise a speaker and a microphone).
+    </p>
+
+<pre>
+  ...
+  &lt;devices&gt;
+    &lt;sound model='ich6'&gt;
+      &lt;codec type='micro'/&gt;
+    &lt;sound/&gt;
+  &lt;/devices&gt;
+  ...</pre>
+
+    <p>
       Each <code>sound</code> element has an optional
       sub-element <code>&lt;address&gt;</code> which can tie the
       device to a particular PCI
@@ -3777,6 +4143,13 @@ qemu-kvm -net nic,model=? /dev/null
     </p>
 
     <p>
+      If more than one security driver is used by libvirt, multiple
+      <code>seclabel</code> tags can be used, one for each driver and
+      the security driver referenced by each tag can be defined using
+      the attribute <code>model</code>
+    </p>
+
+    <p>
       Valid input XML configurations for the top-level security label
       are:
     </p>
@@ -3831,12 +4204,22 @@ qemu-kvm -net nic,model=? /dev/null
       <dt><code>label</code></dt>
       <dd>If static labelling is used, this must specify the full
         security label to assign to the virtual domain. The format
-        of the content depends on the security driver in use
+        of the content depends on the security driver in use:
+        <ul>
+          <li>SELinux: a SELinux context.</li>
+          <li>AppArmor: an AppArmor profile.</li>
+          <li>
+            DAC: owner and group separated by colon. They can be
+            defined both as user/group names or uid/gid. The driver will first
+            try to parse these values as names, but a leading plus sign can
+            used to force the driver to parse them as uid or gid.
+          </li>
+        </ul>
       </dd>
       <dt><code>baselabel</code></dt>
       <dd>If dynamic labelling is used, this can optionally be
         used to specify the base security label. The format
-        of the content depends on the security driver in use
+        of the content depends on the security driver in use.
       </dd>
       <dt><code>imagelabel</code></dt>
       <dd>This is an output only element, which shows the

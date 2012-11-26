@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Dave Allan <dallan@redhat.com>
  */
@@ -358,7 +358,7 @@ static void udevLogFunction(struct udev *udev ATTRIBUTE_UNUSED,
                             const char *fmt,
                             va_list args)
 {
-    VIR_ERROR_INT(file, fn, line, fmt, args);
+    VIR_ERROR_INT(VIR_LOG_FROM_LIBRARY, file, line, fn, fmt, args);
 }
 
 
@@ -1241,9 +1241,9 @@ static int udevSetParent(struct udev_device *device,
 
         parent_sysfs_path = udev_device_get_syspath(parent_device);
         if (parent_sysfs_path == NULL) {
-            virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
-                                     _("Could not get syspath for parent of '%s'"),
-                                     udev_device_get_syspath(parent_device));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("Could not get syspath for parent of '%s'"),
+                           udev_device_get_syspath(parent_device));
             goto out;
         }
 
@@ -1757,6 +1757,7 @@ static virDeviceMonitor udevDeviceMonitor = {
     .close = udevNodeDrvClose, /* 0.7.3 */
     .numOfDevices = nodeNumOfDevices, /* 0.7.3 */
     .listDevices = nodeListDevices, /* 0.7.3 */
+    .listAllNodeDevices = nodeListAllNodeDevices, /* 0.10.2 */
     .deviceLookupByName = nodeDeviceLookupByName, /* 0.7.3 */
     .deviceGetXMLDesc = nodeDeviceGetXMLDesc, /* 0.7.3 */
     .deviceGetParent = nodeDeviceGetParent, /* 0.7.3 */

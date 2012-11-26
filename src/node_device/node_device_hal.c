@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: David F. Lively <dlively@virtualiron.com>
  */
@@ -38,7 +38,6 @@
 #include "pci.h"
 #include "logging.h"
 #include "node_device_driver.h"
-#include "ignore-value.h"
 #include "virdbus.h"
 
 #define VIR_FROM_THIS VIR_FROM_NODEDEV
@@ -771,6 +770,7 @@ static virDeviceMonitor halDeviceMonitor = {
     .close = halNodeDrvClose, /* 0.5.0 */
     .numOfDevices = nodeNumOfDevices, /* 0.5.0 */
     .listDevices = nodeListDevices, /* 0.5.0 */
+    .listAllNodeDevices = nodeListAllNodeDevices, /* 0.10.2 */
     .deviceLookupByName = nodeDeviceLookupByName, /* 0.5.0 */
     .deviceGetXMLDesc = nodeDeviceGetXMLDesc, /* 0.5.0 */
     .deviceGetParent = nodeDeviceGetParent, /* 0.5.0 */

@@ -3,7 +3,7 @@ PATH=/bin \
 HOME=/home/test \
 USER=test \
 LOGNAME=test \
-./qemu.sh \
+/usr/bin/qemu \
 -S \
 -M pc \
 -cpu Penryn,-sse4.1 \
@@ -13,7 +13,7 @@ LOGNAME=test \
 -monitor unix:/tmp/test-monitor,server,nowait \
 -no-acpi \
 -boot n \
+-usb \
 -net none \
 -serial none \
--parallel none \
--usb
+-parallel none

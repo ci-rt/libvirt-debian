@@ -3,7 +3,19 @@
  *
  * Copyright (C) 2005-2012 Red Hat, Inc.
  *
- * See COPYING.LIB for the License of this software
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Karel Zak <kzak@redhat.com>
  */
@@ -35,6 +47,8 @@
 #include "logging.h"
 #include "command.h"
 #include "virrandom.h"
+#include "dirname.h"
+#include "virprocess.h"
 
 #if TEST_OOM_TRACE
 # include <execinfo.h>
@@ -43,6 +57,8 @@
 #ifdef HAVE_PATHS_H
 # include <paths.h>
 #endif
+
+#define VIR_FROM_THIS VIR_FROM_NONE
 
 #define GETTIMEOFDAY(T) gettimeofday(T, NULL)
 #define DIFF_MSEC(T, U)                                 \
@@ -314,7 +330,7 @@ virtTestCaptureProgramOutput(const char *const argv[], char **buf, int maxlen)
         VIR_FORCE_CLOSE(pipefd[1]);
         len = virFileReadLimFD(pipefd[0], maxlen, buf);
         VIR_FORCE_CLOSE(pipefd[0]);
-        if (virPidWait(pid, NULL) < 0)
+        if (virProcessWait(pid, NULL) < 0)
             return -1;
 
         return len;
@@ -463,18 +479,21 @@ struct virtTestLogData {
 
 static struct virtTestLogData testLog = { VIR_BUFFER_INITIALIZER };
 
-static int
-virtTestLogOutput(const char *category ATTRIBUTE_UNUSED,
-                  int priority ATTRIBUTE_UNUSED,
+static void
+virtTestLogOutput(virLogSource source ATTRIBUTE_UNUSED,
+                  virLogPriority priority ATTRIBUTE_UNUSED,
+                  const char *filename ATTRIBUTE_UNUSED,
+                  int lineno ATTRIBUTE_UNUSED,
                   const char *funcname ATTRIBUTE_UNUSED,
-                  long long lineno ATTRIBUTE_UNUSED,
                   const char *timestamp,
+                  unsigned int flags,
+                  const char *rawstr ATTRIBUTE_UNUSED,
                   const char *str,
                   void *data)
 {
     struct virtTestLogData *log = data;
+    virCheckFlags(VIR_LOG_STACK_TRACE,);
     virBufferAsprintf(&log->buf, "%s: %s", timestamp, str);
-    return strlen(timestamp) + 2 + strlen(str);
 }
 
 static void
@@ -572,9 +591,9 @@ int virtTestMain(int argc,
     if (!abs_srcdir)
         exit(EXIT_AM_HARDFAIL);
 
-    progname = argv[0];
-    if (STRPREFIX(progname, "./"))
-        progname += 2;
+    progname = last_component(argv[0]);
+    if (STRPREFIX(progname, "lt-"))
+        progname += 3;
     if (argc > 1) {
         fprintf(stderr, "Usage: %s\n", argv[0]);
         fputs("effective environment variables:\n"
@@ -586,14 +605,13 @@ int virtTestMain(int argc,
     fprintf(stderr, "TEST: %s\n", progname);
 
     if (virThreadInitialize() < 0 ||
-        virErrorInitialize() < 0 ||
-        virRandomInitialize(time(NULL) ^ getpid()))
+        virErrorInitialize() < 0)
         return 1;
 
     virLogSetFromEnv();
     if (!getenv("LIBVIRT_DEBUG") && !virLogGetNbOutputs()) {
         if (virLogDefineOutput(virtTestLogOutput, virtTestLogClose, &testLog,
-                               0, 0, NULL, 0) < 0)
+                               VIR_LOG_DEBUG, VIR_LOG_TO_STDERR, NULL, 0) < 0)
             return 1;
     }
 
@@ -684,7 +702,7 @@ int virtTestMain(int argc,
             } else {
                 int i, status;
                 for (i = 0 ; i < mp ; i++) {
-                    if (virPidWait(workers[i], NULL) < 0)
+                    if (virProcessWait(workers[i], NULL) < 0)
                         ret = EXIT_FAILURE;
                 }
                 VIR_FREE(workers);

@@ -20,6 +20,7 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_STORAGE_LVM    = --with-storage-lvm
   WITH_STORAGE_ISCSI  = --with-storage-iscsi
   WITH_STORAGE_DISK   =	--with-storage-disk
+  WITH_STORAGE_SHEEPDOG = --with-storage-sheepdog
   WITH_UDEV           = --with-udev --without-hal
   WITH_CAPNG          = --with-capng
   WITH_POLKIT         = --with-polkit
@@ -28,6 +29,14 @@ ifneq (,$(findstring $(DEB_HOST_ARCH_OS), linux))
   WITH_QEMU           = --with-qemu
   WITH_OPENVZ         = --with-openvz
   WITH_NETCF          = --with-netcf
+  WITH_SANLOCK        = --with-sanlock
+  WITH_INIT_SCRIPT    =	--with-init-script=systemd
+  WITH_AUDIT          = --with-audit
+  ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 armel armhf i386 ia64 powerpc s390))
+      WITH_DTRACE     = --with-dtrace
+  else
+      WITH_DTRACE     = --without-dtrace
+  endif
   ifneq (,$(findstring $(DEB_HOST_ARCH), amd64 i386 ia64 mips mipsel powerpc))
       WITH_NUMA       = --with-numactl
   else
@@ -42,6 +51,7 @@ else
   WITH_STORAGE_LVM    = --without-storage-lvm
   WITH_STORAGE_ISCSI  = --without-storage-iscsi
   WITH_STORAGE_DISK   =	--without-storage-disk
+  WITH_STORAGE_SHEEPDOG = --without-storage-sheepdog
   WITH_UDEV           = --without-udev --with-hal
   WITH_CAPNG          = --without-capng
   WITH_POLKIT         = --without-polkit
@@ -51,6 +61,9 @@ else
   WITH_LXC            = --without-lxc
   WITH_NUMA           = --without-numactl
   WITH_NETCF          = --without-netcf
+  WITH_INIT_SCRIPT    =	--with-init-script=none
+  WITH_AUDIT          = --without-audit
+  WITH_DTRACE         = --without-dtrace
 endif
 
 DEB_BUILDDIR := $(CURDIR)/debian/build
@@ -69,7 +82,7 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	$(WITH_STORAGE_LVM)	 \
 	$(WITH_STORAGE_ISCSI)	 \
 	$(WITH_STORAGE_DISK)	 \
-	--with-init-script=none  \
+	$(WITH_INIT_SCRIPT)      \
 	$(WITH_NUMA)             \
 	--without-selinux        \
 	--without-esx		 \
@@ -81,7 +94,9 @@ DEB_CONFIGURE_EXTRA_FLAGS :=     \
 	$(WITH_NETCF)		 \
 	$(WITH_XEN)		 \
 	$(WITH_VBOX)		 \
-	$(WITH_LXC)
+	$(WITH_LXC)              \
+	$(WITH_DTRACE)           \
+	--without-firewalld
 
 DEB_COMPRESS_EXCLUDE = .o event-test hellolibvirt info1 suspend
 DEB_PYTHON_SETUP_CMD = /dev/null
@@ -98,6 +113,9 @@ binary-install/libvirt-bin::
 	cp $(CURDIR)/tools/libvirt-guests.init.sh $(CURDIR)/debian/libvirt-bin.libvirt-guests.init
 	cp $(CURDIR)/tools/libvirt-guests.sysconf $(CURDIR)/debian/libvirt-bin.libvirt-guests.default
 	dh_installinit --name=libvirt-guests --no-restart-on-upgrade -- defaults 29 71
+	-mv debian/libvirt-bin/lib/systemd/system/libvirtd.service \
+	    debian/libvirt-bin/lib/systemd/system/libvirt-bin.service
+	rm debian/libvirt-bin/usr/lib/libvirt/connection-driver/*.la
 
 	for l in $(LOGROTATE); do \
 		cp $(CURDIR)/debian/build/daemon/$$l.logrotate \
@@ -106,8 +124,11 @@ binary-install/libvirt-bin::
 	done
 
 build/libvirt-bin::
-	# Add empty dir so dh_install doesn't fail on kFreebsd until we have Polkit support
-	mkdir -p debian/tmp/usr/share/polkit-1
+	# Add empty dirs so dh_install doesn't fail on kFreebsd until we have
+	# Polkit/Systemd support
+	mkdir -p debian/tmp/usr/share/polkit-1 \
+	         debian/tmp/lib/systemd/system \
+	         debian/tmp/usr/share/systemtap
 
 
 binary-install/libvirt-doc::

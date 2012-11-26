@@ -1,7 +1,7 @@
 @DNSMASQ@ \
 --strict-order \
 --bind-interfaces \
---conf-file= \
+--local=// --domain-needed --conf-file= \
 --except-interface lo \
 --srv-host=name.tcp.,,,, \
 --listen-address 192.168.122.1 \
@@ -13,4 +13,5 @@
 --dhcp-leasefile=/var/lib/libvirt/dnsmasq/default.leases \
 --dhcp-lease-max=253 \
 --dhcp-no-override \
---dhcp-hostsfile=/var/lib/libvirt/dnsmasq/default.hostsfile\
+--dhcp-hostsfile=/var/lib/libvirt/dnsmasq/default.hostsfile \
+--addn-hosts=/var/lib/libvirt/dnsmasq/default.addnhosts\

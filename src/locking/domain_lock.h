@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +27,7 @@
 # include "lock_manager.h"
 
 int virDomainLockProcessStart(virLockManagerPluginPtr plugin,
+                              const char *uri,
                               virDomainObjPtr dom,
                               bool paused,
                               int *fd);
@@ -34,6 +35,7 @@ int virDomainLockProcessPause(virLockManagerPluginPtr plugin,
                               virDomainObjPtr dom,
                               char **state);
 int virDomainLockProcessResume(virLockManagerPluginPtr plugin,
+                               const char *uri,
                                virDomainObjPtr dom,
                                const char *state);
 int virDomainLockProcessInquire(virLockManagerPluginPtr plugin,
@@ -41,6 +43,7 @@ int virDomainLockProcessInquire(virLockManagerPluginPtr plugin,
                                 char **state);
 
 int virDomainLockDiskAttach(virLockManagerPluginPtr plugin,
+                            const char *uri,
                             virDomainObjPtr dom,
                             virDomainDiskDefPtr disk);
 int virDomainLockDiskDetach(virLockManagerPluginPtr plugin,
@@ -48,6 +51,7 @@ int virDomainLockDiskDetach(virLockManagerPluginPtr plugin,
                             virDomainDiskDefPtr disk);
 
 int virDomainLockLeaseAttach(virLockManagerPluginPtr plugin,
+                             const char *uri,
                              virDomainObjPtr dom,
                              virDomainLeaseDefPtr lease);
 int virDomainLockLeaseDetach(virLockManagerPluginPtr plugin,

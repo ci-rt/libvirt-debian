@@ -34,7 +34,7 @@
       <span class="refentrytitle">virterror</span>
     </h2>
     <p>virterror - error handling interfaces for the libvirt library</p>
-    <p>Provides the interfaces of the libvirt library to handle errors raised while using the library. </p>
+    <p>Provides the interfaces of the libvirt library to handle errors raised while using the library.  Copyright (C) 2006, 2010-2012 Red Hat, Inc.  This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.  You should have received a copy of the GNU Lesser General Public License along with this library.  If not, see</p>
     <p>Author(s): Daniel Veillard &lt;veillard@redhat.com&gt; </p>
     <div class="refsynopsisdiv">
       <h2>Synopsis</h2>
@@ -130,6 +130,11 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_FROM_URI">VIR_FROM_URI</a> = 45 /* Error from URI handling */
     <a name="VIR_FROM_AUTH">VIR_FROM_AUTH</a> = 46 /* Error from auth handling */
     <a name="VIR_FROM_DBUS">VIR_FROM_DBUS</a> = 47 /* Error from DBus */
+    <a name="VIR_FROM_PARALLELS">VIR_FROM_PARALLELS</a> = 48 /* Error from Parallels */
+    <a name="VIR_FROM_DEVICE">VIR_FROM_DEVICE</a> = 49 /* Error from Device */
+    <a name="VIR_FROM_SSH">VIR_FROM_SSH</a> = 50 /* Error from libssh2 connection transport */
+    <a name="VIR_FROM_LOCKSPACE">VIR_FROM_LOCKSPACE</a> = 51 /* Error from lockspace */
+    <a name="VIR_ERR_DOMAIN_LAST">VIR_ERR_DOMAIN_LAST</a> = 52
 };
 </pre><p/>
 </div>
@@ -227,6 +232,10 @@ void	<a href="#virSetErrorFunc">virSetErrorFunc</a>			(void * userData, <br/>			
     <a name="VIR_ERR_MIGRATE_UNSAFE">VIR_ERR_MIGRATE_UNSAFE</a> = 81 /* Migration is not safe */
     <a name="VIR_ERR_OVERFLOW">VIR_ERR_OVERFLOW</a> = 82 /* integer overflow */
     <a name="VIR_ERR_BLOCK_COPY_ACTIVE">VIR_ERR_BLOCK_COPY_ACTIVE</a> = 83 /* action prevented by block copy job */
+    <a name="VIR_ERR_OPERATION_UNSUPPORTED">VIR_ERR_OPERATION_UNSUPPORTED</a> = 84 /* The requested operation is not supported */
+    <a name="VIR_ERR_SSH">VIR_ERR_SSH</a> = 85 /* error in ssh transport driver */
+    <a name="VIR_ERR_AGENT_UNRESPONSIVE">VIR_ERR_AGENT_UNRESPONSIVE</a> = 86 /* guest agent is unresponsive, not running or not usable */
+    <a name="VIR_ERR_RESOURCE_BUSY">VIR_ERR_RESOURCE_BUSY</a> = 87 /* resource is already in use */
 };
 </pre><p/>
 </div>

@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -36,6 +36,9 @@
 #include "command.h"
 #include "virfile.h"
 #include "virpidfile.h"
+#include "virterror_internal.h"
+
+#define VIR_FROM_THIS VIR_FROM_NONE
 
 #ifdef WIN32
 
@@ -328,7 +331,9 @@ static int test8(const void *unused ATTRIBUTE_UNUSED)
 {
     virCommandPtr cmd = virCommandNew(abs_builddir "/commandhelper");
 
+    virCommandAddEnvString(cmd, "USER=bogus");
     virCommandAddEnvString(cmd, "LANG=C");
+    virCommandAddEnvPair(cmd, "USER", "also bogus");
     virCommandAddEnvPair(cmd, "USER", "test");
 
     if (virCommandRun(cmd, NULL) < 0) {
@@ -604,12 +609,14 @@ static int test16(const void *unused ATTRIBUTE_UNUSED)
 {
     virCommandPtr cmd = virCommandNew("true");
     char *outactual = NULL;
-    const char *outexpect = "A=B true C";
+    const char *outexpect = "A=B C='D  E' true F 'G  H'";
     int ret = -1;
     int fd = -1;
 
     virCommandAddEnvPair(cmd, "A", "B");
-    virCommandAddArg(cmd, "C");
+    virCommandAddEnvPair(cmd, "C", "D  E");
+    virCommandAddArg(cmd, "F");
+    virCommandAddArg(cmd, "G  H");
 
     if ((outactual = virCommandToString(cmd)) == NULL) {
         virErrorPtr err = virGetLastError();
@@ -784,6 +791,44 @@ cleanup:
     return ret;
 }
 
+/*
+ * Run program, no args, inherit all ENV, keep CWD.
+ * Ignore huge stdin data, to provoke SIGPIPE or EPIPE in parent.
+ */
+static int test20(const void *unused ATTRIBUTE_UNUSED)
+{
+    virCommandPtr cmd = virCommandNewArgList(abs_builddir "/commandhelper",
+                                             "--close-stdin", NULL);
+    char *buf;
+    int ret = -1;
+
+    struct sigaction sig_action;
+
+    sig_action.sa_handler = SIG_IGN;
+    sig_action.sa_flags = 0;
+    sigemptyset(&sig_action.sa_mask);
+
+    sigaction(SIGPIPE, &sig_action, NULL);
+
+    if (virAsprintf(&buf, "1\n%100000d\n", 2) < 0) {
+        virReportOOMError();
+        goto cleanup;
+    }
+    virCommandSetInputBuffer(cmd, buf);
+
+    if (virCommandRun(cmd, NULL) < 0) {
+        virErrorPtr err = virGetLastError();
+        printf("Cannot run child %s\n", err->message);
+        goto cleanup;
+    }
+
+    ret = checkoutput("test20");
+cleanup:
+    virCommandFree(cmd);
+    VIR_FREE(buf);
+    return ret;
+}
+
 static const char *const newenv[] = {
     "PATH=/usr/bin:/bin",
     "HOSTNAME=test",
@@ -868,6 +913,7 @@ mymain(void)
     DO_TEST(test17);
     DO_TEST(test18);
     DO_TEST(test19);
+    DO_TEST(test20);
 
     return ret==0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

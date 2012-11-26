@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel Veillard <veillard@redhat.com>
  */
@@ -39,11 +39,8 @@
 
 #define VIR_FROM_THIS VIR_FROM_SYSINFO
 
-#define virSmbiosReportError(code, ...)                               \
-    virReportErrorHelper(VIR_FROM_SYSINFO, code, __FILE__,            \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
-
 #define SYSINFO_SMBIOS_DECODER "dmidecode"
+#define SYSINFO "/proc/sysinfo"
 #define CPUINFO "/proc/cpuinfo"
 
 VIR_ENUM_IMPL(virSysinfo, VIR_SYSINFO_LAST,
@@ -221,8 +218,8 @@ virSysinfoRead(void) {
         goto no_memory;
 
     if(virFileReadAll(CPUINFO, 2048, &outbuf) < 0) {
-        virSmbiosReportError(VIR_ERR_INTERNAL_ERROR,
-                             _("Failed to open %s"), CPUINFO);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to open %s"), CPUINFO);
         return NULL;
     }
 
@@ -230,6 +227,160 @@ virSysinfoRead(void) {
     ret->processor = NULL;
     if (virSysinfoParseProcessor(outbuf, ret) < 0)
         goto no_memory;
+
+    if (virSysinfoParseSystem(outbuf, ret) < 0)
+        goto no_memory;
+
+    return ret;
+
+no_memory:
+    VIR_FREE(outbuf);
+    return NULL;
+}
+
+#elif defined(__s390__) || defined(__s390x__)
+
+static int
+virSysinfoParseSystem(const char *base, virSysinfoDefPtr ret)
+{
+    char *cur, *eol = NULL;
+    const char *property;
+
+    /* Return if Manufacturer field is not found */
+    if ((cur = strstr(base, "Manufacturer")) == NULL)
+        return 0;
+
+    base = cur;
+    if ((cur = strstr(base, "Manufacturer")) != NULL) {
+        cur = strchr(cur, ':') + 1;
+        eol = strchr(cur, '\n');
+        virSkipSpacesBackwards(cur, &eol);
+        if ((eol) && ((property = strndup(cur, eol - cur)) == NULL))
+            goto no_memory;
+        virSkipSpaces(&property);
+        ret->system_manufacturer = (char *) property;
+    }
+    if ((cur = strstr(base, "Type")) != NULL) {
+        cur = strchr(cur, ':') + 1;
+        eol = strchr(cur, '\n');
+        virSkipSpacesBackwards(cur, &eol);
+        if ((eol) && ((property = strndup(cur, eol - cur)) == NULL))
+            goto no_memory;
+        virSkipSpaces(&property);
+        ret->system_family = (char *) property;
+    }
+    if ((cur = strstr(base, "Sequence Code")) != NULL) {
+        cur = strchr(cur, ':') + 1;
+        eol = strchr(cur, '\n');
+        virSkipSpacesBackwards(cur, &eol);
+        if ((eol) && ((property = strndup(cur, eol - cur)) == NULL))
+            goto no_memory;
+        virSkipSpaces(&property);
+        ret->system_serial = (char *) property;
+    }
+
+    return 0;
+
+no_memory:
+    return -1;
+}
+
+static int
+virSysinfoParseProcessor(const char *base, virSysinfoDefPtr ret)
+{
+    char *cur, *eol, *tmp_base;
+    char *manufacturer;
+    const char *tmp;
+    virSysinfoProcessorDefPtr processor;
+
+    if ((cur = strstr(base, "vendor_id")) != NULL) {
+        cur = strchr(cur, ':') + 1;
+        eol = strchr(cur, '\n');
+        virSkipSpacesBackwards(cur, &eol);
+        if ((eol) && ((tmp = strndup(cur, eol - cur)) == NULL))
+            goto no_memory;
+        virSkipSpaces(&tmp);
+        manufacturer = (char *) tmp;
+    }
+
+    /* Find processor N: line and gather the processor manufacturer, version,
+     * serial number, and family */
+    while ((tmp_base = strstr(base, "processor ")) != NULL) {
+        base = tmp_base;
+        eol = strchr(base, '\n');
+        cur = strchr(base, ':') + 1;
+
+        if (VIR_EXPAND_N(ret->processor, ret->nprocessor, 1) < 0) {
+            goto no_memory;
+        }
+
+        processor = &ret->processor[ret->nprocessor - 1];
+
+        /* Set the processor manufacturer */
+        processor->processor_manufacturer = manufacturer;
+
+        if ((cur = strstr(base, "version =")) != NULL) {
+            cur += sizeof("version =");
+            eol = strchr(cur, ',');
+            if ((eol) &&
+                ((processor->processor_version = strndup(cur, eol - cur)) == NULL))
+                goto no_memory;
+        }
+        if ((cur = strstr(base, "identification =")) != NULL) {
+            cur += sizeof("identification =");
+            eol = strchr(cur, ',');
+            if ((eol) &&
+                ((processor->processor_serial_number = strndup(cur, eol - cur)) == NULL))
+                goto no_memory;
+        }
+        if ((cur = strstr(base, "machine =")) != NULL) {
+            cur += sizeof("machine =");
+            eol = strchr(cur, '\n');
+            if ((eol) &&
+                ((processor->processor_family = strndup(cur, eol - cur)) == NULL))
+                goto no_memory;
+        }
+
+        base = cur;
+    }
+
+    return 0;
+
+no_memory:
+    return -1;
+}
+
+/* virSysinfoRead for s390x
+ * Gathers sysinfo data from /proc/sysinfo and /proc/cpuinfo */
+virSysinfoDefPtr
+virSysinfoRead(void) {
+    virSysinfoDefPtr ret = NULL;
+    char *outbuf = NULL;
+
+    if (VIR_ALLOC(ret) < 0)
+        goto no_memory;
+
+    /* Gather info from /proc/cpuinfo */
+    if (virFileReadAll(CPUINFO, 8192, &outbuf) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to open %s"), CPUINFO);
+        return NULL;
+    }
+
+    ret->nprocessor = 0;
+    ret->processor = NULL;
+    if (virSysinfoParseProcessor(outbuf, ret) < 0)
+        goto no_memory;
+
+    /* Free buffer before reading next file */
+    VIR_FREE(outbuf);
+
+    /* Gather info from /proc/sysinfo */
+    if (virFileReadAll(SYSINFO, 8192, &outbuf) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to open %s"), SYSINFO);
+        return NULL;
+    }
 
     if (virSysinfoParseSystem(outbuf, ret) < 0)
         goto no_memory;
@@ -253,7 +404,7 @@ virSysinfoRead(void) {
      * http://www.microsoft.com/whdc/system/platform/firmware/SMBIOS.mspx
      */
     virReportSystemError(ENOSYS, "%s",
-                 _("Host sysinfo extraction not supported on this platform"));
+                         _("Host sysinfo extraction not supported on this platform"));
     return NULL;
 }
 
@@ -607,21 +758,17 @@ virSysinfoRead(void) {
 
     path = virFindFileInPath(SYSINFO_SMBIOS_DECODER);
     if (path == NULL) {
-        virSmbiosReportError(VIR_ERR_INTERNAL_ERROR,
-                             _("Failed to find path for %s binary"),
-                             SYSINFO_SMBIOS_DECODER);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Failed to find path for %s binary"),
+                       SYSINFO_SMBIOS_DECODER);
         return NULL;
     }
 
     cmd = virCommandNewArgList(path, "-q", "-t", "0,1,4,17", NULL);
     VIR_FREE(path);
     virCommandSetOutputBuffer(cmd, &outbuf);
-    if (virCommandRun(cmd, NULL) < 0) {
-        virSmbiosReportError(VIR_ERR_INTERNAL_ERROR,
-                             _("Failed to execute command %s"),
-                             path);
+    if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
-    }
 
     if (VIR_ALLOC(ret) < 0)
         goto no_memory;
@@ -821,9 +968,9 @@ virSysinfoFormat(virBufferPtr buf, virSysinfoDefPtr def)
     const char *type = virSysinfoTypeToString(def->type);
 
     if (!type) {
-        virSmbiosReportError(VIR_ERR_INTERNAL_ERROR,
-                             _("unexpected sysinfo type model %d"),
-                             def->type);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unexpected sysinfo type model %d"),
+                       def->type);
         virBufferFreeAndReset(buf);
         return -1;
     }
@@ -854,25 +1001,25 @@ bool virSysinfoIsEqual(virSysinfoDefPtr src,
         return true;
 
     if ((src && !dst) || (!src && dst)) {
-        virSmbiosReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                             _("Target sysinfo does not match source"));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Target sysinfo does not match source"));
         goto cleanup;
     }
 
     if (src->type != dst->type) {
-        virSmbiosReportError(VIR_ERR_CONFIG_UNSUPPORTED,
-                             _("Target sysinfo %s does not match source %s"),
-                             virSysinfoTypeToString(dst->type),
-                             virSysinfoTypeToString(src->type));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("Target sysinfo %s does not match source %s"),
+                       virSysinfoTypeToString(dst->type),
+                       virSysinfoTypeToString(src->type));
         goto cleanup;
     }
 
 #define CHECK_FIELD(name, desc)                                         \
     do {                                                                \
         if (STRNEQ_NULLABLE(src->name, dst->name)) {                    \
-            virSmbiosReportError(VIR_ERR_CONFIG_UNSUPPORTED,            \
-                                 _("Target sysinfo %s %s does not match source %s"), \
-                                 desc, NULLSTR(src->name), NULLSTR(dst->name)); \
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED,                  \
+                           _("Target sysinfo %s %s does not match source %s"), \
+                           desc, NULLSTR(src->name), NULLSTR(dst->name)); \
         }                                                               \
     } while (0)
 

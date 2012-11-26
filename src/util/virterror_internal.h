@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -68,6 +68,83 @@ void virReportSystemErrorFull(int domcode,
                              __FILE__, __FUNCTION__, __LINE__,    \
                              (fmt), __VA_ARGS__)
 
+# define virReportInvalidNullArg(argname)                            \
+    virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,              \
+                      VIR_FROM_THIS,                                 \
+                      VIR_ERR_INVALID_ARG,                           \
+                      VIR_ERR_ERROR,                                 \
+                      __FUNCTION__,                                  \
+                      #argname,                                      \
+                      NULL,                                          \
+                      0, 0,                                          \
+                      _("%s in %s must be NULL"),                    \
+                      #argname, __FUNCTION__)
+# define virReportInvalidNonNullArg(argname)                         \
+    virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,              \
+                      VIR_FROM_THIS,                                 \
+                      VIR_ERR_INVALID_ARG,                           \
+                      VIR_ERR_ERROR,                                 \
+                      __FUNCTION__,                                  \
+                      #argname,                                      \
+                      NULL,                                          \
+                      0, 0,                                          \
+                      _("%s in %s must not be NULL"),                \
+                      #argname, __FUNCTION__)
+# define virReportInvalidPositiveArg(argname)                        \
+    virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,              \
+                      VIR_FROM_THIS,                                 \
+                      VIR_ERR_INVALID_ARG,                           \
+                      VIR_ERR_ERROR,                                 \
+                      __FUNCTION__,                                  \
+                      #argname,                                      \
+                      NULL,                                          \
+                      0, 0,                                          \
+                      _("%s in %s must greater than zero"),          \
+                      #argname, __FUNCTION__)
+# define virReportInvalidNonZeroArg(argname)                         \
+    virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,              \
+                      VIR_FROM_THIS,                                 \
+                      VIR_ERR_INVALID_ARG,                           \
+                      VIR_ERR_ERROR,                                 \
+                      __FUNCTION__,                                  \
+                      #argname,                                      \
+                      NULL,                                          \
+                      0, 0,                                          \
+                      _("%s in %s must not be zero"),                \
+                      #argname, __FUNCTION__)
+# define virReportInvalidZeroArg(argname)                            \
+    virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,              \
+                      VIR_FROM_THIS,                                 \
+                      VIR_ERR_INVALID_ARG,                           \
+                      VIR_ERR_ERROR,                                 \
+                      __FUNCTION__,                                  \
+                      #argname,                                      \
+                      NULL,                                          \
+                      0, 0,                                          \
+                      _("%s in %s must  be zero"),                   \
+                      #argname, __FUNCTION__)
+# define virReportInvalidNonNegativeArg(argname)                     \
+    virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,              \
+                      VIR_FROM_THIS,                                 \
+                      VIR_ERR_INVALID_ARG,                           \
+                      VIR_ERR_ERROR,                                 \
+                      __FUNCTION__,                                  \
+                      #argname,                                      \
+                      NULL,                                          \
+                      0, 0,                                          \
+                      _("%s in %s must be zero or greater"),         \
+                      #argname, __FUNCTION__)
+# define virReportInvalidArg(argname, fmt, ...)                      \
+    virRaiseErrorFull(__FILE__, __FUNCTION__, __LINE__,              \
+                      VIR_FROM_THIS,                                 \
+                      VIR_ERR_INVALID_ARG,                           \
+                      VIR_ERR_ERROR,                                 \
+                      __FUNCTION__,                                  \
+                      #argname,                                      \
+                      NULL,                                          \
+                      0, 0,                                          \
+                      (fmt), __VA_ARGS__)
+
 void virReportOOMErrorFull(int domcode,
                            const char *filename,
                            const char *funcname,
@@ -76,6 +153,9 @@ void virReportOOMErrorFull(int domcode,
 # define virReportOOMError() \
     virReportOOMErrorFull(VIR_FROM_THIS, __FILE__, __FUNCTION__, __LINE__)
 
+# define virReportError(code, ...)                                   \
+    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,              \
+                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 int virSetError(virErrorPtr newerr);
 void virDispatchError(virConnectPtr conn);

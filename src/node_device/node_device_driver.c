@@ -16,8 +16,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: David F. Lively <dlively@virtualiron.com>
  */
@@ -183,6 +183,21 @@ nodeListDevices(virConnectPtr conn,
     return -1;
 }
 
+int
+nodeListAllNodeDevices(virConnectPtr conn,
+                       virNodeDevicePtr **devices,
+                       unsigned int flags)
+{
+    virDeviceMonitorStatePtr driver = conn->devMonPrivateData;
+    int ret = -1;
+
+    virCheckFlags(VIR_CONNECT_LIST_NODE_DEVICES_FILTERS_CAP, -1);
+
+    nodeDeviceLock(driver);
+    ret = virNodeDeviceList(conn, driver->devs, devices, flags);
+    nodeDeviceUnlock(driver);
+    return ret;
+}
 
 virNodeDevicePtr
 nodeDeviceLookupByName(virConnectPtr conn, const char *name)
@@ -196,7 +211,7 @@ nodeDeviceLookupByName(virConnectPtr conn, const char *name)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
+        virReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
         goto cleanup;
     }
 
@@ -271,9 +286,9 @@ nodeDeviceGetXMLDesc(virNodeDevicePtr dev,
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
-                                 _("no node device with matching name '%s'"),
-                                 dev->name);
+        virReportError(VIR_ERR_NO_NODE_DEVICE,
+                       _("no node device with matching name '%s'"),
+                       dev->name);
         goto cleanup;
     }
 
@@ -301,9 +316,9 @@ nodeDeviceGetParent(virNodeDevicePtr dev)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
-                                 _("no node device with matching name '%s'"),
-                                 dev->name);
+        virReportError(VIR_ERR_NO_NODE_DEVICE,
+                       _("no node device with matching name '%s'"),
+                       dev->name);
         goto cleanup;
     }
 
@@ -312,8 +327,8 @@ nodeDeviceGetParent(virNodeDevicePtr dev)
         if (!ret)
             virReportOOMError();
     } else {
-        virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
-                                 "%s", _("no parent for this device"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("no parent for this device"));
     }
 
 cleanup:
@@ -337,9 +352,9 @@ nodeDeviceNumOfCaps(virNodeDevicePtr dev)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
-                                 _("no node device with matching name '%s'"),
-                                 dev->name);
+        virReportError(VIR_ERR_NO_NODE_DEVICE,
+                       _("no node device with matching name '%s'"),
+                       dev->name);
         goto cleanup;
     }
 
@@ -368,9 +383,9 @@ nodeDeviceListCaps(virNodeDevicePtr dev, char **const names, int maxnames)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE,
-                                 _("no node device with matching name '%s'"),
-                                 dev->name);
+        virReportError(VIR_ERR_NO_NODE_DEVICE,
+                       _("no node device with matching name '%s'"),
+                       dev->name);
         goto cleanup;
     }
 
@@ -414,8 +429,8 @@ nodeDeviceVportCreateDelete(const int parent_host,
         operation_file = LINUX_SYSFS_VPORT_DELETE_POSTFIX;
         break;
     default:
-        virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
-                                 _("Invalid vport operation (%d)"), operation);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Invalid vport operation (%d)"), operation);
         retval = -1;
         goto cleanup;
         break;
@@ -487,8 +502,8 @@ get_time(time_t *t)
 
     *t = time(NULL);
     if (*t == (time_t)-1) {
-        virNodeDeviceReportError(VIR_ERR_INTERNAL_ERROR,
-                                 "%s", _("Could not get current time"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("Could not get current time"));
 
         *t = 0;
         ret = -1;
@@ -593,7 +608,7 @@ nodeDeviceCreateXML(virConnectPtr conn,
      * we're returning what we get... */
 
     if (dev == NULL) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
+        virReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
     }
 
 cleanup:
@@ -619,7 +634,7 @@ nodeDeviceDestroy(virNodeDevicePtr dev)
     nodeDeviceUnlock(driver);
 
     if (!obj) {
-        virNodeDeviceReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
+        virReportError(VIR_ERR_NO_NODE_DEVICE, NULL);
         goto out;
     }
 

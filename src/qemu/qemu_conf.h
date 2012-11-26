@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  */
@@ -43,6 +43,7 @@
 # include "command.h"
 # include "threadpool.h"
 # include "locking/lock_manager.h"
+# include "qemu_capabilities.h"
 
 # define QEMUD_CPUMASK_LEN CPU_SETSIZE
 
@@ -56,6 +57,7 @@ struct qemud_driver {
     virThreadPoolPtr workerPool;
 
     int privileged;
+    const char *uri;
 
     uid_t user;
     gid_t group;
@@ -95,6 +97,8 @@ struct qemud_driver {
     char *spiceTLSx509certdir;
     char *spiceListen;
     char *spicePassword;
+    int remotePortMin;
+    int remotePortMax;
     char *hugetlbfs_mount;
     char *hugepage_path;
 
@@ -113,10 +117,11 @@ struct qemud_driver {
     int max_queued;
 
     virCapsPtr caps;
+    qemuCapsCachePtr capsCache;
 
     virDomainEventStatePtr domainEventState;
 
-    char *securityDriverName;
+    char **securityDriverNames;
     bool securityDefaultConfined;
     bool securityRequireConfined;
     virSecurityManagerPtr securityManager;
@@ -135,7 +140,7 @@ struct qemud_driver {
     /* The devices which is are not in use by the host or any guest. */
     pciDeviceList *inactivePciHostdevs;
 
-    virBitmapPtr reservedVNCPorts;
+    virBitmapPtr reservedRemotePorts;
 
     virSysinfoDefPtr hostsysinfo;
 
@@ -150,6 +155,7 @@ struct qemud_driver {
 
     int keepAliveInterval;
     unsigned int keepAliveCount;
+    int seccompSandbox;
 };
 
 typedef struct _qemuDomainCmdlineDef qemuDomainCmdlineDef;
@@ -166,10 +172,6 @@ struct _qemuDomainCmdlineDef {
 /* Port numbers used for KVM migration. */
 # define QEMUD_MIGRATION_FIRST_PORT 49152
 # define QEMUD_MIGRATION_NUM_PORTS 64
-
-# define qemuReportError(code, ...)                                      \
-    virReportErrorHelper(VIR_FROM_QEMU, code, __FILE__,                  \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
 void qemuDriverLock(struct qemud_driver *driver);

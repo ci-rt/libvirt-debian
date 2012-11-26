@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Daniel P. Berrange <berrange@redhat.com>
@@ -30,12 +30,10 @@
 
 #if HAVE_SCHED_GETAFFINITY
 
-int virProcessInfoSetAffinity(pid_t pid,
-                              const unsigned char *map,
-                              size_t maplen,
-                              int maxcpu)
+int virProcessInfoSetAffinity(pid_t pid, virBitmapPtr map)
 {
     int i;
+    bool set = false;
 # ifdef CPU_ALLOC
     /* New method dynamically allocates cpu mask, allowing unlimted cpus */
     int numcpus = 1024;
@@ -59,8 +57,10 @@ realloc:
     }
 
     CPU_ZERO_S(masklen, mask);
-    for (i = 0 ; i < maxcpu ; i++) {
-        if (VIR_CPU_USABLE(map, maplen, 0, i))
+    for (i = 0 ; i < virBitmapSize(map); i++) {
+        if (virBitmapGetBit(map, i, &set) < 0)
+            return -1;
+        if (set)
             CPU_SET_S(i, masklen, mask);
     }
 
@@ -77,12 +77,14 @@ realloc:
     }
     CPU_FREE(mask);
 # else
-    /* Legacy method uses a fixed size cpu mask, only allows upto 1024 cpus */
+    /* Legacy method uses a fixed size cpu mask, only allows up to 1024 cpus */
     cpu_set_t mask;
 
     CPU_ZERO(&mask);
-    for (i = 0 ; i < maxcpu ; i++) {
-        if (VIR_CPU_USABLE(map, maplen, 0, i))
+    for (i = 0 ; i < virBitmapSize(map); i++) {
+        if (virBitmapGetBit(map, i, &set) < 0)
+            return -1;
+        if (set)
             CPU_SET(i, &mask);
     }
 
@@ -97,8 +99,7 @@ realloc:
 }
 
 int virProcessInfoGetAffinity(pid_t pid,
-                              unsigned char *map,
-                              size_t maplen ATTRIBUTE_UNUSED,
+                              virBitmapPtr *map,
                               int maxcpu)
 {
     int i;
@@ -137,12 +138,18 @@ realloc:
         return -1;
     }
 
+    *map = virBitmapNew(maxcpu);
+    if (!map) {
+        virReportOOMError();
+        return -1;
+    }
+
     for (i = 0 ; i < maxcpu ; i++)
         if (CPU_ISSET_S(i, masklen, mask))
-            VIR_USE_CPU(map, i);
+            ignore_value(virBitmapSetBit(*map, i));
     CPU_FREE(mask);
 # else
-    /* Legacy method uses a fixed size cpu mask, only allows upto 1024 cpus */
+    /* Legacy method uses a fixed size cpu mask, only allows up to 1024 cpus */
     cpu_set_t mask;
 
     CPU_ZERO(&mask);
@@ -154,7 +161,7 @@ realloc:
 
     for (i = 0 ; i < maxcpu ; i++)
         if (CPU_ISSET(i, &mask))
-            VIR_USE_CPU(map, i);
+            ignore_value(virBitmapSetBit(*map, i));
 # endif
 
     return 0;
@@ -163,9 +170,7 @@ realloc:
 #else /* HAVE_SCHED_GETAFFINITY */
 
 int virProcessInfoSetAffinity(pid_t pid ATTRIBUTE_UNUSED,
-                              const unsigned char *map ATTRIBUTE_UNUSED,
-                              size_t maplen ATTRIBUTE_UNUSED,
-                              int maxcpu ATTRIBUTE_UNUSED)
+                              virBitmapPtr map ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",
                          _("Process CPU affinity is not supported on this platform"));
@@ -173,8 +178,7 @@ int virProcessInfoSetAffinity(pid_t pid ATTRIBUTE_UNUSED,
 }
 
 int virProcessInfoGetAffinity(pid_t pid ATTRIBUTE_UNUSED,
-                              unsigned char *map ATTRIBUTE_UNUSED,
-                              size_t maplen ATTRIBUTE_UNUSED,
+                              virBitmapPtr *map ATTRIBUTE_UNUSED,
                               int maxcpu ATTRIBUTE_UNUSED)
 {
     virReportSystemError(ENOSYS, "%s",

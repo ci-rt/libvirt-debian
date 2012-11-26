@@ -1,7 +1,7 @@
 /*
  * secret_driver.c: local driver for secret manipulation API
  *
- * Copyright (C) 2009-2011 Red Hat, Inc.
+ * Copyright (C) 2009-2012 Red Hat, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Red Hat Author: Miloslav Trmač <mitr@redhat.com>
  */
@@ -171,9 +171,9 @@ replaceFile(const char *filename, void *data, size_t size)
         virReportOOMError();
         goto cleanup;
     }
-    fd = mkstemp (tmp_path);
+    fd = mkostemp(tmp_path, O_CLOEXEC);
     if (fd == -1) {
-        virReportSystemError(errno, _("mkstemp('%s') failed"), tmp_path);
+        virReportSystemError(errno, _("mkostemp('%s') failed"), tmp_path);
         goto cleanup;
     }
     if (fchmod(fd, S_IRUSR | S_IWUSR) != 0) {
@@ -350,9 +350,9 @@ secretLoadValidateUUID(virSecretDefPtr def,
     virUUIDFormat(def->uuid, uuidstr);
 
     if (!virFileMatchesNameSuffix(xml_basename, uuidstr, ".xml")) {
-        virSecretReportError(VIR_ERR_INTERNAL_ERROR,
-                             _("<uuid> does not match secret file name '%s'"),
-                             xml_basename);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("<uuid> does not match secret file name '%s'"),
+                       xml_basename);
         return -1;
     }
 
@@ -386,8 +386,8 @@ secretLoadValue(virSecretDriverStatePtr driver,
         goto cleanup;
     }
     if ((size_t)st.st_size != st.st_size) {
-        virSecretReportError(VIR_ERR_INTERNAL_ERROR,
-                             _("'%s' file does not fit in memory"), filename);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("'%s' file does not fit in memory"), filename);
         goto cleanup;
     }
 
@@ -402,8 +402,8 @@ secretLoadValue(virSecretDriverStatePtr driver,
     VIR_FORCE_CLOSE(fd);
 
     if (!base64_decode_alloc(contents, st.st_size, &value, &value_size)) {
-        virSecretReportError(VIR_ERR_INTERNAL_ERROR,
-                             _("invalid base64 in '%s'"), filename);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("invalid base64 in '%s'"), filename);
         goto cleanup;
     }
     if (value == NULL) {
@@ -601,7 +601,6 @@ cleanup:
     return -1;
 }
 
-
 static const char *
 secretUsageIDForDef(virSecretDefPtr def)
 {
@@ -620,6 +619,86 @@ secretUsageIDForDef(virSecretDefPtr def)
     }
 }
 
+#define MATCH(FLAG) (flags & (FLAG))
+static int
+secretListAllSecrets(virConnectPtr conn,
+                     virSecretPtr **secrets,
+                     unsigned int flags) {
+    virSecretDriverStatePtr driver = conn->secretPrivateData;
+    virSecretPtr *tmp_secrets = NULL;
+    int nsecrets = 0;
+    int ret_nsecrets = 0;
+    virSecretPtr secret = NULL;
+    virSecretEntryPtr entry = NULL;
+    int i = 0;
+    int ret = -1;
+
+    virCheckFlags(VIR_CONNECT_LIST_SECRETS_FILTERS_ALL, -1);
+
+    secretDriverLock(driver);
+
+    for (entry = driver->secrets; entry != NULL; entry = entry->next)
+        nsecrets++;
+
+    if (secrets) {
+        if (VIR_ALLOC_N(tmp_secrets, nsecrets + 1) < 0) {
+            virReportOOMError();
+            goto cleanup;
+        }
+    }
+
+    for (entry = driver->secrets; entry != NULL; entry = entry->next) {
+        /* filter by whether it's ephemeral */
+        if (MATCH(VIR_CONNECT_LIST_SECRETS_FILTERS_EPHEMERAL) &&
+            !((MATCH(VIR_CONNECT_LIST_SECRETS_EPHEMERAL) &&
+               entry->def->ephemeral) ||
+              (MATCH(VIR_CONNECT_LIST_SECRETS_NO_EPHEMERAL) &&
+               !entry->def->ephemeral)))
+            continue;
+
+        /* filter by whether it's private */
+        if (MATCH(VIR_CONNECT_LIST_SECRETS_FILTERS_PRIVATE) &&
+            !((MATCH(VIR_CONNECT_LIST_SECRETS_PRIVATE) &&
+               entry->def->private) ||
+              (MATCH(VIR_CONNECT_LIST_SECRETS_NO_PRIVATE) &&
+               !entry->def->private)))
+            continue;
+
+        if (secrets) {
+            if (!(secret = virGetSecret(conn,
+                                        entry->def->uuid,
+                                        entry->def->usage_type,
+                                        secretUsageIDForDef(entry->def))))
+                goto cleanup;
+            tmp_secrets[ret_nsecrets] = secret;
+        }
+        ret_nsecrets++;
+    }
+
+    if (tmp_secrets) {
+        /* trim the array to the final size */
+        ignore_value(VIR_REALLOC_N(tmp_secrets, ret_nsecrets + 1));
+        *secrets = tmp_secrets;
+        tmp_secrets = NULL;
+    }
+
+    ret = ret_nsecrets;
+
+ cleanup:
+    secretDriverUnlock(driver);
+    if (tmp_secrets) {
+        for (i = 0; i < ret_nsecrets; i ++) {
+            if (tmp_secrets[i])
+                virSecretFree(tmp_secrets[i]);
+        }
+    }
+    VIR_FREE(tmp_secrets);
+
+    return ret;
+}
+#undef MATCH
+
+
 static virSecretPtr
 secretLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
 {
@@ -633,8 +712,8 @@ secretLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
     if (secret == NULL) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(uuid, uuidstr);
-        virSecretReportError(VIR_ERR_NO_SECRET,
-                             _("no secret with matching uuid '%s'"), uuidstr);
+        virReportError(VIR_ERR_NO_SECRET,
+                       _("no secret with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
@@ -660,8 +739,8 @@ secretLookupByUsage(virConnectPtr conn, int usageType, const char *usageID)
 
     secret = secretFindByUsage(driver, usageType, usageID);
     if (secret == NULL) {
-        virSecretReportError(VIR_ERR_NO_SECRET,
-                             _("no secret with matching usage '%s'"), usageID);
+        virReportError(VIR_ERR_NO_SECRET,
+                       _("no secret with matching usage '%s'"), usageID);
         goto cleanup;
     }
 
@@ -702,9 +781,9 @@ secretDefineXML(virConnectPtr conn, const char *xml,
         if (secret) {
             char uuidstr[VIR_UUID_STRING_BUFLEN];
             virUUIDFormat(secret->def->uuid, uuidstr);
-            virSecretReportError(VIR_ERR_INTERNAL_ERROR,
-                                 _("a secret with UUID %s already defined for use with %s"),
-                                 uuidstr, usageID);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("a secret with UUID %s already defined for use with %s"),
+                           uuidstr, usageID);
             goto cleanup;
         }
 
@@ -722,15 +801,15 @@ secretDefineXML(virConnectPtr conn, const char *xml,
         if (STRNEQ(oldUsageID, newUsageID)) {
             char uuidstr[VIR_UUID_STRING_BUFLEN];
             virUUIDFormat(secret->def->uuid, uuidstr);
-            virSecretReportError(VIR_ERR_INTERNAL_ERROR,
-                                 _("a secret with UUID %s is already defined for use with %s"),
-                                 uuidstr, oldUsageID);
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           _("a secret with UUID %s is already defined for use with %s"),
+                           uuidstr, oldUsageID);
             goto cleanup;
         }
 
         if (secret->def->private && !new_attrs->private) {
-            virSecretReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                 _("cannot change private flag on existing secret"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("cannot change private flag on existing secret"));
             goto cleanup;
         }
 
@@ -777,8 +856,8 @@ restore_backup:
     } else {
         /* "secret" was added to the head of the list above */
         if (listUnlink(&driverState->secrets) != secret)
-            virSecretReportError(VIR_ERR_INTERNAL_ERROR, "%s",
-                                 _("list of secrets is inconsistent"));
+            virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                           _("list of secrets is inconsistent"));
         else
             secretFree(secret);
     }
@@ -805,8 +884,8 @@ secretGetXMLDesc(virSecretPtr obj, unsigned int flags)
     if (secret == NULL) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(obj->uuid, uuidstr);
-        virSecretReportError(VIR_ERR_NO_SECRET,
-                             _("no secret with matching uuid '%s'"), uuidstr);
+        virReportError(VIR_ERR_NO_SECRET,
+                       _("no secret with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
@@ -841,8 +920,8 @@ secretSetValue(virSecretPtr obj, const unsigned char *value,
     if (secret == NULL) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(obj->uuid, uuidstr);
-        virSecretReportError(VIR_ERR_NO_SECRET,
-                             _("no secret with matching uuid '%s'"), uuidstr);
+        virReportError(VIR_ERR_NO_SECRET,
+                       _("no secret with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
@@ -896,23 +975,23 @@ secretGetValue(virSecretPtr obj, size_t *value_size, unsigned int flags,
     if (secret == NULL) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(obj->uuid, uuidstr);
-        virSecretReportError(VIR_ERR_NO_SECRET,
-                             _("no secret with matching uuid '%s'"), uuidstr);
+        virReportError(VIR_ERR_NO_SECRET,
+                       _("no secret with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
     if (secret->value == NULL) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(obj->uuid, uuidstr);
-        virSecretReportError(VIR_ERR_NO_SECRET,
-                             _("secret '%s' does not have a value"), uuidstr);
+        virReportError(VIR_ERR_NO_SECRET,
+                       _("secret '%s' does not have a value"), uuidstr);
         goto cleanup;
     }
 
     if ((internalFlags & VIR_SECRET_GET_VALUE_INTERNAL_CALL) == 0 &&
         secret->def->private) {
-        virSecretReportError(VIR_ERR_OPERATION_DENIED, "%s",
-                             _("secret is private"));
+        virReportError(VIR_ERR_INVALID_SECRET, "%s",
+                       _("secret is private"));
         goto cleanup;
     }
 
@@ -942,8 +1021,8 @@ secretUndefine(virSecretPtr obj)
     if (secret == NULL) {
         char uuidstr[VIR_UUID_STRING_BUFLEN];
         virUUIDFormat(obj->uuid, uuidstr);
-        virSecretReportError(VIR_ERR_NO_SECRET,
-                             _("no secret with matching uuid '%s'"), uuidstr);
+        virReportError(VIR_ERR_NO_SECRET,
+                       _("no secret with matching uuid '%s'"), uuidstr);
         goto cleanup;
     }
 
@@ -1012,17 +1091,9 @@ secretDriverStartup(int privileged)
         if (base == NULL)
             goto out_of_memory;
     } else {
-        uid_t uid = geteuid();
-        char *userdir = virGetUserDirectory(uid);
-
-        if (!userdir)
+        base = virGetUserConfigDirectory();
+        if (!base)
             goto error;
-
-        if (virAsprintf(&base, "%s/.libvirt", userdir) == -1) {
-            VIR_FREE(userdir);
-            goto out_of_memory;
-        }
-        VIR_FREE(userdir);
     }
     if (virAsprintf(&driverState->directory, "%s/secrets", base) == -1)
         goto out_of_memory;
@@ -1080,6 +1151,7 @@ static virSecretDriver secretDriver = {
     .close = secretClose, /* 0.7.1 */
     .numOfSecrets = secretNumOfSecrets, /* 0.7.1 */
     .listSecrets = secretListSecrets, /* 0.7.1 */
+    .listAllSecrets = secretListAllSecrets, /* 0.10.2 */
     .lookupByUUID = secretLookupByUUID, /* 0.7.1 */
     .lookupByUsage = secretLookupByUsage, /* 0.7.1 */
     .defineXML = secretDefineXML, /* 0.7.1 */

@@ -128,6 +128,160 @@ static int remoteDispatchCloseHelper(
 
 
 
+static int remoteDispatchConnectListAllDomains(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_all_domains_args *args,
+    remote_connect_list_all_domains_ret *ret);
+static int remoteDispatchConnectListAllDomainsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListAllDomains(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectListAllDomains body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectListAllInterfaces(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_all_interfaces_args *args,
+    remote_connect_list_all_interfaces_ret *ret);
+static int remoteDispatchConnectListAllInterfacesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListAllInterfaces(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectListAllInterfaces body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectListAllNetworks(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_all_networks_args *args,
+    remote_connect_list_all_networks_ret *ret);
+static int remoteDispatchConnectListAllNetworksHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListAllNetworks(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectListAllNetworks body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectListAllNodeDevices(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_all_node_devices_args *args,
+    remote_connect_list_all_node_devices_ret *ret);
+static int remoteDispatchConnectListAllNodeDevicesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListAllNodeDevices(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectListAllNodeDevices body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectListAllNWFilters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_all_nwfilters_args *args,
+    remote_connect_list_all_nwfilters_ret *ret);
+static int remoteDispatchConnectListAllNWFiltersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListAllNWFilters(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectListAllNWFilters body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectListAllSecrets(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_all_secrets_args *args,
+    remote_connect_list_all_secrets_ret *ret);
+static int remoteDispatchConnectListAllSecretsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListAllSecrets(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectListAllSecrets body has to be implemented manually */
+
+
+
+static int remoteDispatchConnectListAllStoragePools(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_connect_list_all_storage_pools_args *args,
+    remote_connect_list_all_storage_pools_ret *ret);
+static int remoteDispatchConnectListAllStoragePoolsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchConnectListAllStoragePools(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchConnectListAllStoragePools body has to be implemented manually */
+
+
+
 static int remoteDispatchCPUBaseline(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -160,7 +314,7 @@ static int remoteDispatchCPUBaseline(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -210,7 +364,7 @@ static int remoteDispatchCPUCompare(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -258,7 +412,7 @@ static int remoteDispatchDomainAbortJob(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -310,7 +464,7 @@ static int remoteDispatchDomainAttachDevice(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -362,7 +516,7 @@ static int remoteDispatchDomainAttachDeviceFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -370,6 +524,66 @@ static int remoteDispatchDomainAttachDeviceFlags(
         goto cleanup;
 
     if (virDomainAttachDeviceFlags(dom, args->xml, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainBlockCommit(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_block_commit_args *args);
+static int remoteDispatchDomainBlockCommitHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainBlockCommit(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainBlockCommit(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_block_commit_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    char *base;
+    char *top;
+    unsigned long bandwidth;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    HYPER_TO_ULONG(bandwidth, args->bandwidth);
+
+    base = args->base ? *args->base : NULL;
+    top = args->top ? *args->top : NULL;
+
+    if (virDomainBlockCommit(dom, args->disk, base, top, bandwidth, args->flags) < 0)
         goto cleanup;
 
     rv = 0;
@@ -414,7 +628,7 @@ static int remoteDispatchDomainBlockJobAbort(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -467,7 +681,7 @@ static int remoteDispatchDomainBlockJobSetSpeed(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -544,7 +758,7 @@ static int remoteDispatchDomainBlockPull(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -600,7 +814,7 @@ static int remoteDispatchDomainBlockRebase(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -656,7 +870,7 @@ static int remoteDispatchDomainBlockResize(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -711,7 +925,7 @@ static int remoteDispatchDomainBlockStats(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -790,7 +1004,7 @@ static int remoteDispatchDomainCoreDump(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -842,7 +1056,7 @@ static int remoteDispatchDomainCreate(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -896,7 +1110,7 @@ static int remoteDispatchDomainCreateWithFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -951,7 +1165,7 @@ static int remoteDispatchDomainCreateXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1003,7 +1217,7 @@ static int remoteDispatchDomainDefineXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1053,7 +1267,7 @@ static int remoteDispatchDomainDestroy(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1105,7 +1319,7 @@ static int remoteDispatchDomainDestroyFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1157,7 +1371,7 @@ static int remoteDispatchDomainDetachDevice(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1209,7 +1423,7 @@ static int remoteDispatchDomainDetachDeviceFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1348,7 +1562,7 @@ static int remoteDispatchDomainGetAutostart(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1426,7 +1640,7 @@ static int remoteDispatchDomainGetBlockInfo(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1528,7 +1742,7 @@ static int remoteDispatchDomainGetControlInfo(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1597,6 +1811,84 @@ static int remoteDispatchDomainGetDiskErrorsHelper(
 
 
 
+static int remoteDispatchDomainGetEmulatorPinInfo(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_emulator_pin_info_args *args,
+    remote_domain_get_emulator_pin_info_ret *ret);
+static int remoteDispatchDomainGetEmulatorPinInfoHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetEmulatorPinInfo(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainGetEmulatorPinInfo body has to be implemented manually */
+
+
+
+static int remoteDispatchDomainGetHostname(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_hostname_args *args,
+    remote_domain_get_hostname_ret *ret);
+static int remoteDispatchDomainGetHostnameHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetHostname(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainGetHostname(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_hostname_args *args,
+    remote_domain_get_hostname_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    char *hostname;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if ((hostname = virDomainGetHostname(dom, args->flags)) == NULL)
+        goto cleanup;
+
+    ret->hostname = hostname;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainGetInfo(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -1630,7 +1922,7 @@ static int remoteDispatchDomainGetInfo(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1712,7 +2004,7 @@ static int remoteDispatchDomainGetJobInfo(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1779,7 +2071,7 @@ static int remoteDispatchDomainGetMaxMemory(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1835,7 +2127,7 @@ static int remoteDispatchDomainGetMaxVcpus(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1914,7 +2206,7 @@ static int remoteDispatchDomainGetMetadata(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -1994,7 +2286,7 @@ static int remoteDispatchDomainGetOSType(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2105,6 +2397,28 @@ static int remoteDispatchDomainGetSecurityLabelHelper(
 
 
 
+static int remoteDispatchDomainGetSecurityLabelList(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_get_security_label_list_args *args,
+    remote_domain_get_security_label_list_ret *ret);
+static int remoteDispatchDomainGetSecurityLabelListHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainGetSecurityLabelList(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainGetSecurityLabelList body has to be implemented manually */
+
+
+
 static int remoteDispatchDomainGetState(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -2204,7 +2518,7 @@ static int remoteDispatchDomainGetVcpusFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2260,7 +2574,7 @@ static int remoteDispatchDomainGetXMLDesc(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2316,7 +2630,7 @@ static int remoteDispatchDomainHasCurrentSnapshot(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2372,7 +2686,7 @@ static int remoteDispatchDomainHasManagedSaveImage(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2425,7 +2739,7 @@ static int remoteDispatchDomainInjectNMI(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2480,7 +2794,7 @@ static int remoteDispatchDomainInterfaceStats(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2543,7 +2857,7 @@ static int remoteDispatchDomainIsActive(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2599,7 +2913,7 @@ static int remoteDispatchDomainIsPersistent(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2655,7 +2969,7 @@ static int remoteDispatchDomainIsUpdated(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2675,6 +2989,28 @@ cleanup:
         virDomainFree(dom);
     return rv;
 }
+
+
+
+static int remoteDispatchDomainListAllSnapshots(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_list_all_snapshots_args *args,
+    remote_domain_list_all_snapshots_ret *ret);
+static int remoteDispatchDomainListAllSnapshotsHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainListAllSnapshots(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainListAllSnapshots body has to be implemented manually */
 
 
 
@@ -2710,7 +3046,7 @@ static int remoteDispatchDomainLookupByID(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2762,7 +3098,7 @@ static int remoteDispatchDomainLookupByName(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2814,7 +3150,7 @@ static int remoteDispatchDomainLookupByUUID(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2864,7 +3200,7 @@ static int remoteDispatchDomainManagedSave(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -2916,7 +3252,7 @@ static int remoteDispatchDomainManagedSaveRemove(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3058,7 +3394,7 @@ static int remoteDispatchDomainMigrateFinish(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3113,7 +3449,7 @@ static int remoteDispatchDomainMigrateFinish2(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3190,7 +3526,7 @@ static int remoteDispatchDomainMigrateGetMaxSpeed(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3246,7 +3582,7 @@ static int remoteDispatchDomainMigratePerform(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3396,7 +3732,7 @@ static int remoteDispatchDomainMigratePrepareTunnel(
     daemonClientStreamPtr stream = NULL;
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3473,7 +3809,7 @@ static int remoteDispatchDomainMigratePrepareTunnel3(
     daemonClientStreamPtr stream = NULL;
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3545,7 +3881,7 @@ static int remoteDispatchDomainMigrateSetMaxDowntime(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3598,7 +3934,7 @@ static int remoteDispatchDomainMigrateSetMaxSpeed(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3655,7 +3991,7 @@ static int remoteDispatchDomainOpenConsole(
     daemonClientStreamPtr stream = NULL;
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3716,6 +4052,27 @@ static int remoteDispatchDomainOpenGraphicsHelper(
 
 
 
+static int remoteDispatchDomainPinEmulator(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_pin_emulator_args *args);
+static int remoteDispatchDomainPinEmulatorHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainPinEmulator(server, client, msg, rerr, args);
+}
+/* remoteDispatchDomainPinEmulator body has to be implemented manually */
+
+
+
 static int remoteDispatchDomainPinVcpu(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -3746,7 +4103,7 @@ static int remoteDispatchDomainPinVcpu(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3798,7 +4155,7 @@ static int remoteDispatchDomainPinVcpuFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3850,7 +4207,7 @@ static int remoteDispatchDomainPMSuspendForDuration(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3902,7 +4259,7 @@ static int remoteDispatchDomainPMWakeup(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -3954,7 +4311,7 @@ static int remoteDispatchDomainReboot(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4006,7 +4363,7 @@ static int remoteDispatchDomainReset(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4057,7 +4414,7 @@ static int remoteDispatchDomainRestore(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4104,7 +4461,7 @@ static int remoteDispatchDomainRestoreFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4153,7 +4510,7 @@ static int remoteDispatchDomainResume(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4206,7 +4563,7 @@ static int remoteDispatchDomainRevertToSnapshot(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4263,7 +4620,7 @@ static int remoteDispatchDomainSave(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4316,7 +4673,7 @@ static int remoteDispatchDomainSaveFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4369,7 +4726,7 @@ static int remoteDispatchDomainSaveImageDefineXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4418,7 +4775,7 @@ static int remoteDispatchDomainSaveImageGetXMLDesc(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4472,7 +4829,7 @@ static int remoteDispatchDomainScreenshot(
     daemonClientStreamPtr stream = NULL;
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4554,7 +4911,7 @@ static int remoteDispatchDomainSendKey(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4606,7 +4963,7 @@ static int remoteDispatchDomainSetAutostart(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4660,7 +5017,7 @@ static int remoteDispatchDomainSetBlkioParameters(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4722,7 +5079,7 @@ static int remoteDispatchDomainSetBlockIoTune(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4784,7 +5141,7 @@ static int remoteDispatchDomainSetInterfaceParameters(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4845,7 +5202,7 @@ static int remoteDispatchDomainSetMaxMemory(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4900,7 +5257,7 @@ static int remoteDispatchDomainSetMemory(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -4955,7 +5312,7 @@ static int remoteDispatchDomainSetMemoryFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5011,7 +5368,7 @@ static int remoteDispatchDomainSetMemoryParameters(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5074,7 +5431,7 @@ static int remoteDispatchDomainSetMetadata(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5132,7 +5489,7 @@ static int remoteDispatchDomainSetNumaParameters(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5194,7 +5551,7 @@ static int remoteDispatchDomainSetSchedulerParameters(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5256,7 +5613,7 @@ static int remoteDispatchDomainSetSchedulerParametersFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5316,7 +5673,7 @@ static int remoteDispatchDomainSetVcpus(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5368,7 +5725,7 @@ static int remoteDispatchDomainSetVcpusFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5420,7 +5777,7 @@ static int remoteDispatchDomainShutdown(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5472,7 +5829,7 @@ static int remoteDispatchDomainShutdownFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5527,7 +5884,7 @@ static int remoteDispatchDomainSnapshotCreateXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5585,7 +5942,7 @@ static int remoteDispatchDomainSnapshotCurrent(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5641,7 +5998,7 @@ static int remoteDispatchDomainSnapshotDelete(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5702,7 +6059,7 @@ static int remoteDispatchDomainSnapshotGetParent(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5766,7 +6123,7 @@ static int remoteDispatchDomainSnapshotGetXMLDesc(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -5791,6 +6148,152 @@ cleanup:
         virDomainFree(dom);
     return rv;
 }
+
+
+
+static int remoteDispatchDomainSnapshotHasMetadata(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_has_metadata_args *args,
+    remote_domain_snapshot_has_metadata_ret *ret);
+static int remoteDispatchDomainSnapshotHasMetadataHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotHasMetadata(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainSnapshotHasMetadata(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_has_metadata_args *args,
+    remote_domain_snapshot_has_metadata_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainSnapshotPtr snapshot = NULL;
+    int metadata;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->snap.dom)))
+        goto cleanup;
+
+    if (!(snapshot = get_nonnull_domain_snapshot(dom, args->snap)))
+        goto cleanup;
+
+    if ((metadata = virDomainSnapshotHasMetadata(snapshot, args->flags)) < 0)
+        goto cleanup;
+
+    ret->metadata = metadata;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (snapshot)
+        virDomainSnapshotFree(snapshot);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSnapshotIsCurrent(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_is_current_args *args,
+    remote_domain_snapshot_is_current_ret *ret);
+static int remoteDispatchDomainSnapshotIsCurrentHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotIsCurrent(server, client, msg, rerr, args, ret);
+}
+static int remoteDispatchDomainSnapshotIsCurrent(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_is_current_args *args,
+    remote_domain_snapshot_is_current_ret *ret)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    virDomainSnapshotPtr snapshot = NULL;
+    int current;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->snap.dom)))
+        goto cleanup;
+
+    if (!(snapshot = get_nonnull_domain_snapshot(dom, args->snap)))
+        goto cleanup;
+
+    if ((current = virDomainSnapshotIsCurrent(snapshot, args->flags)) < 0)
+        goto cleanup;
+
+    ret->current = current;
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (snapshot)
+        virDomainSnapshotFree(snapshot);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSnapshotListAllChildren(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_snapshot_list_all_children_args *args,
+    remote_domain_snapshot_list_all_children_ret *ret);
+static int remoteDispatchDomainSnapshotListAllChildrenHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSnapshotListAllChildren(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchDomainSnapshotListAllChildren body has to be implemented manually */
 
 
 
@@ -5828,13 +6331,13 @@ static int remoteDispatchDomainSnapshotListChildrenNames(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"));
         goto cleanup;
     }
 
@@ -5903,13 +6406,13 @@ static int remoteDispatchDomainSnapshotListNames(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_DOMAIN_SNAPSHOT_LIST_NAMES_MAX"));
         goto cleanup;
     }
 
@@ -5973,7 +6476,7 @@ static int remoteDispatchDomainSnapshotLookupByName(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6031,7 +6534,7 @@ static int remoteDispatchDomainSnapshotNum(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6088,7 +6591,7 @@ static int remoteDispatchDomainSnapshotNumChildren(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6146,7 +6649,7 @@ static int remoteDispatchDomainSuspend(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6198,7 +6701,7 @@ static int remoteDispatchDomainUndefine(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6250,7 +6753,7 @@ static int remoteDispatchDomainUndefineFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6302,7 +6805,7 @@ static int remoteDispatchDomainUpdateDeviceFlags(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6356,7 +6859,7 @@ static int remoteDispatchDomainXMLFromNative(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6406,7 +6909,7 @@ static int remoteDispatchDomainXMLToNative(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6457,7 +6960,7 @@ static int remoteDispatchFindStoragePoolSources(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6507,7 +7010,7 @@ static int remoteDispatchGetCapabilities(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6555,7 +7058,7 @@ static int remoteDispatchGetHostname(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6603,7 +7106,7 @@ static int remoteDispatchGetLibVersion(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6654,7 +7157,7 @@ static int remoteDispatchGetMaxVcpus(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6706,7 +7209,7 @@ static int remoteDispatchGetSysinfo(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6754,7 +7257,7 @@ static int remoteDispatchGetType(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6807,7 +7310,7 @@ static int remoteDispatchGetURI(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6855,7 +7358,7 @@ static int remoteDispatchGetVersion(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6902,7 +7405,7 @@ static int remoteDispatchInterfaceChangeBegin(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6948,7 +7451,7 @@ static int remoteDispatchInterfaceChangeCommit(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -6994,7 +7497,7 @@ static int remoteDispatchInterfaceChangeRollback(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -7041,7 +7544,7 @@ static int remoteDispatchInterfaceCreate(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -7095,7 +7598,7 @@ static int remoteDispatchInterfaceDefineXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -7145,7 +7648,7 @@ static int remoteDispatchInterfaceDestroy(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -7200,7 +7703,7 @@ static int remoteDispatchInterfaceGetXMLDesc(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -7256,7 +7759,7 @@ static int remoteDispatchInterfaceIsActive(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -7311,7 +7814,7 @@ static int remoteDispatchInterfaceLookupByMACString(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -7363,7 +7866,7 @@ static int remoteDispatchInterfaceLookupByName(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -7413,7 +7916,7 @@ static int remoteDispatchInterfaceUndefine(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -7465,7 +7968,7 @@ static int remoteDispatchIsSecure(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -7515,13 +8018,13 @@ static int remoteDispatchListDefinedDomains(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_DOMAIN_NAME_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_DOMAIN_NAME_LIST_MAX"));
         goto cleanup;
     }
 
@@ -7579,13 +8082,13 @@ static int remoteDispatchListDefinedInterfaces(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_DEFINED_INTERFACE_NAME_LIST_MAX"));
         goto cleanup;
     }
 
@@ -7643,13 +8146,13 @@ static int remoteDispatchListDefinedNetworks(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
         goto cleanup;
     }
 
@@ -7707,13 +8210,13 @@ static int remoteDispatchListDefinedStoragePools(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"));
         goto cleanup;
     }
 
@@ -7771,13 +8274,13 @@ static int remoteDispatchListDomains(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxids > REMOTE_DOMAIN_ID_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxids > REMOTE_DOMAIN_ID_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxids > REMOTE_DOMAIN_ID_LIST_MAX"));
         goto cleanup;
     }
 
@@ -7835,13 +8338,13 @@ static int remoteDispatchListInterfaces(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_INTERFACE_NAME_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_INTERFACE_NAME_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_INTERFACE_NAME_LIST_MAX"));
         goto cleanup;
     }
 
@@ -7899,13 +8402,13 @@ static int remoteDispatchListNetworks(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_NETWORK_NAME_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_NETWORK_NAME_LIST_MAX"));
         goto cleanup;
     }
 
@@ -7963,13 +8466,13 @@ static int remoteDispatchListNWFilters(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_NWFILTER_NAME_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_NWFILTER_NAME_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_NWFILTER_NAME_LIST_MAX"));
         goto cleanup;
     }
 
@@ -8027,13 +8530,13 @@ static int remoteDispatchListSecrets(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxuuids > REMOTE_SECRET_UUID_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxuuids > REMOTE_SECRET_UUID_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxuuids > REMOTE_SECRET_UUID_LIST_MAX"));
         goto cleanup;
     }
 
@@ -8091,13 +8594,13 @@ static int remoteDispatchListStoragePools(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_STORAGE_POOL_NAME_LIST_MAX"));
         goto cleanup;
     }
 
@@ -8153,7 +8656,7 @@ static int remoteDispatchNetworkCreate(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8207,7 +8710,7 @@ static int remoteDispatchNetworkCreateXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8259,7 +8762,7 @@ static int remoteDispatchNetworkDefineXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8309,7 +8812,7 @@ static int remoteDispatchNetworkDestroy(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8364,7 +8867,7 @@ static int remoteDispatchNetworkGetAutostart(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8420,7 +8923,7 @@ static int remoteDispatchNetworkGetBridgeName(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8476,7 +8979,7 @@ static int remoteDispatchNetworkGetXMLDesc(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8532,7 +9035,7 @@ static int remoteDispatchNetworkIsActive(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8588,7 +9091,7 @@ static int remoteDispatchNetworkIsPersistent(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8643,7 +9146,7 @@ static int remoteDispatchNetworkLookupByName(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8695,7 +9198,7 @@ static int remoteDispatchNetworkLookupByUUID(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8745,7 +9248,7 @@ static int remoteDispatchNetworkSetAutostart(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8797,7 +9300,7 @@ static int remoteDispatchNetworkUndefine(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8805,6 +9308,58 @@ static int remoteDispatchNetworkUndefine(
         goto cleanup;
 
     if (virNetworkUndefine(net) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (net)
+        virNetworkFree(net);
+    return rv;
+}
+
+
+
+static int remoteDispatchNetworkUpdate(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_network_update_args *args);
+static int remoteDispatchNetworkUpdateHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNetworkUpdate(server, client, msg, rerr, args);
+}
+static int remoteDispatchNetworkUpdate(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_network_update_args *args)
+{
+    int rv = -1;
+    virNetworkPtr net = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(net = get_nonnull_network(priv->conn, args->net)))
+        goto cleanup;
+
+    if (virNetworkUpdate(net, args->command, args->section, args->parentIndex, args->xml, args->flags) < 0)
         goto cleanup;
 
     rv = 0;
@@ -8851,7 +9406,7 @@ static int remoteDispatchNodeDeviceCreateXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8901,7 +9456,7 @@ static int remoteDispatchNodeDeviceDestroy(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -8953,7 +9508,7 @@ static int remoteDispatchNodeDeviceDettach(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9030,7 +9585,7 @@ static int remoteDispatchNodeDeviceGetXMLDesc(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9086,13 +9641,13 @@ static int remoteDispatchNodeDeviceListCaps(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_NODE_DEVICE_CAPS_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_NODE_DEVICE_CAPS_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_NODE_DEVICE_CAPS_LIST_MAX"));
         goto cleanup;
     }
 
@@ -9155,7 +9710,7 @@ static int remoteDispatchNodeDeviceLookupByName(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9208,7 +9763,7 @@ static int remoteDispatchNodeDeviceNumOfCaps(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9261,7 +9816,7 @@ static int remoteDispatchNodeDeviceReAttach(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9313,7 +9868,7 @@ static int remoteDispatchNodeDeviceReset(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9367,13 +9922,13 @@ static int remoteDispatchNodeGetCellsFreeMemory(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxcells > REMOTE_NODE_MAX_CELLS) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxcells > REMOTE_NODE_MAX_CELLS"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxcells > REMOTE_NODE_MAX_CELLS"));
         goto cleanup;
     }
 
@@ -9396,6 +9951,28 @@ cleanup:
     }
     return rv;
 }
+
+
+
+static int remoteDispatchNodeGetCPUMap(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_node_get_cpu_map_args *args,
+    remote_node_get_cpu_map_ret *ret);
+static int remoteDispatchNodeGetCPUMapHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeGetCPUMap(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchNodeGetCPUMap body has to be implemented manually */
 
 
 
@@ -9451,7 +10028,7 @@ static int remoteDispatchNodeGetFreeMemory(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9499,7 +10076,7 @@ static int remoteDispatchNodeGetInfo(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9521,6 +10098,28 @@ cleanup:
         virNetMessageSaveError(rerr);
     return rv;
 }
+
+
+
+static int remoteDispatchNodeGetMemoryParameters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_node_get_memory_parameters_args *args,
+    remote_node_get_memory_parameters_ret *ret);
+static int remoteDispatchNodeGetMemoryParametersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeGetMemoryParameters(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchNodeGetMemoryParameters body has to be implemented manually */
 
 
 
@@ -9600,13 +10199,13 @@ static int remoteDispatchNodeListDevices(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_NODE_DEVICE_NAME_LIST_MAX"));
         goto cleanup;
     }
 
@@ -9667,7 +10266,7 @@ static int remoteDispatchNodeNumOfDevices(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9682,6 +10281,62 @@ static int remoteDispatchNodeNumOfDevices(
 cleanup:
     if (rv < 0)
         virNetMessageSaveError(rerr);
+    return rv;
+}
+
+
+
+static int remoteDispatchNodeSetMemoryParameters(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_node_set_memory_parameters_args *args);
+static int remoteDispatchNodeSetMemoryParametersHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchNodeSetMemoryParameters(server, client, msg, rerr, args);
+}
+static int remoteDispatchNodeSetMemoryParameters(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_node_set_memory_parameters_args *args)
+{
+    int rv = -1;
+    virTypedParameterPtr params = NULL;
+    int nparams;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if ((params = remoteDeserializeTypedParameters(args->params.params_val,
+                                                   args->params.params_len,
+                                                   REMOTE_NODE_MEMORY_PARAMETERS_MAX,
+                                                   &nparams)) == NULL)
+        goto cleanup;
+
+    if (virNodeSetMemoryParameters(priv->conn, params, nparams, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    virTypedParameterArrayClear(params, nparams);
+    VIR_FREE(params);
     return rv;
 }
 
@@ -9716,7 +10371,7 @@ static int remoteDispatchNodeSuspendForDuration(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9763,7 +10418,7 @@ static int remoteDispatchNumOfDefinedDomains(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9811,7 +10466,7 @@ static int remoteDispatchNumOfDefinedInterfaces(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9859,7 +10514,7 @@ static int remoteDispatchNumOfDefinedNetworks(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9907,7 +10562,7 @@ static int remoteDispatchNumOfDefinedStoragePools(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -9955,7 +10610,7 @@ static int remoteDispatchNumOfDomains(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10003,7 +10658,7 @@ static int remoteDispatchNumOfInterfaces(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10051,7 +10706,7 @@ static int remoteDispatchNumOfNetworks(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10099,7 +10754,7 @@ static int remoteDispatchNumOfNWFilters(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10147,7 +10802,7 @@ static int remoteDispatchNumOfSecrets(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10195,7 +10850,7 @@ static int remoteDispatchNumOfStoragePools(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10245,7 +10900,7 @@ static int remoteDispatchNWFilterDefineXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10298,7 +10953,7 @@ static int remoteDispatchNWFilterGetXMLDesc(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10353,7 +11008,7 @@ static int remoteDispatchNWFilterLookupByName(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10405,7 +11060,7 @@ static int remoteDispatchNWFilterLookupByUUID(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10455,7 +11110,7 @@ static int remoteDispatchNWFilterUndefine(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10530,7 +11185,7 @@ static int remoteDispatchSecretDefineXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10605,7 +11260,7 @@ static int remoteDispatchSecretGetXMLDesc(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10660,7 +11315,7 @@ static int remoteDispatchSecretLookupByUsage(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10712,7 +11367,7 @@ static int remoteDispatchSecretLookupByUUID(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10762,7 +11417,7 @@ static int remoteDispatchSecretSetValue(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10814,7 +11469,7 @@ static int remoteDispatchSecretUndefine(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10866,7 +11521,7 @@ static int remoteDispatchStoragePoolBuild(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10918,7 +11573,7 @@ static int remoteDispatchStoragePoolCreate(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -10972,7 +11627,7 @@ static int remoteDispatchStoragePoolCreateXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11024,7 +11679,7 @@ static int remoteDispatchStoragePoolDefineXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11074,7 +11729,7 @@ static int remoteDispatchStoragePoolDelete(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11126,7 +11781,7 @@ static int remoteDispatchStoragePoolDestroy(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11181,7 +11836,7 @@ static int remoteDispatchStoragePoolGetAutostart(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11237,7 +11892,7 @@ static int remoteDispatchStoragePoolGetInfo(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11296,7 +11951,7 @@ static int remoteDispatchStoragePoolGetXMLDesc(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11352,7 +12007,7 @@ static int remoteDispatchStoragePoolIsActive(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11408,7 +12063,7 @@ static int remoteDispatchStoragePoolIsPersistent(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11428,6 +12083,28 @@ cleanup:
         virStoragePoolFree(pool);
     return rv;
 }
+
+
+
+static int remoteDispatchStoragePoolListAllVolumes(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_storage_pool_list_all_volumes_args *args,
+    remote_storage_pool_list_all_volumes_ret *ret);
+static int remoteDispatchStoragePoolListAllVolumesHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchStoragePoolListAllVolumes(server, client, msg, rerr, args, ret);
+}
+/* remoteDispatchStoragePoolListAllVolumes body has to be implemented manually */
 
 
 
@@ -11464,13 +12141,13 @@ static int remoteDispatchStoragePoolListVolumes(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
     if (args->maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX) {
-        virNetError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("maxnames > REMOTE_STORAGE_VOL_NAME_LIST_MAX"));
         goto cleanup;
     }
 
@@ -11533,7 +12210,7 @@ static int remoteDispatchStoragePoolLookupByName(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11585,7 +12262,7 @@ static int remoteDispatchStoragePoolLookupByUUID(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11638,7 +12315,7 @@ static int remoteDispatchStoragePoolLookupByVolume(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11696,7 +12373,7 @@ static int remoteDispatchStoragePoolNumOfVolumes(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11749,7 +12426,7 @@ static int remoteDispatchStoragePoolRefresh(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11801,7 +12478,7 @@ static int remoteDispatchStoragePoolSetAutostart(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11853,7 +12530,7 @@ static int remoteDispatchStoragePoolUndefine(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11908,7 +12585,7 @@ static int remoteDispatchStorageVolCreateXML(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -11967,7 +12644,7 @@ static int remoteDispatchStorageVolCreateXMLFrom(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12027,7 +12704,7 @@ static int remoteDispatchStorageVolDelete(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12081,7 +12758,7 @@ static int remoteDispatchStorageVolDownload(
     daemonClientStreamPtr stream = NULL;
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12152,7 +12829,7 @@ static int remoteDispatchStorageVolGetInfo(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12210,7 +12887,7 @@ static int remoteDispatchStorageVolGetPath(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12266,7 +12943,7 @@ static int remoteDispatchStorageVolGetXMLDesc(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12321,7 +12998,7 @@ static int remoteDispatchStorageVolLookupByKey(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12374,7 +13051,7 @@ static int remoteDispatchStorageVolLookupByName(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12431,7 +13108,7 @@ static int remoteDispatchStorageVolLookupByPath(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12481,7 +13158,7 @@ static int remoteDispatchStorageVolResize(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12535,7 +13212,7 @@ static int remoteDispatchStorageVolUpload(
     daemonClientStreamPtr stream = NULL;
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12603,7 +13280,7 @@ static int remoteDispatchStorageVolWipe(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -12655,7 +13332,7 @@ static int remoteDispatchStorageVolWipePattern(
         virNetServerClientGetPrivateData(client);
 
     if (!priv->conn) {
-        virNetError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
         goto cleanup;
     }
 
@@ -15136,6 +15813,213 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_void,
    0,
    (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainSnapshotIsCurrent => 271 */
+   remoteDispatchDomainSnapshotIsCurrentHelper,
+   sizeof(remote_domain_snapshot_is_current_args),
+   (xdrproc_t)xdr_remote_domain_snapshot_is_current_args,
+   sizeof(remote_domain_snapshot_is_current_ret),
+   (xdrproc_t)xdr_remote_domain_snapshot_is_current_ret,
+   true,
+   0
+},
+{ /* Method DomainSnapshotHasMetadata => 272 */
+   remoteDispatchDomainSnapshotHasMetadataHelper,
+   sizeof(remote_domain_snapshot_has_metadata_args),
+   (xdrproc_t)xdr_remote_domain_snapshot_has_metadata_args,
+   sizeof(remote_domain_snapshot_has_metadata_ret),
+   (xdrproc_t)xdr_remote_domain_snapshot_has_metadata_ret,
+   true,
+   0
+},
+{ /* Method ConnectListAllDomains => 273 */
+   remoteDispatchConnectListAllDomainsHelper,
+   sizeof(remote_connect_list_all_domains_args),
+   (xdrproc_t)xdr_remote_connect_list_all_domains_args,
+   sizeof(remote_connect_list_all_domains_ret),
+   (xdrproc_t)xdr_remote_connect_list_all_domains_ret,
+   true,
+   1
+},
+{ /* Method DomainListAllSnapshots => 274 */
+   remoteDispatchDomainListAllSnapshotsHelper,
+   sizeof(remote_domain_list_all_snapshots_args),
+   (xdrproc_t)xdr_remote_domain_list_all_snapshots_args,
+   sizeof(remote_domain_list_all_snapshots_ret),
+   (xdrproc_t)xdr_remote_domain_list_all_snapshots_ret,
+   true,
+   1
+},
+{ /* Method DomainSnapshotListAllChildren => 275 */
+   remoteDispatchDomainSnapshotListAllChildrenHelper,
+   sizeof(remote_domain_snapshot_list_all_children_args),
+   (xdrproc_t)xdr_remote_domain_snapshot_list_all_children_args,
+   sizeof(remote_domain_snapshot_list_all_children_ret),
+   (xdrproc_t)xdr_remote_domain_snapshot_list_all_children_ret,
+   true,
+   1
+},
+{ /* Async event DomainEventBalloonChange => 276 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainGetHostname => 277 */
+   remoteDispatchDomainGetHostnameHelper,
+   sizeof(remote_domain_get_hostname_args),
+   (xdrproc_t)xdr_remote_domain_get_hostname_args,
+   sizeof(remote_domain_get_hostname_ret),
+   (xdrproc_t)xdr_remote_domain_get_hostname_ret,
+   true,
+   0
+},
+{ /* Method DomainGetSecurityLabelList => 278 */
+   remoteDispatchDomainGetSecurityLabelListHelper,
+   sizeof(remote_domain_get_security_label_list_args),
+   (xdrproc_t)xdr_remote_domain_get_security_label_list_args,
+   sizeof(remote_domain_get_security_label_list_ret),
+   (xdrproc_t)xdr_remote_domain_get_security_label_list_ret,
+   true,
+   1
+},
+{ /* Method DomainPinEmulator => 279 */
+   remoteDispatchDomainPinEmulatorHelper,
+   sizeof(remote_domain_pin_emulator_args),
+   (xdrproc_t)xdr_remote_domain_pin_emulator_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainGetEmulatorPinInfo => 280 */
+   remoteDispatchDomainGetEmulatorPinInfoHelper,
+   sizeof(remote_domain_get_emulator_pin_info_args),
+   (xdrproc_t)xdr_remote_domain_get_emulator_pin_info_args,
+   sizeof(remote_domain_get_emulator_pin_info_ret),
+   (xdrproc_t)xdr_remote_domain_get_emulator_pin_info_ret,
+   true,
+   0
+},
+{ /* Method ConnectListAllStoragePools => 281 */
+   remoteDispatchConnectListAllStoragePoolsHelper,
+   sizeof(remote_connect_list_all_storage_pools_args),
+   (xdrproc_t)xdr_remote_connect_list_all_storage_pools_args,
+   sizeof(remote_connect_list_all_storage_pools_ret),
+   (xdrproc_t)xdr_remote_connect_list_all_storage_pools_ret,
+   true,
+   1
+},
+{ /* Method StoragePoolListAllVolumes => 282 */
+   remoteDispatchStoragePoolListAllVolumesHelper,
+   sizeof(remote_storage_pool_list_all_volumes_args),
+   (xdrproc_t)xdr_remote_storage_pool_list_all_volumes_args,
+   sizeof(remote_storage_pool_list_all_volumes_ret),
+   (xdrproc_t)xdr_remote_storage_pool_list_all_volumes_ret,
+   true,
+   1
+},
+{ /* Method ConnectListAllNetworks => 283 */
+   remoteDispatchConnectListAllNetworksHelper,
+   sizeof(remote_connect_list_all_networks_args),
+   (xdrproc_t)xdr_remote_connect_list_all_networks_args,
+   sizeof(remote_connect_list_all_networks_ret),
+   (xdrproc_t)xdr_remote_connect_list_all_networks_ret,
+   true,
+   1
+},
+{ /* Method ConnectListAllInterfaces => 284 */
+   remoteDispatchConnectListAllInterfacesHelper,
+   sizeof(remote_connect_list_all_interfaces_args),
+   (xdrproc_t)xdr_remote_connect_list_all_interfaces_args,
+   sizeof(remote_connect_list_all_interfaces_ret),
+   (xdrproc_t)xdr_remote_connect_list_all_interfaces_ret,
+   true,
+   1
+},
+{ /* Method ConnectListAllNodeDevices => 285 */
+   remoteDispatchConnectListAllNodeDevicesHelper,
+   sizeof(remote_connect_list_all_node_devices_args),
+   (xdrproc_t)xdr_remote_connect_list_all_node_devices_args,
+   sizeof(remote_connect_list_all_node_devices_ret),
+   (xdrproc_t)xdr_remote_connect_list_all_node_devices_ret,
+   true,
+   1
+},
+{ /* Method ConnectListAllNWFilters => 286 */
+   remoteDispatchConnectListAllNWFiltersHelper,
+   sizeof(remote_connect_list_all_nwfilters_args),
+   (xdrproc_t)xdr_remote_connect_list_all_nwfilters_args,
+   sizeof(remote_connect_list_all_nwfilters_ret),
+   (xdrproc_t)xdr_remote_connect_list_all_nwfilters_ret,
+   true,
+   1
+},
+{ /* Method ConnectListAllSecrets => 287 */
+   remoteDispatchConnectListAllSecretsHelper,
+   sizeof(remote_connect_list_all_secrets_args),
+   (xdrproc_t)xdr_remote_connect_list_all_secrets_args,
+   sizeof(remote_connect_list_all_secrets_ret),
+   (xdrproc_t)xdr_remote_connect_list_all_secrets_ret,
+   true,
+   1
+},
+{ /* Method NodeSetMemoryParameters => 288 */
+   remoteDispatchNodeSetMemoryParametersHelper,
+   sizeof(remote_node_set_memory_parameters_args),
+   (xdrproc_t)xdr_remote_node_set_memory_parameters_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method NodeGetMemoryParameters => 289 */
+   remoteDispatchNodeGetMemoryParametersHelper,
+   sizeof(remote_node_get_memory_parameters_args),
+   (xdrproc_t)xdr_remote_node_get_memory_parameters_args,
+   sizeof(remote_node_get_memory_parameters_ret),
+   (xdrproc_t)xdr_remote_node_get_memory_parameters_ret,
+   true,
+   0
+},
+{ /* Method DomainBlockCommit => 290 */
+   remoteDispatchDomainBlockCommitHelper,
+   sizeof(remote_domain_block_commit_args),
+   (xdrproc_t)xdr_remote_domain_block_commit_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method NetworkUpdate => 291 */
+   remoteDispatchNetworkUpdateHelper,
+   sizeof(remote_network_update_args),
+   (xdrproc_t)xdr_remote_network_update_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   1
+},
+{ /* Async event DomainEventPMsuspendDisk => 292 */
+   NULL,
+   0,
+   (xdrproc_t)xdr_void,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method NodeGetCPUMap => 293 */
+   remoteDispatchNodeGetCPUMapHelper,
+   sizeof(remote_node_get_cpu_map_args),
+   (xdrproc_t)xdr_remote_node_get_cpu_map_args,
+   sizeof(remote_node_get_cpu_map_ret),
+   (xdrproc_t)xdr_remote_node_get_cpu_map_ret,
    true,
    0
 },

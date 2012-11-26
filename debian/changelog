@@ -1,3 +1,157 @@
+libvirt (1.0.0-1) experimental; urgency=low
+
+  * [f5c8dae] New upstream version 1.0.0
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 06 Nov 2012 20:59:48 +0100
+
+libvirt (1.0.0~rc3-1) experimental; urgency=low
+
+  * [d3d06ad] New upstream version 1.0.0~rc3
+  * [610ff5d] Drop Create-temporary-dir-for-socket.patch, applied upstream.
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 01 Nov 2012 21:59:41 +0100
+
+libvirt (1.0.0~rc2-3) experimental; urgency=low
+
+  * [55ec399] Don't try to configure systemtap support on architectures
+    lacking support for it.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 30 Oct 2012 13:28:50 +0100
+
+libvirt (1.0.0~rc2-2) experimental; urgency=low
+
+  * [a2dd93d] Adjust systemtap build-dependency to architectures that actually
+    have it.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 30 Oct 2012 07:21:19 +0100
+
+libvirt (1.0.0~rc2-1) experimental; urgency=low
+
+  * [2b79e3d] New upstream version 1.0.0~rc2
+  * [79d2200] Add empty systemtap dir so dh_install doesn't fail on kFreeBSD
+  * [e68850a] Create temporary dir for socket to avoid ENAMETOOLONG
+
+ -- Guido Günther <agx@sigxcpu.org>  Mon, 29 Oct 2012 10:55:22 +0100
+
+libvirt (1.0.0~rc1-1) experimental; urgency=low
+
+  * [51182d6] New upstream version 1.0.0~rc1
+  * [a8b162b] Refresh patches.
+    Fixed upstream:
+        * Properly-parse-unsigned-long-long.patch
+        * storage-lvm-Don-t-overwrite-lvcreate-errors.patch
+        * storage-lvm-lvcreate-fails-with-allocation-0-don-t-d.patch
+  * [418be04] Update symbols
+  * [f3fdef3] Install systemtap tapsets on Linux
+  * [e18098f] Build require a netcf linked against libnl-3-dev
+  * [8acbd16] Adjust to changed policy file names
+
+ -- Guido Günther <agx@sigxcpu.org>  Sun, 28 Oct 2012 17:13:08 +0100
+
+libvirt (0.10.2-4) experimental; urgency=low
+
+  * [cb74dfd] Properly parse (unsigned) long long in the python bindings to
+    fix those on platforms where sizeof(long) != sizeof(long long).
+    This fixes virt-install's '--location='.
+
+ -- Guido Günther <agx@sigxcpu.org>  Sat, 13 Oct 2012 10:31:21 +0200
+
+libvirt (0.10.2-3) experimental; urgency=low
+
+  * [ce15a08] Build against libnl-3 on Linux systems (Closes: #688167)
+  * [19ec20b] Depend on a libnetcf1 that's build against libnl3 to avoid
+    pulling in libnl1 symbols.
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 09 Oct 2012 20:30:51 +0200
+
+libvirt (0.10.2-2) experimental; urgency=low
+
+  * [20830ab] Mark sheepdog as linux-any since it's not available on kFreeBSD
+  * [be7423c] Allow xen toolstack to find it's binaries. 
+    Thanks to George Dunlap for the patch. (Closes: #685749)
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 02 Oct 2012 19:20:17 +0200
+
+libvirt (0.10.2-1) experimental; urgency=low
+
+  * [40e1704] Enable auditing on linux-any.
+    Thanks to Laurent Bigonville for testing. (Closes: 688177)
+  * [8d56723] New upstream version 0.10.2
+  * [312d8e6] Update symbols
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 27 Sep 2012 16:25:26 +0200
+
+libvirt (0.10.1-2) experimental; urgency=low
+
+  * [cd7e695] Recommend pm-utils used for host power management.
+  * [2f928f7] Add missing "-d" to libvirt-bin's restart option otherwise
+    daemon restarts will just hang. Thanks to Laurent Bigonville.
+    (Closes: #688146)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 19 Sep 2012 22:32:34 +0200
+
+libvirt (0.10.1-1) experimental; urgency=low
+
+  * [aa3d87e] New upstream version 0.10.1
+  * [39ae471] Drop Revert-security-Add-DAC-to-security_drivers.patch: fixed
+    upstream.
+  * [b531061] Update symbol file
+  * [8d4f9dc] Enable sheepdog support
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 06 Sep 2012 13:06:02 +0200
+
+libvirt (0.10.0-1) experimental; urgency=low
+
+  * [b3ae724] New upstream version 0.10.0
+  * [19618d9] Update symbols file
+  * Dropped patches, fixed upstream:
+        * security/CVE-2012-3445.patch
+        * virsh-Initialize-library-before-calling-virResetLast.patch 
+        * Don-t-require-gawk-for-a-simple-print-expression.patch
+  * [2a5d5b7] Revert "security: Add DAC to security_drivers" to allow guest
+    start. Thanks to Peter Krempa and Marcelo Cerri for tracking this down.
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 30 Aug 2012 09:27:43 +0200
+
+libvirt (0.9.13-1) experimental; urgency=low
+
+  * [6cf501c] New upstream version 0.9.13
+  * [8ff7077] Fix CVE-2012-3445 with upstream commit
+    6039a2cb49c8af4c68460d2faf365a7e1c686c7b. (Closes: #683483)
+
+ -- Guido Günther <agx@sigxcpu.org>  Wed, 01 Aug 2012 13:14:30 +0200
+
+libvirt (0.9.13~rc2-1) experimental; urgency=low
+
+  * [505f873] New upstream version 0.9.13~rc2
+  * [bd1c1e0] Rebase patches
+
+ -- Guido Günther <agx@sigxcpu.org>  Fri, 29 Jun 2012 11:23:54 +0200
+
+libvirt (0.9.13~rc1-2) experimental; urgency=low
+
+  * [628a05a] Add empty systemd dir on kFreeBSD to make dh_install pass
+  * [e5b4fbf] Remove -d from libvirtd_opts
+    so we can use the same options in the systemd unit file without having
+    to fork there too.
+
+ -- Guido Günther <agx@sigxcpu.org>  Thu, 28 Jun 2012 11:30:29 +0200
+
+libvirt (0.9.13~rc1-1) experimental; urgency=low
+
+  * [9deae39] New upstream version 0.9.13~rc1
+  * [487acd7] Drop Include-stdint.h-for-uint32_t.patch fixed upstream
+  * [ab7be10] Drop Only-check-for-cluster-fs-if-we-re-using-a-filesyste.patch
+    applied upstream
+  * [385bac4] Rebase remaining patches
+  * [cb0d1f7] Update symbol versions
+  * [c2bd465] Remove *.la files generated for dynamically loaded modules
+  * [e4714b7] Add sanlock support.
+    Thanks to David Weber (Closes: #676345)
+  * [5f715ed] Install systemd init scripts on Linux
+
+ -- Guido Günther <agx@sigxcpu.org>  Tue, 26 Jun 2012 15:29:27 +0200
+
 libvirt (0.9.12-5) unstable; urgency=high
 
   * Setting urgency to high since it's a security only fix
@@ -13,6 +167,7 @@ libvirt (0.9.12-4) unstable; urgency=low
     6039a2cb49c8af4c68460d2faf365a7e1c686c7b (Closes: #683483)
 
  -- Guido Günther <agx@sigxcpu.org>  Wed, 01 Aug 2012 21:12:13 +0200
+
 
 libvirt (0.9.12-3) unstable; urgency=low
 

@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,10 +29,6 @@
 #include "virterror_internal.h"
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-
-#define virUtilError(code, ...)                                            \
-        virReportErrorHelper(VIR_FROM_NONE, code, __FILE__,                \
-                             __FUNCTION__, __LINE__, __VA_ARGS__)
 
 VIR_ENUM_DECL(virTypedParameter)
 VIR_ENUM_IMPL(virTypedParameter, VIR_TYPED_PARAM_LAST,
@@ -93,27 +89,27 @@ virTypedParameterArrayValidate(virTypedParameterPtr params, int nparams, ...)
                     badtype = virTypedParameterTypeToString(params[i].type);
                     if (!badtype)
                         badtype = virTypedParameterTypeToString(0);
-                    virUtilError(VIR_ERR_INVALID_ARG,
-                                 _("invalid type '%s' for parameter '%s', "
-                                   "expected '%s'"),
-                                 badtype, params[i].field,
-                                 virTypedParameterTypeToString(type));
+                    virReportError(VIR_ERR_INVALID_ARG,
+                                   _("invalid type '%s' for parameter '%s', "
+                                     "expected '%s'"),
+                                   badtype, params[i].field,
+                                   virTypedParameterTypeToString(type));
                 }
                 break;
             }
             name = va_arg(ap, const char *);
         }
         if (!name) {
-            virUtilError(VIR_ERR_INVALID_ARG,
-                         _("parameter '%s' not supported"),
-                         params[i].field);
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("parameter '%s' not supported"),
+                           params[i].field);
             goto cleanup;
         }
         for (j = 0; j < i; j++) {
             if (STREQ(params[i].field, params[j].field)) {
-                virUtilError(VIR_ERR_INVALID_ARG,
-                             _("parameter '%s' occurs multiple times"),
-                             params[i].field);
+                virReportError(VIR_ERR_INVALID_ARG,
+                               _("parameter '%s' occurs multiple times"),
+                               params[i].field);
                 goto cleanup;
             }
         }
@@ -140,8 +136,8 @@ virTypedParameterAssign(virTypedParameterPtr param, const char *name,
     va_start(ap, type);
 
     if (virStrcpyStatic(param->field, name) == NULL) {
-        virUtilError(VIR_ERR_INTERNAL_ERROR, _("Field name '%s' too long"),
-                     name);
+        virReportError(VIR_ERR_INTERNAL_ERROR, _("Field name '%s' too long"),
+                       name);
         goto cleanup;
     }
     param->type = type;
@@ -175,13 +171,110 @@ virTypedParameterAssign(virTypedParameterPtr param, const char *name,
         }
         break;
     default:
-        virUtilError(VIR_ERR_INTERNAL_ERROR,
-                     _("unexpected type %d for field %s"), type, name);
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unexpected type %d for field %s"), type, name);
         goto cleanup;
     }
 
     ret = 0;
 cleanup:
     va_end(ap);
+    return ret;
+}
+
+/* Assign name, type, and convert the argument from a const string.
+ * In case of a string, the string is copied.
+ * Return 0 on success, -1 after an error message on failure.  */
+int
+virTypedParameterAssignFromStr(virTypedParameterPtr param, const char *name,
+                               int type, const char *val)
+{
+    int ret = -1;
+
+    if (!val) {
+        virReportError(VIR_ERR_INVALID_ARG, _("NULL value for field '%s'"),
+                       name);
+        goto cleanup;
+    }
+
+    if (virStrcpyStatic(param->field, name) == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, _("Field name '%s' too long"),
+                       name);
+        goto cleanup;
+    }
+
+    param->type = type;
+    switch (type) {
+    case VIR_TYPED_PARAM_INT:
+        if (virStrToLong_i(val, NULL, 10, &param->value.i) < 0) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("Invalid value for field '%s': expected int"),
+                           name);
+            goto cleanup;
+        }
+        break;
+    case VIR_TYPED_PARAM_UINT:
+        if (virStrToLong_ui(val, NULL, 10, &param->value.ui) < 0) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("Invalid value for field '%s': "
+                             "expected unsigned int"),
+                           name);
+            goto cleanup;
+        }
+        break;
+    case VIR_TYPED_PARAM_LLONG:
+        if (virStrToLong_ll(val, NULL, 10, &param->value.l) < 0) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("Invalid value for field '%s': "
+                             "expected long long"),
+                           name);
+            goto cleanup;
+        }
+        break;
+    case VIR_TYPED_PARAM_ULLONG:
+        if (virStrToLong_ull(val, NULL, 10, &param->value.ul) < 0) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("Invalid value for field '%s': "
+                             "expected unsigned long long"),
+                           name);
+            goto cleanup;
+        }
+        break;
+    case VIR_TYPED_PARAM_DOUBLE:
+        if (virStrToDouble(val, NULL, &param->value.d) < 0) {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("Invalid value for field '%s': "
+                             "expected double"),
+                           name);
+            goto cleanup;
+        }
+        break;
+    case VIR_TYPED_PARAM_BOOLEAN:
+        if (STRCASEEQ(val, "true") ||
+            STREQ(val, "1")) {
+            param->value.b = true;
+        } else if (STRCASEEQ(val, "false") ||
+                 STREQ(val, "0")) {
+            param->value.b = false;
+        } else {
+            virReportError(VIR_ERR_INVALID_ARG,
+                           _("Invalid boolean value for field '%s'"), name);
+            goto cleanup;
+        }
+        break;
+    case VIR_TYPED_PARAM_STRING:
+        if (!(param->value.s = strdup(val))) {
+            virReportOOMError();
+            goto cleanup;
+        }
+        break;
+    default:
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("unexpected type %d for field %s"), type, name);
+        goto cleanup;
+    }
+
+    ret = 0;
+cleanup:
     return ret;
 }

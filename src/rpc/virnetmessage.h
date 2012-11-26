@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  */
 
 #ifndef __VIR_NET_MESSAGE_H__
@@ -31,13 +31,10 @@ typedef virNetMessage *virNetMessagePtr;
 
 typedef void (*virNetMessageFreeCallback)(virNetMessagePtr msg, void *opaque);
 
-/* Never allocate this (huge) buffer on the stack. Always
- * use virNetMessageNew() to allocate on the heap
- */
 struct _virNetMessage {
     bool tracked;
 
-    char buffer[VIR_NET_MESSAGE_MAX + VIR_NET_MESSAGE_LEN_MAX];
+    char *buffer; /* Typically VIR_NET_MESSAGE_MAX + VIR_NET_MESSAGE_LEN_MAX */
     size_t bufferLength;
     size_t bufferOffset;
 

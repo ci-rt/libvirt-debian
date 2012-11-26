@@ -15,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Author: Daniel P. Berrange <berrange@redhat.com>
  *
@@ -96,10 +96,6 @@ struct xenUnifiedDriver xenXMDriver = {
     .xenDomainDetachDeviceFlags = xenXMDomainDetachDeviceFlags,
 };
 
-#define xenXMError(code, ...)                                              \
-        virReportErrorHelper(VIR_FROM_XENXM, code, __FILE__,               \
-                             __FUNCTION__, __LINE__, __VA_ARGS__)
-
 #ifndef WITH_XEN_INOTIFY
 static int xenInotifyActive(virConnectPtr conn ATTRIBUTE_UNUSED)
 {
@@ -178,7 +174,7 @@ xenXMConfigSaveFile(virConnectPtr conn, const char *filename, virDomainDefPtr de
 
 /*
  * Caller must hold the lock on 'conn->privateData' before
- * calling this funtion
+ * calling this function
  */
 int
 xenXMConfigCacheRemoveFile(virConnectPtr conn,
@@ -202,7 +198,7 @@ xenXMConfigCacheRemoveFile(virConnectPtr conn,
 
 /*
  * Caller must hold the lock on 'conn->privateData' before
- * calling this funtion
+ * calling this function
  */
 int
 xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
@@ -281,8 +277,8 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
             virDomainDefFree(entry->def);
             VIR_FREE(entry->filename);
             VIR_FREE(entry);
-            xenXMError(VIR_ERR_INTERNAL_ERROR,
-                        "%s", _("xenXMConfigCacheRefresh: virHashAddEntry"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("xenXMConfigCacheRefresh: virHashAddEntry"));
             return -1;
         }
     }
@@ -311,7 +307,7 @@ xenXMConfigCacheAddFile(virConnectPtr conn, const char *filename)
  * once every X seconds
  *
  * Caller must hold the lock on 'conn->privateData' before
- * calling this funtion
+ * calling this function
  */
 int xenXMConfigCacheRefresh (virConnectPtr conn) {
     xenUnifiedPrivatePtr priv = conn->privateData;
@@ -387,7 +383,7 @@ int xenXMConfigCacheRefresh (virConnectPtr conn) {
         /* If we already have a matching entry and it is not
            modified, then carry on to next one*/
         if (xenXMConfigCacheAddFile(conn, path) < 0) {
-            /* Ignoring errors, since alot of stuff goes wrong in /etc/xen */
+            /* Ignoring errors, since a lot of stuff goes wrong in /etc/xen */
         }
 
         VIR_FREE(path);
@@ -486,7 +482,7 @@ int xenXMDomainGetInfo(virDomainPtr domain, virDomainInfoPtr info) {
     const char *filename;
     xenXMConfCachePtr entry;
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
@@ -532,7 +528,7 @@ char *xenXMDomainGetXMLDesc(virDomainPtr domain, unsigned int flags)
     /* Flags checked by virDomainDefFormat */
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return NULL;
     }
     if (domain->id != -1)
@@ -565,7 +561,7 @@ int xenXMDomainSetMemory(virDomainPtr domain, unsigned long memory) {
     int ret = -1;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
     if (domain->conn->flags & VIR_CONNECT_RO)
@@ -610,7 +606,7 @@ int xenXMDomainSetMaxMemory(virDomainPtr domain, unsigned long memory) {
     int ret = -1;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
     if (domain->conn->flags & VIR_CONNECT_RO)
@@ -653,7 +649,7 @@ unsigned long long xenXMDomainGetMaxMemory(virDomainPtr domain) {
     unsigned long long ret = 0;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return 0;
     }
     if (domain->id != -1)
@@ -701,18 +697,18 @@ xenXMDomainSetVcpusFlags(virDomainPtr domain, unsigned int vcpus,
                   VIR_DOMAIN_VCPU_MAXIMUM, -1);
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
     if (domain->conn->flags & VIR_CONNECT_RO) {
-        xenXMError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
+        virReportError(VIR_ERR_OPERATION_DENIED, __FUNCTION__);
         return -1;
     }
     if (domain->id != -1)
         return -2;
     if (flags & VIR_DOMAIN_VCPU_LIVE) {
-        xenXMError(VIR_ERR_OPERATION_INVALID, "%s",
-                   _("domain is not running"));
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("domain is not running"));
         return -1;
     }
 
@@ -727,8 +723,8 @@ xenXMDomainSetVcpusFlags(virDomainPtr domain, unsigned int vcpus,
 
     /* Hypervisor maximum. */
     if ((max = xenUnifiedGetMaxVcpus(domain->conn, NULL)) < 0) {
-        xenXMError(VIR_ERR_INTERNAL_ERROR, "%s",
-                   _("could not determine max vcpus for the domain"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("could not determine max vcpus for the domain"));
         goto cleanup;
     }
     /* Can't specify a current larger than stored maximum; but
@@ -736,9 +732,9 @@ xenXMDomainSetVcpusFlags(virDomainPtr domain, unsigned int vcpus,
     if (!(flags & VIR_DOMAIN_VCPU_MAXIMUM))
         max = entry->def->maxvcpus;
     if (vcpus > max) {
-        xenXMError(VIR_ERR_INVALID_ARG,
-                   _("requested vcpus is greater than max allowable"
-                     " vcpus for the domain: %d > %d"), vcpus, max);
+        virReportError(VIR_ERR_INVALID_ARG,
+                       _("requested vcpus is greater than max allowable"
+                         " vcpus for the domain: %d > %d"), vcpus, max);
         goto cleanup;
     }
 
@@ -785,14 +781,14 @@ xenXMDomainGetVcpusFlags(virDomainPtr domain, unsigned int flags)
                   VIR_DOMAIN_VCPU_MAXIMUM, -1);
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
     if (domain->id != -1)
         return -2;
     if (flags & VIR_DOMAIN_VCPU_LIVE) {
-        xenXMError(VIR_ERR_OPERATION_FAILED, "%s", _("domain not active"));
+        virReportError(VIR_ERR_OPERATION_FAILED, "%s", _("domain not active"));
         return -1;
     }
 
@@ -831,26 +827,21 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
     xenUnifiedPrivatePtr priv;
     const char *filename;
     xenXMConfCachePtr entry;
-    virBuffer mapbuf = VIR_BUFFER_INITIALIZER;
-    char *mapstr = NULL, *mapsave = NULL;
-    int i, j, n, comma = 0;
     int ret = -1;
-    char *cpuset = NULL;
-    int maxcpu = XEN_MAX_PHYSICAL_CPU;
 
     if (domain == NULL || domain->conn == NULL || domain->name == NULL
         || cpumap == NULL || maplen < 1 || maplen > (int)sizeof(cpumap_t)) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
     if (domain->conn->flags & VIR_CONNECT_RO) {
-        xenXMError(VIR_ERR_INVALID_ARG,
-                    "%s", _("read only connection"));
+        virReportError(VIR_ERR_INVALID_ARG,
+                       "%s", _("read only connection"));
         return -1;
     }
     if (domain->id != -1) {
-        xenXMError(VIR_ERR_INVALID_ARG,
-                    "%s", _("not inactive domain"));
+        virReportError(VIR_ERR_INVALID_ARG,
+                       "%s", _("not inactive domain"));
         return -1;
     }
 
@@ -858,57 +849,25 @@ int xenXMDomainPinVcpu(virDomainPtr domain,
     xenUnifiedLock(priv);
 
     if (!(filename = virHashLookup(priv->nameConfigMap, domain->name))) {
-        xenXMError(VIR_ERR_INTERNAL_ERROR, "%s", _("virHashLookup"));
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("virHashLookup"));
         goto cleanup;
     }
     if (!(entry = virHashLookup(priv->configCache, filename))) {
-        xenXMError(VIR_ERR_INTERNAL_ERROR,
-                    "%s", _("can't retrieve config file for domain"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("can't retrieve config file for domain"));
         goto cleanup;
     }
 
-    /* from bit map, build character string of mapped CPU numbers */
-    for (i = 0; i < maplen; i++)
-        for (j = 0; j < 8; j++)
-            if ((cpumap[i] & (1 << j))) {
-                n = i*8 + j;
-
-                if (comma)
-                    virBufferAddLit (&mapbuf, ",");
-                comma = 1;
-
-                virBufferAsprintf (&mapbuf, "%d", n);
-            }
-
-    if (virBufferError(&mapbuf)) {
-        virBufferFreeAndReset(&mapbuf);
-        virReportOOMError();
+    virBitmapFree(entry->def->cpumask);
+    entry->def->cpumask = virBitmapNewData(cpumap, maplen);
+    if (!entry->def->cpumask)
         goto cleanup;
-    }
-
-    mapstr = virBufferContentAndReset(&mapbuf);
-    mapsave = mapstr;
-
-    if (VIR_ALLOC_N(cpuset, maxcpu) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-    if (virDomainCpuSetParse(mapstr, 0, cpuset, maxcpu) < 0)
-        goto cleanup;
-
-    VIR_FREE(entry->def->cpumask);
-    entry->def->cpumask = cpuset;
-    entry->def->cpumasklen = maxcpu;
-    cpuset = NULL;
-
     if (xenXMConfigSaveFile(domain->conn, entry->filename, entry->def) < 0)
         goto cleanup;
 
     ret = 0;
 
  cleanup:
-    VIR_FREE(mapsave);
-    VIR_FREE(cpuset);
     xenUnifiedUnlock(priv);
     return ret;
 }
@@ -923,11 +882,11 @@ virDomainPtr xenXMDomainLookupByName(virConnectPtr conn, const char *domname) {
     virDomainPtr ret = NULL;
 
     if (!VIR_IS_CONNECT(conn)) {
-        xenXMError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_CONN, __FUNCTION__);
         return NULL;
     }
     if (domname == NULL) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return NULL;
     }
 
@@ -979,11 +938,11 @@ virDomainPtr xenXMDomainLookupByUUID(virConnectPtr conn,
     virDomainPtr ret = NULL;
 
     if (!VIR_IS_CONNECT(conn)) {
-        xenXMError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_CONN, __FUNCTION__);
         return NULL;
     }
     if (uuid == NULL) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return NULL;
     }
 
@@ -1078,11 +1037,11 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml)
     xenUnifiedPrivatePtr priv = (xenUnifiedPrivatePtr) conn->privateData;
 
     if (!VIR_IS_CONNECT(conn)) {
-        xenXMError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_CONN, __FUNCTION__);
         return NULL;
     }
     if (xml == NULL) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return NULL;
     }
     if (conn->flags & VIR_CONNECT_RO)
@@ -1116,9 +1075,9 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml)
             char uuidstr[VIR_UUID_STRING_BUFLEN];
 
             virUUIDFormat(entry->def->uuid, uuidstr);
-            xenXMError(VIR_ERR_OPERATION_FAILED,
-                       _("domain '%s' is already defined with uuid %s"),
-                       entry->def->name, uuidstr);
+            virReportError(VIR_ERR_OPERATION_FAILED,
+                           _("domain '%s' is already defined with uuid %s"),
+                           entry->def->name, uuidstr);
             entry = NULL;
             goto error;
         }
@@ -1129,28 +1088,28 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml)
         /* domain exists, we will overwrite it */
 
         if (!(oldfilename = (char *)virHashLookup(priv->nameConfigMap, def->name))) {
-            xenXMError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("can't retrieve config filename for domain to overwrite"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("can't retrieve config filename for domain to overwrite"));
             goto error;
         }
 
         if (!(entry = virHashLookup(priv->configCache, oldfilename))) {
-            xenXMError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("can't retrieve config entry for domain to overwrite"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("can't retrieve config entry for domain to overwrite"));
             goto error;
         }
 
         /* Remove the name -> filename mapping */
         if (virHashRemoveEntry(priv->nameConfigMap, def->name) < 0) {
-            xenXMError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("failed to remove old domain from config map"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("failed to remove old domain from config map"));
             goto error;
         }
 
         /* Remove the config record itself */
         if (virHashRemoveEntry(priv->configCache, oldfilename) < 0) {
-            xenXMError(VIR_ERR_INTERNAL_ERROR,
-                       "%s", _("failed to remove old domain from config map"));
+            virReportError(VIR_ERR_INTERNAL_ERROR,
+                           "%s", _("failed to remove old domain from config map"));
             goto error;
         }
 
@@ -1169,8 +1128,8 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml)
     }
 
     if ((entry->refreshedAt = time(NULL)) == ((time_t)-1)) {
-        xenXMError(VIR_ERR_INTERNAL_ERROR,
-                   "%s", _("unable to get current time"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("unable to get current time"));
         goto error;
     }
 
@@ -1181,15 +1140,15 @@ virDomainPtr xenXMDomainDefineXML(virConnectPtr conn, const char *xml)
     entry->def = def;
 
     if (virHashAddEntry(priv->configCache, filename, entry) < 0) {
-        xenXMError(VIR_ERR_INTERNAL_ERROR,
-                   "%s", _("unable to store config file handle"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("unable to store config file handle"));
         goto error;
     }
 
     if (virHashAddEntry(priv->nameConfigMap, def->name, entry->filename) < 0) {
         virHashSteal(priv->configCache, filename);
-        xenXMError(VIR_ERR_INTERNAL_ERROR,
-                   "%s", _("unable to store config file handle"));
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       "%s", _("unable to store config file handle"));
         goto error;
     }
 
@@ -1219,7 +1178,7 @@ int xenXMDomainUndefine(virDomainPtr domain) {
     int ret = -1;
 
     if ((domain == NULL) || (domain->conn == NULL) || (domain->name == NULL)) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
@@ -1295,7 +1254,7 @@ int xenXMListDefinedDomains(virConnectPtr conn, char **const names, int maxnames
     int i, ret = -1;
 
     if (!VIR_IS_CONNECT(conn)) {
-        xenXMError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_CONN, __FUNCTION__);
         return -1;
     }
 
@@ -1340,7 +1299,7 @@ int xenXMNumOfDefinedDomains(virConnectPtr conn) {
     int ret = -1;
 
     if (!VIR_IS_CONNECT(conn)) {
-        xenXMError(VIR_ERR_INVALID_CONN, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_CONN, __FUNCTION__);
         return -1;
     }
 
@@ -1385,7 +1344,7 @@ xenXMDomainAttachDeviceFlags(virDomainPtr domain, const char *xml,
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG, -1);
 
     if ((!domain) || (!domain->conn) || (!domain->name) || (!xml)) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
@@ -1394,8 +1353,8 @@ xenXMDomainAttachDeviceFlags(virDomainPtr domain, const char *xml,
 
     if ((flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) ||
         (domain->id != -1 && flags == VIR_DOMAIN_DEVICE_MODIFY_CURRENT)) {
-        xenXMError(VIR_ERR_OPERATION_INVALID, "%s",
-                   _("Xm driver only supports modifying persistent config"));
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("Xm driver only supports modifying persistent config"));
         return -1;
     }
 
@@ -1436,8 +1395,8 @@ xenXMDomainAttachDeviceFlags(virDomainPtr domain, const char *xml,
     }
 
     default:
-        xenXMError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
-                   _("Xm driver only supports adding disk or network devices"));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("Xm driver only supports adding disk or network devices"));
         goto cleanup;
     }
 
@@ -1482,7 +1441,7 @@ xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
     virCheckFlags(VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG, -1);
 
     if ((!domain) || (!domain->conn) || (!domain->name) || (!xml)) {
-        xenXMError(VIR_ERR_INVALID_ARG, __FUNCTION__);
+        virReportError(VIR_ERR_INVALID_ARG, __FUNCTION__);
         return -1;
     }
 
@@ -1491,8 +1450,8 @@ xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
 
     if ((flags & VIR_DOMAIN_DEVICE_MODIFY_LIVE) ||
         (domain->id != -1 && flags == VIR_DOMAIN_DEVICE_MODIFY_CURRENT)) {
-        xenXMError(VIR_ERR_OPERATION_INVALID, "%s",
-                   _("Xm driver only supports modifying persistent config"));
+        virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                       _("Xm driver only supports modifying persistent config"));
         return -1;
     }
 
@@ -1533,9 +1492,7 @@ xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
     case VIR_DOMAIN_DEVICE_NET:
     {
         for (i = 0 ; i < def->nnets ; i++) {
-            if (!memcmp(def->nets[i]->mac,
-                        dev->data.net->mac,
-                        sizeof(def->nets[i]->mac))) {
+            if (!virMacAddrCmp(&def->nets[i]->mac, &dev->data.net->mac)) {
                 virDomainNetDefFree(def->nets[i]);
                 if (i < (def->nnets - 1))
                     memmove(def->nets + i,
@@ -1549,9 +1506,9 @@ xenXMDomainDetachDeviceFlags(virDomainPtr domain, const char *xml,
         break;
     }
     default:
-        xenXMError(VIR_ERR_CONFIG_UNSUPPORTED,
-                   _("device type '%s' cannot be detached"),
-                   virDomainDeviceTypeToString(dev->type));
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("device type '%s' cannot be detached"),
+                       virDomainDeviceTypeToString(dev->type));
         goto cleanup;
     }
 
@@ -1576,8 +1533,8 @@ xenXMDomainBlockPeek (virDomainPtr dom ATTRIBUTE_UNUSED,
                       size_t size ATTRIBUTE_UNUSED,
                       void *buffer ATTRIBUTE_UNUSED)
 {
-    xenXMError(VIR_ERR_OPERATION_INVALID, "%s",
-               _("block peeking not implemented"));
+    virReportError(VIR_ERR_OPERATION_INVALID, "%s",
+                   _("block peeking not implemented"));
     return -1;
 }
 

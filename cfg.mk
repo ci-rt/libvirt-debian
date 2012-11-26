@@ -13,7 +13,8 @@
 # GNU General Public License for more details.
 
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program.  If not, see
+# <http://www.gnu.org/licenses/>.
 
 # Use alpha.gnu.org for alpha and beta releases.
 # Use ftp.gnu.org for major releases.
@@ -42,7 +43,6 @@ _test_script_regex = \<\(init\|test-lib\)\.sh\>
 # Tests not to run as part of "make distcheck".
 local-checks-to-skip =			\
   changelog-check			\
-  check-AUTHORS				\
   makefile-check			\
   makefile_path_separator_check		\
   patch-check				\
@@ -75,6 +75,17 @@ local-checks-to-skip =			\
   sc_require_test_exit_idiom		\
   sc_makefile_check			\
   sc_useless_cpp_parens
+
+# Most developers don't run 'make distcheck'.  We want the official
+# dist to be secure, but don't want to penalize other developers
+# using a distro that has not yet picked up the automake fix.
+# FIXME remove this ifeq (making the syntax check unconditional)
+# once fixed automake (1.11.6 or 1.12.2+) is more common.
+ifeq ($(filter dist%, $(MAKECMDGOALS)), )
+local-checks-to-skip +=	sc_vulnerable_makefile_CVE-2012-3386
+else
+distdir: sc_vulnerable_makefile_CVE-2012-3386.z
+endif
 
 # Files that should never cause syntax check failures.
 VC_LIST_ALWAYS_EXCLUDE_REGEX = \
@@ -133,20 +144,9 @@ useless_free_options =				\
   --name=virJSONValueFree			\
   --name=virLastErrFreeData			\
   --name=virNetMessageFree                      \
-  --name=virNetClientFree                       \
-  --name=virNetClientProgramFree                \
-  --name=virNetClientStreamFree                 \
-  --name=virNetServerFree                       \
-  --name=virNetServerClientFree                 \
   --name=virNetServerMDNSFree                   \
   --name=virNetServerMDNSEntryFree              \
   --name=virNetServerMDNSGroupFree              \
-  --name=virNetServerProgramFree                \
-  --name=virNetServerServiceFree                \
-  --name=virNetSocketFree                       \
-  --name=virNetSASLContextFree                  \
-  --name=virNetSASLSessionFree                  \
-  --name=virNetTLSSessionFree                   \
   --name=virNWFilterDefFree			\
   --name=virNWFilterEntryFree			\
   --name=virNWFilterHashTableFree		\
@@ -159,6 +159,8 @@ useless_free_options =				\
   --name=virNetworkObjFree			\
   --name=virNodeDeviceDefFree			\
   --name=virNodeDeviceObjFree			\
+  --name=virObjectUnref                         \
+  --name=virObjectFreeCallback                  \
   --name=virSecretDefFree			\
   --name=virStorageEncryptionFree		\
   --name=virStorageEncryptionSecretFree		\
@@ -337,6 +339,12 @@ sc_prohibit_fork_wrappers:
 	halt='use virCommand for child processes'			\
 	  $(_sc_search_regexp)
 
+# Prefer mkostemp with O_CLOEXEC.
+sc_prohibit_mkstemp:
+	@prohibit='[^"]\<mkstemps? *\('					\
+	halt='use mkostemp with O_CLOEXEC instead of mkstemp'		\
+	  $(_sc_search_regexp)
+
 # access with X_OK accepts directories, but we can't exec() those.
 # access with F_OK or R_OK is okay, though.
 sc_prohibit_access_xok:
@@ -350,18 +358,18 @@ snp_ = strncmp *\(.+\)
 sc_prohibit_strncmp:
 	@prohibit='! *strncmp *\(|\<$(snp_) *[!=]=|[!=]= *$(snp_)'	\
 	exclude=':# *define STR(N?EQLEN|PREFIX)\('			\
-	halt='$(ME): use STREQLEN or STRPREFIX instead of str''ncmp'	\
+	halt='use STREQLEN or STRPREFIX instead of str''ncmp'		\
 	  $(_sc_search_regexp)
 
 # strtol and friends are too easy to misuse
 sc_prohibit_strtol:
 	@prohibit='\bstrto(u?ll?|[ui]max) *\('				\
 	exclude='exempt from syntax-check'				\
-	halt='$(ME): use virStrToLong_*, not strtol variants'		\
+	halt='use virStrToLong_*, not strtol variants'			\
 	  $(_sc_search_regexp)
 	@prohibit='\bstrto[df] *\('					\
 	exclude='exempt from syntax-check'				\
-	halt='$(ME): use virStrToDouble, not strtod variants'		\
+	halt='use virStrToDouble, not strtod variants'			\
 	  $(_sc_search_regexp)
 
 # Use virAsprintf rather than as'printf since *strp is undefined on error.
@@ -383,13 +391,8 @@ sc_prohibit_sprintf:
 	halt='use snprintf, not s'printf				\
 	  $(_sc_search_regexp)
 
-sc_prohibit_strncpy:
-	@prohibit='strncpy *\('						\
-	halt='use virStrncpy, not strncpy'				\
-	  $(_sc_search_regexp)
-
 sc_prohibit_readlink:
-	@prohibit='readlink *\('					\
+	@prohibit='\<readlink *\('					\
 	halt='use virFileResolveLink, not readlink'			\
 	  $(_sc_search_regexp)
 
@@ -406,6 +409,11 @@ sc_prohibit_gettext_noop:
 sc_prohibit_VIR_ERR_NO_MEMORY:
 	@prohibit='\<V''IR_ERR_NO_MEMORY\>'				\
 	halt='use virReportOOMError, not V'IR_ERR_NO_MEMORY		\
+	  $(_sc_search_regexp)
+
+sc_prohibit_PATH_MAX:
+	@prohibit='\<P''ATH_MAX\>'				\
+	halt='dynamically allocate paths, do not use P'ATH_MAX	\
 	  $(_sc_search_regexp)
 
 # Use a subshell for each function, to give the optimal warning message.
@@ -442,7 +450,7 @@ sc_size_of_brackets:
 # Ensure that no C source file, docs, or rng schema uses TABs for
 # indentation.  Also match *.h.in files, to get libvirt.h.in.  Exclude
 # files in gnulib, since they're imported.
-space_indent_files=(\.(rng|s?[ch](\.in)?|html.in|py|syms)|(daemon|tools)/.*\.in)
+space_indent_files=(\.(rng|s?[ch](\.in)?|html.in|py|pl|syms)|(daemon|tools)/.*\.in)
 sc_TAB_in_indentation:
 	@prohibit='^ *	'						\
 	in_vc_files='$(space_indent_files)$$'				\
@@ -506,46 +514,12 @@ sc_avoid_attribute_unused_in_header:
 # |grep -vE '^(qsort|if|close|assert|fputc|free|N_|vir.*GetName|.*Unlock|virNodeListDevices|virHashRemoveEntry|freeaddrinfo|.*[fF]ree|xdrmem_create|xmlXPathFreeObject|virUUIDFormat|openvzSetProgramSentinal|polkit_action_unref)$'
 
 msg_gen_function =
-msg_gen_function += ESX_ERROR
-msg_gen_function += ESX_VI_ERROR
-msg_gen_function += HYPERV_ERROR
-msg_gen_function += PHYP_ERROR
 msg_gen_function += VIR_ERROR
-msg_gen_function += VMX_ERROR
-msg_gen_function += XENXS_ERROR
-msg_gen_function += eventReportError
-msg_gen_function += ifaceError
-msg_gen_function += interfaceReportError
-msg_gen_function += iptablesError
 msg_gen_function += lxcError
-msg_gen_function += libxlError
-msg_gen_function += macvtapError
-msg_gen_function += networkReportError
-msg_gen_function += nodeReportError
-msg_gen_function += openvzError
-msg_gen_function += pciReportError
-msg_gen_function += qemuReportError
-msg_gen_function += qemudDispatchClientFailure
 msg_gen_function += regerror
-msg_gen_function += remoteError
-msg_gen_function += remoteDispatchFormatError
-msg_gen_function += statsError
-msg_gen_function += streamsReportError
-msg_gen_function += usbReportError
-msg_gen_function += umlReportError
 msg_gen_function += vah_error
 msg_gen_function += vah_warning
-msg_gen_function += vboxError
-msg_gen_function += virCommandError
-msg_gen_function += virConfError
-msg_gen_function += virCPUReportError
-msg_gen_function += virEventError
-msg_gen_function += virDomainReportError
 msg_gen_function += virGenericReportError
-msg_gen_function += virHashError
-msg_gen_function += virHookReportError
-msg_gen_function += virInterfaceReportError
-msg_gen_function += virJSONError
 msg_gen_function += virLibConnError
 msg_gen_function += virLibDomainError
 msg_gen_function += virLibDomainSnapshotError
@@ -556,39 +530,21 @@ msg_gen_function += virLibNWFilterError
 msg_gen_function += virLibSecretError
 msg_gen_function += virLibStoragePoolError
 msg_gen_function += virLibStorageVolError
-msg_gen_function += virNetworkReportError
-msg_gen_function += virNodeDeviceReportError
-msg_gen_function += virNWFilterReportError
 msg_gen_function += virRaiseError
+msg_gen_function += virReportError
 msg_gen_function += virReportErrorHelper
 msg_gen_function += virReportSystemError
-msg_gen_function += virSecretReportError
-msg_gen_function += virSecurityReportError
-msg_gen_function += virSexprError
-msg_gen_function += virSmbiosReportError
-msg_gen_function += virSocketError
-msg_gen_function += virStatsError
-msg_gen_function += virStorageReportError
-msg_gen_function += virUtilError
-msg_gen_function += virXMLError
-msg_gen_function += virXenInotifyError
-msg_gen_function += virXenStoreError
-msg_gen_function += virXendError
-msg_gen_function += vmwareError
 msg_gen_function += xenapiSessionErrorHandler
-msg_gen_function += xenUnifiedError
-msg_gen_function += xenXMError
 
 # Uncomment the following and run "make syntax-check" to see diagnostics
 # that are not yet marked for translation, but that need to be rewritten
 # so that they are translatable.
 # msg_gen_function += fprintf
 # msg_gen_function += testError
-# msg_gen_function += virXenError
 # msg_gen_function += vshPrint
 # msg_gen_function += vshError
 
-func_or := $(shell printf '$(msg_gen_function)'|tr -s '[[:space:]]' '|')
+func_or := $(shell echo $(msg_gen_function)|tr -s ' ' '|')
 func_re := ($(func_or))
 
 # Look for diagnostics that aren't marked for translation.
@@ -599,7 +555,7 @@ func_re := ($(func_or))
 sc_libvirt_unmarked_diagnostics:
 	@prohibit='\<$(func_re) *\([^"]*"[^"]*[a-z]{3}'			\
 	exclude='_\('							\
-	halt='$(ME): found unmarked diagnostic(s)'			\
+	halt='found unmarked diagnostic(s)'				\
 	  $(_sc_search_regexp)
 	@{ grep     -nE '\<$(func_re) *\(.*;$$' $$($(VC_LIST_EXCEPT));   \
 	   grep -A1 -nE '\<$(func_re) *\(.*,$$' $$($(VC_LIST_EXCEPT)); } \
@@ -622,6 +578,39 @@ sc_prohibit_newline_at_end_of_diagnostic:
 	  && { echo '$(ME): newline at end of message(s)' 1>&2;		\
 	    exit 1; } || :
 
+# Look for diagnostics that lack a % in the format string, except that we
+# allow VIR_ERROR to do this, and ignore functions that take a single
+# string rather than a format argument.
+sc_prohibit_diagnostic_without_format:
+	@{ grep     -nE '\<$(func_re) *\(.*;$$' $$($(VC_LIST_EXCEPT));   \
+	   grep -A2 -nE '\<$(func_re) *\(.*,$$' $$($(VC_LIST_EXCEPT)); } \
+	   | sed -rn -e ':l; /[,"]$$/ {N;b l;}'				 \
+		-e '/(xenapiSessionErrorHandler|vah_(error|warning))/d'	 \
+		-e '/\<$(func_re) *\([^"]*"([^%"]|"\n[^"]*")*"[,)]/p'	 \
+           | grep -vE 'VIR_ERROR' &&					 \
+	  { echo '$(ME): found diagnostic without %' 1>&2;		 \
+	    exit 1; } || :
+
+# The strings "" and "%s" should never be marked for translation.
+# Files under tests/ and examples/ should not be translated.
+sc_prohibit_useless_translation:
+	@prohibit='_\("(%s)?"\)'					\
+	halt='found useless translation'				\
+	  $(_sc_search_regexp)
+	@prohibit='\<N?_ *\('						\
+	in_vc_files='^(tests|examples)/'				\
+	halt='no translations in tests or examples'			\
+	  $(_sc_search_regexp)
+
+# When splitting a diagnostic across lines, ensure that there is a space
+# or \n on one side of the split.
+sc_require_whitespace_in_translation:
+	@grep -n -A1 '"$$' $$($(VC_LIST_EXCEPT))   			\
+	   | sed -ne ':l; /"$$/ {N;b l;}; s/"\n[^"]*"/""/g; s/\\n/ /g'	\
+		-e '/_(.*[^\ ]""[^\ ]/p' | grep . &&			\
+	  { echo '$(ME): missing whitespace at line split' 1>&2;	\
+	    exit 1; } || :
+
 # Enforce recommended preprocessor indentation style.
 sc_preprocessor_indentation:
 	@if cppi --version >/dev/null 2>&1; then			\
@@ -642,6 +631,13 @@ sc_copyright_format:
 	  $(_sc_search_regexp)
 	@prohibit='\<Red''Hat\>'					\
 	halt='spell Red Hat as two words'				\
+	  $(_sc_search_regexp)
+
+# Prefer the new URL listing over the old street address listing when
+# calling out where to get a copy of the [L]GPL.
+sc_copyright_address:
+	@prohibit=Boston,' MA'						\
+	halt='Point to <http://www.gnu.org/licenses/>, not an address'	\
 	  $(_sc_search_regexp)
 
 # Some functions/macros produce messages intended solely for developers
@@ -709,23 +705,10 @@ ifeq (0,$(MAKELEVEL))
   _clean_requested = $(filter %clean,$(MAKECMDGOALS))
   ifeq (1,$(_update_required)$(_clean_requested))
     $(info INFO: gnulib update required; running ./autogen.sh first)
-Makefile: _autogen
+    $(shell touch $(srcdir)/AUTHORS $(srcdir)/ChangeLog)
+maint.mk Makefile: _autogen
   endif
 endif
-
-# Give credit where due:
-# Ensure that each commit author email address (possibly mapped via
-# git log's .mailmap) appears in our AUTHORS file.
-sc_check_author_list:
-	@fail=0;							\
-	for i in $$(git log --pretty=format:%aE%n|sort -u|grep -v '^$$'); do \
-	  sanitized=$$(echo "$$i"|LC_ALL=C sed 's/\([^a-zA-Z0-9_@-]\)/\\\1/g'); \
-	  grep -iq "<$$sanitized>" $(srcdir)/AUTHORS			\
-	    || { printf '%s\n' "$$i" >&2; fail=1; };			\
-	done;								\
-	test $$fail = 1							\
-	  && echo '$(ME): committer(s) not listed in AUTHORS' >&2;	\
-	test $$fail = 0
 
 # It is necessary to call autogen any time gnulib changes.  Autogen
 # reruns configure, then we regenerate all Makefiles at once.
@@ -750,7 +733,7 @@ $(srcdir)/src/remote/remote_client_bodies.h: $(srcdir)/src/remote/remote_protoco
 	$(MAKE) -C src remote/remote_client_bodies.h
 
 # List all syntax-check exemptions:
-exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.c$$
+exclude_file_name_regexp--sc_avoid_strcase = ^tools/virsh\.h$$
 
 _src1=libvirt|fdstream|qemu/qemu_monitor|util/(command|util)|xen/xend_internal|rpc/virnetsocket|lxc/lxc_controller
 exclude_file_name_regexp--sc_avoid_write = \
@@ -758,10 +741,13 @@ exclude_file_name_regexp--sc_avoid_write = \
 
 exclude_file_name_regexp--sc_bindtextdomain = ^(tests|examples)/
 
+exclude_file_name_regexp--sc_copyright_address = \
+  ^COPYING\.LIB$$
+
 exclude_file_name_regexp--sc_flags_usage = ^(docs/|src/util/virnetdevtap\.c$$)
 
 exclude_file_name_regexp--sc_libvirt_unmarked_diagnostics = \
-  ^src/rpc/gendispatch\.pl$$
+  ^(src/rpc/gendispatch\.pl$$|tests/)
 
 exclude_file_name_regexp--sc_po_check = ^(docs/|src/rpc/gendispatch\.pl$$)
 
@@ -780,7 +766,7 @@ exclude_file_name_regexp--sc_prohibit_close = \
   (\.p[yl]$$|^docs/|^(src/util/virfile\.c|src/libvirt\.c)$$)
 
 exclude_file_name_regexp--sc_prohibit_empty_lines_at_EOF = \
-  (^tests/qemuhelpdata/|\.(gif|ico|png|diff)$$)
+  (^tests/(qemuhelp|nodeinfo)data/|\.(gif|ico|png|diff)$$)
 
 _src2=src/(util/command|libvirt|lxc/lxc_controller)
 exclude_file_name_regexp--sc_prohibit_fork_wrappers = \
@@ -795,20 +781,20 @@ exclude_file_name_regexp--sc_prohibit_newline_at_end_of_diagnostic = \
   ^src/rpc/gendispatch\.pl$$
 
 exclude_file_name_regexp--sc_prohibit_nonreentrant = \
-  ^((po|tests)/|docs/.*py$$|tools/(virsh|console)\.c$$)
+  ^((po|tests)/|docs/.*py|run.in$$)
 
 exclude_file_name_regexp--sc_prohibit_raw_allocation = \
   ^(src/util/memory\.[ch]|examples/.*)$$
 
-exclude_file_name_regexp--sc_prohibit_readlink = ^src/util/util\.c$$
+exclude_file_name_regexp--sc_prohibit_readlink = \
+  ^src/(util/util|lxc/lxc_container)\.c$$
 
 exclude_file_name_regexp--sc_prohibit_setuid = ^src/util/util\.c$$
 
 exclude_file_name_regexp--sc_prohibit_sprintf = \
   ^(docs/hacking\.html\.in)|(examples/systemtap/.*stp)|(src/dtrace2systemtap\.pl)|(src/rpc/gensystemtap\.pl)$$
 
-exclude_file_name_regexp--sc_prohibit_strncpy = \
-  ^(src/util/util|tools/virsh)\.c$$
+exclude_file_name_regexp--sc_prohibit_strncpy = ^src/util/util\.c$$
 
 exclude_file_name_regexp--sc_prohibit_strtol = \
   ^src/(util/sexpr|(vbox|xen|xenxs)/.*)\.c$$
@@ -819,11 +805,13 @@ exclude_file_name_regexp--sc_prohibit_xmlURI = ^src/util/viruri\.c$$
 
 exclude_file_name_regexp--sc_prohibit_return_as_function = \.py$$
 
-exclude_file_name_regexp--sc_require_config_h = ^examples/
+_virsh_includes=(edit|domain-monitor|domain|volume|pool|network|interface|nwfilter|secret|snapshot|host|nodedev)
+exclude_file_name_regexp--sc_require_config_h = ^(examples/|tools/virsh-$(_virsh_includes)\.c$$)
 
-exclude_file_name_regexp--sc_require_config_h_first = ^examples/
+exclude_file_name_regexp--sc_require_config_h_first = ^(examples/|tools/virsh-$(_virsh_includes)\.c$$)
 
-exclude_file_name_regexp--sc_trailing_blank = \.(fig|gif|ico|png)$$
+exclude_file_name_regexp--sc_trailing_blank = \
+  (/qemuhelpdata/|\.(fig|gif|ico|png)$$)
 
 exclude_file_name_regexp--sc_unmarked_diagnostics = \
   ^(docs/apibuild.py|tests/virt-aa-helper-test)$$

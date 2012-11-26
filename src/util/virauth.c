@@ -1,6 +1,7 @@
 /*
  * virauth.c: authentication related utility functions
  *
+ * Copyright (C) 2012 Red Hat, Inc.
  * Copyright (C) 2010 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -14,8 +15,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,21 +55,23 @@ int virAuthGetConfigFilePath(virConnectPtr conn,
         return 0;
     }
 
-    for (i = 0 ; i < conn->uri->paramsCount ; i++) {
-        if (STREQ_NULLABLE(conn->uri->params[i].name, "authfile") &&
-            conn->uri->params[i].value) {
-            VIR_DEBUG("Using path from URI '%s'",
-                      conn->uri->params[i].value);
-            if (!(*path = strdup(conn->uri->params[i].value)))
-                goto no_memory;
-            return 0;
+    if (conn && conn->uri) {
+        for (i = 0 ; i < conn->uri->paramsCount ; i++) {
+            if (STREQ_NULLABLE(conn->uri->params[i].name, "authfile") &&
+                conn->uri->params[i].value) {
+                VIR_DEBUG("Using path from URI '%s'",
+                          conn->uri->params[i].value);
+                if (!(*path = strdup(conn->uri->params[i].value)))
+                    goto no_memory;
+                return 0;
+            }
         }
     }
 
-    if (!(userdir = virGetUserDirectory(geteuid())))
+    if (!(userdir = virGetUserConfigDirectory()))
         goto cleanup;
 
-    if (virAsprintf(path, "%s/.libvirt/auth.conf", userdir) < 0)
+    if (virAsprintf(path, "%s/auth.conf", userdir) < 0)
         goto no_memory;
 
     VIR_DEBUG("Checking for readability of '%s'", *path);
@@ -127,7 +130,7 @@ virAuthGetCredential(virConnectPtr conn,
 
     if (virAuthConfigLookup(config,
                             servicename,
-                            conn->uri->server,
+                            VIR_URI_SERVER(conn->uri),
                             credname,
                             &tmp) < 0)
         goto cleanup;

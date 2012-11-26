@@ -14,8 +14,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -74,8 +74,9 @@ void virAuditLog(int logging)
 }
 
 
-void virAuditSend(const char *file ATTRIBUTE_UNUSED, const char *func,
+void virAuditSend(const char *filename,
                   size_t linenr,
+                  const char *funcname,
                   const char *clienttty ATTRIBUTE_UNUSED,
                   const char *clientaddr ATTRIBUTE_UNUSED,
                   enum virAuditRecordType type ATTRIBUTE_UNUSED, bool success,
@@ -103,10 +104,12 @@ void virAuditSend(const char *file ATTRIBUTE_UNUSED, const char *func,
 
     if (auditlog && str) {
         if (success)
-            virLogMessage("audit", VIR_LOG_INFO, func, linenr, 0,
+            virLogMessage(VIR_LOG_FROM_AUDIT, VIR_LOG_INFO,
+                          filename, linenr, funcname,
                           "success=yes %s", str);
         else
-            virLogMessage("audit", VIR_LOG_WARN, func, linenr, 0,
+            virLogMessage(VIR_LOG_FROM_AUDIT, VIR_LOG_WARN,
+                          filename, linenr, funcname,
                           "success=no %s", str);
     }
 

@@ -12,8 +12,8 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * License along with this library.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
  * Authors:
  *     Daniel Veillard <veillard@redhat.com>
@@ -30,9 +30,6 @@
 #include <netdb.h>
 
 #define VIR_FROM_THIS VIR_FROM_NONE
-#define virSocketError(code, ...)                                       \
-    virReportErrorHelper(VIR_FROM_THIS, code, __FILE__,                 \
-                         __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /*
  * Helpers to extract the IP arrays from the virSocketAddrPtr
@@ -92,7 +89,7 @@ int virSocketAddrParse(virSocketAddrPtr addr, const char *val, int family) {
     int err;
 
     if (val == NULL) {
-        virSocketError(VIR_ERR_INVALID_ARG, "%s", _("Missing address"));
+        virReportError(VIR_ERR_INVALID_ARG, "%s", _("Missing address"));
         return -1;
     }
 
@@ -100,14 +97,14 @@ int virSocketAddrParse(virSocketAddrPtr addr, const char *val, int family) {
     hints.ai_family = family;
     hints.ai_flags = AI_NUMERICHOST;
     if ((err = getaddrinfo(val, NULL, &hints, &res)) != 0) {
-        virSocketError(VIR_ERR_SYSTEM_ERROR,
+        virReportError(VIR_ERR_SYSTEM_ERROR,
                        _("Cannot parse socket address '%s': %s"),
                        val, gai_strerror(err));
         return -1;
     }
 
     if (res == NULL) {
-        virSocketError(VIR_ERR_SYSTEM_ERROR,
+        virReportError(VIR_ERR_SYSTEM_ERROR,
                        _("No socket addresses found for '%s'"),
                        val);
         return -1;
@@ -230,7 +227,7 @@ virSocketAddrFormatFull(virSocketAddrPtr addr,
     int err;
 
     if (addr == NULL) {
-        virSocketError(VIR_ERR_INVALID_ARG, "%s", _("Missing address"));
+        virReportError(VIR_ERR_INVALID_ARG, "%s", _("Missing address"));
         return NULL;
     }
 
@@ -253,7 +250,7 @@ virSocketAddrFormatFull(virSocketAddrPtr addr,
                            host, sizeof(host),
                            port, sizeof(port),
                            NI_NUMERICHOST | NI_NUMERICSERV)) != 0) {
-        virSocketError(VIR_ERR_SYSTEM_ERROR,
+        virReportError(VIR_ERR_SYSTEM_ERROR,
                        _("Cannot convert socket address to string: %s"),
                        gai_strerror(err));
         return NULL;
@@ -421,7 +418,7 @@ virSocketAddrMaskByPrefix(const virSocketAddrPtr addr,
  * virSocketAddrBroadcast:
  * @addr: address that needs to be turned into broadcast address (IPv4 only)
  * @netmask: the netmask address
- * @broadcast: virSocketAddr to recieve the broadcast address
+ * @broadcast: virSocketAddr to receive the broadcast address
  *
  * Mask ON the host bits of @addr according to @netmask, turning it
  * into a broadcast address.
@@ -451,7 +448,7 @@ virSocketAddrBroadcast(const virSocketAddrPtr addr,
  * virSocketAddrBroadcastByPrefix:
  * @addr: address that needs to be turned into broadcast address (IPv4 only)
  * @prefix: prefix (# of 1 bits) of netmask to apply
- * @broadcast: virSocketAddr to recieve the broadcast address
+ * @broadcast: virSocketAddr to receive the broadcast address
  *
  * Mask off the host bits of @addr according to @prefix, turning it
  * into a network address.

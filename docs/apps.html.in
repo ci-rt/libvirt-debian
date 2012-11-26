@@ -188,7 +188,7 @@
         A general purpose desktop management tool, able to manage
         virtual machines across both local and remotely accessed
         hypervisors. It is targeted at home and small office usage
-        upto managing 10-20 hosts and their VMs.
+        up to managing 10-20 hosts and their VMs.
       </dd>
       <dt><a href="http://virt-manager.org/">virt-viewer</a></dt>
       <dd>
@@ -210,6 +210,14 @@
         with different scheduling policies. It can be also used as a
         cloud provider and is very easy to extend thanks to its
         modular Web Services architecture.
+      </dd>
+
+      <dt><a href="http://www.eucalyptus.com">Eucalyptus</a></dt>
+      <dd>
+        Eucalyptus is an on-premise Infrastructure as a Service cloud
+        software platform that is open source and
+        AWS-compatible. Eucalyptus uses libivrt virtualization API to
+        directly interact with Xen and KVM hypervisors.
       </dd>
 
       <dt><a href="http://www.nimbusproject.org">Nimbus</a></dt>
