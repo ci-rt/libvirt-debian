@@ -128,7 +128,7 @@ enum {
 #define READ_BLOCK_SIZE_DEFAULT  (1024 * 1024)
 #define WRITE_BLOCK_SIZE_DEFAULT (4 * 1024)
 
-static int ATTRIBUTE_NONNULL (2)
+static int ATTRIBUTE_NONNULL(2)
 virStorageBackendCopyToFD(virStorageVolDefPtr vol,
                           virStorageVolDefPtr inputvol,
                           int fd,
@@ -337,7 +337,6 @@ createRawFile(int fd, virStorageVolDefPtr vol,
 
     if (remain) {
         if (track_allocation_progress) {
-
             while (remain) {
                 /* Allocate in chunks of 512MiB: big-enough chunk
                  * size and takes approx. 9s on ext3. A progress
@@ -363,7 +362,6 @@ createRawFile(int fd, virStorageVolDefPtr vol,
                 goto cleanup;
             }
         }
-
     }
 
     if (fsync(fd) < 0) {
@@ -670,8 +668,11 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
     virCommandPtr cmd = NULL;
     bool do_encryption = (vol->target.encryption != NULL);
     unsigned long long int size_arg;
+    bool preallocate = false;
 
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, -1);
+
+    preallocate = !!(flags & VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA);
 
     const char *type = virStorageFileFormatTypeToString(vol->target.format);
     const char *backingType = vol->backingStore.path ?
@@ -699,10 +700,22 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
                        inputvol->target.format);
         return -1;
     }
+    if (preallocate && vol->target.format != VIR_STORAGE_FILE_QCOW2) {
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                       _("metadata preallocation only available with qcow2"));
+        return -1;
+    }
 
     if (vol->backingStore.path) {
         int accessRetCode = -1;
         char *absolutePath = NULL;
+
+        if (preallocate) {
+            virReportError(VIR_ERR_CONFIG_UNSUPPORTED, "%s",
+                           _("metadata preallocation conflicts with backing"
+                             " store"));
+            return -1;
+        }
 
         /* XXX: Not strictly required: qemu-img has an option a different
          * backing store, not really sure what use it serves though, and it
@@ -798,14 +811,15 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
         virCommandAddArgList(cmd, "convert", "-f", inputType, "-O", type,
                              inputPath, vol->target.path, NULL);
 
-        if (do_encryption) {
-            if (imgformat == QEMU_IMG_BACKING_FORMAT_OPTIONS) {
-                virCommandAddArgList(cmd, "-o", "encryption=on", NULL);
-            } else {
-                virCommandAddArg(cmd, "-e");
-            }
+        if (imgformat == QEMU_IMG_BACKING_FORMAT_OPTIONS &&
+            (do_encryption || preallocate)) {
+            virCommandAddArg(cmd, "-o");
+            virCommandAddArgFormat(cmd, "%s%s%s", do_encryption ? "encryption=on" : "",
+                                   (do_encryption && preallocate) ? "," : "",
+                                   preallocate ? "preallocation=metadata" : "");
+        } else if (do_encryption) {
+            virCommandAddArg(cmd, "-e");
         }
-
     } else if (vol->backingStore.path) {
         virCommandAddArgList(cmd, "create", "-f", type,
                              "-b", vol->backingStore.path, NULL);
@@ -842,12 +856,14 @@ virStorageBackendCreateQemuImg(virConnectPtr conn,
                              vol->target.path, NULL);
         virCommandAddArgFormat(cmd, "%lluK", size_arg);
 
-        if (do_encryption) {
-            if (imgformat == QEMU_IMG_BACKING_FORMAT_OPTIONS) {
-                virCommandAddArgList(cmd, "-o", "encryption=on", NULL);
-            } else {
-                virCommandAddArg(cmd, "-e");
-            }
+        if (imgformat == QEMU_IMG_BACKING_FORMAT_OPTIONS &&
+            (do_encryption || preallocate)) {
+            virCommandAddArg(cmd, "-o");
+            virCommandAddArgFormat(cmd, "%s%s%s", do_encryption ? "encryption=on" : "",
+                                   (do_encryption && preallocate) ? "," : "",
+                                   preallocate ? "preallocation=metadata" : "");
+        } else if (do_encryption) {
+            virCommandAddArg(cmd, "-e");
         }
     }
 
@@ -1625,18 +1641,18 @@ virStorageBackendRunProgNul(virStoragePoolObjPtr pool,
         size_t buf_len = 0;
         /* Be careful: even when it returns -1,
            this use of getdelim allocates memory.  */
-        ssize_t tok_len = getdelim (&buf, &buf_len, 0, fp);
+        ssize_t tok_len = getdelim(&buf, &buf_len, 0, fp);
         v[n_tok] = buf;
         if (tok_len < 0) {
             /* Maybe EOF, maybe an error.
                If n_tok > 0, then we know it's an error.  */
-            if (n_tok && func (pool, n_tok, v, data) < 0)
+            if (n_tok && func(pool, n_tok, v, data) < 0)
                 goto cleanup;
             break;
         }
         ++n_tok;
         if (n_tok == n_columns) {
-            if (func (pool, n_tok, v, data) < 0)
+            if (func(pool, n_tok, v, data) < 0)
                 goto cleanup;
             n_tok = 0;
             for (i = 0; i < n_columns; i++) {

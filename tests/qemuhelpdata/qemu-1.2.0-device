@@ -8,6 +8,7 @@ name "esp", bus System
 name "sysbus-ohci", bus System, desc "OHCI USB Controller"
 name "virtio-blk-pci", bus PCI, alias "virtio-blk"
 name "usb-uas", bus usb-bus
+name "qxl-vga", bus PCI, desc "Spice QXL GPU (primary, vga compatible)"
 name "ide-drive", bus IDE, desc "virtual IDE disk or CD-ROM (legacy)"
 name "x3130-upstream", bus PCI, desc "TI X3130 Upstream Port of PCI Express Switch"
 name "cirrus-vga", bus PCI, desc "Cirrus CLGD 54xx VGA"
@@ -32,6 +33,7 @@ name "pci-ohci", bus PCI, desc "Apple USB Controller"
 name "nec-usb-xhci", bus PCI
 name "xio3130-downstream", bus PCI, desc "TI X3130 Downstream Port of PCI Express Switch"
 name "virtserialport", bus virtio-serial-bus
+name "usb-redir", bus usb-bus
 name "usb-braille", bus usb-bus
 name "scsi-cd", bus SCSI, desc "virtual SCSI CD-ROM"
 name "usb-wacom-tablet", bus usb-bus, desc "QEMU PenPartner Tablet"
@@ -64,9 +66,9 @@ name "usb-bt-dongle", bus usb-bus
 name "usb-tablet", bus usb-bus
 name "isa-vga", bus ISA
 name "usb-kbd", bus usb-bus
-name "kvm-pci-assign", bus PCI, alias "pci-assign", desc "KVM-based PCI passthrough"
 name "isa-applesmc", bus ISA
 name "rtl8139", bus PCI
+name "qxl", bus PCI, desc "Spice QXL GPU (secondary)"
 name "i82557a", bus PCI, desc "Intel i82557A Ethernet"
 name "i82557c", bus PCI, desc "Intel i82557C Ethernet"
 name "usb-audio", bus usb-bus
@@ -95,16 +97,6 @@ name "vt82c686b-usb-uhci", bus PCI
 name "usb-ehci", bus PCI
 name "i6300esb", bus PCI
 name "virtio-scsi-pci", bus PCI
-kvm-pci-assign.host=pci-host-devaddr
-kvm-pci-assign.prefer_msi=on/off
-kvm-pci-assign.share_intx=on/off
-kvm-pci-assign.bootindex=int32
-kvm-pci-assign.configfd=string
-kvm-pci-assign.addr=pci-devfn
-kvm-pci-assign.romfile=string
-kvm-pci-assign.rombar=uint32
-kvm-pci-assign.multifunction=on/off
-kvm-pci-assign.command_serr_enable=on/off
 virtio-blk-pci.class=hex32
 virtio-blk-pci.drive=drive
 virtio-blk-pci.logical_block_size=blocksize
@@ -179,3 +171,40 @@ scsi-disk.wwn=hex64
 scsi-disk.channel=uint32
 scsi-disk.scsi-id=uint32
 scsi-disk.lun=uint32
+PIIX4_PM.smb_io_base=uint32
+PIIX4_PM.disable_s3=uint8
+PIIX4_PM.disable_s4=uint8
+PIIX4_PM.s4_val=uint8
+PIIX4_PM.addr=pci-devfn
+PIIX4_PM.romfile=string
+PIIX4_PM.rombar=uint32
+PIIX4_PM.multifunction=on/off
+PIIX4_PM.command_serr_enable=on/off
+usb-redir.chardev=chr
+usb-redir.debug=uint8
+usb-redir.filter=string
+usb-redir.bootindex=int32
+usb-redir.port=string
+usb-redir.full-path=on/off
+ide-drive.drive=drive
+ide-drive.logical_block_size=blocksize
+ide-drive.physical_block_size=blocksize
+ide-drive.min_io_size=uint16
+ide-drive.opt_io_size=uint32
+ide-drive.bootindex=int32
+ide-drive.discard_granularity=uint32
+ide-drive.ver=string
+ide-drive.wwn=hex64
+ide-drive.serial=string
+ide-drive.model=string
+ide-drive.unit=uint32
+usb-host.hostbus=uint32
+usb-host.hostaddr=uint32
+usb-host.hostport=string
+usb-host.vendorid=hex32
+usb-host.productid=hex32
+usb-host.isobufs=uint32
+usb-host.bootindex=int32
+usb-host.pipeline=on/off
+usb-host.port=string
+usb-host.full-path=on/off

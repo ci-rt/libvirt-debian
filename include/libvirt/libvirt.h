@@ -179,6 +179,7 @@ typedef enum {
     VIR_DOMAIN_PAUSED_WATCHDOG = 6,     /* paused due to a watchdog event */
     VIR_DOMAIN_PAUSED_FROM_SNAPSHOT = 7, /* paused after restoring from snapshot */
     VIR_DOMAIN_PAUSED_SHUTTING_DOWN = 8, /* paused during shutdown process */
+    VIR_DOMAIN_PAUSED_SNAPSHOT = 9,      /* paused while creating a snapshot */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_PAUSED_LAST
@@ -530,17 +531,19 @@ typedef virTypedParameter *virTypedParameterPtr;
 typedef struct _virNodeInfo virNodeInfo;
 
 struct _virNodeInfo {
-    char model[32];     /* string indicating the CPU model */
-    unsigned long memory;/* memory size in kilobytes */
-    unsigned int cpus;  /* the number of active CPUs */
-    unsigned int mhz;   /* expected CPU frequency */
-    unsigned int nodes; /* the number of NUMA cell, 1 for unusual NUMA
-                           topologies or uniform memory access; check
-                           capabilities XML for the actual NUMA topology */
-    unsigned int sockets;/* number of CPU sockets per node if nodes > 1,
-                            total number of CPU sockets otherwise */
-    unsigned int cores; /* number of cores per socket */
-    unsigned int threads;/* number of threads per core */
+    char model[32];       /* string indicating the CPU model */
+    unsigned long memory; /* memory size in kilobytes */
+    unsigned int cpus;    /* the number of active CPUs */
+    unsigned int mhz;     /* expected CPU frequency */
+    unsigned int nodes;   /* the number of NUMA cell, 1 for unusual NUMA
+                             topologies or uniform memory access; check
+                             capabilities XML for the actual NUMA topology */
+    unsigned int sockets; /* number of CPU sockets per node if nodes > 1,
+                             1 in case of unusual NUMA topology */
+    unsigned int cores;   /* number of cores per socket, total number of
+                             processors in case of unusual NUMA topology*/
+    unsigned int threads; /* number of threads per core, 1 in case of
+                             unusual numa topology */
 };
 
 /**
@@ -1089,6 +1092,7 @@ typedef enum {
                                                * whole migration process; this will be used automatically
                                                * when supported */
     VIR_MIGRATE_UNSAFE            = (1 << 9), /* force migration even if it is considered unsafe */
+    VIR_MIGRATE_OFFLINE           = (1 << 10), /* offline migrate */
 } virDomainMigrateFlags;
 
 /* Domain migration. */
@@ -1258,7 +1262,7 @@ VIR_EXPORT_VAR virConnectAuthPtr virConnectAuthPtrDefault;
  * version * 1,000,000 + minor * 1000 + micro
  */
 
-#define LIBVIR_VERSION_NUMBER 1000000
+#define LIBVIR_VERSION_NUMBER 1000001
 
 int                     virGetVersion           (unsigned long *libVer,
                                                  const char *type,
@@ -1382,6 +1386,8 @@ typedef enum {
     VIR_DOMAIN_SHUTDOWN_DEFAULT        = 0,        /* hypervisor choice */
     VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN = (1 << 0), /* Send ACPI event */
     VIR_DOMAIN_SHUTDOWN_GUEST_AGENT    = (1 << 1), /* Use guest agent */
+    VIR_DOMAIN_SHUTDOWN_INITCTL        = (1 << 2), /* Use initctl */
+    VIR_DOMAIN_SHUTDOWN_SIGNAL         = (1 << 3), /* Send a signal */
 } virDomainShutdownFlagValues;
 
 int                     virDomainShutdown       (virDomainPtr domain);
@@ -1392,6 +1398,8 @@ typedef enum {
     VIR_DOMAIN_REBOOT_DEFAULT        = 0,        /* hypervisor choice */
     VIR_DOMAIN_REBOOT_ACPI_POWER_BTN = (1 << 0), /* Send ACPI event */
     VIR_DOMAIN_REBOOT_GUEST_AGENT    = (1 << 1), /* Use guest agent */
+    VIR_DOMAIN_REBOOT_INITCTL        = (1 << 2), /* Use initctl */
+    VIR_DOMAIN_REBOOT_SIGNAL         = (1 << 3), /* Send a signal */
 } virDomainRebootFlagValues;
 
 int                     virDomainReboot         (virDomainPtr domain,
@@ -2899,6 +2907,10 @@ virStorageVolPtr        virStorageVolLookupByPath       (virConnectPtr conn,
 const char*             virStorageVolGetName            (virStorageVolPtr vol);
 const char*             virStorageVolGetKey             (virStorageVolPtr vol);
 
+typedef enum {
+    VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA = 1 << 0,
+} virStorageVolCreateFlags;
+
 virStorageVolPtr        virStorageVolCreateXML          (virStoragePoolPtr pool,
                                                          const char *xmldesc,
                                                          unsigned int flags);
@@ -2984,6 +2996,99 @@ int virDomainSendKey(virDomainPtr domain,
                      unsigned int *keycodes,
                      int nkeycodes,
                      unsigned int flags);
+
+/*
+ * These just happen to match Linux signal numbers. The numbers
+ * will be mapped to whatever the SIGNUM is in the guest OS in
+ * question by the agent delivering the signal. The names are
+ * based on the POSIX / XSI signal standard though.
+ *
+ * Do not rely on all values matching Linux though. It is possible
+ * this enum might be extended with new signals which have no
+ * mapping in Linux.
+ */
+typedef enum {
+    VIR_DOMAIN_PROCESS_SIGNAL_NOP        =  0, /* No constant in POSIX/Linux */
+    VIR_DOMAIN_PROCESS_SIGNAL_HUP        =  1, /* SIGHUP */
+    VIR_DOMAIN_PROCESS_SIGNAL_INT        =  2, /* SIGINT */
+    VIR_DOMAIN_PROCESS_SIGNAL_QUIT       =  3, /* SIGQUIT */
+    VIR_DOMAIN_PROCESS_SIGNAL_ILL        =  4, /* SIGILL */
+    VIR_DOMAIN_PROCESS_SIGNAL_TRAP       =  5, /* SIGTRAP */
+    VIR_DOMAIN_PROCESS_SIGNAL_ABRT       =  6, /* SIGABRT */
+    VIR_DOMAIN_PROCESS_SIGNAL_BUS        =  7, /* SIGBUS */
+    VIR_DOMAIN_PROCESS_SIGNAL_FPE        =  8, /* SIGFPE */
+    VIR_DOMAIN_PROCESS_SIGNAL_KILL       =  9, /* SIGKILL */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_USR1       = 10, /* SIGUSR1 */
+    VIR_DOMAIN_PROCESS_SIGNAL_SEGV       = 11, /* SIGSEGV */
+    VIR_DOMAIN_PROCESS_SIGNAL_USR2       = 12, /* SIGUSR2 */
+    VIR_DOMAIN_PROCESS_SIGNAL_PIPE       = 13, /* SIGPIPE */
+    VIR_DOMAIN_PROCESS_SIGNAL_ALRM       = 14, /* SIGALRM */
+    VIR_DOMAIN_PROCESS_SIGNAL_TERM       = 15, /* SIGTERM */
+    VIR_DOMAIN_PROCESS_SIGNAL_STKFLT     = 16, /* Not in POSIX (SIGSTKFLT on Linux )*/
+    VIR_DOMAIN_PROCESS_SIGNAL_CHLD       = 17, /* SIGCHLD */
+    VIR_DOMAIN_PROCESS_SIGNAL_CONT       = 18, /* SIGCONT */
+    VIR_DOMAIN_PROCESS_SIGNAL_STOP       = 19, /* SIGSTOP */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_TSTP       = 20, /* SIGTSTP */
+    VIR_DOMAIN_PROCESS_SIGNAL_TTIN       = 21, /* SIGTTIN */
+    VIR_DOMAIN_PROCESS_SIGNAL_TTOU       = 22, /* SIGTTOU */
+    VIR_DOMAIN_PROCESS_SIGNAL_URG        = 23, /* SIGURG */
+    VIR_DOMAIN_PROCESS_SIGNAL_XCPU       = 24, /* SIGXCPU */
+    VIR_DOMAIN_PROCESS_SIGNAL_XFSZ       = 25, /* SIGXFSZ */
+    VIR_DOMAIN_PROCESS_SIGNAL_VTALRM     = 26, /* SIGVTALRM */
+    VIR_DOMAIN_PROCESS_SIGNAL_PROF       = 27, /* SIGPROF */
+    VIR_DOMAIN_PROCESS_SIGNAL_WINCH      = 28, /* Not in POSIX (SIGWINCH on Linux) */
+    VIR_DOMAIN_PROCESS_SIGNAL_POLL       = 29, /* SIGPOLL (also known as SIGIO on Linux) */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_PWR        = 30, /* Not in POSIX (SIGPWR on Linux */
+    VIR_DOMAIN_PROCESS_SIGNAL_SYS        = 31, /* SIGSYS (also known as SIGUNUSED on Linux ) */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT0        = 32, /* SIGRTMIN */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT1        = 33, /* SIGRTMIN + 1 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT2        = 34, /* SIGRTMIN + 2 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT3        = 35, /* SIGRTMIN + 3 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT4        = 36, /* SIGRTMIN + 4 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT5        = 37, /* SIGRTMIN + 5 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT6        = 38, /* SIGRTMIN + 6 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT7        = 39, /* SIGRTMIN + 7 */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_RT8        = 40, /* SIGRTMIN + 8 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT9        = 41, /* SIGRTMIN + 9 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT10       = 42, /* SIGRTMIN + 10 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT11       = 43, /* SIGRTMIN + 11 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT12       = 44, /* SIGRTMIN + 12 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT13       = 45, /* SIGRTMIN + 13 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT14       = 46, /* SIGRTMIN + 14 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT15       = 47, /* SIGRTMIN + 15 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT16       = 48, /* SIGRTMIN + 16 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT17       = 49, /* SIGRTMIN + 17 */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_RT18       = 50, /* SIGRTMIN + 18 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT19       = 51, /* SIGRTMIN + 19 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT20       = 52, /* SIGRTMIN + 20 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT21       = 53, /* SIGRTMIN + 21 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT22       = 54, /* SIGRTMIN + 22 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT23       = 55, /* SIGRTMIN + 23 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT24       = 56, /* SIGRTMIN + 24 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT25       = 57, /* SIGRTMIN + 25 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT26       = 58, /* SIGRTMIN + 26 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT27       = 59, /* SIGRTMIN + 27 */
+
+    VIR_DOMAIN_PROCESS_SIGNAL_RT28       = 60, /* SIGRTMIN + 28 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT29       = 61, /* SIGRTMIN + 29 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT30       = 62, /* SIGRTMIN + 30 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT31       = 63, /* SIGRTMIN + 31 */
+    VIR_DOMAIN_PROCESS_SIGNAL_RT32       = 64, /* SIGRTMIN + 32 / SIGRTMAX */
+
+#ifdef VIR_ENUM_SENTINELS
+    VIR_DOMAIN_PROCESS_SIGNAL_LAST
+#endif
+} virDomainProcessSignal;
+
+int virDomainSendProcessSignal(virDomainPtr domain,
+                               long long pid_value,
+                               unsigned int signum,
+                               unsigned int flags);
 
 /*
  * Deprecated calls
@@ -3158,6 +3263,7 @@ typedef enum {
     VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG = 3,  /* Suspended due to a watchdog firing */
     VIR_DOMAIN_EVENT_SUSPENDED_RESTORED = 4,  /* Restored from paused state file */
     VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT = 5, /* Restored from paused snapshot */
+    VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR = 6, /* suspended after failure during libvirt API call */
 
 #ifdef VIR_ENUM_SENTINELS
     VIR_DOMAIN_EVENT_SUSPENDED_LAST
@@ -3770,6 +3876,9 @@ typedef enum {
                                                           the domain */
     VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC      = (1 << 7), /* atomically avoid
                                                           partial changes */
+    VIR_DOMAIN_SNAPSHOT_CREATE_LIVE        = (1 << 8), /* create the snapshot
+                                                          while the guest is
+                                                          running */
 } virDomainSnapshotCreateFlags;
 
 /* Take a snapshot of the current VM state */
@@ -3811,6 +3920,25 @@ typedef enum {
                                                         which have metadata */
     VIR_DOMAIN_SNAPSHOT_LIST_NO_METADATA = (1 << 4), /* Filter by snapshots
                                                         with no metadata */
+
+    VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE    = (1 << 5), /* Filter by snapshots
+                                                        taken while guest was
+                                                        shut off */
+    VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE      = (1 << 6), /* Filter by snapshots
+                                                        taken while guest was
+                                                        active, and with
+                                                        memory state */
+    VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY   = (1 << 7), /* Filter by snapshots
+                                                        taken while guest was
+                                                        active, but without
+                                                        memory state */
+
+    VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL    = (1 << 8), /* Filter by snapshots
+                                                        stored internal to
+                                                        disk images */
+    VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL    = (1 << 9), /* Filter by snapshots
+                                                        that use files external
+                                                        to disk images */
 } virDomainSnapshotListFlags;
 
 /* Return the number of snapshots for this domain */
@@ -4431,6 +4559,10 @@ int virDomainOpenGraphics(virDomainPtr dom,
 
 int virDomainInjectNMI(virDomainPtr domain, unsigned int flags);
 
+int virDomainFSTrim(virDomainPtr dom,
+                    const char *mountPoint,
+                    unsigned long long minimum,
+                    unsigned int flags);
 
 /**
  * virSchedParameterType:

@@ -22,7 +22,7 @@
 # include "testutilsqemu.h"
 
 static const char *abs_top_srcdir;
-static struct qemud_driver driver;
+static virQEMUDriver driver;
 
 static unsigned char *
 fakeSecretGetValue(virSecretPtr obj ATTRIBUTE_UNUSED,
@@ -408,6 +408,12 @@ mymain(void)
 
     DO_TEST("cpu-eoi-disabled", QEMU_CAPS_ENABLE_KVM);
     DO_TEST("cpu-eoi-enabled", QEMU_CAPS_ENABLE_KVM);
+    DO_TEST("controller-order", QEMU_CAPS_DRIVE, QEMU_CAPS_PCIDEVICE,
+            QEMU_CAPS_KVM, QEMU_CAPS_DEVICE, QEMU_CAPS_ENABLE_KVM,
+            QEMU_CAPS_BOOT_MENU, QEMU_CAPS_PIIX3_USB_UHCI,
+            QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_DRIVE_AIO,
+            QEMU_CAPS_CCID_PASSTHRU, QEMU_CAPS_CHARDEV,
+            QEMU_CAPS_CHARDEV_SPICEVMC, QEMU_CAPS_SPICE, QEMU_CAPS_HDA_DUPLEX);
     DO_TEST("eoi-disabled", NONE);
     DO_TEST("eoi-enabled", NONE);
     DO_TEST("kvmclock+eoi-disabled", QEMU_CAPS_ENABLE_KVM);
@@ -475,6 +481,8 @@ mymain(void)
             QEMU_CAPS_DRIVE_CACHE_UNSAFE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-nbd",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
+    DO_TEST("disk-drive-network-gluster",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-rbd",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DRIVE_FORMAT);
     DO_TEST("disk-drive-network-sheepdog",
@@ -496,6 +504,14 @@ mymain(void)
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI_PCI);
     DO_TEST("disk-scsi-disk-wwn",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI_PCI,
+            QEMU_CAPS_SCSI_DISK_WWN);
+    DO_TEST("disk-scsi-disk-vpd",
+            QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI_PCI,
+            QEMU_CAPS_SCSI_DISK_WWN);
+    DO_TEST_FAILURE("disk-scsi-disk-vpd-build-error",
             QEMU_CAPS_DRIVE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_SCSI_CD, QEMU_CAPS_SCSI_LSI, QEMU_CAPS_VIRTIO_SCSI_PCI,
             QEMU_CAPS_SCSI_DISK_WWN);
@@ -709,6 +725,12 @@ mymain(void)
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_USB_HUB,
             QEMU_CAPS_ICH9_USB_EHCI1, QEMU_CAPS_USB_REDIR,
             QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC);
+    DO_TEST("usb-redir-boot",
+            QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
+            QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_USB_HUB,
+            QEMU_CAPS_ICH9_USB_EHCI1, QEMU_CAPS_USB_REDIR,
+            QEMU_CAPS_SPICE, QEMU_CAPS_CHARDEV_SPICEVMC, QEMU_CAPS_BOOTINDEX,
+            QEMU_CAPS_USB_REDIR_BOOTINDEX);
     DO_TEST("usb-redir-filter",
             QEMU_CAPS_CHARDEV, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG,
             QEMU_CAPS_PCI_MULTIFUNCTION, QEMU_CAPS_USB_HUB,
@@ -749,6 +771,9 @@ mymain(void)
     DO_TEST("hostdev-usb-address", NONE);
     DO_TEST("hostdev-usb-address-device",
             QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);
+    DO_TEST("hostdev-usb-address-device-boot", QEMU_CAPS_DEVICE,
+            QEMU_CAPS_NODEFCONFIG, QEMU_CAPS_BOOTINDEX,
+            QEMU_CAPS_USB_HOST_BOOTINDEX);
     DO_TEST("hostdev-pci-address", QEMU_CAPS_PCIDEVICE);
     DO_TEST("hostdev-pci-address-device",
             QEMU_CAPS_PCIDEVICE, QEMU_CAPS_DEVICE, QEMU_CAPS_NODEFCONFIG);

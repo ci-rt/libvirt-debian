@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2005-2012 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libvirt], [1.0.0], [libvir-list@redhat.com], [], [http://libvirt.org])
+AC_INIT([libvirt], [1.0.1], [libvir-list@redhat.com], [], [http://libvirt.org])
 AC_CONFIG_SRCDIR([src/libvirt.c])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -115,6 +115,7 @@ LIBSSH2_REQUIRED="1.0"
 LIBSSH2_TRANSPORT_REQUIRED="1.3"
 LIBBLKID_REQUIRED="2.17"
 DBUS_REQUIRED="1.0.0"
+FUSE_REQUIRED="2.8.6"
 
 dnl Checks for C compiler.
 AC_PROG_CC
@@ -717,16 +718,14 @@ if test "$with_libxl" != "no" ; then
     fi
     CFLAGS="$CFLAGS $LIBXL_CFLAGS"
     LIBS="$LIBS $LIBXL_LIBS"
-    AC_CHECK_LIB([xenlight], [libxl_domain_create_new], [
+    AC_CHECK_LIB([xenlight], [libxl_ctx_alloc], [
         with_libxl=yes
-        LIBXL_LIBS="$LIBXL_LIBS -lxenlight -lxenstore -lxenctrl -lxenguest -luuid -lutil -lblktapctl"
+        LIBXL_LIBS="$LIBXL_LIBS -lxenlight"
     ],[
         if test "$with_libxl" = "yes"; then
             fail=1
         fi
         with_libxl=no
-    ],[
-        -lxenstore -lxenctrl -lxenguest -luuid -lutil -lblktapctl
     ])
 fi
 
@@ -734,7 +733,7 @@ LIBS="$old_LIBS"
 CFLAGS="$old_CFLAGS"
 
 if test $fail = 1; then
-    AC_MSG_ERROR([You must install the libxl Library to compile libxenlight driver with -lxl])
+    AC_MSG_ERROR([You must install the libxl Library from Xen >= 4.2 to compile libxenlight driver with -lxl])
 fi
 
 if test "$with_libxl" = "yes"; then
@@ -1222,6 +1221,13 @@ if test "x$with_sanlock" != "xno"; then
     if test "x$sanlock_killpath" = "xyes" ; then
       AC_DEFINE_UNQUOTED([HAVE_SANLOCK_KILLPATH], 1,
         [whether Sanlock supports sanlock_killpath])
+    fi
+
+    AC_CHECK_LIB([sanlock_client], [sanlock_inq_lockspace],
+                 [sanlock_inq_lockspace=yes], [sanlock_inq_lockspace=no])
+    if test "x$sanlock_inq_lockspace" = "xyes" ; then
+      AC_DEFINE_UNQUOTED([HAVE_SANLOCK_INQ_LOCKSPACE], 1,
+        [whether sanlock supports sanlock_inq_lockspace])
     fi
   fi
 fi
@@ -1859,6 +1865,29 @@ AC_SUBST([CAPNG_CFLAGS])
 AC_SUBST([CAPNG_LIBS])
 
 
+dnl libfuse
+AC_ARG_WITH([fuse],
+  AC_HELP_STRING([--with-fuse], [use libfuse to proivde fuse filesystem support for libvirt lxc]),
+  [],
+  [with_fuse=check])
+dnl
+dnl This check looks for 'fuse'
+dnl
+AS_IF([test "x$with_fuse" != "xno"],
+        [PKG_CHECK_MODULES([FUSE], [fuse >= $FUSE_REQUIRED],
+          [with_fuse=yes
+           AC_SUBST([FUSE_CFLAGS])
+           AC_SUBST([FUSE_LIBS])
+           AC_DEFINE_UNQUOTED([HAVE_FUSE], 1, [whether fuse is available for libvirt lxc])
+          ],
+          [if test "x$with_fuse" = "xyes" ; then
+             AC_MSG_ERROR([You must install fuse library to compile libvirt])
+           else
+             with_fuse=no
+           fi
+          ])
+        ])
+AM_CONDITIONAL([HAVE_FUSE], [test "x$with_fuse" = "xyes"])
 
 dnl virsh libraries
 AC_CHECK_HEADERS([readline/readline.h])
@@ -3162,6 +3191,11 @@ if test "$with_capng" = "yes" ; then
 AC_MSG_NOTICE([   capng: $CAPNG_CFLAGS $CAPNG_LIBS])
 else
 AC_MSG_NOTICE([   capng: no])
+fi
+if test "$with_fuse" = "yes" ; then
+AC_MSG_NOTICE([    fuse: $FUSE_CFLAGS $FUSE_LIBS])
+else
+AC_MSG_NOTICE([    fuse: no])
 fi
 if test "$with_xen" = "yes" ; then
 AC_MSG_NOTICE([     xen: $XEN_CFLAGS $XEN_LIBS])

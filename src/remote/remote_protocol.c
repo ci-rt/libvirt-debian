@@ -1800,6 +1800,21 @@ xdr_remote_domain_send_key_args (XDR *xdrs, remote_domain_send_key_args *objp)
 }
 
 bool_t
+xdr_remote_domain_send_process_signal_args (XDR *xdrs, remote_domain_send_process_signal_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_int64_t (xdrs, &objp->pid_value))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->signum))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
 xdr_remote_domain_set_vcpus_args (XDR *xdrs, remote_domain_set_vcpus_args *objp)
 {
 
@@ -5555,6 +5570,21 @@ xdr_remote_node_get_cpu_map_ret (XDR *xdrs, remote_node_get_cpu_map_ret *objp)
          if (!xdr_u_int (xdrs, &objp->online))
                  return FALSE;
          if (!xdr_int (xdrs, &objp->ret))
+                 return FALSE;
+        return TRUE;
+}
+
+bool_t
+xdr_remote_domain_fstrim_args (XDR *xdrs, remote_domain_fstrim_args *objp)
+{
+
+         if (!xdr_remote_nonnull_domain (xdrs, &objp->dom))
+                 return FALSE;
+         if (!xdr_remote_string (xdrs, &objp->mountPoint))
+                 return FALSE;
+         if (!xdr_uint64_t (xdrs, &objp->minimum))
+                 return FALSE;
+         if (!xdr_u_int (xdrs, &objp->flags))
                  return FALSE;
         return TRUE;
 }

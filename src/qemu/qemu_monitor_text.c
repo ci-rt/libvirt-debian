@@ -609,10 +609,10 @@ static int parseMemoryStat(char **text, unsigned int tag,
     char *dummy;
     unsigned long long value;
 
-    if (STRPREFIX (*text, search)) {
+    if (STRPREFIX(*text, search)) {
         *text += strlen(search);
-        if (virStrToLong_ull (*text, &dummy, 10, &value)) {
-            VIR_DEBUG ("error reading %s: %s", search, *text);
+        if (virStrToLong_ull(*text, &dummy, 10, &value)) {
+            VIR_DEBUG("error reading %s: %s", search, *text);
             return 0;
         }
 
@@ -675,7 +675,7 @@ static int qemuMonitorParseBalloonInfo(char *text,
          */
         if (*p == ',')
             p++;
-        p = strchr (p, ',');
+        p = strchr(p, ',');
         if (!p) break;
     }
     return nr_stats_found;
@@ -877,7 +877,7 @@ int qemuMonitorTextGetBlockStatsInfo(qemuMonitorPtr mon,
     const char *p, *eol;
     int devnamelen = strlen(dev_name);
 
-    if (qemuMonitorHMPCommand (mon, "info blockstats", &info) < 0)
+    if (qemuMonitorHMPCommand(mon, "info blockstats", &info) < 0)
         goto cleanup;
 
     /* If the command isn't supported then qemu prints the supported
@@ -919,58 +919,58 @@ int qemuMonitorTextGetBlockStatsInfo(qemuMonitorPtr mon,
         if (STRPREFIX(p, QEMU_DRIVE_HOST_PREFIX))
             p += strlen(QEMU_DRIVE_HOST_PREFIX);
 
-        if (STREQLEN (p, dev_name, devnamelen)
+        if (STREQLEN(p, dev_name, devnamelen)
             && p[devnamelen] == ':' && p[devnamelen+1] == ' ') {
 
-            eol = strchr (p, '\n');
+            eol = strchr(p, '\n');
             if (!eol)
-                eol = p + strlen (p);
+                eol = p + strlen(p);
 
             p += devnamelen+2;         /* Skip to first label. */
 
             while (*p) {
-                if (STRPREFIX (p, "rd_bytes=")) {
+                if (STRPREFIX(p, "rd_bytes=")) {
                     p += strlen("rd_bytes=");
-                    if (virStrToLong_ll (p, &dummy, 10, rd_bytes) == -1)
-                        VIR_DEBUG ("error reading rd_bytes: %s", p);
-                } else if (STRPREFIX (p, "wr_bytes=")) {
+                    if (virStrToLong_ll(p, &dummy, 10, rd_bytes) == -1)
+                        VIR_DEBUG("error reading rd_bytes: %s", p);
+                } else if (STRPREFIX(p, "wr_bytes=")) {
                     p += strlen("wr_bytes=");
-                    if (virStrToLong_ll (p, &dummy, 10, wr_bytes) == -1)
-                        VIR_DEBUG ("error reading wr_bytes: %s", p);
-                } else if (STRPREFIX (p, "rd_operations=")) {
+                    if (virStrToLong_ll(p, &dummy, 10, wr_bytes) == -1)
+                        VIR_DEBUG("error reading wr_bytes: %s", p);
+                } else if (STRPREFIX(p, "rd_operations=")) {
                     p += strlen("rd_operations=");
-                    if (virStrToLong_ll (p, &dummy, 10, rd_req) == -1)
-                        VIR_DEBUG ("error reading rd_req: %s", p);
-                } else if (STRPREFIX (p, "wr_operations=")) {
+                    if (virStrToLong_ll(p, &dummy, 10, rd_req) == -1)
+                        VIR_DEBUG("error reading rd_req: %s", p);
+                } else if (STRPREFIX(p, "wr_operations=")) {
                     p += strlen("wr_operations=");
-                    if (virStrToLong_ll (p, &dummy, 10, wr_req) == -1)
-                        VIR_DEBUG ("error reading wr_req: %s", p);
+                    if (virStrToLong_ll(p, &dummy, 10, wr_req) == -1)
+                        VIR_DEBUG("error reading wr_req: %s", p);
                 } else if (rd_total_times &&
-                           STRPREFIX (p, "rd_total_time_ns=")) {
+                           STRPREFIX(p, "rd_total_time_ns=")) {
                     p += strlen("rd_total_time_ns=");
-                    if (virStrToLong_ll (p, &dummy, 10, rd_total_times) == -1)
-                        VIR_DEBUG ("error reading rd_total_times: %s", p);
+                    if (virStrToLong_ll(p, &dummy, 10, rd_total_times) == -1)
+                        VIR_DEBUG("error reading rd_total_times: %s", p);
                 } else if (wr_total_times &&
-                           STRPREFIX (p, "wr_total_time_ns=")) {
+                           STRPREFIX(p, "wr_total_time_ns=")) {
                     p += strlen("wr_total_time_ns=");
-                    if (virStrToLong_ll (p, &dummy, 10, wr_total_times) == -1)
-                        VIR_DEBUG ("error reading wr_total_times: %s", p);
+                    if (virStrToLong_ll(p, &dummy, 10, wr_total_times) == -1)
+                        VIR_DEBUG("error reading wr_total_times: %s", p);
                 } else if (flush_req &&
-                           STRPREFIX (p, "flush_operations=")) {
+                           STRPREFIX(p, "flush_operations=")) {
                     p += strlen("flush_operations=");
-                    if (virStrToLong_ll (p, &dummy, 10, flush_req) == -1)
-                        VIR_DEBUG ("error reading flush_req: %s", p);
+                    if (virStrToLong_ll(p, &dummy, 10, flush_req) == -1)
+                        VIR_DEBUG("error reading flush_req: %s", p);
                 } else if (flush_total_times &&
-                           STRPREFIX (p, "flush_total_time_ns=")) {
+                           STRPREFIX(p, "flush_total_time_ns=")) {
                     p += strlen("flush_total_time_ns=");
-                    if (virStrToLong_ll (p, &dummy, 10, flush_total_times) == -1)
-                        VIR_DEBUG ("error reading flush_total_times: %s", p);
+                    if (virStrToLong_ll(p, &dummy, 10, flush_total_times) == -1)
+                        VIR_DEBUG("error reading flush_total_times: %s", p);
                 } else {
-                    VIR_DEBUG ("unknown block stat near %s", p);
+                    VIR_DEBUG("unknown block stat near %s", p);
                 }
 
                 /* Skip to next label. */
-                p = strchr (p, ' ');
+                p = strchr(p, ' ');
                 if (!p || p >= eol) break;
                 p++;
             }
@@ -979,14 +979,14 @@ int qemuMonitorTextGetBlockStatsInfo(qemuMonitorPtr mon,
         }
 
         /* Skip to next line. */
-        p = strchr (p, '\n');
+        p = strchr(p, '\n');
         if (!p) break;
         p++;
     }
 
     /* If we reach here then the device was not found. */
-    virReportError (VIR_ERR_INVALID_ARG,
-                    _("no stats found for device %s"), dev_name);
+    virReportError(VIR_ERR_INVALID_ARG,
+                   _("no stats found for device %s"), dev_name);
 
  cleanup:
     VIR_FREE(info);
@@ -1001,7 +1001,7 @@ int qemuMonitorTextGetBlockStatsParamsNumber(qemuMonitorPtr mon,
     int num = 0;
     const char *p, *eol;
 
-    if (qemuMonitorHMPCommand (mon, "info blockstats", &info) < 0)
+    if (qemuMonitorHMPCommand(mon, "info blockstats", &info) < 0)
         goto cleanup;
 
     /* If the command isn't supported then qemu prints the supported
@@ -1023,9 +1023,9 @@ int qemuMonitorTextGetBlockStatsParamsNumber(qemuMonitorPtr mon,
      */
     p = info;
 
-    eol = strchr (p, '\n');
+    eol = strchr(p, '\n');
     if (!eol)
-        eol = p + strlen (p);
+        eol = p + strlen(p);
 
     /* Skip the device name and following ":", and spaces (e.g.
      * "floppy0: ")
@@ -1033,17 +1033,17 @@ int qemuMonitorTextGetBlockStatsParamsNumber(qemuMonitorPtr mon,
     p = strchr(p, ' ');
 
     while (p && p < eol) {
-        if (STRPREFIX (p, " rd_bytes=") ||
-            STRPREFIX (p, " wr_bytes=") ||
-            STRPREFIX (p, " rd_operations=") ||
-            STRPREFIX (p, " wr_operations=") ||
-            STRPREFIX (p, " rd_total_time_ns=") ||
-            STRPREFIX (p, " wr_total_time_ns=") ||
-            STRPREFIX (p, " flush_operations=") ||
-            STRPREFIX (p, " flush_total_time_ns=")) {
+        if (STRPREFIX(p, " rd_bytes=") ||
+            STRPREFIX(p, " wr_bytes=") ||
+            STRPREFIX(p, " rd_operations=") ||
+            STRPREFIX(p, " wr_operations=") ||
+            STRPREFIX(p, " rd_total_time_ns=") ||
+            STRPREFIX(p, " wr_total_time_ns=") ||
+            STRPREFIX(p, " flush_operations=") ||
+            STRPREFIX(p, " flush_total_time_ns=")) {
             num++;
         } else {
-            VIR_DEBUG ("unknown block stat near %s", p);
+            VIR_DEBUG("unknown block stat near %s", p);
         }
 
         /* Skip to next label. */
@@ -2367,8 +2367,8 @@ cleanup:
 
 
 static int
-qemudParseDriveAddReply(const char *reply,
-                        virDomainDeviceDriveAddressPtr addr)
+qemuParseDriveAddReply(const char *reply,
+                       virDomainDeviceDriveAddressPtr addr)
 {
     char *s, *e;
 
@@ -2446,7 +2446,7 @@ try_command:
         goto cleanup;
     }
 
-    if (qemudParseDriveAddReply(reply, driveAddr) < 0) {
+    if (qemuParseDriveAddReply(reply, driveAddr) < 0) {
         if (!tryOldSyntax && strstr(reply, "invalid char in expression")) {
             VIR_FREE(reply);
             VIR_FREE(cmd);
@@ -2958,43 +2958,6 @@ cleanup:
     return ret;
 }
 
-int
-qemuMonitorTextDiskSnapshot(qemuMonitorPtr mon, const char *device,
-                            const char *file)
-{
-    char *cmd = NULL;
-    char *reply = NULL;
-    int ret = -1;
-    char *safename;
-
-    if (!(safename = qemuMonitorEscapeArg(file)) ||
-        virAsprintf(&cmd, "snapshot_blkdev %s \"%s\"", device, safename) < 0) {
-        virReportOOMError();
-        goto cleanup;
-    }
-
-    if (qemuMonitorHMPCommand(mon, cmd, &reply))
-        goto cleanup;
-
-    if (strstr(reply, "error while creating qcow2") != NULL ||
-        strstr(reply, "unknown command:") != NULL) {
-        virReportError(VIR_ERR_OPERATION_FAILED,
-                       _("Failed to take snapshot: %s"), reply);
-        goto cleanup;
-    }
-
-    /* XXX Should we scrape 'info block' output for
-     * 'device:... file=name backing_file=oldname' to make sure the
-     * command succeeded?  */
-
-    ret = 0;
-
-cleanup:
-    VIR_FREE(safename);
-    VIR_FREE(cmd);
-    VIR_FREE(reply);
-    return ret;
-}
 
 int qemuMonitorTextArbitraryCommand(qemuMonitorPtr mon, const char *cmd,
                                     char **reply)
@@ -3232,7 +3195,7 @@ qemuMonitorTextParseBlockIoThrottle(const char *result,
                 }
 
                 /* Skip to next label. */
-                p = strchr (p, ' ');
+                p = strchr(p, ' ');
                 if (!p || p >= eol)
                     break;
                 p++;
@@ -3242,7 +3205,7 @@ qemuMonitorTextParseBlockIoThrottle(const char *result,
         }
 
         /* Skip to next line. */
-        p = strchr (p, '\n');
+        p = strchr(p, '\n');
         if (!p)
             break;
         p++;

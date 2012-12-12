@@ -23,6 +23,7 @@
 
 #include "lxc_cgroup.h"
 #include "lxc_container.h"
+#include "virfile.h"
 #include "virterror_internal.h"
 #include "logging.h"
 #include "memory.h"
@@ -138,6 +139,148 @@ cleanup:
 }
 
 
+static int virLXCCgroupGetMemSwapUsage(virCgroupPtr cgroup,
+                                       virLXCMeminfoPtr meminfo)
+{
+    return virCgroupGetMemSwapUsage(cgroup, &meminfo->swapusage);
+}
+
+
+static int virLXCCgroupGetMemSwapTotal(virCgroupPtr cgroup,
+                                       virLXCMeminfoPtr meminfo)
+{
+    return virCgroupGetMemSwapHardLimit(cgroup, &meminfo->swaptotal);
+}
+
+
+static int virLXCCgroupGetMemUsage(virCgroupPtr cgroup,
+                                   virLXCMeminfoPtr meminfo)
+{
+    int ret;
+    unsigned long memUsage;
+
+    ret = virCgroupGetMemoryUsage(cgroup, &memUsage);
+    meminfo->memusage = (unsigned long long) memUsage;
+
+    return ret;
+}
+
+
+static int virLXCCgroupGetMemTotal(virCgroupPtr cgroup,
+                                   virLXCMeminfoPtr meminfo)
+{
+    return virCgroupGetMemoryHardLimit(cgroup, &meminfo->memtotal);
+}
+
+
+static int virLXCCgroupGetMemStat(virCgroupPtr cgroup,
+                                  virLXCMeminfoPtr meminfo)
+{
+    int ret = 0;
+    FILE *statfd = NULL;
+    char *statFile = NULL;
+    char *line = NULL;
+    size_t n;
+
+    ret = virCgroupPathOfController(cgroup, VIR_CGROUP_CONTROLLER_MEMORY,
+                                    "memory.stat", &statFile);
+    if (ret != 0) {
+        virReportSystemError(-ret, "%s",
+                             _("cannot get the path of MEMORY cgroup controller"));
+        return ret;
+    }
+
+    statfd = fopen(statFile, "r");
+    if (statfd == NULL) {
+        ret = -errno;
+        goto cleanup;
+    }
+
+    while (getline(&line, &n, statfd) > 0) {
+
+        char *value = strchr(line, ' ');
+        char *nl = value ? strchr(line, '\n') : NULL;
+        unsigned long long stat_value;
+
+        if (!value)
+            continue;
+
+        if (nl)
+            *nl = '\0';
+
+        *value = '\0';
+
+        if (virStrToLong_ull(value + 1, NULL, 10, &stat_value) < 0) {
+            ret = -EINVAL;
+            goto cleanup;
+        }
+        if (STREQ(line, "cache"))
+            meminfo->cached = stat_value >> 10;
+        else if (STREQ(line, "inactive_anon"))
+            meminfo->inactive_anon = stat_value >> 10;
+        else if (STREQ(line, "active_anon"))
+            meminfo->active_anon = stat_value >> 10;
+        else if (STREQ(line, "inactive_file"))
+            meminfo->inactive_file = stat_value >> 10;
+        else if (STREQ(line, "active_file"))
+            meminfo->active_file = stat_value >> 10;
+        else if (STREQ(line, "unevictable"))
+            meminfo->unevictable = stat_value >> 10;
+    }
+    ret = 0;
+
+cleanup:
+    VIR_FREE(line);
+    VIR_FREE(statFile);
+    VIR_FORCE_FCLOSE(statfd);
+    return ret;
+}
+
+
+int virLXCCgroupGetMeminfo(virLXCMeminfoPtr meminfo)
+{
+    int ret;
+    virCgroupPtr cgroup;
+
+    ret = virCgroupGetAppRoot(&cgroup);
+    if (ret < 0) {
+        virReportSystemError(-ret, "%s",
+                             _("Unable to get cgroup for container"));
+        return ret;
+    }
+
+    ret = virLXCCgroupGetMemStat(cgroup, meminfo);
+    if (ret < 0) {
+        virReportSystemError(-ret, "%s",
+                             _("Unable to get memory cgroup stat info"));
+        goto cleanup;
+    }
+
+    ret = virLXCCgroupGetMemTotal(cgroup, meminfo);
+    if (ret < 0) {
+        virReportSystemError(-ret, "%s",
+                             _("Unable to get memory cgroup total"));
+        goto cleanup;
+    }
+
+    ret = virLXCCgroupGetMemUsage(cgroup, meminfo);
+    if (ret < 0) {
+        virReportSystemError(-ret, "%s",
+                             _("Unable to get memory cgroup stat usage"));
+        goto cleanup;
+    }
+
+    virLXCCgroupGetMemSwapTotal(cgroup, meminfo);
+    virLXCCgroupGetMemSwapUsage(cgroup, meminfo);
+
+    ret = 0;
+cleanup:
+    virCgroupFree(&cgroup);
+    return ret;
+}
+
+
+
 typedef struct _virLXCCgroupDevicePolicy virLXCCgroupDevicePolicy;
 typedef virLXCCgroupDevicePolicy *virLXCCgroupDevicePolicyPtr;
 
@@ -163,6 +306,7 @@ static int virLXCCgroupSetupDeviceACL(virDomainDefPtr def,
         {'c', LXC_DEV_MAJ_MEMORY, LXC_DEV_MIN_URANDOM},
         {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_TTY},
         {'c', LXC_DEV_MAJ_TTY, LXC_DEV_MIN_PTMX},
+        {'c', LXC_DEV_MAJ_FUSE, LXC_DEV_MIN_FUSE},
         {0,   0, 0}};
 
     rc = virCgroupDenyAllDevices(cgroup);
@@ -224,17 +368,14 @@ int virLXCCgroupSetup(virDomainDefPtr def)
 {
     virCgroupPtr driver = NULL;
     virCgroupPtr cgroup = NULL;
-    int rc = -1;
+    int ret = -1;
+    int rc;
 
     rc = virCgroupForDriver("lxc", &driver, 1, 0);
     if (rc != 0) {
-        /* Skip all if no driver cgroup is configured */
-        if (rc == -ENXIO || rc == -ENOENT)
-            return 0;
-
         virReportSystemError(-rc, "%s",
                              _("Unable to get cgroup for driver"));
-        return rc;
+        goto cleanup;
     }
 
     rc = virCgroupForDomain(driver, def->name, &cgroup, 1);
@@ -262,11 +403,14 @@ int virLXCCgroupSetup(virDomainDefPtr def)
         virReportSystemError(-rc,
                              _("Unable to add task %d to cgroup for domain %s"),
                              getpid(), def->name);
+        goto cleanup;
     }
+
+    ret = 0;
 
 cleanup:
     virCgroupFree(&cgroup);
     virCgroupFree(&driver);
 
-    return rc;
+    return ret;
 }

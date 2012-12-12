@@ -56,7 +56,7 @@ EXTRA_DIST =		\
 	networkschematest \
 	networkxml2xmlin \
 	networkxml2xmlout \
-	networkxml2argvdata \
+	networkxml2confdata \
 	nodedevschemadata \
 	nodedevschematest \
 	nodeinfodata     \
@@ -95,6 +95,7 @@ test_programs = virshtest sockettest \
 	virauthconfigtest \
 	virbitmaptest \
 	virlockspacetest \
+	virstringtest \
 	$(NULL)
 
 if WITH_SECDRIVER_SELINUX
@@ -146,7 +147,7 @@ endif
 test_programs += networkxml2xmltest
 
 if WITH_NETWORK
-test_programs += networkxml2argvtest
+test_programs += networkxml2conftest
 endif
 
 if WITH_STORAGE_SHEEPDOG
@@ -430,12 +431,12 @@ networkxml2xmltest_SOURCES = \
 networkxml2xmltest_LDADD = $(LDADDS)
 
 if WITH_NETWORK
-networkxml2argvtest_SOURCES = \
-	networkxml2argvtest.c \
+networkxml2conftest_SOURCES = \
+	networkxml2conftest.c \
 	testutils.c testutils.h
-networkxml2argvtest_LDADD = ../src/libvirt_driver_network_impl.la $(LDADDS)
+networkxml2conftest_LDADD = ../src/libvirt_driver_network_impl.la $(LDADDS)
 else
-EXTRA_DIST += networkxml2argvtest.c
+EXTRA_DIST += networkxml2conftest.c
 endif
 
 if WITH_STORAGE_SHEEPDOG
@@ -538,6 +539,11 @@ virtimetest_SOURCES = \
 	virtimetest.c testutils.h testutils.c
 virtimetest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
 virtimetest_LDADD = $(LDADDS)
+
+virstringtest_SOURCES = \
+	virstringtest.c testutils.h testutils.c
+virstringtest_CFLAGS = -Dabs_builddir="\"$(abs_builddir)\"" $(AM_CFLAGS)
+virstringtest_LDADD = $(LDADDS)
 
 virlockspacetest_SOURCES = \
 	virlockspacetest.c testutils.h testutils.c

@@ -25,11 +25,17 @@ struct virLXCProtocolExitEventMsg {
         enum virLXCProtocolExitStatus status;
 };
 typedef struct virLXCProtocolExitEventMsg virLXCProtocolExitEventMsg;
+
+struct virLXCProtocolInitEventMsg {
+        uint64_t initpid;
+};
+typedef struct virLXCProtocolInitEventMsg virLXCProtocolInitEventMsg;
 #define VIR_LXC_PROTOCOL_PROGRAM 0x12341234
 #define VIR_LXC_PROTOCOL_PROGRAM_VERSION 1
 
 enum virLXCProtocolProcedure {
         VIR_LXC_PROTOCOL_PROC_EXIT_EVENT = 1,
+        VIR_LXC_PROTOCOL_PROC_INIT_EVENT = 2,
 };
 typedef enum virLXCProtocolProcedure virLXCProtocolProcedure;
 
@@ -38,11 +44,13 @@ typedef enum virLXCProtocolProcedure virLXCProtocolProcedure;
 #if defined(__STDC__) || defined(__cplusplus)
 extern  bool_t xdr_virLXCProtocolExitStatus (XDR *, virLXCProtocolExitStatus*);
 extern  bool_t xdr_virLXCProtocolExitEventMsg (XDR *, virLXCProtocolExitEventMsg*);
+extern  bool_t xdr_virLXCProtocolInitEventMsg (XDR *, virLXCProtocolInitEventMsg*);
 extern  bool_t xdr_virLXCProtocolProcedure (XDR *, virLXCProtocolProcedure*);
 
 #else /* K&R C */
 extern bool_t xdr_virLXCProtocolExitStatus ();
 extern bool_t xdr_virLXCProtocolExitEventMsg ();
+extern bool_t xdr_virLXCProtocolInitEventMsg ();
 extern bool_t xdr_virLXCProtocolProcedure ();
 
 #endif /* K&R C */

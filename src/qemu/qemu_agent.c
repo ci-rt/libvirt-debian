@@ -242,7 +242,7 @@ qemuAgentOpenUnix(const char *monitor, pid_t cpid, bool *inProgress)
 
     if (ret != 0) {
         virReportSystemError(errno, "%s",
-                             _("monitor socket did not show up."));
+                             _("monitor socket did not show up"));
         goto error;
     }
 
@@ -890,7 +890,8 @@ static int qemuAgentSend(qemuAgentPtr mon,
                 ret = -2;
             } else {
                 virReportSystemError(errno, "%s",
-                                     _("Unable to wait on monitor condition"));
+                                     _("Unable to wait on agent monitor "
+                                       "condition"));
             }
             goto cleanup;
         }
@@ -1124,17 +1125,17 @@ qemuAgentCheckError(virJSONValuePtr cmd,
         char *replystr = virJSONValueToString(reply, false);
 
         /* Log the full JSON formatted command & error */
-        VIR_DEBUG("unable to execute QEMU command %s: %s",
+        VIR_DEBUG("unable to execute QEMU agent command %s: %s",
                   cmdstr, replystr);
 
         /* Only send the user the command name + friendly error */
         if (!error)
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("unable to execute QEMU command '%s'"),
+                           _("unable to execute QEMU agent command '%s'"),
                            qemuAgentCommandName(cmd));
         else
             virReportError(VIR_ERR_INTERNAL_ERROR,
-                           _("unable to execute QEMU command '%s': %s"),
+                           _("unable to execute QEMU agent command '%s': %s"),
                            qemuAgentCommandName(cmd),
                            qemuAgentStringifyError(error));
 
@@ -1148,7 +1149,7 @@ qemuAgentCheckError(virJSONValuePtr cmd,
         VIR_DEBUG("Neither 'return' nor 'error' is set in the JSON reply %s: %s",
                   cmdstr, replystr);
         virReportError(VIR_ERR_INTERNAL_ERROR,
-                       _("unable to execute QEMU command '%s'"),
+                       _("unable to execute QEMU agent command '%s'"),
                        qemuAgentCommandName(cmd));
         VIR_FREE(cmdstr);
         VIR_FREE(replystr);
@@ -1443,6 +1444,31 @@ qemuAgentArbitraryCommand(qemuAgentPtr mon,
         ret = qemuAgentCheckError(cmd, reply);
         *result = virJSONValueToString(reply, false);
     }
+
+    virJSONValueFree(cmd);
+    virJSONValueFree(reply);
+    return ret;
+}
+
+int
+qemuAgentFSTrim(qemuAgentPtr mon,
+                unsigned long long minimum)
+{
+    int ret = -1;
+    virJSONValuePtr cmd;
+    virJSONValuePtr reply = NULL;
+
+    cmd = qemuAgentMakeCommand("guest-fstrim",
+                               "U:minimum", minimum,
+                               NULL);
+    if (!cmd)
+        return ret;
+
+    ret = qemuAgentCommand(mon, cmd, &reply,
+                           VIR_DOMAIN_QEMU_AGENT_COMMAND_BLOCK);
+
+    if (reply && ret == 0)
+        ret = qemuAgentCheckError(cmd, reply);
 
     virJSONValueFree(cmd);
     virJSONValueFree(reply);

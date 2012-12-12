@@ -28,10 +28,15 @@
 # include "internal.h"
 
 # ifdef WITH_LIBVIRTD
-int virStateInitialize(int privileged);
+typedef void (*virStateInhibitCallback)(bool inhibit,
+                                        void *opaque);
+
+int virStateInitialize(bool privileged,
+                       virStateInhibitCallback inhibit,
+                       void *opaque);
 int virStateCleanup(void);
 int virStateReload(void);
-int virStateActive(void);
+int virStateStop(void);
 # endif
 
 /* Feature detection.  This is a libvirt-private interface for determining
@@ -100,6 +105,11 @@ enum {
      * Support for VIR_DOMAIN_XML_MIGRATABLE flag in domainGetXMLDesc
      */
     VIR_DRV_FEATURE_XML_MIGRATABLE = 11,
+
+    /*
+     * Support for offline migration.
+     */
+    VIR_DRV_FEATURE_MIGRATION_OFFLINE = 12,
 };
 
 

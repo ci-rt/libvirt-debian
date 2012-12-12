@@ -189,6 +189,37 @@ virNWFilterVarValueGetCardinality(const virNWFilterVarValuePtr val)
     return 0;
 }
 
+bool
+virNWFilterVarValueEqual(const virNWFilterVarValuePtr a,
+                         const virNWFilterVarValuePtr b)
+{
+    unsigned int card, i, j;
+    const char *s;
+
+    if (!a || !b)
+        return false;
+
+    card = virNWFilterVarValueGetCardinality(a);
+    if (card != virNWFilterVarValueGetCardinality(b))
+        return false;
+
+    /* brute force O(n^2) comparison */
+    for (i = 0; i < card; i++) {
+        bool eq = false;
+
+        s = virNWFilterVarValueGetNthValue(a, i);
+        for (j = 0; j < card; j++) {
+            if (STREQ_NULLABLE(s, virNWFilterVarValueGetNthValue(b, j))) {
+                 eq = true;
+                 break;
+            }
+        }
+        if (!eq)
+            return false;
+    }
+    return true;
+}
+
 int
 virNWFilterVarValueAddValue(virNWFilterVarValuePtr val, char *value)
 {
@@ -764,6 +795,27 @@ err_exit:
     return -1;
 }
 
+/* The general purpose function virNWFilterVarValueEqual returns a
+ * bool, but the comparison callback for virHashEqual (called below)
+ * needs to return an int of 0 for == and non-0 for !=
+ */
+static int
+virNWFilterVarValueCompare(const void *a, const void *b)
+{
+    return virNWFilterVarValueEqual((const virNWFilterVarValuePtr) a,
+                                    (const virNWFilterVarValuePtr) b) ? 0 : 1;
+}
+
+bool
+virNWFilterHashTableEqual(virNWFilterHashTablePtr a,
+                          virNWFilterHashTablePtr b)
+{
+    if (!(a || b))
+        return true;
+    if (!(a && b))
+        return false;
+    return virHashEqual(a->hashTable, b->hashTable, virNWFilterVarValueCompare);
+}
 
 static bool
 isValidVarName(const char *var)

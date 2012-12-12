@@ -441,7 +441,7 @@ virStoragePoolDefParseAuthChap(xmlXPathContextPtr ctxt,
 
 static int
 virStoragePoolDefParseAuthCephx(xmlXPathContextPtr ctxt,
-                               virStoragePoolAuthCephxPtr auth) {
+                                virStoragePoolAuthCephxPtr auth) {
     char *uuid = NULL;
     auth->username = virXPathString("string(./auth/@username)", ctxt);
     if (auth->username == NULL) {
@@ -458,10 +458,20 @@ virStoragePoolDefParseAuthCephx(xmlXPathContextPtr ctxt,
         return -1;
     }
 
-    if (virUUIDParse(uuid, auth->secret.uuid) < 0) {
-        virReportError(VIR_ERR_XML_ERROR,
-                       "%s", _("invalid auth secret uuid"));
-        return -1;
+    if (uuid != NULL) {
+        if (auth->secret.usage != NULL) {
+            virReportError(VIR_ERR_XML_ERROR, "%s",
+                           _("either auth secret uuid or usage expected"));
+            return -1;
+        }
+        if (virUUIDParse(uuid, auth->secret.uuid) < 0) {
+            virReportError(VIR_ERR_XML_ERROR,
+                           "%s", _("invalid auth secret uuid"));
+            return -1;
+        }
+        auth->secret.uuidUsable = true;
+    } else {
+        auth->secret.uuidUsable = false;
     }
 
     return 0;
@@ -479,6 +489,7 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
     virStoragePoolOptionsPtr options;
     char *name = NULL;
     char *port = NULL;
+    int n;
 
     relnode = ctxt->node;
     ctxt->node = node;
@@ -510,7 +521,9 @@ virStoragePoolDefParseSource(xmlXPathContextPtr ctxt,
         VIR_FREE(format);
     }
 
-    source->nhost = virXPathNodeSet("./host", ctxt, &nodeset);
+    if ((n = virXPathNodeSet("./host", ctxt, &nodeset)) < 0)
+        goto cleanup;
+    source->nhost = n;
 
     if (source->nhost) {
         if (VIR_ALLOC_N(source->hosts, source->nhost) < 0) {
@@ -976,7 +989,7 @@ virStoragePoolSourceFormat(virBufferPtr buf,
                           src->auth.cephx.username);
 
         virBufferAsprintf(buf,"      %s", "<secret");
-        if (src->auth.cephx.secret.uuid != NULL) {
+        if (src->auth.cephx.secret.uuidUsable) {
             virUUIDFormat(src->auth.cephx.secret.uuid, uuid);
             virBufferAsprintf(buf," uuid='%s'", uuid);
         }
@@ -1981,7 +1994,8 @@ virStoragePoolList(virConnectPtr conn,
             if (pools) {
                 if (!(pool = virGetStoragePool(conn,
                                                poolobj->def->name,
-                                               poolobj->def->uuid))) {
+                                               poolobj->def->uuid,
+                                               NULL, NULL))) {
                     virStoragePoolObjUnlock(poolobj);
                     goto cleanup;
                 }

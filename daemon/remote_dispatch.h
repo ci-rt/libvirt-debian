@@ -1529,6 +1529,61 @@ static int remoteDispatchDomainEventsRegisterAnyHelper(
 
 
 
+static int remoteDispatchDomainFSTrim(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_fstrim_args *args);
+static int remoteDispatchDomainFSTrimHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainFSTrim(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainFSTrim(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_fstrim_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    char *mountPoint;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    mountPoint = args->mountPoint ? *args->mountPoint : NULL;
+
+    if (virDomainFSTrim(dom, mountPoint, args->minimum, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
 static int remoteDispatchDomainGetAutostart(
     virNetServerPtr server,
     virNetServerClientPtr client,
@@ -4919,6 +4974,58 @@ static int remoteDispatchDomainSendKey(
         goto cleanup;
 
     if (virDomainSendKey(dom, args->codeset, args->holdtime, args->keycodes.keycodes_val, args->keycodes.keycodes_len, args->flags) < 0)
+        goto cleanup;
+
+    rv = 0;
+
+cleanup:
+    if (rv < 0)
+        virNetMessageSaveError(rerr);
+    if (dom)
+        virDomainFree(dom);
+    return rv;
+}
+
+
+
+static int remoteDispatchDomainSendProcessSignal(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    remote_domain_send_process_signal_args *args);
+static int remoteDispatchDomainSendProcessSignalHelper(
+    virNetServerPtr server,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg,
+    virNetMessageErrorPtr rerr,
+    void *args,
+    void *ret ATTRIBUTE_UNUSED)
+{
+  VIR_DEBUG("server=%p client=%p msg=%p rerr=%p args=%p ret=%p", server, client, msg, rerr, args, ret);
+  return remoteDispatchDomainSendProcessSignal(server, client, msg, rerr, args);
+}
+static int remoteDispatchDomainSendProcessSignal(
+    virNetServerPtr server ATTRIBUTE_UNUSED,
+    virNetServerClientPtr client,
+    virNetMessagePtr msg ATTRIBUTE_UNUSED,
+    virNetMessageErrorPtr rerr,
+    remote_domain_send_process_signal_args *args)
+{
+    int rv = -1;
+    virDomainPtr dom = NULL;
+    struct daemonClientPrivate *priv =
+        virNetServerClientGetPrivateData(client);
+
+    if (!priv->conn) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("connection not open"));
+        goto cleanup;
+    }
+
+    if (!(dom = get_nonnull_domain(priv->conn, args->dom)))
+        goto cleanup;
+
+    if (virDomainSendProcessSignal(dom, args->pid_value, args->signum, args->flags) < 0)
         goto cleanup;
 
     rv = 0;
@@ -16020,6 +16127,24 @@ virNetServerProgramProc remoteProcs[] = {
    (xdrproc_t)xdr_remote_node_get_cpu_map_args,
    sizeof(remote_node_get_cpu_map_ret),
    (xdrproc_t)xdr_remote_node_get_cpu_map_ret,
+   true,
+   0
+},
+{ /* Method DomainFSTrim => 294 */
+   remoteDispatchDomainFSTrimHelper,
+   sizeof(remote_domain_fstrim_args),
+   (xdrproc_t)xdr_remote_domain_fstrim_args,
+   0,
+   (xdrproc_t)xdr_void,
+   true,
+   0
+},
+{ /* Method DomainSendProcessSignal => 295 */
+   remoteDispatchDomainSendProcessSignalHelper,
+   sizeof(remote_domain_send_process_signal_args),
+   (xdrproc_t)xdr_remote_domain_send_process_signal_args,
+   0,
+   (xdrproc_t)xdr_void,
    true,
    0
 },

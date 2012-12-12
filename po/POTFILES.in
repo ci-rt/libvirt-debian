@@ -32,6 +32,8 @@ src/datatypes.c
 src/driver.c
 src/esx/esx_driver.c
 src/esx/esx_network_driver.c
+src/esx/esx_storage_backend_iscsi.c
+src/esx/esx_storage_backend_vmfs.c
 src/esx/esx_storage_driver.c
 src/esx/esx_util.c
 src/esx/esx_vi.c
@@ -50,6 +52,7 @@ src/locking/lock_driver_sanlock.c
 src/locking/lock_manager.c
 src/locking/sanlock_helper.c
 src/lxc/lxc_cgroup.c
+src/lxc/lxc_fuse.c
 src/lxc/lxc_container.c
 src/lxc/lxc_conf.c
 src/lxc/lxc_controller.c
@@ -73,7 +76,9 @@ src/openvz/openvz_conf.c
 src/openvz/openvz_driver.c
 src/openvz/openvz_util.c
 src/parallels/parallels_driver.c
+src/parallels/parallels_network.c
 src/parallels/parallels_utils.c
+src/parallels/parallels_utils.h
 src/parallels/parallels_storage.c
 src/phyp/phyp_driver.c
 src/qemu/qemu_agent.c
@@ -151,9 +156,11 @@ src/util/virauthconfig.c
 src/util/virdbus.c
 src/util/virfile.c
 src/util/virhash.c
+src/util/virinitctl.c
 src/util/virkeyfile.c
 src/util/virlockspace.c
 src/util/virnetdev.c
+src/util/virnetdevbandwidth.c
 src/util/virnetdevbridge.c
 src/util/virnetdevmacvlan.c
 src/util/virnetdevopenvswitch.c
@@ -190,7 +197,7 @@ src/xenapi/xenapi_utils.c
 src/xenxs/xen_sxpr.c
 src/xenxs/xen_xm.c
 tools/console.c
-tools/libvirt-guests.init.sh
+tools/libvirt-guests.sh.in
 tools/virsh.c
 tools/virsh-domain-monitor.c
 tools/virsh-domain.c

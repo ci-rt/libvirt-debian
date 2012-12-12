@@ -147,7 +147,7 @@ int virNetSASLContextCheckIdentity(virNetSASLContextPtr ctxt,
     }
 
     while (*wildcards) {
-        int rv = fnmatch (*wildcards, identity, 0);
+        int rv = fnmatch(*wildcards, identity, 0);
         if (rv == 0) {
             ret = 1;
             goto cleanup; /* Successful match */
@@ -163,7 +163,7 @@ int virNetSASLContextCheckIdentity(virNetSASLContextPtr ctxt,
     }
 
     /* Denied */
-    VIR_ERROR(_("SASL client %s not allowed in whitelist"), identity);
+    VIR_ERROR(_("SASL client identity '%s' not allowed in whitelist"), identity);
 
     /* This is the most common error: make it informative. */
     virReportError(VIR_ERR_SYSTEM_ERROR, "%s",

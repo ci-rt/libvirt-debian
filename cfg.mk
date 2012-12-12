@@ -314,7 +314,7 @@ sc_flags_usage:
 
 # Avoid functions that should only be called via macro counterparts.
 sc_prohibit_internal_functions:
-	@prohibit='vir(Free|AllocN?|ReallocN|File(Close|Fclose|Fdopen)) *\(' \
+	@prohibit='vir(Free|AllocN?|ReallocN|(Insert|Delete)ElementsN|File(Close|Fclose|Fdopen)) *\(' \
 	halt='use VIR_ macros instead of internal functions'		\
 	  $(_sc_search_regexp)
 
@@ -691,11 +691,14 @@ ifeq (0,$(MAKELEVEL))
   #  b653eda3ac4864de205419d9f41eec267cb89eeb .gnulib (v0.0-2286-gb653eda)
   # $ cat .git-module-status
   # b653eda3ac4864de205419d9f41eec267cb89eeb
+  #
+  # Keep this logic in sync with autogen.sh.
   _submodule_hash = sed 's/^[ +-]//;s/ .*//'
   _update_required := $(shell						\
       cd '$(srcdir)';							\
       test -d .git || { echo 0; exit; };				\
       test -f po/Makevars || { echo 1; exit; };				\
+      test -f AUTHORS || { echo 1; exit; };				\
       actual=$$(git submodule status | $(_submodule_hash);		\
 		git hash-object bootstrap.conf;				\
 		git ls-tree -d HEAD gnulib/local | awk '{print $$3}';	\
@@ -718,7 +721,12 @@ _autogen:
 	./config.status
 
 # regenerate HACKING as part of the syntax-check
-syntax-check: $(top_srcdir)/HACKING
+syntax-check: $(top_srcdir)/HACKING bracket-spacing-check
+
+bracket-spacing-check:
+	$(AM_V_GEN)files=`$(VC_LIST) | grep '\.c$$'`; \
+	$(PERL) $(top_srcdir)/build-aux/bracket-spacing.pl $$files || \
+          (echo $(ME): incorrect whitespace around brackets, see HACKING for rules && exit 1)
 
 # sc_po_check can fail if generated files are not built first
 sc_po_check: \

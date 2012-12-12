@@ -165,7 +165,9 @@ nwfilterDriverInstallDBusMatches(DBusConnection *sysbus ATTRIBUTE_UNUSED)
  * Initialization function for the QEmu daemon
  */
 static int
-nwfilterDriverStartup(int privileged)
+nwfilterDriverStartup(bool privileged ATTRIBUTE_UNUSED,
+                      virStateInhibitCallback callback ATTRIBUTE_UNUSED,
+                      void *opaque ATTRIBUTE_UNUSED)
 {
     char *base = NULL;
     DBusConnection *sysbus = NULL;
@@ -174,8 +176,10 @@ nwfilterDriverStartup(int privileged)
     sysbus = virDBusGetSystemBus();
 #endif /* HAVE_DBUS */
 
-    if (VIR_ALLOC(driverState) < 0)
-        goto alloc_err_exit;
+    if (VIR_ALLOC(driverState) < 0) {
+        virReportOOMError();
+        return -1;
+    }
 
     if (virMutexInit(&driverState->lock) < 0)
         goto err_free_driverstate;
@@ -216,7 +220,7 @@ nwfilterDriverStartup(int privileged)
     }
 
     if (privileged) {
-        if ((base = strdup (SYSCONFDIR "/libvirt")) == NULL)
+        if ((base = strdup(SYSCONFDIR "/libvirt")) == NULL)
             goto out_of_memory;
     } else {
         base = virGetUserConfigDirectory();
@@ -247,10 +251,7 @@ error:
     nwfilterDriverUnlock(driverState);
     nwfilterDriverShutdown();
 
-alloc_err_exit:
     return -1;
-
-    nwfilterDriverUnlock(driverState);
 
 err_techdrivers_shutdown:
     virNWFilterTechDriversShutdown();
@@ -305,27 +306,6 @@ nwfilterDriverReload(void) {
     return 0;
 }
 
-/**
- * virNWFilterActive:
- *
- * Checks if the nwfilter driver is active, i.e. has an active nwfilter
- *
- * Returns 1 if active, 0 otherwise
- */
-static int
-nwfilterDriverActive(void) {
-    int ret;
-
-    if (!driverState)
-        return 0;
-
-    nwfilterDriverLock(driverState);
-    ret = driverState->nwfilters.count ? 1 : 0;
-    ret |= driverState->watchingFirewallD;
-    nwfilterDriverUnlock(driverState);
-
-    return ret;
-}
 
 /**
  * virNWFilterIsWatchingFirewallD:
@@ -696,7 +676,6 @@ static virStateDriver stateDriver = {
     .initialize = nwfilterDriverStartup,
     .cleanup = nwfilterDriverShutdown,
     .reload = nwfilterDriverReload,
-    .active = nwfilterDriverActive,
 };
 
 

@@ -21,6 +21,7 @@
 
 #include <config.h>
 
+#include <stdlib.h>
 #include <sched.h>
 
 #include "processinfo.h"
@@ -139,7 +140,7 @@ realloc:
     }
 
     *map = virBitmapNew(maxcpu);
-    if (!map) {
+    if (!*map) {
         virReportOOMError();
         return -1;
     }

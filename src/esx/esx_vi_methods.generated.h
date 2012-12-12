@@ -77,6 +77,7 @@ int esxVI_FindByUuid
        esxVI_ManagedObjectReference *datacenter,           /* optional */
        const char *uuid,                                   /* required */
        esxVI_Boolean vmSearch,                             /* required */
+       esxVI_Boolean instanceUuid,                         /* optional */
        esxVI_ManagedObjectReference **output);             /* optional */
 
 int esxVI_Login
@@ -184,6 +185,11 @@ int esxVI_RemoveVirtualSwitch
        esxVI_ManagedObjectReference *_this,                /* required */
        const char *vswitchName);                           /* required */
 
+int esxVI_RescanHba
+      (esxVI_Context *ctx,
+       esxVI_ManagedObjectReference *_this,                /* required */
+       const char *hbaDevice);                             /* required */
+
 int esxVI_RetrieveProperties
       (esxVI_Context *ctx,
        esxVI_PropertyFilterSpec *specSet,                  /* required, list */
@@ -193,6 +199,7 @@ int esxVI_RevertToSnapshot_Task
       (esxVI_Context *ctx,
        esxVI_ManagedObjectReference *_this,                /* required */
        esxVI_ManagedObjectReference *host,                 /* optional */
+       esxVI_Boolean suppressPowerOn,                      /* optional */
        esxVI_ManagedObjectReference **output);             /* required */
 
 int esxVI_SearchDatastoreSubFolders_Task

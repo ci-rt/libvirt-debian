@@ -218,7 +218,7 @@ int virNetMessageEncodeHeader(virNetMessagePtr msg)
     msg->bufferLength = VIR_NET_MESSAGE_MAX + VIR_NET_MESSAGE_LEN_MAX;
     if (VIR_REALLOC_N(msg->buffer, msg->bufferLength) < 0) {
         virReportOOMError();
-        goto cleanup;
+        return ret;
     }
     msg->bufferOffset = 0;
 
@@ -271,8 +271,8 @@ int virNetMessageEncodeNumFDs(virNetMessagePtr msg)
 
     if (numFDs > VIR_NET_MESSAGE_NUM_FDS_MAX) {
         virReportError(VIR_ERR_RPC,
-                    _("Too many FDs to send %d, expected %d maximum"),
-                    numFDs, VIR_NET_MESSAGE_NUM_FDS_MAX);
+                       _("Too many FDs to send %d, expected %d maximum"),
+                       numFDs, VIR_NET_MESSAGE_NUM_FDS_MAX);
         goto cleanup;
     }
 
@@ -309,8 +309,8 @@ int virNetMessageDecodeNumFDs(virNetMessagePtr msg)
 
     if (numFDs > VIR_NET_MESSAGE_NUM_FDS_MAX) {
         virReportError(VIR_ERR_RPC,
-                    _("Received too many FDs %d, expected %d maximum"),
-                    numFDs, VIR_NET_MESSAGE_NUM_FDS_MAX);
+                       _("Received too many FDs %d, expected %d maximum"),
+                       numFDs, VIR_NET_MESSAGE_NUM_FDS_MAX);
         goto cleanup;
     }
 

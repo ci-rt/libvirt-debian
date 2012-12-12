@@ -1427,10 +1427,10 @@
         to the directory to use as the disk. If the disk <code>type</code>
         is "network", then the <code>protocol</code> attribute specifies
         the protocol to access to the requested image; possible values
-        are "nbd", "rbd", and "sheepdog".  If the <code>protocol</code>
-        attribute is "rbd" or "sheepdog", an additional
-        attribute <code>name</code> is mandatory to specify which
-        image will be used.  When the disk <code>type</code> is
+        are "nbd", "rbd", "sheepdog" or "gluster".  If the
+        <code>protocol</code> attribute is "rbd", "sheepdog" or "gluster", an
+        additional attribute <code>name</code> is mandatory to specify which
+        volume/image will be used.  When the disk <code>type</code> is
         "network", the <code>source</code> may have zero or
         more <code>host</code> sub-elements used to specify the hosts
         to connect.
@@ -1657,10 +1657,24 @@
         of 16 hexadecimal digits.
         <span class='since'>Since 0.10.1</span>
       </dd>
+      <dt><code>vendor</code></dt>
+      <dd>If present, this element specifies the vendor of a virtual hard
+        disk or CD-ROM device. It must not be longer than 8 printable
+        characters.
+        <span class='since'>Since 1.0.1</span>
+      </dd>
+      <dt><code>product</code></dt>
+      <dd>If present, this element specifies the product of a virtual hard
+        disk or CD-ROM device. It must not be longer than 16 printable
+        characters.
+        <span class='since'>Since 1.0.1</span>
+      </dd>
       <dt><code>host</code></dt>
-      <dd>The <code>host</code> element has two attributes "name" and "port",
-        which specify the hostname and the port number. The meaning of this
-        element and the number of the elements depend on the protocol attribute.
+      <dd>The <code>host</code> element supports 4 attributes, viz.  "name",
+        "port", "transport" and "socket", which specify the hostname, the port
+         number, transport type and path to socket, respectively. The meaning
+         of this element and the number of the elements depend on the protocol
+         attribute.
         <table class="top_table">
           <tr>
             <th> Protocol </th>
@@ -1682,7 +1696,15 @@
             <td> one of the sheepdog servers (default is localhost:7000) </td>
             <td> zero or one </td>
           </tr>
+          <tr>
+            <td> gluster </td>
+            <td> a server running glusterd daemon </td>
+            <td> only one </td>
+          </tr>
         </table>
+        In case of gluster, valid values for transport attribute are tcp, rdma
+        or unix. If nothing is specified, tcp is assumed. If transport is unix,
+        socket attribute specifies path to unix socket.
       </dd>
       <dt><code>address</code></dt>
       <dd>If present, the <code>address</code> element ties the disk
@@ -2192,7 +2214,8 @@
       boot sequence. The per-device <code>boot</code> elements cannot be
       used together with general boot elements in
       <a href="#elementsOSBIOS">BIOS bootloader</a> section.
-      <span class="since">Since 0.8.8</span></dd>
+      <span class="since">Since 0.8.8</span> for PCI devices,
+      <span class="since">Since 1.0.1</span> for USB devices.
       <dt><code>rom</code></dt>
       <dd>The <code>rom</code> element is used to change how a PCI
         device's ROM is presented to the guest. The optional <code>bar</code>
@@ -2237,6 +2260,7 @@
   &lt;devices&gt;
     &lt;redirdev bus='usb' type='tcp'&gt;
       &lt;source mode='connect' host='localhost' service='4000'/&gt;
+      &lt;boot order='1'/&gt;
     &lt;/redirdev&gt;
     &lt;redirfilter&gt;
       &lt;usbdev class='0x08' vendor='0x1234' product='0xbeef' version='2.00' allow='yes'/&gt;
@@ -2258,24 +2282,33 @@
         tunnel; <code>type='tcp'</code>
         or <code>type='spicevmc'</code> (which uses the usbredir
         channel of a <a href="#elementsGraphics">SPICE graphics
-        device</a>) are typical.The redirdev element has an optional
-        sub-element<code>&lt;address&gt;</code> which can tie the
+        device</a>) are typical. The redirdev element has an optional
+        sub-element <code>&lt;address&gt;</code> which can tie the
         device to a particular controller. Further sub-elements,
         such as <code>&lt;source&gt;</code>, may be required according
         to the given type, although a <code>&lt;target&gt;</code> sub-element
         is not required (since the consumer of the character device is
-        the hypervisor itself,rather than a device visible in the guest).
+        the hypervisor itself, rather than a device visible in the guest).
+      </dd>
+      <dt><code>boot</code></dt>
+
+      <dd>Specifies that the device is bootable.
+        The <code>order</code> attribute determines the order in which
+        devices will be tried during boot sequence. The per-device
+        <code>boot</code> elements cannot be used together with general
+        boot elements in  <a href="#elementsOSBIOS">BIOS bootloader</a> section.
+        (<span class="since">Since 1.0.1</span>)
       </dd>
       <dt><code>redirfilter</code></dt>
       <dd>The<code> redirfilter </code>element is used for creating the
         filter rule to filter out certain devices from redirection.
-        It uses sub-element <code>&lt;usbdev&gt;</code>to define each filter rule.
-        <code>class</code>attribute is the USB Class code, for example,
+        It uses sub-element <code>&lt;usbdev&gt;</code> to define each filter rule.
+        <code>class</code> attribute is the USB Class code, for example,
         0x08 represents mass storage devices. The USB device can be addressed by
-        vendor / product id using the<code>vendor</code> and <code>product</code> attributes.
+        vendor / product id using the <code>vendor</code> and <code>product</code> attributes.
         <code>version</code> is the bcdDevice value of USB device, such as 1.00, 1.10 and 2.00.
         These four attributes are optional and <code>-1</code> can be used to allow
-        any value for them. <code>allow</code>attribute is mandatory,
+        any value for them. <code>allow</code> attribute is mandatory,
         'yes' means allow, 'no' for deny.
       </dd>
     </dl>
@@ -3047,7 +3080,7 @@ qemu-kvm -net nic,model=? /dev/null
       &lt;source network='default'/&gt;
       &lt;target dev='vnet0'/&gt;
       <b>&lt;bandwidth&gt;
-        &lt;inbound average='1000' peak='5000' burst='1024'/&gt;
+        &lt;inbound average='1000' peak='5000' floor='200' burst='1024'/&gt;
         &lt;outbound average='128' peak='256' burst='256'/&gt;
       &lt;/bandwidth&gt;</b>
     &lt;/interface&gt;
@@ -3062,14 +3095,29 @@ qemu-kvm -net nic,model=? /dev/null
       children element out result in no QoS applied on that traffic direction.
       So, when you want to shape only domain's incoming traffic, use
       <code>inbound</code> only, and vice versa. Each of these elements have one
-      mandatory attribute <code>average</code>. It specifies average bit rate on
-      interface being shaped. Then there are two optional attributes:
+      mandatory attribute <code>average</code> (or <code>floor</code> as
+      described below). <code>average</code> specifies average bit rate on
+      the interface being shaped. Then there are two optional attributes:
       <code>peak</code>, which specifies maximum rate at which interface can send
       data, and <code>burst</code>, amount of bytes that can be burst at
       <code>peak</code> speed. Accepted values for attributes are integer
       numbers. The units for <code>average</code> and <code>peak</code> attributes
       are kilobytes per second, and for the <code>burst</code> just kilobytes.
-      <span class="since">Since 0.9.4</span>
+      <span class="since">Since 0.9.4</span> The <code>inbound</code> can
+      optionally have <code>floor</code> attribute. This is there for
+      guaranteeing minimal throughput for shaped interfaces. This, however,
+      requires that all traffic goes through one point where QoS decisions can
+      take place. That's why this attribute works only for virtual networks for
+      now (that is <code>&lt;interface type='network'/&gt;</code> with a
+      forward type of route, nat, or no forward at all). Moreover, the
+      virtual network the interface is connected to is required to have at least
+      inbound QoS set (<code>average</code> at least). Moreover, with
+      <code>floor<code> attribute users don't need to specify
+      <code>average</code>. However, <code>peak</code> and <code>burst</code>
+      attributes still require <code>average</code>. Currently, linux kernel
+      doesn't allow ingress qdiscs to have any classes therefore
+      <code>floor</code> can be applied only on <code>inbound</code> and not
+      </code>outbound</code>. <span class="since">Since 1.0.1</span>
     </p>
 
     <h5><a name="elementVlanTag">Setting VLAN tag (on supported network types only)</a></h5>

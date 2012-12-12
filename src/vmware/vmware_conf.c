@@ -50,7 +50,8 @@ vmwareFreeDriver(struct vmware_driver *driver)
 }
 
 
-static int vmwareDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+static int vmwareDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
+                                    const char *arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
 }
@@ -163,7 +164,7 @@ vmwareLoadDomains(struct vmware_driver *driver)
     if (virCommandRun(cmd, NULL) < 0)
         goto cleanup;
 
-    for(str = outbuf ; (vmxPath = strtok_r(str, "\n", &saveptr)) != NULL;
+    for (str = outbuf ; (vmxPath = strtok_r(str, "\n", &saveptr)) != NULL;
         str = NULL) {
 
         if (vmxPath[0] != '/')

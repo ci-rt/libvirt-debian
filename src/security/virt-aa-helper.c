@@ -678,7 +678,7 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
         struct utsname utsname;
 
         /* Really, this never fails - look at the man-page. */
-        uname (&utsname);
+        uname(&utsname);
         if ((ctl->arch = strdup(utsname.machine)) == NULL) {
             vah_error(ctl, 0, _("could not allocate memory"));
             goto cleanup;
@@ -692,13 +692,14 @@ caps_mockup(vahControl * ctl, const char *xmlStr)
     rc = 0;
 
   cleanup:
-    xmlFreeDoc (xml);
+    xmlFreeDoc(xml);
     xmlXPathFreeContext(ctxt);
 
     return rc;
 }
 
-static int aaDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+static int aaDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
+                                const char *arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
 }
@@ -1001,6 +1002,13 @@ get_files(vahControl * ctl)
     if (ctl->def->os.loader && ctl->def->os.loader)
         if (vah_add_file(&buf, ctl->def->os.loader, "r") != 0)
             goto clean;
+
+    for (i = 0; i < ctl->def->ngraphics; i++) {
+        if (ctl->def->graphics[i]->type == VIR_DOMAIN_GRAPHICS_TYPE_VNC &&
+            ctl->def->graphics[i]->data.vnc.socket &&
+            vah_add_file(&buf, ctl->def->graphics[i]->data.vnc.socket, "rw"))
+            goto clean;
+    }
 
     if (ctl->def->ngraphics == 1 &&
         ctl->def->graphics[0]->type == VIR_DOMAIN_GRAPHICS_TYPE_SDL)

@@ -553,7 +553,7 @@ B<Example>
 
  virsh dumpxml <domain> > domain.xml
  vi domain.xml (or make changes with your other text editor)
- virsh create < domain.xml
+ virsh create domain.xml
 
 =item B<define> I<FILE>
 
@@ -878,6 +878,20 @@ Output a URI which can be used to connect to the graphical display of the
 domain via VNC, SPICE or RDP. If I<--include-password> is specified, the
 SPICE channel password will be included in the URI.
 
+=item B<domfstrim> I<domain> [I<--minimum> B<bytes>]
+[I<--mountpoint mountPoint>]
+
+Issue a fstrim command on all mounted filesystems within a running
+domain. It discards blocks which are not in use by the filesystem.
+If I<--minimum> B<bytes> is specified, it tells guest kernel length
+of contiguous free range. Smaller than this may be ignored (this is
+a hint and the guest may not respect it). By increasing this value,
+the fstrim operation will complete more quickly for filesystems
+with badly fragmented free space, although not all blocks will
+be discarded.  The default value is zero, meaning "discard
+every free block". Moreover, a if user wants to trim only one mount
+point, it can be specified via optional I<--mountpoint> parameter.
+
 =item B<domhostname> I<domain>
 
 Returns the hostname of a domain, if the hypervisor makes it available.
@@ -1026,15 +1040,18 @@ I<--total> for only the total stats, I<start> for only the per-cpu
 stats of the CPUs from I<start>, I<count> for only I<count> CPUs'
 stats.
 
-=item B<migrate> [I<--live>] [I<--direct>] [I<--p2p> [I<--tunnelled>]]
+=item B<migrate> [I<--live>] [I<--offline>] [I<--direct>] [I<--p2p> [I<--tunnelled>]]
 [I<--persistent>] [I<--undefinesource>] [I<--suspend>] [I<--copy-storage-all>]
 [I<--copy-storage-inc>] [I<--change-protection>] [I<--unsafe>] [I<--verbose>]
 I<domain> I<desturi> [I<migrateuri>] [I<dname>]
 [I<--timeout> B<seconds>] [I<--xml> B<file>]
 
-Migrate domain to another host.  Add I<--live> for live migration; I<--p2p>
+Migrate domain to another host.  Add I<--live> for live migration; <--p2p>
 for peer-2-peer migration; I<--direct> for direct migration; or I<--tunnelled>
-for tunnelled migration.  I<--persistent> leaves the domain persistent on
+for tunnelled migration.  I<--offline> migrates domain definition without
+starting the domain on destination and without stopping it on source host.
+Offline migration may be used with inactive domains and it must be used with
+I<--persistent> option.  I<--persistent> leaves the domain persistent on
 destination host, I<--undefinesource> undefines the domain on the source host,
 and I<--suspend> leaves the domain paused on the destination host.
 I<--copy-storage-all> indicates migration with non-shared storage with full
@@ -1123,7 +1140,7 @@ If I<--live> is specified, set scheduler information of a running guest.
 If I<--config> is specified, affect the next boot of a persistent guest.
 If I<--current> is specified, affect the current guest state.
 
-=item B<reboot> I<domain> [I<--mode acpi|agent>]
+=item B<reboot> I<domain> [I<--mode MODE-LIST>]
 
 Reboot a domain.  This acts just as if the domain had the B<reboot>
 command run from the console.  The command returns as soon as it has
@@ -1135,7 +1152,11 @@ I<on_reboot> parameter in the domain's XML definition.
 
 By default the hypervisor will try to pick a suitable shutdown
 method. To specify an alternative method, the I<--mode> parameter
-can specify C<acpi> or C<agent>.
+can specify a comma separated list which includes C<acpi>, C<agent>,
+C<initctl> and C<signal>. The order in which drivers will try each
+mode is undefined, and not related to the order specified to virsh.
+For strict control over ordering, use a single mode at a time and
+repeat the command.
 
 =item B<reset> I<domain>
 
@@ -1379,6 +1400,37 @@ B<Examples>
   # send a tab, held for 1 second
   virsh send-key --holdtime 1000 0xf
 
+=item B<send-process-signal> I<domain-id> I<pid> I<signame>
+
+Send a signal I<signame> to the process identified by I<pid> running in
+the virtual domain I<domain-id>. The I<pid> is a process ID in the virtual
+domain namespace.
+
+The I<signame> argument may be either an integer signal constant number,
+or one of the symbolic names:
+
+    "nop", "hup", "int", "quit", "ill",
+    "trap", "abrt", "bus", "fpe", "kill",
+    "usr1", "segv", "usr2", "pipe", "alrm",
+    "term", "stkflt", "chld", "cont", "stop",
+    "tstp", "ttin", "ttou", "urg", "xcpu",
+    "xfsz", "vtalrm", "prof", "winch", "poll",
+    "pwr", "sys", "rt0", "rt1", "rt2", "rt3",
+    "rt4", "rt5", "rt6", "rt7", "rt8", "rt9",
+    "rt10", "rt11", "rt12", "rt13", "rt14", "rt15",
+    "rt16", "rt17", "rt18", "rt19", "rt20", "rt21",
+    "rt22", "rt23", "rt24", "rt25", "rt26", "rt27",
+    "rt28", "rt29", "rt30", "rt31", "rt32"
+
+The symbol name may optionally be prefixed with 'sig' or 'sig_' and
+may be in uppercase or lowercase.
+
+B<Examples>
+  virsh send-process-signal myguest 1 15
+  virsh send-process-signal myguest 1 term
+  virsh send-process-signal myguest 1 sigterm
+  virsh send-process-signal myguest 1 SIG_HUP
+
 =item B<setmem> I<domain> B<size> [[I<--config>] [I<--live>] |
 [I<--current>]]
 
@@ -1522,7 +1574,7 @@ The I<--maximum> flag controls the maximum number of virtual cpus that can
 be hot-plugged the next time the domain is booted.  As such, it must only be
 used with the I<--config> flag, and not with the I<--live> flag.
 
-=item B<shutdown> I<domain> [I<--mode acpi|agent>]
+=item B<shutdown> I<domain> [I<--mode MODE-LIST>]
 
 Gracefully shuts down a domain.  This coordinates with the domain OS
 to perform graceful shutdown, so there is no guarantee that it will
@@ -1539,7 +1591,11 @@ snapshot metadata with B<snapshot-create>.
 
 By default the hypervisor will try to pick a suitable shutdown
 method. To specify an alternative method, the I<--mode> parameter
-can specify C<acpi> or C<agent>.
+can specify a comma separated list which includes C<acpi>, C<agent>,
+C<initctl> and C<signal>. The order in which drivers will try each
+mode is undefined, and not related to the order specified to virsh.
+For strict control over ordering, use a single mode at a time and
+repeat the command.
 
 =item B<start> I<domain-name-or-uuid> [I<--console>] [I<--paused>]
 [I<--autodestroy>] [I<--bypass-cache>] [I<--force-boot>]
@@ -2352,13 +2408,17 @@ Returns the UUID of the named I<pool>.
 
 =over 4
 
-=item B<vol-create> I<pool-or-uuid> I<FILE>
+=item B<vol-create> I<pool-or-uuid> I<FILE> [I<--prealloc-metadata>]
 
 Create a volume from an XML <file>.
 I<pool-or-uuid> is the name or UUID of the storage pool to create the volume in.
 I<FILE> is the XML <file> with the volume definition. An easy way to create the
 XML <file> is to use the B<vol-dumpxml> command to obtain the definition of a
 pre-existing volume.
+[I<--prealloc-metadata>] preallocate metadata (for qcow2 images which don't
+support full allocation). This option creates a sparse image file with metadata,
+resulting in higher performance compared to images with no preallocation and
+only slightly higher initial disk space usage.
 
 B<Example>
 
@@ -2367,7 +2427,7 @@ B<Example>
  virsh vol-create differentstoragepool newvolume.xml
 
 =item B<vol-create-from> I<pool-or-uuid> I<FILE> [I<--inputpool>
-I<pool-or-uuid>] I<vol-name-or-key-or-path>
+I<pool-or-uuid>] I<vol-name-or-key-or-path> [I<--prealloc-metadata>]
 
 Create a volume, using another volume as input.
 I<pool-or-uuid> is the name or UUID of the storage pool to create the volume in.
@@ -2375,10 +2435,15 @@ I<FILE> is the XML <file> with the volume definition.
 I<--inputpool> I<pool-or-uuid> is the name or uuid of the storage pool the
 source volume is in.
 I<vol-name-or-key-or-path> is the name or key or path of the source volume.
+[I<--prealloc-metadata>] preallocate metadata (for qcow2 images which don't
+support full allocation). This option creates a sparse image file with metadata,
+resulting in higher performance compared to images with no preallocation and
+only slightly higher initial disk space usage.
 
 =item B<vol-create-as> I<pool-or-uuid> I<name> I<capacity>
 [I<--allocation> I<size>] [I<--format> I<string>] [I<--backing-vol>
 I<vol-name-or-key-or-path>] [I<--backing-vol-format> I<string>]
+[I<--prealloc-metadata>]
 
 Create a volume from a set of arguments.
 I<pool-or-uuid> is the name or UUID of the storage pool to create the volume
@@ -2395,9 +2460,13 @@ volume to be used if taking a snapshot of an existing volume.
 I<--backing-vol-format> I<string> is the format of the snapshot backing volume;
 raw, bochs, qcow, qcow2, qed, vmdk, host_device. These are, however, meant for
 file based storage pools.
+[I<--prealloc-metadata>] preallocate metadata (for qcow2 images which don't
+support full allocation). This option creates a sparse image file with metadata,
+resulting in higher performance compared to images with no preallocation and
+only slightly higher initial disk space usage.
 
 =item B<vol-clone> [I<--pool> I<pool-or-uuid>] I<vol-name-or-key-or-path>
-I<name>
+I<name> [I<--prealloc-metadata>]
 
 Clone an existing volume.  Less powerful, but easier to type, version of
 B<vol-create-from>.
@@ -2405,6 +2474,10 @@ I<--pool> I<pool-or-uuid> is the name or UUID of the storage pool to create
 the volume in.
 I<vol-name-or-key-or-path> is the name or key or path of the source volume.
 I<name> is the name of the new volume.
+[I<--prealloc-metadata>] preallocate metadata (for qcow2 images which don't
+support full allocation). This option creates a sparse image file with metadata,
+resulting in higher performance compared to images with no preallocation and
+only slightly higher initial disk space usage.
 
 =item B<vol-delete> [I<--pool> I<pool-or-uuid>] I<vol-name-or-key-or-path>
 
@@ -2594,7 +2667,7 @@ used to represent properties of snapshots.
 
 =item B<snapshot-create> I<domain> [I<xmlfile>] {[I<--redefine> [I<--current>]]
 | [I<--no-metadata>] [I<--halt>] [I<--disk-only>] [I<--reuse-external>]
-[I<--quiesce>] [I<--atomic>]}
+[I<--quiesce>] [I<--atomic>] [I<--live>]}
 
 Create a snapshot for domain I<domain> with the properties specified in
 I<xmlfile>.  Normally, the only properties settable for a domain snapshot
@@ -2647,6 +2720,10 @@ this.  If this flag is not specified, then some hypervisors may fail
 after partially performing the action, and B<dumpxml> must be used to
 see whether any partial changes occurred.
 
+If I<--live> is specified, libvirt takes the snapshot while the guest is
+running. This increases the size of the memory image of the external
+checkpoint. This is currently supported only for external checkpoints.
+
 Existence of snapshot metadata will prevent attempts to B<undefine>
 a persistent domain.  However, for transient domains, snapshot
 metadata is silently lost when the domain quits running (whether
@@ -2654,8 +2731,8 @@ by command such as B<destroy> or by internal guest action).
 
 =item B<snapshot-create-as> I<domain> {[I<--print-xml>]
 | [I<--no-metadata>] [I<--halt>] [I<--reuse-external>]} [I<name>]
-[I<description>] [I<--disk-only> [I<--quiesce>] [I<--atomic>]
-[[I<--diskspec>] B<diskspec>]...]
+[I<description>] [I<--disk-only> [I<--quiesce>]] [I<--atomic>]
+[[I<--live>] [I<--memspec> B<memspec>]] [I<--diskspec>] B<diskspec>]...
 
 Create a snapshot for domain I<domain> with the given <name> and
 <description>; if either value is omitted, libvirt will choose a
@@ -2665,9 +2742,16 @@ Otherwise, if I<--halt> is specified, the domain will be left in an
 inactive state after the snapshot is created, and if I<--disk-only>
 is specified, the snapshot will not include vm state.
 
-The I<--disk-only> flag is used to request a disk-only snapshot.  When
-this flag is in use, the command can also take additional I<diskspec>
-arguments to add <disk> elements to the xml.  Each <diskspec> is in the
+The I<--memspec> option can be used to control whether a checkpoint
+is internal or external.  The I<--memspec> flag is mandatory, followed
+by a B<memspec> of the form B<[file=]name[,snapshot=type]>, where
+type can be B<none>, B<internal>, or B<external>.  To include a literal
+comma in B<file=name>, escape it with a second comma.
+
+The I<--diskspec> option can be used to control how I<--disk-only> and
+external checkpoints create external files.  This option can occur
+multiple times, according to the number of <disk> elements in the domain
+xml.  Each <diskspec> is in the
 form B<disk[,snapshot=type][,driver=type][,file=name]>.  To include a
 literal comma in B<disk> or in B<file=name>, escape it with a second
 comma.  A literal I<--diskspec> must precede each B<diskspec> unless
@@ -2699,6 +2783,10 @@ either succeeds, or fails with no changes; not all hypervisors support
 this.  If this flag is not specified, then some hypervisors may fail
 after partially performing the action, and B<dumpxml> must be used to
 see whether any partial changes occurred.
+
+If I<--live> is specified, libvirt takes the snapshot while the guest is
+running. This increases the size of the memory image of the external
+checkpoint. This is currently supported only for external checkpoints.
 
 =item B<snapshot-current> I<domain> {[I<--name>] | [I<--security-info>]
 | [I<snapshotname>]}
@@ -2748,6 +2836,7 @@ with I<--current>.
 =item B<snapshot-list> I<domain> [{I<--parent> | I<--roots> | I<--tree>}]
 [{[I<--from>] B<snapshot> | I<--current>} [I<--descendants>]]
 [I<--metadata>] [I<--no-metadata>] [I<--leaves>] [I<--no-leaves>]
+[I<--inactive>] [I<--active>] [I<--disk-only>] [I<--internal>] [I<--external>]
 
 List all of the available snapshots for the given domain, defaulting
 to show columns for the snapshot name, creation time, and domain state.
@@ -2774,7 +2863,7 @@ specified, the list will be filtered to just snapshots with
 children.  (Note that omitting both options does no filtering,
 while providing both options will either produce the same list
 or error out depending on whether the server recognizes the flags).
-These options are not compatible with I<--tree>.
+Filtering options are not compatible with I<--tree>.
 
 If I<--metadata> is specified, the list will be filtered to just
 snapshots that involve libvirt metadata, and thus would prevent
@@ -2782,6 +2871,20 @@ B<undefine> of a persistent domain, or be lost on B<destroy> of
 a transient domain.  Likewise, if I<--no-metadata> is specified,
 the list will be filtered to just snapshots that exist without
 the need for libvirt metadata.
+
+If I<--inactive> is specified, the list will be filtered to snapshots
+that were taken when the domain was shut off.  If I<--active> is
+specified, the list will be filtered to snapshots that were taken
+when the domain was running, and where the snapshot includes the
+memory state to revert to that running state.  If I<--disk-only> is
+specified, the list will be filtered to snapshots that were taken
+when the domain was running, but where the snapshot includes only
+disk state.
+
+If I<--internal> is specified, the list will be filtered to snapshots
+that use internal storage of existing disk images.  If I<--external>
+is specified, the list will be filtered to snapshots that use external
+files for disk images or memory state.
 
 =item B<snapshot-dumpxml> I<domain> I<snapshot> [I<--security-info>]
 

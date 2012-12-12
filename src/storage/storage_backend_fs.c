@@ -406,16 +406,16 @@ virStorageBackendFileSystemMount(virStoragePoolObjPtr pool) {
                                    pool->def->target.path,
                                    NULL);
     else if (glusterfs)
-        cmd = virCommandNewArgList( MOUNT,
-                                    "-t",
-                                    (pool->def->type == VIR_STORAGE_POOL_FS ?
-                                     virStoragePoolFormatFileSystemTypeToString(pool->def->source.format) :
-                                     virStoragePoolFormatFileSystemNetTypeToString(pool->def->source.format)),
-                                    src,
-                                    "-o",
-                                    "direct-io-mode=1",
-                                    pool->def->target.path,
-                                    NULL);
+        cmd = virCommandNewArgList(MOUNT,
+                                   "-t",
+                                   (pool->def->type == VIR_STORAGE_POOL_FS ?
+                                    virStoragePoolFormatFileSystemTypeToString(pool->def->source.format) :
+                                    virStoragePoolFormatFileSystemNetTypeToString(pool->def->source.format)),
+                                   src,
+                                   "-o",
+                                   "direct-io-mode=1",
+                                   pool->def->target.path,
+                                   NULL);
     else
         cmd = virCommandNewArgList(MOUNT,
                                    "-t",
@@ -449,6 +449,7 @@ static int
 virStorageBackendFileSystemUnmount(virStoragePoolObjPtr pool) {
     virCommandPtr cmd = NULL;
     int ret = -1;
+    int rc;
 
     if (pool->def->type == VIR_STORAGE_POOL_NETFS) {
         if (pool->def->source.nhost != 1) {
@@ -475,12 +476,8 @@ virStorageBackendFileSystemUnmount(virStoragePoolObjPtr pool) {
     }
 
     /* Short-circuit if already unmounted */
-    if ((ret = virStorageBackendFileSystemIsMounted(pool)) != 1) {
-        if (ret < 0)
-            return -1;
-        else
-            return 0;
-    }
+    if ((rc = virStorageBackendFileSystemIsMounted(pool)) != 1)
+        return rc;
 
     cmd = virCommandNewArgList(UMOUNT,
                                pool->def->target.path,
@@ -933,7 +930,7 @@ no_memory:
  * @conn connection to report errors against
  * @pool storage pool to start
  *
- * Stops a directory or FS based storage pool.
+ * Stops a FS based storage pool.
  *
  *  - If it is a FS based pool, unmounts the unlying source device on the pool
  *  - Releases all cached data about volumes
@@ -943,8 +940,7 @@ static int
 virStorageBackendFileSystemStop(virConnectPtr conn ATTRIBUTE_UNUSED,
                                 virStoragePoolObjPtr pool)
 {
-    if (pool->def->type != VIR_STORAGE_POOL_DIR &&
-        virStorageBackendFileSystemUnmount(pool) < 0)
+    if (virStorageBackendFileSystemUnmount(pool) < 0)
         return -1;
 
     return 0;
@@ -1004,6 +1000,13 @@ virStorageBackendFileSystemVolCreate(virConnectPtr conn ATTRIBUTE_UNUSED,
         return -1;
     }
 
+    if (virFileExists(vol->target.path)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("volume target path '%s' already exists"),
+                       vol->target.path);
+        return -1;
+    }
+
     VIR_FREE(vol->key);
     vol->key = strdup(vol->target.path);
     if (vol->key == NULL) {
@@ -1049,7 +1052,8 @@ static int
 _virStorageBackendFileSystemVolBuild(virConnectPtr conn,
                                      virStoragePoolObjPtr pool,
                                      virStorageVolDefPtr vol,
-                                     virStorageVolDefPtr inputvol)
+                                     virStorageVolDefPtr inputvol,
+                                     unsigned int flags)
 {
     virStorageBackendBuildVolFrom create_func;
     int tool_type;
@@ -1082,7 +1086,7 @@ _virStorageBackendFileSystemVolBuild(virConnectPtr conn,
         return -1;
     }
 
-    if (create_func(conn, pool, vol, inputvol, 0) < 0)
+    if (create_func(conn, pool, vol, inputvol, flags) < 0)
         return -1;
     return 0;
 }
@@ -1095,8 +1099,11 @@ _virStorageBackendFileSystemVolBuild(virConnectPtr conn,
 static int
 virStorageBackendFileSystemVolBuild(virConnectPtr conn,
                                     virStoragePoolObjPtr pool,
-                                    virStorageVolDefPtr vol) {
-    return _virStorageBackendFileSystemVolBuild(conn, pool, vol, NULL);
+                                    virStorageVolDefPtr vol,
+                                    unsigned int flags) {
+    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, -1);
+
+    return _virStorageBackendFileSystemVolBuild(conn, pool, vol, NULL, flags);
 }
 
 /*
@@ -1109,9 +1116,9 @@ virStorageBackendFileSystemVolBuildFrom(virConnectPtr conn,
                                         virStorageVolDefPtr inputvol,
                                         unsigned int flags)
 {
-    virCheckFlags(0, -1);
+    virCheckFlags(VIR_STORAGE_VOL_CREATE_PREALLOC_METADATA, -1);
 
-    return _virStorageBackendFileSystemVolBuild(conn, pool, vol, inputvol);
+    return _virStorageBackendFileSystemVolBuild(conn, pool, vol, inputvol, flags);
 }
 
 /**

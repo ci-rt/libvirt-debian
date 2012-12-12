@@ -73,7 +73,7 @@ qemuGetPciHostDeviceList(virDomainHostdevDefPtr *hostdevs, int nhostdevs)
 }
 
 static pciDeviceList *
-qemuGetActivePciHostDeviceList(struct qemud_driver *driver,
+qemuGetActivePciHostDeviceList(virQEMUDriverPtr driver,
                                virDomainHostdevDefPtr *hostdevs,
                                int nhostdevs)
 {
@@ -116,7 +116,7 @@ qemuGetActivePciHostDeviceList(struct qemud_driver *driver,
     return list;
 }
 
-int qemuUpdateActivePciHostdevs(struct qemud_driver *driver,
+int qemuUpdateActivePciHostdevs(virQEMUDriverPtr driver,
                                 virDomainDefPtr def)
 {
     virDomainHostdevDefPtr hostdev = NULL;
@@ -160,7 +160,7 @@ int qemuUpdateActivePciHostdevs(struct qemud_driver *driver,
 }
 
 int
-qemuUpdateActiveUsbHostdevs(struct qemud_driver *driver,
+qemuUpdateActiveUsbHostdevs(virQEMUDriverPtr driver,
                             virDomainDefPtr def)
 {
     virDomainHostdevDefPtr hostdev = NULL;
@@ -268,7 +268,7 @@ qemuDomainHostdevNetConfigVirtPortProfile(const char *linkdev, int vf,
     if (!virtPort)
         return ret;
 
-    switch(virtPort->virtPortType) {
+    switch (virtPort->virtPortType) {
     case VIR_NETDEV_VPORT_PROFILE_NONE:
     case VIR_NETDEV_VPORT_PROFILE_OPENVSWITCH:
     case VIR_NETDEV_VPORT_PROFILE_8021QBG:
@@ -399,7 +399,7 @@ qemuDomainHostdevNetConfigRestore(virDomainHostdevDefPtr hostdev,
     return ret;
 }
 
-int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
+int qemuPrepareHostdevPCIDevices(virQEMUDriverPtr driver,
                                  const char *name,
                                  const unsigned char *uuid,
                                  virDomainHostdevDefPtr *hostdevs,
@@ -491,10 +491,8 @@ int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
     /* Loop 5: Now mark all the devices as active */
     for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
         pciDevice *dev = pciDeviceListGet(pcidevs, i);
-        if (pciDeviceListAdd(driver->activePciHostdevs, dev) < 0) {
-            pciFreeDevice(dev);
+        if (pciDeviceListAdd(driver->activePciHostdevs, dev) < 0)
             goto inactivedevs;
-        }
     }
 
     /* Loop 6: Now remove the devices from inactive list. */
@@ -548,10 +546,8 @@ int qemuPrepareHostdevPCIDevices(struct qemud_driver *driver,
     }
 
     /* Loop 9: Now steal all the devices from pcidevs */
-    while (pciDeviceListCount(pcidevs) > 0) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, 0);
-        pciDeviceListSteal(pcidevs, dev);
-    }
+    while (pciDeviceListCount(pcidevs) > 0)
+        pciDeviceListStealIndex(pcidevs, 0);
 
     ret = 0;
     goto cleanup;
@@ -586,7 +582,7 @@ cleanup:
 }
 
 static int
-qemuPrepareHostPCIDevices(struct qemud_driver *driver,
+qemuPrepareHostPCIDevices(virQEMUDriverPtr driver,
                           virDomainDefPtr def)
 {
     return qemuPrepareHostdevPCIDevices(driver, def->name, def->uuid,
@@ -594,7 +590,7 @@ qemuPrepareHostPCIDevices(struct qemud_driver *driver,
 }
 
 int
-qemuPrepareHostdevUSBDevices(struct qemud_driver *driver,
+qemuPrepareHostdevUSBDevices(virQEMUDriverPtr driver,
                              const char *name,
                              usbDeviceList *list)
 {
@@ -728,7 +724,7 @@ out:
 }
 
 static int
-qemuPrepareHostUSBDevices(struct qemud_driver *driver,
+qemuPrepareHostUSBDevices(virQEMUDriverPtr driver,
                           virDomainDefPtr def,
                           bool coldBoot)
 {
@@ -795,7 +791,7 @@ cleanup:
     return ret;
 }
 
-int qemuPrepareHostDevices(struct qemud_driver *driver,
+int qemuPrepareHostDevices(virQEMUDriverPtr driver,
                            virDomainDefPtr def,
                            bool coldBoot)
 {
@@ -812,7 +808,7 @@ int qemuPrepareHostDevices(struct qemud_driver *driver,
 }
 
 
-void qemuReattachPciDevice(pciDevice *dev, struct qemud_driver *driver)
+void qemuReattachPciDevice(pciDevice *dev, virQEMUDriverPtr driver)
 {
     int retries = 100;
 
@@ -820,7 +816,8 @@ void qemuReattachPciDevice(pciDevice *dev, struct qemud_driver *driver)
      * successfully, it must have been inactive.
      */
     if (!pciDeviceGetManaged(dev)) {
-        pciDeviceListAdd(driver->inactivePciHostdevs, dev);
+        if (pciDeviceListAdd(driver->inactivePciHostdevs, dev) < 0)
+            pciFreeDevice(dev);
         return;
     }
 
@@ -837,10 +834,11 @@ void qemuReattachPciDevice(pciDevice *dev, struct qemud_driver *driver)
                   err ? err->message : _("unknown error"));
         virResetError(err);
     }
+    pciFreeDevice(dev);
 }
 
 
-void qemuDomainReAttachHostdevDevices(struct qemud_driver *driver,
+void qemuDomainReAttachHostdevDevices(virQEMUDriverPtr driver,
                                       const char *name,
                                       virDomainHostdevDefPtr *hostdevs,
                                       int nhostdevs)
@@ -907,8 +905,8 @@ void qemuDomainReAttachHostdevDevices(struct qemud_driver *driver,
         }
     }
 
-    for (i = 0; i < pciDeviceListCount(pcidevs); i++) {
-        pciDevice *dev = pciDeviceListGet(pcidevs, i);
+    while (pciDeviceListCount(pcidevs) > 0) {
+        pciDevice *dev = pciDeviceListStealIndex(pcidevs, 0);
         qemuReattachPciDevice(dev, driver);
     }
 
@@ -916,7 +914,7 @@ void qemuDomainReAttachHostdevDevices(struct qemud_driver *driver,
 }
 
 static void
-qemuDomainReAttachHostUsbDevices(struct qemud_driver *driver,
+qemuDomainReAttachHostUsbDevices(virQEMUDriverPtr driver,
                                  const char *name,
                                  virDomainHostdevDefPtr *hostdevs,
                                  int nhostdevs)
@@ -975,7 +973,7 @@ qemuDomainReAttachHostUsbDevices(struct qemud_driver *driver,
     }
 }
 
-void qemuDomainReAttachHostDevices(struct qemud_driver *driver,
+void qemuDomainReAttachHostDevices(virQEMUDriverPtr driver,
                                    virDomainDefPtr def)
 {
     if (!def->nhostdevs)

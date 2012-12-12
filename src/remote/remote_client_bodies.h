@@ -553,6 +553,33 @@ done:
 }
 
 static int
+remoteDomainFSTrim(virDomainPtr dom, const char *mountPoint, unsigned long long minimum, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_fstrim_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.mountPoint = mountPoint ? (char **)&mountPoint : NULL;
+    args.minimum = minimum;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_FSTRIM,
+             (xdrproc_t)xdr_remote_domain_fstrim_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
 remoteDomainGetAutostart(virDomainPtr dom, int *autostart)
 {
     int rv = -1;
@@ -2046,6 +2073,33 @@ remoteDomainSendKey(virDomainPtr dom, unsigned int codeset, unsigned int holdtim
 
     if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SEND_KEY,
              (xdrproc_t)xdr_remote_domain_send_key_args, (char *)&args,
+             (xdrproc_t)xdr_void, (char *)NULL) == -1) {
+        goto done;
+    }
+
+    rv = 0;
+
+done:
+    remoteDriverUnlock(priv);
+    return rv;
+}
+
+static int
+remoteDomainSendProcessSignal(virDomainPtr dom, long long pid_value, unsigned int signum, unsigned int flags)
+{
+    int rv = -1;
+    struct private_data *priv = dom->conn->privateData;
+    remote_domain_send_process_signal_args args;
+
+    remoteDriverLock(priv);
+
+    make_nonnull_domain(&args.dom, dom);
+    args.pid_value = pid_value;
+    args.signum = signum;
+    args.flags = flags;
+
+    if (call(dom->conn, priv, 0, REMOTE_PROC_DOMAIN_SEND_PROCESS_SIGNAL,
+             (xdrproc_t)xdr_remote_domain_send_process_signal_args, (char *)&args,
              (xdrproc_t)xdr_void, (char *)NULL) == -1) {
         goto done;
     }

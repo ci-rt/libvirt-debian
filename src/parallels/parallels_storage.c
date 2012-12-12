@@ -25,6 +25,10 @@
 #include <stdlib.h>
 #include <dirent.h>
 #include <sys/statvfs.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <libgen.h>
 
 #include "datatypes.h"
 #include "memory.h"
@@ -85,13 +89,14 @@ parallelsFindVolumes(virStoragePoolObjPtr pool)
 {
     DIR *dir;
     struct dirent *ent;
-    char *path;
+    char *path = NULL;
+    int ret = -1;
 
     if (!(dir = opendir(pool->def->target.path))) {
         virReportSystemError(errno,
                              _("cannot open path '%s'"),
                              pool->def->target.path);
-        goto cleanup;
+        return -1;
     }
 
     while ((ent = readdir(dir)) != NULL) {
@@ -99,67 +104,334 @@ parallelsFindVolumes(virStoragePoolObjPtr pool)
             continue;
 
         if (!(path = virFileBuildPath(pool->def->target.path,
-                                      ent->d_name, NULL)))
-            goto no_memory;
+                                      ent->d_name, NULL))) {
+            virReportOOMError();
+            goto cleanup;
+        }
         if (!parallelsStorageVolumeDefine(pool, NULL, path, false))
             goto cleanup;
+
         VIR_FREE(path);
     }
 
-    return 0;
-no_memory:
-    virReportOOMError();
+    ret = 0;
 cleanup:
-    return -1;
+    VIR_FREE(path);
+    closedir(dir);
+    return ret;
 
 }
 
-static virDrvOpenStatus
-parallelsStorageOpen(virConnectPtr conn,
-                     virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                     unsigned int flags)
+struct parallelsPoolsAddData {
+    virConnectPtr conn;
+    bool failed;
+};
+
+/*
+ * Generate unique pool name by path
+ */
+static char *parallelsMakePoolName(virConnectPtr conn, const char *path)
 {
-    char *base = NULL;
-    virStorageDriverStatePtr storageState;
-    int privileged = (geteuid() == 0);
     parallelsConnPtr privconn = conn->privateData;
-    size_t i;
+    char *name;
 
-    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
+    for (unsigned int i = 0; i < UINT_MAX; i++) {
+        bool found = false;
 
-    if (STRNEQ(conn->driver->name, "Parallels"))
-        return VIR_DRV_OPEN_DECLINED;
-
-    if (VIR_ALLOC(storageState) < 0) {
-        virReportOOMError();
-        return VIR_DRV_OPEN_ERROR;
-    }
-
-    if (virMutexInit(&storageState->lock) < 0) {
-        VIR_FREE(storageState);
-        return VIR_DRV_OPEN_ERROR;
-    }
-    parallelsStorageLock(storageState);
-
-    if (privileged) {
-        if ((base = strdup(SYSCONFDIR "/libvirt")) == NULL)
-            goto out_of_memory;
-    } else {
-        char *userdir = virGetUserDirectory();
-
-        if (!userdir)
-            goto error;
-
-        if (virAsprintf(&base, "%s/.libvirt", userdir) == -1) {
-            VIR_FREE(userdir);
-            goto out_of_memory;
+        if (!(name = strdup(path))) {
+            virReportOOMError();
+            return NULL;
         }
-        VIR_FREE(userdir);
+
+        if (i == 0)
+            name = strdup(path);
+        else
+            virAsprintf(&name, "%s-%u", path, i);
+
+        if (!name) {
+            virReportOOMError();
+            return 0;
+        }
+
+        for (int j = 0; j < strlen(name); j++)
+            if (name[j] == '/')
+                name[j] = '-';
+
+        for (int j = 0; j < privconn->pools.count; j++) {
+            if (STREQ(name, privconn->pools.objs[j]->def->name)) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+            return name;
+
+        VIR_FREE(name);
     }
 
-    /* Configuration paths are either ~/.libvirt/storage/... (session) or
-     * /etc/libvirt/storage/... (system).
-     */
+    return NULL;
+}
+
+static virStoragePoolObjPtr
+parallelsPoolCreateByPath(virConnectPtr conn, const char *path)
+{
+    parallelsConnPtr privconn = conn->privateData;
+    virStoragePoolObjListPtr pools = &privconn->pools;
+    virStoragePoolDefPtr def;
+    virStoragePoolObjPtr pool = NULL;
+
+    if (VIR_ALLOC(def) < 0)
+        goto no_memory;
+
+    if (!(def->name = parallelsMakePoolName(conn, path)))
+        goto error;
+
+    if (VIR_ALLOC_N(def->uuid, VIR_UUID_BUFLEN))
+        goto no_memory;
+
+    if (virUUIDGenerate(def->uuid)) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Can't generate UUID"));
+        goto error;
+    }
+
+    def->type = VIR_STORAGE_POOL_DIR;
+    def->target.path = strdup(path);
+
+    if (!(pool = virStoragePoolObjAssignDef(pools, def)))
+        goto error;
+
+    if (virStoragePoolObjSaveDef(conn->storagePrivateData, pool, def) < 0) {
+        virStoragePoolObjRemove(pools, pool);
+        goto error;
+    }
+
+    virStoragePoolObjUnlock(pool);
+
+    return pool;
+no_memory:
+    virReportOOMError();
+error:
+    virStoragePoolDefFree(def);
+    if (pool)
+        virStoragePoolObjUnlock(pool);
+    return NULL;
+}
+
+/*
+ * Create pool of type VIR_STORAGE_POOL_DIR with
+ * path to the VM, if it's not exists.
+ */
+static virStoragePoolObjPtr
+parallelsPoolAddByDomain(virConnectPtr conn, virDomainObjPtr dom)
+{
+    parallelsConnPtr privconn = conn->privateData;
+    parallelsDomObjPtr pdom = dom->privateData;
+    virStoragePoolObjListPtr pools = &privconn->pools;
+    char *poolPath;
+    virStoragePoolObjPtr pool = NULL;
+
+    if (!(poolPath = strdup(pdom->home))) {
+        virReportOOMError();
+        return NULL;
+    }
+
+    poolPath = dirname(poolPath);
+
+    for (int j = 0; j < pools->count; j++) {
+        if (STREQ(poolPath, pools->objs[j]->def->target.path)) {
+            pool = pools->objs[j];
+            break;
+        }
+    }
+
+    if (!pool)
+        pool = parallelsPoolCreateByPath(conn, poolPath);
+
+    VIR_FREE(poolPath);
+    return pool;
+}
+
+static int parallelsDiskDescParseNode(xmlDocPtr xml,
+                                      xmlNodePtr root,
+                                      virStorageVolDefPtr def)
+{
+    xmlXPathContextPtr ctxt = NULL;
+    int ret;
+
+    if (STRNEQ((const char *)root->name, "Parallels_disk_image")) {
+        virReportError(VIR_ERR_XML_ERROR,
+                       "%s", _("unknown root element for storage pool"));
+        goto cleanup;
+    }
+
+    ctxt = xmlXPathNewContext(xml);
+    if (ctxt == NULL) {
+        virReportOOMError();
+        goto cleanup;
+    }
+
+    ctxt->node = root;
+
+    if (virXPathULongLong("string(./Disk_Parameters/Disk_size)",
+                          ctxt, &def->capacity))
+        ret = -1;
+
+    def->capacity <<= 9;
+    def->allocation = def->capacity;
+cleanup:
+    xmlXPathFreeContext(ctxt);
+    return ret;
+
+}
+
+static int parallelsDiskDescParse(const char *path, virStorageVolDefPtr def)
+{
+    xmlDocPtr xml;
+    int ret = -1;
+
+    if (!(xml = virXMLParse(path, NULL, NULL)))
+        return -1;
+
+    ret = parallelsDiskDescParseNode(xml, xmlDocGetRootElement(xml), def);
+    xmlFreeDoc(xml);
+    return ret;
+}
+
+static int parallelsAddDiskVolume(virStoragePoolObjPtr pool,
+                                  virDomainObjPtr dom,
+                                  const char *diskName,
+                                  const char *diskPath,
+                                  const char *diskDescPath)
+{
+    virStorageVolDefPtr def = NULL;
+
+    if (VIR_ALLOC(def))
+        goto no_memory;
+
+    virAsprintf(&def->name, "%s-%s", dom->def->name, diskName);
+    if (!def->name)
+        goto no_memory;
+
+    def->type = VIR_STORAGE_VOL_FILE;
+
+    parallelsDiskDescParse(diskDescPath, def);
+
+    if (!(def->target.path = realpath(diskPath, NULL)))
+        goto no_memory;
+
+    if (!(def->key = strdup(def->target.path)))
+        goto no_memory;
+
+    if (VIR_REALLOC_N(pool->volumes.objs, pool->volumes.count + 1) < 0)
+        goto no_memory;
+
+    pool->volumes.objs[pool->volumes.count++] = def;
+
+    return 0;
+no_memory:
+    virStorageVolDefFree(def);
+    virReportOOMError();
+    return -1;
+}
+
+static int parallelsFindVmVolumes(virStoragePoolObjPtr pool,
+                                  virDomainObjPtr dom)
+{
+    parallelsDomObjPtr pdom = dom->privateData;
+    DIR *dir;
+    struct dirent *ent;
+    char *diskPath = NULL, *diskDescPath = NULL;
+    struct stat sb;
+    int ret = -1;
+
+    if (!(dir = opendir(pdom->home))) {
+        virReportSystemError(errno,
+                             _("cannot open path '%s'"),
+                             pdom->home);
+        goto cleanup;
+    }
+
+    while ((ent = readdir(dir)) != NULL) {
+        VIR_FREE(diskPath);
+        VIR_FREE(diskDescPath);
+
+        if (!(diskPath = virFileBuildPath(pdom->home, ent->d_name, NULL))) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (lstat(diskPath, &sb) < 0) {
+            virReportSystemError(errno,
+                                 _("cannot stat path '%s'"),
+                                 ent->d_name);
+            goto cleanup;
+        }
+
+        if (!S_ISDIR(sb.st_mode))
+            continue;
+
+        if (!(diskDescPath = virFileBuildPath(diskPath,
+                                              "DiskDescriptor", ".xml"))) {
+            virReportOOMError();
+            goto cleanup;
+        }
+
+        if (access(diskDescPath, F_OK))
+            continue;
+
+        /* here we know, that ent->d_name is a disk image directory */
+
+        if (parallelsAddDiskVolume(pool, dom, ent->d_name,
+                                   diskPath, diskDescPath))
+            goto cleanup;
+
+    }
+
+    ret = 0;
+cleanup:
+    VIR_FREE(diskPath);
+    VIR_FREE(diskDescPath);
+    closedir(dir);
+    return ret;
+
+}
+
+static void
+parallelsPoolsAdd(void *payload,
+                  const void *name ATTRIBUTE_UNUSED,
+                  void *opaque)
+{
+    struct parallelsPoolsAddData *data = (struct parallelsPoolsAddData *)opaque;
+    virDomainObjPtr dom = payload;
+    virStoragePoolObjPtr pool;
+
+    if (!(pool = parallelsPoolAddByDomain(data->conn, dom))) {
+        data->failed = true;
+        return;
+    }
+
+    if (parallelsFindVmVolumes(pool, dom)) {
+        data->failed = true;
+        return;
+    }
+
+    return;
+}
+
+static int parallelsLoadPools(virConnectPtr conn)
+{
+    parallelsConnPtr privconn = conn->privateData;
+    virStorageDriverStatePtr storageState = conn->storagePrivateData;
+    char *base = NULL;
+    size_t i;
+    struct parallelsPoolsAddData data;
+
+    if ((base = strdup(SYSCONFDIR "/libvirt")) == NULL)
+        goto out_of_memory;
+
+    /* Configuration path is /etc/libvirt/parallels-storage/... . */
     if (virAsprintf(&storageState->configDir,
                     "%s/parallels-storage", base) == -1)
         goto out_of_memory;
@@ -178,6 +450,13 @@ parallelsStorageOpen(virConnectPtr conn,
         goto error;
     }
 
+    data.conn = conn;
+    data.failed = false;
+    virHashForEach(privconn->domains.objs, parallelsPoolsAdd, &data);
+
+    if (data.failed)
+        goto error;
+
     for (i = 0; i < privconn->pools.count; i++) {
         virStoragePoolObjLock(privconn->pools.objs[i]);
         virStoragePoolObjPtr pool;
@@ -194,16 +473,47 @@ parallelsStorageOpen(virConnectPtr conn,
         virStoragePoolObjUnlock(privconn->pools.objs[i]);
     }
 
-    parallelsStorageUnlock(storageState);
-
-    conn->storagePrivateData = storageState;
-
-    return VIR_DRV_OPEN_SUCCESS;
+    return 0;
 
 out_of_memory:
     virReportOOMError();
 error:
     VIR_FREE(base);
+    return -1;
+}
+
+static virDrvOpenStatus
+parallelsStorageOpen(virConnectPtr conn,
+                     virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                     unsigned int flags)
+{
+    virStorageDriverStatePtr storageState;
+    virCheckFlags(VIR_CONNECT_RO, VIR_DRV_OPEN_ERROR);
+
+    if (STRNEQ(conn->driver->name, "Parallels"))
+        return VIR_DRV_OPEN_DECLINED;
+
+    if (VIR_ALLOC(storageState) < 0) {
+        virReportOOMError();
+        return VIR_DRV_OPEN_ERROR;
+    }
+
+    if (virMutexInit(&storageState->lock) < 0) {
+        VIR_FREE(storageState);
+        return VIR_DRV_OPEN_ERROR;
+    }
+
+    conn->storagePrivateData = storageState;
+    parallelsStorageLock(storageState);
+
+    if (parallelsLoadPools(conn))
+        goto error;
+
+    parallelsStorageUnlock(storageState);
+
+    return VIR_DRV_OPEN_SUCCESS;
+
+error:
     parallelsStorageUnlock(storageState);
     parallelsStorageClose(conn);
     return -1;
@@ -350,7 +660,8 @@ parallelsStoragePoolLookupByUUID(virConnectPtr conn, const unsigned char *uuid)
         goto cleanup;
     }
 
-    ret = virGetStoragePool(conn, pool->def->name, pool->def->uuid);
+    ret = virGetStoragePool(conn, pool->def->name, pool->def->uuid,
+                            NULL, NULL);
 
 cleanup:
     if (pool)
@@ -374,7 +685,8 @@ parallelsStoragePoolLookupByName(virConnectPtr conn, const char *name)
         goto cleanup;
     }
 
-    ret = virGetStoragePool(conn, pool->def->name, pool->def->uuid);
+    ret = virGetStoragePool(conn, pool->def->name, pool->def->uuid,
+                            NULL, NULL);
 
 cleanup:
     if (pool)
@@ -459,7 +771,8 @@ parallelsStoragePoolDefine(virConnectPtr conn,
         goto cleanup;
     }
 
-    ret = virGetStoragePool(conn, pool->def->name, pool->def->uuid);
+    ret = virGetStoragePool(conn, pool->def->name, pool->def->uuid,
+                            NULL, NULL);
 
 cleanup:
     virStoragePoolDefFree(def);
@@ -831,7 +1144,8 @@ parallelsStorageVolumeLookupByName(virStoragePoolPtr pool,
     }
 
     ret = virGetStorageVol(pool->conn, privpool->def->name,
-                           privvol->name, privvol->key);
+                           privvol->name, privvol->key,
+                           NULL, NULL);
 
 cleanup:
     if (privpool)
@@ -857,7 +1171,8 @@ parallelsStorageVolumeLookupByKey(virConnectPtr conn, const char *key)
             if (privvol) {
                 ret = virGetStorageVol(conn,
                                        privconn->pools.objs[i]->def->name,
-                                       privvol->name, privvol->key);
+                                       privvol->name, privvol->key,
+                                       NULL, NULL);
                 virStoragePoolObjUnlock(privconn->pools.objs[i]);
                 break;
             }
@@ -889,7 +1204,8 @@ parallelsStorageVolumeLookupByPathLocked(virConnectPtr conn, const char *path)
             if (privvol) {
                 ret = virGetStorageVol(conn,
                                        privconn->pools.objs[i]->def->name,
-                                       privvol->name, privvol->key);
+                                       privvol->name, privvol->key,
+                                       NULL, NULL);
                 virStoragePoolObjUnlock(privconn->pools.objs[i]);
                 break;
             }
@@ -1026,7 +1342,8 @@ parallelsStorageVolumeCreateXML(virStoragePoolPtr pool,
         goto cleanup;
 
     ret = virGetStorageVol(pool->conn, privpool->def->name,
-                           privvol->name, privvol->key);
+                           privvol->name, privvol->key,
+                           NULL, NULL);
 cleanup:
     if (privpool)
         virStoragePoolObjUnlock(privpool);
@@ -1115,7 +1432,8 @@ parallelsStorageVolumeCreateXMLFrom(virStoragePoolPtr pool,
     privpool->volumes.objs[privpool->volumes.count++] = privvol;
 
     ret = virGetStorageVol(pool->conn, privpool->def->name,
-                           privvol->name, privvol->key);
+                           privvol->name, privvol->key,
+                           NULL, NULL);
     privvol = NULL;
 
 cleanup:
@@ -1125,42 +1443,12 @@ cleanup:
     return ret;
 }
 
-static int
-parallelsStorageVolumeDelete(virStorageVolPtr vol, unsigned int flags)
+int parallelsStorageVolumeDefRemove(virStoragePoolObjPtr privpool,
+                                    virStorageVolDefPtr privvol)
 {
-    parallelsConnPtr privconn = vol->conn->privateData;
-    virStoragePoolObjPtr privpool;
-    virStorageVolDefPtr privvol;
-    size_t i;
     int ret = -1;
     char *xml_path = NULL;
-
-    virCheckFlags(0, -1);
-
-    parallelsDriverLock(privconn);
-    privpool = virStoragePoolObjFindByName(&privconn->pools, vol->pool);
-    parallelsDriverUnlock(privconn);
-
-    if (privpool == NULL) {
-        parallelsPoolNotFoundError(vol->pool);
-        goto cleanup;
-    }
-
-
-    privvol = virStorageVolDefFindByName(privpool, vol->name);
-
-    if (privvol == NULL) {
-        virReportError(VIR_ERR_NO_STORAGE_VOL,
-                       _("no storage vol with matching name '%s'"), vol->name);
-        goto cleanup;
-    }
-
-    if (!virStoragePoolObjIsActive(privpool)) {
-        virReportError(VIR_ERR_OPERATION_INVALID,
-                       _("storage pool '%s' is not active"), vol->pool);
-        goto cleanup;
-    }
-
+    size_t i;
 
     privpool->def->allocation -= privvol->allocation;
     privpool->def->available = (privpool->def->capacity -
@@ -1195,12 +1483,56 @@ parallelsStorageVolumeDelete(virStorageVolPtr vol, unsigned int flags)
             break;
         }
     }
+
+    ret = 0;
+cleanup:
+    VIR_FREE(xml_path);
+    return ret;
+}
+
+static int
+parallelsStorageVolumeDelete(virStorageVolPtr vol, unsigned int flags)
+{
+    parallelsConnPtr privconn = vol->conn->privateData;
+    virStoragePoolObjPtr privpool;
+    virStorageVolDefPtr privvol;
+    int ret = -1;
+
+    virCheckFlags(0, -1);
+
+    parallelsDriverLock(privconn);
+    privpool = virStoragePoolObjFindByName(&privconn->pools, vol->pool);
+    parallelsDriverUnlock(privconn);
+
+    if (privpool == NULL) {
+        parallelsPoolNotFoundError(vol->pool);
+        goto cleanup;
+    }
+
+
+    privvol = virStorageVolDefFindByName(privpool, vol->name);
+
+    if (privvol == NULL) {
+        virReportError(VIR_ERR_NO_STORAGE_VOL,
+                       _("no storage vol with matching name '%s'"), vol->name);
+        goto cleanup;
+    }
+
+    if (!virStoragePoolObjIsActive(privpool)) {
+        virReportError(VIR_ERR_OPERATION_INVALID,
+                       _("storage pool '%s' is not active"), vol->pool);
+        goto cleanup;
+    }
+
+
+    if (parallelsStorageVolumeDefRemove(privpool, privvol))
+        goto cleanup;
+
     ret = 0;
 
 cleanup:
     if (privpool)
         virStoragePoolObjUnlock(privpool);
-    VIR_FREE(xml_path);
     return ret;
 }
 

@@ -1029,6 +1029,14 @@ struct remote_domain_send_key_args {
 };
 typedef struct remote_domain_send_key_args remote_domain_send_key_args;
 
+struct remote_domain_send_process_signal_args {
+        remote_nonnull_domain dom;
+        int64_t pid_value;
+        u_int signum;
+        u_int flags;
+};
+typedef struct remote_domain_send_process_signal_args remote_domain_send_process_signal_args;
+
 struct remote_domain_set_vcpus_args {
         remote_nonnull_domain dom;
         u_int nvcpus;
@@ -3158,6 +3166,14 @@ struct remote_node_get_cpu_map_ret {
         int ret;
 };
 typedef struct remote_node_get_cpu_map_ret remote_node_get_cpu_map_ret;
+
+struct remote_domain_fstrim_args {
+        remote_nonnull_domain dom;
+        remote_string mountPoint;
+        uint64_t minimum;
+        u_int flags;
+};
+typedef struct remote_domain_fstrim_args remote_domain_fstrim_args;
 #define REMOTE_PROGRAM 0x20008086
 #define REMOTE_PROTOCOL_VERSION 1
 
@@ -3455,6 +3471,8 @@ enum remote_procedure {
         REMOTE_PROC_NETWORK_UPDATE = 291,
         REMOTE_PROC_DOMAIN_EVENT_PMSUSPEND_DISK = 292,
         REMOTE_PROC_NODE_GET_CPU_MAP = 293,
+        REMOTE_PROC_DOMAIN_FSTRIM = 294,
+        REMOTE_PROC_DOMAIN_SEND_PROCESS_SIGNAL = 295,
 };
 typedef enum remote_procedure remote_procedure;
 
@@ -3606,6 +3624,7 @@ extern  bool_t xdr_remote_domain_undefine_args (XDR *, remote_domain_undefine_ar
 extern  bool_t xdr_remote_domain_undefine_flags_args (XDR *, remote_domain_undefine_flags_args*);
 extern  bool_t xdr_remote_domain_inject_nmi_args (XDR *, remote_domain_inject_nmi_args*);
 extern  bool_t xdr_remote_domain_send_key_args (XDR *, remote_domain_send_key_args*);
+extern  bool_t xdr_remote_domain_send_process_signal_args (XDR *, remote_domain_send_process_signal_args*);
 extern  bool_t xdr_remote_domain_set_vcpus_args (XDR *, remote_domain_set_vcpus_args*);
 extern  bool_t xdr_remote_domain_set_vcpus_flags_args (XDR *, remote_domain_set_vcpus_flags_args*);
 extern  bool_t xdr_remote_domain_get_vcpus_flags_args (XDR *, remote_domain_get_vcpus_flags_args*);
@@ -3937,6 +3956,7 @@ extern  bool_t xdr_remote_node_get_memory_parameters_args (XDR *, remote_node_ge
 extern  bool_t xdr_remote_node_get_memory_parameters_ret (XDR *, remote_node_get_memory_parameters_ret*);
 extern  bool_t xdr_remote_node_get_cpu_map_args (XDR *, remote_node_get_cpu_map_args*);
 extern  bool_t xdr_remote_node_get_cpu_map_ret (XDR *, remote_node_get_cpu_map_ret*);
+extern  bool_t xdr_remote_domain_fstrim_args (XDR *, remote_domain_fstrim_args*);
 extern  bool_t xdr_remote_procedure (XDR *, remote_procedure*);
 
 #else /* K&R C */
@@ -4085,6 +4105,7 @@ extern bool_t xdr_remote_domain_undefine_args ();
 extern bool_t xdr_remote_domain_undefine_flags_args ();
 extern bool_t xdr_remote_domain_inject_nmi_args ();
 extern bool_t xdr_remote_domain_send_key_args ();
+extern bool_t xdr_remote_domain_send_process_signal_args ();
 extern bool_t xdr_remote_domain_set_vcpus_args ();
 extern bool_t xdr_remote_domain_set_vcpus_flags_args ();
 extern bool_t xdr_remote_domain_get_vcpus_flags_args ();
@@ -4416,6 +4437,7 @@ extern bool_t xdr_remote_node_get_memory_parameters_args ();
 extern bool_t xdr_remote_node_get_memory_parameters_ret ();
 extern bool_t xdr_remote_node_get_cpu_map_args ();
 extern bool_t xdr_remote_node_get_cpu_map_ret ();
+extern bool_t xdr_remote_domain_fstrim_args ();
 extern bool_t xdr_remote_procedure ();
 
 #endif /* K&R C */

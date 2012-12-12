@@ -2,7 +2,7 @@
 /*
  * esx_vi.c: client for the VMware VI API 2.5 to manage ESX hosts
  *
- * Copyright (C) 2010-2011 Red Hat, Inc.
+ * Copyright (C) 2010-2012 Red Hat, Inc.
  * Copyright (C) 2009-2012 Matthias Bolte <matthias.bolte@googlemail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -2440,7 +2440,7 @@ esxVI_LookupNumberOfDomainsByPowerState(esxVI_Context *ctx,
                 }
 
                 if ((!inverse && powerState_ == powerState) ||
-                    ( inverse && powerState_ != powerState)) {
+                    (inverse && powerState_ != powerState)) {
                     count++;
                 }
             } else {
@@ -2780,7 +2780,8 @@ esxVI_LookupVirtualMachineByUuid(esxVI_Context *ctx, const unsigned char *uuid,
     virUUIDFormat(uuid, uuid_string);
 
     if (esxVI_FindByUuid(ctx, ctx->datacenter->_reference, uuid_string,
-                         esxVI_Boolean_True, &managedObjectReference) < 0) {
+                         esxVI_Boolean_True, esxVI_Boolean_Undefined,
+                         &managedObjectReference) < 0) {
         return -1;
     }
 
@@ -3107,7 +3108,8 @@ esxVI_LookupDatastoreByAbsolutePath(esxVI_Context *ctx,
 int
 esxVI_LookupDatastoreHostMount(esxVI_Context *ctx,
                                esxVI_ManagedObjectReference *datastore,
-                               esxVI_DatastoreHostMount **hostMount)
+                               esxVI_DatastoreHostMount **hostMount,
+                               esxVI_Occurrence occurrence)
 {
     int result = -1;
     esxVI_String *propertyNameList = NULL;
@@ -3155,7 +3157,7 @@ esxVI_LookupDatastoreHostMount(esxVI_Context *ctx,
         break;
     }
 
-    if (*hostMount == NULL) {
+    if (*hostMount == NULL && occurrence == esxVI_Occurrence_RequiredItem) {
         virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
                        _("Could not lookup datastore host mount"));
         goto cleanup;
@@ -4657,7 +4659,9 @@ esxVI_ProductVersionToDefaultVirtualHWVersion(esxVI_ProductVersion productVersio
       case esxVI_ProductVersion_VPX50:
         return 8;
 
+      case esxVI_ProductVersion_ESX51:
       case esxVI_ProductVersion_ESX5x:
+      case esxVI_ProductVersion_VPX51:
       case esxVI_ProductVersion_VPX5x:
         return 8;
 
@@ -4668,6 +4672,343 @@ esxVI_ProductVersionToDefaultVirtualHWVersion(esxVI_ProductVersion productVersio
     }
 }
 
+
+
+int
+esxVI_LookupHostInternetScsiHbaStaticTargetByName
+  (esxVI_Context *ctx, const char *name,
+   esxVI_HostInternetScsiHbaStaticTarget **target, esxVI_Occurrence occurrence)
+{
+    int result = -1;
+    esxVI_HostInternetScsiHba *hostInternetScsiHba = NULL;
+    esxVI_HostInternetScsiHbaStaticTarget *candidate = NULL;
+
+    if (esxVI_LookupHostInternetScsiHba(ctx, &hostInternetScsiHba) < 0) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Unable to obtain hostInternetScsiHba"));
+        goto cleanup;
+    }
+
+    if (hostInternetScsiHba == NULL) {
+        /* iSCSI adapter may not be enabled for this host */
+        return 0;
+    }
+
+    for (candidate = hostInternetScsiHba->configuredStaticTarget;
+         candidate != NULL; candidate = candidate->_next) {
+        if (STREQ(candidate->iScsiName, name)) {
+            break;
+        }
+    }
+
+    if (candidate == NULL) {
+        if (occurrence == esxVI_Occurrence_RequiredItem) {
+            virReportError(VIR_ERR_NO_STORAGE_POOL,
+                           _("Could not find storage pool with name: %s"), name);
+        }
+
+        goto cleanup;
+    }
+
+    if (esxVI_HostInternetScsiHbaStaticTarget_DeepCopy(target, candidate) < 0) {
+        goto cleanup;
+    }
+
+    result = 0;
+
+  cleanup:
+    esxVI_HostInternetScsiHba_Free(&hostInternetScsiHba);
+
+    return result;
+}
+
+
+
+int
+esxVI_LookupHostInternetScsiHba(esxVI_Context *ctx,
+                                esxVI_HostInternetScsiHba **hostInternetScsiHba)
+{
+    int result = -1;
+    esxVI_DynamicProperty *dynamicProperty = NULL;
+    esxVI_ObjectContent *hostSystem = NULL;
+    esxVI_String *propertyNameList = NULL;
+    esxVI_HostHostBusAdapter *hostHostBusAdapterList = NULL;
+    esxVI_HostHostBusAdapter *hostHostBusAdapter = NULL;
+
+    if (esxVI_String_AppendValueToList
+          (&propertyNameList, "config.storageDevice.hostBusAdapter") < 0 ||
+        esxVI_LookupHostSystemProperties(ctx, propertyNameList,
+                                         &hostSystem) < 0) {
+        goto cleanup;
+    }
+
+    for (dynamicProperty = hostSystem->propSet; dynamicProperty != NULL;
+         dynamicProperty = dynamicProperty->_next) {
+        if (STREQ(dynamicProperty->name,
+                  "config.storageDevice.hostBusAdapter")) {
+            if (esxVI_HostHostBusAdapter_CastListFromAnyType
+                  (dynamicProperty->val, &hostHostBusAdapterList) < 0 ||
+                hostHostBusAdapterList == NULL) {
+                goto cleanup;
+            }
+        } else {
+            VIR_WARN("Unexpected '%s' property", dynamicProperty->name);
+        }
+    }
+
+    /* See vSphere API documentation about HostInternetScsiHba for details */
+    for (hostHostBusAdapter = hostHostBusAdapterList;
+         hostHostBusAdapter != NULL;
+         hostHostBusAdapter = hostHostBusAdapter->_next) {
+        esxVI_HostInternetScsiHba *candidate=
+            esxVI_HostInternetScsiHba_DynamicCast(hostHostBusAdapter);
+
+        if (candidate) {
+            if (esxVI_HostInternetScsiHba_DeepCopy(hostInternetScsiHba,
+                  candidate) < 0) {
+                goto cleanup;
+            }
+            break;
+        }
+    }
+
+    result = 0;
+
+  cleanup:
+    esxVI_String_Free(&propertyNameList);
+    esxVI_ObjectContent_Free(&hostSystem);
+    esxVI_HostHostBusAdapter_Free(&hostHostBusAdapterList);
+
+    return result;
+}
+
+
+
+int
+esxVI_LookupScsiLunList(esxVI_Context *ctx, esxVI_ScsiLun **scsiLunList)
+{
+    int result = -1;
+    esxVI_String *propertyNameList = NULL;
+    esxVI_ObjectContent *hostSystem = NULL;
+    esxVI_DynamicProperty *dynamicProperty;
+
+    if (esxVI_String_AppendValueToList(&propertyNameList,
+                                       "config.storageDevice.scsiLun") < 0 ||
+        esxVI_LookupHostSystemProperties(ctx, propertyNameList,
+                                         &hostSystem) < 0) {
+        goto cleanup;
+    }
+
+    for (dynamicProperty = hostSystem->propSet; dynamicProperty != NULL;
+         dynamicProperty = dynamicProperty->_next) {
+        if (STREQ(dynamicProperty->name, "config.storageDevice.scsiLun")) {
+            if (esxVI_ScsiLun_CastListFromAnyType(dynamicProperty->val,
+                                                  scsiLunList) < 0) {
+                goto cleanup;
+            }
+
+            break;
+        } else {
+            VIR_WARN("Unexpected '%s' property", dynamicProperty->name);
+        }
+    }
+
+    result = 0;
+
+  cleanup:
+    esxVI_String_Free(&propertyNameList);
+    esxVI_ObjectContent_Free(&hostSystem);
+
+    return result;
+}
+
+
+
+int
+esxVI_LookupHostScsiTopologyLunListByTargetName
+  (esxVI_Context *ctx, const char *name,
+   esxVI_HostScsiTopologyLun **hostScsiTopologyLunList)
+{
+    int result = -1;
+    esxVI_DynamicProperty *dynamicProperty = NULL;
+    esxVI_ObjectContent *hostSystem = NULL;
+    esxVI_String *propertyNameList = NULL;
+    esxVI_HostScsiTopologyInterface *hostScsiInterfaceList = NULL;
+    esxVI_HostScsiTopologyInterface *hostScsiInterface = NULL;
+    esxVI_HostScsiTopologyTarget *hostScsiTopologyTarget = NULL;
+    bool found = false;
+    esxVI_HostInternetScsiTargetTransport *candidate = NULL;
+
+    if (hostScsiTopologyLunList == NULL || *hostScsiTopologyLunList != NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
+    if (esxVI_String_AppendValueToList
+          (&propertyNameList,
+           "config.storageDevice.scsiTopology.adapter") < 0 ||
+        esxVI_LookupHostSystemProperties(ctx, propertyNameList,
+                                         &hostSystem) < 0) {
+        goto cleanup;
+    }
+
+    for (dynamicProperty = hostSystem->propSet; dynamicProperty != NULL;
+         dynamicProperty = dynamicProperty->_next) {
+        if (STREQ(dynamicProperty->name,
+                  "config.storageDevice.scsiTopology.adapter")) {
+            esxVI_HostScsiTopologyInterface_Free(&hostScsiInterfaceList);
+
+            if (esxVI_HostScsiTopologyInterface_CastListFromAnyType
+                  (dynamicProperty->val, &hostScsiInterfaceList) < 0) {
+                goto cleanup;
+            }
+
+            break;
+        } else {
+            VIR_WARN("Unexpected '%s' property", dynamicProperty->name);
+        }
+    }
+
+    if (hostScsiInterfaceList == NULL) {
+        /* iSCSI adapter may not be enabled */
+        return 0;
+    }
+
+    /* See vSphere API documentation about HostScsiTopologyInterface */
+    for (hostScsiInterface = hostScsiInterfaceList;
+         hostScsiInterface != NULL && !found;
+         hostScsiInterface = hostScsiInterface->_next) {
+        for (hostScsiTopologyTarget = hostScsiInterface->target;
+             hostScsiTopologyTarget != NULL;
+             hostScsiTopologyTarget = hostScsiTopologyTarget->_next) {
+            candidate = esxVI_HostInternetScsiTargetTransport_DynamicCast
+                          (hostScsiTopologyTarget->transport);
+
+            if (candidate != NULL && STREQ(candidate->iScsiName, name)) {
+                found = true;
+                break;
+            }
+        }
+    }
+
+    if (!found || hostScsiTopologyTarget == NULL) {
+        goto cleanup;
+    }
+
+    if (hostScsiTopologyTarget->lun == NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+                       _("Target not found"));
+        goto cleanup;
+    }
+
+    if (esxVI_HostScsiTopologyLun_DeepCopyList(hostScsiTopologyLunList,
+                                               hostScsiTopologyTarget->lun) < 0) {
+        goto cleanup;
+    }
+
+    result = 0;
+
+  cleanup:
+    esxVI_String_Free(&propertyNameList);
+    esxVI_ObjectContent_Free(&hostSystem);
+    esxVI_HostScsiTopologyInterface_Free(&hostScsiInterfaceList);
+
+    return result;
+}
+
+
+
+int
+esxVI_LookupStoragePoolNameByScsiLunKey(esxVI_Context *ctx,
+                                        const char *key,
+                                        char **poolName)
+{
+    int result = -1;
+    esxVI_DynamicProperty *dynamicProperty = NULL;
+    esxVI_ObjectContent *hostSystem = NULL;
+    esxVI_String *propertyNameList = NULL;
+    esxVI_HostScsiTopologyInterface *hostScsiInterfaceList = NULL;
+    esxVI_HostScsiTopologyInterface *hostScsiInterface = NULL;
+    esxVI_HostScsiTopologyTarget *hostScsiTopologyTarget = NULL;
+    esxVI_HostInternetScsiTargetTransport *candidate;
+    esxVI_HostScsiTopologyLun *hostScsiTopologyLun;
+    bool found = false;
+
+    if (poolName == NULL || *poolName != NULL) {
+        virReportError(VIR_ERR_INTERNAL_ERROR, "%s", _("Invalid argument"));
+        return -1;
+    }
+
+    if (esxVI_String_AppendValueToList
+          (&propertyNameList,
+           "config.storageDevice.scsiTopology.adapter") < 0 ||
+        esxVI_LookupHostSystemProperties(ctx, propertyNameList,
+                                         &hostSystem) < 0) {
+        goto cleanup;
+    }
+
+    for (dynamicProperty = hostSystem->propSet; dynamicProperty != NULL;
+         dynamicProperty = dynamicProperty->_next) {
+        if (STREQ(dynamicProperty->name,
+                  "config.storageDevice.scsiTopology.adapter")) {
+            esxVI_HostScsiTopologyInterface_Free(&hostScsiInterfaceList);
+
+            if (esxVI_HostScsiTopologyInterface_CastListFromAnyType
+                  (dynamicProperty->val, &hostScsiInterfaceList) < 0) {
+                goto cleanup;
+            }
+
+            break;
+        } else {
+            VIR_WARN("Unexpected '%s' property", dynamicProperty->name);
+        }
+    }
+
+    if (hostScsiInterfaceList == NULL) {
+        /* iSCSI adapter may not be enabled */
+        return 0;
+    }
+
+    /* See vSphere API documentation about HostScsiTopologyInterface */
+    for (hostScsiInterface = hostScsiInterfaceList;
+         hostScsiInterface != NULL && !found;
+         hostScsiInterface = hostScsiInterface->_next) {
+        for (hostScsiTopologyTarget = hostScsiInterface->target;
+             hostScsiTopologyTarget != NULL;
+             hostScsiTopologyTarget = hostScsiTopologyTarget->_next) {
+            candidate = esxVI_HostInternetScsiTargetTransport_DynamicCast
+                          (hostScsiTopologyTarget->transport);
+
+            if (candidate != NULL) {
+                /* iterate hostScsiTopologyLun list to find matching key */
+                for (hostScsiTopologyLun = hostScsiTopologyTarget->lun;
+                     hostScsiTopologyLun != NULL;
+                     hostScsiTopologyLun = hostScsiTopologyLun->_next) {
+                    if (STREQ(hostScsiTopologyLun->scsiLun, key)) {
+                        *poolName = strdup(candidate->iScsiName);
+
+                        if (*poolName == NULL) {
+                            virReportOOMError();
+                            goto cleanup;
+                        }
+                    }
+                }
+
+                /* hostScsiTopologyLun iteration done, terminate loop */
+                break;
+            }
+        }
+    }
+
+    result = 0;
+
+  cleanup:
+    esxVI_ObjectContent_Free(&hostSystem);
+    esxVI_String_Free(&propertyNameList);
+    esxVI_HostScsiTopologyInterface_Free(&hostScsiInterfaceList);
+
+    return result;
+}
 
 
 

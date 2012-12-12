@@ -366,7 +366,7 @@ int virBitmapParse(const char *str,
             cur++;
             virSkipSpaces(&cur);
             neg = false;
-        } else if(*cur == 0 || *cur == sep) {
+        } else if (*cur == 0 || *cur == sep) {
             break;
         } else {
             goto parse_error;
@@ -574,8 +574,8 @@ bool virBitmapIsAllSet(virBitmapPtr bitmap)
             return false;
 
     if (unusedBits > 0) {
-        if ((bitmap->map[sz] & ((1U << (VIR_BITMAP_BITS_PER_UNIT - unusedBits)) - 1))
-            != ((1U << (VIR_BITMAP_BITS_PER_UNIT - unusedBits)) - 1))
+        if ((bitmap->map[sz] & ((1UL << (VIR_BITMAP_BITS_PER_UNIT - unusedBits)) - 1))
+            != ((1UL << (VIR_BITMAP_BITS_PER_UNIT - unusedBits)) - 1))
             return false;
     }
 

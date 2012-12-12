@@ -141,6 +141,7 @@ int virEventPollAddHandle(int fd, int events,
 
 void virEventPollUpdateHandle(int watch, int events) {
     int i;
+    bool found = false;
     PROBE(EVENT_POLL_UPDATE_HANDLE,
           "watch=%d events=%d",
           watch, events);
@@ -156,10 +157,14 @@ void virEventPollUpdateHandle(int watch, int events) {
             eventLoop.handles[i].events =
                     virEventPollToNativeEvents(events);
             virEventPollInterruptLocked();
+            found = true;
             break;
         }
     }
     virMutexUnlock(&eventLoop.lock);
+
+    if (!found)
+        VIR_WARN("Got update for non-existent handle watch %d", watch);
 }
 
 /*
@@ -249,6 +254,7 @@ void virEventPollUpdateTimeout(int timer, int frequency)
 {
     unsigned long long now;
     int i;
+    bool found = false;
     PROBE(EVENT_POLL_UPDATE_TIMEOUT,
           "timer=%d frequency=%d",
           timer, frequency);
@@ -268,11 +274,17 @@ void virEventPollUpdateTimeout(int timer, int frequency)
             eventLoop.timeouts[i].frequency = frequency;
             eventLoop.timeouts[i].expiresAt =
                 frequency >= 0 ? frequency + now : 0;
+            VIR_DEBUG("Set timer freq=%d expires=%llu", frequency,
+                      eventLoop.timeouts[i].expiresAt);
             virEventPollInterruptLocked();
+            found = true;
             break;
         }
     }
     virMutexUnlock(&eventLoop.lock);
+
+    if (!found)
+        VIR_WARN("Got update for non-existent timer %d", timer);
 }
 
 /*
@@ -320,6 +332,8 @@ static int virEventPollCalculateTimeout(int *timeout) {
     EVENT_DEBUG("Calculate expiry of %zu timers", eventLoop.timeoutsCount);
     /* Figure out if we need a timeout */
     for (i = 0 ; i < eventLoop.timeoutsCount ; i++) {
+        if (eventLoop.timeouts[i].deleted)
+            continue;
         if (eventLoop.timeouts[i].frequency < 0)
             continue;
 
@@ -336,6 +350,7 @@ static int virEventPollCalculateTimeout(int *timeout) {
         if (virTimeMillisNow(&now) < 0)
             return -1;
 
+        EVENT_DEBUG("Schedule timeout then=%llu now=%llu", then, now);
         *timeout = then - now;
         if (*timeout < 0)
             *timeout = 0;
@@ -503,7 +518,7 @@ static void virEventPollCleanupTimeouts(void) {
     /* Remove deleted entries, shuffling down remaining
      * entries as needed to form contiguous series
      */
-    for (i = 0 ; i < eventLoop.timeoutsCount ; ) {
+    for (i = 0 ; i < eventLoop.timeoutsCount ;) {
         if (!eventLoop.timeouts[i].deleted) {
             i++;
             continue;
@@ -551,7 +566,7 @@ static void virEventPollCleanupHandles(void) {
     /* Remove deleted entries, shuffling down remaining
      * entries as needed to form contiguous series
      */
-    for (i = 0 ; i < eventLoop.handlesCount ; ) {
+    for (i = 0 ; i < eventLoop.handlesCount ;) {
         if (!eventLoop.handles[i].deleted) {
             i++;
             continue;
@@ -717,13 +732,13 @@ int
 virEventPollToNativeEvents(int events)
 {
     int ret = 0;
-    if(events & VIR_EVENT_HANDLE_READABLE)
+    if (events & VIR_EVENT_HANDLE_READABLE)
         ret |= POLLIN;
-    if(events & VIR_EVENT_HANDLE_WRITABLE)
+    if (events & VIR_EVENT_HANDLE_WRITABLE)
         ret |= POLLOUT;
-    if(events & VIR_EVENT_HANDLE_ERROR)
+    if (events & VIR_EVENT_HANDLE_ERROR)
         ret |= POLLERR;
-    if(events & VIR_EVENT_HANDLE_HANGUP)
+    if (events & VIR_EVENT_HANDLE_HANGUP)
         ret |= POLLHUP;
     return ret;
 }
@@ -732,15 +747,15 @@ int
 virEventPollFromNativeEvents(int events)
 {
     int ret = 0;
-    if(events & POLLIN)
+    if (events & POLLIN)
         ret |= VIR_EVENT_HANDLE_READABLE;
-    if(events & POLLOUT)
+    if (events & POLLOUT)
         ret |= VIR_EVENT_HANDLE_WRITABLE;
-    if(events & POLLERR)
+    if (events & POLLERR)
         ret |= VIR_EVENT_HANDLE_ERROR;
-    if(events & POLLNVAL) /* Treat NVAL as error, since libvirt doesn't distinguish */
+    if (events & POLLNVAL) /* Treat NVAL as error, since libvirt doesn't distinguish */
         ret |= VIR_EVENT_HANDLE_ERROR;
-    if(events & POLLHUP)
+    if (events & POLLHUP)
         ret |= VIR_EVENT_HANDLE_HANGUP;
     return ret;
 }

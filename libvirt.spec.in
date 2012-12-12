@@ -53,7 +53,13 @@
 
 %define with_qemu_tcg      %{with_qemu}
 # Change if we ever provide qemu-kvm binaries on non-x86 hosts
-%ifarch %{ix86} x86_64
+%if 0%{?fedora} >= 18
+%define qemu_kvm_arches    %{ix86} x86_64 ppc64 s390x
+%else
+%define qemu_kvm_arches    %{ix86} x86_64
+%endif
+
+%ifarch %{qemu_kvm_arches}
 %define with_qemu_kvm      %{with_qemu}
 %else
 %define with_qemu_kvm      0
@@ -93,6 +99,7 @@
 # A few optional bits off by default, we enable later
 %define with_polkit        0%{!?_without_polkit:0}
 %define with_capng         0%{!?_without_capng:0}
+%define with_fuse          0%{!?_without_fuse:0}
 %define with_netcf         0%{!?_without_netcf:0}
 %define with_udev          0%{!?_without_udev:0}
 %define with_hal           0%{!?_without_hal:0}
@@ -182,8 +189,8 @@
 %endif
 %endif
 
-# Fedora doesn't have new enough Xen for libxl until F16
-%if 0%{?fedora} && 0%{?fedora} < 16
+# Fedora doesn't have new enough Xen for libxl until F18
+%if 0%{?fedora} && 0%{?fedora} < 18
 %define with_libxl 0
 %endif
 
@@ -195,6 +202,11 @@
 # libcapng is used to manage capabilities in Fedora 12 / RHEL-6 or newer
 %if 0%{?fedora} >= 12 || 0%{?rhel} >= 6
 %define with_capng     0%{!?_without_capng:1}
+%endif
+
+# fuse is used to provide virtualized /proc for LXC
+%if 0%{?fedora} >= 17 || 0%{?rhel} >= 7
+%define with_fuse      0%{!?_without_fuse:1}
 %endif
 
 # netcf is used to manage network interfaces in Fedora 12 / RHEL-6 or newer
@@ -319,10 +331,17 @@
 %define with_rhel5  0
 %endif
 
+%if 0%{?fedora} >= 18 || 0%{?rhel} >= 7
+%define with_systemd_macros 1
+%else
+%define with_systemd_macros 0
+%endif
+
+
 Summary: Library providing a simple virtualization API
 Name: libvirt
 Version: @VERSION@
-Release: 1%{?dist}%{?extra_release}
+Release: 0rc1%{?dist}%{?extra_release}
 License: LGPLv2+
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -331,7 +350,7 @@ URL: http://libvirt.org/
 %if %(echo %{version} | grep -o \\. | wc -l) == 3
 %define mainturl stable_updates/
 %endif
-Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}.tar.gz
+Source: http://libvirt.org/sources/%{?mainturl}libvirt-%{version}-rc1.tar.gz
 
 %if %{with_libvirtd}
 Requires: libvirt-daemon = %{version}-%{release}
@@ -502,6 +521,9 @@ BuildRequires: numactl-devel
 %endif
 %if %{with_capng}
 BuildRequires: libcap-ng-devel >= 0.5.0
+%endif
+%if %{with_fuse}
+BuildRequires: fuse-devel >= 2.8.6
 %endif
 %if %{with_phyp} || %{with_libssh2_transport}
 %if %{with_libssh2_transport}
@@ -690,6 +712,8 @@ Requires(postun): systemd-units
 %if %{with_numad}
 Requires: numad
 %endif
+# libvirtd depends on 'messagebus' service
+Requires: dbus
 
 %description daemon
 Server side daemon required to manage the virtualization capabilities
@@ -1186,6 +1210,10 @@ of recent versions of Linux (and other OSes).
 %define _without_capng --without-capng
 %endif
 
+%if ! %{with_fuse}
+%define _without_fuse --without-fuse
+%endif
+
 %if ! %{with_netcf}
 %define _without_netcf --without-netcf
 %endif
@@ -1289,6 +1317,7 @@ autoreconf -if
            %{?_without_numactl} \
            %{?_without_numad} \
            %{?_without_capng} \
+           %{?_without_fuse} \
            %{?_without_netcf} \
            %{?_without_selinux} \
            %{?_with_selinux_mount} \
@@ -1380,8 +1409,6 @@ rm -rf $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/libvirtd.uml
 mv $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-%{version} \
    $RPM_BUILD_ROOT%{_datadir}/doc/libvirt-docs-%{version}
 
-sed -i -e "s|$RPM_BUILD_ROOT||g" $RPM_BUILD_ROOT%{_sysconfdir}/rc.d/init.d/libvirt-guests
-
 %if %{with_dtrace}
 %ifarch %{power64} s390x x86_64 ia64 alpha sparc64
 mv $RPM_BUILD_ROOT%{_datadir}/systemtap/tapset/libvirt_probes.stp \
@@ -1465,11 +1492,14 @@ done
 %endif
 
 %if %{with_systemd}
+%if %{with_systemd_macros}
+%systemd_post libvirtd.service
+%else
 if [ $1 -eq 1 ] ; then
     # Initial installation
     /bin/systemctl enable libvirtd.service >/dev/null 2>&1 || :
-    /bin/systemctl enable cgconfig.service >/dev/null 2>&1 || :
 fi
+%endif
 %else
 %if %{with_cgconfig}
 # Starting with Fedora 16/RHEL-7, systemd automounts all cgroups,
@@ -1489,11 +1519,15 @@ fi
 
 %preun daemon
 %if %{with_systemd}
+%if %{with_systemd_macros}
+%systemd_preun libvirtd.service
+%else
 if [ $1 -eq 0 ] ; then
     # Package removal, not upgrade
     /bin/systemctl --no-reload disable libvirtd.service > /dev/null 2>&1 || :
     /bin/systemctl stop libvirtd.service > /dev/null 2>&1 || :
 fi
+%endif
 %else
 if [ $1 = 0 ]; then
     /sbin/service libvirtd stop 1>/dev/null 2>&1
@@ -1503,11 +1537,15 @@ fi
 
 %postun daemon
 %if %{with_systemd}
+%if %{with_systemd_macros}
+%systemd_postun_with_restart libvirtd.service
+%else
 /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 if [ $1 -ge 1 ] ; then
     # Package upgrade, not uninstall
     /bin/systemctl try-restart libvirtd.service >/dev/null 2>&1 || :
 fi
+%endif
 %endif
 
 %if %{with_network}
@@ -1539,6 +1577,9 @@ fi
 %preun client
 
 %if %{with_systemd}
+%if %{with_systemd_macros}
+%systemd_preun libvirt-guests.service
+%endif
 %else
 if [ $1 = 0 ]; then
     /sbin/chkconfig --del libvirt-guests
@@ -1550,6 +1591,9 @@ fi
 
 /sbin/ldconfig
 %if %{with_systemd}
+%if %{with_systemd_macros}
+%systemd_post libvirt-guests.service
+%endif
 %else
 /sbin/chkconfig --add libvirt-guests
 %endif
@@ -1557,6 +1601,9 @@ fi
 %postun client -p /sbin/ldconfig
 
 %if %{with_systemd}
+%if %{with_systemd_macros}
+%systemd_postun_with_restart libvirt-guests.service
+%endif
 %triggerun client -- libvirt < 0.9.4
 %{_bindir}/systemd-sysv-convert --save libvirt-guests >/dev/null 2>&1 ||:
 
@@ -1608,10 +1655,13 @@ fi
 
 %dir %attr(0700, root, root) %{_sysconfdir}/libvirt/nwfilter/
 
+%attr(0755, root, root) %{_libexecdir}/libvirt-guests.sh
 %if %{with_systemd}
 %{_unitdir}/libvirtd.service
+%{_unitdir}/libvirt-guests.service
 %else
 %{_sysconfdir}/rc.d/init.d/libvirtd
+%{_sysconfdir}/rc.d/init.d/libvirt-guests
 %endif
 %doc daemon/libvirtd.upstart
 %config(noreplace) %{_sysconfdir}/sysconfig/libvirtd
@@ -1671,6 +1721,9 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 %if %{with_libxl}
 %ghost %dir %{_localstatedir}/run/libvirt/libxl/
 %dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/libxl/
+%endif
+%if %{with_xen}
+%dir %attr(0700, root, root) %{_localstatedir}/lib/libvirt/xen/
 %endif
 %if %{with_network}
 %ghost %dir %{_localstatedir}/run/libvirt/network/
@@ -1873,7 +1926,6 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/sysctl.d/libvirtd
 
 %{_datadir}/libvirt/cpu_map.xml
 
-%{_sysconfdir}/rc.d/init.d/libvirt-guests
 %if %{with_systemd}
 %{_unitdir}/libvirt-guests.service
 %endif

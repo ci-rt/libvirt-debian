@@ -49,7 +49,7 @@
 
 #define VIR_FROM_THIS VIR_FROM_QEMU
 
-int qemuDomainChangeEjectableMedia(struct qemud_driver *driver,
+int qemuDomainChangeEjectableMedia(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
                                    virDomainDiskDefPtr disk,
                                    bool force)
@@ -158,7 +158,7 @@ error:
 }
 
 int
-qemuDomainCheckEjectableMedia(struct qemud_driver *driver,
+qemuDomainCheckEjectableMedia(virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
                              enum qemuDomainAsyncJob asyncJob)
 {
@@ -201,7 +201,7 @@ cleanup:
 
 
 int qemuDomainAttachPciDiskDevice(virConnectPtr conn,
-                                  struct qemud_driver *driver,
+                                  virQEMUDriverPtr driver,
                                   virDomainObjPtr vm,
                                   virDomainDiskDefPtr disk)
 {
@@ -315,7 +315,7 @@ error:
 }
 
 
-int qemuDomainAttachPciControllerDevice(struct qemud_driver *driver,
+int qemuDomainAttachPciControllerDevice(virQEMUDriverPtr driver,
                                         virDomainObjPtr vm,
                                         virDomainControllerDefPtr controller)
 {
@@ -387,7 +387,7 @@ cleanup:
 
 
 static virDomainControllerDefPtr
-qemuDomainFindOrCreateSCSIDiskController(struct qemud_driver *driver,
+qemuDomainFindOrCreateSCSIDiskController(virQEMUDriverPtr driver,
                                          virDomainObjPtr vm,
                                          int controller)
 {
@@ -434,7 +434,7 @@ qemuDomainFindOrCreateSCSIDiskController(struct qemud_driver *driver,
 
 
 int qemuDomainAttachSCSIDisk(virConnectPtr conn,
-                             struct qemud_driver *driver,
+                             virQEMUDriverPtr driver,
                              virDomainObjPtr vm,
                              virDomainDiskDefPtr disk)
 {
@@ -491,7 +491,7 @@ int qemuDomainAttachSCSIDisk(virConnectPtr conn,
     /* Tell clang that "cont" is non-NULL.
        This is because disk->info.addr.driver.controller is unsigned,
        and hence the above loop must iterate at least once.  */
-    sa_assert (cont);
+    sa_assert(cont);
 
     if (cont->info.type != VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI) {
         virReportError(VIR_ERR_INTERNAL_ERROR,
@@ -560,7 +560,7 @@ error:
 
 
 int qemuDomainAttachUsbMassstorageDevice(virConnectPtr conn,
-                                         struct qemud_driver *driver,
+                                         virQEMUDriverPtr driver,
                                          virDomainObjPtr vm,
                                          virDomainDiskDefPtr disk)
 {
@@ -655,7 +655,7 @@ error:
 
 /* XXX conn required for network -> bridge resolution */
 int qemuDomainAttachNetDevice(virConnectPtr conn,
-                              struct qemud_driver *driver,
+                              virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainNetDefPtr net)
 {
@@ -715,7 +715,7 @@ int qemuDomainAttachNetDevice(virConnectPtr conn,
          */
         if (actualType == VIR_DOMAIN_NET_TYPE_NETWORK ||
             driver->privileged ||
-            (!qemuCapsGet (priv->caps, QEMU_CAPS_NETDEV_BRIDGE))) {
+            (!qemuCapsGet(priv->caps, QEMU_CAPS_NETDEV_BRIDGE))) {
             if ((tapfd = qemuNetworkIfaceConnect(vm->def, conn, driver, net,
                                                  priv->caps)) < 0)
                 goto cleanup;
@@ -935,7 +935,7 @@ no_memory:
 }
 
 
-int qemuDomainAttachHostPciDevice(struct qemud_driver *driver,
+int qemuDomainAttachHostPciDevice(virQEMUDriverPtr driver,
                                   virDomainObjPtr vm,
                                   virDomainHostdevDefPtr hostdev)
 {
@@ -1028,7 +1028,7 @@ error:
 }
 
 
-int qemuDomainAttachRedirdevDevice(struct qemud_driver *driver,
+int qemuDomainAttachRedirdevDevice(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
                                    virDomainRedirdevDefPtr redirdev)
 {
@@ -1072,7 +1072,7 @@ error:
 
 }
 
-int qemuDomainAttachHostUsbDevice(struct qemud_driver *driver,
+int qemuDomainAttachHostUsbDevice(virQEMUDriverPtr driver,
                                   virDomainObjPtr vm,
                                   virDomainHostdevDefPtr hostdev)
 {
@@ -1097,7 +1097,7 @@ int qemuDomainAttachHostUsbDevice(struct qemud_driver *driver,
         usbDevice *usb;
         qemuCgroupData data;
 
-        if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) !=0 ) {
+        if (virCgroupForDomain(driver->cgroup, vm->def->name, &cgroup, 0) != 0) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("Unable to find cgroup for %s"),
                            vm->def->name);
@@ -1137,7 +1137,7 @@ error:
     return -1;
 }
 
-int qemuDomainAttachHostDevice(struct qemud_driver *driver,
+int qemuDomainAttachHostDevice(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainHostdevDefPtr hostdev)
 {
@@ -1268,13 +1268,13 @@ qemuDomainNetGetBridgeName(virConnectPtr conn, virDomainNetDefPtr net)
         virNetworkFree(network);
         virSetError(errobj);
         virFreeError(errobj);
-        goto cleanup;
 
+    } else {
+        virReportError(VIR_ERR_INTERNAL_ERROR,
+                       _("Interface type %d has no bridge name"),
+                       virDomainNetGetActualType(net));
     }
 
-    virReportError(VIR_ERR_INTERNAL_ERROR,
-                   _("Network type %d is not supported"),
-                   virDomainNetGetActualType(net));
 cleanup:
     return brname;
 }
@@ -1330,7 +1330,44 @@ cleanup:
     return ret;
 }
 
-int qemuDomainChangeNetLinkState(struct qemud_driver *driver,
+static int
+qemuDomainChangeNetFilter(virConnectPtr conn,
+                          virDomainObjPtr vm,
+                          virDomainNetDefPtr olddev,
+                          virDomainNetDefPtr newdev)
+{
+    /* make sure this type of device supports filters. */
+    switch (virDomainNetGetActualType(newdev)) {
+    case VIR_DOMAIN_NET_TYPE_ETHERNET:
+    case VIR_DOMAIN_NET_TYPE_BRIDGE:
+    case VIR_DOMAIN_NET_TYPE_NETWORK:
+        break;
+    default:
+        virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                       _("filters not supported on interfaces of type %s"),
+                       virDomainNetTypeToString(virDomainNetGetActualType(newdev)));
+        return -1;
+    }
+
+    virDomainConfNWFilterTeardown(olddev);
+
+    if (virDomainConfNWFilterInstantiate(conn, vm->def->uuid, newdev) < 0) {
+        virErrorPtr errobj;
+
+        virReportError(VIR_ERR_OPERATION_FAILED,
+                       _("failed to add new filter rules to '%s' "
+                         "- attempting to restore old rules"),
+                       olddev->ifname);
+        errobj = virSaveLastError();
+        ignore_value(virDomainConfNWFilterInstantiate(conn, vm->def->uuid, olddev));
+        virSetError(errobj);
+        virFreeError(errobj);
+        return -1;
+    }
+    return 0;
+}
+
+int qemuDomainChangeNetLinkState(virQEMUDriverPtr driver,
                                  virDomainObjPtr vm,
                                  virDomainNetDefPtr dev,
                                  int linkstate)
@@ -1362,7 +1399,7 @@ cleanup:
 }
 
 int
-qemuDomainChangeNet(struct qemud_driver *driver,
+qemuDomainChangeNet(virQEMUDriverPtr driver,
                     virDomainObjPtr vm,
                     virDomainPtr dom,
                     virDomainDeviceDefPtr dev)
@@ -1373,6 +1410,7 @@ qemuDomainChangeNet(struct qemud_driver *driver,
     int oldType, newType;
     bool needReconnect = false;
     bool needBridgeChange = false;
+    bool needFilterChange = false;
     bool needLinkStateChange = false;
     bool needReplaceDevDef = false;
     int ret = -1;
@@ -1506,8 +1544,10 @@ qemuDomainChangeNet(struct qemud_driver *driver,
     }
     /* (end of device info checks) */
 
-    if (STRNEQ_NULLABLE(olddev->filter, newdev->filter))
-        needReconnect = true;
+    if (STRNEQ_NULLABLE(olddev->filter, newdev->filter) ||
+        !virNWFilterHashTableEqual(olddev->filterparams, newdev->filterparams)) {
+        needFilterChange = true;
+    }
 
     /* bandwidth can be modified, and will be checked later */
     /* vlan can be modified, and will be checked later */
@@ -1665,7 +1705,16 @@ qemuDomainChangeNet(struct qemud_driver *driver,
             goto cleanup;
         /* we successfully switched to the new bridge, and we've
          * determined that the rest of newdev is equivalent to olddev,
-         * so move newdev into place, so that the  */
+         * so move newdev into place */
+        needReplaceDevDef = true;
+    }
+
+    if (needFilterChange) {
+        if (qemuDomainChangeNetFilter(dom->conn, vm, olddev, newdev) < 0)
+            goto cleanup;
+        /* we successfully switched to the new filter, and we've
+         * determined that the rest of newdev is equivalent to olddev,
+         * so move newdev into place */
         needReplaceDevDef = true;
     }
 
@@ -1732,7 +1781,7 @@ static virDomainGraphicsDefPtr qemuDomainFindGraphics(virDomainObjPtr vm,
 
 
 int
-qemuDomainChangeGraphics(struct qemud_driver *driver,
+qemuDomainChangeGraphics(virQEMUDriverPtr driver,
                          virDomainObjPtr vm,
                          virDomainGraphicsDefPtr dev)
 {
@@ -1918,7 +1967,7 @@ static bool qemuIsMultiFunctionDevice(virDomainDefPtr def,
 }
 
 
-int qemuDomainDetachPciDiskDevice(struct qemud_driver *driver,
+int qemuDomainDetachPciDiskDevice(virQEMUDriverPtr driver,
                                   virDomainObjPtr vm,
                                   virDomainDeviceDefPtr dev)
 {
@@ -1999,6 +2048,8 @@ int qemuDomainDetachPciDiskDevice(struct qemud_driver *driver,
 
     virDomainDiskRemove(vm->def, i);
 
+    dev->data.disk->backingChain = detach->backingChain;
+    detach->backingChain = NULL;
     virDomainDiskDefFree(detach);
 
     if (virSecurityManagerRestoreImageLabel(driver->securityManager,
@@ -2022,7 +2073,7 @@ cleanup:
     return ret;
 }
 
-int qemuDomainDetachDiskDevice(struct qemud_driver *driver,
+int qemuDomainDetachDiskDevice(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainDeviceDefPtr dev)
 {
@@ -2089,6 +2140,8 @@ int qemuDomainDetachDiskDevice(struct qemud_driver *driver,
 
     virDomainDiskRemove(vm->def, i);
 
+    dev->data.disk->backingChain = detach->backingChain;
+    detach->backingChain = NULL;
     virDomainDiskDefFree(detach);
 
     if (virSecurityManagerRestoreImageLabel(driver->securityManager,
@@ -2162,7 +2215,7 @@ static bool qemuDomainControllerIsBusy(virDomainObjPtr vm,
     }
 }
 
-int qemuDomainDetachPciControllerDevice(struct qemud_driver *driver,
+int qemuDomainDetachPciControllerDevice(virQEMUDriverPtr driver,
                                         virDomainObjPtr vm,
                                         virDomainDeviceDefPtr dev)
 {
@@ -2237,7 +2290,7 @@ cleanup:
 }
 
 static int
-qemuDomainDetachHostPciDevice(struct qemud_driver *driver,
+qemuDomainDetachHostPciDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainHostdevDefPtr detach)
 {
@@ -2307,7 +2360,7 @@ qemuDomainDetachHostPciDevice(struct qemud_driver *driver,
 }
 
 static int
-qemuDomainDetachHostUsbDevice(struct qemud_driver *driver,
+qemuDomainDetachHostUsbDevice(virQEMUDriverPtr driver,
                               virDomainObjPtr vm,
                               virDomainHostdevDefPtr detach)
 {
@@ -2347,7 +2400,7 @@ qemuDomainDetachHostUsbDevice(struct qemud_driver *driver,
 }
 
 static
-int qemuDomainDetachThisHostDevice(struct qemud_driver *driver,
+int qemuDomainDetachThisHostDevice(virQEMUDriverPtr driver,
                                    virDomainObjPtr vm,
                                    virDomainHostdevDefPtr detach,
                                    int idx)
@@ -2396,7 +2449,7 @@ int qemuDomainDetachThisHostDevice(struct qemud_driver *driver,
 }
 
 /* search for a hostdev matching dev and detach it */
-int qemuDomainDetachHostDevice(struct qemud_driver *driver,
+int qemuDomainDetachHostDevice(virQEMUDriverPtr driver,
                                virDomainObjPtr vm,
                                virDomainDeviceDefPtr dev)
 {
@@ -2415,7 +2468,7 @@ int qemuDomainDetachHostDevice(struct qemud_driver *driver,
     idx = virDomainHostdevFind(vm->def, hostdev, &detach);
 
     if (idx < 0) {
-        switch(subsys->type) {
+        switch (subsys->type) {
         case VIR_DOMAIN_HOSTDEV_SUBSYS_TYPE_PCI:
             virReportError(VIR_ERR_OPERATION_FAILED,
                            _("host pci device %.4x:%.2x:%.2x.%.1x not found"),
@@ -2451,7 +2504,7 @@ int qemuDomainDetachHostDevice(struct qemud_driver *driver,
 }
 
 int
-qemuDomainDetachNetDevice(struct qemud_driver *driver,
+qemuDomainDetachNetDevice(virQEMUDriverPtr driver,
                           virDomainObjPtr vm,
                           virDomainDeviceDefPtr dev)
 {
@@ -2588,7 +2641,7 @@ cleanup:
 }
 
 int
-qemuDomainChangeGraphicsPasswords(struct qemud_driver *driver,
+qemuDomainChangeGraphicsPasswords(virQEMUDriverPtr driver,
                                   virDomainObjPtr vm,
                                   int type,
                                   virDomainGraphicsAuthDefPtr auth,
@@ -2654,7 +2707,7 @@ cleanup:
     return ret;
 }
 
-int qemuDomainAttachLease(struct qemud_driver *driver,
+int qemuDomainAttachLease(virQEMUDriverPtr driver,
                           virDomainObjPtr vm,
                           virDomainLeaseDefPtr lease)
 {
@@ -2671,7 +2724,7 @@ int qemuDomainAttachLease(struct qemud_driver *driver,
     return 0;
 }
 
-int qemuDomainDetachLease(struct qemud_driver *driver,
+int qemuDomainDetachLease(virQEMUDriverPtr driver,
                           virDomainObjPtr vm,
                           virDomainLeaseDefPtr lease)
 {

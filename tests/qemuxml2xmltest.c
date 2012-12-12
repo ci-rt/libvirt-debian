@@ -16,7 +16,7 @@
 # include "qemu/qemu_domain.h"
 # include "testutilsqemu.h"
 
-static struct qemud_driver driver;
+static virQEMUDriver driver;
 
 static int
 testCompareXMLToXMLFiles(const char *inxml, const char *outxml, bool live)
@@ -238,6 +238,8 @@ mymain(void)
     DO_TEST("seclabel-static");
     DO_TEST("seclabel-none");
     DO_TEST("numad-static-vcpu-no-numatune");
+
+    DO_TEST("disk-scsi-disk-vpd");
 
     /* These tests generate different XML */
     DO_TEST_DIFFERENT("balloon-device-auto");

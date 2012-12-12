@@ -66,6 +66,9 @@ struct _virDomainSnapshotDef {
     long long creationTime; /* in seconds */
     int state; /* enum virDomainSnapshotState */
 
+    int memory; /* enum virDomainMemorySnapshot */
+    char *file; /* memory state file when snapshot is external */
+
     size_t ndisks; /* should not exceed dom->ndisks */
     virDomainSnapshotDiskDef *disks;
 
@@ -93,6 +96,7 @@ typedef enum {
     VIR_DOMAIN_SNAPSHOT_PARSE_REDEFINE = 1 << 0,
     VIR_DOMAIN_SNAPSHOT_PARSE_DISKS    = 1 << 1,
     VIR_DOMAIN_SNAPSHOT_PARSE_INTERNAL = 1 << 2,
+    VIR_DOMAIN_SNAPSHOT_PARSE_OFFLINE  = 1 << 3,
 } virDomainSnapshotParseFlags;
 
 virDomainSnapshotDefPtr virDomainSnapshotDefParseString(const char *xmlStr,
@@ -141,15 +145,28 @@ void virDomainSnapshotDropParent(virDomainSnapshotObjPtr snapshot);
                (VIR_DOMAIN_SNAPSHOT_LIST_LEAVES       | \
                 VIR_DOMAIN_SNAPSHOT_LIST_NO_LEAVES)
 
+# define VIR_DOMAIN_SNAPSHOT_FILTERS_STATUS             \
+               (VIR_DOMAIN_SNAPSHOT_LIST_INACTIVE     | \
+                VIR_DOMAIN_SNAPSHOT_LIST_ACTIVE       | \
+                VIR_DOMAIN_SNAPSHOT_LIST_DISK_ONLY)
+
+# define VIR_DOMAIN_SNAPSHOT_FILTERS_LOCATION           \
+               (VIR_DOMAIN_SNAPSHOT_LIST_INTERNAL     | \
+                VIR_DOMAIN_SNAPSHOT_LIST_EXTERNAL)
+
 # define VIR_DOMAIN_SNAPSHOT_FILTERS_ALL                \
                (VIR_DOMAIN_SNAPSHOT_FILTERS_METADATA  | \
-                VIR_DOMAIN_SNAPSHOT_FILTERS_LEAVES)
+                VIR_DOMAIN_SNAPSHOT_FILTERS_LEAVES    | \
+                VIR_DOMAIN_SNAPSHOT_FILTERS_STATUS    | \
+                VIR_DOMAIN_SNAPSHOT_FILTERS_LOCATION)
 
 int virDomainListSnapshots(virDomainSnapshotObjListPtr snapshots,
                            virDomainSnapshotObjPtr from,
                            virDomainPtr dom,
                            virDomainSnapshotPtr **snaps,
                            unsigned int flags);
+
+bool virDomainSnapshotIsExternal(virDomainSnapshotObjPtr snap);
 
 VIR_ENUM_DECL(virDomainSnapshotLocation)
 VIR_ENUM_DECL(virDomainSnapshotState)

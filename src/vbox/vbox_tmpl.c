@@ -100,7 +100,7 @@
 #define VBOX_OBJECT_CHECK(conn, type, value) \
 vboxGlobalData *data = conn->privateData;\
 type ret = value;\
-if(!data->vboxObj) {\
+if (!data->vboxObj) {\
     return ret;\
 }
 
@@ -108,7 +108,7 @@ if(!data->vboxObj) {\
 vboxGlobalData *data = conn->privateData;\
 type ret = value;\
 IHost *host = NULL;\
-if(!data->vboxObj) {\
+if (!data->vboxObj) {\
     return ret;\
 }\
 data->vboxObj->vtbl->GetHost(data->vboxObj, &host);\
@@ -119,7 +119,7 @@ if (!host) {\
 #if VBOX_API_VERSION < 3001
 
 # define VBOX_MEDIUM_RELEASE(arg) \
-if(arg)\
+if (arg)\
     (arg)->vtbl->imedium.nsisupports.Release((nsISupports *)(arg))
 # define VBOX_MEDIUM_FUNC_ARG1(object, func, arg1) \
     (object)->vtbl->imedium.func((IMedium *)(object), arg1)
@@ -154,7 +154,7 @@ if (strUtf16) {\
 
 #define DEBUGUUID(msg, iid) \
 {\
-    VIR_DEBUG (msg ": {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",\
+    VIR_DEBUG(msg ": {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",\
           (unsigned)(iid)->m0,\
           (unsigned)(iid)->m1,\
           (unsigned)(iid)->m2,\
@@ -293,7 +293,7 @@ static void nsIDtoChar(unsigned char *uuid, const nsID *iid) {
     uuidstrdst[16] = uuidstrsrc[14];
     uuidstrdst[17] = uuidstrsrc[15];
 
-    for(i = 18; i < VIR_UUID_STRING_BUFLEN; i++) {
+    for (i = 18; i < VIR_UUID_STRING_BUFLEN; i++) {
         uuidstrdst[i] = uuidstrsrc[i];
     }
 
@@ -332,7 +332,7 @@ static void nsIDFromChar(nsID *iid, const unsigned char *uuid) {
     uuidstrdst[16] = uuidstrsrc[14];
     uuidstrdst[17] = uuidstrsrc[15];
 
-    for(i = 18; i < VIR_UUID_STRING_BUFLEN; i++) {
+    for (i = 18; i < VIR_UUID_STRING_BUFLEN; i++) {
         uuidstrdst[i] = uuidstrsrc[i];
     }
 
@@ -594,12 +594,12 @@ static char *vboxGenerateMediumName(PRUint32  storageBus,
     PRUint32 maxPortPerInst = 0;
     PRUint32 maxSlotPerPort = 0;
 
-    if (   !aMaxPortPerInst
-        || !aMaxSlotPerPort)
+    if (!aMaxPortPerInst ||
+        !aMaxSlotPerPort)
         return NULL;
 
-    if (   (storageBus < StorageBus_IDE)
-        || (storageBus > StorageBus_Floppy))
+    if ((storageBus < StorageBus_IDE) ||
+        (storageBus > StorageBus_Floppy))
         return NULL;
 
     maxPortPerInst = aMaxPortPerInst[storageBus];
@@ -610,8 +610,8 @@ static char *vboxGenerateMediumName(PRUint32  storageBus,
 
     if (storageBus == StorageBus_IDE) {
         prefix = "hd";
-    } else if (   (storageBus == StorageBus_SATA)
-               || (storageBus == StorageBus_SCSI)) {
+    } else if ((storageBus == StorageBus_SATA) ||
+               (storageBus == StorageBus_SCSI)) {
         prefix = "sd";
     } else if (storageBus == StorageBus_Floppy) {
         prefix = "fd";
@@ -653,16 +653,16 @@ static bool vboxGetDeviceDetails(const char *deviceName,
     PRUint32 maxPortPerInst = 0;
     PRUint32 maxSlotPerPort = 0;
 
-    if (   !deviceName
-        || !deviceInst
-        || !devicePort
-        || !deviceSlot
-        || !aMaxPortPerInst
-        || !aMaxSlotPerPort)
+    if (!deviceName ||
+        !deviceInst ||
+        !devicePort ||
+        !deviceSlot ||
+        !aMaxPortPerInst ||
+        !aMaxSlotPerPort)
         return false;
 
-    if (   (storageBus < StorageBus_IDE)
-        || (storageBus > StorageBus_Floppy))
+    if ((storageBus < StorageBus_IDE) ||
+        (storageBus > StorageBus_Floppy))
         return false;
 
     total = virDiskNameToIndex(deviceName);
@@ -670,9 +670,9 @@ static bool vboxGetDeviceDetails(const char *deviceName,
     maxPortPerInst = aMaxPortPerInst[storageBus];
     maxSlotPerPort = aMaxSlotPerPort[storageBus];
 
-    if (   !maxPortPerInst
-        || !maxSlotPerPort
-        || (total < 0))
+    if (!maxPortPerInst ||
+        !maxSlotPerPort ||
+        (total < 0))
         return false;
 
     *deviceInst = total / (maxPortPerInst * maxSlotPerPort);
@@ -822,7 +822,8 @@ cleanup:
 }
 
 
-static int vboxDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED)
+static int vboxDefaultConsoleType(const char *ostype ATTRIBUTE_UNUSED,
+                                  const char *arch ATTRIBUTE_UNUSED)
 {
     return VIR_DOMAIN_CHR_CONSOLE_TARGET_TYPE_SERIAL;
 }
@@ -982,7 +983,7 @@ static virDrvOpenStatus vboxOpen(virConnectPtr conn,
         return VIR_DRV_OPEN_ERROR;
 
     if (conn->uri->scheme == NULL ||
-        STRNEQ (conn->uri->scheme, "vbox"))
+        STRNEQ(conn->uri->scheme, "vbox"))
         return VIR_DRV_OPEN_DECLINED;
 
     /* Leave for remote driver */
@@ -996,14 +997,14 @@ static virDrvOpenStatus vboxOpen(virConnectPtr conn,
     }
 
     if (uid != 0) {
-        if (STRNEQ (conn->uri->path, "/session")) {
+        if (STRNEQ(conn->uri->path, "/session")) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("unknown driver path '%s' specified (try vbox:///session)"), conn->uri->path);
             return VIR_DRV_OPEN_ERROR;
         }
     } else { /* root */
-        if (STRNEQ (conn->uri->path, "/system") &&
-            STRNEQ (conn->uri->path, "/session")) {
+        if (STRNEQ(conn->uri->path, "/system") &&
+            STRNEQ(conn->uri->path, "/session")) {
             virReportError(VIR_ERR_INTERNAL_ERROR,
                            _("unknown driver path '%s' specified (try vbox:///system)"), conn->uri->path);
             return VIR_DRV_OPEN_ERROR;
@@ -1135,8 +1136,8 @@ static int vboxListDomains(virConnectPtr conn, int *ids, int nids) {
             machine->vtbl->GetAccessible(machine, &isAccessible);
             if (isAccessible) {
                 machine->vtbl->GetState(machine, &state);
-                if (   (state >= MachineState_FirstOnline)
-                    && (state <= MachineState_LastOnline) ) {
+                if ((state >= MachineState_FirstOnline) &&
+                    (state <= MachineState_LastOnline)) {
                     ret++;
                     ids[j++] = i + 1;
                 }
@@ -1172,8 +1173,8 @@ static int vboxNumOfDomains(virConnectPtr conn) {
             machine->vtbl->GetAccessible(machine, &isAccessible);
             if (isAccessible) {
                 machine->vtbl->GetState(machine, &state);
-                if (   (state >= MachineState_FirstOnline)
-                    && (state <= MachineState_LastOnline) )
+                if ((state >= MachineState_FirstOnline) &&
+                    (state <= MachineState_LastOnline))
                     ret++;
             }
         }
@@ -1243,8 +1244,8 @@ static virDomainPtr vboxDomainLookupByID(virConnectPtr conn, int id) {
             machine->vtbl->GetAccessible(machine, &isAccessible);
             if (isAccessible) {
                 machine->vtbl->GetState(machine, &state);
-                if (   (state >= MachineState_FirstOnline)
-                    && (state <= MachineState_LastOnline) ) {
+                if ((state >= MachineState_FirstOnline) &&
+                    (state <= MachineState_LastOnline)) {
                     PRUnichar *machineNameUtf16 = NULL;
                     char      *machineNameUtf8  = NULL;
 
@@ -1329,9 +1330,9 @@ static virDomainPtr vboxDomainLookupByUUID(virConnectPtr conn, const unsigned ch
                  */
 
                 ret = virGetDomain(conn, machineNameUtf8, iid_as_uuid);
-                if (   ret
-                    && (state >= MachineState_FirstOnline)
-                    && (state <= MachineState_LastOnline) )
+                if (ret &&
+                    (state >= MachineState_FirstOnline) &&
+                    (state <= MachineState_LastOnline))
                     ret->id = i + 1;
             }
 
@@ -1397,9 +1398,9 @@ static virDomainPtr vboxDomainLookupByName(virConnectPtr conn, const char *name)
                  */
 
                 ret = virGetDomain(conn, machineNameUtf8, uuid);
-                if (   ret
-                    && (state >= MachineState_FirstOnline)
-                    && (state <= MachineState_LastOnline) )
+                if (ret &&
+                    (state >= MachineState_FirstOnline) &&
+                    (state <= MachineState_LastOnline))
                     ret->id = i + 1;
             }
 
@@ -1466,8 +1467,8 @@ static int vboxDomainIsActive(virDomainPtr dom) {
 
                 machine->vtbl->GetState(machine, &state);
 
-                if (   (state >= MachineState_FirstOnline)
-                    && (state <= MachineState_LastOnline) )
+                if ((state >= MachineState_FirstOnline) &&
+                    (state <= MachineState_LastOnline))
                     ret = 1;
                 else
                     ret = 0;
@@ -1945,7 +1946,7 @@ static int vboxDomainGetInfo(virDomainPtr dom, virDomainInfoPtr info) {
                 info->nrVirtCpu = CPUCount;
                 info->memory = memorySize * 1024;
                 info->maxMem = maxMemorySize * 1024;
-                switch(state) {
+                switch (state) {
                     case MachineState_Running:
                         info->state = VIR_DOMAIN_RUNNING;
                         break;
@@ -2426,7 +2427,7 @@ static char *vboxDomainGetXMLDesc(virDomainPtr dom, unsigned int flags) {
                     VBOX_UTF16_TO_UTF8(valueTypeUtf16, &valueTypeUtf8);
                     VBOX_UTF16_FREE(valueTypeUtf16);
 
-                    if ( STREQ(valueTypeUtf8, "sdl") || STREQ(valueTypeUtf8, "gui") ) {
+                    if (STREQ(valueTypeUtf8, "sdl") || STREQ(valueTypeUtf8, "gui")) {
                         PRUnichar *keyDislpayUtf16   = NULL;
                         PRUnichar *valueDisplayUtf16 = NULL;
                         char      *valueDisplayUtf8  = NULL;
@@ -3350,7 +3351,7 @@ sharedFoldersCleanup:
                          * alloc mem and set def->nhostdevs
                          */
 
-                        for(i = 0; i < deviceFilters.count; i++) {
+                        for (i = 0; i < deviceFilters.count; i++) {
                             PRBool active = PR_FALSE;
                             IUSBDeviceFilter *deviceFilter = deviceFilters.items[i];
 
@@ -3364,7 +3365,7 @@ sharedFoldersCleanup:
                             /* Alloc mem needed for the filters now */
                             if (VIR_ALLOC_N(def->hostdevs, def->nhostdevs) >= 0) {
 
-                                for(i = 0; (USBFilterCount < def->nhostdevs) || (i < deviceFilters.count); i++) {
+                                for (i = 0; (USBFilterCount < def->nhostdevs) || (i < deviceFilters.count); i++) {
                                     PRBool active = PR_FALSE;
                                     IUSBDeviceFilter *deviceFilter = deviceFilters.items[i];
 
@@ -3462,8 +3463,8 @@ static int vboxListDefinedDomains(virConnectPtr conn, char ** const names, int m
             machine->vtbl->GetAccessible(machine, &isAccessible);
             if (isAccessible) {
                 machine->vtbl->GetState(machine, &state);
-                if (   (state < MachineState_FirstOnline)
-                    || (state > MachineState_LastOnline) ) {
+                if ((state < MachineState_FirstOnline) ||
+                    (state > MachineState_LastOnline)) {
                     machine->vtbl->GetName(machine, &machineNameUtf16);
                     VBOX_UTF16_TO_UTF8(machineNameUtf16, &machineName);
                     names[j] = strdup(machineName);
@@ -3471,7 +3472,7 @@ static int vboxListDefinedDomains(virConnectPtr conn, char ** const names, int m
                     VBOX_UTF8_FREE(machineName);
                     if (!names[j]) {
                         virReportOOMError();
-                        for ( ; j >= 0 ; j--)
+                        for (; j >= 0 ; j--)
                             VIR_FREE(names[j]);
                         ret = -1;
                         goto cleanup;
@@ -3512,8 +3513,8 @@ static int vboxNumOfDefinedDomains(virConnectPtr conn) {
             machine->vtbl->GetAccessible(machine, &isAccessible);
             if (isAccessible) {
                 machine->vtbl->GetState(machine, &state);
-                if (   (state < MachineState_FirstOnline)
-                    || (state > MachineState_LastOnline) ) {
+                if ((state < MachineState_FirstOnline) ||
+                    (state > MachineState_LastOnline)) {
                     ret++;
                 }
             }
@@ -3555,7 +3556,7 @@ vboxStartMachine(virDomainPtr dom, int i, IMachine *machine,
         VBOX_UTF16_TO_UTF8(valueTypeUtf16, &valueTypeUtf8);
         VBOX_UTF16_FREE(valueTypeUtf16);
 
-        if ( STREQ(valueTypeUtf8, "sdl") || STREQ(valueTypeUtf8, "gui") ) {
+        if (STREQ(valueTypeUtf8, "sdl") || STREQ(valueTypeUtf8, "gui")) {
 
             VBOX_UTF8_TO_UTF16("FRONTEND/Display", &keyDislpayUtf16);
             machine->vtbl->GetExtraData(machine, keyDislpayUtf16,
@@ -3660,7 +3661,7 @@ vboxStartMachine(virDomainPtr dom, int i, IMachine *machine,
                                                 iid->value,
                                                 sessionType,
                                                 env,
-                                                &progress );
+                                                &progress);
 #else /* VBOX_API_VERSION >= 4000 */
     rc = machine->vtbl->LaunchVMProcess(machine, data->vboxSession,
                                         sessionType, env, &progress);
@@ -3746,9 +3747,9 @@ static int vboxDomainCreateWithFlags(virDomainPtr dom, unsigned int flags) {
                 PRUint32 state = MachineState_Null;
                 machine->vtbl->GetState(machine, &state);
 
-                if ( (state == MachineState_PoweredOff) ||
-                     (state == MachineState_Saved) ||
-                     (state == MachineState_Aborted) ) {
+                if ((state == MachineState_PoweredOff) ||
+                    (state == MachineState_Saved) ||
+                    (state == MachineState_Aborted)) {
                     ret = vboxStartMachine(dom, i, machine, &iid);
                 } else {
                     virReportError(VIR_ERR_OPERATION_FAILED, "%s",
@@ -7174,8 +7175,8 @@ vboxCallbackQueryInterface(nsISupports *pThis, const nsID *iid, void **resultp)
     static const nsID isupportIID = NS_ISUPPORTS_IID;
 
     /* Match UUID for IVirtualBoxCallback class */
-    if (    memcmp(iid, &ivirtualboxCallbackUUID, sizeof(nsID)) == 0
-        ||  memcmp(iid, &isupportIID, sizeof(nsID)) == 0) {
+    if (memcmp(iid, &ivirtualboxCallbackUUID, sizeof(nsID)) == 0 ||
+        memcmp(iid, &isupportIID, sizeof(nsID)) == 0) {
         g_pVBoxGlobalData->vboxCallBackRefCount++;
         *resultp = that;
 
@@ -7249,10 +7250,10 @@ static void vboxReadCallback(int watch ATTRIBUTE_UNUSED,
     }
 }
 
-static int vboxDomainEventRegister (virConnectPtr conn,
-                                    virConnectDomainEventCallback callback,
-                                    void *opaque,
-                                    virFreeCallback freecb) {
+static int vboxDomainEventRegister(virConnectPtr conn,
+                                   virConnectDomainEventCallback callback,
+                                   void *opaque,
+                                   virFreeCallback freecb) {
     VBOX_OBJECT_CHECK(conn, int, -1);
     int vboxRet          = -1;
     nsresult rc;
@@ -7293,9 +7294,9 @@ static int vboxDomainEventRegister (virConnectPtr conn,
 
             ret = virDomainEventStateRegister(conn, data->domainEvents,
                                               callback, opaque, freecb);
-            VIR_DEBUG("virDomainEventStateRegister (ret = %d) ( conn: %p, "
+            VIR_DEBUG("virDomainEventStateRegister (ret = %d) (conn: %p, "
                       "callback: %p, opaque: %p, "
-                      "freecb: %p )", ret, conn, callback,
+                      "freecb: %p)", ret, conn, callback,
                       opaque, freecb);
         }
     }
@@ -7312,8 +7313,8 @@ static int vboxDomainEventRegister (virConnectPtr conn,
     }
 }
 
-static int vboxDomainEventDeregister (virConnectPtr conn,
-                                      virConnectDomainEventCallback callback) {
+static int vboxDomainEventDeregister(virConnectPtr conn,
+                                     virConnectDomainEventCallback callback) {
     VBOX_OBJECT_CHECK(conn, int, -1);
     int cnt;
 
@@ -7387,9 +7388,9 @@ static int vboxDomainEventRegisterAny(virConnectPtr conn,
                                               dom, eventID,
                                               callback, opaque, freecb, &ret) < 0)
                 ret = -1;
-            VIR_DEBUG("virDomainEventStateRegisterID (ret = %d) ( conn: %p, "
+            VIR_DEBUG("virDomainEventStateRegisterID (ret = %d) (conn: %p, "
                       "callback: %p, opaque: %p, "
-                      "freecb: %p )", ret, conn, callback,
+                      "freecb: %p)", ret, conn, callback,
                       opaque, freecb);
         }
     }
@@ -7723,9 +7724,9 @@ static virNetworkPtr vboxNetworkDefineCreateXML(virConnectPtr conn, const char *
     virNetworkIpDefPtr ipdef;
     virSocketAddr netmask;
 
-    if (   (!def)
-        || (def->forwardType != VIR_NETWORK_FORWARD_NONE)
-        || (def->nips == 0 || !def->ips))
+    if ((!def) ||
+        (def->forward.type != VIR_NETWORK_FORWARD_NONE) ||
+        (def->nips == 0 || !def->ips))
         goto cleanup;
 
     /* Look for the first IPv4 IP address definition and use that.
@@ -8128,14 +8129,14 @@ static char *vboxNetworkGetXMLDesc(virNetworkPtr network,
 
                 VBOX_UTF8_TO_UTF16(networkNameUtf8 , &networkNameUtf16);
 
-                def->forwardType = VIR_NETWORK_FORWARD_NONE;
+                def->forward.type = VIR_NETWORK_FORWARD_NONE;
 
                 data->vboxObj->vtbl->FindDHCPServerByNetworkName(data->vboxObj,
                                                                  networkNameUtf16,
                                                                  &dhcpServer);
                 if (dhcpServer) {
                     ipdef->nranges = 1;
-                    if (VIR_ALLOC_N(ipdef->ranges, ipdef->nranges) >=0 ) {
+                    if (VIR_ALLOC_N(ipdef->ranges, ipdef->nranges) >=0) {
                         PRUnichar *ipAddressUtf16     = NULL;
                         PRUnichar *networkMaskUtf16   = NULL;
                         PRUnichar *fromIPAddressUtf16 = NULL;
@@ -8174,7 +8175,7 @@ static char *vboxNetworkGetXMLDesc(virNetworkPtr network,
                     }
 
                     ipdef->nhosts = 1;
-                    if (VIR_ALLOC_N(ipdef->hosts, ipdef->nhosts) >=0 ) {
+                    if (VIR_ALLOC_N(ipdef->hosts, ipdef->nhosts) >=0) {
                         ipdef->hosts[0].name = strdup(network->name);
                         if (ipdef->hosts[0].name == NULL) {
                             VIR_FREE(ipdef->hosts);
@@ -8256,9 +8257,9 @@ cleanup:
  * The Storage Functions here on
  */
 
-static virDrvOpenStatus vboxStorageOpen (virConnectPtr conn,
-                                         virConnectAuthPtr auth ATTRIBUTE_UNUSED,
-                                         unsigned int flags)
+static virDrvOpenStatus vboxStorageOpen(virConnectPtr conn,
+                                        virConnectAuthPtr auth ATTRIBUTE_UNUSED,
+                                        unsigned int flags)
 {
     vboxGlobalData *data = conn->privateData;
 
@@ -8277,7 +8278,7 @@ static virDrvOpenStatus vboxStorageOpen (virConnectPtr conn,
     return VIR_DRV_OPEN_SUCCESS;
 }
 
-static int vboxStorageClose (virConnectPtr conn) {
+static int vboxStorageClose(virConnectPtr conn) {
     VIR_DEBUG("vbox storage uninitialized");
     conn->storagePrivateData = NULL;
     return 0;
@@ -8320,7 +8321,7 @@ static virStoragePoolPtr vboxStoragePoolLookupByName(virConnectPtr conn, const c
 
         ignore_value(virUUIDParse(uuidstr, uuid));
 
-        ret = virGetStoragePool(conn, name, uuid);
+        ret = virGetStoragePool(conn, name, uuid, NULL, NULL);
     }
 
     return ret;
@@ -8417,7 +8418,7 @@ static virStorageVolPtr vboxStorageVolLookupByName(virStoragePoolPtr pool, const
     nsresult rc;
     int i;
 
-    if(!name)
+    if (!name)
         return ret;
 
     rc = vboxArrayGet(&hardDisks, data->vboxObj, data->vboxObj->vtbl->GetHardDisks);
@@ -8449,7 +8450,8 @@ static virStorageVolPtr vboxStorageVolLookupByName(virStoragePoolPtr pool, const
                             vboxIIDToUUID(&hddIID, uuid);
                             virUUIDFormat(uuid, key);
 
-                            ret = virGetStorageVol(pool->conn, pool->name, name, key);
+                            ret = virGetStorageVol(pool->conn, pool->name, name, key,
+                                                   NULL, NULL);
 
                             VIR_DEBUG("virStorageVolPtr: %p", ret);
                             VIR_DEBUG("Storage Volume Name: %s", name);
@@ -8510,7 +8512,8 @@ static virStorageVolPtr vboxStorageVolLookupByKey(virConnectPtr conn, const char
 
             if (hddNameUtf8) {
                 if (vboxStorageNumOfPools(conn) == 1) {
-                    ret = virGetStorageVol(conn, "default-pool", hddNameUtf8, key);
+                    ret = virGetStorageVol(conn, "default-pool", hddNameUtf8, key,
+                                           NULL, NULL);
                     VIR_DEBUG("Storage Volume Pool: %s", "default-pool");
                 } else {
                     /* TODO: currently only one default pool and thus
@@ -8582,7 +8585,8 @@ static virStorageVolPtr vboxStorageVolLookupByPath(virConnectPtr conn, const cha
                      * the check below, change it when pools are supported
                      */
                     if (vboxStorageNumOfPools(conn) == 1)
-                        ret = virGetStorageVol(conn, "default-pool", hddNameUtf8, key);
+                        ret = virGetStorageVol(conn, "default-pool", hddNameUtf8, key,
+                                               NULL, NULL);
 
                     VIR_DEBUG("Storage Volume Pool: %s", "default-pool");
                     VIR_DEBUG("Storage Volume Name: %s", hddNameUtf8);
@@ -8628,8 +8632,8 @@ static virStorageVolPtr vboxStorageVolCreateXML(virStoragePoolPtr pool,
     if ((def = virStorageVolDefParseString(&poolDef, xml)) == NULL)
         goto cleanup;
 
-    if (   !def->name
-        || (def->type != VIR_STORAGE_VOL_FILE))
+    if (!def->name ||
+        (def->type != VIR_STORAGE_VOL_FILE))
         goto cleanup;
 
     /* TODO: for now only the vmdk, vpc and vdi type harddisk
@@ -8682,7 +8686,8 @@ static virStorageVolPtr vboxStorageVolCreateXML(virStoragePoolPtr pool,
                         vboxIIDToUUID(&hddIID, uuid);
                         virUUIDFormat(uuid, key);
 
-                        ret = virGetStorageVol(pool->conn, pool->name, def->name, key);
+                        ret = virGetStorageVol(pool->conn, pool->name, def->name, key,
+                                               NULL, NULL);
                     }
 
                     vboxIIDUnalloc(&hddIID);

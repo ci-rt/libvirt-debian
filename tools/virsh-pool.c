@@ -863,7 +863,7 @@ cmdPoolList(vshControl *ctl, const vshCmd *cmd ATTRIBUTE_UNUSED)
                 return false;
             }
 
-            switch(poolType) {
+            switch (poolType) {
             case VIR_STORAGE_POOL_DIR:
                 flags |= VIR_CONNECT_LIST_STORAGE_POOLS_DIR;
                 break;
@@ -1383,10 +1383,7 @@ cmdPoolInfo(vshControl *ctl, const vshCmd *cmd)
             vshPrint(ctl, "%-15s %s\n", _("Persistent:"), persistent ? _("yes") : _("no"));
 
         /* Check and display whether the pool is autostarted or not */
-        virStoragePoolGetAutostart(pool, &autostart);
-        vshDebug(ctl, VSH_ERR_DEBUG, "Pool autostart flag value: %d\n",
-                 autostart);
-        if (autostart < 0)
+        if (virStoragePoolGetAutostart(pool, &autostart) < 0)
             vshPrint(ctl, "%-15s %s\n", _("Autostart:"), _("no autostart"));
         else
             vshPrint(ctl, "%-15s %s\n", _("Autostart:"), autostart ? _("yes") : _("no"));
